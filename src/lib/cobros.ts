@@ -15,6 +15,7 @@ import {
 import { db, auth } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
 import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT, zonaActiva } from '@/lib/timezone'
+import { elegirMedicoCanonico, type MedicoDelCobro } from '@/lib/finanzas/medico-del-cobro'
 
 /**
  * Límites de un día LOCAL del consultorio, en instantes UTC.
@@ -103,9 +104,23 @@ export interface Cobro {
   /** Paciente */
   patientId?: string
   patientNombre?: string
-  /** Médico que atendió (para multi-doctor) */
+  /**
+   * Médico que atendió (para multi-doctor).
+   *
+   * CANÓNICO desde v853: siempre el id del documento en `doctors` cuando se
+   * pudo resolver. Antes llegaba el id de `doctors` desde Citas y el `uid` desde
+   * Consulta, y el reparto de comisiones —que agrupa por este campo— partía al
+   * mismo médico en dos filas.
+   */
   medicoId?: string
   medicoNombre?: string
+  /** Quién cobró, según la sesión. Aparte del id del consultorio. */
+  medicoUid?: string
+  /**
+   * Cómo se resolvió `medicoId`. `sin-resolver` significa que NO se pudo
+   * atribuir con certeza — y eso se dice, en vez de dejarlo indistinguible.
+   */
+  medicoIdResuelto?: 'directo' | 'por-uid' | 'por-correo' | 'sin-resolver'
   /** Folio interno auto-generado */
   folio?: string
   /** Referencia externa (autorización de tarjeta, nro de transferencia, etc.) */
@@ -185,8 +200,43 @@ export async function registrarCobro(
     throw new Error(`Monto inválido (${String((limpio as { monto?: unknown }).monto)}): debe ser un número ≥ 0. Para una devolución usa una operación de reembolso, no un monto negativo.`)
   }
 
+  /**
+   * UN SOLO IDENTIFICADOR DE MÉDICO, RESUELTO AQUÍ Y NO EN CADA PANTALLA.
+   *
+   * Cobrando desde Citas llegaba el id del documento de `doctors`; cobrando al
+   * cerrar la Consulta llegaba el `uid` de la sesión. El reparto de comisiones
+   * agrupa por `medicoId`, así que el mismo médico salía DOS VECES y media
+   * comisión se pagaba al 0 %.
+   *
+   * Se resuelve en el ORIGEN —igual que ya se sella el autor— porque arreglarlo
+   * en cada llamador es garantizar que el próximo llamador lo vuelva a romper.
+   * Si falla la lectura de médicos, se deja el cobro tal como venía: perder un
+   * cobro por no poder normalizar su médico sería peor que la inconsistencia.
+   */
+  let medicoResuelto: MedicoDelCobro = { medicoId: (limpio as { medicoId?: string }).medicoId, como: 'sin-resolver' }
+  try {
+    const { getDoctors } = await import('@/lib/firestore')
+    const doctores = await getDoctors(clinicId)
+    medicoResuelto = elegirMedicoCanonico({
+      medicoIdEntrante: (limpio as { medicoId?: string }).medicoId,
+      uid,
+      email: auth.currentUser?.email ?? undefined,
+      doctores,
+    })
+  } catch { /* se conserva lo que venía */ }
+
   const payload = {
     ...(limpio as Record<string, unknown>),
+    ...(medicoResuelto.medicoId ? { medicoId: medicoResuelto.medicoId } : {}),
+    ...(medicoResuelto.medicoNombre ? { medicoNombre: medicoResuelto.medicoNombre } : {}),
+    /**
+     * CÓMO se resolvió. Es lo que permite auditar el reparto sin adivinar: un
+     * `sin-resolver` en la ficha dice que ese cobro NO pudo atribuirse con
+     * certeza, en vez de dejarlo indistinguible de los demás.
+     */
+    medicoIdResuelto: medicoResuelto.como,
+    /** El uid de quien cobró, aparte del id del consultorio. */
+    medicoUid: uid,
     monto,
     /** Tipo de transacción. Hoy solo se emiten pagos; REFUND/CREDIT/ADJUSTMENT
      *  son su propia unidad (requieren traza a la operación original). */

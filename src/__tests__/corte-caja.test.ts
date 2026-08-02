@@ -86,3 +86,35 @@ describe('cuentasPorCobrar', () => {
     expect(r[0].paciente).toBe('Ana')
   })
 })
+
+/**
+ * GOLDEN — un anticipo de otro día no puede convertir la consulta en deuda.
+ *
+ * `citasConCobro` sólo ve los cobros que se le pasan, y el corte carga los del
+ * DÍA. Un anticipo pagado el viernes para la cita del lunes no está en ese
+ * conjunto: la consulta salía el lunes en «cuentas por cobrar» y bajaba la tasa
+ * de cobro, aunque el dinero ya había entrado.
+ *
+ * La cita lleva `cobroId`, que sólo se escribe con un cobro de CIERRE —un abono
+ * no lo pone, a propósito— y se limpia al anular. Es la respuesta que no depende
+ * de qué día se esté mirando.
+ */
+describe('una cita cobrada OTRO día', () => {
+  it('no aparece en cuentas por cobrar', () => {
+    const pagadaAntes = cita({ id: 'lunes', cobroId: 'cob-del-viernes' } as Partial<Appointment>)
+    // Los cobros del día NO incluyen el del viernes: es justo el caso.
+    expect(cuentasPorCobrar([pagadaAntes], [])).toEqual([])
+  })
+
+  it('y cuenta como cobrada en el embudo', () => {
+    const pagadaAntes = cita({ id: 'lunes', cobroId: 'cob-del-viernes' } as Partial<Appointment>)
+    expect(embudoCobro([pagadaAntes], []).cobradas).toBe(1)
+  })
+
+  it('sin `cobroId` sigue siendo deuda: el abono no salda', () => {
+    // Un abono no escribe `cobroId` — la cita tiene que seguir reclamándose.
+    const conAbono = cita({ id: 'lunes' })
+    expect(cuentasPorCobrar([conAbono], [cobro({ citaId: 'lunes', monto: 200, concepto: 'abono' })]))
+      .toHaveLength(1)
+  })
+})

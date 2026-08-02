@@ -342,19 +342,21 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | **851** | **El paciente podía borrar el estado «pagada» de su cita con un toque.** El portal sólo bloqueaba los estados terminales: una cita `pagada` o `pendiente-pago` pasaba a «confirmada» desde el enlace, y salía del control de cobro. Igual con `en-sala`/`en-consulta`. Ahora es **lista blanca** —con lista negra, cada estado nuevo nace tocable— y una cita **con cobro** ya no se cancela ni se reagenda desde el portal. Confirmar sí: no mueve el hueco ni el dinero. |
 | **852** | **Un anticipo saldaba una consulta que nadie había tasado.** Sin tarifa fijada, el checkout escribe el anticipo en `pagoMonto` y el webhook lo comparaba contra sí mismo: «cubre» → cita **pagada** → el resto no se reclamaba en ninguna pantalla. El comentario del propio webhook ya decía lo correcto y el código hacía lo contrario. El saldo queda en «no se sabe», no en cero. |
 
+## QUINTA TANDA — v853 a v854 (dinero del consultorio)
+
+| v | Qué se reparó |
+|---|---|
+| **853** | **El mismo médico con DOS identificadores partía la comisión en dos.** Desde Citas viajaba el id del documento de `doctors`; desde Consulta, el `uid`. El reparto agrupa por `medicoId`, así que la misma doctora salía en dos filas y media comisión se pagaba al 0 %. Se resuelve **en el origen** (`registrarCobro`), nunca adivinando: ante ambigüedad queda `sin-resolver` y se conserva lo que venía — atribuir mal se paga en silencio a quien no era. Los cobros anteriores siguen como estaban, y el panel **avisa** antes de pagar. |
+| **854** | **Una consulta ya pagada aparecía como deuda.** El corte carga los cobros del DÍA, así que un anticipo pagado el viernes para la cita del lunes la dejaba en «cuentas por cobrar». Ahora manda `cita.cobroId`, que sólo escribe un cobro de cierre y se limpia al anular. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
 
 ### Dinero
-1. **El mismo médico genera cobros con DOS identificadores** y la base de
-   comisiones se parte en dos: desde Citas va el id del doc de `doctors`
-   (`citas/page.tsx:476`), desde Consulta va el `uid`
-   (`consulta/[patientId]/page.tsx:3757`), y `comisiones.ts:78` agrupa por
-   `medicoId`. Se paga de menos o dos veces. **Reparar normalizando en
-   `registrarCobro`, que ya sella `creadoPor`.**
-2. **Consultas ya pagadas salen como «cuentas por cobrar»**: el corte sólo carga
-   los cobros del día y no mira `cita.cobroId` (`corte-caja.ts:106-118`).
+1. ~~Dos identificadores de médico~~ — HECHO (v853). Queda pendiente decidir si
+   se **migran los cobros viejos**: hoy el panel los señala, pero no los une.
+2. ~~Consultas pagadas como cuentas por cobrar~~ — HECHO (v854).
 3. **Anular un cobro reescribe un corte ya cerrado** sin dejar nota en el corte
    (`cobros.ts:300-350`).
 4. **«Reembolsos $0.00»** está condenado a cero porque la operación no existe

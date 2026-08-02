@@ -53,6 +53,12 @@ export interface ReporteComisiones {
   totalNeto: number
   /** Cobros sin médico atribuido: no entran a ninguna comisión. */
   sinAtribuir: { monto: number; n: number }
+  /**
+   * Cobros cuyo médico NO se pudo resolver con certeza (anteriores a v853, o
+   * con correos ambiguos). Sí entran al reparto, pero pueden estar partiendo al
+   * mismo médico en dos filas — y esa duda vale dinero, así que se declara.
+   */
+  dudosos: { monto: number; n: number }
 }
 
 /** Redondeo a centavos, evitando ruido de coma flotante. */
@@ -67,6 +73,19 @@ export function calcularComisiones(cobros: Cobro[], config: ConfigComisiones): R
   const excluidos = new Set(config.conceptosExcluidos ?? [])
   const acc = new Map<string, { nombre: string; base: number; n: number }>()
   const sinAtribuir = { monto: 0, n: 0 }
+  /**
+   * COBROS QUE NO SE PUDIERON ATRIBUIR CON CERTEZA.
+   *
+   * Hasta v853 el mismo médico llegaba con dos identificadores —el id de
+   * `doctors` desde Citas y el `uid` desde Consulta— y el reparto lo partía en
+   * dos filas: el dueño ponía el porcentaje en la que reconocía y la otra mitad
+   * se comisionaba al 0 %. Los cobros nuevos ya se normalizan en el origen, pero
+   * los ANTERIORES siguen escritos como estaban.
+   *
+   * Se cuentan aparte para poder DECIRLO: dos filas del mismo médico se ven
+   * iguales que dos médicos distintos, y esa duda vale dinero.
+   */
+  const dudosos = { monto: 0, n: 0 }
 
   for (const c of cobros) {
     if (excluidos.has(c.concepto)) continue
@@ -74,6 +93,10 @@ export function calcularComisiones(cobros: Cobro[], config: ConfigComisiones): R
       sinAtribuir.monto += c.monto
       sinAtribuir.n += 1
       continue
+    }
+    if ((c as { medicoIdResuelto?: string }).medicoIdResuelto === 'sin-resolver') {
+      dudosos.monto += c.monto
+      dudosos.n += 1
     }
     const row = acc.get(c.medicoId) ?? { nombre: c.medicoNombre || 'Médico', base: 0, n: 0 }
     row.base += c.monto
@@ -104,6 +127,7 @@ export function calcularComisiones(cobros: Cobro[], config: ConfigComisiones): R
     totalComision: centavos(filas.reduce((s, f) => s + f.comision, 0)),
     totalNeto: centavos(filas.reduce((s, f) => s + f.netoConsultorio, 0)),
     sinAtribuir: { monto: centavos(sinAtribuir.monto), n: sinAtribuir.n },
+    dudosos: { monto: centavos(dudosos.monto), n: dudosos.n },
   }
 }
 
