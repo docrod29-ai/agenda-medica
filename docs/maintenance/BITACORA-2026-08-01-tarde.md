@@ -504,6 +504,43 @@ corregirlo hoy, es que no se vuelva a descolgar mañana.
 
 ---
 
+## QUINCUAGÉSIMA OCTAVA TANDA — v909
+
+### Agendar o mover una cita desde el consultorio no dejaba ningún rastro
+
+El portal escribe `cita_solicitada_portal`, `cita_cancelada_portal` y
+`cita_reagendada_portal`. El bot escribe `cita_cancelada_whatsapp`. Cambiar el
+estado escribe `cita_estado_cambiado` y borrar escribe `cita_borrada`.
+
+Y **dar de alta o mover una cita desde el consultorio no escribía nada** —
+siendo la vía por la que pasa la mayor parte de la agenda. Mover una cita cambia
+la fecha, la hora y hasta el médico que la atiende, y en una discusión —«me la
+cambiaron y nadie me avisó»— no había a qué acudir.
+
+Es el **reverso** del fallo que estuve reparando todo el día: no un canal nuevo
+que se salta el guardián del viejo, sino el canal viejo que nunca lo tuvo.
+
+Ahora deja bitácora, distinguiendo alta de movimiento, y en el movimiento guarda
+**qué cambió** (`de → a`) leyendo el estado previo **dentro de la transacción**:
+fuera de ella podría leer una versión que otro acaba de pisar, y la bitácora
+diría que cambió algo que no cambió.
+
+Tres cuidados:
+
+- el **autor sale de la sesión** verificada, nunca del cuerpo (mismo criterio que
+  los cobros);
+- se escribe **después** de la transacción y sin bloquearla: una bitácora que
+  falle no puede tumbar una cita ya dada de alta;
+- en `meta` **no viaja nada identificable** —ni nombre, ni teléfono, ni motivo—.
+  El paciente ya está en `patientId`; repetir sus datos sería PHI de más en una
+  colección que la pantalla de cumplimiento consulta entera.
+
+- `src/lib/expediente/audit-log.ts` (`cita_creada`, `cita_reagendada`)
+- `src/app/api/appointments/route.ts`
+- `src/__tests__/bitacora-agenda.test.ts` — 8 pruebas. Total 4862.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
