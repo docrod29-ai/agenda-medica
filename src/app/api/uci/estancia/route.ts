@@ -29,6 +29,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
+import { validarPeso, fijarPeso, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { SOPORTES_ACTIVOS, type SoporteActivo, type ICUStay } from '@/types/hospital'
@@ -69,6 +70,8 @@ export async function POST(req: NextRequest) {
     soportes?: unknown
     motivoIngresoUci?: string
     fechaIngresoUci?: string
+    /** Peso de dosificación (charter §16). Se fija a propósito, con su autor. */
+    pesoDosificacion?: { valorKg?: unknown; tipo?: unknown }
   }
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
@@ -128,6 +131,30 @@ export async function POST(req: NextRequest) {
     }
     if (body.pacienteId) datos.pacienteId = body.pacienteId
     if (body.motivoIngresoUci !== undefined) datos.motivoIngresoUci = body.motivoIngresoUci
+
+    /**
+     * EL PESO DE DOSIFICACIÓN (charter §16: «se fija explícitamente y queda con
+     * su autor; se prohíbe cambiarlo de forma automática»).
+     *
+     * El autor lo sella la SESIÓN, no el llamador: es el mismo criterio que ya
+     * se aplica a los cobros y a las tomas de UCI. Si el cliente pudiera mandar
+     * el autor, el peso con el que se dosifica quedaría a nombre de quien
+     * dijera el navegador.
+     *
+     * Se valida FORMA, nunca criterio: cuál de los cuatro pesos usar es del
+     * médico. Ver `lib/uci/peso-dosificacion.ts`.
+     */
+    if (body.pesoDosificacion !== undefined) {
+      const autor = acc.email || acc.uid
+      const v = validarPeso(body.pesoDosificacion?.valorKg, body.pesoDosificacion?.tipo, autor)
+      if (!v.ok) return NextResponse.json({ error: v.mensaje }, { status: 400 })
+      datos.pesoDosificacion = fijarPeso(
+        Number(body.pesoDosificacion!.valorKg),
+        body.pesoDosificacion!.tipo as TipoPesoDosificacion,
+        autor,
+        new Date().toISOString(),
+      )
+    }
 
     await doc.set(datos, { merge: true })
     return NextResponse.json({ ok: true, estancia: { ...datos, id: ID_ESTANCIA } })

@@ -612,6 +612,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **894** | **El charter exige que la entrega de turno la revise un médico, y no había forma de revisarla.** El tipo lo hace imposible de saltar —un handoff nace BORRADOR y sólo `marcarRevisado()` lo cambia— pero **esa función no tenía un solo llamador**: la entrega nacía y moría en borrador, y la cabecera decía «sin revisar» para siempre. Una etiqueta que nunca cambia deja de significar algo, y ésta le dice al turno que llega si alguien leyó esto — el handoff es el documento que se lee cuando el que conoce al paciente **ya se fue**. Ahora hay «Lo revisé y lo entrego», con nombre y hora. La revisión se guarda **aparte** del handoff, que se recalcula en cada carga: dentro, desaparecería al llegar una toma nueva. **Reglas desplegadas aparte.** |
 
+## CUADRAGÉSIMA CUARTA TANDA — v895 (§16: el peso con el que se dosifica)
+
+| v | Qué se reparó |
+|---|---|
+| **895** | **Dos pantallas del mismo paciente podían dosificar con pesos distintos.** El charter §16 exige un peso fijado a propósito y con su autor; el campo estaba modelado en `ICUStay` con valor, tipo, autor y hora — **y no lo escribía nadie**. Cada calculadora pedía el suyo (infusiones `infPeso`, CKRT `ckrtPeso`, e infusiones caía a la de CKRT): se tecleaba 70 en una y 80 en la otra y ambas enseñaban un número plausible. En µg/kg/min, 14 % de diferencia en el peso es 14 % en la dosis. Ahora hay uno solo por estancia, con autor sellado por el **servidor**, y las calculadoras lo usan por debajo de lo que se teclee en ellas. **No** se toma del peso de la nota: ése cambia y movería todas las dosis sin que nadie lo pidiera. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
