@@ -302,6 +302,20 @@ es mover código que funciona.
 
 | **845** | **Suspender es un acto, no un olvido.** El ciclo de vida de la orden existía en el modelo y no lo escribía nadie: «Está tomando» era «todo lo que alguna vez apareció en una nota». Cada fármaco lleva un «ya no» con dos opciones (se suspende / ya terminó) y **motivo obligatorio**. No se edita el pasado: se escribe en la nota de hoy. Y lo suspendido **no se receta**. Verificado en producción sin errores de consola. |
 
+| **846** | **Un campo que decía `BLOQUEA_RECETA` y no bloqueaba nada.** El estado con las entidades del NER no se lee en el guardado ni en la impresión, así que sólo pintaba una tarjeta roja — y la documentación afirmaba que «el frontend NO permite firmar». Ahora se llama `RIESGO_MAXIMO` y la tarjeta dice quién detiene de verdad la firma. |
+| **847** | **La API aceptaba `branchId` y no lo miraba nadie.** Se guardaba, pero el motor de agenda no particiona por sede: dos sucursales compartían una agenda mientras el cliente recibía 200. Aceptar un campo que se ignora es prometer una función que no existe. |
+
 **Sigue siendo del Dr. (P-008)**: si una `duracion` cumplida debe pasar sola a
 `terminada` o exige acto médico explícito. Hoy exige acto explícito, que es la
 opción que no inventa nada.
+
+## LO QUE QUEDA EN LA COLA (nada de esto es urgente)
+
+- **Google Calendar es unidireccional**: no hay `freebusy`, así que un evento
+  creado en Google no bloquea la agenda. Es la última pieza real de P-003 y
+  necesita ampliar el alcance de OAuth.
+- **Fragmentación cromática**: 160 de 187 `.tsx` con estilo en línea.
+- **Formularios previos a la consulta** en el portal del paciente (P-019).
+- **Instrucciones al paciente y próxima cita** no entran al motor de tareas (P-010).
+- **`PlanVersion`/`LegacyPlan`/`OverageRule`/`Addon`/`Discount`** del motor de
+  precios (P-013).

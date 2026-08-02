@@ -339,7 +339,14 @@ export interface Appointment {
   notasInternas?: string
   consentimientoMensajes: boolean
   doctorId?: string
-  branchId?: string            // ✨ multi-sucursal (opcional)
+  /**
+   * DECORATIVO HOY — no lo escribe ninguna interfaz ni lo mira el motor de
+   * agenda, y desde v847 la API tampoco lo acepta. Se conserva en el tipo para
+   * los documentos que ya lo llevaran; cuando exista la interfaz de sucursales,
+   * `getAvailableSlots` y el chequeo de solapes tienen que particionar por sede
+   * ANTES de volver a aceptarlo.
+   */
+  branchId?: string
   googleCalendarEventId?: string
   googleCalendarSyncStatus?: 'pending' | 'synced' | 'error'
   cobroId?: string             // cobro ya registrado para esta cita (evita doble cobro)

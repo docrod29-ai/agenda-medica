@@ -41,7 +41,21 @@ export async function POST(req: NextRequest) {
   const CAMPOS_CITA = [
     'pacienteId', 'pacienteNombre', 'pacienteTelefono', 'fechaHora', 'duracion',
     'tipo', 'motivo', 'estado', 'origen', 'medicoNombre', 'medicoId', 'lugar',
-    'notasInternas', 'consentimientoMensajes', 'doctorId', 'branchId',
+    'notasInternas', 'consentimientoMensajes', 'doctorId',
+    /**
+     * `branchId` NO ESTÁ AQUÍ, Y ES A PROPÓSITO.
+     *
+     * Estaba, y era la peor clase de campo: se aceptaba, se guardaba y no lo
+     * miraba NADIE. `getAvailableSlots` no recibe sucursal, el chequeo de
+     * solapes no particiona por sede y ninguna interfaz lo escribe. Un cliente
+     * de la API lo mandaba, recibía 200, y se quedaba creyendo que la cita
+     * estaba asignada a una sucursal: dos sedes con horarios distintos seguían
+     * compartiendo una sola agenda.
+     *
+     * Aceptar un campo que se ignora es prometer una función que no existe. El
+     * modelo (`lib/branches.ts`) se queda para cuando haya interfaz y motor;
+     * hasta entonces, la API dice que no en vez de decir que sí y no hacerlo.
+     */
   ] as const
   /**
    * SOBREAGENDAR: LO QUE EL CHARTER PEDÍA Y NO EXISTÍA.
