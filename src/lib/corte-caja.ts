@@ -62,6 +62,23 @@ export interface Embudo {
  * concepto que no sea "abono". Se prefiere sobre-reportar pendiente —que a lo
  * sumo hace que alguien pregunte— antes que perder un saldo en silencio.
  */
+/**
+ * ¿ESTA CITA YA ESTÁ SALDADA?
+ *
+ * `citasConCobro` sólo ve los cobros que se le pasan, y el corte carga **los del
+ * día**. Un anticipo pagado el viernes para la cita del lunes no está en ese
+ * conjunto: la consulta salía el lunes en «cuentas por cobrar» y bajaba la tasa
+ * de cobro, aunque el dinero ya había entrado.
+ *
+ * La cita misma lleva `cobroId`, que sólo se escribe con un cobro de CIERRE —un
+ * abono no lo pone, a propósito—, así que es la respuesta que no depende de qué
+ * día se esté mirando. Y al anular un cobro se limpia, así que no se queda
+ * afirmando un pago que ya no existe.
+ */
+function estaSaldada(cita: Appointment, conCobro: ReadonlySet<string>): boolean {
+  return conCobro.has(cita.id) || !!(cita as { cobroId?: string }).cobroId
+}
+
 function citasConCobro(cobros: Cobro[]): Set<string> {
   const s = new Set<string>()
   for (const c of cobros) {
@@ -76,7 +93,7 @@ export function embudoCobro(citas: Appointment[], cobros: Cobro[]): Embudo {
   const agendables = citas.filter(c => !NO_CUENTAN.includes(c.estado))
   const atendidas = agendables.filter(c => ATENDIDAS.includes(c.estado))
   const noAsistio = citas.filter(c => c.estado === 'no-asistio').length
-  const cobradas = atendidas.filter(c => conCobro.has(c.id))
+  const cobradas = atendidas.filter(c => estaSaldada(c, conCobro))
   // El dinero cobrado SÍ incluye los abonos: entró a caja aunque no salde la cita.
   // (La cita sigue contando como no cobrada arriba; son dos preguntas distintas:
   //  cuánto entró vs. qué consultas quedan por saldar.)
@@ -107,7 +124,7 @@ export function cuentasPorCobrar(citas: Appointment[], cobros: Cobro[]): CuentaP
   const conCobro = citasConCobro(cobros)
   return citas
     // Excluye las EXENTAS (cortesía): el médico decidió no cobrarlas, no son deuda.
-    .filter(c => ATENDIDAS.includes(c.estado) && !conCobro.has(c.id) && !c.cobroExento)
+    .filter(c => ATENDIDAS.includes(c.estado) && !estaSaldada(c, conCobro) && !c.cobroExento)
     .map(c => ({
       citaId: c.id,
       paciente: c.pacienteNombre,
