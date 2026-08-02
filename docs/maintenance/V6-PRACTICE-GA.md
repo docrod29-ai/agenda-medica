@@ -51,7 +51,7 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 |---|---|---|
 | P-020 | Security release gate | **PARCIAL** — aislamiento por tenant probado (100 specs de emulador), RBAC auditado y estrechado (v808, v818, v823), cabeceras, rate limits, bitácora con cola (v824). **FALTA y es DEL DR.**: MFA obligatorio o riesgo aceptado por escrito, PITR, simulacro de restauración, simulacro de incidente, **pentest externo**. El charter es explícito: Claude no aprueba su propia seguridad. |
 | P-021 | Resiliencia | **HECHO** — las seis promesas verificadas y reparadas (v800): IA, transcripción, evidencia sin citas inventadas, Stripe sin duplicar, WhatsApp con rastro, autosave sin pérdida silenciosa (v811). |
-| P-022 | Observabilidad | **PARCIAL** — libro de costos, entregabilidad de WhatsApp, embudo de alta, CSP en observación. **FALTA**: los cuatro tableros separados del charter (técnico, clínico, IA, financiero) con latencias p50/p95/p99 y MRR/churn. |
+| P-022 | Observabilidad | **HECHO, con un límite declarado.** **Técnico**: latencias p50/p95/p99 + la peor + tasa de fallo, por operación y por modelo (v842) — los datos ya se guardaban en cada asiento y no los leía nadie. **IA**: consumo, tokens, costo y fallos por modelo y por operación (libro de costos). **Financiero**: ingresos, margen, MRR y ahora **tasa de bajas** con su denominador correcto (v843); antes ni siquiera se guardaba la fecha de cancelación. **Clínico**: lo medible sin entrar al expediente está en `/cumplimiento` y `/cumplimiento/motores` (bitácora, motores sin validar, asientos pendientes). Lo que el charter pide como «tablero clínico» —desenlaces— **no se puede medir desde la plataforma sin pasearse por los expedientes de los clientes**, y eso ya se rechazó una vez al construir el embudo. Se declara en vez de fabricarlo. |
 
 ## FASE 5 — GOLDEN FLOW Y LANZAMIENTO
 
@@ -83,8 +83,11 @@ actuales».
 4. ~~Header de la consulta~~ — HECHO (v828, v840) y verificado en producción.
 5. ~~Horario partido y descansos~~ — HECHO (v829-v830, v837).
 6. ~~Métricas `timeToFirst*`~~ — YA EXISTÍAN en `lib/onboarding/embudo.ts`; faltaba pintarlas (v841).
-7. Tableros de observabilidad separados (P-022).
-8. `BillingEngine`/`StripeAdapter` (P-012) — sólo si sobra tiempo: hoy funciona.
+7. ~~Tableros de observabilidad~~ — HECHO (v842-v843), con el límite del tablero clínico declarado.
+8. `BillingEngine`/`StripeAdapter` (P-012) — **NO se hizo, a propósito**. El ciclo
+   de vida ya está reparado y probado (v812-v826); extraer la abstracción hoy es
+   mover código que funciona, sin un segundo proveedor de pago que lo justifique.
+   Cuando lo haya, la refactorización se paga sola; hacerla antes es adivinar.
 
 ## LO QUE ES DEL DR. (va al final, por su instrucción)
 
