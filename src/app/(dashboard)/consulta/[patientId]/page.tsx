@@ -15,6 +15,7 @@ import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
+import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { auth } from '@/lib/firebase'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
@@ -37,10 +38,16 @@ import { RevisionPanel } from '@/components/RevisionPanel'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto } from '@/lib/expediente/procedencia'
 
-/** Alergias del paciente (texto libre) → lista para el sello de procedencia. */
+/**
+ * Alergias del paciente (texto libre) → lista para el sello de procedencia.
+ *
+ * Usa el MISMO partidor que el cruce de seguridad. Había dos: éste cortaba por
+ * `[,;\n]` y `parsearAlergiasTexto` por `[,;/]`, así que «Penicilina / Sulfas»
+ * era una alergia para el sello y dos para la alerta. El mismo campo no puede
+ * significar dos cosas según quién lo lea.
+ */
 function alergiasArray(alergias?: string): string[] {
-  if (!alergias) return []
-  return alergias.split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
@@ -600,9 +607,25 @@ export default function ConsultaActivaPage() {
     if (consentimiento) { arrancarSegunModo(); return }
     setModalConsentimiento(true)
   }
+  /** Lo que decían las alergias al abrir, para poder asentar QUÉ cambió. */
+  const alergiasAlAbrir = useRef('')
+
   const confirmarConsentimiento = () => {
     setConsentimiento(true)
     setModalConsentimiento(false)
+    /**
+     * DEJAR CONSTANCIA DE QUE SE CONSINTIÓ.
+     *
+     * El evento `consentimiento_grabacion` existía en el catálogo, en la lista
+     * blanca del servidor y en las etiquetas del panel de cumplimiento — y no lo
+     * emitía NADIE. El consentimiento vivía en un `useState`: se grababa la voz
+     * del paciente, se enviaba a un tercero para transcribir, y ante una queja no
+     * había absolutamente nada que exhibir.
+     *
+     * La marca la pone el servidor (uid y hora del token), como el resto de la
+     * bitácora.
+     */
+    void logAudit({ evento: 'consentimiento_grabacion', clinicId: clinicId ?? '', patientId })
     arrancarSegunModo()
   }
 
@@ -651,7 +674,7 @@ export default function ConsultaActivaPage() {
      * hacía bien; esta pantalla se había quedado atrás.
      */
     getPatient(clinicId, patientId)
-      .then(p => { setPatient(p); setPacienteError(!p) })
+      .then(p => { setPatient(p); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
       .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
@@ -1337,9 +1360,10 @@ export default function ConsultaActivaPage() {
        * Se registra el alérgeno tal como está escrito y nada más. Los campos que
        * no se saben quedan ausentes, que es la única representación honesta.
        */
-      alergias: patient?.alergias?.trim()
-        ? [{ alergeno: patient.alergias.trim() }]
-        : [],
+      // Una entrada POR alérgeno, no el párrafo entero como un solo alérgeno —y
+      // sin lo que el propio campo niega («niega alergia a penicilina» no es una
+      // alergia a penicilina, y hacía saltar la alerta que bloquea la firma).
+      alergias: parsearAlergiasTexto(patient?.alergias),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
       preop,
@@ -2160,7 +2184,23 @@ export default function ConsultaActivaPage() {
         <input
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
-          onBlur={() => { if (clinicId && patient) updatePatient(clinicId, patientId, { alergias: patient.alergias ?? '' }).catch(() => toast('No se guardaron las alergias. Revisa tu conexión.', 'error')) }}
+          onBlur={() => {
+            if (!clinicId || !patient) return
+            const antes = alergiasAlAbrir.current
+            const despues = patient.alergias ?? ''
+            if (antes === despues) return
+            updatePatient(clinicId, patientId, { alergias: despues }).catch(() => toast('No se guardaron las alergias. Revisa tu conexión.', 'error'))
+            /**
+             * QUEDA CONSTANCIA DE QUIÉN LAS CAMBIÓ.
+             *
+             * Sin esto había una salida silenciosa para la compuerta de alergias:
+             * el médico ve el error que le impide firmar, vacía el campo, y la
+             * firma se habilita sin que en el expediente quede rastro de que
+             * alguna vez hubo una alergia registrada.
+             */
+            void logAudit({ evento: 'paciente_modificado', clinicId, patientId, meta: { campo: 'alergias', antes, despues, vaciado: !despues.trim() && !!antes.trim() } })
+            alergiasAlAbrir.current = despues
+          }}
           placeholder="Sin alergias conocidas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}

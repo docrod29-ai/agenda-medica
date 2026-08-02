@@ -141,6 +141,11 @@ export default function GeneradorRecetaPage() {
 
   // SEGURIDAD CLÍNICA: verificación DETERMINISTA de dosis (error de decimal 50→500,
   // sobre-máximo, sobre-mg/kg pediátrico). Ausencia de alerta ≠ dosis segura.
+  // Declarados AQUÍ y no más abajo a propósito: el peso que teclea el médico se
+  // usa en la verificación de dosis, que se calcula justo debajo.
+  const [creatinina, setCreatinina] = useState('')
+  const [pesoKg, setPesoKg] = useState('')
+
   const alertasDosis = useMemo(() => {
     const out: { med: string; alertas: AlertaDosis[] }[] = []
     // PESO para la verificación mg/kg PEDIÁTRICA (antes NO se pasaba → la red de
@@ -149,7 +154,15 @@ export default function GeneradorRecetaPage() {
     // cálculo renal. Solo se aplica a pacientes < 18 años.
     const esPediatrico = patient?.edad != null && patient.edad < 18
     const pesoNota = Number(nota?.signosVitales?.peso ?? 0)
-    const pesoParaDosis = esPediatrico && pesoNota > 0 ? pesoNota : undefined
+    // El comentario de arriba prometía «y si no, el que el médico teclee», y el
+    // código no lo cumplía: sólo miraba la nota. En un niño sin peso en signos
+    // vitales, la comprobación mg/kg —la red de seguridad más importante que hay
+    // en pediatría— corría con topes de adulto aunque el peso estuviera escrito
+    // dos centímetros más abajo, en el bloque renal.
+    const pesoTecleado = parseFloat(pesoKg)
+    const pesoParaDosis = !esPediatrico ? undefined
+      : pesoNota > 0 ? pesoNota
+      : (pesoTecleado > 0 ? pesoTecleado : undefined)
     for (const m of medicamentos) {
       if (!m.nombre?.trim()) continue     // renglón en blanco que se está escribiendo
       /**
@@ -182,12 +195,10 @@ export default function GeneradorRecetaPage() {
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out
-  }, [medicamentos, patient?.edad, nota?.signosVitales?.peso])
+  }, [medicamentos, patient?.edad, nota?.signosVitales?.peso, pesoKg])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
-  const [creatinina, setCreatinina] = useState('')
-  const [pesoKg, setPesoKg] = useState('')
   const renal = useMemo(() => {
     const cr = parseFloat(creatinina)
     if (!cr || cr <= 0 || !patient?.edad) return null

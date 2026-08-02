@@ -11,13 +11,44 @@
 
 import type { AlergiaEstructurada } from '@/types'
 
+/**
+ * NEGACIONES — «Niega alergia a penicilina» NO es una alergia a penicilina.
+ *
+ * El cruce alergia↔fármaco hace `alergia.includes(farmaco)` sobre el texto
+ * libre. Con el campo escrito así —que es como lo escribe medio mundo— salía
+ * una alerta CRÍTICA al prescribir amoxicilina, y esa alerta deshabilita el
+ * botón de Firmar. La única salida que le quedaba al médico era BORRAR el texto
+ * del expediente: exactamente el desenlace que el esquema de clasificación
+ * describe como el fallo a evitar, y encima mutilando el registro.
+ *
+ * Esto no decide nada clínico: lee lo que el campo dice. Si dice que el paciente
+ * niega la alergia, no se registra la alergia.
+ */
+const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|descartad[ao]s?|ningun[ao])\b/i
+
+/** ¿Este fragmento afirma la ausencia de una alergia? */
+export function esAlergiaNegada(fragmento: string): boolean {
+  return NEGADOR.test(fragmento.trim())
+}
+
+/** Cómo se parte el texto libre. Una sola definición: dos splitters distintos
+ *  daban listas distintas del MISMO campo a la nota y a la receta. */
+const SEPARADORES = /[,;/\n]+|\sy\s/
+
+/** Los fragmentos NEGADOS del campo, para poder mostrarlos en vez de esconderlos. */
+export function negacionesEnTexto(texto: string | undefined): string[] {
+  if (!texto?.trim()) return []
+  return texto.split(SEPARADORES).map(a => a.trim()).filter(a => a && esAlergiaNegada(a))
+}
+
 /** Divide un texto libre de alergias en alérgenos ("Penicilina, Sulfas; Mariscos"). */
 export function parsearAlergiasTexto(texto: string | undefined): AlergiaEstructurada[] {
   if (!texto?.trim()) return []
   return texto
-    .split(/[,;/]+|\ny\b/)
+    .split(SEPARADORES)
     .map(a => a.trim())
     .filter(Boolean)
+    .filter(a => !esAlergiaNegada(a))
     .map(alergeno => ({ alergeno }))
 }
 
@@ -72,3 +103,9 @@ export function alergiasParaImpreso(
   if (!lista.length) return (p.alergias ?? '').trim()
   return lista.map(a => a.alergeno).join(', ')
 }
+
+export const POR_QUE_LA_NEGACION_IMPORTA =
+  'Porque «Niega alergia a penicilina» hacía saltar la alerta crítica al ' +
+  'prescribir amoxicilina, y esa alerta deshabilita Firmar. La única salida del ' +
+  'médico era borrar el texto del expediente: se pierde el dato y se pierde la ' +
+  'compuerta. Leer lo que el campo dice no es una decisión clínica.'
