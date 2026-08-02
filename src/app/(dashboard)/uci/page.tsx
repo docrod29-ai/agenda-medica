@@ -806,7 +806,7 @@ export default function UciPanelPage() {
       )}
 
       {internamientoId && pestana === 'mar' && (
-        <MarPaciente indicaciones={inter?.indicaciones ?? []} />
+        <MarPaciente indicaciones={inter?.indicaciones ?? []} graciaMinDeclarada={config.graciaMarMin} />
       )}
 
       {pestana === 'dosis' && <DosisMeropenem />}

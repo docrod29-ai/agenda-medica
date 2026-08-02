@@ -411,6 +411,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **866** | **El algoritmo de dosificación del Dr. no tenía puerta de entrada.** `lib/uci/dosificacion-critica.ts` —meropenem en el adulto crítico, dictado el 30 de julio— estaba escrito, probado y sin un solo llamador: el fallo que más veces se ha repetido en este repositorio. Ahora hay pestaña **«Dosis en crítico»** en el panel de UCI: CrCl, modalidad de reemplazo renal, MIC y criterios de alta exposición, y **las dos columnas** —convencional y alta exposición— sin marcar ninguna como la buena. Si falta el dato que decide la fila, no propone: dice qué falta. La pantalla no calcula nada; todo lo decide el motor puro, con sus avisos (en CRRT no se aplica el ajuste de falla renal; una resistencia verdadera no se vence subiendo la dosis; la preparación la fija la farmacia del hospital). Sale de `HUERFANOS_ACEPTADOS`. |
 
+## DECIMOSEXTA TANDA — v867 (el número escrito dos veces)
+
+| v | Qué se reparó |
+|---|---|
+| **867** | **El margen del MAR estaba escrito dos veces y donde el hospital no puede tocarlo.** `const GRACIA_MIN = 30` vivía en el MAR del paciente y otra vez en el turno de enfermería: dos pantallas que leen el mismo motor y le dicen a la misma enfermera si una dosis va atrasada. El propio motor declara (`FALTA_GRACIA`) que la gracia es una decisión **operativa de la unidad**, no un umbral clínico — y estaba clavada en el código. Un solo módulo (`lib/uci/gracia.ts`) con el valor de fábrica de siempre (30 min, sin cambiar nada en silencio) y `config.graciaMarMin` para la unidad; un valor imposible cae al de fábrica en vez de reventar el MAR o inventar un margen (4 pruebas). |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

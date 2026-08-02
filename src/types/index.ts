@@ -465,6 +465,13 @@ export interface ClinicConfig {
   /** Correo de contacto para derechos ARCO y avisos de privacidad. */
   correoArco?: string
   zonaHoraria: string
+  /**
+   * Minutos de margen antes de marcar una dosis atrasada en el MAR.
+   *
+   * OPERATIVO, no clínico: depende de los turnos y de la ronda de enfermería.
+   * Vacío = el de fábrica (`GRACIA_MAR_DEFECTO`). Ver `lib/uci/gracia.ts`.
+   */
+  graciaMarMin?: number
   horario: {
     lunes: DaySchedule
     martes: DaySchedule

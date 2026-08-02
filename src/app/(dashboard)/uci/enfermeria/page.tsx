@@ -14,6 +14,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, HeartPulse, AlertTriangle, Info, BedDouble, CheckCircle2 } from 'lucide-react'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
+import { useConfig } from '@/hooks/useConfig'
+import { graciaMar } from '@/lib/uci/gracia'
 import { suscribirCenso, getUnidades } from '@/lib/hospital/firestore'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { esCritica, sinTipoConfigurado, AVISO_SIN_TIPO, type Unidad } from '@/lib/hospital/unidades'
@@ -28,7 +30,7 @@ import { Spinner } from '@/components/ui'
  * unidad antes de llamar atrasada a una dosis, y el motor la exige a propósito.
  * Cuando el Dr. la fije, sale de la configuración del hospital.
  */
-const GRACIA_MIN = 30
+
 const TOPE_TOMAS_LISTA = 5
 
 const COLOR: Record<TipoTarea, string> = {
@@ -42,6 +44,11 @@ export default function EnfermeriaUciPage() {
   const router = useRouter()
   const volver = useSmartBack('/uci')
   const { clinicId } = useClinic()
+  const { config } = useConfig()
+  // El margen lo decide un solo módulo: aquí estaba escrito a mano y otra vez
+  // en el MAR del paciente, y las dos pantallas se lo dicen a la misma
+  // enfermera sobre el mismo paciente.
+  const gracia = graciaMar(config.graciaMarMin)
   const [unidades, setUnidades] = useState<Unidad[] | null>(null)
   const [resumen, setResumen] = useState<ResumenEnfermeria | null>(null)
   /**
@@ -92,7 +99,7 @@ export default function EnfermeriaUciPage() {
           horasDesdeUltimaToma: Number.isNaN(ms) ? null : (Date.parse(ahora) - ms) / 3_600_000,
         }
       }))
-      if (vivo) setResumen(turnoDeEnfermeria(pacientes, ahora, GRACIA_MIN))
+      if (vivo) setResumen(turnoDeEnfermeria(pacientes, ahora, gracia))
     })
     return () => { vivo = false; off?.() }
   }, [clinicId, unidades])
@@ -186,7 +193,7 @@ export default function EnfermeriaUciPage() {
               Las infusiones continuas, los PRN y las dosis únicas ya administradas
               <strong> no aparecen aquí</strong>: no se atrasan por definición, y ponerlas en rojo
               cada hora haría que el rojo dejara de significar algo.
-              El margen antes de marcar una dosis atrasada es de {GRACIA_MIN} min — un valor
+              El margen antes de marcar una dosis atrasada es de {gracia} min — un valor
               operativo de la unidad, no clínico.
             </div>
           </div>
