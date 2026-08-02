@@ -102,6 +102,42 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
     if (open && clinicId) listarBloques(clinicId).then(setBloques).catch(() => {})
   }, [open, clinicId])
 
+  /**
+   * LO QUE EL MÉDICO YA TIENE EN SU GOOGLE CALENDAR.
+   *
+   * La integración era de UNA dirección: NexusMED empujaba sus citas a Google y
+   * nada volvía. El médico se ponía una cirugía el jueves de 8 a 12 en su
+   * calendario y esta pantalla seguía ofreciendo esas horas; el choque se
+   * descubría el jueves.
+   *
+   * Llegan convertidos a bloqueos, así que el motor de huecos los descuenta sin
+   * enterarse de que vienen de fuera. Si la consulta FALLA se dice —abajo—, en
+   * vez de mostrar la agenda como si estuviera libre.
+   */
+  const [ocupadoGoogle, setOcupadoGoogle] = useState<TimeBlock[]>([])
+  const [falloGoogle, setFalloGoogle] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    // El reseteo va DIFERIDO (no `setState` síncrono dentro del efecto): con la
+    // llamada directa, cerrar el modal encadenaba un render extra por cada
+    // cambio de fecha.
+    const limpiar = () => { if (vivo) { setOcupadoGoogle([]); setFalloGoogle(false) } }
+    if (!open || !clinicId || !fecha) { void Promise.resolve().then(limpiar); return () => { vivo = false } }
+    fetchAutenticado(`/api/calendar/ocupado?clinicId=${encodeURIComponent(clinicId)}&fecha=${fecha}`)
+      .then(r => r.json())
+      .then((d: { ok?: boolean; conectado?: boolean; bloqueos?: TimeBlock[] }) => {
+        if (!vivo) return
+        setOcupadoGoogle(d?.bloqueos ?? [])
+        // Sin Google vinculado no hay nada que avisar: es la mayoría de los casos.
+        setFalloGoogle(d?.conectado === true && d?.ok === false)
+      })
+      .catch(limpiar)
+    return () => { vivo = false }
+  }, [open, clinicId, fecha])
+
+  /** Los bloqueos del consultorio MÁS lo que ya está ocupado fuera. */
+  const bloquesTotales = useMemo(() => [...bloques, ...ocupadoGoogle], [bloques, ocupadoGoogle])
+
   // Populate on edit
   useEffect(() => {
     if (!open) return
@@ -156,7 +192,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   // Available slots — con el horario del médico y solo SUS citas
   const slots = useMemo(() => {
     if (!fecha) return []
-    const base = getAvailableSlots(fecha, duracion, appointments, cfgAgenda, appointment?.id, bloques, medicoId || undefined)
+    const base = getAvailableSlots(fecha, duracion, appointments, cfgAgenda, appointment?.id, bloquesTotales, medicoId || undefined)
     // Auditoría 2026-07 (P1): garantiza que la hora original de la cita editada
     // sea SIEMPRE seleccionable (misma fecha), aunque ya haya pasado, para no
     // bloquear el guardado al editar una cita del pasado.
@@ -164,12 +200,12 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       return [...base, horaOriginal].sort()
     }
     return base
-  }, [fecha, duracion, appointments, cfgAgenda, appointment?.id, medicoId, bloques, horaOriginal, appointment])
+  }, [fecha, duracion, appointments, cfgAgenda, appointment?.id, medicoId, bloquesTotales, horaOriginal, appointment])
 
   // Conflict check (médico-aware + bloqueos, igual que los slots)
   useEffect(() => {
     if (!fecha || !hora) { setConflict(false); return }
-    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloques, medicoId || undefined, cfgAgenda))
+    setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloquesTotales, medicoId || undefined, cfgAgenda))
     /**
      * Si se sube la duración DESPUÉS de elegir la hora, esa hora puede dejar de
      * caber. El desplegable se quedaba visualmente en blanco pero el estado seguía
@@ -179,7 +215,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
     // No borres la hora ORIGINAL de una cita en edición: siempre es válida aunque
     // ya haya pasado (slots la incluye). Antes se limpiaba y bloqueaba el guardado.
     if (hora && hora !== horaOriginal && slots.length > 0 && !slots.includes(hora)) setHora('')
-  }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloques, horaOriginal, slots])
+  }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloquesTotales, horaOriginal, slots])
 
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
@@ -467,6 +503,24 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                 </select>
               ) : (
                 <input className="input" type="time" value={hora} onChange={e => setHora(e.target.value)} />
+              )}
+              {/*
+                SI NO SE PUDO PREGUNTAR A GOOGLE, SE DICE.
+                «No pude consultar» y «no tiene nada» producen la misma lista
+                vacía de ocupación, y sólo uno de los dos significa que esas
+                horas están libres. Callarlo haría que la pantalla ofreciera con
+                confianza horas que el médico ya tiene tomadas.
+              */}
+              {falloGoogle && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: 11.5, color: 'var(--amber)', marginTop: 6, lineHeight: 1.45 }}>
+                  <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>No se pudo consultar tu Google Calendar: estas horas <strong>no</strong> descuentan lo que ya tengas ahí.</span>
+                </div>
+              )}
+              {ocupadoGoogle.length > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6 }}>
+                  Se descontaron {ocupadoGoogle.length} {ocupadoGoogle.length === 1 ? 'evento' : 'eventos'} de tu Google Calendar.
+                </div>
               )}
               {conflict && (
                 <div style={{ marginTop: 6 }}>

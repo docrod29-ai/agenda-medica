@@ -111,7 +111,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(82)
+    expect(CLAVES_DISCO.length).toBe(83)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google)
   })
 })
 
@@ -376,12 +376,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 81 → 83 y 66 → 67 al añadir `superadmin/simulador`: GET y PUT, cada uno
     // con su guardián.
     // 83 → 84: `arco/cancelar` con su único POST y su guardián.
-    expect(llamadas.length).toBe(84)
-    expect(rutasConGuardia).toBe(68)
+    expect(llamadas.length).toBe(85)   // +1 el 2026-08-02: `calendar/ocupado`
+    expect(rutasConGuardia).toBe(69)   // +1 el 2026-08-02: `calendar/ocupado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(43)
+    expect(conVocabulario).toBe(44)   // +1 el 2026-08-02: `calendar/ocupado`
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -392,7 +392,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 52, activos: 25, pendientes: 27,
+      declarados: 53, activos: 26, pendientes: 27,   // +1 el 2026-08-02: `calendar/ocupado` nace ACTIVO (verificarCapacidad, sin pendiente)
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
