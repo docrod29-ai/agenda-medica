@@ -41,6 +41,7 @@ import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
+import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot } from '@/lib/whatsapp/aviso-bot'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -600,6 +601,41 @@ export async function handleMessage(from: string, body: string, clinicId: string
   }
 
   /**
+   * EL AVISO DE PRIVACIDAD, ANTES DE PEDIR UN SOLO DATO.
+   *
+   * El portal público EXIGE el consentimiento para crear una cita —sin él la
+   * ruta responde 400— y el bot creaba el expediente del paciente y su cita sin
+   * aviso ninguno: el paciente no lo veía y no quedaba constancia de nada. Son
+   * datos de SALUD, sensibles, por un canal externo, y por WhatsApp entra una
+   * parte grande de los pacientes.
+   *
+   * Se pide un «SÍ» EXPRESO: es más de lo que se pediría si bastara el
+   * consentimiento tácito, y así no hay que interpretar hasta dónde llega.
+   * Ver `lib/whatsapp/aviso-bot.ts`.
+   */
+  const pedirAviso = async (): Promise<void> => {
+    await send(from, mensajeAviso(clinicName, clinicId, process.env.NEXT_PUBLIC_APP_URL))
+    await saveSession(clinicId, from, { estado: 'aviso_privacidad', datos: {} })
+  }
+
+  if (estado === 'aviso_privacidad') {
+    if (aceptoElAviso(text)) {
+      await send(from, `Gracias. ¿Cuál es su nombre completo?`)
+      // Queda el sello de LO QUE PASÓ: quién, cuándo, por qué canal y con qué
+      // versión del aviso. Nunca se marca aceptado por no contestar.
+      await saveSession(clinicId, from, { estado: 'agendar_nombre', datos: { avisoEn: new Date().toISOString() } })
+      return
+    }
+    if (rechazoElAviso(text)) {
+      await send(from, `Entendido, no seguimos. Si cambias de opinión escríbenos cuando quieras. 🙌`)
+      await clearSession(clinicId, from)
+      return
+    }
+    await send(from, `Para poder agendar necesito tu respuesta: *SÍ* para continuar o *NO* para salir.`)
+    return
+  }
+
+  /**
    * LA INTENCIÓN MANDA SOBRE LA PREGUNTA FRECUENTE.
    *
    * Esto detectaba la pregunta frecuente ANTES que nada, y el patrón de PRECIO
@@ -619,8 +655,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
   // Pedir cita explícitamente arranca el alta desde CUALQUIER estado de reposo:
   // antes había que estar en el menú y escribir justo «1» o «agendar».
   if (intencion.tipo === 'agendar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
-    await send(from, `¿Cuál es su nombre completo?`)
-    await saveSession(clinicId, from, { estado: 'agendar_nombre', datos: {} })
+    await pedirAviso()
     return
   }
 
@@ -713,8 +748,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
   // ── MENU ──────────────────────────────────────────────────
   if (estado === 'menu') {
     if (tLow === '1' || /agendar|cita|quiero cita/.test(tLow)) {
-      await send(from, `¿Cuál es su nombre completo?`)
-      await saveSession(clinicId, from, { estado: 'agendar_nombre' })
+      await pedirAviso()
       return
     }
     if (tLow === '2' || /informacion|info|pregunta/.test(tLow)) {
@@ -926,6 +960,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
             confirmadoPaciente: true, fechaConfirmacion: now,
             recordatorio24hEnviado: false, recordatorioMismoDiaEnviado: false,
             consentimientoMensajes: true, notasInternas: `Agendada por bot WhatsApp`,
+            // Lo que el paciente aceptó, con su versión y su hora: el portal web
+            // lo guarda desde siempre y este camino no guardaba nada.
+            consentimientos: consentimientoDelBot(String(datos.avisoEn || now)),
             createdAt: now, updatedAt: now, creadoPor: 'bot', updatedPor: 'bot',
           })
         })
