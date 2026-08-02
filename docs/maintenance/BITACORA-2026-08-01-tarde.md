@@ -460,6 +460,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **873** | **La cita de guía no llegaba a ninguno de los tres sitios donde se lee.** `Rec.fuente` existe —su comentario dice «para citarla en la nota»— y `lib/inmuno/farmacos.ts` la **exige** en sus 34 recomendaciones (ASH 2020, consenso IS ACCP/AST/ISHLT 2022, ACIP…). No la enseñaba ni el panel —que promete «con su cita de guía»—, ni el texto que se le dicta a la IA, ni el HTML del expediente: la nota salía con recomendaciones de profilaxis y cero atribución, con el dato guardado al lado. Ahora viaja a los tres, y donde no hay fuente **se dice** en vez de omitirla en silencio. Las 42 de `recomendaciones.ts` siguen sin cita: es trabajo clínico del Dr. —una cita inventada sería peor que ninguna— y quedan declaradas con una prueba que vigila que el número no suba. |
 
+## VIGESIMOTERCERA TANDA — v874 (el fallo que ofrecía escribirle a quien pidió la baja)
+
+| v | Qué se reparó |
+|---|---|
+| **874** | **Un fallo de lectura ofrecía escribirle a quien pidió la baja.** La pantalla de reactivación lee `whatsapp_optout` con `.catch(() => null)` y después `new Set((optSnap?.docs ?? []))`: un fallo de red, permisos o App Check daba el **mismo conjunto vacío** que un consultorio sin bajas — y con él la pantalla ofrecía «WhatsApp» sobre toda la base, incluida la gente que pidió que no se le escriba. El daño no es simétrico: el mensaje que no se mandó se manda mañana; el que se mandó a quien pidió la baja no se devuelve. Sin la lista, los contactos quedan **deshabilitados** y se dice por qué (`lib/whatsapp/puede-contactar.ts`, 5 pruebas). Las citas futuras no bloquean pero avisan. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

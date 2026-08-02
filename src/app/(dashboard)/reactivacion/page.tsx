@@ -12,7 +12,8 @@ import type { Patient, Appointment } from '@/types'
 import { pacientesParaReactivar, msgReactivacion, msgReferido, msgSeguimiento, diasEntre, type CandidatoReactivacion } from '@/lib/reactivacion'
 import { openWhatsApp, copyToClipboard } from '@/lib/whatsapp'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
-import { MessageSquare, Copy, Share2, HeartHandshake, Clock, Stethoscope } from 'lucide-react'
+import { puedeContactar, type LecturasPrevias } from '@/lib/whatsapp/puede-contactar'
+import { MessageSquare, Copy, Share2, HeartHandshake, Clock, Stethoscope, AlertTriangle } from 'lucide-react'
 
 const hoyISO = () => {
   const d = new Date()
@@ -35,6 +36,8 @@ export default function ReactivacionPage() {
   const [umbral, setUmbral] = useState(90)
   // Exclusiones: quien pidió BAJA (opt-out) y quien YA tiene cita futura.
   const [optOut, setOptOut] = useState<Set<string>>(new Set())
+  /** Qué se pudo leer antes de ofrecer un contacto. Ver `puedeContactar`. */
+  const [lecturas, setLecturas] = useState<LecturasPrevias>({ bajasLeidas: true, futurasLeidas: true })
   const [conCitaFutura, setConCitaFutura] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -42,15 +45,26 @@ export default function ReactivacionPage() {
     // Atendidas de los últimos 10 días → candidatas a seguimiento posconsulta.
     const desde = (() => { const d = new Date(); d.setDate(d.getDate() - 10); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
     const hoyStr = hoyISO()
+    let falloFuturas = false
     Promise.all([
       getPatients(clinicId),
       getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]),
       // Bajas de WhatsApp: NO reactivar a quien pidió BAJA (cumplimiento).
-      getDocs(collection(db, 'clinics', clinicId, 'whatsapp_optout')).catch(() => null),
+      getDocs(collection(db, 'clinics', clinicId, 'whatsapp_optout')).catch(() => null),   // null = NO SE PUDO LEER (≠ nadie de baja)
       // Citas FUTURAS: no ofrecer "¿desea agendar?" a quien ya tiene lugar reservado.
-      getAppointments(clinicId, [where('fechaHora', '>=', hoyStr + ' 00:00')]).catch(() => [] as Appointment[]),
+      getAppointments(clinicId, [where('fechaHora', '>=', hoyStr + ' 00:00')])
+        .catch(() => { falloFuturas = true; return [] as Appointment[] }),
     ]).then(([ps, cits, optSnap, futuras]) => {
       setPacientes(ps)
+      /**
+       * UN FALLO DE LECTURA NO ES «NADIE SE DIO DE BAJA».
+       *
+       * `catch(() => null)` producía el MISMO conjunto vacío que un consultorio
+       * donde nadie pidió la baja, y con él la pantalla ofrecía «WhatsApp» sobre
+       * toda la base — incluida la gente que pidió expresamente que no se le
+       * escriba. Ver `lib/whatsapp/puede-contactar.ts`.
+       */
+      setLecturas({ bajasLeidas: optSnap !== null, futurasLeidas: !falloFuturas })
       // El id del doc de opt-out ya es el teléfono normalizado.
       const bajas = new Set((optSnap?.docs ?? []).map(d => d.id))
       setOptOut(bajas)
@@ -85,7 +99,12 @@ export default function ReactivacionPage() {
   const urlReserva = typeof window !== 'undefined' && clinicId
     ? `${window.location.origin}/reservar/${clinicId}` : ''
 
+  // Un solo veredicto para toda la pantalla: si no se sabe quién pidió la baja,
+  // no se ofrece ningún contacto.
+  const veredicto = puedeContactar(lecturas)
+
   const contactar = (c: CandidatoReactivacion) => {
+    if (!veredicto.sePuede) { toast(veredicto.motivo, 'error'); return }
     const tel = c.paciente.whatsapp || c.paciente.telefono
     openWhatsApp(tel, msgReactivacion(c.paciente.nombre, nombreMedico))
   }
@@ -96,6 +115,7 @@ export default function ReactivacionPage() {
 
   const hoy = hoyISO()
   const seguir = (c: Appointment) => {
+    if (!veredicto.sePuede) { toast(veredicto.motivo, 'error'); return }
     const p = pacientes.find(x => x.id === c.pacienteId)
     const tel = p?.whatsapp || p?.telefono || c.pacienteTelefono
     openWhatsApp(tel, msgSeguimiento(c.pacienteNombre, nombreMedico))
@@ -116,6 +136,13 @@ export default function ReactivacionPage() {
         title="Reactivación y referidos"
         subtitle="Tu base de pacientes es tu mejor activo. Recupera a quien no ha vuelto y facilita que te recomienden."
       />
+
+      {veredicto.motivo && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', marginBottom: 16 }}>
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>{veredicto.motivo}</div>
+        </div>
+      )}
 
       {/* Referidos */}
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
@@ -155,7 +182,7 @@ export default function ReactivacionPage() {
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.pacienteNombre}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)' }}>{dias === 0 ? 'Hoy' : `Hace ${dias} día${dias !== 1 ? 's' : ''}`}</div>
                 </div>
-                <Button variant="secondary" onClick={() => seguir(c)} icon={<MessageSquare size={15} />}>Seguimiento</Button>
+                <Button variant="secondary" onClick={() => seguir(c)} disabled={!veredicto.sePuede} icon={<MessageSquare size={15} />}>Seguimiento</Button>
               </div>
             )
           })}
@@ -208,7 +235,7 @@ export default function ReactivacionPage() {
               <button className="btn btn-ghost btn-icon btn-sm" title="Copiar mensaje" onClick={() => copiar(c)}>
                 <Copy size={15} />
               </button>
-              <Button variant="secondary" onClick={() => contactar(c)} icon={<MessageSquare size={15} />}>WhatsApp</Button>
+              <Button variant="secondary" onClick={() => contactar(c)} disabled={!veredicto.sePuede} icon={<MessageSquare size={15} />}>WhatsApp</Button>
             </div>
           ))
         )}
