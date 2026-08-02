@@ -311,9 +311,12 @@ opción que no inventa nada.
 
 | **848** | **Google Calendar deja de ser unidireccional.** Una cirugía puesta en Google el jueves de 8 a 12 seguía ofreciéndose a los pacientes. **Y NO hacía falta ampliar el permiso** —como yo había apuntado aquí—: el alcance que ya se concede incluye `freebusy`. Se pregunta sólo por intervalos (sin títulos ni asistentes), se convierte a bloqueos —el idioma que el motor ya habla— y el bloqueo lleva el `medicoId` del dueño del token. Si la consulta falla, se dice en pantalla. |
 
+| **849** | **La próxima consulta.** El motor de tareas sabía derivar «agendar el seguimiento» desde que se escribió, y el CRM cuenta «seguimientos vencidos» sobre `patient.proximoSeguimiento`: **un campo que no escribía nadie**. La tarea no nacía y el contador era cero permanente. Ahora la consulta lo pide (opcional) y al firmar alimenta las dos. **NO va dentro de la nota firmada**: es dato de agenda, no afirmación clínica, y meterlo obligaría a subir la versión del sello de integridad. |
+
 ## LO QUE QUEDA EN LA COLA (nada de esto es urgente)
 - **Fragmentación cromática**: 160 de 187 `.tsx` con estilo en línea.
 - **Formularios previos a la consulta** en el portal del paciente (P-019).
-- **Instrucciones al paciente y próxima cita** no entran al motor de tareas (P-010).
+- ~~Próxima cita al motor de tareas~~ — HECHO (v849). Quedan las **instrucciones
+  al paciente** (P-010): hoy se escriben en el plan y no generan nada.
 - **`PlanVersion`/`LegacyPlan`/`OverageRule`/`Addon`/`Discount`** del motor de
   precios (P-013).
