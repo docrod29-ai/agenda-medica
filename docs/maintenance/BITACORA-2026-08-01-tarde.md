@@ -546,6 +546,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **883** | **El horario que contestaba el bot ignoraba los descansos.** Imprimía `inicio–fin` a secas: un consultorio de 9 a 14 y de 16 a 20 le decía al paciente «Lunes: 09:00–20:00» — o se presenta a una puerta cerrada, o intenta agendar a las 15:00 y la agenda no se lo ofrece, porque el motor de huecos **sí** respeta el descanso desde v829/v830. El sistema sabía la verdad y su propio bot decía otra cosa (`lib/whatsapp/horario-legible.ts`, 8 pruebas). **Segundo fallo**: `buildFAQReply` empezaba con «sin `botConfig`, contesta el teléfono» **para todo**, cuando el horario y la dirección salen de la configuración del consultorio, que siempre está llena. Un consultorio sin onboarding del bot tenía «Información» en el menú y el bot contestando el teléfono a todo. |
 
+## TRIGÉSIMA TERCERA TANDA — v884 (datos de salud sin aviso de privacidad)
+
+| v | Qué se reparó |
+|---|---|
+| **884** | **El bot recogía datos de salud sin aviso de privacidad.** El portal público **exige** el consentimiento (sin él la ruta responde 400) y lo guarda en la cita con su marca de tiempo; el bot creaba expediente y cita **sin aviso ninguno**. La misma aplicación que bloquea el alta web por falta de consentimiento la dejaba pasar por el canal por el que entra buena parte de los pacientes. Ahora, antes de pedir un solo dato, manda el aviso —responsable, finalidad, derechos ARCO y enlace al aviso completo— y pide un **sí expreso**; se guarda quién aceptó, cuándo, por qué canal y con qué versión (`lib/whatsapp/aviso-bot.ts`, 10 pruebas). Nunca se marca aceptado por no contestar, y a quien dice que no no se le insiste. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
