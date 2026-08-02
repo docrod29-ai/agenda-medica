@@ -9,6 +9,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { dondeEsLaCita, SIN_ENLACE } from '@/lib/telesalud/donde-es'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const BASE = 'https://agenda-medica-one.vercel.app'
 const PRESENCIAL = { tipo: 'seguimiento', direccion: 'Av. Universidad 100', googleMapsUrl: 'https://maps.example/x' }
@@ -53,5 +55,32 @@ describe('dondeEsLaCita', () => {
 
   it('sin dirección capturada no se inventa una línea vacía', () => {
     expect(dondeEsLaCita({ tipo: 'primera-vez' }).lineas).toEqual([])
+  })
+})
+
+/**
+ * Y que llegue al BOT, que es el tercer sitio donde se agenda — y el único que
+ * confirma la cita en el momento, sin que nadie del consultorio lo lea antes.
+ */
+describe('el bot de WhatsApp usa el mismo criterio', () => {
+  const bot = readFileSync(join(process.cwd(), 'src', 'app', 'api', 'whatsapp', 'webhook', 'route.ts'), 'utf8')
+
+  it('ofrece teleconsulta en su menú (por eso hay que cubrirlo)', () => {
+    expect(bot).toContain("key: 'teleconsulta'")
+  })
+
+  it('el resumen previo NO manda la dirección a una videoconsulta', () => {
+    expect(bot).toContain("datos.tipo === 'teleconsulta'")
+    expect(bot).toContain('no necesita acudir al consultorio')
+  })
+
+  it('los dos mensajes de cita agendada pasan por el módulo', () => {
+    // Uno es el alta normal y otro el de lista de espera: los dos confirman.
+    expect(bot.match(/dondeEsLaCita\(/g) ?? []).toHaveLength(2)
+  })
+
+  it('el enlace se arma con el id REAL de la cita, no con uno inventado', () => {
+    expect(bot).toContain('citaId: nuevoFolio')
+    expect(bot).toContain('citaIdListaEspera = refLE.id')
   })
 })

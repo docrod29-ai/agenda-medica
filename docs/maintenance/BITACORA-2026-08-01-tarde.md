@@ -522,6 +522,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **879** | **A quien tenía videoconsulta se le mandaba la dirección del consultorio.** La confirmación y los dos recordatorios se escribieron cuando todas las citas eran presenciales y **nunca miraron el tipo**: al paciente de teleconsulta le llegaba «📍 Consultorio, Av. …» y «Te esperamos / Favor de acudir puntualmente», sin el enlace de la sala. En el mejor caso llama; en el peor conduce hasta allá y pierde su consulta. Pasaba en los tres mensajes de `lib/whatsapp` **y** en las plantillas del cron, que se mandan solas de madrugada sin que nadie las lea antes. Ahora el tipo decide (`lib/telesalud/donde-es.ts`, 7 pruebas): la teleconsulta lleva el enlace y no la dirección, y el cierre deja de ser «te esperamos». Sin URL base se dice que es videoconsulta en vez de callar. |
 
+## VIGESIMONOVENA TANDA — v880 (el bot, que confirma solo)
+
+| v | Qué se reparó |
+|---|---|
+| **880** | **El bot también mandaba al consultorio a quien pedía videoconsulta.** Ofrece «5️⃣ Teleconsulta» en su menú y luego imprimía consultorio y dirección en sus **tres** mensajes (resumen previo, «su cita ha sido registrada» y el de lista de espera), sin el enlace. Es el más caro de los tres caminos: el bot **confirma en el momento**, de madrugada, sin que nadie del consultorio lo lea antes. Ahora los tres usan el criterio por tipo de v879; en los dos de cita agendada el enlace se arma con el **id real** de la cita —que en el camino de lista de espera hubo que tomar antes de escribir, porque se creaba con un `doc()` anónimo—. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
