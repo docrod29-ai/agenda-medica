@@ -96,7 +96,7 @@ export function GuiaConfigurarReceta({ yaConfigurado }: GuiaConfigurarRecetaProp
           <div style={{
             display: 'flex', gap: 9, marginTop: 13, padding: '11px 12px',
             fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55,
-            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 9,
+            background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', borderRadius: 9,
           }}>
             <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
             <span>

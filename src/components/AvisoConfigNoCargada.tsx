@@ -21,7 +21,7 @@ export function AvisoConfigNoCargada({ error }: { error: string | null }) {
   return (
     <div className="no-print" style={{
       display: 'flex', alignItems: 'flex-start', gap: 10,
-      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+      background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
       borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
     }}>
       <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />

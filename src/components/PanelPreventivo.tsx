@@ -120,8 +120,8 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
           {tend && (
             <div style={{
               marginTop: 11, padding: '10px 12px', borderRadius: 9,
-              border: `1px solid ${alerta ? 'rgba(239,68,68,.4)' : 'rgba(14,165,233,.35)'}`,
-              background: alerta ? 'rgba(239,68,68,.1)' : 'rgba(14,165,233,.08)',
+              border: `1px solid ${alerta ? 'color-mix(in srgb, var(--red) 40%, transparent)' : 'rgba(14,165,233,.35)'}`,
+              background: alerta ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'rgba(14,165,233,.08)',
             }}>
               <div style={{ fontSize: 12.5, fontWeight: 800, color: alerta ? '#f87171' : '#38bdf8' }}>
                 {analito}: {tend.resumen}

@@ -800,7 +800,7 @@ export default function UciPanelPage() {
             )}
           </div>
           {alergias.lista.length > 0 && !alergias.negadas && (
-            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, padding: '7px 11px', borderRadius: 9, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: 'var(--red)' }}>
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, padding: '7px 11px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--red) 45%, transparent)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', color: 'var(--red)' }}>
               <AlertTriangle size={14} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12.5, fontWeight: 700 }}>ALERGIAS:</span>
               <span style={{ fontSize: 12.5, fontWeight: 600 }}>{alergias.lista.join(' · ')}</span>
@@ -994,7 +994,7 @@ export default function UciPanelPage() {
         {avisosVoz.length > 0 && (
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {avisosVoz.map((a, i) => (
-              <div key={i} style={{ fontSize: 12, display: 'flex', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'rgba(217,119,6,.09)', border: '1px solid rgba(217,119,6,.35)', color: 'var(--text)' }}>
+              <div key={i} style={{ fontSize: 12, display: 'flex', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'color-mix(in srgb, var(--amber) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)', color: 'var(--text)' }}>
                 <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 9.5, color: 'var(--amber)', width: 74, flexShrink: 0, paddingTop: 1 }}>{a.motivo === 'implausible' ? 'No cargado' : 'Confirma'}</span>
                 <span>{a.detalle}</span>
               </div>

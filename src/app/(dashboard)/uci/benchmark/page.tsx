@@ -112,7 +112,7 @@ export default function BenchmarkVozPage() {
         y se compara contra lo que realmente dijiste.
       </p>
 
-      <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 11, background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.35)', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 11, background: 'color-mix(in srgb, var(--red) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', marginBottom: 16 }}>
         <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text)' }}>
           <strong>No grabes pases reales.</strong> Un pase de visita real contiene datos de

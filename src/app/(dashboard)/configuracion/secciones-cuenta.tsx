@@ -344,7 +344,7 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
             onClick={() => onChange(undefined)}
             style={{
               position: 'absolute', top: 8, right: 8,
-              background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
+              background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none',
               borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
@@ -535,7 +535,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
                 </label>
               ))}
             </div>
-            <button onClick={() => persistir(undefined, m)} style={{ marginTop: 10, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button onClick={() => persistir(undefined, m)} style={{ marginTop: 10, background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <IconX size={12} /> Quitar hoja membretada
             </button>
           </div>
@@ -662,8 +662,8 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
                   onClick={() => remover(m)}
                   title="Quitar del equipo"
                   style={{
-                    background: 'rgba(239,68,68,0.1)', color: 'var(--red)',
-                    border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6,
+                    background: 'color-mix(in srgb, var(--red) 10%, transparent)', color: 'var(--red)',
+                    border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 6,
                     padding: '5px 8px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                   }}
                 >

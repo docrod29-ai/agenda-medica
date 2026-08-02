@@ -13,7 +13,7 @@ export default function ConsultaError({ error, reset }: { error: Error & { diges
   useEffect(() => { console.error('Consulta error boundary:', error); reportarError(error.message, { stack: error.stack, origen: 'boundary:consulta' }) }, [error])
   return (
     <div style={{ maxWidth: 520, margin: '0 auto', padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 56, height: 56, borderRadius: 16, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AlertTriangle size={26} style={{ color: 'var(--amber)' }} />
       </div>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Algo se atoró en esta pantalla</h1>

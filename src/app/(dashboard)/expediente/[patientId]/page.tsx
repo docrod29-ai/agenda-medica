@@ -105,7 +105,7 @@ export default function ExpedientePage() {
       {/* Alergias banner — SIEMPRE rojo y visible */}
       {/* Si la lectura falló, decirlo AQUÍ: donde iría el banner de alergias. */}
       {errorPaciente && (
-        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span>⚠ {errorPaciente}</span>
           <button className="btn btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
         </div>
@@ -121,8 +121,8 @@ export default function ExpedientePage() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8,
             padding: '10px 14px', fontSize: 13, marginBottom: 16,
-            background: sin ? 'var(--s2)' : 'rgba(239,68,68,0.12)',
-            border: `1px solid ${sin ? 'var(--border)' : 'rgba(239,68,68,0.35)'}`,
+            background: sin ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 12%, transparent)',
+            border: `1px solid ${sin ? 'var(--border)' : 'color-mix(in srgb, var(--red) 35%, transparent)'}`,
             color: sin ? 'var(--text2)' : 'var(--red)',
           }}>
             <AlertTriangle size={16} style={{ flexShrink: 0 }} />
@@ -410,7 +410,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
         <div style={{
           width: 34, height: 34, borderRadius: '50%', marginTop: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: firmada ? 'var(--nexus-soft)' : 'rgba(245,158,11,0.12)',
+          background: firmada ? 'var(--nexus-soft)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
           border: `1.5px solid ${acento}`, color: acento,
           zIndex: 1, flexShrink: 0,
         }}>
@@ -497,7 +497,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 </>
               )}
               {!firmada && (
-                <button onClick={onBorrar} style={{ ...ghostBtn, color: 'var(--red)', borderColor: 'rgba(239,68,68,0.3)' }}>
+                <button onClick={onBorrar} style={{ ...ghostBtn, color: 'var(--red)', borderColor: 'color-mix(in srgb, var(--red) 30%, transparent)' }}>
                   <Trash2 size={13} /> Eliminar borrador
                 </button>
               )}
@@ -516,7 +516,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
 }
 
 const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
-const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
+const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
 const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
 const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--teal)' : 'var(--s2)', color: active ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 100, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

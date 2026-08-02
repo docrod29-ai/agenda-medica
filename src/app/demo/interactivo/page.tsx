@@ -209,7 +209,7 @@ function Dictado({ escenario, onListo, onReiniciar }: { escenario: DemoEscenario
             </span>
           )}
           {grabando && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'rgba(220,38,38,0.1)', padding: '4px 10px', borderRadius: 100 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
               <span style={{ width: 7, height: 7, borderRadius: 100, background: '#dc2626' }} className="nx-pulse" /> Grabando · {mmss}
             </span>
           )}

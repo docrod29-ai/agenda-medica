@@ -238,8 +238,8 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
 
           <div style={{
             padding: '10px 12px', borderRadius: 9,
-            border: `1px solid ${cerv.urgencia === 'urgente' ? 'rgba(239,68,68,.45)' : cerv.urgencia === 'colposcopia' ? 'rgba(245,158,11,.4)' : 'rgba(236,72,153,.35)'}`,
-            background: cerv.urgencia === 'urgente' ? 'rgba(239,68,68,.1)' : cerv.urgencia === 'colposcopia' ? 'rgba(245,158,11,.1)' : 'rgba(236,72,153,.08)',
+            border: `1px solid ${cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 45%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 40%, transparent)' : 'rgba(236,72,153,.35)'}`,
+            background: cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 10%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'rgba(236,72,153,.08)',
           }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: cerv.urgencia === 'urgente' ? '#f87171' : cerv.urgencia === 'colposcopia' ? '#f59e0b' : '#f472b6' }}>
               {cito}{vph !== 'desconocido' ? ` · VPH ${vph === 'negativo' ? 'negativo' : vph === 'positivo-16-18' ? '16/18' : 'positivo'}` : ''}

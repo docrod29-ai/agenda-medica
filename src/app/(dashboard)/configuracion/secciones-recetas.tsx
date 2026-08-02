@@ -377,7 +377,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 }))}
                 style={{
                   position: 'absolute', top: 12, right: 12,
-                  background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none',
+                  background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none',
                   borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
                 }}
@@ -487,8 +487,8 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 if (!areaImpracticable(w, h, m)) return null
                 return (
                   <div style={{
-                    marginTop: 10, background: 'rgba(239,68,68,0.08)',
-                    border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10,
+                    marginTop: 10, background: 'color-mix(in srgb, var(--red) 8%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', borderRadius: 10,
                     padding: '10px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)',
                   }}>
                     <strong>Estos márgenes no dejan espacio para los medicamentos.</strong>{' '}
@@ -707,7 +707,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
               <button
                 onClick={() => setRx({ ...rx, membreteDataUrl: '' })}
-                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
               >
                 <IconX size={11} /> Quitar
               </button>
@@ -739,7 +739,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
               <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
               <button
                 onClick={() => setRx({ ...rx, pieDataUrl: '' })}
-                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(239,68,68,0.15)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
               >
                 <IconX size={11} /> Quitar
               </button>

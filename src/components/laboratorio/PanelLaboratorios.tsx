@@ -121,7 +121,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       </p>
 
       {criticos.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)', borderRadius: 12, padding: '11px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', borderRadius: 12, padding: '11px 14px' }}>
           <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5 }}>
             <strong>Valores críticos en el historial:</strong> {criticos.map(c => `${c.etiqueta} ${c.valor} ${c.unidad}`).join(' · ')}

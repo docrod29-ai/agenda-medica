@@ -145,8 +145,8 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
 
           {anulados.length > 0 && (
             <div style={{
-              border: '1px solid rgba(220,38,38,0.3)', borderRadius: 12,
-              background: 'rgba(220,38,38,0.05)', padding: 14, marginBottom: 18,
+              border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 12,
+              background: 'color-mix(in srgb, var(--red) 5%, transparent)', padding: 14, marginBottom: 18,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <AlertCircle size={15} style={{ color: 'var(--red)' }} />

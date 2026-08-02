@@ -79,8 +79,8 @@ export function SelloMotor({ id, className }: { id: string; className?: string }
         // alergia, un valor crítico). Que un motor esté sin revisar es una
         // advertencia de PROCEDENCIA, y confundir las dos escalas le quita fuerza
         // a la que sí tiene que parar al médico.
-        color: 'var(--amber)', background: 'rgba(217,119,6,.12)',
-        border: '1px solid rgba(217,119,6,.35)',
+        color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
       }}
     >
       {t.etiqueta}

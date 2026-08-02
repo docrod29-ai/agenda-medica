@@ -661,8 +661,8 @@ function Aviso({ tono, children }: { tono: 'alerta' | 'neutro'; children: React.
   return (
     <div style={{
       marginBottom: 14, padding: '11px 14px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55,
-      background: alerta ? 'rgba(220,38,38,0.08)' : 'var(--s2, #f1f5f9)',
-      border: '1px solid ' + (alerta ? 'rgba(220,38,38,0.35)' : 'var(--border, #e5e7eb)'),
+      background: alerta ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'var(--s2, #f1f5f9)',
+      border: '1px solid ' + (alerta ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border, #e5e7eb)'),
       color: alerta ? '#b91c1c' : 'var(--text2, #334155)',
     }}>{children}</div>
   )

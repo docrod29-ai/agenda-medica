@@ -133,8 +133,8 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
 
 const COLORES = {
   bajo: { fg: '#10b981', bg: 'rgba(16,185,129,.12)', bd: 'rgba(16,185,129,.35)' },
-  medio: { fg: '#f59e0b', bg: 'rgba(245,158,11,.12)', bd: 'rgba(245,158,11,.35)' },
-  alto: { fg: '#f87171', bg: 'rgba(239,68,68,.12)', bd: 'rgba(239,68,68,.4)' },
+  medio: { fg: '#f59e0b', bg: 'color-mix(in srgb, var(--amber) 12%, transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
+  alto: { fg: '#f87171', bg: 'color-mix(in srgb, var(--red) 12%, transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
 } as const
 
 const badge = (nivel: keyof typeof COLORES): React.CSSProperties => ({

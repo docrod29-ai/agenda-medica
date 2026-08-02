@@ -32,7 +32,7 @@ import { ArrowLeft, FlaskConical, ShieldCheck, Search } from 'lucide-react'
 import { CLINICAL_ENGINE_REGISTRY } from '@/lib/clinical/registry'
 
 const ESTILO_ESTADO: Record<string, { etiqueta: string; color: string; fondo: string }> = {
-  pendiente_validacion: { etiqueta: 'SIN VALIDAR', color: 'var(--amber)', fondo: 'rgba(217,119,6,.12)' },
+  pendiente_validacion: { etiqueta: 'SIN VALIDAR', color: 'var(--amber)', fondo: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
   experimental: { etiqueta: 'EXPERIMENTAL', color: '#7c3aed', fondo: 'rgba(124,58,237,.12)' },
   validado: { etiqueta: 'VALIDADO', color: '#059669', fondo: 'rgba(5,150,105,.12)' },
 }
@@ -84,7 +84,7 @@ export default function MotoresPage() {
       </div>
 
       <div style={{
-        background: 'rgba(217,119,6,.07)', border: '1px solid rgba(217,119,6,.3)',
+        background: 'color-mix(in srgb, var(--amber) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
         borderRadius: 10, padding: '12px 14px', marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: 'var(--text2)',
       }}>
         <strong style={{ color: 'var(--text)' }}>Qué significa «sin validar».</strong> El motor funciona y tiene
@@ -143,7 +143,7 @@ export default function MotoresPage() {
                 <Campo titulo="Qué hace si falta un dato" texto={m.missingData} />
 
                 {pregunta && (
-                  <div style={{ marginTop: 9, padding: '10px 12px', borderRadius: 9, background: 'rgba(217,119,6,.08)', border: '1px solid rgba(217,119,6,.25)' }}>
+                  <div style={{ marginTop: 9, padding: '10px 12px', borderRadius: 9, background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 25%, transparent)' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--amber)', marginBottom: 4 }}>
                       Lo que hay que decidir
                     </div>

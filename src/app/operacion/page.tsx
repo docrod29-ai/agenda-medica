@@ -25,7 +25,7 @@ const FINANZAS: Item[] = [
 
 const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
   activo:  { t: 'Disponible hoy', c: '#0d9488', bg: 'rgba(13,148,136,.14)' },
-  parcial: { t: 'En expansión',   c: '#b45309', bg: 'rgba(180,83,9,.14)' },
+  parcial: { t: 'En expansión',   c: '#b45309', bg: 'color-mix(in srgb, var(--amber) 14%, transparent)' },
   roadmap: { t: 'Roadmap',        c: '#4f5bd5', bg: 'rgba(79,91,213,.14)' },
 }
 

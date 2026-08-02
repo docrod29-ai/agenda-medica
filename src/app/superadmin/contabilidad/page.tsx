@@ -119,7 +119,7 @@ export default function ContabilidadPage() {
       {cargando ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text3)', padding: 30 }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Calculando…</div>
       ) : error ? (
-        <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--red)', background: 'rgba(239,68,68,0.07)', color: 'var(--red)', fontSize: 13.5 }}>{error}</div>
+        <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--red)', background: 'color-mix(in srgb, var(--red) 7%, transparent)', color: 'var(--red)', fontSize: 13.5 }}>{error}</div>
       ) : data ? (
         <>
           {/* KPIs */}

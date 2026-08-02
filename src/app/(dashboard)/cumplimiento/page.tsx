@@ -47,7 +47,7 @@ function AsientosPendientes() {
   }, [])
   if (n === 0) return null
   return (
-    <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+    <div style={{ background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--amber)', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
         <AlertTriangle size={15} /> {n} {n === 1 ? 'asiento' : 'asientos'} sin registrar en este equipo
       </div>
@@ -480,8 +480,8 @@ function RetencionResumen({ clinicId }: { clinicId: string }) {
 function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: string; descripcion: string; accion?: React.ReactNode }) {
   return (
     <div style={{
-      padding: 16, background: ok ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)',
-      border: `1px solid ${ok ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.35)'}`,
+      padding: 16, background: ok ? 'rgba(16,185,129,0.06)' : 'color-mix(in srgb, var(--amber) 6%, transparent)',
+      border: `1px solid ${ok ? 'rgba(16,185,129,0.25)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}`,
       borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 12,
     }}>
       {ok ? <Check size={18} color="#10b981" style={{ marginTop: 2 }} /> : <AlertTriangle size={18} color="var(--amber)" style={{ marginTop: 2 }} />}
@@ -550,7 +550,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
         const pendiente = r.estado === 'recibida' || r.estado === 'en_proceso'
         return (
           <div key={r.id} style={{
-            padding: 14, background: 'var(--s)', border: `1px solid ${pendiente && diasRestantes !== null && diasRestantes <= 5 ? 'rgba(239,68,68,0.4)' : 'var(--border)'}`,
+            padding: 14, background: 'var(--s)', border: `1px solid ${pendiente && diasRestantes !== null && diasRestantes <= 5 ? 'color-mix(in srgb, var(--red) 40%, transparent)' : 'var(--border)'}`,
             borderRadius: 10,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
@@ -560,7 +560,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                   {r.solicitante.nombre} · {r.solicitante.telefono}
                   {r.solicitante.email && <> · {r.solicitante.email}</>}
                   {r.origen === 'portal-publico' && !r.identidadVerificada && (
-                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700, background: 'rgba(217,119,6,0.12)', color: 'var(--amber)' }}>
+                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', color: 'var(--amber)' }}>
                       Identidad sin verificar
                     </span>
                   )}
@@ -591,7 +591,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                     puede borrar.
                   */}
                   {r.tipo === 'cancelacion' && r.patientId && onCancelar && (
-                    <button onClick={() => onCancelar(r)} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.5)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                    <button onClick={() => onCancelar(r)} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--red) 50%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                       Ejecutar cancelación…
                     </button>
                   )}
@@ -611,7 +611,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                       expediente corresponde.
                     </span>
                   )}
-                  <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                  <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                     Rechazar
                   </button>
                   <button onClick={() => onResolver(r, 'resuelta')} className="btn btn-primary" style={{ fontSize: 11.5, padding: '4px 10px' }}>
@@ -635,7 +635,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
 function EstadoBadge({ estado }: { estado: ArcoEstado }) {
   const map: Record<ArcoEstado, { label: string; color: string; bg: string }> = {
     recibida: { label: 'RECIBIDA', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-    en_proceso: { label: 'EN PROCESO', color: 'var(--amber)', bg: 'rgba(245,158,11,0.15)' },
+    en_proceso: { label: 'EN PROCESO', color: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) 15%, transparent)' },
     resuelta: { label: 'RESUELTA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
     rechazada: { label: 'RECHAZADA', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
   }

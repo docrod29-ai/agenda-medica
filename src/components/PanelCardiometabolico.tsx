@@ -190,7 +190,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <Campo l="Eventos ASCVD mayores" v={eventos} s={setEventos} w={130} />
                 <Campo l="Condiciones de alto riesgo" v={condiciones} s={setCondiciones} w={150} />
-                <span style={{ ...pill(muyAlto ? '#f87171' : 'var(--text3)', muyAlto ? 'rgba(239,68,68,.15)' : 'var(--s2)'), marginBottom: 6 }}>
+                <span style={{ ...pill(muyAlto ? '#f87171' : 'var(--text3)', muyAlto ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)'), marginBottom: 6 }}>
                   {muyAlto ? 'MUY ALTO RIESGO' : 'No de muy alto riesgo'}
                 </span>
               </div>
@@ -319,7 +319,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
                 <button key={c} type="button" onClick={() => alternar(comps, setComps, c)} style={{
                   padding: '3px 8px', borderRadius: 6, fontSize: 10.5, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
                   border: '1px solid ' + (comps.has(c) ? '#22c55e' : 'var(--border)'),
-                  background: comps.has(c) ? 'rgba(34,197,94,.15)' : 'var(--s2)',
+                  background: comps.has(c) ? 'color-mix(in srgb, var(--green) 15%, transparent)' : 'var(--s2)',
                   color: comps.has(c) ? '#22c55e' : 'var(--text3)',
                 }}>{c}</button>
               ))}
@@ -521,7 +521,7 @@ function Chk({ on, set, t }: { on: boolean; set: (b: boolean) => void; t: string
     <button type="button" onClick={() => set(!on)} style={{
       padding: '4px 10px', borderRadius: 7, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
       border: '1px solid ' + (on ? '#f87171' : 'var(--border)'),
-      background: on ? 'rgba(239,68,68,.15)' : 'var(--s2)', color: on ? '#f87171' : 'var(--text3)',
+      background: on ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)', color: on ? '#f87171' : 'var(--text3)',
     }}>{t}</button>
   )
 }
@@ -536,12 +536,12 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
   )
 }
 
-const caja: React.CSSProperties = { border: '1px solid rgba(34,197,94,.3)', borderRadius: 12, background: 'rgba(34,197,94,.05)', padding: 14, marginBottom: 12 }
+const caja: React.CSSProperties = { border: '1px solid color-mix(in srgb, var(--green) 30%, transparent)', borderRadius: 12, background: 'color-mix(in srgb, var(--green) 5%, transparent)', padding: 14, marginBottom: 12 }
 const col: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12 }
 const txt: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', margin: '4px 0 0', lineHeight: 1.55 }
 const lista: React.CSSProperties = { margin: '6px 0 0', paddingLeft: 18, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.55 }
 const campo: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7, padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none' }
 const pill = (fg: string, bg: string): React.CSSProperties => ({ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: bg, color: fg })
-const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(34,197,94,.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,.35)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
+const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'color-mix(in srgb, var(--green) 15%, transparent)', color: '#22c55e', border: '1px solid color-mix(in srgb, var(--green) 35%, transparent)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
 
 export { Activity }

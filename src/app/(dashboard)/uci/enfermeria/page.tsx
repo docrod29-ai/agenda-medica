@@ -135,7 +135,7 @@ export default function EnfermeriaUciPage() {
           )}
 
           {(sinTipo.length > 0 || falloUnidades || falloTomas) && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--amber) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}>
               <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
                 {falloUnidades

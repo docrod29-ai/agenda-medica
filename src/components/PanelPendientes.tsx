@@ -43,7 +43,7 @@ export function PanelPendientes() {
         <ListChecks size={16} style={{ color: 'var(--nexus, #3d5afe)' }} />
         <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Siguiente acción</h2>
         {r.alta > 0 && (
-          <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(220,38,38,.12)', color: 'var(--red)' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'color-mix(in srgb, var(--red) 12%, transparent)', color: 'var(--red)' }}>
             {r.alta} urgente{r.alta > 1 ? 's' : ''}
           </span>
         )}

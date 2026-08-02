@@ -2264,8 +2264,8 @@ export default function ConsultaActivaPage() {
           de fármaco. Rojo cuando hay alergias; neutro cuando no. */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
-        background: patient?.alergias ? 'rgba(239,68,68,0.1)' : 'var(--s2)',
-        border: `1px solid ${patient?.alergias ? 'rgba(239,68,68,0.35)' : 'var(--border)'}`,
+        background: patient?.alergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
+        border: `1px solid ${patient?.alergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
         borderRadius: 10, padding: '9px 13px',
       }}>
         {/*
@@ -2449,8 +2449,8 @@ export default function ConsultaActivaPage() {
             return (
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
-                background: sin ? 'var(--s2)' : 'rgba(220,38,38,0.10)',
-                border: `1px solid ${sin ? 'var(--border)' : 'rgba(220,38,38,0.4)'}`,
+                background: sin ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 10%, transparent)',
+                border: `1px solid ${sin ? 'var(--border)' : 'color-mix(in srgb, var(--red) 40%, transparent)'}`,
                 borderRadius: 999, padding: '4px 12px', fontSize: 12.5,
                 color: sin ? 'var(--text2)' : 'var(--red)', fontWeight: 600,
               }}>
@@ -2583,7 +2583,7 @@ export default function ConsultaActivaPage() {
               {ofreceRecovery && audio.estado === 'inactivo' && (
                 <div style={{
                   width: '100%', padding: '10px 14px', borderRadius: 10,
-                  border: '1px solid var(--amber)', background: 'rgba(217, 119, 6, 0.08)',
+                  border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
                   display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Mic size={14} className="ds-icon" /> Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
@@ -2664,8 +2664,8 @@ export default function ConsultaActivaPage() {
                     toast('Grabación cancelada y borrada', 'info')
                   }}
                   style={{
-                    width: 48, height: 48, borderRadius: '50%', border: '1px solid rgba(220,38,38,0.4)',
-                    background: 'rgba(220,38,38,0.10)', color: 'var(--red)', cursor: 'pointer', flexShrink: 0,
+                    width: 48, height: 48, borderRadius: '50%', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)',
+                    background: 'color-mix(in srgb, var(--red) 10%, transparent)', color: 'var(--red)', cursor: 'pointer', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                   title="Cancelar y borrar esta grabación (no se transcribe)"
@@ -2881,7 +2881,7 @@ export default function ConsultaActivaPage() {
       {sinCreditos && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
-          border: '1px solid var(--red)', background: 'rgba(239,68,68,0.07)',
+          border: '1px solid var(--red)', background: 'color-mix(in srgb, var(--red) 7%, transparent)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>
             <AlertTriangle size={17} /> Se acabaron tus consultas con IA del mes ({sinCreditos.usadas}/{sinCreditos.limite})
@@ -2904,7 +2904,7 @@ export default function ConsultaActivaPage() {
       {modoEco && !sinCreditos && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
-          border: '1px solid var(--amber, #d97706)', background: 'rgba(217,119,6,0.07)',
+          border: '1px solid var(--amber, #d97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber, #b45309)' }}>
             <Sparkles size={16} /> Nota generada en modo económico
@@ -2930,7 +2930,7 @@ export default function ConsultaActivaPage() {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '9px 13px', borderRadius: 10, fontSize: 12.5,
           border: '1px solid ' + (usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--border)'),
-          background: usoIA.alerta === 'excedido' ? 'rgba(217,119,6,0.08)' : 'var(--s2)',
+          background: usoIA.alerta === 'excedido' ? 'color-mix(in srgb, var(--amber) 8%, transparent)' : 'var(--s2)',
           color: 'var(--text2)',
         }}>
           <AlertTriangle size={15} style={{ color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', flexShrink: 0 }} />
@@ -3291,7 +3291,7 @@ export default function ConsultaActivaPage() {
       {errorCargaNota && (
         <div className="no-print" style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+          background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
           borderRadius: 12, padding: '13px 15px', marginBottom: 14,
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
@@ -3334,7 +3334,7 @@ export default function ConsultaActivaPage() {
         return (
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 11, flexWrap: 'wrap',
-            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)',
+            background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
             borderRadius: 12, padding: '13px 15px', marginBottom: 14,
           }}>
             <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
@@ -3855,7 +3855,7 @@ export default function ConsultaActivaPage() {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } }
+        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 50%, transparent); } 50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--red) 0%, transparent); } }
         @media print { button, textarea:disabled { display: none; } }
       `}</style>
     </div>

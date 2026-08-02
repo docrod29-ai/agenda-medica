@@ -38,9 +38,9 @@ function Badge({ estado }: { estado: SecurityState }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, whiteSpace: 'nowrap',
-      background: activo ? 'rgba(22,163,74,0.14)' : 'rgba(245,158,11,0.14)',
+      background: activo ? 'color-mix(in srgb, var(--green) 14%, transparent)' : 'color-mix(in srgb, var(--amber) 14%, transparent)',
       color: activo ? '#16a34a' : '#d97706',
-      border: `1px solid ${activo ? 'rgba(22,163,74,0.3)' : 'rgba(245,158,11,0.3)'}`,
+      border: `1px solid ${activo ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
     }}>
       {ESTADO_LABEL[estado]}
     </span>

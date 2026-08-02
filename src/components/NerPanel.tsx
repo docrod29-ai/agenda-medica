@@ -39,7 +39,7 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
 
   if (error) {
     return (
-      <div className="card" style={{ padding: 16, borderColor: 'rgba(220,38,38,0.5)' }}>
+      <div className="card" style={{ padding: 16, borderColor: 'color-mix(in srgb, var(--red) 50%, transparent)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
           <AlertTriangle size={18} color="var(--red)" />
           <span style={{ fontWeight: 600 }}>Error en extracción:</span>
@@ -89,7 +89,7 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
       {bloquea.map((c, i) => (
         <div key={`bloq-${i}`} style={{
           padding: 14, borderRadius: 10,
-          background: 'rgba(220, 38, 38, 0.10)',
+          background: 'color-mix(in srgb, var(--red) 10%, transparent)',
           border: '2px solid var(--red)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -121,7 +121,7 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
       {interaccionesGraves.map((i, idx) => (
         <div key={`int-${idx}`} style={{
           padding: 12, borderRadius: 10,
-          background: 'rgba(217, 119, 6, 0.10)',
+          background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
           border: '1px solid var(--amber)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -279,8 +279,8 @@ type ChipColor = 'teal' | 'ambar' | 'rojo' | 'gris'
 function chipStyle(color: ChipColor): React.CSSProperties {
   const palette: Record<ChipColor, { bg: string; border: string; text: string }> = {
     teal:  { bg: 'rgba(61, 90, 254, 0.10)',  border: 'rgba(61, 90, 254, 0.32)',  text: 'var(--text)' },
-    ambar: { bg: 'rgba(217, 119, 6, 0.10)',  border: 'rgba(217, 119, 6, 0.40)',  text: 'var(--text)' },
-    rojo:  { bg: 'rgba(220, 38, 38, 0.10)',  border: 'rgba(220, 38, 38, 0.40)',  text: 'var(--text)' },
+    ambar: { bg: 'color-mix(in srgb, var(--amber) 10%, transparent)',  border: 'color-mix(in srgb, var(--amber) 40%, transparent)',  text: 'var(--text)' },
+    rojo:  { bg: 'color-mix(in srgb, var(--red) 10%, transparent)',  border: 'color-mix(in srgb, var(--red) 40%, transparent)',  text: 'var(--text)' },
     gris:  { bg: 'var(--s2)',                 border: 'var(--border2)',           text: 'var(--text2)' },
   }
   const p = palette[color]

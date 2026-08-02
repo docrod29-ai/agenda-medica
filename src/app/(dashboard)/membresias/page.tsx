@@ -109,7 +109,7 @@ export default function MembresiasPage() {
                   <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{w.membresia.planNombre} · {PERIODICIDAD_LABEL[w.membresia.periodicidad]} · vence {w.membresia.proximoCobro}</div>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, whiteSpace: 'nowrap',
-                  background: w.vencida ? 'var(--gap-bg, rgba(220,38,38,.12))' : 'rgba(127,127,127,.1)',
+                  background: w.vencida ? 'var(--gap-bg, color-mix(in srgb, var(--red) 12%, transparent))' : 'rgba(127,127,127,.1)',
                   color: w.vencida ? 'var(--red)' : 'var(--text3)' }}>
                   {w.vencida ? `vencida ${-w.diasRestantes}d` : `en ${w.diasRestantes}d`}
                 </span>

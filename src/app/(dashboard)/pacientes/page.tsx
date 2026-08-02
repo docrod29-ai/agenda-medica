@@ -435,10 +435,10 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
       {(p.noShowCount > 0 || p.cancelacionCount > 0) && (
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {p.noShowCount > 0 && (
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(239,68,68,0.1)', color: 'var(--red)' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'color-mix(in srgb, var(--red) 10%, transparent)', color: 'var(--red)' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
           )}
           {p.cancelacionCount > 0 && (
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'rgba(251,146,60,0.1)', color: '#fb923c' }}>{p.cancelacionCount} cancel.</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'color-mix(in srgb, var(--amber) 10%, transparent)', color: 'var(--amber)' }}>{p.cancelacionCount} cancel.</span>
           )}
         </div>
       )}

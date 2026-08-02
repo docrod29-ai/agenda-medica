@@ -69,7 +69,7 @@ export default function ResenasPage() {
 }
 
 const btnPrim: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }
-const btnSec: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: '1px solid rgba(239,68,68,0.35)', color: 'var(--red)', borderRadius: 8, padding: '5px 12px', fontSize: 12.5, cursor: 'pointer' }
+const btnSec: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '5px 12px', fontSize: 12.5, cursor: 'pointer' }
 
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (

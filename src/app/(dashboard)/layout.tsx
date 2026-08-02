@@ -129,7 +129,7 @@ function TrialBanner() {
   if (paywall.vencida) {
     return (
       <div style={{
-        background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.25)',
+        background: 'color-mix(in srgb, var(--amber) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--amber) 25%, transparent)',
         padding: '11px 20px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -156,8 +156,8 @@ function TrialBanner() {
   }
   return (
     <div style={{
-      background: daysLeft <= 3 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)',
-      borderBottom: `1px solid ${daysLeft <= 3 ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.2)'}`,
+      background: daysLeft <= 3 ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'color-mix(in srgb, var(--amber) 8%, transparent)',
+      borderBottom: `1px solid ${daysLeft <= 3 ? 'color-mix(in srgb, var(--red) 25%, transparent)' : 'color-mix(in srgb, var(--amber) 20%, transparent)'}`,
       padding: '8px 20px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap',
     }}>

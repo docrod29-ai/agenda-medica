@@ -101,7 +101,7 @@ function Mock({ tipo }: { tipo: string }) {
   if (tipo === 'nota') {
     return (
       <div style={base}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'rgba(220,38,38,0.1)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
           <span style={{ width: 7, height: 7, borderRadius: 100, background: '#dc2626' }} /> Grabando · 01:24
         </div>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Padecimiento actual</div>
