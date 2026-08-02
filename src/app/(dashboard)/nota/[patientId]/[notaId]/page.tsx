@@ -120,12 +120,12 @@ export default function NotaImprimiblePage() {
   }
 
   const guardarAdenda = async () => {
-    if (!clinicId || !textoAdenda.trim()) return
+    if (!clinicId || !textoAdenda.trim() || motivoAdenda.trim().length < 3) return
     setGuardandoAdenda(true)
     try {
       const nueva = await agregarAdenda(clinicId, patientId, notaId, {
         texto: textoAdenda.trim(),
-        motivo: motivoAdenda.trim() || undefined,
+        motivo: motivoAdenda.trim(),
         autorNombre: config?.nombreMedico || user?.email || 'Médico',
         autorEmail: user?.email || '',
         autorCedula: config?.cedulaProfesional || undefined,
@@ -620,7 +620,10 @@ export default function NotaImprimiblePage() {
               Corrige o aclara esta nota <strong>sin alterar el documento firmado</strong>. La adenda queda fechada,
               con tu nombre, y no se puede editar ni borrar (NOM-004).
             </p>
-            <label className="label" style={{ fontSize: 12.5 }}>Motivo (opcional)</label>
+            {/* El motivo dejó de ser opcional: es lo que explica POR QUÉ se
+                corrigió un documento que no se puede tocar. Sin eso, la enmienda
+                no es oponible a nadie. */}
+            <label className="label" style={{ fontSize: 12.5 }}>Motivo de la corrección</label>
             <input className="input" value={motivoAdenda} onChange={e => setMotivoAdenda(e.target.value)}
               placeholder="Ej. Corrección de dosis, dato omitido" style={{ marginBottom: 12 }} />
             <label className="label" style={{ fontSize: 12.5 }}>Corrección o aclaración</label>
@@ -629,7 +632,7 @@ export default function NotaImprimiblePage() {
               style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
               <button onClick={() => setModalAdenda(false)} disabled={guardandoAdenda} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim()} className="lift" style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() ? 'default' : 'pointer', opacity: !textoAdenda.trim() ? 0.6 : 1 }}>
+              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3} className="lift" style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3 ? 'default' : 'pointer', opacity: (!textoAdenda.trim() || motivoAdenda.trim().length < 3) ? 0.6 : 1 }}>
                 {guardandoAdenda ? 'Guardando…' : 'Agregar adenda'}
               </button>
             </div>
