@@ -10,6 +10,7 @@
  * Resp: { ok, id? } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { idDeEstanciaArchivada, hayQueArchivar } from '@/lib/hospital/estancias-uci'
 import { verificarMiembro } from '@/lib/auth-server'
 import { exigeCapacidad } from '@/lib/authz/verificar'
 import { ACCIONES_HOSPITAL_MUTAR } from '@/lib/authz/registro-rutas'
@@ -295,6 +296,26 @@ export async function POST(req: NextRequest) {
        * configura el hospital. Un servicio sin clasificar no es crítico ni deja
        * de serlo — simplemente no dispara nada, y la pantalla de UCI lo declara.
        */
+      /**
+       * EGRESAR TAMBIÉN CIERRA LA ESTANCIA DE TERAPIA.
+       *
+       * `estado: 'egresada'` sólo se escribía en el traslado crítica→piso. Un
+       * paciente que fallece o se traslada fuera del hospital estando en UCI
+       * dejaba su estancia en `activa` PARA SIEMPRE: el ciclo de vida existía en
+       * el tipo y no en el código, y cualquier cuenta de estancias abiertas —hoy
+       * o el día que alguien la escriba— saldría mal.
+       */
+      if (accion === 'egresar') {
+        const estanciaRef = ref.collection('icu_stays').doc('actual')
+        const prev = await tx.get(estanciaRef)
+        if (prev.exists && (prev.data() as Any)?.estado === 'activa') {
+          tx.set(estanciaRef, {
+            estado: 'egresada', fechaEgresoUci: now,
+            actualizadoPor: actor.uid, actualizadoEn: now,
+          }, { merge: true })
+        }
+      }
+
       if (accion === 'trasladar') {
         const uSnap = await tx.get(adminDb.collection('clinics').doc(clinicId).collection('unidades'))
         const unidades = uSnap.docs.map(d => ({ ...(d.data() as Any), id: d.id })) as Unidad[]
@@ -306,6 +327,34 @@ export async function POST(req: NextRequest) {
 
         if (aCritica && !deCritica) {
           const prev = await tx.get(estanciaRef)
+          /**
+           * ARCHIVAR LA ESTANCIA ANTERIOR ANTES DE REABRIR.
+           *
+           * `actual` es un id FIJO, así que un reingreso a terapia sobreescribía
+           * la estancia previa y sus días dejaban de existir: no se podían
+           * contar, ni auditar, ni saber que hubo un reingreso. El tipo promete
+           * lo contrario —«cada estancia se conserva»— y el código hacía lo otro.
+           *
+           * `actual` sigue siendo el puntero a la vigente (lo leen la ruta de
+           * estancia, la pantalla de UCI y las reglas): lo que se añade es que
+           * la que se cierra se guarda aparte, con id derivado de su fecha de
+           * ingreso para que un reintento de la transacción no la duplique.
+           */
+          const datosPrev = prev.exists ? (prev.data() as Any) : null
+          if (hayQueArchivar(datosPrev)) {
+            const idArchivo = idDeEstanciaArchivada(datosPrev?.fechaIngresoUci as string)
+            if (idArchivo) {
+              tx.set(ref.collection('icu_stays').doc(idArchivo), {
+                ...datosPrev,
+                // Si salió a piso ya venía cerrada; si no, se cierra AHORA, que es
+                // cuando dejó de ser la vigente.
+                estado: 'egresada',
+                fechaEgresoUci: (datosPrev?.fechaEgresoUci as string) || now,
+                archivadaEn: now,
+                archivadaPor: actor.uid,
+              })
+            }
+          }
           // Reingreso a terapia: se ABRE de nuevo con la fecha de ESTE ingreso.
           // Conservar la anterior contaría los días de la estancia previa.
           tx.set(estanciaRef, {
