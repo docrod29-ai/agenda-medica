@@ -175,6 +175,8 @@ export async function POST(req: NextRequest) {
 
   const CONFLICTO = Symbol('conflicto')
   let id = ''
+  /** Cómo estaba la cita ANTES de moverla, para poder decir qué cambió. */
+  let antes: Record<string, unknown> | null = null
   try {
     // Centinela por médico+día: la transacción lo LEE y lo ESCRIBE, forzando a
     // Firestore a serializar dos reservas simultáneas del mismo día (una query
@@ -229,6 +231,11 @@ export async function POST(req: NextRequest) {
         // encima de otra no competía siquiera con las altas nuevas. Dos personas
         // podían dejar dos pacientes en el mismo horario sin ningún aviso.
         const ref = apptsCol.doc(reagendarId)
+        // Lo de ANTES, para poder decir qué cambió. Se lee dentro de la
+        // transacción: fuera de ella podría estar leyendo una versión que otro
+        // acaba de pisar, y la bitácora diría que cambió algo que no cambió.
+        const previa = await tx.get(ref)
+        antes = previa.exists ? (previa.data() as Record<string, unknown>) : null
         tx.set(ref, { ...limpia, updatedAt: now, updatedPor: acc.uid }, { merge: true })
         id = reagendarId
       } else {
@@ -245,5 +252,47 @@ export async function POST(req: NextRequest) {
     }
     throw e
   }
+  /**
+   * LA BITÁCORA QUE ESTE CANAL —EL MÁS VIEJO— NUNCA TUVO.
+   *
+   * El portal deja rastro, el bot deja rastro, cambiar el estado y borrar una
+   * cita dejan rastro… y dar de alta o MOVER una cita desde el consultorio no
+   * dejaba ninguno. Es la vía por la que pasa la mayor parte de la agenda, y
+   * mover una cita cambia la fecha, la hora y hasta el médico que la atiende:
+   * en una discusión —«me la cambiaron y nadie me avisó»— no había a qué acudir.
+   *
+   * Se escribe DESPUÉS de la transacción y sin bloquearla: una bitácora que
+   * falle no puede tumbar una cita que ya está dada de alta. Y el autor sale de
+   * la sesión verificada, nunca del cuerpo.
+   *
+   * En `meta` no viaja NADA identificable —ni nombre, ni teléfono, ni motivo—:
+   * sólo qué campos cambiaron. El paciente ya está en `patientId`, que es el
+   * hilo del expediente; repetir sus datos aquí sería PHI de más en una
+   * colección que la pantalla de cumplimiento consulta entera.
+   */
+  const CAMPOS_QUE_IMPORTAN = ['fechaHora', 'medicoId', 'tipo', 'estado', 'duracion'] as const
+  const cambios: Record<string, { de: unknown; a: unknown }> = {}
+  if (antes) {
+    for (const k of CAMPOS_QUE_IMPORTAN) {
+      const de = (antes as Record<string, unknown>)[k]
+      const a = (limpia as Record<string, unknown>)[k]
+      if (a !== undefined && de !== a) cambios[k] = { de: de ?? null, a }
+    }
+  }
+  void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+    evento: reagendarId ? 'cita_reagendada' : 'cita_creada',
+    clinicId,
+    patientId: appointment.pacienteId ?? '',
+    citaId: id,
+    timestamp: now,
+    medicoUid: acc.uid,
+    medicoEmail: acc.email ?? '',
+    meta: {
+      origen: 'consultorio',
+      ...(reagendarId ? { cambios } : { fechaHora: limpia.fechaHora, tipo: limpia.tipo }),
+      ...(quiereSobreagendar ? { sobreagendada: true } : {}),
+    },
+  }).catch(() => { /* la bitácora no puede tumbar una cita ya dada de alta */ })
+
   return NextResponse.json({ id, sobreagendada: quiereSobreagendar })
 }

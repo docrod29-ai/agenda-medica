@@ -69,6 +69,16 @@ export type AuditEvento =
   // documento: sin bitácora no queda ni la constancia de que existió.
   | 'cita_estado_cambiado'       // cancelada / no-asistió / confirmada / atendida
   | 'cita_borrada'               // se eliminó una cita del calendario
+  /**
+   * EL CANAL MÁS VIEJO ERA EL ÚNICO SIN BITÁCORA.
+   *
+   * El portal deja rastro, el bot deja rastro, cambiar el estado y borrar una
+   * cita dejan rastro… y dar de alta o MOVER una cita desde el consultorio no
+   * dejaba ninguno. Mover una cita cambia la fecha, la hora y hasta el médico, y
+   * en una discusión —«me la cambiaron y nadie me avisó»— no había a qué acudir.
+   */
+  | 'cita_creada'                // alguien del consultorio dio de alta una cita
+  | 'cita_reagendada'            // alguien del consultorio movió una cita ya existente
   // === Hospitalización (trazabilidad NOM-004) ===
   | 'hosp_ingreso'               // ingreso hospitalario
   | 'hosp_egreso'                // egreso hospitalario
@@ -271,6 +281,8 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   cobro_exento: 'Marcó cortesía (no cobrar)',
   cita_estado_cambiado: 'Cambió estado de cita',
   cita_borrada: 'Borró cita',
+  cita_creada: 'Agendó cita',
+  cita_reagendada: 'Movió cita',
   hosp_ingreso: 'Ingreso hospitalario',
   hosp_egreso: 'Egreso hospitalario',
   hosp_administracion: 'Administró medicamento',
