@@ -41,7 +41,7 @@ import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
-import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot } from '@/lib/whatsapp/aviso-bot'
+import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO } from '@/lib/whatsapp/aviso-bot'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -442,6 +442,15 @@ const TIPO_OPTIONS: { key: AppointmentType; label: string; n: string }[] = [
   { n: '6', key: 'otro',          label: 'Otro' },
 ]
 
+/** Los temas del menú de información, con el número que se le enseña al paciente. */
+const TEMAS_INFO: { n: string; label: string; clave: string }[] = [
+  { n: '1', label: 'Horarios', clave: 'horario' },
+  { n: '2', label: 'Costo de la consulta', clave: 'costo' },
+  { n: '3', label: 'Ubicación', clave: 'direccion' },
+  { n: '4', label: 'Seguros', clave: 'seguros' },
+  { n: '5', label: 'Padecimientos que atiende', clave: 'padecimientos' },
+]
+
 // ── Main state machine ────────────────────────────────────────
 
 export async function handleMessage(from: string, body: string, clinicId: string): Promise<void> {
@@ -654,7 +663,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
   // Pedir cita explícitamente arranca el alta desde CUALQUIER estado de reposo:
   // antes había que estar en el menú y escribir justo «1» o «agendar».
-  if (intencion.tipo === 'agendar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
+  if (intencion.tipo === 'agendar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'aviso_privacidad'].includes(estado)) {
     await pedirAviso()
     return
   }
@@ -722,12 +731,17 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
   // «Quiero cancelar mi cita» desde cualquier estado de reposo, sin pasar por el
   // menú: es lo que la gente escribe.
-  if (intencion.tipo === 'cancelar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'cancelar_elegir'].includes(estado)) {
+  if (intencion.tipo === 'cancelar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'cancelar_elegir', 'aviso_privacidad'].includes(estado)) {
     await buscarParaCancelar()
     return
   }
 
-  if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
+  /**
+   * El estado del AVISO tampoco se secuestra: la pregunta de consentimiento
+   * tiene que terminar antes de contestar otra cosa, o el paciente acaba dando
+   * sus datos sin haber contestado si acepta.
+   */
+  if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'aviso_privacidad'].includes(estado)) {
     const reply = buildFAQReply(faqKey, doctor, config || ({} as ClinicConfig))
     await send(from, reply)
     await send(from, '¿Desea hacer algo más?\n\n1️⃣ Agendar cita\n2️⃣ Otra consulta\n0️⃣ Salir')
@@ -745,6 +759,23 @@ export async function handleMessage(from: string, body: string, clinicId: string
     return
   }
 
+  // ── MENÚ DE INFORMACIÓN ───────────────────────────────────
+  if (estado === 'info_menu') {
+    if (tLow === '0' || /volver|menu|salir/.test(tLow)) {
+      await send(from, buildMenu(clinicName))
+      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+      return
+    }
+    const tema = TEMAS_INFO.find(t => t.n === tLow)
+    if (tema) {
+      await send(from, buildFAQReply(tema.clave, doctor, config || ({} as ClinicConfig)))
+      await send(from, `¿Algo más? Responde el número de otro tema o *0* para volver.`)
+      return
+    }
+    // Cualquier otra cosa sigue el camino normal: la pregunta escrita a mano ya
+    // la resuelve el detector de arriba, y no se pierde el mensaje.
+  }
+
   // ── MENU ──────────────────────────────────────────────────
   if (estado === 'menu') {
     if (tLow === '1' || /agendar|cita|quiero cita/.test(tLow)) {
@@ -753,7 +784,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
     }
     if (tLow === '2' || /informacion|info|pregunta/.test(tLow)) {
       await send(from, buildInfoMenu(config))
-      await saveSession(clinicId, from, { estado: 'menu' })
+      // Estado propio: en `menu`, el «1» que este menú invita a escribir caía en
+      // el alta de cita.
+      await saveSession(clinicId, from, { estado: 'info_menu' })
       return
     }
     if (tLow === '3' || /cancelar/.test(tLow)) {
@@ -963,6 +996,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
             // Lo que el paciente aceptó, con su versión y su hora: el portal web
             // lo guarda desde siempre y este camino no guardaba nada.
             consentimientos: consentimientoDelBot(String(datos.avisoEn || now)),
+            versionAviso: VERSION_AVISO,
             createdAt: now, updatedAt: now, creadoPor: 'bot', updatedPor: 'bot',
           })
         })
@@ -974,6 +1008,30 @@ export async function handleMessage(from: string, body: string, clinicId: string
         await send(from, `Lo sentimos, ese horario acaba de ocuparse. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
         await saveSession(clinicId, from, { estado: 'menu', datos: {} })
         return
+      }
+
+      /**
+       * EL SELLO TAMBIÉN EN EL EXPEDIENTE — donde lo mira el panel de Pacientes.
+       *
+       * El portal público guarda en `patients/{id}.avisoPrivacidad` un sello con
+       * la versión, el medio y el HASH del texto aceptado; v884 dejó el
+       * consentimiento del bot sólo en la cita, así que el paciente que llega
+       * por WhatsApp seguía apareciendo sin aviso en su expediente.
+       *
+       * No se pisa uno anterior: el PRIMERO es el que vale, y machacarlo
+       * borraría la fecha real en que aceptó.
+       */
+      if (pacienteIdBot) {
+        try {
+          const pacRef = adminDb.collection('clinics').doc(clinicId).collection('patients').doc(pacienteIdBot)
+          const yaTiene = !!(await pacRef.get()).data()?.avisoPrivacidad
+          if (!yaTiene) {
+            await pacRef.set({
+              avisoPrivacidad: selloExpediente(config, String(datos.avisoEn || now)),
+              updatedAt: now,
+            }, { merge: true })
+          }
+        } catch { /* la cita ya quedó; el sello no la tumba */ }
       }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
@@ -1294,17 +1352,21 @@ function buildMenu(clinicName: string): string {
 }
 
 function buildInfoMenu(config: ClinicConfig | null): string {
+  /**
+   * LOS NÚMEROS QUE ESTE MENÚ PROMETÍA Y NO TENÍA.
+   *
+   * Terminaba con «O responda con el número de su interés» y no listaba ni un
+   * número. Peor: después de este menú el estado sigue siendo `menu`, así que
+   * quien leía esa línea y escribía «1» acababa en el ALTA DE CITA, y «3» en
+   * cancelar. La instrucción no sólo era vacía: llevaba al sitio equivocado.
+   */
   return [
     `ℹ️ *¿Sobre qué desea información?*`,
     ``,
-    `Puede preguntarme directamente, por ejemplo:`,
-    `• "¿Cuál es el horario?"`,
-    `• "¿Cuánto cuesta la consulta?"`,
-    `• "¿Dónde están ubicados?"`,
-    `• "¿Aceptan seguros?"`,
-    `• "¿Qué enfermedades atienden?"`,
+    ...TEMAS_INFO.map(t => `${t.n}️⃣ ${t.label}`),
+    `0️⃣ Volver`,
     ``,
-    `O responda con el número de su interés.`,
+    `También puede preguntarme directamente, por ejemplo: "¿cuál es el horario?"`,
   ].join('\n')
 }
 

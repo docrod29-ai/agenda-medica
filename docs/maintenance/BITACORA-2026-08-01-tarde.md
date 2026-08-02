@@ -552,6 +552,18 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **884** | **El bot recogía datos de salud sin aviso de privacidad.** El portal público **exige** el consentimiento (sin él la ruta responde 400) y lo guarda en la cita con su marca de tiempo; el bot creaba expediente y cita **sin aviso ninguno**. La misma aplicación que bloquea el alta web por falta de consentimiento la dejaba pasar por el canal por el que entra buena parte de los pacientes. Ahora, antes de pedir un solo dato, manda el aviso —responsable, finalidad, derechos ARCO y enlace al aviso completo— y pide un **sí expreso**; se guarda quién aceptó, cuándo, por qué canal y con qué versión (`lib/whatsapp/aviso-bot.ts`, 10 pruebas). Nunca se marca aceptado por no contestar, y a quien dice que no no se le insiste. |
 
+## TRIGÉSIMA CUARTA TANDA — v885 (el aviso no llegaba al expediente)
+
+| v | Qué se reparó |
+|---|---|
+| **885** | **El aviso del bot se quedaba en la cita y no llegaba al expediente.** v884 guardó el consentimiento en la cita, pero el portal público guarda **además** un sello en `patients/{id}.avisoPrivacidad` con versión, medio y **hash del texto** — y ése es el campo que lee el panel de Pacientes. El paciente de WhatsApp seguía apareciendo sin aviso en su expediente. Ahora el bot escribe el mismo sello con `medioAceptacion: 'whatsapp'`. La huella importa porque `versionAviso` es una constante del código pero el texto se genera en vivo con la razón social y el domicilio: si el médico los cambia, el aviso que verá el siguiente paciente **no** es el que aceptó éste. No se pisa un sello anterior: el primero es el que vale. |
+
+## TRIGÉSIMA QUINTA TANDA — v886 (los números que el menú no tenía)
+
+| v | Qué se reparó |
+|---|---|
+| **886** | **El menú de información prometía números que no existían — y llevaban al sitio equivocado.** Terminaba con «O responda con el número de su interés» sin listar ninguno, y como el estado seguía siendo `menu`, quien escribía «1» acababa en el **alta de cita** y «3» en cancelar: el paciente que quería saber el horario terminaba dando su nombre completo para agendar. Ahora los cinco temas están numerados, el menú tiene su propio estado y «0» vuelve. Además el estado del **aviso de privacidad** ya no se secuestra: si una pregunta frecuente contestaba encima, el paciente acababa dando sus datos sin haber contestado si acepta. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

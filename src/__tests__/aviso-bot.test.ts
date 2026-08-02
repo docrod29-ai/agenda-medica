@@ -12,8 +12,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, VERSION_AVISO,
+  mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO,
 } from '@/lib/whatsapp/aviso-bot'
+import type { ClinicConfig } from '@/types'
 
 describe('mensajeAviso', () => {
   const msg = mensajeAviso('Consultorio Luna', 'clin-1', 'https://app.example')
@@ -78,5 +79,40 @@ describe('consentimientoDelBot', () => {
   it('usa la MISMA versión de aviso que el resto del sistema', () => {
     // Dos versiones distintas harían imposible saber qué aceptó cada paciente.
     expect(VERSION_AVISO).toMatch(/^\d{4}-\d{2}$/)
+  })
+})
+
+/**
+ * El sello del EXPEDIENTE, que es donde lo mira el panel de Pacientes.
+ *
+ * v884 dejó el consentimiento del bot sólo en la cita: el paciente que llega por
+ * WhatsApp seguía apareciendo SIN aviso en su expediente, igual que antes.
+ */
+describe('selloExpediente', () => {
+  // `Partial<ClinicConfig>` y no `as never`: hacer spread de `never` no compila,
+  // y el módulo sólo lee los campos del membrete.
+  const cfg = { nombreClinica: 'Consultorio Luna', direccion: 'Av. 1' } as unknown as ClinicConfig
+
+  it('lleva versión, medio y huella del texto', () => {
+    const s = selloExpediente(cfg, '2026-08-02T10:00:00.000Z')
+    expect(s.aceptado).toBe(true)
+    expect(s.versionAviso).toBe(VERSION_AVISO)
+    expect(s.medioAceptacion).toBe('whatsapp')
+    expect(s.hashTexto).toMatch(/^[a-f0-9]{64}$/)
+    expect(s.fechaAceptacion).toBe('2026-08-02T10:00:00.000Z')
+  })
+
+  it('si cambia la configuración del consultorio, cambia la huella', () => {
+    // `versionAviso` es una constante del código, pero el TEXTO se genera con la
+    // razón social y el domicilio: sin la huella no habría forma de demostrar
+    // cuál aviso aceptó cada paciente.
+    const a = selloExpediente(cfg, '2026-08-02T10:00:00.000Z')
+    const b = selloExpediente({ ...cfg, nombreClinica: 'Otro nombre' }, '2026-08-02T10:00:00.000Z')
+    expect(a.hashTexto).not.toBe(b.hashTexto)
+  })
+
+  it('el mismo consultorio y el mismo texto dan la misma huella', () => {
+    expect(selloExpediente(cfg, '2026-08-02T10:00:00.000Z').hashTexto)
+      .toBe(selloExpediente(cfg, '2026-09-09T00:00:00.000Z').hashTexto)
   })
 })

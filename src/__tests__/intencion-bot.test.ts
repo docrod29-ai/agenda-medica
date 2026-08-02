@@ -12,6 +12,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 /** El detector real del bot, copiado tal cual para probar contra él. */
 function detectFAQ(text: string): string | null {
@@ -73,5 +75,37 @@ describe('intencionDelMensaje', () => {
 
   it('los acentos y las mayúsculas no cambian nada', () => {
     expect(intencion('QUIERO AGENDÁR UNA CONSULTA')).toEqual({ tipo: 'agendar' })
+  })
+})
+
+/**
+ * El menú de información prometía números que no existían.
+ *
+ * Terminaba con «O responda con el número de su interés» y no listaba ni uno.
+ * Peor: después de ese menú el estado seguía siendo `menu`, así que quien leía
+ * esa línea y escribía «1» acababa en el ALTA DE CITA, y «3» en cancelar. La
+ * instrucción no sólo era vacía: llevaba al sitio equivocado.
+ */
+describe('menú de información', () => {
+  const bot = readFileSync(join(process.cwd(), 'src', 'app', 'api', 'whatsapp', 'webhook', 'route.ts'), 'utf8')
+
+  it('los temas están numerados', () => {
+    expect(bot).toContain('TEMAS_INFO')
+    for (const clave of ['horario', 'costo', 'direccion', 'seguros', 'padecimientos']) {
+      expect(bot, clave).toContain(`clave: '${clave}'`)
+    }
+  })
+
+  it('tiene su propio estado: en `menu`, el «1» caía en el alta de cita', () => {
+    expect(bot).toContain("estado: 'info_menu'")
+    expect(bot).toContain("estado === 'info_menu'")
+  })
+
+  it('la pregunta del aviso de privacidad no se secuestra', () => {
+    // Si una FAQ contestara encima, el paciente acabaría dando sus datos sin
+    // haber contestado si acepta.
+    const listas = bot.match(/includes\(estado\)/g) ?? []
+    expect(listas.length).toBeGreaterThanOrEqual(3)
+    expect((bot.match(/'aviso_privacidad'/g) ?? []).length).toBeGreaterThanOrEqual(4)
   })
 })

@@ -24,9 +24,12 @@
  * Lo que se guarda es lo que pasó: quién aceptó, cuándo, por qué canal y con qué
  * versión del aviso. Nunca se marca aceptado por no contestar.
  *
- * Módulo PURO.
+ * NO es un módulo puro: el sello del expediente necesita el hash del texto del
+ * aviso, y ese texto se genera desde la configuración del consultorio.
  */
-import { VERSION_AVISO } from '@/lib/aviso-privacidad'
+import { createHash } from 'node:crypto'
+import { VERSION_AVISO, generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
+import type { ClinicConfig } from '@/types'
 
 export { VERSION_AVISO }
 
@@ -83,6 +86,30 @@ export function consentimientoDelBot(ahoraIso: string): ConsentimientoBot {
     version: VERSION_AVISO,
     via: 'whatsapp',
     timestamp: ahoraIso,
+  }
+}
+
+/**
+ * EL SELLO QUE VA EN EL EXPEDIENTE, igual que el del portal.
+ *
+ * El portal público guarda en `patients/{id}.avisoPrivacidad` un sello con la
+ * versión, el medio y el **hash del texto**: `versionAviso` es una constante del
+ * código, pero el texto se genera en vivo con la razón social, el domicilio y el
+ * responsable del consultorio. Si el médico cambia cualquiera de esos datos, el
+ * aviso que verá el siguiente paciente NO es el que aceptó éste, y sin la huella
+ * no habría forma de demostrar cuál firmó.
+ *
+ * v884 dejó el consentimiento del bot sólo en la CITA, así que el paciente que
+ * llega por WhatsApp seguía sin aviso en su expediente — que es justo donde lo
+ * mira el panel de Pacientes.
+ */
+export function selloExpediente(config: ClinicConfig | null, ahoraIso: string) {
+  return {
+    aceptado: true as const,
+    fechaAceptacion: ahoraIso,
+    versionAviso: VERSION_AVISO,
+    medioAceptacion: 'whatsapp' as const,
+    hashTexto: createHash('sha256').update(generarAvisoPrivacidad(config)).digest('hex'),
   }
 }
 
