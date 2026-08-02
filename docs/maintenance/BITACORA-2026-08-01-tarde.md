@@ -313,10 +313,19 @@ opción que no inventa nada.
 
 | **849** | **La próxima consulta.** El motor de tareas sabía derivar «agendar el seguimiento» desde que se escribió, y el CRM cuenta «seguimientos vencidos» sobre `patient.proximoSeguimiento`: **un campo que no escribía nadie**. La tarea no nacía y el contador era cero permanente. Ahora la consulta lo pide (opcional) y al firmar alimenta las dos. **NO va dentro de la nota firmada**: es dato de agenda, no afirmación clínica, y meterlo obligaría a subir la versión del sello de integridad. |
 
+| **850** | **En una consulta normal no salía NINGÚN pendiente de estudios.** `/pendientes` promete que «salen solos al firmar», pero el motor los deriva de `nota.estudiosOrden` y ese campo sólo lo llena la Valoración del inmunocomprometido: en una consulta corriente el médico elige los estudios en **Orden Médica**, imprime, y esa pantalla nunca escribía de vuelta. Ahora los pendientes nacen al **emitir** la orden —entregarla es un hecho, marcar casillas es una idea— y reimprimir **no duplica**: las tareas con `notaId` van con id derivado, y el `merge` no pisa el estado si el médico ya la movió. |
+
 ## LO QUE QUEDA EN LA COLA (nada de esto es urgente)
 - **Fragmentación cromática**: 160 de 187 `.tsx` con estilo en línea.
 - **Formularios previos a la consulta** en el portal del paciente (P-019).
-- ~~Próxima cita al motor de tareas~~ — HECHO (v849). Quedan las **instrucciones
-  al paciente** (P-010): hoy se escriben en el plan y no generan nada.
+- ~~Próxima cita al motor de tareas~~ — HECHO (v849).
+- **Instrucciones al paciente (P-010)**: el tipo de tarea `indicacion_paciente`
+  existe y `/pendientes` sabe etiquetarlo, pero **nada lo crea**, y lo dejo así a
+  propósito. Las indicaciones se escriben dentro del plan, que es obligatorio en
+  todas las notas: derivar de ahí pondría una tarea en CADA consulta y el
+  worklist se abandonaría en una semana. Falta una **decisión de producto**: qué
+  acto concreto significa «hay indicaciones que entregar» — ¿imprimir una hoja
+  para el paciente? ¿marcarlo a mano? Queda declarado en `modelo.ts` para que
+  nadie lo dé por hecho al leer el tipo.
 - **`PlanVersion`/`LegacyPlan`/`OverageRule`/`Addon`/`Discount`** del motor de
   precios (P-013).

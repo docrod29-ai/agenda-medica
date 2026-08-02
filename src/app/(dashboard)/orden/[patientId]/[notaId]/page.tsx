@@ -10,6 +10,9 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { useDoctors } from '@/hooks/useDoctors'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { logAudit } from '@/lib/expediente/audit-log'
+import { auth } from '@/lib/firebase'
+import { crearTareas } from '@/lib/tareas-clinicas/firestore'
+import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -335,6 +338,31 @@ export default function GeneradorOrdenPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
   const [estudios, setEstudios] = useState<string[]>([])
+
+  /**
+   * EMITIR LA ORDEN CREA LOS PENDIENTES — que es lo que /pendientes prometía.
+   *
+   * El motor de tareas deriva los estudios de `nota.estudiosOrden`, y ese campo
+   * sólo lo llena la Valoración del inmunocomprometido: en una consulta normal
+   * el médico elige los estudios AQUÍ, imprime, y la nota se queda vacía. Así
+   * que la pantalla de Pendientes decía «los estudios pedidos salen solos al
+   * firmar» y no salía ninguno.
+   *
+   * Se cuelga de EMITIR (imprimir, Word o PDF) y no de elegir: marcar una
+   * casilla es una idea, entregar la orden es un hecho. Y volver a imprimir no
+   * duplica nada — `crearTareas` da id derivado a lo que trae `notaId`.
+   */
+  const crearPendientesDeLaOrden = () => {
+    if (!clinicId || !estudios.length) return
+    const ahora = Date.now()
+    void crearTareas(clinicId, tareasDeNota({
+      id: notaId, clinicId, pacienteId: patientId,
+      pacienteNombre: patient?.nombre,
+      estudiosOrden: estudios,
+      medicoUid: auth.currentUser?.uid ?? undefined,
+      medicoNombre: config?.nombreMedico,
+    }, ahora)).catch(() => { /* la orden ya está emitida: esto no puede tumbarla */ })
+  }
   const [indicaciones, setIndicaciones] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
@@ -562,13 +590,13 @@ export default function GeneradorOrdenPage() {
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary">
             <Settings size={14} /> Template
           </button>
-          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); crearPendientesDeLaOrden(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
-          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
+          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
           </button>
-          <button onClick={() => { if (configError || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); descargarPDF() }} disabled={descargando || !!configError || ordenVacia} className="btn btn-primary">
+          <button onClick={() => { if (configError || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarPDF() }} disabled={descargando || !!configError || ordenVacia} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}
