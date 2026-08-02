@@ -349,6 +349,13 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | **853** | **El mismo médico con DOS identificadores partía la comisión en dos.** Desde Citas viajaba el id del documento de `doctors`; desde Consulta, el `uid`. El reparto agrupa por `medicoId`, así que la misma doctora salía en dos filas y media comisión se pagaba al 0 %. Se resuelve **en el origen** (`registrarCobro`), nunca adivinando: ante ambigüedad queda `sin-resolver` y se conserva lo que venía — atribuir mal se paga en silencio a quien no era. Los cobros anteriores siguen como estaban, y el panel **avisa** antes de pagar. |
 | **854** | **Una consulta ya pagada aparecía como deuda.** El corte carga los cobros del DÍA, así que un anticipo pagado el viernes para la cita del lunes la dejaba en «cuentas por cobrar». Ahora manda `cita.cobroId`, que sólo escribe un cobro de cierre y se limpia al anular. |
 
+## SEXTA TANDA — v855 a v856 (UCI y farmacia)
+
+| v | Qué se reparó |
+|---|---|
+| **855** | **Un reingreso a terapia borraba la estancia anterior.** `ICUStay` vivía en un id fijo y reabrirlo lo sobreescribía, mientras el tipo prometía que «cada estancia se conserva». La que se cierra se **archiva** con id derivado de su fecha de ingreso —no aleatorio: una transacción se reintenta y con id al azar el historial diría que hubo un reingreso que nunca ocurrió—. `actual` sigue siendo el puntero a la vigente, así que ningún lector migró. Y **egresar también cierra la estancia**: antes sólo la cerraba el traslado a piso, así que quien fallecía o salía del hospital desde UCI la dejaba activa para siempre. |
+| **856** | **Farmacia: tres contadores que mentían.** «Eliminar» no eliminaba nada visible (`soloActivos = false`). «Bajo stock: 0» con el anaquel vacío, porque exigía un mínimo capturado que el formulario deja en blanco. Y la caducidad se evaluaba en UTC: un lote que vence el 2 salía caducado desde las 18:00 del 1. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -365,21 +372,16 @@ Por orden de daño. Todo con archivo:línea, verificable.
    desglose (`CobrarModal.tsx:126`).
 
 ### Farmacia
-6. **«Eliminar» no elimina nada visible**: la pantalla pide `soloActivos = false`
-   (`farmacia/page.tsx:44`) y el ítem borrado sigue en la lista y en los
-   contadores.
-7. **«Bajo stock: 0» con el anaquel vacío**: `bajoMinimo` devuelve `false` si no
-   hay mínimo capturado (`farmacia.ts:167`).
+6. ~~«Eliminar» no elimina nada visible~~ — HECHO (v856).
+7. ~~«Bajo stock: 0» con el anaquel vacío~~ — HECHO (v856).
 8. **La farmacia es una isla**: dispensar no descuenta ni cobra, `patientId` y
    `notaId` del movimiento no los escribe nadie (NOM-220 lote→paciente), y
    `listarMovimientos` no tiene ni una pantalla que lo llame.
-9. **Caducidad evaluada en UTC** (`farmacia.ts:171`): un lote que vence el 2 de
-   agosto aparece caducado desde las 18:00 del 1.
+9. ~~Caducidad evaluada en UTC~~ — HECHO (v856).
 
 ### Hospital / UCI
-10. **P0 — un reingreso a terapia BORRA la estancia anterior**: `icu_stays` usa
-    el id fijo `actual` (`api/hospital/mutar/route.ts:305-320`), contra lo que el
-    propio tipo promete.
+10. ~~Un reingreso borra la estancia anterior~~ — HECHO (v855), junto con el
+    cierre de la estancia al egresar (punto 10 del informe de UCI).
 11. **La limpieza terminal no se aplica al EGRESO**, sólo al traslado: la cama
     cuenta como disponible en el mismo instante del alta.
 12. **El turno de enfermería de UCI oculta pacientes** de una unidad sin tipo

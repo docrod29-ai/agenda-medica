@@ -41,7 +41,15 @@ export default function FarmaciaPage() {
     if (!clinicId) return
     setLoading(true)
     try {
-      const i = await listarItems(clinicId, false)
+      /**
+       * SÓLO LOS ACTIVOS.
+       *
+       * Se pedía `soloActivos = false`, justo lo contrario de lo que asume
+       * `borrarItem` («baja lógica… listarItems ya filtra por activo==true»). Se
+       * borraba un ítem, salía el toast «Ítem eliminado», y tras recargar seguía
+       * en la lista — y sus existencias seguían contando en los tres badges.
+       */
+      const i = await listarItems(clinicId)
       setItems(i)
     } finally { setLoading(false) }
   }
