@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
+import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -32,7 +33,7 @@ function horasHasta(fechaHora: string, tz: string): number {
   return (t - Date.now()) / 3_600_000
 }
 
-const TERMINALES = new Set(['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada'])
+
 
 async function leerCitasPaciente(clinicId: string, patientId: string): Promise<Appointment[]> {
   const snap = await adminDb
@@ -146,8 +147,8 @@ export async function POST(req: NextRequest) {
       case 'confirmar': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
-        if (TERMINALES.has(cita.estado)) {
-          return NextResponse.json({ error: 'Esta cita ya no puede confirmarse' }, { status: 409 })
+        if (!puedeTocarDesdeElPortal(cita, { permiteCobrada: true })) {
+          return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
         }
         await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id).update({
           confirmadoPaciente: true,
@@ -162,8 +163,8 @@ export async function POST(req: NextRequest) {
       case 'cancelar': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
-        if (TERMINALES.has(cita.estado)) {
-          return NextResponse.json({ error: 'Esta cita ya no puede cancelarse' }, { status: 409 })
+        if (!puedeTocarDesdeElPortal(cita)) {
+          return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
         }
         const config = await leerConfig(clinicId)
         const minHoras = (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO
@@ -197,8 +198,11 @@ export async function POST(req: NextRequest) {
       case 'reagendar': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
-        if (TERMINALES.has(cita.estado)) {
-          return NextResponse.json({ error: 'Esta cita ya no puede reagendarse' }, { status: 409 })
+        // Reagendar mueve el hueco: la misma lista blanca que confirmar, y
+        // tampoco se toca una cita ya cobrada — mover dinero de día es del
+        // consultorio, no del paciente.
+        if (!puedeTocarDesdeElPortal(cita)) {
+          return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
         }
         const config = await leerConfig(clinicId)
         const minHoras = (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO
