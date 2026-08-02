@@ -3,7 +3,8 @@ import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { resolverClaveIA, gateCreditos } from '@/lib/ai-keys'
+import { resolverClaveIA, gateCreditos, registrarCreditos } from '@/lib/ai-keys'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
   const ctxCosto = {
     feature: 'receta-detectar-campos',
     requestId: req.headers.get('x-vercel-id') || `rd-${acceso.uid}-${Date.now()}`,
-    clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+    clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.recetaVision, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
   const t0Costo = Date.now()
@@ -121,6 +122,9 @@ export async function POST(req: NextRequest) {
       cuerpo = { top: clamp(cu.top), bottom: clamp(cu.bottom) }
     }
     if (Object.keys(campos).length === 0 && !cuerpo) return NextResponse.json({ ok: false, error: 'No se detectaron campos' }, { status: 422 })
+    // COBRAR — sólo al devolver algo. El gate mira `uso.{mes}.creditos` y esta
+    // ruta no lo incrementaba nunca: el corte no podía dispararse.
+    void registrarCreditos(clinicId, COSTO_CREDITOS.recetaVision)
     return NextResponse.json({ ok: true, campos, cuerpo })
   } catch (e) {
     return NextResponse.json({ ok: false, error: 'Error al detectar', detalle: String(e).slice(0, 200) }, { status: 500 })

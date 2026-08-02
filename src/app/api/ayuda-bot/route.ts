@@ -60,7 +60,11 @@ ${conocimientoTexto()}`
   // cuesta tokens: sin asiento, ese gasto no existía en ningún lado.
   const r = await llamarIA(
     { proveedor: 'anthropic', clave: key, modelos: MODELOS, system, user, maxTokens: 900 },
-    { feature: 'ayuda-bot', requestId: req.headers.get('x-vercel-id') || `ab-${Date.now()}`, clinicId: null, uid: null, creditos: 0, fuente: 'prueba' },
+    // El asiento iba con `clinicId: null, uid: null, fuente: 'prueba'` FIJOS, así que
+    // el gasto del bot de ayuda no se podía atribuir a nadie en el libro de costos.
+    // Los créditos siguen en 0 A PROPÓSITO: preguntar cómo se usa la aplicación no
+    // se le cobra al médico. Lo que no puede ser es que el gasto sea anónimo.
+    { feature: 'ayuda-bot', requestId: req.headers.get('x-vercel-id') || `ab-${acceso.uid}-${Date.now()}`, clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente },
   )
   if (r.ok && r.texto.trim()) return NextResponse.json({ ok: true, respuesta: r.texto.trim() })
 

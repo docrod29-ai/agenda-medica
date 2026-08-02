@@ -11,9 +11,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
+import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
-import { resolverClaveIA, creditosAgotados, registrarUso } from '@/lib/ai-keys'
+import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5']
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
       {
         feature: 'inmuno-redactar',
         requestId: req.headers.get('x-vercel-id') || `ir-${acceso.uid}-${Date.now()}`,
-        clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
+        clinicId: clinicId ?? null, uid: acceso.uid, creditos: COSTO_CREDITOS.inmunoRedactar, fuente,
         esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
       },
     )
@@ -82,6 +83,9 @@ export async function POST(req: NextRequest) {
     const texto = r.texto
     if (!texto.trim()) return NextResponse.json({ ok: false, error: 'La IA devolvió una respuesta vacía. Intenta de nuevo.' }, { status: 502 })
     await registrarUso(clinicId, fuente)
+    // COBRAR — y sólo cuando hubo texto. Sin esto el contador no se movía nunca,
+    // así que el corte por créditos agotados no podía dispararse.
+    void registrarCreditos(clinicId, COSTO_CREDITOS.inmunoRedactar)
     return NextResponse.json({ ok: true, texto })
   } catch {
     return NextResponse.json({ ok: false, error: 'Error al contactar la IA.' }, { status: 500 })

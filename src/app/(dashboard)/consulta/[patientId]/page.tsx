@@ -14,6 +14,7 @@ import { usePatientAppointments } from '@/hooks/useAppointments'
 import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
+import { leerNdjson } from '@/lib/ndjson'
 import { auth } from '@/lib/firebase'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
@@ -806,11 +807,16 @@ export default function ConsultaActivaPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta, contextoPaciente }),
       })
-      const d = await res.json().catch(() => null)
-      if (!d?.ok || !d.respuesta) { toast(d?.error || 'No se pudo generar el análisis', 'error'); return }
-      let texto = limpiarMarkdown(d.respuesta)
-      if (Array.isArray(d.articulos) && d.articulos.length > 0) {
-        texto += '\n\nReferencias:\n' + d.articulos.map((a: { titulo: string; revista: string; anio: string; pmid: string }, i: number) =>
+      // La ruta responde NDJSON, no JSON. Esto hacía `res.json()`, que revienta en
+      // la segunda línea: el servidor ya había llamado al modelo y descontado los
+      // créditos, y el médico veía «No se pudo generar el análisis». El botón no
+      // había funcionado nunca.
+      const d = await leerNdjson(res)
+      if (!d.texto.trim()) { toast(d.error || 'No se pudo generar el análisis', 'error'); return }
+      let texto = limpiarMarkdown(d.texto)
+      const articulos = (d.meta?.articulos ?? []) as { titulo: string; revista: string; anio: string; pmid: string }[]
+      if (articulos.length > 0) {
+        texto += '\n\nReferencias:\n' + articulos.map((a, i) =>
           `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\n')
       }
       setSecciones(prev => {
