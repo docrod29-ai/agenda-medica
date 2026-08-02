@@ -471,6 +471,39 @@ nuevo pasa sin tocar `firestore.rules`.
 
 ---
 
+## QUINCUAGÉSIMA SÉPTIMA TANDA — v908
+
+### La bitácora de cumplimiento enseñaba doce eventos con su nombre interno de base de datos
+
+La pantalla de cumplimiento es la que se le pone delante a un auditor: es la
+trazabilidad de NOM-024 hecha visible. Y su lista de etiquetas vivía **suelta
+dentro del propio `page.tsx`**, así que la bitácora podía crecer sin que nadie se
+enterara de que a la pantalla le faltaban nombres.
+
+Doce eventos salían en crudo: `hosp_administracion` en vez de «Administró
+medicamento», `cobro_exento`, `cita_borrada`, `foto_clinica_borrada`… Media
+bitácora en jerga de base de datos no es trazabilidad, es un volcado.
+
+Y cinco de ellos —los del portal y el bot— se escribían directo con el Admin SDK
+**sin pasar por `logAudit`**, así que ni siquiera estaban en el tipo: nadie podía
+notarlo desde el compilador.
+
+Ahora el mapa vive junto al tipo, los cinco entraron a `AuditEvento`, y los del
+paciente se nombran **diciendo que fue él** («El paciente canceló (portal)»),
+porque en una revisión un «canceló» sin sujeto se lee como que lo hizo el
+consultorio — justo lo contrario de lo que pasó.
+
+Y queda un **guardián**: una prueba recorre el repositorio, junta cada
+`evento: '...'` que se escribe de verdad y falla si alguno no está en el tipo o no
+tiene etiqueta. Mismo trato que el trinquete de lint: lo que importa no es
+corregirlo hoy, es que no se vuelva a descolgar mañana.
+
+- `src/lib/expediente/audit-log.ts` (`EVENTO_LABEL`, `etiquetaEvento`, +5 al tipo)
+- `src/app/(dashboard)/cumplimiento/page.tsx` (usa el mapa compartido)
+- `src/__tests__/bitacora-etiquetas.test.ts` — 5 pruebas. Total 4854.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
