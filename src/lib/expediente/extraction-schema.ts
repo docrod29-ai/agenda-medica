@@ -85,6 +85,25 @@ export const SafetyBlock = z.object({
   fields_requiring_review:  z.array(z.string()).optional().default([]),
   conflicts_detected:       z.array(z.string()).optional().default([]),
   missing_critical_fields:  z.array(z.string()).optional().default([]),
+  /**
+   * CRUCES ALERGIA ↔ FÁRMACO QUE VIO EL MODELO.
+   *
+   * El prompt lleva desde siempre la instrucción de emitirlos, y el esquema NO
+   * los declaraba: zod los tiraba en silencio, así que el aviso no salía nunca
+   * del servidor. Se veía como «el modelo no detectó nada», que es la peor
+   * lectura posible de un campo que se cae.
+   *
+   * OJO CON LO QUE ESTO ES Y NO ES: no es la compuerta. La compuerta que
+   * bloquea la firma es el motor DETERMINISTA (`validarAlergiasVsMedicamentos`
+   * + `validarNOM004`), que no depende de que un modelo se acuerde. Esto es lo
+   * que el modelo VIO, y se muestra para que el médico lo mire.
+   */
+  alergia_conflicto: z.array(z.object({
+    alergeno:          z.string().optional().default(''),
+    farmaco_sugerido:  z.string().optional().default(''),
+    riesgo_cruzado:    z.string().optional().default(''),
+    alternativa_segura: z.string().optional().default(''),
+  })).optional().default([]),
 })
 export type SafetyBlock = z.infer<typeof SafetyBlock>
 

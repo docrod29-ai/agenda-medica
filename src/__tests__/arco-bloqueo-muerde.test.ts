@@ -31,14 +31,14 @@ describe('pacientesParaReactivar', () => {
 
   it('NO propone a quien ejerció su cancelación ARCO', () => {
     const bloqueado = paciente('b', {
-      arcoBloqueo: marcaDeBloqueo({ ahoraMs: Date.parse('2026-06-01T10:00:00Z'), uid: 'med-1', motivo: 'solicitud del titular' }),
+      arcoBloqueo: marcaDeBloqueo({ ahoraMs: Date.parse('2026-06-01T10:00:00Z'), uid: 'med-1', solicitudId: 'sol-1', motivo: 'solicitud del titular' }),
     } as Partial<Patient>)
     const r = pacientesParaReactivar([paciente('a'), bloqueado], HOY, 90)
     expect(r.map(c => c.paciente.id)).toEqual(['a'])
   })
 
   it('la marca se reconoce como bloqueo', () => {
-    const m = marcaDeBloqueo({ ahoraMs: Date.parse('2026-06-01T10:00:00Z'), uid: 'med-1', motivo: 'x' })
+    const m = marcaDeBloqueo({ ahoraMs: Date.parse('2026-06-01T10:00:00Z'), uid: 'med-1', solicitudId: 'sol-1', motivo: 'x' })
     expect(estaBloqueadoArco({ arcoBloqueo: m })).toBe(true)
     expect(estaBloqueadoArco({})).toBe(false)
     expect(estaBloqueadoArco(null)).toBe(false)

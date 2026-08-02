@@ -30,6 +30,7 @@ interface SafetyBlock {
   fields_requiring_review?: string[]
   conflicts_detected?: string[]
   missing_critical_fields?: string[]
+  alergia_conflicto?: Array<{ alergeno?: string; farmaco_sugerido?: string; riesgo_cruzado?: string; alternativa_segura?: string }>
 }
 
 interface Props {
@@ -104,6 +105,9 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
   }, [extraction])
 
   const conflictos = safety?.conflicts_detected ?? []
+  // Lo que el MODELO vio cruzando alergias y fármacos. No es la compuerta —esa
+  // es determinista y bloquea la firma—; es información que antes se perdía.
+  const crucesAlergia = (safety?.alergia_conflicto ?? []).filter(c => c.alergeno || c.farmaco_sugerido)
   const faltantesCriticos = safety?.missing_critical_fields ?? []
   const requierenRevision = items.filter(i => i.campo.needs_review || i.critico)
   const seguros = items.filter(i => !i.campo.needs_review && !i.critico)
@@ -122,7 +126,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items])
 
-  if (items.length === 0 && conflictos.length === 0 && faltantesCriticos.length === 0) {
+  if (items.length === 0 && conflictos.length === 0 && faltantesCriticos.length === 0 && crucesAlergia.length === 0) {
     return null
   }
 
@@ -200,6 +204,21 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
             <ShieldAlert size={14} /> Conflictos detectados
           </div>
           {conflictos.map((c, i) => <div key={i} style={{ fontSize: 12, color: 'var(--text2)' }}>• {c}</div>)}
+        </div>
+      )}
+
+      {crucesAlergia.length > 0 && (
+        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 4 }}>
+            <ShieldAlert size={14} /> Cruce alergia ↔ medicamento
+          </div>
+          {crucesAlergia.map((c, i) => (
+            <div key={i} style={{ fontSize: 12, color: 'var(--text2)' }}>
+              • {c.alergeno || '—'} con {c.farmaco_sugerido || '—'}
+              {c.riesgo_cruzado ? ` — ${c.riesgo_cruzado}` : ''}
+              {c.alternativa_segura ? ` · alternativa mencionada: ${c.alternativa_segura}` : ''}
+            </div>
+          ))}
         </div>
       )}
 

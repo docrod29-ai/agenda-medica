@@ -146,14 +146,19 @@ export default function GeneradorRecetaPage() {
   const [creatinina, setCreatinina] = useState('')
   const [pesoKg, setPesoKg] = useState('')
 
+  // Se saca del memo para que la dependencia inferida sea la EDAD y no el objeto
+  // paciente entero: si no, el compilador de React no puede conservar el memo.
+  const edadPaciente = patient?.edad
+  const pesoDeLaNota = nota?.signosVitales?.peso
+
   const alertasDosis = useMemo(() => {
     const out: { med: string; alertas: AlertaDosis[] }[] = []
     // PESO para la verificación mg/kg PEDIÁTRICA (antes NO se pasaba → la red de
     // seguridad más importante en niños estaba muerta: solo corrían topes de adulto).
     // Se toma el peso de la nota (signos) y, si no, el que el médico teclee para el
     // cálculo renal. Solo se aplica a pacientes < 18 años.
-    const esPediatrico = patient?.edad != null && patient.edad < 18
-    const pesoNota = Number(nota?.signosVitales?.peso ?? 0)
+    const esPediatrico = edadPaciente != null && edadPaciente < 18
+    const pesoNota = Number(pesoDeLaNota ?? 0)
     // El comentario de arriba prometía «y si no, el que el médico teclee», y el
     // código no lo cumplía: sólo miraba la nota. En un niño sin peso en signos
     // vitales, la comprobación mg/kg —la red de seguridad más importante que hay
@@ -190,12 +195,12 @@ export default function GeneradorRecetaPage() {
       const dosisPrescrita = esDosisPorKg(m.dosis)
         ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
         : cantidad(mg, 'mg', 'masa')
-      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: patient?.edad })
+      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente })
         .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out
-  }, [medicamentos, patient?.edad, nota?.signosVitales?.peso, pesoKg])
+  }, [medicamentos, edadPaciente, pesoDeLaNota, pesoKg])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
@@ -299,6 +304,17 @@ export default function GeneradorRecetaPage() {
   useEffect(() => {
     if (!clinicId || !patientId || !notaId || !folio || !recetaConfig.mostrarQR) return
     let vivo = true
+    /**
+     * EL QR VIEJO NO PUEDE SEGUIR EN PANTALLA MIENTRAS SE MINTA EL NUEVO.
+     *
+     * `contenidoHash` cambia al instante con cada edición, pero la URL firmada
+     * llega por red. En esa ventana, imprimir justo después de corregir una
+     * dosis estampaba el certificado de la versión ANTERIOR — un QR válido que
+     * certifica un contenido que ya no es el del papel.
+     *
+     * Se borra primero: mejor una receta sin QR que una con el QR equivocado.
+     */
+    setVerificacionUrl(undefined)
     // fetchAutenticado, no fetch: la ruta exige `verificarMiembro`, que lee la
     // cabecera Authorization. Con `fetch` plano respondía 401 SIEMPRE, y los dos
     // catches se lo tragaban: el QR impreso codificaba el folio en texto plano en

@@ -16,6 +16,7 @@ import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
+import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth } from '@/lib/firebase'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
@@ -1345,7 +1346,20 @@ export default function ConsultaActivaPage() {
       secciones,
       signosVitales: signosNum,
       diagnosticos,
-      medicamentos,
+      /**
+       * LA VÍA SE CORRIGE AQUÍ, NO EN EL PAPEL.
+       *
+       * `corregirViaParenteral` sólo se aplicaba al abrir la receta, y esa
+       * pantalla no escribe de vuelta. Si la extracción dejaba una insulina como
+       * «oral», la NOTA se firmaba así —y una nota firmada es inmutable—
+       * mientras el papel decía «subcutánea»: el documento legal y lo que se
+       * dispensa contándose cosas distintas. Y la vía equivocada se propaga a
+       * las consultas siguientes por `medicamentosVigentes`.
+       *
+       * Corregir aquí es antes de firmar, donde el médico todavía lo ve y lo
+       * puede cambiar.
+       */
+      medicamentos: medicamentos.map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })),
       /**
        * NO SE INVENTA LO QUE NADIE DIJO.
        *
