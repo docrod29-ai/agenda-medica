@@ -333,6 +333,43 @@ corregirlo; heredarlo dejaba fuera del cálculo justo la versión correcta.)
 
 ---
 
+## QUINCUAGÉSIMA TERCERA TANDA — v904
+
+### Corregir un signo vital no dejaba constancia de por qué, ni se guardaba a la hora en que se midió
+
+`RegistroSignos` declara dos campos con su decisión escrita detrás:
+
+- **`motivoCorreccion`** — «por qué se corrigió. Su obligatoriedad es política
+  del expediente → E0-09/Q4»;
+- **`fechaEfectiva`** — «cuándo OCURRIÓ la medición. Una corrección **hereda la
+  del original**», que ICU-002b añadió con este ejemplo literal: *«una corrección
+  hecha a las 08:03 de un signo tomado a las 08:00 se guardaba con `fecha: 08:03`;
+  el NEWS2 retrospectivo de las 08:00 debe usar 92»*.
+
+El formulario de la ficha **no escribía ninguno de los dos**. Los campos se
+añadieron al tipo, se documentaron con su decisión, y el único sitio del programa
+que crea correcciones siguió sin usarlos:
+
+- el expediente registraba que un signo vital cambió y **nunca por qué**. En una
+  revisión —o en un juicio— un valor corregido sin justificación es exactamente
+  lo que se pregunta;
+- y la corrección quedaba **fuera de la hora a la que pertenece**, que es el
+  fallo que esos campos vinieron a reparar.
+
+Ahora la corrección pide el motivo (sólo al corregir: capturar no tiene nada que
+justificar), hereda la hora de medición del original **y lo dice antes de
+guardar**, y la tabla ordena por la hora de la medición y enseña el motivo.
+
+**No se bloquea el guardado si se deja vacío**: si el motivo es obligatorio o no
+es política del expediente, y eso lo decide el Dr, no esta pantalla. Lo que sí se
+hace es no callarlo — sin motivo, la tabla dice «sin motivo declarado» en ámbar.
+
+- `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`
+- `src/__tests__/correccion-signos.test.ts` — 8 pruebas, incluida la del ejemplo
+  literal de la decisión (el NEWS2 de las 08:00 usa 92). Total 4821.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
@@ -416,6 +453,10 @@ corregirlo; heredarlo dejaba fuera del cálculo justo la versión correcta.)
 - Plantillas de WhatsApp aprobadas en Meta.
 - Cuál debe ser el tope de huecos por día (punto 1 de EN CURSO).
 - Las ~39 recomendaciones de inmuno sin `fuente` declarada.
+- **¿El motivo de una corrección de signos es obligatorio?** (E0-09/Q4). El tipo
+  dice que su obligatoriedad es política del expediente. v904 lo pide y lo enseña,
+  y declara su ausencia en ámbar, pero NO bloquea el guardado: exigirlo es su
+  decisión, no de la pantalla.
 
 ---
 
