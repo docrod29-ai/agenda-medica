@@ -186,3 +186,63 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 - Plantillas de WhatsApp aprobadas en Meta.
 - Cuál debe ser el tope de huecos por día (punto 1 de EN CURSO).
 - Las ~39 recomendaciones de inmuno sin `fuente` declarada.
+
+---
+
+# NOCHE DEL 1 AL 2 DE AGOSTO — v829 a v833
+
+Panel de especialistas en paralelo (agenda, IA/voz, clínico-como-software,
+abogado sanitarista). ~45 hallazgos; lo confirmado leyendo el código está abajo.
+
+| v | Qué se reparó |
+|---|---|
+| **829** | **Horario partido.** `DaySchedule` era un solo tramo: 9-14 y 16-20 no se podía expresar. `descansos` es opcional — sin él, el día se comporta igual que antes. Un descanso mal escrito se IGNORA en vez de romper el día. |
+| **830** | **El fósil y los otros tres motores.** Hay CINCO implementaciones del cálculo de huecos. El horario del médico se copiaba al darlo de alta y no se volvía a escribir nunca —no hay editor por médico— y aun así los cuatro caminos la preferían: **todo cambio de horario decía «guardado» y no llegaba a la agenda**. El bot tenía su propia copia (ofrecía la comida, escondía huecos libres, no revalidaba al confirmar). El POST del portal aceptaba lo que el GET ya no ofrecía. |
+| **831** | **La IA cobraba lo que no daba.** «Agregar análisis a la nota» NO ha funcionado nunca (`res.json()` sobre NDJSON) y cobraba 4 créditos por clic. El consultor cobraba aunque el proveedor fallara. Dos rutas llamaban al modelo sin mover el contador → el corte no podía dispararse. La ruta de la nota esquivaba la cartera (doble gasto). |
+| **832** | **Alergias y dosis.** «Niega alergia a penicilina» bloqueaba la firma. La compuerta por nombre exacto estaba muerta (`tipo` que nadie escribe). El peso tecleado no llegaba a la verificación mg/kg. «45 mg/kg» se leía como 45 mg. El parser local inventaba vía y severidad. Ya queda constancia del consentimiento de grabación y de quién toca las alergias. |
+| **833** | **ARCO a medias.** La supresión dejaba vivas las subcolecciones (versions, adendas, laboratorios, fotos, clinico) diciendo «se elimina el expediente completo». El bloqueo no bloqueaba nada. El fallo de la baja de WhatsApp se tragaba respondiendo «listo». La solicitud legal seguía en «recibida». |
+
+**Módulos nuevos**: `lib/horario-medico.ts`, `lib/ndjson.ts`.
+**Pruebas**: 4463 → 4493. Lint en el techo (99) en todas.
+
+## COLA CONFIRMADA, PENDIENTE (por orden de daño)
+
+1. **`BLOQUEA_RECETA` se lo come zod** — el esqueleto de `SafetyBlock`
+   (`extraction-schema.ts:83`) no declara `alergia_conflicto`, así que la bandera
+   nunca sale del servidor por la ruta de la nota. Por la del NER sí llega, pero
+   sólo pinta una tarjeta: `entidades` no se lee en el guardado ni en la receta.
+2. **Procedencia sella como «dictado» sin verificar la cita** — basta una cadena
+   no vacía (`procedencia.ts:101`). El emparejamiento de medicamentos es por
+   NOMBRE pero el valor sellado incluye la dosis: el médico corrige la dosis y
+   queda sellada como dictada con la cita original. Y en el fallback local todo
+   sale como `manual`, o sea «lo escribió el médico», sobre datos de máquina.
+3. **La página de verificación afirma «no fue alterado» sin comparar nada**
+   (`verificar/[token]/page.tsx:58`). Sólo muestra el hash. Y el QR puede
+   arrastrar el hash viejo si se imprime justo tras corregir una dosis.
+4. **Un fallo de PubMed es indistinguible de «no hay literatura»** —
+   `pubmed.ts:97` devuelve `[]` en el 429. El médico lee «no hay evidencia».
+5. **`corregirViaParenteral` sólo existe en el papel** — la nota firmada conserva
+   la vía equivocada y `medicamentosVigentes` la propaga (`receta/page.tsx:226`).
+6. **El ciclo de vida de la orden de medicamento no tiene escritores** — nada
+   asigna `suspendida/terminada/cancelada`, así que «Está tomando» es en realidad
+   «todo lo que alguna vez apareció en una nota». NEEDS_CLINICAL_REVIEW: ¿una
+   duración cumplida pasa a terminada sola?
+7. **La firma no da no repudio** — hora e identidad las pone el cliente y las
+   reglas no exigen `metadata.medicoId == request.auth.uid` (`firestore.rules:212`).
+   Las adendas se autoatribuyen y el motivo es opcional.
+8. **Laboratorios y fotos se borran desde el navegador sin dejar rastro**
+   (`firestore.rules:240,249`), contra la conservación que promete el aviso.
+9. **La cola de bitácora se atribuye a quien entre después** — el asiento se
+   encola sin identidad y se drena con el token del siguiente usuario.
+10. **El portal público no escribe el aviso de privacidad en el paciente** —
+    dos booleanos en la cita, sin versión ni huella (`public/booking:253`).
+11. **La verificación de la nota se recorta a 12 000 chars sin marca** y puede
+    devolver «sin hallazgos» sobre lo que no leyó (`verificar-nota:69`).
+12. **Los bloqueos se guardan con la zona del navegador**, no la del consultorio
+    (`configuracion/page.tsx:1991`).
+13. **El portal público decide los días con tres relojes** y ninguno es el del
+    consultorio: un paciente en otro huso pierde un día entero sin aviso.
+14. **El Consultor manda el NOMBRE del paciente al proveedor** y lo persiste vía
+    `extraerAprendizajes` (`consultor/page.tsx:63`).
+15. **Festivos no editables ni recurrentes** — se leen en cuatro sitios y no se
+    escriben en ninguno: la lista está siempre vacía.
