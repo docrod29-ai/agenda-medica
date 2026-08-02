@@ -393,6 +393,32 @@ export async function POST(req: NextRequest) {
           medicoId: cita.medicoId,
         }).catch(() => {})
 
+        /**
+         * Y AL CONSULTORIO — que aquí importa MÁS que en una cancelación.
+         *
+         * La cita no desapareció: se movió. Quien tenga impresa o memorizada la
+         * lista del día sigue esperando a este paciente a la hora vieja, y a la
+         * hora nueva le llega alguien que «no estaba». La cancelación al menos
+         * deja un hueco visible; un reagendado silencioso deja dos errores.
+         *
+         * Además la cita vuelve a `pendiente-confirmar`, así que hay que
+         * confirmarla de nuevo — y nadie sabía que había que hacerlo.
+         */
+        void avisarAlConsultorio(
+          clinicId,
+          telefonoDelConsultorio(config),
+          [
+            `🔔 *Cita movida desde el portal*`,
+            ``,
+            `👤 ${cita.pacienteNombre ?? ''}`,
+            `📅 Antes: ${cita.fechaHora}`,
+            `📅 Ahora: ${nuevaFechaHora}`,
+            ``,
+            `Quedó en *pendiente de confirmar*. El hueco viejo ya se ofreció a la lista de espera.`,
+          ].join('\n'),
+          'reagenda-portal',
+        )
+
         return NextResponse.json({ ok: true })
       }
 

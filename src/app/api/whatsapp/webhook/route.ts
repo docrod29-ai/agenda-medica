@@ -989,7 +989,11 @@ export async function handleMessage(from: string, body: string, clinicId: string
             pacienteId: pacienteIdBot, pacienteNombre: datos.nombre, pacienteTelefono: from,
             fechaHora, duracion, tipo: datos.tipo as AppointmentType, motivo: '',
             estado: 'solicitada', origen: 'WhatsApp', medicoNombre,
-            medicoId: doctorId || '', doctorId: doctorId || '', lugar: clinicName,
+            medicoId: doctorId || '', doctorId: doctorId || '',
+            // Sin lugar físico si es videoconsulta: el portal imprime
+            // «Teleconsulta · {lugar}» y sería enseñarle el consultorio a quien
+            // no tiene que ir.
+            lugar: datos.tipo === 'teleconsulta' ? '' : clinicName,
             confirmadoPaciente: true, fechaConfirmacion: now,
             recordatorio24hEnviado: false, recordatorioMismoDiaEnviado: false,
             consentimientoMensajes: true, notasInternas: `Agendada por bot WhatsApp`,

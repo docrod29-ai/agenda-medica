@@ -321,7 +321,13 @@ export async function POST(req: NextRequest) {
           origen: 'Portal',
           medicoId: medicoId ?? '',
           doctorId: medicoId ?? '',
-          lugar: cfg.nombreClinica || '',
+          /**
+           * En una TELECONSULTA no hay lugar físico, y el portal del paciente
+           * imprime «Teleconsulta · {lugar}»: le enseñaba el nombre del
+           * consultorio a quien no tiene que ir, justo lo contrario de lo que
+           * dicen su tarjeta y sus recordatorios desde v878/v879.
+           */
+          lugar: tipo === 'teleconsulta' ? '' : (cfg.nombreClinica || ''),
           confirmadoPaciente: true,         // viene del propio paciente
           recordatorio24hEnviado: false,
           recordatorioMismoDiaEnviado: false,
