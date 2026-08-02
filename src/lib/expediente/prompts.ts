@@ -118,7 +118,10 @@ CRUCE ALERGIA ↔ MEDICAMENTO (CRÍTICO):
 - Si el paciente reporta alergia a X y el plan incluye X o un fármaco con reactividad cruzada conocida
   (penicilina↔cefalosporinas 1ª-2ª gen↔carbapenémicos; sulfas↔tiazidas; AAS↔AINE), marca:
     safety.alergia_conflicto: [{ alergeno, farmaco_sugerido, riesgo_cruzado, alternativa_segura }]
-- Si la reacción original fue ANAFILAXIA, marca BLOQUEA_RECETA=true.
+- Si la reacción original fue ANAFILAXIA, dilo en riesgo_cruzado con esa palabra.
+  (No existe ninguna bandera que bloquee la receta desde aquí: quien bloquea la
+  firma es el motor determinista del sistema, no este campo. Prometerlo en el
+  prompt hacía creer que había una barrera donde sólo había un texto.)
 
 PROA (Programa de Optimización de Antimicrobianos) — obligatorio cuando hay antibióticos:
 - Esquema completo: fármaco + dosis + vía + intervalo + duración + ajuste renal/hepático si aplica.

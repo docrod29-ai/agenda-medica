@@ -56,7 +56,9 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
             <Fila k="Estado" v="Vigente (sin registro de cancelación)" />
             <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 12 }}>
               La cédula mostrada es la registrada por el médico en NexusMED; NexusMED <strong>no</strong> la valida ante la autoridad.
-              La verificación confirma que el documento se generó en NexusMED y no fue alterado.
+              Esta página confirma que el certificado <strong>lo emitió NexusMED para este folio</strong>, con el contenido cuya
+              huella se muestra arriba. No puede comprobar por sí sola que el papel que tienes en la mano coincida con esa huella:
+              para eso hay que comparar los medicamentos impresos con los del expediente.
             </p>
             {r.firmaVersion >= 2 && (
               <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 8 }}>
@@ -66,9 +68,10 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
             )}
             {r.contenidoHash && (
               <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 8 }}>
-                La <strong>huella del contenido</strong> queda firmada dentro del QR: liga esta verificación a los
-                medicamentos y dosis que se imprimieron. Nadie puede alterar la prescripción y conservar un QR
-                válido, porque re-firmar la huella exige el secreto del servidor.
+                La <strong>huella del contenido</strong> queda firmada dentro del QR: liga este certificado a los
+                medicamentos y dosis que se imprimieron, y nadie puede cambiar esa huella sin el secreto del servidor.
+                Lo que la huella <strong>no</strong> hace es leer el papel: si alguien lo altera, el QR sigue siendo válido
+                para el contenido original — por eso la huella se muestra, para poder cotejarla contra el expediente.
               </p>
             )}
           </div>

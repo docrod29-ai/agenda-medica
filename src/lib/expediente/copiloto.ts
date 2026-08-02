@@ -23,6 +23,7 @@ import { metaLipidica, recomendarEstatina } from './cardiometabolico/dislipidemi
 import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
 import { prevent, motivoSinPrevent } from './prevent'
+import { extraerMg, esDosisPorKg } from '@/lib/seguridad/dosis'
 
 export type NivelSugerencia = 'critico' | 'accion' | 'info'
 
@@ -177,14 +178,19 @@ function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
 
 // ── 2. SEGURIDAD: dosis pediátrica contra el peso real ──────────────────────
 
-/** Extrae los miligramos de un texto de dosis ("500 mg", "1 g", "0.5 g"). */
+/**
+ * Extrae los miligramos de un texto de dosis.
+ *
+ * DELEGA en `extraerMg`, que es el parser de la frontera de texto y ya está
+ * probado. Esto era una regex propia —la tercera del producto para el mismo
+ * campo— y leía «45 mg/kg» como 45 mg: el copiloto le decía al médico que
+ * había recetado 45 mg a un niño de 20 kg y que el rango era 250 a 500,
+ * avisando de infradosis sobre una orden correcta. Tampoco entendía mcg, así
+ * que se saltaba el renglón en silencio.
+ */
 export function mgDeTexto(dosis?: string): number | undefined {
   if (!dosis) return undefined
-  const g = dosis.match(/([\d.]+)\s*g\b/i)
-  if (g) return Number(g[1]) * 1000
-  const mg = dosis.match(/([\d.]+)\s*mg\b/i)
-  if (mg) return Number(mg[1])
-  return undefined
+  return extraerMg(dosis) ?? undefined
 }
 
 function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
@@ -212,7 +218,17 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
     const d = calcularDosisPediatrica(f, peso)
     if (!d) continue
 
-    const recetada = mgDeTexto(m.dosis)
+    /**
+     * UNA DOSIS POR KILO NO SE COMPARA CONTRA UN RANGO ABSOLUTO.
+     *
+     * «45 mg/kg» y «450 mg» son cifras distintas de la misma orden. Compararlas
+     * contra el rango por toma acusaba de infradosis a una receta correcta.
+     * Tampoco se convierte multiplicando por el peso: mg/kg puede ser por toma o
+     * por día, y eso no lo decide un archivo de software. Cuando la dosis viene
+     * por kilo se MUESTRA el rango de referencia y no se emite juicio.
+     */
+    const porKilo = !!m.dosis && esDosisPorKg(m.dosis)
+    const recetada = porKilo ? undefined : mgDeTexto(m.dosis)
     const excede = recetada != null && recetada > d.porToma.max * 1.05
     const corta = recetada != null && recetada < d.porToma.min * 0.95
 

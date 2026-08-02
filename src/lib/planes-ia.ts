@@ -142,6 +142,20 @@ export const COSTO_CREDITOS = {
   transcribir: 0.5,          // transcripción final (Whisper/gpt-4o-transcribe)
   transcribirChunk: 0.05,    // parcial en vivo (barato, pero no es gratis)
   transcribirDiarizado: 1,   // separación de voces (AssemblyAI)
+  /**
+   * DOS ACCIONES QUE LLAMABAN AL MODELO Y NUNCA MOVÍAN EL CONTADOR.
+   *
+   * El gate (`gateCreditos`/`creditosAgotados`) sólo mira `uso.{mes}.creditos`.
+   * Estas dos rutas nunca lo incrementaban, así que el corte no podía dispararse
+   * NUNCA: un consultorio que usara sólo estas pantallas tenía IA ilimitada
+   * sobre la llave del dueño.
+   *
+   * Las cifras están puestas por analogía con lo que ya existe —redacción larga
+   * ≈ `verificarNota`, visión ≈ `laboratorioVision`— y son AJUSTABLES: el precio
+   * es del Dr., lo que no era discutible es que valieran cero.
+   */
+  inmunoRedactar: 0.5,       // redacta la nota infectológica (LLM largo)
+  recetaVision: 1,           // detecta los campos del formato de receta (visión)
 } as const
 
 /** Cuántos créditos cuesta una pregunta al Consultor según el nivel de IA del plan. */

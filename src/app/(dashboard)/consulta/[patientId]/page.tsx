@@ -14,6 +14,9 @@ import { usePatientAppointments } from '@/hooks/useAppointments'
 import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
+import { leerNdjson } from '@/lib/ndjson'
+import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
+import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth } from '@/lib/firebase'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
@@ -36,10 +39,16 @@ import { RevisionPanel } from '@/components/RevisionPanel'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto } from '@/lib/expediente/procedencia'
 
-/** Alergias del paciente (texto libre) → lista para el sello de procedencia. */
+/**
+ * Alergias del paciente (texto libre) → lista para el sello de procedencia.
+ *
+ * Usa el MISMO partidor que el cruce de seguridad. Había dos: éste cortaba por
+ * `[,;\n]` y `parsearAlergiasTexto` por `[,;/]`, así que «Penicilina / Sulfas»
+ * era una alergia para el sello y dos para la alerta. El mismo campo no puede
+ * significar dos cosas según quién lo lea.
+ */
 function alergiasArray(alergias?: string): string[] {
-  if (!alergias) return []
-  return alergias.split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
 import { NerPanel } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
@@ -599,9 +608,25 @@ export default function ConsultaActivaPage() {
     if (consentimiento) { arrancarSegunModo(); return }
     setModalConsentimiento(true)
   }
+  /** Lo que decían las alergias al abrir, para poder asentar QUÉ cambió. */
+  const alergiasAlAbrir = useRef('')
+
   const confirmarConsentimiento = () => {
     setConsentimiento(true)
     setModalConsentimiento(false)
+    /**
+     * DEJAR CONSTANCIA DE QUE SE CONSINTIÓ.
+     *
+     * El evento `consentimiento_grabacion` existía en el catálogo, en la lista
+     * blanca del servidor y en las etiquetas del panel de cumplimiento — y no lo
+     * emitía NADIE. El consentimiento vivía en un `useState`: se grababa la voz
+     * del paciente, se enviaba a un tercero para transcribir, y ante una queja no
+     * había absolutamente nada que exhibir.
+     *
+     * La marca la pone el servidor (uid y hora del token), como el resto de la
+     * bitácora.
+     */
+    void logAudit({ evento: 'consentimiento_grabacion', clinicId: clinicId ?? '', patientId })
     arrancarSegunModo()
   }
 
@@ -650,7 +675,7 @@ export default function ConsultaActivaPage() {
      * hacía bien; esta pantalla se había quedado atrás.
      */
     getPatient(clinicId, patientId)
-      .then(p => { setPatient(p); setPacienteError(!p) })
+      .then(p => { setPatient(p); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
       .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
     getUltimasNotasResumen(clinicId, patientId)
       .then(r => { ultimasNotasRef.current = r; setContextoPrevio(r) })
@@ -806,11 +831,16 @@ export default function ConsultaActivaPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta, contextoPaciente }),
       })
-      const d = await res.json().catch(() => null)
-      if (!d?.ok || !d.respuesta) { toast(d?.error || 'No se pudo generar el análisis', 'error'); return }
-      let texto = limpiarMarkdown(d.respuesta)
-      if (Array.isArray(d.articulos) && d.articulos.length > 0) {
-        texto += '\n\nReferencias:\n' + d.articulos.map((a: { titulo: string; revista: string; anio: string; pmid: string }, i: number) =>
+      // La ruta responde NDJSON, no JSON. Esto hacía `res.json()`, que revienta en
+      // la segunda línea: el servidor ya había llamado al modelo y descontado los
+      // créditos, y el médico veía «No se pudo generar el análisis». El botón no
+      // había funcionado nunca.
+      const d = await leerNdjson(res)
+      if (!d.texto.trim()) { toast(d.error || 'No se pudo generar el análisis', 'error'); return }
+      let texto = limpiarMarkdown(d.texto)
+      const articulos = (d.meta?.articulos ?? []) as { titulo: string; revista: string; anio: string; pmid: string }[]
+      if (articulos.length > 0) {
+        texto += '\n\nReferencias:\n' + articulos.map((a, i) =>
           `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\n')
       }
       setSecciones(prev => {
@@ -1005,6 +1035,9 @@ export default function ConsultaActivaPage() {
       // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
       if (data.fallbackLocal || data._aviso) {
         console.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        // La nota la produjo el parser local: que la procedencia lo diga en vez
+        // de arrastrar el modelo del procesamiento anterior.
+        if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString() })
         if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
@@ -1316,7 +1349,20 @@ export default function ConsultaActivaPage() {
       secciones,
       signosVitales: signosNum,
       diagnosticos,
-      medicamentos,
+      /**
+       * LA VÍA SE CORRIGE AQUÍ, NO EN EL PAPEL.
+       *
+       * `corregirViaParenteral` sólo se aplicaba al abrir la receta, y esa
+       * pantalla no escribe de vuelta. Si la extracción dejaba una insulina como
+       * «oral», la NOTA se firmaba así —y una nota firmada es inmutable—
+       * mientras el papel decía «subcutánea»: el documento legal y lo que se
+       * dispensa contándose cosas distintas. Y la vía equivocada se propaga a
+       * las consultas siguientes por `medicamentosVigentes`.
+       *
+       * Corregir aquí es antes de firmar, donde el médico todavía lo ve y lo
+       * puede cambiar.
+       */
+      medicamentos: medicamentos.map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })),
       /**
        * NO SE INVENTA LO QUE NADIE DIJO.
        *
@@ -1331,9 +1377,10 @@ export default function ConsultaActivaPage() {
        * Se registra el alérgeno tal como está escrito y nada más. Los campos que
        * no se saben quedan ausentes, que es la única representación honesta.
        */
-      alergias: patient?.alergias?.trim()
-        ? [{ alergeno: patient.alergias.trim() }]
-        : [],
+      // Una entrada POR alérgeno, no el párrafo entero como un solo alérgeno —y
+      // sin lo que el propio campo niega («niega alergia a penicilina» no es una
+      // alergia a penicilina, y hacía saltar la alerta que bloquea la firma).
+      alergias: parsearAlergiasTexto(patient?.alergias),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
       preop,
@@ -1350,6 +1397,10 @@ export default function ConsultaActivaPage() {
           // pero no CUÁLES: ante una revisión, «aprobó tres cosas» no dice nada
           // de la que se discute. Ahora el sello lo lleva campo por campo.
           aprobados,
+          // La transcripción, para poder COMPROBAR que la cita textual existe.
+          // Sin esto bastaba una cadena no vacía para sellar un campo como
+          // «dictado» y mostrar la frase entrecomillada como si fuera literal.
+          { transcripcion: voz.transcripcion },
         ).resumen,
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
@@ -2154,7 +2205,23 @@ export default function ConsultaActivaPage() {
         <input
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
-          onBlur={() => { if (clinicId && patient) updatePatient(clinicId, patientId, { alergias: patient.alergias ?? '' }).catch(() => toast('No se guardaron las alergias. Revisa tu conexión.', 'error')) }}
+          onBlur={() => {
+            if (!clinicId || !patient) return
+            const antes = alergiasAlAbrir.current
+            const despues = patient.alergias ?? ''
+            if (antes === despues) return
+            updatePatient(clinicId, patientId, { alergias: despues }).catch(() => toast('No se guardaron las alergias. Revisa tu conexión.', 'error'))
+            /**
+             * QUEDA CONSTANCIA DE QUIÉN LAS CAMBIÓ.
+             *
+             * Sin esto había una salida silenciosa para la compuerta de alergias:
+             * el médico ve el error que le impide firmar, vacía el campo, y la
+             * firma se habilita sin que en el expediente quede rastro de que
+             * alguna vez hubo una alergia registrada.
+             */
+            void logAudit({ evento: 'paciente_modificado', clinicId, patientId, meta: { campo: 'alergias', antes, despues, vaciado: !despues.trim() && !!antes.trim() } })
+            alergiasAlAbrir.current = despues
+          }}
           placeholder="Sin alergias conocidas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
@@ -3043,6 +3110,7 @@ export default function ConsultaActivaPage() {
           final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
           aprobados={aprobados}
+          transcripcion={voz.transcripcion}
         />
       )}
 

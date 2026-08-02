@@ -127,20 +127,22 @@ export async function POST(req: NextRequest) {
   // Si la IA devuelve buenas queries, refinamos; si no (o tarda), usamos la determinista
   // que ya corrió — nunca esperamos SOLO al constructor. Búsqueda de ALTA CALIDAD.
   let articulos: ArticuloPubMed[] = []
+  /** Si PubMed FALLÓ (429, red), no se le puede decir al médico «no hay evidencia». */
+  const testigo = { fallo: false }
   try {
     // NADA de ventana rígida de años en el primario: probado en vivo, (query + filtro
     // HQ + "últimos 7 años") devolvía 0 para IVU recurrente, pero SIN la ventana da 9.
     // buscarEvidenciaMulti YA prioriza alta calidad (revisiones/meta/RCT/guías) + landmark.
-    const detP = buscarEvidenciaMulti(consultasDet.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12 }).catch(() => [] as ArticuloPubMed[])
+    const detP = buscarEvidenciaMulti(consultasDet.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, testigo }).catch(() => [] as ArticuloPubMed[])
     const consultasEN = await consultasIA()
     if (consultasEN.length) {
-      articulos = (await buscarEvidenciaMulti(consultasEN.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12 }).catch(() => [])).slice(0, 12)
+      articulos = (await buscarEvidenciaMulti(consultasEN.map(c => traducirBasico(c) || c).filter(Boolean), { max: 12, testigo }).catch(() => [])).slice(0, 12)
     }
     if (articulos.length === 0) articulos = (await detP).slice(0, 12)
     // Último respaldo: el motivo + términos amplios (por si las queries salieron raras).
     if (articulos.length === 0) {
       const amplias = [motivo, ...consultasEN, ...consultasDet].filter(Boolean).map(c => traducirBasico(c) || c).filter(Boolean)
-      articulos = (await buscarEvidenciaMulti(amplias, { max: 12 }).catch(() => [])).slice(0, 12)
+      articulos = (await buscarEvidenciaMulti(amplias, { max: 12, testigo }).catch(() => [])).slice(0, 12)
     }
   } catch { articulos = [] }
 
@@ -167,7 +169,12 @@ export async function POST(req: NextRequest) {
   const hayEvidencia = articulos.length > 0
   const fuentesTxt = hayEvidencia
     ? articulos.map((a, i) => `[${i + 1}] PMID ${a.pmid} · ${a.revista} ${a.anio}\n${a.titulo}\n${a.resumen.slice(0, 700)}`).join('\n\n')
-    : '(PubMed no devolvió artículos para estos términos — razona con tu conocimiento clínico, guías y consenso, y decláralo.)'
+    : testigo.fallo
+      // NO es lo mismo «no hay literatura» que «no pudimos preguntar». Decirle al
+      // médico lo primero cuando pasó lo segundo es la peor clase de error: parece
+      // un hallazgo cuando es una caída de red.
+      ? '(NO SE PUDO CONSULTAR PubMed en este momento —fallo de red o límite de peticiones—, así que NO se sabe si hay literatura sobre esto. Razona con tu conocimiento clínico, guías y consenso, y DECLARA que la búsqueda bibliográfica no pudo hacerse; no digas que no existe evidencia.)'
+      : '(PubMed no devolvió artículos para estos términos — razona con tu conocimiento clínico, guías y consenso, y decláralo.)'
 
   const system = [
     'Eres un CONSULTOR CLÍNICO de altísimo nivel (subespecialista).',
@@ -261,9 +268,15 @@ export async function POST(req: NextRequest) {
     void registrarUso(clinicId, fuente)
     void registrarCreditos(clinicId, COSTO_CREDITOS.evidencia)
     const avisos: string[] = []
-    if (!hayEvidencia) avisos.push('Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
+    if (!hayEvidencia) {
+      // El aviso que ve el médico tiene que distinguir las dos cosas: que no haya
+      // literatura es un dato clínico; que no hayamos podido preguntar, no.
+      avisos.push(testigo.fallo
+        ? 'No se pudo consultar PubMed (fallo de red o límite de peticiones), así que NO se sabe si hay literatura sobre esto. Lo de abajo es razonamiento clínico, no una búsqueda vacía.'
+        : 'Razonado con conocimiento clínico y guías (PubMed no devolvió citas nuevas para estos términos exactos).')
+    }
     avisos.push(modelosUsados.length > 1 ? `Análisis combinado: ${modelosUsados.join(' + ')}.` : `Análisis con ${modelosUsados[0] ?? tierClaude}.`)
-    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.join(' ') })
+    return NextResponse.json({ ok: true, articulos, ...final, nivel, _modelos: modelosUsados, _aviso: avisos.join(' '), _busquedaFallida: testigo.fallo })
   } catch (e) {
     return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
   }

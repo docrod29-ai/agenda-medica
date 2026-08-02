@@ -89,27 +89,41 @@ function extraerTag(bloque: string, tag: string): string {
  * @param opts.max Máximo de artículos (default 6)
  * @param opts.aniosRecientes Si se da, filtra a los últimos N años.
  */
+/**
+ * UN FALLO DE RED NO ES «NO HAY LITERATURA».
+ *
+ * Todas las salidas de error devolvían `[]`, igual que una búsqueda legítima sin
+ * resultados. Río arriba eso se convierte en «PubMed no devolvió artículos para
+ * estos términos», y el médico lee que no hay evidencia para su caso cuando lo
+ * que hubo fue un 429 de NCBI o una caída de red.
+ *
+ * El testigo se pasa como objeto mutable en vez de cambiar el tipo de retorno:
+ * los llamadores que no lo pasan siguen funcionando igual, y el que quiere decir
+ * la verdad al médico puede.
+ */
+export interface TestigoPubMed { fallo: boolean }
+
 /** esearch: un término → lista de PMIDs (por relevancia). */
-async function esearch(term: string, max: number, signal?: AbortSignal): Promise<string[]> {
+async function esearch(term: string, max: number, signal?: AbortSignal, testigo?: TestigoPubMed): Promise<string[]> {
   const url = conKey(`${EUTILS}/esearch.fcgi?db=pubmed&retmode=json&sort=relevance&retmax=${max}&term=${encodeURIComponent(term)}`)
   try {
     const r = await ncbiFetch(url, signal)
-    if (!r.ok) return []
+    if (!r.ok) { if (testigo) testigo.fallo = true; return [] }
     const d = await r.json()
     return d?.esearchresult?.idlist ?? []
-  } catch { return [] }
+  } catch { if (testigo) testigo.fallo = true; return [] }
 }
 
 /** efetch: PMIDs → artículos con abstract y tipo de estudio. */
-async function efetchArts(ids: string[], signal?: AbortSignal): Promise<ArticuloPubMed[]> {
+async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: TestigoPubMed): Promise<ArticuloPubMed[]> {
   if (ids.length === 0) return []
   const efetch = conKey(`${EUTILS}/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=${ids.join(',')}`)
   let xml = ''
   try {
     const r = await ncbiFetch(efetch, signal)
-    if (!r.ok) return []
+    if (!r.ok) { if (testigo) testigo.fallo = true; return [] }
     xml = await r.text()
-  } catch { return [] }
+  } catch { if (testigo) testigo.fallo = true; return [] }
   const bloques = xml.split('<PubmedArticle>').slice(1)
   const arts: ArticuloPubMed[] = []
   for (const b of bloques) {
@@ -128,7 +142,7 @@ async function efetchArts(ids: string[], signal?: AbortSignal): Promise<Articulo
 
 export async function buscarEvidencia(
   termino: string,
-  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal } = {},
+  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal; testigo?: TestigoPubMed } = {},
 ): Promise<ArticuloPubMed[]> {
   const max = Math.min(Math.max(opts.max ?? 6, 1), 20)
   const term = termino.trim()
@@ -138,8 +152,8 @@ export async function buscarEvidencia(
     term,
   ]
   let ids: string[] = []
-  for (const t of intentos) { ids = await esearch(t, max, opts.signal); if (ids.length > 0) break }
-  return efetchArts(ids, opts.signal)
+  for (const t of intentos) { ids = await esearch(t, max, opts.signal, opts.testigo); if (ids.length > 0) break }
+  return efetchArts(ids, opts.signal, opts.testigo)
 }
 
 /**
@@ -185,7 +199,7 @@ const FILTRO_HQ = '(systematic[sb] OR "meta-analysis"[pt] OR "randomized control
  */
 export async function buscarEvidenciaMulti(
   queries: string[],
-  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal } = {},
+  opts: { max?: number; aniosRecientes?: number; signal?: AbortSignal; testigo?: TestigoPubMed } = {},
 ): Promise<ArticuloPubMed[]> {
   const qs = [...new Set(queries.map(q => q.trim()).filter(Boolean))].slice(0, 4)
   if (qs.length === 0) return []
@@ -195,11 +209,11 @@ export async function buscarEvidenciaMulti(
   // Por sub-query: alta calidad primero, luego general. El throttle (ncbiFetch) las
   // espacia para no exceder el límite de PubMed → ya no vuelven vacías por 429.
   const porQuery = await Promise.all(qs.map(async q => {
-    const hq = await esearch(`(${q}) AND ${FILTRO_HQ}${ventana}`, 5, opts.signal)
-    const gen = await esearch(`(${q})${ventana}`, 5, opts.signal)
+    const hq = await esearch(`(${q}) AND ${FILTRO_HQ}${ventana}`, 5, opts.signal, opts.testigo)
+    const gen = await esearch(`(${q})${ventana}`, 5, opts.signal, opts.testigo)
     // "landmark" (alta calidad SIN ventana) sólo aporta algo cuando SÍ hay ventana;
     // sin ventana es idéntica a hq → se omite para no gastar una llamada.
-    const landmark = ventana ? await esearch(`(${q}) AND ${FILTRO_HQ}`, 3, opts.signal) : []
+    const landmark = ventana ? await esearch(`(${q}) AND ${FILTRO_HQ}`, 3, opts.signal, opts.testigo) : []
     return [...hq, ...gen, ...landmark]
   }))
 
@@ -213,5 +227,5 @@ export async function buscarEvidenciaMulti(
       if (id && !seen.has(id)) { seen.add(id); orden.push(id) }
     }
   }
-  return efetchArts(orden.slice(0, max), opts.signal)
+  return efetchArts(orden.slice(0, max), opts.signal, opts.testigo)
 }

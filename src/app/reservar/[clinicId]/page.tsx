@@ -10,6 +10,7 @@ import { useParams } from 'next/navigation'
 import {
   Stethoscope, Calendar, Clock, User, CheckCircle2, Loader2, ArrowLeft, MapPin, Phone,
 } from 'lucide-react'
+import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 
 interface ClinicInfo {
   ok: boolean
@@ -26,6 +27,8 @@ interface ClinicInfo {
   medicos: { id: string; nombre: string; especialidad: string }[]
   tiposCita: { tipo: string; duracion: number }[]
   horarios: Record<string, { activo: boolean; inicio: string; fin: string }>
+  /** La zona del CONSULTORIO. Los días se arman con su reloj, no con el del paciente. */
+  zonaHoraria?: string
 }
 
 type Step = 'tipo' | 'fecha' | 'hora' | 'datos' | 'consentimientos' | 'exito' | 'error'
@@ -41,17 +44,18 @@ const TIPO_LABEL: Record<string, string> = {
   'otro': 'Otro',
 }
 
-function nextDays(n: number): string[] {
+/**
+ * Los próximos `n` días SEGÚN EL RELOJ DEL CONSULTORIO.
+ *
+ * Esto usaba el reloj del navegador. Un paciente en España a las 09:00 del 2 de
+ * agosto está viendo un consultorio donde son las 23:00 del 1: el portal
+ * empezaba la lista el día 3 y el 2 de agosto entero desaparecía, sin mensaje.
+ * El generador de huecos ya usaba `cfg.zonaHoraria`; la lista de días no.
+ */
+function nextDays(n: number, tz?: string): string[] {
   const out: string[] = []
-  const today = new Date()
-  for (let i = 1; i <= n; i++) {
-    const d = new Date(today)
-    d.setDate(today.getDate() + i)
-    // Componentes LOCALES (no toISOString/UTC): de noche en México, UTC ya es el
-    // día siguiente → ofrecía/omitía días corridos.
-    const y = d.getFullYear(), mo = String(d.getMonth() + 1).padStart(2, '0'), da = String(d.getDate()).padStart(2, '0')
-    out.push(`${y}-${mo}-${da}`)
-  }
+  const hoy = hoyISO(tz || 'America/Mexico_City')
+  for (let i = 1; i <= n; i++) out.push(sumarDiasISO(hoy, i))
   return out
 }
 
@@ -119,7 +123,7 @@ export default function ReservarPage() {
   const dias = useMemo(() => {
     if (!info) return []
     const DAY_KEYS = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado']
-    return nextDays(14).filter(d => {
+    return nextDays(14, info.zonaHoraria).filter(d => {
       const dk = DAY_KEYS[new Date(d + 'T12:00:00').getDay()]
       return info.horarios[dk]?.activo
     })

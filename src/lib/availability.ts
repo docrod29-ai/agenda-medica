@@ -43,6 +43,34 @@ const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes'
  */
 const TECHO_ANTIDESBOCADO = 200
 
+/**
+ * Los descansos del día, en minutos desde medianoche.
+ *
+ * Se normalizan aquí y no dentro del bucle: convertir «14:00» a 840 en cada uno
+ * de los 168 huecos posibles es trabajo repetido, y peor, es donde se cuelan las
+ * inconsistencias si alguien cambia el formato en un sitio y no en el otro.
+ *
+ * Un descanso mal formado se IGNORA en vez de romper el día: una hora de comida
+ * escrita mal no puede dejar al médico sin agenda.
+ */
+export function descansosEnMinutos(descansos?: { inicio: string; fin: string }[]): { desde: number; hasta: number }[] {
+  const aMin = (hhmm: string): number | null => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm ?? '').trim())
+    if (!m) return null
+    const h = Number(m[1]), mm = Number(m[2])
+    if (h > 23 || mm > 59) return null
+    return h * 60 + mm
+  }
+  return (descansos ?? [])
+    .map(d => ({ desde: aMin(d.inicio), hasta: aMin(d.fin) }))
+    .filter((d): d is { desde: number; hasta: number } => d.desde != null && d.hasta != null && d.hasta > d.desde)
+}
+
+/** ¿Este hueco pisa un descanso? Basta con que se solapen, no hace falta contenerlo. */
+export function pisaDescanso(inicio: number, fin: number, descansos: readonly { desde: number; hasta: number }[]): boolean {
+  return descansos.some(d => inicio < d.hasta && fin > d.desde)
+}
+
 /** Duración mínima razonable de una cita (anti config=0 que rompía el loop). */
 const DURACION_MIN_SEGURA = 5
 
@@ -158,6 +186,9 @@ export function getAvailableSlots(
 
   const slots: string[] = []
   let truncado = false
+  // HORARIO PARTIDO: la hora de comida deja de ofrecerse a los pacientes sin que
+  // el médico tenga que crear un bloqueo a mano para cada día del año.
+  const descansos = descansosEnMinutos(schedule.descansos)
   for (let m = startMin; m + duracionSegura <= endMin; m += interval) {
     // ── FRENO ANTI-DESBOCADO ────────────────────────────────────
     // Ninguna agenda real llega aquí: son 200 huecos en un día. Si se alcanza,
@@ -172,6 +203,8 @@ export function getAvailableSlots(
     if (m < minMinutoHoy) continue
 
     const slotEnd = m + duracionSegura
+    // 0b. ¿Cae en la comida o en otro descanso del día?
+    if (pisaDescanso(m, slotEnd, descansos)) continue
     const hh = String(Math.floor(m / 60)).padStart(2, '0')
     const mm = String(m % 60).padStart(2, '0')
     const slot = `${hh}:${mm}`

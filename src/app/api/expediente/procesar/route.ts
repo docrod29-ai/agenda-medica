@@ -21,6 +21,7 @@ import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
+import { reservarParaClinica, confirmarCreditos, devolverCreditos } from '@/lib/finanzas/cartera-server'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
@@ -210,7 +211,19 @@ function fallbackVisible(transcripcion: string, tipo: TipoNota, aviso: string, c
     safety: { missing_critical_fields: string[] }
   } & Record<string, unknown>
   fallback.safety.missing_critical_fields = [aviso]
-  return NextResponse.json({ ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug })
+  /**
+   * `_modelo: 'parser-local'` NO es cosmético.
+   *
+   * El fallback no lo devolvía, así que el cliente conservaba el `provenanceIA`
+   * del procesamiento ANTERIOR y, al firmar, grababa ese modelo en la
+   * procedencia inmutable. Procesar con éxito, dictar más, que Anthropic
+   * devuelva 529 y firmar dejaba una nota que dice «la escribió Opus» sobre un
+   * texto que escribió una regex.
+   */
+  return NextResponse.json({
+    ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug,
+    _modelo: 'parser-local', _promptVersion: 'n/a', _apiVersion: 'n/a',
+  })
 }
 
 // La nota corre Opus 4.8 con razonamiento: sin esto Vercel la cortaba a 60s (504,
@@ -298,11 +311,29 @@ export async function POST(req: NextRequest) {
   // incluye 1 médico; cada médico extra suma su bolsa de créditos + tope económico.
   let limiteEfectivo = planDeNivel(nivel).limiteConsultas
   let topeEco = topeEconomicoDe(nivel)
+  /**
+   * LA RESERVA — decidir y apartar en el MISMO paso.
+   *
+   * Esto era leer el gasto del mes, decidir, y más abajo incrementar con un
+   * `void`. Entre la lectura y el incremento caben treinta segundos de llamada
+   * al modelo, así que dos notas simultáneas del mismo consultorio leían el
+   * mismo saldo y pasaban las dos en modo premium con el cupo de una. Es
+   * exactamente el fallo que la cartera existe para cerrar, y ésta era la única
+   * ruta grande que no la usaba — la más cara, además.
+   *
+   * `reservarParaClinica` falla ABIERTO: un mal minuto de Firestore no deja al
+   * médico sin su nota, sólo queda anotado.
+   */
+  let reserva: Awaited<ReturnType<typeof reservarParaClinica>> | null = null
+  /** Si la nota no llega a salir, lo apartado se devuelve en el `finally`. */
+  let reservaConfirmada = false
   if (!rapido && fuente === 'prueba') {
-    const [usados, extra, ent] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId), entitlementsDe(clinicId, nivel)])
+    const ent = await entitlementsDe(clinicId, nivel)
     limiteEfectivo = ent.limiteCreditos
     topeEco = ent.topeEconomico
-    if (usados + motorPedido.creditos > ent.limiteCreditos + extra) modoEconomico = true
+    reserva = await reservarParaClinica(clinicId, fuente, motorPedido.creditos, esFundador(acceso.email, process.env.SUPERADMIN_EMAILS))
+    // No caber es lo que antes se calculaba a mano: se degrada, no se bloquea.
+    if (!reserva.ok) { modoEconomico = true; reserva = null }
   }
 
   // ── TOPE del modo económico (red de seguridad de costo) ─────────────────
@@ -446,10 +477,13 @@ export async function POST(req: NextRequest) {
         void registrarConsultaEconomica(clinicId)
         uso = estadoUso(limitePlan, limitePlan)   // 100% del cupo usado
       } else {
-        // Quema los créditos del MOTOR usado (Estándar=3, Máxima=10, Rápida=1).
+        // CONFIRMAR lo apartado. El motor que se acabó usando puede no ser el
+        // pedido (la cascada degrada), así que se confirma el costo REAL y la
+        // cartera devuelve la diferencia sola.
+        if (reserva) { await confirmarCreditos(reserva, motor.creditos); reservaConfirmada = true }
+        else void registrarCreditos(clinicId, motor.creditos)
         const prev = await creditosUsadosDelMes(clinicId)
-        void registrarCreditos(clinicId, motor.creditos)
-        uso = estadoUso(Math.round(prev + motor.creditos), limitePlan)
+        uso = estadoUso(Math.round(prev), limitePlan)
       }
     }
 
@@ -523,6 +557,16 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
     }
+  } finally {
+    /**
+     * DEVOLVER LO APARTADO SI LA NOTA NO SALIÓ.
+     *
+     * Todos los caminos de fallo salen por `fallbackVisible` —proveedor caído,
+     * respuesta vacía, JSON roto, excepción— y ninguno pasa por la confirmación.
+     * Sin esto, apartar créditos sería peor que no apartarlos: una caída de
+     * Anthropic le comería el cupo del mes al consultorio sin darle una sola nota.
+     */
+    if (reserva && !reservaConfirmada) void devolverCreditos(reserva)
   }
 }
 

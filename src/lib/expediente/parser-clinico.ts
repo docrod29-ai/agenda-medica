@@ -486,7 +486,9 @@ export function parserClinicoComoRespuestaIA(
   secciones: Record<string, string>
   diagnosticos: Array<{ descripcion: string; codigoCIE10: string; tipo: string; estado: string }>
   medicamentos: Array<{ nombre: string; dosis: string; via: string; frecuencia: string; duracion: string; indicacion: string }>
-  alergias: Array<{ alergeno: string; tipo: string; reaccion: string; severidad: string; confirmada: boolean }>
+  // `tipo` OPCIONAL: el parser no sabe si es fármaco, alimento o ambiental, y
+  // ponerlo a ojo es inventar. Ausente significa «no se capturó».
+  alergias: Array<{ alergeno: string; tipo?: string; reaccion: string; severidad: string; confirmada: boolean }>
   signosVitales: SignosVitalesExtraidos
   preopInputs?: Record<string, unknown>
   safety: {
@@ -508,11 +510,23 @@ export function parserClinicoComoRespuestaIA(
       resumenClinico: r.resumenClinico,
     },
     diagnosticos: [],
+    /**
+     * NO INVENTAR LO QUE NO SE EXTRAJO.
+     *
+     * El parser saca un NOMBRE del texto y nada más. Rellenaba `via: 'oral'` y
+     * `severidad: 'moderada'` — dos datos que nadie dijo y que en el expediente
+     * se leen igual que los que sí dijo el médico. El propio esquema lo prohíbe
+     * con estas palabras: «un valor plausible-pero-falso es peor que un hueco…
+     * no se debe degradar una posible anafilaxia a "moderada" en silencio».
+     *
+     * Y este camino es justo el de los días malos: corre cuando el proveedor de
+     * IA se cae, que es cuando menos se está mirando la pantalla.
+     */
     medicamentos: r.medicamentos.map(nombre => ({
-      nombre, dosis: '', via: 'oral', frecuencia: '', duracion: '', indicacion: '',
+      nombre, dosis: '', via: '', frecuencia: '', duracion: '', indicacion: '',
     })),
     alergias: r.alergias.map(alergeno => ({
-      alergeno, tipo: 'medicamento', reaccion: '', severidad: 'moderada', confirmada: false,
+      alergeno, reaccion: '', severidad: 'desconocida', confirmada: false,
     })),
     signosVitales: r.signosVitales,
     preopInputs: tipo === 'valoracion_preoperatoria' ? r.preopInputs : undefined,

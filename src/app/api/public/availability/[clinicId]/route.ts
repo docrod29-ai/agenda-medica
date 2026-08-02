@@ -10,7 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { validarHorarioDia } from '@/lib/availability'
+import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { configParaMedico } from '@/lib/horario-medico'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 /**
@@ -58,8 +59,7 @@ export async function GET(
     // horario/duraciones/intervalo pisan a los de la clínica (coherente con el panel).
     if (medicoId) {
       const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
-      const doc = docSnap.data()
-      if (doc) cfg = { ...cfg, horario: doc.horario ?? cfg.horario, duraciones: doc.duraciones ?? cfg.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfg.intervaloMinutos }
+      cfg = configParaMedico(cfg as unknown as import('@/types').ClinicConfig, docSnap.data()) as unknown as typeof cfg
     }
 
     // 2. Horario del día
@@ -141,11 +141,16 @@ export async function GET(
      */
     const tzClinica = (cfg.zonaHoraria as string) || TZ_DEFAULT
     const baseTs = instanteMX(fecha, '00:00', tzClinica).getTime()
+    // HORARIO PARTIDO: la misma regla que el panel. Si esto se olvidara aquí, el
+    // portal ofrecería al paciente la hora de comida del médico y la cita
+    // entraría de verdad — el panel no la rechaza, sólo no la ofrece.
+    const descansos = descansosEnMinutos(schedule.descansos)
     for (let m = startMin; m + duracion <= endMin; m += interval) {
       if (slots.length >= TECHO_ANTIDESBOCADO) {
         safeLog.warn(`[public/availability] freno anti-desbocado (${TECHO_ANTIDESBOCADO}) en ${clinicId} ${fecha} — revisar horario e intervalo`)
         break
       }
+      if (pisaDescanso(m, m + duracion, descansos)) continue
       const ts = baseTs + m * 60 * 1000
       // ¿Bloqueado?
       const bloqueado = bloques.some(b => {

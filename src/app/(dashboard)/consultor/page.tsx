@@ -60,7 +60,11 @@ export default function ConsultorPage() {
       if (!p) return
       const alergias = p.alergias?.trim() || 'no referidas'
       setPacienteNombre(p.nombre)
-      setPacienteCtx(`${p.nombre}, ${p.edad ?? '?'} años, ${p.sexo ?? '?'}. Alergias: ${alergias}.`)
+      // SIN EL NOMBRE. No aporta nada clínico y viaja al proveedor en el extranjero —
+      // y de ahí a `extraerAprendizajes`, que PERSISTE lo que saca. El otro llamador
+      // de esta misma ruta (la consulta) ya lo minimizaba; había dos políticas
+      // opuestas para el mismo endpoint.
+      setPacienteCtx(`${p.edad ?? '?'} años, ${p.sexo ?? '?'}. Alergias: ${alergias}.`)
     }).catch(() => {})
   }, [clinicId])
 

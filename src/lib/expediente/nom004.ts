@@ -53,7 +53,21 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
       // sin este piso, `''.split(' ')[0]` = '' y `nombre.includes('')` === true
       // marcaría FALSA alergia en TODO medicamento y bloquearía la firma.
       const token = al.alergeno.toLowerCase().trim().split(/\s+/)[0]
-      if (al.tipo === 'medicamento' && token.length >= 3 &&
+      /**
+       * `tipo` AUSENTE CUENTA COMO POSIBLE MEDICAMENTO.
+       *
+       * Exigir `tipo === 'medicamento'` dejaba la compuerta MUERTA: la única
+       * ruta que escribe las alergias de la nota es el encabezado de la
+       * consulta, y no llena `tipo` — nadie lo llena. Así que un paciente con
+       * «Tramadol» en alergias al que se le prescribe «Tramadol 100 mg» pasaba
+       * la validación sin una sola señal, incluso siendo LA MISMA PALABRA.
+       *
+       * La ausencia de tipo significa «no se capturó», no «no es un fármaco».
+       * Ante la duda, el coincidir por nombre exacto es señal suficiente para
+       * pedirle al médico que lo mire.
+       */
+      const puedeSerFarmaco = al.tipo == null || al.tipo === 'medicamento'
+      if (puedeSerFarmaco && token.length >= 3 &&
           med.nombre.toLowerCase().includes(token)) {
         errores.push(`⚠️ Posible alergia: se prescribe "${med.nombre}" y el paciente refiere alergia a "${al.alergeno}"`)
       }

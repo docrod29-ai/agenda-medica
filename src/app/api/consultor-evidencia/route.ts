@@ -200,7 +200,19 @@ function responderStream(opts: { key: string; model: string; system: string; use
         'anthropic', opts.model,
         { usage: uso }, Date.now() - t0Costo,
       )
-      try { opts.onDone(full) } catch { /* no-op */ }
+      /**
+       * COBRAR SÓLO SI HUBO RESPUESTA.
+       *
+       * `onDone` es quien descuenta créditos y guarda lo aprendido. Se llamaba
+       * SIEMPRE, incluido el camino en el que ya se emitió `{type:'error'}` y
+       * `full` quedó vacío: una llave revocada o un 429 del proveedor le
+       * cobraban al médico una respuesta que nunca vio.
+       *
+       * El asiento del libro de costos de arriba sí se hace pase lo que pase, y
+       * está bien que así sea: ahí se anota lo que NOS costó, que se gastó
+       * aunque el texto saliera vacío. Lo que no se puede es cobrárselo a él.
+       */
+      if (full.trim()) { try { opts.onDone(full) } catch { /* no-op */ } }
     },
   })
   return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform' } })

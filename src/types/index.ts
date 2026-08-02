@@ -129,10 +129,20 @@ export interface Doctor {
   telefono?: string
   email?: string
   foto?: string
-  horario: ClinicConfig['horario']
-  duraciones: ClinicConfig['duraciones']
-  intervaloMinutos: number
-  zonaHoraria: string
+  /**
+   * HORARIO PROPIO — hoy nadie lo enciende, y por eso los cuatro campos de abajo
+   * son opcionales.
+   *
+   * Se copiaba el horario del consultorio al dar de alta al médico y no existía
+   * forma de volver a editarlo, así que la agenda quedaba congelada en el día
+   * del alta. Manda el horario del consultorio salvo que esto sea `true`.
+   * Ver `lib/horario-medico.ts`.
+   */
+  horarioPropio?: boolean
+  horario?: ClinicConfig['horario']
+  duraciones?: ClinicConfig['duraciones']
+  intervaloMinutos?: number
+  zonaHoraria?: string
   activo: boolean
   // Onboarding para el bot
   botConfig?: {
@@ -391,6 +401,25 @@ export interface DaySchedule {
   activo: boolean
   inicio: string  // 'HH:mm'
   fin: string     // 'HH:mm'
+  /**
+   * HORARIO PARTIDO — los huecos que el consultorio NO atiende dentro del día.
+   *
+   * ── POR QUÉ HACÍA FALTA ────────────────────────────────────────────────────
+   *
+   * El día era un solo tramo `inicio`–`fin`. Un médico que atiende de 9 a 14 y
+   * de 16 a 20 —que en México es lo normal, no la excepción— no podía
+   * expresarlo. Tenía dos salidas y las dos malas:
+   *
+   *  · declarar 9–20 y dejar que el portal ofreciera su hora de comida a los
+   *    pacientes, o
+   *  · crear a mano un bloqueo de 14:00 a 16:00 **para cada día del año**.
+   *
+   * Es una lista y no un solo `descanso` porque una vez que existe el concepto,
+   * dos pausas (comida y una sesión de quirófano fija) cuestan lo mismo que una.
+   *
+   * OPCIONAL: sin descansos el día se comporta exactamente como antes.
+   */
+  descansos?: { inicio: string; fin: string }[]
 }
 
 export interface ClinicConfig {

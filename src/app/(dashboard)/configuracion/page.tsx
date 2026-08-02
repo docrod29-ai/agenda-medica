@@ -13,6 +13,11 @@ import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIA
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
+import { descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { instanteMX } from '@/lib/timezone'
+
+/** Si el consultorio no declaró zona, la misma que usa el resto del producto. */
+const TZ_CONSULTORIO_DEFECTO = 'America/Mexico_City'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
@@ -208,6 +213,16 @@ export default function ConfiguracionPage() {
 
   const updHorario = (dia: typeof DIAS[number], field: 'activo' | 'inicio' | 'fin', value: string | boolean) =>
     setForm(prev => ({ ...prev, horario: { ...prev.horario, [dia]: { ...prev.horario[dia], [field]: value } } }))
+
+  /**
+   * HORARIO PARTIDO — los descansos del día.
+   *
+   * Sin esto, un médico que come de 14 a 16 tenía que crear un bloqueo A MANO
+   * para cada día del año, o dejar que el portal le ofreciera su comida a los
+   * pacientes. Se edita aquí, junto al horario, porque es parte del horario.
+   */
+  const updDescansos = (dia: typeof DIAS[number], descansos: { inicio: string; fin: string }[]) =>
+    setForm(prev => ({ ...prev, horario: { ...prev.horario, [dia]: { ...prev.horario[dia], descansos } } }))
 
   const updDuracion = (tipo: AppointmentType, value: number) =>
     setForm(prev => ({ ...prev, duraciones: { ...prev.duraciones, [tipo]: value } }))
@@ -534,15 +549,24 @@ export default function ConfiguracionPage() {
               const [hF, mF] = h.fin.split(':').map(Number)
               minutos = (hF * 60 + mF) - (hI * 60 + mI)
               if (minutos > 0) {
-                cantidadSlots = Math.floor((minutos - duracionDefault) / intervalo) + 1
-                if (cantidadSlots < 0) cantidadSlots = 0
+                // Se CUENTAN los huecos uno por uno en vez de dividir, porque con
+                // descansos la fórmula deja de valer: el preview diría 22 espacios
+                // y el paciente vería 18. Un preview que miente es peor que no tenerlo.
+                const pausas = descansosEnMinutos(h.descansos)
+                const desde = hI * 60 + mI
+                const hasta = hF * 60 + mF
+                for (let m = desde; m + duracionDefault <= hasta; m += intervalo) {
+                  if (pisaDescanso(m, m + duracionDefault, pausas)) continue
+                  cantidadSlots++
+                }
               }
             }
             const horas = (minutos / 60).toFixed(1).replace('.0', '')
             // Warning si el día parece desproporcionado (>16 slots = >8h con citas de 30min)
             const esSospechoso = cantidadSlots > 16
             return (
-              <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--s1)', border: `1px solid ${esSospechoso ? 'var(--amber)' : 'var(--border)'}`, borderRadius: 10 }}>
+              <div key={dia} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 16px', background: 'var(--s1)', border: `1px solid ${esSospechoso ? 'var(--amber)' : 'var(--border)'}`, borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <input
                   type="checkbox"
                   checked={h.activo}
@@ -587,6 +611,42 @@ export default function ConfiguracionPage() {
                   </>
                 ) : (
                   <span style={{ fontSize: 13, color: 'var(--text3)' }}>Cerrado</span>
+                )}
+                </div>
+                {h.activo && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingLeft: 30 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text3)' }}>Descansos:</span>
+                    {(h.descansos ?? []).map((d, i) => (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="time" className="input" value={d.inicio} aria-label={`Inicio del descanso ${i + 1} de ${DIAS_LABELS[dia]}`}
+                          onChange={e => updDescansos(dia, (h.descansos ?? []).map((x, j) => j === i ? { ...x, inicio: e.target.value } : x))}
+                          style={{ width: 100, padding: '4px 8px', fontSize: 13 }}
+                        />
+                        <span style={{ color: 'var(--text3)', fontSize: 13 }}>—</span>
+                        <input
+                          type="time" className="input" value={d.fin} aria-label={`Fin del descanso ${i + 1} de ${DIAS_LABELS[dia]}`}
+                          onChange={e => updDescansos(dia, (h.descansos ?? []).map((x, j) => j === i ? { ...x, fin: e.target.value } : x))}
+                          style={{ width: 100, padding: '4px 8px', fontSize: 13 }}
+                        />
+                        <button
+                          type="button" className="btn-ghost" aria-label={`Quitar el descanso ${i + 1} de ${DIAS_LABELS[dia]}`}
+                          onClick={() => updDescansos(dia, (h.descansos ?? []).filter((_, j) => j !== i))}
+                          style={{ padding: '4px 8px', fontSize: 12, color: 'var(--red)' }}
+                        >Quitar</button>
+                      </span>
+                    ))}
+                    <button
+                      type="button" className="btn-ghost"
+                      onClick={() => updDescansos(dia, [...(h.descansos ?? []), { inicio: '14:00', fin: '16:00' }])}
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                    >+ Añadir descanso</button>
+                    {(h.descansos ?? []).some(d => descansosEnMinutos([d]).length === 0) && (
+                      <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <AlertTriangle size={11} className="ds-icon" /> Un descanso está incompleto o al revés — ese no se aplica.
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             )
@@ -822,7 +882,7 @@ export default function ConfiguracionPage() {
       {tab === 'equipo' && <EquipoTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
 
       {/* Bloqueos de horario */}
-      {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} />}
+      {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} zonaHoraria={form.zonaHoraria} />}
 
       {/* Portal del paciente */}
       {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
@@ -1359,10 +1419,11 @@ function MedicosTab() {
         telefono: form.telefono.trim(),
         email: form.email.trim(),
         activo: form.activo,
-        horario: config.horario || DEFAULT_CONFIG.horario,
-        duraciones: config.duraciones || DEFAULT_CONFIG.duraciones,
-        intervaloMinutos: config.intervaloMinutos || 10,
-        zonaHoraria: config.zonaHoraria || 'America/Chihuahua',
+        // NO se copia aquí el horario del consultorio. Esa copia no se volvia a
+        // escribir nunca —no hay editor por médico— y sin embargo la agenda la
+        // prefería, así que congelaba el horario en el día del alta: cambiar el
+        // horario en Configuración decía «guardado» y no llegaba a la agenda.
+        // Ver `lib/horario-medico.ts`.
         createdAt: '',
         updatedAt: '',
       })
@@ -1908,7 +1969,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
 
 /* ── Bloqueos de horario ─────────────────────────────────── */
-function BloqueosTab({ clinicId }: { clinicId: string | null }) {
+function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaHoraria?: string }) {
   const { user } = useAuth()
   const { toast, confirm } = useToast()
   const [bloques, setBloques] = useState<TimeBlock[]>([])
@@ -1931,9 +1992,21 @@ function BloqueosTab({ clinicId }: { clinicId: string | null }) {
     if (!desde || !hasta) { toast("Indica fecha y hora de inicio y fin", "error"); return }
     setSaving(true)
     try {
+      /**
+       * LA HORA ES LA DEL CONSULTORIO, NO LA DEL NAVEGADOR.
+       *
+       * `new Date('2026-08-10T14:00')` interpreta ese texto en la zona de QUIEN
+       * lo teclea. Todo lo que consume estos bloqueos ancla la hora de pared a
+       * `config.zonaHoraria`, así que un médico creando el bloqueo desde otro
+       * huso —de viaje, o simplemente con el equipo mal configurado— lo guardaba
+       * corrido: escribía 14:00–18:00 y quedaba 13:00–17:00 del consultorio. Las
+       * 17:00 seguían reservables y las 13:00 desaparecían.
+       */
+      const tz = zonaHoraria || TZ_CONSULTORIO_DEFECTO
+      const aInstante = (v: string) => instanteMX(v.slice(0, 10), v.slice(11, 16), tz).toISOString()
       await crearBloque(clinicId, {
-        desde: new Date(desde).toISOString(),
-        hasta: new Date(hasta).toISOString(),
+        desde: aInstante(desde),
+        hasta: aInstante(hasta),
         tipo, motivo: motivo.trim() || undefined,
         creadoPor: user.email ?? "",
       })
