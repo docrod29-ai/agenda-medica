@@ -528,6 +528,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **880** | **El bot también mandaba al consultorio a quien pedía videoconsulta.** Ofrece «5️⃣ Teleconsulta» en su menú y luego imprimía consultorio y dirección en sus **tres** mensajes (resumen previo, «su cita ha sido registrada» y el de lista de espera), sin el enlace. Es el más caro de los tres caminos: el bot **confirma en el momento**, de madrugada, sin que nadie del consultorio lo lea antes. Ahora los tres usan el criterio por tipo de v879; en los dos de cita agendada el enlace se arma con el **id real** de la cita —que en el camino de lista de espera hubo que tomar antes de escribir, porque se creaba con un `doc()` anónimo—. |
 
+## TRIGÉSIMA TANDA — v881 (la frase más natural para pedir cita no agendaba)
+
+| v | Qué se reparó |
+|---|---|
+| **881** | **«Quiero agendar una consulta» nunca agendaba.** El bot detecta las preguntas frecuentes antes que nada y el patrón de PRECIO es `/costo|precio|cobr|cuanto|pag|consulta/`: la palabra **«consulta»** dispara la respuesta de precios. La frase más natural para pedir cita hacía que el bot contestara cuánto cuesta, enseñara el menú y no agendara nada — y desde fuera parecía que funcionaba, porque contestó rápido y con información correcta. Igual «necesito una consulta», «me gustaría agendar consulta». Y «quiero cancelar mi cita de mañana a las 10» caía en la FAQ de **horarios** por la palabra «hora». Ahora un verbo de acción gana al tema (`lib/whatsapp/intencion.ts`, 7 pruebas) y pedir cita arranca el alta desde cualquier estado de reposo. Sin verbo no cambia nada: «cuánto cuesta la consulta» sigue siendo precio. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
