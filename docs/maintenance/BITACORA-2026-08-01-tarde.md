@@ -540,6 +540,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **882** | **«3️⃣ Cancelar cita» era una promesa sin nada detrás.** Contestaba «comuníquese al consultorio… también puede escribir su nombre completo y le ayudamos», y el estado siguiente **ignoraba lo que el paciente escribiera**: repetía el teléfono y volvía al menú. El paciente tecleaba su nombre completo —dato personal, a un canal externo— para nada, y su cita seguía viva: el día de la consulta contaba como no-show, con el lugar perdido y el paciente creyendo que había cancelado. El bot **sí sabía** cancelar (contestar «NO» a un recordatorio lo hace); faltaba encontrar la cita, y eso se hace por teléfono. Ahora busca, enseña la cita (o una lista), cancela con SÍ/NO, **respeta la política de cancelación** y no esconde la cita bloqueada. **Cuidado crítico**: en ese estado «SÍ» significaba «confirmo que asisto» — sin distinguir la pregunta, quien pedía cancelar acababa con la cita CONFIRMADA. Y la cancelación ya hace las tres cosas de v863. |
 
+## TRIGÉSIMA SEGUNDA TANDA — v883 (el bot decía que abren a la hora de la comida)
+
+| v | Qué se reparó |
+|---|---|
+| **883** | **El horario que contestaba el bot ignoraba los descansos.** Imprimía `inicio–fin` a secas: un consultorio de 9 a 14 y de 16 a 20 le decía al paciente «Lunes: 09:00–20:00» — o se presenta a una puerta cerrada, o intenta agendar a las 15:00 y la agenda no se lo ofrece, porque el motor de huecos **sí** respeta el descanso desde v829/v830. El sistema sabía la verdad y su propio bot decía otra cosa (`lib/whatsapp/horario-legible.ts`, 8 pruebas). **Segundo fallo**: `buildFAQReply` empezaba con «sin `botConfig`, contesta el teléfono» **para todo**, cuando el horario y la dirección salen de la configuración del consultorio, que siempre está llena. Un consultorio sin onboarding del bot tenía «Información» en el menú y el bot contestando el teléfono a todo. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
