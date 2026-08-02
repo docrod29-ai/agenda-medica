@@ -174,3 +174,43 @@ export async function listCalendars(refreshToken: string) {
   const res = await calendar.calendarList.list()
   return res.data.items ?? []
 }
+
+/**
+ * INTERVALOS OCUPADOS del calendario del médico, para un día.
+ *
+ * ── POR QUÉ `freebusy` Y NO `events.list` ────────────────────────────────────
+ *
+ * `events.list` traería títulos, invitados y descripciones de la agenda PERSONAL
+ * del médico. Para no ofrecer un hueco basta con saber que está ocupado, así que
+ * se pregunta lo mínimo: `freebusy` devuelve sólo intervalos.
+ *
+ * No hace falta ampliar el permiso de Google: el alcance que ya se concede
+ * (`auth/calendar`) incluye `freebusy`.
+ *
+ * Devuelve `[]` ante cualquier fallo — y el llamador tiene que DECIRLO, porque
+ * «no pude preguntar» y «no tiene nada» no son lo mismo: si se confunden, la
+ * agenda ofrece horas ocupadas creyendo que están libres.
+ */
+export async function intervalosOcupados(
+  refreshToken: string,
+  calendarId: string,
+  desdeISO: string,
+  hastaISO: string,
+): Promise<{ ok: boolean; intervalos: { start?: string | null; end?: string | null }[] }> {
+  try {
+    const oauth2Client = getOAuth2Client()
+    oauth2Client.setCredentials({ refresh_token: refreshToken })
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
+    const id = calendarId || 'primary'
+    const res = await calendar.freebusy.query({
+      requestBody: { timeMin: desdeISO, timeMax: hastaISO, items: [{ id }] },
+    })
+    const cal = res.data.calendars?.[id]
+    // Google devuelve los errores POR calendario, con 200 en la petición: si no
+    // se miran, un calendario inaccesible se lee como un día entero libre.
+    if (cal?.errors?.length) return { ok: false, intervalos: [] }
+    return { ok: true, intervalos: cal?.busy ?? [] }
+  } catch {
+    return { ok: false, intervalos: [] }
+  }
+}

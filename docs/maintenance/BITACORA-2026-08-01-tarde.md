@@ -309,11 +309,9 @@ es mover código que funciona.
 `terminada` o exige acto médico explícito. Hoy exige acto explícito, que es la
 opción que no inventa nada.
 
-## LO QUE QUEDA EN LA COLA (nada de esto es urgente)
+| **848** | **Google Calendar deja de ser unidireccional.** Una cirugía puesta en Google el jueves de 8 a 12 seguía ofreciéndose a los pacientes. **Y NO hacía falta ampliar el permiso** —como yo había apuntado aquí—: el alcance que ya se concede incluye `freebusy`. Se pregunta sólo por intervalos (sin títulos ni asistentes), se convierte a bloqueos —el idioma que el motor ya habla— y el bloqueo lleva el `medicoId` del dueño del token. Si la consulta falla, se dice en pantalla. |
 
-- **Google Calendar es unidireccional**: no hay `freebusy`, así que un evento
-  creado en Google no bloquea la agenda. Es la última pieza real de P-003 y
-  necesita ampliar el alcance de OAuth.
+## LO QUE QUEDA EN LA COLA (nada de esto es urgente)
 - **Fragmentación cromática**: 160 de 187 `.tsx` con estilo en línea.
 - **Formularios previos a la consulta** en el portal del paciente (P-019).
 - **Instrucciones al paciente y próxima cita** no entran al motor de tareas (P-010).

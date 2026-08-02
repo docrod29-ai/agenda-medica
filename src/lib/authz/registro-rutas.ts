@@ -131,6 +131,12 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'calendar/calendars': { tipo: 'sesion', motivo: 'Lista los calendarios de Google DEL PROPIO uid con su token; no toca datos de la clínica.' },
   'calendar/callback': { tipo: 'publica', motivo: 'Callback OAuth de Google: llega sin sesión y se valida con el `state` firmado.' },
   'calendar/connect': { tipo: 'sesion', motivo: 'Arranca el OAuth del PROPIO uid; el token se guarda en googleTokens/{uid}.' },
+  /**
+   * Lee los intervalos ocupados del Google Calendar DEL PROPIO uid (su token
+   * personal en `googleTokens/{uid}`) para no ofrecer horas que ya tiene
+   * tomadas. No trae títulos ni asistentes: sólo intervalos.
+   */
+  'calendar/ocupado': { tipo: 'capacidad', capacidad: 'agenda.gestionar' },
   'calendar/status': { tipo: 'sesion', motivo: 'Estado y desconexión del vínculo de Google DEL PROPIO uid.' },
   'calendar/sync': {
     tipo: 'capacidad', capacidad: 'agenda.gestionar', activacionPendiente: PENDIENTE_AGENDA,
