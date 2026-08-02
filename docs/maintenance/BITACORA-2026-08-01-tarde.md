@@ -329,3 +329,82 @@ opción que no inventa nada.
   nadie lo dé por hecho al leer el tipo.
 - **`PlanVersion`/`LegacyPlan`/`OverageRule`/`Addon`/`Discount`** del motor de
   precios (P-013).
+
+
+## CUARTA TANDA — v851 a v852 + AUDITORÍA DE LOS MÓDULOS QUE FALTABAN
+
+Tres auditores nuevos sobre lo que no se había mirado en toda la noche:
+**hospitalización/UCI**, **farmacia y dinero del consultorio**, y **portal del
+paciente + mensajería**. ~36 hallazgos con archivo:línea.
+
+| v | Qué se reparó |
+|---|---|
+| **851** | **El paciente podía borrar el estado «pagada» de su cita con un toque.** El portal sólo bloqueaba los estados terminales: una cita `pagada` o `pendiente-pago` pasaba a «confirmada» desde el enlace, y salía del control de cobro. Igual con `en-sala`/`en-consulta`. Ahora es **lista blanca** —con lista negra, cada estado nuevo nace tocable— y una cita **con cobro** ya no se cancela ni se reagenda desde el portal. Confirmar sí: no mueve el hueco ni el dinero. |
+| **852** | **Un anticipo saldaba una consulta que nadie había tasado.** Sin tarifa fijada, el checkout escribe el anticipo en `pagoMonto` y el webhook lo comparaba contra sí mismo: «cubre» → cita **pagada** → el resto no se reclamaba en ninguna pantalla. El comentario del propio webhook ya decía lo correcto y el código hacía lo contrario. El saldo queda en «no se sabe», no en cero. |
+
+## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
+
+Por orden de daño. Todo con archivo:línea, verificable.
+
+### Dinero
+1. **El mismo médico genera cobros con DOS identificadores** y la base de
+   comisiones se parte en dos: desde Citas va el id del doc de `doctors`
+   (`citas/page.tsx:476`), desde Consulta va el `uid`
+   (`consulta/[patientId]/page.tsx:3757`), y `comisiones.ts:78` agrupa por
+   `medicoId`. Se paga de menos o dos veces. **Reparar normalizando en
+   `registrarCobro`, que ya sella `creadoPor`.**
+2. **Consultas ya pagadas salen como «cuentas por cobrar»**: el corte sólo carga
+   los cobros del día y no mira `cita.cobroId` (`corte-caja.ts:106-118`).
+3. **Anular un cobro reescribe un corte ya cerrado** sin dejar nota en el corte
+   (`cobros.ts:300-350`).
+4. **«Reembolsos $0.00»** está condenado a cero porque la operación no existe
+   (`corte-caja/page.tsx:114`): debe decir «no disponible», no cero.
+5. **Un cobro suelto no tiene médico** → cae en `sinAtribuir` y desaparece del
+   desglose (`CobrarModal.tsx:126`).
+
+### Farmacia
+6. **«Eliminar» no elimina nada visible**: la pantalla pide `soloActivos = false`
+   (`farmacia/page.tsx:44`) y el ítem borrado sigue en la lista y en los
+   contadores.
+7. **«Bajo stock: 0» con el anaquel vacío**: `bajoMinimo` devuelve `false` si no
+   hay mínimo capturado (`farmacia.ts:167`).
+8. **La farmacia es una isla**: dispensar no descuenta ni cobra, `patientId` y
+   `notaId` del movimiento no los escribe nadie (NOM-220 lote→paciente), y
+   `listarMovimientos` no tiene ni una pantalla que lo llame.
+9. **Caducidad evaluada en UTC** (`farmacia.ts:171`): un lote que vence el 2 de
+   agosto aparece caducado desde las 18:00 del 1.
+
+### Hospital / UCI
+10. **P0 — un reingreso a terapia BORRA la estancia anterior**: `icu_stays` usa
+    el id fijo `actual` (`api/hospital/mutar/route.ts:305-320`), contra lo que el
+    propio tipo promete.
+11. **La limpieza terminal no se aplica al EGRESO**, sólo al traslado: la cama
+    cuenta como disponible en el mismo instante del alta.
+12. **El turno de enfermería de UCI oculta pacientes** de una unidad sin tipo
+    configurado y afirma «no hay nada pendiente» (`uci/enfermeria/page.tsx:51`).
+13. **Las tomas de UCI se firman con el nombre del médico tratante**, no de quien
+    las captura, y con el reloj del navegador (`uci/page.tsx:485`). Es el mismo
+    defecto que ya se reparó en el MAR.
+14. **La entrega de turno afirma ausencias que nadie puede desmentir** («no hay
+    dispositivos invasivos registrados» en un paciente con catéter y VM) porque
+    la fuente no existe (`ResumenPase.tsx:92`), y `marcarRevisado` no tiene
+    llamador: el estado REVISADO es inalcanzable.
+
+### Portal y mensajería
+15. **El enlace mágico no se puede revocar** ni caduca antes de 30 días
+    (`lib/patient-token.ts:85`): quien lo tenga lee citas y motivo, y puede
+    cancelar y reagendar.
+16. **El recordatorio promete «Responde SÍ para confirmar»** y nada lo
+    implementa (`cron/reminders/route.ts:146`): el bot contesta el menú.
+17. **Lista de espera**: «responda NO y le quitamos de la lista» no da de baja, y
+    quien no contesta queda marcado `contactado` y **nunca vuelve a recibir otra
+    oferta** (`waitlist-notify:159`).
+18. **El detector de FAQ secuestra las confirmaciones**: «sí, esa **hora** me
+    sirve» responde el horario de atención y pierde el hueco (`webhook:305`).
+19. **«Mis recetas» del portal imprime "Invalid Date" y el botón Descargar no
+    descarga** (`mi/[token]/page.tsx:62`, formato ISO vs. `YYYY-MM-DD HH:MM`).
+20. **«Pagar anticipo · Asegura tu lugar» no asegura nada**: abre un enlace
+    externo suelto sin retorno ni registro; la ruta que sí lo registraría no
+    tiene ni un llamador.
+21. **Aviso de lista de espera desde el modal sin `medicoId`** → la cita se
+    agenda con el médico equivocado (`AppointmentModal.tsx:308`).
