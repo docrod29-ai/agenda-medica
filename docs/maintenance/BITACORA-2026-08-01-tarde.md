@@ -1,5 +1,10 @@
 # Bitácora reanudable — tarde del 2026-08-01
 
+**El objetivo del Dr. es terminar el MASTER EXECUTION LOOP V6 completo.** El
+estado fase por fase, verificado contra el código, está en
+**`V6-PRACTICE-GA.md`** — léelo también: dice qué falta de cada P y en qué orden
+seguir. Este archivo es el registro de versiones y la cola fina.
+
 **Para retomar:** lee este archivo primero. Cada punto dice si está HECHO, EN CURSO
 o PENDIENTE, y lo pendiente trae el archivo y la línea por donde entrar.
 
@@ -43,6 +48,8 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 | v822 | Verificación de correo (no existía en ninguna parte) |
 | v823 | Borrar expediente desde el navegador: cerrado (la protección NOM-004 vivía en código muerto) |
 | v824 | La bitácora se quedaba con huecos: cola de reintento con fallos permanentes descartados |
+| v825 | Bajar de plan en el portal de Stripe dejaba los módulos caros (manda el precio, no el metadato) |
+| v826 | El portal ARCO no verificaba a nadie, y la solicitud ya ejecuta: acreditación del titular antes del acto irreversible |
 
 ---
 
