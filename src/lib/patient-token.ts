@@ -12,7 +12,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * SOLO servidor (usa node:crypto). No importar desde componentes cliente.
  */
 
-const DIAS_DEFECTO = 30
+/**
+ * CUÁNTO DURA UN ENLACE DEL PORTAL.
+ *
+ * Eran 30 días. Ese enlace llega por WhatsApp y da acceso a las citas del
+ * paciente —incluido el `motivo`, que es texto clínico— y permite cancelar y
+ * reagendar. Un mes es demasiado para algo que viaja en un mensaje que se
+ * reenvía, que se queda en un teléfono perdido o en un número reciclado.
+ *
+ * Siete días cubre el caso real —confirmar o mover la cita de esta semana— y
+ * reduce en cuatro quintas partes la ventana de un enlace suelto.
+ */
+const DIAS_DEFECTO = 7
 
 /**
  * E0-06 — ALCANCE del token. No todos los magic-links deben poder lo mismo.
@@ -41,6 +52,19 @@ interface PayloadPaciente {
   p: string // patientId
   e: number // exp epoch (segundos)
   a?: AlcanceToken // alcance (ausente = 'agenda', fail-closed)
+  /**
+   * VERSIÓN del enlace, para poder REVOCARLO.
+   *
+   * No existía ninguna forma de invalidar un enlace ya emitido: firmado y con
+   * fecha, valía hasta caducar pasara lo que pasara —teléfono perdido, número
+   * reciclado, mensaje reenviado a un grupo—. La única salida era esperar.
+   *
+   * Ahora el expediente lleva un contador; subirlo invalida de golpe todos los
+   * enlaces emitidos para ese paciente. Ausente = versión 0, que es lo que
+   * tienen los enlaces anteriores a esto: siguen valiendo hasta que alguien
+   * revoque, y entonces caen todos juntos.
+   */
+  v?: number
 }
 
 function getSecret(): string {
@@ -67,9 +91,10 @@ export function crearTokenPaciente(
   patientId: string,
   ttlDias = DIAS_DEFECTO,
   alcance: AlcanceToken = ALCANCE_DEFECTO,
+  version = 0,
 ): string {
   const exp = Math.floor(Date.now() / 1000) + ttlDias * 86400
-  const payload: PayloadPaciente = { c: clinicId, p: patientId, e: exp, a: alcance }
+  const payload: PayloadPaciente = { c: clinicId, p: patientId, e: exp, a: alcance, v: version }
   const payloadB64 = b64url(JSON.stringify(payload))
   return `${payloadB64}.${firmar(payloadB64)}`
 }
@@ -79,6 +104,8 @@ export interface TokenVerificado {
   patientId: string
   /** Nunca es undefined: un token sin alcance declarado se degrada a `agenda`. */
   alcance: AlcanceToken
+  /** Versión con la que se emitió. El llamador la compara con la del expediente. */
+  version: number
 }
 
 /** Verifica firma + caducidad. Devuelve null si es inválido o expiró. */
@@ -107,7 +134,7 @@ export function verificarTokenPaciente(token: string | undefined | null): TokenV
   // 'agenda'. Un payload manipulado no puede inventarse un alcance nuevo.
   const alcance: AlcanceToken = payload.a === 'clinico' ? 'clinico' : ALCANCE_DEFECTO
 
-  return { clinicId: payload.c, patientId: payload.p, alcance }
+  return { clinicId: payload.c, patientId: payload.p, alcance, version: Number(payload.v ?? 0) }
 }
 
 /**
@@ -120,7 +147,26 @@ export function linkPortalPaciente(
   patientId: string,
   ttlDias = DIAS_DEFECTO,
   alcance: AlcanceToken = ALCANCE_DEFECTO,
+  version = 0,
 ): string {
-  const token = crearTokenPaciente(clinicId, patientId, ttlDias, alcance)
+  const token = crearTokenPaciente(clinicId, patientId, ttlDias, alcance, version)
   return `${baseUrl.replace(/\/$/, '')}/mi/${token}`
 }
+
+/**
+ * ¿Sigue vigente este enlace, según la versión que declara el expediente?
+ *
+ * Se compara con `>=` y no con `===` a propósito: un enlace emitido con una
+ * versión MÁS ALTA que la guardada no puede existir salvo por un error de
+ * escritura, y tratarlo como inválido dejaría al paciente fuera por un fallo
+ * nuestro. Lo que se busca es cortar los VIEJOS.
+ */
+export function tokenVigente(tokenVersion: number, versionDelPaciente: number | undefined): boolean {
+  return Number(tokenVersion ?? 0) >= Number(versionDelPaciente ?? 0)
+}
+
+export const POR_QUE_SE_PUEDE_REVOCAR =
+  'Porque el enlace llega por WhatsApp, da acceso a las citas del paciente ' +
+  '—incluido el motivo, que es texto clínico— y permite cancelar y reagendar. ' +
+  'Sin revocación, un teléfono perdido o un mensaje reenviado valía hasta ' +
+  'caducar, y la única salida era esperar.'

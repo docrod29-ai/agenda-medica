@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
+import { adminDb } from '@/lib/firebase-admin'
 import { linkPortalPaciente } from '@/lib/patient-token'
 
 /**
@@ -33,6 +34,18 @@ export async function POST(req: NextRequest) {
    * cancelar y reagendar citas—; los documentos clínicos exigen un enlace emitido
    * por un médico.
    */
-  const url = linkPortalPaciente(origin, body.clinicId, body.patientId, undefined, 'agenda')
+  /**
+   * El enlace nace con la VERSIÓN vigente del paciente. Cuando alguien revoca,
+   * ese contador sube y todos los enlaces emitidos antes dejan de servir de
+   * golpe — que es justo lo que no se podía hacer.
+   */
+  let version = 0
+  try {
+    const snap = await adminDb.collection('clinics').doc(body.clinicId)
+      .collection('patients').doc(body.patientId).get()
+    version = Number((snap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
+  } catch { /* sin versión conocida se emite la 0: el enlace sirve, y una revocación posterior lo corta igual */ }
+
+  const url = linkPortalPaciente(origin, body.clinicId, body.patientId, undefined, 'agenda', version)
   return NextResponse.json({ url })
 }

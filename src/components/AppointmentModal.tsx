@@ -372,7 +372,14 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       const data = await r.json().catch(() => ({}))
       if (!r.ok || !data.url) { toast(data.error || 'No se pudo generar el enlace', 'error'); return }
       const nombre = (appointment.pacienteNombre || '').split(' ')[0]
-      const msg = `Hola ${nombre} 👋 Aquí puedes ver, confirmar o reagendar tu cita en línea:\n${data.url}`
+      /**
+       * SE LE DICE AL PACIENTE QUE EL ENLACE ES SUYO Y CADUCA.
+       *
+       * El mensaje no advertía nada, y ese enlace da acceso a sus citas —motivo
+       * incluido— y permite cancelar y reagendar. Quien lo reenvía a un grupo
+       * familiar «para que le recuerden» está repartiendo esa llave sin saberlo.
+       */
+      const msg = `Hola ${nombre} 👋 Aquí puedes ver, confirmar o reagendar tu cita en línea:\n${data.url}\n\nEs un enlace personal y caduca en unos días — no lo compartas.`
       openWhatsApp(telefono, msg)
     } catch {
       toast('Sin conexión. Intenta de nuevo.', 'error')
