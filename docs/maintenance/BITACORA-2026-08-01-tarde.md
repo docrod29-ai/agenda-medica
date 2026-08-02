@@ -281,3 +281,21 @@ abogado sanitarista). ~45 hallazgos; lo confirmado leyendo el código está abaj
 6. **Google Calendar unidireccional** — no hay `freebusy`.
 7. **`timeToFirst*` del onboarding** y los **cuatro tableros** de P-022.
 8. **`BillingEngine`/`StripeAdapter`** (P-012) — sólo si sobra tiempo: hoy funciona.
+
+
+## TERCERA TANDA — v840 a v844 (madrugada del 2)
+
+| v | Qué se hizo |
+|---|---|
+| **840** | **«¿Qué tiene?»** — el encabezado de la consulta ya dice problemas activos y última visita, con la misma regla del silencio que la medicación (no mencionar no resuelve). Lo crónico va primero; el CIE-10 manda sobre el texto. **Verificado en producción con Chrome**, sin errores de consola. Y borrar un laboratorio o una foto ya deja rastro. |
+| **841** | El `timeToFirst*` del charter **ya se calculaba** en `lib/onboarding/embudo.ts` y no lo pintaba nadie. Segunda corrección de mi propio mapa del V6 en vez de escribir un duplicado. |
+| **842** | **Tablero técnico**: latencias p50/p95/p99, la peor y tasa de fallo, por operación y por modelo. Los datos llevaban meses en cada asiento del libro de costos, sin leer. Tres percentiles y no uno: con 5 lentas de 105 el p95 aún cae en la zona rápida. |
+| **843** | **Tasa de bajas** al lado del MRR. Primero hubo que poder medirla: al cancelar sólo se escribía `status: 'cancelled'`, sin fecha. El denominador es quien PODÍA irse. Sin base dice «sin base», no 0 %. |
+| **844** | La corrección por voz podía devolver una nota **mutilada** (la segunda opinión de GPT no se validaba contra el esquema). Y el cruce alergia↔medicamento no veía el último tercio de una consulta larga: la ruta aceptaba 20 000 caracteres y el prompt recortaba a 12 000 en silencio, dejando el panel vacío. |
+
+**Estado del V6 (mío)**: P-002, P-003, P-005, P-007, P-008, P-009, P-021 y P-022
+cerrados. **P-012 (`BillingEngine`) NO se hizo a propósito**: el ciclo de vida ya
+está reparado y probado; extraer la abstracción sin un segundo proveedor de pago
+es mover código que funciona.
+
+**Pruebas**: 4463 → 4530 · emulador 101 · lint 99 → 98.
