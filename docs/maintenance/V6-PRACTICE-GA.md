@@ -16,10 +16,10 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 | # | Charter | Estado |
 |---|---|---|
 | P-001 | Auditoría global | **HECHO** — 9 auditores en paralelo (agenda, resiliencia, clínico, diseño, cumplimiento, contabilidad, Stripe, flujo comercial, pérdida de datos). ~90 hallazgos; los confirmados están reparados o en la cola de abajo. |
-| P-002 | Auth y onboarding sin asistencia | **PARCIAL** — verificación de correo hecha (v822), teléfono del alta hecho (v816). **FALTA**: el gate de tarjeta contradice la promesa de «14 días sin tarjeta» → decisión del Dr. Y no se miden `timeToFirst*` (el embudo de `/superadmin/onboarding` mide hitos, no tiempos por hito). |
-| P-003 | Agenda completa | **PARCIAL** — sobreagendar autorizado y auditado (v806-v807), bloqueos validados en servidor, zonas horarias, tope de huecos (v810). **FALTA**: horario partido y descansos no existen en el modelo (`DaySchedule` es un solo tramo, `src/types/index.ts:408`); festivos no recurrentes; sucursales decorativas (`branchId` no lo escribe ninguna interfaz ni lo mira `getAvailableSlots`); calendario externo unidireccional (no hay `freebusy`, un evento de Google no bloquea la agenda). |
+| P-002 | Auth y onboarding sin asistencia | **CASI HECHO — corregido tras leer el código.** Verificación de correo (v822) y teléfono del alta (v816). Y el `timeToFirst*` NO faltaba como yo había escrito: `lib/onboarding/embudo.ts` calcula `desdeCuentaMs` por hito y su MEDIANA agregada desde siempre. Lo que faltaba era **pintar la mediana** —se calculaba y no la mostraba nadie— y eso se hizo (v841). **FALTA sólo la decisión del Dr.**: el gate de tarjeta contradice la promesa de «14 días sin tarjeta». |
+| P-003 | Agenda completa | **CASI HECHO** — sobreagendar autorizado y auditado, bloqueos validados en servidor, tope de huecos. **Horario partido y descansos (v829)**, y el mismo motor para los CINCO caminos que agendan (v830) — el horario del médico era un fósil que congelaba la agenda en el día del alta. **Festivos editables y recurrentes (v837)**. Los bloqueos ya se guardan en la zona del consultorio y el portal arma los días con su reloj (v836). **FALTA**: sucursales decorativas (`branchId` no lo escribe ninguna interfaz) y calendario externo unidireccional (no hay `freebusy`). |
 | P-004 | Master Patient Record + duplicados | **HECHO** — detección de duplicados con bloqueo, nunca fusión automática, y la cita ya no cae en el paciente equivocado. |
-| P-005 | Consultation workspace | **PARCIAL** — la consulta ya es una sola pantalla con dictado, secciones, dx, plan, receta, órdenes, copiloto y evidencia. **FALTA**: el header no muestra problemas activos ni medicamentos vigentes ni «última consulta» de un vistazo. |
+| P-005 | Consultation workspace | **HECHO** — una sola pantalla con dictado, secciones, dx, plan, receta, órdenes, copiloto y evidencia, y el encabezado ya dice de un vistazo **alergias · problemas activos · última consulta · medicación vigente** (v828, v840), que era lo que el médico reconstruía abriendo notas hacia atrás. Verificado en producción. |
 | P-006 | Voice + Note engine con provenance | **CASI HECHO — corregido tras leer el código.** Mi primera lectura fue injusta: `lib/expediente/procedencia.ts` YA hace provenance POR CAMPO, y bien. No la declara: la **deriva de evidencia** — si el dato coincide con la extracción y trae `source_quote`, es `dictado` (y se puede leer la frase exacta); si coincide sin cita, es `ia`; si no coincide, lo escribió el médico. Además registra `confirmado` por campo, con un detalle fino: no compara índices entre las dos listas porque se desfasan al rechazar un ítem, y dar por confirmado un diagnóstico con el visto bueno de OTRO sería un dato falso en el registro. **FALTA sólo el vocabulario**: `CALCULATED` e `IMPORTED` no se distinguen de `manual`. Es un matiz, no un agujero. |
 | P-007 | Clinical safety | **PARCIAL** — motores deterministas, dosis con unidad obligatoria, alergias, pediatría, embarazo. **FALTA**: la clasificación `BLOCK/CONTRAINDICATED/AVOID/NOT_RECOMMENDED/DOSE_ADJUST/MONITOR/PASSIVE/INFORMATION` no existe como tipo; hoy es `critica/media/baja`. Asignar cada fármaco es **DEL DR.**, pero el ESQUEMA es mío y falta. Y `BLOQUEA_RECETA` lo decide el LLM y no bloquea nada (`medical-ner.ts:176`). |
 | P-008 | Medication engine | **PARCIAL** — modelo con dosis/unidad/vía/frecuencia/duración/indicación, chequeo renal y de alergias. **FALTA**: `Status` y `Provenance` en `MedicationOrder`. |
@@ -51,7 +51,7 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 |---|---|---|
 | P-020 | Security release gate | **PARCIAL** — aislamiento por tenant probado (100 specs de emulador), RBAC auditado y estrechado (v808, v818, v823), cabeceras, rate limits, bitácora con cola (v824). **FALTA y es DEL DR.**: MFA obligatorio o riesgo aceptado por escrito, PITR, simulacro de restauración, simulacro de incidente, **pentest externo**. El charter es explícito: Claude no aprueba su propia seguridad. |
 | P-021 | Resiliencia | **HECHO** — las seis promesas verificadas y reparadas (v800): IA, transcripción, evidencia sin citas inventadas, Stripe sin duplicar, WhatsApp con rastro, autosave sin pérdida silenciosa (v811). |
-| P-022 | Observabilidad | **PARCIAL** — libro de costos, entregabilidad de WhatsApp, embudo de alta, CSP en observación. **FALTA**: los cuatro tableros separados del charter (técnico, clínico, IA, financiero) con latencias p50/p95/p99 y MRR/churn. |
+| P-022 | Observabilidad | **HECHO, con un límite declarado.** **Técnico**: latencias p50/p95/p99 + la peor + tasa de fallo, por operación y por modelo (v842) — los datos ya se guardaban en cada asiento y no los leía nadie. **IA**: consumo, tokens, costo y fallos por modelo y por operación (libro de costos). **Financiero**: ingresos, margen, MRR y ahora **tasa de bajas** con su denominador correcto (v843); antes ni siquiera se guardaba la fecha de cancelación. **Clínico**: lo medible sin entrar al expediente está en `/cumplimiento` y `/cumplimiento/motores` (bitácora, motores sin validar, asientos pendientes). Lo que el charter pide como «tablero clínico» —desenlaces— **no se puede medir desde la plataforma sin pasearse por los expedientes de los clientes**, y eso ya se rechazó una vez al construir el embudo. Se declara en vez de fabricarlo. |
 
 ## FASE 5 — GOLDEN FLOW Y LANZAMIENTO
 
@@ -80,11 +80,14 @@ actuales».
 2. `Status` y `Provenance` en la orden de medicamento (P-008).
 3. ~~Provenance por campo~~ — YA EXISTÍA (`procedencia.ts`). Falta sólo distinguir
    `CALCULATED` e `IMPORTED` de `manual`, que es un matiz de vocabulario.
-4. Header de la consulta con problemas activos, medicamentos y última visita (P-005).
-5. Horario partido y descansos (P-003).
-6. Métricas `timeToFirst*` del onboarding (P-002).
-7. Tableros de observabilidad separados (P-022).
-8. `BillingEngine`/`StripeAdapter` (P-012) — sólo si sobra tiempo: hoy funciona.
+4. ~~Header de la consulta~~ — HECHO (v828, v840) y verificado en producción.
+5. ~~Horario partido y descansos~~ — HECHO (v829-v830, v837).
+6. ~~Métricas `timeToFirst*`~~ — YA EXISTÍAN en `lib/onboarding/embudo.ts`; faltaba pintarlas (v841).
+7. ~~Tableros de observabilidad~~ — HECHO (v842-v843), con el límite del tablero clínico declarado.
+8. `BillingEngine`/`StripeAdapter` (P-012) — **NO se hizo, a propósito**. El ciclo
+   de vida ya está reparado y probado (v812-v826); extraer la abstracción hoy es
+   mover código que funciona, sin un segundo proveedor de pago que lo justifique.
+   Cuando lo haya, la refactorización se paga sola; hacerla antes es adivinar.
 
 ## LO QUE ES DEL DR. (va al final, por su instrucción)
 

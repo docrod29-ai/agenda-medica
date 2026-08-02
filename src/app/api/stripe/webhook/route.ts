@@ -488,6 +488,15 @@ export async function POST(req: NextRequest) {
           status: 'cancelled',
           stripeSubscriptionId: null,
           stripeSubscriptionStatus: 'canceled',
+          /**
+           * CUÁNDO se fue. Sin esta fecha no hay churn que calcular.
+           *
+           * El estado decía «cancelled» y nada más: se podía ver cuántos se
+           * habían ido ALGUNA VEZ, pero no cuántos este mes, que es la única
+           * forma en que la cifra significa algo. Una tasa de bajas sin fecha
+           * es un acumulado disfrazado de tasa.
+           */
+          canceladaEn: new Date().toISOString(),
         })
         break
       }

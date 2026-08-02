@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { onAuthStateChanged, getIdToken } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
+import { msLegible, type ResumenLatencia } from '@/lib/observabilidad/latencias'
 
 interface Resumen {
   llamadas: number; conCosto: number; sinTarifa: number; totalUsd: number
@@ -38,6 +39,7 @@ interface Incidente {
 interface Datos {
   ok: true; mes: string; total: Resumen; cogs: Resumen; confiable: boolean
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
+  latenciasPorFeature: ResumenLatencia[]; latenciasPorModelo: ResumenLatencia[]
   incidentes?: Incidente[]; hayUrgente?: boolean
   webhook?: { configurado: boolean; faltantes: string[]; faltanCriticos: string[]; aviso: string; modo?: 'prueba' | 'produccion' | 'sin_llave'; avisoModo?: string } | null
 }
@@ -225,6 +227,16 @@ export default function CostosPage() {
             />
           </div>
 
+          {/*
+            CUÁNTO TARDA Y CUÁNTO FALLA, por operación y por modelo.
+            El KPI de arriba da un p50/p95 global, que dice si «en general» va
+            bien y no dice DÓNDE va mal. Estos datos ya se guardaban en cada
+            asiento y no los leía nadie.
+          */}
+          <TablaLatencias titulo="Cuánto tarda cada operación" filas={datos.latenciasPorFeature} />
+          <TablaLatencias titulo="Cuánto tarda cada modelo" filas={datos.latenciasPorModelo}
+            nota="Aquí se ve si un proveedor se degradó: la misma operación con dos modelos, uno lento." />
+
           <Tabla titulo="Por operación" filas={datos.porFeature} />
           <Tabla titulo="Por modelo" filas={datos.porModelo} />
           <Tabla
@@ -304,3 +316,52 @@ const Th = ({ children, align = 'right' }: { children: React.ReactNode; align?: 
 const Td = ({ children, align = 'right' }: { children: React.ReactNode; align?: 'left' | 'right' }) => (
   <td style={{ textAlign: align, padding: '9px 12px', color: 'var(--text, #0f172a)', fontVariantNumeric: 'tabular-nums' }}>{children}</td>
 )
+
+/**
+ * Latencias por clave. Tres percentiles y el máximo, no uno solo: un único
+ * número siempre deja fuera una forma de ir mal. Y la tasa de fallo al lado,
+ * porque una operación rapidísima que falla la mitad de las veces no es rápida.
+ */
+function TablaLatencias({ titulo, filas, nota }: { titulo: string; filas?: ResumenLatencia[]; nota?: string }) {
+  const conDatos = (filas ?? []).filter(f => f.n > 0 || f.fallos > 0)
+  if (!conDatos.length) return null
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto', marginBottom: 18 }}>
+      <div style={{ padding: '12px 14px 6px' }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>{titulo}</div>
+        {nota && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, lineHeight: 1.5 }}>{nota}</div>}
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 620 }}>
+        <thead>
+          <tr style={{ background: 'var(--s2)', textAlign: 'left' }}>
+            <th style={{ padding: '8px 12px' }}>Clave</th>
+            <th style={{ padding: '8px 12px', textAlign: 'right' }}>Llamadas</th>
+            <th style={{ padding: '8px 12px', textAlign: 'right' }}>p50</th>
+            <th style={{ padding: '8px 12px', textAlign: 'right' }}>p95</th>
+            <th style={{ padding: '8px 12px', textAlign: 'right' }}>p99</th>
+            <th style={{ padding: '8px 12px', textAlign: 'right' }}>La peor</th>
+            <th style={{ padding: '8px 12px', textAlign: 'right' }}>Fallos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {conDatos.map(f => (
+            <tr key={f.clave} style={{ borderTop: '1px solid var(--border)' }}>
+              <td style={{ padding: '8px 12px', fontWeight: 600 }}>{f.clave}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.n}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{msLegible(f.p50)}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{msLegible(f.p95)}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{msLegible(f.p99)}</td>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--text3)' }}>{msLegible(f.max)}</td>
+              <td style={{
+                padding: '8px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                color: f.fallos > 0 ? 'var(--red)' : 'var(--text3)',
+              }}>
+                {f.fallos > 0 ? `${f.fallos} · ${(f.tasaFallo * 100).toFixed(1)} %` : '0'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

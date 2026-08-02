@@ -16,6 +16,8 @@ import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
+import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
+import { safeLog } from '@/lib/security/sanitize'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -163,7 +165,21 @@ export async function POST(req: NextRequest) {
             const nivel = await nivelIADe(clinicId)
             const modeloGPT = nivel === 'premium' ? 'gpt-5' : 'gpt-4o'
             const verificada = await openaiVerificar(openaiKey, modeloGPT, body.nota, instruccion, notaFinal)
-            if (verificada) { notaFinal = verificada; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
+            /**
+             * LA SEGUNDA OPINIÓN SE VALIDA ANTES DE SUSTITUIR LA NOTA.
+             *
+             * `openaiVerificar` sólo comprobaba que la respuesta fuera un
+             * objeto. Un JSON bien formado pero SIN la llave `medicamentos`
+             * pisaba la nota buena de Claude y llegaba al editor sin
+             * medicamentos: pérdida silenciosa de contenido clínico, y encima
+             * en el camino que el médico usa para CORREGIR por voz.
+             *
+             * La ruta hermana (`procesar`) ya hacía justo esto: si la síntesis
+             * no valida, se queda con la nota que sí.
+             */
+            const revisada = verificada ? RespuestaExtraccion.safeParse(verificada) : null
+            if (revisada?.success) { notaFinal = revisada.data as Record<string, unknown>; modelos.push(nivel === 'premium' ? 'GPT-5' : 'GPT-4o') }
+            else if (verificada) safeLog.warn('[corregir] la segunda opinión no valida contra el esquema; se conserva la de Claude')
           }
         } catch { /* se queda la corrección de Claude */ }
         void registrarCreditos(clinicId, COSTO_CREDITOS.correccionVoz)

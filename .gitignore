@@ -50,3 +50,4 @@ next-env.d.ts
 # Descomenta si prefieres NO commitearlos:
 # /ios
 # /android
+firestore-debug.log

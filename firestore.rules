@@ -209,8 +209,24 @@ service cloud.firestore {
           // debe quedar marcada como importada — nunca parecer firma nativa.
           allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId)
                         && request.resource.data.estado == 'borrador';
-          // Solo se pueden editar/borrar borradores; las firmadas son inmutables (NOM-024)
-          allow update: if isMedico(clinicId) && resource.data.estado != 'firmada';
+          /**
+           * FIRMAR ES UN ACTO PERSONAL — nadie firma con la cédula de otro.
+           *
+           * La regla dejaba a CUALQUIER médico de la clínica poner
+           * `estado: 'firmada'` en una nota cuyo `metadata.medicoId` es de otro.
+           * Y el nombre y la cédula que se estampan en el papel salen de ese
+           * campo. En un consultorio con dos médicos eso significa una nota
+           * firmada a nombre de quien no la escribió, inmutable, y sin nada en el
+           * documento que permita notarlo.
+           *
+           * Al firmar, el autor declarado tiene que ser QUIEN ESTÁ FIRMANDO. El
+           * resto de las ediciones de un borrador siguen siendo del equipo
+           * médico: una asistencia a cuatro manos sobre un borrador es normal;
+           * la firma no.
+           */
+          allow update: if isMedico(clinicId) && resource.data.estado != 'firmada'
+                        && (request.resource.data.estado != 'firmada'
+                            || request.resource.data.metadata.medicoId == request.auth.uid);
           allow delete: if isMedico(clinicId) && resource.data.estado != 'firmada';
 
           // Versiones históricas de borradores (NOM-024 Art. 6.4 — trazabilidad de cambios).
@@ -223,9 +239,20 @@ service cloud.firestore {
 
           // Adendas: corrección/aclaración a una nota YA FIRMADA sin alterar el
           // original (NOM-004). Se agregan pero NUNCA se editan ni se borran.
+          /**
+           * Adendas: corrección o aclaración sobre una nota YA FIRMADA sin tocar
+           * el original. Es el ÚNICO mecanismo de corrección que existe sobre un
+           * documento inmutable, así que tiene que acreditar tres cosas: quién,
+           * cuándo y por qué. Se permitía crearlas sin validar ni un campo —el
+           * autor venía del formulario y el motivo era opcional—, y una
+           * corrección que no acredita autor ni motivo no es oponible a nadie.
+           */
           match /adendas/{adendaId} {
             allow read: if isMedico(clinicId);
-            allow create: if isMedico(clinicId);
+            allow create: if isMedico(clinicId)
+                          && request.resource.data.autorUid == request.auth.uid
+                          && request.resource.data.motivo is string
+                          && request.resource.data.motivo.size() >= 3;
             allow update, delete: if false;
           }
         }

@@ -15,6 +15,7 @@
  */
 import { collection, doc, addDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { logAudit } from '@/lib/expediente/audit-log'
 
 export interface FotoClinica {
   id: string
@@ -72,6 +73,10 @@ export async function getFotos(clinicId: string, patientId: string): Promise<Fot
 
 export async function deleteFoto(clinicId: string, patientId: string, fotoId: string): Promise<void> {
   await deleteDoc(doc(db, 'clinics', clinicId, 'patients', patientId, 'fotos', fotoId))
+  // Contenido del expediente que desaparece: tiene que quedar quién y cuándo.
+  // Va DESPUÉS del borrado y sin `await` para no convertir la bitácora en la
+  // razón de que el médico no pueda quitar una foto mal subida.
+  void logAudit({ evento: 'foto_clinica_borrada', clinicId, patientId, meta: { fotoId } })
 }
 
 // ── Helpers PUROS (testeables, sin red) ──────────────────────────────────────

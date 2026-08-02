@@ -309,8 +309,17 @@ export interface Adenda {
   id: string
   /** Texto de la corrección/aclaración. */
   texto: string
-  /** Motivo breve (ej. "Corrección de dosis", "Dato omitido"). */
+  /**
+   * Motivo breve (ej. "Corrección de dosis", "Dato omitido"). OBLIGATORIO.
+   *
+   * Era opcional en el tipo y en el formulario. Es el único mecanismo de
+   * corrección que existe sobre un documento inmutable: una enmienda sin motivo
+   * no explica por qué se corrigió, y sin eso no es oponible a nadie.
+   * Las adendas anteriores a esta regla no lo traen; leerlas sigue funcionando.
+   */
   motivo?: string
+  /** Quién la escribió, según el TOKEN — no según el formulario. */
+  autorUid?: string
   autorNombre: string
   autorEmail: string
   /** Cédula profesional del autor al momento de la adenda (trazabilidad). */

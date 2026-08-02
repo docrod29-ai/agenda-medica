@@ -96,26 +96,56 @@ describe('GOLDEN FLOW · con el consultorio al día', () => {
      */
     await assertSucceeds(
       dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}`)
-        .set({ estado: 'borrador', tipoNota: 'primera_vez', medicoId: uidMedico }),
+        .set({ estado: 'borrador', tipoNota: 'primera_vez', metadata: { medicoId: uidMedico } }),
     )
     await assertFails(
       dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/nota-que-nace-firmada`)
-        .set({ estado: 'firmada', tipoNota: 'primera_vez', medicoId: uidMedico }),
+        .set({ estado: 'firmada', tipoNota: 'primera_vez', metadata: { medicoId: uidMedico } }),
     )
   })
 
   it('4) la firma, y a partir de ahí la nota es INMUTABLE', async () => {
     const ref = dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}`)
-    await ref.set({ estado: 'borrador', tipoNota: 'primera_vez', medicoId: uidMedico })
+    await ref.set({ estado: 'borrador', tipoNota: 'primera_vez', metadata: { medicoId: uidMedico } })
     await assertSucceeds(ref.update({ estado: 'firmada', hashIntegridad: 'abc123' }))
     // NOM-024: una nota firmada no se edita ni se borra. Se corrige con adenda.
     await assertFails(ref.update({ estado: 'borrador' }))
     await assertFails(ref.delete())
   })
 
+  /**
+   * FIRMAR ES UN ACTO PERSONAL.
+   *
+   * La regla dejaba a cualquier médico de la clínica poner `estado: 'firmada'`
+   * en una nota cuyo autor declarado es OTRO — y el nombre y la cédula del papel
+   * salen de ese campo. Una nota firmada a nombre de quien no la escribió,
+   * inmutable, y sin nada en el documento que permita notarlo.
+   */
+  it('4a) NADIE firma una nota cuyo autor declarado es otro médico', async () => {
+    const ref = dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/nota-de-otro`)
+    await env.withSecurityRulesDisabled(async ctx => {
+      await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/nota-de-otro`)
+        .set({ estado: 'borrador', tipoNota: 'primera_vez', metadata: { medicoId: 'otro-medico-uid' } })
+    })
+    // Editar el borrador a cuatro manos sigue permitido: eso pasa todos los días.
+    await assertSucceeds(ref.update({ tipoNota: 'seguimiento' }))
+    // Firmarlo a nombre del otro, no.
+    await assertFails(ref.update({ estado: 'firmada', hashIntegridad: 'abc123' }))
+  })
+
   it('4b) y una nota firmada SÍ admite adenda — que tampoco se puede editar', async () => {
     const adenda = dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}/adendas/ad-1`)
-    await assertSucceeds(adenda.set({ texto: 'Aclaración', medicoId: uidMedico }))
+    // La adenda acredita QUIÉN y POR QUÉ: es la única corrección posible sobre
+    // un documento inmutable.
+    await assertSucceeds(adenda.set({ texto: 'Aclaración', autorUid: uidMedico, motivo: 'Corrección de dosis' }))
+    await assertFails(
+      dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}/adendas/ad-sin-motivo`)
+        .set({ texto: 'Aclaración', autorUid: uidMedico }),
+    )
+    await assertFails(
+      dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}/adendas/ad-de-otro`)
+        .set({ texto: 'Aclaración', autorUid: 'otro-medico', motivo: 'Corrección' }),
+    )
     await assertFails(adenda.update({ texto: 'Cambiada' }))
     await assertFails(adenda.delete())
   })
@@ -182,7 +212,7 @@ describe('GOLDEN FLOW · cuando se acaba la prueba (GA-009)', () => {
     await env.withSecurityRulesDisabled(async ctx => {
       await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}`).set({ nombre: 'Paciente Sintético' })
       await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}`)
-        .set({ estado: 'firmada', medicoId: uidMedico })
+        .set({ estado: 'firmada', metadata: { medicoId: uidMedico } })
     })
     await estadoDelConsultorio(VENCIDA)
     const db = dbMedico()
@@ -204,7 +234,7 @@ describe('GOLDEN FLOW · cuando se acaba la prueba (GA-009)', () => {
      */
     await env.withSecurityRulesDisabled(async ctx => {
       await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}`)
-        .set({ estado: 'borrador', medicoId: uidMedico })
+        .set({ estado: 'borrador', metadata: { medicoId: uidMedico } })
     })
     await estadoDelConsultorio(VENCIDA)
     await assertSucceeds(

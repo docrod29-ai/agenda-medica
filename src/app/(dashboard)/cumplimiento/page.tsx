@@ -17,7 +17,7 @@ import {
   listarSolicitudesArco, resolverSolicitudArco,
   ARCO_TIPO_LABEL, type ArcoRequest, type ArcoEstado,
 } from '@/lib/arco'
-import type { AuditEvento } from '@/lib/expediente/audit-log'
+import { asientosPendientes, asientosDeOtros, type AuditEvento } from '@/lib/expediente/audit-log'
 import {
   ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical,
 } from 'lucide-react'
@@ -25,6 +25,40 @@ import { motoresSinValidar } from '@/components/SelloMotor'
 import { Tabs, Spinner, EmptyState, Modal, Button } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 import { fetchAutenticado } from '@/lib/auth-client'
+
+/**
+ * LO QUE NO HA LLEGADO A LA BITÁCORA — y que no se veía en ninguna parte.
+ *
+ * `asientosPendientes()` existía desde que se puso la cola de reintentos, y no
+ * lo mostraba ninguna pantalla. Una bitácora con huecos que nadie sabe que tiene
+ * es peor que una bitácora incompleta declarada: al leerla, todo parece estar.
+ *
+ * La cola vive en ESTE navegador. Si el equipo no se vuelve a usar, esos
+ * asientos no llegan nunca.
+ */
+function AsientosPendientes() {
+  const [n, setN] = useState(0)
+  const [deOtros, setDeOtros] = useState(0)
+  useEffect(() => {
+    const leer = () => { setN(asientosPendientes()); setDeOtros(asientosDeOtros()) }
+    leer()
+    const t = setInterval(leer, 5000)
+    return () => clearInterval(t)
+  }, [])
+  if (n === 0) return null
+  return (
+    <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--amber)', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
+        <AlertTriangle size={15} /> {n} {n === 1 ? 'asiento' : 'asientos'} sin registrar en este equipo
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
+        No se pudieron enviar (sin conexión o error del servidor) y se reintentan solos al usar la aplicación.
+        Lo que ves abajo <strong>no incluye</strong> esos movimientos.
+        {deOtros > 0 && <> {deOtros} {deOtros === 1 ? 'es' : 'son'} de otra persona que usó este equipo: se enviarán cuando vuelva a entrar, para no firmarlos con tu nombre.</>}
+      </p>
+    </div>
+  )
+}
 
 interface AuditEntry {
   id: string
@@ -205,7 +239,10 @@ export default function CumplimientoPage() {
       )}
 
       {tab === 'bitacora' && (
-        <Bitacora entries={bitacora} loading={loading} />
+        <>
+          <AsientosPendientes />
+          <Bitacora entries={bitacora} loading={loading} />
+        </>
       )}
 
       {tab === 'arco' && (

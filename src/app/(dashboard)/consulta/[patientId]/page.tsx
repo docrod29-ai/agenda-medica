@@ -88,6 +88,7 @@ import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
+import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -568,6 +569,9 @@ export default function ConsultaActivaPage() {
    * esa nota entera.
    */
   const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  /** Qué TIENE el paciente y cuándo vino la última vez (ver `problemas-activos`). */
+  const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
+  const [ultimaVisita, setUltimaVisita] = useState<string | undefined>(undefined)
 
   // Constraints para capturar TODA la conversación (médico + paciente) en el modo
   // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
@@ -683,10 +687,21 @@ export default function ConsultaActivaPage() {
     // La medicación vigente sale de TODAS las notas, no sólo de la última: manda
     // lo que se dijo por última vez de CADA fármaco (ver `ordenes-medicamento`).
     getNotas(clinicId, patientId)
-      .then(ns => setVigentes(medicamentosVigentes(
-        ns.filter(n => n.estado === 'firmada')
-          .map(n => ({ fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '', medicamentos: n.medicamentos })),
-      )))
+      .then(ns => {
+        const firmadas = ns.filter(n => n.estado === 'firmada')
+          .map(n => ({
+            fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+            medicamentos: n.medicamentos,
+            diagnosticos: n.diagnosticos,
+          }))
+        setVigentes(medicamentosVigentes(firmadas))
+        // La lista de problemas sigue la MISMA regla que la medicación: manda lo
+        // último que se dijo de CADA problema. Una consulta por gripa que no
+        // habla de la diabetes no resuelve la diabetes.
+        setProblemas(problemasActivos(firmadas))
+        const ultima = firmadas.map(n => n.fecha).filter(Boolean).sort().pop()
+        setUltimaVisita(ultima)
+      })
       .catch(e => console.error('medicación vigente:', e))   // degrada sin romper la nota
   }, [clinicId, patientId])
 
@@ -2227,6 +2242,36 @@ export default function ConsultaActivaPage() {
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />
       </div>
+
+      {/*
+        LOS PROBLEMAS DEL PACIENTE Y CUÁNDO VINO LA ÚLTIMA VEZ.
+        Las dos cosas que el médico reconstruía abriendo notas hacia atrás en
+        mitad de la consulta. Van arriba de la medicación porque contestan «qué
+        tiene» antes de «qué toma».
+      */}
+      {(problemas.length > 0 || ultimaVisita) && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <Stethoscope size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            {problemas.length > 0 && (
+              <>
+                <strong style={{ color: 'var(--text)' }}>Problemas:</strong>{' '}
+                {problemas.map(p => p.diagnostico.descripcion + (p.diagnostico.estado === 'cronico' ? ' (crónico)' : '')).join(' · ')}
+              </>
+            )}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+              {ultimaVisita
+                ? `Última consulta ${haceCuanto(ultimaVisita, new Date().toISOString())}.`
+                : 'Primera consulta registrada.'}
+              {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/*
         MEDICACIÓN VIGENTE. Va justo bajo las alergias porque son las dos cosas

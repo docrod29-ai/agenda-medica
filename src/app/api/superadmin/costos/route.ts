@@ -13,6 +13,7 @@
  * total, y en un tablero se ve exactamente igual que uno completo.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { porFeature as latenciaPorFeature, porModelo as latenciaPorModelo } from '@/lib/observabilidad/latencias'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
@@ -98,6 +99,16 @@ export async function GET(req: NextRequest) {
       cogs: resumir(cogs),
       /** ¿Se puede AFIRMAR el costo, o falta demasiada tarifa? */
       confiable: suficiente(total),
+      /**
+       * CUÁNTO TARDA Y CUÁNTO FALLA — el tablero técnico del charter.
+       *
+       * `latenciaMs` y `fallo` se llevan anotando en cada asiento desde que
+       * existe el gateway, y no los leía nadie: esta pantalla sumaba dinero y
+       * tokens, que es la mitad de la pregunta. La otra mitad estaba en el
+       * mismo documento, sin usar.
+       */
+      latenciasPorFeature: latenciaPorFeature(eventos),
+      latenciasPorModelo: latenciaPorModelo(eventos),
       porFeature: porClave(eventos, e => e.feature),
       porModelo: porClave(eventos, e => e.modelo),
       porClase: porClave(eventos, e => e.clase),

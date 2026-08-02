@@ -71,6 +71,26 @@ export function pisaDescanso(inicio: number, fin: number, descansos: readonly { 
   return descansos.some(d => inicio < d.hasta && fin > d.desde)
 }
 
+/**
+ * ¿ESTE DÍA ES FESTIVO PARA EL CONSULTORIO?
+ *
+ * Acepta dos formas: `YYYY-MM-DD` (un día concreto: el puente de este año) y
+ * `MM-DD` (RECURRENTE: el 25 de diciembre, todos los años).
+ *
+ * La lista era sólo de fechas exactas. Cargar «2026-12-25» funciona en 2026 y
+ * deja de aplicar el 25 de diciembre de 2027 sin que nadie se entere — el
+ * consultorio aparece abierto en Navidad y el portal agenda. Una fecha que
+ * caduca en silencio es peor que no tenerla.
+ */
+export function esFestivo(fecha: string, festivos?: readonly string[]): boolean {
+  if (!festivos?.length || !fecha) return false
+  const mmdd = fecha.slice(5, 10)
+  return festivos.some(f => {
+    const t = String(f ?? '').trim()
+    return t === fecha || (t.length === 5 && t === mmdd)
+  })
+}
+
 /** Duración mínima razonable de una cita (anti config=0 que rompía el loop). */
 const DURACION_MIN_SEGURA = 5
 
@@ -129,7 +149,7 @@ export function getDaySchedule(fecha: string, config: ClinicConfig) {
   const dayKey = DAY_KEYS[d.getDay()]
   const schedule = config.horario[dayKey as keyof typeof config.horario]
   if (!schedule?.activo) return null
-  if (config.diasFestivos?.includes(fecha)) return null
+  if (esFestivo(fecha, config.diasFestivos)) return null
   return schedule
 }
 

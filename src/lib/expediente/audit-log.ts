@@ -17,6 +17,12 @@
  * del ID-token y la hora es `serverTimestamp()`.
  */
 import { fetchAutenticado } from '@/lib/auth-client'
+import { auth } from '@/lib/firebase'
+
+/** Quién está usando la aplicación AHORA en este equipo. */
+function uidActual(): string | undefined {
+  try { return auth?.currentUser?.uid ?? undefined } catch { return undefined }
+}
 
 export type AuditEvento =
   // === Eventos clínicos (ya existentes) ===
@@ -27,6 +33,17 @@ export type AuditEvento =
   | 'nota_firmada'               // firmó (queda inmutable)
   | 'nota_adenda'                // agregó una adenda a una nota firmada (NOM-004)
   | 'nota_borrada'               // borró un borrador
+  /**
+   * Contenido del expediente que se puede borrar desde el navegador.
+   *
+   * Un resultado de laboratorio o una fotografía clínica asociados a una nota YA
+   * FIRMADA podían desaparecer sin que quedara constancia de que existieron. El
+   * aviso de privacidad promete conservación mínima; borrarlos sin rastro la
+   * contradice. No se prohíbe —a veces hay que quitar una foto subida al
+   * expediente equivocado— pero tiene que quedar quién y cuándo.
+   */
+  | 'laboratorio_borrado'
+  | 'foto_clinica_borrada'
   | 'consentimiento_grabacion'   // confirmó el consentimiento del paciente
   // === Bitácora completa (requisito de trazabilidad de NOM-024; el numeral
   //     exacto NO está verificado contra el DOF — no citarlo en documentos) ===
@@ -99,7 +116,19 @@ export interface AuditPayload {
 const CLAVE_COLA = 'nx.audit.pendientes'
 const TOPE_COLA = 50
 
-type Pendiente = { cuerpo: Record<string, unknown>; intentos: number }
+/**
+ * `uid`: DE QUIÉN es el asiento.
+ *
+ * La cola guardaba sólo el cuerpo, y el servidor pone la identidad desde el
+ * token de quien la drena. En un consultorio con equipo compartido —que es la
+ * norma— lo que hizo el Dr. A sin red se asentaba a nombre de quien entrara
+ * después. Un registro medicolegal con el autor equivocado es peor que no
+ * tenerlo: no se puede corregir porque nadie sabe que está mal.
+ *
+ * Ahora cada asiento recuerda a quién pertenece y sólo se manda cuando la
+ * sesión es de esa persona. Los de otros esperan a que vuelva.
+ */
+type Pendiente = { cuerpo: Record<string, unknown>; intentos: number; uid?: string }
 
 function leerCola(): Pendiente[] {
   try {
@@ -139,8 +168,14 @@ async function enviarAsiento(cuerpo: Record<string, unknown>): Promise<{ ok: boo
 async function drenarCola(): Promise<void> {
   const cola = leerCola()
   if (!cola.length) return
+  const yo = uidActual()
   const quedan: Pendiente[] = []
   for (const p of cola) {
+    // Sólo se manda lo MÍO. Un asiento con `uid` de otro se queda esperando a que
+    // esa persona vuelva a entrar en este equipo; mandarlo ahora lo firmaría con
+    // el nombre equivocado. Los antiguos (sin `uid`) se mandan como antes: no se
+    // puede saber de quién eran, y perderlos tampoco los arregla.
+    if (p.uid && yo && p.uid !== yo) { quedan.push(p); continue }
     const r = await enviarAsiento(p.cuerpo)
     if (!r.ok && r.reintentable && p.intentos < 5) quedan.push({ ...p, intentos: p.intentos + 1 })
   }
@@ -160,7 +195,7 @@ export async function logAudit(p: AuditPayload): Promise<void> {
   // medicoUid/medicoEmail NO se mandan: los pone el servidor desde el token.
   const r = await enviarAsiento(cuerpo)
   if (!r.ok && r.reintentable) {
-    escribirCola([...leerCola(), { cuerpo, intentos: 1 }])
+    escribirCola([...leerCola(), { cuerpo, intentos: 1, uid: uidActual() }])
   }
   // Aprovecha esta llamada para vaciar lo que quedó pendiente de antes. Va sin
   // esperar: la bitácora nunca puede frenar la operación clínica.
@@ -170,4 +205,11 @@ export async function logAudit(p: AuditPayload): Promise<void> {
 /** Cuántos asientos están esperando. Para poder DECIRLO en pantalla. */
 export function asientosPendientes(): number {
   return leerCola().length
+}
+
+/** Cuántos esperan a OTRO usuario de este equipo (no se pueden mandar desde aquí). */
+export function asientosDeOtros(): number {
+  const yo = uidActual()
+  if (!yo) return 0
+  return leerCola().filter(p => p.uid && p.uid !== yo).length
 }

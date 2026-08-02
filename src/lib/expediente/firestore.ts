@@ -303,12 +303,22 @@ export async function agregarAdenda(
   notaId: string,
   data: Omit<Adenda, 'id' | 'createdAt'>,
 ): Promise<Adenda> {
+  /**
+   * EL AUTOR LO PONE LA SESIÓN, NO EL FORMULARIO.
+   *
+   * La adenda llevaba `autorNombre` y `autorEmail` sacados de la configuración
+   * de la CLÍNICA, sin ningún identificador de quien realmente la escribió. Las
+   * reglas ahora exigen `autorUid == request.auth.uid`, así que se estampa aquí
+   * y no se puede declarar el de otro.
+   */
+  const autorUid = auth.currentUser?.uid ?? ''
   const createdAt = new Date().toISOString()
+  const completo = { ...data, autorUid, createdAt }
   const ref = await addDoc(
     collection(db, 'clinics', clinicId, 'patients', patientId, 'notas', notaId, 'adendas'),
-    stripUndefined({ ...data, createdAt }),
+    stripUndefined(completo),
   )
-  return { ...data, id: ref.id, createdAt }
+  return { ...completo, id: ref.id }
 }
 
 /** Lee las adendas de una nota, más antiguas primero (orden cronológico legal). */

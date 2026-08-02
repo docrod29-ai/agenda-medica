@@ -15,7 +15,7 @@
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
-import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas } from '@/lib/expediente/medical-ner'
+import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas, TOPE_TEXTO_NER } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -99,8 +99,19 @@ export async function POST(req: NextRequest) {
   if (!texto) {
     return NextResponse.json({ ok: false, error: 'Falta texto a analizar' }, { status: 400 })
   }
-  if (texto.length > 20000) {
-    return NextResponse.json({ ok: false, error: 'Texto demasiado largo (>20k chars)' }, { status: 400 })
+  /**
+   * EL TOPE DE LA RUTA TIENE QUE SER EL DEL PROMPT.
+   *
+   * La ruta aceptaba hasta 20 000 caracteres y el prompt recortaba a 12 000 sin
+   * decir nada: en una consulta larga, el cruce alergia↔medicamento no veía el
+   * último tercio —justo donde está la receta— y el panel salía VACÍO, que es
+   * lo más tranquilizador que puede mostrar. Se rechaza en vez de cortar.
+   */
+  if (texto.length > TOPE_TEXTO_NER) {
+    return NextResponse.json({
+      ok: false,
+      error: `El texto es más largo de lo que el análisis puede revisar de una vez (${texto.length.toLocaleString('es-MX')} de ${TOPE_TEXTO_NER.toLocaleString('es-MX')} caracteres). NO se analizó — revísalo tú o analiza por partes.`,
+    }, { status: 400 })
   }
   // Auditoría 2026-07 (P1): alergias del expediente entran al cross-check.
   const alergiasRegistradas = Array.isArray(body.alergiasRegistradas)
