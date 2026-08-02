@@ -70,3 +70,42 @@ describe('los tres caminos avisan al consultorio', () => {
     }
   })
 })
+
+/**
+ * Reagendar avisa MÁS que cancelar: la cita no desapareció, se movió.
+ *
+ * Quien tenga impresa o memorizada la lista del día sigue esperando al paciente
+ * a la hora vieja, y a la hora nueva le llega alguien que «no estaba». La
+ * cancelación al menos deja un hueco visible; un reagendado silencioso deja dos
+ * errores — y además la cita vuelve a `pendiente-confirmar` y nadie sabe que hay
+ * que confirmarla otra vez.
+ */
+describe('reagendar desde el portal', () => {
+  const s = leer('src', 'app', 'api', 'portal', 'route.ts')
+
+  it('avisa al consultorio con el antes y el después', () => {
+    expect(s).toContain('Cita movida desde el portal')
+    expect(s).toContain('Antes:')
+    expect(s).toContain('Ahora:')
+  })
+
+  it('dice que quedó pendiente de confirmar', () => {
+    expect(s).toMatch(/pendiente de confirmar/i)
+  })
+})
+
+/**
+ * Una teleconsulta no tiene lugar físico — y el portal imprime
+ * «Teleconsulta · {lugar}».
+ */
+describe('el lugar de una videoconsulta', () => {
+  it('el alta pública no le pone consultorio', () => {
+    expect(leer('src', 'app', 'api', 'public', 'booking', 'route.ts'))
+      .toContain("lugar: tipo === 'teleconsulta' ? '' :")
+  })
+
+  it('el bot tampoco', () => {
+    expect(leer('src', 'app', 'api', 'whatsapp', 'webhook', 'route.ts'))
+      .toContain("lugar: datos.tipo === 'teleconsulta' ? '' :")
+  })
+})
