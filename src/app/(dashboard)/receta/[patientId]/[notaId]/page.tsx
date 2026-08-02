@@ -24,6 +24,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
+import { estaVigente } from '@/lib/expediente/ordenes-medicamento'
 import { etiquetaVia } from '@/lib/receta-paginacion'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
@@ -239,7 +240,16 @@ export default function GeneradorRecetaPage() {
         // inyectables) que la extracción pudo dejar en 'oral' por defecto — así no
         // se imprime "insulina · oral". Conservador: solo toca vía oral/vacía y
         // fármacos sin forma oral; el médico lo ve y puede editarlo antes de imprimir.
-        setMedicamentos((n.medicamentos ?? []).map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
+        /**
+         * LO SUSPENDIDO NO SE RECETA.
+         *
+         * La nota puede contener órdenes que dicen «esto ya no lo toma» —así se
+         * registra una suspensión, en la nota de hoy—. Copiarlas tal cual a la
+         * receta imprimiría en el papel justo el fármaco que se acaba de retirar.
+         */
+        setMedicamentos((n.medicamentos ?? [])
+          .filter(m => estaVigente(m))
+          .map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
         // Diagnóstico principal: primero activo de tipo definitivo, o el primero
         const dxs = n.diagnosticos ?? []
         const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]

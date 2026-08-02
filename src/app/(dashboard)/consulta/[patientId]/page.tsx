@@ -572,6 +572,15 @@ export default function ConsultaActivaPage() {
   /** Qué TIENE el paciente y cuándo vino la última vez (ver `problemas-activos`). */
   const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
   const [ultimaVisita, setUltimaVisita] = useState<string | undefined>(undefined)
+  /**
+   * El fármaco que el médico está marcando como «ya no lo toma».
+   *
+   * Suspender es un ACTO, no un olvido: se escribe en la nota de HOY —el pasado
+   * no se edita— y la regla de la última palabra lo recoge desde ahí.
+   */
+  const [medPorCambiar, setMedPorCambiar] = useState<
+    { nombre: string; dosis?: string; estado: 'suspendida' | 'terminada'; motivo: string } | null
+  >(null)
 
   // Constraints para capturar TODA la conversación (médico + paciente) en el modo
   // Whisper: sin supresión de ruido ni cancelación de eco (borran al paciente),
@@ -2286,9 +2295,31 @@ export default function ConsultaActivaPage() {
           borderRadius: 10, padding: '9px 13px',
         }}>
           <Pill size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, flex: 1, minWidth: 0 }}>
             <strong style={{ color: 'var(--text)' }}>Está tomando:</strong>{' '}
-            {vigentes.map(v => [v.medicamento.nombre, v.medicamento.dosis].filter(Boolean).join(' ')).join(' · ')}
+            {/*
+              SUSPENDER ES UN ACTO, NO UN OLVIDO.
+              El ciclo de vida de la orden existía en el modelo y NADIE lo
+              escribía: sin una forma de decir «esto ya no lo toma», la lista era
+              en realidad «todo lo que alguna vez apareció en una nota», y una
+              amoxicilina de hace dos años seguía figurando como vigente.
+              El cambio se escribe en la nota de HOY —no se edita el pasado— y de
+              ahí lo recoge la regla de la última palabra.
+            */}
+            {vigentes.map((v, i) => (
+              <span key={`${v.medicamento.nombre}-${i}`} style={{ whiteSpace: 'nowrap' }}>
+                {i > 0 && ' · '}
+                {[v.medicamento.nombre, v.medicamento.dosis].filter(Boolean).join(' ')}
+                {!firmada && (
+                  <button
+                    type="button"
+                    onClick={() => setMedPorCambiar({ nombre: v.medicamento.nombre, dosis: v.medicamento.dosis, estado: 'suspendida', motivo: '' })}
+                    title={`Marcar que ${v.medicamento.nombre} ya no lo toma`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 11.5, padding: '0 2px 0 5px', textDecoration: 'underline' }}
+                  >ya no</button>
+                )}
+              </span>
+            ))}
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
               De lo último que se dijo de cada fármaco en sus notas firmadas. No mencionarlo en una consulta no lo suspende.
             </div>
@@ -3550,6 +3581,81 @@ export default function ConsultaActivaPage() {
           </div>
         </>
       )}
+
+      {/*
+        DEJAR DE TOMAR ALGO TAMBIÉN SE ESCRIBE.
+        El ciclo de vida de la orden existía en el modelo y no lo escribía nadie:
+        sin esto, «Está tomando» era en realidad «todo lo que alguna vez apareció
+        en una nota». El médico decide si se suspende o si terminó; el software
+        sólo lo registra, con su motivo, en la nota que está firmando hoy.
+      */}
+      <Modal
+        open={!!medPorCambiar}
+        onClose={() => setMedPorCambiar(null)}
+        title={medPorCambiar ? `${medPorCambiar.nombre} — ya no lo toma` : ''}
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setMedPorCambiar(null)}>Cancelar</Button>
+            <Button
+              disabled={!medPorCambiar?.motivo.trim()}
+              onClick={() => {
+                if (!medPorCambiar?.motivo.trim()) return
+                const { nombre, dosis, estado, motivo } = medPorCambiar
+                setMedicamentos(prev => {
+                  const clave = (x: string) => x.trim().toLowerCase()
+                  const sinEse = prev.filter(m => clave(m.nombre ?? '') !== clave(nombre))
+                  return [...sinEse, {
+                    // Sin vía ni frecuencia: no se está prescribiendo nada, se
+                    // está declarando que deja de tomarse. Inventar una vía aquí
+                    // sería escribir en el expediente algo que nadie dijo.
+                    nombre, dosis: dosis ?? '', via: 'otra', frecuencia: '', duracion: '',
+                    estado, motivoEstado: motivo.trim(),
+                  } as Medicamento]
+                })
+                toast(`${nombre}: quedará registrado como ${estado === 'suspendida' ? 'suspendido' : 'terminado'} al firmar`, 'success')
+                setMedPorCambiar(null)
+              }}
+            >Registrar en la nota de hoy</Button>
+          </>
+        )}
+      >
+        <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
+          Esto <strong>no borra nada del pasado</strong>: se anota en la nota que está escribiendo ahora,
+          y a partir de ella el fármaco deja de aparecer como vigente. Si vuelve a indicarlo más adelante,
+          vuelve a contar.
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {([
+            { v: 'suspendida' as const, etiqueta: 'Se suspende', ayuda: 'Deja de tomarlo, pero podría volver.' },
+            { v: 'terminada' as const, etiqueta: 'Ya terminó', ayuda: 'Cumplió el tratamiento indicado.' },
+          ]).map(o => (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => setMedPorCambiar(m => m ? { ...m, estado: o.v } : m)}
+              style={{
+                flex: 1, textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                background: medPorCambiar?.estado === o.v ? 'var(--s2)' : 'transparent',
+                border: `1px solid ${medPorCambiar?.estado === o.v ? 'var(--teal)' : 'var(--border)'}`,
+                color: 'var(--text)',
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{o.etiqueta}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{o.ayuda}</div>
+            </button>
+          ))}
+        </div>
+        <label className="label" style={{ fontSize: 12.5 }}>Motivo</label>
+        <input
+          className="input"
+          value={medPorCambiar?.motivo ?? ''}
+          onChange={e => setMedPorCambiar(m => m ? { ...m, motivo: e.target.value } : m)}
+          placeholder="Ej. cumplió los 7 días, reacción adversa, ya no lo necesita"
+        />
+        <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
+          El motivo es obligatorio: sin él, dentro de seis meses nadie —usted incluido— sabrá por qué se quitó.
+        </p>
+      </Modal>
 
       {/* ── Modal de consentimiento (Fase C) ── */}
       <Modal
