@@ -578,6 +578,41 @@ Tres cuidados:
 
 ---
 
+## SEXAGÉSIMA TANDA — v911
+
+### La bitácora no podía contestar «¿quién entró al expediente de este paciente?»
+
+Es **la** pregunta de la trazabilidad —la que hace un auditor, y la que puede
+hacer el propio paciente al ejercer sus derechos ARCO— y la pantalla de
+cumplimiento enseñaba los últimos 200 asientos de **toda** la clínica, revueltos,
+sin ningún filtro, y con el paciente reducido a ocho caracteres de su id.
+
+Ahora se filtra por paciente y por tipo de evento.
+
+**Y el filtro por paciente pregunta al servidor**, no recorta los 200 ya traídos.
+Filtrar en el navegador habría sido *peor* que no filtrar: contestaría «no hay
+accesos» cuando en realidad los hay, sólo que más viejos que la ventana. Un fallo
+que se lee como una respuesta tranquilizadora es el peor de todos, y es
+exactamente el patrón que llevo toda la semana reparando.
+
+La cabecera dice **sin ambigüedad** cuál de las dos cosas se está viendo: «TODOS
+los asientos de Fulano» o «últimos 200 de toda la clínica».
+
+Detalle de implementación que importa: la consulta por paciente va **sin
+`orderBy` a propósito**. Igualdad + orden exigiría un índice compuesto, y
+desplegar índices es una operación aparte que puede borrar los que no estén
+declarados en el archivo (no hay `firestore.indexes.json` en el repo). Sin
+`orderBy` basta el índice automático y el orden se hace en memoria.
+
+Además el paciente sale por su **nombre** cuando se puede, y el vacío no afirma
+«nadie entró» a secas: dice que también pueden ser asientos anteriores a que
+existiera la bitácora.
+
+- `src/app/(dashboard)/cumplimiento/page.tsx`
+- `src/__tests__/bitacora-filtro.test.ts` — 9 pruebas. Total 4879.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

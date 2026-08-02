@@ -11,8 +11,9 @@
 import { useEffect, useState } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
-import { collection, getDocs, orderBy, query, limit as fbLimit } from 'firebase/firestore'
+import { collection, getDocs, orderBy, query, where, limit as fbLimit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { getPatients } from '@/lib/firestore'
 import {
   listarSolicitudesArco, resolverSolicitudArco,
   ARCO_TIPO_LABEL, type ArcoRequest, type ArcoEstado,
@@ -86,18 +87,54 @@ export default function CumplimientoPage() {
   /** El médico afirma que verificó al titular. Nace en false SIEMPRE. */
   const [identidadOk, setIdentidadOk] = useState(false)
   const [loading, setLoading] = useState(true)
+  /**
+   * «¿QUIÉN ENTRÓ AL EXPEDIENTE DE ESTE PACIENTE?»
+   *
+   * Es LA pregunta de la trazabilidad —la que hace un auditor, y la que puede
+   * hacer el propio paciente al ejercer sus derechos ARCO— y esta pantalla no
+   * podía contestarla: enseñaba los últimos 200 asientos de toda la clínica,
+   * revueltos, con el paciente reducido a ocho caracteres de su id.
+   *
+   * Filtrar esos 200 en el navegador habría sido peor que no filtrar: «no hay
+   * accesos» cuando en realidad los hay, sólo que más viejos que la ventana. Por
+   * eso, al elegir un paciente se PREGUNTA AL SERVIDOR por sus asientos —todos—
+   * y se dice en pantalla cuál de las dos cosas se está viendo.
+   *
+   * La consulta es sólo de igualdad, sin `orderBy`: así le basta el índice
+   * automático de Firestore y no hace falta desplegar uno compuesto. El orden se
+   * hace aquí.
+   */
+  const [pacienteFiltro, setPacienteFiltro] = useState('')
+  const [eventoFiltro, setEventoFiltro] = useState('')
+  const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([])
+
+  useEffect(() => {
+    if (!clinicId) return
+    getPatients(clinicId)
+      .then(ps => setPacientes(ps.map(p => ({ id: p.id, nombre: p.nombre }))))
+      .catch(() => { /* el filtro es una ayuda: sin lista, la bitácora se ve igual */ })
+  }, [clinicId])
 
   useEffect(() => {
     if (!clinicId) return
     setLoading(true)
+    const consulta = pacienteFiltro
+      // TODOS los asientos de ese paciente, no los que quepan en la ventana global.
+      ? query(collection(db, 'clinics', clinicId, 'audit_log'), where('patientId', '==', pacienteFiltro), fbLimit(500))
+      : query(collection(db, 'clinics', clinicId, 'audit_log'), orderBy('timestamp', 'desc'), fbLimit(200))
     Promise.all([
-      getDocs(query(collection(db, 'clinics', clinicId, 'audit_log'), orderBy('timestamp', 'desc'), fbLimit(200))),
+      getDocs(consulta),
       listarSolicitudesArco(clinicId),
     ]).then(([logSnap, arco]) => {
-      setBitacora(logSnap.docs.map(d => ({ id: d.id, ...d.data() } as AuditEntry)))
+      const filas = logSnap.docs.map(d => ({ id: d.id, ...d.data() } as AuditEntry))
+      filas.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
+      setBitacora(filas)
       setArcoList(arco)
     }).finally(() => setLoading(false))
-  }, [clinicId])
+    // Cambiar de paciente vuelve a preguntarle al servidor: filtrar en el
+    // navegador contestaría «no hay accesos» cuando sólo son más viejos que la
+    // ventana de 200.
+  }, [clinicId, pacienteFiltro])
 
   const copiarLinkPrivacidad = () => {
     if (!clinicId) return
@@ -216,7 +253,11 @@ export default function CumplimientoPage() {
       {tab === 'bitacora' && (
         <>
           <AsientosPendientes />
-          <Bitacora entries={bitacora} loading={loading} />
+          <Bitacora
+            entries={bitacora} loading={loading} pacientes={pacientes}
+            pacienteFiltro={pacienteFiltro} setPacienteFiltro={setPacienteFiltro}
+            eventoFiltro={eventoFiltro} setEventoFiltro={setEventoFiltro}
+          />
         </>
       )}
 
@@ -469,18 +510,69 @@ function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: str
   )
 }
 
-function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolean }) {
-  if (loading) return <Spinner center label="Cargando…" />
-  if (entries.length === 0) return <EmptyState icon={<FileSearch size={22} />} title="Sin eventos registrados aún" description="Cada acceso, escritura, impresión y firma quedará aquí con sello de tiempo." />
+function Bitacora({
+  entries, loading, pacientes, pacienteFiltro, setPacienteFiltro, eventoFiltro, setEventoFiltro,
+}: {
+  entries: AuditEntry[]; loading: boolean
+  pacientes: { id: string; nombre: string }[]
+  pacienteFiltro: string; setPacienteFiltro: (v: string) => void
+  eventoFiltro: string; setEventoFiltro: (v: string) => void
+}) {
+  const nombrePaciente = (id?: string) => pacientes.find(p => p.id === id)?.nombre ?? ''
+  // El filtro por evento SÍ es de navegador: se aplica sobre lo ya traído, y
+  // por eso la cabecera dice sobre qué conjunto está filtrando.
+  const visibles = eventoFiltro ? entries.filter(e => e.evento === eventoFiltro) : entries
+  // Sólo los tipos que de verdad aparecen: una lista de 40 opciones vacías no
+  // ayuda a nadie.
+  const tiposPresentes = [...new Set(entries.map(e => e.evento))].sort()
 
   return (
     <div style={{ background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ padding: 12, borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', display: 'flex', justifyContent: 'space-between' }}>
-        <span>{entries.length} eventos · ordenados por más recientes</span>
+      {/*
+        EL FILTRO QUE FALTABA.
+
+        «¿Quién entró al expediente de este paciente?» es LA pregunta de la
+        trazabilidad —la que hace un auditor y la que puede hacer el propio
+        paciente al ejercer sus derechos ARCO— y esta pantalla no podía
+        contestarla: los últimos 200 asientos de toda la clínica, revueltos, con
+        el paciente reducido a ocho caracteres de su id.
+      */}
+      <div style={{ padding: 12, borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <select className="input" value={pacienteFiltro} onChange={e => setPacienteFiltro(e.target.value)}
+          style={{ flex: '1 1 220px', fontSize: 12.5 }} aria-label="Filtrar por paciente">
+          <option value="">Toda la clínica (últimos 200)</option>
+          {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+        <select className="input" value={eventoFiltro} onChange={e => setEventoFiltro(e.target.value)}
+          style={{ flex: '1 1 200px', fontSize: 12.5 }} aria-label="Filtrar por tipo de evento">
+          <option value="">Todos los tipos</option>
+          {tiposPresentes.map(t => <option key={t} value={t}>{etiquetaEvento(t)}</option>)}
+        </select>
+      </div>
+      {loading ? <div style={{ padding: 24 }}><Spinner center label="Cargando…" /></div> : visibles.length === 0 ? (
+        <EmptyState icon={<FileSearch size={22} />}
+          title={pacienteFiltro ? 'Sin asientos para este paciente' : 'Sin eventos registrados aún'}
+          description={pacienteFiltro
+            ? 'Nadie ha tocado este expediente, o los asientos son anteriores a que existiera la bitácora.'
+            : 'Cada acceso, escritura, impresión y firma quedará aquí con sello de tiempo.'} />
+      ) : (<>
+      <div style={{ padding: 12, borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        {/*
+          QUÉ CONJUNTO SE ESTÁ MIRANDO, dicho sin ambigüedad. Un filtro que
+          parece completo y sólo mira una ventana contesta «no hay accesos»
+          cuando en realidad los hay, y eso es peor que no filtrar.
+        */}
+        <span>
+          {visibles.length} eventos ·{' '}
+          {pacienteFiltro
+            ? `TODOS los asientos de ${nombrePaciente(pacienteFiltro) || 'este paciente'}`
+            : 'últimos 200 de toda la clínica'}
+          {eventoFiltro && ' · filtrado por tipo'}
+        </span>
         <span><FileSearch size={12} style={{ verticalAlign: 'middle' }} /> NOM-024 Art. 6.5</span>
       </div>
       <div style={{ maxHeight: 600, overflow: 'auto' }}>
-        {entries.map(e => (
+        {visibles.map(e => (
           <div key={e.id} style={{
             padding: '10px 14px', borderBottom: '1px solid var(--border)',
             display: 'grid', gridTemplateColumns: '1fr auto', gap: 4,
@@ -491,7 +583,9 @@ function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolea
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {e.medicoEmail ?? '—'}
-                {e.patientId && <> · paciente {e.patientId.slice(0, 8)}</>}
+                {/* El NOMBRE cuando se puede: ocho caracteres de un id no le dicen
+                    nada a quien tiene que revisar quién tocó a quién. */}
+                {e.patientId && <> · {nombrePaciente(e.patientId) || `paciente ${e.patientId.slice(0, 8)}`}</>}
                 {e.notaId && <> · nota {e.notaId.slice(0, 6)}</>}
               </div>
             </div>
@@ -501,6 +595,7 @@ function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolea
           </div>
         ))}
       </div>
+      </>)}
     </div>
   )
 }
