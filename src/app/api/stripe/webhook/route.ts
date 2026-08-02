@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { decidirCobroAnticipo } from '@/lib/finanzas/anticipo'
 import { safeLog } from '@/lib/security/sanitize'
 import { stripe, nivelDePlan, STRIPE_PRICES as PRECIOS_DE_PLAN } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
@@ -281,9 +282,12 @@ export async function POST(req: NextRequest) {
            * y lo marcó: en ese caso el sistema NO sabe cuánto vale la consulta,
            * así que no puede afirmar que quede saldada — sólo puede decirlo.
            */
-          const sinTarifaConocida = cita?.pagoMontoEsAnticipoSinTarifa === true
-          const esperado = Number(cita?.pagoMonto) || 0
-          const cubre = esperado <= 0 || monto + 0.01 >= esperado
+          const decision = decidirCobroAnticipo({
+            esperado: Number(cita?.pagoMonto) || 0,
+            monto,
+            sinTarifaConocida: cita?.pagoMontoEsAnticipoSinTarifa === true,
+          })
+          const cubre = decision.cubre
           const cobroRef = await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
             fecha: iso, dia, mes: dia.slice(0, 7),
             /**
@@ -297,12 +301,8 @@ export async function POST(req: NextRequest) {
              * con un anticipo en línea no se podía descargar, que es justo el
              * archivo que se le manda al contador.
              */
-            monto, metodo: 'stripe', concepto: cubre ? 'consulta' : 'abono',
-            descripcion: cubre
-              ? (sinTarifaConocida
-                  ? 'Anticipo pagado en línea (el consultorio no tenía tarifa fijada para esta cita)'
-                  : 'Pago en línea del paciente')
-              : 'Abono parcial pagado en línea por el paciente',
+            monto, metodo: 'stripe', concepto: decision.concepto,
+            descripcion: decision.descripcion,
             citaId: citaId || undefined,
             patientId: (cita?.pacienteId as string) || undefined,
             patientNombre: (cita?.pacienteNombre as string) || undefined,
@@ -329,9 +329,15 @@ export async function POST(req: NextRequest) {
            * que poder cobrarse el resto. Es la misma regla que ya aplica
            * `registrarCobro` para los abonos de ventanilla.
            */
-          if (citaRef) await citaRef.update(cubre
+          if (citaRef) await citaRef.update(decision.cubre
             ? { estado: 'pagada', pagadoEn: iso, cobroId: cobroRef.id, cobradoEn: iso, updatedAt: iso }
-            : { estado: 'pendiente-pago', saldoPendiente: Math.max(0, esperado - monto), abonadoEn: iso, updatedAt: iso })
+            : {
+                estado: 'pendiente-pago',
+                // `null` cuando NO se sabe cuánto falta. Escribir cero diría «ya
+                // no debe nada» por otra vía, que es el bug que esto repara.
+                saldoPendiente: decision.saldoPendiente,
+                abonadoEn: iso, updatedAt: iso,
+              })
           } catch (e) {
             await marca.delete().catch(() => { /* ver arriba: queda el error abajo para reconciliar */ })
             console.error('[stripe] anticipo NO registrado, marca retirada para que Stripe reintente', session.id, e)
