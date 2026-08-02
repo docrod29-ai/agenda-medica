@@ -606,6 +606,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **893** | **El adaptador convertía y ahí se quedaba.** La ruta lo dice sin rodeos: «NO almacena nada» — el clínico veía un JSON y seguía tecleando los signos a mano. Ahora la ficha del episodio tiene **«Importar del monitor»**: se pega el HL7, se enseña qué se reconoció **y qué se descartó con su motivo** —si sólo se enseñara lo bueno, creería que se importó todo— y **una persona confirma** antes de escribir. Se guarda con **la hora del aparato** y marcado como venido de un dispositivo, que v892 traduce a `importado`. |
 
+## CUADRAGÉSIMA TERCERA TANDA — v894 (§36: «siempre revisado por médico»)
+
+| v | Qué se reparó |
+|---|---|
+| **894** | **El charter exige que la entrega de turno la revise un médico, y no había forma de revisarla.** El tipo lo hace imposible de saltar —un handoff nace BORRADOR y sólo `marcarRevisado()` lo cambia— pero **esa función no tenía un solo llamador**: la entrega nacía y moría en borrador, y la cabecera decía «sin revisar» para siempre. Una etiqueta que nunca cambia deja de significar algo, y ésta le dice al turno que llega si alguien leyó esto — el handoff es el documento que se lee cuando el que conoce al paciente **ya se fue**. Ahora hay «Lo revisé y lo entrego», con nombre y hora. La revisión se guarda **aparte** del handoff, que se recalcula en cada carga: dentro, desaparecería al llegar una toma nueva. **Reglas desplegadas aparte.** |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -636,10 +642,9 @@ Por orden de daño. Todo con archivo:línea, verificable.
 11. ~~La limpieza terminal no se aplica al egreso~~ — HECHO (v861).
 12. ~~El turno de enfermería oculta pacientes~~ — HECHO (v862).
 13. ~~Las tomas de UCI se firman con el médico tratante~~ — HECHO (v862).
-14. ~~La entrega de turno afirma ausencias~~ — HECHO A MEDIAS (v862): ya no
-    afirma lo que no sabe. **Queda**: `marcarRevisado` sigue sin llamador, así
-    que el estado REVISADO es inalcanzable y la cabecera dice siempre
-    «BORRADOR — sin revisar».
+14. ~~La entrega de turno afirma ausencias~~ — HECHO (v862 + **v894**): ya no
+    afirma lo que no sabe, y la revisión del charter §36 tiene por fin su
+    puerta — con nombre, hora y persistencia aparte del handoff recalculado.
 
 ### Portal y mensajería
 15. ~~El enlace mágico no se puede revocar~~ — HECHO (v860).

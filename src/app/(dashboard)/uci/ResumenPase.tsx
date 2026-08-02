@@ -8,14 +8,17 @@
 // golden, y por eso no hay ninguna.
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react'
-import { Clock, Sunrise, Target, ClipboardList, AlertTriangle } from 'lucide-react'
+import { Clock, Sunrise, Target, ClipboardList, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
 import type { TomaUci } from '@/lib/uci/observaciones'
 import { cambiosDeTomas, eventosDeTomas, clavesSinMetrica } from '@/lib/uci/resumen'
 import { construirBrief, PENDIENTES_NO_DISPONIBLES } from '@/lib/uci/morning-brief'
 import { SIN_METAS_FIJADAS } from '@/lib/uci/metas-diarias'
 import { unirLinea, porHora } from '@/lib/uci/linea-tiempo'
-import { construirHandoff, loQueFaltaDelMedico } from '@/lib/uci/handoff'
+import { construirHandoff, loQueFaltaDelMedico, marcarRevisado } from '@/lib/uci/handoff'
+import { auth, db } from '@/lib/firebase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { useToast } from '@/context/ToastContext'
 import { Spinner } from '@/components/ui'
 import type { SoporteActivo } from '@/types/hospital'
 
@@ -60,6 +63,23 @@ export default function ResumenPase({ clinicId, internamientoId, vista, zonaHora
 }) {
   const [tomas, setTomas] = useState<TomaUci[] | null>(null)
   const [error, setError] = useState('')
+  const { toast } = useToast()
+
+  /** Quién revisó la entrega de HOY, si alguien la revisó. Ver abajo. */
+  const [revision, setRevision] = useState<{ por: string; en: string } | null>(null)
+  const [guardandoRevision, setGuardandoRevision] = useState(false)
+  const claveRevision = useMemo(() => new Date().toISOString().slice(0, 10), [])
+
+  useEffect(() => {
+    if (!clinicId || !internamientoId) return
+    let vivo = true
+    getDoc(doc(db, 'clinics', clinicId, 'internamientos', internamientoId, 'handoff_revisiones', claveRevision))
+      .then(sn => { if (vivo && sn.exists()) setRevision(sn.data() as { por: string; en: string }) })
+      // Si no se puede leer NO se dice «revisado»: se queda como borrador, que
+      // es la lectura segura.
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [clinicId, internamientoId, claveRevision])
 
   useEffect(() => {
     let vivo = true
@@ -105,6 +125,48 @@ export default function ResumenPase({ clinicId, internamientoId, vista, zonaHora
       cambios: brief.cambios.map(c => c.texto),
     }, ['pendientes', 'dispositivos'])
   }, [brief, ahora, cama, diaUci, diaVm, soportes, internamientoId])
+
+  /**
+   * LA REVISIÓN DE LA ENTREGA (charter §36: «siempre revisado por médico»).
+   *
+   * El tipo hace imposible construir un handoff `REVISADO` —sólo
+   * `marcarRevisado` cambia el estado— y esa función **no tenía un solo
+   * llamador**. La entrega nacía y moría en BORRADOR, y la cabecera decía «sin
+   * revisar» para siempre: una etiqueta que nunca cambia deja de significar
+   * algo, y ésta es la que le dice al turno que llega si alguien leyó esto.
+   *
+   * No hace falta decidir «quién revisa» para que quien ESTÁ entregando pueda
+   * firmar que lo leyó. Va aquí, después del memo, porque referenciarlo desde
+   * arriba rompe la memoización de `handoff` — el trinquete de lint lo cazó.
+   *
+   * Se guarda en su propio documento (uno por episodio y por día) y no dentro
+   * del handoff, porque el handoff se RECALCULA en cada carga a partir de las
+   * tomas: guardarla dentro haría que la revisión desapareciera en cuanto
+   * llegara una toma nueva, que es justo cuando más importa que conste.
+   */
+  const marcarComoRevisado = async () => {
+    const quien = auth.currentUser?.displayName || auth.currentUser?.email || ''
+    if (!quien) {
+      // El charter exige un médico IDENTIFICADO: sin sesión no se firma.
+      toast('No se pudo identificar quién revisa. Vuelve a entrar y reinténtalo.', 'error')
+      return
+    }
+    setGuardandoRevision(true)
+    const en = new Date().toISOString()
+    try {
+      // `marcarRevisado` valida lo que el charter exige (autor y fecha) y lanza
+      // si falta algo: se llama ANTES de escribir, no después.
+      if (handoff) marcarRevisado(handoff, quien, en)
+      await setDoc(
+        doc(db, 'clinics', clinicId, 'internamientos', internamientoId, 'handoff_revisiones', claveRevision),
+        { por: quien, en, internamientoId },
+      )
+      setRevision({ por: quien, en })
+      toast('Entrega marcada como revisada', 'success')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'No se pudo registrar la revisión.', 'error')
+    } finally { setGuardandoRevision(false) }
+  }
 
   if (tomas === null) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
@@ -191,7 +253,7 @@ export default function ResumenPase({ clinicId, internamientoId, vista, zonaHora
       </Bloque>
 
       {handoff && (
-        <Bloque icon={ClipboardList} titulo="Entrega de turno" sub={handoff.estado === 'BORRADOR' ? 'BORRADOR — sin revisar' : 'revisado'}>
+        <Bloque icon={ClipboardList} titulo="Entrega de turno" sub={revision ? `revisado por ${revision.por}` : 'BORRADOR — sin revisar'}>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
             {handoff.cambios.length > 0
               ? <div style={{ marginBottom: 8 }}>{handoff.cambios.map((c, i) => <div key={i}>· {c}</div>)}</div>
@@ -205,6 +267,24 @@ export default function ResumenPase({ clinicId, internamientoId, vista, zonaHora
           {handoff.ausentes.filter(a => !['problemas activos', 'contingencias'].includes(a.seccion)).map(a => (
             <div key={a.seccion} style={{ marginTop: 8 }}><Nota>{a.motivo}</Nota></div>
           ))}
+
+          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+            {revision ? (
+              <div style={{ fontSize: 12.5, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={14} /> Revisado por {revision.por} · {new Date(revision.en).toLocaleString('es-MX')}
+              </div>
+            ) : (
+              <>
+                <button type="button" onClick={marcarComoRevisado} disabled={guardandoRevision} className="btn btn-primary btn-sm">
+                  <CheckCircle2 size={14} /> Lo revisé y lo entrego
+                </button>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+                  Queda tu nombre y la hora. Mientras nadie lo revise, esta entrega sigue siendo
+                  un borrador: el turno que llega lo lee sin nadie a quien preguntarle.
+                </div>
+              </>
+            )}
+          </div>
         </Bloque>
       )}
     </div>

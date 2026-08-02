@@ -204,6 +204,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Tomas de UCI capturadas a pie de cama (ICU-003). El cliente SI crea, igual que en signos: obligarlas a pasar por el servidor anadiria latencia en el momento en que el dato se esta tomando. El APPEND-ONLY se hace cumplir en la REGLA — el update solo puede tocar `estado`, asi que una toma se marca como corregida pero sus MEDIDAS son inmutables. Borrar esta cerrado.',
   },
   {
+    ruta: 'clinics/{clinicId}/internamientos/{intId}/handoff_revisiones/{diaId}',
+    clase: 'clinico',
+    guardaLectura: 'isClinicoHospital',
+    guardaEscritura: 'isClinicoHospital',
+    porQue: 'Quién revisó la entrega de turno y cuándo (charter §36: «siempre revisado por médico»). Es un acto del médico que entrega, no del sistema, así que lo firma su sesión. No se edita ni se borra: es justo lo que se consulta cuando algo se pasó en el cambio de turno.',
+  },
+  {
     ruta: 'clinics/{clinicId}/internamientos/{intId}/bed_assignments/{asigId}',
     clase: 'clinico',
     guardaLectura: 'isClinicoHospital',

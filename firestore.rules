@@ -390,6 +390,27 @@ service cloud.firestore {
         // trazabilidad de quién ocupó qué cama y cuándo, que es justo lo que esta
         // colección vino a crear. Cerrar una asignación es un UPDATE del servidor
         // (poner `hasta`), nunca un borrado.
+        /**
+         * REVISIÓN DE LA ENTREGA DE TURNO (charter §36: «siempre revisado por
+         * médico»).
+         *
+         * Uno por episodio y por día. Se escribe desde la pantalla del pase, con
+         * la sesión del médico que entrega — por eso `isClinicoHospital` y no
+         * `servidor`: es un acto suyo, no del sistema.
+         *
+         * No se borra ni se reescribe: quién leyó la entrega y cuándo es
+         * exactamente lo que se consulta cuando algo se pasó en el cambio de
+         * turno.
+         */
+        match /handoff_revisiones/{diaId} {
+          allow read: if isClinicoHospital(clinicId);
+          allow create: if isClinicoHospital(clinicId)
+                        && request.resource.data.por is string
+                        && request.resource.data.por.size() > 0
+                        && request.resource.data.en is string;
+          allow update, delete: if false;
+        }
+
         match /bed_assignments/{asigId} {
           allow read: if isClinicoHospital(clinicId);
           allow create, update, delete: if false;   // sólo servidor
