@@ -18,7 +18,7 @@
  *   - Output JSON estricto, validable con Zod
  *   - Útil para:
  *       1. Llenar campos estructurados del expediente
- *       2. Cross-check alergia ↔ medicamento (BLOQUEA_RECETA)
+ *       2. Cross-check alergia ↔ medicamento (RIESGO_MAXIMO)
  *       3. Auto-CIE10 de diagnósticos para reportes COFEPRIS/CONASABI
  *       4. Trazabilidad por entidad (auditoría)
  */
@@ -101,7 +101,20 @@ export const EntidadesExtraidas = z.object({
       farmaco_riesgoso: z.string(),
       riesgo: z.enum(['bajo', 'medio', 'alto', 'anafilaxia']),
       alternativa_sugerida: z.string().optional().default(''),
-      BLOQUEA_RECETA: z.boolean().default(false),
+      /**
+       * ANTES SE LLAMABA `BLOQUEA_RECETA`, Y NO BLOQUEABA NADA.
+       *
+       * El nombre prometía una barrera: el estado con las entidades no se lee
+       * en el guardado ni en la impresión, así que la bandera sólo pintaba una
+       * tarjeta roja. Un campo que dice «bloquea» y no bloquea es peor que no
+       * tenerlo — quien lee el código cree que hay una compuerta donde no la hay.
+       *
+       * Quien SÍ detiene la firma es el motor determinista
+       * (`validarAlergiasVsMedicamentos` + `validarNOM004`), que cruza las
+       * alergias del EXPEDIENTE y no depende de que un modelo se acuerde.
+       * Esto es lo que el modelo vio en el texto, y se llama como lo que es.
+       */
+      RIESGO_MAXIMO: z.boolean().default(false),
     })).optional().default([]),
     interacciones_farmacologicas: z.array(z.object({
       farmaco_a: z.string(),
@@ -176,7 +189,7 @@ CROSS-CHECK OBLIGATORIO:
    - Sulfas ↔ tiazidas, sulfonilureas: medio
    - AAS ↔ otros AINE: alto en asma+pólipos
    - Yodo ↔ contraste yodado: alto
-   Si la reacción original fue ANAFILAXIA: BLOQUEA_RECETA=true.
+   Si la reacción original fue ANAFILAXIA: RIESGO_MAXIMO=true.
    Sugiere alternativa segura específica.
 
 8. cross_check.interacciones_farmacologicas:

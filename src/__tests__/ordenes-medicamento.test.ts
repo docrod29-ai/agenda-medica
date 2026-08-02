@@ -98,3 +98,47 @@ describe('resumenVigentes', () => {
     expect(resumenVigentes(vs)).toBe('A · B · C y 2 más')
   })
 })
+
+/**
+ * GOLDEN — suspender es un ACTO que se escribe, no un olvido.
+ *
+ * El ciclo de vida existía en el modelo y no lo escribía nadie: sin una forma
+ * de decir «esto ya no lo toma», la lista vigente era en realidad «todo lo que
+ * alguna vez apareció en una nota», y una amoxicilina de hace dos años seguía
+ * figurando. El cambio se registra en la nota de HOY —el pasado no se edita— y
+ * de ahí lo recoge la regla de la última palabra.
+ */
+describe('registrar que un fármaco ya no se toma', () => {
+  it('la suspensión escrita hoy saca al fármaco de la lista vigente', () => {
+    const v = medicamentosVigentes([
+      { fecha: '2026-01-10', medicamentos: [med('Ibuprofeno')] },
+      { fecha: '2026-08-02', medicamentos: [med('Ibuprofeno', { estado: 'suspendida', motivoEstado: 'gastritis' })] },
+    ])
+    expect(v).toEqual([])
+  })
+
+  it('no toca lo demás que el paciente sí toma', () => {
+    const v = medicamentosVigentes([
+      { fecha: '2026-01-10', medicamentos: [med('Metformina'), med('Ibuprofeno')] },
+      { fecha: '2026-08-02', medicamentos: [med('Ibuprofeno', { estado: 'suspendida', motivoEstado: 'x' })] },
+    ])
+    expect(v.map(x => x.medicamento.nombre)).toEqual(['Metformina'])
+  })
+
+  it('«ya terminó» también lo saca, y es un hecho distinto de «se suspende»', () => {
+    const v = medicamentosVigentes([
+      { fecha: '2026-01-10', medicamentos: [med('Amoxicilina')] },
+      { fecha: '2026-08-02', medicamentos: [med('Amoxicilina', { estado: 'terminada', motivoEstado: 'cumplió 7 días' })] },
+    ])
+    expect(v).toEqual([])
+    expect(estadoDeOrden(med('Amoxicilina', { estado: 'terminada' }))).toBe('terminada')
+  })
+
+  it('si vuelve a indicarse después, vuelve a contar', () => {
+    const v = medicamentosVigentes([
+      { fecha: '2026-08-02', medicamentos: [med('Ibuprofeno', { estado: 'suspendida', motivoEstado: 'x' })] },
+      { fecha: '2026-09-01', medicamentos: [med('Ibuprofeno')] },
+    ])
+    expect(v.map(x => x.medicamento.nombre)).toEqual(['Ibuprofeno'])
+  })
+})

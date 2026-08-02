@@ -299,3 +299,9 @@ está reparado y probado; extraer la abstracción sin un segundo proveedor de pa
 es mover código que funciona.
 
 **Pruebas**: 4463 → 4530 · emulador 101 · lint 99 → 98.
+
+| **845** | **Suspender es un acto, no un olvido.** El ciclo de vida de la orden existía en el modelo y no lo escribía nadie: «Está tomando» era «todo lo que alguna vez apareció en una nota». Cada fármaco lleva un «ya no» con dos opciones (se suspende / ya terminó) y **motivo obligatorio**. No se edita el pasado: se escribe en la nota de hoy. Y lo suspendido **no se receta**. Verificado en producción sin errores de consola. |
+
+**Sigue siendo del Dr. (P-008)**: si una `duracion` cumplida debe pasar sola a
+`terminada` o exige acto médico explícito. Hoy exige acto explícito, que es la
+opción que no inventa nada.
