@@ -333,6 +333,7 @@ function EstadoCumplimiento({ clinicId, bitacora, arcoList, onCopiarLink }: { cl
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
+      <EstadoCsp clinicId={clinicId} />
       <Resumen
         ok={bitacora.length > 0}
         titulo="Bitácora de accesos (NOM-024 Art. 6.5)"
@@ -643,5 +644,72 @@ function EstadoBadge({ estado }: { estado: ArcoEstado }) {
     <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: m.bg, color: m.color }}>
       {m.label}
     </span>
+  )
+}
+
+
+/**
+ * ¿YA SE PUEDE PONER LA CSP A BLOQUEAR DE VERDAD?
+ *
+ * La política va en report-only: el navegador avisa de lo que bloquearía y no
+ * bloquea nada. El criterio para pasarla a `enforce` estaba escrito y probado
+ * (`lib/security/csp-observacion.ts`: siete días y cero violaciones recientes)
+ * pero **nadie leía los reportes**: se acumulaban y no había pantalla que dijera
+ * cuántos días llevan ni cuántas violaciones hay. Un criterio que nadie puede
+ * consultar no es un criterio, es un comentario.
+ */
+function EstadoCsp({ clinicId }: { clinicId: string }) {
+  const [d, setD] = useState<{
+    hayDatos?: boolean
+    veredicto?: { listo: boolean; motivo: string }
+    diasObservados?: number
+    violaciones7d?: number
+    modo?: string
+    top?: { que: string; veces: number }[]
+  } | null>(null)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    fetchAutenticado(`/api/seguridad/csp-estado?clinicId=${encodeURIComponent(clinicId)}`)
+      .then(r => r.json())
+      .then(j => { if (vivo) { if (j?.ok) setD(j); else setError(true) } })
+      .catch(() => { if (vivo) setError(true) })
+    return () => { vivo = false }
+  }, [clinicId])
+
+  if (error) {
+    // Un fallo de lectura NO se enseña como «todo en orden».
+    return <Resumen ok={false} titulo="Política de contenido (CSP)" descripcion="No se pudo leer el estado de la CSP. Recarga la pantalla." />
+  }
+  if (!d) return <Resumen ok titulo="Política de contenido (CSP)" descripcion="Consultando…" />
+
+  const enforce = d.modo === 'enforce'
+  return (
+    <div>
+      <Resumen
+        ok={enforce || !!d.veredicto?.listo}
+        titulo={`Política de contenido (CSP) — ${enforce ? 'bloqueando' : 'sólo observando'}`}
+        descripcion={enforce
+          ? 'La política está en modo bloqueo: lo que no esté permitido no se carga.'
+          : (d.veredicto?.motivo ?? '')}
+      />
+      {!enforce && d.hayDatos && (d.top?.length ?? 0) > 0 && (
+        <div style={{ marginTop: 8, padding: '10px 13px', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>
+            Lo que la política bloquearía hoy ({d.violaciones7d} en los últimos 7 días)
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--text3)', lineHeight: 1.7 }}>
+            {d.top!.map(t => <li key={t.que}>{t.que} — {t.veces}×</li>)}
+          </ul>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
+            Arregla esto antes de bloquear: si pasas a modo bloqueo con violaciones vivas,
+            se rompe justo eso — y con un paciente enfrente. Cuando el veredicto diga que sí,
+            se activa poniendo <strong>CSP_MODE=enforce</strong> en Vercel.
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

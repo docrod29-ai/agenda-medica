@@ -49,7 +49,7 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 
 | # | Charter | Estado |
 |---|---|---|
-| P-020 | Security release gate | **PARCIAL** — aislamiento por tenant probado (100 specs de emulador), RBAC auditado y estrechado (v808, v818, v823), cabeceras, rate limits, bitácora con cola (v824). **FALTA y es DEL DR.**: MFA obligatorio o riesgo aceptado por escrito, PITR, simulacro de restauración, simulacro de incidente, **pentest externo**. El charter es explícito: Claude no aprueba su propia seguridad. |
+| P-020 | Security release gate | **PARCIAL** — aislamiento por tenant probado (102 specs de emulador), RBAC auditado y estrechado (v808, v818, v823), cabeceras, rate limits, bitácora con cola (v824). **CSP: el veredicto para pasar a bloqueo ya se puede consultar en Cumplimiento (v890)** — estaba escrito y probado, pero nadie leía los reportes, así que la decisión no se podía tomar. Barrido preliminar hecho el 2026-08-02: sin secretos expuestos, sin `.env` rastreado, cabeceras completas con `frame-ancestors 'none'` y `X-Frame-Options: DENY` en la zona autenticada, y **una** vulnerabilidad moderada real (`uuid`, bounds check en v3/v5/v6 con `buf`) que llega por las librerías de Google Cloud y no se dispara desde nuestro código. **FALTA y es DEL DR.**: MFA obligatorio o riesgo aceptado por escrito, PITR, simulacro de restauración, simulacro de incidente, **pentest externo**. El charter es explícito: Claude no aprueba su propia seguridad. |
 | P-021 | Resiliencia | **HECHO** — las seis promesas verificadas y reparadas (v800): IA, transcripción, evidencia sin citas inventadas, Stripe sin duplicar, WhatsApp con rastro, autosave sin pérdida silenciosa (v811). |
 | P-022 | Observabilidad | **HECHO, con un límite declarado.** **Técnico**: latencias p50/p95/p99 + la peor + tasa de fallo, por operación y por modelo (v842) — los datos ya se guardaban en cada asiento y no los leía nadie. **IA**: consumo, tokens, costo y fallos por modelo y por operación (libro de costos). **Financiero**: ingresos, margen, MRR y ahora **tasa de bajas** con su denominador correcto (v843); antes ni siquiera se guardaba la fecha de cancelación. **Clínico**: lo medible sin entrar al expediente está en `/cumplimiento` y `/cumplimiento/motores` (bitácora, motores sin validar, asientos pendientes). Lo que el charter pide como «tablero clínico» —desenlaces— **no se puede medir desde la plataforma sin pasearse por los expedientes de los clientes**, y eso ya se rechazó una vez al construir el embudo. Se declara en vez de fabricarlo. |
 
@@ -63,14 +63,22 @@ Bitácora de versiones desplegadas: `BITACORA-2026-08-01-tarde.md`.
 
 ## FASES 6–12 — SANDBOX, HOSPITAL OS, CRITICAL CARE, IA PLATFORM
 
-Existe mucho ya construido (sandbox en `/demo`, hospitalización completa, Panel
-UCI con ventilación/gasometría/SOFA/CKRT/ECMO/POCUS, HL7, motores de UCI). Lo que
-el charter añade sobre eso son piezas grandes y NUEVAS —`ICUStay` separado de la
-cama, `Infusion` con jerarquía de preparación, motor de confirmación por riesgo,
-`ADT`, closed loops, process mining, adaptadores de dispositivos, router de IA—
-que **no deben empezarse antes de cerrar PRACTICE GA**, por instrucción del propio
-charter: «no implementar funciones futuras antes de cerrar los bloqueadores
-actuales».
+**Verificado pieza por pieza el 2026-08-02, contra el código.** De las siete que
+el charter llamaba «grandes y NUEVAS», **seis ya estaban construidas**:
+
+| Pieza | Dónde está |
+|---|---|
+| `ICUStay` separado de la cama | `types/hospital.ts` + `icu_stays`, con archivado de la estancia previa al reingreso (v855) |
+| `Infusion` con jerarquía de preparación | `lib/clinical/infusion-library.ts` (3 capas, y REFERENCIA nace vacía a propósito) + `lib/uci/infusiones.ts`, conectado al panel de UCI y a la verificación |
+| Motor de confirmación por riesgo | `lib/uci/confirmacion.ts` |
+| `ADT` | `lib/hospital/bed-assignment.ts` + traslados/egreso del gateway |
+| Process mining de episodio | `lib/hospital/indicadores-episodio.ts` |
+| Router de IA | `lib/ia/gateway.ts` |
+| **Adaptadores de dispositivos** | **FALTABA — hecho en v891**: `lib/dispositivos/vitales-hl7.ts`, conectado a `api/hl7/convertir` |
+
+Lo que queda de estas fases son **closed loops** (cerrar el círculo orden →
+administración → efecto → ajuste), que es trabajo clínico del Dr. antes que
+software: define qué lazo se cierra solo y cuál no.
 
 ---
 
