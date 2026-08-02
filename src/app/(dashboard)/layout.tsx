@@ -40,7 +40,7 @@ function ModeBanner() {
   return (
     <div style={{
       background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.25)',
-      color: '#60a5fa', fontSize: 12, fontWeight: 600, textAlign: 'center',
+      color: 'var(--blue)', fontSize: 12, fontWeight: 600, textAlign: 'center',
       padding: '5px 12px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
     }}>

@@ -209,7 +209,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       </Card>
 
       {/* ── DASI ── */}
-      <Card icon={<Activity size={15} />} titulo="DASI — Capacidad funcional (Duke Activity Status Index)" color="#60a5fa">
+      <Card icon={<Activity size={15} />} titulo="DASI — Capacidad funcional (Duke Activity Status Index)" color="var(--blue)">
         {DASI_ITEMS.map(it => chk(
           !!dasi[it.key], () => setDasi(d => ({ ...d, [it.key]: !d[it.key] })), it.label, it.peso
         ))}
@@ -328,7 +328,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       </div>
 
       {/* ── Recomendaciones ── */}
-      <Card icon={<ClipboardCheck size={15} />} titulo={`Recomendaciones perioperatorias (${recomendaciones.length})`} color="#a78bfa">
+      <Card icon={<ClipboardCheck size={15} />} titulo={`Recomendaciones perioperatorias (${recomendaciones.length})`} color="var(--purple)">
         {recomendaciones.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Marca medicamentos y datos arriba para generar recomendaciones.</div>
         ) : (

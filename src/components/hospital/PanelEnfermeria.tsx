@@ -56,7 +56,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         {/* Braden */}
         <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Ruler size={15} style={{ color: '#7c3aed' }} /> Braden <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· úlceras por presión</span></div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Ruler size={15} style={{ color: 'var(--purple)' }} /> Braden <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· úlceras por presión</span></div>
           {ultBraden && <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Último: {ultBraden.score} ({ultBraden.riesgo})</div>}
           {puedeEditar && (<>
             {BRADEN_ITEMS.map(it => (
@@ -96,7 +96,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
 
       {/* Entrega de turno SBAR */}
       <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><ClipboardList size={15} style={{ color: '#0d9488' }} /> Entrega de turno (SBAR)</div>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><ClipboardList size={15} style={{ color: 'var(--teal)' }} /> Entrega de turno (SBAR)</div>
         {puedeEditar && (<>
           <textarea className={inputCls} rows={3} placeholder="Situación · Antecedentes · Evaluación · Recomendación" value={sbar} onChange={e => setSbar(e.target.value)} />
           <div style={{ marginTop: 6 }}><Button size="sm" loading={busy === 'sbar'} disabled={!sbar.trim()} onClick={async () => { setBusy('sbar'); try { await agregarSbar(clinicId, iid, { texto: sbar.trim(), por }); setSbar(''); onSaved(); toast('Entrega de turno registrada', 'success') } catch (e) { toast(e instanceof Error ? e.message : 'NO se guardó la entrega de turno. NO cierres: el texto sigue aquí, reintenta.', 'error') } finally { setBusy('') } }}>Guardar entrega</Button></div>

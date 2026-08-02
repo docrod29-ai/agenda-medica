@@ -72,7 +72,7 @@ export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         {criticos.length
           ? <AlertTriangle size={16} color={COLOR.critico.fg} />
-          : <Sparkles size={16} color="#60a5fa" />}
+          : <Sparkles size={16} color="var(--blue)" />}
         <strong style={{ fontSize: 13.5, color: 'var(--text)' }}>
           {criticos.length
             ? `${criticos.length} ${criticos.length === 1 ? 'cosa que revisar' : 'cosas que revisar'} antes de firmar`
@@ -108,7 +108,7 @@ export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: s.nivel === 'critico' ? 700 : 600, color: s.nivel === 'info' ? 'var(--text)' : c.fg }}>
                   {s.titulo}
                 </span>
-                {puesta && <Check size={14} color="#22c55e" style={{ flexShrink: 0 }} />}
+                {puesta && <Check size={14} color="var(--green)" style={{ flexShrink: 0 }} />}
                 {abierta ? <ChevronUp size={14} color="var(--text3)" /> : <ChevronDown size={14} color="var(--text3)" />}
               </button>
 
@@ -131,7 +131,7 @@ export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
                     </button>
                   )}
                   {puesta && (
-                    <p style={{ fontSize: 11.5, color: '#22c55e', margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <p style={{ fontSize: 11.5, color: 'var(--green)', margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <Check size={13} /> Ya está en la nota
                     </p>
                   )}

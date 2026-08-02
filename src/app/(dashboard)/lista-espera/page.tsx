@@ -172,7 +172,7 @@ export default function ListaEsperaPage() {
                       <MessageSquare size={15} />
                     </button>
                   )}
-                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleConverted(entry.id)} title="Marcar como convertido" style={{ color: '#4ade80' }}>
+                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleConverted(entry.id)} title="Marcar como convertido" style={{ color: 'var(--green)' }}>
                     <CheckCircle2 size={15} />
                   </button>
                   <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleRemove(entry.id)} title="Eliminar" style={{ color: 'var(--red)' }}>

@@ -704,7 +704,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
 
 function EstadoBadge({ estado }: { estado: ArcoEstado }) {
   const map: Record<ArcoEstado, { label: string; color: string; bg: string }> = {
-    recibida: { label: 'RECIBIDA', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+    recibida: { label: 'RECIBIDA', color: 'var(--blue)', bg: 'rgba(59,130,246,0.15)' },
     en_proceso: { label: 'EN PROCESO', color: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) 15%, transparent)' },
     resuelta: { label: 'RESUELTA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
     rechazada: { label: 'RECHAZADA', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },

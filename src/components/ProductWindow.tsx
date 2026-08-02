@@ -90,7 +90,7 @@ export function ProductWindow() {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--nexus)' }}>
                 <Mic size={13} /> Nota por voz
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#16a34a', marginLeft: 'auto' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--green)', marginLeft: 'auto' }}>
                 <CheckCircle2 size={13} /> Lista para firmar
               </span>
             </div>

@@ -296,7 +296,7 @@ function ItemRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{item.nombre}</span>
           {item.controlado && (
-            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 100, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 100, background: 'rgba(167,139,250,0.15)', color: 'var(--purple)', border: '1px solid rgba(167,139,250,0.3)' }}>
               CONTROLADO
             </span>
           )}

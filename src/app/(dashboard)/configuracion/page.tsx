@@ -352,7 +352,7 @@ export default function ConfiguracionPage() {
           background: 'linear-gradient(90deg, #7c3aed12, transparent)', border: '1px solid #7c3aed44',
           borderRadius: 12, padding: '12px 16px', marginBottom: 18,
         }}>
-          <ShieldCheck size={18} style={{ color: '#7c3aed' }} />
+          <ShieldCheck size={18} style={{ color: 'var(--purple)' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>Consola de suscripciones (dueño)</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>Todos los consultorios, cobranza, ingresos y pases libres</div>
@@ -843,7 +843,7 @@ export default function ConfiguracionPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {gcalConnected === true && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4ade80', background: 'color-mix(in srgb, var(--green) 10%, transparent)', padding: '4px 10px', borderRadius: 20 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--green)', background: 'color-mix(in srgb, var(--green) 10%, transparent)', padding: '4px 10px', borderRadius: 20 }}>
                     <CheckCircle2 size={13} /> Conectado
                   </span>
                 )}
@@ -1295,7 +1295,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
               background: 'color-mix(in srgb, var(--green) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--green) 20%, transparent)',
-              borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#4ade80',
+              borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--green)',
             }}>
               <Smartphone size={14} />
               <span>Bot activo — los pacientes ya pueden escribir para agendar</span>

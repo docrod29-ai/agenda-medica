@@ -65,10 +65,10 @@ export default function IndicadoresPage() {
 
       {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> : (<>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
-          <Kpi valor={m.activos} label="Internados ahora" color="#0d9488" />
+          <Kpi valor={m.activos} label="Internados ahora" color="var(--teal)" />
           <Kpi valor={m.estMedia} label="Estancia media (días)" />
           <Kpi valor={m.egresados} label="Egresos (histórico)" color="var(--amber)" />
-          <Kpi valor={todos.length} label="Episodios totales" color="#7c3aed" />
+          <Kpi valor={todos.length} label="Episodios totales" color="var(--purple)" />
         </div>
 
         {/* Ocupación por servicio */}

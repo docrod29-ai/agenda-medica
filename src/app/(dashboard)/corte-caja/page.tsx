@@ -147,7 +147,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
             <Kpi icon={<Wallet size={16} />} titulo="Total neto" valor={fmtMXN(corte.neto)} color="var(--nexus)" />
-            <Kpi icon={<span style={{ fontSize: 15 }}>💵</span>} titulo="Efectivo en caja" valor={fmtMXN(corte.efectivo)} color="#16a34a" />
+            <Kpi icon={<span style={{ fontSize: 15 }}>💵</span>} titulo="Efectivo en caja" valor={fmtMXN(corte.efectivo)} color="var(--green)" />
             {/*
               «Reembolsos» estaba condenado a $0.00: los montos negativos se
               rechazan en el origen y la operación de devolución no existe

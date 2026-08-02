@@ -491,7 +491,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                   <button onClick={onGenerarReceta} style={{ ...ghostBtn, color: 'var(--teal)', borderColor: 'rgba(20,184,166,0.4)', background: 'rgba(20,184,166,0.08)' }}>
                     <Pill size={13} /> Generar receta
                   </button>
-                  <button onClick={onGenerarOrden} style={{ ...ghostBtn, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.4)', background: 'rgba(167,139,250,0.08)' }}>
+                  <button onClick={onGenerarOrden} style={{ ...ghostBtn, color: 'var(--purple)', borderColor: 'rgba(167,139,250,0.4)', background: 'rgba(167,139,250,0.08)' }}>
                     <ClipboardList size={13} /> Orden médica
                   </button>
                 </>

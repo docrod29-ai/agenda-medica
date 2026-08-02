@@ -11,10 +11,10 @@ import { ArrowLeft, LifeBuoy, Loader2 } from 'lucide-react'
 
 const META: Record<string, { label: string; emoji: string; color: string }> = {
   falla:        { label: 'Falla',        emoji: '🐞', color: 'var(--red)' },
-  duda:         { label: 'Duda',         emoji: '❓', color: '#2563eb' },
+  duda:         { label: 'Duda',         emoji: '❓', color: 'var(--blue)' },
   sugerencia:   { label: 'Sugerencia',   emoji: '💡', color: 'var(--amber)' },
   queja:        { label: 'Queja',        emoji: '⚠️', color: 'var(--amber)' },
-  felicitacion: { label: 'Felicitación', emoji: '🎉', color: '#15803d' },
+  felicitacion: { label: 'Felicitación', emoji: '🎉', color: 'var(--green)' },
 }
 const fechaTxt = (iso: string) => iso ? new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
 

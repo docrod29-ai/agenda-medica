@@ -334,7 +334,7 @@ export default function CitasPage() {
       {!loading && daySummary.total > 0 && (
         <div className="nx-reveal" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <DiaChip color="var(--nexus)" value={daySummary.total} label={daySummary.total === 1 ? 'cita' : 'citas'} />
-          <DiaChip color="#22c55e" value={daySummary.conf} label="confirmadas" />
+          <DiaChip color="var(--green)" value={daySummary.conf} label="confirmadas" />
           <DiaChip color="#fb923c" value={daySummary.pend} label="pendientes" />
         </div>
       )}
@@ -775,7 +775,7 @@ function AppointmentRowFull({
             }}
             title="Unirse a videollamada"
             style={{
-              background: 'rgba(167,139,250,0.15)', color: '#a78bfa',
+              background: 'rgba(167,139,250,0.15)', color: 'var(--purple)',
               border: '1px solid rgba(167,139,250,0.4)', borderRadius: 6,
               padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4,

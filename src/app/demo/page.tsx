@@ -183,7 +183,7 @@ function Mock({ tipo }: { tipo: string }) {
   if (tipo === 'secretaria') {
     return (
       <div style={base}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: '#60a5fa', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
           <Headset size={12} /> Modo asistente
         </div>
         {[['María López', '09:00', true], ['Juan Pérez', '10:30', true], ['Expediente clínico', '', false]].map((r, i) => (

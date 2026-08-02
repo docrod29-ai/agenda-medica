@@ -54,7 +54,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
           {plan.creditos} créditos · por médico
         </div>
       )}
-      <div style={{ fontSize: 11.5, color: '#14b8a6', fontWeight: 600, marginTop: 4 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 600, marginTop: 4 }}>
         o ${precioAnual(plan).toLocaleString('es-MX')}/año · 2 meses gratis
       </div>
       <Link href="/registro" style={{

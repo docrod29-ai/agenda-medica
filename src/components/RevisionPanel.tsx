@@ -183,9 +183,9 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
       padding: 16, marginBottom: 16,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <Sparkles size={16} color="#60a5fa" />
+        <Sparkles size={16} color="var(--blue)" />
         <strong style={{ fontSize: 14, color: 'var(--text)' }}>Extraído de tu dictado</strong>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: '#4ade80', fontWeight: 600 }}>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>
           {aprobados.size} en la nota
         </span>
       </div>
@@ -244,7 +244,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
         <div>
           <button onClick={() => setVerSeguros(v => !v)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', padding: '8px 0', minHeight: 44 }}>
-            <ShieldCheck size={14} color="#4ade80" />
+            <ShieldCheck size={14} color="var(--green)" />
             {verSeguros
               ? `Ocultar los otros ${seguros.length} datos`
               : `Otros ${seguros.length} datos incluidos — ver por si algo sobra`}

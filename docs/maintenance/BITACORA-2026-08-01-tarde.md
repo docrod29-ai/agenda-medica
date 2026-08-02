@@ -647,6 +647,30 @@ papel que va a la farmacia.
 
 ---
 
+## SEXAGÉSIMA SEGUNDA TANDA — v913
+
+### El trinquete de color vigilaba el color del error y dejaba pasar el del acierto
+
+v872 y v900 migraron los rojos y ámbares —primer plano, fondo y borde— y dejaron
+el trinquete en cero. Pero su lista **sólo tenía rojos y ámbares**: los verdes,
+teales, azules y morados seguían escritos a mano. **97 usos en 40 pantallas.**
+
+«Verificada por farmacia» en `#0d9488`, los estados en verde, los enlaces en
+azul: exactamente el mismo problema —un hexadecimal no cambia de tema— y sobre el
+crema del tema claro se quedan igual de flojos que el rosa que motivó todo esto.
+
+Y todos tenían **ya su token definido en los dos temas**, medido con la fórmula
+de luminancia de WCAG (el comentario de `globals.css` lo documenta: red 4.61,
+green 4.63, purple 4.62, blue 4.60). Sólo faltaba usarlo.
+
+Ahora están migrados y **la lista del trinquete los incluye**, así que el hueco
+no puede reabrirse. El papel sigue con su hexadecimal a propósito.
+
+- 40 archivos `.tsx`, `src/app/globals.css` (`--purple` en `@media print`)
+- `src/__tests__/color-trinquete.test.ts` (lista ampliada, techo en 0). Total 4887.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

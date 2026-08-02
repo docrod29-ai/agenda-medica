@@ -13,9 +13,9 @@ interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; ce
 /** Nivel de evidencia orientativo por DISEÑO del estudio (proxy tipo GRADE, no un grado GRADE formal). */
 function nivelEvidencia(tipo?: string): { label: string; color: string } | null {
   switch (tipo) {
-    case 'Meta-análisis': return { label: 'Evidencia alta', color: '#16a34a' }
-    case 'Guía': return { label: 'Guía de práctica', color: '#16a34a' }
-    case 'ECA': return { label: 'Evidencia alta', color: '#16a34a' }
+    case 'Meta-análisis': return { label: 'Evidencia alta', color: 'var(--green)' }
+    case 'Guía': return { label: 'Guía de práctica', color: 'var(--green)' }
+    case 'ECA': return { label: 'Evidencia alta', color: 'var(--green)' }
     case 'Revisión': return { label: 'Evidencia moderada', color: 'var(--amber)' }
     default: return null
   }
@@ -236,7 +236,7 @@ export default function ConsultorPage() {
                           <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 5, lineHeight: 1.45 }}>
                             <div>
                               [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,0.12)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
-                              {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'color-mix(in srgb, var(--green) 12%, transparent)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
+                              {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'color-mix(in srgb, var(--green) 12%, transparent)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
                             </div>
                             <div style={{ fontSize: 10.5, color: 'var(--text3)', opacity: 0.85, marginTop: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                               {nivel && <span style={{ fontWeight: 700, color: nivel.color }}>{nivel.label}</span>}

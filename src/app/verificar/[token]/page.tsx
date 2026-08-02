@@ -38,7 +38,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
           </div>
         ) : (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#16a34a', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--green)', marginBottom: 14 }}>
               <ShieldCheck size={22} /> <strong style={{ fontSize: 16 }}>Integridad verificada</strong>
             </div>
             <Fila k="Documento" v="Generado por NexusMED" />

@@ -91,7 +91,7 @@ export default function MarPaciente(
 
       {v.noInterpretables.length > 0 && (
         <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 11, border: '1px solid rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.08)' }}>
-          <AlertTriangle size={16} style={{ color: '#7c3aed', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={16} style={{ color: 'var(--purple)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text2)' }}>
             <strong>{v.noInterpretables.length} orden{v.noInterpretables.length !== 1 ? 'es' : ''} con horario ilegible.</strong>{' '}
             No se calcula atraso sobre ellas: un horario adivinado produce un atraso inventado.

@@ -3032,7 +3032,7 @@ export default function ConsultaActivaPage() {
       <Herramientas {...(() => {
         const TODAS = [
         ...(esCasoQuirurgico ? [{
-          id: 'cirugia', nombre: 'Cirugía', color: '#60a5fa', icono: <Scissors size={14} />,
+          id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
           para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
           contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
         }] : []),
@@ -3043,7 +3043,7 @@ export default function ConsultaActivaPage() {
             onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
         }] : []),
         ...(esPediatrico ? [{
-          id: 'pediatria', nombre: 'Pediatría', color: '#a78bfa', icono: <Baby size={14} />,
+          id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
           para: 'Dosis por peso con tope de adulto · vacunación',
           aviso: vacunasAtrasadas > 0
             ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
@@ -3061,7 +3061,7 @@ export default function ConsultaActivaPage() {
             onAgregarANota={agregarASeccion('escalas_clinicas', 'Escalas y calculadoras clínicas')} />,
         }] : []),
         {
-          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: '#22c55e', icono: <HeartPulse size={14} />,
+          id: 'cardiometabolico', nombre: 'Cardiometabólico', color: 'var(--green)', icono: <HeartPulse size={14} />,
           para: 'Lípidos · obesidad · hígado graso · hoja para el paciente',
           contenido: <PanelCardiometabolico embebido nombre={patient?.nombre} edad={patient?.edad} sexo={patient?.sexo}
             onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,

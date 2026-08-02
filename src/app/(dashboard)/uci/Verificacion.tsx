@@ -152,7 +152,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
       <Bloque icon={HelpCircle} titulo="Lo que NO se puede calcular" sub="charter §31">
         {faltantes.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text3)' }}>
-            <CheckCircle2 size={15} style={{ color: '#0d9488' }} />
+            <CheckCircle2 size={15} style={{ color: 'var(--teal)' }} />
             No falta ningún dato para lo que este panel calcula.
           </div>
         ) : (

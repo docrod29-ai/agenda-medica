@@ -98,7 +98,7 @@ export default function PortalPrivacidadPage() {
           <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 16, lineHeight: 1.6 }}>
             Tu solicitud fue registrada con el folio:
           </p>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'monospace', color: '#14b8a6', marginBottom: 18 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'monospace', color: 'var(--teal)', marginBottom: 18 }}>
             #{folioConfirmacion}
           </div>
           <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6, marginBottom: 20 }}>
@@ -136,7 +136,7 @@ export default function PortalPrivacidadPage() {
     <div style={layoutStyle}>
       <div style={{ ...cardStyle, maxWidth: 560, textAlign: 'left' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <Shield size={24} color="#14b8a6" />
+          <Shield size={24} color="var(--teal)" />
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>
             Portal de Privacidad
           </h1>
@@ -169,7 +169,7 @@ export default function PortalPrivacidadPage() {
               ))}
             </div>
             <button onClick={() => setPaso('aviso')} style={{
-              background: 'none', border: 'none', color: '#14b8a6', cursor: 'pointer',
+              background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer',
               fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4,
             }}>
               <FileText size={13} /> Ver Aviso de Privacidad completo

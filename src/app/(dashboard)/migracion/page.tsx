@@ -196,7 +196,7 @@ export default function MigracionPage() {
             {conteo && (
               <div style={{ marginTop: 16 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: 'color-mix(in srgb, var(--green) 12%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'color-mix(in srgb, var(--green) 12%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
                     {conteo.nuevo} nuevos
                   </span>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 12%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
@@ -215,7 +215,7 @@ export default function MigracionPage() {
                     ...clasificadas!.filter(c => c.estado === 'nuevo')].slice(0, 200).map((c, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', opacity: c.estado === 'nuevo' ? 1 : 0.55 }}>
                       {c.estado === 'nuevo'
-                        ? <CheckCircle2 size={15} style={{ color: '#16a34a', flexShrink: 0 }} />
+                        ? <CheckCircle2 size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />
                         : <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0 }} />}
                       <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.fila.nombre}</span>
                       <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.fila.telefono || '—'}</span>

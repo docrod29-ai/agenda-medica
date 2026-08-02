@@ -89,8 +89,8 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
     <div style={embebido ? {} : { border: '1px solid rgba(139,92,246,.3)', borderRadius: 12, background: 'rgba(139,92,246,.05)', padding: 14, marginBottom: 12 }}>
       {!embebido && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-          <Baby size={15} color="#a78bfa" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Pediatría</span>
+          <Baby size={15} color="var(--purple)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--purple)' }}>Pediatría</span>
           {atrasadas.length > 0 && (
             <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>
               verificar {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''}
@@ -174,7 +174,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                     ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{d.farmaco}</span>
-                      <span style={{ fontSize: 12.5, color: '#a78bfa', fontWeight: 700 }}>
+                      <span style={{ fontSize: 12.5, color: 'var(--purple)', fontWeight: 700 }}>
                         {d.porToma.min === d.porToma.max ? d.porToma.max : `${d.porToma.min}–${d.porToma.max}`} {d.unidad} {d.intervalo}
                       </span>
                       {d.esRescate ? (
@@ -326,6 +326,6 @@ const campoBase: React.CSSProperties = {
 }
 const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(139,92,246,.15)',
-  color: '#a78bfa', border: '1px solid rgba(139,92,246,.35)', borderRadius: 6,
+  color: 'var(--purple)', border: '1px solid rgba(139,92,246,.35)', borderRadius: 6,
   padding: '3px 9px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
 }

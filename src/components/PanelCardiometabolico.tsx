@@ -330,7 +330,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             </label>
           </Bloque>
 
-          <Res color="#22c55e" titulo={`Estadio ABCD ${abcd.estadio}`}>
+          <Res color="var(--green)" titulo={`Estadio ABCD ${abcd.estadio}`}>
             <p style={txt}>{abcd.descripcion}</p>
             <p style={{ ...txt, color: 'var(--text3)' }}>{abcd.equivalencia}</p>
             <p style={{ ...txt, fontWeight: 700 }}>{abcd.tratamiento}</p>
@@ -420,7 +420,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
           <Bloque t="Qué logra cada porcentaje de pérdida de peso en el hígado">
             {PERDIDA_PESO_MASLD.map(p => (
               <div key={p.porcentaje} style={{ fontSize: 11.5, color: 'var(--text2)', marginBottom: 4, lineHeight: 1.5 }}>
-                <b style={{ color: '#22c55e' }}>{p.porcentaje}:</b> {p.logra}
+                <b style={{ color: 'var(--green)' }}>{p.porcentaje}:</b> {p.logra}
               </div>
             ))}
           </Bloque>
@@ -462,7 +462,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             <p style={{ ...txt, fontStyle: 'italic' }}>{hoja.intro}</p>
             {hoja.secciones.map((s, i) => (
               <div key={i} style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', letterSpacing: .3 }}>{s.titulo}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: .3 }}>{s.titulo}</div>
                 {s.parrafos.map((p, j) => <p key={j} style={txt}>{p}</p>)}
                 {s.acciones?.length ? <ul style={lista}>{s.acciones.map((a, j) => <li key={j}>{a}</li>)}</ul> : null}
               </div>
@@ -542,6 +542,6 @@ const txt: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', margin: 
 const lista: React.CSSProperties = { margin: '6px 0 0', paddingLeft: 18, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.55 }
 const campo: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7, padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none' }
 const pill = (fg: string, bg: string): React.CSSProperties => ({ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: bg, color: fg })
-const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'color-mix(in srgb, var(--green) 15%, transparent)', color: '#22c55e', border: '1px solid color-mix(in srgb, var(--green) 35%, transparent)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
+const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'color-mix(in srgb, var(--green) 15%, transparent)', color: 'var(--green)', border: '1px solid color-mix(in srgb, var(--green) 35%, transparent)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
 
 export { Activity }

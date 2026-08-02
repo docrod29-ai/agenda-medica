@@ -1228,6 +1228,9 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     --amber:  #B45309;
     --green:  #14532D;
     --blue:   #2057C5;
+    /* Los que entraron con la segunda tanda de migración (v913): el trinquete
+       vigilaba el color del error y dejaba pasar el del acierto. */
+    --purple: #6D28D9;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
 }

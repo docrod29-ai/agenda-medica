@@ -204,7 +204,7 @@ function Dictado({ escenario, onListo, onReiniciar }: { escenario: DemoEscenario
               </button>
             )
           ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#16a34a' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>
               <CheckCircle2 size={16} /> Dictado completo
             </span>
           )}
@@ -323,7 +323,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
             </>
           ) : (
             <div className="nx-fade">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#16a34a', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 10 }}>
                 <ShieldCheck size={20} /> <strong>Integridad verificada</strong>
               </div>
               {[['Documento', 'Generado por NexusMED'], ['Folio', escenario.folio], ['Estado', 'Vigente']].map(([k, v]) => (
@@ -700,7 +700,7 @@ function ModWhatsApp() {
 function ModSecretaria() {
   return (
     <div style={{ ...card }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: '#60a5fa', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
         <Headset size={13} /> Vista de asistente
       </div>
       <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>Ve la agenda y datos de contacto; <strong>no</strong> ve notas, diagnósticos ni configuración.</div>

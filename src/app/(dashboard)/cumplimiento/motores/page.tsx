@@ -33,7 +33,7 @@ import { CLINICAL_ENGINE_REGISTRY } from '@/lib/clinical/registry'
 
 const ESTILO_ESTADO: Record<string, { etiqueta: string; color: string; fondo: string }> = {
   pendiente_validacion: { etiqueta: 'SIN VALIDAR', color: 'var(--amber)', fondo: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
-  experimental: { etiqueta: 'EXPERIMENTAL', color: '#7c3aed', fondo: 'rgba(124,58,237,.12)' },
+  experimental: { etiqueta: 'EXPERIMENTAL', color: 'var(--purple)', fondo: 'rgba(124,58,237,.12)' },
   validado: { etiqueta: 'VALIDADO', color: '#059669', fondo: 'rgba(5,150,105,.12)' },
 }
 
