@@ -1415,10 +1415,11 @@ function MedicosTab() {
         telefono: form.telefono.trim(),
         email: form.email.trim(),
         activo: form.activo,
-        horario: config.horario || DEFAULT_CONFIG.horario,
-        duraciones: config.duraciones || DEFAULT_CONFIG.duraciones,
-        intervaloMinutos: config.intervaloMinutos || 10,
-        zonaHoraria: config.zonaHoraria || 'America/Chihuahua',
+        // NO se copia aquí el horario del consultorio. Esa copia no se volvia a
+        // escribir nunca —no hay editor por médico— y sin embargo la agenda la
+        // prefería, así que congelaba el horario en el día del alta: cambiar el
+        // horario en Configuración decía «guardado» y no llegaba a la agenda.
+        // Ver `lib/horario-medico.ts`.
         createdAt: '',
         updatedAt: '',
       })

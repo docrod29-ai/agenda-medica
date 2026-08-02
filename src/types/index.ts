@@ -129,10 +129,20 @@ export interface Doctor {
   telefono?: string
   email?: string
   foto?: string
-  horario: ClinicConfig['horario']
-  duraciones: ClinicConfig['duraciones']
-  intervaloMinutos: number
-  zonaHoraria: string
+  /**
+   * HORARIO PROPIO — hoy nadie lo enciende, y por eso los cuatro campos de abajo
+   * son opcionales.
+   *
+   * Se copiaba el horario del consultorio al dar de alta al médico y no existía
+   * forma de volver a editarlo, así que la agenda quedaba congelada en el día
+   * del alta. Manda el horario del consultorio salvo que esto sea `true`.
+   * Ver `lib/horario-medico.ts`.
+   */
+  horarioPropio?: boolean
+  horario?: ClinicConfig['horario']
+  duraciones?: ClinicConfig['duraciones']
+  intervaloMinutos?: number
+  zonaHoraria?: string
   activo: boolean
   // Onboarding para el bot
   botConfig?: {

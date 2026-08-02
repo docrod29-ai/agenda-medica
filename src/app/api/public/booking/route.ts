@@ -11,7 +11,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { adminDb } from '@/lib/firebase-admin'
-import { getDaySchedule, validarHorarioDia } from '@/lib/availability'
+import { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { configParaMedico } from '@/lib/horario-medico'
 // Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
 // del navegador, que se inicializa al importarse y revienta el build sin variables.
 import { estaBloqueado } from '@/lib/time-blocks-core'
@@ -108,8 +109,7 @@ export async function POST(req: NextRequest) {
     let cfg = cfgBase
     if (medicoId) {
       const docSnap = await clinicRef.collection('doctors').doc(medicoId).get()
-      const doc = docSnap.data()
-      if (doc) cfg = { ...cfgBase, horario: doc.horario ?? cfgBase.horario, duraciones: doc.duraciones ?? cfgBase.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfgBase.intervaloMinutos }
+      cfg = configParaMedico(cfgBase as unknown as import('@/types').ClinicConfig, docSnap.data()) as unknown as typeof cfgBase
     }
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
 
@@ -144,6 +144,13 @@ export async function POST(req: NextRequest) {
     const minSlot = rh * 60 + rm
     if (!vh.valido || minSlot < vh.startMin || minSlot + duracion > vh.endMin) {
       return NextResponse.json({ ok: false, error: 'Horario fuera del servicio' }, { status: 409 })
+    }
+    // HORARIO PARTIDO: esto es lo que separa «no ofrecer» de «no aceptar». El GET
+    // deja de listar la hora de comida, pero el POST es un endpoint público: basta
+    // una pestaña abierta desde antes de crear el descanso —o una petición
+    // directa— para que la cita entre igual.
+    if (pisaDescanso(minSlot, minSlot + duracion, descansosEnMinutos(schedule.descansos))) {
+      return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (descanso)' }, { status: 409 })
     }
     const bloquesSnap = await clinicRef.collection('time_blocks').get()
     const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]

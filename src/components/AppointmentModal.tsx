@@ -5,6 +5,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useFiltroMedico } from '@/components/DoctorFilter'
+import { configParaMedico } from '@/lib/horario-medico'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
 import { getAvailableSlots, hasConflict } from '@/lib/availability'
@@ -134,13 +135,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
 
   // Médico seleccionado + su PROPIO horario/duraciones (cada médico agenda distinto).
   const doctorSel = useMemo(() => activeDoctors.find(d => d.id === medicoId), [activeDoctors, medicoId])
-  const cfgAgenda = useMemo(() => doctorSel ? {
-    ...config,
-    horario: doctorSel.horario ?? config.horario,
-    duraciones: doctorSel.duraciones ?? config.duraciones,
-    intervaloMinutos: doctorSel.intervaloMinutos ?? config.intervaloMinutos,
-    zonaHoraria: doctorSel.zonaHoraria ?? config.zonaHoraria,
-  } : config, [doctorSel, config])
+  const cfgAgenda = useMemo(() => configParaMedico(config, doctorSel), [doctorSel, config])
 
   // Auto-fill duration from type (según el médico seleccionado)
   useEffect(() => {

@@ -36,6 +36,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
 // Del NÚCLEO PURO: ruta de SERVIDOR — ver el comentario de cabecera de
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
+import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /** Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot. */
 async function cargarBloques(clinicId: string): Promise<TimeBlock[]> {
@@ -175,8 +176,23 @@ function addDays(dateStr: string, n: number): string {
   return sumarDiasISO(dateStr, n)
 }
 
-const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'] as const
-
+/**
+ * LOS HUECOS QUE OFRECE EL BOT — y por qué ya no los calcula él.
+ *
+ * Esto era una COPIA del generador de huecos, escrita aparte y envejecida
+ * aparte. Le faltaba lo que el panel y el portal fueron aprendiendo:
+ *
+ *   · los descansos del horario partido — ofrecía la hora de comida,
+ *   · la validación del horario corrupto,
+ *   · el filtro por médico — escondía el hueco libre del Dr. A porque la Dra. B
+ *     tenía cita a esa hora,
+ *   · las horas que ya pasaron hoy.
+ *
+ * Un motor de agenda con cinco implementaciones no tiene cinco veces más
+ * seguridad: tiene cinco sitios donde olvidar la próxima regla. Ahora delega en
+ * el mismo `getAvailableSlots` que usa todo lo demás, así que cualquier regla
+ * futura llega al bot sin que nadie se acuerde de él.
+ */
 function getAvailableSlotsForDate(
   fecha: string,
   duracion: number,
@@ -185,43 +201,7 @@ function getAvailableSlotsForDate(
   bloques: TimeBlock[] = [],
   medicoId?: string,
 ): string[] {
-  const d = new Date(fecha + 'T12:00:00')
-  const dayKey = DAY_KEYS[d.getDay()]
-  const schedule = config.horario[dayKey]
-  if (!schedule?.activo) return []
-  if (config.diasFestivos?.includes(fecha)) return []
-
-  // FIX bug slots fantasma: step ≥ duración para no generar solapamientos
-  const intervalConf = config.intervaloMinutos ?? 10
-  const interval = Math.max(intervalConf, duracion)
-  const [hI, mI] = schedule.inicio.split(':').map(Number)
-  const [hF, mF] = schedule.fin.split(':').map(Number)
-  const startMin = hI * 60 + mI
-  const endMin = hF * 60 + mF
-
-  const dayAppts = appointments.filter(a =>
-    a.fechaHora.slice(0, 10) === fecha &&
-    !['cancelada', 'reagendada', 'no-asistio'].includes(a.estado)
-  )
-
-  const slots: string[] = []
-  for (let m = startMin; m + duracion <= endMin; m += interval) {
-    const slotEnd = m + duracion
-    const conflict = dayAppts.some(a => {
-      const [ah, am] = a.fechaHora.slice(11, 16).split(':').map(Number)
-      const aStart = ah * 60 + am
-      const aEnd = aStart + a.duracion
-      return m < aEnd && slotEnd > aStart
-    })
-    if (conflict) continue
-    // BLOQUEOS (vacaciones/ausencias): el bot ignoraba time_blocks y ofrecía huecos
-    // en días bloqueados (el panel y el booking público sí los respetan). Se excluye
-    // el slot si cae dentro de un bloqueo del médico (o de toda la clínica).
-    const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-    if (bloques.length && estaBloqueado(`${fecha} ${hhmm}`, bloques, medicoId, config.zonaHoraria || 'America/Mexico_City')) continue
-    slots.push(hhmm)
-  }
-  return slots
+  return getAvailableSlots(fecha, duracion, appointments, config, undefined, bloques, medicoId)
 }
 
 // ── Session CRUD ─────────────────────────────────────────────
@@ -624,6 +604,32 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const doctorId = doctor?.id
       // Vincula al expediente (fuera de la transacción de la cita, como el booking).
       const pacienteIdBot = await resolverPacienteBot(clinicId, from, datos.nombre, now)
+
+      /**
+       * REVALIDAR ANTES DE ESCRIBIR — no sólo el choque con otra cita.
+       *
+       * La transacción de abajo sólo comprobaba solapes. Todo lo demás —día
+       * activo, horario, DESCANSOS, bloqueos, horas ya pasadas— se había
+       * comprobado al LISTAR, y entre listar y confirmar puede pasar cualquier
+       * cosa: la sesión del bot sobrevive minutos u horas, y en ese rato el
+       * médico puede crear un bloqueo o cambiar su horario. El panel y el portal
+       * público ya revalidaban; el bot no, así que era el único camino por el
+       * que una cita podía entrar en la hora de comida.
+       */
+      {
+        const apptSnapRV = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
+          .where('fechaHora', '>=', datos.fecha + ' 00:00')
+          .where('fechaHora', '<=', datos.fecha + ' 23:59')
+          .get()
+        const apptsRV = apptSnapRV.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+        const bloquesRV = await cargarBloques(clinicId)
+        const vigentes = getAvailableSlotsForDate(datos.fecha, duracion, config!, apptsRV, bloquesRV, doctor?.id)
+        if (!vigentes.includes(datos.hora)) {
+          await send(from, `Ese horario ya no está disponible. Por favor elija otro escribiendo *agendar* de nuevo. 🙏`)
+          await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+          return
+        }
+      }
 
       // Crear ATÓMICO: re-chequea conflicto dentro de la transacción → dos pacientes
       // no pueden confirmar el mismo horario a la vez (antes era un .add() directo).

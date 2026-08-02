@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { configParaMedico } from '@/lib/horario-medico'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import type { Appointment } from '@/types'
@@ -120,15 +121,7 @@ export async function POST(req: NextRequest) {
     if (medicoId) {
       const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
       const doc = docSnap.data()
-      if (doc) {
-        cfgEfectiva = {
-          ...cfgEfectiva,
-          horario: doc.horario ?? cfgEfectiva.horario,
-          duraciones: doc.duraciones ?? cfgEfectiva.duraciones,
-          intervaloMinutos: doc.intervaloMinutos ?? cfgEfectiva.intervaloMinutos,
-          zonaHoraria: doc.zonaHoraria ?? cfgEfectiva.zonaHoraria,
-        }
-      }
+      cfgEfectiva = configParaMedico(cfgEfectiva, doc)
     }
     const { getDaySchedule, validarHorarioDia } = await import('@/lib/availability')
     const schedule = getDaySchedule(fecha, cfgEfectiva)

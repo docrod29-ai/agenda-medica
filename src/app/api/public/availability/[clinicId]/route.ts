@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { configParaMedico } from '@/lib/horario-medico'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 /**
@@ -58,8 +59,7 @@ export async function GET(
     // horario/duraciones/intervalo pisan a los de la clínica (coherente con el panel).
     if (medicoId) {
       const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
-      const doc = docSnap.data()
-      if (doc) cfg = { ...cfg, horario: doc.horario ?? cfg.horario, duraciones: doc.duraciones ?? cfg.duraciones, intervaloMinutos: doc.intervaloMinutos ?? cfg.intervaloMinutos }
+      cfg = configParaMedico(cfg as unknown as import('@/types').ClinicConfig, docSnap.data()) as unknown as typeof cfg
     }
 
     // 2. Horario del día
