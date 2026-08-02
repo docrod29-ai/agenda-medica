@@ -189,7 +189,7 @@ export default function CamasPage() {
                       const estado: EstadoCama = oc ? 'ocupada' : c.estado
                       const col = COLOR[estado]
                       return (
-                        <div key={c.id} onClick={() => oc && router.push(`/hospitalizacion/${oc.id}`)} style={{ padding: 10, borderRadius: 10, border: `1px solid ${col}55`, background: col + '10', cursor: oc ? 'pointer' : 'default' }}>
+                        <div key={c.id} onClick={() => oc && router.push(`/hospitalizacion/${oc.id}`)} style={{ padding: 10, borderRadius: 10, border: `1px solid color-mix(in srgb, ${col} 33%, transparent)`, background: col + '10', cursor: oc ? 'pointer' : 'default' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: 12.5, fontWeight: 700, color: col }}>{c.etiqueta}</span>
                             <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: col }}>{ESTADO_CAMA_LABEL[estado]}</span>

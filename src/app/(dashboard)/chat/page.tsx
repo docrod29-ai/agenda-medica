@@ -230,7 +230,7 @@ export default function ChatPage() {
                     color: mio ? '#040b12' : 'var(--text)',
                     border: mio
                       ? 'none'
-                      : `1px solid ${noLeidoPorMi ? 'rgba(96,165,250,0.5)' : `${rolColor}33`}`,
+                      : `1px solid ${noLeidoPorMi ? 'rgba(96,165,250,0.5)' : `color-mix(in srgb, ${rolColor} 20%, transparent)`}`,
                     borderRadius: 14,
                     borderTopLeftRadius: !mio && !mismoEmisor ? 4 : 14,
                     borderTopRightRadius: mio && !mismoEmisor ? 4 : 14,
@@ -250,7 +250,7 @@ export default function ChatPage() {
                         <span style={{
                           fontSize: 9.5, fontWeight: 600,
                           padding: '1px 6px', borderRadius: 100,
-                          background: mio ? 'rgba(0,0,0,0.15)' : `${rolColor}22`,
+                          background: mio ? 'rgba(0,0,0,0.15)' : `color-mix(in srgb, ${rolColor} 13%, transparent)`,
                           color: mio ? 'rgba(0,0,0,0.7)' : rolColor,
                           marginLeft: 2,
                         }}>{rolLabel}</span>

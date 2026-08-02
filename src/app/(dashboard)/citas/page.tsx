@@ -676,8 +676,8 @@ function AppointmentRowFull({
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
             fontSize: 10, fontWeight: 700,
-            background: `${NIVEL_COLOR[riesgo.nivel]}1A`, color: NIVEL_COLOR[riesgo.nivel],
-            border: `1px solid ${NIVEL_COLOR[riesgo.nivel]}55`,
+            background: `color-mix(in srgb, ${NIVEL_COLOR[riesgo.nivel]} 10%, transparent)`, color: NIVEL_COLOR[riesgo.nivel],
+            border: `1px solid color-mix(in srgb, ${NIVEL_COLOR[riesgo.nivel]} 33%, transparent)`,
             padding: '2px 7px', borderRadius: 100, flexShrink: 0,
           }}>
           <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}

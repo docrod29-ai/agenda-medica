@@ -711,6 +711,42 @@ etiquetas viéndose iguales — perder la función que tienen.
 
 ---
 
+## SEXAGÉSIMA CUARTA TANDA — v915
+
+### Once bordes y fondos llevaban meses sin pintarse, en silencio — incluido el panel cardiometabólico
+
+El fallo que encontré en v914 —`color + '18'` deja de funcionar cuando el color
+pasa a ser `var(--x)`, porque produce `var(--red)18`: **CSS inválido que el
+navegador descarta sin quejarse**— tenía una segunda forma de escribirse que mi
+prueba no miraba: la plantilla, `${color}55`.
+
+**Había once.** Y uno de ellos —el recuadro de resultados del **panel
+cardiometabólico**, el de las metas de LDL y el FIB-4— está roto **desde v872**,
+cuando aquella migración convirtió `<Res color="#f87171">` en
+`<Res color="var(--red)">`. Desde entonces el borde y el fondo de esas cajas
+simplemente no existen.
+
+Nadie lo notó porque **un borde que no se pinta no se queja**. Es el reverso de
+todo lo que llevo reparando: no una pantalla que promete de más, sino una que
+deja de decir algo sin avisar.
+
+Reparados los once con `color-mix`.
+
+### Y otro hueco de sintaxis del mismo guardián
+
+Los colores elegidos con un ternario —`const color = nivel === 'critica' ?
+'#dc2626' : …`— no encajaban en el patrón `color:`, así que seguían crudas **las
+alertas del apoyo a la decisión clínica** de la ficha hospitalaria y **la lectura
+S/I/R del antibiograma**. Migradas.
+
+La prueba ahora vigila las **tres sintaxis**: la declaración, la concatenación y
+la plantilla.
+
+- 12 archivos `.tsx` (concatenaciones), 4 más (ternarios)
+- `src/__tests__/color-trinquete.test.ts`. Total 4889.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

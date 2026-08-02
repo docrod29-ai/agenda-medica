@@ -118,7 +118,7 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
         const tope = c.limite + c.extra
         const pct = Math.min(100, Math.round((c.usados / tope) * 100))
         const casiVacio = pct >= 85
-        const color = pct >= 100 ? '#dc2626' : casiVacio ? '#d97706' : 'var(--nexus)'
+        const color = pct >= 100 ? 'var(--red)' : casiVacio ? 'var(--amber)' : 'var(--nexus)'
         return (
           <div style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 13px', marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>

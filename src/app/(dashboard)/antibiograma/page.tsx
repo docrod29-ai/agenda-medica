@@ -384,7 +384,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
             <div style={{ display: 'flex', gap: 3 }}>
               {(['pos', 'neg'] as ResultadoPrueba[]).map(v => {
                 const on = pruebas[p.k] === v
-                const color = v === 'pos' ? '#f87171' : '#10b981'
+                const color = v === 'pos' ? 'var(--red)' : 'var(--green)'
                 return (
                   <button key={v} type="button" onClick={() => setPrueba(p.k, on ? undefined : v)}
                     style={{ minWidth: 44, height: 30, borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
@@ -779,7 +779,8 @@ const box: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }
 
 function sirBtn(activo: boolean, v: SIR): React.CSSProperties {
-  const color = v === 'S' ? '#10b981' : v === 'I' ? '#f59e0b' : '#f87171'
+  // S/I/R es la lectura clínica del antibiograma: tiene que leerse igual en los dos temas.
+  const color = v === 'S' ? 'var(--green)' : v === 'I' ? 'var(--amber)' : 'var(--red)'
   return {
     width: 32, height: 34, borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer',
     border: '1px solid ' + (activo ? color : 'var(--border)'),
