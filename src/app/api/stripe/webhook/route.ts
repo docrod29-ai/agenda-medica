@@ -388,9 +388,34 @@ export async function POST(req: NextRequest) {
           ?? sub.items.data.find(i => (i.quantity ?? 1) === 1 && !String(i.price?.nickname ?? '').toLowerCase().includes('medico'))
           ?? sub.items.data[0]
 
-        const planDeducido = ES_PLAN(sub.metadata?.plan)
-          ? sub.metadata!.plan as PlanKey
-          : planPorMonto(itemPlan?.price?.unit_amount ?? 0)
+        /**
+         * MANDA EL PRECIO QUE SE ESTÁ COBRANDO, NO EL METADATO.
+         *
+         * `sub.metadata.plan` se escribe UNA vez, en el checkout, y **nadie lo
+         * actualiza nunca**: ni el ajuste de asientos, ni el portal de
+         * facturación de Stripe. Como aquí se prefería el metadato al precio
+         * real, un cliente que baja de Pro a Agenda desde el portal de Stripe
+         * seguía siendo «premium» para la aplicación: Stripe le cobra $349 y
+         * NexusMED le deja los módulos de Consultorio y la IA premium. Paga el
+         * plan barato y consume la llave cara del dueño.
+         *
+         * Lo que se cobra es un hecho; el metadato es una nota escrita hace
+         * meses. Cuando el precio permite deducir el plan, ése manda. El
+         * metadato queda como respaldo para cuando el importe no es concluyente
+         * (promociones, prorrateos raros), y entonces se corrige en Stripe para
+         * que la próxima vez no haga falta deducir nada.
+         */
+        const porPrecio = planPorMonto(itemPlan?.price?.unit_amount ?? 0)
+        const porMetadato = ES_PLAN(sub.metadata?.plan) ? sub.metadata!.plan as PlanKey : null
+        const planDeducido = porPrecio ?? porMetadato
+
+        if (porPrecio && porMetadato && porPrecio !== porMetadato) {
+          safeLog.warn(`[Stripe Webhook] ${sub.id}: el metadato decía '${porMetadato}' y el precio cobrado es '${porPrecio}'. Manda el precio; se corrige el metadato.`)
+          // Se pone al día para que el próximo evento no tenga que deducir.
+          void stripe.subscriptions.update(sub.id, { metadata: { ...sub.metadata, plan: porPrecio } })
+            .catch(() => { /* no bloquea: el plan ya se aplicó bien */ })
+        }
+
         const status = estadoDeSuscripcion(sub.status)
 
         /**
