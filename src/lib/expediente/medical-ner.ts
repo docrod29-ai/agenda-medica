@@ -31,6 +31,9 @@ import { z } from 'zod'
 
 const Certeza = z.enum(['confirmado', 'sospecha', 'descartado', 'historia']).optional().default('confirmado')
 
+/** Lo que de verdad cabe en el prompt. La ruta rechaza por encima de esto. */
+export const TOPE_TEXTO_NER = 12000
+
 export const EntidadCondicion = z.object({
   texto: z.string(),
   cie10: z.string().optional().default(''),
@@ -221,7 +224,7 @@ ${alergias.join(', ').slice(0, 2000)}
     : ''
   return `TEXTO CLÍNICO A ANALIZAR (transcripción o nota redactada):
 """
-${textoFuente.slice(0, 12000)}
+${textoFuente.slice(0, TOPE_TEXTO_NER)}
 """
 ${bloqueAlergias}
 Extrae TODAS las entidades clínicas presentes y devuélvelas en el
