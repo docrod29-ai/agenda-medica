@@ -381,6 +381,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **861** | **«Pagar anticipo · Asegura tu lugar» no aseguraba nada**: abría un enlace externo suelto, sin retorno, sin webhook, sin cambio de estado y **sin cobro registrado** — y el importe del cartel podía no ser el que cobraba el enlace. La ruta que sí lo registra existía y **no la llamaba nadie**. **El aviso de lista de espera desde el modal iba sin `medicoId`**: el hueco liberado por una doctora se agendaba con otro médico. **La cama del alta no pasaba por limpieza terminal** —el bloque estaba condicionado al traslado— y contaba disponible en el mismo instante del alta. |
 
+## UNDÉCIMA TANDA — v862 (lo que la UCI afirmaba sin saberlo)
+
+| v | Qué se reparó |
+|---|---|
+| **862** | **Las tomas del pase se firmaban con el nombre del médico tratante** aunque las capturara otra persona —y en blanco si fallaba la lectura del internamiento—: el mismo defecto ya reparado en el MAR. Ahora el autor lo sella la sesión, con `uid`, y la hora del **servidor** va al lado de la del dispositivo. **La entrega de turno imprimía «No hay dispositivos invasivos registrados»** en un paciente con catéter y ventilador, porque esa sección no tiene quién la alimente: una sección declarada **sin fuente** ya dice que el sistema no lo sabe. **El turno de enfermería ocultaba pacientes** de una unidad sin tipo configurado y afirmaba que no había nada pendiente. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -406,15 +412,12 @@ Por orden de daño. Todo con archivo:línea, verificable.
 10. ~~Un reingreso borra la estancia anterior~~ — HECHO (v855), junto con el
     cierre de la estancia al egresar (punto 10 del informe de UCI).
 11. ~~La limpieza terminal no se aplica al egreso~~ — HECHO (v861).
-12. **El turno de enfermería de UCI oculta pacientes** de una unidad sin tipo
-    configurado y afirma «no hay nada pendiente» (`uci/enfermeria/page.tsx:51`).
-13. **Las tomas de UCI se firman con el nombre del médico tratante**, no de quien
-    las captura, y con el reloj del navegador (`uci/page.tsx:485`). Es el mismo
-    defecto que ya se reparó en el MAR.
-14. **La entrega de turno afirma ausencias que nadie puede desmentir** («no hay
-    dispositivos invasivos registrados» en un paciente con catéter y VM) porque
-    la fuente no existe (`ResumenPase.tsx:92`), y `marcarRevisado` no tiene
-    llamador: el estado REVISADO es inalcanzable.
+12. ~~El turno de enfermería oculta pacientes~~ — HECHO (v862).
+13. ~~Las tomas de UCI se firman con el médico tratante~~ — HECHO (v862).
+14. ~~La entrega de turno afirma ausencias~~ — HECHO A MEDIAS (v862): ya no
+    afirma lo que no sabe. **Queda**: `marcarRevisado` sigue sin llamador, así
+    que el estado REVISADO es inalcanzable y la cabecera dice siempre
+    «BORRADOR — sin revisar».
 
 ### Portal y mensajería
 15. ~~El enlace mágico no se puede revocar~~ — HECHO (v860).
