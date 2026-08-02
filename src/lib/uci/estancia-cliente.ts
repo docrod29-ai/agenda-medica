@@ -11,6 +11,7 @@
  * el peor momento.
  */
 
+import type { TipoPesoDosificacion } from '@/types/hospital'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type { ICUStay, SoporteActivo } from '@/types/hospital'
 
@@ -48,4 +49,29 @@ export async function guardarSoportesUci(
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(j.error || 'No se pudieron guardar los soportes')
   return j.estancia
+}
+
+
+/**
+ * FIJA EL PESO DE DOSIFICACIÓN (charter §16).
+ *
+ * Un solo peso por estancia, a propósito y con su autor —que sella el
+ * servidor, no el navegador—. Los soportes viajan porque la ruta los exige en
+ * cada escritura; se mandan los que ya están para no borrarlos.
+ */
+export async function fijarPesoDosificacion(
+  clinicId: string,
+  internamientoId: string,
+  peso: { valorKg: number; tipo: TipoPesoDosificacion },
+  soportesActuales: readonly SoporteActivo[],
+  pacienteId?: string,
+): Promise<EstanciaUciDoc> {
+  const r = await fetchAutenticado('/api/uci/estancia', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clinicId, internamientoId, pacienteId, soportes: soportesActuales, pesoDosificacion: peso }),
+  })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(j.error || 'No se pudo fijar el peso de dosificación')
+  return j.estancia as EstanciaUciDoc
 }

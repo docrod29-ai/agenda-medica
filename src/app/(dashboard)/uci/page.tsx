@@ -32,7 +32,8 @@ import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
 import { guardarToma, getTomas, serieTomas } from '@/lib/uci/observaciones'
-import { getEstanciaUci, guardarSoportesUci } from '@/lib/uci/estancia-cliente'
+import { getEstanciaUci, guardarSoportesUci, fijarPesoDosificacion } from '@/lib/uci/estancia-cliente'
+import { validarPeso, pesoParaCalcular, avisoSinPeso, TIPOS_PESO, ETIQUETA_TIPO_PESO, type PesoFijado, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
 import { SOPORTES_ACTIVOS, SOPORTE_LABEL, type SoporteActivo } from '@/types/hospital'
 import { medirEstancia } from '@/lib/uci/estancia'
 import { useConfig } from '@/hooks/useConfig'
@@ -168,13 +169,24 @@ export default function UciPanelPage() {
   // última toma seguir ahí.
   const { config } = useConfig()
   const [soportes, setSoportes] = useState<SoporteActivo[] | null>(null)
+  /**
+   * EL PESO CON EL QUE SE DOSIFICA (charter §16).
+   *
+   * Estaba modelado en `ICUStay` con autor y fecha y no lo escribía nadie: cada
+   * calculadora pedía el suyo, así que dos pantallas del mismo paciente podían
+   * dosificar con pesos distintos sin que nadie se enterara.
+   */
+  const [pesoFijado, setPesoFijado] = useState<PesoFijado | null>(null)
+  const [pesoBorrador, setPesoBorrador] = useState('')
+  const [tipoPesoBorrador, setTipoPesoBorrador] = useState<TipoPesoDosificacion>('actual')
+  const [fijandoPeso, setFijandoPeso] = useState(false)
   const [guardandoSoportes, setGuardandoSoportes] = useState(false)
   const [ingresoUci, setIngresoUci] = useState<string | null>(null)
   useEffect(() => {
     if (!clinicId || !internamientoId) { setSoportes(null); setIngresoUci(null); return }
     let vivo = true
     getEstanciaUci(clinicId, internamientoId)
-      .then(e => { if (vivo) { setSoportes((e?.soportes ?? []) as SoporteActivo[]); setIngresoUci(e?.fechaIngresoUci ?? null) } })
+      .then(e => { if (vivo) { setSoportes((e?.soportes ?? []) as SoporteActivo[]); setIngresoUci(e?.fechaIngresoUci ?? null); setPesoFijado(e?.pesoDosificacion ?? null) } })
       .catch(() => { if (vivo) setSoportes([]) })
     return () => { vivo = false }
   }, [clinicId, internamientoId])
@@ -562,7 +574,12 @@ export default function UciPanelPage() {
       : cantidadDesde(n('infDosis'), 'µg/min', 'tasa_dosis')
     const base = {
       farmacoKey: v.infFarmaco || 'norepinefrina',
-      pesoKg: cantidadDesde(n('infPeso') ?? n('ckrtPeso'), 'kg', 'masa'),
+      /**
+       * Orden: lo tecleado AQUÍ > el peso fijado de la estancia > el de CKRT.
+       * Antes caía directo al de CKRT, así que dos calculadoras del mismo
+       * paciente podían dosificar con pesos distintos (charter §16).
+       */
+      pesoKg: cantidadDesde(n('infPeso') ?? pesoParaCalcular(pesoFijado) ?? n('ckrtPeso'), 'kg', 'masa'),
       dilucionIdx: infDilIdx, concentracion: customConc,
     }
     return (v.infDir === 'rate')
@@ -580,7 +597,7 @@ export default function UciPanelPage() {
   const infusionRegistro = useMemo(() => {
     const vel = n('infRate')
     if (!v.infFarmaco && vel === undefined) return null
-    const peso = n('infPeso') ?? n('ckrtPeso')
+    const peso = n('infPeso') ?? pesoParaCalcular(pesoFijado) ?? n('ckrtPeso')
     return {
       id: 'en-curso',
       medicamento: infFarmaco?.nombre ?? String(v.infFarmaco ?? ''),
@@ -807,6 +824,72 @@ export default function UciPanelPage() {
 
       {internamientoId && pestana === 'mar' && (
         <MarPaciente indicaciones={inter?.indicaciones ?? []} graciaMinDeclarada={config.graciaMarMin} />
+      )}
+
+      {/*
+        EL PESO DE DOSIFICACIÓN (charter §16), arriba de las calculadoras.
+        Va aquí porque es de lo que dependen todas: sin él, cada una usa el que
+        se teclee en ella y dos pantallas pueden dosificar distinto al mismo
+        paciente. No se toma del peso de la nota: ése cambia (edema, balance,
+        otra báscula) y movería las dosis sin que nadie lo pidiera.
+      */}
+      {internamientoId && (pestana === 'dosis' || pestana === 'panel') && (
+        <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+            Peso de dosificación
+          </div>
+          {pesoFijado ? (
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text)' }}>{pesoFijado.valorKg} kg</strong>
+              {' · '}{ETIQUETA_TIPO_PESO[pesoFijado.tipo]}
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
+                Lo fijó {pesoFijado.fijadoPor} el {new Date(pesoFijado.fijadoEn).toLocaleString('es-MX')}.
+                No cambia solo: para cambiarlo hay que fijarlo otra vez, y queda a nombre de quien lo haga.
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 12.5, color: 'var(--amber)', lineHeight: 1.6, marginBottom: 8 }}>
+              {avisoSinPeso(null)}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+            <input
+              type="number" inputMode="decimal" min={0} step="any" placeholder="kg"
+              value={pesoBorrador} onChange={e => setPesoBorrador(e.target.value)}
+              aria-label="Peso en kilogramos"
+              style={{ width: 110, padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, minHeight: 40 }}
+            />
+            <select
+              value={tipoPesoBorrador} onChange={e => setTipoPesoBorrador(e.target.value as TipoPesoDosificacion)}
+              aria-label="Qué peso es"
+              style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, minHeight: 40 }}
+            >
+              {TIPOS_PESO.map(t => <option key={t} value={t}>{ETIQUETA_TIPO_PESO[t]}</option>)}
+            </select>
+            <button
+              type="button" className="btn btn-primary btn-sm" disabled={fijandoPeso}
+              onClick={async () => {
+                if (!clinicId) return
+                const quien = auth.currentUser?.email || auth.currentUser?.displayName || ''
+                const v = validarPeso(pesoBorrador, tipoPesoBorrador, quien)
+                if (!v.ok) { toast(v.mensaje ?? 'Revisa el peso', 'error'); return }
+                setFijandoPeso(true)
+                try {
+                  const e = await fijarPesoDosificacion(
+                    clinicId, internamientoId,
+                    { valorKg: Number(pesoBorrador), tipo: tipoPesoBorrador },
+                    soportes ?? [],
+                  )
+                  setPesoFijado(e?.pesoDosificacion ?? null)
+                  setPesoBorrador('')
+                  toast('Peso de dosificación fijado', 'success')
+                } catch (err) {
+                  toast(err instanceof Error ? err.message : 'No se pudo fijar el peso', 'error')
+                } finally { setFijandoPeso(false) }
+              }}
+            >{pesoFijado ? 'Cambiar el peso' : 'Fijar el peso'}</button>
+          </div>
+        </div>
       )}
 
       {pestana === 'dosis' && <DosisMeropenem />}
