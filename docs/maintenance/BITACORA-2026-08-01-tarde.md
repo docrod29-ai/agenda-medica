@@ -289,6 +289,50 @@ Con criterio en los bordes:
 
 ---
 
+## QUINCUAGÉSIMA SEGUNDA TANDA — v903
+
+### El NEWS2 se enseñaba como si siempre describiera el ahora, y el texto de «parcial» mentía
+
+`lib/clinical/news2-set.ts` implementa la decisión **ICU-Q4.1** del Dr
+(29-jul-2026): NEWS2 se calcula sobre un conjunto **contemporáneo** de
+observaciones, y si falta una variable el score queda `INCOMPLETE` — nunca se
+rellena con el último dato histórico. Estaba **escrito, probado y sin conectar**:
+la lista de huérfanos aceptados lo decía con todas sus letras («probado, pero
+ninguna pantalla lo usa todavía»).
+
+Mientras tanto la ficha del episodio tomaba el último registro, lo puntuaba y
+enseñaba el número. Dos consecuencias:
+
+1. si esa toma estaba a medias, la insignia de la cabecera decía «NEWS2 2» en
+   verde, y el aviso de score incompleto viajaba **sólo en el `title`** — que en
+   un teléfono nadie ve. Es exactamente la subestimación del deterioro que el
+   score existe para evitar;
+2. el panel decía «(parcial: sin conciencia/O₂)» **fuera lo que fuera lo que
+   faltara**. `calcularNews2` ya devuelve `faltantes` «para poder decirlo en
+   pantalla», y la pantalla decía otra cosa: cuando lo ausente era la FR y la
+   SpO₂, **le afirmaba al médico algo falso**.
+
+Ahora el encuadre lo decide un módulo, no la pantalla:
+
+- toma completa → «NEWS2»;
+- toma a medias con una completa antes → «Último NEWS2 válido · 08:00», más el
+  aviso de que la toma de ahora está incompleta y qué le falta (el ejemplo
+  literal de la decisión);
+- sin ninguna completa → el parcial **declarado como parcial**: esconder un score
+  parcial con una SpO₂ de 88 sería peor que enseñarlo mal etiquetado.
+
+Y una corrección **no parte la toma en dos**: se funde encima del original y
+manda el valor corregido, sin que corregir un solo valor tire los otros cinco.
+(El `CORRECTED` describe al documento corregido, no al valor bueno que salió de
+corregirlo; heredarlo dejaba fuera del cálculo justo la versión correcta.)
+
+- `src/lib/hospital/news2-encuadre.ts` (nuevo, puro)
+- `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`
+- `src/__tests__/modulos-sin-conectar.test.ts` — `news2-set.ts` sale de la lista
+- `src/__tests__/news2-encuadre.test.ts` — 10 pruebas. Total 4813.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
