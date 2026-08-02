@@ -62,7 +62,19 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
     setLoading(true)
     try {
       const [cb, ct] = await Promise.all([
-        listarCobros(clinicId, dia, dia, false, tz),
+        /**
+         * SE CARGAN TAMBIÉN LOS ANULADOS.
+         *
+         * Anular un cobro no tiene restricción de fecha: se puede anular el
+         * jueves un cobro en efectivo del lunes. Como esta pantalla los excluía,
+         * el corte del lunes reimpreso pasaba de $12,400 a $11,500 **sin una
+         * sola nota** que lo explicara — y quien cuadra la caja contra el papel
+         * anterior no tiene forma de saber qué cambió.
+         *
+         * No entran en los totales (eso lo decide `corteDeCaja`, que los
+         * ignora): se listan aparte, con quién anuló y por qué.
+         */
+        listarCobros(clinicId, dia, dia, true, tz),
         getAppointments(clinicId, [
           where('fechaHora', '>=', dia + ' 00:00'),
           where('fechaHora', '<=', dia + ' 23:59'),
@@ -76,9 +88,17 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
 
   useEffect(() => { cargar() }, [cargar])
 
-  const corte = useMemo(() => corteDeCaja(cobros), [cobros])
-  const embudo = useMemo(() => embudoCobro(citas, cobros), [citas, cobros])
-  const porCobrar = useMemo(() => cuentasPorCobrar(citas, cobros), [citas, cobros])
+  /**
+   * Los anulados llegan en la misma lista y se separan aquí: los totales se
+   * calculan SIN ellos —`corteDeCaja` ya los ignora, pero también los ignoran
+   * el embudo y las cuentas por cobrar— y se muestran aparte.
+   */
+  const anulados = useMemo(() => cobros.filter(c => c.cancelado), [cobros])
+  const vivos = useMemo(() => cobros.filter(c => !c.cancelado), [cobros])
+
+  const corte = useMemo(() => corteDeCaja(vivos), [vivos])
+  const embudo = useMemo(() => embudoCobro(citas, vivos), [citas, vivos])
+  const porCobrar = useMemo(() => cuentasPorCobrar(citas, vivos), [citas, vivos])
 
   return (
     <div style={{ padding: embedded ? 0 : 24, maxWidth: 920, margin: '0 auto' }}>
@@ -111,9 +131,46 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
             <Kpi icon={<Wallet size={16} />} titulo="Total neto" valor={fmtMXN(corte.neto)} color="var(--nexus)" />
             <Kpi icon={<span style={{ fontSize: 15 }}>💵</span>} titulo="Efectivo en caja" valor={fmtMXN(corte.efectivo)} color="#16a34a" />
-            <Kpi icon={<TrendingDown size={16} />} titulo="Reembolsos" valor={fmtMXN(corte.reembolsos)} color="#dc2626" />
+            {/*
+              «Reembolsos» estaba condenado a $0.00: los montos negativos se
+              rechazan en el origen y la operación de devolución no existe
+              todavía, así que ese cero se leía como «no hubo devoluciones»
+              cuando la verdad era «no se pueden registrar».
+              Lo que SÍ baja el día son las anulaciones, y ésas sí se pueden
+              contar.
+            */}
+            <Kpi icon={<TrendingDown size={16} />} titulo="Anulados" valor={fmtMXN(anulados.reduce((s, c) => s + c.monto, 0))} color="#dc2626" />
             <Kpi icon={<Users size={16} />} titulo="Movimientos" valor={String(corte.nCobros)} />
           </div>
+
+          {anulados.length > 0 && (
+            <div style={{
+              border: '1px solid rgba(220,38,38,0.3)', borderRadius: 12,
+              background: 'rgba(220,38,38,0.05)', padding: 14, marginBottom: 18,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <AlertCircle size={15} style={{ color: '#dc2626' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                  Anulados de este día · {anulados.length}
+                </span>
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '0 0 10px', lineHeight: 1.5 }}>
+                No cuentan en los totales. Se listan aquí para que un corte reimpreso explique por qué cambió:
+                una anulación puede hacerse días después y sin esto el total baja sin motivo visible.
+              </p>
+              {anulados.map(c => (
+                <div key={c.id} style={{ fontSize: 12.5, paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--text2)', textDecoration: 'line-through' }}>
+                    {fmtMXN(c.monto)}{c.patientNombre ? ` · ${c.patientNombre}` : ''}
+                  </div>
+                  <div style={{ color: 'var(--text3)', fontSize: 11.5, marginTop: 2 }}>
+                    Motivo: {c.motivoCancelacion || '— sin motivo —'}
+                    {c.canceladoEn ? ` · anulado el ${c.canceladoEn.slice(0, 10)}` : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Por método */}
           <Panel titulo="Desglose por forma de pago">

@@ -356,6 +356,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | **855** | **Un reingreso a terapia borraba la estancia anterior.** `ICUStay` vivía en un id fijo y reabrirlo lo sobreescribía, mientras el tipo prometía que «cada estancia se conserva». La que se cierra se **archiva** con id derivado de su fecha de ingreso —no aleatorio: una transacción se reintenta y con id al azar el historial diría que hubo un reingreso que nunca ocurrió—. `actual` sigue siendo el puntero a la vigente, así que ningún lector migró. Y **egresar también cierra la estancia**: antes sólo la cerraba el traslado a piso, así que quien fallecía o salía del hospital desde UCI la dejaba activa para siempre. |
 | **856** | **Farmacia: tres contadores que mentían.** «Eliminar» no eliminaba nada visible (`soloActivos = false`). «Bajo stock: 0» con el anaquel vacío, porque exigía un mínimo capturado que el formulario deja en blanco. Y la caducidad se evaluaba en UTC: un lote que vence el 2 salía caducado desde las 18:00 del 1. |
 
+## SÉPTIMA TANDA — v857 (el corte que cambiaba sin explicar)
+
+| v | Qué se reparó |
+|---|---|
+| **857** | **Un corte reimpreso bajaba de total sin una sola nota.** Anular un cobro no tiene restricción de fecha —se anula el jueves uno del lunes— y la pantalla excluía los anulados: el corte del lunes reimpreso daba otro número y nadie podía saber qué cambió. Ahora se listan **aparte**, con motivo y fecha de anulación, sin entrar en ningún total. Y el KPI **«Reembolsos» estaba condenado a $0.00** (los negativos se rechazan en el origen y la devolución no existe como operación): ese cero se leía como «no hubo devoluciones». Ahora dice **«Anulados»**, que es lo que de verdad baja el día. Verificado en producción. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -364,10 +370,8 @@ Por orden de daño. Todo con archivo:línea, verificable.
 1. ~~Dos identificadores de médico~~ — HECHO (v853). Queda pendiente decidir si
    se **migran los cobros viejos**: hoy el panel los señala, pero no los une.
 2. ~~Consultas pagadas como cuentas por cobrar~~ — HECHO (v854).
-3. **Anular un cobro reescribe un corte ya cerrado** sin dejar nota en el corte
-   (`cobros.ts:300-350`).
-4. **«Reembolsos $0.00»** está condenado a cero porque la operación no existe
-   (`corte-caja/page.tsx:114`): debe decir «no disponible», no cero.
+3. ~~Anular reescribe un corte cerrado sin nota~~ — HECHO (v857).
+4. ~~«Reembolsos $0.00»~~ — HECHO (v857): ahora dice «Anulados».
 5. **Un cobro suelto no tiene médico** → cae en `sinAtribuir` y desaparece del
    desglose (`CobrarModal.tsx:126`).
 
