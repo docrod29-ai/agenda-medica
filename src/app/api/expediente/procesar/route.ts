@@ -211,7 +211,19 @@ function fallbackVisible(transcripcion: string, tipo: TipoNota, aviso: string, c
     safety: { missing_critical_fields: string[] }
   } & Record<string, unknown>
   fallback.safety.missing_critical_fields = [aviso]
-  return NextResponse.json({ ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug })
+  /**
+   * `_modelo: 'parser-local'` NO es cosmético.
+   *
+   * El fallback no lo devolvía, así que el cliente conservaba el `provenanceIA`
+   * del procesamiento ANTERIOR y, al firmar, grababa ese modelo en la
+   * procedencia inmutable. Procesar con éxito, dictar más, que Anthropic
+   * devuelva 529 y firmar dejaba una nota que dice «la escribió Opus» sobre un
+   * texto que escribió una regex.
+   */
+  return NextResponse.json({
+    ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug,
+    _modelo: 'parser-local', _promptVersion: 'n/a', _apiVersion: 'n/a',
+  })
 }
 
 // La nota corre Opus 4.8 con razonamiento: sin esto Vercel la cortaba a 60s (504,

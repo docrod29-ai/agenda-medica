@@ -152,3 +152,56 @@ describe('confirmación del médico, campo por campo', () => {
     expect(resumenProcedencia(sin.resumen)).not.toMatch(/aceptados/)
   })
 })
+
+/**
+ * GOLDEN — las dos formas en que el sello mentía.
+ *
+ * El sello es lo que un perito lee para saber quién puso cada dato en una nota
+ * firmada. Si dice «dictado» sobre algo que el médico escribió, o entrecomilla
+ * una frase que nadie dijo, es peor que no existir.
+ */
+describe('el sello no puede mentir', () => {
+  it('una cita que NO está en la transcripción baja el campo a «ia»', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Neumonía' }] },
+      { diagnosticos: [{ descripcion: 'Neumonía', source_quote: 'el paciente dijo algo que nunca dijo', confidence: 'alta' }] },
+      undefined,
+      { transcripcion: 'tiene tos con flema desde el martes' },
+    )
+    expect(m.campos[0].origen).toBe('ia')
+    expect(m.campos[0].cita).toBeUndefined()
+  })
+
+  it('con la cita verificada sí queda como «dictado»', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Neumonía' }] },
+      { diagnosticos: [{ descripcion: 'Neumonía', source_quote: 'tos con flema', confidence: 'alta' }] },
+      undefined,
+      { transcripcion: 'Tiene TOS CON FLEMA desde el martes' },   // acentos y mayúsculas no importan
+    )
+    expect(m.campos[0].origen).toBe('dictado')
+    expect(m.campos[0].cita).toBe('tos con flema')
+  })
+
+  it('si el médico CORRIGE la dosis, el campo deja de ser «dictado»', () => {
+    const m = construirManifiesto(
+      { medicamentos: [{ nombre: 'Amoxicilina', dosis: '875 mg' }] },
+      { medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg', source_quote: 'amoxicilina de 500', confidence: 'alta' }] },
+      undefined,
+      { transcripcion: 'le voy a dar amoxicilina de 500' },
+    )
+    expect(m.campos[0].origen).toBe('manual')
+    expect(m.campos[0].cita).toBeUndefined()
+  })
+
+  it('sin bloque de extracción se puede decir que lo puso la MÁQUINA, no el médico', () => {
+    // El parser local no deja extracción: todo salía como «manual», o sea «lo
+    // escribió el médico», sobre datos que produjo una máquina.
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Neumonía' }] },
+      undefined, undefined,
+      { sinExtraccion: 'ia' },
+    )
+    expect(m.campos[0].origen).toBe('ia')
+  })
+})

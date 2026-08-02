@@ -97,12 +97,52 @@ interface FinalNota {
   signosVitales?: Record<string, unknown>
 }
 
-/** Clasifica un campo contra su coincidencia en la extracción. */
-function origenDe(match: ItemExtraido | undefined): { origen: OrigenCampo; cita?: string; confianza?: Confianza } {
-  if (!match) return { origen: 'manual' }
+/**
+ * Clasifica un campo contra su coincidencia en la extracción.
+ *
+ * ── DOS FORMAS DE MENTIR QUE ESTE MÓDULO TENÍA ───────────────────────────────
+ *
+ * 1. **La cita no se verificaba.** Bastaba una cadena no vacía para sellar el
+ *    campo como «dictado» y mostrarla entrecomillada, como si fuera literal. Si
+ *    el modelo se inventaba la frase, el sello la respaldaba. Ahora, cuando se
+ *    conoce la transcripción, la cita tiene que APARECER en ella; si no, el
+ *    campo baja a «ia» y la cita no se muestra.
+ *
+ * 2. **El valor editado quedaba sellado como dictado.** Los medicamentos se
+ *    emparejan por NOMBRE pero el valor sellado incluye la dosis: el médico
+ *    corregía la dosis y el campo seguía diciendo «dictado», con la cita del
+ *    dictado ORIGINAL contradiciendo el valor mostrado. Un valor que cambió el
+ *    médico es del médico.
+ */
+function origenDe(
+  match: ItemExtraido | undefined,
+  ctx?: { transcripcionNorm?: string; valorFinal?: string; valorExtraido?: string; sinExtraccion?: OrigenCampo },
+): { origen: OrigenCampo; cita?: string; confianza?: Confianza } {
+  if (!match) return { origen: ctx?.sinExtraccion ?? 'manual' }
+
+  /**
+   * ¿El médico CAMBIÓ el valor después de la extracción?
+   *
+   * Sólo se compara cuando la extracción trae ese dato. Que la extracción no
+   * capturara la dosis y el médico la escriba no convierte el fármaco en «lo
+   * escribió a mano»: el fármaco sí salió del dictado. Lo que no se puede es
+   * seguir diciendo «dictado» sobre una dosis que el médico CORRIGIÓ, con la
+   * cita del dictado original contradiciendo lo que se ve.
+   */
+  if (ctx?.valorFinal && ctx?.valorExtraido) {
+    const a = normaliza(ctx.valorFinal), b = normaliza(ctx.valorExtraido)
+    if (a !== b) return { origen: 'manual', confianza: match.confidence }
+  }
+
   const cita = typeof match.source_quote === 'string' ? match.source_quote.trim() : ''
-  if (cita) return { origen: 'dictado', cita, confianza: match.confidence }
-  return { origen: 'ia', confianza: match.confidence }
+  if (!cita) return { origen: 'ia', confianza: match.confidence }
+
+  // Si no se pasó la transcripción no se puede verificar; se conserva el
+  // comportamiento anterior en vez de degradar algo que quizá era correcto.
+  if (ctx?.transcripcionNorm && !ctx.transcripcionNorm.includes(normaliza(cita))) {
+    return { origen: 'ia', confianza: match.confidence }
+  }
+  return { origen: 'dictado', cita, confianza: match.confidence }
 }
 
 /**
@@ -127,8 +167,18 @@ export function construirManifiesto(
   final: FinalNota,
   extraction?: ExtractionBlock,
   aprobados?: ReadonlySet<string>,
+  /**
+   * `transcripcion`: para poder comprobar que la cita textual EXISTE.
+   * `sinExtraccion`: qué origen darle a lo que no coincide con ninguna
+   * extracción. Por defecto `manual` («lo escribió el médico»), que es falso
+   * cuando la nota la produjo el parser local: ahí no hay bloque de extracción y
+   * TODO salía como escrito a mano sobre datos de máquina.
+   */
+  opciones?: { transcripcion?: string; sinExtraccion?: OrigenCampo },
 ): ManifiestoProcedencia {
   const campos: CampoProcedencia[] = []
+  const transcripcionNorm = opciones?.transcripcion ? normaliza(opciones.transcripcion) : undefined
+  const sinExtraccion = opciones?.sinExtraccion
 
   /** Devuelve el ítem coincidente Y su posición en la extracción (para el id del panel). */
   const buscar = (lista: ItemExtraido[] | undefined, clave: (x: ItemExtraido) => string, valor: string) => {
@@ -154,7 +204,8 @@ export function construirManifiesto(
     if (!desc) return
     const { item, indice } = buscar(extraction?.diagnosticos, x => String(x.descripcion ?? ''), desc)
     campos.push({
-      id: `dx:${i}`, etiqueta: 'Diagnóstico', valor: desc, ...origenDe(item),
+      id: `dx:${i}`, etiqueta: 'Diagnóstico', valor: desc,
+      ...origenDe(item, { transcripcionNorm, sinExtraccion }),
       confirmado: confirmadoDe(indice >= 0 ? `dx:${indice}` : null),
     })
   })
@@ -163,8 +214,15 @@ export function construirManifiesto(
     const nom = String(med.nombre ?? '').trim()
     if (!nom) return
     const { item, indice } = buscar(extraction?.medicamentos, x => String(x.nombre ?? ''), nom)
+    const valorFinal = [nom, med.dosis].filter(Boolean).join(' ').trim()
+    // Sólo se puede comparar la dosis si la extracción trajo una.
+    const dosisExtraida = String((item as { dosis?: string } | undefined)?.dosis ?? '').trim()
+    const valorExtraido = item && dosisExtraida
+      ? [item.nombre, dosisExtraida].filter(Boolean).join(' ').trim()
+      : undefined
     campos.push({
-      id: `med:${i}`, etiqueta: 'Medicamento', valor: [nom, med.dosis].filter(Boolean).join(' ').trim(), ...origenDe(item),
+      id: `med:${i}`, etiqueta: 'Medicamento', valor: valorFinal,
+      ...origenDe(item, { transcripcionNorm, valorFinal, valorExtraido, sinExtraccion }),
       confirmado: confirmadoDe(indice >= 0 ? `med:${indice}` : null),
     })
   })
@@ -174,7 +232,8 @@ export function construirManifiesto(
     if (!alg.trim()) return
     const { item, indice } = buscar(extraction?.alergias, x => String(x.alergeno ?? ''), alg)
     campos.push({
-      id: `alg:${i}`, etiqueta: 'Alergia', valor: alg.trim(), ...origenDe(item),
+      id: `alg:${i}`, etiqueta: 'Alergia', valor: alg.trim(),
+      ...origenDe(item, { transcripcionNorm, sinExtraccion }),
       confirmado: confirmadoDe(indice >= 0 ? `alg:${indice}` : null),
     })
   })
@@ -184,10 +243,11 @@ export function construirManifiesto(
       if (v === null || v === undefined || v === '') continue
       const ex = extraction?.signosVitales?.[k]
       const cita = typeof ex?.source_quote === 'string' ? ex.source_quote.trim() : ''
-      const origen: OrigenCampo = ex ? (cita ? 'dictado' : 'ia') : 'manual'
+      const citaVerificada = !!cita && (!transcripcionNorm || transcripcionNorm.includes(normaliza(cita)))
+      const origen: OrigenCampo = ex ? (citaVerificada ? 'dictado' : 'ia') : (sinExtraccion ?? 'manual')
       campos.push({
         id: `sv:${k}`, etiqueta: `Signo vital ${k.toUpperCase()}`, valor: String(v),
-        origen, cita: cita || undefined, confianza: ex?.confidence,
+        origen, cita: citaVerificada ? cita : undefined, confianza: ex?.confidence,
         // Los signos vitales se identifican por su NOMBRE en los dos sitios, así
         // que aquí no hay desfase posible.
         confirmado: confirmadoDe(ex ? `sv:${k}` : null),

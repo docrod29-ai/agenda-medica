@@ -27,6 +27,8 @@ interface Props {
    * sello es exactamente el de antes.
    */
   aprobados?: ReadonlySet<string>
+  /** La transcripción del dictado, para comprobar que las citas textuales existen. */
+  transcripcion?: string
 }
 
 const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
@@ -35,11 +37,14 @@ const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
   manual:  { color: 'var(--text3)', Icon: PenLine },
 }
 
-export function SelloProcedencia({ final, extraction, aprobados }: Props) {
+export function SelloProcedencia({ final, extraction, aprobados, transcripcion }: Props) {
   const [abierto, setAbierto] = useState(false)
   const manifiesto = useMemo(
-    () => construirManifiesto(final, extraction as never, aprobados),
-    [final, extraction, aprobados],
+    // La transcripción permite verificar que la cita textual EXISTE. Si no se
+    // pasa, el sello se comporta como antes en vez de degradar lo que quizá
+    // estaba bien.
+    () => construirManifiesto(final, extraction as never, aprobados, { transcripcion }),
+    [final, extraction, aprobados, transcripcion],
   )
   if (manifiesto.resumen.total === 0) return null
   const { resumen, campos } = manifiesto

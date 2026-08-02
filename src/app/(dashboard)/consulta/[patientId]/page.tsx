@@ -1035,6 +1035,9 @@ export default function ConsultaActivaPage() {
       // así se sabe POR QUÉ falló (HTTP 401, sobrecarga, respuesta vacía, etc.).
       if (data.fallbackLocal || data._aviso) {
         console.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        // La nota la produjo el parser local: que la procedencia lo diga en vez
+        // de arrastrar el modelo del procesamiento anterior.
+        if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString() })
         if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
@@ -1394,6 +1397,10 @@ export default function ConsultaActivaPage() {
           // pero no CUÁLES: ante una revisión, «aprobó tres cosas» no dice nada
           // de la que se discute. Ahora el sello lo lleva campo por campo.
           aprobados,
+          // La transcripción, para poder COMPROBAR que la cita textual existe.
+          // Sin esto bastaba una cadena no vacía para sellar un campo como
+          // «dictado» y mostrar la frase entrecomillada como si fuera literal.
+          { transcripcion: voz.transcripcion },
         ).resumen,
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
@@ -3103,6 +3110,7 @@ export default function ConsultaActivaPage() {
           final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
           aprobados={aprobados}
+          transcripcion={voz.transcripcion}
         />
       )}
 
