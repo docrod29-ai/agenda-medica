@@ -9,7 +9,8 @@ import {
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
 import { situacionDeCobro, type SituacionCobro } from '@/lib/finanzas/estado-cobro'
-import { updateAppointment } from '@/lib/firestore'
+import { decidirMedicoDelCobroSuelto, type MedicoElegible } from '@/lib/finanzas/cobro-suelto'
+import { updateAppointment, getDoctors } from '@/lib/firestore'
 import { auth } from '@/lib/firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { DollarSign, HeartHandshake } from 'lucide-react'
@@ -79,6 +80,36 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
   const [modoCortesia, setModoCortesia] = useState(false)
   const [motivoCortesia, setMotivoCortesia] = useState('')
 
+  /**
+   * DE QUÉ MÉDICO ES ESTE COBRO CUANDO NO VIENE DE UNA CITA.
+   *
+   * Abierto desde Finanzas no hay `prefill.medicoId` y el modal tampoco
+   * preguntaba: el cobro se guardaba con lo que resolviera la sesión y, si
+   * quien cobra es la asistente, caía en la fila «sin atribuir» del reparto de
+   * comisiones. Dinero cobrado y depositado que al repartir no es de nadie —y
+   * que nadie reclama, porque no aparece en la fila de ningún médico.
+   *
+   * Con un solo médico no se pregunta nada. Ver `lib/finanzas/cobro-suelto.ts`.
+   */
+  const [doctores, setDoctores] = useState<MedicoElegible[]>([])
+  const [medicoElegido, setMedicoElegido] = useState(prefill?.medicoId ?? '')
+  useEffect(() => {
+    if (!clinicId || prefill?.medicoId) return
+    let vivo = true
+    getDoctors(clinicId)
+      .then(ds => {
+        if (!vivo) return
+        setDoctores(ds)
+        const d = decidirMedicoDelCobroSuelto(ds)
+        if (d.medicoId) setMedicoElegido(d.medicoId)
+      })
+      // Un fallo de lectura no puede bloquear el cobro: se queda sin atribuir,
+      // que es lo que pasaba siempre antes de existir esto.
+      .catch(() => { /* sin aviso */ })
+    return () => { vivo = false }
+  }, [clinicId, prefill?.medicoId])
+  const decisionMedico = decidirMedicoDelCobroSuelto(doctores, prefill?.medicoId)
+
   const confirmarCortesia = async () => {
     if (!prefill?.citaId) { toast('La cortesía se marca sobre una cita', 'error'); return }
     const m = motivoCortesia.trim()
@@ -113,6 +144,11 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
     if (isNaN(n) || n === 0) { toast('Monto inválido', 'error'); return }
     if (concepto === 'reembolso' && n > 0) { toast('Un reembolso debe ser negativo (ej. -500)', 'error'); return }
     if (concepto !== 'reembolso' && n < 0) { toast('El monto debe ser positivo', 'error'); return }
+    // Con varios médicos, a quién se le atribuye es tan obligatorio como el
+    // importe: un cobro sin médico se pierde en silencio en el reparto.
+    if (decisionMedico.hayQuePreguntar && !medicoElegido) {
+      toast('Elige de qué médico es este cobro', 'error'); return
+    }
     setGuardando(true)
     try {
       const id = await registrarCobro(clinicId, {
@@ -123,8 +159,10 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
         citaId: prefill?.citaId,
         patientId: prefill?.patientId,
         patientNombre: prefill?.patientNombre,
-        medicoId: prefill?.medicoId,
-        medicoNombre: prefill?.medicoNombre,
+        medicoId: prefill?.medicoId || medicoElegido || undefined,
+        medicoNombre: prefill?.medicoNombre
+          || doctores.find(d => d.id === medicoElegido)?.nombre
+          || undefined,
         referenciaExterna: referencia.trim() || undefined,
         notas: notas.trim() || undefined,
         creadoPor,
@@ -300,6 +338,25 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
               </div>
             )}
           </div>
+
+          {!prefill?.medicoId && decisionMedico.opciones.length > 1 && (
+            <div>
+              <label style={lbl}>Médico *</label>
+              <select
+                value={medicoElegido}
+                onChange={(e) => setMedicoElegido(e.target.value)}
+                style={inp}
+              >
+                <option value="">Elige el médico…</option>
+                {decisionMedico.opciones.map(d => (
+                  <option key={d.id} value={d.id}>{d.nombre || d.id}</option>
+                ))}
+              </select>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                Sin médico, este cobro no entra en el reparto de comisiones de nadie.
+              </div>
+            </div>
+          )}
 
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
