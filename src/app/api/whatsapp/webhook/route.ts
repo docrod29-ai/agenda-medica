@@ -40,6 +40,7 @@ import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
+import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -384,30 +385,48 @@ function detectFAQ(text: string): string | null {
 
 function buildFAQReply(faqKey: string, doctor: Doctor | null, config: ClinicConfig): string {
   const bot = doctor?.botConfig
-  if (!bot) {
-    return `Para más información, comuníquese al ${config.telefonoAdmin || config.whatsappConsultorio}.`
-  }
+  const telefono = config.telefonoAdmin || config.whatsappConsultorio
 
+  /**
+   * SIN `botConfig` SE CONTESTA LO QUE SÍ SE SABE.
+   *
+   * Esto empezaba con `if (!bot) return «comuníquese al teléfono»` — para TODO.
+   * Pero el horario y la dirección no salen de `botConfig`: salen de la
+   * configuración del consultorio, que siempre está llena porque sin ella no
+   * hay agenda. Un consultorio que no completó el onboarding del bot tenía
+   * «2️⃣ Información (horarios, costos, ubicación)» en el menú y el bot
+   * contestando el teléfono a todo, pareciendo tonto por nada.
+   */
   switch (faqKey) {
     case 'horario': {
-      const dias = Object.entries(config.horario)
-        .filter(([, v]) => v.activo)
-        .map(([k, v]) => `• ${k.charAt(0).toUpperCase() + k.slice(1)}: ${v.inicio}–${v.fin}`)
-        .join('\n')
-      return `🕐 *Horario de atención:*\n\n${dias}`
+      /**
+       * CON LOS DESCANSOS. Esto imprimía `inicio–fin` a secas: un consultorio
+       * que atiende de 9 a 14 y de 16 a 20 le decía al paciente
+       * «Lunes: 09:00–20:00». El motor de huecos SÍ respeta el descanso desde
+       * v829/v830, así que el sistema sabía la verdad y su bot decía otra cosa.
+       * Ver `lib/whatsapp/horario-legible.ts`.
+       */
+      const dias = horarioLegible(config.horario as unknown as Record<string, DiaHorario>)
+      return dias
+        ? `🕐 *Horario de atención:*\n\n${dias}`
+        : `No tengo el horario cargado. Comuníquese al ${telefono} y con gusto le informamos.`
     }
     case 'costo':
-      return `💰 *Costo de consulta:*\n\n${bot.costoConsulta || 'Por favor comuníquese para información de costos.'}`
-    case 'direccion':
-      return `📍 *Ubicación:*\n\n${config.direccion || bot.comoLlegar}\n${config.googleMapsUrl ? `\n🗺 ${config.googleMapsUrl}` : ''}`
+      return `💰 *Costo de consulta:*\n\n${bot?.costoConsulta || `Comuníquese al ${telefono} y con gusto le informamos.`}`
+    case 'direccion': {
+      const donde = config.direccion || bot?.comoLlegar || ''
+      return donde
+        ? `📍 *Ubicación:*\n\n${donde}${config.googleMapsUrl ? `\n\n🗺 ${config.googleMapsUrl}` : ''}`
+        : `No tengo la dirección cargada. Comuníquese al ${telefono}.`
+    }
     case 'seguros':
-      return `🏥 *Seguros aceptados:*\n\n${bot.seguros || 'Por favor comuníquese para información sobre seguros.'}`
+      return `🏥 *Seguros aceptados:*\n\n${bot?.seguros || `Comuníquese al ${telefono} para información sobre seguros.`}`
     case 'padecimientos':
-      return `🩺 *Padecimientos que atiende ${config.nombreMedico}:*\n\n${bot.padecimientos || 'Consulte directamente con el médico.'}`
+      return `🩺 *Padecimientos que atiende ${config.nombreMedico ?? 'el médico'}:*\n\n${bot?.padecimientos || 'Consulte directamente con el médico.'}`
     case 'info_extra':
-      return bot.infoExtra || `Para más información, comuníquese al ${config.telefonoAdmin}.`
+      return bot?.infoExtra || `Para más información, comuníquese al ${telefono}.`
     default:
-      return `Para información, comuníquese al ${config.telefonoAdmin || config.whatsappConsultorio}.`
+      return `Para información, comuníquese al ${telefono}.`
   }
 }
 
