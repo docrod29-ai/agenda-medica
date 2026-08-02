@@ -166,6 +166,23 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
             )}
           </table>
         </div>
+        {reporte.dudosos.n > 0 && (
+          /*
+            DOS FILAS DEL MISMO MÉDICO SE VEN IGUAL QUE DOS MÉDICOS DISTINTOS.
+            Hasta v853 el mismo médico llegaba con dos identificadores —el id de
+            `doctors` desde Citas y el `uid` desde Consulta— y el reparto lo
+            partía en dos: el dueño ponía el porcentaje en la fila que reconocía
+            y la otra mitad se comisionaba al 0 %. Los cobros nuevos ya se
+            normalizan; los anteriores siguen como estaban, y esa duda vale
+            dinero, así que se dice antes de pagar.
+          */
+          <div style={{ fontSize: 12, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
+            {reporte.dudosos.n} cobro{reporte.dudosos.n > 1 ? 's' : ''} ({fmtMXN(reporte.dudosos.monto)}) tiene{reporte.dudosos.n > 1 ? 'n' : ''} un
+            médico que no se pudo reconocer con certeza. Si ves al mismo médico en dos filas, probablemente sea esto:
+            revísalo antes de pagar.
+          </div>
+        )}
+
         {reporte.sinAtribuir.n > 0 && (
           <div style={{ padding: '8px 14px', fontSize: 11.5, color: 'var(--text3)', borderTop: '1px solid var(--border)', background: 'var(--s1)' }}>
             {reporte.sinAtribuir.n} cobro{reporte.sinAtribuir.n > 1 ? 's' : ''} sin médico atribuido ({fmtMXN(reporte.sinAtribuir.monto)}) — no entra a comisiones.
