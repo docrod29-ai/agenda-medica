@@ -370,6 +370,39 @@ hace es no callarlo — sin motivo, la tabla dice «sin motivo declarado» en á
 
 ---
 
+## QUINCUAGÉSIMA CUARTA TANDA — v905
+
+### La tabla de signos no enseñaba el oxígeno en ninguna parte
+
+Una SpO₂ de 94 respirando aire ambiente y una SpO₂ de 94 con 5 L/min son dos
+pacientes muy distintos. La tabla del episodio los pintaba **idénticos**: no
+tenía columna de oxígeno.
+
+Y el dato existía. `RegistroSignos` declara `oxigeno`, `oxigenoFlujoLpm` y
+`oxigenoFiO2`; el adaptador del monitor traduce los dos últimos desde LOINC
+(3151-8 y 3150-0) y el export FHIR los emite. O sea que **se guardaban, viajaban
+a un sistema externo, y el médico que abría la ficha no los veía** — ni tenía
+forma de teclearlos.
+
+Ahora hay columna de O₂, y el formulario deja capturar flujo y FiO₂ cuando se
+marca que recibe oxígeno (sólo entonces: preguntarlo siempre invita a rellenarlo
+en un paciente que respira aire).
+
+Dos cuidados:
+
+- **«aire» y «—» son etiquetas distintas.** Un guion donde debería decir aire
+  ambiente es un dato que falta, no un paciente sin oxígeno.
+- **Si llegan cifras de oxígeno sin el indicador que NEWS2 necesita, NO se
+  deduce.** Se marca con ⚠ y se dice que el score puede quedar por debajo, porque
+  decidir que un flujo implica O₂ suplementario es una regla clínica —y aplicarla
+  cambiaría el NEWS2, que suma puntos por ese modificador—. **NEEDS_CLINICAL_REVIEW.**
+
+- `src/lib/hospital/oxigeno.ts` (nuevo, puro)
+- `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`
+- `src/__tests__/oxigeno-signos.test.ts` — 10 pruebas. Total 4831.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
@@ -453,6 +486,9 @@ hace es no callarlo — sin motivo, la tabla dice «sin motivo declarado» en á
 - Plantillas de WhatsApp aprobadas en Meta.
 - Cuál debe ser el tope de huecos por día (punto 1 de EN CURSO).
 - Las ~39 recomendaciones de inmuno sin `fuente` declarada.
+- **¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2?**
+  (v905). Hoy se declara con ⚠ y no se deduce: el modificador suma puntos y
+  aplicarlo por nuestra cuenta cambiaría el score. NEEDS_CLINICAL_REVIEW.
 - **¿El motivo de una corrección de signos es obligatorio?** (E0-09/Q4). El tipo
   dice que su obligatoriedad es política del expediente. v904 lo pide y lo enseña,
   y declara su ausencia en ámbar, pero NO bloquea el guardado: exigirlo es su

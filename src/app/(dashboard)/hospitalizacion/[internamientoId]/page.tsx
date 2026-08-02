@@ -37,6 +37,7 @@ import { esCriticoLab } from '@/lib/hospital/lab-criticos'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { nivelDeSigno, calcularNews2 } from '@/lib/hospital/news2'
 import { encuadrarNews2 } from '@/lib/hospital/news2-encuadre'
+import { textoOxigeno } from '@/lib/hospital/oxigeno'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
 import {
@@ -133,7 +134,7 @@ export default function EpisodioPage() {
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
   const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
-  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'A' | 'C' | 'V' | 'P' | 'U'; oxigeno: boolean }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false })
+  const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'A' | 'C' | 'V' | 'P' | 'U'; oxigeno: boolean; o2Flujo: string; o2FiO2: string }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false, o2Flujo: '', o2FiO2: '' })
   /**
    * id del registro que se está CORRIGIENDO (null = captura nueva).
    *
@@ -711,7 +712,7 @@ export default function EpisodioPage() {
                 Importar del monitor
               </Button>
             )}
-            {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
+            {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false, o2Flujo: '', o2FiO2: '' }); setModalSignos(true) }}>Registrar signos</Button>}
           </div>
         </div>
         {signos.length === 0 ? (
@@ -766,7 +767,7 @@ export default function EpisodioPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
                 <tr style={{ background: 'var(--s2)', color: 'var(--text3)', textAlign: 'left' }}>
-                  {['Fecha', 'TA', 'FC', 'FR', 'T°', 'SpO₂', 'Gluc.', 'Dolor'].map(h => <th key={h} style={{ padding: '8px 10px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>)}
+                  {['Fecha', 'TA', 'FC', 'FR', 'T°', 'SpO₂', 'O₂', 'Gluc.', 'Dolor'].map(h => <th key={h} style={{ padding: '8px 10px', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>)}
                   {puedeEnfermeria && !egresado && <th style={{ padding: '8px 10px' }}></th>}
                 </tr>
               </thead>
@@ -786,6 +787,19 @@ export default function EpisodioPage() {
                     <td style={{ padding: '7px 10px', ...colorSigno('fr', s.fr) }}>{s.fr ?? '—'}</td>
                     <td style={{ padding: '7px 10px', ...colorSigno('temp', s.temp) }}>{s.temp ?? '—'}</td>
                     <td style={{ padding: '7px 10px', ...colorSigno('spo2', s.spo2, { oxigeno: s.oxigeno }) }}>{s.spo2 ?? '—'}</td>
+                    {/*
+                      EL OXÍGENO, QUE NO SE ENSEÑABA EN NINGUNA PARTE.
+
+                      Una SpO₂ de 94 respirando aire ambiente y una SpO₂ de 94 con
+                      5 L/min son dos pacientes muy distintos, y la tabla los
+                      pintaba idénticos. El flujo y la FiO₂ además YA se guardaban
+                      —el adaptador del monitor los traduce y el export FHIR los
+                      emite— sin que ninguna pantalla los mostrara.
+
+                      «—» es «no se registró», que NO es lo mismo que aire ambiente:
+                      por eso son etiquetas distintas.
+                    */}
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }} title={textoOxigeno(s).ayuda}>{textoOxigeno(s).texto}</td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
                     {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -805,7 +819,7 @@ export default function EpisodioPage() {
                         // retrospectivo de las 08:00 no la encontraría.
                         setMedidoOriginal(s.fechaEfectiva ?? s.fecha)
                         setMotivoCorr('')
-                        setSg({ ta: s.ta ?? '', fc: s.fc != null ? String(s.fc) : '', fr: s.fr != null ? String(s.fr) : '', temp: s.temp != null ? String(s.temp) : '', spo2: s.spo2 != null ? String(s.spo2) : '', glucosa: s.glucosa != null ? String(s.glucosa) : '', dolor: s.dolor != null ? String(s.dolor) : '', conciencia: acvpu(s.conciencia), oxigeno: !!s.oxigeno })
+                        setSg({ ta: s.ta ?? '', fc: s.fc != null ? String(s.fc) : '', fr: s.fr != null ? String(s.fr) : '', temp: s.temp != null ? String(s.temp) : '', spo2: s.spo2 != null ? String(s.spo2) : '', glucosa: s.glucosa != null ? String(s.glucosa) : '', dolor: s.dolor != null ? String(s.dolor) : '', conciencia: acvpu(s.conciencia), oxigeno: !!s.oxigeno, o2Flujo: s.oxigenoFlujoLpm != null ? String(s.oxigenoFlujoLpm) : '', o2FiO2: s.oxigenoFiO2 != null ? String(s.oxigenoFiO2) : '' })
                         setConcienciaSinMapeo(concienciaExigeReSeleccion(s.conciencia))
                         setModalSignos(true)
                       }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><PencilLine size={13} /></button>}
@@ -1464,7 +1478,7 @@ export default function EpisodioPage() {
           if (!clinicId) return; setBusy(true)
           const num = (x: string) => x.trim() ? Number(x) : undefined
           try {
-            const datos = { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, por: config?.nombreMedico ?? '' }
+            const datos = { fecha: new Date().toISOString(), ta: sg.ta.trim() || undefined, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), glucosa: num(sg.glucosa), dolor: num(sg.dolor), conciencia: sg.conciencia, oxigeno: sg.oxigeno || undefined, oxigenoFlujoLpm: sg.oxigeno ? num(sg.o2Flujo) : undefined, oxigenoFiO2: sg.oxigeno ? num(sg.o2FiO2) : undefined, por: config?.nombreMedico ?? '' }
             if (corrigiendoId) {
               /**
                * Una corrección lleva DOS cosas que el formulario no escribía:
@@ -1482,7 +1496,7 @@ export default function EpisodioPage() {
             // Alerta por deterioro: NEWS2 alto O parámetro individual en rojo (criterio Royal College)
             const n2 = calcularNews2({ ta: sg.ta, fc: num(sg.fc), fr: num(sg.fr), temp: num(sg.temp), spo2: num(sg.spo2), conciencia: sg.conciencia, oxigeno: sg.oxigeno })
             if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2', titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo})`, detalle: n2.recomendacion })
-            toast(corrigiendoId ? 'Corrección registrada — el original se conserva' : 'Signos registrados', 'success'); setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setMotivoCorr(''); setMedidoOriginal(null); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); cargar()
+            toast(corrigiendoId ? 'Corrección registrada — el original se conserva' : 'Signos registrados', 'success'); setModalSignos(false); setCorrigiendoId(null); setConcienciaSinMapeo(false); setMotivoCorr(''); setMedidoOriginal(null); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false, o2Flujo: '', o2FiO2: '' }); cargar()
           } catch (e) {
             // Sin catch, el modal quedaba abierto y sin mensaje: parecía que no pasó
             // nada y el dato clínico simplemente no se guardaba.
@@ -1548,6 +1562,24 @@ export default function EpisodioPage() {
           <label style={{ fontSize: 12.5, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginTop: 14 }}>
             <input type="checkbox" checked={sg.oxigeno} onChange={e => setSg(s => ({ ...s, oxigeno: e.target.checked }))} /> Recibe O₂ suplementario
           </label>
+          {/*
+            CON CUÁNTO. El flujo y la FiO₂ ya se guardaban —el adaptador del
+            monitor los traduce desde LOINC y el export FHIR los emite— y no
+            había forma de teclearlos ni de verlos. Una SpO₂ de 94 con 5 L/min
+            no es la misma SpO₂ de 94 respirando aire.
+          */}
+          {sg.oxigeno && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)' }}>Flujo (L/min)</label>
+                <input className={inputCls} inputMode="decimal" value={sg.o2Flujo} onChange={e => setSg(s => ({ ...s, o2Flujo: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)' }}>FiO₂ (%)</label>
+                <input className={inputCls} inputMode="decimal" value={sg.o2FiO2} onChange={e => setSg(s => ({ ...s, o2FiO2: e.target.value }))} />
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </div>
