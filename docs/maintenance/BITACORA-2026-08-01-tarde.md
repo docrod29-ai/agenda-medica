@@ -177,9 +177,11 @@ original, se conserva por contexto.
     forma fiable de mapear `medicoId` → `uid`. **v875 escribió ese vínculo** al
     conectar el calendario (`doctors/{id}.uid` + `googleTokens/{uid}.medicoId`),
     que era el prerrequisito, y **v876 lo consumió**: la disponibilidad pública
-    descuenta el freebusy del médico y el alta lo revalida. **Queda**: el bot de
-    WhatsApp, y que esto sólo aplica a quien RECONECTE su calendario — los ya
-    conectados no tienen el vínculo escrito.
+    descuenta el freebusy del médico, el alta lo revalida y **v877 llevó lo mismo
+    al bot**, con la consulta en un solo módulo. **Queda**: esto sólo aplica a
+    quien RECONECTE su calendario — los ya conectados no tienen el vínculo
+    escrito. Y la sincronización de escritura desde el portal sigue sin hacerse
+    (ver el comentario en `api/portal/route.ts`).
 13. ~~Fragmentación cromática~~ — HECHO A MEDIAS (v872): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` y **trinquete con techo 0**. **Queda**:
     los mismos colores usados como FONDO y BORDE (`rgba(239,68,68,0.1)` y
@@ -501,6 +503,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | v | Qué se reparó |
 |---|---|
 | **876** | **El portal público no descontaba lo que el médico tiene en su Google Calendar.** El panel del consultorio sí lo consultaba; el camino que usa el paciente no, porque el token vive por `uid` y no se sabía de quién era el calendario — lo desbloqueó el vínculo de v875. Ahora la disponibilidad pública lo descuenta **y el alta lo vuelve a comprobar antes de escribir**: «no ofrecer» y «no aceptar» son distintas (una pestaña abierta desde antes mete la cita igual), y ese error ya se pagó una vez con el horario partido. Cautelas: sólo con `medicoId`; si Google falla se sigue como antes —ni se esconde el día ni se rechaza una cita real por un fallo de red—; y no viaja nada del evento, sólo el intervalo. |
+
+## VIGESIMOSEXTA TANDA — v877 (el bot, y una sola consulta para los tres)
+
+| v | Qué se reparó |
+|---|---|
+| **877** | **El bot de WhatsApp era el último camino que agendaba sin mirar el calendario del médico**: ofrecía —y aceptaba— la hora de una cirugía. Ahora lo carga junto con los bloqueos del consultorio, que es la función por la que pasan sus **tres** momentos (listar, revalidar al confirmar, buscar el próximo día), así que queda cubierto también el cuarto que se escriba mañana. **Excepción declarada**: la búsqueda del «próximo día disponible» recorre 14 días y no consulta Google —serían 14 llamadas dentro de un webhook que debe contestar rápido—; no abre agujero porque sólo propone días y al elegir uno se lista con Google y al confirmar se revalida. Y la consulta se sacó a **un** módulo (`lib/calendario/ocupado-servidor.ts`) que usan el portal, el alta pública y el bot: v876 la había dejado escrita dos veces, que es como empiezan las cinco implementaciones. |
 
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
