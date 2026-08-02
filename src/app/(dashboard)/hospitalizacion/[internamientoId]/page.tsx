@@ -1210,6 +1210,33 @@ export default function EpisodioPage() {
                   por: `Monitor (importado por ${config?.nombreMedico ?? 'el equipo'})`,
                   fuente: 'dispositivo',
                 } as never)
+                /**
+                 * Y LA ALERTA DE DETERIORO, IGUAL QUE SI SE HUBIERAN TECLEADO.
+                 *
+                 * v893 trajo los signos del monitor pero NO disparaba el NEWS2:
+                 * la vía manual sí lo hace. O sea que unos signos importados
+                 * podían entrar con un deterioro dentro y no avisarle a nadie —
+                 * y son justo los que llegan sin que una persona los mire.
+                 * Un canal nuevo que se salta la alerta del canal viejo es peor
+                 * que no tener el canal.
+                 */
+                const sg2 = hl7Previo.signos as Record<string, unknown>
+                const n2 = calcularNews2({
+                  ta: typeof sg2.ta === 'string' ? sg2.ta : undefined,
+                  fc: typeof sg2.fc === 'number' ? sg2.fc : undefined,
+                  fr: typeof sg2.fr === 'number' ? sg2.fr : undefined,
+                  temp: typeof sg2.temp === 'number' ? sg2.temp : undefined,
+                  spo2: typeof sg2.spo2 === 'number' ? sg2.spo2 : undefined,
+                  // Conciencia y O2 no vienen del monitor: NEWS2 ya sabe qué
+                  // hacer con lo que falta, y no se inventa un «alerta».
+                })
+                if (n2 && (n2.riesgo === 'alto' || n2.parametroRojo) && inter) {
+                  await dispararAlerta({
+                    internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'news2',
+                    titulo: `Deterioro clínico — NEWS2 ${n2.total} (${n2.riesgo}) · importado del monitor`,
+                    detalle: n2.recomendacion,
+                  })
+                }
                 toast('Signos importados del monitor', 'success')
                 setModalHl7(false); cargar()
               } catch (e) {

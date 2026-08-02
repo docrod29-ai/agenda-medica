@@ -624,6 +624,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **896** | **La talla también se re-tecleaba en cada pantalla.** Mismo hallazgo que v895 en el dato de al lado: `ICUStay.tallaCm` está declarado «para calcular PBW y VT/PBW (§31)» y no lo escribía nadie. Y la talla de un adulto **no cambia** durante la estancia: re-teclearla en cada pase es re-arriesgar el mismo número cada vez. De ella sale el peso predicho (ARDSNet/Devine, ya en el código) y de ahí el **VT/PBW**, la meta de ventilación protectora — un dedazo de 10 cm mueve el peso predicho unos 9 kg. Ahora se fija una vez y el motor la usa por debajo de lo que se teclee. Sin talla fijada no se inventa ninguna. |
 
+## CUADRAGÉSIMA SEXTA TANDA — v897 (fallo mío de v893)
+
+| v | Qué se reparó |
+|---|---|
+| **897** | **Los signos importados del monitor entraban sin disparar la alerta de deterioro.** Registrar signos a mano calcula NEWS2 y avisa al médico tratante si hay riesgo alto o parámetro en rojo; los importados en v893 no hacían nada de eso. Un paciente que se deteriora podía quedar registrado sin que nadie se enterara — y son justo los signos que llegan **sin que una persona los mire**. Un canal nuevo que se salta la alerta del viejo da sensación de cobertura sin darla. Ahora pasa por el mismo motor y la misma alerta, con el título diciendo que viene del monitor. Lo que el monitor no manda (conciencia, O₂) **no se inventa**. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
