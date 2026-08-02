@@ -531,13 +531,38 @@ service cloud.firestore {
         // CUALQUIER clínica, incluidas inexistentes, y spamear el registro legal. Se
         // constriñe: la clínica debe EXISTIR, el estado inicial fijo, y los campos de
         // texto acotados. No es rate-limit (eso va por API), pero corta el abuso masivo.
+        /**
+         * QUIEN LLEGA DE LA CALLE NO PUEDE SEÑALAR UN EXPEDIENTE.
+         *
+         * `patientId` no estaba constreñido, y el panel de Cumplimiento enseña
+         * el botón «Ejecutar cancelación…» EXACTAMENTE cuando la solicitud trae
+         * uno. Así que cualquiera desde internet podía crear una solicitud de
+         * cancelación con el `patientId` de un paciente real de esa clínica —con
+         * un nombre plausible en la tarjeta— y el panel le ofrecía al médico
+         * suprimir ese expediente de un clic. Entre eso y la supresión sólo
+         * quedaba la casilla de «verifiqué la identidad».
+         *
+         * Una solicitud pública dice quién dice ser el solicitante; NO dice a
+         * qué expediente corresponde. Ligar el expediente es un acto de la
+         * clínica, con la identificación delante (Art. 29 LFPDPPP), y por eso
+         * sólo puede hacerlo un miembro.
+         *
+         * Y una solicitud pública tampoco puede declararse verificada a sí
+         * misma: `identidadVerificada` nace en `false` y sólo el panel la sube.
+         */
         allow create: if exists(/databases/$(database)/documents/clinics/$(clinicId))
           && request.resource.data.estado == 'recibida'
           && request.resource.data.clinicId == clinicId
           && request.resource.data.solicitante.nombre is string
           && request.resource.data.solicitante.nombre.size() <= 200
           && request.resource.data.descripcion is string
-          && request.resource.data.descripcion.size() <= 5000;
+          && request.resource.data.descripcion.size() <= 5000
+          && (
+            isMember(clinicId)
+            || (!('patientId' in request.resource.data.keys())
+                && request.resource.data.get('identidadVerificada', false) == false
+                && request.resource.data.get('origen', '') == 'portal-publico')
+          );
         allow update: if isMember(clinicId);
         allow delete: if false;
       }

@@ -32,8 +32,19 @@ export type ArcoEstado = 'recibida' | 'en_proceso' | 'resuelta' | 'rechazada'
 export interface ArcoRequest {
   id?: string
   clinicId: string
-  /** ID del paciente si está identificado en el sistema */
+  /**
+   * ID del paciente, SÓLO si la clínica lo identificó.
+   *
+   * Nunca lo pone el portal público: las reglas lo prohíben. Es lo que habilita
+   * «Ejecutar cancelación…» en el panel, y una solicitud anónima que pudiera
+   * señalar un expediente convertía ese botón en la supresión del expediente de
+   * un tercero.
+   */
   patientId?: string
+  /** De dónde llegó. `portal-publico` = sin identificar. */
+  origen?: 'portal-publico' | 'consultorio'
+  /** La clínica vio la identificación. Nace en `false` y sólo el panel la sube. */
+  identidadVerificada?: boolean
   /** Datos del solicitante */
   solicitante: {
     nombre: string
@@ -70,6 +81,15 @@ export async function crearSolicitudArco(req: Omit<ArcoRequest, 'id' | 'estado' 
   const fechaSolicitud = new Date().toISOString()
   const payload: Omit<ArcoRequest, 'id'> = {
     ...req,
+    /**
+     * DE DÓNDE VIENE Y SI ESTÁ VERIFICADA. Las reglas exigen las dos cosas a
+     * quien no es miembro: una solicitud que llega del portal público dice
+     * quién DICE ser el solicitante, y nada más. Ligarla a un expediente y dar
+     * la identidad por verificada son actos de la clínica, con la
+     * identificación delante (Art. 29 LFPDPPP).
+     */
+    origen: 'portal-publico',
+    identidadVerificada: false,
     estado: 'recibida',
     fechaSolicitud,
     fechaLimiteRespuesta: calcularFechaLimite(fechaSolicitud),

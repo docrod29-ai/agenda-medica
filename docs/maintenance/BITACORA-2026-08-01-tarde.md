@@ -148,7 +148,10 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 7. ~~Las reglas dejan reatribuir `medicoId` al vincular factura~~ — HECHO: `medicoId`, `medicoNombre`, `referenciaExterna` y `folio` congelados. **Era** — `firestore.rules:611`,
    lo que mueve el reparto de comisiones.
 8. ~~logAudit en silencio~~ — HECHO (v824). — `src/lib/expediente/audit-log.ts:84`.
-9. **El portal ARCO público no verifica identidad** — `src/app/privacidad/[clinicId]/page.tsx:70`.
+9. ~~El portal ARCO público no verifica identidad~~ — HECHO (v871): no puede
+   ligar expediente ni declararse verificado, y el panel lo declara. La
+   verificación en sí sigue siendo un acto humano de la clínica, como manda el
+   Art. 29 LFPDPPP.
 10. **Horario partido / descansos / festivos recurrentes no existen en el modelo** —
     `src/types/index.ts:408` (`DaySchedule` es un solo tramo).
 11. **Las sucursales son decorativas en la agenda** — `branchId` está en la lista blanca
@@ -434,6 +437,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | v | Qué se reparó |
 |---|---|
 | **870** | **La suscripción ANUAL se deducía como otro plan.** El webhook comparaba el importe cobrado contra una tabla de centavos **mensual**: la anual de un plan barato cae en el rango del mensual de uno caro — Agenda al año (349 000 ¢) se leía como **hospital**. Y desde que «manda el precio sobre el metadato» (v8xx, correcto para la baja hecha desde el portal de Stripe), esa deducción equivocada **pisa el metadato correcto**: quien paga Agenda al año se queda con Hospital, con módulos que no compró y la llave de IA cara del dueño. La selección del ítem del plan tampoco conocía los price ids anuales, así que en una anual podía caer en el asiento del médico extra. Nuevo `lib/finanzas/plan-de-suscripcion.ts` (puro, 7 pruebas): price id exacto → importe **sólo si es mensual** → metadato → no tocar el plan. |
+
+## VIGÉSIMA TANDA — v871 (la solicitud ARCO que señalaba a un tercero)
+
+| v | Qué se reparó |
+|---|---|
+| **871** | **Cualquiera desde internet podía señalar el expediente de un tercero para que se suprimiera.** El portal público de derechos ARCO crea la solicitud sin sesión —tiene que ser así—, pero las reglas no constreñían `patientId`, y el panel de Cumplimiento enseña «Ejecutar cancelación…» exactamente cuando la solicitud trae uno: una solicitud anónima con el `patientId` de un paciente real y un nombre plausible ponía la supresión de ese expediente a un clic, con la casilla de identidad como única barrera. Reglas: quien no es miembro no puede mandar `patientId`, debe declarar `origen: 'portal-publico'` y no puede declararse verificada a sí misma. El panel marca «Identidad sin verificar» y explica por qué no hay botón cuando no hay expediente ligado. **Reglas desplegadas aparte**; 101 specs del emulador en verde. |
 
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
