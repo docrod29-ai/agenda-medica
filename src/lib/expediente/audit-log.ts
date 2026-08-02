@@ -33,6 +33,17 @@ export type AuditEvento =
   | 'nota_firmada'               // firmó (queda inmutable)
   | 'nota_adenda'                // agregó una adenda a una nota firmada (NOM-004)
   | 'nota_borrada'               // borró un borrador
+  /**
+   * Contenido del expediente que se puede borrar desde el navegador.
+   *
+   * Un resultado de laboratorio o una fotografía clínica asociados a una nota YA
+   * FIRMADA podían desaparecer sin que quedara constancia de que existieron. El
+   * aviso de privacidad promete conservación mínima; borrarlos sin rastro la
+   * contradice. No se prohíbe —a veces hay que quitar una foto subida al
+   * expediente equivocado— pero tiene que quedar quién y cuándo.
+   */
+  | 'laboratorio_borrado'
+  | 'foto_clinica_borrada'
   | 'consentimiento_grabacion'   // confirmó el consentimiento del paciente
   // === Bitácora completa (requisito de trazabilidad de NOM-024; el numeral
   //     exacto NO está verificado contra el DOF — no citarlo en documentos) ===

@@ -1,6 +1,7 @@
 import { collection, doc, addDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import type { ResultadoValidado } from './extraccion'
+import { logAudit } from '@/lib/expediente/audit-log'
 
 /**
  * Persistencia del historial de laboratorios de un paciente.
@@ -50,4 +51,7 @@ export async function listarPanelesLab(clinicId: string, patientId: string): Pro
 
 export async function borrarPanelLab(clinicId: string, patientId: string, panelId: string): Promise<void> {
   await deleteDoc(doc(col(clinicId, patientId), panelId))
+  // Un resultado asociado a una nota ya firmada podía desaparecer sin dejar
+  // rastro de que existió. No se prohíbe borrarlo; se deja constancia.
+  void logAudit({ evento: 'laboratorio_borrado', clinicId, patientId, meta: { panelId } })
 }

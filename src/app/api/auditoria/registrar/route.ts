@@ -26,7 +26,7 @@ export const runtime = 'nodejs'
 /** Eventos aceptados. Lista blanca: un evento inventado no entra a la bitácora. */
 const EVENTOS = new Set([
   'ia_procesamiento', 'ia_campo_aprobado', 'ia_campo_rechazado',
-  'nota_borrador_guardado', 'nota_firmada', 'nota_adenda', 'nota_borrada',
+  'nota_borrador_guardado', 'nota_firmada', 'nota_adenda', 'nota_borrada', 'laboratorio_borrado', 'foto_clinica_borrada',
   'consentimiento_grabacion', 'expediente_lectura', 'nota_lectura', 'nota_impresion',
   'receta_generada', 'receta_descargada', 'orden_generada',
   'paciente_creado', 'paciente_modificado', 'paciente_borrado',
