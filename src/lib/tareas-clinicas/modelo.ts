@@ -49,6 +49,21 @@ export type TipoTarea =
   | 'resultado_por_revisar' // llegó y nadie lo ha mirado
   | 'seguimiento'           // volver a ver al paciente
   | 'receta_por_entregar'
+  /**
+   * SIN PRODUCTOR TODAVÍA — y se dice aquí para que nadie lo dé por hecho.
+   *
+   * El tipo existe y `/pendientes` ya sabe etiquetarlo, pero NADA crea tareas de
+   * esta clase. No es un olvido: no hay un hecho en la consulta que signifique
+   * «hay una indicación que entregar». Las indicaciones se escriben dentro del
+   * plan, que es obligatorio en todas las notas — derivar una tarea de ahí
+   * pondría una en CADA consulta, y un worklist que se llena de tareas que nadie
+   * pidió se abandona en una semana. Entonces tampoco se ve el estudio que sí
+   * importaba.
+   *
+   * Lo que falta es la decisión de producto: qué acto concreto significa que hay
+   * indicaciones que entregar (¿imprimir una hoja para el paciente? ¿marcarlo?).
+   * Esa decisión no la toma un archivo de software.
+   */
   | 'indicacion_paciente'
   | 'otra'
 

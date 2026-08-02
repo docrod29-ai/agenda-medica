@@ -316,7 +316,14 @@ opción que no inventa nada.
 ## LO QUE QUEDA EN LA COLA (nada de esto es urgente)
 - **Fragmentación cromática**: 160 de 187 `.tsx` con estilo en línea.
 - **Formularios previos a la consulta** en el portal del paciente (P-019).
-- ~~Próxima cita al motor de tareas~~ — HECHO (v849). Quedan las **instrucciones
-  al paciente** (P-010): hoy se escriben en el plan y no generan nada.
+- ~~Próxima cita al motor de tareas~~ — HECHO (v849).
+- **Instrucciones al paciente (P-010)**: el tipo de tarea `indicacion_paciente`
+  existe y `/pendientes` sabe etiquetarlo, pero **nada lo crea**, y lo dejo así a
+  propósito. Las indicaciones se escriben dentro del plan, que es obligatorio en
+  todas las notas: derivar de ahí pondría una tarea en CADA consulta y el
+  worklist se abandonaría en una semana. Falta una **decisión de producto**: qué
+  acto concreto significa «hay indicaciones que entregar» — ¿imprimir una hoja
+  para el paciente? ¿marcarlo a mano? Queda declarado en `modelo.ts` para que
+  nadie lo dé por hecho al leer el tipo.
 - **`PlanVersion`/`LegacyPlan`/`OverageRule`/`Addon`/`Discount`** del motor de
   precios (P-013).
