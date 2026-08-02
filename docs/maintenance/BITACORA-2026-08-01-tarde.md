@@ -246,3 +246,38 @@ abogado sanitarista). ~45 hallazgos; lo confirmado leyendo el código está abaj
     `extraerAprendizajes` (`consultor/page.tsx:63`).
 15. **Festivos no editables ni recurrentes** — se leen en cuatro sitios y no se
     escriben en ninguno: la lista está siempre vacía.
+
+
+## SEGUNDA TANDA DE LA NOCHE — v834 a v839
+
+| v | Qué se reparó |
+|---|---|
+| **834** | Zod se comía `safety.alergia_conflicto` (el prompt lo pedía desde siempre) → se leía como «el modelo no vio nada». La vía se corregía sólo en el papel, no en la nota firmada. El QR podía certificar la versión anterior. La página de verificación afirmaba «no fue alterado» sin comparar nada. Un 429 de PubMed se leía como «no hay evidencia». |
+| **835** | **El sello de procedencia mentía en las dos direcciones**: bastaba una cadena no vacía para sellar un campo como «dictado» y mostrar la frase entrecomillada como literal; y un valor que el médico corrigió seguía diciendo «dictado» con la cita original. Sin extracción, todo salía como «manual» aunque lo hubiera escrito el parser local — que además se atribuía a Opus. |
+| **836** | La segunda opinión recortaba a 12 000 caracteres **sin marca** y podía decir «sin hallazgos» sobre lo que no leyó. Los bloqueos se guardaban con la hora del navegador. El portal armaba los días con el reloj del paciente. El Consultor mandaba el nombre del paciente al proveedor. |
+| **837** | Festivos editables y **recurrentes** (`MM-DD`): la lista se leía en cuatro sitios y no se escribía en ninguno. El portal público ya escribe el aviso de privacidad en el expediente, con versión y huella, igual que el alta desde el consultorio. |
+| **838** | Los asientos de bitácora encolados sin red **se firmaban con el nombre de quien entrara después** en ese equipo. Y `asientosPendientes()` no lo mostraba ninguna pantalla. |
+| **839** | **Cualquier médico podía firmar una nota con la cédula de otro** (`firestore.rules`). Las adendas —el único mecanismo de corrección sobre un documento inmutable— se creaban sin acreditar autor ni motivo. Reglas desplegadas aparte. |
+
+**Módulos nuevos**: `lib/horario-medico.ts`, `lib/ndjson.ts`, `esFestivo` en
+`lib/availability.ts`, `asientosDeOtros` en `lib/expediente/audit-log.ts`.
+
+**Pruebas**: 4463 → 4501 · emulador 100 → 101 · **techo de lint apretado de 99 a 98**.
+
+## LO QUE QUEDA DE LA COLA (verificado, sin tocar)
+
+1. **Laboratorios y fotos se borran desde el navegador sin dejar rastro**
+   (`firestore.rules:240,249`), contra la conservación que promete el aviso. Hace
+   falta decidir si se prohíbe desde el cliente o se exige motivo.
+2. **El ciclo de vida de la orden de medicamento no tiene escritores** — nada
+   asigna `suspendida/terminada/cancelada`, así que «Está tomando» es en realidad
+   «todo lo que alguna vez apareció en una nota». **NEEDS_CLINICAL_REVIEW**:
+   ¿una duración cumplida pasa a `terminada` sola, o exige acto médico?
+3. **El header de la consulta no muestra problemas activos ni última visita**
+   (P-005 del V6). Los medicamentos vigentes ya están (v828).
+4. **`BLOQUEA_RECETA` del NER sigue sin gatear nada** — el estado `entidades` no
+   se lee en el guardado ni en la receta, y el NER es un botón manual.
+5. **Sucursales decorativas** (`branchId` no lo escribe ninguna interfaz).
+6. **Google Calendar unidireccional** — no hay `freebusy`.
+7. **`timeToFirst*` del onboarding** y los **cuatro tableros** de P-022.
+8. **`BillingEngine`/`StripeAdapter`** (P-012) — sólo si sobra tiempo: hoy funciona.
