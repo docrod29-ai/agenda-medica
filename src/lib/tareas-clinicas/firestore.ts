@@ -11,13 +11,44 @@
  * El `patientId` va dentro, así que el camino inverso —los pendientes de ESTE
  * paciente— sigue siendo una consulta directa.
  */
-import { collection, doc, addDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
+import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { puedeTransicionar, type TareaClinica, type EstadoTarea } from './modelo'
 
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'tareas_clinicas')
 
-/** Crea las tareas de golpe. Devuelve cuántas entraron. */
+/**
+ * IDENTIDAD DE UNA TAREA DERIVADA, para no duplicarla.
+ *
+ * Una tarea que nace de un HECHO —«se pidió esta biometría en esta nota»— es la
+ * misma tarea aunque el hecho se repita: imprimir la orden dos veces no son dos
+ * biometrías. Con `addDoc` cada llamada creaba una copia, y un worklist con la
+ * misma tarea tres veces se vuelve ruido y se abandona.
+ *
+ * El id se deriva de la nota y del título, así que la segunda escritura
+ * SOBREESCRIBE la primera en vez de sumarse.
+ */
+function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
+  if (!t.notaId) return null
+  const clave = `${t.tipo}:${t.titulo}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80)
+  return clave ? `${t.notaId}__${clave}` : null
+}
+
+/**
+ * Crea las tareas de golpe. Devuelve cuántas entraron.
+ *
+ * Las que traen `notaId` van con id DERIVADO y `merge`: repetir la acción que
+ * las origina —volver a imprimir la orden, reprocesar la nota— no las duplica.
+ * `merge` y no `set` a secas para no pisar el estado de una tarea que el médico
+ * ya movió: si la aceptó o la cerró, volver a imprimir la orden no puede
+ * devolverla a «solicitada».
+ */
 export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaClinica, 'id'>[]): Promise<number> {
   if (!clinicId || !tareas.length) return 0
   let n = 0
@@ -27,7 +58,16 @@ export async function crearTareas(clinicId: string, tareas: readonly Omit<TareaC
       // antes, porque una tarea que no se guarda es un pendiente que se pierde —
       // exactamente lo que este módulo existe para evitar.
       const limpio = Object.fromEntries(Object.entries(t).filter(([, v]) => v !== undefined))
-      await addDoc(COL(clinicId), limpio)
+      const id = idDerivado(t)
+      if (id) {
+        const { estado, ...sinEstado } = limpio as Record<string, unknown> & { estado?: unknown }
+        const ref = doc(COL(clinicId), id)
+        const previa = await getDoc(ref)
+        // El estado sólo se escribe al NACER. Después manda el médico.
+        await setDoc(ref, previa.exists() ? sinEstado : { ...sinEstado, estado }, { merge: true })
+      } else {
+        await addDoc(COL(clinicId), limpio)
+      }
       n++
     } catch {
       /* una tarea que falle no puede tumbar las demás */
