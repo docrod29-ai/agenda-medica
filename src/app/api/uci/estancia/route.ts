@@ -29,7 +29,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
-import { validarPeso, fijarPeso, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
+import { validarPeso, fijarPeso, validarTalla, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { SOPORTES_ACTIVOS, type SoporteActivo, type ICUStay } from '@/types/hospital'
@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
     fechaIngresoUci?: string
     /** Peso de dosificación (charter §16). Se fija a propósito, con su autor. */
     pesoDosificacion?: { valorKg?: unknown; tipo?: unknown }
+    /** Talla en cm (charter §31): de ella salen PBW y VT/PBW. */
+    tallaCm?: unknown
   }
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
@@ -144,6 +146,17 @@ export async function POST(req: NextRequest) {
      * Se valida FORMA, nunca criterio: cuál de los cuatro pesos usar es del
      * médico. Ver `lib/uci/peso-dosificacion.ts`.
      */
+    /**
+     * LA TALLA (charter §31). No cambia durante la estancia y de ella salen el
+     * peso predicho y el VT/PBW: re-teclearla en cada pantalla es re-arriesgar
+     * la meta de ventilación protectora en cada pase.
+     */
+    if (body.tallaCm !== undefined) {
+      const v = validarTalla(body.tallaCm)
+      if (!v.ok) return NextResponse.json({ error: v.mensaje }, { status: 400 })
+      datos.tallaCm = Number(body.tallaCm)
+    }
+
     if (body.pesoDosificacion !== undefined) {
       const autor = acc.email || acc.uid
       const v = validarPeso(body.pesoDosificacion?.valorKg, body.pesoDosificacion?.tipo, autor)

@@ -62,14 +62,19 @@ export async function guardarSoportesUci(
 export async function fijarPesoDosificacion(
   clinicId: string,
   internamientoId: string,
-  peso: { valorKg: number; tipo: TipoPesoDosificacion },
+  peso: { valorKg: number; tipo: TipoPesoDosificacion } | null,
   soportesActuales: readonly SoporteActivo[],
   pacienteId?: string,
+  tallaCm?: number,
 ): Promise<EstanciaUciDoc> {
   const r = await fetchAutenticado('/api/uci/estancia', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clinicId, internamientoId, pacienteId, soportes: soportesActuales, pesoDosificacion: peso }),
+    body: JSON.stringify({
+      clinicId, internamientoId, pacienteId, soportes: soportesActuales,
+      ...(peso ? { pesoDosificacion: peso } : {}),
+      ...(tallaCm !== undefined ? { tallaCm } : {}),
+    }),
   })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(j.error || 'No se pudo fijar el peso de dosificación')

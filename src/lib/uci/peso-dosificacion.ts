@@ -126,3 +126,45 @@ export const POR_QUE_NO_SE_TOMA_DE_LA_NOTA =
   'Porque el peso de la nota cambia —edema, balance, otra báscula— y arrastrarlo ' +
   'automáticamente movería todas las dosis sin que nadie lo pidiera. En una ' +
   'infusión de µg/kg/min, un 14 % de diferencia en el peso es un 14 % en la dosis.'
+
+
+/**
+ * LA TALLA DE LA ESTANCIA — el otro dato que se re-teclea en cada pantalla.
+ *
+ * `ICUStay.tallaCm` está declarado «para poder calcular PBW y VT/PBW (charter
+ * §31)» y tampoco lo escribe nadie: el panel de ventilación pide la talla en su
+ * propio campo, cada vez.
+ *
+ * Y la talla de un adulto NO CAMBIA durante una estancia. Volver a teclearla en
+ * cada pase no es sólo trabajo repetido: de ella sale el **peso predicho**, y
+ * del peso predicho sale el VT/PBW, que es la meta de ventilación protectora.
+ * Un dedazo de 10 cm mueve el PBW unos 9 kg — y con él, el volumen que se
+ * considera protector para ese paciente.
+ *
+ * El rango es el que ya valida el motor de ventilación (`RANGOS.talla_cm`); aquí
+ * sólo se descarta lo que no puede ser una talla tecleada, igual que con el peso.
+ */
+export const MIN_CM = 30
+export const MAX_CM = 250
+
+export function validarTalla(valor: unknown): Validacion {
+  const bruto = String(valor ?? '').trim()
+  if (!bruto) return { ok: false, motivo: 'vacio', mensaje: 'Escribe la talla en centímetros.' }
+  const n = Number(bruto)
+  if (!Number.isFinite(n)) return { ok: false, motivo: 'no-numerico', mensaje: `«${bruto}» no es un número.` }
+  if (n < MIN_CM || n > MAX_CM) {
+    return { ok: false, motivo: 'fuera-de-rango', mensaje: `${n} cm está fuera de lo que puede ser una talla tecleada (${MIN_CM}–${MAX_CM} cm). Revísalo.` }
+  }
+  return { ok: true }
+}
+
+/** La talla que deben usar las calculadoras. `null` si no se fijó ninguna. */
+export function tallaParaCalcular(tallaCm: number | null | undefined): number | null {
+  const n = Number(tallaCm)
+  return Number.isFinite(n) && n >= MIN_CM && n <= MAX_CM ? n : null
+}
+
+export const POR_QUE_LA_TALLA_SE_FIJA_UNA_VEZ =
+  'Porque la talla de un adulto no cambia durante la estancia, y de ella sale el ' +
+  'peso predicho y con él el VT/PBW —la meta de ventilación protectora—. Un ' +
+  'dedazo de 10 cm mueve el peso predicho unos 9 kg.'

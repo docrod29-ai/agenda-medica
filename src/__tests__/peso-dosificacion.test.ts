@@ -95,3 +95,42 @@ describe('el autor lo sella el servidor', () => {
     expect(s).toContain('fijarPeso(')
   })
 })
+
+/**
+ * LA TALLA (charter §31) — el otro dato que se re-tecleaba en cada pantalla.
+ *
+ * `ICUStay.tallaCm` está declarado «para poder calcular PBW y VT/PBW» y tampoco
+ * lo escribía nadie. La talla de un adulto NO cambia durante la estancia, y de
+ * ella sale el peso predicho y con él el VT/PBW — la meta de ventilación
+ * protectora. Un dedazo de 10 cm mueve el peso predicho unos 9 kg.
+ */
+describe('validarTalla', () => {
+  it('una talla normal se acepta', async () => {
+    const { validarTalla } = await import('@/lib/uci/peso-dosificacion')
+    expect(validarTalla('168').ok).toBe(true)
+  })
+
+  it('un dedazo no se convierte en un volumen protector', async () => {
+    const { validarTalla } = await import('@/lib/uci/peso-dosificacion')
+    expect(validarTalla('0').motivo).toBe('fuera-de-rango')
+    expect(validarTalla('1680').motivo).toBe('fuera-de-rango')
+    expect(validarTalla('alto').motivo).toBe('no-numerico')
+    expect(validarTalla('').motivo).toBe('vacio')
+  })
+
+  it('sin talla fijada NO se inventa una', async () => {
+    const { tallaParaCalcular } = await import('@/lib/uci/peso-dosificacion')
+    expect(tallaParaCalcular(null)).toBeNull()
+    expect(tallaParaCalcular(undefined)).toBeNull()
+    expect(tallaParaCalcular(0)).toBeNull()
+    expect(tallaParaCalcular(170)).toBe(170)
+  })
+
+  it('el panel usa la fijada por DEBAJO de lo que se teclee en él', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const s = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'uci', 'page.tsx'), 'utf8')
+    expect(s).toContain("tallaCm: n('talla') ?? tallaParaCalcular(tallaFijada)")
+    expect(s).toContain("n('infPeso') ?? pesoParaCalcular(pesoFijado)")
+  })
+})
