@@ -375,6 +375,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **860** | **El enlace del portal no se podía revocar, y duraba 30 días.** Firmado y con fecha, no había forma de invalidar uno ya emitido: teléfono perdido, número reciclado o mensaje reenviado valían hasta caducar — y ese enlace da acceso a las citas del paciente (motivo incluido, que es texto clínico) y permite cancelar y reagendar. Ahora el expediente lleva un **contador de versión**: subirlo tumba de golpe todos los enlaces de ese paciente, desde un botón en su expediente. TTL de 30 → **7 días**, y el mensaje ya le advierte que es personal y caduca. Botón verificado en producción. |
 
+## DÉCIMA TANDA — v861
+
+| v | Qué se reparó |
+|---|---|
+| **861** | **«Pagar anticipo · Asegura tu lugar» no aseguraba nada**: abría un enlace externo suelto, sin retorno, sin webhook, sin cambio de estado y **sin cobro registrado** — y el importe del cartel podía no ser el que cobraba el enlace. La ruta que sí lo registra existía y **no la llamaba nadie**. **El aviso de lista de espera desde el modal iba sin `medicoId`**: el hueco liberado por una doctora se agendaba con otro médico. **La cama del alta no pasaba por limpieza terminal** —el bloque estaba condicionado al traslado— y contaba disponible en el mismo instante del alta. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
@@ -399,8 +405,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
 ### Hospital / UCI
 10. ~~Un reingreso borra la estancia anterior~~ — HECHO (v855), junto con el
     cierre de la estancia al egresar (punto 10 del informe de UCI).
-11. **La limpieza terminal no se aplica al EGRESO**, sólo al traslado: la cama
-    cuenta como disponible en el mismo instante del alta.
+11. ~~La limpieza terminal no se aplica al egreso~~ — HECHO (v861).
 12. **El turno de enfermería de UCI oculta pacientes** de una unidad sin tipo
     configurado y afirma «no hay nada pendiente» (`uci/enfermeria/page.tsx:51`).
 13. **Las tomas de UCI se firman con el nombre del médico tratante**, no de quien
@@ -417,8 +422,5 @@ Por orden de daño. Todo con archivo:línea, verificable.
 17. ~~Lista de espera: el NO no daba de baja y el silencio desterraba~~ — HECHO (v859).
 18. ~~El detector de FAQ secuestra las confirmaciones~~ — HECHO (v859).
 19. ~~«Mis recetas» imprime "Invalid Date"~~ — HECHO (v859).
-20. **«Pagar anticipo · Asegura tu lugar» no asegura nada**: abre un enlace
-    externo suelto sin retorno ni registro; la ruta que sí lo registraría no
-    tiene ni un llamador.
-21. **Aviso de lista de espera desde el modal sin `medicoId`** → la cita se
-    agenda con el médico equivocado (`AppointmentModal.tsx:308`).
+20. ~~«Pagar anticipo» no aseguraba nada~~ — HECHO (v861).
+21. ~~Aviso de lista de espera sin `medicoId`~~ — HECHO (v861).
