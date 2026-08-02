@@ -32,13 +32,14 @@ import {
 } from '@/lib/whatsapp/consent'
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
-import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
+import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 // Del NÚCLEO PURO: ruta de SERVIDOR — ver el comentario de cabecera de
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
+import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -326,6 +327,48 @@ async function findClinicByPhoneNumberId(phoneNumberId: string): Promise<string 
   return null
 }
 
+/**
+ * LO QUE PASA DESPUÉS DE UNA CANCELACIÓN — las tres cosas que ya aprendimos.
+ *
+ * v863 las cerró para el portal del paciente y aquí seguían sin hacerse: el
+ * hueco liberado no se le ofrecía a nadie, no quedaba asiento en la bitácora
+ * (NOM-024) y el consultorio sólo se enteraba mirando la agenda.
+ *
+ * Ninguna puede tumbar la cancelación: el paciente ya la pidió y ya está hecha.
+ */
+async function avisarCancelacion(
+  clinicId: string,
+  citaId: string,
+  cita: Record<string, unknown>,
+  from: string,
+  adminPhone: string,
+  send: (to: string, msg: string) => Promise<boolean>,
+): Promise<void> {
+  const fechaHora = String(cita.fechaHora ?? '')
+  void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+    evento: 'cita_cancelada_whatsapp',
+    clinicId, citaId,
+    patientId: String(cita.pacienteId ?? ''),
+    timestamp: new Date().toISOString(),
+    meta: { fechaHora, tipo: String(cita.tipo ?? ''), medicoId: String(cita.medicoId ?? ''), origen: 'bot-whatsapp' },
+  }).catch(() => { /* la bitácora no tumba la cancelación */ })
+
+  if (fechaHora.length >= 16) {
+    const { ofrecerHuecoLiberado } = await import('@/lib/whatsapp/ofrecer-hueco')
+    void ofrecerHuecoLiberado(clinicId, {
+      fecha: fechaHora.slice(0, 10),
+      hora: fechaHora.slice(11, 16),
+      tipo: String(cita.tipo ?? '') || undefined,
+      // Sin médico, el hueco de una doctora se le ofrecería a quien espera con otro.
+      medicoId: String(cita.medicoId ?? '') || undefined,
+    }).catch(() => { /* ídem */ })
+  }
+
+  if (adminPhone && adminPhone !== from) {
+    await send(adminPhone, `🔔 Cancelación por WhatsApp: ${String(cita.pacienteNombre ?? from)} — ${fechaHora}`)
+  }
+}
+
 // ── FAQ detector ─────────────────────────────────────────────
 
 function detectFAQ(text: string): string | null {
@@ -489,8 +532,30 @@ export async function handleMessage(from: string, body: string, clinicId: string
         // No se toca lo que ya terminó ni lo que ya movió dinero: eso lo
         // resuelve el consultorio, no un mensaje de WhatsApp.
         const tocable = snap.exists && !['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada', 'pagada', 'pendiente-pago'].includes(est)
+        /**
+         * «SÍ» NO SIEMPRE QUIERE DECIR LO MISMO.
+         *
+         * Este estado nació para responder al recordatorio, donde SÍ = «confirmo
+         * que asisto». Desde el flujo de CANCELAR se llega a la misma pregunta
+         * con el sentido contrario: «¿la cancelo?» → SÍ = cancelar. Sin esta
+         * distinción, quien pide cancelar y contesta SÍ acabaría con la cita
+         * CONFIRMADA — exactamente lo contrario de lo que pidió, y sin enterarse
+         * hasta el día de la consulta.
+         */
+        const preguntaEraCancelar = String(session?.datos?.cancelarSolo ?? '') === '1'
         if (!tocable) {
           await send(from, 'Esa cita ya no se puede cambiar por aquí. Llámanos al consultorio y te ayudamos. 🙌')
+        } else if (preguntaEraCancelar) {
+          if (esSi) {
+            await citaRef.update({
+              estado: 'cancelada',
+              updatedAt: new Date().toISOString(), updatedPor: 'paciente-whatsapp',
+            })
+            await send(from, 'Listo, cancelamos tu cita. Si quieres otra fecha escribe *agendar* y te ayudamos. 🙌')
+            await avisarCancelacion(clinicId, citaId, snap.data() as Record<string, unknown>, from, adminPhone, send)
+          } else {
+            await send(from, 'De acuerdo, tu cita sigue en pie. ¿Algo más? 🙌')
+          }
         } else if (esSi) {
           await citaRef.update({
             estado: 'confirmada', confirmadoPaciente: true,
@@ -504,7 +569,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
             updatedAt: new Date().toISOString(), updatedPor: 'paciente-whatsapp',
           })
           await send(from, 'Listo, cancelamos tu cita. Si quieres otra fecha escribe *agendar* y te ayudamos. 🙌')
-          if (adminPhone) await send(adminPhone, `🔔 Cancelación por WhatsApp: ${(snap.data() as { pacienteNombre?: string } | undefined)?.pacienteNombre ?? from}`)
+          await avisarCancelacion(clinicId, citaId, snap.data() as Record<string, unknown>, from, adminPhone, send)
         }
       } catch {
         await send(from, 'No pudimos registrar tu respuesta. Llámanos al consultorio, por favor.')
@@ -540,6 +605,74 @@ export async function handleMessage(from: string, body: string, clinicId: string
     return
   }
 
+  /**
+   * Busca las citas de este teléfono y ofrece cancelarlas.
+   *
+   * Es una FUNCIÓN y no sólo un estado porque hay que poder llamarla en el mismo
+   * mensaje: guardando el estado y devolviendo, el paciente recibía «déjame
+   * buscar…» y no pasaba nada más hasta que volviera a escribir.
+   */
+  const buscarParaCancelar = async (): Promise<void> => {
+    const minHoras = Number((config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? 0)
+    const tz = config?.zonaHoraria || TZ_DEFAULT
+    let citas: CitaMinima[] = []
+    let falloLectura = false
+    try {
+      const snap = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
+        .where('pacienteTelefono', '==', from).limit(25).get()
+      citas = snap.docs.map(d => ({ id: d.id, ...(d.data() as object) })) as CitaMinima[]
+    } catch { falloLectura = true }
+
+    if (falloLectura) {
+      // No se dice «no tienes citas» cuando lo que pasó fue que no se pudieron leer.
+      await send(from, `No pude consultar tus citas en este momento. Llámanos al ${adminPhone} y te ayudamos. 🙏`)
+      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+      return
+    }
+
+    const { cancelables, bloqueadas } = clasificarCitas(
+      citas, Date.now(),
+      fh => instanteMX(fh.slice(0, 10), fh.slice(11, 16), tz).getTime(),
+      minHoras,
+    )
+
+    if (cancelables.length === 0) {
+      // Una cita bloqueada por la política NO se esconde: si el bot dijera «no
+      // encontré citas», el paciente se quedaría tranquilo y no se presentaría.
+      await send(from, bloqueadas.length > 0
+        ? mensajeBloqueada(minHoras, adminPhone)
+        : `No encontré ninguna cita próxima registrada con este número. Si la agendaste con otro teléfono, llámanos al ${adminPhone}. 🙌`)
+      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+      return
+    }
+
+    if (cancelables.length === 1) {
+      const c = cancelables[0]
+      await send(from, [
+        `Encontré esta cita:`, ``,
+        `📅 ${formatDate(c.fechaHora.slice(0, 10))} a las ${c.fechaHora.slice(11, 16)} hrs`,
+        c.medicoNombre ? `👨‍⚕️ ${c.medicoNombre}` : '',
+        ``,
+        `¿La cancelo? Responde *SÍ* para cancelar o *NO* para dejarla.`,
+      ].filter(l => l !== '').join('\n'))
+      await saveSession(clinicId, from, { estado: 'confirmando_cita', datos: { citaId: c.id, cancelarSolo: '1' } })
+      return
+    }
+
+    const lista = cancelables.slice(0, 5).map((c, i) =>
+      `${i + 1}️⃣ ${formatDate(c.fechaHora.slice(0, 10))} · ${c.fechaHora.slice(11, 16)} hrs`).join('\n')
+    await send(from, `Tienes varias citas próximas. ¿Cuál quieres cancelar?\n\n${lista}\n\n0️⃣ Ninguna`)
+    await saveSession(clinicId, from, { estado: 'cancelar_elegir', datos: { ids: cancelables.slice(0, 5).map(c => c.id).join(',') } })
+    return
+    }
+
+  // «Quiero cancelar mi cita» desde cualquier estado de reposo, sin pasar por el
+  // menú: es lo que la gente escribe.
+  if (intencion.tipo === 'cancelar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'cancelar_elegir'].includes(estado)) {
+    await buscarParaCancelar()
+    return
+  }
+
   if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
     const reply = buildFAQReply(faqKey, doctor, config || ({} as ClinicConfig))
     await send(from, reply)
@@ -571,8 +704,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
       return
     }
     if (tLow === '3' || /cancelar/.test(tLow)) {
-      await send(from, `Para cancelar su cita, por favor comuníquese al ${adminPhone}.\n\nTambién puede escribir su nombre completo y le ayudamos.`)
-      await saveSession(clinicId, from, { estado: 'cancelar_buscar', datos: {} })
+      // El mensaje ya no promete algo que no pasa: ahora sí se buscan las citas
+      // de este número y se cancelan aquí mismo.
+      await buscarParaCancelar()
       return
     }
     if (tLow === '0' || /adios|gracias|salir/.test(tLow)) {
@@ -845,9 +979,40 @@ export async function handleMessage(from: string, body: string, clinicId: string
   }
 
   // ── CANCELAR: buscar cita ─────────────────────────────────
-  if (estado === 'cancelar_buscar') {
-    await send(from, `Para cancelar su cita comuníquese directamente al consultorio:\n📞 ${adminPhone}\n\n¿Hay algo más en lo que pueda ayudarle?`)
-    await saveSession(clinicId, from, { estado: 'menu' })
+  /**
+   * CANCELAR DE VERDAD — antes era una promesa sin nada detrás.
+   *
+   * El menú ofrece «3️⃣ Cancelar cita», el primer mensaje decía «también puede
+   * escribir su nombre completo y le ayudamos»… y ESTE estado ignoraba por
+   * completo lo que el paciente escribiera: repetía el teléfono del consultorio
+   * y volvía al menú. El paciente tecleaba su nombre —dato personal, a un canal
+   * externo— para nada, y su cita seguía viva: el día de la consulta contaba
+   * como no-show.
+   *
+   * Y el bot SÍ sabía cancelar: contestar «NO» a un recordatorio cancela sin
+   * problema. Lo que faltaba era ENCONTRAR la cita cuando el paciente escribe
+   * por su cuenta, y eso se hace por el teléfono, que es lo único que el bot
+   * conoce de quien escribe (el mismo criterio que la baja de lista de espera).
+   *
+   * La política de cancelación del consultorio se respeta: si el bot cancelara
+   * sin mirarla sería la puerta trasera para saltarse lo que el portal exige.
+   * Ver `lib/whatsapp/citas-cancelables.ts`.
+   */
+  /** Elegir cuál de varias citas cancelar. */
+  if (estado === 'cancelar_elegir') {
+    const ids = String(datos.ids ?? '').split(',').filter(Boolean)
+    const n = parseInt(tLow, 10)
+    if (tLow === '0' || /ninguna|salir/.test(tLow)) {
+      await send(from, `De acuerdo, no cancelé nada. ¿Algo más?`)
+      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+      return
+    }
+    if (!Number.isFinite(n) || n < 1 || n > ids.length) {
+      await send(from, `No entendí. Responde el número de la cita que quieres cancelar, o *0* para no cancelar ninguna.`)
+      return
+    }
+    await send(from, `¿Confirmas que cancelo esa cita? Responde *SÍ* o *NO*.`)
+    await saveSession(clinicId, from, { estado: 'confirmando_cita', datos: { citaId: ids[n - 1], cancelarSolo: '1' } })
     return
   }
 
