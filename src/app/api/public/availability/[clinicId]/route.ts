@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { validarHorarioDia } from '@/lib/availability'
+import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 /**
@@ -141,11 +141,16 @@ export async function GET(
      */
     const tzClinica = (cfg.zonaHoraria as string) || TZ_DEFAULT
     const baseTs = instanteMX(fecha, '00:00', tzClinica).getTime()
+    // HORARIO PARTIDO: la misma regla que el panel. Si esto se olvidara aquí, el
+    // portal ofrecería al paciente la hora de comida del médico y la cita
+    // entraría de verdad — el panel no la rechaza, sólo no la ofrece.
+    const descansos = descansosEnMinutos(schedule.descansos)
     for (let m = startMin; m + duracion <= endMin; m += interval) {
       if (slots.length >= TECHO_ANTIDESBOCADO) {
         safeLog.warn(`[public/availability] freno anti-desbocado (${TECHO_ANTIDESBOCADO}) en ${clinicId} ${fecha} — revisar horario e intervalo`)
         break
       }
+      if (pisaDescanso(m, m + duracion, descansos)) continue
       const ts = baseTs + m * 60 * 1000
       // ¿Bloqueado?
       const bloqueado = bloques.some(b => {

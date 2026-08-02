@@ -13,6 +13,7 @@ import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIA
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
+import { descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
@@ -208,6 +209,16 @@ export default function ConfiguracionPage() {
 
   const updHorario = (dia: typeof DIAS[number], field: 'activo' | 'inicio' | 'fin', value: string | boolean) =>
     setForm(prev => ({ ...prev, horario: { ...prev.horario, [dia]: { ...prev.horario[dia], [field]: value } } }))
+
+  /**
+   * HORARIO PARTIDO — los descansos del día.
+   *
+   * Sin esto, un médico que come de 14 a 16 tenía que crear un bloqueo A MANO
+   * para cada día del año, o dejar que el portal le ofreciera su comida a los
+   * pacientes. Se edita aquí, junto al horario, porque es parte del horario.
+   */
+  const updDescansos = (dia: typeof DIAS[number], descansos: { inicio: string; fin: string }[]) =>
+    setForm(prev => ({ ...prev, horario: { ...prev.horario, [dia]: { ...prev.horario[dia], descansos } } }))
 
   const updDuracion = (tipo: AppointmentType, value: number) =>
     setForm(prev => ({ ...prev, duraciones: { ...prev.duraciones, [tipo]: value } }))
@@ -534,15 +545,24 @@ export default function ConfiguracionPage() {
               const [hF, mF] = h.fin.split(':').map(Number)
               minutos = (hF * 60 + mF) - (hI * 60 + mI)
               if (minutos > 0) {
-                cantidadSlots = Math.floor((minutos - duracionDefault) / intervalo) + 1
-                if (cantidadSlots < 0) cantidadSlots = 0
+                // Se CUENTAN los huecos uno por uno en vez de dividir, porque con
+                // descansos la fórmula deja de valer: el preview diría 22 espacios
+                // y el paciente vería 18. Un preview que miente es peor que no tenerlo.
+                const pausas = descansosEnMinutos(h.descansos)
+                const desde = hI * 60 + mI
+                const hasta = hF * 60 + mF
+                for (let m = desde; m + duracionDefault <= hasta; m += intervalo) {
+                  if (pisaDescanso(m, m + duracionDefault, pausas)) continue
+                  cantidadSlots++
+                }
               }
             }
             const horas = (minutos / 60).toFixed(1).replace('.0', '')
             // Warning si el día parece desproporcionado (>16 slots = >8h con citas de 30min)
             const esSospechoso = cantidadSlots > 16
             return (
-              <div key={dia} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--s1)', border: `1px solid ${esSospechoso ? 'var(--amber)' : 'var(--border)'}`, borderRadius: 10 }}>
+              <div key={dia} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 16px', background: 'var(--s1)', border: `1px solid ${esSospechoso ? 'var(--amber)' : 'var(--border)'}`, borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <input
                   type="checkbox"
                   checked={h.activo}
@@ -587,6 +607,42 @@ export default function ConfiguracionPage() {
                   </>
                 ) : (
                   <span style={{ fontSize: 13, color: 'var(--text3)' }}>Cerrado</span>
+                )}
+                </div>
+                {h.activo && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingLeft: 30 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text3)' }}>Descansos:</span>
+                    {(h.descansos ?? []).map((d, i) => (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="time" className="input" value={d.inicio} aria-label={`Inicio del descanso ${i + 1} de ${DIAS_LABELS[dia]}`}
+                          onChange={e => updDescansos(dia, (h.descansos ?? []).map((x, j) => j === i ? { ...x, inicio: e.target.value } : x))}
+                          style={{ width: 100, padding: '4px 8px', fontSize: 13 }}
+                        />
+                        <span style={{ color: 'var(--text3)', fontSize: 13 }}>—</span>
+                        <input
+                          type="time" className="input" value={d.fin} aria-label={`Fin del descanso ${i + 1} de ${DIAS_LABELS[dia]}`}
+                          onChange={e => updDescansos(dia, (h.descansos ?? []).map((x, j) => j === i ? { ...x, fin: e.target.value } : x))}
+                          style={{ width: 100, padding: '4px 8px', fontSize: 13 }}
+                        />
+                        <button
+                          type="button" className="btn-ghost" aria-label={`Quitar el descanso ${i + 1} de ${DIAS_LABELS[dia]}`}
+                          onClick={() => updDescansos(dia, (h.descansos ?? []).filter((_, j) => j !== i))}
+                          style={{ padding: '4px 8px', fontSize: 12, color: 'var(--red)' }}
+                        >Quitar</button>
+                      </span>
+                    ))}
+                    <button
+                      type="button" className="btn-ghost"
+                      onClick={() => updDescansos(dia, [...(h.descansos ?? []), { inicio: '14:00', fin: '16:00' }])}
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                    >+ Añadir descanso</button>
+                    {(h.descansos ?? []).some(d => descansosEnMinutos([d]).length === 0) && (
+                      <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <AlertTriangle size={11} className="ds-icon" /> Un descanso está incompleto o al revés — ese no se aplica.
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             )
