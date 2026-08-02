@@ -38,6 +38,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT } from '@/lib/timezone'
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 
 /**
@@ -514,8 +515,31 @@ export async function handleMessage(from: string, body: string, clinicId: string
     // Cualquier otra cosa: sigue la conversación normal, sin perder el mensaje.
   }
 
-  // ── Always detect FAQ first (any state) ──────────────────────
-  const faqKey = detectFAQ(text)
+  /**
+   * LA INTENCIÓN MANDA SOBRE LA PREGUNTA FRECUENTE.
+   *
+   * Esto detectaba la pregunta frecuente ANTES que nada, y el patrón de PRECIO
+   * incluye la palabra «consulta». Es decir: «quiero agendar una consulta» —la
+   * frase más natural para pedir cita— disparaba la respuesta de precios, el bot
+   * enseñaba el menú y la cita NO SE AGENDABA NUNCA. Y desde fuera parecía que
+   * el bot funcionaba: contestó rápido y con información correcta.
+   *
+   * Ahora un verbo de acción (agendar, reservar, cancelar, reagendar) gana al
+   * tema mencionado. Sin verbo, la pregunta frecuente manda como siempre:
+   * «¿cuánto cuesta la consulta?» sigue siendo precio.
+   * Ver `lib/whatsapp/intencion.ts`.
+   */
+  const intencion = intencionDelMensaje(text, detectFAQ)
+  const faqKey = intencion.tipo === 'faq' ? intencion.clave : null
+
+  // Pedir cita explícitamente arranca el alta desde CUALQUIER estado de reposo:
+  // antes había que estar en el menú y escribir justo «1» o «agendar».
+  if (intencion.tipo === 'agendar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
+    await send(from, `¿Cuál es su nombre completo?`)
+    await saveSession(clinicId, from, { estado: 'agendar_nombre', datos: {} })
+    return
+  }
+
   if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
     const reply = buildFAQReply(faqKey, doctor, config || ({} as ClinicConfig))
     await send(from, reply)
