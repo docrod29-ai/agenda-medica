@@ -439,9 +439,59 @@ export async function handleMessage(from: string, body: string, clinicId: string
     }
   }
 
+  /**
+   * LA RESPUESTA AL RECORDATORIO — antes que el detector de preguntas.
+   *
+   * El recordatorio de 24 h dice «Responde SÍ para confirmar o NO para
+   * cancelar». Sin este bloque, el bot caía en el saludo y contestaba el menú:
+   * el paciente confirmaba y su cita seguía sin confirmar; decía NO queriendo
+   * cancelar y la cita seguía viva ocupando el hueco.
+   *
+   * Va ANTES del detector de FAQ porque «sí, esa **hora** me sirve» contiene la
+   * palabra «hora» y el detector se lo quedaba: contestaba el horario de
+   * atención y la respuesta del paciente se perdía.
+   */
+  if (estado === 'confirmando_cita') {
+    const citaId = String(session?.datos?.citaId ?? '')
+    const esSi = /^(si|sí|s|ok|okay|confirmo|confirmado|va|claro|asi es|así es|1)\b/.test(tLow)
+    const esNo = /^(no|n|cancelar|cancela|no puedo|2)\b/.test(tLow)
+    if (citaId && (esSi || esNo)) {
+      try {
+        const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
+        const snap = await citaRef.get()
+        const est = String((snap.data() as { estado?: string } | undefined)?.estado ?? '')
+        // No se toca lo que ya terminó ni lo que ya movió dinero: eso lo
+        // resuelve el consultorio, no un mensaje de WhatsApp.
+        const tocable = snap.exists && !['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada', 'pagada', 'pendiente-pago'].includes(est)
+        if (!tocable) {
+          await send(from, 'Esa cita ya no se puede cambiar por aquí. Llámanos al consultorio y te ayudamos. 🙌')
+        } else if (esSi) {
+          await citaRef.update({
+            estado: 'confirmada', confirmadoPaciente: true,
+            fechaConfirmacion: new Date().toISOString(),
+            updatedAt: new Date().toISOString(), updatedPor: 'paciente-whatsapp',
+          })
+          await send(from, '¡Gracias! Tu cita queda *confirmada*. Te esperamos. 😊')
+        } else {
+          await citaRef.update({
+            estado: 'cancelada',
+            updatedAt: new Date().toISOString(), updatedPor: 'paciente-whatsapp',
+          })
+          await send(from, 'Listo, cancelamos tu cita. Si quieres otra fecha escribe *agendar* y te ayudamos. 🙌')
+          if (adminPhone) await send(adminPhone, `🔔 Cancelación por WhatsApp: ${(snap.data() as { pacienteNombre?: string } | undefined)?.pacienteNombre ?? from}`)
+        }
+      } catch {
+        await send(from, 'No pudimos registrar tu respuesta. Llámanos al consultorio, por favor.')
+      }
+      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+      return
+    }
+    // Cualquier otra cosa: sigue la conversación normal, sin perder el mensaje.
+  }
+
   // ── Always detect FAQ first (any state) ──────────────────────
   const faqKey = detectFAQ(text)
-  if (faqKey && estado !== 'agendar_nombre') {
+  if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita'].includes(estado)) {
     const reply = buildFAQReply(faqKey, doctor, config || ({} as ClinicConfig))
     await send(from, reply)
     await send(from, '¿Desea hacer algo más?\n\n1️⃣ Agendar cita\n2️⃣ Otra consulta\n0️⃣ Salir')
@@ -845,7 +895,36 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
       await clearSession(clinicId, from)
     } else {
-      await send(from, `Entendido, le quitamos de la oferta. Si desea agendar en otro momento, escríbanos.\n\n¿Quiere seguir en la lista de espera?`)
+      /**
+       * «RESPONDA NO Y LE QUITAMOS DE LA LISTA» — y no se le quitaba.
+       *
+       * El aviso de lista de espera promete la baja con esas palabras y esta
+       * rama sólo mandaba un texto: la entrada seguía viva y el paciente
+       * recibía la siguiente oferta después de haber pedido que no.
+       *
+       * Se da de baja por TELÉFONO, que es lo único que el bot conoce de quien
+       * escribe. Si falla, se dice: prometer una baja que no ocurrió es peor que
+       * no prometerla.
+       */
+      let dadoDeBaja = false
+      try {
+        const cRef = adminDb.collection('clinics').doc(clinicId)
+        const wl = await cRef.collection('waitlist')
+          .where('pacienteTelefono', '==', from)
+          .limit(10)
+          .get()
+        for (const d of wl.docs) {
+          const est = String((d.data() as { estado?: string }).estado ?? '')
+          if (est === 'activo' || est === 'contactado') {
+            await d.ref.update({ estado: 'baja', bajaEn: new Date().toISOString(), bajaMotivo: 'El paciente respondió NO a una oferta' })
+            dadoDeBaja = true
+          }
+        }
+      } catch { /* se dice abajo */ }
+
+      await send(from, dadoDeBaja
+        ? `Listo, le quitamos de la lista de espera. Si más adelante quiere una cita, escríbanos y con gusto le agendamos. 🙌`
+        : `Entendido, no le ofrecemos este horario. No pudimos quitarle de la lista automáticamente — dígalo al consultorio y lo hacemos.`)
       await saveSession(clinicId, from, { estado: 'menu' })
     }
     return

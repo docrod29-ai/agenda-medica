@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { candidatos } from '@/lib/whatsapp/lista-espera'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
@@ -52,11 +53,24 @@ export async function POST(req: NextRequest) {
     // Candidatos activos ordenados por prioridad (1 = MAYOR prioridad → asc).
     // Antes era 'desc', que ofrecía el slot al paciente MENOS prioritario.
     // Traemos más de 3 para poder filtrar por compatibilidad y aún notificar a 3.
+    /**
+     * TAMBIÉN LOS YA CONTACTADOS, PASADO UN TIEMPO.
+     *
+     * Al ofrecer un hueco se marcaba `contactado`, y la consulta de ofertas
+     * futuras exigía `activo`: un paciente que recibía UNA oferta y no
+     * contestaba —porque estaba trabajando, o no vio el mensaje— **no volvía a
+     * recibir ninguna nunca**. Quedaba en la lista de espera para siempre sin
+     * que la lista sirviera para nada.
+     *
+     * Se traen los dos estados y se filtra abajo por antigüedad del contacto:
+     * `contactado` significa «ya se le ofreció algo hace poco», no «ya no
+     * cuenta». El filtro va en memoria porque un `where in` + dos `orderBy`
+     * exige un índice compuesto que hay que crear a mano en la consola — y
+     * mientras no exista, la lectura falla ENTERA y no se ofrece a nadie.
+     */
     const waitlistSnap = await clinicRef.collection('waitlist')
-      .where('estado', '==', 'activo')
-      .orderBy('prioridad', 'asc')
-      .orderBy('createdAt', 'asc')
-      .limit(20)
+      .where('estado', 'in', ['activo', 'contactado'])
+      .limit(60)
       .get()
 
     if (waitlistSnap.empty) {
@@ -67,7 +81,18 @@ export async function POST(req: NextRequest) {
     let notified = 0
     const LIMITE_NOTIFICAR = 3
 
-    for (const doc of waitlistSnap.docs) {
+    /**
+     * Orden y elegibilidad en memoria (ver `lib/whatsapp/lista-espera.ts`):
+     * prioridad, luego antigüedad, y los ya contactados vuelven a la rueda
+     * pasadas unas horas en vez de quedar desterrados para siempre.
+     */
+    const ordenados = candidatos(
+      waitlistSnap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })),
+      Date.now(),
+    )
+
+    for (const entradaOrdenada of ordenados) {
+      const doc = waitlistSnap.docs.find(d => d.id === entradaOrdenada.id)!
       if (notified >= LIMITE_NOTIFICAR) break
       const entry = { id: doc.id, ...doc.data() } as WaitlistEntry
 
@@ -156,7 +181,10 @@ export async function POST(req: NextRequest) {
         await clinicRef.collection('bot_sessions').doc(idSesion).set(sessionData, { merge: true })
 
         // Mark waitlist entry as contactado
-        await clinicRef.collection('waitlist').doc(entry.id).update({ estado: 'contactado' })
+        // `contactadoEn` es lo que permite que vuelva a entrar en la rueda: sin
+        // fecha, «contactado» sería otra vez un destierro permanente.
+        await clinicRef.collection('waitlist').doc(entry.id)
+          .update({ estado: 'contactado', contactadoEn: new Date().toISOString() })
       } else if (resultado === 'fallo') {
         // Aviso de un solo disparo: si falla por error transitorio, encolar para
         // reintento con backoff (lo drena el cron de recordatorios).

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { fechaFlexible } from '@/lib/portal/fechas'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -58,11 +59,21 @@ const TIPO_LABEL: Record<string, string> = {
   'prequirurgica': 'Val. prequirúrgica', 'procedimiento': 'Procedimiento', 'otro': 'Consulta',
 }
 
-function fmtFecha(fh: string): { dia: string; fecha: string; hora: string } {
-  const d = new Date(fh.replace(' ', 'T') + ':00-06:00')
-  const dia = d.toLocaleDateString('es-MX', { weekday: 'long', timeZone: 'America/Mexico_City' })
-  const fecha = d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' })
-  const hora = fh.slice(11, 16)
+/**
+ * Fecha legible para el paciente.
+ *
+ * Tolera los DOS formatos que llegan aquí —la hora de pared de una cita y el
+ * ISO de una nota— porque la pantalla los mezcla. Lo que no se entiende se dice
+ * («sin fecha»), en vez de imprimir «Invalid Date», que es lo que hacía.
+ */
+function fmtFecha(fh: string, tz = 'America/Mexico_City'): { dia: string; fecha: string; hora: string } {
+  const d = fechaFlexible(fh, tz)
+  if (!d) return { dia: '', fecha: 'Sin fecha', hora: '' }
+  const dia = d.toLocaleDateString('es-MX', { weekday: 'long', timeZone: tz })
+  const fecha = d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', timeZone: tz })
+  const hora = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(fh)
+    ? fh.slice(11, 16)
+    : d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: tz })
   return { dia: dia.charAt(0).toUpperCase() + dia.slice(1), fecha, hora }
 }
 
@@ -145,11 +156,19 @@ export default function MiPortalPage() {
   }
 
   const descargarReceta = (doc: DocReceta) => {
+    /**
+     * La fecha de la receta viene de `nota.fechaConsulta`, que es un ISO
+     * completo — no la hora de pared de una cita. Parsearla como pared daba
+     * `Invalid Date`, y `toISOString()` lanzaba `RangeError`: el botón no
+     * descargaba nada y el paciente no veía ningún error.
+     */
+    const fechaDoc = fechaFlexible(doc.fecha, tzClinica)
+    if (!fechaDoc) { alert('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
     descargarRecetaWord(
       {
         tipo: 'receta',
         folio: `RX-${doc.id.slice(-7).toUpperCase()}`,
-        fecha: new Date(doc.fecha.replace(' ', 'T') + ':00-06:00'),
+        fecha: fechaDoc,
         pacienteNombre: sesion.paciente,
         diagnostico: doc.diagnostico || undefined,
         medicamentos: doc.medicamentos,
