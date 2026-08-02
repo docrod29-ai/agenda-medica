@@ -26,7 +26,7 @@ interface Datos {
   hitos: Hito[]
   hitosSinSeñal: ClaveHito[]
   consultorios: Fila[]
-  resumen: { total: number; atorados: Record<string, number>; medianaHasta: Record<string, number | null> }
+  resumen: { total: number; atorados: Record<string, number>; medianaHasta: Record<string, number | null>; alcanzaron?: Record<string, number> }
 }
 
 export default function OnboardingSuperadmin() {
@@ -80,6 +80,38 @@ export default function OnboardingSuperadmin() {
                 </div>
               )
             })}
+          </div>
+
+          {/*
+            CUÁNTO TARDAN EN LLEGAR — el `timeToFirst*` del charter.
+            La mediana por hito ya se calculaba en el motor y no la pintaba
+            nadie: la tabla de abajo da el dato consultorio por consultorio, que
+            sirve para mirar UNO, no para saber si el producto arranca rápido.
+            Es MEDIANA y no promedio a propósito: el promedio de un embudo lo
+            dominan los que llegaron al final, y los que importan son los otros.
+          */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Cuánto tardan en llegar</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 10 }}>
+              Mediana desde el alta, entre los que SÍ llegaron a ese hito.
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              {d.hitos.map(h => {
+                const ms = d.resumen.medianaHasta[h.clave]
+                const n = d.resumen.alcanzaron?.[h.clave]
+                return (
+                  <div key={h.clave} style={{ minWidth: 128 }}>
+                    <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{h.etiqueta}</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: ms == null ? 'var(--text3)' : 'var(--text)' }}>
+                      {ms == null ? '—' : duracionCorta(ms)}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {ms == null ? 'nadie ha llegado' : `${n ?? 0} de ${d.resumen.total}`}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {d.hitosSinSeñal.length > 0 && (
