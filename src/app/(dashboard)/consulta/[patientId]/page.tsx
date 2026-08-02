@@ -551,6 +551,25 @@ export default function ConsultaActivaPage() {
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
   // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
   const [estudiosOrden, setEstudiosOrden] = useState<string[]>([])
+  /**
+   * PRÓXIMA CONSULTA. Opcional: si el médico no pone fecha, no se inventa una.
+   * Alimenta tres cosas que YA existían y esperaban este dato: la tarea de
+   * «agendar el seguimiento» del worklist, el contador de seguimientos vencidos
+   * del CRM y la propia nota firmada.
+   */
+  /**
+   * PRÓXIMA CONSULTA — y por qué NO va dentro de la nota firmada.
+   *
+   * Es un dato de AGENDA, no una afirmación clínica: dice a quién hay que
+   * llamar, no qué se encontró. Meterlo en la nota obligaría a subir la versión
+   * del sello de integridad —y a re-verificar todo lo firmado— por una fecha
+   * que ya vive donde se actúa sobre ella. Lo que el médico decidió ese día ya
+   * queda escrito en el plan, con sus palabras.
+   *
+   * Alimenta dos cosas que YA existían esperando este dato: la tarea «agendar
+   * el seguimiento» del worklist y el contador de seguimientos vencidos del CRM.
+   */
+  const [proximoSeguimiento, setProximoSeguimiento] = useState('')
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
@@ -2006,9 +2025,26 @@ export default function ConsultaActivaPage() {
           pacienteNombre: patient?.nombre,
           estudiosOrden,
           medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          // El motor sabía derivar «agendar el seguimiento» desde siempre y este
+          // dato nunca le llegaba: la rama estaba escrita y desconectada.
+          proximoSeguimiento: proximoSeguimiento || undefined,
           medicoUid: auth.currentUser?.uid,
           medicoNombre: config.nombreMedico,
         }, Date.now())).catch(() => { /* ver arriba: no puede tumbar la firma */ })
+      }
+      /**
+       * LA FECHA DE SEGUIMIENTO TAMBIÉN VA AL EXPEDIENTE DEL PACIENTE.
+       *
+       * La pantalla de CRM cuenta los «seguimientos vencidos» sobre
+       * `patient.proximoSeguimiento`, un campo que no escribía NADIE: el
+       * contador era cero permanente y parecía que no había ninguno.
+       *
+       * Va aparte de la nota porque responde a otra pregunta: la nota dice qué
+       * se decidió ese día, y el expediente dice a quién hay que llamar.
+       */
+      if (clinicId && proximoSeguimiento) {
+        void updatePatient(clinicId, patientId, { proximoSeguimiento })
+          .catch(() => { /* la nota ya está firmada; esto no puede tumbarla */ })
       }
       /**
        * FIRMAR MARCA LA CITA COMO ATENDIDA.
@@ -3564,6 +3600,34 @@ export default function ConsultaActivaPage() {
               {validacion.advertencias.map((a, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={13} className="ds-icon" /> {a}</div>)}
             </div>
           )}
+          {/*
+            PRÓXIMA CONSULTA — el dato que dos pantallas llevaban esperando.
+            El motor de tareas sabía derivar «agendar el seguimiento» desde que
+            se escribió, y el CRM cuenta los «seguimientos vencidos»… sobre un
+            campo que no llenaba NADIE: la tarea no nacía nunca y el contador era
+            cero permanente.
+            Opcional a propósito: si no pones fecha, no se inventa ninguna.
+          */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+            <label htmlFor="proximo-seguimiento" style={{ fontSize: 13, color: 'var(--text2)' }}>
+              Próxima consulta <span style={{ color: 'var(--text3)' }}>(opcional)</span>
+            </label>
+            <input
+              id="proximo-seguimiento"
+              type="date"
+              className="input"
+              value={proximoSeguimiento}
+              disabled={firmada}
+              onChange={e => setProximoSeguimiento(e.target.value)}
+              style={{ width: 170 }}
+            />
+            {proximoSeguimiento && (
+              <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                Al firmar queda una tarea para agendarla y el paciente entra en los seguimientos del CRM.
+              </span>
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <button onClick={firmar} disabled={!validacion.valida || guardando} style={S.firmar(!validacion.valida || guardando)}>
               <FileSignature size={17} /> Firmar y cerrar nota
