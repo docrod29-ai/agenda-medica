@@ -18,7 +18,7 @@ import { suscribirCenso, getUnidades } from '@/lib/hospital/firestore'
 import { esCritica, sinTipoConfigurado, AVISO_SIN_TIPO, type Unidad } from '@/lib/hospital/unidades'
 import { getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { getEstanciaUci } from '@/lib/uci/estancia-cliente'
-import { construirTarjeta, ordenarTarjetas, type TarjetaUci } from '@/lib/uci/tarjetas'
+import { construirTarjeta, ordenarTarjetas, type TarjetaUci , type SeccionNoLeida } from '@/lib/uci/tarjetas'
 import { Spinner } from '@/components/ui'
 import { SOPORTE_LABEL, type Internamiento, type SoporteActivo } from '@/types/hospital'
 
@@ -78,11 +78,17 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       setSinTipo(sinTipoConfigurado(censo.map(i => i.servicio), unidades))
       const ahora = new Date().toISOString()
       const armadas = await Promise.all(uci.map(async i => {
-        // Si la subcolección falla (permisos, red), la tarjeta sale igual y el
-        // hueco se declara: es mejor que desaparecer al paciente de la lista.
+        /**
+         * Si la subcolección falla (permisos, red), la tarjeta sale igual —es
+         * mejor que desaparecer al paciente de la lista— pero el fallo se
+         * DECLARA. Antes entraba disfrazado de dato: `catch(() => [])` hacía
+         * que la tarjeta afirmara «sin ninguna toma registrada» y «no consta
+         * ningún soporte» de un paciente monitorizado y ventilado.
+         */
+        const sinLeer: SeccionNoLeida[] = []
         const [tomas, estancia] = await Promise.all([
-          getTomas(clinicId, i.id, TOPE_LANDING).catch(() => []),
-          getEstanciaUci(clinicId, i.id).catch(() => null),
+          getTomas(clinicId, i.id, TOPE_LANDING).catch(() => { sinLeer.push('tomas'); return [] }),
+          getEstanciaUci(clinicId, i.id).catch(() => { sinLeer.push('estancia'); return null }),
         ])
         const vigentes = serieTomas(tomas)
         const ultima = vigentes.length > 0 ? vigentes[vigentes.length - 1] : undefined
@@ -105,6 +111,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           ultimaTomaEn: ultima?.medidoEn ?? null,
           ultimaTomaPor: ultima?.por ?? null,
           ultimaTomaFuente: ultima?.fuente ?? null,
+          sinLeer,
         }, ahora)
       }))
       if (vivo) setTarjetas(ordenarTarjetas(armadas))

@@ -399,6 +399,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **864** | **Un cobro suelto no era de nadie.** Abierto desde Finanzas no hay cita de la que sacar el médico y el modal tampoco preguntaba: el cobro caía en la fila «sin atribuir» del reparto de comisiones — dinero cobrado y depositado que al repartir no es de nadie, y que nadie reclama porque no aparece en la fila de ningún médico. Con un solo médico no se pregunta (es suyo); con varios se pregunta y es obligatorio, sin preseleccionar al primero de la lista (`lib/finanzas/cobro-suelto.ts`, 6 pruebas). **Cancelar desde el enlace no contaba como cancelación**: `cancelacionCount` alimenta el riesgo de no-show y el CRM, el menú de Citas sí lo incrementa y el portal no — el motor veía a un paciente impecable. **El alta pública le servía el error crudo a cualquiera**: `String(err)` con nombres de colecciones, rutas de documentos y mensajes del Admin SDK, a internet abierto y sin sesión. |
 
+## DECIMOCUARTA TANDA — v865 (dos formas de perder una dosis sin que nadie lo note)
+
+| v | Qué se reparó |
+|---|---|
+| **865** | **Una dosis registrada podía desaparecer del MAR.** El servidor guardaba el objeto del cliente entero (`{ ...p.adm }`) dentro del registro de administración, y `estado` sólo puede ser `administrado` u `omitido` — nadie lo comprobaba. El motor del MAR reparte las administraciones justo en esas dos cubetas: una dosis con otro estado no cae en ninguna, la enfermera la ve confirmada en pantalla y el pase de visita lee «sin administraciones» y un atraso que no ocurrió. Lista blanca + estado inválido RECHAZADO, no corregido a un valor por omisión (`lib/hospital/administracion-entrante.ts`, 5 pruebas); `cincoCorrectos` e `identidadVerificada` exigen un `true` explícito (la cadena `"no"` es truthy y pasaba como verificación hecha). **La tarjeta de UCI afirmaba lo que no pudo leer**: `catch(() => [])` en las tomas y `catch(() => null)` en la estancia hacían que dijera «sin ninguna toma registrada» y «no consta ningún soporte activo» de un paciente monitorizado y ventilado. El paciente sale igual —esconderlo sería peor— pero el fallo se declara (4 pruebas). |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

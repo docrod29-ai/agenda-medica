@@ -56,6 +56,8 @@ export default function EnfermeriaUciPage() {
   const [sinTipo, setSinTipo] = useState<string[]>([])
   /** Y si ni siquiera se pudo leer el catálogo, tampoco se afirma que no haya nada. */
   const [falloUnidades, setFalloUnidades] = useState(false)
+  /** No se pudieron leer las tomas de al menos un paciente. */
+  const [falloTomas, setFalloTomas] = useState(false)
 
   useEffect(() => {
     if (!clinicId) return
@@ -74,7 +76,11 @@ export default function EnfermeriaUciPage() {
       if (vivo) setSinTipo(sinTipoConfigurado(censo.map(i => i.servicio), unidades))
       const ahora = new Date().toISOString()
       const pacientes = await Promise.all(uci.map(async i => {
-        const tomas = await getTomas(clinicId, i.id, TOPE_TOMAS_LISTA).catch(() => [])
+        // Un fallo de lectura entraba como «este paciente no tiene ninguna toma»
+        // y la lista lo trataba como un hecho. Sale igual —no se le esconde—
+        // pero el aviso de arriba dice que la lista puede no ser fiable.
+        const tomas = await getTomas(clinicId, i.id, TOPE_TOMAS_LISTA)
+          .catch(() => { if (vivo) setFalloTomas(true); return [] })
         const vigentes = serieTomas(tomas)
         const ultima = vigentes.length > 0 ? vigentes[vigentes.length - 1] : undefined
         const ms = ultima ? Date.parse(ultima.medidoEn) : NaN
@@ -121,13 +127,15 @@ export default function EnfermeriaUciPage() {
             </div>
           )}
 
-          {(sinTipo.length > 0 || falloUnidades) && (
+          {(sinTipo.length > 0 || falloUnidades || falloTomas) && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}>
               <AlertTriangle size={17} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
                 {falloUnidades
                   ? <><strong>No se pudo leer la configuración de unidades.</strong> Esta lista puede estar incompleta: no significa que no haya pendientes.</>
-                  : <><strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong> {AVISO_SIN_TIPO}</>}
+                  : falloTomas && sinTipo.length === 0
+                    ? <><strong>No se pudieron leer las tomas de algún paciente.</strong> Los que aparecen «sin toma» pueden tenerlas: la pantalla no alcanzó a verlas.</>
+                    : <><strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong> {AVISO_SIN_TIPO}</>}
               </div>
             </div>
           )}
@@ -135,7 +143,7 @@ export default function EnfermeriaUciPage() {
           {resumen.tareas.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'var(--text3)', padding: 24, justifyContent: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
               <CheckCircle2 size={17} style={{ color: '#0d9488' }} />
-              {sinTipo.length > 0 || falloUnidades
+              {sinTipo.length > 0 || falloUnidades || falloTomas
                 ? 'Sin pendientes entre los pacientes que esta pantalla alcanza a ver (mira el aviso de arriba).'
                 : 'No hay nada pendiente en terapia según el registro.'}
             </div>

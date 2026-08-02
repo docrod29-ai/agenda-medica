@@ -45,7 +45,20 @@ export interface EntradaTarjeta {
   ultimaTomaEn?: string | null
   ultimaTomaPor?: string | null
   ultimaTomaFuente?: string | null
+  /**
+   * SECCIONES CUYA LECTURA FALLÓ. No es lo mismo que no haya.
+   *
+   * La pantalla leía las tomas con `.catch(() => [])` y la estancia con
+   * `.catch(() => null)`: un fallo de permisos o de red entraba aquí
+   * disfrazado de dato, y la tarjeta afirmaba «sin ninguna toma registrada» y
+   * «no consta ningún soporte» de un paciente monitorizado y ventilado. Un
+   * fallo de lectura no puede leerse como un hecho clínico.
+   */
+  sinLeer?: readonly SeccionNoLeida[]
 }
+
+/** Lo que la tarjeta puede no haber podido leer. */
+export type SeccionNoLeida = 'tomas' | 'estancia'
 
 export interface TarjetaUci {
   internamientoId: string
@@ -71,6 +84,14 @@ export const SIN_SOPORTES =
   'No consta ningún soporte activo documentado en la estancia. El sistema NO los ' +
   'deduce de las mediciones: que haya PEEP anotada no prueba que siga ventilado.'
 
+export const TOMAS_NO_LEIDAS =
+  'No se pudieron leer las tomas de este paciente: la tarjeta NO está diciendo ' +
+  'que no haya ninguna, sino que no las alcanzó a ver. Míralo en el expediente.'
+
+export const ESTANCIA_NO_LEIDA =
+  'No se pudo leer la estancia en la unidad: ni el día de UCI ni los soportes ' +
+  'de esta tarjeta son fiables. NO significa que no tenga soportes activos.'
+
 export const SIN_TOMAS =
   'Sin ninguna toma registrada en este episodio: la tarjeta no puede decir nada ' +
   'del estado actual.'
@@ -87,9 +108,12 @@ export function construirTarjeta(e: EntradaTarjeta, ahoraIso: string): TarjetaUc
 
   const ingreso = Date.parse(e.ingresoEn)
   const avisos: string[] = []
+  const noLeido = new Set(e.sinLeer ?? [])
 
   let estancia: MedidaEstancia | null = null
-  if (Number.isNaN(ingreso)) {
+  if (noLeido.has('estancia')) {
+    avisos.push(ESTANCIA_NO_LEIDA)
+  } else if (Number.isNaN(ingreso)) {
     avisos.push('No consta el ingreso a la unidad de terapia: no se puede calcular el día de UCI. '
       + 'NO se cuenta desde el ingreso al hospital — daría «día 4» a quien lleva uno en UCI.')
   } else {
@@ -98,13 +122,16 @@ export function construirTarjeta(e: EntradaTarjeta, ahoraIso: string): TarjetaUc
   }
 
   const soportes = [...(e.soportes ?? [])]
-  if (soportes.length === 0) {
+  // Si no se pudo leer la estancia, «no consta ningún soporte» sería una
+  // afirmación sobre un dato que nadie llegó a mirar: ya se declaró arriba.
+  if (soportes.length === 0 && !noLeido.has('estancia')) {
     avisos.push(SIN_SOPORTES)
   }
 
   const tomaMs = e.ultimaTomaEn ? Date.parse(e.ultimaTomaEn) : NaN
   const hayToma = !Number.isNaN(tomaMs)
-  if (!hayToma) avisos.push(SIN_TOMAS)
+  if (noLeido.has('tomas')) avisos.push(TOMAS_NO_LEIDAS)
+  else if (!hayToma) avisos.push(SIN_TOMAS)
 
   if (!e.cama || e.cama.trim() === '') {
     avisos.push('Sin cama registrada en el episodio: el tablero de camas no puede ubicarlo.')

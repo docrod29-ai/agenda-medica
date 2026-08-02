@@ -22,6 +22,7 @@ import type { BedAssignment, EstadoCama } from '@/types/hospital'
 import { registroDurable } from '@/lib/hospital/registro-durable'
 import { mismaCama } from '@/lib/hospital/cama'
 import { randomUUID } from 'crypto'
+import { sanearAdministracionEntrante } from '@/lib/hospital/administracion-entrante'
 
 /**
  * Qué CAPACIDAD exige cada acción (E0-07). Antes era un mapa `GATES` de listas de
@@ -104,8 +105,18 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       if (indAdm.activa === false) {
         throw new Error('BLOQUEADO: la indicación está suspendida; no se puede administrar.')
       }
+      /**
+       * 4. LO QUE MANDA EL CLIENTE PASA POR UNA LISTA BLANCA. Antes se guardaba
+       *    `{ ...(p.adm ?? {}) }`: el objeto entero, sin mirarlo. `estado` sólo
+       *    puede ser `administrado` u `omitido` y nadie lo comprobaba — y el
+       *    motor del MAR reparte las administraciones justo en esas dos
+       *    cubetas, así que una dosis con otro estado NO CAE EN NINGUNA:
+       *    desaparece del MAR, la enfermera la vio confirmada en pantalla y el
+       *    pase de visita lee «sin administraciones» y un atraso que no ocurrió.
+       *    Ver `lib/hospital/administracion-entrante.ts`.
+       */
       const adm = {
-        ...(p.adm ?? {}),
+        ...sanearAdministracionEntrante(p.adm),
         por: actor.nombre,          // quien lo hizo DE VERDAD, no el titular del consultorio
         porUid: actor.uid,
         fecha: now,                 // reloj del servidor, no el de la tablet
