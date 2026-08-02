@@ -23,13 +23,13 @@ const base = {
 
 describe('construirTarjeta con secciones no leídas', () => {
   it('sin tomas de verdad dice «sin ninguna toma»', () => {
-    const t = construirTarjeta({ ...base, soportes: ['ventilacion_invasiva'] }, AHORA)
+    const t = construirTarjeta({ ...base, soportes: ['vm_invasiva'] }, AHORA)
     expect(t.avisos).toContain(SIN_TOMAS)
     expect(t.avisos).not.toContain(TOMAS_NO_LEIDAS)
   })
 
   it('si la lectura FALLÓ no se afirma que no haya tomas', () => {
-    const t = construirTarjeta({ ...base, soportes: ['ventilacion_invasiva'], sinLeer: ['tomas'] }, AHORA)
+    const t = construirTarjeta({ ...base, soportes: ['vm_invasiva'], sinLeer: ['tomas'] }, AHORA)
     expect(t.avisos).toContain(TOMAS_NO_LEIDAS)
     expect(t.avisos).not.toContain(SIN_TOMAS)
   })

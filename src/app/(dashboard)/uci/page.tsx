@@ -54,6 +54,7 @@ import { FUENTES, citarFuente } from '@/lib/uci/evidencia'
 import { extraerValoresUCIConAvisos, type AvisoExtraccionUCI } from '@/lib/uci/extraccion'
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
+import { DosisMeropenem } from './DosisMeropenem'
 
 type Campos = Record<string, string>
 
@@ -138,7 +139,7 @@ export default function UciPanelPage() {
   const [panelLibre, setPanelLibre] = useState(false)
   // Decisión del Dr. (2026-07-30): dentro del paciente, el pase va antes que la
   // calculadora. El panel fisiológico NO se quita: es una pestaña más.
-  const [pestana, setPestana] = useState<'resumen' | 'panel' | 'verificacion' | 'mar' | 'linea'>('resumen')
+  const [pestana, setPestana] = useState<'resumen' | 'panel' | 'verificacion' | 'mar' | 'linea' | 'dosis'>('resumen')
   const { clinicId } = useClinic()
   const { toast } = useToast()
   const [inter, setInter] = useState<Internamiento | null>(null)
@@ -697,7 +698,7 @@ export default function UciPanelPage() {
 
       {internamientoId && (
         <div role="tablist" style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-          {([['resumen', 'Resumen del pase'], ['panel', 'Panel fisiológico'], ['verificacion', 'Verificación'], ['mar', 'MAR'], ['linea', 'Línea de tiempo']] as const).map(([k, txt]) => (
+          {([['resumen', 'Resumen del pase'], ['panel', 'Panel fisiológico'], ['verificacion', 'Verificación'], ['mar', 'MAR'], ['linea', 'Línea de tiempo'], ['dosis', 'Dosis en crítico']] as const).map(([k, txt]) => (
             <button
               key={k} role="tab" aria-selected={pestana === k}
               onClick={() => setPestana(k)}
@@ -807,6 +808,8 @@ export default function UciPanelPage() {
       {internamientoId && pestana === 'mar' && (
         <MarPaciente indicaciones={inter?.indicaciones ?? []} />
       )}
+
+      {pestana === 'dosis' && <DosisMeropenem />}
 
       {internamientoId && clinicId && (pestana === 'resumen' || pestana === 'linea') && (
         <ResumenPase
