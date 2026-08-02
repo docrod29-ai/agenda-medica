@@ -3,11 +3,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
-  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard,
+  Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard, Video,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
+import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -42,6 +43,8 @@ interface Cita {
 }
 interface Sesion {
   paciente: string
+  /** Para armar el enlace de la sala de teleconsulta. */
+  clinicId?: string
   clinica: { nombre: string; medico: string; telefono: string; direccion: string } | null
   minHoras: number
   anticipo: { link: string; monto: number } | null
@@ -247,6 +250,36 @@ export default function MiPortalPage() {
                   {c.confirmadoPaciente && <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={13} className="ds-icon" /> Asistencia confirmada</div>}
                 </div>
               </div>
+
+              {/*
+                LA PUERTA DE LA VIDEOCONSULTA, QUE EL PACIENTE NO TENÍA.
+                La teleconsulta se agenda, se cobra y el consultorio tiene su
+                botón «Unirse»; aquí `teleconsulta` era sólo una etiqueta en el
+                mapa de tipos. Ni la confirmación ni los recordatorios llevan el
+                enlace de la sala: se podía vender una videoconsulta a la que el
+                paciente no podía llegar.
+                La ventana (30 min antes, 2 h después) es la MISMA que aplica el
+                servidor al crear la sala; un botón que abre una sala caducada es
+                peor que no tener botón, porque el paciente cree que el problema
+                es suyo. Ver `lib/telesalud/ventana-sala.ts`.
+              */}
+              {c.tipo === 'teleconsulta' && (() => {
+                const v = ventanaDeSala(c.fechaHora, ahora, tzClinica)
+                return v.estado === 'abierta' ? (
+                  <a
+                    href={enlaceSalaPaciente(c.id, sesion.clinicId ?? '')}
+                    target="_blank" rel="noopener noreferrer"
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', marginTop: 14 }}
+                  >
+                    <Video size={14} /> Entrar a la videoconsulta
+                  </a>
+                ) : (
+                  <div style={{ marginTop: 14, fontSize: 12.5, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Video size={13} className="ds-icon" /> {v.mensaje}
+                  </div>
+                )
+              })()}
 
               {editable && (
                 <>

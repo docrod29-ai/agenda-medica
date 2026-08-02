@@ -510,6 +510,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **877** | **El bot de WhatsApp era el último camino que agendaba sin mirar el calendario del médico**: ofrecía —y aceptaba— la hora de una cirugía. Ahora lo carga junto con los bloqueos del consultorio, que es la función por la que pasan sus **tres** momentos (listar, revalidar al confirmar, buscar el próximo día), así que queda cubierto también el cuarto que se escriba mañana. **Excepción declarada**: la búsqueda del «próximo día disponible» recorre 14 días y no consulta Google —serían 14 llamadas dentro de un webhook que debe contestar rápido—; no abre agujero porque sólo propone días y al elegir uno se lista con Google y al confirmar se revalida. Y la consulta se sacó a **un** módulo (`lib/calendario/ocupado-servidor.ts`) que usan el portal, el alta pública y el bot: v876 la había dejado escrita dos veces, que es como empiezan las cinco implementaciones. |
 
+## VIGESIMOSÉPTIMA TANDA — v878 (la videoconsulta a la que el paciente no podía llegar)
+
+| v | Qué se reparó |
+|---|---|
+| **878** | **Se podía vender, agendar y cobrar una teleconsulta a la que el paciente no podía entrar.** Es un tipo de cita con su concepto de cobro y su precio, y el consultorio tiene «Unirse» en la lista de citas; en el portal del paciente `teleconsulta` era **sólo una etiqueta** en el mapa de tipos, y ni la confirmación ni los recordatorios llevan el enlace de la sala. Ahora «Mis citas» enseña **«Entrar a la videoconsulta»** dentro de la ventana, y fuera de ella dice por qué no («se abre 30 min antes» / «ya se cerró, llama al consultorio»). La ventana son los **mismos** 30 min / 2 h que el servidor aplica al crear la sala en Daily, ahora en un módulo probado (`lib/telesalud/ventana-sala.ts`, 6 pruebas); la hora es la del consultorio, no la del servidor. El enlace del paciente no lleva `dr=1`. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
