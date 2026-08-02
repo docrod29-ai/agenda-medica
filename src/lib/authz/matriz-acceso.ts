@@ -141,6 +141,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Corrección a una nota ya firmada sin alterar el original (NOM-004). Se agregan, nunca se editan ni se borran.',
   },
   {
+    ruta: 'clinics/{clinicId}/patients/{docId}/formularios_previos/{docId}',
+    clase: 'clinico',
+    guardaLectura: 'isMedico',
+    guardaEscritura: 'servidor',
+    porQue: 'Lo que el paciente cuenta antes de la consulta (P-019): motivo, medicamentos, alergias y antecedentes. Es secreto médico, así que lo lee quien lee las notas — NO recepción ni facturación. Lo escribe /api/portal tras validar el token: el enlace del paciente no es sesión de Firebase, y si él pudiera escribir directo podría hacerlo sobre el expediente de otro paciente de la misma clínica.',
+  },
+  {
     ruta: 'clinics/{clinicId}/patients/{docId}/laboratorios/{labId}',
     clase: 'clinico',
     guardaLectura: 'isMedico',

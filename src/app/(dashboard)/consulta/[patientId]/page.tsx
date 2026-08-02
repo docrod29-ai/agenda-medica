@@ -17,7 +17,8 @@ import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
+import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
@@ -89,11 +90,12 @@ import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
-  Scissors, Baby, Calculator, Camera, HeartPulse, Brain,
+  Scissors, Baby, Calculator, Camera, HeartPulse, Brain, MessageSquare,
 } from 'lucide-react'
 
 /**
@@ -590,6 +592,20 @@ export default function ConsultaActivaPage() {
   const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
   /** Qué TIENE el paciente y cuándo vino la última vez (ver `problemas-activos`). */
   const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
+  /**
+   * El formulario que el paciente llenó desde su portal, si lo llenó. Se lee
+   * aparte y NO se mezcla con el expediente: ver `lib/portal/formulario-previo`.
+   */
+  const [previo, setPrevio] = useState<FormularioPrevio | null>(null)
+  useEffect(() => {
+    if (!clinicId || !patientId) return
+    let vivo = true
+    getDoc(doc(db, 'clinics', clinicId, 'patients', patientId, 'formularios_previos', 'actual'))
+      .then((sn: DocumentSnapshot) => { if (vivo && sn.exists()) setPrevio(sn.data() as FormularioPrevio) })
+      // Si no se puede leer, no se enseña: mejor sin tarjeta que con una a medias.
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [clinicId, patientId])
   const [ultimaVisita, setUltimaVisita] = useState<string | undefined>(undefined)
   /**
    * El fármaco que el médico está marcando como «ya no lo toma».
@@ -2294,6 +2310,34 @@ export default function ConsultaActivaPage() {
         mitad de la consulta. Van arriba de la medicación porque contestan «qué
         tiene» antes de «qué toma».
       */}
+      {/*
+        LO QUE EL PACIENTE ESCRIBIÓ ANTES DE ENTRAR (P-019).
+        Va ARRIBA del resumen clínico y separado de él a propósito: es su
+        declaración, no expediente. Nada de esto ha tocado sus alergias ni su
+        medicación — si algo debe quedar registrado, lo pasa el médico.
+      */}
+      {previo && resumenPrevio(previo) && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
+          background: 'var(--s2)', border: '1px dashed var(--border2, var(--border))',
+          borderRadius: 10, padding: '9px 13px',
+        }}>
+          <MessageSquare size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
+            <strong style={{ color: 'var(--text)' }}>El paciente escribió antes de la consulta:</strong>
+            {CAMPOS_PREVIOS.map(c => {
+              const v = previo.respuestas[c.clave]
+              return v ? (
+                <div key={c.clave} style={{ marginTop: 3 }}>
+                  <span style={{ color: 'var(--text3)' }}>{c.etiqueta}</span>{' '}{v}
+                </div>
+              ) : null
+            })}
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{AVISO_NO_ES_EXPEDIENTE}</div>
+          </div>
+        </div>
+      )}
+
       {(problemas.length > 0 || ultimaVisita) && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,

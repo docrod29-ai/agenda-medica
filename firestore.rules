@@ -258,6 +258,26 @@ service cloud.firestore {
         }
 
         /**
+         * FORMULARIO PREVIO A LA CONSULTA (P-019) — SÓLO SERVIDOR PARA ESCRIBIR.
+         *
+         * Lo llena el paciente desde su enlace del portal, que NO es una sesión
+         * de Firebase: la escritura pasa por `/api/portal`, que valida el token
+         * HMAC y sella el paciente. Aquí se deja LEER al equipo del consultorio y
+         * se cierra la escritura desde el navegador.
+         *
+         * Deliberado: si el paciente pudiera escribir directo, podría hacerlo
+         * sobre el expediente de OTRO paciente de la misma clínica — el token es
+         * lo único que ata la sesión a un `patientId`, y las reglas no lo ven.
+         */
+        match /formularios_previos/{docId} {
+          // `isMedico` y no `isMember`: aquí van motivo, medicamentos, alergias
+          // y antecedentes — es secreto médico, igual que las notas. El guardián
+          // de la matriz cazó esto cuando estaba en `isMember`.
+          allow read: if isMedico(clinicId);
+          allow write: if false;
+        }
+
+        /**
          * Historial de LABORATORIOS del paciente (valores extraídos de PDF/foto).
          * Secreto médico, igual que las notas: solo médico/admin. Cada doc es un
          * panel con su fecha; nunca se editan (se borra y se re-sube si hay error).
