@@ -570,7 +570,7 @@ export default function FinanzasPage() {
                   if (!clinicId || !user || !anulando?.id) return
                   setAnulaGuardando(true)
                   try {
-                    await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid)
+                    await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid, user.displayName || user.email || '')
                     toast('Cobro anulado', 'info')
                     setAnulando(null)
                     await recargar()

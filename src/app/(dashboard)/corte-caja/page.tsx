@@ -3,7 +3,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { PageHeader, Button, Spinner, Input } from '@/components/ui'
 import { useClinic } from '@/context/ClinicContext'
 import { listarCobros, fmtMXN } from '@/lib/cobros'
-import { cortesiasDelDia } from '@/lib/corte-caja'
+import { cortesiasDelDia, quienAnulo } from '@/lib/corte-caja'
+import { useDoctors } from '@/hooks/useDoctors'
 import { getAppointments, getConfig } from '@/lib/firestore'
 import { where } from 'firebase/firestore'
 import type { Cobro } from '@/lib/cobros'
@@ -101,6 +102,20 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
   const embudo = useMemo(() => embudoCobro(citas, vivos), [citas, vivos])
   const porCobrar = useMemo(() => cuentasPorCobrar(citas, vivos), [citas, vivos])
   const cortesias = useMemo(() => cortesiasDelDia(citas), [citas])
+  /**
+   * Para traducir el uid de las anulaciones ANTERIORES a v907, que no llevan
+   * nombre sellado. El vínculo `doctors/{id}.uid` es el mismo que usa la agenda
+   * para el calendario.
+   */
+  const { doctors } = useDoctors()
+  const nombrePorUid = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const d of doctors) {
+      const uid = (d as { uid?: string }).uid
+      if (uid && d.nombre) m[uid] = d.nombre
+    }
+    return m
+  }, [doctors])
 
   return (
     <div style={{ padding: embedded ? 0 : 24, maxWidth: 920, margin: '0 auto' }}>
@@ -166,8 +181,17 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
                     {fmtMXN(c.monto)}{c.patientNombre ? ` · ${c.patientNombre}` : ''}
                   </div>
                   <div style={{ color: 'var(--text3)', fontSize: 11.5, marginTop: 2 }}>
+                    {/*
+                      QUIÉN LA ANULÓ. `cancelarCobro` exige autor —«sin ellos una
+                      anulación es dinero que se esfuma del corte sin nadie a
+                      quien preguntar»— y las reglas lo sellan contra el uid del
+                      que firma… y esta pantalla, la única donde alguien cuadra el
+                      dinero, no lo enseñaba. El control existe cuando se puede
+                      preguntar.
+                    */}
                     Motivo: {c.motivoCancelacion || '— sin motivo —'}
-                    {c.canceladoEn ? ` · anulado el ${c.canceladoEn.slice(0, 10)}` : ''}
+                    {` · anuló ${quienAnulo(c, nombrePorUid)}`}
+                    {c.canceladoEn ? ` · el ${c.canceladoEn.slice(0, 10)}` : ''}
                   </div>
                 </div>
               ))}
