@@ -13,6 +13,7 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 
 type Tipo = 'referencia' | 'contrarreferencia'
 type Urgencia = 'Rutina' | 'Prioritario' | 'Urgente'
@@ -217,7 +218,10 @@ export default function CartaReferenciaPage() {
           {patient?.edad ? ` · ${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
         </div>
         <div style={{ border: '1.5px solid #b91c1c', color: 'var(--red)', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
-          ALERGIAS: {patient?.alergias || 'Negadas / no referidas'}
+          {/* Misma fuente que la pantalla y que la receta: leer `patient.alergias`
+              en crudo se salta el campo estructurado, y esta hoja viaja a OTRO
+              médico. */}
+          ALERGIAS: {alergiasParaImpreso(patient) || 'Negadas / no referidas'}
         </div>
 
         {/* Cuerpo */}

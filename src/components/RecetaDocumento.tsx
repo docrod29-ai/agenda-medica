@@ -27,6 +27,7 @@ import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
 import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
 import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
+import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 
 /**
  * EN EL PAPEL NO SE USAN VARIABLES DE COLOR — Y ES DELIBERADO.
@@ -695,13 +696,32 @@ function HojaCustom({
                 <strong>Dx:</strong> {data.diagnostico}
               </div>
             )}
-            {recetaConfig.mostrarAlergias !== false && data.paciente?.alergias && (
+            {/*
+              LA RECETA LEÍA UNA FUENTE DISTINTA DE LA PANTALLA.
+
+              La verificación en pantalla usa `alergiasDe`, que prefiere
+              `alergiasEstructuradas` sobre el texto libre; aquí se imprimía
+              `paciente.alergias` en crudo. El propio módulo describe el
+              desenlace: «un paciente con la alergia únicamente en el campo
+              estructurado veía una alerta roja en pantalla y un papel que decía
+              Negadas» — y de todos los papeles, éste es el que va a la farmacia.
+
+              Hoy ninguna ruta llena el campo estructurado, así que la
+              divergencia todavía no está activa; la activa el mismo día que
+              entre una importación de otro sistema. La pantalla y el papel tienen
+              que leer de la misma fuente ANTES de eso, no después.
+
+              Se conserva el comportamiento de no pintar el recuadro cuando no hay
+              dato: un impreso no debe afirmar «Negadas» a partir de un campo que
+              nadie llenó.
+            */}
+            {recetaConfig.mostrarAlergias !== false && alergiasParaImpreso(data.paciente) && (
               <div style={{
                 border: '1px solid #b91c1c', color: '#b91c1c',
                 padding: '2px 6px', borderRadius: 3,
                 fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
               }}>
-                ALERGIAS: {data.paciente.alergias}
+                ALERGIAS: {alergiasParaImpreso(data.paciente)}
               </div>
             )}
             <div style={{ height: 1, background: 'rgba(0,0,0,0.15)', margin: '4px 0 6px 0' }} />

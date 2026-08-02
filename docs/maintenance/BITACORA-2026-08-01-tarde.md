@@ -613,6 +613,40 @@ existiera la bitácora.
 
 ---
 
+## SEXAGÉSIMA PRIMERA TANDA — v912
+
+### La receta leía las alergias de una fuente distinta que la pantalla
+
+El módulo de alergias tiene la advertencia **escrita encima del helper**:
+
+> «Por qué existe este helper y por qué debe usarse en TODOS los caminos de
+> impresión: la verificación en pantalla usa `alergiasDe`, que prefiere
+> `alergiasEstructuradas` sobre el texto libre. Los impresos leían solo
+> `patient.alergias`. Un paciente con la alergia únicamente en el campo
+> estructurado veía una alerta roja en pantalla y un papel que decía "Negadas".»
+
+De los cinco caminos de impresión, **sólo uno lo usaba**: la orden médica. La
+receta —el papel que va a la farmacia—, la referencia —que viaja a otro médico—,
+la nota y su exportación a Word seguían leyendo el texto libre en crudo.
+
+Hoy ninguna ruta de escritura llena `alergiasEstructuradas`, así que la
+divergencia **todavía no está activa**. La activa el mismo día que entre una
+importación de otro sistema, y para entonces el hueco ya estaría en producción.
+Cerrarlo antes cuesta esto; cerrarlo después cuesta una receta equivocada.
+
+Ahora los cuatro leen del mismo helper, con **una prueba por camino** que falla
+si alguno vuelve a leer el campo crudo.
+
+Y se conserva que la receta **no pinte el recuadro** cuando no hay dato: un
+recuadro rojo vacío o un «Negadas» de relleno son dos formas de mentir en el
+papel que va a la farmacia.
+
+- `src/components/RecetaDocumento.tsx`, `referencia/[patientId]/page.tsx`,
+  `nota/[patientId]/[notaId]/page.tsx` (pantalla y Word)
+- `src/__tests__/alergias-impreso-fuente.test.ts` — 8 pruebas. Total 4887.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
