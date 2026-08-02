@@ -3,6 +3,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import admin, { adminDb } from '@/lib/firebase-admin'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
+import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -248,6 +249,29 @@ export async function POST(req: NextRequest) {
           cancelacionCount: admin.firestore.FieldValue.increment(1),
           updatedAt: new Date().toISOString(),
         }).catch(() => { /* el contador no puede tumbar la cancelación */ })
+
+        /**
+         * Y SE LE AVISA AL CONSULTORIO.
+         *
+         * v863 dejó el asiento en la bitácora y la oferta del hueco a la lista de
+         * espera, pero el consultorio seguía enterándose sólo si miraba la agenda:
+         * un paciente que cancela a las 11 de la noche desaparecía de la lista del
+         * día siguiente sin que nadie lo supiera. El bot ya avisa de sus
+         * cancelaciones; este camino no.
+         */
+        void avisarAlConsultorio(
+          clinicId,
+          telefonoDelConsultorio(config),
+          [
+            `🔔 *Cancelación desde el portal*`,
+            ``,
+            `👤 ${cita.pacienteNombre ?? ''}`,
+            `📅 ${cita.fechaHora}`,
+            ``,
+            `El hueco ya se ofreció a la lista de espera.`,
+          ].join('\n'),
+          'cancelacion-portal',
+        )
 
         return NextResponse.json({ ok: true })
       }

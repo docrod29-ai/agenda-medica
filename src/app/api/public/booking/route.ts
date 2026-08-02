@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
+import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { configParaMedico } from '@/lib/horario-medico'
@@ -364,6 +365,30 @@ export async function POST(req: NextRequest) {
         await registrarNoEntregado(clinicId, tel, msg, 'confirmacion-portal')
       }
     } catch { /* no romper si la notificación falla */ }
+
+    /**
+     * Y AL CONSULTORIO, QUE ERA EL QUE NO SE ENTERABA.
+     *
+     * Al paciente se le acaba de prometer «te contactaremos para confirmar», y
+     * nadie en el consultorio sabía que tenía que hacerlo: la cita se quedaba en
+     * `solicitada` esperando a que alguien la viera en la agenda. El bot de
+     * WhatsApp sí manda su «🔔 Nueva cita»; este camino no.
+     */
+    void avisarAlConsultorio(
+      clinicId,
+      telefonoDelConsultorio(cfg as { whatsappConsultorio?: string; telefonoAdmin?: string }),
+      [
+        `🔔 *Nueva cita por el portal*`,
+        ``,
+        `👤 ${paciente.nombre.trim()}`,
+        `📱 ${tel}`,
+        `📅 ${fecha} · 🕐 ${hora} h`,
+        `📋 ${tipo}`,
+        ``,
+        `Está en *solicitada*: confírmala desde la agenda.`,
+      ].join('\n'),
+      'alta-portal',
+    )
 
     return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })
   } catch (err) {
