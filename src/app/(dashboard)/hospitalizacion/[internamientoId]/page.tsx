@@ -110,6 +110,14 @@ export default function EpisodioPage() {
   const [modalIC, setModalIC] = useState(false)
   const [modalInd, setModalInd] = useState(false)
   const [modalSignos, setModalSignos] = useState(false)
+  /** Importar signos del monitor por HL7 (v891/v893). Con el clínico en medio. */
+  const [modalHl7, setModalHl7] = useState(false)
+  const [hl7Texto, setHl7Texto] = useState('')
+  const [hl7Previo, setHl7Previo] = useState<{
+    signos: Record<string, unknown>; medidoEn: string | null
+    descartados: { codigo: string; motivo: string }[]
+  } | null>(null)
+  const [hl7Cargando, setHl7Cargando] = useState(false)
   const [respondiendo, setRespondiendo] = useState<string | null>(null)  // icId
   const [icEditId, setIcEditId] = useState<string | null>(null)          // interconsulta en edición
   const [indEditId, setIndEditId] = useState<string | null>(null)        // indicación en edición
@@ -652,7 +660,22 @@ export default function EpisodioPage() {
       {tab === 'signos' && (<>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Registro seriado de signos vitales.</div>
-          {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/*
+              IMPORTAR DEL MONITOR — con el clínico en medio, a propósito.
+              El adaptador (v891) ya traduce el HL7 del monitor, pero nadie
+              quiere un aparato escribiendo solo en el expediente: se enseña lo
+              que se reconoció Y lo que se descartó con su motivo, y una persona
+              confirma. Lo que entra queda marcado como IMPORTADO, no como
+              escrito por el médico.
+            */}
+            {puedeEnfermeria && !egresado && (
+              <Button size="sm" variant="secondary" icon={<Activity size={14} />} onClick={() => { setHl7Texto(''); setHl7Previo(null); setModalHl7(true) }}>
+                Importar del monitor
+              </Button>
+            )}
+            {puedeEnfermeria && !egresado && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setCorrigiendoId(null); setConcienciaSinMapeo(false); setSg({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false }); setModalSignos(true) }}>Registrar signos</Button>}
+          </div>
         </div>
         {signos.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)', padding: 16, textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>Sin registros de signos vitales.</div>
@@ -1159,6 +1182,88 @@ export default function EpisodioPage() {
             </div>
           )}
           <p style={{ fontSize: 11.5, color: 'var(--text3)' }}>Los cambios quedan registrados en el historial de movimientos del episodio.</p>
+        </div>
+      </Modal>
+
+      {/*
+        IMPORTAR DEL MONITOR (HL7).
+        El adaptador ya traduce; aquí se enseña QUÉ se reconoció y QUÉ se
+        descartó con su motivo, y una persona confirma. Nadie quiere un aparato
+        escribiendo solo en el expediente — y lo que entra queda marcado como
+        importado, no como escrito por el médico.
+      */}
+      <Modal open={modalHl7} onClose={() => setModalHl7(false)} title="Importar signos del monitor"
+        footer={<>
+          <Button variant="secondary" onClick={() => setModalHl7(false)}>Cancelar</Button>
+          <Button
+            loading={busy}
+            disabled={!hl7Previo || Object.keys(hl7Previo.signos).length === 0}
+            onClick={async () => {
+              if (!clinicId || !hl7Previo) return
+              setBusy(true)
+              try {
+                await agregarSignos(clinicId, internamientoId, {
+                  ...(hl7Previo.signos as Record<string, never>),
+                  // La hora del APARATO, no la de ahora: un mensaje que llegó con
+                  // retraso escribiría signos «de ahora» que son de hace dos horas.
+                  fecha: hl7Previo.medidoEn ?? new Date().toISOString(),
+                  por: `Monitor (importado por ${config?.nombreMedico ?? 'el equipo'})`,
+                  fuente: 'dispositivo',
+                } as never)
+                toast('Signos importados del monitor', 'success')
+                setModalHl7(false); cargar()
+              } catch (e) {
+                toast(e instanceof Error ? e.message : 'No se pudieron guardar los signos importados.', 'error')
+              } finally { setBusy(false) }
+            }}
+          >Guardar en el episodio</Button>
+        </>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Mensaje HL7 del monitor (ORU^R01)</label>
+          <textarea
+            className={inputCls} rows={6} value={hl7Texto}
+            onChange={e => setHl7Texto(e.target.value)}
+            placeholder="MSH|^~\\&|MONITOR|..."
+            style={{ fontFamily: 'monospace', fontSize: 12 }}
+          />
+          <Button size="sm" variant="secondary" loading={hl7Cargando} disabled={!hl7Texto.trim()} onClick={async () => {
+            if (!clinicId) return
+            setHl7Cargando(true)
+            try {
+              const r = await fetchAutenticado(`/api/hl7/convertir?clinicId=${encodeURIComponent(clinicId)}&tipo=oru`, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: hl7Texto,
+              })
+              const d = await r.json().catch(() => ({}))
+              if (r.ok && d?.ok) setHl7Previo(d.vitales)
+              else { setHl7Previo(null); toast(d?.error || 'No se pudo leer el mensaje HL7.', 'error') }
+            } catch {
+              setHl7Previo(null); toast('No se pudo leer el mensaje HL7.', 'error')
+            } finally { setHl7Cargando(false) }
+          }}>Leer mensaje</Button>
+
+          {hl7Previo && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--text)' }}>
+                <strong>Se reconoció:</strong>{' '}
+                {Object.keys(hl7Previo.signos).length === 0
+                  ? <span style={{ color: 'var(--amber)' }}>nada que se pueda guardar</span>
+                  : Object.entries(hl7Previo.signos).map(([k, v]) => `${k} ${String(v)}`).join(' · ')}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                {hl7Previo.medidoEn
+                  ? `Medido por el aparato el ${new Date(hl7Previo.medidoEn).toLocaleString('es-MX')}.`
+                  : 'El mensaje no trae la hora del aparato: se guardará con la hora actual.'}
+              </div>
+              {hl7Previo.descartados.length > 0 && (
+                <div style={{ background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 10, padding: '9px 12px' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>No se importó (y por qué):</div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+                    {hl7Previo.descartados.map((d, i) => <li key={i}>{d.codigo}: {d.motivo}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
 
