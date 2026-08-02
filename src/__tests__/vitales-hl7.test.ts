@@ -155,3 +155,32 @@ describe('origenDesdeFuente', () => {
     expect(s).toContain("origenProcedencia: origenDesdeFuente('dispositivo')")
   })
 })
+
+/**
+ * LA PUERTA EN LA FICHA — con el clínico en medio, a propósito.
+ *
+ * El adaptador traducía y ahí se quedaba: la ruta lo dice («NO almacena nada»).
+ * Nadie quiere un aparato escribiendo solo en el expediente, así que la ficha
+ * enseña lo que se reconoció Y lo que se descartó con su motivo, y una persona
+ * confirma. Lo que entra se guarda con la hora del APARATO y marcado como
+ * venido de un dispositivo.
+ */
+describe('importar del monitor desde la ficha', () => {
+  it('la ficha del episodio tiene la puerta', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const s = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'hospitalizacion', '[internamientoId]', 'page.tsx'), 'utf8')
+    expect(s).toContain('Importar del monitor')
+    // Lo descartado se ENSEÑA: si no, el clínico creería que se importó todo.
+    expect(s).toContain('No se importó (y por qué)')
+    // Y lo que entra no se disfraza de tecleado.
+    expect(s).toContain("fuente: 'dispositivo'")
+  })
+
+  it('se guarda con la hora del aparato cuando viene', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const s = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'hospitalizacion', '[internamientoId]', 'page.tsx'), 'utf8')
+    expect(s).toContain('hl7Previo.medidoEn ?? new Date().toISOString()')
+  })
+})

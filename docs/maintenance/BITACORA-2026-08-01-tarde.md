@@ -600,6 +600,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **892** | **El sello de procedencia metía a la máquina y al médico en la misma casilla.** Sólo tenía tres orígenes y todo lo que no venía de la extracción caía en `manual` — que significa literalmente «lo escribió el médico». Con el adaptador de v891 ya entran signos de monitor: sellarlos así afirmaría que el médico tecleó una frecuencia cardiaca que midió un aparato. Ahora hay `calculado` e `importado`, con su propio icono, y un **puente** entre la `fuente` de una toma y el sello de la nota: una fuente desconocida **no** se degrada a `manual`, devuelve `null` — inventar un autor es peor que no tener uno. Cierra **P-006**. |
 
+## CUADRAGÉSIMA SEGUNDA TANDA — v893 (el monitor llega a la ficha)
+
+| v | Qué se reparó |
+|---|---|
+| **893** | **El adaptador convertía y ahí se quedaba.** La ruta lo dice sin rodeos: «NO almacena nada» — el clínico veía un JSON y seguía tecleando los signos a mano. Ahora la ficha del episodio tiene **«Importar del monitor»**: se pega el HL7, se enseña qué se reconoció **y qué se descartó con su motivo** —si sólo se enseñara lo bueno, creería que se importó todo— y **una persona confirma** antes de escribir. Se guarda con **la hora del aparato** y marcado como venido de un dispositivo, que v892 traduce a `importado`. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
