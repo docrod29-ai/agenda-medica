@@ -28,8 +28,16 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Los rojos y ámbares que tienen token equivalente. */
-const CRUDOS = /#(f87171|ef4444|dc2626|b91c1c|fbbf24|f59e0b|d97706|b45309|92400e)\b/gi
+/**
+ * Los colores crudos que tienen token equivalente.
+ *
+ * Empezó siendo sólo rojos y ámbares —los de las alertas— y ése era el hueco:
+ * el trinquete vigilaba el color del error y dejaba pasar el del acierto.
+ * «Verificada por farmacia» en `#0d9488`, los estados en verde, los enlaces en
+ * azul: 97 usos que sobre el crema del tema claro se quedan igual de flojos que
+ * el rosa que motivó todo esto. Todos tenían ya su token en los dos temas.
+ */
+const CRUDOS = /#(f87171|ef4444|dc2626|b91c1c|fbbf24|f59e0b|d97706|b45309|92400e|16a34a|22c55e|4ade80|1ba34d|15803d|0d9488|14b8a6|2dd4bf|0f766e|3b82f6|60a5fa|2563eb|1d4ed8|a78bfa|7c3aed|8b5cf6|6d28d9)\b/gi
 
 /** Se imprimen o se rasterizan: ahí el literal es lo correcto. */
 const PAPEL = [

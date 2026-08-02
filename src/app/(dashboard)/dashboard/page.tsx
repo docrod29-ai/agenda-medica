@@ -153,7 +153,7 @@ export default function DashboardPage() {
           accentColor="var(--teal)"
         />
         <KpiCard delay={100}
-          icon={<CalendarCheck2 size={20} color="#22c55e" />}
+          icon={<CalendarCheck2 size={20} color="var(--green)" />}
           label="Confirmadas"
           value={loading ? '…' : String(stats.confirmadas)}
           sub={stats.total > 0 ? `${Math.round((stats.confirmadas / stats.total) * 100)}%` : '—'}

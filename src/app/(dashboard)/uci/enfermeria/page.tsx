@@ -149,7 +149,7 @@ export default function EnfermeriaUciPage() {
 
           {resumen.tareas.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'var(--text3)', padding: 24, justifyContent: 'center', border: '1px dashed var(--border)', borderRadius: 12 }}>
-              <CheckCircle2 size={17} style={{ color: '#0d9488' }} />
+              <CheckCircle2 size={17} style={{ color: 'var(--teal)' }} />
               {sinTipo.length > 0 || falloUnidades || falloTomas
                 ? 'Sin pendientes entre los pacientes que esta pantalla alcanza a ver (mira el aviso de arriba).'
                 : 'No hay nada pendiente en terapia según el registro.'}
@@ -181,7 +181,7 @@ export default function EnfermeriaUciPage() {
 
           {resumen.sinTareas.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text3)', marginTop: 16 }}>
-              <CheckCircle2 size={14} style={{ color: '#0d9488', flexShrink: 0 }} />
+              <CheckCircle2 size={14} style={{ color: 'var(--teal)', flexShrink: 0 }} />
               {resumen.sinTareas.length} paciente{resumen.sinTareas.length !== 1 ? 's' : ''} sin
               pendientes en el registro. Una lista que sólo muestra lo que falta esconde que el resto va al día.
             </div>

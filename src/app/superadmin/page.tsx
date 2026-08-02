@@ -30,9 +30,9 @@ interface Totales { clinicas: number; activas: number; enPrueba: number; deben: 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
 const PLAN_LABEL: Record<string, string> = { trial: 'Prueba', cortesia: 'Pase libre', agenda: 'Agenda', clinica: 'Clínica', premium: 'Pro', hospital: 'Hospital', basico: 'Básico (viejo)', pro: 'Pro (viejo)' }
 const COB: Record<Cliente['cobranza'], { label: string; color: string }> = {
-  al_corriente: { label: 'Al corriente', color: '#0d9488' },
+  al_corriente: { label: 'Al corriente', color: 'var(--teal)' },
   debe: { label: 'Debe', color: 'var(--red)' },
-  cortesia: { label: 'Pase libre', color: '#7c3aed' },
+  cortesia: { label: 'Pase libre', color: 'var(--purple)' },
   prueba: { label: 'En prueba', color: 'var(--amber)' },
 }
 
@@ -91,7 +91,7 @@ export default function SuperadminPage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px 60px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <ShieldCheck size={24} style={{ color: '#7c3aed' }} /> Consola de suscripciones
+          <ShieldCheck size={24} style={{ color: 'var(--purple)' }} /> Consola de suscripciones
         </h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <a href="/superadmin/soporte" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
@@ -146,13 +146,13 @@ export default function SuperadminPage() {
       {/* KPIs */}
       {totales && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
-          <Kpi label="Ingreso del mes" valor={mxn(totales.ingresoMes)} color="#0d9488" />
+          <Kpi label="Ingreso del mes" valor={mxn(totales.ingresoMes)} color="var(--teal)" />
           <Kpi label="MRR (estimado)" valor={mxn(totales.mrr)} sub="/mes recurrente" />
           <Kpi label="Ingreso histórico" valor={mxn(totales.ingresoTotal)} />
-          <Kpi label="Activas" valor={String(totales.activas)} color="#0d9488" />
+          <Kpi label="Activas" valor={String(totales.activas)} color="var(--teal)" />
           <Kpi label="En prueba" valor={String(totales.enPrueba)} color="var(--amber)" />
           <Kpi label="Deben" valor={String(totales.deben)} color={totales.deben ? '#dc2626' : 'var(--text)'} />
-          <Kpi label="Pase libre" valor={String(totales.cortesia)} color="#7c3aed" />
+          <Kpi label="Pase libre" valor={String(totales.cortesia)} color="var(--purple)" />
         </div>
       )}
 
@@ -326,7 +326,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         )}
 
         {/* Paquete / acceso a módulos */}
-        <Seccion icono={<Package size={16} color="#2563eb" />} titulo="Paquete y acceso a módulos">
+        <Seccion icono={<Package size={16} color="var(--blue)" />} titulo="Paquete y acceso a módulos">
           {paquetes.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {paquetes.filter(p => p.activo !== false).map(p => (
@@ -402,7 +402,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </Seccion>
 
         {/* Pase libre */}
-        <Seccion icono={<Gift size={16} color="#7c3aed" />} titulo="Pase libre (cortesía)">
+        <Seccion icono={<Gift size={16} color="var(--purple)" />} titulo="Pase libre (cortesía)">
           {cliente.paseLibre ? (
             <Button variant="secondary" loading={busy === 'quitar_pase_libre'} onClick={() => accion('quitar_pase_libre')}>Quitar pase libre</Button>
           ) : (
@@ -561,13 +561,13 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.precio ? mxn(p.precio) : 'Gratis'}<span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>{(p.modeloPrecio ?? 'fijo') === 'por_medico' ? '/médico' : (p.modeloPrecio ?? 'fijo') === 'por_cama' ? ' base' : '/mes'}</span></div>
             </div>
             {(p.modeloPrecio ?? 'fijo') !== 'fijo' && (
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', background: '#7c3aed12', borderRadius: 6, padding: '2px 7px', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--purple)', background: '#7c3aed12', borderRadius: 6, padding: '2px 7px', alignSelf: 'flex-start' }}>
                 {p.modeloPrecio === 'por_medico' ? `Por médico · +${mxn(p.precioPorUnidad ?? 0)} c/u extra` : `Por cama · +${mxn(p.precioPorUnidad ?? 0)} c/cama`}
               </div>
             )}
             {p.descripcion && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{p.descripcion}</div>}
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {p.modulos.map(k => <span key={k} style={{ fontSize: 11, fontWeight: 600, color: '#2563eb', background: '#2563eb15', borderRadius: 6, padding: '2px 7px' }}>{MODULO_LABEL[k] ?? k}</span>)}
+              {p.modulos.map(k => <span key={k} style={{ fontSize: 11, fontWeight: 600, color: 'var(--blue)', background: '#2563eb15', borderRadius: 6, padding: '2px 7px' }}>{MODULO_LABEL[k] ?? k}</span>)}
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
               <Button size="sm" variant="secondary" onClick={() => setEditar({ id: p.id, nombre: p.nombre, precio: p.precio, modulos: [...p.modulos], descripcion: p.descripcion ?? '', modeloPrecio: p.modeloPrecio ?? 'fijo', precioBase: p.precioBase ?? p.precio, precioPorUnidad: p.precioPorUnidad ?? 0 })}>Editar</Button>

@@ -47,7 +47,7 @@ export default function ResenaPage() {
   }
   if (enviado) {
     return <Full><div style={card}>
-      <CheckCircle2 size={44} color="#4ade80" style={{ margin: '0 auto 14px' }} />
+      <CheckCircle2 size={44} color="var(--green)" style={{ margin: '0 auto 14px' }} />
       <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>¡Gracias!</h1>
       <p style={{ fontSize: 14, color: 'var(--text2)', marginTop: 8 }}>Tu reseña ayuda a otros pacientes y al consultorio. La publicaremos tras una revisión rápida.</p>
     </div></Full>

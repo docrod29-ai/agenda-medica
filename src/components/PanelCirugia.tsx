@@ -59,8 +59,8 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
     <div style={embebido ? {} : { border: '1px solid rgba(59,130,246,.3)', borderRadius: 12, background: 'rgba(59,130,246,.05)', padding: 14, marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
         {!embebido && <>
-          <Scissors size={15} color="#60a5fa" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa' }}>Valoración perioperatoria</span>
+          <Scissors size={15} color="var(--blue)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Valoración perioperatoria</span>
         </>}
         <span style={pill('#60a5fa', 'rgba(59,130,246,.15)')}>{asaTexto(clase, urgencia)}</span>
         {rc.size > 0 && <span style={pill(col(rRcri.nivel), bg(rRcri.nivel))}>RCRI {rRcri.puntaje}</span>}
@@ -90,7 +90,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
           </Bloque>
 
           <Bloque titulo={`RCRI · riesgo cardiaco — ${rRcri.puntaje}/6`}>
-            <Opciones items={RCRI_FACTORES} sel={rc} on={v => alternar(rc, setRc, v)} color="#60a5fa" />
+            <Opciones items={RCRI_FACTORES} sel={rc} on={v => alternar(rc, setRc, v)} color="var(--blue)" />
             <Resultado nivel={rRcri.nivel} titulo={`RCRI ${rRcri.puntaje} — ${rRcri.categoria}`} texto={rRcri.interpretacion} cita="Lee, Circulation 1999 · ACC/AHA"
               onNota={onAgregarANota && (() => onAgregarANota(`RCRI ${rRcri.puntaje}/6 — ${rRcri.categoria}. ${rRcri.interpretacion}`))} />
           </Bloque>
@@ -102,7 +102,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
           </Bloque>
 
           <Bloque titulo={`Apfel · náusea y vómito postoperatorios — ${rApf.puntaje}/4`}>
-            <Opciones items={APFEL_FACTORES} sel={apf} on={v => alternar(apf, setApf, v)} color="#60a5fa" />
+            <Opciones items={APFEL_FACTORES} sel={apf} on={v => alternar(apf, setApf, v)} color="var(--blue)" />
             <Resultado nivel={rApf.puntaje <= 1 ? 'bajo' : rApf.puntaje === 2 ? 'medio' : 'alto'}
               titulo={`Apfel ${rApf.puntaje}/4 — riesgo aproximado ${rApf.riesgo}%`} texto={rApf.conducta} cita="Apfel, Anesthesiology 1999"
               onNota={onAgregarANota && (() => onAgregarANota(`Apfel ${rApf.puntaje}/4 (riesgo aproximado de NVPO ${rApf.riesgo}%). ${rApf.conducta}`))} />
@@ -118,7 +118,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
               {ESQUEMAS_POR_CIRUGIA.map(e => (
                 <div key={e.cirugia} style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--s1)', padding: '8px 11px' }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{e.cirugia}</div>
-                  <div style={{ fontSize: 11.5, color: '#60a5fa', marginTop: 2 }}>{e.esquema}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--blue)', marginTop: 2 }}>{e.esquema}</div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>Alergia a betalactámicos: {e.alergia}</div>
                 </div>
               ))}
@@ -140,7 +140,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
             </div>
 
             <div style={{ border: '1px solid rgba(59,130,246,.35)', background: 'rgba(59,130,246,.08)', borderRadius: 9, padding: '10px 12px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#60a5fa' }}>{plan.antibiotico} — {plan.dosis}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</div>
               <ul style={{ margin: '7px 0 0', paddingLeft: 17, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
                 <li>{plan.inicio}</li>
                 <li><b style={{ color: plan.momentosRedosis.length ? '#f59e0b' : 'inherit' }}>{plan.redosis}</b></li>
@@ -282,6 +282,6 @@ const campo: React.CSSProperties = {
 }
 const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59,130,246,.15)',
-  color: '#60a5fa', border: '1px solid rgba(59,130,246,.35)', borderRadius: 6,
+  color: 'var(--blue)', border: '1px solid rgba(59,130,246,.35)', borderRadius: 6,
   padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
 }

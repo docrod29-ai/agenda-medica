@@ -226,7 +226,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           <div style={{
             background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)',
             borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 11.5, color: '#a78bfa', fontWeight: 600,
+            fontSize: 11.5, color: 'var(--purple)', fontWeight: 600,
           }}>
             <Shield size={12} /> Cuenta de Asistente
           </div>

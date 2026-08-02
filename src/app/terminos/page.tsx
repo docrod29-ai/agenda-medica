@@ -119,7 +119,7 @@ export default function TerminosPage() {
 
       <Section titulo="13. Contacto">
         Dudas sobre estos Términos: <strong>soporte@nexusmed.mx</strong>. Consulta también nuestro{' '}
-        <a href="/privacidad" style={{ color: '#0d9488', fontWeight: 600 }}>Aviso de Privacidad</a>.
+        <a href="/privacidad" style={{ color: 'var(--teal)', fontWeight: 600 }}>Aviso de Privacidad</a>.
       </Section>
 
       <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>

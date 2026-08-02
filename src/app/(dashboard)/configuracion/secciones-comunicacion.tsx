@@ -371,7 +371,7 @@ export function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) 
             return (
               <div key={p.clave} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}>
-                  {configurada ? <CheckCircle2 size={15} style={{ color: '#16a34a' }} /> : <AlertTriangle size={15} style={{ color: 'var(--text3)' }} />}
+                  {configurada ? <CheckCircle2 size={15} style={{ color: 'var(--green)' }} /> : <AlertTriangle size={15} style={{ color: 'var(--text3)' }} />}
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{p.titulo}</span>
                   <button className="btn btn-ghost btn-sm" onClick={() => copiar(p.texto, p.clave)}
                     style={{ marginLeft: 'auto', color: copiado === p.clave ? 'var(--teal)' : 'var(--text3)' }}>

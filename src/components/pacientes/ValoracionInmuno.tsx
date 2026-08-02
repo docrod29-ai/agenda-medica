@@ -261,8 +261,8 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
         </div>
         <div className="flex flex-wrap gap-1.5">
           {huesped && huesped !== '—' && <Pill label={huesped} color="#0ea5e9" />}
-          {isEstado && <Pill label={'IS: ' + isEstado} color="#7c3aed" />}
-          {diasTx != null && diasTx >= 0 && <Pill label={'Día +' + diasTx} color="#0d9488" />}
+          {isEstado && <Pill label={'IS: ' + isEstado} color="var(--purple)" />}
+          {diasTx != null && diasTx >= 0 && <Pill label={'Día +' + diasTx} color="var(--teal)" />}
           {farmSel.length > 0 && <Pill label={'Carga IS ' + cargaIS} color={CARGA_COLOR[cargaIS]} />}
           {v.hc_cd4 && <Pill label={'CD4 ' + v.hc_cd4} color="var(--amber)" />}
         </div>
@@ -275,7 +275,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
 
       {/* Plan en vivo */}
       <Card padding={14}>
-        <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><ShieldCheck size={15} style={{ color: '#7c3aed' }} /> Impresión y plan {recs.length > 0 && <span style={{ color: 'var(--text3)', fontWeight: 400 }}>· {recs.length}</span>}</div>
+        <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><ShieldCheck size={15} style={{ color: 'var(--purple)' }} /> Impresión y plan {recs.length > 0 && <span style={{ color: 'var(--text3)', fontWeight: 400 }}>· {recs.length}</span>}</div>
         {recs.length === 0
           ? <div className="text-sm" style={{ color: 'var(--text3)' }}>Elige el huésped y el estado de inmunosupresión (o marca los fármacos) y el plan aparecerá aquí, con su cita de guía.</div>
           : <div className="flex flex-col gap-2" style={{ maxHeight: 620, overflowY: 'auto' }}>
@@ -372,7 +372,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
                     <div className="flex flex-wrap gap-1.5">
                       {Object.entries(grp.items).map(([ck, label]) => {
                         const on = v['hc_cb_' + gk + '_' + ck] === '1'
-                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0d9488', background: 'rgba(13,148,136,.12)', color: '#0d9488' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0d9488', background: 'rgba(13,148,136,.12)', color: 'var(--teal)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
                       })}
                     </div>
                   </Grupo>
@@ -389,7 +389,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
             {/* Estudios (inicial) — colapsable por categoría */}
             {modo === 'inicial' && (
               <Card padding={14}>
-                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: '#3b82f6' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: '#3b82f626', color: '#3b82f6' }}>{estudiosSolicitados.length}</span>}</div>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: 'var(--blue)' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: '#3b82f626', color: 'var(--blue)' }}>{estudiosSolicitados.length}</span>}</div>
                 <div className="flex flex-col gap-2">
                   {TX_EST_CATS.filter((c) => c.g(flags)).map((c, ci) => {
                     const sel = Object.keys(c.items).filter((k) => v['hc_est_' + k] === '1').length
@@ -398,7 +398,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(c.items).map(([k, label]) => {
                             const on = v['hc_est_' + k] === '1'
-                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3b82f6', background: 'rgba(59,130,246,.12)', color: '#3b82f6' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3b82f6', background: 'rgba(59,130,246,.12)', color: 'var(--blue)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
                           })}
                         </div>
                       </Grupo>
@@ -411,7 +411,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
             {/* Resultados (seguimiento) */}
             {modo === 'seguimiento' && (
               <Card padding={14}>
-                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: '#3b82f6' }} /> Resultados</div>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: 'var(--blue)' }} /> Resultados</div>
                 {resultadoKeys.map(({ k, label }) => (
                   <div key={k} className="flex items-center gap-2 mb-1.5">
                     <span className="text-xs flex-1" style={{ color: 'var(--text2)' }}>{label}</span>
