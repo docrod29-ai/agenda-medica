@@ -115,6 +115,17 @@ export async function POST(req: NextRequest) {
       actualizadoPor: acc.uid,
       actualizadoEn: new Date().toISOString(),
     }
+    /**
+     * QUIÉN ABRIÓ LA ESTANCIA Y CUÁNDO. `createdAt` y `creadoPor` estaban en el
+     * tipo como obligatorios y no los escribía nadie: sólo se guardaba quién la
+     * tocó por ÚLTIMA vez, así que al cabo de un turno no quedaba rastro de
+     * quién decidió abrirla. Se escriben sólo la primera vez —después serían una
+     * fecha reescrita, que es peor que no tenerla—.
+     */
+    if (!previo.exists) {
+      datos.createdAt = new Date().toISOString()
+      datos.creadoPor = acc.uid
+    }
     if (body.pacienteId) datos.pacienteId = body.pacienteId
     if (body.motivoIngresoUci !== undefined) datos.motivoIngresoUci = body.motivoIngresoUci
 

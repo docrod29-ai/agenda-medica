@@ -13,7 +13,7 @@ import { setDoc, orderBy, limit } from 'firebase/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
 import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, TipoIndicacion, Administracion, RegistroSignos, RolHospital,
-  SolicitudLab, ResultadoLab, Cama, EstadoCama,
+  SolicitudLab, ResultadoLab, Cama, EstadoCama, BedAssignment,
 } from '@/types/hospital'
 
 function internamientosCol(clinicId: string) {
@@ -50,6 +50,19 @@ export async function crearInternamiento(clinicId: string, data: NuevoInternamie
   const res = await mutar(clinicId, null, 'crear', limpiar(data as unknown as Record<string, unknown>))
   if (!res.id) throw new Error('No se pudo registrar el ingreso (sin id).')
   return res.id
+}
+
+/**
+ * HISTORIA DE CAMAS DE UN EPISODIO.
+ *
+ * `bed_assignments` se escribía (traslado, egreso y —desde v868— ingreso) y no
+ * la leía NADIE: `historialCamas` y `ocupantesDe` estaban probados y sin
+ * llamador. Una historia que sólo se escribe es un costo de escritura, no un
+ * dato: nadie puede responder «¿en qué camas ha estado este paciente?».
+ */
+export async function getAsignacionesCama(clinicId: string, iid: string): Promise<BedAssignment[]> {
+  const snap = await getDocs(collection(db, 'clinics', clinicId, 'internamientos', iid, 'bed_assignments'))
+  return snap.docs.map(d => ({ ...(d.data() as object), id: d.id } as BedAssignment))
 }
 
 /** CENSO: todos los internamientos ACTIVOS (ordenados por ingreso, en JS para no exigir índice). */

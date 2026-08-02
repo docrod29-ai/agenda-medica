@@ -409,7 +409,15 @@ export interface ICUStay {
   estado: 'activa' | 'egresada'
   fechaIngresoUci: string
   fechaEgresoUci?: string
-  motivoIngresoUci: string
+  /**
+   * OPCIONAL PORQUE NADIE LO ESCRIBE.
+   *
+   * Estaba declarado como obligatorio y NINGUNA pantalla lo captura: la ruta
+   * de estancia lo acepta si viene, y no viene nunca. Un campo obligatorio que
+   * jamás se llena no obliga a nada — sólo hace que el tipo mienta sobre lo que
+   * hay en la base, y que quien lo lea suponga que siempre tiene texto.
+   */
+  motivoIngresoUci?: string
   soportes: SoporteActivo[]
   /**
    * Peso para dosificación. Se fija explícitamente y queda con su autor: la
@@ -423,10 +431,21 @@ export interface ICUStay {
   }
   /** Talla en cm, para poder calcular PBW y VT/PBW (charter §31). */
   tallaCm?: number
-  codigoReanimacion?: string
-  aislamiento?: string
-  createdAt: string
-  creadoPor: string
+  /**
+   * NI CÓDIGO DE REANIMACIÓN NI AISLAMIENTO.
+   *
+   * Estaban declarados aquí y no existe ni quien los escriba ni quien los lea.
+   * Un campo así no es inocuo en terapia intensiva: en cuanto una pantalla lo
+   * enseñe, un `codigoReanimacion` vacío se lee como «no hay una limitación del
+   * esfuerzo terapéutico registrada», que es justo la afirmación que nadie
+   * hizo. Se quitan hasta que exista la captura de verdad — con su autor y su
+   * fecha, como cualquier decisión de ese peso.
+   */
+  createdAt?: string
+  creadoPor?: string
+  /** Quién y cuándo la tocó por última vez. Esto SÍ lo escribe la ruta. */
+  actualizadoPor?: string
+  actualizadoEn?: string
 }
 
 /** Por qué se asignó la cama. */

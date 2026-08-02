@@ -249,6 +249,27 @@ export async function POST(req: NextRequest) {
           const nref = col.doc()
           tx.set(nref, { ...limpio, clinicId, estado: 'activo', createdAt: now, updatedAt: now, creadoPor: acc.uid })
 
+          /**
+           * Y SE ABRE LA ASIGNACIÓN DE CAMA. Exactamente el mismo agujero que
+           * la estancia de UCI, en la colección de al lado: el TRASLADO abría
+           * `bed_assignments` y el INGRESO no. Consecuencia: la primera cama de
+           * cada episodio no existía en la historia, y el primer traslado se
+           * encontraba sin asignación vigente y anotaba «el episodio venía de
+           * antes de que existiera la historia de camas» — de un paciente
+           * ingresado esa misma mañana. El historial empezaba en la SEGUNDA
+           * cama y `ocupantesDe` no veía a nadie en la primera.
+           */
+          if (payload.cama) {
+            const asigRef = nref.collection('bed_assignments').doc()
+            tx.set(asigRef, {
+              id: asigRef.id,
+              camaId: String(payload.cama),
+              desde: (payload.fechaIngreso as string) || now,
+              motivo: 'ingreso',
+              por: acc.uid,
+            })
+          }
+
           if (esCritica(String(payload.servicio ?? ''), unidades)) {
             // El ingreso a la UNIDAD es el de este episodio: la fecha de ingreso
             // capturada si viene, y si no, ahora.
@@ -258,6 +279,9 @@ export async function POST(req: NextRequest) {
               estado: 'activa',
               fechaIngresoUci: (payload.fechaIngreso as string) || now,
               soportes: [],
+              // Quién la abrió, no sólo quién la tocó al final.
+              createdAt: now,
+              creadoPor: acc.uid,
               actualizadoPor: acc.uid,
               actualizadoEn: now,
             })
@@ -375,6 +399,10 @@ export async function POST(req: NextRequest) {
             fechaIngresoUci: now,
             fechaEgresoUci: null,
             soportes: prev.exists ? ((prev.data() as Any).soportes ?? []) : [],
+            // Estancia NUEVA (la anterior quedó archivada arriba): su autor es
+            // quien la reabre, no quien abrió la del ingreso.
+            createdAt: now,
+            creadoPor: actor.uid,
             actualizadoPor: actor.uid,
             actualizadoEn: now,
           }, { merge: true })
