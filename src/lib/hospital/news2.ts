@@ -57,7 +57,20 @@ export interface News2Result {
   recomendacion: string
 }
 
-const COLOR = { bajo: '#0d9488', medio: '#d97706', alto: '#dc2626' }
+/**
+ * EL COLOR DEL SCORE, EN TOKENS.
+ *
+ * Estaban escritos a mano aquí, en un módulo `.ts`, así que el trinquete de
+ * color —que sólo miraba los `.tsx`— no los veía: la insignia de NEWS2, que es
+ * el indicador de deterioro, se pintaba con un rojo pensado para fondo oscuro y
+ * no cambiaba con el tema. Justo el color que más falta hace que se lea.
+ *
+ * Son cadenas `var(--x)` y no hexadecimales, así que quien las concatene para
+ * hacer un fondo translúcido tiene que usar `color-mix`, no pegarle un sufijo
+ * de alfa. Es más ruidoso a propósito: pegar `+ '1f'` a una variable produce
+ * silenciosamente un color inválido.
+ */
+const COLOR = { bajo: 'var(--green)', medio: 'var(--amber)', alto: 'var(--red)' }
 
 function sistolica(ta?: string): number | undefined {
   if (!ta) return undefined

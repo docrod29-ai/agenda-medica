@@ -202,7 +202,7 @@ export default function SuperadminPage() {
                     </div>
                   </td>
                   <td style={{ padding: '10px 12px' }}>
-                    <span style={{ display: 'inline-block', padding: '2px 9px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, color: cob.color, background: cob.color + '18' }}>{cob.label}</span>
+                    <span style={{ display: 'inline-block', padding: '2px 9px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, color: cob.color, background: `color-mix(in srgb, ${cob.color} 12%, transparent)` }}>{cob.label}</span>
                   </td>
                   <td style={{ padding: '10px 12px', color: 'var(--text3)', fontSize: 12 }}>
                     {c.status === 'trial' && c.diasPrueba != null ? (c.diasPrueba >= 0 ? `${c.diasPrueba} d` : `venció`) : '—'}

@@ -39,6 +39,24 @@ import { join } from 'node:path'
  */
 const CRUDOS = /#(f87171|ef4444|dc2626|b91c1c|fbbf24|f59e0b|d97706|b45309|92400e|16a34a|22c55e|4ade80|1ba34d|15803d|0d9488|14b8a6|2dd4bf|0f766e|3b82f6|60a5fa|2563eb|1d4ed8|a78bfa|7c3aed|8b5cf6|6d28d9)\b/gi
 
+/**
+ * PALETAS CATEGÓRICAS — el literal también es lo correcto aquí, y por otra razón.
+ *
+ * Un color semántico DICE algo (esto está mal, esto está bien) y por eso tiene
+ * que seguir al tema y cumplir contraste. Una paleta categórica sólo tiene que
+ * DISTINGUIR: las trece etiquetas de paciente, o los colores de avatar, existen
+ * para no confundirse entre sí.
+ *
+ * Migrarlas sería peor que dejarlas: de los trece colores de etiqueta sólo cinco
+ * tienen token, así que «frecuente» pasaría a ser el mismo verde que «éxito» y
+ * quedaría una paleta donde tres etiquetas se ven iguales. Distinguir es su
+ * función; perderla es romperlas.
+ */
+const PALETAS = [
+  join('lib', 'avatar-color.ts'),
+  join('types', 'index.ts'),
+]
+
 /** Se imprimen o se rasterizan: ahí el literal es lo correcto. */
 const PAPEL = [
   'RecetaDocumento.tsx',
@@ -69,17 +87,26 @@ const TECHO_PRIMER_PLANO = 0
  */
 const TECHO_FONDO = 0
 
-function tsx(dir: string, out: string[] = []): string[] {
+/**
+ * `.tsx` **y** `.ts`.
+ *
+ * El trinquete sólo miraba las pantallas, y los colores de los SCORES vivían en
+ * módulos de librería: `news2.ts` tenía `{ bajo: '#0d9488', medio: '#d97706',
+ * alto: '#dc2626' }` a la vista de nadie. O sea que el color de la insignia de
+ * deterioro —el que más falta hace que se lea— era invisible para el guardián
+ * puesto justamente a vigilar eso.
+ */
+function fuentes(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
-    if (statSync(p).isDirectory()) tsx(p, out)
-    else if (e.endsWith('.tsx')) out.push(p)
+    if (statSync(p).isDirectory()) { if (e !== '__tests__') fuentes(p, out); continue }
+    if (e.endsWith('.tsx') || e.endsWith('.ts')) out.push(p)
   }
   return out
 }
 
 describe('trinquete de color', () => {
-  const archivos = tsx('src').filter(p => !PAPEL.some(x => p.endsWith(x)))
+  const archivos = fuentes('src').filter(p => ![...PAPEL, ...PALETAS].some(x => p.endsWith(x)))
 
   it(`no hay más de ${TECHO_PRIMER_PLANO} colores crudos en primer plano`, () => {
     const pat = /color\s*[:=]\s*(['"])(#[0-9a-fA-F]{6})\1/g
@@ -102,6 +129,27 @@ describe('trinquete de color', () => {
       for (const m of readFileSync(p, 'utf8').matchAll(pat)) culpables.push(`${p} → rgba(${m[1]}…`)
     }
     expect(culpables, culpables.slice(0, 12).join('\n')).toHaveLength(TECHO_FONDO)
+  })
+
+  it('nadie le pega un sufijo de alfa a un color', () => {
+    /**
+     * EL FALLO QUE ESTE GUARDIÁN VIENE A IMPEDIR, Y QUE YO MISMO COMETÍ.
+     *
+     * `algo.color + '18'` funciona mientras `color` sea un hexadecimal. En
+     * cuanto pasa a ser `var(--purple)` —que es a donde va toda esta
+     * migración— produce `var(--purple)18`: CSS inválido, que el navegador
+     * descarta EN SILENCIO. El fondo del badge simplemente desaparece y nada
+     * se queja.
+     *
+     * v913 convirtió esos mapas a tokens y dejó dos concatenaciones vivas. Lo
+     * correcto es `color-mix`, que sí acepta una variable.
+     */
+    const pat = /\.color\s*\+\s*'[0-9a-fA-F]{2}'/g
+    const culpables: string[] = []
+    for (const p of archivos) {
+      for (const m of readFileSync(p, 'utf8').matchAll(pat)) culpables.push(`${p} → ${m[0]}`)
+    }
+    expect(culpables, culpables.join('\n')).toEqual([])
   })
 
   it('al IMPRIMIR, los colores clínicos son los del tema claro', () => {

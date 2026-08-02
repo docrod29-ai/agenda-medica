@@ -74,7 +74,7 @@ export default function SoporteInbox() {
         return (
           <div key={m.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14, marginBottom: 10, opacity: m.estado === 'resuelto' ? 0.6 : 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: meta.color, background: meta.color + '18', borderRadius: 6, padding: '2px 8px' }}>{meta.emoji} {meta.label}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: meta.color, background: `color-mix(in srgb, ${meta.color} 12%, transparent)`, borderRadius: 6, padding: '2px 8px' }}>{meta.emoji} {meta.label}</span>
               {m.estado === 'nuevo' && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 6, padding: '2px 7px' }}>NUEVO</span>}
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>{m.nombre || m.email || 'Anónimo'}{m.email && m.nombre ? ` · ${m.email}` : ''}</span>
               <span style={{ fontSize: 11.5, color: 'var(--text3)', marginLeft: 'auto' }}>{fechaTxt(m.fecha)}</span>

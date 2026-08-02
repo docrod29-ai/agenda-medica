@@ -671,6 +671,46 @@ no puede reabrirse. El papel sigue con su hexadecimal a propósito.
 
 ---
 
+## SEXAGÉSIMA TERCERA TANDA — v914
+
+### El color de la insignia de deterioro era invisible para el guardián puesto a vigilar eso
+
+El trinquete de color **sólo escaneaba `.tsx`**, y los colores de los scores
+vivían en módulos `.ts`: `news2.ts` tenía `{ bajo: '#0d9488', medio: '#d97706',
+alto: '#dc2626' }` y `escalas.ts` (Braden/Morse) otro igual.
+
+O sea que el color de la insignia de **NEWS2** —el indicador de deterioro, el que
+más falta hace que se lea— no cambiaba de tema, y el guardián puesto justamente a
+vigilar eso no podía verlo. Ahora son tokens y el trinquete escanea `.ts` también.
+
+### Y al hacerlo encontré un fallo mío, de v913
+
+v913 convirtió unos mapas de color a `var(--x)` y **dejó vivas dos
+concatenaciones** `color + '18'`. Eso funciona mientras el color sea un
+hexadecimal; con una variable produce `var(--purple)18`, que es **CSS inválido y
+el navegador descarta en silencio**: el fondo del badge desaparece y nada se
+queja.
+
+Reparado con `color-mix`, y ahora hay una prueba que **prohíbe pegarle un sufijo
+de alfa a un color**. El fallo era cosmético, pero la clase no lo es: una
+migración que rompe en silencio es peor que la deuda que venía a quitar.
+
+### Paletas categóricas: excluidas CON su razón
+
+Un color semántico **dice** algo y debe seguir al tema y cumplir contraste. Una
+paleta categórica sólo tiene que **distinguir**: las trece etiquetas de paciente
+y los colores de avatar existen para no confundirse entre sí. De los trece
+colores de etiqueta sólo cinco tienen token, así que migrarlos dejaría tres
+etiquetas viéndose iguales — perder la función que tienen.
+
+- `src/lib/hospital/news2.ts`, `escalas.ts`, `demo-sandbox.ts`
+- `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`,
+  `superadmin/page.tsx`, `superadmin/soporte/page.tsx`
+- `src/__tests__/color-trinquete.test.ts` (escanea `.ts`, prohíbe el sufijo de
+  alfa, declara `PALETAS`). Total 4888.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
