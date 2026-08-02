@@ -30,6 +30,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { necesitaReparacion, accionDeReparacion, avisoDesincronizada } from '@/lib/calendario/reparar-sync'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
@@ -554,6 +555,40 @@ function AppointmentRowFull({
   // Cita aún por atender (tiene sentido recordar): no cancelada/atendida/etc.
   const recordable = !['cancelada', 'no-asistio', 'reagendada', 'atendida', 'finalizada', 'pagada'].includes(appt.estado)
 
+  /**
+   * REPARAR EL CALENDARIO DESDE LA SESIÓN DEL MÉDICO.
+   *
+   * El portal escribe con el vínculo `médico ↔ calendario`; cuando ese vínculo
+   * falta —o Google falló— la cita queda marcada y esto es la salida: aquí SÍ
+   * hay token propio, porque `/api/calendar/sync` escribe con el
+   * `googleTokens/{uid}` del que está en sesión.
+   *
+   * Una cita cancelada se BORRA del calendario, no se actualiza: en el del
+   * médico —y en el del paciente, si estaba invitado— no debe quedar nada.
+   */
+  const [reparando, setReparando] = useState(false)
+  const { toast } = useToast()
+  const repararSync = async () => {
+    if (reparando || !rowClinicId) return
+    setReparando(true)
+    try {
+      const res = await fetchAutenticado('/api/calendar/sync', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: accionDeReparacion(appt.estado), appointment: appt, clinicId: rowClinicId,
+        }),
+      })
+      if (!res.ok) throw new Error('sync')
+      toast('Google Calendar quedó al día con esta cita', 'success')
+    } catch {
+      // Se dice qué sigue fallando, no un «error» a secas: si el calendario no
+      // está conectado o ligado, reintentar no lo va a arreglar.
+      toast('No se pudo escribir en Google Calendar. Revisa la conexión del calendario en Configuración → Integraciones.', 'error')
+    } finally {
+      setReparando(false)
+    }
+  }
+
   const QUICK_STATUSES: AppointmentStatus[] = ['en-sala', 'en-consulta', 'atendida', 'finalizada', 'cancelada', 'no-asistio']
 
   return (
@@ -605,6 +640,34 @@ function AppointmentRowFull({
 
       {/* Status */}
       <StatusBadge status={appt.estado} size="sm" />
+
+      {/*
+        LA CITA DESCUADRADA CON GOOGLE, QUE HASTA AHORA NADIE VEÍA.
+
+        `googleCalendarSyncStatus` se escribía en cinco sitios y no lo leía
+        ninguna pantalla. El comentario del portal prometía que la marca existía
+        «para que el panel pueda mostrarlo y el médico lo arregle con un clic» —
+        y ese panel no existía. Aquí está.
+      */}
+      {necesitaReparacion(appt) && (
+        <button
+          onClick={repararSync}
+          disabled={reparando}
+          title={avisoDesincronizada(appt.estado)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 10, fontWeight: 700,
+            background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
+            color: 'var(--amber)',
+            border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)',
+            padding: '2px 7px', borderRadius: 100, flexShrink: 0,
+            cursor: reparando ? 'wait' : 'pointer',
+          }}
+        >
+          <AlertTriangle size={10} className="ds-icon" />
+          {reparando ? 'Reparando…' : 'Calendario descuadrado'}
+        </button>
+      )}
 
       {/* Riesgo de no-show (solo niveles alto/muy_alto) */}
       {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
