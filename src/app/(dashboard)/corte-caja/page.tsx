@@ -139,7 +139,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
               Lo que SÍ baja el día son las anulaciones, y ésas sí se pueden
               contar.
             */}
-            <Kpi icon={<TrendingDown size={16} />} titulo="Anulados" valor={fmtMXN(anulados.reduce((s, c) => s + c.monto, 0))} color="#dc2626" />
+            <Kpi icon={<TrendingDown size={16} />} titulo="Anulados" valor={fmtMXN(anulados.reduce((s, c) => s + c.monto, 0))} color="var(--red)" />
             <Kpi icon={<Users size={16} />} titulo="Movimientos" valor={String(corte.nCobros)} />
           </div>
 
@@ -149,7 +149,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
               background: 'rgba(220,38,38,0.05)', padding: 14, marginBottom: 18,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <AlertCircle size={15} style={{ color: '#dc2626' }} />
+                <AlertCircle size={15} style={{ color: 'var(--red)' }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
                   Anulados de este día · {anulados.length}
                 </span>
@@ -206,7 +206,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
                   : 'Todas las consultas atendidas de este día están cobradas. 🎉'} />
               : (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#d97706', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--amber)', marginBottom: 10 }}>
                     <AlertCircle size={14} /> Consultas atendidas sin cobro registrado.
                   </div>
                   {porCobrar.map(c => (

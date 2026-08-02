@@ -105,7 +105,7 @@ export default function ExpedientePage() {
       {/* Alergias banner — SIEMPRE rojo y visible */}
       {/* Si la lectura falló, decirlo AQUÍ: donde iría el banner de alergias. */}
       {errorPaciente && (
-        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#b45309', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span>⚠ {errorPaciente}</span>
           <button className="btn btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
         </div>

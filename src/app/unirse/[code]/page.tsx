@@ -83,7 +83,7 @@ export default function UnirsePage() {
     return (
       <div style={containerStyle}>
         <div style={cardStyle}>
-          <AlertTriangle size={36} color="#f87171" style={{ margin: '0 auto 12px' }} />
+          <AlertTriangle size={36} color="var(--red)" style={{ margin: '0 auto 12px' }} />
           <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>Enlace no válido</h1>
           <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 18px' }}>{error}</p>
           {/* Si el problema es que ya pertenece a otra clínica, ofrecer SALIDA clara. */}

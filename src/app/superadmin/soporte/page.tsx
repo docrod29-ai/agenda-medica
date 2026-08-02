@@ -10,10 +10,10 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { ArrowLeft, LifeBuoy, Loader2 } from 'lucide-react'
 
 const META: Record<string, { label: string; emoji: string; color: string }> = {
-  falla:        { label: 'Falla',        emoji: '🐞', color: '#dc2626' },
+  falla:        { label: 'Falla',        emoji: '🐞', color: 'var(--red)' },
   duda:         { label: 'Duda',         emoji: '❓', color: '#2563eb' },
-  sugerencia:   { label: 'Sugerencia',   emoji: '💡', color: '#d97706' },
-  queja:        { label: 'Queja',        emoji: '⚠️', color: '#b45309' },
+  sugerencia:   { label: 'Sugerencia',   emoji: '💡', color: 'var(--amber)' },
+  queja:        { label: 'Queja',        emoji: '⚠️', color: 'var(--amber)' },
   felicitacion: { label: 'Felicitación', emoji: '🎉', color: '#15803d' },
 }
 const fechaTxt = (iso: string) => iso ? new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''

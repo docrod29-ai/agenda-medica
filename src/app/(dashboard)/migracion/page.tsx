@@ -199,7 +199,7 @@ export default function MigracionPage() {
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', padding: '4px 10px', borderRadius: 100 }}>
                     {conteo.nuevo} nuevos
                   </span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#d97706', background: 'rgba(245,158,11,0.12)', padding: '4px 10px', borderRadius: 100 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)', background: 'rgba(245,158,11,0.12)', padding: '4px 10px', borderRadius: 100 }}>
                     {conteo.duplicado} duplicados (se omiten)
                   </span>
                 </div>
@@ -216,7 +216,7 @@ export default function MigracionPage() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', opacity: c.estado === 'nuevo' ? 1 : 0.55 }}>
                       {c.estado === 'nuevo'
                         ? <CheckCircle2 size={15} style={{ color: '#16a34a', flexShrink: 0 }} />
-                        : <AlertTriangle size={15} style={{ color: '#d97706', flexShrink: 0 }} />}
+                        : <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0 }} />}
                       <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.fila.nombre}</span>
                       <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.fila.telefono || '—'}</span>
                     </div>

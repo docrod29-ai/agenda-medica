@@ -75,7 +75,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
         </div>
         {/* Morse */}
         <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Ruler size={15} style={{ color: '#d97706' }} /> Morse <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· riesgo de caídas</span></div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}><Ruler size={15} style={{ color: 'var(--amber)' }} /> Morse <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· riesgo de caídas</span></div>
           {ultMorse && <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Último: {ultMorse.score} ({ultMorse.riesgo})</div>}
           {puedeEditar && (<>
             {MORSE_ITEMS.map(it => (

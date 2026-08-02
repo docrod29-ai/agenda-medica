@@ -345,13 +345,13 @@ export default function AntimicrobianosPage() {
                 </div>
               ))}
               {!encontrado && (
-                <div style={{ fontSize: 12.5, marginTop: 10, color: '#b45309', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12.5, marginTop: 10, color: 'var(--amber)', lineHeight: 1.5 }}>
                   No hay tope cargado para este fármaco e indicación. Cárgalo en la otra pestaña —
                   hasta entonces el motor no puede juzgar la cifra, y decirlo es lo correcto.
                 </div>
               )}
               {encontrado?.caducado && (
-                <div style={{ fontSize: 12.5, marginTop: 10, color: '#b45309' }}>
+                <div style={{ fontSize: 12.5, marginTop: 10, color: 'var(--amber)' }}>
                   El tope se cargó con otra versión del dataset: caducado, no se usa.
                 </div>
               )}
@@ -364,7 +364,7 @@ export default function AntimicrobianosPage() {
 
             <div style={S.card}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #0f172a)', marginBottom: 8 }}>Lo que dice la evidencia</div>
-              {resolucion.noResuelve && <div style={{ fontSize: 13, color: '#b45309' }}>{resolucion.noResuelve}</div>}
+              {resolucion.noResuelve && <div style={{ fontSize: 13, color: 'var(--amber)' }}>{resolucion.noResuelve}</div>}
               {resolucion.reglaDosis.label && (
                 <Bloque titulo="Ficha" texto={resolucion.reglaDosis.label.texto} fuentes={resolucion.reglaDosis.label.fuentes} />
               )}
@@ -506,7 +506,7 @@ export default function AntimicrobianosPage() {
                     disabled={ocupado !== null || cargandoTodo} style={{
                     padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
                     border: '1px solid #d97706', cursor: ocupado ? 'wait' : 'pointer',
-                    background: 'transparent', color: '#b45309', opacity: ocupado === t.farmaco ? 0.6 : 1,
+                    background: 'transparent', color: 'var(--amber)', opacity: ocupado === t.farmaco ? 0.6 : 1,
                   }}>{ocupado === t.farmaco ? 'Guardando…' : 'Confirmar'}</button>
                 </div>
               </div>
@@ -596,7 +596,7 @@ export default function AntimicrobianosPage() {
                   placeholder="IDSA 2026 tabla 1 · ficha FDA · CLSI M100 Ed36…" /></div>
 
               {problemas.length > 0 && (
-                <div style={{ fontSize: 12.5, color: '#b45309', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12.5, color: 'var(--amber)', lineHeight: 1.5 }}>
                   {problemas.map((p, i) => <div key={i}>· {p}</div>)}
                 </div>
               )}
@@ -635,14 +635,14 @@ export default function AntimicrobianosPage() {
                   </div>
                   <div style={{ color: 'var(--text3, #64748b)', marginTop: 3 }}>{l.fuente}</div>
                   {l.huellaDataset !== HUELLA_DATASET && (
-                    <div style={{ color: '#b45309', marginTop: 3 }}>Caducado: se cargó con otra versión del dataset.</div>
+                    <div style={{ color: 'var(--amber)', marginTop: 3 }}>Caducado: se cargó con otra versión del dataset.</div>
                   )}
                   <button onClick={async () => {
                     if (!clinicId) return
                     await borrarLimite(clinicId, l.farmaco, l.indicacion)
                     setCargados(await getLimites(clinicId))
                   }} style={{
-                    marginTop: 6, background: 'transparent', border: 'none', color: '#dc2626',
+                    marginTop: 6, background: 'transparent', border: 'none', color: 'var(--red)',
                     fontSize: 12, cursor: 'pointer', padding: 0,
                   }}>Quitar</button>
                 </div>

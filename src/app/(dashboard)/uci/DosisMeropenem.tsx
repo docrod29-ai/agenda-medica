@@ -154,7 +154,7 @@ export function DosisMeropenem({ crClSugerido }: { crClSugerido?: number | null 
 
       {r.avisos.map((a, i) => (
         <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 11, padding: '11px 13px', marginBottom: 8 }}>
-          <AlertTriangle size={15} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.6 }}>{a}</div>
         </div>
       ))}

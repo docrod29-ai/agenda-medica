@@ -131,8 +131,8 @@ export default function CRMPage() {
           {/* Pipeline */}
           <Section title="Pipeline de citas">
             <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-              <PipeStep label="Solicitadas"           count={pipeline.solicitada}             color="#f59e0b" />
-              <PipeStep label="Pendientes confirmar"  count={pipeline['pendiente-confirmar']} color="#f59e0b" />
+              <PipeStep label="Solicitadas"           count={pipeline.solicitada}             color="var(--amber)" />
+              <PipeStep label="Pendientes confirmar"  count={pipeline['pendiente-confirmar']} color="var(--amber)" />
               <PipeStep label="Confirmadas"           count={pipeline.confirmada}             color="#22c55e" />
               <PipeStep label="En sala / consulta"    count={pipeline['en-consulta']}         color="#a855f7" />
               <PipeStep label="Finalizadas"           count={pipeline.finalizada}             color="var(--teal)" />
@@ -144,8 +144,8 @@ export default function CRMPage() {
             <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
               <Retencion label="Pacientes activos (≤90d)"      count={pacientesActivos}     color="#22c55e" icon={<Users size={16} />} />
               <Retencion label="Pacientes inactivos"           count={pacientesInactivos}   color="#94a3b8" icon={<Users size={16} />} />
-              <Retencion label="Seguimientos vencidos"         count={requierenSeguimiento} color="#f59e0b" icon={<ArrowUpRight size={16} />} />
-              <Retencion label="Riesgo de no-show (≥2 ausencias)" count={enRiesgoNoShow}    color="#ef4444" icon={<UserX size={16} />} />
+              <Retencion label="Seguimientos vencidos"         count={requierenSeguimiento} color="var(--amber)" icon={<ArrowUpRight size={16} />} />
+              <Retencion label="Riesgo de no-show (≥2 ausencias)" count={enRiesgoNoShow}    color="var(--red)" icon={<UserX size={16} />} />
             </div>
             <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 12, lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text2)' }}>Recomendación:</strong> Para pacientes en riesgo de no-show,
@@ -182,7 +182,7 @@ function KPI({ icon, label, valor, sub, color, trend }: { icon: React.ReactNode;
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text3)' }}>
         <span style={{ color }}>{icon}</span> {label}
-        {trend === 'down' && <TrendingDown size={12} color="#ef4444" />}
+        {trend === 'down' && <TrendingDown size={12} color="var(--red)" />}
         {trend === 'up' && <TrendingUp size={12} color="#22c55e" />}
       </div>
       <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', marginTop: 6 }}>{valor}</div>

@@ -45,7 +45,7 @@ function Bloque({ icon: Icon, titulo, sub, children }: {
   )
 }
 
-const Nota = ({ children, color = '#d97706' }: { children: React.ReactNode; color?: string }) => (
+const Nota = ({ children, color = 'var(--amber)' }: { children: React.ReactNode; color?: string }) => (
   <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, lineHeight: 1.55, color: 'var(--text3)' }}>
     <AlertTriangle size={13} style={{ color, flexShrink: 0, marginTop: 2 }} />
     <div>{children}</div>
@@ -111,7 +111,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
       <Bloque icon={GitCompare} titulo="Dictado vs calculado" sub="charter §24">
         {aviso && (
           <div style={{ marginBottom: 10 }}>
-            <Nota color="#dc2626">{aviso}</Nota>
+            <Nota color="var(--red)">{aviso}</Nota>
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -138,13 +138,13 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
         <Bloque icon={AlertTriangle} titulo="Una dosis perdió su número" sub="medido en el corpus de UCI">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {dosisRotas.map((d, i) => (
-              <div key={i} style={{ fontSize: 13, lineHeight: 1.5, color: '#dc2626', fontWeight: 600 }}>
+              <div key={i} style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--red)', fontWeight: 600 }}>
                 {d.mensaje}
               </div>
             ))}
           </div>
           <div style={{ marginTop: 10 }}>
-            <Nota color="#dc2626">{AVISO_DOSIS_ROTA}</Nota>
+            <Nota color="var(--red)">{AVISO_DOSIS_ROTA}</Nota>
           </div>
         </Bloque>
       )}

@@ -1416,7 +1416,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
       </div>
 
       {!doctor && (
-        <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: 14, fontSize: 13, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: 14, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 7 }}>
           <AlertTriangle size={15} className="ds-icon" style={{ flexShrink: 0 }} /> No hay médico configurado. Ve a Configuración → General para agregar un médico.
         </div>
       )}
@@ -1587,7 +1587,7 @@ function MedicosTab() {
                 if (!(await confirm(`¿Borrar a ${doc.nombre}? Sus citas anteriores no se borran, pero ya no aparecerá para agendar.`, { peligro: true, confirmar: 'Borrar' }))) return
                 deleteDoctor(clinicId!, doc.id).then(() => toast('Médico borrado', 'success')).catch(() => toast('No se pudo borrar', 'error'))
               }}
-              style={{ background: 'none', border: '1px solid var(--border)', color: '#dc2626', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--red)', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
               <IconX size={12} /> Borrar
             </button>
@@ -2138,7 +2138,7 @@ function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaH
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{TIPO_BLOQUE_LABEL[b.tipo]} {b.motivo && <span style={{ color: "var(--text3)", fontWeight: 400 }}>· {b.motivo}</span>}</div>
                   <div style={{ fontSize: 11.5, color: "var(--text3)" }}>{fmt(b.desde)} → {fmt(b.hasta)}</div>
                 </div>
-                <button onClick={() => borrar(b.id)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, cursor: "pointer" }}>Eliminar</button>
+                <button onClick={() => borrar(b.id)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "var(--red)", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, cursor: "pointer" }}>Eliminar</button>
               </div>
             ))}
           </div>

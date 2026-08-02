@@ -483,7 +483,7 @@ function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: str
       border: `1px solid ${ok ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.35)'}`,
       borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 12,
     }}>
-      {ok ? <Check size={18} color="#10b981" style={{ marginTop: 2 }} /> : <AlertTriangle size={18} color="#f59e0b" style={{ marginTop: 2 }} />}
+      {ok ? <Check size={18} color="#10b981" style={{ marginTop: 2 }} /> : <AlertTriangle size={18} color="var(--amber)" style={{ marginTop: 2 }} />}
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 13.5 }}>{titulo}</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3, lineHeight: 1.5 }}>{descripcion}</div>
@@ -559,7 +559,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                   {r.solicitante.nombre} · {r.solicitante.telefono}
                   {r.solicitante.email && <> · {r.solicitante.email}</>}
                   {r.origen === 'portal-publico' && !r.identidadVerificada && (
-                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700, background: 'rgba(217,119,6,0.12)', color: '#d97706' }}>
+                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700, background: 'rgba(217,119,6,0.12)', color: 'var(--amber)' }}>
                       Identidad sin verificar
                     </span>
                   )}

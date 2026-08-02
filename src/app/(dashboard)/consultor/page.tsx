@@ -16,7 +16,7 @@ function nivelEvidencia(tipo?: string): { label: string; color: string } | null 
     case 'Meta-análisis': return { label: 'Evidencia alta', color: '#16a34a' }
     case 'Guía': return { label: 'Guía de práctica', color: '#16a34a' }
     case 'ECA': return { label: 'Evidencia alta', color: '#16a34a' }
-    case 'Revisión': return { label: 'Evidencia moderada', color: '#d97706' }
+    case 'Revisión': return { label: 'Evidencia moderada', color: 'var(--amber)' }
     default: return null
   }
 }
@@ -183,7 +183,7 @@ export default function ConsultorPage() {
                       por literatura. El dato ya existía; sólo que nadie lo usaba.
                     */}
                     {t.sinCitas && !t.cargando && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: '#b45309', background: 'rgba(180,83,9,0.10)', border: '1px solid rgba(180,83,9,0.3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: 'var(--amber)', background: 'rgba(180,83,9,0.10)', border: '1px solid rgba(180,83,9,0.3)' }}>
                         <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>Sin resultados de PubMed para esta pregunta. Lo de abajo es razonamiento clínico, no literatura citada — verifica antes de aplicarlo.</span>
                       </div>

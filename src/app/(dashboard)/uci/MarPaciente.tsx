@@ -78,7 +78,7 @@ export default function MarPaciente(
                 <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 600 }}>{l.descripcion}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 3, lineHeight: 1.5 }}>{l.mensaje}</div>
                 {l.omisiones.length > 0 && (
-                  <div style={{ fontSize: 11.5, color: '#d97706', marginTop: 5, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 5, lineHeight: 1.5 }}>
                     {l.omisiones.length} omisión{l.omisiones.length !== 1 ? 'es' : ''} registrada{l.omisiones.length !== 1 ? 's' : ''}.
                     Una omisión no cuenta como dosis dada, y no desaparece de la vista.
                   </div>

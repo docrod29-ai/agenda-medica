@@ -267,7 +267,7 @@ function Estado({ activo, email }: { activo: boolean; email: string }) {
       background: activo ? 'rgba(16,185,129,0.04)' : 'rgba(245,158,11,0.04)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        {activo ? <ShieldCheck size={20} color="#10b981" /> : <AlertTriangle size={20} color="#f59e0b" />}
+        {activo ? <ShieldCheck size={20} color="#10b981" /> : <AlertTriangle size={20} color="var(--amber)" />}
         <span style={{ fontSize: 15, fontWeight: 700, color: activo ? '#10b981' : '#f59e0b' }}>
           {activo ? '2FA activo' : '2FA NO está activo'}
         </span>

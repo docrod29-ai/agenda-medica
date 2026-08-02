@@ -74,8 +74,8 @@ function colorSigno(
   ctx?: { oxigeno?: boolean },
 ): { color?: string; fontWeight?: number } {
   const n = nivelDeSigno(campo, valor, ctx)
-  if (n === 'critico') return { color: '#dc2626', fontWeight: 700 }
-  if (n === 'aviso') return { color: '#d97706' }
+  if (n === 'critico') return { color: 'var(--red)', fontWeight: 700 }
+  if (n === 'aviso') return { color: 'var(--amber)' }
   return {}
 }
 
@@ -449,7 +449,7 @@ export default function EpisodioPage() {
         const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
         if (lista.length && !negadas) {
           return (
-            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: '#dc2626' }}>
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: 'var(--red)' }}>
               <AlertTriangle size={16} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13.5, fontWeight: 700 }}>ALERGIAS:</span>
               <span style={{ fontSize: 13.5, fontWeight: 600 }}>{lista.join(' · ')}</span>
@@ -531,7 +531,7 @@ export default function EpisodioPage() {
                     </div>
                   )}
                   {ind.horasSinClasificar > 0 && (
-                    <div style={{ fontSize: 12, color: '#d97706', marginTop: 7, lineHeight: 1.55 }}>
+                    <div style={{ fontSize: 12, color: 'var(--amber)', marginTop: 7, lineHeight: 1.55 }}>
                       {enDias(ind.horasSinClasificar)} d en servicios sin tipo de unidad
                       ({ind.serviciosSinTipo.join(', ')}). No se reparten entre los demás:
                       sería contar tiempo que no se sabe dónde ocurrió.
@@ -608,7 +608,7 @@ export default function EpisodioPage() {
                     {ind.tipo === 'medicamento' && ind.activa && (
                       ind.verificadaFarmacia
                         ? <div style={{ fontSize: 11, color: '#0d9488', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}><ShieldCheck size={12} /> Verificada por farmacia{ind.verificadaPor ? ` · ${ind.verificadaPor}` : ''}</div>
-                        : <div style={{ fontSize: 11, color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}><AlertTriangle size={12} /> Pendiente de verificación farmacéutica</div>
+                        : <div style={{ fontSize: 11, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}><AlertTriangle size={12} /> Pendiente de verificación farmacéutica</div>
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -636,7 +636,7 @@ export default function EpisodioPage() {
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {ind.administraciones.slice(-6).map((a, i) => (
                       <div key={i} style={{ fontSize: 11.5, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {a.estado === 'administrado' ? <Check size={12} style={{ color: '#0d9488' }} /> : <Ban size={12} style={{ color: '#d97706' }} />}
+                        {a.estado === 'administrado' ? <Check size={12} style={{ color: '#0d9488' }} /> : <Ban size={12} style={{ color: 'var(--amber)' }} />}
                         {new Date(a.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · {a.estado === 'administrado' ? 'Administrado' : 'Omitido'}{a.por ? ' · ' + a.por : ''}{a.nota ? ` — ${a.nota}` : ''}
                       </div>
                     ))}
@@ -674,10 +674,10 @@ export default function EpisodioPage() {
           )}
           {/* Gráficas de tendencia */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 14 }}>
-            <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="#dc2626" />
+            <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="var(--red)" />
             <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3d5afe" />
             <GraficaSignos titulo="Frecuencia respiratoria" unidad="rpm" puntos={serie('fr')} normalMin={12} normalMax={20} color="#7c3aed" />
-            <GraficaSignos titulo="Temperatura" unidad="°C" puntos={serie('temp')} normalMin={36} normalMax={38} color="#d97706" />
+            <GraficaSignos titulo="Temperatura" unidad="°C" puntos={serie('temp')} normalMin={36} normalMax={38} color="var(--amber)" />
             <GraficaSignos titulo="SpO₂" unidad="%" puntos={serie('spo2')} normalMin={92} normalMax={100} color="#0d9488" />
             <GraficaSignos titulo="Glucosa" unidad="mg/dL" puntos={serie('glucosa')} normalMin={70} normalMax={180} color="#0ea5e9" />
           </div>
@@ -1065,7 +1065,7 @@ export default function EpisodioPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {indAct && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{indAct.descripcion}{indAct.frecuencia ? ` · ${indAct.frecuencia}` : ''}</div>}
               {indAct && !indAct.verificadaFarmacia && (
-                <div style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: '#d97706' }}>
+                <div style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: 'var(--amber)' }}>
                   <AlertTriangle size={14} /> Esta indicación NO ha sido verificada por farmacia.
                 </div>
               )}
@@ -1075,7 +1075,7 @@ export default function EpisodioPage() {
                 <input className={inputCls} placeholder={`Folio: …${folioEsperado}`} value={folioScan} onChange={e => setFolioScan(e.target.value)} autoFocus />
                 {folioScan && (identidadOk
                   ? <div style={{ fontSize: 11.5, color: '#0d9488', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}><ShieldCheck size={12} /> Identidad verificada</div>
-                  : <div style={{ fontSize: 11.5, color: '#dc2626', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} /> El folio no coincide con este paciente</div>)}
+                  : <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} /> El folio no coincide con este paciente</div>)}
               </div>
               {/* Los 5 correctos */}
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>Confirma los 5 correctos</div>
@@ -1298,7 +1298,7 @@ export default function EpisodioPage() {
             {/* El registro original guardaba 'alterada', que no equivale a un solo
                 nivel ACVPU. No se adivina: se pide re-seleccionar. Ver `acvpu()`. */}
             {concienciaSinMapeo && (
-              <div style={{ fontSize: 11.5, color: '#d97706', maxWidth: 320, lineHeight: 1.4, marginTop: 2 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--amber)', maxWidth: 320, lineHeight: 1.4, marginTop: 2 }}>
                 El registro original decía <strong>&laquo;alterada&raquo;</strong> (formato antiguo), que puede ser C, V, P o U. <strong>Vuelve a elegir el nivel</strong> — no se rellena solo para no suponer.
               </div>
             )}

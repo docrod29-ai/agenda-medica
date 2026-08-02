@@ -836,7 +836,7 @@ export default function UciPanelPage() {
             </button>
           ) : <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Este dispositivo no soporta grabación.</span>}
           <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>
-            {audio.estado === 'grabando' && <span className="nx-pulse" style={{ color: '#dc2626' }}>● Grabando… {Math.floor(audio.duracion)}s</span>}
+            {audio.estado === 'grabando' && <span className="nx-pulse" style={{ color: 'var(--red)' }}>● Grabando… {Math.floor(audio.duracion)}s</span>}
             {audio.estado === 'pausado' && 'En pausa'}
             {audio.estado === 'subiendo' && 'Transcribiendo…'}
             {audio.estado === 'listo' && detectados.length > 0 && <span style={{ color: 'var(--nexus)' }}>✓ {detectados.length} valores prellenados — revísalos</span>}
@@ -870,7 +870,7 @@ export default function UciPanelPage() {
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {avisosVoz.map((a, i) => (
               <div key={i} style={{ fontSize: 12, display: 'flex', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'rgba(217,119,6,.09)', border: '1px solid rgba(217,119,6,.35)', color: 'var(--text)' }}>
-                <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 9.5, color: '#d97706', width: 74, flexShrink: 0, paddingTop: 1 }}>{a.motivo === 'implausible' ? 'No cargado' : 'Confirma'}</span>
+                <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: 9.5, color: 'var(--amber)', width: 74, flexShrink: 0, paddingTop: 1 }}>{a.motivo === 'implausible' ? 'No cargado' : 'Confirma'}</span>
                 <span>{a.detalle}</span>
               </div>
             ))}
@@ -882,7 +882,7 @@ export default function UciPanelPage() {
             <pre style={{ marginTop: 8, fontSize: 12, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '10px 12px', whiteSpace: 'pre-wrap', maxHeight: 200, overflow: 'auto' }}>{discusionTxt}</pre>
           </details>
         )}
-        {audio.error && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{audio.error}</div>}
+        {audio.error && <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red)' }}>{audio.error}</div>}
       </div>
 
       {/* NOTA EN VIVO: se ARMA sola con lo que dictas/capturas. "Pasar a nota" solo
@@ -1101,7 +1101,7 @@ export default function UciPanelPage() {
 
           <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
-              <ShieldAlert size={16} style={{ color: '#d97706' }} /> Alertas ({alertas.length})
+              <ShieldAlert size={16} style={{ color: 'var(--amber)' }} /> Alertas ({alertas.length})
             </div>
             {alertas.length === 0
               ? <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Sin alertas con los datos actuales.</div>
@@ -1152,7 +1152,7 @@ export default function UciPanelPage() {
         {correlacion.asociaciones.length > 0 && (
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {correlacion.asociaciones.map((a, i) => (
-              <div key={i} style={{ fontSize: 12.5, color: '#d97706', padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: '3px solid #d97706' }}>{a}</div>
+              <div key={i} style={{ fontSize: 12.5, color: 'var(--amber)', padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: '3px solid #d97706' }}>{a}</div>
             ))}
           </div>
         )}
@@ -1213,7 +1213,7 @@ export default function UciPanelPage() {
         <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '8px 0 0', display: 'flex', gap: 5, alignItems: 'center' }}>
           <Info size={12} /> Razona con Anthropic + OpenAI SOBRE los cálculos deterministas (no recalcula escalas). Sugiere qué verificar/decidir; no da órdenes. Tú decides y firmas.
         </p>
-        {copilotError && <div style={{ marginTop: 10, fontSize: 12.5, color: '#dc2626' }}>{copilotError}</div>}
+        {copilotError && <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--red)' }}>{copilotError}</div>}
         {copilot?.primario && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {copilot.primario.resumen && <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>{copilot.primario.resumen}</div>}
@@ -1231,7 +1231,7 @@ export default function UciPanelPage() {
                       {p.cambio && <div><b>Cambió:</b> {p.cambio}</div>}
                       {p.porque && <div><b>Por qué:</b> {p.porque}</div>}
                       {p.soporte && <div><b>Soporte:</b> {p.soporte}</div>}
-                      {p.faltante && <div style={{ color: '#d97706' }}><b>Falta para decidir:</b> {p.faltante}</div>}
+                      {p.faltante && <div style={{ color: 'var(--amber)' }}><b>Falta para decidir:</b> {p.faltante}</div>}
                     </div>
                   </div>
                 )
@@ -1241,7 +1241,7 @@ export default function UciPanelPage() {
               <div style={{ fontSize: 12.5, color: 'var(--text2)' }}><b>Datos clave que faltan:</b> {copilot.primario.faltantesClave.join(' · ')}</div>
             )}
             {copilot.primario.seguridad.length > 0 && (
-              <div style={{ fontSize: 12.5, color: '#dc2626' }}><b>Seguridad:</b> {copilot.primario.seguridad.join(' · ')}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--red)' }}><b>Seguridad:</b> {copilot.primario.seguridad.join(' · ')}</div>
             )}
             {copilot.divergencias.length > 0 && (
               <details>
@@ -1293,7 +1293,7 @@ export default function UciPanelPage() {
                     : <>{infusion.rateMlH?.valor} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>mL/h</span></>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{infusion.interpretacion}</div>
-                {infusion.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: '#d97706', marginTop: 4 }}>⚠ {a}</div>)}
+                {infusion.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: 'var(--amber)', marginTop: 4 }}>⚠ {a}</div>)}
               </>
             : <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{infusion.motivoBloqueo}</div>}
           {infFarmaco?.nota && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>{infFarmaco.nota}</div>}
@@ -1331,7 +1331,7 @@ export default function UciPanelPage() {
               <Resultado label="Efluente" r={{ ok: ckrt.ok, valor: ckrt.efluenteMlH, unidad: 'mL/h', motivoBloqueo: ckrt.motivoBloqueo, interpretacion: ckrt.modalidad ?? '' }} />
               <Resultado label="Dosis (entregada/prescrita)" r={{ ok: ckrt.dosisPrescritaMlKgH != null, valor: ckrt.dosisEntregadaMlKgH ?? ckrt.dosisPrescritaMlKgH, unidad: 'mL/kg/h', motivoBloqueo: 'sin peso/tiempo', interpretacion: ckrt.dosisEntregadaMlKgH != null ? 'entregada' : 'prescrita' }} />
               <Resultado label="Fracción de filtración" r={{ ok: ckrt.fraccionFiltracionPct != null, valor: ckrt.fraccionFiltracionPct, unidad: '%', motivoBloqueo: 'requiere Qb + Hto (CVVH/CVVHDF)', interpretacion: 'meta < 25%' }} />
-              {ckrt.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: '#d97706' }}>⚠ {a}</div>)}
+              {ckrt.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: 'var(--amber)' }}>⚠ {a}</div>)}
               {citrato.ratioCaTotalIonico != null && <div style={{ fontSize: 12.5, color: citrato.patronAcumulacion ? '#dc2626' : 'var(--text3)' }}>Citrato · ratio Ca total/iónico {citrato.ratioCaTotalIonico}{citrato.patronAcumulacion ? ' — patrón de acumulación (verificar)' : ''}</div>}
             </div>
             <Bloque icon={Droplets} titulo="Citrato (anticoagulación regional)">

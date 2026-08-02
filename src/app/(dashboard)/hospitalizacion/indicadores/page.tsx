@@ -67,7 +67,7 @@ export default function IndicadoresPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           <Kpi valor={m.activos} label="Internados ahora" color="#0d9488" />
           <Kpi valor={m.estMedia} label="Estancia media (días)" />
-          <Kpi valor={m.egresados} label="Egresos (histórico)" color="#d97706" />
+          <Kpi valor={m.egresados} label="Egresos (histórico)" color="var(--amber)" />
           <Kpi valor={todos.length} label="Episodios totales" color="#7c3aed" />
         </div>
 

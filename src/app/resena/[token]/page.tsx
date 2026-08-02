@@ -43,7 +43,7 @@ export default function ResenaPage() {
     return <Full><Loader2 size={26} color="var(--teal)" style={{ animation: 'spin 1s linear infinite' }} /></Full>
   }
   if (error) {
-    return <Full><div style={card}><AlertTriangle size={36} color="#f59e0b" /><h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginTop: 10 }}>{error}</h1></div></Full>
+    return <Full><div style={card}><AlertTriangle size={36} color="var(--amber)" /><h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginTop: 10 }}>{error}</h1></div></Full>
   }
   if (enviado) {
     return <Full><div style={card}>

@@ -159,8 +159,8 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
       {/* ── Preeclampsia ── */}
       {tab === 'preeclampsia' && (
         <div>
-          <Grupo titulo="Factores de ALTO riesgo (basta uno)" items={RIESGO_ALTO_PE} sel={altos} on={v => toggle(altos, setAltos, v)} color="#f87171" />
-          <Grupo titulo="Factores de riesgo MODERADO (se necesitan dos)" items={RIESGO_MODERADO_PE} sel={mods} on={v => toggle(mods, setMods, v)} color="#f59e0b" />
+          <Grupo titulo="Factores de ALTO riesgo (basta uno)" items={RIESGO_ALTO_PE} sel={altos} on={v => toggle(altos, setAltos, v)} color="var(--red)" />
+          <Grupo titulo="Factores de riesgo MODERADO (se necesitan dos)" items={RIESGO_MODERADO_PE} sel={mods} on={v => toggle(mods, setMods, v)} color="var(--amber)" />
           <div style={{
             marginTop: 10, padding: '10px 12px', borderRadius: 9,
             border: `1px solid ${aas.indicada ? 'rgba(236,72,153,.4)' : 'var(--border)'}`,

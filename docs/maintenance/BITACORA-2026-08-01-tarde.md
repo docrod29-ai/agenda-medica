@@ -158,8 +158,10 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
     pero ninguna interfaz lo escribe y ni `getAvailableSlots` ni `hasConflict` lo miran.
 12. **Google Calendar es unidireccional** — no hay `freebusy`: un evento creado en
     Google no bloquea la agenda.
-13. **Fragmentación cromática** — 160 de 187 `.tsx` con estilo en línea, 4 rojos y
-    8 ámbares distintos. Saneamiento progresivo; bloquear con lint.
+13. ~~Fragmentación cromática~~ — HECHO A MEDIAS (v872): los 124 usos de PRIMER
+    PLANO migrados a `--red`/`--amber` y **trinquete con techo 0**. **Queda**:
+    los mismos colores usados como FONDO y BORDE (`rgba(239,68,68,0.1)` y
+    familia), que no rompen contraste de texto pero siguen sin cambiar de tema.
 14. **`BLOQUEA_RECETA` promete una barrera que no existe** — `src/lib/expediente/medical-ner.ts:176`:
     lo decide el LLM y no bloquea nada, sólo se pinta.
 15. **Textos clínicos en imperativo sin fuente** — `src/lib/seguridad/prescripcion-segura.ts`
@@ -443,6 +445,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | v | Qué se reparó |
 |---|---|
 | **871** | **Cualquiera desde internet podía señalar el expediente de un tercero para que se suprimiera.** El portal público de derechos ARCO crea la solicitud sin sesión —tiene que ser así—, pero las reglas no constreñían `patientId`, y el panel de Cumplimiento enseña «Ejecutar cancelación…» exactamente cuando la solicitud trae uno: una solicitud anónima con el `patientId` de un paciente real y un nombre plausible ponía la supresión de ese expediente a un clic, con la casilla de identidad como única barrera. Reglas: quien no es miembro no puede mandar `patientId`, debe declarar `origen: 'portal-publico'` y no puede declararse verificada a sí misma. El panel marca «Identidad sin verificar» y explica por qué no hay botón cuando no hay expediente ligado. **Reglas desplegadas aparte**; 101 specs del emulador en verde. |
+
+## VIGESIMOPRIMERA TANDA — v872 (el color que no cambiaba de tema)
+
+| v | Qué se reparó |
+|---|---|
+| **872** | **El color de la alerta clínica no cambiaba de tema.** Cuatro rojos y ocho ámbares escritos a mano en 55 pantallas; el problema no es la variedad sino que un hexadecimal no cambia de tema: `#f87171` es el rosa **para fondo oscuro** y sobre el crema del tema claro da 2.5:1 (AA pide 4.5). Y es el color del error bajo un campo de **dosis**, del atraso del MAR y de las alertas clínicas. 124 colores de primer plano migrados a `--red`/`--amber`, medidos en los dos temas. **Excepción deliberada**: las superficies que se imprimen conservan el hexadecimal (html2canvas clona el nodo y una variable sin resolver deja sin color el «[FALTA CÉDULA PROFESIONAL]»; y el papel fuerza tema claro). Queda un **trinquete** con techo 0 vigilado por prueba. |
 
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 

@@ -53,7 +53,7 @@ export default function LegalPage() {
 
       {/* Aviso legal importante */}
       <div className="no-print" style={{ display: 'flex', gap: 10, padding: 14, borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', marginBottom: 16 }}>
-        <AlertTriangle size={18} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+        <AlertTriangle size={18} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
           Estos documentos son un <strong>borrador base</strong> conforme a la LFPDPPP. Antes de usarlos con
           pacientes o firmarlos, conviene que un <strong>asesor legal</strong> los revise. Tú eres el responsable

@@ -45,7 +45,7 @@ function etiquetaLlave(fuente: string | undefined, hint: string): { texto: strin
     case 'clinica':  return { texto: `● tu llave ${hint} — en uso`, color: '#10b981' }
     case 'fundador': return { texto: '● llave de la plataforma — sin tope (dueño)', color: '#10b981' }
     case 'prueba':   return { texto: '○ llave de la plataforma — prueba con tope', color: 'var(--text3)' }
-    case 'ninguna':  return { texto: '⚠ sin llave: la IA no puede funcionar', color: '#dc2626' }
+    case 'ninguna':  return { texto: '⚠ sin llave: la IA no puede funcionar', color: 'var(--red)' }
     // Servidor viejo o respuesta a medias: NO se inventa un estado. Se dice que
     // no se sabe, que es distinto de decir «prueba» y equivocarse.
     default:         return { texto: hint ? `● configurada ${hint}` : '○ sin llave propia', color: 'var(--text3)' }
@@ -129,9 +129,9 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
               <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
             </div>
             {pct >= 100
-              ? <div style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 700, marginTop: 6 }}>Créditos agotados — las acciones de IA se pausan. Recarga o pon tu propia llave abajo.</div>
+              ? <div style={{ fontSize: 11.5, color: 'var(--red)', fontWeight: 700, marginTop: 6 }}>Créditos agotados — las acciones de IA se pausan. Recarga o pon tu propia llave abajo.</div>
               : casiVacio
-                ? <div style={{ fontSize: 11.5, color: '#d97706', marginTop: 6 }}>Te queda poco crédito ({tope - c.usados}). Valora recargar.</div>
+                ? <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 6 }}>Te queda poco crédito ({tope - c.usados}). Valora recargar.</div>
                 : null}
           </div>
         )
