@@ -176,9 +176,10 @@ original, se conserva por contexto.
     por `uid` (`googleTokens/{uid}`) y los caminos públicos no tienen sesión ni
     forma fiable de mapear `medicoId` → `uid`. **v875 escribió ese vínculo** al
     conectar el calendario (`doctors/{id}.uid` + `googleTokens/{uid}.medicoId`),
-    que era el prerrequisito. **Queda**: consultar el freebusy desde los caminos
-    públicos usando ese vínculo — y sólo aplica a quien reconecte su calendario,
-    porque los ya conectados no tienen el vínculo escrito.
+    que era el prerrequisito, y **v876 lo consumió**: la disponibilidad pública
+    descuenta el freebusy del médico y el alta lo revalida. **Queda**: el bot de
+    WhatsApp, y que esto sólo aplica a quien RECONECTE su calendario — los ya
+    conectados no tienen el vínculo escrito.
 13. ~~Fragmentación cromática~~ — HECHO A MEDIAS (v872): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` y **trinquete con techo 0**. **Queda**:
     los mismos colores usados como FONDO y BORDE (`rgba(239,68,68,0.1)` y
@@ -494,6 +495,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | v | Qué se reparó |
 |---|---|
 | **875** | **El calendario de Google no sabía de qué médico era.** El token vive en `googleTokens/{uid}` y la agenda razona con `medicoId`: **no existía relación entre los dos**, y de ahí salen las dos cosas que hoy no funcionan — el portal público / el bot / el reagendado no consultan el freebusy (un paciente puede reservar encima de una cirugía apuntada en el calendario personal del médico), y la sincronización desde el portal quedó sin hacer a propósito. El único momento en que se sabe con certeza que un uid es de una persona concreta es cuando esa persona conecta su propio calendario: ahí se escribe el vínculo, por correo **exacto** y sólo si es inequívoco (`lib/calendario/vinculo-medico.ts`, 7 pruebas). Dos correos iguales o ninguno → vínculo **sin hacer y declarado**, y el médico se entera al volver. |
+
+## VIGESIMOQUINTA TANDA — v876 (el paciente reservaba encima del calendario del médico)
+
+| v | Qué se reparó |
+|---|---|
+| **876** | **El portal público no descontaba lo que el médico tiene en su Google Calendar.** El panel del consultorio sí lo consultaba; el camino que usa el paciente no, porque el token vive por `uid` y no se sabía de quién era el calendario — lo desbloqueó el vínculo de v875. Ahora la disponibilidad pública lo descuenta **y el alta lo vuelve a comprobar antes de escribir**: «no ofrecer» y «no aceptar» son distintas (una pestaña abierta desde antes mete la cita igual), y ese error ya se pagó una vez con el horario partido. Cautelas: sólo con `medicoId`; si Google falla se sigue como antes —ni se esconde el día ni se rechaza una cita real por un fallo de red—; y no viaja nada del evento, sólo el intervalo. |
 
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
