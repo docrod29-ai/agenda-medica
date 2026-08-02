@@ -75,6 +75,20 @@ export type AuditEvento =
   | 'hosp_administracion'        // administración de medicamento (MAR)
   | 'hosp_traslado'              // traslado de cama/servicio o cambio de tratante
   | 'hosp_lab_resultado'         // se cargó resultado de laboratorio
+  /**
+   * === Lo que hace el PACIENTE por su cuenta (portal y bot) ===
+   *
+   * Estos cinco se escribían directo con el Admin SDK desde las rutas, sin pasar
+   * por `logAudit`, así que quedaban FUERA de este tipo — y de la lista de
+   * etiquetas de la pantalla de cumplimiento, que los enseñaba con su nombre
+   * interno. La bitácora es lo que se le pone delante a un auditor: media
+   * pantalla en jerga de base de datos no es trazabilidad.
+   */
+  | 'cita_solicitada_portal'     // el paciente reservó desde el portal público
+  | 'cita_cancelada_portal'      // el paciente canceló desde su enlace
+  | 'cita_reagendada_portal'     // el paciente movió su cita desde su enlace
+  | 'cita_cancelada_whatsapp'    // el paciente canceló hablando con el bot
+  | 'formulario_previo_enviado'  // el paciente llenó su información antes de la consulta
 
 export interface AuditPayload {
   evento: AuditEvento
@@ -212,4 +226,66 @@ export function asientosDeOtros(): number {
   const yo = uidActual()
   if (!yo) return 0
   return leerCola().filter(p => p.uid && p.uid !== yo).length
+}
+
+
+/**
+ * CÓMO SE LEE CADA EVENTO — en la pantalla de cumplimiento y en cualquier otra.
+ *
+ * Vivía suelto dentro de `cumplimiento/page.tsx`, así que la bitácora podía
+ * crecer sin que nadie se enterara de que a la pantalla le faltaban etiquetas:
+ * doce eventos —los del portal, el bot y toda la hospitalización— salían con su
+ * nombre interno, `hosp_administracion` en vez de «Administró medicamento».
+ *
+ * Está aquí, junto al tipo, y una prueba exige que cada evento del tipo tenga la
+ * suya y que ningún `evento:` escrito en el repositorio falte del tipo. Es el
+ * mismo trato que el trinquete de lint: lo que importa no es corregirlo hoy, es
+ * que no se vuelva a descolgar mañana.
+ */
+export const EVENTO_LABEL: Record<AuditEvento, string> = {
+  ia_procesamiento: 'IA procesó',
+  ia_campo_aprobado: 'Aprobó campo IA',
+  ia_campo_rechazado: 'Rechazó campo IA',
+  nota_borrador_guardado: 'Guardó borrador',
+  nota_firmada: 'Firmó nota',
+  nota_adenda: 'Agregó adenda',
+  nota_borrada: 'Borró borrador',
+  laboratorio_borrado: 'Borró laboratorio',
+  foto_clinica_borrada: 'Borró foto clínica',
+  consentimiento_grabacion: 'Consintió grabar',
+  expediente_lectura: 'Vio expediente',
+  nota_lectura: 'Vio nota',
+  nota_impresion: 'Imprimió nota',
+  receta_generada: 'Generó receta',
+  receta_descargada: 'Descargó receta',
+  orden_generada: 'Generó orden',
+  paciente_creado: 'Creó paciente',
+  paciente_modificado: 'Modificó paciente',
+  paciente_borrado: 'Borró paciente',
+  aviso_privacidad_aceptado: 'Aviso aceptado',
+  arco_solicitud_recibida: 'Solicitud ARCO',
+  arco_solicitud_resuelta: 'ARCO resuelta',
+  login_exitoso: 'Inicio de sesión',
+  login_fallido: 'Login fallido',
+  export_datos: 'Export de datos',
+  cobro_exento: 'Marcó cortesía (no cobrar)',
+  cita_estado_cambiado: 'Cambió estado de cita',
+  cita_borrada: 'Borró cita',
+  hosp_ingreso: 'Ingreso hospitalario',
+  hosp_egreso: 'Egreso hospitalario',
+  hosp_administracion: 'Administró medicamento',
+  hosp_traslado: 'Traslado de cama o tratante',
+  hosp_lab_resultado: 'Cargó resultado de laboratorio',
+  // Lo que hace el paciente por su cuenta se nombra DICIENDO que fue él: en una
+  // revisión, «canceló» sin sujeto se lee como que lo hizo el consultorio.
+  cita_solicitada_portal: 'El paciente reservó (portal)',
+  cita_cancelada_portal: 'El paciente canceló (portal)',
+  cita_reagendada_portal: 'El paciente reagendó (portal)',
+  cita_cancelada_whatsapp: 'El paciente canceló (WhatsApp)',
+  formulario_previo_enviado: 'El paciente envió su información previa',
+}
+
+/** Cómo enseñar un evento, incluido uno que todavía no tenga etiqueta. */
+export function etiquetaEvento(evento: string): string {
+  return (EVENTO_LABEL as Record<string, string>)[evento] ?? evento
 }

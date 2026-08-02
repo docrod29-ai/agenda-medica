@@ -17,7 +17,7 @@ import {
   listarSolicitudesArco, resolverSolicitudArco,
   ARCO_TIPO_LABEL, type ArcoRequest, type ArcoEstado,
 } from '@/lib/arco'
-import { asientosPendientes, asientosDeOtros, type AuditEvento } from '@/lib/expediente/audit-log'
+import { asientosPendientes, asientosDeOtros, etiquetaEvento, type AuditEvento } from '@/lib/expediente/audit-log'
 import {
   ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical,
 } from 'lucide-react'
@@ -70,31 +70,6 @@ interface AuditEntry {
   meta?: Record<string, unknown>
 }
 
-const EVENTO_LABEL: Record<string, string> = {
-  expediente_lectura: 'Vio expediente',
-  nota_lectura: 'Vio nota',
-  nota_impresion: 'Imprimió nota',
-  nota_firmada: 'Firmó nota',
-  nota_adenda: 'Agregó adenda',
-  nota_borrador_guardado: 'Guardó borrador',
-  nota_borrada: 'Borró borrador',
-  receta_generada: 'Generó receta',
-  receta_descargada: 'Descargó receta',
-  orden_generada: 'Generó orden',
-  paciente_creado: 'Creó paciente',
-  paciente_modificado: 'Modificó paciente',
-  paciente_borrado: 'Borró paciente',
-  aviso_privacidad_aceptado: 'Aviso aceptado',
-  arco_solicitud_recibida: 'Solicitud ARCO',
-  arco_solicitud_resuelta: 'ARCO resuelta',
-  login_exitoso: 'Inicio de sesión',
-  login_fallido: 'Login fallido',
-  export_datos: 'Export de datos',
-  ia_procesamiento: 'IA procesó',
-  ia_campo_aprobado: 'Aprobó campo IA',
-  ia_campo_rechazado: 'Rechazó campo IA',
-  consentimiento_grabacion: 'Consintió grabar',
-}
 
 type Tab = 'bitacora' | 'arco' | 'estado'
 
@@ -512,7 +487,7 @@ function Bitacora({ entries, loading }: { entries: AuditEntry[]; loading: boolea
           }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                {EVENTO_LABEL[e.evento] ?? e.evento}
+                {etiquetaEvento(e.evento)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {e.medicoEmail ?? '—'}
