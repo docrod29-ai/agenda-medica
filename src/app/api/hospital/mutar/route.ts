@@ -279,6 +279,9 @@ export async function POST(req: NextRequest) {
               estado: 'activa',
               fechaIngresoUci: (payload.fechaIngreso as string) || now,
               soportes: [],
+              // Quién la abrió, no sólo quién la tocó al final.
+              createdAt: now,
+              creadoPor: acc.uid,
               actualizadoPor: acc.uid,
               actualizadoEn: now,
             })
@@ -396,6 +399,10 @@ export async function POST(req: NextRequest) {
             fechaIngresoUci: now,
             fechaEgresoUci: null,
             soportes: prev.exists ? ((prev.data() as Any).soportes ?? []) : [],
+            // Estancia NUEVA (la anterior quedó archivada arriba): su autor es
+            // quien la reabre, no quien abrió la del ingreso.
+            createdAt: now,
+            creadoPor: actor.uid,
             actualizadoPor: actor.uid,
             actualizadoEn: now,
           }, { merge: true })

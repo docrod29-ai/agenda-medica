@@ -423,6 +423,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **868** | **El ingreso no abría la asignación de cama.** El traslado y el egreso escribían en `bed_assignments`; el ingreso no — el mismo agujero que ya se reparó con la estancia de UCI, en la colección de al lado. La primera cama de cada episodio no existía en la historia, y el primer traslado anotaba «el episodio venía de antes de que existiera la historia de camas» de un paciente ingresado esa misma mañana: el historial empezaba en la **segunda** cama y `ocupantesDe` no veía a nadie en la primera. **Y esa historia no la leía nadie**: `historialCamas` y `ocupantesDe`, escritos y probados, sin un solo llamador. Al abrir el traslado se enseñan ya las camas del episodio con fechas y motivo (`getAsignacionesCama`). |
 
+## DECIMOCTAVA TANDA — v869 (los campos que la estancia prometía y no existían)
+
+| v | Qué se reparó |
+|---|---|
+| **869** | **`motivoIngresoUci` era obligatorio y no lo captura ninguna pantalla** — un campo obligatorio que jamás se llena sólo hace que el tipo mienta; pasa a opcional. **`codigoReanimacion` y `aislamiento` no tenían ni escritor ni lector**: en terapia intensiva eso no es inocuo — en cuanto una pantalla lo enseñe, un código de reanimación vacío se lee como «no hay limitación del esfuerzo terapéutico registrada», la afirmación que nadie hizo; se quitan hasta que exista la captura de verdad. **`createdAt`/`creadoPor` eran obligatorios y no los escribía nadie**: sólo constaba quién tocó la estancia por última vez, así que al cabo de un turno no quedaba rastro de quién decidió abrirla; se escriben ahora en las tres rutas que la abren, y sólo la primera vez. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.
