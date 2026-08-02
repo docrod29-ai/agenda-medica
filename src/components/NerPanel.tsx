@@ -4,7 +4,7 @@
  * NerPanel — visualiza las entidades clínicas extraídas por NER.
  *
  * Jerarquía visual (lo más crítico arriba):
- *  1. 🚨 BLOQUEA_RECETA (alergia con anafilaxia + fármaco prescrito)
+ *  1. 🚨 RIESGO_MAXIMO (alergia con anafilaxia + fármaco prescrito)
  *  2. ⚠️ Interacciones MAYORES / contraindicadas
  *  3. ⚠️ Otros cross-checks (riesgo medio, interacciones moderadas)
  *  4. Listas de entidades por categoría (condiciones, medicamentos,
@@ -57,8 +57,8 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
   if (!entidades) return null
 
   const { conditions = [], medications = [], procedures = [], tests = [], allergies = [], anatomy = [], cross_check } = entidades
-  const bloquea = (cross_check?.alergia_vs_medicamento ?? []).filter(c => c.BLOQUEA_RECETA)
-  const cruzAlergias = (cross_check?.alergia_vs_medicamento ?? []).filter(c => !c.BLOQUEA_RECETA)
+  const bloquea = (cross_check?.alergia_vs_medicamento ?? []).filter(c => c.RIESGO_MAXIMO)
+  const cruzAlergias = (cross_check?.alergia_vs_medicamento ?? []).filter(c => !c.RIESGO_MAXIMO)
   const interaccionesGraves = (cross_check?.interacciones_farmacologicas ?? []).filter(i => i.severidad === 'mayor' || i.severidad === 'contraindicada')
   const interaccionesLeves = (cross_check?.interacciones_farmacologicas ?? []).filter(i => i.severidad === 'menor' || i.severidad === 'moderada')
 
@@ -94,10 +94,20 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <ShieldAlert size={20} color="var(--red)" />
-            <strong style={{ color: 'var(--red)', fontSize: 14, letterSpacing: '0.02em' }}>BLOQUEA RECETA — Riesgo de anafilaxia</strong>
+            <strong style={{ color: 'var(--red)', fontSize: 14, letterSpacing: '0.02em' }}>RIESGO MÁXIMO — antecedente de anafilaxia</strong>
           </div>
           <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
             Paciente alérgico a <strong>{c.alergeno}</strong> + fármaco prescrito: <strong>{c.farmaco_riesgoso}</strong>
+          </div>
+          {/*
+            Decir QUIÉN bloquea. La tarjeta decía «BLOQUEA RECETA» y no bloqueaba
+            nada: el estado con las entidades no se lee en el guardado ni en la
+            impresión. Lo que sí detiene la firma es la verificación NOM-004 con
+            las alergias del expediente, que no depende de que se pulse este botón.
+          */}
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+            Esto es lo que el modelo vio en el texto. La firma la detiene la verificación NOM-004
+            con las alergias registradas en el expediente, aunque no abras este panel.
           </div>
           {c.alternativa_sugerida && (
             <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>

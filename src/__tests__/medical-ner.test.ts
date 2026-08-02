@@ -28,16 +28,16 @@ describe('EntidadesExtraidas — contrato del schema (defaults)', () => {
     expect(r.medications[0].generico).toBe('')
   })
 
-  it('preserva un cross-check que BLOQUEA_RECETA', () => {
+  it('preserva un cross-check de RIESGO_MAXIMO', () => {
     const r = EntidadesExtraidas.parse({
       cross_check: {
         alergia_vs_medicamento: [{
           alergeno: 'Penicilina', farmaco_riesgoso: 'Amoxicilina',
-          riesgo: 'anafilaxia', BLOQUEA_RECETA: true,
+          riesgo: 'anafilaxia', RIESGO_MAXIMO: true,
         }],
       },
     })
-    expect(r.cross_check.alergia_vs_medicamento[0].BLOQUEA_RECETA).toBe(true)
+    expect(r.cross_check.alergia_vs_medicamento[0].RIESGO_MAXIMO).toBe(true)
     expect(r.cross_check.alergia_vs_medicamento[0].riesgo).toBe('anafilaxia')
   })
 

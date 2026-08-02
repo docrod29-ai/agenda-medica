@@ -199,11 +199,17 @@ Jerarquiza por **probabilidad pre-test** ajustada al contexto local (México 202
     "severidad_reaccion_original": "anafilaxia",
     "riesgo_cruzado": "alto (10% en anafilácticos)",
     "alternativa_segura": "clindamicina 300 mg c/8h VO",
-    "BLOQUEA_RECETA": true
+    "RIESGO_MAXIMO": true
   }
 ]
 ```
-Si `BLOQUEA_RECETA: true`, el frontend NO permite firmar hasta que el médico justifique con texto libre o cambie el fármaco.
+**El que detiene la firma NO es este campo.** Aquí decía que «el frontend NO
+permite firmar hasta que el médico justifique», y eso nunca fue cierto: la
+bandera sólo pintaba una tarjeta. El bloqueo real lo hace el motor DETERMINISTA
+(`validarAlergiasVsMedicamentos` + `validarNOM004`), que cruza las alergias del
+EXPEDIENTE y corre siempre, sin depender de que el modelo se acuerde ni de que
+alguien abra el panel. Este campo es lo que el modelo VIO en el texto, y desde
+v846 se llama como lo que es.
 
 ### 3.6 Sanity check de signos vitales
 Rechaza o marca como `needs_review` valores fuera de rango fisiológico:
