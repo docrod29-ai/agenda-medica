@@ -594,6 +594,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **891** | **Los signos vitales ya pueden llegar del monitor.** Era la **única** pieza de las fases 6-12 que de verdad no existía — las otras seis las verifiqué una por una antes de escribir nada. Casi todos los monitores hablan HL7 y mandan un `OBX` por parámetro; el convertidor sólo devolvía FHIR genérico. Cuatro reglas, cada una contra un dato falso: la **unidad no se adivina** (98.6 °F leído como °C es 37 y NEWS2 puntúa con eso), la **hora es la del aparato**, la **presión sólo entra completa**, y **nada se completa ni se promedia** —un valor no numérico no se fuerza a cero, porque un cero inventado en una frecuencia cardiaca es un paro que no ocurrió—. Lo que llega del monitor va marcado con su fuente. |
 
+## CUADRAGÉSIMA PRIMERA TANDA — v892 (P-006: «manual» significa «lo escribió el médico»)
+
+| v | Qué se reparó |
+|---|---|
+| **892** | **El sello de procedencia metía a la máquina y al médico en la misma casilla.** Sólo tenía tres orígenes y todo lo que no venía de la extracción caía en `manual` — que significa literalmente «lo escribió el médico». Con el adaptador de v891 ya entran signos de monitor: sellarlos así afirmaría que el médico tecleó una frecuencia cardiaca que midió un aparato. Ahora hay `calculado` e `importado`, con su propio icono, y un **puente** entre la `fuente` de una toma y el sello de la nota: una fuente desconocida **no** se degrada a `manual`, devuelve `null` — inventar un autor es peor que no tener uno. Cierra **P-006**. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

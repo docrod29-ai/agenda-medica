@@ -109,3 +109,49 @@ describe('el adaptador llega a la ruta', () => {
     expect(s).toContain("fuente: 'dispositivo'")
   })
 })
+
+/**
+ * EL VOCABULARIO DE PROCEDENCIA — P-006 del charter.
+ *
+ * `manual` significa literalmente «lo escribió el médico». Con el adaptador de
+ * dispositivos ya entran signos de un monitor: sellarlos como `manual` afirmaría
+ * que el médico tecleó una frecuencia cardiaca que midió un aparato conectado a
+ * un cable que quizá estaba suelto. Y un NEWS2 calculado no lo «dijo» nadie.
+ */
+describe('origenDesdeFuente', () => {
+  it('lo que llega de un dispositivo es IMPORTADO, no manual', async () => {
+    const { origenDesdeFuente, esDeMaquina } = await import('@/lib/expediente/procedencia')
+    expect(origenDesdeFuente('dispositivo')).toBe('importado')
+    expect(origenDesdeFuente('hl7-monitor')).toBe('importado')
+    expect(esDeMaquina('importado')).toBe(true)
+  })
+
+  it('lo derivado por un motor es CALCULADO: no lo dijo nadie', async () => {
+    const { origenDesdeFuente, esDeMaquina } = await import('@/lib/expediente/procedencia')
+    expect(origenDesdeFuente('calculado')).toBe('calculado')
+    expect(esDeMaquina('calculado')).toBe(true)
+  })
+
+  it('lo que sí tiene autor humano se conserva como estaba', async () => {
+    const { origenDesdeFuente, esDeMaquina } = await import('@/lib/expediente/procedencia')
+    expect(origenDesdeFuente('teclado')).toBe('manual')
+    expect(origenDesdeFuente('panel-uci')).toBe('manual')
+    expect(origenDesdeFuente('voz')).toBe('dictado')
+    expect(esDeMaquina('manual')).toBe(false)
+  })
+
+  it('una fuente desconocida NO se degrada a manual', async () => {
+    // Inventar un autor es peor que no tener uno.
+    const { origenDesdeFuente } = await import('@/lib/expediente/procedencia')
+    expect(origenDesdeFuente('lo-que-sea')).toBeNull()
+    expect(origenDesdeFuente('')).toBeNull()
+    expect(origenDesdeFuente(undefined)).toBeNull()
+  })
+
+  it('la ruta de HL7 marca el origen, no sólo la fuente', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const s = readFileSync(join(process.cwd(), 'src', 'app', 'api', 'hl7', 'convertir', 'route.ts'), 'utf8')
+    expect(s).toContain("origenProcedencia: origenDesdeFuente('dispositivo')")
+  })
+})

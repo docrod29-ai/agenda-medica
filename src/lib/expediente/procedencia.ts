@@ -10,6 +10,23 @@
  *   - 'ia'      : la IA lo propuso, pero SIN una frase literal que lo respalde
  *                 (inferencia del modelo). Se marca aparte, con honestidad.
  *   - 'manual'  : está en la nota pero NO vino de la extracción → lo escribió el médico.
+ *   - 'calculado': lo derivó un motor determinista de otros datos (NEWS2, IMC,
+ *                 día de UCI…). No lo dijo nadie ni lo tecleó nadie: si el dato
+ *                 de origen cambia, éste cambia solo.
+ *   - 'importado': llegó de un sistema externo — un monitor de cabecera por HL7,
+ *                 un laboratorio. Lo midió una máquina que nadie estaba mirando.
+ *
+ * ── POR QUÉ HACÍAN FALTA LOS DOS ÚLTIMOS ─────────────────────────────────────
+ *
+ * Hasta ahora todo lo que no venía de la extracción caía en `manual`, y `manual`
+ * significa **«lo escribió el médico»**. Con el adaptador de dispositivos
+ * (`lib/dispositivos/vitales-hl7.ts`) ya entran signos vitales de un monitor: si
+ * se sellaran como `manual`, el registro afirmaría que el médico tecleó una
+ * frecuencia cardiaca que en realidad midió un aparato conectado a un cable que
+ * quizá estaba suelto. Y un NEWS2 calculado no lo «dijo» nadie.
+ *
+ * En un registro que existe para responder «¿quién dijo esto?», meter a la
+ * máquina y al médico en la misma casilla es perder justo la respuesta.
  *
  * Honestidad: el origen se DERIVA de evidencia real (¿coincide con la extracción?,
  * ¿trae cita?). Nunca se inventa. Es puro y testeable; no altera ningún valor clínico
@@ -17,7 +34,41 @@
  */
 import type { Confianza } from './extraction-schema'
 
-export type OrigenCampo = 'dictado' | 'ia' | 'manual'
+export type OrigenCampo = 'dictado' | 'ia' | 'manual' | 'calculado' | 'importado'
+
+/**
+ * Los orígenes que NO son una persona de este consultorio.
+ *
+ * Sirve para lo que importa: un dato que nadie de aquí afirmó no puede
+ * presentarse como si lo hubiera afirmado alguien de aquí.
+ */
+export const ORIGENES_SIN_AUTOR_HUMANO: readonly OrigenCampo[] = ['calculado', 'importado']
+
+export function esDeMaquina(o: OrigenCampo): boolean {
+  return ORIGENES_SIN_AUTOR_HUMANO.includes(o)
+}
+
+/**
+ * De la `fuente` con la que se guarda una toma al vocabulario de procedencia.
+ *
+ * Los dos vocabularios existían por separado: las tomas de UCI y los signos ya
+ * declaran de dónde vienen (`panel-uci`, `teclado`, `dispositivo`…) y el sello
+ * de la nota sólo sabía de dictado/IA/mano. Sin este puente, un signo vital que
+ * llegó del monitor se sellaba como `manual` — es decir, **como si lo hubiera
+ * escrito el médico**.
+ *
+ * Lo que no se reconoce NO se degrada a `manual`: se devuelve `null` para que
+ * quien llama decida, porque inventar un autor es peor que no tener uno.
+ */
+export function origenDesdeFuente(fuente: string | undefined | null): OrigenCampo | null {
+  const f = String(fuente ?? '').trim().toLowerCase()
+  if (!f) return null
+  if (f === 'dispositivo' || f.startsWith('hl7') || f.startsWith('monitor')) return 'importado'
+  if (f === 'calculado' || f.startsWith('derivad')) return 'calculado'
+  if (f === 'voz' || f === 'dictado') return 'dictado'
+  if (f === 'teclado' || f === 'panel-uci' || f === 'manual') return 'manual'
+  return null
+}
 
 export interface CampoProcedencia {
   id: string
@@ -269,6 +320,9 @@ const ETIQUETA_ORIGEN: Record<OrigenCampo, string> = {
   dictado: 'del dictado (con cita)',
   ia: 'inferencia de IA',
   manual: 'capturado a mano',
+  // Los dos que no tienen autor humano: ni los dijo nadie ni los tecleó nadie.
+  calculado: 'calculado por el sistema',
+  importado: 'importado de un dispositivo',
 }
 
 /** Frase corta para el sello ("6 del dictado · 2 de IA · 1 a mano · 3 aceptados"). */
