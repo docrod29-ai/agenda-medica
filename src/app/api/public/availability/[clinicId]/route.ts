@@ -12,6 +12,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { configParaMedico } from '@/lib/horario-medico'
+import { esFestivo } from '@/lib/availability'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 /**
@@ -67,7 +68,7 @@ export async function GET(
     const dayKey = DAY_KEYS[d.getDay()]
     const schedule = cfg.horario?.[dayKey]
     if (!schedule?.activo) return NextResponse.json({ ok: true, slots: [], motivo: 'No hay atención este día' })
-    if (cfg.diasFestivos?.includes(fecha)) {
+    if (esFestivo(fecha, cfg.diasFestivos as string[] | undefined)) {
       return NextResponse.json({ ok: true, slots: [], motivo: 'Día festivo' })
     }
 

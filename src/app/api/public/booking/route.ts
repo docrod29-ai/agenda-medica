@@ -18,6 +18,8 @@ import { configParaMedico } from '@/lib/horario-medico'
 import { estaBloqueado } from '@/lib/time-blocks-core'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
+import { VERSION_AVISO, generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
+import { createHash } from 'crypto'
 
 interface Body {
   clinicId: string
@@ -185,13 +187,50 @@ export async function POST(req: NextRequest) {
       return { id: d.id, nombre: x.nombre, telefono: x.telefono, whatsapp: x.whatsapp, curp: x.curp, fechaNacimiento: x.fechaNacimiento, edad: x.edad }
     })
     const elegido = elegirExpedienteParaCita({ nombre: paciente.nombre, telefono: tel }, candidatos)
+
+    /** El consentimiento tal como quedará en el expediente (ver abajo). */
+    const ahoraISO = new Date().toISOString()
+    const snapshotAviso = {
+      aceptado: true,
+      fechaAceptacion: ahoraISO,
+      versionAviso: VERSION_AVISO,
+      medioAceptacion: 'portal' as const,
+      hashTexto: createHash('sha256')
+        .update(generarAvisoPrivacidad(cfg as unknown as import('@/types').ClinicConfig))
+        .digest('hex'),
+    }
+
     let pacienteId = ''
     if (elegido) {
       pacienteId = elegido.id
+      // Si el expediente ya existía SIN consentimiento registrado, éste lo llena.
+      // No se pisa uno anterior: el primero es el que vale, y machacarlo borraría
+      // la fecha real en que el paciente aceptó.
+      const yaTiene = !!(await clinicRef.collection('patients').doc(pacienteId).get()).data()?.avisoPrivacidad
+      if (!yaTiene) {
+        await clinicRef.collection('patients').doc(pacienteId)
+          .set({ avisoPrivacidad: snapshotAviso, updatedAt: ahoraISO }, { merge: true })
+          .catch(() => { /* no puede tumbar la reserva */ })
+      }
     } else {
       const newP = await clinicRef.collection('patients').add({
         nombre: paciente.nombre.trim(),
         telefono: tel,
+        /**
+         * EL CONSENTIMIENTO VA EN EL EXPEDIENTE, NO SÓLO EN LA CITA.
+         *
+         * El portal guardaba dos booleanos dentro de la CITA y el paciente nacía
+         * SIN `avisoPrivacidad`. Todo lo que pregunta «¿tengo consentimiento de
+         * este paciente?» —el panel de Cumplimiento, la exportación FHIR— lo veía
+         * como si nunca hubiera aceptado nada. El alta desde el consultorio sí
+         * guardaba el snapshot con versión y huella: eran dos políticas distintas
+         * para el mismo hecho.
+         *
+         * La huella fija el TEXTO aceptado: la versión es una constante del
+         * código, pero el aviso se genera con los datos del consultorio, y si el
+         * médico los cambia el consentimiento deja de ser reproducible.
+         */
+        avisoPrivacidad: snapshotAviso,
         // '' en vez de undefined: el Admin SDK rechaza undefined ("Unsupported
         // field value") y abortaba el alta del paciente cuando no había email.
         email: paciente.email?.trim() || '',

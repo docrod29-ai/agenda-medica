@@ -12,7 +12,7 @@
  * consultas; una comida ofrecida es un choque visible que alguien reporta.
  */
 import { describe, it, expect } from 'vitest'
-import { descansosEnMinutos, pisaDescanso, getAvailableSlots } from '@/lib/availability'
+import { descansosEnMinutos, pisaDescanso, getAvailableSlots, esFestivo } from '@/lib/availability'
 import type { ClinicConfig } from '@/types'
 
 describe('descansosEnMinutos', () => {
@@ -105,5 +105,37 @@ describe('getAvailableSlots con horario partido', () => {
     const slots = getAvailableSlots(LUNES, 30, [], configCon([{ inicio: '16:00', fin: '14:00' }]))
     expect(slots).toContain('15:00')
     expect(slots.length).toBeGreaterThan(10)
+  })
+})
+
+/**
+ * GOLDEN — festivos que caducan en silencio.
+ *
+ * La lista sólo admitía fechas exactas. Cargar «2026-12-25» funciona en 2026 y
+ * deja de aplicar el 25 de diciembre de 2027 sin que nadie se entere: el
+ * consultorio aparece abierto en Navidad y el portal agenda. Una fecha que
+ * caduca en silencio es peor que no tenerla.
+ */
+describe('esFestivo', () => {
+  it('la fecha exacta aplica sólo a ese día', () => {
+    expect(esFestivo('2026-12-25', ['2026-12-25'])).toBe(true)
+    expect(esFestivo('2027-12-25', ['2026-12-25'])).toBe(false)
+  })
+
+  it('«MM-DD» se repite cada año', () => {
+    expect(esFestivo('2026-12-25', ['12-25'])).toBe(true)
+    expect(esFestivo('2027-12-25', ['12-25'])).toBe(true)
+    expect(esFestivo('2027-12-26', ['12-25'])).toBe(false)
+  })
+
+  it('sin lista, ningún día es festivo', () => {
+    expect(esFestivo('2026-12-25')).toBe(false)
+    expect(esFestivo('2026-12-25', [])).toBe(false)
+  })
+
+  it('un festivo deja el día SIN huecos', () => {
+    const cfg = configCon()
+    ;(cfg as { diasFestivos?: string[] }).diasFestivos = ['01-07']   // el lunes de la prueba
+    expect(getAvailableSlots(LUNES, 30, [], cfg)).toEqual([])
   })
 })

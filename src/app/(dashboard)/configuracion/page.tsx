@@ -221,6 +221,9 @@ export default function ConfiguracionPage() {
    * para cada día del año, o dejar que el portal le ofreciera su comida a los
    * pacientes. Se edita aquí, junto al horario, porque es parte del horario.
    */
+  const [festivoNuevo, setFestivoNuevo] = useState('')
+  const [festivoAnual, setFestivoAnual] = useState(true)
+
   const updDescansos = (dia: typeof DIAS[number], descansos: { inicio: string; fin: string }[]) =>
     setForm(prev => ({ ...prev, horario: { ...prev.horario, [dia]: { ...prev.horario[dia], descansos } } }))
 
@@ -651,6 +654,62 @@ export default function ConfiguracionPage() {
               </div>
             )
           })}
+
+          {/*
+            DÍAS FESTIVOS — antes se leían en cuatro sitios y no se escribían en
+            ninguno: no había ni una pantalla que los editara, así que la lista
+            estaba SIEMPRE vacía y el 25 de diciembre se agendaba como cualquier
+            día. El único cierre disponible era crear un bloqueo a mano.
+
+            Se admite «MM-DD» para los que se repiten todos los años. Una fecha
+            exacta cargada para 2026 deja de aplicar en 2027 sin que nadie se
+            entere, y eso es peor que no tenerla.
+          */}
+          <div style={{ marginTop: 6, padding: '12px 16px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>Días festivos</div>
+            <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: 0, lineHeight: 1.5 }}>
+              Días en los que no se atiende. Se aplican a la agenda, al portal público y al bot de WhatsApp.
+              Marca <strong>«se repite cada año»</strong> para los fijos (Navidad, Año Nuevo); si no, sólo aplica a esa fecha.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {(form.diasFestivos ?? []).map((f, i) => (
+                <span key={`${f}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--s2, rgba(127,127,127,0.08))', border: '1px solid var(--border)', borderRadius: 999, fontSize: 12.5, color: 'var(--text2)' }}>
+                  {f.length === 5 ? `${f} · cada año` : f}
+                  <button
+                    type="button" aria-label={`Quitar el día festivo ${f}`}
+                    onClick={() => setForm(prev => ({ ...prev, diasFestivos: (prev.diasFestivos ?? []).filter((_, j) => j !== i) }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 14, lineHeight: 1, padding: 0 }}
+                  >×</button>
+                </span>
+              ))}
+              {(form.diasFestivos ?? []).length === 0 && (
+                <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Ninguno cargado — hoy se agenda en todos los días activos.</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+              <input
+                type="date" className="input" value={festivoNuevo} aria-label="Fecha del día festivo"
+                onChange={e => setFestivoNuevo(e.target.value)}
+                style={{ width: 165 }}
+              />
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--text2)' }}>
+                <input type="checkbox" checked={festivoAnual} onChange={e => setFestivoAnual(e.target.checked)} style={{ accentColor: 'var(--teal)' }} />
+                Se repite cada año
+              </label>
+              <button
+                type="button" className="btn btn-secondary btn-sm"
+                disabled={!festivoNuevo}
+                onClick={() => {
+                  const valor = festivoAnual ? festivoNuevo.slice(5, 10) : festivoNuevo
+                  if (!valor) return
+                  setForm(prev => (prev.diasFestivos ?? []).includes(valor)
+                    ? prev
+                    : { ...prev, diasFestivos: [...(prev.diasFestivos ?? []), valor].sort() })
+                  setFestivoNuevo('')
+                }}
+              >Añadir</button>
+            </div>
+          </div>
         </div>
       )}
 
