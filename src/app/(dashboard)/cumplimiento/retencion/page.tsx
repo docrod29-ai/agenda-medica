@@ -68,8 +68,8 @@ export default function RetencionPage() {
       {/* Resumen rápido */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
         <Tarjeta titulo="Total" valor={evaluaciones.length} color="var(--text)" />
-        <Tarjeta titulo="Cerca del límite (4½ años)" valor={cercanos.length} color="#f59e0b" icon={<Clock size={14} />} />
-        <Tarjeta titulo="Superan 5 años" valor={vencidos.length} color="#ef4444" icon={<AlertTriangle size={14} />} />
+        <Tarjeta titulo="Cerca del límite (4½ años)" valor={cercanos.length} color="var(--amber)" icon={<Clock size={14} />} />
+        <Tarjeta titulo="Superan 5 años" valor={vencidos.length} color="var(--red)" icon={<AlertTriangle size={14} />} />
       </div>
 
       {/* Toggle filtro */}

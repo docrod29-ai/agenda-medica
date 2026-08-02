@@ -167,7 +167,7 @@ export default function DashboardPage() {
           accentColor="#fb923c"
         />
         <KpiCard delay={220}
-          icon={<UserX size={20} color="#ef4444" />}
+          icon={<UserX size={20} color="var(--red)" />}
           label="No asistieron"
           value={loading ? '…' : String(stats.noShow)}
           sub={stats.canceladas > 0 ? `+ ${stats.canceladas} canceladas` : ''}

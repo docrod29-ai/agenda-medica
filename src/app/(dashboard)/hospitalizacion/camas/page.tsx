@@ -125,7 +125,7 @@ export default function CamasPage() {
           background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
           borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
         }}>
-          <AlertTriangle size={17} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text)' }}>
             <strong>{sinCamaEnInventario.length} paciente{sinCamaEnInventario.length !== 1 ? 's' : ''} internado{sinCamaEnInventario.length !== 1 ? 's' : ''} sin cama del inventario.</strong>{' '}
             Ocupan una cama real que este tablero está contando como disponible. Revisa la cama
@@ -146,7 +146,7 @@ export default function CamasPage() {
           background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
           borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
         }}>
-          <AlertTriangle size={17} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text)' }}>
             <strong>{conflictos.length} cama{conflictos.length !== 1 ? 's' : ''} con más de un paciente.</strong>{' '}
             Dos internamientos activos comparten la misma cama. Traslada a uno a otra cama.

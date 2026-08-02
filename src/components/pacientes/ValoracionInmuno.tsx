@@ -261,7 +261,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
           {isEstado && <Pill label={'IS: ' + isEstado} color="#7c3aed" />}
           {diasTx != null && diasTx >= 0 && <Pill label={'Día +' + diasTx} color="#0d9488" />}
           {farmSel.length > 0 && <Pill label={'Carga IS ' + cargaIS} color={CARGA_COLOR[cargaIS]} />}
-          {v.hc_cd4 && <Pill label={'CD4 ' + v.hc_cd4} color="#d97706" />}
+          {v.hc_cd4 && <Pill label={'CD4 ' + v.hc_cd4} color="var(--amber)" />}
         </div>
         <div className="flex flex-wrap gap-3 mt-2.5 text-[11px]" style={{ color: 'var(--text3)' }}>
           <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.alta }} /> {recCounts.alta} prioritarias</span>

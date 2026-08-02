@@ -43,7 +43,7 @@ function Bloque({ icon: Icon, titulo, sub, children }: {
 
 const Nota = ({ children }: { children: React.ReactNode }) => (
   <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, lineHeight: 1.55, color: 'var(--text3)' }}>
-    <AlertTriangle size={13} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
+    <AlertTriangle size={13} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
     <div>{children}</div>
   </div>
 )

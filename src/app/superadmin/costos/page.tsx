@@ -104,7 +104,7 @@ export default function CostosPage() {
       </label>
 
       {cargando && <p style={{ marginTop: 20, fontSize: 14, color: 'var(--text3, #64748b)' }}>Cargando…</p>}
-      {error && <p style={{ marginTop: 20, fontSize: 14, color: '#dc2626' }}>{error}</p>}
+      {error && <p style={{ marginTop: 20, fontSize: 14, color: 'var(--red)' }}>{error}</p>}
 
       {datos && !cargando && (
         <>
@@ -299,7 +299,7 @@ function Tabla({ titulo, filas, nota }: { titulo: string; filas: Grupo[]; nota?:
                 <Td>
                   {g.resumen.conCosto > 0
                     ? usd(g.resumen.totalUsd)
-                    : <span style={{ color: '#b45309' }}>sin tarifa</span>}
+                    : <span style={{ color: 'var(--amber)' }}>sin tarifa</span>}
                 </Td>
               </tr>
             ))}

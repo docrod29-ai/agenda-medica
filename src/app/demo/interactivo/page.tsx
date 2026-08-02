@@ -209,7 +209,7 @@ function Dictado({ escenario, onListo, onReiniciar }: { escenario: DemoEscenario
             </span>
           )}
           {grabando && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: '#dc2626', background: 'rgba(220,38,38,0.1)', padding: '4px 10px', borderRadius: 100 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'rgba(220,38,38,0.1)', padding: '4px 10px', borderRadius: 100 }}>
               <span style={{ width: 7, height: 7, borderRadius: 100, background: '#dc2626' }} className="nx-pulse" /> Grabando · {mmss}
             </span>
           )}
@@ -473,7 +473,7 @@ function ModUCI() {
           {estado === 'grabando' ? <Square size={15} /> : <Mic size={15} />}
           {estado === 'grabando' ? 'Grabando…' : estado === 'listo' ? 'Volver a dictar' : 'Dictar pase de visita'}
         </button>
-        {estado === 'grabando' && <span style={{ marginLeft: 12, fontSize: 12.5, color: '#dc2626' }}>● Escuchando y transcribiendo…</span>}
+        {estado === 'grabando' && <span style={{ marginLeft: 12, fontSize: 12.5, color: 'var(--red)' }}>● Escuchando y transcribiendo…</span>}
         {estado === 'listo' && (
           <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--text2)', background: 'var(--s2)', borderRadius: 8, padding: '10px 12px', fontStyle: 'italic' }}>“{esc.transcripcion}”</div>
         )}
@@ -551,7 +551,7 @@ function CalcInfusionDemo() {
         </div>
       </div>
       {res.ok && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>{res.interpretacion}</div>}
-      {res.advertencias.map((a, i) => <div key={i} style={{ fontSize: 11.5, color: '#d97706', marginTop: 4 }}>⚠ {a}</div>)}
+      {res.advertencias.map((a, i) => <div key={i} style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 4 }}>⚠ {a}</div>)}
     </div>
   )
 }
@@ -593,7 +593,7 @@ function ModAntibiograma() {
             <div style={{ fontSize: 13, lineHeight: 1.55 }}>Infección no grave de piel: <strong>TMP-SMX</strong> o <strong>clindamicina</strong> VO. Grave/sistémica: <strong>vancomicina</strong> IV. Clasificación AWaRe y notificación NOM-045 listas.</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11.5, color: 'var(--text3)' }}>
-            <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle size={14} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
             <span>Ejemplo ilustrativo. En la app real tú confirmas el S/I/R y el motor razona con EUCAST/CLSI y cita la fuente. Apoyo decisional, no sustituye tu juicio.</span>
           </div>
         </div>

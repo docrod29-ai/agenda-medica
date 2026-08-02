@@ -151,7 +151,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
 
       {sinTipo.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', margin: '0 0 16px' }}>
-          <AlertTriangle size={17} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
             <strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong>{' '}
             {AVISO_SIN_TIPO}{' '}
@@ -202,7 +202,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: 'var(--text2)' }}>
                   <BedDouble size={13} style={{ flexShrink: 0 }} />
-                  {t.cama ?? <span style={{ color: '#d97706' }}>sin cama</span>}
+                  {t.cama ?? <span style={{ color: 'var(--amber)' }}>sin cama</span>}
                 </div>
                 {t.dxIngreso && (
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -224,7 +224,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                 </div>
                 {t.avisos.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 8, fontSize: 11.5, lineHeight: 1.5, color: 'var(--text3)' }}>
-                    <AlertTriangle size={13} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
+                    <AlertTriangle size={13} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
                     <div>{t.avisos.join(' ')}</div>
                   </div>
                 )}

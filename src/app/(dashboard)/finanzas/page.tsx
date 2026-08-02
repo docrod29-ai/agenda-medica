@@ -505,7 +505,7 @@ export default function FinanzasPage() {
           background: 'rgba(220,38,38,0.05)', padding: 16, marginTop: 20,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <AlertTriangle size={15} style={{ color: '#dc2626' }} />
+            <AlertTriangle size={15} style={{ color: 'var(--red)' }} />
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
               Cobros anulados en este periodo · {cancelados.length}
             </span>
@@ -528,7 +528,7 @@ export default function FinanzasPage() {
                     {c.canceladoEn ? ` · ${new Date(c.canceladoEn).toLocaleDateString('es-MX')}` : ''}
                   </div>
                 </div>
-                <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 600, flexShrink: 0 }}>ANULADO</span>
+                <span style={{ fontSize: 11, color: 'var(--red)', fontWeight: 600, flexShrink: 0 }}>ANULADO</span>
               </div>
             ))}
           </div>

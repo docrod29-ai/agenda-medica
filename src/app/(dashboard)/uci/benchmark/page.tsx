@@ -113,7 +113,7 @@ export default function BenchmarkVozPage() {
       </p>
 
       <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 11, background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.35)', marginBottom: 16 }}>
-        <AlertTriangle size={16} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+        <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text)' }}>
           <strong>No grabes pases reales.</strong> Un pase de visita real contiene datos de
           pacientes. El guion son casos <strong>ficticios</strong>: hablas igual que en la unidad
@@ -187,7 +187,7 @@ export default function BenchmarkVozPage() {
             <div style={{ fontSize: 13.5, color: 'var(--text)', lineHeight: 1.55 }}>{audio.transcripcion}</div>
           </div>
         )}
-        {audio.error && <div style={{ fontSize: 12.5, color: '#dc2626', marginTop: 8 }}>{audio.error}</div>}
+        {audio.error && <div style={{ fontSize: 12.5, color: 'var(--red)', marginTop: 8 }}>{audio.error}</div>}
       </div>
 
       {capturas.length > 0 && (
@@ -215,7 +215,7 @@ export default function BenchmarkVozPage() {
           </div>
 
           {!muestra.basta && (
-            <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, lineHeight: 1.55, color: '#d97706', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, lineHeight: 1.55, color: 'var(--amber)', marginBottom: 12 }}>
               <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
               <div>{muestra.motivo}</div>
             </div>
@@ -229,7 +229,7 @@ export default function BenchmarkVozPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
                 {rep.ranking.filter(r => r.perdidas > 0).slice(0, 12).map(r => (
                   <div key={r.termino} style={{ fontSize: 12.5, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
-                    <strong style={{ color: '#dc2626' }}>{r.termino}</strong> — falló {r.perdidas} de {r.veces}
+                    <strong style={{ color: 'var(--red)' }}>{r.termino}</strong> — falló {r.perdidas} de {r.veces}
                   </div>
                 ))}
               </div>
@@ -241,7 +241,7 @@ export default function BenchmarkVozPage() {
               <div key={r.id} style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text3)', borderLeft: `2px solid ${r.perdidos.length > 0 ? '#dc2626' : '#0d9488'}`, paddingLeft: 8 }}>
                 <div><strong style={{ color: 'var(--text2)' }}>Dijiste:</strong> {r.gold}</div>
                 <div><strong style={{ color: 'var(--text2)' }}>Entendió:</strong> {r.transcripcion}</div>
-                {r.perdidos.length > 0 && <div style={{ color: '#dc2626' }}>Perdió: {r.perdidos.join(', ')}</div>}
+                {r.perdidos.length > 0 && <div style={{ color: 'var(--red)' }}>Perdió: {r.perdidos.join(', ')}</div>}
               </div>
             ))}
           </div>

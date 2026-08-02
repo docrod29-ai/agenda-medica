@@ -32,7 +32,7 @@ import { ArrowLeft, FlaskConical, ShieldCheck, Search } from 'lucide-react'
 import { CLINICAL_ENGINE_REGISTRY } from '@/lib/clinical/registry'
 
 const ESTILO_ESTADO: Record<string, { etiqueta: string; color: string; fondo: string }> = {
-  pendiente_validacion: { etiqueta: 'SIN VALIDAR', color: '#b45309', fondo: 'rgba(217,119,6,.12)' },
+  pendiente_validacion: { etiqueta: 'SIN VALIDAR', color: 'var(--amber)', fondo: 'rgba(217,119,6,.12)' },
   experimental: { etiqueta: 'EXPERIMENTAL', color: '#7c3aed', fondo: 'rgba(124,58,237,.12)' },
   validado: { etiqueta: 'VALIDADO', color: '#059669', fondo: 'rgba(5,150,105,.12)' },
 }
@@ -80,7 +80,7 @@ export default function MotoresPage() {
       {/* El número que importa, arriba y sin adornos. */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
         <Tarjeta icono={<ShieldCheck size={16} />} n={totales.validado} label="validados" color="#059669" />
-        <Tarjeta icono={<FlaskConical size={16} />} n={sinValidar} label="esperan tu revisión" color="#b45309" />
+        <Tarjeta icono={<FlaskConical size={16} />} n={sinValidar} label="esperan tu revisión" color="var(--amber)" />
       </div>
 
       <div style={{
@@ -144,7 +144,7 @@ export default function MotoresPage() {
 
                 {pregunta && (
                   <div style={{ marginTop: 9, padding: '10px 12px', borderRadius: 9, background: 'rgba(217,119,6,.08)', border: '1px solid rgba(217,119,6,.25)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: '#b45309', marginBottom: 4 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--amber)', marginBottom: 4 }}>
                       Lo que hay que decidir
                     </div>
                     <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text2)' }}>{pregunta}</div>

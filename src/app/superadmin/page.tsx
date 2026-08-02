@@ -31,9 +31,9 @@ const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
 const PLAN_LABEL: Record<string, string> = { trial: 'Prueba', cortesia: 'Pase libre', agenda: 'Agenda', clinica: 'Clínica', premium: 'Pro', hospital: 'Hospital', basico: 'Básico (viejo)', pro: 'Pro (viejo)' }
 const COB: Record<Cliente['cobranza'], { label: string; color: string }> = {
   al_corriente: { label: 'Al corriente', color: '#0d9488' },
-  debe: { label: 'Debe', color: '#dc2626' },
+  debe: { label: 'Debe', color: 'var(--red)' },
   cortesia: { label: 'Pase libre', color: '#7c3aed' },
-  prueba: { label: 'En prueba', color: '#d97706' },
+  prueba: { label: 'En prueba', color: 'var(--amber)' },
 }
 
 export default function SuperadminPage() {
@@ -150,7 +150,7 @@ export default function SuperadminPage() {
           <Kpi label="MRR (estimado)" valor={mxn(totales.mrr)} sub="/mes recurrente" />
           <Kpi label="Ingreso histórico" valor={mxn(totales.ingresoTotal)} />
           <Kpi label="Activas" valor={String(totales.activas)} color="#0d9488" />
-          <Kpi label="En prueba" valor={String(totales.enPrueba)} color="#d97706" />
+          <Kpi label="En prueba" valor={String(totales.enPrueba)} color="var(--amber)" />
           <Kpi label="Deben" valor={String(totales.deben)} color={totales.deben ? '#dc2626' : 'var(--text)'} />
           <Kpi label="Pase libre" valor={String(totales.cortesia)} color="#7c3aed" />
         </div>
@@ -415,7 +415,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </Seccion>
 
         {/* Prueba */}
-        <Seccion icono={<CalendarPlus size={16} color="#d97706" />} titulo="Extender prueba">
+        <Seccion icono={<CalendarPlus size={16} color="var(--amber)" />} titulo="Extender prueba">
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input type="number" min={1} max={365} value={dias} onChange={e => setDias(Number(e.target.value))}
               style={{ width: 80, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13 }} />
@@ -425,7 +425,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </Seccion>
 
         {/* Acceso */}
-        <Seccion icono={<Ban size={16} color="#dc2626" />} titulo="Acceso">
+        <Seccion icono={<Ban size={16} color="var(--red)" />} titulo="Acceso">
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="secondary" loading={busy === 'suspender'} onClick={() => accion('suspender')} icon={<Ban size={14} />}>Suspender</Button>
             <Button variant="secondary" loading={busy === 'reactivar'} onClick={() => accion('reactivar')} icon={<Play size={14} />}>Reactivar</Button>
@@ -440,7 +440,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </Seccion>
 
         {/* Zona peligrosa — eliminar consultorio (definitivo) */}
-        <Seccion icono={<Trash2 size={16} color="#dc2626" />} titulo="Eliminar consultorio (definitivo)">
+        <Seccion icono={<Trash2 size={16} color="var(--red)" />} titulo="Eliminar consultorio (definitivo)">
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>
             Borra el consultorio y <strong>TODOS sus datos</strong> (pacientes, notas, config). No se puede deshacer.
           </div>
@@ -448,7 +448,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
             <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setConfirmarBorrar(true)}>Eliminar consultorio</Button>
           ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12.5, color: '#dc2626', fontWeight: 700 }}>¿Seguro? Se borra TODO.</span>
+              <span style={{ fontSize: 12.5, color: 'var(--red)', fontWeight: 700 }}>¿Seguro? Se borra TODO.</span>
               <Button variant="danger" size="sm" loading={busy === 'eliminar_consultorio'} onClick={() => accion('eliminar_consultorio')}>Sí, borrar definitivamente</Button>
               <Button variant="secondary" size="sm" onClick={() => setConfirmarBorrar(false)}>Cancelar</Button>
             </div>
@@ -571,7 +571,7 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
               <Button size="sm" variant="secondary" onClick={() => setEditar({ id: p.id, nombre: p.nombre, precio: p.precio, modulos: [...p.modulos], descripcion: p.descripcion ?? '', modeloPrecio: p.modeloPrecio ?? 'fijo', precioBase: p.precioBase ?? p.precio, precioPorUnidad: p.precioPorUnidad ?? 0 })}>Editar</Button>
-              <button title="Borrar" onClick={() => borrar(p.id)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: '#dc2626', cursor: 'pointer', padding: '0 10px' }}><Trash2 size={14} /></button>
+              <button title="Borrar" onClick={() => borrar(p.id)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--red)', cursor: 'pointer', padding: '0 10px' }}><Trash2 size={14} /></button>
             </div>
           </div>
         ))}

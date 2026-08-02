@@ -28,6 +28,21 @@ import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
 import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 
+/**
+ * EN EL PAPEL NO SE USAN VARIABLES DE COLOR — Y ES DELIBERADO.
+ *
+ * El resto de la aplicación migró sus colores crudos a `var(--red)` y
+ * `var(--amber)`, que están medidos AA en los dos temas. Aquí NO:
+ *
+ *  · la receta se rasteriza con html2canvas sobre un CLON del nodo, y una
+ *    variable que no resuelva en ese clon deja el texto sin color — justo el
+ *    «[FALTA CÉDULA PROFESIONAL]», que existe para verse;
+ *  · y el papel fuerza tema claro: `--red` en tema oscuro es el rosa #E66464,
+ *    que impreso queda desvaído.
+ *
+ * El hexadecimal literal es lo correcto en las superficies que se imprimen.
+ */
+
 export interface RecetaData {
   /** Tipo de impreso: 'receta' (Rx) o 'orden' (orden médica) */
   tipo: 'receta' | 'orden'

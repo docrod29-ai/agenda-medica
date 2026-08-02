@@ -202,7 +202,7 @@ export default function CartaReferenciaPage() {
 
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
           {titulo}
-          {urgencia !== 'Rutina' && <span style={{ color: '#b91c1c' }}> · {urgencia.toUpperCase()}</span>}
+          {urgencia !== 'Rutina' && <span style={{ color: 'var(--red)' }}> · {urgencia.toUpperCase()}</span>}
         </div>
 
         {(destino || institucion) && (
@@ -216,7 +216,7 @@ export default function CartaReferenciaPage() {
           <strong>Paciente:</strong> {patient?.nombre ?? ''}
           {patient?.edad ? ` · ${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
         </div>
-        <div style={{ border: '1.5px solid #b91c1c', color: '#b91c1c', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+        <div style={{ border: '1.5px solid #b91c1c', color: 'var(--red)', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
           ALERGIAS: {patient?.alergias || 'Negadas / no referidas'}
         </div>
 
@@ -243,7 +243,7 @@ export default function CartaReferenciaPage() {
             {/* Cédula = dato obligatorio: marcar su ausencia, no imprimir un guion. */}
             {cedula !== '—'
               ? <>Cédula Profesional {cedula}</>
-              : <span style={{ color: '#b91c1c', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
+              : <span style={{ color: 'var(--red)', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
           </div>
         </div>
       </div>

@@ -198,7 +198,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       </div>
 
       {/* ── RCRI ── */}
-      <Card icon={<HeartPulse size={15} />} titulo="RCRI — Índice de Riesgo Cardiaco Revisado (Lee)" color="#f87171">
+      <Card icon={<HeartPulse size={15} />} titulo="RCRI — Índice de Riesgo Cardiaco Revisado (Lee)" color="var(--red)">
         {rcriItems().map(it => chk(
           rcri[it.key], () => setRcri(r => ({ ...r, [it.key]: !r[it.key] })), it.label
         ))}

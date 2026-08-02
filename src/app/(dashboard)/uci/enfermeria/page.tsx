@@ -136,7 +136,7 @@ export default function EnfermeriaUciPage() {
 
           {(sinTipo.length > 0 || falloUnidades || falloTomas) && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', marginBottom: 14 }}>
-              <AlertTriangle size={17} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+              <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
                 {falloUnidades
                   ? <><strong>No se pudo leer la configuración de unidades.</strong> Esta lista puede estar incompleta: no significa que no haya pendientes.</>
@@ -188,7 +188,7 @@ export default function EnfermeriaUciPage() {
           )}
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11.5, color: 'var(--text3)', marginTop: 18, lineHeight: 1.6 }}>
-            <AlertTriangle size={13} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
+            <AlertTriangle size={13} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
             <div>
               Las infusiones continuas, los PRN y las dosis únicas ya administradas
               <strong> no aparecen aquí</strong>: no se atrasan por definición, y ponerlas en rojo

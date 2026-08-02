@@ -28,7 +28,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
 
         {!r ? (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#f87171', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--red)', marginBottom: 10 }}>
               <ShieldX size={22} /> <strong style={{ fontSize: 16 }}>No verificable</strong>
             </div>
             <p style={{ fontSize: 14, opacity: 0.8, lineHeight: 1.55 }}>

@@ -295,7 +295,7 @@ export default function ReservarPage() {
 
         {step === 'error' && (
           <Card title="No se pudo agendar">
-            <p style={{ fontSize: 14, color: '#f87171', margin: '0 0 12px' }}>{errorMsg}</p>
+            <p style={{ fontSize: 14, color: 'var(--red)', margin: '0 0 12px' }}>{errorMsg}</p>
             <button onClick={() => setStep('hora')} style={btnPrimary}>← Intentar otro horario</button>
           </Card>
         )}

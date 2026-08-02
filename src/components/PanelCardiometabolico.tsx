@@ -197,7 +197,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             )}
           </Bloque>
 
-          <Res color="#f87171" titulo={`Meta: LDL-C <${meta.ldl} · no-HDL-C <${meta.noHDL}${meta.apoB ? ` · apoB <${meta.apoB}` : ''} mg/dL`}>
+          <Res color="var(--red)" titulo={`Meta: LDL-C <${meta.ldl} · no-HDL-C <${meta.noHDL}${meta.apoB ? ` · apoB <${meta.apoB}` : ''} mg/dL`}>
             <p style={txt}>{meta.poblacion}</p>
             {meta.opcional && <p style={{ ...txt, color: 'var(--text3)' }}>{meta.opcional}</p>}
             {ldl && Number(ldl) > meta.ldl && (
@@ -247,7 +247,7 @@ export function PanelCardiometabolico({ nombre, edad, sexo, onAgregarANota, embe
             ))}
 
             {panelAvanzado.discordancias.length > 0 && (
-              <Res color="#f87171" titulo="Discordancia entre marcadores">
+              <Res color="var(--red)" titulo="Discordancia entre marcadores">
                 <ul style={lista}>{panelAvanzado.discordancias.map((d, i) => <li key={i}>{d}</li>)}</ul>
                 <Nota onAgregarANota={onAgregarANota}
                   texto={`Discordancia lipídica: ${panelAvanzado.discordancias.join(' ')}`} />

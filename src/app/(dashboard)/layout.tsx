@@ -133,7 +133,7 @@ function TrialBanner() {
         padding: '11px 20px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <AlertTriangle size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+          <AlertTriangle size={15} color="var(--amber)" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
               Tu prueba terminó — conservas todo
