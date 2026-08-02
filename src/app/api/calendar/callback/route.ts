@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { getTokensFromCode } from '@/lib/google-calendar'
 import { adminDb } from '@/lib/firebase-admin'
-import { vincularMedico, type Vinculo, type MedicoVinculable } from '@/lib/calendario/vinculo-medico'
+import { consultorioDe, resolverYLigar } from '@/lib/calendario/ligar-en-servidor'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -54,21 +54,12 @@ export async function GET(req: NextRequest) {
      * por correo EXACTO y sólo si es inequívoco; si no, se declara y no se
      * adivina (`lib/calendario/vinculo-medico.ts`). Ligarlo mal sería enseñarle
      * a un médico las horas ocupadas de otro.
+     *
+     * Y las mismas reglas las usa el relleno de `/api/calendar/status` para los
+     * médicos que ya estaban conectados de antes: por eso viven en un solo sitio.
      */
-    const miembro = await adminDb.collection('clinic_members').doc(uid).get().catch(() => null)
-    const clinicId = (miembro?.data() as { clinicId?: string } | undefined)?.clinicId ?? ''
-    let vinculo: Vinculo = { como: 'sin-vinculo', motivo: 'No se pudo leer a qué consultorio perteneces.' }
-    if (clinicId) {
-      try {
-        const docsSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').get()
-        const doctores = docsSnap.docs.map(d => ({ id: d.id, ...(d.data() as object) })) as MedicoVinculable[]
-        vinculo = vincularMedico(uid, st.email as string | undefined, doctores)
-        if (vinculo.medicoId && vinculo.como === 'por-correo') {
-          await adminDb.collection('clinics').doc(clinicId).collection('doctors')
-            .doc(vinculo.medicoId).set({ uid }, { merge: true })
-        }
-      } catch { /* conectar el calendario no se cae por no poder ligarlo */ }
-    }
+    const clinicId = await consultorioDe(uid)
+    const vinculo = await resolverYLigar(uid, st.email as string | undefined, clinicId)
 
     await adminDb.collection('googleTokens').doc(uid).set({
       refreshToken: tokens.refresh_token,
