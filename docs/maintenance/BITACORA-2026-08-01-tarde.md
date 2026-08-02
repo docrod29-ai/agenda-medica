@@ -132,20 +132,20 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 
 ## PENDIENTE — cola priorizada (mía)
 
-1. **`priceIdDe` cae de anual a mensual en silencio** — `src/lib/stripe.ts:50`:
+1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
    precio anual, el cliente compra «anual» y Stripe abre una suscripción MENSUAL,
    con los metadatos diciendo `ciclo: 'anual'`. Nadie se entera hasta el 2º cargo.
-2. **`planPorMonto` se equivoca con las anuales** — `src/app/api/stripe/webhook/route.ts:71`:
+2. ~~`planPorMonto` se equivoca con las anuales~~ — HECHO (v870). **Era** — `src/app/api/stripe/webhook/route.ts:71`:
    los cortes están en centavos de plan MENSUAL. Una anual de Agenda (~349000)
    devuelve `'hospital'`. Sólo se dispara si falta `metadata.plan`.
-3. **`items.data[0]` no tiene orden garantizado** — mismo archivo, `:309`. Con un
+3. ~~`items.data[0]` no tiene orden garantizado~~ — HECHO (y v870 añadió los price ids anuales al conjunto). **Era** — mismo archivo, `:309`. Con un
    ítem de asiento en la suscripción puede ser el precio del médico extra.
 4. **Prueba de 14 días en CADA checkout** — `src/app/api/stripe/checkout/route.ts:84`,
    incondicional: cancelar y volver a suscribirse los renueva.
-5. **`asientos` marca médicos contratados sin cobrarlos** — `src/app/api/stripe/asientos/route.ts:82`.
-6. **`invoice.paid` sin clínica guarda `clinicId: ''`** — ingreso huérfano.
-7. **Las reglas dejan reatribuir `medicoId` al vincular factura** — `firestore.rules:611`,
+5. ~~`asientos` marca médicos contratados sin cobrarlos~~ — HECHO (409 explicando por qué). **Era** — `src/app/api/stripe/asientos/route.ts:82`.
+6. ~~`invoice.paid` sin clínica guarda `clinicId: ''`~~ — HECHO: se marca `huerfano: true`.
+7. ~~Las reglas dejan reatribuir `medicoId` al vincular factura~~ — HECHO: `medicoId`, `medicoNombre`, `referenciaExterna` y `folio` congelados. **Era** — `firestore.rules:611`,
    lo que mueve el reparto de comisiones.
 8. ~~logAudit en silencio~~ — HECHO (v824). — `src/lib/expediente/audit-log.ts:84`.
 9. **El portal ARCO público no verifica identidad** — `src/app/privacidad/[clinicId]/page.tsx:70`.
@@ -428,6 +428,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | v | Qué se reparó |
 |---|---|
 | **869** | **`motivoIngresoUci` era obligatorio y no lo captura ninguna pantalla** — un campo obligatorio que jamás se llena sólo hace que el tipo mienta; pasa a opcional. **`codigoReanimacion` y `aislamiento` no tenían ni escritor ni lector**: en terapia intensiva eso no es inocuo — en cuanto una pantalla lo enseñe, un código de reanimación vacío se lee como «no hay limitación del esfuerzo terapéutico registrada», la afirmación que nadie hizo; se quitan hasta que exista la captura de verdad. **`createdAt`/`creadoPor` eran obligatorios y no los escribía nadie**: sólo constaba quién tocó la estancia por última vez, así que al cabo de un turno no quedaba rastro de quién decidió abrirla; se escriben ahora en las tres rutas que la abren, y sólo la primera vez. |
+
+## DECIMONOVENA TANDA — v870 (la anual que se leía como otro plan)
+
+| v | Qué se reparó |
+|---|---|
+| **870** | **La suscripción ANUAL se deducía como otro plan.** El webhook comparaba el importe cobrado contra una tabla de centavos **mensual**: la anual de un plan barato cae en el rango del mensual de uno caro — Agenda al año (349 000 ¢) se leía como **hospital**. Y desde que «manda el precio sobre el metadato» (v8xx, correcto para la baja hecha desde el portal de Stripe), esa deducción equivocada **pisa el metadato correcto**: quien paga Agenda al año se queda con Hospital, con módulos que no compró y la llave de IA cara del dueño. La selección del ítem del plan tampoco conocía los price ids anuales, así que en una anual podía caer en el asiento del médico extra. Nuevo `lib/finanzas/plan-de-suscripcion.ts` (puro, 7 pruebas): price id exacto → importe **sólo si es mensual** → metadato → no tocar el plan. |
 
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
