@@ -92,7 +92,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
           <Baby size={15} color="#a78bfa" />
           <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Pediatría</span>
           {atrasadas.length > 0 && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber, #b45309)' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>
               verificar {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''}
             </span>
           )}
@@ -140,7 +140,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
             /* L6.2 (decisión del Dr): hard-stop de UNIDAD. Mientras el peso no esté
                confirmado NO se calcula dosis ni se ofrece "Agregar a nota"; solo el
                porqué + un botón para confirmar. Nunca corrige el valor por su cuenta. */
-            <div style={{ border: '1px solid rgba(239,68,68,.4)', background: 'rgba(239,68,68,.07)', borderRadius: 9, padding: '11px 13px' }}>
+            <div style={{ border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 7%, transparent)', borderRadius: 9, padding: '11px 13px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
                 <div>
@@ -159,7 +159,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                 style={{ ...campoBase, width: '100%', marginBottom: 8 }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 340, overflowY: 'auto' }}>
                 {dosis.map(d => d && (
-                  <div key={d.farmaco} style={{ border: '1px solid ' + (d.contraindicadoPorEdad ? 'rgba(239,68,68,.4)' : 'var(--border)'), borderRadius: 9, background: d.contraindicadoPorEdad ? 'rgba(239,68,68,.07)' : 'var(--s1)', padding: '9px 11px' }}>
+                  <div key={d.farmaco} style={{ border: '1px solid ' + (d.contraindicadoPorEdad ? 'color-mix(in srgb, var(--red) 40%, transparent)' : 'var(--border)'), borderRadius: 9, background: d.contraindicadoPorEdad ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--s1)', padding: '9px 11px' }}>
                     {d.contraindicadoPorEdad ? (
                       /* Auditoría 2026-07 (P0): sin dosis ni botón de nota cuando el
                          fármaco no corresponde a la edad; solo el porqué. */
@@ -185,7 +185,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                         </span>
                       )}
                       {d.topeAplicado && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
                           <AlertTriangle size={11} /> tope de adulto
                         </span>
                       )}
@@ -221,8 +221,8 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {crecimiento.map(r => (
                 <div key={r.indicador} style={{
-                  border: '1px solid ' + (r.nivel === 'normal' ? 'var(--border)' : r.nivel === 'bajo' ? 'rgba(239,68,68,.35)' : 'rgba(245,158,11,.35)'),
-                  background: r.nivel === 'normal' ? 'var(--s1)' : r.nivel === 'bajo' ? 'rgba(239,68,68,.08)' : 'rgba(245,158,11,.08)',
+                  border: '1px solid ' + (r.nivel === 'normal' ? 'var(--border)' : r.nivel === 'bajo' ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'),
+                  background: r.nivel === 'normal' ? 'var(--s1)' : r.nivel === 'bajo' ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'color-mix(in srgb, var(--amber) 8%, transparent)',
                   borderRadius: 9, padding: '9px 11px',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -263,8 +263,8 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
               </p>
               {vacunas.map((v, i) => (
                 <div key={i} style={{
-                  border: '1px solid ' + (v.estado === 'atrasada' ? 'rgba(239,68,68,.35)' : 'var(--border)'),
-                  background: v.estado === 'atrasada' ? 'rgba(239,68,68,.08)' : 'var(--s1)',
+                  border: '1px solid ' + (v.estado === 'atrasada' ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'),
+                  background: v.estado === 'atrasada' ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'var(--s1)',
                   borderRadius: 9, padding: '8px 11px', opacity: v.estado === 'pendiente' ? 0.6 : 1,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -273,7 +273,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                       {v.vacuna.mes === 0 ? 'al nacer' : v.vacuna.mes < 24 ? `${v.vacuna.mes} meses` : `${v.vacuna.mes / 12} años`}
                     </span>
                     {v.estado === 'atrasada' && (
-                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(245,158,11,.15)', color: 'var(--amber, #b45309)' }}>CORRESPONDE POR EDAD</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>CORRESPONDE POR EDAD</span>
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{v.vacuna.detalle}</div>

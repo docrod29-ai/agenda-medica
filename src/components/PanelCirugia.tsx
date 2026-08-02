@@ -269,8 +269,8 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
 }
 
 const col = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? '#10b981' : n === 'medio' ? '#f59e0b' : '#f87171'
-const bg = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.1)' : n === 'medio' ? 'rgba(245,158,11,.1)' : 'rgba(239,68,68,.1)'
-const bd = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.35)' : n === 'medio' ? 'rgba(245,158,11,.35)' : 'rgba(239,68,68,.4)'
+const bg = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.1)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'color-mix(in srgb, var(--red) 10%, transparent)'
+const bd = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.35)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'color-mix(in srgb, var(--red) 40%, transparent)'
 
 const pill = (fg: string, fondo: string): React.CSSProperties => ({
   fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: fondo, color: fg,

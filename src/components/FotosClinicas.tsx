@@ -124,7 +124,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
         </p>
       </div>
 
-      {error && <div style={{ ...caja, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>{error}</div>}
+      {error && <div style={{ ...caja, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{error}</div>}
       {cargando && <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Cargando fotos…</div>}
       {!cargando && fotos.length === 0 && (
         <div style={{ ...caja, color: 'var(--text3)' }}>Sin fotos aún. La primera toma es la línea base del seguimiento.</div>

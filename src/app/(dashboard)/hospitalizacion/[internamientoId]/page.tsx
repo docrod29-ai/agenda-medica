@@ -457,7 +457,7 @@ export default function EpisodioPage() {
         const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
         if (lista.length && !negadas) {
           return (
-            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(220,38,38,.45)', background: 'rgba(220,38,38,.12)', color: 'var(--red)' }}>
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--red) 45%, transparent)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', color: 'var(--red)' }}>
               <AlertTriangle size={16} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13.5, fontWeight: 700 }}>ALERGIAS:</span>
               <span style={{ fontSize: 13.5, fontWeight: 600 }}>{lista.join(' · ')}</span>
@@ -597,7 +597,7 @@ export default function EpisodioPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(inter.medicamentosCasa ?? []).map((m, i) => {
                 const continuado = medsActivos.some(a => a.toLowerCase().includes(m.toLowerCase().split(' ')[0]))
-                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 100, background: continuado ? 'rgba(13,148,136,.12)' : 'rgba(217,119,6,.12)', color: continuado ? '#0d9488' : '#d97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'rgba(217,119,6,.35)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
+                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 100, background: continuado ? 'rgba(13,148,136,.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)', color: continuado ? '#0d9488' : '#d97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
               })}
             </div>
           </div>
@@ -773,7 +773,7 @@ export default function EpisodioPage() {
               <div key={l.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{l.estudios.join(', ')}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'rgba(220,38,38,.12)' : 'rgba(217,119,6,.15)', color: l.estado === 'resultado' ? '#0d9488' : l.prioridad === 'urgente' ? '#dc2626' : '#d97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: l.estado === 'resultado' ? '#0d9488' : l.prioridad === 'urgente' ? '#dc2626' : '#d97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {l.solicitadaPor || '—'} · {new Date(l.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                 {l.resultados && l.resultados.length > 0 && (
@@ -854,7 +854,7 @@ export default function EpisodioPage() {
               <div key={ic.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{ic.especialidad}{ic.medicoSolicitadoNombre ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}> · para {ic.medicoSolicitadoNombre}</span> : null}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'rgba(217,119,6,.15)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>{ic.motivo}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {ic.solicitanteNombre || '—'} · {new Date(ic.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</div>
@@ -1088,7 +1088,7 @@ export default function EpisodioPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {indAct && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{indAct.descripcion}{indAct.frecuencia ? ` · ${indAct.frecuencia}` : ''}</div>}
               {indAct && !indAct.verificadaFarmacia && (
-                <div style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: 'var(--amber)' }}>
+                <div style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', color: 'var(--amber)' }}>
                   <AlertTriangle size={14} /> Esta indicación NO ha sido verificada por farmacia.
                 </div>
               )}
@@ -1110,7 +1110,7 @@ export default function EpisodioPage() {
                 {chk(correctos.hora, () => setCorrectos(c => ({ ...c, hora: !c.hora })), 'Hora correcta')}
               </div>
               <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
-              <div style={{ fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8, color: todos ? '#0d9488' : '#d97706', background: todos ? 'rgba(13,148,136,.1)' : 'rgba(217,119,6,.1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8, color: todos ? '#0d9488' : '#d97706', background: todos ? 'rgba(13,148,136,.1)' : 'color-mix(in srgb, var(--amber) 10%, transparent)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {todos ? <><Check size={14} /> Listo para administrar</> : <><AlertTriangle size={14} /> Falta confirmar: {faltan.join(', ')}</>}
               </div>
             </div>
@@ -1282,7 +1282,7 @@ export default function EpisodioPage() {
                   : 'El mensaje no trae la hora del aparato: se guardará con la hora actual.'}
               </div>
               {hl7Previo.descartados.length > 0 && (
-                <div style={{ background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 10, padding: '9px 12px' }}>
+                <div style={{ background: 'color-mix(in srgb, var(--amber) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 10, padding: '9px 12px' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>No se importó (y por qué):</div>
                   <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.6 }}>
                     {hl7Previo.descartados.map((d, i) => <li key={i}>{d.codigo}: {d.motivo}</li>)}
@@ -1348,7 +1348,7 @@ export default function EpisodioPage() {
               <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{r.estudio}</span>
               <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="valor" value={r.valor} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))} />
               <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="unidad" value={r.unidad ?? ''} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, unidad: e.target.value } : x))} />
-              <button type="button" title="Marcar crítico" onClick={() => setResForm(f => f.map((x, j) => j === i ? { ...x, critico: !x.critico } : x))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid ' + (r.critico ? '#dc2626' : 'var(--border)'), background: r.critico ? 'rgba(220,38,38,.12)' : 'transparent', color: r.critico ? '#dc2626' : 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{r.critico ? '⚠ crítico' : 'crítico'}</button>
+              <button type="button" title="Marcar crítico" onClick={() => setResForm(f => f.map((x, j) => j === i ? { ...x, critico: !x.critico } : x))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid ' + (r.critico ? '#dc2626' : 'var(--border)'), background: r.critico ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'transparent', color: r.critico ? '#dc2626' : 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{r.critico ? '⚠ crítico' : 'crítico'}</button>
             </div>
           ))}
         </div>

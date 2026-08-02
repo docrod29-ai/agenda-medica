@@ -183,7 +183,7 @@ export default function ConsultorPage() {
                       por literatura. El dato ya existía; sólo que nadie lo usaba.
                     */}
                     {t.sinCitas && !t.cargando && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: 'var(--amber)', background: 'rgba(180,83,9,0.10)', border: '1px solid rgba(180,83,9,0.3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, fontSize: 12, borderRadius: 8, padding: '8px 10px', color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
                         <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                         <span>Sin resultados de PubMed para esta pregunta. Lo de abajo es razonamiento clínico, no literatura citada — verifica antes de aplicarlo.</span>
                       </div>
@@ -203,7 +203,7 @@ export default function ConsultorPage() {
                       const fuera = citadas.filter(n => n < 1 || n > t.articulos.length)
                       const ok = fuera.length === 0
                       return (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, marginRight: 6, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', color: ok ? '#16a34a' : '#b45309', background: ok ? 'rgba(22,163,74,0.10)' : 'rgba(180,83,9,0.10)', border: `1px solid ${ok ? 'rgba(22,163,74,0.3)' : 'rgba(180,83,9,0.3)'}` }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, marginRight: 6, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', color: ok ? '#16a34a' : '#b45309', background: ok ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'color-mix(in srgb, var(--amber) 10%, transparent)', border: `1px solid ${ok ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}` }}>
                           {ok
                             ? `✓ ${citadas.length} cita${citadas.length === 1 ? '' : 's'} verificada${citadas.length === 1 ? '' : 's'} contra las fuentes`
                             : t.articulos.length === 0
@@ -236,7 +236,7 @@ export default function ConsultorPage() {
                           <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 5, lineHeight: 1.45 }}>
                             <div>
                               [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,0.12)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
-                              {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
+                              {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#16a34a', background: 'color-mix(in srgb, var(--green) 12%, transparent)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
                             </div>
                             <div style={{ fontSize: 10.5, color: 'var(--text3)', opacity: 0.85, marginTop: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                               {nivel && <span style={{ fontWeight: 700, color: nivel.color }}>{nivel.label}</span>}

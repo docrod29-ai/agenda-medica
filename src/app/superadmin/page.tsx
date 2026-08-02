@@ -293,8 +293,8 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </div>
         {msg && (
           <div style={{ fontSize: 13, fontWeight: 600, padding: '9px 12px', borderRadius: 8,
-            background: msg.ok ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-            border: `1px solid ${msg.ok ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+            background: msg.ok ? 'rgba(16,185,129,0.12)' : 'color-mix(in srgb, var(--red) 12%, transparent)',
+            border: `1px solid ${msg.ok ? 'rgba(16,185,129,0.4)' : 'color-mix(in srgb, var(--red) 40%, transparent)'}`,
             color: msg.ok ? '#10b981' : '#f87171' }}>
             {msg.texto}
           </div>

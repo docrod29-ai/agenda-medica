@@ -196,10 +196,10 @@ export default function MigracionPage() {
             {conteo && (
               <div style={{ marginTop: 16 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: 'rgba(22,163,74,0.12)', padding: '4px 10px', borderRadius: 100 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: 'color-mix(in srgb, var(--green) 12%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
                     {conteo.nuevo} nuevos
                   </span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)', background: 'rgba(245,158,11,0.12)', padding: '4px 10px', borderRadius: 100 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 12%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
                     {conteo.duplicado} duplicados (se omiten)
                   </span>
                 </div>

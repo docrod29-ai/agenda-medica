@@ -178,6 +178,42 @@ dejar la palomita verde prometiendo una cobertura que no existe.
 
 ---
 
+## CUADRAGÉSIMA NOVENA TANDA — v900
+
+### El color de fondo y borde tampoco cambiaba de tema — y al imprimir salía el de la pantalla
+
+v872 migró los 124 usos de **primer plano** a `--red`/`--amber` y dejó un
+trinquete en cero. Los MISMOS colores escritos como `rgba()` para fondos y
+bordes se quedaron: **277 sitios en 69 pantallas**.
+
+No rompen el contraste del texto —son capas al 8-12 %— pero comparten la raíz:
+un literal no cambia de tema, así que el aviso rojo que en oscuro se lee como
+una capa tenue, en claro se ve **exactamente igual de tenue** sobre el fondo
+crema y deja de leerse como aviso. Ahora son
+`color-mix(in srgb, var(--red) N%, transparent)`, que sí sigue el tema, y el
+trinquete tiene un **segundo techo, también en cero**.
+
+El papel se queda con su hexadecimal a propósito: la receta se rasteriza con
+html2canvas sobre un clon del nodo y una variable que no resuelva ahí deja sin
+color justo lo que existe para verse.
+
+### Y un fallo que encontré al hacerlo: la impresión no fijaba los colores clínicos
+
+La regla `@media print` ponía el fondo blanco y el texto negro, pero **no tocaba
+`--red`/`--amber`/`--green`/`--blue`**. Un médico que trabaja en modo oscuro
+imprimía sus alertas con el rojo pensado PARA fondo oscuro sobre papel blanco:
+el mismo problema de contraste que los tokens vinieron a resolver, sólo que en
+la hoja, que es donde ya no se puede corregir. Ahora la impresión fija los
+cuatro en los valores del tema claro.
+
+- 69 archivos `.tsx` (fondos y bordes), `src/app/globals.css` (`@media print`)
+- `src/__tests__/color-trinquete.test.ts` — segundo techo + prueba de impresión.
+  Total 4781.
+- De paso: `pacientes/page.tsx` tenía un naranja `#fb923c` en primer plano que
+  el trinquete no veía porque no estaba en su lista. Ahora es `--amber`.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
@@ -221,10 +257,11 @@ dejar la palomita verde prometiendo una cobertura que no existe.
     diciéndoselo si no se pudo.
     **Queda**: la sincronización de escritura desde el portal sigue sin hacerse
     (ver el comentario en `api/portal/route.ts`).
-13. ~~Fragmentación cromática~~ — HECHO A MEDIAS (v872): los 124 usos de PRIMER
-    PLANO migrados a `--red`/`--amber` y **trinquete con techo 0**. **Queda**:
-    los mismos colores usados como FONDO y BORDE (`rgba(239,68,68,0.1)` y
-    familia), que no rompen contraste de texto pero siguen sin cambiar de tema.
+13. ~~Fragmentación cromática~~ — HECHO (v872 + v900): los 124 usos de PRIMER
+    PLANO migrados a `--red`/`--amber` con trinquete en 0, y **v900 migró los 277
+    de FONDO y BORDE** a `color-mix` con el token, con su propio techo en 0. El
+    papel conserva el hexadecimal a propósito. v900 además hizo que `@media print`
+    fije los colores clínicos en los valores del tema claro.
 14. ~~`BLOQUEA_RECETA` promete una barrera que no existe~~ — HECHO: se llama
     `RIESGO_MAXIMO` y el comentario dice qué es y qué no; la compuerta real es el
     motor determinista. Y `alergia_conflicto` ya está en el esquema zod, así que

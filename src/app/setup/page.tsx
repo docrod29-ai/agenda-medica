@@ -240,7 +240,7 @@ export default function SetupPage() {
 
           {error && (
             <div style={{
-              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+              background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
               borderRadius: 10, padding: '11px 14px', marginTop: 14,
               fontSize: 13.5, lineHeight: 1.5, color: 'var(--text)',
             }}>

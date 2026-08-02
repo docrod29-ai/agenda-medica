@@ -134,7 +134,7 @@ export default function ListaEsperaPage() {
                 {/* Priority badge */}
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                  background: entry.prioridad <= 1 ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)',
+                  background: entry.prioridad <= 1 ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'rgba(59,130,246,0.15)',
                   color: entry.prioridad <= 1 ? '#f87171' : '#60a5fa',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700,
@@ -159,7 +159,7 @@ export default function ListaEsperaPage() {
                 {/* Estado */}
                 <span style={{
                   fontSize: 11, padding: '2px 8px', borderRadius: 9999, fontWeight: 500,
-                  background: entry.estado === 'activo' ? 'rgba(59,130,246,0.15)' : entry.estado === 'contactado' ? 'rgba(251,191,36,0.15)' : 'rgba(34,197,94,0.15)',
+                  background: entry.estado === 'activo' ? 'rgba(59,130,246,0.15)' : entry.estado === 'contactado' ? 'color-mix(in srgb, var(--amber) 15%, transparent)' : 'color-mix(in srgb, var(--green) 15%, transparent)',
                   color: entry.estado === 'activo' ? '#60a5fa' : entry.estado === 'contactado' ? '#fbbf24' : '#4ade80',
                 }}>
                   {entry.estado}

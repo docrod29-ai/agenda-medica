@@ -11,7 +11,7 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
   useEffect(() => { console.error('Dashboard error boundary:', error); reportarError(error.message, { stack: error.stack, origen: 'boundary:dashboard' }) }, [error])
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '80px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-      <div style={{ width: 52, height: 52, borderRadius: 15, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 52, height: 52, borderRadius: 15, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AlertTriangle size={24} style={{ color: 'var(--amber)' }} />
       </div>
       <h1 style={{ fontSize: 19, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Algo salió mal</h1>

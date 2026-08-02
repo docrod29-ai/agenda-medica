@@ -230,7 +230,7 @@ function LoginInner() {
                 />
               </div>
               {error && (
-                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--red)' }}>
+                <div style={{ background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--red)' }}>
                   {error}
                 </div>
               )}
@@ -330,7 +330,7 @@ function LoginInner() {
 
             {error && (
               <div style={{
-                background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
                 borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--red)',
               }}>
                 {error}

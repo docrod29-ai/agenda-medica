@@ -27,8 +27,8 @@ interface Props {
 }
 
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
-  critico: { fg: '#f87171', bg: 'rgba(239,68,68,.08)', bd: 'rgba(239,68,68,.35)' },
-  accion:  { fg: '#f59e0b', bg: 'rgba(245,158,11,.07)', bd: 'rgba(245,158,11,.3)' },
+  critico: { fg: '#f87171', bg: 'color-mix(in srgb, var(--red) 8%, transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
+  accion:  { fg: '#f59e0b', bg: 'color-mix(in srgb, var(--amber) 7%, transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
   info:    { fg: 'var(--text2)', bg: 'var(--s1)', bd: 'var(--border)' },
 }
 

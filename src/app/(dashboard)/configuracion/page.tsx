@@ -843,7 +843,7 @@ export default function ConfiguracionPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {gcalConnected === true && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4ade80', background: 'rgba(74,222,128,0.1)', padding: '4px 10px', borderRadius: 20 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4ade80', background: 'color-mix(in srgb, var(--green) 10%, transparent)', padding: '4px 10px', borderRadius: 20 }}>
                     <CheckCircle2 size={13} /> Conectado
                   </span>
                 )}
@@ -1256,12 +1256,12 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
   }
 
   return (
-    <div style={{ padding: 20, background: 'var(--s1)', border: `1px solid ${connected ? 'rgba(74,222,128,0.3)' : 'var(--border)'}`, borderRadius: 12 }}>
+    <div style={{ padding: 20, background: 'var(--s1)', border: `1px solid ${connected ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'var(--border)'}`, borderRadius: 12 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: connected ? 'rgba(74,222,128,0.12)' : 'rgba(61,90,254,0.08)',
+            background: connected ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'rgba(61,90,254,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <MessageCircle size={20} color={connected ? '#4ade80' : 'var(--teal)'} />
@@ -1281,7 +1281,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         <span style={{
           display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600,
           padding: '4px 12px', borderRadius: 20,
-          background: connected ? 'rgba(74,222,128,0.1)' : 'var(--s2)',
+          background: connected ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'var(--s2)',
           color: connected ? '#4ade80' : 'var(--text3)',
         }}>
           {connected ? <><CheckCircle2 size={13} /> Conectado</> : <><XCircle size={13} /> No conectado</>}
@@ -1294,7 +1294,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
           <>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)',
+              background: 'color-mix(in srgb, var(--green) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--green) 20%, transparent)',
               borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#4ade80',
             }}>
               <Smartphone size={14} />
@@ -1305,7 +1305,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               disabled={disconnecting}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'none', border: '1px solid rgba(239,68,68,0.3)',
+                background: 'none', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
                 color: 'var(--red)', fontSize: 13, padding: '8px 14px',
                 borderRadius: 8, cursor: 'pointer',
               }}
@@ -1461,7 +1461,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
       </div>
 
       {!doctor && (
-        <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: 14, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', borderRadius: 10, padding: 14, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 7 }}>
           <AlertTriangle size={15} className="ds-icon" style={{ flexShrink: 0 }} /> No hay médico configurado. Ve a Configuración → General para agregar un médico.
         </div>
       )}
@@ -1758,9 +1758,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{planInfo.label}</span>
             <span style={{
               fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
-              background: status === 'active' ? 'rgba(61,90,254,0.12)' : 'rgba(245,158,11,0.12)',
+              background: status === 'active' ? 'rgba(61,90,254,0.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
               color: status === 'active' ? 'var(--teal)' : '#f59e0b',
-              border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'rgba(245,158,11,0.3)'}`,
+              border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
             }}>
               {status === 'active' ? 'ACTIVO' : status === 'trial' ? 'PRUEBA' : status === 'suspended' ? 'SUSPENDIDO' : 'CANCELADO'}
             </span>
@@ -2042,7 +2042,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                 <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                   WhatsApp
                 </button>
-                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Revocar
                 </button>
               </div>
@@ -2183,7 +2183,7 @@ function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaH
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{TIPO_BLOQUE_LABEL[b.tipo]} {b.motivo && <span style={{ color: "var(--text3)", fontWeight: 400 }}>· {b.motivo}</span>}</div>
                   <div style={{ fontSize: 11.5, color: "var(--text3)" }}>{fmt(b.desde)} → {fmt(b.hasta)}</div>
                 </div>
-                <button onClick={() => borrar(b.id)} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", color: "var(--red)", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, cursor: "pointer" }}>Eliminar</button>
+                <button onClick={() => borrar(b.id)} style={{ background: "none", border: "1px solid color-mix(in srgb, var(--red) 30%, transparent)", color: "var(--red)", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, cursor: "pointer" }}>Eliminar</button>
               </div>
             ))}
           </div>

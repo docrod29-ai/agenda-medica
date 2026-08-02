@@ -414,7 +414,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
             {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
           </button>
-          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>{errorRaz}</div>}
+          {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{errorRaz}</div>}
           {razonamiento && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={card}>
@@ -430,7 +430,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
                 */}
                 {!!razonamiento.contradicciones?.length && (
                   <div style={{
-                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+                    background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
                     borderRadius: 10, padding: '11px 13px', marginBottom: 12,
                     fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
                   }}>
@@ -452,7 +452,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.03em' }}>Segunda opinión (GPT-5)</div>
                   {!!razonamiento.contradiccionesSegunda?.length && (
                     <div style={{
-                      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)',
+                      background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
                       borderRadius: 10, padding: '11px 13px', marginBottom: 10,
                       fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
                     }}>
@@ -501,8 +501,8 @@ export default function AntibiogramaPage() {
 }
 
 function Resultado({ res }: { res: InterpretacionAntibiograma }) {
-  const badge = (c: string) => c === 'confirmado' ? { bg: 'rgba(239,68,68,.15)', fg: '#f87171' }
-    : c === 'probable' ? { bg: 'rgba(245,158,11,.15)', fg: '#f59e0b' }
+  const badge = (c: string) => c === 'confirmado' ? { bg: 'color-mix(in srgb, var(--red) 15%, transparent)', fg: '#f87171' }
+    : c === 'probable' ? { bg: 'color-mix(in srgb, var(--amber) 15%, transparent)', fg: '#f59e0b' }
     : { bg: 'rgba(148,163,184,.15)', fg: 'var(--text3)' }
 
   const conflictos = res.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto')
@@ -511,7 +511,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
   return (
     <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
       {res.notificacionObligatoria && (
-        <div style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>
+        <div style={{ ...box, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>
           <ShieldAlert size={16} /> <b>Notificación epidemiológica obligatoria (NOM-045).</b>
           {res.aislamiento && <span style={{ color: 'var(--text2)' }}> · {res.aislamiento}</span>}
         </div>
@@ -522,7 +522,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<AlertTriangle size={15} />} t="Conflicto con resistencia intrínseca" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {conflictos.map((n, i) => (
-              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }}>
+              <div key={i} style={{ ...box, borderColor: 'color-mix(in srgb, var(--amber) 40%, transparent)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)', color: 'var(--amber)' }}>
                 <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
               </div>
             ))}
@@ -535,7 +535,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<AlertTriangle size={15} />} t="Alerta clínica — no reportar como utilizable" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {alertasClinicas.map((n, i) => (
-              <div key={i} style={{ ...box, borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }}>
+              <div key={i} style={{ ...box, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>
                 <span><b>{n.antibiotico}:</b> {n.mensaje}</span>
               </div>
             ))}
@@ -639,7 +639,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                 : c.categoriaCLSI === 'I' ? '#f59e0b' : '#f87171'
               const etiqueta = c.categoriaCLSI === 'SDD' ? 'SDD (dependiente de dosis)' : c.categoriaCLSI
               return (
-                <div key={i} style={{ ...box, ...(c.concuerda === false ? { borderColor: 'rgba(245,158,11,.5)', background: 'rgba(245,158,11,.08)' } : {}) }}>
+                <div key={i} style={{ ...box, ...(c.concuerda === false ? { borderColor: 'color-mix(in srgb, var(--amber) 50%, transparent)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)' } : {}) }}>
                   <span style={{ color: 'var(--text2)' }}>
                     <b>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: col }}>{etiqueta}</b> (CLSI)
                     {c.categoriaCLSI === 'SDD' && <span style={{ color: 'var(--text3)' }}> · usa el esquema de dosis alto (no la dosis estándar)</span>}
@@ -686,7 +686,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<Pencil size={15} />} t="Ediciones interpretativas (EUCAST)" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {res.edicionesInterpretativas.map((e, i) => (
-              <div key={i} style={{ ...box, borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.06)', color: 'var(--text2)' }}>
+              <div key={i} style={{ ...box, borderColor: 'color-mix(in srgb, var(--amber) 40%, transparent)', background: 'color-mix(in srgb, var(--amber) 6%, transparent)', color: 'var(--text2)' }}>
                 <span><b>{e.antibiotico}: {e.de} → {e.a}</b> — {e.razon}</span>
               </div>
             ))}
@@ -754,14 +754,14 @@ function SecTitle({ icon, t }: { icon: React.ReactNode; t: string }) {
 }
 
 function alertaEstilo(n: 'critica' | 'alta' | 'info'): React.CSSProperties {
-  if (n === 'critica') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.08)', color: 'var(--red)' }
-  if (n === 'alta') return { borderColor: 'rgba(245,158,11,.4)', background: 'rgba(245,158,11,.08)', color: 'var(--amber)' }
+  if (n === 'critica') return { borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }
+  if (n === 'alta') return { borderColor: 'color-mix(in srgb, var(--amber) 40%, transparent)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)', color: 'var(--amber)' }
   return { color: 'var(--text2)' }
 }
 
 function terapiaEstilo(l: 'dirigida' | 'alternativa' | 'evitar'): React.CSSProperties {
   if (l === 'dirigida') return { borderColor: 'rgba(16,185,129,.4)', background: 'rgba(16,185,129,.08)', color: 'var(--text2)' }
-  if (l === 'evitar') return { borderColor: 'rgba(239,68,68,.4)', background: 'rgba(239,68,68,.06)', color: 'var(--text2)' }
+  if (l === 'evitar') return { borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 6%, transparent)', color: 'var(--text2)' }
   return { color: 'var(--text2)' }
 }
 function etiquetaLinea(l: 'dirigida' | 'alternativa' | 'evitar'): string {

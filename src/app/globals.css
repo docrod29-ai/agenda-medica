@@ -1214,6 +1214,20 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     --text:   #000000;
     --text2:  #333333;
     --border: #CCCCCC;
+    /*
+      Y LOS COLORES CLÍNICOS TAMBIÉN, no sólo los del papel.
+
+      Esta regla ponía el fondo en blanco y el texto en negro, pero dejaba
+      `--red`/`--amber`/`--green` como los tuviera la pantalla. Un médico que
+      trabaja en modo oscuro imprimía sus alertas con el rojo pensado PARA fondo
+      oscuro —más claro— sobre papel blanco: justo el problema de contraste que
+      los tokens vinieron a resolver, sólo que en la hoja, que es donde no se
+      puede corregir después.
+    */
+    --red:    #B91C1C;
+    --amber:  #B45309;
+    --green:  #14532D;
+    --blue:   #2057C5;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
 }

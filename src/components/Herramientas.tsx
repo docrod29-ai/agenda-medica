@@ -135,9 +135,9 @@ export function Herramientas({ items, ocultas = [] }: {
               {h.aviso && (
                 <span style={{
                   flexShrink: 0, fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100,
-                  background: h.aviso.urgente ? 'rgba(239,68,68,.15)' : 'var(--s2)',
+                  background: h.aviso.urgente ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)',
                   color: h.aviso.urgente ? '#f87171' : 'var(--text3)',
-                  border: h.aviso.urgente ? '1px solid rgba(239,68,68,.3)' : '1px solid var(--border)',
+                  border: h.aviso.urgente ? '1px solid color-mix(in srgb, var(--red) 30%, transparent)' : '1px solid var(--border)',
                 }}>{h.aviso.texto}</span>
               )}
             </button>

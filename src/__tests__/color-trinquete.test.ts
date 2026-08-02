@@ -48,6 +48,19 @@ const PAPEL = [
  */
 const TECHO_PRIMER_PLANO = 0
 
+/**
+ * Techo de usos en FONDO Y BORDE (`rgba(...)` con los mismos colores).
+ *
+ * Estos no rompen el contraste del texto —son fondos al 8-12 %— pero comparten
+ * la raíz: un literal no cambia de tema, así que el aviso rojo que en oscuro se
+ * ve como una capa tenue, en claro se ve exactamente igual de tenue sobre un
+ * fondo crema, y deja de leerse como aviso. Migrados a
+ * `color-mix(in srgb, var(--red) N%, transparent)`, que sí sigue el tema.
+ *
+ * Cero, y se queda en cero: ya no hay ninguno fuera del papel.
+ */
+const TECHO_FONDO = 0
+
 function tsx(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
@@ -71,6 +84,30 @@ describe('trinquete de color', () => {
       }
     }
     expect(culpables, culpables.slice(0, 12).join('\n')).toHaveLength(TECHO_PRIMER_PLANO)
+  })
+
+  it(`no hay más de ${TECHO_FONDO} rgba crudos en fondo o borde`, () => {
+    // Los mismos colores, escritos como rgba() para fondos y bordes.
+    const pat = /rgba\(\s*(239\s*,\s*68\s*,\s*68|248\s*,\s*113\s*,\s*113|220\s*,\s*38\s*,\s*38|185\s*,\s*28\s*,\s*28|245\s*,\s*158\s*,\s*11|251\s*,\s*191\s*,\s*36|217\s*,\s*119\s*,\s*6|180\s*,\s*83\s*,\s*9|74\s*,\s*222\s*,\s*128|34\s*,\s*197\s*,\s*94|22\s*,\s*163\s*,\s*74)\s*,/g
+    const culpables: string[] = []
+    for (const p of archivos) {
+      for (const m of readFileSync(p, 'utf8').matchAll(pat)) culpables.push(`${p} → rgba(${m[1]}…`)
+    }
+    expect(culpables, culpables.slice(0, 12).join('\n')).toHaveLength(TECHO_FONDO)
+  })
+
+  it('al IMPRIMIR, los colores clínicos son los del tema claro', () => {
+    /**
+     * Un médico que trabaja en modo oscuro imprimía sus alertas con el rojo
+     * pensado para fondo oscuro sobre papel blanco. En la hoja no se puede
+     * corregir después, así que la regla de impresión fija los cuatro.
+     */
+    const css = readFileSync(join('src', 'app', 'globals.css'), 'utf8')
+    const i = css.indexOf('@media print')
+    const bloque = css.slice(i, i + 1200)
+    for (const t of ['--red:', '--amber:', '--green:', '--blue:']) {
+      expect(bloque, `falta ${t} en @media print`).toContain(t)
+    }
   })
 
   it('los tokens siguen definidos en los DOS temas', () => {

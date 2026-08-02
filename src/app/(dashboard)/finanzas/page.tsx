@@ -501,8 +501,8 @@ export default function FinanzasPage() {
 
       {cancelados.length > 0 && (
         <div style={{
-          border: '1px solid rgba(220,38,38,0.3)', borderRadius: 14,
-          background: 'rgba(220,38,38,0.05)', padding: 16, marginTop: 20,
+          border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 14,
+          background: 'color-mix(in srgb, var(--red) 5%, transparent)', padding: 16, marginTop: 20,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <AlertTriangle size={15} style={{ color: 'var(--red)' }} />

@@ -137,8 +137,8 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
     const isCrit = critico || campo.needs_review
     return (
       <div key={id} style={{
-        background: aprobado ? (isCrit ? 'rgba(245,158,11,0.06)' : 'var(--s2)') : 'rgba(239,68,68,0.05)',
-        border: `1px solid ${!aprobado ? 'rgba(239,68,68,0.3)' : isCrit ? 'rgba(245,158,11,0.35)' : 'var(--border)'}`,
+        background: aprobado ? (isCrit ? 'color-mix(in srgb, var(--amber) 6%, transparent)' : 'var(--s2)') : 'color-mix(in srgb, var(--red) 5%, transparent)',
+        border: `1px solid ${!aprobado ? 'color-mix(in srgb, var(--red) 30%, transparent)' : isCrit ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'var(--border)'}`,
         opacity: aprobado ? 1 : 0.6,
         borderRadius: 8, padding: '8px 12px',
       }}>
@@ -157,7 +157,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
           </button>
           {aprobado ? (
             <button onClick={() => onRechazar(id)} title="Quitar de la nota"
-              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', borderRadius: 6, padding: '6px 10px', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
+              style={{ background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '6px 10px', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
               <X size={12} /> Quitar
             </button>
           ) : (
@@ -199,7 +199,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
 
       {/* Conflictos detectados */}
       {conflictos.length > 0 && (
-        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 4 }}>
             <ShieldAlert size={14} /> Conflictos detectados
           </div>
@@ -208,7 +208,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
       )}
 
       {crucesAlergia.length > 0 && (
-        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 4 }}>
             <ShieldAlert size={14} /> Cruce alergia ↔ medicamento
           </div>
@@ -224,7 +224,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
 
       {/* Faltantes críticos */}
       {faltantesCriticos.length > 0 && (
-        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--amber)', fontWeight: 600, marginBottom: 4 }}>
             <AlertTriangle size={14} /> Datos críticos no documentados
           </div>

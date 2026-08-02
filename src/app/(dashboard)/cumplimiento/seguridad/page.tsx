@@ -149,7 +149,7 @@ export default function SeguridadPage() {
             <li>Al iniciar sesión, además de tu contraseña, te pediré el código actual</li>
           </ol>
           <div style={{
-            padding: 10, background: 'rgba(245,158,11,0.06)', borderLeft: '2px solid #f59e0b',
+            padding: 10, background: 'color-mix(in srgb, var(--amber) 6%, transparent)', borderLeft: '2px solid #f59e0b',
             borderRadius: 4, fontSize: 12, color: 'var(--text2)', marginBottom: 14,
             display: 'flex', alignItems: 'flex-start', gap: 7,
           }}>
@@ -263,8 +263,8 @@ export default function SeguridadPage() {
 function Estado({ activo, email }: { activo: boolean; email: string }) {
   return (
     <div style={{
-      padding: 18, borderRadius: 12, border: `1px solid ${activo ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
-      background: activo ? 'rgba(16,185,129,0.04)' : 'rgba(245,158,11,0.04)',
+      padding: 18, borderRadius: 12, border: `1px solid ${activo ? 'rgba(16,185,129,0.3)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
+      background: activo ? 'rgba(16,185,129,0.04)' : 'color-mix(in srgb, var(--amber) 4%, transparent)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         {activo ? <ShieldCheck size={20} color="#10b981" /> : <AlertTriangle size={20} color="var(--amber)" />}

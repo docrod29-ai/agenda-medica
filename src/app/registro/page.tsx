@@ -335,7 +335,7 @@ function RegistroInner() {
 
             {error && (
               <div style={{
-                background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
                 borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--red)',
               }}>
                 {error}

@@ -122,7 +122,7 @@ export default function CamasPage() {
       {sinCamaEnInventario.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
+          background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
           borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
@@ -143,7 +143,7 @@ export default function CamasPage() {
       {conflictos.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)',
+          background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)',
           borderRadius: 12, padding: '13px 15px', margin: '0 0 16px',
         }}>
           <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />

@@ -284,8 +284,8 @@ function ItemRow({
 
   // Color del borde según severidad
   const borderColor = caducado || (bajo && item.cantidad === 0)
-    ? 'rgba(239,68,68,0.4)'
-    : (pronto || bajo) ? 'rgba(245,158,11,0.4)' : 'var(--border)'
+    ? 'color-mix(in srgb, var(--red) 40%, transparent)'
+    : (pronto || bajo) ? 'color-mix(in srgb, var(--amber) 40%, transparent)' : 'var(--border)'
 
   return (
     <div style={{
@@ -301,17 +301,17 @@ function ItemRow({
             </span>
           )}
           {caducado && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(239,68,68,0.15)', color: 'var(--red)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)' }}>
               CADUCADO
             </span>
           )}
           {!caducado && pronto && dias !== null && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: 'var(--amber)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
               Caduca en {dias}d
             </span>
           )}
           {bajo && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'rgba(245,158,11,0.15)', color: 'var(--amber)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
               Bajo stock
             </span>
           )}

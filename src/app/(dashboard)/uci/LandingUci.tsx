@@ -150,7 +150,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
       </div>
 
       {sinTipo.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(217,119,6,0.09)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 12, padding: '13px 15px', margin: '0 0 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--amber) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 12, padding: '13px 15px', margin: '0 0 16px' }}>
           <AlertTriangle size={17} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
             <strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong>{' '}
@@ -188,8 +188,8 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                 onClick={() => router.push(`/uci?internamiento=${t.internamientoId}`)}
                 style={{
                   padding: 14, borderRadius: 12, cursor: 'pointer',
-                  border: `1px solid ${alerta ? 'rgba(220,38,38,0.45)' : 'var(--border)'}`,
-                  background: alerta ? 'rgba(220,38,38,0.06)' : 'var(--s2)',
+                  border: `1px solid ${alerta ? 'color-mix(in srgb, var(--red) 45%, transparent)' : 'var(--border)'}`,
+                  background: alerta ? 'color-mix(in srgb, var(--red) 6%, transparent)' : 'var(--s2)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

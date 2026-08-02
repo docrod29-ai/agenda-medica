@@ -140,7 +140,7 @@ export default function CostosPage() {
           {datos.webhook?.aviso && (
             <div style={{
               border: `1px solid ${datos.webhook.faltanCriticos.length ? '#dc2626' : 'var(--border)'}`,
-              background: datos.webhook.faltanCriticos.length ? 'rgba(220,38,38,.07)' : 'var(--panel, #f8fafc)',
+              background: datos.webhook.faltanCriticos.length ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--panel, #f8fafc)',
               borderRadius: 10, padding: '13px 15px', margin: '18px 0 4px',
             }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: datos.webhook.faltanCriticos.length ? '#b91c1c' : 'var(--text, #0f172a)' }}>
@@ -167,7 +167,7 @@ export default function CostosPage() {
               {datos.incidentes!.map(i => (
                 <div key={i.id} style={{
                   border: `1px solid ${i.urgente ? '#dc2626' : 'var(--border, #e5e7eb)'}`,
-                  background: i.urgente ? 'rgba(220,38,38,.07)' : 'var(--panel, #f8fafc)',
+                  background: i.urgente ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--panel, #f8fafc)',
                   borderRadius: 10, padding: '12px 14px', marginBottom: 8,
                 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: i.urgente ? '#b91c1c' : 'var(--text, #0f172a)' }}>
@@ -255,8 +255,8 @@ function Aviso({ tono, children }: { tono: 'alerta' | 'neutro'; children: React.
   return (
     <div style={{
       marginTop: 18, padding: '13px 16px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55,
-      background: alerta ? 'rgba(217,119,6,0.10)' : 'var(--s2, #f1f5f9)',
-      border: '1px solid ' + (alerta ? 'rgba(217,119,6,0.35)' : 'var(--border, #e5e7eb)'),
+      background: alerta ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--s2, #f1f5f9)',
+      border: '1px solid ' + (alerta ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'var(--border, #e5e7eb)'),
       color: 'var(--text2, #334155)',
     }}>{children}</div>
   )
