@@ -164,8 +164,10 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
     familia), que no rompen contraste de texto pero siguen sin cambiar de tema.
 14. **`BLOQUEA_RECETA` promete una barrera que no existe** — `src/lib/expediente/medical-ner.ts:176`:
     lo decide el LLM y no bloquea nada, sólo se pinta.
-15. **Textos clínicos en imperativo sin fuente** — `src/lib/seguridad/prescripcion-segura.ts`
-    y `src/lib/inmuno/`: pasar a voz informativa es software; las CIFRAS son del Dr.
+15. ~~Textos clínicos sin fuente~~ — HECHO A MEDIAS (v873): la cita ya se
+    ENSEÑA en el panel, en la nota y en el HTML, y su ausencia se declara.
+    **Queda, y es del Dr.**: las 42 recomendaciones de
+    `src/lib/inmuno/recomendaciones.ts` sin fuente. Yo no las invento.
 
 ---
 
@@ -451,6 +453,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 | v | Qué se reparó |
 |---|---|
 | **872** | **El color de la alerta clínica no cambiaba de tema.** Cuatro rojos y ocho ámbares escritos a mano en 55 pantallas; el problema no es la variedad sino que un hexadecimal no cambia de tema: `#f87171` es el rosa **para fondo oscuro** y sobre el crema del tema claro da 2.5:1 (AA pide 4.5). Y es el color del error bajo un campo de **dosis**, del atraso del MAR y de las alertas clínicas. 124 colores de primer plano migrados a `--red`/`--amber`, medidos en los dos temas. **Excepción deliberada**: las superficies que se imprimen conservan el hexadecimal (html2canvas clona el nodo y una variable sin resolver deja sin color el «[FALTA CÉDULA PROFESIONAL]»; y el papel fuerza tema claro). Queda un **trinquete** con techo 0 vigilado por prueba. |
+
+## VIGESIMOSEGUNDA TANDA — v873 (la cita que se caía al suelo)
+
+| v | Qué se reparó |
+|---|---|
+| **873** | **La cita de guía no llegaba a ninguno de los tres sitios donde se lee.** `Rec.fuente` existe —su comentario dice «para citarla en la nota»— y `lib/inmuno/farmacos.ts` la **exige** en sus 34 recomendaciones (ASH 2020, consenso IS ACCP/AST/ISHLT 2022, ACIP…). No la enseñaba ni el panel —que promete «con su cita de guía»—, ni el texto que se le dicta a la IA, ni el HTML del expediente: la nota salía con recomendaciones de profilaxis y cero atribución, con el dato guardado al lado. Ahora viaja a los tres, y donde no hay fuente **se dice** en vez de omitirla en silencio. Las 42 de `recomendaciones.ts` siguen sin cita: es trabajo clínico del Dr. —una cita inventada sería peor que ninguna— y quedan declaradas con una prueba que vigila que el número no suba. |
 
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
