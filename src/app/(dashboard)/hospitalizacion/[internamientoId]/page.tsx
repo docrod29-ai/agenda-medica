@@ -470,7 +470,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
             <button onClick={exportarFHIR} title="Exportar el internamiento en HL7 FHIR R4 (interoperabilidad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Send size={13} /> FHIR</button>
-            {news2 && <button onClick={() => setTab('signos')} title={encuadre.aviso || news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 100, border: `1px solid ${news2.color}`, background: news2.color + '1f', color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> {encuadre.etiqueta} {news2.total}{encuadre.encuadre !== 'actual' && <AlertTriangle size={12} className="ds-icon" />}</button>}
+            {news2 && <button onClick={() => setTab('signos')} title={encuadre.aviso || news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 100, border: `1px solid ${news2.color}`, background: `color-mix(in srgb, ${news2.color} 12%, transparent)`, color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> {encuadre.etiqueta} {news2.total}{encuadre.encuadre !== 'actual' && <AlertTriangle size={12} className="ds-icon" />}</button>}
             <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
           </div>
         </div>
@@ -720,7 +720,7 @@ export default function EpisodioPage() {
         ) : (<>
           {/* NEWS2 — score de deterioro del último registro */}
           {news2 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 14, padding: '12px 14px', borderRadius: 12, border: `1px solid ${news2.color}55`, background: news2.color + '12' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 14, padding: '12px 14px', borderRadius: 12, border: `1px solid color-mix(in srgb, ${news2.color} 34%, transparent)`, background: `color-mix(in srgb, ${news2.color} 7%, transparent)` }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
                 <span style={{ fontSize: 26, fontWeight: 800, color: news2.color, lineHeight: 1 }}>{news2.total}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: news2.color, textAlign: 'center' }}>{encuadre.etiqueta} · {news2.riesgo}</span>

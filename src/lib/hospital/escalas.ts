@@ -7,7 +7,8 @@
 
 export interface EscalaResultado { score: number; riesgo: string; color: string }
 
-const COLOR = { verde: '#0d9488', amarillo: '#d97706', rojo: '#dc2626' }
+/** Mismo criterio que `news2.ts`: tokens, no hexadecimales que no cambian de tema. */
+const COLOR = { verde: 'var(--green)', amarillo: 'var(--amber)', rojo: 'var(--red)' }
 
 /** BRADEN: 6 subescalas. Menor puntaje = mayor riesgo. Rango 6–23. */
 export interface BradenInput {

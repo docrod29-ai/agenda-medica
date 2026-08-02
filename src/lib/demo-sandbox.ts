@@ -58,7 +58,7 @@ export const DEMO_ESCENARIOS: DemoEscenario[] = [
     folio: 'RX-DEMO-A1',
   },
   {
-    cita: { hora: '10:30', iniciales: 'J. R.', edad: 38, sexo: 'M', motivo: 'Odinofagia', color: '#16a34a' },
+    cita: { hora: '10:30', iniciales: 'J. R.', edad: 38, sexo: 'M', motivo: 'Odinofagia', color: 'var(--green)' },
     dictado: [
       'Masculino de 38 años con dolor de garganta de dos días de evolución.',
       'Refiere fiebre de 38.5 grados y dificultad para deglutir.',
