@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run pdf-worker && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -20,7 +20,8 @@
     "cap:sync": "npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor \"#0B0C0E\" --splashBackgroundColor \"#0B0C0E\""
+    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor \"#0B0C0E\" --splashBackgroundColor \"#0B0C0E\"",
+    "pdf-worker": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

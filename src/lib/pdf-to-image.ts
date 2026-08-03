@@ -66,13 +66,41 @@ async function procesarPdf(
   // Import dinámico (primera vez puede tardar varios segundos en conexiones lentas)
   const pdfjs = await import('pdfjs-dist')
 
-  // Configurar worker. Usamos unpkg con la versión exacta porque cdnjs a veces
-  // tarda en publicar versiones nuevas o no tiene el .mjs.
+  /**
+   * EL WORKER SE SIRVE DESDE AQUÍ, NO DESDE UNA CDN AJENA.
+   *
+   * ── POR QUÉ ──────────────────────────────────────────────────────────────
+   *
+   * Antes se armaba una URL a `unpkg.com` con la versión ADIVINADA
+   * (`pdfjs.version || '6.0.227'`). Eso hacía que subir un PDF —la firma del
+   * médico, el membrete— dependiera de:
+   *
+   *  · que unpkg estuviera arriba y respondiera rápido;
+   *  · que esa versión exacta existiera en esa ruta exacta;
+   *  · que la red del consultorio no bloqueara CDNs, cosa habitual en hospitales.
+   *
+   * Y cuando fallaba no se veía un error claro: pdf.js se quedaba esperando al
+   * worker y lo único que salía era «Tiempo agotado (60s)», que suena a «tu PDF
+   * es muy pesado». El médico probaba con otro PDF más chico y volvía a fallar.
+   *
+   * El archivo viene DENTRO de `pdfjs-dist`, así que se copia a `public/` en cada
+   * build (`npm run pdf-worker`) y se sirve del mismo origen: sin red externa,
+   * sin adivinar versiones, y la versión del worker no puede desincronizarse de
+   * la de la librería.
+   *
+   * La CDN queda como respaldo por si el archivo no estuviera desplegado.
+   */
   if (typeof window !== 'undefined' && pdfjs.GlobalWorkerOptions) {
-    // pdfjs.version puede estar en distintas formas según el build; intentamos varias.
     const ver = (pdfjs as unknown as { version?: string }).version || '6.0.227'
-    pdfjs.GlobalWorkerOptions.workerSrc =
-      `https://unpkg.com/pdfjs-dist@${ver}/build/pdf.worker.min.mjs`
+    const local = '/pdf.worker.min.mjs'
+    let servible = false
+    try {
+      const r = await fetch(local, { method: 'HEAD' })
+      servible = r.ok
+    } catch { /* sin red al propio origen: se intenta igual con el respaldo */ }
+    pdfjs.GlobalWorkerOptions.workerSrc = servible
+      ? local
+      : `https://unpkg.com/pdfjs-dist@${ver}/build/pdf.worker.min.mjs`
   }
 
   opts.progress('Leyendo archivo…')

@@ -1150,6 +1150,42 @@ existe para pegar un UUID de factura, no para reescribir quién hizo qué.
 
 ---
 
+## SEPTUAGÉSIMA SÉPTIMA TANDA — v928 · REPORTADO POR EL DR. EN USO REAL
+
+### «¿Por qué no me deja guardar la firma que subo en PDF?»
+
+El conversor de PDF a imagen armaba la URL del worker de pdf.js apuntando a
+**`unpkg.com`**, con la versión **adivinada** (`pdfjs.version || '6.0.227'`).
+
+Así que subir un PDF —la firma del médico, el membrete— dependía de:
+
+- que unpkg estuviera arriba y contestara rápido;
+- que esa versión exacta existiera en esa ruta exacta;
+- que la red del consultorio no bloqueara CDNs, **cosa habitual en hospitales**.
+
+Y cuando fallaba **no se veía un error claro**: pdf.js se quedaba esperando al
+worker y lo único que salía era «Tiempo agotado (60s). Tu PDF puede ser muy
+pesado» — un mensaje que manda al médico a buscar el problema **donde no está**.
+Probaba con otro PDF más chico y volvía a fallar.
+
+El archivo **viene dentro de `pdfjs-dist`**. No había que descargarlo de ningún
+lado.
+
+Ahora se copia a `public/` en cada build (`npm run pdf-worker`, encadenado al
+`build`) y se sirve del mismo origen: sin red externa, sin adivinar versiones, y
+la versión del worker **no puede desincronizarse** de la de la librería. La CDN
+queda de respaldo por si un despliegue no llevara el archivo — quitarla del todo
+dejaría la función muerta sin salida.
+
+- `src/lib/pdf-to-image.ts`, `public/pdf.worker.min.mjs`, `package.json`
+- `src/__tests__/pdf-worker-local.test.ts` — 7 pruebas. Total 4974.
+
+⚠️ **Pendiente de confirmar con el Dr**: si con esto ya le guarda la firma. Si
+sigue fallando, el siguiente sospechoso es la migración REG-014 (`config/firma`),
+que el auditor marcó como P1-6.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
