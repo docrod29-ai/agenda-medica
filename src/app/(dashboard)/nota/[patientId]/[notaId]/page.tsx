@@ -9,6 +9,7 @@ import { imprimirElemento } from '@/lib/print-element'
 import { papelNota } from '@/lib/receta-template'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { entradaPorMedico, resolverIdMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
+import { encabezadoHospital } from '@/lib/hospital/bloque-nota'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
@@ -364,6 +365,19 @@ export default function NotaImprimiblePage() {
               </td>
               <td style={{ padding: '2px 0', textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
             </tr>
+            {/*
+              DÓNDE ESTABA EL PACIENTE — servicio, cama y día de internamiento.
+              El bloque `nota.hospital` llevaba SELLADO en el hash de integridad
+              desde que existe el módulo de hospitalización, pero nadie lo
+              escribía y nadie lo imprimía: una nota de hospital que no decía en
+              qué cama estaba el paciente. Sale sólo si la nota lo trae; nunca se
+              deduce en el impreso.
+            */}
+            {encabezadoHospital(nota.hospital) && (
+              <tr>
+                <td colSpan={2} style={{ padding: '2px 0' }}>{encabezadoHospital(nota.hospital)}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 
