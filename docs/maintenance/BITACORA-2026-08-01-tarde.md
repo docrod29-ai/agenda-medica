@@ -2695,8 +2695,64 @@ intrínseco es correcto en cualquiera de los dos casos; elegir por él, no.
 - `src/lib/expediente/antibiograma/motor.ts`
 - `src/__tests__/antibiograma-fenotipo-salvaje.test.ts` — 11 pruebas. Total 5405.
 
-**Quedan A2, A3 y A4**, cuyas partes de plomería puedo hacer, y las **seis
+**Quedan A3 y A4**, cuyas partes de plomería puedo hacer, y las **seis
 preguntas clínicas** que van al final de esta bitácora.
+
+---
+
+
+## CENTÉSIMA SEXTA TANDA — v957 · S POR FOTO, I TECLEADO
+
+**Cierra A2 de la cola del equipo.**
+
+### Primero corregí mi propia premisa
+
+La cola decía «la CMI censurada se pierde en el camino de la foto». **En la
+pantalla no se pierde**: `onFoto` mete `cmi_texto` en la fila como texto y el
+memo le aplica `parseCMI`. Lo verifiqué antes de tocar nada.
+
+Lo que sí estaba roto es el puente visión→motor de la **librería** —
+`perfilAEntrada`, exportado en el índice público y probado como tal.
+
+### El caso, corriendo el motor
+
+*S. pneumoniae* de hemocultivo, **penicilina «>2»** reportada como S:
+
+| camino   | lo que llega al motor           | categoría CLSI | ¿concuerda? |
+|----------|---------------------------------|----------------|-------------|
+| librería | `{ cmi: 2 }`                    | **S**          | sí          |
+| pantalla | `{ cmi: 2, cmiCensurada: '>' }` | **I**          | **no**      |
+
+«>2» dice que el valor real está por encima de 2, y el techo de susceptibilidad
+es 2: S es imposible. Es la decisión que usted ya había tomado —«una CMI es un
+intervalo, no un número»— aplicada en uno solo de los dos caminos.
+
+### Por qué
+
+`parseCMI` vivía dentro de `page.tsx`, así que la librería no podía usarla:
+reenviaba `c.cmi` —el número pelado— y **nunca miraba `cmi_texto`**, que es donde
+el propio prompt de visión pide que venga el símbolo.
+
+Ahora hay **una sola** implementación, en `antibiograma/cmi.ts`, y un guardián
+barre `src/` para que no aparezca una segunda. Dos implementaciones vuelven a
+poder divergir, y divergen en silencio: nadie compara el mismo antibiograma
+leído de las dos maneras.
+
+### Y lo que se tiraba sin decirlo
+
+El puente descartaba toda fila que no fuera S/I/R, así que un **SDD** reportado
+por el laboratorio desaparecía del panel *y* de los avisos — y una fila que
+desaparece se lee después como «ese antibiótico no se probó».
+`perfilAEntradaConDescartes` devuelve la entrada **y** lo que no cupo: SDD,
+ilegibles y dudosos, con su aviso ya redactado. Lo `needs_review` sí entra al
+panel: es «revísalo», no «no se pudo leer».
+
+**NEEDS_CLINICAL_REVIEW** — a qué categoría mapea un SDD y con qué dosis sigue
+siendo suyo (es una de las seis preguntas de abajo).
+
+- `src/lib/expediente/antibiograma/cmi.ts` (nuevo, puro),
+  `antibiograma/vision.ts`, `app/(dashboard)/antibiograma/page.tsx`
+- `src/__tests__/antibiograma-cmi-un-solo-parser.test.ts` — 22 pruebas. Total 5422.
 
 ---
 
@@ -2771,8 +2827,8 @@ sustancialmente mejor de lo que un comprador puede ver».
 - A1. Fenotipo salvaje leído como resistencia adquirida: un *E. faecalis*
   pan-sensible sale MDR con alerta crítica de colistina y mecanismo `mcr`. El
   filtro de resistencia intrínseca EXISTE y no se aplica en ese camino.
-- A2. La CMI censurada se pierde en la frontera visión→motor: por foto una
-  vancomicina «>2» sale S; tecleada sale I.
+- A2. ~~La CMI censurada se pierde en la frontera visión→motor.~~ **CERRADO v957**
+  (con la premisa corregida: se perdía en la LIBRERÍA, no en la pantalla).
 - A3. La edición interpretativa no se propaga a `categoriasCMI`: tres categorías
   del mismo fármaco en el mismo prompt.
 - A4. El resultado NEGATIVO de una confirmatoria se lee, se tipa, se transporta y

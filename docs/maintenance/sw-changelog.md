@@ -21,6 +21,49 @@ historia vive aquí.
 
 ---
 
+## v957 — el mismo antibiograma daba S por foto e I tecleado
+
+REPRODUCIDO CORRIENDO EL MOTOR. Un *S. pneumoniae* de hemocultivo con
+**penicilina «>2»** reportada como S:
+
+| camino  | lo que llegaba al motor         | categoría CLSI | ¿concuerda con el lab? |
+|---------|---------------------------------|----------------|------------------------|
+| foto    | `{ cmi: 2 }`                    | **S**          | sí                     |
+| tecleado| `{ cmi: 2, cmiCensurada: '>' }` | **I**          | **no**                 |
+
+«>2» significa que el valor real está **por encima** de 2, y el techo de
+susceptibilidad es 2: S es matemáticamente imposible. Es la decisión que el Dr.
+ya había tomado —«una CMI es un intervalo, no un número»— aplicada en uno solo de
+los dos caminos. Por el otro, el aviso de discordancia con el laboratorio **no
+salía**.
+
+POR QUÉ PASÓ: `parseCMI` vivía dentro de `antibiograma/page.tsx`. El puente
+visión→motor de la librería, `perfilAEntrada`, no podía usarla — reenviaba
+`c.cmi`, el número pelado, y **nunca miraba `cmi_texto`**, que es justo donde el
+prompt de visión pide que venga el símbolo. `cmiCensurada` no se asignaba jamás
+por ese camino. La regla escrita en un sitio, y el código de al lado sin
+cumplirla.
+
+Ahora hay **una sola** `parseCMI`, en `antibiograma/cmi.ts`, y un guardián barre
+`src/` para que no aparezca una segunda: dos implementaciones vuelven a poder
+divergir, y divergen en silencio — nadie compara el resultado del mismo
+antibiograma leído de las dos maneras.
+
+DE PASO, LO QUE SE TIRABA SIN DECIRLO: el puente descartaba toda fila cuya
+categoría no fuera S/I/R, así que un **SDD** reportado por el laboratorio
+desaparecía del panel *y* de los avisos — y una fila que desaparece se lee, en la
+pantalla siguiente, como «ese antibiótico no se probó». `perfilAEntradaConDescartes`
+devuelve ahora la entrada **y** lo que no cupo, con nombre y apellido: SDD,
+ilegibles y dudosos, cada uno con su aviso redactado. Lo `needs_review` sí entra
+al panel (es «revísalo», no «no se pudo leer»: sacarlo dejaría al médico sin la
+fila que tiene que verificar).
+
+NEEDS_CLINICAL_REVIEW: a qué categoría del panel corresponde un SDD, y con qué
+dosis, es criterio del Dr. Dejarlo fuera y nombrarlo es lo único que este código
+puede decidir por su cuenta. +22 casos.
+
+---
+
 ## v956 — un aislamiento SALVAJE salía como multirresistente con alerta crítica
 
 REPRODUCIDO CORRIENDO EL MOTOR, no leyendo el código. Un Enterococcus faecalis
