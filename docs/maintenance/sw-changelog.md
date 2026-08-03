@@ -21,6 +21,53 @@ historia vive aquí.
 
 ---
 
+## v970 — decisión 3: cuándo el motor puede EDITAR al laboratorio
+
+La última de las seis del antibiograma, y la más grande.
+
+LA PREGUNTA: la CMI dice R y el reporte dice S. ¿Edita o sólo advierte? Hasta hoy
+**sólo advertía**. Respuesta del Dr.: **B condicionada** — edita, pero SÓLO con
+la procedencia plenamente verificada. CLSI reconoce que un equipo comercial puede
+usar cortes de la FDA, de otra edición o sin actualizar; recalcular sin
+comprobarlo **no corrige un error, inventa una resistencia**.
+
+LOS OCHO CAMPOS, ni siete ni «los importantes»: organismo y antimicrobiano
+reconocidos · método · sitio donde el corte lo exige · estándar · **edición** ·
+unidad · valor de CMI. Cada uno puede, por sí solo, cambiar el corte que aplica.
+Cuando falta alguno, el motor dice CUÁL: un «no se puede resolver» sin motivo
+obliga al médico a adivinar qué capturar.
+
+LO QUE ESTO SIGNIFICA HOY, Y HAY QUE MIRARLO DE FRENTE: el extractor de la foto
+NO captura el estándar ni su edición —no vienen impresos en la mayoría de los
+reportes—, así que mientras el médico no los declare **el motor no edita nunca**.
+No es un defecto de la implementación: es la consecuencia correcta de la regla.
+Editar por omisión es exactamente lo que la decisión prohíbe.
+
+LA PARTE QUE MÁS IMPORTA — la edición se decide y se aplica **antes** de los
+módulos, no al armar la tabla de CMI. Si se hiciera al final, el panel diría R y
+los fenotipos se habrían calculado con la S del laboratorio: el defecto E0-15a que
+costó la v958, otra vez, por una puerta nueva. Hay una prueba que lo fija con un
+carbapenémico editado a R que sí dispara el fenotipo de carbapenemasa.
+
+LA ASIMETRÍA DESCARTADA: el Dr. rechazó «corregir sólo hacia lo más restrictivo».
+No es una regla de CLSI y puede crear falsas resistencias — corregir en una sola
+dirección no es prudencia, es sesgo. Así que también edita de R a S, y hay prueba.
+
+DOS PREMISAS MÍAS QUE FALLARON, las dos destapadas por mis propias pruebas: la
+comparación de ediciones juntaba TODOS los números, así que «M100-Ed35» y «Ed35»
+se leían como estándares distintos —dos formas de escribir lo mismo habrían
+dejado al médico sin entender por qué no se desbloquea—; y busqué la razón de la
+edición en la lista equivocada. La segunda destapó algo mejor: las dos clases de
+edición ahora se declaran juntas, cada una con su razón, en vez de mantener dos
+listas y dos renders.
+
+EL LÍMITE, DECLARADO: «bloquear las conclusiones dependientes» está implementado
+**a nivel de fila**. Un rastreo completo de dependencias —qué fenotipo y qué línea
+de terapia cuelgan de qué celda— NO está hecho, y se dice en `ALCANCE_DEL_BLOQUEO`
+en vez de dejarlo implícito. +31 casos.
+
+---
+
 ## v969 — decisiones 4 y 5: qué hace el motor con una confirmatoria NEGATIVA
 
 Las dos son sobre el mismo error, por los dos lados. Un negativo puede leerse de
