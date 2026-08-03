@@ -93,9 +93,32 @@ export function resumenParaNota(
   if (r.aislamiento) L.push(`Aislamiento: ${r.aislamiento}`)
   if (r.notificacionObligatoria) L.push('Notificación epidemiológica OBLIGATORIA.')
 
+  /**
+   * LA DIDÁCTICA DEJA DE PERDERSE. Es donde viven los resultados NEGATIVOS de las
+   * confirmatorias —«tamiz de cefoxitina negativo: no hay mecA, es MSSA»,
+   * «D-test negativo: la clindamicina SÍ puede usarse»—, que el motor leía,
+   * tipaba, transportaba… y esta función no imprimía nunca. La pantalla sí los
+   * enseñaba; la nota, que es lo que queda en el expediente, no.
+   *
+   * Va DESPUÉS de lo accionable y sin la referencia completa: es el porqué, no la
+   * orden, y alargar la nota con las citas la vuelve ilegible.
+   */
+  if (r.didactica.length) {
+    L.push('')
+    L.push(`Interpretación: ${r.didactica.map(d => `${d.titulo} — ${d.texto}`).join(' ')}`)
+  }
+
   if (r.pruebasSugeridas.length) {
     L.push('')
     L.push(`Pruebas por solicitar: ${r.pruebasSugeridas.map(p => p.nombre).join('; ')}`)
+  }
+  /**
+   * Lo que se recorta se dice: sin esta línea, una prueba desaparecida de la
+   * lista no deja distinguir «no aplicaba» de «ya estaba hecha».
+   */
+  if (r.pruebasYaReportadas?.length) {
+    if (!r.pruebasSugeridas.length) L.push('')
+    L.push(`Ya vienen en el reporte (no se piden de nuevo): ${r.pruebasYaReportadas.map(p => p.nombre).join('; ')}`)
   }
 
   return L.join('\n')

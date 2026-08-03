@@ -17,14 +17,14 @@ import {
 import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
-import { analizarConfirmatorias } from './confirmatorias'
+import { analizarConfirmatorias, conflictosConfirmatorias } from './confirmatorias'
 import { analizarAminoglucosidos } from './aminoglucosidos'
 import { analizarFastidiosos } from './fastidiosos'
 import { analizarMDR, analizarDTR } from './mdr'
 import { construirAlgoritmo } from './algoritmo'
 import { evaluarIntrinseca, esIntrinsecamenteResistente } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
-import { pruebasRecomendadas } from './clsi-pruebas'
+import { pruebasPendientes } from './clsi-pruebas'
 import { interpretarCMI } from './clsi-breakpoints'
 import type { CategoriaCMI } from './tipos'
 
@@ -92,7 +92,28 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   ap = fusionar(ap, transversales(organismo, resultadosEfectivos))
 
   const resistenciaIntrinseca = evaluarIntrinseca(organismo, r)
-  const alertas = [...seg.excepcionales, ...ap.alertas]
+  /**
+   * EL RESULTADO NEGATIVO DE UNA CONFIRMATORIA DEJA DE IRSE AL SUELO.
+   *
+   * Un cefoxitina-neg capturado del reporte convivía con «MRSA [confirmado]»
+   * inferido del panel, sin que nada dijera que se contradicen: el negativo se
+   * leía, se tipaba, se transportaba hasta aquí y acababa en un `didactica` que
+   * la nota no imprimía.
+   *
+   * NO se decide cuál gana —eso es criterio del Dr.—; se DECLARA el conflicto.
+   *
+   * Va como ALERTA y no como advertencia porque las advertencias se imprimen
+   * concatenadas en un párrafo: una contradicción entre el laboratorio y el
+   * motor enterrada a mitad de un párrafo se lee igual que un consejo de
+   * stewardship, y no lo es. Como alerta sale en renglón propio en la nota, en
+   * la caja de alertas de la pantalla y en el prompt del modelo, sin cablearla
+   * tres veces.
+   */
+  const conflictosPruebas = conflictosConfirmatorias(ap.fenotipos, entrada.pruebas)
+  const alertas = [
+    ...conflictosPruebas.map(mensaje => ({ nivel: 'alta' as const, mensaje })),
+    ...seg.excepcionales, ...ap.alertas,
+  ]
   const advertencias = [...ap.advertencias, ...seg.avisos]
 
   // Referencias efectivamente usadas.
@@ -107,7 +128,15 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   if (ap.fenotipos.length) refs.add(REF.CLSI)
 
   const fenotipos = dedupFenotipos(ap.fenotipos)
-  const pruebasSugeridas = pruebasRecomendadas(organismo, fenotipos.map(f => f.clave))
+  /**
+   * NO SE PIDE UNA PRUEBA QUE EL REPORTE YA TRAE. La nota terminaba con «Pruebas
+   * por solicitar: tamiz de cefoxitina; D-zone test» en un caso donde el médico
+   * había capturado los DOS resultados del propio reporte. Y no se filtran en
+   * silencio: las que ya vienen se devuelven aparte y las salidas las nombran,
+   * porque un recorte invisible no deja distinguir «no aplicaba» de «ya estaba».
+   */
+  const { pedir: pruebasSugeridas, yaReportadas: pruebasYaReportadas } =
+    pruebasPendientes(organismo, fenotipos.map(f => f.clave), entrada.pruebas)
   pruebasSugeridas.forEach(p => refs.add(p.referencia))
 
   /**
@@ -197,6 +226,7 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     resultadosEfectivos,
     carbapenemasa: ap.carbapenemasa,
     pruebasSugeridas,
+    pruebasYaReportadas,
     categoriasCMI,
     algoritmo: [],
     referencias: [...refs],

@@ -21,6 +21,50 @@ historia vive aquí.
 
 ---
 
+## v959 — la confirmatoria negativa que se leía, se tipaba, se transportaba y se tiraba
+
+REPRODUCIDO CORRIENDO EL MOTOR. Un *S. aureus* con **oxacilina R** en el panel y
+el **tamiz de cefoxitina NEGATIVO** capturado del reporte producía esta nota:
+
+```
+Fenotipo: S. aureus resistente a meticilina (MRSA) [confirmado]
+Advertencias: MRSA: ignore cualquier β-lactámico reportado S…
+Aislamiento: Precauciones de contacto (MRSA).
+Notificación epidemiológica OBLIGATORIA.
+Pruebas por solicitar: Tamiz de cefoxitina…; D-zone test
+```
+
+TRES defectos en una sola salida:
+
+1. El negativo acababa en un `didactica` **que la nota no imprimía nunca**. Las
+   dos afirmaciones convivían en el documento y la inferida ganaba en silencio —
+   encima con confianza `confirmado`, que es la palabra que la prueba negativa
+   desmiente.
+2. Se pedían las DOS pruebas cuyo resultado el médico acababa de capturar del
+   propio reporte. Se le pide al laboratorio lo que el laboratorio acaba de dar.
+3. Nada declaraba que las dos fuentes se contradicen.
+
+LO QUE **NO** SE HIZO: decidir cuál gana. «Cefoxitina-neg contra oxacilina-R,
+¿cuál manda?» es una de las seis preguntas clínicas del Dr. y sigue pendiente —
+el fenotipo no se toca, ni su confianza, ni el aislamiento, ni la notificación.
+**NEEDS_CLINICAL_REVIEW.** Lo que un programa sí puede hacer sin decidir nada es
+**no dejar que las dos afirmaciones convivan calladas**.
+
+El conflicto sale como ALERTA y no como advertencia: las advertencias se imprimen
+concatenadas en un párrafo, y una contradicción entre el laboratorio y el motor
+enterrada a mitad de párrafo se lee igual que un consejo de stewardship. Como
+alerta sale en renglón propio en la nota, en la caja de alertas de la pantalla y
+en el prompt del modelo, sin cablearla tres veces.
+
+Y lo que se recorta se dice: las pruebas que ya vienen en el reporte se devuelven
+aparte (`pruebasYaReportadas`) y las dos salidas las nombran. Un recorte invisible
+no deja distinguir «no aplicaba» de «ya estaba hecha». Un resultado INDETERMINADO
+no cuenta como respondido, y las pruebas que responden OTRA pregunta —de qué
+CLASE es la carbapenemasa, que es lo que elige el inhibidor— se siguen pidiendo.
++14 casos.
+
+---
+
 ## v958 — tres categorías del mismo fármaco en la misma salida
 
 REPRODUCIDO CORRIENDO EL MOTOR. *E. coli* de urocultivo, ciprofloxacino R y

@@ -10,7 +10,7 @@
  * tablas leídas; para las pruebas cuyo detalle numérico vive en su tabla, se cita
  * la tabla y se describe la interpretación establecida (sin inventar cifras).
  */
-import type { FenotipoClave, PruebaCLSI } from './tipos'
+import type { FenotipoClave, PruebaCLSI, PruebasConfirmatorias } from './tipos'
 
 const M100 = 'CLSI M100-Ed35 (2025)'
 
@@ -143,6 +143,69 @@ export const PRUEBAS: Record<string, PruebaCLSI> = {
     interpretacion: 'Ej.: "CAZ-AVI no-S + aztreonam no-S" en CRE = MBL + serina coproducida ("no es una carbapenemasa, son dos"). Cefoxitina R que enmascara una BLEE = AmpC + BLEE. Definir TODAS las enzimas cambia el esquema (p. ej. aztreonam-avibactam para MBL+serina).',
     referencia: `${M100} + Bush & Bradford 2019; Simner/Pitout CMR 2024`,
   },
+}
+
+/**
+ * QUÉ PRUEBA RESPONDE CADA CONFIRMATORIA QUE YA VIENE EN EL REPORTE.
+ *
+ * No es una tabla nueva: es exactamente el emparejamiento que `confirmatorias.ts`
+ * ya usa cuando la prueba sale positiva (cefoxitina→MRSA, D-test→MLSb inducible,
+ * etc.). Aquí sirve para lo contrario: dejar de PEDIR una prueba cuyo resultado
+ * el laboratorio ya imprimió.
+ *
+ * Se listan sólo las pruebas que responden LA MISMA pregunta con el MISMO método.
+ * `SINERGIA_ESBL_DDST`, `MOLECULAR`, `INMUNOCROMATOGRAFIA` y `DOBLE_PRODUCTOR`
+ * quedan fuera a propósito: son métodos alternativos o responden a otra pregunta
+ * (qué CLASE de carbapenemasa), y esas siguen teniendo sentido aunque la primera
+ * ya esté hecha.
+ */
+const RESPONDIDA_POR: Partial<Record<string, keyof PruebasConfirmatorias>> = {
+  CEFOXITINA_MRSA: 'cefoxitinaScreen',
+  D_ZONE: 'dTest',
+  ESBL: 'esbl',
+  CARBA_NP: 'carbapenemasa',
+  mCIM_eCIM: 'carbapenemasa',
+  HLAR: 'hlar',
+  BETALACTAMASA_NITROCEFIN: 'betaLactamasa',
+}
+
+/**
+ * Separa lo que hay que PEDIR de lo que el reporte YA TRAE.
+ *
+ * ── EL FALLO ─────────────────────────────────────────────────────────────────
+ *
+ * La nota terminaba con «Pruebas por solicitar: Tamiz de cefoxitina…; D-zone
+ * test» en un caso donde el reporte traía impresos los dos resultados y el
+ * médico los había capturado. Se le pedía al laboratorio una prueba que el
+ * laboratorio acababa de entregar.
+ *
+ * ── POR QUÉ NO SE FILTRA EN SILENCIO ─────────────────────────────────────────
+ *
+ * Quitarlas de la lista y ya está deja al médico sin saber si la prueba no
+ * aplicaba o si simplemente ya estaba hecha. Se devuelven aparte, y las salidas
+ * las nombran: **lo que se recorta se dice**.
+ *
+ * Un resultado INDETERMINADO no cuenta como respondido: la prueba se sigue
+ * pidiendo. Sólo un `pos` o un `neg` cierran la pregunta.
+ */
+export function pruebasPendientes(
+  organismo: string,
+  fenotipos: FenotipoClave[],
+  pruebas?: PruebasConfirmatorias,
+): { pedir: PruebaCLSI[]; yaReportadas: PruebaCLSI[] } {
+  const todas = pruebasRecomendadas(organismo, fenotipos)
+  if (!pruebas) return { pedir: todas, yaReportadas: [] }
+  const respondida = (p: PruebaCLSI) => {
+    const id = Object.keys(PRUEBAS).find(k => PRUEBAS[k] === p)
+    const clave = id ? RESPONDIDA_POR[id] : undefined
+    if (!clave) return false
+    const v = pruebas[clave]
+    return v === 'pos' || v === 'neg'
+  }
+  return {
+    pedir: todas.filter(p => !respondida(p)),
+    yaReportadas: todas.filter(respondida),
+  }
 }
 
 /** Recomienda las pruebas CLSI pertinentes según el organismo y los fenotipos inferidos. */
