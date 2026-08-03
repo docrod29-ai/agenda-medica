@@ -1295,6 +1295,41 @@ ninguna.**
 
 ---
 
+## OCTOGÉSIMA PRIMERA TANDA — v932 · AUDITORÍA MAYOR (81 agentes)
+
+**Calificación global: 6.9/10.** Seguridad 8 · Expediente 7.5 · Antibiograma 7.5 ·
+Agenda 7 · IA 7 · Ingeniería 7 · Hospital 6.5 · UX 6.5 · Datos 6 · Negocio 6.
+41 hallazgos confirmados de 60, 33 competidores perfilados. Informe completo en
+el resultado del workflow `wf_be7275c1-1dc`.
+
+### El cron de recordatorios leía el histórico completo de citas, 24 veces al día
+
+La consulta filtraba por estado **y nada más**: sin cota de fecha, sin `limit`.
+Cada ejecución descargaba **todas las citas que ha tenido esa clínica desde que
+existe**, para mirar las de hoy y mañana.
+
+Y las clínicas se recorren **en serie**. Cuando el tiempo de la función se acaba,
+dejan de recibir recordatorios **siempre las mismas** —las del final de la lista—
+**sin un solo error visible**: el cron responde 200 y el consultorio se entera
+porque sus pacientes no llegan.
+
+Ya estaba confirmado en la auditoría del 26 de julio y **no se había reparado**.
+
+Ahora la ventana es hoy y mañana, en la zona horaria de **la clínica** (un
+consultorio en Tijuana y otro en Cancún no comparten «hoy»).
+
+El rango va sobre `fechaHora` **a solas** y el estado se filtra en memoria, a
+propósito: combinarlos exigiría un índice compuesto, y desplegar índices es una
+operación aparte que puede borrar los que no estén declarados.
+
+**Y el patrón correcto ya estaba en este mismo archivo**, 130 líneas más abajo,
+en la consulta de auto-reseña.
+
+- `src/app/api/cron/reminders/route.ts`
+- `src/__tests__/cron-recordatorios-ventana.test.ts` — 7 pruebas. Total 5007.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
