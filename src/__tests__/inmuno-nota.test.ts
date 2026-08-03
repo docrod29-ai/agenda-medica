@@ -25,19 +25,51 @@ describe('inmuno — construirNotaInmuno (puente a la nota clínica)', () => {
   it('SOT en curso → NO mete ningún fármaco a la receta por su cuenta', () => {
     const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }, { nowMs: 0 })
     expect(n.medicamentos).toEqual([])
-    expect(n.secciones.planProfilaxis).toContain('Pneumocystis')   // la recomendación SÍ se ve
+  })
+
+  it('y desde la decisión 10 del Dr., la recomendación SIN FUENTE tampoco se ve', () => {
+    /**
+     * ACTUALIZADO el 3-ago-2026. Antes esta prueba exigía que el plan
+     * CONTUVIERA «Pneumocystis». Ya no: esa recomendación no declara fuente, y
+     * en inmunocomprometidos una recomendación sin respaldo puede tocar
+     * profilaxis, antimicrobianos o la suspensión de la inmunosupresión.
+     *
+     * Lo que sí se exige ahora es lo contrario y es más fuerte: que la lista NO
+     * encoja en silencio. Una lista que se acorta sin decirlo se lee como «no
+     * hay más que recomendar», y eso convierte una omisión administrativa en
+     * una afirmación clínica.
+     */
+    const n = construirNotaInmuno({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }, { nowMs: 0 })
+    expect(n.secciones.planProfilaxis).not.toContain('Pneumocystis')
+    expect(n.secciones.planProfilaxis).toMatch(/NO se muestran porque/)
+    expect(n.secciones.planProfilaxis).toMatch(/No se han borrado/)
   })
 
   it('el fármaco entra sólo si el médico lo marcó, y sin dosis inventada', () => {
-    const v = { hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }
+    /**
+     * ACTUALIZADO el 3-ago-2026 (decisión 10). El caso se pasó a un fármaco cuya
+     * recomendación SÍ declara fuente: las de huésped quedaron retenidas, y un
+     * candidato derivado de una recomendación sin fuente es la salida clínica
+     * más comprometida de todas — es sugerir un medicamento.
+     */
+    const v = { hc_cb_inmuno_antitnf: '1' }
     const cand = farmacosCandidatos(v, 0)
-    const tmp = cand.find((c) => /trimetoprima/i.test(c.nombre))
-    expect(tmp).toBeTruthy()
-    expect(tmp!.porQue).toContain('Pneumocystis')   // se enseña la frase que lo nombró
+    expect(cand.length, 'las de fármaco sí tienen fuente y siguen saliendo').toBeGreaterThan(0)
+    const elegido = cand[0]
+    expect(elegido.porQue).toBeTruthy()
 
-    const n = construirNotaInmuno(v, { nowMs: 0, farmacosElegidos: [tmp!.nombre] })
+    const n = construirNotaInmuno(v, { nowMs: 0, farmacosElegidos: [elegido.nombre] })
     expect(n.medicamentos).toHaveLength(1)
     expect(n.medicamentos[0].dosis).toBe('')        // el motor NO inventa dosis
+  })
+
+  it('un candidato NUNCA sale de una recomendación sin fuente', () => {
+    /**
+     * La pantalla y la nota tienen que ofrecer el MISMO conjunto: si la pantalla
+     * ofreciera un fármaco que la nota luego descarta, el médico lo marcaría y
+     * desaparecería sin explicación.
+     */
+    expect(farmacosCandidatos({ hc_huesped: 'SOT — Renal', hc_is_estado: 'En curso' }, 0)).toEqual([])
   })
 
   it('un fármaco marcado que ya no es candidato no se cuela', () => {

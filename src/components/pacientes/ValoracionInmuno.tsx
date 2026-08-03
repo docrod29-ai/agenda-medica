@@ -7,6 +7,7 @@
 // citas de guías. Redacción por IA (api/inmuno/redactar), historial fechado y Word.
 // ════════════════════════════════════════════════════════════════════
 import { useCallback, useMemo, useRef, useState, type ReactNode, useEffect} from 'react'
+import { separarPorFuente, avisoDeRetenidas } from '@/lib/inmuno/sin-fuente'
 import { diasDesde } from '@/lib/fecha-local'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -148,7 +149,16 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
   const motivo = v.hc_motivo || ''
   const huesped = v.hc_huesped || ''
   const flags = useMemo(() => hostFlags(huesped), [huesped])
-  const recs = useMemo(() => recomendaciones({ v }), [v])
+  /**
+   * DECISIÓN 10 DEL DR.: en pantalla tampoco se muestran las recomendaciones sin
+   * fuente. Una etiqueta discreta dentro del motor clínico acaba adquiriendo
+   * visualmente la misma autoridad que una guía, así que no se muestran «con
+   * matiz»: no se muestran, y se dice cuántas faltan.
+   */
+  const { recs, retenidas } = useMemo(() => {
+    const { clinicas, sinFuente } = separarPorFuente(recomendaciones({ v }))
+    return { recs: clinicas, retenidas: sinFuente }
+  }, [v])
   const candidatos = useMemo(() => farmacosCandidatos(v, ahoraMs), [v, ahoraMs])
   const estudiosSolicitados = useMemo(() => Object.keys(v).filter((k) => k.startsWith('hc_est_') && v[k] === '1').map((k) => k.slice(7)), [v])
 
@@ -174,7 +184,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
     if (estudiosSolicitados.length) t += 'Estudios solicitados: ' + estudiosSolicitados.map((k) => TX_EST_CATS.flatMap((c) => Object.entries(c.items)).find(([kk]) => kk === k)?.[1] || k).join('; ') + '\n'
     // La cita viaja con la recomendación: si no, la nota redactada afirma sin
     // decir de dónde sale, y `fuente` existe justo para eso.
-    if (recs.length) t += '\nPLAN DEFINIDO (no lo cambies, solo redáctalo con naturalidad):\n' + recs.map((r) => '- ' + r.titulo + ': ' + r.detalle + (r.fuente ? ' [Fuente: ' + r.fuente + ']' : ' [Sin fuente declarada]')).join('\n') + '\n'
+    if (recs.length) t += '\nPLAN DEFINIDO (no lo cambies, solo redáctalo con naturalidad):\n' + recs.map((r) => '- ' + r.titulo + ': ' + r.detalle + ' [Fuente: ' + r.fuente + ']'  /* recs ya viene filtrado: todas tienen fuente */).join('\n') + '\n'
     return t.trim()
   }
 
@@ -276,6 +286,21 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
       {/* Plan en vivo */}
       <Card padding={14}>
         <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><ShieldCheck size={15} style={{ color: 'var(--purple)' }} /> Impresión y plan {recs.length > 0 && <span style={{ color: 'var(--text3)', fontWeight: 400 }}>· {recs.length}</span>}</div>
+        {/*
+          LO QUE SE RETUVO SE DICE, Y VA ARRIBA.
+          Una lista que encoge en silencio se lee como «no hay más que
+          recomendar»: eso convierte una omisión administrativa en una
+          afirmación clínica. Decisión 10 del Dr.
+        */}
+        {retenidas.length > 0 && (
+          <div className="text-xs leading-relaxed mb-2" style={{
+            color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+            borderRadius: 8, padding: '8px 10px',
+          }}>
+            {avisoDeRetenidas(retenidas)}
+          </div>
+        )}
         {recs.length === 0
           ? <div className="text-sm" style={{ color: 'var(--text3)' }}>Elige el huésped y el estado de inmunosupresión (o marca los fármacos) y el plan aparecerá aquí, con su cita de guía.</div>
           : <div className="flex flex-col gap-2" style={{ maxHeight: 620, overflowY: 'auto' }}>

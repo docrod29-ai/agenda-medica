@@ -3260,6 +3260,70 @@ sensibilidad cualquiera.
 
 ---
 
+
+## CENTÉSIMA DECIMOSÉPTIMA TANDA — v968 · SUS DECISIONES 13 Y 10
+
+Las dos son «dejar de mostrar lo que no está respaldado».
+
+### 13 — CFDI: primero corregí mi premisa
+
+**Sí existe** una implementación (Facturama), pero es **de NexusMED a usted** por
+su suscripción, y funciona. Lo que `/operacion` prometía —dentro de una lista de
+capacidades DEL CONSULTORIO y con la etiqueta «Disponible hoy»— es que usted
+**facture a sus pacientes**: «Requiere tus CSD/SAT». Eso no existe.
+
+Retirar la promesa sin más habría borrado también la función real. Ahora la
+página dice las tres cosas por separado: **recibo de cobro (no fiscal)** ·
+**tu factura de NexusMED (CFDI 4.0)**, que sí funciona y no requiere sus CSD ·
+**facturar a tus pacientes**, en Roadmap, con la lista de lo que exige.
+
+### 10 — las 42 recomendaciones de inmuno
+
+Medido: **39 de 42 no declaran fuente**. Se retiran de la salida clínica, **sin
+borrarse**.
+
+Usted descartó marcarlas como «criterio del autor» con una razón que vale para
+todo el producto: dentro del motor clínico, una etiqueta discreta acaba
+adquiriendo visualmente la misma autoridad que una guía.
+
+**Una sola puerta**, y el selector de fármacos filtra igual: un candidato
+derivado de una recomendación sin fuente es la salida clínica más comprometida de
+todas —es sugerir un medicamento—, y la pantalla y la nota tienen que ofrecer el
+mismo conjunto o usted marca algo que luego desaparece sin explicación.
+
+**Lo que se retuvo se dice**, en la nota y en pantalla: una lista que encoge en
+silencio se lee como «no hay más que recomendar».
+
+### El impacto real, medido — hay que saberlo
+
+| caso | salen | retenidas |
+|---|---|---|
+| SOT riñón en curso | **0** | 2 |
+| VIH CD4 120 | **0** | 1 |
+| TCMH alogénico | **0** | 3 |
+| Anti-TNF | 2 | 0 |
+
+Las recomendaciones **por huésped se apagan enteras**; las de **fármaco**
+sobreviven porque `farmacos.ts` sí llena la fuente. El módulo queda casi mudo del
+lado del huésped hasta que se asignen fuentes — que es exactamente lo que
+significa la opción C que usted eligió.
+
+### El camino de vuelta está listo
+
+`node scripts/inmuno-sin-fuente.mjs` genera
+`docs/maintenance/INMUNO-RECOMENDACIONES-SIN-FUENTE.md` con las 39, su
+archivo:línea y las columnas vacías (fuente, población, condición, excepciones,
+fecha, versión, evidencia, revisor). **Van vacías a propósito**: rellenarlas con
+una suposición mía sería el mismo problema disfrazado de dato. Basta añadir el
+cuarto argumento a `rec(...)` para que una vuelva a salir.
+
+- `lib/inmuno/sin-fuente.ts` (nuevo), `lib/inmuno/nota.ts`,
+  `components/pacientes/ValoracionInmuno.tsx`, `app/operacion/page.tsx`,
+  `app/arquitectura/page.tsx`, `scripts/inmuno-sin-fuente.mjs` (nuevo)
+- Total 5567.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3287,7 +3351,7 @@ sustancialmente mejor de lo que un comprador puede ver».
   (`porClave` ya existe), no un sistema.
 - N7. MRR: sobrestima al anual (nadie lee `ciclo`) y subestima al multi-médico.
 - N8. Churn no ve el trial abandonado (se queda en `status:'trial'` para siempre).
-- N9. `/operacion:18` promete facturación CFDI al paciente que NO existe.
+- N9. ~~`/operacion:18` promete facturación CFDI al paciente que NO existe.~~ **CERRADO v968** (decisión 13 del Dr; y OJO: el CFDI de la suscripción sí existe y se conservó).
 
 ### DATOS 6.0 — «no sabe entregarlo ni reconstruirlo»
 - D1. La exportación «expediente» NO incluye adendas, laboratorios, fotos,
