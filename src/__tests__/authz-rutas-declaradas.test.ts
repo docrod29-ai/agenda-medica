@@ -38,6 +38,28 @@ const DIR_API = resolve(process.cwd(), 'src/app/api')
 const COLECCIONES_CLINICAS = ['notas', 'laboratorios', 'fotos', 'clinico', 'internamientos']
 
 /**
+ * ¿Esta fuente lee PHI clínico?
+ *
+ * ── DOS SEÑALES, PORQUE UNA SOLA SE APAGA CON UN REFACTOR ────────────────────
+ *
+ * 1. `collection('notas')` — el acceso literal de siempre.
+ * 2. La colección declarada como hija en un MANIFIESTO (`hijas: ['notas', …]`).
+ *
+ * La segunda hizo falta al llegar el respaldo del consultorio: recorre las
+ * subcolecciones con `collection(hija)` —dinámico, sin literal— porque la lista
+ * vive en `lib/clinica/respaldo.ts`. Con la señal vieja, la ruta que se lleva
+ * TODOS los expedientes del consultorio no contaba como lectora de PHI.
+ *
+ * Es la misma lección de la ruta que sacó su armado a una librería: **un
+ * guardián textual se apaga con el refactor correcto, y se apaga en silencio**.
+ * Cada vez que eso pase, la respuesta es añadir la señal, no bajar el listón.
+ */
+function leePhiClinico(src: string): boolean {
+  return COLECCIONES_CLINICAS.some(c =>
+    src.includes(`collection('${c}')`) || new RegExp(`hijas: \\[[^\\]]*'${c}'`).test(src))
+}
+
+/**
  * Segundo nivel: identidad del paciente, no secreto clínico. No se convierte en
  * regla de capacidad porque dos de las rutas que la tocan son deliberadamente sin
  * sesión (`public/booking`, `whatsapp/webhook`) y una regla ciega daría rojo por lo
@@ -152,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(87)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(88)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -417,12 +439,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 81 → 83 y 66 → 67 al añadir `superadmin/simulador`: GET y PUT, cada uno
     // con su guardián.
     // 83 → 84: `arco/cancelar` con su único POST y su guardián.
-    expect(llamadas.length).toBe(88)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(72)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(89)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(rutasConGuardia).toBe(73)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(47)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(conVocabulario).toBe(48)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -433,7 +455,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 56, activos: 29, pendientes: 27,   // +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
+      declarados: 57, activos: 30, pendientes: 27,   // +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -511,7 +533,7 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
   it('leer PHI clínico exige una capacidad que excluye a los roles no clínicos', () => {
     const infractoras: string[] = []
     for (const [clave, src] of FUENTE_CON_LIBS) {
-      const leeClinico = COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))
+      const leeClinico = leePhiClinico(src)
       if (!leeClinico) continue
       const e = entrada(clave)
       if (!e) { infractoras.push(`${clave}: sin declarar`); continue }
@@ -533,12 +555,11 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     // queda vacía y el test de arriba pasa sin comprobar nada. Con `internamientos`
     // en la señal (P3-2) son 3, no 2; `uci/estancia` es la cuarta — lee y escribe
     // la estancia bajo `internamientos`, y está bajo capacidad clínica.
-    const conPHI = [...FUENTE_CON_LIBS].filter(([, src]) =>
-      COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
+    const conPHI = [...FUENTE_CON_LIBS].filter(([, src]) => leePhiClinico(src)).map(([c]) => c).sort()
     // `arco/cancelar` entra a la lista: para decidir si un expediente se suprime
     // o sólo se bloquea tiene que CONTAR las notas firmadas. Es lectura de PHI
     // clínico, y está bajo `administrar`.
-    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'expediente/exportar/[patientId]', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
+    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'clinic/exportar', 'expediente/exportar/[patientId]', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
   })
 
   it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {

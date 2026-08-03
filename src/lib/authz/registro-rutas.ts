@@ -241,6 +241,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'stripe/webhook': { tipo: 'webhook', motivo: 'Firma `stripe-signature` verificada con el secreto del endpoint. No hay usuario.' },
 
   // ── consultorio: config, equipo, plataforma ──────────────────────────────
+  'clinic/exportar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/ai-keys': {
     tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' },
     // El POST (que ESCRIBE las llaves de IA del tenant) ya EXIGE `administrar` y el
