@@ -15,6 +15,7 @@ import {
   type SIR, type SitioInfeccion, type InterpretacionAntibiograma, type EntradaAntibiograma,
   type PruebasConfirmatorias, type ResultadoPrueba,
 } from '@/lib/expediente/antibiograma'
+import { parseCMI } from '@/lib/expediente/antibiograma/cmi'
 import { fetchAutenticado } from '@/lib/auth-client'
 
 // Pruebas confirmatorias que traen los reportes automatizados / el laboratorio.
@@ -51,35 +52,13 @@ interface Fila { antibiotico: string; interpretacion: SIR; cmi: string }
 const nuevaFila = (antibiotico = ''): Fila => ({ antibiotico, interpretacion: 'S', cmi: '' })
 
 /**
- * Interpreta la CMI tal como la reporta el antibiograma, con TODOS los símbolos:
- *   "≤0.5", "< 0.5", ">16", "≥ 16", "2/38" (TMP-SMX: toma el componente activo),
- *   "0,5" (coma), etc. Devuelve el número para comparar contra el punto de corte.
- */
-/**
- * Lee la CMI del reporte CONSERVANDO el símbolo de desigualdad.
+ * La lectura de la CMI vive en `antibiograma/cmi.ts`, no aquí.
  *
- * Antes se tiraba el `<`/`>`/`≤`/`≥` y solo se devolvía el número. Eso hacía que
- * «>500» en el tamiz de gentamicina de alto nivel se comparara como 500 contra un
- * umbral estricto `> 500`: daba falso y el HLAR no se declaraba, imprimiendo en su
- * lugar la didáctica de que el aminoglucósido "aporta por sinergia" — el consejo
- * contrario al correcto en endocarditis.
- *
- * El símbolo es información clínica, no adorno: «>16» significa que el valor real
- * está por encima del rango probado.
+ * Estaba en este archivo, y por eso el camino de la FOTO —que corre en la
+ * librería, no en la pantalla— nunca la usaba: reenviaba el número pelado y
+ * jamás asignaba `cmiCensurada`. El mismo reporte daba S por foto e I tecleado.
+ * Una implementación por camino garantiza que vuelvan a divergir.
  */
-function parseCMI(s: string): { valor: number; censurada?: '>' | '<' } | null {
-  if (!s) return null
-  const t = s.trim().replace(',', '.')
-  const simbolo = /^[>≥]/.test(t) ? '>' as const : /^[<≤]/.test(t) ? '<' as const : undefined
-  // Razón X/Y (p. ej. TMP-SMX "≤2/38") → primer número = componente activo (el del punto de corte).
-  const ratio = t.match(/^[<≤>≥=]?\s*([\d.]+)\s*\/\s*[\d.]+/)
-  if (ratio) { const n = Number(ratio[1]); return isNaN(n) ? null : { valor: n, censurada: simbolo } }
-  // Cualquier número, con o sin símbolo de desigualdad.
-  const m = t.match(/[<≤>≥=]?\s*([\d.]+)/)
-  if (!m) return null
-  const n = Number(m[1])
-  return isNaN(n) ? null : { valor: n, censurada: simbolo }
-}
 
 /**
  * Herramienta de antibiograma.

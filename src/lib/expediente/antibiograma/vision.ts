@@ -16,6 +16,7 @@
  */
 import { z } from 'zod'
 import type { EntradaAntibiograma, SIR, SitioInfeccion, PruebasConfirmatorias, ResultadoPrueba } from './tipos'
+import { parseCMI } from './cmi'
 
 /**
  * NORMALIZADORES TOLERANTES. La IA de visión a veces devuelve variantes válidas
@@ -199,19 +200,100 @@ export function pruebasDesdeReporte(reportadas?: { nombre: string; resultado: st
   return out
 }
 
-/** Convierte el perfil extraído en la entrada del motor (S/I/R usables + sitio + pruebas). */
-export function perfilAEntrada(perfil: PerfilExtraido, sitio?: EntradaAntibiograma['sitio']): EntradaAntibiograma {
-  const resultados = perfil.resultados
-    .filter(c => c.interpretacion === 'S' || c.interpretacion === 'I' || c.interpretacion === 'R')
-    .map(c => ({
-      antibiotico: c.antibiotico.trim(),
+/**
+ * Lo que el puente visión→motor NO pudo llevarse, con nombre y apellido.
+ *
+ * Existe porque el descarte silencioso es el fallo: una fila que desaparece del
+ * panel se lee, en la pantalla siguiente, como «ese antibiótico no se probó».
+ */
+export interface DescartesDelPerfil {
+  /** Reportados SDD (sensible dosis-dependiente). Se leyeron bien; no son S/I/R. */
+  sdd: string[]
+  /** Sin categoría legible. NO se asumen sensibles: se dejan fuera y se dicen. */
+  ilegibles: string[]
+  /** Marcados por la propia IA como dudosos (`needs_review` o `conf: 'baja'`). */
+  dudosos: string[]
+  /** Los avisos ya redactados, listos para enseñarse. */
+  avisos: string[]
+}
+
+/**
+ * Convierte el perfil extraído en la entrada del motor, **y** en la lista de lo
+ * que no cupo.
+ *
+ * ── LOS DOS FALLOS QUE ARREGLA ───────────────────────────────────────────────
+ *
+ * 1. **La CMI perdía su símbolo.** Sólo se reenviaba `c.cmi` —el número pelado—
+ *    y nunca se miraba `cmi_texto`, que es donde el prompt de visión pide
+ *    explícitamente que venga «≤0.5», «>16», «2/38». Así que por este puente
+ *    `cmiCensurada` **no se asignaba jamás**, y el motor recibía «>16» como si
+ *    fuera 16. La pantalla sí lo hacía bien; la librería no. El mismo reporte
+ *    daba una categoría por un camino y otra por el otro.
+ *
+ * 2. **Las filas no-S/I/R se tiraban sin decirlo.** Un SDD reportado por el
+ *    laboratorio desaparecía: ni en el panel ni en un aviso. La pantalla ya los
+ *    separaba y los nombraba; aquí se iban al suelo.
+ *
+ * `cmiCensurada` NO es un adorno: gobierna VRSA/VISA, el tamiz HLAR y el SDD de
+ * cefepime dentro del motor.
+ */
+export function perfilAEntradaConDescartes(
+  perfil: PerfilExtraido,
+  sitio?: EntradaAntibiograma['sitio'],
+): { entrada: EntradaAntibiograma; descartes: DescartesDelPerfil } {
+  const usable = (x: unknown): x is SIR => x === 'S' || x === 'I' || x === 'R'
+  const nombre = (c: { antibiotico: string }) => c.antibiotico.trim()
+
+  const resultados = perfil.resultados.filter(c => usable(c.interpretacion)).map(c => {
+    // El texto manda sobre el número: es donde vive el símbolo. `cmi` es el
+    // respaldo para cuando la IA sólo devolvió la cifra.
+    const cmi = parseCMI(c.cmi_texto) ?? parseCMI(c.cmi)
+    return {
+      antibiotico: nombre(c),
       interpretacion: c.interpretacion as SIR,
-      ...(typeof c.cmi === 'number' ? { cmi: c.cmi } : {}),
-    }))
-  return {
-    organismo: (perfil.organismo || '').trim(),
-    resultados,
-    sitio: sitio ?? sitioDesdeMuestra(perfil.muestra),
-    pruebas: pruebasDesdeReporte(perfil.pruebasReportadas),
+      ...(cmi ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
+    }
+  })
+
+  const sdd = perfil.resultados.filter(c => c.interpretacion === 'SDD').map(nombre)
+  const ilegibles = perfil.resultados
+    .filter(c => !usable(c.interpretacion) && c.interpretacion !== 'SDD').map(nombre)
+  const dudosos = perfil.resultados.filter(c => c.needs_review || c.conf === 'baja').map(nombre)
+
+  const avisos: string[] = []
+  if (sdd.length) {
+    /**
+     * NEEDS_CLINICAL_REVIEW — a qué categoría del panel corresponde un SDD, y con
+     * qué dosis, es criterio clínico: NO lo decide este archivo. Se nombra, se
+     * deja fuera del panel, y lo captura el médico.
+     */
+    avisos.push('ℹ Reportados como SDD (sensible dosis-dependiente): ' + sdd.join(', ') +
+      '. El panel trabaja en S/I/R; captúralos a mano según el punto de corte de DOSIS ALTA.')
   }
+  if (ilegibles.length) {
+    avisos.push('⚠ NO se pudo leer la interpretación de: ' + ilegibles.join(', ') +
+      '. Se dejaron FUERA del panel a propósito, para no darlos por sensibles.')
+  }
+  if (dudosos.length) avisos.push('⚠ Lectura dudosa (revísala a mano): ' + dudosos.join(', '))
+
+  return {
+    entrada: {
+      organismo: (perfil.organismo || '').trim(),
+      resultados,
+      sitio: sitio ?? sitioDesdeMuestra(perfil.muestra),
+      pruebas: pruebasDesdeReporte(perfil.pruebasReportadas),
+    },
+    descartes: { sdd, ilegibles, dudosos, avisos },
+  }
+}
+
+/**
+ * Igual que la anterior, quedándose sólo con la entrada.
+ *
+ * Se conserva por compatibilidad. **Prefiere `perfilAEntradaConDescartes`**: quien
+ * llame a ésta se queda sin saber qué filas no cupieron, que es exactamente el
+ * agujero que se acaba de tapar.
+ */
+export function perfilAEntrada(perfil: PerfilExtraido, sitio?: EntradaAntibiograma['sitio']): EntradaAntibiograma {
+  return perfilAEntradaConDescartes(perfil, sitio).entrada
 }
