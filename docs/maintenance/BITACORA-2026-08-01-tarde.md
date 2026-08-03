@@ -747,6 +747,42 @@ la plantilla.
 
 ---
 
+## SEXAGÉSIMA QUINTA TANDA — v916 (+ reglas desplegadas)
+
+### Un signo vital se podía sobreescribir desde la consola del navegador, sin cadena de corrección ni rastro
+
+La regla de `signos` decía «AÑADEN (create) y **CORRIGEN (update)**» y describía
+un modelo de corrección que la aplicación **abandonó**: desde la decisión del Dr
+del 29-jul-2026, corregir un signo es **anexar** otro documento con `corrigeA`
+—«se implementa sin `update`: el registro original nunca se toca», dice
+`corregirSignos`—.
+
+O sea que la regla seguía permitiendo **algo que ningún código hace y que el
+diseño prohíbe**. Y eso vacía la garantía entera: quien tuviera rol clínico podía
+abrir la consola del navegador y sobreescribir una SpO₂ sin cadena de corrección,
+sin motivo y sin rastro — justo lo que `motivoCorreccion` (v904) y la proyección
+`corrigeA` existen para impedir.
+
+La regla de al lado ya lo dice con todas sus letras: *un cliente que escribe
+directo tiene RBAC de vista, no real*.
+
+### La política no la inventé yo
+
+El `update` abierto estaba anotado en la matriz de acceso como **la pregunta
+E0-09-Q5 al médico dueño**, así que no era mío decidirla. Pero cuatro bloques más
+abajo, `icu_observations` (ICU-003) **ya tiene la respuesta aplicada**: el
+`update` sólo puede tocar el campo de ciclo de vida, así que una toma se marca
+como corregida pero **sus medidas son inmutables**.
+
+Es el mismo dato un nivel más abajo y una forma que él ya aceptó. Extenderla no
+es tomar una decisión nueva: es dejar de tener dos criterios para lo mismo.
+
+- `firestore.rules` (**desplegadas aparte** con `firebase deploy --only firestore:rules`)
+- `src/lib/authz/matriz-acceso.ts` + doc regenerado
+- `src/__tests__/firestore-rules-guard.test.ts` — invariante nueva. Total 4890.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

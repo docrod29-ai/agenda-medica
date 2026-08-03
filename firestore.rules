@@ -334,12 +334,35 @@ service cloud.firestore {
         // (/api/hospital/mutar, Admin SDK) que valida el ROL POR ACCIÓN.
         // El cliente NO escribe directo → RBAC real, no de vista.
         allow create, update, delete: if false;
-        // Signos vitales seriados. Enfermería/médicos AÑADEN (create) y CORRIGEN
-        // (update) lecturas, pero NADIE los borra desde el cliente: un signo
-        // histórico no debe poder desaparecer (append/corregir, no borrar —
-        // auditoría maestra 2026-07 / reporte externo). `write` incluía delete.
+        /**
+         * Signos vitales seriados — APPEND-ONLY DE VERDAD, no sólo en el código.
+         *
+         * El comentario anterior decía «AÑADEN (create) y CORRIGEN (update)», y
+         * describía un modelo de corrección que la aplicación ABANDONÓ: desde la
+         * decisión del médico dueño del 29-jul-2026, corregir un signo es
+         * ANEXAR otro documento con `corrigeA` — «se implementa sin `update`: el
+         * registro original nunca se toca», dice `corregirSignos`.
+         *
+         * O sea que la regla seguía permitiendo algo que ningún código hace y que
+         * el diseño prohíbe. Y eso vacía la garantía entera: quien tuviera rol
+         * clínico podía abrir la consola del navegador y sobreescribir una SpO₂
+         * sin cadena de corrección, sin motivo y sin rastro — justo lo que
+         * `motivoCorreccion` (v904) y la proyección `corrigeA` existen para
+         * impedir. La regla de al lado ya lo dice: un cliente que escribe directo
+         * tiene RBAC de vista, no real.
+         *
+         * Se cierra con la MISMA forma que ya se aceptó para `icu_observations`
+         * (ICU-003, cuatro bloques más abajo): el `update` sólo puede tocar el
+         * campo de CICLO DE VIDA, así que una toma se marca como corregida pero
+         * sus MEDIDAS son inmutables. No es una política nueva: es la que el
+         * médico dueño ya aprobó para el mismo dato un nivel más abajo.
+         *
+         * `delete: if false` se mantiene: un signo histórico no desaparece.
+         */
         match /signos/{signoId} {
-          allow read, create, update: if isClinicoHospital(clinicId);
+          allow read, create: if isClinicoHospital(clinicId);
+          allow update: if isClinicoHospital(clinicId)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estadoObservacion']);
           allow delete: if false;
         }
 

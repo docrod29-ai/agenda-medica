@@ -187,7 +187,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'clinico',
     guardaLectura: 'isClinicoHospital',
     guardaEscritura: 'isClinicoHospital',
-    porQue: 'Signos vitales seriados. Enfermería añade y corrige en el sitio; nadie borra desde el cliente. El `update` abierto es la pregunta E0-09-Q5 al médico dueño.',
+    porQue: 'Signos vitales seriados. Enfermeria y medicos AÑADEN; corregir es anexar otro documento con `corrigeA`, nunca editar (decision del 29-jul-2026). El `update` abierto —la pregunta E0-09-Q5— se cierra con la MISMA forma ya aceptada para icu_observations: solo puede tocar `estadoObservacion`, asi que una toma se marca como corregida pero sus MEDIDAS son inmutables. Nadie borra desde el cliente.',
   },
   {
     ruta: 'clinics/{clinicId}/internamientos/{intId}/icu_stays/{stayId}',

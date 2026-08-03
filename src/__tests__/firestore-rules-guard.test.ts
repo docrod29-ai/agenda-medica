@@ -67,7 +67,29 @@ describe('firestore.rules — invariantes de seguridad', () => {
   })
 
   it('E0-09: un registro de signos vitales NO se borra desde el cliente', () => {
-    expect(sinComentarios).toMatch(/match \/signos\/\{signoId\}\s*\{[\s\S]{0,200}allow delete: if false;/)
+    expect(sinComentarios).toMatch(/match \/signos\/\{signoId\}\s*\{[\s\S]{0,400}allow delete: if false;/)
+  })
+
+  it('E0-09-Q5: y TAMPOCO se sobreescribe — las medidas son inmutables', () => {
+    /**
+     * La regla decía «AÑADEN (create) y CORRIGEN (update)», describiendo un
+     * modelo de corrección que la aplicación abandonó: desde el 29-jul-2026,
+     * corregir es ANEXAR otro documento con `corrigeA`.
+     *
+     * Mientras el `update` siguió abierto, la garantía estaba sólo en el código:
+     * quien tuviera rol clínico podía abrir la consola del navegador y
+     * sobreescribir una SpO₂ sin cadena de corrección, sin motivo y sin rastro.
+     *
+     * Se cierra con la misma forma ya aceptada para `icu_observations`: el
+     * `update` sólo puede tocar el campo de ciclo de vida.
+     */
+    const bloque = sinComentarios.match(/match \/signos\/\{signoId\}\s*\{([\s\S]*?)\n\s*\}/)
+    expect(bloque, 'no se encontró el bloque de signos').not.toBeNull()
+    const cuerpo = bloque![1]
+    expect(cuerpo).toContain('allow read, create: if isClinicoHospital(clinicId);')
+    expect(cuerpo).toMatch(/allow update:[\s\S]*affectedKeys\(\)\.hasOnly\(\['estadoObservacion'\]\)/)
+    // Y que no quede la forma vieja, que permitía tocarlo todo.
+    expect(cuerpo).not.toContain('allow read, create, update: if isClinicoHospital(clinicId);')
   })
 
   it('E0-09: el libro append-only `registros` no es escribible por el cliente', () => {
