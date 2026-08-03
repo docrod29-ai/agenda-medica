@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect, useRef} from 'react'
+import { useCerrarConEscape } from '@/lib/ui/activable'
 import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
@@ -87,6 +88,8 @@ export default function CitasPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
+  // El menú de la cita se cerraba SOLO con un clic fuera (v963).
+  useCerrarConEscape(!!menuId, () => setMenuId(null))
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Solo abrir modal cuando es para EDITAR (ya no auto-abre para crear).

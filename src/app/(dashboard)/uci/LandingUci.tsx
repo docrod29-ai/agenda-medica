@@ -10,6 +10,7 @@
 // leen los datos y se pintan.
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react'
+import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
 import { Activity, BedDouble, AlertTriangle, Clock, Wrench, UserPlus, HeartPulse, BarChart3, Pill, ClipboardCheck } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
@@ -185,7 +186,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
             return (
               <div
                 key={t.internamientoId}
-                onClick={() => router.push(`/uci?internamiento=${t.internamientoId}`)}
+                {...activable(() => router.push(`/uci?internamiento=${t.internamientoId}`), { etiqueta: 'Abrir el pase de este paciente' })}
                 style={{
                   padding: 14, borderRadius: 12, cursor: 'pointer',
                   border: `1px solid ${alerta ? 'color-mix(in srgb, var(--red) 45%, transparent)' : 'var(--border)'}`,
