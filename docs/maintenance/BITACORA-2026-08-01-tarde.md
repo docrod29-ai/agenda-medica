@@ -1023,6 +1023,40 @@ revienta la pantalla, y hay una **salida**: a quién escribirle y con qué dato.
 
 ---
 
+## SEPTUAGÉSIMA TERCERA TANDA — v924 · AUDITORÍA DE LANZAMIENTO (5/6)
+
+### La pantalla que agenda calculaba con un horario que el consultorio ya no tiene
+
+`/asistente` es **la puerta principal para agendar**, y construía su configuración
+efectiva tomando `doctor.horario ?? config.horario` **siempre**.
+
+Esa copia en `doctors/{id}` es un **fósil**: se escribe al dar de alta al médico y
+no se vuelve a tocar. `configParaMedico` —lo que usan el modal de citas y la ruta
+que valida— sólo la respeta si el médico tiene `horarioPropio` marcado.
+
+O sea que la pantalla calculaba los huecos contra un horario viejo y el servidor
+validaba contra el vigente. Dos formas de fallar:
+
+- ofrecer un hueco que el servidor rechaza con un **409 sin explicación**;
+- **esconder** huecos que sí estaban libres.
+
+Y `duraciones` salía del mismo fósil y **viajaba en el POST**: una segunda vía
+para el mismo 409.
+
+Era el **último `horario ??` crudo** que quedaba en `src/`. Ahora las tres vías
+que agendan usan el mismo criterio, con una prueba que lo fija — y que quita los
+comentarios antes de mirar, porque el que documenta este fallo cita la forma vieja
+a propósito y una prueba que no distingue el código de su explicación acaba
+obligando a no explicar nada.
+
+- `src/app/(dashboard)/asistente/page.tsx`
+- `src/__tests__/asistente-horario-fosil.test.ts` — 8 pruebas. Total 4948.
+
+**Con esto quedan cerrados los 5 hallazgos de software de la auditoría.** Los dos
+restantes son decisión del Dr: la contradicción de la tarjeta y la cédula por médico.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

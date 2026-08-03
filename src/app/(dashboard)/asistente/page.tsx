@@ -28,6 +28,7 @@ import { Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { configParaMedico } from '@/lib/horario-medico'
 
 function todayStr() {
   return hoyISO()  // fecha en zona MX, no UTC (bug "hoy salta a mañana")
@@ -124,19 +125,30 @@ function AsistenteInner() {
     setMostrarSug(false)
   }
 
-  // Get effective config (doctor's config if available)
-  const efectiveConfig = useMemo(() => {
-    const doctor = activeDoctors.find(d => d.id === doctorId)
-    if (!doctor) return config
-    // Fallback al config base si el médico (legacy) no trae estos campos: sin esto
-    // se clobbereaba con undefined y el asistente quedaba sin horarios.
-    return {
-      ...config,
-      horario: doctor.horario ?? config.horario,
-      duraciones: doctor.duraciones ?? config.duraciones,
-      intervaloMinutos: doctor.intervaloMinutos ?? config.intervaloMinutos,
-    }
-  }, [config, activeDoctors, doctorId])
+  /**
+   * EL HORARIO DEL MÉDICO, CON EL MISMO CRITERIO QUE EL SERVIDOR.
+   *
+   * Aquí se tomaba `doctor.horario ?? config.horario` **siempre**, y esa copia en
+   * `doctors/{id}` es un FÓSIL: se escribe al dar de alta al médico y no se
+   * vuelve a tocar. `configParaMedico` —que es lo que usan el modal de citas y la
+   * ruta que da de alta— sólo la respeta si el médico tiene `horarioPropio`.
+   *
+   * O sea que esta pantalla, que es la puerta principal para agendar, calculaba
+   * los huecos contra un horario que el consultorio ya no tiene, y el servidor
+   * validaba contra el vigente. Las dos formas de fallar:
+   *
+   *  · ofrecer un hueco que el servidor rechaza con un 409 sin explicación;
+   *  · esconder huecos que sí estaban libres.
+   *
+   * Y `duraciones` salía del mismo fósil y viajaba en el POST, así que era una
+   * segunda vía para el mismo 409.
+   *
+   * Era el último `horario ??` crudo que quedaba en `src/`.
+   */
+  const efectiveConfig = useMemo(
+    () => configParaMedico(config, activeDoctors.find(d => d.id === doctorId)),
+    [config, activeDoctors, doctorId],
+  )
 
   // Calculate duration for selected type
   const duracion = efectiveConfig.duraciones?.[tipo] ?? 30
