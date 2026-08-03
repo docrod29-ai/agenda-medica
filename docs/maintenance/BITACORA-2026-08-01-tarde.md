@@ -1413,7 +1413,66 @@ firma vacío).
 
 ---
 
+## OCTOGÉSIMA CUARTA TANDA — v935 · AUDITORÍA MAYOR (4)
+
+### El guardián de módulos huérfanos certificaba que no había nada que avisar
+
+`modulos-sin-conectar.test.ts` existe porque el 31-jul el mismo fallo apareció
+**cuatro veces en un día**: código escrito, probado y sin conectar a ninguna
+pantalla. Pero emparejaba por **nombre de archivo** — daba por «mencionado»
+cualquier módulo cuyo nombre apareciera en otro archivo:
+
+```ts
+src.includes(alias) || src.includes(`/${base}'`) || src.includes(`/${base}"`)
+```
+
+Así, `@/lib/expediente/prompts` —que sí se usa— **tapaba**
+`src/lib/agenda/prompts.ts`, que no lo usa nadie: **167 líneas huérfanas con la
+prueba en verde**.
+
+Salió por el nombre `prompts`, pero `motor`, `index`, `utils` o `tipos` habrían
+hecho lo mismo. **Un guardián que da un falso negativo es peor que no tenerlo**:
+no sólo no avisa, sino que *certifica* que no hay nada que avisar.
+
+Ahora se lee el especificador real de cada `import`, `export … from` e `import()`
+dinámico y se **resuelve a un archivo del disco**, que es lo que hace el
+empaquetador: alias `@/` → `src/`, rutas relativas contra la carpeta de **quien
+importa**, paquetes de `node_modules` ignorados, y un módulo que sólo se importa
+a sí mismo sigue siendo huérfano.
+
+### Los tres que estaban tapados
+
+- **`src/lib/dosing/motor.ts` — el caro.** Es el motor que **elige** la regla de
+  dosificación y devuelve `SPECIALIST_REVIEW` cuando falta un dato. La pantalla
+  `/uci/dosificacion` enseña y firma el *dataset*, pero **no llama al motor**:
+  hoy el médico ve las reglas, no la selección. Queda en la cola.
+- **`src/lib/agenda/prompts.ts`** — prompts operativos de la agenda (parseo de
+  lenguaje natural a operaciones, tono de recordatorios). Sin llamador desde que
+  existe.
+- **`src/lib/uci/benchmark.ts`** — arnés de estrés de los motores de UCI; ése sí
+  vive en el CI por definición, como `safety-gate.ts`.
+
+Los tres quedan **declarados** en `HUERFANOS_ACEPTADOS` con su razón, no
+escondidos.
+
+### Y el guardián se vigila a sí mismo
+
+Seis pruebas nuevas comprueban que el detector resuelva rutas y no vuelva a
+emparejar por nombre: que `agenda/prompts` **no** quede tapado por su homónimo,
+que el alias y las relativas resuelvan a archivos que existen, que `node_modules`
+se ignore, y que `export … from` e `import()` sigan contando como consumidores
+(tratarlos como huérfanos sería el error opuesto).
+
+- `src/__tests__/modulos-sin-conectar.test.ts` — 6 pruebas. Total 5031.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
+
+0. **Conectar `src/lib/dosing/motor.ts`** (descubierto en v935) —
+   `src/lib/dosing/motor.ts:1`. El motor que selecciona la regla y devuelve
+   `SPECIALIST_REVIEW` no lo llama nadie; `/uci/dosificacion` sólo enseña y firma
+   el dataset. Es trabajo clínico terminado que no le llega al médico.
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del

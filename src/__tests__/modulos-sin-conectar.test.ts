@@ -29,8 +29,8 @@
  * bajar la lista. La deuda queda declarada, no escondida.
  */
 import { describe, it, expect } from 'vitest'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
+import { join, relative, dirname, resolve } from 'node:path'
 
 /**
  * Huérfanos conocidos, con la razón por la que se quedan.
@@ -52,6 +52,13 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   //  para decidir qué NEWS2 enseñar y con qué nombre.)
   'src/lib/ia/evaluacion.ts': 'Arnés de validación de la IA clínica: se corre a mano, sin tablero que lo enseñe.',
   'src/lib/mobile/consulta-cierre.ts': 'Núcleo del cierre de consulta: dos funciones puras esperando su interfaz.',
+  'src/lib/uci/benchmark.ts': 'Arnés de estrés de los motores de UCI (icu-014): lo corre su propia prueba en el CI, que es donde le toca. No necesita pantalla.',
+
+  // ── Los tres que el guardián roto NO veía (v935) ─────────────────────────
+  // Salieron al resolver los `import` de verdad en vez de buscar el nombre del
+  // archivo. Van declarados, no escondidos.
+  'src/lib/dosing/motor.ts': 'EL CARO: el motor que ELIGE la regla de dosificación y devuelve SPECIALIST_REVIEW cuando falta un dato. /uci/dosificacion enseña y firma el dataset, pero no llama al motor: hoy el médico ve las reglas, no la selección. Pendiente de conectar.',
+  'src/lib/agenda/prompts.ts': 'Prompts operativos de la agenda (parseo de lenguaje natural a operaciones, tono de recordatorios). Lo tapaba `@/lib/expediente/prompts`, que sí se usa. Sin llamador desde que existe.',
 
   // ── Trabajo empezado, pendiente de su fase ───────────────────────────────
   'src/lib/clinical-fact/schema.ts': 'Nexus OS E1-01: validación de ClinicalFact. La fase que lo consume no ha llegado.',
@@ -69,34 +76,79 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
 
 const raiz = 'src'
 const CODIGO = ['.ts', '.tsx']
+/** Los scripts pueden importar código, y algunos están en JavaScript suelto. */
+const IMPORTADORES = ['.ts', '.tsx', '.mjs', '.js']
 
-function archivos(dir: string): string[] {
+function archivos(dir: string, exts: readonly string[] = CODIGO): string[] {
   const out: string[] = []
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
-    if (statSync(p).isDirectory()) { if (e !== '__tests__') out.push(...archivos(p)); continue }
-    if (CODIGO.some(x => e.endsWith(x)) && !e.endsWith('.d.ts')) out.push(p)
+    if (statSync(p).isDirectory()) { if (e !== '__tests__') out.push(...archivos(p, exts)); continue }
+    if (exts.some(x => e.endsWith(x)) && !e.endsWith('.d.ts')) out.push(p)
   }
   return out
 }
 
 const todos = archivos(raiz)
 /** Todo el código que puede importar, incluidos los scripts. */
-const fuentes = [...todos, ...archivos('scripts').filter(f => CODIGO.some(x => f.endsWith(x)))]
-  .map(f => ({ f, src: readFileSync(f, 'utf8') }))
+const fuentes = [...todos, ...archivos('scripts', IMPORTADORES)]
+  .map(f => ({ f: relative('.', f), src: readFileSync(f, 'utf8') }))
 
-/** Un módulo de `lib/` o `components/` que nadie menciona. */
+/**
+ * Los especificadores de un `import`, un `export … from` o un `import()`.
+ *
+ * ── POR QUÉ NO BASTA CON BUSCAR EL NOMBRE DEL ARCHIVO ────────────────────────
+ *
+ * La primera versión de este guardián daba por «mencionado» cualquier módulo
+ * cuyo NOMBRE DE ARCHIVO apareciera en otro archivo (`src.includes("/prompts'")`).
+ * Con eso, `@/lib/expediente/prompts` —que sí se usa— **tapaba**
+ * `src/lib/agenda/prompts.ts`, que no lo usa nadie. El guardián pasaba en verde
+ * con el huérfano dentro.
+ *
+ * Un guardián que da un falso negativo es peor que no tenerlo: no sólo no avisa,
+ * sino que **certifica** que no hay nada que avisar. Aquí salió por el nombre
+ * `prompts`, pero `motor`, `index`, `utils` o `tipos` habrían hecho lo mismo.
+ *
+ * Ahora se lee el especificador real y se RESUELVE a un archivo del disco, que
+ * es lo que hace el empaquetador.
+ */
+const ESPECIFICADOR = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"]([^'"]+)['"]/g
+
+/** `@/lib/x` o `./x` → la ruta del archivo que de verdad se carga. */
+function resolverEspecificador(espec: string, desde: string): string | null {
+  let base: string
+  if (espec.startsWith('@/')) base = join('src', espec.slice(2))
+  else if (espec.startsWith('.')) base = relative('.', resolve(dirname(desde), espec))
+  else return null  // paquete de node_modules
+  const candidatos = [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')]
+  return candidatos.find(c => existsSync(c)) ?? base
+}
+
+/** Todo archivo al que apunta al menos un `import` de OTRO archivo. */
+function importados(): Set<string> {
+  const usados = new Set<string>()
+  for (const { f, src } of fuentes) {
+    ESPECIFICADOR.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = ESPECIFICADOR.exec(src))) {
+      const destino = resolverEspecificador(m[1], f)
+      // Un módulo que sólo se importa a sí mismo sigue siendo huérfano.
+      if (destino && destino !== f) usados.add(destino)
+    }
+  }
+  return usados
+}
+
+/** Un módulo de `lib/` o `components/` que nadie importa. */
 function huerfanos(): string[] {
+  const usados = importados()
   const out: string[] = []
   for (const f of todos) {
     const rel = relative('.', f)
     if (!rel.includes('/lib/') && !rel.includes('/components/')) continue
     const base = rel.split('/').pop()!.replace(/\.tsx?$/, '')
     if (['index', 'layout', 'page', 'route'].includes(base)) continue
-    const alias = rel.replace(/^src\//, '@/').replace(/\.tsx?$/, '')
-    const mencionado = fuentes.some(({ f: otro, src }) =>
-      otro !== f && (src.includes(alias) || src.includes(`/${base}'`) || src.includes(`/${base}"`)))
-    if (!mencionado) out.push(rel)
+    if (!usados.has(rel)) out.push(rel)
   }
   return out.sort()
 }
@@ -128,5 +180,55 @@ describe('Nada se queda escrito y sin conectar', () => {
     for (const [f, razon] of Object.entries(HUERFANOS_ACEPTADOS)) {
       expect(razon.length, f).toBeGreaterThan(25)
     }
+  })
+})
+
+/**
+ * EL GUARDIÁN SE VIGILA A SÍ MISMO.
+ *
+ * Estas pruebas no miran el código de la aplicación: miran que el detector siga
+ * resolviendo rutas y no vuelva a emparejar por nombre de archivo. Es la parte
+ * que falló, y falló en silencio.
+ */
+describe('el detector resuelve rutas, no nombres de archivo', () => {
+  it('un módulo con nombre repetido NO queda tapado por su homónimo', () => {
+    /**
+     * El caso real: `@/lib/expediente/prompts` se importa en varios sitios y
+     * `src/lib/agenda/prompts.ts` en ninguno. Con la comparación por nombre,
+     * el segundo se daba por usado.
+     */
+    const usados = importados()
+    expect(usados.has('src/lib/expediente/prompts.ts')).toBe(true)
+    expect(usados.has('src/lib/agenda/prompts.ts')).toBe(false)
+  })
+
+  it('resuelve el alias `@/` a un archivo que existe', () => {
+    expect(resolverEspecificador('@/lib/expediente/prompts', 'src/app/x/page.tsx'))
+      .toBe('src/lib/expediente/prompts.ts')
+  })
+
+  it('y las rutas relativas contra la carpeta de QUIEN importa', () => {
+    // `./ventilacion` desde `src/lib/uci/benchmark.ts` es `src/lib/uci/…`, no
+    // cualquier `ventilacion.ts` del árbol.
+    expect(resolverEspecificador('./ventilacion', 'src/lib/uci/benchmark.ts'))
+      .toBe('src/lib/uci/ventilacion.ts')
+  })
+
+  it('ignora los paquetes de node_modules', () => {
+    expect(resolverEspecificador('react', 'src/app/x/page.tsx')).toBeNull()
+    expect(resolverEspecificador('lucide-react', 'src/app/x/page.tsx')).toBeNull()
+  })
+
+  it('un módulo que sólo se importa A SÍ MISMO sigue siendo huérfano', () => {
+    // Un `import` interno no es un consumidor.
+    const usados = importados()
+    for (const f of Object.keys(HUERFANOS_ACEPTADOS)) expect(usados.has(f), f).toBe(false)
+  })
+
+  it('lee `export … from` y los `import()` dinámicos, no sólo `import`', () => {
+    // Un componente cargado con `next/dynamic` o un barril de re-exportación
+    // son consumidores reales; tratarlos como huérfanos sería el error opuesto.
+    expect(ESPECIFICADOR.source).toContain('import\\s*\\(')
+    expect(ESPECIFICADOR.source).toContain('from')
   })
 })
