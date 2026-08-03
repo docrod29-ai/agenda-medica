@@ -8,6 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { desdeVentana, alcanceDePagos, alcanceDeClinicas, TOPE_CLINICAS, TOPE_PAGOS } from '@/lib/ops/alcance'
 import { verificarSuperadmin, precioPlanMXN } from '@/lib/superadmin'
 import { calcularPrecioPaquete } from '@/lib/pricing'
 import { planDeNivel } from '@/lib/planes-ia'
@@ -36,10 +37,40 @@ export async function GET(req: NextRequest) {
   if (!acc.ok) return acc.response
 
   try {
+    /**
+     * ACOTADAS, Y CON EL ALCANCE DECLARADO.
+     *
+     * Aquí había dos `.get()` **sin `limit` ni `where`** sobre `clinics` y
+     * `platform_payments` —que crece un documento por cada cargo de Stripe, para
+     * siempre—. Es la página por omisión del panel: la primera que daría
+     * *timeout*.
+     *
+     * Y acotar sin más habría sido peor: «ingreso total» pasaría a ser «ingreso
+     * de lo que cupo», con el mismo nombre y el mismo aspecto. Por eso el
+     * alcance viaja en la respuesta y la pantalla lo enseña.
+     */
+    const desde = desdeVentana(Date.now())
     const [clinicsSnap, paysSnap] = await Promise.all([
-      adminDb.collection('clinics').get(),
-      adminDb.collection('platform_payments').get(),
+      adminDb.collection('clinics').limit(TOPE_CLINICAS).get(),
+      adminDb.collection('platform_payments').where('fecha', '>=', desde).limit(TOPE_PAGOS).get(),
     ])
+    const alcance = {
+      cobros: alcanceDePagos(desde, paysSnap.size),
+      consultorios: alcanceDeClinicas(clinicsSnap.size),
+    }
+
+    /**
+     * LAS LECTURAS POR CONSULTORIO, EN UNA SOLA IDA.
+     *
+     * `secretos/ia` se leía dentro del `map`: una ida y vuelta por consultorio.
+     * `getAll` las hace todas de golpe — es la misma información con una
+     * fracción de la latencia, y el N+1 desaparece sin cambiar nada de lo que se
+     * enseña.
+     */
+    const refsIA = clinicsSnap.docs.map(d => adminDb.doc(`clinics/${d.id}/secretos/ia`))
+    const docsIA = refsIA.length ? await adminDb.getAll(...refsIA).catch(() => []) : []
+    const iaPorClinica = new Map<string, Any>(
+      clinicsSnap.docs.map((d, i) => [d.id, (docsIA[i]?.data() ?? {}) as Any]))
 
     // Suma de pagos por clínica + total global.
     const pagadoPorClinica = new Map<string, number>()
@@ -109,11 +140,10 @@ export async function GET(req: NextRequest) {
       // Nivel de IA (Pro económico / Premium Opus+GPT-5) + consumo del mes — vive en secretos/ia.
       let nivelIA: 'pro' | 'premium' = 'pro'
       let consultasMes = 0
-      try {
-        const ia = (await adminDb.doc(`clinics/${cid}/secretos/ia`).get()).data()
-        if (ia?.nivelIA === 'premium') nivelIA = 'premium'
-        consultasMes = Number(ia?.uso?.[mesActual()]?.creditos ?? 0)
-      } catch { /* default pro */ }
+      const ia = (iaPorClinica.get(cid) ?? {}) as Any
+      if (ia?.nivelIA === 'premium') nivelIA = 'premium'
+      const uso = (ia.uso ?? {}) as Record<string, { creditos?: number } | undefined>
+      consultasMes = Number(uso[mesActual()]?.creditos ?? 0)
       const limiteConsultas = planDeNivel(nivelIA).limiteConsultas
       return {
         id: cid,
@@ -154,11 +184,16 @@ export async function GET(req: NextRequest) {
       deben: clientes.filter(c => c.cobranza === 'debe').length,
       cortesia: clientes.filter(c => c.cobranza === 'cortesia').length,
       mrr: clientes.reduce((s, c) => s + c.mrr, 0),
-      ingresoTotal,
+      /**
+       * Ya NO es «total desde siempre»: es el de la ventana leída. El nombre
+       * cambia con el dato — dejarlo llamarse `ingresoTotal` sería exactamente
+       * el recorte silencioso que esto viene a evitar.
+       */
+      ingresoVentana: ingresoTotal,
       ingresoMes,
     }
 
-    return NextResponse.json({ ok: true, clientes, totales })
+    return NextResponse.json({ ok: true, clientes, totales, alcance })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'error' }, { status: 500 })
   }
