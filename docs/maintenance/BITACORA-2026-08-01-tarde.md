@@ -1573,6 +1573,52 @@ el cobro ya no da.
 
 ---
 
+## OCTOGÉSIMA SÉPTIMA TANDA — v938 · EL CUARTO CAMINO A LA AGENDA
+
+### El paciente que reagendaba desde su enlace podía caer encima de la cirugía
+
+Cuatro caminos escriben sobre la misma agenda: el panel del consultorio, el
+booking público, el bot de WhatsApp y el **reagendado del paciente desde su
+enlace**. Los tres primeros ya descontaban el Google Calendar personal del médico
+(v875-v876); el cuarto miraba sólo las citas de NexusMED y los bloqueos
+capturados a mano.
+
+Así que mover la cita del martes al jueves podía aterrizar justo sobre la cirugía
+que el médico tiene apuntada en su calendario. Y peor que reservar encima: **la
+reserva se aceptaba** —el reagendado no falla, confirma— y el consultorio se
+enteraba el jueves.
+
+Es el mismo patrón que ya salió tres veces aquí: **un camino nuevo que se salta
+la guarda del camino viejo.**
+
+### Una sola consulta, en los dos sitios
+
+El portal usa ahora la misma `lib/calendario/ocupado-servidor` que los otros tres,
+no una propia — cinco implementaciones del cálculo de huecos, cuatro
+desactualizadas, es exactamente como empezó esto.
+
+Y va en los **dos** sitios a propósito: al **ofrecer** los huecos y al
+**confirmar** el cambio. Enseñar un hueco y rechazarlo al confirmar es un
+formulario que miente; validarlo sin ofrecerlo bien es ofrecer horas que no
+existen.
+
+Con las cautelas de siempre:
+
+- mira el calendario de **ese** médico, no el del dueño (sin `medicoId` no se
+  adivina);
+- la consulta va **fuera** de la transacción — una transacción de Firestore puede
+  reintentarse y la llamada de red se repetiría con ella;
+- si Google falla **no** se esconde el día entero: se sigue como antes y queda
+  dicho en el registro, porque un hueco ofrecido de más se nota y un día en
+  blanco sin explicación no.
+
+- `src/app/api/portal/route.ts` (`bloquesDelDia`, casos `slots` y `reagendar`)
+- `src/__tests__/portal-reagenda-google.test.ts` — 12 pruebas. Total 5076.
+
+**Cierra el punto 12 de la cola.**
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
@@ -1617,7 +1663,11 @@ el cobro ya no da.
     **v901 cerró lo que faltaba**: el portal ya mueve y borra el evento de Google
     al reagendar y cancelar, con ese mismo vínculo. **v902 cerró lo último**: la agenda ya
     LEE `googleCalendarSyncStatus`, enseña la cita descuadrada y la repara con un
-    clic desde la sesión del médico. Punto 12 **cerrado**.
+    clic desde la sesión del médico. **v938 cerró el hueco que quedaba de verdad**:
+    el REAGENDADO del paciente desde su enlace seguía calculando los huecos sin
+    mirar el calendario del médico, en los dos caminos (`slots` y `reagendar`),
+    así que podía caer encima de una cirugía y la reserva se ACEPTABA. Punto 12
+    **cerrado de verdad**.
 13. ~~Fragmentación cromática~~ — HECHO (v872 + v900): los 124 usos de PRIMER
     PLANO migrados a `--red`/`--amber` con trinquete en 0, y **v900 migró los 277
     de FONDO y BORDE** a `color-mix` con el token, con su propio techo en 0. El

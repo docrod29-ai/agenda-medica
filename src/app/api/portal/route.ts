@@ -8,6 +8,7 @@ import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avis
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
+import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
@@ -95,6 +96,47 @@ async function leerConfig(clinicId: string): Promise<ClinicConfig | null> {
 async function leerBloques(clinicId: string): Promise<TimeBlock[]> {
   const snap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
   return snap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as TimeBlock[]
+}
+
+/**
+ * LOS BLOQUEOS DEL DÍA, INCLUIDO LO QUE EL MÉDICO TIENE EN GOOGLE.
+ *
+ * ── EL HUECO QUE QUEDABA ─────────────────────────────────────────────────────
+ *
+ * El panel del consultorio, el booking público y el bot de WhatsApp ya
+ * descontaban el calendario personal del médico. El **reagendado del paciente
+ * desde su enlace** no: miraba sólo las citas de NexusMED y los bloqueos
+ * capturados a mano.
+ *
+ * Así que el paciente que movía su cita del martes al jueves podía caer justo
+ * encima de la cirugía que el médico tiene apuntada en su Google Calendar. Y
+ * peor que reservar encima: la reserva **se aceptaba** —el reagendado no falla,
+ * confirma— y el consultorio se enteraba el jueves.
+ *
+ * Va en los DOS sitios a propósito. Enseñar el hueco y rechazarlo al confirmar
+ * es un formulario que miente; validarlo sin ofrecerlo bien es ofrecer horas que
+ * no existen. Los dos caminos tienen que ver lo mismo.
+ *
+ * ── Y SE CONSULTA FUERA DE LA TRANSACCIÓN ────────────────────────────────────
+ *
+ * Una transacción de Firestore puede reintentarse; una llamada de red dentro se
+ * repetiría con ella. Los bloqueos se traen antes y entran ya resueltos.
+ */
+async function bloquesDelDia(
+  clinicId: string, fecha: string, medicoId: string | undefined,
+  cfg: { zonaHoraria?: string; googleCalendarId?: string } | null,
+): Promise<TimeBlock[]> {
+  const locales = await leerBloques(clinicId)
+  const g = await ocupadoEnGoogle(clinicId, medicoId, fecha, {
+    zonaHoraria: cfg?.zonaHoraria, googleCalendarId: cfg?.googleCalendarId,
+  })
+  if (g.fallo) {
+    // Nunca se esconde el día entero por un fallo de red: se sigue como antes y
+    // queda dicho, porque un hueco ofrecido de más se nota y un día en blanco
+    // sin explicación no.
+    safeLog.warn(`[portal] ${clinicId} ${fecha}: no se pudo leer el Google Calendar del médico; los huecos NO lo tienen en cuenta.`)
+  }
+  return [...locales, ...g.bloqueos]
 }
 
 async function leerCita(clinicId: string, citaId: string): Promise<Appointment | null> {
@@ -314,7 +356,8 @@ export async function POST(req: NextRequest) {
           .where('fechaHora', '<=', `${body.fecha} 23:59`)
           .get()
         const citasDia = snapDia.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }))
-        const slots = getAvailableSlots(body.fecha, cita.duracion || 30, citasDia, config, cita.id, await leerBloques(clinicId), cita.medicoId)
+        const bloquesSlots = await bloquesDelDia(clinicId, body.fecha, cita.medicoId, config)
+        const slots = getAvailableSlots(body.fecha, cita.duracion || 30, citasDia, config, cita.id, bloquesSlots, cita.medicoId)
         return NextResponse.json({ slots })
       }
 
@@ -353,7 +396,7 @@ export async function POST(req: NextRequest) {
         if (!config) {
           return NextResponse.json({ error: 'No se pudo leer el horario del consultorio. Intenta de nuevo o llama al consultorio.' }, { status: 503 })
         }
-        const bloques = await leerBloques(clinicId)
+        const bloques = await bloquesDelDia(clinicId, fecha, cita.medicoId, config)
 
         // Transacción: re-leer el día y escribir de forma atómica (sin carrera check-then-write)
         const CONFLICTO = Symbol('conflicto')
