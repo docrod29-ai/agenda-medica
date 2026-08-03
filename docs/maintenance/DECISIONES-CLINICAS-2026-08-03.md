@@ -221,3 +221,214 @@ por consultorio**: el motor dice qué es el organismo; la política del hospital
 dice qué se hace con eso. Se implementa después de las seis reglas, y hasta
 entonces el comportamiento actual se conserva para no dejar a nadie sin su aviso
 de aislamiento.
+
+---
+---
+
+# SEGUNDA TANDA — decisiones 7 a 13
+
+Contestadas el mismo 3 de agosto de 2026, con el criterio declarado por el Dr.:
+**seguridad clínica, trazabilidad, baja fricción y honestidad comercial**.
+
+| # | Decisión |
+|---|---|
+| 7 · O₂ en NEWS2 | **B con condiciones estrictas** |
+| 8 · Motivo de corrección | **A, pero obligatorio antes del cierre definitivo** |
+| 9 · Medicamento al cumplirse la duración | **B** |
+| 10 · Recomendaciones sin fuente | **C ahora; A para recuperarlas** |
+| 11 · Prueba | **C** |
+| 12 · Costos de IA | **B, con aprobación y versionado** |
+| 13 · CFDI | **A ahora; construir después** |
+
+---
+
+## 7 · ¿Flujo de O₂ > 0 implica oxígeno suplementario? → **B con reglas**
+
+En NEWS2 el oxígeno suplementario suma **2 puntos**, y el Royal College of
+Physicians recomienda registrar dispositivo y flujo. «O₂ por cánula nasal a
+3 L/min» **no es una inferencia débil: es evidencia estructurada**.
+
+**Se deduce `supplementalOxygen = true` sólo si se cumple todo:**
+
+```
+oxygenFlow > 0
++ dispositivo de oxígeno ACTIVO
++ observación clínicamente válida
++ mismo conjunto de observación / marca de tiempo actual
+```
+
+**NO se deduce cuando:** el flujo es histórico o está vencido · el oxígeno fue
+suspendido · el registro fue corregido · no hay asociación con el episodio actual
+· el campo representa otra clase de flujo · la fuente es texto ambiguo sin
+confirmación.
+
+**Se muestra la procedencia del modificador**, y es corregible:
+
+```
+Oxígeno suplementario: Sí
+Derivado de: cánula nasal, 3 L/min, 14:05
+NEWS2: +2
+```
+
+**Si hay contradicción** entre «aire ambiente» y flujo > 0 → `NEWS2 =
+REVIEW_REQUIRED`. No preguntar cuando la evidencia estructurada sea inequívoca.
+
+---
+
+## 8 · ¿El motivo de una corrección bloquea? → **A mejorada**
+
+No se bloquea la corrección de una TA, SpO₂ o frecuencia respiratoria peligrosa
+porque falte un campo narrativo. FHIR distingue `corrected`, `amended` y
+`entered-in-error` —lo que respalda conservar original y modificación— pero **no
+obliga a impedir la corrección** hasta completar el motivo.
+
+Tampoco queda eternamente opcional. **Dos etapas:**
+
+```
+GUARDAR CORRECCIÓN     → permitido de inmediato
+FIRMAR / FINALIZAR / CERRAR TURNO → motivo REQUERIDO si sigue vacío
+```
+
+Mientras falte: `correctionReasonStatus = PENDING`, en ámbar, y **tarea de
+completar trazabilidad**.
+
+**Motivos rápidos:** error de captura · paciente incorrecto · unidad incorrecta ·
+transcripción incorrecta · artefacto del dispositivo · dato confirmado nuevamente
+· otro (texto libre).
+
+**Nunca** borrar ni sobrescribir en silencio la observación original.
+
+---
+
+## 9 · ¿El medicamento termina solo al cumplirse la duración? → **B**
+
+Una fecha esperada de término **no demuestra** que el paciente suspendiera el
+medicamento: puede haber prolongación, mala adherencia, repetición de receta,
+cambio verbal de duración, crónico mal capturado, o simplemente que siga
+tomándolo. FHIR distingue el estado de la ORDEN del estado real de consumo.
+
+```
+Duración cumplida
+  → PROBABLY_COMPLETED / RECONCILIATION_REQUIRED
+  → NO pasa automáticamente a COMPLETED
+  → confirmar con un clic:
+     Terminó / Continúa / Extendido / Suspendido / Nunca iniciado / Desconocido
+```
+
+**No debe desaparecer en silencio.** La lista se separa en tres:
+
+- **ACTIVOS CONFIRMADOS** → análisis de interacciones completo;
+- **PROBABLEMENTE TERMINADOS** → advertencia contextual, no alerta interruptiva;
+- **HISTÓRICOS** → no se tratan como activos.
+
+Una confirmación humana fija el estado clínico definitivo.
+
+---
+
+## 10 · Las 42 recomendaciones de inmuno sin fuente → **C ahora, A después**
+
+En inmunocomprometidos una recomendación sin fuente puede afectar profilaxis,
+vacunación, diagnóstico, uso de antimicrobianos, tamizajes, suspensión de
+inmunosupresión y tiempos de tratamiento.
+
+**No** se marcan como «criterio del autor» dentro del motor clínico habitual:
+visualmente acaban adquiriendo la misma autoridad que una guía.
+
+```
+retirar de la salida clínica
+  → exportar las 42
+  → asignar fuente y alcance
+  → revisar → probar → reactivar
+```
+
+Estado mientras tanto: `UNSOURCED / NOT_FOR_CLINICAL_DISPLAY`. **No se borra el
+contenido.**
+
+Cada recomendación, para volver, necesita: `statement` · `population` ·
+`trigger` · `exceptions` · `source` · `publicationDate` · `guidelineVersion` ·
+`evidenceStrength` · `lastReviewedAt` · `reviewer`.
+
+Cuando de verdad sea opinión experta local, existe **en un carril aparte**:
+`LOCAL EXPERT POLICY` — no como recomendación de guía.
+
+---
+
+## 11 · Prueba: ¿con tarjeta o sin tarjeta? → **C**
+
+**Sin tarjeta, con la IA limitada.** La web ya promete «14 días gratis, sin
+tarjeta»; cambiar ahora a tarjeta primero aumenta la fricción, rompe la
+consistencia y reduce cuántos médicos llegan al primer valor.
+
+El trial **incluye el flujo completo**: agenda, pacientes, consulta, nota,
+receta, cobro manual, sandbox y funciones clínicas básicas. Y una **bolsa
+limitada y visible de IA**.
+
+> **La cifra de la bolsa debe salir del Cost Engine, no elegirse
+> arbitrariamente.** (Depende de la decisión 12.)
+
+**Sin overage durante el trial.** Al agotarse la IA: se mantienen agenda y
+consulta manual, se ofrece el modo de menor costo si está incluido, y se muestra
+la mejora — sin bloquear el expediente.
+
+**Al terminar sin método de pago:**
+
+```
+subscription = PAUSED
+datos preservados
+lectura y exportación disponibles
+funciones premium de escritura bloqueadas
+```
+
+No borrar datos ni cancelar violentamente. Y **unificar de inmediato el control
+de acceso con las seis pantallas**.
+
+---
+
+## 12 · Tarifas de los modelos de IA → **B, con aprobación y versionado**
+
+Claude las transcribe **sólo de las páginas oficiales de cada proveedor**; el
+dueño aprueba antes de que entren en vigor. No tiene sentido capturar a mano
+precios publicados que cambian y tienen varias modalidades; tampoco que se
+cambien costos productivos sin revisión.
+
+`ProviderPriceCatalog` con: `provider` · `model` · `inputPrice` ·
+`cachedInputPrice` · `outputPrice` · `audioPrice` · `batchPrice` · `currency` ·
+`billingUnit` · `source` · `effectiveFrom` · `retrievedAt` · `approvedAt` ·
+`approvedBy`.
+
+```
+fuente oficial → transcripción → diff contra el vigente
+  → revisión humana → aprobación → NUEVA VERSIÓN
+```
+
+**Nunca sobrescribir históricos**: el margen de un mes pasado se calcula con la
+tarifa que estaba vigente entonces.
+
+Se muestra: precio anterior · precio nuevo · diferencia · fuente · fecha de
+consulta · modelos afectados · impacto estimado en margen.
+
+Si falta precio: `costStatus = UNKNOWN`. **El tablero no inventa ni estima cero.**
+
+---
+
+## 13 · CFDI al paciente → **A ahora**
+
+**Retirar la promesa inmediatamente.** No se vende una función que no existe, y
+«próximamente» sin fecha ni implementación comprometida no resuelve el problema.
+
+Emitir CFDI de verdad exige: proveedor/PAC · cuenta productiva · RFC y régimen ·
+CSD · manejo seguro de certificado y llave · catálogo fiscal · datos del receptor
+· emisión · timbrado · cancelación · sustitución · descarga XML/PDF · webhooks ·
+conciliación · pruebas.
+
+**Copy provisional:** en vez de «Facturación CFDI al paciente» →
+«Registro de cobros, recibos y control financiero».
+
+Cuando exista: «Emisión de CFDI integrada mediante [proveedor], disponible para
+cuentas configuradas.»
+
+Se mantienen sólo las capacidades reales: registro de cobro · recibo **no
+fiscal**, correctamente identificado · cuenta por cobrar · conciliación.
+
+**No volver a publicar la promesa** hasta pasar la prueba de extremo a extremo
+completa. **No almacenar CSD ni llaves sin diseño y revisión de seguridad.**

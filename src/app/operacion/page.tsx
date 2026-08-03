@@ -3,7 +3,7 @@ import { DemoWorkflow } from '@/components/DemoWorkflow'
 
 export const metadata = {
   title: 'Operación y finanzas · NexusMED',
-  description: 'Corte de caja, cuentas por cobrar, inventario de farmacia, paquetes, comisiones y facturación CFDI (SAT). La operación de tu consultorio, no solo la agenda.',
+  description: 'Corte de caja, cuentas por cobrar, inventario de farmacia, paquetes, comisiones y control financiero. La operación de tu consultorio, no solo la agenda.',
 }
 
 type Estado = 'activo' | 'parcial' | 'roadmap'
@@ -15,7 +15,24 @@ const FINANZAS: Item[] = [
   { nombre: 'Cobros', estado: 'activo', desc: 'La asistente registra el pago cuando el paciente paga; efectivo, tarjeta, transferencia, cheque. Anulación auditada.' },
   { nombre: 'Inventario de farmacia', estado: 'activo', desc: 'Existencias, entradas/salidas transaccionales (sin stock negativo), caducidades y bloqueo/dispensación.' },
   { nombre: 'Paquetes', estado: 'activo', desc: 'Precios por paquete, incluso escalando por número de médicos o camas.' },
-  { nombre: 'Facturación CFDI (SAT)', estado: 'activo', desc: 'Timbrado 4.0 vía Facturama, idempotente (sin doble timbre). Requiere tus CSD/SAT.' },
+  /**
+   * DECISIÓN 13 DEL DR. (3-ago-2026): «no se vende una función que no existe».
+   *
+   * Esto decía «Disponible hoy · Timbrado 4.0 … Requiere TUS CSD/SAT», dentro de
+   * una lista de capacidades DEL CONSULTORIO. Un comprador lo lee como «puedo
+   * facturar a mis pacientes», y no puede.
+   *
+   * Lo que SÍ existe es lo contrario: NexusMED te timbra a TI el CFDI de tu
+   * suscripción (emisor = la plataforma, receptor = el consultorio). Eso
+   * funciona, es real, y ahora se dice tal cual.
+   *
+   * Facturar al paciente exige PAC, cuenta productiva, RFC y régimen del médico,
+   * CSD, manejo seguro de la llave, catálogo fiscal, timbrado, cancelación,
+   * sustitución, XML/PDF y conciliación. Es un proyecto aparte.
+   */
+  { nombre: 'Recibo de cobro (no fiscal)', estado: 'activo', desc: 'Comprobante del pago para el paciente, claramente identificado como NO fiscal. Con folio, concepto, método y quién cobró.' },
+  { nombre: 'Tu factura de NexusMED (CFDI 4.0)', estado: 'activo', desc: 'Nosotros te timbramos a TI el CFDI de tu suscripción: pides la factura desde la app, con tus datos fiscales, y descargas PDF y XML. No requiere tus CSD.' },
+  { nombre: 'Facturar a tus pacientes (CFDI)', estado: 'roadmap', desc: 'Que el consultorio timbre a su paciente NO existe todavía: exige PAC, tus CSD y llave, catálogo fiscal, timbrado, cancelación y conciliación. Cuando esté en producción lo diremos aquí, no antes.' },
   { nombre: 'Reportes financieros', estado: 'parcial', desc: 'Ingresos, IVA contenido, costos y margen. Se están ampliando por médico, servicio y tendencia.' },
   { nombre: 'Comisiones', estado: 'parcial', desc: 'Cálculo por médico/servicio en construcción.' },
   { nombre: 'Membresías de pacientes', estado: 'roadmap', desc: 'Planes recurrentes para pacientes (la recurrencia Stripe ya existe para clínicas).' },
@@ -39,8 +56,8 @@ export default function OperacionPage() {
         No solo agenda. La operación completa del consultorio.
       </h1>
       <p style={{ fontSize: 16.5, color: 'var(--text2, #334155)', maxWidth: '68ch', lineHeight: 1.55 }}>
-        Corte de caja, cuentas por cobrar, inventario de farmacia, paquetes y facturación CFDI ya funcionan hoy.
-        Lo que falta lo decimos con claridad — sin vender humo.
+        Corte de caja, cuentas por cobrar, inventario de farmacia y paquetes ya funcionan hoy.
+        Lo que falta lo decimos con claridad — sin vender humo: si algo dice «Roadmap», es que todavía no existe.
       </p>
 
       <div style={{ display: 'grid', gap: 12, marginTop: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>

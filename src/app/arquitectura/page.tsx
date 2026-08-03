@@ -34,7 +34,7 @@ const MOTORES: Motor[] = [
     desc: 'Importación/exportación HL7 v2 y FHIR (laboratorios, pacientes), con verificación de sujeto e idempotencia.',
     demo: 'Módulo hospitalario (import de labs).' },
   { nombre: 'Finance & Operations Engine', estado: 'activo',
-    desc: 'Corte de caja, cuentas por cobrar, cobros con anti-doble-cobro, inventario de farmacia, paquetes y facturación CFDI (SAT).',
+    desc: 'Corte de caja, cuentas por cobrar, cobros con anti-doble-cobro, inventario de farmacia, paquetes y recibo de cobro no fiscal. (El CFDI que se timbra es el de TU suscripción a NexusMED, no el de tu paciente.)',
     demo: 'Módulos Finanzas y Farmacia.' },
   { nombre: 'Messaging Engine (WhatsApp)', estado: 'activo',
     desc: 'Recordatorios y confirmaciones por WhatsApp con opt-out, ventana de 24 h, plantillas HSM, outbox y horas de silencio.',

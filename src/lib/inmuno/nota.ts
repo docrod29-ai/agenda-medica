@@ -11,6 +11,7 @@ import type { Medicamento } from '@/types/expediente'
 import { TX_EST_LABELS } from './catalogos'
 import { compose } from './compose'
 import { recomendaciones } from './recomendaciones'
+import { separarPorFuente, avisoDeRetenidas, paraSalidaClinica } from './sin-fuente'
 
 type V = Record<string, string>
 
@@ -88,9 +89,18 @@ export function candidatosDeRecs(recs: readonly { titulo: string; detalle: strin
   return out
 }
 
-/** Los candidatos de una valoración, para que la pantalla los ofrezca. */
+/**
+ * Los candidatos de una valoración, para que la pantalla los ofrezca.
+ *
+ * FILTRADO IGUAL QUE LA NOTA (decisión 10 del Dr.). Un fármaco derivado de una
+ * recomendación sin fuente es la salida clínica MÁS comprometida de todas —es
+ * sugerir un medicamento—, así que no puede escaparse por esta puerta.
+ *
+ * Y tienen que ser el MISMO conjunto: si la pantalla ofreciera un fármaco que la
+ * nota luego descarta, el médico lo marcaría y desaparecería sin explicación.
+ */
 export function farmacosCandidatos(v: V, nowMs?: number): FarmacoCandidato[] {
-  return candidatosDeRecs(recomendaciones({ v, nowMs }))
+  return candidatosDeRecs(paraSalidaClinica(recomendaciones({ v, nowMs })))
 }
 
 export interface NotaInmuno {
@@ -117,7 +127,16 @@ export function estudiosDe(v: V): string[] {
 export function construirNotaInmuno(v: V, opts?: { nowMs?: number; iaTexto?: string; farmacosElegidos?: string[] }): NotaInmuno {
   const g = (id: string) => (v[id] || '').trim()
   const filas = compose(v)                       // [titulo, valor][]
-  const recs = recomendaciones({ v, nowMs: opts?.nowMs })
+  /**
+   * DECISIÓN 10 DEL DR. (3-ago-2026): a la NOTA sólo van las recomendaciones con
+   * fuente declarada. De las 42 del módulo, 39 no la tienen — y en
+   * inmunocomprometidos una recomendación sin respaldo puede tocar profilaxis,
+   * vacunación, antimicrobianos o la suspensión de la inmunosupresión.
+   *
+   * Las retenidas NO se borran: quedan en `UNSOURCED / NOT_FOR_CLINICAL_DISPLAY`
+   * y se pueden exportar para asignarles fuente.
+   */
+  const { clinicas: recs, sinFuente: retenidas } = separarPorFuente(recomendaciones({ v, nowMs: opts?.nowMs }))
   const estudios = estudiosDe(v)
 
   // ── Motivo + huésped ──
@@ -136,7 +155,15 @@ export function construirNotaInmuno(v: V, opts?: { nowMs?: number; iaTexto?: str
 
   // ── Plan de profilaxis: recomendaciones deterministas (SIN citas — la nota debe
   //    leerse como escrita por el médico, no como un documento con referencias) ──
-  const plan = recs.map((r) => '• ' + r.titulo + ': ' + r.detalle).join('\n')
+  const lineas = recs.map((r) => '• ' + r.titulo + ': ' + r.detalle)
+  /**
+   * Se DICE lo que se retuvo. Una lista que encoge en silencio se lee como «no
+   * hay más que recomendar», y eso convierte una omisión administrativa en una
+   * afirmación clínica.
+   */
+  const aviso = avisoDeRetenidas(retenidas)
+  if (aviso) lineas.push('', aviso)
+  const plan = lineas.join('\n')
 
   // ── Medicamentos: SÓLO los que el médico marcó (ver la nota de arriba) ──
   const elegidos = new Set((opts?.farmacosElegidos ?? []).map(n => n.trim().toLowerCase()))

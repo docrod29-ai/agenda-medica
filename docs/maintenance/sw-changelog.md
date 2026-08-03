@@ -21,6 +21,57 @@ historia vive aquí.
 
 ---
 
+## v968 — decisiones 13 y 10: dejar de mostrar lo que no está respaldado
+
+DECISIÓN 13 — CFDI. Primero corregí mi propia premisa: **sí existe** una
+implementación (Facturama), pero es **de NexusMED al médico** por su suscripción
+—emisor la plataforma, receptor el consultorio— y funciona. Lo que `/operacion`
+prometía, dentro de una lista de capacidades DEL CONSULTORIO y con la etiqueta
+«Disponible hoy», es que el médico **facture a sus pacientes**: «Requiere tus
+CSD/SAT». Eso no existe, y la plataforma no toca los CSD de nadie.
+
+Retirar la promesa sin más habría borrado también la función real. Ahora la
+página dice las tres cosas por separado: **recibo de cobro (no fiscal)** para el
+paciente · **tu factura de NexusMED (CFDI 4.0)**, que sí funciona y no requiere
+tus CSD · **facturar a tus pacientes**, en Roadmap, con la lista de lo que exige
+(PAC, CSD y llave, catálogo fiscal, timbrado, cancelación, conciliación).
+
+DECISIÓN 10 — LAS 42 RECOMENDACIONES DE INMUNO. Medido: **39 de 42 no declaran
+fuente**. Se retiran de la salida clínica, **sin borrarse**, en estado
+`UNSOURCED / NOT_FOR_CLINICAL_DISPLAY`.
+
+El Dr. descartó marcarlas como «criterio del autor» con una razón que vale para
+todo el producto: dentro del motor clínico habitual, una etiqueta discreta acaba
+adquiriendo visualmente la misma autoridad que una guía — quien lee una lista de
+recomendaciones no distingue el matiz, lee recomendaciones.
+
+UNA SOLA PUERTA (`separarPorFuente`): si cada pantalla decidiera por su cuenta,
+bastaría con que una se olvidara del filtro para que las 39 volvieran a salir con
+el mismo aspecto que las respaldadas. Y **el selector de fármacos filtra igual**:
+un candidato derivado de una recomendación sin fuente es la salida clínica más
+comprometida de todas —es sugerir un medicamento—, y además la pantalla y la nota
+tienen que ofrecer el MISMO conjunto, o el médico marca algo que luego desaparece
+sin explicación.
+
+LO QUE SE RETUVO SE DICE, en la nota y en pantalla. Una lista que encoge en
+silencio se lee como «no hay más que recomendar»: eso convierte una omisión
+administrativa en una afirmación clínica.
+
+EL IMPACTO REAL, MEDIDO: las recomendaciones **por huésped** se apagan enteras
+(SOT 0 de 2, VIH 0 de 1, TCMH 0 de 3); las de **fármaco** sobreviven porque
+`farmacos.ts` sí llena la fuente (anti-TNF 2 de 2). El módulo queda casi mudo del
+lado del huésped hasta que se asignen fuentes — que es exactamente lo que la
+decisión C significa.
+
+Y el camino de vuelta está listo: `node scripts/inmuno-sin-fuente.mjs` genera
+`docs/maintenance/INMUNO-RECOMENDACIONES-SIN-FUENTE.md` con las 39, sus columnas
+vacías (fuente, población, condición, excepciones, fecha, versión, evidencia,
+revisor) y su archivo:línea. Las columnas van vacías A PROPÓSITO: rellenarlas con
+una suposición mía sería el mismo problema disfrazado de dato. Basta añadir el
+cuarto argumento a la llamada `rec(...)` para que una vuelva a salir. +21 casos.
+
+---
+
 ## v967 — decisión 2 del Dr.: SDD deja de ser un descarte
 
 El panel trabajaba SÓLO en S/I/R, así que un SDD reportado por el laboratorio
