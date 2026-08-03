@@ -957,6 +957,38 @@ sentido a una conversación en vuelo al desplegar esto.
 
 ---
 
+## SEPTUAGÉSIMA PRIMERA TANDA — v922 · AUDITORÍA DE LANZAMIENTO (3/6)
+
+### «No encontré ninguna cita» significaba «no supe reconocer tu número»
+
+WhatsApp identifica a quien escribe con un `wa_id` (`5215512345678`), y el mismo
+número puede estar guardado de **cuatro** formas según por dónde entró: el panel
+guarda **10 dígitos**, la reserva pública los **dígitos crudos**, el bot la
+**forma canónica**, y México mete un `1` extra en los móviles.
+
+`resolverPacienteBot` **ya lo sabía** y preguntaba por todos los formatos, con un
+comentario que lo explica. Pero **buscar las citas para cancelar** y **dar de baja
+de la lista de espera** comparaban con `==` contra el `wa_id` pelado.
+
+O sea que un paciente cuya cita se dio de alta **en el mostrador** escribía
+«cancelar» y el bot le contestaba **«no encontré ninguna cita»** — que se lee como
+«no tienes ninguna», no como «no supe reconocer tu número». Y a quien pedía la
+baja de la lista de espera se le prometía una baja que no ocurría, **dos líneas
+debajo de un comentario que dice que eso es lo peor que se puede hacer**.
+
+El criterio existía y estaba bien; sólo lo usaba **uno de los tres** sitios. Ahora
+vive en un módulo compartido y los tres lo usan, con una prueba que exige que
+ninguno vuelva a comparar en crudo.
+
+Y el tope del `in` de Firestore está fijado a propósito: pasarse hace que la
+consulta falle **entera**, y una consulta que falla se lee como «no hay nada» — el
+mismo fallo otra vez.
+
+- `src/lib/whatsapp/telefono-candidatos.ts` (nuevo), `api/whatsapp/webhook/route.ts`
+- `src/__tests__/telefono-candidatos.test.ts` — 10 pruebas. Total 4933.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

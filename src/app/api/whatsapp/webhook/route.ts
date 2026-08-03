@@ -43,6 +43,7 @@ import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsa
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
 import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO } from '@/lib/whatsapp/aviso-bot'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { candidatosDeTelefono } from '@/lib/whatsapp/telefono-candidatos'
 
 /**
  * Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot — y lo que
@@ -84,13 +85,13 @@ async function cargarBloques(clinicId: string, fecha?: string, medicoId?: string
  */
 async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<string> {
   try {
-    const canonico = normalizarTelefonoWa(telefonoRaw)   // 52 + 10 dígitos
-    const diez = canonico.length >= 10 ? canonico.slice(-10) : canonico
-    // Candidatos exactos (Firestore no hace "termina en"): cubre lo que guarda el
-    // panel (10 dígitos), el booking (dígitos crudos) y la forma canónica/móvil.
-    const candidatos = Array.from(new Set(
-      [diez, canonico, `521${diez}`, telefonoRaw.replace(/\D/g, '')].filter(Boolean),
-    )).slice(0, 10)
+    // El criterio vive en `lib/whatsapp/telefono-candidatos.ts`: aquí estaba bien
+    // y en los otros dos sitios que buscan por teléfono no, así que ahora es uno
+    // solo y no pueden volver a divergir.
+    const candidatos = candidatosDeTelefono(telefonoRaw)
+    // El primero de la lista es siempre la forma de 10 dígitos, que es como
+    // guarda el panel y como se guarda un paciente nuevo.
+    const diez = candidatos[0] ?? normalizarTelefonoWa(telefonoRaw)
     const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients')
     // `limit(10)` y no `limit(1)`: una familia comparte el WhatsApp de la casa, y
     // con un solo documento se decidía sobre el primero que devolviera el índice.
@@ -706,8 +707,17 @@ export async function handleMessage(from: string, body: string, clinicId: string
     let citas: CitaMinima[] = []
     let falloLectura = false
     try {
+      /**
+       * TODOS LOS FORMATOS, no sólo el `wa_id`.
+       *
+       * El panel guarda 10 dígitos, la reserva pública los dígitos crudos y el
+       * bot la forma canónica. Comparar con `==` contra el `wa_id` dejaba fuera
+       * TODAS las citas dadas de alta en el mostrador, y el bot contestaba «no
+       * encontré ninguna cita» — que se lee como «no tienes ninguna», no como
+       * «no supe reconocer tu número».
+       */
       const snap = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
-        .where('pacienteTelefono', '==', from).limit(25).get()
+        .where('pacienteTelefono', 'in', candidatosDeTelefono(from)).limit(25).get()
       citas = snap.docs.map(d => ({ id: d.id, ...(d.data() as object) })) as CitaMinima[]
     } catch { falloLectura = true }
 
@@ -1297,8 +1307,10 @@ export async function handleMessage(from: string, body: string, clinicId: string
       let dadoDeBaja = false
       try {
         const cRef = adminDb.collection('clinics').doc(clinicId)
+        // Mismos candidatos que las citas: una baja prometida y no ejecutada es
+        // peor que no prometerla, y este comentario ya lo decía dos líneas arriba.
         const wl = await cRef.collection('waitlist')
-          .where('pacienteTelefono', '==', from)
+          .where('pacienteTelefono', 'in', candidatosDeTelefono(from))
           .limit(10)
           .get()
         for (const d of wl.docs) {
