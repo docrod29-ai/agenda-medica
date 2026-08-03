@@ -283,8 +283,20 @@ async function intentarDiarizarLargo(
   } catch {
     return null
   } finally {
-    // Borra el audio de Storage pase lo que pase (AssemblyAI ya lo descargó al encolar).
-    if (subido) { try { await deleteObject(objRef) } catch { /* lifecycle rule lo limpia */ } }
+    /**
+     * Borra el audio de Storage (AssemblyAI ya lo descargó al encolar).
+     *
+     * Esto es lo PRIMERO y lo inmediato, pero no basta: vive en un `finally` del
+     * navegador, así que sólo corre si la pestaña sigue abierta — y el sondeo de
+     * arriba dura hasta seis minutos. Cerrarla, quedarse sin red o irse a otra
+     * pantalla dejaba la conversación del paciente en el bucket.
+     *
+     * Aquí decía «lifecycle rule lo limpia». Una regla de ciclo de vida es
+     * configuración del bucket, no código: nadie la había creado. Ahora la red
+     * debajo es `api/cron/limpiar-audio`, que barre a diario lo que quedó
+     * huérfano y no depende de ninguna pestaña.
+     */
+    if (subido) { try { await deleteObject(objRef) } catch { /* lo recoge el barrido diario */ } }
   }
 }
 
