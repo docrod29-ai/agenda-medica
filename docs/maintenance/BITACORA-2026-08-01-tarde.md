@@ -1367,6 +1367,52 @@ clínica.
 
 ---
 
+## OCTOGÉSIMA TERCERA TANDA — v934 · AUDITORÍA MAYOR (3)
+
+### La nota firmada —que es inmutable— quedaba congelada con la identidad del dueño
+
+Es el mismo fallo de la adenda (v933), pero **peor**. `nota.firma` es el
+**snapshot inmutable**, y se estampaba con `config.nombreMedico`,
+`config.cedulaProfesional` y `config.especialidad` —campos de **nivel clínica**—.
+
+En un consultorio con dos médicos, cada nota que firmaba la Dra. quedaba
+**congelada para siempre** con el nombre y la cédula del dueño. A diferencia de la
+adenda, aquí **no se corrige después**: la nota firmada es inmutable por diseño y
+por reglas.
+
+Y la compuerta miraba el campo equivocado **en los dos sentidos**: exigía
+`config.cedulaProfesional`, así que dejaba firmar a la Dra. con la cédula del
+dueño **y** bloqueaba a un médico que sí tuviera la suya si la clínica no la
+había llenado —mandándolo a Configuración → General, donde ese campo ya estaba
+lleno—.
+
+Ahora el médico en sesión se resuelve por `uid` y, si no, por correo, sin adivinar
+en empates; el sello usa **su** nombre, **su** cédula y **su** especialidad; con
+varios médicos **no** se cae a la del consultorio (estampar la cédula de otro en
+un documento inmutable es peor que no poder firmar) y el aviso dice **cuál**
+falta; con un solo médico —donde la del consultorio ES la suya— se conserva el
+comportamiento de siempre.
+
+### Y el snapshot de la firma gráfica nacía vacío (P1-6 de la auditoría)
+
+REG-014 movió la firma a `config/firma` y la **borra** de `config/main`; esta
+pantalla seguía leyendo `config.firmaImagenDataUrl`, que desde entonces es
+`undefined`.
+
+Al imprimir se caía a la firma **viva**: cambiar la firma reimprimía las notas
+viejas con la nueva — justo lo contrario de lo que el snapshot existe para
+garantizar. Ahora se lee del subdocumento protegido, por médico, y con varios
+médicos no se estampa la firma global (sería la de otro, congelada).
+
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx` (`medicoEnSesion`,
+  `identidadFirma`, compuerta, sello, `imagenDataUrl`)
+- `src/__tests__/firma-nota-personal.test.ts` — 10 pruebas. Total 5025.
+
+**Cierra el P1-5** (cédula por médico) junto con v933, y el **P1-6** (snapshot de
+firma vacío).
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
