@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(89)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(90)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -439,12 +439,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 81 → 83 y 66 → 67 al añadir `superadmin/simulador`: GET y PUT, cada uno
     // con su guardián.
     // 83 → 84: `arco/cancelar` con su único POST y su guardián.
-    expect(llamadas.length).toBe(90)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(74)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(91)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(rutasConGuardia).toBe(75)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(49)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(conVocabulario).toBe(50)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -455,7 +455,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 58, activos: 31, pendientes: 27,   // +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
+      declarados: 59, activos: 32, pendientes: 27,   // +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.

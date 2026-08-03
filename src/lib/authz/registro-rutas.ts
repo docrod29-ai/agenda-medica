@@ -241,6 +241,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'stripe/webhook': { tipo: 'webhook', motivo: 'Firma `stripe-signature` verificada con el secreto del endpoint. No hay usuario.' },
 
   // ── consultorio: config, equipo, plataforma ──────────────────────────────
+  'cumplimiento/bitacora': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/exportar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/importar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/ai-keys': {

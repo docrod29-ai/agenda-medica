@@ -2190,6 +2190,70 @@ restauración con **RTO medido** sigue siendo del Dr.
 
 ---
 
+## NONAGÉSIMA OCTAVA TANDA — v949 · LA BITÁCORA QUE NO SE PODÍA ENTREGAR
+
+**Cierra D6.**
+
+### Se podía mirar, no entregar
+
+El panel de Cumplimiento pinta la bitácora y cita **NOM-024 Art. 6.5** en el
+título de la sección. Pero **no se podía sacar de ahí**: ni un `Blob`, ni un
+`download`. Y lo que se ve son los **200 asientos más recientes** —500 filtrando
+por paciente—.
+
+Ante una auditoría, una queja ante el INAI o un litigio, lo que se pide es el
+rastro **del periodo**. **Un registro que sólo se puede mirar no es un registro
+entregable.**
+
+### Ahora: CSV del periodo, por streaming
+
+Bajo `administrar` — la bitácora dice **quién vio el expediente de quién**: es
+del responsable del tratamiento, no del mostrador ni del médico que aparece en
+ella.
+
+Exige `desde` y `hasta`: una bitácora sin periodo declarado no se puede presentar
+como prueba de nada. Y el **día final entra entero**: `<= '2026-08-03'` dejaría
+fuera todo ese día salvo la medianoche exacta — el error silencioso de siempre en
+los rangos sobre marcas ISO.
+
+### El detalle que arruina un CSV en silencio
+
+Un campo con una coma, unas comillas o un salto de línea **desplaza todas las
+columnas siguientes**, y el archivo se abre igual, sin error, con los datos
+corridos. `meta` es texto libre puesto por veinte sitios distintos, así que pasa.
+
+**Un CSV mal escapado es peor que no exportar**: se entrega, se abre, y quien lo
+lee cree que está leyendo el rastro. Se entrecomilla **todo** —incluso lo
+inofensivo— porque eso quita la decisión de en medio y no queda caso raro que se
+escape.
+
+### El archivo declara su alcance
+
+La última fila dice el periodo y cuántos asientos trae, y si se alcanzó el tope
+lo **grita**: un recorte que nadie ve se lee como «eso era todo el rastro», que
+en una auditoría es justo la conclusión errónea. Una lectura interrumpida se
+declara **dentro** del archivo, para que quien lo abra se entere aunque no vea la
+consola.
+
+La etiqueta legible va **al lado** del código, no en su lugar: el auditor lee la
+etiqueta y quien revise el sistema necesita el código exacto.
+
+### Y el guardián REG-059 cazó algo real en este mismo cambio
+
+El módulo del CSV importaba las etiquetas de `audit-log.ts`, que arrastra el SDK
+del **navegador** — se inicializa al importarse y rompe `next build` sin las
+variables `NEXT_PUBLIC_FIREBASE_*`.
+
+Se extrajeron a un módulo **puro** (`audit-eventos.ts`) que `audit-log`
+re-exporta, en vez de duplicar el mapa y que las dos copias se desincronicen sin
+que nadie lo note.
+
+- `src/lib/expediente/bitacora-csv.ts` y `audit-eventos.ts` (nuevos, puros),
+  `src/app/api/cumplimiento/bitacora/route.ts` (nueva), `cumplimiento/page.tsx`
+- `src/__tests__/bitacora-exportable.test.ts` — 23 pruebas. Total 5273.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

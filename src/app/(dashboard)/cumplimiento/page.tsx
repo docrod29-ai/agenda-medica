@@ -20,7 +20,7 @@ import {
 } from '@/lib/arco'
 import { asientosPendientes, asientosDeOtros, etiquetaEvento, type AuditEvento } from '@/lib/expediente/audit-log'
 import {
-  ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical,
+  ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical, Download,
 } from 'lucide-react'
 import { motoresSinValidar } from '@/components/SelloMotor'
 import { Tabs, Spinner, EmptyState, Modal, Button } from '@/components/ui'
@@ -105,6 +105,7 @@ export default function CumplimientoPage() {
    * hace aquí.
    */
   const [pacienteFiltro, setPacienteFiltro] = useState('')
+  const [descargandoBitacora, setDescargandoBitacora] = useState(false)
   const [eventoFiltro, setEventoFiltro] = useState('')
   const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([])
 
@@ -135,6 +136,43 @@ export default function CumplimientoPage() {
     // navegador contestaría «no hay accesos» cuando sólo son más viejos que la
     // ventana de 200.
   }, [clinicId, pacienteFiltro])
+
+  /**
+   * DESCARGAR LA BITÁCORA DEL PERIODO.
+   *
+   * El periodo por omisión es el último año: es lo que pide una auditoría
+   * ordinaria, y se declara en el nombre del archivo y en su última línea para
+   * que nadie lo presente como «todo el rastro» sin saber de cuándo a cuándo.
+   */
+  const descargarBitacora = async () => {
+    if (!clinicId || descargandoBitacora) return
+    setDescargandoBitacora(true)
+    try {
+      const hoy = new Date()
+      const hasta = hoy.toISOString().slice(0, 10)
+      const desde = new Date(hoy.getTime() - 365 * 86400_000).toISOString().slice(0, 10)
+      const q = new URLSearchParams({ clinicId, desde, hasta })
+      if (pacienteFiltro) q.set('patientId', pacienteFiltro)
+      const res = await fetchAutenticado(`/api/cumplimiento/bitacora?${q.toString()}`)
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast(d.error || 'No se pudo armar la bitácora', 'error')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bitacora_${desde}_a_${hasta}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Bitácora descargada. La última fila dice el periodo y cuántos asientos trae.', 'success')
+    } catch {
+      toast('No se pudo conectar para armar la bitácora', 'error')
+    } finally {
+      setDescargandoBitacora(false)
+    }
+  }
 
   const copiarLinkPrivacidad = () => {
     if (!clinicId) return
@@ -314,6 +352,7 @@ export default function CumplimientoPage() {
           <Bitacora
             entries={bitacora} loading={loading} pacientes={pacientes}
             pacienteFiltro={pacienteFiltro} setPacienteFiltro={setPacienteFiltro}
+            descargarBitacora={descargarBitacora} descargando={descargandoBitacora}
             eventoFiltro={eventoFiltro} setEventoFiltro={setEventoFiltro}
           />
         </>
@@ -570,10 +609,12 @@ function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: str
 
 function Bitacora({
   entries, loading, pacientes, pacienteFiltro, setPacienteFiltro, eventoFiltro, setEventoFiltro,
+  descargarBitacora, descargando,
 }: {
   entries: AuditEntry[]; loading: boolean
   pacientes: { id: string; nombre: string }[]
   pacienteFiltro: string; setPacienteFiltro: (v: string) => void
+  descargarBitacora: () => void; descargando: boolean
   eventoFiltro: string; setEventoFiltro: (v: string) => void
 }) {
   const nombrePaciente = (id?: string) => pacientes.find(p => p.id === id)?.nombre ?? ''
@@ -606,6 +647,19 @@ function Bitacora({
           <option value="">Todos los tipos</option>
           {tiposPresentes.map(t => <option key={t} value={t}>{etiquetaEvento(t)}</option>)}
         </select>
+        {/*
+          DESCARGAR EL RASTRO DEL PERIODO.
+
+          La pantalla enseña 200 asientos —500 filtrando por paciente— y cita
+          NOM-024 en el título. Pero el rastro NO SE PODÍA SACAR de aquí: ante
+          una auditoría, una queja al INAI o un litigio, lo que se pide es el
+          periodo completo, no lo que quepa en una pantalla. Un registro que
+          sólo se puede mirar no es un registro entregable.
+        */}
+        <button onClick={descargarBitacora} disabled={descargando}
+          className="btn btn-secondary" style={{ fontSize: 12.5 }}>
+          <Download size={13} /> {descargando ? 'Armando…' : 'Descargar periodo (CSV)'}
+        </button>
       </div>
       {loading ? <div style={{ padding: 24 }}><Spinner center label="Cargando…" /></div> : visibles.length === 0 ? (
         <EmptyState icon={<FileSearch size={22} />}
