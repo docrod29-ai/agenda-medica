@@ -17,6 +17,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
 import { catalogoEfectivo, prepararGuardado, type CatalogoGuardado } from '@/lib/finanzas/catalogo-planes'
+import { olvidarCatalogo } from '@/lib/finanzas/catalogo-servidor'
 
 export const runtime = 'nodejs'
 
@@ -70,6 +71,13 @@ export async function PUT(req: NextRequest) {
       new Date().toISOString(),
     )
     await REF().set(doc)
+    /**
+     * Se olvida la caché del servidor EN EL MISMO PASO que se guarda: si no, el
+     * dueño cambia el precio, lo ve al instante en su consola, y durante un
+     * minuto el cobro se sigue haciendo con el anterior. Un minuto de eso es
+     * exactamente el defecto que este cableado vino a cerrar.
+     */
+    olvidarCatalogo()
     const efectivo = catalogoEfectivo(doc)
     /**
      * Los RECHAZOS viajan en la respuesta aunque el guardado saliera bien.

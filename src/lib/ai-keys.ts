@@ -10,6 +10,7 @@
  * enmascarado "····1234"). Firestore niega ese path al cliente por defecto.
  */
 import { NextResponse } from 'next/server'
+import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import admin, { adminDb } from './firebase-admin'
 import { planPorNivel, topeEconomicoDe, MEDICO_EXTRA } from './planes-ia'
 import { uidEsFundador } from './authz/fundador-servidor'
@@ -273,9 +274,15 @@ export async function entitlementsDe(clinicId: string | null, nivel: NivelIA): P
   const medicos = await contarMedicos(clinicId)
   const extras = Math.max(0, medicos - 1)
   const me = MEDICO_EXTRA[nivel] ?? MEDICO_EXTRA.pro
+  /**
+   * El cupo sale del catálogo VIGENTE, no de la constante del código: si el Dr.
+   * sube los créditos del plan en su consola y la página de precios lo anuncia,
+   * el médico que paga tiene que recibirlos. Antes recibía los de fábrica.
+   */
+  const plan = await planVigentePorNivel(nivel)
   return {
     medicos,
-    limiteCreditos: planPorNivel(nivel).creditos + extras * me.creditos,
+    limiteCreditos: plan.creditos + extras * me.creditos,
     topeEconomico: topeEconomicoDe(nivel) + extras * me.economico,
   }
 }

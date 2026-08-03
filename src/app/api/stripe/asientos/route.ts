@@ -8,6 +8,7 @@
  * clinic_members) se cobra con el precio por asiento. Miembro del consultorio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { verificarCapacidad } from '@/lib/authz/verificar'
@@ -26,7 +27,9 @@ async function estado(clinicId: string) {
   const conAsientos = ES_PLAN_ASIENTOS(plan)
   const nivel = conAsientos ? nivelDePlan(plan as PlanKey) : 'pro'
   const me = MEDICO_EXTRA[nivel]
-  const base = planPorNivel(nivel).precioMXN
+  // El precio base sale del catálogo VIGENTE: la consola decía $949 y esta
+  // cuenta se hacía con los $899 de fábrica.
+  const base = (await planVigentePorNivel(nivel)).precioMXN
   const extras = Math.max(0, medicos - 1)
   return {
     plan, conAsientos, medicos, contratados,

@@ -16,6 +16,7 @@
  * Resp: { ok, respuesta, articulos:[{pmid,titulo,revista,anio,url}] }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import { safeLog } from '@/lib/security/sanitize'
 import { minimizarContextoPaciente, seguroParaMemoria } from '@/lib/ia/minimizar-phi'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -302,7 +303,9 @@ export async function POST(req: NextRequest) {
     const costo = costoConsultor(nivel)
     if (fuente === 'prueba') {
       const [usados, extra] = await Promise.all([creditosUsadosDelMes(clinicId), creditosExtraDelMes(clinicId)])
-      const limite = planPorNivel(nivel).creditos + extra
+      // El tope sale del catálogo VIGENTE: cortar la IA con un cupo que ya no
+      // es el que se anunció es la peor forma de que el ajuste no llegue.
+      const limite = (await planVigentePorNivel(nivel)).creditos + extra
       if (usados + costo > limite) {
         return NextResponse.json({
           ok: false, sinCreditos: true, usados, limite,

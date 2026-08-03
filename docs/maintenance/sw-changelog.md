@@ -21,6 +21,48 @@ historia vive aquí.
 
 ---
 
+## v964 — el catálogo de precios llegaba al escaparate y no a la caja (N3)
+
+VERIFICADO: el catálogo editable existe, está probado, y lo leen `/api/planes` y
+la página `/precios`. Los TRES sitios donde el número se convierte en dinero o en
+producto seguían leyendo la constante del código:
+
+· `entitlementsDe` (`ai-keys.ts`) → el CUPO DE CRÉDITOS que se entrega.
+· `stripe/asientos` → el precio BASE del cobro mensual por médico.
+· `consultor-evidencia` → el tope que corta la IA a media consulta.
+
+O sea: el Dr. sube el plan Clínica de $899 a $949, la página pública lo anuncia,
+y la cuenta del cobro se sigue haciendo con $899. Sube el cupo de créditos y el
+médico que paga sigue recibiendo el de fábrica.
+
+Un ajuste que no llega al cobro ni a la entrega no es un ajuste: es un letrero. Y
+se rompe de la peor forma — nadie ve un error, simplemente el recibo y la página
+de precios dicen cosas distintas, y el que lo nota es el cliente.
+
+TRES DECISIONES QUE NO SON OBVIAS:
+
+1. **La caché dura exactamente lo mismo que la de la página pública** (60 s, el
+   `revalidate` de `/api/planes`), y hay una prueba que lo fija leyendo los dos
+   números. Dos retrasos distintos harían que durante un rato el escaparate y la
+   caja discreparan — el mismo defecto por otra puerta.
+2. **El fallo NO se cachea.** Si Firestore vuelve en tres segundos, el precio
+   bueno entra enseguida; cachear el error alargaría un problema de un instante
+   a un minuto entero de cobros equivocados.
+3. **Falla ABIERTO.** Si no se puede leer el catálogo se usa el de fábrica y se
+   sigue: cortarle la IA a un intensivista a las tres de la mañana porque no se
+   pudo leer un PRECIO es una respuesta mucho peor que cobrar con la tarifa del
+   mes pasado. Mismo criterio que la cartera de créditos.
+
+Y al guardar desde la consola se olvida la caché EN EL MISMO PASO, para que el
+dueño no vea su precio nuevo en pantalla mientras el cobro usa el viejo.
+
+El guardián exige las dos mitades en los tres sitios: que llamen al catálogo
+vigente **y** que NO quede la llamada de fábrica. Dejar las dos es lo que produce
+que un camino cobre bien y el otro mal — peor que estar mal en los dos, porque
+parece que funciona. +13 casos.
+
+---
+
 ## v963 — 24 controles que el teclado no podía activar (U3)
 
 LA COLA DECÍA OTRA COSA, Y LO COMPROBÉ. «Las pantallas del comprador son las
