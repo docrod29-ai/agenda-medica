@@ -136,8 +136,14 @@ describe('la ruta: servidor, streaming y paginada', () => {
   })
 
   it('cada línea trae su RUTA completa, para poder volver a escribirla', () => {
-    // Sin la ruta, el archivo es un montón de documentos sin sitio al que volver.
-    expect(ruta).toContain('_ruta: `${rutaBase}/${d.id}`')
+    /**
+     * Sin la ruta, el archivo es un montón de documentos sin sitio al que
+     * volver. La construcción vive en la librería desde v948 para que la prueba
+     * de IDA Y VUELTA pueda ejercitarla sin Firestore.
+     */
+    const lib = leer('src', 'lib', 'clinica', 'respaldo.ts')
+    expect(lib).toContain('_ruta: `${rutaBase}/${id}`')
+    expect(ruta).toContain('lineaDeDocumento(rutaBase, coleccion, d.id, d.data())')
   })
 
   it('va bajo `administrar`: se lleva el consultorio entero', () => {

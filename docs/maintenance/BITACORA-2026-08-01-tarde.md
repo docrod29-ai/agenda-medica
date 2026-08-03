@@ -2138,6 +2138,58 @@ prueba que responde «sí, sabemos reconstruirlo».
 
 ---
 
+## NONAGÉSIMA SÉPTIMA TANDA — v948 · EL CAMINO DE VUELTA
+
+**Cierra D3.**
+
+### Un respaldo sin importador es un archivo del que nadie sabe si sirve
+
+v947 dejó el respaldo bien: servidor, NDJSON, paginado, con cabecera y pie. Pero
+**no había importador**. «Tenemos respaldos» sin una restauración probada es una
+**hipótesis**, y el propio `scripts/respaldos-verificar.mjs` termina diciéndolo:
+«falta una cosa que esto no puede comprobar: haber RESTAURADO alguna vez».
+
+`POST /api/clinic/importar` consume el NDJSON tal cual salió, escribe por lotes y
+devuelve un informe con lo escrito por colección y **lo rechazado con su razón**.
+
+### La prueba que responde «sí, sabemos reconstruirlo»
+
+Se siembra un consultorio sintético, se exporta con el **mismo** constructor de
+líneas que usa la ruta, se importa con el **mismo** lector, y se compara
+**documento a documento** — incluidos los objetos y arreglos anidados, que es
+donde se pierde información sin que se note.
+
+**Lo que esa prueba NO demuestra, y queda dicho**: no toca Firestore. Demuestra
+que el **formato no pierde nada** y que las rutas se reconstruyen exactas —donde
+estaban los errores posibles—, no que el emulador escriba bien. El ensayo de
+restauración con **RTO medido** sigue siendo del Dr.
+
+### Los candados
+
+- **Sólo a consultorio vacío**, salvo que se pida `sobrescribir` a propósito:
+  restaurar encima mezcla dos historias clínicas sin que nadie pueda
+  distinguirlas después.
+- **Modo ensayo**: dice qué escribiría, sin escribir nada.
+- **Las llaves de API no entran nunca**, aunque el archivo las traiga. `EXCLUIDAS`
+  se consulta en los **dos** sentidos: lo que no sale en un respaldo tampoco entra
+  por uno, y si algún día cambia, las dos mitades cambian solas.
+- Una colección que el manifiesto no conoce se **rechaza**.
+- La raíz se reescribe **siempre** al consultorio del parámetro, no al que venga
+  escrito en un archivo que pudo tocar cualquiera.
+- **Una línea rota no aborta la restauración** —ése es el motivo de que el
+  respaldo sea NDJSON— y una ruta con forma inesperada **no se adivina**:
+  adivinar dónde va un documento es peor que dejarlo fuera, porque lo deja mal
+  puesto y nadie se entera.
+- Un archivo **sin pie** se acepta pero se avisa: restaurar medio respaldo
+  creyendo que era entero es la peor forma de perder datos — se cree que están.
+
+- `src/lib/clinica/restaurar.ts` (nuevo, puro),
+  `src/app/api/clinic/importar/route.ts` (nueva),
+  `src/lib/clinica/respaldo.ts` (`lineaDeDocumento`, extraído para la prueba)
+- `src/__tests__/respaldo-ida-y-vuelta.test.ts` — 19 pruebas. Total 5250.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

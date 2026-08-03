@@ -242,6 +242,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
 
   // ── consultorio: config, equipo, plataforma ──────────────────────────────
   'clinic/exportar': { tipo: 'capacidad', capacidad: 'administrar' },
+  'clinic/importar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/ai-keys': {
     tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' },
     // El POST (que ESCRIBE las llaves de IA del tenant) ya EXIGE `administrar` y el
