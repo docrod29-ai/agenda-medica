@@ -1619,6 +1619,58 @@ Con las cautelas de siempre:
 
 ---
 
+## OCTOGÉSIMA OCTAVA TANDA — v939 · LA LISTA DE ESPERA PERDÍA PACIENTES EN SILENCIO
+
+### 1. «Rango horario preferido»: capturado, enseñado, y nunca leído
+
+El formulario lo pide (`Ej. Mañana, 9-12`), se guarda en
+`WaitlistEntry.rangoHorario` y la ficha del paciente **lo muestra**. El
+emparejamiento del hueco liberado sólo miraba `tipo` y `fechaDeseada`.
+
+Quien pidió por la mañana recibía el ofrecimiento de las 18:00 y, si contestaba
+**SÍ**, la cita se creaba a las 18:00. La recepción vio el dato en pantalla, el
+paciente lo dijo, y el sistema hizo como si no existiera.
+
+Es el patrón caro de siempre —un campo escrito que nadie lee— y aquí ni siquiera
+estaba escondido: **se enseña**, así que desde dentro parece que se usa.
+
+Ahora hay un intérprete determinista (`lib/whatsapp/rango-horario.ts`): palabras
+del día, rangos numéricos con y sin minutos, «de 4 a 7 pm» = 16:00-19:00 y no la
+madrugada, y un `14` no se toca aunque diga «tarde». El hueco tiene que **caber
+entero** en la franja: una cita de 45 min que arranca a las 11:45 termina a las
+12:30, y a quien pidió «9-12» le rompe la mañana igual.
+
+**La regla que ordena la reparación**: el campo es texto libre, así que lo que no
+se entiende **no filtra**. Interpretarlo mal deja fuera de la rueda a un paciente
+que sí podía venir, y eso **no se detecta nunca** — el que no recibe un mensaje
+no se queja de no haberlo recibido. Un rango al revés («12-9») o una hora
+imposible son dedazos y no se adivinan.
+
+### 2. El tope recortaba sin decirlo
+
+Era `.limit(60)` **sin `orderBy`**: Firestore devolvía sesenta entradas
+cualesquiera —en orden de identificador— y la prioridad se ordenaba **después**,
+en memoria. Con más de sesenta en lista, el paciente de prioridad 1 podía no
+estar entre las que llegaron, y el hueco se le ofrecía a otro **sin que nada lo
+indicara**.
+
+No se puede pedir `orderBy('prioridad')` junto al `where in` sin un índice
+compuesto creado a mano en la consola —y mientras no exista, la lectura falla
+**entera** y no se ofrece a nadie—. Así que el tope sube a 200 y, sobre todo,
+**se declara cuando se alcanza**: un recorte que nadie ve se lee como «ya estaban
+todos».
+
+- `src/lib/whatsapp/rango-horario.ts` (nuevo), `lib/whatsapp/ofrecer-hueco.ts`,
+  y los tres llamadores pasan la duración del hueco
+- `src/__tests__/lista-espera-rango-horario.test.ts` — 20 pruebas. Total 5096.
+
+**Nota sobre el punto 11 de la cola (sucursales):** verificado, está **cerrado
+por decisión** desde v847 — `branchId` salió de la lista blanca de la API porque
+aceptar un campo que se ignora es prometer una función que no existe. El modelo
+sigue declarado como huérfano, con su razón.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
@@ -1644,8 +1696,12 @@ Con las cautelas de siempre:
 10. ~~Horario partido / descansos / festivos recurrentes~~ — HECHO (v829):
     `DaySchedule.descansos` existe y los festivos aceptan `MM-DD` recurrente, con
     su editor en Configuración. Verificado el 2026-08-02.
-11. **Las sucursales son decorativas en la agenda** — `branchId` está en la lista blanca
-    pero ninguna interfaz lo escribe y ni `getAvailableSlots` ni `hasConflict` lo miran.
+11. ~~Las sucursales son decorativas en la agenda~~ — CERRADO POR DECISIÓN
+    (v847, verificado el 2026-08-03): `branchId` **salió** de la lista blanca de
+    `api/appointments`. Aceptar un campo que nada lee es prometer una función que
+    no existe; el modelo (`src/lib/branches.ts`) queda declarado como huérfano
+    con su razón. Implementar multi-sucursal de verdad es una función, no un
+    arreglo.
 12. **Google Calendar: freebusy sólo en el modal del consultorio** — HECHO A
     MEDIAS. `api/calendar/ocupado` existe y lo consume `AppointmentModal`, que
     además DECLARA si la consulta falló. **Queda**: el portal público, el bot y

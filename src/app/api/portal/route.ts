@@ -299,6 +299,7 @@ export async function POST(req: NextRequest) {
           fecha: cita.fechaHora.slice(0, 10),
           hora: cita.fechaHora.slice(11, 16),
           tipo: cita.tipo,
+          duracion: cita.duracion,
           // Sin médico, el hueco de una doctora se le ofrecería a quien espera
           // con otro: el mismo fallo que ya se reparó en el modal de citas.
           medicoId: cita.medicoId,
@@ -469,6 +470,7 @@ export async function POST(req: NextRequest) {
           fecha: cita.fechaHora.slice(0, 10),
           hora: cita.fechaHora.slice(11, 16),
           tipo: cita.tipo,
+          duracion: cita.duracion,
           medicoId: cita.medicoId,
         }).catch(() => {})
 
