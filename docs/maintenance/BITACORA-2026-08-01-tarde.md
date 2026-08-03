@@ -3324,6 +3324,39 @@ cuarto argumento a `rec(...)` para que una vuelva a salir.
 
 ---
 
+
+## CENTÉSIMA DECIMOCTAVA TANDA — v969 · SUS DECISIONES 4 Y 5
+
+Las dos sobre el mismo error, por los dos lados: un negativo puede **ignorarse** o
+**sobreleerse**, y usted cortó una por decisión.
+
+**4 — BLEE:** ni ignorar ni cancelar. Antes un `esbl: 'neg'` no tocaba nada
+(`BLEE[probable]`); ahora baja a `sospecha`, el NOMBRE dice «NO CONFIRMADA» —quien
+lee la nota ve el nombre, no el enum— y la base explica por qué se degrada en vez
+de cancelarse.
+
+**5 — mCIM:** se dice «carbapenemasa no detectada» **y lo que NO significa**, que
+es la mitad que siempre se pierde. Resistencia CONFIRMADA por AST · mecanismo
+INDETERMINADO · pedir método adicional. El motor no reorienta a permeabilidad,
+eflujo ni porinas. Y en *Acinetobacter* se advierte que CLSI no respalda el mCIM.
+
+### El error que me atrapó un golden viejo
+
+Escribí la degradación como regla **genérica** sobre la tabla de confirmatorias, y
+alcanzó al MRSA: el golden de v959 se puso rojo al pasar de `confirmado` a
+`sospecha`.
+
+Estaba **extendiendo una decisión clínica más allá de donde usted la tomó**, y
+encima pisando otra suya más específica — la 4 es sobre la BLEE; el caso
+cefoxitina-vs-oxacilina lo resolvió en la 6, donde CLSI manda reportar la
+resistencia si cualquiera de las dos pruebas es resistente. MRSA queda excluido
+con la razón escrita y una prueba que fija la frontera entre las dos decisiones.
+
+- `antibiograma/confirmatorias.ts`, `antibiograma/motor.ts`
+- `src/__tests__/decisiones-clinicas-4-y-5.test.ts` — 23 pruebas. Total 5588.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3411,7 +3444,7 @@ sustancialmente mejor de lo que un comprador puede ver».
 - **LAS 6 PREGUNTAS: CONTESTADAS el 3-ago-2026.** Ver
   `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`. Respuestas: 1B · 2B con
   estado SDD independiente · 3B condicionada · 4B · 5A · 6A sin «confirmado».
-  **1 y 6 en v966, 2 en v967**; faltan 3 (procedencia del breakpoint),
+  **1 y 6 en v966, 2 en v967, 4 y 5 en v969**; falta 3 (procedencia del breakpoint),
   4 (BLEE→sospecha) y 5 (mCIM→indeterminado), más la capa de **política
   institucional** que separa aislamiento/notificación del motor microbiológico.
 
