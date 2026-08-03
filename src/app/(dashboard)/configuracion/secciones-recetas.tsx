@@ -13,13 +13,15 @@ import { resizeImageFile, formatBytes } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM, PAPEL_MAX_MM, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
 import { getDoctors, saveConfig } from '@/lib/firestore'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { auth, storage } from '@/lib/firebase'
 import { cfgInput, cfgLabel } from './estilos'
-import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ruler, Save, Sparkles, Star, UserRound } from 'lucide-react'
+import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ruler, Save, Sparkles, Star, UserRound, AlertTriangle, Check} from 'lucide-react'
 
 const RX_DEFAULTS: RecetaConfig = {
   paperSize: 'media-carta',
@@ -38,6 +40,20 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
   const { config, loading: configLoading } = useConfig()
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
+  /**
+   * QUÉ PASÓ AL GUARDAR — en la propia pantalla, no en un aviso que se va.
+   *
+   * El Dr. reportó «no se guarda el template». El guardado escribe y, si
+   * Firestore lo rechaza, `setDoc` lanza y sale un aviso… que dura unos segundos
+   * y aparece lejos del botón, en una pantalla larguísima que se usa con scroll.
+   * Si se lo perdió, lo que vio fue un botón que dijo «Guardando…» y volvió a su
+   * sitio: idéntico a un guardado correcto.
+   *
+   * Así que ahora el guardado se VERIFICA —se vuelve a leer lo que quedó
+   * escrito— y el resultado se queda fijo junto al botón hasta el siguiente
+   * intento, diciendo QUÉ campos no llegaron.
+   */
+  const [resultado, setResultado] = useState<{ ok: boolean; texto: string } | null>(null)
   const [tipoPreview, setTipoPreview] = useState<'receta' | 'orden'>('receta')
 
   // ── Plantilla por médico ──────────────────────────────────────
@@ -75,8 +91,63 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [medicoSel, configLoading])
 
+  /**
+   * LEE DE VUELTA LO QUE SE ACABA DE ESCRIBIR Y LO COMPARA.
+   *
+   * Un guardado que «no falla» no es lo mismo que un guardado que quedó. Entre
+   * el botón y el disco hay reglas de Firestore, un tope de 1 MB por documento y
+   * un `merge` que puede no hacer lo que uno cree. Cualquiera de los tres deja el
+   * campo fuera sin lanzar un error.
+   *
+   * Se comparan los campos que el médico TECLEA (no las imágenes, que cambian de
+   * data URL a URL de Storage al guardarse, y compararlas daría falsos fallos).
+   */
+  const CAMPOS_VERIFICABLES: (keyof RecetaConfig)[] = [
+    'rfc', 'registroDGP', 'registroAntidopaje', 'vigenciaDias', 'avisoLegal',
+    'mostrarQR', 'mostrarAlergias', 'mostrarDiagnostico', 'mostrarSignosVitales',
+    'copiasEnHoja', 'paperSize', 'estilo',
+  ]
+
+  const confirmarQueQuedo = async (esperado: RecetaConfig, medico: string) => {
+    if (!clinicId) return
+    const dr = doctores.find(d => d.id === medico)
+    const quien = medico ? `Plantilla de ${dr?.nombre ?? 'médico'}` : 'Plantilla general'
+    try {
+      const snap = await getDoc(doc(db, 'clinics', clinicId, 'config', 'main'))
+      const c = (snap.data() ?? {}) as ClinicConfig
+      const guardado = medico
+        ? { ...(c.recetaConfig ?? {}), ...(c.recetasPorMedico?.[medico] ?? {}) }
+        : (c.recetaConfig ?? {})
+      const faltaron = CAMPOS_VERIFICABLES.filter(k => {
+        const q = esperado[k]
+        if (q === undefined || q === '') return false      // no se pidió nada
+        return JSON.stringify((guardado as RecetaConfig)[k]) !== JSON.stringify(q)
+      })
+      if (faltaron.length === 0) {
+        setResultado({ ok: true, texto: `${quien} guardada y verificada en el servidor.` })
+        toast(`${quien} guardada`, 'success')
+        return
+      }
+      // Esto es lo que antes pasaba en silencio.
+      setResultado({
+        ok: false,
+        texto: `${quien}: se guardó, pero estos campos NO quedaron escritos: ${faltaron.join(', ')}. ` +
+          `Vuelve a intentarlo; si se repite, mándame esta lista.`,
+      })
+      toast('Algunos campos no se guardaron — mira el detalle bajo el botón', 'error')
+    } catch (e) {
+      // No poder VERIFICAR no es lo mismo que no haber guardado: se dice tal cual.
+      setResultado({
+        ok: false,
+        texto: `${quien}: se envió, pero no se pudo comprobar que quedara ` +
+          `(${e instanceof Error ? e.message.slice(0, 80) : 'error de lectura'}). Recarga y revisa.`,
+      })
+    }
+  }
+
   const guardar = async () => {
     if (!clinicId || !config) return
+    setResultado(null)
     setSaving(true)
     try {
       // Migra a Storage cualquier imagen base64 (del rx actual, de la firma y de
@@ -110,7 +181,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
       if (!medicoSel) {
         await saveConfig(clinicId, { ...baseConfig, recetaConfig: rxSano })
         setRx(rxSano)
-        toast('Plantilla general guardada', 'success')
+        await confirmarQueQuedo(rxSano, '')
       } else {
         // El override del médico guarda TODO el rx editado — al cargar se
         // mergea sobre la general, por lo que es consistente y simple.
@@ -119,13 +190,13 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           recetasPorMedico: { ...porMedicoSano, [medicoSel]: rxSano },
         })
         setRx(rxSano)
-        const dr = doctores.find(d => d.id === medicoSel)
-        toast(`Plantilla de ${dr?.nombre ?? 'médico'} guardada`, 'success')
+        await confirmarQueQuedo(rxSano, medicoSel)
       }
     } catch (e) {
       // Mostrar la causa real — un "Error al guardar" mudo es indepurable
-      const msg = e instanceof Error ? e.message.slice(0, 120) : String(e).slice(0, 120)
+      const msg = e instanceof Error ? e.message.slice(0, 160) : String(e).slice(0, 160)
       toast(`Error al guardar: ${msg}`, 'error')
+      setResultado({ ok: false, texto: `No se guardó: ${msg}` })
       console.error('[recetas/guardar]', e)
     } finally {
       setSaving(false)
@@ -793,6 +864,13 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           </div>
         </Section>
 
+        {resultado && (
+          <div className={`alert ${resultado.ok ? 'alert-green' : 'alert-red'}`} role="status"
+            style={{ fontSize: 13, marginBottom: 10 }}>
+            {resultado.ok ? <Check size={15} className="alert-icon" /> : <AlertTriangle size={15} className="alert-icon" />}
+            <div>{resultado.texto}</div>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={guardar} disabled={saving} className="btn btn-primary">
             {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : <><Save size={14} /> Guardar template</>}

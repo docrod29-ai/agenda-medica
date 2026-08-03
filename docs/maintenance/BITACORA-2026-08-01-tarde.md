@@ -1186,6 +1186,40 @@ que el auditor marcó como P1-6.
 
 ---
 
+## SEPTUAGÉSIMA OCTAVA TANDA — v929 · REPORTADO POR EL DR.
+
+### «No se guarda el template» — el guardado ahora se verifica y dice qué campos no quedaron
+
+**Honestidad primero: leí el código del guardado y no logré reproducir el fallo.**
+Escribe todo el `rx` —incluidos RFC, registro DGP, vigencia y aviso legal, que
+están declarados en `RecetaConfig`— y si Firestore lo rechaza, `setDoc` lanza y
+sale un aviso.
+
+El problema es que **ese aviso dura unos segundos y aparece lejos del botón**, en
+una pantalla larguísima que se usa con scroll. Si se lo perdió, lo que vio fue un
+botón que dijo «Guardando…» y volvió a su sitio: **idéntico a un guardado
+correcto**.
+
+En vez de inventarme una causa y decirle que ya quedó, hice que el guardado **se
+verifique**: vuelve a leer del servidor lo que quedó escrito, lo compara campo por
+campo con lo que se pidió, y deja el resultado **fijo junto al botón** hasta el
+siguiente intento. Si algo no llegó, **lo nombra**.
+
+Dos cuidados:
+
+- se comparan los campos que se **teclean**, no las imágenes: ésas cambian de
+  data URL a URL de Storage al guardarse, y compararlas daría falsos fallos;
+- se distingue «no se pudo **guardar**» de «no se pudo **comprobar**». No son lo
+  mismo, y confundirlos manda a buscar el problema al lugar equivocado — que es
+  exactamente lo que le pasó con el PDF (v928).
+
+- `src/app/(dashboard)/configuracion/secciones-recetas.tsx`
+
+⚠️ **Pendiente**: que el Dr. lo pruebe y me mande la lista de campos si sale el
+aviso rojo. Con esa lista el diagnóstico es inmediato.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
