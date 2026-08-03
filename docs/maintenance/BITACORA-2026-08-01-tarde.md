@@ -2508,6 +2508,28 @@ revisa, una condición astuta no**.
 (UptimeRobot, BetterStack) lo consulte cada minuto. Ése es el segundo par de ojos
 que hoy no existe.
 
+### Verificado en producción, y una cosa que hay que decir
+
+`sw.js`: **276 445 → 4 562 bytes**. `/api/health` responde 200 con Firestore,
+Anthropic, OpenAI y Stripe arriba, y expone versión y commit.
+
+Los `trabajos` salen ahora mismo en **`nunca`**: los latidos se desplegaron en
+v951 y ningún cron ha vuelto a correr desde entonces —`reminders` es horario,
+`limpiar-audio` diario—, así que **todavía no hay latido que leer**. Es la
+respuesta correcta: `nunca` significa «no hay ni uno», no «está roto».
+
+Y hay un reparto deliberado entre las dos piezas, que conviene tener escrito:
+
+- **`/api/health` tolera `nunca`** y sólo se pone en 503 por `tarde`. Un monitor
+  lo consulta cada minuto, y ponerlo en rojo durante las primeras 24 h de vida de
+  esta función —por algo que se arregla solo— enseñaría a ignorarlo.
+- **El vigilante SÍ grita por `nunca`**, porque es el que mira una vez cada
+  quince minutos y el que sabe distinguir «acaba de desplegarse» de «lleva un mes
+  muerto» mirando la lista completa.
+
+Si dentro de un día `reminders` sigue en `nunca`, eso ya no es un despliegue
+reciente: es que el cron no está corriendo, y entonces sí hay que mirarlo.
+
 ---
 
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
