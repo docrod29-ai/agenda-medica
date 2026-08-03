@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
@@ -51,6 +52,7 @@ export default function ExpedientePage() {
   const { toast, confirm } = useToast()
   const { notas, loading, error: errorNotas, reload } = useExpediente(patientId)
   const [errorPaciente, setErrorPaciente] = useState('')
+  const [descargandoTodo, setDescargandoTodo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
   // Por defecto muestra las notas de CONSULTORIO (no mezclar con hospital). Las
   // notas de hospital viven en su episodio; aquí quedan bajo la pestaña "Hospital".
@@ -157,6 +159,41 @@ export default function ExpedientePage() {
           <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
+          {/*
+            EXPEDIENTE COMPLETO — lo que el archivo llamado «expediente» nunca fue.
+            El botón de FHIR de al lado lleva paciente + notas FIRMADAS. Éste
+            lleva TODO lo que la aplicación guarda del paciente (adendas,
+            laboratorios, fotografía clínica, antecedentes, formularios,
+            internamientos con sus signos, citas y bitácora) y DECLARA lo que no
+            se pudo leer.
+          */}
+          <button onClick={async () => {
+            if (!clinicId || !patient) return
+            setDescargandoTodo(true)
+            try {
+              const r = await fetchAutenticado(`/api/expediente/exportar/${patientId}?clinicId=${encodeURIComponent(clinicId)}`)
+              const cuerpo = await r.json()
+              if (!r.ok) { toast(cuerpo?.error || 'No se pudo armar el expediente', 'error'); return }
+              const nombre = patient.nombre.replace(/[^\w]/g, '_').slice(0, 30)
+              const blob = new Blob([JSON.stringify(cuerpo, null, 2)], { type: 'application/json' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `expediente_completo_${nombre}.json`
+              a.click()
+              URL.revokeObjectURL(url)
+              // Lo que falta se DICE. Un expediente incompleto que no lo declara
+              // se entrega creyendo que está completo.
+              const faltan = (cuerpo.faltantes ?? []) as { seccion: string }[]
+              toast(faltan.length
+                ? `Expediente descargado, pero ${faltan.length} sección(es) no se pudieron leer: ${faltan.map(f => f.seccion).join(', ')}. Vienen listadas en el archivo.`
+                : 'Expediente completo descargado.', faltan.length ? 'info' : 'success')
+            } catch {
+              toast('No se pudo conectar para armar el expediente', 'error')
+            } finally { setDescargandoTodo(false) }
+          }} disabled={descargandoTodo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
+            <Upload size={15} /> {descargandoTodo ? 'Armando…' : 'Expediente completo'}
+          </button>
           <button onClick={async () => {
             if (!clinicId || !patient) return
             const { exportarPacienteAFhir } = await import('@/lib/fhir-export')
@@ -176,7 +213,15 @@ export default function ExpedientePage() {
             a.click()
             URL.revokeObjectURL(url)
             logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length } })
-            toast('Expediente exportado en FHIR R4', 'success')
+            /**
+             * FHIR sólo lleva las notas FIRMADAS, y antes se descartaban las
+             * demás en silencio. Se dice cuántas quedaron fuera: un archivo con
+             * huecos que nadie señala se entrega creyendo que está completo.
+             */
+            const borradores = notas.filter(n => n.estado !== 'firmada').length
+            toast(borradores
+              ? `FHIR R4 exportado con ${notas.length - borradores} notas firmadas. ${borradores} en borrador NO van en FHIR — usa «Expediente completo».`
+              : 'Expediente exportado en FHIR R4', borradores ? 'info' : 'success')
           }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Upload size={15} /> FHIR
           </button>

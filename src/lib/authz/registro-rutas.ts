@@ -166,6 +166,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
 
   // ── expediente e IA clínica (entitlement de plan + rol) ───────────────────
   'consultor-evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
+  'expediente/exportar/[patientId]': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
