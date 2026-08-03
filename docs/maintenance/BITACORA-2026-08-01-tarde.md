@@ -3219,6 +3219,47 @@ dentro de un archivo que nadie vuelve a revisar.
 
 ---
 
+
+## CENTÉSIMA DECIMOSEXTA TANDA — v967 · SU DECISIÓN 2 (SDD)
+
+### Lo que se perdía
+
+El panel trabajaba sólo en S/I/R, así que un SDD reportado —cefepime,
+piperacilina-tazobactam, ceftarolina, daptomicina— se quedaba **fuera** y sólo se
+nombraba en un aviso que decía «captúralo a mano». Sus palabras: eso desperdicia
+información clínicamente relevante.
+
+### Las dos formas de equivocarse
+
+Guardarlo como **S** lo vuelve un sensible cualquiera y pierde la condición de
+dosis. Guardarlo como **I** lo convierte en la resistencia que CLSI advierte que
+no hay que inventar. Por eso viaja **como sí mismo** de punta a punta.
+
+### El compilador hizo la auditoría
+
+Amplié el tipo de la celda a `CategoriaPanel = SIR | 'SDD'` —dejando `SIR` intacto
+para lo que de verdad son tres categorías— y TypeScript señaló los **seis** sitios
+a revisar. Ninguno se descubrió leyendo.
+
+### El detalle que salvó el conteo
+
+Los predicados estaban escritos en positivo (`NO_S = v === 'R' || v === 'I'`), así
+que un SDD ya caía fuera del conteo de no-sensibles. Si hubiera sido `v !== 'S'`,
+el fármaco que el laboratorio declaró utilizable con dosis alta habría sumado para
+declarar multirresistencia — el error que CLSI advierte. Queda fijado con prueba.
+
+### Sale con su condición en las tres salidas
+
+La nota imprime «Cefepime SDD (CMI 4) [requiere EXPOSICIÓN AUMENTADA…]» y el
+prompt lleva «NO equivale a S ni a I». La categoría sola se lee como una
+sensibilidad cualquiera.
+
+- `antibiograma/tipos.ts`, `util.ts`, `vision.ts`, `motor.ts`, `resumen-nota.ts`,
+  `razonar.ts`
+- `src/__tests__/decision-clinica-2-sdd.test.ts` — 16 pruebas. Total 5565.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3306,7 +3347,7 @@ sustancialmente mejor de lo que un comprador puede ver».
 - **LAS 6 PREGUNTAS: CONTESTADAS el 3-ago-2026.** Ver
   `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`. Respuestas: 1B · 2B con
   estado SDD independiente · 3B condicionada · 4B · 5A · 6A sin «confirmado».
-  **1 y 6 implementadas en v966**; faltan 2 (SDD), 3 (procedencia del breakpoint),
+  **1 y 6 en v966, 2 en v967**; faltan 3 (procedencia del breakpoint),
   4 (BLEE→sospecha) y 5 (mCIM→indeterminado), más la capa de **política
   institucional** que separa aislamiento/notificación del motor microbiológico.
 

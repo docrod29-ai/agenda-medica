@@ -5,7 +5,7 @@
  */
 import {
   type EntradaAntibiograma, type InterpretacionAntibiograma, type AporteModulo,
-  type FenotipoDetectado, type ResultadoAntibiograma, type Confianza, aporteVacio,
+  type FenotipoDetectado, type ResultadoAntibiograma, type Confianza, type SIR, aporteVacio,
 } from './tipos'
 import { REF } from './referencias'
 import {
@@ -180,7 +180,14 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
      * hoy detecta.
      */
     const editada = !!x.interpretacionLab && x.interpretacionLab !== x.interpretacion
-    const delLaboratorio = x.interpretacionLab ?? x.interpretacion
+    /**
+     * Un SDD NO se traduce a S ni a I para poder compararlo con el punto de
+     * corte: se deja fuera de la comparación. Forzarlo a S sería exactamente lo
+     * que el Dr. prohibió en la decisión 2, y forzarlo a I lo convertiría en la
+     * resistencia que CLSI advierte que no hay que inventar.
+     */
+    const catLab = x.interpretacionLab ?? x.interpretacion
+    const delLaboratorio: SIR | undefined = catLab === 'SDD' ? undefined : catLab
     categoriasCMI.push({
       antibiotico: x.antibiotico,
       cmi: x.cmi,
@@ -189,7 +196,8 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
       categoriaReportada: delLaboratorio,
       // Si el corte NO aplica (foco/organismo), no tiene sentido marcar discordancia.
       concuerda: cat.noAplicable ? null : (delLaboratorio ? delLaboratorio === cat.categoria : null),
-      interpretacionEfectiva: x.interpretacion,
+      interpretacionEfectiva: x.interpretacion === 'SDD' ? undefined : x.interpretacion,
+      reportadoSDD: x.interpretacion === 'SDD' || catLab === 'SDD',
       ...(editada ? {
         editadaPorReglaExperta: true,
         edicionRazon: x.edicionRazon,

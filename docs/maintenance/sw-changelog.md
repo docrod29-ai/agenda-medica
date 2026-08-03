@@ -21,6 +21,57 @@ historia vive aquí.
 
 ---
 
+## v967 — decisión 2 del Dr.: SDD deja de ser un descarte
+
+El panel trabajaba SÓLO en S/I/R, así que un SDD reportado por el laboratorio
+—cefepime, piperacilina-tazobactam, ceftarolina, daptomicina— se quedaba FUERA y
+sólo se nombraba en un aviso que decía «captúralo a mano». Palabras del Dr.: eso
+**desperdicia información clínicamente relevante**.
+
+CLSI define SDD como categoría PROPIA: la probabilidad de eficacia depende de
+emplear mayor exposición. Regla literal del Dr.:
+
+```
+categoria_original            = SDD
+utilizable                    = sí, condicional
+requiere_exposicion_aumentada = sí
+equivalente_a_S               = no
+equivalente_a_I               = no
+```
+
+LAS DOS FORMAS DE EQUIVOCARSE, y por qué el SDD viaja como sí mismo de punta a
+punta: guardarlo como **S** lo vuelve un sensible cualquiera y pierde la
+condición de dosis —lo que el Dr. prohibió explícitamente—; guardarlo como **I**
+lo convierte en la resistencia que CLSI advierte que no hay que inventar («la C
+hace que SDD se interprete con frecuencia como resistencia, precisamente el
+problema que CLSI intenta evitar»).
+
+EL COMPILADOR HIZO LA AUDITORÍA: se amplió `ResultadoAntibiograma.interpretacion`
+a un tipo nuevo `CategoriaPanel = SIR | 'SDD'` —dejando `SIR` intacto para lo que
+de verdad son tres categorías— y TypeScript señaló los **seis** sitios que había
+que revisar. Ninguno se descubrió leyendo.
+
+EL DETALLE QUE SALVÓ EL CONTEO: los predicados estaban escritos EN POSITIVO
+(`NO_S = v === 'R' || v === 'I'`), así que un SDD ya caía fuera del conteo de no
+sensibles — que es exactamente lo correcto. Si `NO_S` hubiera sido `v !== 'S'`,
+el fármaco que el laboratorio declaró utilizable con dosis alta habría pasado a
+sumar para declarar multirresistencia: justo el error que CLSI advierte. Queda
+fijado con una prueba.
+
+Y sale con su condición en las tres salidas: la nota imprime «Cefepime SDD (CMI
+4) [requiere EXPOSICIÓN AUMENTADA…]» y el prompt del modelo lleva «NO equivale a
+S ni a I». La categoría sola se lee como una sensibilidad cualquiera.
+
+El motor tampoco lo fuerza a compararse con el punto de corte: `categoriaReportada`
+es S/I/R por definición, y meter ahí un SDD habría producido una discordancia
+falsa o una concordancia falsa según el lado. Va aparte, en `reportadoSDD`.
+
+Tres pruebas del golden de v957 fallaron — correctamente: registraban la pregunta
+abierta. Ahora registran que el SDD entra **como SDD**, que es exactamente lo
+mismo que fijaban antes: que no se convierta en otra cosa por el camino. +24 casos.
+
+---
+
 ## v966 — decisiones 1 y 6 del Dr.: el motor deja de afirmar de más
 
 El Dr. contestó las seis preguntas clínicas del antibiograma el 3-ago-2026. Van
