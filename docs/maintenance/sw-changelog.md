@@ -21,6 +21,52 @@ historia vive aquí.
 
 ---
 
+## v961 — el trinquete de color daba CERO con 265 colores crudos vivos (U4)
+
+La cola decía «hueco real: `ToastContext.tsx:43-47` declara tres hex crudos y se
+escapan porque la clave no es `color:`». Verificado — y era la punta: con esa
+forma se le escapan **265 usos en 57 archivos**, mientras el trinquete reporta
+cero en sus tres controles.
+
+EL CASO QUE LO DESTAPÓ:
+
+```ts
+const COLORS: Record<ToastType, string> = {
+  success: '#22c55e', error: '#ef4444', info: '#3b82f6',
+}
+// …tres líneas más abajo:
+<span style={{ color: COLORS[t.type] }}>
+```
+
+La clave no es `color:`, es `success:`. Y no es una pantalla suelta: es el acuse
+de TODA la aplicación — «Guardado», «No se pudo guardar», «Receta enviada».
+Migrado a `var(--green|red|blue)`, más el botón destructivo del confirm, que era
+el cuarto crudo del archivo.
+
+LA LECCIÓN DEL GUARDIÁN: los tres controles miran FORMAS —`color:` seguido de un
+literal, un ternario que asigna a algo llamado `color`, un sufijo de alfa—, así
+que persiguen la sintaxis de ayer. El control nuevo mira el HECHO: cualquier
+color de `CRUDOS` escrito a mano, esté en la forma que esté. Y `CRUDOS` no es una
+lista arbitraria: son exactamente los colores que YA tienen token en los dos
+temas, así que para todos la respuesta es la misma.
+
+LO QUE NO CUENTA, con su razón: un `var(--red, #b91c1c)` es la práctica CORRECTA
+—penalizarlo empujaría a quitar los respaldos—; los comentarios, porque este
+mismo archivo cita `#22c55e` para explicar el fallo y una prueba que no distingue
+el código de su explicación acaba obligando a no explicar nada; y `PAPEL`/
+`PALETAS`, ya declaradas. Se añaden a PAPEL los dos generadores de Word: una
+variable CSS **no existe** dentro de un documento de Word, y el aviso de «falta
+cédula profesional» saldría sin color justo donde existe para verse.
+
+POR QUÉ 265 Y NO 0: migrar 265 usos en 57 pantallas de una sentada es un cambio
+visual que nadie puede revisar de verdad, y romper una alerta clínica es un
+riesgo real. Igual que el trinquete de lint, **la cifra sólo baja**; lo que este
+número impide desde hoy es que entre uno más. Verificado con una mutación: se
+metió un `{ alto: '#dc2626' }` —la forma exacta que los tres estrechos dejaban
+pasar— y el control ancho se puso rojo. +3 casos.
+
+---
+
 ## v960 — el libro de Excel que no existía (D5)
 
 «No existe exportación a Excel. Ninguna» — comprobado: ni una línea de `xlsx` en
