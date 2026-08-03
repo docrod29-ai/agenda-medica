@@ -15,7 +15,7 @@
  * PRIVACIDAD: NO se extraen identificadores del paciente (nombre, expediente, cama).
  */
 import { z } from 'zod'
-import type { EntradaAntibiograma, SIR, SitioInfeccion, PruebasConfirmatorias, ResultadoPrueba } from './tipos'
+import type { EntradaAntibiograma, CategoriaPanel, SitioInfeccion, PruebasConfirmatorias, ResultadoPrueba } from './tipos'
 import { parseCMI } from './cmi'
 
 /**
@@ -241,7 +241,20 @@ export function perfilAEntradaConDescartes(
   perfil: PerfilExtraido,
   sitio?: EntradaAntibiograma['sitio'],
 ): { entrada: EntradaAntibiograma; descartes: DescartesDelPerfil } {
-  const usable = (x: unknown): x is SIR => x === 'S' || x === 'I' || x === 'R'
+  /**
+   * DECISIÓN 2 DEL DR. (3-ago-2026): el SDD YA ENTRA AL PANEL.
+   *
+   * Antes se quedaba fuera y sólo se nombraba en un aviso, «porque el panel
+   * trabaja en S/I/R». Eso desperdiciaba información clínicamente relevante:
+   * CLSI define SDD como categoría propia y el laboratorio la reportó.
+   *
+   * Entra COMO SDD — ni convertido a S ni a I— y el motor sabe que significa
+   * «utilizable sólo con exposición aumentada».
+   *
+   * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 2.
+   */
+  const usable = (x: unknown): x is CategoriaPanel =>
+    x === 'S' || x === 'I' || x === 'R' || x === 'SDD'
   const nombre = (c: { antibiotico: string }) => c.antibiotico.trim()
 
   const resultados = perfil.resultados.filter(c => usable(c.interpretacion)).map(c => {
@@ -250,14 +263,14 @@ export function perfilAEntradaConDescartes(
     const cmi = parseCMI(c.cmi_texto) ?? parseCMI(c.cmi)
     return {
       antibiotico: nombre(c),
-      interpretacion: c.interpretacion as SIR,
+      interpretacion: c.interpretacion as CategoriaPanel,
       ...(cmi ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
     }
   })
 
+  /** Ya NO son un descarte: entran al panel. Se listan para poder decirlo. */
   const sdd = perfil.resultados.filter(c => c.interpretacion === 'SDD').map(nombre)
-  const ilegibles = perfil.resultados
-    .filter(c => !usable(c.interpretacion) && c.interpretacion !== 'SDD').map(nombre)
+  const ilegibles = perfil.resultados.filter(c => !usable(c.interpretacion)).map(nombre)
   const dudosos = perfil.resultados.filter(c => c.needs_review || c.conf === 'baja').map(nombre)
 
   const avisos: string[] = []
@@ -268,7 +281,8 @@ export function perfilAEntradaConDescartes(
      * deja fuera del panel, y lo captura el médico.
      */
     avisos.push('ℹ Reportados como SDD (sensible dosis-dependiente): ' + sdd.join(', ') +
-      '. El panel trabaja en S/I/R; captúralos a mano según el punto de corte de DOSIS ALTA.')
+      '. Entran al panel COMO SDD: utilizables sólo con EXPOSICIÓN AUMENTADA ' +
+      '(dosis mayor, mayor frecuencia o infusión prolongada). No son «sensibles» sin más.')
   }
   if (ilegibles.length) {
     avisos.push('⚠ NO se pudo leer la interpretación de: ' + ilegibles.join(', ') +

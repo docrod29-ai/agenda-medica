@@ -2,7 +2,7 @@
  * Utilidades compartidas: normalización, búsqueda de S/I/R y CMI por sinónimos,
  * catálogos de antibióticos y reconocimiento de organismo.
  */
-import type { ResultadoAntibiograma, SIR } from './tipos'
+import type { ResultadoAntibiograma, SIR , CategoriaPanel } from './tipos'
 
 export function norm(s: string): string {
   return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
@@ -76,7 +76,7 @@ export function todosLosEstados(resultados: ResultadoAntibiograma[], sinonimos: 
 }
 
 /** Estado S/I/R del primer antibiótico que coincida con algún sinónimo (o null). */
-export function estado(resultados: ResultadoAntibiograma[], sinonimos: string[]): SIR | null {
+export function estado(resultados: ResultadoAntibiograma[], sinonimos: string[]): CategoriaPanel | null {
   for (const r of resultados) {
     if (casaAlguno(r.antibiotico, sinonimos)) return r.interpretacion
   }
@@ -96,10 +96,24 @@ export function presente(resultados: ResultadoAntibiograma[], sinonimos: string[
   return resultados.some(r => casaAlguno(r.antibiotico, sinonimos))
 }
 
-export const ES_R = (v: SIR | null) => v === 'R'
-export const ES_S = (v: SIR | null) => v === 'S'
-export const ES_I = (v: SIR | null) => v === 'I'
-export const NO_S = (v: SIR | null) => v === 'R' || v === 'I' // no-sensible
+/**
+ * Los predicados aceptan SDD y están escritos EN POSITIVO a propósito.
+ *
+ * Un SDD no es S, no es I y no es R — es su propia categoría (decisión 2 del
+ * Dr.). Escritos así, `ES_S('SDD')` y `NO_S('SDD')` son los dos `false`, que es
+ * exactamente la verdad: **ni se cuenta como sensible ni como no sensible**.
+ *
+ * Si `NO_S` se hubiera escrito como `v !== 'S'`, un SDD entraría en todos los
+ * conteos de resistencia y el fármaco que el laboratorio declaró utilizable con
+ * dosis alta pasaría a sumar para declarar multirresistencia. Ese es justo el
+ * error que CLSI advierte que hay que evitar.
+ */
+export const ES_R = (v: CategoriaPanel | null) => v === 'R'
+export const ES_S = (v: CategoriaPanel | null) => v === 'S'
+export const ES_I = (v: CategoriaPanel | null) => v === 'I'
+/** Utilizable SÓLO con exposición aumentada. Ni S ni I ni R. */
+export const ES_SDD = (v: CategoriaPanel | null) => v === 'SDD'
+export const NO_S = (v: CategoriaPanel | null) => v === 'R' || v === 'I' // no-sensible
 
 // ── Sinónimos por antibiótico / clase (compartidos por todos los módulos) ──
 export const PENICILINA = ['penicilina', 'bencilpenicilina']

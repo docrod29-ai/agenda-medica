@@ -34,7 +34,13 @@ export function resumenParaNota(
     .map(x => {
       const cmi = typeof x.cmi === 'number' ? ` (CMI ${x.cmiCensurada ?? ''}${x.cmi})` : ''
       const editado = x.interpretacionLab && x.interpretacionLab !== x.interpretacion
-      return `${x.antibiotico} ${x.interpretacion}${cmi}${editado ? ` [lab: ${x.interpretacionLab} → ${x.interpretacion} por regla experta]` : ''}`
+      /**
+       * Un SDD NUNCA se imprime a secas: la categoría sola se lee como una
+       * sensibilidad cualquiera, y lo que significa es «utilizable SÓLO con
+       * exposición aumentada». Decisión 2 del Dr.
+       */
+      const condicion = x.interpretacion === 'SDD' ? ' [requiere EXPOSICIÓN AUMENTADA: dosis mayor, mayor frecuencia o infusión prolongada]' : ''
+      return `${x.antibiotico} ${x.interpretacion}${cmi}${condicion}${editado ? ` [lab: ${x.interpretacionLab} → ${x.interpretacion} por regla experta]` : ''}`
     })
   if (panel.length) L.push(`Panel: ${panel.join(' · ')}`)
 

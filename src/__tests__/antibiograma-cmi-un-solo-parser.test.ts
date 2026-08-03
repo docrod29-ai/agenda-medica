@@ -119,16 +119,24 @@ describe('lo que no cabe en el panel, se DICE', () => {
   it('el SDD no desaparece: se nombra', () => {
     expect(descartes.sdd).toEqual(['Cefepime'])
     expect(descartes.avisos.join(' ')).toContain('Cefepime')
-    expect(descartes.avisos.join(' ')).toMatch(/DOSIS ALTA/)
+    expect(descartes.avisos.join(' ')).toMatch(/EXPOSICIÓN AUMENTADA/)
   })
 
   it('y NO se cuela al panel convertido en otra cosa', () => {
     /**
-     * NEEDS_CLINICAL_REVIEW — a qué categoría del panel corresponde un SDD, y con
-     * qué dosis, es criterio clínico del Dr. Dejarlo fuera y nombrarlo es lo
-     * único que este archivo puede decidir por su cuenta.
+     * ACTUALIZADO el 3-ago-2026 con la decisión 2 del Dr. Este archivo dejaba el
+     * SDD FUERA del panel porque a qué categoría correspondía era criterio
+     * clínico y estaba sin decidir. Ya está decidido: **entra, y entra COMO
+     * SDD** — categoría propia, ni S ni I.
+     *
+     * Lo que esta prueba fija sigue siendo exactamente lo mismo que fijaba
+     * antes: que no se convierta en otra cosa por el camino.
      */
-    expect(entrada.resultados.map(r => r.antibiotico)).not.toContain('Cefepime')
+    const fila = entrada.resultados.find(r => r.antibiotico === 'Cefepime')
+    expect(fila, 'ahora sí entra').toBeDefined()
+    expect(fila!.interpretacion).toBe('SDD')
+    expect(fila!.interpretacion).not.toBe('S')
+    expect(fila!.interpretacion).not.toBe('I')
   })
 
   it('lo ilegible se queda fuera y se avisa — nunca se asume sensible', () => {
@@ -151,6 +159,8 @@ describe('lo que no cabe en el panel, se DICE', () => {
   it('y lo legible pasa entero, con su símbolo', () => {
     expect(entrada.resultados).toEqual([
       { antibiotico: 'Meropenem', interpretacion: 'S', cmi: 0.25, cmiCensurada: '<' },
+      // Entra con su categoría propia y con su CMI: decisión 2 del Dr.
+      { antibiotico: 'Cefepime', interpretacion: 'SDD', cmi: 4 },
       { antibiotico: 'Amikacina', interpretacion: 'S' },
     ])
   })

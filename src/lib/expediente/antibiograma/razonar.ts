@@ -24,6 +24,9 @@ export function resumenDeterminista(entrada: EntradaAntibiograma, r: Interpretac
   const panel = efectivos.map(x => {
     const editado = x.interpretacionLab && x.interpretacionLab !== x.interpretacion
     return `${x.antibiotico}=${x.interpretacion}`
+      // SDD no es S: se le pega la condición para que el modelo no pueda leerlo
+      // como «sensible» a secas (decisión 2 del Dr.).
+      + (x.interpretacion === 'SDD' ? ' [SDD: utilizable SÓLO con exposición aumentada — dosis mayor, mayor frecuencia o infusión prolongada; NO equivale a S ni a I]' : '')
       + (typeof x.cmi === 'number' ? ` (CMI ${x.cmiCensurada ?? ''}${x.cmi})` : '')
       + (editado ? ` [EDITADO por regla experta: el laboratorio reportó ${x.interpretacionLab}]` : '')
   }).join(', ')

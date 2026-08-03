@@ -27,9 +27,42 @@
 
 export type SIR = 'S' | 'I' | 'R'
 
+/**
+ * LO QUE PUEDE VENIR EN UNA CELDA DEL PANEL — incluido SDD.
+ *
+ * ── DECISIÓN 2 DEL DR. (3-ago-2026) ──────────────────────────────────────────
+ *
+ * CLSI define **SDD** (susceptible dosis-dependiente) como una categoría PROPIA,
+ * distinta de S y de I: la probabilidad de eficacia depende de emplear mayor
+ * exposición —dosis mayor, mayor frecuencia o infusión prolongada—. CLSI
+ * recomienda transmitirla explícitamente como `SDD` o, cuando el sistema sólo
+ * admite un carácter, como `D`.
+ *
+ *     categoria_original            = SDD
+ *     utilizable                    = sí, condicional
+ *     requiere_exposicion_aumentada = sí
+ *     equivalente_a_S               = no
+ *     equivalente_a_I               = no
+ *
+ * Hasta ahora el panel trabajaba SÓLO en S/I/R, así que un SDD reportado por el
+ * laboratorio se quedaba fuera y se nombraba en un aviso. Eso desperdiciaba
+ * información clínicamente relevante — palabras del Dr.
+ *
+ * `SIR` se conserva tal cual para todo lo que de verdad son tres categorías (la
+ * salida de un punto de corte, por ejemplo). Lo que se amplía es lo que puede
+ * REPORTAR un laboratorio.
+ *
+ * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 2.
+ */
+export type CategoriaPanel = SIR | 'SDD'
+
 export interface ResultadoAntibiograma {
   antibiotico: string
-  interpretacion: SIR
+  /**
+   * La categoría con la que razona el motor. Puede ser `SDD`: NO se convierte a
+   * S ni a I, porque el Dr. lo prohibió explícitamente (decisión 2).
+   */
+  interpretacion: CategoriaPanel
   /** CMI en mg/L (µg/mL) si se reportó. */
   cmi?: number
   /**
@@ -190,8 +223,16 @@ export interface CategoriaCMI {
    */
   cmiCensurada?: '>' | '<'
   categoriaCLSI: 'S' | 'SDD' | 'I' | 'R'
-  /** Categoría que reportó el laboratorio (si se capturó). */
+  /** Categoría que reportó el laboratorio (si se capturó). `undefined` si fue SDD. */
   categoriaReportada?: SIR
+  /**
+   * El laboratorio reportó **SDD** para este fármaco.
+   *
+   * Va aparte y no dentro de `categoriaReportada` porque SDD no es comparable
+   * con el punto de corte: no es S ni I ni R. Decisión 2 del Dr.: utilizable
+   * SÓLO con exposición aumentada, y nunca almacenado como S.
+   */
+  reportadoSDD?: boolean
   /** true concuerda, false discrepa, null no reportada. */
   concuerda: boolean | null
   /** El punto de corte aplica solo a IVU no complicada. */
