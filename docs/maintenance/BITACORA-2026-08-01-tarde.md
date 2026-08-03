@@ -1942,6 +1942,72 @@ el sistema diseñado para eso.
 
 ---
 
+## NONAGÉSIMA CUARTA TANDA — v945 · EL ARCHIVO QUE DECÍA «EXPEDIENTE»
+
+**Cierra D1 de la cola del equipo.**
+
+### No era el expediente
+
+El único botón de exportación descargaba `expediente_<nombre>_FHIR_R4.json` con
+el paciente y **sólo las notas firmadas**. Quedaban fuera, todas escritas por la
+propia aplicación y todas declaradas en `firestore.rules`:
+
+- las **adendas** — la enmienda a una nota firmada, parte legal del expediente
+  (NOM-004);
+- las versiones previas a la firma;
+- los **laboratorios**;
+- la **fotografía clínica** seriada;
+- el **resumen clínico** (alergias estructuradas, antecedentes);
+- los formularios previos;
+- los **internamientos con sus signos**;
+- las citas y la **bitácora de accesos**.
+
+Y los borradores se descartaban **en silencio**: contenido clínico sin firmar
+desaparecía sin que nadie lo señalara.
+
+**Un archivo llamado «expediente» que no lo es no falla**: se entrega, se recibe,
+y los dos lados creen que ahí está todo.
+
+### El manifiesto, y el guardián que lo vigila
+
+`src/lib/expediente/exportacion.ts` es ahora la **lista única de qué es un
+expediente**, y `exportacion-completa.test.ts` la compara contra las rutas
+`match /` que `firestore.rules` declara bajo `patients/{docId}`:
+
+> **Añadir una subcolección al paciente y no declararla en la exportación pone el
+> CI en rojo.**
+
+Es la única forma de que la próxima no vuelva a quedarse fuera — porque esto ya
+se olvidó una vez.
+
+### `faltantes` es el campo más importante del archivo
+
+Un expediente incompleto que **no dice** que está incompleto es peor que no
+entregarlo. Una sección ilegible se declara y **no tumba el archivo** —uno al
+90 % que dice qué le falta es útil; uno que revienta entero no le sirve a nadie—
+y el recorte por tope también se declara, porque un recorte que nadie ve se lee
+como «eso era todo».
+
+### Lo demás
+
+- Va con el permiso del **médico**, no el del mostrador: baja diagnósticos,
+  medicamentos y alergias, que NOM-004 reserva al médico.
+- El asiento de auditoría lo escribe el **servidor**. Antes lo escribía el
+  navegador que ejecutaba la descarga — el mismo código que podría saltárselo.
+- **No promete empaquetar binarios**: de las fotos entrega la ficha y la
+  referencia. Prometer un ZIP que no existe sería peor que declararlo.
+- El botón de FHIR ahora **dice** cuántas notas en borrador deja fuera.
+
+- `src/lib/expediente/exportacion.ts` (nuevo, puro),
+  `src/app/api/expediente/exportar/[patientId]/route.ts` (nueva),
+  `expediente/[patientId]/page.tsx`, `lib/authz/registro-rutas.ts`
+- `src/__tests__/exportacion-completa.test.ts` — 22 pruebas. Total 5194.
+
+**Queda de D1**: enriquecer el Bundle FHIR con lo mismo y unificar las dos
+implementaciones FHIR divergentes.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
