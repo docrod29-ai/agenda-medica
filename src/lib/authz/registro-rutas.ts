@@ -353,6 +353,10 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'cron/reminders': { tipo: 'cron', motivo: 'Recordatorios nocturnos. Autenticado por `CRON_SECRET`; no hay usuario.' },
   'health': { tipo: 'publica', motivo: 'Estado del sistema para un monitor externo. Sólo booleanos, latencias y la versión: ni una clave, ni un dato de paciente. Sin sesión a propósito — un endpoint de salud detrás de login no lo mira nadie a las 3am.' },
   'cron/retencion': { tipo: 'cron', motivo: 'Barre las colecciones OPERATIVAS de plataforma que crecen sin techo. Nada clínico. Autenticado por `CRON_SECRET`; no hay usuario.' },
+  'cron/asientos': {
+    tipo: 'cron',
+    motivo: 'Concilia el cobro por asiento de todos los consultorios. Fail-closed: sin CRON_SECRET no corre, porque un endpoint que MUEVE DINERO no puede quedar abierto.',
+  },
   'cron/vigilante': { tipo: 'cron', motivo: 'Vigila los latidos de los otros crons y avisa. Autenticado por `CRON_SECRET`; no hay usuario.' },
   'cron/limpiar-audio': { tipo: 'cron', motivo: 'Barrido diario del audio de consulta abandonado en Storage. Autenticado por `CRON_SECRET`; no hay usuario.' },
 }

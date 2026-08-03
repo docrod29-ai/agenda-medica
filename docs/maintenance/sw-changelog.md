@@ -21,6 +21,47 @@ historia vive aquí.
 
 ---
 
+## v965 — el cobro por médico dependía de que alguien pulsara un botón (N4)
+
+VERIFICADO: en todo el repositorio hay **un solo sitio que escribe
+`medicosContratados`** — el POST del botón «sincronizar» de una pantalla de
+configuración. Nada más. Ni el alta de un miembro, ni un cron, ni el webhook.
+
+Mientras tanto el CUPO de IA escala con los médicos PRESENTES (`contarMedicos`
+sobre `clinic_members`) y se aplica al instante. Así que un consultorio da de
+alta cinco médicos, los cinco reciben su cuota esa misma tarde, y la suscripción
+sigue cobrando uno — indefinidamente. **Es una fuga que crece con el éxito:**
+cuanto mejor le va al cliente, más regala la plataforma. Y el desajuste tampoco
+se ve: `requiereActualizar` sólo aparece si alguien abre esa pantalla concreta de
+ese consultorio concreto.
+
+POR QUÉ NO SE ARREGLA BAJANDO EL CUPO: la tentación es que el cupo siga a lo
+contratado —«que reciba lo que paga»— y se acabó la fuga. Sería el error de v944
+otra vez: un consultorio con cuatro médicos de alta y el contador en uno —porque
+nadie pulsó nunca el botón— vería su presupuesto de IA dividido entre cuatro de
+un día para otro, sin haber hecho nada mal. **El cupo sigue a los presentes; lo
+que se arregla es que el cobro deje de depender de un clic.**
+
+VA EN LOS DOS SENTIDOS, y no es un detalle: el cron también ajusta A LA BAJA. Un
+consultorio que da de baja a dos médicos deja de pagar por ellos esa misma noche
+sin tener que pedirlo. Un cobro automático que sólo sube no es una conciliación:
+es una trampa, y la primera vez que un cliente lo note se lleva por delante la
+confianza en todo lo demás.
+
+UNA SOLA IMPLEMENTACIÓN: la regla —«si Stripe no se pudo ajustar, NO se marca
+como contratado»— se extrajo a `lib/finanzas/asientos.ts` y la usan el botón y el
+cron. Copiarla habría garantizado que un día difirieran, y la que difiriera
+dejaría médicos habilitados sin cobrar hasta el cierre de mes. La decisión está
+separada del efecto (`queHacer` no toca Stripe), así que la parte que se puede
+equivocar se prueba sin red.
+
+El cron es fail-closed sin `CRON_SECRET` —un endpoint que MUEVE DINERO no queda
+abierto—, un consultorio que falla no detiene a los demás, y los que no se
+pudieron conciliar salen NOMBRADOS en la respuesta con su motivo: uno del que
+nadie se entera es la fuga de antes con un cron delante. +18 casos.
+
+---
+
 ## v964 — el catálogo de precios llegaba al escaparate y no a la caja (N3)
 
 VERIFICADO: el catálogo editable existe, está probado, y lo leen `/api/planes` y

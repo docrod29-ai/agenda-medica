@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(95)   // +1 el 2026-08-03: `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(96)   // +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -503,6 +503,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
      */
     expect(sinGuardia).toEqual([
       'calendar/callback',
+      /**
+       * Concilia el cobro por asiento de todos los consultorios. Mismo
+       * `CRON_SECRET` fail-closed, y por una razón más fuerte todavía: un
+       * endpoint que MUEVE DINERO no puede quedar abierto.
+       */
+      'cron/asientos',
       'cron/limpiar-audio',
       'cron/reminders',
       /**

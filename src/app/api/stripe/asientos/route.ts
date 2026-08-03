@@ -14,7 +14,8 @@ import { verificarMiembro } from '@/lib/auth-server'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { stripe, priceMedicoDe, nivelDePlan, type PlanKey } from '@/lib/stripe'
 import { contarMedicos } from '@/lib/ai-keys'
-import { MEDICO_EXTRA, planPorNivel } from '@/lib/planes-ia'
+import { MEDICO_EXTRA } from '@/lib/planes-ia'
+import { queHacer, itemsParaStripe, itemPrevio } from '@/lib/finanzas/asientos'
 
 type Any = Record<string, unknown>
 const ES_PLAN_ASIENTOS = (p: string): p is 'clinica' | 'premium' => p === 'clinica' || p === 'premium'
@@ -64,53 +65,42 @@ export async function POST(req: NextRequest) {
     const st = await estado(clinicId)
     if (!st.conAsientos) return NextResponse.json({ ok: true, ...st, aviso: 'Este plan no cobra por asiento.' })
 
-    const extras = Math.max(0, st.medicos - 1)
     const seatPrice = priceMedicoDe(st.plan as PlanKey)
 
     /**
-     * SI STRIPE NO SE PUEDE AJUSTAR, NO SE MARCA COMO CONTRATADO.
+     * LA REGLA VIVE EN `lib/finanzas/asientos.ts`, NO AQUÍ.
      *
-     * `medicosContratados` se escribía SIEMPRE, fuera del `if`. Tres caminos
-     * llevaban a «contratado sin cobrar»:
+     * Estaba escrita en este bloque y sólo en él, y por eso la fuga: el ÚNICO
+     * sitio del repositorio que escribe `medicosContratados` es este botón, y
+     * nadie lo pulsa. Ahora la misma decisión la toma el cron nocturno con esta
+     * misma función — copiarla habría garantizado que un día difirieran, y la
+     * que difiriera dejaría médicos habilitados sin cobrar.
      *
-     *  · sin `stripeSubscriptionId` (justo lo que provocaba la cancelación
-     *    indebida al cambiar de plan) → se marcaban 5 médicos y Stripe cobraba 1;
-     *  · sin `STRIPE_PRICE_*_MEDICO` configurado → `seatPrice` vacío, misma marca;
-     *  · sin extras y sin ítem previo → no se llama a Stripe y aun así se escribía.
-     *
-     * Y como `requiereActualizar` es la única señal de desajuste, en cuanto se
-     * escribía el número el aviso desaparecía: el desfase quedaba invisible y
-     * nadie volvía a mirarlo.
+     * SI STRIPE NO SE PUEDE AJUSTAR, NO SE MARCA COMO CONTRATADO. Tres caminos
+     * llevaban a «contratado sin cobrar»: sin `stripeSubscriptionId`, sin
+     * `STRIPE_PRICE_*_MEDICO`, o sin extras y sin ítem previo. Y como
+     * `requiereActualizar` es la única señal de desajuste, en cuanto se escribía
+     * el número el aviso desaparecía y el desfase quedaba invisible.
      */
-    let ajustadoEnStripe = false
+    const plan = queHacer({
+      conAsientos: st.conAsientos, medicos: st.medicos, contratados: st.contratados,
+      stripeSubscriptionId: st.stripeSubscriptionId, seatPrice,
+    })
 
-    // Ajusta la suscripción en Stripe (si existe y hay precio de asiento configurado).
-    if (st.stripeSubscriptionId && seatPrice) {
+    if (plan.estado === 'no_ajustable') {
+      return NextResponse.json({
+        ok: false,
+        error: `No se pudo actualizar el cobro de médicos adicionales: ${plan.porQue}. No se marcan como contratados para no dejar médicos habilitados sin cobrar.`,
+        ...(await estado(clinicId)),
+      }, { status: 409 })
+    }
+
+    if (plan.estado === 'ajustado') {
       const sub = await stripe.subscriptions.retrieve(st.stripeSubscriptionId)
-      const seatItem = sub.items.data.find(i => i.price.id === seatPrice)
-      const items: { id?: string; price?: string; quantity?: number; deleted?: boolean }[] = []
-      if (extras > 0) {
-        items.push(seatItem ? { id: seatItem.id, quantity: extras } : { price: seatPrice, quantity: extras })
-      } else if (seatItem) {
-        items.push({ id: seatItem.id, deleted: true })
-      }
+      const items = itemsParaStripe(plan.extras, seatPrice, itemPrevio(sub, seatPrice))
       if (items.length) {
         await stripe.subscriptions.update(st.stripeSubscriptionId, { items, proration_behavior: 'create_prorations' })
       }
-      // Sin ítems que enviar (ni extras ni asiento previo) el estado en Stripe
-      // ya es el correcto: no hay nada que cobrar y nada que quitar.
-      ajustadoEnStripe = true
-    }
-
-    if (!ajustadoEnStripe) {
-      const porQue = !st.stripeSubscriptionId
-        ? 'este consultorio no tiene una suscripción activa en Stripe'
-        : 'no hay precio de médico adicional configurado para este plan'
-      return NextResponse.json({
-        ok: false,
-        error: `No se pudo actualizar el cobro de médicos adicionales: ${porQue}. No se marcan como contratados para no dejar médicos habilitados sin cobrar.`,
-        ...(await estado(clinicId)),
-      }, { status: 409 })
     }
 
     await adminDb.collection('clinics').doc(clinicId).set({ medicosContratados: st.medicos }, { merge: true })
