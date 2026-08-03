@@ -458,11 +458,32 @@ service cloud.firestore {
         allow create: if isClinicoHospital(clinicId);
         allow update, delete: if isLabStaff(clinicId);
       }
-      // Alertas hospitalarias (lab crítico, NEWS2, interconsulta). Se crean y se
-      // atienden/resuelven (create+update), pero NO se borran desde el cliente: una
-      // alerta crítica no debe poder desaparecer con un delete (reporte externo).
+      /**
+       * Alertas hospitalarias (lab crítico, NEWS2, interconsulta).
+       *
+       * `delete: if false` ya impedía que una alerta crítica desapareciera. Pero
+       * el `update` estaba abierto a TODO el documento, y el documento ES el
+       * registro: `titulo`, `detalle` y `tipo` son el contenido clínico de la
+       * alerta. Se podía reescribir «Deterioro clínico — NEWS2 9 (alto)» o
+       * cambiarle el tipo desde la consola del navegador, y no quedaría rastro,
+       * porque no hay un original con el que comparar.
+       *
+       * Borrarla estaba prohibido y vaciarla no: la misma alerta, dicha de otra
+       * forma.
+       *
+       * Lo único que la aplicación actualiza es `leida` —una marca de bandeja, no
+       * un juicio clínico—, así que es lo único que se permite. Misma forma que
+       * `icu_observations` y `signos`.
+       *
+       * Si algún día se añade otro campo de ciclo de vida (`atendidaPor`, por
+       * ejemplo), esta lista tiene que crecer A PROPÓSITO. Que falle en
+       * desarrollo es la intención: es como se nota que se está tocando el
+       * contenido de una alerta y no su bandeja.
+       */
       match /hospital_alertas/{alertaId} {
-        allow read, create, update: if isClinicoHospital(clinicId);
+        allow read, create: if isClinicoHospital(clinicId);
+        allow update: if isClinicoHospital(clinicId)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['leida']);
         allow delete: if false;
       }
       // Catálogo de camas (inventario + ocupación). LEE todo el staff clínico;
