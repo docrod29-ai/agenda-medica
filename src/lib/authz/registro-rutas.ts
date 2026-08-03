@@ -243,6 +243,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── consultorio: config, equipo, plataforma ──────────────────────────────
   'cumplimiento/bitacora': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/exportar': { tipo: 'capacidad', capacidad: 'administrar' },
+  'clinic/exportar-csv': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'clinic/importar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/ai-keys': {
     tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' },

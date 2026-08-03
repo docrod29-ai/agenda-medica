@@ -17,17 +17,30 @@
  * Quien lo pide es un abogado, un auditor o el propio titular. Abren una hoja de
  * cálculo, no un editor de texto.
  *
- * ── EL DETALLE QUE ARRUINA UN CSV EN SILENCIO ────────────────────────────────
+ * ── DOS FORMAS DE ARRUINAR UN CSV, Y LA SEGUNDA ES PEOR ──────────────────────
  *
- * Un campo con una coma, unas comillas o un salto de línea **desplaza todas las
- * columnas siguientes** — y el archivo se abre igual, sin error, con los datos
- * corridos. `meta` es texto libre puesto por veinte sitios distintos, así que
- * pasa. Por eso todo campo se entrecomilla siempre y las comillas se duplican,
- * que es lo que dice RFC 4180 y lo que Excel espera.
+ * **1. El escapado.** Un campo con una coma, unas comillas o un salto de línea
+ * desplaza todas las columnas siguientes — y el archivo se abre igual, sin
+ * error, con los datos corridos. `meta` es texto libre puesto por veinte sitios
+ * distintos, así que pasa.
+ *
+ * **2. La inyección de fórmulas.** Excel y Sheets **ejecutan** cualquier celda
+ * que empiece por `=`, `+`, `-` o `@`. Si ese texto lo escribió otra persona —el
+ * nombre de un paciente, una nota, cualquier cosa que acabe en `meta`—, quien
+ * ejecuta la fórmula al abrir el archivo es **el propio médico**, o el auditor.
+ *
+ * Y aquí está lo importante: **entrecomillar NO protege de lo segundo**. Excel
+ * evalúa igual. La primera versión de este archivo entrecomillaba todo y se creía
+ * a salvo; el repositorio ya tenía la defensa correcta desde antes
+ * (`lib/csv-seguro.ts`, apóstrofo delante según OWASP) y no la estaba usando.
+ *
+ * Escribir la mitad de una defensa es peor que no escribirla: se da por
+ * resuelto lo que sigue abierto.
  *
  * Módulo PURO.
  */
 import { etiquetaEvento } from '@/lib/expediente/audit-eventos'
+import { celdaSegura } from '@/lib/csv-seguro'
 
 export interface AsientoBitacora {
   id?: string
@@ -50,15 +63,16 @@ export const COLUMNAS = [
 ] as const
 
 /**
- * Un campo de CSV, siempre entrecomillado.
+ * Un campo de CSV: escapado Y neutralizado contra fórmulas.
  *
- * Entrecomillar SIEMPRE —y no sólo cuando hace falta— quita la decisión de en
- * medio: no hay caso raro que se escape. Las comillas internas se duplican.
+ * Delega en `celdaSegura`, que es la defensa que el repositorio ya tenía. Lo
+ * único que se añade aquí es que un objeto viaje como JSON en vez de como
+ * `[object Object]` — `meta` es un objeto y perderlo entero sería vaciar la
+ * columna que explica cada asiento.
  */
 export function campo(v: unknown): string {
-  if (v === null || v === undefined) return '""'
-  const t = typeof v === 'object' ? JSON.stringify(v) : String(v)
-  return `"${t.replace(/"/g, '""')}"`
+  if (v === null || v === undefined) return ''
+  return celdaSegura(typeof v === 'object' ? JSON.stringify(v) : v)
 }
 
 /** Una fila del CSV a partir de un asiento. */
@@ -93,9 +107,10 @@ export function csvDeBitacora(asientos: AsientoBitacora[]): string {
   return [cabecera(), ...asientos.map(fila)].join('\n') + '\n'
 }
 
-export const POR_QUE_SE_ENTRECOMILLA_TODO =
-  'Un campo con una coma, unas comillas o un salto de línea desplaza todas las ' +
-  'columnas siguientes, y el archivo se abre igual, sin error, con los datos ' +
-  'corridos. `meta` es texto libre puesto por veinte sitios distintos, así que ' +
-  'pasa. Entrecomillar siempre quita la decisión de en medio: no queda caso ' +
-  'raro que se escape.'
+export const POR_QUE_NO_BASTA_ENTRECOMILLAR =
+  'Entrecomillar arregla que una coma desplace las columnas, pero NO la ' +
+  'inyección de fórmulas: Excel ejecuta igual una celda que empieza por = + - @, ' +
+  'y quien la ejecuta al abrir el archivo es el propio médico o el auditor. La ' +
+  'defensa correcta es el apóstrofo delante (OWASP), y ya estaba escrita en ' +
+  '`lib/csv-seguro.ts`. Escribir la mitad de una defensa es peor que no ' +
+  'escribirla: se da por resuelto lo que sigue abierto.'

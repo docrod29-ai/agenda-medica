@@ -26,7 +26,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  campo, fila, cabecera, csvDeBitacora, COLUMNAS, POR_QUE_SE_ENTRECOMILLA_TODO,
+  campo, fila, cabecera, csvDeBitacora, COLUMNAS, POR_QUE_NO_BASTA_ENTRECOMILLAR,
 } from '@/lib/expediente/bitacora-csv'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
@@ -46,23 +46,53 @@ describe('el escapado, que es donde un CSV muere en silencio', () => {
     expect(campo('linea1\nlinea2')).toBe('"linea1\nlinea2"')
   })
 
-  it('TODO va entrecomillado, incluso lo inofensivo', () => {
-    // Entrecomillar siempre quita la decisión de en medio: no queda caso raro
-    // que se escape.
-    expect(campo('simple')).toBe('"simple"')
-    expect(campo(42)).toBe('"42"')
-    expect(campo(null)).toBe('""')
-    expect(campo(undefined)).toBe('""')
-  })
-
   it('`meta` viaja como JSON, no aplanado a [object Object]', () => {
     const f = fila({ meta: { accion: 'x', n: 2 } })
-    expect(f).toContain('{""accion"":""x"",""n"":2}')
+    expect(f).toContain('""accion"":""x""')
     expect(f).not.toContain('[object Object]')
   })
+})
 
-  it('está escrito por qué', () => {
-    expect(POR_QUE_SE_ENTRECOMILLA_TODO).toMatch(/desplaza todas las columnas/i)
+describe('la inyección de fórmulas, que es PEOR y que entrecomillar no arregla', () => {
+  /**
+   * Excel y Sheets **ejecutan** una celda que empieza por `= + - @`. Ese texto
+   * puede venir del nombre de un paciente o de una nota, y quien ejecuta la
+   * fórmula al abrir el archivo es **el propio médico**, o el auditor.
+   *
+   * La primera versión de este módulo (v949, mía) entrecomillaba todo y se creía
+   * a salvo. El repositorio ya tenía la defensa correcta desde antes
+   * —`lib/csv-seguro.ts`, apóstrofo delante según OWASP— y no la estaba usando.
+   *
+   * Escribir la mitad de una defensa es peor que no escribirla: se da por
+   * resuelto lo que sigue abierto.
+   */
+  it('una celda que empieza por `=` se neutraliza', () => {
+    expect(campo('=1+1').startsWith("'")).toBe(true)
+    expect(campo('=HYPERLINK("http://x","clic")')).toContain("'=")
+  })
+
+  it('y también `+`, `-` y `@`', () => {
+    for (const c of ['+1', '-1', '@SUM(A1)']) {
+      expect(campo(c).startsWith("'"), c).toBe(true)
+    }
+  })
+
+  it('llega hasta `meta`, que es por donde entraría', () => {
+    // `meta` es texto libre puesto por veinte sitios distintos.
+    expect(fila({ meta: '=cmd|calc' })).toContain("'=cmd|calc")
+  })
+
+  it('lo inofensivo NO se toca', () => {
+    // Ensuciar cada celda haría el archivo ilegible sin ganar nada.
+    expect(campo('simple')).toBe('simple')
+    expect(campo(42)).toBe('42')
+    expect(campo(null)).toBe('')
+    expect(campo(undefined)).toBe('')
+  })
+
+  it('está escrito por qué entrecomillar no bastaba', () => {
+    expect(POR_QUE_NO_BASTA_ENTRECOMILLAR).toMatch(/Excel ejecuta igual/i)
+    expect(POR_QUE_NO_BASTA_ENTRECOMILLAR).toMatch(/mitad de una defensa/i)
   })
 })
 
@@ -77,17 +107,17 @@ describe('el CSV que lee un auditor', () => {
      * El auditor lee la etiqueta; quien revise el sistema necesita el código
      * exacto. Sustituir uno por otro obliga a elegir a quién dejar fuera.
      */
-    const f = fila({ evento: 'export_datos' })
-    expect(f).toContain('"export_datos"')
-    const partes = f.split(',')
-    expect(partes[2]).not.toBe('""')
-    expect(partes[2]).not.toBe('"export_datos"')
+    const partes = fila({ evento: 'export_datos' }).split(',')
+    expect(partes[1]).toBe('export_datos')
+    expect(partes[2]).not.toBe('')
+    expect(partes[2]).not.toBe('export_datos')
   })
 
   it('un evento desconocido no revienta ni queda en blanco', () => {
     // La bitácora es vieja: puede traer eventos de versiones anteriores.
-    const f = fila({ evento: 'evento_de_otra_epoca' })
-    expect(f).toContain('"evento_de_otra_epoca"')
+    const partes = fila({ evento: 'evento_de_otra_epoca' }).split(',')
+    expect(partes[1]).toBe('evento_de_otra_epoca')
+    expect(partes[2]).toBe('evento_de_otra_epoca')
   })
 
   it('el archivo trae cabecera y una línea por asiento', () => {
