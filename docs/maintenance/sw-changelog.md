@@ -21,6 +21,36 @@ historia vive aquí.
 
 ---
 
+## v955 — la consola del dueño dejó de escanear tablas enteras
+
+La página por omisión del panel hacía `adminDb.collection('clinics').get()` y
+`adminDb.collection('platform_payments').get()` SIN LIMIT NI WHERE —y
+platform_payments crece un documento por cada cargo de Stripe, PARA SIEMPRE—, y
+después, dentro del map, una lectura más de `secretos/ia` POR CADA CONSULTORIO:
+un N+1 sobre una lista sin techo. Era la primera pantalla que daría timeout.
+
+LA TRAMPA DE ARREGLARLO: poner un limit y ya está convierte «ingreso histórico»
+en «ingreso de lo que cupo», con el mismo nombre y el mismo aspecto. Un recorte
+que nadie ve se lee como el total — y sobre ese número se toman decisiones de
+precio. Es el mismo fallo que esta sesión lleva persiguiendo desde el limit(60)
+de la lista de espera.
+
+Así que se acota Y se devuelve el ALCANCE: ventana de doce meses (cubre el año
+fiscal y la comparación interanual; el histórico completo vive en Stripe, que es
+su sitio — la consola no es el libro mayor), tope declarado, y la etiqueta
+GRITA si se alcanzó. El KPI dejó de llamarse «Ingreso histórico» y ahora dice
+«Ingreso cobrado» con la ventana debajo; si la lista de consultorios se corta,
+la pantalla lo avisa; y el CSV que se le manda al contador lleva su propia fila
+de ALCANCE. El nombre cambia con el dato.
+
+Y el N+1 desapareció con `getAll`: las mismas lecturas en una sola ida. Si esa
+lectura en bloque falla, no tumba la pantalla — el nivel de IA es un adorno de la
+fila, la lista de clientes no.
+
+18 pruebas más (5394).
+
+---
+
 ## v954 — el barrendero que no existía
 
 Había dos crons y NINGUNO borraba nada de Firestore —`limpiar-audio` toca sólo

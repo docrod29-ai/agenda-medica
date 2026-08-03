@@ -2588,6 +2588,58 @@ puerta a aplicar dos veces el mismo pago.
 
 ---
 
+## CENTÉSIMA CUARTA TANDA — v955 · LA CONSOLA QUE ESCANEABA TODO
+
+**Cierra I6. Con esto queda cerrado el frente de Ingeniería entero.**
+
+### La primera pantalla que daría timeout
+
+```ts
+adminDb.collection('clinics').get(),
+adminDb.collection('platform_payments').get(),
+```
+
+**Sin `limit`, sin `where`** — y `platform_payments` crece un documento por cada
+cargo de Stripe, **para siempre**. Después, dentro del `map`, una lectura más de
+`secretos/ia` **por cada consultorio**: un N+1 sobre una lista sin techo.
+
+Es la página por omisión del panel.
+
+### La trampa de arreglarlo
+
+Poner un `limit` y ya está convierte «ingreso histórico» en «ingreso de lo que
+cupo», con el mismo nombre y el mismo aspecto. **Un recorte que nadie ve se lee
+como el total** — y sobre ese número se toman decisiones de precio.
+
+Es el mismo fallo que esta sesión lleva persiguiendo desde el `limit(60)` de la
+lista de espera.
+
+### Se acota Y se declara el alcance
+
+- Ventana de **doce meses**: cubre el año fiscal y la comparación interanual, que
+  es para lo que se mira esta pantalla. El histórico completo vive en Stripe, que
+  es su sitio — la consola no es el libro mayor.
+- La etiqueta **grita** si se alcanzó el tope.
+- El KPI dejó de llamarse «Ingreso histórico»: ahora dice **«Ingreso cobrado»**
+  con la ventana debajo. **El nombre cambia con el dato.**
+- Si la lista de consultorios se corta, la pantalla lo **avisa** — una lista que
+  se corta en silencio se lee como «ésos son todos», y sobre esa lectura se
+  decide a quién llamar.
+- Y el **CSV que se le manda al contador** lleva su propia fila de `ALCANCE`.
+
+### El N+1 desapareció
+
+`getAll` hace las mismas lecturas en **una sola ida**. Y si esa lectura en bloque
+falla, no tumba la pantalla: el nivel de IA es un adorno de la fila, la lista de
+clientes no.
+
+- `src/lib/ops/alcance.ts` (nuevo, puro),
+  `api/superadmin/clientes/route.ts`, `api/superadmin/contabilidad/route.ts`,
+  `superadmin/page.tsx`, `superadmin/contabilidad/page.tsx`
+- `src/__tests__/consola-acotada.test.ts` — 18 pruebas. Total 5394.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

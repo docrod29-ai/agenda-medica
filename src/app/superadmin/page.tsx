@@ -25,7 +25,16 @@ interface Cliente {
   consultasMes: number; limiteConsultas: number
 }
 interface Paquete { id: string; nombre: string; precio: number; modulos: string[]; descripcion?: string; activo?: boolean; orden?: number; modeloPrecio?: ModeloPrecio; precioBase?: number; precioPorUnidad?: number }
-interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoTotal: number; ingresoMes: number }
+interface Totales { clinicas: number; activas: number; enPrueba: number; deben: number; cortesia: number; mrr: number; ingresoVentana: number; ingresoMes: number }
+/**
+ * HASTA DÓNDE MIRÓ LA CONSULTA.
+ *
+ * La API leía `clinics` y `platform_payments` ENTERAS. Acotarlas sin decirlo
+ * habría convertido «ingreso histórico» en «ingreso de lo que cupo», con el
+ * mismo nombre y el mismo aspecto — y sobre ese número se toman decisiones de
+ * precio. Por eso el alcance viaja y se enseña.
+ */
+interface Alcance { desde: string | null; recortado: boolean; etiqueta: string }
 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
 const PLAN_LABEL: Record<string, string> = { trial: 'Prueba', cortesia: 'Pase libre', agenda: 'Agenda', clinica: 'Clínica', premium: 'Pro', hospital: 'Hospital', basico: 'Básico (viejo)', pro: 'Pro (viejo)' }
@@ -41,6 +50,7 @@ export default function SuperadminPage() {
   const { user, loading: authLoading } = useAuth()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [totales, setTotales] = useState<Totales | null>(null)
+  const [alcance, setAlcance] = useState<{ cobros: Alcance; consultorios: Alcance } | null>(null)
   const [paquetes, setPaquetes] = useState<Paquete[]>([])
   const [loading, setLoading] = useState(true)
   const [denegado, setDenegado] = useState(false)
@@ -62,7 +72,7 @@ export default function SuperadminPage() {
       const res = await fetchAutenticado('/api/superadmin/clientes')
       if (res.status === 403) { setDenegado(true); setLoading(false); return }
       const d = await res.json()
-      if (d.ok) { setClientes(d.clientes); setTotales(d.totales); setDenegado(false); cargarPaquetes() }
+      if (d.ok) { setClientes(d.clientes); setTotales(d.totales); setAlcance(d.alcance ?? null); setDenegado(false); cargarPaquetes() }
     } catch { /* */ }
     setLoading(false)
   }, [cargarPaquetes])
@@ -143,12 +153,27 @@ export default function SuperadminPage() {
         <PaquetesManager paquetes={paquetes} onCambio={cargarPaquetes} />
       ) : (
       <>
+      {/*
+        SI SE RECORTÓ, SE VE.
+
+        Una lista que se corta en silencio se lee como «esos son todos los
+        consultorios», y sobre esa lectura se decide a quién llamar.
+      */}
+      {alcance?.consultorios.recortado && (
+        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, fontSize: 13,
+          border: '1px solid var(--amber, #b45309)', color: 'var(--text)' }}>
+          Sólo se están enseñando los {alcance.consultorios.etiqueta}. Hay más consultorios que no
+          caben en esta lectura.
+        </div>
+      )}
       {/* KPIs */}
       {totales && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           <Kpi label="Ingreso del mes" valor={mxn(totales.ingresoMes)} color="var(--teal)" />
           <Kpi label="MRR (estimado)" valor={mxn(totales.mrr)} sub="/mes recurrente" />
-          <Kpi label="Ingreso histórico" valor={mxn(totales.ingresoTotal)} />
+          <Kpi label="Ingreso cobrado" valor={mxn(totales.ingresoVentana)}
+            sub={alcance?.cobros.etiqueta ?? 'ventana no declarada'}
+            color={alcance?.cobros.recortado ? 'var(--amber)' : undefined} />
           <Kpi label="Activas" valor={String(totales.activas)} color="var(--teal)" />
           <Kpi label="En prueba" valor={String(totales.enPrueba)} color="var(--amber)" />
           <Kpi label="Deben" valor={String(totales.deben)} color={totales.deben ? '#dc2626' : 'var(--text)'} />

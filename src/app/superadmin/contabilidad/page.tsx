@@ -25,6 +25,7 @@ function ultimos12(): string[] {
 interface Cliente { id: string; nombre: string; plan: string; planLabel: string; activa: boolean; mrr: number; ingresoTotal: number; creditos: number; costoIA: number; margen: number | null }
 interface Data {
   ok: boolean; mes: string
+  alcance?: { cobros: { desde: string | null; recortado: boolean; etiqueta: string }; consultorios: { desde: string | null; recortado: boolean; etiqueta: string } }
   resumen: { ingresoMes: number; ivaMes: number; ingresoSinIva: number; costoIA: number; costoStripe: number; costoInfra: number; costoTotal: number; utilidad: number; margen: number; mrr: number; activas: number; clinicas: number; creditosMes: number; ingresoTotalHist: number; numPagosMes: number; churn?: { bajasDelMes: number; base: number; tasa: number | null; mrrPerdido: number; bajasSinFecha: number } }
   porMes: { mes: string; ingresos: number }[]
   porPlan: { plan: string; label: string; cantidad: number; mrr: number }[]
@@ -79,7 +80,15 @@ export default function ContabilidadPage() {
     lineas.push(`Utilidad neta,${r.utilidad}`)
     lineas.push(`Margen %,${r.margen}`)
     lineas.push('')
-    lineas.push('POR CLIENTE,Plan,Activa,MRR,Ingreso histórico,Créditos mes,Costo IA,Margen %')
+    /**
+     * «Ingreso histórico» ya no es histórico: la consulta se acotó a una ventana
+     * para que la consola dejara de escanear `platform_payments` entera. Poner
+     * la etiqueta vieja sobre el dato nuevo sería el recorte silencioso otra vez
+     * — con el agravante de que este archivo se le manda al contador.
+     */
+    lineas.push(`ALCANCE,${data.alcance?.cobros.etiqueta ?? 'ventana no declarada'}`)
+    lineas.push('')
+    lineas.push(`POR CLIENTE,Plan,Activa,MRR,Ingreso cobrado (${data.alcance?.cobros.etiqueta ?? 'ventana no declarada'}),Créditos mes,Costo IA,Margen %`)
     // filaCSV neutraliza inyección de fórmulas: el nombre del consultorio lo
     // escribe OTRO tenant, y un "=HYPERLINK(...)" se ejecutaría en la máquina del
     // dueño al abrir el CSV.

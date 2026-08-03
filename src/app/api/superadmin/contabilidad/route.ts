@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { churnDelMes } from '@/lib/finanzas/churn'
 import { claseDeCuenta, cuentaComoIngreso } from '@/lib/authz/fundador'
 import { adminDb } from '@/lib/firebase-admin'
+import { desdeVentana, alcanceDePagos, alcanceDeClinicas, TOPE_CLINICAS, TOPE_PAGOS } from '@/lib/ops/alcance'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { efectivoDe, esDineroReal, tipoDeAsiento, type EstadoDisputa } from '@/lib/finanzas/movimientos'
 import { PLANES, type ClavePlan } from '@/lib/planes-ia'
@@ -49,10 +50,26 @@ export async function GET(req: NextRequest) {
   const mesSel = req.nextUrl.searchParams.get('mes') || new Date().toISOString().slice(0, 7)
 
   try {
+    /**
+     * ACOTADAS, igual que en la consola de clientes.
+     *
+     * Aquí había los mismos dos `.get()` sin `limit` ni `where`. Doce meses
+     * cubren el año fiscal y la comparación interanual, que es para lo que se
+     * mira esta pantalla; el histórico completo vive en Stripe, que es su sitio
+     * — la consola no es el libro mayor.
+     *
+     * Y el alcance viaja en la respuesta: un ingreso recortado que se llama
+     * «histórico» es un número sobre el que se toman decisiones de precio.
+     */
+    const desdeVent = desdeVentana(Date.now())
     const [clinicsSnap, paysSnap] = await Promise.all([
-      adminDb.collection('clinics').get(),
-      adminDb.collection('platform_payments').get(),
+      adminDb.collection('clinics').limit(TOPE_CLINICAS).get(),
+      adminDb.collection('platform_payments').where('fecha', '>=', desdeVent).limit(TOPE_PAGOS).get(),
     ])
+    const alcance = {
+      cobros: alcanceDePagos(desdeVent, paysSnap.size),
+      consultorios: alcanceDeClinicas(clinicsSnap.size),
+    }
 
     // ── Ingresos por mes (histórico) + pagos del mes seleccionado ──
     /**
@@ -173,6 +190,7 @@ export async function GET(req: NextRequest) {
     const activas = clientes.filter(c => c.activa).length
 
     return NextResponse.json({
+      alcance,
       ok: true,
       mes: mesSel,
       resumen: {
@@ -189,6 +207,12 @@ export async function GET(req: NextRequest) {
         activas,
         clinicas: clientes.length,
         creditosMes: Math.round(creditosMesTotal * 10) / 10,
+        /**
+         * Ya NO es «histórico»: es el de la ventana leída. El nombre viejo se
+         * conserva para no romper la pantalla, pero `alcance.cobros.etiqueta`
+         * dice de cuándo a cuándo — un ingreso recortado que se llama histórico
+         * es el recorte silencioso otra vez.
+         */
         ingresoTotalHist: Math.round(ingresoTotalHist),
         /**
          * Lo devuelto se publica APARTE, no sólo restado.
