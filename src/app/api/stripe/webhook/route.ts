@@ -29,6 +29,60 @@ async function updateClinic(clinicId: string, data: Record<string, unknown>) {
   })
 }
 
+/**
+ * A QUÉ CLÍNICA PERTENECE UNA DISPUTA.
+ *
+ * ── LO QUE PASABA ────────────────────────────────────────────────────────────
+ *
+ * Los dos manejadores de contracargo hacían:
+ *
+ *     (d.charge as { customer?: string })?.customer
+ *
+ * y `Dispute.charge` es un **string** —el id del cargo—, nunca viene expandido en
+ * un webhook. O sea que el `customer` era SIEMPRE `undefined` y **ningún
+ * contracargo se atribuía a su clínica**:
+ *
+ *  · el asiento quedaba huérfano, así que el dinero retirado no restaba del
+ *    ingreso de esa clínica —y desde v925 el ingreso se calcula por `clinicId`—;
+ *  · y `disputaAbierta` no se marcaba nunca, así que el aviso que el comentario
+ *    de abajo llama imprescindible «el mismo día» **no aparecía jamás**.
+ *
+ * Un contracargo es dinero ya retirado por el banco más una comisión, con un
+ * plazo para responder con pruebas. Enterarse tarde es perder por incomparecencia.
+ *
+ * ── CÓMO SE RESUELVE ─────────────────────────────────────────────────────────
+ *
+ * Primero por nuestros propios asientos —el reembolso guarda `chargeId` y
+ * `stripeCustomerId`, y no cuesta una llamada—; si no está, se le pregunta a
+ * Stripe por el cargo, que es la fuente autoritativa. Si las dos fallan, el
+ * asiento queda huérfano **declarado** (`huerfano: true`), como ya hacía.
+ */
+async function clinicIdDeDisputa(d: import('stripe').Stripe.Dispute): Promise<string | null> {
+  const chargeId = typeof d.charge === 'string' ? d.charge : (d.charge?.id ?? '')
+  if (!chargeId) return null
+
+  // 1. Nuestros asientos: gratis y sin depender de que Stripe conteste.
+  try {
+    const prev = await adminDb.collection('platform_payments')
+      .where('chargeId', '==', chargeId).limit(1).get()
+    if (!prev.empty) {
+      const x = prev.docs[0].data() as { clinicId?: string; stripeCustomerId?: string }
+      if (x.clinicId) return x.clinicId
+      if (x.stripeCustomerId) return await getClinicIdByCustomer(x.stripeCustomerId)
+    }
+  } catch { /* se intenta con Stripe */ }
+
+  // 2. Stripe, que es quien sabe de quién es el cargo.
+  try {
+    const charge = await stripe.charges.retrieve(chargeId)
+    const cust = typeof charge.customer === 'string' ? charge.customer : (charge.customer?.id ?? '')
+    if (cust) return await getClinicIdByCustomer(cust)
+  } catch (e) {
+    safeLog.warn('[stripe] no se pudo resolver la clínica de la disputa:', String(e))
+  }
+  return null
+}
+
 async function getClinicIdByCustomer(customerId: string): Promise<string | null> {
   const snap = await adminDb
     .collection('clinics')
@@ -587,9 +641,7 @@ export async function POST(req: NextRequest) {
       /* ── CONTRACARGO abierto → el banco retira el dinero ya ───────── */
       case 'charge.dispute.created': {
         const d = event.data.object as import('stripe').Stripe.Dispute
-        const clinicId = await getClinicIdByCustomer(
-          String((d.charge as unknown as { customer?: string })?.customer ?? ''),
-        )
+        const clinicId = await clinicIdDeDisputa(d)
         await registrarDisputa(d, 'abierta', clinicId, event.livemode === true)
         /**
          * Se MARCA la clínica, no se le suspende.
@@ -610,9 +662,7 @@ export async function POST(req: NextRequest) {
       /* ── CONTRACARGO cerrado → o vuelve el dinero, o se perdió ────── */
       case 'charge.dispute.closed': {
         const d = event.data.object as import('stripe').Stripe.Dispute
-        const clinicId = await getClinicIdByCustomer(
-          String((d.charge as unknown as { customer?: string })?.customer ?? ''),
-        )
+        const clinicId = await clinicIdDeDisputa(d)
         // `won` devuelve el importe; cualquier otro desenlace lo deja fuera.
         const estado = d.status === 'won' ? 'ganada' : 'perdida'
         await registrarDisputa(d, estado, clinicId, event.livemode === true)

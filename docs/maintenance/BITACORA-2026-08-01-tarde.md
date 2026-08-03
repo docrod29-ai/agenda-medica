@@ -1086,6 +1086,43 @@ es cómo se llega a tres respuestas distintas sobre el mismo dinero**.
 
 ---
 
+## SEPTUAGÉSIMA QUINTA TANDA — v926 · AUDITORÍA DE LANZAMIENTO (dinero 2)
+
+### Ningún contracargo se atribuía a su clínica, y el aviso que «tiene que verse el mismo día» no aparecía nunca
+
+Los dos manejadores de contracargo hacían:
+
+```
+(d.charge as { customer?: string })?.customer
+```
+
+y `Dispute.charge` es un **string** —el id del cargo—, nunca viene expandido en un
+webhook. El `customer` era **siempre `undefined`**:
+
+- el asiento quedaba huérfano, así que el dinero retirado **no restaba** del
+  ingreso de esa clínica —y desde v925 el ingreso se calcula por `clinicId`—;
+- y `disputaAbierta` **no se marcaba jamás**, así que el aviso que el propio
+  código llama imprescindible «el mismo día» no aparecía nunca.
+
+Un contracargo es dinero **ya retirado** por el banco más una comisión, con un
+plazo para responder con pruebas. **Enterarse tarde es perder por
+incomparecencia.**
+
+Ahora se resuelve primero por nuestros propios asientos —el reembolso ya guarda
+`chargeId` y `stripeCustomerId`, y no cuesta una llamada— y si no está, se le
+pregunta a Stripe por el cargo, que es la fuente autoritativa. Si las dos fallan,
+el asiento queda huérfano **declarado**, como ya hacía: perder la atribución es
+malo, perder el asiento es peor.
+
+**Lo que dejó pasar esto fue un `as` sobre una forma que el SDK no promete.** El
+compilador no puede avisar de un campo inventado detrás de un cast — y hay una
+prueba que ahora vigila que ese cast no vuelva.
+
+- `src/app/api/stripe/webhook/route.ts`
+- `src/__tests__/contracargo-clinica.test.ts` — 9 pruebas. Total 4966.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
