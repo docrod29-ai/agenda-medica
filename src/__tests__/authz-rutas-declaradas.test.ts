@@ -111,7 +111,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(84)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?)
+    expect(CLAVES_DISCO.length).toBe(85)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -432,8 +432,15 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
      * necesitan sin sesión. Sólo devuelve nombre, precio y créditos; nada de
      * `modulos` ni `nivelIA`, que son permisos.
      */
+    /**
+     * 14 → 15 al añadir `cron/limpiar-audio`. No lleva guardián de SESIÓN porque
+     * no hay usuario: lo dispara Vercel. Su candado es el mismo `CRON_SECRET`
+     * fail-closed del otro cron — sin él, en producción, no corre. Y es un
+     * endpoint que BORRA, así que quedarse abierto no era una opción.
+     */
     expect(sinGuardia).toEqual([
       'calendar/callback',
+      'cron/limpiar-audio',
       'cron/reminders',
       'csp-report',
       'demo/evidencia',

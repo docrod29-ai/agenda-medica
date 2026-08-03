@@ -1671,6 +1671,63 @@ sigue declarado como huérfano, con su razón.
 
 ---
 
+## OCTOGÉSIMA NOVENA TANDA — v940 · EL AUDIO DE LA CONSULTA QUE NO SE BORRABA
+
+### PHI en el bucket, y un comentario que prometía limpiarlo
+
+Para diarizar una consulta larga, el audio —la conversación entera entre el
+médico y el paciente, **PHI en crudo**— se sube a `consultas-audio/{uid}/…`, se
+le pasa la URL a AssemblyAI y se borra en el `finally` del hook.
+
+Ese `finally` **sólo corre si el navegador sigue vivo**, y la espera es de hasta
+**seis minutos** de sondeo. Cerrar la pestaña, quedarse sin batería, perder la
+red o irse a otra pantalla dejaba el archivo en el bucket **para siempre**.
+
+Y cuando el borrado fallaba, el código lo decía así:
+
+```ts
+catch { /* lifecycle rule lo limpia */ }
+```
+
+Una regla de ciclo de vida es **configuración del bucket**, no código. Nada en
+este repositorio la declaraba y nadie la había creado: el comentario la daba por
+hecha.
+
+Es el patrón más caro de todos —**una regla escrita en un comentario que el
+código de al lado no cumple**— y aquí la promesa incumplida era «no dejamos PHI».
+
+### El barrido que sí existe
+
+`api/cron/limpiar-audio`, diario, **registrado en `vercel.json`** (una ruta de
+cron sin entrada ahí no la dispara nadie: sería otro módulo escrito y sin
+conectar). Mismo candado fail-closed por `CRON_SECRET` que el otro cron — un
+endpoint que **borra** no puede quedar abierto.
+
+**La regla que ordena el barrido: lo que no se puede fechar, no se borra.**
+Borrar ante la duda puede llevarse el audio de una consulta que se está
+transcribiendo en ese momento, y el médico vería su dictado fallar sin
+explicación; esperar un ciclo no cuesta nada.
+
+- se fecha por el `timeCreated` del objeto y, si falta, por la marca que el hook
+  mete en el nombre — **validando el rango**, porque adivinar mal significa
+  borrar algo recién subido;
+- una fecha en el **futuro** (reloj desajustado) tampoco cuenta como caducada;
+- sólo mira el prefijo del audio: la firma y el membrete del médico viven en
+  `receta-diseno/` y no caducan;
+- «no pude mirar el bucket» responde **503**, no 200 con cero borrados: los dos
+  se leen igual desde fuera y sólo uno significa que hay PHI esperando.
+
+- `src/lib/expediente/audio-caduco.ts` (nuevo, puro),
+  `src/app/api/cron/limpiar-audio/route.ts` (nuevo), `vercel.json`,
+  `src/hooks/useGrabacionAudio.ts` (el comentario), `lib/authz/registro-rutas.ts`
+- `src/__tests__/audio-consulta-caduco.test.ts` — 20 pruebas. Total 5116.
+
+**Pendiente del Dr. (externo)**: nada. El barrido usa `CRON_SECRET`, que ya está
+configurado para el cron de recordatorios, y `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`,
+que ya usan las rutas de receta y config.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
