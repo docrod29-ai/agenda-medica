@@ -613,18 +613,39 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                   </div>
                 )
               }
-              const col = c.categoriaCLSI === 'S' ? '#10b981'
+              /**
+               * EDITADA POR REGLA EXPERTA: la categoría del punto de corte NO se
+               * pinta en verde. Un levofloxacino con CMI 0.5 es «S» en la tabla
+               * del CLSI, y esta tarjeta lo pintaba VERDE —el color de «úsalo»—
+               * en la misma pantalla donde el panel de arriba ya decía R por
+               * cross-resistencia EUCAST. El verde es la parte que se lee sin
+               * leer: el mismo trato que `noAplicable`, por la misma razón.
+               */
+              const col = c.editadaPorReglaExperta ? 'var(--text3)'
+                : c.categoriaCLSI === 'S' ? '#10b981'
                 : c.categoriaCLSI === 'SDD' ? '#3b82f6'
                 : c.categoriaCLSI === 'I' ? '#f59e0b' : '#f87171'
               const etiqueta = c.categoriaCLSI === 'SDD' ? 'SDD (dependiente de dosis)' : c.categoriaCLSI
+              const resaltar = c.concuerda === false || c.conflictoConEdicion
               return (
-                <div key={i} style={{ ...box, ...(c.concuerda === false ? { borderColor: 'color-mix(in srgb, var(--amber) 50%, transparent)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)' } : {}) }}>
+                <div key={i} style={{ ...box, ...(resaltar ? { borderColor: 'color-mix(in srgb, var(--amber) 50%, transparent)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)' } : {}) }}>
                   <span style={{ color: 'var(--text2)' }}>
                     <b>{c.antibiotico}</b> · CMI {c.cmi} µg/mL → <b style={{ color: col }}>{etiqueta}</b> (CLSI)
                     {c.categoriaCLSI === 'SDD' && <span style={{ color: 'var(--text3)' }}> · usa el esquema de dosis alto (no la dosis estándar)</span>}
                     {c.soloUTI && <span style={{ color: 'var(--text3)' }}> · solo IVU no complicada</span>}
                     {c.concuerda === false && <span style={{ color: 'var(--amber)' }}> · ⚠ discrepa del reporte ({c.categoriaReportada})</span>}
+                    {c.editadaPorReglaExperta && (
+                      <span style={{ color: 'var(--amber)', fontWeight: 700 }}>
+                        {' '}· ⚠ la interpretación que MANDA es <b>{c.interpretacionEfectiva}</b> (regla experta)
+                        {c.conflictoConEdicion && <span style={{ fontWeight: 400 }}> — no lo elijas por esta CMI</span>}
+                      </span>
+                    )}
                   </span>
+                  {c.editadaPorReglaExperta && c.edicionRazon && (
+                    <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
+                      {c.edicionRazon}{c.edicionReferencia ? ` · ${c.edicionReferencia}` : ''}
+                    </span>
+                  )}
                 </div>
               )
             })}

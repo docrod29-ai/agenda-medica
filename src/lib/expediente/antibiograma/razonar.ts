@@ -31,7 +31,17 @@ export function resumenDeterminista(entrada: EntradaAntibiograma, r: Interpretac
   if (r.edicionesInterpretativas?.length) {
     L.push(`REGLA EXPERTA APLICADA — usa SIEMPRE la categoría editada, no la del laboratorio: ${r.edicionesInterpretativas.map(e => `${e.antibiotico} ${e.de}→${e.a} (${e.razon})`).join('; ')}`)
   }
-  if (r.categoriasCMI.length) L.push(`CMI→CLSI: ${r.categoriasCMI.map(c => `${c.antibiotico} ${c.cmi}=${c.categoriaCLSI}${c.concuerda === false ? ` (reporte decía ${c.categoriaReportada})` : ''}`).join('; ')}`)
+  /**
+   * La línea de CMI→CLSI es la que MÁS parece dato duro, y era la única que no
+   * llevaba la marca de la edición experta: para un levofloxacino editado a R
+   * decía «0.5=S», a secas, tres renglones debajo de «usa SIEMPRE la categoría
+   * editada». El modelo veía tres categorías del mismo fármaco y la más cruda
+   * decía lo contrario que las otras dos.
+   */
+  if (r.categoriasCMI.length) L.push(`CMI→CLSI (punto de corte sobre la CMI): ${r.categoriasCMI.map(c => `${c.antibiotico} ${c.cmi}=${c.categoriaCLSI}`
+    + (c.concuerda === false ? ` (reporte decía ${c.categoriaReportada})` : '')
+    + (c.editadaPorReglaExperta ? ` [pero la categoría CANÓNICA es ${c.interpretacionEfectiva} por regla experta${c.conflictoConEdicion ? ' — NO lo recomiendes por esta CMI' : ''}]` : '')
+  ).join('; ')}`)
   if (r.fenotipos.length) L.push(`Fenotipos: ${r.fenotipos.map(f => `${f.nombre} [${f.confianza}]`).join('; ')}`)
   if (r.mecanismos.length) L.push(`Mecanismos: ${r.mecanismos.map(m => `${m.nombre}${m.ambler ? ` (clase ${m.ambler})` : ''}`).join('; ')}`)
   if (r.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto').length) L.push(`Conflictos intrínsecos: ${r.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto').map(n => n.antibiotico).join(', ')}`)

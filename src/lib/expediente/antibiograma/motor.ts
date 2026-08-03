@@ -110,9 +110,28 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   const pruebasSugeridas = pruebasRecomendadas(organismo, fenotipos.map(f => f.clave))
   pruebasSugeridas.forEach(p => refs.add(p.referencia))
 
-  // Interpretación de CMI con puntos de corte del CLSI M100 (donde haya CMI numérica).
+  /**
+   * Interpretación de CMI con los puntos de corte del CLSI M100.
+   *
+   * ── POR QUÉ RECORRE EL PANEL EFECTIVO Y NO EL CRUDO (`r`) ────────────────────
+   *
+   * Recorría `r`, así que la edición experta EUCAST no llegaba nunca hasta aquí y
+   * el mismo fármaco salía con TRES categorías en la misma salida:
+   *
+   *     Panel (canónico): Levofloxacino=R [EDITADO: el laboratorio reportó S]
+   *     REGLA EXPERTA:    Levofloxacino S→R
+   *     CMI→CLSI:         Levofloxacino 0.5=S   ← y encima `concuerda: true`
+   *
+   * `concuerda: true` afirmaba «todo cuadra» justo donde este motor acababa de
+   * decidir lo contrario. Es la misma familia de fallo que el E0-15a original —la
+   * edición vivía sólo en `edicionesInterpretativas` y las salidas seguían
+   * leyendo el crudo—, en el único consumidor al que no se le cableó entonces.
+   *
+   * `categoriaCLSI` NO cambia: 0.5 mg/L de levofloxacino es S en la tabla, y eso
+   * es un hecho sobre la CMI. Lo que se añade es de QUÉ lado está la fila.
+   */
   const categoriasCMI: CategoriaCMI[] = []
-  for (const x of r) {
+  for (const x of resultadosEfectivos) {
     if (typeof x.cmi !== 'number') continue
     /**
      * El OPERADOR de la CMI viaja hasta el motor (E0-15c). El modelo ya guardaba
@@ -122,14 +141,36 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
      */
     const cat = interpretarCMI(organismo, x.antibiotico, x.cmi, entrada.sitio, x.cmiCensurada)
     if (!cat) continue
+    /**
+     * `interpretacionLab` sólo existe cuando una regla experta editó la fila; en
+     * el resto del panel la categoría del laboratorio ES `x.interpretacion`.
+     * `concuerda` sigue significando lo que siempre significó —¿el LABORATORIO y
+     * el punto de corte dicen lo mismo?—, y por eso se compara contra el dato del
+     * laboratorio y no contra la edición: convertirlo en «¿el motor concuerda
+     * consigo mismo?» sería otra pregunta, y perdería la discordancia real que
+     * hoy detecta.
+     */
+    const editada = !!x.interpretacionLab && x.interpretacionLab !== x.interpretacion
+    const delLaboratorio = x.interpretacionLab ?? x.interpretacion
     categoriasCMI.push({
       antibiotico: x.antibiotico,
       cmi: x.cmi,
       cmiCensurada: x.cmiCensurada,
       categoriaCLSI: cat.categoria,
-      categoriaReportada: x.interpretacion,
+      categoriaReportada: delLaboratorio,
       // Si el corte NO aplica (foco/organismo), no tiene sentido marcar discordancia.
-      concuerda: cat.noAplicable ? null : (x.interpretacion ? x.interpretacion === cat.categoria : null),
+      concuerda: cat.noAplicable ? null : (delLaboratorio ? delLaboratorio === cat.categoria : null),
+      interpretacionEfectiva: x.interpretacion,
+      ...(editada ? {
+        editadaPorReglaExperta: true,
+        edicionRazon: x.edicionRazon,
+        edicionReferencia: x.edicionReferencia,
+      } : {}),
+      // El punto de corte deja el fármaco utilizable y la interpretación canónica
+      // lo descarta: es EL caso que hay que enseñar, porque es donde alguien
+      // prescribiría leyendo sólo la CMI.
+      ...(editada && !cat.noAplicable && cat.categoria !== 'R' && x.interpretacion === 'R'
+        ? { conflictoConEdicion: true } : {}),
       soloUTI: cat.soloUTI,
       noAplicable: cat.noAplicable,
       motivoNoAplicable: cat.motivoNoAplicable,
