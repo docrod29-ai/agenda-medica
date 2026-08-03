@@ -52,11 +52,32 @@ const gasta = (codigo: string) =>
 /** ¿Deja constancia, por cualquiera de las dos vías? */
 const asienta = (codigo: string) => /anotarLlamada|llamarIA/.test(codigo)
 
+/**
+ * Rutas que TOCAN a un proveedor pero no le compran nada, con su razón.
+ *
+ * La señal de arriba es «menciona el host de un proveedor», y es deliberadamente
+ * ancha: estrecharla a `/v1/messages` dejaría pasar en silencio cualquier
+ * endpoint de pago que se use mañana. El precio de esa anchura es que hay que
+ * declarar las excepciones a mano — que es exactamente lo que se quiere, porque
+ * una excepción declarada se revisa y una condición astuta no.
+ */
+const NO_COMPRAN: Record<string, string> = {
+  'src/app/api/health/route.ts':
+    'Sonda de salud: pide `GET /v1/models`, que es un listado gratuito. Un endpoint de salud que cuesta dinero cada minuto se acaba apagando, y entonces no hay salud que valga.',
+}
+
 const RUTAS_QUE_GASTAN = rutas(RAIZ)
   .map(p => ({ p, codigo: sinComentarios(readFileSync(p, 'utf8')) }))
   .filter(x => gasta(x.codigo))
+  .filter(x => !(x.p.slice(x.p.indexOf('src/app/api/')) in NO_COMPRAN))
 
 describe('cobertura del libro de costos', () => {
+  it('cada excepción declarada dice POR QUÉ no compra nada', () => {
+    for (const [r, razon] of Object.entries(NO_COMPRAN)) {
+      expect(razon.length, r).toBeGreaterThan(40)
+    }
+  })
+
   it('hay rutas de IA que auditar (si esto falla, la búsqueda se rompió)', () => {
     // Sin esta comprobación, un cambio de rutas dejaría la suite en verde
     // simplemente porque dejó de encontrar nada que revisar.

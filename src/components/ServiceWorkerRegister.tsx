@@ -47,7 +47,22 @@ export function ServiceWorkerRegister() {
         const purgarSiEstaDesfasado = async () => {
           try {
             if (sessionStorage.getItem('nx-purgado')) return
-            const res = await fetch('/sw.js', { cache: 'no-store' })
+            /**
+             * SE PIDE `version.txt`, NO `sw.js` ENTERO.
+             *
+             * Aquí se descargaba `/sw.js` completo —con `cache: 'no-store'`, o
+             * sea sin caché— en CADA carga de página, sólo para leer el número
+             * de versión. Ese archivo llegó a pesar **276 KB** porque la
+             * bitácora de cada despliegue se acumulaba en un comentario suyo:
+             * un cuarto de megabyte de egreso por visita, por usuario, para
+             * averiguar una cifra de tres dígitos.
+             *
+             * `version.txt` son unas decenas de bytes y lo genera el build desde
+             * el propio `sw.js`, así que no hay dos fuentes de verdad — dos
+             * sitios donde escribir esto se desincronizan, y ésta gobierna la
+             * purga de caché: purgaría en bucle o no purgaría nunca.
+             */
+            const res = await fetch('/version.txt', { cache: 'no-store' })
             const texto = await res.text()
             const m = texto.match(/nexusmed-v(\d+)/)
             const servidor = m ? m[1] : null

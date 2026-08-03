@@ -2440,6 +2440,98 @@ dueño vale menos que uno con dueño, y quien lo lea tiene que poder distinguirl
 
 ---
 
+## CENTÉSIMA SEGUNDA TANDA — v953 · 276 KB POR VISITA, Y `/api/health`
+
+**Cierra I3 e I8.** El primero es deuda que generé yo, versión a versión.
+
+### El service worker pesaba 276 KB, y era culpa de esta bitácora
+
+Cada versión desplegada añadía su párrafo a un comentario del `const CACHE`, en
+la línea 8 de `public/sw.js`. **Esa línea sola llegó a 271 KB.**
+
+Y `ServiceWorkerRegister` descarga ese archivo **entero**, con
+`cache: 'no-store'` —o sea sin caché—, **en cada carga de página**, sólo para
+leer `nexusmed-v(\d+)` y comparar el número.
+
+Un cuarto de megabyte de egreso por visita, por usuario, para averiguar una cifra
+de tres dígitos. Y creciendo con cada despliegue.
+
+El texto **no sobraba** —explica por qué se hizo cada cambio, que es lo que hace
+falta dentro de seis meses—; lo que sobraba era **dónde estaba**. Ahora vive en
+`docs/maintenance/sw-changelog.md`, entero, y la versión se sirve en
+`public/version.txt`: unas decenas de bytes, **generado** en el build desde el
+propio `sw.js`. Dos sitios donde escribir la versión son dos sitios que se
+desincronizan, y ésta gobierna la purga de caché — el navegador purgaría en bucle
+o no purgaría nunca.
+
+Y el generador **falla** si no encuentra la versión: sin ella la purga deja de
+funcionar y los médicos se quedan con la aplicación vieja sin que nadie se
+entere.
+
+### No existía ningún endpoint de salud
+
+`api/calendar/status` es el estado del Google Calendar **de un usuario**, no del
+sistema. No había forma de saber si Firestore, Stripe o los proveedores de IA
+están arriba, ni un monitor externo que lo comprobara.
+
+`/api/health` va **sin autenticar a propósito** —un endpoint de salud detrás de
+sesión no lo mira nadie a las 3am— y a cambio sólo devuelve **booleanos,
+latencias y la versión**: ni una clave, ni un dato de paciente, ni el mensaje del
+error de un proveedor (que puede llevar dentro parte de la petición).
+
+- **No consume tokens**: pide la lista de modelos, no una respuesta. Un endpoint
+  de salud que cuesta dinero cada minuto se acaba apagando, y entonces no hay
+  salud que valga.
+- **`ok: null` no es `false`**: uno es «contesté y está mal», el otro «no lo pude
+  comprobar». Confundirlos pintaría de rojo un sistema sano, y una alarma que
+  miente se acaba ignorando.
+- Mira también los **latidos de los crons**: un sistema con todo arriba y los
+  trabajos parados no está sano, y desde fuera se ve idéntico.
+- Responde **503** cuando algo está caído — un monitor mira el código de estado,
+  no el cuerpo.
+
+### Y una excepción declarada, no una condición astuta
+
+El guardián del libro de costos marcó `/api/health` por nombrar el host de
+Anthropic. La sonda pide `GET /v1/models`, que es gratis. Se podría haber
+estrechado la señal a `/v1/messages`, pero eso dejaría pasar en silencio
+cualquier endpoint de pago que se use mañana: **una excepción declarada se
+revisa, una condición astuta no**.
+
+- `public/sw.js` (de 276 KB a 4,5 KB), `docs/maintenance/sw-changelog.md`
+  (nuevo, con la historia entera), `scripts/version-sw.mjs` (nuevo),
+  `public/version.txt`, `ServiceWorkerRegister.tsx`,
+  `src/app/api/health/route.ts` (nueva)
+- `src/__tests__/salud-y-peso-sw.test.ts` — 18 pruebas. Total 5354.
+
+**Para el Dr.**: `/api/health` está listo para que un monitor externo gratuito
+(UptimeRobot, BetterStack) lo consulte cada minuto. Ése es el segundo par de ojos
+que hoy no existe.
+
+### Verificado en producción, y una cosa que hay que decir
+
+`sw.js`: **276 445 → 4 562 bytes**. `/api/health` responde 200 con Firestore,
+Anthropic, OpenAI y Stripe arriba, y expone versión y commit.
+
+Los `trabajos` salen ahora mismo en **`nunca`**: los latidos se desplegaron en
+v951 y ningún cron ha vuelto a correr desde entonces —`reminders` es horario,
+`limpiar-audio` diario—, así que **todavía no hay latido que leer**. Es la
+respuesta correcta: `nunca` significa «no hay ni uno», no «está roto».
+
+Y hay un reparto deliberado entre las dos piezas, que conviene tener escrito:
+
+- **`/api/health` tolera `nunca`** y sólo se pone en 503 por `tarde`. Un monitor
+  lo consulta cada minuto, y ponerlo en rojo durante las primeras 24 h de vida de
+  esta función —por algo que se arregla solo— enseñaría a ignorarlo.
+- **El vigilante SÍ grita por `nunca`**, porque es el que mira una vez cada
+  quince minutos y el que sabe distinguir «acaba de desplegarse» de «lleva un mes
+  muerto» mirando la lista completa.
+
+Si dentro de un día `reminders` sigue en `nunca`, eso ya no es un despliegue
+reciente: es que el cron no está corriendo, y entonces sí hay que mirarlo.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
