@@ -129,7 +129,7 @@ describe('la validación la pone quien puede saberla', () => {
     const con = conValidacionDelMedico(rec, {
       estado: 'validado',
       firma: {
-        farmaco: 'meropenem', validadoPorUid: 'u1', validadoPorNombre: 'Dr. X',
+        farmaco: 'meropenem', validadoPor: 'u1', validadoPorNombre: 'Dr. X',
         fecha: '2026-08-01T10:00:00.000Z', versionDataset: '1.0', huellaDataset: 'h', nota: '',
       },
     })
@@ -143,7 +143,7 @@ describe('la validación la pone quien puede saberla', () => {
     const con = conValidacionDelMedico(rec, {
       estado: 'caducada', porQue: 'Se validó la versión 0.9 y ahora está cargada la 1.0.',
       firma: {
-        farmaco: 'meropenem', validadoPorUid: 'u1', validadoPorNombre: 'Dr. X',
+        farmaco: 'meropenem', validadoPor: 'u1', validadoPorNombre: 'Dr. X',
         fecha: '2026-07-01T10:00:00.000Z', versionDataset: '0.9', huellaDataset: 'vieja', nota: '',
       },
     })
