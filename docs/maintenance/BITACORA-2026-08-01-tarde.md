@@ -3437,6 +3437,44 @@ llamada al motor lo pone rojo.
 
 ---
 
+
+## CENTÉSIMA VIGESIMOPRIMERA TANDA — v972 · SU DECISIÓN 11 (PRUEBA SIN TARJETA)
+
+### El muro
+
+`estadoAcceso` devolvía `'sin_tarjeta'` para todo lo que no fuera `active` —
+también para `status: 'trial'`, que es como nace **cada cuenta nueva**. Y corre
+antes que nada. El médico que acababa de leer «14 días gratis, sin tarjeta»
+chocaba contra una pared pidiéndole la tarjeta.
+
+### Lo que hace este caso tan caro
+
+**El modelo A completo ya estaba construido.** `paywall-prueba.ts`,
+`firestore.rules`, `pruebaAgotada`, `gateCreditos` — con su bolsa de IA, su corte
+sin overage y su mensaje correcto. Todo escrito, probado, espejado en las
+reglas… e **inalcanzable**, porque tres líneas devolvían antes.
+
+Y las 5 634 pruebas pasaban: **ninguna afirmaba que un médico en prueba debiera
+chocar contra el muro**. Quitarlo no rompió una sola.
+
+### Ahora
+
+`trial` entra al flujo completo. La prueba vencida tampoco va al muro: la
+gobierna el paywall —lectura, impresión y exportación intactas, escritura e IA
+detenidas—, que es el PAUSED que usted pidió. Una cuenta sin `status` también
+entra: bajo el modelo A una cuenta nueva ES una prueba.
+
+### La cifra de la bolsa sigue siendo suya
+
+«Debe salir del Cost Engine, no elegirse arbitrariamente» — y el Cost Engine
+depende de la decisión 12. El mecanismo está y el tope se mueve por variable de
+entorno; la prueba fija eso, **no cuánto vale**.
+
+- `app/(dashboard)/layout.tsx`
+- `src/__tests__/decision-11-prueba-sin-tarjeta.test.ts` — 20 pruebas. Total 5654.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3451,7 +3489,8 @@ sustancialmente mejor de lo que un comprador puede ver».
   `'sin_tarjeta'` TODO `trial` y bloquea la app. El médico lee «14 días gratis,
   sin tarjeta» en seis pantallas y choca contra un muro. Y `paywall-prueba.ts`
   —escrito y probado, con su espejo en las reglas— es INALCANZABLE.
-  **BLOQUEADO EN EL DR: ¿modelo A (sin tarjeta) o B (tarjeta primero)?**
+  **CERRADO v972**: el Dr. eligió C (sin tarjeta, con la IA limitada). El muro
+  era `estadoAcceso`; el modelo A entero ya estaba construido y era inalcanzable.
 - N3. ~~El catálogo editable de precios no llega al cobro ni a los créditos
   entregados.~~ **CERRADO v964** (cupo entregado, precio por asiento y tope de IA
   leen el catálogo vigente; queda el MRR, que es N7).
