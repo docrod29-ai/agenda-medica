@@ -16,6 +16,8 @@
  * Resp: { ok, respuesta, articulos:[{pmid,titulo,revista,anio,url}] }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { safeLog } from '@/lib/security/sanitize'
+import { minimizarContextoPaciente, seguroParaMemoria } from '@/lib/ia/minimizar-phi'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarConsultor, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
@@ -237,9 +239,26 @@ export async function POST(req: NextRequest) {
   const pregunta = String(body.pregunta ?? '').trim()
   if (!pregunta) return NextResponse.json({ ok: false, error: 'Escribe tu pregunta clínica' }, { status: 400 })
 
-  // Contexto del paciente (opcional): cuando se abre desde un expediente, la
-  // respuesta se personaliza a ESE paciente (edad, dx, alergias, tratamiento).
-  const paciente = String(body.contextoPaciente ?? '').trim().slice(0, 1500)
+  /**
+   * CONTEXTO DEL PACIENTE — minimizado EN LA PUERTA, no en cada pantalla.
+   *
+   * Cuando el Consultor se abre desde un expediente, la respuesta se personaliza
+   * a ese paciente (edad, dx, alergias, tratamiento). El campo llegaba como
+   * texto libre y se mandaba al proveedor tal cual: las dos pantallas que lo
+   * llaman ya lo minimizaban —una con un comentario que dice «SIN EL NOMBRE…
+   * había dos políticas opuestas para el mismo endpoint»—, pero la corrección se
+   * había aplicado a los CLIENTES. Una regla que vive en el cliente sólo la
+   * cumplen los clientes que se acuerden.
+   *
+   * Se quita lo que tiene forma comprobable —CURP, RFC, correo, teléfono, fecha
+   * completa, folios—. Los nombres NO se detectan, y eso está escrito en el
+   * módulo: prometerlo sería falsa tranquilidad.
+   */
+  const min = minimizarContextoPaciente(body.contextoPaciente)
+  const paciente = min.texto
+  if (min.redactados.length) {
+    safeLog.warn(`[consultor] contexto del paciente con identificadores; se redactaron: ${min.redactados.join(', ')}`)
+  }
   const contexto = (body.historial ?? []).slice(-4).map(h => `${h.rol === 'user' ? 'Médico' : 'Asistente'}: ${h.texto}`).join('\n')
 
   try {
@@ -312,7 +331,7 @@ export async function POST(req: NextRequest) {
         onDone: (txt) => {
           void registrarUso(clinicId, fuente)
           void registrarConsultor(clinicId, costo)
-          void extraerAprendizajes(key, pregunta, txt).then(f => aprenderDeMedico(clinicId, acceso.uid, f))
+          void extraerAprendizajes(key, pregunta, txt).then(f => aprenderDeMedico(clinicId, acceso.uid, f.filter(seguroParaMemoria)))
         },
       })
     }
@@ -349,7 +368,7 @@ export async function POST(req: NextRequest) {
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)
         void registrarConsultor(clinicId, costo)
-        void extraerAprendizajes(key, pregunta, txt).then(f => aprenderDeMedico(clinicId, acceso.uid, f))
+        void extraerAprendizajes(key, pregunta, txt).then(f => aprenderDeMedico(clinicId, acceso.uid, f.filter(seguroParaMemoria)))
       },
     })
   } catch (e) {

@@ -1834,6 +1834,59 @@ nuevo pone el CI en rojo.
 
 ---
 
+## NONAGÉSIMA SEGUNDA TANDA — v943 · LA REGLA QUE VIVÍA EN EL CLIENTE
+
+### El contexto del paciente se minimizaba en las pantallas, no en la puerta
+
+`api/consultor-evidencia` recibía `contextoPaciente` como **texto libre** del
+cliente y lo mandaba al proveedor tal cual. Las dos pantallas que lo llaman ya lo
+minimizaban —una con un comentario que dice, literalmente, «SIN EL NOMBRE… había
+dos políticas opuestas para el mismo endpoint»—, pero la corrección se aplicó a
+los **clientes**.
+
+Una regla que vive en el cliente sólo la cumplen los clientes que se acuerden:
+una pantalla nueva, o un cliente modificado, manda lo que quiera. Ahora se
+minimiza **en la ruta**.
+
+### Y la memoria del médico sólo la protegía un prompt
+
+`extraerAprendizajes` le pide a un modelo hechos durables y `aprenderDeMedico`
+los **persiste**. La cabecera de `memoria-medico.ts` promete «NUNCA datos de
+pacientes», y lo único que lo respaldaba era una instrucción en el prompt.
+
+**Un prompt no es una compuerta**: describe una intención, y lo que el modelo
+devolviera se guardaba tal cual, filtrado sólo por longitud.
+
+Ahora hay un filtro determinista, y está en los **dos** sitios —la ruta y el que
+escribe—, por si mañana lo llama otro. Se **rechaza** en vez de tachar: un hecho
+al que hay que quitarle un teléfono no era un hecho sobre la práctica del médico,
+y guardarlo a medias deja una frase rara en la memoria para siempre.
+
+### Lo que NO se promete
+
+**Nombres propios.** «María González» y «monoterapia con vancomicina» son dos
+cadenas y ninguna regla determinista las distingue sin un diccionario que no
+existe. Decir que aquí se quitan los nombres cambiaría un riesgo por otro peor:
+**la falsa tranquilidad**. Está escrito en el módulo, y hay una prueba que se cae
+si algún día alguien lo cambia.
+
+Se quita lo que tiene forma comprobable: CURP, RFC, correo, teléfono, fecha
+completa y tiras largas de dígitos. Y lo redactado **se declara** en el registro,
+para que un consultorio pueda ver si su equipo está pegando identificadores.
+
+### La trampa del propio redactor
+
+Sin ordenar los patrones y sin *lookarounds*, una póliza de catorce dígitos la
+mordía el patrón de teléfono **por en medio** y quedaba `304[teléfono]`: una
+redacción parcial que deja los primeros dígitos a la vista. **Tachar a medias es
+peor que no tachar, porque parece que sí se tachó.**
+
+- `src/lib/ia/minimizar-phi.ts` (nuevo, puro),
+  `api/consultor-evidencia/route.ts`, `src/lib/memoria-medico.ts`
+- `src/__tests__/consultor-minimizar-phi.test.ts` — 16 pruebas. Total 5158.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
