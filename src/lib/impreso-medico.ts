@@ -58,3 +58,53 @@ export const overrideRecetaValido = (e: object | undefined): boolean =>
 
 /** Validez de una firma por médico: cadena no vacía. */
 export const firmaValida = (s: string | undefined): boolean => !!s?.trim()
+
+/**
+ * EL MISMO MÉDICO, LLAMADO DE DOS FORMAS.
+ *
+ * ── EL FALLO QUE ESTO CIERRA (reportado por el Dr.: «no sale en mi receta») ───
+ *
+ * La nota guarda `metadata.medicoId` con el **uid de Firebase** de quien firma
+ * (`auth.currentUser.uid`). La firma y la plantilla, en cambio, se guardan bajo
+ * el **id del documento** de `doctors`, que es lo que elige el selector de
+ * Configuración.
+ *
+ * Son dos identificadores distintos de la misma persona, así que la búsqueda
+ * exacta nunca acierta. Con UN solo médico el respaldo «la única que hay» lo
+ * tapaba; en cuanto el consultorio tiene dos o más, la receta sale **sin firma**
+ * — y sin ninguna explicación, porque desde dentro parece que ese médico no
+ * subió la suya.
+ *
+ * Es el mismo desajuste que ya se reparó una vez (v321) por otro camino: aquel
+ * arreglo añadió el respaldo del médico único, que resolvía el caso de entonces
+ * y dejaba abierto éste.
+ *
+ * ── CÓMO SE RESUELVE ─────────────────────────────────────────────────────────
+ *
+ * El puente ya existe y no hubo que inventarlo: `doctors/{id}.uid`, que se
+ * escribe al conectar Google Calendar (v875) y se rellenó para los que ya
+ * estaban conectados (v899). Si el id que trae la nota no es un documento de
+ * `doctors`, se busca al médico cuyo `uid` coincide.
+ *
+ * NO adivina: si nadie coincide, devuelve `undefined` y el impreso sigue su
+ * camino de siempre —que ya avisa cuando no puede resolver la firma—. Poner la
+ * firma de otro médico es peor que no poner ninguna.
+ */
+export function resolverIdMedico(
+  medicoId: string | undefined | null,
+  doctores: readonly { id: string; uid?: string }[] | undefined | null,
+): string | undefined {
+  const id = String(medicoId ?? '').trim()
+  if (!id) return undefined
+  const lista = doctores ?? []
+  // Ya es el id del documento: nada que traducir.
+  if (lista.some(d => d.id === id)) return id
+  // Es el uid de la sesión de quien firmó.
+  const porUid = lista.filter(d => d.uid && d.uid === id)
+  return porUid.length === 1 ? porUid[0].id : undefined
+}
+
+export const POR_QUE_HAY_QUE_TRADUCIR =
+  'Porque la nota firma con el uid de la sesión y la firma se guarda por el id ' +
+  'del documento de `doctors`. Son dos nombres de la misma persona, y sin ' +
+  'traducirlos la receta de un consultorio con dos médicos sale sin firma.'

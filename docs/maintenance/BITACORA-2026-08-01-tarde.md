@@ -1260,6 +1260,41 @@ faltaba decir dónde empieza cada cosa.
 
 ---
 
+## OCTOGÉSIMA TANDA — v931 · «NO SALE EN MI RECETA»
+
+### El mismo médico, llamado de dos formas
+
+La firma **sí estaba subida** (el Dr. la vio en su pantalla). Lo que fallaba:
+
+- la nota guarda `metadata.medicoId` con el **uid de Firebase** de quien firma;
+- la firma y la plantilla se guardan bajo el **id del documento** de `doctors`,
+  que es lo que elige el selector de Configuración.
+
+Dos identificadores distintos de la misma persona: la búsqueda exacta **nunca
+acierta**. Con un solo médico el respaldo «la única que hay» lo tapaba; con **dos
+o más**, la receta sale sin firma y sin ninguna explicación — desde dentro parece
+que ese médico no subió la suya.
+
+**Ya se había reparado una vez (v321) por otro camino**: aquel arreglo añadió el
+respaldo del médico único, que resolvía el caso de entonces y dejaba abierto éste.
+
+### El puente ya existía
+
+`doctors/{id}.uid` — escrito al conectar Google Calendar (**v875**) y rellenado
+para los que ya estaban conectados (**v899**). El vínculo que hice para el
+calendario resolvió la firma.
+
+Ahora los **tres** impresos —receta, orden y nota— traducen el uid al id del
+documento antes de buscar la firma **y la plantilla**. Y no adivina: si nadie
+coincide, o si dos médicos comparten uid por un dato corrupto, devuelve vacío y el
+impreso sigue avisando. **Poner la firma de otro médico es peor que no poner
+ninguna.**
+
+- `src/lib/impreso-medico.ts` (`resolverIdMedico`), receta / orden / nota
+- `src/__tests__/firma-medicoid-uid.test.ts` — 13 pruebas. **Total 5000.**
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

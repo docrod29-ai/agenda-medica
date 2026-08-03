@@ -8,7 +8,7 @@ import { imprimirElemento } from '@/lib/print-element'
 // Papel de las NOTAS: SIEMPRE carta, independiente de la config de receta.
 import { papelNota } from '@/lib/receta-template'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
-import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
+import { entradaPorMedico, resolverIdMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
@@ -208,7 +208,8 @@ export default function NotaImprimiblePage() {
   // membretada es branding de la CLÍNICA (no hay riesgo de suplantación), así que
   // se resuelve con tolerancia: exacto por médico → ÚNICA hoja disponible → general.
   const medMembrete = (() => {
-    const exacta = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
+    const idDoc = resolverIdMedico(nota.metadata?.medicoId, activeDoctors) ?? nota.metadata?.medicoId
+    const exacta = entradaPorMedico(config?.notaMembretePorMedico, idDoc, membreteValido, unicoMedico)
     if (exacta) return exacta
     const validas = Object.values(config?.notaMembretePorMedico ?? {}).filter(v => membreteValido(v as { url?: string }))
     return validas.length === 1 ? (validas[0] as { url?: string; margenes?: { top: number; right: number; bottom: number; left: number }; firmaPos?: { x: number; y: number } }) : undefined
@@ -223,7 +224,7 @@ export default function NotaImprimiblePage() {
   // quedó dentro de la nota firmada (`nota.firma.imagenDataUrl`) sigue mandando:
   // es el documento tal como se selló y no debe cambiar retroactivamente.
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || entradaPorMedico(firmaProtegida.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
+    || entradaPorMedico(firmaProtegida.firmaPorMedico, resolverIdMedico(nota.metadata?.medicoId, activeDoctors) ?? nota.metadata?.medicoId, firmaValida, unicoMedico)
     || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined

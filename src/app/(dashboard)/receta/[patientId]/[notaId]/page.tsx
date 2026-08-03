@@ -19,7 +19,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
-import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
+import { entradaPorMedico, resolverIdMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -280,7 +280,10 @@ export default function GeneradorRecetaPage() {
       avisoLegal: 'Esta receta es personal e intransferible.',
     }
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido, unicoMedico)
+    // El id que trae la nota puede ser el uid de la sesión; se traduce al id de
+    // `doctors`, que es como se guardan la plantilla y la firma.
+    const idDoc = resolverIdMedico(medicoId, activeDoctors) ?? medicoId
+    const porMedico = entradaPorMedico(config?.recetasPorMedico, idDoc, overrideRecetaValido, unicoMedico)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta (tamaño estándar que Safari y la impresora
     // respetan): la receta se centra y agranda con márgenes. El modo "papel-real"
@@ -359,7 +362,7 @@ export default function GeneradorRecetaPage() {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
     // REG-014: la firma viene del subdocumento protegido, no de `config/main`.
-    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, resolverIdMedico(medicoId, activeDoctors) ?? medicoId, firmaValida, unicoMedico)
       // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
       // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
       || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
