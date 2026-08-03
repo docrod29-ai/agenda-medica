@@ -1467,13 +1467,63 @@ se ignore, y que `export … from` e `import()` sigan contando como consumidores
 
 ---
 
+## OCTOGÉSIMA QUINTA TANDA — v936 · EL MOTOR DE DOSIS POR FIN LLEGA AL MÉDICO
+
+### 291 líneas escritas, probadas y sin que las llamara nadie
+
+`src/lib/dosing/motor.ts` **elige** cuál de las cuatro reglas del fármaco aplica
+a este paciente —reemplazo renal primero, luego cuidado crítico, luego función
+renal— y devuelve `SPECIALIST_REVIEW` cuando falta un dato, sin interpolar ni
+deducir de un fármaco parecido.
+
+La pantalla `/uci/dosificacion` enseñaba y firmaba el **dataset**, que es otra
+cosa: el médico veía las reglas, no la selección.
+
+Lo destapó el guardián de huérfanos al repararse en v935 — antes el nombre
+`motor` coincidía con otros módulos y éste pasaba por «usado».
+
+Ahora la pantalla tiene dos pestañas: **Consultar dosis** (llama al motor) y
+**Validar el dataset** (la de siempre).
+
+### Y el error que un formulario introduce siempre
+
+El motor recibe tipos exactos; un formulario devuelve **texto**. `Number('')` es
+**0**, no `NaN`:
+
+- un peso vacío leído como `0 kg` no manda a revisión — manda a una dosis en
+  mg/kg calculada sobre cero;
+- un CrCl vacío leído como `0 mL/min` elige la rama renal más agresiva del
+  dataset para un riñón sano.
+
+Por eso el puente `src/lib/dosing/consulta.ts`: vacío, texto no numérico y
+negativos son «no sé» —nunca un cero—, un desplegable sin elegir no es
+«ninguno», y un valor fuera del dominio se descarta en vez de colarse.
+
+### La validación la pone quien puede saberla
+
+`recomendar()` devuelve **siempre** `sin_validar`, y hace bien: es puro, no lee
+Firestore. Eso convierte ese campo en un **piso**, no en un veredicto. La
+pantalla lo levanta con la firma del consultorio y dice quién y cuándo. Una firma
+**caducada** no cuenta: describe unos números que ya no son los que están en
+pantalla.
+
+### El rastro de auditoría omitía lo que disparaba el bloqueo
+
+`entradasUsadas` no incluía `renalInestable`, `esNeumonia` ni
+`sedacionYVentilacionAseguradas` — los tres que pueden **BLOQUEAR**. Un registro
+que omite el dato por el que se bloqueó no explica la decisión que se tomó.
+
+- `src/lib/dosing/consulta.ts` (nuevo), `src/lib/dosing/motor.ts`
+  (`entradasUsadas`), `uci/dosificacion/page.tsx` (pestañas + `Consultar`)
+- `src/__tests__/dosing-consulta.test.ts` — 17 pruebas. Total 5048.
+
+**Nota**: la pestaña no indica nada por su cuenta; devuelve el **texto literal**
+de la regla del dataset, con su fuente y su fecha, y el aviso de validación
+encima. Ninguna cifra clínica sale de aquí.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
-
-0. **Conectar `src/lib/dosing/motor.ts`** (descubierto en v935) —
-   `src/lib/dosing/motor.ts:1`. El motor que selecciona la regla y devuelve
-   `SPECIALIST_REVIEW` no lo llama nadie; `/uci/dosificacion` sólo enseña y firma
-   el dataset. Es trabajo clínico terminado que no le llega al médico.
-
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
    precio anual, el cliente compra «anual» y Stripe abre una suscripción MENSUAL,
