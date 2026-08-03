@@ -34,6 +34,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import admin from '@/lib/firebase-admin'
 import { PREFIJO_AUDIO, HORAS_DE_VIDA, veredicto } from '@/lib/expediente/audio-caduco'
+import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
 const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
     }, { status: 503 })
   }
 
+  const arranqueCron = Date.now()
   try {
     const bucket = admin.storage().bucket(BUCKET)
     const [objetos] = await bucket.getFiles({ prefix: PREFIJO_AUDIO, maxResults: TOPE_POR_PASADA })
@@ -101,12 +103,22 @@ export async function GET(req: NextRequest) {
       safeLog.info(`[cron/limpiar-audio] se alcanzó el tope de ${TOPE_POR_PASADA} por pasada; quedan objetos para el siguiente barrido.`)
     }
 
+    // El latido, para que el vigilante sepa que este barrido sigue vivo: si
+    // deja de correr, se acumula PHI sin que nadie se entere.
+    await registrarLatido('limpiar-audio', {
+      ok: true, duracionMs: Date.now() - arranqueCron,
+      detalle: { revisados: objetos.length, borrados, fallos, hayMas },
+    })
     return NextResponse.json({
       ok: true, revisados: objetos.length, borrados, conservados, fallos, hayMas,
       horasDeVida: HORAS_DE_VIDA,
     })
   } catch (e) {
     safeLog.error('[cron/limpiar-audio]', e)
+    await registrarLatido('limpiar-audio', {
+      ok: false, duracionMs: Date.now() - arranqueCron,
+      error: e instanceof Error ? e.message : 'error',
+    })
     return NextResponse.json({ ok: false, error: 'No se pudo barrer el audio temporal' }, { status: 500 })
   }
 }

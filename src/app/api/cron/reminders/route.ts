@@ -9,8 +9,19 @@ import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/wha
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
+
+/**
+ * SIN ESTO, VERCEL LE DABA EL TIEMPO POR OMISIÓN.
+ *
+ * Este cron recorre TODOS los consultorios activos y manda WhatsApp por cada
+ * cita. Cuando se acababa el tiempo dejaban de recibir recordatorios siempre los
+ * mismos —los del final de la lista— y la ruta respondía 200: sin error visible,
+ * y el consultorio se enteraba porque sus pacientes no llegaban.
+ */
+export const maxDuration = 300
 
 const ESTADOS_POST_VISITA = ['atendida', 'finalizada', 'pagada']
 
@@ -81,6 +92,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const arranqueCron = Date.now()
   try {
     const now = new Date()
     const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0 }
@@ -364,9 +376,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    /**
+     * EL LATIDO, EN LAS DOS SALIDAS.
+     *
+     * Nada registraba que este cron corriera. Si dejara de dispararse una semana
+     * entera, la única señal sería que los pacientes no llegan. Ahora el
+     * vigilante lo mira desde fuera.
+     */
+    await registrarLatido('reminders', {
+      ok: true, duracionMs: Date.now() - arranqueCron,
+      detalle: { enviados: totals.sent, fallidos: totals.failed, consultorios: totals.clinics },
+    })
     return NextResponse.json({ ok: true, ...totals })
   } catch (err) {
     safeLog.error('Reminders cron error:', err)
+    await registrarLatido('reminders', {
+      ok: false, duracionMs: Date.now() - arranqueCron,
+      error: err instanceof Error ? err.message : 'error',
+    })
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

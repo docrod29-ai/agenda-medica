@@ -346,6 +346,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
 
   // ── tareas programadas ───────────────────────────────────────────────────
   'cron/reminders': { tipo: 'cron', motivo: 'Recordatorios nocturnos. Autenticado por `CRON_SECRET`; no hay usuario.' },
+  'cron/vigilante': { tipo: 'cron', motivo: 'Vigila los latidos de los otros crons y avisa. Autenticado por `CRON_SECRET`; no hay usuario.' },
   'cron/limpiar-audio': { tipo: 'cron', motivo: 'Barrido diario del audio de consulta abandonado en Storage. Autenticado por `CRON_SECRET`; no hay usuario.' },
 }
 
