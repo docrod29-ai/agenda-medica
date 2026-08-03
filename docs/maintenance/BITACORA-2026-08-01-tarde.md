@@ -812,6 +812,34 @@ nota que se está tocando el contenido de una alerta y no su bandeja.
 
 ---
 
+## SEXAGÉSIMA SÉPTIMA TANDA — v918 (+ reglas desplegadas)
+
+### Una solicitud ARCO no se podía borrar, pero sí reescribir
+
+El `delete` estaba cerrado porque es un **registro legal**, y el `update` quedaba
+abierto a cualquier miembro y a **todo el documento**.
+
+Se podía cambiar la `descripcion` de «solicito la SUPRESIÓN de mis datos» a
+«solicito acceso», marcarla resuelta, y el registro legal diría que la clínica
+cumplió con otra cosa. **Reescribir es peor que borrar, porque el resultado
+parece íntegro.**
+
+Y `origen` es lo que distingue una solicitud llegada de la calle de una tecleada
+en el consultorio: si un miembro puede voltearlo, toda la cautela del `create`
+—que no deja al público señalar un expediente ni declararse verificado— **se
+deshace después**.
+
+Ahora se congela lo que declaró el solicitante (`solicitante`, `tipo`,
+`descripcion`, `fechaSolicitud`, `origen`) y sigue abierto todo lo demás: estado,
+resolución, quién resolvió, y ligar el expediente tras identificarlo, que es un
+acto de la clínica (Art. 29 LFPDPPP).
+
+- `firestore.rules` (**desplegadas aparte**)
+- `src/lib/authz/matriz-acceso.ts` + doc regenerado
+- `src/__tests__/firestore-rules-guard.test.ts` — invariante nueva. Total 4892.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

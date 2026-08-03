@@ -345,7 +345,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'administrativo',
     guardaLectura: 'isMember',
     guardaEscritura: 'publico',
-    porQue: 'Solicitudes ARCO (LFPDPPP). El paciente las crea desde el portal público con campos acotados; el equipo las resuelve. Nunca se borran (registro legal).',
+    porQue: 'Solicitudes ARCO (LFPDPPP). El paciente las crea desde el portal publico con campos acotados; el equipo las resuelve. Nunca se borran, y desde v918 tampoco se REESCRIBEN: lo que declaro el solicitante —solicitante, tipo, descripcion, fecha y origen— esta congelado. Reescribir es peor que borrar, porque el resultado parece integro: cambiar «solicito la SUPRESION de mis datos» por «solicito acceso» dejaria el registro legal diciendo que se cumplio con otra cosa.',
   },
   {
     ruta: 'clinics/{clinicId}/notification_logs/{docId}',
