@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Shield, Lock, Users, FileClock, DatabaseBackup, Server, Bug, Bell, Brain, ArrowLeft } from 'lucide-react'
 import { SECURITY_CONTROLS, ESTADO_LABEL, esActivo, type SecurityState } from '@/config/security-controls'
+import { SUBENCARGADOS } from '@/lib/legal/subencargados'
 
 export const metadata: Metadata = {
   title: 'Seguridad y confianza · NexusMED',
@@ -24,14 +25,6 @@ const ICONO: Record<string, typeof Lock> = {
   'backups-pitr': DatabaseBackup, mfa: Lock, pentest: Bug,
 }
 
-const SUBENCARGADOS = [
-  { nombre: 'Google Cloud / Firebase', uso: 'Base de datos, almacenamiento y autenticación', region: 'Estados Unidos', pol: 'https://cloud.google.com/terms/data-processing-addendum' },
-  { nombre: 'Anthropic (Claude)', uso: 'Redacción y revisión clínica asistida por IA', region: 'Estados Unidos', pol: 'https://www.anthropic.com/legal/privacy' },
-  { nombre: 'OpenAI', uso: 'Transcripción de voz y apoyo de IA', region: 'Estados Unidos', pol: 'https://openai.com/policies/privacy-policy' },
-  { nombre: 'Meta / WhatsApp', uso: 'Mensajes y recordatorios al paciente', region: 'Estados Unidos', pol: 'https://www.whatsapp.com/legal/business-data-transfer-addendum' },
-  { nombre: 'Stripe', uso: 'Procesamiento de pagos de la suscripción', region: 'Estados Unidos', pol: 'https://stripe.com/privacy' },
-  { nombre: 'Vercel', uso: 'Hospedaje de la aplicación web', region: 'Estados Unidos', pol: 'https://vercel.com/legal/privacy-policy' },
-]
 
 function Badge({ estado }: { estado: SecurityState }) {
   const activo = esActivo(estado)

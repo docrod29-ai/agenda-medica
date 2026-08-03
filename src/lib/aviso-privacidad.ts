@@ -8,6 +8,7 @@
  */
 
 import type { ClinicConfig } from '@/types'
+import { listaEnTexto } from '@/lib/legal/subencargados'
 
 export const VERSION_AVISO = '2026-06'
 
@@ -34,7 +35,9 @@ Versión: ${VERSION_AVISO}
 
 1. IDENTIDAD Y DOMICILIO DEL RESPONSABLE
 ${responsable}, con domicilio en ${domicilio}, es el responsable del tratamiento de sus datos personales.${respPriv ? `\nResponsable de privacidad: ${respPriv}.` : ''}
-El responsable se apoya en NexusMED como encargado del tratamiento (proveedor de software) y en los subencargados tecnológicos necesarios para operar el servicio (nube, mensajería, procesamiento de pagos e inteligencia artificial), cada uno bajo su propio acuerdo de tratamiento de datos.
+El responsable se apoya en NexusMED como encargado del tratamiento (proveedor de software) y en los siguientes subencargados tecnológicos, cada uno bajo su propio acuerdo de tratamiento de datos:
+${listaEnTexto()}
+La lista vigente y actualizada se publica en la página de seguridad de NexusMED.
 
 2. DATOS PERSONALES QUE SE RECABAN
 Recabamos los siguientes datos personales:

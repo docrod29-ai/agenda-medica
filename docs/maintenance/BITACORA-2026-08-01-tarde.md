@@ -840,6 +840,50 @@ acto de la clínica (Art. 29 LFPDPPP).
 
 ---
 
+## SEXAGÉSIMA OCTAVA TANDA — v919 · P0.2 del Dr
+
+### La lista pública de quién recibe datos del paciente omitía a dos proveedores que reciben datos del paciente
+
+El contrato de encargo promete «una lista pública y actualizada de dichos
+subencargados». Esa lista **sí existía** —la tabla de `/seguridad`, con región y
+acuerdo de tratamiento— pero declaraba **seis** proveedores y el código usa
+**diez**.
+
+Faltaban:
+
+- **AssemblyAI**, que recibe el **audio de la consulta** para separar las voces;
+- **Daily**, que transporta la **videoconsulta**;
+- **Twilio**, que manda mensajes al paciente;
+- **360dialog**, por donde pasan los WhatsApp antes de llegar a Meta.
+
+**Una lista incompleta de quién recibe datos es peor que no tenerla: parece
+completa.**
+
+Y el aviso de privacidad y el contrato hablaban de «categorías» en prosa, cada
+uno con su redacción — tres textos legales diciendo lo mismo de tres formas, a un
+proveedor nuevo de contradecirse.
+
+Ahora hay **una** lista, derivada de lo que el código integra de verdad (la clave
+de entorno que consume cada ruta), y los tres documentos leen de ella.
+
+### El guardián encontró uno mientras lo escribía
+
+La prueba falla si aparece en el código una clave de proveedor sin declarar. Al
+ejecutarla la primera vez señaló **360dialog**: yo lo había puesto entre
+paréntesis dentro de la fila de Meta, y eso lo dejaba fuera de la lista **como
+empresa** — que es lo que importa cuando se firma un acuerdo de tratamiento con
+cada una.
+
+**Queda del Dr.**: confirmar con su abogado la figura jurídica de cada uno y la
+región contra el acuerdo firmado. La `region` de la tabla es la de procesamiento
+por defecto del proveedor, no una verificación documental.
+
+- `src/lib/legal/subencargados.ts` (nuevo), `aviso-privacidad.ts`,
+  `contrato-encargo.ts`, `app/seguridad/page.tsx`
+- `src/__tests__/subencargados.test.ts` — 10 pruebas. Total 4902.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

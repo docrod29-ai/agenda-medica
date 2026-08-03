@@ -7,6 +7,7 @@
  */
 
 import type { ClinicConfig } from '@/types'
+import { listaEnTexto } from '@/lib/legal/subencargados'
 
 export const VERSION_CONTRATO = '2026-07'
 
@@ -55,10 +56,13 @@ registro de accesos y respaldos. El detalle y su estado se publican en la págin
 Seguridad del servicio.
 
 QUINTA. Subencargados.
-El RESPONSABLE autoriza al ENCARGADO a apoyarse en subencargados (proveedores de nube,
-mensajería, procesamiento de pagos e inteligencia artificial) para operar el servicio.
-El ENCARGADO mantiene una lista pública y actualizada de dichos subencargados y les
-impone obligaciones de protección equivalentes a las de este contrato.
+El RESPONSABLE autoriza al ENCARGADO a apoyarse en los siguientes subencargados para
+operar el servicio, y les impone obligaciones de protección equivalentes a las de este
+contrato:
+${listaEnTexto()}
+Esta lista es la misma que el ENCARGADO publica en su página de seguridad y la que se
+reproduce en el aviso de privacidad: una sola fuente, para que el RESPONSABLE no firme
+una relación de proveedores distinta de la que lee su paciente.
 
 SEXTA. Vulneraciones de seguridad.
 El ENCARGADO notificará al RESPONSABLE, sin demora indebida, cualquier vulneración de
