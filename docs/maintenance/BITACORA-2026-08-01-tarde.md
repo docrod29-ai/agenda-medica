@@ -3357,6 +3357,50 @@ con la razón escrita y una prueba que fija la frontera entre las dos decisiones
 
 ---
 
+
+## CENTÉSIMA DECIMONOVENA TANDA — v970 · SU DECISIÓN 3 (PROCEDENCIA)
+
+**Con esto quedan implementadas LAS SEIS decisiones del antibiograma.**
+
+### La regla
+
+Edita la categoría del laboratorio **sólo** con los ocho campos verificados:
+organismo y antimicrobiano reconocidos · método · sitio donde el corte lo exige ·
+estándar · **edición** · unidad · valor de CMI. Y cuando falta alguno, el motor
+dice **cuál**.
+
+### Lo que significa hoy, y hay que mirarlo de frente
+
+El extractor de la foto **no** captura el estándar ni la edición: no vienen
+impresos en la mayoría de los reportes. Así que, mientras usted no los declare,
+**el motor no edita nunca**. No es un defecto: es la consecuencia correcta de la
+regla — editar por omisión es lo que la decisión prohíbe.
+
+### La parte que más importa
+
+La edición se decide y se aplica **antes** de los módulos. Si se hiciera al armar
+la tabla de CMI, el panel diría R y los fenotipos se habrían calculado con la S
+del laboratorio: el defecto E0-15a de la v958 otra vez, por una puerta nueva. Hay
+prueba con un carbapenémico editado a R que sí dispara el fenotipo.
+
+### Dos premisas mías que fallaron
+
+Las destaparon mis propias pruebas. La comparación de ediciones juntaba todos los
+números, así que «M100-Ed35» y «Ed35» se leían como estándares distintos. Y busqué
+la razón de la edición en la lista equivocada — lo que destapó algo mejor: las dos
+clases de edición se declaran ahora juntas, cada una con su razón.
+
+### El límite, declarado
+
+«Bloquear las conclusiones dependientes» está a **nivel de fila**. El rastreo
+completo de dependencias no está hecho, y se dice en `ALCANCE_DEL_BLOQUEO` en vez
+de dejarlo implícito.
+
+- `antibiograma/procedencia.ts` (nuevo), `tipos.ts`, `motor.ts`, `util.ts`
+- `src/__tests__/decision-clinica-3-procedencia.test.ts` — 31 pruebas. Total 5619.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3444,7 +3488,7 @@ sustancialmente mejor de lo que un comprador puede ver».
 - **LAS 6 PREGUNTAS: CONTESTADAS el 3-ago-2026.** Ver
   `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`. Respuestas: 1B · 2B con
   estado SDD independiente · 3B condicionada · 4B · 5A · 6A sin «confirmado».
-  **1 y 6 en v966, 2 en v967, 4 y 5 en v969**; falta 3 (procedencia del breakpoint),
+  **LAS SEIS IMPLEMENTADAS**: 1 y 6 en v966 · 2 en v967 · 4 y 5 en v969 · 3 en v970. Queda
   4 (BLEE→sospecha) y 5 (mCIM→indeterminado), más la capa de **política
   institucional** que separa aislamiento/notificación del motor microbiológico.
 

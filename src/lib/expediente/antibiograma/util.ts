@@ -216,7 +216,16 @@ export function algunoS(resultados: ResultadoAntibiograma[], grupos: string[]): 
  */
 export function aplicarEdicionesInterpretativas(
   resultados: ResultadoAntibiograma[],
-  ediciones: { antibiotico: string; de: 'S'; a: 'R'; razon: string; referencia: string }[],
+  /**
+   * `de`/`a` son S/I/R cualquiera, no sólo S→R.
+   *
+   * Nació sirviendo únicamente a la cross-resistencia EUCAST, que sólo edita
+   * S→R. La edición por punto de corte (decisión 3 del Dr.) puede ir en
+   * cualquier dirección — un laboratorio que reporta R donde el corte da S es
+   * igual de discordante—, y limitar el tipo habría obligado a un segundo
+   * aplicador: dos caminos de edición que acaban divergiendo.
+   */
+  ediciones: { antibiotico: string; de: SIR; a: SIR; razon: string; referencia: string }[],
 ): ResultadoAntibiograma[] {
   if (!ediciones.length) return resultados
   return resultados.map(r => {

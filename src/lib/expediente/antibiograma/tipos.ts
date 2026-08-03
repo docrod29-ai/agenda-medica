@@ -25,6 +25,8 @@
  *    Pendiente de validación clínica antes de conducir prescripción en producción.
  */
 
+import type { ProcedenciaAntibiograma } from './procedencia'
+
 export type SIR = 'S' | 'I' | 'R'
 
 /**
@@ -119,6 +121,12 @@ export interface EntradaAntibiograma {
   sitio?: SitioInfeccion
   /** Resultados de pruebas confirmatorias capturados del reporte (opcional). */
   pruebas?: PruebasConfirmatorias
+  /**
+   * De dónde salieron las categorías del laboratorio: estándar, edición, método,
+   * unidad. Decide si el motor puede EDITAR una categoría discordante o sólo
+   * advertirla (decisión 3 del Dr.). Sin ella, no edita.
+   */
+  procedencia?: ProcedenciaAntibiograma
 }
 
 export type SitioInfeccion =
@@ -205,8 +213,15 @@ export interface BloqueDidactico {
 /** Edición interpretativa: un fármaco reportado «S» que debe leerse R por inferencia (EUCAST T13). */
 export interface EdicionInterpretativa {
   antibiotico: string
-  de: 'S'
-  a: 'R'
+  /**
+   * S/I/R cualquiera. Nació como `'S' → 'R'` porque sólo existía la
+   * cross-resistencia EUCAST; la edición por punto de corte (decisión 3 del Dr.)
+   * puede ir en cualquier dirección — un laboratorio que reporta R donde el
+   * corte da S es igual de discordante— y el Dr. descartó explícitamente
+   * corregir sólo hacia lo más restrictivo.
+   */
+  de: SIR
+  a: SIR
   razon: string
   referencia: string
 }
@@ -233,6 +248,22 @@ export interface CategoriaCMI {
    * SÓLO con exposición aumentada, y nunca almacenado como S.
    */
   reportadoSDD?: boolean
+  /**
+   * ═══ DECISIÓN 3 DEL DR.: PROCEDENCIA DEL PUNTO DE CORTE ═══
+   *
+   * `true` cuando los OCHO campos que el Dr. enumeró están verificados y el
+   * motor por tanto SUSTITUYÓ la categoría del laboratorio por la del punto de
+   * corte. El dato original nunca se destruye: viaja en `categoriaReportada`.
+   */
+  editadaPorPuntoDeCorte?: boolean
+  /**
+   * Hay discordancia y la procedencia NO está verificada: no se edita nada y
+   * **las conclusiones que dependan de esta fila quedan bloqueadas** hasta
+   * aclarar con qué estándar se interpretó.
+   */
+  bloqueaConclusiones?: boolean
+  /** Qué falta para poder resolver la discordancia. Se enseña, no se calla. */
+  faltaParaVerificar?: string[]
   /** true concuerda, false discrepa, null no reportada. */
   concuerda: boolean | null
   /** El punto de corte aplica solo a IVU no complicada. */

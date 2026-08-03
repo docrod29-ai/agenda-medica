@@ -26,6 +26,7 @@ import { evaluarIntrinseca, esIntrinsecamenteResistente } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
 import { pruebasPendientes } from './clsi-pruebas'
 import { interpretarCMI } from './clsi-breakpoints'
+import { verificarProcedencia, edicionesPorPuntoDeCorte, avisoBloqueo } from './procedencia'
 import type { CategoriaCMI } from './tipos'
 
 function fusionar(a: AporteModulo, b: AporteModulo): AporteModulo {
@@ -45,7 +46,40 @@ function fusionar(a: AporteModulo, b: AporteModulo): AporteModulo {
 
 export function interpretarAntibiograma(entrada: EntradaAntibiograma): InterpretacionAntibiograma {
   const organismo = (entrada.organismo || '').trim()
-  const r = entrada.resultados || []
+  const rCrudo = entrada.resultados || []
+
+  /**
+   * ── DECISIÓN 3 DEL DR.: LA EDICIÓN POR PUNTO DE CORTE VA PRIMERO ────────────
+   *
+   * Se decide ANTES que los módulos y se aplica al panel, para que TODO cuelgue
+   * del panel ya editado. Si se hiciera al final —al armar la tabla de CMI— el
+   * panel diría R y los fenotipos se habrían calculado con la S del laboratorio:
+   * exactamente el defecto E0-15a que costó la v958.
+   *
+   * Y sólo se edita con la procedencia PLENAMENTE verificada. Sin ella, el
+   * escenario 2: no se toca nada, se muestran las dos, y las conclusiones que
+   * dependan de esa fila quedan bloqueadas.
+   *
+   * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 3.
+   */
+  const { ediciones: porCorte, bloqueadas } = edicionesPorPuntoDeCorte(
+    rCrudo.filter(x => typeof x.cmi === 'number').map(x => {
+      const c = interpretarCMI(organismo, x.antibiotico, x.cmi as number, entrada.sitio, x.cmiCensurada)
+      return {
+        antibiotico: x.antibiotico,
+        categoriaLab: x.interpretacion,
+        categoriaCorte: c?.categoria ?? null,
+        noAplicable: !!c?.noAplicable,
+        soloUTI: !!c?.soloUTI,
+        hayValor: true,
+        referencia: c?.referencia ?? '',
+      }
+    }),
+    entrada.procedencia,
+    !!entrada.sitio,
+  )
+  /** El panel con la edición por corte YA aplicada: es la base de todo. */
+  const r = aplicarEdicionesInterpretativas(rCrudo, porCorte)
 
   let ap = aporteVacio()
   ap = fusionar(ap, analizarGramPositivos(organismo, r, entrada.sitio))
@@ -64,7 +98,12 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   // Se calcula ANTES de `transversales` porque el PK/PD debe razonar sobre la
   // interpretación EFECTIVA, no sobre el panel crudo (ver abajo).
   const seg = analizarSeguridad(organismo, r)
-  const edicionesInterpretativas = seg.edicionesFQ
+  /**
+   * Las dos clases de edición se DECLARAN juntas: la cross-resistencia EUCAST y
+   * la del punto de corte. Cada una lleva su razón, así que la nota y el prompt
+   * dicen cuál fue cuál sin que haya que mantener dos listas y dos renders.
+   */
+  const edicionesInterpretativas = [...seg.edicionesFQ, ...porCorte]
 
   /**
    * INTERPRETACIÓN EFECTIVA — fuente única de TODAS las salidas (E0-15a).
@@ -114,7 +153,12 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
     ...conflictosPruebas.map(mensaje => ({ nivel: 'alta' as const, mensaje })),
     ...seg.excepcionales, ...ap.alertas,
   ]
-  const advertencias = [...ap.advertencias, ...seg.avisos]
+  /**
+   * Las filas BLOQUEADAS se dicen. Una discordancia que el motor no puede
+   * resolver y de la que nadie se entera es peor que no detectarla: el médico
+   * lee una categoría y no sabe que hay otra lectura posible.
+   */
+  const advertencias = [...bloqueadas.map(avisoBloqueo), ...ap.advertencias, ...seg.avisos]
 
   // Referencias efectivamente usadas.
   const refs = new Set<string>()
@@ -194,6 +238,32 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
      */
     const catLab = x.interpretacionLab ?? x.interpretacion
     const delLaboratorio: SIR | undefined = catLab === 'SDD' ? undefined : catLab
+
+    /**
+     * ── DECISIÓN 3 DEL DR.: ¿SE EDITA LA CATEGORÍA DEL LABORATORIO? ──────────
+     *
+     * Sólo si la procedencia está PLENAMENTE verificada: los ocho campos. CLSI
+     * reconoce que un equipo comercial puede usar cortes de la FDA, de otra
+     * edición, o sin actualizar — recalcular sin comprobarlo no corrige un
+     * error, INVENTA una resistencia.
+     *
+     * Escenario 1 (verificada) → manda la CMI, y el dato del laboratorio se
+     * conserva en `categoriaReportada`.
+     * Escenario 2 (no verificable) → NO se toca, se muestran las dos, y las
+     * conclusiones que dependan de esta fila quedan BLOQUEADAS.
+     *
+     * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 3.
+     */
+    const discordante = !cat.noAplicable && !!delLaboratorio && delLaboratorio !== cat.categoria
+    const proc = discordante
+      ? verificarProcedencia(entrada.procedencia, {
+        hayPuntoDeCorte: true,
+        hayValor: typeof x.cmi === 'number',
+        // El corte con variante por sitio exige sitio; los demás no.
+        sitioResueltoSiHaceFalta: !!entrada.sitio || !cat.soloUTI,
+      })
+      : null
+
     categoriasCMI.push({
       antibiotico: x.antibiotico,
       cmi: x.cmi,
@@ -214,6 +284,8 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
       // prescribiría leyendo sólo la CMI.
       ...(editada && !cat.noAplicable && cat.categoria !== 'R' && x.interpretacion === 'R'
         ? { conflictoConEdicion: true } : {}),
+      ...(proc?.verificada ? { editadaPorPuntoDeCorte: true } : {}),
+      ...(proc && !proc.verificada ? { bloqueaConclusiones: true, faltaParaVerificar: proc.faltan } : {}),
       soloUTI: cat.soloUTI,
       noAplicable: cat.noAplicable,
       motivoNoAplicable: cat.motivoNoAplicable,
