@@ -884,6 +884,42 @@ por defecto del proveedor, no una verificación documental.
 
 ---
 
+## SEXAGÉSIMA NOVENA TANDA — v920 · AUDITORÍA DE LANZAMIENTO
+
+Panel de **7 especialistas en paralelo** (agenda · paciente · dinero · expediente ·
+seguridad · legal · primer uso), cada hallazgo pasado por un revisor escéptico con
+instrucción de refutarlo. **40 hallazgos, 35 sobrevivieron.** El informe completo
+está en el resultado del workflow `wf_15984211-ef4`.
+
+Veredicto: **ningún P0**. Se puede lanzar la fase 1 cerrando seis cosas del camino
+del primer día. Empiezo por la de la agenda, que es el producto que se vende.
+
+### Una cita entraba entera encima de un quirófano o de unas vacaciones
+
+`estaBloqueado` recibe un **instante** y pregunta si ese instante cae dentro del
+bloque. **Ningún llamador le pasaba la duración.**
+
+Una consulta de 60 minutos a las 10:00 contra un bloqueo de 10:30 a 13:00 **no
+estaba bloqueada** —las 10:00 no caen dentro— y la cita entraba entera encima de
+la ausencia. Por los **cuatro** caminos que agendan: cálculo de huecos, chequeo de
+conflicto, alta del consultorio y reserva pública.
+
+**Lo irónico**: la aritmética correcta ya estaba escrita en este repositorio, a
+unas líneas. `pisaDescanso(inicio, fin, …)` comprueba el solape, con el comentario
+«basta con que se solapen, no hace falta contenerlo». **Los descansos de comida
+estaban bien resueltos y las vacaciones no.**
+
+Ahora hay `pisaBloqueo` con la misma aritmética y los cuatro caminos lo usan.
+Bordes fijados: la cita que **termina** cuando empieza el bloqueo no lo pisa, la
+que **empieza** cuando termina tampoco, la que lo **contiene** entero sí; y una
+duración basura se trata como 0 —el chequeo más estricto— nunca como «no bloquea».
+
+- `src/lib/time-blocks-core.ts` (`pisaBloqueo`), `availability.ts`,
+  `api/appointments/route.ts`, `api/public/booking/route.ts`
+- `src/__tests__/bloqueo-duracion.test.ts` — 14 pruebas. Total 4916.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
