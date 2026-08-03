@@ -226,7 +226,15 @@ export async function GET(req: NextRequest) {
                 .set({
                   telefono: normalizarTelefonoWa(phone),
                   estado: 'confirmando_cita',
-                  datos: { citaId: appt.id, fecha: apptDate, hora: apptHour },
+                  /**
+                   * `cancelarSolo: ''` NO sobra.
+                   *
+                   * `merge: true` funde los mapas anidados, así que una bandera
+                   * de un diálogo de cancelación ABANDONADO sobrevivía aquí — y
+                   * el «SÍ» del paciente a este recordatorio le cancelaba la
+                   * cita en vez de confirmarla. Escribirla vacía la neutraliza.
+                   */
+                  datos: { citaId: appt.id, fecha: apptDate, hora: apptHour, cancelarSolo: '' },
                   lastMessageAt: now.toISOString(),
                   createdAt: now.toISOString(),
                 }, { merge: true })

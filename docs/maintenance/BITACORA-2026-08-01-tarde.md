@@ -920,6 +920,43 @@ duración basura se trata como 0 —el chequeo más estricto— nunca como «no 
 
 ---
 
+## SEPTUAGÉSIMA TANDA — v921 · AUDITORÍA DE LANZAMIENTO (2/6)
+
+### El «SÍ» al recordatorio podía cancelar la cita en vez de confirmarla
+
+Dos preguntas distintas compartían el estado `confirmando_cita` y se distinguían
+por una bandera **dentro de `datos`**:
+
+- «¿confirmas tu cita?» → SÍ = confirmar
+- «¿la cancelo?» → SÍ = cancelar (`cancelarSolo: '1'`)
+
+La cadena que lo rompía:
+
+1. el paciente pide cancelar y **abandona** sin contestar;
+2. la bandera se queda pegada en su sesión, que **no caduca sola** —sólo se toca
+   cuando el paciente vuelve a escribir—;
+3. llega el recordatorio de 24 h y el cron reescribe la sesión con `merge: true`,
+   que en Firestore **funde los mapas anidados**: la bandera **sobrevive**;
+4. el paciente responde «SÍ» a «¿confirmas tu cita?» y **se le cancela**, se avisa
+   al consultorio y su hueco se le ofrece a la lista de espera.
+
+**Confirmar y perder la cita**, sin enterarse hasta el día de la consulta.
+
+Lo más útil del hallazgo: el comentario que ya vivía en ese código advertía de
+**este mismo peligro en el sentido contrario** —quien pide cancelar y acaba con la
+cita confirmada—. Le faltaba la otra mitad.
+
+Ahora cada pregunta tiene **su propio estado**, así que una sesión vieja de
+cancelación no puede secuestrar la pregunta del recordatorio: son ramas distintas
+del código. El cron además escribe la bandera vacía para neutralizar las que ya
+estuvieran pegadas, y se **sigue leyendo** por si acaso, para no invertirle el
+sentido a una conversación en vuelo al desplegar esto.
+
+- `src/app/api/whatsapp/webhook/route.ts`, `src/app/api/cron/reminders/route.ts`
+- `src/__tests__/bot-si-no-cancela.test.ts` — 7 pruebas. Total 4923.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
