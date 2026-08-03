@@ -2860,6 +2860,62 @@ inhibidor— se siguen pidiendo.
 
 ---
 
+
+## CENTÉSIMA NOVENA TANDA — v960 · EL LIBRO DE EXCEL (D5)
+
+**Cierra D5 — el frente de DATOS queda cerrado salvo lo que depende de usted.**
+
+### Verificado antes de tocar
+
+«No existe exportación a Excel. Ninguna»: ni una línea de `xlsx` en el
+repositorio. Sólo CSV.
+
+### Sin dependencia nueva, que era la duda
+
+`csv-clinico.ts` lo dejó escrito el día que se creó: «una pestaña por dominio es
+como se piensa esa información, y **un CSV por dominio es la versión sin
+dependencias nuevas de esa idea**».
+
+Un `.xlsx` es un ZIP con media docena de XML dentro; para una tabla eso son 300
+líneas deterministas y probables. Las librerías del ramo pesan megas, arrastran
+árboles enteros y han tenido su cuota de CVEs — ninguna de las dos cosas se paga
+con gusto en un producto que maneja expedientes. El escritor es nuestro.
+
+### La ventaja de seguridad no es accidental
+
+En CSV, `=1+1` lo **evalúa** Excel al abrirlo, y por eso `csv-seguro` le antepone
+un apóstrofo. Aquí cada celda de texto va como `inlineStr`, un tipo que Excel
+nunca evalúa. La defensa no es un filtro que haya que acordarse de aplicar: es el
+formato. Probado con seis cargas hostiles.
+
+### Cómo se prueba un binario
+
+El golden escribe el archivo y lo abre con el `unzip` del sistema: `unzip -t`
+comprueba el CRC de todos los miembros, que es el mismo control que hace el
+lector al abrir. Comprobar que «devuelve bytes» no probaría nada. Y el escritor
+es determinista a propósito, así que el mismo dato da el mismo archivo byte a
+byte.
+
+### Dos detalles que ya sabemos que se pagan caros
+
+- **Una sola definición de la fila.** `filasDe` devolvía las filas ya unidas en
+  CSV; llevarlas al libro habría exigido describir otra vez las mismas columnas
+  en otro sitio — exactamente lo de la CMI en v957. Ahora `celdasDe` devuelve
+  celdas y el CSV es una de las dos escrituras, no la fuente.
+- **La pestaña RESUMEN va primera.** Un libro que abre en «consultas» con 4 000
+  filas se lee como el consultorio entero. Declara qué trae, qué NO es (no
+  sustituye al respaldo NDJSON) y qué topes se alcanzaron, con su nombre.
+
+En la pantalla de Migración el botón nuevo va primero —«Todo en Excel (.xlsx)»— y
+los seis CSV quedan detrás, para quien necesite uno suelto.
+
+- `src/lib/xlsx.ts` (nuevo, puro), `api/clinic/exportar-excel/route.ts` (nueva),
+  `lib/clinica/csv-clinico.ts`, `lib/authz/registro-rutas.ts`,
+  `app/(dashboard)/migracion/page.tsx`
+- `src/__tests__/xlsx-libro.test.ts` — 24 pruebas. Total 5472.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -2896,7 +2952,7 @@ sustancialmente mejor de lo que un comprador puede ver».
 - D3. El respaldo del consultorio es un N+1 secuencial EN EL NAVEGADOR y no hay
   importador: no se puede volver a entrar.
 - D4. La «migración de salida» son 11 columnas de demografía.
-- D5. No existe exportación a Excel. Ninguna.
+- D5. ~~No existe exportación a Excel. Ninguna.~~ **CERRADO v960** (escritor propio, sin dependencia nueva).
 - D6. La bitácora de accesos no se puede exportar (NOM-024).
 - D7. Dos implementaciones FHIR divergentes; la ruta HTTP usa la pobre.
 - D8. Restauración nunca probada: `docs/SIMULACRO_RESTAURACION.md` sin una sola

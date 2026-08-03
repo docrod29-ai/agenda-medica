@@ -96,47 +96,67 @@ type Doc = Record<string, unknown>
 const arr = (v: unknown): Doc[] => (Array.isArray(v) ? (v as Doc[]) : [])
 
 /**
- * Las filas que salen de UN documento.
+ * Las CELDAS que salen de UN documento — una fila por elemento.
  *
- * Devuelve varias cuando el dominio desglosa un arreglo de la nota, y **ninguna**
- * cuando ese arreglo viene vacío: una fila con el paciente y todo lo demás en
- * blanco se cuenta como un diagnóstico que no existe.
+ * Devuelve varias filas cuando el dominio desglosa un arreglo de la nota, y
+ * **ninguna** cuando ese arreglo viene vacío: una fila con el paciente y todo lo
+ * demás en blanco se cuenta como un diagnóstico que no existe.
+ *
+ * ── POR QUÉ CELDAS Y NO TEXTO YA UNIDO ───────────────────────────────────────
+ *
+ * Antes devolvía las filas ya convertidas en una cadena CSV. Cuando llegó el
+ * libro de Excel hubo que elegir entre volver a describir aquí las mismas
+ * columnas —dos definiciones de la misma fila, que acaban divergiendo sin que
+ * nadie lo note— o partir en celdas. Se parte en celdas: el CSV es una de las
+ * dos formas de escribirlas, no la fuente.
  */
-export function filasDe(
+export function celdasDe(
   d: Dominio, doc: Doc, ctx: { pacienteNombre?: string; pacienteId?: string },
-): string[] {
+): unknown[][] {
   const paciente = s(ctx.pacienteNombre ?? doc.pacienteNombre)
   const pacienteId = s(ctx.pacienteId ?? doc.pacienteId)
   const id = s(doc.id)
   const fecha = s(doc.fechaConsulta ?? doc.fecha ?? (doc.metadata as Doc | undefined)?.fechaCreacion)
 
-  const fila = (celdas: unknown[]) => celdas.map(celdaSegura).join(',')
-
   switch (d) {
     case 'consultas':
-      return [fila([fecha, paciente, pacienteId, id, doc.tipo, doc.estado,
+      return [[fecha, paciente, pacienteId, id, doc.tipo, doc.estado,
         (doc.firma as Doc | undefined)?.nombreMedico ?? (doc.metadata as Doc | undefined)?.medicoNombre,
-        doc.resumenEjecutivo])]
+        doc.resumenEjecutivo]]
 
     case 'diagnosticos':
       return arr(doc.diagnosticos).map(dx =>
-        fila([fecha, paciente, pacienteId, id, dx.descripcion ?? dx.nombre, dx.cie10, dx.tipo]))
+        [fecha, paciente, pacienteId, id, dx.descripcion ?? dx.nombre, dx.cie10, dx.tipo])
 
     case 'medicamentos':
       return arr(doc.medicamentos).map(m =>
-        fila([fecha, paciente, pacienteId, id, m.nombre, m.dosis, m.via, m.frecuencia, m.duracion]))
+        [fecha, paciente, pacienteId, id, m.nombre, m.dosis, m.via, m.frecuencia, m.duracion])
 
     case 'laboratorios':
       return arr(doc.analitos).map(a =>
-        fila([fecha, paciente, pacienteId, id, a.clave ?? a.nombre, a.valor, a.unidad, a.referencia]))
+        [fecha, paciente, pacienteId, id, a.clave ?? a.nombre, a.valor, a.unidad, a.referencia])
 
     case 'citas':
-      return [fila([s(doc.fechaHora), paciente, pacienteId, id, doc.tipo, doc.estado,
-        doc.duracion, doc.medicoNombre])]
+      return [[s(doc.fechaHora), paciente, pacienteId, id, doc.tipo, doc.estado,
+        doc.duracion, doc.medicoNombre]]
 
     case 'cobros':
-      return [fila([fecha, paciente, pacienteId, id, doc.concepto, doc.monto, doc.metodo, doc.estado])]
+      return [[fecha, paciente, pacienteId, id, doc.concepto, doc.monto, doc.metodo, doc.estado]]
   }
+}
+
+/**
+ * Las mismas filas, escritas como CSV.
+ *
+ * `celdaSegura` sigue haciendo falta AQUÍ y sólo aquí: en un CSV, una celda que
+ * empieza por `=` la evalúa Excel al abrirla. En el libro `.xlsx` no hace falta
+ * y no se aplica, porque las celdas de texto se escriben como `inlineStr`, que
+ * Excel nunca evalúa. Misma fila, dos escrituras, una sola definición.
+ */
+export function filasDe(
+  d: Dominio, doc: Doc, ctx: { pacienteNombre?: string; pacienteId?: string },
+): string[] {
+  return celdasDe(d, doc, ctx).map(f => f.map(celdaSegura).join(','))
 }
 
 export const POR_QUE_UNA_FILA_POR_ELEMENTO =

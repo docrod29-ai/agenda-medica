@@ -244,6 +244,11 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'cumplimiento/bitacora': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/exportar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/exportar-csv': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
+  // Mismo contenido que el CSV pero en un solo libro con una pestaña por dominio:
+  // MISMA capacidad, a propósito. Dos respuestas distintas a «¿quién puede
+  // llevarse el expediente?» acabarían discrepando, y la puerta más floja sería
+  // la que vale.
+  'clinic/exportar-excel': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'clinic/importar': { tipo: 'capacidad', capacidad: 'administrar' },
   'clinic/ai-keys': {
     tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' },
