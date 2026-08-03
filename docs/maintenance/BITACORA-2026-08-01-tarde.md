@@ -1785,6 +1785,55 @@ declare, no una inferencia. NEEDS_CLINICAL_REVIEW.
 
 ---
 
+## NONAGÉSIMA PRIMERA TANDA — v942 · LO QUE EL MODELO PROMETÍA Y NO EXISTE
+
+### Un campo declarado que nadie usa es una promesa de la aplicación
+
+El guardián de módulos huérfanos (v935) vigila el código escrito y sin conectar.
+Faltaba lo mismo **un nivel más abajo**: el campo declarado en un tipo que nadie
+escribe ni lee. No es documentación inofensiva — un tipo es lo que la aplicación
+dice de sí misma, y quien lo lee actúa en consecuencia.
+
+### Borrados por describir otra aplicación
+
+- **`AuditLog`** prometía `entityType`, `entityId`, `oldValue` y `newValue`: una
+  bitácora con el **antes y el después** de cada cambio. La bitácora real
+  (`lib/expediente/audit-log.ts`) no guarda nada de eso, y `createAuditLog` —lo
+  único que usaba el tipo— se había borrado hace tiempo de `lib/firestore.ts`.
+  Ante una revisión, «el expediente registra el valor anterior» era una
+  **afirmación falsa escrita en el modelo**.
+- **`NotificationLog`**: la entrega de mensajes se registra en el libro de
+  no-entregados y en el outbox, con otra forma.
+- **`DashboardStats`**: diez cifras declaradas y ni un consumidor. El tablero
+  calcula lo suyo con sus propias consultas.
+- **`ClinicConfig.whatsappProveedor`**: un segundo sitio donde declarar el
+  proveedor, cuando el que de verdad se lee es `ClinicWhatsApp.provider`. Dos
+  campos para lo mismo es una invitación a que uno diga «meta» y el otro
+  «360dialog» sin que nadie sepa cuál manda.
+
+### Y el guardián, con trinquete
+
+Los 20 campos que siguen sin usar van **congelados con su razón**: el modelo de
+UCI de icu-002 esperando la fase que lo consume, el modelo de evidencia E2, la
+PHI separada de E0-06, y dos campos del expediente sin captura
+(`Diagnostico.fechaDiagnostico`, `Medicamento.instruccionesEspeciales`). Uno
+nuevo pone el CI en rojo.
+
+### Dos trampas que el propio guardián tuvo que esquivar
+
+1. Aceptar `export type` hacía que el `Record` de etiquetas siguiente se leyera
+   como campos del tipo anterior: **seis falsos positivos** que decían que la UCI
+   no podía registrar ventilación no invasiva ni HFNC. Un guardián que grita
+   donde no hay nada acaba ignorándose.
+2. Contar las **pruebas** como uso hacía que su propia lista de aceptados —que
+   nombra cada campo— lo diera todo por usado. Un guardián que se cuenta a sí
+   mismo siempre pasa.
+
+- `src/types/index.ts` (tres interfaces y un campo fuera), `src/lib/firestore.ts`
+- `src/__tests__/campos-sin-usar.test.ts` — 9 pruebas. Total 5142.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
