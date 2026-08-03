@@ -21,6 +21,46 @@ historia vive aquí.
 
 ---
 
+## v966 — decisiones 1 y 6 del Dr.: el motor deja de afirmar de más
+
+El Dr. contestó las seis preguntas clínicas del antibiograma el 3-ago-2026. Van
+las dos primeras, que son la misma idea: **ninguna quita una alerta; las dos
+quitan una PALABRA que el estándar no respalda.**
+
+DECISIÓN 1 — NO SE DECLARA MDR EN GRAM POSITIVOS. M100-Ed35 usa las siglas MDRO
+en las tablas de *Staphylococcus* y *Enterococcus*, pero **no fija una regla
+universal** del tipo «no susceptible en tres clases». Un conteo genérico no puede
+convertirse en una categoría formal. La señal se conserva con otro nombre —
+`resistencia-adquirida-extensa`, «no susceptible en N clases evaluables»— y el
+propio texto dice de sí mismo que NO corresponde a una definición CLSI de MDR.
+Sin esa frase, el nombre nuevo se leería como un MDR disfrazado. En Gram
+negativos no cambia nada: Magiorakos sí define las categorías, y hay un control
+que lo fija.
+
+DECISIÓN 6 — DISCORDANCIA NO ES «CONFIRMADO». Un *S. aureus* con oxacilina R y
+cefoxitina S salía «MRSA [confirmado]». CLSI sí manda reportarlo como resistente
+a meticilina —eso NO cambia, y el fenotipo se sigue emitiendo—, pero las dos
+pruebas se contradicen y las definitivas son *mecA*, *mecC* o PBP2a, que no se
+hicieron. «Confirmado» era una certeza prestada. Ahora la confianza baja a
+`probable`, el nombre dice «por OXACILINA — resultado DISCORDANTE con cefoxitina»,
+el mecanismo PBP2a baja igual, y sale una alerta crítica con el texto que el Dr.
+pidió: repetir/verificar y confirmar con mecA/mecC/PBP2a, manejándolo mientras
+tanto como MRSA por seguridad.
+
+LO QUE NO SE TOCÓ, A PROPÓSITO: el aislamiento y la notificación siguen saliendo.
+El Dr. pidió que esas consecuencias pasen a ser política institucional
+configurable —«CLSI define categorías; aislamiento, notificación y selección
+terapéutica definitiva deben permanecer como reglas institucionales
+separadas»— y eso es un cambio aparte: hacerlo de paso dejaría a alguien sin su
+aviso de aislamiento sin haberlo decidido.
+
+Y dos pruebas del golden de v956 fallaron — correctamente. Registraban la
+pregunta abierta (`NEEDS_CLINICAL_REVIEW`, «esa pregunta es del Dr»); ahora
+registran la respuesta y que el código **cita el documento** en vez de repetir el
+razonamiento clínico dentro de un archivo que nadie vuelve a revisar. +18 casos.
+
+---
+
 ## v965 — el cobro por médico dependía de que alguien pulsara un botón (N4)
 
 VERIFICADO: en todo el repositorio hay **un solo sitio que escribe

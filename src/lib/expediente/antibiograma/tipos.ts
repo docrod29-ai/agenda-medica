@@ -98,6 +98,18 @@ export type FenotipoClave =
   | 'neumococo-PNS' | 'carbapenemasa' | 'carbapenemasa-indeterminada' | 'BLEE' | 'AmpC' | 'IRT'
   | 'porina-perdida' | 'bomba-expulsion' | 'FQ-R' | 'colistin-R'
   | 'S-maltophilia-intrinseca' | 'MDR' | 'XDR' | 'PDR'
+  /**
+   * NO es MDR, y ésa es toda la razón de que exista una clave aparte.
+   *
+   * Decisión del Dr. (3-ago-2026, decisión 1): M100-Ed35 usa las siglas MDRO en
+   * las tablas de estafilococo y enterococo, pero **no establece una regla
+   * universal** del tipo «no susceptible en tres clases» para declarar MDR. Un
+   * conteo genérico no puede convertirse en una categoría formal.
+   *
+   * Se conserva la SEÑAL —resistencia adquirida extensa— y se le quita la
+   * ETIQUETA que no le corresponde.
+   */
+  | 'resistencia-adquirida-extensa'
   | '16S-RMTasa' | 'AME' | 'DTR' | 'linezolid-R' | 'daptomicina-R' | 'tigeciclina-R'
 
 /** Nivel de confianza de la inferencia. */

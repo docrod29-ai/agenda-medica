@@ -88,14 +88,48 @@ function staph(organismo: string, r: ResultadoAntibiograma[], out: AporteModulo)
   const meticilinaR = ES_R(oxa) || ES_R(fox)
 
   if (meticilinaR) {
+    /**
+     * ── DECISIÓN 6 DEL DR. (3-ago-2026): DISCORDANCIA ≠ «CONFIRMADO» ──────────
+     *
+     * CLSI es directo: un aislamiento resistente **por cefoxitina O por
+     * oxacilina** se reporta como resistente a meticilina. Eso no cambia.
+     *
+     * Lo que cambia es la palabra. Cuando las dos pruebas **se contradicen**
+     * —oxacilina R con cefoxitina S— el reporte de MRS sigue siendo correcto,
+     * pero llamarlo «confirmado» no lo es: las pruebas más definitivas son
+     * *mecA*, *mecC* o PBP2a, y aquí no se hizo ninguna.
+     *
+     * Así que el fenotipo se emite igual —la conducta de seguridad se
+     * mantiene— y se le baja la confianza a `probable`, se dice que es
+     * FENOTÍPICO, y se pide la confirmación molecular. Nadie pierde su alerta;
+     * lo que se pierde es una certeza que no teníamos.
+     *
+     * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 6.
+     */
+    const discordante = ES_R(oxa) && ES_S(fox)
+    const especie = esAureus ? 'S. aureus' : 'Estafilococo'
     out.fenotipos.push({
       clave: 'MRSA',
-      nombre: esAureus ? 'S. aureus resistente a meticilina (MRSA)' : 'Estafilococo resistente a meticilina (SARM/ECN-MR)',
-      confianza: 'confirmado',
-      base: `Oxacilina/cefoxitina R. La cefoxitina es el mejor marcador de mecA. ${REF.GRAM_POS}`,
+      nombre: discordante
+        ? `${especie} resistente a meticilina por OXACILINA — resultado DISCORDANTE con cefoxitina`
+        : (esAureus ? 'S. aureus resistente a meticilina (MRSA)' : 'Estafilococo resistente a meticilina (SARM/ECN-MR)'),
+      confianza: discordante ? 'probable' : 'confirmado',
+      base: discordante
+        ? 'Oxacilina R con cefoxitina S: CLSI indica reportar como resistente a meticilina, '
+          + 'pero las dos pruebas se contradicen. Las pruebas definitivas son mecA, mecC o PBP2a, '
+          + `y ninguna se hizo: NO se declara «confirmado». ${REF.GRAM_POS}`
+        : `Oxacilina/cefoxitina R. La cefoxitina es el mejor marcador de mecA. ${REF.GRAM_POS}`,
     })
+    if (discordante) {
+      out.alertas.push({
+        nivel: 'critica',
+        mensaje: `${especie} resistente a meticilina por oxacilina; resultado discordante con cefoxitina. `
+          + 'Repetir/verificar las pruebas y confirmar preferentemente con mecA / mecC / PBP2a. '
+          + 'Como medida temporal de seguridad puede manejarse como MRSA hasta aclararlo.',
+      })
+    }
     out.mecanismos.push({
-      categoria: 'diana', nombre: 'PBP2a (gen mecA)', confianza: 'confirmado',
+      categoria: 'diana', nombre: 'PBP2a (gen mecA)', confianza: discordante ? 'probable' : 'confirmado',
       explicacion: 'mecA codifica una PBP2a de baja afinidad → resistencia a TODOS los β-lactámicos EXCEPTO las nuevas cefalosporinas anti-MRSA (ceftarolina, ceftobiprol).',
       referencia: REF.GRAM_POS,
     })
