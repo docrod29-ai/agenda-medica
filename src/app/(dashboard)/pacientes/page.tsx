@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Patient, type ClinicConfig } from '@/types'
 import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
-import { getNotas } from '@/lib/expediente/firestore'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
@@ -54,31 +54,42 @@ export default function PacientesPage() {
 
   useEffect(() => { load() }, [clinicId])
 
-  // Respaldo COMPLETO: todos los pacientes + todas sus notas → archivo descargable.
-  // Copia de seguridad propia del médico ("nunca se pierde" x2). Solo médico/admin
-  // (incluye notas = secreto médico).
+  /**
+   * RESPALDO COMPLETO — del servidor, en streaming, y de verdad completo.
+   *
+   * ── LO QUE HABÍA AQUÍ ──────────────────────────────────────────────────────
+   *
+   * Un `for` sobre los pacientes con `await getNotas(...)` DENTRO: una lectura
+   * por paciente, en serie, en el navegador, con el médico esperando y sin forma
+   * de reanudar. Y bajaba pacientes + notas, nada más — ni adendas, ni
+   * laboratorios, ni fotografía clínica, ni antecedentes, ni citas, ni cobros,
+   * ni la configuración (membrete, formato de receta, firma), ni los bloqueos de
+   * agenda, ni la farmacia, ni los internamientos, ni la bitácora.
+   *
+   * Un archivo llamado «respaldo» que no respalda es peor que no tenerlo: se
+   * guarda, se duerme tranquilo, y el día que hace falta no está lo que se creía.
+   */
   const exportarTodo = async () => {
     if (!clinicId || exportando) return
     setExportando(true)
     try {
-      const backup = {
-        clinica: clinicId,
-        exportadoEn: new Date().toISOString(),
-        totalPacientes: patients.length,
-        pacientes: [] as Array<Patient & { historial: unknown[] }>,
+      // Se abre en el navegador y se descarga en streaming: el archivo empieza a
+      // escribirse mientras el servidor sigue leyendo, sin cargar el consultorio
+      // entero en memoria de nadie.
+      const res = await fetchAutenticado(`/api/clinic/exportar?clinicId=${encodeURIComponent(clinicId)}`)
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast(d.error || 'No se pudo generar el respaldo', 'error')
+        return
       }
-      for (const p of patients) {
-        const historial = await getNotas(clinicId, p.id).catch(() => [] as unknown[])
-        backup.pacientes.push({ ...p, historial })
-      }
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `respaldo_expediente_${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `respaldo_nexusmed_${new Date().toISOString().slice(0, 10)}.ndjson`
       a.click()
       URL.revokeObjectURL(url)
-      toast(`Respaldo descargado: ${patients.length} paciente(s) con sus notas`, 'success')
+      toast('Respaldo descargado. La última línea del archivo dice si quedó completo y qué faltó.', 'success')
     } catch {
       toast('No se pudo generar el respaldo', 'error')
     } finally {

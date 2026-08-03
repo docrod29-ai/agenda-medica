@@ -2071,6 +2071,73 @@ archivo de la ruta, porque mezclarlos daría por buenas rutas sin candado propio
 
 ---
 
+## NONAGÉSIMA SEXTA TANDA — v947 · EL RESPALDO QUE NO RESPALDABA
+
+**Cierra la mitad de D3.** El importador queda pendiente y va declarado abajo.
+
+### Una lectura por paciente, en serie, en el navegador
+
+```ts
+for (const p of patients) { const historial = await getNotas(clinicId, p.id) }
+```
+
+Con el médico esperando, sin progreso y sin forma de reanudar. Con cientos de
+pacientes son cientos de idas y vueltas antes del primer byte; en un móvil, la
+pestaña se queda sin memoria.
+
+Y lo que bajaba eran **pacientes + notas**. Nada más: fuera quedaban adendas,
+laboratorios, fotografía clínica, antecedentes, citas, cobros, la configuración
+—membrete, formato de receta, firma—, los bloqueos de agenda, la farmacia, los
+internamientos y la bitácora.
+
+**Un archivo llamado «respaldo» que no respalda es peor que no tenerlo**: se
+guarda, se duerme tranquilo, y el día que hace falta no está lo que se creía.
+
+### Ahora: servidor, NDJSON, paginado con cursor
+
+Una línea por documento **con su ruta completa**, para poder volver a escribirla
+donde estaba. Se escribe mientras se lee —sin cargar el consultorio en memoria de
+nadie—, se reanuda por donde se quedó, y una línea corrupta no invalida el
+archivo entero como sí haría un JSON gigante.
+
+- La **cabecera** va primera con el índice y **lo excluido**.
+- El **pie** cierra el archivo diciendo si quedó completo y qué falló: sin pie no
+  hay forma de saber si la descarga se cortó a la mitad.
+- Una colección ilegible se **declara** y el respaldo sigue — reventar entero
+  deja al médico sin nada.
+
+### Lo que NO se lleva, y es una decisión
+
+Las **llaves de API** del consultorio (`secretos/`). Un respaldo se descarga, se
+manda por correo y se deja en un escritorio: meterlas ahí lo convertiría en una
+filtración de credenciales, y se vuelven a pegar en Configuración en un minuto.
+**Lo que no se puede volver a teclear es el expediente.** Queda declarado en la
+cabecera del propio archivo, para que nadie descubra la ausencia el día malo.
+
+### Y la TERCERA vez que un guardián textual se apaga solo
+
+El detector de PHI busca `collection('notas')`. El respaldo recorre las
+subcolecciones con `collection(hija)` —dinámico, porque la lista vive en el
+manifiesto—, así que **la ruta que se lleva todos los expedientes del
+consultorio no contaba como lectora de PHI**.
+
+Se añadió una segunda señal: la colección declarada como hija en un manifiesto.
+Cada vez que un refactor correcto apague el guardián, la respuesta es **añadir la
+señal, no bajar el listón**.
+
+- `src/lib/clinica/respaldo.ts` (nuevo, puro),
+  `src/app/api/clinic/exportar/route.ts` (nueva), `pacientes/page.tsx`,
+  `authz-rutas-declaradas.test.ts` (segunda señal)
+- `src/__tests__/respaldo-consultorio.test.ts` — 20 pruebas. Total 5231.
+
+**Queda de D3 — el importador.** Sin él esto sigue siendo un archivo que nadie
+sabe si sirve: hace falta `POST /api/clinic/importar` (idempotente por `_ruta`,
+con modo ensayo) y una prueba de ida y vuelta contra el emulador que siembre una
+clínica, exporte, importe en otra y **compare documento a documento**. Ésa es la
+prueba que responde «sí, sabemos reconstruirlo».
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
