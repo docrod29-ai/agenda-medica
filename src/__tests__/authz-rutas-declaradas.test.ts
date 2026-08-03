@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(93)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(94)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -505,6 +505,13 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
       'calendar/callback',
       'cron/limpiar-audio',
       'cron/reminders',
+      /**
+       * Barre las colecciones OPERATIVAS de plataforma que crecen sin techo.
+       * Nada clínico —eso lo fija la NOM-004 y el abogado, no un cron— y con el
+       * mismo `CRON_SECRET` fail-closed: un endpoint que BORRA no queda abierto.
+       */
+      'cron/retencion',
+
       /**
        * 15 → 16 al añadir `cron/vigilante`: mira los latidos de los otros crons
        * y avisa. No lleva guardián de SESIÓN porque no hay usuario —lo dispara

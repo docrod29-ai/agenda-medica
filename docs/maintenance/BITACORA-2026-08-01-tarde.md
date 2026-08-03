@@ -2532,6 +2532,62 @@ reciente: es que el cron no está corriendo, y entonces sí hay que mirarlo.
 
 ---
 
+## CENTÉSIMA TERCERA TANDA — v954 · EL BARRENDERO QUE NO EXISTÍA
+
+**Cierra I7.**
+
+### Dos TTL escritos en comentarios, ninguno activado
+
+Había dos crons y **ninguno borraba nada de Firestore**. Mientras tanto:
+
+- `rate_limits` escribe **un documento por petición limitada**, con un `exp` que
+  su propio código guardaba «para poder purgar con TTL de Firestore **si algún
+  día se activa**». No se activó nunca.
+- `whatsapp_dedup` escribe `expira` «para una política TTL que borra las marcas
+  viejas solas». **Tampoco.**
+- `platform_csp` la escribe un endpoint **público y sin autenticar**.
+
+Dos veces la misma firma: **la regla escrita en un comentario que nada hace
+cumplir.** Nada de eso rompe hoy; todo rompe con cien consultorios, por la vía
+más cara — la factura y el rendimiento de las consultas.
+
+### La línea que no se cruza
+
+**Nada del expediente.** Cuánto se conserva un expediente lo fija la NOM-004 y el
+abogado del consultorio, **no un cron**. Un barrendero que se lleve por delante
+un dato clínico es infinitamente peor que una colección que crece: lo segundo
+cuesta dinero, **lo primero cuesta el expediente de alguien**.
+
+Una prueba falla si alguna regla apunta a una colección clínica, y **no admite
+excepción declarable**.
+
+### Lo que no se inventa, y lo que no se borra
+
+- El plazo del dedup **no se inventa**: `dias: 0` sobre su propio `expira` hace
+  exactamente lo que su TTL habría hecho. Respetar el plazo que el módulo declaró
+  es mejor que elegir uno nuevo.
+- **Lo que no se puede fechar no se borra**, y una fecha en el futuro tampoco —
+  la misma regla que el barrido de audio.
+- Se pagina por `__name__` y se filtra en memoria **a propósito**: un `where`
+  sobre la fecha exigiría un índice creado a mano y, mientras no exista, la
+  consulta falla **entera**. Un barrendero que no barre porque falta un índice es
+  un barrendero que nadie echa de menos.
+
+### El guardián encontró ocho colecciones sin decidir
+
+Recorre `src/` buscando `adminDb.collection('X')`: cada colección de plataforma
+tiene que estar **en las reglas** o **en la lista de exentas con su razón**.
+Aparecieron ocho sin decidir y las ocho quedaron declaradas — incluidas las
+**marcas de idempotencia de Stripe**, que no se barren porque borrarlas abre la
+puerta a aplicar dos veces el mismo pago.
+
+- `src/lib/ops/retencion.ts` (nuevo, puro),
+  `src/app/api/cron/retencion/route.ts` (nueva), `vercel.json`,
+  `lib/ops/latido.ts` (su periodo)
+- `src/__tests__/retencion-plataforma.test.ts` — 22 pruebas. Total 5376.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

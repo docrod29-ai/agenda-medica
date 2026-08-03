@@ -21,6 +21,42 @@ historia vive aquí.
 
 ---
 
+## v954 — el barrendero que no existía
+
+Había dos crons y NINGUNO borraba nada de Firestore —`limpiar-audio` toca sólo
+Cloud Storage—. Mientras tanto `rate_limits` escribe UN DOCUMENTO POR PETICIÓN
+LIMITADA, con un `exp` que su propio código guardaba «para poder purgar con TTL
+de Firestore SI ALGÚN DÍA SE ACTIVA»: no se activó nunca. Lo mismo
+`whatsapp_dedup`, que escribe `expira` «para una política TTL que borra las
+marcas viejas solas» — tampoco. Dos veces la misma firma: la regla escrita en un
+comentario que nada hace cumplir. Y `platform_csp` la escribe un endpoint público
+y sin autenticar.
+
+Nada de eso rompe hoy; todo rompe con cien consultorios, por la vía más cara.
+
+LA LÍNEA QUE NO SE CRUZA: nada del expediente. Cuánto se conserva un expediente
+lo fija la NOM-004 y el abogado, NO UN CRON — un barrendero que se lleve por
+delante un dato clínico es infinitamente peor que una colección que crece: lo
+segundo cuesta dinero, lo primero cuesta el expediente de alguien. Una prueba
+falla si alguna regla apunta a una colección clínica, y no admite excepción.
+
+El plazo del dedup NO SE INVENTA: `dias: 0` sobre su propio `expira` hace
+exactamente lo que su TTL habría hecho. Lo que no se puede fechar NO se borra, y
+una fecha en el futuro tampoco. Se pagina por `__name__` y se filtra en memoria a
+propósito: un `where` sobre la fecha exigiría un índice creado a mano, y mientras
+no exista la consulta falla ENTERA — un barrendero que no barre porque falta un
+índice es un barrendero que nadie echa de menos.
+
+Y un GUARDIÁN recorre `src/` buscando `adminDb.collection('X')`: cada colección
+de plataforma tiene que estar en las reglas O en la lista de exentas con su
+razón. Encontró OCHO sin decidir, y las ocho quedaron declaradas — incluidas las
+marcas de idempotencia de Stripe, que NO se barren porque borrarlas abre la
+puerta a aplicar dos veces el mismo pago.
+
+22 pruebas más (5376).
+
+---
+
 ## v953 — la bitácora sale de aquí, y aparece `/api/health`
 
 EL SERVICE WORKER PESABA 276 KB Y ERA CULPA DE ESTA BITÁCORA. Cada versión
