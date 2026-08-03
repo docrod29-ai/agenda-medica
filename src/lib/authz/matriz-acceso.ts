@@ -261,7 +261,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'clinico',
     guardaLectura: 'isClinicoHospital',
     guardaEscritura: 'isClinicoHospital',
-    porQue: 'Alertas de lab crítico / NEWS2 / interconsulta. Se crean y se resuelven, no se borran: una alerta crítica no debe poder desaparecer.',
+    porQue: 'Alertas de lab critico / NEWS2 / interconsulta. Se crean y no se borran: una alerta critica no debe poder desaparecer. Y tampoco VACIARSE: el documento ES el registro, asi que el update solo puede tocar `leida` —la marca de bandeja—; titulo, detalle y tipo son inmutables. Borrarla estaba prohibido y reescribirla no, que es la misma alerta dicha de otra forma.',
   },
   {
     ruta: 'clinics/{clinicId}/camas/{camaId}',

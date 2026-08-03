@@ -783,6 +783,35 @@ es tomar una decisión nueva: es dejar de tener dos criterios para lo mismo.
 
 ---
 
+## SEXAGÉSIMA SEXTA TANDA — v917 (+ reglas desplegadas)
+
+### Borrar una alerta crítica estaba prohibido; vaciarla, no
+
+La regla de `hospital_alertas` cerraba el `delete` —«una alerta crítica no debe
+poder desaparecer»— y dejaba el `update` **abierto a todo el documento**.
+
+Y el documento **es** el registro: `titulo`, `detalle` y `tipo` son su contenido
+clínico. Se podía reescribir «Deterioro clínico — NEWS2 9 (alto)», o cambiarle el
+tipo, desde la consola del navegador, y **no quedaría rastro**, porque no hay un
+original con el que comparar.
+
+Es la misma alerta dicha de otra forma: prohibir el borrado y permitir el vaciado
+protege la fila, no el contenido.
+
+Lo único que la aplicación actualiza es `leida` —una marca de bandeja, no un
+juicio clínico—, así que es lo único que se permite ahora, con la misma forma de
+`icu_observations` y de `signos` (v916).
+
+Si algún día se añade otro campo de ciclo de vida (`atendidaPor`), la lista tiene
+que crecer **a propósito**. Que falle en desarrollo es la intención: es como se
+nota que se está tocando el contenido de una alerta y no su bandeja.
+
+- `firestore.rules` (**desplegadas aparte**)
+- `src/lib/authz/matriz-acceso.ts` + doc regenerado
+- `src/__tests__/firestore-rules-guard.test.ts` — invariante nueva. Total 4891.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

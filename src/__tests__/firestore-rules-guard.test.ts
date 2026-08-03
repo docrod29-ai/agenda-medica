@@ -70,6 +70,25 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(sinComentarios).toMatch(/match \/signos\/\{signoId\}\s*\{[\s\S]{0,400}allow delete: if false;/)
   })
 
+  it('una alerta clínica no se puede VACIAR desde el cliente', () => {
+    /**
+     * `delete: if false` ya impedía que una alerta crítica desapareciera. Pero el
+     * `update` estaba abierto a TODO el documento — y el documento ES el
+     * registro: `titulo`, `detalle` y `tipo` son su contenido clínico.
+     *
+     * Se podía reescribir «Deterioro clínico — NEWS2 9 (alto)» desde la consola
+     * del navegador y no quedaría rastro, porque no hay un original con el que
+     * comparar. Borrarla estaba prohibido y vaciarla no: la misma alerta, dicha
+     * de otra forma.
+     */
+    const bloque = sinComentarios.match(/match \/hospital_alertas\/\{alertaId\}\s*\{([\s\S]*?)\n\s*\}/)
+    expect(bloque, 'no se encontró el bloque de alertas').not.toBeNull()
+    const cuerpo = bloque![1]
+    expect(cuerpo).toContain('allow delete: if false;')
+    expect(cuerpo).toMatch(/allow update:[\s\S]*affectedKeys\(\)\.hasOnly\(\['leida'\]\)/)
+    expect(cuerpo).not.toContain('allow read, create, update: if isClinicoHospital(clinicId);')
+  })
+
   it('E0-09-Q5: y TAMPOCO se sobreescribe — las medidas son inmutables', () => {
     /**
      * La regla decía «AÑADEN (create) y CORRIGEN (update)», describiendo un
