@@ -73,11 +73,11 @@ export default function LegalPage() {
       )}
 
       {/* Selector de documento */}
-      <div className="no-print" style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 100, padding: 4, marginBottom: 16 }}>
+      <div className="no-print" style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: 4, marginBottom: 16 }}>
         {([['aviso', 'Aviso de privacidad'], ['contrato', 'Contrato de encargo']] as [Doc, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setDoc(k)}
             style={{
-              border: 'none', cursor: 'pointer', borderRadius: 100, padding: '7px 16px', fontSize: 13, fontWeight: 700,
+              border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '7px 16px', fontSize: 13, fontWeight: 700,
               background: doc === k ? 'var(--nexus)' : 'transparent',
               color: doc === k ? '#fff' : 'var(--text3)',
             }}>

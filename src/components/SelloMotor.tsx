@@ -74,7 +74,7 @@ export function SelloMotor({ id, className }: { id: string; className?: string }
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
         fontSize: 10.5, fontWeight: 600, letterSpacing: '.02em',
-        padding: '2px 7px', borderRadius: 999, whiteSpace: 'nowrap',
+        padding: '2px 7px', borderRadius: 'var(--r-pill)', whiteSpace: 'nowrap',
         // Ámbar, no rojo: el rojo de esta app significa «peligro clínico» (una
         // alergia, un valor crítico). Que un motor esté sin revisar es una
         // advertencia de PROCEDENCIA, y confundir las dos escalas le quita fuerza

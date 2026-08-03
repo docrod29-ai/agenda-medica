@@ -102,7 +102,7 @@ function Pasos({ paso }: { paso: DemoPaso }) {
         return (
           <div key={it.k} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{
-              fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 100,
+              fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)',
               color: activo ? '#fff' : hecho ? 'var(--nexus)' : 'var(--text3)',
               background: activo ? 'var(--nexus)' : hecho ? 'var(--nexus-soft)' : 'var(--s2)',
               border: '1px solid ' + (activo || hecho ? 'var(--border2)' : 'var(--border)'),
@@ -209,8 +209,8 @@ function Dictado({ escenario, onListo, onReiniciar }: { escenario: DemoEscenario
             </span>
           )}
           {grabando && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 100 }}>
-              <span style={{ width: 7, height: 7, borderRadius: 100, background: '#dc2626' }} className="nx-pulse" /> Grabando · {mmss}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
+              <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#dc2626' }} className="nx-pulse" /> Grabando · {mmss}
             </span>
           )}
         </div>
@@ -272,11 +272,11 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
     <div>
       <Encabezado icono={FileText} titulo="Receta y orden médica" sub="Salen con tu formato, firma y un QR que verifica la integridad. Cambia entre receta y orden. (Documentos ficticios)" />
       {/* Conmutador Receta / Orden */}
-      <div style={{ display: 'inline-flex', gap: 4, margin: '16px 0 0', padding: 4, background: 'var(--s2)', borderRadius: 100, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'inline-flex', gap: 4, margin: '16px 0 0', padding: 4, background: 'var(--s2)', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)' }}>
         {([['receta', 'Receta', FileText], ['orden', 'Orden médica', ClipboardList]] as const).map(([k, label, Icono]) => (
           <button key={k} onClick={() => setDoc(k)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-            padding: '6px 14px', borderRadius: 100, border: 'none',
+            padding: '6px 14px', borderRadius: 'var(--r-pill)', border: 'none',
             background: doc === k ? 'var(--nexus)' : 'transparent', color: doc === k ? '#fff' : 'var(--text2)',
           }}><Icono size={14} /> {label}</button>
         ))}
@@ -382,7 +382,7 @@ function ExploradorModulos({ onReiniciar }: { onReiniciar: () => void }) {
           return (
             <button key={t.k} onClick={() => setTab(t.k)} style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              padding: '8px 14px', borderRadius: 100,
+              padding: '8px 14px', borderRadius: 'var(--r-pill)',
               border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
               background: activo ? 'var(--nexus-soft)' : 'var(--s2)', color: activo ? 'var(--nexus)' : 'var(--text2)',
             }}><t.icon size={15} /> {t.label}</button>
@@ -461,7 +461,7 @@ function ModUCI() {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '14px 0' }}>
         {DEMO_UCI_ESCENARIOS.map(e => {
           const on = e.id === escId
-          return <button key={e.id} onClick={() => cambiar(e.id)} style={{ fontSize: 12.5, fontWeight: 600, padding: '7px 13px', borderRadius: 100, cursor: 'pointer', border: '1px solid ' + (on ? 'var(--nexus)' : 'var(--border)'), background: on ? 'var(--nexus-soft)' : 'var(--s2)', color: on ? 'var(--nexus)' : 'var(--text2)' }}>{e.titulo}</button>
+          return <button key={e.id} onClick={() => cambiar(e.id)} style={{ fontSize: 12.5, fontWeight: 600, padding: '7px 13px', borderRadius: 'var(--r-pill)', cursor: 'pointer', border: '1px solid ' + (on ? 'var(--nexus)' : 'var(--border)'), background: on ? 'var(--nexus-soft)' : 'var(--s2)', color: on ? 'var(--nexus)' : 'var(--text2)' }}>{e.titulo}</button>
         })}
       </div>
 
@@ -628,7 +628,7 @@ function ModConsultorIA() {
         {Object.keys(guion).map(q => (
           <button key={q} onClick={() => preguntar(q)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            padding: '7px 12px', borderRadius: 100, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)',
+            padding: '7px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)',
           }}><Send size={12} /> {q}</button>
         ))}
       </div>
@@ -687,7 +687,7 @@ function ModWhatsApp() {
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
         {opciones.map(op => (
           <button key={op} onClick={() => elegir(op)} style={{
-            fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '7px 12px', borderRadius: 100,
+            fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '7px 12px', borderRadius: 'var(--r-pill)',
             border: '1px solid #2a3942', background: '#111b21', color: '#8fd3c4',
           }}>{op === 'Reiniciar' ? '↺ Reiniciar' : op}</button>
         ))}
@@ -700,7 +700,7 @@ function ModWhatsApp() {
 function ModSecretaria() {
   return (
     <div style={{ ...card }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 'var(--r-pill)', marginBottom: 12 }}>
         <Headset size={13} /> Vista de asistente
       </div>
       <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>Ve la agenda y datos de contacto; <strong>no</strong> ve notas, diagnósticos ni configuración.</div>

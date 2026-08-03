@@ -2567,7 +2567,7 @@ export default function ConsultaActivaPage() {
                 display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
                 background: sin ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 10%, transparent)',
                 border: `1px solid ${sin ? 'var(--border)' : 'color-mix(in srgb, var(--red) 40%, transparent)'}`,
-                borderRadius: 999, padding: '4px 12px', fontSize: 12.5,
+                borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 12.5,
                 color: sin ? 'var(--text2)' : 'var(--red)', fontWeight: 600,
               }}>
                 <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{a}</span>
@@ -2633,7 +2633,7 @@ export default function ConsultaActivaPage() {
             title="La nota se va armando sola mientras grabas y se finaliza al detener"
             style={{
               marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 100,
+              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 'var(--r-pill)',
               border: '1px solid var(--nexus)', background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
             }}
           >
@@ -3951,7 +3951,7 @@ export default function ConsultaActivaPage() {
           position: 'fixed', left: '50%', bottom: 'calc(84px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 200,
           display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 24px)',
           background: 'var(--s1)', border: '1px solid var(--border2, var(--border))',
-          borderRadius: 999, padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+          borderRadius: 'var(--r-pill)', padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
         }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
@@ -3962,7 +3962,7 @@ export default function ConsultaActivaPage() {
           <button
             onClick={async () => { if (modoVoz === 'vivo') voz.detener(); else await audio.detener() }}
             className="btn btn-primary btn-sm"
-            style={{ borderRadius: 999, flexShrink: 0 }}
+            style={{ borderRadius: 'var(--r-pill)', flexShrink: 0 }}
           >
             <Square size={13} fill="currentColor" /> Detener y generar nota
           </button>

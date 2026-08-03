@@ -71,7 +71,7 @@ export function DialogoDiarizado({ utterances, rolesIniciales, onRolesChange }: 
                       })
                     }}
                     style={{
-                      fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100, cursor: 'pointer',
+                      fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
                       border: '1px solid ' + (activo ? c : 'var(--border)'),
                       background: activo ? `color-mix(in srgb, ${c} 13%, transparent)` : 'var(--s2)',
                       color: activo ? c : 'var(--text3)',
@@ -122,7 +122,7 @@ export function Section({ title, icon, obligatorio, children }: { title: string;
 export const S = {
   back: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 14, padding: 0 } as React.CSSProperties,
   alergia: { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 } as React.CSSProperties,
-  firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(61,90,254,0.12)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 100 } as React.CSSProperties,
+  firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(61,90,254,0.12)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r-pill)' } as React.CSSProperties,
   grabCard: { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,
   resumen: { display: 'flex', gap: 8, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,
@@ -133,7 +133,7 @@ export const S = {
   row: { display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' } as React.CSSProperties,
   del: { background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 6, flexShrink: 0 } as React.CSSProperties,
   addBtn: { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' } as React.CSSProperties,
-  chip: (a: boolean): React.CSSProperties => ({ background: a ? 'var(--teal)' : 'var(--s2)', color: a ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 100, padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }),
+  chip: (a: boolean): React.CSSProperties => ({ background: a ? 'var(--teal)' : 'var(--s2)', color: a ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }),
   iaBtn: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 7, background: d ? 'var(--s3)' : 'var(--nexus)', color: d ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, cursor: d ? 'default' : 'pointer', letterSpacing: '-0.005em' }),
   valBox: (t: 'error' | 'warn'): React.CSSProperties => ({ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, background: t === 'error' ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'color-mix(in srgb, var(--amber) 8%, transparent)', border: `1px solid ${t === 'error' ? 'color-mix(in srgb, var(--red) 25%, transparent)' : 'color-mix(in srgb, var(--amber) 25%, transparent)'}`, color: t === 'error' ? '#f87171' : '#f59e0b', borderRadius: 8, padding: '12px 14px', fontSize: 12.5 }),
   firmar: (d: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, background: d ? 'var(--s3)' : 'var(--teal)', color: d ? 'var(--text3)' : '#000', border: 'none', borderRadius: 10, padding: '13px 22px', fontSize: 15, fontWeight: 700, cursor: d ? 'default' : 'pointer' }),

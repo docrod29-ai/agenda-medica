@@ -742,7 +742,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                   {r.solicitante.nombre} · {r.solicitante.telefono}
                   {r.solicitante.email && <> · {r.solicitante.email}</>}
                   {r.origen === 'portal-publico' && !r.identidadVerificada && (
-                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', color: 'var(--amber)' }}>
+                    <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 'var(--r-pill)', fontSize: 10.5, fontWeight: 700, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', color: 'var(--amber)' }}>
                       Identidad sin verificar
                     </span>
                   )}
@@ -823,7 +823,7 @@ function EstadoBadge({ estado }: { estado: ArcoEstado }) {
   }
   const m = map[estado]
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: m.bg, color: m.color }}>
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-pill)', background: m.bg, color: m.color }}>
       {m.label}
     </span>
   )

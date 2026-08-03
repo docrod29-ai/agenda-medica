@@ -92,7 +92,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
           <Baby size={15} color="var(--purple)" />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--purple)' }}>Pediatría</span>
           {atrasadas.length > 0 && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>
               verificar {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''}
             </span>
           )}
@@ -185,7 +185,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                         </span>
                       )}
                       {d.topeAplicado && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
                           <AlertTriangle size={11} /> tope de adulto
                         </span>
                       )}
@@ -273,7 +273,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                       {v.vacuna.mes === 0 ? 'al nacer' : v.vacuna.mes < 24 ? `${v.vacuna.mes} meses` : `${v.vacuna.mes / 12} años`}
                     </span>
                     {v.estado === 'atrasada' && (
-                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>CORRESPONDE POR EDAD</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>CORRESPONDE POR EDAD</span>
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{v.vacuna.detalle}</div>

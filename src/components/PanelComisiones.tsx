@@ -113,7 +113,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
             const on = config.conceptosExcluidos.includes(k)
             return (
               <button key={k} onClick={() => toggleExcluido(k)} style={{
-                padding: '5px 11px', fontSize: 12, borderRadius: 100, cursor: 'pointer',
+                padding: '5px 11px', fontSize: 12, borderRadius: 'var(--r-pill)', cursor: 'pointer',
                 border: '1px solid ' + (on ? 'var(--nexus, #3d5afe)' : 'var(--border)'),
                 background: on ? 'color-mix(in srgb, var(--nexus, #3d5afe) 12%, transparent)' : 'var(--bg)',
                 color: on ? 'var(--nexus, #3d5afe)' : 'var(--text3)', fontWeight: on ? 700 : 500,

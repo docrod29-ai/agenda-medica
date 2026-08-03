@@ -54,7 +54,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
               {SUGERENCIAS.map(s => (
                 <button key={s} onClick={() => preguntar(s)}
-                  style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--s1)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 100, padding: '5px 11px', cursor: 'pointer' }}>{s}</button>
+                  style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--s1)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 'var(--r-pill)', padding: '5px 11px', cursor: 'pointer' }}>{s}</button>
               ))}
             </div>
           </div>

@@ -77,7 +77,7 @@ export default function GuiaPage() {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
         {ROLES.map(r => (
           <button key={r.id} onClick={() => setRol(r.id)} style={{
-            fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 100, cursor: 'pointer',
+            fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
             border: '1px solid ' + (rol === r.id ? 'var(--teal)' : 'var(--border)'),
             background: rol === r.id ? 'rgba(20,184,166,0.1)' : 'var(--s2)', color: rol === r.id ? 'var(--teal)' : 'var(--text2)',
           }}>{r.label}</button>

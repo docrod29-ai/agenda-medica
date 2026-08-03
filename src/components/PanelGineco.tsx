@@ -72,7 +72,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
           <Stethoscope size={15} color="#f472b6" />
           <span style={{ fontSize: 13, fontWeight: 700, color: '#f472b6' }}>Ginecología y obstetricia</span>
           {gest && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: 'rgba(236,72,153,.15)', color: '#f472b6' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'rgba(236,72,153,.15)', color: '#f472b6' }}>
               {gest.texto} semanas · {gest.trimestre}º trimestre
             </span>
           )}
@@ -336,7 +336,7 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
 function Chip({ a, on, t }: { a: boolean; on: () => void; t: string }) {
   return (
     <button type="button" onClick={on} style={{
-      padding: '4px 10px', borderRadius: 100, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+      padding: '4px 10px', borderRadius: 'var(--r-pill)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
       border: '1px solid ' + (a ? 'rgba(236,72,153,.5)' : 'var(--border)'),
       background: a ? 'rgba(236,72,153,.15)' : 'var(--s2)', color: a ? '#f472b6' : 'var(--text3)',
     }}>{t}</button>
@@ -344,7 +344,7 @@ function Chip({ a, on, t }: { a: boolean; on: () => void; t: string }) {
 }
 
 const pill = (fg: string, bg: string): React.CSSProperties => ({
-  fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 100, background: bg, color: fg,
+  fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 'var(--r-pill)', background: bg, color: fg,
 })
 const etiqueta: React.CSSProperties = { fontSize: 10.5, color: 'var(--text3)', fontWeight: 600 }
 const campoBase: React.CSSProperties = {

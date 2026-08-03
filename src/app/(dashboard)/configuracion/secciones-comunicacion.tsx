@@ -345,7 +345,7 @@ export function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) 
           <QrCode size={18} style={{ color: 'var(--nexus)' }} />
           <h3 className="t-h3" style={{ margin: 0 }}>Recordatorios fuera de la ventana de 24 h (plantillas)</h3>
           <span style={{
-            marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+            marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)',
             background: registradas === 3 ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'var(--nexus-soft)',
             color: registradas === 3 ? '#16a34a' : 'var(--nexus)',
           }}>{registradas}/3 registradas</span>

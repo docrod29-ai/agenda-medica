@@ -60,7 +60,7 @@ export function PanelRazonamiento({ entrada, embebido }: Props) {
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--text3)', width: 16, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{p.n}</span>
                 {icono(p.estado)}
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{p.titulo}</span>
-                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 7px', borderRadius: 100, background: 'rgba(127,127,127,.1)', color: FUENTE_COLOR[p.fuente], whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 7px', borderRadius: 'var(--r-pill)', background: 'rgba(127,127,127,.1)', color: FUENTE_COLOR[p.fuente], whiteSpace: 'nowrap' }}>
                   {FUENTE_LABEL[p.fuente]}
                 </span>
                 {p.confianza !== 'na' && (

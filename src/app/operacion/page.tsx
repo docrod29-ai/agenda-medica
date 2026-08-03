@@ -48,7 +48,7 @@ export default function OperacionPage() {
           <div key={m.nombre} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--panel, #fff)', padding: '16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
               <h2 style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--text, #0f172a)', margin: 0 }}>{m.nombre}</h2>
-              <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 100, color: CHIP[m.estado].c, background: CHIP[m.estado].bg, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 'var(--r-pill)', color: CHIP[m.estado].c, background: CHIP[m.estado].bg, whiteSpace: 'nowrap' }}>
                 {CHIP[m.estado].t}
               </span>
             </div>

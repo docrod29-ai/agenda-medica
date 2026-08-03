@@ -370,7 +370,7 @@ export default function CitasPage() {
             >
               <DollarSign size={13} className="ds-icon" /> Por cobrar
               <span style={{
-                background: 'var(--teal)', color: '#fff', borderRadius: 999,
+                background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r-pill)',
                 padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
               }}>{daySummary.porCobrar}</span>
             </button>
@@ -505,7 +505,7 @@ function DiaChip({ color, value, label }: { color: string; value: number; label:
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 7,
       background: 'var(--s1)', border: '1px solid var(--border)',
-      borderRadius: 99, padding: '7px 13px', fontSize: 13, color: 'var(--text2)',
+      borderRadius: 'var(--r-pill)', padding: '7px 13px', fontSize: 13, color: 'var(--text2)',
     }}>
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
       <strong className="t-num" style={{ color: 'var(--text)', fontWeight: 600 }}>{value}</strong> {label}
@@ -620,7 +620,7 @@ function AppointmentRowFull({
           {appt.medicoId && appt.medicoNombre && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '1px 7px', borderRadius: 100, fontSize: 10.5, fontWeight: 600,
+              padding: '1px 7px', borderRadius: 'var(--r-pill)', fontSize: 10.5, fontWeight: 600,
               background: `${colorMedico(appt.medicoId)}22`,
               color: colorMedico(appt.medicoId),
               border: `1px solid ${colorMedico(appt.medicoId)}40`,
@@ -660,7 +660,7 @@ function AppointmentRowFull({
             background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
             color: 'var(--amber)',
             border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)',
-            padding: '2px 7px', borderRadius: 100, flexShrink: 0,
+            padding: '2px 7px', borderRadius: 'var(--r-pill)', flexShrink: 0,
             cursor: reparando ? 'wait' : 'pointer',
           }}
         >
@@ -678,7 +678,7 @@ function AppointmentRowFull({
             fontSize: 10, fontWeight: 700,
             background: `color-mix(in srgb, ${NIVEL_COLOR[riesgo.nivel]} 10%, transparent)`, color: NIVEL_COLOR[riesgo.nivel],
             border: `1px solid color-mix(in srgb, ${NIVEL_COLOR[riesgo.nivel]} 33%, transparent)`,
-            padding: '2px 7px', borderRadius: 100, flexShrink: 0,
+            padding: '2px 7px', borderRadius: 'var(--r-pill)', flexShrink: 0,
           }}>
           <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
         </span>

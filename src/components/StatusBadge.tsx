@@ -49,7 +49,7 @@ export function StatusBadge({ status, size = 'md' }: Props) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: size === 'sm' ? '2px 8px' : '3px 10px',
-      borderRadius: 9999,
+      borderRadius: 'var(--r-pill)',
       background: fondo,
       color: texto,
       fontSize: size === 'sm' ? 11 : 12,

@@ -21,6 +21,43 @@ historia vive aquí.
 
 ---
 
+## v962 — la píldora escrita de cinco formas, y el gobierno de la escala (U2)
+
+MEDIDO, no supuesto: **38** tamaños de letra en 2 749 usos, **37** valores de
+espaciado en 3 826 (la cola decía 23) y **28** radios. Cero tokens en los tres.
+
+EL ÚNICO DEFECTO REAL, Y NO ES CUESTIÓN DE GUSTO: la píldora estaba escrita de
+CINCO formas — `borderRadius: 100`, `999`, `9999`, `99` y `50`. Que un chip mida
+12 o 12.5 px es criterio de diseño; que «redondéalo entero» se escriba de cinco
+maneras no lo es. El navegador recorta el radio a la mitad del lado más corto,
+así que en un chip las cinco se ven IGUAL — y en cuanto una se aplica a algo más
+alto dejan de coincidir, sin que nadie se entere hasta que se ve raro.
+
+Unificado en `var(--r-pill)`: **128 usos, 62 archivos**. Comprobado antes de
+tocar que ninguna de las 98 apariciones de `100` está en una superficie alta (96
+de 98 llevan padding o tamaño pequeño en el mismo estilo), así que no cambia un
+píxel de lo que ya estaba bien. El radio bajó de 28 a 24 valores. Se declara
+también `--r-circulo: 50%`, porque el porcentaje deforma la esquina en elipse y
+es otro efecto: dos intenciones, dos nombres.
+
+DÓNDE ESTÁ LA DEUDA DE VERDAD: no en los 6 575 usos, sino en los **53 valores que
+aparecen una o dos veces**, que suman apenas **231 usos** — el `fontSize: 66`
+suelto, el `gap: 70`, el `borderRadius: 520`. Migrar ESO llevaría la tipografía
+de 38 a 16 valores y el espaciado de 37 a 19, y es trabajo de un rato. Por eso el
+trinquete cuenta VARIEDAD y no usos: lo que importa no es cuántas veces se
+escribe 13 px, es cuántos números distintos hay que recordar. El mensaje de fallo
+lista los sueltos, así que la lista de trabajo se genera sola.
+
+Techos: 38 / 37 / 24, y la píldora en CERO —el único que va a cero, porque es el
+único que no depende del criterio de nadie—. Mismo trato que el trinquete de lint
+y el de color: la cifra sólo baja. Verificado por mutación: se metió
+`{ fontSize: 77, gap: 91, borderRadius: 999 }` y los cuatro controles se pusieron
+rojos. También se comprueba que `--r-pill` EXISTE en el CSS —un token inventado
+no da error, la propiedad se descarta en silencio y el chip sale cuadrado— y que
+está en uso en más de 40 archivos. +8 casos.
+
+---
+
 ## v961 — el trinquete de color daba CERO con 265 colores crudos vivos (U4)
 
 La cola decía «hueco real: `ToastContext.tsx:43-47` declara tres hex crudos y se

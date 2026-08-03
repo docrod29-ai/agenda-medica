@@ -21,7 +21,7 @@ export default function PaquetesPage() {
           <ArrowLeft size={15} /> Ver los motores
         </Link>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus, #3d5afe)', background: 'var(--nexus-soft, rgba(61,90,254,.09))', padding: '5px 11px', borderRadius: 100, marginBottom: 14 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus, #3d5afe)', background: 'var(--nexus-soft, rgba(61,90,254,.09))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
           <Layers size={14} /> Specialty Packages
         </div>
 
@@ -46,7 +46,7 @@ export default function PaquetesPage() {
               <section key={p.tronco} style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1, rgba(127,127,127,.03))', padding: '18px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
                   <h2 style={{ fontSize: 19, fontWeight: 800, margin: 0 }}>{p.nombre}</h2>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'rgba(13,148,136,.12)', padding: '4px 10px', borderRadius: 100 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'rgba(13,148,136,.12)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
                     <ShieldCheck size={12} /> {CONTEXTO_LABEL[p.estado]}
                   </span>
                 </div>

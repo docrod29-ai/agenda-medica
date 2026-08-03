@@ -164,7 +164,7 @@ export default function ChatPage() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               background: 'var(--s2)', border: '1px solid var(--border)',
-              color: 'var(--text2)', borderRadius: 100, padding: '6px 12px',
+              color: 'var(--text2)', borderRadius: 'var(--r-pill)', padding: '6px 12px',
               fontSize: 12, cursor: 'pointer',
             }}
           >
@@ -193,7 +193,7 @@ export default function ChatPage() {
         {grupos.map(g => (
           <div key={g.fecha}>
             <div style={{ textAlign: 'center', margin: '14px 0' }}>
-              <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--s2)', padding: '3px 12px', borderRadius: 100, textTransform: 'capitalize' }}>
+              <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--s2)', padding: '3px 12px', borderRadius: 'var(--r-pill)', textTransform: 'capitalize' }}>
                 {g.fecha}
               </span>
             </div>
@@ -249,7 +249,7 @@ export default function ChatPage() {
                         <span>{m.senderName}</span>
                         <span style={{
                           fontSize: 9.5, fontWeight: 600,
-                          padding: '1px 6px', borderRadius: 100,
+                          padding: '1px 6px', borderRadius: 'var(--r-pill)',
                           background: mio ? 'rgba(0,0,0,0.15)' : `color-mix(in srgb, ${rolColor} 13%, transparent)`,
                           color: mio ? 'rgba(0,0,0,0.7)' : rolColor,
                           marginLeft: 2,

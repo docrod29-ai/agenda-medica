@@ -194,11 +194,11 @@ export default function ReactivacionPage() {
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
           Pacientes sin volver {candidatos.length > 0 && <span style={{ color: 'var(--text3)', fontWeight: 400 }}>· {candidatos.length}</span>}
         </div>
-        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 100, padding: 4 }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: 4 }}>
           {UMBRALES.map(u => (
             <button key={u.dias} onClick={() => setUmbral(u.dias)}
               style={{
-                border: 'none', cursor: 'pointer', borderRadius: 100, padding: '6px 14px', fontSize: 12.5, fontWeight: 700,
+                border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700,
                 background: umbral === u.dias ? 'var(--nexus)' : 'transparent',
                 color: umbral === u.dias ? '#fff' : 'var(--text3)',
               }}>

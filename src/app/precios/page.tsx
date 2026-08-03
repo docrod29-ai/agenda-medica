@@ -30,7 +30,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
         <div style={{
           position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--nexus, #3d5afe)', color: '#fff', fontSize: 12, fontWeight: 700,
-          padding: '4px 14px', borderRadius: 100, letterSpacing: 0.3,
+          padding: '4px 14px', borderRadius: 'var(--r-pill)', letterSpacing: 0.3,
         }}>Más popular</div>
       )}
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{plan.nombre}</div>

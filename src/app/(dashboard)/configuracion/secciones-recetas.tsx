@@ -430,7 +430,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             {rx.disenoCompletoDataUrl && (
               <span style={{
                 fontSize: 10.5, fontWeight: 700, padding: '4px 10px',
-                background: 'var(--teal)', color: '#000', borderRadius: 100,
+                background: 'var(--teal)', color: '#000', borderRadius: 'var(--r-pill)',
               }}>
                 ACTIVO
               </span>
@@ -1394,7 +1394,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>Colocar:</span>
           {sinColocar.map(c => (
             <button key={c.k} type="button" onClick={() => colocar(c.k)}
-              style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, cursor: 'pointer', border: '1px dashed var(--nexus)', background: 'var(--s2)', color: 'var(--nexus)' }}>
+              style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-pill)', cursor: 'pointer', border: '1px dashed var(--nexus)', background: 'var(--s2)', color: 'var(--nexus)' }}>
               + {c.label}
             </button>
           ))}

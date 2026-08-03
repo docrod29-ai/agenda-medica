@@ -447,7 +447,7 @@ export default function EpisodioPage() {
             <span style={{ fontSize: 10.5, color: 'var(--text3)', marginRight: 2 }}>Ver como:</span>
             {(['medico', 'enfermeria', 'farmacia', 'laboratorio', 'admin'] as RolHospital[]).map(r => (
               <button key={r} onClick={() => cambiarRol(r)} style={{
-                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, cursor: 'pointer',
+                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
                 border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
                 background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
               }}>{ROL_HOSPITAL_LABEL[r]}</button>
@@ -455,7 +455,7 @@ export default function EpisodioPage() {
           </div>
         ) : (
           <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: 'rgba(61,90,254,.12)', color: 'var(--nexus,#3d5afe)', border: '1px solid var(--nexus,#3d5afe)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus,#3d5afe)', border: '1px solid var(--nexus,#3d5afe)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
           </div>
         )}
       </div>
@@ -470,8 +470,8 @@ export default function EpisodioPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
             <button onClick={exportarFHIR} title="Exportar el internamiento en HL7 FHIR R4 (interoperabilidad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Send size={13} /> FHIR</button>
-            {news2 && <button onClick={() => setTab('signos')} title={encuadre.aviso || news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 100, border: `1px solid ${news2.color}`, background: `color-mix(in srgb, ${news2.color} 12%, transparent)`, color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> {encuadre.etiqueta} {news2.total}{encuadre.encuadre !== 'actual' && <AlertTriangle size={12} className="ds-icon" />}</button>}
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
+            {news2 && <button onClick={() => setTab('signos')} title={encuadre.aviso || news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 'var(--r-pill)', border: `1px solid ${news2.color}`, background: `color-mix(in srgb, ${news2.color} 12%, transparent)`, color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> {encuadre.etiqueta} {news2.total}{encuadre.encuadre !== 'actual' && <AlertTriangle size={12} className="ds-icon" />}</button>}
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, fontSize: 13, color: 'var(--text2)' }}>
@@ -635,7 +635,7 @@ export default function EpisodioPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(inter.medicamentosCasa ?? []).map((m, i) => {
                 const continuado = medsActivos.some(a => a.toLowerCase().includes(m.toLowerCase().split(' ')[0]))
-                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 100, background: continuado ? 'rgba(13,148,136,.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)', color: continuado ? '#0d9488' : '#d97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
+                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: continuado ? 'rgba(13,148,136,.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)', color: continuado ? '#0d9488' : '#d97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
               })}
             </div>
           </div>
@@ -742,7 +742,7 @@ export default function EpisodioPage() {
                 )}
                 <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 4 }}>{news2.recomendacion}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {news2.detalle.filter(d => d.puntos > 0).map((d, i) => <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)' }}>{d.param} {d.valor} · +{d.puntos}</span>)}
+                  {news2.detalle.filter(d => d.puntos > 0).map((d, i) => <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)' }}>{d.param} {d.valor} · +{d.puntos}</span>)}
                 </div>
               </div>
             </div>
@@ -849,7 +849,7 @@ export default function EpisodioPage() {
               <div key={l.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{l.estudios.join(', ')}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: l.estado === 'resultado' ? '#0d9488' : l.prioridad === 'urgente' ? '#dc2626' : '#d97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: l.estado === 'resultado' ? '#0d9488' : l.prioridad === 'urgente' ? '#dc2626' : '#d97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {l.solicitadaPor || '—'} · {new Date(l.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                 {l.resultados && l.resultados.length > 0 && (
@@ -930,7 +930,7 @@ export default function EpisodioPage() {
               <div key={ic.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{ic.especialidad}{ic.medicoSolicitadoNombre ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}> · para {ic.medicoSolicitadoNombre}</span> : null}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>{ic.motivo}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {ic.solicitanteNombre || '—'} · {new Date(ic.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</div>

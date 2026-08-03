@@ -273,7 +273,7 @@ const bg = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.1)
 const bd = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.35)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'color-mix(in srgb, var(--red) 40%, transparent)'
 
 const pill = (fg: string, fondo: string): React.CSSProperties => ({
-  fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100, background: fondo, color: fg,
+  fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: fondo, color: fg,
 })
 const rotulo: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: 0.3 }
 const campo: React.CSSProperties = {

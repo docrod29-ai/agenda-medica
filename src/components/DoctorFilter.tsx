@@ -87,7 +87,7 @@ export function DoctorFilter({
         onClick={() => setOpen(!open)}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '7px 14px', borderRadius: 100,
+          padding: '7px 14px', borderRadius: 'var(--r-pill)',
           background: 'var(--s2)', border: '1px solid var(--border)',
           color: 'var(--text)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}

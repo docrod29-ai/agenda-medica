@@ -78,7 +78,7 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
         {dxActivos.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
             {dxActivos.map((d, i) => (
-              <span key={i} style={{ fontSize: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 10px', color: 'var(--text2)' }}>{d}</span>
+              <span key={i} style={{ fontSize: 12, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '3px 10px', color: 'var(--text2)' }}>{d}</span>
             ))}
           </div>
         ) : <div style={vacio}>Sin diagnósticos activos</div>}

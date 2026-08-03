@@ -177,7 +177,7 @@ function Hero() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.28)',
-          borderRadius: 100, padding: '5px 14px', marginBottom: 28,
+          borderRadius: 'var(--r-pill)', padding: '5px 14px', marginBottom: 28,
         }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--nexus)' }} />
           <span style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500, letterSpacing: '-0.005em' }}>
@@ -447,7 +447,7 @@ function Pricing() {
               <div style={{
                 position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
                 background: 'var(--teal)', color: '#000', fontSize: 12, fontWeight: 700,
-                padding: '4px 16px', borderRadius: 100,
+                padding: '4px 16px', borderRadius: 'var(--r-pill)',
               }}>
                 MÁS POPULAR
               </div>
@@ -514,14 +514,14 @@ function Trust() {
         <Link href="/seguridad" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
           fontSize: 13.5, fontWeight: 700, color: 'var(--nexus)',
-          border: '1px solid var(--border2)', borderRadius: 100, padding: '8px 18px',
+          border: '1px solid var(--border2)', borderRadius: 'var(--r-pill)', padding: '8px 18px',
         }}>
           <Shield size={15} /> Cómo protegemos la información clínica <ArrowRight size={14} />
         </Link>
         <Link href="/evidencia" style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
           fontSize: 13.5, fontWeight: 700, color: 'var(--text2)',
-          border: '1px solid var(--border2)', borderRadius: 100, padding: '8px 18px',
+          border: '1px solid var(--border2)', borderRadius: 'var(--r-pill)', padding: '8px 18px',
         }}>
           <BarChart3 size={15} /> Evidencia y transparencia <ArrowRight size={14} />
         </Link>
