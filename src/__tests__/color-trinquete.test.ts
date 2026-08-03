@@ -60,6 +60,14 @@ const PALETAS = [
 /** Se imprimen o se rasterizan: ahí el literal es lo correcto. */
 const PAPEL = [
   'RecetaDocumento.tsx',
+  /**
+   * Generan HTML para Word (.doc). Una variable CSS **no existe** dentro de un
+   * documento de Word: el token no resuelve y el «[FALTA CÉDULA PROFESIONAL]»
+   * saldría sin color justo en el aviso que existe para verse. Mismo criterio
+   * que la receta rasterizada.
+   */
+  'nota-word.ts',
+  'receta-word.ts',
   join('receta', '[patientId]', '[notaId]', 'page.tsx'),
   join('orden', '[patientId]', '[notaId]', 'page.tsx'),
   join('nota', '[patientId]', '[notaId]', 'page.tsx'),
@@ -86,6 +94,48 @@ const TECHO_PRIMER_PLANO = 0
  * Cero, y se queda en cero: ya no hay ninguno fuera del papel.
  */
 const TECHO_FONDO = 0
+
+/**
+ * ═══ EL HUECO QUE ESTE TRINQUETE TENÍA, Y SU MEDIDA REAL ═══
+ *
+ * Los tres controles de arriba miran FORMAS concretas: `color:` seguido de un
+ * literal, un ternario que asigna a algo llamado `color`, un sufijo de alfa.
+ * Todos daban CERO — y con 265 colores crudos vivos en el repositorio.
+ *
+ * El caso que lo destapó: `ToastContext` declaraba
+ *
+ *     const COLORS: Record<ToastType, string> = {
+ *       success: '#22c55e', error: '#ef4444', info: '#3b82f6',
+ *     }
+ *
+ * y lo usaba tres líneas más abajo como `color: COLORS[t.type]`. La clave no es
+ * `color:`, es `success:`, así que el guardián no lo veía. Y no es una pantalla
+ * suelta: es el acuse de TODA la aplicación — «Guardado», «No se pudo guardar».
+ *
+ * Un guardián que mira formas persigue la sintaxis de ayer. Éste mira el HECHO:
+ * cualquier color de `CRUDOS` escrito a mano, esté en la forma que esté. Y
+ * `CRUDOS` no es una lista arbitraria — son exactamente los colores que YA
+ * tienen token en los dos temas, así que para todos ellos la respuesta es
+ * siempre la misma: usa el token.
+ *
+ * ── LO QUE NO CUENTA, Y POR QUÉ ──────────────────────────────────────────────
+ *
+ * · `var(--red, #b91c1c)` — un respaldo dentro de `var()` es la práctica
+ *   CORRECTA, no deuda: si el token existe gana el token, y si no existe el
+ *   color no desaparece. Penalizarlo empujaría a quitar los respaldos.
+ * · Los comentarios — este mismo archivo cita `#22c55e` para explicar el fallo.
+ *   Una prueba que no distingue el código de su explicación acaba obligando a no
+ *   explicar nada.
+ * · `PAPEL` y `PALETAS`, con su razón escrita arriba.
+ *
+ * ── POR QUÉ 265 Y NO 0 ───────────────────────────────────────────────────────
+ *
+ * Migrar 265 usos en 57 pantallas de una sentada es un cambio visual enorme que
+ * nadie puede revisar de verdad, y el riesgo de romper una alerta clínica es
+ * real. Igual que el trinquete de lint: **la cifra sólo baja**. Lo que este
+ * número impide desde hoy es que entre uno más.
+ */
+const TECHO_CRUDOS = 265
 
 /**
  * `.tsx` **y** `.ts`.
@@ -175,6 +225,59 @@ describe('trinquete de color', () => {
       for (const m of readFileSync(p, 'utf8').matchAll(pat)) culpables.push(`${p} → ${m[0]}`)
     }
     expect(culpables, culpables.join('\n')).toEqual([])
+  })
+
+  it(`no hay más de ${TECHO_CRUDOS} colores crudos, en la forma que sea`, () => {
+    /**
+     * El control ANCHO. Los tres de arriba siguen valiendo —fijan en CERO las
+     * formas ya saneadas, y son los que dan el mensaje preciso—; éste es el que
+     * no se puede esquivar cambiando de sintaxis.
+     */
+    const porArchivo: [string, number][] = []
+    let total = 0
+    for (const p of archivos) {
+      const codigo = readFileSync(p, 'utf8')
+        // La explicación no es deuda (ver arriba).
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '')
+        // Un respaldo dentro de var() es lo correcto, no deuda.
+        .replace(/var\(\s*--[\w-]+\s*,\s*#[0-9a-fA-F]{3,8}\s*\)/g, 'var(--x)')
+      const n = (codigo.match(CRUDOS) ?? []).length
+      CRUDOS.lastIndex = 0
+      if (n) { porArchivo.push([p, n]); total += n }
+    }
+    const peores = porArchivo.sort((a, b) => b[1] - a[1]).slice(0, 10)
+      .map(([p, n]) => `  ${n}  ${p}`).join('\n')
+    expect(total, `crudos: ${total} (techo ${TECHO_CRUDOS}). Los peores:\n${peores}`)
+      .toBeLessThanOrEqual(TECHO_CRUDOS)
+  })
+
+  it('el control ancho NO pasa por vacío (si se rompe, todo lo demás sobra)', () => {
+    /**
+     * Un guardián que no encuentra archivos pasa en verde y no protege nada. Si
+     * algún día el barrido deja de ver `src/`, esto se pone rojo antes de que el
+     * techo empiece a mentir.
+     */
+    expect(archivos.length).toBeGreaterThan(200)
+    expect(TECHO_CRUDOS).toBeGreaterThan(0)
+    // Y el patrón tiene que casar de verdad contra un color conocido.
+    expect(CRUDOS.test('#ef4444')).toBe(true)
+    CRUDOS.lastIndex = 0
+    expect(CRUDOS.test('#123456')).toBe(false)
+    CRUDOS.lastIndex = 0
+  })
+
+  it('el acuse de TODA la app ya no usa hexadecimales', () => {
+    /**
+     * `ToastContext` es el caso que destapó el hueco: el color del «Guardado» y
+     * del «No se pudo guardar» de la aplicación entera.
+     */
+    const toast = readFileSync(join('src', 'context', 'ToastContext.tsx'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '')
+    expect(toast).toContain("success: 'var(--green)'")
+    expect(toast).toContain("error: 'var(--red)'")
+    expect(toast).toContain("info: 'var(--blue)'")
+    // Y el botón destructivo del confirm, que era el otro crudo del archivo.
+    expect(toast).not.toContain("'#dc2626'")
   })
 
   it('al IMPRIMIR, los colores clínicos son los del tema claro', () => {

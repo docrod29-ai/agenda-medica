@@ -2916,6 +2916,64 @@ los seis CSV quedan detrás, para quien necesite uno suelto.
 
 ---
 
+
+## CENTÉSIMA DÉCIMA TANDA — v961 · EL TRINQUETE DE COLOR DABA CERO (U4)
+
+**Cierra U4 — y resulta bastante más grande de lo que decía la cola.**
+
+### Lo que decía la cola, y lo que encontré
+
+«Hueco real: `ToastContext.tsx:43-47` declara tres hex crudos y se escapan porque
+la clave no es `color:`». Correcto. Pero eso era la punta: con esa forma se le
+escapan **265 usos en 57 archivos**, y el trinquete reporta **cero** en sus tres
+controles.
+
+### El caso que lo destapó
+
+```ts
+const COLORS: Record<ToastType, string> = {
+  success: '#22c55e', error: '#ef4444', info: '#3b82f6',
+}
+// …tres líneas más abajo:
+<span style={{ color: COLORS[t.type] }}>
+```
+
+La clave no es `color:`, es `success:`. Y no es una pantalla suelta: es el acuse
+de **toda** la aplicación — «Guardado», «No se pudo guardar», «Receta enviada».
+Migrado a tokens, más el botón destructivo del confirm.
+
+### La lección
+
+Los tres controles miran **formas**, así que persiguen la sintaxis de ayer. El
+control nuevo mira el **hecho**: cualquier color de `CRUDOS` escrito a mano, en
+la forma que sea. Y `CRUDOS` no es arbitraria — son los colores que YA tienen
+token en los dos temas, así que la respuesta es siempre la misma.
+
+No cuenta, con su razón escrita: un `var(--red, #b91c1c)` (es la práctica
+correcta; penalizarlo empujaría a quitar los respaldos), los comentarios (este
+mismo archivo cita `#22c55e` para explicar el fallo), y `PAPEL`/`PALETAS`. Se
+añaden a PAPEL los dos generadores de Word: una variable CSS no existe dentro de
+un documento de Word.
+
+### Por qué 265 y no 0
+
+Migrar 265 usos en 57 pantallas de una sentada es un cambio visual que nadie
+puede revisar de verdad, y romper una alerta clínica es un riesgo real. Igual que
+el trinquete de lint: **la cifra sólo baja**. Lo que impide desde hoy es que entre
+uno más.
+
+Verificado con una mutación: metí `{ alto: '#dc2626' }` —la forma exacta que los
+tres estrechos dejaban pasar— y el control ancho se puso rojo.
+
+**Los peores, para cuando toque bajarlo:** hospitalización/[internamientoId] (26),
+PanelCardiometabolico (22), superadmin (12), uci/antimicrobianos (10),
+PreopAssessment (10).
+
+- `src/context/ToastContext.tsx`, `src/__tests__/color-trinquete.test.ts`
+- 3 pruebas nuevas. Total 5475.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -2980,8 +3038,9 @@ sustancialmente mejor de lo que un comprador puede ver».
   (23 valores) y radio («píldora» escrito de SEIS formas).
 - U3. Las pantallas del comprador son las peores y ninguna toca el design system:
   `/demo` 24.4 estilos por 100 líneas, landing 17.2. Las clínicas son las limpias.
-- U4. Hueco real del trinquete de color: `ToastContext.tsx:43-47` declara tres
-  hex crudos y se escapan porque la clave no es `color:`.
+- U4. ~~Hueco real del trinquete de color.~~ **CERRADO v961** — era la punta: se
+  le escapaban 265 usos en 57 archivos. Guardián ensanchado y congelado en 265
+  (sólo baja); ToastContext migrado a tokens.
 
 ### ANTIBIOGRAMA 7.5 — cuatro defectos, los cuatro «escrito y sin conectar»
 - A1. Fenotipo salvaje leído como resistencia adquirida: un *E. faecalis*

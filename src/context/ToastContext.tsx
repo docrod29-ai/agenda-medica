@@ -40,10 +40,24 @@ const ICONS: Record<ToastType, string> = {
   info: 'ℹ',
 }
 
+/**
+ * El color del aviso, en tokens.
+ *
+ * Estaban en hexadecimal —`#22c55e`, `#ef4444`, `#3b82f6`— y el trinquete de
+ * color no los veía: busca `color:` seguido de un literal, y aquí la clave es
+ * `success:`. El uso está en la línea de abajo, `color: COLORS[t.type]`, con una
+ * indirección de por medio.
+ *
+ * Importa porque un hexadecimal **no cambia de tema**: los tres son los tonos
+ * pensados para fondo oscuro, y sobre el crema del tema claro el verde y el azul
+ * se quedan por debajo del 4.5:1 de AA. Y esto no es decoración de una pantalla
+ * suelta: es el acuse de TODA la aplicación — «Guardado», «No se pudo guardar»,
+ * «Receta enviada».
+ */
 const COLORS: Record<ToastType, string> = {
-  success: '#22c55e',
-  error: '#ef4444',
-  info: '#3b82f6',
+  success: 'var(--green)',
+  error: 'var(--red)',
+  info: 'var(--blue)',
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -136,7 +150,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 onClick={() => cerrar(true)}
                 style={{
                   padding: '9px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', border: 'none',
-                  background: pending.opts.peligro ? '#dc2626' : 'var(--nexus, #3D5AFE)', color: '#fff',
+                  background: pending.opts.peligro ? 'var(--red)' : 'var(--nexus, #3D5AFE)', color: '#fff',
                 }}
               >
                 {pending.opts.confirmar || 'Aceptar'}
