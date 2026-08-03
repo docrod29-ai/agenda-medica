@@ -17,7 +17,7 @@ import {
 import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
 import { analizarNoFermentadores } from './nofermentadores'
-import { analizarConfirmatorias, conflictosConfirmatorias } from './confirmatorias'
+import { analizarConfirmatorias, conflictosConfirmatorias, degradarPorConfirmatoriaNegativa } from './confirmatorias'
 import { analizarAminoglucosidos } from './aminoglucosidos'
 import { analizarFastidiosos } from './fastidiosos'
 import { analizarMDR, analizarDTR } from './mdr'
@@ -127,7 +127,13 @@ export function interpretarAntibiograma(entrada: EntradaAntibiograma): Interpret
   if (ap.notificacion) refs.add(REF.NOM045)
   if (ap.fenotipos.length) refs.add(REF.CLSI)
 
-  const fenotipos = dedupFenotipos(ap.fenotipos)
+  /**
+   * DECISIÓN 4 DEL DR.: la confirmatoria NEGATIVA degrada el fenotipo inferido a
+   * SOSPECHA. Va DESPUÉS del dedup a propósito: `dedupFenotipos` se queda con el
+   * de mayor confianza, así que degradar antes lo dejaría reaparecer con la
+   * confianza original por otra rama.
+   */
+  const { fenotipos } = degradarPorConfirmatoriaNegativa(dedupFenotipos(ap.fenotipos), entrada.pruebas)
   /**
    * NO SE PIDE UNA PRUEBA QUE EL REPORTE YA TRAE. La nota terminaba con «Pruebas
    * por solicitar: tamiz de cefoxitina; D-zone test» en un caso donde el médico

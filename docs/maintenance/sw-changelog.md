@@ -21,6 +21,44 @@ historia vive aquí.
 
 ---
 
+## v969 — decisiones 4 y 5: qué hace el motor con una confirmatoria NEGATIVA
+
+Las dos son sobre el mismo error, por los dos lados. Un negativo puede leerse de
+dos maneras equivocadas: **ignorarlo** —el motor sigue afirmando el fenotipo con
+la misma confianza— o **sobreleerlo** —tomarlo como prueba de lo contrario—. El
+Dr. cortó una por cada decisión.
+
+DECISIÓN 4 — BLEE: ni ignorar (A) ni cancelar (C). **Degradar**. Antes un
+`esbl: 'neg'` no tocaba nada y el fenotipo seguía saliendo `BLEE[probable]`; ahora
+baja a `sospecha`, el NOMBRE dice «NO CONFIRMADA» —quien lee la nota ve el nombre,
+no el enum— y la base explica por qué se degrada en vez de cancelarse: las pruebas
+fenotípicas tienen falsos negativos descritos, p. ej. por coproducción de AmpC, y
+un negativo no excluye el fenotipo.
+
+DECISIÓN 5 — mCIM: la interpretación textual de CLSI es «Carbapenemase **not
+detected**». Se dice eso, y se dice explícitamente **lo que NO significa** — que
+es la mitad que siempre se pierde: «no detectada» se lee como «no la hay», y de
+ahí a «el mecanismo es otro» hay un paso que el motor no puede dar. La resistencia
+sigue CONFIRMADA por AST, el mecanismo queda INDETERMINADO, y se pide un método
+adicional en vez de una hipótesis. El motor NO reorienta a permeabilidad, eflujo
+ni porinas: son razonables, pero M100 no da aquí un orden universal.
+
+Y el límite del método se advierte donde más engaña: en *Acinetobacter* CLSI **no
+respalda** el mCIM por especificidad y reproducibilidad, así que ahí el texto dice
+que el resultado no es concluyente.
+
+EL ERROR QUE ME ATRAPÓ UN GOLDEN VIEJO — y es el que más importa de esta versión.
+Escribí la degradación como regla GENÉRICA sobre la tabla de confirmatorias, y eso
+alcanzó también al MRSA: el golden de v959 se puso rojo porque el MRSA pasaba de
+`confirmado` a `sospecha`. Estaba **extendiendo una decisión clínica más allá de
+donde el Dr. la tomó**, y encima pisando otra suya más específica: la decisión 4
+es sobre la BLEE, y el caso «cefoxitina S/negativa con oxacilina R» lo resolvió
+por separado en la decisión 6, donde CLSI manda reportar la resistencia si
+CUALQUIERA de las dos pruebas es resistente. MRSA queda excluido con la razón
+escrita, y hay una prueba que fija la frontera entre las dos decisiones. +23 casos.
+
+---
+
 ## v968 — decisiones 13 y 10: dejar de mostrar lo que no está respaldado
 
 DECISIÓN 13 — CFDI. Primero corregí mi propia premisa: **sí existe** una

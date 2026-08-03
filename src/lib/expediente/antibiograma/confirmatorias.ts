@@ -6,7 +6,7 @@
  * terapia. Se apoyan en el catálogo de pruebas CLSI (clsi-pruebas) y la matriz de
  * inhibidores (betalactamasas).
  */
-import { type AporteModulo, aporteVacio, type PruebasConfirmatorias, type FenotipoClave } from './tipos'
+import { type AporteModulo, aporteVacio, type PruebasConfirmatorias, type FenotipoClave, type FenotipoDetectado } from './tipos'
 import { REF } from './referencias'
 import { organismoEs } from './util'
 import { CLASES, terapiaPorClase, type ClaseEnzima } from './betalactamasas'
@@ -70,6 +70,38 @@ export function analizarConfirmatorias(pruebas: PruebasConfirmatorias | undefine
     out.aislamiento = 'Precauciones de contacto (productor de carbapenemasa).'
   }
 
+  /**
+   * ── DECISIÓN 5 DEL DR. (3-ago-2026): mCIM NEGATIVO ────────────────────────
+   *
+   * La interpretación textual de CLSI para un mCIM negativo es
+   * **«Carbapenemase not detected»**. NO equivale a «mecanismo no enzimático
+   * demostrado», y por eso el motor no reorienta hacia permeabilidad, eflujo ni
+   * porinas: son hipótesis razonables, pero M100 no da en este contexto un orden
+   * universal que permita declararlas como mecanismo principal.
+   *
+   * Además el propio método tiene límites que hay que decir: está estandarizado
+   * para Enterobacterales y *P. aeruginosa*, describe falsos negativos para
+   * determinados productores, y en *Acinetobacter* CLSI **no lo respalda** por
+   * especificidad y reproducibilidad.
+   *
+   * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 5.
+   */
+  if (pruebas.carbapenemasa === 'neg') {
+    const acineto = organismoEs(organismo, ['acinetobacter', 'baumannii'])
+    out.didactica.push({
+      titulo: 'Carbapenemasa NO DETECTADA por mCIM',
+      texto: 'La lectura correcta es exactamente ésa: «carbapenemasa no detectada». '
+        + 'NO significa que el mecanismo sea no enzimático — sólo que este método no la detectó. '
+        + 'Si el antibiograma muestra resistencia a carbapenémicos, la resistencia está CONFIRMADA por AST '
+        + 'y el mecanismo queda INDETERMINADO. '
+        + (acineto
+          ? 'ATENCIÓN: en Acinetobacter, CLSI NO respalda el mCIM por problemas de especificidad y reproducibilidad — este resultado no es concluyente aquí. '
+          : 'El mCIM está estandarizado para Enterobacterales y P. aeruginosa; hay falsos negativos descritos para determinados productores. ')
+        + 'Recomendar un método adicional (molecular o inmunocromatográfico) cuando sea clínica o epidemiológicamente necesario.',
+      referencia: `${M100} Tablas 3B-3C`,
+    })
+  }
+
   // ── β-lactamasa por nitrocefina ───────────────────────────────────────────
   if (pruebas.betaLactamasa === 'pos') {
     if (organismoEs(organismo, ['staphylo', 'aureus'])) {
@@ -87,6 +119,76 @@ export function analizarConfirmatorias(pruebas: PruebasConfirmatorias | undefine
   }
 
   return out
+}
+
+/**
+ * LA CONFIRMATORIA NEGATIVA **DEGRADA LA CONFIANZA** — decisión 4 del Dr.
+ * (3-ago-2026).
+ *
+ * ── POR QUÉ DEGRADAR Y NO CANCELAR ───────────────────────────────────────────
+ *
+ * CLSI señala que el tamizaje sólo puede *indicar* producción de BLEE, y que las
+ * pruebas fenotípicas pueden dar **falsos negativos** — por ejemplo por
+ * coproducción de AmpC. Una confirmatoria negativa **no excluye** el fenotipo:
+ * cancelarlo (la opción C) sería excesivo.
+ *
+ * Tampoco puede dejarse igual (la opción A): concede demasiado peso al patrón
+ * inferido existiendo evidencia contraria.
+ *
+ *     tamizaje compatible + confirmatoria negativa
+ *       → «sospecha» / «no confirmada»
+ *       → NI «probable» sin cambios, NI cancelación absoluta
+ *
+ * ── LO QUE NO SE TOCA ────────────────────────────────────────────────────────
+ *
+ * El fenotipo NO desaparece, su mecanismo tampoco, y la terapia sigue emitida.
+ * El Dr. añadió que la selección terapéutica debe apoyarse principalmente en las
+ * categorías actuales del antibiograma, el foco y el paciente — no sólo en la
+ * etiqueta. Eso es una separación de capas más grande, y va aparte; aquí se
+ * marca la terapia como apoyada en un fenotipo NO confirmado, que es lo que se
+ * puede hacer sin reestructurar nada.
+ *
+ * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 4.
+ */
+export function degradarPorConfirmatoriaNegativa(
+  fenotipos: FenotipoDetectado[],
+  pruebas: PruebasConfirmatorias | undefined,
+): { fenotipos: FenotipoDetectado[]; degradados: string[] } {
+  if (!pruebas) return { fenotipos, degradados: [] }
+  const degradados: string[] = []
+  const salida = fenotipos.map(f => {
+    /**
+     * MRSA QUEDA FUERA, y no por descuido.
+     *
+     * La decisión 4 es sobre la BLEE. El caso «cefoxitina S/negativa con
+     * oxacilina R» lo resolvió el Dr. por separado en la decisión 6, y dice algo
+     * DISTINTO: CLSI manda reportar la resistencia a meticilina si CUALQUIERA de
+     * las dos pruebas es resistente, así que el fenotipo se sostiene —baja a
+     * `probable` y se nombra la discordancia, no a `sospecha`—.
+     *
+     * Aplicarle aquí la regla genérica sería extender una decisión clínica más
+     * allá de donde el Dr. la tomó, y encima pisando otra suya más específica.
+     * La primera versión de esta función lo hacía; lo destapó el golden de v959.
+     */
+    if (f.clave === 'MRSA') return f
+    const par = CONFIRMA.find(c => c.fenotipo === f.clave)
+    if (!par || pruebas[par.clave] !== 'neg') return f
+    /**
+     * Un fenotipo que la PROPIA confirmatoria declaró positivo no se degrada:
+     * sería degradar la prueba con la prueba. Sólo baja el inferido del patrón.
+     */
+    if (f.confianza === 'confirmado' && /CONFIRMAD/i.test(f.nombre)) return f
+    degradados.push(f.clave)
+    return {
+      ...f,
+      confianza: 'sospecha' as const,
+      nombre: `${f.nombre} — NO CONFIRMADA`,
+      base: `${f.base} El ${par.prueba} resultó NEGATIVO: no excluye el fenotipo `
+        + '(las pruebas fenotípicas tienen falsos negativos descritos, p. ej. por coproducción de AmpC), '
+        + 'pero tampoco lo respalda. Se degrada a SOSPECHA y la terapia asociada se apoya en un fenotipo NO confirmado.',
+    }
+  })
+  return { fenotipos: salida, degradados }
 }
 
 /**
