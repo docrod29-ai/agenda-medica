@@ -2695,8 +2695,8 @@ intrínseco es correcto en cualquiera de los dos casos; elegir por él, no.
 - `src/lib/expediente/antibiograma/motor.ts`
 - `src/__tests__/antibiograma-fenotipo-salvaje.test.ts` — 11 pruebas. Total 5405.
 
-**Quedan A3 y A4**, cuyas partes de plomería puedo hacer, y las **seis
-preguntas clínicas** que van al final de esta bitácora.
+**Queda A4**, cuya plomería puedo hacer, y las **seis preguntas clínicas** que
+van al final de esta bitácora.
 
 ---
 
@@ -2753,6 +2753,58 @@ siendo suyo (es una de las seis preguntas de abajo).
 - `src/lib/expediente/antibiograma/cmi.ts` (nuevo, puro),
   `antibiograma/vision.ts`, `app/(dashboard)/antibiograma/page.tsx`
 - `src/__tests__/antibiograma-cmi-un-solo-parser.test.ts` — 22 pruebas. Total 5422.
+
+---
+
+
+## CENTÉSIMA SÉPTIMA TANDA — v958 · TRES CATEGORÍAS DEL MISMO FÁRMACO
+
+**Cierra A3 de la cola del equipo.**
+
+### El caso, corriendo el motor
+
+*E. coli* de urocultivo, ciprofloxacino R y levofloxacino S con CMI 0.5. La regla
+experta EUCAST T13 (13.5) edita el levofloxacino a **R** por cross-resistencia, y
+el motor entregaba:
+
+```
+Panel (canónico): Levofloxacino=R [EDITADO: el laboratorio reportó S]
+REGLA EXPERTA:    Levofloxacino S→R
+CMI→CLSI:         Levofloxacino 0.5=S        ← sin marca, y `concuerda: true`
+```
+
+`concuerda: true` afirmaba «todo cuadra» exactamente donde este motor acababa de
+decidir lo contrario. Y en pantalla esa fila se pintaba **VERDE** —el color de
+«úsalo»— justo debajo del panel que decía R. **El verde es la parte que se lee
+sin leer.**
+
+### La raíz
+
+El bucle de `categoriasCMI` recorría `r`, el panel CRUDO, en vez de
+`resultadosEfectivos`. Es la misma familia del E0-15a que usted marcó como P0
+—«nunca debe existir una pantalla donde Nexus muestre R y el LLM continúe
+razonando con S»— en el único consumidor al que no se le cableó entonces.
+
+### Lo que NO toqué, y por qué
+
+`categoriaCLSI` sigue siendo **S**: 0.5 mg/L de levofloxacino ES S en la tabla del
+CLSI, y eso es un hecho sobre la CMI. Falsearlo a R para tapar una contradicción
+de presentación sería mentir sobre lo que dice el CLSI, y rompería la detección de
+discordancia lab-vs-corte. `concuerda` sigue respondiendo a su pregunta de
+siempre: ¿el LABORATORIO y el punto de corte dicen lo mismo?
+
+Lo que se añade es **de qué lado está la fila**: `interpretacionEfectiva`,
+`editadaPorReglaExperta` con razón y fuente, y `conflictoConEdicion` —el corte lo
+deja utilizable y la interpretación canónica lo descarta, que es EL caso que hay
+que enseñar porque es donde alguien prescribiría leyendo sólo la CMI—.
+
+Las tres salidas lo rinden: el prompt lo dice en el **mismo renglón** (no tres
+párrafos más arriba), la pantalla lo saca del verde igual que a un `noAplicable` y
+añade la razón, y la nota ya imprimía el panel efectivo.
+
+- `antibiograma/tipos.ts`, `antibiograma/motor.ts`, `antibiograma/razonar.ts`,
+  `app/(dashboard)/antibiograma/page.tsx`
+- `src/__tests__/antibiograma-edicion-llega-a-cmi.test.ts` — 12 pruebas. Total 5434.
 
 ---
 
@@ -2829,8 +2881,8 @@ sustancialmente mejor de lo que un comprador puede ver».
   filtro de resistencia intrínseca EXISTE y no se aplica en ese camino.
 - A2. ~~La CMI censurada se pierde en la frontera visión→motor.~~ **CERRADO v957**
   (con la premisa corregida: se perdía en la LIBRERÍA, no en la pantalla).
-- A3. La edición interpretativa no se propaga a `categoriasCMI`: tres categorías
-  del mismo fármaco en el mismo prompt.
+- A3. ~~La edición interpretativa no se propaga a `categoriasCMI`.~~ **CERRADO v958**
+  (y en pantalla se pintaba VERDE, que era peor que en el prompt).
 - A4. El resultado NEGATIVO de una confirmatoria se lee, se tipa, se transporta y
   se tira. Un cefoxitina-neg convive con `MRSA[confirmado]` sin levantar conflicto.
 - **BLOQUEADO EN EL DR (6 preguntas clínicas):** ¿el conteo MDR de respaldo debe

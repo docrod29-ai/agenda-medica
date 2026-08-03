@@ -21,6 +21,47 @@ historia vive aquí.
 
 ---
 
+## v958 — tres categorías del mismo fármaco en la misma salida
+
+REPRODUCIDO CORRIENDO EL MOTOR. *E. coli* de urocultivo, ciprofloxacino R y
+levofloxacino S con CMI 0.5. La regla experta EUCAST T13 (13.5) edita el
+levofloxacino a **R** por cross-resistencia, y el motor entregaba esto:
+
+```
+Panel (canónico): Levofloxacino=R [EDITADO: el laboratorio reportó S]
+REGLA EXPERTA:    Levofloxacino S→R
+CMI→CLSI:         Levofloxacino 0.5=S        ← sin marca, y `concuerda: true`
+```
+
+`concuerda: true` afirmaba «todo cuadra» exactamente donde este mismo motor
+acababa de decidir lo contrario. Y en pantalla esa fila se pintaba **VERDE** —el
+color de «úsalo»— justo debajo del panel que decía R. El verde es la parte que se
+lee sin leer.
+
+RAÍZ: el bucle de `categoriasCMI` recorría `r`, el panel CRUDO, en vez de
+`resultadosEfectivos`. Es la misma familia del defecto E0-15a que el Dr. marcó
+como P0 —«nunca debe existir una pantalla donde Nexus muestre R y el LLM continúe
+razonando con S»— en el único consumidor al que no se le cableó entonces.
+
+LO QUE NO SE TOCA: `categoriaCLSI` sigue siendo **S**. 0.5 mg/L de levofloxacino
+ES S en la tabla del CLSI, y eso es un hecho sobre la CMI, no una opinión.
+Falsearlo a R para tapar una contradicción de presentación sería mentir sobre lo
+que dice el CLSI, y además rompería la detección de discordancia lab-vs-corte.
+`concuerda` sigue respondiendo a su pregunta de siempre —¿el LABORATORIO y el
+punto de corte dicen lo mismo?—; convertirla en «¿el motor concuerda consigo
+mismo?» es otra pregunta.
+
+Lo que se añade es DE QUÉ LADO ESTÁ LA FILA: `interpretacionEfectiva`,
+`editadaPorReglaExperta` con su razón y su fuente, y `conflictoConEdicion`
+—cuando el punto de corte deja el fármaco utilizable y la interpretación canónica
+lo descarta, que es EL caso que hay que enseñar porque es donde alguien
+prescribiría leyendo sólo la CMI—. Las tres salidas lo rinden: el prompt lo dice
+en el MISMO renglón (no tres párrafos más arriba), la pantalla lo saca del verde
+igual que a un `noAplicable` y añade la razón, y la nota ya imprimía el panel
+efectivo. +12 casos.
+
+---
+
 ## v957 — el mismo antibiograma daba S por foto e I tecleado
 
 REPRODUCIDO CORRIENDO EL MOTOR. Un *S. pneumoniae* de hemocultivo con

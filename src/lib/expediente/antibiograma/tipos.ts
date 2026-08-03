@@ -189,6 +189,35 @@ export interface CategoriaCMI {
   motivoNoAplicable?: string
   /** La categoría no es S porque la CMI vino censurada con «>» (E0-15c). */
   desdeCmiCensurada?: boolean
+  /**
+   * ═══ LA EDICIÓN EXPERTA VIAJA HASTA AQUÍ ═══
+   *
+   * `categoriaCLSI` es un HECHO SOBRE LA CMI: 0.5 mg/L de levofloxacino es S en
+   * la tabla del CLSI, y eso no se toca. Pero cuando una regla experta EUCAST ya
+   * editó ese fármaco a R, esta fila —leída sola— dice «S» al lado de un panel
+   * que dice «R», y quien la lee no tiene forma de saber cuál manda.
+   *
+   * Así se veía el prompt del modelo, con las TRES categorías del mismo fármaco:
+   *
+   *     Panel (canónico): Levofloxacino=R [EDITADO: el laboratorio reportó S]
+   *     REGLA EXPERTA:    Levofloxacino S→R
+   *     CMI→CLSI:         Levofloxacino 0.5=S          ← sin marca alguna
+   *
+   * La última línea es la que MÁS parece dato duro, y contradecía a las otras
+   * dos. La decisión de qué manda ya estaba tomada (E0-15a: «usa SIEMPRE la
+   * categoría editada»); lo que faltaba era traerla hasta esta fila.
+   */
+  interpretacionEfectiva?: SIR
+  /** La categoría del panel la editó una regla experta, no el laboratorio. */
+  editadaPorReglaExperta?: boolean
+  edicionRazon?: string
+  edicionReferencia?: string
+  /**
+   * El punto de corte da un fármaco utilizable y la interpretación canónica lo
+   * descarta. No es un error: es el caso que hay que ENSEÑAR, porque es donde
+   * alguien podría prescribir leyendo sólo la CMI.
+   */
+  conflictoConEdicion?: boolean
   referencia: string
 }
 
