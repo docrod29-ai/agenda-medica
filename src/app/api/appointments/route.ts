@@ -164,9 +164,11 @@ export async function POST(req: NextRequest) {
     const bloquesSnap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
     const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
     if (bloques.length) {
-      const { estaBloqueado } = await import('@/lib/time-blocks-core')
+      const { pisaBloqueo } = await import('@/lib/time-blocks-core')
       const tzClinica = (cfgEfectiva.zonaHoraria as string) || (await import('@/lib/timezone')).TZ_DEFAULT
-      const bloque = estaBloqueado(appointment.fechaHora, bloques, medicoId, tzClinica)
+      // Con la duración: una consulta de una hora a las 10:00 se metía entera
+      // encima de un bloqueo de 10:30 porque las 10:00 no caían dentro de él.
+      const bloque = pisaBloqueo(appointment.fechaHora, Number(appointment.duracion ?? 30), bloques, medicoId, tzClinica)
       if (bloque) {
         return NextResponse.json({ error: `Ese horario está bloqueado (${bloque.motivo || bloque.tipo || 'ausencia'})` }, { status: 409 })
       }

@@ -70,6 +70,34 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(sinComentarios).toMatch(/match \/signos\/\{signoId\}\s*\{[\s\S]{0,400}allow delete: if false;/)
   })
 
+  it('una solicitud ARCO no se puede REESCRIBIR', () => {
+    /**
+     * `delete: if false` está porque es un registro legal. Pero el `update`
+     * estaba abierto a cualquier miembro y a todo el documento: se podía cambiar
+     * `descripcion` de «solicito la SUPRESIÓN de mis datos» a «solicito acceso»,
+     * marcarla resuelta, y el registro diría que la clínica cumplió con otra cosa.
+     *
+     * Reescribir es peor que borrar, porque el resultado parece íntegro.
+     *
+     * Y `origen` es lo que distingue una solicitud llegada de la calle de una
+     * tecleada en el consultorio: si se puede voltear, toda la cautela del
+     * `create` —que no deja al público señalar un expediente ni declararse
+     * verificado— se deshace después.
+     */
+    const bloque = sinComentarios.match(/match \/arco_requests\/\{docId\}\s*\{([\s\S]*?)\n\s{6}\}/)
+    expect(bloque, 'no se encontró el bloque ARCO').not.toBeNull()
+    const cuerpo = bloque![1]
+    expect(cuerpo).toContain('allow delete: if false;')
+    for (const campo of ['solicitante', 'tipo', 'descripcion', 'fechaSolicitud']) {
+      expect(cuerpo, `«${campo}» debe quedar congelado`).toContain(
+        `request.resource.data.${campo} == resource.data.${campo}`,
+      )
+    }
+    expect(cuerpo).toContain("request.resource.data.get('origen', '') == resource.data.get('origen', '')")
+    // Y que no quede la forma vieja, que dejaba tocarlo todo.
+    expect(cuerpo).not.toMatch(/allow update: if isMember\(clinicId\);/)
+  })
+
   it('una alerta clínica no se puede VACIAR desde el cliente', () => {
     /**
      * `delete: if false` ya impedía que una alerta crítica desapareciera. Pero el

@@ -47,7 +47,66 @@ function instanteDeEntrada(s: string, tz: string): number {
   return instanteMX(iso.slice(0, 10), iso.slice(11, 16), tz).getTime()
 }
 
-/** Verifica si una fecha/hora cae dentro de algún bloque activo. */
+/**
+ * ¿ESTA CITA PISA UN BLOQUEO? — con su DURACIÓN, no sólo su minuto de inicio.
+ *
+ * ── LO QUE PASABA ────────────────────────────────────────────────────────────
+ *
+ * `estaBloqueado` recibe un instante y pregunta si ese instante cae dentro del
+ * bloque. Ningún llamador le pasaba la duración, así que una consulta de 60
+ * minutos a las 10:00 contra un bloqueo de 10:30 a 13:00 **no estaba bloqueada**:
+ * las 10:00 no caen dentro del bloque, y la cita entraba ENTERA encima de la
+ * ausencia, el quirófano o las vacaciones.
+ *
+ * Los cuatro caminos que agendan lo hacían igual: el panel, el alta del
+ * consultorio, la reserva pública y el cálculo de huecos.
+ *
+ * ── LO IRÓNICO ───────────────────────────────────────────────────────────────
+ *
+ * La aritmética correcta ya estaba escrita en este mismo repositorio, a unas
+ * líneas: `pisaDescanso(inicio, fin, …)` comprueba el SOLAPE —«basta con que se
+ * solapen, no hace falta contenerlo»—, y se usa para los descansos de comida.
+ * Los descansos estaban bien resueltos y las vacaciones no.
+ *
+ * @param duracionMin duración de la cita. Con 0 se comporta como el chequeo
+ *   puntual de antes, que es lo correcto para preguntar por un instante suelto.
+ */
+export function pisaBloqueo(
+  fechaHora: string,
+  duracionMin: number,
+  bloques: TimeBlock[],
+  medicoId?: string,
+  tz: string = TZ_DEFAULT,
+): TimeBlock | null {
+  const inicio = instanteDeEntrada(fechaHora, tz)
+  if (isNaN(inicio)) return null
+  // Una duración inválida no se convierte en «no bloquea»: se trata como 0, que
+  // es el chequeo más estricto que se puede hacer sin inventar una duración.
+  const dur = Number.isFinite(duracionMin) && duracionMin > 0 ? duracionMin : 0
+  const fin = inicio + dur * 60_000
+
+  for (const b of bloques) {
+    const desde = new Date(b.desde).getTime()
+    const hasta = new Date(b.hasta).getTime()
+    if (isNaN(desde) || isNaN(hasta)) continue
+    // Solape, no contención. Con dur=0 esto es exactamente `t >= desde && t < hasta`.
+    const solapa = dur > 0 ? (inicio < hasta && fin > desde) : (inicio >= desde && inicio < hasta)
+    if (!solapa) continue
+    // Si el bloque es para un médico específico, solo bloquea a ese médico
+    if (b.medicoId && medicoId && b.medicoId !== medicoId) continue
+    return b
+  }
+  return null
+}
+
+/**
+ * Verifica si un INSTANTE cae dentro de algún bloque activo.
+ *
+ * Se conserva para preguntar por un momento suelto. Para una CITA usa
+ * `pisaBloqueo`, que mira toda su duración: preguntar sólo por el minuto de
+ * inicio deja entrar una consulta de una hora encima de un bloqueo que empieza
+ * media hora después.
+ */
 export function estaBloqueado(
   fechaHora: string,                  // ISO absoluto o "YYYY-MM-DD HH:MM" (pared)
   bloques: TimeBlock[],

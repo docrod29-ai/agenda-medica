@@ -43,6 +43,7 @@ import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsa
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
 import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, selloExpediente, VERSION_AVISO } from '@/lib/whatsapp/aviso-bot'
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { candidatosDeTelefono } from '@/lib/whatsapp/telefono-candidatos'
 
 /**
  * Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot — y lo que
@@ -84,13 +85,13 @@ async function cargarBloques(clinicId: string, fecha?: string, medicoId?: string
  */
 async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<string> {
   try {
-    const canonico = normalizarTelefonoWa(telefonoRaw)   // 52 + 10 dígitos
-    const diez = canonico.length >= 10 ? canonico.slice(-10) : canonico
-    // Candidatos exactos (Firestore no hace "termina en"): cubre lo que guarda el
-    // panel (10 dígitos), el booking (dígitos crudos) y la forma canónica/móvil.
-    const candidatos = Array.from(new Set(
-      [diez, canonico, `521${diez}`, telefonoRaw.replace(/\D/g, '')].filter(Boolean),
-    )).slice(0, 10)
+    // El criterio vive en `lib/whatsapp/telefono-candidatos.ts`: aquí estaba bien
+    // y en los otros dos sitios que buscan por teléfono no, así que ahora es uno
+    // solo y no pueden volver a divergir.
+    const candidatos = candidatosDeTelefono(telefonoRaw)
+    // El primero de la lista es siempre la forma de 10 dígitos, que es como
+    // guarda el panel y como se guarda un paciente nuevo.
+    const diez = candidatos[0] ?? normalizarTelefonoWa(telefonoRaw)
     const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients')
     // `limit(10)` y no `limit(1)`: una familia comparte el WhatsApp de la casa, y
     // con un solo documento se decidía sobre el primero que devolviera el índice.
@@ -549,7 +550,28 @@ export async function handleMessage(from: string, body: string, clinicId: string
    * palabra «hora» y el detector se lo quedaba: contestaba el horario de
    * atención y la respuesta del paciente se perdía.
    */
-  if (estado === 'confirmando_cita') {
+  /**
+   * DOS PREGUNTAS DISTINTAS, DOS ESTADOS DISTINTOS.
+   *
+   * Antes las dos —«¿confirmas tu cita?» y «¿la cancelo?»— compartían el estado
+   * `confirmando_cita` y se distinguían por una bandera DENTRO de `datos`. Y ahí
+   * estaba el fallo, que encontró la auditoría de lanzamiento:
+   *
+   *  1. el paciente pide cancelar y abandona la conversación sin contestar;
+   *  2. la bandera `cancelarSolo` se queda pegada en su sesión, que no caduca sola;
+   *  3. llega el recordatorio de 24 h y el cron reescribe la sesión con
+   *     `merge: true` — que en Firestore funde los mapas anidados, así que la
+   *     bandera SOBREVIVE;
+   *  4. el paciente responde «SÍ» a «¿confirmas tu cita?»… y se le CANCELA,
+   *     se avisa al consultorio y su hueco se le ofrece a la lista de espera.
+   *
+   * Confirmar y perder la cita. El comentario de abajo ya advertía de este
+   * peligro en el sentido contrario; le faltaba la mitad.
+   *
+   * Con un estado propio, una sesión vieja de cancelación no puede secuestrar la
+   * pregunta del recordatorio: son ramas distintas del código.
+   */
+  if (estado === 'confirmando_cita' || estado === 'confirmando_cancelacion') {
     const citaId = String(session?.datos?.citaId ?? '')
     const esSi = /^(si|sí|s|ok|okay|confirmo|confirmado|va|claro|asi es|así es|1)\b/.test(tLow)
     const esNo = /^(no|n|cancelar|cancela|no puedo|2)\b/.test(tLow)
@@ -571,7 +593,11 @@ export async function handleMessage(from: string, body: string, clinicId: string
          * CONFIRMADA — exactamente lo contrario de lo que pidió, y sin enterarse
          * hasta el día de la consulta.
          */
-        const preguntaEraCancelar = String(session?.datos?.cancelarSolo ?? '') === '1'
+        // El ESTADO manda. `cancelarSolo` se sigue leyendo sólo para no invertirle
+        // el sentido a una conversación que ya estuviera en vuelo al desplegar
+        // esto; el cron lo limpia, así que no puede quedarse pegada.
+        const preguntaEraCancelar = estado === 'confirmando_cancelacion'
+          || String(session?.datos?.cancelarSolo ?? '') === '1'
         if (!tocable) {
           await send(from, 'Esa cita ya no se puede cambiar por aquí. Llámanos al consultorio y te ayudamos. 🙌')
         } else if (preguntaEraCancelar) {
@@ -663,7 +689,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
   // Pedir cita explícitamente arranca el alta desde CUALQUIER estado de reposo:
   // antes había que estar en el menú y escribir justo «1» o «agendar».
-  if (intencion.tipo === 'agendar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'aviso_privacidad'].includes(estado)) {
+  if (intencion.tipo === 'agendar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'confirmando_cancelacion', 'aviso_privacidad'].includes(estado)) {
     await pedirAviso()
     return
   }
@@ -681,8 +707,17 @@ export async function handleMessage(from: string, body: string, clinicId: string
     let citas: CitaMinima[] = []
     let falloLectura = false
     try {
+      /**
+       * TODOS LOS FORMATOS, no sólo el `wa_id`.
+       *
+       * El panel guarda 10 dígitos, la reserva pública los dígitos crudos y el
+       * bot la forma canónica. Comparar con `==` contra el `wa_id` dejaba fuera
+       * TODAS las citas dadas de alta en el mostrador, y el bot contestaba «no
+       * encontré ninguna cita» — que se lee como «no tienes ninguna», no como
+       * «no supe reconocer tu número».
+       */
       const snap = await adminDb.collection('clinics').doc(clinicId).collection('appointments')
-        .where('pacienteTelefono', '==', from).limit(25).get()
+        .where('pacienteTelefono', 'in', candidatosDeTelefono(from)).limit(25).get()
       citas = snap.docs.map(d => ({ id: d.id, ...(d.data() as object) })) as CitaMinima[]
     } catch { falloLectura = true }
 
@@ -718,7 +753,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
         ``,
         `¿La cancelo? Responde *SÍ* para cancelar o *NO* para dejarla.`,
       ].filter(l => l !== '').join('\n'))
-      await saveSession(clinicId, from, { estado: 'confirmando_cita', datos: { citaId: c.id, cancelarSolo: '1' } })
+      await saveSession(clinicId, from, { estado: 'confirmando_cancelacion', datos: { citaId: c.id, cancelarSolo: '1' } })
       return
     }
 
@@ -731,7 +766,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
 
   // «Quiero cancelar mi cita» desde cualquier estado de reposo, sin pasar por el
   // menú: es lo que la gente escribe.
-  if (intencion.tipo === 'cancelar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'cancelar_elegir', 'aviso_privacidad'].includes(estado)) {
+  if (intencion.tipo === 'cancelar' && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'confirmando_cancelacion', 'cancelar_elegir', 'aviso_privacidad'].includes(estado)) {
     await buscarParaCancelar()
     return
   }
@@ -741,7 +776,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
    * tiene que terminar antes de contestar otra cosa, o el paciente acaba dando
    * sus datos sin haber contestado si acepta.
    */
-  if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'aviso_privacidad'].includes(estado)) {
+  if (faqKey && !['agendar_nombre', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'confirmando_cancelacion', 'aviso_privacidad'].includes(estado)) {
     const reply = buildFAQReply(faqKey, doctor, config || ({} as ClinicConfig))
     await send(from, reply)
     await send(from, '¿Desea hacer algo más?\n\n1️⃣ Agendar cita\n2️⃣ Otra consulta\n0️⃣ Salir')
@@ -1130,7 +1165,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
       return
     }
     await send(from, `¿Confirmas que cancelo esa cita? Responde *SÍ* o *NO*.`)
-    await saveSession(clinicId, from, { estado: 'confirmando_cita', datos: { citaId: ids[n - 1], cancelarSolo: '1' } })
+    await saveSession(clinicId, from, { estado: 'confirmando_cancelacion', datos: { citaId: ids[n - 1], cancelarSolo: '1' } })
     return
   }
 
@@ -1272,8 +1307,10 @@ export async function handleMessage(from: string, body: string, clinicId: string
       let dadoDeBaja = false
       try {
         const cRef = adminDb.collection('clinics').doc(clinicId)
+        // Mismos candidatos que las citas: una baja prometida y no ejecutada es
+        // peor que no prometerla, y este comentario ya lo decía dos líneas arriba.
         const wl = await cRef.collection('waitlist')
-          .where('pacienteTelefono', '==', from)
+          .where('pacienteTelefono', 'in', candidatosDeTelefono(from))
           .limit(10)
           .get()
         for (const d of wl.docs) {

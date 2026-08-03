@@ -11,6 +11,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin, precioPlanMXN } from '@/lib/superadmin'
 import { calcularPrecioPaquete } from '@/lib/pricing'
 import { planDeNivel } from '@/lib/planes-ia'
+import { tipoDeAsiento, efectivoDe, type EstadoDisputa } from '@/lib/finanzas/movimientos'
 
 const mesActual = () => new Date().toISOString().slice(0, 7)
 
@@ -52,11 +53,33 @@ export async function GET(req: NextRequest) {
       // (Stripe en modo test: livemode false o ausente en registros viejos) NO son
       // ingreso real y se excluyen, para que la consola no muestre dinero no cobrado.
       if (p.livemode !== true) return
-      const monto = Number(p.monto ?? 0)
+      /**
+       * DEVOLVER DINERO SUBÍA EL INGRESO.
+       *
+       * `platform_payments` guarda cobros, reembolsos y contracargos en la MISMA
+       * colección, todos con `monto` positivo: el signo lo decide el `tipo`
+       * (`lib/finanzas/movimientos.ts`). Aquí se sumaba `Number(p.monto)` en
+       * crudo, así que un reembolso **aumentaba** el ingreso total, el del mes y
+       * lo «pagado» por esa clínica — que es el número con el que se decide si
+       * alguien está al corriente.
+       *
+       * Las dos rutas hermanas ya lo habían cerrado (`superadmin/contabilidad` y
+       * `facturacion/pagos`); ésta se quedó atrás, y es **la que se ve primero**
+       * al abrir la consola.
+       *
+       * Una disputa abierta ya resta: Stripe retiene el importe en cuanto se abre
+       * y sólo lo devuelve si se gana (`POR_QUE_LA_DISPUTA_ABIERTA_YA_RESTA`).
+       */
+      const tipo = tipoDeAsiento(p)
+      const efectivo = efectivoDe({
+        tipo,
+        monto: Number(p.monto ?? 0),
+        estadoDisputa: p.estadoDisputa as EstadoDisputa | undefined,
+      })
       const cid = String(p.clinicId ?? '')
-      pagadoPorClinica.set(cid, (pagadoPorClinica.get(cid) ?? 0) + monto)
-      ingresoTotal += monto
-      if (p.fecha && new Date(String(p.fecha)).getTime() >= iniMes) ingresoMes += monto
+      pagadoPorClinica.set(cid, (pagadoPorClinica.get(cid) ?? 0) + efectivo)
+      ingresoTotal += efectivo
+      if (p.fecha && new Date(String(p.fecha)).getTime() >= iniMes) ingresoMes += efectivo
     })
 
     const clientes = (await Promise.all(clinicsSnap.docs.map(async d => {

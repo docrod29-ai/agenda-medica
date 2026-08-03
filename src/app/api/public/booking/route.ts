@@ -17,7 +17,7 @@ import { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } f
 import { configParaMedico } from '@/lib/horario-medico'
 // Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
 // del navegador, que se inicializa al importarse y revienta el build sin variables.
-import { estaBloqueado } from '@/lib/time-blocks-core'
+import { pisaBloqueo } from '@/lib/time-blocks-core'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import { VERSION_AVISO, generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
@@ -158,7 +158,8 @@ export async function POST(req: NextRequest) {
     }
     const bloquesSnap = await clinicRef.collection('time_blocks').get()
     const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
-    if (estaBloqueado(fechaHora, bloques, medicoId, tzClinica)) {
+    // Con la duración, igual que el descanso de arriba: el solape es lo que importa.
+    if (pisaBloqueo(fechaHora, duracion, bloques, medicoId, tzClinica)) {
       return NextResponse.json({ ok: false, error: 'Ese horario no está disponible (bloqueo/ausencia)' }, { status: 409 })
     }
 

@@ -648,7 +648,34 @@ service cloud.firestore {
                 && request.resource.data.get('identidadVerificada', false) == false
                 && request.resource.data.get('origen', '') == 'portal-publico')
           );
-        allow update: if isMember(clinicId);
+        /**
+         * LO QUE DIJO EL CIUDADANO NO SE TOCA.
+         *
+         * `delete: if false` está puesto porque esto es un REGISTRO LEGAL. Pero
+         * el `update` estaba abierto a cualquier miembro y a todo el documento,
+         * así que se podía **reescribir la solicitud misma**: cambiar
+         * `descripcion` de «solicito la SUPRESIÓN de mis datos» a «solicito
+         * acceso», marcarla resuelta, y el expediente legal diría que la clínica
+         * cumplió con otra cosa.
+         *
+         * Reescribir es peor que borrar, porque el resultado parece íntegro.
+         *
+         * Y `origen` es lo que distingue una solicitud que llegó de la calle de
+         * una que tecleó el consultorio: si un miembro puede voltearlo, toda la
+         * cautela del `create` de arriba —que no deja al público señalar un
+         * expediente ni declararse verificado— se puede deshacer después.
+         *
+         * Se congela lo que declaró el solicitante. Todo lo demás —estado,
+         * resolución, quién resolvió, y ligar el expediente tras identificarlo,
+         * que es un acto de la clínica (Art. 29 LFPDPPP)— sigue abierto.
+         */
+        allow update: if isMember(clinicId)
+          && request.resource.data.solicitante == resource.data.solicitante
+          && request.resource.data.tipo == resource.data.tipo
+          && request.resource.data.descripcion == resource.data.descripcion
+          && request.resource.data.fechaSolicitud == resource.data.fechaSolicitud
+          && request.resource.data.clinicId == resource.data.clinicId
+          && request.resource.data.get('origen', '') == resource.data.get('origen', '');
         allow delete: if false;
       }
       match /notification_logs/{docId} {

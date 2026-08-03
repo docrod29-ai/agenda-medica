@@ -812,6 +812,317 @@ nota que se está tocando el contenido de una alerta y no su bandeja.
 
 ---
 
+## SEXAGÉSIMA SÉPTIMA TANDA — v918 (+ reglas desplegadas)
+
+### Una solicitud ARCO no se podía borrar, pero sí reescribir
+
+El `delete` estaba cerrado porque es un **registro legal**, y el `update` quedaba
+abierto a cualquier miembro y a **todo el documento**.
+
+Se podía cambiar la `descripcion` de «solicito la SUPRESIÓN de mis datos» a
+«solicito acceso», marcarla resuelta, y el registro legal diría que la clínica
+cumplió con otra cosa. **Reescribir es peor que borrar, porque el resultado
+parece íntegro.**
+
+Y `origen` es lo que distingue una solicitud llegada de la calle de una tecleada
+en el consultorio: si un miembro puede voltearlo, toda la cautela del `create`
+—que no deja al público señalar un expediente ni declararse verificado— **se
+deshace después**.
+
+Ahora se congela lo que declaró el solicitante (`solicitante`, `tipo`,
+`descripcion`, `fechaSolicitud`, `origen`) y sigue abierto todo lo demás: estado,
+resolución, quién resolvió, y ligar el expediente tras identificarlo, que es un
+acto de la clínica (Art. 29 LFPDPPP).
+
+- `firestore.rules` (**desplegadas aparte**)
+- `src/lib/authz/matriz-acceso.ts` + doc regenerado
+- `src/__tests__/firestore-rules-guard.test.ts` — invariante nueva. Total 4892.
+
+---
+
+## SEXAGÉSIMA OCTAVA TANDA — v919 · P0.2 del Dr
+
+### La lista pública de quién recibe datos del paciente omitía a dos proveedores que reciben datos del paciente
+
+El contrato de encargo promete «una lista pública y actualizada de dichos
+subencargados». Esa lista **sí existía** —la tabla de `/seguridad`, con región y
+acuerdo de tratamiento— pero declaraba **seis** proveedores y el código usa
+**diez**.
+
+Faltaban:
+
+- **AssemblyAI**, que recibe el **audio de la consulta** para separar las voces;
+- **Daily**, que transporta la **videoconsulta**;
+- **Twilio**, que manda mensajes al paciente;
+- **360dialog**, por donde pasan los WhatsApp antes de llegar a Meta.
+
+**Una lista incompleta de quién recibe datos es peor que no tenerla: parece
+completa.**
+
+Y el aviso de privacidad y el contrato hablaban de «categorías» en prosa, cada
+uno con su redacción — tres textos legales diciendo lo mismo de tres formas, a un
+proveedor nuevo de contradecirse.
+
+Ahora hay **una** lista, derivada de lo que el código integra de verdad (la clave
+de entorno que consume cada ruta), y los tres documentos leen de ella.
+
+### El guardián encontró uno mientras lo escribía
+
+La prueba falla si aparece en el código una clave de proveedor sin declarar. Al
+ejecutarla la primera vez señaló **360dialog**: yo lo había puesto entre
+paréntesis dentro de la fila de Meta, y eso lo dejaba fuera de la lista **como
+empresa** — que es lo que importa cuando se firma un acuerdo de tratamiento con
+cada una.
+
+**Queda del Dr.**: confirmar con su abogado la figura jurídica de cada uno y la
+región contra el acuerdo firmado. La `region` de la tabla es la de procesamiento
+por defecto del proveedor, no una verificación documental.
+
+- `src/lib/legal/subencargados.ts` (nuevo), `aviso-privacidad.ts`,
+  `contrato-encargo.ts`, `app/seguridad/page.tsx`
+- `src/__tests__/subencargados.test.ts` — 10 pruebas. Total 4902.
+
+---
+
+## SEXAGÉSIMA NOVENA TANDA — v920 · AUDITORÍA DE LANZAMIENTO
+
+Panel de **7 especialistas en paralelo** (agenda · paciente · dinero · expediente ·
+seguridad · legal · primer uso), cada hallazgo pasado por un revisor escéptico con
+instrucción de refutarlo. **40 hallazgos, 35 sobrevivieron.** El informe completo
+está en el resultado del workflow `wf_15984211-ef4`.
+
+Veredicto: **ningún P0**. Se puede lanzar la fase 1 cerrando seis cosas del camino
+del primer día. Empiezo por la de la agenda, que es el producto que se vende.
+
+### Una cita entraba entera encima de un quirófano o de unas vacaciones
+
+`estaBloqueado` recibe un **instante** y pregunta si ese instante cae dentro del
+bloque. **Ningún llamador le pasaba la duración.**
+
+Una consulta de 60 minutos a las 10:00 contra un bloqueo de 10:30 a 13:00 **no
+estaba bloqueada** —las 10:00 no caen dentro— y la cita entraba entera encima de
+la ausencia. Por los **cuatro** caminos que agendan: cálculo de huecos, chequeo de
+conflicto, alta del consultorio y reserva pública.
+
+**Lo irónico**: la aritmética correcta ya estaba escrita en este repositorio, a
+unas líneas. `pisaDescanso(inicio, fin, …)` comprueba el solape, con el comentario
+«basta con que se solapen, no hace falta contenerlo». **Los descansos de comida
+estaban bien resueltos y las vacaciones no.**
+
+Ahora hay `pisaBloqueo` con la misma aritmética y los cuatro caminos lo usan.
+Bordes fijados: la cita que **termina** cuando empieza el bloqueo no lo pisa, la
+que **empieza** cuando termina tampoco, la que lo **contiene** entero sí; y una
+duración basura se trata como 0 —el chequeo más estricto— nunca como «no bloquea».
+
+- `src/lib/time-blocks-core.ts` (`pisaBloqueo`), `availability.ts`,
+  `api/appointments/route.ts`, `api/public/booking/route.ts`
+- `src/__tests__/bloqueo-duracion.test.ts` — 14 pruebas. Total 4916.
+
+---
+
+## SEPTUAGÉSIMA TANDA — v921 · AUDITORÍA DE LANZAMIENTO (2/6)
+
+### El «SÍ» al recordatorio podía cancelar la cita en vez de confirmarla
+
+Dos preguntas distintas compartían el estado `confirmando_cita` y se distinguían
+por una bandera **dentro de `datos`**:
+
+- «¿confirmas tu cita?» → SÍ = confirmar
+- «¿la cancelo?» → SÍ = cancelar (`cancelarSolo: '1'`)
+
+La cadena que lo rompía:
+
+1. el paciente pide cancelar y **abandona** sin contestar;
+2. la bandera se queda pegada en su sesión, que **no caduca sola** —sólo se toca
+   cuando el paciente vuelve a escribir—;
+3. llega el recordatorio de 24 h y el cron reescribe la sesión con `merge: true`,
+   que en Firestore **funde los mapas anidados**: la bandera **sobrevive**;
+4. el paciente responde «SÍ» a «¿confirmas tu cita?» y **se le cancela**, se avisa
+   al consultorio y su hueco se le ofrece a la lista de espera.
+
+**Confirmar y perder la cita**, sin enterarse hasta el día de la consulta.
+
+Lo más útil del hallazgo: el comentario que ya vivía en ese código advertía de
+**este mismo peligro en el sentido contrario** —quien pide cancelar y acaba con la
+cita confirmada—. Le faltaba la otra mitad.
+
+Ahora cada pregunta tiene **su propio estado**, así que una sesión vieja de
+cancelación no puede secuestrar la pregunta del recordatorio: son ramas distintas
+del código. El cron además escribe la bandera vacía para neutralizar las que ya
+estuvieran pegadas, y se **sigue leyendo** por si acaso, para no invertirle el
+sentido a una conversación en vuelo al desplegar esto.
+
+- `src/app/api/whatsapp/webhook/route.ts`, `src/app/api/cron/reminders/route.ts`
+- `src/__tests__/bot-si-no-cancela.test.ts` — 7 pruebas. Total 4923.
+
+---
+
+## SEPTUAGÉSIMA PRIMERA TANDA — v922 · AUDITORÍA DE LANZAMIENTO (3/6)
+
+### «No encontré ninguna cita» significaba «no supe reconocer tu número»
+
+WhatsApp identifica a quien escribe con un `wa_id` (`5215512345678`), y el mismo
+número puede estar guardado de **cuatro** formas según por dónde entró: el panel
+guarda **10 dígitos**, la reserva pública los **dígitos crudos**, el bot la
+**forma canónica**, y México mete un `1` extra en los móviles.
+
+`resolverPacienteBot` **ya lo sabía** y preguntaba por todos los formatos, con un
+comentario que lo explica. Pero **buscar las citas para cancelar** y **dar de baja
+de la lista de espera** comparaban con `==` contra el `wa_id` pelado.
+
+O sea que un paciente cuya cita se dio de alta **en el mostrador** escribía
+«cancelar» y el bot le contestaba **«no encontré ninguna cita»** — que se lee como
+«no tienes ninguna», no como «no supe reconocer tu número». Y a quien pedía la
+baja de la lista de espera se le prometía una baja que no ocurría, **dos líneas
+debajo de un comentario que dice que eso es lo peor que se puede hacer**.
+
+El criterio existía y estaba bien; sólo lo usaba **uno de los tres** sitios. Ahora
+vive en un módulo compartido y los tres lo usan, con una prueba que exige que
+ninguno vuelva a comparar en crudo.
+
+Y el tope del `in` de Firestore está fijado a propósito: pasarse hace que la
+consulta falle **entera**, y una consulta que falla se lee como «no hay nada» — el
+mismo fallo otra vez.
+
+- `src/lib/whatsapp/telefono-candidatos.ts` (nuevo), `api/whatsapp/webhook/route.ts`
+- `src/__tests__/telefono-candidatos.test.ts` — 10 pruebas. Total 4933.
+
+---
+
+## SEPTUAGÉSIMA SEGUNDA TANDA — v923 · AUDITORÍA DE LANZAMIENTO (4/6)
+
+### El muro de pago dejaba al médico encerrado y en silencio
+
+`AccesoGate` es la pantalla que **bloquea la aplicación entera** cuando no hay
+suscripción activa. Su único botón hacía:
+
+```
+const data = await res.json()
+if (data.url) { window.location.href = data.url; return }
+setCargando(null)          // ← y aquí se acababa todo
+```
+
+Ante un error del servidor —un precio anual sin configurar, una clínica que no
+existe, Stripe caído— el botón volvía de «Abriendo…» a «Empezar» y **no pasaba
+nada más**. Ni mensaje, ni motivo, ni a quién preguntarle. El médico se queda
+fuera de su propio consultorio **con la tarjeta en la mano**.
+
+El `catch { setCargando(null) }` hacía lo mismo con los fallos de red.
+
+Y lo que más molesta: la pantalla de **Configuración ya enseñaba el error de este
+mismo endpoint**. La que más lo necesitaba era la única que no lo hacía.
+
+Ahora se enseña el error del servidor, se **distingue el fallo de red** del fallo
+del servidor —reintentar arregla uno y no el otro—, un cuerpo que no es JSON no
+revienta la pantalla, y hay una **salida**: a quién escribirle y con qué dato.
+
+**Un muro sin puerta ni timbre es peor que un muro.**
+
+- `src/app/(dashboard)/layout.tsx`
+- `src/__tests__/muro-pago-sin-salida.test.ts` — 7 pruebas. Total 4940.
+
+---
+
+## SEPTUAGÉSIMA TERCERA TANDA — v924 · AUDITORÍA DE LANZAMIENTO (5/6)
+
+### La pantalla que agenda calculaba con un horario que el consultorio ya no tiene
+
+`/asistente` es **la puerta principal para agendar**, y construía su configuración
+efectiva tomando `doctor.horario ?? config.horario` **siempre**.
+
+Esa copia en `doctors/{id}` es un **fósil**: se escribe al dar de alta al médico y
+no se vuelve a tocar. `configParaMedico` —lo que usan el modal de citas y la ruta
+que valida— sólo la respeta si el médico tiene `horarioPropio` marcado.
+
+O sea que la pantalla calculaba los huecos contra un horario viejo y el servidor
+validaba contra el vigente. Dos formas de fallar:
+
+- ofrecer un hueco que el servidor rechaza con un **409 sin explicación**;
+- **esconder** huecos que sí estaban libres.
+
+Y `duraciones` salía del mismo fósil y **viajaba en el POST**: una segunda vía
+para el mismo 409.
+
+Era el **último `horario ??` crudo** que quedaba en `src/`. Ahora las tres vías
+que agendan usan el mismo criterio, con una prueba que lo fija — y que quita los
+comentarios antes de mirar, porque el que documenta este fallo cita la forma vieja
+a propósito y una prueba que no distingue el código de su explicación acaba
+obligando a no explicar nada.
+
+- `src/app/(dashboard)/asistente/page.tsx`
+- `src/__tests__/asistente-horario-fosil.test.ts` — 8 pruebas. Total 4948.
+
+**Con esto quedan cerrados los 5 hallazgos de software de la auditoría.** Los dos
+restantes son decisión del Dr: la contradicción de la tarjeta y la cédula por médico.
+
+---
+
+## SEPTUAGÉSIMA CUARTA TANDA — v925 · AUDITORÍA DE LANZAMIENTO (dinero)
+
+### Devolverle dinero a un cliente lo hacía parecer mejor pagador
+
+`platform_payments` guarda cobros, reembolsos y contracargos en la **misma
+colección**, todos con `monto` positivo: el signo lo decide el `tipo`.
+
+La ruta que alimenta la consola del dueño sumaba `Number(p.monto)` **en crudo**,
+así que un reembolso **aumentaba** el ingreso total, el del mes, y lo «pagado» por
+esa clínica — que es el número con el que se decide si alguien está al corriente.
+
+Y no faltaba la herramienta: **las dos rutas hermanas ya lo habían cerrado** con
+`tipoDeAsiento`/`efectivoDe`. Ésta se quedó atrás, y es **la que se ve primero** al
+abrir la consola.
+
+Ahora los tres números salen del efectivo, y **una disputa abierta ya resta**:
+Stripe retiene el importe en cuanto se abre y sólo lo devuelve si se gana —
+contarla al perderla mostraría un saldo que el banco no tiene.
+
+**De paso**: la ruta de facturación leía el `tipo` con su propia comparación de
+cadenas. Ahora usa el mismo `tipoDeAsiento`. No necesita el signo —un reembolso no
+se factura, se excluye— pero sí el mismo criterio: **tres formas de leer el `tipo`
+es cómo se llega a tres respuestas distintas sobre el mismo dinero**.
+
+- `src/app/api/superadmin/clientes/route.ts`, `api/facturacion/pagos/route.ts`
+- `src/__tests__/superadmin-ingreso-neto.test.ts` — 9 pruebas. Total 4957.
+
+---
+
+## SEPTUAGÉSIMA QUINTA TANDA — v926 · AUDITORÍA DE LANZAMIENTO (dinero 2)
+
+### Ningún contracargo se atribuía a su clínica, y el aviso que «tiene que verse el mismo día» no aparecía nunca
+
+Los dos manejadores de contracargo hacían:
+
+```
+(d.charge as { customer?: string })?.customer
+```
+
+y `Dispute.charge` es un **string** —el id del cargo—, nunca viene expandido en un
+webhook. El `customer` era **siempre `undefined`**:
+
+- el asiento quedaba huérfano, así que el dinero retirado **no restaba** del
+  ingreso de esa clínica —y desde v925 el ingreso se calcula por `clinicId`—;
+- y `disputaAbierta` **no se marcaba jamás**, así que el aviso que el propio
+  código llama imprescindible «el mismo día» no aparecía nunca.
+
+Un contracargo es dinero **ya retirado** por el banco más una comisión, con un
+plazo para responder con pruebas. **Enterarse tarde es perder por
+incomparecencia.**
+
+Ahora se resuelve primero por nuestros propios asientos —el reembolso ya guarda
+`chargeId` y `stripeCustomerId`, y no cuesta una llamada— y si no está, se le
+pregunta a Stripe por el cargo, que es la fuente autoritativa. Si las dos fallan,
+el asiento queda huérfano **declarado**, como ya hacía: perder la atribución es
+malo, perder el asiento es peor.
+
+**Lo que dejó pasar esto fue un `as` sobre una forma que el SDK no promete.** El
+compilador no puede avisar de un campo inventado detrás de un cast — y hay una
+prueba que ahora vigila que ese cast no vuelva.
+
+- `src/app/api/stripe/webhook/route.ts`
+- `src/__tests__/contracargo-clinica.test.ts` — 9 pruebas. Total 4966.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

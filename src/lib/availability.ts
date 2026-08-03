@@ -2,7 +2,7 @@ import { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 // Del NÚCLEO PURO, no de time-blocks: esta cadena la importa /api/portal (servidor)
 // y time-blocks arrastra el SDK del navegador, que se inicializa al importarse.
-import { estaBloqueado } from '@/lib/time-blocks-core'
+import { pisaBloqueo } from '@/lib/time-blocks-core'
 import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
 import { format } from 'date-fns'
 
@@ -231,7 +231,9 @@ export function getAvailableSlots(
 
     // 1. ¿Cae en un bloque de tiempo (vacaciones, ausencia, etc.)?
     if (bloques.length > 0) {
-      const bloqueado = estaBloqueado(`${fecha} ${slot}`, bloques, medicoId, tz)
+      // Con la DURACIÓN: un hueco de 30 min a las 10:00 que termina dentro de un
+      // bloqueo de 10:15 no es un hueco libre.
+      const bloqueado = pisaBloqueo(`${fecha} ${slot}`, duracionSegura, bloques, medicoId, tz)
       if (bloqueado) continue
     }
 
@@ -298,7 +300,7 @@ export function hasConflict(
   }
 
   // Bloqueo (vacaciones/ausencia) del médico o de toda la clínica — en la zona de la clínica.
-  if (bloques.length > 0 && estaBloqueado(`${fecha} ${hora}`, bloques, medicoId, config?.zonaHoraria || 'America/Mexico_City')) return true
+  if (bloques.length > 0 && pisaBloqueo(`${fecha} ${hora}`, endMin - startMin, bloques, medicoId, config?.zonaHoraria || 'America/Mexico_City')) return true
 
   return appointments.some(a => {
     if (a.id === excludeId) return false

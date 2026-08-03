@@ -20,7 +20,9 @@ const reglas = readFileSync(join(process.cwd(), 'firestore.rules'), 'utf8')
 function bloqueDe(coleccion: string): string {
   const i = reglas.indexOf(`match /${coleccion}/`)
   expect(i, `no existe el bloque de ${coleccion}`).toBeGreaterThan(-1)
-  return reglas.slice(i, i + 3000)
+  // 5000 y no 3000: el bloque creció al documentar por qué el `update`
+  // congela lo que declaró el solicitante (v918).
+  return reglas.slice(i, i + 5000)
 }
 
 describe('arco_requests — creación pública', () => {
