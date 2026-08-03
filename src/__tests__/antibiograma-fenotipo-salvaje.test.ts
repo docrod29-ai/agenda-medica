@@ -139,9 +139,17 @@ describe('cuando se excluye algo, se DICE', () => {
       { antibiotico: 'Trimetoprim-sulfametoxazol', interpretacion: 'R' },  // natural
       { antibiotico: 'Colistina', interpretacion: 'R' },                   // natural
     ])
-    const mdr = r.fenotipos.find(f => f.clave === 'MDR')
-    expect(mdr, 'con tres R adquiridas SÍ debe salir MDR').toBeDefined()
-    expect(mdr!.base).toMatch(/resistencias NATURALES de la especie/)
+    /**
+     * ACTUALIZADO el 3-ago-2026 con la decisión 1 del Dr.: en Gram positivos ya
+     * NO se declara MDR —M100 no fija una regla universal de «no-S en tres
+     * clases» para enterococo ni estafilococo—, pero la señal se conserva con
+     * otro nombre. Lo que esta prueba fija sigue siendo lo mismo: **cuando se
+     * excluye algo, se dice**.
+     */
+    const señal = r.fenotipos.find(f => f.clave === 'resistencia-adquirida-extensa')
+    expect(señal, 'con tres R adquiridas la señal no puede desaparecer').toBeDefined()
+    expect(señal!.base).toMatch(/resistencias NATURALES de la especie/)
+    expect(r.fenotipos.map(f => f.clave), 'y ya no se llama MDR').not.toContain('MDR')
   })
 })
 
@@ -159,14 +167,15 @@ describe('la corrección se aplica donde faltaba, y queda declarado lo que no de
     expect(s).toContain('contarClasesResistentes(organismo, r)')
   })
 
-  it('la pregunta clínica queda marcada, no contestada por mí', () => {
+  it('la pregunta clínica ya está CONTESTADA, y el código cita la fuente', () => {
     /**
-     * Si el conteo MDR de respaldo debe existir siquiera para Gram positivos
-     * —Magiorakos no define las categorías igual para enterococo/estafilococo—
-     * es una decisión del Dr. Filtrar lo intrínseco es correcto en cualquiera de
-     * los dos casos; elegir por él, no.
+     * Esta prueba nació marcando una duda: si el conteo de respaldo debía
+     * existir para Gram positivos. El Dr. la contestó el 3-ago-2026 (decisión
+     * 1): no se declara MDR ahí. Ahora fija lo contrario — que la respuesta
+     * está escrita y el código señala DÓNDE, en vez de repetir el razonamiento
+     * clínico dentro de un archivo que nadie vuelve a revisar.
      */
-    expect(s).toContain('NEEDS_CLINICAL_REVIEW')
-    expect(s).toContain('esa pregunta es del Dr')
+    expect(s).toContain('DECISIONES-CLINICAS-2026-08-03.md')
+    expect(s).toContain('NO SE DECLARA MDR EN GRAM POSITIVOS')
   })
 })

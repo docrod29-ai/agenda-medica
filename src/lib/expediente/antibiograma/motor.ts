@@ -12,7 +12,7 @@ import {
   norm, estado, ES_R, ES_S, NO_S,
   FLUOROQUINOLONA, COLISTINA, CEF3G, CEFEPIME, CARBAPENEM, AMINOGLUCOSIDO,
   PIP_TAZO, VANCOMICINA, TEICOPLANINA, ERITROMICINA, TETRACICLINA, COTRIMOXAZOL,
-  AMPICILINA, algunoS, aplicarEdicionesInterpretativas,
+  AMPICILINA, algunoS, aplicarEdicionesInterpretativas, organismoEs,
 } from './util'
 import { analizarGramPositivos } from './grampositivos'
 import { analizarEnterobacterales } from './enterobacterales'
@@ -301,23 +301,59 @@ function transversales(organismo: string, r: ResultadoAntibiograma[]): AporteMod
    * etiqueta MDR no es decorativa: cambia el aislamiento, la notificación y la
    * elección empírica.
    *
-   * NEEDS_CLINICAL_REVIEW: queda por decidir si este conteo de respaldo debe
-   * existir siquiera para Gram positivos —Magiorakos no define categorías para
-   * enterococo/estafilococo del mismo modo— o si el fenotipo simplemente no
-   * debería emitirse ahí. Filtrar lo intrínseco es correcto en cualquiera de los
-   * dos casos; esa pregunta es del Dr.
+   * ── DECISIÓN 1 DEL DR. (3-ago-2026): NO SE DECLARA MDR EN GRAM POSITIVOS ──
+   *
+   * M100-Ed35 usa las siglas MDRO en las tablas de *Staphylococcus* y
+   * *Enterococcus*, pero **no establece una regla universal** del tipo «no
+   * susceptible en tres clases» para declarar MDR. Llamar MDR a un estafilococo
+   * o a un enterococo mediante un conteo genérico convierte un indicador interno
+   * en una categoría formal que el estándar no respalda.
+   *
+   * Se conserva la SEÑAL y se le quita la ETIQUETA: misma condición, otro
+   * nombre, y dice de sí misma que NO es una definición CLSI.
+   *
+   * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 1.
    */
   const { clases: clasesR, excluidos } = contarClasesResistentes(organismo, r)
   if (clasesR >= 3) {
-    out.fenotipos.push({
-      clave: 'MDR',
-      nombre: `Multidrogorresistente (no-S en ${clasesR} clases, aproximado)`,
-      confianza: 'sospecha',
-      base: `Clasificación formal MDR/XDR/PDR requiere el mapeo de categorías de Magiorakos et al. ${REF.MAGIORAKOS}`
-        + (excluidos.length ? ` No se contaron las resistencias NATURALES de la especie: ${excluidos.join(', ')}.` : ''),
-    })
+    const gramPositivo = esGramPositivo(organismo)
+    const noContadas = excluidos.length
+      ? ` No se contaron las resistencias NATURALES de la especie: ${excluidos.join(', ')}.`
+      : ''
+    out.fenotipos.push(gramPositivo
+      ? {
+        clave: 'resistencia-adquirida-extensa',
+        nombre: `Resistencia adquirida extensa (no susceptible en ${clasesR} clases evaluables)`,
+        confianza: 'sospecha',
+        base: 'NO corresponde a una definición CLSI de MDR: M100 no fija una regla '
+          + 'universal de «no-S en tres clases» para estafilococo ni enterococo. '
+          + `Es una señal interna, no una categoría formal.${noContadas}`,
+      }
+      : {
+        clave: 'MDR',
+        nombre: `Multidrogorresistente (no-S en ${clasesR} clases, aproximado)`,
+        confianza: 'sospecha',
+        base: `Clasificación formal MDR/XDR/PDR requiere el mapeo de categorías de Magiorakos et al. ${REF.MAGIORAKOS}`
+          + noContadas,
+      })
   }
   return out
+}
+
+/**
+ * ¿Es un Gram positivo?
+ *
+ * Explícito y con la lista a la vista, en vez de deducirlo de que ningún módulo
+ * de Gram negativos haya opinado: un organismo nuevo que no case con nada caería
+ * del lado equivocado sin que nadie lo note, y el lado equivocado es el que
+ * emite la etiqueta formal.
+ */
+function esGramPositivo(organismo: string): boolean {
+  return organismoEs(organismo, [
+    'staphylo', 'aureus', 'estafiloco', 'epidermidis', 'lugdunensis', 'haemolyticus',
+    'enterococ', 'faecalis', 'faecium', 'streptococ', 'estreptoco', 'pneumoniae',
+    'neumococo', 'pyogenes', 'agalactiae', 'viridans', 'listeria', 'corynebacter',
+  ]) && !organismoEs(organismo, ['klebsiella'])
 }
 
 /**

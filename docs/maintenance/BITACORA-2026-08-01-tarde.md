@@ -3176,6 +3176,49 @@ equivocar se prueba sin red.
 
 ---
 
+
+## CENTÉSIMA DECIMOQUINTA TANDA — v966 · SUS DECISIONES 1 Y 6
+
+**Usted contestó las seis preguntas.** Van las dos primeras; las cuatro restantes
+salen en las siguientes versiones. Fuente:
+`docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`.
+
+### Las dos son la misma idea
+
+Ninguna quita una alerta. Las dos quitan una **palabra** que el estándar no
+respalda, y conservan la señal.
+
+**Decisión 1 — no se declara MDR en Gram positivos.** La señal se conserva como
+`resistencia-adquirida-extensa` («no susceptible en N clases evaluables») y el
+propio texto dice que NO corresponde a una definición CLSI de MDR — sin esa
+frase, el nombre nuevo se leería como un MDR disfrazado. En Gram negativos no
+cambia nada, y hay un control que lo fija.
+
+**Decisión 6 — discordancia no es «confirmado».** El fenotipo se sigue emitiendo
+(CLSI manda reportar la resistencia a meticilina), pero la confianza baja a
+`probable`, el nombre dice «por OXACILINA — resultado DISCORDANTE con cefoxitina»,
+el mecanismo PBP2a baja igual, y sale la alerta crítica con su texto.
+
+### Lo que NO toqué, a propósito
+
+El aislamiento y la notificación siguen saliendo. Su principio rector —«CLSI
+define categorías; aislamiento, notificación y selección terapéutica definitiva
+deben permanecer como reglas institucionales separadas»— exige una capa aparte y
+configurable por consultorio. Hacerlo de paso dejaría a alguien sin su aviso de
+aislamiento sin haberlo decidido. Queda anotado como el siguiente paso del
+frente clínico.
+
+### Dos pruebas viejas fallaron, y estaba bien
+
+El golden de v956 registraba la pregunta abierta. Ahora registra la respuesta, y
+que el código **cita el documento** en vez de repetir el razonamiento clínico
+dentro de un archivo que nadie vuelve a revisar.
+
+- `antibiograma/tipos.ts`, `antibiograma/motor.ts`, `antibiograma/grampositivos.ts`
+- `src/__tests__/decisiones-clinicas-1-y-6.test.ts` — 18 pruebas. Total 5549.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3260,11 +3303,12 @@ sustancialmente mejor de lo que un comprador puede ver».
   (y en pantalla se pintaba VERDE, que era peor que en el prompt).
 - A4. ~~El resultado NEGATIVO de una confirmatoria se lee, se tipa, se transporta
   y se tira.~~ **CERRADO v959** (plomería; la resolución clínica sigue siendo del Dr).
-- **BLOQUEADO EN EL DR (6 preguntas clínicas):** ¿el conteo MDR de respaldo debe
-  existir para Gram positivos? ¿a qué categoría mapea un SDD? ¿una discordancia
-  CLSI-vs-panel edita o sólo advierte? ¿un BLEE confirmatorio negativo cancela,
-  degrada o no toca? ¿un mCIM negativo con carbapenémicos R reorienta o queda
-  indeterminado? ¿cefoxitina-neg vs oxacilina-R, cuál gana?
+- **LAS 6 PREGUNTAS: CONTESTADAS el 3-ago-2026.** Ver
+  `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`. Respuestas: 1B · 2B con
+  estado SDD independiente · 3B condicionada · 4B · 5A · 6A sin «confirmado».
+  **1 y 6 implementadas en v966**; faltan 2 (SDD), 3 (procedencia del breakpoint),
+  4 (BLEE→sospecha) y 5 (mCIM→indeterminado), más la capa de **política
+  institucional** que separa aislamiento/notificación del motor microbiológico.
 
 ---
 
