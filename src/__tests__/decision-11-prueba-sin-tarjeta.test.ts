@@ -48,7 +48,8 @@ describe('EL MURO: `estadoAcceso` ya no manda la prueba al paywall', () => {
   })
 
   it('sólo se bloquea lo que de verdad murió', () => {
-    expect(layout).toMatch(/suspended.*cancelled.*canceled.*past_due/s)
+    // Sin la bandera `s`: el target de TypeScript del repositorio no la admite.
+    expect(layout).toMatch(/suspended[\s\S]*cancelled[\s\S]*canceled[\s\S]*past_due/)
     expect(layout).toMatch(/return 'vencido'/)
   })
 
