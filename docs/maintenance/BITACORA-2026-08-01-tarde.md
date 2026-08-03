@@ -2318,6 +2318,73 @@ aparte de este cambio.
 
 ---
 
+## CENTÉSIMA TANDA — v951 · A LAS 3AM YA PASA ALGO
+
+**Cierra I1 e I5 de la cola del equipo.** Es el punto que el SRE puso primero:
+«sin esto, los otros cinco no se enteran de nada».
+
+### No existía ningún canal de alerta a un ser humano
+
+Buscado en todo `src/`: `slack|pagerduty|nodemailer|resend|sendgrid|SMTP` →
+**cero coincidencias**. El plan de respuesta a incidentes define el canal de
+detección como un buzón, y el propio documento dice entre paréntesis «(definir
+buzón real)». El buzón no existe.
+
+Y `cron_runs|ultimaEjecucion|heartbeat|latido` → **cero también**: nada
+registraba que un cron hubiera corrido. El de recordatorios recorre todos los
+consultorios **en serie** mandando WhatsApp y **no declaraba `maxDuration`**:
+cuando se acababa el tiempo dejaban de recibir recordatorios **siempre los
+mismos** —los del final de la lista— y la ruta respondía `200`.
+
+Si el cron dejara de correr una semana entera, la única señal sería que los
+pacientes no llegan.
+
+### El latido y el vigilante
+
+Los crons laten en sus **dos** salidas —éxito y error— sobre
+`platform_heartbeats/{job}`: un documento por trabajo que **se sobrescribe**, no
+una colección que crece sin barrendero (el problema que ya tienen `rate_limits` y
+`platform_csp`).
+
+Y un **vigilante** cada 15 min los mira **desde fuera**: si viviera dentro del
+trabajo que vigila, cuando ese trabajo dejara de dispararse el aviso tampoco se
+dispararía.
+
+### El diagnóstico distingue lo que no es lo mismo
+
+- **«nunca» no es «tarde»**: un trabajo recién desplegado todavía no ha latido, y
+  uno que dejó de correr hace un mes **sí** tiene latido, sólo que viejo. Sin
+  ninguno, lo que hay que revisar es el despliegue, no el trabajo.
+- **«corrió a tiempo pero falló»** también duele.
+- **Margen de dos periodos**: un retraso puntual —una ejecución lenta, un
+  despliegue en medio— no es una avería. Gritar por eso enseña a ignorar las
+  alertas, que es la forma más común de quedarse sin ninguna.
+
+### El canal NO miente
+
+Sin `OPS_ALERTA_WEBHOOK` devuelve `enviada: false` **con su razón**, y el
+vigilante la enseña en su respuesta. **Un canal de alertas que devuelve éxito
+cuando no está configurado es peor que no tenerlo**: se da por cubierto lo que
+sigue descubierto — que es exactamente el fallo que viene a reparar.
+
+Es un **webhook** y no un proveedor: lo recibe Slack, Discord, ntfy o Zapier. Así
+no se elige hoy un proveedor por el Dr., no se añade dependencia, y la decisión
+se toma con una variable en dos minutos. Exige `https`, tiene timeout de 5 s y
+**no registra la URL** — un webhook lleva su secreto en la ruta.
+
+- `src/lib/ops/latido.ts` y `src/lib/ops/alerta.ts` (nuevos),
+  `src/app/api/cron/vigilante/route.ts` (nueva), `vercel.json`,
+  los dos crons existentes, `reminders` con `maxDuration`
+- `src/__tests__/ops-latido-y-alerta.test.ts` — 25 pruebas. Total 5321.
+  Incluye un **guardián**: todo cron de `vercel.json` debe latir en sus dos
+  salidas y tener periodo declarado.
+
+**PENDIENTE DEL DR (una variable):** `OPS_ALERTA_WEBHOOK` en Vercel, con una URL
+`https` que reciba un POST con JSON. Sin ella el vigilante corre igual y deja el
+diagnóstico en su respuesta y en el registro, pero **no despierta a nadie**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
