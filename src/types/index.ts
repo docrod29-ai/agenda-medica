@@ -419,28 +419,21 @@ export interface WaitlistEntry {
   creadoPor: string
 }
 
-export interface NotificationLog {
-  id: string
-  appointmentId: string
-  pacienteId: string
-  tipo: 'confirmacion' | 'recordatorio-24h' | 'recordatorio-dia' | 'cancelacion' | 'reagendamiento'
-  canal: 'whatsapp' | 'sms' | 'email'
-  estado: 'enviado' | 'fallido' | 'pendiente'
-  sentAt?: string
-  errorMessage?: string
-}
-
-export interface AuditLog {
-  id: string
-  entityType: 'appointment' | 'patient' | 'waitlist' | 'config'
-  entityId: string
-  action: string
-  oldValue?: string
-  newValue?: string
-  userId: string
-  userEmail: string
-  createdAt: string
-}
+/*
+ * AQUÍ VIVÍAN `NotificationLog` Y `AuditLog`, Y DESCRIBÍAN OTRA APLICACIÓN.
+ *
+ * `AuditLog` prometía `entityType`, `entityId`, `oldValue` y `newValue`: una
+ * bitácora con el ANTES y el DESPUÉS de cada cambio. La bitácora real
+ * (`lib/expediente/audit-log.ts`) no guarda nada de eso, y `createAuditLog`
+ * —el único que usaba este tipo— se borró hace tiempo de `lib/firestore.ts`.
+ *
+ * Un tipo que nadie construye no es documentación inofensiva: es un plano de un
+ * sitio que no existe. Quien lo lea creerá que el expediente registra el valor
+ * anterior de lo que se cambió, y ante una revisión eso importa.
+ *
+ * `NotificationLog` igual: la entrega de mensajes se registra en el libro de
+ * `whatsapp/no-entregados` y en el outbox, con otra forma.
+ */
 
 export interface DaySchedule {
   activo: boolean
@@ -519,7 +512,12 @@ export interface ClinicConfig {
   anticipoMonto?: number
   horaResumenDiario: string
   diasFestivos: string[]
-  whatsappProveedor: string
+  /*
+   * `whatsappProveedor` se quitó: era un segundo sitio donde declarar el
+   * proveedor, y el que de verdad se lee es `ClinicWhatsApp.provider`. Dos
+   * campos para lo mismo es una invitación a que uno diga «meta» y el otro
+   * «360dialog» sin que nadie sepa cuál manda.
+   */
   googleCalendarId: string
   // Portal público de auto-agenda
   publicBookingEnabled?: boolean   // Si true, el portal /reservar/[clinicId] acepta citas
@@ -659,18 +657,13 @@ export interface RecetaConfig {
   mostrarSignosVitales?: boolean
 }
 
-export interface DashboardStats {
-  citasHoy: number
-  citasManana: number
-  citasSemana: number
-  confirmadas: number
-  pendientesConfirmar: number
-  canceladas: number
-  noShow: number
-  nuevosHoy: number
-  listasEspera: number
-  proxCita: Appointment | null
-}
+/*
+ * Y AQUÍ `DashboardStats`, QUE NINGUNA PANTALLA CALCULABA.
+ *
+ * Diez cifras declaradas —citas de mañana, de la semana, pendientes de
+ * confirmar, nuevos de hoy…— y ni un solo consumidor. El tablero calcula lo
+ * suyo con sus propias consultas. Prometía un resumen que no existe.
+ */
 
 // ── Constantes de UI ──────────────────────────────────────────
 
@@ -730,7 +723,6 @@ export const DEFAULT_CONFIG: ClinicConfig = {
   recordatorioMismoDia: true,
   horaResumenDiario: '07:00',
   diasFestivos: [],
-  whatsappProveedor: '',
   googleCalendarId: '',
   publicBookingEnabled: true,
   publicBookingNote: '',

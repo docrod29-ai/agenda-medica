@@ -6,7 +6,7 @@ import {
 import { db } from './firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import {
-  Appointment, Patient, WaitlistEntry, ClinicConfig, AuditLog, Doctor,
+  Appointment, Patient, WaitlistEntry, ClinicConfig, Doctor,
   DEFAULT_CONFIG, Clinic, ClinicMember,
 } from '@/types'
 
