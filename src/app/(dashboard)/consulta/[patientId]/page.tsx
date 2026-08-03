@@ -92,6 +92,8 @@ import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordene
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
 import { useDoctors } from '@/hooks/useDoctors'
+import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
+import { getInternamiento } from '@/lib/hospital/firestore'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
@@ -184,6 +186,33 @@ export default function ConsultaActivaPage() {
   const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
   const { activeDoctors } = useDoctors()
+  /**
+   * EL EPISODIO, PARA QUE LA NOTA DE HOSPITAL DIGA DÓNDE ESTABA EL PACIENTE.
+   *
+   * `NotaMedica.hospital` estaba declarado en el modelo Y sellado en el hash de
+   * integridad desde que existe el módulo de hospitalización, pero **nadie lo
+   * escribía**: se sellaba un hueco. La nota firmada no decía en qué servicio ni
+   * en qué cama estaba el paciente, ni qué día de internamiento era — datos que
+   * la propia aplicación ya tiene, a un identificador de distancia.
+   */
+  const [episodioLeido, setEpisodioLeido] = useState<
+    { id: string; servicio?: string; cama?: string; fechaIngreso?: string; fechaEgreso?: string } | null>(null)
+  useEffect(() => {
+    if (!clinicId || !internamientoActivo) return
+    let vivo = true
+    getInternamiento(clinicId, internamientoActivo)
+      .then(i => { if (vivo && i) setEpisodioLeido({ id: internamientoActivo, servicio: i.servicio, cama: i.cama, fechaIngreso: i.fechaIngreso, fechaEgreso: i.fechaEgreso }) })
+      // Si no se puede leer, la nota se guarda SIN el bloque. Bloquear el
+      // guardado de una nota clínica por un dato administrativo sería peor.
+      .catch(() => { /* queda ausente, que es la representación honesta */ })
+    return () => { vivo = false }
+  }, [clinicId, internamientoActivo])
+  /**
+   * Se COMPARA el episodio en vez de limpiarlo al salir: así, al cambiar de
+   * episodio, el bloque no queda un instante con los datos del anterior — y no
+   * hace falta un `setState` dentro del efecto, que dispara renders en cascada.
+   */
+  const episodio = episodioLeido && episodioLeido.id === internamientoActivo ? episodioLeido : null
   /** REG-014: la firma gráfica vive en un subdocumento, no en `config/main`. */
   const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
 
@@ -1497,6 +1526,10 @@ export default function ConsultaActivaPage() {
       alergias: parsearAlergiasTexto(patient?.alergias),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
+      // El bloque hospitalario, que hasta v941 se sellaba vacío. Lo que el
+      // episodio no diga queda AUSENTE, no en blanco: un `servicio: ''` en un
+      // documento firmado afirma «no tiene servicio», y lo cierto es «no se sabe».
+      hospital: bloqueHospitalDe(episodio, now),
       preop,
       iaAuditoria: extraction || safety ? {
         extraction, safety,
@@ -1540,7 +1573,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)

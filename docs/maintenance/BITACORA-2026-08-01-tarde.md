@@ -1728,6 +1728,63 @@ que ya usan las rutas de receta y config.
 
 ---
 
+## NONAGÉSIMA TANDA — v941 · EL BLOQUE HOSPITALARIO SELLADO Y SIEMPRE VACÍO
+
+### La nota de hospital no decía en qué cama estaba el paciente
+
+`NotaMedica.hospital` existe en el modelo desde que existe el módulo de
+hospitalización y **entra en el hash de integridad**: `integrity.ts` lo incluye
+entre los campos sellados y lo nombra en la lista de protegidos. La nota firmada
+se sellaba prometiendo que ese bloque es inmutable.
+
+Pero **nadie lo escribía**. Ni una pantalla, ni una ruta, ni el ensamblado. **Se
+sellaba un hueco.** Y el impreso tampoco lo enseñaba.
+
+Resultado: una nota de hospital que no decía en qué servicio ni en qué cama
+estaba el paciente, ni qué día de internamiento era — datos que la propia
+aplicación ya tiene en el episodio, a un identificador de distancia
+(`nota.internamientoId`).
+
+Es el mismo patrón del motor de dosis (v936) y del «rango horario preferido»
+(v939), en su forma de dato: **un campo que el sistema promete y nunca llena.**
+
+### El día se cuenta como en el pase de visita
+
+Quien ingresó anoche a las 23:00 y es visto hoy a las 08:00 está en su **día 2**,
+no en «9 horas»: contar por horas transcurridas daría 0 y contradiría al pizarrón
+del servicio. Es una cuenta de calendario, no un umbral — no decide nada, sólo
+numera lo que el equipo ya numera en voz alta.
+
+Una nota fechada **antes** del ingreso no tiene día: poner «día 1» sería inventar
+una coherencia que el dato no tiene.
+
+### Lo que NO hace
+
+- **No rellena `condicion`.** «Estable / grave / crítico» es un **juicio del
+  médico** que escribe la nota. Un campo vacío es honesto; un «estable» puesto
+  por un programa es una afirmación médica que nadie hizo, dentro de un documento
+  que se firma.
+- No toca el balance hídrico, que registra enfermería.
+- Lo que el episodio no diga queda **ausente**, no en blanco: un `servicio: ''`
+  en un documento sellado afirma «no tiene servicio», y lo cierto es «no se
+  sabe». Si no hay nada que decir, no se mete un objeto vacío.
+- Si el episodio no se puede leer, la nota se guarda **sin** el bloque: bloquear
+  el guardado de una nota clínica por un dato administrativo sería peor.
+- El impreso lo **enseña**, no lo calcula: sale sólo si la nota lo trae.
+
+- `src/lib/hospital/bloque-nota.ts` (nuevo, puro),
+  `consulta/[patientId]/page.tsx` (lee el episodio y arma el bloque),
+  `nota/[patientId]/[notaId]/page.tsx` (lo imprime)
+- `src/__tests__/nota-bloque-hospital.test.ts` — 17 pruebas. Total 5133.
+
+**Queda declarado**: `NotaMedica.infectologia` (día de antibiótico, candidato a
+desescalada, switch IV→VO) sigue sellado y sin escritor. Es del mismo tipo, pero
+sus campos son **decisiones clínicas** —«candidato a desescalada» no se deriva de
+ningún dato del episodio—, así que llenarlo pide una pantalla donde el médico lo
+declare, no una inferencia. NEEDS_CLINICAL_REVIEW.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
