@@ -157,7 +157,8 @@ describe('el detector de PHI sigue la librería', () => {
   })
 
   it('y las dos rutas del expediente vuelven a estar en la lista de PHI', () => {
-    // `clinic/exportar` entró en medio al llegar el respaldo del consultorio.
-    expect(guardian).toContain("'arco/acceso', 'arco/cancelar', 'clinic/exportar', 'expediente/exportar/[patientId]'")
+    // `clinic/exportar` y `clinic/importar` entraron en medio al llegar el
+    // respaldo del consultorio y su camino de vuelta.
+    expect(guardian).toContain("'arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar', 'expediente/exportar/[patientId]'")
   })
 })

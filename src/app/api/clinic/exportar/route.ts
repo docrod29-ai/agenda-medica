@@ -32,7 +32,7 @@ import { NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
-import { COLECCIONES, EXCLUIDAS, indiceRespaldo } from '@/lib/clinica/respaldo'
+import { COLECCIONES, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
 
 export const maxDuration = 300
 
@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
           if (snap.empty) break
           for (const d of snap.docs) {
             ids.push(d.id)
-            linea({ _ruta: `${rutaBase}/${d.id}`, _coleccion: coleccion, ...d.data() })
+            linea(lineaDeDocumento(rutaBase, coleccion, d.id, d.data()))
             documentos++
           }
           cursor = snap.docs[snap.docs.length - 1]

@@ -97,6 +97,19 @@ export interface LineaRespaldo {
   [k: string]: unknown
 }
 
+/**
+ * Arma la línea de un documento.
+ *
+ * Vive aquí y no en la ruta para que la prueba de IDA Y VUELTA pueda ejercitarla
+ * sin Firestore: es la única forma de responder «sí, sabemos reconstruirlo» sin
+ * depender de que alguien levante un emulador.
+ */
+export function lineaDeDocumento(
+  rutaBase: string, coleccion: string, id: string, datos: Record<string, unknown>,
+): LineaRespaldo {
+  return { _ruta: `${rutaBase}/${id}`, _coleccion: coleccion, ...datos }
+}
+
 /** El índice legible que encabeza el archivo. */
 export function indiceRespaldo(): Record<string, string> {
   const out: Record<string, string> = {}
