@@ -21,6 +21,44 @@ historia vive aquí.
 
 ---
 
+## v956 — un aislamiento SALVAJE salía como multirresistente con alerta crítica
+
+REPRODUCIDO CORRIENDO EL MOTOR, no leyendo el código. Un Enterococcus faecalis
+PAN-SENSIBLE —sensible a ampicilina y a vancomicina— trae en su reporte las tres
+resistencias NATURALES de la especie (cefalosporinas de 3ª, cotrimoxazol y
+colistina), y el motor devolvía: «Resistencia a colistina/polimixina
+[confirmado]», «Multidrogorresistente (no-S en 3 clases)», el mecanismo
+«Modificación del lípido A (mcr / pmrAB-mgrB)» con confianza probable, y una
+ALERTA CRÍTICA de «última línea comprometida».
+
+Un aislamiento tratable con ampicilina salía de la máquina como multirresistente,
+con un mecanismo PLASMÍDICO Y TRANSFERIBLE afirmado. La colistina no es una línea
+que ese organismo haya perdido: NUNCA LA TUVO, es un Gram positivo. Lo mismo un
+Proteus mirabilis completamente sensible y un S. maltophilia salvaje.
+
+Y LA CORRECCIÓN YA ESTABA ESCRITA: `esIntrinsecamenteResistente` existía y
+`mdr.ts` YA lo aplicaba —con un comentario que describe justo este fallo para
+Proteus—, pero `analizarMDR` vuelve temprano para todo lo que no sea
+Enterobacterales o Pseudomonas, así que los Gram positivos y los no-fermentadores
+caían al contador de respaldo de motor.ts, que no filtraba nada. La firma de
+siempre: escrito, probado, y sin aplicar en ESE camino.
+
+Ahora el bloque de colistina y el conteo de clases reciben el ORGANISMO y
+excluyen lo intrínseco. Y cuando se excluye algo SE DICE: la base del fenotipo
+MDR nombra las R naturales que no contó — un criterio que se aplica en silencio
+no se puede revisar. Con control negativo: una colistina-R en E. coli, que NO es
+natural, sigue disparando la alerta crítica; sin esa prueba, la reparación podría
+haber apagado la alerta para todo el mundo y la otra pasaría igual.
+
+NEEDS_CLINICAL_REVIEW declarado en el código: si el conteo MDR de respaldo debe
+existir siquiera para Gram positivos —Magiorakos no define las categorías igual
+para enterococo/estafilococo— es decisión del Dr. Filtrar lo intrínseco es
+correcto en cualquiera de los dos casos; elegir por él, no.
+
+11 pruebas más (5405).
+
+---
+
 ## v955 — la consola del dueño dejó de escanear tablas enteras
 
 La página por omisión del panel hacía `adminDb.collection('clinics').get()` y

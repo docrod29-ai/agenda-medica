@@ -2640,6 +2640,66 @@ clientes no.
 
 ---
 
+## CENTÉSIMA QUINTA TANDA — v956 · EL AISLAMIENTO SALVAJE QUE SALÍA MDR
+
+**Cierra A1 de la cola del equipo — el defecto más peligroso del antibiograma.**
+
+### Reproducido corriendo el motor, no leyendo el código
+
+Un *Enterococcus faecalis* **pan-sensible** —sensible a ampicilina y a
+vancomicina— trae en su reporte las tres resistencias **naturales** de la
+especie. Con eso, el motor devolvía:
+
+```
+Fenotipo: Resistencia a colistina/polimixina [confirmado];
+          Multidrogorresistente (no-S en 3 clases) [sospecha]
+Mecanismo: Modificación del lípido A (mcr / pmrAB-mgrB)
+ALERTAS: [crítica] Colistina-R: opciones muy limitadas.
+```
+
+Un aislamiento **tratable con ampicilina** salía como multirresistente, con
+«última línea comprometida» y un mecanismo **plasmídico y transferible** (`mcr`)
+afirmado con confianza `probable`.
+
+La colistina no es una línea que ese organismo haya perdido: **nunca la tuvo**.
+Es un Gram positivo. Lo mismo un *Proteus mirabilis* completamente sensible y un
+*S. maltophilia* salvaje.
+
+### Y la corrección ya estaba escrita
+
+`esIntrinsecamenteResistente` existía, y `mdr.ts` **ya lo aplicaba** —con un
+comentario que describe justo este fallo para Proteus—. Pero `analizarMDR` vuelve
+temprano para todo lo que no sea Enterobacterales o Pseudomonas, así que los Gram
+positivos y los no-fermentadores caían al **contador de respaldo** de `motor.ts`,
+que no filtraba nada.
+
+**La firma de siempre: escrito, probado, y sin aplicar en ese camino.**
+
+### Lo que se excluye, se dice
+
+La base del fenotipo MDR nombra ahora las R naturales que no contó: **un criterio
+que se aplica en silencio no se puede revisar**. Si el Dr. lee «no-S en 3 clases»
+sin saber que se dejaron fuera dos, no puede juzgar la cifra.
+
+Con **control negativo**: una colistina-R en *E. coli* —que no es natural— sigue
+disparando la alerta crítica. Sin esa prueba, la reparación podría haber apagado
+la alerta para todo el mundo y la otra habría pasado igual.
+
+### Lo que NO decidí
+
+**NEEDS_CLINICAL_REVIEW**, declarado en el propio código: si el conteo MDR de
+respaldo debe existir siquiera para Gram positivos —Magiorakos no define las
+categorías igual para enterococo/estafilococo— es decisión del Dr. Filtrar lo
+intrínseco es correcto en cualquiera de los dos casos; elegir por él, no.
+
+- `src/lib/expediente/antibiograma/motor.ts`
+- `src/__tests__/antibiograma-fenotipo-salvaje.test.ts` — 11 pruebas. Total 5405.
+
+**Quedan A2, A3 y A4**, cuyas partes de plomería puedo hacer, y las **seis
+preguntas clínicas** que van al final de esta bitácora.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

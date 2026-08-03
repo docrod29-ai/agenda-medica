@@ -22,7 +22,7 @@ import { analizarAminoglucosidos } from './aminoglucosidos'
 import { analizarFastidiosos } from './fastidiosos'
 import { analizarMDR, analizarDTR } from './mdr'
 import { construirAlgoritmo } from './algoritmo'
-import { evaluarIntrinseca } from './intrinseca'
+import { evaluarIntrinseca, esIntrinsecamenteResistente } from './intrinseca'
 import { analizarSeguridad } from './seguridad'
 import { pruebasRecomendadas } from './clsi-pruebas'
 import { interpretarCMI } from './clsi-breakpoints'
@@ -181,7 +181,31 @@ function transversales(organismo: string, r: ResultadoAntibiograma[]): AporteMod
     out.mecanismos.push({ categoria: 'diana', nombre: 'Mutaciones en la topoisomerasa (gyrA/parC, QRDR)', confianza: 'probable', explicacion: 'Mutaciones en la región determinante de resistencia a quinolonas de la ADN-girasa (gyrA) y topoisomerasa IV (parC), ± bombas de expulsión (AcrAB-TolC) ± genes plasmídicos qnr. La R a la FQ más activa implica R a toda la clase.', referencia: REF.CLSI })
   }
 
-  if (ES_R(estado(r, COLISTINA))) {
+  /**
+   * LA COLISTINA-R DE UN GRAM POSITIVO NO ES UNA LÍNEA PERDIDA: NUNCA LA TUVO.
+   *
+   * Esto miraba el panel sin preguntar de qué organismo se trata. Un
+   * *Enterococcus faecalis* PAN-SENSIBLE —sensible a ampicilina y a
+   * vancomicina— trae sus tres R naturales en el reporte (cefalosporinas de 3ª,
+   * cotrimoxazol y colistina), y salía de la máquina con «última línea
+   * comprometida», alerta CRÍTICA y un mecanismo `mcr` **plasmídico y
+   * transferible** afirmado con confianza `probable`.
+   *
+   * Lo mismo un *Proteus mirabilis* completamente sensible, y un
+   * *S. maltophilia* salvaje.
+   *
+   * El predicado que lo distingue —`esIntrinsecamenteResistente`— ya existía y
+   * `mdr.ts` YA lo aplicaba, con un comentario que describe exactamente este
+   * fallo para Proteus. Pero `analizarMDR` vuelve temprano para todo lo que no
+   * sea Enterobacterales o Pseudomonas, así que los Gram positivos y los
+   * no-fermentadores caían a este contador de respaldo, que no filtraba nada.
+   *
+   * La corrección estaba escrita y no se aplicaba en este camino. Otra vez.
+   */
+  const adquirida = (agentes: string[]) =>
+    ES_R(estado(r, agentes)) && !agentes.some(a => esIntrinsecamenteResistente(organismo, a))
+
+  if (adquirida(COLISTINA)) {
     out.fenotipos.push({ clave: 'colistin-R', nombre: 'Resistencia a colistina/polimixina', confianza: 'confirmado', base: `Colistina R: última línea comprometida. ${REF.CLSI}` })
     out.mecanismos.push({ categoria: 'permeabilidad', nombre: 'Modificación del lípido A (mcr / pmrAB-mgrB)', confianza: 'probable', explicacion: 'Adición de fosfoetanolamina o 4-amino-arabinosa al lípido A del LPS → reduce la carga negativa y la unión de la polimixina. Por mcr-1 plasmídico (transferible) o mutación cromosómica (pmrAB/phoPQ; mgrB en Klebsiella).', referencia: REF.CLSI })
     out.alertas.push({ nivel: 'critica', mensaje: 'Colistina-R: opciones muy limitadas. Infectología + microbiología para terapia combinada guiada por CMI.' })
@@ -198,15 +222,42 @@ function transversales(organismo: string, r: ResultadoAntibiograma[]): AporteMod
     out.optimizacionPKPD.push('Fluoroquinolonas (concentración-dependientes): eficacia por AUC/CMI; dosis plena, no reducir salvo por función renal.')
   }
 
-  // MDR aproximado (Magiorakos requiere el mapeo formal de categorías).
-  const clasesR = contarClasesResistentes(r)
+  /**
+   * MDR aproximado, SIN CONTAR LAS RESISTENCIAS NATURALES DE LA ESPECIE.
+   *
+   * Contarlas convertía en «multidrogorresistente» a cualquier organismo con
+   * tres R intrínsecas — es decir, a un aislamiento salvaje y tratable. Y la
+   * etiqueta MDR no es decorativa: cambia el aislamiento, la notificación y la
+   * elección empírica.
+   *
+   * NEEDS_CLINICAL_REVIEW: queda por decidir si este conteo de respaldo debe
+   * existir siquiera para Gram positivos —Magiorakos no define categorías para
+   * enterococo/estafilococo del mismo modo— o si el fenotipo simplemente no
+   * debería emitirse ahí. Filtrar lo intrínseco es correcto en cualquiera de los
+   * dos casos; esa pregunta es del Dr.
+   */
+  const { clases: clasesR, excluidos } = contarClasesResistentes(organismo, r)
   if (clasesR >= 3) {
-    out.fenotipos.push({ clave: 'MDR', nombre: `Multidrogorresistente (no-S en ${clasesR} clases, aproximado)`, confianza: 'sospecha', base: `Clasificación formal MDR/XDR/PDR requiere el mapeo de categorías de Magiorakos et al. ${REF.MAGIORAKOS}` })
+    out.fenotipos.push({
+      clave: 'MDR',
+      nombre: `Multidrogorresistente (no-S en ${clasesR} clases, aproximado)`,
+      confianza: 'sospecha',
+      base: `Clasificación formal MDR/XDR/PDR requiere el mapeo de categorías de Magiorakos et al. ${REF.MAGIORAKOS}`
+        + (excluidos.length ? ` No se contaron las resistencias NATURALES de la especie: ${excluidos.join(', ')}.` : ''),
+    })
   }
   return out
 }
 
-function contarClasesResistentes(r: ResultadoAntibiograma[]): number {
+/**
+ * Cuántas CLASES tienen una R adquirida, y cuáles se dejaron fuera por naturales.
+ *
+ * Devolver los excluidos no es un adorno: es lo que permite que la nota diga
+ * «no se contaron las R naturales de la especie» en vez de callar un criterio.
+ */
+function contarClasesResistentes(
+  organismo: string, r: ResultadoAntibiograma[],
+): { clases: number; excluidos: string[] } {
   const clases: string[][] = [
     [...AMPICILINA, ...PIP_TAZO],
     [...CEF3G, ...CEFEPIME],
@@ -220,10 +271,17 @@ function contarClasesResistentes(r: ResultadoAntibiograma[]): number {
     ERITROMICINA,
   ]
   let n = 0
+  const excluidos: string[] = []
   for (const agentes of clases) {
-    if (r.some(x => NO_S(x.interpretacion) && agentes.some(a => norm(x.antibiotico).includes(norm(a))))) n++
+    const conR = r.filter(x => NO_S(x.interpretacion)
+      && agentes.some(a => norm(x.antibiotico).includes(norm(a))))
+    if (!conR.length) continue
+    // Sólo cuenta si AL MENOS UNO de los R de esa clase no es natural de la especie.
+    const adquiridos = conR.filter(x => !esIntrinsecamenteResistente(organismo, x.antibiotico))
+    if (adquiridos.length) n++
+    else excluidos.push(...conR.map(x => x.antibiotico))
   }
-  return n
+  return { clases: n, excluidos: [...new Set(excluidos)] }
 }
 
 const RANGO_CONFIANZA: Record<Confianza, number> = { confirmado: 3, probable: 2, sospecha: 1 }
