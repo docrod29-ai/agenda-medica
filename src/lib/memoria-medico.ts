@@ -8,6 +8,7 @@
  * las rules la niegan a clientes por defecto (solo Admin SDK).
  */
 import { adminDb } from '@/lib/firebase-admin'
+import { seguroParaMemoria } from '@/lib/ia/minimizar-phi'
 
 export interface MemoriaMedico {
   especialidad?: string
@@ -54,9 +55,24 @@ export async function aprenderDeMedico(clinicId: string | null, uid: string, nue
   try {
     const actual = await leerMemoriaMedico(clinicId, uid)
     const vistos = new Set((actual?.notas ?? []).map(s => s.toLowerCase().trim()))
+    /**
+     * EL FILTRO VA TAMBIÉN AQUÍ, NO SÓLO EN QUIEN LLAMA.
+     *
+     * La cabecera de este archivo dice «NUNCA datos de pacientes», y lo único
+     * que lo respaldaba era una instrucción en el prompt de quien extrae los
+     * hechos. Un prompt describe una intención; lo que el modelo devuelva se
+     * guardaba tal cual, filtrado sólo por longitud.
+     *
+     * `seguroParaMemoria` rechaza —no redacta— lo que trae un identificador con
+     * forma propia: un hecho al que hay que tacharle un teléfono no era un hecho
+     * sobre la práctica del médico, y guardarlo a medias deja una frase rara en
+     * la memoria para siempre. Lo que NO puede detectar (nombres propios) está
+     * escrito en `lib/ia/minimizar-phi.ts`, sin prometer de más.
+     */
     const limpios = nuevos
       .map(s => String(s).trim())
-      .filter(s => s.length > 3 && s.length < 200 && !vistos.has(s.toLowerCase()))
+      .filter(seguroParaMemoria)
+      .filter(s => !vistos.has(s.toLowerCase()))
     if (!limpios.length) return
     const notas = [...(actual?.notas ?? []), ...limpios].slice(-TOPE_NOTAS)
     await ref(clinicId, uid).set({ notas, actualizado: new Date().toISOString() }, { merge: true })
