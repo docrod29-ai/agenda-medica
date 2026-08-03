@@ -1123,6 +1123,296 @@ prueba que ahora vigila que ese cast no vuelva.
 
 ---
 
+## SEPTUAGÉSIMA SEXTA TANDA — v927 (+ reglas) · AUDITORÍA DE LANZAMIENTO (dinero 3)
+
+### Se podía anular un cobro y ponerle el nombre de un compañero
+
+La exigencia de que el autor sea uno mismo (`canceladoPor == request.auth.uid`)
+vive **sólo** en la rama de ANULAR, y esa rama pide que el cobro **no estuviera ya
+cancelado**.
+
+Sobre un cobro **ya anulado**, la rama de «vincular factura» aceptaba cualquier
+cambio mientras `cancelado` siguiera igual: se podía reescribir `canceladoPor`,
+`canceladoPorNombre`, `motivoCancelacion` y `canceladoEn`. Cualquier miembro, de
+cualquier rol, desde la consola del navegador.
+
+O sea: **anular un cobro —quedarse con el efectivo— y después ponerle el nombre de
+otro.** Y el corte de caja lo imprime tal cual **desde v907**, que es justo la
+pantalla que hice para poder preguntarle a alguien.
+
+**Un control que señala a la persona equivocada es peor que no tenerlo.**
+
+Ahora los cuatro campos de la anulación quedan congelados también en esa rama, que
+existe para pegar un UUID de factura, no para reescribir quién hizo qué.
+
+- `firestore.rules` (**desplegadas aparte**), `matriz-acceso.ts` + doc regenerado
+- `src/__tests__/firestore-rules-guard.test.ts` — invariante nueva. Total 4967.
+
+---
+
+## SEPTUAGÉSIMA SÉPTIMA TANDA — v928 · REPORTADO POR EL DR. EN USO REAL
+
+### «¿Por qué no me deja guardar la firma que subo en PDF?»
+
+El conversor de PDF a imagen armaba la URL del worker de pdf.js apuntando a
+**`unpkg.com`**, con la versión **adivinada** (`pdfjs.version || '6.0.227'`).
+
+Así que subir un PDF —la firma del médico, el membrete— dependía de:
+
+- que unpkg estuviera arriba y contestara rápido;
+- que esa versión exacta existiera en esa ruta exacta;
+- que la red del consultorio no bloqueara CDNs, **cosa habitual en hospitales**.
+
+Y cuando fallaba **no se veía un error claro**: pdf.js se quedaba esperando al
+worker y lo único que salía era «Tiempo agotado (60s). Tu PDF puede ser muy
+pesado» — un mensaje que manda al médico a buscar el problema **donde no está**.
+Probaba con otro PDF más chico y volvía a fallar.
+
+El archivo **viene dentro de `pdfjs-dist`**. No había que descargarlo de ningún
+lado.
+
+Ahora se copia a `public/` en cada build (`npm run pdf-worker`, encadenado al
+`build`) y se sirve del mismo origen: sin red externa, sin adivinar versiones, y
+la versión del worker **no puede desincronizarse** de la de la librería. La CDN
+queda de respaldo por si un despliegue no llevara el archivo — quitarla del todo
+dejaría la función muerta sin salida.
+
+- `src/lib/pdf-to-image.ts`, `public/pdf.worker.min.mjs`, `package.json`
+- `src/__tests__/pdf-worker-local.test.ts` — 7 pruebas. Total 4974.
+
+⚠️ **Pendiente de confirmar con el Dr**: si con esto ya le guarda la firma. Si
+sigue fallando, el siguiente sospechoso es la migración REG-014 (`config/firma`),
+que el auditor marcó como P1-6.
+
+---
+
+## SEPTUAGÉSIMA OCTAVA TANDA — v929 · REPORTADO POR EL DR.
+
+### «No se guarda el template» — el guardado ahora se verifica y dice qué campos no quedaron
+
+**Honestidad primero: leí el código del guardado y no logré reproducir el fallo.**
+Escribe todo el `rx` —incluidos RFC, registro DGP, vigencia y aviso legal, que
+están declarados en `RecetaConfig`— y si Firestore lo rechaza, `setDoc` lanza y
+sale un aviso.
+
+El problema es que **ese aviso dura unos segundos y aparece lejos del botón**, en
+una pantalla larguísima que se usa con scroll. Si se lo perdió, lo que vio fue un
+botón que dijo «Guardando…» y volvió a su sitio: **idéntico a un guardado
+correcto**.
+
+En vez de inventarme una causa y decirle que ya quedó, hice que el guardado **se
+verifique**: vuelve a leer del servidor lo que quedó escrito, lo compara campo por
+campo con lo que se pidió, y deja el resultado **fijo junto al botón** hasta el
+siguiente intento. Si algo no llegó, **lo nombra**.
+
+Dos cuidados:
+
+- se comparan los campos que se **teclean**, no las imágenes: ésas cambian de
+  data URL a URL de Storage al guardarse, y compararlas daría falsos fallos;
+- se distingue «no se pudo **guardar**» de «no se pudo **comprobar**». No son lo
+  mismo, y confundirlos manda a buscar el problema al lugar equivocado — que es
+  exactamente lo que le pasó con el PDF (v928).
+
+- `src/app/(dashboard)/configuracion/secciones-recetas.tsx`
+
+⚠️ **Pendiente**: que el Dr. lo pruebe y me mande la lista de campos si sale el
+aviso rojo. Con esa lista el diagnóstico es inmediato.
+
+---
+
+## SEPTUAGÉSIMA NOVENA TANDA — v930 · LA FIRMA EN PDF: CAUSA REAL
+
+### El worker local (v928) no bastaba. Lo que la rompía era el TAMAÑO
+
+La hoja se rasterizaba a **220-300 DPI** y se mandaba **tal cual**. Una carta a
+esa resolución son ~1900×2400 px: varios MB en PNG, y el data URL infla otro
+**33 %** al ir en base64 dentro del JSON.
+
+La petición **moría antes de llegar al servidor** por el tope de la función, sin
+ningún error que explicara nada. Se veía una subida que no hacía nada.
+
+**Y la reducción existía** — pero condicionada a `if (!storage)`, con este
+razonamiento escrito en el código: *«con Storage el peso no importa»*.
+
+**Sí importa.** La imagen no viaja directo a Storage: pasa por una función con un
+límite duro. O sea que **tener Storage bien configurado era justo lo que activaba
+el fallo**.
+
+Ahora los tres caminos que rasterizan un PDF —firma, hoja membretada y diseño
+completo— reducen antes de subir. Una firma no necesita una hoja entera a 220 DPI:
+necesita la firma.
+
+Y queda una **última red** en el helper de subida: si alguien añade un camino
+nuevo y se le olvida, falla **con su nombre**, diciendo cuántos MB pesa y qué
+hacer — porque una subida que «no hace nada» no se puede depurar.
+
+### Además: la pestaña de recetas, agrupada
+
+Eran **nueve tarjetas idénticas** en fila, todas con el mismo peso visual. Ahora
+hay cuatro bloques con jerarquía y una línea que explica cada uno: **1 El papel ·
+2 Cómo se ve · 3 Qué se imprime · 4 Datos legales**. El orden ya era el correcto;
+faltaba decir dónde empieza cada cosa.
+
+- `src/lib/image-utils.ts` (`reducirDataUrlSiPesa`), `subir-imagen.ts`,
+  `secciones-cuenta.tsx`, `secciones-recetas.tsx`
+- `src/__tests__/pdf-worker-local.test.ts` (+4), `recetas-orden-visual.test.ts` (9).
+  Total 4987.
+
+---
+
+## OCTOGÉSIMA TANDA — v931 · «NO SALE EN MI RECETA»
+
+### El mismo médico, llamado de dos formas
+
+La firma **sí estaba subida** (el Dr. la vio en su pantalla). Lo que fallaba:
+
+- la nota guarda `metadata.medicoId` con el **uid de Firebase** de quien firma;
+- la firma y la plantilla se guardan bajo el **id del documento** de `doctors`,
+  que es lo que elige el selector de Configuración.
+
+Dos identificadores distintos de la misma persona: la búsqueda exacta **nunca
+acierta**. Con un solo médico el respaldo «la única que hay» lo tapaba; con **dos
+o más**, la receta sale sin firma y sin ninguna explicación — desde dentro parece
+que ese médico no subió la suya.
+
+**Ya se había reparado una vez (v321) por otro camino**: aquel arreglo añadió el
+respaldo del médico único, que resolvía el caso de entonces y dejaba abierto éste.
+
+### El puente ya existía
+
+`doctors/{id}.uid` — escrito al conectar Google Calendar (**v875**) y rellenado
+para los que ya estaban conectados (**v899**). El vínculo que hice para el
+calendario resolvió la firma.
+
+Ahora los **tres** impresos —receta, orden y nota— traducen el uid al id del
+documento antes de buscar la firma **y la plantilla**. Y no adivina: si nadie
+coincide, o si dos médicos comparten uid por un dato corrupto, devuelve vacío y el
+impreso sigue avisando. **Poner la firma de otro médico es peor que no poner
+ninguna.**
+
+- `src/lib/impreso-medico.ts` (`resolverIdMedico`), receta / orden / nota
+- `src/__tests__/firma-medicoid-uid.test.ts` — 13 pruebas. **Total 5000.**
+
+---
+
+## OCTOGÉSIMA PRIMERA TANDA — v932 · AUDITORÍA MAYOR (81 agentes)
+
+**Calificación global: 6.9/10.** Seguridad 8 · Expediente 7.5 · Antibiograma 7.5 ·
+Agenda 7 · IA 7 · Ingeniería 7 · Hospital 6.5 · UX 6.5 · Datos 6 · Negocio 6.
+41 hallazgos confirmados de 60, 33 competidores perfilados. Informe completo en
+el resultado del workflow `wf_be7275c1-1dc`.
+
+### El cron de recordatorios leía el histórico completo de citas, 24 veces al día
+
+La consulta filtraba por estado **y nada más**: sin cota de fecha, sin `limit`.
+Cada ejecución descargaba **todas las citas que ha tenido esa clínica desde que
+existe**, para mirar las de hoy y mañana.
+
+Y las clínicas se recorren **en serie**. Cuando el tiempo de la función se acaba,
+dejan de recibir recordatorios **siempre las mismas** —las del final de la lista—
+**sin un solo error visible**: el cron responde 200 y el consultorio se entera
+porque sus pacientes no llegan.
+
+Ya estaba confirmado en la auditoría del 26 de julio y **no se había reparado**.
+
+Ahora la ventana es hoy y mañana, en la zona horaria de **la clínica** (un
+consultorio en Tijuana y otro en Cancún no comparten «hoy»).
+
+El rango va sobre `fechaHora` **a solas** y el estado se filtra en memoria, a
+propósito: combinarlos exigiría un índice compuesto, y desplegar índices es una
+operación aparte que puede borrar los que no estén declarados.
+
+**Y el patrón correcto ya estaba en este mismo archivo**, 130 líneas más abajo,
+en la consulta de auto-reseña.
+
+- `src/app/api/cron/reminders/route.ts`
+- `src/__tests__/cron-recordatorios-ventana.test.ts` — 7 pruebas. Total 5007.
+
+---
+
+## OCTOGÉSIMA SEGUNDA TANDA — v933 · AUDITORÍA MAYOR (2)
+
+### La adenda se imprimía con el nombre y la cédula del médico equivocado
+
+`guardarAdenda` mandaba `config.nombreMedico` y `config.cedulaProfesional`, que
+son campos de **nivel clínica** —un valor por consultorio—. En un consultorio con
+dos médicos, la adenda de la Dra. salía impresa con el nombre y la cédula **del
+dueño**.
+
+Un documento medicolegal con un firmante falso. Y una adenda no es cualquier
+documento: es la **enmienda a una nota ya firmada**.
+
+Lo más incómodo: el servidor **ya sellaba el `autorUid` correcto** desde el token.
+La bitácora decía la verdad y el papel decía otra cosa.
+
+Y `firestore.rules` lo tenía escrito desde antes: «FIRMAR ES UN ACTO PERSONAL —
+nadie firma con la cédula de otro». **Faltaba el campo donde guardar la de cada
+médico.**
+
+Ahora `Doctor` tiene su propia `cedulaProfesional` —y su `uid` declarado, que es
+el puente con quien firma—, se captura al dar de alta al médico, y la adenda usa
+la del médico en sesión.
+
+Dos cuidados: sin cédula propia **no se cae a la de la clínica** (sería la de
+otro), y **no adivina cuando hay empate** —dos médicos con el mismo correo, o el
+mismo uid por un dato corrupto—: mejor sin resolver que resolviendo mal.
+
+- `src/types/index.ts` (`Doctor.cedulaProfesional`, `Doctor.uid`),
+  `configuracion/page.tsx` (captura), `nota/[patientId]/[notaId]/page.tsx`
+- `src/__tests__/adenda-firma-personal.test.ts` — 8 pruebas. Total 5015.
+
+**Esto desbloquea parte del P1-5 de la auditoría** (cédula por médico). Queda
+llevar lo mismo a la firma de la nota y de la receta, donde hoy se usa la de la
+clínica.
+
+---
+
+## OCTOGÉSIMA TERCERA TANDA — v934 · AUDITORÍA MAYOR (3)
+
+### La nota firmada —que es inmutable— quedaba congelada con la identidad del dueño
+
+Es el mismo fallo de la adenda (v933), pero **peor**. `nota.firma` es el
+**snapshot inmutable**, y se estampaba con `config.nombreMedico`,
+`config.cedulaProfesional` y `config.especialidad` —campos de **nivel clínica**—.
+
+En un consultorio con dos médicos, cada nota que firmaba la Dra. quedaba
+**congelada para siempre** con el nombre y la cédula del dueño. A diferencia de la
+adenda, aquí **no se corrige después**: la nota firmada es inmutable por diseño y
+por reglas.
+
+Y la compuerta miraba el campo equivocado **en los dos sentidos**: exigía
+`config.cedulaProfesional`, así que dejaba firmar a la Dra. con la cédula del
+dueño **y** bloqueaba a un médico que sí tuviera la suya si la clínica no la
+había llenado —mandándolo a Configuración → General, donde ese campo ya estaba
+lleno—.
+
+Ahora el médico en sesión se resuelve por `uid` y, si no, por correo, sin adivinar
+en empates; el sello usa **su** nombre, **su** cédula y **su** especialidad; con
+varios médicos **no** se cae a la del consultorio (estampar la cédula de otro en
+un documento inmutable es peor que no poder firmar) y el aviso dice **cuál**
+falta; con un solo médico —donde la del consultorio ES la suya— se conserva el
+comportamiento de siempre.
+
+### Y el snapshot de la firma gráfica nacía vacío (P1-6 de la auditoría)
+
+REG-014 movió la firma a `config/firma` y la **borra** de `config/main`; esta
+pantalla seguía leyendo `config.firmaImagenDataUrl`, que desde entonces es
+`undefined`.
+
+Al imprimir se caía a la firma **viva**: cambiar la firma reimprimía las notas
+viejas con la nueva — justo lo contrario de lo que el snapshot existe para
+garantizar. Ahora se lee del subdocumento protegido, por médico, y con varios
+médicos no se estampa la firma global (sería la de otro, congelada).
+
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx` (`medicoEnSesion`,
+  `identidadFirma`, compuerta, sello, `imagenDataUrl`)
+- `src/__tests__/firma-nota-personal.test.ts` — 10 pruebas. Total 5025.
+
+**Cierra el P1-5** (cédula por médico) junto con v933, y el **P1-6** (snapshot de
+firma vacío).
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

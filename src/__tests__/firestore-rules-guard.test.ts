@@ -70,6 +70,34 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(sinComentarios).toMatch(/match \/signos\/\{signoId\}\s*\{[\s\S]{0,400}allow delete: if false;/)
   })
 
+  it('no se puede reescribir QUIÉN anuló un cobro', () => {
+    /**
+     * La exigencia `canceladoPor == request.auth.uid` vive sólo en la rama de
+     * ANULAR, y esa rama pide que el cobro no estuviera ya cancelado.
+     *
+     * Sobre un cobro YA anulado, la rama de «vincular factura» aceptaba cualquier
+     * cambio mientras `cancelado` siguiera igual: se podía reescribir
+     * `canceladoPor`, `canceladoPorNombre`, `motivoCancelacion` y `canceladoEn`.
+     * Cualquier miembro, desde la consola del navegador.
+     *
+     * O sea: anular un cobro —quedarse con el efectivo— y ponerle el nombre de un
+     * compañero. Y el corte de caja lo imprime tal cual desde v907, que es justo
+     * la pantalla que se hizo para poder preguntarle a alguien.
+     *
+     * Un control que señala a la persona equivocada es peor que no tenerlo.
+     */
+    const bloque = sinComentarios.match(/match \/cobros\/\{cobroId\}\s*\{([\s\S]*?)\n\s{6}\}/)
+    expect(bloque, 'no se encontró el bloque de cobros').not.toBeNull()
+    const cuerpo = bloque![1]
+    for (const campo of ['canceladoPor', 'canceladoPorNombre', 'canceladoEn', 'motivoCancelacion']) {
+      expect(cuerpo, `«${campo}» debe quedar congelado también al vincular factura`).toContain(
+        `request.resource.data.get('${campo}', '') == resource.data.get('${campo}', '')`,
+      )
+    }
+    // Y la rama de anular sigue sellando el autor contra quien firma.
+    expect(cuerpo).toContain('request.resource.data.canceladoPor == request.auth.uid')
+  })
+
   it('una solicitud ARCO no se puede REESCRIBIR', () => {
     /**
      * `delete: if false` está porque es un registro legal. Pero el `update`

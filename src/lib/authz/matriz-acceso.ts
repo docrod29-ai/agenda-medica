@@ -408,7 +408,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'financiero',
     guardaLectura: 'isMember',
     guardaEscritura: 'isMember',
-    porQue: 'REG-015. Registro contable: no se edita ni se borra, solo se ANULA con autor, fecha y motivo. El autor se valida contra el uid real.',
+    porQue: 'Registro contable: no se edita ni se borra, solo se ANULA, y anular deja huella (quien, cuando, por que) sellada contra el uid que firma. Desde v927 los cuatro campos de la anulacion quedan congelados TAMBIEN en la rama de vincular factura: sobre un cobro ya anulado esa rama aceptaba reescribir canceladoPor y culpar a un compañero, y el corte de caja lo imprime tal cual desde v907. Un control que señala a la persona equivocada es peor que no tenerlo.',
   },
   {
     ruta: 'clinics/{clinicId}/reviews/{reviewId}',

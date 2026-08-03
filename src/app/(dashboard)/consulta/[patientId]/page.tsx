@@ -91,6 +91,8 @@ import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
+import { useDoctors } from '@/hooks/useDoctors'
+import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -181,6 +183,59 @@ export default function ConsultaActivaPage() {
   const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number; notaId: string | null } }>(procKey)
   const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
+  const { activeDoctors } = useDoctors()
+  /** REG-014: la firma gráfica vive en un subdocumento, no en `config/main`. */
+  const { firma: firmaProtegida } = useFirmaProtegida(clinicId, config ?? undefined)
+
+  /**
+   * QUIÉN FIRMA ESTA NOTA — la persona, no el consultorio.
+   *
+   * `config.nombreMedico`, `config.cedulaProfesional` y `config.especialidad` son
+   * campos de NIVEL CLÍNICA: un valor por consultorio. Se estampaban en
+   * `nota.firma`, que es el SNAPSHOT INMUTABLE — así que en un consultorio con
+   * dos médicos, cada nota que firmaba la Dra. quedaba congelada para siempre
+   * con el nombre y la cédula del dueño.
+   *
+   * Peor que la adenda (v933): aquí no se puede corregir después, porque la nota
+   * firmada es inmutable por diseño y por reglas.
+   *
+   * `firestore.rules` ya lo decía: «FIRMAR ES UN ACTO PERSONAL — nadie firma con
+   * la cédula de otro». Faltaba `Doctor.cedulaProfesional` (v933) y usarlo aquí.
+   */
+  const medicoEnSesion = useMemo(() => {
+    const uid = auth.currentUser?.uid
+    const correo = (auth.currentUser?.email ?? '').trim().toLowerCase()
+    const porUid = uid ? activeDoctors.filter(d => d.uid === uid) : []
+    if (porUid.length === 1) return porUid[0]
+    const porCorreo = correo ? activeDoctors.filter(d => (d.email ?? '').trim().toLowerCase() === correo) : []
+    return porCorreo.length === 1 ? porCorreo[0] : undefined
+  }, [activeDoctors])
+
+  /**
+   * La identidad con la que se va a firmar, y de dónde salió cada dato.
+   *
+   * Con UN solo médico la del consultorio ES la suya y se usa tal cual. Con dos o
+   * más, si no se puede resolver quién es, NO se cae a la del consultorio: se
+   * bloquea la firma. Estampar la cédula de otro en un documento inmutable es
+   * peor que no poder firmar.
+   */
+  const identidadFirma = useMemo(() => {
+    const unico = activeDoctors.length <= 1
+    if (medicoEnSesion) {
+      return {
+        nombre: medicoEnSesion.nombre || config?.nombreMedico || '',
+        cedula: medicoEnSesion.cedulaProfesional || (unico ? (config?.cedulaProfesional ?? '') : ''),
+        especialidad: medicoEnSesion.especialidad || config?.especialidad || '',
+        resuelta: true,
+      }
+    }
+    return {
+      nombre: config?.nombreMedico ?? '',
+      cedula: unico ? (config?.cedulaProfesional ?? '') : '',
+      especialidad: config?.especialidad ?? '',
+      resuelta: unico,
+    }
+  }, [medicoEnSesion, activeDoctors.length, config?.nombreMedico, config?.cedulaProfesional, config?.especialidad])
   const { toast, confirm } = useToast()
   const voz = useGrabacionVoz()
   const audio = useGrabacionAudio()
@@ -1948,8 +2003,22 @@ export default function ConsultaActivaPage() {
       toast(`No se puede firmar: ${val.errores[0]}`, 'error')
       return
     }
-    if (!config?.cedulaProfesional) {
-      toast('Agrega tu cédula profesional en Configuración → General', 'error')
+    /**
+     * LA COMPUERTA MIRA LA CÉDULA EFECTIVA, NO LA DEL CONSULTORIO.
+     *
+     * Antes exigía `config.cedulaProfesional`: en un consultorio con dos médicos
+     * eso dejaba firmar a la Dra. **con la cédula del dueño**, y bloqueaba a un
+     * médico que sí tuviera la suya si la clínica no la había llenado. Miraba el
+     * campo equivocado en los dos sentidos.
+     */
+    if (!identidadFirma.resuelta) {
+      toast('No se pudo identificar con qué médico estás firmando. Revisa que tu correo o tu cuenta estén ligados a tu ficha en Configuración → Médicos.', 'error')
+      return
+    }
+    if (!identidadFirma.cedula.trim()) {
+      toast(medicoEnSesion
+        ? 'Agrega TU cédula profesional en Configuración → Médicos (la de la clínica no se usa cuando hay varios médicos).'
+        : 'Agrega tu cédula profesional en Configuración → General', 'error')
       return
     }
     setGuardando(true)
@@ -1974,16 +2043,30 @@ export default function ConsultaActivaPage() {
         ...notaSellable,
         metadata: { ...notaParaValidar.metadata, hashIntegridad, hashVersion: HASH_VERSION, fechaModificacion: now },
         firma: {
-          nombreMedico: config.nombreMedico,
-          cedulaProfesional: config.cedulaProfesional,
-          especialidad: config.especialidad ?? '',
+          // La persona que firma, no el consultorio. Este objeto es INMUTABLE:
+          // lo que se estampe aquí no se puede corregir después.
+          nombreMedico: identidadFirma.nombre,
+          cedulaProfesional: identidadFirma.cedula,
+          especialidad: identidadFirma.especialidad,
           institucion: config.nombreClinica,
           timestamp: now,
           hashFirma,
           // SNAPSHOT de la imagen de firma+sello en este preciso momento.
           // NOM-024: la nota firmada es inmutable, así que congelamos la firma actual.
           // Si más adelante el médico cambia su firma, las notas viejas siguen mostrando la suya.
-          imagenDataUrl: config.firmaImagenDataUrl,
+          /**
+           * DEL SUBDOCUMENTO PROTEGIDO, NO DE `config/main`.
+           *
+           * REG-014 movió la firma gráfica a `config/firma` y la BORRA del
+           * documento general. Esta pantalla seguía leyendo `config.firmaImagenDataUrl`
+           * —que desde entonces es `undefined`—, así que el «snapshot inmutable»
+           * nacía VACÍO en todas las notas firmadas: al imprimir se caía a la
+           * firma viva, y cambiarla reimprimía las notas viejas con la nueva.
+           * Justo lo contrario de lo que el snapshot existe para garantizar.
+           */
+          imagenDataUrl: (medicoEnSesion && firmaProtegida.firmaPorMedico?.[medicoEnSesion.id])
+            || (activeDoctors.length <= 1 ? firmaProtegida.firmaImagenDataUrl : undefined)
+            || undefined,
         },
       }
 

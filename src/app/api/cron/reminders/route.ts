@@ -133,16 +133,43 @@ export async function GET(req: NextRequest) {
         } | undefined
 
         // ── Get appointments for this clinic ─────────────────
+        /**
+         * ACOTADO POR FECHA — antes leía el HISTÓRICO COMPLETO, 24 veces al día.
+         *
+         * La consulta filtraba por estado y nada más: sin cota de fecha, sin
+         * `limit`. O sea que cada ejecución del cron descargaba **todas las citas
+         * que ha tenido esa clínica desde que existe**, para mirar las de hoy y
+         * mañana.
+         *
+         * Y las clínicas se recorren en serie. Cuando el tiempo de la función se
+         * acaba, dejan de recibir recordatorios **siempre las mismas** —las del
+         * final de la lista— sin un solo error visible: el cron responde 200 y el
+         * consultorio se entera porque sus pacientes no llegan.
+         *
+         * El rango va sobre `fechaHora` A SOLAS y el estado se filtra en memoria:
+         * así basta el índice automático de un campo. Combinar el rango con el
+         * `in` de estado exigiría un índice compuesto, y desplegar índices es una
+         * operación aparte que puede borrar los que no estén declarados.
+         *
+         * Es el mismo patrón que la consulta de auto-reseña ya usa 130 líneas
+         * más abajo. Estaba escrito, en este archivo, y esta consulta no lo usaba.
+         */
+        const desdeVentana = `${hoyISO(tzClinica)} 00:00`
+        const hastaVentana = `${sumarDiasISO(hoyISO(tzClinica), 1)} 23:59`
         const snap = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('appointments')
-          // 'recordatorio-enviado' DEBE incluirse: al mandar el aviso de 24 h una
-          // cita 'confirmada' pasa a ese estado; sin él, salía de la query y nunca
-          // recibía el recordatorio de mismo día.
-          .where('estado', 'in', ['confirmada', 'pendiente-confirmar', 'solicitada', 'recordatorio-enviado'])
+          .where('fechaHora', '>=', desdeVentana)
+          .where('fechaHora', '<=', hastaVentana)
           .get()
 
-        const appointments = snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
+        // 'recordatorio-enviado' DEBE incluirse: al mandar el aviso de 24 h una
+        // cita 'confirmada' pasa a ese estado; sin él, salía del conjunto y nunca
+        // recibía el recordatorio de mismo día.
+        const ESTADOS_RECORDABLES = ['confirmada', 'pendiente-confirmar', 'solicitada', 'recordatorio-enviado']
+        const appointments = snap.docs
+          .map(d => ({ id: d.id, ...d.data() } as Appointment))
+          .filter(a => ESTADOS_RECORDABLES.includes(a.estado))
 
         /**
          * `{donde}` EN LUGAR DE `{direccion}`, Y `{cierre}` EN LUGAR DE «Te esperamos».

@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
 import type { ClinicConfig, Doctor as DoctorT } from '@/types'
 import { getDoctors, saveConfigPartial } from '@/lib/firestore'
 import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
-import { resizeImageFile, formatBytes } from '@/lib/image-utils'
+import { resizeImageFile, formatBytes, reducirDataUrlSiPesa } from '@/lib/image-utils'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { listarMiembros, removerMiembro, cambiarRolMiembro, type MiembroActivo } from '@/lib/miembros'
 import { type RolInvitacion } from '@/lib/invitations'
@@ -275,7 +275,20 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
       if (esPDF) {
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
         const r = await pdfFileToImageDataUrl(file, { dpi: 220, quality: 0.95, type: 'image/png', timeoutMs: 60_000 })
-        dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
+        /**
+         * Y SE REDUCE ANTES DE SUBIR — esto es lo que faltaba.
+         *
+         * La hoja se rasterizaba a 220 DPI y se mandaba tal cual. Una carta a esa
+         * resolución son ~1900×2400 px: varios MB en PNG, y el data URL infla
+         * otro 33 % al ir en base64 dentro del JSON. La petición **moría antes de
+         * llegar al servidor** por el tope de la función, sin ningún error que
+         * explicara nada. El médico veía que «no se subía» y no había a qué
+         * agarrarse.
+         *
+         * Una firma no necesita una hoja entera a 220 DPI: necesita la firma.
+         */
+        const red = await reducirDataUrlSiPesa(r.dataUrl, 2_500_000, 'image/png')
+        dataUrl = red.dataUrl; sizeBytes = red.sizeBytes
       } else {
         const esPNG = file.type === 'image/png'
         const r = await resizeImageFile(file, {
@@ -450,7 +463,11 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
         // Auditoría papelería 2026-07 (P2): 300 DPI de imprenta (antes 200). Como
         // la hoja SIEMPRE va a Storage (abajo), el peso ya no es problema.
         const { pdfFileToImageDataUrl } = await import('@/lib/pdf-to-image')
-        const r = await pdfFileToImageDataUrl(file, { dpi: 300, quality: 0.92, type: 'image/jpeg', timeoutMs: 60_000 })
+        const r0 = await pdfFileToImageDataUrl(file, { dpi: 300, quality: 0.92, type: 'image/jpeg', timeoutMs: 60_000 })
+        // Mismo tope que la firma: lo que no cabe en el cuerpo de la petición no
+        // llega, por muy bien que esté configurado Storage.
+        const rr = await reducirDataUrlSiPesa(r0.dataUrl, 2_500_000, 'image/jpeg')
+        const r = { ...r0, dataUrl: rr.dataUrl, sizeBytes: rr.sizeBytes }
         dataUrl = r.dataUrl; sizeBytes = r.sizeBytes
       } else {
         // Auditoría papelería 2026-07 (P2): resolución de imprenta ~300 DPI a carta

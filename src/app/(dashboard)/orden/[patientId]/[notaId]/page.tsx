@@ -18,7 +18,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
-import { entradaPorMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
+import { entradaPorMedico, resolverIdMedico, overrideRecetaValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
@@ -425,7 +425,8 @@ export default function GeneradorOrdenPage() {
       mostrarDiagnostico: true,
     }
     const medicoId = nota?.metadata?.medicoId
-    const porMedico = entradaPorMedico(config?.recetasPorMedico, medicoId, overrideRecetaValido, unicoMedico)
+    const idDoc = resolverIdMedico(medicoId, activeDoctors) ?? medicoId
+    const porMedico = entradaPorMedico(config?.recetasPorMedico, idDoc, overrideRecetaValido, unicoMedico)
     const merged = porMedico ? { ...base, ...porMedico } : base
     // Impresión SIEMPRE en hoja carta centrada (ver receta): 'papel-real' se
     // recorta en A5 por una limitación de Safari.
@@ -448,7 +449,7 @@ export default function GeneradorOrdenPage() {
     if (!config) return config
     const medicoId = nota?.metadata?.medicoId
     // REG-014: firma desde el subdocumento protegido.
-    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, medicoId, firmaValida, unicoMedico)
+    const firma = entradaPorMedico(firmaProtegida.firmaPorMedico, resolverIdMedico(medicoId, activeDoctors) ?? medicoId, firmaValida, unicoMedico)
       // Con VARIOS médicos tampoco se cae a la firma global (típicamente la del
       // dueño): sería la firma de otro. Mejor sin firma, que sí se nota.
       || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)

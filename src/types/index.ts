@@ -130,6 +130,32 @@ export interface Doctor {
   email?: string
   foto?: string
   /**
+   * CÉDULA PROFESIONAL DEL MÉDICO — no la del consultorio.
+   *
+   * `ClinicConfig.cedulaProfesional` es un valor por CLÍNICA, y los impresos la
+   * usaban para todos: en un consultorio con dos médicos, la adenda y la nota de
+   * la Dra. salían con la cédula del dueño. Un documento medicolegal con un
+   * firmante falso impreso.
+   *
+   * `firestore.rules` ya declara que «FIRMAR ES UN ACTO PERSONAL — nadie firma
+   * con la cédula de otro» y valida `metadata.medicoId`; faltaba el campo donde
+   * guardar la de cada uno.
+   *
+   * Opcional a propósito: los consultorios de un solo médico siguen funcionando
+   * con la de la clínica, y quien no la haya llenado no queda bloqueado — se le
+   * avisa.
+   */
+  cedulaProfesional?: string
+  /**
+   * uid de Firebase de este médico, escrito al conectar su Google Calendar
+   * (v875) y rellenado para los ya conectados (v899).
+   *
+   * Es el puente entre «quien firma» (uid de la sesión) y «de quién es la firma»
+   * (id de este documento). Sin él, la receta de un consultorio con dos médicos
+   * sale sin firma. Ver `resolverIdMedico` en `lib/impreso-medico.ts`.
+   */
+  uid?: string
+  /**
    * HORARIO PROPIO — hoy nadie lo enciende, y por eso los cuatro campos de abajo
    * son opcionales.
    *

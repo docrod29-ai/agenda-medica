@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ import { imprimirElemento } from '@/lib/print-element'
 // Papel de las NOTAS: SIEMPRE carta, independiente de la config de receta.
 import { papelNota } from '@/lib/receta-template'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
-import { entradaPorMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
+import { entradaPorMedico, resolverIdMedico, membreteValido, firmaValida } from '@/lib/impreso-medico'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { getNota, agregarAdenda, getAdendas } from '@/lib/expediente/firestore'
@@ -51,10 +51,26 @@ export default function NotaImprimiblePage() {
    * significa estampar la firma de otro.
    */
   const { activeDoctors } = useDoctors()
+
   const unicoMedico = activeDoctors.length <= 1
 
   const { toast } = useToast()
   const { user } = useAuth()
+  /**
+   * El médico de la sesión, para firmar con SU nombre y SU cédula.
+   *
+   * Por `uid` (el vínculo que escribe Google Calendar) y, si no, por correo.
+   * Si no se puede resolver, se deja `undefined` y se cae al comportamiento de
+   * antes — que es correcto en el consultorio de un solo médico.
+   */
+  const medicoEnSesion = useMemo(() => {
+    const uid = user?.uid
+    const correo = (user?.email ?? '').trim().toLowerCase()
+    const porUid = uid ? activeDoctors.filter(d => d.uid === uid) : []
+    if (porUid.length === 1) return porUid[0]
+    const porCorreo = correo ? activeDoctors.filter(d => (d.email ?? '').trim().toLowerCase() === correo) : []
+    return porCorreo.length === 1 ? porCorreo[0] : undefined
+  }, [activeDoctors, user?.email])
   const [nota, setNota] = useState<NotaMedica | null>(null)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
@@ -127,9 +143,28 @@ export default function NotaImprimiblePage() {
       const nueva = await agregarAdenda(clinicId, patientId, notaId, {
         texto: textoAdenda.trim(),
         motivo: motivoAdenda.trim(),
-        autorNombre: config?.nombreMedico || user?.email || 'Médico',
+        /**
+         * QUIEN FIRMA LA ADENDA, NO EL CONSULTORIO.
+         *
+         * Aquí iban `config.nombreMedico` y `config.cedulaProfesional`, que son
+         * campos de NIVEL CLÍNICA —un valor por consultorio—. En un consultorio
+         * con dos médicos, la adenda de la Dra. se imprimía con el nombre y la
+         * cédula del dueño: un documento medicolegal con un firmante falso.
+         *
+         * El servidor ya sellaba el `autorUid` correcto desde el token, así que
+         * la bitácora decía la verdad y el papel decía otra cosa.
+         *
+         * `firestore.rules` lo tenía escrito desde antes: «FIRMAR ES UN ACTO
+         * PERSONAL — nadie firma con la cédula de otro». Faltaba el campo por
+         * médico (`Doctor.cedulaProfesional`) y usarlo.
+         */
+        autorNombre: medicoEnSesion?.nombre || config?.nombreMedico || user?.email || 'Médico',
         autorEmail: user?.email || '',
-        autorCedula: config?.cedulaProfesional || undefined,
+        // Sin cédula propia NO se cae a la de la clínica: sería la de otro. Se
+        // omite, y la pantalla avisa antes de firmar.
+        autorCedula: medicoEnSesion
+          ? (medicoEnSesion.cedulaProfesional || undefined)
+          : (config?.cedulaProfesional || undefined),
       })
       setAdendas(prev => [...prev, nueva])
       setTextoAdenda(''); setMotivoAdenda(''); setModalAdenda(false)
@@ -208,7 +243,8 @@ export default function NotaImprimiblePage() {
   // membretada es branding de la CLÍNICA (no hay riesgo de suplantación), así que
   // se resuelve con tolerancia: exacto por médico → ÚNICA hoja disponible → general.
   const medMembrete = (() => {
-    const exacta = entradaPorMedico(config?.notaMembretePorMedico, nota.metadata?.medicoId, membreteValido, unicoMedico)
+    const idDoc = resolverIdMedico(nota.metadata?.medicoId, activeDoctors) ?? nota.metadata?.medicoId
+    const exacta = entradaPorMedico(config?.notaMembretePorMedico, idDoc, membreteValido, unicoMedico)
     if (exacta) return exacta
     const validas = Object.values(config?.notaMembretePorMedico ?? {}).filter(v => membreteValido(v as { url?: string }))
     return validas.length === 1 ? (validas[0] as { url?: string; margenes?: { top: number; right: number; bottom: number; left: number }; firmaPos?: { x: number; y: number } }) : undefined
@@ -223,7 +259,7 @@ export default function NotaImprimiblePage() {
   // quedó dentro de la nota firmada (`nota.firma.imagenDataUrl`) sigue mandando:
   // es el documento tal como se selló y no debe cambiar retroactivamente.
   const firmaMostrar = nota.firma?.imagenDataUrl
-    || entradaPorMedico(firmaProtegida.firmaPorMedico, nota.metadata?.medicoId, firmaValida, unicoMedico)
+    || entradaPorMedico(firmaProtegida.firmaPorMedico, resolverIdMedico(nota.metadata?.medicoId, activeDoctors) ?? nota.metadata?.medicoId, firmaValida, unicoMedico)
     || (unicoMedico ? firmaProtegida.firmaImagenDataUrl : undefined)
   const mem = (medMembrete?.url ?? config?.notaMembreteDataUrl)?.trim()
   const membrete = (mem && /^(https?:|\/api\/|data:image)/.test(mem)) ? mem : undefined
