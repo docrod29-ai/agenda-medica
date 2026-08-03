@@ -50,14 +50,14 @@ export default function SoporteInbox() {
       </Link>
       <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
         <LifeBuoy size={20} style={{ color: 'var(--teal)' }} /> Soporte
-        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 100, padding: '2px 9px' }}>{nuevos} nuevo{nuevos === 1 ? '' : 's'}</span>}
+        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{nuevos} nuevo{nuevos === 1 ? '' : 's'}</span>}
       </h1>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 18px' }}>Quejas, fallas, felicitaciones, dudas y sugerencias de tus usuarios.</p>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
         {['pendientes', 'todos', 'falla', 'duda', 'sugerencia', 'queja', 'felicitacion'].map(f => (
           <button key={f} onClick={() => setFiltro(f)}
-            style={{ fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 100, cursor: 'pointer',
+            style={{ fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
               border: '1px solid ' + (filtro === f ? 'var(--teal)' : 'var(--border)'),
               background: filtro === f ? 'rgba(20,184,166,0.1)' : 'var(--s2)', color: filtro === f ? 'var(--teal)' : 'var(--text2)' }}>
             {f === 'pendientes' ? 'Pendientes' : f === 'todos' ? 'Todos' : (META[f]?.emoji + ' ' + META[f]?.label)}

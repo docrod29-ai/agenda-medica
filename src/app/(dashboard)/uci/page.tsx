@@ -1269,7 +1269,7 @@ export default function UciPanelPage() {
             ? <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '8px 0 0' }}>Sin cambios respecto a la última lectura guardada.</p>
             : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
                 {cambios.map((c, i) => (
-                  <span key={i} style={{ fontSize: 12.5, padding: '4px 10px', borderRadius: 100, background: c.relevante ? 'var(--nexus-soft)' : 'var(--s2)', border: `1px solid ${c.relevante ? 'var(--border2)' : 'var(--border)'}`, color: c.relevante ? 'var(--text)' : 'var(--text3)' }}>
+                  <span key={i} style={{ fontSize: 12.5, padding: '4px 10px', borderRadius: 'var(--r-pill)', background: c.relevante ? 'var(--nexus-soft)' : 'var(--s2)', border: `1px solid ${c.relevante ? 'var(--border2)' : 'var(--border)'}`, color: c.relevante ? 'var(--text)' : 'var(--text3)' }}>
                     {c.label} {c.de}→{c.a} {c.direccion === 'sube' ? '↑' : '↓'}{c.unidad ? ' ' + c.unidad : ''}
                   </span>
                 ))}

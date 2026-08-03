@@ -70,7 +70,7 @@ export default function ArquitecturaPage() {
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 6px' }}>
         {(['activo', 'parcial', 'roadmap'] as Estado[]).map(e => (
-          <span key={e} style={{ fontSize: 11.5, fontWeight: 800, padding: '4px 10px', borderRadius: 100, color: CHIP[e].c, background: CHIP[e].bg }}>
+          <span key={e} style={{ fontSize: 11.5, fontWeight: 800, padding: '4px 10px', borderRadius: 'var(--r-pill)', color: CHIP[e].c, background: CHIP[e].bg }}>
             {CHIP[e].t}
           </span>
         ))}
@@ -81,7 +81,7 @@ export default function ArquitecturaPage() {
           <div key={m.nombre} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--panel, #fff)', padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
               <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text, #0f172a)', margin: 0 }}>{m.nombre}</h2>
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 100, color: CHIP[m.estado].c, background: CHIP[m.estado].bg }}>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', color: CHIP[m.estado].c, background: CHIP[m.estado].bg }}>
                 {CHIP[m.estado].t}
               </span>
             </div>

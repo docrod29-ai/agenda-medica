@@ -147,7 +147,7 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
           <div style={{ display: 'flex', gap: 6 }}>
             {PASOS.map((_, i) => (
               <span key={i} style={{
-                width: i === paso ? 20 : 7, height: 7, borderRadius: 100,
+                width: i === paso ? 20 : 7, height: 7, borderRadius: 'var(--r-pill)',
                 background: i === paso ? 'var(--nexus)' : 'var(--border2)',
                 transition: 'width 0.25s ease, background 0.25s ease',
               }} />

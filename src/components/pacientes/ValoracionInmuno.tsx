@@ -256,7 +256,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
       {/* Estratificación */}
       <Card padding={14}>
         <div className="flex items-center gap-2 mb-2">
-          <span style={{ width: 7, height: 7, borderRadius: 99, background: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
           <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple,#7c3aed)' }}>Copiloto de Infectología · en vivo</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -267,9 +267,9 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
           {v.hc_cd4 && <Pill label={'CD4 ' + v.hc_cd4} color="var(--amber)" />}
         </div>
         <div className="flex flex-wrap gap-3 mt-2.5 text-[11px]" style={{ color: 'var(--text3)' }}>
-          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.alta }} /> {recCounts.alta} prioritarias</span>
-          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.media }} /> {recCounts.media} intermedias</span>
-          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 99, background: SEV_COLOR.baja }} /> {recCounts.baja} bajas</span>
+          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 'var(--r-pill)', background: SEV_COLOR.alta }} /> {recCounts.alta} prioritarias</span>
+          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 'var(--r-pill)', background: SEV_COLOR.media }} /> {recCounts.media} intermedias</span>
+          <span className="flex items-center gap-1"><span style={{ width: 8, height: 8, borderRadius: 'var(--r-pill)', background: SEV_COLOR.baja }} /> {recCounts.baja} bajas</span>
         </div>
       </Card>
 

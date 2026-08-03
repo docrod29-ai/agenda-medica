@@ -128,7 +128,7 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
                   key={m}
                   onClick={() => setMedio(m)}
                   style={{
-                    padding: '6px 12px', borderRadius: 100, fontSize: 11.5, fontWeight: 600,
+                    padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 11.5, fontWeight: 600,
                     cursor: 'pointer', textTransform: 'capitalize',
                     background: medio === m ? 'var(--teal)' : 'var(--s2)',
                     color: medio === m ? '#000' : 'var(--text2)',

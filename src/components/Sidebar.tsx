@@ -160,7 +160,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               {mostrarBadge && (
                 <span style={{
                   background: 'var(--teal)', color: '#040b12',
-                  fontSize: 10, fontWeight: 800, borderRadius: 100,
+                  fontSize: 10, fontWeight: 800, borderRadius: 'var(--r-pill)',
                   padding: '1px 7px', minWidth: 18, textAlign: 'center',
                 }}>
                   {noLeidos > 99 ? '99+' : noLeidos}

@@ -466,7 +466,7 @@ export default function FinanzasPage() {
                           {c.patientNombre ?? 'Sin paciente'}
                         </span>
                         <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100,
+                          fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-pill)',
                           background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
                         }}>
                           {CONCEPTO_LABEL[c.concepto]}

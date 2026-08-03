@@ -138,7 +138,7 @@ const COLORES = {
 } as const
 
 const badge = (nivel: keyof typeof COLORES): React.CSSProperties => ({
-  fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 100,
+  fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)',
   background: COLORES[nivel].bg, color: COLORES[nivel].fg,
 })
 const caja = (nivel: keyof typeof COLORES): React.CSSProperties => ({

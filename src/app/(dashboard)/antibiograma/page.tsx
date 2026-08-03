@@ -261,7 +261,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
-        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 100, padding: '2px 9px' }}>{version.replace('nexusmed-', '')}</span>}
+        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('nexusmed-', '')}</span>}
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
         Captura organismo, sitio y panel S/I/R (con CMI si la tienes). El motor infiere fenotipos,
@@ -534,7 +534,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                   <div key={i} style={card}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{f.nombre}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: b.bg, color: b.fg }}>{f.confianza}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: b.bg, color: b.fg }}>{f.confianza}</span>
                     </div>
                     <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.5 }}>{f.base}</p>
                   </div>
@@ -787,7 +787,7 @@ const label: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeigh
 const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', fontSize: 13, color: 'var(--text)', outline: 'none', width: '100%', boxSizing: 'border-box' }
 const delBtn: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 6, flexShrink: 0 }
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
-const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 100, padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
+const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
 const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }
 const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
 const box: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 8, padding: '11px 13px', fontSize: 12.5, lineHeight: 1.5 }

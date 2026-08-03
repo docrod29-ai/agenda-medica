@@ -132,7 +132,7 @@ export default function MotoresPage() {
               <article key={m.id} style={{ border: '1px solid var(--border)', background: 'var(--s1)', borderRadius: 11, padding: '13px 15px', marginBottom: 9 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', marginBottom: 6 }}>
                   <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{m.nombre}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', padding: '2px 8px', borderRadius: 999, color: est.color, background: est.fondo }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', padding: '2px 8px', borderRadius: 'var(--r-pill)', color: est.color, background: est.fondo }}>
                     {est.etiqueta}
                   </span>
                   <code style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 'auto' }}>{m.id} · v{m.version}</code>

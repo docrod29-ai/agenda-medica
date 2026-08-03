@@ -158,7 +158,7 @@ export default function ListaEsperaPage() {
 
                 {/* Estado */}
                 <span style={{
-                  fontSize: 11, padding: '2px 8px', borderRadius: 9999, fontWeight: 500,
+                  fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-pill)', fontWeight: 500,
                   background: entry.estado === 'activo' ? 'rgba(59,130,246,0.15)' : entry.estado === 'contactado' ? 'color-mix(in srgb, var(--amber) 15%, transparent)' : 'color-mix(in srgb, var(--green) 15%, transparent)',
                   color: entry.estado === 'activo' ? '#60a5fa' : entry.estado === 'contactado' ? '#fbbf24' : '#4ade80',
                 }}>

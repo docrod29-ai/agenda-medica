@@ -57,7 +57,7 @@ export default function SoporteSection({ clinicId, nombre }: { clinicId?: string
             {TIPOS.map(t => (
               <button key={t.v} onClick={() => setTipo(t.v)}
                 style={{
-                  fontSize: 12.5, fontWeight: 600, padding: '6px 11px', borderRadius: 100, cursor: 'pointer',
+                  fontSize: 12.5, fontWeight: 600, padding: '6px 11px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
                   border: '1px solid ' + (tipo === t.v ? 'var(--teal)' : 'var(--border)'),
                   background: tipo === t.v ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
                   color: tipo === t.v ? 'var(--teal)' : 'var(--text2)',

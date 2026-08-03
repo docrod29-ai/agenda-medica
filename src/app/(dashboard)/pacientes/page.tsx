@@ -292,7 +292,7 @@ export default function PacientesPage() {
             const activo = filtro === k
             return (
               <button key={k} onClick={() => setFiltro(k)} style={{
-                padding: '6px 14px', borderRadius: 100, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 background: activo ? 'var(--teal)' : 'var(--s2)',
                 color: activo ? '#000' : 'var(--text2)',
                 border: `1px solid ${activo ? 'var(--teal)' : 'var(--border)'}`,
@@ -446,10 +446,10 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
       {(p.noShowCount > 0 || p.cancelacionCount > 0) && (
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {p.noShowCount > 0 && (
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'color-mix(in srgb, var(--red) 10%, transparent)', color: 'var(--red)' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', color: 'var(--red)' }}>{p.noShowCount} no-show{p.noShowCount > 1 ? 's' : ''}</span>
           )}
           {p.cancelacionCount > 0 && (
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 9999, background: 'color-mix(in srgb, var(--amber) 10%, transparent)', color: 'var(--amber)' }}>{p.cancelacionCount} cancel.</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', color: 'var(--amber)' }}>{p.cancelacionCount} cancel.</span>
           )}
         </div>
       )}

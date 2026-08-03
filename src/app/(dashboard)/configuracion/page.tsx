@@ -696,7 +696,7 @@ export default function ConfiguracionPage() {
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {(form.diasFestivos ?? []).map((f, i) => (
-                <span key={`${f}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--s2, rgba(127,127,127,0.08))', border: '1px solid var(--border)', borderRadius: 999, fontSize: 12.5, color: 'var(--text2)' }}>
+                <span key={`${f}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--s2, rgba(127,127,127,0.08))', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', fontSize: 12.5, color: 'var(--text2)' }}>
                   {f.length === 5 ? `${f} · cada año` : f}
                   <button
                     type="button" aria-label={`Quitar el día festivo ${f}`}
@@ -1760,7 +1760,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             <CreditCard size={18} color={planInfo.color} />
             <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{planInfo.label}</span>
             <span style={{
-              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)',
               background: status === 'active' ? 'rgba(61,90,254,0.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
               color: status === 'active' ? 'var(--teal)' : '#f59e0b',
               border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
@@ -2488,7 +2488,7 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
           <div style={{ fontSize: 11, color: '#999', position: 'absolute', top: 8, left: 12 }}>↓ Simulación del botón flotante</div>
           <a
             href={url} target="_blank" rel="noopener noreferrer"
-            style={{ position: 'absolute', bottom: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14b8a6', color: '#000', fontWeight: 700, fontSize: 15, padding: '14px 22px', borderRadius: 50, textDecoration: 'none', boxShadow: '0 4px 16px rgba(20,184,166,.4)' }}
+            style={{ position: 'absolute', bottom: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14b8a6', color: '#000', fontWeight: 700, fontSize: 15, padding: '14px 22px', borderRadius: 'var(--r-pill)', textDecoration: 'none', boxShadow: '0 4px 16px rgba(20,184,166,.4)' }}
           >
             📅 Agendar cita
           </a>

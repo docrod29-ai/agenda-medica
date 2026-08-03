@@ -83,7 +83,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
                   <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 120 }}>
                     <span style={{ color: 'var(--text3)' }}>{c.etiqueta}:</span> {c.valor}
                   </span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 100 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
                     {etiquetaOrigen(c.origen)}
                   </span>
                   {/*
@@ -92,7 +92,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
                     dos cosas distintas, y en una revisión la segunda pesa más.
                   */}
                   {c.confirmado === true && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal, #2dd4bf)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 100 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal, #2dd4bf)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
                       <CheckCircle2 size={10} /> lo aceptaste
                     </span>
                   )}

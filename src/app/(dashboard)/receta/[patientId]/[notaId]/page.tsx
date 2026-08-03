@@ -753,7 +753,7 @@ export default function GeneradorRecetaPage() {
                       type="button"
                       onClick={() => agregarMedDesde(r)}
                       title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 100, padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >
                       <Plus size={11} style={{ color: 'var(--nexus, #3d5afe)' }} />
                       {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}

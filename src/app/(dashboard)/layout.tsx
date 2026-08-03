@@ -355,11 +355,11 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
           </div>
         )}
         {esMedico && (
-          <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 100, padding: 4, marginBottom: 20 }}>
+          <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: 4, marginBottom: 20 }}>
             {(['mensual', 'anual'] as const).map(c => (
               <button key={c} onClick={() => setCiclo(c)}
                 style={{
-                  border: 'none', cursor: 'pointer', borderRadius: 100, padding: '7px 16px', fontSize: 13, fontWeight: 700,
+                  border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '7px 16px', fontSize: 13, fontWeight: 700,
                   background: ciclo === c ? 'var(--teal)' : 'transparent',
                   color: ciclo === c ? '#000' : 'var(--text3)',
                 }}>

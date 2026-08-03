@@ -50,7 +50,7 @@ export default function OG() {
         {/* Pie: capacidades */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {['Agenda', 'Expediente', 'Recetas', 'Hospitalización', 'IA clínica'].map((t) => (
-            <div key={t} style={{ display: 'flex', fontSize: 22, color: COBALT, border: `1px solid rgba(61,90,254,0.4)`, borderRadius: 100, padding: '8px 18px' }}>
+            <div key={t} style={{ display: 'flex', fontSize: 22, color: COBALT, border: `1px solid rgba(61,90,254,0.4)`, borderRadius: 'var(--r-pill)', padding: '8px 18px' }}>
               {t}
             </div>
           ))}

@@ -91,7 +91,7 @@ export default function IndicadoresPage() {
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', marginBottom: 10 }}>Egresos por tipo</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {m.egreso.map(([t, n]) => (
-              <span key={t} style={{ fontSize: 12.5, padding: '6px 12px', borderRadius: 100, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>{TIPO_EGRESO_LABEL[t as keyof typeof TIPO_EGRESO_LABEL] ?? t}: <strong>{n}</strong></span>
+              <span key={t} style={{ fontSize: 12.5, padding: '6px 12px', borderRadius: 'var(--r-pill)', background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>{TIPO_EGRESO_LABEL[t as keyof typeof TIPO_EGRESO_LABEL] ?? t}: <strong>{n}</strong></span>
             ))}
           </div>
         </>)}

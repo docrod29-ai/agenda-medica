@@ -101,8 +101,8 @@ function Mock({ tipo }: { tipo: string }) {
   if (tipo === 'nota') {
     return (
       <div style={base}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 100, background: '#dc2626' }} /> Grabando · 01:24
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 'var(--r-pill)', marginBottom: 12 }}>
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#dc2626' }} /> Grabando · 01:24
         </div>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Padecimiento actual</div>
         <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, margin: '4px 0 12px' }}>Masculino de 54 años con dolor torácico opresivo de 2 h de evolución, irradiado a brazo izquierdo…</div>
@@ -183,7 +183,7 @@ function Mock({ tipo }: { tipo: string }) {
   if (tipo === 'secretaria') {
     return (
       <div style={base}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 100, marginBottom: 12 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: 'var(--blue)', background: 'rgba(59,130,246,0.12)', padding: '4px 10px', borderRadius: 'var(--r-pill)', marginBottom: 12 }}>
           <Headset size={12} /> Modo asistente
         </div>
         {[['María López', '09:00', true], ['Juan Pérez', '10:30', true], ['Expediente clínico', '', false]].map((r, i) => (

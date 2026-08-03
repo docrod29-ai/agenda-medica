@@ -48,7 +48,7 @@ export function DemoWorkflow() {
     <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1, rgba(127,127,127,.03))', padding: '18px 20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
         <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Siguiente acción</h3>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red, #dc2626)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', padding: '3px 9px', borderRadius: 100 }}>{alta} urgentes</span>
+        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red, #dc2626)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', padding: '3px 9px', borderRadius: 'var(--r-pill)' }}>{alta} urgentes</span>
         <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {total} pendientes hoy</span>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '2px 0 12px', lineHeight: 1.5 }}>
@@ -63,7 +63,7 @@ export function DemoWorkflow() {
               <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{a.titulo}</div>
               <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 1 }}>{a.detalle}</div>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.02em', color: COLOR[a.prioridad], border: `1px solid ${COLOR[a.prioridad]}`, borderRadius: 100, padding: '2px 8px', whiteSpace: 'nowrap' }}>{ETIQUETA[a.prioridad]}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.02em', color: COLOR[a.prioridad], border: `1px solid ${COLOR[a.prioridad]}`, borderRadius: 'var(--r-pill)', padding: '2px 8px', whiteSpace: 'nowrap' }}>{ETIQUETA[a.prioridad]}</span>
             <ArrowRight size={15} style={{ color: 'var(--text3)', flexShrink: 0 }} />
           </li>
         ))}

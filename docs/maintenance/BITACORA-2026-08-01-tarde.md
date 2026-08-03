@@ -2974,6 +2974,63 @@ PreopAssessment (10).
 
 ---
 
+
+## CENTÉSIMA UNDÉCIMA TANDA — v962 · LA PÍLDORA DE CINCO FORMAS (U2)
+
+**Cierra U2** en su parte accionable: la escala queda con gobierno y el único
+defecto real, reparado.
+
+### Medido, no supuesto
+
+**38** tamaños de letra en 2 749 usos · **37** espaciados en 3 826 (la cola decía
+23) · **28** radios. Cero tokens en los tres.
+
+### El único defecto que NO es cuestión de gusto
+
+La píldora estaba escrita de **cinco formas**: `borderRadius: 100`, `999`,
+`9999`, `99` y `50`.
+
+Que un chip mida 12 o 12.5 px es criterio de diseño suyo. Que «redondéalo entero»
+se escriba de cinco maneras no lo es: el navegador recorta el radio a la mitad
+del lado más corto, así que en un chip las cinco se ven **igual** — y en cuanto
+una se aplica a algo más alto dejan de coincidir, sin que nadie se entere hasta
+que se ve raro.
+
+Unificado en `var(--r-pill)`: **128 usos en 62 archivos**. Antes de tocar
+comprobé que ninguna de las 98 apariciones de `100` está en una superficie alta
+(96 de 98 llevan padding o tamaño pequeño en el mismo estilo), así que no cambia
+un píxel de lo que ya estaba bien. Radios: 28 → 24.
+
+Se declara también `--r-circulo: 50%`: el porcentaje deforma la esquina en elipse
+y es otro efecto. Dos intenciones, dos nombres.
+
+### Dónde está la deuda de verdad
+
+**No en los 6 575 usos**: en los **53 valores que aparecen una o dos veces**, que
+suman **231 usos** — el `fontSize: 66` suelto, el `gap: 70`, el
+`borderRadius: 520`. Migrar eso llevaría la tipografía de 38 a 16 y el espaciado
+de 37 a 19, y es trabajo de un rato.
+
+Por eso el trinquete cuenta **variedad** y no usos: lo que importa no es cuántas
+veces se escribe 13 px, es cuántos números distintos hay que recordar. Y el
+mensaje de fallo lista los sueltos, así que la lista de trabajo se genera sola.
+
+### Techos
+
+38 / 37 / 24, y la píldora en **cero** —el único que va a cero, porque es el
+único que no depende del criterio de nadie—. Mismo trato que lint y color: la
+cifra sólo baja.
+
+Verificado por mutación: metí `{ fontSize: 77, gap: 91, borderRadius: 999 }` y
+los cuatro controles se pusieron rojos. También se comprueba que `--r-pill`
+EXISTE en el CSS —un token inventado no da error: la propiedad se descarta en
+silencio y el chip sale cuadrado— y que está en uso en más de 40 archivos.
+
+- `src/app/globals.css`, 62 archivos con la píldora unificada
+- `src/__tests__/escala-visual-trinquete.test.ts` — 8 pruebas. Total 5483.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3034,8 +3091,10 @@ sustancialmente mejor de lo que un comprador puede ver».
 ### UX 6.5 — el eje equivocado
 - U1. El color YA está ganado (2 536 usos de token contra 221 hex, casi todos
   fallbacks legítimos). Migrar eso da poco.
-- U2. Lo que NO tiene gobierno: tipografía (38 tamaños, cero tokens), espaciado
-  (23 valores) y radio («píldora» escrito de SEIS formas).
+- U2. ~~Lo que NO tiene gobierno: tipografía, espaciado y radio.~~ **CERRADO v962**
+  — medido: 38 tamaños, 37 espaciados (no 23) y 28 radios; píldora unificada
+  (128 usos) y trinquete de variedad congelado en 38/37/24. La deuda restante son
+  53 valores sueltos con 231 usos, y el propio guardián los lista.
 - U3. Las pantallas del comprador son las peores y ninguna toca el design system:
   `/demo` 24.4 estilos por 100 líneas, landing 17.2. Las clínicas son las limpias.
 - U4. ~~Hueco real del trinquete de color.~~ **CERRADO v961** — era la punta: se

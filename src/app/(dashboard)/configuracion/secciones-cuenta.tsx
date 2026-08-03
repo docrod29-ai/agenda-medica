@@ -125,7 +125,7 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
               <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>Créditos de IA este mes</span>
               <span style={{ fontSize: 12.5, color: 'var(--text2)' }}><strong style={{ color }}>{c.usados}</strong> / {tope}{c.extra > 0 && <span style={{ color: 'var(--text3)' }}> (incl. {c.extra} recarga)</span>}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
+            <div style={{ height: 7, borderRadius: 'var(--r-pill)', background: 'var(--border)', overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
             </div>
             {pct >= 100

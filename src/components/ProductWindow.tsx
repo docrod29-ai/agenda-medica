@@ -30,9 +30,9 @@ export function ProductWindow() {
     >
       {/* Barra de ventana */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--s2)' }}>
-        <span style={{ width: 11, height: 11, borderRadius: 100, background: '#ff5f57' }} />
-        <span style={{ width: 11, height: 11, borderRadius: 100, background: '#febc2e' }} />
-        <span style={{ width: 11, height: 11, borderRadius: 100, background: '#28c840' }} />
+        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#ff5f57' }} />
+        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#febc2e' }} />
+        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#28c840' }} />
         <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'var(--text3)', fontFamily: 'var(--font-mono, monospace)' }}>
           app.nexusmed · Agenda
         </div>

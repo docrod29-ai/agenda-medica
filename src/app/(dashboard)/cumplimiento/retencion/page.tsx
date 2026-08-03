@@ -139,7 +139,7 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{p.nombre}</span>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+            fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)',
             background: c.badgeBg, color: c.badge,
           }}>{label}</span>
           {notasFirmadas > 0 && (

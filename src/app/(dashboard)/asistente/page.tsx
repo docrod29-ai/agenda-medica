@@ -422,7 +422,7 @@ function AsistenteInner() {
                         onClick={() => setDoctorId(d.id)}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 8,
-                          padding: '8px 14px', borderRadius: 100, cursor: 'pointer',
+                          padding: '8px 14px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
                           background: activo ? `color-mix(in srgb, ${color} 15%, transparent)` : 'var(--s2)',
                           color: activo ? color : 'var(--text2)',
                           border: activo ? `1.5px solid ${color}` : '1px solid var(--border)',

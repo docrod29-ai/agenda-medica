@@ -296,22 +296,22 @@ function ItemRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{item.nombre}</span>
           {item.controlado && (
-            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 100, background: 'rgba(167,139,250,0.15)', color: 'var(--purple)', border: '1px solid rgba(167,139,250,0.3)' }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-pill)', background: 'rgba(167,139,250,0.15)', color: 'var(--purple)', border: '1px solid rgba(167,139,250,0.3)' }}>
               CONTROLADO
             </span>
           )}
           {caducado && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)' }}>
               CADUCADO
             </span>
           )}
           {!caducado && pronto && dias !== null && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
               Caduca en {dias}d
             </span>
           )}
           {bajo && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber)' }}>
               Bajo stock
             </span>
           )}

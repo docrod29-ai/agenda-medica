@@ -41,18 +41,18 @@ export default function ErroresInbox() {
       </Link>
       <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
         <Bug size={20} style={{ color: 'var(--red)' }} /> Errores
-        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 100, padding: '2px 9px' }}>{nuevos}</span>}
+        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{nuevos}</span>}
       </h1>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 18px' }}>Errores no atrapados que reportan los clientes en vivo. Sin datos de pacientes.</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {[['nuevos', 'Nuevos'], ['todos', 'Todos']].map(([k, l]) => (
           <button key={k} onClick={() => setSoloNuevos(k === 'nuevos')}
-            style={{ fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 100, cursor: 'pointer',
+            style={{ fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
               border: '1px solid ' + ((soloNuevos ? 'nuevos' : 'todos') === k ? 'var(--teal)' : 'var(--border)'),
               background: (soloNuevos ? 'nuevos' : 'todos') === k ? 'rgba(20,184,166,0.1)' : 'var(--s2)', color: (soloNuevos ? 'nuevos' : 'todos') === k ? 'var(--teal)' : 'var(--text2)' }}>{l}</button>
         ))}
-        <button onClick={cargar} style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 100, cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)' }}>Refrescar</button>
+        <button onClick={cargar} style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)' }}>Refrescar</button>
       </div>
 
       {cargando ? (

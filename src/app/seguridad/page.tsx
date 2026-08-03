@@ -30,7 +30,7 @@ function Badge({ estado }: { estado: SecurityState }) {
   const activo = esActivo(estado)
   return (
     <span style={{
-      fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, whiteSpace: 'nowrap',
+      fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)', whiteSpace: 'nowrap',
       background: activo ? 'color-mix(in srgb, var(--green) 14%, transparent)' : 'color-mix(in srgb, var(--amber) 14%, transparent)',
       color: activo ? '#16a34a' : '#d97706',
       border: `1px solid ${activo ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,

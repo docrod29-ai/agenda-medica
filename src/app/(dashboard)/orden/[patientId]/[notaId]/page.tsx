@@ -649,7 +649,7 @@ export default function GeneradorOrdenPage() {
                   <span key={i} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     background: 'rgba(20,184,166,0.15)', color: 'var(--teal)',
-                    padding: '6px 10px', borderRadius: 100, fontSize: 12.5, fontWeight: 600,
+                    padding: '6px 10px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 600,
                   }}>
                     {e}
                     <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', padding: 0 }}>
