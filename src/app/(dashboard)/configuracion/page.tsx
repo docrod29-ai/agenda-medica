@@ -1510,7 +1510,7 @@ function MedicosTab() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    nombre: '', especialidad: '', telefono: '', email: '', activo: true,
+    nombre: '', especialidad: '', telefono: '', email: '', cedulaProfesional: '', activo: true,
   })
 
   const handleCreate = async () => {
@@ -1533,7 +1533,7 @@ function MedicosTab() {
       })
       toast('Médico agregado', 'success')
       setShowForm(false)
-      setForm({ nombre: '', especialidad: '', telefono: '', email: '', activo: true })
+      setForm({ nombre: '', especialidad: '', telefono: '', email: '', cedulaProfesional: '', activo: true })
     } catch {
       toast('Error al guardar', 'error')
     } finally {
@@ -1564,6 +1564,9 @@ function MedicosTab() {
             {[
               { key: 'nombre', label: 'Nombre completo *', placeholder: 'Dr. David Rodríguez' },
               { key: 'especialidad', label: 'Especialidad', placeholder: 'Infectología' },
+              // La cédula es DE CADA MÉDICO: con la de la clínica, la nota de la
+              // Dra. salía firmada con la cédula del dueño.
+              { key: 'cedulaProfesional', label: 'Cédula profesional', placeholder: '12345678' },
               { key: 'telefono', label: 'Teléfono', placeholder: '656 551 8875' },
               { key: 'email', label: 'Correo', placeholder: 'doctor@email.com' },
             ].map(f => (

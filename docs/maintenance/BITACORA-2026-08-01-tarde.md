@@ -1330,6 +1330,43 @@ en la consulta de auto-reseña.
 
 ---
 
+## OCTOGÉSIMA SEGUNDA TANDA — v933 · AUDITORÍA MAYOR (2)
+
+### La adenda se imprimía con el nombre y la cédula del médico equivocado
+
+`guardarAdenda` mandaba `config.nombreMedico` y `config.cedulaProfesional`, que
+son campos de **nivel clínica** —un valor por consultorio—. En un consultorio con
+dos médicos, la adenda de la Dra. salía impresa con el nombre y la cédula **del
+dueño**.
+
+Un documento medicolegal con un firmante falso. Y una adenda no es cualquier
+documento: es la **enmienda a una nota ya firmada**.
+
+Lo más incómodo: el servidor **ya sellaba el `autorUid` correcto** desde el token.
+La bitácora decía la verdad y el papel decía otra cosa.
+
+Y `firestore.rules` lo tenía escrito desde antes: «FIRMAR ES UN ACTO PERSONAL —
+nadie firma con la cédula de otro». **Faltaba el campo donde guardar la de cada
+médico.**
+
+Ahora `Doctor` tiene su propia `cedulaProfesional` —y su `uid` declarado, que es
+el puente con quien firma—, se captura al dar de alta al médico, y la adenda usa
+la del médico en sesión.
+
+Dos cuidados: sin cédula propia **no se cae a la de la clínica** (sería la de
+otro), y **no adivina cuando hay empate** —dos médicos con el mismo correo, o el
+mismo uid por un dato corrupto—: mejor sin resolver que resolviendo mal.
+
+- `src/types/index.ts` (`Doctor.cedulaProfesional`, `Doctor.uid`),
+  `configuracion/page.tsx` (captura), `nota/[patientId]/[notaId]/page.tsx`
+- `src/__tests__/adenda-firma-personal.test.ts` — 8 pruebas. Total 5015.
+
+**Esto desbloquea parte del P1-5 de la auditoría** (cédula por médico). Queda
+llevar lo mismo a la firma de la nota y de la receta, donde hoy se usa la de la
+clínica.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
