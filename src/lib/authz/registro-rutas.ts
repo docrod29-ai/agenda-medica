@@ -206,6 +206,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    * La «C» de ARCO. `administrar` porque suprimir o bloquear un expediente es
    * decisión del responsable del tratamiento de los datos, no del mostrador.
    */
+  'arco/acceso': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
 
   // ── cobro y facturación ──────────────────────────────────────────────────

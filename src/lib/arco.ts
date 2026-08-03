@@ -55,6 +55,15 @@ export interface ArcoRequest {
   }
   tipo: ArcoTipo
   descripcion: string             // qué pide específicamente
+  /**
+   * ACUSE DE LO ENTREGADO (solicitudes de ACCESO).
+   *
+   * Sin el hash no hay forma de demostrar QUÉ se entregó. Ante el INAI, «le
+   * mandé su expediente» sin constancia es lo mismo que no haberlo mandado.
+   */
+  paqueteHash?: string
+  paqueteFormato?: string
+  entregadoEn?: string
   estado: ArcoEstado
   fechaSolicitud: string          // ISO
   fechaResolucion?: string

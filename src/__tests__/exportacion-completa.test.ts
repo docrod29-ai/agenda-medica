@@ -119,6 +119,12 @@ describe('lo que es suyo aunque no cuelgue de él', () => {
 
 describe('la ruta arma el expediente y declara lo que falta', () => {
   const ruta = leer('src', 'app', 'api', 'expediente', 'exportar', '[patientId]', 'route.ts')
+  /**
+   * El CÓMO se lee vive en la librería desde que la entrega ARCO usa lo mismo.
+   * Dos implementaciones del armado acabarían entregando cosas distintas y nadie
+   * sabría cuál — ya pasó con las dos FHIR y con las cinco del cálculo de huecos.
+   */
+  const lib = leer('src', 'lib', 'expediente', 'exportacion-servidor.ts')
 
   it('es del SERVIDOR, con el Admin SDK', () => {
     expect(ruta).toContain("from '@/lib/firebase-admin'")
@@ -130,8 +136,8 @@ describe('la ruta arma el expediente y declara lo que falta', () => {
   })
 
   it('recorre el manifiesto, no una lista escrita a mano', () => {
-    expect(ruta).toContain('for (const s of SECCIONES)')
-    expect(ruta).toContain('for (const r of SECCIONES_POR_REFERENCIA)')
+    expect(lib).toContain('for (const s of SECCIONES)')
+    expect(lib).toContain('for (const r of SECCIONES_POR_REFERENCIA)')
   })
 
   it('una sección ilegible se DECLARA y no tumba el archivo', () => {
@@ -139,13 +145,13 @@ describe('la ruta arma el expediente y declara lo que falta', () => {
      * Un expediente al 90 % que dice qué le falta es útil; uno que revienta
      * entero no le sirve a nadie.
      */
-    expect(ruta).toContain("anotar(s.clave, 'No se pudo leer esta sección.')")
-    expect(ruta).toContain('faltantes')
+    expect(lib).toContain("anotar(s.clave, 'No se pudo leer esta sección.')")
+    expect(lib).toContain('faltantes')
   })
 
   it('el recorte por tope también se declara', () => {
     // Un recorte que nadie ve se lee como «eso era todo».
-    expect(ruta).toContain('Se alcanzó el tope de ${TOPE} documentos')
+    expect(lib).toContain('Se alcanzó el tope de ${TOPE} documentos')
   })
 
   it('el asiento de auditoría lo escribe el SERVIDOR', () => {
@@ -161,7 +167,7 @@ describe('la ruta arma el expediente y declara lo que falta', () => {
 
   it('los signos del episodio viajan con su episodio', () => {
     // Sin ellos, un internamiento es una fecha de ingreso y poco más.
-    expect(ruta).toContain("collection('signos')")
+    expect(lib).toContain("collection('signos')")
   })
 
   it('NO promete empaquetar binarios', () => {
