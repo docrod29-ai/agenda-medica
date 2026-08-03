@@ -1123,6 +1123,33 @@ prueba que ahora vigila que ese cast no vuelva.
 
 ---
 
+## SEPTUAGÉSIMA SEXTA TANDA — v927 (+ reglas) · AUDITORÍA DE LANZAMIENTO (dinero 3)
+
+### Se podía anular un cobro y ponerle el nombre de un compañero
+
+La exigencia de que el autor sea uno mismo (`canceladoPor == request.auth.uid`)
+vive **sólo** en la rama de ANULAR, y esa rama pide que el cobro **no estuviera ya
+cancelado**.
+
+Sobre un cobro **ya anulado**, la rama de «vincular factura» aceptaba cualquier
+cambio mientras `cancelado` siguiera igual: se podía reescribir `canceladoPor`,
+`canceladoPorNombre`, `motivoCancelacion` y `canceladoEn`. Cualquier miembro, de
+cualquier rol, desde la consola del navegador.
+
+O sea: **anular un cobro —quedarse con el efectivo— y después ponerle el nombre de
+otro.** Y el corte de caja lo imprime tal cual **desde v907**, que es justo la
+pantalla que hice para poder preguntarle a alguien.
+
+**Un control que señala a la persona equivocada es peor que no tenerlo.**
+
+Ahora los cuatro campos de la anulación quedan congelados también en esa rama, que
+existe para pegar un UUID de factura, no para reescribir quién hizo qué.
+
+- `firestore.rules` (**desplegadas aparte**), `matriz-acceso.ts` + doc regenerado
+- `src/__tests__/firestore-rules-guard.test.ts` — invariante nueva. Total 4967.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

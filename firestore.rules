@@ -842,9 +842,37 @@ service cloud.firestore {
               && request.resource.data.canceladoEn is string
               && request.resource.data.motivoCancelacion is string
               && request.resource.data.motivoCancelacion.size() > 0)
-            // (b) VINCULAR FACTURA: sin tocar el estado de cancelación.
+            /**
+             * (b) VINCULAR FACTURA — y NADA MÁS.
+             *
+             * ── EL HUECO QUE TENÍA ─────────────────────────────────────────
+             *
+             * La exigencia de que el autor sea uno mismo
+             * (`canceladoPor == request.auth.uid`) vive SÓLO en la rama (a), y
+             * esa rama pide que el cobro no estuviera ya cancelado.
+             *
+             * Sobre un cobro YA ANULADO, esta rama aceptaba cualquier cambio
+             * mientras `cancelado` siguiera igual: se podía reescribir
+             * `canceladoPor`, `canceladoPorNombre`, `motivoCancelacion` y
+             * `canceladoEn`. Cualquier miembro, de cualquier rol, desde la
+             * consola del navegador.
+             *
+             * O sea: anular un cobro —quedarse con el efectivo— y después
+             * **ponerle el nombre de un compañero**. Y el corte de caja lo
+             * imprime tal cual desde v907, que es justo la pantalla que se hizo
+             * para poder preguntarle a alguien. Un control que señala a la
+             * persona equivocada es peor que no tenerlo.
+             *
+             * Ahora los cuatro campos de la anulación quedan congelados aquí:
+             * esta rama existe para pegar un UUID de factura, no para reescribir
+             * quién hizo qué.
+             */
             || (request.resource.data.get('cancelado', false) == resource.data.get('cancelado', false)
-              && request.resource.data.facturaUuid is string)
+              && request.resource.data.facturaUuid is string
+              && request.resource.data.get('canceladoPor', '') == resource.data.get('canceladoPor', '')
+              && request.resource.data.get('canceladoPorNombre', '') == resource.data.get('canceladoPorNombre', '')
+              && request.resource.data.get('canceladoEn', '') == resource.data.get('canceladoEn', '')
+              && request.resource.data.get('motivoCancelacion', '') == resource.data.get('motivoCancelacion', ''))
           );
         allow delete: if false;
       }
