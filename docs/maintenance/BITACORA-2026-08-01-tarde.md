@@ -3081,6 +3081,55 @@ Verificado por mutación: un `<div onClick={…}>` nuevo pone rojo el guardián.
 
 ---
 
+
+## CENTÉSIMA DECIMOTERCERA TANDA — v964 · EL PRECIO NO LLEGABA A LA CAJA (N3)
+
+**Cierra N3.**
+
+### El fallo
+
+El catálogo editable existe, está probado, y lo leen la página de precios y
+`/api/planes`. Pero los tres sitios donde el número se vuelve **dinero o
+producto** seguían leyendo la constante del código:
+
+- el **cupo de créditos** que se le entrega al consultorio,
+- el **precio base** del cobro mensual por médico,
+- el **tope** que corta la IA a media consulta.
+
+Usted sube el plan Clínica de $899 a $949, la página lo anuncia, y la cuenta se
+sigue haciendo con $899. Sube el cupo y el médico que paga sigue recibiendo el de
+fábrica.
+
+Un ajuste que no llega al cobro ni a la entrega no es un ajuste: es un letrero. Y
+se rompe de la peor forma — nadie ve un error; el recibo y la página de precios
+dicen cosas distintas, y el que lo nota es el cliente.
+
+### Tres decisiones que no son obvias
+
+1. **La caché dura exactamente lo mismo que la de la página pública** (60 s), y
+   hay una prueba que lo fija leyendo los dos números. Dos retrasos distintos
+   harían que durante un rato el escaparate y la caja discreparan.
+2. **El fallo no se cachea**: cachearlo alargaría un problema de un instante a un
+   minuto entero de cobros equivocados.
+3. **Falla abierto**: si no se puede leer el catálogo se cobra con el de fábrica
+   y se sigue. Cortarle la IA a un intensivista a las tres de la mañana porque no
+   se pudo leer un *precio* es peor que cobrar con la tarifa del mes pasado.
+
+Al guardar desde su consola se olvida la caché en el mismo paso, para que no vea
+el precio nuevo en pantalla mientras el cobro usa el viejo.
+
+### El guardián pide las dos mitades
+
+Que los tres sitios llamen al catálogo vigente **y** que no quede la llamada de
+fábrica. Dejar las dos es lo que produce que un camino cobre bien y el otro mal —
+peor que estar mal en los dos, porque parece que funciona.
+
+- `src/lib/finanzas/catalogo-servidor.ts` (nuevo), `ai-keys.ts`,
+  `api/stripe/asientos`, `api/consultor-evidencia`, `api/superadmin/planes`
+- `src/__tests__/catalogo-llega-a-la-caja.test.ts` — 13 pruebas. Total 5508.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3096,8 +3145,9 @@ sustancialmente mejor de lo que un comprador puede ver».
   sin tarjeta» en seis pantallas y choca contra un muro. Y `paywall-prueba.ts`
   —escrito y probado, con su espejo en las reglas— es INALCANZABLE.
   **BLOQUEADO EN EL DR: ¿modelo A (sin tarjeta) o B (tarjeta primero)?**
-- N3. El catálogo editable de precios no llega al cobro, al MRR ni a los
-  créditos entregados (`ai-keys.ts:279`, `checkout/route.ts:60`).
+- N3. ~~El catálogo editable de precios no llega al cobro ni a los créditos
+  entregados.~~ **CERRADO v964** (cupo entregado, precio por asiento y tope de IA
+  leen el catálogo vigente; queda el MRR, que es N7).
 - N4. Fuga por asiento: el cupo de créditos sigue a `contarMedicos` (presentes) y
   el cobro sólo se ajusta si alguien pulsa sincronizar.
 - N5. Contabilidad valora con `COSTO_CREDITO_MXN = 1.5` inventado mientras el
