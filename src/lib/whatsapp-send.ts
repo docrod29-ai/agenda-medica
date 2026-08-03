@@ -7,6 +7,7 @@
  */
 
 import { adminDb } from '@/lib/firebase-admin'
+import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
 import type { ClinicWhatsApp } from '@/types'
 import { estaDadoDeBaja, conPieOptout, normalizarTelefonoWa } from '@/lib/whatsapp/consent'
 import { conSecretoCanal } from '@/lib/whatsapp/secreto-canal'
@@ -42,7 +43,7 @@ function normalisePhone(raw: string): string {
 
 async function sendVia360dialog(apiKey: string, to: string, body: string): Promise<SendResult> {
   try {
-    const res = await fetch('https://waba.360dialog.io/v1/messages', {
+    const res = await fetchConTimeout('https://waba.360dialog.io/v1/messages', {
       method: 'POST',
       headers: {
         'D360-API-KEY': apiKey,
@@ -55,7 +56,7 @@ async function sendVia360dialog(apiKey: string, to: string, body: string): Promi
         type: 'text',
         text: { preview_url: false, body },
       }),
-    })
+    }, TIMEOUT.whatsapp)
     if (!res.ok) {
       const err = await res.text()
       return { ok: false, error: `360dialog ${res.status}: ${err}` }
@@ -70,7 +71,7 @@ async function sendVia360dialog(apiKey: string, to: string, body: string): Promi
 
 async function sendViaMeta(token: string, phoneNumberId: string, to: string, body: string): Promise<SendResult> {
   try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+    const res = await fetchConTimeout(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -82,7 +83,7 @@ async function sendViaMeta(token: string, phoneNumberId: string, to: string, bod
         type: 'text',
         text: { body },
       }),
-    })
+    }, TIMEOUT.whatsapp)
     if (!res.ok) {
       const err = await res.text()
       return { ok: false, error: `Meta ${res.status}: ${err}` }
@@ -101,14 +102,14 @@ async function sendViaTwilio(to: string, body: string): Promise<SendResult> {
   const from = process.env.TWILIO_WHATSAPP_FROM
   if (!sid || !auth || !from) return { ok: false, error: 'Twilio not configured' }
   try {
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    const res = await fetchConTimeout(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(`${sid}:${auth}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ From: from, To: `whatsapp:+${to}`, Body: body }),
-    })
+    }, TIMEOUT.whatsapp)
     return res.ok ? { ok: true } : { ok: false, error: `Twilio ${res.status}` }
   } catch (e) {
     return { ok: false, error: String(e) }
@@ -205,7 +206,7 @@ function componentesPlantilla(bodyParams: string[]) {
 
 async function sendVia360dialogTemplate(apiKey: string, to: string, t: TemplatePayload): Promise<SendResult> {
   try {
-    const res = await fetch('https://waba.360dialog.io/v1/messages', {
+    const res = await fetchConTimeout('https://waba.360dialog.io/v1/messages', {
       method: 'POST',
       headers: { 'D360-API-KEY': apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -215,7 +216,7 @@ async function sendVia360dialogTemplate(apiKey: string, to: string, t: TemplateP
         type: 'template',
         template: { name: t.name, language: { code: t.lang }, components: componentesPlantilla(t.bodyParams) },
       }),
-    })
+    }, TIMEOUT.whatsapp)
     if (!res.ok) return { ok: false, error: `360dialog ${res.status}: ${await res.text()}` }
     return { ok: true }
   } catch (e) {
@@ -225,7 +226,7 @@ async function sendVia360dialogTemplate(apiKey: string, to: string, t: TemplateP
 
 async function sendViaMetaTemplate(token: string, phoneNumberId: string, to: string, t: TemplatePayload): Promise<SendResult> {
   try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+    const res = await fetchConTimeout(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -234,7 +235,7 @@ async function sendViaMetaTemplate(token: string, phoneNumberId: string, to: str
         type: 'template',
         template: { name: t.name, language: { code: t.lang }, components: componentesPlantilla(t.bodyParams) },
       }),
-    })
+    }, TIMEOUT.whatsapp)
     if (!res.ok) return { ok: false, error: `Meta ${res.status}: ${await res.text()}` }
     return { ok: true }
   } catch (e) {
