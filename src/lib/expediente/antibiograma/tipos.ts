@@ -316,6 +316,14 @@ export interface InterpretacionAntibiograma {
   carbapenemasa?: EstadoCarbapenemasa
   /** Pruebas microbiológicas del CLSI recomendadas según el fenotipo (cuándo/método/interpretación). */
   pruebasSugeridas: PruebaCLSI[]
+  /**
+   * Pruebas que NO se piden porque su resultado ya viene en el reporte capturado.
+   *
+   * Van aparte, y no simplemente filtradas, porque quitarlas de la lista y ya
+   * está deja al médico sin saber si la prueba no aplicaba o si ya estaba hecha.
+   * Lo que se recorta, se dice.
+   */
+  pruebasYaReportadas?: PruebaCLSI[]
   /** Algoritmo de diagnóstico de resistencia: el árbol de decisión de ESTE caso, paso a paso. */
   algoritmo: PasoAlgoritmo[]
   /** Categorías S/I/R derivadas de las CMI capturadas con los puntos de corte del CLSI M100. */

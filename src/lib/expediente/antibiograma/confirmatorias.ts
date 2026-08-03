@@ -6,7 +6,7 @@
  * terapia. Se apoyan en el catálogo de pruebas CLSI (clsi-pruebas) y la matriz de
  * inhibidores (betalactamasas).
  */
-import { type AporteModulo, aporteVacio, type PruebasConfirmatorias } from './tipos'
+import { type AporteModulo, aporteVacio, type PruebasConfirmatorias, type FenotipoClave } from './tipos'
 import { REF } from './referencias'
 import { organismoEs } from './util'
 import { CLASES, terapiaPorClase, type ClaseEnzima } from './betalactamasas'
@@ -87,6 +87,70 @@ export function analizarConfirmatorias(pruebas: PruebasConfirmatorias | undefine
   }
 
   return out
+}
+
+/**
+ * QUÉ FENOTIPO CONFIRMA CADA PRUEBA.
+ *
+ * No es una tabla nueva: es literalmente la clave que cada rama `=== 'pos'` de
+ * arriba empuja. Aquí se usa al revés — para detectar que la prueba salió
+ * NEGATIVA y el fenotipo está declarado igual.
+ */
+const CONFIRMA: { clave: keyof PruebasConfirmatorias; fenotipo: FenotipoClave; prueba: string }[] = [
+  { clave: 'cefoxitinaScreen', fenotipo: 'MRSA', prueba: 'tamiz de cefoxitina/oxacilina' },
+  { clave: 'dTest', fenotipo: 'MLSb-inducible', prueba: 'D-test' },
+  { clave: 'esbl', fenotipo: 'BLEE', prueba: 'prueba confirmatoria de BLEE' },
+  { clave: 'carbapenemasa', fenotipo: 'carbapenemasa', prueba: 'prueba de carbapenemasa (mCIM/Carba NP)' },
+  { clave: 'betaLactamasa', fenotipo: 'penicilinasa-estafilococica', prueba: 'β-lactamasa (nitrocefina)' },
+  { clave: 'hlar', fenotipo: 'HLAR', prueba: 'tamiz HLAR' },
+]
+
+/**
+ * EL RESULTADO NEGATIVO CONTRADICE AL FENOTIPO INFERIDO — y hay que decirlo.
+ *
+ * ── EL FALLO ─────────────────────────────────────────────────────────────────
+ *
+ * Un *S. aureus* con oxacilina R en el panel y el **tamiz de cefoxitina
+ * NEGATIVO** capturado del reporte salía así:
+ *
+ *     Fenotipo: MRSA [confirmado]
+ *     Aislamiento: precauciones de contacto (MRSA)
+ *     Notificación epidemiológica OBLIGATORIA
+ *     Advertencia: ignore cualquier β-lactámico reportado S
+ *
+ * El negativo se leía, se tipaba, se transportaba hasta el motor… y se iba a un
+ * `didactica` que la nota no imprimía. Las dos afirmaciones convivían en el
+ * mismo documento y **la inferida ganaba en silencio** — encima con confianza
+ * `confirmado`, que es la palabra que la prueba negativa desmiente.
+ *
+ * ── LO QUE ESTA FUNCIÓN HACE, Y LO QUE NO ────────────────────────────────────
+ *
+ * **NO decide quién gana.** Cuál de los dos manda —cefoxitina-neg contra
+ * oxacilina-R— es criterio clínico y es una de las preguntas que el Dr. tiene
+ * pendientes. NEEDS_CLINICAL_REVIEW: esa resolución no la toma este archivo.
+ *
+ * Lo que sí puede hacer un programa sin decidir nada es **no dejar que las dos
+ * afirmaciones convivan calladas**: nombra las dos, dice de dónde sale cada una
+ * y deja la resolución al médico. El fenotipo NO se toca; sólo deja de estar
+ * solo en la hoja.
+ */
+export function conflictosConfirmatorias(
+  fenotipos: { clave: FenotipoClave; nombre: string }[],
+  pruebas: PruebasConfirmatorias | undefined,
+): string[] {
+  if (!pruebas) return []
+  const avisos: string[] = []
+  for (const { clave, fenotipo, prueba } of CONFIRMA) {
+    if (pruebas[clave] !== 'neg') continue
+    const f = fenotipos.find(x => x.clave === fenotipo)
+    if (!f) continue
+    avisos.push(
+      `⚠ CONFLICTO: el reporte trae el ${prueba} NEGATIVO, y aun así el motor declara «${f.nombre}» a partir del patrón S/I/R. ` +
+      'Son dos afirmaciones opuestas sobre el mismo aislamiento y NO se resuelve solo: revisa la identificación de la especie, ' +
+      'la lectura de la prueba y el panel antes de tratar por el fenotipo.',
+    )
+  }
+  return avisos
 }
 
 function claseAlerta(clase: ClaseEnzima): string {

@@ -2695,8 +2695,8 @@ intrínseco es correcto en cualquiera de los dos casos; elegir por él, no.
 - `src/lib/expediente/antibiograma/motor.ts`
 - `src/__tests__/antibiograma-fenotipo-salvaje.test.ts` — 11 pruebas. Total 5405.
 
-**Queda A4**, cuya plomería puedo hacer, y las **seis preguntas clínicas** que
-van al final de esta bitácora.
+**El frente de ANTIBIOGRAMA (A1-A4) queda CERRADO** salvo lo que depende de las
+**seis preguntas clínicas** del final de esta bitácora.
 
 ---
 
@@ -2808,6 +2808,58 @@ añade la razón, y la nota ya imprimía el panel efectivo.
 
 ---
 
+
+## CENTÉSIMA OCTAVA TANDA — v959 · LA CONFIRMATORIA NEGATIVA QUE SE TIRABA
+
+**Cierra A4 — con esto queda cerrado el frente de ANTIBIOGRAMA de la cola del
+equipo (A1-A4), salvo lo que depende de sus seis preguntas.**
+
+### El caso, corriendo el motor
+
+*S. aureus* con **oxacilina R** en el panel y el **tamiz de cefoxitina NEGATIVO**
+capturado del reporte:
+
+```
+Fenotipo: S. aureus resistente a meticilina (MRSA) [confirmado]
+Aislamiento: Precauciones de contacto (MRSA).
+Notificación epidemiológica OBLIGATORIA.
+Pruebas por solicitar: Tamiz de cefoxitina…; D-zone test
+```
+
+Tres defectos en una sola salida:
+
+1. El negativo acababa en un `didactica` **que la nota no imprimía nunca**. Las
+   dos afirmaciones convivían y la inferida ganaba en silencio — con confianza
+   `confirmado`, que es justo la palabra que la prueba negativa desmiente.
+2. Se pedían las dos pruebas cuyo resultado usted acababa de capturar del propio
+   reporte.
+3. Nada declaraba que las dos fuentes se contradicen.
+
+### Lo que NO hice
+
+**No decidí cuál gana.** «Cefoxitina-neg contra oxacilina-R, ¿cuál manda?» es una
+de sus seis preguntas y sigue pendiente: el fenotipo no se toca, ni su confianza,
+ni el aislamiento, ni la notificación. Lo que un programa sí puede hacer sin
+decidir nada es no dejar que las dos afirmaciones convivan calladas.
+
+El conflicto sale como **alerta** y no como advertencia: las advertencias se
+imprimen concatenadas, y una contradicción enterrada a mitad de párrafo se lee
+igual que un consejo de stewardship. Como alerta sale en renglón propio en la
+nota, en la caja de alertas de la pantalla y en el prompt, sin cablearla tres
+veces.
+
+Y lo que se recorta se dice: `pruebasYaReportadas` viaja aparte y las dos salidas
+la nombran. Un indeterminado NO cuenta como respondido, y las pruebas que
+responden otra pregunta —de qué clase es la carbapenemasa, que es lo que elige el
+inhibidor— se siguen pidiendo.
+
+- `antibiograma/confirmatorias.ts`, `antibiograma/clsi-pruebas.ts`,
+  `antibiograma/motor.ts`, `antibiograma/resumen-nota.ts`, `antibiograma/tipos.ts`,
+  `app/(dashboard)/antibiograma/page.tsx`
+- `src/__tests__/antibiograma-confirmatoria-negativa.test.ts` — 14 pruebas. Total 5448.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -2883,8 +2935,8 @@ sustancialmente mejor de lo que un comprador puede ver».
   (con la premisa corregida: se perdía en la LIBRERÍA, no en la pantalla).
 - A3. ~~La edición interpretativa no se propaga a `categoriasCMI`.~~ **CERRADO v958**
   (y en pantalla se pintaba VERDE, que era peor que en el prompt).
-- A4. El resultado NEGATIVO de una confirmatoria se lee, se tipa, se transporta y
-  se tira. Un cefoxitina-neg convive con `MRSA[confirmado]` sin levantar conflicto.
+- A4. ~~El resultado NEGATIVO de una confirmatoria se lee, se tipa, se transporta
+  y se tira.~~ **CERRADO v959** (plomería; la resolución clínica sigue siendo del Dr).
 - **BLOQUEADO EN EL DR (6 preguntas clínicas):** ¿el conteo MDR de respaldo debe
   existir para Gram positivos? ¿a qué categoría mapea un SDD? ¿una discordancia
   CLSI-vs-panel edita o sólo advierte? ¿un BLEE confirmatorio negativo cancela,

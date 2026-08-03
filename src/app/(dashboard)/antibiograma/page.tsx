@@ -670,6 +670,21 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
         </div>
       )}
 
+      {/**
+        * Lo que se recorta se dice. Estas pruebas SÍ correspondían al fenotipo,
+        * pero su resultado ya viene en el reporte capturado, así que no se piden
+        * de nuevo. Sin este bloque, desaparecerían de la lista y no habría forma
+        * de distinguir «no aplicaba» de «ya estaba hecha».
+        */}
+      {(res.pruebasYaReportadas?.length ?? 0) > 0 && (
+        <div>
+          <SecTitle icon={<TestTube size={15} />} t="Ya vienen en el reporte (no se piden de nuevo)" />
+          <div style={{ ...card, fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+            {res.pruebasYaReportadas!.map(p => p.nombre).join(' · ')}
+          </div>
+        </div>
+      )}
+
       {res.alertas.length > 0 && (
         <div>
           <SecTitle icon={<AlertTriangle size={15} />} t="Alertas clínicas" />
