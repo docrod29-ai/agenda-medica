@@ -1,7 +1,9 @@
 'use client'
 
 /**
- * VALIDACIÓN DEL DATASET DE DOSIS — la pantalla donde el médico revisa.
+ * DOSIFICACIÓN EN UCI — consultar y validar.
+ *
+ * ── VALIDAR ──────────────────────────────────────────────────────────────────
  *
  * El Dr. entregó 54 fármacos con sus reglas y sus fuentes, y dijo: «haz lo que
  * puedas tú y déjame verificar los datos yo». Esto es ese «déjame verificar».
@@ -11,10 +13,22 @@
  * que firma, la app dice que la regla NO está validada — porque el dataset se
  * marque a sí mismo «verified» describe de dónde salió el dato, no que alguien
  * de aquí lo haya mirado.
+ *
+ * ── CONSULTAR (v936) ─────────────────────────────────────────────────────────
+ *
+ * Durante semanas ésta fue la única pestaña, y `lib/dosing/motor.ts` —el módulo
+ * que **elige** cuál de las cuatro reglas aplica a este paciente y que devuelve
+ * `SPECIALIST_REVIEW` cuando falta un dato— no lo llamaba **nadie**. Trabajo
+ * clínico terminado y probado que no le llegaba al médico: el fallo más caro que
+ * hay, porque se paga entero y no se nota.
+ *
+ * Lo destapó el guardián de huérfanos al arreglarse en v935: hasta entonces el
+ * nombre `motor` coincidía con otros módulos y el motor de dosis pasaba por
+ * «usado».
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { CheckCircle2, AlertTriangle, ExternalLink, Search, ShieldQuestion, Undo2 } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, ExternalLink, Search, ShieldQuestion, Undo2, Ban, HelpCircle, Stethoscope } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
@@ -22,8 +36,13 @@ import { DATASET, nombresFarmacos, buscarFarmaco, fuentesDe } from '@/lib/dosing
 import { estadoDe, firmar, avance, type FirmaValidacion } from '@/lib/dosing/validacion'
 import { getFirmas, guardarFirma, retirarFirma } from '@/lib/dosing/persistencia'
 import { HUELLA_DATASET } from '@/lib/dosing/huella'
+import { recomendar, POR_QUE_NO_CALCULA, type Recomendacion } from '@/lib/dosing/motor'
+import {
+  construirContexto, conValidacionDelMedico, COMO_SE_LEE, type CamposConsulta,
+} from '@/lib/dosing/consulta'
 
 type Filtro = 'todos' | 'sin_validar' | 'validados' | 'con_regla_dura'
+type Pestana = 'consultar' | 'validar'
 
 export default function ValidacionDosisPage() {
   const { clinicId } = useClinic()
@@ -36,6 +55,7 @@ export default function ValidacionDosisPage() {
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [abierto, setAbierto] = useState<string | null>(null)
   const [nota, setNota] = useState('')
+  const [pestana, setPestana] = useState<Pestana>('consultar')
 
   useEffect(() => {
     if (!clinicId) { setCargando(false); return }
@@ -92,15 +112,39 @@ export default function ValidacionDosisPage() {
   return (
     <div style={{ padding: '20px 16px 60px', maxWidth: 980, margin: '0 auto' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-        Dosificación en UCI · validación
+        Dosificación en UCI
       </h1>
-      <p style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55, marginBottom: 16 }}>
+      <p style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55, marginBottom: 14 }}>
         {DATASET.drugs.length} fármacos del dataset <code>{DATASET.version}</code>. La app
         <strong> no da ninguna de estas reglas por buena</strong> hasta que usted la coteja
         contra su fuente y la firma. Su firma queda con su nombre, la fecha y la versión
         exacta del dataset.
       </p>
 
+      <div role="tablist" style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {([
+          ['consultar', 'Consultar dosis', Stethoscope],
+          ['validar', 'Validar el dataset', CheckCircle2],
+        ] as const).map(([v, label, Icono]) => (
+          <button
+            key={v} role="tab" aria-selected={pestana === v}
+            onClick={() => setPestana(v)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px',
+              borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              border: '1px solid var(--border2)',
+              background: pestana === v ? 'var(--teal)' : 'transparent',
+              color: pestana === v ? '#fff' : 'var(--text2)',
+            }}
+          ><Icono size={14} /> {label}</button>
+        ))}
+      </div>
+
+      {pestana === 'consultar' && (
+        <Consultar firmas={firmas} />
+      )}
+
+      {pestana === 'validar' && <>
       <Progreso {...progreso} />
 
       <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
@@ -145,6 +189,238 @@ export default function ValidacionDosisPage() {
             onRetirar={() => retirar(nombre)}
           />
         ))}
+      </div>
+      </>}
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CONSULTAR — aquí es donde por fin se llama al motor.
+
+   El motor existía desde hacía semanas, con sus pruebas, y no lo llamaba
+   NADIE: la pantalla enseñaba y firmaba el dataset, pero la selección de la
+   regla —la parte que decide cuál de las cuatro aplica a ESTE paciente y que
+   devuelve SPECIALIST_REVIEW cuando falta un dato— no le llegaba al médico.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const VACIO: CamposConsulta = { farmaco: '', rrt: 'ninguna', escalarPeso: 'no_documentado' }
+
+function Consultar({ firmas }: { firmas: Record<string, FirmaValidacion> }) {
+  const [campos, setCampos] = useState<CamposConsulta>(VACIO)
+  const set = (k: keyof CamposConsulta) => (v: string) => setCampos(p => ({ ...p, [k]: v }))
+
+  const resultado = useMemo<Recomendacion | null>(() => {
+    if (!campos.farmaco.trim()) return null
+    const rec = recomendar(construirContexto(campos))
+    // El motor no puede leer las firmas del consultorio; la pantalla sí.
+    return conValidacionDelMedico(rec, estadoDe(
+      rec.farmaco ? firmas[rec.farmaco] : undefined, DATASET.version, HUELLA_DATASET))
+  }, [campos, firmas])
+
+  return (
+    <div>
+      <p style={{
+        fontSize: 12.5, lineHeight: 1.55, color: 'var(--text2)', marginBottom: 14,
+        padding: 10, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--s2)',
+      }}>{POR_QUE_NO_CALCULA}</p>
+
+      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+        <Campo etiqueta="Fármaco">
+          <input
+            className="input" list="farmacos-dosis" value={campos.farmaco}
+            onChange={e => set('farmaco')(e.target.value)} placeholder="p. ej. meropenem"
+          />
+          <datalist id="farmacos-dosis">
+            {nombresFarmacos().map(n => <option key={n} value={n} />)}
+          </datalist>
+        </Campo>
+
+        <Campo etiqueta="Indicación">
+          <input className="input" value={campos.indicacion ?? ''}
+            onChange={e => set('indicacion')(e.target.value)} placeholder="en sus palabras" />
+        </Campo>
+
+        <Campo etiqueta="Gravedad">
+          <Selector value={campos.gravedad ?? ''} onChange={set('gravedad')} opciones={[
+            ['', '— sin declarar —'], ['no_grave', 'No grave'],
+            ['grave', 'Grave'], ['choque', 'Choque'],
+          ]} />
+        </Campo>
+
+        <Campo etiqueta="Peso (kg)">
+          <input className="input" inputMode="decimal" value={campos.pesoKg ?? ''}
+            onChange={e => set('pesoKg')(e.target.value)} placeholder="vacío = no documentado" />
+        </Campo>
+
+        <Campo etiqueta="Escalar de peso">
+          <Selector value={campos.escalarPeso ?? 'no_documentado'} onChange={set('escalarPeso')} opciones={[
+            ['no_documentado', '— no documentado —'], ['TBW', 'TBW (real)'],
+            ['IBW', 'IBW (ideal)'], ['AdjBW', 'AdjBW (ajustado)'],
+          ]} />
+        </Campo>
+
+        <Campo etiqueta="CrCl Cockcroft-Gault (mL/min)">
+          <input className="input" inputMode="decimal" value={campos.crClMlMin ?? ''}
+            onChange={e => set('crClMlMin')(e.target.value)} placeholder="no se acepta eGFR" />
+        </Campo>
+
+        <Campo etiqueta="¿Función renal inestable?">
+          <Selector value={campos.renalInestable ?? ''} onChange={set('renalInestable')} opciones={SI_NO} />
+        </Campo>
+
+        <Campo etiqueta="Reemplazo renal">
+          <Selector value={campos.rrt ?? 'ninguna'} onChange={set('rrt')} opciones={[
+            ['ninguna', 'Ninguno'], ['IHD', 'IHD'], ['SLED_PIRRT', 'SLED / PIRRT'],
+            ['CVVH', 'CVVH'], ['CVVHD', 'CVVHD'], ['CVVHDF', 'CVVHDF'],
+            ['desconocida', '— sin declarar —'],
+          ]} />
+        </Campo>
+
+        <Campo etiqueta="Efluente CRRT (L/h)">
+          <input className="input" inputMode="decimal" value={campos.efluenteCrrtLh ?? ''}
+            onChange={e => set('efluenteCrrtLh')(e.target.value)} />
+        </Campo>
+
+        <Campo etiqueta="Organismo">
+          <input className="input" value={campos.organismo ?? ''}
+            onChange={e => set('organismo')(e.target.value)} />
+        </Campo>
+
+        <Campo etiqueta="CMI (mg/L)">
+          <input className="input" inputMode="decimal" value={campos.micMgL ?? ''}
+            onChange={e => set('micMgL')(e.target.value)} />
+        </Campo>
+
+        <Campo etiqueta="¿Es neumonía?">
+          <Selector value={campos.esNeumonia ?? ''} onChange={set('esNeumonia')} opciones={SI_NO} />
+        </Campo>
+
+        <Campo etiqueta="¿Sedación y ventilación aseguradas?">
+          <Selector value={campos.sedacionYVentilacionAseguradas ?? ''}
+            onChange={set('sedacionYVentilacionAseguradas')} opciones={SI_NO} />
+        </Campo>
+      </div>
+
+      <button
+        onClick={() => setCampos(VACIO)}
+        style={{
+          marginTop: 12, padding: '7px 12px', borderRadius: 7, fontSize: 12.5, cursor: 'pointer',
+          border: '1px solid var(--border2)', background: 'transparent', color: 'var(--text2)',
+        }}
+      >Limpiar</button>
+
+      {resultado
+        ? <Resultado rec={resultado} />
+        : <p style={{ marginTop: 20, color: 'var(--text3)', fontSize: 13 }}>
+            Escriba un fármaco para ver qué regla aplica.
+          </p>}
+    </div>
+  )
+}
+
+const SI_NO: [string, string][] = [['', '— sin declarar —'], ['si', 'Sí'], ['no', 'No']]
+
+function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block' }}>
+      <span style={{ display: 'block', fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>
+        {etiqueta.toUpperCase()}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+function Selector({ value, onChange, opciones }: {
+  value: string; onChange: (v: string) => void; opciones: readonly (readonly [string, string])[]
+}) {
+  return (
+    <select className="input" value={value} onChange={e => onChange(e.target.value)}>
+      {opciones.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+    </select>
+  )
+}
+
+function Resultado({ rec }: { rec: Recomendacion }) {
+  const como = COMO_SE_LEE[rec.estado]
+  const color = rec.estado === 'CLEAR' ? 'var(--teal)' : 'var(--amber, #b45309)'
+  const Icono = rec.estado === 'CLEAR' ? CheckCircle2 : rec.estado === 'BLOCKED' ? Ban : HelpCircle
+
+  return (
+    <div style={{
+      marginTop: 20, border: `1px solid ${color}`, borderRadius: 10,
+      background: 'var(--s2)', overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderBottom: '1px solid var(--border)' }}>
+        <Icono size={16} style={{ color, flexShrink: 0 }} />
+        <strong style={{ fontSize: 14 }}>{como.titulo}</strong>
+        {rec.farmaco && <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>· {rec.farmaco}</span>}
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text3)' }}>rama: {rec.rama}</span>
+      </div>
+
+      <div style={{ padding: '12px 14px', fontSize: 13, lineHeight: 1.55 }}>
+        <p style={{ color: 'var(--text2)', fontSize: 12.5, marginBottom: 10 }}>{como.explicacion}</p>
+
+        <p style={{
+          padding: 9, borderRadius: 7, marginBottom: 12, fontSize: 12.5,
+          border: `1px solid ${rec.validacion === 'validado_por_medico' ? 'var(--teal)' : 'var(--amber, #b45309)'}`,
+          color: 'var(--text)',
+        }}>{rec.avisoValidacion}</p>
+
+        {rec.faltantes.length > 0 && (
+          <Bloque titulo="Falta para poder decidir" destacado>
+            <ul style={{ margin: '4px 0 0 18px' }}>
+              {rec.faltantes.map((f, i) => <li key={i} style={{ marginBottom: 3 }}>{f}</li>)}
+            </ul>
+          </Bloque>
+        )}
+
+        {rec.bloqueos.length > 0 && (
+          <Bloque titulo="Reglas duras" destacado>
+            <ul style={{ margin: '4px 0 0 18px' }}>
+              {rec.bloqueos.map((b, i) => <li key={i} style={{ marginBottom: 3 }}>{b}</li>)}
+            </ul>
+          </Bloque>
+        )}
+
+        {rec.reglaAplicada && (
+          <Bloque titulo="Regla que aplica (texto literal del dataset)">
+            <span style={{ whiteSpace: 'pre-wrap' }}>{rec.reglaAplicada}</span>
+          </Bloque>
+        )}
+        <Bloque titulo="Por qué esa rama">{rec.porQueEsaRama}</Bloque>
+        {rec.monitoreo && <Bloque titulo="Monitoreo">{rec.monitoreo}</Bloque>}
+
+        <Bloque titulo="Datos que se usaron">
+          {Object.entries(rec.entradasUsadas).map(([k, v]) => (
+            <span key={k} style={{
+              display: 'inline-block', marginRight: 6, marginBottom: 4, padding: '2px 7px',
+              borderRadius: 5, border: '1px solid var(--border2)', fontSize: 11.5,
+            }}>{k}: {String(v)}</span>
+          ))}
+        </Bloque>
+
+        {rec.fuentes.length > 0 && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>FUENTES</div>
+            {rec.fuentes.map(f => (
+              <div key={f.id} style={{ fontSize: 12, marginBottom: 3 }}>
+                {f.url
+                  ? <a href={f.url} target="_blank" rel="noopener noreferrer"
+                      style={{ color: 'var(--teal)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {f.titulo ?? f.id} <ExternalLink size={11} />
+                    </a>
+                  : <span style={{ color: 'var(--text3)' }}>{f.id} (sin ficha de fuente)</span>}
+                {f.verificado && <span style={{ color: 'var(--text3)' }}> · verificado {f.verificado}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text3)' }}>
+          dataset {rec.versionDataset} · {rec.fechaVerificacion}
+        </div>
       </div>
     </div>
   )

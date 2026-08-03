@@ -54,10 +54,11 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/mobile/consulta-cierre.ts': 'Núcleo del cierre de consulta: dos funciones puras esperando su interfaz.',
   'src/lib/uci/benchmark.ts': 'Arnés de estrés de los motores de UCI (icu-014): lo corre su propia prueba en el CI, que es donde le toca. No necesita pantalla.',
 
-  // ── Los tres que el guardián roto NO veía (v935) ─────────────────────────
+  // ── Los que el guardián roto NO veía (v935) ──────────────────────────────
   // Salieron al resolver los `import` de verdad en vez de buscar el nombre del
   // archivo. Van declarados, no escondidos.
-  'src/lib/dosing/motor.ts': 'EL CARO: el motor que ELIGE la regla de dosificación y devuelve SPECIALIST_REVIEW cuando falta un dato. /uci/dosificacion enseña y firma el dataset, pero no llama al motor: hoy el médico ve las reglas, no la selección. Pendiente de conectar.',
+  // (`dosing/motor.ts` era el caro de los tres y salió de esta lista en v936:
+  //  la pestaña «Consultar dosis» de /uci/dosificacion ya lo llama.)
   'src/lib/agenda/prompts.ts': 'Prompts operativos de la agenda (parseo de lenguaje natural a operaciones, tono de recordatorios). Lo tapaba `@/lib/expediente/prompts`, que sí se usa. Sin llamador desde que existe.',
 
   // ── Trabajo empezado, pendiente de su fase ───────────────────────────────

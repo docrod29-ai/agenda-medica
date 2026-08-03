@@ -254,6 +254,14 @@ export function recomendar(c: ContextoPaciente): Recomendacion {
   if (c.efluenteCrrtLh !== undefined) entradasUsadas.efluenteCrrtLh = c.efluenteCrrtLh
   if (c.micMgL !== undefined) entradasUsadas.micMgL = c.micMgL
   if (c.organismo) entradasUsadas.organismo = c.organismo
+  // Los tres booleanos van AQUÍ TAMBIÉN, aunque no se vean en la dosis: son los
+  // que disparan los bloqueos. Un rastro de auditoría que omite el dato por el
+  // que se bloqueó no explica la decisión que se tomó.
+  if (c.renalInestable !== undefined) entradasUsadas.renalInestable = c.renalInestable
+  if (c.esNeumonia !== undefined) entradasUsadas.esNeumonia = c.esNeumonia
+  if (c.sedacionYVentilacionAseguradas !== undefined) {
+    entradasUsadas.sedacionYVentilacionAseguradas = c.sedacionYVentilacionAseguradas
+  }
 
   // Un BLOQUEO gana sobre todo lo demás; después, lo que falta.
   const bloqueado = bloqueos.some(b => b.startsWith('BLOQUEO'))
