@@ -14,6 +14,7 @@ import admin, { adminDb } from './firebase-admin'
 import { planPorNivel, topeEconomicoDe, MEDICO_EXTRA } from './planes-ia'
 import { uidEsFundador } from './authz/fundador-servidor'
 import type { FuenteLlave } from './finanzas/cost-ledger'
+import { aplicaTopeDeCortesia, type EstadoConsultorio } from './finanzas/tope-de-cortesia'
 
 export type ProveedorIA = 'anthropic' | 'assemblyai' | 'openai'
 
@@ -363,13 +364,45 @@ export async function resolverClaveIA(
   return { key: '', fuente: 'ninguna', clinicId }
 }
 
-/** ¿El consultorio ya superó el tope de prueba este mes? (solo aplica a llave de prueba) */
+/**
+ * ¿El consultorio ya superó el tope de CORTESÍA este mes?
+ *
+ * ── EL FALLO QUE ESTO CIERRA ─────────────────────────────────────────────────
+ *
+ * Esto contaba los usos SIN MIRAR SI EL CONSULTORIO PAGA. Y `resolverClaveIA`
+ * marca `fuente: 'prueba'` a cualquiera que no haya pegado su propia API key
+ * —pague o no, porque nada le provisiona una llave al suscribirse—.
+ *
+ * Una consulta dictada gasta ~4 usos (transcribir + procesar + verificar-nota +
+ * evidencia). **30 ÷ 4 ≈ 7 consultas al mes.** Un cliente de Clínica recibía en
+ * la segunda semana, con un paciente enfrente: «Se acabó la IA incluida en tu
+ * prueba. Activa un plan» — a alguien que ya activó un plan.
+ *
+ * Peor: el corte va ANTES de mirar créditos e IGNORA `permiteEconomico`, así que
+ * el modo económico que promete la página de precios nunca se alcanzaba.
+ *
+ * Ahora el tope es lo que siempre debió ser: la cortesía para quien todavía no
+ * paga. A quien paga lo gobiernan sus créditos.
+ */
 export async function pruebaAgotada(clinicId: string | null): Promise<boolean> {
   if (!clinicId) return false
   try {
-    const usados = (await docIA(clinicId).get()).data()?.uso?.[mesActual()]?.prueba ?? 0
+    const [secretos, clinica] = await Promise.all([
+      docIA(clinicId).get(),
+      adminDb.doc(`clinics/${clinicId}`).get(),
+    ])
+    if (!aplicaTopeDeCortesia(clinica.data() as EstadoConsultorio | undefined)) return false
+    const usados = secretos.data()?.uso?.[mesActual()]?.prueba ?? 0
     return usados >= LIMITE_PRUEBA
   } catch {
+    /**
+     * Falla ABIERTO, como antes: si no se puede leer, no se corta.
+     *
+     * Es coherente con `gateCreditos`, que ya dice que dejar al médico sin la
+     * función por un fallo de infraestructura es peor que una llamada de más —y
+     * el contador de uso sigue registrando, así que el gasto no se pierde de
+     * vista.
+     */
     return false
   }
 }

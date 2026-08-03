@@ -1887,6 +1887,61 @@ peor que no tachar, porque parece que sí se tachó.**
 
 ---
 
+## NONAGÉSIMA TERCERA TANDA — v944 · EL TOPE QUE LE CORTABA LA IA A QUIEN PAGA
+
+**Hallazgo del equipo (auditoría de negocio 2026-08-03). Es el más caro de la
+sesión.**
+
+### 30 ÷ 4 ≈ 7 consultas al mes
+
+`LIMITE_PRUEBA = 30` son los usos gratis al mes con la llave de la plataforma, y
+`pruebaAgotada()` los contaba **sin mirar si el consultorio paga**.
+`resolverClaveIA` marca `fuente: 'prueba'` a **cualquiera** que no haya pegado su
+propia API key — pague o no, porque nada le provisiona una llave al suscribirse.
+
+Una consulta dictada gasta ~4 usos (`transcribir` + `procesar` +
+`verificar-nota` + `evidencia`). Así que un cliente de Clínica, que pagó por
+decenas de consultas con IA, recibía en la **segunda semana del mes**, con un
+paciente enfrente:
+
+> «Se acabó la IA incluida en tu prueba. **Activa un plan** para seguir usándola»
+
+…a alguien que ya activó un plan.
+
+Y como el corte va **antes** de mirar créditos e **ignora** `permiteEconomico`,
+el modo económico que promete la página de precios —«sigue en ⚡ Rápida sin costo
+hasta 120 notas más/mes»— **no se alcanzaba nunca**.
+
+Todo el sistema de créditos existe y está probado; lo gobernaba un contador de
+otra época que se disparaba primero. **No se había notado porque todavía no hay
+un cliente de pago que haya corrido un mes completo** — se habría notado con el
+primer reembolso.
+
+### La regla, ahora
+
+El tope de cortesía aplica **sólo mientras el consultorio no tiene plan
+vigente**. En cuanto paga, lo gobiernan los créditos y el modo económico, que es
+el sistema diseñado para eso.
+
+- `past_due` queda **exento a propósito**: es «el banco rebotó el cargo y Stripe
+  está reintentando». El webhook ya tiene decidido que `past_due` NO suspende
+  —sólo `unpaid`/`canceled`—, así que cortarle la IA aquí sería castigar dos
+  veces por lo mismo.
+- Se conservan las dos exenciones que ya existían: el pase libre del dueño y la
+  cuenta de cortesía.
+- Si **no se puede leer** el consultorio, el tope **sí** se aplica. De las dos
+  equivocaciones posibles ésa es la barata: quien paga ve un mensaje y reintenta;
+  quien no paga y se saltara el tope gastaría contra la tarjeta del Dr. sin
+  límite.
+- El corte sigue siendo inapelable para quien **sí** está en prueba: ahí no hay
+  plan que respalde nada, y ésa era la razón original.
+
+- `src/lib/finanzas/tope-de-cortesia.ts` (nuevo, puro), `src/lib/ai-keys.ts`
+- `src/__tests__/tope-cortesia-no-corta-a-quien-paga.test.ts` — 14 pruebas.
+  Total 5172.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
