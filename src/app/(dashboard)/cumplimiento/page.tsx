@@ -198,8 +198,66 @@ export default function CumplimientoPage() {
     }
   }
 
+  /**
+   * LA «A» DE ARCO, EJECUTADA.
+   *
+   * Se resolvía con un `prompt()`: se guardaba un texto, la solicitud pasaba a
+   * «resuelta», y al titular NO se le entregaba nada. El plazo de 20 días
+   * hábiles se contaba en esta misma pantalla y no había qué entregar cuando
+   * vencía.
+   *
+   * Ahora arma el expediente completo con el MISMO manifiesto que el botón del
+   * médico, lo descarga, y deja acuse: el hash de lo entregado, el conteo por
+   * sección y la fecha, en la solicitud y en la bitácora. Sin el hash no hay
+   * forma de demostrar QUÉ se entregó.
+   */
+  const entregarAcceso = async (req: ArcoRequest) => {
+    if (!clinicId || !req.id || !req.patientId) {
+      toast('Esta solicitud no está ligada a un expediente. Identifícala primero.', 'error')
+      return
+    }
+    setEjecutando(true)
+    try {
+      const res = await fetchAutenticado('/api/arco/acceso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: true }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.ok) { toast(d.error || 'No se pudo armar la entrega', 'error'); return }
+
+      const blob = new Blob([JSON.stringify(d.expediente, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `arco_acceso_${req.id}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+
+      // Lo que falta se DICE, también aquí: entregar un expediente incompleto
+      // sin señalarlo es peor que no entregarlo.
+      const faltan = (d.faltantes ?? []) as { seccion: string }[]
+      toast(faltan.length
+        ? `Entregado con acuse ${String(d.paqueteHash).slice(0, 12)}…, pero ${faltan.length} sección(es) no se pudieron leer: ${faltan.map(f => f.seccion).join(', ')}.`
+        : `Entregado. Acuse ${String(d.paqueteHash).slice(0, 12)}… guardado en la solicitud.`,
+        faltan.length ? 'info' : 'success')
+      setArcoList(await listarSolicitudesArco(clinicId))
+    } catch {
+      toast('No se pudo conectar para armar la entrega', 'error')
+    } finally {
+      setEjecutando(false)
+    }
+  }
+
   const resolverArco = async (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => {
     if (!clinicId || !req.id || !user?.uid) return
+    /**
+     * El ACCESO ya no se resuelve escribiendo: se ejecuta y se entrega.
+     *
+     * Rechazarlo sí sigue siendo un texto —una negativa es una decisión con su
+     * fundamento, no una operación de datos—.
+     */
+    if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); return }
     const resolucion = prompt(`Describe brevemente qué se hizo (${estado}):`)
     if (!resolucion) return
     try {

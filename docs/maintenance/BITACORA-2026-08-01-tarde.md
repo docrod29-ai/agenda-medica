@@ -2008,6 +2008,69 @@ implementaciones FHIR divergentes.
 
 ---
 
+## NONAGÉSIMA QUINTA TANDA — v946 · LA «A» DE ARCO
+
+**Cierra D2 de la cola del equipo.**
+
+### Se resolvía con un `prompt()`, y al titular no se le entregaba nada
+
+`lib/arco.ts` declara los cinco derechos, el portal público los recibe, y el
+panel de Cumplimiento **cuenta el plazo de 20 días hábiles** de la LFPDPPP.
+
+Pero la única que se ejecutaba de verdad era la Cancelación. El Acceso se
+«resolvía» así:
+
+```ts
+const resolucion = prompt('Describe brevemente qué se hizo:')
+```
+
+Se guardaba el texto, la solicitud pasaba a «resuelta», y **al titular no se le
+entregaba nada**. El plazo se contaba, la alerta se pintaba, y no había qué
+entregar cuando vencía.
+
+Es el mismo pecado que este repositorio ya se reprochó al construir
+`arco/cancelar` —«la pantalla aceptaba solicitudes y las resolvía escribiendo un
+texto libre»— y que seguía vivo para la A.
+
+### Ahora se ejecuta, y deja acuse
+
+`POST /api/arco/acceso` arma el expediente completo con el **mismo manifiesto**
+que el botón del médico —una sola implementación: si cada camino lo armara por su
+cuenta, en tres meses uno entregaría menos que el otro y nadie sabría cuál, que es
+lo que ya pasó con las dos implementaciones FHIR divergentes y con las cinco del
+cálculo de huecos—, lo descarga, y deja **acuse**: el hash SHA-256 de lo
+entregado, el conteo por sección y la fecha, en la solicitud y en la bitácora.
+
+**Sin el hash no hay forma de demostrar QUÉ se entregó.** Ante el INAI, «le mandé
+su expediente» sin constancia es lo mismo que no haberlo mandado.
+
+- Va bajo `administrar`, no bajo el permiso clínico: entregar datos a un tercero
+  —aunque sea su titular— es decisión del responsable del tratamiento.
+- Exige `identidadVerificada`: el portal público pide la identificación como
+  texto libre y nadie la comprueba.
+- Tiene **ensayo** que dice qué saldría sin entregarlo.
+- **Rechazar** sí sigue siendo un texto: una negativa es una decisión con su
+  fundamento, no una operación de datos.
+
+### Y una trampa del propio guardián, en este mismo cambio
+
+Al sacar el armado a una librería compartida, las dos rutas que entregan el
+expediente dejaron de contener `collection('notas')` en su cuerpo y se volvieron
+**invisibles** para el detector de PHI de `authz-rutas-declaradas`.
+
+**El refactor correcto apagaba el guardián** — y lo apagaba en silencio: la lista
+de rutas con PHI se acortaba, que parece una buena noticia. El detector ahora
+sigue un nivel de importación; el guardián de sesión sigue mirando **sólo** el
+archivo de la ruta, porque mezclarlos daría por buenas rutas sin candado propio.
+
+- `src/app/api/arco/acceso/route.ts` (nueva),
+  `src/lib/expediente/exportacion-servidor.ts` (nuevo, compartido),
+  `src/lib/arco.ts` (campos del acuse), `cumplimiento/page.tsx`,
+  `authz-rutas-declaradas.test.ts` (el detector)
+- `src/__tests__/arco-acceso.test.ts` — 17 pruebas. Total 5211.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

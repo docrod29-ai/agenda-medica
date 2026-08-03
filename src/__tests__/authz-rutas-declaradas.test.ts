@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { resolve, join, relative, sep } from 'node:path'
 import {
   REGISTRO_RUTAS, TIPOS_CON_MOTIVO, capacidadesDeRuta,
@@ -69,7 +69,48 @@ function claveDe(p: string): string {
 
 const ARCHIVOS = archivosDeRuta(DIR_API)
 const CLAVES_DISCO = ARCHIVOS.map(claveDe).sort()
+
+/**
+ * La fuente de cada ruta, MÁS la de los módulos de `lib/` que importa.
+ *
+ * ── POR QUÉ NO BASTA CON EL ARCHIVO DE LA RUTA ───────────────────────────────
+ *
+ * El detector de PHI busca `collection('notas')` en el cuerpo de la ruta. Eso
+ * funcionó mientras cada ruta leía Firestore a mano — y dejó de funcionar en
+ * cuanto una sacó el armado a una librería compartida: la ruta que entrega el
+ * expediente COMPLETO se volvió invisible para el guardián justo al mejorarla.
+ *
+ * Es la trampa clásica de un guardián textual: **el refactor correcto lo apaga**.
+ * Y lo apaga en silencio, que es lo peor — la lista de rutas con PHI se acorta y
+ * parece una buena noticia.
+ *
+ * Se sigue un nivel de indirección: lo que la ruta importa de `@/lib/…` cuenta
+ * como suyo. Un segundo nivel exigiría un grafo completo; con uno se cubren los
+ * casos reales de este repositorio y el guardián sigue siendo legible.
+ */
+function fuenteConLibrerias(p: string): string {
+  const propio = codigo(p)
+  const libs = [...propio.matchAll(/from '@\/(lib\/[\w/-]+)'/g)].map(m => m[1])
+  let extra = ''
+  for (const l of libs) {
+    for (const ext of ['.ts', '.tsx']) {
+      const ruta = join(process.cwd(), 'src', l + ext)
+      if (existsSync(ruta)) { extra += '\n' + codigo(ruta); break }
+    }
+  }
+  return propio + extra
+}
+
+/** El archivo de la ruta y nada más: es donde tiene que estar su guardián. */
 const FUENTE = new Map(ARCHIVOS.map(p => [claveDe(p), codigo(p)]))
+/**
+ * La ruta MÁS sus librerías, sólo para detectar qué PHI toca.
+ *
+ * Va aparte a propósito: mezclarla con `FUENTE` haría que una ruta «llame a
+ * `verificarMedico`» porque lo menciona una librería que importa, y el guardián
+ * de guardianes empezaría a dar por buenas rutas sin candado propio.
+ */
+const FUENTE_CON_LIBS = new Map(ARCHIVOS.map(p => [claveDe(p), fuenteConLibrerias(p)]))
 const entrada = (clave: string): ExigenciaRuta | undefined => REGISTRO_RUTAS[clave]
 
 /**
@@ -111,7 +152,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(86)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(87)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -376,12 +417,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 81 → 83 y 66 → 67 al añadir `superadmin/simulador`: GET y PUT, cada uno
     // con su guardián.
     // 83 → 84: `arco/cancelar` con su único POST y su guardián.
-    expect(llamadas.length).toBe(87)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(71)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(88)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(rutasConGuardia).toBe(72)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(46)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(conVocabulario).toBe(47)   // +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -392,7 +433,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 55, activos: 28, pendientes: 27,   // +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
+      declarados: 56, activos: 29, pendientes: 27,   // +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -469,7 +510,7 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
    */
   it('leer PHI clínico exige una capacidad que excluye a los roles no clínicos', () => {
     const infractoras: string[] = []
-    for (const [clave, src] of FUENTE) {
+    for (const [clave, src] of FUENTE_CON_LIBS) {
       const leeClinico = COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))
       if (!leeClinico) continue
       const e = entrada(clave)
@@ -492,12 +533,12 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     // queda vacía y el test de arriba pasa sin comprobar nada. Con `internamientos`
     // en la señal (P3-2) son 3, no 2; `uci/estancia` es la cuarta — lee y escribe
     // la estancia bajo `internamientos`, y está bajo capacidad clínica.
-    const conPHI = [...FUENTE].filter(([, src]) =>
+    const conPHI = [...FUENTE_CON_LIBS].filter(([, src]) =>
       COLECCIONES_CLINICAS.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
     // `arco/cancelar` entra a la lista: para decidir si un expediente se suprime
     // o sólo se bloquea tiene que CONTAR las notas firmadas. Es lectura de PHI
     // clínico, y está bajo `administrar`.
-    expect(conPHI).toEqual(['arco/cancelar', 'expediente/exportar/[patientId]', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
+    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'expediente/exportar/[patientId]', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
   })
 
   it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {
@@ -505,9 +546,16 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     // sesión por diseño y una regla ciega daría rojo por lo correcto. Lo que impide
     // este congelado es que una ruta NUEVA empiece a leer `patients` sin que nadie
     // lo mire.
-    const conPaciente = [...FUENTE].filter(([, src]) =>
+    const conPaciente = [...FUENTE_CON_LIBS].filter(([, src]) =>
       COLECCIONES_PACIENTE.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
     expect(conPaciente).toEqual([
+      /**
+       * Entrega el expediente al TITULAR que lo pidió (LFPDPPP Art. 28-32).
+       * Toca su identidad por definición, y va bajo `administrar`: entregar
+       * datos a un tercero —aunque sea su dueño— es una decisión del
+       * responsable del tratamiento, no un acto clínico.
+       */
+      'arco/acceso',
       // Toca la identidad porque la SUPRIME o la bloquea: es su razón de ser.
       'arco/cancelar',
       /**
