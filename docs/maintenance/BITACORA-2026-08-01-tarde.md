@@ -1057,6 +1057,35 @@ restantes son decisión del Dr: la contradicción de la tarjeta y la cédula por
 
 ---
 
+## SEPTUAGÉSIMA CUARTA TANDA — v925 · AUDITORÍA DE LANZAMIENTO (dinero)
+
+### Devolverle dinero a un cliente lo hacía parecer mejor pagador
+
+`platform_payments` guarda cobros, reembolsos y contracargos en la **misma
+colección**, todos con `monto` positivo: el signo lo decide el `tipo`.
+
+La ruta que alimenta la consola del dueño sumaba `Number(p.monto)` **en crudo**,
+así que un reembolso **aumentaba** el ingreso total, el del mes, y lo «pagado» por
+esa clínica — que es el número con el que se decide si alguien está al corriente.
+
+Y no faltaba la herramienta: **las dos rutas hermanas ya lo habían cerrado** con
+`tipoDeAsiento`/`efectivoDe`. Ésta se quedó atrás, y es **la que se ve primero** al
+abrir la consola.
+
+Ahora los tres números salen del efectivo, y **una disputa abierta ya resta**:
+Stripe retiene el importe en cuanto se abre y sólo lo devuelve si se gana —
+contarla al perderla mostraría un saldo que el banco no tiene.
+
+**De paso**: la ruta de facturación leía el `tipo` con su propia comparación de
+cadenas. Ahora usa el mismo `tipoDeAsiento`. No necesita el signo —un reembolso no
+se factura, se excluye— pero sí el mismo criterio: **tres formas de leer el `tipo`
+es cómo se llega a tres respuestas distintas sobre el mismo dinero**.
+
+- `src/app/api/superadmin/clientes/route.ts`, `api/facturacion/pagos/route.ts`
+- `src/__tests__/superadmin-ingreso-neto.test.ts` — 9 pruebas. Total 4957.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

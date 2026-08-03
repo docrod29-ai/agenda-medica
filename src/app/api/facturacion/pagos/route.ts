@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { facturamaConfigurada } from '@/lib/facturama'
+import { tipoDeAsiento } from '@/lib/finanzas/movimientos'
 
 type Any = Record<string, unknown>
 
@@ -34,7 +35,11 @@ export async function GET(req: NextRequest) {
        * facturables: no existió el dinero.
        */
       const p = d.data() as Any
-      const tipo = String(p.tipo ?? '')
+      // El mismo `tipoDeAsiento` que usan las dos rutas que SUMAN dinero: aquí no
+      // hace falta el signo —un reembolso no se factura, se excluye— pero sí el
+      // mismo criterio para decidir qué es cada asiento. Tres formas de leer el
+      // `tipo` es cómo se llega a tres respuestas distintas sobre el mismo dinero.
+      const tipo = tipoDeAsiento(p)
       if (tipo === 'reembolso' || tipo === 'contracargo') return false
       if (p.livemode === false) return false
       return true
