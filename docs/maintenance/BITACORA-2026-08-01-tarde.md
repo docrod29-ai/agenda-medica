@@ -989,6 +989,40 @@ mismo fallo otra vez.
 
 ---
 
+## SEPTUAGÉSIMA SEGUNDA TANDA — v923 · AUDITORÍA DE LANZAMIENTO (4/6)
+
+### El muro de pago dejaba al médico encerrado y en silencio
+
+`AccesoGate` es la pantalla que **bloquea la aplicación entera** cuando no hay
+suscripción activa. Su único botón hacía:
+
+```
+const data = await res.json()
+if (data.url) { window.location.href = data.url; return }
+setCargando(null)          // ← y aquí se acababa todo
+```
+
+Ante un error del servidor —un precio anual sin configurar, una clínica que no
+existe, Stripe caído— el botón volvía de «Abriendo…» a «Empezar» y **no pasaba
+nada más**. Ni mensaje, ni motivo, ni a quién preguntarle. El médico se queda
+fuera de su propio consultorio **con la tarjeta en la mano**.
+
+El `catch { setCargando(null) }` hacía lo mismo con los fallos de red.
+
+Y lo que más molesta: la pantalla de **Configuración ya enseñaba el error de este
+mismo endpoint**. La que más lo necesitaba era la única que no lo hacía.
+
+Ahora se enseña el error del servidor, se **distingue el fallo de red** del fallo
+del servidor —reintentar arregla uno y no el otro—, un cuerpo que no es JSON no
+revienta la pantalla, y hay una **salida**: a quién escribirle y con qué dato.
+
+**Un muro sin puerta ni timbre es peor que un muro.**
+
+- `src/app/(dashboard)/layout.tsx`
+- `src/__tests__/muro-pago-sin-salida.test.ts` — 7 pruebas. Total 4940.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

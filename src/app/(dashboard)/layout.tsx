@@ -281,6 +281,8 @@ function ActivandoCuenta() {
 
 function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjeta' | 'vencido'; clinicId: string | null; esMedico: boolean; email: string }) {
   const [cargando, setCargando] = useState<string | null>(null)
+  /** Por qué no se pudo abrir el pago. Vacío mientras no falle nada. */
+  const [error, setError] = useState('')
   const [ciclo, setCiclo] = useState<'mensual' | 'anual'>('mensual')
   // Los precios vigentes, no los del código: ésta es la pantalla que ve alguien
   // con la tarjeta en la mano.
@@ -294,10 +296,28 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId, plan, email, ciclo }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (data.url) { window.location.href = data.url; return }
+      /**
+       * EL ÚNICO BOTÓN DE ESTA PANTALLA NO PUEDE FALLAR EN SILENCIO.
+       *
+       * Aquí no había nada: si el servidor contestaba un error —un precio sin
+       * configurar, una clínica que no existe, Stripe caído— el botón volvía de
+       * «Abriendo…» a «Empezar» y no pasaba NADA MÁS. Y ésta es la pantalla que
+       * bloquea la aplicación entera: el médico se queda encerrado, sin saber por
+       * qué ni a quién preguntarle, con la tarjeta en la mano.
+       *
+       * La pantalla de Configuración ya enseñaba el error del mismo endpoint;
+       * ésta, que es la que más lo necesita, no.
+       */
+      setError(String(data.error || 'No se pudo abrir el pago. Vuelve a intentarlo en un momento.'))
       setCargando(null)
-    } catch { setCargando(null) }
+    } catch {
+      // Distinguirlo importa: «no hubo internet» se arregla reintentando, y un
+      // error del servidor no.
+      setError('No se pudo conectar. Revisa tu conexión y vuelve a intentarlo.')
+      setCargando(null)
+    }
   }
   // Precio a mostrar según ciclo (anual = ×10 → "2 meses gratis").
   const precioMostrar = (mensualStr: string) => {
@@ -318,6 +338,22 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
                 : 'Tu acceso está en pausa. Elige un plan para continuar; tus datos están a salvo.')
             : 'Pídele al médico responsable del consultorio que active el plan para reanudar el acceso.'}
         </p>
+        {/*
+          Y una salida: si el pago no abre, el médico tiene que poder hablar con
+          alguien. Un muro sin puerta ni timbre es peor que un muro.
+        */}
+        {error && (
+          <div role="alert" className="alert alert-red" style={{ maxWidth: 520, margin: '0 auto 20px', fontSize: 13, textAlign: 'left' }}>
+            <AlertTriangle size={15} className="alert-icon" />
+            <div>
+              <div className="alert-title">No se pudo abrir el pago</div>
+              {error}
+              <div style={{ marginTop: 6, color: 'var(--text3)' }}>
+                Si vuelve a pasar, escríbenos a <strong>soporte@nexusmed.mx</strong> con tu correo de acceso y lo resolvemos.
+              </div>
+            </div>
+          </div>
+        )}
         {esMedico && (
           <div style={{ display: 'inline-flex', gap: 4, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 100, padding: 4, marginBottom: 20 }}>
             {(['mensual', 'anual'] as const).map(c => (
