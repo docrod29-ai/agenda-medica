@@ -3031,6 +3031,56 @@ silencio y el chip sale cuadrado— y que está en uso en más de 40 archivos.
 
 ---
 
+
+## CENTÉSIMA DUODÉCIMA TANDA — v963 · 24 CONTROLES SIN TECLADO (U3)
+
+**Cierra U3, corrigiendo su premisa.**
+
+### La cola decía una cosa; medí, y era otra
+
+«Las pantallas del comprador son las peores»: cierto en densidad (/demo 24.7,
+landing 17.3). Pero **densidad de estilos no es daño**, y en esas pantallas no hay
+**ni un solo** control inaccesible.
+
+El daño estaba al lado, en SUS pantallas: **24 sitios con `<div onClick={…}>` y
+nada más**. Para el ratón es un botón; para el teclado no existe.
+
+### Dónde estaban
+
+El **calendario** se llevó seis —la cita en vista día, en semana y en mes; la
+franja horaria; la celda día×hora; y el día del mes—, más la lista de pacientes,
+el tablero de camas, el pase de UCI, la hoja de enfermería… y las **filas de
+tabla**, que viven en un componente compartido: arrastraban a todas las tablas de
+la aplicación de una vez, y por eso arreglarlo ahí las arregla todas.
+
+Un médico con la mano ocupada, o cualquiera que navegue por teclado, no podía
+abrir la cita.
+
+### Tres familias, que no se tratan igual
+
+- **Control**: necesita foco y Enter/Espacio. `activable()` pone las cuatro cosas
+  juntas, porque «acuérdate de añadir también el `onKeyDown`» se cumple en cinco
+  pantallas y se olvida en la sexta.
+- **Telón** (el fondo que cierra al hacer clic): NO es un control. Darle foco
+  sería una parada de tabulador fantasma. Lo que el teclado espera es **Escape**,
+  y en cuatro sitios no cerraba nada: el modal de laboratorios, el filtro de
+  médicos, el menú de la cita y la barra lateral móvil. Ahora sí.
+- **Escudo** (`stopPropagation` sin acción): no hace nada, no hay nada que
+  activar. Pedirle foco sería ruido.
+
+Un guardián que no distingue las tres acaba desactivado por ruidoso — y me pasó
+dos veces al escribirlo: la primera versión cortaba en `onClick=` y clasificaba a
+ciegas (marcaba a todo el mundo), y la segunda no reconocía `(e) =>` con
+paréntesis. Las dos se arreglaron mirando la etiqueta entera.
+
+Verificado por mutación: un `<div onClick={…}>` nuevo pone rojo el guardián.
+
+- `src/lib/ui/activable.ts` (nuevo), `ui/Table.tsx`, calendario, pacientes,
+  camas, UCI (pase y enfermería), DoctorFilter, PanelLaboratorios, citas, layout
+- `src/__tests__/teclado-controles.test.ts` — 12 pruebas. Total 5495.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3095,8 +3145,10 @@ sustancialmente mejor de lo que un comprador puede ver».
   — medido: 38 tamaños, 37 espaciados (no 23) y 28 radios; píldora unificada
   (128 usos) y trinquete de variedad congelado en 38/37/24. La deuda restante son
   53 valores sueltos con 231 usos, y el propio guardián los lista.
-- U3. Las pantallas del comprador son las peores y ninguna toca el design system:
-  `/demo` 24.4 estilos por 100 líneas, landing 17.2. Las clínicas son las limpias.
+- U3. ~~Las pantallas del comprador son las peores.~~ **CERRADO v963 corrigiendo la
+  premisa**: la densidad es cierta (24.7 / 17.3) pero NO es daño — ahí no hay ni un
+  control inaccesible. El daño real estaban 24 `<div onClick>` sin teclado, TODOS
+  en las pantallas de trabajo. Reparados + guardián.
 - U4. ~~Hueco real del trinquete de color.~~ **CERRADO v961** — era la punta: se
   le escapaban 265 usos en 57 archivos. Guardián ensanchado y congelado en 265
   (sólo baja); ToastContext migrado a tokens.

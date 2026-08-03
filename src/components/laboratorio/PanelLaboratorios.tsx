@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useCerrarConEscape } from '@/lib/ui/activable'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useToast } from '@/context/ToastContext'
 import { guardarPanelLab, listarPanelesLab, borrarPanelLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
@@ -31,6 +32,8 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
   const [cargando, setCargando] = useState(true)
   const [subiendo, setSubiendo] = useState(false)
   const [revision, setRevision] = useState<(PanelValidado & { fuente: 'pdf' | 'foto' }) | null>(null)
+  // Un modal que sólo cierra con el ratón deja atrapado a quien navega con teclado.
+  useCerrarConEscape(!!revision, () => setRevision(null))
   const fileRef = useRef<HTMLInputElement>(null)
 
   const cargar = useCallback(() => {

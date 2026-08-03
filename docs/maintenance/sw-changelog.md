@@ -21,6 +21,48 @@ historia vive aquí.
 
 ---
 
+## v963 — 24 controles que el teclado no podía activar (U3)
+
+LA COLA DECÍA OTRA COSA, Y LO COMPROBÉ. «Las pantallas del comprador son las
+peores y ninguna toca el design system: /demo 24.4 estilos por 100 líneas,
+landing 17.2». Medido: cierto (24.7 y 17.3). Pero **densidad de estilos no es
+daño**, y en esas pantallas no hay ni un control inaccesible.
+
+El daño estaba al lado: **24 sitios con `<div onClick={…}>` y nada más**. Para el
+ratón es un botón; para el teclado NO EXISTE — no recibe foco, no responde a
+Enter, y un lector de pantalla lo anuncia como un párrafo. Y no están en la
+propaganda, están en las pantallas de trabajo: el CALENDARIO (SEIS: la cita en
+día, en semana y en mes, la franja horaria, la celda día×hora y el día del mes),
+la lista de PACIENTES, el tablero de CAMAS, el pase de UCI, la hoja de enfermería
+y las FILAS DE TABLA — este último en `ui/Table.tsx`, que es compartido, así que
+arrastraba a todas las tablas de la aplicación de una vez.
+
+TRES FAMILIAS, QUE NO SE TRATAN IGUAL:
+
+· **CONTROL** — hace algo al pulsarlo. Necesita `role`, `tabIndex` y
+  Enter/Espacio. `activable()` pone los cuatro juntos, porque «acuérdate de
+  añadir también el `onKeyDown`» es la clase de regla que se cumple en cinco
+  pantallas y se olvida en la sexta.
+· **TELÓN** — `inset: 0` con un `onClick` que cierra. NO es un control: darle
+  foco crearía una parada de tabulador fantasma, un rectángulo invisible que
+  atrapa sin decir qué es. Lo que el teclado espera es Escape — y en CUATRO
+  sitios no cerraba nada: el modal de revisión de laboratorios, el filtro de
+  médicos, el menú de la cita y la barra lateral móvil.
+· **ESCUDO** — `onClick={e => e.stopPropagation()}` sin acción propia. No hace
+  nada, así que no hay nada que activar. Exigirle `tabIndex` sería ruido y
+  empujaría a quitar el escudo, que sí hace falta.
+
+Un guardián que no distingue las tres acaba desactivado por ruidoso. La primera
+versión de la prueba cortaba en `onClick=` y clasificaba a ciegas —no veía el
+`style` de después ni el cuerpo del manejador—, así que marcaba a todo el mundo
+culpable; y la segunda no reconocía `(e) =>` con paréntesis. Las dos se
+arreglaron mirando la etiqueta ENTERA.
+
+Verificado por mutación: un `<div onClick={…}>pulsa</div>` nuevo pone rojo el
+guardián. +12 casos.
+
+---
+
 ## v962 — la píldora escrita de cinco formas, y el gobierno de la escala (U2)
 
 MEDIDO, no supuesto: **38** tamaños de letra en 2 749 usos, **37** valores de

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -237,7 +238,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                   borderLeft: '1px solid var(--border)', position: 'relative', cursor: 'pointer', minHeight: 48,
                   background: di >= 5 ? 'rgba(242,239,233,0.022)' : 'transparent',  // tinte sutil de fin de semana
                 }}
-                onClick={() => onCellClick(ds, hourStr)}
+                {...activable(() => onCellClick(ds, hourStr), { etiqueta: `Agendar a las ${hourStr}` })}
               >
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
@@ -248,6 +249,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                   return (
                     <div
                       key={a.id}
+                      {...activable(() => onApptClick(a), { etiqueta: `Cita de ${a.pacienteNombre} a las ${a.fechaHora.slice(11, 16)}` })}
                       onClick={e => { e.stopPropagation(); onApptClick(a) }}
                       title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''} · ${a.estado}`}
                       style={{
@@ -296,7 +298,7 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
           <div
             key={h}
             style={{ display: 'flex', borderBottom: '1px solid var(--border)', minHeight: 56, cursor: 'pointer' }}
-            onClick={() => onCellClick(hourStr)}
+            {...activable(() => onCellClick(hourStr), { etiqueta: `Agendar a las ${hourStr}` })}
           >
             <div style={{ width: 64, padding: '8px', textAlign: 'right', fontSize: 12, color: 'var(--text3)', borderRight: '1px solid var(--border)', flexShrink: 0 }}>
               {hourStr}
@@ -307,6 +309,7 @@ function DayView({ date, appointments, onCellClick, onApptClick, loading }: {
                 return (
                 <div
                   key={a.id}
+                  {...activable(() => onApptClick(a), { etiqueta: `Cita de ${a.pacienteNombre} a las ${a.fechaHora.slice(11, 16)}` })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
                     background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
@@ -386,7 +389,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
           return (
             <div
               key={i}
-              onClick={() => onDayClick(d)}
+              {...activable(() => onDayClick(d), { etiqueta: `Ver el día ${d.getDate()}` })}
               style={{
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 padding: '6px', cursor: 'pointer', minHeight: 80,
@@ -408,6 +411,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
               {dayAppts.slice(0, 3).map(a => (
                 <div
                   key={a.id}
+                  {...activable(() => onApptClick(a), { etiqueta: `Cita de ${a.pacienteNombre}` })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
                     fontSize: 10, padding: '2px 5px', borderRadius: 3,

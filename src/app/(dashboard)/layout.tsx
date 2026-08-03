@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCerrarConEscape } from '@/lib/ui/activable'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { estadoPaywall } from '@/lib/finanzas/paywall-prueba'
 import { useRouter, usePathname } from 'next/navigation'
@@ -458,6 +459,8 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const { mode } = useMode()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // La barra lateral abierta atrapaba el foco: sólo cerraba tocando el telón.
+  useCerrarConEscape(sidebarOpen, () => setSidebarOpen(false))
 
   // Rutas que SOLO pueden ver médicos/admin (datos clínicos sensibles).
   // La asistente NUNCA debe verlas, sin importar el toggle de UI.

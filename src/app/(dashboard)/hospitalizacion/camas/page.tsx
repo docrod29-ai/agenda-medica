@@ -4,6 +4,7 @@
 // Cruza el catálogo de camas con el censo activo. El admin gestiona el inventario.
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from 'react'
+import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
@@ -189,7 +190,7 @@ export default function CamasPage() {
                       const estado: EstadoCama = oc ? 'ocupada' : c.estado
                       const col = COLOR[estado]
                       return (
-                        <div key={c.id} onClick={() => oc && router.push(`/hospitalizacion/${oc.id}`)} style={{ padding: 10, borderRadius: 10, border: `1px solid color-mix(in srgb, ${col} 33%, transparent)`, background: col + '10', cursor: oc ? 'pointer' : 'default' }}>
+                        <div key={c.id} {...(oc ? activable(() => router.push(`/hospitalizacion/${oc.id}`), { etiqueta: `Abrir el internamiento de la cama ${c.etiqueta}` }) : {})} style={{ padding: 10, borderRadius: 10, border: `1px solid color-mix(in srgb, ${col} 33%, transparent)`, background: col + '10', cursor: oc ? 'pointer' : 'default' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: 12.5, fontWeight: 700, color: col }}>{c.etiqueta}</span>
                             <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: col }}>{ESTADO_CAMA_LABEL[estado]}</span>

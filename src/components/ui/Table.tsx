@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { activable } from '@/lib/ui/activable'
 
 export interface Column<T> {
   key: string
@@ -50,7 +51,13 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, empty, mobileCards
           {rows.map((row, i) => (
             <tr
               key={rowKey(row, i)}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              /**
+               * La fila clicable ES un botón, y el teclado tiene que poder
+               * activarla. Este componente es COMPARTIDO: sin esto, todas las
+               * tablas de la aplicación quedaban fuera del alcance del teclado
+               * de golpe, y con esto se arreglan todas de golpe.
+               */
+              {...(onRowClick ? activable(() => onRowClick(row)) : {})}
               style={onRowClick ? { cursor: 'pointer' } : undefined}
             >
               {columns.map(c => (

@@ -10,6 +10,7 @@
 // desde aquí, y quien la lee tiene que saberlo.
 // ══════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react'
+import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, HeartPulse, AlertTriangle, Info, BedDouble, CheckCircle2 } from 'lucide-react'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -159,7 +160,7 @@ export default function EnfermeriaUciPage() {
               {resumen.tareas.map((t, i) => (
                 <div
                   key={`${t.internamientoId}-${i}`}
-                  onClick={() => router.push(`/uci?internamiento=${t.internamientoId}`)}
+                  {...activable(() => router.push(`/uci?internamiento=${t.internamientoId}`), { etiqueta: 'Abrir el paciente de esta tarea' })}
                   style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 11, cursor: 'pointer', border: `1px solid color-mix(in srgb, ${COLOR[t.tipo]} 27%, transparent)`, background: COLOR[t.tipo] + '0d' }}
                 >
                   <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: COLOR[t.tipo], minWidth: 96, paddingTop: 2 }}>

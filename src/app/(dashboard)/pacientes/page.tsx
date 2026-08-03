@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { activable } from '@/lib/ui/activable'
 import { Patient, type ClinicConfig } from '@/types'
 import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -420,7 +421,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
 }) {
   return (
     <div
-      onClick={onAbrir}
+      {...activable(onAbrir, { etiqueta: `Abrir el expediente de ${p.nombre}` })}
       style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
         borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s',

@@ -9,6 +9,7 @@
  * Si hay 2+, muestra dropdown con avatares de colores.
  */
 import { useEffect, useState } from 'react'
+import { useCerrarConEscape } from '@/lib/ui/activable'
 import { useDoctors } from '@/hooks/useDoctors'
 import { Users, Check } from 'lucide-react'
 
@@ -67,6 +68,9 @@ export function DoctorFilter({
 }) {
   const { activeDoctors } = useDoctors()
   const [open, setOpen] = useState(false)
+  // El desplegable sólo se cerraba HACIENDO CLIC FUERA: con el teclado no había
+  // forma de salir sin recorrerlo entero.
+  useCerrarConEscape(open, () => setOpen(false))
 
   // Con un filtro activo el selector SIEMPRE se pinta, aunque quede un solo
   // médico: si no, no habría forma de quitarlo desde la pantalla.
