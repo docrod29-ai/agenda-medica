@@ -1942,6 +1942,91 @@ el sistema diseñado para eso.
 
 ---
 
+## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
+
+Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
+«ingeniería de 8 sosteniendo un producto de 6.5 y un negocio de 6; el sistema es
+sustancialmente mejor de lo que un comprador puede ver».
+
+**Cerrado ya:** N1 (v944, el tope de prueba cortando a quien paga).
+
+### NEGOCIO 6.0 — lo que pierde clientes hoy
+- N2. **Dos modelos de prueba contradictorios.** `/api/clinic/crear` nace
+  `status:'trial'`, pero `estadoAcceso()` (`layout.tsx:190-196`) manda a
+  `'sin_tarjeta'` TODO `trial` y bloquea la app. El médico lee «14 días gratis,
+  sin tarjeta» en seis pantallas y choca contra un muro. Y `paywall-prueba.ts`
+  —escrito y probado, con su espejo en las reglas— es INALCANZABLE.
+  **BLOQUEADO EN EL DR: ¿modelo A (sin tarjeta) o B (tarjeta primero)?**
+- N3. El catálogo editable de precios no llega al cobro, al MRR ni a los
+  créditos entregados (`ai-keys.ts:279`, `checkout/route.ts:60`).
+- N4. Fuga por asiento: el cupo de créditos sigue a `contarMedicos` (presentes) y
+  el cobro sólo se ajusta si alguien pulsa sincronizar.
+- N5. Contabilidad valora con `COSTO_CREDITO_MXN = 1.5` inventado mientras el
+  libro de costos REAL existe y nadie lo lee.
+- N6. Margen por consulta y costo por médico: falta una línea de agrupación
+  (`porClave` ya existe), no un sistema.
+- N7. MRR: sobrestima al anual (nadie lee `ciclo`) y subestima al multi-médico.
+- N8. Churn no ve el trial abandonado (se queda en `status:'trial'` para siempre).
+- N9. `/operacion:18` promete facturación CFDI al paciente que NO existe.
+
+### DATOS 6.0 — «no sabe entregarlo ni reconstruirlo»
+- D1. La exportación «expediente» NO incluye adendas, laboratorios, fotos,
+  antecedentes, formularios, internamientos ni bitácora. Y descarta los
+  borradores en silencio (`fhir-export.ts:173`).
+- D2. **La A de ARCO no existe**: se «resuelve» con un `prompt()`
+  (`cumplimiento/page.tsx:203`). Plazo de 20 días que se cuenta y no se cumple.
+- D3. El respaldo del consultorio es un N+1 secuencial EN EL NAVEGADOR y no hay
+  importador: no se puede volver a entrar.
+- D4. La «migración de salida» son 11 columnas de demografía.
+- D5. No existe exportación a Excel. Ninguna.
+- D6. La bitácora de accesos no se puede exportar (NOM-024).
+- D7. Dos implementaciones FHIR divergentes; la ruta HTTP usa la pobre.
+- D8. Restauración nunca probada: `docs/SIMULACRO_RESTAURACION.md` sin una sola
+  fila de evidencia. Sin RTO medido no hay respuesta para un hospital.
+
+### INGENIERÍA 7.0 — «no tiene forma de avisar que algo se rompió»
+- I1. Ningún canal de alerta a un humano. Cero. El buzón del plan de incidentes
+  dice literalmente «(definir buzón real)».
+- I2. `global-error.tsx:11` —la caída más grave— sólo hace `console.error`.
+  `api/errores` exige sesión, así que el servidor no puede auto-reportarse.
+- I3. Sin `/api/health`. No hay forma de saber si Firestore/Stripe/IA están arriba.
+- I4. `gateway.ts:128` sin timeout: un socket colgado inmoviliza el lambda 300 s.
+- I5. El cron de recordatorios recorre consultorios EN SERIE, sin `maxDuration`
+  y sin latido: si deja de correr, nadie se entera.
+- I6. `superadmin/clientes` y `contabilidad` escanean tablas completas + N+1.
+- I7. `rate_limits`, `platform_csp`, `whatsapp_status`… crecen sin barrendero. El
+  TTL está escrito en un comentario y nunca se activó.
+- I8. `public/sw.js` pesa 252 KB y se descarga entero en cada carga para leer un
+  número de versión.
+
+### UX 6.5 — el eje equivocado
+- U1. El color YA está ganado (2 536 usos de token contra 221 hex, casi todos
+  fallbacks legítimos). Migrar eso da poco.
+- U2. Lo que NO tiene gobierno: tipografía (38 tamaños, cero tokens), espaciado
+  (23 valores) y radio («píldora» escrito de SEIS formas).
+- U3. Las pantallas del comprador son las peores y ninguna toca el design system:
+  `/demo` 24.4 estilos por 100 líneas, landing 17.2. Las clínicas son las limpias.
+- U4. Hueco real del trinquete de color: `ToastContext.tsx:43-47` declara tres
+  hex crudos y se escapan porque la clave no es `color:`.
+
+### ANTIBIOGRAMA 7.5 — cuatro defectos, los cuatro «escrito y sin conectar»
+- A1. Fenotipo salvaje leído como resistencia adquirida: un *E. faecalis*
+  pan-sensible sale MDR con alerta crítica de colistina y mecanismo `mcr`. El
+  filtro de resistencia intrínseca EXISTE y no se aplica en ese camino.
+- A2. La CMI censurada se pierde en la frontera visión→motor: por foto una
+  vancomicina «>2» sale S; tecleada sale I.
+- A3. La edición interpretativa no se propaga a `categoriasCMI`: tres categorías
+  del mismo fármaco en el mismo prompt.
+- A4. El resultado NEGATIVO de una confirmatoria se lee, se tipa, se transporta y
+  se tira. Un cefoxitina-neg convive con `MRSA[confirmado]` sin levantar conflicto.
+- **BLOQUEADO EN EL DR (6 preguntas clínicas):** ¿el conteo MDR de respaldo debe
+  existir para Gram positivos? ¿a qué categoría mapea un SDD? ¿una discordancia
+  CLSI-vs-panel edita o sólo advierte? ¿un BLEE confirmatorio negativo cancela,
+  degrada o no toca? ¿un mCIM negativo con carbapenémicos R reorienta o queda
+  indeterminado? ¿cefoxitina-neg vs oxacilina-R, cuál gana?
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
