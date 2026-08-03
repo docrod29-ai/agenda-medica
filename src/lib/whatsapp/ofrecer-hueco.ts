@@ -15,6 +15,7 @@
  */
 import { adminDb } from '@/lib/firebase-admin'
 import { candidatos } from '@/lib/whatsapp/lista-espera'
+import { huecoSirve, leerRangoHorario } from '@/lib/whatsapp/rango-horario'
 import { safeLog } from '@/lib/security/sanitize'
 import { ClinicConfig, WaitlistEntry } from '@/types'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
@@ -22,6 +23,15 @@ import { encolarReintento } from '@/lib/whatsapp/outbox'
 import { registrarNoEntregado } from '@/lib/whatsapp/no-entregados'
 import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+
+/**
+ * Cuánta lista de espera se lee de una vez.
+ *
+ * Se ordena en memoria, así que el tope no es una página: es cuánto se puede
+ * ordenar bien. Doscientos cubre cualquier lista de consultorio real y, si
+ * alguna vez se alcanza, queda dicho en el registro.
+ */
+const TOPE_LISTA = 200
 
 function formatDate(fecha: string): string {
   const d = new Date(fecha + 'T12:00:00')
@@ -47,9 +57,16 @@ export interface ResultadoOferta {
 
 export async function ofrecerHuecoLiberado(
   clinicId: string,
-  slot: { fecha: string; hora: string; tipo?: string; medicoId?: string },
+  /**
+   * `duracion` entra porque el rango horario del paciente se comprueba contra
+   * el hueco COMPLETO: una cita de 45 min que arranca a las 11:45 termina a las
+   * 12:30, y a quien pidió «9-12» le rompe la mañana igual. Si el llamador no
+   * la sabe, 30 min es la duración por defecto de la aplicación.
+   */
+  slot: { fecha: string; hora: string; tipo?: string; medicoId?: string; duracion?: number },
 ): Promise<ResultadoOferta> {
   const { fecha, hora, tipo: slotTipo, medicoId: slotMedicoId } = slot
+  const slotDuracion = slot.duracion ?? 30
   let omitidos = 0
   try {
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
@@ -82,10 +99,30 @@ export async function ofrecerHuecoLiberado(
      * exige un índice compuesto que hay que crear a mano en la consola — y
      * mientras no exista, la lectura falla ENTERA y no se ofrece a nadie.
      */
+    /**
+     * Y EL TOPE YA NO RECORTA EN SILENCIO.
+     *
+     * Era `.limit(60)` **sin `orderBy`**: Firestore devolvía sesenta entradas
+     * cualesquiera —en orden de identificador— y la prioridad se ordenaba
+     * DESPUÉS, en memoria. Con más de sesenta en lista, el paciente de prioridad
+     * 1 podía no estar entre las sesenta que llegaron, y el hueco se le ofrecía
+     * a alguien menos prioritario **sin que nada lo indicara**.
+     *
+     * No se puede pedir `orderBy('prioridad')` junto al `where in` sin crear un
+     * índice compuesto a mano en la consola —y mientras no exista, la lectura
+     * falla ENTERA y no se ofrece a nadie—. Así que se sube el tope a algo que
+     * cubre cualquier lista real y, sobre todo, **se declara cuando se alcanza**:
+     * un recorte que nadie ve se lee como «ya estaban todos».
+     */
     const waitlistSnap = await clinicRef.collection('waitlist')
       .where('estado', 'in', ['activo', 'contactado'])
-      .limit(60)
+      .limit(TOPE_LISTA)
       .get()
+    if (waitlistSnap.size >= TOPE_LISTA) {
+      safeLog.warn(`[ofrecer-hueco] ${clinicId}: la lista de espera llegó al tope de ${TOPE_LISTA}; `
+        + 'puede haber pacientes MÁS prioritarios fuera de la lectura. Hace falta el índice compuesto '
+        + "(estado + prioridad) para ordenar en la consulta.")
+    }
 
     if (waitlistSnap.empty) {
       return { ok: true, notified: 0, omitidos }
@@ -118,6 +155,21 @@ export async function ofrecerHuecoLiberado(
       //   liberado es ANTES, no le sirve.
       if (slotTipo && entry.tipo && entry.tipo !== slotTipo) continue
       if (entry.fechaDeseada && fecha < entry.fechaDeseada) continue
+      /**
+       * - rangoHorario: el campo que la recepción captura, la ficha ENSEÑA y
+       *   este emparejamiento ignoraba. Quien pedía por la mañana recibía el
+       *   ofrecimiento de las 18:00 y, si contestaba SÍ, la cita se creaba a las
+       *   18:00.
+       *
+       *   Es texto libre, así que lo que no se entiende NO filtra: dejar fuera a
+       *   alguien que sí podía venir no se detecta nunca —el que no recibe un
+       *   mensaje no se queja de no haberlo recibido—.
+       */
+      if (!huecoSirve(entry.rangoHorario, hora, slotDuracion)) {
+        const leido = leerRangoHorario(entry.rangoHorario)
+        safeLog.info(`[ofrecer-hueco] ${clinicId}: ${hora} no entra en «${leido.comoSeLeyo}»; se salta esta entrada.`)
+        continue
+      }
 
       const msg = [
         `🔔 *Espacio disponible en ${clinicName}*`,

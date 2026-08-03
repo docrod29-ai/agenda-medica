@@ -362,6 +362,7 @@ async function avisarCancelacion(
       fecha: fechaHora.slice(0, 10),
       hora: fechaHora.slice(11, 16),
       tipo: String(cita.tipo ?? '') || undefined,
+      duracion: Number(cita.duracion) || undefined,
       // Sin médico, el hueco de una doctora se le ofrecería a quien espera con otro.
       medicoId: String(cita.medicoId ?? '') || undefined,
     }).catch(() => { /* ídem */ })
