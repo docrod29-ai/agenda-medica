@@ -21,6 +21,41 @@ historia vive aquí.
 
 ---
 
+## v971 — la decisión 3 podía dispararse: NO se podía. Ahora sí
+
+Cometí en la v970 exactamente el fallo que este repositorio lleva persiguiendo
+toda la sesión: implementé la decisión 3 completa —el motor edita una categoría
+discordante sólo con los ocho campos verificados—, la probé con 31 casos, la
+desplegué… y **dos de esos ocho campos no los capturaba nadie**. Ni la pantalla,
+ni el extractor de la foto. Una regla escrita, probada, desplegada y **muerta**.
+
+Ahora la pantalla del antibiograma tiene un bloque de **procedencia del reporte**
+—estándar, edición, método, unidad— que dice para qué sirve: «si la CMI y la
+categoría del laboratorio no coinciden, el motor sólo puede corregirla cuando
+sabe con qué estándar se interpretó. Sin esto NO corrige nada: lo señala y te
+dice qué falta». Y enseña con qué estándar y edición interpreta el motor, porque
+sin eso el médico no sabe contra qué se está comparando su reporte.
+
+El extractor de la foto también los pide, y el prompt es explícito en la mitad
+que importa: **si no aparece impreso, NO lo pongas** — dejarlo vacío es la
+respuesta correcta, y suponerlo cambiaría cómo se interpreta el antibiograma. Un
+estándar que no se reconoce cae en «otro», nunca en el del motor: meterlo en CLSI
+porque no se supo leer sería la peor forma de fallar, porque desbloquearía la
+edición con un estándar desconocido.
+
+NADA SE RELLENA POR OMISIÓN. La procedencia nace vacía. Poner «CLSI» porque es lo
+más común sería declarar por el laboratorio justo el campo que la regla existe
+para comprobar, y el resultado sería un motor que corrige categorías creyendo que
+verificó algo que nadie verificó.
+
+Y queda un GUARDIÁN para que no vuelva a pasar: comprueba que la pantalla captura
+los cuatro campos, que la procedencia llega al motor Y al razonamiento con IA, y
+recorre el ciclo completo de la foto al motor en los dos escenarios. Verificado
+por mutación: si alguien quita la procedencia de la llamada al motor, se pone
+rojo. +15 casos.
+
+---
+
 ## v970 — decisión 3: cuándo el motor puede EDITAR al laboratorio
 
 La última de las seis del antibiograma, y la más grande.

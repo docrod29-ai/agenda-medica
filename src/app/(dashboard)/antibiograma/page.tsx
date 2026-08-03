@@ -16,6 +16,7 @@ import {
   type PruebasConfirmatorias, type ResultadoPrueba,
 } from '@/lib/expediente/antibiograma'
 import { parseCMI } from '@/lib/expediente/antibiograma/cmi'
+import { ESTANDAR_DEL_MOTOR, EDICION_DEL_MOTOR, type ProcedenciaAntibiograma, type Estandar, type MetodoAST } from '@/lib/expediente/antibiograma/procedencia'
 import { fetchAutenticado } from '@/lib/auth-client'
 
 // Pruebas confirmatorias que traen los reportes automatizados / el laboratorio.
@@ -75,6 +76,19 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
   const [sitio, setSitio] = useState<SitioInfeccion>('otro')
   const [filas, setFilas] = useState<Fila[]>([nuevaFila('Ceftriaxona'), nuevaFila('Meropenem')])
   const [pruebas, setPruebas] = useState<PruebasConfirmatorias>({})
+  /**
+   * PROCEDENCIA DEL REPORTE — decisión 3 del Dr.
+   *
+   * Sin esto, la decisión 3 estaba implementada y no se podía disparar nunca:
+   * el motor sólo edita una categoría discordante con los ocho campos
+   * verificados, y dos de ellos —estándar y edición— no vienen impresos en la
+   * mayoría de los reportes. Una regla que no puede cumplirse es una regla
+   * escrita y sin conectar.
+   *
+   * Nace VACÍA a propósito: rellenarla con «CLSI, edición vigente» por omisión
+   * sería declarar por el médico justo lo que la decisión exige comprobar.
+   */
+  const [procedencia, setProcedencia] = useState<ProcedenciaAntibiograma>({})
   const [cargandoFoto, setCargandoFoto] = useState(false)
   const [avisoFoto, setAvisoFoto] = useState<string[]>([])
   const [meta, setMeta] = useState<MetaReporte | null>(null)
@@ -102,8 +116,8 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
           ...(cmi != null ? { cmi: cmi.valor, ...(cmi.censurada ? { cmiCensurada: cmi.censurada } : {}) } : {}),
         }
       })
-    return interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas })
-  }, [organismo, filas, sitio, pruebas])
+    return interpretarAntibiograma({ organismo: organismo.trim(), resultados, sitio, pruebas, procedencia })
+  }, [organismo, filas, sitio, pruebas, procedencia])
 
   /** La misma entrada que consumió el motor, para poder resumirla a la nota. */
   const entradaActual: EntradaAntibiograma | null = useMemo(() => {
@@ -112,6 +126,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       organismo: organismo.trim(),
       sitio,
       pruebas,
+      procedencia,
       resultados: filas.filter(f => f.antibiotico.trim()).map(f => {
         const cmi = parseCMI(f.cmi)
         return {
@@ -121,7 +136,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         }
       }),
     }
-  }, [organismo, filas, sitio, pruebas])
+  }, [organismo, filas, sitio, pruebas, procedencia])
 
   const setPrueba = (k: keyof PruebasConfirmatorias, v: ResultadoPrueba | undefined) =>
     setPruebas(p => { const n = { ...p }; if (v) (n[k] as ResultadoPrueba | undefined) = v; else delete n[k]; return n })
@@ -146,7 +161,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       })
       const resp = await fetchAutenticado('/api/expediente/antibiograma-razonar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organismo: organismo.trim(), resultados, sitio, pruebas, motor: 'maxima' }),
+        body: JSON.stringify({ organismo: organismo.trim(), resultados, sitio, pruebas, procedencia, motor: 'maxima' }),
       })
       const data = await resp.json().catch(() => null)
       if (!data?.ok) { setErrorRaz(data?.error || `No se pudo razonar (HTTP ${resp.status})`); return }
@@ -349,6 +364,56 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         {ATB_FRECUENTES.slice(0, 12).map(a => (
           <button key={a} type="button" onClick={() => agregar(a)} style={chip}>{a}</button>
         ))}
+      </div>
+
+      {/*
+        PROCEDENCIA DEL REPORTE — desbloquea la decisión 3 del Dr.
+        Mientras estos campos no se declaren, el motor NUNCA edita una categoría
+        discordante: sólo la señala y bloquea las conclusiones que dependan de
+        ella. Es la conducta conservadora, y es la correcta por omisión.
+      */}
+      <label style={{ ...label, marginTop: 20 }}>Procedencia del reporte (desbloquea la corrección por CMI)</label>
+      <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
+        Si la CMI y la categoría del laboratorio no coinciden, el motor sólo puede corregirla cuando
+        sabe con qué estándar se interpretó. Sin esto NO corrige nada — lo señala y te dice qué falta.
+      </div>
+      <div style={{ display: 'grid', gap: 8, marginTop: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Estándar</div>
+          <select value={procedencia.estandar ?? ''} style={input}
+            onChange={e => setProcedencia(p => ({ ...p, estandar: (e.target.value || undefined) as Estandar | undefined }))}>
+            <option value="">Sin declarar</option>
+            {(['CLSI', 'FDA', 'EUCAST', 'otro'] as const).map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Edición</div>
+          <input value={procedencia.edicion ?? ''} placeholder={EDICION_DEL_MOTOR} style={input}
+            onChange={e => setProcedencia(p => ({ ...p, edicion: e.target.value || undefined }))} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Método</div>
+          <select value={procedencia.metodo ?? ''} style={input}
+            onChange={e => setProcedencia(p => ({ ...p, metodo: (e.target.value || undefined) as MetodoAST | undefined }))}>
+            <option value="">Sin declarar</option>
+            <option value="mic">CMI (microdilución)</option>
+            <option value="automatizado">Automatizado</option>
+            <option value="gradiente">Gradiente / E-test</option>
+            <option value="disco">Difusión en disco</option>
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Unidad de la CMI</div>
+          <select value={procedencia.unidad ?? ''} style={input}
+            onChange={e => setProcedencia(p => ({ ...p, unidad: e.target.value || undefined }))}>
+            <option value="">Sin declarar</option>
+            <option value="mg/L">mg/L (µg/mL)</option>
+          </select>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+        El motor interpreta con <b>{ESTANDAR_DEL_MOTOR} {EDICION_DEL_MOTOR}</b>. Si tu laboratorio usa
+        otro estándar u otra edición, el motor no corrige: te lo dice y conserva las dos lecturas.
       </div>
 
       {/* Pruebas confirmatorias del reporte automatizado (opcionales) */}

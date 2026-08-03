@@ -17,6 +17,7 @@
 import { z } from 'zod'
 import type { EntradaAntibiograma, CategoriaPanel, SitioInfeccion, PruebasConfirmatorias, ResultadoPrueba } from './tipos'
 import { parseCMI } from './cmi'
+import type { ProcedenciaAntibiograma, Estandar } from './procedencia'
 
 /**
  * NORMALIZADORES TOLERANTES. La IA de visión a veces devuelve variantes válidas
@@ -102,6 +103,14 @@ export const PerfilExtraido = z.object({
   /** Tinción de Gram si viene reportada. */
   gram: texto,
   /**
+   * PROCEDENCIA DEL PUNTO DE CORTE (decisión 3 del Dr.), si el reporte la trae
+   * impresa. Muchos no la traen — y por eso NO se rellena con un supuesto: sin
+   * declarar, el motor no edita nada, que es la conducta conservadora.
+   */
+  estandar: texto,
+  edicionEstandar: texto,
+  unidadCmi: texto,
+  /**
    * Panel S/I/R. Cada celda es tolerante y, si aun así una fila viene ilegible,
    * cae a `{antibiotico:''}` (no rompe el arreglo) y se descarta al filtrar — una
    * fila mala NO tumba la lectura completa. Solo se conservan filas con nombre.
@@ -143,9 +152,10 @@ CAPTURA TAMBIÉN (son clave para interpretar):
 - organismosAdicionales: si el cultivo reporta más de un aislamiento.
 - pruebasReportadas: pruebas confirmatorias YA IMPRESAS con su resultado — BLEE/ESBL, Carbapenemasa (mCIM/Carba NP/molecular, con el tipo si lo dice: KPC/NDM/VIM/OXA-48), D-test o "clindamicina inducible"/ICR, "Cefoxitina screen"/MRSA, HLAR o "alto nivel de gentamicina", β-lactamasa/nitrocefina.
 - observaciones: comentarios del laboratorio.
+- estandar / edicionEstandar / unidadCmi: SOLO si el reporte lo dice literalmente ("Interpretación según CLSI M100-Ed35", "EUCAST v14", "CMI en mg/L"). Si no aparece impreso, NO lo pongas: dejarlo vacío es la respuesta correcta, y suponerlo cambiaría cómo se interpreta el antibiograma.
 
 Responde SOLO con un objeto JSON válido, sin texto adicional:
-{"organismo": string, "organismosAdicionales": [string], "muestra": string, "recuento": string, "fecha": string, "metodo": "disco"|"mic"|"automatizado"|"gradiente"|"desconocido", "sistema": string, "gram": string, "resultados": [{"antibiotico": string, "interpretacion": "S"|"I"|"R"|"SDD"|null, "cmi_texto": string|null, "cmi": number|null, "halo_mm": number|null, "conf": "alta"|"media"|"baja", "needs_review": boolean}], "pruebasReportadas": [{"nombre": string, "resultado": string}], "observaciones": string, "avisos": [string]}`
+{"organismo": string, "organismosAdicionales": [string], "muestra": string, "recuento": string, "fecha": string, "metodo": "disco"|"mic"|"automatizado"|"gradiente"|"desconocido", "sistema": string, "gram": string, "resultados": [{"antibiotico": string, "interpretacion": "S"|"I"|"R"|"SDD"|null, "cmi_texto": string|null, "cmi": number|null, "halo_mm": number|null, "conf": "alta"|"media"|"baja", "needs_review": boolean}], "pruebasReportadas": [{"nombre": string, "resultado": string}], "observaciones": string, "estandar": string, "edicionEstandar": string, "unidadCmi": string, "avisos": [string]}`
 
 export function buildVisionUserPrompt(): string {
   return 'Transcribe TODO el reporte de antibiograma de la imagen siguiendo las reglas de integridad (incluye muestra, método, recuento, pruebas confirmatorias impresas y observaciones). Devuelve solo el JSON.'
@@ -198,6 +208,28 @@ export function pruebasDesdeReporte(reportadas?: { nombre: string; resultado: st
     else if (/lactamasa|nitrocefin/.test(n)) out.betaLactamasa = v
   }
   return out
+}
+
+/**
+ * La procedencia, SOLO con lo que el reporte trae impreso.
+ *
+ * Nada se supone. Un `estandar` vacío significa «no se declaró», y el motor
+ * responde a eso no editando nada — que es exactamente lo que la decisión 3
+ * pide. Rellenarlo con «CLSI» porque es lo más común sería declarar por el
+ * laboratorio justo el campo que la regla existe para comprobar.
+ */
+export function procedenciaDelPerfil(perfil: PerfilExtraido): ProcedenciaAntibiograma {
+  const est = (perfil.estandar ?? '').trim().toUpperCase()
+  const estandar: Estandar | undefined =
+    est.includes('CLSI') ? 'CLSI' : est.includes('EUCAST') ? 'EUCAST' : est.includes('FDA') ? 'FDA'
+    : est ? 'otro' : undefined
+  return {
+    ...(estandar ? { estandar } : {}),
+    ...(perfil.edicionEstandar?.trim() ? { edicion: perfil.edicionEstandar.trim() } : {}),
+    ...(perfil.metodo && perfil.metodo !== 'desconocido' ? { metodo: perfil.metodo } : {}),
+    ...(perfil.unidadCmi?.trim() ? { unidad: perfil.unidadCmi.trim() } : {}),
+    ...(perfil.sistema?.trim() ? { sistema: perfil.sistema.trim() } : {}),
+  }
 }
 
 /**
@@ -293,6 +325,7 @@ export function perfilAEntradaConDescartes(
   return {
     entrada: {
       organismo: (perfil.organismo || '').trim(),
+      procedencia: procedenciaDelPerfil(perfil),
       resultados,
       sitio: sitio ?? sitioDesdeMuestra(perfil.muestra),
       pruebas: pruebasDesdeReporte(perfil.pruebasReportadas),

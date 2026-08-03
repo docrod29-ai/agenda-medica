@@ -3401,6 +3401,42 @@ de dejarlo implícito.
 
 ---
 
+
+## CENTÉSIMA VIGÉSIMA TANDA — v971 · LA DECISIÓN 3 NO SE PODÍA DISPARAR
+
+### El fallo fue mío, y es el de siempre
+
+En la v970 implementé la decisión 3 completa, la probé con 31 casos, la desplegué
+— y **dos de los ocho campos no los capturaba nadie**. Ni la pantalla ni la foto.
+Una regla escrita, probada, desplegada y **muerta**: exactamente el patrón que
+este repositorio lleva persiguiendo toda la sesión.
+
+### Lo que hay ahora
+
+Un bloque de **procedencia del reporte** en la pantalla (estándar, edición,
+método, unidad) que dice para qué sirve, y que enseña con qué estándar interpreta
+el motor — sin eso, usted no sabe contra qué se compara su reporte.
+
+El extractor de la foto también los pide, con la mitad que importa escrita en el
+prompt: **si no aparece impreso, NO lo pongas**. Un estándar que no se reconoce
+cae en «otro», nunca en el del motor: meterlo en CLSI porque no se supo leer
+desbloquearía la edición con un estándar desconocido.
+
+**Nada se rellena por omisión.** Poner «CLSI» porque es lo más común sería
+declarar por el laboratorio justo el campo que la regla existe para comprobar.
+
+### El guardián
+
+Comprueba que la pantalla captura los cuatro campos, que la procedencia llega al
+motor **y** al razonamiento con IA, y recorre el ciclo completo de la foto al
+motor en los dos escenarios. Verificado por mutación: quitar la procedencia de la
+llamada al motor lo pone rojo.
+
+- `app/(dashboard)/antibiograma/page.tsx`, `antibiograma/vision.ts`
+- `src/__tests__/procedencia-alcanzable.test.ts` — 15 pruebas. Total 5634.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
