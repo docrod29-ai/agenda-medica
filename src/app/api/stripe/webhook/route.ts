@@ -217,6 +217,30 @@ async function cancelarOtrasSuscripciones(customerId: string, conservarSubId: st
   } catch { /* no-bloqueante: si falla, no rompe la activación */ }
 }
 
+/**
+ * Deja constancia de que este consultorio YA estrenó su prueba gratis.
+ *
+ * La fuente de verdad es Stripe —`checkout` le pregunta por todas las
+ * suscripciones del cliente antes de conceder nada—, pero si esa consulta se cae
+ * en el momento de comprar, esta marca es lo único que impide regalar una
+ * segunda prueba. Por eso se escribe aquí y no al abrir la sesión de compra: al
+ * abrirla todavía no se sabe si el médico va a terminar de pagar, y marcarla
+ * antes de tiempo le quitaría la prueba a quien sólo abandonó el formulario.
+ *
+ * Nunca se sobrescribe: la fecha que importa es la de la PRIMERA.
+ */
+async function marcarPruebaEstrenada(clinicId: string, subId: string) {
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId)
+    if (!sub.trial_end && !sub.trial_start) return
+    const ref = adminDb.collection('clinics').doc(clinicId)
+    const snap = await ref.get()
+    if (snap.get('pruebaEstrenadaEn')) return
+    const inicio = sub.trial_start ? new Date(sub.trial_start * 1000) : new Date()
+    await ref.update({ pruebaEstrenadaEn: inicio.toISOString() })
+  } catch { /* no-bloqueante: la comprobación en Stripe sigue siendo la principal */ }
+}
+
 /* ── Route handler ─────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -426,6 +450,9 @@ export async function POST(req: NextRequest) {
          */
         const cicloComprado = session.metadata?.ciclo === 'anual' ? 'anual' : 'mensual'
         await activarPlan(clinicId, plan, { stripeSubscriptionId: nuevaSubId, ciclo: cicloComprado })
+        // La prueba gratis se estrena UNA vez: queda la marca por si Stripe no
+        // contesta la próxima vez que este consultorio abra una compra.
+        if (nuevaSubId) await marcarPruebaEstrenada(clinicId, nuevaSubId)
         // Evita empalme: cancela cualquier otra suscripción activa del cliente.
         if (session.customer && nuevaSubId) {
           await cancelarOtrasSuscripciones(String(session.customer), nuevaSubId)

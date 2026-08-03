@@ -13,6 +13,7 @@ import { stripe, priceIdDe, PlanKey, type Ciclo } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { planSeVende, loQueFrena, productoDe } from '@/lib/finanzas/estado-producto'
+import { decidirPrueba } from '@/lib/finanzas/prueba-gratis'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -86,15 +87,46 @@ export async function POST(req: NextRequest) {
       await clinicRef.update({ stripeCustomerId })
     }
 
+    /**
+     * LA PRUEBA GRATIS SE ESTRENA UNA VEZ.
+     *
+     * Aquí iba `trial_period_days: 14` incondicional, así que cancelar el día 13
+     * y volver a suscribirse renovaba la prueba: repetido, el producto entero
+     * gratis para siempre con dos clics cada dos semanas. Y no salta ninguna
+     * alarma, porque desde dentro se ve como un cliente que se suscribe.
+     *
+     * Se pregunta a Stripe por TODAS las suscripciones del cliente —las
+     * canceladas son justo las que interesan— y, si la consulta falla, se cae a
+     * la marca local que escribe el webhook.
+     */
+    let suscripcionesPrevias = 0
+    let historialConsultado = false
+    try {
+      const previas = await stripe.subscriptions.list({
+        customer: stripeCustomerId, status: 'all', limit: 1,
+      })
+      suscripcionesPrevias = previas.data.length
+      historialConsultado = true
+    } catch (e) {
+      safeLog.error('[Stripe Checkout] no se pudo consultar el historial de suscripciones', e)
+    }
+    const prueba = decidirPrueba({
+      suscripcionesPrevias,
+      pruebaEstrenadaEn: clinicData.pruebaEstrenadaEn ?? null,
+      historialConsultado,
+    })
+    safeLog.info(`[Stripe Checkout] prueba para ${clinicId}: ${prueba.dias ?? 'sin prueba'} — ${prueba.porQue}`)
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        // Modelo B: la tarjeta se captura HOY pero el primer cargo es hasta el día 15.
-        // Stripe gestiona el trial y el cobro automático; si falla → invoice.payment_failed.
-        trial_period_days: 14,
+        // Modelo B: con prueba, la tarjeta se captura HOY y el primer cargo es al
+        // terminar. Sin prueba, se cobra desde hoy — que es lo que el médico
+        // espera al volver después de haberse dado de baja.
+        ...(prueba.dias !== undefined ? { trial_period_days: prueba.dias } : {}),
         metadata: { clinicId, plan, ciclo: cicloEfectivo },
       },
       // Requerir tarjeta aunque haya trial (sin esto Stripe podría omitirla).

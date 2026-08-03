@@ -1523,6 +1523,56 @@ encima. Ninguna cifra clínica sale de aquí.
 
 ---
 
+## OCTOGÉSIMA SEXTA TANDA — v937 · EL PRODUCTO GRATIS PARA SIEMPRE
+
+### Cancelar el día 13 y volver a suscribirse renovaba la prueba
+
+`api/stripe/checkout` mandaba `trial_period_days: 14` **incondicional**, en cada
+sesión de compra. Stripe hace lo que se le pide: cada suscripción nueva nacía con
+catorce días gratis.
+
+Repetido, es **el producto entero gratis para siempre**: dos clics cada dos
+semanas, sin trampas ni herramientas. Y no salta ninguna alarma, porque desde
+dentro se ve igual que un cliente que se suscribe.
+
+Estaba en la cola desde el 1-ago con archivo y línea
+(`src/app/api/stripe/checkout/route.ts:84`) y no se había reparado.
+
+### La prueba es una cortesía de bienvenida
+
+Se pregunta a Stripe por **todas** las suscripciones del cliente —`status: 'all'`,
+porque las canceladas son justo las que interesan— y quien ya tuvo una (activa,
+cancelada o impagada) no la vuelve a estrenar. Cambiar de plan tampoco la
+reinicia: no es un cliente nuevo.
+
+Sin prueba se cobra desde el primer día, que es lo que el médico espera al
+volver. Y el campo se **omite** en vez de mandarse en `0`, que no es lo mismo.
+
+### La parte que no es obvia: qué hacer si Stripe no contesta
+
+Se cae a una **marca local** que escribe el webhook al **completarse** el pago
+—no al abrir la compra: ahí todavía no se sabe si el médico va a terminar, y
+marcarla antes le quitaría la prueba a quien sólo abandonó el formulario—. Si
+tampoco la hay, **se concede**.
+
+Negarla por una caída de red le cobra el primer día a alguien a quien se le
+prometieron catorce gratis, y eso es una **promesa rota**, no un descuento
+perdido. Concederla de más exige, además de la caída, que el webhook nunca
+escribiera la marca. La marca no se sobrescribe: la fecha que importa es la de la
+primera.
+
+El banner del muro de pago ya distinguía «Inicia tu prueba gratis de 14 días» de
+«Reactiva tu suscripción» según el estado, así que la pantalla no promete lo que
+el cobro ya no da.
+
+- `src/lib/finanzas/prueba-gratis.ts` (nuevo), `api/stripe/checkout/route.ts`,
+  `api/stripe/webhook/route.ts` (`marcarPruebaEstrenada`)
+- `src/__tests__/stripe-prueba-una-vez.test.ts` — 16 pruebas. Total 5064.
+
+**Cierra el punto 4 de la cola.**
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
@@ -1533,8 +1583,9 @@ encima. Ninguna cifra clínica sale de aquí.
    devuelve `'hospital'`. Sólo se dispara si falta `metadata.plan`.
 3. ~~`items.data[0]` no tiene orden garantizado~~ — HECHO (y v870 añadió los price ids anuales al conjunto). **Era** — mismo archivo, `:309`. Con un
    ítem de asiento en la suscripción puede ser el precio del médico extra.
-4. **Prueba de 14 días en CADA checkout** — `src/app/api/stripe/checkout/route.ts:84`,
-   incondicional: cancelar y volver a suscribirse los renueva.
+4. ~~Prueba de 14 días en CADA checkout~~ — HECHO (v937): la prueba se estrena
+   una vez; se pregunta a Stripe por todas las suscripciones del cliente y hay
+   marca local de respaldo escrita por el webhook.
 5. ~~`asientos` marca médicos contratados sin cobrarlos~~ — HECHO (409 explicando por qué). **Era** — `src/app/api/stripe/asientos/route.ts:82`.
 6. ~~`invoice.paid` sin clínica guarda `clinicId: ''`~~ — HECHO: se marca `huerfano: true`.
 7. ~~Las reglas dejan reatribuir `medicoId` al vincular factura~~ — HECHO: `medicoId`, `medicoNombre`, `referenciaExterna` y `folio` congelados. **Era** — `firestore.rules:611`,
