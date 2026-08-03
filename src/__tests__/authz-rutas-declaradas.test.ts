@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(92)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(93)   // +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -513,6 +513,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
       'cron/vigilante',
       'csp-report',
       'demo/evidencia',
+      /**
+       * 16 → 17 con `health`: el estado del sistema para un monitor externo.
+       * Sin sesión A PROPÓSITO —un endpoint de salud detrás de login no lo mira
+       * nadie a las 3am— y sólo devuelve booleanos, latencias y la versión.
+       */
+      'health',
       'planes',
       'public/availability/[clinicId]',
       'public/booking',
