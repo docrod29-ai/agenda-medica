@@ -1220,6 +1220,46 @@ aviso rojo. Con esa lista el diagnóstico es inmediato.
 
 ---
 
+## SEPTUAGÉSIMA NOVENA TANDA — v930 · LA FIRMA EN PDF: CAUSA REAL
+
+### El worker local (v928) no bastaba. Lo que la rompía era el TAMAÑO
+
+La hoja se rasterizaba a **220-300 DPI** y se mandaba **tal cual**. Una carta a
+esa resolución son ~1900×2400 px: varios MB en PNG, y el data URL infla otro
+**33 %** al ir en base64 dentro del JSON.
+
+La petición **moría antes de llegar al servidor** por el tope de la función, sin
+ningún error que explicara nada. Se veía una subida que no hacía nada.
+
+**Y la reducción existía** — pero condicionada a `if (!storage)`, con este
+razonamiento escrito en el código: *«con Storage el peso no importa»*.
+
+**Sí importa.** La imagen no viaja directo a Storage: pasa por una función con un
+límite duro. O sea que **tener Storage bien configurado era justo lo que activaba
+el fallo**.
+
+Ahora los tres caminos que rasterizan un PDF —firma, hoja membretada y diseño
+completo— reducen antes de subir. Una firma no necesita una hoja entera a 220 DPI:
+necesita la firma.
+
+Y queda una **última red** en el helper de subida: si alguien añade un camino
+nuevo y se le olvida, falla **con su nombre**, diciendo cuántos MB pesa y qué
+hacer — porque una subida que «no hace nada» no se puede depurar.
+
+### Además: la pestaña de recetas, agrupada
+
+Eran **nueve tarjetas idénticas** en fila, todas con el mismo peso visual. Ahora
+hay cuatro bloques con jerarquía y una línea que explica cada uno: **1 El papel ·
+2 Cómo se ve · 3 Qué se imprime · 4 Datos legales**. El orden ya era el correcto;
+faltaba decir dónde empieza cada cosa.
+
+- `src/lib/image-utils.ts` (`reducirDataUrlSiPesa`), `subir-imagen.ts`,
+  `secciones-cuenta.tsx`, `secciones-recetas.tsx`
+- `src/__tests__/pdf-worker-local.test.ts` (+4), `recetas-orden-visual.test.ts` (9).
+  Total 4987.
+
+---
+
 ## PENDIENTE — cola priorizada (mía)
 
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:

@@ -82,3 +82,43 @@ describe('la subida de firma acepta PDF de verdad', () => {
     expect(seccion).toContain('pdfFileToImageDataUrl')
   })
 })
+
+/**
+ * Y EL TOPE QUE DE VERDAD LO ROMPÍA: el cuerpo de la petición.
+ *
+ * El worker local (v928) no bastó. La causa real era otra: la hoja se rasterizaba
+ * a 220-300 DPI y se mandaba TAL CUAL. Una carta a esa resolución son varios MB
+ * en PNG, y el data URL infla otro 33 % al ir en base64 dentro del JSON. La
+ * petición moría antes de llegar al servidor por el tope de la función — sin
+ * ningún error que explicara nada.
+ *
+ * Y la reducción existía, pero estaba condicionada a `if (!storage)`, con este
+ * razonamiento escrito: «con Storage el peso no importa». Sí importa: la imagen
+ * no viaja directo a Storage, pasa por una función con un límite duro.
+ */
+describe('lo que sale de un PDF se reduce ANTES de subirse', () => {
+  const leer = (...p: string[]) => readFileSync(join(raiz, ...p), 'utf8')
+
+  it('la firma', () => {
+    const s = leer('src', 'app', '(dashboard)', 'configuracion', 'secciones-cuenta.tsx')
+    expect(s).toContain("reducirDataUrlSiPesa(r.dataUrl, 2_500_000, 'image/png')")
+  })
+
+  it('la hoja membretada', () => {
+    const s = leer('src', 'app', '(dashboard)', 'configuracion', 'secciones-cuenta.tsx')
+    expect(s).toContain("reducirDataUrlSiPesa(r0.dataUrl, 2_500_000, 'image/jpeg')")
+  })
+
+  it('el diseño completo de la receta', () => {
+    const s = leer('src', 'app', '(dashboard)', 'configuracion', 'secciones-recetas.tsx')
+    expect(s).toContain("reducirDataUrlSiPesa(result.dataUrl, 2_500_000, 'image/png')")
+  })
+
+  it('y si alguien añade un camino nuevo y se le olvida, falla CON SU NOMBRE', () => {
+    // Una subida que «no hace nada» no se puede depurar. Un error que dice
+    // cuántos MB pesa y qué hacer, sí.
+    const s = leer('src', 'lib', 'subir-imagen.ts')
+    expect(s).toContain('const límite de subida es ~3.5 MB'.replace('const ', 'y el '))
+    expect(s).toContain('exporta sólo la zona de la firma')
+  })
+})

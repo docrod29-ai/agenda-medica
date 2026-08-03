@@ -9,7 +9,7 @@ import { areaImpracticable } from '@/lib/receta-paginacion'
 import { RecetaDocumento, dimensionesImpresion, paperEfectivo, admiteHojaCarta, type RecetaData } from '@/components/RecetaDocumento'
 import { imprimirElemento } from '@/lib/print-element'
 import { GuiaConfigurarReceta } from '@/components/GuiaConfigurarReceta'
-import { resizeImageFile, formatBytes } from '@/lib/image-utils'
+import { resizeImageFile, formatBytes, reducirDataUrlSiPesa } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM, PAPEL_MAX_MM, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
 import { getDoctors, saveConfig } from '@/lib/firestore'
@@ -294,8 +294,18 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             onProgress: setProgresoDiseno, timeoutMs: 60_000,
           })
         }
-        dataUrl = result.dataUrl
-        sizeBytes = result.sizeBytes
+        /**
+         * EL TOPE QUE FALTABA: el cuerpo de la petición, no el disco.
+         *
+         * Las reducciones de arriba sólo corrían `if (!storage)`, con este
+         * razonamiento: «con Storage el peso no importa». Sí importa: la imagen
+         * no viaja directo a Storage, va en base64 dentro de un JSON por una
+         * función con un tope duro de request. Una hoja carta a 300 DPI lo pasa
+         * de sobra, así que CON Storage la subida moría antes de llegar.
+         */
+        const reducido = await reducirDataUrlSiPesa(result.dataUrl, 2_500_000, 'image/png')
+        dataUrl = reducido.dataUrl
+        sizeBytes = reducido.sizeBytes
         widthMm = result.widthMm
         heightMm = result.heightMm
       } else if (file.type.startsWith('image/')) {
@@ -607,6 +617,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
         {/* Tamaño de papel — SOLO recetas y órdenes. Las notas van SIEMPRE en carta
             (PAPEL_NOTA) y no leen nada de aquí: son ajustes independientes. */}
+        <Grupo n={1} t="El papel" d="En qué hoja se imprime. Empieza por aquí: el resto de los ajustes se acomodan al tamaño que elijas." />
         <Section title="Tamaño de papel">
           <select
             value={rx.paperSize}
@@ -726,6 +737,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
         )}
 
         {/* Estilo visual */}
+        <Grupo n={2} t="Cómo se ve" d="Estilo, color y tu membrete. Es la parte que el paciente reconoce como tuya." />
         <Section title="Estilo visual">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {(Object.keys(ESTILOS_RECETA) as EstiloT[]).map(k => {
@@ -834,6 +846,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
         </Section>
 
         {/* Opciones */}
+        <Grupo n={3} t="Qué se imprime" d="Qué datos del paciente aparecen en la hoja y cuántas copias salen." />
         <Section title="Opciones">
           <div style={{ display: 'grid', gap: 8 }}>
             <Toggle label="Mostrar caja de alergias" checked={rx.mostrarAlergias !== false} onChange={(v) => setRx({ ...rx, mostrarAlergias: v })} />
@@ -843,6 +856,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           </div>
         </Section>
 
+        <Grupo n={4} t="Datos legales" d="RFC, registro para psicotrópicos, vigencia y el aviso al pie. Opcionales: sólo se imprimen si los llenas." />
         <Section title="Datos legales adicionales (opcional)">
           <div style={{ display: 'grid', gap: 8 }}>
             <div>
@@ -1081,6 +1095,35 @@ function PreviewReceta({
           <RecetaDocumento data={demoData} config={config ?? null} recetaConfig={rx} />
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * ENCABEZADO DE GRUPO — la jerarquía que le faltaba a esta pestaña.
+ *
+ * Había NUEVE tarjetas idénticas, una debajo de otra, todas con el mismo peso
+ * visual: tamaño de papel, papel de las notas, papel de la impresora, estilo,
+ * color, membrete, pie, opciones y datos legales. Sin jerarquía, encontrar algo
+ * es leerlas todas — y son cosas de naturalezas distintas: unas describen el
+ * PAPEL FÍSICO, otras cómo se ve, otras qué se imprime, otras datos legales.
+ *
+ * El orden ya era el correcto; lo que faltaba era decir en voz alta dónde
+ * empieza cada bloque.
+ */
+function Grupo({ n, t, d }: { n: number; t: string; d: string }) {
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 800, color: 'var(--nexus)',
+          background: 'color-mix(in srgb, var(--nexus) 14%, transparent)',
+          borderRadius: 6, padding: '2px 7px', flexShrink: 0,
+        }}>{n}</span>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{t}</h3>
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '4px 0 0 30px', lineHeight: 1.45 }}>{d}</p>
+      <div style={{ height: 1, background: 'var(--border)', margin: '10px 0 0' }} />
     </div>
   )
 }

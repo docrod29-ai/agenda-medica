@@ -14,6 +14,26 @@ import { fetchAutenticado } from '@/lib/auth-client'
  */
 export async function subirImagen(valor: string | undefined, key: string): Promise<string | undefined> {
   if (!valor || !valor.startsWith('data:')) return valor
+
+  /**
+   * ÚLTIMA RED: si algo llega demasiado grande, se dice ANTES de mandarlo.
+   *
+   * El cuerpo de la petición viaja por una función serverless con un tope duro
+   * de ~4.5 MB, y base64 infla el binario un 33 %. Por encima de eso la petición
+   * NO LLEGA, y lo que se veía era una subida que «no hacía nada» — sin error,
+   * sin causa, sin nada que probar.
+   *
+   * Quien llama ya debería haber reducido la imagen (`reducirDataUrlSiPesa`);
+   * esto es para que, si alguien añade un camino nuevo y se le olvida, el fallo
+   * salga con su nombre en vez de en silencio.
+   */
+  const bytes = Math.ceil((((valor.split(',')[1] ?? '').length) * 3) / 4)
+  if (bytes > 3_500_000) {
+    throw new Error(
+      `La imagen pesa ${Math.round(bytes / 1_000_000)} MB y el límite de subida es ~3.5 MB. ` +
+      'Si viene de un PDF, exporta sólo la zona de la firma o súbela como PNG recortado.',
+    )
+  }
   const res = await fetchAutenticado('/api/config/imagen', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
