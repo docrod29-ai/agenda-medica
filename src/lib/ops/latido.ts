@@ -84,6 +84,7 @@ export const PERIODO_MIN: Record<string, number> = {
   reminders: 60,        // cada hora
   'limpiar-audio': 1440, // diario
   retencion: 1440,       // diario
+  asientos: 1440,        // diario — concilia el cobro por médico
 }
 
 /**

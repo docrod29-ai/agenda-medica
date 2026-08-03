@@ -3130,6 +3130,52 @@ peor que estar mal en los dos, porque parece que funciona.
 
 ---
 
+
+## CENTÉSIMA DECIMOCUARTA TANDA — v965 · EL COBRO POR MÉDICO DEPENDÍA DE UN BOTÓN (N4)
+
+**Cierra N4.**
+
+### El fallo
+
+En todo el repositorio hay **un solo sitio que escribe `medicosContratados`**: el
+botón «sincronizar» de una pantalla de configuración. Ni el alta de un miembro,
+ni un cron, ni el webhook.
+
+Mientras tanto el cupo de IA escala con los médicos **presentes** y se aplica al
+instante. Un consultorio da de alta cinco médicos, los cinco reciben su cuota esa
+misma tarde, y la suscripción sigue cobrando uno — indefinidamente. **Es una fuga
+que crece con el éxito.** Y el desajuste tampoco se ve: el aviso sólo aparece si
+alguien abre esa pantalla concreta de ese consultorio concreto.
+
+### Por qué NO se arregló bajando el cupo
+
+La tentación era que el cupo siguiera a lo contratado. Sería el error de v944
+otra vez: un consultorio con cuatro médicos de alta y el contador en uno —porque
+nadie pulsó nunca el botón— vería su presupuesto de IA dividido entre cuatro de
+un día para otro, sin haber hecho nada mal.
+
+**El cupo sigue a los presentes. Lo que se arregla es que el cobro deje de
+depender de un clic.**
+
+### Va en los dos sentidos
+
+El cron también ajusta **a la baja**: quien da de baja a dos médicos deja de
+pagar por ellos esa misma noche sin pedirlo. Un cobro automático que sólo sube no
+es una conciliación, es una trampa.
+
+### Una sola implementación
+
+La regla —«si Stripe no se pudo ajustar, NO se marca como contratado»— se extrajo
+a `lib/finanzas/asientos.ts` y la usan el botón y el cron. La decisión está
+separada del efecto (`queHacer` no toca Stripe), así que la parte que se puede
+equivocar se prueba sin red.
+
+- `src/lib/finanzas/asientos.ts` (nuevo), `api/cron/asientos` (nueva),
+  `api/stripe/asientos`, `vercel.json`, `lib/ops/latido.ts`, `registro-rutas.ts`
+- `src/__tests__/asientos-conciliacion.test.ts` — 18 pruebas. Total 5531.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -3148,8 +3194,9 @@ sustancialmente mejor de lo que un comprador puede ver».
 - N3. ~~El catálogo editable de precios no llega al cobro ni a los créditos
   entregados.~~ **CERRADO v964** (cupo entregado, precio por asiento y tope de IA
   leen el catálogo vigente; queda el MRR, que es N7).
-- N4. Fuga por asiento: el cupo de créditos sigue a `contarMedicos` (presentes) y
-  el cobro sólo se ajusta si alguien pulsa sincronizar.
+- N4. ~~Fuga por asiento: el cobro sólo se ajusta si alguien pulsa sincronizar.~~
+  **CERRADO v965** (cron nocturno que concilia en los dos sentidos; el cupo sigue
+  a los presentes a propósito, para no repetir v944).
 - N5. Contabilidad valora con `COSTO_CREDITO_MXN = 1.5` inventado mientras el
   libro de costos REAL existe y nadie lo lee.
 - N6. Margen por consulta y costo por médico: falta una línea de agrupación
