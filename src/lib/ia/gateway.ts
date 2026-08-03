@@ -33,6 +33,7 @@ import { registrarCosto } from '@/lib/finanzas/cost-ledger-server'
 import { usoDe } from '@/lib/finanzas/medir-ia'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { safeLog } from '@/lib/security/sanitize'
+import { fetchConTimeout, TiempoAgotado, TIMEOUT } from '@/lib/fetch-con-timeout'
 import { reservarParaClinica, confirmarCreditos, devolverCreditos } from '@/lib/finanzas/cartera-server'
 import {
   cuerpoAnthropic, cuerpoOpenAI, falloHttp, leerAnthropic, leerOpenAI,
@@ -125,16 +126,33 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
     const p: Peticion = { ...o, modelo }
     let res: Response
     try {
-      res = await fetch(URL[o.proveedor], {
+      /**
+       * CON TIEMPO MÁXIMO. Aquí no lo había.
+       *
+       * Éste es el módulo que centraliza TODAS las llamadas a Anthropic y
+       * OpenAI, y lo usan rutas con `maxDuration = 300`. Un socket colgado del
+       * proveedor inmovilizaba el lambda los trescientos segundos completos,
+       * facturados por GB-segundo — y el único módulo que existía para
+       * centralizar las llamadas era justo el que no tenía la protección.
+       */
+      res = await fetchConTimeout(URL[o.proveedor], {
         method: 'POST',
         headers: o.proveedor === 'anthropic'
           ? { 'x-api-key': o.clave, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
           : { Authorization: `Bearer ${o.clave}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(o.proveedor === 'anthropic' ? cuerpoAnthropic(p) : cuerpoOpenAI(p)),
-      })
+      }, TIMEOUT.ia)
     } catch (e) {
       safeLog.error(`[gateway] ${o.proveedor} red`, e)
-      ultimo = { ok: false, clase: 'red', motivo: `${o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'}: no se pudo conectar.` }
+      /**
+       * «Se agotó el tiempo» y «no se pudo conectar» NO son lo mismo, y decir lo
+       * segundo por lo primero manda al médico a revisar su internet cuando el
+       * que no contesta es el proveedor.
+       */
+      const proveedor = o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+      ultimo = e instanceof TiempoAgotado
+        ? { ok: false, clase: 'red', motivo: `${proveedor}: tardó más de ${Math.round(TIMEOUT.ia / 1000)} s y se cortó la espera.` }
+        : { ok: false, clase: 'red', motivo: `${proveedor}: no se pudo conectar.` }
       // Un fallo de red no dice nada del modelo: no tiene sentido recorrer la lista.
       break
     }

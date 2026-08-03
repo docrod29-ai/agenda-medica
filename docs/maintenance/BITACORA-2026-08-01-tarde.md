@@ -2385,6 +2385,61 @@ diagnóstico en su respuesta y en el registro, pero **no despierta a nadie**.
 
 ---
 
+## CENTÉSIMA PRIMERA TANDA — v952 · EL LAMBDA COLGADO Y EL PUNTO CIEGO
+
+**Cierra I2 e I4.**
+
+### El gateway de IA no tenía timeout
+
+`lib/ia/gateway.ts` centraliza **todas** las llamadas a Anthropic y OpenAI —lo
+usan el Copilot de UCI, el bot de ayuda, la redacción del inmunocomprometido
+(`maxDuration = 300`), la verificación de la nota y la atribución de roles— y su
+`fetch` **no pasaba `signal`**.
+
+Un socket colgado del proveedor **inmovilizaba el lambda los trescientos segundos
+completos**, facturados por GB-segundo. Y el único módulo que existía para
+centralizar las llamadas de proveedor era **justo el que no tenía la
+protección**.
+
+Lo mismo en los **cinco** envíos de WhatsApp, dentro de un cron que recorre todos
+los consultorios **en serie**.
+
+Ahora todo pasa por un helper que:
+
+- limpia **siempre** el temporizador en un `finally` — ésa es la trampa de
+  `AbortController`: sin eso queda un `setTimeout` vivo por cada llamada con
+  éxito;
+- respeta una cancelación que ya viniera de fuera;
+- distingue **«se agotó el tiempo»** de **«no se pudo conectar»**: decir lo
+  segundo por lo primero manda al médico a revisar su internet cuando el que no
+  contesta es el proveedor;
+- usa tiempos distintos por destino (IA 60 s, WhatsApp 10 s, alertas 5 s), porque
+  el mismo número para los dos corta respuestas buenas o deja colgado un cron.
+
+### La caída más grave era la única que no se reportaba
+
+`global-error.tsx` —el boundary que se activa cuando falla algo tan arriba que
+**ni el layout carga**— sólo hacía `console.error`. Los de dashboard y consulta
+sí reportaban.
+
+Y no era un olvido inocuo: `api/errores` exigía `verificarUsuario`, así que el
+mini-Sentry **sólo aceptaba reportes de un usuario con sesión válida**. Un fallo
+en el **login** —donde por definición no hay sesión— tampoco se podía reportar.
+Mandarlo autenticado habría dado 401 y el reporte se habría perdido igual: **el
+arreglo a medias que parece arreglo.**
+
+Ahora la ruta acepta el reporte **anónimo**, con un freno más estrecho por IP
+—5/hora frente a 20/5 min con sesión, porque sin sesión no hay a quién cortarle
+el abuso, sólo una IP que se comparte— y **marcado** como anónimo: un reporte sin
+dueño vale menos que uno con dueño, y quien lo lea tiene que poder distinguirlos.
+
+- `src/lib/fetch-con-timeout.ts` (nuevo), `lib/ia/gateway.ts`,
+  `lib/whatsapp-send.ts`, `app/global-error.tsx`, `lib/reportar-error.ts`,
+  `api/errores/route.ts`
+- `src/__tests__/ops-timeout-y-punto-ciego.test.ts` — 14 pruebas. Total 5335.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

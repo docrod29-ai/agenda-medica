@@ -12,11 +12,40 @@ import { limitarOResponder } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
+/** La IP del que reporta, para poder frenarlo sin tener su uid. */
+function ipDe(req: NextRequest): string {
+  const h = req.headers.get('x-forwarded-for') ?? ''
+  return h.split(',')[0].trim() || 'desconocida'
+}
+
 export async function POST(req: NextRequest) {
+  /**
+   * SE ACEPTA SIN SESIÓN, Y ESO ES EL ARREGLO.
+   *
+   * Esta ruta exigía `verificarUsuario`, así que el mini-Sentry **sólo aceptaba
+   * reportes de un usuario con sesión válida**. Quedaban ciegas justo las
+   * caídas que más importan:
+   *
+   *   · el boundary GLOBAL, que se activa cuando ni el layout carga;
+   *   · cualquier fallo en el login, donde por definición no hay sesión todavía.
+   *
+   * O sea: la falla más grave era la única que no se podía reportar.
+   *
+   * Se acepta anónimo, con su propio freno por IP y marcado como tal — un
+   * reporte sin dueño vale menos que uno con dueño, y quien lo lea tiene que
+   * poder distinguirlos.
+   */
   const acceso = await verificarUsuario(req)
-  if (!acceso.ok) return acceso.response
-  // Anti-spam: máx 20 reportes / 5 min por usuario (un bug en loop no inunda).
-  const limite = await limitarOResponder(`errores:${acceso.uid}`, 20, 300)
+  const anonimo = !acceso.ok
+  /**
+   * El freno del anónimo es MÁS estrecho: sin sesión no hay a quién cortarle el
+   * abuso, sólo una IP que se comparte. Cinco por hora bastan para un boundary
+   * global —que dispara una vez por caída, con dedup en el cliente— y no
+   * alcanzan para inundar la colección.
+   */
+  const limite = anonimo
+    ? await limitarOResponder(`errores-anon:${ipDe(req)}`, 5, 3600)
+    : await limitarOResponder(`errores:${acceso.uid}`, 20, 300)
   if (limite) return NextResponse.json({ ok: true })  // silencioso: nunca molesta al usuario
 
   let body: { mensaje?: string; stack?: string; ruta?: string; ua?: string; origen?: string }
@@ -27,12 +56,14 @@ export async function POST(req: NextRequest) {
   try {
     await adminDb.collection('errores').add({
       mensaje,
+      // Un reporte sin dueño vale menos que uno con dueño: se distingue.
+      anonimo,
       stack: String(body.stack ?? '').slice(0, 1500),
       ruta: String(body.ruta ?? '').slice(0, 200),
       ua: String(body.ua ?? '').slice(0, 200),
       origen: String(body.origen ?? 'cliente').slice(0, 40),
-      uid: acceso.uid,
-      email: acceso.email ?? '',
+      uid: acceso.ok ? acceso.uid : '',
+      email: acceso.ok ? (acceso.email ?? '') : '',
       fecha: new Date().toISOString(),
       visto: false,
     })
