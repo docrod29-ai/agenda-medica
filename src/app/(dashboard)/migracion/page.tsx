@@ -89,6 +89,37 @@ export default function MigracionPage() {
     }
   }
 
+  /**
+   * EL LIBRO DE EXCEL — una descarga en vez de seis.
+   *
+   * Los seis botones de arriba bajan seis CSV que hay que pegar a mano en una
+   * hoja de cálculo. Esto baja el mismo contenido ya montado, con una pestaña
+   * por dominio y una de RESUMEN delante que dice qué trae y qué le falta.
+   */
+  const exportarLibro = async () => {
+    if (!clinicId || dominioEnCurso) return
+    setDominioEnCurso('__libro__')
+    try {
+      const res = await fetchAutenticado(`/api/clinic/exportar-excel?clinicId=${encodeURIComponent(clinicId)}`)
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast(d.error || 'No se pudo exportar', 'error')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `nexusmed_${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      toast('Descargado. La primera pestaña dice qué trae y si falta algo.', 'success')
+    } catch {
+      toast('No se pudo conectar para exportar', 'error')
+    } finally {
+      setDominioEnCurso(null)
+    }
+  }
+
   const cargarArchivo = (f: File) => {
     const r = new FileReader()
     r.onload = () => setTexto(String(r.result ?? ''))
@@ -199,7 +230,17 @@ export default function MigracionPage() {
                 de la que salió. Para reconstruir el consultorio entero está el respaldo
                 completo en Pacientes; esto es para leerlo, contarlo o dárselo a tu contador.
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* El libro va PRIMERO: es lo que casi todo el mundo quiere, y los
+                    seis CSV sueltos son para quien necesite uno en concreto. */}
+                <Button variant="primary" size="sm"
+                  onClick={exportarLibro}
+                  loading={dominioEnCurso === '__libro__'}
+                  disabled={!!dominioEnCurso && dominioEnCurso !== '__libro__'}
+                  icon={<Download size={14} />}>
+                  Todo en Excel (.xlsx)
+                </Button>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>o suelto en CSV:</span>
                 {([
                   ['consultas', 'Consultas'], ['diagnosticos', 'Diagnósticos'],
                   ['medicamentos', 'Medicamentos'], ['laboratorios', 'Laboratorios'],

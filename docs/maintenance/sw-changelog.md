@@ -21,6 +21,53 @@ historia vive aquí.
 
 ---
 
+## v960 — el libro de Excel que no existía (D5)
+
+«No existe exportación a Excel. Ninguna» — comprobado: ni una línea de `xlsx` en
+todo el repositorio. Y `csv-clinico.ts` lo había dejado escrito el día que se
+creó: «una pestaña por dominio es como se piensa esa información, y **un CSV por
+dominio es la versión sin dependencias nuevas de esa idea**».
+
+Esto es la idea entera, y **sigue sin dependencias nuevas**: el escritor de
+`.xlsx` es nuestro (`lib/xlsx.ts`, 300 líneas puras). Un `.xlsx` es un ZIP con
+media docena de XML dentro; para una tabla eso es determinista y probable. Las
+librerías del ramo pesan megas, arrastran árboles enteros y han tenido su cuota
+de CVEs — ninguna de las dos cosas se paga con gusto en un producto que maneja
+expedientes.
+
+LA VENTAJA DE SEGURIDAD NO ES ACCIDENTAL: en CSV, `=1+1` lo EVALÚA Excel al
+abrirlo, y por eso `csv-seguro` le antepone un apóstrofo. Aquí cada celda de
+texto se escribe como `inlineStr`, un tipo que Excel **nunca** evalúa. La defensa
+no es un filtro que haya que acordarse de aplicar: es el formato. Está probado
+con seis cargas hostiles, incluida la de `=cmd|…!A0`.
+
+CÓMO SE PRUEBA UN BINARIO SIN CONFIAR EN QUE «NO TRUENA»: el golden escribe el
+archivo y lo abre con el `unzip` del sistema —`unzip -t` comprueba el CRC de
+todos los miembros, que es el mismo control que hace el lector— y lee los XML de
+dentro. Comprobar que la función «devuelve bytes» no probaría nada. El escritor
+es determinista a propósito (fecha del ZIP fija), así que el mismo dato da el
+mismo archivo byte a byte, y eso también se prueba.
+
+UNA SOLA DEFINICIÓN DE LA FILA: `filasDe` devolvía las filas ya unidas en CSV.
+Convertirlas al libro habría exigido volver a describir las mismas columnas en
+otro sitio — dos definiciones que divergen sin que nadie lo note, que es
+exactamente lo de la CMI en v957. Ahora `celdasDe` devuelve celdas y el CSV es
+UNA de las dos escrituras, no la fuente.
+
+LA PESTAÑA DE RESUMEN VA PRIMERA: un libro que se abre en «consultas» con 4 000
+filas se lee como el consultorio entero, y si se recortó nadie va a buscar la
+advertencia en la última pestaña. Declara pacientes recorridos, filas totales,
+qué es y qué NO es (no sustituye al respaldo NDJSON), y los topes alcanzados con
+su nombre. Una pestaña VACÍA se conserva con su cabecera: «este dominio no tiene
+nada» y «este dominio no existe» son cosas distintas.
+
+Un dominio que falla no tumba el libro: se entregan los otros cinco y se dice
+cuál quedó incompleto. Misma capacidad que el CSV (`clinico.escribir`) a
+propósito: dos respuestas a «¿quién puede llevarse el expediente?» acabarían
+discrepando y valdría la puerta más floja. +24 casos.
+
+---
+
 ## v959 — la confirmatoria negativa que se leía, se tipaba, se transportaba y se tiraba
 
 REPRODUCIDO CORRIENDO EL MOTOR. Un *S. aureus* con **oxacilina R** en el panel y
