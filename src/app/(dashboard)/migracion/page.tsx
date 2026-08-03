@@ -4,6 +4,7 @@ import { PageHeader, Button, Spinner } from '@/components/ui'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { getPatients, createPatient } from '@/lib/firestore'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import type { Patient } from '@/types'
@@ -21,6 +22,7 @@ export default function MigracionPage() {
   const { toast } = useToast()
 
   const [exportando, setExportando] = useState(false)
+  const [dominioEnCurso, setDominioEnCurso] = useState<string | null>(null)
   const [texto, setTexto] = useState('')
   const [analizando, setAnalizando] = useState(false)
   const [clasificadas, setClasificadas] = useState<Clasificada[] | null>(null)
@@ -47,6 +49,43 @@ export default function MigracionPage() {
       toast('No se pudo exportar', 'error')
     } finally {
       setExportando(false)
+    }
+  }
+
+  /**
+   * EXPORTACIÓN CLÍNICA POR DOMINIO.
+   *
+   * El botón de al lado descarga once columnas de demografía. Esta pantalla se
+   * llama «Migración» y el argumento que la sostiene es «no te secuestro tus
+   * datos»: un competidor abre ese CSV en una demo y gana la reunión sin decir
+   * una palabra.
+   *
+   * Esto no sustituye al respaldo completo (`clinic/exportar`, NDJSON, para
+   * RECONSTRUIR): es lo que se abre en una hoja de cálculo para mirarlo,
+   * contarlo o dárselo al contador.
+   */
+  const exportarDominio = async (dominio: string) => {
+    if (!clinicId || dominioEnCurso) return
+    setDominioEnCurso(dominio)
+    try {
+      const res = await fetchAutenticado(`/api/clinic/exportar-csv?clinicId=${encodeURIComponent(clinicId)}&dominio=${dominio}`)
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast(d.error || 'No se pudo exportar', 'error')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const hoy = new Date().toISOString().slice(0, 10)
+      a.href = url; a.download = `${dominio}_${hoy}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      toast('Descargado. La última fila dice cuántas filas trae.', 'success')
+    } catch {
+      toast('No se pudo conectar para exportar', 'error')
+    } finally {
+      setDominioEnCurso(null)
     }
   }
 
@@ -143,6 +182,39 @@ export default function MigracionPage() {
             <Button onClick={exportar} loading={exportando} icon={<FileSpreadsheet size={16} />}>
               Descargar pacientes (CSV)
             </Button>
+
+            {/*
+              LO CLÍNICO, QUE ES LO QUE FALTABA.
+
+              El botón de arriba son once columnas de demografía: nombre,
+              teléfono, correo… Cero contenido clínico. Esta pantalla dice «tu
+              información es tuya» y entregaba una agenda de contactos.
+            */}
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                Y lo clínico, por si lo quieres en una hoja de cálculo
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.5 }}>
+                Una fila por elemento —un diagnóstico, un medicamento, un analito— con la nota
+                de la que salió. Para reconstruir el consultorio entero está el respaldo
+                completo en Pacientes; esto es para leerlo, contarlo o dárselo a tu contador.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {([
+                  ['consultas', 'Consultas'], ['diagnosticos', 'Diagnósticos'],
+                  ['medicamentos', 'Medicamentos'], ['laboratorios', 'Laboratorios'],
+                  ['citas', 'Citas'], ['cobros', 'Cobros'],
+                ] as const).map(([clave, etiqueta]) => (
+                  <Button key={clave} variant="secondary" size="sm"
+                    onClick={() => exportarDominio(clave)}
+                    loading={dominioEnCurso === clave}
+                    disabled={!!dominioEnCurso && dominioEnCurso !== clave}
+                    icon={<Download size={14} />}>
+                    {etiqueta}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

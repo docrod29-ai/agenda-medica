@@ -2254,6 +2254,70 @@ que nadie lo note.
 
 ---
 
+## NONAGÉSIMA NOVENA TANDA — v950 · LO CLÍNICO SALE, Y MI CSV SE REPARA A SÍ MISMO
+
+**Cierra D4.**
+
+### Primero, mi error de v949: inyección de fórmulas
+
+El módulo de CSV de la bitácora —que escribí ayer— entrecomillaba todo y **se
+creía a salvo**. Excel y Sheets **ejecutan** cualquier celda que empiece por
+`=`, `+`, `-` o `@`, y **entrecomillar no protege de eso**: Excel evalúa igual.
+
+Ese texto puede venir del nombre de un paciente o de una nota —cualquier cosa que
+acabe en `meta`—, y quien ejecuta la fórmula al abrir el archivo es **el propio
+médico**, o el auditor.
+
+El repositorio **ya tenía** la defensa correcta desde antes —`lib/csv-seguro.ts`,
+apóstrofo delante según OWASP— y yo no la estaba usando.
+
+**Escribir la mitad de una defensa es peor que no escribirla**: se da por
+resuelto lo que sigue abierto.
+
+### Y D4: once columnas de demografía
+
+La pantalla se llama **Migración** y su exportación son nombre, teléfono,
+WhatsApp, correo, fecha de nacimiento, sexo, CURP, seguro, alergias, notas y
+última cita. **Cero contenido clínico**: ni una consulta, ni un diagnóstico, ni
+un medicamento, ni un cobro.
+
+Y el argumento que sostiene esa pantalla es «no te secuestro tus datos». Un
+competidor abre ese CSV en una demo y gana la reunión sin decir una palabra.
+
+### Exportación clínica por dominio
+
+Consultas, diagnósticos, medicamentos, laboratorios, citas y cobros — del
+servidor y por streaming.
+
+- **Una fila por elemento.** Un diagnóstico o un medicamento viven **dentro** de
+  la nota, en arreglos; volcarlos en una celda los entrega y los pierde a la vez,
+  porque nadie puede contar, filtrar ni sumar sobre `[object Object]`.
+- Cada fila trae el **nombre** del paciente y la **referencia a su nota**, para
+  poder leerla sin cruzar identificadores a mano.
+- Una nota **sin** diagnósticos no produce una fila vacía: al sumar, el
+  consultorio tendría más diagnósticos de los que hay.
+- Con **BOM**: sin él, Excel abre el archivo en Latin-1 y «Rodríguez» sale
+  «RodrÃ­guez» en la primera columna que se ve.
+- Con el permiso del **médico**, no el del mostrador: vuelca diagnósticos y
+  medicamentos de todos los pacientes, y ese permiso no alcanza ni para «sólo
+  exportar».
+- La última fila declara el alcance y **grita** si recortó.
+
+**Y no sustituye al respaldo**: el NDJSON sirve para **reconstruir**, esto para
+leer, contar o dárselo al contador. Confundirlos llevaría a que alguien crea que
+exportando «Consultas» tiene su consultorio a salvo — por eso la pantalla lo dice.
+
+- `src/lib/clinica/csv-clinico.ts` (nuevo, puro),
+  `src/app/api/clinic/exportar-csv/route.ts` (nueva),
+  `src/lib/expediente/bitacora-csv.ts` (la reparación de v949), `migracion/page.tsx`
+- `src/__tests__/exportacion-clinica-csv.test.ts` — 20 pruebas. Total 5296.
+
+**Queda D5**: un libro `.xlsx` de verdad, con una pestaña por dominio. Es el
+único punto de la cola que pide una dependencia nueva (`exceljs`), y por eso va
+aparte de este cambio.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
