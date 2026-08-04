@@ -35,9 +35,18 @@ const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 describe('EL CORPUS ORO existe y está bien formado', () => {
-  it('los tres fallos de producción están cubiertos', () => {
+  it('los fallos de producción y el criterio de rol están cubiertos', () => {
+    /**
+     * Los tres primeros salieron de producción en un solo día. El cuarto no
+     * salió de un fallo observado sino de un **criterio del charter** con
+     * tolerancia cero —«un síntoma del acompañante como del paciente es un
+     * hecho falso»—: la regla V3 aceptaba a cualquiera que no fuera el médico,
+     * así que un antecedente que sostiene la hija se sellaba igual que si lo
+     * hubiera dicho la paciente.
+     */
     expect(CASOS_ORO.map(c => c.id).sort()).toEqual([
       'oro-meta-texto', 'oro-negacion-cronicas', 'oro-palabra-no-entendida',
+      'oro-rol-acompanante',
     ])
   })
 
@@ -49,7 +58,7 @@ describe('EL CORPUS ORO existe y está bien formado', () => {
      */
     for (const c of CASOS_ORO) {
       expect(c.origen.length, c.id).toBeGreaterThan(40)
-      expect(['negaciones', 'confianza-audio', 'sanitizar-prosa']).toContain(c.defensa)
+      expect(['negaciones', 'confianza-audio', 'sanitizar-prosa', 'procedencia-v3']).toContain(c.defensa)
     }
   })
 
@@ -60,9 +69,16 @@ describe('EL CORPUS ORO existe y está bien formado', () => {
   })
 
   it('y el corpus no puede encoger sin que se note', () => {
-    // Un caso que sale del corpus deja de vigilarse. Si alguien lo quita, esto
-    // se pone rojo y hay que justificarlo.
-    expect(CASOS_ORO).toHaveLength(3)
+    /**
+     * Un caso que sale del corpus deja de vigilarse. Si alguien lo quita, esto
+     * se pone rojo y hay que justificarlo — es la condición de proceso del
+     * charter: «el corpus oro no puede encoger».
+     *
+     * Crece a 4 en la v1014. Se comprueba el número EXACTO y no un mínimo: un
+     * «≥» deja pasar el cambalache de quitar uno y meter otro sin que nadie mire
+     * cuál se fue.
+     */
+    expect(CASOS_ORO).toHaveLength(4)
   })
 })
 

@@ -43,7 +43,7 @@ export interface CasoOroClinico extends CasoOro {
   /** De qué falla de producción salió. Para que nadie lo borre por parecer trivial. */
   origen: string
   /** Qué defensa tiene que atraparlo. Si se desconecta, el caso lo dice. */
-  defensa: 'negaciones' | 'confianza-audio' | 'sanitizar-prosa'
+  defensa: 'negaciones' | 'confianza-audio' | 'sanitizar-prosa' | 'procedencia-v3'
 }
 
 export const CASOS_ORO: CasoOroClinico[] = [
@@ -81,6 +81,27 @@ export const CASOS_ORO: CasoOroClinico[] = [
      * «vesícula»: el mismo fallo, cometido por nosotros y con más confianza.
      */
     prohibidos: ['vesícula', 'vesicular', 'colecistectomía', 'colecistitis'],
+  },
+  {
+    id: 'oro-rol-acompanante',
+    origen: 'Criterio del charter: «un síntoma del acompañante como del paciente es un hecho falso». Cero tolerado.',
+    defensa: 'procedencia-v3',
+    entrada:
+      'Médico: ¿Ha tenido diabetes?\n'
+      + 'Paciente: No sé, doctor.\n'
+      + 'Acompañante: Sí, es diabética desde hace años, yo le pongo la insulina.',
+    esperado: {
+      // El dato NO se descarta: el relato del acompañante es historia válida, y
+      // a veces la única. Lo que cambia es que se sepa de quién es.
+      antecedentes: 'diabetes referida por el acompañante',
+    },
+    /**
+     * Lo que no puede aparecer es la atribución silenciosa: la nota diciendo que
+     * **la paciente refiere** algo que la paciente no dijo. Con un paciente con
+     * demencia o afasia esto no es un matiz: es la diferencia entre un dato con
+     * fuente y un dato inventado con cara de dictado.
+     */
+    prohibidos: ['la paciente refiere diabetes', 'el paciente refiere diabetes'],
   },
   {
     id: 'oro-meta-texto',

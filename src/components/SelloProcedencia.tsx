@@ -100,7 +100,19 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
                 {c.cita && (
                   <div style={{ marginTop: 5, display: 'flex', gap: 5, fontSize: 11.5, color: 'var(--text2)', fontStyle: 'italic' }}>
                     <Quote size={11} style={{ flexShrink: 0, marginTop: 2, opacity: 0.6 }} />
-                    <span>“{c.cita}”</span>
+                    <span>
+                      “{c.cita}”
+                      {/*
+                        QUIÉN LO DIJO, cuando no fue el paciente. La regla V3
+                        aceptaba a cualquiera que no fuera el médico, así que un
+                        antecedente que sostiene la hija —«sí, es diabética»— se
+                        sellaba igual que si lo hubiera dicho la paciente. No se
+                        degrada: se dice quién, que es un hecho.
+                      */}
+                      {c.dichoPor && (
+                        <span style={{ fontStyle: 'normal', color: 'var(--text3)' }}> — lo dijo: {c.dichoPor}</span>
+                      )}
+                    </span>
                   </div>
                 )}
               </div>
