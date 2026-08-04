@@ -21,7 +21,7 @@ import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { getPatient, getPatients, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
-import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
+import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
 import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
@@ -1948,9 +1948,21 @@ export default function ConsultaActivaPage() {
        * perdería el pase que el médico acaba de dictar, que es exactamente lo
        * que este cambio viene a evitar.
        */
-      const parsed = JSON.parse(raw) as NotaSeccion[] | { secciones: NotaSeccion[]; dictado?: string; utterances?: unknown[] }
+      const parsed = JSON.parse(raw) as NotaSeccion[] | { secciones: NotaSeccion[]; dictado?: string; utterances?: Utterance[]; crudo?: string }
       const secs = Array.isArray(parsed) ? parsed : parsed?.secciones
       const dictado = Array.isArray(parsed) ? '' : String(parsed?.dictado ?? '')
+      /**
+       * LOS TURNOS Y EL CRUDO VIAJABAN Y NO LOS LEÍA NADIE.
+       *
+       * `utterances` estaba en el tipo de la semilla desde que se escribió, y
+       * ni una línea lo consumía: llegaba a la consulta y se tiraba. Con eso, un
+       * pase de UCI —el camino que más nota firmada produce en cuidados
+       * intensivos— se archivaba sin separación de voces, sin lista de palabras
+       * a verificar, sin poder juzgar de quién es cada cita y, desde la v996,
+       * sin material de origen.
+       */
+      const turnos = Array.isArray(parsed) ? [] : (parsed?.utterances ?? [])
+      const crudo = Array.isArray(parsed) ? '' : String(parsed?.crudo ?? '')
       if (Array.isArray(secs) && secs.length) {
         uciSeedRef.current = true
         setTipo('evolucion_uci')
@@ -1963,6 +1975,7 @@ export default function ConsultaActivaPage() {
          * exista `voz.transcripcion`.
          */
         if (dictado) voz.setTranscripcion(dictado)
+        if (turnos.length || crudo) audio.sembrarDictado({ crudo: crudo || undefined, utterances: turnos })
         toast(
           dictado
             ? 'Pase de UCI cargado en la nota, con su dictado — revísalo y firma'
@@ -1974,7 +1987,7 @@ export default function ConsultaActivaPage() {
     try { sessionStorage.removeItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
     // `voz.setTranscripcion` es estable (viene de useState); se declara igual
     // para que el linter no tenga que adivinarlo.
-  }, [searchParams, internamientoParam, notaIdParam, toast, voz])
+  }, [searchParams, internamientoParam, notaIdParam, toast, voz, audio])
 
   const autoRestRef = useRef(false)
   useEffect(() => {
