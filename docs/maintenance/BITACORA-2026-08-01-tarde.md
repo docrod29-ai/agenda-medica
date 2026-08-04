@@ -4941,6 +4941,51 @@ que los campos crecen con el tiempo.
 
 ---
 
+## TANDA 154ª — v1005 · EL SELLO CONTABA LA PARTE QUE NO HABÍA FALLADO (B-10)
+
+El manifiesto de procedencia cubría diagnósticos, medicamentos, alergias y signos
+vitales: **datos estructurados**. La prosa de las secciones no entraba.
+
+Y los tres fallos que el Dr. encontró en producción vivieron **en la prosa**:
+
+- «la de la **docencia**» redactado como «**vesícula**»;
+- «¿diabetes o presión alta?» «**No**» redactado como «paciente con DM2 e HTA»;
+- «no se refiere motivo clínico en **este fragmento** de consulta».
+
+O sea que el sello decía «6 del dictado · 2 de IA» sobre los campos que no habían
+fallado, y guardaba silencio sobre los párrafos que sí.
+
+Lo que faltaba era **mirar**: el esquema de extracción trae desde siempre cada
+sección con su `value`, su `confidence` y su `source_quote`.
+
+### Lo que hay ahora
+
+Cada sección y el resumen entran al manifiesto con la misma regla que el resto:
+cita que no aparece en el dictado → «ia»; párrafo que el médico reescribió →
+«manual» —seguir diciendo «dictado» sobre algo que el médico cambió es una firma
+falsa, la misma regla que ya se aplicaba a la dosis de un medicamento—.
+
+La regla V3 —«¿lo afirmó el paciente o lo nombró la pregunta?»— **sólo** se
+aplica a las secciones de antecedentes, que es donde ocurrió el fallo. En el
+padecimiento actual o en la exploración el médico describe lo que ve, y exigir
+que la cita la sostenga el paciente degradaría prosa correcta: un sello que
+degrada de más deja de significar nada.
+
+### Lo que no cambia
+
+El aviso de firma sigue cubriendo sólo diagnósticos, alergias y medicamentos. Una
+sección resume varias frases y su cita es **una**: meterla en el aviso lo llenaría
+de párrafos «sin comprobar», y un aviso ruidoso se cierra sin leer — ahí se
+pierde entero, incluida la alergia que sí importaba.
+
+El valor guardado es una **muestra** de 160 caracteres, no una copia de la nota:
+el manifiesto es una tabla de procedencia y el documento ya está al lado.
+
+- `src/lib/expediente/procedencia.ts`, `consulta/[patientId]/page.tsx`
+- `src/__tests__/procedencia-de-la-prosa.test.ts` — 11 pruebas. Total **6079**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

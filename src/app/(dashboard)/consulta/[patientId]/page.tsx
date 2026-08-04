@@ -1698,7 +1698,21 @@ export default function ConsultaActivaPage() {
         // Sello de procedencia: cuántos datos vinieron del dictado / IA / a mano.
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
         procedencia: construirManifiesto(
-          { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> },
+          {
+            diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias),
+            signosVitales: signosNum as unknown as Record<string, unknown>,
+            /**
+             * Y LA PROSA, que era justo lo que faltaba.
+             *
+             * El manifiesto cubría datos estructurados, y los tres fallos que
+             * el Dr. encontró en producción vivieron en la prosa: «la de la
+             * docencia» convertido en «vesícula», y un «no» a la pregunta por
+             * diabetes redactado como «paciente con DM2 e HTA». El sello
+             * contaba con precisión la parte que no había fallado.
+             */
+            secciones: secciones.map(sec => ({ key: sec.key, label: sec.label, value: sec.value })),
+            resumen,
+          },
           extraction as never,
           // Los vistos buenos del panel de revisión. Ya se guardaban como un
           // número suelto (`camposAprobados`), que dice cuántos aceptó el médico
