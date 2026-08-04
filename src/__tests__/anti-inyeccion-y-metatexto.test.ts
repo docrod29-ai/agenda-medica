@@ -146,6 +146,8 @@ describe('5 · EL SELLO DE PROCEDENCIA FALLA CERRADO', () => {
   it('el camino real de la pantalla SÍ pasa la transcripción', () => {
     // Por eso cerrar aquí no degrada ninguna nota: sólo obliga a comprobar.
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toContain('{ transcripcion: voz.transcripcion }')
+    // v986: la llamada pasó de una línea a un objeto con `turnos`, así que se
+    // comprueba el campo, no la forma exacta de la llamada.
+    expect(page).toContain('transcripcion: voz.transcripcion,')
   })
 })

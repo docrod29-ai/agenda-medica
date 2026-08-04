@@ -1646,7 +1646,20 @@ export default function ConsultaActivaPage() {
           // La transcripción, para poder COMPROBAR que la cita textual existe.
           // Sin esto bastaba una cadena no vacía para sellar un campo como
           // «dictado» y mostrar la frase entrecomillada como si fuera literal.
-          { transcripcion: voz.transcripcion },
+          {
+            transcripcion: voz.transcripcion,
+            /**
+             * LOS TURNOS, PARA PODER JUZGAR DE QUIÉN ES LA CITA.
+             *
+             * Sin ellos, una cita del médico preguntando «¿diabetes o presión
+             * alta?» sella el diagnóstico como «lo dijo el paciente»: la cita es
+             * verdadera y la conclusión, falsa.
+             */
+            turnos: audio.utterances.map(u => ({
+              rol: rolesHablante[u.speaker] || `Hablante ${u.speaker}`,
+              texto: u.text,
+            })),
+          },
         ).resumen,
         procesadoEn: now,
         aprobadoPor: estado === 'firmada' ? (auth.currentUser?.email ?? '') : undefined,
