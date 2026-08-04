@@ -5746,6 +5746,57 @@ versión.
 
 ---
 
+## TANDA 173ª — v1024 · LEARN, 2ª ITERACIÓN: LO APRENDIDO CON UN PACIENTE SIRVE CON EL SIGUIENTE
+
+La v1023 derivaba las correcciones de las notas de **ese** paciente. Funcionaba,
+pero el médico corregía «sefriaxona» en la consulta de don Luis y con la
+siguiente paciente el motor **volvía a equivocarse**: lo aprendido no cruzaba de
+expediente.
+
+Ahora se acumula **por consultorio** —`clinics/{id}/asr_aprendizaje`—, que es
+donde de verdad sirve.
+
+**Se acumula al FIRMAR, no al guardar el borrador.** El borrador se guarda solo
+cada pocos segundos: acumular ahí enseñaría de un trabajo a medio escribir, y
+varias veces. Con `increment` y `arrayUnion`, para que dos consultas simultáneas
+no se pisen — con una lectura-y-escritura la del último en guardar borraría la
+del otro, y el contador (que es lo único que distingue una costumbre de un
+dedazo) nunca llegaría al mínimo. Y **falla en silencio**: si la red falla o las
+reglas rechazan, la consulta sigue exactamente igual. El aprendizaje nunca puede
+romper ni retrasar la nota de un paciente.
+
+**Se puede olvidar.** Configuración → «Palabras que aprendió el dictado» las
+lista y las quita. Un aprendizaje que no se puede deshacer es *peor* que no
+aprender: si el sistema se queda con una palabra torcida, la estaría empujando en
+cada consulta sin que nadie pueda pararlo.
+
+**Y la parte que más importa: NUNCA EL NOMBRE DEL PACIENTE.** Al compartirse
+entre pacientes, un apellido dictado acabaría en un vocabulario común que esa
+persona nunca autorizó — y encima sesgando el reconocedor en la consulta de
+**otra**. El filtro de «una palabra sin cifras» no lo impide: un apellido lo
+pasa. Se excluyen las partes del nombre explícitamente, las de tres letras o más
+(«de», «la» o «y» no identifican a nadie, y excluirlas dejaría fuera palabras
+clínicas normales). El filtro es quirúrgico: en la misma nota, el apellido no se
+aprende y el fármaco sí.
+
+Las reglas de la v1023 siguen intactas: cifras, unidades y pares prohibidos no se
+aprenden, hacen falta dos repeticiones, una palabra por una palabra, y **sólo
+sesga**.
+
+La colección se declaró en los **tres** sitios que la guardan: reglas de
+Firestore (forma congelada con `hasOnly`, `delete` permitido), matriz de acceso y
+manifiesto del respaldo — una colección que nadie respalda se pierde el día que
+hace falta, y el archivo llamado «respaldo» seguiría pareciendo completo.
+
+- `src/lib/asr/aprendizaje-firestore.ts` — el almacén por consultorio (nuevo)
+- `src/lib/asr/aprendizaje.ts` — `partesDelNombre`, `excluir`, `fusionar`
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx` — lee, fusiona y acumula al firmar
+- `src/app/(dashboard)/configuracion/page.tsx` — pestaña «dictado» con «Olvidar»
+- `firestore.rules` — **desplegadas aparte**
+- REG-134 · `src/__tests__/aprendizaje-por-consultorio.test.ts` · +20 casos, total **6367**
+
+
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

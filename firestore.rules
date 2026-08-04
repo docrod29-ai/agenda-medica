@@ -606,6 +606,29 @@ service cloud.firestore {
         allow read: if isMedico(clinicId);
         allow create, update, delete: if false;   // solo Admin SDK
       }
+      /**
+       * VOCABULARIO APRENDIDO DEL DICTADO (LEARN).
+       *
+       * Palabras que el médico corrigió a mano más de una vez, para sesgar al
+       * reconocedor en la siguiente grabación.
+       *
+       * · SÓLO MÉDICO. No es PHI —es vocabulario clínico, y el motor excluye
+       *   explícitamente las partes del nombre del paciente— pero revela cómo
+       *   dicta el médico y qué fármacos maneja: no es de una asistente.
+       * · BORRABLE. Si el sistema aprende algo torcido, el médico tiene que
+       *   poder quitárselo; un aprendizaje que no se puede deshacer es peor que
+       *   no aprender.
+       * · Sin campos libres: se congela la forma para que nadie use esta
+       *   colección de cajón de sastre.
+       */
+      match /asr_aprendizaje/{palabra} {
+        allow read, delete: if isMedico(clinicId);
+        allow create, update: if isMedico(clinicId)
+          && request.resource.data.keys().hasOnly(['palabra', 'veces', 'oidoComo', 'actualizadoEn'])
+          && request.resource.data.palabra is string
+          && request.resource.data.veces is int
+          && request.resource.data.veces > 0;
+      }
       // Solicitudes ARCO (LFPDPPP) — los pacientes pueden CREAR (vía API pública),
       // los miembros de la clínica pueden leer/actualizar para resolver.
       // Nunca se pueden borrar (registro legal).

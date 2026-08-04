@@ -136,8 +136,11 @@ describe('ESTÁ CONECTADO DE PUNTA A PUNTA', () => {
     // De un borrador a medio escribir se aprendería de un trabajo sin terminar.
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
     expect(page).toContain("filter(n => n.estado === 'firmada')")
-    expect(page).toContain('paresDeUnaNota(n.transcripcionMotor ?? \'\', n.transcripcionCruda ?? \'\')')
-    expect(page).toContain('setAprendido(loAprendido(pares))')
+    expect(page).toContain("paresDeUnaNota(n.transcripcionMotor ?? '', n.transcripcionCruda ?? '', nombre)")
+    // La v1024 fusiona lo del paciente con lo del CONSULTORIO: se comprueba
+    // que sigue derivándose de las notas, no la línea exacta de antes.
+    expect(page).toContain('const deEstePaciente = loAprendido(pares, undefined, nombre)')
+    expect(page).toContain('setAprendido(fusionar(deEstePaciente, delConsultorio))')
   })
 
   it('y lo manda en las opciones de la grabación', () => {
