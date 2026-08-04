@@ -95,7 +95,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
-import { palabrasDudosas, marcarTurno, paraElMedico, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
+import { palabrasDudosas, marcarTurno, paraElMedico, anexoDeDudas, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
@@ -329,12 +329,23 @@ export default function ConsultaActivaPage() {
   const edicionManualRef = useRef(false)
 
   const baseTranscripcionRef = useRef('')
+  /**
+   * ¿Esta consulta se grabó en más de una tanda?
+   *
+   * Se refleja en un estado —y no sólo en la referencia— porque **hay que
+   * decírselo al médico**. Hasta la v991 el multi-tramo apagaba en silencio los
+   * turnos Médico/Paciente: `sinDiarizacion` seguía en `null` porque la
+   * diarización SÍ ocurrió, sólo que no se usaba. La pantalla se veía idéntica a
+   * la del camino bueno.
+   */
+  const [multiTramoVisible, setMultiTramoVisible] = useState(false)
   const grabandoPrevioRef = useRef(false)
   useEffect(() => {
     const grabando = audio.estado === 'grabando'
     if (grabando && !grabandoPrevioRef.current) {
       // Flanco de subida: arranca una grabación. Se congela lo que ya había.
       baseTranscripcionRef.current = voz.transcripcion.trim()
+      setMultiTramoVisible(voz.transcripcion.trim().length > 0)
       // Y se rearma el adelanto de la nota: en una consulta puede grabarse más de
       // una vez, y sin esto solo la primera se estructuraría por adelantado.
       preliminarRef.current = false
@@ -636,9 +647,22 @@ export default function ConsultaActivaPage() {
     const dialogo = audio.utterances
       .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
       .join('\n')
-    return (audio.utterances.length > 0 && !multiTramo)
-      ? (dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo)
-      : voz.transcripcion
+    if (audio.utterances.length > 0 && !multiTramo) {
+      return dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo
+    }
+    /**
+     * TEXTO PLANO — PERO LA DUDA NO SE TIRA.
+     *
+     * En multi-tramo el diálogo no se puede mandar (cubriría sólo el último
+     * tramo y la nota perdería la primera parte clínica), así que se manda el
+     * texto completo. Correcto. Lo que NO tenía por qué irse eran las marcas de
+     * duda del tramo que sí conocemos: se anexan al final con su instrucción.
+     *
+     * Sin diarización no hay confianza por palabra y el anexo sale vacío: ahí no
+     * hay nada que anexar, y decirlo es lo único honesto.
+     */
+    const anexo = anexoDeDudas(audio.utterances)
+    return anexo ? `${voz.transcripcion}\n\n${anexo}` : voz.transcripcion
   }, [audio.utterances, rolesHablante, voz.transcripcion])
 
   /**
@@ -2990,7 +3014,10 @@ export default function ConsultaActivaPage() {
                     <b>Sin separación de voces en esta grabación.</b>{' '}
                     {MOTIVO_SIN_DIARIZACION[audio.sinDiarizacion]}{' '}
                     La transcripción se hizo con el motor alterno: revisa nombres de fármacos,
-                    dosis y microorganismos antes de firmar.
+                    dosis y microorganismos antes de firmar.{' '}
+                    <b>Y sin separación de voces tampoco hay confianza por palabra</b>, así que en esta
+                    grabación no hay lista de «palabras a verificar»: no es que no haya dudas, es que
+                    no se pueden medir.
                   </div>
                 )}
                 {/*
@@ -3025,6 +3052,19 @@ export default function ConsultaActivaPage() {
                     <b>Faltan {audio.chunksFallidos} tramo(s) en el texto en vivo.</b>{' '}
                     La transcripción final se hace con la grabación completa, así que esto no afecta a la
                     nota definitiva — pero lo que ves ahora mismo está incompleto.
+                  </div>
+                )}
+
+                {multiTramoVisible && audio.utterances.length > 0 && audio.estado === 'listo' && (
+                  <div style={{
+                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
+                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+                  }}>
+                    <b>Esta consulta se grabó en varias tandas.</b>{' '}
+                    La separación de voces sólo cubre la última, así que la nota se arma con el texto
+                    completo pero <b>sin los turnos Médico/Paciente</b> — se conserva todo el contenido,
+                    se pierden las etiquetas. Las palabras dudosas del último tramo sí van marcadas.
                   </div>
                 )}
 

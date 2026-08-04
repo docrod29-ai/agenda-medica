@@ -4356,6 +4356,46 @@ ha pedido. **Bloquear queda declarado como decisión suya, no tomada por mí.**
 
 ---
 
+## TANDA 140ª — v991 · LA DUDA SOBREVIVE AL TEXTO PLANO
+
+### Los dos caminos que perdían las marcas
+
+**Multi-tramo** (el médico grabó en dos tandas). La separación de voces es por
+grabación y cubre sólo la última, así que mandar los turnos entregaría **sólo el
+último tramo** y la nota perdería la primera parte clínica. Se manda el texto
+completo — eso está bien decidido. Lo que **no tenía por qué irse** eran las
+marcas de duda del tramo que sí conocemos, y se iban.
+
+**Sin diarización** (falló y entró el motor alterno). Ahí no existe confianza por
+palabra: no hay nada que marcar, y decirlo es lo único honesto.
+
+### Lo que se hizo
+
+En texto plano la duda va **anexada al final**, con su instrucción. No en línea:
+los tramos se concatenaron y una misma palabra puede aparecer varias veces, así
+que marcar «la primera que se parezca» señalaría la ocurrencia equivocada — y una
+marca en el sitio equivocado es **peor que ninguna**, porque manda a revisar
+donde no está.
+
+### Y el multi-tramo no avisaba de NADA
+
+`sinDiarizacion` seguía en `null` porque la diarización **sí ocurrió**, sólo que
+no se usaba. La pantalla se veía **idéntica** a la del camino bueno. Ahora se
+dice: se conserva todo el contenido, se pierden las etiquetas de voz, y las
+palabras dudosas del último tramo sí van marcadas.
+
+### Y el aviso de «sin separación de voces» decía la mitad
+
+Se degradaban **dos** cosas y se contaba una. Ahora dice también que sin
+diarización no hay confianza por palabra, con la frase que importa: **no es que
+no haya dudas, es que no se pueden medir**.
+
+- `src/lib/expediente/confianza-audio.ts` (`anexoDeDudas`),
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/confianza-por-palabra.test.ts` +9. Total **5913**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
