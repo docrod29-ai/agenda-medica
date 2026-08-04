@@ -4772,6 +4772,46 @@ fotograma con el botón «deshacer» del dictado anterior encima del nuevo.
 
 ---
 
+## TANDA 150ª — v1001 · LA CONSULTA LARGA SE QUEDABA SIN SEGUNDA OPINIÓN (B-8)
+
+`verificar-nota` corta en 12 000 caracteres y, pasado ese punto, **no revisaba
+nada**: devolvía `incompleto: true` y le decía al médico que la revisara él.
+
+Era honesto —lo puso una auditoría anterior, y era mucho mejor que responder
+`{"hallazgos":[]}`, que se lee como «revisado y limpio»— pero dejaba sin red
+justo a **la consulta complicada**: un dictado de 20 minutos ronda los 20 000
+caracteres, así que el tope no era un caso raro, era el de todos los días.
+
+### Lo que se hace ahora
+
+Se trocea **la transcripción**, no la nota —revisar media nota contra el dictado
+entero daría por buenas las dosis de la mitad que no se leyó—, y la nota entera
+se revisa contra cada tramo, diciéndole al modelo qué tramo está viendo.
+
+Los tramos **se solapan**, por lo mismo que el audio: una indicación a caballo de
+la frontera partida en seco deja media dosis a cada lado, y el revisor no puede
+ver que falta lo que no está. El corte busca hacia atrás un final de frase, y si
+no, un espacio: nunca a mitad de palabra.
+
+Los hallazgos se unen **sin repetir** —el solape hace que un problema en la
+costura salga dos veces, y una lista con duplicados hace dudar de toda la lista—,
+comparando sin acentos, mayúsculas ni espacios de más.
+
+### Y sigue siendo honesto
+
+El número de tramos está acotado porque **cada tramo es una llamada de pago**. Si
+el dictado no cabe, se devuelven los hallazgos **de lo revisado** junto con el
+aviso de qué parte quedó fuera y cuántos caracteres de cuántos: ni se esconde una
+dosis peligrosa encontrada en el tramo 2 porque el 3 no cupo, ni se presenta como
+revisión completa. Un tramo ilegible tampoco se convierte en «revisado sin
+hallazgos»: se cuenta y se dice.
+
+- `src/lib/ia/segmentar-revision.ts` (nuevo), `api/expediente/verificar-nota/route.ts`,
+  `consulta/[patientId]/page.tsx`
+- `src/__tests__/segunda-opinion-por-tramos.test.ts` — 19 pruebas. Total **6024**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
