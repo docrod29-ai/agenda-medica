@@ -4897,6 +4897,50 @@ un mismo turno no se llame de dos maneras según qué pantalla lo mire.
 
 ---
 
+## TANDA 153ª — v1004 · EL ENSAMBLE PODÍA REESCRIBIR LAS CITAS (B-9)
+
+En el motor máximo, GPT redacta su versión del mismo caso y un tercer paso
+**fusiona** los dos borradores. La fusión pasa por `safeParse`, así que se
+comprobaba **la forma** del JSON — pero no que las `source_quote` fusionadas
+siguieran existiendo en la transcripción.
+
+### Por qué no saltaba nada
+
+La cita es lo único que sostiene el sello «dictado». `procedencia.ts` lo
+comprueba al firmar y, si no aparece, **degrada el campo a «ia»**. O sea que una
+cita reescrita por el sintetizador no rompía nada ruidosamente: hacía que un dato
+**dictado dejara de parecerlo**, y el médico veía más avisos de «no se pudo
+comprobar» sin ninguna explicación. El defecto estaba dos pasos más arriba.
+
+### Lo que se hace
+
+Se revalida **elemento por elemento**: lo que la fusión rompió vuelve al borrador
+de Claude si allí la cita sí verifica; y si nadie tiene una buena, la cita se
+vacía y el campo queda marcado para revisión — **el dato clínico no se borra**,
+lo que se cae es la prueba, no el hallazgo.
+
+Elemento por elemento y no todo o nada, porque tirar la fusión entera por una
+cita mala es el mismo error que ya costó caro con el guardián del corrector.
+
+### Lo que no hace
+
+No busca «la frase más parecida» en el dictado. Una cita es una prueba: si no
+está, no está. Inventar la parecida sería **fabricar la evidencia** que justifica
+el dato.
+
+Se normaliza **exactamente igual que el sello** —hay una prueba que lo ata—:
+dos jueces con criterios distintos harían que aquí pase y al firmar no, justo
+cuando el médico ya no puede hacer nada barato. Las citas de menos de 8
+caracteres se dan por buenas (un fragmento de tres letras aparece en cualquier
+transcripción por casualidad) y sin transcripción no se juzga nada. El recorrido
+es a cualquier profundidad, no una lista cerrada de rutas: el propio esquema dice
+que los campos crecen con el tiempo.
+
+- `src/lib/ia/revalidar-citas.ts` (nuevo), `api/expediente/procesar/route.ts`
+- `src/__tests__/citas-de-la-fusion.test.ts` — 17 pruebas. Total **6068**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

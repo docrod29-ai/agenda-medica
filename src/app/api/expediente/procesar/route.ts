@@ -10,6 +10,7 @@
  * Resp: { ok, resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales }
  */
 
+import { revalidarCitas } from '@/lib/ia/revalidar-citas'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
@@ -502,6 +503,8 @@ export async function POST(req: NextRequest) {
     // base garantizada; cualquier fallo del ensamble → se queda esa (sin regresión).
     let notaFinal: Record<string, unknown> = validation.data
     const modelosNota: string[] = [model]
+    /** Qué pasó con las citas al fusionar. `null` cuando no hubo ensamble. */
+    let citasFusion: { revisadas: number; restauradas: number; descartadas: number } | null = null
     if (perfil === 'premium' && !modoEconomico && !rapido) {
       // Presupuesto de tiempo: si el ensamble (GPT + síntesis) no termina en 25s,
       // se usa la nota de Claude — así NUNCA provoca un 504 en la generación.
@@ -539,13 +542,39 @@ export async function POST(req: NextRequest) {
         return vS && vS.success ? (vS.data as Record<string, unknown>) : null
       })().catch(() => null)
       const merged = await Promise.race([ensamble, new Promise<null>(r => setTimeout(() => r(null), 25000))])
-      if (merged) { notaFinal = merged; modelosNota.push('GPT', 'síntesis') }
+      if (merged) {
+        /**
+         * ── LAS CITAS DE LA FUSIÓN SE VUELVEN A COMPROBAR ────────────────────
+         *
+         * La síntesis pasaba por el esquema —o sea, se comprobaba la FORMA— y
+         * nadie miraba si las `source_quote` fusionadas **seguían existiendo en
+         * la transcripción**.
+         *
+         * Y la cita es lo único que sostiene el sello «dictado»: `procedencia`
+         * lo comprueba al firmar y, si no aparece, degrada el campo a «ia». O
+         * sea que una cita reescrita por el sintetizador no rompía nada
+         * ruidosamente — hacía que un dato DICTADO dejara de parecerlo, y el
+         * médico veía más avisos de «no se pudo comprobar» sin explicación.
+         *
+         * Se revalida elemento por elemento: lo que la fusión rompió vuelve al
+         * borrador de Claude si allí la cita sí verifica. Tirar la fusión entera
+         * por una cita mala es el error que ya costó caro con el guardián.
+         */
+        const rev = revalidarCitas(merged, validation.data, transcripcion)
+        notaFinal = rev.nota
+        modelosNota.push('GPT', 'síntesis')
+        if (rev.restaurados > 0 || rev.descartadas > 0) {
+          // Una corrección silenciosa se ve igual que un acierto.
+          safeLog.info(`[procesar] citas de la fusión: ${rev.revisadas} revisadas, ${rev.restaurados} restauradas del borrador base, ${rev.descartadas} descartadas`)
+        }
+        citasFusion = { revisadas: rev.revisadas, restauradas: rev.restaurados, descartadas: rev.descartadas }
+      }
     }
 
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática. Va
     // 'premium' SOLO si la nota usó el motor 💎 Máxima (Opus). _motor: qué motor se
     // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {
