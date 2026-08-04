@@ -402,10 +402,23 @@ function guiaInstrucciones(instrucciones?: string): string {
 }
 
 export function buildSystemPrompt(tipo: TipoNota, especialidad?: string, instrucciones?: string): string {
+  /**
+   * LA GUARDA ANTI-INYECCIÓN TAMBIÉN AQUÍ.
+   *
+   * Vivía sólo en el revisor (`verificar-nota`), o sea que la ruta que ESCRIBE
+   * la nota estaba descubierta y la que la revisa protegida — al revés de como
+   * conviene. Y el bloque de transcripción se envolvía en comillas triples, así
+   * que un dictado que contuviera `"""` cerraba el bloque y lo que siguiera se
+   * leía como instrucción.
+   *
+   * El escenario no es teórico: el paciente sabe que lo están grabando.
+   */
   const secciones = SECCIONES_POR_TIPO[tipo]
   const listaSecciones = secciones.map(s => `   - "${s.key}": ${s.label}${s.obligatorio ? ' (obligatorio)' : ''}`).join('\n')
 
-  return `${REGLAS_BASE}
+  return `${GUARDA_INYECCION}
+
+${REGLAS_BASE}
 ${guiaEspecialidad(especialidad)}${GUIA_MOTIVOS}${guiaInstrucciones(instrucciones)}${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
 ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extraction" + "safety"):
 {
@@ -623,9 +636,7 @@ export function buildUserPrompt(transcripcion: string, ctx: PacienteContexto): s
 ${ctx.notasPrevias ? `- Resumen de notas previas: ${ctx.notasPrevias}` : ''}
 
 TRANSCRIPCIÓN DE LA CONSULTA:
-"""
-${transcripcion}
-"""
+${delimitar(transcripcion)}
 
 Estructura esta transcripción en el JSON indicado. Recuerda: solo JSON válido, sin texto adicional.`
 }

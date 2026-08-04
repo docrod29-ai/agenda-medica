@@ -17,6 +17,20 @@ describe('Sello de procedencia', () => {
         medicamentos: [{ nombre: 'Amoxicilina', source_quote: 'le voy a dar amoxicilina', confidence: 'alta' }],
         // Penicilina NO está en la extracción → manual
       },
+      undefined,
+      /**
+       * v984: LA TRANSCRIPCIÓN ES OBLIGATORIA PARA SELLAR «DICTADO».
+       *
+       * Antes, sin transcripción se conservaba `dictado` «para no degradar algo
+       * que quizá era correcto». El efecto real era el contrario: el sello decía
+       * «esto lo dijo el paciente» **sin haber comprobado nada**. Un sello que a
+       * veces miente vale menos que ninguno, porque quien lo lee no sabe cuál de
+       * las dos veces le tocó.
+       *
+       * El camino real de la pantalla SÍ la pasa, así que cerrar aquí no degrada
+       * ninguna nota: sólo obliga a que la comprobación ocurra.
+       */
+      { transcripcion: 'tiene tos con flema y fiebre, le voy a dar amoxicilina' },
     )
     const by = Object.fromEntries(m.campos.map(c => [c.valor.split(' ')[0], c.origen]))
     expect(m.campos.find(c => c.valor.startsWith('Neumonía'))!.origen).toBe('dictado')
@@ -32,8 +46,32 @@ describe('Sello de procedencia', () => {
     const m = construirManifiesto(
       { diagnosticos: [{ descripcion: 'Cefalea tensional' }] },
       { diagnosticos: [{ descripcion: 'cefalea', source_quote: 'me duele la cabeza' }] },
+      undefined,
+      { transcripcion: 'me duele la cabeza desde ayer' },
     )
     expect(m.campos[0].origen).toBe('dictado')
+  })
+
+  it('SIN transcripción no se sella «dictado», por buena que sea la cita', () => {
+    /**
+     * Falla cerrado. Una cita perfecta que nadie pudo comprobar es indistinguible
+     * de una cita inventada — y el sello existe justamente para distinguirlas.
+     */
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Cefalea tensional' }] },
+      { diagnosticos: [{ descripcion: 'cefalea', source_quote: 'me duele la cabeza' }] },
+    )
+    expect(m.campos[0].origen).toBe('ia')
+  })
+
+  it('y una cita que NO aparece en la transcripción tampoco se sella', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Cefalea tensional' }] },
+      { diagnosticos: [{ descripcion: 'cefalea', source_quote: 'me duele la cabeza' }] },
+      undefined,
+      { transcripcion: 'vengo por dolor de rodilla' },
+    )
+    expect(m.campos[0].origen).toBe('ia')
   })
 
   it('sin extracción, todo es manual', () => {
