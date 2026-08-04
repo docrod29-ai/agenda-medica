@@ -34,7 +34,12 @@
  * estaban atados por una prueba para que no divergieran.
  */
 import { describe, it, expect } from 'vitest'
-import { construirManifiesto, normaliza, POR_QUE_SE_QUITAN_LAS_MARCAS } from '@/lib/expediente/procedencia'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import {
+  construirManifiesto, normaliza, quienSostiene,
+  POR_QUE_SE_QUITAN_LAS_MARCAS, POR_QUE_SE_DICE_QUIEN,
+} from '@/lib/expediente/procedencia'
 import { normaliza as normalizaRevalidacion, citaVerifica } from '@/lib/ia/revalidar-citas'
 import { ABRE, CIERRA, marcarTurno } from '@/lib/expediente/confianza-audio'
 
@@ -121,5 +126,72 @@ describe('LA MARCA SIGUE HACIENDO SU TRABAJO', () => {
 
   it('está escrito por qué se quitan al comparar', () => {
     expect(POR_QUE_SE_QUITAN_LAS_MARCAS).toMatch(/campo correctamente citado/)
+  })
+})
+
+/**
+ * ── EL CUARTO CRITERIO DEL CHARTER: LA ATRIBUCIÓN DE ROL ────────────────────
+ *
+ * «Atribución de rol crítica errónea = 0 — un síntoma del acompañante como del
+ * paciente es un hecho falso.»
+ *
+ * La regla V3 preguntaba «¿lo afirmó alguien que **no es el médico**?», y con
+ * eso bastaba. Así que un antecedente sostenido por **la hija** —«sí, es
+ * diabética»— se sellaba exactamente igual que si lo hubiera dicho la paciente,
+ * que puede no haberlo dicho nunca.
+ *
+ * No se arregla rechazándolo: el relato de un acompañante **es** historia
+ * clínica válida, y con un paciente con demencia o afasia es la única que hay.
+ * Lo que no puede es atribuirse **en silencio** al paciente.
+ */
+describe('QUIÉN SOSTIENE LA CITA', () => {
+  const turnos = [
+    { rol: 'Médico', texto: '¿Ha tenido diabetes?' },
+    { rol: 'Paciente', texto: 'No sé, doctor.' },
+    { rol: 'Acompañante', texto: 'Sí, es diabética desde hace años, yo le pongo la insulina.' },
+  ]
+
+  it('lo que dice el propio paciente no lleva apostilla', () => {
+    // El caso normal. Añadirle «lo dijo: Paciente» sería ruido en todas las
+    // líneas, y un sello lleno de ruido se deja de leer.
+    expect(quienSostiene('no sé, doctor', turnos)).toBeUndefined()
+  })
+
+  it('lo que dice el acompañante SÍ dice quién', () => {
+    expect(quienSostiene('es diabética desde hace años', turnos)).toBe('Acompañante')
+  })
+
+  it('sin turnos no se inventa un rol', () => {
+    // Una apostilla equivocada sobre quién habló es peor que ninguna.
+    expect(quienSostiene('es diabética', undefined)).toBeUndefined()
+    expect(quienSostiene('es diabética', [])).toBeUndefined()
+  })
+
+  it('una cita que no cae en ningún turno tampoco', () => {
+    expect(quienSostiene('frase que nadie dijo aquí', turnos)).toBeUndefined()
+  })
+
+  it('el campo NO se degrada: sigue siendo dictado, con su autor', () => {
+    /**
+     * Degradarlo a «ia» diría «no se pudo comprobar» sobre algo que sí se
+     * comprobó. Quien lo dijo es un hecho, no una duda.
+     */
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Diabetes mellitus' }] },
+      { diagnosticos: [{ descripcion: 'Diabetes mellitus', source_quote: 'es diabética desde hace años' }] } as never,
+      undefined,
+      { transcripcion: turnos.map(t => t.texto).join(' '), turnos },
+    )
+    expect(m.campos[0].origen).toBe('dictado')
+    expect(m.campos[0].dichoPor).toBe('Acompañante')
+  })
+
+  it('y el sello lo enseña', () => {
+    const comp = readFileSync(join(process.cwd(), 'src', 'components', 'SelloProcedencia.tsx'), 'utf8')
+    expect(comp).toContain('lo dijo: {c.dichoPor}')
+  })
+
+  it('está escrito por qué no se rechaza el dato', () => {
+    expect(POR_QUE_SE_DICE_QUIEN).toMatch(/demencia o afasia/)
   })
 })

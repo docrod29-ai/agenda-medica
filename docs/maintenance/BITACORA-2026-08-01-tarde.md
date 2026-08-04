@@ -5319,6 +5319,55 @@ de seguro.
 
 ---
 
+## TANDA 163ª — v1014 · LA REGLA V3 ACEPTABA A CUALQUIERA QUE NO FUERA EL MÉDICO
+
+El charter fija como criterio de **cero** la «atribución de rol crítica errónea»:
+*un síntoma del acompañante como del paciente es un hecho falso*. Y
+`citaSostieneAntecedente` preguntaba exactamente esto:
+
+    dondeAparece.some(t => !esDelMedico(t.rol))
+
+**Cualquiera** que no fuera el médico servía. Así que un antecedente que sostiene
+**la hija** del paciente —«sí, es diabética desde hace años, yo le pongo la
+insulina»— se sellaba igual que si lo hubiera dicho la paciente, que puede no
+haberlo dicho nunca. Y desde la v998 esa atribución **se archiva**.
+
+Es el fallo que el Dr. reportó —«¿diabetes o presión alta?» «No» → «paciente con
+DM2 e HTA»— corrido **un rol a la derecha**.
+
+### Por qué no se arregla rechazándolo
+
+El relato de un acompañante **es** historia clínica válida, y con un paciente con
+demencia o afasia es la única que hay. Degradarlo a «ia» diría «no se pudo
+comprobar» sobre algo que sí se comprobó. Lo que no puede es atribuirse **en
+silencio** al paciente.
+
+Así que el campo no se degrada: **se dice quién**. El sello guarda `dichoPor` y
+la pantalla lo enseña («— lo dijo: Acompañante»). Vacío cuando lo sostiene el
+propio paciente, que es el caso normal: llenar todas las líneas de apostillas
+haría que el sello se dejara de leer.
+
+Y **no se inventa un rol**: sin turnos, o con una cita que no cae en ningún
+turno, no dice nada. Una apostilla equivocada sobre quién habló es peor que
+ninguna.
+
+### Corpus oro a cuatro
+
+Se añade `oro-rol-acompanante`, el primero que **no** sale de un fallo observado
+sino de un criterio del charter. El trinquete del corpus —que existe para que no
+encoja— exige el número **exacto** y no un mínimo: un «≥» dejaría pasar el
+cambalache de quitar uno y meter otro sin que nadie mire cuál se fue.
+
+**Fallo mío que cazó el build:** `defensa` es una unión cerrada y vitest no
+comprueba tipos. Pasaron las 6188 pruebas y el build falló. Por eso está en el
+ciclo.
+
+- `src/lib/expediente/procedencia.ts`, `src/components/SelloProcedencia.tsx`,
+  `src/lib/ia/casos-oro.ts`
+- `src/__tests__/fidelidad-de-entrega.test.ts` + `oro-alucinacion.test.ts` — 7 pruebas nuevas. Total **6188**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

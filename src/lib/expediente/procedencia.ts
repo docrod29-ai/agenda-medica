@@ -79,6 +79,26 @@ export interface CampoProcedencia {
   cita?: string
   confianza?: Confianza
   /**
+   * QUIÉN LO DIJO, cuando no fue el paciente.
+   *
+   * ── EL HUECO QUE ESTO CIERRA ───────────────────────────────────────────────
+   *
+   * La regla V3 preguntaba «¿lo afirmó alguien que no es el médico?». Cualquiera
+   * que no fuera el médico servía. Así que un antecedente que sostiene **la hija
+   * del paciente** —«sí, es diabética»— se sella exactamente igual que si lo
+   * hubiera dicho la paciente, que puede no haberlo dicho nunca.
+   *
+   * Y no se arregla rechazándolo: el relato de un acompañante **es** historia
+   * clínica válida, y a veces la única —un paciente con demencia o afasia—. Lo
+   * que no puede es **atribuirse en silencio al paciente**. El charter lo pone
+   * como criterio de cero: «un síntoma del acompañante como del paciente es un
+   * hecho falso».
+   *
+   * Así que no se degrada nada: se **dice quién**. Vacío cuando lo sostiene el
+   * propio paciente, que es el caso normal y no necesita apostilla.
+   */
+  dichoPor?: string
+  /**
    * EL MÉDICO LO ACEPTÓ, UNO POR UNO.
    *
    * De dónde salió un dato y si un humano lo hizo suyo son dos preguntas
@@ -277,6 +297,37 @@ export function citaSostieneAntecedente(
   return dondeAparece.some(t => !esDelMedico(t.rol))
 }
 
+/** ¿Es el turno del propio paciente? */
+const esDelPaciente = (rol: string) => /paciente/i.test(rol) && !/no identificad/i.test(rol)
+
+/**
+ * Quién sostiene la cita, cuando **no** es el paciente.
+ *
+ * Devuelve `undefined` si la sostiene el paciente —el caso normal— o si no hay
+ * con qué juzgarlo. Nunca inventa un rol: si los turnos no traen rol, no dice
+ * nada, porque una apostilla equivocada sobre quién habló es peor que ninguna.
+ */
+export function quienSostiene(
+  cita: string,
+  turnos: readonly TurnoAtribuido[] | undefined,
+): string | undefined {
+  if (!turnos?.length) return undefined
+  const c = normaliza(cita)
+  if (!c) return undefined
+  const dondeAparece = turnos.filter(t => normaliza(t.texto).includes(c))
+  if (!dondeAparece.length) return undefined
+  // Si el paciente lo dijo en algún turno, es del paciente: no hace falta apostilla.
+  if (dondeAparece.some(t => esDelPaciente(t.rol))) return undefined
+  const otros = dondeAparece.filter(t => !esDelMedico(t.rol)).map(t => t.rol)
+  return otros.length ? [...new Set(otros)].join(', ') : undefined
+}
+
+export const POR_QUE_SE_DICE_QUIEN =
+  'El relato de un acompañante ES historia clínica válida, y a veces la única ' +
+  '—un paciente con demencia o afasia—. Lo que no puede es atribuirse EN ' +
+  'SILENCIO al paciente: un síntoma del acompañante presentado como del ' +
+  'paciente es un hecho falso. No se degrada nada; se dice quién.'
+
 export const POR_QUE_V3 =
   'El interrogatorio nombra la enfermedad en la PREGUNTA del médico, así que un ' +
   'extractor encuentra su cita textual y sella el diagnóstico como dictado: la ' +
@@ -293,7 +344,7 @@ function origenDe(
     /** `true` sólo en antecedentes y diagnósticos: es donde V3 aplica. */
     esAntecedente?: boolean
   },
-): { origen: OrigenCampo; cita?: string; confianza?: Confianza } {
+): { origen: OrigenCampo; cita?: string; confianza?: Confianza; dichoPor?: string } {
   if (!match) return { origen: ctx?.sinExtraccion ?? 'manual' }
 
   /**
@@ -336,7 +387,9 @@ function origenDe(
   if (ctx.esAntecedente && !citaSostieneAntecedente(cita, ctx.turnos)) {
     return { origen: 'ia', confianza: match.confidence }
   }
-  return { origen: 'dictado', cita, confianza: match.confidence }
+  // La cita se sostiene. Si NO la sostuvo el paciente, se dice quién — sin
+  // degradar el campo: quien lo dijo es un hecho, no una duda.
+  return { origen: 'dictado', cita, confianza: match.confidence, dichoPor: quienSostiene(cita, ctx.turnos) }
 }
 
 /**
