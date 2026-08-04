@@ -5062,6 +5062,46 @@ una baja anual multi-médico se contaba mal en las dos direcciones a la vez.
 
 ---
 
+## TANDA 157ª — v1008 · QUIÉN GASTA Y CUÁNTO VALE ATENDER A UN PACIENTE (N6)
+
+La consola de costos agrupaba por **función, modelo y clase**. El libro anota el
+`uid` en cada asiento desde que existe el gateway y nadie agrupaba por él; y no
+había ninguna cifra por consulta. Son las dos preguntas con las que se decide un
+precio. El auditor lo dijo exacto: falta una línea de agrupación, no un sistema.
+
+### Por médico
+
+`porClave` sobre el `uid`, y **sobre COGS**: el gasto de I+D del fundador no es
+el costo de atender a un paciente. El **identificador, nunca el nombre** — el
+libro de costos no guarda identidades a propósito, y esta pantalla no va a ser la
+que las introduzca.
+
+### Costo por consulta dictada
+
+La cadena completa dividida entre las **transcripciones finales**. No se cuentan
+notas porque la nota **se re-genera sola cada ~30 segundos** mientras se graba —
+la nota en vivo—, así que contar notas contaría una consulta decenas de veces; la
+transcripción final ocurre una vez, al detener.
+
+Una transcripción que **falló** no es una consulta: cuesta tokens y suma al
+total, pero no atendió a nadie — contarla bajaría el costo por consulta con un
+fracaso. Lo que no es de la cadena (antibiograma, bot de ayuda) no entra. Sin
+consultas no dice 0 sino que no se sabe: una media de cero se lee como «gratis».
+
+Y el **supuesto viaja con la cifra**, escrito al lado en la pantalla: «un dictado
+grabado en dos tandas cuenta como dos, y una consulta escrita a mano no cuenta
+como ninguna». Una media sin su divisor se lee como un hecho.
+
+La cadena se declara **en un solo sitio**: si dos partes del sistema cuentan «lo
+que cuesta una consulta» con listas distintas, las dos cifras serán plausibles y
+una estará mal.
+
+- `src/lib/finanzas/cost-ledger.ts`, `api/superadmin/costos/route.ts`,
+  `superadmin/costos/page.tsx`
+- `src/__tests__/costo-por-medico-y-consulta.test.ts` — 15 pruebas. Total **6123**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5089,8 +5129,8 @@ sustancialmente mejor de lo que un comprador puede ver».
   (`costo-ia-contable.ts`, leído por la ruta): suma el costo medido del libro.
   Queda BLOQUEADO en el Dr. — sin `TIPO_CAMBIO_USD_MXN` en Vercel no se convierte
   a pesos y se sigue diciendo en pantalla que la cifra es un supuesto.
-- N6. Margen por consulta y costo por médico: falta una línea de agrupación
-  (`porClave` ya existe), no un sistema.
+- N6. ~~Margen por consulta y costo por médico: falta una línea de agrupación
+  (`porClave` ya existe), no un sistema.~~ **CERRADO v1008**.
 - N7. ~~MRR: sobrestima al anual (nadie lee `ciclo`) y subestima al multi-médico.~~ **CERRADO v1006**.
 - N8. ~~Churn no ve el trial abandonado (se queda en `status:'trial'` para siempre).~~ **CERRADO v1007**.
 - N9. ~~`/operacion:18` promete facturación CFDI al paciente que NO existe.~~ **CERRADO v968** (decisión 13 del Dr; y OJO: el CFDI de la suscripción sí existe y se conservó).

@@ -225,6 +225,71 @@ export function porClave(
 }
 
 /**
+ * ── LA CADENA DE UNA CONSULTA DICTADA ────────────────────────────────────────
+ *
+ * Las funciones que corren cuando el médico dicta una consulta de principio a
+ * fin. No es una lista nueva: es la que ya estaba escrita en el módulo del tope
+ * de cortesía —«una consulta dictada gasta ~4 usos: transcribir + procesar +
+ * verificar-nota + evidencia»—, más las que se le añadieron después.
+ *
+ * Se declara AQUÍ y en un solo sitio porque si dos partes del sistema cuentan
+ * «lo que cuesta una consulta» con listas distintas, las dos cifras serán
+ * plausibles y una estará mal.
+ */
+export const CADENA_CONSULTA: readonly string[] = [
+  'transcribir', 'transcribir-diarizado', 'transcribir-chunk', 'transcripcion',
+  'corregir-transcripcion', 'atribuir-roles',
+  'nota-consulta', 'verificar-nota', 'evidencia', 'extraer-entidades', 'entidades',
+]
+
+/**
+ * Las funciones que marcan **una consulta**: la transcripción final.
+ *
+ * Se cuenta por aquí y no por la nota porque la nota se re-genera sola cada
+ * ~30 segundos mientras se graba —la «nota en vivo»—, así que contar notas
+ * contaría una consulta muchas veces. La transcripción final ocurre al detener.
+ */
+export const MARCAN_CONSULTA: readonly string[] = ['transcribir', 'transcribir-diarizado', 'transcripcion']
+
+export interface CostoPorConsulta {
+  /** Cuántas consultas dictadas se detectaron. */
+  consultas: number
+  /** USD de toda la cadena, sólo lo que tiene tarifa. */
+  totalUsd: number
+  /** USD por consulta. `null` si no hubo ninguna: dividir entre cero no es 0. */
+  usdPorConsulta: number | null
+  /** Llamadas de la cadena que se quedaron sin tarifa. */
+  sinTarifa: number
+  /** Lo que hay que saber para leer la cifra sin equivocarse. */
+  supuesto: string
+}
+
+/**
+ * Cuánto cuesta de IA una consulta dictada, en promedio.
+ *
+ * @param eventos los asientos del periodo (ya filtrados a COGS si se quiere).
+ */
+export function costoPorConsulta(eventos: readonly EventoCosto[]): CostoPorConsulta {
+  const cadena = eventos.filter(e => CADENA_CONSULTA.includes(e.feature))
+  const consultas = eventos.filter(e => MARCAN_CONSULTA.includes(e.feature) && !e.fallo).length
+  const r = resumir(cadena)
+  return {
+    consultas,
+    totalUsd: r.totalUsd,
+    usdPorConsulta: consultas > 0 ? Number((r.totalUsd / consultas).toFixed(6)) : null,
+    sinTarifa: r.sinTarifa,
+    supuesto:
+      'Una consulta = una transcripción final. Un dictado grabado en dos tandas ' +
+      'cuenta como dos, y una consulta escrita a mano no cuenta como ninguna.',
+  }
+}
+
+export const POR_QUE_NO_SE_CUENTAN_NOTAS =
+  'La nota se re-genera sola cada ~30 segundos mientras se graba —la nota en ' +
+  'vivo—, así que contar notas contaría una consulta muchas veces. La ' +
+  'transcripción final ocurre una vez, al detener.'
+
+/**
  * ¿Se puede afirmar el costo de esta tanda?
  *
  * §Y: «si no existe información suficiente, INSUFFICIENT_DATA. Nunca inventar.»
