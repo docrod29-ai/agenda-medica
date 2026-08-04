@@ -51,3 +51,13 @@ next-env.d.ts
 # /ios
 # /android
 firestore-debug.log
+
+# Corpus actuado de consulta: el GUION y el manifiesto SÍ van al repositorio
+# (son la verdad de terreno y pesan kilobytes); el audio generado no. Se
+# reproduce con `npx tsx scripts/generar-corpus-dialogo.ts` por unos centavos, y
+# 10 MB de mp3 en el historial de git no se recuperan nunca.
+synthetic-data/dialogos-consulta/salida/AUDIOS/
+synthetic-data/dialogos-consulta/salida/TURNOS/
+synthetic-data/dialogos-consulta/salida/DIARIZACION/
+synthetic-data/dialogos-consulta/salida/*.txt
+synthetic-data/dialogos-consulta/salida/silencio.mp3

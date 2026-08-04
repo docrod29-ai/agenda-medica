@@ -39,3 +39,17 @@ Franja en el armazón de la app, sólo para el dueño, con el titular y qué hac
 **Nota honesta**: la premisa inicial era que `avisoAlDueno` no lo llamaba nadie.
 Era falsa —lo busqué con el nombre mal escrito— y se verificó **antes** de
 construir nada encima. Lo que faltaba no era el registro: era que llegara a él.
+
+## 2026-08-04 — EVAL-002 · corpus actuado de consulta
+
+12 diálogos, 72 turnos, 5 min 12 s. Médico, paciente y acompañante con voces
+distintas que **rotan por diálogo** —con una sola pareja se acabaría midiendo qué
+tan bien se distinguen ESAS dos—, y el milisegundo exacto de cada turno, medido
+con `ffprobe` sobre el archivo ya generado.
+
+Cada diálogo ataca una defensa concreta y el primero es el fallo real del Dr.:
+«¿enfermedades crónicas como diabetes o presión alta?» «No.»
+
+El medidor está escrito y probado end-to-end. **La medición queda bloqueada en
+B-11**: la llave de AssemblyAI no se puede obtener en esta máquina — `vercel env
+pull` la devuelve como `[SENSITIVE]`.
