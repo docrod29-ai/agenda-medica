@@ -113,24 +113,30 @@ para que no se vuelva a abrir; lo abierto es la cola real.
 | 9 | La cabecera de 2 s se re-transcribía en cada lote: **una orden médica duplicada** en puntos distintos de la consulta | v979 · v995 |
 | 10 | El corte de 20 s **partía palabras sin solape**: una cifra en la frontera no queda mal escrita, queda **cambiada** | v995 |
 
-### B.2 · P0/P1 — ABIERTOS
+### B.2 · P0/P1 — RE-VERIFICADOS EL 4-AGO-2026 CONTRA EL CÓDIGO
 
-| # | Sev | Fallo | Evidencia |
-|---|---|---|---|
-| B-1 | **P0** | **`transcripcionCruda` no es cruda.** Se guarda `voz.transcripcion`, que ya pasó por las 4 etapas **y es editable por el médico**. El `crudo` que el pipeline conserva no se persiste en ningún sitio. Ante una discusión medicolegal, el «material de origen» archivado no es lo que el motor oyó | `consulta/[patientId]/page.tsx` (construirNota) · `pipeline.ts` devuelve `crudo` y nadie lo guarda |
-| B-2 | **P0** | **`dialogoDiarizado` se persiste con `palabras` dentro.** Una consulta de 20 min son miles de objetos `{texto,inicioMs,confianza}` en el documento de la nota, que **ya tiene historial de reventar el tope de 1 MB de Firestore** y bloquear todo guardado posterior. El tipo declarado es sólo `{speaker,text}` | `types/expediente.ts` vs. lo que se escribe |
-| B-3 | **P1** | **`rolesHablante` no se persiste.** El expediente no registra a quién se consideró Médico y a quién Paciente — la decisión de la que depende si un «No» negó una diabetes **no deja rastro auditable** | grep en `types/expediente.ts` y `firestore.ts`: vacío |
-| B-4 | **P1** | **`speaker_options` no se pide.** Un diálogo de dos personas puede partirse en hasta 10–30 voces (valor por omisión del proveedor) | `transcribir-diarizado/route.ts` |
-| B-5 | **P1** | **Sin `es-MX`, sin Medical Mode.** AssemblyAI publica un `domain: "medical-v1"` que **incluye español** y no se usa | doc del proveedor; `NO VERIFICADO` en pre-grabado |
-| B-6 | **P1** | **`'best'` no está documentado.** Si enruta a Universal-3.5 Pro, `word_boost` podría estar **ignorándose por completo** y todo el trabajo de vocabulario no cambiaría nada de lo que el motor oye. **Se resuelve con una llamada** | `route.ts` manda `speech_model: 'best'` |
-| B-7 | **P1** | **Roles limitados a 3.** En pase de piso hay residente y enfermería; caen en «Médico» o «Acompañante». Los 6 roles existen en `uci/discusion.ts` y no se usan fuera de UCI | `atribuir-roles/route.ts` |
-| B-8 | **P1** | **La segunda opinión se rinde con la consulta larga.** Por encima de 12 000 caracteres devuelve `incompleto` y no revisa: la consulta de UCI o la historia de primera vez es justo la que se queda sin revisor | `verificar-nota/route.ts` |
-| B-9 | **P1** | **El ensamble no revalida citas.** Un tercer modelo fusiona dos versiones y nadie comprueba que las `source_quote` fusionadas existan en el transcript | `procesar/route.ts` |
-| B-10 | **P2** | **La procedencia sólo cubre datos estructurados.** La prosa de las secciones no tiene evidencia por afirmación — y los tres casos de producción vivieron ahí | `procedencia.ts` |
-| B-11 | **P2** | **`cambiosNormalizacion` y `cambiosSiglas` no se enseñan.** «quinientos miligramos» → «500 mg» ocurre sin registro reversible, mientras un cambio de fármaco sí se puede deshacer. La regla «nada cambia en silencio» se cumple para una etapa de tres | `pipeline.ts` los produce; el panel sólo lee `cambiosLexicos` |
-| B-12 | **P2** | **`especialidades` es un parámetro muerto de punta a punta**: declarado, reenviado, leído por el léxico como señal de máxima prioridad, y **ningún llamador lo pasa** | `useGrabacionAudio.ts` → `lexicon.ts` |
+**Los doce están cerrados.** Esta tabla se escribió el 2 de agosto y siguió
+diciendo «ABIERTOS» durante veinte versiones que los fueron cerrando uno a uno.
+Un documento de auditoría que se queda quieto **no falla: certifica** — y aquí
+certificaba dos P0 que ya no existen, que es la misma clase de daño que el
+registro clínico con puertas inexistentes (REG-131), sólo que al revés.
 
----
+Cada fila se comprobó abriendo el archivo, no leyendo la bitácora.
+
+| # | Sev | Fallo | Cerrado en | Cómo se comprobó hoy |
+|---|---|---|---|---|
+| B-1 | P0 | `transcripcionCruda` no es cruda | v996 | La nota guarda **las dos**: `transcripcionCruda` es el texto de trabajo y `transcripcionMotor` lo que el reconocedor oyó (`types/expediente.ts:293-304`, escritas en `construirNota`). De esa pareja cuelga LEARN (REG-133) |
+| B-2 | P0 | `dialogoDiarizado` se persiste con `palabras` dentro | — | Se guarda `{speaker, text, rol}`, sin `palabras` (`types/expediente.ts:326`; guardián en `origen-del-dictado.test.ts`) |
+| B-3 | P1 | `rolesHablante` no se persiste | — | El rol viaja **dentro de cada turno** (`rol?: string`) y va sellado en el V3, que era el objetivo: quién dijo qué queda en el expediente (`quien-hablo-se-archiva.test.ts`) |
+| B-4 | P1 | `speaker_options` no se pide | — | `speaker_options: { min_speakers_expected: 1, max_speakers_expected: MAX_VOCES }` en las dos llamadas |
+| B-5 | P1 | Sin Medical Mode | v1022 | `domain: DOMINIO_MEDICO` (`'medical-v1'`) dentro de `armar()`, así que va en el intento principal **y** en el reintento |
+| B-6 | P1 | `'best'` no está documentado | v1022 | Se pide `universal-3.5-pro` por su nombre y el tope de sesgo se presupuesta para ÉL (1 000 vs 200); si el proveedor lo rechaza, se reintenta con el alias |
+| B-7 | P1 | Roles limitados a 3 | — | `roles-hablante.ts`: catálogo por módulo (consulta / hospitalización / UCI) y **«Hablante no identificado»**, para que «no lo sé» sea una respuesta posible |
+| B-8 | P1 | La segunda opinión se rinde con la consulta larga | — | La transcripción se parte en **tramos solapados** y la nota entera se revisa contra cada uno; si algo queda fuera se devuelve `incompleto` diciendo cuántos caracteres se cubrieron |
+| B-9 | P1 | El ensamble no revalida citas | — | Tras fusionar se comprueba que las `source_quote` sigan existiendo en la transcripción (`procesar/route.ts:550`) |
+| B-10 | P2 | La procedencia sólo cubre datos estructurados | — | El manifiesto incluye las **secciones redactadas** y el resumen, con la regla V3 sobre las de antecedentes — que es donde ocurrió el fallo real |
+| B-11 | P2 | `cambiosNormalizacion` y `cambiosSiglas` no se enseñan | v1000 | Panel de cambios de cifras en la consulta, con su prueba |
+| B-12 | P2 | `especialidades` es un parámetro muerto | v1022 · v1025 | La consulta y UCI lo mandan, y desde la v1025 lo lee también **la ruta que de verdad transcribe** (REG-135) |
 
 ## C · CURRENT BENCHMARKS
 
@@ -142,8 +148,9 @@ para que no se vuelva a abrir; lo abierto es la cola real.
 | Informe medido sobre 498 audios de UCI | `docs/maintenance/benchmark-voz-uci-498.json` | WER 11.25 %, término clínico 99.73 %, número 100 %, unidad 100 %, error semántico crítico 0.20 % — **corpus de UCI, no de consulta** |
 | Regresión de TEXTO, gratis | `scripts/asr-regresion-texto.ts` | Un texto ya correcto debe salir intacto |
 | Benchmark con audio, crudo vs pipeline | `scripts/asr-benchmark-audio.ts` | Con caché; mide si el pipeline **daña** |
-| Corpus oro de alucinación, 3 casos de producción | `src/lib/ia/casos-oro.ts` + su prueba | Criterio CERO, corre en CI (v985) |
+| Corpus oro de alucinación, 4 casos | `src/lib/ia/casos-oro.ts` + su prueba | Criterio CERO, corre en CI (v985). Tres salieron de producción; el cuarto de un criterio del charter (rol del acompañante) |
 | Trinquete de lint, color, escala visual, huérfanos | `scripts/lint-trinquete.mjs`, tests | En CI |
+| Lo que el médico corrige a mano (LEARN) | `src/lib/asr/aprendizaje.ts` + `aprendizaje-firestore.ts` | v1023-v1025. **No es una métrica**: es evidencia sobre este médico. Se cuenta cuántas veces se repitió cada corrección, y por eso hay un número que sube |
 
 ### Lo que NO se mide (VERIFICADO por ausencia)
 
@@ -153,13 +160,25 @@ para que no se vuelva a abrir; lo abierto es la cola real.
    acierta**.
 3. **Diarización.** Ni DER, ni error de atribución, ni recuperación de
    solapamiento.
-4. **Negación y temporalidad**, pese a que el motor existe desde el 3-ago.
+4. **Temporalidad.** La negación **sí** tiene un caso oro desde la v985
+   (`oro-negacion-cronicas`, el fallo real del Dr.), y el motor corre en CI con
+   criterio cero; lo que sigue sin medirse es *cuándo* pasó lo que se dice —
+   «tuvo neumonía hace 3 años» ≠ «tiene neumonía».
 5. **Nota**: ni PDQI-9, ni distancia de edición del médico, ni omisión.
 6. **Latencia** de primer parcial y estabilidad del parcial.
 7. **Equidad**: nada por acento, sexo de voz, edad, dispositivo ni ruido.
-8. **Ningún trinquete de voz corre en CI.** Los tres scripts existen y **no están
-   en el workflow**.
-9. **`UMBRAL_DUDA = 0.6` sigue sin calibrar**, declarado así en el propio código.
+8. **Los trinquetes de voz que no necesitan corpus SÍ corren en CI** (léxico,
+   normalización, siglas, guardián de sustituciones, pipeline, corpus oro,
+   aprendizaje…). Los **tres scripts de corpus** siguen fuera, y por una razón
+   que no es pereza: **el corpus no está en el repositorio** —vive en el disco
+   del Dr.— y un trinquete que en CI no encuentra sus datos pasaría en verde sin
+   medir nada, que es peor que no tenerlo. Corregido el 4-ago: la frase anterior
+   («ninguno corre en CI») dejó de ser cierta hace versiones.
+9. **`UMBRAL_DUDA = 0.6` sigue sin calibrar**, declarado así en el propio código
+   (`confianza-audio.ts:76`, con sobreescritura por variable de entorno).
+
+> **Nota de método (4-ago-2026).** Esta sección se re-verificó archivo por
+> archivo. Lo que no pude comprobar yo mismo no se movió.
 
 ---
 
