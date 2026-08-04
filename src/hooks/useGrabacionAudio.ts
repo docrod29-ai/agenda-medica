@@ -904,6 +904,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       duracionUltimoTrozoRef.current = duracionRef.current
       if (segTrozo > 0) fd.append('duracionSeg', String(Math.round(segTrozo)))
       if (prevContext) fd.append('prevContext', prevContext)
+      // El módulo, para que el texto en vivo use el MISMO vocabulario que el
+      // final: en UCI se estaba sesgando con el catálogo de consultorio.
+      if (contextoRef.current.contexto) fd.append('contexto', contextoRef.current.contexto)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       if (!res.ok) {
         // Un trozo perdido deja de ser invisible: el contador se ve en pantalla
