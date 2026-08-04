@@ -3707,6 +3707,46 @@ sólo puede señalar de menos.
 
 ---
 
+## CENTÉSIMA VIGESIMOSEXTA TANDA — v977 · EL MISMO FALLO, UNA CAPA MÁS ADENTRO
+
+La v976 reparó la NOTA. Al verificarlo encontré que **el extractor de entidades
+corre sobre el mismo texto** y tenía el mismo defecto: «¿diabetes o presión alta?
+No» le devolvía las dos como condiciones, con `certeza: confirmado`.
+
+Reparar sólo la nota habría dejado la contradicción viva en la pantalla de al
+lado — y con **peor pinta**: una entidad estructurada, con su código CIE-10 y su
+chip de color, parece un dato verificado.
+
+### Arreglado
+
+- **La ruta lo corrige en el SERVIDOR**, no en la pantalla: la consumen la
+  consulta y la ficha del paciente, así que arreglarlo en una habría dejado la
+  otra rota.
+- **Se reclasifica a `descartado`, NO se borra.** «Niega diabetes» es un negativo
+  pertinente y es información clínica real; lo que no puede pasar es que viaje
+  como confirmada, porque desde ahí se comporta como un antecedente.
+- **Lo corregido se dice**: el panel enseña qué condiciones se reclasificaron y
+  la cita del dictado. Una corrección silenciosa se ve igual que un extractor que
+  acertó a la primera — y entonces nadie se entera de que el modelo sigue
+  cosechando términos de las preguntas.
+- Regla equivalente en el **prompt del NER**, más una segunda: cuando el texto
+  viene con turnos, quien afirma o niega un antecedente es el PACIENTE; lo que
+  dice el médico en una pregunta no es un hallazgo.
+
+### Detalles que evitan romper otra cosa
+
+- Se conservan los demás campos de la condición (CIE-10 incluido): reconstruir el
+  objeto perdiendo el código rompería el reporte COFEPRIS.
+- Si el extractor ya la puso como `descartado`, acertó: no se toca ni se anota
+  una corrección que no hubo.
+
+- `src/lib/expediente/negaciones.ts`, `src/lib/expediente/medical-ner.ts`,
+  `api/expediente/extraer-entidades/route.ts`, `src/components/NerPanel.tsx`,
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/negacion-diagnostico-inventado.test.ts` — +10 (36). Total **5764**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

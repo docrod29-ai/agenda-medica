@@ -51,7 +51,7 @@ import { construirManifiesto } from '@/lib/expediente/procedencia'
 function alergiasArray(alergias?: string): string[] {
   return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
-import { NerPanel } from '@/components/NerPanel'
+import { NerPanel, type NegacionCorregida } from '@/components/NerPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
@@ -650,6 +650,8 @@ export default function ConsultaActivaPage() {
   const transcripcionRef = useRef('')
   // ─── Medical NER (extracción de entidades) ─────────────────────
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
+  /** Condiciones que el extractor dio por confirmadas y el paciente había negado. */
+  const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
   const [nerCargando, setNerCargando] = useState(false)
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -1482,7 +1484,7 @@ export default function ConsultaActivaPage() {
       ...secciones.map(s => s.value).filter(Boolean),
     ].join('\n\n').trim()
     if (!textoFuente) { toast('No hay texto que analizar todavía', 'info'); return }
-    setNerCargando(true); setNerError(''); setEntidades(null)
+    setNerCargando(true); setNerError(''); setEntidades(null); setNegacionesCorregidas([])
     try {
       // Auditoría 2026-07 (P1): mandamos las alergias REGISTRADAS del expediente
       // para que el cross-check alergia↔medicamento las considere, no solo las
@@ -1502,6 +1504,7 @@ export default function ConsultaActivaPage() {
         return
       }
       setEntidades(data as EntidadesExtraidas)
+      setNegacionesCorregidas(((data as { negacionesCorregidas?: NegacionCorregida[] }).negacionesCorregidas) ?? [])
       const bloquea = (data.cross_check?.alergia_vs_medicamento ?? []).filter((c: { RIESGO_MAXIMO: boolean }) => c.RIESGO_MAXIMO).length
       const intGraves = (data.cross_check?.interacciones_farmacologicas ?? []).filter((i: { severidad: string }) => i.severidad === 'mayor' || i.severidad === 'contraindicada').length
       if (bloquea > 0) toast(`${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
@@ -3102,9 +3105,10 @@ export default function ConsultaActivaPage() {
         <div style={{ marginBottom: 18 }}>
           <NerPanel
             entidades={entidades}
+            negacionesCorregidas={negacionesCorregidas}
             cargando={nerCargando}
             error={nerError}
-            onCerrar={() => { setEntidades(null); setNerError('') }}
+            onCerrar={() => { setEntidades(null); setNerError(''); setNegacionesCorregidas([]) }}
           />
         </div>
       )}

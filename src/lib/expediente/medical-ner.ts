@@ -205,6 +205,14 @@ CROSS-CHECK OBLIGATORIO:
 ═══════════════════════════════════════════════════════════════════
 
 REGLAS:
+- **UNA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN DIAGNÓSTICO.** El interrogatorio
+  se hace nombrando padecimientos ("¿enfermedades crónicas como diabetes o presión
+  alta?"). Si la respuesta es "no", "ninguna", "nada" o equivalente, esa condición va
+  con certeza="descartado" — NUNCA "confirmado". Cosechar el término de la pregunta e
+  ignorar el "no" le inventa al paciente un antecedente crónico que cambia su riesgo
+  quirúrgico y se arrastra a todas las notas siguientes.
+- Si el texto viene con turnos (Médico:/Paciente:), quien AFIRMA o NIEGA un antecedente
+  es el PACIENTE; lo que dice el médico en una pregunta no es un hallazgo.
 - NO inventes. Si no hay datos, devuelve arrays vacíos [].
 - NO redactes prosa. Solo entidades.
 - NO incluyas información que NO esté en el texto (excepto el código

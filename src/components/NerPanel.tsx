@@ -17,14 +17,26 @@
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { AlertTriangle, ShieldAlert, Pill, Stethoscope, TestTube, Scissors, X, Loader2, FlaskConical, Lightbulb, Bone } from 'lucide-react'
 
+/** Lo que el motor determinista tuvo que corregir sobre la salida del modelo. */
+export interface NegacionCorregida { texto: string; condicion: string; cita: string }
+
 interface NerPanelProps {
   entidades: EntidadesExtraidas | null
+  /**
+   * Condiciones que el extractor dio por confirmadas y el paciente había NEGADO.
+   *
+   * Se enseñan a propósito. Una corrección silenciosa se ve en pantalla
+   * exactamente igual que un extractor que acertó a la primera — y entonces
+   * nadie se entera de que el modelo sigue cosechando términos de las preguntas
+   * del interrogatorio.
+   */
+  negacionesCorregidas?: NegacionCorregida[]
   cargando?: boolean
   error?: string
   onCerrar?: () => void
 }
 
-export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps) {
+export function NerPanel({ entidades, negacionesCorregidas, cargando, error, onCerrar }: NerPanelProps) {
   if (cargando) {
     return (
       <div className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -155,6 +167,25 @@ export function NerPanel({ entidades, cargando, error, onCerrar }: NerPanelProps
             ))}
           </div>
         </details>
+      )}
+
+      {/* ── LO QUE SE CORRIGIÓ POR NEGACIÓN ────────────────────── */}
+      {(negacionesCorregidas?.length ?? 0) > 0 && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
+          color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+        }}>
+          <b>Se reclasificaron {negacionesCorregidas!.length} condición(es): el paciente las negó.</b>
+          <div style={{ marginTop: 4 }}>
+            {negacionesCorregidas!.map((n, i) => (
+              <div key={`${n.condicion}-${i}`}>«{n.texto}» → descartada. En el dictado: {n.cita}</div>
+            ))}
+          </div>
+          <div style={{ marginTop: 4, opacity: .9 }}>
+            No se borraron: negar una enfermedad es información clínica (negativo pertinente).
+          </div>
+        </div>
       )}
 
       {/* ── CONDICIONES ────────────────────────────────────────── */}
