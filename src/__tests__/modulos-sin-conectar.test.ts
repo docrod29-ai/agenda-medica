@@ -47,6 +47,24 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   // Lo cazó ESTE guardián en cuanto se escribió, que es exactamente su trabajo.
   'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
 
+  /**
+   * ── LOS CUATRO QUE TAPABA UN `import type` (v1019) ────────────────────────
+   *
+   * TypeScript borra los imports de tipo al compilar. Los cuatro pasaban en
+   * verde porque alguien importaba **un tipo** suyo: ni una línea de su código
+   * llega al bundle.
+   *
+   * El caro es el primero, y por eso este guardián existe.
+   */
+  'src/lib/clinical/infusion-library.ts':
+    'MOTOR CLÍNICO COMPLETO —tres capas de preparación, con golden, registrado en el registro clínico con sus entryPoints y su ADR— y NINGUNA pantalla llama a sus funciones. Sólo `uci/infusion-registro` importa un TIPO suyo. Conectarlo es una decisión de producto con implicaciones clínicas (qué preparaciones tiene la unidad, quién las autoriza): NO se conecta a medias para vaciar una lista.',
+  'src/lib/evidencia/pico.ts':
+    'Extractor PICO de la pregunta clínica. Lo consumen su golden y su prueba de tipos; ninguna pantalla lo llama todavía. Trabajo terminado esperando dónde enseñarse.',
+  'src/lib/ia/evaluacion.ts':
+    'El arnés de validación de la IA. Su sitio ES el CI —lo corren `ia-evaluacion` y el corpus oro—, igual que los demás gates. Un arnés con pantalla sería un arnés que alguien ajusta para que pase.',
+  'src/lib/whatsapp/connection.ts':
+    'Máquina de estados de la conexión de WhatsApp por consultorio. Probada y sin pantalla que la muestre; hoy el estado se lee de otro sitio. Declarado hasta que exista el panel de conexión.',
+
   // ── Motores clínicos con golden pero SIN pantalla que los muestre ─────────
   // Éstos son los que de verdad duelen: trabajo clínico terminado y probado
   // que todavía no le llega al médico.
@@ -117,6 +135,25 @@ const fuentes = [...todos, ...archivos('scripts', IMPORTADORES)]
  */
 const ESPECIFICADOR = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"]([^'"]+)['"]/g
 
+/**
+ * ── EL SEGUNDO FALSO NEGATIVO: `import type` NO CONECTA NADA ────────────────
+ *
+ * TypeScript **borra** los imports de tipo al compilar: no queda una sola línea
+ * de ese módulo en el bundle. Un `import type { X } from '@/lib/motor'` es
+ * documentación, no una llamada.
+ *
+ * Y con eso se colaba justo lo que este guardián existe para cazar:
+ * `clinical/infusion-library.ts` —motor de tres capas, con golden, registrado en
+ * el registro clínico con sus `entryPoints` y su ADR— pasaba en verde porque
+ * `uci/infusion-registro.ts` importaba **un tipo** suyo. Ninguna de sus
+ * funciones se llama en producción.
+ *
+ * Es el mismo modo de fallo que el del nombre de archivo (arriba), un escalón
+ * más arriba: **el guardián no sólo no avisa, sino que certifica que no hay nada
+ * que avisar.**
+ */
+const IMPORT_DE_TIPO = /^\s*(?:export|import)\s+type\s/
+
 /** `@/lib/x` o `./x` → la ruta del archivo que de verdad se carga. */
 function resolverEspecificador(espec: string, desde: string): string | null {
   let base: string
@@ -131,12 +168,16 @@ function resolverEspecificador(espec: string, desde: string): string | null {
 function importados(): Set<string> {
   const usados = new Set<string>()
   for (const { f, src } of fuentes) {
-    ESPECIFICADOR.lastIndex = 0
-    let m: RegExpExecArray | null
-    while ((m = ESPECIFICADOR.exec(src))) {
-      const destino = resolverEspecificador(m[1], f)
-      // Un módulo que sólo se importa a sí mismo sigue siendo huérfano.
-      if (destino && destino !== f) usados.add(destino)
+    for (const linea of src.split('\n')) {
+      // Un `import type` se borra al compilar: no conecta nada.
+      if (IMPORT_DE_TIPO.test(linea)) continue
+      ESPECIFICADOR.lastIndex = 0
+      let m: RegExpExecArray | null
+      while ((m = ESPECIFICADOR.exec(linea))) {
+        const destino = resolverEspecificador(m[1], f)
+        // Un módulo que sólo se importa a sí mismo sigue siendo huérfano.
+        if (destino && destino !== f) usados.add(destino)
+      }
     }
   }
   return usados

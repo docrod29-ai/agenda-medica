@@ -5535,6 +5535,47 @@ golden; quitarla dejaría un booleano sin nada que lo respalde— y no escondido
 
 ---
 
+## TANDA 168ª — v1019 · UN `import type` TAPABA UN MOTOR CLÍNICO ENTERO
+
+El guardián de módulos huérfanos ya había arreglado un falso negativo (v935:
+buscaba el **nombre** del archivo, y `prompts` tapaba a `prompts`). Tenía otro,
+un escalón más arriba: contaba como «conectado» un **`import type`**. Y
+TypeScript **borra** los imports de tipo al compilar — no queda una sola línea de
+ese módulo en el bundle.
+
+Con eso pasaba en verde `clinical/infusion-library.ts`: **motor clínico completo**
+de tres capas de preparación, con golden, **registrado en el registro clínico con
+sus `entryPoints` y su ADR**… y ninguna pantalla llama a sus funciones. Lo único
+que lo «conectaba» era que `uci/infusion-registro` importaba **un tipo** suyo.
+
+Es el modo de fallo que este guardián existe para cazar, y el guardián
+**certificaba que no había nada que cazar**.
+
+### Los cuatro que salieron
+
+Se declaran **con su razón real**, sin maquillar:
+
+- **`clinical/infusion-library.ts`** — el caro. **No se conecta a medias para
+  vaciar una lista**: qué preparaciones tiene la unidad y quién las autoriza es
+  una decisión de producto con implicaciones clínicas.
+- `evidencia/pico.ts` y `whatsapp/connection.ts` — trabajo terminado esperando
+  pantalla.
+- `ia/evaluacion.ts` — el arnés vive en el CI **por definición**, como los demás
+  gates.
+
+### Y una prueba mía que afirmaba de más
+
+`oro-alucinacion` certificaba que el arnés «salió de la lista de huérfanos». Era
+verdad **en la letra** —no estaba en la lista— pero lo único que lo sacaba era
+ese mismo `import type`. **Decía que el trabajo llegaba, y no llegaba.** Ahora
+comprueba lo cierto: que esté declarado como infraestructura del CI, con su
+razón.
+
+- `src/__tests__/modulos-sin-conectar.test.ts`, `oro-alucinacion.test.ts`
+- Sin pruebas nuevas: el hallazgo **es** el arreglo del guardián. Total **6223**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
