@@ -4662,6 +4662,41 @@ contra un archivo que miente.
 
 ---
 
+## TANDA 147ª — v998 · EL DIÁLOGO ARCHIVADO NO DECÍA QUIÉN HABLÓ (B-3)
+
+`rolesHablante` —«Médico», «Paciente», «Familiar»— se calcula con
+`/api/expediente/atribuir-roles`, **se enseña en pantalla y el médico lo puede
+corregir a mano**, y se usa para la procedencia al firmar. Ahí se acababa: lo que
+se guardaba en `dialogoDiarizado` era `speaker`, la etiqueta del **motor** —«A» y
+«B»—. La atribución que el médico confirmó se perdía al guardar.
+
+### Por qué no es cosmético
+
+Es el dato que hace falta cuando se discute una nota: si «DM2» lo **afirmó el
+paciente** o lo **nombró la pregunta del médico** —«¿diabetes o presión alta?» →
+«no»—, que es el caso real del que nacieron el motor de negaciones y la
+procedencia V3. Las dos defensas funcionan **mientras dura la sesión**, porque
+leen `rolesHablante` en memoria; al archivar, el dato que las sostiene
+desaparecía.
+
+### Lo que no se hace
+
+Sin rol conocido **no se inventa uno**: poner «Médico» por defecto metería en
+boca del médico frases del paciente. Y el turno **conserva su `speaker`**, que es
+lo que dijo el motor: sustituirlo impediría comprobar que dos turnos vienen de la
+misma voz.
+
+El sello no se rompe: `dialogoDiarizado` ya iba sellado y se sella **tal como
+está guardado**, así que las notas viejas mantienen su canónico intacto y se leen
+«Hablante A» — la verdad de lo que se guardó, en vez de fingir una atribución que
+nadie hizo.
+
+- `src/types/expediente.ts`, `consulta/[patientId]/page.tsx`,
+  `nota/[patientId]/[notaId]/page.tsx`
+- `src/__tests__/quien-hablo-se-archiva.test.ts` — 8 pruebas. Total **5980**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

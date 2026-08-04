@@ -86,7 +86,14 @@ describe('B-1 · EL MATERIAL DE ORIGEN SE GUARDA', () => {
 
 describe('B-2 · EL DOCUMENTO DEJA DE ENGORDAR', () => {
   it('se guardan los turnos, no las palabras', () => {
-    expect(page).toContain('audio.utterances.map(u => ({ speaker: u.speaker, text: u.text }))')
+    // Se afirma sobre las LLAVES que se escriben, no sobre una línea literal:
+    // la v998 añadió `rol` al mismo objeto y la forma cambió sin cambiar el
+    // fondo. Lo que no puede volver es `palabras`.
+    const desde = page.indexOf('dialogoDiarizado: audio.utterances.length > 0')
+    const bloque = page.slice(desde, page.indexOf('palabrasAVerificar:', desde))
+    expect(bloque).toContain('speaker: u.speaker,')
+    expect(bloque).toContain('text: u.text,')
+    expect(bloque).not.toContain('palabras')
   })
 
   it('sin turnos no se escribe un array vacío', () => {
