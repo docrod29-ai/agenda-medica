@@ -417,14 +417,31 @@ export function claseDeUnidad(texto: string | null | undefined): ClaseUnidadDosi
  * de seguridad en un obstáculo que se aprende a saltar, y entonces tampoco
  * frenaría lo que sí importa.
  */
-export function revisarUnidadDosis(farmaco: string, dosis: string | null | undefined): AlertaDosis | null {
+/**
+ * Dónde se está escribiendo la dosis.
+ *
+ * Cambia **sólo el texto**, nunca el criterio: en una receta el riesgo es que
+ * quien la surta no sepa cuánto dispensar; en una indicación de hospital, que
+ * **enfermería administre** una cantidad que no dice de qué. Decirle a un
+ * intensivista «quien la surta» es texto de otro sitio, y un aviso que no habla
+ * de su trabajo se lee como ruido.
+ */
+export type DondeSeEscribe = 'receta' | 'indicacion_hospital'
+
+export function revisarUnidadDosis(
+  farmaco: string,
+  dosis: string | null | undefined,
+  donde: DondeSeEscribe = 'receta',
+): AlertaDosis | null {
   const clase = claseDeUnidad(dosis)
   const nombre = String(farmaco ?? '').trim() || 'el medicamento'
   if (clase === 'sin_cifra') {
     return {
       severidad: 'alta',
       codigo: 'dosis_sin_cifra',
-      mensaje: `${nombre}: la receta no lleva cantidad. Quien la surta no puede saber cuánto dispensar.`,
+      mensaje: donde === 'indicacion_hospital'
+        ? `${nombre}: la indicación no lleva cantidad. Enfermería no puede administrar lo que no dice cuánto.`
+        : `${nombre}: la receta no lleva cantidad. Quien la surta no puede saber cuánto dispensar.`,
     }
   }
   if (clase === 'sin_unidad') {
