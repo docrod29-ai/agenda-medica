@@ -5495,6 +5495,46 @@ archivos al sello — 147 → **166** archivos, 2 527 → **2 789** casos proteg
 
 ---
 
+## TANDA 167ª — v1018 · EL GUARDIÁN DE CAMPOS DABA CUATRO FALSOS POSITIVOS DE SIETE
+
+El trinquete de la v1012 preguntaba **una sola cosa** —«¿se lee este campo fuera
+de su propio archivo?»— y con eso cazaba **dos defectos distintos** mezclados:
+
+- el campo **muerto** (`ResultadoPipeline.cambiosNormalizacion`: se construía y no
+  lo leía nadie, ni en su propio archivo);
+- el **huérfano de productor** (`ContextoDictado.especialidades`: sí se leía, pero
+  **nadie lo llenaba**).
+
+Al intentar extenderlo a más contratos, **cuatro de siete** daban falso positivo:
+`Contradiccion.enLaNota` lo lee `avisoDeContradiccion` dos funciones más abajo,
+`ResumenProcedencia.confirmados` lo lee `resumenProcedencia`… **Un guardián
+ruidoso se apaga**, que es peor que no tenerlo, y el mío iba camino de eso en
+cuanto creciera.
+
+### Lo que hay ahora
+
+Dos preguntas separadas, y cada contrato declara su **dirección**. En uno de
+**salida** el productor es el propio módulo, así que exigir que alguien de fuera
+lo escriba marcaría como huérfano **todo** lo que el módulo devuelve. En uno de
+**entrada** ocurre al revés: si nadie lo llena, el campo viaja vacío por todas
+las capas — exactamente lo que pasó con `especialidades`. Y la lectura cuenta
+también el propio archivo, quitando la línea de la declaración.
+
+**Resultado medido:** de 4 falsos positivos sobre 7 contratos a **cero sobre 11**,
+con dos hallazgos que sobreviven y son reales. El trinquete crece de 6 a **11**
+contratos vigilados.
+
+### Y cazó uno mío
+
+`MencionFarmaco.frase`, que añadí en la v1015 y no lee nadie en producción. Se
+queda **declarado con su razón** —es la evidencia del veredicto y la consume el
+golden; quitarla dejaría un booleano sin nada que lo respalde— y no escondido.
+
+- `src/lib/guardia/campos-conectados.ts`
+- `src/__tests__/campos-sin-leer.test.ts` — 5 pruebas nuevas. Total **6223**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

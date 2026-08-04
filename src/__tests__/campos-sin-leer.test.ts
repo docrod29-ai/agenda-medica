@@ -33,7 +33,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import {
-  camposDe, camposSinLeer, POR_QUE_SOLO_CONTRATOS, POR_QUE_EL_VEREDICTO_ES_PRUDENTE,
+  camposDe, camposSinConectar, POR_QUE_SOLO_CONTRATOS, POR_QUE_EL_VEREDICTO_ES_PRUDENTE,
   type Contrato,
 } from '@/lib/guardia/campos-conectados'
 
@@ -47,28 +47,52 @@ const RAIZ = process.cwd()
  */
 const CONTRATOS: Contrato[] = [
   {
-    archivo: 'src/lib/asr/pipeline.ts', interfaz: 'ResultadoPipeline',
+    archivo: 'src/lib/asr/pipeline.ts', interfaz: 'ResultadoPipeline', direccion: 'salida',
     porQue: 'Es la salida del pipeline de voz. Un campo que no sale de aquí es trabajo que el médico no ve — pasó con las cifras y las siglas.',
   },
   {
-    archivo: 'src/lib/asr/lexicon.ts', interfaz: 'ContextoDictado',
+    archivo: 'src/lib/asr/lexicon.ts', interfaz: 'ContextoDictado', direccion: 'entrada',
     porQue: 'Es lo que decide qué vocabulario OYE el motor. Un campo que nadie llena es sesgo que no se aplica.',
   },
   {
-    archivo: 'src/lib/asr/lexicon.ts', interfaz: 'Lexicon',
+    archivo: 'src/lib/asr/lexicon.ts', interfaz: 'Lexicon', direccion: 'salida',
     porQue: 'Lo que se le manda al reconocedor, con lo que se descartó. Un descarte que nadie mira se lee como «cupó todo».',
   },
   {
-    archivo: 'src/lib/expediente/procedencia.ts', interfaz: 'CampoProcedencia',
+    archivo: 'src/lib/expediente/procedencia.ts', interfaz: 'CampoProcedencia', direccion: 'salida',
     porQue: 'El sello de dónde salió cada dato. Un campo que no se lee es una garantía que no se enseña.',
   },
   {
-    archivo: 'src/lib/finanzas/mrr.ts', interfaz: 'DesgloseMRR',
+    archivo: 'src/lib/finanzas/mrr.ts', interfaz: 'DesgloseMRR', direccion: 'salida',
     porQue: 'El ingreso recurrente y su desglose. Una cifra que no llega al tablero es una decisión de precio tomada a ciegas.',
   },
   {
-    archivo: 'src/lib/ia/segmentar-revision.ts', interfaz: 'Segmentacion',
+    archivo: 'src/lib/ia/segmentar-revision.ts', interfaz: 'Segmentacion', direccion: 'salida',
     porQue: 'Cuánto de la consulta se revisó de verdad. Lo que no se lee aquí se presenta como una revisión completa.',
+  },
+  /**
+   * Los que se pudieron añadir al afinar la regla (v1018). Con la versión
+   * anterior daban falso positivo y habrían apagado el guardián.
+   */
+  {
+    archivo: 'src/lib/expediente/negaciones.ts', interfaz: 'Contradiccion', direccion: 'salida',
+    porQue: 'Lo que el paciente negó frente a lo que la nota afirma. Un campo que no se lee aquí es media contradicción, que no se puede resolver sin volver al audio.',
+  },
+  {
+    archivo: 'src/lib/asr/intencion-de-orden.ts', interfaz: 'MencionFarmaco', direccion: 'salida',
+    porQue: 'El encuadre con el que se dijo un fármaco. De aquí sale si va a la receta o sólo al plan.',
+  },
+  {
+    archivo: 'src/lib/ia/revalidar-citas.ts', interfaz: 'ResultadoRevalidacion', direccion: 'salida',
+    porQue: 'Qué pasó con las citas al fusionar. Lo que no se lee no se puede decir, y una corrección silenciosa se ve igual que un acierto.',
+  },
+  {
+    archivo: 'src/lib/expediente/confianza-audio.ts', interfaz: 'PalabraOida', direccion: 'salida',
+    porQue: 'La confianza por palabra: lo único que distingue «lo oyó bien» de «lo adivinó».',
+  },
+  {
+    archivo: 'src/lib/finanzas/mrr.ts', interfaz: 'EntradaMRR', direccion: 'entrada',
+    porQue: 'Lo que decide el ingreso recurrente. Un campo que nadie llena hace que el MRR se calcule sobre un supuesto.',
   },
 ]
 
@@ -94,6 +118,16 @@ const ACEPTADOS: Record<string, string> = {
    * Se queda disponible para depurar en el momento, que es para lo que sirve.
    */
   'ResultadoPipeline.trazas': 'Cuatro copias del dictado completo. Su valor ya se entrega en las listas de cambios, que pesan una fracción; persistirlo repetiría el defecto de documento inflado que cerró la v996.',
+  /**
+   * Mío, de la v1015, y lo cazó este guardián en la primera pasada tras
+   * afinarlo. `frase` es la EVIDENCIA del veredicto —en qué frase se dijo el
+   * fármaco— y hoy sólo la consume el golden, que es donde se comprueba que el
+   * encuadre se juzgó sobre la frase correcta.
+   *
+   * Se queda porque quitarla dejaría el veredicto sin nada que lo respalde, y
+   * eso es justo lo que este repositorio no acepta en ningún otro sitio.
+   */
+  'MencionFarmaco.frase': 'Es la evidencia del veredicto y la consume el golden. Quitarla dejaría un booleano sin nada que lo respalde.',
 }
 
 const fuentes: Record<string, string> = {}
@@ -140,10 +174,10 @@ describe('EL TRINQUETE: TODO CAMPO DE UN CONTRATO SE LEE EN ALGÚN SITIO', () =>
       const campos = camposDe(fuentes[c.archivo], c.interfaz)
       expect(campos.length, `${c.interfaz} no declara campos: ¿se renombró?`).toBeGreaterThan(0)
 
-      const sinLeer = camposSinLeer(c, fuentes, ACEPTADOS)
+      const sueltos = camposSinConectar(c, fuentes, ACEPTADOS)
       expect(
-        sinLeer.map(x => `${x.contrato}.${x.campo}`),
-        `Campos que nadie lee fuera de su propio archivo.\n${c.porQue}\n`
+        sueltos.map(x => `${x.contrato}.${x.campo} (nadie lo ${x.falta === 'lectura' ? 'lee' : 'llena'})`),
+        `Campos sin conectar.\n${c.porQue}\n`
         + 'Conéctalos, o decláralos en ACEPTADOS con la razón por la que el '
         + 'trabajo no le llega a nadie.',
       ).toEqual([])
