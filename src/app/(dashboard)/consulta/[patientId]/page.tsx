@@ -618,6 +618,27 @@ export default function ConsultaActivaPage() {
   const palabrasAVerificar = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
 
   /**
+   * EL TEXTO QUE VE LA IA — UNO SOLO, PARA EL QUE REDACTA Y PARA EL QUE REVISA.
+   *
+   * Estaba escrito dentro de `procesarIA`, así que la segunda opinión a demanda
+   * mandaba `voz.transcripcion`: texto plano, sin turnos y **sin las marcas de
+   * palabra dudosa**. El revisor no veía ni una `⟦palabra?⟧` y revisaba la nota
+   * contra una versión del dictado donde todo parecía igual de seguro.
+   *
+   * Un revisor que lee otro texto que el redactor no es una segunda opinión: es
+   * una opinión sobre otra cosa.
+   */
+  const textoParaLaIA = useCallback((multiTramo = false) => {
+    const dudosas = palabrasDudosas(audio.utterances)
+    const dialogo = audio.utterances
+      .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
+      .join('\n')
+    return (audio.utterances.length > 0 && !multiTramo)
+      ? (dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo)
+      : voz.transcripcion
+  }, [audio.utterances, rolesHablante, voz.transcripcion])
+
+  /**
    * LO QUE EL PACIENTE NEGÓ FRENTE A LO QUE LA NOTA AFIRMA.
    *
    * Caso real del Dr. (3-ago-2026): «¿Enfermedades crónicas como diabetes o
@@ -973,7 +994,19 @@ export default function ConsultaActivaPage() {
         secciones: secciones.map(s => ({ titulo: s.label, contenido: s.value })),
         diagnosticos, medicamentos, signos: signosNum,
       },
-      voz.transcripcion,
+      /**
+       * EL REVISOR LEE LO MISMO QUE LEYÓ EL REDACTOR.
+       *
+       * Aquí iba `voz.transcripcion` —texto plano, sin turnos y **sin las marcas
+       * de palabra dudosa**—, mientras la segunda opinión automática sí recibía
+       * el diálogo marcado. O sea que el revisor a demanda no veía ni una sola
+       * `⟦palabra?⟧`: revisaba una nota contra una versión del dictado en la que
+       * todas las palabras parecían igual de seguras.
+       *
+       * Un revisor que lee otro texto que el redactor no es una segunda opinión:
+       * es una opinión sobre otra cosa.
+       */
+      textoParaLaIA(),
     )
   }, [verificarNota, resumen, secciones, diagnosticos, medicamentos, signos, voz.transcripcion])
 
@@ -1090,13 +1123,7 @@ export default function ConsultaActivaPage() {
      * reglas sobre marcas que no existen — y una regla que habla de algo que no
      * está es ruido que el modelo tiene que descartar solo.
      */
-    const dudosas = palabrasDudosas(audio.utterances)
-    const dialogo = audio.utterances
-      .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
-      .join('\n')
-    const transcripcionParaIA = (audio.utterances.length > 0 && !multiTramo)
-      ? (dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo)
-      : voz.transcripcion
+    const transcripcionParaIA = textoParaLaIA(multiTramo)
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
     try {
       const res = await fetchAutenticado('/api/expediente/procesar', {

@@ -188,9 +188,20 @@ function origenDe(
   const cita = typeof match.source_quote === 'string' ? match.source_quote.trim() : ''
   if (!cita) return { origen: 'ia', confianza: match.confidence }
 
-  // Si no se pasó la transcripción no se puede verificar; se conserva el
-  // comportamiento anterior en vez de degradar algo que quizá era correcto.
-  if (ctx?.transcripcionNorm && !ctx.transcripcionNorm.includes(normaliza(cita))) {
+  /**
+   * SIN TRANSCRIPCIÓN NO HAY SELLO DE «DICTADO». FALLA CERRADO.
+   *
+   * Antes, si no llegaba la transcripción se conservaba `dictado` «para no
+   * degradar algo que quizá era correcto». El efecto real era el contrario del
+   * buscado: el sello decía «esto lo dijo el paciente» **sin haber comprobado
+   * nada**. Un sello que a veces miente vale menos que ningún sello — quien lo
+   * lee no tiene forma de saber cuál de las dos veces le tocó.
+   *
+   * Ahora: si no se puede verificar, el origen es `ia`. Se pierde un poco de
+   * crédito en los casos correctos y se gana que el crédito signifique algo.
+   */
+  if (!ctx?.transcripcionNorm) return { origen: 'ia', confianza: match.confidence }
+  if (!ctx.transcripcionNorm.includes(normaliza(cita))) {
     return { origen: 'ia', confianza: match.confidence }
   }
   return { origen: 'dictado', cita, confianza: match.confidence }
