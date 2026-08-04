@@ -1722,7 +1722,16 @@ export default function ConsultaActivaPage() {
        * posterior. El tipo declarado siempre fue `{speaker, text}`.
        */
       dialogoDiarizado: audio.utterances.length > 0
-        ? audio.utterances.map(u => ({ speaker: u.speaker, text: u.text }))
+        ? audio.utterances.map(u => ({
+            speaker: u.speaker,
+            text: u.text,
+            // Y QUIÉN HABLÓ, no sólo qué etiqueta le puso el motor.
+            //
+            // `speaker` es «A»/«B». El rol —revisado o corregido por el médico
+            // en pantalla— se usaba para la procedencia al firmar y luego se
+            // tiraba, así que el diálogo archivado no decía quién dijo qué.
+            ...(rolesHablante[u.speaker] ? { rol: rolesHablante[u.speaker] } : {}),
+          }))
         : undefined,
       // Y lo que un revisor sí necesita: qué dudó el audio y en qué minuto.
       palabrasAVerificar: palabrasAVerificar.palabras.length > 0

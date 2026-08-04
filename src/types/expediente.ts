@@ -314,8 +314,16 @@ export interface NotaMedica {
    *
    * Lo que sí se conserva es la lista corta de palabras a verificar, que es lo
    * que un revisor necesita: qué dudó el audio y en qué minuto.
+   *
+   * `rol` es **quién habló** —«Médico», «Paciente», «Familiar»…—, tal como quedó
+   * después de que el médico lo revisara o lo corrigiera en pantalla. Antes se
+   * archivaba sólo `speaker`, que es la etiqueta del motor: «A» y «B». La
+   * atribución que el médico confirmó a mano se perdía al guardar, y el
+   * expediente quedaba con un diálogo que no dice quién dijo qué — justo lo que
+   * hace falta cuando se discute si el diagnóstico lo afirmó el paciente o lo
+   * nombró la pregunta del médico.
    */
-  dialogoDiarizado?: { speaker: string; text: string }[]
+  dialogoDiarizado?: { speaker: string; text: string; rol?: string }[]
   /** Las palabras que el audio no oyó con seguridad, con su minuto. */
   palabrasAVerificar?: { texto: string; momento: string; seguridad: number }[]
 

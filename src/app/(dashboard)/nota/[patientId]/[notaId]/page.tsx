@@ -628,7 +628,7 @@ export default function NotaImprimiblePage() {
               {nota.dialogoDiarizado && nota.dialogoDiarizado.length > 0 ? (
                 nota.dialogoDiarizado.map((t, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
-                    <span style={{ fontWeight: 700, color: 'var(--nexus)', fontSize: 11.5 }}>{t.speaker}: </span>
+                    <span style={{ fontWeight: 700, color: 'var(--nexus)', fontSize: 11.5 }}>{t.rol || `Hablante ${t.speaker}`}: </span>
                     <span style={{ whiteSpace: 'pre-wrap' }}>{t.text}</span>
                   </div>
                 ))
