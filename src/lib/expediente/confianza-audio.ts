@@ -245,3 +245,64 @@ export const POR_QUE_SE_PROPAGA_LA_DUDA =
   'tirábamos ese dato al mapear la respuesta. Después de esa línea, una palabra ' +
   'de 0.31 y una de 0.99 son indistinguibles, y el modelo razona sobre las dos ' +
   'igual de seguro. La duda no se borra: se propaga.'
+
+/**
+ * ── EL MOTIVO QUE ESTABA DECLARADO Y NADIE EMITÍA ────────────────────────────
+ *
+ * `politica-critica.ts` declara seis motivos de confirmación. Cinco los emite el
+ * pipeline. El sexto —`confianza_baja_con_termino_critico`— **no lo emitía
+ * nadie**, y no por descuido: el pipeline trabaja sobre texto y **no ve las
+ * confianzas por palabra**, que viven en otro objeto (`Utterance.palabras`).
+ *
+ * O sea que el motivo más directo de todos —«el audio dudó justo donde había una
+ * dosis»— estaba escrito y era inalcanzable.
+ *
+ * ── QUÉ CUENTA COMO «TÉRMINO CRÍTICO» AQUÍ ───────────────────────────────────
+ *
+ * No se inventa un criterio clínico. Se usa el que el propio repositorio ya
+ * declaró: una palabra dudosa importa si **toca una cifra o una unidad
+ * canónica**. Es decir, si la duda cae dentro de una posología.
+ *
+ * Deliberadamente NO se intenta decidir si la palabra dudosa «es un fármaco»:
+ * eso exigiría adivinar qué quiso decir una palabra que el motor no entendió, y
+ * ése es exactamente el fallo que este módulo existe para impedir.
+ */
+
+/** Distancia en palabras a la que se busca la cifra o la unidad. */
+export const VENTANA_CRITICA = 3
+
+const esCifra = (t: string) => /\d/.test(t)
+
+/**
+ * ¿Alguna palabra dudosa cae dentro de una posología?
+ *
+ * `unidades` se recibe como parámetro para no acoplar este módulo puro a la
+ * política crítica: quien llama pasa `UNIDADES_CANONICAS`.
+ */
+export function dudaEnZonaCritica(
+  turnos: readonly TurnoConPalabras[],
+  unidades: readonly string[],
+  umbral = UMBRAL_DUDA,
+): boolean {
+  const U = new Set(unidades.map(u => u.toLowerCase()))
+  for (const t of turnos) {
+    const ps = t.palabras ?? []
+    for (let i = 0; i < ps.length; i++) {
+      if (!esMarcable(ps[i], umbral)) continue
+      const desde = Math.max(0, i - VENTANA_CRITICA)
+      const hasta = Math.min(ps.length - 1, i + VENTANA_CRITICA)
+      for (let j = desde; j <= hasta; j++) {
+        if (j === i) continue
+        const tok = limpia(ps[j].texto)
+        if (esCifra(tok) || U.has(tok)) return true
+      }
+    }
+  }
+  return false
+}
+
+export const POR_QUE_NO_SE_ADIVINA_SI_ES_FARMACO =
+  'Decidir que una palabra dudosa «es un fármaco» exigiría adivinar qué quiso ' +
+  'decir una palabra que el motor no entendió — el fallo exacto que este módulo ' +
+  'existe para impedir. Se usa un criterio que no adivina: la duda importa si ' +
+  'toca una cifra o una unidad, o sea si cae dentro de una posología.'

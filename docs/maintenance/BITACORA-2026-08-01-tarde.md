@@ -4306,6 +4306,56 @@ y en consulta.
 
 ---
 
+## TANDA 139ª — v990 · EL GATE DE AMBIGÜEDAD SALIÓ DEL CAJÓN
+
+### Lo que pasaba
+
+`pipeline.ts` calcula `motivos` y `requiereConfirmacion` en **cada dictado**
+desde hace versiones. Es la etapa que decide cuándo hay que **preguntarle al
+médico en vez de adivinar**: negación incierta, lateralidad incierta, dosis o
+unidad ambigua, dos fármacos plausibles.
+
+Y no lo leía nadie. El hook **ni siquiera lo devolvía** — buscar
+`requiereConfirmacion` fuera de las pruebas daba **cero** consumidores. Es el
+patrón «escrito, probado y sin conectar», esta vez en las tres pantallas a la
+vez.
+
+### Y un motivo que era imposible de disparar
+
+`confianza_baja_con_termino_critico` está declarado en la política crítica y
+**nada lo emitía**. No por descuido: el pipeline trabaja sobre texto y **no ve
+las confianzas por palabra**, que viven en otro objeto. O sea que el motivo más
+directo de todos —«el audio dudó justo donde había una dosis»— estaba escrito y
+era inalcanzable.
+
+Ahora lo emite el hook, que es donde sí están las confianzas. El criterio **no
+adivina**: la duda importa si toca una cifra o una unidad canónica, o sea si cae
+dentro de una posología. Decidir que una palabra dudosa «es un fármaco» exigiría
+adivinar qué quiso decir una palabra que el motor no entendió — el fallo exacto
+que todo esto existe para impedir.
+
+Y una duda lejos de toda cifra **no** dispara: si cualquier palabra dudosa
+disparara, el aviso saldría en todas las consultas y el médico aprendería a
+ignorarlo.
+
+### Por qué se MUESTRA y no bloquea
+
+Convertirlo en una pregunta obligatoria antes de firmar es una decisión sobre el
+**flujo de trabajo del Dr.**, no sobre el código — y la regla antifatiga que la
+gobernaría ya está escrita en `uci/confirmacion.ts` («nunca preguntar por cinco
+valores seguidos»).
+
+Así que se muestra, junto a las alertas del dictado, en consulta y en UCI. Eso ya
+cambia el resultado —el médico ve dónde mirar— sin imponerle una pregunta que no
+ha pedido. **Bloquear queda declarado como decisión suya, no tomada por mí.**
+
+- `src/lib/expediente/motivos-confirmacion-texto.ts` (nuevo),
+  `confianza-audio.ts` (`dudaEnZonaCritica`), `src/hooks/useGrabacionAudio.ts`,
+  `app/(dashboard)/consulta/[patientId]/page.tsx`, `app/(dashboard)/uci/page.tsx`
+- `src/__tests__/gate-ambiguedad-conectado.test.ts` — 17 pruebas. Total **5904**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
