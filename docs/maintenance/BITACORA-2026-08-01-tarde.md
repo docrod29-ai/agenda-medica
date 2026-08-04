@@ -5950,6 +5950,35 @@ la puso como «resuelto», acertó: ni se anota ni se avisa.
 
 ---
 
+## TANDA 178ª — v1029 · LA REGLA 24 DEL PROMPT
+
+El prompt de la nota tenía la regla 23 —no cosechar la enfermedad nombrada en la
+**pregunta**— y **ninguna sobre el tiempo verbal**. Nada le decía al modelo que
+«tuvo neumonía hace tres años» va a antecedentes.
+
+Ahora la tiene, y **con las dos mitades**: el pasado va a antecedentes, y «desde
+hace tres años tiene diabetes», «sigue con», «todavía», «actualmente» y «en
+tratamiento» son presente aunque traigan fecha.
+
+La segunda mitad no es un adorno. Una regla que sólo dijera «el pasado va a
+antecedentes» empujaría al modelo a **degradar un diagnóstico activo** — peor que
+el fallo que se quería arreglar.
+
+El orden sigue siendo el de `negaciones.ts`: **un prompt es una petición** y se
+cumple casi siempre; «casi siempre» sobre un antecedente que se arrastra a todas
+las notas siguientes no basta. La regla ayuda a que el fallo no ocurra; el motor
+determinista (v1027/v1028) garantiza que, si ocurre, se vea.
+
+`PROMPT_VERSION` pasa a `nota-2026-08`: viaja al sello de procedencia de cada
+nota, y dejarla igual haría indistinguibles las notas hechas con una regla y con
+la otra.
+
+- `src/lib/expediente/prompts.ts` — regla 24
+- `src/app/api/expediente/procesar/route.ts` — `PROMPT_VERSION`
+- REG-139 · +3 casos, total **6406**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

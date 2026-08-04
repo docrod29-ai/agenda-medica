@@ -234,3 +234,38 @@ describe('LA SEGUNDA PUERTA: EL EXTRACTOR DE ENTIDADES', () => {
     expect(page).toContain('avisosTemporales={avisosTemporales}')
   })
 })
+
+/**
+ * ── Y LA REGLA DEL PROMPT (v1029) ────────────────────────────────────────────
+ *
+ * El motor determinista se queda; la regla se añade igual porque es barata. Pero
+ * el orden importa y está escrito en `negaciones.ts`: **un prompt es una
+ * petición**, se cumple casi siempre, y «casi siempre» sobre un antecedente que
+ * se arrastra a todas las notas siguientes no es suficiente. La regla ayuda a que
+ * el fallo no ocurra; el motor garantiza que, si ocurre, se vea.
+ */
+describe('LA REGLA DEL PROMPT ACOMPAÑA AL MOTOR', () => {
+  const prompts = leer('src', 'lib', 'expediente', 'prompts.ts')
+
+  it('existe, y va junto a la de la enfermedad nombrada en la pregunta', () => {
+    expect(prompts).toContain('24. EL PASADO NO ES EL PRESENTE.')
+    expect(prompts).toContain('23. UNA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN DIAGNÓSTICO.')
+  })
+
+  it('y avisa de la trampa contraria, que es la que puede hacer daño', () => {
+    /**
+     * Una regla que sólo dijera «el pasado va a antecedentes» empujaría al modelo
+     * a degradar «desde hace tres años tiene diabetes», y eso BORRA un
+     * diagnóstico activo. La regla tiene que traer las dos mitades.
+     */
+    expect(prompts).toMatch(/son PRESENTE aunque traigan una\s+fecha/)
+    expect(prompts).toMatch(/borraría un diagnóstico activo/)
+  })
+
+  it('y la versión del prompt cambió, que es lo que queda en el registro', () => {
+    // `_promptVersion` viaja al sello de procedencia de cada nota: dejarla igual
+    // haría indistinguibles las notas hechas con una regla y con la otra.
+    const ruta = leer('src', 'app', 'api', 'expediente', 'procesar', 'route.ts')
+    expect(ruta).toContain("const PROMPT_VERSION = 'nota-2026-08'")
+  })
+})
