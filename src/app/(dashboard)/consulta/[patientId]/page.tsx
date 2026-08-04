@@ -2972,14 +2972,25 @@ export default function ConsultaActivaPage() {
                           : audio.nivelAudio < 0.05 ? 'Esperando voz…' : 'Captando bien'}
                       </span>
                       <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                        {(audio.bytesGrabados / 1024 / 1024).toFixed(1)} / 25 MB · 16kHz/64kbps
+                        {/*
+                          EL DATO REAL, NO EL QUE SE PEDÍA.
+                          `sampleRate` en getUserMedia se ignora en silencio si el
+                          navegador no la soporta, así que «16kHz» era una
+                          afirmación sin comprobar. Y el tope que de verdad cambia
+                          el comportamiento son 3.6 MB (a partir de ahí el audio se
+                          trocea o sube a Storage), no 25: quien vigilara «25 MB»
+                          no veía venir el cambio de camino.
+                        */}
+                        {(audio.bytesGrabados / 1024 / 1024).toFixed(1)} MB
+                        {audio.captura?.sampleRate ? ` · ${Math.round(audio.captura.sampleRate / 1000)} kHz` : ''}
+                        {audio.captura?.supresionRuido ? ' · con supresión de ruido' : ''}
                       </span>
                     </div>
                   </div>
                 )}
                 {audio.estado !== 'grabando' && (
                   <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-                    Capta a los dos · voz 16kHz · gpt-4o-transcribe · vocabulario médico ampliado
+                    Capta a los dos · separación de voces con AssemblyAI · vocabulario médico ampliado
                   </div>
                 )}
                 {audio.error && (

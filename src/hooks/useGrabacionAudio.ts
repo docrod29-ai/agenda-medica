@@ -103,6 +103,17 @@ export interface Utterance {
   palabras?: PalabraOida[]
 }
 
+/** Lo que el navegador concedió al abrir el micrófono (no lo que se le pidió). */
+export interface AjustesCaptura {
+  sampleRate: number | null
+  canales: number | null
+  /** Etiqueta del dispositivo. Vacía si el navegador no la expone. */
+  microfono: string
+  supresionRuido: boolean
+  cancelacionEco: boolean
+  gananciaAutomatica: boolean
+}
+
 export interface UseGrabacionAudio {
   soportado: boolean
   estado: Estado
@@ -123,6 +134,13 @@ export interface UseGrabacionAudio {
   nivelAudio: number
   silencioProlongado: boolean
   bytesGrabados: number
+  /**
+   * Lo que el navegador concedió de verdad, no lo que se le pidió.
+   *
+   * `null` hasta que se abre el micrófono. Se enseña en pantalla en vez de la
+   * constante que se afirmaba sin comprobar.
+   */
+  captura: AjustesCaptura | null
   /**
    * Cuántos trozos en vivo NO se pudieron transcribir.
    *
@@ -625,6 +643,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [sinDiarizacion, setSinDiarizacion] = useState<MotivoSinDiarizacion | null>(null)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
   const [chunksFallidos, setChunksFallidos] = useState(0)
+  /** Lo que el navegador concedió de verdad al abrir el micrófono. */
+  const [captura, setCaptura] = useState<AjustesCaptura | null>(null)
   const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
   const [alertasDictado, setAlertasDictado] = useState<AlertaDictado[]>([])
 
@@ -829,16 +849,64 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
     try {
+      /**
+       * ── EL PROCESAMIENTO DEL NAVEGADOR VIENE APAGADO POR OMISIÓN ─────────────
+       *
+       * Hasta la v980 los tres venían `?? true`. La consulta los apagaba a mano,
+       * pero **UCI y el banco de voz no pasaban nada**, así que grababan con
+       * supresión de ruido y cancelación de eco ENCENDIDAS — que es justo lo que
+       * los cuatro proveedores de reconocimiento desaconsejan.
+       *
+       * El motivo es físico: la supresión de ruido decide, banda por banda, qué
+       * energía es voz y qué es ruido, y atenúa el resto. Las consonantes
+       * fricativas (/s/, /f/) son, espectralmente, ruido de banda ancha y poca
+       * energía: indistinguibles del ruido para ese estimador. Lo que se pierde
+       * es exactamente lo que separa «seis» de «diez» y «mg» de «mL».
+       *
+       * Nadie decidió que UCI grabara así: fue un valor por omisión heredado. Y
+       * el banco de voz, que es con lo que se mide la calidad, **medía en
+       * condiciones distintas a las de la consulta real** — una medición que no
+       * describe el camino que usa el médico.
+       *
+       * Ahora quien quiera procesamiento lo pide. La consulta no cambia: ya los
+       * pasaba explícitos, incluido `autoGainControl: true`, que ahí sí compensa
+       * un problema real (el paciente está a dos metros del micrófono). En el
+       * dictado de UCI, con el aparato cerca de la boca, sólo puede restar.
+       */
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: opts?.echoCancellation ?? true,
-          noiseSuppression: opts?.noiseSuppression ?? true,
-          autoGainControl: opts?.autoGainControl ?? true,
+          echoCancellation: opts?.echoCancellation ?? false,
+          noiseSuppression: opts?.noiseSuppression ?? false,
+          autoGainControl: opts?.autoGainControl ?? false,
           sampleRate: SAMPLE_RATE_OBJETIVO,
           channelCount: 1,
         },
       })
+      /**
+       * ── LO QUE EL NAVEGADOR CONCEDIÓ DE VERDAD ──────────────────────────────
+       *
+       * `sampleRate` en `getUserMedia` es una constraint de disponibilidad
+       * limitada: si el navegador no la soporta, **se ignora en silencio**. La
+       * app llevaba enseñando en pantalla «16kHz» como un hecho, sin haberlo
+       * comprobado nunca — y de esa cifra depende si el bitrate actual sobra o
+       * falta.
+       *
+       * Se lee y se guarda. No cambia nada del audio: cambia que dejemos de
+       * afirmar lo que no sabemos.
+       */
       streamRef.current = stream
+      try {
+        const pista = stream.getAudioTracks()[0]
+        const aj = pista?.getSettings?.() ?? {}
+        setCaptura({
+          sampleRate: typeof aj.sampleRate === 'number' ? aj.sampleRate : null,
+          canales: typeof aj.channelCount === 'number' ? aj.channelCount : null,
+          microfono: pista?.label || '',
+          supresionRuido: aj.noiseSuppression === true,
+          cancelacionEco: aj.echoCancellation === true,
+          gananciaAutomatica: aj.autoGainControl === true,
+        })
+      } catch { /* leer los ajustes NUNCA puede impedir grabar */ }
       chunksRef.current = []
       todosChunksRef.current = []
     chunksFallidosRef.current = 0; setChunksFallidos(0)
@@ -1189,7 +1257,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, chunksFallidos, correcciones, sinDiarizacion,
+    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
