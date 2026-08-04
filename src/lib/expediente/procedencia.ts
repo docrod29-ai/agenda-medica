@@ -33,6 +33,7 @@
  * (solo lo clasifica para mostrarlo y sellarlo en el registro).
  */
 import type { Confianza } from './extraction-schema'
+import { ABRE, CIERRA } from './confianza-audio'
 
 export type OrigenCampo = 'dictado' | 'ia' | 'manual' | 'calculado' | 'importado'
 
@@ -117,15 +118,49 @@ export interface ManifiestoProcedencia {
   resumen: ResumenProcedencia
 }
 
+/**
+ * Quita NUESTRAS marcas de duda de una cita.
+ *
+ * ── EL DEFECTO, Y ES DE LOS QUE NO SE VEN ────────────────────────────────────
+ *
+ * El modelo redacta la nota leyendo el diálogo **marcado**: las palabras que el
+ * audio no oyó con seguridad van entre `⟦…?⟧`. Si cita una frase que contiene
+ * una de ellas, la cita se lleva la marca dentro:
+ *
+ *     "le doy ⟦sefriaxona?⟧ dos gramos"
+ *
+ * Y el sello compara esa cita contra la transcripción **plana**, donde la marca
+ * no existe. No la encuentra, así que degrada el campo a «ia» y la compuerta de
+ * firma lo saca como «no se pudo comprobar».
+ *
+ * O sea: un campo **correctamente citado** se presentaba como dudoso, y encima
+ * justo en las frases donde el audio ya había dudado — las que más importa
+ * revisar bien. El médico ve una lista de avisos que no le dice nada, y una
+ * lista que no dice nada se cierra sin leer.
+ *
+ * Es la `FidelidadEntrega` del charter: **el juez tiene que leer el mismo string
+ * que leyó el redactor**. La marca es una anotación nuestra, no algo que dijera
+ * el paciente: una cita que la arrastra sigue siendo las mismas palabras.
+ */
+function quitarMarcas(s: string): string {
+  return s.split(ABRE).join('').split(CIERRA).join('')
+}
+
 /** Normaliza para comparar: minúsculas, sin acentos, sin espacios de sobra. */
 export function normaliza(s: string): string {
-  return (s ?? '')
+  return quitarMarcas(s ?? '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
+
+export const POR_QUE_SE_QUITAN_LAS_MARCAS =
+  'El modelo redacta leyendo el diálogo MARCADO, así que una cita de una frase ' +
+  'con una palabra dudosa se lleva la marca dentro. El sello compara contra la ' +
+  'transcripción plana, no la encuentra, y presenta como «no comprobado» un ' +
+  'campo correctamente citado — justo en las frases donde el audio ya dudó.'
 
 /** Un ítem de la extracción auditada (permisivo: los campos crecen con el tiempo). */
 type ItemExtraido = {

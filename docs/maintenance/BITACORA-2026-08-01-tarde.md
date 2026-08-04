@@ -5275,6 +5275,50 @@ bloqueado en el Dr.
 
 ---
 
+## TANDA 162ª — v1013 · EL JUEZ LEÍA UN TEXTO DISTINTO DEL QUE LEYÓ EL REDACTOR
+
+El modelo redacta la nota leyendo el diálogo **marcado**: las palabras que el
+audio no oyó con seguridad van entre `⟦…?⟧`. Si cita una frase que contiene una
+de ellas, la cita se lleva la marca dentro:
+
+    "le doy ⟦sefriaxona?⟧ dos gramos"
+
+Y el sello de procedencia compara esa cita contra la transcripción **plana**,
+donde la marca no existe. No la encuentra → degrada el campo a «ia» → la
+compuerta de firma lo saca como «no se pudo comprobar».
+
+O sea: **un campo correctamente citado se presentaba como dudoso**. Y encima
+justo en las frases donde el audio ya había dudado, que son las que más importa
+revisar bien. El médico ve una lista de avisos que no le dice nada, y una lista
+que no dice nada se cierra sin leer: ahí se pierde entera, incluida la alergia
+que sí importaba.
+
+### Es la `FidelidadEntrega` del charter
+
+«El string medido debe ser el que sale hacia la IA», con criterio de aceptación
+**= 1**. Aquí el juez y el redactor leían strings distintos, así que cualquier
+medición de exactitud habría sido sobre el texto equivocado.
+
+### La corrección, y lo que NO abre
+
+La marca es una anotación **nuestra**, no algo que dijera el paciente: una cita
+que la arrastra sigue siendo las mismas palabras. Se quita al normalizar en **los
+dos jueces** —el sello al firmar y la revalidación del ensamble de la v1004—, que
+ya estaban atados por una prueba para que no divergieran.
+
+No es una puerta: una cita que de verdad no está sigue sin sellar, y quitar la
+marca no se come texto real —los paréntesis que el médico dicta siguen intactos—.
+Y la marca sigue poniéndose: la corrección es en el **juez**, no en la marca. Si
+dejara de ponerse, el modelo volvería a leer un dictado donde todo parece igual
+de seguro.
+
+**Verificado revirtiendo la corrección:** 3 de las 10 pruebas fallan sin ella.
+
+- `src/lib/expediente/procedencia.ts`, `src/lib/ia/revalidar-citas.ts`
+- `src/__tests__/fidelidad-de-entrega.test.ts` — 10 pruebas. Total **6181**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
