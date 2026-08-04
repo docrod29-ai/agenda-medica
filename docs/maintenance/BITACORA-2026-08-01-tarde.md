@@ -4218,6 +4218,49 @@ preguntar lo que él ya aprobó es la definición de fatiga de alertas.
 
 ---
 
+## TANDA 137ª — v988 · LA NOTA DE UCI DEJÓ DE NACER HUÉRFANA
+
+### El hallazgo
+
+El panel de UCI pasa a la nota por una semilla en `sessionStorage`, y esa semilla
+llevaba **sólo las secciones**. El dictado se quedaba atrás.
+
+Casi todas las defensas de la nota exigen que exista `voz.transcripcion`, así que
+**se apagaban todas a la vez**:
+
+- `fuenteGeneracion` salía `'manual'` en una nota **dictada**.
+- `transcripcionCruda` y `dialogoDiarizado` quedaban vacíos.
+- El motor de negaciones (v976) no corría.
+- Las palabras a verificar (v975) no aparecían.
+- La compuerta de evidencia (v987) no tenía contra qué comprobar.
+- La segunda opinión recibía una transcripción vacía: no podía contrastar nada.
+- El manifiesto de procedencia sellaba sobre la nada.
+
+O sea: **el camino que más nota firmada produce en UCI era el que menos
+protección tenía.** Y no por una decisión — porque el dictado no viajaba.
+
+### Por qué un solo cambio lo arregla todo
+
+No hubo que tocar ninguna de esas defensas. Todas estaban bien escritas y todas
+dependían del **mismo dato ausente**. Ahora la semilla lleva el pase (dictado o
+escrito) y los turnos, y la consulta lo carga en `voz.transcripcion`.
+
+### El detalle que evita perder un pase
+
+Se acepta también la **forma vieja** de la semilla (un array suelto de
+secciones): puede quedar una escrita por la pestaña anterior, y romperla
+perdería el pase que el médico acaba de dictar — exactamente lo que este cambio
+viene a evitar.
+
+Y el aviso distingue si vino con dictado o sin él: si el médico ve el mismo
+mensaje en los dos casos, no puede saber que en uno la nota va protegida y en el
+otro no.
+
+- `app/(dashboard)/uci/page.tsx`, `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/uci-nota-no-nace-huerfana.test.ts` — 9 pruebas. Total **5879**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

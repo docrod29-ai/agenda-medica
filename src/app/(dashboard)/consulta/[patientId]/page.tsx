@@ -1891,16 +1891,41 @@ export default function ConsultaActivaPage() {
     try { raw = sessionStorage.getItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
     if (!raw) return
     try {
-      const secs = JSON.parse(raw) as NotaSeccion[]
+      /**
+       * LA SEMILLA AHORA TRAE EL DICTADO, NO SÓLO LAS SECCIONES.
+       *
+       * Se acepta también la forma vieja (un array suelto de secciones) porque
+       * puede quedar una semilla escrita por la pestaña anterior: romperla
+       * perdería el pase que el médico acaba de dictar, que es exactamente lo
+       * que este cambio viene a evitar.
+       */
+      const parsed = JSON.parse(raw) as NotaSeccion[] | { secciones: NotaSeccion[]; dictado?: string; utterances?: unknown[] }
+      const secs = Array.isArray(parsed) ? parsed : parsed?.secciones
+      const dictado = Array.isArray(parsed) ? '' : String(parsed?.dictado ?? '')
       if (Array.isArray(secs) && secs.length) {
         uciSeedRef.current = true
         setTipo('evolucion_uci')
         setSecciones(secs)
-        toast('Valores del Panel UCI cargados en la nota — revísalos y firma', 'success')
+        /**
+         * Con esto la nota de UCI recupera, sin tocar nada más:
+         * `fuenteGeneracion: 'ia_voz'`, la transcripción cruda, el diálogo
+         * diarizado, el motor de negaciones, las palabras a verificar, la
+         * compuerta de evidencia y la segunda opinión — que exigen todas que
+         * exista `voz.transcripcion`.
+         */
+        if (dictado) voz.setTranscripcion(dictado)
+        toast(
+          dictado
+            ? 'Pase de UCI cargado en la nota, con su dictado — revísalo y firma'
+            : 'Valores del Panel UCI cargados en la nota — revísalos y firma',
+          'success',
+        )
       }
     } catch { /* */ }
     try { sessionStorage.removeItem(`nx.uci.seed.${internamientoParam}`) } catch { /* */ }
-  }, [searchParams, internamientoParam, notaIdParam, toast])
+    // `voz.setTranscripcion` es estable (viene de useState); se declara igual
+    // para que el linter no tenga que adivinarlo.
+  }, [searchParams, internamientoParam, notaIdParam, toast, voz])
 
   const autoRestRef = useRef(false)
   useEffect(() => {
