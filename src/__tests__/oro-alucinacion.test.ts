@@ -198,13 +198,27 @@ describe('EL ARNÉS YA NO ES HUÉRFANO — se usa, y da un número', () => {
     expect(equivalente('diabetes', 'hipertensión')).toBe(false)
   })
 
-  it('salió de la lista de módulos sin conectar', () => {
+  it('el arnés está declarado como lo que es: infraestructura del CI', () => {
     /**
-     * Era el patrón que este repositorio lleva toda la sesión persiguiendo:
-     * trabajo terminado y probado que no le llega a nadie.
+     * ── LA PREMISA DE ESTA PRUEBA ESTABA MAL, Y LO DESTAPÓ LA v1019 ─────────
+     *
+     * Antes afirmaba que `evaluacion.ts` había SALIDO de la lista de huérfanos.
+     * Y era verdad en la letra: no estaba en la lista. Pero lo único que lo
+     * sacaba de ella era un `import type` desde `casos-oro.ts` — y TypeScript
+     * BORRA los imports de tipo al compilar, así que ni una línea del arnés
+     * llegaba al bundle.
+     *
+     * O sea que esta prueba certificaba «ya se usa» sobre un módulo del que no
+     * se ejecutaba nada en producción. Un test que afirma de más es peor que
+     * ninguno: aquí decía que el trabajo llegaba, y no llegaba.
+     *
+     * Lo cierto es que el arnés **sí se usa, y su sitio es el CI** —lo corren
+     * este corpus y `ia-evaluacion`—, igual que los demás gates. Eso es lo que
+     * se comprueba ahora: que esté declarado con esa razón, no escondido.
      */
     const orfanato = leer('src', '__tests__', 'modulos-sin-conectar.test.ts')
-    expect(orfanato).not.toContain("'src/lib/ia/evaluacion.ts':")
+    expect(orfanato).toContain("'src/lib/ia/evaluacion.ts':")
+    expect(orfanato).toMatch(/arnés de validación de la IA[\s\S]*sitio ES el CI/)
   })
 })
 
