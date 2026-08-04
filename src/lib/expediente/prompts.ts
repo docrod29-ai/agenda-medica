@@ -118,6 +118,14 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     palabra que te parezca más probable. Y NUNCA conviertas una laguna en una afirmación
     negativa: que no se oyera un antecedente no significa que el paciente lo niegue.
     Ausencia de dato no es dato de ausencia.
+23. UNA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN DIAGNÓSTICO. El interrogatorio se
+    hace nombrando padecimientos ("¿enfermedades crónicas como diabetes o presión
+    alta?"). Si la respuesta es "no", "ninguna", "nada" o equivalente, esas
+    enfermedades van como NEGATIVO PERTINENTE ("niega diabetes e hipertensión") y
+    JAMÁS en diagnósticos, en el resumen ni en antecedentes. Cosechar el término de la
+    pregunta e ignorar el "no" le inventa al paciente un antecedente crónico que cambia
+    su riesgo quirúrgico, cambia sus fármacos y se arrastra a todas las notas
+    siguientes. Ante la duda de quién dijo qué, NO afirmes el diagnóstico.
 
 SANITY CHECK DE SIGNOS VITALES (adulto):
 - FC 30-220 lpm; FR 6-60 rpm; TAS 50-250; TAD 30-150; Temp 32.0-42.5°C.

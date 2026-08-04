@@ -95,6 +95,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { palabrasDudosas, marcarTurno, paraElMedico, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
+import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
@@ -622,6 +623,28 @@ export default function ConsultaActivaPage() {
    * un dictado largo trae miles de palabras y esto se recorre entero.
    */
   const palabrasAVerificar = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
+
+  /**
+   * LO QUE EL PACIENTE NEGÓ FRENTE A LO QUE LA NOTA AFIRMA.
+   *
+   * Caso real del Dr. (3-ago-2026): «¿Enfermedades crónicas como diabetes o
+   * presión alta? No.» → la nota salió con «Paciente con Hipertensión arterial,
+   * Diabetes mellitus tipo 2». Un antecedente crónico inventado cambia el riesgo
+   * quirúrgico, cambia los fármacos y se arrastra a todas las notas siguientes.
+   *
+   * Se contrasta contra TODO lo que la nota afirma —resumen, diagnósticos y las
+   * secciones—, no sólo contra el resumen: la contradicción da igual en qué
+   * campo aparezca, porque el expediente se lee entero.
+   */
+  const contradiccionesNota = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    const negadas = condicionesNegadas(dictado)
+    if (!negadas.length) return []
+    const textoNota = [resumen, diagnosticos.join('. '), ...Object.values(secciones ?? {})]
+      .filter(Boolean).join('\n')
+    return contradicciones(negadas, textoNota)
+  }, [voz.transcripcion, resumen, diagnosticos, secciones])
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
   const transcripcionRef = useRef('')
@@ -3383,6 +3406,26 @@ export default function ConsultaActivaPage() {
           </div>
         )
       })()}
+
+      {/*
+        CONTRADICCIÓN DICTADO ↔ NOTA.
+        Va con las alertas clínicas y no como una nota al pie: un antecedente
+        crónico que el paciente negó y la nota afirma es un error de expediente,
+        no de redacción.
+      */}
+      {contradiccionesNota.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <Alert tone="danger" icon={<AlertTriangle size={18} />} title="La nota afirma algo que en el dictado se negó">
+            {contradiccionesNota.map((c, i) => (
+              <div key={`${c.condicion}-${i}`} style={{ marginBottom: 4, lineHeight: 1.5 }}>{avisoDeContradiccion(c)}</div>
+            ))}
+            <div style={{ marginTop: 6, opacity: .9 }}>
+              El sistema no decide cuál es correcta —un paciente puede negar algo que sí tiene
+              documentado—: sólo se niega a dejarlo pasar en silencio.
+            </div>
+          </Alert>
+        </div>
+      )}
 
       {/* ── Alertas clínicas cruzadas (punto de atención) ── */}
       {(() => {
