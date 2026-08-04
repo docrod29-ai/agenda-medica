@@ -128,6 +128,8 @@ export async function POST(req: NextRequest) {
         medicamentos: comoLista(body?.medicamentos),
         problemas: comoLista(body?.problemas),
         alergias: comoLista(body?.alergias),
+        aprendidas: comoLista(body?.aprendidas),
+        especialidad: comoLista(body?.especialidades),
       }
     } else {
       const formData = await req.formData()
@@ -148,6 +150,8 @@ export async function POST(req: NextRequest) {
         medicamentos: comoLista(formData.get('medicamentos')),
         problemas: comoLista(formData.get('problemas')),
         alergias: comoLista(formData.get('alergias')),
+        aprendidas: comoLista(formData.get('aprendidas')),
+        especialidad: comoLista(formData.get('especialidades')),
       }
     }
 

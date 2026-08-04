@@ -416,8 +416,15 @@ async function intentarDiarizar(
   try {
     const fd = new FormData()
     fd.append('audio', blob, `consulta.${ext}`)
-    // El vocabulario de ESTE paciente al motor que de verdad transcribe.
-    for (const [k, v] of [['medicamentos', ctx.medicamentos], ['problemas', ctx.problemas], ['alergias', ctx.alergias]] as const) {
+    /**
+     * El vocabulario de ESTE paciente al motor que de verdad transcribe.
+     *
+     * `aprendidas` y `especialidades` se añadieron en la v1025: viajaban a las
+     * rutas de Whisper —que aquí son el REPUESTO— y no a ésta, que es la que
+     * corre. Es el mismo fallo de la v981 un nivel más arriba: el trabajo estaba
+     * hecho y no llegaba al único sitio donde cambia lo que se OYE.
+     */
+    for (const [k, v] of [['medicamentos', ctx.medicamentos], ['problemas', ctx.problemas], ['alergias', ctx.alergias], ['aprendidas', ctx.aprendidas], ['especialidades', ctx.especialidades]] as const) {
       if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
     }
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
@@ -476,6 +483,8 @@ async function intentarDiarizarLargo(
         medicamentos: ctx.medicamentos ? [...ctx.medicamentos] : undefined,
         problemas: ctx.problemas ? [...ctx.problemas] : undefined,
         alergias: ctx.alergias ? [...ctx.alergias] : undefined,
+        aprendidas: ctx.aprendidas ? [...ctx.aprendidas] : undefined,
+        especialidades: ctx.especialidades ? [...ctx.especialidades] : undefined,
       }),
     })
     if (!res.ok) {

@@ -333,6 +333,10 @@
       "minCasos": 2
     },
     {
+      "archivo": "src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/lab-criticos.test.ts",
       "minCasos": 9
     },

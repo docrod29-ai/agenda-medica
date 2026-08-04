@@ -86,6 +86,15 @@ export interface ContextoSesgo {
    * porque compara contra lo que se oyó.
    */
   alergias?: readonly string[]
+  /**
+   * Palabras que ESTE médico ya corrigió a mano más de una vez (LEARN).
+   *
+   * Es la única parte del sesgo **ganada con evidencia** en vez de supuesta: el
+   * motor ya demostró que las oye mal con este médico. Iban al léxico de las
+   * rutas de Whisper desde la v1023 y aquí no llegaban — y ésta es la ruta que
+   * de verdad transcribe la consulta.
+   */
+  aprendidas?: readonly string[]
   /** Términos de la especialidad o del módulo activo (UCI, consulta…). */
   especialidad?: readonly string[]
 }
@@ -122,8 +131,19 @@ export interface SesgoCompuesto {
  *    antibiótico que se está dictando ahora mismo.
  * 2. Sus alergias — oírlas mal es un daño que no se repara después.
  * 3. Sus diagnósticos y problemas.
- * 4. Los términos de la especialidad o del módulo desde el que se dicta.
- * 5. El catálogo global, que es lo que había antes y sigue siendo el relleno.
+ * 4. Lo que este médico ya corrigió a mano (LEARN).
+ * 5. Los términos de la especialidad o del módulo desde el que se dicta.
+ * 6. El catálogo global, que es lo que había antes y sigue siendo el relleno.
+ *
+ * ── POR QUÉ LO APRENDIDO VA DESPUÉS DEL PACIENTE, Y EN EL LÉXICO VA ANTES ────
+ *
+ * No es una contradicción: son dos presupuestos distintos. En `lexicon.ts` caben
+ * 224 tokens y lo aprendido entra primero porque es lo único ganado con
+ * evidencia. Aquí caben 1 000 términos, así que el puñado de fármacos de un
+ * paciente y las palabras aprendidas **entran los dos** y el orden sólo decide
+ * el margen. Y en ese margen sigue mandando lo que el paciente está tomando
+ * ahora mismo, por la misma razón de siempre: el sesgo es lo único que cambia lo
+ * que el motor OYE, y una dosis de hoy no se recupera después.
  *
  * Dejar sitio sin usar sería tirar sesgo: cada hueco es una palabra que el
  * reconocedor no va a esperar. Por eso el global rellena hasta el tope.
@@ -134,7 +154,12 @@ export function componerSesgo(ctx: ContextoSesgo, global: readonly string[], top
     ...(ctx.alergias ?? []),
     ...(ctx.problemas ?? []),
   ]
-  const candidatos = [...delPacienteCrudo, ...(ctx.especialidad ?? []), ...global]
+  const candidatos = [
+    ...delPacienteCrudo,
+    ...(ctx.aprendidas ?? []),
+    ...(ctx.especialidad ?? []),
+    ...global,
+  ]
 
   const vistos = new Set<string>()
   const unicos: string[] = []
