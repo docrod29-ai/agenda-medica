@@ -33,6 +33,15 @@ export interface ConsultorioParaChurn {
   canceladaEn?: string | null
   /** MXN al mes que aportaba. Para el MRR perdido. */
   mrr?: number
+  /**
+   * Fin de la prueba (ISO). Lo escribe `clinic/crear` desde siempre.
+   *
+   * Sin esto, la prueba abandonada era invisible: se queda en `status: 'trial'`
+   * **para siempre** —nadie la cancela, porque nadie llegó a pagar— así que no
+   * aparecía ni como baja ni como conversión. En un producto que vive de
+   * convertir pruebas, ése era el número que faltaba.
+   */
+  trialEndsAt?: string | null
 }
 
 export interface Churn {
@@ -51,6 +60,22 @@ export interface Churn {
    * cuándo pasó no es una tasa mensual.
    */
   bajasSinFecha: number
+  /**
+   * Pruebas que VENCIERON en el mes sin convertirse.
+   *
+   * Va **aparte de la tasa de bajas**, no sumada. Mezclar «un cliente que
+   * pagaba se fue» con «una prueba no cuajó» vuelve las dos cifras inútiles:
+   * la primera mide retención y la segunda, conversión. Son dos problemas
+   * distintos y se arreglan de maneras distintas.
+   */
+  pruebasVencidas: number
+  /**
+   * Pruebas en curso: vivas y sin vencer todavía.
+   *
+   * Es el contexto sin el que «3 pruebas vencidas» no dice nada — tres de
+   * cuatro es un producto que no convence; tres de cuarenta es martes.
+   */
+  pruebasEnCurso: number
 }
 
 /**
@@ -62,6 +87,22 @@ export function churnDelMes(consultorios: readonly ConsultorioParaChurn[], mes: 
   const delMes = cancelados.filter(c => String(c.canceladaEn ?? '').slice(0, 7) === mes)
   const activosHoy = consultorios.filter(c => c.status === 'active').length
 
+  /**
+   * LA PRUEBA ABANDONADA, QUE NO LA CONTABA NADIE.
+   *
+   * Sigue en `status: 'trial'` para siempre: nadie la cancela porque nadie
+   * llegó a pagar. Se reconoce por su propia fecha de fin —la que escribe
+   * `clinic/crear`—, no por una suposición sobre cuánto dura una prueba.
+   *
+   * Una prueba SIN fecha de fin no se cuenta: no se puede saber si venció.
+   */
+  const pruebas = consultorios.filter(c => c.status === 'trial')
+  const pruebasVencidas = pruebas.filter(c => String(c.trialEndsAt ?? '').slice(0, 7) === mes).length
+  const pruebasEnCurso = pruebas.filter(c => {
+    const f = String(c.trialEndsAt ?? '')
+    return !!f && f.slice(0, 7) > mes
+  }).length
+
   const base = activosHoy + delMes.length
   return {
     bajasDelMes: delMes.length,
@@ -69,6 +110,8 @@ export function churnDelMes(consultorios: readonly ConsultorioParaChurn[], mes: 
     tasa: base > 0 ? delMes.length / base : null,
     mrrPerdido: delMes.reduce((a, c) => a + (Number(c.mrr) || 0), 0),
     bajasSinFecha: cancelados.filter(c => !c.canceladaEn).length,
+    pruebasVencidas,
+    pruebasEnCurso,
   }
 }
 
@@ -82,3 +125,13 @@ export const POR_QUE_ESE_DENOMINADOR =
   'cuando peor van las cosas —el denominador encoge con cada baja— y dividirla ' +
   'entre los de hoy incluye a quien se dio de alta ayer y no ha tenido ' +
   'oportunidad de irse. El denominador es quien PODÍA irse.'
+
+export const POR_QUE_LAS_PRUEBAS_VAN_APARTE =
+  'Mezclar «un cliente que pagaba se fue» con «una prueba no cuajó» vuelve las ' +
+  'dos cifras inútiles: la primera mide retención y la segunda, conversión. Son ' +
+  'dos problemas distintos y se arreglan de maneras distintas.'
+
+export const POR_QUE_NO_SE_SUPONE_LA_DURACION =
+  'La prueba vencida se reconoce por su propia fecha de fin, la que escribe ' +
+  'clinic/crear. Suponer «catorce días desde el alta» daría por vencida una ' +
+  'prueba que se extendió a mano, y por viva una que se acortó.'

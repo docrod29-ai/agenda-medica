@@ -294,7 +294,17 @@ export async function GET(req: NextRequest) {
         churn: churnDelMes(
           clinicsSnap.docs.map(d => {
             const c = d.data() as Any
-            return { status: String(c.status ?? ''), canceladaEn: c.canceladaEn ? String(c.canceladaEn) : null, mrr: precioPlan(String(c.plan ?? 'trial')) }
+            return {
+              status: String(c.status ?? ''),
+              canceladaEn: c.canceladaEn ? String(c.canceladaEn) : null,
+              // El MRR perdido con una baja es lo que ESA suscripción cobraba:
+              // su ciclo y sus asientos, igual que el MRR de arriba. Con el
+              // precio de lista, una baja anual multi-médico se contaba mal en
+              // las dos direcciones a la vez.
+              mrr: mrrDe({ plan: String(c.plan ?? 'trial'), ciclo: c.ciclo as string | undefined, medicosContratados: Number(c.medicosContratados ?? 1) }).mensual,
+              // La prueba abandonada, que no contaba nadie.
+              trialEndsAt: c.trialEndsAt ? String(c.trialEndsAt) : null,
+            }
           }),
           mesSel,
         ),

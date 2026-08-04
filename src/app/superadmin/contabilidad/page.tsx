@@ -36,7 +36,7 @@ interface Cliente {
 interface Data {
   ok: boolean; mes: string
   alcance?: { cobros: { desde: string | null; recortado: boolean; etiqueta: string }; consultorios: { desde: string | null; recortado: boolean; etiqueta: string } }
-  resumen: { ingresoMes: number; ivaMes: number; ingresoSinIva: number; costoIA: number; costoStripe: number; costoInfra: number; costoTotal: number; utilidad: number; margen: number; mrr: number; activas: number; clinicas: number; creditosMes: number; ingresoTotalHist: number; numPagosMes: number; churn?: { bajasDelMes: number; base: number; tasa: number | null; mrrPerdido: number; bajasSinFecha: number } }
+  resumen: { ingresoMes: number; ivaMes: number; ingresoSinIva: number; costoIA: number; costoStripe: number; costoInfra: number; costoTotal: number; utilidad: number; margen: number; mrr: number; activas: number; clinicas: number; creditosMes: number; ingresoTotalHist: number; numPagosMes: number; churn?: { bajasDelMes: number; base: number; tasa: number | null; mrrPerdido: number; bajasSinFecha: number; pruebasVencidas?: number; pruebasEnCurso?: number } }
   porMes: { mes: string; ingresos: number }[]
   porPlan: { plan: string; label: string; cantidad: number; mrr: number }[]
   clientes: Cliente[]
@@ -168,6 +168,21 @@ export default function ContabilidadPage() {
                 foot: data.resumen.churn
                   ? `${data.resumen.churn.bajasDelMes} de ${data.resumen.churn.base} · −${mxn(data.resumen.churn.mrrPerdido)}/mes` +
                     (data.resumen.churn.bajasSinFecha > 0 ? ` · ${data.resumen.churn.bajasSinFecha} sin fecha, fuera del cálculo` : '')
+                  : 'sin datos',
+              },
+              /*
+                PRUEBAS QUE VENCIERON SIN CONVERTIR. Va APARTE de las bajas, no
+                sumada: mezclar «un cliente que pagaba se fue» con «una prueba no
+                cuajó» vuelve las dos cifras inútiles — la primera mide retención
+                y la segunda, conversión. Una prueba abandonada se queda en
+                `status: 'trial'` para siempre, así que hasta ahora no aparecía
+                por ningún lado.
+              */
+              {
+                lab: 'Pruebas vencidas',
+                val: String(data.resumen.churn?.pruebasVencidas ?? 0),
+                foot: data.resumen.churn
+                  ? `sin convertir este mes · ${data.resumen.churn.pruebasEnCurso ?? 0} en curso`
                   : 'sin datos',
               },
             ].map((k, i) => (

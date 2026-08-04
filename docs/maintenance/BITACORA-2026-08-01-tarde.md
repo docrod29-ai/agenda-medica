@@ -5027,6 +5027,41 @@ etiquetados, que es peor que no exportar).
 
 ---
 
+## TANDA 156ª — v1007 · LA PRUEBA ABANDONADA NO LA CONTABA NADIE (N8)
+
+Una prueba que no cuaja **se queda en `status: 'trial'` para siempre** — nadie la
+cancela, porque nadie llegó a pagar. Así que no aparecía ni como baja ni como
+conversión: el tablero podía enseñar «0 % de bajas» mientras todas las pruebas
+del mes se caían.
+
+### Cómo se reconoce
+
+Por **su propia fecha de fin** (`trialEndsAt`, que escribe `clinic/crear` desde
+siempre), no por una suposición: suponer «catorce días desde el alta» daría por
+vencida una prueba **extendida a mano** y por viva una que se acortó. Una prueba
+sin fecha de fin no se cuenta en ninguna de las dos cifras, porque no se puede
+saber si venció.
+
+### Por qué van aparte de las bajas
+
+Mezclar «un cliente que pagaba se fue» con «una prueba no cuajó» vuelve las dos
+cifras inútiles: la primera mide **retención** y la segunda, **conversión**. Son
+dos problemas distintos y se arreglan de maneras distintas.
+
+Se publica también cuántas pruebas siguen **en curso**, que es el contexto sin el
+que «3 pruebas vencidas» no dice nada: tres de cuatro es un producto que no
+convence; tres de cuarenta es martes.
+
+**De paso:** el MRR perdido de una baja ya no usa el precio de lista sino el
+ciclo y los asientos de esa suscripción (`mrrDe`, v1006). Con el precio de lista,
+una baja anual multi-médico se contaba mal en las dos direcciones a la vez.
+
+- `src/lib/finanzas/churn.ts`, `api/superadmin/contabilidad/route.ts`,
+  `superadmin/contabilidad/page.tsx`
+- `src/__tests__/churn.test.ts` — 11 pruebas nuevas. Total **6108**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5057,7 +5092,7 @@ sustancialmente mejor de lo que un comprador puede ver».
 - N6. Margen por consulta y costo por médico: falta una línea de agrupación
   (`porClave` ya existe), no un sistema.
 - N7. ~~MRR: sobrestima al anual (nadie lee `ciclo`) y subestima al multi-médico.~~ **CERRADO v1006**.
-- N8. Churn no ve el trial abandonado (se queda en `status:'trial'` para siempre).
+- N8. ~~Churn no ve el trial abandonado (se queda en `status:'trial'` para siempre).~~ **CERRADO v1007**.
 - N9. ~~`/operacion:18` promete facturación CFDI al paciente que NO existe.~~ **CERRADO v968** (decisión 13 del Dr; y OJO: el CFDI de la suscripción sí existe y se conservó).
 
 ### DATOS 6.0 — «no sabe entregarlo ni reconstruirlo»
