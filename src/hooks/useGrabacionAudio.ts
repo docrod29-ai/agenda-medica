@@ -1,5 +1,7 @@
 'use client'
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import { dudaEnZonaCritica } from '@/lib/expediente/confianza-audio'
+import { UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { quitarEcoDeCabecera } from '@/lib/asr/eco-de-cabecera'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
@@ -148,6 +150,14 @@ export interface UseGrabacionAudio {
    * `null` hasta que se abre el micrófono. Se enseña en pantalla en vez de la
    * constante que se afirmaba sin comprobar.
    */
+  /**
+   * Por qué el dictado pide una confirmación del médico.
+   *
+   * Vacío casi siempre. Cuando trae algo, es porque una etapa determinista
+   * detectó una ambigüedad que **no le corresponde resolver a un modelo**:
+   * negación, lateralidad, dosis, unidad o dos fármacos plausibles.
+   */
+  motivosConfirmacion: string[]
   /**
    * ¿La señal está recortando (saturando)?
    *
@@ -746,6 +756,22 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    * el espectro. El medidor podía decir «captando bien» sobre audio saturado.
    */
   const [recorte, setRecorte] = useState(false)
+  /**
+   * MOTIVOS DE CONFIRMACIÓN — el gate que estaba escrito y no salía del hook.
+   *
+   * `pipeline.ts` los calcula en cada dictado desde la v746 y **ningún
+   * consumidor los leía**: el hook ni siquiera los devolvía. Es la etapa que
+   * decide cuándo hay que PREGUNTAR en vez de adivinar —negación incierta,
+   * lateralidad, dosis o unidad ambigua, dos fármacos plausibles— y vivía
+   * apagada.
+   */
+  const [motivosConfirmacion, setMotivosConfirmacion] = useState<string[]>([])
+  /**
+   * Espejo de `utterances`. `aplicar` corre dentro de un callback creado en un
+   * render anterior: leer el estado ahí devolvería el valor congelado — el mismo
+   * defecto que ya obligó a espejar la duración para el libro de costos.
+   */
+  const utterancesRef = useRef<Utterance[]>([])
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const chunkFlushRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -803,7 +829,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     chunksRef.current = []
     todosChunksRef.current = []
     chunksFallidosRef.current = 0; setChunksFallidos(0)
-    silencioRef.current = false; setSilencioProlongado(false); setRecorte(false)
+    silencioRef.current = false; setSilencioProlongado(false); setRecorte(false); setMotivosConfirmacion([])
     pausaTotalMsRef.current = 0
     pausaInicioRef.current = 0
     chunkIdxRef.current = 0
@@ -813,14 +839,14 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     setBytesGrabados(0)
     setChunksTranscritos(0)
     setTranscripcionParcial('')
-    setUtterances([])
+    setUtterances([]); utterancesRef.current = []
   }, [])
 
   const reset = useCallback(() => {
     const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); duracionRef.current = 0; duracionUltimoTrozoRef.current = 0; setDuracion(0); setTranscripcion(''); setError('')
-    setCorrecciones([]); setUtterances([]); setAlertasDictado([])
+    setCorrecciones([]); setUtterances([]); utterancesRef.current = []; setAlertasDictado([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -1062,7 +1088,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       // turnos del tramo 1 y, al no diarizar el tramo 2, la nota se armaba con el
       // tramo viejo ignorando el nuevo. (El texto completo multi-tramo se conserva
       // aparte en la transcripción; ver conBase/baseTranscripcionRef.)
-      setUtterances([])
+      setUtterances([]); utterancesRef.current = []
 
       // AnalyserNode → medidor de nivel + detección de silencio
       try {
@@ -1236,6 +1262,16 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       // El pipeline ya trae las alertas de las nueve etapas, no sólo las del
       // guardián: incluye lo que pide confirmación por ambigüedad.
       setAlertasDictado(r.alertas)
+      // El gate de ambigüedad ya no muere aquí.
+      /**
+       * Y EL SEXTO MOTIVO, que el pipeline no puede emitir.
+       *
+       * `confianza_baja_con_termino_critico` está declarado desde siempre y no
+       * lo emitía nadie: el pipeline trabaja sobre texto y no ve las confianzas
+       * por palabra, que viven en `Utterance.palabras`. Aquí sí están.
+       */
+      const dudaCritica = dudaEnZonaCritica(utterancesRef.current, UNIDADES_CANONICAS)
+      setMotivosConfirmacion(dudaCritica ? [...r.motivos, 'confianza_baja_con_termino_critico'] : r.motivos)
       setEstado('listo')
     }
 
@@ -1249,7 +1285,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current, duracionRef.current, contextoRef.current)
       : await intentarDiarizar(blob, ext, duracionRef.current, contextoRef.current)
     if (diar.ok && diar.text.trim()) {
-      setUtterances(corregirUtterances(diar.utterances))
+      { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       aplicar(diar.text)
       setSinDiarizacion(null)
       if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
@@ -1353,7 +1389,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const diar = await intentarDiarizarLargo(blob, ext, recoveryKey, segundosEstimados, ctx)
     let texto = ''
     if (diar && diar.text.trim()) {
-      setUtterances(corregirUtterances(diar.utterances))
+      { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       texto = diar.text
     } else {
       // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.
@@ -1367,6 +1403,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setTranscripcion(r.texto)
       setCorrecciones(r.cambiosLexicos)
       setAlertasDictado(r.alertas)
+      setMotivosConfirmacion(r.motivos)
       setEstado('listo')
       await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
     } else {
@@ -1395,7 +1432,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, recorte, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
+    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,

@@ -56,6 +56,7 @@ import { extraerValoresUCIConAvisos, type AvisoExtraccionUCI } from '@/lib/uci/e
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { paraElMedico } from '@/lib/expediente/confianza-audio'
+import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { DosisMeropenem } from './DosisMeropenem'
@@ -243,6 +244,8 @@ export default function UciPanelPage() {
    * El dato ya llegaba —`utterances[].palabras`— y esta pantalla no lo miraba.
    */
   const palabrasDudosasPase = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
+  /** El gate de ambigüedad, que hasta la v990 no salía del hook. */
+  const motivosDictado = useMemo(() => textosDeMotivos(audio.motivosConfirmacion), [audio.motivosConfirmacion])
 
   /**
    * ── RECUPERACIÓN DE AUDIO EN UCI ────────────────────────────────────────────
@@ -1133,6 +1136,19 @@ export default function UciPanelPage() {
             )}
           </div>
         )}
+        {motivosDictado.length > 0 && (
+          <div style={{
+            marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.6,
+            color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+          }}>
+            <b>Conviene confirmar antes de firmar:</b>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+              {motivosDictado.map((t, i) => <li key={i}>{t}</li>)}
+            </ul>
+          </div>
+        )}
+
         {audio.alertasDictado.length > 0 && (
           <div style={{ marginTop: 10 }}><AlertasDictado alertas={audio.alertasDictado} /></div>
         )}

@@ -96,6 +96,7 @@ import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { palabrasDudosas, marcarTurno, paraElMedico, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
+import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
@@ -616,6 +617,8 @@ export default function ConsultaActivaPage() {
    * un dictado largo trae miles de palabras y esto se recorre entero.
    */
   const palabrasAVerificar = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
+  /** El gate de ambigüedad del pipeline, que hasta la v990 no salía del hook. */
+  const motivosDictado = useMemo(() => textosDeMotivos(audio.motivosConfirmacion), [audio.motivosConfirmacion])
 
   /**
    * EL TEXTO QUE VE LA IA — UNO SOLO, PARA EL QUE REDACTA Y PARA EL QUE REVISA.
@@ -3022,6 +3025,24 @@ export default function ConsultaActivaPage() {
                     <b>Faltan {audio.chunksFallidos} tramo(s) en el texto en vivo.</b>{' '}
                     La transcripción final se hace con la grabación completa, así que esto no afecta a la
                     nota definitiva — pero lo que ves ahora mismo está incompleto.
+                  </div>
+                )}
+
+                {/*
+                  EL GATE DE AMBIGÜEDAD, que hasta la v990 se calculaba en cada
+                  dictado y no lo leía ninguna pantalla. No bloquea la firma: eso
+                  es una decisión del Dr. sobre su flujo, no del código.
+                */}
+                {motivosDictado.length > 0 && (
+                  <div style={{
+                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.6,
+                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+                  }}>
+                    <b>Conviene confirmar antes de firmar:</b>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                      {motivosDictado.map((t, i) => <li key={i}>{t}</li>)}
+                    </ul>
                   </div>
                 )}
 
