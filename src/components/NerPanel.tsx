@@ -20,6 +20,15 @@ import { AlertTriangle, ShieldAlert, Pill, Stethoscope, TestTube, Scissors, X, L
 /** Lo que el motor determinista tuvo que corregir sobre la salida del modelo. */
 export interface NegacionCorregida { texto: string; condicion: string; cita: string }
 
+/**
+ * Condiciones ACTIVAS que el dictado situó en el pasado.
+ *
+ * A diferencia de las negadas, éstas **no se tocaron**: pasar una condición a
+ * «resuelto» porque la frase iba en pretérito sería una decisión clínica. Se
+ * señalan, y decide el médico.
+ */
+export interface AvisoTemporal { texto: string; condicion: string; cita: string }
+
 interface NerPanelProps {
   entidades: EntidadesExtraidas | null
   /**
@@ -31,12 +40,14 @@ interface NerPanelProps {
    * del interrogatorio.
    */
   negacionesCorregidas?: NegacionCorregida[]
+  /** Lo que salió como activo y en el dictado iba en pasado. Ver `AvisoTemporal`. */
+  avisosTemporales?: AvisoTemporal[]
   cargando?: boolean
   error?: string
   onCerrar?: () => void
 }
 
-export function NerPanel({ entidades, negacionesCorregidas, cargando, error, onCerrar }: NerPanelProps) {
+export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, cargando, error, onCerrar }: NerPanelProps) {
   if (cargando) {
     return (
       <div className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -184,6 +195,25 @@ export function NerPanel({ entidades, negacionesCorregidas, cargando, error, onC
           </div>
           <div style={{ marginTop: 4, opacity: .9 }}>
             No se borraron: negar una enfermedad es información clínica (negativo pertinente).
+          </div>
+        </div>
+      )}
+
+      {/* ── LO QUE VENÍA EN PASADO Y SALIÓ COMO ACTIVO ─────────── */}
+      {(avisosTemporales?.length ?? 0) > 0 && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
+          color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+        }}>
+          <b>{avisosTemporales!.length} condición(es) salen como activas y en el dictado se dijeron en pasado.</b>
+          <div style={{ marginTop: 4 }}>
+            {avisosTemporales!.map((a, i) => (
+              <div key={`${a.condicion}-${i}`}>«{a.texto}» · en el dictado: {a.cita}</div>
+            ))}
+          </div>
+          <div style={{ marginTop: 4, opacity: .9 }}>
+            No se cambiaron: decidir que están resueltas sería una decisión clínica, no de la pantalla.
           </div>
         </div>
       )}

@@ -5921,6 +5921,35 @@ paciente negó, e igualarlos gastaría el rojo.
 
 ---
 
+## TANDA 177ª — v1028 · LA SEGUNDA PUERTA DEL PASADO: EL EXTRACTOR
+
+La v1027 puso el motor de temporalidad en la **nota**. Pero el panel «Extraer
+entidades clínicas» corre sobre **el mismo texto**, y su `estado` **nace en
+`activo` por omisión del esquema**: «tuvo neumonía hace tres años» salía como
+condición **activa**.
+
+Una entidad estructurada tiene peor pinta que una frase: parece un dato
+verificado. Es exactamente lo que ya pasó con las negaciones, y por eso allí
+quedó escrito que arreglarlo en una pantalla dejaría la otra rota.
+
+**Aquí no se reclasifica**, a diferencia de las negaciones. Con una negación se
+puede: el paciente dijo que no, y «descartado» es lo que **él** afirmó. Pasar una
+condición a «resuelto» porque la frase iba en pretérito **sería una decisión
+clínica** — una neumonía de hace tres años puede estar resuelta; una cardiopatía
+de hace tres años no lo está por haberla contado en pasado.
+
+Se señala y no se toca. En el servidor, que es donde estaba la defensa hermana
+porque la ruta la consumen dos pantallas, y se enseña en el panel **diciendo que
+no se cambió nada**: señalar sin tocar sólo sirve si se ve. Y si el extractor ya
+la puso como «resuelto», acertó: ni se anota ni se avisa.
+
+- `src/lib/expediente/temporalidad.ts` — `avisosTemporalesDelExtractor`
+- `src/app/api/expediente/extraer-entidades/route.ts` — lo calcula y lo devuelve
+- `src/components/NerPanel.tsx` · `consulta/[patientId]/page.tsx` — lo enseñan
+- REG-138 · +6 casos, total **6403**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

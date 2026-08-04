@@ -54,7 +54,7 @@ import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/proced
 function alergiasArray(alergias?: string): string[] {
   return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
-import { NerPanel, type NegacionCorregida } from '@/components/NerPanel'
+import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
@@ -714,6 +714,8 @@ export default function ConsultaActivaPage() {
   const [entidades, setEntidades] = useState<EntidadesExtraidas | null>(null)
   /** Condiciones que el extractor dio por confirmadas y el paciente había negado. */
   const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
+  /** Condiciones activas que el dictado situó en pasado. No se tocan: se enseñan. */
+  const [avisosTemporales, setAvisosTemporales] = useState<AvisoTemporal[]>([])
   const [nerCargando, setNerCargando] = useState(false)
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -1709,6 +1711,7 @@ export default function ConsultaActivaPage() {
       }
       setEntidades(data as EntidadesExtraidas)
       setNegacionesCorregidas(((data as { negacionesCorregidas?: NegacionCorregida[] }).negacionesCorregidas) ?? [])
+      setAvisosTemporales(((data as { avisosTemporales?: AvisoTemporal[] }).avisosTemporales) ?? [])
       const bloquea = (data.cross_check?.alergia_vs_medicamento ?? []).filter((c: { RIESGO_MAXIMO: boolean }) => c.RIESGO_MAXIMO).length
       const intGraves = (data.cross_check?.interacciones_farmacologicas ?? []).filter((i: { severidad: string }) => i.severidad === 'mayor' || i.severidad === 'contraindicada').length
       if (bloquea > 0) toast(`${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
@@ -3569,6 +3572,7 @@ export default function ConsultaActivaPage() {
           <NerPanel
             entidades={entidades}
             negacionesCorregidas={negacionesCorregidas}
+            avisosTemporales={avisosTemporales}
             cargando={nerCargando}
             error={nerError}
             onCerrar={() => { setEntidades(null); setNerError(''); setNegacionesCorregidas([]) }}

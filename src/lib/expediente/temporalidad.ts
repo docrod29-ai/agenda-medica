@@ -198,3 +198,66 @@ export const POR_QUE_IMPORTA =
   'el expediente, se copia a la nota siguiente y cambia lo que otro médico lee ' +
   'dentro de seis meses. Es el mismo arrastre que el antecedente inventado por ' +
   'la pregunta del interrogatorio.'
+
+/**
+ * ── LA MISMA DEFENSA EN EL EXTRACTOR DE ENTIDADES ────────────────────────────
+ *
+ * La nota no es la única puerta. El panel «Extraer entidades clínicas» corre
+ * sobre EL MISMO texto y devuelve `conditions` con un `estado` que **nace en
+ * `activo` por omisión del esquema**. Así que una neumonía dicha en pasado sale
+ * como una condición activa — y una entidad estructurada tiene peor pinta que
+ * una frase: parece un dato verificado.
+ *
+ * Es exactamente lo que ya pasó con las negaciones, y por eso allí se dejó
+ * escrito que arreglarlo en una pantalla dejaría la otra rota.
+ *
+ * ── PERO AQUÍ NO SE RECLASIFICA ──────────────────────────────────────────────
+ *
+ * Con una negación se puede: el paciente dijo que no, y `descartado` es lo que
+ * él afirmó. Aquí no hay nada equivalente. Pasar una condición a `resuelto`
+ * porque la frase iba en pasado **sería una decisión clínica**: una neumonía de
+ * hace tres años puede estar resuelta y una cardiopatía de hace tres años no lo
+ * está por haberla contado en pretérito.
+ *
+ * Así que se **señala y no se toca**. Es menos vistoso y es lo único honesto.
+ */
+export interface CondicionExtraidaTemporal {
+  texto?: unknown
+  estado?: string
+  [k: string]: unknown
+}
+
+export interface AvisoTemporalExtractor {
+  texto: string
+  condicion: string
+  cita: string
+}
+
+/**
+ * Qué condiciones extraídas como ACTIVAS venían dichas en pasado.
+ *
+ * No modifica ninguna: devuelve la lista para enseñarla. Si el extractor ya la
+ * puso como `resuelto`, acertó — ni se anota ni se avisa.
+ */
+export function avisosTemporalesDelExtractor<T extends CondicionExtraidaTemporal>(
+  conditions: readonly T[],
+  pasadas: readonly MencionPasada[],
+): AvisoTemporalExtractor[] {
+  if (!pasadas.length) return []
+  const out: AvisoTemporalExtractor[] = []
+  for (const c of conditions) {
+    if (c.estado === 'resuelto') continue
+    const enc = cronicasEn(String(c.texto ?? ''))
+    const m = pasadas.find(x => enc.includes(x.condicion))
+    if (!m) continue
+    out.push({ texto: String(c.texto ?? ''), condicion: m.condicion, cita: m.cita })
+  }
+  return out
+}
+
+export const POR_QUE_AQUI_NO_SE_RECLASIFICA =
+  'Con una negación se puede reclasificar: el paciente dijo que no, y ' +
+  '«descartado» es lo que él afirmó. Aquí no hay nada equivalente — pasar una ' +
+  'condición a «resuelto» porque la frase iba en pasado sería una decisión ' +
+  'clínica: una neumonía de hace tres años puede estar resuelta y una ' +
+  'cardiopatía de hace tres años no lo está por haberla contado en pretérito.'
