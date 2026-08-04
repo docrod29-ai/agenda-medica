@@ -32,9 +32,30 @@ const UNIDADES_DOSIS = [
   'mililitros', 'mililitro', 'ml',
 ] as const
 
-/** Palabras que, colocadas antes de la unidad, SÍ son una cantidad. */
+/**
+ * Palabras que, colocadas antes de la unidad, SÍ son una cantidad.
+ *
+ * ── EL SIGNO CUENTA COMO PARTE DE LA CIFRA (medido el 4-ago-2026) ────────────
+ *
+ * Sin `[-+−–]?` esta expresión leía «−1500 mL» y concluía que **faltaba la
+ * cantidad**. En el corpus de 6 000 frases del Dr. eso ocurrió **25 veces, todas
+ * de balance hídrico**: «Ingresos 1200 mL, egresos 800 mL y balance neto −1500 mL».
+ *
+ * Un balance negativo es lo normal en un paciente en diuresis o en
+ * ultrafiltración. Preguntar en todos ellos es **fatiga de alerta** justo donde
+ * la atención del médico es más escasa — y esta misma compuerta es la que avisa
+ * de una dosis que perdió su número. Un aviso que salta donde no debe se acaba
+ * ignorando, y con él se ignoran los que sí importan.
+ *
+ * Se aceptan los cuatro signos que aparecen en un dictado transcrito: el menos
+ * de teclado, el más, el menos tipográfico (U+2212) y la raya (U+2013), porque
+ * el reconocedor y los editores los intercambian sin avisar.
+ *
+ * **No debilita la defensa**: el signo sólo vale si va pegado a una cifra. Una
+ * unidad sin número delante se sigue marcando igual.
+ */
 const ES_CANTIDAD = new RegExp(
-  '^(\\d+([.,]\\d+)?|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|'
+  '^([-+−–]?\\d+([.,]\\d+)?|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|'
   + 'once|doce|quince|veinte|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|'
   + 'noventa|cien|ciento|cientos|doscientos|trescientos|cuatrocientos|quinientos|'
   + 'seiscientos|setecientos|ochocientos|novecientos|mil|medio|media)$', 'i')

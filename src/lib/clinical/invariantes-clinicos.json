@@ -337,6 +337,18 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/balance-negativo-no-es-dosis-rota.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/la-caida-de-ia-sigue-al-dueno.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
       "minCasos": 30
     },

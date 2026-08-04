@@ -71,6 +71,46 @@ export function alergiasDe(p: { alergias?: string; alergiasEstructuradas?: Alerg
   return out
 }
 
+/**
+ * LOS ALÉRGENOS, EN TEXTO, PARA QUIEN SÓLO NECESITA LA LISTA.
+ *
+ * ── POR QUÉ HACE FALTA ESTA FUNCIÓN (v1031) ──────────────────────────────────
+ *
+ * `SEPARADORES` nació con una nota que decía que **dos splitters distintos daban
+ * listas distintas del MISMO campo**. Aun así había **cuatro**: éste, el de las
+ * opciones de dictado de la consulta (`/[,;\n]/`), el de UCI (`/[,;\n]+/` con su
+ * propia heurística de negación) y el del extractor de entidades.
+ *
+ * Los tres de fuera perdían exactamente lo mismo:
+ *
+ * 1. **La barra y la «y».** «Penicilina / Sulfas» y «Penicilina y sulfas» salían
+ *    como UN término. Al motor de voz eso le llega como una frase, y el alérgeno
+ *    de en medio deja de sesgar nada.
+ * 2. **Las negaciones.** «Niega alergias» viajaba como si fuera un alérgeno: se
+ *    le enseñaba al reconocedor a esperar esa frase, gastando sitio del sesgo.
+ * 3. **`alergiasEstructuradas`.** Un paciente con sus alergias bien capturadas y
+ *    el texto libre vacío mandaba CERO — justo el mejor documentado.
+ *
+ * Y el sitio donde más duele es el sesgo del reconocedor: el cruce
+ * alergia↔fármaco compara contra **lo que se oyó**, así que un alérgeno mal
+ * transcrito es un cruce que **nunca salta**.
+ *
+ * Acepta el campo venga como venga —texto libre o ya en lista— porque en el
+ * repositorio viene de las dos formas, y eso no lo arregla un llamador.
+ */
+export function alergenosDe(p: {
+  alergias?: string | readonly unknown[]
+  alergiasEstructuradas?: AlergiaEstructurada[]
+}): string[] {
+  const texto = Array.isArray(p.alergias)
+    ? p.alergias.map(a => String(typeof a === 'object' && a
+        ? ((a as { alergeno?: string }).alergeno ?? '')
+        : a)).filter(Boolean).join(', ')
+    : (p.alergias as string | undefined)
+  return alergiasDe({ alergias: texto, alergiasEstructuradas: p.alergiasEstructuradas })
+    .map(a => a.alergeno)
+}
+
 /** ¿Hay alguna alergia grave registrada? (para resaltar en la UI/receta). */
 export function tieneAlergiaGrave(p: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): boolean {
   return alergiasDe(p).some(a => a.severidad === 'grave')

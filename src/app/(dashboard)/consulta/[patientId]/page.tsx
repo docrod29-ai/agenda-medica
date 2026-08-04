@@ -51,6 +51,47 @@ import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/proced
  * era una alergia para el sello y dos para la alerta. El mismo campo no puede
  * significar dos cosas según quién lo lea.
  */
+/**
+ * TODO LO QUE LA NOTA AFIRMA, EN TEXTO — y de verdad.
+ *
+ * ── EL HUECO ─────────────────────────────────────────────────────────────────
+ *
+ * Las defensas de negación y temporalidad se contrastan contra «lo que la nota
+ * dice», y el comentario que las acompaña lo prometía: «resumen, diagnósticos y
+ * las secciones, no sólo el resumen».
+ *
+ * El código armaba ese texto uniendo el resumen con un `join` sobre el arreglo
+ * de diagnósticos y un `Object.values` sobre el de secciones.
+ *
+ * `diagnosticos` es `Diagnostico[]` y `secciones` es `NotaSeccion[]`: **objetos**.
+ * `join` y `Object.values` sobre objetos producen `[object Object]`. Así que la
+ * comprobación sólo veía **el resumen** — todo el cuerpo de la nota y la lista de
+ * diagnósticos eran invisibles para ella.
+ *
+ * Se vio en producción, en la propia alerta, que citaba la nota como
+ * «…Diabetes mellitus tipo 2. [object Object] [object Object]…».
+ *
+ * ── POR QUÉ ES GRAVE Y NO COSMÉTICO ──────────────────────────────────────────
+ *
+ * Un antecedente que el paciente NEGÓ y que la nota guarda **sólo como
+ * diagnóstico estructurado** —sin repetirlo en la prosa— no disparaba nada. Y el
+ * diagnóstico estructurado es justo el que se arrastra a la receta, al resumen
+ * de la próxima consulta y al expediente.
+ *
+ * La defensa existía, estaba probada, y miraba a un sitio equivocado.
+ */
+function textoDeLaNota(
+  resumen: string,
+  diagnosticos: readonly Diagnostico[],
+  secciones: readonly NotaSeccion[],
+): string {
+  return [
+    resumen,
+    ...(diagnosticos ?? []).map(d => [d?.descripcion, d?.codigoCIE10].filter(Boolean).join(' ')),
+    ...(secciones ?? []).map(s => s?.value),
+  ].filter(Boolean).join('\n')
+}
+
 function alergiasArray(alergias?: string): string[] {
   return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
@@ -686,8 +727,7 @@ export default function ConsultaActivaPage() {
     if (!dictado.trim()) return []
     const negadas = condicionesNegadas(dictado)
     if (!negadas.length) return []
-    const textoNota = [resumen, diagnosticos.join('. '), ...Object.values(secciones ?? {})]
-      .filter(Boolean).join('\n')
+    const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
     return contradicciones(negadas, textoNota)
   }, [voz.transcripcion, resumen, diagnosticos, secciones])
   /**
@@ -703,8 +743,7 @@ export default function ConsultaActivaPage() {
     if (!dictado.trim()) return []
     const pasadas = mencionesEnPasado(dictado)
     if (!pasadas.length) return []
-    const textoNota = [resumen, diagnosticos.join('. '), ...Object.values(secciones ?? {})]
-      .filter(Boolean).join('\n')
+    const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
     return desajustesTemporales(pasadas, textoNota)
   }, [voz.transcripcion, resumen, diagnosticos, secciones])
   const vivoRef = useRef(false)
