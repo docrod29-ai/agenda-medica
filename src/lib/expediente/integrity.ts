@@ -238,6 +238,14 @@ export function normalizarParaSello(nota: NotaMedica): NotaMedica {
  */
 export const CAMPOS_NO_SELLADOS_V3: readonly { campo: string; razon: string }[] = [
   {
+    campo: 'transcripcionMotor',
+    razon: 'ES material de origen y le CORRESPONDE ir sellado — pero añadirlo al canónico v3 cambiaría el hash de TODAS las notas ya firmadas y las volvería «alterada» de golpe: la falsa alarma exacta de REG-060. Entra al sello cuando se suba a hashVersion 4, que es su propia versión con su propia migración. Hasta entonces se guarda y NO se sella, dicho aquí en vez de silenciado.',
+  },
+  {
+    campo: 'palabrasAVerificar',
+    razon: 'Metadato DERIVADO del dictado: se recalcula desde las confianzas y no es contenido del documento. Sellarlo ataría el hash a un umbral que está declarado sin calibrar (UMBRAL_DUDA), así que recalibrarlo marcaría notas firmadas como alteradas sin que nadie las tocara.',
+  },
+  {
     campo: 'id',
     razon: 'normNota lo SOBRESCRIBE con el doc.id al leer, y al firmar vale `notaId ?? \'\'` (en el camino rápido, cadena vacía). Sellarlo marcaría "alterada" toda nota firmada sin borrador previo. La identidad se sella vía metadata.id, que sí se guarda literal.',
   },

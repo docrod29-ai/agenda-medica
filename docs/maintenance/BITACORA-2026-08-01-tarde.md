@@ -4561,6 +4561,66 @@ cualquier par de frases empieza por «el» o «y». **Preferimos una palabra rep
 
 ---
 
+## TANDA 145ª — v996 · EL «ORIGINAL» QUE SE ARCHIVABA NO ERA EL ORIGINAL
+
+Los dos P0 de mi propia auditoría VOICE-001, y los dos vivían en la misma línea
+de `construirNota`.
+
+### B-1 · `transcripcionCruda` no era cruda
+
+La pantalla de la nota enseña un bloque titulado «transcripción original». Se
+llenaba con `voz.transcripcion`: el texto que **ya pasó por las cuatro etapas**
+del pipeline —normalización, siglas, corrector vigilado, unidades— y que además
+**el médico puede editar a mano** antes de firmar.
+
+El crudo de verdad existía: `ResultadoPipeline.crudo`. Se producía y se
+descartaba en la misma línea en que se aplicaba el resultado. Ante un «yo no dije
+eso», lo archivado como material de origen ya había sido reescrito tres veces por
+máquinas y una por una persona. Es el principio nº 1 del charter —*el audio no es
+la nota; una capa no sobrescribe a la otra*— roto en el archivo medicolegal.
+
+Ahora se guarda aparte en `transcripcionMotor`, **tanto al transcribir como al
+recuperar** el audio del dispositivo (la consulta que se cayó es justo la que más
+falta hace defender), y se limpia al empezar otra grabación: arrastrar el origen
+de la consulta anterior sería peor que no tenerlo, sería material de origen **del
+paciente equivocado**.
+
+### B-2 · el documento se estaba llenando de confianzas por palabra
+
+`dialogoDiarizado` se llenaba con los turnos **enteros** de AssemblyAI, que
+traen `palabras: {texto,inicioMs,confianza}[]` dentro: una consulta de 20 minutos
+son varios miles de esos objetos dentro del documento de la nota. El tipo
+declarado siempre fue `{speaker, text}[]` — el exceso no estaba ni tipado.
+
+Y este repositorio ya sabe qué pasa cuando un documento se acerca al 1 MB de
+Firestore: no falla el campo grande, **falla todo guardado posterior**. Está en
+la bitácora dos veces, con la config de receta en base64.
+
+Se guardan turnos sin palabras. De las confianzas sobrevive lo único que un
+revisor necesita: la lista corta de palabras a verificar con su minuto — **la
+misma** que ya se pinta en pantalla, no una recalculada: ver una lista al firmar
+y guardar otra sería una corrección silenciosa.
+
+### El sello: clasificados, y fuera de v3 con su razón
+
+`transcripcionMotor` **le corresponde ir sellado**. Pero añadirlo al canónico v3
+cambiaría el hash de todas las notas ya firmadas y las marcaría «alterada» de
+golpe: la falsa alarma REG-060, que ya se pagó una vez. Entra al sello cuando se
+suba a `hashVersion` 4, con su propia migración. `palabrasAVerificar` queda fuera
+por ser derivado y depender de `UMBRAL_DUDA`, que está declarado sin calibrar:
+recalibrarlo marcaría notas firmadas como alteradas sin que nadie las tocara.
+
+- `src/lib/expediente/integrity.ts`, `src/types/expediente.ts`,
+  `src/hooks/useGrabacionAudio.ts`, `consulta/[patientId]/page.tsx`
+- `src/__tests__/origen-del-dictado.test.ts` — 13 pruebas. Total **5963**.
+
+**Queda apuntado:** la nota de UCI viaja por `sessionStorage` con `dictado` y
+`utterances`, pero **sin** `crudo`, así que un pase de UCI se archiva sin
+material de origen. No es regresión de esta versión; es el siguiente punto de
+esta línea.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

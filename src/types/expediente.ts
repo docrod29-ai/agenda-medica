@@ -284,10 +284,40 @@ export interface NotaMedica {
   }
 
   // Trazabilidad: transcripción cruda de voz junto a la nota procesada
+  /**
+   * El texto de TRABAJO del dictado: ya pasó por las cuatro etapas del pipeline
+   * y el médico puede haberlo editado.
+   *
+   * El nombre viene de antes y se conserva porque hay lectores —la restauración
+   * de borradores y el historial de versiones— que dependen de él. **No es el
+   * material de origen**: para eso está `transcripcionMotor`.
+   */
   transcripcionCruda?: string
+  /**
+   * Lo que el reconocedor dijo, ANTES del pipeline y antes de cualquier edición.
+   *
+   * Es el material de origen. Hasta la v996 no se guardaba en ningún sitio: el
+   * pipeline lo producía y se descartaba en la misma línea. Ante una discusión
+   * medicolegal, el «original» archivado ya había pasado por tres etapas de
+   * reescritura automática.
+   */
+  transcripcionMotor?: string
   // Trazabilidad legal: diálogo separado por voz (diarización), si la hubo.
   // Cada turno = quién habló (A/B/C) y qué dijo. Para auditoría/relectura.
+  /**
+   * Los turnos de habla. **Sin `palabras`**, y no es un olvido.
+   *
+   * Se estaba persistiendo el objeto completo, con la confianza de cada palabra
+   * dentro: una consulta de 20 minutos son miles de `{texto,inicioMs,confianza}`
+   * en el documento de la nota — que ya tiene historial de reventar el tope de
+   * 1 MB de Firestore y **bloquear todo guardado posterior**.
+   *
+   * Lo que sí se conserva es la lista corta de palabras a verificar, que es lo
+   * que un revisor necesita: qué dudó el audio y en qué minuto.
+   */
   dialogoDiarizado?: { speaker: string; text: string }[]
+  /** Las palabras que el audio no oyó con seguridad, con su minuto. */
+  palabrasAVerificar?: { texto: string; momento: string; seguridad: number }[]
 
   // Firma (presente cuando estado === 'firmada')
   firma?: Firma
