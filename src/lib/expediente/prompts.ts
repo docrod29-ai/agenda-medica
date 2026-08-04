@@ -126,6 +126,14 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     pregunta e ignorar el "no" le inventa al paciente un antecedente crónico que cambia
     su riesgo quirúrgico, cambia sus fármacos y se arrastra a todas las notas
     siguientes. Ante la duda de quién dijo qué, NO afirmes el diagnóstico.
+24. EL PASADO NO ES EL PRESENTE. Si el dictado sitúa un padecimiento en el pasado
+    ("tuvo neumonía hace tres años", "le operaron de la vesícula en 2019", "ya se le
+    quitó"), va como ANTECEDENTE — nunca en el padecimiento actual ni en diagnósticos
+    activos. Cuidado con lo contrario: "desde hace tres años tiene diabetes", "sigue
+    con", "todavía", "actualmente" y "en tratamiento" son PRESENTE aunque traigan una
+    fecha, y degradarlos a antecedente borraría un diagnóstico activo. Un padecimiento
+    pasado escrito como actual se queda en el expediente, se copia a la nota siguiente
+    y cambia lo que otro médico lee dentro de seis meses.
 
 SANITY CHECK DE SIGNOS VITALES (adulto):
 - FC 30-220 lpm; FR 6-60 rpm; TAS 50-250; TAD 30-150; Temp 32.0-42.5°C.

@@ -32,7 +32,7 @@ const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 // Versión del prompt/pipeline de la nota. Súbela al cambiar el prompt maestro:
 // queda registrada en el provenance inmutable de cada nota (trazabilidad SaMD).
-const PROMPT_VERSION = 'nota-2026-07'
+const PROMPT_VERSION = 'nota-2026-08'   // v1029: regla 24, el pasado no es el presente
 
 // Tres PERFILES de modelo, según plan del consultorio y momento:
 //  · 'live'    → borrador EN VIVO (cada ~30s): Haiku, baratísimo y veloz. Sin thinking.
