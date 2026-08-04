@@ -124,25 +124,56 @@ export function soloPropuesto(texto: string, farmaco: string): boolean {
 }
 
 /**
- * De la lista de medicamentos que va a la nota, los que sólo se propusieron.
+ * De una lista de términos, los que sólo se propusieron.
  *
- * Devuelve nombres, no índices: la lista de la nota y la de la extracción se
- * desfasan en cuanto el médico borra uno, y un índice desfasado señalaría el
- * fármaco equivocado.
+ * Devuelve los términos, no sus índices: la lista de la nota y la de la
+ * extracción se desfasan en cuanto el médico borra uno, y un índice desfasado
+ * señalaría el elemento equivocado.
  */
-export function medicamentosSoloPropuestos(
-  texto: string,
-  medicamentos: readonly { nombre?: string }[] | undefined,
-): string[] {
-  if (!texto?.trim() || !medicamentos?.length) return []
+export function soloPropuestos(texto: string, terminos: readonly string[] | undefined): string[] {
+  if (!texto?.trim() || !terminos?.length) return []
   const out: string[] = []
-  for (const m of medicamentos) {
-    const n = String(m?.nombre ?? '').trim()
+  for (const t of terminos) {
+    const n = String(t ?? '').trim()
     if (!n) continue
     if (soloPropuesto(texto, n) && !out.includes(n)) out.push(n)
   }
   return out
 }
+
+/** Los medicamentos de la nota que sólo se propusieron. Alimentan la RECETA. */
+export function medicamentosSoloPropuestos(
+  texto: string,
+  medicamentos: readonly { nombre?: string }[] | undefined,
+): string[] {
+  return soloPropuestos(texto, (medicamentos ?? []).map(m => String(m?.nombre ?? '')))
+}
+
+/**
+ * Los estudios de la nota que sólo se propusieron.
+ *
+ * ── POR QUÉ IMPORTA IGUAL QUE UN FÁRMACO ────────────────────────────────────
+ *
+ * `estudiosOrden` alimenta la **orden médica impresa**: el papel que el paciente
+ * se lleva al laboratorio o al centro de imagen. Un «si no mejora, le pido una
+ * tomografía» convertido en orden activa manda al paciente a hacerse —y a
+ * pagar— un estudio que sólo se estaba considerando.
+ *
+ * Se separa del de fármacos porque el documento y la acción son distintos: uno
+ * se corrige en la receta y el otro en la orden.
+ */
+export function estudiosSoloPropuestos(
+  texto: string,
+  estudios: readonly string[] | undefined,
+): string[] {
+  return soloPropuestos(texto, estudios)
+}
+
+export const POR_QUE_TAMBIEN_LOS_ESTUDIOS =
+  '`estudiosOrden` alimenta la ORDEN MÉDICA IMPRESA, el papel que el paciente se ' +
+  'lleva al laboratorio. Un «si no mejora, le pido una tomografía» convertido en ' +
+  'orden activa manda al paciente a hacerse —y a pagar— un estudio que sólo se ' +
+  'estaba considerando.'
 
 export const POR_QUE_NO_SE_BORRA =
   'A veces sí es una orden: «si tiene dolor, paracetamol» es una indicación PRN ' +

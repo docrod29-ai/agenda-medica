@@ -98,7 +98,7 @@ import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { palabrasDudosas, marcarTurno, paraElMedico, anexoDeDudas, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
-import { medicamentosSoloPropuestos } from '@/lib/asr/intencion-de-orden'
+import { medicamentosSoloPropuestos, estudiosSoloPropuestos } from '@/lib/asr/intencion-de-orden'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
@@ -631,29 +631,6 @@ export default function ConsultaActivaPage() {
    * un dictado largo trae miles de palabras y esto se recorre entero.
    */
   const palabrasAVerificar = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
-  /**
-   * EL SÉPTIMO MOTIVO: LO QUE SE CONSIDERÓ NO ES LO QUE SE INDICÓ.
-   *
-   * El pipeline no puede emitirlo porque trabaja sobre TEXTO y no ve la lista de
-   * medicamentos extraídos; aquí están las dos cosas. Es el mismo patrón que el
-   * sexto motivo, que necesitaba las confianzas por palabra y por eso se emite
-   * desde el hook.
-   *
-   * El fármaco NO se quita: se pregunta. «Si tiene dolor, paracetamol» es una
-   * indicación PRN válida, y borrar por condicional perdería medicación real.
-   */
-  const soloPropuestos = useMemo(
-    () => medicamentosSoloPropuestos(voz.transcripcion, medicamentos),
-    [voz.transcripcion, medicamentos],
-  )
-  /** El gate de ambigüedad del pipeline, que hasta la v990 no salía del hook. */
-  const motivosDictado = useMemo(
-    () => textosDeMotivos([
-      ...audio.motivosConfirmacion,
-      ...(soloPropuestos.length ? ['farmaco_solo_propuesto'] : []),
-    ]),
-    [audio.motivosConfirmacion, soloPropuestos],
-  )
 
   /**
    * EL TEXTO QUE VE LA IA — UNO SOLO, PARA EL QUE REDACTA Y PARA EL QUE REVISA.
@@ -750,6 +727,42 @@ export default function ConsultaActivaPage() {
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
   // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
   const [estudiosOrden, setEstudiosOrden] = useState<string[]>([])
+
+  /**
+   * EL SÉPTIMO MOTIVO: LO QUE SE CONSIDERÓ NO ES LO QUE SE INDICÓ.
+   *
+   * El pipeline no puede emitirlo porque trabaja sobre TEXTO y no ve la lista de
+   * medicamentos extraídos; aquí están las dos cosas. Es el mismo patrón que el
+   * sexto motivo, que necesitaba las confianzas por palabra y por eso se emite
+   * desde el hook.
+   *
+   * El fármaco NO se quita: se pregunta. «Si tiene dolor, paracetamol» es una
+   * indicación PRN válida, y borrar por condicional perdería medicación real.
+   */
+  const soloPropuestos = useMemo(
+    () => medicamentosSoloPropuestos(voz.transcripcion, medicamentos),
+    [voz.transcripcion, medicamentos],
+  )
+  /**
+   * Y LOS ESTUDIOS, que alimentan la ORDEN IMPRESA.
+   *
+   * Va aparte del de fármacos porque el documento y la corrección son
+   * distintos: uno se arregla en la receta y el otro en la orden que el
+   * paciente se lleva al laboratorio.
+   */
+  const estudiosPropuestos = useMemo(
+    () => estudiosSoloPropuestos(voz.transcripcion, estudiosOrden),
+    [voz.transcripcion, estudiosOrden],
+  )
+  /** El gate de ambigüedad del pipeline, que hasta la v990 no salía del hook. */
+  const motivosDictado = useMemo(
+    () => textosDeMotivos([
+      ...audio.motivosConfirmacion,
+      ...(soloPropuestos.length ? ['farmaco_solo_propuesto'] : []),
+      ...(estudiosPropuestos.length ? ['estudio_solo_propuesto'] : []),
+    ]),
+    [audio.motivosConfirmacion, soloPropuestos, estudiosPropuestos],
+  )
   /**
    * PRÓXIMA CONSULTA. Opcional: si el médico no pone fecha, no se inventa una.
    * Alimenta tres cosas que YA existían y esperaban este dato: la tarea de
@@ -3205,7 +3218,12 @@ export default function ConsultaActivaPage() {
                     */}
                     {soloPropuestos.length > 0 && (
                       <div style={{ marginTop: 5, fontSize: 12 }}>
-                        Se mencionaron así: <b>{soloPropuestos.join(', ')}</b>.
+                        Fármacos mencionados así: <b>{soloPropuestos.join(', ')}</b>.
+                      </div>
+                    )}
+                    {estudiosPropuestos.length > 0 && (
+                      <div style={{ marginTop: 3, fontSize: 12 }}>
+                        Estudios mencionados así: <b>{estudiosPropuestos.join(', ')}</b>.
                       </div>
                     )}
                   </div>

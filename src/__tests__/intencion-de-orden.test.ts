@@ -29,7 +29,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  soloPropuesto, mencionesDe, medicamentosSoloPropuestos, frases,
+  soloPropuesto, mencionesDe, medicamentosSoloPropuestos, estudiosSoloPropuestos, frases,
+  POR_QUE_TAMBIEN_LOS_ESTUDIOS,
   POR_QUE_NO_SE_BORRA, POR_QUE_NO_ES_UNA_DECISION_CLINICA, POR_QUE_UNA_MENCION_FIRME_MANDA,
 } from '@/lib/asr/intencion-de-orden'
 import { MOTIVOS_CONFIRMACION } from '@/lib/asr/politica-critica'
@@ -170,7 +171,50 @@ describe('ESTÁ CONECTADO — Y POR EL CANAL QUE YA EXISTÍA', () => {
      * leer.
      */
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toContain('Se mencionaron así:')
+    expect(page).toContain('Fármacos mencionados así:')
+  })
+})
+
+/**
+ * ── LOS ESTUDIOS TIENEN EL MISMO PROBLEMA, Y OTRO PAPEL ─────────────────────
+ *
+ * `estudiosOrden` alimenta la **orden médica impresa**: el papel que el paciente
+ * se lleva al laboratorio o al centro de imagen. Un «si no mejora, le pido una
+ * tomografía» convertido en orden activa manda al paciente a hacerse —y a
+ * pagar— un estudio que sólo se estaba considerando.
+ */
+describe('Y LOS ESTUDIOS, QUE VAN A LA ORDEN IMPRESA', () => {
+  it('un estudio propuesto se detecta', () => {
+    expect(estudiosSoloPropuestos(
+      'Si no mejora en una semana, le pido una tomografía de abdomen.',
+      ['Tomografía de abdomen'],
+    )).toEqual(['Tomografía de abdomen'])
+  })
+
+  it('uno solicitado de verdad no se toca', () => {
+    expect(estudiosSoloPropuestos(
+      'Le pido biometría hemática y química sanguínea hoy.',
+      ['Biometría hemática'],
+    )).toEqual([])
+  })
+
+  it('va por un motivo APARTE del de fármacos', () => {
+    // El documento y la corrección son distintos: uno se arregla en la receta
+    // y el otro en la orden que el paciente lleva al laboratorio.
+    expect(MOTIVOS_CONFIRMACION).toContain('estudio_solo_propuesto')
+    expect(TEXTO_MOTIVO.estudio_solo_propuesto?.length).toBeGreaterThan(40)
+    expect(TEXTO_MOTIVO.estudio_solo_propuesto).not.toBe(TEXTO_MOTIVO.farmaco_solo_propuesto)
+  })
+
+  it('la consulta lo calcula y lo nombra', () => {
+    const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+    expect(page).toContain('estudiosSoloPropuestos(voz.transcripcion, estudiosOrden)')
+    expect(page).toContain("...(estudiosPropuestos.length ? ['estudio_solo_propuesto'] : [])")
+    expect(page).toContain('Estudios mencionados así:')
+  })
+
+  it('está escrito por qué importa igual que un fármaco', () => {
+    expect(POR_QUE_TAMBIEN_LOS_ESTUDIOS).toMatch(/y a\s*\n?\s*pagar|pagar/)
   })
 })
 

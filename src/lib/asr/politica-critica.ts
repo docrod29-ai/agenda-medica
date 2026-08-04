@@ -114,6 +114,12 @@ export const MOTIVOS_CONFIRMACION = [
    * hipótesis dicha en voz alta puede salir impresa y firmada.
    */
   'farmaco_solo_propuesto',
+  /**
+   * Lo mismo, para los estudios: `estudiosOrden` alimenta la ORDEN IMPRESA que
+   * el paciente se lleva al laboratorio. Va aparte del de fármacos porque el
+   * documento y la corrección son distintos.
+   */
+  'estudio_solo_propuesto',
 ] as const
 export type MotivoConfirmacion = (typeof MOTIVOS_CONFIRMACION)[number]
 
