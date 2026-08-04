@@ -14,6 +14,7 @@
  * Body: { nota: {resumen, secciones, diagnosticos, medicamentos, signos}, transcripcion, contexto }
  * Resp: { ok, modelo, hallazgos: [{ severidad, tema, problema, sugerencia }] }
  */
+import { segmentarParaRevision, unirHallazgos } from '@/lib/ia/segmentar-revision'
 import { NextRequest, NextResponse } from 'next/server'
 import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -80,13 +81,37 @@ export async function POST(req: NextRequest) {
    */
   const TOPE = 12000
   const transcripcionCompleta = body.transcripcion ?? ''
-  if (transcripcionCompleta.length > TOPE || notaTexto.length > TOPE) {
+
+  /**
+   * LA NOTA SÍ ES UN TOPE DURO.
+   *
+   * Se trocea la TRANSCRIPCIÓN, no la nota: revisar media nota contra el
+   * dictado entero daría por buenas las dosis de la mitad que no se leyó.
+   */
+  if (notaTexto.length > TOPE) {
     return NextResponse.json({
       ok: false, incompleto: true, hallazgos: [],
-      error: `La consulta es más larga de lo que la segunda opinión puede revisar de una vez (${Math.max(transcripcionCompleta.length, notaTexto.length).toLocaleString('es-MX')} caracteres, tope ${TOPE.toLocaleString('es-MX')}). La nota NO fue verificada — revísala tú.`,
+      error: `La nota es más larga de lo que la segunda opinión puede revisar (${notaTexto.length.toLocaleString('es-MX')} caracteres, tope ${TOPE.toLocaleString('es-MX')}). La nota NO fue verificada — revísala tú.`,
     }, { status: 200 })
   }
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\nTRANSCRIPCIÓN DE LA CONSULTA:\n${delimitar(transcripcionCompleta)}\n\nNOTA GENERADA A REVISAR:\n${notaTexto}\n\nDevuelve solo el JSON de hallazgos.`
+
+  /**
+   * ── LA CONSULTA LARGA YA NO SE QUEDA SIN SEGUNDA OPINIÓN ──────────────────
+   *
+   * Antes, pasado el tope, no se revisaba NADA. Era honesto —lo decía— pero
+   * dejaba sin red justo a la consulta complicada: un dictado de 20 minutos
+   * ronda los 20 000 caracteres, así que el tope no era un caso raro.
+   *
+   * Ahora la transcripción se parte en tramos SOLAPADOS y la nota entera se
+   * revisa contra cada uno. El solape es por lo mismo que en el audio: una
+   * indicación partida en seco deja media dosis a cada lado.
+   */
+  const seg = segmentarParaRevision(transcripcionCompleta, TOPE)
+  const tramos = seg.tramos.length ? seg.tramos : ['']
+  const mensajeDe = (tramo: string, i: number) =>
+    `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\n` +
+    (tramos.length > 1 ? `TRAMO ${i + 1} DE ${tramos.length} DE LA CONSULTA (la nota va completa; señala sólo lo que puedas juzgar con este tramo):\n` : 'TRANSCRIPCIÓN DE LA CONSULTA:\n') +
+    `${delimitar(tramo)}\n\nNOTA GENERADA A REVISAR:\n${notaTexto}\n\nDevuelve solo el JSON de hallazgos.`
 
   /**
    * Por el gateway (§P–T): aquí vivía la misma cascada de modelos y el mismo
@@ -96,31 +121,80 @@ export async function POST(req: NextRequest) {
    * volver del `fetch`.
    */
   try {
-    const r = await llamarIA(
-      { proveedor: 'openai', clave: key, modelos: MODELOS_OPENAI, system, user: userMsg, maxTokens: 2000, json: true },
-      {
-        feature: 'verificar-nota',
-        requestId: req.headers.get('x-vercel-id') || `vn-${acceso.uid}-${Date.now()}`,
-        clinicId: clinicId ?? null, uid: acceso.uid,
-        creditos: COSTO_CREDITOS.verificarNota, fuente,
-        esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
-      },
-    )
-    if (!r.ok) return NextResponse.json({ ok: false, error: r.motivo }, { status: 502 })
-    const usado = r.modelo
-    const text = r.texto
-    const m = text.match(/\{[\s\S]*\}/)
+    const porTramo: { severidad: string; tema: string; problema: string; sugerencia: string }[][] = []
+    let usado = ''
+    let ilegibles = 0
+
+    for (let i = 0; i < tramos.length; i++) {
+      const r = await llamarIA(
+        { proveedor: 'openai', clave: key, modelos: MODELOS_OPENAI, system, user: mensajeDe(tramos[i], i), maxTokens: 2000, json: true },
+        {
+          feature: 'verificar-nota',
+          requestId: req.headers.get('x-vercel-id') || `vn-${acceso.uid}-${Date.now()}-${i}`,
+          clinicId: clinicId ?? null, uid: acceso.uid,
+          creditos: COSTO_CREDITOS.verificarNota, fuente,
+          esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+        },
+      )
+      // Un tramo que no sale NO puede convertirse en «revisado sin hallazgos»:
+      // se cuenta, y al final la respuesta lo dice.
+      if (!r.ok) {
+        if (i === 0) return NextResponse.json({ ok: false, error: r.motivo }, { status: 502 })
+        ilegibles++
+        continue
+      }
+      usado = r.modelo
+      porTramo.push(hallazgosDe(r.texto, () => { ilegibles++ }))
+    }
+
+    if (porTramo.length === 0) {
+      return NextResponse.json({ ok: false, incompleto: true, modelo: usado, hallazgos: [], error: 'La segunda opinión no devolvió un resultado analizable. La nota NO fue verificada; reintenta.' }, { status: 200 })
+    }
+
+    const hallazgos = unirHallazgos(porTramo)
+    void registrarUso(clinicId, fuente)
+    // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
+    // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
+
+    /**
+     * SI NO SE CUBRIÓ TODO, SE DICE — con hallazgos y con el aviso.
+     *
+     * Enseñar los hallazgos de lo revisado es útil; presentarlos como una
+     * revisión completa, no. Van los dos: la lista Y qué parte quedó fuera.
+     */
+    if (seg.truncado || ilegibles > 0) {
+      const falta = seg.truncado
+        ? `Sólo se revisaron los primeros ${seg.cubiertos.toLocaleString('es-MX')} de ${seg.total.toLocaleString('es-MX')} caracteres del dictado (${tramos.length} de ${seg.tramosNecesarios} tramos).`
+        : `${ilegibles} ${ilegibles === 1 ? 'tramo no se pudo revisar' : 'tramos no se pudieron revisar'}.`
+      return NextResponse.json({
+        ok: false, incompleto: true, modelo: usado, hallazgos, tramos: tramos.length,
+        error: `${falta} La nota NO quedó verificada del todo — revisa tú el resto.`,
+      }, { status: 200 })
+    }
+
+    return NextResponse.json({ ok: true, modelo: usado, hallazgos, tramos: tramos.length })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+  }
+}
+
+/**
+ * Saca los hallazgos del texto del modelo. Sin JSON legible, avisa y devuelve
+ * vacío — nunca «sin observaciones», que se lee como «revisado y limpio».
+ */
+function hallazgosDe(text: string, alFallar: () => void) {
+  const m = text.match(/\{[\s\S]*\}/)
     /**
      * Auditoría 2026-07 (P1): si el modelo NO devolvió un JSON, antes se respondía
      * `hallazgos: []` = «sin observaciones», que el médico lee como «la nota está
      * revisada y limpia». Pero la revisión FALLÓ: no es lo mismo «revisado sin
      * hallazgos» que «no se pudo revisar». Se devuelve un estado incompleto.
      */
-    if (!m) return NextResponse.json({ ok: false, incompleto: true, modelo: usado, hallazgos: [], error: 'La segunda opinión no devolvió un resultado analizable. La nota NO fue verificada; reintenta.' }, { status: 200 })
-
+  if (!m) { alFallar(); return [] }
+  try {
     const parsed = JSON.parse(m[0]) as { hallazgos?: unknown }
     const SEV = new Set(['alta', 'media', 'baja'])
-    const hallazgos = (Array.isArray(parsed.hallazgos) ? parsed.hallazgos : [])
+    return (Array.isArray(parsed.hallazgos) ? parsed.hallazgos : [])
       .filter((h): h is Record<string, string> => !!h && typeof h === 'object')
       .map(h => ({
         severidad: SEV.has(String(h.severidad)) ? String(h.severidad) : 'media',
@@ -129,12 +203,5 @@ export async function POST(req: NextRequest) {
         sugerencia: String(h.sugerencia ?? '').slice(0, 400),
       }))
       .filter(h => h.problema)
-
-    void registrarUso(clinicId, fuente)
-    // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
-    // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
-    return NextResponse.json({ ok: true, modelo: usado, hallazgos })
-  } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
-  }
+  } catch { alFallar(); return [] }
 }

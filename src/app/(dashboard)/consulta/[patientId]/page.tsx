@@ -1019,7 +1019,22 @@ export default function ConsultaActivaPage() {
       if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [] })
       // Auditoría 2026-07 (P1): NO mostrar «sin observaciones» si la revisión falló.
       // La segunda opinión queda nula (no verde) y se avisa que no se verificó.
-      else if (data?.incompleto) toast(data.error ?? 'La segunda opinión no se pudo completar; la nota NO fue verificada.', 'error')
+      else if (data?.incompleto) {
+        toast(data.error ?? 'La segunda opinión no se pudo completar; la nota NO fue verificada.', 'error')
+        /**
+         * PERO LOS HALLAZGOS DE LO QUE SÍ SE REVISÓ NO SE TIRAN.
+         *
+         * Con la revisión por tramos, «incompleto» ya no significa «no se
+         * revisó nada»: puede ser que se revisaran dos de tres tramos y que en
+         * ellos hubiera una dosis peligrosa. Esconderla porque el tercer tramo
+         * no cupo sería tirar justo lo que se pagó por encontrar.
+         *
+         * El aviso de arriba dice qué parte quedó fuera, así que la lista NO se
+         * lee como una revisión completa.
+         */
+        const parciales = Array.isArray(data.hallazgos) ? data.hallazgos : []
+        if (parciales.length > 0) setVerificacion({ modelo: `${data.modelo ?? 'IA'} · revisión parcial`, hallazgos: parciales })
+      }
     } catch { /* silencioso: la segunda opinión es un extra, no bloquea */ }
     finally { setVerificando(false) }
   }, [patient?.edad, patient?.sexo, patient?.alergias, toast])
