@@ -40,6 +40,10 @@ interface Incidente {
 interface Datos {
   ok: true; mes: string; total: Resumen; cogs: Resumen; confiable: boolean
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
+  /** Quién gasta. `uid`, nunca el nombre: el libro de costos no guarda identidades. */
+  porMedico?: Grupo[]
+  /** Cuánto cuesta de IA atender a un paciente. */
+  porConsulta?: { consultas: number; totalUsd: number; usdPorConsulta: number | null; sinTarifa: number; supuesto: string }
   latenciasPorFeature: ResumenLatencia[]; latenciasPorModelo: ResumenLatencia[]
   incidentes?: Incidente[]; hayUrgente?: boolean
   saldos?: SaldoProveedor[]
@@ -355,7 +359,37 @@ export default function CostosPage() {
           <TablaLatencias titulo="Cuánto tarda cada modelo" filas={datos.latenciasPorModelo}
             nota="Aquí se ve si un proveedor se degradó: la misma operación con dos modelos, uno lento." />
 
+          {/*
+            CUÁNTO CUESTA ATENDER A UN PACIENTE. Es la cifra con la que se
+            decide un precio, y no estaba en ninguna parte: la consola sumaba
+            por función, modelo y clase. Se dice el SUPUESTO al lado, porque una
+            media sin su divisor se lee como un hecho.
+          */}
+          {datos.porConsulta && (
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Costo de IA por consulta dictada</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                  {datos.porConsulta.usdPorConsulta == null ? '—' : `$${datos.porConsulta.usdPorConsulta.toFixed(4)}`}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                  USD · {n(datos.porConsulta.consultas)} {datos.porConsulta.consultas === 1 ? 'consulta' : 'consultas'} ·
+                  ${datos.porConsulta.totalUsd.toFixed(4)} de cadena completa
+                  {datos.porConsulta.sinTarifa > 0 && ` · ${n(datos.porConsulta.sinTarifa)} llamadas sin tarifa, fuera del total`}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>{datos.porConsulta.supuesto}</div>
+            </div>
+          )}
+
           <Tabla titulo="Por operación" filas={datos.porFeature} />
+          {datos.porMedico && datos.porMedico.length > 0 && (
+            <Tabla
+              titulo="Por médico"
+              nota="El identificador, nunca el nombre: el libro de costos no guarda identidades a propósito, y esta pantalla no va a ser la que las introduzca."
+              filas={datos.porMedico}
+            />
+          )}
           <Tabla titulo="Por modelo" filas={datos.porModelo} />
           <Tabla
             titulo="Quién generó el gasto"

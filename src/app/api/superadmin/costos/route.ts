@@ -17,7 +17,7 @@ import { porFeature as latenciaPorFeature, porModelo as latenciaPorModelo } from
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { safeLog } from '@/lib/security/sanitize'
-import { resumir, soloCogs, porClave, suficiente, type EventoCosto } from '@/lib/finanzas/cost-ledger'
+import { resumir, soloCogs, porClave, suficiente, costoPorConsulta, type EventoCosto } from '@/lib/finanzas/cost-ledger'
 import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
 import { stripe } from '@/lib/stripe'
 import { evaluarWebhook, modoDeLaLlave, type SaludWebhook } from '@/lib/finanzas/webhook-stripe-salud'
@@ -125,6 +125,21 @@ export async function GET(req: NextRequest) {
       latenciasPorFeature: latenciaPorFeature(eventos),
       latenciasPorModelo: latenciaPorModelo(eventos),
       porFeature: porClave(eventos, e => e.feature),
+      /**
+       * POR MÉDICO Y POR CONSULTA — las dos líneas que faltaban (N6).
+       *
+       * El libro anota el `uid` en cada asiento desde que existe, y la consola
+       * agrupaba por función, modelo y clase: se podía ver qué función cuesta y
+       * no **quién** gasta ni **cuánto vale atender a un paciente**, que son las
+       * dos preguntas con las que se decide un precio.
+       *
+       * `uid`, nunca el nombre: el libro de costos no guarda identidades a
+       * propósito, y esta pantalla no va a ser la que las introduzca.
+       */
+      porMedico: porClave(cogs, e => e.uid ?? '(sin médico)'),
+      // Sobre COGS, no sobre todo: el gasto de I+D del fundador no es el costo
+      // de atender a un paciente.
+      porConsulta: costoPorConsulta(cogs),
       porModelo: porClave(eventos, e => e.modelo),
       porClase: porClave(eventos, e => e.clase),
       // Si se alcanzó el tope, el tablero tiene que decirlo: un total truncado
