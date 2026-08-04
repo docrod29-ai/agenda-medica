@@ -50,6 +50,16 @@ export interface Contrato {
   interfaz: string
   /** Por qué este contrato importa. Va en el mensaje del fallo. */
   porQue: string
+  /**
+   * ¿Es lo que el módulo PRODUCE o lo que RECIBE?
+   *
+   * Cambia qué se puede preguntar. En un contrato de **salida** el productor es
+   * el propio módulo, así que exigir que alguien de fuera lo escriba marcaría
+   * como huérfano todo lo que el módulo devuelve — que es todo. En uno de
+   * **entrada** ocurre al revés: si nadie lo llena, el campo viaja vacío por
+   * todas las capas, que es exactamente lo que pasó con `especialidades`.
+   */
+  direccion: 'entrada' | 'salida'
 }
 
 /**
@@ -94,6 +104,79 @@ export interface CampoSinLeer {
   contrato: string
   campo: string
   porQue: string
+}
+
+/**
+ * ── DOS DEFECTOS DISTINTOS, Y LA PRIMERA VERSIÓN LOS CONFUNDÍA ──────────────
+ *
+ * Los seis casos que pidieron este guardián no eran todos lo mismo:
+ *
+ * · `ResultadoPipeline.cambiosNormalizacion` se **construía y no se leía nunca**,
+ *   ni siquiera en su propio archivo. Es un campo MUERTO.
+ * · `ContextoDictado.especialidades` sí se leía —`contextosActivos` lo usa— pero
+ *   **nadie lo llenaba**. Es un campo HUÉRFANO DE PRODUCTOR.
+ *
+ * La primera versión los cazaba a los dos con una sola regla —«no se lee fuera
+ * de su archivo»— y por eso también cazaba cosas sanas: `Contradiccion.enLaNota`
+ * lo lee `avisoDeContradiccion`, que vive al lado y sí se usa fuera. Cuatro de
+ * siete contratos daban falso positivo, y **un guardián ruidoso se apaga**, que
+ * es peor que no tenerlo.
+ *
+ * Ahora son dos preguntas separadas, cada una con su regla.
+ */
+export interface CampoSinConectar extends CampoSinLeer {
+  /** `'lectura'`: nadie lo lee. `'escritura'`: nadie lo llena. */
+  falta: 'lectura' | 'escritura'
+}
+
+/**
+ * ¿Alguien LEE este campo? `obj.campo` o `{ campo }` de una desestructuración.
+ *
+ * Cuenta también su propio archivo —quitando la línea de la declaración—: un
+ * campo que consume una función de al lado que sí se usa fuera está conectado.
+ * Exigir que lo leyera OTRO archivo marcaba como huérfano `Contradiccion.enLaNota`,
+ * que lee `avisoDeContradiccion` dos funciones más abajo.
+ */
+function alguienLee(campo: string, fuentes: Record<string, string>, declara: string): boolean {
+  const re = new RegExp(`(\\.${campo}\\b|\\{[^}\n]*\\b${campo}\\s*[,}])`)
+  return Object.entries(fuentes).some(([ruta, texto]) => {
+    const limpio = ruta === declara
+      ? texto.replace(new RegExp(`^\\s*${campo}\\??\\s*:.*$`, 'gm'), '')
+      : texto
+    return re.test(limpio)
+  })
+}
+
+/** ¿Alguien LO LLENA? `campo:` dentro de un literal, fuera de la declaración. */
+function alguienEscribe(campo: string, fuentes: Record<string, string>, declara: string): boolean {
+  const re = new RegExp(`\\b${campo}\\s*:`)
+  return Object.entries(fuentes).some(([ruta, texto]) => ruta !== declara && re.test(texto))
+}
+
+/**
+ * Los campos del contrato que **nadie lee** o que **nadie llena**.
+ *
+ * Es la versión precisa de `camposSinLeer`: distingue el campo muerto —se
+ * construye y no lo consume nadie— del huérfano de productor —se consume y no lo
+ * llena nadie—. Los dos son trabajo que no le llega al médico, pero se arreglan
+ * de maneras opuestas, y decir cuál es ahorra el rato de buscarlo.
+ */
+export function camposSinConectar(
+  contrato: Contrato,
+  fuentes: Record<string, string>,
+  aceptados: Record<string, string> = {},
+): CampoSinConectar[] {
+  const propio = fuentes[contrato.archivo] ?? ''
+  const out: CampoSinConectar[] = []
+  for (const campo of camposDe(propio, contrato.interfaz)) {
+    if (`${contrato.interfaz}.${campo}` in aceptados) continue
+    if (!alguienLee(campo, fuentes, contrato.archivo)) {
+      out.push({ contrato: contrato.interfaz, campo, porQue: contrato.porQue, falta: 'lectura' })
+    } else if (contrato.direccion === 'entrada' && !alguienEscribe(campo, fuentes, contrato.archivo)) {
+      out.push({ contrato: contrato.interfaz, campo, porQue: contrato.porQue, falta: 'escritura' })
+    }
+  }
+  return out
 }
 
 /**
