@@ -54,7 +54,10 @@ import { analizarSeguridadUCI, type NivelAlerta } from '@/lib/uci/seguridad'
 import { FUENTES, citarFuente } from '@/lib/uci/evidencia'
 import { extraerValoresUCIConAvisos, type AvisoExtraccionUCI } from '@/lib/uci/extraccion'
 import { atribuirRolesDiscusion, formatearDiscusion } from '@/lib/uci/discusion'
-import { useGrabacionAudio } from '@/hooks/useGrabacionAudio'
+import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
+import { paraElMedico } from '@/lib/expediente/confianza-audio'
+import { AlertasDictado } from '@/components/AlertasDictado'
+import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { DosisMeropenem } from './DosisMeropenem'
 
 type Campos = Record<string, string>
@@ -223,6 +226,35 @@ export default function UciPanelPage() {
 
   // ── Voz del pase de visita (multi-voz) → prellena el panel ──
   const audio = useGrabacionAudio()
+  /**
+   * EL EXPEDIENTE DEL PACIENTE TAMBIÉN SESGA EL MOTOR EN UCI.
+   *
+   * Hasta la v983 aquí sólo viajaban `recoveryKey` y `contexto`. O sea que el
+   * paciente **con más fármacos activos de todo el hospital** dictaba su pase
+   * con el sesgo genérico, mientras la consulta —donde hay tres fármacos— sí
+   * mandaba los suyos.
+   *
+   * El sesgo es lo único que cambia lo que el motor OYE: ninguna etapa
+   * posterior recupera un vasopresor que nunca llegó.
+   */
+  /**
+   * Las palabras que el audio no oyó bien, también en el pase de visita.
+   *
+   * El dato ya llegaba —`utterances[].palabras`— y esta pantalla no lo miraba.
+   */
+  const palabrasDudosasPase = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
+
+  const opcionesDictadoUci = useMemo(() => ({
+    recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}`,
+    contexto: 'uci' as const,
+    medicamentos: (inter?.indicaciones ?? [])
+      .map(i => String((i as { medicamento?: string; nombre?: string })?.medicamento
+        ?? (i as { nombre?: string })?.nombre ?? '').trim())
+      .filter(Boolean),
+    problemas: [inter?.diagnosticoIngreso ?? ''].map(x => String(x).trim()).filter(Boolean),
+    // Si el expediente NIEGA alergias, no hay alérgeno que sesgar.
+    alergias: alergias.negadas ? [] : alergias.lista,
+  }), [internamientoId, inter?.indicaciones, inter?.diagnosticoIngreso, alergias.negadas, alergias.lista])
   const [discusionTxt, setDiscusionTxt] = useState('')
   const [detectados, setDetectados] = useState<string[]>([])
   const [avisosVoz, setAvisosVoz] = useState<AvisoExtraccionUCI[]>([])
@@ -319,7 +351,7 @@ export default function UciPanelPage() {
   // Procesa el texto del pase (dictado o escrito): arma la discusión por roles y
   // extrae los valores hacia el panel/nota. Reutilizado por la voz y por el botón
   // "Generar nota" del cuadro de texto.
-  const aplicarPase = (t: string, utterances?: { speaker: string; text: string }[]) => {
+  const aplicarPase = (t: string, utterances?: Utterance[]) => {
     const txt = (t ?? '').trim()
     if (!txt) return
     const turnos = (utterances && utterances.length)
@@ -954,7 +986,7 @@ export default function UciPanelPage() {
       <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {audio.soportado ? (
-            <button onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}`, contexto: 'uci' }))}
+            <button onClick={() => (grabando ? audio.detener() : audio.iniciar(opcionesDictadoUci))}
               className={grabando ? 'btn' : 'btn btn-primary'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : {}) }}>
               {grabando ? <Square size={15} /> : <Mic size={15} />}{grabando ? 'Detener' : 'Dictar pase de visita'}
@@ -991,6 +1023,50 @@ export default function UciPanelPage() {
             {avisoPase && <div style={{ marginTop: 8, fontSize: 12.5, color: avisoPase.startsWith('✓') ? 'var(--nexus)' : '#d97706' }}>{avisoPase}</div>}
           </div>
         )}
+        {/*
+          LO QUE LA CONSULTA YA AVISABA Y EL PASE DE UCI NO.
+          Un pase con tramos perdidos, sin separación de voces o con palabras
+          que el audio no entendió se veía EXACTAMENTE IGUAL que uno íntegro.
+        */}
+        {audio.sinDiarizacion && audio.estado === 'listo' && (
+          <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
+            <b>Sin separación de voces en este pase.</b>{' '}
+            {MOTIVO_SIN_DIARIZACION[audio.sinDiarizacion]}{' '}
+            Revisa fármacos, dosis y parámetros del ventilador antes de firmar.
+          </div>
+        )}
+        {audio.chunksFallidos > 0 && (
+          <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
+            <b>Faltan {audio.chunksFallidos} tramo(s) en el texto en vivo.</b>{' '}
+            La transcripción final usa la grabación completa; lo que ves ahora está incompleto.
+          </div>
+        )}
+        {audio.recorte && audio.estado === 'grabando' && (
+          <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
+            <b>El micrófono está saturando.</b>{' '}
+            Bájale el volumen de entrada o sepáralo un palmo.
+          </div>
+        )}
+        {palabrasDudosasPase.palabras.length > 0 && (
+          <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.6, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)' }}>
+            <b>Palabras que el audio no oyó con seguridad.</b>{' '}
+            No se corrigieron ni se adivinaron. Vuelve al audio en el minuto indicado si alguna cambia el sentido.
+            <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {palabrasDudosasPase.palabras.map((w, i) => (
+                <span key={`${w.texto}-${w.momento}-${i}`} style={{ padding: '2px 8px', borderRadius: 'var(--r-pill)', fontSize: 12, background: 'color-mix(in srgb, var(--amber) 18%, transparent)', fontVariantNumeric: 'tabular-nums' }}>
+                  «{w.texto}» · {w.momento} · {w.seguridad}%
+                </span>
+              ))}
+            </div>
+            {palabrasDudosasPase.ocultas > 0 && (
+              <div style={{ marginTop: 6, fontSize: 12, opacity: .9 }}>Y {palabrasDudosasPase.ocultas} más, menos dudosas que éstas.</div>
+            )}
+          </div>
+        )}
+        {audio.alertasDictado.length > 0 && (
+          <div style={{ marginTop: 10 }}><AlertasDictado alertas={audio.alertasDictado} /></div>
+        )}
+
         {avisosVoz.length > 0 && (
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {avisosVoz.map((a, i) => (

@@ -144,12 +144,27 @@ describe('AL MÉDICO SE LE DICE', () => {
   })
 
   it('y cada causa tiene su propio texto, no un genérico', () => {
-    // Cuatro causas exigen cuatro acciones distintas: una es del proveedor, otra
-    // de configuración, y la del tiempo se resuelve reintentando.
+    /**
+     * Cuatro causas exigen cuatro acciones distintas: una es del proveedor, otra
+     * de configuración, y la del tiempo se resuelve reintentando.
+     *
+     * v983: el mapa salió de la pantalla de consulta a su propio módulo, para
+     * que el pase de visita de UCI pueda decir lo mismo. La pantalla ya sólo lo
+     * usa; los textos viven en un sitio y no en tres copias que divergen.
+     */
     expect(page).toContain('MOTIVO_SIN_DIARIZACION')
+    const mapa = leer('src', 'lib', 'expediente', 'motivo-sin-diarizacion.ts')
     for (const m of ['sin_llave', 'error_proveedor', 'tiempo_agotado', 'red', 'sin_texto']) {
-      expect(page, m).toContain(`${m}:`)
+      expect(mapa, m).toContain(`${m}:`)
     }
+  })
+
+  it('y el pase de visita de UCI dice lo mismo', () => {
+    // Antes esto vivía dentro de la pantalla de consulta, así que en UCI el
+    // fallback a Whisper era invisible: el pase se veía igual que uno íntegro.
+    const uci = leer('src', 'app', '(dashboard)', 'uci', 'page.tsx')
+    expect(uci).toContain('MOTIVO_SIN_DIARIZACION')
+    expect(uci).toMatch(/Sin separación de voces en este pase/)
   })
 })
 
