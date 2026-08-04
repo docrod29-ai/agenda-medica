@@ -14,7 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { componerSesgo, type ContextoSesgo } from '@/lib/asr/sesgo-diarizado'
+import { topeDe, TOPE_TERMINOS, componerSesgo, type ContextoSesgo } from '@/lib/asr/sesgo-diarizado'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -28,6 +28,25 @@ import { adminDb } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
+
+/**
+ * El modelo que se pide por su nombre.
+ *
+ * Documentación del proveedor (agosto 2026): `universal-3.5-pro` admite español
+ * —está entre sus 18 idiomas— y «keyterms prompting up to 1,000 words», que es
+ * exactamente el tamaño de nuestra lista de sesgo.
+ */
+const MODELO_DIARIZACION = 'universal-3.5-pro'
+
+/**
+ * Cuántas voces como mucho en una grabación clínica.
+ *
+ * NO es una cifra clínica: es un techo de configuración. Cuatro cubre médico,
+ * paciente, un acompañante y alguien más (residente, enfermera) sin dejar que el
+ * proveedor reparta a una sola persona en diez etiquetas distintas, que es lo
+ * que hace por defecto y lo que rompe la atribución de roles.
+ */
+const MAX_VOCES = 4
 
 const AAI = 'https://api.assemblyai.com/v2'
 
@@ -114,20 +133,51 @@ export async function POST(req: NextRequest) {
      * Si el contexto no viene —o viene mal— el sesgo cae al catálogo global de
      * siempre: **nunca se queda sin sesgo por un dato ausente**.
      */
-    const sesgo = componerSesgo(ctxSesgo, WORD_BOOST_MEDICO)
-    if (sesgo.descartados > 0) {
-      // Un tope que nadie ve se lee como «cupo todo».
-      safeLog.info(`[diarizado] sesgo: ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
-    }
-
-    // Encolar transcripción con diarización en español
-    const sub = await fetch(`${AAI}/transcript`, {
-      method: 'POST',
-      headers: { authorization: key, 'content-type': 'application/json' },
-      body: JSON.stringify({
+    /**
+     * ── EL MODELO SE PIDE POR SU NOMBRE, Y EL TOPE VA CON ÉL ─────────────────
+     *
+     * Aquí iba `speech_model: 'best'`. Comprobado en la documentación del
+     * proveedor (agosto 2026): **«best» ya no aparece** entre los valores de
+     * `speech_model`. Es un alias heredado: puede seguir resolviéndose, pero a
+     * qué modelo lo decide el proveedor y puede cambiar sin avisar — y de ese
+     * modelo depende **cuántos términos de sesgo se aceptan**: 1 000 en
+     * `universal-3.5-pro`, 200 en `universal-2`.
+     *
+     * O sea que con un alias no sabíamos si nuestros mil términos entraban
+     * enteros o si ochocientos los estaba tirando el proveedor por su cuenta —
+     * y el orden de esa lista ES la política: primero los fármacos de ESTE
+     * paciente.
+     *
+     * Se pide el modelo por su nombre y el sesgo se presupuesta para ÉL. Si el
+     * proveedor rechaza el nombre, se reintenta con el alias de siempre: perder
+     * la separación de voces por una cadena de texto sería mucho peor que seguir
+     * con lo que ya funcionaba.
+     */
+    const armar = (modelo: string | null) => {
+      const sesgo = componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, modelo ? topeDe(modelo) : TOPE_TERMINOS)
+      if (sesgo.descartados > 0) {
+        // Un tope que nadie ve se lee como «cupo todo».
+        safeLog.info(`[diarizado] sesgo (${modelo ?? 'best'}): ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
+      }
+      return {
         audio_url,
-        speech_model: 'best',   // máxima precisión (Universal) — calidad > velocidad
+        speech_model: modelo ?? 'best',
         speaker_labels: true,   // separa voces (Hablante A/B/C…)
+        /**
+         * CUÁNTAS VOCES COMO MUCHO.
+         *
+         * Sin esto el proveedor asume hasta **10** voces en audio de 2–10 min y
+         * hasta **30** de ahí en adelante (su documentación). En una consulta
+         * eso no sobra: sobre-parte. Un mismo médico acaba repartido en «A», «C»
+         * y «F», y entonces la atribución de roles —quién dijo el diagnóstico—
+         * se vuelve irresoluble.
+         *
+         * Se manda `max_speakers_expected`, NO `speakers_expected`: la propia
+         * documentación advierte que fijar el número exacto sin estar seguro
+         * degrada la precisión. Y no lo estamos: en un consultorio puede entrar
+         * un acompañante, y en un pase de UCI hay más gente.
+         */
+        speaker_options: { min_speakers_expected: 1, max_speakers_expected: MAX_VOCES },
         language_code: 'es',
         punctuate: true,
         format_text: true,
@@ -146,8 +196,23 @@ export async function POST(req: NextRequest) {
          */
         word_boost: sesgo.terminos,
         boost_param: 'high',
-      }),
+      }
+    }
+
+    const enviar = (cuerpo: object) => fetch(`${AAI}/transcript`, {
+      method: 'POST',
+      headers: { authorization: key, 'content-type': 'application/json' },
+      body: JSON.stringify(cuerpo),
     })
+
+    let sub = await enviar(armar(MODELO_DIARIZACION))
+    if (!sub.ok && sub.status >= 400 && sub.status < 500) {
+      // El nombre del modelo o alguna de sus opciones no le gustó. Se vuelve al
+      // alias de siempre antes de rendirse: la separación de voces sostiene la
+      // atribución de roles, la procedencia y las palabras a verificar.
+      safeLog.info(`[diarizado] ${MODELO_DIARIZACION} rechazado (HTTP ${sub.status}); reintento con el alias heredado`)
+      sub = await enviar(armar(null))
+    }
     if (!sub.ok) return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
     const { id } = await sub.json()
     // DUEÑO DEL TRANSCRIPT (auditoría P1 IDOR): en modo prueba varias clínicas

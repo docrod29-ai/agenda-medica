@@ -47,6 +47,31 @@
  */
 export const TOPE_TERMINOS = 1000
 
+/**
+ * EL TOPE NO ES UNO: DEPENDE DEL MODELO QUE SE PIDA.
+ *
+ * Comprobado en la documentación del proveedor (agosto 2026, página «Models»):
+ *
+ * · `universal-3.5-pro` — «Keyterms prompting up to **1,000** words», 18 idiomas
+ *   con el español entre ellos.
+ * · `universal-2` — «Keyterms prompting up to **200** words», 99 idiomas.
+ *
+ * Mandarle mil términos a un modelo que admite doscientos no es «un poco de
+ * más»: es un recorte que decide el proveedor, por el criterio que él quiera y
+ * sin decirlo. Y como el orden de nuestra lista ES la política —primero los
+ * fármacos de ESTE paciente—, un recorte que no controlamos puede tirar
+ * justamente la parte que más importa.
+ */
+export const TOPE_POR_MODELO: Readonly<Record<string, number>> = {
+  'universal-3.5-pro': 1000,
+  'universal-2': 200,
+}
+
+/** Cuántos términos caben en el modelo pedido. Desconocido → el más prudente. */
+export function topeDe(modelo: string): number {
+  return TOPE_POR_MODELO[modelo] ?? Math.min(...Object.values(TOPE_POR_MODELO))
+}
+
 /** Lo que se sabe del paciente y de la pantalla desde la que se dicta. */
 export interface ContextoSesgo {
   /** Fármacos activos del paciente. */
@@ -103,7 +128,7 @@ export interface SesgoCompuesto {
  * Dejar sitio sin usar sería tirar sesgo: cada hueco es una palabra que el
  * reconocedor no va a esperar. Por eso el global rellena hasta el tope.
  */
-export function componerSesgo(ctx: ContextoSesgo, global: readonly string[]): SesgoCompuesto {
+export function componerSesgo(ctx: ContextoSesgo, global: readonly string[], tope = TOPE_TERMINOS): SesgoCompuesto {
   const delPacienteCrudo = [
     ...(ctx.medicamentos ?? []),
     ...(ctx.alergias ?? []),
@@ -122,7 +147,7 @@ export function componerSesgo(ctx: ContextoSesgo, global: readonly string[]): Se
     unicos.push(s)
   }
 
-  const terminos = unicos.slice(0, TOPE_TERMINOS)
+  const terminos = unicos.slice(0, Math.max(0, tope))
   const propios = new Set(delPacienteCrudo.map(x => clave(limpio(x))))
   return {
     terminos,

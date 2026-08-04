@@ -4812,6 +4812,53 @@ hallazgos»: se cuenta y se dice.
 
 ---
 
+## TANDA 151ª — v1002 · UN ALIAS DE MODELO, Y CON ÉL UN TOPE QUE QUIZÁ NO EXISTÍA (B-4 y B-6)
+
+La diarización pedía `speech_model: 'best'`. **Comprobado en la documentación
+del proveedor** (agosto 2026, página «Models»): «best» **ya no aparece** entre
+los valores de `speech_model`. Es un alias heredado — puede seguir
+resolviéndose, pero a qué modelo lo decide el proveedor, y puede cambiar sin
+avisar.
+
+Y de ese modelo depende cuántos términos de sesgo se aceptan:
+
+| Modelo | Términos | Idiomas |
+|---|---|---|
+| `universal-3.5-pro` | 1 000 | 18 (español incluido) |
+| `universal-2` | 200 | 99 |
+
+Nosotros mandábamos **mil siempre**. Si el alias caía en `universal-2`,
+ochocientos los tiraba el proveedor por su cuenta y con su criterio — y el orden
+de esa lista **es la política**: primero los fármacos de ESTE paciente. Un
+recorte que no controlamos puede tirar justo lo que más importa, sin decir nada.
+
+Ahora se pide el modelo por su nombre y el sesgo se presupuesta **para él**. Un
+modelo desconocido usa el tope **más prudente** (200), no el más grande: suponer
+alto es volver al mismo defecto. Si el proveedor rechaza el nombre (4xx) se
+reintenta con el alias y se registra — perder la separación de voces por una
+cadena de texto sería mucho peor, porque de ella cuelgan la atribución de roles,
+la procedencia V3 y las palabras a verificar.
+
+### Y las voces
+
+No se mandaba **ningún** límite de hablantes, así que el proveedor asume hasta
+**10** voces en audio de 2–10 min y hasta **30** de ahí en adelante. En una
+consulta eso no sobra: **sobre-parte**. Un mismo médico acaba repartido en «A»,
+«C» y «F», y la atribución de roles se vuelve irresoluble.
+
+Se manda `max_speakers_expected: 4` —techo de **configuración**, no cifra
+clínica— y **no** `speakers_expected`: la propia documentación advierte que fijar
+el número exacto sin estar seguro degrada la precisión, y no lo estamos.
+
+- `src/lib/asr/sesgo-diarizado.ts`, `api/expediente/transcribir-diarizado/route.ts`
+- `src/__tests__/modelo-y-voces-diarizacion.test.ts` — 12 pruebas. Total **6036**.
+
+**Queda para el Dr. (B-5, es dinero):** el proveedor tiene un modelo de dominio
+`medical-v1` que **sí cubre español**. Activarlo puede facturarse aparte, así que
+no lo enciendo yo. Si él quiere, es un campo `domain` en el mismo envío.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

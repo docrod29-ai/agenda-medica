@@ -125,7 +125,9 @@ describe('ESTÁ CONECTADO — por los DOS caminos', () => {
   const ruta = leer('src', 'app', 'api', 'expediente', 'transcribir-diarizado', 'route.ts')
 
   it('la ruta compone el sesgo en vez de mandar la lista pelada', () => {
-    expect(ruta).toContain('componerSesgo(ctxSesgo, WORD_BOOST_MEDICO)')
+    // El tercer argumento lo añadió la v1002: el tope de términos depende del
+    // modelo que se pida (1 000 en universal-3.5-pro, 200 en universal-2).
+    expect(ruta).toContain('componerSesgo(ctxSesgo, WORD_BOOST_MEDICO,')
     expect(ruta).toContain('word_boost: sesgo.terminos')
   })
 
