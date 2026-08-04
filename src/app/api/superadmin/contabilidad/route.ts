@@ -18,12 +18,27 @@ import { desdeVentana, alcanceDePagos, alcanceDeClinicas, TOPE_CLINICAS, TOPE_PA
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { efectivoDe, esDineroReal, tipoDeAsiento, type EstadoDisputa } from '@/lib/finanzas/movimientos'
 import { PLANES, type ClavePlan } from '@/lib/planes-ia'
+import { costoIADelMes, costoPorClinica, type AsientoCosto } from '@/lib/finanzas/costo-ia-contable'
 
 type Any = Record<string, unknown>
 
-// Supuestos (ajustables por env). costo por crédito ≈ lo que te cuesta 1 crédito
-// de IA (Haiku/Sonnet/Opus rondan ~$1.5 MXN por crédito). Infra fija mensual.
+/**
+ * EL SUPUESTO VIEJO, QUE AHORA ES SÓLO EL RESPALDO.
+ *
+ * Hasta la v978 la contabilidad valoraba la IA a `créditos × 1.5 MXN` — una
+ * cifra de memoria, sin fuente y sin fecha — teniendo al lado el libro de costos
+ * con el gasto REAL de cada llamada. Ahora se mide; esto sólo se usa cuando no
+ * hay tipo de cambio configurado, y la pantalla dice cuál de las dos se ve.
+ */
 const COSTO_CREDITO_MXN = Number(process.env.COSTO_CREDITO_MXN ?? '1.5')
+/**
+ * MXN por USD. **Sin valor por omisión, a propósito.**
+ *
+ * Lo pone el dueño o su contador (el del DOF del día que declara). Escribir aquí
+ * un 17 o un 20 de memoria daría una conversión que en pantalla se ve igual de
+ * exacta que la buena, y sobre esa cifra se decide un precio.
+ */
+const TIPO_CAMBIO = Number(process.env.TIPO_CAMBIO_USD_MXN ?? '') || null
 const INFRA_MENSUAL_MXN = Number(process.env.INFRA_MENSUAL_MXN ?? '1500')
 const STRIPE_PCT = 0.036
 const STRIPE_FIJA = 3
@@ -61,6 +76,24 @@ export async function GET(req: NextRequest) {
      * Y el alcance viaja en la respuesta: un ingreso recortado que se llama
      * «histórico» es un número sobre el que se toman decisiones de precio.
      */
+    /**
+     * EL LIBRO DE COSTOS DEL MES — el dato que existía y no se leía.
+     *
+     * `ts` se guarda en ISO, así que el mes es un prefijo de cadena y el rango
+     * [mes-01, mes-32) ordena igual sin necesitar índice compuesto (el mismo
+     * truco que usa la consola de costos).
+     *
+     * Si falla, NO se cae la contabilidad: se sigue con el supuesto y se dice.
+     */
+    const asientosIA: AsientoCosto[] = await adminDb.collection('platform_cost_ledger')
+      .where('ts', '>=', `${mesSel}-01`)
+      .where('ts', '<', `${mesSel}-32`)
+      .limit(5000)
+      .get()
+      .then(q => q.docs.map(d => d.data() as AsientoCosto))
+      .catch(() => [])
+    const costoIAPorClinica = costoPorClinica(asientosIA, TIPO_CAMBIO)
+
     const desdeVent = desdeVentana(Date.now())
     const [clinicsSnap, paysSnap] = await Promise.all([
       adminDb.collection('clinics').limit(TOPE_CLINICAS).get(),
@@ -154,7 +187,12 @@ export async function GET(req: NextRequest) {
         creditos = Number(ia?.uso?.[mesSel]?.creditos ?? 0)
       } catch { /* 0 */ }
       creditosMesTotal += creditos
-      const costoIA = creditos * COSTO_CREDITO_MXN
+      /**
+       * Medido si se puede; supuesto si no hay tipo de cambio. Un consultorio
+       * sin asientos este mes cuesta 0 de verdad, no «desconocido»: si no llamó
+       * a la IA, no gastó.
+       */
+      const costoIA = TIPO_CAMBIO ? (costoIAPorClinica.get(cid) ?? 0) : creditos * COSTO_CREDITO_MXN
       const mrr = activa ? precioPlan(plan) : 0
       // acumular por plan
       const pp = porPlan.get(plan) ?? { cantidad: 0, mrr: 0 }
@@ -175,7 +213,8 @@ export async function GET(req: NextRequest) {
     clientes.sort((a, b) => b.mrr - a.mrr || b.ingresoTotal - a.ingresoTotal)
 
     // ── Costos y utilidad del mes ──
-    const costoIA = creditosMesTotal * COSTO_CREDITO_MXN
+    const ia = costoIADelMes(asientosIA, creditosMesTotal, COSTO_CREDITO_MXN, TIPO_CAMBIO)
+    const costoIA = ia.mxn
     const costoStripe = ingresoMes * STRIPE_PCT + numPagosMes * STRIPE_FIJA
     const costoInfra = INFRA_MENSUAL_MXN
     const costoTotal = costoIA + costoStripe + costoInfra
@@ -259,6 +298,17 @@ export async function GET(req: NextRequest) {
         return { cantidad: n, importe, nota: n ? 'Hay pagos que no se pudieron atribuir a ningún consultorio. Están sumados en el ingreso global pero no aparecen en la tabla por cliente.' : '' }
       })(),
       supuestos: { costoPorCreditoMXN: COSTO_CREDITO_MXN, infraMensualMXN: INFRA_MENSUAL_MXN, stripePct: STRIPE_PCT, iva: IVA },
+      /**
+       * DE DÓNDE SALE EL COSTO DE IA. La pantalla lo enseña.
+       *
+       * Un tablero que no distingue lo medido de lo supuesto los presenta igual,
+       * y entonces un supuesto acaba sosteniendo una decisión de precio.
+       */
+      costoIAFuente: {
+        fuente: ia.fuente, usdMedido: Math.round(ia.usdMedido * 100) / 100,
+        conCosto: ia.conCosto, sinTarifa: ia.sinTarifa,
+        tipoCambio: TIPO_CAMBIO, aviso: ia.aviso,
+      },
     })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 200) }, { status: 500 })

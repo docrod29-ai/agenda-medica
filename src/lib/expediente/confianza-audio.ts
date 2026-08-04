@@ -128,16 +128,53 @@ export const ABRE = '⟦'
 export const CIERRA = '?⟧'
 
 /**
- * Reescribe un turno marcando sus palabras dudosas.
+ * Reescribe un turno marcando sus palabras dudosas — SOBRE EL TEXTO CORREGIDO.
  *
- * Se reconstruye desde `palabras` cuando están —es el único orden fiable— y se
- * devuelve el texto tal cual cuando no las hay: un turno sin palabras es un
- * turno del que no se sabe nada, y **no saber no es lo mismo que estar seguro**,
- * pero inventarle marcas tampoco lo arregla.
+ * ── LA REGRESIÓN QUE ESTO REPARA (mía, v975 → v979) ──────────────────────────
+ *
+ * La primera versión reconstruía el turno desde `palabras`, que vienen **CRUDAS
+ * del motor**. Y `corregirUtterances` corrige `u.text`, no `u.palabras`. O sea
+ * que al conectar las marcas dejé al modelo recibiendo el texto SIN corregir:
+ * el médico veía «ceftriaxona» en pantalla y el modelo leía «sefriaxona».
+ *
+ * Es, letra por letra, el mismo defecto que `corregirUtterances` se escribió
+ * para reparar — reintroducido por la puerta de al lado al añadir una mejora.
+ *
+ * ── CÓMO SE RESUELVE SIN PERDER NINGUNA DE LAS DOS COSAS ─────────────────────
+ *
+ * Se marca sobre `t.text` (el corregido, el que el médico ve). Una palabra
+ * dudosa que el corrector reescribió ya no aparece con su forma cruda, así que
+ * no se puede marcar en su sitio: esas se anotan **al final del turno**, para
+ * que la duda no se pierda por el mismo camino por el que se perdía antes.
+ *
+ * Y sin `palabras` se devuelve el texto tal cual: un turno del que no se sabe
+ * nada no es un turno seguro, pero inventarle marcas tampoco lo arregla.
  */
 export function marcarTurno(t: TurnoConPalabras, umbral = UMBRAL_DUDA): string {
-  if (!t.palabras?.length) return t.text
-  return t.palabras.map(p => (esMarcable(p, umbral) ? `${ABRE}${p.texto}${CIERRA}` : p.texto)).join(' ')
+  const dudosas = (t.palabras ?? []).filter(p => esMarcable(p, umbral))
+  if (!dudosas.length) return t.text
+
+  const clave = (s: string) => limpia(s)
+  const pendientes = new Map(dudosas.map(p => [clave(p.texto), p]))
+
+  const marcado = t.text.split(/(\s+)/).map(tok => {
+    if (!tok.trim()) return tok
+    const k = clave(tok)
+    if (!pendientes.has(k)) return tok
+    pendientes.delete(k)
+    return `${ABRE}${tok}${CIERRA}`
+  }).join('')
+
+  /**
+   * Las que el corrector reescribió no se encuentran, y NO se tiran.
+   *
+   * Que el corrector cambiara una palabra de baja confianza no la vuelve
+   * segura: cambió una forma que el motor no oyó bien por otra que le pareció
+   * más probable. Esa duda es exactamente la que no puede desaparecer.
+   */
+  if (!pendientes.size) return marcado
+  const sueltas = [...pendientes.values()].map(p => p.texto).join(', ')
+  return `${marcado} ${ABRE}el audio tampoco entendió bien: ${sueltas}${CIERRA}`
 }
 
 /**

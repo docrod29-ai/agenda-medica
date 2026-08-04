@@ -3747,6 +3747,102 @@ chip de color, parece un dato verificado.
 
 ---
 
+## CENTÉSIMA VIGESIMOSÉPTIMA TANDA — v978 · N5, EL COSTO DE IA INVENTADO
+
+### Lo que había
+
+    const COSTO_CREDITO_MXN = Number(process.env.COSTO_CREDITO_MXN ?? '1.5')
+    const costoIA = creditos * COSTO_CREDITO_MXN
+
+Un crédito valía **1.5 pesos porque sí**. El comentario del propio código lo
+confesaba: «Haiku/Sonnet/Opus rondan ~$1.5 MXN por crédito» — de memoria, sin
+fuente y sin fecha. Y el **libro de costos** lleva desde el 30-jul anotando,
+llamada por llamada, el costo REAL en dólares. Nadie lo leía desde contabilidad:
+la utilidad, el margen y las decisiones de precio salían de un supuesto
+**teniendo el dato medido al lado**.
+
+### Por qué no bastaba «poner el número bueno»
+
+Porque no hay un número bueno: **un crédito no cuesta lo mismo según el modelo**.
+Una nota con razonamiento extendido y una corrección rápida consumen créditos
+parecidos y cuestan órdenes de magnitud distintas. Cualquier constante es falsa.
+
+### Arreglado
+
+- La contabilidad **lee el libro de costos** del mes y suma lo que costó de
+  verdad, por consultorio y en total.
+- El gasto del **fundador** (I+D) no se carga al margen de los clientes — la
+  misma separación que ya hace la consola de costos.
+- Las llamadas **sin tarifa no se suman como cero**: darían un costo menor y un
+  margen mejor del que hay, que es justo la cifra sobre la que se fija un precio.
+- **El tipo de cambio no tiene valor por omisión.** Lo pone el Dr. o su contador
+  (`TIPO_CAMBIO_USD_MXN`, el del DOF del día que declara). Un 17 o un 20 escrito
+  de memoria daría una conversión que en pantalla se ve igual de exacta que la
+  buena. Sin él, se usa el supuesto viejo **y la pantalla dice que es supuesto**.
+
+### Pendiente del Dr. (una línea)
+
+Poner `TIPO_CAMBIO_USD_MXN` en Vercel. Hasta entonces la contabilidad seguirá
+avisando, en amarillo, que el costo de IA es un supuesto y no una medición.
+
+- `src/lib/finanzas/costo-ia-contable.ts` (puro, nuevo),
+  `api/superadmin/contabilidad/route.ts`, `app/superadmin/contabilidad/page.tsx`
+- `src/__tests__/costo-ia-contable.test.ts` — 18 pruebas. Total **5782**.
+
+---
+
+## CENTÉSIMA VIGESIMOCTAVA TANDA — v979 · TRES FUGAS EN EL CAMINO DEL AUDIO
+
+Salen del equipo de 10 que convocó el Dr. (3 software + 3 audio + 4 lengua). Las
+tres verificadas por mí en el código antes de tocar nada.
+
+### 1. La transcripción EN VIVO se congelaba a los ~20 segundos (P0)
+
+`MediaRecorder` pone la cabecera del contenedor **sólo en el primer fragmento**.
+`flushChunks` mandaba los fragmentos acumulados desde el flush anterior, así que
+del segundo en adelante iban datos sueltos que ningún decodificador abre. El
+proveedor respondía error y `if (!res.ok) return` se lo tragaba **en silencio**.
+
+Consecuencias encadenadas: el texto en vivo se congelaba tras el primer trozo; la
+**nota preliminar** se armaba con los primeros 20 segundos de la consulta; y el
+último recurso —cuando la transcripción final falla— entregaba esos 20 segundos
+presentados como la consulta entera.
+
+El otro camino (`transcribirEnPartes`) ya compensaba esto y lo explicaba en su
+comentario. En el de vivo no se hizo nunca.
+
+### 2. Y esa cabecera repetía el principio de la consulta
+
+La cabecera no es sólo cabecera: son **2 segundos de audio real**. Anteponerla a
+cada trozo repite las primeras palabras por toda la consulta — y si llevan una
+cifra o un fármaco, el modelo lee la misma indicación en momentos distintos.
+Nuevo módulo `eco-de-cabecera.ts`: recorta **sólo** lo que de verdad coincide, y
+nunca por una sola palabra en común.
+
+### 3. Regresión MÍA de la v975: el modelo recibía el texto SIN corregir
+
+`marcarTurno` reconstruía el turno desde `palabras`, que vienen crudas del motor,
+mientras `corregirUtterances` corrige `text`. O sea que al conectar las marcas de
+confianza dejé al modelo leyendo «sefriaxona» mientras el médico veía
+«ceftriaxona» en pantalla — **el mismo defecto que `corregirUtterances` se
+escribió para reparar**, reintroducido por la puerta de al lado.
+
+Ahora se marca sobre el texto corregido, y la palabra dudosa que el corrector
+reescribió se anota al final del turno: que el corrector la cambiara no la vuelve
+segura.
+
+### Además
+
+- Los trozos perdidos se cuentan y **se ven** en pantalla.
+- La extensión del fichero sigue al contenedor real (en Safari es mp4 y se
+  llamaba `.webm`: le mentía al proveedor sobre lo que le llegaba).
+
+- `src/lib/asr/eco-de-cabecera.ts` (puro, nuevo), `src/hooks/useGrabacionAudio.ts`,
+  `src/lib/expediente/confianza-audio.ts`, `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/confianza-por-palabra.test.ts` +6. Total **5788**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

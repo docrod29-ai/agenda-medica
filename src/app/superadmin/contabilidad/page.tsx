@@ -31,6 +31,11 @@ interface Data {
   porPlan: { plan: string; label: string; cantidad: number; mrr: number }[]
   clientes: Cliente[]
   supuestos: { costoPorCreditoMXN: number; infraMensualMXN: number; stripePct: number; iva: number }
+  costoIAFuente?: {
+    fuente: 'libro_de_costos' | 'supuesto'
+    usdMedido: number; conCosto: number; sinTarifa: number
+    tipoCambio: number | null; aviso: string
+  }
 }
 
 export default function ContabilidadPage() {
@@ -210,9 +215,33 @@ export default function ContabilidadPage() {
             </table>
           </div>
 
+          {/*
+            DE DÓNDE SALE EL COSTO DE IA — arriba de la letra chica.
+            Un tablero que no distingue lo MEDIDO de lo SUPUESTO los presenta
+            igual, y entonces un supuesto acaba sosteniendo una decisión de
+            precio. Aquí la diferencia se ve antes que el número.
+          */}
+          {data.costoIAFuente && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
+              color: data.costoIAFuente.fuente === 'supuesto' ? 'var(--amber)' : 'var(--text2)',
+              background: data.costoIAFuente.fuente === 'supuesto'
+                ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--panel, #f8fafc)',
+              border: `1px solid ${data.costoIAFuente.fuente === 'supuesto'
+                ? 'color-mix(in srgb, var(--amber) 30%, transparent)' : 'var(--border, #e5e7eb)'}`,
+            }}>
+              <b>
+                {data.costoIAFuente.fuente === 'libro_de_costos'
+                  ? `Costo de IA MEDIDO: $${data.costoIAFuente.usdMedido.toFixed(2)} USD del libro de costos (tipo de cambio ${data.costoIAFuente.tipoCambio}).`
+                  : 'Costo de IA SUPUESTO, no medido.'}
+              </b>{' '}
+              {data.costoIAFuente.aviso}
+            </div>
+          )}
+
           <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.6 }}>
             Supuestos: costo IA ≈ ${data.supuestos.costoPorCreditoMXN}/crédito · infra ${mxn(data.supuestos.infraMensualMXN)}/mes · Stripe {(data.supuestos.stripePct * 100).toFixed(1)}% + $3/pago.
-            Ajústalos con <span style={{ fontFamily: 'monospace' }}>COSTO_CREDITO_MXN</span> / <span style={{ fontFamily: 'monospace' }}>INFRA_MENSUAL_MXN</span> en Vercel.
+            Ajústalos con <span style={{ fontFamily: 'monospace' }}>COSTO_CREDITO_MXN</span> / <span style={{ fontFamily: 'monospace' }}>INFRA_MENSUAL_MXN</span> en Vercel; con <span style={{ fontFamily: 'monospace' }}>TIPO_CAMBIO_USD_MXN</span> el costo de IA deja de ser un supuesto y sale del libro de costos.
             El <b>IVA (16%)</b> se muestra por separado porque no es tuyo: lo trasladas al SAT. La utilidad se calcula sobre el ingreso sin IVA.
             Para la declaración del SAT, entrega este CSV a tu contador.
           </div>

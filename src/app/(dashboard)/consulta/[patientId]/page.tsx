@@ -2882,6 +2882,23 @@ export default function ConsultaActivaPage() {
                   </div>
                 )}
                 {/*
+                  UN TROZO EN VIVO QUE SE PERDIÓ DEJA DE SER INVISIBLE.
+                  El texto en vivo alimenta la nota preliminar; truncado se lee
+                  igual que completo.
+                */}
+                {audio.chunksFallidos > 0 && (
+                  <div style={{
+                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
+                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+                  }}>
+                    <b>Faltan {audio.chunksFallidos} tramo(s) en el texto en vivo.</b>{' '}
+                    La transcripción final se hace con la grabación completa, así que esto no afecta a la
+                    nota definitiva — pero lo que ves ahora mismo está incompleto.
+                  </div>
+                )}
+
+                {/*
                   PALABRAS QUE EL AUDIO NO OYÓ BIEN.
                   Va aquí, junto al dictado y ANTES de firmar, porque es donde el
                   médico todavía se acuerda de lo que dijo el paciente. En la nota
