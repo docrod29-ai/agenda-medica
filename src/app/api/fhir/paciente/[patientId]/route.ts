@@ -11,7 +11,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { bundlePaciente } from '@/lib/fhir/recursos'
-import type { Patient } from '@/types'
+import type { Patient, ClinicConfig } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 
 /**
@@ -33,12 +33,27 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ pati
 
   try {
     const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId)
-    const [pSnap, nSnap] = await Promise.all([pRef.get(), pRef.collection('notas').get()])
+    /**
+     * La configuración va también: de ella sale la cédula profesional con la
+     * que se identifica al `Practitioner`. Sin ella el receptor recibe un
+     * documento sin autor identificable.
+     */
+    const [pSnap, nSnap, cSnap] = await Promise.all([
+      pRef.get(),
+      pRef.collection('notas').get(),
+      adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get(),
+    ])
     if (!pSnap.exists) return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 })
 
     const patient = { id: pSnap.id, ...pSnap.data() } as Patient
     const notas = nSnap.docs.map(d => ({ id: d.id, ...d.data() })) as NotaMedica[]
-    const bundle = bundlePaciente(patient, notas)
+    /**
+     * UNA SOLA IMPLEMENTACIÓN (D7). Esta ruta usaba el mapeo pobre: exportaba
+     * los diagnósticos de notas EN BORRADOR como `Condition` confirmadas y no
+     * emitía ningún `Composition`, así que el texto de la nota no viajaba.
+     */
+    const config = cSnap.exists ? (cSnap.data() as ClinicConfig) : null
+    const bundle = bundlePaciente(patient, notas, config)
 
     return NextResponse.json(bundle, { headers: { 'Content-Type': 'application/fhir+json' } })
   } catch (err) {

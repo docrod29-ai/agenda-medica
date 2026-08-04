@@ -19,8 +19,14 @@
  */
 
 import type { Patient as AmPatient, ClinicConfig } from '@/types'
+import { alergiasDe } from '@/lib/seguridad/alergias'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_EGRESO_LABEL, type Internamiento, type RegistroSignos } from '@/types/hospital'
+
+/** Categoría FHIR de una alergia. Mismo mapa que usaba la otra implementación. */
+const CATEGORIA_FHIR: Record<string, string> = {
+  medicamento: 'medication', alimento: 'food', ambiental: 'environment', otro: 'biologic',
+}
 
 /** Tipos FHIR mínimos usados */
 interface FhirReference { reference: string; display?: string }
@@ -153,8 +159,45 @@ export function exportarPacienteAFhir({
     })
   }
 
-  // === Allergies (AllergyIntolerance) ===
-  if (paciente.alergias && paciente.alergias.trim()) {
+  /**
+   * ── ALERGIAS: UNA POR ALÉRGENO, NO UNA CADENA ────────────────────────────
+   *
+   * Aquí iba **un solo** `AllergyIntolerance` con todo el texto libre dentro
+   * («penicilina, mariscos, yodo»). Un sistema receptor que quiera cruzar una
+   * receta contra las alergias no puede hacer nada con eso: le llega un
+   * párrafo donde esperaba una lista.
+   *
+   * La otra implementación FHIR del repositorio —la que usaba la ruta HTTP—
+   * sí las emitía una a una, con categoría y criticidad. Al unificar en una
+   * sola implementación, lo bueno de cada una se queda.
+   *
+   * `alergiasDe` prefiere las estructuradas y, si no hay, deriva del texto
+   * libre: no se pierde nada de lo que ya estaba escrito.
+   */
+  const alergiasEstr = alergiasDe(paciente)
+  for (const [i, a] of alergiasEstr.entries()) {
+    entries.push({
+      fullUrl: `AllergyIntolerance/${paciente.id}-alg-${i}`,
+      resource: {
+        resourceType: 'AllergyIntolerance',
+        id: `${paciente.id}-alg-${i}`,
+        clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] } as FhirCodeableConcept,
+        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] } as FhirCodeableConcept,
+        ...(a.tipo ? { category: [CATEGORIA_FHIR[a.tipo] ?? 'biologic'] } : {}),
+        // Sólo se declara criticidad cuando el expediente la trae: «alta» por
+        // defecto llenaría de alarmas al receptor, y «baja» las apagaría.
+        ...(a.severidad === 'grave' ? { criticality: 'high' } : a.severidad === 'moderada' ? { criticality: 'low' } : {}),
+        patient: { reference: patientId, display: paciente.nombre } as FhirReference,
+        code: { text: a.alergeno } as FhirCodeableConcept,
+        ...(a.reaccion ? { reaction: [{ manifestation: [{ text: a.reaccion }] }] } : {}),
+        recordedDate: paciente.updatedAt,
+      } as FhirResource,
+    })
+  }
+
+  // El texto libre entero, además, cuando no se pudo descomponer en alérgenos:
+  // perder lo que el médico escribió sería peor que repetirlo.
+  if (alergiasEstr.length === 0 && paciente.alergias && paciente.alergias.trim()) {
     entries.push({
       fullUrl: `AllergyIntolerance/${paciente.id}-alergias`,
       resource: {

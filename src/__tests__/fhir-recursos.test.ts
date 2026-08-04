@@ -48,13 +48,26 @@ describe('Mapeo FHIR R4', () => {
     expect(spo2).toBeTruthy()
   })
 
+  /**
+   * `bundlePaciente` DELEGA en la implementación buena desde la v1010: había
+   * dos mapeos del mismo modelo y la ruta HTTP —la que consume un tercero—
+   * usaba el pobre, que exportaba los diagnósticos de un BORRADOR como
+   * `Condition` confirmadas.
+   *
+   * Por eso la nota de esta prueba lleva ahora `estado: 'firmada'`: sin estado
+   * es un borrador, y un borrador no afirma nada clínico.
+   */
+  const notaFirmada = (extra: Record<string, unknown> = {}): NotaMedica => ({
+    id: 'n1', estado: 'firmada',
+    metadata: { id: 'n1', fechaCreacion: '2026-07-15T10:00:00.000Z', medicoId: 'm1' },
+    diagnosticos: [{ descripcion: 'Bronquitis', codigoCIE10: 'J20' }],
+    medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7d' }],
+    signosVitales: { fc: 80 }, fechaConsulta: '2026-07-15',
+    ...extra,
+  } as unknown as NotaMedica)
+
   it('bundlePaciente arma un Bundle collection con todo', () => {
-    const notas: NotaMedica[] = [{
-      id: 'n1', diagnosticos: [{ descripcion: 'Bronquitis', codigoCIE10: 'J20' }],
-      medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg', via: 'oral', frecuencia: 'c/8h', duracion: '7d' }],
-      signosVitales: { fc: 80 }, fechaConsulta: '2026-07-15',
-    } as unknown as NotaMedica]
-    const b = bundlePaciente(paciente, notas)
+    const b = bundlePaciente(paciente, [notaFirmada()])
     expect(b.resourceType).toBe('Bundle')
     expect(b.type).toBe('collection')
     const tipos = (b.entry as { resource: { resourceType: string } }[]).map(e => e.resource.resourceType)
@@ -63,5 +76,32 @@ describe('Mapeo FHIR R4', () => {
     expect(tipos).toContain('Condition')
     expect(tipos).toContain('MedicationRequest')
     expect(tipos).toContain('Observation')
+    // Y lo que el mapeo pobre NO emitía: el documento clínico.
+    expect(tipos).toContain('Composition')
+  })
+
+  it('y un BORRADOR no afirma nada clínico — el defecto que tenía la ruta viva', () => {
+    /**
+     * Un diagnóstico de una nota sin firmar entraba al sistema receptor como
+     * confirmado. El texto sí viaja: es contenido del expediente.
+     */
+    const b = bundlePaciente(paciente, [notaFirmada({ estado: 'borrador' })])
+    const recursos = (b.entry as { resource: { resourceType: string; status?: string } }[]).map(e => e.resource)
+    expect(recursos.some(r => r.resourceType === 'Condition')).toBe(false)
+    expect(recursos.some(r => r.resourceType === 'MedicationRequest')).toBe(false)
+    expect(recursos.find(r => r.resourceType === 'Composition')?.status).toBe('preliminary')
+  })
+
+  it('las alergias salen UNA POR ALÉRGENO, no como una cadena', () => {
+    /**
+     * Lo bueno del mapeo pobre, que se conservó al unificar: un receptor que
+     * quiera cruzar una receta contra las alergias no puede hacer nada con un
+     * párrafo donde esperaba una lista.
+     */
+    const b = bundlePaciente(paciente, [])
+    const algs = (b.entry as { resource: { resourceType: string; code?: { text?: string } } }[])
+      .filter(e => e.resource.resourceType === 'AllergyIntolerance')
+    expect(algs.length).toBeGreaterThan(0)
+    for (const a of algs) expect(a.resource.code?.text).not.toContain(',')
   })
 })
