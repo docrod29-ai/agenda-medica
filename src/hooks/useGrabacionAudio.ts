@@ -86,6 +86,14 @@ export interface OpcionesGrabacion {
   especialidades?: readonly string[]
   medicamentos?: readonly string[]
   problemas?: readonly string[]
+  /**
+   * Alérgenos del expediente.
+   *
+   * Sesgar hacia ellos importa más que hacia cualquier otro término: el cruce
+   * alergia↔fármaco compara contra lo que se OYÓ, así que un alérgeno mal oído
+   * es un cruce que nunca salta.
+   */
+  alergias?: readonly string[]
 }
 
 /** Un turno de habla diarizado (AssemblyAI): quién habló y qué dijo. */
@@ -318,14 +326,25 @@ export function esperaDiarizacion(segundosAudio: number): { intentos: number; pa
  * hace polling hasta completar. Devuelve texto + turnos de habla, o null si la
  * llave no está configurada o algo falla → el caller cae a OpenAI sin diarizar.
  */
+/**
+ * El contexto del paciente que se manda al MOTOR PRINCIPAL.
+ *
+ * Es el mismo `CtxDictado` que ya viajaba a la ruta de Whisper. Hasta la v981
+ * este camino —el que de verdad corre— no recibía nada, así que el sesgo del
+ * motor era una lista genérica igual para todos los pacientes.
+ */
 async function intentarDiarizar(
-  blob: Blob, ext: string, segundosAudio: number,
+  blob: Blob, ext: string, segundosAudio: number, ctx: CtxDictado = {},
 ): Promise<ResultadoDiarizacion> {
   const falla = (motivo: MotivoSinDiarizacion): ResultadoDiarizacion =>
     ({ ok: false, text: '', utterances: [], motivo })
   try {
     const fd = new FormData()
     fd.append('audio', blob, `consulta.${ext}`)
+    // El vocabulario de ESTE paciente al motor que de verdad transcribe.
+    for (const [k, v] of [['medicamentos', ctx.medicamentos], ['problemas', ctx.problemas], ['alergias', ctx.alergias]] as const) {
+      if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
+    }
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
     if (!res.ok) {
       // 503 con `sinClave` es «no hay llave»; cualquier otro código es el proveedor.
@@ -360,7 +379,7 @@ async function intentarDiarizar(
  * audio al terminar (no deja PHI). Devuelve texto + turnos, o null (→ fallback).
  */
 async function intentarDiarizarLargo(
-  blob: Blob, ext: string, recoveryKey: string, segundosAudio: number,
+  blob: Blob, ext: string, recoveryKey: string, segundosAudio: number, ctx: CtxDictado = {},
 ): Promise<ResultadoDiarizacion> {
   const falla = (motivo: MotivoSinDiarizacion): ResultadoDiarizacion =>
     ({ ok: false, text: '', utterances: [], motivo })
@@ -375,7 +394,14 @@ async function intentarDiarizarLargo(
     const url = await getDownloadURL(objRef)
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ audioUrl: url }),
+      // Igual que el camino corto: sin esto, las consultas LARGAS —las que más
+      // términos traen— se quedaban con el sesgo genérico.
+      body: JSON.stringify({
+        audioUrl: url,
+        medicamentos: ctx.medicamentos ? [...ctx.medicamentos] : undefined,
+        problemas: ctx.problemas ? [...ctx.problemas] : undefined,
+        alergias: ctx.alergias ? [...ctx.alergias] : undefined,
+      }),
     })
     if (!res.ok) {
       const d = await res.json().catch(() => null)
@@ -440,6 +466,14 @@ interface CtxDictado {
   especialidades?: readonly string[]
   medicamentos?: readonly string[]
   problemas?: readonly string[]
+  /**
+   * Alérgenos del expediente.
+   *
+   * Sesgar hacia ellos importa más que hacia cualquier otro término: el cruce
+   * alergia↔fármaco compara contra lo que se OYÓ, así que un alérgeno mal oído
+   * es un cruce que nunca salta.
+   */
+  alergias?: readonly string[]
 }
 
 /** Añade el vocabulario del paciente al formulario, si lo hay. */
@@ -506,7 +540,7 @@ async function transcribirParte(blob: Blob, ext: string, contexto: CtxDictado = 
   const openai = await transcribirBlobSimple(blob, ext, contexto)
   if (openai) return openai
   // Fallback: AssemblyAI (la misma llave que usa la diarización)
-  const aai = await intentarDiarizar(blob, ext, contexto.duracionSeg ?? 0)
+  const aai = await intentarDiarizar(blob, ext, contexto.duracionSeg ?? 0, contexto)
   return aai.ok ? aai.text : ''
 }
 
@@ -838,6 +872,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       especialidades: opts?.especialidades,
       medicamentos: opts?.medicamentos,
       problemas: opts?.problemas,
+      alergias: opts?.alergias,
     }
     // Si ya hay chunks bajo esta llave (p. ej. audio de una transcripción que
     // falló y NO se ha recuperado), NO los pises: continúa el índice DESPUÉS de
@@ -1126,8 +1161,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
     //    Storage y se diariza por URL (sin chocar con el límite de Vercel).
     const diar = GRANDE
-      ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current, duracionRef.current)
-      : await intentarDiarizar(blob, ext, duracionRef.current)
+      ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current, duracionRef.current, contextoRef.current)
+      : await intentarDiarizar(blob, ext, duracionRef.current, contextoRef.current)
     if (diar.ok && diar.text.trim()) {
       setUtterances(corregirUtterances(diar.utterances))
       aplicar(diar.text)

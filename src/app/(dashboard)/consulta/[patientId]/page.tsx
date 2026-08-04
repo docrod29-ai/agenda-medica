@@ -772,7 +772,13 @@ export default function ConsultaActivaPage() {
     contexto: 'consulta' as const,
     medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
     problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
-  }), [patientId, medicamentos, diagnosticos])
+    /**
+     * Las alergias del expediente sesgan el motor hacia lo que no se puede oír
+     * mal: el cruce alergia↔fármaco compara contra lo que se OYÓ, así que un
+     * alérgeno mal transcrito es un cruce que nunca salta.
+     */
+    alergias: (patient?.alergias ?? '').split(/[,;\n]/).map(a => a.trim()).filter(Boolean),
+  }), [patientId, medicamentos, diagnosticos, patient?.alergias])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {
