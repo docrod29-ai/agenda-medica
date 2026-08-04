@@ -5420,6 +5420,41 @@ Séptimo motivo de confirmación, declarado en la política crítica con su text
 
 ---
 
+## TANDA 165ª — v1016 · Y LOS ESTUDIOS TAMBIÉN SE IMPRIMEN
+
+La v1015 cerró `ORDER_INTENT ≠ ORDER` para los **fármacos**, que alimentan la
+receta. Los **estudios** tienen el mismo problema y **otro papel**:
+`estudiosOrden` alimenta la **orden médica impresa**, el documento que el
+paciente se lleva al laboratorio o al centro de imagen.
+
+Un «si no mejora, le pido una tomografía» convertido en orden activa **manda al
+paciente a hacerse —y a pagar— un estudio que sólo se estaba considerando**.
+
+Verificado en el código antes de tocarlo: `orden/[patientId]/[notaId]` lee
+`nota.estudiosOrden`, y de ahí sale el impreso.
+
+### Lo que se hizo
+
+El motor de la v1015 ya era genérico —mira el **encuadre de la frase**, no el
+tipo de cosa—, así que se generalizó a `soloPropuestos(texto, terminos)` y los
+dos casos concretos delegan.
+
+**Octavo motivo, aparte del de fármacos:** el documento y la corrección son
+distintos —uno se arregla en la receta y el otro en la orden—, y un solo aviso
+genérico mandaría al médico a buscar en el sitio equivocado. El aviso nombra las
+dos listas por separado.
+
+**Detalle de React:** los memos nuevos tuvieron que bajar por debajo de la
+declaración de `estudiosOrden` —TypeScript lo cazó, «used before its
+declaration»—. Se movieron los **memos** y no el `useState`, para no reordenar
+hooks de estado que llevan tiempo donde están.
+
+- `src/lib/asr/intencion-de-orden.ts`, `politica-critica.ts`,
+  `motivos-confirmacion-texto.ts`, `consulta/[patientId]/page.tsx`
+- `src/__tests__/intencion-de-orden.test.ts` — 5 pruebas nuevas. Total **6218**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
