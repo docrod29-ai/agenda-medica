@@ -36,10 +36,18 @@
  *
  * Módulo PURO.
  */
+import { ABRE, CIERRA } from '@/lib/expediente/confianza-audio'
 
-/** Normaliza igual que `procedencia.ts`, que es quien juzga al firmar. */
+/**
+ * Normaliza igual que `procedencia.ts`, que es quien juzga al firmar.
+ *
+ * Incluye quitar **nuestras** marcas de duda (`⟦…?⟧`): el modelo redacta leyendo
+ * el diálogo marcado, así que una cita de una frase con una palabra dudosa se
+ * lleva la marca dentro. Sin esto, aquí se descartaría por falsa una cita
+ * buena — y encima justo en las frases donde el audio ya había dudado.
+ */
 export function normaliza(s: string): string {
-  return (s ?? '')
+  return (s ?? '').split(ABRE).join('').split(CIERRA).join('')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
