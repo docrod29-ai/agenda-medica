@@ -17,6 +17,8 @@
  * está.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { saldosDeProveedores } from '@/lib/finanzas/saldo-servidor'
+import { avisoDeSaldo, type SaldoProveedor } from '@/lib/finanzas/saldo-proveedores'
 import { safeLog } from '@/lib/security/sanitize'
 import {
   leerLatidos, diagnosticar, loQueDueleGritar, PERIODO_MIN, registrarLatido,
@@ -52,7 +54,31 @@ export async function GET(req: NextRequest) {
     const ds = Object.keys(PERIODO_MIN).map(job => diagnosticar(job, porJob.get(job), arranque))
     const duelen = loQueDueleGritar(ds)
 
+    /**
+     * ── EL SALDO DE LOS PROVEEDORES, EN EL MISMO VIGILANTE ────────────────────
+     *
+     * Petición del Dr.: «estar al pendiente cuánto saldo tengo, para estarle
+     * abonando y los clientes no se queden sin IA».
+     *
+     * Va aquí y no en un cron aparte porque es el mismo trabajo: mirar cada
+     * quince minutos si algo está a punto de romperse y avisar a un humano. Un
+     * cron nuevo sería otro trabajo que vigilar.
+     *
+     * Si el saldo de AssemblyAI llega a cero, TODAS las consultas pierden la
+     * separación de voces a la vez — enterarse entonces es enterarse tarde.
+     */
+    const saldos = await saldosDeProveedores(arranque).catch(() => [] as SaldoProveedor[])
+    const saldosQueDuelen = saldos.filter(x => x.nivel !== 'ok')
+
     let alerta: unknown = { enviada: false, porQue: 'No había nada que avisar.' }
+    if (saldosQueDuelen.length) {
+      await enviarAlertaOps({
+        titulo: `Saldo bajo con ${saldosQueDuelen.length} proveedor(es) de IA`,
+        detalle: saldosQueDuelen.map(avisoDeSaldo).filter(Boolean).join('\n'),
+        gravedad: saldosQueDuelen.some(x => x.nivel === 'agotado' || x.nivel === 'critico') ? 'grave' : 'aviso',
+        origen: 'cron/vigilante',
+      })
+    }
     if (duelen.length) {
       alerta = await enviarAlertaOps({
         titulo: `${duelen.length} trabajo(s) automático(s) sin latido correcto`,
@@ -67,10 +93,10 @@ export async function GET(req: NextRequest) {
     // la próxima vez que alguien mire.
     await registrarLatido('vigilante', {
       ok: true, duracionMs: Date.now() - arranque,
-      detalle: { vigilados: ds.length, conProblema: duelen.length },
+      detalle: { vigilados: ds.length, conProblema: duelen.length, saldosBajos: saldosQueDuelen.length },
     })
 
-    return NextResponse.json({ ok: true, diagnostico: ds, alerta })
+    return NextResponse.json({ ok: true, diagnostico: ds, saldos, alerta })
   } catch (e) {
     safeLog.error('[cron/vigilante]', e)
     await registrarLatido('vigilante', {

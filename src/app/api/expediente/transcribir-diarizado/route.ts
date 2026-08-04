@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
   if (_rl) return _rl
 
   // Debe poller con la MISMA llave que envió el job (la del consultorio).
-  const { key, clinicId } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
+  const { key, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'assemblyai', process.env.ASSEMBLYAI_API_KEY)
   if (!key) return NextResponse.json({ ok: false, sinClave: true }, { status: 503 })
 
   const id = req.nextUrl.searchParams.get('id')
@@ -192,6 +192,30 @@ export async function GET(req: NextRequest) {
        * El camino de audio largo ya borraba su copia de Firebase Storage; esta
        * era la mitad que faltaba.
        */
+      /**
+       * EL COSTO SE ANOTA AQUÍ, QUE ES CUANDO SE CONOCEN LOS MINUTOS.
+       *
+       * El POST sólo encola: en ese momento no se sabe cuánto dura el audio, así
+       * que el asiento salía con cero minutos y, sin tarifa, el renglón más
+       * frecuente del consultorio no aparecía en ningún lado.
+       *
+       * `audio_duration` viene en segundos en la respuesta del proveedor. Si no
+       * viniera, se anota igual con cero y el libro lo marcará como sin uso —
+       * nunca se inventa una duración.
+       */
+      const segundos = Number(d.audio_duration ?? 0)
+      anotarLlamada(
+        {
+          feature: 'transcribir-diarizado',
+          requestId: `td-fin-${id}`,
+          clinicId: clinicId ?? null, uid: acceso.uid,
+          creditos: 0, fuente,
+          esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
+        },
+        'assemblyai', 'best',
+        { usage: { input_tokens: 0, output_tokens: 0 }, duracionSeg: segundos > 0 ? segundos : undefined },
+        0,
+      )
       const respuesta = NextResponse.json({ ok: true, status: 'completed', text: d.text ?? '', utterances })
       void fetch(`${AAI}/transcript/${id}`, { method: 'DELETE', headers: { authorization: key } })
         .then(r => { if (!r.ok) safeLog.warn(`[diarizado] no se pudo purgar la transcripción en el proveedor (HTTP ${r.status})`) })

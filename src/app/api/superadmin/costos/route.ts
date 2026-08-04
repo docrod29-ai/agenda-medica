@@ -21,6 +21,7 @@ import { resumir, soloCogs, porClave, suficiente, type EventoCosto } from '@/lib
 import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
 import { stripe } from '@/lib/stripe'
 import { evaluarWebhook, modoDeLaLlave, type SaludWebhook } from '@/lib/finanzas/webhook-stripe-salud'
+import { saldosDeProveedores, PROVEEDORES_VIGILADOS } from '@/lib/finanzas/saldo-servidor'
 
 /**
  * Le pregunta a Stripe a qué eventos está suscrito el webhook de esta app.
@@ -74,9 +75,21 @@ export async function GET(req: NextRequest) {
      * clase de cosa que tiene que encontrarse sin ir a buscarla. Una alerta que
      * vive en su propia pantalla es una alerta que nadie ve.
      */
-    const [incidentes, webhook] = await Promise.all([
+    const [incidentes, webhook, saldos] = await Promise.all([
       incidentesRecientes(20),
       saludDelWebhook(),
+      /**
+       * CUÁNTO SALDO QUEDA CON CADA PROVEEDOR.
+       *
+       * Petición del Dr. (3-ago-2026): «estar al pendiente cuánto saldo tengo,
+       * para estarle abonando y los clientes no se queden sin IA». Va en la
+       * misma pantalla que el gasto porque es la misma pregunta vista al revés:
+       * el tablero dice lo que se fue, el saldo dice cuánto falta para que se
+       * acabe. Separarlas obligaría a mirar dos sitios para saber una cosa.
+       *
+       * Nunca tumba el tablero: si falla, se devuelve vacío.
+       */
+      saldosDeProveedores(Date.now()).catch(() => []),
     ])
 
     return NextResponse.json({
@@ -93,6 +106,8 @@ export async function GET(req: NextRequest) {
        * está fuera del repositorio— así que se pregunta y se muestra.
        */
       webhook,
+      /** Saldo estimado por proveedor. Ver `saldo-proveedores.ts` para por qué «estimado». */
+      saldos,
       // El total de TODO y el de COGS son distintos a propósito: el gasto de I+D
       // del fundador no es costo de servir a ningún cliente (§CD).
       total,
@@ -119,5 +134,57 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     safeLog.error('[superadmin/costos]', err)
     return NextResponse.json({ ok: false, error: 'No se pudo leer el libro de costos.' }, { status: 500 })
+  }
+}
+
+/**
+ * POST /api/superadmin/costos — registrar un ABONO a un proveedor de IA.
+ *
+ * ── POR QUÉ SE REGISTRA A MANO ───────────────────────────────────────────────
+ *
+ * Se buscó el camino automático: la API de AssemblyAI **no publica** endpoint de
+ * saldo ni de consumo, y las otras dos tampoco exponen el saldo de la cuenta.
+ * Así que el saldo no se lee, se lleva: el dueño anota lo que abona y el libro de
+ * costos ya sabe lo que se gastó.
+ *
+ * Anotar de más o de menos mueve el aviso, no el servicio — por eso la cifra se
+ * llama «estimada» en toda la pantalla.
+ */
+export async function POST(req: NextRequest) {
+  const acc = await verificarSuperadmin(req)
+  if (!acc.ok) return acc.response
+
+  try {
+    const body = await req.json().catch(() => ({})) as Record<string, unknown>
+    const proveedor = String(body.proveedor ?? '').trim().toLowerCase()
+    const montoUsd = Number(body.montoUsd)
+    const referencia = String(body.referencia ?? '').trim().slice(0, 120)
+
+    if (!PROVEEDORES_VIGILADOS.includes(proveedor as (typeof PROVEEDORES_VIGILADOS)[number])) {
+      return NextResponse.json({ ok: false, error: 'Proveedor no reconocido.' }, { status: 400 })
+    }
+    /**
+     * Un abono negativo o cero NO se acepta.
+     *
+     * No es purismo: un negativo se restaría del cargado y bajaría el saldo sin
+     * que nadie hubiera gastado nada — un aviso de agotamiento inventado. Para
+     * corregir un error se borra el documento, no se anota su contrario.
+     */
+    if (!Number.isFinite(montoUsd) || montoUsd <= 0) {
+      return NextResponse.json({ ok: false, error: 'El monto tiene que ser un número mayor que cero.' }, { status: 400 })
+    }
+
+    await adminDb.collection('platform_recargas').add({
+      proveedor,
+      montoUsd,
+      fecha: new Date().toISOString(),
+      ...(referencia ? { referencia } : {}),
+      registradoPor: acc.uid,
+    })
+
+    return NextResponse.json({ ok: true, saldos: await saldosDeProveedores(Date.now()) })
+  } catch (err) {
+    safeLog.error('[superadmin/costos POST]', err)
+    return NextResponse.json({ ok: false, error: 'No se pudo registrar el abono.' }, { status: 500 })
   }
 }
