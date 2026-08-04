@@ -21,6 +21,55 @@ historia vive aquí.
 
 ---
 
+## v973 — la separación de voces se rendía en silencio (consulta real del Dr.)
+
+EL CASO. El Dr. dictó una consulta completa —IVU recurrente, *E. coli* con su
+antibiograma, tres años de antecedentes urológicos, plan de fosfomicina— y la
+nota salió: «no se refiere motivo clínico en **este fragmento** de consulta; la
+entrevista corresponde a la elaboración de historia clínica (datos
+sociodemográficos)», con «Padecimiento actual: No referido». Y por el camino,
+«la de la **docencia**» —una palabra que no significa nada, un error de audio—
+apareció convertida en **«vesícula»**: un órgano que el paciente nunca mencionó.
+
+LA CAUSA. `intentarDiarizar` esperaba `90 × 2 s` = **tres minutos** para
+cualquier grabación. Una consulta real dura mucho más, así que el contador se
+agotaba SIEMPRE y devolvía `null` — el MISMO `null` que devolvía si no había
+llave, si fallaba el proveedor o si se caía la red. El que llamaba no podía
+distinguirlos: caía a Whisper sin separación de voces y **no se lo decía a
+nadie**. La llave de AssemblyAI estaba puesta y pagada desde hacía 47 días. Lo
+que falló fue el reloj.
+
+Sin turnos Médico/Paciente el modelo razona sobre un bloque plano — y ahí es
+donde una palabra mal oída acaba ascendida a diagnóstico.
+
+LO QUE SE ARREGLÓ:
+
+· **La espera la fija el AUDIO**, no un tope fijo: 1,5× la duración + 1 minuto,
+  con piso de 1 min y techo de 20. El techo existe para que un trabajo colgado no
+  deje al médico esperando, no para recortar consultas largas — que son las que
+  más información llevan. Y esperar no bloquea: la nota preliminar ya está en
+  pantalla.
+· **Los cuatro fallos dejan de verse iguales**: `sin_llave`, `error_proveedor`,
+  `tiempo_agotado`, `red`, `sin_texto`. Cada uno exige una acción distinta.
+· **Al médico se le DICE**, con el motivo y con qué revisar: «revisa nombres de
+  fármacos, dosis y microorganismos antes de firmar». Una nota escrita con el
+  motor de repuesto se veía idéntica a una escrita con el bueno.
+· **La transcripción pasa a ser de la plataforma, para todos** (decisión del Dr.:
+  «la llave debe estar para todos, no que se ponga individual — y Whisper»). Eso
+  cierra además una trampa: la llave del consultorio **ganaba** a la de la
+  plataforma, así que un médico con una llave vencida recibía PEOR transcripción
+  que uno sin ninguna, y en silencio. Se quitó la opción de la pantalla, no sólo
+  el aviso.
+
+DOS PREMISAS MÍAS FALLARON, las dos destapadas por mis propias pruebas: exigí que
+el presupuesto superara la DURACIÓN del audio (transcribir tarda una fracción, no
+es el invariante correcto), y medí la precedencia de las llaves buscando en TODO
+el archivo, encontrando una llamada de otra función. La primera además destapó
+algo real: el techo de 15 minutos se quedaba corto en una primera consulta de 25,
+y por eso subió a 20. +15 casos.
+
+---
+
 ## v972 — decisión 11: el muro que anulaba un modelo entero ya construido
 
 `estadoAcceso` devolvía `'sin_tarjeta'` para todo lo que no fuera `active` — o

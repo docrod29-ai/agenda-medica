@@ -3475,6 +3475,51 @@ entorno; la prueba fija eso, **no cuánto vale**.
 
 ---
 
+
+## CENTÉSIMA VIGESIMOSEGUNDA TANDA — v973 · SU CONSULTA DE LUIS
+
+**Fallo encontrado por el Dr. en producción, sobre una consulta real.** Se paró
+la cola para esto.
+
+### Lo que pasó
+
+Dictó la consulta completa y la nota salió como «datos sociodemográficos», con
+«Padecimiento actual: No referido». Y «la de la **docencia**» —error de audio—
+apareció aguas abajo como **«vesícula»**, un órgano que el paciente nunca
+mencionó.
+
+### La causa
+
+`intentarDiarizar` esperaba **tres minutos** para cualquier grabación. Una
+consulta real dura más, así que el contador se agotaba SIEMPRE y devolvía `null`
+— el mismo `null` que «no hay llave», «falló el proveedor» y «se cayó la red».
+Caía a Whisper sin separación de voces y no se lo decía a nadie.
+
+**La llave de AssemblyAI estaba puesta y pagada desde hacía 47 días.** Lo que
+falló fue el reloj.
+
+### Arreglado
+
+- La espera la fija el audio (1,5× + 1 min; piso 1, techo 20).
+- Los cinco motivos se distinguen y llegan a la pantalla con qué revisar.
+- **La transcripción es de la plataforma, para todos** (su decisión). Cierra la
+  trampa de que la llave del consultorio ganaba a la buena y degradaba en
+  silencio.
+
+### Lo que queda de este frente
+
+La confianza por palabra que AssemblyAI ya devuelve **se sigue descartando**
+(`Utterance = { speaker, text }`). Ése es el mecanismo de «docencia → vesícula»:
+el motor sabía que dudaba y borramos la duda antes de que llegara a la nota.
+Es lo siguiente.
+
+- `src/hooks/useGrabacionAudio.ts`, `src/lib/ai-keys.ts`,
+  `app/(dashboard)/consulta/[patientId]/page.tsx`,
+  `app/(dashboard)/configuracion/secciones-cuenta.tsx`
+- `src/__tests__/diarizacion-no-se-rinde-callada.test.ts` — 15 pruebas. Total 5669.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
