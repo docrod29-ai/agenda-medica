@@ -439,7 +439,13 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 81 → 83 y 66 → 67 al añadir `superadmin/simulador`: GET y PUT, cada uno
     // con su guardián.
     // 83 → 84: `arco/cancelar` con su único POST y su guardián.
-    expect(llamadas.length).toBe(93)   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    // 93 → 94 el 2026-08-03: `superadmin/costos` estrenó POST (registrar el
+    // abono a un proveedor de IA) y trae SU PROPIO `verificarSuperadmin`. Las
+    // rutas con guardián NO suben porque la ruta ya estaba contada — el par
+    // correcto es exactamente éste. Si hubiera subido la ruta y no la llamada,
+    // o hubiera entrado el POST sin llamada, el POST que mueve dinero estaría
+    // abierto.
+    expect(llamadas.length).toBe(94)   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     expect(rutasConGuardia).toBe(77)   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el

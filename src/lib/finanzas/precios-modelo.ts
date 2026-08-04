@@ -95,6 +95,8 @@ export interface TarifaModelo {
 const FUENTE_ANTHROPIC = 'https://platform.claude.com/docs/en/about-claude/models/overview'
 const FUENTE_OPENAI = 'https://developers.openai.com/api/docs/pricing'
 const CONSULTADO = '2026-07-31'
+const FUENTE_ASSEMBLYAI = 'https://www.assemblyai.com/pricing'
+const CONSULTADO_AAI = '2026-08-03'
 
 export const TARIFAS: readonly TarifaModelo[] = [
   // ── Anthropic ────────────────────────────────────────────────────────────
@@ -141,6 +143,28 @@ export const TARIFAS: readonly TarifaModelo[] = [
   // ── OpenAI: transcripción — POR MINUTO, no por token ─────────────────────
   // Los tres llevan las tarifas de token en 0 a propósito: el cobro real es por
   // minuto de audio. Poner aquí una cifra por token sería inventar.
+  /**
+   * ── ASSEMBLYAI: LA TARIFA QUE FALTABA ────────────────────────────────────
+   *
+   * Era el hueco más caro del libro: la diarización corre en TODA consulta
+   * dictada y no tenía tarifa, así que su costo salía `null` marcado
+   * `sin_tarifa` y **no aparecía en el margen**. El renglón más frecuente del
+   * consultorio era invisible.
+   *
+   * Cifra de la página oficial (3-ago-2026): Universal-3.5 Pro
+   * (`universal-3-pro`, a donde apunta hoy el identificador `best` que usa la
+   * app) cuesta **$0.21/hora** en audio pregrabado, y la separación de voces
+   * añade **$0.02/hora** en asíncrono. Total $0.23/hora.
+   *
+   * Se guarda POR MINUTO, que es la unidad del libro: 0.23 / 60 = 0.00383333.
+   * Es una división, no una estimación: la fuente da la cifra por hora.
+   *
+   * Un comentario del código decía «~$0.01–0.015 USD por minuto» — entre tres y
+   * cuatro veces de más, y sin fuente. Por eso la regla de este archivo es que
+   * ninguna cifra entra sin URL y fecha.
+   */
+  { modelo: 'best', proveedor: 'otro', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.23 / 60, fuente: FUENTE_ASSEMBLYAI, consultado: CONSULTADO_AAI },
+  { modelo: 'universal-3-pro', proveedor: 'otro', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.23 / 60, fuente: FUENTE_ASSEMBLYAI, consultado: CONSULTADO_AAI },
   { modelo: 'whisper-1', proveedor: 'openai', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.006, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
   { modelo: 'gpt-4o-transcribe', proveedor: 'openai', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.006, fuente: FUENTE_OPENAI, consultado: CONSULTADO },
   { modelo: 'gpt-4o-mini-transcribe', proveedor: 'openai', entradaUsdPorMillon: 0, salidaUsdPorMillon: 0, usdPorMinuto: 0.003, fuente: FUENTE_OPENAI, consultado: CONSULTADO },

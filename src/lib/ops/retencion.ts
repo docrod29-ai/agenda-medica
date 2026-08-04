@@ -96,6 +96,7 @@ export const SIN_BARRER: Record<string, string> = {
   whatsapp_channels: 'Índice de qué consultorio corresponde a cada canal de WhatsApp. Estado vivo: se borra al desconectar, no por antigüedad.',
   anticipos_procesados: 'Marca de idempotencia de un anticipo de Stripe. Borrarla abre la puerta a aplicar dos veces el mismo pago si Stripe reintenta; y además es contabilidad.',
   recargas_procesadas: 'Ídem para las recargas de créditos: la marca es lo que impide duplicar una compra.',
+  platform_recargas: 'Lo que el dueño abona a cada proveedor de IA. Es contabilidad y además es el minuendo del saldo: borrar una recarga vieja haría aparecer un saldo negativo y un aviso de agotamiento falso.',
   soporte: 'Tickets de soporte del médico. Es correspondencia con el cliente, no telemetría: se archiva, no se purga.',
 }
 

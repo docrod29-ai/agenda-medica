@@ -23,6 +23,7 @@ import { onAuthStateChanged, getIdToken } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { esSuperadminCliente } from '@/lib/superadmin-client'
 import { msLegible, type ResumenLatencia } from '@/lib/observabilidad/latencias'
+import { avisoDeSaldo, type SaldoProveedor } from '@/lib/finanzas/saldo-proveedores'
 
 interface Resumen {
   llamadas: number; conCosto: number; sinTarifa: number; totalUsd: number
@@ -41,6 +42,7 @@ interface Datos {
   porFeature: Grupo[]; porModelo: Grupo[]; porClase: Grupo[]; truncado: boolean
   latenciasPorFeature: ResumenLatencia[]; latenciasPorModelo: ResumenLatencia[]
   incidentes?: Incidente[]; hayUrgente?: boolean
+  saldos?: SaldoProveedor[]
   webhook?: { configurado: boolean; faltantes: string[]; faltanCriticos: string[]; aviso: string; modo?: 'prueba' | 'produccion' | 'sin_llave'; avisoModo?: string } | null
 }
 
@@ -60,6 +62,9 @@ export default function CostosPage() {
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(true)
   const [permitido, setPermitido] = useState<boolean | null>(null)
+  const [abono, setAbono] = useState({ proveedor: 'assemblyai', montoUsd: '', referencia: '' })
+  const [guardando, setGuardando] = useState(false)
+  const [avisoAbono, setAvisoAbono] = useState('')
 
   const cargar = useCallback(async (m: string) => {
     setCargando(true); setError('')
@@ -87,6 +92,36 @@ export default function CostosPage() {
 
   if (permitido === false) {
     return <div style={{ padding: 40, fontSize: 15 }}>Esta consola es sólo para el dueño de la plataforma.</div>
+  }
+
+  /**
+   * Registrar un abono.
+   *
+   * Recarga la pantalla al terminar en vez de parchear el estado a mano: el
+   * saldo se recalcula en el servidor con el gasto real, y un número pintado
+   * aquí a mano podría no coincidir con el que dispara el aviso.
+   */
+  const registrarAbono = async () => {
+    setGuardando(true); setAvisoAbono('')
+    try {
+      const u = auth.currentUser
+      if (!u) { setAvisoAbono('Inicia sesión.'); return }
+      const t = await getIdToken(u)
+      const r = await fetch('/api/superadmin/costos', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...abono, montoUsd: Number(abono.montoUsd) }),
+      })
+      const j = await r.json()
+      if (!j.ok) { setAvisoAbono(j.error ?? 'No se pudo registrar.'); return }
+      setAbono({ proveedor: abono.proveedor, montoUsd: '', referencia: '' })
+      setAvisoAbono('Abono registrado.')
+      await cargar(mes)
+    } catch {
+      setAvisoAbono('No se pudo registrar el abono.')
+    } finally {
+      setGuardando(false)
+    }
   }
 
   return (
@@ -153,6 +188,89 @@ export default function CostosPage() {
               </a>
             </div>
           )}
+
+          {/*
+            EL SALDO VA ARRIBA DEL GASTO.
+            «Cuánto gasté» es una pregunta de fin de mes; «cuánto me queda» es
+            una pregunta de hoy, y es la que deja a todos los consultorios sin
+            separación de voces si se contesta tarde.
+          */}
+          <div style={{ margin: '18px 0 4px' }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: 'var(--text, #0f172a)' }}>
+              Saldo con los proveedores de IA
+            </h2>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '0 0 10px', lineHeight: 1.5 }}>
+              <strong>Estimado.</strong> Ninguno de los tres publica su saldo por API, así que se calcula
+              con lo que usted anota aquí menos lo que dice el libro de costos. Puede diferir del estado de
+              cuenta por impuestos, redondeos o llamadas que no pasaron por el libro.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              {(datos.saldos ?? []).map(sp => (
+                <div key={sp.proveedor} style={{
+                  flex: '1 1 220px', minWidth: 220,
+                  border: `1px solid ${sp.nivel === 'ok' ? 'var(--border, #e5e7eb)' : 'var(--red)'}`,
+                  background: sp.nivel === 'ok' ? 'var(--panel, #f8fafc)' : 'color-mix(in srgb, var(--red) 7%, transparent)',
+                  borderRadius: 10, padding: '12px 14px',
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4, color: 'var(--text3, #64748b)' }}>
+                    {sp.proveedor}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text, #0f172a)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                    {sp.cargadoUsd > 0 ? '$' + sp.restanteUsd.toFixed(2) : '—'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 4, lineHeight: 1.5 }}>
+                    {sp.cargadoUsd <= 0
+                      ? 'Sin abonos registrados: no se puede estimar el saldo (y por eso no se pinta en rojo).'
+                      : <>Abonado ${sp.cargadoUsd.toFixed(2)} · gastado ${sp.gastadoUsd.toFixed(2)}
+                         {sp.diasRestantes !== null && <> · ~{sp.diasRestantes} día(s) al ritmo actual</>}</>}
+                  </div>
+                  {avisoDeSaldo(sp) && (
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--red)', marginTop: 8, lineHeight: 1.45 }}>
+                      {avisoDeSaldo(sp)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 12 }}>
+              <select
+                value={abono.proveedor}
+                onChange={e => setAbono(a => ({ ...a, proveedor: e.target.value }))}
+                aria-label="Proveedor al que se abonó"
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, minHeight: 44 }}
+              >
+                {(datos.saldos ?? []).map(sp => <option key={sp.proveedor} value={sp.proveedor}>{sp.proveedor}</option>)}
+              </select>
+              <input
+                type="number" min="0" step="0.01" inputMode="decimal"
+                placeholder="Monto en USD"
+                value={abono.montoUsd}
+                onChange={e => setAbono(a => ({ ...a, montoUsd: e.target.value }))}
+                aria-label="Monto abonado en dólares"
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, minHeight: 44, width: 150 }}
+              />
+              <input
+                placeholder="Referencia del cargo (opcional)"
+                value={abono.referencia}
+                onChange={e => setAbono(a => ({ ...a, referencia: e.target.value }))}
+                aria-label="Referencia del cargo"
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, minHeight: 44, flex: '1 1 200px' }}
+              />
+              <button
+                onClick={registrarAbono}
+                disabled={guardando || !abono.montoUsd}
+                style={{
+                  padding: '10px 16px', borderRadius: 8, border: 'none', minHeight: 44,
+                  background: 'var(--nexus, #3d5afe)', color: '#fff', fontSize: 13, fontWeight: 700,
+                  cursor: guardando ? 'wait' : 'pointer', opacity: guardando || !abono.montoUsd ? .6 : 1,
+                }}
+              >
+                {guardando ? 'Registrando…' : 'Registrar abono'}
+              </button>
+              {avisoAbono && <span style={{ fontSize: 12.5, color: 'var(--text2, #334155)' }}>{avisoAbono}</span>}
+            </div>
+          </div>
 
           {/*
             LO QUE ESTÁ CAÍDO VA ANTES QUE LO QUE CUESTA.

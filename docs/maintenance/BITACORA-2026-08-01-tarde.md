@@ -3520,6 +3520,67 @@ Es lo siguiente.
 
 ---
 
+## CENTÉSIMA VIGESIMOTERCERA TANDA — v974 · EL SALDO DE LOS PROVEEDORES
+
+**Petición del Dr.:** «implementa en los paquetes y en los costos todo lo de
+AssemblyAI, y estar al pendiente cuánto saldo tengo, para estarle abonando y los
+clientes no se queden sin IA».
+
+### Lo que encontré al ir a mirar
+
+1. **AssemblyAI no tenía tarifa.** Cada transcripción diarizada entraba al libro
+   de costos con `costoUsd: null` y salía por «sin tarifa»: el renglón que corre
+   en TODAS las consultas era invisible en el margen. El propio código lo decía
+   —«cargar el precio real es un pendiente declarado, no un olvido»— y ahí
+   llevaba desde la v742.
+2. **Los minutos tampoco viajaban.** El costo se anotaba en el POST, que sólo
+   encola; la duración del audio no existe hasta que el trabajo termina. Un
+   precio por minuto sin minutos habría dado **cero**, que es peor que `null`
+   porque parece un dato.
+3. **Nadie miraba el saldo.** Si la cuenta de AssemblyAI llega a cero, todas las
+   consultas pierden la separación de voces a la vez. Desde la v973 al menos se
+   dice — pero se dice después, con el paciente enfrente.
+
+### Arreglado
+
+- **Tarifa cargada con su fuente**: $0.21/h (Universal-3.5 Pro, donde enruta
+  `best`) + $0.02/h de diarización = **$0.23/h**, leído de
+  `assemblyai.com/pricing` el 3-ago-2026 y citado en el código. Una consulta de
+  doce minutos cuesta unos 4.6 centavos de dólar.
+- **El asiento se anota al TERMINAR**, con `audio_duration` del propio
+  proveedor, no con una estimación nuestra.
+- **Saldo por proveedor**: no existe endpoint de saldo en ninguna de las tres
+  APIs, así que el saldo no se lee, **se lleva** — usted anota lo que abona y el
+  libro de costos aporta lo gastado. Aparece en `/superadmin/costos`, arriba del
+  gasto, con su formulario para registrar el abono sin tocar Firestore.
+- **El vigilante lo mira cada vez que corre** y avisa por el canal de operación
+  que ya existe, con **días de autonomía** y no con dólares: veinte dólares son
+  un mes para un consultorio y dos días para veinte.
+
+### Las trampas que se cerraron a propósito
+
+- Sin abonos registrados **no** se declara agotado (saldría rojo con la cuenta
+  llena; un aviso falso enseña a ignorar los avisos).
+- Los asientos sin tarifa **no** se suman como cero al medir el gasto: verían
+  menos gasto del real y el aviso llegaría tarde.
+- No se aceptan abonos negativos: bajarían el saldo sin que nadie gastara.
+- La cifra se llama **estimada** en toda la pantalla — sale de nuestros
+  asientos, no del estado de cuenta del proveedor.
+
+### Lo que sigue pendiente de este frente
+
+La **confianza por palabra** (v973) sigue descartada: es el mecanismo de
+«docencia → vesícula» y sigue siendo lo siguiente.
+
+- `src/lib/finanzas/saldo-proveedores.ts` (puro), `saldo-servidor.ts`,
+  `precios-modelo.ts`, `src/lib/ops/retencion.ts`,
+  `api/superadmin/costos/route.ts` (GET + POST nuevo),
+  `api/cron/vigilante/route.ts`, `api/expediente/transcribir-diarizado/route.ts`,
+  `app/superadmin/costos/page.tsx`
+- `src/__tests__/saldo-proveedores-ia.test.ts` — 28 pruebas. Total **5697**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
