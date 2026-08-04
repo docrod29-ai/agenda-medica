@@ -5576,6 +5576,50 @@ razón.
 
 ---
 
+## TANDA 169ª — v1020 · EL REGISTRO CLÍNICO NOMBRABA PUERTAS QUE NO EXISTÍAN
+
+`CLINICAL_ENGINE_REGISTRY` es el documento que dice **qué motores clínicos tiene
+NexusMED y cómo se llega a ellos** —archivos, `entryPoints`, ADR y golden por
+motor—. Es lo que lee un auditor y lo que se enseña cuando alguien pregunta «¿esto
+qué calcula y dónde?».
+
+**Nadie lo ejecutaba.** De **279** `entryPoints` declarados, **cinco** no estaban
+en ningún archivo de su motor:
+
+- `asr-guardian-sustituciones` → `corregirVigilado`
+- `dosing-motor` → `buscarFarmaco`, `nombresFarmacos`
+- `antimicrobianos-v4` → `resolveDoseRule`, `buscarFarmaco`
+
+Un registro con una puerta que no existe **no falla: certifica**. Un nombre mal
+escrito, una función renombrada o un motor partido en dos archivos se quedan ahí
+años y el documento sigue pareciendo exacto.
+
+### Cómo se corrigió
+
+**Ninguna función estaba perdida**: las cinco existen en un archivo **hermano**
+que el motor no declaraba. Se corrigió **declarando esos archivos** —la verdad—
+en vez de quitar las puertas del registro, que lo habría hecho más pequeño y
+menos cierto.
+
+### El guardián
+
+Comprueba que cada `entryPoint` lo exporte algún archivo declarado del motor, y
+que todo archivo declarado exista. Reconoce función, `const`, clase, tipo,
+interfaz y re-exportación en lista, y **no** da por exportado un nombre que sólo
+se **menciona** —ése es el falso negativo que ya se pagó en el guardián de
+huérfanos— ni uno que empieza igual.
+
+**Lo que no comprueba:** si alguien *llama* a esa puerta. Eso es de
+`modulos-sin-conectar`, que en la v1019 aprendió que un `import type` no conecta
+nada. Aquí se responde la pregunta más barata y la que nadie hacía: **¿existe lo
+que el registro dice que existe?**
+
+- `src/lib/clinical/registry.ts` (tres motores con sus `archivos` declarados)
+- `src/__tests__/entrypoints-del-registro.test.ts` — 95 casos. Total **6318**.
+- `REG-131` en el ledger, y el guardián sellado.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

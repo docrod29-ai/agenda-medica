@@ -753,6 +753,10 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       ref: 'docs/clinical-decisions/asr-guardian-sustituciones.md',
     },
     file: 'src/lib/asr/guardian-sustituciones.ts',
+    // `corregirVigilado` es el que APLICA el guardián y vive al lado: sin
+    // declararlo aquí, el registro nombraba una función que no está en
+    // ninguno de sus archivos.
+    archivos: ['src/lib/asr/corrector-vigilado.ts'],
     entryPoints: ['verificar', 'cifrasLibres', 'corregirVigilado'],
     calculos: [
       'cuenta por termino critico: si baja, se perdio una aparicion (aparecer NO es violacion, desaparecer si)',
@@ -884,6 +888,8 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       ref: 'docs/clinical-decisions/dosing-motor.md',
     },
     file: 'src/lib/dosing/motor.ts',
+    // El catálogo del motor: `buscarFarmaco` y `nombresFarmacos` viven ahí.
+    archivos: ['src/lib/dosing/dataset.ts'],
     entryPoints: ['recomendar', 'buscarFarmaco', 'nombresFarmacos'],
     calculos: [
       'seleccion de rama: reemplazo renal PRIMERO, luego choque, luego renal, luego estandar',
@@ -932,6 +938,9 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       preguntaAlMedico: 'Faltan los LIMITES por farmaco e indicacion (usualMax / contextualMax / absolutoMax). Sin ellos el kernel responde UNKNOWN_INSUFFICIENT_DATA —que es lo correcto— pero todavia no puede juzgar una cifra. Tambien: separar las 11 entradas donde la dosis de ficha y la de guia vienen fusionadas en un solo campo, y completar los 20 antibioticos que el propio dataset declara pendientes.',
     },
     file: 'src/lib/antimicrobianos/v4/kernel.ts',
+    // El resolutor y el catálogo del V4: dos de sus cuatro puertas de entrada
+    // no estaban en ningún archivo declarado.
+    archivos: ['src/lib/antimicrobianos/v4/resolver.ts', 'src/lib/antimicrobianos/v4/catalogo.ts'],
     entryPoints: ['evaluar', 'resolveDoseRule', 'buscarFarmaco', 'datosQueFaltan'],
     calculos: ['comparacion de la dosis contra usualMax / contextualMax / absolutoMax', 'total diario = dosis x tomas', 'clasificacion del veredicto por ORIGEN de la pauta, no por magnitud'],
     missingData: 'LOS LIMITES POR FARMACO E INDICACION NO ESTAN CARGADOS: sin ellos el kernel responde UNKNOWN_INSUFFICIENT_DATA, que es lo correcto, pero todavia no puede juzgar una cifra. La prosa del dataset (renal_adjustment, crrt) NO se parsea a numeros. 20 antibioticos declarados pendientes. 11 entradas con la dosis de ficha y la de guia FUSIONADAS en un solo campo. Vancomycin PO y Metronidazole sin fuentes.',
