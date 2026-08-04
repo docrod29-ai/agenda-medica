@@ -14,6 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { componerSesgo, type ContextoSesgo } from '@/lib/asr/sesgo-diarizado'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -58,6 +59,21 @@ export async function POST(req: NextRequest) {
   // (audio corto, passthrough a AssemblyAI).
   const contentType = req.headers.get('content-type') || ''
   let audio_url: string
+  /**
+   * El contexto del paciente, que llega por los DOS caminos.
+   *
+   * Audio corto viaja como formulario; audio largo ya está en Storage y viaja
+   * como JSON. Leerlo sólo en uno habría dejado las consultas largas —las que
+   * más términos traen— con el sesgo genérico, que es el defecto que se está
+   * reparando, cometido a medias.
+   */
+  let ctxSesgo: ContextoSesgo = {}
+  const comoLista = (v: unknown): string[] => {
+    try {
+      const j = typeof v === 'string' ? JSON.parse(v) : v
+      return Array.isArray(j) ? j.map(String).slice(0, 200) : []
+    } catch { return [] }
+  }
 
   try {
     if (contentType.includes('application/json')) {
@@ -67,6 +83,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: 'Falta audioUrl' }, { status: 400 })
       }
       audio_url = url
+      ctxSesgo = {
+        medicamentos: comoLista(body?.medicamentos),
+        problemas: comoLista(body?.problemas),
+        alergias: comoLista(body?.alergias),
+      }
     } else {
       const formData = await req.formData()
       const audio = formData.get('audio')
@@ -82,6 +103,21 @@ export async function POST(req: NextRequest) {
       })
       if (!up.ok) return NextResponse.json({ ok: false, error: `AssemblyAI upload HTTP ${up.status}` }, { status: 502 })
       audio_url = (await up.json()).upload_url
+      ctxSesgo = {
+        medicamentos: comoLista(formData.get('medicamentos')),
+        problemas: comoLista(formData.get('problemas')),
+        alergias: comoLista(formData.get('alergias')),
+      }
+    }
+
+    /**
+     * Si el contexto no viene —o viene mal— el sesgo cae al catálogo global de
+     * siempre: **nunca se queda sin sesgo por un dato ausente**.
+     */
+    const sesgo = componerSesgo(ctxSesgo, WORD_BOOST_MEDICO)
+    if (sesgo.descartados > 0) {
+      // Un tope que nadie ve se lee como «cupo todo».
+      safeLog.info(`[diarizado] sesgo: ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
     }
 
     // Encolar transcripción con diarización en español
@@ -95,7 +131,20 @@ export async function POST(req: NextRequest) {
         language_code: 'es',
         punctuate: true,
         format_text: true,
-        word_boost: WORD_BOOST_MEDICO,  // sesga el ASR hacia fármacos/términos MX
+        /**
+         * EL SESGO LLEVA AL PACIENTE QUE ESTÁ ENFRENTE.
+         *
+         * Hasta la v981 aquí iba `WORD_BOOST_MEDICO` pelado: la misma lista de
+         * mil términos para todos los pacientes del mundo. Mientras tanto
+         * `lexicon.ts` presupuestaba con cuidado los fármacos y problemas de
+         * ESTE paciente… y sólo alimentaba al motor de repuesto, que casi nunca
+         * corre porque la diarización se intenta primero.
+         *
+         * El sesgo es lo ÚNICO que cambia lo que el motor OYE. El corrector y el
+         * guardián trabajan sobre lo ya oído y no pueden recuperar una palabra
+         * que nunca llegó.
+         */
+        word_boost: sesgo.terminos,
         boost_param: 'high',
       }),
     })

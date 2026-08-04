@@ -3893,6 +3893,69 @@ cambio de camino.
 
 ---
 
+## TRIGÉSIMA TANDA (130ª) — v981 · EL VOCABULARIO DEL PACIENTE AL MOTOR QUE SÍ TRANSCRIBE
+
+Del equipo de ASR, verificado por mí. **Es el punto con más rendimiento de toda
+la auditoría de voz** y, a la vez, el foso defensivo.
+
+### Lo que pasaba
+
+`lexicon.ts` presupuesta con cuidado los 224 tokens del prompt y gasta primero en
+**los fármacos y problemas de ESTE paciente**. Está bien pensado y bien probado.
+
+Y sólo alimentaba al motor de **repuesto**.
+
+El camino real intenta SIEMPRE la diarización primero (AssemblyAI) y sólo cae a
+Whisper si aquélla falla. O sea que el motor que de verdad transcribe las
+consultas recibía `WORD_BOOST_MEDICO` pelado: **la misma lista de mil términos
+para todos los pacientes del mundo**, mientras el trabajo fino se quedaba en la
+ruta que casi nunca corre.
+
+### Por qué esto pesa más que cualquier corrección posterior
+
+El sesgo de vocabulario es lo **único** que cambia *lo que el motor oye*. El
+corrector, el guardián y las marcas de confianza trabajan sobre lo ya oído, y
+ninguno puede recuperar una palabra que nunca llegó.
+
+### Arreglado
+
+Nuevo módulo puro `sesgo-diarizado.ts`. El orden **es** la política:
+
+1. Los fármacos activos del paciente.
+2. **Sus alergias** — el cruce alergia↔fármaco compara contra lo que se OYÓ, así
+   que un alérgeno mal transcrito es un cruce que nunca salta.
+3. Sus diagnósticos y problemas.
+4. El catálogo global, que rellena hasta el tope: dejar sitio sin usar es tirar
+   sesgo.
+
+Y viaja **por los dos caminos**: audio corto (formulario) y audio largo
+(Storage + JSON). Leerlo sólo en uno habría dejado las consultas largas —las que
+más términos traen— con el sesgo genérico: el mismo defecto, a medias.
+
+### Las trampas cerradas
+
+- Sin contexto **no se queda sin sesgo**: cae al catálogo de siempre.
+- Lo del paciente **nunca** es lo que se recorta al llegar al tope.
+- El tope alcanzado **se registra**: un recorte que nadie ve se lee como «cupo
+  todo».
+- Los términos de menos de 4 letras y las frases largas no gastan sitio (el
+  proveedor descarta las frases largas enteras, sin decirlo).
+
+### El foso
+
+Ninguno de los diez productos que el equipo investigó sesga el motor de voz con
+**el expediente del paciente que está enfrente**. El líder del mercado ni
+siquiera aplica su diccionario personalizado a la ruta ambiental — está escrito
+en su propia documentación. Nosotros ya teníamos el dato; sólo faltaba llevarlo
+al motor correcto.
+
+- `src/lib/asr/sesgo-diarizado.ts` (puro, nuevo),
+  `api/expediente/transcribir-diarizado/route.ts`, `src/hooks/useGrabacionAudio.ts`,
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/sesgo-con-el-paciente.test.ts` — 18 pruebas. Total **5817**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

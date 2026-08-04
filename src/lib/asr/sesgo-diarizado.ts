@@ -1,0 +1,144 @@
+/**
+ * EL SESGO DEL MOTOR PRINCIPAL, CON EL PACIENTE QUE ESTÁ ENFRENTE.
+ *
+ * ── EL HALLAZGO ──────────────────────────────────────────────────────────────
+ *
+ * `lexicon.ts` presupuesta con cuidado los 224 tokens del prompt de Whisper y
+ * gasta primero en **los fármacos y problemas de ESTE paciente**. Está bien
+ * pensado y bien probado.
+ *
+ * Y sólo alimenta al motor de **repuesto**.
+ *
+ * El camino real intenta SIEMPRE la diarización primero (AssemblyAI) y sólo cae
+ * a Whisper si aquélla falla. O sea que el motor que de verdad transcribe las
+ * consultas recibía una lista genérica de mil términos, igual para todos los
+ * pacientes del mundo, mientras el trabajo fino se quedaba en la ruta que casi
+ * nunca corre.
+ *
+ * ── POR QUÉ ESTO IMPORTA MÁS QUE CUALQUIER CORRECCIÓN POSTERIOR ──────────────
+ *
+ * El sesgo de vocabulario es lo ÚNICO que cambia **lo que el motor oye**. Todo
+ * lo demás —el corrector, el guardián, las marcas de confianza— trabaja sobre lo
+ * que ya se oyó, y ninguna de esas etapas puede recuperar una palabra que nunca
+ * llegó. Lo dice el propio código de la otra ruta y sigue siendo cierto aquí.
+ *
+ * ── EL FOSO ──────────────────────────────────────────────────────────────────
+ *
+ * Ninguno de los diez productos del mundo que se investigaron sesga el motor de
+ * voz con el expediente del paciente que está enfrente. El líder del mercado ni
+ * siquiera aplica su diccionario personalizado a la ruta ambiental — está
+ * escrito en su documentación. Nosotros ya tenemos el dato; sólo faltaba
+ * llevarlo al motor correcto.
+ *
+ * ── LO QUE ESTE MÓDULO NO HACE ───────────────────────────────────────────────
+ *
+ * No inventa términos, no adivina fármacos parecidos y no recorta en silencio:
+ * devuelve cuántos quedaron fuera. Un tope que nadie ve se lee como «cupo todo».
+ *
+ * Módulo PURO.
+ */
+
+/**
+ * Tope de términos que acepta el proveedor.
+ *
+ * Su documentación advierte además que «la capacidad real puede ser menor por la
+ * tokenización interna», así que este número es el techo declarado, no una
+ * garantía. Por eso el orden importa: lo que va primero es lo que seguro entra.
+ */
+export const TOPE_TERMINOS = 1000
+
+/** Lo que se sabe del paciente y de la pantalla desde la que se dicta. */
+export interface ContextoSesgo {
+  /** Fármacos activos del paciente. */
+  medicamentos?: readonly string[]
+  /** Diagnósticos y problemas activos. */
+  problemas?: readonly string[]
+  /**
+   * Alérgenos del expediente.
+   *
+   * Van casi al principio a propósito: oír mal el alérgeno de un paciente es la
+   * clase de error que el cruce alergia↔fármaco no puede atrapar después,
+   * porque compara contra lo que se oyó.
+   */
+  alergias?: readonly string[]
+  /** Términos de la especialidad o del módulo activo (UCI, consulta…). */
+  especialidad?: readonly string[]
+}
+
+const limpio = (s: unknown) => String(s ?? '').trim()
+const clave = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+/**
+ * ¿Este término sirve para sesgar?
+ *
+ * Las palabras de una o dos letras no sesgan nada y gastan sitio; y una frase
+ * larga tampoco: el proveedor limita las frases a pocas palabras, así que una
+ * frase de ocho se descarta entera del lado de allá sin decirlo.
+ */
+export function utilizable(t: string): boolean {
+  const s = limpio(t)
+  if (s.length < 4) return false
+  return s.split(/\s+/).length <= 3
+}
+
+export interface SesgoCompuesto {
+  /** La lista final, en orden de prioridad y sin repetidos. */
+  terminos: string[]
+  /** Cuántos candidatos válidos NO cupieron. Nunca se recorta en silencio. */
+  descartados: number
+  /** Cuántos de los términos finales son de ESTE paciente. Para poder medirlo. */
+  delPaciente: number
+}
+
+/**
+ * Compone la lista de sesgo. **El orden ES la política.**
+ *
+ * 1. Fármacos del paciente — ninguna palabra genérica vale lo que el
+ *    antibiótico que se está dictando ahora mismo.
+ * 2. Sus alergias — oírlas mal es un daño que no se repara después.
+ * 3. Sus diagnósticos y problemas.
+ * 4. Los términos de la especialidad o del módulo desde el que se dicta.
+ * 5. El catálogo global, que es lo que había antes y sigue siendo el relleno.
+ *
+ * Dejar sitio sin usar sería tirar sesgo: cada hueco es una palabra que el
+ * reconocedor no va a esperar. Por eso el global rellena hasta el tope.
+ */
+export function componerSesgo(ctx: ContextoSesgo, global: readonly string[]): SesgoCompuesto {
+  const delPacienteCrudo = [
+    ...(ctx.medicamentos ?? []),
+    ...(ctx.alergias ?? []),
+    ...(ctx.problemas ?? []),
+  ]
+  const candidatos = [...delPacienteCrudo, ...(ctx.especialidad ?? []), ...global]
+
+  const vistos = new Set<string>()
+  const unicos: string[] = []
+  for (const c of candidatos) {
+    const s = limpio(c)
+    if (!utilizable(s)) continue
+    const k = clave(s)
+    if (vistos.has(k)) continue
+    vistos.add(k)
+    unicos.push(s)
+  }
+
+  const terminos = unicos.slice(0, TOPE_TERMINOS)
+  const propios = new Set(delPacienteCrudo.map(x => clave(limpio(x))))
+  return {
+    terminos,
+    descartados: Math.max(0, unicos.length - terminos.length),
+    delPaciente: terminos.filter(t => propios.has(clave(t))).length,
+  }
+}
+
+export const POR_QUE_EL_PACIENTE_VA_PRIMERO =
+  'El sesgo de vocabulario es lo único que cambia LO QUE EL MOTOR OYE. El ' +
+  'corrector, el guardián y las marcas de confianza trabajan sobre lo que ya se ' +
+  'oyó, y ninguno puede recuperar una palabra que nunca llegó. Así que el sitio ' +
+  'escaso se gasta primero en los fármacos y diagnósticos de este paciente.'
+
+export const POR_QUE_ES_UN_FOSO =
+  'Ninguno de los productos del mercado sesga el motor de voz con el expediente ' +
+  'del paciente que está enfrente; el líder ni siquiera aplica su diccionario ' +
+  'personalizado a la ruta ambiental, y lo dice en su propia documentación. ' +
+  'Requiere tener el expediente y el motor en la misma mano.'
