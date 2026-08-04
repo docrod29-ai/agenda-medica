@@ -4439,6 +4439,47 @@ Y un dictado de una sola frase no habla de «frases»: decir «0 de 1» es ruido
 
 ---
 
+## TANDA 142ª — v993 · EL PROMPT DEL TROZO SE CORTABA SOLO
+
+### La medición, con el contador del propio repositorio
+
+- `WHISPER_PROMPT_MEDICO` = **205 tokens**
+- `WHISPER_PROMPT_UCI` = **214 tokens**
+- `prevContext` (500 caracteres) añade ~134 → **339**
+- Límite de `whisper-1`: **224**
+
+Y Whisper lee los **ÚLTIMOS** 224 tokens. O sea que lo que se tiraba era el
+principio: **el vocabulario de fármacos**. Sobrevivía sólo el contexto previo.
+
+Es exactamente el fallo contra el que avisa el comentario de
+`medical-vocabulary.ts` —REG-064, el prompt truncado que llevó el WER de 24.4 % a
+11.9 % al arreglarlo— **reintroducido en otra ruta**.
+
+### Por qué sólo se recorta en `whisper-1`
+
+El tope es suyo; los modelos GPT de transcripción no lo documentan. Recortar en
+todos habría pagado con el contexto previo **en el modelo primario**, donde no
+hacía falta: una corrección que empeora lo que iba bien. Por eso el prompt se
+calcula **por modelo**, no una vez para los tres.
+
+### Y qué se recorta cuando hay que recortar
+
+El **contexto previo**, nunca el vocabulario. El contexto ayuda a enlazar una
+frase partida; el vocabulario es lo que hace que el motor **escriba bien un
+fármaco**. Perder lo segundo por conservar lo primero es el peor cambio posible.
+
+### Y de paso: UCI dejó de sesgarse como consultorio
+
+El texto **en vivo** de un pase de UCI usaba `WHISPER_PROMPT_MEDICO` aunque la
+pantalla hubiera pedido `contexto: 'uci'` — el mismo audio producía dos
+vocabularios distintos según qué etapa lo mirara. Ahora el módulo viaja en cada
+trozo y manda.
+
+- `src/app/api/expediente/transcribir-chunk/route.ts`, `src/hooks/useGrabacionAudio.ts`
+- `src/__tests__/prompt-chunk-presupuesto.test.ts` — 8 pruebas. Total **5930**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

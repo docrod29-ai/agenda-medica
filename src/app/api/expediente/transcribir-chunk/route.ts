@@ -18,7 +18,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
-import { WHISPER_PROMPT_MEDICO } from '@/lib/expediente/medical-vocabulary'
+import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI, tokensAprox, LIMITE_TOKENS_PROMPT } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos  } from '@/lib/ai-keys'
@@ -71,6 +71,12 @@ export async function POST(req: NextRequest) {
   const chunkIdx = Number(formData.get('chunkIdx') ?? 0)
   const prevContext = String(formData.get('prevContext') ?? '').slice(0, 500)
   /**
+   * El módulo desde el que se dicta. Sin esto, el texto EN VIVO de un pase de
+   * UCI se sesgaba con el catálogo del consultorio aunque la pantalla hubiera
+   * pedido `contexto: 'uci'` — el mismo audio producía dos vocabularios.
+   */
+  const contexto = String(formData.get('contexto') ?? '')
+  /**
    * Segundos de audio de ESTE trozo, que manda el cliente.
    *
    * Se acota a 10 minutos: un valor absurdo llegado del navegador no puede
@@ -88,9 +94,62 @@ export async function POST(req: NextRequest) {
 
   // Para chunks usamos gpt-4o-MINI primero (más rápido) — el modelo grande
   // se llama solo al final si el médico activa "re-transcribir todo".
-  const promptCompleto = prevContext
-    ? `${WHISPER_PROMPT_MEDICO}\n\nContexto previo de la consulta: "${prevContext}"`
-    : WHISPER_PROMPT_MEDICO
+  /**
+   * ── EL PROMPT DEL TROZO SE PASABA DEL LÍMITE Y SE CORTABA SOLO ──────────────
+   *
+   * Medido con el `tokensAprox` del propio repositorio: el prompt base son **205
+   * tokens** y `prevContext` (500 caracteres) añade ~134 → **339**, contra un
+   * límite de 224 en `whisper-1`.
+   *
+   * Y Whisper lee los **ÚLTIMOS** 224 tokens. O sea que lo que se tiraba era el
+   * principio: **el vocabulario de fármacos**. Sobrevivía sólo el contexto
+   * previo. Es exactamente el fallo contra el que avisa el comentario de
+   * `medical-vocabulary.ts` (REG-064, WER 24.4 % → 11.9 % al arreglarlo),
+   * reintroducido en otra ruta.
+   *
+   * Sólo muerde en `whisper-1` —los modelos GPT no documentan ese tope— pero
+   * `whisper-1` es el ÚLTIMO recurso de la cascada: el que corre justo cuando
+   * todo lo demás ya falló.
+   *
+   * ── QUÉ SE RECORTA, Y POR QUÉ ESE Y NO EL OTRO ─────────────────────────────
+   *
+   * Se recorta el **contexto previo**, nunca el vocabulario. El contexto ayuda a
+   * enlazar una frase partida; el vocabulario es lo que hace que el motor
+   * ESCRIBA BIEN un fármaco. Perder lo segundo por conservar lo primero es el
+   * peor cambio posible.
+   *
+   * Y el módulo manda: en UCI el prompt es el de cuidados críticos, no el de
+   * consultorio. Hasta ahora el texto en vivo de un pase se sesgaba con el
+   * catálogo del consultorio aunque la pantalla hubiera pedido `contexto: 'uci'`.
+   */
+  const base = contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO
+  const conContexto = prevContext
+    ? `${base}\n\nContexto previo de la consulta: "${prevContext}"`
+    : base
+
+  /**
+   * EL PRESUPUESTO SE APLICA **SÓLO A `whisper-1`**, y eso importa.
+   *
+   * El tope de 224 tokens es de `whisper-1`; los modelos GPT de transcripción no
+   * documentan ese límite. Recortar en todos habría resuelto el truncamiento
+   * pagando con el contexto previo **en el modelo primario**, donde no hacía
+   * falta — una corrección que empeora lo que iba bien.
+   *
+   * Con estos prompts (205 y 214 tokens), en `whisper-1` el contexto previo
+   * prácticamente no cabe, y esa es la decisión correcta: el contexto ayuda a
+   * enlazar una frase partida, pero el **vocabulario** es lo que hace que el
+   * motor escriba bien un fármaco. Perder lo segundo por conservar lo primero es
+   * el peor cambio posible.
+   */
+  const promptPara = (model: string): string => {
+    if (!model.startsWith('whisper')) return conContexto
+    if (tokensAprox(conContexto) <= LIMITE_TOKENS_PROMPT) return conContexto
+    const envoltura = '\n\nContexto previo de la consulta: ""'
+    const margen = LIMITE_TOKENS_PROMPT - tokensAprox(base) - tokensAprox(envoltura)
+    if (margen <= 0) return base
+    // ~4 caracteres por token, la misma aproximación que usa `tokensAprox`.
+    return `${base}\n\nContexto previo de la consulta: "${prevContext.slice(-margen * 4)}"`
+  }
 
   async function llamarOpenAI(model: string) {
     const upstream = new FormData()
@@ -98,7 +157,7 @@ export async function POST(req: NextRequest) {
     upstream.append('model', model)
     upstream.append('language', 'es')
     upstream.append('temperature', '0')
-    upstream.append('prompt', promptCompleto)
+    upstream.append('prompt', promptPara(model))
     return fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
