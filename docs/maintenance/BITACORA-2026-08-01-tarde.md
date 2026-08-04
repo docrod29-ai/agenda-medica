@@ -5840,6 +5840,48 @@ para siempre. Si no se puede leer, el pase sigue igual.
 
 ---
 
+## TANDA 175ª — v1026 · LA AUDITORÍA DE VOZ CERTIFICABA DOCE FALLOS QUE YA NO EXISTEN
+
+La tabla «P0/P1 ABIERTOS» del charter se escribió el 2 de agosto y siguió
+diciendo lo mismo durante **veinte versiones** que los fueron cerrando uno a uno.
+Dos P0 entre ellos.
+
+Un documento de auditoría que se queda quieto **no falla: certifica**. Es la
+misma clase de daño que el registro clínico con puertas inexistentes (v1020),
+sólo que al revés: aquí el papel hacía ver el producto **peor** de lo que es — y
+es el papel que lee un auditor o un comprador.
+
+Los doce se re-verificaron **abriendo el archivo, no leyendo la bitácora**. Cada
+fila dice ahora cómo se comprobó y en qué versión se cerró: la cruda de verdad
+(v996), el diálogo sin las palabras dentro, el rol dentro de cada turno y
+sellado, `speaker_options`, el modo médico y el modelo por su nombre (v1022), los
+seis roles con «no lo sé», la segunda opinión por tramos solapados, la
+revalidación de citas del ensamble, la prosa en el manifiesto de procedencia, el
+panel de cambios de cifras (v1000) y la especialidad, que la v1025 llevó hasta la
+ruta que de verdad transcribe.
+
+**La sección de mediciones también.** La negación sí tiene caso oro desde la
+v985 — lo que falta es la **temporalidad**: «tuvo neumonía hace 3 años» no es
+«tiene neumonía». Y «ningún trinquete de voz corre en CI» dejó de ser cierto hace
+versiones; lo que sigue fuera son los **tres scripts de corpus**, y no por
+pereza: el corpus vive en el disco del Dr., y un trinquete que en CI no encuentra
+sus datos pasaría **en verde** sin medir nada — peor que no tenerlo.
+
+**El guardián.** Cada archivo citado por los documentos de `docs/voice/` tiene
+que existir, incluidos los nombres sueltos sin carpeta (los más fáciles de dejar
+podridos: no dicen dónde viven). Y la tabla tiene que llevar fecha de
+re-verificación en vez de un «ABIERTOS» perpetuo, porque una lista de pendientes
+sin fecha se lee como si fuera de hoy. Probado al revés: se le metió una cita
+falsa y falló.
+
+Lo que **no** comprueba, y se dice: si lo que el documento afirma sobre ese
+archivo es cierto. Eso lo verifica una persona.
+
+- `docs/voice/VOICE-001-auditoria.md` — secciones B.2 y C puestas al día
+- REG-136 · `src/__tests__/lo-que-cita-la-auditoria-existe.test.ts` · +4 casos, total **6383**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
