@@ -38,7 +38,7 @@ import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
-import { construirManifiesto } from '@/lib/expediente/procedencia'
+import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
 /**
  * Alergias del paciente (texto libre) → lista para el sello de procedencia.
@@ -2128,6 +2128,43 @@ export default function ConsultaActivaPage() {
      * Firmar con la marca puesta significaría firmar conducta clínica que él no
      * indicó, con su cédula.
      */
+    /**
+     * COMPUERTA DE EVIDENCIA (v987).
+     *
+     * La compuerta de arriba cubre la PROSA que la IA añadió. Los campos
+     * estructurados —diagnósticos, alergias, fármacos— no tenían ninguna: uno
+     * que la extracción propuso **sin cita comprobable** entraba a la nota
+     * firmada como cualquier otro. Y son los que más pesan: un diagnóstico se
+     * arrastra a todas las notas siguientes, y una alergia gobierna el cruce que
+     * bloquea recetas.
+     *
+     * No acusa: dice cuáles no se pudieron comprobar y deja aceptarlos de una
+     * vez. «ia» aquí significa «no verificado», no «inventado».
+     */
+    const sinEvidencia = camposSinEvidencia(construirManifiesto(
+      { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
+      extraction as never,
+      aprobados,
+      {
+        transcripcion: voz.transcripcion,
+        turnos: audio.utterances.map(u => ({
+          rol: rolesHablante[u.speaker] || `Hablante ${u.speaker}`,
+          texto: u.text,
+        })),
+      },
+    ))
+    if (sinEvidencia.length > 0) {
+      const lista = sinEvidencia.slice(0, 6).map(c => `· ${c.etiqueta}: ${c.valor}`).join('\n')
+      const mas = sinEvidencia.length > 6 ? `\n…y ${sinEvidencia.length - 6} más.` : ''
+      const seguir = await confirm(
+        `${sinEvidencia.length} ${sinEvidencia.length === 1 ? 'dato no se pudo comprobar' : 'datos no se pudieron comprobar'} contra el dictado:\n\n${lista}${mas}\n\n` +
+        'Puede ser que el corrector reescribiera la frase, o que la grabación no separara las voces — no significa que estén mal. ' +
+        'Si firmas, quedan con tu cédula como datos verificados por ti.',
+        { confirmar: 'Los reviso y los asumo', cancelar: 'Volver a la nota' },
+      )
+      if (!seguir) return
+    }
+
     const pendientes = sugerenciasPendientes(secciones)
     if (pendientes > 0) {
       const quitar = await confirm(

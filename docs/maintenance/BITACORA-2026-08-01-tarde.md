@@ -4175,6 +4175,49 @@ basta con que la diga el paciente.
 
 ---
 
+## TANDA 136ª — v987 · LO QUE LA IA AFIRMÓ Y NADIE PUDO COMPROBAR
+
+### El hueco
+
+La compuerta de firma ya impedía que entrara **prosa** que la IA había añadido
+por su cuenta: el modelo la marca `[IA — no dictado]` y, antes de firmar, el Dr.
+la acepta o se va.
+
+Los campos **estructurados** no tenían ninguna compuerta. Un diagnóstico, una
+alergia o un fármaco que la extracción propuso **sin una cita comprobable**
+entraba a la nota firmada como cualquier otro. Y son los que más pesan: un
+diagnóstico se arrastra a todas las notas siguientes, y una alergia gobierna el
+cruce que bloquea recetas.
+
+El dato ya se calculaba —el manifiesto de procedencia sella cada campo como
+`dictado`, `ia` o `manual`— y **nadie lo miraba al firmar**.
+
+### Lo que hace
+
+Antes de firmar, si hay campos que la IA propuso y cuya cita no se pudo
+comprobar, se listan y se pide una decisión: **«los reviso y los asumo»** o
+volver a la nota.
+
+### Lo que NO hace, y es la mitad del asunto
+
+**No acusa.** `ia` no significa «inventado»: significa **«no se pudo
+comprobar»** — puede ser una cita que el corrector reescribió, o un dictado sin
+separación de voces. Por eso el aviso deja asumirlos **de una vez**, en vez de
+interrogar campo por campo.
+
+**Los signos vitales quedan fuera a propósito.** Los teclea el médico o los toma
+enfermería, así que su origen normal es `manual`: meterlos llenaría el aviso de
+ruido, y un aviso ruidoso se cierra sin leer — ahí se pierde entero.
+
+**Y lo que ya marcó como visto bueno no se vuelve a preguntar.** Volver a
+preguntar lo que él ya aprobó es la definición de fatiga de alertas.
+
+- `src/lib/expediente/procedencia.ts` (`camposSinEvidencia`),
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/procedencia.test.ts` +6. Total **5870**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

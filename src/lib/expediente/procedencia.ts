@@ -429,3 +429,56 @@ export function resumenProcedencia(r: ResumenProcedencia): string {
 export function etiquetaOrigen(o: OrigenCampo): string {
   return ETIQUETA_ORIGEN[o]
 }
+
+/**
+ * ── LO QUE LA IA AFIRMÓ Y NADIE PUDO COMPROBAR ───────────────────────────────
+ *
+ * La compuerta de firma ya impedía que entrara **prosa** que la IA añadió por su
+ * cuenta: el modelo la marca, y antes de firmar el médico la acepta o la quita.
+ *
+ * Los campos ESTRUCTURADOS no tenían esa compuerta. Un diagnóstico, una alergia
+ * o un fármaco que la extracción propuso **sin una cita comprobable** entraba a
+ * la nota firmada como cualquier otro. Y son justo los que más pesan: un
+ * diagnóstico se arrastra a todas las notas siguientes, y una alergia gobierna
+ * el cruce que bloquea recetas.
+ *
+ * ── POR QUÉ SÓLO ESTOS TRES ──────────────────────────────────────────────────
+ *
+ * Los signos vitales quedan fuera a propósito: los teclea el médico o los toma
+ * enfermería, así que su origen normal es `manual` y meterlos aquí llenaría el
+ * aviso de ruido. Un aviso ruidoso se cierra sin leer, y ahí se pierde entero.
+ *
+ * ── LO QUE **NO** ES ─────────────────────────────────────────────────────────
+ *
+ * `ia` no significa «inventado». Significa **«no se pudo comprobar»**: puede ser
+ * una cita que el corrector reescribió, o un dictado sin separación de voces. Por
+ * eso la salida es un aviso con un botón para aceptarlos todos, no una acusación
+ * campo por campo.
+ */
+export interface CampoSinEvidencia {
+  id: string
+  etiqueta: string
+  valor: string
+}
+
+/** Los campos que la IA propuso y cuya cita no se pudo comprobar. */
+export function camposSinEvidencia(m: ManifiestoProcedencia): CampoSinEvidencia[] {
+  const CUENTAN = new Set(['Diagnóstico', 'Alergia', 'Medicamento'])
+  return m.campos
+    .filter(c => c.origen === 'ia' && CUENTAN.has(c.etiqueta))
+    // Lo que el médico ya marcó como visto bueno en el panel de revisión ya pasó
+    // por sus ojos: volver a preguntarlo es la definición de fatiga de alertas.
+    .filter(c => c.confirmado !== true)
+    .map(c => ({ id: c.id, etiqueta: c.etiqueta, valor: c.valor }))
+}
+
+export const POR_QUE_LOS_SIGNOS_QUEDAN_FUERA =
+  'Los signos vitales los teclea el médico o los toma enfermería, así que su ' +
+  'origen normal es «manual»: meterlos en el aviso lo llenaría de ruido. Un ' +
+  'aviso ruidoso se cierra sin leer, y ahí se pierde entero.'
+
+export const POR_QUE_IA_NO_ES_INVENTADO =
+  '«ia» no significa inventado: significa que no se pudo comprobar. Puede ser ' +
+  'una cita que el corrector reescribió o un dictado sin separación de voces. ' +
+  'Por eso el aviso deja aceptarlos todos de una vez, en vez de acusar campo ' +
+  'por campo.'

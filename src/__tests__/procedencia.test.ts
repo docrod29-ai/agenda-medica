@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { construirManifiesto, resumenProcedencia, normaliza, POR_QUE_V3 } from '@/lib/expediente/procedencia'
+import {
+  construirManifiesto, resumenProcedencia, normaliza, POR_QUE_V3,
+  camposSinEvidencia, POR_QUE_LOS_SIGNOS_QUEDAN_FUERA, POR_QUE_IA_NO_ES_INVENTADO,
+} from '@/lib/expediente/procedencia'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 describe('Sello de procedencia', () => {
   it('clasifica dictado (con cita), IA (sin cita) y manual', () => {
@@ -348,5 +353,85 @@ describe('V3 · de quién es la cita', () => {
   it('la razón está escrita', () => {
     expect(POR_QUE_V3).toMatch(/la cita es verdadera y la conclusión es falsa/)
     expect(POR_QUE_V3).toMatch(/el médico es quien prescribe/)
+  })
+})
+
+/**
+ * ── LA COMPUERTA DE EVIDENCIA (v987) ────────────────────────────────────────
+ *
+ * La compuerta de firma ya impedía que entrara **prosa** que la IA añadió por su
+ * cuenta. Los campos ESTRUCTURADOS no tenían ninguna: un diagnóstico, una
+ * alergia o un fármaco propuesto **sin cita comprobable** entraba a la nota
+ * firmada como cualquier otro.
+ *
+ * Y son los que más pesan: un diagnóstico se arrastra a todas las notas
+ * siguientes, y una alergia gobierna el cruce que bloquea recetas.
+ */
+describe('LO QUE LA IA AFIRMÓ Y NADIE PUDO COMPROBAR', () => {
+  const conCita = (v: string) => ({ descripcion: v, source_quote: 'me duele la cabeza' })
+
+  it('lista los diagnósticos cuya cita no se pudo comprobar', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Cefalea' }, { descripcion: 'Migraña' }] },
+      { diagnosticos: [conCita('Cefalea'), { descripcion: 'Migraña', source_quote: 'esto no está en el dictado' }] },
+      undefined,
+      { transcripcion: 'vengo porque me duele la cabeza' },
+    )
+    const sin = camposSinEvidencia(m)
+    expect(sin.map(c => c.valor)).toEqual(['Migraña'])
+  })
+
+  it('los signos vitales quedan FUERA, y no es un olvido', () => {
+    /**
+     * Los teclea el médico o los toma enfermería: su origen normal es `manual`.
+     * Meterlos llenaría el aviso de ruido, y un aviso ruidoso se cierra sin
+     * leer — ahí se pierde entero.
+     */
+    const m = construirManifiesto(
+      { signosVitales: { fc: '80' } as never },
+      undefined,
+      undefined,
+      { transcripcion: 'x' },
+    )
+    expect(camposSinEvidencia(m)).toEqual([])
+    expect(POR_QUE_LOS_SIGNOS_QUEDAN_FUERA).toMatch(/se cierra sin leer/)
+  })
+
+  it('lo que el médico YA marcó como visto bueno no se vuelve a preguntar', () => {
+    // Volver a preguntar lo que ya aprobó es la definición de fatiga de alertas.
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Migraña' }] },
+      { diagnosticos: [{ descripcion: 'Migraña', source_quote: 'no está' }] },
+      new Set(['dx:0']),
+      { transcripcion: 'vengo porque me duele la cabeza' },
+    )
+    expect(camposSinEvidencia(m)).toEqual([])
+  })
+
+  it('lo escrito a mano por el médico NO entra en el aviso', () => {
+    // `manual` es «lo escribió él»: preguntarle si avala su propio texto no
+    // significa nada.
+    const m = construirManifiesto({ diagnosticos: [{ descripcion: 'Diabetes' }] })
+    expect(camposSinEvidencia(m)).toEqual([])
+  })
+
+  it('«ia» NO significa inventado, y el aviso lo dice', () => {
+    /**
+     * Puede ser una cita que el corrector reescribió, o un dictado sin
+     * separación de voces. Por eso la salida deja aceptarlos todos de una vez en
+     * vez de acusar campo por campo.
+     */
+    expect(POR_QUE_IA_NO_ES_INVENTADO).toMatch(/no se pudo comprobar/)
+    expect(POR_QUE_IA_NO_ES_INVENTADO).toMatch(/corrector reescribió/)
+  })
+
+  it('la compuerta está conectada a la firma', () => {
+    const page = readFileSync(
+      join(process.cwd(), 'src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx'), 'utf8',
+    )
+    expect(page).toContain('camposSinEvidencia(construirManifiesto(')
+    expect(page).toMatch(/no se pudo comprobar/)
+    // Y no bloquea a ciegas: ofrece asumirlos.
+    expect(page).toContain('Los reviso y los asumo')
   })
 })
