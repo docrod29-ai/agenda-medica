@@ -5176,6 +5176,54 @@ real es `config/main`.
 
 ---
 
+## TANDA 160ª — v1011 · EL SIMULACRO DE RESTAURACIÓN NUNCA SE HABÍA CORRIDO (D8)
+
+`docs/SIMULACRO_RESTAURACION.md` tiene el procedimiento entero y su historial
+decía literalmente **«todavía ninguno»**. La frase del auditor es la correcta:
+sin un tiempo medido no hay respuesta para un hospital que pregunte cuánto tarda
+NexusMED en volver.
+
+### Lo que ya se puede correr
+
+```bash
+npm run simulacro:respaldo
+```
+
+Toma un respaldo NDJSON —sintético por defecto, o el **real** si se le pasa la
+ruta— y lo corre entero por el camino de vuelta **con las mismas funciones que
+usa la importación**, midiendo cuánto tarda. Medido hoy: **200 001 documentos en
+161 ms**. Sale con código distinto de cero si el ensayo no está limpio, para que
+pueda vigilarlo algo automático y no sólo una persona leyendo.
+
+Comprueba que un archivo **sin pie** no está limpio aunque todo lo demás lo esté
+—se cortó a medias y lo que falta no se puede saber cuál era—; que una línea rota
+se rechaza con su razón y no aborta el resto, pero tampoco deja pasar el ensayo;
+que las **llaves de API no vuelven** ni aunque el archivo las traiga; y que el
+re-enraizado se ejercita, porque un ensayo que se salta el paso que puede fallar
+no ensaya nada.
+
+### Lo que NO mide, dicho en el acta y en la salida
+
+El tiempo de `gcloud firestore databases restore`, que es de Google y hay que
+cronometrarlo a mano. Un número presentado como «el RTO» cubriendo sólo un tramo
+es **peor** que no tener número, porque nadie lo vuelve a comprobar. Y el acta
+lleva el tiempo **que le pasan**, no uno estimado: un tiempo inventado en un
+documento de continuidad es peor que ninguno.
+
+### Y tres puntos que ya estaban cerrados
+
+Verificándolos en el código antes de tocarlos: **D3** (respaldo servidor + NDJSON
+paginado, con importador y modo ensayo), **D4** (la migración ya exporta lo
+clínico por dominio) y **D6** (la bitácora ya se descarga en CSV con su periodo
+declarado). Se marcaron como tales en vez de apuntarme cierres que no me
+correspondían.
+
+- `src/lib/clinica/simulacro.ts` y `scripts/simulacro-respaldo.mjs` (nuevos),
+  `docs/SIMULACRO_RESTAURACION.md`, `package.json`
+- `src/__tests__/simulacro-respaldo.test.ts` — 13 pruebas. Total **6158**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5218,14 +5266,23 @@ sustancialmente mejor de lo que un comprador puede ver».
   **v1009**.
 - D2. **La A de ARCO no existe**: se «resuelve» con un `prompt()`
   (`cumplimiento/page.tsx:203`). Plazo de 20 días que se cuenta y no se cumple.
-- D3. El respaldo del consultorio es un N+1 secuencial EN EL NAVEGADOR y no hay
-  importador: no se puede volver a entrar.
-- D4. La «migración de salida» son 11 columnas de demografía.
+- D3. ~~El respaldo del consultorio es un N+1 secuencial EN EL NAVEGADOR y no hay
+  importador: no se puede volver a entrar.~~ **YA ESTABA CERRADO** (verificado
+  2026-08-04): `clinic/exportar` es servidor + NDJSON paginado y `clinic/importar`
+  existe, con modo ensayo y candados.
+- D4. ~~La «migración de salida» son 11 columnas de demografía.~~ **YA ESTABA
+  CERRADO** (verificado 2026-08-04): la pantalla de Migración exporta también lo
+  clínico por dominio, una fila por elemento, además del libro completo.
 - D5. ~~No existe exportación a Excel. Ninguna.~~ **CERRADO v960** (escritor propio, sin dependencia nueva).
-- D6. La bitácora de accesos no se puede exportar (NOM-024).
+- D6. ~~La bitácora de accesos no se puede exportar (NOM-024).~~ **YA ESTABA
+  CERRADO** (verificado 2026-08-04): `api/cumplimiento/bitacora` entrega el CSV
+  del periodo, con la ventana declarada en el archivo.
 - D7. ~~Dos implementaciones FHIR divergentes; la ruta HTTP usa la pobre.~~ **CERRADO v1010**.
-- D8. Restauración nunca probada: `docs/SIMULACRO_RESTAURACION.md` sin una sola
-  fila de evidencia. Sin RTO medido no hay respuesta para un hospital.
+- D8. ~~Restauración nunca probada: `docs/SIMULACRO_RESTAURACION.md` sin una sola
+  fila de evidencia.~~ **MITAD CERRADA v1011**: `npm run simulacro:respaldo` mide
+  la ida y vuelta del respaldo (200 001 documentos en 161 ms, acta en el
+  documento). **BLOQUEADO EN EL DR** la otra mitad: el `gcloud firestore
+  databases restore` necesita consola y cronómetro a mano.
 
 ### INGENIERÍA 7.0 — «no tiene forma de avisar que algo se rompió»
 - I1. Ningún canal de alerta a un humano. Cero. El buzón del plan de incidentes

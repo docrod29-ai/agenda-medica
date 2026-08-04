@@ -136,4 +136,36 @@ Un simulacro de hace dos años y ninguno son casi lo mismo.
 
 ## Historial de simulacros
 
-*(Todavía ninguno. La primera entrada aquí es lo que cierra el P0-6.)*
+### Lo que se puede ensayar sin consola, y lo que no
+
+El ensayo de arriba —el de `gcloud`— necesita la consola y hay que cronometrarlo
+a mano. **La otra mitad sí se puede correr ahora mismo, cuantas veces haga
+falta**, y es la que depende de nuestro código:
+
+```bash
+npm run simulacro:respaldo
+```
+
+Toma un respaldo NDJSON —sintético por defecto, o el real si se le pasa la ruta—,
+lo corre entero por el camino de vuelta con **las mismas funciones que usa la
+importación**, y mide cuánto tarda. Sale con código distinto de cero si no está
+limpio, para que pueda vigilarlo algo automático y no sólo una persona leyendo.
+
+### Ensayo de ida y vuelta del 2026-08-04
+
+- Documentos en el respaldo: **200001** (200000 restaurables, 1 excluidos por política)
+- Tardó: **161 ms** — 1,239,038 documentos/segundo
+- Cabecera y pie: ✅ / ✅
+- Líneas rechazadas: 0
+- Por colección: patients: 80000, appointments: 40000, cobros: 40000, audit_log: 40000
+- Veredicto: ✅ el respaldo vuelve entero
+
+> **Qué NO mide esto:** el tiempo de `gcloud firestore databases restore`,
+> que es de Google y hay que cronometrarlo en el ensayo con consola. Éste
+> mide nuestra mitad: que el archivo vuelve a leerse entero y cuánto tarda.
+
+### El ensayo con consola
+
+*(Pendiente: necesita `gcloud` y el proyecto de Firebase. Es lo único de esta
+página que no se puede automatizar desde el repositorio, y es lo que falta para
+cerrar el P0-6 del todo.)*

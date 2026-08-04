@@ -15,6 +15,7 @@
     "test:cobertura": "vitest run --coverage",
     "test:emulador": "firebase emulators:exec --only firestore --project demo-nexusmed-test \"vitest run --config vitest.emulator.config.ts\"",
     "respaldos:verificar": "node scripts/respaldos-verificar.mjs",
+    "simulacro:respaldo": "npx tsx scripts/simulacro-respaldo.mjs",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync",
