@@ -5135,6 +5135,47 @@ bitácora, y declara lo que no se pudo leer.
 
 ---
 
+## TANDA 159ª — v1010 · DOS IMPLEMENTACIONES FHIR, Y LA VIVA ERA LA POBRE (D7)
+
+`lib/fhir/recursos.ts` y `lib/fhir-export.ts` mapeaban **el mismo modelo** de dos
+maneras distintas, y la **API HTTP viva** —la que consulta un sistema de
+terceros— usaba la primera. Diferían justo en lo que importa:
+
+1. Mapeaba **todas** las notas sin mirar si estaban firmadas: los diagnósticos de
+   un borrador salían como `Condition` **confirmadas**, con el mismo peso que los
+   de una nota firmada. Es lo que la firma existe para impedir, y ocurría en la
+   interfaz por la que los datos salen **hacia fuera**.
+2. No emitía ningún `Composition`: el texto de la nota no viajaba, sólo sus
+   fragmentos estructurados.
+3. No llevaba `Practitioner`, ni atestación, ni encuentro.
+
+### Por qué no se arregla corrigiendo las dos
+
+Porque no se mantienen sincronizadas: una se corrige y la otra se queda, y nadie
+se entera **hasta que un tercero recibe el archivo malo**. Ahora hay una sola y la
+otra delega, con una prueba que compara los dos bundles campo por campo: si
+alguien reintroduce un mapeo propio, el CI se pone rojo.
+
+### Unificar no puede significar perder
+
+Lo bueno del mapeo pobre —**las alergias una por alérgeno**, con categoría y
+criticidad, en vez de una sola cadena con «penicilina, mariscos, yodo» dentro— se
+llevó a la buena. Un receptor que quiera cruzar una receta contra las alergias no
+puede hacer nada con un párrafo donde esperaba una lista. La criticidad sólo se
+declara cuando el expediente la trae: «alta» por defecto llenaría de alarmas al
+receptor y «baja» las apagaría.
+
+Y la ruta pasa ahora la **configuración**, de donde sale la cédula profesional del
+`Practitioner`: sin ella el receptor recibía un documento sin autor identificable.
+
+**Fallo mío cazado al escribirlo:** había puesto `config/general` y el documento
+real es `config/main`.
+
+- `src/lib/fhir-export.ts`, `src/lib/fhir/recursos.ts`, `api/fhir/paciente/[patientId]/route.ts`
+- `src/__tests__/una-sola-implementacion-fhir.test.ts` + `fhir-recursos.test.ts` — 11 pruebas. Total **6145**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5182,7 +5223,7 @@ sustancialmente mejor de lo que un comprador puede ver».
 - D4. La «migración de salida» son 11 columnas de demografía.
 - D5. ~~No existe exportación a Excel. Ninguna.~~ **CERRADO v960** (escritor propio, sin dependencia nueva).
 - D6. La bitácora de accesos no se puede exportar (NOM-024).
-- D7. Dos implementaciones FHIR divergentes; la ruta HTTP usa la pobre.
+- D7. ~~Dos implementaciones FHIR divergentes; la ruta HTTP usa la pobre.~~ **CERRADO v1010**.
 - D8. Restauración nunca probada: `docs/SIMULACRO_RESTAURACION.md` sin una sola
   fila de evidencia. Sin RTO medido no hay respuesta para un hospital.
 

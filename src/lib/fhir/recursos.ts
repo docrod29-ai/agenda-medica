@@ -11,6 +11,8 @@
 import type { Patient, AlergiaEstructurada } from '@/types'
 import type { NotaMedica, Medicamento, Diagnostico, SignosVitales } from '@/types/expediente'
 import { alergiasDe } from '@/lib/seguridad/alergias'
+import { exportarPacienteAFhir } from '@/lib/fhir-export'
+import type { ClinicConfig } from '@/types'
 
 type Recurso = Record<string, unknown>
 
@@ -132,17 +134,36 @@ export function notaAFHIR(patientId: string, nota: NotaMedica): Recurso[] {
   ]
 }
 
-/** Bundle FHIR (collection) con el paciente y todo su expediente mapeado. */
-export function bundlePaciente(p: Patient, notas: NotaMedica[]): Recurso {
-  const recursos: Recurso[] = [
-    pacienteAFHIR(p),
-    ...alergiasAFHIR(p.id, alergiasDe(p)),
-    ...notas.flatMap(n => notaAFHIR(p.id, n)),
-  ]
-  return {
-    resourceType: 'Bundle',
-    type: 'collection',
-    total: recursos.length,
-    entry: recursos.map(r => ({ resource: r })),
-  }
+/**
+ * Bundle FHIR (collection) con el paciente y todo su expediente mapeado.
+ *
+ * ── HABÍA DOS IMPLEMENTACIONES, Y LA VIVA ERA LA POBRE (D7) ─────────────────
+ *
+ * Este módulo y `fhir-export.ts` mapeaban lo mismo de dos maneras distintas, y
+ * **la ruta HTTP —la que consume un sistema de terceros— usaba ésta**. Diferían
+ * en lo que importa:
+ *
+ * · Ésta mapeaba **todas** las notas, sin mirar si estaban firmadas: los
+ *   diagnósticos de un borrador salían como `Condition` **confirmadas**, con el
+ *   mismo peso que los de una nota firmada. Es exactamente lo que la firma
+ *   existe para impedir.
+ * · No emitía ningún `Composition`, así que el texto de la nota —el documento
+ *   clínico— no viajaba: sólo sus fragmentos estructurados.
+ * · No llevaba `Practitioner`, ni atestación, ni encuentro.
+ *
+ * Dos implementaciones del mismo mapeo no se mantienen sincronizadas: una se
+ * corrige y la otra se queda, y nadie se entera hasta que un tercero recibe el
+ * archivo malo. Así que ahora **hay una sola** y ésta delega.
+ *
+ * Lo bueno de este módulo —las alergias una a una, con categoría y criticidad,
+ * en vez de una cadena de texto— se llevó a la implementación buena.
+ */
+export function bundlePaciente(p: Patient, notas: NotaMedica[], config: ClinicConfig | null = null): Recurso {
+  return exportarPacienteAFhir({ paciente: p, notas, config }) as unknown as Recurso
 }
+
+export const POR_QUE_UNA_SOLA_IMPLEMENTACION =
+  'Dos implementaciones del mismo mapeo no se mantienen sincronizadas: una se ' +
+  'corrige y la otra se queda, y nadie se entera hasta que un tercero recibe el ' +
+  'archivo malo. La que usaba la ruta HTTP exportaba los diagnósticos de un ' +
+  'BORRADOR como confirmados.'
