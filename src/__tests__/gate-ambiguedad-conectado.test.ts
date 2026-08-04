@@ -119,7 +119,12 @@ describe('EL GATE SALE DEL HOOK Y LLEGA A LAS PANTALLAS', () => {
 
   it('la consulta los enseña', () => {
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toContain('textosDeMotivos(audio.motivosConfirmacion)')
+    /**
+     * La v1015 añadió el séptimo motivo, que la consulta calcula ella misma
+     * porque necesita los medicamentos extraídos además del texto. Se comprueba
+     * que los del hook siguen entrando en la lista.
+     */
+    expect(page).toContain('...audio.motivosConfirmacion,')
     expect(page).toMatch(/Conviene confirmar antes de firmar/)
   })
 
