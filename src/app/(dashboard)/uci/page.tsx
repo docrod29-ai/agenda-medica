@@ -38,6 +38,7 @@ import { SOPORTES_ACTIVOS, SOPORTE_LABEL, type SoporteActivo } from '@/types/hos
 import { medirEstancia } from '@/lib/uci/estancia'
 import { useConfig } from '@/hooks/useConfig'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
+import { leerAprendido } from '@/lib/asr/aprendizaje-firestore'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
@@ -262,6 +263,22 @@ export default function UciPanelPage() {
    * 2. Y esos trozos son PHI: la conversación de un paciente crítico quedaba
    *    huérfana en el dispositivo, **sin forma de borrarla desde la app**.
    */
+  /**
+   * LO QUE ESTE MÉDICO YA CORRIGIÓ A MANO, TAMBIÉN EN EL PASE (v1025).
+   *
+   * El aprendizaje se guarda **por consultorio** desde la v1024, así que aquí no
+   * hace falta un paciente para leerlo: es el mismo médico, dictando las mismas
+   * palabras, en la pantalla donde más fármacos hay. Sin esto, LEARN mejoraba la
+   * consulta y dejaba la UCI exactamente igual que antes.
+   */
+  const [aprendidoUci, setAprendidoUci] = useState<string[]>([])
+  useEffect(() => {
+    if (!clinicId) return
+    leerAprendido(clinicId)
+      .then(l => setAprendidoUci(l.map(a => a.palabra)))
+      .catch(() => {})   // es un extra: nunca puede estorbar al pase
+  }, [clinicId])
+
   const [ofreceRecovery, setOfreceRecovery] = useState(false)
   const claveRecovery = `uci-panel${internamientoId ? '.' + internamientoId : ''}`
   useEffect(() => {
@@ -288,7 +305,8 @@ export default function UciPanelPage() {
      * sólo puede añadir: sin coincidencia devuelve vacío.
      */
     especialidades: especialidadesDelMedico(config?.especialidad),
-  }), [internamientoId, inter?.indicaciones, inter?.diagnosticoIngreso, alergias.negadas, alergias.lista, config?.especialidad])
+    aprendidas: aprendidoUci,
+  }), [internamientoId, inter?.indicaciones, inter?.diagnosticoIngreso, alergias.negadas, alergias.lista, config?.especialidad, aprendidoUci])
   const [discusionTxt, setDiscusionTxt] = useState('')
   const [detectados, setDetectados] = useState<string[]>([])
   const [avisosVoz, setAvisosVoz] = useState<AvisoExtraccionUCI[]>([])

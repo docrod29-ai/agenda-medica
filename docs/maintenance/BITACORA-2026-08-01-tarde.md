@@ -5797,6 +5797,49 @@ hace falta, y el archivo llamado «respaldo» seguiría pareciendo completo.
 
 
 
+## TANDA 174ª — v1025 · LO APRENDIDO LLEGABA AL MOTOR DE REPUESTO, NO AL QUE TRANSCRIBE
+
+LEARN (v1023/v1024) metió las palabras que el médico corrige en el léxico de las
+rutas de Whisper. Pero en una consulta grabada **la diarización se intenta
+primero** y Whisper es el respaldo — lo dice el propio archivo desde la v981,
+cuando este **mismo** fallo se reparó para los fármacos del paciente.
+
+Así que el trabajo de dos versiones —lo único del vocabulario ganado con
+evidencia sobre ESTE médico— llegaba al motor que casi nunca corre.
+
+Lo mismo con la **especialidad** (v1022): `ContextoSesgo.especialidad` estaba
+declarado y `componerSesgo` lo ordenaba, y **la ruta no leía el campo**. Nadie lo
+llenaba nunca.
+
+Escrito, probado y sin conectar. No falla, no rompe ninguna prueba y no se nota:
+sale una transcripción normal con la palabra de siempre mal escrita.
+
+**Cableado por los dos caminos**, el corto (multipart) y el largo (JSON). El
+largo es el de la consulta larga, que es la que más términos trae: cablear sólo
+uno dejaría sin sesgo justo a la consulta más difícil — que es exactamente lo que
+ya pasó una vez.
+
+**El orden del sesgo.** Lo aprendido va después de lo del paciente y antes del
+catálogo global. No contradice al léxico, donde va primero: allí caben 224 tokens
+y aquí 1 000, así que los dos entran y el orden sólo decide el margen. En ese
+margen sigue mandando lo que el paciente toma ahora mismo. Y **no cuenta como
+término del paciente**: `delPaciente` es la cifra con la que se mide si el
+expediente sesga de verdad, e inflarla con vocabulario del consultorio la
+volvería una medición falsa de lo que más se presume.
+
+**Y UCI**, que es la pantalla con más fármacos del hospital. Lee lo aprendido del
+consultorio — posible sólo desde la v1024: en un pase de visita no hay expediente
+de consulta del que derivarlo, y con el modelo anterior se habría quedado fuera
+para siempre. Si no se puede leer, el pase sigue igual.
+
+- `src/lib/asr/sesgo-diarizado.ts` — `aprendidas` en el contrato y en el orden
+- `src/app/api/expediente/transcribir-diarizado/route.ts` — los dos caminos
+- `src/hooks/useGrabacionAudio.ts` — los dos caminos
+- `src/app/(dashboard)/uci/page.tsx` — lo aprendido del consultorio en el pase
+- REG-135 · `src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts` · +12 casos, total **6379**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
