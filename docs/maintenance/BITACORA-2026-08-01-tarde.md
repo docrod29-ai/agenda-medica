@@ -3843,6 +3843,56 @@ segura.
 
 ---
 
+## CENTÉSIMA VIGESIMONOVENA TANDA — v980 · UCI GRABABA CON EL PROCESAMIENTO QUE HAY QUE APAGAR
+
+Del equipo de audio. Verificado por mí: los tres procesadores del navegador
+venían `?? true` en el hook. **La consulta los apagaba a mano; UCI y el banco de
+voz no pasaban nada**, así que grababan con supresión de ruido y cancelación de
+eco ENCENDIDAS.
+
+### Por qué importa (no es una opinión de estilo)
+
+Los cuatro proveedores de reconocimiento lo desaconsejan **por escrito**: Google
+(«All noise reduction processing should be disabled»), Deepgram («strips
+acoustic details that the ASR model relies on»), AssemblyAI («for playback
+purposes only, not before transcription»). Y hay medición sobre habla médica
+(arXiv 2512.17562): el audio «limpiado» se transcribe peor en todas las
+condiciones de ruido probadas.
+
+El mecanismo es físico: la supresión decide banda por banda qué energía es voz y
+atenúa el resto. Las fricativas (/s/, /f/) son ruido de banda ancha y poca
+energía —indistinguibles del ruido para ese estimador—, así que lo que se pierde
+es exactamente lo que separa «seis» de «diez» y «mg» de «mL».
+
+### Lo peor no era UCI
+
+**El banco de voz tampoco pasaba constraints.** O sea que la herramienta con la
+que medimos la calidad **medía en condiciones distintas a las de la consulta
+real**. Una medición que no describe el camino que usa el médico no sirve para
+decidir nada.
+
+### Lo que NO se tocó
+
+La consulta conserva `autoGainControl: true` explícito. Ahí compensa un problema
+físico real —el paciente a ~2 m del micrófono y el médico a ~0.5 m son unos 12 dB
+de diferencia— y quitarlo antes de arreglar la colocación sería el clásico cambio
+«correcto según la documentación» que empeora el resultado.
+
+### Y la app dejó de afirmar lo que nunca comprobó
+
+`sampleRate` en `getUserMedia` es una constraint de disponibilidad limitada: si
+el navegador no la soporta, **se ignora en silencio**. La pantalla llevaba
+enseñando «16kHz/64kbps» como un hecho. Ahora se leen los ajustes reales de la
+pista y se enseña lo concedido —incluido un aviso si el sistema aplicó supresión
+de ruido por su cuenta—. También se quitó el «/ 25 MB»: el tope que de verdad
+cambia el comportamiento son **3.6 MB**, y quien vigilara 25 no veía venir el
+cambio de camino.
+
+- `src/hooks/useGrabacionAudio.ts`, `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/captura-audio-sin-procesar.test.ts` — 11 pruebas. Total **5799**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
