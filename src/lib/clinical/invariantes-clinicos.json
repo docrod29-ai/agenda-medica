@@ -337,6 +337,10 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
+      "minCasos": 14
+    },
+    {
       "archivo": "src/__tests__/lo-que-cita-la-auditoria-existe.test.ts",
       "minCasos": 4
     },

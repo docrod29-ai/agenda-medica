@@ -103,6 +103,7 @@ import { palabrasDudosas, marcarTurno, paraElMedico, anexoDeDudas, INSTRUCCION_M
 import { medicamentosSoloPropuestos, estudiosSoloPropuestos } from '@/lib/asr/intencion-de-orden'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
+import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
@@ -688,6 +689,23 @@ export default function ConsultaActivaPage() {
     const textoNota = [resumen, diagnosticos.join('. '), ...Object.values(secciones ?? {})]
       .filter(Boolean).join('\n')
     return contradicciones(negadas, textoNota)
+  }, [voz.transcripcion, resumen, diagnosticos, secciones])
+  /**
+   * EL PASADO NO ES EL PRESENTE.
+   *
+   * El hermano del anterior, y el hueco que la propia auditoría de voz declaraba
+   * sin motor: «tuvo neumonía hace tres años» acabando escrito como padecimiento
+   * actual. Se arrastra igual —queda en el expediente y se copia a la nota
+   * siguiente— y se resuelve igual: se enseñan las dos frases y decide el médico.
+   */
+  const desajustesNota = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    const pasadas = mencionesEnPasado(dictado)
+    if (!pasadas.length) return []
+    const textoNota = [resumen, diagnosticos.join('. '), ...Object.values(secciones ?? {})]
+      .filter(Boolean).join('\n')
+    return desajustesTemporales(pasadas, textoNota)
   }, [voz.transcripcion, resumen, diagnosticos, secciones])
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
@@ -3871,6 +3889,26 @@ export default function ConsultaActivaPage() {
             <div style={{ marginTop: 6, opacity: .9 }}>
               El sistema no decide cuál es correcta —un paciente puede negar algo que sí tiene
               documentado—: sólo se niega a dejarlo pasar en silencio.
+            </div>
+          </Alert>
+        </div>
+      )}
+
+      {/*
+        DESAJUSTE TEMPORAL DICTADO ↔ NOTA.
+        En ámbar y no en rojo a propósito: escribir un padecimiento pasado no es
+        un error como lo es afirmar algo que se negó. Puede seguir importando
+        como antecedente — lo que no puede es figurar como actual sin que nadie
+        lo haya mirado.
+      */}
+      {desajustesNota.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <Alert tone="warning" icon={<AlertTriangle size={18} />} title="La nota da por actual algo que en el dictado se dijo en pasado">
+            {desajustesNota.map((d, i) => (
+              <div key={`${d.condicion}-${i}`} style={{ marginBottom: 4, lineHeight: 1.5 }}>{avisoDeDesajuste(d)}</div>
+            ))}
+            <div style={{ marginTop: 6, opacity: .9 }}>
+              El sistema no decide si sigue activa: mira cómo se dijo la frase, no el hecho clínico.
             </div>
           </Alert>
         </div>
