@@ -720,7 +720,31 @@ export default function UciPanelPage() {
   // ── Pasar la nota YA generada al expediente para revisar y FIRMAR ──
   const pasarANota = () => {
     if (!inter || !internamientoId) return
-    try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(notaSecciones)) } catch { /* */ }
+    /**
+     * LA NOTA DE UCI DEJA DE NACER HUÉRFANA.
+     *
+     * La semilla llevaba **sólo las secciones**. Consecuencia medida en el
+     * código de la consulta: un pase DICTADO se firmaba como
+     * `fuenteGeneracion: 'manual'`, sin `transcripcionCruda` y sin
+     * `dialogoDiarizado` — y, como casi todas las defensas exigen que exista
+     * `voz.transcripcion`, se apagaban **todas a la vez**: el motor de
+     * negaciones, las palabras a verificar, la compuerta de evidencia, la
+     * segunda opinión y el manifiesto de procedencia.
+     *
+     * O sea: el camino que más nota firmada produce en UCI era el que menos
+     * protección tenía. Y no por una decisión: porque el dictado no viajaba.
+     *
+     * Ahora viaja. Con eso solo, la nota de UCI recupera de golpe todo lo
+     * anterior, sin tocar ninguna de esas defensas.
+     */
+    const semilla = {
+      secciones: notaSecciones,
+      // El pase tal como quedó (dictado o escrito). Es la fuente de verdad.
+      dictado: paseTexto.trim() || audio.transcripcion.trim(),
+      // Los turnos, para que la consulta pueda juzgar de quién es cada cita.
+      utterances: audio.utterances,
+    }
+    try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(semilla)) } catch { /* */ }
     router.push(`/consulta/${inter.pacienteId}?tipo=evolucion_uci&internamiento=${internamientoId}&fuente=uci`)
   }
 
