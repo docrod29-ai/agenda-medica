@@ -104,6 +104,46 @@ describe('LA RUTA PIDE EL MODELO POR SU NOMBRE', () => {
   })
 })
 
+/**
+ * ── EL MODO MÉDICO, ENCENDIDO POR DECISIÓN DEL DR. (4-ago-2026) ────────────
+ *
+ * `domain: 'medical-v1'` es un modelo de dominio entrenado en lenguaje clínico.
+ * Su documentación declara cuatro idiomas —inglés, **español**, alemán y
+ * francés—, así que el español no es un caso degradado.
+ *
+ * Estaba apagado porque **puede facturarse aparte**, y encender un cargo
+ * recurrente en la cuenta de otro no es una decisión de ingeniería. Quedó
+ * anotado como pendiente del Dr. desde la v1002.
+ */
+describe('EL MODO MÉDICO', () => {
+  it('se manda en el cuerpo del envío', () => {
+    expect(ruta).toContain("const DOMINIO_MEDICO = 'medical-v1'")
+    expect(ruta).toContain('domain: DOMINIO_MEDICO,')
+  })
+
+  it('va en el MISMO cuerpo que arma los dos intentos', () => {
+    /**
+     * Si sólo fuera en el intento con nombre, un rechazo del modelo dejaría al
+     * paciente sin modo médico sin que nadie lo notara — el reintento es
+     * silencioso por diseño.
+     */
+    const cuerpo = ruta.slice(ruta.indexOf('const armar ='), ruta.indexOf('const enviar ='))
+    expect(cuerpo).toContain('domain: DOMINIO_MEDICO,')
+  })
+
+  it('está escrito que falla SUAVE y por qué se podía encender', () => {
+    // Con un idioma no soportado el proveedor lo ignora y avisa, en vez de
+    // rechazar la transcripción; y el reintento con el alias ya existía.
+    expect(ruta).toMatch(/Falla \*\*suave\*\*/)
+    expect(ruta).toMatch(/puede facturarse aparte/)
+  })
+
+  it('y que la decisión es del Dr., con fecha', () => {
+    // Un cargo recurrente encendido sin dueño es una factura que nadie reclama.
+    expect(ruta).toMatch(/decisión del Dr\., 4-ago-2026/)
+  })
+})
+
 describe('EL LÍMITE DE VOCES', () => {
   it('se manda un máximo, no un número exacto', () => {
     expect(ruta).toContain('speaker_options: { min_speakers_expected: 1, max_speakers_expected: MAX_VOCES }')
