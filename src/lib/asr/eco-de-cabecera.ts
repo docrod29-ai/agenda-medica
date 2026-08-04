@@ -91,3 +91,51 @@ export const POR_QUE_NO_SE_RECORTA_A_CIEGAS =
   'Sólo se quita el prefijo que COINCIDE con el arranque del primer lote, y ' +
   'nunca por una sola palabra en común. Borrar texto que quizá dijo el paciente ' +
   'es mucho peor que dejar una repetición: una se ve, la otra no.'
+
+/**
+ * ── EL CORTE DE 20 SEGUNDOS PARTÍA PALABRAS ──────────────────────────────────
+ *
+ * El texto en vivo se manda cada 20 segundos, y el corte era **limpio**: sin un
+ * solo segundo de solape. Una palabra a caballo de la frontera se parte, y cada
+ * mitad se decodifica sin la otra.
+ *
+ * En una consulta eso no queda «mal escrito», queda **cambiado**: «ciento…
+ * veinte» partido por la mitad no produce una palabra rara, produce **otro
+ * número**. Y el contexto previo que ya se mandaba sesga al modelo, pero no
+ * puede reconstruir media palabra que no está en el audio.
+ *
+ * La solución es de audio, no de texto: **conservar el último trozo** para el
+ * envío siguiente, de modo que dos envíos consecutivos compartan esos segundos.
+ * Y entonces hay que quitar la costura, que es lo que hace esta función.
+ */
+
+/**
+ * Quita del principio de `textoNuevo` lo que repite el final de `textoAnterior`.
+ *
+ * Se busca la coincidencia **más larga** entre el final del anterior y el
+ * principio del nuevo. Sin coincidencia, no se toca nada: preferimos una palabra
+ * repetida a una palabra borrada.
+ */
+export function quitarSolapeConAnterior(textoNuevo: string, textoAnterior: string): string {
+  if (!textoNuevo.trim() || !textoAnterior.trim()) return textoNuevo
+  const nuevo = textoNuevo.trim().split(/\s+/)
+  const anterior = textoAnterior.trim().split(/\s+/)
+  const tope = Math.min(MAX_PALABRAS_ECO, nuevo.length, anterior.length)
+
+  for (let n = tope; n >= 2; n--) {
+    const cola = anterior.slice(-n).map(limpia).join(' ')
+    const cabeza = nuevo.slice(0, n).map(limpia).join(' ')
+    if (cola === cabeza) return nuevo.slice(n).join(' ')
+  }
+  return textoNuevo
+}
+
+export const POR_QUE_SE_SOLAPA =
+  'El corte cada 20 segundos era limpio, sin un segundo de solape, así que una ' +
+  'palabra a caballo de la frontera se partía y cada mitad se decodificaba sin ' +
+  'la otra. En una consulta eso no queda mal escrito: queda CAMBIADO — «ciento… ' +
+  'veinte» partido por la mitad produce otro número, no una palabra rara.'
+
+export const POR_QUE_NO_SE_BORRA_SIN_COINCIDENCIA =
+  'Sin coincidencia no se recorta nada: preferimos una palabra repetida —que el ' +
+  'médico ve— a una palabra borrada, que no ve.'

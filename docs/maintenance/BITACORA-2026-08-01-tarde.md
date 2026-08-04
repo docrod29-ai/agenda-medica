@@ -4515,6 +4515,52 @@ acotado a 224 tokens, pero el contexto previo se suma encima.
 
 ---
 
+## TANDA 144ª — v995 · EL AUDIO DEJA DE REPETIRSE Y DE PARTIRSE
+
+Dos defectos **opuestos** en el mismo troceado.
+
+### 1. Se repetía
+
+Los fragmentos posteriores al primero no traen cabecera de contenedor, así que
+hay que anteponerles el primero para que se puedan abrir. Pero ese primer
+fragmento **no es sólo cabecera**: son **2 segundos de audio real**.
+
+En una consulta de 20 minutos troceada en cuatro lotes, lo primero que dijo el
+paciente aparecía **cuatro veces**, intercalado donde no ocurrió. Y si ahí va una
+cifra o un fármaco, el modelo lee **la misma indicación repetida en momentos
+distintos de la consulta**: eso no es ruido, es una orden médica duplicada.
+
+La v979 ya lo quitó en el camino en vivo. Ahora también en el del audio largo,
+que es donde peor se veía.
+
+### 2. Se partía
+
+El corte cada 20 segundos era **limpio**: sin un solo segundo de solape. Una
+palabra a caballo de la frontera se parte y cada mitad se decodifica sin la otra.
+
+Y eso no queda «mal escrito», queda **cambiado**: «ciento… veinte» partido por la
+mitad produce **otro número**, no una palabra rara. El contexto previo que ya se
+mandaba sesga al modelo, pero **no puede reconstruir media palabra que no está en
+el audio**.
+
+Ahora el último trozo se conserva para el envío siguiente, así que dos envíos
+consecutivos comparten esos segundos, y la costura se quita sobre el texto.
+
+### El orden importa, y la regla de no borrar
+
+Se quitan **dos** ecos: primero el de la cabecera —va delante del todo— y lo que
+quede empezando el texto es entonces el solape.
+
+Y ninguno recorta sin coincidencia, ni por una sola palabra en común: casi
+cualquier par de frases empieza por «el» o «y». **Preferimos una palabra repetida
+—que el médico ve— a una palabra borrada, que no ve.**
+
+- `src/lib/asr/eco-de-cabecera.ts` (`quitarSolapeConAnterior`),
+  `src/hooks/useGrabacionAudio.ts`
+- `src/__tests__/solape-y-eco.test.ts` — 15 pruebas. Total **5950**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

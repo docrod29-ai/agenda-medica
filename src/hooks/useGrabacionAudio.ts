@@ -3,7 +3,7 @@ import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 import { dudaEnZonaCritica } from '@/lib/expediente/confianza-audio'
 import { UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
-import { quitarEcoDeCabecera } from '@/lib/asr/eco-de-cabecera'
+import { quitarEcoDeCabecera, quitarSolapeConAnterior } from '@/lib/asr/eco-de-cabecera'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 /**
  * EL PIPELINE COMPLETO, no sólo el guardián.
@@ -631,7 +631,25 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, co
     const parts = b === 0 ? lotes[b] : [header, ...lotes[b]]
     const t = await transcribirParte(new Blob(parts, { type: mime }), ext, contexto)
     if (t) {
-      textos.push(t)
+      /**
+       * ── Y SE QUITA EL ECO DE LA CABECERA ────────────────────────────────────
+       *
+       * `header` no es sólo cabecera: es el PRIMER TROZO, con sus 2 segundos de
+       * audio real dentro. Anteponerlo a cada lote —que hay que hacerlo, porque
+       * los fragmentos posteriores no traen cabecera y ningún decodificador los
+       * abre— hacía que las primeras palabras de la consulta se transcribieran
+       * **una vez por lote**.
+       *
+       * En una consulta de 20 minutos troceada en cuatro, lo primero que dijo el
+       * paciente aparecía CUATRO veces, intercalado donde no ocurrió. Y si esos
+       * 2 segundos llevan una cifra o un fármaco, el modelo lee la misma
+       * indicación repetida en momentos distintos de la consulta: eso no es
+       * ruido, es una orden médica duplicada.
+       *
+       * El mismo recorte que la v979 puso en el camino en vivo. Sólo se quita lo
+       * que de verdad coincide con el arranque del primer lote.
+       */
+      textos.push(b === 0 ? t : quitarEcoDeCabecera(t, textos[0] ?? ''))
     } else {
       lotesFallidos++
       textos.push(`\n[⚠ FALTA UN TRAMO DE LA GRABACIÓN — no se pudo transcribir. El audio se conservó para reintentar.]\n`)
@@ -878,7 +896,23 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const cabecera = todosChunksRef.current[0]
     const partes = idx === 0 || !cabecera ? chunksRef.current : [cabecera, ...chunksRef.current]
     const blob = new Blob(partes, { type: mimeRef.current })
-    chunksRef.current = []
+    /**
+     * ── EL ÚLTIMO TROZO SE QUEDA PARA EL ENVÍO SIGUIENTE ──────────────────────
+     *
+     * El corte cada 20 segundos era **limpio**: sin un solo segundo de solape.
+     * Una palabra a caballo de la frontera se partía y cada mitad se
+     * decodificaba sin la otra.
+     *
+     * En una consulta eso no queda «mal escrito», queda **cambiado**: «ciento…
+     * veinte» partido por la mitad produce **otro número**. El contexto previo
+     * que ya se mandaba sesga al modelo, pero no puede reconstruir media palabra
+     * que no está en el audio.
+     *
+     * Conservar el último trozo hace que dos envíos consecutivos compartan esos
+     * segundos. La costura se quita después, sobre el texto.
+     */
+    const ultimo = chunksRef.current[chunksRef.current.length - 1]
+    chunksRef.current = ultimo ? [ultimo] : []
     if (blob.size < 1024) return  // skip muy pequeños
 
     // Contexto previo (últimas ~30 palabras del último chunk transcrito)
@@ -942,9 +976,23 @@ export function useGrabacionAudio(): UseGrabacionAudio {
          * consulta. Sólo se recorta lo que de verdad coincide.
          */
         const bruto = procesarTranscript(data.text).texto
-        textosChunksRef.current[idx] = idx === 0
+        /**
+         * DOS ECOS, EN ESTE ORDEN.
+         *
+         * 1. El de la **cabecera**, que son los 2 segundos del primer trozo
+         *    antepuestos para que el contenedor se pueda abrir.
+         * 2. El del **solape** con el envío anterior, que es el que evita que una
+         *    palabra se parta en la frontera.
+         *
+         * Primero el de cabecera porque va delante del todo; lo que quede
+         * empezando el texto es entonces el solape.
+         */
+        const sinCabecera = idx === 0
           ? bruto
           : quitarEcoDeCabecera(bruto, textosChunksRef.current[0] ?? '')
+        textosChunksRef.current[idx] = idx === 0
+          ? sinCabecera
+          : quitarSolapeConAnterior(sinCabecera, textosChunksRef.current[idx - 1] ?? '')
         // Reconstruir transcripción parcial en orden
         const completa = textosChunksRef.current.filter(Boolean).join(' ')
         setTranscripcionParcial(completa)
