@@ -3643,6 +3643,70 @@ inventada dentro de una nota firmada. Movible por variable de entorno
 
 ---
 
+## CENTÉSIMA VIGESIMOQUINTA TANDA — v976 · EL DIAGNÓSTICO QUE NADIE DIJO
+
+**Segundo fallo que el Dr. encuentra en la misma consulta, y es el peor.** Se
+paró la cola otra vez.
+
+### Lo que vio
+
+En el dictado: «¿Enfermedades crónicas como diabetes o presión alta? **No.**»
+
+En el resumen que salió: «Paciente con **Hipertensión arterial, Diabetes
+mellitus tipo 2**.»
+
+Palabras suyas: *«ve claramente dice que no tiene DM2 y le pones que es DM e
+hipertenso»*.
+
+### Por qué es peor que lo de la vesícula
+
+«Vesícula» era un órgano de más en un padecimiento. Un **antecedente crónico
+inventado** cambia el riesgo quirúrgico, cambia la elección de fármacos y **se
+arrastra**: los antecedentes se copian a todas las notas siguientes, así que el
+error se propaga solo y cada copia lo vuelve más creíble.
+
+### Por qué pasa
+
+El interrogatorio se dicta **nombrando las enfermedades en la pregunta**. Un
+extractor ve «diabetes» y «presión alta» en el texto y las cosecha; el «No» es
+una palabra corta, en otra frase y dicha por otra persona.
+
+### Arreglado — defensa de DOS capas
+
+1. **Regla 23 del prompt**: una enfermedad nombrada en la pregunta NO es un
+   diagnóstico; si la respuesta es «no», va como negativo pertinente y jamás en
+   diagnósticos, resumen ni antecedentes.
+2. **Motor determinista** (`negaciones.ts`): lee el dictado, saca lo que el
+   paciente negó y lo **contrasta** contra la nota entera —resumen, diagnósticos
+   y todas las secciones—. Si discrepan, sale una alerta roja con lo que se oyó
+   y lo que se escribió.
+
+La regla sola no bastaba: un prompt es una petición que se cumple *casi siempre*,
+y «casi siempre» sobre un antecedente crónico no es suficiente.
+
+### Lo que el motor NO hace
+
+**No decide cuál de las dos es correcta.** Un paciente puede negar una diabetes
+que sí tiene documentada de hace tres años; entonces la nota tiene razón y el
+interrogatorio no. Lo único que se afirma es que dictado y nota se contradicen —
+resolverlo es una decisión clínica del médico.
+
+Tampoco marca de más: «niega diabetes» en la nota es lo correcto y no dispara
+nada; el silencio no cuenta como negación.
+
+### Limitación declarada
+
+El vocabulario cubre 12 crónicas del interrogatorio dirigido. Que falte una
+significa que **ese caso no se vigila** — nunca que se dé por bueno. El motor
+sólo puede señalar de menos.
+
+- `src/lib/expediente/negaciones.ts` (puro, nuevo), `src/lib/expediente/prompts.ts`,
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/negacion-diagnostico-inventado.test.ts` — 26 pruebas, con el
+  dictado y el resumen REALES del caso. Total **5754**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
