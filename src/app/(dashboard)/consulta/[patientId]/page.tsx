@@ -1478,13 +1478,21 @@ export default function ConsultaActivaPage() {
         const res = await fetchAutenticado('/api/expediente/atribuir-roles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ utterances: utts.map(u => ({ speaker: u.speaker, text: u.text })) }),
+          /**
+           * EL MÓDULO VIAJA: los roles de un pase de hospital no son los de un
+           * consultorio. Sin esto, enfermería se etiquetaba como «Paciente»
+           * porque el catálogo no tenía otra casilla.
+           */
+          body: JSON.stringify({
+            utterances: utts.map(u => ({ speaker: u.speaker, text: u.text })),
+            contexto: internamientoActivo ? 'hospitalizacion' : 'consulta',
+          }),
         })
         const data = await res.json().catch(() => null)
         if (data?.ok && data.roles && Object.keys(data.roles).length > 0) setRolesHablante(data.roles)
       } catch { /* silencioso: el médico puede etiquetar a mano */ }
     })()
-  }, [audio.utterances, voz.grabando])
+  }, [audio.utterances, voz.grabando, internamientoActivo])
 
   // ── NOTA EN TIEMPO REAL ────────────────────────────────────────
   // Mientras grabas, cada ~30s re-estructura la nota con lo dicho hasta ese

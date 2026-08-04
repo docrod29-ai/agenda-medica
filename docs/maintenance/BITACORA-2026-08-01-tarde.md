@@ -4859,6 +4859,44 @@ no lo enciendo yo. Si él quiere, es un campo `domain` en el mismo envío.
 
 ---
 
+## TANDA 152ª — v1003 · SÓLO HABÍA TRES ROLES, Y EL MODELO TENÍA QUE ELEGIR UNO (B-7)
+
+`atribuir-roles` ofrecía «Médico», «Paciente» y «Acompañante», y **no había forma
+de contestar «no lo sé»**: el prompt pedía uno de los tres y el saneado
+descartaba lo demás.
+
+En consultorio se sostiene. En hospital y en UCI no: allí hablan el adscrito, el
+residente, **enfermería**, el terapeuta respiratorio, el interconsultante. Con
+tres casillas, enfermería sale como «Paciente» — y desde la v998, que empezó a
+archivar el rol, esa suposición se queda **en el expediente**.
+
+### Por qué no es una etiqueta bonita
+
+De «quién dijo qué» cuelgan el motor de negaciones y la procedencia V3: la
+diferencia entre *el paciente lo afirmó* y *la pregunta del médico lo nombró*.
+Con un rol inventado, esas dos defensas razonan sobre una atribución falsa y
+responden con la misma seguridad que si fuera verdad.
+
+Y el módulo de discusión de UCI **ya tenía seis roles escritos**, «Hablante no
+identificado» incluido. La API se había quedado atrás.
+
+### Lo que hay ahora
+
+El catálogo depende del módulo —la pantalla manda `hospitalizacion` cuando el
+paciente está internado— y **siempre** incluye «Hablante no identificado», que el
+prompt ofrece diciendo explícitamente que es preferible a adivinar.
+
+Ese valor **no se archiva**: es la forma de decir que no se sabe, y guardarlo lo
+convertiría en un dato. Se cuenta y se devuelve el número, para no enseñar una
+lista que *parece* completa. Las etiquetas coinciden con `ROL_UCI_LABEL` para que
+un mismo turno no se llame de dos maneras según qué pantalla lo mire.
+
+- `src/lib/asr/roles-hablante.ts` (nuevo), `api/expediente/atribuir-roles/route.ts`,
+  `consulta/[patientId]/page.tsx`
+- `src/__tests__/roles-de-hablante.test.ts` — 15 pruebas. Total **6051**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

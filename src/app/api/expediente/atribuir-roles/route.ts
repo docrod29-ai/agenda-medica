@@ -15,6 +15,7 @@
  * nunca rompe el flujo.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { rolesDe, esRolAtribuible, catalogoParaPrompt, NO_IDENTIFICADO } from '@/lib/asr/roles-hablante'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { llamarIA } from '@/lib/ia/gateway'
@@ -26,7 +27,6 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 const MODELOS = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5']
-const ROLES_VALIDOS = new Set(['Médico', 'Paciente', 'Acompañante'])
 
 export async function POST(req: NextRequest) {
   const acceso = await verificarModuloIA(req, 'expediente')
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!key) return NextResponse.json({ ok: false, error: 'sin llave' }, { status: 503 })
 
-  let body: { utterances?: { speaker?: string; text?: string }[] }
+  let body: { utterances?: { speaker?: string; text?: string }[]; contexto?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
   const utts = (body.utterances ?? []).filter(u => u && typeof u.text === 'string')
@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
 
   // Hablantes presentes (para acotar la respuesta y validar).
   const hablantes = Array.from(new Set(utts.map(u => String(u.speaker ?? '?'))))
+
+  /**
+   * EL CATÁLOGO DEPENDE DEL MÓDULO — Y DEJA DECIR «NO LO SÉ».
+   *
+   * Antes eran tres roles fijos y el modelo tenía que elegir uno. En un pase de
+   * hospital eso convierte a enfermería en «Paciente», y desde que el rol se
+   * archiva, esa suposición se queda en el expediente.
+   */
+  const modulo = String(body.contexto ?? 'consulta')
+  const validos = new Set(rolesDe(modulo))
 
   // Muestra acotada: primeros ~40 turnos / ~4000 chars bastan para inferir roles
   // (no hace falta mandar toda la consulta → más rápido y barato).
@@ -56,7 +66,7 @@ export async function POST(req: NextRequest) {
     muestra += linea
   }
 
-  const system = 'Eres un asistente clínico. Recibes el diálogo de una consulta médica transcrito con hablantes anónimos (Hablante A, B, C…). Determina el ROL de cada hablante: "Médico" (pregunta, explora, explica, indica tratamiento), "Paciente" (describe síntomas y molestias) o "Acompañante" (familiar/cuidador que apoya). Responde ÚNICAMENTE un objeto JSON que mapee cada letra de hablante a su rol, sin texto extra. Ejemplo: {"A":"Médico","B":"Paciente"}.'
+  const system = 'Eres un asistente clínico. Recibes el diálogo de una grabación clínica transcrito con hablantes anónimos (Hablante A, B, C…). Determina el ROL de cada hablante ÚNICAMENTE entre estos valores: ' + catalogoParaPrompt(modulo) + '. Guíate por el contenido: quién pregunta, explora, explica o indica tratamiento; quién describe síntomas propios; quién reporta signos, balances o administración de medicamentos; quién presenta el caso. Si no puedes decidirlo con lo que dice el hablante, responde "' + NO_IDENTIFICADO + '" — es preferible a adivinar, porque de esta atribución dependen decisiones clínicas posteriores. Responde ÚNICAMENTE un objeto JSON que mapee cada letra de hablante a su rol, sin texto extra. Ejemplo: {"A":"Médico","B":"Paciente"}.'
   const userMsg = `Hablantes: ${hablantes.join(', ')}\n\nDiálogo:\n${muestra}\n\nResponde solo el JSON.`
 
   // Por el gateway (§P–T): misma cascada, mismo manejo de errores, y ahora
@@ -79,13 +89,22 @@ export async function POST(req: NextRequest) {
     const crudo = JSON.parse(m[0]) as Record<string, unknown>
     // Sanea: solo hablantes conocidos y roles válidos.
     const roles: Record<string, string> = {}
+    let sinIdentificar = 0
     for (const h of hablantes) {
       const r = String(crudo[h] ?? '').trim()
-      if (ROLES_VALIDOS.has(r)) roles[h] = r
+      if (!validos.has(r)) continue
+      /**
+       * «No identificado» NO se archiva: es la forma de decir que no se sabe, y
+       * guardarlo lo convertiría en un dato. Se cuenta y se devuelve el número,
+       * para que la pantalla pueda decir cuántas voces quedaron sin nombre en
+       * vez de enseñar una lista que parece completa.
+       */
+      if (!esRolAtribuible(r, modulo)) { sinIdentificar++; continue }
+      roles[h] = r
     }
     // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
     // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
-    return NextResponse.json({ ok: true, roles })
+    return NextResponse.json({ ok: true, roles, sinIdentificar, hablantes: hablantes.length })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }
