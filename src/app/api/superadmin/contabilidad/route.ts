@@ -11,6 +11,7 @@
  * Solo superadmin.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { mrrDe } from '@/lib/finanzas/mrr'
 import { churnDelMes } from '@/lib/finanzas/churn'
 import { claseDeCuenta, cuentaComoIngreso } from '@/lib/authz/fundador'
 import { adminDb } from '@/lib/firebase-admin'
@@ -193,7 +194,21 @@ export async function GET(req: NextRequest) {
        * a la IA, no gastó.
        */
       const costoIA = TIPO_CAMBIO ? (costoIAPorClinica.get(cid) ?? 0) : creditos * COSTO_CREDITO_MXN
-      const mrr = activa ? precioPlan(plan) : 0
+      /**
+       * EL MRR YA NO ES EL PRECIO DE LISTA.
+       *
+       * Antes: `precioPlan(plan)`. Dos errores en direcciones opuestas —que se
+       * compensan y hacen que el total parezca razonable mientras cada línea
+       * está mal—: el ANUAL se sobrestimaba (el catálogo dice 12 meses al precio
+       * de 10, así que su ingreso mensual es ×10/12) y el MULTI-MÉDICO se
+       * subestimaba (los asientos adicionales se cobran aparte y no se sumaban).
+       *
+       * Los dos datos ya estaban en el documento de la clínica: `ciclo` lo
+       * escribe el webhook desde que se venden anualidades, y
+       * `medicosContratados` es lo que la suscripción cobra.
+       */
+      const desglose = mrrDe({ plan, ciclo: c.ciclo as string | undefined, medicosContratados: Number(c.medicosContratados ?? 1) })
+      const mrr = activa ? desglose.mensual : 0
       // acumular por plan
       const pp = porPlan.get(plan) ?? { cantidad: 0, mrr: 0 }
       if (activa) { pp.cantidad++; pp.mrr += mrr }
@@ -204,6 +219,12 @@ export async function GET(req: NextRequest) {
         plan, planLabel: labelPlan(plan),
         activa,
         mrr,
+        // Para que el tablero pueda explicar la cifra en vez de sólo darla: de
+        // dónde sale, cuántos asientos cobra y cuánto descuenta el anual.
+        mrrCiclo: desglose.ciclo,
+        mrrAsientos: activa ? desglose.asientos : 0,
+        mrrExtras: activa ? desglose.extras : 0,
+        mrrDescuentoAnual: activa ? desglose.descuentoAnual : 0,
         ingresoTotal: Math.round(pagadoPorClinica.get(cid) ?? 0),
         creditos: Math.round(creditos * 10) / 10,
         costoIA: Math.round(costoIA),

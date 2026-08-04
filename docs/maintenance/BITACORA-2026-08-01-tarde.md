@@ -4986,6 +4986,47 @@ el manifiesto es una tabla de procedencia y el documento ya está al lado.
 
 ---
 
+## TANDA 155ª — v1006 · EL MRR CONTABA EL PRECIO DE LISTA (N7)
+
+    const mrr = activa ? precioPlan(plan) : 0
+
+Dos errores **en direcciones opuestas** — peor que un sesgo: se compensan y el
+total parece razonable mientras cada línea está mal.
+
+**1. El anual se sobrestimaba.** El catálogo del propio repositorio dice
+`MESES_ANUAL = 10` —«doce meses al precio de diez»—, así que un cliente anual
+paga diez mensualidades al año y su ingreso mensual real es `precio × 10/12`.
+Contarlo entero infla su MRR **un 20 %**. Y el dato estaba ahí: el webhook guarda
+`ciclo` desde que se venden anualidades.
+
+**2. El multi-médico se subestimaba.** Los asientos adicionales se cobran aparte
+y `medicosContratados` dice cuántos cobra la suscripción. No se sumaban: un Pro
+con tres médicos factura el plan **más dos asientos**.
+
+### Por qué los contratados y no los presentes
+
+Esto es **contabilidad, no capacidad**. Los médicos presentes gobiernan el cupo
+de IA a propósito —para no repetir el corte de v944—, pero el ingreso es lo que
+la suscripción **cobra**. Contar médicos que Stripe no cobra sería inventar
+ingreso: el mismo error, al revés. La fuga entre unos y otros ya tiene su
+vigilante (la conciliación nocturna de asientos).
+
+Ninguna cifra se inventa: todos los precios salen del catálogo, y las pruebas se
+escriben **contra el catálogo**, así que si mañana sube un precio siguen
+valiendo. Un plan desconocido vale 0; un `medicosContratados` ausente o basura
+vale un médico, nunca cero ni negativo.
+
+Y el tablero lo **enseña** —si no, sería otro módulo sin conectar—: la fila dice
+«anual −$X» y «+2 médicos $Y», y el CSV lleva las columnas nuevas con su
+encabezado al día (un encabezado desfasado convierte una exportación en datos mal
+etiquetados, que es peor que no exportar).
+
+- `src/lib/finanzas/mrr.ts` (nuevo), `api/superadmin/contabilidad/route.ts`,
+  `superadmin/contabilidad/page.tsx`
+- `src/__tests__/mrr-real.test.ts` — 18 pruebas. Total **6097**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5008,11 +5049,14 @@ sustancialmente mejor de lo que un comprador puede ver».
 - N4. ~~Fuga por asiento: el cobro sólo se ajusta si alguien pulsa sincronizar.~~
   **CERRADO v965** (cron nocturno que concilia en los dos sentidos; el cupo sigue
   a los presentes a propósito, para no repetir v944).
-- N5. Contabilidad valora con `COSTO_CREDITO_MXN = 1.5` inventado mientras el
-  libro de costos REAL existe y nadie lo lee.
+- N5. ~~Contabilidad valora con `COSTO_CREDITO_MXN = 1.5` inventado mientras el
+  libro de costos REAL existe y nadie lo lee.~~ **CERRADO en código**
+  (`costo-ia-contable.ts`, leído por la ruta): suma el costo medido del libro.
+  Queda BLOQUEADO en el Dr. — sin `TIPO_CAMBIO_USD_MXN` en Vercel no se convierte
+  a pesos y se sigue diciendo en pantalla que la cifra es un supuesto.
 - N6. Margen por consulta y costo por médico: falta una línea de agrupación
   (`porClave` ya existe), no un sistema.
-- N7. MRR: sobrestima al anual (nadie lee `ciclo`) y subestima al multi-médico.
+- N7. ~~MRR: sobrestima al anual (nadie lee `ciclo`) y subestima al multi-médico.~~ **CERRADO v1006**.
 - N8. Churn no ve el trial abandonado (se queda en `status:'trial'` para siempre).
 - N9. ~~`/operacion:18` promete facturación CFDI al paciente que NO existe.~~ **CERRADO v968** (decisión 13 del Dr; y OJO: el CFDI de la suscripción sí existe y se conservó).
 

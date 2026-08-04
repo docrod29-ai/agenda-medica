@@ -22,7 +22,17 @@ function ultimos12(): string[] {
   return out
 }
 
-interface Cliente { id: string; nombre: string; plan: string; planLabel: string; activa: boolean; mrr: number; ingresoTotal: number; creditos: number; costoIA: number; margen: number | null }
+interface Cliente {
+  id: string; nombre: string; plan: string; planLabel: string; activa: boolean
+  mrr: number; ingresoTotal: number; creditos: number; costoIA: number; margen: number | null
+  /**
+   * De dónde sale el MRR. Antes era el precio de lista del plan a secas: el
+   * anual salía inflado un 20 % —doce meses al precio de diez— y los asientos
+   * adicionales no se contaban. Con el desglose, la cifra se puede explicar en
+   * vez de sólo darse.
+   */
+  mrrCiclo?: 'mensual' | 'anual'; mrrAsientos?: number; mrrExtras?: number; mrrDescuentoAnual?: number
+}
 interface Data {
   ok: boolean; mes: string
   alcance?: { cobros: { desde: string | null; recortado: boolean; etiqueta: string }; consultorios: { desde: string | null; recortado: boolean; etiqueta: string } }
@@ -93,12 +103,15 @@ export default function ContabilidadPage() {
      */
     lineas.push(`ALCANCE,${data.alcance?.cobros.etiqueta ?? 'ventana no declarada'}`)
     lineas.push('')
-    lineas.push(`POR CLIENTE,Plan,Activa,MRR,Ingreso cobrado (${data.alcance?.cobros.etiqueta ?? 'ventana no declarada'}),Créditos mes,Costo IA,Margen %`)
+    // Las columnas del CSV van en el MISMO orden que `filaCSV` de abajo: un
+    // encabezado desfasado convierte una exportación en datos mal etiquetados,
+    // que es peor que no exportar.
+    lineas.push(`POR CLIENTE,Plan,Activa,MRR,Ciclo,Médicos extra,MRR asientos,Ingreso cobrado (${data.alcance?.cobros.etiqueta ?? 'ventana no declarada'}),Créditos mes,Costo IA,Margen %`)
     // filaCSV neutraliza inyección de fórmulas: el nombre del consultorio lo
     // escribe OTRO tenant, y un "=HYPERLINK(...)" se ejecutaría en la máquina del
     // dueño al abrir el CSV.
     data.clientes.forEach(c => lineas.push(
-      filaCSV([c.nombre, c.planLabel, c.activa ? 'Sí' : 'No', c.mrr, c.ingresoTotal, c.creditos, c.costoIA, c.margen ?? '']),
+      filaCSV([c.nombre, c.planLabel, c.activa ? 'Sí' : 'No', c.mrr, c.mrrCiclo ?? 'mensual', c.mrrExtras ?? 0, c.mrrAsientos ?? 0, c.ingresoTotal, c.creditos, c.costoIA, c.margen ?? '']),
     ))
     const blob = new Blob(['﻿' + lineas.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -204,7 +217,17 @@ export default function ContabilidadPage() {
                   <tr key={c.id} style={{ borderTop: '1px solid var(--line2, var(--border))', textAlign: 'right' }}>
                     <td style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>{c.nombre}{!c.activa && <span style={{ color: 'var(--text3)', fontWeight: 400 }}> · inactivo</span>}</td>
                     <td>{c.planLabel}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{c.mrr ? mxn(c.mrr) : '—'}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {c.mrr ? mxn(c.mrr) : '—'}
+                      {c.mrr > 0 && (c.mrrCiclo === 'anual' || (c.mrrExtras ?? 0) > 0) && (
+                        <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 400 }}>
+                          {[
+                            c.mrrCiclo === 'anual' ? `anual −${mxn(c.mrrDescuentoAnual ?? 0)}` : '',
+                            (c.mrrExtras ?? 0) > 0 ? `+${c.mrrExtras} ${c.mrrExtras === 1 ? 'médico' : 'médicos'} ${mxn(c.mrrAsientos ?? 0)}` : '',
+                          ].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{c.creditos}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>{mxn(c.costoIA)}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', color: c.margen == null ? 'var(--text3)' : c.margen < 30 ? 'var(--amber)' : 'var(--teal)', fontWeight: 600 }}>{c.margen == null ? '—' : c.margen + '%'}</td>
