@@ -244,6 +244,27 @@ export default function UciPanelPage() {
    */
   const palabrasDudosasPase = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
 
+  /**
+   * ── RECUPERACIÓN DE AUDIO EN UCI ────────────────────────────────────────────
+   *
+   * Los trozos del pase YA se guardaban en este dispositivo bajo la llave
+   * `uci-panel.<id>` —el panel siempre pasó `recoveryKey`— y **ninguna pantalla
+   * los leía**. Dos daños a la vez:
+   *
+   * 1. Un pase cuya transcripción falla se pierde entero, aunque el audio esté
+   *    ahí. En consulta hay botones para reintentar, descargar y descartar desde
+   *    hace versiones; en UCI, nada.
+   * 2. Y esos trozos son PHI: la conversación de un paciente crítico quedaba
+   *    huérfana en el dispositivo, **sin forma de borrarla desde la app**.
+   */
+  const [ofreceRecovery, setOfreceRecovery] = useState(false)
+  const claveRecovery = `uci-panel${internamientoId ? '.' + internamientoId : ''}`
+  useEffect(() => {
+    audio.hayRecovery(claveRecovery).then(setOfreceRecovery).catch(() => {})
+    // Sólo al abrir: preguntarlo en cada render sería leer IndexedDB sin motivo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claveRecovery])
+
   const opcionesDictadoUci = useMemo(() => ({
     recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}`,
     contexto: 'uci' as const,
@@ -1047,6 +1068,31 @@ export default function UciPanelPage() {
             {avisoPase && <div style={{ marginTop: 8, fontSize: 12.5, color: avisoPase.startsWith('✓') ? 'var(--nexus)' : '#d97706' }}>{avisoPase}</div>}
           </div>
         )}
+        {ofreceRecovery && audio.estado !== 'grabando' && (
+          <div style={{
+            marginTop: 10, padding: '10px 12px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.55,
+            color: 'var(--text)', background: 'var(--s2)', border: '1px solid var(--border)',
+          }}>
+            <b>Hay audio de un pase guardado en este dispositivo.</b>{' '}
+            Se conservó porque su transcripción no llegó a terminar. Puedes reintentarla, bajarte el
+            archivo, o borrarlo.
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-sm btn-primary"
+                onClick={async () => { await audio.recuperarAudio(claveRecovery, opcionesDictadoUci); setOfreceRecovery(false) }}>
+                Reintentar la transcripción
+              </button>
+              <button className="btn btn-sm"
+                onClick={async () => { const ok = await audio.descargarAudioGuardado(claveRecovery); if (!ok) setAvisoPase('No se encontró audio guardado.') }}>
+                Descargar el audio
+              </button>
+              <button className="btn btn-sm btn-ghost"
+                onClick={async () => { await audio.descartarRecovery(claveRecovery); audio.reset(); setOfreceRecovery(false); setAvisoPase('✓ Audio guardado borrado de este dispositivo.') }}>
+                Borrarlo del dispositivo
+              </button>
+            </div>
+          </div>
+        )}
+
         {/*
           LO QUE LA CONSULTA YA AVISABA Y EL PASE DE UCI NO.
           Un pase con tramos perdidos, sin separación de voces o con palabras

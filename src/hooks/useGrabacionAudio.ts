@@ -189,7 +189,13 @@ export interface UseGrabacionAudio {
   /** Verifica si hay audio sin transcribir guardado de una sesión previa. */
   hayRecovery: (recoveryKey: string) => Promise<boolean>
   /** Recupera el audio huérfano y lo manda a transcribir. */
-  recuperarAudio: (recoveryKey: string) => Promise<void>
+  /**
+   * Reintenta la transcripción del audio guardado.
+   *
+   * `ctx` lleva el vocabulario del paciente: sin él, la recuperación —que es
+   * justo la consulta que ya falló— se transcribiría con el catálogo genérico.
+   */
+  recuperarAudio: (recoveryKey: string, ctx?: CtxDictado) => Promise<void>
   descargarAudioGuardado: (recoveryKey: string) => Promise<boolean>
   /** BORRA de IndexedDB el audio guardado de una clave (descartar recuperación). */
   descartarRecovery: (recoveryKey: string) => Promise<void>
@@ -217,6 +223,15 @@ const SALTO_SOSPECHOSO_MS = 2000
 const BITRATE_OPUS = 64_000
 const SAMPLE_RATE_OBJETIVO = 16_000
 const INTERVALO_CHUNK_DEFAULT_MS = 20_000
+/**
+ * Cada cuánto `MediaRecorder` entrega un trozo.
+ *
+ * Estaba como literal dentro de `rec.start(2000)`. Se nombra porque la
+ * recuperación necesita **estimar la duración** de un audio que ya no tiene
+ * reloj: tras recargar la página, el contador vale 0 y `esperaDiarizacion(0)`
+ * concedía el mínimo — un minuto para un pase de quince.
+ */
+const TROZO_MS = 2000
 
 // ─────────────────────────────────────────────────────────────────
 // IndexedDB — almacén minimalista para crash recovery
@@ -1104,7 +1119,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         setError('Error en la grabación de audio')
         setEstado('error')
       }
-      rec.start(2000)
+      rec.start(TROZO_MS)
       mediaRef.current = rec
       startRef.current = Date.now()
       pausaTotalMsRef.current = 0
@@ -1304,7 +1319,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     await borrarChunks(recoveryKey)
   }, [])
 
-  const recuperarAudio = useCallback(async (recoveryKey: string) => {
+  const recuperarAudio = useCallback(async (recoveryKey: string, ctx: CtxDictado = {}) => {
     setEstado('subiendo')
     const chunks = await leerChunks(recoveryKey)
     if (chunks.length === 0) {
@@ -1318,15 +1333,33 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     // 1) Mejor opción: audio COMPLETO vía Storage → AssemblyAI (diariza y evita el
     //    troceado frágil). Si Storage no está habilitado, devuelve null.
+    /**
+     * LA DURACIÓN SE ESTIMA DE LOS TROZOS, NO DEL RELOJ.
+     *
+     * Tras recargar la página —el escenario NORMAL de una recuperación— el
+     * contador vale 0, y `esperaDiarizacion(0)` concede el mínimo: **un minuto**.
+     * O sea que todo audio recuperado de más de un minuto de proceso se rendía y
+     * caía al camino troceado, perdiendo la separación de voces. Y la consulta
+     * que se recupera es, por definición, la que ya falló una vez.
+     *
+     * Cada trozo son `TROZO_MS`, así que el número de trozos ES la duración. No
+     * es una estimación fina: es la que el propio grabador impone.
+     */
+    const segundosEstimados = duracionRef.current > 0
+      ? duracionRef.current
+      : Math.round((chunks.length * TROZO_MS) / 1000)
+
     const blob = new Blob(chunks, { type: mime })
-    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey, duracionRef.current)
+    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey, segundosEstimados, ctx)
     let texto = ''
     if (diar && diar.text.trim()) {
       setUtterances(corregirUtterances(diar.utterances))
       texto = diar.text
     } else {
       // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.
-      texto = (await transcribirEnPartes(chunks, mime, ext)).texto
+      // Con el contexto del paciente: sin él, la recuperación transcribe con el
+      // catálogo genérico justo en la consulta que ya falló una vez.
+      texto = (await transcribirEnPartes(chunks, mime, ext, { ...ctx, duracionSeg: segundosEstimados })).texto
     }
 
     if (texto.trim()) {

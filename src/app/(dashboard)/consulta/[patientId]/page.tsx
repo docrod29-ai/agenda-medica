@@ -2878,7 +2878,7 @@ export default function ConsultaActivaPage() {
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Mic size={14} className="ds-icon" /> Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
                   <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
-                    onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`); setOfreceRecovery(false) }}>
+                    onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`, opcionesWhisper); setOfreceRecovery(false) }}>
                     Recuperar
                   </button>
                   <button className="btn btn-sm btn-ghost" title="Guarda el audio como archivo en tu dispositivo (nunca lo pierdes)"
