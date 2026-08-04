@@ -30,6 +30,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   esFrasePasada, mencionesEnPasado, desajustesTemporales, avisoDeDesajuste,
+  padecimientosEn, AGUDAS_FRECUENTES,
   POR_QUE_EL_PRESENTE_MANDA, POR_QUE_NO_DECIDE, POR_QUE_IMPORTA,
 } from '@/lib/expediente/temporalidad'
 
@@ -267,5 +268,72 @@ describe('LA REGLA DEL PROMPT ACOMPAÑA AL MOTOR', () => {
     // haría indistinguibles las notas hechas con una regla y con la otra.
     const ruta = leer('src', 'app', 'api', 'expediente', 'procesar', 'route.ts')
     expect(ruta).toContain("const PROMPT_VERSION = 'nota-2026-08'")
+  })
+})
+
+/**
+ * ── EL TITULAR NO ESTABA CUBIERTO (v1030) ────────────────────────────────────
+ *
+ * La v1027 reutilizó **sólo** el vocabulario de `negaciones.ts`, que es de
+ * enfermedades **crónicas** — las del interrogatorio dirigido. Y el ejemplo con
+ * el que se bautizó el motor en el módulo, en la bitácora, en el changelog y en
+ * el PR —«tuvo neumonía hace tres años»— **no lo cazaba**: «neumonía» no es una
+ * crónica y no estaba en ninguna lista.
+ *
+ * El motor funcionaba y no cubría su propio titular. No fallaba, no rompía una
+ * prueba, y hacía creer que algo estaba vigilado.
+ *
+ * Y era justo al revés de lo que pide el problema: lo que se cuenta en pasado es
+ * lo AGUDO —una neumonía, una fractura, una cirugía—, mientras que lo crónico
+ * casi siempre sigue activo.
+ */
+describe('EL TITULAR, QUE ES LO QUE FALTABA', () => {
+  it('«tuvo neumonía hace tres años» + nota que la afirma → avisa', () => {
+    const d = desajustesTemporales(
+      mencionesEnPasado('Tuvo neumonía hace tres años.'),
+      'Paciente con neumonía. Se inicia antibiótico.',
+    )
+    expect(d).toHaveLength(1)
+    expect(d[0].condicion).toBe('neumonía')
+  })
+
+  it('«le operaron de la vesícula en 2019» también', () => {
+    // En la consulta se cuenta con el verbo, no con el sustantivo.
+    expect(mencionesEnPasado('Le operaron de la vesícula en 2019.')[0]?.condicion).toBe('cirugía')
+  })
+
+  it('pero «lo van a operar» NO: en el futuro no hay nada que corregir', () => {
+    expect(mencionesEnPasado('Lo van a operar de la vesícula.')).toEqual([])
+  })
+
+  it('y la trampa sigue en pie con el vocabulario nuevo', () => {
+    // «Desde hace» manda igual sobre lo agudo: una neumonía recurrente ACTUAL no
+    // se degrada a antecedente.
+    expect(mencionesEnPasado('Desde hace tres años tiene neumonía recurrente.')).toEqual([])
+  })
+
+  it('el vocabulario de lo agudo está declarado y es vocabulario, no criterio', () => {
+    /**
+     * Igual que `CRONICAS`: que falte un padecimiento significa que ese caso no
+     * se vigila, NO que se dé por bueno. El motor sólo puede señalar de menos.
+     */
+    expect(AGUDAS_FRECUENTES.length).toBeGreaterThan(8)
+    for (const c of AGUDAS_FRECUENTES) {
+      expect(c.formas.length, c.canonica).toBeGreaterThan(0)
+    }
+  })
+
+  it('y sigue viendo lo crónico: los dos vocabularios, no uno en lugar del otro', () => {
+    expect(padecimientosEn('diabetes y neumonía').sort()).toEqual(['diabetes', 'neumonía'])
+  })
+
+  it('`cronicasEn` no se tocó: ensancharlo cambiaría lo que cuenta como negación', async () => {
+    /**
+     * El vocabulario de `negaciones.ts` es el del interrogatorio dirigido. Meter
+     * ahí lo agudo cambiaría OTRA defensa —qué se considera negado— y eso es
+     * otra decisión, no un efecto secundario de ésta.
+     */
+    const { cronicasEn } = await import('@/lib/expediente/negaciones')
+    expect(cronicasEn('neumonía')).toEqual([])
   })
 })

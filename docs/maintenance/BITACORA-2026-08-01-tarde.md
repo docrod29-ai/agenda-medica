@@ -5979,6 +5979,41 @@ la otra.
 
 ---
 
+## TANDA 179ª — v1030 · EL MOTOR NO CUBRÍA SU PROPIO TITULAR
+
+Defecto **mío**, encontrado revisando lo de anoche.
+
+La v1027 reutilizó **sólo** el vocabulario de `negaciones.ts`, que es de
+enfermedades **crónicas** — las del interrogatorio dirigido. Y el ejemplo con el
+que bauticé el motor en el módulo, en esta bitácora, en el changelog y en el PR
+—«tuvo neumonía hace tres años»— **no lo cazaba**: «neumonía» no es una crónica y
+no estaba en ninguna lista.
+
+El motor funcionaba, pasaba sus 20 casos y hacía creer que algo estaba vigilado.
+
+Y era **justo al revés** de lo que pide el problema: lo que se cuenta en pasado
+es lo **agudo** —una neumonía, una fractura, una cirugía—, mientras que lo
+crónico casi siempre sigue activo.
+
+Ahora el motor tiene vocabulario propio, `AGUDAS_FRECUENTES`. **Es vocabulario,
+no criterio clínico**, con el mismo límite declarado que `CRONICAS`: que falte un
+padecimiento significa que ese caso no se vigila — **no que se dé por bueno**.
+
+«Le operaron» entra como forma de «cirugía» porque en la consulta se cuenta con
+el verbo. «Lo van a operar» no: en el futuro no hay nada que corregir.
+
+**`cronicasEn` no se tocó.** Ensanchar el vocabulario de `negaciones.ts`
+cambiaría qué cuenta como **negación** — otra defensa y otra decisión, no un
+efecto secundario de ésta.
+
+La trampa sigue en pie con el vocabulario nuevo: «desde hace tres años tiene
+neumonía recurrente» no se marca.
+
+- `src/lib/expediente/temporalidad.ts` — `AGUDAS_FRECUENTES` y `padecimientosEn`
+- REG-140 · +7 casos, total **6413**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
