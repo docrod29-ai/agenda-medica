@@ -158,6 +158,22 @@ function signosConValor(sv: SignosVitales | undefined | null): boolean {
   return !!sv && Object.values(sv as Record<string, unknown>).some(v => v != null && String(v).trim() !== '')
 }
 
+/**
+ * Qué decirle al médico según POR QUÉ no hubo separación de voces.
+ *
+ * Cuatro causas distintas exigen cuatro acciones distintas: una es del
+ * proveedor, otra es de configuración, y la del tiempo agotado se resuelve
+ * volviendo a intentar. Un mensaje genérico las convierte en «algo falló», que
+ * no le dice a nadie qué hacer.
+ */
+const MOTIVO_SIN_DIARIZACION: Record<string, string> = {
+  sin_llave: 'No hay servicio de separación de voces configurado.',
+  error_proveedor: 'El servicio de transcripción devolvió un error.',
+  tiempo_agotado: 'El servicio tardó más de lo previsto para este audio; puedes volver a procesar.',
+  red: 'Se perdió la conexión mientras se transcribía.',
+  sin_texto: 'El servicio no devolvió texto (¿audio en silencio?).',
+}
+
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
@@ -2797,6 +2813,25 @@ export default function ConsultaActivaPage() {
                     : audio.estado === 'listo' ? 'Transcripción lista'
                     : 'Grabar la conversación completa (médico + paciente)'}
                 </div>
+                {/*
+                  NO HUBO SEPARACIÓN DE VOCES — y ahora se dice.
+                  Era invisible: la app caía a Whisper y la nota salía idéntica
+                  a una hecha con el motor bueno. Sin turnos Médico/Paciente el
+                  modelo razona sobre un bloque plano, y ahí es donde una
+                  palabra mal oída acaba convertida en un diagnóstico.
+                */}
+                {audio.sinDiarizacion && audio.estado === 'listo' && (
+                  <div style={{
+                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
+                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+                  }}>
+                    <b>Sin separación de voces en esta grabación.</b>{' '}
+                    {MOTIVO_SIN_DIARIZACION[audio.sinDiarizacion]}{' '}
+                    La transcripción se hizo con el motor alterno: revisa nombres de fármacos,
+                    dosis y microorganismos antes de firmar.
+                  </div>
+                )}
                 {/* Manos libres: aviso de escucha activa + comandos */}
                 {manosLibres && (
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: comandoError ? '#ef4444' : 'var(--teal)' }}>

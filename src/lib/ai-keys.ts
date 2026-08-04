@@ -350,6 +350,33 @@ export async function resolverClaveIA(
    */
   if (!clinicId) return { key: '', fuente: 'ninguna', clinicId: null }
 
+  /**
+   * ── LA TRANSCRIPCIÓN ES DE LA PLATAFORMA, PARA TODOS ─────────────────────
+   *
+   * Decisión del Dr. (3-ago-2026): «la llave debe estar para todos, no que se
+   * ponga individual — y Whisper».
+   *
+   * Oír bien no es un extra que cada consultorio se costea: es la promesa
+   * central del producto. Dejarlo a una llave propia tenía dos consecuencias, y
+   * la segunda es la que rompió una consulta real:
+   *
+   *  1. Un consultorio sin llave propia se quedaba SIN separación de voces —o
+   *     sea, sin la función que distingue a NexusMED— sin saberlo.
+   *  2. Peor: la llave del consultorio GANABA a la de la plataforma. Un médico
+   *     que pegara una llave vencida o mal copiada recibía PEOR transcripción
+   *     que uno que no puso ninguna, y en silencio.
+   *
+   * El LLM sigue admitiendo llave propia: ahí el gasto es grande y variable, y
+   * la economía multi-inquilino lo justifica. La transcripción no.
+   */
+  if (proveedor === 'assemblyai' || proveedor === 'openai') {
+    if (envFallback && envFallback.trim()) {
+      const fuente = (await uidEsFundador(uid)) ? 'fundador' as const : 'prueba' as const
+      return { key: envFallback.trim(), fuente, clinicId }
+    }
+    return { key: '', fuente: 'ninguna', clinicId }
+  }
+
   try {
     const k = (await docIA(clinicId).get()).data()?.[proveedor]
     if (typeof k === 'string' && k.trim()) return { key: k.trim(), fuente: 'clinica', clinicId }

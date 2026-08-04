@@ -51,10 +51,20 @@ function etiquetaLlave(fuente: string | undefined, hint: string): { texto: strin
     default:         return { texto: hint ? `● configurada ${hint}` : '○ sin llave propia', color: 'var(--text3)' }
   }
 }
+/**
+ * SÓLO EL LLM ADMITE LLAVE PROPIA — decisión del Dr. (3-ago-2026).
+ *
+ * AssemblyAI y OpenAI se quitaron de aquí: **la transcripción es de la
+ * plataforma, para todos**. Oír bien no es un extra que cada consultorio se
+ * costea, es la promesa central del producto.
+ *
+ * Y ofrecerlas aquí no era neutral: la llave del consultorio GANABA a la de la
+ * plataforma, así que un médico que pegara una vencida recibía peor
+ * transcripción que uno que no pusiera ninguna — en silencio. Se quitó la
+ * opción, no sólo el aviso.
+ */
 const PROVEEDORES_IA = [
   { id: 'anthropic', nombre: 'Claude (ordenar la nota)', url: 'https://console.anthropic.com', placeholder: 'sk-ant-...' },
-  { id: 'assemblyai', nombre: 'AssemblyAI (transcribir + separar voces)', url: 'https://www.assemblyai.com', placeholder: 'tu API key' },
-  { id: 'openai', nombre: 'OpenAI (transcribir, alternativa)', url: 'https://platform.openai.com/api-keys', placeholder: 'sk-...' },
 ] as const
 
 /**

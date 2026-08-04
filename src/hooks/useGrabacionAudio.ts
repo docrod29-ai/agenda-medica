@@ -95,6 +95,13 @@ export interface Utterance {
 export interface UseGrabacionAudio {
   soportado: boolean
   estado: Estado
+  /**
+   * Por qué NO hubo separación de voces, o `null` si sí la hubo.
+   *
+   * Lo consume la pantalla de consulta para decírselo al médico: hasta ahora el
+   * fallback a Whisper era invisible y la nota salía idéntica.
+   */
+  sinDiarizacion: MotivoSinDiarizacion | null
   duracion: number
   transcripcion: string
   /** Turnos de habla separados por voz (vacío si no hubo diarización). */
@@ -217,32 +224,97 @@ async function borrarChunks(recoveryKey: string) {
 const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 /**
+ * POR QUÉ LA DIARIZACIÓN NO SE RINDE EN SILENCIO.
+ *
+ * Los cuatro caminos de fallo —sin llave, error del proveedor, red caída y
+ * TIEMPO AGOTADO— devolvían el mismo `null`. El que llamaba no podía
+ * distinguirlos, caía a Whisper sin separación de voces, y **al médico no se le
+ * decía nada**. Una nota escrita con el motor de repuesto se ve exactamente
+ * igual que una escrita con el bueno.
+ *
+ * Pasó en una consulta real: el paciente contó tres años de antecedentes
+ * urológicos y la nota salió como «datos sociodemográficos», con una palabra
+ * mal oída ascendida a diagnóstico. La llave de AssemblyAI estaba puesta y
+ * pagada; lo que falló fue el reloj.
+ */
+export type MotivoSinDiarizacion = 'sin_llave' | 'error_proveedor' | 'tiempo_agotado' | 'red' | 'sin_texto'
+
+export interface ResultadoDiarizacion {
+  ok: boolean
+  text: string
+  utterances: Utterance[]
+  /** Por qué NO hubo separación de voces. Sólo cuando `ok` es false. */
+  motivo?: MotivoSinDiarizacion
+}
+
+/**
+ * CUÁNTO ESPERAR — proporcional al audio, no un tope fijo.
+ *
+ * Esperaba 90 × 2 s = **3 minutos** para cualquier grabación. AssemblyAI no
+ * termina en tres minutos un audio de doce, así que toda consulta de duración
+ * real agotaba el contador y se iba por el camino malo. El tope no protegía de
+ * nada: garantizaba el fallo justo en las consultas que más importan.
+ *
+ * La transcripción tarda una fracción de la duración del audio. Se espera esa
+ * fracción con un margen amplio, y nunca menos de un minuto ni más de quince —
+ * un techo hace falta, pero tiene que estar donde no lo toque el uso normal.
+ */
+export function esperaDiarizacion(segundosAudio: number): { intentos: number; pausaMs: number } {
+  const pausaMs = 2500
+  /**
+   * Techo de VEINTE minutos, no quince.
+   *
+   * Con quince, una primera consulta de 25 minutos ya se quedaba justa — lo
+   * destapó una prueba de este mismo cambio. El techo existe para que un trabajo
+   * colgado no deje al médico esperando indefinidamente, no para recortar
+   * consultas largas, que son precisamente las que más información llevan.
+   *
+   * Y esperar no bloquea: la nota preliminar ya está en pantalla mientras tanto.
+   */
+  const presupuestoMs = Math.min(20 * 60_000, Math.max(60_000, segundosAudio * 1000 * 1.5 + 60_000))
+  return { intentos: Math.ceil(presupuestoMs / pausaMs), pausaMs }
+}
+
+
+
+/**
  * Intenta transcribir CON diarización (AssemblyAI). Sube el audio, encola y
  * hace polling hasta completar. Devuelve texto + turnos de habla, o null si la
  * llave no está configurada o algo falla → el caller cae a OpenAI sin diarizar.
  */
 async function intentarDiarizar(
-  blob: Blob, ext: string,
-): Promise<{ text: string; utterances: Utterance[] } | null> {
+  blob: Blob, ext: string, segundosAudio: number,
+): Promise<ResultadoDiarizacion> {
+  const falla = (motivo: MotivoSinDiarizacion): ResultadoDiarizacion =>
+    ({ ok: false, text: '', utterances: [], motivo })
   try {
     const fd = new FormData()
     fd.append('audio', blob, `consulta.${ext}`)
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
-    if (!res.ok) return null                       // 503 sinClave o error → fallback
+    if (!res.ok) {
+      // 503 con `sinClave` es «no hay llave»; cualquier otro código es el proveedor.
+      const d = await res.json().catch(() => null)
+      return falla(d?.sinClave ? 'sin_llave' : 'error_proveedor')
+    }
     const sub = await res.json()
-    if (!sub.ok || !sub.id) return null
-    // Polling hasta completar (máx ~3 min: 90 × 2s)
-    for (let i = 0; i < 90; i++) {
-      await sleepMs(2000)
+    if (!sub.ok || !sub.id) return falla('error_proveedor')
+
+    const { intentos, pausaMs } = esperaDiarizacion(segundosAudio)
+    for (let i = 0; i < intentos; i++) {
+      await sleepMs(pausaMs)
       const p = await fetchAutenticado(`/api/expediente/transcribir-diarizado?id=${encodeURIComponent(sub.id)}`)
       if (!p.ok) continue
       const d = await p.json()
-      if (d.status === 'completed') return { text: d.text ?? '', utterances: (d.utterances ?? []) as Utterance[] }
-      if (d.status === 'error' || d.ok === false) return null
+      if (d.status === 'completed') {
+        const text = String(d.text ?? '')
+        if (!text.trim()) return falla('sin_texto')
+        return { ok: true, text, utterances: (d.utterances ?? []) as Utterance[] }
+      }
+      if (d.status === 'error' || d.ok === false) return falla('error_proveedor')
     }
-    return null                                    // timeout
+    return falla('tiempo_agotado')
   } catch {
-    return null
+    return falla('red')
   }
 }
 
@@ -252,9 +324,11 @@ async function intentarDiarizar(
  * audio al terminar (no deja PHI). Devuelve texto + turnos, o null (→ fallback).
  */
 async function intentarDiarizarLargo(
-  blob: Blob, ext: string, recoveryKey: string,
-): Promise<{ text: string; utterances: Utterance[] } | null> {
-  if (!storage || !auth.currentUser) return null
+  blob: Blob, ext: string, recoveryKey: string, segundosAudio: number,
+): Promise<ResultadoDiarizacion> {
+  const falla = (motivo: MotivoSinDiarizacion): ResultadoDiarizacion =>
+    ({ ok: false, text: '', utterances: [], motivo })
+  if (!storage || !auth.currentUser) return falla('error_proveedor')
   const uid = auth.currentUser.uid
   const path = `consultas-audio/${uid}/${(recoveryKey || 'tmp').replace(/[^\w-]/g, '_')}-${Date.now()}.${ext}`
   const objRef = storageRef(storage, path)
@@ -267,21 +341,30 @@ async function intentarDiarizarLargo(
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ audioUrl: url }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      const d = await res.json().catch(() => null)
+      return falla(d?.sinClave ? 'sin_llave' : 'error_proveedor')
+    }
     const sub = await res.json()
-    if (!sub.ok || !sub.id) return null
+    if (!sub.ok || !sub.id) return falla('error_proveedor')
     // Polling más holgado (audio largo tarda más): hasta ~6 min
-    for (let i = 0; i < 144; i++) {
-      await sleepMs(2500)
+    // Mismo criterio que el camino corto: la espera la fija el AUDIO, no un tope.
+    const { intentos, pausaMs } = esperaDiarizacion(segundosAudio)
+    for (let i = 0; i < intentos; i++) {
+      await sleepMs(pausaMs)
       const p = await fetchAutenticado(`/api/expediente/transcribir-diarizado?id=${encodeURIComponent(sub.id)}`)
       if (!p.ok) continue
       const d = await p.json()
-      if (d.status === 'completed') return { text: d.text ?? '', utterances: (d.utterances ?? []) as Utterance[] }
-      if (d.status === 'error' || d.ok === false) return null
+      if (d.status === 'completed') {
+        const text = String(d.text ?? '')
+        if (!text.trim()) return falla('sin_texto')
+        return { ok: true, text, utterances: (d.utterances ?? []) as Utterance[] }
+      }
+      if (d.status === 'error' || d.ok === false) return falla('error_proveedor')
     }
-    return null
+    return falla('tiempo_agotado')
   } catch {
-    return null
+    return falla('tiempo_agotado')
   } finally {
     /**
      * Borra el audio de Storage (AssemblyAI ya lo descargó al encolar).
@@ -387,8 +470,8 @@ async function transcribirParte(blob: Blob, ext: string, contexto: CtxDictado = 
   const openai = await transcribirBlobSimple(blob, ext, contexto)
   if (openai) return openai
   // Fallback: AssemblyAI (la misma llave que usa la diarización)
-  const aai = await intentarDiarizar(blob, ext)
-  return aai?.text ?? ''
+  const aai = await intentarDiarizar(blob, ext, contexto.duracionSeg ?? 0)
+  return aai.ok ? aai.text : ''
 }
 
 /**
@@ -494,6 +577,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const [nivelAudio, setNivelAudio] = useState(0)
   const [silencioProlongado, setSilencioProlongado] = useState(false)
   const [bytesGrabados, setBytesGrabados] = useState(0)
+  /**
+   * Por qué NO hubo separación de voces en esta grabación, o `null` si sí la hubo.
+   *
+   * Es el dato que faltaba: el fallback a Whisper era invisible, y una nota
+   * escrita con el motor de repuesto se ve igual que una escrita con el bueno.
+   */
+  const [sinDiarizacion, setSinDiarizacion] = useState<MotivoSinDiarizacion | null>(null)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
   const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
   const [alertasDictado, setAlertasDictado] = useState<AlertaDictado[]>([])
@@ -879,14 +969,25 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
     //    Storage y se diariza por URL (sin chocar con el límite de Vercel).
     const diar = GRANDE
-      ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current)
-      : await intentarDiarizar(blob, ext)
-    if (diar && diar.text.trim()) {
+      ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current, duracionRef.current)
+      : await intentarDiarizar(blob, ext, duracionRef.current)
+    if (diar.ok && diar.text.trim()) {
       setUtterances(corregirUtterances(diar.utterances))
       aplicar(diar.text)
+      setSinDiarizacion(null)
       if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
       return
     }
+    /**
+     * NO HUBO SEPARACIÓN DE VOCES, Y SE DICE.
+     *
+     * La transcripción sigue —se cae a Whisper, que es lo correcto: mejor una
+     * nota sin turnos que ninguna—. Lo que no puede pasar es que el médico no
+     * lo sepa: una nota escrita con el motor de repuesto se ve idéntica a una
+     * escrita con el bueno, y ahí es donde una palabra mal oída se convierte en
+     * un diagnóstico sin que nadie sospeche.
+     */
+    setSinDiarizacion(diar.motivo ?? 'error_proveedor')
 
     // 2) Transcripción robusta (en partes si es grande). Nunca lanza.
     /**
@@ -956,7 +1057,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     // 1) Mejor opción: audio COMPLETO vía Storage → AssemblyAI (diariza y evita el
     //    troceado frágil). Si Storage no está habilitado, devuelve null.
     const blob = new Blob(chunks, { type: mime })
-    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey)
+    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey, duracionRef.current)
     let texto = ''
     if (diar && diar.text.trim()) {
       setUtterances(corregirUtterances(diar.utterances))
@@ -999,7 +1100,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones,
+    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
