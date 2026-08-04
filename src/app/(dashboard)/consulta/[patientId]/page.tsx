@@ -53,6 +53,7 @@ function alergiasArray(alergias?: string): string[] {
   return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
 import { NerPanel, type NegacionCorregida } from '@/components/NerPanel'
+import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
@@ -3337,6 +3338,19 @@ export default function ConsultaActivaPage() {
           {/* Panel de correcciones léxicas — transparencia + deshacer.
               En un documento legal nada debe cambiar en silencio: el médico
               ve qué corrigió el sistema y revierte con un clic si se equivocó. */}
+          {/* Y las CIFRAS, UNIDADES y SIGLAS que reescribió el pipeline.
+              Se calculaban en cada dictado y no las devolvía nadie: el médico
+              veía las correcciones de fármacos y no las de dosis. */}
+          {audio.estado === 'listo' && audio.cambiosCifras.length > 0 && (
+            <CambiosCifrasPanel
+              cambios={audio.cambiosCifras}
+              onRevertir={(c) => {
+                const re = new RegExp(c.despues.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                voz.setTranscripcion(voz.transcripcion.replace(re, c.antes))
+              }}
+            />
+          )}
+
           {audio.estado === 'listo' && audio.correcciones.length > 0 && (
             <CorreccionesPanel
               correcciones={audio.correcciones}
