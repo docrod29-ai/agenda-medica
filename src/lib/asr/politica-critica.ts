@@ -106,6 +106,14 @@ export const MOTIVOS_CONFIRMACION = [
   'negacion_incierta',
   'lateralidad_incierta',
   'sigla_de_modo_o_dispositivo_incierta',
+  /**
+   * ORDER_INTENT ≠ ORDER (criterio del charter, tolerancia cero).
+   *
+   * El médico piensa en voz alta —«si no mejora le agregamos amoxicilina»— y el
+   * extractor mete el fármaco en `medicamentos`, que alimenta la RECETA. Una
+   * hipótesis dicha en voz alta puede salir impresa y firmada.
+   */
+  'farmaco_solo_propuesto',
 ] as const
 export type MotivoConfirmacion = (typeof MOTIVOS_CONFIRMACION)[number]
 

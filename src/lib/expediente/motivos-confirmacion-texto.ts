@@ -36,6 +36,8 @@ export const TEXTO_MOTIVO: Record<string, string> = {
     'Quedó dudoso si era derecho o izquierdo. Compruébalo en la exploración y en el plan.',
   sigla_de_modo_o_dispositivo_incierta:
     'Una sigla de modo o dispositivo quedó dudosa (PEEP/PIP, VV/VA, CVVH/CVVHD…).',
+  farmaco_solo_propuesto:
+    'Un fármaco se mencionó como algo a valorar («si no mejora…», «podríamos…»), no como indicación. Confirma si va en la receta o sólo en el plan.',
 }
 
 /** El texto de cada motivo, sin repetir y sin inventar los que no conoce. */

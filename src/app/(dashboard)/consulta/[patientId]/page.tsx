@@ -98,6 +98,7 @@ import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { palabrasDudosas, marcarTurno, paraElMedico, anexoDeDudas, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
+import { medicamentosSoloPropuestos } from '@/lib/asr/intencion-de-orden'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
@@ -630,8 +631,29 @@ export default function ConsultaActivaPage() {
    * un dictado largo trae miles de palabras y esto se recorre entero.
    */
   const palabrasAVerificar = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
+  /**
+   * EL SÉPTIMO MOTIVO: LO QUE SE CONSIDERÓ NO ES LO QUE SE INDICÓ.
+   *
+   * El pipeline no puede emitirlo porque trabaja sobre TEXTO y no ve la lista de
+   * medicamentos extraídos; aquí están las dos cosas. Es el mismo patrón que el
+   * sexto motivo, que necesitaba las confianzas por palabra y por eso se emite
+   * desde el hook.
+   *
+   * El fármaco NO se quita: se pregunta. «Si tiene dolor, paracetamol» es una
+   * indicación PRN válida, y borrar por condicional perdería medicación real.
+   */
+  const soloPropuestos = useMemo(
+    () => medicamentosSoloPropuestos(voz.transcripcion, medicamentos),
+    [voz.transcripcion, medicamentos],
+  )
   /** El gate de ambigüedad del pipeline, que hasta la v990 no salía del hook. */
-  const motivosDictado = useMemo(() => textosDeMotivos(audio.motivosConfirmacion), [audio.motivosConfirmacion])
+  const motivosDictado = useMemo(
+    () => textosDeMotivos([
+      ...audio.motivosConfirmacion,
+      ...(soloPropuestos.length ? ['farmaco_solo_propuesto'] : []),
+    ]),
+    [audio.motivosConfirmacion, soloPropuestos],
+  )
 
   /**
    * EL TEXTO QUE VE LA IA — UNO SOLO, PARA EL QUE REDACTA Y PARA EL QUE REVISA.
@@ -3176,6 +3198,16 @@ export default function ConsultaActivaPage() {
                     <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
                       {motivosDictado.map((t, i) => <li key={i}>{t}</li>)}
                     </ul>
+                    {/*
+                      CUÁLES. Un aviso que dice «un fármaco se mencionó como algo
+                      a valorar» sin decir cuál obliga a releer la consulta
+                      entera, y un aviso que cuesta trabajo se cierra sin leer.
+                    */}
+                    {soloPropuestos.length > 0 && (
+                      <div style={{ marginTop: 5, fontSize: 12 }}>
+                        Se mencionaron así: <b>{soloPropuestos.join(', ')}</b>.
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -5368,6 +5368,58 @@ ciclo.
 
 ---
 
+## TANDA 164ª — v1015 · LO QUE SE CONSIDERÓ PODÍA SALIR IMPRESO COMO LO QUE SE INDICÓ
+
+Criterio del charter con tolerancia **cero**: «órdenes activas sin confirmar = 0
+· `ORDER_INTENT ≠ ORDER`».
+
+En una consulta el médico piensa en voz alta —«**si no mejora** en 48 horas le
+agregamos amoxicilina», «**podríamos** usar un IECA», «queda **pendiente de** la
+biometría»— y nada de eso es una indicación. Pero el extractor ve el nombre del
+fármaco y lo mete en `medicamentos`, y **`medicamentos` alimenta la receta**: una
+hipótesis dicha en voz alta podía salir **impresa, firmada y con cédula**, y el
+paciente comprarla.
+
+No había **nada** que lo mirara: ni regla determinista ni línea en el prompt. Se
+buscó en todo el repositorio antes de escribirlo.
+
+### Lo que hace, y lo que no
+
+Mira el **encuadre** de la frase donde aparece el fármaco. **No borra**: «si
+tiene dolor, paracetamol» es una indicación PRN válida y muy común, y borrar por
+condicional perdería **medicación real** — peor que dejarla y preguntar. Se
+pregunta por el mismo canal que las otras cinco ambigüedades, el aviso de
+«conviene confirmar antes de firmar» que ya existía y ya estaba en pantalla.
+
+Y **dice cuáles**: un aviso que dice «un fármaco se mencionó como algo a valorar»
+sin decir cuál obliga a releer la consulta entera, y un aviso que cuesta trabajo
+se cierra sin leer.
+
+### Las tres reglas que lo hacen usable
+
+1. **Una mención firme manda** sobre la duda previa. «Estaba pensando en
+   enalapril… sí, le doy enalapril 5 mg» es una **orden**: el médico se decidió, y
+   seguir preguntando por algo ya resuelto es la definición de fatiga de alertas.
+2. **La condición se juzga en su frase**, no en toda la consulta: «si no mejora»
+   a los tres minutos no condiciona lo que se indicó a los quince — eso
+   convertiría media consulta en propuestas.
+3. Devuelve **nombres, no índices**: la lista de la nota y la de la extracción se
+   desfasan en cuanto el médico borra uno.
+
+### Y no es una decisión clínica
+
+No mira si el fármaco es correcto, ni su dosis, ni si procede. Mira **cómo se
+dijo**: es gramática, no medicina. Si la indicación va o no va sigue siendo
+entero del médico.
+
+Séptimo motivo de confirmación, declarado en la política crítica con su texto.
+
+- `src/lib/asr/intencion-de-orden.ts` (nuevo), `politica-critica.ts`,
+  `motivos-confirmacion-texto.ts`, `consulta/[patientId]/page.tsx`
+- `src/__tests__/intencion-de-orden.test.ts` — 25 pruebas. Total **6213**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
