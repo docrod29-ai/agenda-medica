@@ -4261,6 +4261,51 @@ otro no.
 
 ---
 
+## TANDA 138ª — v989 · EL AUDIO DEL PASE DE UCI, RECUPERABLE Y BORRABLE
+
+### Dos daños en el mismo hueco
+
+Los trozos del pase **ya se guardaban** en el dispositivo bajo la llave
+`uci-panel.<id>` —el panel siempre pasó `recoveryKey`— y **ninguna pantalla los
+leía**.
+
+1. **Un pase cuya transcripción falla se perdía entero, con el audio ahí.** En
+   consulta hay botones para reintentar, descargar y descartar desde hace
+   versiones; en UCI, nada.
+2. **Y esos trozos son PHI.** La conversación de un paciente crítico quedaba
+   huérfana en el dispositivo, **sin forma de borrarla desde la app**.
+
+Ahora el panel pregunta al abrir si hay audio guardado y ofrece las tres
+salidas. La tercera —«borrarlo del dispositivo»— es la que cierra la fuga.
+
+### Y la recuperación se rendía al minuto
+
+`recuperarAudio` calculaba la espera con `duracionRef.current`, que **tras
+recargar la página vale 0** — y ése es el escenario normal de una recuperación.
+`esperaDiarizacion(0)` concedía el mínimo: **un minuto**. Todo audio recuperado
+de más de un minuto de proceso se rendía y caía al camino troceado, perdiendo la
+separación de voces.
+
+Y la consulta que se recupera es, por definición, **la que ya falló una vez**.
+
+Ahora la duración se estima de los propios trozos: cada uno son `TROZO_MS`, así
+que el número de trozos **es** la duración. No es una estimación fina: es la que
+el grabador impone. De paso, ese `2000` dejó de ser un literal suelto dentro de
+`rec.start()` — la estimación depende de él y cambiarlo sin darse cuenta rompería
+la duración en silencio.
+
+### Y perdía el vocabulario del paciente
+
+`transcribirEnPartes` se llamaba sin contexto: la recuperación transcribía con el
+catálogo genérico justo en la consulta que ya había fallado. Ahora viaja, en UCI
+y en consulta.
+
+- `src/hooks/useGrabacionAudio.ts`, `app/(dashboard)/uci/page.tsx`,
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/uci-nota-no-nace-huerfana.test.ts` +8. Total **5887**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
