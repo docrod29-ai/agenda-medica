@@ -3747,6 +3747,50 @@ chip de color, parece un dato verificado.
 
 ---
 
+## CENTÉSIMA VIGESIMOSÉPTIMA TANDA — v978 · N5, EL COSTO DE IA INVENTADO
+
+### Lo que había
+
+    const COSTO_CREDITO_MXN = Number(process.env.COSTO_CREDITO_MXN ?? '1.5')
+    const costoIA = creditos * COSTO_CREDITO_MXN
+
+Un crédito valía **1.5 pesos porque sí**. El comentario del propio código lo
+confesaba: «Haiku/Sonnet/Opus rondan ~$1.5 MXN por crédito» — de memoria, sin
+fuente y sin fecha. Y el **libro de costos** lleva desde el 30-jul anotando,
+llamada por llamada, el costo REAL en dólares. Nadie lo leía desde contabilidad:
+la utilidad, el margen y las decisiones de precio salían de un supuesto
+**teniendo el dato medido al lado**.
+
+### Por qué no bastaba «poner el número bueno»
+
+Porque no hay un número bueno: **un crédito no cuesta lo mismo según el modelo**.
+Una nota con razonamiento extendido y una corrección rápida consumen créditos
+parecidos y cuestan órdenes de magnitud distintas. Cualquier constante es falsa.
+
+### Arreglado
+
+- La contabilidad **lee el libro de costos** del mes y suma lo que costó de
+  verdad, por consultorio y en total.
+- El gasto del **fundador** (I+D) no se carga al margen de los clientes — la
+  misma separación que ya hace la consola de costos.
+- Las llamadas **sin tarifa no se suman como cero**: darían un costo menor y un
+  margen mejor del que hay, que es justo la cifra sobre la que se fija un precio.
+- **El tipo de cambio no tiene valor por omisión.** Lo pone el Dr. o su contador
+  (`TIPO_CAMBIO_USD_MXN`, el del DOF del día que declara). Un 17 o un 20 escrito
+  de memoria daría una conversión que en pantalla se ve igual de exacta que la
+  buena. Sin él, se usa el supuesto viejo **y la pantalla dice que es supuesto**.
+
+### Pendiente del Dr. (una línea)
+
+Poner `TIPO_CAMBIO_USD_MXN` en Vercel. Hasta entonces la contabilidad seguirá
+avisando, en amarillo, que el costo de IA es un supuesto y no una medición.
+
+- `src/lib/finanzas/costo-ia-contable.ts` (puro, nuevo),
+  `api/superadmin/contabilidad/route.ts`, `app/superadmin/contabilidad/page.tsx`
+- `src/__tests__/costo-ia-contable.test.ts` — 18 pruebas. Total **5782**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
