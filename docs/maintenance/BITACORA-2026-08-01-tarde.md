@@ -5102,6 +5102,39 @@ una estará mal.
 
 ---
 
+## TANDA 158ª — v1009 · EL ARCHIVO «EXPEDIENTE» TIRABA LOS BORRADORES (D1)
+
+`exportarPacienteAFhir` recorre `notas.filter(n => n.estado === 'firmada')` y
+todo lo demás **desaparecía en silencio**: el titular que ejercía su derecho de
+portabilidad recibía un archivo con huecos que nadie le señalaba. Y no es un caso
+raro — una consulta interrumpida, una nota que se está redactando, o el propio
+pase de UCI antes de firmarse.
+
+**La palabra ya existía.** FHIR distingue el borrador del documento con
+`Composition.status`: `preliminary | final | amended | entered-in-error`. No hizo
+falta inventar nada, sólo usarlo.
+
+### Lo que un borrador NO lleva
+
+Sus `Condition` ni sus `MedicationRequest`. Un diagnóstico sacado de una nota sin
+firmar entraría al sistema receptor **como confirmado**, con el mismo peso que
+uno firmado — que es exactamente lo que la firma existe para impedir. El texto
+viaja, porque es contenido del expediente; la afirmación clínica estructurada,
+no. Sin firma tampoco hay atestación: `attester` va vacío, que es la verdad.
+
+Y se dice **antes de descargar**: la pantalla anuncia cuántas notas van firmadas
+y cuántas como preliminares, y el número queda en la bitácora de auditoría. La
+nota firmada se exporta exactamente igual que antes.
+
+**El resto de D1 ya estaba cerrado**: el botón «Expediente completo» lleva
+adendas, laboratorios, fotos, antecedentes, formularios, internamientos, citas y
+bitácora, y declara lo que no se pudo leer.
+
+- `src/lib/fhir-export.ts`, `expediente/[patientId]/page.tsx`
+- `src/__tests__/fhir-borradores.test.ts` — 12 pruebas. Total **6135**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5136,9 +5169,12 @@ sustancialmente mejor de lo que un comprador puede ver».
 - N9. ~~`/operacion:18` promete facturación CFDI al paciente que NO existe.~~ **CERRADO v968** (decisión 13 del Dr; y OJO: el CFDI de la suscripción sí existe y se conservó).
 
 ### DATOS 6.0 — «no sabe entregarlo ni reconstruirlo»
-- D1. La exportación «expediente» NO incluye adendas, laboratorios, fotos,
+- D1. ~~La exportación «expediente» NO incluye adendas, laboratorios, fotos,
   antecedentes, formularios, internamientos ni bitácora. Y descarta los
-  borradores en silencio (`fhir-export.ts:173`).
+  borradores en silencio (`fhir-export.ts:173`).~~ **CERRADO**: el botón
+  «Expediente completo» ya llevaba todo lo anterior y declara lo que no pudo
+  leer; el descarte silencioso de borradores en el bundle FHIR se cerró en
+  **v1009**.
 - D2. **La A de ARCO no existe**: se «resuelve» con un `prompt()`
   (`cumplimiento/page.tsx:203`). Plazo de 20 días que se cuenta y no se cumple.
 - D3. El respaldo del consultorio es un N+1 secuencial EN EL NAVEGADOR y no hay
