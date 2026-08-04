@@ -87,6 +87,70 @@ const PRESENTE = new RegExp([
   '\\ben\\s+tratamiento\\b',
 ].join('|'), 'i')
 
+/**
+ * VOCABULARIO PROPIO DE ESTE MOTOR — lo AGUDO, que es lo que más se cuenta en
+ * pasado.
+ *
+ * ── EL DEFECTO QUE ESTO REPARA (v1030) ───────────────────────────────────────
+ *
+ * La v1027 reutilizó sólo el vocabulario de `negaciones.ts`, que es de
+ * enfermedades **crónicas** —las del interrogatorio dirigido—. Y el ejemplo con
+ * el que se bautizó el motor en todas partes, «tuvo neumonía hace tres años»,
+ * **no lo cazaba**: «neumonía» no es una crónica y no estaba en ninguna lista.
+ *
+ * O sea que el motor funcionaba y no cubría su propio titular. Es el tipo de
+ * hueco que no falla, no rompe una prueba y hace creer que algo está vigilado.
+ *
+ * Y es justo al revés de lo que pide el problema: lo que se cuenta en pasado es
+ * lo AGUDO —una neumonía, una fractura, una cirugía—, mientras que lo crónico
+ * casi siempre sigue activo.
+ *
+ * ── QUÉ ES ESTA LISTA, Y QUÉ NO ──────────────────────────────────────────────
+ *
+ * Es **vocabulario**, igual que `CRONICAS`: no es una lista de diagnósticos
+ * válidos ni un criterio clínico, y no decide nada sobre ningún paciente. Que
+ * falte un padecimiento significa que ese caso no se vigila — **no que se dé por
+ * bueno**. Este motor sólo puede señalar de menos, nunca de más.
+ */
+export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[] = [
+  { canonica: 'neumonía', formas: ['neumonía', 'neumonia', 'bronconeumonía', 'bronconeumonia'] },
+  { canonica: 'COVID-19', formas: ['covid', 'covid-19', 'coronavirus', 'sars-cov-2'] },
+  { canonica: 'fractura', formas: ['fractura', 'fracturas', 'fracturó', 'fracturo'] },
+  /**
+   * «Le operaron» entra como forma de «cirugía» a propósito: en la consulta se
+   * cuenta así, con el verbo. «Lo van a operar» NO — ése es el futuro, y en el
+   * futuro no hay nada que corregir.
+   */
+  { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
+  { canonica: 'trombosis venosa', formas: ['trombosis', 'tvp', 'trombosis venosa'] },
+  { canonica: 'embolia pulmonar', formas: ['embolia pulmonar', 'tromboembolia', 'tep'] },
+  { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame'] },
+  { canonica: 'hemorragia digestiva', formas: ['hemorragia digestiva', 'sangrado de tubo digestivo', 'stda'] },
+  { canonica: 'pancreatitis', formas: ['pancreatitis'] },
+  { canonica: 'infección urinaria', formas: ['infección urinaria', 'infeccion urinaria', 'ivu', 'cistitis', 'pielonefritis'] },
+  { canonica: 'dengue', formas: ['dengue'] },
+  { canonica: 'hepatitis', formas: ['hepatitis'] },
+]
+
+/** El vocabulario completo que este motor mira: lo crónico y lo agudo. */
+const VOCABULARIO = () => [...CRONICAS, ...AGUDAS_FRECUENTES]
+
+/**
+ * Qué padecimientos nombra esta frase, de los DOS vocabularios.
+ *
+ * `cronicasEn` sigue viviendo en `negaciones.ts` y no se toca: allí el
+ * vocabulario es el del interrogatorio dirigido y ensancharlo cambiaría lo que
+ * se considera una negación, que es otra defensa y otra decisión.
+ */
+export function padecimientosEn(frase: string): string[] {
+  const t = sinAcentos(frase)
+  const out = [...cronicasEn(frase)]
+  for (const c of AGUDAS_FRECUENTES) {
+    if (c.formas.some(f => t.includes(sinAcentos(f))) && !out.includes(c.canonica)) out.push(c.canonica)
+  }
+  return out
+}
+
 /** ¿Esta frase encuadra lo que dice en el pasado? */
 export function esFrasePasada(frase: string): boolean {
   const t = sinAcentos(frase)
@@ -111,7 +175,7 @@ export function mencionesEnPasado(transcripcion: string): MencionPasada[] {
   const vistas = new Map<string, MencionPasada>()
   for (const f of frases(transcripcion)) {
     if (!esFrasePasada(f)) continue
-    for (const c of cronicasEn(f)) {
+    for (const c of padecimientosEn(f)) {
       if (!vistas.has(c)) vistas.set(c, { condicion: c, cita: f.trim().slice(0, 200) })
     }
   }
@@ -148,7 +212,7 @@ export function desajustesTemporales(
   const t = sinAcentos(textoNota)
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
-    const formas = CRONICAS.find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
+    const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
     for (const forma of formas) {
       const idx = t.indexOf(sinAcentos(forma))
       if (idx < 0) continue
@@ -247,7 +311,7 @@ export function avisosTemporalesDelExtractor<T extends CondicionExtraidaTemporal
   const out: AvisoTemporalExtractor[] = []
   for (const c of conditions) {
     if (c.estado === 'resuelto') continue
-    const enc = cronicasEn(String(c.texto ?? ''))
+    const enc = padecimientosEn(String(c.texto ?? ''))
     const m = pasadas.find(x => enc.includes(x.condicion))
     if (!m) continue
     out.push({ texto: String(c.texto ?? ''), condicion: m.condicion, cita: m.cita })
