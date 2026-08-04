@@ -4697,6 +4697,44 @@ nadie hizo.
 
 ---
 
+## TANDA 148ª — v999 · LA ESPECIALIDAD DEL MÉDICO NO LLEGABA AL MOTOR (B-12)
+
+`ContextoDictado.especialidades` está declarado desde que se escribió el léxico,
+viaja del hook al `FormData`, del `FormData` a la ruta y de la ruta a
+`construir()` — y **ninguna pantalla lo rellenaba**. El comentario del propio
+módulo dice lo que se perdía: «si él dijo *esto es nefrología*, el módulo no
+tiene por qué llevarle la contraria». Nadie se lo decía.
+
+Con el usuario real de esta app duele más: el Dr. es internista e infectólogo, y
+dictando en su consultorio el motor **no cargaba** «Antimicrobianos» ni
+«Microbiología y PROA» — justo los términos que más se le escriben mal, y los que
+este repositorio lleva versiones persiguiendo («sefriaxona»).
+
+### Por qué hizo falta una tabla
+
+La configuración guarda la especialidad como **texto libre** («Med. Interna e
+Infectología») y el mapa del Dr. usa nombres de **vocabulario**, no de
+especialidad médica («Antimicrobianos», «Renal y electrolitos»). No hay forma de
+derivar unos de otros. La tabla la escribo yo, igual que `CONTEXTOS_POR_MODULO`,
+y una prueba comprueba que **todo destino existe**: un nombre mal escrito no
+falla, `contextosActivos` lo filtra en silencio, y sería vocabulario que se cree
+cargado y no está.
+
+### Lo que no hace
+
+Sin coincidencia devuelve **vacío**, no «la más parecida»: cargar el vocabulario
+de otra especialidad sesga al reconocedor hacia palabras que nadie va a decir, y
+eso no se ve — se lee como una transcripción normal con un término cambiado. Esto
+sólo puede **añadir**, nunca quitar.
+
+Mi propia prueba encontró un hueco mientras la escribía: «MED. INTERNA» no
+coincidía con «medicina interna». Se añadieron las formas abreviadas.
+
+- `src/lib/asr/especialidad-del-medico.ts` (nuevo), `consulta/[patientId]/page.tsx`, `uci/page.tsx`
+- `src/__tests__/especialidad-del-medico.test.ts` — 12 pruebas. Total **5992**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

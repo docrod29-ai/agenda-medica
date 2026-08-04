@@ -37,6 +37,7 @@ import { validarPeso, pesoParaCalcular, avisoSinPeso, validarTalla, tallaParaCal
 import { SOPORTES_ACTIVOS, SOPORTE_LABEL, type SoporteActivo } from '@/types/hospital'
 import { medirEstancia } from '@/lib/uci/estancia'
 import { useConfig } from '@/hooks/useConfig'
+import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
@@ -278,7 +279,15 @@ export default function UciPanelPage() {
     problemas: [inter?.diagnosticoIngreso ?? ''].map(x => String(x).trim()).filter(Boolean),
     // Si el expediente NIEGA alergias, no hay alérgeno que sesgar.
     alergias: alergias.negadas ? [] : alergias.lista,
-  }), [internamientoId, inter?.indicaciones, inter?.diagnosticoIngreso, alergias.negadas, alergias.lista])
+    /**
+     * Y la especialidad del médico, que tampoco llegaba aquí.
+     *
+     * En UCI el módulo ya carga lo crítico —ventilación, aminas, sepsis, CKRT—,
+     * pero no lo del intensivista que además es infectólogo o nefrólogo. Esto
+     * sólo puede añadir: sin coincidencia devuelve vacío.
+     */
+    especialidades: especialidadesDelMedico(config?.especialidad),
+  }), [internamientoId, inter?.indicaciones, inter?.diagnosticoIngreso, alergias.negadas, alergias.lista, config?.especialidad])
   const [discusionTxt, setDiscusionTxt] = useState('')
   const [detectados, setDetectados] = useState<string[]>([])
   const [avisosVoz, setAvisosVoz] = useState<AvisoExtraccionUCI[]>([])

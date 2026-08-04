@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
+import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
@@ -822,12 +823,22 @@ export default function ConsultaActivaPage() {
     medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
     problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
     /**
+     * LA ESPECIALIDAD DEL MÉDICO, QUE NUNCA LLEGABA.
+     *
+     * `ContextoDictado.especialidades` existe desde que se escribió el léxico y
+     * viaja por cuatro capas — y ninguna pantalla lo llenaba. El vocabulario
+     * salía sólo del módulo: un infectólogo en su consultorio no cargaba
+     * «Antimicrobianos» ni «Microbiología y PROA», justo los términos que más se
+     * le escriben mal.
+     */
+    especialidades: especialidadesDelMedico(especialidadEfectiva),
+    /**
      * Las alergias del expediente sesgan el motor hacia lo que no se puede oír
      * mal: el cruce alergia↔fármaco compara contra lo que se OYÓ, así que un
      * alérgeno mal transcrito es un cruce que nunca salta.
      */
     alergias: (patient?.alergias ?? '').split(/[,;\n]/).map(a => a.trim()).filter(Boolean),
-  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo])
+  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {
