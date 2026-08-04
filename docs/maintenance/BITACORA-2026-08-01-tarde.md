@@ -5224,6 +5224,57 @@ correspondían.
 
 ---
 
+## TANDA 161ª — v1012 · UN CAMPO QUE NADIE LEE ES UN HUÉRFANO EN MINIATURA
+
+`modulos-sin-conectar` vigila **archivos** que nadie importa, y funciona. Pero en
+una sola sesión aparecieron **seis** fallos de la misma familia que ese guardián
+no puede ver, porque el módulo sí estaba importado: lo que no se leía era **un
+campo del contrato**.
+
+- `ResultadoPipeline.cambiosNormalizacion` y `.cambiosSiglas` (v1000)
+- `ContextoDictado.especialidades` (v999)
+- Los `utterances` de la semilla de UCI (v997)
+- `rolesHablante` al archivar (v998)
+- `ResultadoPipeline.crudo` (v996)
+
+Ninguno rompía nada: los tests pasaban, el build pasaba, y el trabajo no le
+llegaba al médico.
+
+### Lo que vigila
+
+Para una lista curada de **contratos** —los que cruzan una frontera: motor →
+hook → pantalla → documento—, exige que cada campo declarado aparezca **leído**
+en algún archivo de producción distinto del que lo declara.
+
+Sólo contratos, no todas las interfaces: vigilar todo daría cientos de falsos
+positivos —tipos internos, respuestas de terceros, campos leídos por *spread*— y
+**un guardián ruidoso se apaga**, que es peor que no tenerlo. Y el veredicto es
+prudente: un campo leído por desestructuración con renombre se le escapa, así que
+no dice «esto está mal» sino «esto no se ve leído en ningún sitio».
+
+### Encontró uno en su primera pasada
+
+`ResultadoPipeline.trazas`: cuatro copias del dictado completo que no lee nadie.
+**No se conectó a la fuerza.** Su valor —saber qué cambió en cada etapa— ya se
+entrega en las listas de cambios que la v1000 sacó a pantalla, y persistir cuatro
+transcripciones por nota repetiría el defecto de documento inflado que cerró la
+v996. Queda declarado con esa razón.
+
+Y el guardián hermano cazó al módulo nuevo en cuanto se escribió, que es
+exactamente su trabajo.
+
+### Verificación de la cola: A1 también estaba cerrado
+
+Corriendo el caso exacto del informe por el motor —un *E. faecalis* pan-sensible
+con sus tres R naturales— salen **cero fenotipos, cero alertas y cero
+mecanismos**. Con esto la cola de la auditoría del equipo queda cerrada salvo lo
+bloqueado en el Dr.
+
+- `src/lib/guardia/campos-conectados.ts` (nuevo)
+- `src/__tests__/campos-sin-leer.test.ts` — 13 pruebas. Total **6171**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
@@ -5315,9 +5366,13 @@ sustancialmente mejor de lo que un comprador puede ver».
   (sólo baja); ToastContext migrado a tokens.
 
 ### ANTIBIOGRAMA 7.5 — cuatro defectos, los cuatro «escrito y sin conectar»
-- A1. Fenotipo salvaje leído como resistencia adquirida: un *E. faecalis*
-  pan-sensible sale MDR con alerta crítica de colistina y mecanismo `mcr`. El
-  filtro de resistencia intrínseca EXISTE y no se aplica en ese camino.
+- A1. ~~Fenotipo salvaje leído como resistencia adquirida: un *E. faecalis*
+  pan-sensible sale MDR con alerta crítica de colistina y mecanismo `mcr`.~~
+  **CERRADO** (verificado 2026-08-04 corriendo el caso exacto por el motor: un
+  *E. faecalis* pan-sensible con sus tres R naturales sale con **cero fenotipos,
+  cero alertas y cero mecanismos**). El filtro se aplica en colistina y en el
+  conteo de clases; los Gram positivos llevan además otra etiqueta por la
+  decisión 1 del Dr.
 - A2. ~~La CMI censurada se pierde en la frontera visión→motor.~~ **CERRADO v957**
   (con la premisa corregida: se perdía en la LIBRERÍA, no en la pantalla).
 - A3. ~~La edición interpretativa no se propaga a `categoriasCMI`.~~ **CERRADO v958**
