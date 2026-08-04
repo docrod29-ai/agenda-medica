@@ -349,6 +349,10 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
       "minCasos": 30
     },

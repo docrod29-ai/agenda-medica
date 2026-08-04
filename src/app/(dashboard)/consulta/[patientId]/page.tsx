@@ -101,6 +101,7 @@ import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { alergenosDe } from '@/lib/seguridad/alergias'
 
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
@@ -958,8 +959,15 @@ export default function ConsultaActivaPage() {
      * Las alergias del expediente sesgan el motor hacia lo que no se puede oír
      * mal: el cruce alergia↔fármaco compara contra lo que se OYÓ, así que un
      * alérgeno mal transcrito es un cruce que nunca salta.
+     *
+     * Con `alergenosDe` y no con un `split` propio: éste partía sólo por coma,
+     * punto y coma y salto de línea, así que «Penicilina / Sulfas» y «Penicilina
+     * y sulfas» viajaban como UN término —y el alérgeno de en medio dejaba de
+     * sesgar nada—, «niega alergias» viajaba como si fuera un alérgeno, y las
+     * `alergiasEstructuradas` no se miraban: el paciente mejor documentado
+     * mandaba CERO.
      */
-    alergias: (patient?.alergias ?? '').split(/[,;\n]/).map(a => a.trim()).filter(Boolean),
+    alergias: alergenosDe(patient ?? {}),
   }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
@@ -1734,9 +1742,10 @@ export default function ConsultaActivaPage() {
       // Auditoría 2026-07 (P1): mandamos las alergias REGISTRADAS del expediente
       // para que el cross-check alergia↔medicamento las considere, no solo las
       // que se dictaron en esta consulta.
-      const alergiasRegistradas = Array.isArray(patient?.alergias)
-        ? patient.alergias
-        : (patient?.alergias ? String(patient.alergias).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
+      // El MISMO parser que el sesgo y que la receta: un cuarto criterio para el
+      // mismo campo es un cruce alergia↔fármaco que se pierde en una pantalla y
+      // salta en otra.
+      const alergiasRegistradas = alergenosDe(patient ?? {})
       const res = await fetchAutenticado('/api/expediente/extraer-entidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
