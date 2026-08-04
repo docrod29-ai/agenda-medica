@@ -72,6 +72,16 @@ export interface ContextoDictado {
   modulo: ModuloDictado
   /** Especialidades que el médico eligió, si eligió alguna. */
   especialidades?: readonly string[]
+  /**
+   * LEARN — palabras que este médico ya corrigió a mano, más de una vez.
+   *
+   * Van **antes que todo lo demás**, incluso antes de los fármacos del paciente:
+   * son las que el motor ya demostró que oye mal **con este médico**, y son la
+   * única parte del vocabulario que se ganó con evidencia en vez de con un
+   * catálogo. Si el presupuesto se queda corto, lo que sobra es el catálogo
+   * general.
+   */
+  aprendidas?: readonly string[]
   /** Fármacos activos del paciente. Lo más específico que existe. */
   medicamentos?: readonly string[]
   /** Lista de problemas y diagnósticos. */
@@ -131,8 +141,10 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u
 export function construir(ctx: ContextoDictado, limite = LIMITE_TOKENS_PROMPT): Lexicon {
   const especialidades = contextosActivos(ctx)
 
-  // El orden ES la política: primero lo de este paciente.
+  // El orden ES la política: primero lo APRENDIDO de este médico, después lo de
+  // este paciente. Lo aprendido se ganó con evidencia; el catálogo es un supuesto.
   const candidatos: string[] = [
+    ...(ctx.aprendidas ?? []),
     ...(ctx.medicamentos ?? []),
     ...(ctx.problemas ?? []),
     ...(ESTRATEGIA.merge_global_critical_lexicon ? criticosGlobales() : []),

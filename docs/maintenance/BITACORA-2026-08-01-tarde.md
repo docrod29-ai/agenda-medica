@@ -5689,6 +5689,63 @@ encendido sin dueño es una factura que nadie reclama.
 
 ---
 
+## TANDA 172ª — v1023 · LEARN: LO QUE EL MÉDICO CORRIGE A MANO DEJA DE PERDERSE
+
+**El sistema no aprendía del médico.** Tenía un diccionario fijo de confusiones
+—el mismo para todos— y cargaba el vocabulario del paciente. Pero cuando el
+médico corregía «sefriaxona» → «ceftriaxona» en el editor, esa corrección **se
+perdía**: al día siguiente el motor cometía el mismo error, con el mismo médico y
+en la misma palabra.
+
+Es la etapa **«Learn»** del charter, la que el Dr. pidió con «palabra por
+palabra, nota por nota, letra por letra».
+
+### La evidencia ya estaba
+
+La nota guarda **las dos versiones** desde la v996 —lo que el reconocedor oyó y
+el texto de trabajo que el médico pudo editar— y la diferencia entre ambas **es**
+la corrección. No hay que pedirle que enseñe nada: ya lo hizo al escribir.
+
+### Las tres reglas que lo hacen seguro
+
+1. **Nada que toque una cifra, una unidad o un par prohibido** (mg↔mcg, mL↔L,
+   derecha↔izquierda), reutilizando la política crítica que **ya existe** en vez
+   de escribir un criterio nuevo. Ni una vez, ni mil.
+2. **Una sola vez no enseña nada**: un cambio puede ser un error de dedo o una
+   frase reescrita por estilo — la misma regla que la biblioteca de infusiones,
+   que nunca aprende una dilución de una sola infusión.
+3. **Una palabra por una palabra**, y si el médico añadió o quitó texto **no se
+   aprende nada de esa nota**: las posiciones se desplazan y cualquier «par»
+   sería coincidencia. Se prefiere no aprender a aprender ruido.
+
+### Dónde entra, y qué NO hace
+
+Lo aprendido va **primero** en el vocabulario, antes incluso que los fármacos del
+paciente: son las palabras que el motor ya demostró que oye mal **con este
+médico**, la única parte ganada con evidencia y no con un catálogo. Si el
+presupuesto de 224 tokens se queda corto, lo que sobra es el catálogo general.
+
+Y **sólo sesga**. No reescribe nada: el corrector y su guardián siguen decidiendo
+con las reglas de siempre, porque **saber qué palabra dice el médico no es
+permiso para cambiarla**.
+
+Conectado de punta a punta: se deriva de las notas **firmadas** —de un borrador
+se aprendería de un trabajo sin terminar—, viaja en las opciones de grabación, el
+hook lo manda en cada trozo y en el final, y las dos rutas lo leen.
+
+- `src/lib/asr/aprendizaje.ts` (nuevo), `lexicon.ts`, `useGrabacionAudio.ts`,
+  `consulta/[patientId]/page.tsx`, las dos rutas de transcripción
+- `src/__tests__/aprendizaje-del-medico.test.ts` — 15 pruebas. Total **6347**.
+- `REG-133` en el ledger.
+
+**Primera iteración.** Lo aprendido es **por paciente**, porque sale de sus
+notas. El siguiente paso es acumularlo **por consultorio** —para que lo aprendido
+con un paciente sirva con el siguiente— y darle al Dr. una pantalla donde vea y
+borre lo aprendido. Eso necesita colección nueva y sus reglas: es su propia
+versión.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

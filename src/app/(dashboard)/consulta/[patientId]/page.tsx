@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
+import { paresDeUnaNota, loAprendido, type Aprendido } from '@/lib/asr/aprendizaje'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
@@ -727,6 +728,14 @@ export default function ConsultaActivaPage() {
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
   // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)
   const [estudiosOrden, setEstudiosOrden] = useState<string[]>([])
+  /**
+   * Las palabras que este médico ya corrigió a mano, más de una vez.
+   *
+   * Salen de sus propias notas firmadas y sólo sirven para **sesgar al
+   * reconocedor** en la siguiente grabación. No reescriben nada: el corrector y
+   * su guardián siguen decidiendo con las reglas de siempre.
+   */
+  const [aprendido, setAprendido] = useState<Aprendido[]>([])
 
   /**
    * EL SÉPTIMO MOTIVO: LO QUE SE CONSIDERÓ NO ES LO QUE SE INDICÓ.
@@ -869,12 +878,20 @@ export default function ConsultaActivaPage() {
      */
     especialidades: especialidadesDelMedico(especialidadEfectiva),
     /**
+     * LO APRENDIDO VA CON LOS FÁRMACOS DEL PACIENTE, no al final.
+     *
+     * El presupuesto del sesgo son 224 tokens y el orden ES la política: si algo
+     * se queda fuera, que sea el catálogo general y no la palabra que este
+     * médico corrige todas las semanas.
+     */
+    aprendidas: aprendido.map(a => a.palabra),
+    /**
      * Las alergias del expediente sesgan el motor hacia lo que no se puede oír
      * mal: el cruce alergia↔fármaco compara contra lo que se OYÓ, así que un
      * alérgeno mal transcrito es un cruce que nunca salta.
      */
     alergias: (patient?.alergias ?? '').split(/[,;\n]/).map(a => a.trim()).filter(Boolean),
-  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva])
+  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {
@@ -979,6 +996,22 @@ export default function ConsultaActivaPage() {
         setProblemas(problemasActivos(firmadas))
         const ultima = firmadas.map(n => n.fecha).filter(Boolean).sort().pop()
         setUltimaVisita(ultima)
+        /**
+         * LEARN — lo que el médico corrigió a mano deja de perderse.
+         *
+         * La nota guarda las DOS versiones desde la v996: lo que el reconocedor
+         * oyó y el texto de trabajo que el médico pudo editar. La diferencia
+         * ENTRE AMBAS es la corrección: no hay que pedirle que enseñe nada, ya
+         * lo hizo al escribir.
+         *
+         * Se leen sólo notas FIRMADAS: un borrador a medio escribir tiene el
+         * texto en cualquier estado, y aprender de él sería aprender de un
+         * trabajo sin terminar.
+         */
+        const pares = ns
+          .filter(n => n.estado === 'firmada')
+          .flatMap(n => paresDeUnaNota(n.transcripcionMotor ?? '', n.transcripcionCruda ?? ''))
+        setAprendido(loAprendido(pares))
       })
       .catch(e => console.error('medicación vigente:', e))   // degrada sin romper la nota
   }, [clinicId, patientId])
