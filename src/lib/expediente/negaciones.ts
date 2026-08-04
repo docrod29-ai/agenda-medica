@@ -206,3 +206,62 @@ export const POR_QUE_UN_MOTOR_Y_NO_SOLO_PROMPT =
   'petición: se cumple casi siempre. «Casi siempre» sobre un antecedente ' +
   'crónico —que cambia el riesgo quirúrgico y se arrastra a todas las notas ' +
   'siguientes— no es suficiente.'
+
+/**
+ * ── LA MISMA DEFENSA EN EL EXTRACTOR DE ENTIDADES ────────────────────────────
+ *
+ * La nota no es el único sitio donde el término se cosecha de la pregunta: el
+ * panel «Extraer entidades clínicas» corre sobre EL MISMO texto y devuelve
+ * `conditions` con su `certeza`. Ahí «diabetes» salía como **confirmado**.
+ *
+ * Reparar sólo la nota habría dejado la contradicción viva en la pantalla de al
+ * lado — y con peor pinta, porque una entidad estructurada parece un dato
+ * verificado.
+ */
+
+/** Lo mínimo que hace falta de una condición extraída. El resto se conserva. */
+export interface CondicionExtraida {
+  texto: string
+  certeza?: string
+  [k: string]: unknown
+}
+
+export interface CorreccionCerteza {
+  texto: string
+  condicion: string
+  cita: string
+}
+
+/**
+ * Reclasifica como **descartado** lo que el paciente negó — no lo borra.
+ *
+ * Borrarlo perdería información clínica real: «niega diabetes» es un negativo
+ * pertinente y va en la nota. Lo que no puede pasar es que viaje como
+ * *confirmado*, porque a partir de ahí se comporta como un antecedente.
+ *
+ * Y se devuelve la lista de lo corregido: una corrección silenciosa es
+ * indistinguible de un extractor que acertó a la primera, y entonces nadie se
+ * entera de que el modelo sigue cosechando términos de las preguntas.
+ */
+export function corregirCertezaPorNegacion<T extends CondicionExtraida>(
+  conditions: readonly T[],
+  negadas: readonly Negada[],
+): { conditions: T[]; corregidas: CorreccionCerteza[] } {
+  if (!negadas.length) return { conditions: [...conditions], corregidas: [] }
+  const corregidas: CorreccionCerteza[] = []
+  const out = conditions.map(c => {
+    const enc = cronicasEn(String(c.texto ?? ''))
+    const n = negadas.find(x => enc.includes(x.condicion))
+    // Si el extractor YA la puso como descartada, acertó: no se toca ni se anota.
+    if (!n || c.certeza === 'descartado') return c
+    corregidas.push({ texto: String(c.texto ?? ''), condicion: n.condicion, cita: n.cita })
+    return { ...c, certeza: 'descartado' }
+  })
+  return { conditions: out, corregidas }
+}
+
+export const POR_QUE_SE_RECLASIFICA_Y_NO_SE_BORRA =
+  'Borrar la condición negada perdería información clínica real: «niega ' +
+  'diabetes» es un negativo pertinente y va en la nota. Lo que no puede pasar ' +
+  'es que viaje como CONFIRMADO, porque a partir de ahí se comporta como un ' +
+  'antecedente y se arrastra a todas las notas siguientes.'

@@ -13,6 +13,7 @@
  * principal de extracción pero con un prompt NER puro.
  */
 import { anotarLlamada } from '@/lib/ia/gateway'
+import { condicionesNegadas, corregirCertezaPorNegacion } from '@/lib/expediente/negaciones'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas, TOPE_TEXTO_NER } from '@/lib/expediente/medical-ner'
@@ -180,7 +181,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true })
     }
 
-    return NextResponse.json({ ok: true, ...validation.data, model })
+    /**
+     * EL EXTRACTOR TAMBIÉN COSECHABA LOS TÉRMINOS DE LA PREGUNTA.
+     *
+     * Caso real del Dr. (3-ago-2026): «¿Enfermedades crónicas como diabetes o
+     * presión alta? No.» → salían las dos como condiciones. Una entidad
+     * estructurada tiene peor pinta que una frase: parece un dato verificado.
+     *
+     * Se reclasifican como `descartado`, no se borran — «niega diabetes» es un
+     * negativo pertinente y es información clínica real. Lo que no puede pasar
+     * es que viajen como confirmadas.
+     *
+     * Va en el SERVIDOR y no en la pantalla porque esta ruta la consumen la
+     * consulta y la ficha del paciente: arreglarlo en una dejaría la otra rota.
+     */
+    const negadas = condicionesNegadas(texto)
+    const { conditions, corregidas } = corregirCertezaPorNegacion(validation.data.conditions, negadas)
+    if (corregidas.length) {
+      safeLog.info(`[extraer-entidades] ${corregidas.length} condición(es) reclasificadas a descartado por negación en el texto`)
+    }
+
+    return NextResponse.json({
+      ok: true, ...validation.data, conditions, model,
+      /** Lo corregido se DICE: una corrección silenciosa se ve igual que un extractor que acertó. */
+      negacionesCorregidas: corregidas,
+    })
   } catch (err) {
     safeLog.error('[extraer-entidades] Exception:', err)
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })

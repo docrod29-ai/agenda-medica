@@ -40,7 +40,9 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   condicionesNegadas, contradicciones, avisoDeContradiccion, cronicasEn, CRONICAS,
+  corregirCertezaPorNegacion,
   POR_QUE_NO_SE_CORRIGE_SOLO, POR_QUE_UN_MOTOR_Y_NO_SOLO_PROMPT,
+  POR_QUE_SE_RECLASIFICA_Y_NO_SE_BORRA,
 } from '@/lib/expediente/negaciones'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
@@ -208,5 +210,111 @@ describe('EL CONTRASTE FUNCIONA SOBRE LA NOTA ENTERA', () => {
 
   it('sin dictado tampoco', () => {
     expect(condicionesNegadas('')).toEqual([])
+  })
+})
+
+/**
+ * ── LA MISMA DEFENSA EN EL EXTRACTOR DE ENTIDADES (v977) ─────────────────────
+ *
+ * Reparar sólo la nota habría dejado la contradicción viva en la pantalla de al
+ * lado. Y con peor pinta: una entidad estructurada, con su código CIE-10 y su
+ * chip de color, **parece un dato verificado**.
+ */
+describe('EL EXTRACTOR DE ENTIDADES: reclasifica, no borra', () => {
+  const NEGADAS = condicionesNegadas(DICTADO)
+
+  it('lo que el paciente negó deja de ser «confirmado»', () => {
+    const { conditions } = corregirCertezaPorNegacion(
+      [{ texto: 'Diabetes mellitus tipo 2', certeza: 'confirmado' }],
+      NEGADAS,
+    )
+    expect(conditions[0].certeza).toBe('descartado')
+  })
+
+  it('NO se borra: negar una enfermedad es información clínica', () => {
+    /**
+     * «Niega diabetes» es un negativo pertinente y va en la nota. Lo que no
+     * puede pasar es que viaje como confirmado, porque desde ahí se comporta
+     * como un antecedente.
+     */
+    const { conditions } = corregirCertezaPorNegacion(
+      [{ texto: 'Hipertensión arterial', certeza: 'confirmado' }],
+      NEGADAS,
+    )
+    expect(conditions).toHaveLength(1)
+    expect(conditions[0].texto).toBe('Hipertensión arterial')
+    expect(POR_QUE_SE_RECLASIFICA_Y_NO_SE_BORRA).toMatch(/negativo pertinente/)
+  })
+
+  it('lo corregido SE DICE, no se corrige en silencio', () => {
+    // Una corrección silenciosa se ve igual que un extractor que acertó a la
+    // primera — y entonces nadie se entera de que el modelo sigue cosechando
+    // términos de las preguntas.
+    const { corregidas } = corregirCertezaPorNegacion(
+      [{ texto: 'Diabetes mellitus tipo 2', certeza: 'confirmado' }],
+      NEGADAS,
+    )
+    expect(corregidas).toHaveLength(1)
+    expect(corregidas[0].condicion).toBe('diabetes')
+    expect(corregidas[0].cita).toMatch(/No/)
+  })
+
+  it('si el extractor YA acertó, no se anota una corrección que no hubo', () => {
+    const { corregidas } = corregirCertezaPorNegacion(
+      [{ texto: 'Diabetes', certeza: 'descartado' }],
+      NEGADAS,
+    )
+    expect(corregidas).toEqual([])
+  })
+
+  it('lo que el paciente NO negó se queda como estaba', () => {
+    const { conditions, corregidas } = corregirCertezaPorNegacion(
+      [{ texto: 'Litiasis renal', certeza: 'confirmado' }],
+      NEGADAS,
+    )
+    expect(conditions[0].certeza).toBe('confirmado')
+    expect(corregidas).toEqual([])
+  })
+
+  it('sin negaciones no toca nada', () => {
+    const entrada = [{ texto: 'Diabetes', certeza: 'confirmado' }]
+    const { conditions, corregidas } = corregirCertezaPorNegacion(entrada, [])
+    expect(conditions).toEqual(entrada)
+    expect(corregidas).toEqual([])
+  })
+
+  it('conserva los demás campos de la condición', () => {
+    // Reconstruir el objeto perdiendo el CIE-10 rompería el reporte COFEPRIS.
+    const { conditions } = corregirCertezaPorNegacion(
+      [{ texto: 'Diabetes mellitus tipo 2', certeza: 'confirmado', cie10: 'E11', source_quote: 'x' }],
+      NEGADAS,
+    )
+    expect(conditions[0].cie10).toBe('E11')
+    expect(conditions[0].source_quote).toBe('x')
+  })
+})
+
+describe('LA CORRECCIÓN DEL EXTRACTOR ESTÁ CONECTADA', () => {
+  it('la ruta la aplica en el SERVIDOR', () => {
+    /**
+     * En el servidor y no en la pantalla porque esta ruta la consumen la
+     * consulta y la ficha del paciente: arreglarlo en una dejaría la otra rota.
+     */
+    const ruta = leer('src', 'app', 'api', 'expediente', 'extraer-entidades', 'route.ts')
+    expect(ruta).toContain('corregirCertezaPorNegacion')
+    expect(ruta).toContain('condicionesNegadas(texto)')
+    expect(ruta).toContain('negacionesCorregidas')
+  })
+
+  it('el prompt del NER también lo prohíbe', () => {
+    const ner = leer('src', 'lib', 'expediente', 'medical-ner.ts')
+    expect(ner).toMatch(/UNA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN DIAGNÓSTICO/)
+    expect(ner).toMatch(/certeza="descartado"/)
+  })
+
+  it('y el panel se lo enseña al médico', () => {
+    const panel = leer('src', 'components', 'NerPanel.tsx')
+    expect(panel).toContain('negacionesCorregidas')
+    expect(panel).toMatch(/el paciente las negó/)
   })
 })
