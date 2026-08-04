@@ -6014,6 +6014,41 @@ neumonía recurrente» no se marca.
 
 ---
 
+## TANDA 180ª — v1031 · PAQUETE DEL MASTER LOOP V7 (cuatro iteraciones)
+
+El Dr. entregó el **Master Loop V7** y pidió ejecutarlo. Se montó el sistema
+operativo del programa y salieron tres defectos, dos de ellos **encontrados
+midiendo o mirando producción**, no leyendo código.
+
+**INFRA-001** — `CLAUDE.md`, `.claude/rules/` (6), `.claude/agents/` (8, con
+equipo rojo independiente) y `agent-state/` con métricas **medidas**. Y la
+primera corrida del corpus de **6 000 frases** que el Dr. reclamó: llevaba días
+en disco y nadie lo había pasado por el pipeline. **96.02 % intactas, cero
+términos clave perdidos.**
+
+**VOICE-004** — de esa medición salieron 25 frases que pedían confirmación, y
+**las 25 eran la misma**: balance hídrico negativo. `ES_CANTIDAD` no aceptaba
+signo, leía «−1500 mL» y creía que faltaba la dosis. Un balance negativo es lo
+normal en diuresis o ultrafiltración, y la compuerta que se disparaba de más es
+**la misma** que avisa de una dosis perdida: el ruido gastaba el aviso que no se
+puede ignorar. **25 → 0**, con las intactas sin moverse.
+
+**SAFE-002** — el Dr. mandó una captura de su pantalla: «…Diabetes mellitus tipo
+2. **[object Object] [object Object]**…». `diagnosticos` y `secciones` son
+arreglos de objetos, así que la comprobación de negación y temporalidad
+**sólo veía el resumen**. Un antecedente negado que viviera únicamente como
+diagnóstico estructurado no disparaba nada — y ése es el que se arrastra a la
+receta. La prueba que debía protegerlo **certificaba el defecto**: exigía la
+línea literal rota.
+
+**OPS-001** — al Dr. le salió «el servicio de IA no está disponible» a media
+consulta. Todo el camino existía; faltaba que **le llegara**. Ahora la franja lo
+sigue por la app, sólo a él, con el titular y qué hacer.
+
+- REG-141 · REG-142 · REG-143 · +32 casos, total **6436**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
