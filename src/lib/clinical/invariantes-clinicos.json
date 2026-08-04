@@ -2,7 +2,7 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 2527,
+  "totalCasos": 2789,
   "archivos": [
     {
       "archivo": "src/__tests__/alergias.test.ts",
@@ -93,12 +93,28 @@
       "minCasos": 29
     },
     {
+      "archivo": "src/__tests__/cambios-de-cifras-visibles.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/campos-sin-leer.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/cardiometabolico.test.ts",
       "minCasos": 56
     },
     {
+      "archivo": "src/__tests__/churn.test.ts",
+      "minCasos": 17
+    },
+    {
       "archivo": "src/__tests__/cirugia.test.ts",
       "minCasos": 35
+    },
+    {
+      "archivo": "src/__tests__/citas-de-la-fusion.test.ts",
+      "minCasos": 17
     },
     {
       "archivo": "src/__tests__/ckd-epi-golden.test.ts",
@@ -141,6 +157,10 @@
       "minCasos": 54
     },
     {
+      "archivo": "src/__tests__/costo-por-medico-y-consulta.test.ts",
+      "minCasos": 15
+    },
+    {
       "archivo": "src/__tests__/csp-guard.test.ts",
       "minCasos": 28
     },
@@ -173,12 +193,24 @@
       "minCasos": 33
     },
     {
+      "archivo": "src/__tests__/especialidad-del-medico.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/farmacovigilancia.test.ts",
       "minCasos": 27
     },
     {
+      "archivo": "src/__tests__/fhir-borradores.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/fhir-internamiento.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/fidelidad-de-entrega.test.ts",
+      "minCasos": 17
     },
     {
       "archivo": "src/__tests__/finanzas-cartera.test.ts",
@@ -277,6 +309,10 @@
       "minCasos": 6
     },
     {
+      "archivo": "src/__tests__/intencion-de-orden.test.ts",
+      "minCasos": 25
+    },
+    {
       "archivo": "src/__tests__/l6-acvpu-fhir.test.ts",
       "minCasos": 2
     },
@@ -293,8 +329,16 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/modelo-y-voces-diarizacion.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/modulos-sin-conectar.test.ts",
       "minCasos": 4
+    },
+    {
+      "archivo": "src/__tests__/mrr-real.test.ts",
+      "minCasos": 18
     },
     {
       "archivo": "src/__tests__/negacion-parser.test.ts",
@@ -315,6 +359,14 @@
     {
       "archivo": "src/__tests__/observacion-version.test.ts",
       "minCasos": 31
+    },
+    {
+      "archivo": "src/__tests__/origen-del-dictado.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/pase-uci-conserva-el-dictado.test.ts",
+      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/pediatria.test.ts",
@@ -343,6 +395,14 @@
     {
       "archivo": "src/__tests__/proa.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/procedencia-de-la-prosa.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/quien-hablo-se-archiva.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/razonamiento.test.ts",
@@ -397,12 +457,24 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/roles-de-hablante.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/segunda-opinion-por-tramos.test.ts",
+      "minCasos": 19
+    },
+    {
       "archivo": "src/__tests__/seguridad-dosis.test.ts",
       "minCasos": 26
     },
     {
       "archivo": "src/__tests__/seguridad-red-clinica.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/simulacro-respaldo.test.ts",
+      "minCasos": 13
     },
     {
       "archivo": "src/__tests__/timezone-sitios.test.ts",
@@ -583,6 +655,10 @@
     {
       "archivo": "src/__tests__/uci-ventilacion.test.ts",
       "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/via-parenteral.test.ts",
