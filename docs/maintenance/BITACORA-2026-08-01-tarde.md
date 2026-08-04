@@ -4132,6 +4132,49 @@ nombre.
 
 ---
 
+## TANDA 135ª — v986 · DE QUIÉN ES LA CITA (V3)
+
+Primer trozo de la evidencia enlazada, y ataca el caso del Dr. **una capa antes**
+que el motor de contradicciones.
+
+### El mecanismo que faltaba cerrar
+
+El interrogatorio se dicta nombrando la enfermedad en la **pregunta**:
+
+    Médico:   «¿Enfermedades crónicas como diabetes o presión alta?»
+    Paciente: «No.»
+
+Un extractor que busca su cita textual **la encuentra** —«diabetes» está en el
+dictado, literalmente— y sella el diagnóstico como **dictado**. La cita es
+verdadera y la conclusión es falsa: quien nombró la enfermedad fue el médico
+preguntando, no el paciente afirmando.
+
+La v976 lo atrapa **después**, contrastando dictado contra nota. Esto impide que
+el sello de «lo dijo el paciente» **se pueda construir** sobre las palabras del
+médico.
+
+### Dónde se aplica y dónde NO
+
+Sólo en **antecedentes, diagnósticos y alergias**. Una dosis citada del turno del
+médico **sigue siendo dictado**: el médico es quien prescribe, y degradarla
+convertiría la defensa en ruido — que es el falso positivo caro de este tipo de
+guardián.
+
+### Y no castiga lo que no puede juzgar
+
+**Sin turnos, el manifiesto queda exactamente como antes.** Un dictado sin
+separación de voces no se puede juzgar, y penalizarlo sería convertir una
+limitación del audio en un defecto del médico.
+
+Si la cita aparece en los dos turnos —el médico pregunta y el paciente confirma—
+basta con que la diga el paciente.
+
+- `src/lib/expediente/procedencia.ts` (`citaSostieneAntecedente`, `TurnoAtribuido`),
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/procedencia.test.ts` +7. Total **5864**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

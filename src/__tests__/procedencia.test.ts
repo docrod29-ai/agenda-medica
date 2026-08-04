@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { construirManifiesto, resumenProcedencia, normaliza } from '@/lib/expediente/procedencia'
+import { construirManifiesto, resumenProcedencia, normaliza, POR_QUE_V3 } from '@/lib/expediente/procedencia'
 
 describe('Sello de procedencia', () => {
   it('clasifica dictado (con cita), IA (sin cita) y manual', () => {
@@ -241,5 +241,112 @@ describe('el sello no puede mentir', () => {
       { sinExtraccion: 'ia' },
     )
     expect(m.campos[0].origen).toBe('ia')
+  })
+})
+
+/**
+ * ── V3 (v986) · UNA CITA DEL MÉDICO NO PRUEBA UN ANTECEDENTE DEL PACIENTE ────
+ *
+ * Es la defensa contra el caso que el Dr. encontró en producción, atacado una
+ * capa antes que el motor de contradicciones.
+ *
+ * El interrogatorio se dicta nombrando la enfermedad en la PREGUNTA:
+ *
+ *     Médico:   «¿Enfermedades crónicas como diabetes o presión alta?»
+ *     Paciente: «No.»
+ *
+ * Un extractor que busca su cita textual la encuentra —«diabetes» está en el
+ * dictado, literalmente— y sella el diagnóstico como **dictado**. La cita es
+ * verdadera y la conclusión es falsa: quien nombró la enfermedad fue el médico.
+ *
+ * La v976 lo atrapa DESPUÉS, contrastando. Esto impide que el sello de «lo dijo
+ * el paciente» se pueda construir sobre las palabras del médico.
+ */
+describe('V3 · de quién es la cita', () => {
+  const TURNOS = [
+    { rol: 'Médico', texto: '¿Enfermedades crónicas como diabetes o presión alta?' },
+    { rol: 'Paciente', texto: 'No, ninguna. Vengo por dolor abdominal desde hace tres días.' },
+  ]
+  const TRANSCRIPCION = TURNOS.map(t => `${t.rol}: ${t.texto}`).join('\n')
+
+  it('un diagnóstico citado del turno del MÉDICO no se sella como dictado', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Diabetes mellitus tipo 2' }] },
+      { diagnosticos: [{ descripcion: 'Diabetes mellitus tipo 2', source_quote: 'diabetes o presión alta' }] },
+      undefined,
+      { transcripcion: TRANSCRIPCION, turnos: TURNOS },
+    )
+    expect(m.campos[0].origen).toBe('ia')
+  })
+
+  it('y uno citado del turno del PACIENTE sí', () => {
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Dolor abdominal' }] },
+      { diagnosticos: [{ descripcion: 'Dolor abdominal', source_quote: 'dolor abdominal desde hace tres días' }] },
+      undefined,
+      { transcripcion: TRANSCRIPCION, turnos: TURNOS },
+    )
+    expect(m.campos[0].origen).toBe('dictado')
+  })
+
+  it('las alergias también son antecedente del paciente', () => {
+    const turnos = [
+      { rol: 'Médico', texto: '¿Alergias? ¿Me dijiste que al yodo?' },
+      { rol: 'Paciente', texto: 'Nada más.' },
+    ]
+    const m = construirManifiesto(
+      { alergias: ['Yodo'] },
+      { alergias: [{ alergeno: 'Yodo', source_quote: '¿Me dijiste que al yodo?' }] },
+      undefined,
+      { transcripcion: turnos.map(t => t.texto).join('\n'), turnos },
+    )
+    expect(m.campos[0].origen).toBe('ia')
+  })
+
+  it('una DOSIS citada del médico SIGUE siendo dictado — el médico prescribe', () => {
+    /**
+     * El falso positivo caro. V3 se aplica sólo a antecedentes y diagnósticos:
+     * degradar una dosis por venir del turno del médico convertiría la defensa
+     * en ruido, porque el médico es quien prescribe.
+     */
+    const turnos = [{ rol: 'Médico', texto: 'Le voy a dar amoxicilina 500 mg cada 8 horas.' }]
+    const m = construirManifiesto(
+      { medicamentos: [{ nombre: 'Amoxicilina', dosis: '500 mg' }] },
+      { medicamentos: [{ nombre: 'Amoxicilina', source_quote: 'le voy a dar amoxicilina' }] },
+      undefined,
+      { transcripcion: turnos[0].texto, turnos },
+    )
+    expect(m.campos[0].origen).toBe('dictado')
+  })
+
+  it('SIN turnos no degrada nada: el manifiesto queda como antes', () => {
+    // Un dictado sin separación de voces no puede juzgarse, y castigarlo sería
+    // convertir una limitación en un defecto del médico.
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Diabetes' }] },
+      { diagnosticos: [{ descripcion: 'Diabetes', source_quote: 'diabetes o presión alta' }] },
+      undefined,
+      { transcripcion: TRANSCRIPCION },
+    )
+    expect(m.campos[0].origen).toBe('dictado')
+  })
+
+  it('si la cita aparece en los DOS turnos, basta con que la diga el paciente', () => {
+    const turnos = [
+      { rol: 'Médico', texto: '¿Tiene diabetes?' },
+      { rol: 'Paciente', texto: 'Sí, tengo diabetes desde hace diez años.' },
+    ]
+    const m = construirManifiesto(
+      { diagnosticos: [{ descripcion: 'Diabetes' }] },
+      { diagnosticos: [{ descripcion: 'Diabetes', source_quote: 'diabetes' }] },
+      undefined,
+      { transcripcion: turnos.map(t => t.texto).join('\n'), turnos },
+    )
+    expect(m.campos[0].origen).toBe('dictado')
+  })
+
+  it('la razón está escrita', () => {
+    expect(POR_QUE_V3).toMatch(/la cita es verdadera y la conclusión es falsa/)
+    expect(POR_QUE_V3).toMatch(/el médico es quien prescribe/)
   })
 })

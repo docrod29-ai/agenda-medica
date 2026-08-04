@@ -165,9 +165,70 @@ interface FinalNota {
  *    dictado ORIGINAL contradiciendo el valor mostrado. Un valor que cambió el
  *    médico es del médico.
  */
+/**
+ * Un turno del dictado, con quién lo dijo.
+ *
+ * Es lo que permite la tercera comprobación: **de quién es la cita**.
+ */
+export interface TurnoAtribuido {
+  /** 'Médico' | 'Paciente' | 'Acompañante' | 'Hablante A'… tal como lo ve la pantalla. */
+  rol: string
+  texto: string
+}
+
+/** ¿El rol de este turno es el del médico? */
+const esDelMedico = (rol: string) => /m[eé]dic|doctor/i.test(rol)
+
+/**
+ * ── V3 · UNA CITA DEL MÉDICO NO PRUEBA UN ANTECEDENTE DEL PACIENTE ───────────
+ *
+ * Es la defensa contra el caso que el Dr. encontró en producción. El
+ * interrogatorio se dicta **nombrando la enfermedad en la pregunta**:
+ *
+ *     Médico:   «¿Enfermedades crónicas como diabetes o presión alta?»
+ *     Paciente: «No.»
+ *
+ * Un extractor que busca su cita textual la encuentra —«diabetes» está en el
+ * dictado, literalmente— y sella el diagnóstico como **dictado**. La cita es
+ * verdadera y la conclusión es falsa: quien nombró la enfermedad fue el médico
+ * preguntando, no el paciente afirmando.
+ *
+ * La v976 lo atrapa después, contrastando. Esto lo impide **antes**: el sello de
+ * «lo dijo el paciente» deja de poder construirse sobre las palabras del médico.
+ *
+ * Se aplica **sólo a antecedentes y diagnósticos**. Una dosis citada del turno
+ * del médico es correcta —el médico es quien prescribe— y degradarla sería el
+ * falso positivo caro.
+ */
+export function citaSostieneAntecedente(
+  cita: string,
+  turnos: readonly TurnoAtribuido[] | undefined,
+): boolean {
+  if (!turnos?.length) return true          // sin turnos no se puede juzgar: no se degrada
+  const c = normaliza(cita)
+  if (!c) return true
+  const dondeAparece = turnos.filter(t => normaliza(t.texto).includes(c))
+  if (!dondeAparece.length) return true     // la cita no cae en ningún turno: lo juzga V2
+  // Basta que UN turno de alguien que no es el médico la contenga.
+  return dondeAparece.some(t => !esDelMedico(t.rol))
+}
+
+export const POR_QUE_V3 =
+  'El interrogatorio nombra la enfermedad en la PREGUNTA del médico, así que un ' +
+  'extractor encuentra su cita textual y sella el diagnóstico como dictado: la ' +
+  'cita es verdadera y la conclusión es falsa. Se aplica sólo a antecedentes y ' +
+  'diagnósticos — una dosis citada del turno del médico es correcta, porque el ' +
+  'médico es quien prescribe.'
+
 function origenDe(
   match: ItemExtraido | undefined,
-  ctx?: { transcripcionNorm?: string; valorFinal?: string; valorExtraido?: string; sinExtraccion?: OrigenCampo },
+  ctx?: {
+    transcripcionNorm?: string; valorFinal?: string; valorExtraido?: string; sinExtraccion?: OrigenCampo
+    /** Turnos con su rol, para la tercera comprobación (de quién es la cita). */
+    turnos?: readonly TurnoAtribuido[]
+    /** `true` sólo en antecedentes y diagnósticos: es donde V3 aplica. */
+    esAntecedente?: boolean
+  },
 ): { origen: OrigenCampo; cita?: string; confianza?: Confianza } {
   if (!match) return { origen: ctx?.sinExtraccion ?? 'manual' }
 
@@ -204,6 +265,13 @@ function origenDe(
   if (!ctx.transcripcionNorm.includes(normaliza(cita))) {
     return { origen: 'ia', confianza: match.confidence }
   }
+  /**
+   * V3: la cita existe, pero ¿la dijo el paciente o la nombró el médico al
+   * preguntar? Sólo para antecedentes y diagnósticos.
+   */
+  if (ctx.esAntecedente && !citaSostieneAntecedente(cita, ctx.turnos)) {
+    return { origen: 'ia', confianza: match.confidence }
+  }
   return { origen: 'dictado', cita, confianza: match.confidence }
 }
 
@@ -236,11 +304,19 @@ export function construirManifiesto(
    * cuando la nota la produjo el parser local: ahí no hay bloque de extracción y
    * TODO salía como escrito a mano sobre datos de máquina.
    */
-  opciones?: { transcripcion?: string; sinExtraccion?: OrigenCampo },
+  opciones?: {
+    transcripcion?: string; sinExtraccion?: OrigenCampo
+    /**
+     * Los turnos con su rol. Sin ellos, V3 no puede juzgar y NO degrada nada:
+     * el manifiesto queda exactamente como antes.
+     */
+    turnos?: readonly TurnoAtribuido[]
+  },
 ): ManifiestoProcedencia {
   const campos: CampoProcedencia[] = []
   const transcripcionNorm = opciones?.transcripcion ? normaliza(opciones.transcripcion) : undefined
   const sinExtraccion = opciones?.sinExtraccion
+  const turnos = opciones?.turnos
 
   /** Devuelve el ítem coincidente Y su posición en la extracción (para el id del panel). */
   const buscar = (lista: ItemExtraido[] | undefined, clave: (x: ItemExtraido) => string, valor: string) => {
@@ -267,7 +343,7 @@ export function construirManifiesto(
     const { item, indice } = buscar(extraction?.diagnosticos, x => String(x.descripcion ?? ''), desc)
     campos.push({
       id: `dx:${i}`, etiqueta: 'Diagnóstico', valor: desc,
-      ...origenDe(item, { transcripcionNorm, sinExtraccion }),
+      ...origenDe(item, { transcripcionNorm, sinExtraccion, turnos, esAntecedente: true }),
       confirmado: confirmadoDe(indice >= 0 ? `dx:${indice}` : null),
     })
   })
@@ -295,7 +371,9 @@ export function construirManifiesto(
     const { item, indice } = buscar(extraction?.alergias, x => String(x.alergeno ?? ''), alg)
     campos.push({
       id: `alg:${i}`, etiqueta: 'Alergia', valor: alg.trim(),
-      ...origenDe(item, { transcripcionNorm, sinExtraccion }),
+      // Una alergia también es un antecedente del paciente: si la nombró el
+      // médico preguntando («¿alergias? ¿al yodo?»), la cita no la sostiene.
+      ...origenDe(item, { transcripcionNorm, sinExtraccion, turnos, esAntecedente: true }),
       confirmado: confirmadoDe(indice >= 0 ? `alg:${indice}` : null),
     })
   })
