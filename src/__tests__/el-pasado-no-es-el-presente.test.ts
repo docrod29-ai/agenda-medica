@@ -168,3 +168,69 @@ describe('ESTÁ CONECTADO A LA CONSULTA', () => {
     expect(roja).toContain('tone="danger"')
   })
 })
+
+/**
+ * ── LA SEGUNDA PUERTA (v1028) ────────────────────────────────────────────────
+ *
+ * La nota no es el único sitio donde se cosecha el pasado. El extractor de
+ * entidades corre sobre EL MISMO texto y su `estado` **nace en `activo` por
+ * omisión del esquema**, así que «tuvo neumonía hace tres años» sale como una
+ * condición activa — y una entidad estructurada tiene peor pinta que una frase:
+ * parece un dato verificado.
+ *
+ * Es exactamente lo que pasó con las negaciones, y por eso allí quedó escrito
+ * que arreglarlo en una pantalla dejaría la otra rota.
+ */
+describe('LA SEGUNDA PUERTA: EL EXTRACTOR DE ENTIDADES', () => {
+  it('una condición ACTIVA que el dictado puso en pasado se señala', async () => {
+    const { avisosTemporalesDelExtractor } = await import('@/lib/expediente/temporalidad')
+    const pasadas = mencionesEnPasado('Tuvo tuberculosis hace diez años.')
+    const avisos = avisosTemporalesDelExtractor([{ texto: 'tuberculosis', estado: 'activo' }], pasadas)
+    expect(avisos).toHaveLength(1)
+    expect(avisos[0].condicion).toBe('tuberculosis')
+  })
+
+  it('pero NO se toca: se devuelve el aviso, no una condición modificada', async () => {
+    /**
+     * Con una negación se puede reclasificar —el paciente dijo que no—. Aquí no
+     * hay nada equivalente: pasar algo a «resuelto» porque la frase iba en
+     * pretérito sería una decisión clínica. Una neumonía de hace tres años puede
+     * estar resuelta; una cardiopatía no lo está por contarla en pasado.
+     */
+    const { avisosTemporalesDelExtractor, POR_QUE_AQUI_NO_SE_RECLASIFICA } = await import('@/lib/expediente/temporalidad')
+    const avisos = avisosTemporalesDelExtractor(
+      [{ texto: 'cardiopatía', estado: 'activo' }],
+      mencionesEnPasado('Tuvo un infarto en 2019.'),
+    )
+    expect(Object.keys(avisos[0]).sort()).toEqual(['cita', 'condicion', 'texto'])
+    expect(POR_QUE_AQUI_NO_SE_RECLASIFICA).toMatch(/sería una decisión clínica/)
+  })
+
+  it('si el extractor ya la puso como resuelta, acertó: ni se anota', async () => {
+    const { avisosTemporalesDelExtractor } = await import('@/lib/expediente/temporalidad')
+    const avisos = avisosTemporalesDelExtractor(
+      [{ texto: 'tuberculosis', estado: 'resuelto' }],
+      mencionesEnPasado('Tuvo tuberculosis hace diez años.'),
+    )
+    expect(avisos).toEqual([])
+  })
+
+  it('la ruta lo calcula y lo devuelve', () => {
+    const ruta = leer('src', 'app', 'api', 'expediente', 'extraer-entidades', 'route.ts')
+    expect(ruta).toContain('avisosTemporalesDelExtractor(conditions, mencionesEnPasado(texto))')
+    expect(ruta).toContain('avisosTemporales,')
+  })
+
+  it('y el panel lo enseña, diciendo que no cambió nada', () => {
+    // Señalar sin tocar sólo sirve si se enseña.
+    const panel = leer('src', 'components', 'NerPanel.tsx')
+    expect(panel).toContain('salen como activas y en el dictado se dijeron en pasado')
+    expect(panel).toMatch(/No se cambiaron: decidir que están resueltas sería una decisión clínica/)
+  })
+
+  it('la consulta lo recibe y se lo pasa al panel', () => {
+    const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+    expect(page).toContain('setAvisosTemporales(((data as { avisosTemporales?: AvisoTemporal[] }).avisosTemporales) ?? [])')
+    expect(page).toContain('avisosTemporales={avisosTemporales}')
+  })
+})

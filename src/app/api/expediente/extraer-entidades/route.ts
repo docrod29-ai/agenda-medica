@@ -14,6 +14,7 @@
  */
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { condicionesNegadas, corregirCertezaPorNegacion } from '@/lib/expediente/negaciones'
+import { mencionesEnPasado, avisosTemporalesDelExtractor } from '@/lib/expediente/temporalidad'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas, TOPE_TEXTO_NER } from '@/lib/expediente/medical-ner'
@@ -201,10 +202,25 @@ export async function POST(req: NextRequest) {
       safeLog.info(`[extraer-entidades] ${corregidas.length} condición(es) reclasificadas a descartado por negación en el texto`)
     }
 
+    /**
+     * Y LA OTRA COSECHA: LA QUE VIENE EN PASADO.
+     *
+     * `estado` nace en `activo` por omisión del esquema, así que «tuvo neumonía
+     * hace tres años» sale como condición ACTIVA. Aquí NO se reclasifica —pasar
+     * algo a `resuelto` porque la frase iba en pasado sería una decisión
+     * clínica—: se señala y decide el médico.
+     */
+    const avisosTemporales = avisosTemporalesDelExtractor(conditions, mencionesEnPasado(texto))
+    if (avisosTemporales.length) {
+      safeLog.info(`[extraer-entidades] ${avisosTemporales.length} condición(es) activas que el dictado situó en pasado`)
+    }
+
     return NextResponse.json({
       ok: true, ...validation.data, conditions, model,
       /** Lo corregido se DICE: una corrección silenciosa se ve igual que un extractor que acertó. */
       negacionesCorregidas: corregidas,
+      /** Y lo NO corregido también: señalar sin tocar sólo sirve si se enseña. */
+      avisosTemporales,
     })
   } catch (err) {
     safeLog.error('[extraer-entidades] Exception:', err)
