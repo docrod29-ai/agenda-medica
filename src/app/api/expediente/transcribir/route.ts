@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
       if (!modulo) return ''
       const lex = construirLexicon({
         modulo,
+        aprendidas: leerLista('aprendidas'),
         especialidades: leerLista('especialidades'),
         medicamentos: leerLista('medicamentos'),
         problemas: leerLista('problemas'),

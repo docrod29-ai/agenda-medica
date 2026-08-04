@@ -123,6 +123,8 @@ describe('Y AHORA SÍ LO MANDA ALGUIEN', () => {
     // `opcionesWhisper` se congela: sin la dependencia, cambiar la especialidad
     // en Configuración no cambiaría el vocabulario hasta recargar.
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toMatch(/internamientoActivo, especialidadEfectiva\]\)/)
+    // La v1023 añadió `aprendido` a las mismas dependencias (LEARN): se
+    // comprueba que la especialidad sigue estando, no la lista literal.
+    expect(page).toMatch(/internamientoActivo, especialidadEfectiva[,\]]/)
   })
 })

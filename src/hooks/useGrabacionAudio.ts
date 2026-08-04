@@ -87,6 +87,13 @@ export interface OpcionesGrabacion {
    * Un fármaco que el paciente ya toma es la pista más específica que existe.
    */
   especialidades?: readonly string[]
+  /**
+   * Palabras que ESTE médico ya corrigió a mano más de una vez (LEARN).
+   *
+   * Van con lo del paciente, no al final: el presupuesto del sesgo es de 224
+   * tokens y el orden ES la política.
+   */
+  aprendidas?: readonly string[]
   medicamentos?: readonly string[]
   problemas?: readonly string[]
   /**
@@ -532,6 +539,13 @@ interface CtxDictado {
   duracionSeg?: number
   contexto?: string
   especialidades?: readonly string[]
+  /**
+   * Palabras que ESTE médico ya corrigió a mano más de una vez (LEARN).
+   *
+   * Van con lo del paciente, no al final: el presupuesto del sesgo es de 224
+   * tokens y el orden ES la política.
+   */
+  aprendidas?: readonly string[]
   medicamentos?: readonly string[]
   problemas?: readonly string[]
   /**
@@ -550,7 +564,7 @@ function anexarContexto(fd: FormData, c: CtxDictado): void {
   // puede asentar el costo del dictado.
   if (typeof c.duracionSeg === 'number' && c.duracionSeg > 0) fd.append('duracionSeg', String(Math.round(c.duracionSeg)))
   if (c.contexto) fd.append('contexto', c.contexto)
-  for (const [k, v] of [['especialidades', c.especialidades], ['medicamentos', c.medicamentos], ['problemas', c.problemas]] as const) {
+  for (const [k, v] of [['aprendidas', c.aprendidas], ['especialidades', c.especialidades], ['medicamentos', c.medicamentos], ['problemas', c.problemas]] as const) {
     if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
   }
 }
@@ -992,6 +1006,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       // Y el vocabulario del paciente: el texto en vivo alimenta la nota
       // preliminar y es el último recurso si la transcripción final falla.
       for (const [k, v] of [
+        ['aprendidas', contextoRef.current.aprendidas],
         ['especialidades', contextoRef.current.especialidades],
         ['medicamentos', contextoRef.current.medicamentos],
         ['problemas', contextoRef.current.problemas],
@@ -1114,6 +1129,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     contextoRef.current = {
       contexto: opts?.contexto,
       especialidades: opts?.especialidades,
+      aprendidas: opts?.aprendidas,
       medicamentos: opts?.medicamentos,
       problemas: opts?.problemas,
       alergias: opts?.alergias,
