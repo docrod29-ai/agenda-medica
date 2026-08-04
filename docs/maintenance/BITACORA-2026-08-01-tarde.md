@@ -4396,6 +4396,49 @@ no haya dudas, es que no se pueden medir**.
 
 ---
 
+## TANDA 141ª — v992 · LA REVERSIÓN DEL GUARDIÁN DEJÓ DE SER TODO-O-NADA
+
+### El defecto
+
+El guardián compara los textos **completos** y, ante una sola violación, devuelve
+el crudo entero; el corrector entonces vaciaba `cambios` por completo.
+
+Consecuencia: bastaba que **una** cifra desapareciera en el minuto 18 para que se
+descartaran **todas** las correcciones de fármacos de la consulta — «sefriaxona»
+incluida, en el minuto 2.
+
+Y el daño **crecía con la duración**. Cuantas más cifras tiene un dictado, más
+probable es perderlo todo: justo al revés de lo que conviene, porque la consulta
+larga es la que más se beneficia del corrector.
+
+### Lo que se hizo, y por qué NO debilita nada
+
+La reversión por frase es **sólo el intento**. Cada frase se corrige y se juzga
+sola: la que pasa se queda corregida, la que no se queda cruda. Y después **se
+vuelve a verificar el documento recompuesto contra el crudo** — si queda
+cualquier violación, se cae al comportamiento de siempre: crudo entero.
+
+O sea que la salida sigue pasando `verificar()` exactamente igual que antes. Lo
+único que cambia es **cuánto se tira** cuando el problema está en una frase.
+
+La prueba que lo fija corre una batería de dictados —incluidos los que rompen a
+propósito— y comprueba el invariante: **la salida siempre pasa el guardián**.
+
+### Y el alcance se cuenta
+
+«Se descartó una corrección» sobre veinte minutos no dice si se perdió una frase
+o la consulta entera. Con la reversión por frases esa diferencia **existe**, así
+que no contarla sería esconderla. Ahora la alerta dice «se conservaron N de M
+frases sin corregir», o «el dictado completo» cuando de verdad es completo.
+
+Y un dictado de una sola frase no habla de «frases»: decir «0 de 1» es ruido.
+
+- `src/lib/asr/corrector-vigilado.ts` (`frasesConSeparador`, reversión por frase,
+  re-verificación final, `frasesRevertidas`/`frasesTotales`)
+- `src/__tests__/guardian-reversion-por-frase.test.ts` — 9 pruebas. Total **5922**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
