@@ -139,6 +139,12 @@ interface ExtractionBlock {
   medicamentos?: ItemExtraido[]
   alergias?: ItemExtraido[]
   signosVitales?: Record<string, { value?: unknown; source_quote?: string; confidence?: Confianza }>
+  /**
+   * La PROSA auditada. Existe en el esquema desde siempre —cada sección trae su
+   * `value`, su `confidence` y su `source_quote`— y el manifiesto no la miraba.
+   */
+  secciones?: Record<string, ItemExtraido>
+  resumenEjecutivo?: ItemExtraido
 }
 
 interface FinalNota {
@@ -146,7 +152,30 @@ interface FinalNota {
   medicamentos?: { nombre?: string; dosis?: string }[]
   alergias?: (string | { alergeno?: string })[]
   signosVitales?: Record<string, unknown>
+  /** Las secciones redactadas de la nota, tal como quedaron al firmar. */
+  secciones?: { key?: string; label?: string; value?: string }[]
+  resumen?: string
 }
+
+/**
+ * Cuánto texto de una sección se guarda como «valor» del campo.
+ *
+ * El manifiesto es una tabla de procedencia, no una copia de la nota: el
+ * documento entero ya está al lado. Se guarda el arranque, que es lo que
+ * identifica de qué párrafo se habla.
+ */
+export const MUESTRA_PROSA = 160
+
+/**
+ * Qué secciones se juzgan con la regla V3 —«¿lo afirmó el paciente o lo nombró
+ * la pregunta?»—.
+ *
+ * Sólo las de antecedentes. Es donde ocurrió el fallo real: «¿diabetes o presión
+ * alta?» «No» acabó redactado como «paciente con DM2 e HTA». En el padecimiento
+ * actual o en la exploración, el médico describe lo que ve, y exigir que la cita
+ * la sostenga el paciente degradaría prosa correcta.
+ */
+const SECCION_ES_ANTECEDENTE = /antecedent|heredofamiliar|patologic|quirurgic|alergi/i
 
 /**
  * Clasifica un campo contra su coincidencia en la extracción.
@@ -393,6 +422,58 @@ export function construirManifiesto(
         confirmado: confirmadoDe(ex ? `sv:${k}` : null),
       })
     }
+  }
+
+  /**
+   * ── LA PROSA, QUE ERA LO QUE FALTABA ───────────────────────────────────────
+   *
+   * El manifiesto cubría diagnósticos, medicamentos, alergias y signos: **datos
+   * estructurados**. Y los tres fallos que el Dr. encontró en producción
+   * vivieron en la prosa — «la de la docencia» convertido en «vesícula», y un
+   * «no» a la pregunta por diabetes redactado como «paciente con DM2 e HTA».
+   *
+   * O sea que el sello contaba con precisión la parte que no había fallado.
+   *
+   * La extracción ya traía cada sección con su cita: sólo faltaba mirarla.
+   */
+  const prosa: { id: string; etiqueta: string; texto: string; ex: ItemExtraido | undefined; antecedente: boolean }[] = []
+  if (final.resumen?.trim()) {
+    prosa.push({ id: 'prosa:resumen', etiqueta: 'Resumen', texto: final.resumen.trim(), ex: extraction?.resumenEjecutivo, antecedente: false })
+  }
+  final.secciones?.forEach((sec, i) => {
+    const texto = String(sec?.value ?? '').trim()
+    if (!texto) return
+    const clave = String(sec?.key ?? '')
+    const etiqueta = String(sec?.label ?? clave ?? `Sección ${i + 1}`)
+    prosa.push({
+      id: `prosa:${clave || i}`,
+      etiqueta,
+      texto,
+      ex: clave ? extraction?.secciones?.[clave] : undefined,
+      antecedente: SECCION_ES_ANTECEDENTE.test(`${clave} ${etiqueta}`),
+    })
+  })
+
+  for (const p of prosa) {
+    /**
+     * Se compara el texto FINAL con el que propuso la extracción: si el médico
+     * reescribió el párrafo, el origen es «manual» — es suyo, no del dictado.
+     * Es la misma regla que ya se aplicaba a la dosis de un medicamento.
+     */
+    const valorExtraido = typeof p.ex?.value === 'string' ? p.ex.value : undefined
+    campos.push({
+      id: p.id,
+      etiqueta: p.etiqueta,
+      valor: p.texto.length > MUESTRA_PROSA ? `${p.texto.slice(0, MUESTRA_PROSA)}…` : p.texto,
+      ...origenDe(p.ex, {
+        transcripcionNorm, sinExtraccion, turnos,
+        esAntecedente: p.antecedente,
+        valorFinal: valorExtraido ? p.texto : undefined,
+        valorExtraido,
+      }),
+      // La prosa no pasa por el panel de revisión: no hay visto bueno que leer.
+      confirmado: undefined,
+    })
   }
 
   const resumen: ResumenProcedencia = {
