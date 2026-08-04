@@ -306,3 +306,45 @@ export const POR_QUE_NO_SE_ADIVINA_SI_ES_FARMACO =
   'decir una palabra que el motor no entendió — el fallo exacto que este módulo ' +
   'existe para impedir. Se usa un criterio que no adivina: la duda importa si ' +
   'toca una cifra o una unidad, o sea si cae dentro de una posología.'
+
+/**
+ * ── CUANDO EL DIÁLOGO NO SE PUEDE MANDAR, LA DUDA SÍ ─────────────────────────
+ *
+ * Hay dos caminos en los que el modelo recibe **texto plano**:
+ *
+ * · **Multi-tramo** (el médico grabó en dos tandas). La separación de voces es
+ *   por grabación y sólo cubre la última, así que mandar los turnos entregaría
+ *   **sólo el último tramo** y la nota perdería la primera parte clínica. Se
+ *   manda el texto completo: se sacrifican las etiquetas de voz, nunca el
+ *   contenido. Correcto — pero de paso se tiraban **también las marcas de
+ *   duda**, que no tenían por qué irse.
+ * · **Sin diarización** (falló y entró el motor alterno). Ahí no existe
+ *   confianza por palabra: no hay nada que marcar, y decirlo es lo único
+ *   honesto.
+ *
+ * En el primer caso la duda del tramo que SÍ conocemos se puede anexar al final,
+ * con su instrucción. En el segundo no hay nada que anexar.
+ *
+ * ── POR QUÉ UN ANEXO Y NO MARCAS EN LÍNEA ────────────────────────────────────
+ *
+ * En texto plano no se sabe dónde cae cada palabra: los tramos se concatenaron y
+ * una misma palabra puede aparecer varias veces. Marcar «la primera que se
+ * parezca» señalaría la ocurrencia equivocada — y una marca en el sitio
+ * equivocado es peor que ninguna, porque manda a revisar donde no está.
+ */
+export function anexoDeDudas(turnos: readonly TurnoConPalabras[], umbral = UMBRAL_DUDA): string {
+  const { palabras, ocultas } = paraElMedico(turnos, umbral)
+  if (!palabras.length) return ''
+  const lista = palabras.map(p => `${ABRE}${p.texto}${CIERRA} (min ${p.momento})`).join(', ')
+  const cola = ocultas > 0 ? ` y ${ocultas} más` : ''
+  return `${INSTRUCCION_MARCAS}\n\n`
+    + 'AVISO: este dictado va SIN turnos de habla. Las palabras que el audio no '
+    + `oyó con seguridad no pudieron marcarse en su sitio; van listadas aquí: ${lista}${cola}.\n`
+    + 'Trátalas con las mismas reglas de arriba estén donde estén en el texto.'
+}
+
+export const POR_QUE_ANEXO_Y_NO_MARCAS_EN_LINEA =
+  'En texto plano no se sabe dónde cae cada palabra: los tramos se concatenaron ' +
+  'y una misma palabra puede aparecer varias veces. Marcar «la primera que se ' +
+  'parezca» señalaría la ocurrencia equivocada, y una marca en el sitio ' +
+  'equivocado es peor que ninguna porque manda a revisar donde no está.'

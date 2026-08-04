@@ -27,6 +27,7 @@ import {
   esMarcable, palabrasDudosas, marcarTurno, paraElMedico, marcaDeTiempo,
   UMBRAL_DUDA, UMBRAL_SIN_CALIBRAR, TOPE_AVISO, INSTRUCCION_MARCAS, ABRE, CIERRA,
   POR_QUE_NO_SE_CORRIGE, POR_QUE_SE_PROPAGA_LA_DUDA,
+  anexoDeDudas, POR_QUE_ANEXO_Y_NO_MARCAS_EN_LINEA,
   type TurnoConPalabras,
 } from '@/lib/expediente/confianza-audio'
 
@@ -369,5 +370,91 @@ describe('LAS MARCAS VAN SOBRE EL TEXTO CORREGIDO, no sobre el crudo', () => {
       palabras: [{ texto: 'docencia', inicioMs: 0, confianza: .3 }],
     }
     expect(marcarTurno(t)).toContain(`${ABRE}docencia,${CIERRA}`)
+  })
+})
+
+/**
+ * ── LA DUDA SOBREVIVE AL TEXTO PLANO (v991) ─────────────────────────────────
+ *
+ * Hay dos caminos en los que el modelo recibe texto plano:
+ *
+ * · **Multi-tramo**: el médico grabó en dos tandas. La separación de voces es
+ *   por grabación y cubre sólo la última, así que mandar los turnos entregaría
+ *   **sólo el último tramo** y la nota perdería la primera parte clínica. Se
+ *   manda el texto completo — correcto. Lo que NO tenía por qué irse eran las
+ *   marcas de duda, y se iban.
+ * · **Sin diarización**: no existe confianza por palabra. Ahí no hay nada que
+ *   marcar, y decirlo es lo único honesto.
+ *
+ * Y el multi-tramo **no avisaba de nada**: `sinDiarizacion` seguía en `null`
+ * porque la diarización sí ocurrió, sólo que no se usaba. La pantalla se veía
+ * idéntica a la del camino bueno.
+ */
+describe('LA DUDA SOBREVIVE AL TEXTO PLANO', () => {
+  it('el anexo lleva las palabras dudosas con su minuto', () => {
+    const a = anexoDeDudas([TURNO_DE_LUIS])
+    expect(a).toContain('docencia')
+    expect(a).toMatch(/min 0:02/)
+  })
+
+  it('y su instrucción, la misma que las marcas en línea', () => {
+    // Sin la regla, una lista de palabras es ruido que el modelo descarta.
+    expect(anexoDeDudas([TURNO_DE_LUIS])).toMatch(/NUNCA se convierte en un hecho clínico/)
+  })
+
+  it('dice que el dictado va SIN turnos, para que el modelo no los busque', () => {
+    expect(anexoDeDudas([TURNO_DE_LUIS])).toMatch(/SIN turnos de habla/)
+  })
+
+  it('sin palabras dudosas el anexo es vacío: no se cuelga ruido', () => {
+    const limpio: TurnoConPalabras = {
+      speaker: 'A', text: 'buenos días',
+      palabras: [{ texto: 'buenos', inicioMs: 0, confianza: .99 }],
+    }
+    expect(anexoDeDudas([limpio])).toBe('')
+  })
+
+  it('sin turnos —el camino sin diarización— tampoco hay anexo', () => {
+    /**
+     * Ahí no hay confianza por palabra: no es que no haya dudas, es que no se
+     * pueden medir. Inventar un anexo vacío de contenido sería fingir que sí.
+     */
+    expect(anexoDeDudas([])).toBe('')
+  })
+
+  it('NO se marcan las palabras en línea sobre texto plano, y hay razón', () => {
+    /**
+     * Los tramos se concatenaron y una misma palabra puede aparecer varias
+     * veces. Marcar «la primera que se parezca» señalaría la ocurrencia
+     * equivocada — peor que ninguna marca, porque manda a revisar donde no está.
+     */
+    expect(POR_QUE_ANEXO_Y_NO_MARCAS_EN_LINEA).toMatch(/manda a revisar donde no está/)
+  })
+
+  it('la consulta lo anexa al texto plano', () => {
+    const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+    expect(page).toContain('const anexo = anexoDeDudas(audio.utterances)')
+    expect(page).toMatch(/anexo \? `\$\{voz\.transcripcion\}/)
+  })
+})
+
+describe('Y AL MÉDICO SE LE DICE QUÉ SE PERDIÓ', () => {
+  const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+
+  it('sin diarización: también se perdió la confianza por palabra', () => {
+    // Antes sólo se avisaba de la separación de voces. Se degradaban DOS cosas y
+    // se contaba una.
+    expect(page).toMatch(/tampoco hay confianza por palabra/)
+    expect(page).toMatch(/no es que no haya dudas, es que\s*\n?\s*no se pueden medir/)
+  })
+
+  it('multi-tramo: se avisa, y antes no se avisaba de nada', () => {
+    /**
+     * `sinDiarizacion` seguía en `null` porque la diarización SÍ ocurrió, sólo
+     * que no se usaba: la pantalla se veía idéntica a la del camino bueno.
+     */
+    expect(page).toContain('const [multiTramoVisible, setMultiTramoVisible]')
+    expect(page).toMatch(/Esta consulta se grabó en varias tandas/)
+    expect(page).toMatch(/se conserva todo el contenido,\s*\n?\s*se pierden las etiquetas/)
   })
 })
