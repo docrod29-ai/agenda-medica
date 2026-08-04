@@ -88,12 +88,62 @@ describe('EL MÓDULO MANDA: UCI deja de sesgarse como consultorio', () => {
      * consultorio aunque la pantalla hubiera pedido `contexto: 'uci'`: el mismo
      * audio producía dos vocabularios distintos según qué etapa lo mirara.
      */
-    expect(ruta).toContain("const base = contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO")
+    // v994: el léxico del paciente manda sobre el catálogo del módulo, y el del
+    // módulo sobre el de consultorio. La cadena es la que decide.
+    expect(ruta).toContain("promptLexicon || (contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO)")
     expect(ruta).toContain("String(formData.get('contexto') ?? '')")
   })
 
   it('y el hook lo manda en cada trozo', () => {
     const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
     expect(hook).toContain("fd.append('contexto', contextoRef.current.contexto)")
+  })
+})
+
+/**
+ * ── EL VOCABULARIO DEL PACIENTE LLEGA AL TEXTO EN VIVO (v994) ───────────────
+ *
+ * La ruta final construye el léxico con `lexicon.construir`, que presupuesta los
+ * 224 tokens gastando **primero en los fármacos y problemas de ESTE paciente**.
+ * El trozo en vivo usaba un prompt fijo: el mismo audio producía dos textos con
+ * vocabularios distintos.
+ *
+ * Y el de en vivo no es decorativo: de él sale la **nota preliminar**, y es el
+ * último recurso si la transcripción final falla.
+ */
+describe('EL LÉXICO DEL PACIENTE TAMBIÉN EN VIVO', () => {
+  it('la ruta del trozo construye el léxico, como la final', () => {
+    expect(ruta).toContain('construirLexicon({')
+    expect(ruta).toContain("medicamentos: leerLista('medicamentos')")
+    expect(ruta).toContain("problemas: leerLista('problemas')")
+  })
+
+  it('y falla ABIERTO: sin léxico se sigue con el prompt de siempre', () => {
+    /**
+     * Perder vocabulario extra es molesto; quedarse sin dictado es otra cosa.
+     * Es el mismo patrón que ya usa la ruta final.
+     */
+    expect(ruta).toMatch(/catch \{ return '' \}/)
+    expect(ruta).toContain('promptLexicon ||')
+  })
+
+  it('el hook manda fármacos, problemas y especialidades en cada trozo', () => {
+    const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
+    expect(hook).toMatch(/\['medicamentos', contextoRef\.current\.medicamentos\]/)
+    expect(hook).toMatch(/\['problemas', contextoRef\.current\.problemas\]/)
+    expect(hook).toMatch(/\['especialidades', contextoRef\.current\.especialidades\]/)
+  })
+
+  it('desde la referencia, no desde el estado congelado', () => {
+    // `flushChunks` se crea una vez y corre cada 20 s: leer el estado ahí
+    // devolvería el valor del render en que nació.
+    const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
+    expect(hook).toContain('contextoRef.current.contexto')
+  })
+
+  it('el presupuesto sigue vigilando el resultado', () => {
+    // El léxico ya viene presupuestado a 224, pero el contexto previo se suma
+    // encima: el recorte por modelo sigue siendo necesario.
+    expect(ruta).toContain('const promptPara = (model: string): string')
   })
 })
