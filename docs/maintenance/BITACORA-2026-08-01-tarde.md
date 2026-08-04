@@ -5659,6 +5659,36 @@ fingir una cobertura que no hay.
 
 ---
 
+## TANDA 171ª — v1022 · MODO MÉDICO DEL PROVEEDOR, ENCENDIDO (decisión del Dr.)
+
+`domain: 'medical-v1'` es un modelo de dominio de AssemblyAI entrenado en
+lenguaje clínico. Su documentación declara **cuatro idiomas** —inglés,
+**español**, alemán y francés—: el español no es un caso degradado.
+
+**Estaba apagado** porque es un añadido que **puede facturarse aparte**, y
+encender un cargo recurrente en la cuenta de otro no es una decisión de
+ingeniería. Quedó anotado como pendiente del Dr. desde la v1002 y **lo autorizó
+el 4-ago-2026**.
+
+### Por qué es seguro encenderlo
+
+**Falla suave:** si el idioma no estuviera soportado, el proveedor **ignora** el
+parámetro y devuelve un aviso, en vez de rechazar la transcripción. Y si
+rechazara el envío entero, el reintento con el alias heredado —que existe desde
+la v1002— lo recoge.
+
+Va en el **mismo cuerpo** que arma los dos intentos: si sólo fuera en el intento
+con nombre, un rechazo del modelo dejaría al paciente sin modo médico **sin que
+nadie lo notara**, porque el reintento es silencioso por diseño.
+
+La decisión queda escrita **con fecha y dueño** en el código: un cargo recurrente
+encendido sin dueño es una factura que nadie reclama.
+
+- `src/app/api/expediente/transcribir-diarizado/route.ts`
+- `src/__tests__/modelo-y-voces-diarizacion.test.ts` — 4 pruebas nuevas. Total **6332**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

@@ -48,6 +48,28 @@ const MODELO_DIARIZACION = 'universal-3.5-pro'
  */
 const MAX_VOCES = 4
 
+/**
+ * MODO MÉDICO DEL PROVEEDOR — decisión del Dr., 4-ago-2026.
+ *
+ * `domain: 'medical-v1'` es un modelo de dominio de AssemblyAI entrenado en
+ * lenguaje clínico. Su documentación declara **cuatro idiomas: inglés, español,
+ * alemán y francés** — o sea que el español NO es un caso degradado.
+ *
+ * ── POR QUÉ ESTABA APAGADO HASTA HOY ────────────────────────────────────────
+ *
+ * Es un añadido que **puede facturarse aparte**, y encender un cargo recurrente
+ * en la cuenta de otro no es una decisión de ingeniería. Quedó anotado en la
+ * bitácora como pendiente del Dr. desde la v1002; lo autorizó el 4-ago-2026.
+ *
+ * ── POR QUÉ ES SEGURO ENCENDERLO ────────────────────────────────────────────
+ *
+ * Falla **suave**: si el idioma no estuviera soportado, el proveedor **ignora**
+ * el parámetro y devuelve un aviso, en vez de rechazar la transcripción. Y si
+ * rechazara el envío entero, el reintento con el alias heredado —que ya existe
+ * desde la v1002— lo recoge.
+ */
+const DOMINIO_MEDICO = 'medical-v1'
+
 const AAI = 'https://api.assemblyai.com/v2'
 
 interface UtteranceAAI { speaker: string; text: string; palabras: PalabraOida[] }
@@ -178,6 +200,9 @@ export async function POST(req: NextRequest) {
          * un acompañante, y en un pase de UCI hay más gente.
          */
         speaker_options: { min_speakers_expected: 1, max_speakers_expected: MAX_VOCES },
+        // Modo médico. Ver `DOMINIO_MEDICO`: el español está entre sus idiomas,
+        // y si no lo estuviera el proveedor lo ignoraría con un aviso.
+        domain: DOMINIO_MEDICO,
         language_code: 'es',
         punctuate: true,
         format_text: true,
