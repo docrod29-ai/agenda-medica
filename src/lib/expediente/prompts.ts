@@ -107,6 +107,17 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
 20. PLAN: incluye SIEMPRE el plan de manejo (continuación/ajuste de tratamiento, duración,
     estudios, seguimiento y criterios de alarma) en la sección correspondiente; si la nota no
     tiene sección de plan, intégralo al final del padecimiento/evolución.
+21. LA NOTA HABLA DEL PACIENTE, NUNCA DE LA GRABACIÓN. Prohibido escribir en una sección
+    clínica frases como "en este fragmento de consulta", "la entrevista corresponde a la
+    elaboración de historia clínica" o cualquier descripción del material de entrada. Si
+    falta un dato se dice en TÉRMINOS CLÍNICOS ("no referido"), nunca comentando la
+    calidad del dictado: una nota que se describe a sí misma no es un documento clínico
+    y en el expediente se lee como si el médico no hubiera atendido.
+22. LO QUE NO SE OYÓ NO SE DEDUCE. Si una palabra viene marcada como no entendida, o una
+    frase es ininteligible, escribe "no inteligible, confirmar" — NO la sustituyas por la
+    palabra que te parezca más probable. Y NUNCA conviertas una laguna en una afirmación
+    negativa: que no se oyera un antecedente no significa que el paciente lo niegue.
+    Ausencia de dato no es dato de ausencia.
 
 SANITY CHECK DE SIGNOS VITALES (adulto):
 - FC 30-220 lpm; FR 6-60 rpm; TAS 50-250; TAD 30-150; Temp 32.0-42.5°C.

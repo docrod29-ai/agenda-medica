@@ -3581,6 +3581,68 @@ La **confianza por palabra** (v973) sigue descartada: es el mecanismo de
 
 ---
 
+## CENTÉSIMA VIGESIMOCUARTA TANDA — v975 · LA CONFIANZA POR PALABRA
+
+Esto es **el mecanismo** de «docencia → vesícula», que la v973 dejó apuntado
+como lo siguiente.
+
+### Lo que estaba pasando
+
+AssemblyAI devuelve una confianza por **cada palabra**. La ruta la tiraba en el
+mapeo de la respuesta:
+
+    (u) => ({ speaker: u.speaker, text: u.text })   // ← `u.words` a la basura
+
+Después de esa línea, una palabra que el motor dio con **0.31** y otra que dio
+con **0.99** son indistinguibles: las dos son texto plano. El modelo recibía una
+frase perfectamente segura de sí misma y hacía lo que hace cualquier lector con
+una frase segura — razonar sobre ella. Ahí es donde «la de la docencia» ascendió
+a **«vesícula»**.
+
+El motor sabía que dudaba. La duda la borramos nosotros, y era gratis.
+
+### Arreglado
+
+- **La palabra viaja con su confianza** de la ruta al hook y del hook a la nota.
+- **El texto que va al modelo trae marcadas** las palabras dudosas (`⟦palabra?⟧`)
+  y, pegada, la regla: *una palabra marcada NUNCA se convierte en un hecho
+  clínico; no la corrijas, no la sustituyas por la más probable; si una frase
+  depende de ella, «no inteligible, confirmar»; y ausencia de dato no es dato de
+  ausencia*.
+- **El médico ve una lista corta** de «palabras que el audio no oyó con
+  seguridad», con el minuto y el porcentaje, **antes de firmar** — junto al
+  dictado, que es donde todavía se acuerda de lo que dijo el paciente.
+- **Dos reglas nuevas en el prompt** (21 y 22) contra las dos frases exactas de
+  la nota que falló: la nota habla del paciente y **nunca de la grabación**
+  («en este fragmento de consulta» queda prohibido), y una laguna no se convierte
+  en una negación.
+
+### Lo que este módulo NO hace, y es la mitad del asunto
+
+**No corrige.** No busca la palabra clínica más parecida a «docencia». Eso es
+exactamente cómo se llega a «vesícula»: el mismo fallo, cometido por nosotros y
+con más confianza. Se marca la duda; no se resuelve.
+
+Las palabras vacías (`la`, `de`, `un`) no se marcan aunque puntúen bajísimo:
+ninguna se convierte jamás en un hecho clínico, y un texto lleno de marcas se lee
+igual que uno sin ninguna.
+
+### Lo que queda declarado, no dado por hecho
+
+**El umbral 0.6 no está calibrado** (`NEEDS_CALIBRATION` en el código). Se
+calibra contra el banco de voz con audio real que ya existe, contando cuántas
+palabras mal oídas quedan por encima del corte. Se eligió errando hacia marcar de
+más: marcar de más cuesta una mirada, marcar de menos cuesta una palabra
+inventada dentro de una nota firmada. Movible por variable de entorno
+(`NEXT_PUBLIC_UMBRAL_CONFIANZA_AUDIO`) sin tocar código.
+
+- `src/lib/expediente/confianza-audio.ts` (puro, nuevo),
+  `api/expediente/transcribir-diarizado/route.ts`, `src/hooks/useGrabacionAudio.ts`,
+  `src/lib/expediente/prompts.ts`, `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/confianza-por-palabra.test.ts` — 31 pruebas. Total **5728**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

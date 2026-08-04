@@ -1,5 +1,6 @@
 'use client'
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
+import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 /**
  * EL PIPELINE COMPLETO, no sólo el guardián.
@@ -90,6 +91,15 @@ export interface OpcionesGrabacion {
 export interface Utterance {
   speaker: string   // 'A' | 'B' | 'C' … (etiqueta cruda de AssemblyAI)
   text: string
+  /**
+   * Cada palabra con la confianza que el motor le puso.
+   *
+   * Opcional porque el camino sin diarización no las trae — y porque un turno
+   * viejo, recuperado de un borrador guardado antes de la v975, tampoco.
+   * Ausente significa «no se sabe», que NO es lo mismo que «todas seguras»: por
+   * eso quien las consume no rellena confianzas por omisión.
+   */
+  palabras?: PalabraOida[]
 }
 
 export interface UseGrabacionAudio {
@@ -539,6 +549,15 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, co
  * se corregía.
  */
 function corregirUtterances(us: Utterance[]): Utterance[] {
+  /**
+   * `palabras` se conserva SIN corregir, a propósito.
+   *
+   * El corrector trabaja sobre el texto corrido y no sabe reasignar el resultado
+   * palabra por palabra. Corregir el texto y dejar las palabras como estaban es
+   * lo correcto aquí: la confianza describe **lo que el motor oyó**, no lo que
+   * el corrector escribió después. Si se sobrescribieran, la lista de «palabras
+   * a verificar» señalaría términos que el médico ya no ve en pantalla.
+   */
   return us.map(u => ({ ...u, text: procesarTranscript(u.text).texto }))
 }
 

@@ -14,6 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -29,7 +30,7 @@ export const maxDuration = 60
 
 const AAI = 'https://api.assemblyai.com/v2'
 
-interface UtteranceAAI { speaker: string; text: string }
+interface UtteranceAAI { speaker: string; text: string; palabras: PalabraOida[] }
 
 export async function POST(req: NextRequest) {
   const acceso = await verificarModuloIA(req, 'expediente')
@@ -168,8 +169,30 @@ export async function GET(req: NextRequest) {
     const d = await r.json()
 
     if (d.status === 'completed') {
+      /**
+       * LAS PALABRAS VIAJAN CON SU CONFIANZA.
+       *
+       * Esta línea era el punto exacto donde se perdía la duda del motor:
+       * mapeaba a `{ speaker, text }` y tiraba `u.words`, que trae la confianza
+       * de CADA palabra. Después de aquí, una palabra que el motor dio con 0.31
+       * y otra que dio con 0.99 eran indistinguibles — y el modelo razonaba
+       * sobre las dos con la misma seguridad. Así fue como «la de la docencia»
+       * acabó siendo «vesícula» en una consulta real.
+       *
+       * Se copia sólo lo que hace falta —texto, inicio y confianza—, no el
+       * objeto entero: el `end` de cada palabra no lo usa nadie y engordaría una
+       * respuesta que ya lleva la consulta íntegra.
+       */
       const utterances: UtteranceAAI[] = (d.utterances ?? []).map(
-        (u: { speaker: string; text: string }) => ({ speaker: u.speaker, text: u.text }),
+        (u: { speaker: string; text: string; words?: { text: string; start: number; confidence: number }[] }) => ({
+          speaker: u.speaker,
+          text: u.text,
+          palabras: (u.words ?? []).map(w => ({
+            texto: w.text,
+            inicioMs: Number(w.start ?? 0),
+            confianza: Number(w.confidence ?? 1),
+          })),
+        }),
       )
       /**
        * ENTREGADO EL TEXTO, SE PURGA EL AUDIO DEL TERCERO.

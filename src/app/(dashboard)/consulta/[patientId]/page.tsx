@@ -94,6 +94,7 @@ import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioP
 import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
+import { palabrasDudosas, marcarTurno, paraElMedico, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
@@ -615,6 +616,12 @@ export default function ConsultaActivaPage() {
   // NOTA EN TIEMPO REAL: la nota se va armando mientras hablas (cada ~30s).
   const [notaEnVivo] = useState(true)  // SIEMPRE activa (la nota se arma sola al hablar)
   const [estructurandoVivo, setEstructurandoVivo] = useState(false)
+
+  /**
+   * Las palabras a verificar se calculan UNA vez por dictado, no en cada render:
+   * un dictado largo trae miles de palabras y esto se recorre entero.
+   */
+  const palabrasAVerificar = useMemo(() => paraElMedico(audio.utterances), [audio.utterances])
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
   const transcripcionRef = useRef('')
@@ -1039,8 +1046,24 @@ export default function ConsultaActivaPage() {
     // primera parte clínica. En ese caso se usa la transcripción completa (texto
     // plano rec1+rec2): se sacrifican las etiquetas de voz, nunca el contenido.
     const multiTramo = baseTranscripcionRef.current.trim().length > 0
+    /**
+     * LAS PALABRAS DUDOSAS VAN MARCADAS, Y CON SU REGLA.
+     *
+     * El motor devuelve una confianza por palabra y hasta la v974 se tiraba: el
+     * modelo recibía «la de la docencia» con el mismo aplomo que «dolor
+     * abdominal», y en una consulta real eso acabó escrito como «vesícula».
+     *
+     * La instrucción viaja pegada al texto y no en el prompt del servidor a
+     * propósito: si algún día llega un dictado SIN marcas, no se le cuelan
+     * reglas sobre marcas que no existen — y una regla que habla de algo que no
+     * está es ruido que el modelo tiene que descartar solo.
+     */
+    const dudosas = palabrasDudosas(audio.utterances)
+    const dialogo = audio.utterances
+      .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
+      .join('\n')
     const transcripcionParaIA = (audio.utterances.length > 0 && !multiTramo)
-      ? audio.utterances.map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${u.text}`).join('\n')
+      ? (dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo)
       : voz.transcripcion
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
     try {
@@ -2830,6 +2853,41 @@ export default function ConsultaActivaPage() {
                     {MOTIVO_SIN_DIARIZACION[audio.sinDiarizacion]}{' '}
                     La transcripción se hizo con el motor alterno: revisa nombres de fármacos,
                     dosis y microorganismos antes de firmar.
+                  </div>
+                )}
+                {/*
+                  PALABRAS QUE EL AUDIO NO OYÓ BIEN.
+                  Va aquí, junto al dictado y ANTES de firmar, porque es donde el
+                  médico todavía se acuerda de lo que dijo el paciente. En la nota
+                  ya terminada llegaría tarde: para entonces la palabra dudosa ya
+                  se lee como un hecho.
+                */}
+                {audio.estado === 'listo' && palabrasAVerificar.palabras.length > 0 && (
+                  <div style={{
+                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.6,
+                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+                  }}>
+                    <b>Palabras que el audio no oyó con seguridad.</b>{' '}
+                    No se corrigieron ni se adivinaron: se marcaron para que la IA no las dé por hechas.
+                    Vuelve al audio en el minuto indicado si alguna cambia el sentido.
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {palabrasAVerificar.palabras.map((w, i) => (
+                        <span key={`${w.texto}-${w.momento}-${i}`} style={{
+                          padding: '2px 8px', borderRadius: 'var(--r-pill)', fontSize: 12,
+                          background: 'color-mix(in srgb, var(--amber) 18%, transparent)',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}>
+                          «{w.texto}» · {w.momento} · {w.seguridad}%
+                        </span>
+                      ))}
+                    </div>
+                    {palabrasAVerificar.ocultas > 0 && (
+                      <div style={{ marginTop: 6, fontSize: 12, opacity: .9 }}>
+                        Y {palabrasAVerificar.ocultas} más, menos dudosas que éstas. Se enseñan las más dudosas,
+                        no las primeras.
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Manos libres: aviso de escucha activa + comandos */}
