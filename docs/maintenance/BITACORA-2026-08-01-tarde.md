@@ -5882,6 +5882,45 @@ archivo es cierto. Eso lo verifica una persona.
 
 ---
 
+## TANDA 176ª — v1027 · EL PASADO NO ES EL PRESENTE
+
+«Tuvo neumonía hace tres años» acababa escrito como **padecimiento actual**.
+
+La negación tiene motor determinista y caso oro desde la v985. La
+**temporalidad no tenía nada**, y así lo declaraba la propia auditoría de voz del
+charter (la que se puso al día ayer mismo, en la v1026).
+
+Es el hermano del fallo que costó tres versiones cerrar: allí el interrogatorio
+nombraba la enfermedad en la **pregunta** y el extractor la cosechaba; aquí la
+nombra en **pasado** y se cosecha igual. Y se arrastra igual: queda en el
+expediente, se copia a la nota siguiente y cambia lo que otro médico lee dentro
+de seis meses.
+
+**Es gramática, no medicina.** El motor no decide si una enfermedad sigue activa
+—eso es clínico y no es suyo—: decide si el dictado la puso en pasado y la nota
+la afirma en presente, y enseña las dos frases. El mismo criterio que la
+intención de orden.
+
+**La mitad del trabajo es la trampa.** «Hace tres años» no significa pasado por
+sí sola: «desde hace tres años tiene diabetes» es presente y es la forma normal
+de contar un crónico en la consulta mexicana. El presente **manda** sobre la
+marca de tiempo — junto con «sigue», «todavía», «actualmente», «en control» y «en
+tratamiento». Marcar eso sería peor que no mirar nada: un aviso que salta donde
+no debe se acaba ignorando, y con él se ignoran los que sí importan.
+
+Tampoco avisa si la nota ya lo escribió bien: «antecedente de», «historia de»,
+«tuvo», «resuelta».
+
+**No borra ni reclasifica.** Sólo devuelve el aviso — y en **ámbar**, no en rojo:
+escribir un padecimiento pasado no es un error como lo es afirmar algo que el
+paciente negó, e igualarlos gastaría el rojo.
+
+- `src/lib/expediente/temporalidad.ts` — el motor (nuevo, puro)
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx` — se calcula contra TODO lo que la nota afirma y se enseña
+- REG-137 · `src/__tests__/el-pasado-no-es-el-presente.test.ts` · +14 casos, total **6397**
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
