@@ -189,11 +189,23 @@ describe('LA DEFENSA ES DE DOS CAPAS', () => {
   })
 
   it('y contrasta contra TODA la nota, no sólo contra el resumen', () => {
-    // La contradicción da igual en qué campo aparezca: el expediente se lee
-    // entero, y un antecedente falso en «antecedentes» es exactamente el que se
-    // arrastra a las notas siguientes.
+    /**
+     * ── ESTA PRUEBA CERTIFICÓ EL DEFECTO DURANTE VERSIONES ────────────────────
+     *
+     * Antes exigía la línea literal
+     * `[resumen, diagnosticos.join(...), ...Object.values(secciones)]`, y **esa
+     * línea estaba rota**: `diagnosticos` y `secciones` son arreglos de OBJETOS,
+     * así que el texto contrastado era «[object Object]» y la defensa sólo veía
+     * el resumen. Se descubrió en producción, en la propia alerta del Dr.
+     *
+     * Lección: fijar la FORMA de una expresión no prueba su COMPORTAMIENTO. Se
+     * comprueba que exista el constructor único, y el comportamiento lo prueba
+     * `la-nota-entera-se-contrasta.test.ts` con condiciones que viven sólo en el
+     * diagnóstico o sólo en una sección.
+     */
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toMatch(/\[resumen, diagnosticos\.join\('\. '\), \.\.\.Object\.values\(secciones/)
+    expect(page).toContain('textoDeLaNota(resumen, diagnosticos, secciones)')
+    expect(page).not.toContain("diagnosticos.join('. ')")
   })
 })
 
