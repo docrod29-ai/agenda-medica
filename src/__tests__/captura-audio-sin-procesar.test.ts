@@ -144,3 +144,62 @@ describe('SE LEE LO QUE EL NAVEGADOR CONCEDIÓ, y se deja de afirmar', () => {
     expect(page).toContain('con supresión de ruido')
   })
 })
+
+/**
+ * ── EL MEDIDOR MENTÍA EN LAS TRES DIRECCIONES (v982) ─────────────────────────
+ *
+ * Tres defectos verificados en el mismo bucle:
+ *
+ * 1. El aviso «Sin señal por +15s» **no se apagaba nunca**. El bucle se crea una
+ *    vez y sigue corriendo; leía `silencioProlongado` desde el closure del
+ *    render en que nació, así que la rama que apaga el aviso evaluaba para
+ *    siempre el `false` capturado. Una vez encendido, se quedaba encendido el
+ *    resto de la grabación aunque el médico estuviera hablando.
+ * 2. **Tras una pausa, la detección de silencio quedaba muerta**: `reanudar`
+ *    montaba una COPIA del bucle que no traía esa lógica. Dos copias de lo mismo
+ *    divergen siempre — y ésta ya había divergido.
+ * 3. En segundo plano `requestAnimationFrame` se congela; al volver, la
+ *    diferencia contra la última señal superaba de golpe los 15 s y disparaba un
+ *    «sin señal» **falso** sobre una grabación que iba perfecta.
+ *
+ * Un aviso que miente es peor que ninguno: enseña al médico a ignorarlos, y
+ * entonces el día que dice la verdad tampoco lo va a leer.
+ */
+describe('EL MEDIDOR DE AUDIO: un solo bucle, y que no mienta', () => {
+  it('el estado del aviso vive en una referencia, no en el closure', () => {
+    expect(hook).toContain('const silencioRef = useRef(false)')
+    expect(hook).toMatch(/if \(silencioRef\.current\) \{ silencioRef\.current = false; setSilencioProlongado\(false\) \}/)
+  })
+
+  it('hay UN bucle, compartido por iniciar y reanudar', () => {
+    // Dos copias de la misma lógica divergen siempre. Ya había pasado.
+    expect(hook).toContain('const arrancarMedidor = useCallback(')
+    expect((hook.match(/arrancarMedidor\(\)/g) ?? []).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('una pestaña dormida NO se lee como micrófono callado', () => {
+    /**
+     * Un salto anómalo entre fotogramas es la firma de que el navegador congeló
+     * el bucle. Lo correcto es reanclar el reloj, no acusar al micrófono.
+     */
+    expect(hook).toContain('SALTO_SOSPECHOSO_MS')
+    expect(hook).toMatch(/ultimaSenalRef\.current = ahora\n\s*ultimoFrame = ahora/)
+  })
+
+  it('se detecta el RECORTE, que el nivel no puede ver', () => {
+    // Una señal saturada tiene RMS normal: por eso hay que mirar el pico.
+    expect(hook).toContain('UMBRAL_RECORTE')
+    expect(hook).toMatch(/setRecorte\(pico >= UMBRAL_RECORTE\)/)
+  })
+
+  it('y el recorte llega a la pantalla con qué hacer', () => {
+    const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+    expect(page).toContain('El micrófono está saturando')
+    expect(page).toMatch(/Bájale el volumen de entrada/)
+  })
+
+  it('el aviso se limpia al empezar una grabación nueva', () => {
+    // Arrastrar el aviso de la grabación anterior es la misma mentira, en diferido.
+    expect(hook).toMatch(/silencioRef\.current = false; setSilencioProlongado\(false\); setRecorte\(false\)/)
+  })
+})

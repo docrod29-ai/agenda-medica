@@ -148,6 +148,14 @@ export interface UseGrabacionAudio {
    * `null` hasta que se abre el micrófono. Se enseña en pantalla en vez de la
    * constante que se afirmaba sin comprobar.
    */
+  /**
+   * ¿La señal está recortando (saturando)?
+   *
+   * El RMS no lo ve: una señal recortada tiene nivel normal y armónicos falsos
+   * en todo el espectro. Sin esto, el medidor podía decir «captando bien» sobre
+   * audio saturado.
+   */
+  recorte: boolean
   captura: AjustesCaptura | null
   /**
    * Cuántos trozos en vivo NO se pudieron transcribir.
@@ -189,6 +197,18 @@ export interface UseGrabacionAudio {
 
 const SILENCIO_MS = 15_000
 const NIVEL_SILENCIO = 0.02
+/**
+ * A partir de aquí la señal está recortando.
+ *
+ * Una muestra a fondo de escala ya es recorte; se deja un pelo de margen para no
+ * marcar un pico legítimo. NO es una cifra clínica: es el techo del formato.
+ */
+const UMBRAL_RECORTE = 0.99
+/**
+ * Un salto entre fotogramas mayor que esto significa que la pestaña estuvo
+ * dormida, no que el micrófono se calló.
+ */
+const SALTO_SOSPECHOSO_MS = 2000
 // 16 kHz mono · 64 kbps Opus. Es EXACTAMENTE lo que usa el ASR (remuestrea a 16 kHz)
 // y AssemblyAI diariza perfecto a 16 kHz (es el estándar de voz/telefonía). Se
 // volvió de 48k/128k a esto porque el archivo pesado (~2.5×) cruzaba el umbral de
@@ -692,6 +712,25 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    * que uno completo, y la nota preliminar sale de él.
    */
   const chunksFallidosRef = useRef(0)
+  /**
+   * Espejo de `silencioProlongado` en una referencia.
+   *
+   * El bucle del medidor se crea UNA vez y sigue corriendo; leer el estado ahí
+   * devuelve el valor congelado del render en que se creó. Con el valor viejo,
+   * la rama que apaga el aviso («volvió la voz») **nunca se ejecutaba**: una vez
+   * que aparecía «Sin señal por +15s», se quedaba el resto de la grabación
+   * aunque el médico estuviera hablando. Un aviso que miente es peor que
+   * ninguno: enseña a ignorarlos.
+   */
+  const silencioRef = useRef(false)
+  /**
+   * Si la señal llegó a recortar (clipping).
+   *
+   * No se detectaba en absoluto, y es invisible por RMS: una señal recortada
+   * tiene un RMS perfectamente normal y en cambio mete armónicos falsos en todo
+   * el espectro. El medidor podía decir «captando bien» sobre audio saturado.
+   */
+  const [recorte, setRecorte] = useState(false)
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const chunkFlushRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -749,6 +788,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     chunksRef.current = []
     todosChunksRef.current = []
     chunksFallidosRef.current = 0; setChunksFallidos(0)
+    silencioRef.current = false; setSilencioProlongado(false); setRecorte(false)
     pausaTotalMsRef.current = 0
     pausaInicioRef.current = 0
     chunkIdxRef.current = 0
@@ -863,6 +903,61 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
   }, [])
 
+  /**
+   * EL MEDIDOR, EN UN SOLO SITIO.
+   *
+   * Estaba duplicado —una copia en `iniciar` y otra en `reanudar`— y las dos
+   * copias ya habían divergido: la de reanudar no traía la detección de
+   * silencio, así que después de una pausa el aviso de micrófono quedaba muerto.
+   *
+   * Y la de `iniciar` leía el estado desde su closure, así que la rama que
+   * APAGA el aviso nunca corría: una vez encendido, se quedaba encendido.
+   */
+  const arrancarMedidor = useCallback(() => {
+    const analyser = analyserRef.current
+    if (!analyser) return
+    const buffer = new Float32Array(analyser.fftSize)
+    let ultimoFrame = Date.now()
+
+    const tick = () => {
+      if (!analyserRef.current) return
+      analyserRef.current.getFloatTimeDomainData(buffer)
+      let sumSq = 0
+      let pico = 0
+      for (let i = 0; i < buffer.length; i++) {
+        sumSq += buffer[i] * buffer[i]
+        const abs = Math.abs(buffer[i])
+        if (abs > pico) pico = abs
+      }
+      const rms = Math.sqrt(sumSq / buffer.length)
+      setNivelAudio(Math.min(1, rms / 0.3))
+      // Recorte: el RMS no lo ve. Se mira el pico.
+      setRecorte(pico >= UMBRAL_RECORTE)
+
+      const ahora = Date.now()
+      /**
+       * SI LA PESTAÑA ESTUVO DORMIDA, NO SE INVENTA UN SILENCIO.
+       *
+       * `requestAnimationFrame` se congela en segundo plano. Al volver, la
+       * diferencia contra la última señal supera de golpe los 15 s y disparaba
+       * un «sin señal» falso sobre una grabación que iba perfecta. Un salto
+       * anómalo entre fotogramas es la firma de eso, y lo correcto es
+       * **reanclar el reloj**, no acusar al micrófono.
+       */
+      if (ahora - ultimoFrame > SALTO_SOSPECHOSO_MS) ultimaSenalRef.current = ahora
+      ultimoFrame = ahora
+
+      if (rms > NIVEL_SILENCIO) {
+        ultimaSenalRef.current = ahora
+        if (silencioRef.current) { silencioRef.current = false; setSilencioProlongado(false) }
+      } else if (ahora - ultimaSenalRef.current > SILENCIO_MS) {
+        if (!silencioRef.current) { silencioRef.current = true; setSilencioProlongado(true) }
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+  }, [])
+
   const iniciar = useCallback(async (opts?: OpcionesGrabacion) => {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
@@ -969,24 +1064,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         analyserRef.current = analyser
         ultimaSenalRef.current = Date.now()
 
-        const buffer = new Float32Array(analyser.fftSize)
-        const tick = () => {
-          if (!analyserRef.current) return
-          analyserRef.current.getFloatTimeDomainData(buffer)
-          let sumSq = 0
-          for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i]
-          const rms = Math.sqrt(sumSq / buffer.length)
-          const nivel = Math.min(1, rms / 0.3)
-          setNivelAudio(nivel)
-          if (rms > NIVEL_SILENCIO) {
-            ultimaSenalRef.current = Date.now()
-            if (silencioProlongado) setSilencioProlongado(false)
-          } else if (Date.now() - ultimaSenalRef.current > SILENCIO_MS) {
-            setSilencioProlongado(true)
-          }
-          rafRef.current = requestAnimationFrame(tick)
-        }
-        rafRef.current = requestAnimationFrame(tick)
+        arrancarMedidor()
       } catch { /* sin medidor */ }
 
       const candidates = [
@@ -1054,7 +1132,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       }
       setEstado('error')
     }
-  }, [soportado, liberarRecursos, silencioProlongado, flushChunks])
+  }, [soportado, liberarRecursos, flushChunks, arrancarMedidor])
 
   const pausar = useCallback(() => {
     const rec = mediaRef.current
@@ -1084,25 +1162,17 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (streamingActivoRef.current) {
         chunkFlushRef.current = setInterval(flushChunks, INTERVALO_CHUNK_DEFAULT_MS)
       }
-      // Reanudar analyser
-      if (audioCtxRef.current && analyserRef.current) {
-        const analyser = analyserRef.current
-        const buffer = new Float32Array(analyser.fftSize)
-        const tick = () => {
-          if (!analyserRef.current) return
-          analyserRef.current.getFloatTimeDomainData(buffer)
-          let sumSq = 0
-          for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i]
-          const rms = Math.sqrt(sumSq / buffer.length)
-          setNivelAudio(Math.min(1, rms / 0.3))
-          if (rms > NIVEL_SILENCIO) ultimaSenalRef.current = Date.now()
-          rafRef.current = requestAnimationFrame(tick)
-        }
-        rafRef.current = requestAnimationFrame(tick)
-      }
+      /**
+       * Reanudar el medidor con EL MISMO bucle.
+       *
+       * Antes había aquí una copia que **no traía la detección de silencio**:
+       * tras una pausa, el aviso de micrófono quedaba muerto para el resto de la
+       * grabación. Dos copias de la misma lógica divergen siempre; ahora es una.
+       */
+      if (audioCtxRef.current && analyserRef.current) arrancarMedidor()
       setEstado('grabando')
     } catch { /* */ }
-  }, [flushChunks])
+  }, [flushChunks, arrancarMedidor])
 
   const detener = useCallback(async () => {
     const rec = mediaRef.current
@@ -1292,7 +1362,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
+    nivelAudio, silencioProlongado, recorte, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,

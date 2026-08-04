@@ -3956,6 +3956,39 @@ al motor correcto.
 
 ---
 
+## TANDA 131ª — v982 · EL MEDIDOR DE AUDIO MENTÍA EN LAS TRES DIRECCIONES
+
+Tres defectos verificados por mí en el mismo bucle.
+
+1. **El aviso «Sin señal por +15s» no se apagaba nunca.** El bucle del medidor se
+   crea una vez y sigue corriendo; leía el estado desde el closure del render en
+   que nació, así que la rama que APAGA el aviso evaluaba para siempre el `false`
+   capturado. Una vez encendido, se quedaba encendido el resto de la grabación
+   **aunque el médico estuviera hablando**.
+2. **Tras una pausa, la detección de silencio quedaba muerta.** `reanudar`
+   montaba una COPIA del bucle que no traía esa lógica. Dos copias de lo mismo
+   divergen siempre — y ésta ya había divergido.
+3. **En segundo plano, un «sin señal» falso.** `requestAnimationFrame` se congela
+   cuando la pestaña pasa atrás; al volver, la diferencia contra la última señal
+   superaba de golpe los 15 s y acusaba al micrófono de una grabación que iba
+   perfecta. Ahora un salto anómalo entre fotogramas **reancla el reloj**.
+
+Un aviso que miente es peor que ninguno: enseña al médico a ignorarlos, y
+entonces el día que dice la verdad tampoco lo lee.
+
+### Y lo que no se detectaba en absoluto: el RECORTE
+
+Una señal saturada tiene un RMS **perfectamente normal** —por eso el nivel no la
+ve— y en cambio mete armónicos falsos en todo el espectro. El medidor podía decir
+«captando bien» sobre audio que ya no se puede transcribir bien. Ahora se mira el
+pico y se avisa con qué hacer.
+
+- `src/hooks/useGrabacionAudio.ts` (un solo bucle compartido),
+  `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/captura-audio-sin-procesar.test.ts` +6. Total **5823**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
