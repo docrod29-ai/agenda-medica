@@ -5,6 +5,7 @@ import { UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { quitarEcoDeCabecera, quitarSolapeConAnterior } from '@/lib/asr/eco-de-cabecera'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
+import { cambiosVisibles, type CambioVisible } from '@/lib/asr/cambios-visibles'
 /**
  * EL PIPELINE COMPLETO, no sólo el guardián.
  *
@@ -197,6 +198,13 @@ export interface UseGrabacionAudio {
    * revisarlas y revertirlas (documento legal: nada cambia en silencio).
    */
   correcciones: CambioTranscripcion[]
+  /**
+   * Cifras, unidades y siglas reescritas por el pipeline.
+   *
+   * Se calculaban desde siempre y no las devolvía nadie: el médico veía las
+   * correcciones de fármacos y no las de **dosis**.
+   */
+  cambiosCifras: CambioVisible[]
   /**
    * Lo que el GUARDIÁN descartó, y las dosis que se quedaron sin cantidad.
    *
@@ -758,6 +766,14 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   /** Lo que el navegador concedió de verdad al abrir el micrófono. */
   const [captura, setCaptura] = useState<AjustesCaptura | null>(null)
   const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
+  /**
+   * Cifras, unidades y siglas que el pipeline reescribió.
+   *
+   * Se calculaban en cada dictado y **no salían de aquí**. La regla que ya
+   * estaba escrita para las correcciones léxicas vale igual: lo que el médico no
+   * puede ver es una edición que alguien le hizo a su dictado sin decírselo.
+   */
+  const [cambiosCifras, setCambiosCifras] = useState<CambioVisible[]>([])
   const [alertasDictado, setAlertasDictado] = useState<AlertaDictado[]>([])
 
   const mediaRef = useRef<MediaRecorder | null>(null)
@@ -896,7 +912,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rk = recoveryKeyRef.current
     liberarRecursos()
     setEstado('inactivo'); duracionRef.current = 0; duracionUltimoTrozoRef.current = 0; setDuracion(0); setTranscripcion(''); setError('')
-    setCorrecciones([]); setUtterances([]); utterancesRef.current = []; setAlertasDictado([])
+    setCorrecciones([]); setCambiosCifras([]); setUtterances([]); utterancesRef.current = []; setAlertasDictado([])
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -1351,6 +1367,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const r = procesarTranscript(texto)
       setTranscripcion(r.texto)
       setCorrecciones(r.cambiosLexicos)
+      setCambiosCifras(cambiosVisibles(r.cambiosNormalizacion, r.cambiosSiglas))
       // El pipeline ya trae las alertas de las nueve etapas, no sólo las del
       // guardián: incluye lo que pide confirmación por ambigüedad.
       setAlertasDictado(r.alertas)
@@ -1495,6 +1512,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       const r = procesarTranscript(texto)
       setTranscripcion(r.texto)
       setCorrecciones(r.cambiosLexicos)
+      setCambiosCifras(cambiosVisibles(r.cambiosNormalizacion, r.cambiosSiglas))
       setAlertasDictado(r.alertas)
       setMotivosConfirmacion(r.motivos)
       setTranscripcionMotor(r.crudo)
@@ -1553,7 +1571,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, transcripcionMotor, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
+    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, transcripcionMotor, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, cambiosCifras, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion, sembrarDictado,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,

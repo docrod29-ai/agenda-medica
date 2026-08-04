@@ -59,6 +59,7 @@ import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { paraElMedico } from '@/lib/expediente/confianza-audio'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { AlertasDictado } from '@/components/AlertasDictado'
+import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { DosisMeropenem } from './DosisMeropenem'
 
@@ -1168,6 +1169,22 @@ export default function UciPanelPage() {
 
         {audio.alertasDictado.length > 0 && (
           <div style={{ marginTop: 10 }}><AlertasDictado alertas={audio.alertasDictado} /></div>
+        )}
+
+        {/* Las cifras, unidades y siglas que reescribió el pipeline.
+            En un pase de UCI son PARÁMETROS: PEEP, FiO2, dosis de aminas. Que
+            se reescriban sin que el intensivista lo vea es peor aquí que en
+            ningún otro sitio. Se deshace sobre el cuadro editable del pase. */}
+        {audio.cambiosCifras.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <CambiosCifrasPanel
+              cambios={audio.cambiosCifras}
+              onRevertir={(c) => {
+                const re = new RegExp(c.despues.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                setPaseTexto(t => t.replace(re, c.antes))
+              }}
+            />
+          </div>
         )}
 
         {avisosVoz.length > 0 && (

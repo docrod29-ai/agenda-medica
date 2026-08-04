@@ -4735,6 +4735,43 @@ coincidía con «medicina interna». Se añadieron las formas abreviadas.
 
 ---
 
+## TANDA 149ª — v1000 · EL MÉDICO VEÍA LAS CORRECCIONES DE FÁRMACOS Y NO LAS DE DOSIS (B-11)
+
+`ResultadoPipeline` trae **tres** listas de cambios aplicados al dictado:
+`cambiosLexicos` (fármacos, con panel y con «deshacer» desde hace versiones),
+`cambiosNormalizacion` (cifras y unidades: «dos gramos» → «2 g») y
+`cambiosSiglas`. Las dos últimas se calculaban en cada dictado y **no salían del
+pipeline**: el hook no las devolvía y ninguna pantalla las pedía.
+
+La regla ya estaba escrita en el propio `pipeline.ts`, sobre `cambiosLexicos`:
+«una corrección que el médico no puede ver ni revertir es una edición que alguien
+le hizo a su dictado sin decírselo». Y la lista invisible era **justo la que toca
+las cifras**.
+
+El guardián impide que una cifra desaparezca o cambie de unidad; lo que no puede
+hacer es decidir por el médico si «dos» quería decir «2» en esa frase. En un
+dictado real —«le doy dos gramos de meropenem cada ocho horas»— son **tres**
+reescrituras que no se veían por ninguna parte.
+
+En UCI es peor: ahí las cifras son PEEP, FiO₂ y dosis de aminas. El panel se
+monta también allí, deshaciendo sobre el cuadro editable del pase.
+
+Se abre solo cuando hay cifras o unidades, y queda plegado si sólo hay siglas.
+Los cambios que no cambian nada se descartan: una lista llena de líneas que no
+dicen nada se deja de leer, y ése es el modo de fallo de verdad — no una alerta
+que falta, una que se ignora.
+
+**Detalle de React que cazó el trinquete:** el estado de «revertido» va atado a
+la **referencia** de la lista y se deriva en el render, no con un `useEffect` que
+la persiga. Un efecto que llama a `setState` provoca render en cascada y deja un
+fotograma con el botón «deshacer» del dictado anterior encima del nuevo.
+
+- `src/lib/asr/cambios-visibles.ts` y `src/components/CambiosCifrasPanel.tsx` (nuevos),
+  `useGrabacionAudio.ts`, `consulta/[patientId]/page.tsx`, `uci/page.tsx`
+- `src/__tests__/cambios-de-cifras-visibles.test.ts` — 13 pruebas. Total **6005**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
