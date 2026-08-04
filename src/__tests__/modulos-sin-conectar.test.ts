@@ -44,6 +44,8 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/clinical/adr-cobertura.ts': 'Gate de cobertura documental de los motores. Vive en el CI por definición.',
   'src/lib/authz/analisis-estatico.ts': 'Analizador de la frontera de API que usa el guardián de rutas. Herramienta, no función.',
   'src/lib/security/rutas-privadas.ts': 'Inventario de rutas privadas que consume su propio invariante.',
+  // Lo cazó ESTE guardián en cuanto se escribió, que es exactamente su trabajo.
+  'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
 
   // ── Motores clínicos con golden pero SIN pantalla que los muestre ─────────
   // Éstos son los que de verdad duelen: trabajo clínico terminado y probado
