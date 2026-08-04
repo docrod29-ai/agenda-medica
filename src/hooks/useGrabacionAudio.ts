@@ -167,6 +167,13 @@ export interface UseGrabacionAudio {
    */
   motivosConfirmacion: string[]
   /**
+   * Adopta un dictado transcrito en OTRA pantalla (el pase de UCI).
+   *
+   * Sin esto, la nota que se firma en la consulta no tenía ni los turnos ni el
+   * material de origen del pase, aunque ambos existían al otro lado.
+   */
+  sembrarDictado: (semilla: { crudo?: string; utterances?: Utterance[] }) => void
+  /**
    * ¿La señal está recortando (saturando)?
    *
    * El RMS no lo ve: una señal recortada tiene nivel normal y armónicos falsos
@@ -1500,6 +1507,33 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
   }, [])
 
+  /**
+   * SIEMBRA EL DICTADO QUE SE GRABÓ EN OTRA PANTALLA.
+   *
+   * El pase de UCI se dicta en `/uci` y se firma en la consulta. Al pasar de una
+   * a otra viajaban las secciones y el texto — pero **los turnos y el crudo del
+   * motor se quedaban en la pantalla de origen**, así que la nota de UCI se
+   * archivaba sin separación de voces, sin lista de palabras a verificar, sin
+   * saber de quién era cada cita y sin material de origen.
+   *
+   * No graba nada ni transcribe nada: sólo **adopta** lo que ya se transcribió,
+   * con las mismas reglas que el camino normal —incluido el sexto motivo de
+   * confirmación, que necesita las confianzas por palabra.
+   */
+  const sembrarDictado = useCallback((semilla: { crudo?: string; utterances?: Utterance[] }) => {
+    const us = semilla.utterances ?? []
+    if (us.length) {
+      setUtterances(us); utterancesRef.current = us
+      if (dudaEnZonaCritica(us, UNIDADES_CANONICAS)) {
+        setMotivosConfirmacion(m => m.includes('confianza_baja_con_termino_critico') ? m : [...m, 'confianza_baja_con_termino_critico'])
+      }
+    }
+    // El crudo NO se inventa: si la pantalla de origen no lo mandó, se queda
+    // vacío y la nota lo dirá, en vez de archivar el texto de trabajo como si
+    // fuera el original — que es el defecto que la v996 vino a cerrar.
+    if (semilla.crudo) setTranscripcionMotor(semilla.crudo)
+  }, [])
+
   // Escape hatch: descarga el audio guardado como ARCHIVO al dispositivo, para que
   // la consulta NUNCA se pierda aunque la transcripción falle. No borra nada.
   const descargarAudioGuardado = useCallback(async (recoveryKey: string): Promise<boolean> => {
@@ -1521,7 +1555,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
     nivelAudio, silencioProlongado, recorte, motivosConfirmacion, transcripcionMotor, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
     alertasDictado,
-    iniciar, detener, pausar, reanudar, reset, setTranscripcion,
+    iniciar, detener, pausar, reanudar, reset, setTranscripcion, sembrarDictado,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
   }
 }

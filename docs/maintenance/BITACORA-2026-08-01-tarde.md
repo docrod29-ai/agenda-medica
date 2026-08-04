@@ -4621,6 +4621,47 @@ esta línea.
 
 ---
 
+## TANDA 146ª — v997 · LOS TURNOS DEL PASE DE UCI VIAJABAN Y NO LOS LEÍA NADIE
+
+Es el punto que dejé apuntado al cerrar la v996, y resultó ser peor de lo que
+parecía.
+
+El pase se dicta en `/uci` y se firma en `/consulta`. Una versión anterior
+consiguió que el dictado **viajara** en la semilla de `sessionStorage`, y dejó en
+el tipo `utterances?: unknown[]`. Y ni una línea lo consumía: `grep` de
+`parsed.utterances` daba **cero**. Los turnos llegaban a la consulta y se
+tiraban — el patrón «escrito, probado y sin conectar» **dentro** del arreglo que
+venía a cerrar exactamente eso.
+
+### Lo que se apagaba con ellos
+
+Sin turnos no hay confianzas por palabra, y sin confianzas por palabra se caen a
+la vez: la separación de voces archivada, la lista de palabras a verificar, el
+**sexto motivo** de confirmación —«el audio dudó justo donde había una dosis»,
+que sólo se puede emitir desde aquí— y la procedencia V3, que decide **de quién
+es cada cita**. El camino que más nota firmada produce en cuidados intensivos era
+el que menos defensas tenía. Y desde la v996, tampoco archivaba material de
+origen: el crudo ni siquiera entraba en la semilla.
+
+### Lo que NO se hace
+
+Si la pantalla de origen no manda el crudo, **no se inventa uno**. Rellenarlo con
+el texto de trabajo archivaría como «original» algo ya corregido tres veces y
+editable a mano: el defecto que la v996 cerró. Y la semilla vieja —sin turnos—
+sigue funcionando: romperla perdería el pase que el médico acaba de dictar.
+
+- `src/hooks/useGrabacionAudio.ts` (`sembrarDictado`), `uci/page.tsx`,
+  `consulta/[patientId]/page.tsx`
+- `src/__tests__/pase-uci-conserva-el-dictado.test.ts` — 10 pruebas. Total **5973**.
+
+**Fallo mío de la v996, corregido en el mismo empujón:** subí `public/sw.js` a
+v996 sin correr `node scripts/version-sw.mjs`, así que `version.txt` seguía
+diciendo v995. Lo cazó el CI —`salud-y-peso-sw`—, que es justo para lo que
+existe: si los dos números se separan, el aviso de «hay versión nueva» compara
+contra un archivo que miente.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

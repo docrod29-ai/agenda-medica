@@ -767,6 +767,14 @@ export default function UciPanelPage() {
       dictado: paseTexto.trim() || audio.transcripcion.trim(),
       // Los turnos, para que la consulta pueda juzgar de quién es cada cita.
       utterances: audio.utterances,
+      /**
+       * Y el material de ORIGEN: lo que el motor oyó antes del pipeline.
+       *
+       * Sin esto, el pase de UCI se archivaba con el texto de trabajo en el
+       * sitio del original — el defecto que la v996 cerró en la consulta y que
+       * seguía abierto aquí, que es donde más se dicta.
+       */
+      crudo: audio.transcripcionMotor,
     }
     try { sessionStorage.setItem(`nx.uci.seed.${internamientoId}`, JSON.stringify(semilla)) } catch { /* */ }
     router.push(`/consulta/${inter.pacienteId}?tipo=evolucion_uci&internamiento=${internamientoId}&fuente=uci`)
