@@ -30,6 +30,7 @@ import { ESTUDIOS_LAB_RAPIDOS, SERVICIOS_HOSPITAL, type SolicitudLab, type Resul
 import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
 import { getPatient, getDoctors } from '@/lib/firestore'
+import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
@@ -132,6 +133,38 @@ export default function EpisodioPage() {
   const [doctores, setDoctores] = useState<Doctor[]>([])
   const [respTxt, setRespTxt] = useState('')
   const [indForm, setIndForm] = useState<{ tipo: TipoIndicacion; descripcion: string; dosis: string; via: string; frecuencia: string }>({ tipo: 'medicamento', descripcion: '', dosis: '', via: '', frecuencia: '' })
+  /**
+   * LA DOSIS SIN UNIDAD, ANTES DE QUE LLEGUE AL MAR.
+   *
+   * ── EL HUECO ───────────────────────────────────────────────────────────────
+   *
+   * La receta corre `revisarUnidadDosis` y `revisarDosis` sobre cada renglón
+   * —unidad ausente, error de decimal, tope de adulto, mg/kg pediátrico—. En
+   * hospitalización **no corría ninguna**: la dosis es un campo de texto libre
+   * («otra»), la indicación se arma concatenando `descripción + dosis + vía`, y
+   * de ahí va al MAR, donde **enfermería administra lo que está escrito**.
+   *
+   * O sea que la red de seguridad estaba donde el paciente se va a su casa, y no
+   * donde está internado y otra persona le pone el medicamento.
+   *
+   * ── POR QUÉ SÓLO LA UNIDAD, Y SE DICE ─────────────────────────────────────
+   *
+   * `revisarDosis` necesita el **peso de dosificación** para la comprobación
+   * mg/kg, que es la que de verdad protege a un niño. Esta pantalla no lo tiene:
+   * `pesoDosificacion` vive en la estancia de UCI, y el charter §16 prohíbe
+   * fijarlo solo. Correrla sin peso daría topes de adulto sobre un niño, que es
+   * peor que no correrla — el mismo defecto que ya se reparó una vez en la
+   * receta.
+   *
+   * La comprobación de **unidad** no necesita peso ni edad y es la que atrapa el
+   * caso que más asusta en un MAR: «meropenem 2 cada 8 horas».
+   */
+  const alertaUnidadIndicacion = useMemo(
+    () => (indForm.tipo === 'medicamento' && indForm.descripcion.trim()
+      ? revisarUnidadDosis(indForm.descripcion, indForm.dosis, 'indicacion_hospital')
+      : null),
+    [indForm.tipo, indForm.descripcion, indForm.dosis],
+  )
   const [medQuery, setMedQuery] = useState('')
   const [admNota, setAdmNota] = useState('')
   const [sg, setSg] = useState<{ ta: string; fc: string; fr: string; temp: string; spo2: string; glucosa: string; dolor: string; conciencia: 'A' | 'C' | 'V' | 'P' | 'U'; oxigeno: boolean; o2Flujo: string; o2FiO2: string }>({ ta: '', fc: '', fr: '', temp: '', spo2: '', glucosa: '', dolor: '', conciencia: 'A', oxigeno: false, o2Flujo: '', o2FiO2: '' })
@@ -1105,6 +1138,19 @@ export default function EpisodioPage() {
                 <input className={inputCls} placeholder="Vía (ej. IV)" value={indForm.via} onChange={e => setIndForm(f => ({ ...f, via: e.target.value }))} />
               </div>
             )})()}
+            {/*
+              LA UNIDAD QUE FALTA — la red que la receta tenía y el hospital no.
+              Ver `alertaUnidadIndicacion` arriba.
+            */}
+            {alertaUnidadIndicacion && (
+              <div style={{
+                marginTop: 8, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
+                color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+              }}>
+                {alertaUnidadIndicacion.mensaje}
+              </div>
+            )}
           </>) : (
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Indicación</label>
               <input className={inputCls} placeholder="ej. Dieta blanda / Vigilar diuresis" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>

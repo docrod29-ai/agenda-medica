@@ -5620,6 +5620,45 @@ que el registro dice que existe?**
 
 ---
 
+## TANDA 170ª — v1021 · LA RED DE LA DOSIS ESTABA EN LA RECETA Y NO EN EL HOSPITAL
+
+La receta corre `revisarUnidadDosis` y `revisarDosis` sobre cada renglón —unidad
+ausente, error de decimal, tope de adulto, mg/kg pediátrico—. En
+**hospitalización no corría ninguna**.
+
+Y ahí la dosis es un campo de **texto libre**, la indicación se arma
+concatenando `descripción + dosis + vía`, y de ahí va al **MAR, donde enfermería
+administra lo que está escrito**. La red estaba donde el paciente se va a su casa
+con un papel, y no donde está internado y otra persona le pone el medicamento.
+
+### Lo que corre ahora
+
+La comprobación de **unidad** en el modal de indicación, enseñada, no sólo
+calculada. Es la que atrapa «meropenem **2** cada 8 horas».
+
+El motor es **el mismo**: se añadió un parámetro de **contexto** que cambia sólo
+el texto, nunca el criterio. Decirle a un intensivista «quien la surta no puede
+saber cuánto dispensar» es lenguaje de otro sitio, y un aviso que no habla de su
+trabajo se lee como ruido; en hospital dice «enfermería no puede administrar lo
+que no dice cuánto». Los llamadores que ya existían no cambian.
+
+Y **sólo para medicamentos**: marcar «dieta blanda» por no traer miligramos sería
+ruido puro.
+
+### Declarado y NO cubierto
+
+La comprobación **mg/kg no se corre aquí**: necesita el `pesoDosificacion`, que
+vive en la estancia de UCI y que el charter §16 prohíbe fijar solo. Correrla sin
+peso daría **topes de adulto sobre un niño** — peor que no correrla, y el mismo
+defecto que ya se reparó una vez en la receta. Se declara el límite en vez de
+fingir una cobertura que no hay.
+
+- `src/lib/seguridad/dosis.ts`, `hospitalizacion/[internamientoId]/page.tsx`
+- `src/__tests__/dosis-en-hospitalizacion.test.ts` — 10 pruebas. Total **6328**.
+- `REG-132` en el ledger, con su parte no cubierta escrita.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
