@@ -5455,6 +5455,46 @@ hooks de estado que llevan tiempo donde están.
 
 ---
 
+## TANDA 166ª — v1017 · VEINTIUNA VERSIONES SIN UNA SOLA ENTRADA EN EL REGISTRO CANÓNICO
+
+`docs/audit/regression-ledger.md` es el registro **canónico** de incidentes
+corregidos, cada uno **con su prueba permanente**, y su regla es la del charter:
+«un problema corregido no se asume corregido para siempre — cada ciclo verifica
+que no reaparezca».
+
+Esta sesión desplegó v996 → v1016 con defectos reales —el «original» archivado
+que no era el original, los turnos del pase de UCI que no leía nadie, enfermería
+etiquetada como «Paciente», la consulta larga sin segunda opinión, la API FHIR
+viva exportando borradores **como confirmados**, el juez leyendo otro string que
+el redactor, la hipótesis dicha en voz alta saliendo impresa como receta— y **no
+anoté ni una**.
+
+Omisión mía, y de las que se pagan tarde: sin entrada en el ledger un arreglo se
+queda en la bitácora del SW y nadie vuelve a comprobar que siga en pie.
+
+### Lo que hay ahora
+
+**21 entradas nuevas, REG-110 a REG-130**, cada una con el incidente, el estado y
+su test permanente.
+
+Y el gate del ledger obligó a hacerlo bien: exige que **todo test citado esté
+sellado** en `invariantes-clinicos.json` con su número de casos. Se añadieron 19
+archivos al sello — 147 → **166** archivos, 2 527 → **2 789** casos protegidos.
+
+### Dos cosas que cazó el propio gate
+
+1. `churn.test.ts` quedaba citado en el ledger y **sin sellar**.
+2. El sello lleva el conteo **estático** del gate, no el de ejecución. Dos
+   archivos con bucles generadores tenían 13 y 30 casos en ejecución pero 8 y 25
+   estáticos, y el trinquete —que sólo deja **subir**— lo detectó de inmediato.
+   Se corrigió con el propio contador del gate, **no** bajando el número «para
+   pasar el CI», que es justo lo que su mensaje de error prohíbe.
+
+- `docs/audit/regression-ledger.md`, `src/lib/clinical/invariantes-clinicos.json`
+- Sin pruebas nuevas: el trabajo **es** el registro. Total **6218**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
