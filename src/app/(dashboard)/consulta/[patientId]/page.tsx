@@ -2892,6 +2892,24 @@ export default function ConsultaActivaPage() {
                   El texto en vivo alimenta la nota preliminar; truncado se lee
                   igual que completo.
                 */}
+                {/*
+                  SATURACIÓN: el nivel no la ve.
+                  Una señal recortada tiene RMS normal y armónicos falsos en todo
+                  el espectro; la barra podía decir «captando bien» sobre audio
+                  que ya no se puede transcribir bien.
+                */}
+                {audio.recorte && audio.estado === 'grabando' && (
+                  <div style={{
+                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
+                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+                  }}>
+                    <b>El micrófono está saturando.</b>{' '}
+                    Bájale el volumen de entrada al sistema o sepáralo un palmo: el audio recortado
+                    se transcribe peor aunque se oiga más fuerte.
+                  </div>
+                )}
+
                 {audio.chunksFallidos > 0 && (
                   <div style={{
                     marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
