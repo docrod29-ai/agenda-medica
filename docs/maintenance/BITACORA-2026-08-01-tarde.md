@@ -3989,6 +3989,52 @@ pico y se avisa con qué hacer.
 
 ---
 
+## TANDA 132ª — v983 · UCI Y HOSPITAL AL NIVEL DE LA CONSULTA
+
+Petición del Dr.: «esto tanto en nota de consulta, hospital y UCI». El equipo
+comparó las tres pantallas capacidad por capacidad; verifiqué cada punto.
+
+### El hallazgo que ordena todo
+
+**Hospitalización no tiene pantalla de dictado propia**: empuja a la de consulta,
+así que hereda casi todas las defensas por construcción. **UCI sí tiene camino
+propio**, y ahí estaba el retraso real.
+
+### UCI: lo que le faltaba
+
+1. **El expediente del paciente no sesgaba el motor.** `audio.iniciar` mandaba
+   sólo `recoveryKey` y `contexto`. O sea que el paciente **con más fármacos
+   activos de todo el hospital** dictaba su pase con el sesgo genérico, mientras
+   la consulta —donde hay tres fármacos— sí mandaba los suyos. Ahora viajan sus
+   indicaciones, su diagnóstico de ingreso y sus alergias (y si el expediente
+   NIEGA alergias, no se manda nada: no hay alérgeno que sesgar).
+2. **La confianza por palabra llegaba y se tiraba.** El pase ya recibía
+   `utterances[].palabras` y esta pantalla las descartaba al armar los turnos.
+   Ahora el médico ve las «palabras que el audio no oyó con seguridad», con su
+   minuto, igual que en consulta.
+3. **Un pase con tramos perdidos se veía igual que uno íntegro.** Ahora salen los
+   avisos de tramos perdidos, de saturación del micrófono, de por qué no hubo
+   separación de voces, y las alertas del dictado.
+
+### Hospitalización: el léxico que nunca se activaba
+
+`contexto: 'consulta'` estaba **fijo**, así que una nota de ingreso o de
+evolución jamás disparaba `CONTEXTOS_POR_MODULO.hospitalizacion` («Medicina
+hospitalaria», «Antimicrobianos») — un mapeo escrito, probado y que no usaba
+nadie. Ahora se deriva de si hay internamiento activo.
+
+### Y el mapa de motivos salió de la pantalla
+
+`MOTIVO_SIN_DIARIZACION` vivía dentro de la consulta, por eso UCI no podía decir
+por qué se quedó sin separación de voces. Ahora es su propio módulo y las tres
+pantallas dicen lo mismo, en un solo sitio en vez de en tres copias que divergen.
+
+- `src/lib/expediente/motivo-sin-diarizacion.ts` (nuevo),
+  `app/(dashboard)/uci/page.tsx`, `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/diarizacion-no-se-rinde-callada.test.ts` +1. Total **5824**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

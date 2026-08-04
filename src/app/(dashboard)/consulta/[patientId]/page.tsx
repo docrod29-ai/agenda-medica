@@ -94,6 +94,7 @@ import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioP
 import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
 import { getInternamiento } from '@/lib/hospital/firestore'
+import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { palabrasDudosas, marcarTurno, paraElMedico, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
@@ -168,14 +169,6 @@ function signosConValor(sv: SignosVitales | undefined | null): boolean {
  * volviendo a intentar. Un mensaje genérico las convierte en «algo falló», que
  * no le dice a nadie qué hacer.
  */
-const MOTIVO_SIN_DIARIZACION: Record<string, string> = {
-  sin_llave: 'No hay servicio de separación de voces configurado.',
-  error_proveedor: 'El servicio de transcripción devolvió un error.',
-  tiempo_agotado: 'El servicio tardó más de lo previsto para este audio; puedes volver a procesar.',
-  red: 'Se perdió la conexión mientras se transcribía.',
-  sin_texto: 'El servicio no devolvió texto (¿audio en silencio?).',
-}
-
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
@@ -769,7 +762,15 @@ export default function ConsultaActivaPage() {
     noiseSuppression: false,
     echoCancellation: false,
     autoGainControl: true,
-    contexto: 'consulta' as const,
+    /**
+     * EL MÓDULO REAL, NO SIEMPRE «consulta».
+     *
+     * Estaba fijo, así que una nota de ingreso o de evolución nunca activaba el
+     * léxico hospitalario (`CONTEXTOS_POR_MODULO.hospitalizacion`), que estaba
+     * escrito y probado y no lo disparaba nadie. La pantalla ya sabe si está en
+     * un internamiento.
+     */
+    contexto: (internamientoActivo ? 'hospitalizacion' : 'consulta') as 'consulta' | 'hospitalizacion',
     medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
     problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
     /**
@@ -778,7 +779,7 @@ export default function ConsultaActivaPage() {
      * alérgeno mal transcrito es un cruce que nunca salta.
      */
     alergias: (patient?.alergias ?? '').split(/[,;\n]/).map(a => a.trim()).filter(Boolean),
-  }), [patientId, medicamentos, diagnosticos, patient?.alergias])
+  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {
