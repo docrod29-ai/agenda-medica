@@ -1705,7 +1705,29 @@ export default function ConsultaActivaPage() {
         } : undefined,
       } : undefined,
       transcripcionCruda: voz.transcripcion || undefined,
-      dialogoDiarizado: audio.utterances.length > 0 ? audio.utterances : undefined,
+      /**
+       * EL MATERIAL DE ORIGEN, POR FIN GUARDADO.
+       *
+       * `transcripcionCruda` es el texto de TRABAJO —corregido y editable—, así
+       * que el «original» que quedaba archivado no era lo que el motor oyó. El
+       * pipeline producía el crudo y se descartaba en la misma línea.
+       */
+      transcripcionMotor: audio.transcripcionMotor || undefined,
+      /**
+       * LOS TURNOS, SIN LAS PALABRAS.
+       *
+       * Se estaba guardando el objeto completo, con la confianza de cada palabra:
+       * miles de objetos dentro del documento de la nota, que ya tiene historial
+       * de reventar el tope de 1 MB de Firestore y bloquear TODO guardado
+       * posterior. El tipo declarado siempre fue `{speaker, text}`.
+       */
+      dialogoDiarizado: audio.utterances.length > 0
+        ? audio.utterances.map(u => ({ speaker: u.speaker, text: u.text }))
+        : undefined,
+      // Y lo que un revisor sí necesita: qué dudó el audio y en qué minuto.
+      palabrasAVerificar: palabrasAVerificar.palabras.length > 0
+        ? palabrasAVerificar.palabras
+        : undefined,
       estado,
       fechaConsulta: now,
       createdAt: now,

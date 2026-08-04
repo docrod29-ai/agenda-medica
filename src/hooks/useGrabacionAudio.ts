@@ -151,6 +151,14 @@ export interface UseGrabacionAudio {
    * constante que se afirmaba sin comprobar.
    */
   /**
+   * El texto tal como salió del reconocedor, **antes** del pipeline y antes de
+   * que el médico lo edite.
+   *
+   * Es el material de origen. Se expone porque el campo que la nota archivaba
+   * como «cruda» no lo era: era el texto de trabajo, ya corregido y editable.
+   */
+  transcripcionMotor: string
+  /**
    * Por qué el dictado pide una confirmación del médico.
    *
    * Vacío casi siempre. Cuando trae algo, es porque una etapa determinista
@@ -785,6 +793,22 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    */
   const [motivosConfirmacion, setMotivosConfirmacion] = useState<string[]>([])
   /**
+   * LO QUE EL MOTOR DIJO, ANTES DE QUE NADIE LO TOCARA.
+   *
+   * El pipeline devuelve `crudo` en cada llamada y **se descartaba en la misma
+   * línea** en que se aplicaba el resultado. Después de eso, el único texto que
+   * existía era el corregido — y el campo que la nota archiva como
+   * «transcripción cruda» es ése, ya pasado por las cuatro etapas **y editable
+   * por el médico**.
+   *
+   * O sea que el «material de origen» que queda en el expediente no es lo que el
+   * motor oyó. Ante una discusión medicolegal, eso es justo lo que hace falta.
+   *
+   * La regla nº 5 del paquete del Dr. dice que el transcript crudo no se borra
+   * nunca. Se cumplía dentro del pipeline y se rompía al salir de él.
+   */
+  const [transcripcionMotor, setTranscripcionMotor] = useState('')
+  /**
    * Espejo de `utterances`. `aplicar` corre dentro de un callback creado en un
    * render anterior: leer el estado ahí devolvería el valor congelado — el mismo
    * defecto que ya obligó a espejar la duración para el libro de costos.
@@ -848,6 +872,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     todosChunksRef.current = []
     chunksFallidosRef.current = 0; setChunksFallidos(0)
     silencioRef.current = false; setSilencioProlongado(false); setRecorte(false); setMotivosConfirmacion([])
+    setTranscripcionMotor('')
     pausaTotalMsRef.current = 0
     pausaInicioRef.current = 0
     chunkIdxRef.current = 0
@@ -1332,6 +1357,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
        */
       const dudaCritica = dudaEnZonaCritica(utterancesRef.current, UNIDADES_CANONICAS)
       setMotivosConfirmacion(dudaCritica ? [...r.motivos, 'confianza_baja_con_termino_critico'] : r.motivos)
+      setTranscripcionMotor(r.crudo)
       setEstado('listo')
     }
 
@@ -1464,6 +1490,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setCorrecciones(r.cambiosLexicos)
       setAlertasDictado(r.alertas)
       setMotivosConfirmacion(r.motivos)
+      setTranscripcionMotor(r.crudo)
       setEstado('listo')
       await borrarChunks(recoveryKey)  // solo se borra si SÍ se transcribió
     } else {
@@ -1492,7 +1519,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
+    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, transcripcionMotor, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,
