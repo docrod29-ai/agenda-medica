@@ -181,19 +181,46 @@ function TrialBanner() {
 }
 
 /**
- * Estado de acceso (Modelo B: tarjeta para iniciar la prueba).
- * - 'ok': suscripción activa o en prueba de Stripe (el webhook mapea trialing→active)
- *   o cuenta de cortesía (status 'active').
- * - 'vencido': se canceló o falló el cobro → reactivar.
- * - 'sin_tarjeta': cuenta nueva sin suscripción → elegir plan + tarjeta.
- * Conservador: ante la duda (sin clínica) NO bloquea.
+ * Estado de acceso — **MODELO A: 14 días SIN TARJETA** (decisión 11 del Dr.).
+ *
+ * ── EL MURO QUE HABÍA AQUÍ ───────────────────────────────────────────────────
+ *
+ * Esta función devolvía `'sin_tarjeta'` para TODO lo que no fuera `active`, o
+ * sea también para `status: 'trial'` — que es justo el estado con el que nace
+ * cada cuenta nueva en `clinic/crear`. Y como corre ANTES de cualquier otra
+ * cosa, el médico que acababa de leer «14 días gratis, sin tarjeta» en seis
+ * pantallas chocaba contra una pared pidiéndole la tarjeta.
+ *
+ * Lo peor no es el muro: es que **el modelo A completo ya estaba construido**.
+ * `paywall-prueba.ts` decide qué se conserva al vencer, `firestore.rules` lo
+ * espeja, `pruebaAgotada` limita la IA de la prueba y `gateCreditos` la corta
+ * sin overage. Todo escrito, probado y **inalcanzable**, porque estas tres
+ * líneas devolvían antes.
+ *
+ * ── LO QUE HACE AHORA ────────────────────────────────────────────────────────
+ *
+ * · `trial` → **'ok'**: entra y usa el flujo completo. Si la prueba venció, no
+ *   es un muro: el banner de `paywall-prueba` explica qué conserva y las reglas
+ *   dejan leer, imprimir y exportar mientras bloquean la escritura. Eso es el
+ *   PAUSED que pidió el Dr., no una cuenta cerrada.
+ * · Sin `status` → **'ok'**, no `'sin_tarjeta'`. Bajo el modelo A una cuenta
+ *   nueva ES una prueba; tratar la ausencia del campo como «no ha pagado» es el
+ *   mismo muro por la puerta de atrás.
+ * · Sólo se bloquea de verdad lo que de verdad murió: cancelada, suspendida o
+ *   con el cobro fallido.
+ *
+ * Ver `docs/maintenance/DECISIONES-CLINICAS-2026-08-03.md`, decisión 11.
  */
 function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: string } | null): 'ok' | 'sin_tarjeta' | 'vencido' {
   if (!clinic) return 'ok'
   if (clinic.paseLibre === true || clinic.plan === 'cortesia') return 'ok'   // dueño/cortesía: nunca paywall
-  if (clinic.status === 'active') return 'ok'
   if (clinic.status === 'suspended' || clinic.status === 'cancelled' || clinic.status === 'canceled' || clinic.status === 'past_due') return 'vencido'
-  return 'sin_tarjeta'   // 'trial' o cuenta nueva → necesita tarjeta para iniciar
+  /**
+   * `active` y `trial` entran igual. La prueba VENCIDA tampoco se manda al muro:
+   * la gobierna `paywall-prueba` —lectura, impresión y exportación intactas— y
+   * mandarla aquí borraría de un plumazo la parte que dice «no se pierde nada».
+   */
+  return 'ok'
 }
 
 /**

@@ -21,6 +21,45 @@ historia vive aquí.
 
 ---
 
+## v972 — decisión 11: el muro que anulaba un modelo entero ya construido
+
+`estadoAcceso` devolvía `'sin_tarjeta'` para todo lo que no fuera `active` — o
+sea también para `status: 'trial'`, que es el estado con el que nace **cada
+cuenta nueva**. Y corre antes que cualquier otra cosa. El médico que acababa de
+leer «14 días gratis, sin tarjeta» chocaba contra una pared pidiéndole la
+tarjeta.
+
+LO QUE HACE ESTE CASO TAN CARO: **el modelo A completo YA ESTABA CONSTRUIDO.**
+`paywall-prueba.ts` decide qué se conserva al vencer, `firestore.rules` lo
+espeja, `pruebaAgotada` limita la IA de la prueba y `gateCreditos` la corta sin
+overage — con el mensaje correcto: «se acabó la IA incluida en tu prueba… tus
+expedientes no se tocan». Todo escrito, probado, espejado en las reglas… e
+**inalcanzable**, porque tres líneas devolvían antes.
+
+Y las 5 634 pruebas pasaban: **ninguna afirmaba que un médico en prueba tuviera
+que chocar contra el muro**. Nadie lo quiso nunca; simplemente quedó ahí. Quitar
+el muro no rompió una sola prueba.
+
+AHORA: `trial` entra y usa el flujo completo. La prueba VENCIDA tampoco va al
+muro — la gobierna `paywall-prueba`: lectura, impresión y exportación intactas,
+escritura e IA detenidas. Eso es el PAUSED que pidió el Dr., no una cuenta
+cerrada. Y una cuenta SIN `status` también entra: bajo el modelo A una cuenta
+nueva ES una prueba, y tratar la ausencia del campo como «no ha pagado» sería el
+mismo muro por la puerta de atrás. Sólo se bloquea de verdad lo que murió:
+cancelada, suspendida o con el cobro fallido.
+
+LA CIFRA DE LA BOLSA DE IA SIGUE SIENDO SUYA. El Dr. fue explícito: «debe salir
+del Cost Engine, no elegirse arbitrariamente», y el Cost Engine depende de la
+decisión 12, que sigue pendiente. El MECANISMO está y el tope se mueve por
+variable de entorno sin tocar código; la prueba fija eso, **no cuánto vale**.
+
+El guardián cubre las dos mitades: que no vuelva ninguna rama `'sin_tarjeta'`, y
+que las pantallas que prometen «sin tarjeta» sigan diciéndolo — porque el defecto
+no era el muro ni el texto, era que **decían cosas distintas**. Verificado por
+mutación. +20 casos.
+
+---
+
 ## v971 — la decisión 3 podía dispararse: NO se podía. Ahora sí
 
 Cometí en la v970 exactamente el fallo que este repositorio lleva persiguiendo
