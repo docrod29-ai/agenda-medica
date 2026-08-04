@@ -4480,6 +4480,41 @@ trozo y manda.
 
 ---
 
+## TANDA 143ª — v994 · EL VOCABULARIO DEL PACIENTE, TAMBIÉN EN EL TEXTO EN VIVO
+
+### El desajuste
+
+La ruta final construye el léxico con `lexicon.construir`, que presupuesta los
+224 tokens gastando **primero en los fármacos y problemas de ESTE paciente**. El
+trozo en vivo usaba un prompt **fijo**.
+
+O sea que el mismo audio producía dos textos con vocabularios distintos: el de en
+vivo genérico, el final personalizado.
+
+### Por qué el de en vivo no es decorativo
+
+De él sale la **nota preliminar** que el médico ve mientras habla. Y es el
+**último recurso** si la transcripción final falla: en ese caso la nota se redacta
+con el texto que se transcribió con el vocabulario más pobre.
+
+### Lo que se hizo
+
+El hook manda fármacos, problemas y especialidades en cada trozo —desde la
+referencia, no desde el estado, porque `flushChunks` se crea una vez y corre cada
+20 segundos— y la ruta construye el mismo léxico que la final.
+
+**Falla abierto**, igual que la ruta final: si el léxico revienta, se sigue con el
+prompt de siempre. Perder vocabulario extra es molesto; quedarse sin dictado es
+otra cosa.
+
+Y el presupuesto por modelo de la v993 **sigue vigilando**: el léxico ya viene
+acotado a 224 tokens, pero el contexto previo se suma encima.
+
+- `src/app/api/expediente/transcribir-chunk/route.ts`, `src/hooks/useGrabacionAudio.ts`
+- `src/__tests__/prompt-chunk-presupuesto.test.ts` +5. Total **5935**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

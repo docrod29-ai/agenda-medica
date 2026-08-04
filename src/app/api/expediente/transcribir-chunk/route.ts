@@ -17,6 +17,7 @@
  *   - Devuelve más rápido — pensado para llamadas paralelas
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { construir as construirLexicon } from '@/lib/asr/lexicon'
 import { safeLog } from '@/lib/security/sanitize'
 import { WHISPER_PROMPT_MEDICO, WHISPER_PROMPT_UCI, tokensAprox, LIMITE_TOKENS_PROMPT } from '@/lib/expediente/medical-vocabulary'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -122,7 +123,43 @@ export async function POST(req: NextRequest) {
    * consultorio. Hasta ahora el texto en vivo de un pase se sesgaba con el
    * catálogo del consultorio aunque la pantalla hubiera pedido `contexto: 'uci'`.
    */
-  const base = contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO
+  /**
+   * ── EL VOCABULARIO DEL PACIENTE, TAMBIÉN EN EL TEXTO EN VIVO ────────────────
+   *
+   * La ruta final construye el léxico con `lexicon.construir`, que presupuesta
+   * los 224 tokens gastando **primero en los fármacos y problemas de ESTE
+   * paciente**. El trozo en vivo usaba un prompt fijo, así que el mismo audio
+   * producía dos textos con vocabularios distintos: el de en vivo genérico y el
+   * final personalizado.
+   *
+   * Y el de en vivo no es decorativo: de él sale la **nota preliminar**, y es el
+   * último recurso si la transcripción final falla.
+   *
+   * Falla abierto igual que la ruta final: si el léxico revienta, se sigue con
+   * el prompt de siempre. Perder vocabulario extra es molesto; quedarse sin
+   * dictado es otra cosa.
+   */
+  const leerLista = (k: string): string[] => {
+    try {
+      const v = JSON.parse(String(formData.get(k) ?? '[]')) as unknown
+      return Array.isArray(v) ? v.map(String).filter(Boolean).slice(0, 40) : []
+    } catch { return [] }
+  }
+  const promptLexicon = ((): string => {
+    try {
+      const modulo = (['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const)
+        .find(m => m === contexto)
+      if (!modulo) return ''
+      return construirLexicon({
+        modulo,
+        especialidades: leerLista('especialidades'),
+        medicamentos: leerLista('medicamentos'),
+        problemas: leerLista('problemas'),
+      }).prompt
+    } catch { return '' }
+  })()
+
+  const base = promptLexicon || (contexto === 'uci' ? WHISPER_PROMPT_UCI : WHISPER_PROMPT_MEDICO)
   const conContexto = prevContext
     ? `${base}\n\nContexto previo de la consulta: "${prevContext}"`
     : base

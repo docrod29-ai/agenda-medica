@@ -907,6 +907,15 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       // El módulo, para que el texto en vivo use el MISMO vocabulario que el
       // final: en UCI se estaba sesgando con el catálogo de consultorio.
       if (contextoRef.current.contexto) fd.append('contexto', contextoRef.current.contexto)
+      // Y el vocabulario del paciente: el texto en vivo alimenta la nota
+      // preliminar y es el último recurso si la transcripción final falla.
+      for (const [k, v] of [
+        ['especialidades', contextoRef.current.especialidades],
+        ['medicamentos', contextoRef.current.medicamentos],
+        ['problemas', contextoRef.current.problemas],
+      ] as const) {
+        if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
+      }
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       if (!res.ok) {
         // Un trozo perdido deja de ser invisible: el contador se ve en pantalla
