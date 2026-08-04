@@ -1,6 +1,7 @@
 'use client'
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
+import { quitarEcoDeCabecera } from '@/lib/asr/eco-de-cabecera'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 /**
  * EL PIPELINE COMPLETO, no sólo el guardián.
@@ -122,6 +123,13 @@ export interface UseGrabacionAudio {
   nivelAudio: number
   silencioProlongado: boolean
   bytesGrabados: number
+  /**
+   * Cuántos trozos en vivo NO se pudieron transcribir.
+   *
+   * Mientras esto sea > 0, el texto en vivo —y la nota preliminar que sale de
+   * él— están incompletos.
+   */
+  chunksFallidos: number
   /** Cuántos chunks han sido transcritos en vivo. */
   chunksTranscritos: number
   /**
@@ -561,6 +569,18 @@ function corregirUtterances(us: Utterance[]): Utterance[] {
   return us.map(u => ({ ...u, text: procesarTranscript(u.text).texto }))
 }
 
+/**
+ * La extensión que corresponde al contenedor REAL.
+ *
+ * Estaba repetida en tres sitios con variantes distintas, y en el trozo en vivo
+ * ni siquiera se usaba: se mandaba `.webm` siempre. En Safari el contenedor es
+ * mp4, así que el nombre le mentía al proveedor sobre lo que le llegaba.
+ */
+export function extDe(mime: string): string {
+  const m = (mime || '').toLowerCase()
+  return m.includes('mp4') ? 'm4a' : m.includes('ogg') ? 'ogg' : m.includes('wav') ? 'wav' : 'webm'
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Hook principal
 // ─────────────────────────────────────────────────────────────────
@@ -604,12 +624,20 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    */
   const [sinDiarizacion, setSinDiarizacion] = useState<MotivoSinDiarizacion | null>(null)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
+  const [chunksFallidos, setChunksFallidos] = useState(0)
   const [correcciones, setCorrecciones] = useState<CambioTranscripcion[]>([])
   const [alertasDictado, setAlertasDictado] = useState<AlertaDictado[]>([])
 
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])           // chunks recientes para flush
   const todosChunksRef = useRef<Blob[]>([])      // TODOS los chunks (blob final)
+  /**
+   * Trozos en vivo que el proveedor no pudo transcribir.
+   *
+   * Se cuenta y se enseña: un texto en vivo truncado se lee exactamente igual
+   * que uno completo, y la nota preliminar sale de él.
+   */
+  const chunksFallidosRef = useRef(0)
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const chunkFlushRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -666,6 +694,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     chunksRef.current = []
     todosChunksRef.current = []
+    chunksFallidosRef.current = 0; setChunksFallidos(0)
     pausaTotalMsRef.current = 0
     pausaInicioRef.current = 0
     chunkIdxRef.current = 0
@@ -694,7 +723,26 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!streamingActivoRef.current) return
     if (chunksRef.current.length === 0) return
     const idx = chunkIdxRef.current++
-    const blob = new Blob(chunksRef.current, { type: mimeRef.current })
+    /**
+     * LA CABECERA VA EN TODOS LOS TROZOS, NO SÓLO EN EL PRIMERO.
+     *
+     * `MediaRecorder` pone la cabecera del contenedor (EBML/moov) SÓLO en el
+     * primer fragmento. Este bloque construía el blob con los fragmentos
+     * acumulados desde el flush anterior, así que del segundo en adelante
+     * mandaba datos sueltos que ningún decodificador abre: el proveedor
+     * respondía error y `if (!res.ok) return` lo tragaba en silencio.
+     *
+     * Consecuencia real: la transcripción EN VIVO se congelaba a los ~20
+     * segundos, la nota preliminar se armaba con el primer trozo de la consulta,
+     * y el último recurso —cuando la transcripción final falla— entregaba esos
+     * 20 segundos presentados como la consulta entera.
+     *
+     * El otro camino (`transcribirEnPartes`) ya compensaba esto y lo explicaba
+     * en su comentario. Aquí no se hizo nunca.
+     */
+    const cabecera = todosChunksRef.current[0]
+    const partes = idx === 0 || !cabecera ? chunksRef.current : [cabecera, ...chunksRef.current]
+    const blob = new Blob(partes, { type: mimeRef.current })
     chunksRef.current = []
     if (blob.size < 1024) return  // skip muy pequeños
 
@@ -705,7 +753,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     try {
       const fd = new FormData()
-      fd.append('audio', blob, `chunk-${idx}.webm`)
+      // La extensión sigue al mime REAL: en Safari esto es mp4, y llamarlo
+      // `.webm` le miente al proveedor sobre lo que le está llegando.
+      fd.append('audio', blob, `chunk-${idx}.${extDe(mimeRef.current)}`)
       fd.append('chunkIdx', String(idx))
       /**
        * Los segundos de audio de este trozo, sólo para el libro de costos.
@@ -720,7 +770,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (segTrozo > 0) fd.append('duracionSeg', String(Math.round(segTrozo)))
       if (prevContext) fd.append('prevContext', prevContext)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
-      if (!res.ok) return                              // 413/5xx/HTML → no parsear (evita SyntaxError)
+      if (!res.ok) {
+        // Un trozo perdido deja de ser invisible: el contador se ve en pantalla
+        // y evita que un texto truncado se lea como la consulta completa.
+        chunksFallidosRef.current++
+        setChunksFallidos(chunksFallidosRef.current)
+        return                                         // 413/5xx/HTML → no parsear (evita SyntaxError)
+      }
       const data = await res.json().catch(() => null)
       if (data?.ok && data.text) {
         // Corrección léxica médica TAMBIÉN en chunks — el médico ve los
@@ -729,7 +785,19 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         // «500 mg» mientras habla, ve lo mismo que va a quedar en la nota. Con
         // sólo la corrección léxica veía «quinientos miligramos» y luego el
         // texto le cambiaba al cerrar, que parece un error de la aplicación.
-        textosChunksRef.current[idx] = procesarTranscript(data.text).texto
+        /**
+         * Y SE QUITA EL ECO DE LA CABECERA.
+         *
+         * Esa cabecera no es sólo cabecera: son 2 segundos de audio real. Sin
+         * quitar su transcripción, las primeras palabras de la consulta
+         * aparecerían al principio de CADA trozo — y si llevan una cifra o un
+         * fármaco, el modelo leería la misma indicación repetida por toda la
+         * consulta. Sólo se recorta lo que de verdad coincide.
+         */
+        const bruto = procesarTranscript(data.text).texto
+        textosChunksRef.current[idx] = idx === 0
+          ? bruto
+          : quitarEcoDeCabecera(bruto, textosChunksRef.current[0] ?? '')
         // Reconstruir transcripción parcial en orden
         const completa = textosChunksRef.current.filter(Boolean).join(' ')
         setTranscripcionParcial(completa)
@@ -773,6 +841,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       streamRef.current = stream
       chunksRef.current = []
       todosChunksRef.current = []
+    chunksFallidosRef.current = 0; setChunksFallidos(0)
       chunkIdxRef.current = 0
       textosChunksRef.current = []
       // Limpia la diarización del tramo anterior: la separación de voces es POR
@@ -966,10 +1035,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const blob = new Blob(allChunks, { type: rec.mimeType })
     chunksRef.current = []
     todosChunksRef.current = []
+    chunksFallidosRef.current = 0; setChunksFallidos(0)
     if (blob.size === 0) { setEstado('error'); setError('Audio vacío'); return }
 
     const mt = rec.mimeType || ''
-    const ext = mt.includes('mp4') ? 'm4a' : mt.includes('ogg') ? 'ogg' : mt.includes('wav') ? 'wav' : 'webm'
+    const ext = extDe(mt)
 
     const aplicar = (texto: string) => {
       const r = procesarTranscript(texto)
@@ -1070,7 +1140,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       return
     }
     const mime = chunks[0].type || 'audio/webm'
-    const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
+    const ext = extDe(mime)
     motivoFalloTranscripcion = ''
 
     // 1) Mejor opción: audio COMPLETO vía Storage → AssemblyAI (diariza y evita el
@@ -1106,7 +1176,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const chunks = await leerChunks(recoveryKey)
     if (chunks.length === 0) return false
     const mime = chunks[0].type || 'audio/webm'
-    const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
+    const ext = extDe(mime)
     const blob = new Blob(chunks, { type: mime })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -1119,7 +1189,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, correcciones, sinDiarizacion,
+    nivelAudio, silencioProlongado, bytesGrabados, chunksTranscritos, chunksFallidos, correcciones, sinDiarizacion,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,

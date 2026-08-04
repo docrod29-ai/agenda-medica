@@ -289,3 +289,85 @@ describe('LAS RAZONES ESTÁN ESCRITAS', () => {
     expect(POR_QUE_SE_PROPAGA_LA_DUDA).toMatch(/0\.31 y una de 0\.99 son indistinguibles/)
   })
 })
+
+/**
+ * ── REGRESIÓN v975, REPARADA EN v979 ─────────────────────────────────────────
+ *
+ * Al conectar las marcas reconstruí el turno desde `palabras`, que vienen CRUDAS
+ * del motor. Y `corregirUtterances` corrige `u.text`, no `u.palabras`. Resultado:
+ * el modelo volvió a recibir el texto SIN corregir — el médico veía
+ * «ceftriaxona» y el modelo leía «sefriaxona».
+ *
+ * Es, letra por letra, el mismo defecto que `corregirUtterances` se escribió
+ * para reparar, reintroducido por la puerta de al lado al añadir una mejora.
+ */
+describe('LAS MARCAS VAN SOBRE EL TEXTO CORREGIDO, no sobre el crudo', () => {
+  /** El corrector ya arregló el nombre del fármaco en `text`; `palabras` sigue cruda. */
+  const CORREGIDO: TurnoConPalabras = {
+    speaker: 'A',
+    text: 'le puse ceftriaxona un gramo cada doce horas',
+    palabras: [
+      { texto: 'le', inicioMs: 0, confianza: .95 },
+      { texto: 'puse', inicioMs: 200, confianza: .96 },
+      { texto: 'sefriaxona', inicioMs: 400, confianza: .38 },
+      { texto: 'un', inicioMs: 900, confianza: .97 },
+      { texto: 'gramo', inicioMs: 1000, confianza: .98 },
+      { texto: 'cada', inicioMs: 1300, confianza: .99 },
+      { texto: 'doce', inicioMs: 1500, confianza: .97 },
+      { texto: 'horas', inicioMs: 1700, confianza: .98 },
+    ],
+  }
+
+  it('el modelo recibe el fármaco BIEN escrito', () => {
+    /**
+     * Ésta es la prueba de la regresión: con la v975 el cuerpo del turno decía
+     * «sefriaxona».
+     *
+     * PREMISA CORREGIDA: mi primera versión exigía que la forma cruda no
+     * apareciera en NINGUNA parte, y falla — aparece a propósito en la anotación
+     * final, que es lo que impide que la duda se pierda. Lo que hay que
+     * garantizar es que el CUERPO del turno lleve la forma buena.
+     */
+    const cuerpo = marcarTurno(CORREGIDO).split(ABRE + 'el audio')[0]
+    expect(cuerpo).toContain('ceftriaxona')
+    expect(cuerpo).not.toContain('sefriaxona')
+  })
+
+  it('y la duda NO se pierde por haberla corregido', () => {
+    /**
+     * Que el corrector cambiara una palabra de baja confianza no la vuelve
+     * segura: cambió una forma que el motor no oyó bien por otra que le pareció
+     * más probable. Esa duda es justo la que no puede desaparecer.
+     */
+    const m = marcarTurno(CORREGIDO)
+    expect(m).toMatch(/el audio tampoco entendió bien/)
+    expect(m).toContain('sefriaxona')
+  })
+
+  it('la dosis y la frecuencia llegan intactas', () => {
+    const m = marcarTurno(CORREGIDO)
+    expect(m).toContain('un gramo cada doce horas')
+  })
+
+  it('cuando la palabra dudosa SÍ sobrevive, se marca en su sitio', () => {
+    const m = marcarTurno(TURNO_DE_LUIS)
+    expect(m).toContain(`${ABRE}docencia${CIERRA}`)
+    expect(m).not.toMatch(/tampoco entendió bien/)
+  })
+
+  it('un turno sin dudas devuelve el texto corregido tal cual', () => {
+    const limpio: TurnoConPalabras = {
+      speaker: 'A', text: 'ceftriaxona un gramo',
+      palabras: [{ texto: 'ceftriaxona', inicioMs: 0, confianza: .99 }],
+    }
+    expect(marcarTurno(limpio)).toBe('ceftriaxona un gramo')
+  })
+
+  it('la puntuación del texto corregido no impide marcar', () => {
+    const t: TurnoConPalabras = {
+      speaker: 'B', text: 'me duele la docencia, doctor.',
+      palabras: [{ texto: 'docencia', inicioMs: 0, confianza: .3 }],
+    }
+    expect(marcarTurno(t)).toContain(`${ABRE}docencia,${CIERRA}`)
+  })
+})

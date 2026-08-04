@@ -3791,6 +3791,58 @@ avisando, en amarillo, que el costo de IA es un supuesto y no una medición.
 
 ---
 
+## CENTÉSIMA VIGESIMOCTAVA TANDA — v979 · TRES FUGAS EN EL CAMINO DEL AUDIO
+
+Salen del equipo de 10 que convocó el Dr. (3 software + 3 audio + 4 lengua). Las
+tres verificadas por mí en el código antes de tocar nada.
+
+### 1. La transcripción EN VIVO se congelaba a los ~20 segundos (P0)
+
+`MediaRecorder` pone la cabecera del contenedor **sólo en el primer fragmento**.
+`flushChunks` mandaba los fragmentos acumulados desde el flush anterior, así que
+del segundo en adelante iban datos sueltos que ningún decodificador abre. El
+proveedor respondía error y `if (!res.ok) return` se lo tragaba **en silencio**.
+
+Consecuencias encadenadas: el texto en vivo se congelaba tras el primer trozo; la
+**nota preliminar** se armaba con los primeros 20 segundos de la consulta; y el
+último recurso —cuando la transcripción final falla— entregaba esos 20 segundos
+presentados como la consulta entera.
+
+El otro camino (`transcribirEnPartes`) ya compensaba esto y lo explicaba en su
+comentario. En el de vivo no se hizo nunca.
+
+### 2. Y esa cabecera repetía el principio de la consulta
+
+La cabecera no es sólo cabecera: son **2 segundos de audio real**. Anteponerla a
+cada trozo repite las primeras palabras por toda la consulta — y si llevan una
+cifra o un fármaco, el modelo lee la misma indicación en momentos distintos.
+Nuevo módulo `eco-de-cabecera.ts`: recorta **sólo** lo que de verdad coincide, y
+nunca por una sola palabra en común.
+
+### 3. Regresión MÍA de la v975: el modelo recibía el texto SIN corregir
+
+`marcarTurno` reconstruía el turno desde `palabras`, que vienen crudas del motor,
+mientras `corregirUtterances` corrige `text`. O sea que al conectar las marcas de
+confianza dejé al modelo leyendo «sefriaxona» mientras el médico veía
+«ceftriaxona» en pantalla — **el mismo defecto que `corregirUtterances` se
+escribió para reparar**, reintroducido por la puerta de al lado.
+
+Ahora se marca sobre el texto corregido, y la palabra dudosa que el corrector
+reescribió se anota al final del turno: que el corrector la cambiara no la vuelve
+segura.
+
+### Además
+
+- Los trozos perdidos se cuentan y **se ven** en pantalla.
+- La extensión del fichero sigue al contenedor real (en Safari es mp4 y se
+  llamaba `.webm`: le mentía al proveedor sobre lo que le llegaba).
+
+- `src/lib/asr/eco-de-cabecera.ts` (puro, nuevo), `src/hooks/useGrabacionAudio.ts`,
+  `src/lib/expediente/confianza-audio.ts`, `app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/confianza-por-palabra.test.ts` +6. Total **5788**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:
