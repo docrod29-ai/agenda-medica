@@ -288,6 +288,51 @@ export function exportarPacienteAFhir({
     })
   }
 
+  /**
+   * ── LOS BORRADORES YA NO SE CAEN EN SILENCIO ─────────────────────────────
+   *
+   * El bucle de arriba filtra `estado === 'firmada'`. Todo lo demás
+   * desaparecía **sin decirlo**: el titular que ejercía su derecho de
+   * portabilidad recibía un archivo llamado «expediente» con huecos que nadie
+   * le señalaba. Y no es un caso raro: una consulta interrumpida, una nota que
+   * se está redactando, o el propio pase de UCI antes de firmarse.
+   *
+   * Se exportan con `status: 'preliminary'`, que es la palabra que **FHIR ya
+   * tiene** para esto (`preliminary | final | amended | entered-in-error`). No
+   * hace falta inventar nada: el estándar distingue el borrador del documento.
+   *
+   * ── LO QUE NO SE EXPORTA DE UN BORRADOR ──────────────────────────────────
+   *
+   * Sólo el documento, nunca sus `Condition` ni sus `MedicationRequest`. Un
+   * diagnóstico sacado de una nota sin firmar entraría al sistema receptor
+   * como un diagnóstico confirmado, con el mismo peso que uno firmado — que es
+   * exactamente lo que la firma existe para impedir. El texto viaja; la
+   * afirmación clínica estructurada, no.
+   */
+  for (const nota of notas.filter(n => n.estado !== 'firmada')) {
+    const seccionesNarrativa = nota.secciones?.map(s => `<h3>${s.label}</h3><p>${escapeXml(s.value)}</p>`).join('\n') ?? ''
+    entries.push({
+      fullUrl: `Composition/note-${nota.id}`,
+      resource: {
+        resourceType: 'Composition',
+        id: `note-${nota.id}`,
+        status: 'preliminary',
+        type: { text: 'Nota clínica (borrador, sin firmar)' } as FhirCodeableConcept,
+        subject: { reference: patientId } as FhirReference,
+        date: nota.fechaConsulta || nota.metadata.fechaCreacion,
+        author: [{ reference: practitionerId } as FhirReference],
+        title: nota.tipo || 'Nota clínica',
+        // Sin firma no hay atestación: dejarla vacía es la verdad.
+        attester: [],
+        section: [],
+        text: {
+          status: 'generated',
+          div: `<div xmlns="http://www.w3.org/1999/xhtml">${seccionesNarrativa}</div>`,
+        },
+      },
+    })
+  }
+
   return {
     resourceType: 'Bundle',
     type: 'collection',
@@ -295,6 +340,26 @@ export function exportarPacienteAFhir({
     entry: entries,
   }
 }
+
+/**
+ * Cuántas notas van firmadas y cuántas como borrador.
+ *
+ * Se calcula aparte para que la pantalla pueda **decirlo antes de descargar**:
+ * un archivo llamado «expediente» que lleva borradores dentro tiene que
+ * anunciarlo, y uno que los dejaba fuera tenía que anunciarlo todavía más.
+ */
+export function resumenNotasExportadas(notas: readonly { estado?: string }[]): { firmadas: number; borradores: number } {
+  return {
+    firmadas: notas.filter(n => n.estado === 'firmada').length,
+    borradores: notas.filter(n => n.estado !== 'firmada').length,
+  }
+}
+
+export const POR_QUE_EL_BORRADOR_NO_LLEVA_DIAGNOSTICOS =
+  'Un diagnóstico sacado de una nota sin firmar entraría al sistema receptor ' +
+  'como un diagnóstico confirmado, con el mismo peso que uno firmado — que es ' +
+  'exactamente lo que la firma existe para impedir. El texto viaja; la ' +
+  'afirmación clínica estructurada, no.'
 
 /**
  * Bundle FHIR de un EPISODIO de internamiento: Patient + notas (reutiliza lo anterior)

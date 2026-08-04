@@ -196,7 +196,7 @@ export default function ExpedientePage() {
           </button>
           <button onClick={async () => {
             if (!clinicId || !patient) return
-            const { exportarPacienteAFhir } = await import('@/lib/fhir-export')
+            const { exportarPacienteAFhir, resumenNotasExportadas } = await import('@/lib/fhir-export')
             const { logAudit } = await import('@/lib/expediente/audit-log')
             const { config } = await (async () => {
               const { getConfig } = await import('@/lib/firestore')
@@ -212,7 +212,19 @@ export default function ExpedientePage() {
             a.download = `expediente_${nombre}_FHIR_R4.json`
             a.click()
             URL.revokeObjectURL(url)
-            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length } })
+            /**
+             * SE DICE QUÉ LLEVA. Antes las notas en borrador se caían del
+             * archivo en silencio: un expediente con huecos que nadie señala se
+             * entrega creyendo que está completo.
+             */
+            const rn = resumenNotasExportadas(notas)
+            toast(
+              rn.borradores > 0
+                ? `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s) y ${rn.borradores} en borrador, marcadas como preliminares. Los borradores van sin diagnósticos ni recetas estructuradas.`
+                : `Archivo FHIR descargado: ${rn.firmadas} nota(s) firmada(s).`,
+              'success',
+            )
+            logAudit({ evento: 'export_datos', clinicId, patientId, medicoUid: user?.uid, medicoEmail: user?.email ?? undefined, meta: { formato: 'FHIR-R4', notas: notas.length, borradores: rn.borradores } })
             /**
              * FHIR sólo lleva las notas FIRMADAS, y antes se descartaban las
              * demás en silencio. Se dice cuántas quedaron fuera: un archivo con
