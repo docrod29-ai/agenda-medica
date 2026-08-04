@@ -51,6 +51,7 @@ export const COLECCIONES: ColeccionRespaldo[] = [
   { ruta: 'waitlist', descripcion: 'Lista de espera.' },
   { ruta: 'config', descripcion: 'Configuración del consultorio: horario, membrete, formato de receta, firma.' },
   { ruta: 'doctors', descripcion: 'Médicos del consultorio.' },
+  { ruta: 'asr_aprendizaje', descripcion: 'Palabras que el dictado aprendió de las correcciones del médico. Sin datos de pacientes: sólo vocabulario, cuántas veces se corrigió y cómo se oía mal.' },
   { ruta: 'time_blocks', descripcion: 'Bloqueos de agenda: vacaciones, cirugías, congresos.' },
   { ruta: 'cobros', descripcion: 'Cobros a pacientes.' },
   { ruta: 'farmacia', descripcion: 'Inventario de farmacia.' },

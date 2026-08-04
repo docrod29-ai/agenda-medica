@@ -57,6 +57,10 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/aprendizaje-por-consultorio.test.ts",
+      "minCasos": 20
+    },
+    {
       "archivo": "src/__tests__/asr-guardian-sustituciones.test.ts",
       "minCasos": 21
     },

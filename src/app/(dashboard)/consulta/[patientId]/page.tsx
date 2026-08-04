@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
-import { paresDeUnaNota, loAprendido, type Aprendido } from '@/lib/asr/aprendizaje'
+import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
+import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
@@ -736,6 +737,15 @@ export default function ConsultaActivaPage() {
    * su guardián siguen decidiendo con las reglas de siempre.
    */
   const [aprendido, setAprendido] = useState<Aprendido[]>([])
+  /**
+   * Lo derivado de las notas de ESTE paciente, antes de fusionar.
+   *
+   * Se guarda aparte porque es lo único que se puede acumular al consultorio: lo
+   * que ya venía del consultorio ya está contado, y volver a sumarlo inflaría el
+   * contador con cada consulta hasta que cualquier palabra pareciera una
+   * costumbre.
+   */
+  const [deEstePaciente, setDeEstePaciente] = useState<Aprendido[]>([])
 
   /**
    * EL SÉPTIMO MOTIVO: LO QUE SE CONSIDERÓ NO ES LO QUE SE INDICÓ.
@@ -1008,10 +1018,22 @@ export default function ConsultaActivaPage() {
          * texto en cualquier estado, y aprender de él sería aprender de un
          * trabajo sin terminar.
          */
+        const nombre = partesDelNombre(patient?.nombre)
         const pares = ns
           .filter(n => n.estado === 'firmada')
-          .flatMap(n => paresDeUnaNota(n.transcripcionMotor ?? '', n.transcripcionCruda ?? ''))
-        setAprendido(loAprendido(pares))
+          .flatMap(n => paresDeUnaNota(n.transcripcionMotor ?? '', n.transcripcionCruda ?? '', nombre))
+        const deEstePaciente = loAprendido(pares, undefined, nombre)
+        setDeEstePaciente(deEstePaciente)
+        /**
+         * Y LO DEL CONSULTORIO — que es donde de verdad sirve.
+         *
+         * Lo aprendido con don Luis tiene que servir con la siguiente paciente.
+         * Las dos listas se fusionan por palabra: el vocabulario del reconocedor
+         * no distingue de dónde salió cada término, sólo cuántos caben.
+         */
+        leerAprendido(clinicId)
+          .then(delConsultorio => setAprendido(fusionar(deEstePaciente, delConsultorio)))
+          .catch(() => setAprendido(deEstePaciente))
       })
       .catch(e => console.error('medicación vigente:', e))   // degrada sin romper la nota
   }, [clinicId, patientId])
@@ -2491,6 +2513,24 @@ export default function ConsultaActivaPage() {
       setFirmada(true)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')
+      /**
+       * LEARN — AQUÍ, y no antes.
+       *
+       * Al firmar el texto ya es definitivo: lo que el médico iba a corregir,
+       * lo corrigió. Acumular sobre un borrador enseñaría de un trabajo a medio
+       * escribir, y encima varias veces, porque el borrador se guarda solo cada
+       * pocos segundos.
+       *
+       * Se acumula SÓLO lo derivado de este paciente: lo que venía del
+       * consultorio ya está contado, y volver a sumarlo inflaría el contador
+       * con cada consulta hasta que cualquier palabra pareciera una costumbre.
+       *
+       * `void`: el aprendizaje es un extra y no puede retrasar ni romper la
+       * firma. Si falla, la nota queda firmada igual.
+       */
+      if (deEstePaciente.length > 0) {
+        void acumular(clinicId, deEstePaciente, new Date().toISOString())
+      }
       // Auditoría (Fase F)
       if (clinicId) logAudit({
         evento: 'nota_firmada', clinicId, patientId, notaId: id,
@@ -2591,7 +2631,7 @@ export default function ConsultaActivaPage() {
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //

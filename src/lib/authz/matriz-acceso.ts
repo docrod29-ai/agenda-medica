@@ -341,6 +341,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'No contiene notas, pero sí patientId/notaId: revela a QUIÉN se atendió y cuándo, que es dato de salud inferido. La escribe solo /api/auditoria/registrar; una bitácora forjable por el auditado no acredita nada.',
   },
   {
+    ruta: 'clinics/{clinicId}/asr_aprendizaje/{palabra}',
+    clase: 'clinico',
+    guardaLectura: 'isMedico',
+    guardaEscritura: 'isMedico',
+    porQue: 'Vocabulario que el dictado aprendio de las correcciones del medico. NO es PHI —el motor excluye explicitamente las partes del nombre del paciente antes de guardar— pero revela COMO DICTA el medico y que farmacos maneja, asi que no es de una asistente. Se puede BORRAR desde Configuracion: un aprendizaje que no se puede deshacer es peor que no aprender, porque el sistema estaria empujando una palabra torcida en cada consulta sin que nadie pueda pararlo. La forma esta congelada con hasOnly para que esta coleccion no se use de cajon de sastre.',
+  },
+  {
     ruta: 'clinics/{clinicId}/arco_requests/{docId}',
     clase: 'administrativo',
     guardaLectura: 'isMember',

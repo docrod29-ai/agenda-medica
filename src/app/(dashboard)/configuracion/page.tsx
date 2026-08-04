@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { saveConfig, saveConfigPartial, updateDoctor } from '@/lib/firestore'
 import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
@@ -46,7 +46,9 @@ import {
 const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
 const DIAS_LABELS = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo' }
 
-type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas'
+import { leerAprendido, olvidar, type PalabraAprendida } from '@/lib/asr/aprendizaje-firestore'
+
+type Tab = 'general' | 'horario' | 'duraciones' | 'bloqueos' | 'notificaciones' | 'integraciones' | 'plantillas' | 'portal' | 'recetas' | 'seguridad' | 'bot' | 'medicos' | 'equipo' | 'suscripcion' | 'entregas' | 'dictado'
 
 export default function ConfiguracionPage() {
   const { config, loading, error: configError } = useConfig()
@@ -296,6 +298,9 @@ export default function ConfiguracionPage() {
       titulo: 'Documentos clínicos',
       tabs: [
         { key: 'recetas', label: 'Recetas, órdenes y notas', modoMin: 'medico' },
+        // LEARN: lo que el dictado aprendió del médico, para verlo y quitarlo.
+        // Un aprendizaje que no se puede deshacer es peor que no aprender.
+        { key: 'dictado', label: 'Palabras que aprendió el dictado', modoMin: 'medico' },
       ],
     },
     {
@@ -987,6 +992,7 @@ export default function ConfiguracionPage() {
 
       {/* Bloqueos de horario */}
       {tab === 'bloqueos' && <BloqueosTab clinicId={clinicId} zonaHoraria={form.zonaHoraria} />}
+      {tab === 'dictado' && <DictadoAprendidoTab clinicId={clinicId} />}
 
       {/* Portal del paciente */}
       {tab === 'portal' && <PortalTab clinicId={clinicId} clinicNombre={form.nombreClinica || 'tu clínica'} />}
@@ -2518,4 +2524,82 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
   )
 }
 
+/**
+ * LO QUE EL DICTADO APRENDIÓ — y el botón para quitárselo.
+ *
+ * El sistema aprende las palabras que el médico corrige a mano más de una vez y
+ * se las sugiere al reconocedor en la siguiente grabación. Aquí las ve, con
+ * cuántas veces las corrigió y cómo se oían mal.
+ *
+ * **El botón de olvidar no es un adorno.** Un aprendizaje que no se puede
+ * deshacer es peor que no aprender: si el sistema se queda con una palabra
+ * torcida, la va a estar empujando en cada consulta y el médico no tendría cómo
+ * pararlo.
+ */
+function DictadoAprendidoTab({ clinicId }: { clinicId: string | null }) {
+  const [lista, setLista] = useState<PalabraAprendida[]>([])
+  const [cargando, setCargando] = useState(true)
+  const { toast } = useToast()
 
+  /**
+   * El estado nace en «cargando» y sólo se apaga cuando llega la respuesta.
+   *
+   * Nada de `setCargando(true)` dentro del efecto: llamar a `setState` de forma
+   * síncrona ahí provoca un render en cascada —lo caza el trinquete de lint— y
+   * además parpadea. Al recargar tras olvidar una palabra tampoco hace falta el
+   * spinner: la lista simplemente se actualiza.
+   */
+  const cargar = useCallback(() => {
+    if (!clinicId) return
+    leerAprendido(clinicId).then(setLista).finally(() => setCargando(false))
+  }, [clinicId])
+  useEffect(() => { cargar() }, [cargar])
+
+  // Sin consultorio no hay nada que cargar ni que esperar: se sale por lo que
+  // se sabe, no apagando un estado desde dentro del efecto.
+  if (clinicId && cargando) return <div style={{ color: 'var(--text3)', fontSize: 13 }}>Cargando…</div>
+
+  return (
+    <div>
+      <div style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 14 }}>
+        Cuando corriges una palabra en el dictado más de una vez, el sistema se la aprende y
+        se la sugiere al reconocedor en la siguiente grabación. <b>No reescribe nada</b>: sólo
+        empuja hacia la palabra que tú usas. Nunca aprende cifras, unidades ni el nombre del paciente.
+      </div>
+      {lista.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+          Todavía no ha aprendido ninguna palabra. Aparecen aquí cuando corriges la misma dos veces.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {lista.map(p => (
+            <div key={p.palabra} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px',
+              border: '1px solid var(--border)', borderRadius: 8, background: 'var(--s1)', fontSize: 13,
+            }}>
+              <b>{p.palabra}</b>
+              <span style={{ color: 'var(--text3)', fontSize: 12 }}>
+                corregida {p.veces} {p.veces === 1 ? 'vez' : 'veces'}
+                {p.oidoComo?.length ? ` · se oía como «${p.oidoComo.join('», «')}»` : ''}
+              </span>
+              <button
+                onClick={async () => {
+                  if (!clinicId) return
+                  const ok = await olvidar(clinicId, p.palabra)
+                  toast(ok ? `«${p.palabra}» olvidada` : 'No se pudo olvidar', ok ? 'success' : 'error')
+                  if (ok) cargar()
+                }}
+                style={{
+                  marginLeft: 'auto', background: 'none', border: '1px solid var(--border2)',
+                  borderRadius: 6, color: 'var(--text2)', cursor: 'pointer', padding: '3px 9px', fontSize: 12,
+                }}
+              >
+                Olvidar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

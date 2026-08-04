@@ -82,9 +82,24 @@ const esUnidad = (s: string) => (UNIDADES_CANONICAS as readonly string[]).includ
  * reconocedor hacia una palabra que el médico no dijo, y eso no se ve: sale una
  * transcripción normal con un término cambiado.
  */
-export function esAprendible(par: ParCorregido): boolean {
+export function esAprendible(par: ParCorregido, excluir: readonly string[] = []): boolean {
   const a = limpia(par.oido).trim()
   const b = limpia(par.corregido).trim()
+  /**
+   * NUNCA EL NOMBRE DEL PACIENTE.
+   *
+   * Lo aprendido se guarda **por consultorio** y sirve con todos los pacientes:
+   * si un apellido dictado entrara ahí, el nombre de una persona acabaría en un
+   * vocabulario compartido que ella nunca autorizó, y encima sesgando el
+   * reconocedor en la consulta de otra.
+   *
+   * El filtro de una palabra sin cifras no lo impide —un apellido lo pasa—, así
+   * que se excluye explícitamente. Quien llama pasa las partes del nombre.
+   */
+  for (const x of excluir) {
+    const e = limpia(x).trim()
+    if (e && (a === e || b === e)) return false
+  }
   if (!a || !b || a === b) return false
   if (a.length < MIN_LONGITUD || b.length < MIN_LONGITUD) return false
   // Una sola palabra por lado: un párrafo reescrito no es vocabulario.
@@ -107,14 +122,18 @@ export function esAprendible(par: ParCorregido): boolean {
  * se desplazan y cualquier «par» sería una coincidencia: se prefiere no aprender
  * nada a aprender ruido.
  */
-export function paresDeUnaNota(oido: string, final: string): ParCorregido[] {
+export function paresDeUnaNota(
+  oido: string,
+  final: string,
+  excluir: readonly string[] = [],
+): ParCorregido[] {
   const a = (oido ?? '').trim().split(/\s+/).filter(Boolean)
   const b = (final ?? '').trim().split(/\s+/).filter(Boolean)
   if (!a.length || a.length !== b.length) return []
   const out: ParCorregido[] = []
   for (let i = 0; i < a.length; i++) {
     const par = { oido: a[i].replace(/[.,;:¿?¡!()]/g, ''), corregido: b[i].replace(/[.,;:¿?¡!()]/g, '') }
-    if (esAprendible(par)) out.push(par)
+    if (esAprendible(par, excluir)) out.push(par)
   }
   return out
 }
@@ -137,10 +156,11 @@ export interface Aprendido {
 export function loAprendido(
   pares: readonly ParCorregido[],
   minimo = MINIMO_REPETICIONES,
+  excluir: readonly string[] = [],
 ): Aprendido[] {
   const cuenta = new Map<string, { veces: number; oido: Set<string> }>()
   for (const p of pares) {
-    if (!esAprendible(p)) continue
+    if (!esAprendible(p, excluir)) continue
     const clave = p.corregido.toLowerCase()
     const e = cuenta.get(clave) ?? { veces: 0, oido: new Set<string>() }
     e.veces++; e.oido.add(p.oido.toLowerCase())
@@ -175,3 +195,43 @@ export const POR_QUE_NO_SE_ALINEA_SI_CAMBIA_EL_LARGO =
 
 /** Las clases críticas que este módulo respeta, para que el test las ate. */
 export const CLASES_QUE_NUNCA_SE_APRENDEN = CLASES_ERROR_CRITICO
+
+/**
+ * Las partes de un nombre, para excluirlas del aprendizaje.
+ *
+ * Se parte por espacios y se quedan las de tres letras o más: «de», «la» o «y»
+ * no identifican a nadie y excluirlas dejaría fuera palabras clínicas normales.
+ */
+export function partesDelNombre(nombre: string | undefined | null): string[] {
+  return String(nombre ?? '')
+    .split(/\s+/)
+    .map(x => x.replace(/[.,;:]/g, '').trim())
+    .filter(x => x.length >= 3)
+}
+
+export const POR_QUE_NUNCA_EL_NOMBRE =
+  'Lo aprendido se guarda POR CONSULTORIO y sirve con todos los pacientes: si un ' +
+  'apellido dictado entrara ahí, el nombre de una persona acabaría en un ' +
+  'vocabulario compartido que ella nunca autorizó, y encima sesgando el ' +
+  'reconocedor en la consulta de otra.'
+
+/**
+ * Junta dos listas de aprendido en una, sumando las repeticiones.
+ *
+ * El vocabulario del reconocedor no distingue de dónde salió cada término, sólo
+ * cuántos caben: lo que importa es que la palabra que más se corrige quede
+ * arriba, venga del expediente de este paciente o del consultorio entero.
+ */
+export function fusionar(...listas: readonly (readonly Aprendido[])[]): Aprendido[] {
+  const m = new Map<string, Aprendido>()
+  for (const lista of listas) {
+    for (const a of lista ?? []) {
+      const clave = a.palabra.toLowerCase()
+      const y = m.get(clave)
+      if (!y) { m.set(clave, { ...a, palabra: clave, oidoComo: [...a.oidoComo] }); continue }
+      y.veces += a.veces
+      for (const o of a.oidoComo) if (!y.oidoComo.includes(o)) y.oidoComo.push(o)
+    }
+  }
+  return [...m.values()].sort((x, y) => y.veces - x.veces || x.palabra.localeCompare(y.palabra))
+}
