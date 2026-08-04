@@ -4084,6 +4084,54 @@ cerrar aquí no degrada ninguna nota: sólo obliga a que la comprobación ocurra
 
 ---
 
+## TANDA 134ª — v985 · YA HAY UN NÚMERO DE ALUCINACIÓN QUE SUBE O BAJA
+
+### Lo que faltaba
+
+El arnés de validación de la IA clínica (`src/lib/ia/evaluacion.ts`) llevaba
+meses **escrito, probado y huérfano** — estaba en el inventario de huérfanos del
+propio repositorio. Le faltaba lo único que no se puede escribir sin haber
+fallado antes: **casos**.
+
+Los tres salieron de producción, del Dr., en un solo día:
+
+1. «la de la **docencia**» → «vesícula».
+2. «¿diabetes o presión alta? **No**» → «Paciente con HTA, DM2».
+3. «no se refiere motivo clínico **en este fragmento de consulta**».
+
+### El corpus oro
+
+Cada caso lleva su **lista de prohibidos** —lo que no puede aparecer— y declara
+**qué defensa** tiene que atraparlo. Si mañana alguien desconecta el motor de
+negaciones, el caso que depende de él se pone rojo **y dice cuál era**: un
+corpus que sólo falla sin explicar por qué manda a buscar el problema al sitio
+equivocado.
+
+**El criterio es CERO, no un porcentaje.** Sobre un corpus que controlamos
+entero, una enfermedad inventada o un órgano que nadie mencionó no son una tasa
+aceptable: no hay ruido del mundo real que lo justifique.
+
+### Y el corpus encontró un hueco de verdad, a la primera
+
+El saneador de prosa cazaba «no **especificado** en la grabación» pero no «no se
+**especificó** en la grabación» — que es lo que un modelo escribe de verdad. Lo
+encontró una prueba del corpus, no una revisión. Patrón ampliado.
+
+### Lo que este corpus NO es, dicho a tiempo
+
+No mide cuánto alucina el sistema con pacientes reales. Es sintético y pequeño:
+dice si las defensas deterministas siguen en pie. **El número defendible ante un
+hospital necesita transcripciones de-identificadas y anotación clínica, y lo
+produce el Dr.** Presentar el uno como el otro sería inventar una cifra con otro
+nombre.
+
+- `src/lib/ia/casos-oro.ts` (puro, nuevo), `sanitizar-prosa.ts`,
+  `src/__tests__/modulos-sin-conectar.test.ts` (sale `evaluacion.ts`, entra el
+  corpus declarado como fixture de CI)
+- `src/__tests__/oro-alucinacion.test.ts` — 17 pruebas. Total **5857**.
+
+---
+
 ## COLA NUEVA — AUDITORÍA DEL EQUIPO 2026-08-03 (de 6.5 a 9)
 
 Cinco especialistas verificaron el código ellos mismos. Veredicto del Dr.:

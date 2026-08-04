@@ -8,7 +8,14 @@ const PATRONES: RegExp[] = [
   /\s*[—–-]?\s*\(?\s*needs[_\s]?review\s*\)?/gi,
   /\s*[—–-]?\s*\(?\s*(?:por confirmar\s*\(IA\)|baja confianza)\s*\)?/gi,
   // Comentarios sobre la transcripción / audio / grabación.
-  /,?\s*(?:no\s+(?:se\s+)?especificad[oa]s?\s+en\s+(?:la\s+)?(?:transcripci[oó]n|grabaci[oó]n|dictado))/gi,
+  /**
+   * Participio Y pretérito.
+   *
+   * El patrón sólo cazaba «no especificado en la grabación». Lo que un modelo
+   * escribe de verdad es «no se **especificó** en la grabación» — lo encontró
+   * una prueba del corpus oro, no una revisión.
+   */
+  /,?\s*(?:no\s+(?:se\s+)?(?:especificad[oa]s?|especific[oó]|especifica)\s+en\s+(?:la\s+)?(?:transcripci[oó]n|grabaci[oó]n|dictado|consulta))/gi,
   /,?\s*no\s+se\s+transcribi[oó]/gi,
   /**
    * LA NOTA HABLANDO DE SÍ MISMA — el caso real del 3-ago-2026.
