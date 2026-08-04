@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(96)   // +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(97)   // +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -445,8 +445,8 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // correcto es exactamente éste. Si hubiera subido la ruta y no la llamada,
     // o hubiera entrado el POST sin llamada, el POST que mueve dinero estaría
     // abierto.
-    expect(llamadas.length).toBe(94)   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(77)   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(95)   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(rutasConGuardia).toBe(78)   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.

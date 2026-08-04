@@ -10,8 +10,13 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "NEXUS-TRUTH-001",
-  "ramasActivas": ["agent/infra/INFRA-001"],
+  "iteracionActual": "OPS-001 (cerrada)",
+  "ramasActivas": [
+    "agent/infra/INFRA-001",
+    "agent/voice/VOICE-004",
+    "agent/safety/SAFE-002",
+    "agent/ops/OPS-001"
+  ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
   "trabajoLocalSinSubir": [

@@ -20,6 +20,7 @@ import { TareasProvider } from '@/context/TareasContext'
 import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
+import { AvisoIncidenteIA } from '@/components/AvisoIncidenteIA'
 import { NotificacionesPushOptIn } from '@/components/NotificacionesPushOptIn'
 import FirmadorDisenos from '@/components/FirmadorDisenos'
 import { useMode } from '@/context/ModeContext'
@@ -671,6 +672,14 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         </div>
 
         <OfflineBanner />
+        {/*
+          LA IA CAÍDA SE AVISA DONDE EL DUEÑO ESTÉ, no sólo en su tablero.
+          Al Dr. le salió «el servicio de IA no está disponible» a media consulta
+          y para saber por qué tenía que acordarse de abrir /superadmin/costos.
+          Sólo se pinta para él: un consultorio no puede arreglar la llave de la
+          plataforma y decírselo nada más le roba tiempo con un paciente enfrente.
+        */}
+        <AvisoIncidenteIA esDueno={esSuperadminCliente(user?.email)} />
         <ModeBanner />
         <AvisoCorreoSinVerificar />
         <AvisoCobroPendiente />
