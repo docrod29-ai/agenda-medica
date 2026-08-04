@@ -1,0 +1,20 @@
+{
+  "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
+  "iniciado": "2026-08-04",
+  "modo": "autonomo-sin-despliegue",
+  "autorizaciones": {
+    "abrirPR": true,
+    "pushDeRama": true,
+    "desplegarAProduccion": false,
+    "fusionarAMain": false,
+    "datosRealesDePacientes": false,
+    "cambiosDestructivos": false
+  },
+  "iteracionActual": "NEXUS-TRUTH-001",
+  "ramasActivas": ["agent/infra/INFRA-001"],
+  "maxRamasConcurrentes": 3,
+  "ultimaVersionEnProduccion": "nexusmed-v1030",
+  "trabajoLocalSinSubir": [
+    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  ]
+}

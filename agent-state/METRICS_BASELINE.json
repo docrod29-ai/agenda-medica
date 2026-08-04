@@ -1,0 +1,53 @@
+{
+  "generadoEn": "2026-08-04",
+  "comoSeObtuvo": "Ejecutando los comandos del repositorio. Ninguna cifra de este archivo es estimada.",
+  "codigo": {
+    "rutasApi": 96,
+    "archivosDePrueba": 425,
+    "casosDePrueba": 6413,
+    "modulosLib": 401,
+    "componentes": 79,
+    "regresionesRegistradas": 142,
+    "coleccionesEnElManifiestoDeRespaldo": 32,
+    "lintTechoDeuda": 98
+  },
+  "voz": {
+    "corpusUciConAudio": {
+      "fuente": "docs/maintenance/benchmark-voz-uci-498.json",
+      "audios": 498,
+      "wer": 0.1125,
+      "clinicalTermRecall": 0.9973,
+      "acronymRecall": 0.9808,
+      "numberAccuracy": 1,
+      "unitAccuracy": 1,
+      "criticalSemanticErrorRate": 0.0020,
+      "limite": "Corpus de UCI, voz sintética. No mide consulta ambulatoria ni diálogo."
+    },
+    "corpusV3RegresionDeTexto": {
+      "fuente": "~/Downloads/NexusMED_V3_UNA_VOZ_CORAL/MANIFEST_6000_CORAL.csv",
+      "medidoEn": "2026-08-04",
+      "frasesUnicas": 6000,
+      "intactas": 5761,
+      "intactasPct": 0.9602,
+      "modificadas": 239,
+      "terminosClavePerdidos": 0,
+      "pidenConfirmacion": 25,
+      "pidenConfirmacionPct": 0.0042,
+      "limite": "Mide el PIPELINE sobre el texto canónico, no el reconocedor. Es la prueba anti-sobreajuste: este corpus no se usó para calibrar.",
+      "notaSobreLasModificadas": "Revisadas: la mayoría son normalizaciones correctas por diseño (cero punto ocho -> 0.8, ECMO veno venoso -> ECMO VV, sesenta y cinco -> 65). Es el mismo falso reprobado que documenta REG-086."
+    },
+    "sinMedirTodavia": [
+      "El reconocedor sobre el corpus V3 (exige gastar audio; hay 6000 audios en disco, 429 MB, sin transcripciones cacheadas)",
+      "Diarización: DER y error de atribución",
+      "Atribución de rol (Médico/Paciente/Acompañante)",
+      "Temporalidad: motor nuevo (v1027-v1030) sin corpus oro",
+      "Nota: PDQI-9, distancia de edición del médico, omisión",
+      "Latencia del primer parcial",
+      "Equidad por acento, sexo de voz, edad, dispositivo y ruido"
+    ]
+  },
+  "produccion": {
+    "versionDesplegada": "nexusmed-v1030",
+    "verificadaCon": "curl https://agenda-medica-one.vercel.app/version.txt"
+  }
+}
