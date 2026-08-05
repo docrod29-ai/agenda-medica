@@ -1561,6 +1561,12 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
 
+## v1053 — El bucle de corrección nunca había aprendido NADA
+
+De las 10 notas firmadas del Dr., ninguna tenía `transcripcionMotor` — la mitad
+del par que LEARN necesita. El campo se guarda al dictar pero no se recuperaba al
+volver, y firmar es casi siempre otra sesión. Ahora se rehidrata. REG-170.
+
 ## v1052 — El bucle de corrección tiraba el 80,6 % de lo que usted corrige
 
 Sólo aprendía si el texto corregido tenía el MISMO número de palabras. Ahora se
