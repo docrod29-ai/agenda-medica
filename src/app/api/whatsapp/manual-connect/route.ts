@@ -9,6 +9,7 @@
  * Body: { clinicId, phoneNumberId, token }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { reclamarCanal } from '@/lib/whatsapp/reclamar-canal'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
@@ -55,10 +56,13 @@ export async function POST(req: NextRequest) {
     }
     await adminDb.collection('clinics').doc(clinicId).update({ whatsapp, updatedAt: now })
 
-    // 3. Índice para que el webhook encuentre la clínica por phoneNumberId
-    await adminDb.collection('whatsapp_channels').doc(phoneNumberId).set({
-      clinicId, provider: 'meta', phoneNumber, createdAt: now,
-    })
+    // 3. Índice para que el webhook encuentre la clínica por phoneNumberId.
+    //    No se sobrescribe el de otro consultorio: ver `reclamarCanal`.
+    const reclamo = await reclamarCanal(phoneNumberId, clinicId, { provider: 'meta', phoneNumber, createdAt: now })
+    if (!reclamo.ok) {
+      safeLog.warn(`[manual-connect] canal ya en uso por ${reclamo.dueñoPrevio ?? '?'}`)
+      return NextResponse.json({ ok: false, error: reclamo.error }, { status: 409 })
+    }
 
     return NextResponse.json({ ok: true, phoneNumber })
   } catch (err) {
