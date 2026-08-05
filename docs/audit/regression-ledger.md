@@ -764,3 +764,38 @@ próxima consulta**.
 
 **Golden** — Se endureció `src/__tests__/origen-del-dictado.test.ts`, que fijaba
 la versión sin respaldo.
+
+## REG-171 · Un paciente alérgico a TMP/SMX quedaba alérgico a «SMX)»
+
+**Dónde** — `src/lib/seguridad/alergias.ts`, `SEPARADORES`.
+
+**Cómo apareció** — Auditando los pacientes REALES del Dr. con la comprobación de
+invariantes que introdujo v1054. Salió un alérgeno llamado **«SMX)»**:
+
+```
+«Trimetoprima/sulfametoxazol (TMP/SMX)»
+  → ['Trimetoprima', 'sulfametoxazol (TMP', 'SMX)']
+```
+
+La barra estaba entre los separadores. Y los antimicrobianos combinados —los que
+un infectólogo prescribe todos los días— se escriben con barra: TMP/SMX,
+piperacilina/tazobactam, amoxicilina/clavulanato.
+
+**Por qué es grave** — De este parser leen la compuerta de la receta, la nota, el
+recurso FHIR y el sesgo del reconocedor. Un alérgeno partido en «SMX)» no
+coincide con ningún fármaco, así que **el cruce alergia↔fármaco puede no
+dispararse** justo con el antibiótico al que el paciente sí es alérgico.
+
+**Reparación** — La barra separa sólo con **espacio a algún lado**: «penicilina /
+sulfas» es una lista, «TMP/SMX» es un nombre. Es la misma solución que ya se
+aplicó al punto (exigir el espacio para no partir lo que va junto).
+
+**Nota de método** — La primera medición de este mismo campo dio un falso
+positivo distinto («8 negaciones tratadas como alérgeno») porque se usó un regex
+de prueba **más pobre que el del producto**. Con el regex real, 14 de 23
+negaciones se reconocían bien y el defecto verdadero era otro. Medir con un
+instrumento que no es el del producto da un número que no significa nada.
+
+**Golden** — `src/__tests__/alergia-combinada-no-se-parte.test.ts` (11 casos),
+incluido que las listas de verdad siguen separándose y que la alergia posterior a
+una negación no desaparece.

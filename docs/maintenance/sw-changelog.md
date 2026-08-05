@@ -1561,6 +1561,12 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
 
+## v1055 — Un paciente alérgico a TMP/SMX quedaba alérgico a «SMX)»
+
+La barra separaba, y los antimicrobianos combinados se escriben con barra. El
+alérgeno partido no coincide con ningún fármaco, así que el cruce podía no
+dispararse justo con el antibiótico al que sí es alérgico. REG-171.
+
 ## v1054 — La lección de hoy, convertida en regla
 
 Tres defectos del mismo tipo el mismo día, los tres con pruebas en verde: el dato
