@@ -751,6 +751,10 @@
     {
       "archivo": "src/__tests__/consulta-descartada-no-resucita.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/separacion-de-voces-fallida.test.ts",
+      "minCasos": 9
     }
   ]
 }

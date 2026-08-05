@@ -1561,6 +1561,14 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
 
+## v1041 — Lo que dijo el paciente ya no se archiva como dicho por el médico
+
+De las 9 confusiones de rol del corpus, 6 venían de los dos diálogos que el
+proveedor colapsó en UNA sola voz: el interrogatorio y las respuestas llegaban
+juntos y todo se atribuía al médico. Ahora se detecta la mezcla por marca
+gramatical —incluido el vocativo «doctor», que nadie se dice a sí mismo— y no se
+asigna ningún rol: se avisa. 2 de 2 detectados, 0 falsos positivos. REG-158.
+
 ## v1040 — Una consulta descartada ya no puede volver sola
 
 Buscando el ORIGEN de REG-155 apareció el camino: `descartar()` borraba el

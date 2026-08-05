@@ -370,3 +370,44 @@ consulta descartada reaparecía completa […] y se recreaba sola en Firestore a
 autoguardarse».
 
 **Golden** — `src/__tests__/consulta-descartada-no-resucita.test.ts` (7 casos).
+
+## REG-158 · Lo que dijo el paciente quedaba archivado como dicho por el médico
+
+**Dónde** — `src/app/api/expediente/atribuir-roles/route.ts`.
+
+**Cómo se encontró** — Abriendo el detalle del 81,94 % de atribución de rol
+medido sobre el corpus actuado. De las 9 confusiones, **6 venían de los dos
+diálogos en los que el proveedor devolvió UNA sola voz** — y no eran errores de
+reparto: el diálogo entero llegaba como un solo turno.
+
+Lo que se atribuyó íntegro al médico en uno de ellos:
+
+> «¿Ha fumado alguna vez? Fumé como 10 años, pero lo dejé hace 5. ¿Toma alcohol?
+> No, nunca he tomado.»
+
+El endpoint contestaba «Médico» con naturalidad, porque el texto está lleno de
+preguntas clínicas. Es el mismo mecanismo del peor defecto que ha tenido este
+sistema («¿diabetes o presión alta?» «No» → «paciente con DM2 e HTA»), pero antes
+en la cadena: el motor de negaciones y la procedencia razonan sobre una
+atribución falsa y responden con la misma seguridad que si fuera cierta.
+
+**Por qué no bastaba con desconfiar de toda voz única** — El médico dictando solo
+es un uso normal. Lo que separa los dos casos es una marca gramatical
+comprobable: en un diálogo mezclado, el mismo hablante pregunta en segunda
+persona y responde en primera. Y una segunda vía, más limpia, que encontró el
+propio corpus: el **vocativo** («está bien, doctor») — nadie se llama «doctor» a
+sí mismo dictando.
+
+**Reparación** — `src/lib/asr/separacion-fallida.ts` (módulo puro).
+Con mezcla detectada no se asigna ningún rol y se avisa al médico.
+
+**Medición** — `npx tsx scripts/medir-separacion.ts` sobre las 12
+transcripciones ya pagadas: **2 de 2 detectados, 0 falsos positivos** en los 10
+diálogos que sí se separaron.
+
+**Nota honesta sobre el 81,94 %** — 7 de las 9 confusiones ocurren con la misma
+pareja de voces sintéticas (`echo`/`shimmer`). Ese número mide en buena parte lo
+parecidas que son dos voces de laboratorio, no sólo la capacidad del sistema; no
+debe publicarse como métrica de producto sin decirlo.
+
+**Golden** — `src/__tests__/separacion-de-voces-fallida.test.ts` (9 casos).

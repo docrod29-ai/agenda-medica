@@ -132,7 +132,18 @@ describe('Y EL MÓDULO VIAJA DESDE LA PANTALLA', () => {
   })
 
   it('con el internamiento en las dependencias del efecto', () => {
-    // Sin él, cambiar de paciente no cambiaría el catálogo hasta recargar.
-    expect(page).toContain('}, [audio.utterances, voz.grabando, internamientoActivo])')
+    /**
+     * Sin él, cambiar de paciente no cambiaría el catálogo hasta recargar.
+     *
+     * Se comprueba que la dependencia ESTÉ, no la línea entera: fijar la lista
+     * completa hacía fallar el guardián ante cualquier añadido legítimo —pasó al
+     * incorporar `toast` para avisar de una separación de voces fallida— sin que
+     * la propiedad que protege se hubiera roto.
+     */
+    const i = page.indexOf('/api/expediente/atribuir-roles')
+    const deps = page.slice(i).match(/\}, \[([^\]]*)\]\)/)?.[1] ?? ''
+    expect(deps).toContain('audio.utterances')
+    expect(deps).toContain('voz.grabando')
+    expect(deps).toContain('internamientoActivo')
   })
 })

@@ -1684,10 +1684,26 @@ export default function ConsultaActivaPage() {
           }),
         })
         const data = await res.json().catch(() => null)
+        /**
+         * LA SEPARACIÓN DE VOCES PUDO NO SEPARAR NADA, Y ESO HAY QUE DECIRLO.
+         *
+         * Cuando el proveedor devuelve una sola voz con dos personas dentro, el
+         * servidor ya no reparte roles — antes contestaba «Médico» y **todo lo
+         * que dijo el paciente quedaba como dicho por el médico**.
+         *
+         * Callarlo dejaría al médico firmando una nota cuya procedencia es
+         * falsa sin ninguna señal. Se avisa UNA vez (el efecto tiene guarda por
+         * firma de turnos) y no se bloquea nada: es información para revisar
+         * antes de firmar, no una compuerta.
+         */
+        if (data?.separacionFallida && data?.aviso) {
+          toast(String(data.aviso), 'info')
+          return
+        }
         if (data?.ok && data.roles && Object.keys(data.roles).length > 0) setRolesHablante(data.roles)
       } catch { /* silencioso: el médico puede etiquetar a mano */ }
     })()
-  }, [audio.utterances, voz.grabando, internamientoActivo])
+  }, [audio.utterances, voz.grabando, internamientoActivo, toast])
 
   // ── NOTA EN TIEMPO REAL ────────────────────────────────────────
   // Mientras grabas, cada ~30s re-estructura la nota con lo dicho hasta ese

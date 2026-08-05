@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { rolesDe, esRolAtribuible, catalogoParaPrompt, NO_IDENTIFICADO } from '@/lib/asr/roles-hablante'
+import { diagnosticarSeparacion } from '@/lib/asr/separacion-fallida'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { llamarIA } from '@/lib/ia/gateway'
@@ -46,6 +47,40 @@ export async function POST(req: NextRequest) {
 
   // Hablantes presentes (para acotar la respuesta y validar).
   const hablantes = Array.from(new Set(utts.map(u => String(u.speaker ?? '?'))))
+
+  /**
+   * ── ANTES DE REPARTIR ROLES: ¿HUBO ALGO QUE REPARTIR? ──────────────────────
+   *
+   * Medido sobre el corpus actuado: de las 9 confusiones de rol, **6 venían de
+   * los dos diálogos en los que el proveedor devolvió UNA sola voz**. Y no eran
+   * confusiones: el diálogo entero llegaba como un solo turno —las preguntas del
+   * médico y las respuestas del paciente juntas— y este endpoint contestaba
+   * «Médico» con toda naturalidad, porque el texto está lleno de preguntas
+   * clínicas.
+   *
+   * Resultado: **todo lo que dijo el paciente quedaba archivado como dicho por
+   * el médico**. De ahí cuelgan el motor de negaciones y la procedencia, así que
+   * las dos defensas razonaban sobre una atribución falsa.
+   *
+   * Un solo hablante puede ser legítimo —el médico dictando solo—, así que no se
+   * desconfía de todos: se comprueba la marca gramatical que distingue los dos
+   * casos (`diagnosticarSeparacion`). Cuando hay mezcla, ningún rol se asigna:
+   * la pantalla enseña «Hablante A» y el médico decide, que es la verdad.
+   */
+  const separacion = diagnosticarSeparacion({
+    hablantes,
+    texto: utts.map(u => String(u.text ?? '')).join(' '),
+  })
+  if (separacion.veredicto === 'mezcla_sin_separar') {
+    return NextResponse.json({
+      ok: true,
+      roles: {},
+      sinIdentificar: hablantes.length,
+      hablantes: hablantes.length,
+      separacionFallida: true,
+      aviso: `${separacion.motivo} No se atribuyó ningún rol: revisa quién dijo cada cosa antes de firmar.`,
+    })
+  }
 
   /**
    * EL CATÁLOGO DEPENDE DEL MÓDULO — Y DEJA DECIR «NO LO SÉ».
@@ -104,7 +139,7 @@ export async function POST(req: NextRequest) {
     }
     // Los créditos ya los cobró la cartera al confirmar la reserva (§AA–AF).
     // Dejar aquí el incremento de antes cobraría DOS VECES la misma nota.
-    return NextResponse.json({ ok: true, roles, sinIdentificar, hablantes: hablantes.length })
+    return NextResponse.json({ ok: true, roles, sinIdentificar, hablantes: hablantes.length, separacionFallida: false })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
   }
