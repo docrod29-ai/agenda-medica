@@ -759,6 +759,10 @@
     {
       "archivo": "src/__tests__/wer-publicado.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/importar-no-pisa-lo-firmado.test.ts",
+      "minCasos": 9
     }
   ]
 }

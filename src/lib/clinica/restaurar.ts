@@ -34,6 +34,28 @@ export type LineaLeida =
   | { clase: 'rechazada'; porQue: string; crudo: string }
 
 /**
+ * LA COLECCIÓN QUE UNA RUTA REPRESENTA DE VERDAD.
+ *
+ * `clinics/X/patients/P`                       → `patients`
+ * `clinics/X/patients/P/notas/N`               → `patients.notas`
+ * `clinics/X/patients/P/notas/N/adendas/A`     → `patients.notas.adendas`
+ *
+ * Se salta `clinics/{id}` y se queda con los segmentos IMPARES, que en Firestore
+ * son los nombres de colección. Devuelve `null` si la forma no cuadra, para que
+ * el llamador la rechace en vez de inventarse un destino.
+ */
+export function coleccionDeLaRuta(ruta: string): string | null {
+  const partes = String(ruta ?? '').split('/')
+  if (partes[0] !== 'clinics' || partes.length < 4 || partes.length % 2 !== 0) return null
+  const nombres: string[] = []
+  for (let i = 2; i < partes.length; i += 2) {
+    if (!partes[i]) return null
+    nombres.push(partes[i])
+  }
+  return nombres.join('.')
+}
+
+/**
  * Interpreta una línea del archivo.
  *
  * @returns `rechazada` con su razón cuando no se entiende. Nunca lanza: una
@@ -65,9 +87,30 @@ export function leerLinea(crudo: string): LineaLeida | null {
   if (partes[0] !== 'clinics' || partes.length < 4 || partes.length % 2 !== 0) {
     return { clase: 'rechazada', porQue: `ruta con forma inesperada: ${ruta}`, crudo: t.slice(0, 120) }
   }
+  /**
+   * ── LA COLECCIÓN SE DERIVA DE LA RUTA, NO SE CREE LO QUE DECLARA ──────────
+   *
+   * Aquí se devolvía el `_coleccion` del archivo, y el importador validaba ESE
+   * campo mientras escribía en `_ruta`. Los dos vienen del mismo archivo y nada
+   * obligaba a que concordaran: un respaldo manipulado podía declarar
+   * `_coleccion: "patients"` —inocua y admitida— y apuntar `_ruta` a
+   * `clinics/X/patients/P/notas/N`, una **nota firmada**.
+   *
+   * El importador usa el SDK admin, que **ignora las reglas de Firestore**: la
+   * regla que hace inmutable una nota firmada (NOM-024) no se evalúa por este
+   * camino. La validación era, literalmente, sobre un campo distinto del que
+   * decidía el destino.
+   *
+   * Derivándola de la ruta, declarar una cosa y escribir en otra deja de ser
+   * posible: lo que se valida y lo que se escribe son el mismo dato.
+   */
+  const derivada = coleccionDeLaRuta(ruta)
+  if (!derivada) {
+    return { clase: 'rechazada', porQue: `no se pudo derivar la colección de: ${ruta}`, crudo: t.slice(0, 120) }
+  }
   const { _ruta, _coleccion, ...datos } = o
   void _ruta; void _coleccion
-  return { clase: 'documento', ruta, coleccion, datos }
+  return { clase: 'documento', ruta, coleccion: derivada, datos }
 }
 
 /**

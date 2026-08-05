@@ -27,7 +27,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
-import { COLECCIONES } from '@/lib/clinica/respaldo'
+import { COLECCIONES, rutasDelArbol } from '@/lib/clinica/respaldo'
 import { leerLinea, reenraizar, admitir, type InformeRestauracion } from '@/lib/clinica/restaurar'
 
 export const maxDuration = 300
@@ -82,12 +82,27 @@ export async function POST(req: NextRequest) {
       archivoCompleto: false, origen: null, reenraizado: false,
     }
     let rechazadasTotal = 0
-    // Las colecciones que el manifiesto conoce; una desconocida no se escribe.
+    /**
+     * Las colecciones que el manifiesto conoce; una desconocida no se escribe.
+     *
+     * ── REGRESIÓN PROPIA, v1037 → v1043 ───────────────────────────────────
+     *
+     * Esto recorría `c.hijas` interpolando cada elemento en una plantilla. Al
+     * convertir `hijas` en un ÁRBOL —para que el respaldo se llevara también las
+     * adendas y las versiones de cada nota— los elementos dejaron de ser cadenas
+     * y pasaron a ser objetos, así que la plantilla producía
+     * `patients.[object Object]`.
+     *
+     * Consecuencia: `patients.notas` ya no figuraba entre las conocidas y **toda
+     * nota se rechazaba al restaurar** con «colección desconocida». El respaldo
+     * se exportaba completo y no se podía volver a meter — que es justo el
+     * momento en que un respaldo importa.
+     *
+     * `rutasDelArbol` aplana el árbol entero, así que las dos mitades quedan
+     * atadas a la misma fuente y no pueden volver a separarse.
+     */
     const conocidas = new Set<string>()
-    for (const c of COLECCIONES) {
-      conocidas.add(c.ruta)
-      for (const h of c.hijas ?? []) conocidas.add(`${c.ruta}.${h}`)
-    }
+    for (const c of COLECCIONES) for (const r of rutasDelArbol(c)) conocidas.add(r)
 
     let lote = adminDb.batch()
     let enLote = 0
