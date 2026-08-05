@@ -287,7 +287,36 @@ export async function POST(req: NextRequest) {
     // DUEÑO DEL TRANSCRIPT (auditoría P1 IDOR): en modo prueba varias clínicas
     // comparten la llave del dueño → sin esto, otra clínica podía leer el dictado
     // (PHI) con el UUID. Se registra el dueño y el GET lo verifica.
-    if (id) void adminDb.collection('transcript_owners').doc(String(id)).set({ clinicId, uid: acceso.uid, at: new Date().toISOString() }).catch(() => {})
+    /**
+     * ── EL DUEÑO SE ESCRIBE CON `await`, Y SI NO SE PUEDE, NO HAY TRABAJO ────
+     *
+     * Esto era un `void … .catch(() => {})`: se lanzaba la escritura y se seguía
+     * sin esperarla. En un runtime serverless la función puede terminar antes de
+     * que llegue a Firestore, así que el registro **podía no existir nunca**.
+     *
+     * Y el GET de abajo decía «si no hay registro de dueño, se permite». Los dos
+     * juntos desactivan el candado solos: sin dueño registrado, cualquier
+     * consultorio con el UUID leía el dictado — que es el IDOR que REG-030
+     * existía para cerrar.
+     *
+     * Ahora se espera. Y si la escritura falla, **no se devuelve el id**: se
+     * purga el trabajo en el proveedor y se pide reintentar. Un transcript sin
+     * dueño es PHI sin candado, y prefiero que el médico repita el envío a
+     * dejarlo accesible.
+     */
+    if (id) {
+      try {
+        await adminDb.collection('transcript_owners').doc(String(id))
+          .set({ clinicId, uid: acceso.uid, at: new Date().toISOString() })
+      } catch (e) {
+        safeLog.error('[diarizado] no se pudo registrar el dueño del dictado; se cancela', e)
+        void fetch(`${AAI}/transcript/${id}`, { method: 'DELETE', headers: { authorization: key } }).catch(() => {})
+        return NextResponse.json({
+          ok: false,
+          error: 'No se pudo asegurar el dictado. Vuelve a enviarlo — no se guardó nada.',
+        }, { status: 503 })
+      }
+    }
     void registrarUso(clinicId, fuente)   // un job = un uso
     void registrarCreditos(clinicId, COSTO_CREDITOS.transcribirDiarizado)
     /**
@@ -338,11 +367,24 @@ export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ ok: false, error: 'Falta id' }, { status: 400 })
 
-  // Verifica que el transcript sea de ESTA clínica (auditoría P1 IDOR): en modo
-  // prueba se comparte la llave del dueño, así que sin esto otra clínica leería el
-  // dictado (PHI) con el UUID. Si no hay registro de dueño (jobs previos), se permite.
+  /**
+   * ── SIN DUEÑO REGISTRADO NO SE ENTREGA. FAIL-CLOSED ──────────────────────
+   *
+   * Aquí decía «si no hay registro de dueño (jobs previos), se permite». Esa
+   * excepción era para los trabajos creados antes de que existiera el registro,
+   * y convertía el candado en una sugerencia: bastaba con que la escritura del
+   * dueño no hubiera llegado —cosa que pasaba, porque no se esperaba— para que
+   * cualquier consultorio con el UUID leyera el dictado.
+   *
+   * Desde que el POST espera esa escritura antes de devolver el id, todo id que
+   * un cliente conoce YA tiene dueño. Así que la excepción sobra, y lo que
+   * cubría —un dictado de otro consultorio— es exactamente lo que no puede
+   * pasar. Si la lectura del registro falla, tampoco se entrega: no se puede
+   * comprobar de quién es.
+   */
   const owner = await adminDb.collection('transcript_owners').doc(id).get().catch(() => null)
-  if (owner?.exists && owner.data()?.clinicId && owner.data()?.clinicId !== clinicId) {
+  const dueño = owner?.exists ? String(owner.data()?.clinicId ?? '') : ''
+  if (!dueño || dueño !== clinicId) {
     return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 403 })
   }
 

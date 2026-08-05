@@ -541,3 +541,25 @@ optimista causaba el daño.
 
 **Golden** — `src/__tests__/canal-whatsapp-no-se-secuestra.test.ts` (11 casos),
 que exige la cobertura de **los tres** caminos: dejar uno abre el agujero entero.
+
+## REG-164 · El candado anti-IDOR del dictado se desactivaba solo
+
+**Dónde** — `src/app/api/expediente/transcribir-diarizado/route.ts`.
+
+**Qué pasaba** — REG-030 cerró un IDOR registrando el dueño del transcript y
+verificándolo al leerlo. Pero el registro se escribía **sin `await`**
+(`void … .set().catch(() => {})`) y la lectura era **fail-open** («si no hay
+registro de dueño, se permite»).
+
+Los dos juntos convertían el candado en una sugerencia: en un runtime serverless
+la función puede terminar antes de que la escritura llegue a Firestore, y
+entonces cualquier consultorio con el UUID leía el dictado. El agujero que
+REG-030 cerró volvía a abrirse por una carrera.
+
+**Reparación** — Se espera la escritura; si falla, no se devuelve el id: se purga
+el trabajo en el proveedor (para no dejar PHI sin dueño en casa de un tercero) y
+se pide reintentar. Y como todo id que un cliente conoce ya tiene dueño, la
+excepción del fail-open sobra: **sin dueño no se entrega**, y si el registro no se
+puede leer, tampoco.
+
+**Golden** — `src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts` (7 casos).
