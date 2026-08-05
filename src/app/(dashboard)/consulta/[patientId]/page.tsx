@@ -491,6 +491,22 @@ export default function ConsultaActivaPage() {
    * lo consumen el Copiloto y todos los paneles de Herramientas.
    */
   const firmadaRef = useRef(false)
+  /**
+   * ESTA CONSULTA SE DESCARTÓ A PROPÓSITO. NADA PUEDE RESUCITARLA.
+   *
+   * `descartar()` borra el documento y navega fuera, pero el autoguardado se
+   * serializa en una cadena y puede quedar uno en vuelo. Ese guardado tardío
+   * escribía sobre el documento recién borrado y volvía como PERMISSION_DENIED
+   * —una de las formas en que aparecía REG-155—.
+   *
+   * Y desde que la consulta se recupera sola de un documento ausente, ese mismo
+   * guardado tardío **volvería a crear la nota que el médico acaba de
+   * descartar**. La recuperación es correcta cuando el documento se perdió; sería
+   * un defecto grave cuando se borró queriendo. Sólo esta marca distingue los dos
+   * casos, y por eso es una ref y no un estado: tiene que valer YA, sin esperar
+   * al siguiente render.
+   */
+  const descartadaRef = useRef(false)
   const agregarASeccion = useCallback((key: string, label: string) => (texto: string) => {
     /**
      * UNA NOTA FIRMADA NO SE ENMIENDA POR AQUÍ.
@@ -1979,6 +1995,8 @@ export default function ConsultaActivaPage() {
   // silencioso=true para el autoguardado (no muestra toast)
   const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
     if (!clinicId || firmada) return Promise.resolve()
+    // Descartada a propósito: ni se guarda ni se recrea. Ver `descartadaRef`.
+    if (descartadaRef.current) return Promise.resolve()
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
     // pantalla, que es la plantilla vacía. Se bloquea hasta recargar. En el
     // guardado MANUAL (no silencioso) se avisa; antes fallaba mudo.
@@ -2034,6 +2052,8 @@ export default function ConsultaActivaPage() {
              * con lo que hay en pantalla. El id cambia; el contenido no.
              */
             if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
+            // Si se descartó queriendo, no se recrea. Ver `descartadaRef`.
+            if (descartadaRef.current) return
             const nuevo = await createNota(clinicId, patientId, { ...nota, estado: 'borrador' })
             notaIdRef.current = nuevo
             setNotaId(nuevo)
@@ -2108,9 +2128,18 @@ export default function ConsultaActivaPage() {
       // estado todavía no se re-renderizó y se saltaba el borrado, dejando una
       // nota huérfana en el expediente. firmar() ya usaba la ref por esto mismo.
       const idReal = notaIdRef.current ?? notaId
+      /**
+       * Se marca ANTES de borrar, no después: entre el borrado y la navegación
+       * cabe un autoguardado de la cadena, y ése es justo el que resucitaría la
+       * consulta.
+       */
+      descartadaRef.current = true
       if (clinicId && idReal) {
         await deleteNota(clinicId, patientId, idReal)
       }
+      // Y se suelta el id: ya no apunta a nada.
+      notaIdRef.current = null
+      setNotaId(null)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }
       // El espejo EN MEMORIA también: sin esto, la consulta descartada reaparecía
       // completa al abrir "Nueva consulta" del mismo paciente y se recreaba sola
