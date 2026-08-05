@@ -83,6 +83,29 @@ dobles reservas» porque buscaba los campos `fecha` y `hora`, y el documento usa
 de publicar un recuento hay que confirmar que los campos existen — leer un campo
 inexistente devuelve vacío, no un error.
 
+### La herramienta
+
+`scripts/auditoria-de-datos.js` — un solo bloque para pegar en la consola del
+navegador con la sesión iniciada. Corre todos los invariantes de abajo y devuelve
+una tabla de recuentos.
+
+Validada el 5-ago-2026 contra el consultorio real: reproduce exactamente los
+mismos números que se obtuvieron a mano.
+
+| Invariante | Cumplen | Incumplen |
+|---|---:|---:|
+| Nota firmada ⇒ sello de integridad | 10 | 0 |
+| Nota firmada ⇒ bloque de firma | 10 | 0 |
+| Nota firmada ⇒ cédula profesional | 10 | 0 |
+| Nota de voz firmada ⇒ `transcripcionMotor` | 0 | **10** → REG-170 |
+| Medicamento ⇒ tiene dosis | 24 | **4** → REG-173 |
+| Medicamento ⇒ vía del enum | 23 | **5** → REG-172 |
+| Cita activa ⇒ sin doble reserva | 0 | 0 |
+
+Las tres filas con incumplimientos son las que se repararon hoy. Al volver a
+pasarla tras unas consultas nuevas, las dos primeras deberían empezar a cumplir;
+la de la dosis depende de lo que el médico decida escribir.
+
 ### Invariantes que hoy conviene comprobar
 
 | Invariante | Por qué | Estado |
