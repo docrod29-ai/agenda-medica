@@ -5,6 +5,7 @@
  * ruta y user-agent. Con rate-limit anti-spam.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { redactarString, redactarRuta } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { verificarSuperadmin } from '@/lib/superadmin'
@@ -55,11 +56,17 @@ export async function POST(req: NextRequest) {
 
   try {
     await adminDb.collection('errores').add({
-      mensaje,
+      /**
+       * Mensaje y traza pasan por el redactor: un error de la consulta puede
+       * llevar dentro el nombre o el dato que lo provocó, y esta colección es
+       * RAÍZ — se lee desde fuera del consultorio.
+       */
+      mensaje: redactarString(mensaje),
       // Un reporte sin dueño vale menos que uno con dueño: se distingue.
       anonimo,
-      stack: String(body.stack ?? '').slice(0, 1500),
-      ruta: String(body.ruta ?? '').slice(0, 200),
+      stack: redactarString(String(body.stack ?? '').slice(0, 1500)),
+      // La FORMA de la ruta, no el identificador del paciente. Ver `redactarRuta`.
+      ruta: redactarRuta(String(body.ruta ?? '').slice(0, 200)),
       ua: String(body.ua ?? '').slice(0, 200),
       origen: String(body.origen ?? 'cliente').slice(0, 40),
       uid: acceso.ok ? acceso.uid : '',

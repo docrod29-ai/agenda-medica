@@ -473,3 +473,25 @@ dato, y las rutas anidadas se reconocen solas. El importador aplana el árbol co
 
 **Golden** — `src/__tests__/importar-no-pisa-lo-firmado.test.ts` (9 casos),
 incluido el ataque exacto que antes pasaba.
+
+## REG-161 · El identificador del paciente viajaba a una colección raíz
+
+**Dónde** — `src/app/api/errores/route.ts`.
+
+**Qué pasaba** — El reporte de errores guarda la ruta en la que ocurrió el fallo,
+y hace bien. Pero las rutas de esta aplicación llevan el identificador del
+paciente dentro (`/consulta/<patientId>`, `/expediente/<patientId>`), y esos
+reportes van a `errores`: una colección **raíz**, fuera del ámbito del
+consultorio y legible desde la consola del dueño de la plataforma.
+
+PHI saliendo de su consultorio por un canal de diagnóstico técnico, sin que nadie
+lo pidiera ni lo viera. El `mensaje` y el `stack` se guardaban igualmente crudos.
+
+**Reparación** — `redactarRuta()` conserva la FORMA (`/consulta/:id`), que es lo
+que hace útil el reporte, y borra el valor; la cadena de consulta se tira entera.
+`mensaje` y `stack` pasan por `redactarString`, que ya existía y no se estaba
+usando aquí.
+
+**Golden** — `src/__tests__/errores-sin-phi.test.ts` (9 casos), incluida la
+comprobación de que una ruta inocua no se estropea — un redactor que borra de más
+hace ilegible el informe.
