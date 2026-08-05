@@ -17,6 +17,8 @@
  */
 
 /** Código de vía del enum de Medicamento (ver types/expediente). */
+import { esViaAusente, normalizarVia } from '@/lib/expediente/via-normalizada'
+
 export type ViaSugerida = 'sc'
 
 interface ReglaParenteral {
@@ -38,10 +40,31 @@ const PARENTERAL_PURO: ReglaParenteral[] = [
   { re: /liraglutida|dulaglutida|exenatida|lixisenatida|tirzepatida/i, via: 'sc' },
 ]
 
-/** ¿La vía dada es el valor por defecto/erróneo que conviene corregir? */
+/**
+ * ¿La vía dada es el valor por defecto/erróneo que conviene corregir?
+ *
+ * ── EL HUECO QUE DEJABA FUERA AL CASO MÁS PELIGROSO (5-ago-2026) ────────────
+ *
+ * Aquí se comparaba contra una lista de formas de «oral» y contra la cadena
+ * vacía. Auditando las notas firmadas del Dr. apareció que la IA escribe otra
+ * cosa cuando no sabe: **«no especificada»** (4 de sus 28 medicamentos).
+ *
+ * Con ese valor, este guard NO ACTUABA:
+ *
+ *     insulina + 'oral'             → sc   ✅
+ *     insulina + ''                 → sc   ✅
+ *     insulina + 'no especificada'  → «no especificada»   ❌
+ *
+ * O sea que la protección que existe para que nunca se imprima «insulina · vía
+ * que no existe» se apagaba justo cuando la vía era desconocida — que es cuando
+ * más falta hace.
+ *
+ * `esViaAusente` reúne todas las formas de «no lo sé» en un solo sitio, para que
+ * este guard y el aviso al médico las traten igual.
+ */
 function viaEsCorregible(via: string | undefined | null): boolean {
-  const v = (via ?? '').trim().toLowerCase()
-  return v === '' || v === 'oral' || v === 'vo' || v === 'v.o.' || v === 'per os'
+  if (esViaAusente(via)) return true
+  return normalizarVia(via) === 'oral'
 }
 
 /**

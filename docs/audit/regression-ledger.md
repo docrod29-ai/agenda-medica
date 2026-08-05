@@ -799,3 +799,37 @@ instrumento que no es el del producto da un número que no significa nada.
 **Golden** — `src/__tests__/alergia-combinada-no-se-parte.test.ts` (11 casos),
 incluido que las listas de verdad siguen separándose y que la alergia posterior a
 una negación no desaparece.
+
+## REG-172 · «No especificada» se guardaba como si fuera una vía
+
+**Dónde** — `via-parenteral.ts` y `via-asumida.ts`.
+
+**Cómo apareció** — Auditando los 28 medicamentos de las notas FIRMADAS del Dr.
+Aparecieron vías que no existen en el tipo:
+
+| Vía guardada | Veces | |
+|---|---:|---|
+| `oral` | 23 | ✓ |
+| **`no especificada`** | **4** | no está en el enum |
+| **`subcutanea`** | **1** | el enum dice `sc` |
+
+Lo que devuelve la IA se guardaba sin validar contra
+`'oral' \| 'iv' \| 'im' \| 'sc' \| …`.
+
+**Los dos cuidados que eso apagaba, justo cuando más falta hacen:**
+
+1. **El guard de parenterales puros** — existe para que jamás se imprima
+   «insulina · oral», una vía que para ese fármaco no existe. Comprobado:
+   `insulina + 'oral' → sc` ✅, `insulina + '' → sc` ✅,
+   **`insulina + 'no especificada' → «no especificada»` ❌**.
+2. **El aviso de vía no dictada** (REG-165, decisión del médico dueño) — miraba
+   `oral` o vacío, así que con «no especificada» **no saltaba**, siendo el caso
+   exacto que tenía que cazar.
+
+**Reparación** — `src/lib/expediente/via-normalizada.ts` (módulo puro): traduce lo
+traducible («subcutanea» → `sc`) y trata los huecos como **ausencia**. Una vía que
+nadie decidió no es un dato. Lo desconocido se devuelve tal cual, sin inventar
+ninguna vía.
+
+**Golden** — `src/__tests__/via-no-especificada-es-un-hueco.test.ts` (13 casos),
+incluido que una vía decidida por el médico no se pisa.
