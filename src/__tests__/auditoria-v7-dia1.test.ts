@@ -40,16 +40,18 @@ import { normalizar } from '@/lib/asr/normalizacion'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 
 describe('1 · EL DECIMAL DICTADO CON «Y»', () => {
-  const casos: [string, string][] = [
-    ['pH siete punto treinta y cinco', 'pH 7.35'],
-    ['potasio tres punto cuarenta y dos milimoles por litro', 'potasio 3.42 mmol/L'],
-    ['INR uno punto ochenta y cinco', 'INR 1.85'],
-  ]
-  for (const [dicho, esperado] of casos) {
-    it(`«${dicho}» → ${esperado}`, () => {
-      expect(normalizar(dicho).texto).toBe(esperado)
-    })
-  }
+  it('«pH siete punto treinta y cinco» → pH 7.35', () => {
+    expect(normalizar('pH siete punto treinta y cinco').texto).toBe('pH 7.35')
+  })
+
+  it('«potasio tres punto cuarenta y dos» → 3.42 mmol/L', () => {
+    expect(normalizar('potasio tres punto cuarenta y dos milimoles por litro').texto)
+      .toBe('potasio 3.42 mmol/L')
+  })
+
+  it('«INR uno punto ochenta y cinco» → INR 1.85', () => {
+    expect(normalizar('INR uno punto ochenta y cinco').texto).toBe('INR 1.85')
+  })
 
   it('la norepinefrina, donde el error es una dosis de vasopresor', () => {
     expect(normalizar('norepinefrina cero punto treinta y cinco microgramos por kilo por minuto').texto)

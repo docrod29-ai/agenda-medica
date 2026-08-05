@@ -29,13 +29,53 @@
  * Módulo PURO: quien lea Firestore es la ruta.
  */
 
+/**
+ * Una rama del árbol: una subcolección que puede tener las suyas.
+ *
+ * ── POR QUÉ TIENE QUE SER UN ÁRBOL Y NO UNA LISTA (4-ago-2026) ──────────────
+ *
+ * `hijas` era `string[]`, así que el respaldo bajaba **un solo nivel**. Y hay
+ * cosas dos niveles abajo:
+ *
+ *     patients/{p}/notas/{n}/adendas/{a}
+ *     patients/{p}/notas/{n}/versions/{v}
+ *
+ * La **adenda es el único mecanismo de corrección** que existe sobre una nota
+ * firmada, que es inmutable por la NOM-024. Nunca se exportaba — y el pie del
+ * archivo decía `completo: true`. Restaurar ese respaldo devolvía la nota y
+ * **borraba la corrección legal**, sin que nadie se enterara.
+ */
+export interface RamaRespaldo {
+  ruta: string
+  hijas?: RamaRespaldo[]
+}
+
 export interface ColeccionRespaldo {
   /** Nombre bajo `clinics/{clinicId}`. */
   ruta: string
   /** Qué es, para quien abra el archivo. */
   descripcion: string
-  /** Subcolecciones que cuelgan de cada documento. */
-  hijas?: string[]
+  /** Subcolecciones que cuelgan de cada documento, y las suyas. */
+  hijas?: (string | RamaRespaldo)[]
+}
+
+/** Normaliza una rama escrita como cadena. */
+export function rama(h: string | RamaRespaldo): RamaRespaldo {
+  return typeof h === 'string' ? { ruta: h } : h
+}
+
+/** Todas las rutas del árbol, en punto, para poder declararlas y comprobarlas. */
+export function rutasDelArbol(c: ColeccionRespaldo): string[] {
+  const out: string[] = [c.ruta]
+  const anda = (base: string, hs: (string | RamaRespaldo)[] | undefined) => {
+    for (const h of hs ?? []) {
+      const r = rama(h)
+      out.push(`${base}.${r.ruta}`)
+      anda(`${base}.${r.ruta}`, r.hijas)
+    }
+  }
+  anda(c.ruta, c.hijas)
+  return out
 }
 
 /**
@@ -45,7 +85,15 @@ export interface ColeccionRespaldo {
  * declarado en `EXCLUIDAS`. El guardián lo comprueba.
  */
 export const COLECCIONES: ColeccionRespaldo[] = [
-  { ruta: 'patients', descripcion: 'Pacientes y todo su expediente.', hijas: ['notas', 'laboratorios', 'fotos', 'clinico', 'formularios_previos'] },
+  {
+    ruta: 'patients',
+    descripcion: 'Pacientes y todo su expediente, incluidas las adendas y el versionado de cada nota.',
+    hijas: [
+      // La nota lleva DEBAJO su corrección legal (adenda) y su historial.
+      { ruta: 'notas', hijas: [{ ruta: 'adendas' }, { ruta: 'versions' }] },
+      'laboratorios', 'fotos', 'clinico', 'formularios_previos',
+    ],
+  },
   { ruta: 'appointments', descripcion: 'Citas: fecha, tipo, estado, médico y paciente.' },
   { ruta: 'internamientos', descripcion: 'Episodios hospitalarios.', hijas: ['signos', 'icu_stays', 'icu_observations', 'handoff_revisiones', 'bed_assignments'] },
   { ruta: 'waitlist', descripcion: 'Lista de espera.' },
