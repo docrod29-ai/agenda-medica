@@ -341,6 +341,10 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/nota-firmada-no-se-edita.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
       "minCasos": 6
     },
