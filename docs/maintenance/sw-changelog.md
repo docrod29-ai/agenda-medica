@@ -1561,6 +1561,12 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
 
+## v1057 — El aviso de dosis, antes de firmar
+
+`revisarUnidadDosis` existía y funcionaba, pero sólo corría en la pantalla de la
+receta — o sea, DESPUÉS de firmar, cuando la nota ya es inmutable. Ahora se ve en
+la consulta. No bloquea. REG-173.
+
 ## v1056 — «No especificada» apagaba el guard de la insulina
 
 La IA escribe «no especificada» cuando no sabe la vía, y ese valor dejaba fuera

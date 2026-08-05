@@ -833,3 +833,30 @@ ninguna vía.
 
 **Golden** — `src/__tests__/via-no-especificada-es-un-hueco.test.ts` (13 casos),
 incluido que una vía decidida por el médico no se pisa.
+
+## REG-173 · El aviso de dosis llegaba después de firmar
+
+**Dónde** — `src/app/(dashboard)/consulta/[patientId]/page.tsx`.
+
+**Qué pasaba** — `revisarUnidadDosis` existe y funciona bien: con la dosis vacía
+devuelve severidad **alta** («la receta no lleva cantidad; quien la surta no puede
+saber cuánto dispensar») y con la cifra sin unidad avisa de que «100» se leerá
+como 100 mg.
+
+Pero sólo se ejecutaba en la pantalla de la **receta** y en hospitalización. En la
+**consulta no** — y la consulta es donde se firma.
+
+Auditando las notas firmadas del Dr. aparecieron **4 medicamentos sin dosis de
+28**. El aviso llegaba cuando la nota ya era inmutable y sólo podía corregirse con
+una adenda.
+
+**Reparación** — El mismo aviso, en la consulta, antes de firmar. En rojo (el
+motor lo marca de severidad alta), descartable con «Ya lo revisé», y **sin
+bloquear**: qué es exigible en una receta es decisión del médico dueño y está en
+su cola. Avisar no necesita su permiso; bloquear sí.
+
+**Nota** — No había defecto en el motor: el aviso era correcto y el médico firmó
+con él delante en la pantalla que lo mostraba. El defecto era **de flujo**: llegaba
+tarde.
+
+**Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (9 casos).

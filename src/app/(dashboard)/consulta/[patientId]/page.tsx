@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
+import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
@@ -832,6 +833,34 @@ export default function ConsultaActivaPage() {
       .filter(Boolean)
       .filter(n => !avisosRevisados.includes(`via:${n}`))
   }, [extraction, voz.transcripcion, avisosRevisados])
+
+  /**
+   * LA DOSIS QUE FALTA — ANTES DE FIRMAR, NO AL IMPRIMIR.
+   *
+   * ── EL HUECO DE FLUJO (5-ago-2026) ────────────────────────────────────────
+   *
+   * `revisarUnidadDosis` existe y funciona: con la dosis vacía devuelve
+   * severidad ALTA y dice por qué —«la receta no lleva cantidad; quien la surta
+   * no puede saber cuánto dispensar»—. Con la cifra sin unidad, avisa de que
+   * «100» se leerá como 100 mg.
+   *
+   * Pero sólo se ejecutaba en la pantalla de la RECETA y en hospitalización. En
+   * la consulta, no. Y la consulta es donde se firma.
+   *
+   * Auditando las notas firmadas del Dr. aparecieron **4 medicamentos sin dosis
+   * de 28**. El aviso llegaba después de firmar, cuando la nota ya es inmutable
+   * y sólo se puede corregir con una adenda.
+   *
+   * Aquí se enseña antes. No bloquea: qué es exigible en una receta es una
+   * decisión del médico dueño, y está en su cola.
+   */
+  const dosisIncompletas = useMemo(() => {
+    return medicamentos
+      .filter(m => m.nombre?.trim())
+      .map(m => ({ med: m.nombre, aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
+      .filter((x): x is { med: string; aviso: NonNullable<ReturnType<typeof revisarUnidadDosis>> } => !!x.aviso)
+      .filter(x => !avisosRevisados.includes(`dosis:${x.med}`))
+  }, [medicamentos, avisosRevisados])
 
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
@@ -4126,6 +4155,29 @@ export default function ConsultaActivaPage() {
         crónico que el paciente negó y la nota afirma es un error de expediente,
         no de redacción.
       */}
+      {/*
+        DOSIS INCOMPLETA — antes de firmar, no al imprimir.
+        En rojo porque `revisarUnidadDosis` la marca de severidad ALTA: una
+        receta sin cantidad no se puede surtir, y «100» sin unidad se lee como
+        100 mg — mil veces la dosis en lo que va en microgramos.
+        No bloquea la firma: qué es exigible en una receta lo decide el médico.
+      */}
+      {dosisIncompletas.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <Alert tone="danger" icon={<AlertTriangle size={18} />} title="Falta la dosis o su unidad">
+            {dosisIncompletas.map((d, i) => (
+              <div key={`${d.med}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
+                {d.aviso.mensaje}{' '}
+                <button
+                  onClick={() => marcarRevisado('dosis', d.med)}
+                  style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
+                >Ya lo revisé</button>
+              </div>
+            ))}
+          </Alert>
+        </div>
+      )}
+
       {/*
         VÍA NO DICTADA — decisión del médico dueño: se queda en ORAL y se avisa.
         En ámbar y no en rojo: una vía asumida no es un error como afirmar algo
