@@ -18,6 +18,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 
 ---
 
+- **v1038** — Cobro duplicado del anticipo (REG-153). `stripe/webhook/route.ts`: id determinista `stripe_{session.id}` + `create()`; ALREADY_EXISTS = éxito idempotente y se sigue a saldar la cita. La marca se sigue retirando al fallar (impide el estado peor: cobrado en Stripe e invisible en Finanzas). Golden de 7 casos.
 ## Desplegado esta sesión
 
 | Versión | Qué |

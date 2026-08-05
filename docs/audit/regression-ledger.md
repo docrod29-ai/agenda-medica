@@ -243,3 +243,24 @@ Estados: **CLOSED** (con test/control) · **OPEN** (detectado, pendiente de repa
 | REG-150 | Clínico (voz) · cifra plausible y equivocada | **Un decimal dictado con «y» perdía su último dígito.** «pH siete punto **treinta y cinco**» salía «pH 7.30 y 5»; el potasio 3.42 quedaba 3.40; la norepinefrina 0.35 quedaba 0.30. La parte ENTERA sí unía decena y unidad con «y»; la decimal rompía el bucle y el 5 se caía fuera como texto suelto. Es la forma **natural** de dictar un pH, un potasio, un INR o una dosis de vasopresor en español, y **lo que quedaba era plausible** — el peor modo de falla. El guardián no lo veía: sólo vigila cifras que DESAPARECEN, y aquí la que sobra aparece. Corre en TODAS las rutas: el pipeline va delante del extractor y del modelo que redacta | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se acepta la «y» entre decena y unidad dentro de la parte decimal y se compone (30+5=35), sólo cuando la decena es múltiplo de diez. **Es gramática del español, no criterio clínico.** Encontrado por el auditor de seguridad de medicación del Día 1 del Master Loop V7 y verificado ejecutando el motor |
 | REG-151 | Clínico (P0) · alergia que desaparece | **Una alergia real se perdía detrás de una negación.** «Niega penicilina. **Alérgico a sulfas**» devolvía `[]`: sin el punto como separador era UN fragmento, y `esAlergiaNegada` lo filtraba entero. La alergia a sulfas desaparecía de **los cuatro** sitios que leen del parser canónico — la compuerta de la receta, la nota que valida NOM-004, el recurso FHIR y el sesgo del reconocedor. El camino hospitalario (`hospital/cds.ts`) ya partía por punto y su comentario decía por qué: «para no perder una alergia real que venga después de una negada». Conocía el modo de fallo; el canónico no | CLOSED (v1036) | `src/__tests__/auditoria-v7-dia1.test.ts`. Se añade el punto **exigiendo espacio detrás**, para no partir decimales («2.5 mg») ni abreviaturas («Penicilina G.») — sin esa condición el arreglo habría creado un problema nuevo. **Y la tercera ruta cruda**: la alerta alergia↔fármaco de la pantalla de consulta metía el campo entero como un solo alérgeno, sin partir y sin filtrar negaciones, así que «niega alergia a penicilina» + amoxicilina pintaba la alerta CRÍTICA roja justo donde se prescribe — REG-034 y REG-035 por tercera vez, y en el mismo archivo había otras dos lecturas que sí usaban el parser bueno |
 | REG-152 | Pérdida de datos (legal) | **El respaldo «completo» no guardaba las ADENDAS ni el versionado.** El exportador bajaba **un solo nivel** y las adendas viven dos: `patients/{p}/notas/{n}/adendas/{a}`. La adenda es el **único mecanismo de corrección** que existe sobre una nota firmada, que es inmutable por la NOM-024 — así que restaurar ese respaldo devolvía la nota y **borraba la corrección legal**, mientras el pie del archivo decía `completo: true`. Y el simulacro de ida y vuelta medía fielmente la mitad equivocada | CLOSED (v1037) | `src/__tests__/respaldo-consultorio.test.ts`. `hijas` pasa de lista plana a **árbol** (`RamaRespaldo`) y el exportador recorre recursivamente. **Y el guardián era estructuralmente ciego**: escaneaba `^ {6}match /` —sólo el primer nivel—, así que no podía ver el hueco; ahora recorre el bloque de `clinics` a cualquier profundidad y compara contra el árbol declarado. Tercera prueba del día que **fijaba el defecto en verde**: exigía con `toEqual` la lista incompleta de cinco hijas. Fijar la forma de una lista no prueba que la lista esté completa |
+
+## REG-153 · El anticipo se podía cobrar DOS veces
+
+**Dónde** — `src/app/api/stripe/webhook/route.ts`, rama `paciente_anticipo`.
+
+**Qué pasaba** — El cobro se escribía con `.add()`, que crea un documento nuevo
+cada vez. Si la cita se reagendaba o se borraba antes de que llegara el webhook,
+`citaRef.update()` lanzaba NOT_FOUND; el catch retiraba la marca —correcto, para
+no perder el dinero— y devolvía 500. Stripe reintenta durante unos tres días, y
+cada reintento escribía **otro cobro**. Varios cobros en Finanzas por un solo
+pago, y el corte de caja los suma todos.
+
+**Reparación** — El identificador del cobro pasa a ser `stripe_{session.id}`:
+escribir dos veces es escribir el mismo documento. `create()` falla si ya existe
+y ese fallo concreto (código 6, ALREADY_EXISTS) se trata como éxito idempotente,
+siguiendo adelante a saldar la cita, que es lo que había fallado.
+
+**Lo que NO se tocó** — La marca se sigue retirando al fallar: es lo que impide
+el estado peor, dinero cobrado en Stripe que no aparece en Finanzas.
+
+**Golden** — `src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts` (7 casos).

@@ -371,7 +371,29 @@ export async function POST(req: NextRequest) {
             sinTarifaConocida: cita?.pagoMontoEsAnticipoSinTarifa === true,
           })
           const cubre = decision.cubre
-          const cobroRef = await adminDb.collection('clinics').doc(clinicId).collection('cobros').add({
+          /**
+           * ── EL ID DEL COBRO ES DETERMINISTA, Y ÉSE ES EL CANDADO ──────────
+           *
+           * Aquí había un `.add()`, que crea un documento NUEVO cada vez. Y esta
+           * rama se reintenta de verdad: si la cita se reagendó o se borró antes
+           * de que llegara el webhook, `citaRef.update()` lanza NOT_FOUND, el
+           * catch **retira la marca** —bien, para no perder el dinero— y
+           * devuelve 500 para que Stripe reintente. Pero el cobro ya escrito NO
+           * se retira, así que el reintento escribe otro.
+           *
+           * Stripe reintenta durante ~3 días: son varios cobros en Finanzas por
+           * un solo pago, y el corte de caja los suma todos. Contradice el
+           * «CERO cobro duplicado» del charter.
+           *
+           * Con el `session.id` en el identificador, escribir dos veces es
+           * escribir el MISMO documento. `create()` falla si ya existe, y ese
+           * fallo concreto significa «ya estaba registrado»: no es un error, es
+           * la prueba de que el candado funcionó, así que se sigue adelante a
+           * terminar de saldar la cita — que es justo la parte que había fallado.
+           */
+          const cobroRef = adminDb.collection('clinics').doc(clinicId).collection('cobros')
+            .doc(`stripe_${session.id}`)
+          const datosCobro = {
             fecha: iso, dia, mes: dia.slice(0, 7),
             /**
              * `metodo` TIENE que ser un MetodoPago válido.
@@ -394,7 +416,16 @@ export async function POST(req: NextRequest) {
             folio: `CB-${session.id.slice(-7).toUpperCase()}`,
             referenciaExterna: session.id,
             createdAt: iso, creadoPor: 'stripe:anticipo', cancelado: false,
-          })
+          }
+          try {
+            await cobroRef.create(datosCobro)
+          } catch (e) {
+            // 6 = ALREADY_EXISTS. El cobro ya se registró en un intento previo:
+            // se continúa a saldar la cita, que es lo que faltaba.
+            const codigo = (e as { code?: number })?.code
+            if (codigo !== 6) throw e
+            safeLog.info(`[stripe] anticipo ya registrado, no se duplica: ${session.id}`)
+          }
           /**
            * EL `cobroId` ES EL CANDADO CONTRA EL DOBLE COBRO, Y FALTABA.
            *

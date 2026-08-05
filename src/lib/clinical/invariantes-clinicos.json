@@ -727,6 +727,14 @@
     {
       "archivo": "src/__tests__/whisper-prompt-presupuesto.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/respaldo-consultorio.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts",
+      "minCasos": 7
     }
   ]
 }
