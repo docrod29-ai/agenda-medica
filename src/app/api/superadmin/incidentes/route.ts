@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarSuperadmin } from '@/lib/superadmin'
 import { incidentesRecientes } from '@/lib/ia/incidentes-servidor'
+import { leerLatidos, diagnosticar, PERIODO_MIN, type Latido } from '@/lib/ops/latido'
 
 export const runtime = 'nodejs'
 
@@ -75,12 +76,57 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  /**
+   * ── ¿Y QUIÉN VIGILA AL VIGILANTE? ─────────────────────────────────────────
+   *
+   * `cron/vigilante` mira los latidos de los demás trabajos y avisa por el
+   * buzón de operación. Pero tiene un punto ciego que él mismo declara: **si el
+   * que se cae es él**, no queda nadie leyendo los latidos. Su propio latido
+   * sólo lo consulta él.
+   *
+   * Y el buzón (`OPS_ALERTA_WEBHOOK`) está sin configurar, así que hoy ni
+   * siquiera el camino normal avisa a nadie.
+   *
+   * La salida no necesita infraestructura nueva: esta franja ya la ve el dueño
+   * cada vez que abre la aplicación, y los latidos ya están guardados. Se leen
+   * aquí. Si un trabajo automático —el vigilante incluido— lleva demasiado sin
+   * correr, se dice donde él ya mira.
+   *
+   * Sólo `nunca` y `tarde`. Un trabajo que corrió y falló ya se reporta por sus
+   * propios medios; lo que nadie más puede contar es el que **dejó de correr**,
+   * porque un trabajo muerto no levanta la mano.
+   */
+  const problemasDeCron: { titulo: string; queHacer: string; urgente: boolean; veces: number }[] = []
+  try {
+    const latidos = await leerLatidos()
+    const porJob = new Map<string, Latido>(latidos.map(l => [l.job, l]))
+    const ahora = Date.now()
+    const mudos = Object.keys(PERIODO_MIN)
+      .map((j: string) => diagnosticar(j, porJob.get(j), ahora))
+      .filter(d => d.estado === 'nunca' || d.estado === 'tarde')
+    if (mudos.length) {
+      problemasDeCron.push({
+        titulo: `${mudos.length} trabajo(s) automático(s) dejaron de correr`,
+        queHacer: mudos.map(d => `${d.job}: ${d.porQue}`).join(' · ').slice(0, 300),
+        urgente: true,
+        veces: mudos.length,
+      })
+    }
+  } catch {
+    /**
+     * Si no se pueden leer los latidos no se inventa un problema NI se calla uno:
+     * simplemente esta comprobación no aporta nada esta vez. La franja no puede
+     * convertirse en un problema encima del que ya haya.
+     */
+  }
+
   return NextResponse.json({
     ok: true,
     horasVigentes: HORAS_VIGENTES,
-    urgentes: porTitulo.size,
+    urgentes: porTitulo.size + problemasDeCron.length,
     /** Lo NO urgente sigue existiendo — en el tablero, que es su sitio. */
     noUrgentesEnElTablero: vigentes.length - urgentes.length,
-    incidentes: [...porTitulo.values()],
+    /** Los trabajos caídos van PRIMERO: nada de lo demás corre si ellos no corren. */
+    incidentes: [...problemasDeCron, ...porTitulo.values()],
   })
 }

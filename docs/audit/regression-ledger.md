@@ -589,3 +589,28 @@ pantalla. Descartable con «Ya lo revisé», como pidió el Dr.
 **Golden** — `src/__tests__/via-no-dictada-avisa.test.ts` (17 casos), incluido que
 la cita propia manda sobre el texto de respaldo — sin eso, un solo «vía oral» en
 toda la consulta apagaría el aviso para todos los medicamentos.
+
+## REG-166 · Nadie vigilaba al vigilante
+
+**Dónde** — `src/lib/ops/latido.ts` y `src/app/api/superadmin/incidentes/route.ts`.
+
+**Qué pasaba** — `cron/vigilante` lee los latidos de los demás trabajos y avisa
+cuando alguno deja de correr. Su propio comentario declaraba el punto ciego: «si
+se cae ÉL, el propio diagnóstico lo enseña la próxima vez que alguien mire». Pero
+**nadie más miraba**: el único lector de los latidos era él, y un vigilante caído
+no se lee a sí mismo. Tampoco figuraba en `PERIODO_MIN`, así que ni había con qué
+comparar su latido — «lleva tres días sin correr» era indistinguible de «acaba de
+correr». Y el buzón `OPS_ALERTA_WEBHOOK` sigue sin configurar, así que hoy ni el
+camino normal avisa a nadie.
+
+**Reparación, sin infraestructura nueva** — El vigilante entra en `PERIODO_MIN`
+(15 min, atado a `vercel.json` por un test), y la **franja del dueño** —que ya se
+pinta en cada carga de la aplicación— lee los latidos. El lector deja de ser el
+propio vigilante, que era lo único que faltaba.
+
+Sólo se avisa de `nunca` y `tarde`: un trabajo que corrió y falló ya se reporta
+por sus medios; lo que nadie más puede contar es el que **dejó de correr**, porque
+un trabajo muerto no levanta la mano. Van primero en la lista: si los trabajos
+automáticos no corren, nada de lo demás corre tampoco.
+
+**Golden** — `src/__tests__/quien-vigila-al-vigilante.test.ts` (10 casos).
