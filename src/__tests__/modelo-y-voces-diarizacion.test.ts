@@ -99,23 +99,53 @@ describe('LA RUTA PIDE LOS MODELOS EN LISTA — el parámetro viejo lo RETIRARON
    * comprobaban que el código dijera lo acordado — no que el proveedor lo
    * aceptara. Una prueba de contrato no sustituye una llamada real.
    */
-  it('manda la lista, no el parámetro retirado', () => {
-    expect(ruta).toContain("const MODELOS_DIARIZACION = ['universal-3-5-pro', 'universal-2'] as const")
-    expect(ruta).toContain('speech_models: [...MODELOS_DIARIZACION],')
+  /**
+   * ── Y VOLVIÓ A PASAR, DE OTRA FORMA (5-ago-2026) ──────────────────────────
+   *
+   * El aviso de arriba se cumplió por segunda vez. La ruta mandaba la LISTA de
+   * modelos y `word_boost`, y estas pruebas lo daban por bueno porque el código
+   * decía lo acordado. Contra la API real:
+   *
+   *     «"word_boost" is not compatible with universal-3-5-pro.
+   *      Use "prompt" or "keyterms_prompt"»
+   *
+   * Con la lista, el proveedor NO falla: descarta el modelo incompatible y corre
+   * con `universal-2`. El parámetro puesto para mejorar la precisión degradaba
+   * el motor al modelo viejo en cada consulta, sin error y sin aviso.
+   *
+   * Ahora se pide UN modelo explícito con el parámetro que él sí acepta: sin
+   * lista no hay resolución silenciosa. Si no está disponible, falla y se ve.
+   */
+  it('pide UN modelo explícito, no una lista que el proveedor resuelva', () => {
+    expect(ruta).toContain('speech_models: [MODELO_DIARIZACION],')
+    expect(ruta).not.toContain('speech_models: [...MODELOS_DIARIZACION],')
     expect(ruta).not.toContain('speech_model:')
+  })
+
+  it('y el sesgo viaja en `keyterms_prompt`, no en `word_boost`', () => {
+    /**
+     * `word_boost` es lo que descartaba el modelo bueno. Que no vuelva.
+     */
+    expect(ruta).toContain('keyterms_prompt: sesgo.terminos')
+    expect(ruta).not.toContain('word_boost:')
+    expect(ruta).not.toContain("boost_param: 'high'")
   })
 
   it('con el nombre en la forma que el proveedor pide: guiones, no punto', () => {
     expect(ruta).toContain("'universal-3-5-pro'")
   })
 
-  it('y presupuesta el sesgo para el modelo MÁS PEQUEÑO de la lista', () => {
+  it('y presupuesta el sesgo para EL modelo que se pide, con su tope completo', () => {
     /**
-     * Si se presupuestara para el mayor y el proveedor acabara usando el menor,
-     * ochocientos términos los tiraría él, por el criterio que quisiera y sin
-     * decirlo. Mejor mandar menos y saber cuáles.
+     * Antes se presupuestaba para el más pequeño de la lista —200 términos— y
+     * era lo correcto MIENTRAS se mandara una lista: si el proveedor acababa
+     * usando el menor, ochocientos los tiraría él por el criterio que quisiera.
+     *
+     * Al pedir un solo modelo esa prudencia ya no compra nada y cuesta cuatro
+     * quintas partes del cupo. 1 000 términos, comprobado contra la API real —
+     * no contra la documentación, que es justo lo que falló las dos veces.
      */
-    expect(ruta).toContain('const tope = Math.min(...MODELOS_DIARIZACION.map(m => topeDe(m)))')
+    expect(ruta).toContain('const tope = topeDe(MODELO_DIARIZACION)')
     expect(ruta).toContain('componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, tope)')
   })
 

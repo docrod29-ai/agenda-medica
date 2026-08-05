@@ -1561,6 +1561,15 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
 
+## v1050 — El sesgo estaba degradando el motor al modelo VIEJO
+
+`word_boost` no es compatible con universal-3-5-pro, y como se mandaba junto a la
+LISTA de modelos el proveedor no fallaba: descartaba el modelo bueno y corría con
+universal-2. El parámetro puesto para mejorar la precisión degradaba el motor en
+cada consulta, sin error. Ahora `keyterms_prompt` + un modelo explícito, y el
+presupuesto en caracteres (el límite real son 2 672 tokens). 200 → 491 términos.
+REG-167.
+
 ## v1049 — Ahora sí hay quien vigile al vigilante
 
 El único lector de los latidos era el propio vigilante, y un vigilante caído no
