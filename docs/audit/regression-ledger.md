@@ -341,3 +341,32 @@ cada petición (como variable de módulo, dos consultas simultáneas se lo
 pisarían). El aviso distingue el timeout del problema de cuenta.
 
 **Golden** — `src/__tests__/evidencia-presupuesto.test.ts` (8 casos).
+
+## REG-157 · Una consulta descartada podía volver sola
+
+**Dónde** — `src/app/(dashboard)/consulta/[patientId]/page.tsx`, `descartar()` y
+el autoguardado.
+
+**Cómo apareció** — Buscando el ORIGEN de REG-155: cómo llega la pantalla a tener
+el id de un documento que ya no existe. `descartar()` borraba el documento y
+navegaba fuera, pero **no soltaba `notaIdRef`**. El autoguardado se serializa en
+una cadena, así que puede quedar uno en vuelo, y ese guardado tardío escribía
+sobre el documento recién borrado — una de las formas en que el Dr. veía «el
+servidor rechazó el permiso».
+
+**El riesgo que introdujo la propia reparación de REG-155** — Desde que la
+consulta se recupera sola de un documento ausente, ese guardado tardío **volvería
+a crear la nota que el médico acaba de descartar**, después de confirmar «se
+eliminará y no podrás recuperarla». Recuperar es correcto cuando el documento se
+PERDIÓ; es un defecto grave cuando se borró QUERIENDO.
+
+**Reparación** — `descartadaRef` (ref, no estado: tiene que valer sin esperar al
+render) se marca ANTES de borrar, el id se suelta (`notaIdRef.current = null`), el
+autoguardado se detiene en la puerta y la recuperación comprueba la marca antes
+de crear.
+
+**Antecedente** — El propio código ya avisaba de una versión anterior de esto: «la
+consulta descartada reaparecía completa […] y se recreaba sola en Firestore al
+autoguardarse».
+
+**Golden** — `src/__tests__/consulta-descartada-no-resucita.test.ts` (7 casos).
