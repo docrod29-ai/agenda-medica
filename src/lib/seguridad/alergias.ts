@@ -49,7 +49,34 @@ export function esAlergiaNegada(fragmento: string): boolean {
  * Se exige **espacio detrás del punto** para no partir abreviaturas ni decimales:
  * «Dr.», «2.5 mg» y «c.s.p.» siguen enteros.
  */
-const SEPARADORES = /[,;/\n]+|\.\s+|\sy\s/
+/**
+ * ── LA BARRA NO SEPARA: ESTÁ DENTRO DEL NOMBRE (5-ago-2026) ─────────────────
+ *
+ * Encontrado en el consultorio del Dr., leyendo sus pacientes reales: apareció
+ * un alérgeno llamado **«SMX)»**. Venía de esto:
+ *
+ *     «Trimetoprima/sulfametoxazol (TMP/SMX)»
+ *       → ['Trimetoprima', 'sulfametoxazol (TMP', 'SMX)']
+ *
+ * La barra estaba entre los separadores, y los antimicrobianos combinados —los
+ * que él prescribe todos los días— se escriben con barra: TMP/SMX,
+ * piperacilina/tazobactam, amoxicilina/clavulanato.
+ *
+ * ── POR QUÉ ES GRAVE ────────────────────────────────────────────────────────
+ *
+ * De aquí leen la compuerta de la receta, la nota, el recurso FHIR y el sesgo
+ * del reconocedor. Un paciente alérgico a TMP/SMX quedaba registrado como
+ * alérgico a «SMX)» — un texto que no coincide con ningún fármaco, así que **el
+ * cruce alergia↔fármaco puede no dispararse** justo con el antibiótico al que
+ * de verdad es alérgico.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * La barra sólo separa cuando tiene **espacio a algún lado** («penicilina /
+ * sulfas» es una lista; «TMP/SMX» es un nombre). Es la misma solución que ya se
+ * aplicó al punto: exigir el espacio para no partir lo que va junto.
+ */
+const SEPARADORES = /[,;\n]+|\s+\/\s*|\s*\/\s+|\.\s+|\sy\s/
 
 /** Los fragmentos NEGADOS del campo, para poder mostrarlos en vez de esconderlos. */
 export function negacionesEnTexto(texto: string | undefined): string[] {

@@ -799,6 +799,10 @@
     {
       "archivo": "src/__tests__/aprender-aunque-cambie-el-largo.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
+      "minCasos": 11
     }
   ]
 }
