@@ -16,8 +16,22 @@
  *
  * ── QUÉ HACE ─────────────────────────────────────────────────────────────────
  *
- * Si hay una incidencia de la llave de la PLATAFORMA en las últimas horas, la
- * enseña arriba, con el titular y la acción, y con un enlace al tablero.
+ * Si hay una incidencia **que exige que él haga algo** —la llave rechazada, la
+ * cuenta sin saldo—, la enseña arriba con el titular y la acción.
+ *
+ * ── Y LO QUE APRENDIÓ A NO HACER, EL MISMO DÍA ───────────────────────────────
+ *
+ * La primera versión enseñaba todo lo de las últimas horas. El Dr. la vio en su
+ * pantalla: **tres líneas del mismo aviso** —«Claude tardó demasiado»— ocupando
+ * el ancho completo por encima de su lista de pacientes, por algo que se
+ * resuelve solo y donde él no puede hacer nada.
+ *
+ * Un timeout o una saturación del proveedor son información de tablero. La
+ * franja es para lo que está caído hasta que él entre a arreglarlo.
+ *
+ * Es la misma fatiga de alerta que se reparó esa mañana en la compuerta de
+ * dosis, reintroducida aquí. Un aviso que salta donde no debe se acaba
+ * ignorando — y con él, los que sí importan.
  *
  * ── LO QUE NO HACE ───────────────────────────────────────────────────────────
  *
@@ -67,7 +81,7 @@ export function AvisoIncidenteIA({ esDueno }: { esDueno: boolean }) {
     <div
       role="status"
       style={{
-        margin: '0 0 12px', padding: '10px 14px', borderRadius: 10, fontSize: 13, lineHeight: 1.5,
+        margin: '8px 14px 4px', padding: '8px 12px', borderRadius: 10, fontSize: 12.5, lineHeight: 1.45,
         color, background: `color-mix(in srgb, ${color} 10%, transparent)`,
         border: `1px solid color-mix(in srgb, ${color} 32%, transparent)`,
         display: 'flex', gap: 10, alignItems: 'flex-start',
@@ -75,8 +89,9 @@ export function AvisoIncidenteIA({ esDueno }: { esDueno: boolean }) {
     >
       <AlertTriangle size={17} style={{ flexShrink: 0, marginTop: 1 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        {incidentes.slice(0, 3).map((i, n) => (
-          <div key={n} style={{ marginBottom: n < Math.min(incidentes.length, 3) - 1 ? 6 : 0 }}>
+        {/* Dos como mucho: si hay más, el problema es el tablero, no la franja. */}
+        {incidentes.slice(0, 2).map((i, n) => (
+          <div key={n} style={{ marginBottom: n < Math.min(incidentes.length, 2) - 1 ? 6 : 0 }}>
             <strong>{i.titulo}</strong>
             {typeof i.veces === 'number' && i.veces > 1 && (
               <span style={{ opacity: 0.85 }}> · {i.veces} veces</span>

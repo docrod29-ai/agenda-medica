@@ -346,7 +346,7 @@
     },
     {
       "archivo": "src/__tests__/la-caida-de-ia-sigue-al-dueno.test.ts",
-      "minCasos": 9
+      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",

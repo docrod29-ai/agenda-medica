@@ -38,13 +38,49 @@ export async function GET(req: NextRequest) {
   const corte = new Date(Date.now() - HORAS_VIGENTES * 3600_000).toISOString().slice(0, 13)
   const vigentes = todos.filter(i => String(i.hora ?? '') >= corte)
 
+  /**
+   * ── SÓLO LO QUE EXIGE QUE EL DUEÑO HAGA ALGO ────────────────────────────
+   *
+   * La primera versión enseñaba TODO lo de las últimas horas, y el 4-ago-2026
+   * el Dr. lo vio en su pantalla: tres líneas del mismo aviso —«Claude tardó
+   * demasiado»— ocupando el ancho completo por encima de su lista de pacientes.
+   *
+   * Un timeout, una saturación o un límite de tasa **se resuelven solos** y no
+   * hay nada que él pueda hacer: eso es información de tablero, no una franja
+   * sobre su trabajo. Lo urgente es otra cosa — la llave rechazada o la cuenta
+   * sin saldo — porque ahí la IA está caída para TODOS sus clientes y hasta que
+   * él entre a Vercel no se arregla.
+   *
+   * Es exactamente la fatiga de alerta que se reparó esa misma mañana en la
+   * compuerta de dosis (REG-141), reintroducida aquí por mí. Un aviso que salta
+   * donde no debe se acaba ignorando, y con él se ignoran los que sí importan.
+   */
+  const urgentes = vigentes.filter(i => i.urgente === true)
+
+  /**
+   * Y UNA SOLA LÍNEA POR PROBLEMA.
+   *
+   * Las incidencias se agrupan por HORA, así que una caída de tres horas son
+   * tres documentos idénticos. Enseñarlos como tres avisos hace ver tres
+   * problemas donde hay uno, y multiplica el ruido justo cuando más estorba.
+   */
+  const porTitulo = new Map<string, { titulo: string; queHacer: string; urgente: boolean; veces: number }>()
+  for (const i of urgentes) {
+    const clave = String(i.titulo ?? '')
+    const y = porTitulo.get(clave)
+    const veces = Number(i.veces ?? 1) || 1
+    if (y) { y.veces += veces; continue }
+    porTitulo.set(clave, {
+      titulo: clave, queHacer: String(i.queHacer ?? ''), urgente: true, veces,
+    })
+  }
+
   return NextResponse.json({
     ok: true,
     horasVigentes: HORAS_VIGENTES,
-    urgentes: vigentes.filter(i => i.urgente === true).length,
-    incidentes: vigentes.map(i => ({
-      titulo: i.titulo, queHacer: i.queHacer, urgente: i.urgente === true,
-      proveedor: i.proveedor, clase: i.clase, veces: i.veces, hora: i.hora,
-    })),
+    urgentes: porTitulo.size,
+    /** Lo NO urgente sigue existiendo — en el tablero, que es su sitio. */
+    noUrgentesEnElTablero: vigentes.length - urgentes.length,
+    incidentes: [...porTitulo.values()],
   })
 }
