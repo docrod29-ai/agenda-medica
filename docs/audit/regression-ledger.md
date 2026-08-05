@@ -653,3 +653,37 @@ comprueba que el código diga lo acordado, no que el proveedor lo acepte. El
 comentario que ya avisaba de esto seguía ahí, y volvió a pasar.
 
 **Golden** — `src/__tests__/sesgo-llega-al-motor-bueno.test.ts` (10 casos).
+
+## REG-168 · El foso, por fin medido
+
+**Qué era** — El sesgo del motor de voz con el expediente del paciente se
+declaraba como el foso del producto desde hacía versiones, y **nadie sabía cuánto
+aportaba**. El 71,48 % publicado en `WER-MEDIDO.md` se midió sin sesgo, porque
+aquel corpus no trae paciente.
+
+**Medición** (5-ago-2026, 150 frases, `universal-3-5-pro`, semilla fija):
+
+| Condición | Término clínico | WER |
+|---|---:|---:|
+| Sin sesgo | 78,89 % | 26,26 % |
+| Catálogo genérico | 80,90 % | 23,20 % |
+| **+ expediente del paciente** | **82,91 %** | **22,07 %** |
+| + tope ampliado (491) | 83,42 % | 22,35 % |
+
+**El reparto importa más que el total**: 2,01 pp los da el catálogo genérico —eso
+lo hace cualquiera— y **otros 2,01 pp el expediente del paciente**, que exige
+tener la historia clínica y el motor en la misma mano. Ésa es la mitad que no se
+compra.
+
+Términos que **sólo** rescata el expediente: `erisipela`, `pielonefritis
+enfisematosa`, `HFNC`, `PCWP`, `NEWS2`.
+
+**Sobre el tope ampliado** — +0,50 pp de acierto clínico y −0,28 pp de WER. Se
+despliega con el tope grande porque el acierto clínico manda sobre el WER: una
+dosis bien oída vale más que tres artículos. Es ajuste fino, no la palanca.
+
+**Y esta medición encontró REG-167** — la primera corrida dio 0,00 pp porque el
+sesgo degradaba el motor al modelo viejo. El defecto vale más que el número.
+
+**Golden** — `src/__tests__/sesgo-medido.test.ts` (10 casos): vigila que el
+documento y los datos crudos digan lo mismo y que los límites no se caigan.
