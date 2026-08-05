@@ -446,3 +446,30 @@ dueño). El CSV ya se repara con `reparar-corpus-expansion.ts` (1 322 verificada
 **Golden** — `src/__tests__/wer-publicado.test.ts` (8 casos): vigila que el
 documento público y los datos crudos digan lo mismo y que los límites no se caigan
 del texto.
+
+## REG-160 · El importador validaba un campo y escribía en otro
+
+**Dónde** — `src/lib/clinica/restaurar.ts` (`leerLinea`) y
+`src/app/api/clinic/importar/route.ts`.
+
+**Defecto 1 — se podía pisar una nota FIRMADA.** Cada línea del respaldo trae
+`_coleccion` y `_ruta`. El importador validaba `_coleccion` contra el manifiesto
+y escribía en `_ruta`; los dos vienen del mismo archivo y nada obligaba a que
+concordaran. Un respaldo manipulado podía declarar `_coleccion: "patients"`
+—inocua y admitida— apuntando `_ruta` a `…/patients/P/notas/N`. Y el importador
+usa el SDK admin, que **ignora las reglas**: la inmutabilidad de una nota firmada
+(NOM-024) no se evalúa por ese camino.
+
+**Defecto 2 — regresión propia de v1037, que rompía la restauración.** Al
+convertir `hijas` en un árbol (para respaldar adendas y versiones), el importador
+seguía interpolando cada elemento y producía `patients.[object Object]`. Así que
+`patients.notas` no figuraba entre las conocidas y **toda nota se rechazaba al
+restaurar**: el respaldo se exportaba completo y no se podía volver a meter.
+
+**Reparación, una para los dos** — La colección se **deriva de la ruta**
+(`coleccionDeLaRuta`): lo que se valida y lo que se escribe pasan a ser el mismo
+dato, y las rutas anidadas se reconocen solas. El importador aplana el árbol con
+`rutasDelArbol` en vez de interpolar (44 rutas conocidas, antes menos).
+
+**Golden** — `src/__tests__/importar-no-pisa-lo-firmado.test.ts` (9 casos),
+incluido el ataque exacto que antes pasaba.
