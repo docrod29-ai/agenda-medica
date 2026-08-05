@@ -803,6 +803,10 @@
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/via-no-especificada-es-un-hueco.test.ts",
+      "minCasos": 13
     }
   ]
 }

@@ -33,6 +33,7 @@
  *
  * Módulo PURO.
  */
+import { normalizarVia } from '@/lib/expediente/via-normalizada'
 
 /**
  * Cómo se dice una vía en una consulta, en voz alta y por escrito.
@@ -94,7 +95,19 @@ export function conViaAsumida<T extends MedicamentoConVia>(
   textoDeRespaldo?: string,
 ): T[] {
   return medicamentos.filter(m => {
-    const via = String(m.via ?? '').trim().toLowerCase()
+    /**
+     * ── «NO ESPECIFICADA» ES UN HUECO, NO UNA VÍA (5-ago-2026) ─────────────
+     *
+     * Aquí se comparaba contra `'oral'` y contra la cadena vacía. Pero en las
+     * notas firmadas del Dr. la IA escribe **«no especificada»** cuando no sabe
+     * (4 de 28 medicamentos), y con ese valor este aviso NO saltaba — siendo el
+     * caso exacto que tenía que cazar.
+     *
+     * Se normaliza antes de decidir: los huecos cuentan como vía sin dictar, y
+     * «subcutanea» se reconoce como `sc` y por tanto NO se avisa, porque ahí
+     * alguien sí decidió.
+     */
+    const via = normalizarVia(m.via)
     if (via && via !== 'oral') return false
     /**
      * La cita propia manda. El texto de respaldo sólo se usa cuando el extractor
