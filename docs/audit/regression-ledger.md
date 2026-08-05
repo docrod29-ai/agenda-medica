@@ -516,3 +516,28 @@ propósito: después, `fetchAutenticado` no tendría con qué autenticar. Lo que
 se pueda enviar se queda, y los asientos de otra persona siguen esperándola.
 
 **Golden** — `src/__tests__/auditoria-no-sobrevive-al-logout.test.ts` (7 casos).
+
+## REG-163 · Un consultorio podía quedarse con el canal de WhatsApp de otro
+
+**Dónde** — `manual-connect`, `meta-connect` y `360dialog-callback`.
+
+**Qué pasaba** — `whatsapp_channels/{id}` es el índice que usa el webhook para
+decidir a qué consultorio pertenece un mensaje entrante. Los tres caminos de
+conexión lo escribían con un `set()` plano, **sin mirar de quién era**. Si un
+segundo consultorio reclama un identificador ya tomado, el índice se reescribe y
+todos los mensajes entrantes de ese número pasan a entregarse en el consultorio
+nuevo — incluidos los de los pacientes del primero, que siguen escribiendo al
+mismo teléfono.
+
+Fuga entre inquilinos por la puerta de atrás: nadie lee el expediente de nadie,
+pero los mensajes de los pacientes de A acaban en la bandeja de B y el bot de B
+les contesta con la agenda de B.
+
+**Reparación** — `src/lib/whatsapp/reclamar-canal.ts`: reclamar un canal ocupado
+por otro consultorio devuelve 409 explicando qué hacer; la reconexión del mismo
+consultorio sigue permitida (cambio de token, reinstalación). **Fail-closed**: si
+el índice no se puede leer, no se reclama — es justo el caso en el que el `set()`
+optimista causaba el daño.
+
+**Golden** — `src/__tests__/canal-whatsapp-no-se-secuestra.test.ts` (11 casos),
+que exige la cobertura de **los tres** caminos: dejar uno abre el agujero entero.

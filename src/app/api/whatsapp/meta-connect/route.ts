@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { reclamarCanal } from '@/lib/whatsapp/reclamar-canal'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
@@ -185,13 +186,17 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     })
 
-    // 6. Index by phoneNumberId for fast webhook lookup
-    await adminDb.collection('whatsapp_channels').doc(info.phoneNumberId).set({
-      clinicId,
+    // 6. Index by phoneNumberId for fast webhook lookup.
+    //    No se le quita el canal a otro consultorio: ver `reclamarCanal`.
+    const reclamo = await reclamarCanal(info.phoneNumberId, clinicId, {
       provider: 'meta',
       phoneNumber: info.phoneNumber,
       createdAt: now,
     })
+    if (!reclamo.ok) {
+      safeLog.warn(`[meta-connect] canal ya en uso por ${reclamo.dueñoPrevio ?? '?'}`)
+      return NextResponse.json({ ok: false, error: reclamo.error }, { status: 409 })
+    }
 
     safeLog.info(`[meta-connect] ✅ Connected clinic ${clinicId} → ${info.phoneNumber} (WABA: ${info.wabaId})`)
 

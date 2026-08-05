@@ -771,6 +771,10 @@
     {
       "archivo": "src/__tests__/auditoria-no-sobrevive-al-logout.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/canal-whatsapp-no-se-secuestra.test.ts",
+      "minCasos": 11
     }
   ]
 }
