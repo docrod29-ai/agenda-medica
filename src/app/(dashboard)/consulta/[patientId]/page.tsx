@@ -2018,7 +2018,26 @@ export default function ConsultaActivaPage() {
            * el estado completo de cada una y se pisaban alternándose: ganaba el
            * último tick, normalmente el de la pestaña olvidada desde la mañana.
            */
-          await updateNota(clinicId, patientId, idActual, nota, vistoEnRef.current)
+          try {
+            await updateNota(clinicId, patientId, idActual, nota, vistoEnRef.current)
+          } catch (e) {
+            /**
+             * EL DOCUMENTO YA NO ESTÁ: SE VUELVE A CREAR, NO SE PIERDE.
+             *
+             * Pasa cuando la pantalla trae un `notaId` de un respaldo local
+             * restaurado o de una nota que se descartó. Antes, `updateDoc` sobre
+             * un documento ausente volvía como PERMISSION_DENIED —la regla no
+             * puede leer `resource.data` de lo que no existe— y el médico leía
+             * «el servidor rechazó el permiso» mientras dictaba una consulta.
+             *
+             * Aquí se reabre como BORRADOR (REG-017: ninguna nota nace firmada)
+             * con lo que hay en pantalla. El id cambia; el contenido no.
+             */
+            if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
+            const nuevo = await createNota(clinicId, patientId, { ...nota, estado: 'borrador' })
+            notaIdRef.current = nuevo
+            setNotaId(nuevo)
+          }
           vistoEnRef.current = nota.metadata?.fechaModificacion ?? vistoEnRef.current
         } else {
           const id = await createNota(clinicId, patientId, nota)
@@ -2050,7 +2069,8 @@ export default function ConsultaActivaPage() {
          */
         const codigo = (e as { code?: string })?.code ?? ''
         const detalle =
-          codigo === 'permission-denied' ? 'el servidor rechazó el permiso (reglas o sesión vencida)'
+          codigo === 'nota-inexistente' ? String((e as Error).message)
+          : codigo === 'permission-denied' ? 'el servidor rechazó el permiso (reglas o sesión vencida). Si acabas de restaurar un respaldo, puede que la nota original ya no exista'
           : codigo === 'unauthenticated' ? 'tu sesión expiró: vuelve a iniciar sesión'
           : /too large|invalid-argument|exceeds/i.test(String((e as Error)?.message ?? '')) ? 'la nota superó el tamaño máximo de un documento'
           : codigo === 'nota-demasiado-grande' ? String((e as Error).message)
@@ -2638,7 +2658,21 @@ export default function ConsultaActivaPage() {
         notaIdRef.current = id
         setNotaId(id)
       }
-      await updateNota(clinicId, patientId, id, notaFirmada)
+      try {
+        await updateNota(clinicId, patientId, id, notaFirmada)
+      } catch (e) {
+        /**
+         * Si el documento ya no está, la firma NO puede quedarse a medias: se
+         * recrea el borrador y se firma sobre él. Sin esto, «Error al firmar»
+         * dejaba al médico sin poder cerrar la consulta, que es el único paso
+         * que no admite esperar.
+         */
+        if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
+        const nuevo = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
+        notaIdRef.current = nuevo
+        setNotaId(nuevo)
+        await updateNota(clinicId, patientId, nuevo, notaFirmada)
+      }
       setFirmada(true)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')

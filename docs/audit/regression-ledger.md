@@ -296,3 +296,48 @@ consultorio. Aquí sólo se decide lo técnico.
 
 **Golden** — `src/__tests__/arco-oposicion.test.ts` (17 casos), incluida la
 comprobación de que la salida a la ruta va **antes** del `prompt()`.
+
+## REG-155 · «El servidor rechazó el permiso» cuando el permiso estaba bien
+
+**Dónde** — `src/lib/expediente/firestore.ts` (`updateNota`) y la pantalla de consulta.
+
+**Qué se veía** — Con una consulta enfrente, dos avisos a la vez: «La nota NO se
+está guardando en el servidor (el servidor rechazó el permiso (reglas o sesión
+vencida))» y «Error al firmar».
+
+**Lo que se descartó en su sistema en vivo** — rol `admin`, clínica `active`,
+`paseLibre`, sesión con token vivo, nota de 10 KB (el tope es 1 MB) y el campo
+`estado` presente en la raíz de los 22 documentos. Todo correcto.
+
+**Causa raíz** — La pantalla tenía un `notaId` de un documento que **ya no
+existe** (respaldo local restaurado, o nota descartada) y actualizaba a ciegas.
+Firestore, ante un `update` sobre un documento ausente, **no contesta «no
+existe»**: la regla intenta leer `resource.data.estado` de un `resource` nulo,
+revienta, y el fallo vuelve como PERMISSION_DENIED. De ahí el diagnóstico falso.
+
+**Por qué era evitable** — `updateNota` ya leía el documento justo antes para
+versionarlo y `prev.exists()` decía que no. Tenía el dato en la mano.
+
+**Reparación** — Se distingue «la lectura dijo que NO existe» de «la lectura
+falló» (sólo lo primero es concluyente) y la consulta se recupera sola: recrea el
+borrador con lo que hay en pantalla y sigue, en el autoguardado y en la firma.
+Siempre como borrador, para no saltarse REG-017.
+
+**Golden** — `src/__tests__/nota-que-ya-no-existe.test.ts` (8 casos).
+
+## REG-156 · El análisis de evidencia se rendía en 40 s y culpaba a la llave
+
+**Dónde** — `src/app/api/expediente/evidencia/route.ts`.
+
+**Qué pasaba** — Dos defectos. (1) 40 s fijos para el modelo dentro de una
+función de 60 s, sin descontar lo que PubMed ya había gastado: con 12 artículos y
+el nivel Máxima se acababa el reloj y la pantalla mostraba las fuentes sin
+razonamiento. (2) El aviso mandaba a «revisar tu llave/créditos» ante un timeout
+del proveedor — se comprobó en la cuenta del Dr. y estaban bien.
+
+**Reparación** — 300 s de función, presupuesto atado al literal por un test, y al
+modelo se le da **lo que queda** descontando lo ya gastado. El reloj es local a
+cada petición (como variable de módulo, dos consultas simultáneas se lo
+pisarían). El aviso distingue el timeout del problema de cuenta.
+
+**Golden** — `src/__tests__/evidencia-presupuesto.test.ts` (8 casos).

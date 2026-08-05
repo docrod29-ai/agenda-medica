@@ -249,6 +249,38 @@ export async function updateNota(
   } catch { /* nunca romper la operación clínica */ }
 
   /**
+   * ── EL DOCUMENTO PUEDE NO EXISTIR, Y ESO NO ES UN PROBLEMA DE PERMISOS ─────
+   *
+   * Encontrado el 4-ago-2026 con el Dr. en pantalla: «La nota NO se está
+   * guardando en el servidor (el servidor rechazó el permiso)» y «Error al
+   * firmar», las dos a la vez, con la consulta enfrente.
+   *
+   * La pantalla tenía un `notaId` —de un respaldo local restaurado, o de una
+   * nota que se descartó— y actualizaba a ciegas. Cuando el documento ya no
+   * está, Firestore **no** contesta «no existe»: la regla de update intenta leer
+   * `resource.data.estado` de un `resource` nulo, revienta, y el fallo se
+   * devuelve como **PERMISSION_DENIED**.
+   *
+   * De ahí el diagnóstico falso. El médico —y yo— nos fuimos a mirar reglas,
+   * roles y sesión, y estaban bien: rol admin, clínica activa, pase libre, token
+   * vivo. El documento simplemente no estaba.
+   *
+   * Lo que lo vuelve evitable es que **esta función ya lo sabía**: acaba de leer
+   * el documento arriba para versionarlo, y `prev.exists()` decía que no. Tenía
+   * el dato en la mano y escribía igual.
+   *
+   * Se distingue con cuidado «la lectura dijo que NO existe» de «la lectura
+   * falló»: sólo lo primero es concluyente. Si hubo un hipo de red, `prevLeida`
+   * es nulo y se sigue como siempre — quedarse sin guardar por eso sería peor.
+   */
+  if (prevLeida && !prevLeida.exists()) {
+    throw Object.assign(
+      new Error('La nota que esta pantalla tenía abierta ya no existe en el servidor. No se perdió nada: se vuelve a crear con lo que hay en pantalla.'),
+      { code: 'nota-inexistente' },
+    )
+  }
+
+  /**
    * LA GUARDIA. Va DESPUÉS del versionado a propósito: si hay conflicto, el
    * estado que se estaba a punto de pisar ya quedó guardado como versión, así
    * que no se pierde por haber detectado el choque.

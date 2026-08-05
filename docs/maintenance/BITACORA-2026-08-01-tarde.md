@@ -19,6 +19,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 ---
 
 - **v1038** — Cobro duplicado del anticipo (REG-153). `stripe/webhook/route.ts`: id determinista `stripe_{session.id}` + `create()`; ALREADY_EXISTS = éxito idempotente y se sigue a saldar la cita. La marca se sigue retirando al fallar (impide el estado peor: cobrado en Stripe e invisible en Finanzas). Golden de 7 casos.
+- **v1039** — REG-155: «el servidor rechazó el permiso» con permiso correcto. Verificado EN VIVO en su cuenta (rol admin, clínica activa, pase libre, token vivo, nota de 10 KB, `estado` presente): el documento simplemente ya no existía y `updateDoc` sobre un ausente vuelve como PERMISSION_DENIED. `updateNota` ya lo sabía (`prev.exists()`) y escribía igual. Ahora se distingue y la consulta se recrea sola, en autoguardado y en firma, siempre como borrador. + REG-156: evidencia con 300 s y presupuesto descontando lo gastado; el aviso ya no culpa a la llave ante un timeout. + REG-154: la «O» de ARCO ejecuta la baja de contacto.
 ## Desplegado esta sesión
 
 | Versión | Qué |
