@@ -85,6 +85,50 @@ export function redactarString(s: string): string {
 }
 
 /**
+ * LA RUTA DEL NAVEGADOR, SIN EL IDENTIFICADOR DEL PACIENTE.
+ *
+ * ── EL HUECO ────────────────────────────────────────────────────────────────
+ *
+ * `/api/errores` guarda la ruta en la que ocurrió el fallo, y hace bien: sin
+ * saber DÓNDE se rompió, un reporte no sirve de nada.
+ *
+ * Pero las rutas de esta aplicación llevan el identificador del paciente dentro
+ * —`/consulta/<patientId>`, `/expediente/<patientId>`, `/uci/<internamientoId>`—
+ * y esos reportes van a `errores`, una colección **raíz**: fuera del ámbito del
+ * consultorio y legible desde la consola del dueño de la plataforma. Un
+ * identificador de paciente cruzando esa frontera es PHI saliendo de su
+ * consultorio por un canal de diagnóstico técnico.
+ *
+ * ── LO QUE SE CONSERVA Y LO QUE SE BORRA ────────────────────────────────────
+ *
+ * Se conserva la FORMA —`/consulta/:id`—, que es lo que hace útil el reporte, y
+ * se borra el valor. Quien lea el error sigue sabiendo qué pantalla falló y deja
+ * de saber de quién era la consulta.
+ *
+ * Se sustituye cualquier segmento que parezca un identificador (los de Firestore
+ * son de 20 caracteres, pero se acepta desde 12 para cubrir otros formatos) y
+ * también la última parte de rutas conocidas, aunque no lo parezca.
+ */
+const SEGMENTOS_CON_ID = ['consulta', 'expediente', 'paciente', 'patients', 'uci', 'hospital', 'internamiento', 'nota', 'notas', 'dr']
+
+export function redactarRuta(ruta: string): string {
+  if (!ruta || typeof ruta !== 'string') return ruta
+  const [camino, ...resto] = ruta.split('?')
+  const partes = camino.split('/')
+  const limpio = partes.map((seg, i) => {
+    if (!seg) return seg
+    const previo = (partes[i - 1] ?? '').toLowerCase()
+    if (SEGMENTOS_CON_ID.includes(previo)) return ':id'
+    // Un segmento largo sin espacios y con mezcla de letras y dígitos es un id.
+    if (seg.length >= 12 && /^[A-Za-z0-9_-]+$/.test(seg) && /\d/.test(seg) && /[A-Za-z]/.test(seg)) return ':id'
+    return seg
+  }).join('/')
+  // La cadena de consulta se tira entera: nunca debió llevar datos y no se
+  // necesita para saber dónde falló.
+  return resto.length ? `${limpio}?…` : limpio
+}
+
+/**
  * Redacta PII en cualquier valor (string, objeto, array, primitivo).
  * Preserva la estructura — útil para debugging sin perder forma.
  */
