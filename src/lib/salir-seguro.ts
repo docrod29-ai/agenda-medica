@@ -113,6 +113,28 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
   limpiarZonaConsultorio()   // si entra otro consultorio, no hereda la zona del anterior
 
   /**
+   * LA COLA DE AUDITORÍA SE VACÍA ANTES DE CERRAR, NO DESPUÉS.
+   *
+   * `nx.audit.pendientes` vive en `localStorage` y sobrevivía al logout: en un
+   * equipo compartido —que es la norma en un consultorio— quedaban en disco
+   * asientos con el paciente y el evento dentro, visibles para quien entrara
+   * después.
+   *
+   * No se purga a ciegas: un asiento sin mandar es registro medicolegal, y
+   * borrarlo «por seguridad» sería perderlo. Se **manda** mientras el token
+   * todavía sirve, que es lo único que lo vacía de verdad. Lo que no se pueda
+   * enviar se queda —igual que el borrador—, y los asientos de OTRA persona
+   * siguen esperando a que vuelva, como ya hacía `drenarCola`.
+   *
+   * Va antes del `signOut` a propósito: después, `fetchAutenticado` ya no tiene
+   * con qué autenticar y la cola no se vaciaría nunca.
+   */
+  try {
+    const { drenarCola } = await import('@/lib/expediente/audit-log')
+    await drenarCola()
+  } catch { /* nunca trabar el cierre de sesión por la bitácora */ }
+
+  /**
    * LA PURGA ES CONDICIONAL, Y ÉSTE ES EL CAMBIO QUE IMPORTA.
    *
    * Purgar es el control de PHI en dispositivo compartido y se mantiene cuando
