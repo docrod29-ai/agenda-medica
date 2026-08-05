@@ -58,6 +58,31 @@ for (const nota of notas) {
 ({ cumplen, incumplen })   // ← lo único que sale
 ```
 
+### Resultado de la primera pasada — 5-ago-2026
+
+Ejecutada sobre el consultorio real del Dr. **Sólo recuentos; ningún contenido
+salió del navegador.**
+
+| Invariante | Resultado |
+|---|---|
+| Nota firmada ⇒ tiene sello de integridad | **10 / 10** ✓ |
+| Nota firmada ⇒ tiene bloque de firma | **10 / 10** ✓ |
+| Nota firmada ⇒ tiene médico y cédula | **10 / 10** ✓ |
+| Nota ⇒ tiene `estado` en la raíz | **22 / 22** ✓ |
+| Cobro de anticipo ⇒ sin duplicados | **0 cobros** — el defecto REG-153 nunca llegó a materializarse |
+| Cita ⇒ sin doble reserva | **0** ✓ |
+| Nota de voz firmada ⇒ tiene `transcripcionMotor` | **0 / 10** ✗ → REG-170 |
+| Cita ⇒ tiene médico asignado | 1 sin médico (caso aislado, no patrón) |
+
+El expediente está íntegro. El único incumplimiento sistemático era el que
+destapó REG-170 — y es justo el que ninguna prueba podía ver.
+
+**Un aviso sobre la propia herramienta:** la primera medición de citas dio «0
+dobles reservas» porque buscaba los campos `fecha` y `hora`, y el documento usa
+`fechaHora`. El número era correcto por accidente y la medición estaba mal. Antes
+de publicar un recuento hay que confirmar que los campos existen — leer un campo
+inexistente devuelve vacío, no un error.
+
 ### Invariantes que hoy conviene comprobar
 
 | Invariante | Por qué | Estado |
