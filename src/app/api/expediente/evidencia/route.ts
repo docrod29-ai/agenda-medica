@@ -25,13 +25,51 @@ import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubme
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+/**
+ * EL RAZONAMIENTO NECESITA MÁS DE UN MINUTO, Y ANTES NO LO TENÍA.
+ *
+ * Con 12 artículos de PubMed en el contexto y el nivel Máxima (Opus), 40 s de
+ * presupuesto se agotaban y la pantalla devolvía las fuentes sin el análisis:
+ * el médico veía la bibliografía y ningún razonamiento.
+ *
+ * 300 s en la función y el resto del presupuesto para el modelo, descontando lo
+ * que PubMed ya gastó. Es el mismo trato que se le dio al procesado de la nota:
+ * darle el tiempo que necesita en vez de recortarle la calidad.
+ *
+ * Tiene que ser un literal — Next rechaza una referencia aquí.
+ */
+export const maxDuration = 300
+
+/** Presupuesto total de la función, en ms. Atado al literal de arriba por un test. */
+const PRESUPUESTO_MS = 300_000
+/** Lo que se reserva para armar y devolver la respuesta. */
+const RESERVA_RESPUESTA_MS = 15_000
 const ANTHROPIC_VERSION = '2023-06-01'
 const MODELOS_PREMIUM = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
 
 export async function POST(req: NextRequest) {
+  /**
+   * EL RELOJ DE ESTA PETICIÓN — local, no de módulo.
+   *
+   * Se pone al entrar y no al llamar al modelo: PubMed ya gastó tiempo antes, y
+   * darle al modelo un presupuesto fijo ignorando ese gasto es como se llegaba
+   * al corte con la respuesta a medio escribir.
+   *
+   * Va dentro de `POST` a propósito. Como variable de módulo, dos consultas
+   * simultáneas en el mismo runtime se pisarían el reloj: la segunda lo
+   * reiniciaría y la primera creería que le queda más tiempo del que tiene.
+   */
+  const t0Peticion = Date.now()
+
+  /**
+   * Lo que de verdad le queda al modelo. Nunca menos de 20 s: por debajo no
+   * alcanza ni para empezar, y es mejor decirlo que fingir un intento.
+   */
+  const msParaElModelo = () =>
+    Math.max(20_000, PRESUPUESTO_MS - RESERVA_RESPUESTA_MS - (Date.now() - t0Peticion))
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`evidencia:${acceso.uid}`, 30, 60)
@@ -213,7 +251,7 @@ export async function POST(req: NextRequest) {
         messages: [{ role: 'user', content: usr }],
       }
       if (conThinking && /opus-4|sonnet-5|sonnet-4/.test(model)) payload.thinking = { type: 'enabled', budget_tokens: 5000 }
-      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(40000) })
+      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(msParaElModelo()) })
     }
     try {
       let res = await llamar(modelos[0])
@@ -262,7 +300,19 @@ export async function POST(req: NextRequest) {
 
     if (!final) {
       const motivo = diag.length ? diag.join(' · ') : 'la IA tardó demasiado (timeout)'
-      return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se obtuvo el razonamiento — ${motivo}. Revisa tu llave/créditos en Configuración → Llaves de IA.` })
+      /**
+       * EL AVISO NO PUEDE CULPAR A LA LLAVE CUANDO LA CAUSA FUE EL RELOJ.
+       *
+       * Decía «Revisa tu llave/créditos» pasara lo que pasara. Ante un timeout
+       * del proveedor eso manda al médico a revisar una llave que está bien —el
+       * mismo diagnóstico falso que el «rechazó el permiso» de la nota— y le
+       * hace perder el tiempo en el único momento en que no lo tiene.
+       */
+      const esReloj = /timeout|aborted|deadline|ETIMEDOUT/i.test(motivo)
+      const queHacer = esReloj
+        ? 'Fue el proveedor, no tu cuenta: vuelve a pulsar «actualizar». Las fuentes de abajo son reales y sirven igual.'
+        : 'Revisa tu llave/créditos en Configuración → Llaves de IA.'
+      return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se obtuvo el razonamiento — ${motivo}. ${queHacer}` })
     }
 
     void registrarUso(clinicId, fuente)

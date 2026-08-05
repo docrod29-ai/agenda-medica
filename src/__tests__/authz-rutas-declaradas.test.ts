@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(97)   // +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(98)   // +1 el 2026-08-04: `arco/oponerse` (la «O» de ARCO, que se «resolvía» con un prompt() y no apagaba el contacto); +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
   })
 })
 
@@ -445,12 +445,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // correcto es exactamente éste. Si hubiera subido la ruta y no la llamada,
     // o hubiera entrado el POST sin llamada, el POST que mueve dinero estaría
     // abierto.
-    expect(llamadas.length).toBe(95)   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(78)   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(96)   // +1 el 2026-08-04: `arco/oponerse`   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(rutasConGuardia).toBe(79)   // +1 el 2026-08-04: `arco/oponerse`   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(52)   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(conVocabulario).toBe(53)   // +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -461,7 +461,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 61, activos: 34, pendientes: 27,   // +1 el 2026-08-03 `clinic/exportar-excel`: nace ACTIVA (verificarCapacidad, sin pendiente). +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
+      declarados: 62, activos: 35, pendientes: 27,   // +1 el 2026-08-04 `arco/oponerse`: nace ACTIVA (verificarCapacidad 'administrar', sin pendiente). +1 el 2026-08-03 `clinic/exportar-excel`: nace ACTIVA (verificarCapacidad, sin pendiente). +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -610,6 +610,13 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'arco/acceso',
       // Toca la identidad porque la SUPRIME o la bloquea: es su razón de ser.
       'arco/cancelar',
+      /**
+       * La «O» de ARCO: lee el teléfono del titular para darlo de baja del
+       * contacto proactivo. Toca identidad, y va bajo `administrar` como sus
+       * hermanas — decidir para qué dejan de usarse los datos de alguien es del
+       * responsable del tratamiento, no del mostrador.
+       */
+      'arco/oponerse',
       /**
        * Restaura el consultorio entero desde un respaldo: reescribe pacientes
        * por definición. Es la operación más destructiva después de la supresión

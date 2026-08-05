@@ -1561,6 +1561,19 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
 
+## v1039 — La nota que no se guardaba, la firma que fallaba y la evidencia que se rendía
+
+Los dos primeros eran el mismo defecto: la pantalla actualizaba un documento que
+ya no existe, y Firestore devuelve PERMISSION_DENIED —no «no existe»— porque la
+regla no puede leer `resource.data` de lo ausente. El aviso culpaba a las reglas
+y a la sesión, que estaban bien. Ahora la consulta se recupera sola. REG-155.
+
+El tercero: 40 s de presupuesto para el razonamiento y un aviso que mandaba a
+revisar la llave ante un timeout del proveedor. 300 s y aviso honesto. REG-156.
+
+También la «O» de ARCO, que se resolvía con un `prompt()` y no apagaba el
+contacto. REG-154.
+
 ## v1038 — El anticipo ya no se puede cobrar dos veces
 
 El cobro del anticipo se escribía con `.add()`. Si la cita se reagendaba antes de
