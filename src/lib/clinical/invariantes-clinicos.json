@@ -767,6 +767,10 @@
     {
       "archivo": "src/__tests__/errores-sin-phi.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/auditoria-no-sobrevive-al-logout.test.ts",
+      "minCasos": 7
     }
   ]
 }

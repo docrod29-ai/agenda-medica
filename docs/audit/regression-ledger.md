@@ -495,3 +495,24 @@ usando aquí.
 **Golden** — `src/__tests__/errores-sin-phi.test.ts` (9 casos), incluida la
 comprobación de que una ruta inocua no se estropea — un redactor que borra de más
 hace ilegible el informe.
+
+## REG-162 · La cola de auditoría sobrevivía al cierre de sesión
+
+**Dónde** — `src/lib/salir-seguro.ts` y `src/lib/expediente/audit-log.ts`.
+
+**Qué pasaba** — `nx.audit.pendientes` vive en `localStorage` y guarda los
+asientos de bitácora que no se pudieron mandar, con el paciente y el evento
+dentro. La limpieza del logout sólo mira `PREFIJOS_PHI`, así que esa cola se
+quedaba en el disco: en un equipo compartido, visible para quien entrara después.
+
+**Por qué no se borra sin más** — Un asiento sin mandar es registro medicolegal.
+Purgarlo «por seguridad» cambiaría un problema de privacidad por una pérdida de
+trazabilidad — el mismo error que ya se cometió con los borradores y se corrigió
+purgando sólo cuando el trabajo está a salvo.
+
+**Reparación** — Se **manda** la cola antes de cerrar, mientras el token todavía
+sirve, que es lo único que la vacía de verdad. Va antes del `signOut` a
+propósito: después, `fetchAutenticado` no tendría con qué autenticar. Lo que no
+se pueda enviar se queda, y los asientos de otra persona siguen esperándola.
+
+**Golden** — `src/__tests__/auditoria-no-sobrevive-al-logout.test.ts` (7 casos).

@@ -124,8 +124,15 @@ async function enviarAsiento(cuerpo: Record<string, unknown>): Promise<{ ok: boo
   }
 }
 
-/** Vacía lo que se pueda de la cola. No bloquea a quien la llama. */
-async function drenarCola(): Promise<void> {
+/**
+ * Vacía lo que se pueda de la cola. No bloquea a quien la llama.
+ *
+ * Se exporta para poder llamarla **antes de cerrar la sesión**: la cola vive en
+ * `localStorage` y sobrevivía al logout en un equipo compartido, con asientos
+ * que llevan dentro el paciente y el evento. Purgarla a ciegas perdería registro
+ * medicolegal; mandarla mientras el token todavía sirve la vacía de verdad.
+ */
+export async function drenarCola(): Promise<void> {
   const cola = leerCola()
   if (!cola.length) return
   const yo = uidActual()
