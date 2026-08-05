@@ -1,0 +1,32 @@
+[
+  {
+    "speaker": "A",
+    "start": 500,
+    "end": 2163,
+    "text": "¿Cuánta levotiroxina toma?"
+  },
+  {
+    "speaker": "B",
+    "start": 3567,
+    "end": 6279,
+    "text": "75 microgramos en ayunas."
+  },
+  {
+    "speaker": "A",
+    "start": 7377,
+    "end": 9777,
+    "text": "¿Y desde cuándo con esa dosis?"
+  },
+  {
+    "speaker": "B",
+    "start": 12096,
+    "end": 13919,
+    "text": "Desde hace como 2 años."
+  },
+  {
+    "speaker": "A",
+    "start": 15536,
+    "end": 18576,
+    "text": "Vamos a pedir perfil tiroideo antes de moverla."
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "speaker": "A",
+    "start": 16,
+    "end": 2067,
+    "text": "¿Qué medicamentos está tomando?"
+  },
+  {
+    "speaker": "B",
+    "start": 3237,
+    "end": 6796,
+    "text": "Ay, no me acuerdo de los nombres, doctor."
+  },
+  {
+    "speaker": "A",
+    "start": 8110,
+    "end": 20260,
+    "text": "Yo los traigo apuntados: losartán 50 miligramos en la mañana, metformina 850 en la mañana y en la noche, y atorvastatina 20 en la noche."
+  },
+  {
+    "speaker": "B",
+    "start": 21590,
+    "end": 23866,
+    "text": "¿Y la aspirina la sigue tomando?"
+  },
+  {
+    "speaker": "A",
+    "start": 24716,
+    "end": 27473,
+    "text": "Esa se la quitaron hace como un año."
+  },
+  {
+    "speaker": "B",
+    "start": 28393,
+    "end": 32169,
+    "text": "De acuerdo, entonces aspirina suspendida."
+  }
+]

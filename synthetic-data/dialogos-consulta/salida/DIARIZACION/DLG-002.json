@@ -1,0 +1,26 @@
+[
+  {
+    "speaker": "A",
+    "start": 1236,
+    "end": 3178,
+    "text": "¿Ha estado hospitalizado alguna vez?"
+  },
+  {
+    "speaker": "B",
+    "start": 3949,
+    "end": 9215,
+    "text": "Sí, tuve neumonía hace 3 años y estuve una semana internado."
+  },
+  {
+    "speaker": "A",
+    "start": 10628,
+    "end": 14273,
+    "text": "¿Y desde entonces ha vuelto a tener problemas respiratorios?"
+  },
+  {
+    "speaker": "B",
+    "start": 15429,
+    "end": 28241,
+    "text": "No, desde entonces nada. Ahorita vengo por otra cosa. Cuénteme entonces, ¿qué lo trae hoy? Me duele mucho la rodilla derecha desde hace 2 semanas."
+  }
+]

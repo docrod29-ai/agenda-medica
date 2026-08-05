@@ -63,6 +63,14 @@ export const TOPE_TERMINOS = 1000
  * justamente la parte que más importa.
  */
 export const TOPE_POR_MODELO: Readonly<Record<string, number>> = {
+  /**
+   * El nombre lleva GUIONES, no punto. El 4-ago-2026 el proveedor lo dijo en su
+   * propio mensaje de error al retirar `speech_model`: «Use speech_models:
+   * ["universal-3-5-pro", "universal-2"]». Se conserva la forma anterior
+   * apuntando al mismo tope, para que un llamador que no se haya enterado no se
+   * quede con el presupuesto más pequeño por una cadena de texto.
+   */
+  'universal-3-5-pro': 1000,
   'universal-3.5-pro': 1000,
   'universal-2': 200,
 }

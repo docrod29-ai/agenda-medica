@@ -1,0 +1,44 @@
+[
+  {
+    "speaker": "A",
+    "start": 222,
+    "end": 4120,
+    "text": "Buenas tardes, señor Ramírez. Tome asiento."
+  },
+  {
+    "speaker": "B",
+    "start": 5039,
+    "end": 8712,
+    "text": "Vengo por un dolor de garganta que ya lleva 3 días, doctor."
+  },
+  {
+    "speaker": "A",
+    "start": 10758,
+    "end": 15076,
+    "text": "¿Tiene enfermedades crónicas como diabetes o presión alta?"
+  },
+  {
+    "speaker": "B",
+    "start": 16318,
+    "end": 19693,
+    "text": "No, ninguna. Nunca me han dicho nada de eso."
+  },
+  {
+    "speaker": "A",
+    "start": 21996,
+    "end": 23337,
+    "text": "¿Alergia a algún medicamento?"
+  },
+  {
+    "speaker": "B",
+    "start": 24501,
+    "end": 25600,
+    "text": "No que yo sepa."
+  },
+  {
+    "speaker": "A",
+    "start": 27167,
+    "end": 29883,
+    "text": "Muy bien. Le voy a revisar la garganta."
+  }
+]

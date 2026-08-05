@@ -1,0 +1,38 @@
+[
+  {
+    "speaker": "A",
+    "start": 256,
+    "end": 4396,
+    "text": "Buenas tardes, doña Carmen. ¿Cómo se ha sentido?"
+  },
+  {
+    "speaker": "B",
+    "start": 5712,
+    "end": 14906,
+    "text": "Pues más o menos, doctor. Doctor, yo soy su hija. Ella no le va a decir, pero se ha estado cayendo."
+  },
+  {
+    "speaker": "C",
+    "start": 16382,
+    "end": 19719,
+    "text": "No fueron caídas. Nada más me resbalé."
+  },
+  {
+    "speaker": "A",
+    "start": 20874,
+    "end": 23971,
+    "text": "¿Perdió el conocimiento en alguna de las dos?"
+  },
+  {
+    "speaker": "C",
+    "start": 25207,
+    "end": 27020,
+    "text": "No, en ningún momento."
+  },
+  {
+    "speaker": "A",
+    "start": 28031,
+    "end": 31015,
+    "text": "Y también se le olvidan las cosas, doctor."
+  }
+]

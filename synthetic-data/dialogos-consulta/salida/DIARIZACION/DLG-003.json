@@ -1,0 +1,38 @@
+[
+  {
+    "speaker": "A",
+    "start": 502,
+    "end": 3147,
+    "text": "¿Toma algún medicamento de forma regular?"
+  },
+  {
+    "speaker": "B",
+    "start": 5207,
+    "end": 9629,
+    "text": "Sí, desde hace 3 años tengo diabetes y tomo metformina."
+  },
+  {
+    "speaker": "A",
+    "start": 10389,
+    "end": 11975,
+    "text": "¿Qué dosis de metformina?"
+  },
+  {
+    "speaker": "B",
+    "start": 13576,
+    "end": 16202,
+    "text": "850, 2 veces al día."
+  },
+  {
+    "speaker": "A",
+    "start": 17620,
+    "end": 19989,
+    "text": "¿Y se la ha tomado todos los días?"
+  },
+  {
+    "speaker": "B",
+    "start": 21307,
+    "end": 23431,
+    "text": "Sí, doctor, sin faltar."
+  }
+]

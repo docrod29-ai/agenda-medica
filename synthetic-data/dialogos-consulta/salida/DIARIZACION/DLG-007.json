@@ -1,0 +1,32 @@
+[
+  {
+    "speaker": "A",
+    "start": 755,
+    "end": 2636,
+    "text": "¿Es alérgico a algún medicamento?"
+  },
+  {
+    "speaker": "B",
+    "start": 3633,
+    "end": 8343,
+    "text": "Sí, a la penicilina. Me salió roncha todo el cuerpo cuando era joven."
+  },
+  {
+    "speaker": "A",
+    "start": 9034,
+    "end": 13166,
+    "text": "¿Alguna otra? ¿Sulfas, aspirina, medio de contraste?"
+  },
+  {
+    "speaker": "B",
+    "start": 14339,
+    "end": 17747,
+    "text": "A las sulfas también, me hincharon los labios."
+  },
+  {
+    "speaker": "A",
+    "start": 18824,
+    "end": 23036,
+    "text": "Muy bien, lo anoto. Nada de penicilinas ni sulfas."
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "speaker": "A",
+    "start": 16,
+    "end": 1910,
+    "text": "¿Cuál brazo es el que le duele?"
+  },
+  {
+    "speaker": "B",
+    "start": 3324,
+    "end": 7129,
+    "text": "El izquierdo, doctor, desde el hombro hasta el codo."
+  },
+  {
+    "speaker": "A",
+    "start": 8061,
+    "end": 10742,
+    "text": "¿Y hay hormigueo en la mano izquierda?"
+  },
+  {
+    "speaker": "B",
+    "start": 11979,
+    "end": 14115,
+    "text": "Sí, en los dedos de esa mano."
+  },
+  {
+    "speaker": "A",
+    "start": 14950,
+    "end": 19815,
+    "text": "Vamos a pedir una radiografía de hombro izquierdo."
+  }
+]

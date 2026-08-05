@@ -1,0 +1,38 @@
+[
+  {
+    "speaker": "A",
+    "start": 112,
+    "end": 2234,
+    "text": "¿Alguien en su familia con cáncer?"
+  },
+  {
+    "speaker": "B",
+    "start": 3230,
+    "end": 8405,
+    "text": "Mi papá tuvo cáncer de colon. Falleció hace 8 años."
+  },
+  {
+    "speaker": "A",
+    "start": 9595,
+    "end": 12440,
+    "text": "¿Y usted se ha hecho alguna colonoscopía?"
+  },
+  {
+    "speaker": "B",
+    "start": 13516,
+    "end": 14850,
+    "text": "No, nunca."
+  },
+  {
+    "speaker": "A",
+    "start": 15943,
+    "end": 19351,
+    "text": "¿Ha notado sangrado al evacuar?"
+  },
+  {
+    "speaker": "B",
+    "start": 20829,
+    "end": 22967,
+    "text": "No, nada de eso."
+  }
+]

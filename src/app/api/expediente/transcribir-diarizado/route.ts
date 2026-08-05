@@ -36,7 +36,37 @@ export const maxDuration = 60
  * —está entre sus 18 idiomas— y «keyterms prompting up to 1,000 words», que es
  * exactamente el tamaño de nuestra lista de sesgo.
  */
-const MODELO_DIARIZACION = 'universal-3.5-pro'
+const MODELO_DIARIZACION = 'universal-3-5-pro'
+
+/**
+ * ── EL PARÁMETRO CAMBIÓ Y NOS DEJÓ SIN DIARIZACIÓN (4-ago-2026) ─────────────
+ *
+ * El proveedor **retiró `speech_model`**. Ya no acepta ningún valor — ni el
+ * nombre del modelo ni el alias `'best'`:
+ *
+ *     «The speech_model parameter is deprecated. Use speech_models:
+ *      ["universal-3-5-pro", "universal-2"]»
+ *
+ * Comprobado contra su API el 4-ago-2026, con las dos variantes.
+ *
+ * Consecuencia real: **los dos intentos de esta ruta devolvían 400**. El
+ * principal por pedir el modelo por su nombre, y el reintento por caer al alias
+ * heredado — que era justo la red de seguridad. Con los dos caídos, cada
+ * consulta grabada se iba al motor de respaldo y se quedaba **sin separación de
+ * voces**: sin ella no hay atribución de rol, y sin rol el motor de negaciones y
+ * la procedencia razonan sobre un diálogo plano.
+ *
+ * Y no avisaba: la ruta hace lo correcto —seguir con el respaldo antes que
+ * dejar al médico sin nota— así que el fallo era silencioso.
+ *
+ * Ahora se manda `speech_models` con la lista, que es el mecanismo de respaldo
+ * **del propio proveedor**: si el primero no está disponible usa el segundo, sin
+ * un segundo viaje ni una segunda subida del audio.
+ *
+ * El nombre también cambió de forma: `universal-3.5-pro` → `universal-3-5-pro`,
+ * con guiones. Lo dice el mensaje de error, literal.
+ */
+const MODELOS_DIARIZACION = ['universal-3-5-pro', 'universal-2'] as const
 
 /**
  * Cuántas voces como mucho en una grabación clínica.
@@ -160,34 +190,33 @@ export async function POST(req: NextRequest) {
      * siempre: **nunca se queda sin sesgo por un dato ausente**.
      */
     /**
-     * ── EL MODELO SE PIDE POR SU NOMBRE, Y EL TOPE VA CON ÉL ─────────────────
+     * ── LA LISTA DE MODELOS, Y EL TOPE DEL MÁS PEQUEÑO ──────────────────────
      *
-     * Aquí iba `speech_model: 'best'`. Comprobado en la documentación del
-     * proveedor (agosto 2026): **«best» ya no aparece** entre los valores de
-     * `speech_model`. Es un alias heredado: puede seguir resolviéndose, pero a
-     * qué modelo lo decide el proveedor y puede cambiar sin avisar — y de ese
-     * modelo depende **cuántos términos de sesgo se aceptan**: 1 000 en
-     * `universal-3.5-pro`, 200 en `universal-2`.
+     * El respaldo lo hace **el proveedor**, no nosotros: `speech_models` acepta
+     * una lista y usa el primero disponible. Eso ahorra un segundo viaje y una
+     * segunda subida del audio, que en una consulta de veinte minutos no es un
+     * detalle.
      *
-     * O sea que con un alias no sabíamos si nuestros mil términos entraban
-     * enteros o si ochocientos los estaba tirando el proveedor por su cuenta —
-     * y el orden de esa lista ES la política: primero los fármacos de ESTE
-     * paciente.
+     * **El sesgo se presupuesta para el modelo MÁS PEQUEÑO de la lista** —200
+     * términos, no 1 000—. Si se presupuestara para el mayor y el proveedor
+     * acabara usando el menor, ochocientos términos los tiraría él, por el
+     * criterio que quisiera y sin decirlo. Y el orden de esa lista ES la
+     * política: primero los fármacos de ESTE paciente. Un recorte que no
+     * controlamos puede llevarse justo la parte que importa.
      *
-     * Se pide el modelo por su nombre y el sesgo se presupuesta para ÉL. Si el
-     * proveedor rechaza el nombre, se reintenta con el alias de siempre: perder
-     * la separación de voces por una cadena de texto sería mucho peor que seguir
-     * con lo que ya funcionaba.
+     * Se prefiere mandar menos y saber cuáles, que mandar más y no saber cuáles
+     * llegaron.
      */
-    const armar = (modelo: string | null) => {
-      const sesgo = componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, modelo ? topeDe(modelo) : TOPE_TERMINOS)
+    const tope = Math.min(...MODELOS_DIARIZACION.map(m => topeDe(m)))
+    const armar = () => {
+      const sesgo = componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, tope)
       if (sesgo.descartados > 0) {
         // Un tope que nadie ve se lee como «cupo todo».
-        safeLog.info(`[diarizado] sesgo (${modelo ?? 'best'}): ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
+        safeLog.info(`[diarizado] sesgo (${MODELOS_DIARIZACION.join(', ')}): ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
       }
       return {
         audio_url,
-        speech_model: modelo ?? 'best',
+        speech_models: [...MODELOS_DIARIZACION],
         speaker_labels: true,   // separa voces (Hablante A/B/C…)
         /**
          * CUÁNTAS VOCES COMO MUCHO.
@@ -234,15 +263,26 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(cuerpo),
     })
 
-    let sub = await enviar(armar(MODELO_DIARIZACION))
-    if (!sub.ok && sub.status >= 400 && sub.status < 500) {
-      // El nombre del modelo o alguna de sus opciones no le gustó. Se vuelve al
-      // alias de siempre antes de rendirse: la separación de voces sostiene la
-      // atribución de roles, la procedencia y las palabras a verificar.
-      safeLog.info(`[diarizado] ${MODELO_DIARIZACION} rechazado (HTTP ${sub.status}); reintento con el alias heredado`)
-      sub = await enviar(armar(null))
+    const sub = await enviar(armar())
+    /**
+     * UN 4xx AQUÍ YA NO SE REINTENTA — Y ESO ES LO CORRECTO.
+     *
+     * Antes se reintentaba con el alias heredado, y el 4-ago-2026 se vio para
+     * qué servía eso: el proveedor retiró `speech_model` y **los dos intentos
+     * devolvían 400**, así que la red de seguridad no salvaba nada y encima
+     * escondía el problema detrás de un segundo viaje.
+     *
+     * El respaldo entre modelos ahora lo hace el proveedor dentro de
+     * `speech_models`. Si aun así responde 4xx, el problema es **nuestro cuerpo
+     * de petición** —un parámetro retirado, una opción mal escrita— y repetirlo
+     * igual no lo arregla: se registra con el motivo del proveedor, que es lo
+     * único que dice qué cambió.
+     */
+    if (!sub.ok) {
+      const detalle = (await sub.text().catch(() => '')).slice(0, 300)
+      safeLog.error(`[diarizado] rechazado HTTP ${sub.status}`, { detalle })
+      return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
     }
-    if (!sub.ok) return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
     const { id } = await sub.json()
     // DUEÑO DEL TRANSCRIPT (auditoría P1 IDOR): en modo prueba varias clínicas
     // comparten la llave del dueño → sin esto, otra clínica podía leer el dictado
