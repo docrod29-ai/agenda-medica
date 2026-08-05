@@ -6200,6 +6200,51 @@ sustancialmente mejor de lo que un comprador puede ver».
 
 ---
 
+## CIERRE DE LA SESIÓN DEL 4-AGO-2026 (noche) — v1038 → v1047
+
+Diez versiones desplegadas, verificadas en producción con `curl /version.txt`, con
+los 5 jobs de CI en verde y fusionadas a `main`. Suite 6 353 → **6 596**. Lint
+clavado en 97 (su techo) en todas. Once entradas nuevas en el regression-ledger
+(REG-153 … REG-164).
+
+**Dinero** — v1038: el anticipo se podía cobrar dos veces si Stripe reintentaba y
+la cita ya no existía (REG-153).
+
+**El fallo que el Dr vivió en pantalla** — v1039 y v1040. «El servidor rechazó el
+permiso» con el permiso correcto: verificado EN VIVO en su cuenta que el rol, la
+clínica, el pase libre, la sesión y el tamaño estaban bien. El documento
+simplemente ya no existía, y `updateDoc` sobre un ausente vuelve como
+PERMISSION_DENIED. Se persiguió hasta el origen (REG-157: `descartar()` no soltaba
+el id) y ahí apareció que **mi propia reparación habría recreado una consulta
+descartada**; cerrado el mismo día.
+
+**Voz** — v1041: el 81,94 % de atribución escondía que 6 de 9 confusiones venían
+de dos diálogos que el proveedor colapsó en UNA voz, donde lo que dijo el paciente
+se archivaba como dicho por el médico (REG-158). v1042: el WER real, por fin
+publicable — el corpus roto costaba **10 puntos** (25,55 % crudo / 22,81 % pipeline
+sobre audio válido), con los dos números y sus límites (REG-159).
+
+**Privacidad y aislamiento** — v1043 (el importador podía pisar una nota FIRMADA,
+y una regresión mía de v1037 impedía restaurar), v1044 (el patientId viajaba a una
+colección raíz), v1045 (la cola de auditoría sobrevivía al logout), v1046 (un
+consultorio podía quedarse con el canal de WhatsApp de otro), v1047 (el candado
+anti-IDOR del dictado se desactivaba solo por una carrera).
+
+### LA COLA TÉCNICA SEGURA SE AGOTÓ
+
+Lo que queda **no lo puedo decidir yo** (charter §3.2 y §30):
+
+1. **Vía por defecto del medicamento.** Hoy un fármaco sin vía dictada asume
+   `oral`. Es una decisión clínica: o queda vacío y se pide, o se asume. No la
+   tomo yo. **NEEDS_CLINICAL_REVIEW.**
+2. **Requisitos de la receta impresa.** El charter enumera ocho; se emiten tres.
+   Cuáles son exigibles es criterio legal del consultorio.
+   **NEEDS_LEGAL_REVIEW.**
+3. **`STRIPE_WEBHOOK_SECRET` en Vercel.** No añadí el 503 fail-closed a
+   propósito: si la variable falta, silenciaría el registro de sus cobros. Hay
+   que mirar primero si está.
+4. **`OPS_ALERTA_WEBHOOK`.** Sin buzón, nadie vigila al cron vigilante.
+
 ## PENDIENTE — cola priorizada (mía)
 1. ~~`priceIdDe` cae de anual a mensual en silencio~~ — HECHO. **`priceIdDe`** — `src/lib/stripe.ts:50`:
    `STRIPE_PRICES_ANUAL[plan] || STRIPE_PRICES[plan]`. Si falta la variable del
