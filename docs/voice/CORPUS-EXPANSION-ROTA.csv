@@ -1,0 +1,1365 @@
+phrase_id,categoria,palabras_rotas,estado,canonical_text
+CLIN3_00001,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.03 mcg/kg/min.
+CLIN3_00002,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.05 mcg/kg/min.
+CLIN3_00003,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.08 mcg/kg/min.
+CLIN3_00004,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.1 mcg/kg/min.
+CLIN3_00005,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.15 mcg/kg/min.
+CLIN3_00006,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.2 mcg/kg/min.
+CLIN3_00007,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina a 0.3 mcg/kg/min.
+CLIN3_00008,Aminas e inotrópicos,microgramos,REPARADA,Epinefrina a 0.02 mcg/kg/min.
+CLIN3_00009,Aminas e inotrópicos,microgramos,REPARADA,Epinefrina a 0.05 mcg/kg/min.
+CLIN3_00010,Aminas e inotrópicos,microgramos,REPARADA,Epinefrina a 0.1 mcg/kg/min.
+CLIN3_00011,Aminas e inotrópicos,microgramos,REPARADA,Epinefrina a 0.2 mcg/kg/min.
+CLIN3_00015,Aminas e inotrópicos,microgramos,REPARADA,Dobutamina a 2.5 mcg/kg/min.
+CLIN3_00016,Aminas e inotrópicos,microgramos,REPARADA,Dobutamina a 5 mcg/kg/min.
+CLIN3_00017,Aminas e inotrópicos,microgramos,REPARADA,Dobutamina a 7.5 mcg/kg/min.
+CLIN3_00018,Aminas e inotrópicos,microgramos,REPARADA,Dobutamina a 10 mcg/kg/min.
+CLIN3_00019,Aminas e inotrópicos,microgramos,REPARADA,Milrinona a 0.125 mcg/kg/min.
+CLIN3_00020,Aminas e inotrópicos,microgramos,REPARADA,Milrinona a 0.25 mcg/kg/min.
+CLIN3_00021,Aminas e inotrópicos,microgramos,REPARADA,Milrinona a 0.375 mcg/kg/min.
+CLIN3_00022,Aminas e inotrópicos,microgramos,REPARADA,Milrinona a 0.5 mcg/kg/min.
+CLIN3_00023,Aminas e inotrópicos,microgramos,REPARADA,Fenilefrina a 0.2 mcg/kg/min.
+CLIN3_00024,Aminas e inotrópicos,microgramos,REPARADA,Fenilefrina a 0.5 mcg/kg/min.
+CLIN3_00025,Aminas e inotrópicos,microgramos,REPARADA,Fenilefrina a 1.0 mcg/kg/min.
+CLIN3_00026,Aminas e inotrópicos,microgramos,REPARADA,Fenilefrina a 1.5 mcg/kg/min.
+CLIN3_00043,Aminas e inotrópicos,microgramos,REPARADA,Norepinefrina titulada de cero punto ocho a cero punto seis microgramos por kilo por minuto.
+CLIN3_00086,Antimicrobianos,gramosuiada,REPARADA,"Vancomicina dosis guiada por AUC/MIC, en infusión extendida."
+CLIN3_00087,Antimicrobianos,gramosuiada,REPARADA,"Vancomicina dosis guiada por AUC/MIC, en infusión continua."
+CLIN3_00088,Antimicrobianos,gramosuiada,REPARADA,"Vancomicina dosis guiada por AUC/MIC, con ajuste renal."
+CLIN3_00089,Antimicrobianos,gramosuiada,REPARADA,"Vancomicina dosis guiada por AUC/MIC, sin ajuste renal."
+CLIN3_00090,Antimicrobianos,gramosuiada,REPARADA,"Vancomicina dosis guiada por AUC/MIC, con monitorización de niveles."
+CLIN3_00091,Antimicrobianos,miligramos,REPARADA,"Linezolid 600 mg cada 12 horas, en infusión extendida."
+CLIN3_00092,Antimicrobianos,miligramos,REPARADA,"Linezolid 600 mg cada 12 horas, en infusión continua."
+CLIN3_00093,Antimicrobianos,miligramos,REPARADA,"Linezolid 600 mg cada 12 horas, con ajuste renal."
+CLIN3_00094,Antimicrobianos,miligramos,REPARADA,"Linezolid 600 mg cada 12 horas, sin ajuste renal."
+CLIN3_00095,Antimicrobianos,miligramos,REPARADA,"Linezolid 600 mg cada 12 horas, con monitorización de niveles."
+CLIN3_00096,Antimicrobianos,miligramos,REPARADA,"Daptomicina 10 mg/kg cada 24 horas, en infusión extendida."
+CLIN3_00097,Antimicrobianos,miligramos,REPARADA,"Daptomicina 10 mg/kg cada 24 horas, en infusión continua."
+CLIN3_00098,Antimicrobianos,miligramos,REPARADA,"Daptomicina 10 mg/kg cada 24 horas, con ajuste renal."
+CLIN3_00099,Antimicrobianos,miligramos,REPARADA,"Daptomicina 10 mg/kg cada 24 horas, sin ajuste renal."
+CLIN3_00100,Antimicrobianos,miligramos,REPARADA,"Daptomicina 10 mg/kg cada 24 horas, con monitorización de niveles."
+CLIN3_00101,Antimicrobianos,miligramos,REPARADA,"Amikacina 15 mg/kg cada 24 horas, en infusión extendida."
+CLIN3_00102,Antimicrobianos,miligramos,REPARADA,"Amikacina 15 mg/kg cada 24 horas, en infusión continua."
+CLIN3_00103,Antimicrobianos,miligramos,REPARADA,"Amikacina 15 mg/kg cada 24 horas, con ajuste renal."
+CLIN3_00104,Antimicrobianos,miligramos,REPARADA,"Amikacina 15 mg/kg cada 24 horas, sin ajuste renal."
+CLIN3_00105,Antimicrobianos,miligramos,REPARADA,"Amikacina 15 mg/kg cada 24 horas, con monitorización de niveles."
+CLIN3_00106,Antimicrobianos,miligramos,REPARADA,"Gentamicina 5 mg/kg cada 24 horas, en infusión extendida."
+CLIN3_00107,Antimicrobianos,miligramos,REPARADA,"Gentamicina 5 mg/kg cada 24 horas, en infusión continua."
+CLIN3_00108,Antimicrobianos,miligramos,REPARADA,"Gentamicina 5 mg/kg cada 24 horas, con ajuste renal."
+CLIN3_00109,Antimicrobianos,miligramos,REPARADA,"Gentamicina 5 mg/kg cada 24 horas, sin ajuste renal."
+CLIN3_00110,Antimicrobianos,miligramos,REPARADA,"Gentamicina 5 mg/kg cada 24 horas, con monitorización de niveles."
+CLIN3_00159,Arritmias,gramosrado segramosundo,REPARADA,bloqueo AV de segundo grado con frecuencia ventricular de 35 lpm.
+CLIN3_00160,Arritmias,gramosrado segramosundo,REPARADA,bloqueo AV de segundo grado con frecuencia ventricular de 45 lpm.
+CLIN3_00161,Arritmias,gramosrado segramosundo,REPARADA,bloqueo AV de segundo grado con frecuencia ventricular de 80 lpm.
+CLIN3_00162,Arritmias,gramosrado segramosundo,REPARADA,bloqueo AV de segundo grado con frecuencia ventricular de 120 lpm.
+CLIN3_00163,Arritmias,gramosrado segramosundo,REPARADA,bloqueo AV de segundo grado con frecuencia ventricular de 150 lpm.
+CLIN3_00164,Arritmias,gramosrado segramosundo,REPARADA,bloqueo AV de segundo grado con frecuencia ventricular de 180 lpm.
+CLIN3_00166,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 800 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00167,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 800 mL y balance neto -500 mL en 24 horas."
+CLIN3_00168,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 800 mL y balance neto 500 mL en 24 horas."
+CLIN3_00169,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 800 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00170,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 800 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00171,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 1500 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00172,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 1500 mL y balance neto -500 mL en 24 horas."
+CLIN3_00173,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 1500 mL y balance neto 500 mL en 24 horas."
+CLIN3_00174,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 1500 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00175,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 1500 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00176,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 2500 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00177,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 2500 mL y balance neto -500 mL en 24 horas."
+CLIN3_00178,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 2500 mL y balance neto 500 mL en 24 horas."
+CLIN3_00179,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 2500 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00180,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 2500 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00181,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 3500 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00182,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 3500 mL y balance neto -500 mL en 24 horas."
+CLIN3_00183,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 3500 mL y balance neto 500 mL en 24 horas."
+CLIN3_00184,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 3500 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00185,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1200 mL, egresos 3500 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00186,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 800 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00187,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 800 mL y balance neto -500 mL en 24 horas."
+CLIN3_00188,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 800 mL y balance neto 500 mL en 24 horas."
+CLIN3_00189,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 800 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00190,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 800 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00191,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 1500 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00192,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 1500 mL y balance neto -500 mL en 24 horas."
+CLIN3_00193,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 1500 mL y balance neto 500 mL en 24 horas."
+CLIN3_00194,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 1500 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00195,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 1500 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00196,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 2500 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00197,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 2500 mL y balance neto -500 mL en 24 horas."
+CLIN3_00198,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 2500 mL y balance neto 500 mL en 24 horas."
+CLIN3_00199,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 2500 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00200,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 2500 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00201,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 3500 mL y balance neto -1500 mL en 24 horas."
+CLIN3_00202,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 3500 mL y balance neto -500 mL en 24 horas."
+CLIN3_00203,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 3500 mL y balance neto 500 mL en 24 horas."
+CLIN3_00204,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 3500 mL y balance neto 1500 mL en 24 horas."
+CLIN3_00205,Balance hídrico,Ingramosresos egramosresos mililitros,REPARADA,"Ingresos 1800 mL, egresos 3500 mL y balance neto 3000 mL en 24 horas."
+CLIN3_00206,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 0 mL y evacuaciones 0 mL."
+CLIN3_00207,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 0 mL y evacuaciones 200 mL."
+CLIN3_00208,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 0 mL y evacuaciones 500 mL."
+CLIN3_00209,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 0 mL y evacuaciones 1000 mL."
+CLIN3_00210,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 100 mL y evacuaciones 0 mL."
+CLIN3_00211,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 100 mL y evacuaciones 200 mL."
+CLIN3_00212,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 100 mL y evacuaciones 500 mL."
+CLIN3_00213,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 100 mL y evacuaciones 1000 mL."
+CLIN3_00214,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 300 mL y evacuaciones 0 mL."
+CLIN3_00215,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 300 mL y evacuaciones 200 mL."
+CLIN3_00216,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 300 mL y evacuaciones 500 mL."
+CLIN3_00217,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 300 mL y evacuaciones 1000 mL."
+CLIN3_00218,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 600 mL y evacuaciones 0 mL."
+CLIN3_00219,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 600 mL y evacuaciones 200 mL."
+CLIN3_00220,Balance hídrico,mililitros,REPARADA,"Diuresis 200 mL, drenajes 600 mL y evacuaciones 500 mL."
+CLIN3_00221,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 0 de 4 y RASS -5."
+CLIN3_00222,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 0 de 4 y RASS -4."
+CLIN3_00223,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 1 de 4 y RASS -5."
+CLIN3_00224,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 1 de 4 y RASS -4."
+CLIN3_00225,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 2 de 4 y RASS -5."
+CLIN3_00226,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 2 de 4 y RASS -4."
+CLIN3_00227,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 4 de 4 y RASS -5."
+CLIN3_00228,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 1 mcg/kg/min, TOF 4 de 4 y RASS -4."
+CLIN3_00229,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 0 de 4 y RASS -5."
+CLIN3_00230,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 0 de 4 y RASS -4."
+CLIN3_00231,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 1 de 4 y RASS -5."
+CLIN3_00232,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 1 de 4 y RASS -4."
+CLIN3_00233,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 2 de 4 y RASS -5."
+CLIN3_00234,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 2 de 4 y RASS -4."
+CLIN3_00235,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 4 de 4 y RASS -5."
+CLIN3_00236,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 2 mcg/kg/min, TOF 4 de 4 y RASS -4."
+CLIN3_00237,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 0 de 4 y RASS -5."
+CLIN3_00238,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 0 de 4 y RASS -4."
+CLIN3_00239,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 1 de 4 y RASS -5."
+CLIN3_00240,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 1 de 4 y RASS -4."
+CLIN3_00241,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 2 de 4 y RASS -5."
+CLIN3_00242,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 2 de 4 y RASS -4."
+CLIN3_00243,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 4 de 4 y RASS -5."
+CLIN3_00244,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 3 mcg/kg/min, TOF 4 de 4 y RASS -4."
+CLIN3_00245,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 0 de 4 y RASS -5."
+CLIN3_00246,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 0 de 4 y RASS -4."
+CLIN3_00247,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 1 de 4 y RASS -5."
+CLIN3_00248,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 1 de 4 y RASS -4."
+CLIN3_00249,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 2 de 4 y RASS -5."
+CLIN3_00250,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 2 de 4 y RASS -4."
+CLIN3_00251,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 4 de 4 y RASS -5."
+CLIN3_00252,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 4 mcg/kg/min, TOF 4 de 4 y RASS -4."
+CLIN3_00253,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 0 de 4 y RASS -5."
+CLIN3_00254,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 0 de 4 y RASS -4."
+CLIN3_00255,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 1 de 4 y RASS -5."
+CLIN3_00256,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 1 de 4 y RASS -4."
+CLIN3_00257,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 2 de 4 y RASS -5."
+CLIN3_00258,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 2 de 4 y RASS -4."
+CLIN3_00259,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 4 de 4 y RASS -5."
+CLIN3_00260,Bloqueo neuromuscular,microgramos,REPARADA,"Cisatracurio 5 mcg/kg/min, TOF 4 de 4 y RASS -4."
+CLIN3_00267,Bloqueo neuromuscular,corrugramosador,REPARADA,Se documenta monitorización del corrugador superciliar.
+CLIN3_00268,Bloqueo neuromuscular,pulgramosar,REPARADA,Se documenta monitorización del aductor del pulgar.
+CLIN3_00275,Bloqueo neuromuscular,analgramosesia,REPARADA,Se documenta analgesia adecuada antes del bloqueo.
+CLIN3_00276,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de norepinefrina, dilución 8 mg en 250 mL, velocidad 2 mL/h."
+CLIN3_00277,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de norepinefrina, dilución 8 mg en 250 mL, velocidad 5 mL/h."
+CLIN3_00278,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de norepinefrina, dilución 8 mg en 250 mL, velocidad 10 mL/h."
+CLIN3_00279,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de norepinefrina, dilución 8 mg en 250 mL, velocidad 15 mL/h."
+CLIN3_00280,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de norepinefrina, dilución 8 mg en 250 mL, velocidad 20 mL/h."
+CLIN3_00281,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de norepinefrina, dilución 8 mg en 250 mL, velocidad 30 mL/h."
+CLIN3_00282,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de propofol, dilución 1000 mg en 100 mL, velocidad 2 mL/h."
+CLIN3_00283,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de propofol, dilución 1000 mg en 100 mL, velocidad 5 mL/h."
+CLIN3_00284,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de propofol, dilución 1000 mg en 100 mL, velocidad 10 mL/h."
+CLIN3_00285,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de propofol, dilución 1000 mg en 100 mL, velocidad 15 mL/h."
+CLIN3_00286,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de propofol, dilución 1000 mg en 100 mL, velocidad 20 mL/h."
+CLIN3_00287,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de propofol, dilución 1000 mg en 100 mL, velocidad 30 mL/h."
+CLIN3_00288,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de fentanilo, dilución 2500 mcg en 50 mL, velocidad 2 mL/h."
+CLIN3_00289,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de fentanilo, dilución 2500 mcg en 50 mL, velocidad 5 mL/h."
+CLIN3_00290,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de fentanilo, dilución 2500 mcg en 50 mL, velocidad 10 mL/h."
+CLIN3_00291,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de fentanilo, dilución 2500 mcg en 50 mL, velocidad 15 mL/h."
+CLIN3_00292,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de fentanilo, dilución 2500 mcg en 50 mL, velocidad 20 mL/h."
+CLIN3_00293,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de fentanilo, dilución 2500 mcg en 50 mL, velocidad 30 mL/h."
+CLIN3_00294,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de midazolam, dilución 50 mg en 50 mL, velocidad 2 mL/h."
+CLIN3_00295,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de midazolam, dilución 50 mg en 50 mL, velocidad 5 mL/h."
+CLIN3_00296,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de midazolam, dilución 50 mg en 50 mL, velocidad 10 mL/h."
+CLIN3_00297,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de midazolam, dilución 50 mg en 50 mL, velocidad 15 mL/h."
+CLIN3_00298,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de midazolam, dilución 50 mg en 50 mL, velocidad 20 mL/h."
+CLIN3_00299,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de midazolam, dilución 50 mg en 50 mL, velocidad 30 mL/h."
+CLIN3_00300,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de dexmedetomidina, dilución 400 mcg en 100 mL, velocidad 2 mL/h."
+CLIN3_00301,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de dexmedetomidina, dilución 400 mcg en 100 mL, velocidad 5 mL/h."
+CLIN3_00302,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de dexmedetomidina, dilución 400 mcg en 100 mL, velocidad 10 mL/h."
+CLIN3_00303,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de dexmedetomidina, dilución 400 mcg en 100 mL, velocidad 15 mL/h."
+CLIN3_00304,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de dexmedetomidina, dilución 400 mcg en 100 mL, velocidad 20 mL/h."
+CLIN3_00305,Bombas e infusiones,mcgramos mililitros,REPARADA,"Bomba de dexmedetomidina, dilución 400 mcg en 100 mL, velocidad 30 mL/h."
+CLIN3_00306,Bombas e infusiones,mililitros,REPARADA,"Bomba de heparina, dilución 25000 U en 250 mL, velocidad 2 mL/h."
+CLIN3_00307,Bombas e infusiones,mililitros,REPARADA,"Bomba de heparina, dilución 25000 U en 250 mL, velocidad 5 mL/h."
+CLIN3_00308,Bombas e infusiones,mililitros,REPARADA,"Bomba de heparina, dilución 25000 U en 250 mL, velocidad 10 mL/h."
+CLIN3_00309,Bombas e infusiones,mililitros,REPARADA,"Bomba de heparina, dilución 25000 U en 250 mL, velocidad 15 mL/h."
+CLIN3_00310,Bombas e infusiones,mililitros,REPARADA,"Bomba de heparina, dilución 25000 U en 250 mL, velocidad 20 mL/h."
+CLIN3_00311,Bombas e infusiones,mililitros,REPARADA,"Bomba de heparina, dilución 25000 U en 250 mL, velocidad 30 mL/h."
+CLIN3_00312,Bombas e infusiones,mililitros,REPARADA,"Bomba de insulina, dilución 100 U en 100 mL, velocidad 2 mL/h."
+CLIN3_00313,Bombas e infusiones,mililitros,REPARADA,"Bomba de insulina, dilución 100 U en 100 mL, velocidad 5 mL/h."
+CLIN3_00314,Bombas e infusiones,mililitros,REPARADA,"Bomba de insulina, dilución 100 U en 100 mL, velocidad 10 mL/h."
+CLIN3_00315,Bombas e infusiones,mililitros,REPARADA,"Bomba de insulina, dilución 100 U en 100 mL, velocidad 15 mL/h."
+CLIN3_00316,Bombas e infusiones,mililitros,REPARADA,"Bomba de insulina, dilución 100 U en 100 mL, velocidad 20 mL/h."
+CLIN3_00317,Bombas e infusiones,mililitros,REPARADA,"Bomba de insulina, dilución 100 U en 100 mL, velocidad 30 mL/h."
+CLIN3_00318,Bombas e infusiones,mililitros,REPARADA,"Bomba de vasopresina, dilución 20 U en 100 mL, velocidad 2 mL/h."
+CLIN3_00319,Bombas e infusiones,mililitros,REPARADA,"Bomba de vasopresina, dilución 20 U en 100 mL, velocidad 5 mL/h."
+CLIN3_00320,Bombas e infusiones,mililitros,REPARADA,"Bomba de vasopresina, dilución 20 U en 100 mL, velocidad 10 mL/h."
+CLIN3_00321,Bombas e infusiones,mililitros,REPARADA,"Bomba de vasopresina, dilución 20 U en 100 mL, velocidad 15 mL/h."
+CLIN3_00322,Bombas e infusiones,mililitros,REPARADA,"Bomba de vasopresina, dilución 20 U en 100 mL, velocidad 20 mL/h."
+CLIN3_00323,Bombas e infusiones,mililitros,REPARADA,"Bomba de vasopresina, dilución 20 U en 100 mL, velocidad 30 mL/h."
+CLIN3_00324,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de dobutamina, dilución 250 mg en 250 mL, velocidad 2 mL/h."
+CLIN3_00325,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de dobutamina, dilución 250 mg en 250 mL, velocidad 5 mL/h."
+CLIN3_00326,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de dobutamina, dilución 250 mg en 250 mL, velocidad 10 mL/h."
+CLIN3_00327,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de dobutamina, dilución 250 mg en 250 mL, velocidad 15 mL/h."
+CLIN3_00328,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de dobutamina, dilución 250 mg en 250 mL, velocidad 20 mL/h."
+CLIN3_00329,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de dobutamina, dilución 250 mg en 250 mL, velocidad 30 mL/h."
+CLIN3_00330,Bombas e infusiones,miligramos mililitros,REPARADA,"Bomba de amiodarona, dilución 900 mg en 500 mL, velocidad 2 mL/h."
+CLIN3_00331,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 100 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00332,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 100 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00333,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 100 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00334,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 100 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00335,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 120 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00336,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 120 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00337,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 120 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00338,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 120 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00339,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 150 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00340,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 150 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00341,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 150 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00342,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 150 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00343,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 180 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00344,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 180 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00345,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 180 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00346,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 180 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00347,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 200 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00348,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 200 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00349,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 200 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00350,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHDF, Qb 200 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00351,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 100 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00352,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 100 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00353,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 100 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00354,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 100 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00355,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 120 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00356,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 120 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00357,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 120 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00358,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 120 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00359,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 150 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00360,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 150 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00361,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 150 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00362,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 150 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00363,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 180 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00364,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 180 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00365,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 180 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00366,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 180 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00367,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 200 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00368,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 200 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00369,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 200 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00370,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVHD, Qb 200 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00371,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 100 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00372,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 100 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00373,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 100 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00374,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 100 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00375,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 120 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00376,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 120 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00377,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 120 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00378,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 120 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00379,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 150 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00380,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 150 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00381,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 150 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00382,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 150 mL/min y dosis de efluente 35 mL/kg/h."
+CLIN3_00383,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 180 mL/min y dosis de efluente 20 mL/kg/h."
+CLIN3_00384,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 180 mL/min y dosis de efluente 25 mL/kg/h."
+CLIN3_00385,CKRT / PRISMA,mililitros mlitros,REPARADA,"CKRT en modo CVVH, Qb 180 mL/min y dosis de efluente 30 mL/kg/h."
+CLIN3_00386,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 20 ng/L y BNP 100 pg/mL."
+CLIN3_00387,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 20 ng/L y BNP 500 pg/mL."
+CLIN3_00388,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 20 ng/L y BNP 2000 pg/mL."
+CLIN3_00389,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 20 ng/L y BNP 10000 pg/mL."
+CLIN3_00390,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 100 ng/L y BNP 100 pg/mL."
+CLIN3_00391,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 100 ng/L y BNP 500 pg/mL."
+CLIN3_00392,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 100 ng/L y BNP 2000 pg/mL."
+CLIN3_00393,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 100 ng/L y BNP 10000 pg/mL."
+CLIN3_00394,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 500 ng/L y BNP 100 pg/mL."
+CLIN3_00395,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 500 ng/L y BNP 500 pg/mL."
+CLIN3_00396,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 500 ng/L y BNP 2000 pg/mL."
+CLIN3_00397,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 500 ng/L y BNP 10000 pg/mL."
+CLIN3_00398,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 2000 ng/L y BNP 100 pg/mL."
+CLIN3_00399,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 2000 ng/L y BNP 500 pg/mL."
+CLIN3_00400,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 2000 ng/L y BNP 2000 pg/mL."
+CLIN3_00401,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 15%, troponina ultrasensible 2000 ng/L y BNP 10000 pg/mL."
+CLIN3_00402,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 20 ng/L y BNP 100 pg/mL."
+CLIN3_00403,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 20 ng/L y BNP 500 pg/mL."
+CLIN3_00404,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 20 ng/L y BNP 2000 pg/mL."
+CLIN3_00405,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 20 ng/L y BNP 10000 pg/mL."
+CLIN3_00406,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 100 ng/L y BNP 100 pg/mL."
+CLIN3_00407,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 100 ng/L y BNP 500 pg/mL."
+CLIN3_00408,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 100 ng/L y BNP 2000 pg/mL."
+CLIN3_00409,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 100 ng/L y BNP 10000 pg/mL."
+CLIN3_00410,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 500 ng/L y BNP 100 pg/mL."
+CLIN3_00411,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 500 ng/L y BNP 500 pg/mL."
+CLIN3_00412,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 500 ng/L y BNP 2000 pg/mL."
+CLIN3_00413,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 500 ng/L y BNP 10000 pg/mL."
+CLIN3_00414,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 2000 ng/L y BNP 100 pg/mL."
+CLIN3_00415,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 2000 ng/L y BNP 500 pg/mL."
+CLIN3_00416,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 2000 ng/L y BNP 2000 pg/mL."
+CLIN3_00417,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 25%, troponina ultrasensible 2000 ng/L y BNP 10000 pg/mL."
+CLIN3_00418,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 35%, troponina ultrasensible 20 ng/L y BNP 100 pg/mL."
+CLIN3_00419,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 35%, troponina ultrasensible 20 ng/L y BNP 500 pg/mL."
+CLIN3_00420,Cardiología crítica,ngramos picogramos,REPARADA,"Fracción de eyección 35%, troponina ultrasensible 20 ng/L y BNP 2000 pg/mL."
+CLIN3_00421,Cardiología crítica,cardiogramosénico gramosasto,REPARADA,Se documenta choque cardiogénico con bajo gasto.
+CLIN3_00422,Cardiología crítica,agramosudo cardiogramosénico,REPARADA,Se documenta edema agudo pulmonar cardiogénico.
+CLIN3_00428,Cardiología crítica,agramosuda,REPARADA,Se documenta insuficiencia mitral aguda.
+CLIN3_00435,Cardiología crítica,agramosudo,REPARADA,Se documenta cor pulmonale agudo.
+CLIN3_00442,Control de infecciones,gramosotas,REPARADA,Indicar precauciones por gotas.
+CLIN3_00445,Control de infecciones,higramosiene,REPARADA,Indicar higiene de manos reforzada.
+CLIN3_00449,Control de infecciones,vigramosilancia,REPARADA,Indicar cultivos de vigilancia.
+CLIN3_00451,Control de infecciones,negramosativa,REPARADA,Indicar habitación con presión negativa.
+CLIN3_00453,Control de infecciones,gramosuantes,REPARADA,Indicar bata y guantes.
+CLIN3_00496,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -18 cmH2O."
+CLIN3_00497,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -25 cmH2O."
+CLIN3_00498,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -30 cmH2O."
+CLIN3_00499,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -40 cmH2O."
+CLIN3_00500,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -18 cmH2O."
+CLIN3_00501,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -25 cmH2O."
+CLIN3_00502,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -30 cmH2O."
+CLIN3_00503,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -40 cmH2O."
+CLIN3_00504,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -18 cmH2O."
+CLIN3_00505,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -25 cmH2O."
+CLIN3_00506,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -30 cmH2O."
+CLIN3_00507,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -40 cmH2O."
+CLIN3_00508,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -18 cmH2O."
+CLIN3_00509,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -25 cmH2O."
+CLIN3_00510,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -30 cmH2O."
+CLIN3_00511,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -40 cmH2O."
+CLIN3_00512,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -18 cmH2O."
+CLIN3_00513,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -25 cmH2O."
+CLIN3_00514,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -30 cmH2O."
+CLIN3_00515,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -40 cmH2O."
+CLIN3_00516,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -18 cmH2O."
+CLIN3_00517,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -25 cmH2O."
+CLIN3_00518,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -30 cmH2O."
+CLIN3_00519,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -40 cmH2O."
+CLIN3_00520,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 85 y NIF -18 cmH2O."
+CLIN3_00521,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 85 y NIF -25 cmH2O."
+CLIN3_00522,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 85 y NIF -30 cmH2O."
+CLIN3_00523,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 85 y NIF -40 cmH2O."
+CLIN3_00524,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 105 y NIF -18 cmH2O."
+CLIN3_00525,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 105 y NIF -25 cmH2O."
+CLIN3_00526,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 105 y NIF -30 cmH2O."
+CLIN3_00527,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 5 cmH2O, PEEP 8 cmH2O, RSBI 105 y NIF -40 cmH2O."
+CLIN3_00528,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -18 cmH2O."
+CLIN3_00529,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -25 cmH2O."
+CLIN3_00530,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -30 cmH2O."
+CLIN3_00531,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 45 y NIF -40 cmH2O."
+CLIN3_00532,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -18 cmH2O."
+CLIN3_00533,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -25 cmH2O."
+CLIN3_00534,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -30 cmH2O."
+CLIN3_00535,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 65 y NIF -40 cmH2O."
+CLIN3_00536,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -18 cmH2O."
+CLIN3_00537,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -25 cmH2O."
+CLIN3_00538,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -30 cmH2O."
+CLIN3_00539,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 85 y NIF -40 cmH2O."
+CLIN3_00540,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -18 cmH2O."
+CLIN3_00541,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -25 cmH2O."
+CLIN3_00542,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -30 cmH2O."
+CLIN3_00543,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 5 cmH2O, RSBI 105 y NIF -40 cmH2O."
+CLIN3_00544,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -18 cmH2O."
+CLIN3_00545,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -25 cmH2O."
+CLIN3_00546,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -30 cmH2O."
+CLIN3_00547,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 45 y NIF -40 cmH2O."
+CLIN3_00548,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -18 cmH2O."
+CLIN3_00549,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -25 cmH2O."
+CLIN3_00550,Destete y vía aérea,agramosua,REPARADA,"SBT con presión soporte 7 cmH2O, PEEP 8 cmH2O, RSBI 65 y NIF -30 cmH2O."
+CLIN3_00551,Dispositivos y accesos,yugramosular,REPARADA,Catéter venoso central yugular derecho permeable.
+CLIN3_00552,Dispositivos y accesos,yugramosular,REPARADA,Catéter venoso central yugular derecho sin retorno.
+CLIN3_00553,Dispositivos y accesos,fugramosa yugramosular,REPARADA,Catéter venoso central yugular derecho con fuga.
+CLIN3_00554,Dispositivos y accesos,sangramosrado yugramosular,REPARADA,Catéter venoso central yugular derecho con sangrado en el sitio.
+CLIN3_00555,Dispositivos y accesos,yugramosular,REPARADA,Catéter venoso central yugular derecho sin datos de infección.
+CLIN3_00556,Dispositivos y accesos,yugramosular,REPARADA,Catéter venoso central yugular derecho con eritema local.
+CLIN3_00557,Dispositivos y accesos,yugramosular,REPARADA,Catéter venoso central yugular derecho recién colocado.
+CLIN3_00560,Dispositivos y accesos,fugramosa,REPARADA,Catéter venoso central femoral izquierdo con fuga.
+CLIN3_00561,Dispositivos y accesos,sangramosrado,REPARADA,Catéter venoso central femoral izquierdo con sangrado en el sitio.
+CLIN3_00567,Dispositivos y accesos,fugramosa,REPARADA,Línea arterial radial derecha con fuga.
+CLIN3_00568,Dispositivos y accesos,sangramosrado,REPARADA,Línea arterial radial derecha con sangrado en el sitio.
+CLIN3_00574,Dispositivos y accesos,fugramosa,REPARADA,Línea arterial femoral con fuga.
+CLIN3_00575,Dispositivos y accesos,sangramosrado,REPARADA,Línea arterial femoral con sangrado en el sitio.
+CLIN3_00581,Dispositivos y accesos,fugramosa,REPARADA,Catéter de arteria pulmonar con fuga.
+CLIN3_00582,Dispositivos y accesos,sangramosrado,REPARADA,Catéter de arteria pulmonar con sangrado en el sitio.
+CLIN3_00588,Dispositivos y accesos,fugramosa,REPARADA,Sonda foley con fuga.
+CLIN3_00589,Dispositivos y accesos,sangramosrado,REPARADA,Sonda foley con sangrado en el sitio.
+CLIN3_00593,Dispositivos y accesos,nasogramosástrica,REPARADA,Sonda nasogástrica permeable.
+CLIN3_00594,Dispositivos y accesos,nasogramosástrica,REPARADA,Sonda nasogástrica sin retorno.
+CLIN3_00595,Dispositivos y accesos,fugramosa nasogramosástrica,REPARADA,Sonda nasogástrica con fuga.
+CLIN3_00596,Dispositivos y accesos,nasogramosástrica sangramosrado,REPARADA,Sonda nasogástrica con sangrado en el sitio.
+CLIN3_00597,Dispositivos y accesos,nasogramosástrica,REPARADA,Sonda nasogástrica sin datos de infección.
+CLIN3_00598,Dispositivos y accesos,nasogramosástrica,REPARADA,Sonda nasogástrica con eritema local.
+CLIN3_00599,Dispositivos y accesos,nasogramosástrica,REPARADA,Sonda nasogástrica recién colocado.
+CLIN3_00600,Dispositivos y accesos,orogramosástrica,REPARADA,Sonda orogástrica permeable.
+CLIN3_00601,Dispositivos y accesos,orogramosástrica,REPARADA,Sonda orogástrica sin retorno.
+CLIN3_00602,Dispositivos y accesos,fugramosa orogramosástrica,REPARADA,Sonda orogástrica con fuga.
+CLIN3_00603,Dispositivos y accesos,orogramosástrica sangramosrado,REPARADA,Sonda orogástrica con sangrado en el sitio.
+CLIN3_00604,Dispositivos y accesos,orogramosástrica,REPARADA,Sonda orogástrica sin datos de infección.
+CLIN3_00605,Dispositivos y accesos,orogramosástrica,REPARADA,Sonda orogástrica con eritema local.
+CLIN3_00606,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 1 L/min y FdO2 60%."
+CLIN3_00607,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 1 L/min y FdO2 80%."
+CLIN3_00608,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 1 L/min y FdO2 100%."
+CLIN3_00609,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 2 L/min y FdO2 60%."
+CLIN3_00610,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 2 L/min y FdO2 80%."
+CLIN3_00611,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 2 L/min y FdO2 100%."
+CLIN3_00612,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 3 L/min y FdO2 60%."
+CLIN3_00613,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 3 L/min y FdO2 80%."
+CLIN3_00614,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 3 L/min y FdO2 100%."
+CLIN3_00615,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 4 L/min y FdO2 60%."
+CLIN3_00616,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 4 L/min y FdO2 80%."
+CLIN3_00617,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 4 L/min y FdO2 100%."
+CLIN3_00618,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 5 L/min y FdO2 60%."
+CLIN3_00619,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 5 L/min y FdO2 80%."
+CLIN3_00620,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.2 L/min, sweep gas 5 L/min y FdO2 100%."
+CLIN3_00621,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 1 L/min y FdO2 60%."
+CLIN3_00622,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 1 L/min y FdO2 80%."
+CLIN3_00623,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 1 L/min y FdO2 100%."
+CLIN3_00624,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 2 L/min y FdO2 60%."
+CLIN3_00625,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 2 L/min y FdO2 80%."
+CLIN3_00626,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 2 L/min y FdO2 100%."
+CLIN3_00627,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 3 L/min y FdO2 60%."
+CLIN3_00628,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 3 L/min y FdO2 80%."
+CLIN3_00629,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 3 L/min y FdO2 100%."
+CLIN3_00630,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 4 L/min y FdO2 60%."
+CLIN3_00631,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 4 L/min y FdO2 80%."
+CLIN3_00632,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 4 L/min y FdO2 100%."
+CLIN3_00633,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 5 L/min y FdO2 60%."
+CLIN3_00634,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 5 L/min y FdO2 80%."
+CLIN3_00635,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 3.8 L/min, sweep gas 5 L/min y FdO2 100%."
+CLIN3_00636,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 1 L/min y FdO2 60%."
+CLIN3_00637,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 1 L/min y FdO2 80%."
+CLIN3_00638,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 1 L/min y FdO2 100%."
+CLIN3_00639,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 2 L/min y FdO2 60%."
+CLIN3_00640,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 2 L/min y FdO2 80%."
+CLIN3_00641,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 2 L/min y FdO2 100%."
+CLIN3_00642,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 3 L/min y FdO2 60%."
+CLIN3_00643,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 3 L/min y FdO2 80%."
+CLIN3_00644,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 3 L/min y FdO2 100%."
+CLIN3_00645,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 4 L/min y FdO2 60%."
+CLIN3_00646,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 4 L/min y FdO2 80%."
+CLIN3_00647,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 4 L/min y FdO2 100%."
+CLIN3_00648,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 5 L/min y FdO2 60%."
+CLIN3_00649,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 5 L/min y FdO2 80%."
+CLIN3_00650,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.2 L/min, sweep gas 5 L/min y FdO2 100%."
+CLIN3_00651,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 1 L/min y FdO2 60%."
+CLIN3_00652,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 1 L/min y FdO2 80%."
+CLIN3_00653,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 1 L/min y FdO2 100%."
+CLIN3_00654,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 2 L/min y FdO2 60%."
+CLIN3_00655,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 2 L/min y FdO2 80%."
+CLIN3_00656,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 2 L/min y FdO2 100%."
+CLIN3_00657,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 3 L/min y FdO2 60%."
+CLIN3_00658,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 3 L/min y FdO2 80%."
+CLIN3_00659,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 3 L/min y FdO2 100%."
+CLIN3_00660,ECMO,gramosas,REPARADA,"ECMO veno venoso, flujo 4.6 L/min, sweep gas 4 L/min y FdO2 60%."
+CLIN3_00661,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 120 mmHg y delta de presión 20 mmHg."
+CLIN3_00662,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 120 mmHg y delta de presión 40 mmHg."
+CLIN3_00663,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 120 mmHg y delta de presión 60 mmHg."
+CLIN3_00664,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 120 mmHg y delta de presión 80 mmHg."
+CLIN3_00665,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 160 mmHg y delta de presión 20 mmHg."
+CLIN3_00666,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 160 mmHg y delta de presión 40 mmHg."
+CLIN3_00667,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 160 mmHg y delta de presión 60 mmHg."
+CLIN3_00668,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 160 mmHg y delta de presión 80 mmHg."
+CLIN3_00669,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 200 mmHg y delta de presión 20 mmHg."
+CLIN3_00670,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 200 mmHg y delta de presión 40 mmHg."
+CLIN3_00671,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 200 mmHg y delta de presión 60 mmHg."
+CLIN3_00672,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -60 mmHg, presión postoxigenador 200 mmHg y delta de presión 80 mmHg."
+CLIN3_00673,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 120 mmHg y delta de presión 20 mmHg."
+CLIN3_00674,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 120 mmHg y delta de presión 40 mmHg."
+CLIN3_00675,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 120 mmHg y delta de presión 60 mmHg."
+CLIN3_00676,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 120 mmHg y delta de presión 80 mmHg."
+CLIN3_00677,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 160 mmHg y delta de presión 20 mmHg."
+CLIN3_00678,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 160 mmHg y delta de presión 40 mmHg."
+CLIN3_00679,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 160 mmHg y delta de presión 60 mmHg."
+CLIN3_00680,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 160 mmHg y delta de presión 80 mmHg."
+CLIN3_00681,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 200 mmHg y delta de presión 20 mmHg."
+CLIN3_00682,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 200 mmHg y delta de presión 40 mmHg."
+CLIN3_00683,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 200 mmHg y delta de presión 60 mmHg."
+CLIN3_00684,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -90 mmHg, presión postoxigenador 200 mmHg y delta de presión 80 mmHg."
+CLIN3_00685,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -120 mmHg, presión postoxigenador 120 mmHg y delta de presión 20 mmHg."
+CLIN3_00686,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -120 mmHg, presión postoxigenador 120 mmHg y delta de presión 40 mmHg."
+CLIN3_00687,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -120 mmHg, presión postoxigenador 120 mmHg y delta de presión 60 mmHg."
+CLIN3_00688,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -120 mmHg, presión postoxigenador 120 mmHg y delta de presión 80 mmHg."
+CLIN3_00689,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -120 mmHg, presión postoxigenador 160 mmHg y delta de presión 20 mmHg."
+CLIN3_00690,ECMO avanzado,postoxigramosenador,REPARADA,"Bomba a 2800 rpm, presión de drenaje -120 mmHg, presión postoxigenador 160 mmHg y delta de presión 40 mmHg."
+CLIN3_00693,ECMO avanzado,coágramosulo oxigramosenador,REPARADA,Se documenta coágulo visible en el oxigenador.
+CLIN3_00694,ECMO avanzado,hemogramoslobin,REPARADA,Se documenta hemólisis con plasma free hemoglobin elevado.
+CLIN3_00697,ECMO avanzado,precargramosa,REPARADA,Se documenta flujo inestable por precarga insuficiente.
+CLIN3_00698,ECMO avanzado,programosresivo,REPARADA,Se documenta aumento progresivo del delta de presión.
+CLIN3_00699,ECMO avanzado,oxigramosenación,REPARADA,Se documenta fallo de oxigenación postmembrana.
+CLIN3_00700,ECMO avanzado,yugramosular,REPARADA,Se documenta canulación femoro yugular.
+CLIN3_00702,ECMO avanzado,yugramosular,REPARADA,Se documenta canulación yugular de doble lumen.
+CLIN3_00703,ECMO avanzado,weaningramos,REPARADA,Se documenta weaning de ECMO VV.
+CLIN3_00706,ECMO avanzado,sangramosrado,REPARADA,Se documenta sangrado en sitio de canulación.
+CLIN3_00709,ECMO avanzado,negramosativa,REPARADA,Se documenta presión de drenaje excesivamente negativa.
+CLIN3_00710,ECMO avanzado,preoxigramosenador,REPARADA,Se documenta saturación preoxigenador baja.
+CLIN3_00711,ECMO avanzado,postoxigramosenador,REPARADA,Se documenta saturación postoxigenador baja.
+CLIN3_00714,ECMO avanzado,prolongramosado,REPARADA,Se documenta aPTT prolongado.
+CLIN3_00725,Emergencias y códigos,emergramosencia,REPARADA,Se activa manejo por cricotiroidotomía de emergencia.
+CLIN3_00729,Emergencias y códigos,riesgramoso,REPARADA,Se activa manejo por tromboembolia pulmonar de alto riesgo.
+CLIN3_00732,Emergencias y códigos,electrocardiogramosráficos,REPARADA,Se activa manejo por hipercalemia con cambios electrocardiográficos.
+CLIN3_00733,Emergencias y códigos,hipogramoslucemia,REPARADA,Se activa manejo por hipoglucemia severa.
+CLIN3_00735,Emergencias y códigos,agramosudo,REPARADA,Se activa manejo por síndrome coronario agudo.
+CLIN3_00737,Emergencias y códigos,hemorragramosia,REPARADA,Se activa manejo por hemorragia masiva.
+CLIN3_00738,Emergencias y códigos,agramosudo neurológramosico,REPARADA,Se activa manejo por deterioro neurológico agudo.
+CLIN3_00740,Emergencias y códigos,códigramoso,REPARADA,Se activa manejo por código azul activado.
+CLIN3_00771,Endocrino y metabólico,miligramos,REPARADA,Glucosa 55 mg/dL con infusión de insulina a 0 U/h.
+CLIN3_00772,Endocrino y metabólico,miligramos,REPARADA,Glucosa 55 mg/dL con infusión de insulina a 1 U/h.
+CLIN3_00773,Endocrino y metabólico,miligramos,REPARADA,Glucosa 55 mg/dL con infusión de insulina a 2 U/h.
+CLIN3_00774,Endocrino y metabólico,miligramos,REPARADA,Glucosa 55 mg/dL con infusión de insulina a 4 U/h.
+CLIN3_00775,Endocrino y metabólico,miligramos,REPARADA,Glucosa 55 mg/dL con infusión de insulina a 6 U/h.
+CLIN3_00776,Endocrino y metabólico,miligramos,REPARADA,Glucosa 75 mg/dL con infusión de insulina a 0 U/h.
+CLIN3_00777,Endocrino y metabólico,miligramos,REPARADA,Glucosa 75 mg/dL con infusión de insulina a 1 U/h.
+CLIN3_00778,Endocrino y metabólico,miligramos,REPARADA,Glucosa 75 mg/dL con infusión de insulina a 2 U/h.
+CLIN3_00779,Endocrino y metabólico,miligramos,REPARADA,Glucosa 75 mg/dL con infusión de insulina a 4 U/h.
+CLIN3_00780,Endocrino y metabólico,miligramos,REPARADA,Glucosa 75 mg/dL con infusión de insulina a 6 U/h.
+CLIN3_00781,Endocrino y metabólico,miligramos,REPARADA,Glucosa 110 mg/dL con infusión de insulina a 0 U/h.
+CLIN3_00782,Endocrino y metabólico,miligramos,REPARADA,Glucosa 110 mg/dL con infusión de insulina a 1 U/h.
+CLIN3_00783,Endocrino y metabólico,miligramos,REPARADA,Glucosa 110 mg/dL con infusión de insulina a 2 U/h.
+CLIN3_00784,Endocrino y metabólico,miligramos,REPARADA,Glucosa 110 mg/dL con infusión de insulina a 4 U/h.
+CLIN3_00785,Endocrino y metabólico,miligramos,REPARADA,Glucosa 110 mg/dL con infusión de insulina a 6 U/h.
+CLIN3_00786,Endocrino y metabólico,miligramos,REPARADA,Glucosa 180 mg/dL con infusión de insulina a 0 U/h.
+CLIN3_00787,Endocrino y metabólico,miligramos,REPARADA,Glucosa 180 mg/dL con infusión de insulina a 1 U/h.
+CLIN3_00788,Endocrino y metabólico,miligramos,REPARADA,Glucosa 180 mg/dL con infusión de insulina a 2 U/h.
+CLIN3_00789,Endocrino y metabólico,miligramos,REPARADA,Glucosa 180 mg/dL con infusión de insulina a 4 U/h.
+CLIN3_00790,Endocrino y metabólico,miligramos,REPARADA,Glucosa 180 mg/dL con infusión de insulina a 6 U/h.
+CLIN3_00791,Endocrino y metabólico,miligramos,REPARADA,Glucosa 250 mg/dL con infusión de insulina a 0 U/h.
+CLIN3_00792,Endocrino y metabólico,miligramos,REPARADA,Glucosa 250 mg/dL con infusión de insulina a 1 U/h.
+CLIN3_00793,Endocrino y metabólico,miligramos,REPARADA,Glucosa 250 mg/dL con infusión de insulina a 2 U/h.
+CLIN3_00794,Endocrino y metabólico,miligramos,REPARADA,Glucosa 250 mg/dL con infusión de insulina a 4 U/h.
+CLIN3_00795,Endocrino y metabólico,miligramos,REPARADA,Glucosa 250 mg/dL con infusión de insulina a 6 U/h.
+CLIN3_00796,Endocrino y metabólico,miligramos,REPARADA,Glucosa 400 mg/dL con infusión de insulina a 0 U/h.
+CLIN3_00797,Endocrino y metabólico,miligramos,REPARADA,Glucosa 400 mg/dL con infusión de insulina a 1 U/h.
+CLIN3_00798,Endocrino y metabólico,miligramos,REPARADA,Glucosa 400 mg/dL con infusión de insulina a 2 U/h.
+CLIN3_00799,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 260 mOsm/kg, cetonas negativas y beta hidroxibutirato 0.5 mmol/L."
+CLIN3_00800,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 260 mOsm/kg, cetonas negativas y beta hidroxibutirato 1.5 mmol/L."
+CLIN3_00801,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 260 mOsm/kg, cetonas negativas y beta hidroxibutirato 3.0 mmol/L."
+CLIN3_00802,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 260 mOsm/kg, cetonas negativas y beta hidroxibutirato 6.0 mmol/L."
+CLIN3_00811,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 280 mOsm/kg, cetonas negativas y beta hidroxibutirato 0.5 mmol/L."
+CLIN3_00812,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 280 mOsm/kg, cetonas negativas y beta hidroxibutirato 1.5 mmol/L."
+CLIN3_00813,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 280 mOsm/kg, cetonas negativas y beta hidroxibutirato 3.0 mmol/L."
+CLIN3_00814,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 280 mOsm/kg, cetonas negativas y beta hidroxibutirato 6.0 mmol/L."
+CLIN3_00823,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 300 mOsm/kg, cetonas negativas y beta hidroxibutirato 0.5 mmol/L."
+CLIN3_00824,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 300 mOsm/kg, cetonas negativas y beta hidroxibutirato 1.5 mmol/L."
+CLIN3_00825,Endocrino y metabólico,negramosativas,REPARADA,"Osmolaridad 300 mOsm/kg, cetonas negativas y beta hidroxibutirato 3.0 mmol/L."
+CLIN3_00859,Escalas y scores,gramose,REVISAR: gramose,GCS de 3.
+CLIN3_00860,Escalas y scores,gramose,REVISAR: gramose,GCS de 6.
+CLIN3_00861,Escalas y scores,gramose,REVISAR: gramose,GCS de 9.
+CLIN3_00862,Escalas y scores,gramose,REVISAR: gramose,GCS de 12.
+CLIN3_00863,Escalas y scores,gramose,REVISAR: gramose,GCS de 15.
+CLIN3_00865,Escalas y scores,negramosativo,REPARADA,CAM-ICU de negativo.
+CLIN3_00936,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 20 mil e INR 1.0."
+CLIN3_00937,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 20 mil e INR 1.4."
+CLIN3_00938,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 20 mil e INR 2.0."
+CLIN3_00939,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 20 mil e INR 3.0."
+CLIN3_00940,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 50 mil e INR 1.0."
+CLIN3_00941,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 50 mil e INR 1.4."
+CLIN3_00942,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 50 mil e INR 2.0."
+CLIN3_00943,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 50 mil e INR 3.0."
+CLIN3_00944,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 100 mil e INR 1.0."
+CLIN3_00945,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 100 mil e INR 1.4."
+CLIN3_00946,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 100 mil e INR 2.0."
+CLIN3_00947,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 100 mil e INR 3.0."
+CLIN3_00948,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 180 mil e INR 1.0."
+CLIN3_00949,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 180 mil e INR 1.4."
+CLIN3_00950,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 180 mil e INR 2.0."
+CLIN3_00951,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 180 mil e INR 3.0."
+CLIN3_00952,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 300 mil e INR 1.0."
+CLIN3_00953,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 300 mil e INR 1.4."
+CLIN3_00954,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 300 mil e INR 2.0."
+CLIN3_00955,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 1.5, plaquetas 300 mil e INR 3.0."
+CLIN3_00956,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 20 mil e INR 1.0."
+CLIN3_00957,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 20 mil e INR 1.4."
+CLIN3_00958,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 20 mil e INR 2.0."
+CLIN3_00959,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 20 mil e INR 3.0."
+CLIN3_00960,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 50 mil e INR 1.0."
+CLIN3_00961,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 50 mil e INR 1.4."
+CLIN3_00962,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 50 mil e INR 2.0."
+CLIN3_00963,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 50 mil e INR 3.0."
+CLIN3_00964,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 100 mil e INR 1.0."
+CLIN3_00965,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 100 mil e INR 1.4."
+CLIN3_00966,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 100 mil e INR 2.0."
+CLIN3_00967,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 100 mil e INR 3.0."
+CLIN3_00968,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 180 mil e INR 1.0."
+CLIN3_00969,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 180 mil e INR 1.4."
+CLIN3_00970,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 180 mil e INR 2.0."
+CLIN3_00971,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 180 mil e INR 3.0."
+CLIN3_00972,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 300 mil e INR 1.0."
+CLIN3_00973,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 300 mil e INR 1.4."
+CLIN3_00974,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 300 mil e INR 2.0."
+CLIN3_00975,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 4.0, plaquetas 300 mil e INR 3.0."
+CLIN3_00976,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 20 mil e INR 1.0."
+CLIN3_00977,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 20 mil e INR 1.4."
+CLIN3_00978,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 20 mil e INR 2.0."
+CLIN3_00979,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 20 mil e INR 3.0."
+CLIN3_00980,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 50 mil e INR 1.0."
+CLIN3_00981,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 50 mil e INR 1.4."
+CLIN3_00982,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 50 mil e INR 2.0."
+CLIN3_00983,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 50 mil e INR 3.0."
+CLIN3_00984,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 100 mil e INR 1.0."
+CLIN3_00985,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 100 mil e INR 1.4."
+CLIN3_00986,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 100 mil e INR 2.0."
+CLIN3_00987,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 100 mil e INR 3.0."
+CLIN3_00988,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 180 mil e INR 1.0."
+CLIN3_00989,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 180 mil e INR 1.4."
+CLIN3_00990,Hematología y coagulación,Hemogramoslobina,REPARADA,"Hemoglobina 6.8 g/dL, leucocitos 12.0, plaquetas 180 mil e INR 2.0."
+CLIN3_01046,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 0.8 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01047,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 0.8 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01048,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 0.8 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01049,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 0.8 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01050,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 2.5 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01051,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 2.5 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01052,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 2.5 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01053,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 2.5 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01054,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 6.0 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01055,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 6.0 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01056,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 6.0 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01057,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 6.0 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01058,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 15.0 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01059,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 15.0 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01060,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 15.0 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01061,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 30, bilirrubina total 15.0 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01062,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 0.8 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01063,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 0.8 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01064,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 0.8 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01065,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 0.8 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01066,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 2.5 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01067,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 2.5 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01068,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 2.5 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01069,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 2.5 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01070,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 6.0 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01071,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 6.0 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01072,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 6.0 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01073,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 6.0 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01074,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 15.0 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01075,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 15.0 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01076,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 15.0 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01077,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 90, bilirrubina total 15.0 mg/dL y albúmina 4.0 g/dL."
+CLIN3_01078,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 300, bilirrubina total 0.8 mg/dL y albúmina 2.0 g/dL."
+CLIN3_01079,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 300, bilirrubina total 0.8 mg/dL y albúmina 2.8 g/dL."
+CLIN3_01080,Hepático y gastrointestinal,miligramos,REPARADA,"AST 35, ALT 300, bilirrubina total 0.8 mg/dL y albúmina 3.5 g/dL."
+CLIN3_01083,Hepático y gastrointestinal,nasogramosástrica,REPARADA,Se reporta débito alto por sonda nasogástrica.
+CLIN3_01085,Hepático y gastrointestinal,gramosasto,REPARADA,Se reporta diarrea de alto gasto.
+CLIN3_01086,Hepático y gastrointestinal,gramosástrico,REPARADA,Se reporta residuo gástrico elevado.
+CLIN3_01088,Hepático y gastrointestinal,negramosativa,REPARADA,Se reporta abdomen abierto con terapia de presión negativa.
+CLIN3_01089,Hepático y gastrointestinal,gramosasto,REPARADA,Se reporta fístula enterocutánea de alto gasto.
+CLIN3_01093,Hepático y gastrointestinal,digramosestivo sangramosrado,REPARADA,Se reporta sangrado digestivo sin inestabilidad.
+CLIN3_01096,Hepático y gastrointestinal,gramosasto,REPARADA,Se reporta ileostomía de alto gasto.
+CLIN3_01101,Imagenología,Imagramosen,REPARADA,Imagen reporta infiltrados alveolares bilaterales.
+CLIN3_01102,Imagenología,Imagramosen,REPARADA,Imagen reporta consolidación basal derecha.
+CLIN3_01103,Imagenología,Imagramosen,REPARADA,Imagen reporta consolidación multilobar.
+CLIN3_01104,Imagenología,Imagramosen,REPARADA,Imagen reporta derrame pleural bilateral.
+CLIN3_01105,Imagenología,Imagramosen,REPARADA,Imagen reporta neumotórax derecho.
+CLIN3_01106,Imagenología,Imagramosen,REPARADA,Imagen reporta edema pulmonar.
+CLIN3_01107,Imagenología,Imagramosen,REPARADA,Imagen reporta atelectasia del lóbulo inferior izquierdo.
+CLIN3_01108,Imagenología,Imagramosen,REPARADA,Imagen reporta tubo endotraqueal alto.
+CLIN3_01109,Imagenología,Imagramosen,REPARADA,Imagen reporta tubo endotraqueal a dos centímetros de la carina.
+CLIN3_01110,Imagenología,Imagramosen,REPARADA,Imagen reporta catéter central con punta en cava superior.
+CLIN3_01111,Imagenología,Imagramosen,REPARADA,Imagen reporta opacidad en vidrio despulido.
+CLIN3_01112,Imagenología,Imagramosen gramosemación,REPARADA,Imagen reporta patrón de árbol en gemación.
+CLIN3_01113,Imagenología,Imagramosen,REPARADA,Imagen reporta cavitación pulmonar.
+CLIN3_01114,Imagenología,Imagramosen segramosmentaria,REPARADA,Imagen reporta embolia pulmonar segmentaria.
+CLIN3_01115,Imagenología,Imagramosen,REPARADA,Imagen reporta embolia pulmonar central.
+CLIN3_01116,Imagenología,Imagramosen,REPARADA,Imagen reporta dilatación del ventrículo derecho.
+CLIN3_01117,Imagenología,Imagramosen,REPARADA,Imagen reporta derrame pericárdico.
+CLIN3_01118,Imagenología,Imagramosen,REPARADA,Imagen reporta edema cerebral difuso.
+CLIN3_01119,Imagenología,Imagramosen hemorragramosia,REPARADA,Imagen reporta hemorragia subaracnoidea.
+CLIN3_01120,Imagenología,Imagramosen,REPARADA,Imagen reporta hematoma subdural.
+CLIN3_01121,Imagenología,Imagramosen,REPARADA,Imagen reporta infarto cerebral extenso.
+CLIN3_01122,Imagenología,Imagramosen,REPARADA,Imagen reporta hidrocefalia.
+CLIN3_01123,Imagenología,Imagramosen,REPARADA,Imagen reporta neumoperitoneo.
+CLIN3_01124,Imagenología,Imagramosen,REPARADA,Imagen reporta neumobilia.
+CLIN3_01125,Imagenología,Imagramosen,REPARADA,Imagen reporta íleo.
+CLIN3_01126,Imagenología,Imagramosen,REPARADA,Imagen reporta colección intraabdominal.
+CLIN3_01127,Imagenología,Imagramosen,REPARADA,Imagen reporta trombosis venosa profunda.
+CLIN3_01128,Imagenología,Imagramosen agramosuda,REPARADA,Imagen reporta oclusión arterial aguda.
+CLIN3_01129,Imagenología,Imagramosen,REPARADA,Imagen reporta edema de tejidos blandos.
+CLIN3_01130,Imagenología,Imagramosen gramosas,REPARADA,Imagen reporta gas en tejidos blandos.
+CLIN3_01133,Imagenología,gramosrande,REPARADA,Derrame pleural derecho de tamaño grande.
+CLIN3_01136,Imagenología,gramosrande,REPARADA,Derrame pleural izquierdo de tamaño grande.
+CLIN3_01139,Imagenología,gramosrande,REPARADA,Derrame pleural bilateral de tamaño grande.
+CLIN3_01156,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de neumonía asociada a ventilación mecánica.
+CLIN3_01157,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de bacteriemia asociada a catéter.
+CLIN3_01158,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de infección urinaria asociada a sonda.
+CLIN3_01159,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de peritonitis secundaria.
+CLIN3_01160,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de infección intraabdominal complicada.
+CLIN3_01161,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de mediastinitis postesternotomía.
+CLIN3_01162,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de endocarditis infecciosa.
+CLIN3_01163,Infectología crítica,Diagramosnóstico meningramositis,REPARADA,Diagnóstico de meningitis bacteriana.
+CLIN3_01164,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de encefalitis viral.
+CLIN3_01165,Infectología crítica,Diagramosnóstico aspergramosilosis,REPARADA,Diagnóstico de aspergilosis pulmonar invasiva.
+CLIN3_01166,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de candidemia.
+CLIN3_01167,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de mucormicosis pulmonar.
+CLIN3_01168,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de neumonía por Pneumocystis jirovecii.
+CLIN3_01169,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de tuberculosis miliar.
+CLIN3_01170,Infectología crítica,Diagramosnóstico meníngramosea,REPARADA,Diagnóstico de tuberculosis meníngea.
+CLIN3_01171,Infectología crítica,Diagramosnóstico citomegramosalovirus,REPARADA,Diagnóstico de reactivación de citomegalovirus.
+CLIN3_01172,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de colitis por Clostridioides difficile.
+CLIN3_01173,Infectología crítica,Diagramosnóstico gramosrave,REPARADA,Diagnóstico de influenza grave.
+CLIN3_01174,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de COVID-19 crítico.
+CLIN3_01175,Infectología crítica,Diagramosnóstico Legramosionella,REPARADA,Diagnóstico de neumonía por Legionella.
+CLIN3_01176,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de empiema pleural.
+CLIN3_01177,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de absceso pulmonar.
+CLIN3_01178,Infectología crítica,Diagramosnóstico quirúrgramosico,REPARADA,Diagnóstico de infección de sitio quirúrgico.
+CLIN3_01179,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de fascitis necrosante.
+CLIN3_01180,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de osteomielitis vertebral.
+CLIN3_01181,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de infección periprotésica.
+CLIN3_01182,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de candidiasis invasiva.
+CLIN3_01183,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de bacteriemia persistente.
+CLIN3_01184,Infectología crítica,Diagramosnóstico fungramosemia,REPARADA,Diagnóstico de fungemia persistente.
+CLIN3_01185,Infectología crítica,Diagramosnóstico,REPARADA,Diagnóstico de sepsis abdominal.
+CLIN3_01210,Infectología crítica,quirúrgramosico,REPARADA,tejido quirúrgico sin crecimiento.
+CLIN3_01263,Lenguaje natural de pase,mililitros,REPARADA,"La diuresis sigue baja, alrededor de cero punto tres mililitros por kilo por hora."
+CLIN3_01266,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 5 cmH2O, driving pressure 15 cmH2O y PIP 24 cmH2O."
+CLIN3_01267,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 5 cmH2O, driving pressure 15 cmH2O y PIP 28 cmH2O."
+CLIN3_01268,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 5 cmH2O, driving pressure 15 cmH2O y PIP 32 cmH2O."
+CLIN3_01269,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 5 cmH2O, driving pressure 15 cmH2O y PIP 36 cmH2O."
+CLIN3_01270,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 8 cmH2O, driving pressure 12 cmH2O y PIP 24 cmH2O."
+CLIN3_01271,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 8 cmH2O, driving pressure 12 cmH2O y PIP 28 cmH2O."
+CLIN3_01272,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 8 cmH2O, driving pressure 12 cmH2O y PIP 32 cmH2O."
+CLIN3_01273,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 8 cmH2O, driving pressure 12 cmH2O y PIP 36 cmH2O."
+CLIN3_01274,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 10 cmH2O, driving pressure 10 cmH2O y PIP 24 cmH2O."
+CLIN3_01275,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 10 cmH2O, driving pressure 10 cmH2O y PIP 28 cmH2O."
+CLIN3_01276,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 10 cmH2O, driving pressure 10 cmH2O y PIP 32 cmH2O."
+CLIN3_01277,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 10 cmH2O, driving pressure 10 cmH2O y PIP 36 cmH2O."
+CLIN3_01278,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 12 cmH2O, driving pressure 8 cmH2O y PIP 24 cmH2O."
+CLIN3_01279,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 12 cmH2O, driving pressure 8 cmH2O y PIP 28 cmH2O."
+CLIN3_01280,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 12 cmH2O, driving pressure 8 cmH2O y PIP 32 cmH2O."
+CLIN3_01281,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 20 cmH2O, PEEP 12 cmH2O, driving pressure 8 cmH2O y PIP 36 cmH2O."
+CLIN3_01282,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 5 cmH2O, driving pressure 17 cmH2O y PIP 24 cmH2O."
+CLIN3_01283,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 5 cmH2O, driving pressure 17 cmH2O y PIP 28 cmH2O."
+CLIN3_01284,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 5 cmH2O, driving pressure 17 cmH2O y PIP 32 cmH2O."
+CLIN3_01285,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 5 cmH2O, driving pressure 17 cmH2O y PIP 36 cmH2O."
+CLIN3_01286,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 8 cmH2O, driving pressure 14 cmH2O y PIP 24 cmH2O."
+CLIN3_01287,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 8 cmH2O, driving pressure 14 cmH2O y PIP 28 cmH2O."
+CLIN3_01288,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 8 cmH2O, driving pressure 14 cmH2O y PIP 32 cmH2O."
+CLIN3_01289,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 8 cmH2O, driving pressure 14 cmH2O y PIP 36 cmH2O."
+CLIN3_01290,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 10 cmH2O, driving pressure 12 cmH2O y PIP 24 cmH2O."
+CLIN3_01291,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 10 cmH2O, driving pressure 12 cmH2O y PIP 28 cmH2O."
+CLIN3_01292,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 10 cmH2O, driving pressure 12 cmH2O y PIP 32 cmH2O."
+CLIN3_01293,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 10 cmH2O, driving pressure 12 cmH2O y PIP 36 cmH2O."
+CLIN3_01294,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 12 cmH2O, driving pressure 10 cmH2O y PIP 24 cmH2O."
+CLIN3_01295,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 12 cmH2O, driving pressure 10 cmH2O y PIP 28 cmH2O."
+CLIN3_01296,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 12 cmH2O, driving pressure 10 cmH2O y PIP 32 cmH2O."
+CLIN3_01297,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 22 cmH2O, PEEP 12 cmH2O, driving pressure 10 cmH2O y PIP 36 cmH2O."
+CLIN3_01298,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 5 cmH2O, driving pressure 19 cmH2O y PIP 24 cmH2O."
+CLIN3_01299,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 5 cmH2O, driving pressure 19 cmH2O y PIP 28 cmH2O."
+CLIN3_01300,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 5 cmH2O, driving pressure 19 cmH2O y PIP 32 cmH2O."
+CLIN3_01301,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 5 cmH2O, driving pressure 19 cmH2O y PIP 36 cmH2O."
+CLIN3_01302,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 8 cmH2O, driving pressure 16 cmH2O y PIP 24 cmH2O."
+CLIN3_01303,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 8 cmH2O, driving pressure 16 cmH2O y PIP 28 cmH2O."
+CLIN3_01304,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 8 cmH2O, driving pressure 16 cmH2O y PIP 32 cmH2O."
+CLIN3_01305,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 8 cmH2O, driving pressure 16 cmH2O y PIP 36 cmH2O."
+CLIN3_01306,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 10 cmH2O, driving pressure 14 cmH2O y PIP 24 cmH2O."
+CLIN3_01307,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 10 cmH2O, driving pressure 14 cmH2O y PIP 28 cmH2O."
+CLIN3_01308,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 10 cmH2O, driving pressure 14 cmH2O y PIP 32 cmH2O."
+CLIN3_01309,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 10 cmH2O, driving pressure 14 cmH2O y PIP 36 cmH2O."
+CLIN3_01310,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 12 cmH2O, driving pressure 12 cmH2O y PIP 24 cmH2O."
+CLIN3_01311,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 12 cmH2O, driving pressure 12 cmH2O y PIP 28 cmH2O."
+CLIN3_01312,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 12 cmH2O, driving pressure 12 cmH2O y PIP 32 cmH2O."
+CLIN3_01313,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 24 cmH2O, PEEP 12 cmH2O, driving pressure 12 cmH2O y PIP 36 cmH2O."
+CLIN3_01314,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 5 cmH2O, driving pressure 21 cmH2O y PIP 24 cmH2O."
+CLIN3_01315,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 5 cmH2O, driving pressure 21 cmH2O y PIP 28 cmH2O."
+CLIN3_01316,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 5 cmH2O, driving pressure 21 cmH2O y PIP 32 cmH2O."
+CLIN3_01317,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 5 cmH2O, driving pressure 21 cmH2O y PIP 36 cmH2O."
+CLIN3_01318,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 8 cmH2O, driving pressure 18 cmH2O y PIP 24 cmH2O."
+CLIN3_01319,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 8 cmH2O, driving pressure 18 cmH2O y PIP 28 cmH2O."
+CLIN3_01320,Mecánica ventilatoria,agramosua drivingramos,REPARADA,"Pplat 26 cmH2O, PEEP 8 cmH2O, driving pressure 18 cmH2O y PIP 32 cmH2O."
+CLIN3_01327,Medicina hospitalaria,hipergramoslucémico,REPARADA,Hospitalización por estado hiperosmolar hiperglucémico.
+CLIN3_01330,Medicina hospitalaria,agramosuda,REPARADA,Hospitalización por insuficiencia renal aguda.
+CLIN3_01333,Medicina hospitalaria,agramosuda,REPARADA,Hospitalización por pancreatitis aguda.
+CLIN3_01334,Medicina hospitalaria,digramosestiva hemorragramosia,REPARADA,Hospitalización por hemorragia digestiva alta.
+CLIN3_01347,Medicina hospitalaria,gramosolpe,REPARADA,Hospitalización por golpe de calor.
+CLIN3_01350,Medicina hospitalaria,maligramosna,REPARADA,Hospitalización por hipercalcemia maligna.
+CLIN3_01416,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo MRSA.
+CLIN3_01417,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo VRE.
+CLIN3_01418,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo ESBL.
+CLIN3_01419,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo KPC.
+CLIN3_01420,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo NDM.
+CLIN3_01421,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo OXA-48.
+CLIN3_01422,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo carbapenemasa.
+CLIN3_01423,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo resistencia a colistina.
+CLIN3_01424,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo resistencia a fluoroquinolonas.
+CLIN3_01425,Microbiología y resistencia,aerugramosinosa,REPARADA,Cultivo positivo para Pseudomonas aeruginosa con fenotipo multirresistente.
+CLIN3_01459,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 5 cmH2O y FiO2 30%."
+CLIN3_01460,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 5 cmH2O y FiO2 40%."
+CLIN3_01461,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 5 cmH2O y FiO2 50%."
+CLIN3_01462,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 5 cmH2O y FiO2 60%."
+CLIN3_01463,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 6 cmH2O y FiO2 30%."
+CLIN3_01464,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 6 cmH2O y FiO2 40%."
+CLIN3_01465,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 6 cmH2O y FiO2 50%."
+CLIN3_01466,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 6 cmH2O y FiO2 60%."
+CLIN3_01467,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 8 cmH2O y FiO2 30%."
+CLIN3_01468,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 8 cmH2O y FiO2 40%."
+CLIN3_01469,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 8 cmH2O y FiO2 50%."
+CLIN3_01470,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 8 cmH2O y FiO2 60%."
+CLIN3_01471,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 10 cmH2O y FiO2 30%."
+CLIN3_01472,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 10 cmH2O y FiO2 40%."
+CLIN3_01473,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 10 cmH2O y FiO2 50%."
+CLIN3_01474,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 10 cmH2O, EPAP 10 cmH2O y FiO2 60%."
+CLIN3_01475,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 5 cmH2O y FiO2 30%."
+CLIN3_01476,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 5 cmH2O y FiO2 40%."
+CLIN3_01477,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 5 cmH2O y FiO2 50%."
+CLIN3_01478,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 5 cmH2O y FiO2 60%."
+CLIN3_01479,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 6 cmH2O y FiO2 30%."
+CLIN3_01480,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 6 cmH2O y FiO2 40%."
+CLIN3_01481,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 6 cmH2O y FiO2 50%."
+CLIN3_01482,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 6 cmH2O y FiO2 60%."
+CLIN3_01483,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 8 cmH2O y FiO2 30%."
+CLIN3_01484,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 8 cmH2O y FiO2 40%."
+CLIN3_01485,NIV y alto flujo,agramosua,REPARADA,"NIV en presión soporte, IPAP 12 cmH2O, EPAP 8 cmH2O y FiO2 50%."
+CLIN3_01486,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 50 mmHg y NPi 0.5."
+CLIN3_01487,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 50 mmHg y NPi 2.0."
+CLIN3_01488,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 50 mmHg y NPi 3.5."
+CLIN3_01489,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 50 mmHg y NPi 4.5."
+CLIN3_01490,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 60 mmHg y NPi 0.5."
+CLIN3_01491,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 60 mmHg y NPi 2.0."
+CLIN3_01492,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 60 mmHg y NPi 3.5."
+CLIN3_01493,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 60 mmHg y NPi 4.5."
+CLIN3_01494,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 70 mmHg y NPi 0.5."
+CLIN3_01495,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 70 mmHg y NPi 2.0."
+CLIN3_01496,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 70 mmHg y NPi 3.5."
+CLIN3_01497,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 70 mmHg y NPi 4.5."
+CLIN3_01498,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 80 mmHg y NPi 0.5."
+CLIN3_01499,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 80 mmHg y NPi 2.0."
+CLIN3_01500,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 80 mmHg y NPi 3.5."
+CLIN3_01501,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 8 mmHg, CPP 80 mmHg y NPi 4.5."
+CLIN3_01502,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 50 mmHg y NPi 0.5."
+CLIN3_01503,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 50 mmHg y NPi 2.0."
+CLIN3_01504,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 50 mmHg y NPi 3.5."
+CLIN3_01505,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 50 mmHg y NPi 4.5."
+CLIN3_01506,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 60 mmHg y NPi 0.5."
+CLIN3_01507,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 60 mmHg y NPi 2.0."
+CLIN3_01508,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 60 mmHg y NPi 3.5."
+CLIN3_01509,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 60 mmHg y NPi 4.5."
+CLIN3_01510,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 70 mmHg y NPi 0.5."
+CLIN3_01511,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 70 mmHg y NPi 2.0."
+CLIN3_01512,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 70 mmHg y NPi 3.5."
+CLIN3_01513,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 70 mmHg y NPi 4.5."
+CLIN3_01514,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 80 mmHg y NPi 0.5."
+CLIN3_01515,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 80 mmHg y NPi 2.0."
+CLIN3_01516,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 80 mmHg y NPi 3.5."
+CLIN3_01517,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 15 mmHg, CPP 80 mmHg y NPi 4.5."
+CLIN3_01518,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 22 mmHg, CPP 50 mmHg y NPi 0.5."
+CLIN3_01519,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 22 mmHg, CPP 50 mmHg y NPi 2.0."
+CLIN3_01520,Neuro-UCI,gramose,REVISAR: gramose,"GCS 3, ICP 22 mmHg, CPP 50 mmHg y NPi 3.5."
+CLIN3_01521,Neuro-UCI,agramosua,REPARADA,Neuro-UCI: EVD abierta a diez centímetros de agua.
+CLIN3_01523,Neuro-UCI,gramose,REVISAR: gramose,Neuro-UCI: status epiléptico no convulsivo en EEG.
+CLIN3_01524,Neuro-UCI,gramose,REVISAR: gramose,Neuro-UCI: burst suppression en EEG.
+CLIN3_01539,Neuro-UCI,tusígramoseno,REPARADA,Neuro-UCI: reflejo tusígeno presente.
+CLIN3_01541,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1200 kcal/día y proteína 60 g/día."
+CLIN3_01542,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1200 kcal/día y proteína 80 g/día."
+CLIN3_01543,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1200 kcal/día y proteína 100 g/día."
+CLIN3_01544,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1200 kcal/día y proteína 120 g/día."
+CLIN3_01545,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1600 kcal/día y proteína 60 g/día."
+CLIN3_01546,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1600 kcal/día y proteína 80 g/día."
+CLIN3_01547,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1600 kcal/día y proteína 100 g/día."
+CLIN3_01548,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 1600 kcal/día y proteína 120 g/día."
+CLIN3_01549,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2000 kcal/día y proteína 60 g/día."
+CLIN3_01550,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2000 kcal/día y proteína 80 g/día."
+CLIN3_01551,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2000 kcal/día y proteína 100 g/día."
+CLIN3_01552,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2000 kcal/día y proteína 120 g/día."
+CLIN3_01553,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2400 kcal/día y proteína 60 g/día."
+CLIN3_01554,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2400 kcal/día y proteína 80 g/día."
+CLIN3_01555,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2400 kcal/día y proteína 100 g/día."
+CLIN3_01556,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 20 mL/h, meta 2400 kcal/día y proteína 120 g/día."
+CLIN3_01557,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1200 kcal/día y proteína 60 g/día."
+CLIN3_01558,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1200 kcal/día y proteína 80 g/día."
+CLIN3_01559,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1200 kcal/día y proteína 100 g/día."
+CLIN3_01560,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1200 kcal/día y proteína 120 g/día."
+CLIN3_01561,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1600 kcal/día y proteína 60 g/día."
+CLIN3_01562,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1600 kcal/día y proteína 80 g/día."
+CLIN3_01563,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1600 kcal/día y proteína 100 g/día."
+CLIN3_01564,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 1600 kcal/día y proteína 120 g/día."
+CLIN3_01565,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2000 kcal/día y proteína 60 g/día."
+CLIN3_01566,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2000 kcal/día y proteína 80 g/día."
+CLIN3_01567,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2000 kcal/día y proteína 100 g/día."
+CLIN3_01568,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2000 kcal/día y proteína 120 g/día."
+CLIN3_01569,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2400 kcal/día y proteína 60 g/día."
+CLIN3_01570,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2400 kcal/día y proteína 80 g/día."
+CLIN3_01571,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2400 kcal/día y proteína 100 g/día."
+CLIN3_01572,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 40 mL/h, meta 2400 kcal/día y proteína 120 g/día."
+CLIN3_01573,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 60 mL/h, meta 1200 kcal/día y proteína 60 g/día."
+CLIN3_01574,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 60 mL/h, meta 1200 kcal/día y proteína 80 g/día."
+CLIN3_01575,Nutrición UCI,mililitros,REPARADA,"Nutrición enteral a 60 mL/h, meta 1200 kcal/día y proteína 100 g/día."
+CLIN3_01577,Nutrición UCI,riesgramoso,REPARADA,Se documenta alto riesgo de síndrome de realimentación.
+CLIN3_01579,Nutrición UCI,gramosastroparesia,REPARADA,Se documenta procinético por gastroparesia.
+CLIN3_01580,Nutrición UCI,gramosástrico,REPARADA,Se documenta residuo gástrico elevado.
+CLIN3_01584,Nutrición UCI,negramosativo nitrogramosenado,REPARADA,Se documenta balance nitrogenado negativo.
+CLIN3_01586,Nutrición UCI,hipomagramosnesemia,REPARADA,Se documenta hipomagnesemia durante realimentación.
+CLIN3_01587,Nutrición UCI,hipergramoslucemia,REPARADA,Se documenta hiperglucemia asociada a nutrición parenteral.
+CLIN3_01594,Nutrición UCI,trigramoslicéridos vigramosilancia,REPARADA,Se documenta vigilancia de triglicéridos con propofol.
+CLIN3_01595,Nutrición UCI,agramosua,REPARADA,Se documenta aporte de agua libre.
+CLIN3_01596,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 18 mm y pulsatilidad portal 20%."
+CLIN3_01597,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 18 mm y pulsatilidad portal 30%."
+CLIN3_01598,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 18 mm y pulsatilidad portal 40%."
+CLIN3_01599,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 18 mm y pulsatilidad portal 50%."
+CLIN3_01600,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 18 mm y pulsatilidad portal 60%."
+CLIN3_01601,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 20 mm y pulsatilidad portal 20%."
+CLIN3_01602,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 20 mm y pulsatilidad portal 30%."
+CLIN3_01603,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 20 mm y pulsatilidad portal 40%."
+CLIN3_01604,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 20 mm y pulsatilidad portal 50%."
+CLIN3_01605,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 20 mm y pulsatilidad portal 60%."
+CLIN3_01606,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 22 mm y pulsatilidad portal 20%."
+CLIN3_01607,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 22 mm y pulsatilidad portal 30%."
+CLIN3_01608,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 22 mm y pulsatilidad portal 40%."
+CLIN3_01609,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 22 mm y pulsatilidad portal 50%."
+CLIN3_01610,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 22 mm y pulsatilidad portal 60%."
+CLIN3_01611,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 24 mm y pulsatilidad portal 20%."
+CLIN3_01612,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 24 mm y pulsatilidad portal 30%."
+CLIN3_01613,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 24 mm y pulsatilidad portal 40%."
+CLIN3_01614,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 24 mm y pulsatilidad portal 50%."
+CLIN3_01615,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 24 mm y pulsatilidad portal 60%."
+CLIN3_01616,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 26 mm y pulsatilidad portal 20%."
+CLIN3_01617,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 26 mm y pulsatilidad portal 30%."
+CLIN3_01618,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 26 mm y pulsatilidad portal 40%."
+CLIN3_01619,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 26 mm y pulsatilidad portal 50%."
+CLIN3_01620,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 0, VCI 26 mm y pulsatilidad portal 60%."
+CLIN3_01621,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 1, VCI 18 mm y pulsatilidad portal 20%."
+CLIN3_01622,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 1, VCI 18 mm y pulsatilidad portal 30%."
+CLIN3_01623,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 1, VCI 18 mm y pulsatilidad portal 40%."
+CLIN3_01624,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 1, VCI 18 mm y pulsatilidad portal 50%."
+CLIN3_01625,POCUS / VExUS,gramosrado,REPARADA,"VExUS grado 1, VCI 18 mm y pulsatilidad portal 60%."
+CLIN3_01632,POCUS / VExUS,broncogramosrama,REPARADA,POCUS con consolidación posterior con broncograma aéreo.
+CLIN3_01635,POCUS / VExUS,lungramos slidingramos,REPARADA,POCUS con lung sliding presente.
+CLIN3_01636,POCUS / VExUS,lungramos slidingramos,REPARADA,POCUS con lung sliding ausente.
+CLIN3_01649,POCUS / VExUS,sigramosno,REPARADA,POCUS con signo de la medusa en derrame pleural.
+CLIN3_01681,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 100 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01682,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 100 mL/h y ultrafiltración neta 100 mL/h."
+CLIN3_01683,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 100 mL/h y ultrafiltración neta 150 mL/h."
+CLIN3_01684,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 100 mL/h y ultrafiltración neta 200 mL/h."
+CLIN3_01685,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 150 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01686,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 150 mL/h y ultrafiltración neta 100 mL/h."
+CLIN3_01687,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 150 mL/h y ultrafiltración neta 150 mL/h."
+CLIN3_01688,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 150 mL/h y ultrafiltración neta 200 mL/h."
+CLIN3_01689,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 200 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01690,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 200 mL/h y ultrafiltración neta 100 mL/h."
+CLIN3_01691,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 200 mL/h y ultrafiltración neta 150 mL/h."
+CLIN3_01692,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 500 mL/h, PBP 200 mL/h y ultrafiltración neta 200 mL/h."
+CLIN3_01693,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 100 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01694,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 100 mL/h y ultrafiltración neta 100 mL/h."
+CLIN3_01695,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 100 mL/h y ultrafiltración neta 150 mL/h."
+CLIN3_01696,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 100 mL/h y ultrafiltración neta 200 mL/h."
+CLIN3_01697,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 150 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01698,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 150 mL/h y ultrafiltración neta 100 mL/h."
+CLIN3_01699,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 150 mL/h y ultrafiltración neta 150 mL/h."
+CLIN3_01700,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 150 mL/h y ultrafiltración neta 200 mL/h."
+CLIN3_01701,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 200 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01702,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 200 mL/h y ultrafiltración neta 100 mL/h."
+CLIN3_01703,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 200 mL/h y ultrafiltración neta 150 mL/h."
+CLIN3_01704,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 800 mL/h, PBP 200 mL/h y ultrafiltración neta 200 mL/h."
+CLIN3_01705,PRISMA / PrisMax,mililitros,REPARADA,"Dializado 800 mL/h, reposición 1000 mL/h, PBP 100 mL/h y ultrafiltración neta 50 mL/h."
+CLIN3_01706,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 88 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01707,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 88 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01708,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 88 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01709,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 88 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01710,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 96 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01711,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 96 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01712,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 96 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01713,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 96 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01714,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 104 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01715,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 104 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01716,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 104 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01717,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 104 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01718,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 112 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01719,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 112 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01720,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 112 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01721,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 2.8 mmol/L, cloro 112 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01722,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 88 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01723,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 88 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01724,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 88 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01725,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 88 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01726,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 96 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01727,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 96 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01728,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 96 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01729,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 96 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01730,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 104 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01731,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 104 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01732,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 104 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01733,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 104 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01734,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 112 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01735,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 112 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01736,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 112 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01737,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 3.4 mmol/L, cloro 112 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01738,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 88 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01739,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 88 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01740,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 88 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01741,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 88 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01742,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 96 mmol/L y creatinina 0.7 mg/dL."
+CLIN3_01743,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 96 mmol/L y creatinina 1.2 mg/dL."
+CLIN3_01744,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 96 mmol/L y creatinina 2.4 mg/dL."
+CLIN3_01745,Renal y electrolitos,miligramos,REPARADA,"Sodio 118 mmol/L, potasio 4.0 mmol/L, cloro 96 mmol/L y creatinina 4.5 mg/dL."
+CLIN3_01746,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.1 mL/kg/h con balance acumulado -2500 mL.
+CLIN3_01747,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.1 mL/kg/h con balance acumulado -1500 mL.
+CLIN3_01748,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.1 mL/kg/h con balance acumulado -500 mL.
+CLIN3_01749,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.1 mL/kg/h con balance acumulado 500 mL.
+CLIN3_01750,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.1 mL/kg/h con balance acumulado 1500 mL.
+CLIN3_01751,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.1 mL/kg/h con balance acumulado 3000 mL.
+CLIN3_01752,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.2 mL/kg/h con balance acumulado -2500 mL.
+CLIN3_01753,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.2 mL/kg/h con balance acumulado -1500 mL.
+CLIN3_01754,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.2 mL/kg/h con balance acumulado -500 mL.
+CLIN3_01755,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.2 mL/kg/h con balance acumulado 500 mL.
+CLIN3_01756,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.2 mL/kg/h con balance acumulado 1500 mL.
+CLIN3_01757,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.2 mL/kg/h con balance acumulado 3000 mL.
+CLIN3_01758,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.3 mL/kg/h con balance acumulado -2500 mL.
+CLIN3_01759,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.3 mL/kg/h con balance acumulado -1500 mL.
+CLIN3_01760,Renal y electrolitos,mililitros,REPARADA,Diuresis 0.3 mL/kg/h con balance acumulado -500 mL.
+CLIN3_01761,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 8 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01762,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 8 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01763,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 10 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01764,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 10 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01765,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 12 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01766,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 12 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01767,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 14 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01768,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 14 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01769,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 16 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01770,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 70, PEEP 16 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01771,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 8 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01772,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 8 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01773,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 10 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01774,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 10 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01775,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 12 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01776,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 12 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01777,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 14 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01778,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 14 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01779,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 16 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01780,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 90, PEEP 16 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01781,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 8 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01782,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 8 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01783,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 10 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01784,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 10 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01785,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 12 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01786,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 12 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01787,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 14 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01788,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 14 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01789,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 16 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01790,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 110, PEEP 16 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01791,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 8 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01792,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 8 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01793,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 10 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01794,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 10 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01795,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 12 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01796,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 12 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01797,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 14 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01798,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 14 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01799,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 16 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01800,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 130, PEEP 16 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01801,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 8 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01802,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 8 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01803,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 10 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01804,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 10 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01805,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 12 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01806,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 12 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01807,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 14 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01808,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 14 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01809,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 16 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01810,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 160, PEEP 16 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01811,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 190, PEEP 8 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01812,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 190, PEEP 8 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01813,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 190, PEEP 10 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01814,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 190, PEEP 10 cmH2O, estrategia protectora y paciente en pronación."
+CLIN3_01815,SDRA y pronación,agramosua estrategramosia,REPARADA,"SDRA con P/F 190, PEEP 12 cmH2O, estrategia protectora y paciente en supino."
+CLIN3_01816,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 10 mcg/kg/min y fentanilo 25 mcg/h."
+CLIN3_01817,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 10 mcg/kg/min y fentanilo 50 mcg/h."
+CLIN3_01818,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 10 mcg/kg/min y fentanilo 75 mcg/h."
+CLIN3_01819,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 10 mcg/kg/min y fentanilo 100 mcg/h."
+CLIN3_01820,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 10 mcg/kg/min y fentanilo 150 mcg/h."
+CLIN3_01821,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 20 mcg/kg/min y fentanilo 25 mcg/h."
+CLIN3_01822,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 20 mcg/kg/min y fentanilo 50 mcg/h."
+CLIN3_01823,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 20 mcg/kg/min y fentanilo 75 mcg/h."
+CLIN3_01824,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 20 mcg/kg/min y fentanilo 100 mcg/h."
+CLIN3_01825,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 20 mcg/kg/min y fentanilo 150 mcg/h."
+CLIN3_01826,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 30 mcg/kg/min y fentanilo 25 mcg/h."
+CLIN3_01827,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 30 mcg/kg/min y fentanilo 50 mcg/h."
+CLIN3_01828,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 30 mcg/kg/min y fentanilo 75 mcg/h."
+CLIN3_01829,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 30 mcg/kg/min y fentanilo 100 mcg/h."
+CLIN3_01830,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 30 mcg/kg/min y fentanilo 150 mcg/h."
+CLIN3_01831,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 40 mcg/kg/min y fentanilo 25 mcg/h."
+CLIN3_01832,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 40 mcg/kg/min y fentanilo 50 mcg/h."
+CLIN3_01833,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 40 mcg/kg/min y fentanilo 75 mcg/h."
+CLIN3_01834,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 40 mcg/kg/min y fentanilo 100 mcg/h."
+CLIN3_01835,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 40 mcg/kg/min y fentanilo 150 mcg/h."
+CLIN3_01836,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 50 mcg/kg/min y fentanilo 25 mcg/h."
+CLIN3_01837,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 50 mcg/kg/min y fentanilo 50 mcg/h."
+CLIN3_01838,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 50 mcg/kg/min y fentanilo 75 mcg/h."
+CLIN3_01839,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 50 mcg/kg/min y fentanilo 100 mcg/h."
+CLIN3_01840,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -5, propofol 50 mcg/kg/min y fentanilo 150 mcg/h."
+CLIN3_01841,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -4, propofol 10 mcg/kg/min y fentanilo 25 mcg/h."
+CLIN3_01842,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -4, propofol 10 mcg/kg/min y fentanilo 50 mcg/h."
+CLIN3_01843,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -4, propofol 10 mcg/kg/min y fentanilo 75 mcg/h."
+CLIN3_01844,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -4, propofol 10 mcg/kg/min y fentanilo 100 mcg/h."
+CLIN3_01845,Sedación y analgesia,mcgramos microgramos,REPARADA,"RASS -4, propofol 10 mcg/kg/min y fentanilo 150 mcg/h."
+CLIN3_01846,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 0."
+CLIN3_01847,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 2."
+CLIN3_01848,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 4."
+CLIN3_01849,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 6."
+CLIN3_01850,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 0."
+CLIN3_01851,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 2."
+CLIN3_01852,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 4."
+CLIN3_01853,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 6."
+CLIN3_01854,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.3 mg/kg/h y CPOT 0."
+CLIN3_01855,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.3 mg/kg/h y CPOT 2."
+CLIN3_01856,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.3 mg/kg/h y CPOT 4."
+CLIN3_01857,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.3 mg/kg/h y CPOT 6."
+CLIN3_01858,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.5 mg/kg/h y CPOT 0."
+CLIN3_01859,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.5 mg/kg/h y CPOT 2."
+CLIN3_01860,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.5 mg/kg/h y CPOT 4."
+CLIN3_01861,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.2 mcg/kg/h, ketamina 0.5 mg/kg/h y CPOT 6."
+CLIN3_01862,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 0."
+CLIN3_01863,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 2."
+CLIN3_01864,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 4."
+CLIN3_01865,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.1 mg/kg/h y CPOT 6."
+CLIN3_01866,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 0."
+CLIN3_01867,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 2."
+CLIN3_01868,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 4."
+CLIN3_01869,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.2 mg/kg/h y CPOT 6."
+CLIN3_01870,Sedación y analgesia,microgramos miligramos,REPARADA,"Dexmedetomidina 0.4 mcg/kg/h, ketamina 0.3 mg/kg/h y CPOT 0."
+CLIN3_01871,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 1.5 mmol/L y llenado capilar 2 segundos."
+CLIN3_01872,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 1.5 mmol/L y llenado capilar 3 segundos."
+CLIN3_01873,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 1.5 mmol/L y llenado capilar 4 segundos."
+CLIN3_01874,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 1.5 mmol/L y llenado capilar 5 segundos."
+CLIN3_01875,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 2.5 mmol/L y llenado capilar 2 segundos."
+CLIN3_01876,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 2.5 mmol/L y llenado capilar 3 segundos."
+CLIN3_01877,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 2.5 mmol/L y llenado capilar 4 segundos."
+CLIN3_01878,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 2.5 mmol/L y llenado capilar 5 segundos."
+CLIN3_01879,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 4.0 mmol/L y llenado capilar 2 segundos."
+CLIN3_01880,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 4.0 mmol/L y llenado capilar 3 segundos."
+CLIN3_01881,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 4.0 mmol/L y llenado capilar 4 segundos."
+CLIN3_01882,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 4.0 mmol/L y llenado capilar 5 segundos."
+CLIN3_01883,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 6.0 mmol/L y llenado capilar 2 segundos."
+CLIN3_01884,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 6.0 mmol/L y llenado capilar 3 segundos."
+CLIN3_01885,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 6.0 mmol/L y llenado capilar 4 segundos."
+CLIN3_01886,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 6.0 mmol/L y llenado capilar 5 segundos."
+CLIN3_01887,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 9.0 mmol/L y llenado capilar 2 segundos."
+CLIN3_01888,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 9.0 mmol/L y llenado capilar 3 segundos."
+CLIN3_01889,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 9.0 mmol/L y llenado capilar 4 segundos."
+CLIN3_01890,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 50 mmHg, lactato 9.0 mmol/L y llenado capilar 5 segundos."
+CLIN3_01891,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 1.5 mmol/L y llenado capilar 2 segundos."
+CLIN3_01892,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 1.5 mmol/L y llenado capilar 3 segundos."
+CLIN3_01893,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 1.5 mmol/L y llenado capilar 4 segundos."
+CLIN3_01894,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 1.5 mmol/L y llenado capilar 5 segundos."
+CLIN3_01895,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 2.5 mmol/L y llenado capilar 2 segundos."
+CLIN3_01896,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 2.5 mmol/L y llenado capilar 3 segundos."
+CLIN3_01897,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 2.5 mmol/L y llenado capilar 4 segundos."
+CLIN3_01898,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 2.5 mmol/L y llenado capilar 5 segundos."
+CLIN3_01899,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 4.0 mmol/L y llenado capilar 2 segundos."
+CLIN3_01900,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 4.0 mmol/L y llenado capilar 3 segundos."
+CLIN3_01901,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 4.0 mmol/L y llenado capilar 4 segundos."
+CLIN3_01902,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 4.0 mmol/L y llenado capilar 5 segundos."
+CLIN3_01903,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 6.0 mmol/L y llenado capilar 2 segundos."
+CLIN3_01904,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 6.0 mmol/L y llenado capilar 3 segundos."
+CLIN3_01905,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 6.0 mmol/L y llenado capilar 4 segundos."
+CLIN3_01906,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 6.0 mmol/L y llenado capilar 5 segundos."
+CLIN3_01907,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 9.0 mmol/L y llenado capilar 2 segundos."
+CLIN3_01908,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 9.0 mmol/L y llenado capilar 3 segundos."
+CLIN3_01909,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 9.0 mmol/L y llenado capilar 4 segundos."
+CLIN3_01910,Sepsis y choque,segramosundos,REPARADA,"Choque séptico con PAM 55 mmHg, lactato 9.0 mmol/L y llenado capilar 5 segundos."
+CLIN3_01913,Sepsis y choque,prolongramosado,REPARADA,Choque séptico con llenado capilar prolongado.
+CLIN3_01914,Sepsis y choque,oligramosuria,REPARADA,Choque séptico con oliguria.
+CLIN3_01916,Sepsis y choque,cardiogramosénico,REPARADA,Choque cardiogénico con piel moteada.
+CLIN3_01917,Sepsis y choque,cardiogramosénico,REPARADA,Choque cardiogénico con extremidades frías.
+CLIN3_01918,Sepsis y choque,cardiogramosénico prolongramosado,REPARADA,Choque cardiogénico con llenado capilar prolongado.
+CLIN3_01919,Sepsis y choque,cardiogramosénico oligramosuria,REPARADA,Choque cardiogénico con oliguria.
+CLIN3_01920,Sepsis y choque,cardiogramosénico,REPARADA,Choque cardiogénico con alteración del estado mental.
+CLIN3_01923,Sepsis y choque,prolongramosado,REPARADA,Choque hipovolémico con llenado capilar prolongado.
+CLIN3_01924,Sepsis y choque,oligramosuria,REPARADA,Choque hipovolémico con oliguria.
+CLIN3_01926,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 10 mil y fibrinógeno 80 mg/dL."
+CLIN3_01927,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 10 mil y fibrinógeno 120 mg/dL."
+CLIN3_01928,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 10 mil y fibrinógeno 180 mg/dL."
+CLIN3_01929,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 10 mil y fibrinógeno 250 mg/dL."
+CLIN3_01930,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 10 mil y fibrinógeno 350 mg/dL."
+CLIN3_01931,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 20 mil y fibrinógeno 80 mg/dL."
+CLIN3_01932,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 20 mil y fibrinógeno 120 mg/dL."
+CLIN3_01933,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 20 mil y fibrinógeno 180 mg/dL."
+CLIN3_01934,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 20 mil y fibrinógeno 250 mg/dL."
+CLIN3_01935,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 20 mil y fibrinógeno 350 mg/dL."
+CLIN3_01936,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 50 mil y fibrinógeno 80 mg/dL."
+CLIN3_01937,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 50 mil y fibrinógeno 120 mg/dL."
+CLIN3_01938,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 50 mil y fibrinógeno 180 mg/dL."
+CLIN3_01939,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 50 mil y fibrinógeno 250 mg/dL."
+CLIN3_01940,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 50 mil y fibrinógeno 350 mg/dL."
+CLIN3_01941,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 80 mil y fibrinógeno 80 mg/dL."
+CLIN3_01942,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 80 mil y fibrinógeno 120 mg/dL."
+CLIN3_01943,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 80 mil y fibrinógeno 180 mg/dL."
+CLIN3_01944,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 80 mil y fibrinógeno 250 mg/dL."
+CLIN3_01945,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 80 mil y fibrinógeno 350 mg/dL."
+CLIN3_01946,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 120 mil y fibrinógeno 80 mg/dL."
+CLIN3_01947,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 120 mil y fibrinógeno 120 mg/dL."
+CLIN3_01948,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 120 mil y fibrinógeno 180 mg/dL."
+CLIN3_01949,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 120 mil y fibrinógeno 250 mg/dL."
+CLIN3_01950,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 5.8 g/dL, plaquetas 120 mil y fibrinógeno 350 mg/dL."
+CLIN3_01951,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 10 mil y fibrinógeno 80 mg/dL."
+CLIN3_01952,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 10 mil y fibrinógeno 120 mg/dL."
+CLIN3_01953,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 10 mil y fibrinógeno 180 mg/dL."
+CLIN3_01954,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 10 mil y fibrinógeno 250 mg/dL."
+CLIN3_01955,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 10 mil y fibrinógeno 350 mg/dL."
+CLIN3_01956,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 20 mil y fibrinógeno 80 mg/dL."
+CLIN3_01957,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 20 mil y fibrinógeno 120 mg/dL."
+CLIN3_01958,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 20 mil y fibrinógeno 180 mg/dL."
+CLIN3_01959,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 20 mil y fibrinógeno 250 mg/dL."
+CLIN3_01960,Transfusión y hemostasia,Hemogramoslobina fibrinógramoseno miligramos,REPARADA,"Hemoglobina 6.5 g/dL, plaquetas 20 mil y fibrinógeno 350 mg/dL."
+CLIN3_01965,Transfusión y hemostasia,congramoselado,REPARADA,Se administran 1 unidades de plasma fresco congelado.
+CLIN3_01966,Transfusión y hemostasia,congramoselado,REPARADA,Se administran 2 unidades de plasma fresco congelado.
+CLIN3_01967,Transfusión y hemostasia,congramoselado,REPARADA,Se administran 4 unidades de plasma fresco congelado.
+CLIN3_01968,Transfusión y hemostasia,congramoselado,REPARADA,Se administran 6 unidades de plasma fresco congelado.
+CLIN3_01977,Transfusión y hemostasia,Sangramosrado,REPARADA,Sangrado activo.
+CLIN3_01978,Transfusión y hemostasia,Coagramosulopatía,REPARADA,Coagulopatía de consumo.
+CLIN3_01979,Transfusión y hemostasia,Hipofibrinogramosenemia,REPARADA,Hipofibrinogenemia.
+CLIN3_01987,Trauma y quemados,hemorragramosia,REPARADA,Paciente con hemorragia retroperitoneal.
+CLIN3_01988,Trauma y quemados,gramosrado,REPARADA,Paciente con lesión esplénica de alto grado.
+CLIN3_01989,Trauma y quemados,gramosrado,REPARADA,Paciente con lesión hepática de alto grado.
+CLIN3_01994,Trauma y quemados,hemorrágramosico,REPARADA,Paciente con choque hemorrágico clase cuatro.
+CLIN3_02001,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02002,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02003,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02004,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02005,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02006,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02007,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02008,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02009,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02010,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02011,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02012,Trauma y quemados,mililitros,REPARADA,"Quemadura de 15% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02013,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02014,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02015,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02016,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02017,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02018,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02019,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02020,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02021,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02022,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02023,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02024,Trauma y quemados,mililitros,REPARADA,"Quemadura de 25% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02025,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02026,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02027,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02028,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.3 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02029,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02030,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02031,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02032,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 0.5 mL/kg/h y lactato 8 mmol/L."
+CLIN3_02033,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 2 mmol/L."
+CLIN3_02034,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 4 mmol/L."
+CLIN3_02035,Trauma y quemados,mililitros,REPARADA,"Quemadura de 40% de superficie corporal, diuresis 1.0 mL/kg/h y lactato 6 mmol/L."
+CLIN3_02039,UCI obstétrica,hemorragramosia,REPARADA,UCI obstétrica por hemorragia obstétrica masiva.
+CLIN3_02046,UCI obstétrica,agramosudo gramosraso hígramosado,REPARADA,UCI obstétrica por hígado graso agudo del embarazo.
+CLIN3_02051,UCI obstétrica,coagramosulación,REPARADA,UCI obstétrica por coagulación intravascular diseminada obstétrica.
+CLIN3_02052,UCI obstétrica,hemorragramosia,REPARADA,UCI obstétrica por hemorragia postcesárea.
+CLIN3_02053,UCI obstétrica,hemorrágramosico,REPARADA,UCI obstétrica por choque hemorrágico obstétrico.
+CLIN3_02056,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 65 mmHg y plaquetas 40 mil."
+CLIN3_02057,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 65 mmHg y plaquetas 80 mil."
+CLIN3_02058,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 65 mmHg y plaquetas 120 mil."
+CLIN3_02059,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 65 mmHg y plaquetas 180 mil."
+CLIN3_02060,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 80 mmHg y plaquetas 40 mil."
+CLIN3_02061,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 80 mmHg y plaquetas 80 mil."
+CLIN3_02062,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 80 mmHg y plaquetas 120 mil."
+CLIN3_02063,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 80 mmHg y plaquetas 180 mil."
+CLIN3_02064,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 100 mmHg y plaquetas 40 mil."
+CLIN3_02065,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 100 mmHg y plaquetas 80 mil."
+CLIN3_02066,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 100 mmHg y plaquetas 120 mil."
+CLIN3_02067,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 2 g/h, PAM 100 mmHg y plaquetas 180 mil."
+CLIN3_02068,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 65 mmHg y plaquetas 40 mil."
+CLIN3_02069,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 65 mmHg y plaquetas 80 mil."
+CLIN3_02070,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 65 mmHg y plaquetas 120 mil."
+CLIN3_02071,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 65 mmHg y plaquetas 180 mil."
+CLIN3_02072,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 80 mmHg y plaquetas 40 mil."
+CLIN3_02073,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 80 mmHg y plaquetas 80 mil."
+CLIN3_02074,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 80 mmHg y plaquetas 120 mil."
+CLIN3_02075,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 80 mmHg y plaquetas 180 mil."
+CLIN3_02076,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 100 mmHg y plaquetas 40 mil."
+CLIN3_02077,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 100 mmHg y plaquetas 80 mil."
+CLIN3_02078,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 100 mmHg y plaquetas 120 mil."
+CLIN3_02079,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 4 g/h, PAM 100 mmHg y plaquetas 180 mil."
+CLIN3_02080,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 65 mmHg y plaquetas 40 mil."
+CLIN3_02081,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 65 mmHg y plaquetas 80 mil."
+CLIN3_02082,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 65 mmHg y plaquetas 120 mil."
+CLIN3_02083,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 65 mmHg y plaquetas 180 mil."
+CLIN3_02084,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 80 mmHg y plaquetas 40 mil."
+CLIN3_02085,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 80 mmHg y plaquetas 80 mil."
+CLIN3_02086,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 80 mmHg y plaquetas 120 mil."
+CLIN3_02087,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 80 mmHg y plaquetas 180 mil."
+CLIN3_02088,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 100 mmHg y plaquetas 40 mil."
+CLIN3_02089,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 100 mmHg y plaquetas 80 mil."
+CLIN3_02090,UCI obstétrica,magramosnesio,REPARADA,"Infusión de sulfato de magnesio 6 g/h, PAM 100 mmHg y plaquetas 120 mil."
+CLIN3_02094,UCI quirúrgica,esofagramosectomía,REPARADA,Paciente en posoperatorio de esofagectomía.
+CLIN3_02097,UCI quirúrgica,cirugramosía,REPARADA,Paciente en posoperatorio de cirugía cardiaca.
+CLIN3_02100,UCI quirúrgica,neurocirugramosía,REPARADA,Paciente en posoperatorio de neurocirugía.
+CLIN3_02102,UCI quirúrgica,fugramosa,REPARADA,Paciente en fuga anastomótica sospechada.
+CLIN3_02106,UCI quirúrgica,sangramosrado,REPARADA,Paciente en sangrado por drenaje.
+CLIN3_02111,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Jackson Pratt con gasto de 50 mL en 24 horas.
+CLIN3_02112,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Jackson Pratt con gasto de 100 mL en 24 horas.
+CLIN3_02113,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Jackson Pratt con gasto de 250 mL en 24 horas.
+CLIN3_02114,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Jackson Pratt con gasto de 500 mL en 24 horas.
+CLIN3_02115,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Jackson Pratt con gasto de 800 mL en 24 horas.
+CLIN3_02116,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Blake con gasto de 50 mL en 24 horas.
+CLIN3_02117,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Blake con gasto de 100 mL en 24 horas.
+CLIN3_02118,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Blake con gasto de 250 mL en 24 horas.
+CLIN3_02119,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Blake con gasto de 500 mL en 24 horas.
+CLIN3_02120,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Blake con gasto de 800 mL en 24 horas.
+CLIN3_02121,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Penrose con gasto de 50 mL en 24 horas.
+CLIN3_02122,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Penrose con gasto de 100 mL en 24 horas.
+CLIN3_02123,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Penrose con gasto de 250 mL en 24 horas.
+CLIN3_02124,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Penrose con gasto de 500 mL en 24 horas.
+CLIN3_02125,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje Penrose con gasto de 800 mL en 24 horas.
+CLIN3_02126,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje torácico con gasto de 50 mL en 24 horas.
+CLIN3_02127,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje torácico con gasto de 100 mL en 24 horas.
+CLIN3_02128,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje torácico con gasto de 250 mL en 24 horas.
+CLIN3_02129,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje torácico con gasto de 500 mL en 24 horas.
+CLIN3_02130,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje torácico con gasto de 800 mL en 24 horas.
+CLIN3_02131,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje mediastinal con gasto de 50 mL en 24 horas.
+CLIN3_02132,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje mediastinal con gasto de 100 mL en 24 horas.
+CLIN3_02133,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje mediastinal con gasto de 250 mL en 24 horas.
+CLIN3_02134,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje mediastinal con gasto de 500 mL en 24 horas.
+CLIN3_02135,UCI quirúrgica,gramosasto mililitros,REPARADA,Drenaje mediastinal con gasto de 800 mL en 24 horas.
+CLIN3_02146,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 5 cmH2O y FiO2 30%."
+CLIN3_02147,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 5 cmH2O y FiO2 40%."
+CLIN3_02148,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 5 cmH2O y FiO2 50%."
+CLIN3_02149,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 8 cmH2O y FiO2 30%."
+CLIN3_02150,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 8 cmH2O y FiO2 40%."
+CLIN3_02151,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 8 cmH2O y FiO2 50%."
+CLIN3_02152,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 10 cmH2O y FiO2 30%."
+CLIN3_02153,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 10 cmH2O y FiO2 40%."
+CLIN3_02154,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 10 cmH2O y FiO2 50%."
+CLIN3_02155,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 12 cmH2O y FiO2 30%."
+CLIN3_02156,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 12 cmH2O y FiO2 40%."
+CLIN3_02157,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 320 mL, PEEP 12 cmH2O y FiO2 50%."
+CLIN3_02158,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 5 cmH2O y FiO2 30%."
+CLIN3_02159,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 5 cmH2O y FiO2 40%."
+CLIN3_02160,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 5 cmH2O y FiO2 50%."
+CLIN3_02161,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 8 cmH2O y FiO2 30%."
+CLIN3_02162,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 8 cmH2O y FiO2 40%."
+CLIN3_02163,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 8 cmH2O y FiO2 50%."
+CLIN3_02164,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 10 cmH2O y FiO2 30%."
+CLIN3_02165,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 10 cmH2O y FiO2 40%."
+CLIN3_02166,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 10 cmH2O y FiO2 50%."
+CLIN3_02167,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 12 cmH2O y FiO2 30%."
+CLIN3_02168,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 12 cmH2O y FiO2 40%."
+CLIN3_02169,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 350 mL, PEEP 12 cmH2O y FiO2 50%."
+CLIN3_02170,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 5 cmH2O y FiO2 30%."
+CLIN3_02171,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 5 cmH2O y FiO2 40%."
+CLIN3_02172,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 5 cmH2O y FiO2 50%."
+CLIN3_02173,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 8 cmH2O y FiO2 30%."
+CLIN3_02174,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 8 cmH2O y FiO2 40%."
+CLIN3_02175,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 8 cmH2O y FiO2 50%."
+CLIN3_02176,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 10 cmH2O y FiO2 30%."
+CLIN3_02177,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 10 cmH2O y FiO2 40%."
+CLIN3_02178,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 10 cmH2O y FiO2 50%."
+CLIN3_02179,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 12 cmH2O y FiO2 30%."
+CLIN3_02180,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 12 cmH2O y FiO2 40%."
+CLIN3_02181,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 380 mL, PEEP 12 cmH2O y FiO2 50%."
+CLIN3_02182,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 5 cmH2O y FiO2 30%."
+CLIN3_02183,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 5 cmH2O y FiO2 40%."
+CLIN3_02184,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 5 cmH2O y FiO2 50%."
+CLIN3_02185,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 8 cmH2O y FiO2 30%."
+CLIN3_02186,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 8 cmH2O y FiO2 40%."
+CLIN3_02187,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 8 cmH2O y FiO2 50%."
+CLIN3_02188,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 10 cmH2O y FiO2 30%."
+CLIN3_02189,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 10 cmH2O y FiO2 40%."
+CLIN3_02190,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 10 cmH2O y FiO2 50%."
+CLIN3_02191,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 12 cmH2O y FiO2 30%."
+CLIN3_02192,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 12 cmH2O y FiO2 40%."
+CLIN3_02193,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en VCV, VT 400 mL, PEEP 12 cmH2O y FiO2 50%."
+CLIN3_02194,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 5 cmH2O y FiO2 30%."
+CLIN3_02195,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 5 cmH2O y FiO2 40%."
+CLIN3_02196,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 5 cmH2O y FiO2 50%."
+CLIN3_02197,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 8 cmH2O y FiO2 30%."
+CLIN3_02198,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 8 cmH2O y FiO2 40%."
+CLIN3_02199,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 8 cmH2O y FiO2 50%."
+CLIN3_02200,Ventilación mecánica,agramosua mililitros,REPARADA,"Ventilador en PCV, VT 320 mL, PEEP 10 cmH2O y FiO2 30%."
