@@ -411,3 +411,38 @@ parecidas que son dos voces de laboratorio, no sólo la capacidad del sistema; n
 debe publicarse como métrica de producto sin decirlo.
 
 **Golden** — `src/__tests__/separacion-de-voces-fallida.test.ts` (9 casos).
+
+## REG-159 · El WER que no se podía publicar, ya medido
+
+**Qué pasaba** — La primera medición de los 6 000 audios dio 38,20 % de WER crudo
+y no era publicable: el 35,6 % de los fallos venían del **propio corpus**, cuyo
+generador expandió las unidades sin límite de palabra y grabó frases que no
+existen en español («microgramos ramos», «Hemogramoslobina»). El reconocedor
+salía reprobado por un defecto ajeno.
+
+**Reparación** — `scripts/medir-wer-limpio.ts` separa las dos cosas y publica los
+DOS números, reutilizando las 5 999 transcripciones ya pagadas (coste cero,
+reproducible).
+
+**Resultado** — El corpus roto costaba **10 puntos de WER**:
+
+| | Todo el corpus | Sólo audio válido |
+|---|---:|---:|
+| Frases | 5 999 | 4 635 |
+| WER crudo | 35,77 % | **25,55 %** |
+| WER tras pipeline | 29,37 % | **22,81 %** |
+| Recall de término clínico | 67,37 % | **71,48 %** |
+
+**El hallazgo que más importa** — El pipeline baja el WER 2,74 pp pero **casi no
+mueve el recall de términos clínicos** (+0,13 pp): no recupera lo que el motor no
+oyó. La palanca está en el sesgo de vocabulario, no en más post-proceso.
+
+**Límites declarados** — Una sola voz sintética, sin ruido ni solapamiento,
+frases sueltas, motor de respaldo. Es un PISO de laboratorio.
+
+**Pendiente** — Regenerar el audio de las 1 364 filas (gasto de TTS, decisión del
+dueño). El CSV ya se repara con `reparar-corpus-expansion.ts` (1 322 verificadas).
+
+**Golden** — `src/__tests__/wer-publicado.test.ts` (8 casos): vigila que el
+documento público y los datos crudos digan lo mismo y que los límites no se caigan
+del texto.

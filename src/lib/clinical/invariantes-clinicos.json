@@ -755,6 +755,10 @@
     {
       "archivo": "src/__tests__/separacion-de-voces-fallida.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/wer-publicado.test.ts",
+      "minCasos": 8
     }
   ]
 }

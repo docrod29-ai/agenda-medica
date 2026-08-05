@@ -1,0 +1,27 @@
+{
+  "motor": "whisper-1",
+  "filasCorpus": 6000,
+  "sinTranscripcion": 1,
+  "filasAudioCorrupto": 1364,
+  "todoElCorpus": {
+    "frases": 5999,
+    "werCrudo": 0.3577489976405007,
+    "werPipeline": 0.29368098735262194,
+    "terminos": 10097,
+    "recallCrudo": 0.6695057938001386,
+    "recallPipeline": 0.6736654451817371
+  },
+  "soloAudioValido": {
+    "frases": 4635,
+    "werCrudo": 0.25548242163967927,
+    "werPipeline": 0.22811087130410895,
+    "terminos": 5690,
+    "recallCrudo": 0.7135325131810193,
+    "recallPipeline": 0.7147627416520211
+  },
+  "limites": [
+    "Una sola voz sintética (coral): no es una muestra de hablantes reales.",
+    "Sin ruido de consultorio, sin solapamiento y sin distancia al micrófono.",
+    "Es un PISO de laboratorio, no lo que se verá en una consulta real."
+  ]
+}
