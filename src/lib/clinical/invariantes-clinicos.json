@@ -345,6 +345,10 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
       "minCasos": 6
     },
