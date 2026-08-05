@@ -353,6 +353,10 @@
       "minCasos": 10
     },
     {
+      "archivo": "src/__tests__/trinquete-de-voz.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
       "minCasos": 30
     },
