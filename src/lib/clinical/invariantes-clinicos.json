@@ -791,6 +791,10 @@
     {
       "archivo": "src/__tests__/sesgo-llega-al-motor-bueno.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/sesgo-medido.test.ts",
+      "minCasos": 10
     }
   ]
 }
