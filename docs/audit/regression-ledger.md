@@ -687,3 +687,45 @@ sesgo degradaba el motor al modelo viejo. El defecto vale más que el número.
 
 **Golden** — `src/__tests__/sesgo-medido.test.ts` (10 casos): vigila que el
 documento y los datos crudos digan lo mismo y que los límites no se caigan.
+
+## REG-169 · El 80,6 % de las correcciones del médico se tiraba sin mirarlas
+
+**Dónde** — `src/lib/asr/aprendizaje.ts` (`paresDeUnaNota`).
+
+**Qué pasaba** — Sólo se aprendía cuando lo oído y lo corregido tenían **el mismo
+número de palabras**. Medido sobre el corpus:
+
+| | |
+|---|---:|
+| Mismo largo | 363 (19,4 %) |
+| **Largo distinto** | **1 512 (80,6 %)** ← descartadas enteras |
+
+Bastaba que el médico añadiera un artículo para que toda la nota dejara de
+enseñar. Y de ahí se alimenta el sesgo de vocabulario — lo único que cambia lo
+que el motor OYE (REG-168: aporta 2,01 pp que no se compran).
+
+**Por qué estaba así** — El motivo original era correcto: comparando por
+POSICIÓN, una palabra añadida desplaza todas las siguientes y cada «par» sería
+una coincidencia.
+
+**Reparación** — `src/lib/asr/alineacion.ts` (módulo puro): subsecuencia común
+más larga. Se sabe qué palabras se conservaron y, entre ellas, cuál ocupó el
+lugar de cuál. El criterio **no se afloja** — se aplica donde antes ni se miraba:
+
+- Sustitución **una por una** → se aprende.
+- Borrado o adición pura → no enseña nada, se ignora.
+- Varias palabras cambiadas seguidas → no se puede saber cuál es cuál, se descarta.
+- **Una corregida más algo añadido** (el caso real: «meropenen» → «meropenem
+  intravenoso») → se empareja por **similitud ortográfica**, con distancia de
+  edición acotada y exigiendo que haya **una sola** candidata parecida. Es
+  evidencia comprobable, no una suposición sobre el orden.
+
+**Lo que NO se puede prometer** — Sobre el corpus esto da apenas un 6 % más de
+pares, y los que aparecen son ruido de las filas corruptas («gramosuiada →
+guiada»). **Ese corpus no es el instrumento**: compara forma hablada contra
+escrita, no correcciones de un médico. La ganancia real exige notas dictadas
+frente a notas firmadas, y eso sigue sin medir. Lo comprobable es que antes se
+descartaba el 80,6 % de las oportunidades sin mirarlas.
+
+**Golden** — `src/__tests__/aprender-aunque-cambie-el-largo.test.ts` (11 casos),
+incluidos los que **no** deben aprenderse.
