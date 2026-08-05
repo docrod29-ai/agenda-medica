@@ -775,6 +775,10 @@
     {
       "archivo": "src/__tests__/canal-whatsapp-no-se-secuestra.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts",
+      "minCasos": 7
     }
   ]
 }
