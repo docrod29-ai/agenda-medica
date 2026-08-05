@@ -783,6 +783,10 @@
     {
       "archivo": "src/__tests__/via-no-dictada-avisa.test.ts",
       "minCasos": 17
+    },
+    {
+      "archivo": "src/__tests__/quien-vigila-al-vigilante.test.ts",
+      "minCasos": 10
     }
   ]
 }

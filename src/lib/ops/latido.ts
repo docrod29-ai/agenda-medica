@@ -85,6 +85,18 @@ export const PERIODO_MIN: Record<string, number> = {
   'limpiar-audio': 1440, // diario
   retencion: 1440,       // diario
   asientos: 1440,        // diario — concilia el cobro por médico
+  /**
+   * EL VIGILANTE TAMBIÉN SE VIGILA.
+   *
+   * Faltaba, y era el punto ciego que él mismo declara: si el que se cae es él,
+   * nadie queda leyendo los latidos. Sin periodo declarado, su propio latido no
+   * se comparaba con nada y «lleva tres días sin correr» era indistinguible de
+   * «acaba de correr».
+   *
+   * No basta con que esté aquí: hace falta que alguien QUE NO SEA ÉL lea este
+   * diagnóstico. Eso lo hace la franja del dueño (`superadmin/incidentes`).
+   */
+  vigilante: 15,         // cada 15 min (vercel.json)
 }
 
 /**
