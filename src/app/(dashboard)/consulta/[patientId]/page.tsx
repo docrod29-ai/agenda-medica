@@ -101,7 +101,7 @@ import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { alergenosDe } from '@/lib/seguridad/alergias'
+import { alergenosDe, alergiasDe } from '@/lib/seguridad/alergias'
 
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
@@ -4045,9 +4045,20 @@ export default function ConsultaActivaPage() {
 
       {/* ── Alertas clínicas cruzadas (punto de atención) ── */}
       {(() => {
-        const alergiasPaciente = patient?.alergias
-          ? [{ alergeno: patient.alergias, reaccion: '' }]
-          : []
+/**
+   * LA ALERTA DE ALERGIA USA EL PARSER DE TODOS (4-ago-2026).
+   *
+   * Aquí se metía el campo ENTERO como un solo alérgeno, sin partir y **sin
+   * filtrar negaciones**. Como el cruce compara con `includes`, «Niega alergia a
+   * penicilina» + amoxicilina pintaba la alerta **crítica roja** — en la pantalla
+   * donde se prescribe. Es REG-034 y REG-035, ya cerradas dos veces, en una
+   * tercera ruta; y en este mismo archivo había otras dos lecturas del campo que
+   * sí usaban el parser bueno.
+   *
+   * Un falso positivo aquí es peor que en otro sitio: gasta el panel rojo que
+   * también lleva los verdaderos.
+   */
+  const alergiasPaciente = alergiasDe(patient ?? {})
         const alertas = validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
         const interacciones = detectarInteracciones(medicamentos)
         const controlados = detectarControlados(medicamentos)

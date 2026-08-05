@@ -200,13 +200,46 @@ function leerNumero(partes: string[], desde: number): { fin: number; num: number
     if (sinAcento(w) === 'punto' && acc !== null) {
       const sig = siguientePalabra(i + 1)
       if (!sig || rango(sig.w) === null || rango(sig.w) === 'mil') break
+      /**
+       * ── LA «Y» DEL DECIMAL, QUE FALTABA (4-ago-2026) ──────────────────────
+       *
+       * La parte ENTERA sí une decena y unidad con «y» (arriba, `unidoPorY`).
+       * La decimal no lo hacía, y ésa es la forma **natural** de dictar en
+       * español:
+       *
+       *     «pH siete punto treinta y cinco»      →  pH 7.30 y 5     (era 7.35)
+       *     «potasio tres punto cuarenta y dos»   →  3.40 y 2        (era 3.42)
+       *     «norepinefrina cero punto treinta y cinco» → 0.30 y 5    (era 0.35)
+       *
+       * El «y» rompía el bucle, se quedaba el 30 y el 5 se caía fuera como
+       * texto suelto. **Y el valor que queda es plausible**: 7.30 es un pH
+       * posible y 0.30 una dosis posible de vasopresor, así que nadie lo nota.
+       * El guardián tampoco: sólo vigila cifras que DESAPARECEN, y aquí la que
+       * sobra aparece.
+       *
+       * Es gramática del español, no criterio clínico: treinta y cinco es 35.
+       */
       const dec: string[] = []
       let j = sig.idx
+      let esperaUnidadTrasY = false
       while (j < partes.length) {
         if (/^\s*$/.test(partes[j])) { j++; continue }
-        const rr = rango(limpiar(partes[j]))
+        const pal = limpiar(partes[j])
+        // «y» entre una decena ya leída y su unidad: se compone, no se corta.
+        if (sinAcento(pal) === 'y' && dec.length > 0 && !esperaUnidadTrasY) {
+          const sigY = siguientePalabra(j + 1)
+          if (sigY && rango(sigY.w) === 'unidad' && Number(dec[dec.length - 1]) % 10 === 0) {
+            esperaUnidadTrasY = true
+            j = sigY.idx
+            dec[dec.length - 1] = String(Number(dec[dec.length - 1]) + Number(valor(limpiar(partes[j]))))
+            j++
+            continue
+          }
+          break
+        }
+        const rr = rango(pal)
         if (rr !== 'unidad' && rr !== 'decena') break
-        dec.push(String(valor(limpiar(partes[j])))); j++
+        dec.push(String(valor(pal))); j++
       }
       decimal = dec.join('')
       i = j

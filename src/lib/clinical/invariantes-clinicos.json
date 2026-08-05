@@ -349,6 +349,10 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/auditoria-v7-dia1.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
       "minCasos": 6
     },
