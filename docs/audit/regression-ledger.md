@@ -614,3 +614,42 @@ un trabajo muerto no levanta la mano. Van primero en la lista: si los trabajos
 automáticos no corren, nada de lo demás corre tampoco.
 
 **Golden** — `src/__tests__/quien-vigila-al-vigilante.test.ts` (10 casos).
+
+## REG-167 · El sesgo de vocabulario degradaba el motor al modelo viejo
+
+**Dónde** — `src/app/api/expediente/transcribir-diarizado/route.ts` y
+`src/lib/asr/sesgo-diarizado.ts`.
+
+**Cómo apareció** — Midiendo por primera vez cuánto aporta sesgar el motor con el
+expediente del paciente (petición del médico dueño, 5-ago-2026). El resultado fue
+**0,00 pp**, y eso no cuadraba.
+
+**Causa raíz** — La ruta mandaba `word_boost` **y la lista de modelos**. El
+proveedor, textual al rechazar la variante sin lista:
+
+> «"word_boost" is not compatible with universal-3-5-pro. Use "prompt" or
+> "keyterms_prompt"»
+
+Con la lista **no falla**: descarta el modelo incompatible y corre con
+`universal-2`. Es decir, **el parámetro puesto para mejorar la precisión estaba
+degradando el motor al modelo viejo en cada consulta**, sin error, sin aviso y sin
+forma de notarlo.
+
+Y explicaba el 0,00 pp: la condición «sin sesgo» corría en el modelo nuevo y las
+de «con sesgo» en el viejo. No se comparaban sesgos: se comparaban modelos.
+
+**Y dos límites más, descubiertos a base de que el proveedor los rechazara** —
+`keyterms_prompt` no admite «1 000 términos» sino **2 672 tokens**; el escalón
+intermedio («no more than 1000 words») tampoco era el real. Presupuestar mal aquí
+no recorta: **tumba la petición entera** y deja al médico sin dictado.
+
+**Reparación** — Un solo modelo explícito (sin lista no hay resolución
+silenciosa), el sesgo por `keyterms_prompt`, y presupuesto en **caracteres** —lo
+único contable de este lado— derivado del ratio medido contra su propia respuesta
+(2,35 car/token) con un 8 % de margen. El sesgo pasa de 200 a **491 términos**.
+
+**La lección, por segunda vez en el mismo archivo** — Un test de contrato
+comprueba que el código diga lo acordado, no que el proveedor lo acepte. El
+comentario que ya avisaba de esto seguía ahí, y volvió a pasar.
+
+**Golden** — `src/__tests__/sesgo-llega-al-motor-bueno.test.ts` (10 casos).

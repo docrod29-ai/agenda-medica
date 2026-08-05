@@ -28,7 +28,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  componerSesgo, utilizable, TOPE_TERMINOS,
+  componerSesgo,
+  TOPE_CARACTERES, utilizable, TOPE_TERMINOS,
   POR_QUE_EL_PACIENTE_VA_PRIMERO, POR_QUE_ES_UN_FOSO,
 } from '@/lib/asr/sesgo-diarizado'
 
@@ -78,12 +79,26 @@ describe('SIN CONTEXTO NO SE QUEDA SIN SESGO', () => {
 
 describe('NO SE RECORTA EN SILENCIO', () => {
   it('se dice cuántos NO cupieron', () => {
-    // «Un tope que nadie ve se lee como cupo todo» — el fallo que este
-    // repositorio ya arregló en otros sitios.
+    /**
+     * «Un tope que nadie ve se lee como cupo todo» — el fallo que este
+     * repositorio ya arregló en otros sitios.
+     *
+     * El 5-ago-2026 dejó de comprobarse contra el número EXACTO de entradas: el
+     * techo que de verdad manda es el de tokens del proveedor, y se presupuesta
+     * en caracteres (`TOPE_CARACTERES`). Cuántas entradas caben depende de lo
+     * largas que sean, así que fijar «1 000» aquí volvería a atar la prueba a un
+     * número que el proveedor no usa.
+     *
+     * Lo que sí es invariante, y es lo que importa: **lo que no cupo se cuenta y
+     * se dice**.
+     */
     const muchos = Array.from({ length: TOPE_TERMINOS + 20 }, (_, i) => `farmacoDePrueba${i}`)
     const r = componerSesgo({}, muchos)
-    expect(r.terminos).toHaveLength(TOPE_TERMINOS)
-    expect(r.descartados).toBe(20)
+    expect(r.terminos.length).toBeLessThan(muchos.length)
+    expect(r.descartados).toBe(muchos.length - r.terminos.length)
+    expect(r.descartados).toBeGreaterThan(0)
+    // Y el recorte lo hacemos nosotros, dentro del techo, no el proveedor a ciegas.
+    expect(r.terminos.join(' ').length).toBeLessThanOrEqual(TOPE_CARACTERES)
   })
 
   it('y lo del paciente NUNCA es lo que se recorta', () => {
@@ -125,10 +140,16 @@ describe('ESTÁ CONECTADO — por los DOS caminos', () => {
   const ruta = leer('src', 'app', 'api', 'expediente', 'transcribir-diarizado', 'route.ts')
 
   it('la ruta compone el sesgo en vez de mandar la lista pelada', () => {
-    // El tercer argumento lo añadió la v1002: el tope de términos depende del
-    // modelo que se pida (1 000 en universal-3.5-pro, 200 en universal-2).
+    /**
+     * El tercer argumento lo añadió la v1002: el tope depende del modelo.
+     *
+     * Y el 5-ago-2026 cambió el CANAL: era `word_boost`, y el proveedor lo
+     * rechaza para `universal-3-5-pro` («use "prompt" or "keyterms_prompt"»).
+     * Con una lista de modelos no fallaba: descartaba el modelo bueno y corría
+     * con el viejo. El sesgo llegaba… al motor equivocado.
+     */
     expect(ruta).toContain('componerSesgo(ctxSesgo, WORD_BOOST_MEDICO,')
-    expect(ruta).toContain('word_boost: sesgo.terminos')
+    expect(ruta).toContain('keyterms_prompt: sesgo.terminos')
   })
 
   it('lee el contexto del formulario Y del JSON', () => {

@@ -35,6 +35,18 @@ export const maxDuration = 60
  * Documentación del proveedor (agosto 2026): `universal-3.5-pro` admite español
  * —está entre sus 18 idiomas— y «keyterms prompting up to 1,000 words», que es
  * exactamente el tamaño de nuestra lista de sesgo.
+ *
+ * ── Y ESTA CONSTANTE LLEVABA RAZÓN DESDE EL PRINCIPIO (5-ago-2026) ──────────
+ *
+ * Decía «keyterms prompting», que es el nombre del parámetro correcto. La
+ * petición, en cambio, mandaba `word_boost` **y la lista de modelos**. El
+ * proveedor resolvía el conflicto solo: `word_boost` es incompatible con este
+ * modelo, así que lo descartaba y corría con `universal-2`.
+ *
+ * O sea que el parámetro puesto para mejorar la precisión estaba degradando el
+ * motor al modelo viejo en cada consulta, sin error y sin aviso. Se descubrió
+ * midiendo el sesgo por primera vez: daba 0,00 pp porque la condición «sin
+ * sesgo» corría aquí y las de «con sesgo» en el otro modelo.
  */
 const MODELO_DIARIZACION = 'universal-3-5-pro'
 
@@ -207,16 +219,39 @@ export async function POST(req: NextRequest) {
      * Se prefiere mandar menos y saber cuáles, que mandar más y no saber cuáles
      * llegaron.
      */
-    const tope = Math.min(...MODELOS_DIARIZACION.map(m => topeDe(m)))
+    /**
+     * ── UN SOLO MODELO, EL BUENO, CON SU TOPE COMPLETO ────────────────────────
+     *
+     * Aquí se mandaba la LISTA de modelos y `word_boost`, y el proveedor
+     * resolvía el conflicto solo: como `word_boost` es incompatible con
+     * `universal-3-5-pro`, descartaba ese modelo y corría con `universal-2`.
+     *
+     * Es decir: el parámetro puesto para mejorar la precisión **degradaba el
+     * motor al modelo viejo en cada consulta**, sin un error, sin un aviso y sin
+     * que nadie pudiera notarlo — la respuesta llegaba normal.
+     *
+     * Se descubrió midiendo el sesgo por primera vez (5-ago-2026): daba 0,00 pp
+     * de aporte porque la condición «sin sesgo» corría en el modelo nuevo y las
+     * de «con sesgo» en el viejo. No se comparaban sesgos: se comparaban
+     * modelos.
+     *
+     * Ahora se pide **un solo modelo explícito** con el parámetro que él sí
+     * acepta. Sin lista no hay resolución silenciosa: si ese modelo no está
+     * disponible, la petición falla y se ve.
+     *
+     * Y el tope pasa a ser el suyo —1 000 términos, comprobado contra la API
+     * real— en vez del del modelo más pequeño de una lista que ya no se manda.
+     */
+    const tope = topeDe(MODELO_DIARIZACION)
     const armar = () => {
       const sesgo = componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, tope)
       if (sesgo.descartados > 0) {
         // Un tope que nadie ve se lee como «cupo todo».
-        safeLog.info(`[diarizado] sesgo (${MODELOS_DIARIZACION.join(', ')}): ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
+        safeLog.info(`[diarizado] sesgo (${MODELO_DIARIZACION}): ${sesgo.terminos.length} términos (${sesgo.delPaciente} del paciente), ${sesgo.descartados} no cupieron`)
       }
       return {
         audio_url,
-        speech_models: [...MODELOS_DIARIZACION],
+        speech_models: [MODELO_DIARIZACION],
         speaker_labels: true,   // separa voces (Hablante A/B/C…)
         /**
          * CUÁNTAS VOCES COMO MUCHO.
@@ -252,8 +287,31 @@ export async function POST(req: NextRequest) {
          * guardián trabajan sobre lo ya oído y no pueden recuperar una palabra
          * que nunca llegó.
          */
-        word_boost: sesgo.terminos,
-        boost_param: 'high',
+        /**
+         * ── `keyterms_prompt`, NO `word_boost` — MEDIDO EL 5-AGO-2026 ────────
+         *
+         * Aquí iba `word_boost`, y el proveedor lo dice con estas palabras:
+         *
+         *     «"word_boost" is not compatible with universal-3-5-pro.
+         *      Use "prompt" or "keyterms_prompt"»
+         *
+         * Lo peor no es que se ignorara: es que **no falla**. Con
+         * `speech_models: ['universal-3-5-pro', 'universal-2']`, el proveedor
+         * descarta el modelo incompatible y usa el siguiente. O sea que el
+         * parámetro puesto para MEJORAR la precisión estaba **degradando el
+         * motor al modelo viejo**, en silencio y en cada consulta.
+         *
+         * Se descubrió midiendo el sesgo por primera vez: salía 0,00 pp de
+         * aporte, y la razón era que la condición «sin sesgo» corría en
+         * `universal-3-5-pro` y las condiciones «con sesgo» caían a
+         * `universal-2`. No se estaban comparando sesgos: se estaban comparando
+         * modelos.
+         *
+         * `keyterms_prompt` es el parámetro que el modelo nuevo sí acepta —
+         * comprobado contra la API real, no contra la documentación—, así que
+         * ahora el sesgo llega Y el modelo se queda.
+         */
+        keyterms_prompt: sesgo.terminos,
       }
     }
 

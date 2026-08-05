@@ -48,6 +48,21 @@
 export const TOPE_TERMINOS = 1000
 
 /**
+ * EL TECHO QUE DE VERDAD MANDA, EN CARACTERES.
+ *
+ * `universal-3-5-pro` admite 2 672 tokens de texto en `keyterms_prompt` — lo
+ * dijo él al rechazar una petición, no la documentación. Los tokens no se pueden
+ * contar de este lado sin su tokenizador, así que se presupuesta en caracteres:
+ * su propia respuesta declaró 10 735 caracteres como 4 563 tokens, o sea 2,35
+ * caracteres por token para vocabulario médico en español.
+ *
+ * 2 672 × 2,35 ≈ 6 280. Se usa 5 800 —un 8 % de margen— porque el ratio depende
+ * del vocabulario de cada paciente y pasarse no recorta: tumba la petición
+ * entera y deja al médico sin dictado.
+ */
+export const TOPE_CARACTERES = 5800
+
+/**
  * EL TOPE NO ES UNO: DEPENDE DEL MODELO QUE SE PIDA.
  *
  * Comprobado en la documentación del proveedor (agosto 2026, página «Models»):
@@ -180,7 +195,39 @@ export function componerSesgo(ctx: ContextoSesgo, global: readonly string[], top
     unicos.push(s)
   }
 
-  const terminos = unicos.slice(0, Math.max(0, tope))
+  /**
+   * ── EL TOPE REAL SON TOKENS, Y HAY QUE MEDIRLO (5-ago-2026) ───────────────
+   *
+   * Aquí se contaban ENTRADAS, y el proveedor cuenta otra cosa. Se descubrió a
+   * base de que rechazara la petición, en tres escalones:
+   *
+   *   1. «`word_boost` is not compatible with universal-3-5-pro» — canal
+   *      equivocado (lo tapaba la lista de modelos: degradaba en vez de fallar).
+   *   2. «must contain no more than 1000 WORDS» — no son entradas, son palabras.
+   *   3. «Your prompt has 4563 text tokens, but the maximum allowed is 2672» —
+   *      y no son palabras: son **tokens**.
+   *
+   * Y esto no recorta de más: **falla la petición completa**. El médico se
+   * queda sin transcripción, que es lo peor que puede pasar en una consulta.
+   *
+   * Los tokens no se pueden contar sin el tokenizador del proveedor, así que se
+   * presupuesta por CARACTERES, que sí se cuentan. La relación medida contra su
+   * propia respuesta —10 735 caracteres declarados como 4 563 tokens— da 2,35
+   * caracteres por token para vocabulario médico en español.
+   *
+   * 2 672 tokens × 2,35 ≈ 6 280 caracteres. Se deja margen: el ratio depende del
+   * vocabulario de cada paciente, y pasarse no cuesta un recorte — cuesta el
+   * dictado entero.
+   */
+  const terminos: string[] = []
+  let caracteres = 0
+  for (const t of unicos) {
+    const n = t.length + 1   // +1 por el separador
+    if (caracteres + n > TOPE_CARACTERES) continue
+    if (terminos.length >= Math.max(0, tope)) break
+    terminos.push(t)
+    caracteres += n
+  }
   const propios = new Set(delPacienteCrudo.map(x => clave(limpio(x))))
   return {
     terminos,

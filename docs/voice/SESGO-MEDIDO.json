@@ -1,0 +1,37 @@
+{
+  "muestra": 150,
+  "tope": 200,
+  "modelos": [
+    "universal-3-5-pro",
+    "universal-2"
+  ],
+  "recall": {
+    "sin": 0.7889447236180903,
+    "catalogo": 0.8090452261306532,
+    "paciente": 0.8291457286432161,
+    "paciente1000": 0.8341708542713567
+  },
+  "werMedio": {
+    "sin": 0.2625536881419234,
+    "catalogo": 0.23201516566222452,
+    "paciente": 0.2206738958209546,
+    "paciente1000": 0.2234649011119599
+  },
+  "aporte": {
+    "catalogoGenerico": 0.020100502512562884,
+    "expedienteDelPaciente": 0.020100502512562884,
+    "subirElTopeA1000": 0.005025125628140614
+  },
+  "rescatadosPorElExpediente": [
+    "CLIN3_02545: «erisipela»",
+    "CLIN3_01439: «HFNC»",
+    "CLIN3_01040: «PCWP»",
+    "CLIN3_00847: «NEWS2»",
+    "CLIN3_01151: «pielonefritis enfisematosa»"
+  ],
+  "limites": [
+    "Una sola voz sintética: no mide acentos, edad ni prosodia reales.",
+    "Sin ruido de consultorio ni solapamiento.",
+    "La condición «paciente» asume que el término YA está en el expediente; en una consulta real un fármaco nuevo puede no estarlo. Es el techo, no el caso medio."
+  ]
+}
