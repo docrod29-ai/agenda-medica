@@ -208,6 +208,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    */
   'arco/acceso': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
+  'arco/oponerse': { tipo: 'capacidad', capacidad: 'administrar' },
 
   // ── cobro y facturación ──────────────────────────────────────────────────
   'facturacion/descargar': {

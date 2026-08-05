@@ -735,6 +735,10 @@
     {
       "archivo": "src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/arco-oposicion.test.ts",
+      "minCasos": 17
     }
   ]
 }

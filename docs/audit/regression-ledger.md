@@ -264,3 +264,35 @@ siguiendo adelante a saldar la cita, que es lo que había fallado.
 el estado peor, dinero cobrado en Stripe que no aparece en Finanzas.
 
 **Golden** — `src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts` (7 casos).
+
+## REG-154 · La «O» de ARCO se resolvía con un `prompt()` y no apagaba nada
+
+**Dónde** — `src/app/(dashboard)/cumplimiento/page.tsx`, `resolverArco`.
+
+**Qué pasaba** — La Oposición («dejen de usar mis datos para esto») se cerraba
+escribiendo un texto libre: la solicitud pasaba a «resuelta», el plazo de 20 días
+hábiles de la LFPDPPP se daba por cumplido, y **no se apagaba nada**. El paciente
+seguía recibiendo recordatorios.
+
+Lo que lo vuelve grave es la comparación: quien contestaba «BAJA» por WhatsApp SÍ
+dejaba de recibirlos, porque ese camino llama a `registrarBaja`. La vía formal
+—por escrito, en el portal, con plazo legal— era la única que no funcionaba.
+
+Se encontró **verificando que la «A» (v946) y la «C» sí estuvieran cerradas**; las
+dos lo estaban.
+
+**Reparación** — `POST /api/arco/oponerse` registra la baja del teléfono —el
+candado que el envío proactivo ya consulta en cada mensaje—, marca el expediente
+acumulando fines previos, cierra la solicitud y lo asienta en la bitácora.
+Decisión en módulo puro: `src/lib/arco/oposicion.ts`.
+
+**Lo que NO promete** — Sólo se declaran ejecutables los fines con un candado
+real. Promociones y compartir-con-terceros quedan registrados y se devuelven como
+avisos con la acción concreta que le toca a una persona: declarar apagado lo que
+ningún código apaga es el engaño que la Cancelación ya había producido una vez.
+
+**NEEDS_LEGAL_REVIEW** — Qué fines son separables entre sí lo fija el abogado del
+consultorio. Aquí sólo se decide lo técnico.
+
+**Golden** — `src/__tests__/arco-oposicion.test.ts` (17 casos), incluida la
+comprobación de que la salida a la ruta va **antes** del `prompt()`.

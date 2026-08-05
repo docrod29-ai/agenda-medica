@@ -287,6 +287,44 @@ export default function CumplimientoPage() {
     }
   }
 
+  /**
+   * LA «O» DE ARCO, EJECUTADA.
+   *
+   * Registra la baja del contacto —el candado que el envío proactivo ya
+   * consulta en cada mensaje— y deja constancia. Lo que el sistema NO puede
+   * apagar se enseña como aviso con la acción que le toca a una persona:
+   * declarar apagado lo que sigue encendido es peor que no prometer nada.
+   */
+  const ejecutarOposicion = async (req: ArcoRequest) => {
+    if (!clinicId || !req.id || !req.patientId) {
+      toast('Esta solicitud no está ligada a un expediente. Identifícala primero.', 'error')
+      return
+    }
+    setEjecutando(true)
+    try {
+      const res = await fetchAutenticado('/api/arco/oponerse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: true }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.ok) { toast(d.error || 'No se pudo ejecutar la oposición', 'error'); return }
+
+      const avisos = (d.avisos ?? []) as string[]
+      toast(avisos.length
+        ? `Oposición asentada, pero ${avisos.length} punto(s) requieren acción a mano: ${avisos.join(' ')}`
+        : d.bajaContacto
+          ? 'Oposición ejecutada: el contacto quedó dado de baja y los recordatorios dejan de salir.'
+          : 'Oposición asentada en el expediente.',
+        avisos.length ? 'info' : 'success')
+      setArcoList(await listarSolicitudesArco(clinicId))
+    } catch {
+      toast('No se pudo conectar para ejecutar la oposición', 'error')
+    } finally {
+      setEjecutando(false)
+    }
+  }
+
   const resolverArco = async (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => {
     if (!clinicId || !req.id || !user?.uid) return
     /**
@@ -296,6 +334,15 @@ export default function CumplimientoPage() {
      * fundamento, no una operación de datos—.
      */
     if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); return }
+    /**
+     * La OPOSICIÓN tampoco se resuelve escribiendo: apaga el contacto.
+     *
+     * Se «resolvía» con el mismo `prompt()` y no se apagaba nada — el paciente
+     * que ejercía su derecho por escrito seguía recibiendo recordatorios,
+     * mientras que el que contestaba «BAJA» por WhatsApp sí dejaba de
+     * recibirlos. La vía formal era la única que no servía.
+     */
+    if (req.tipo === 'oposicion' && estado === 'resuelta') { await ejecutarOposicion(req); return }
     const resolucion = prompt(`Describe brevemente qué se hizo (${estado}):`)
     if (!resolucion) return
     try {
