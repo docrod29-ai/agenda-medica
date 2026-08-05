@@ -491,6 +491,32 @@ export default function ConsultaActivaPage() {
    * Ref de `firmada` porque este callback se crea ANTES de que exista el estado, y
    * lo consumen el Copiloto y todos los paneles de Herramientas.
    */
+  /**
+   * LO QUE EL MOTOR OYÓ, RESCATADO DE LA NOTA GUARDADA.
+   *
+   * ── EL BUCLE DE CORRECCIÓN NUNCA HABÍA APRENDIDO NADA (5-ago-2026) ────────
+   *
+   * LEARN compara `transcripcionMotor` (lo que oyó el reconocedor) con
+   * `transcripcionCruda` (lo que el médico dejó): la diferencia ES la
+   * corrección. Y lee **sólo notas firmadas**.
+   *
+   * Comprobado en el consultorio del Dr.: de sus 10 notas firmadas, las 10
+   * tienen `transcripcionCruda` y **ninguna** tiene `transcripcionMotor`. Sin
+   * esa mitad no hay par, así que el bucle —escrito, probado y con su propio
+   * módulo— no había producido jamás una sola palabra aprendida.
+   *
+   * El campo sí se guarda mientras se dicta (un borrador de ayer lo tiene). Lo
+   * que no había era forma de RECUPERARLO: al cargar una nota se restauraba la
+   * transcripción editable y ésta no, así que en cuanto el médico volvía en otra
+   * sesión —que es cuando se firma— el estado del grabador estaba vacío y la
+   * nota se reescribía sin ella.
+   *
+   * Este ref conserva lo que la nota ya traía, para que sobreviva a la recarga,
+   * a la firma y a cualquier reescritura posterior. Es una ref y no un estado
+   * porque `construirNota` corre en cada render y necesita el valor YA.
+   */
+  const transcripcionMotorGuardadaRef = useRef('')
+
   const firmadaRef = useRef(false)
   /**
    * ESTA CONSULTA SE DESCARTÓ A PROPÓSITO. NADA PUEDE RESUCITARLA.
@@ -1202,6 +1228,8 @@ export default function ConsultaActivaPage() {
         if (n.iaAuditoria.provenance) setProvenanceIA(n.iaAuditoria.provenance)  // conservar al re-guardar
       }
       if (n.transcripcionCruda) voz.setTranscripcion(n.transcripcionCruda)
+      // La otra mitad del par de aprendizaje. Ver `transcripcionMotorGuardadaRef`.
+      if (n.transcripcionMotor) transcripcionMotorGuardadaRef.current = n.transcripcionMotor
       if (n.internamientoId) setNotaInternamientoId(n.internamientoId)  // adopta el episodio
     }).catch(e => {
       console.error('[consulta] no se pudo cargar la nota:', e)
@@ -1996,7 +2024,12 @@ export default function ConsultaActivaPage() {
        * que el «original» que quedaba archivado no era lo que el motor oyó. El
        * pipeline producía el crudo y se descartaba en la misma línea.
        */
-      transcripcionMotor: audio.transcripcionMotor || undefined,
+      /**
+       * El del grabador si hay dictado nuevo; si no, el que la nota ya traía.
+       * Sin este respaldo, firmar en una sesión posterior borraba la mitad del
+       * par y el bucle de corrección se quedaba sin nada que aprender.
+       */
+      transcripcionMotor: audio.transcripcionMotor || transcripcionMotorGuardadaRef.current || undefined,
       /**
        * LOS TURNOS, SIN LAS PALABRAS.
        *

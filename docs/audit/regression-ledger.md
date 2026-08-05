@@ -729,3 +729,38 @@ descartaba el 80,6 % de las oportunidades sin mirarlas.
 
 **Golden** — `src/__tests__/aprender-aunque-cambie-el-largo.test.ts` (11 casos),
 incluidos los que **no** deben aprenderse.
+
+## REG-170 · El bucle de corrección nunca había aprendido nada
+
+**Dónde** — `src/app/(dashboard)/consulta/[patientId]/page.tsx`.
+
+**Qué pasaba** — LEARN compara `transcripcionMotor` (lo que oyó el reconocedor)
+con `transcripcionCruda` (lo que el médico dejó): la diferencia **es** la
+corrección. Y lee **sólo notas firmadas**.
+
+Comprobado en el consultorio del Dr., leyendo su propio Firestore: de sus **10
+notas firmadas, las 10 tienen `transcripcionCruda` y NINGUNA tiene
+`transcripcionMotor`**. Sin esa mitad no hay par — así que el bucle, con su
+módulo puro, sus filtros y sus pruebas, **no había producido jamás una sola
+palabra aprendida**.
+
+Es el patrón «escrito y sin conectar», pero de la peor especie: todo estaba
+conectado salvo el dato.
+
+**Causa** — El campo sí se guarda mientras se dicta (un borrador de la víspera lo
+tenía). Lo que no había era forma de recuperarlo: al cargar una nota se
+restauraba la transcripción editable y **ésta no**. En cuanto el médico volvía en
+otra sesión —que es justo cuando se firma— el estado del grabador estaba vacío y
+la nota se reescribía sin ella.
+
+**Reparación** — `transcripcionMotorGuardadaRef` conserva lo que la nota ya traía
+y se rehidrata al cargarla; `construirNota` usa el del grabador si hay dictado
+nuevo y ese respaldo si no. El campo sobrevive a la recarga, a la firma y a
+cualquier reescritura.
+
+**Lo que esto NO arregla** — Las 10 notas ya firmadas siguen sin el campo: son
+inmutables por NOM-024 y no se tocan. El bucle empieza a acumular **desde la
+próxima consulta**.
+
+**Golden** — Se endureció `src/__tests__/origen-del-dictado.test.ts`, que fijaba
+la versión sin respaldo.

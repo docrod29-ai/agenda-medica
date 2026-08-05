@@ -72,7 +72,21 @@ describe('B-1 · EL MATERIAL DE ORIGEN SE GUARDA', () => {
   })
 
   it('la nota lo escribe, y NO lo confunde con el texto de trabajo', () => {
-    expect(page).toContain('transcripcionMotor: audio.transcripcionMotor || undefined')
+    /**
+     * El 5-ago-2026 dejó de bastar con el valor del grabador.
+     *
+     * Comprobado en el consultorio del Dr.: de sus 10 notas firmadas, NINGUNA
+     * tenía `transcripcionMotor` — y sin esa mitad el bucle de corrección no
+     * había aprendido jamás una palabra. El campo se guarda mientras se dicta,
+     * pero al volver en otra sesión —que es cuando se firma— el grabador está
+     * vacío y la nota se reescribía sin ella.
+     *
+     * Ahora hay respaldo: lo que la nota ya traía. Por eso el test comprueba las
+     * dos fuentes, no sólo la primera.
+     */
+    expect(page).toContain('transcripcionMotor: audio.transcripcionMotor || transcripcionMotorGuardadaRef.current || undefined')
+    // Y se rehidrata al cargar la nota, que es lo que faltaba.
+    expect(page).toContain('transcripcionMotorGuardadaRef.current = n.transcripcionMotor')
     // El campo de siempre sigue siendo el texto de trabajo: hay lectores que
     // dependen de él (restauración de borradores, historial de versiones).
     expect(page).toContain('transcripcionCruda:')
