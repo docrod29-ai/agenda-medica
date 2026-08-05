@@ -32,7 +32,7 @@ import { NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
-import { COLECCIONES, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
+import { COLECCIONES, rama, type RamaRespaldo, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
 
 export const maxDuration = 300
 
@@ -98,22 +98,42 @@ export async function GET(req: NextRequest) {
         return ids
       }
 
-      for (const c of COLECCIONES) {
-        try {
-          const ids = await volcar(clinicRef.collection(c.ruta), `clinics/${clinicId}/${c.ruta}`, c.ruta)
-          for (const hija of c.hijas ?? []) {
-            for (const id of ids) {
-              try {
-                await volcar(
-                  clinicRef.collection(c.ruta).doc(id).collection(hija),
-                  `clinics/${clinicId}/${c.ruta}/${id}/${hija}`,
-                  `${c.ruta}.${hija}`,
-                )
-              } catch {
-                problemas.push(`${c.ruta}/${id}/${hija}`)
-              }
+      /**
+       * Baja por TODAS las ramas, no sólo un nivel.
+       *
+       * Las adendas y el versionado de una nota viven dos niveles abajo
+       * (`patients/{p}/notas/{n}/adendas/{a}`), y con un solo nivel nunca
+       * entraban al archivo — mientras el pie decía `completo: true`. La adenda
+       * es el único mecanismo de corrección sobre una nota firmada e inmutable:
+       * restaurar sin ella devuelve la nota y borra la corrección legal.
+       */
+      const bajar = async (
+        padre: FirebaseFirestore.CollectionReference,
+        rutaPadre: string,
+        etiquetaPadre: string,
+        hijas: (string | RamaRespaldo)[] | undefined,
+      ): Promise<void> => {
+        const ids = await volcar(padre, rutaPadre, etiquetaPadre)
+        for (const h of hijas ?? []) {
+          const r = rama(h)
+          for (const id of ids) {
+            try {
+              await bajar(
+                padre.doc(id).collection(r.ruta),
+                `${rutaPadre}/${id}/${r.ruta}`,
+                `${etiquetaPadre}.${r.ruta}`,
+                r.hijas,
+              )
+            } catch {
+              problemas.push(`${rutaPadre}/${id}/${r.ruta}`)
             }
           }
+        }
+      }
+
+      for (const c of COLECCIONES) {
+        try {
+          await bajar(clinicRef.collection(c.ruta), `clinics/${clinicId}/${c.ruta}`, c.ruta, c.hijas)
         } catch (e) {
           /**
            * Una colección ilegible se DECLARA y el respaldo sigue. Reventar

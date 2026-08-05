@@ -79,28 +79,60 @@ describe('EL TOPE DEPENDE DEL MODELO', () => {
   })
 })
 
-describe('LA RUTA PIDE EL MODELO POR SU NOMBRE', () => {
-  it('ya no manda el alias como primera opción', () => {
-    expect(ruta).toContain("const MODELO_DIARIZACION = 'universal-3.5-pro'")
-    expect(ruta).toContain('speech_model: modelo ?? \'best\'')
+describe('LA RUTA PIDE LOS MODELOS EN LISTA — el parámetro viejo lo RETIRARON', () => {
+  /**
+   * ── LO QUE ESTAS PRUEBAS CERTIFICABAN (4-ago-2026) ────────────────────────
+   *
+   * Fijaban `speech_model` y el reintento con el alias `'best'`. El proveedor
+   * **retiró ese parámetro**: devuelve 400 con cualquier valor, incluido el
+   * alias. Comprobado contra su API con las dos variantes.
+   *
+   *     «The speech_model parameter is deprecated. Use speech_models:
+   *      ["universal-3-5-pro", "universal-2"]»
+   *
+   * O sea que los DOS intentos de la ruta fallaban y cada consulta grabada se
+   * iba al motor de respaldo **sin separación de voces** — y sin ella no hay
+   * atribución de rol, que es de donde cuelgan el motor de negaciones y la
+   * procedencia. Silencioso: la ruta hace lo correcto y sigue con el respaldo.
+   *
+   * Estas pruebas pasaban en verde mientras la diarización estaba caída, porque
+   * comprobaban que el código dijera lo acordado — no que el proveedor lo
+   * aceptara. Una prueba de contrato no sustituye una llamada real.
+   */
+  it('manda la lista, no el parámetro retirado', () => {
+    expect(ruta).toContain("const MODELOS_DIARIZACION = ['universal-3-5-pro', 'universal-2'] as const")
+    expect(ruta).toContain('speech_models: [...MODELOS_DIARIZACION],')
+    expect(ruta).not.toContain('speech_model:')
   })
 
-  it('y presupuesta el sesgo PARA ESE modelo', () => {
-    expect(ruta).toContain('componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, modelo ? topeDe(modelo) : TOPE_TERMINOS)')
+  it('con el nombre en la forma que el proveedor pide: guiones, no punto', () => {
+    expect(ruta).toContain("'universal-3-5-pro'")
   })
 
-  it('si el proveedor rechaza el nombre, se reintenta con el alias', () => {
+  it('y presupuesta el sesgo para el modelo MÁS PEQUEÑO de la lista', () => {
     /**
-     * Perder la separación de voces por una cadena de texto sería mucho peor
-     * que seguir con lo que ya funcionaba: de ella cuelgan la atribución de
-     * roles, la procedencia V3 y las palabras a verificar.
+     * Si se presupuestara para el mayor y el proveedor acabara usando el menor,
+     * ochocientos términos los tiraría él, por el criterio que quisiera y sin
+     * decirlo. Mejor mandar menos y saber cuáles.
      */
-    expect(ruta).toContain('if (!sub.ok && sub.status >= 400 && sub.status < 500)')
-    expect(ruta).toContain('sub = await enviar(armar(null))')
+    expect(ruta).toContain('const tope = Math.min(...MODELOS_DIARIZACION.map(m => topeDe(m)))')
+    expect(ruta).toContain('componerSesgo(ctxSesgo, WORD_BOOST_MEDICO, tope)')
   })
 
-  it('el reintento se registra: una caída silenciosa se lee como un acierto', () => {
-    expect(ruta).toMatch(/rechazado \(HTTP \$\{sub\.status\}\); reintento con el alias heredado/)
+  it('ya no reintenta un 4xx — el respaldo entre modelos lo hace el proveedor', () => {
+    /**
+     * El reintento existía para salvar la separación de voces, y el 4-ago se
+     * vio que no salvaba nada: fallaban los dos. Repetir un cuerpo que el
+     * proveedor rechaza no lo arregla; esconde el motivo detrás de otro viaje.
+     */
+    expect(ruta).not.toContain('sub = await enviar(armar(null))')
+    expect(ruta).toContain('const sub = await enviar(armar())')
+  })
+
+  it('y un rechazo se registra CON el motivo del proveedor', () => {
+    // Es lo único que dice qué parámetro cambió. Sin él, el siguiente cambio de
+    // la API vuelve a ser invisible.
+    expect(ruta).toContain('safeLog.error(`[diarizado] rechazado HTTP ${sub.status}`, { detalle })')
   })
 })
 

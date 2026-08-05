@@ -148,8 +148,19 @@ describe('ESTÁ CONECTADO — por los DOS caminos', () => {
   })
 
   it('y la consulta aporta fármacos, diagnósticos y ALERGIAS', () => {
+    /**
+     * Antes se exigía la expresión literal `(patient?.alergias ?? '').split(...)`
+     * — y **esa expresión era uno de los cuatro parsers del mismo campo**:
+     * partía sólo por coma, punto y coma y salto de línea, así que «Penicilina /
+     * Sulfas» viajaba como un término, «niega alergias» viajaba como si fuera un
+     * alérgeno y `alergiasEstructuradas` no se miraba.
+     *
+     * Segunda vez en el día que una prueba fija la FORMA de una expresión y con
+     * eso certifica un defecto. Se comprueba el llamador canónico; el
+     * comportamiento lo prueba `un-solo-parser-de-alergias.test.ts`.
+     */
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toMatch(/alergias: \(patient\?\.alergias \?\? ''\)/)
+    expect(page).toContain('alergias: alergenosDe(patient ?? {})')
   })
 
   it('un tope alcanzado se registra, no se traga', () => {

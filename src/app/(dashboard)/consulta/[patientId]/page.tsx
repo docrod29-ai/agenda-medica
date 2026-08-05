@@ -101,6 +101,7 @@ import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { alergenosDe, alergiasDe } from '@/lib/seguridad/alergias'
 
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
@@ -711,6 +712,26 @@ export default function ConsultaActivaPage() {
   }, [audio.utterances, rolesHablante, voz.transcripcion])
 
   /**
+   * AVISOS QUE EL MÉDICO YA REVISÓ.
+   *
+   * Un aviso que no se puede quitar deja de ser un aviso: se convierte en parte
+   * del decorado y se deja de leer — y con él, el siguiente, que puede ser el
+   * que importa. Es la misma fatiga de alerta que costó dos reparaciones el
+   * 4-ago (la compuerta de dosis y la franja de incidencias).
+   *
+   * Quitar un aviso **no cambia la nota ni resuelve nada**: sólo dice «ya lo
+   * miré». Por eso se guarda POR NOTA en este dispositivo y no en el expediente:
+   * el criterio clínico ya quedó en lo que el médico escribió.
+   *
+   * Y vuelve a salir si el contenido cambia, porque entonces es otro aviso.
+   */
+  const [avisosRevisados, setAvisosRevisados] = useState<string[]>([])
+  const claveAviso = (tipo: string, id: string) => `${tipo}:${id}`
+  const marcarRevisado = useCallback((tipo: string, id: string) => {
+    setAvisosRevisados(prev => prev.includes(claveAviso(tipo, id)) ? prev : [...prev, claveAviso(tipo, id)])
+  }, [])
+
+  /**
    * LO QUE EL PACIENTE NEGÓ FRENTE A LO QUE LA NOTA AFIRMA.
    *
    * Caso real del Dr. (3-ago-2026): «¿Enfermedades crónicas como diabetes o
@@ -729,7 +750,8 @@ export default function ConsultaActivaPage() {
     if (!negadas.length) return []
     const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
     return contradicciones(negadas, textoNota)
-  }, [voz.transcripcion, resumen, diagnosticos, secciones])
+      .filter(c => !avisosRevisados.includes(`negacion:${c.condicion}`))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   /**
    * EL PASADO NO ES EL PRESENTE.
    *
@@ -745,7 +767,8 @@ export default function ConsultaActivaPage() {
     if (!pasadas.length) return []
     const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
     return desajustesTemporales(pasadas, textoNota)
-  }, [voz.transcripcion, resumen, diagnosticos, secciones])
+      .filter(d => !avisosRevisados.includes(`temporal:${d.condicion}`))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
   const transcripcionRef = useRef('')
@@ -958,8 +981,15 @@ export default function ConsultaActivaPage() {
      * Las alergias del expediente sesgan el motor hacia lo que no se puede oír
      * mal: el cruce alergia↔fármaco compara contra lo que se OYÓ, así que un
      * alérgeno mal transcrito es un cruce que nunca salta.
+     *
+     * Con `alergenosDe` y no con un `split` propio: éste partía sólo por coma,
+     * punto y coma y salto de línea, así que «Penicilina / Sulfas» y «Penicilina
+     * y sulfas» viajaban como UN término —y el alérgeno de en medio dejaba de
+     * sesgar nada—, «niega alergias» viajaba como si fuera un alérgeno, y las
+     * `alergiasEstructuradas` no se miraban: el paciente mejor documentado
+     * mandaba CERO.
      */
-    alergias: (patient?.alergias ?? '').split(/[,;\n]/).map(a => a.trim()).filter(Boolean),
+    alergias: alergenosDe(patient ?? {}),
   }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
@@ -1734,9 +1764,10 @@ export default function ConsultaActivaPage() {
       // Auditoría 2026-07 (P1): mandamos las alergias REGISTRADAS del expediente
       // para que el cross-check alergia↔medicamento las considere, no solo las
       // que se dictaron en esta consulta.
-      const alergiasRegistradas = Array.isArray(patient?.alergias)
-        ? patient.alergias
-        : (patient?.alergias ? String(patient.alergias).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
+      // El MISMO parser que el sesgo y que la receta: un cuarto criterio para el
+      // mismo campo es un cruce alergia↔fármaco que se pierde en una pantalla y
+      // salta en otra.
+      const alergiasRegistradas = alergenosDe(patient ?? {})
       const res = await fetchAutenticado('/api/expediente/extraer-entidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2214,9 +2245,36 @@ export default function ConsultaActivaPage() {
       diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
     if (notaIdParam || !vacio) return   // abriendo otra nota o ya hay contenido → no pisar
     autoRestRef.current = true
-    // Recuperar la nota a la que pertenecía el respaldo: sin esto se creaba una
-    // gemela en el expediente y, al firmar una, la otra quedaba huérfana.
-    if (typeof b.notaId === 'string' && b.notaId) { notaIdRef.current = b.notaId; setNotaId(b.notaId) }
+    /**
+     * Recuperar la nota a la que pertenecía el respaldo: sin esto se creaba una
+     * gemela en el expediente y, al firmar una, la otra quedaba huérfana.
+     *
+     * ── PERO NO SI ESA NOTA YA SE FIRMÓ (4-ago-2026) ────────────────────────
+     *
+     * Una nota firmada es INMUTABLE —lo exige la NOM-024 y lo cierran las
+     * reglas—. Si el respaldo apunta a una que ya se firmó, reponer el `notaId`
+     * deja la pantalla editando un documento que el servidor va a rechazar **en
+     * cada autoguardado, para siempre**: el médico dicta una consulta entera
+     * creyendo que se guarda y sólo queda el respaldo local.
+     *
+     * Le pasó al Dr. el 4-ago y costó una hora encontrarlo, porque el aviso dice
+     * «reglas o sesión vencida» y las dos cosas estaban bien.
+     *
+     * Se comprueba contra el servidor ANTES de adoptar el id. Si está firmada,
+     * el contenido restaurado se queda —no se pierde nada— pero pasa a ser una
+     * nota NUEVA, y se le dice por qué.
+     */
+    void (async () => {
+      const id = typeof b.notaId === 'string' ? b.notaId : ''
+      if (!id || !clinicId) return
+      const previa = await getNota(clinicId, patientId, id).catch(() => null)
+      if (previa?.estado === 'firmada') {
+        toast('La nota anterior ya está firmada y no se puede modificar. Lo recuperado se guardará como una nota NUEVA.', 'info')
+        return
+      }
+      notaIdRef.current = id
+      setNotaId(id)
+    })()
     if (typeof b.tipo === 'string') setTipo(b.tipo as TipoNota)
     if (Array.isArray(b.secciones)) setSecciones(b.secciones as NotaSeccion[])
     if (typeof b.resumen === 'string') setResumen(b.resumen)
@@ -2344,7 +2402,7 @@ export default function ConsultaActivaPage() {
     return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
   }, [guardarBorrador])
 
-  const restaurarRespaldo = () => {
+  const restaurarRespaldo = async () => {
     try {
       const raw = localStorage.getItem(respaldoKey)
       if (!raw) { setRespaldoDisponible(false); return }
@@ -2366,9 +2424,20 @@ export default function ConsultaActivaPage() {
        * otra quedaba huérfana». El botón del banner —la ruta manual— se quedó sin
        * el arreglo. Mismo bug, misma consecuencia.
        */
-      if (typeof b.notaId === 'string' && b.notaId) {
-        notaIdRef.current = b.notaId
-        setNotaId(b.notaId)
+      /**
+       * Y con la MISMA comprobación que la automática: si la nota a la que
+       * pertenecía el respaldo ya se firmó, no se adopta su id. Arreglar una de
+       * las dos rutas y dejar la otra es el error que ya se cometió aquí una vez.
+       */
+      const idPrevio = typeof b.notaId === 'string' ? b.notaId : ''
+      if (idPrevio && clinicId) {
+        const previa = await getNota(clinicId, patientId, idPrevio).catch(() => null)
+        if (previa?.estado === 'firmada') {
+          toast('La nota anterior ya está firmada y no se puede modificar. Lo recuperado se guardará como una nota NUEVA.', 'info')
+        } else {
+          notaIdRef.current = idPrevio
+          setNotaId(idPrevio)
+        }
       }
       setRespaldoDisponible(false)
       toast('Respaldo local restaurado', 'success')
@@ -3927,7 +3996,18 @@ export default function ConsultaActivaPage() {
         <div style={{ marginBottom: 12 }}>
           <Alert tone="danger" icon={<AlertTriangle size={18} />} title="La nota afirma algo que en el dictado se negó">
             {contradiccionesNota.map((c, i) => (
-              <div key={`${c.condicion}-${i}`} style={{ marginBottom: 4, lineHeight: 1.5 }}>{avisoDeContradiccion(c)}</div>
+              <div key={`${c.condicion}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
+                {avisoDeContradiccion(c)}{' '}
+                {/*
+                  QUITARLO NO CAMBIA LA NOTA: dice «ya lo miré». El criterio
+                  clínico quedó en lo que el médico escribió, no aquí. Y vuelve a
+                  salir si el texto cambia, porque entonces es otro aviso.
+                */}
+                <button
+                  onClick={() => marcarRevisado('negacion', c.condicion)}
+                  style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
+                >Ya lo revisé</button>
+              </div>
             ))}
             <div style={{ marginTop: 6, opacity: .9 }}>
               El sistema no decide cuál es correcta —un paciente puede negar algo que sí tiene
@@ -3948,7 +4028,13 @@ export default function ConsultaActivaPage() {
         <div style={{ marginBottom: 12 }}>
           <Alert tone="warning" icon={<AlertTriangle size={18} />} title="La nota da por actual algo que en el dictado se dijo en pasado">
             {desajustesNota.map((d, i) => (
-              <div key={`${d.condicion}-${i}`} style={{ marginBottom: 4, lineHeight: 1.5 }}>{avisoDeDesajuste(d)}</div>
+              <div key={`${d.condicion}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
+                {avisoDeDesajuste(d)}{' '}
+                <button
+                  onClick={() => marcarRevisado('temporal', d.condicion)}
+                  style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
+                >Ya lo revisé</button>
+              </div>
             ))}
             <div style={{ marginTop: 6, opacity: .9 }}>
               El sistema no decide si sigue activa: mira cómo se dijo la frase, no el hecho clínico.
@@ -3959,9 +4045,20 @@ export default function ConsultaActivaPage() {
 
       {/* ── Alertas clínicas cruzadas (punto de atención) ── */}
       {(() => {
-        const alergiasPaciente = patient?.alergias
-          ? [{ alergeno: patient.alergias, reaccion: '' }]
-          : []
+/**
+   * LA ALERTA DE ALERGIA USA EL PARSER DE TODOS (4-ago-2026).
+   *
+   * Aquí se metía el campo ENTERO como un solo alérgeno, sin partir y **sin
+   * filtrar negaciones**. Como el cruce compara con `includes`, «Niega alergia a
+   * penicilina» + amoxicilina pintaba la alerta **crítica roja** — en la pantalla
+   * donde se prescribe. Es REG-034 y REG-035, ya cerradas dos veces, en una
+   * tercera ruta; y en este mismo archivo había otras dos lecturas del campo que
+   * sí usaban el parser bueno.
+   *
+   * Un falso positivo aquí es peor que en otro sitio: gasta el panel rojo que
+   * también lleva los verdaderos.
+   */
+  const alergiasPaciente = alergiasDe(patient ?? {})
         const alertas = validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
         const interacciones = detectarInteracciones(medicamentos)
         const controlados = detectarControlados(medicamentos)

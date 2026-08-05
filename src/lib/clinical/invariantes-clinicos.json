@@ -341,12 +341,32 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/nota-firmada-no-se-edita.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/auditoria-v7-dia1.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
       "minCasos": 6
     },
     {
       "archivo": "src/__tests__/la-caida-de-ia-sigue-al-dueno.test.ts",
-      "minCasos": 9
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/trinquete-de-voz.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
@@ -706,6 +726,14 @@
     },
     {
       "archivo": "src/__tests__/whisper-prompt-presupuesto.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/respaldo-consultorio.test.ts",
+      "minCasos": 21
+    },
+    {
+      "archivo": "src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts",
       "minCasos": 7
     }
   ]

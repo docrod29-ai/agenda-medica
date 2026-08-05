@@ -30,7 +30,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { COLECCIONES, EXCLUIDAS, indiceRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
+import { COLECCIONES, EXCLUIDAS, indiceRespaldo, lineaDeDocumento, rutasDelArbol } from '@/lib/clinica/respaldo'
 import {
   leerLinea, reenraizar, admitir,
   POR_QUE_SOLO_A_CLINICA_VACIA, POR_QUE_UNA_LINEA_ROTA_NO_ABORTA,
@@ -74,7 +74,8 @@ function importar(archivo: string, clinicIdDestino: string) {
   const conocidas = new Set<string>()
   for (const c of COLECCIONES) {
     conocidas.add(c.ruta)
-    for (const h of c.hijas ?? []) conocidas.add(`${c.ruta}.${h}`)
+    // El árbol, no un nivel: las adendas y el versionado cuelgan de la nota.
+    for (const r of rutasDelArbol(c)) conocidas.add(r)
   }
   for (const crudo of archivo.split('\n')) {
     const l = leerLinea(crudo)

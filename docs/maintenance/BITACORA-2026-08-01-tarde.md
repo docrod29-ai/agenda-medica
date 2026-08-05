@@ -18,6 +18,7 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 
 ---
 
+- **v1038** — Cobro duplicado del anticipo (REG-153). `stripe/webhook/route.ts`: id determinista `stripe_{session.id}` + `create()`; ALREADY_EXISTS = éxito idempotente y se sigue a saldar la cita. La marca se sigue retirando al fallar (impide el estado peor: cobrado en Stripe e invisible en Finanzas). Golden de 7 casos.
 ## Desplegado esta sesión
 
 | Versión | Qué |
@@ -6046,6 +6047,34 @@ consulta. Todo el camino existía; faltaba que **le llegara**. Ahora la franja l
 sigue por la app, sólo a él, con el titular y qué hacer.
 
 - REG-141 · REG-142 · REG-143 · +32 casos, total **6436**
+
+---
+
+## TANDA 181ª — v1032 · P0: LA DIARIZACIÓN LLEVABA CAÍDA EN SILENCIO
+
+El Dr. puso su llave de AssemblyAI para que yo midiera el corpus actuado. La
+medición no midió nada: **el proveedor rechazó la petición**.
+
+> «The speech_model parameter is deprecated. Use speech_models:
+>  ["universal-3-5-pro", "universal-2"]»
+
+Comprobado llamando a su API con las dos variantes: **devuelve 400 con cualquier
+valor**, incluido el alias `'best'` — que era justo nuestro respaldo.
+
+Los **dos** intentos de la ruta fallaban. Cada consulta grabada se iba al motor
+de repuesto **sin separación de voces**, y sin voces separadas no hay atribución
+de rol: de ahí cuelgan el motor de negaciones y la procedencia.
+
+Silencioso, porque la ruta hace lo correcto — sigue con el respaldo antes que
+dejar al médico sin nota.
+
+**Y cuatro pruebas de contrato pasaban en verde** todo ese tiempo, porque
+comprobaban que el código dijera lo acordado, no que el proveedor lo aceptara.
+Una prueba de contrato no sustituye una llamada real.
+
+- REG-146 · +2 casos, total **6455**
+- **Primera medición de atribución de rol**: 8/12 voces, 81.94 % de turnos,
+  9 confusiones médico↔paciente (`informe-diarizacion-2026-08-04.json`)
 
 ---
 

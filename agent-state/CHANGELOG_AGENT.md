@@ -39,3 +39,22 @@ Franja en el armazón de la app, sólo para el dueño, con el titular y qué hac
 **Nota honesta**: la premisa inicial era que `avisoAlDueno` no lo llamaba nadie.
 Era falsa —lo busqué con el nombre mal escrito— y se verificó **antes** de
 construir nada encima. Lo que faltaba no era el registro: era que llegara a él.
+
+## 2026-08-04 — SAFE-001 · un solo parser de alergias, y conectado
+
+Cuatro parsers del mismo campo. `alergenosDe` había salido a producción en la
+v1031 **sin un solo llamador** — error del propio agente, cazado revisando el
+estado. El trinquete de lint bajó a 97 y se apretó.
+
+## 2026-08-04 — EVAL-003 · el trinquete de voz, en CI
+
+Las 6 000 frases del Dr. corriendo en cada push. La regresión de texto **no
+necesita el audio**: 1.2 MB de frases contra 429 MB de mp3.
+
+Mide que el pipeline no dañe lo correcto (criterio CERO en términos clave) y que
+el término clínico sobreviva al pasar de hablado a escrito. Probado al revés.
+
+**Hallazgo sobre el corpus, para el Dr.**: algunas filas traen la forma hablada
+corrompida por el generador — «dosis guiada» quedó como «dosis gramosuiada»
+(alguien expandió «g» → «gramos» dentro de la palabra). Son del corpus, no del
+pipeline, y bajan su propia medición.

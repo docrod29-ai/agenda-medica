@@ -31,9 +31,25 @@ export function esAlergiaNegada(fragmento: string): boolean {
   return NEGADOR.test(fragmento.trim())
 }
 
-/** Cómo se parte el texto libre. Una sola definición: dos splitters distintos
- *  daban listas distintas del MISMO campo a la nota y a la receta. */
-const SEPARADORES = /[,;/\n]+|\sy\s/
+/**
+ * Cómo se parte el texto libre. Una sola definición: dos splitters distintos
+ * daban listas distintas del MISMO campo a la nota y a la receta.
+ *
+ * ── EL PUNTO, QUE FALTABA (4-ago-2026) ──────────────────────────────────────
+ *
+ * Sin el punto, «Niega penicilina. **Alérgico a sulfas**» era UN solo fragmento:
+ * `esAlergiaNegada` lo filtraba entero y devolvía `[]`. **La alergia a sulfas
+ * desaparecía** de la compuerta de la receta, de la nota, del recurso FHIR y del
+ * sesgo del reconocedor — los cuatro leen de aquí.
+ *
+ * El camino hospitalario (`hospital/cds.ts`) ya partía por punto, y su comentario
+ * decía por qué: «para no perder una alergia real que venga después de una
+ * negada». Conocía el modo de fallo; el canónico no.
+ *
+ * Se exige **espacio detrás del punto** para no partir abreviaturas ni decimales:
+ * «Dr.», «2.5 mg» y «c.s.p.» siguen enteros.
+ */
+const SEPARADORES = /[,;/\n]+|\.\s+|\sy\s/
 
 /** Los fragmentos NEGADOS del campo, para poder mostrarlos en vez de esconderlos. */
 export function negacionesEnTexto(texto: string | undefined): string[] {

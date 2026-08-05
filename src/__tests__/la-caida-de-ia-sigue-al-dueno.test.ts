@@ -98,3 +98,63 @@ describe('NO PUEDE ESTORBAR', () => {
     expect(comp).toContain('}, [esDueno])')
   })
 })
+
+/**
+ * ── LA FRANJA SE VOLVIÓ EL RUIDO QUE VENÍA A EVITAR (mismo día) ──────────────
+ *
+ * El Dr. la vio en su pantalla horas después de desplegarla: **tres líneas del
+ * mismo aviso** —«Claude tardó demasiado»— ocupando el ancho completo por
+ * encima de su lista de pacientes. Su palabra fue «mugrero».
+ *
+ * Dos defectos, y los dos eran míos:
+ *
+ * 1. **Enseñaba lo que no exige nada de él.** Un timeout o una saturación del
+ *    proveedor se resuelven solos; no hay botón que apretar. Eso es información
+ *    de tablero, no una franja sobre su trabajo.
+ * 2. **Repetía el mismo problema.** Las incidencias se agrupan por HORA, así que
+ *    una caída de tres horas son tres documentos idénticos — y se pintaban como
+ *    tres avisos, haciendo ver tres problemas donde había uno.
+ *
+ * Es exactamente la fatiga de alerta que se reparó ESA MISMA MAÑANA en la
+ * compuerta de dosis (REG-141), reintroducida por el mismo agente en otra
+ * pantalla.
+ */
+describe('LA FRANJA NO PUEDE SER EL RUIDO QUE VIENE A EVITAR', () => {
+  const ruta2 = leer('src', 'app', 'api', 'superadmin', 'incidentes', 'route.ts')
+  const comp2 = leer('src', 'components', 'AvisoIncidenteIA.tsx')
+
+  it('sólo sale lo URGENTE: lo que está caído hasta que él lo arregle', () => {
+    expect(ruta2).toContain('const urgentes = vigentes.filter(i => i.urgente === true)')
+  })
+
+  it('un timeout o una saturación NO son urgentes — se resuelven solos', () => {
+    // Se ata contra el clasificador, que ya tenía tomada esa decisión.
+    expect(avisoAlDueno('timeout', 'plataforma', 'anthropic')?.urgente).toBe(false)
+    expect(avisoAlDueno('sobrecarga', 'plataforma', 'anthropic')?.urgente).toBe(false)
+    expect(avisoAlDueno('limite_tasa', 'plataforma', 'anthropic')?.urgente).toBe(false)
+  })
+
+  it('y lo que SÍ deja al producto caído sigue saliendo', () => {
+    expect(avisoAlDueno('llave_invalida', 'plataforma', 'anthropic')?.urgente).toBe(true)
+    expect(avisoAlDueno('sin_saldo', 'plataforma', 'anthropic')?.urgente).toBe(true)
+  })
+
+  it('una sola línea por problema, aunque dure horas', () => {
+    /**
+     * Agrupado por hora, una caída larga son varios documentos idénticos.
+     * Pintarlos todos hace ver varios problemas donde hay uno.
+     */
+    expect(ruta2).toContain('const porTitulo = new Map<string,')
+    expect(ruta2).toContain('y.veces += veces; continue')
+  })
+
+  it('y como mucho dos en pantalla', () => {
+    // Si hay más, el sitio es el tablero, no una franja sobre su trabajo.
+    expect(comp2).toContain('incidentes.slice(0, 2)')
+  })
+
+  it('lo no urgente no se pierde: se dice cuánto quedó en el tablero', () => {
+    // Esconder no es lo mismo que callar. Sigue contado.
+    expect(ruta2).toContain('noUrgentesEnElTablero: vigentes.length - urgentes.length')
+  })
+})

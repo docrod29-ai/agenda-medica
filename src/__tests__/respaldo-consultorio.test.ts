@@ -33,6 +33,7 @@ import { join } from 'node:path'
 import {
   COLECCIONES, EXCLUIDAS, indiceRespaldo,
   POR_QUE_NDJSON, POR_QUE_SE_EXCLUYEN_LOS_SECRETOS,
+  rutasDelArbol,
 } from '@/lib/clinica/respaldo'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
@@ -48,6 +49,25 @@ function coleccionesDelConsultorio(): string[] {
   for (let i = inicio + 1; i < lineas.length; i++) {
     if (/^ {4}\}/.test(lineas[i])) break
     const m = /^ {6}match \/([A-Za-z_]+)\//.exec(lineas[i])
+    if (m) out.add(m[1])
+  }
+  return [...out].sort()
+}
+
+/**
+ * Las subcolecciones declaradas a CUALQUIER profundidad dentro de `clinics`.
+ *
+ * El escáner original sólo miraba seis espacios de sangría —el primer nivel—,
+ * así que no podía ver `notas/{n}/adendas`. Un guardián que no puede ver el
+ * hueco no protege de él.
+ */
+function anidadasDeLasReglas(): string[] {
+  const lineas = reglas.split('\n')
+  const inicio = lineas.findIndex(l => /^ {4}match \/clinics\/\{clinicId\} \{/.test(l))
+  const out = new Set<string>()
+  for (let i = inicio + 1; i < lineas.length; i++) {
+    if (/^ {4}\}/.test(lineas[i])) break
+    const m = /^\s*match \/([A-Za-z_]+)\//.exec(lineas[i])
     if (m) out.add(m[1])
   }
   return [...out].sort()
@@ -77,10 +97,41 @@ describe('el manifiesto cubre TODO el consultorio', () => {
     expect(fantasmas, `rutas del manifiesto que no existen: ${fantasmas.join(', ')}`).toEqual([])
   })
 
-  it('el expediente del paciente viaja con TODAS sus subcolecciones', () => {
-    const pacientes = COLECCIONES.find(c => c.ruta === 'patients')!
-    expect(pacientes.hijas?.sort()).toEqual(
-      ['clinico', 'formularios_previos', 'fotos', 'laboratorios', 'notas'])
+  it('el expediente del paciente viaja con TODAS sus subcolecciones, a CUALQUIER profundidad', () => {
+    /**
+     * ── ESTA PRUEBA CLAVÓ EL HUECO EN VERDE ─────────────────────────────────
+     *
+     * Antes fijaba con `toEqual` la lista de cinco hijas de primer nivel. Y el
+     * hueco estaba **un nivel más abajo**: `notas/{n}/adendas` y
+     * `notas/{n}/versions` nunca se exportaban, mientras el pie del archivo
+     * decía `completo: true`.
+     *
+     * La adenda es el ÚNICO mecanismo de corrección sobre una nota firmada, que
+     * es inmutable por la NOM-024. Restaurar ese respaldo devolvía la nota y
+     * **borraba la corrección legal**, sin que nadie se enterara.
+     *
+     * Fijar la forma de una lista no prueba que la lista esté completa. Ahora se
+     * comprueba el ÁRBOL contra las reglas, que son la verdad.
+     */
+    const rutas = rutasDelArbol(COLECCIONES.find(c => c.ruta === 'patients')!)
+    for (const exigida of [
+      'patients.notas', 'patients.notas.adendas', 'patients.notas.versions',
+      'patients.laboratorios', 'patients.fotos', 'patients.clinico', 'patients.formularios_previos',
+    ]) {
+      expect(rutas, `falta ${exigida} en el manifiesto`).toContain(exigida)
+    }
+  })
+
+  it('y ninguna subcolección de las reglas se queda fuera del árbol', () => {
+    /**
+     * El guardián miraba sólo el primer nivel (`^ {6}match /`), así que era
+     * estructuralmente incapaz de ver lo que se le escapaba. Ahora recorre el
+     * bloque de `clinics` a cualquier profundidad.
+     */
+    const declaradas = new Set(COLECCIONES.flatMap(rutasDelArbol).map(r => r.split('.').pop()!))
+    const excluidas = new Set(Object.keys(EXCLUIDAS))
+    const faltan = anidadasDeLasReglas().filter(c => !declaradas.has(c) && !excluidas.has(c))
+    expect(faltan, `subcolecciones en las reglas que el respaldo no recorre: ${faltan.join(', ')}`).toEqual([])
   })
 
   it('y el episodio hospitalario con las suyas', () => {

@@ -1,0 +1,26 @@
+[
+  {
+    "speaker": "A",
+    "start": 839,
+    "end": 5389,
+    "text": "¿Ha tenido dolor en el pecho? No, doctor, para nada."
+  },
+  {
+    "speaker": "B",
+    "start": 6228,
+    "end": 13851,
+    "text": "Sí ha tenido, doctor. La semana pasada se puso pálido y se agarraba el pecho. Fue el calor nada más."
+  },
+  {
+    "speaker": "A",
+    "start": 15412,
+    "end": 17376,
+    "text": "¿Le faltó el aire en ese momento?"
+  },
+  {
+    "speaker": "B",
+    "start": 20130,
+    "end": 21496,
+    "text": "Un poquito, sí."
+  }
+]

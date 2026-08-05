@@ -1,0 +1,121 @@
+{
+  "fecha": "2026-08-05",
+  "modelo": "universal-3-5-pro",
+  "corpus": "dialogos-consulta actuado (TTS, sin ruido ni solapamiento real)",
+  "dialogos": 12,
+  "vocesExactas": 8,
+  "turnosTotal": 72,
+  "turnosConHablante": 72,
+  "turnosCorrectos": 59,
+  "exactitudTurno": 0.8194444444444444,
+  "confusionesMedicoPaciente": [
+    "DLG-002 turno 4: Médico → Paciente",
+    "DLG-005 turno 1: Paciente → Médico",
+    "DLG-005 turno 3: Paciente → Médico",
+    "DLG-008 turno 1: Paciente → Médico",
+    "DLG-008 turno 3: Paciente → Médico",
+    "DLG-008 turno 5: Paciente → Médico",
+    "DLG-008 turno 7: Paciente → Médico",
+    "DLG-009 turno 1: Paciente → Médico",
+    "DLG-010 turno 1: Paciente → Médico"
+  ],
+  "limites": [
+    "Voces sintéticas: no es una muestra de hablantes reales.",
+    "Sin solapamiento: los turnos se concatenan.",
+    "Sin ruido de consultorio ni distancia al micrófono.",
+    "Es un PISO, no lo que se verá en producción."
+  ],
+  "detalle": [
+    {
+      "id": "DLG-001",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": []
+    },
+    {
+      "id": "DLG-002",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": [
+        "turno 4 (Médico → Paciente): «Cuénteme entonces qué lo trae hoy.…»"
+      ]
+    },
+    {
+      "id": "DLG-003",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": []
+    },
+    {
+      "id": "DLG-004",
+      "vocesDetectadas": 3,
+      "vocesReales": 3,
+      "fallos": [
+        "turno 1 (Paciente → Acompañante): «Pues más o menos, doctor.…»",
+        "turno 6 (Acompañante → Médico): «Y también se le olvidan las cosas, doctor.…»"
+      ]
+    },
+    {
+      "id": "DLG-005",
+      "vocesDetectadas": 1,
+      "vocesReales": 2,
+      "fallos": [
+        "turno 1 (Paciente → Médico): «¿Ese es el que viene en pastilla blanca?…»",
+        "turno 3 (Paciente → Médico): «Está bien doctor.…»"
+      ]
+    },
+    {
+      "id": "DLG-006",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": []
+    },
+    {
+      "id": "DLG-007",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": []
+    },
+    {
+      "id": "DLG-008",
+      "vocesDetectadas": 1,
+      "vocesReales": 2,
+      "fallos": [
+        "turno 1 (Paciente → Médico): «Fumé como diez años, pero lo dejé hace cinco.…»",
+        "turno 3 (Paciente → Médico): «No, nunca he tomado.…»",
+        "turno 5 (Paciente → Médico): «Me operaron de la vesícula en dos mil diecinueve.…»",
+        "turno 7 (Paciente → Médico): «No, nada más esa.…»"
+      ]
+    },
+    {
+      "id": "DLG-009",
+      "vocesDetectadas": 2,
+      "vocesReales": 3,
+      "fallos": [
+        "turno 0 (Médico → Acompañante): «¿Qué medicamentos está tomando?…»",
+        "turno 1 (Paciente → Médico): «Ay, no me acuerdo de los nombres, doctor.…»"
+      ]
+    },
+    {
+      "id": "DLG-010",
+      "vocesDetectadas": 2,
+      "vocesReales": 3,
+      "fallos": [
+        "turno 1 (Paciente → Médico): «No doctor, para nada.…»",
+        "turno 2 (Acompañante → Paciente): «Sí ha tenido, doctor. La semana pasada se puso pálido y…»"
+      ]
+    },
+    {
+      "id": "DLG-011",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": []
+    },
+    {
+      "id": "DLG-012",
+      "vocesDetectadas": 2,
+      "vocesReales": 2,
+      "fallos": []
+    }
+  ]
+}

@@ -102,7 +102,7 @@ async function resolverModelo(key: string, perfil: Perfil): Promise<string> {
 
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
-async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number) {
+async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number, msDisponibles = 90_000) {
   const pienso = conThinking && soportaThinking(model)
   const esHaiku = /haiku/i.test(model)   // Haiku topa el output en ~8k
   const body: Record<string, unknown> = {
@@ -126,23 +126,25 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
   // soportan; el JSON final sale igual, solo mejor razonado.
   if (pienso) body.thinking = { type: 'enabled', budget_tokens: 6000 }
   /**
-   * TOPE DE ESPERA: 90 s por intento.
+   * EL TOPE DE ESPERA SALE DEL PRESUPUESTO QUE QUEDA, NO DE UN NÚMERO FIJO.
    *
-   * Esta llamada era la única del repo sin `AbortSignal.timeout` (el consultor
-   * usa 55 s y la evidencia 40 s). Con `maxDuration = 300` y hasta tres intentos,
-   * una conexión colgada de Anthropic dejaba al médico mirando el spinner cinco
-   * minutos con un paciente enfrente, hasta que Vercel cortaba en seco.
+   * Aquí había 90 s por intento. Con tres intentos son 270 s más las esperas
+   * entre ellos: **no cabían en los 300 s de la función**, así que el último
+   * intento lo cortaba Vercel en seco y el médico acababa en el parser local.
    *
-   * 90 s es holgado para una nota larga con razonamiento extendido y corta muy
-   * por debajo del techo de la función, así que el fallback determinista —el
-   * parser local, que no necesita red— llega a ejecutarse y el médico recibe una
-   * nota, no una pantalla parada.
+   * Y 90 s es poco para lo que de verdad importa: una consulta larga con
+   * razonamiento extendido tarda. Rendirse a los 90 s con presupuesto de sobra
+   * es tirar la nota por impaciencia.
+   *
+   * Ahora cada intento recibe **lo que queda**, menos un margen para responder.
+   * Un solo intento puede usar casi cuatro minutos si hace falta; y si ya no
+   * queda tiempo, no se empieza uno que se sabe que no va a terminar.
    */
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: headersAnthropic(key),
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(msDisponibles),
   })
 }
 
@@ -151,7 +153,26 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
  * / 5xx) con backoff. Anthropic devuelve 529 cuando está saturado: un solo
  * intento hacía que la nota cayera al parser local "porque sí".
  */
-async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number) {
+/**
+ * ── EL RELOJ DE LA NOTA ──────────────────────────────────────────────────────
+ *
+ * `maxDuration = 300`: pasado eso Vercel corta la función en seco, sin darle al
+ * médico ni el aviso. Todo lo que se haga tiene que caber ahí dentro.
+ *
+ * Se reservan 25 s para lo que va DESPUÉS de la última llamada —leer la
+ * respuesta, validarla, componer y responder—. Si eso no cupiera, el trabajo
+ * estaría hecho y se perdería igual, que es la peor forma de fallar.
+ */
+/**
+ * Tiene que ser el MISMO número que `maxDuration`, y no se puede compartir una
+ * constante: Next exige que `maxDuration` sea un literal. Una prueba los ata.
+ */
+const PRESUPUESTO_MS = 800_000
+const RESERVA_RESPUESTA_MS = 25_000
+/** Nunca se empieza un intento con menos de esto: no le daría tiempo ni a arrancar. */
+const MINIMO_PARA_INTENTAR_MS = 20_000
+
+async function llamarClaudeConReintentos(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number, t0 = Date.now()) {
   /**
    * Un TIMEOUT o un fallo de red no llegan como `res.status`: llegan como
    * excepción. Sin esto, el tope de espera recién puesto se saltaba el bucle de
@@ -163,16 +184,35 @@ async function llamarClaudeConReintentos(key: string, model: string, system: str
    * la llave es de la plataforma y le escribe al médico una frase que se puede
    * leer.
    */
+  const restante = () => PRESUPUESTO_MS - RESERVA_RESPUESTA_MS - (Date.now() - t0)
+
   const intentar = async (): Promise<Response> => {
+    const ms = restante()
+    if (ms < MINIMO_PARA_INTENTAR_MS) {
+      // No se empieza lo que no puede terminar: se devuelve el 504 sintético
+      // ya, para que el médico reciba su aviso en vez de un corte de Vercel.
+      safeLog.warn(`[expediente/procesar] sin presupuesto para otro intento (${Math.round(ms / 1000)} s)`)
+      return new Response('sin-presupuesto', { status: 504 })
+    }
     try {
-      return await llamarClaude(key, model, system, userMsg, conThinking, maxOverride)
+      return await llamarClaude(key, model, system, userMsg, conThinking, maxOverride, ms)
     } catch (e) {
       safeLog.warn('[expediente/procesar] Claude no respondió a tiempo o falló la red', e)
       return new Response('timeout', { status: 504 })
     }
   }
+
   let res = await intentar()
+  /**
+   * Se reintenta MIENTRAS QUEDE TIEMPO, no un número fijo de veces.
+   *
+   * Antes eran tres intentos de 90 s: 270 s más las esperas no cabían en los
+   * 300 s de la función, así que el último lo cortaba Vercel y el médico
+   * acababa en el parser local **por aritmética**, no porque el proveedor
+   * estuviera caído.
+   */
   for (let intento = 1; intento <= 2 && (STATUS_REINTENTABLE.has(res.status) || res.status === 504); intento++) {
+    if (restante() < MINIMO_PARA_INTENTAR_MS) break
     await sleep(intento * 700)
     res = await intentar()
   }
@@ -227,9 +267,21 @@ function fallbackVisible(transcripcion: string, tipo: TipoNota, aviso: string, c
   })
 }
 
-// La nota corre Opus 4.8 con razonamiento: sin esto Vercel la cortaba a 60s (504,
-// el fallo más doloroso en consulta). En Vercel Pro sube a 300s.
-export const maxDuration = 300
+/**
+ * ── CUÁNTO PUEDE TARDAR LA NOTA ─────────────────────────────────────────────
+ *
+ * Sin esto Vercel cortaba a los 60 s — el fallo más doloroso en consulta. Estuvo
+ * en 300 s, que es el techo del plan Pro **sin** Fluid compute; con Fluid llega a
+ * **800**.
+ *
+ * Instrucción del Dr., literal: «dale el tiempo que necesite, no nomás 4.5
+ * minutos». Una consulta larga con razonamiento extendido no se rinde por reloj.
+ *
+ * **Es el MISMO número que `SEGUNDOS_DE_LA_FUNCION`**, del que sale el
+ * presupuesto de cada intento: si los dos se separan, o se desperdicia tiempo
+ * pagado o Vercel corta con el trabajo hecho. Una prueba lo ata.
+ */
+export const maxDuration = 800
 
 export async function POST(req: NextRequest) {
   // Seguridad: solo usuarios autenticados. Procesa PHI y consume la API key

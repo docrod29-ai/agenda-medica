@@ -39,6 +39,7 @@ import { medirEstancia } from '@/lib/uci/estancia'
 import { useConfig } from '@/hooks/useConfig'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { leerAprendido } from '@/lib/asr/aprendizaje-firestore'
+import { alergenosDe } from '@/lib/seguridad/alergias'
 import type { Internamiento } from '@/types/hospital'
 import type { Patient } from '@/types'
 import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci/ventilacion'
@@ -220,11 +221,20 @@ export default function UciPanelPage() {
     ? (() => { try { return medirEstancia({ admittedAt: ingresoUci, unitTimezone: config.zonaHoraria || 'America/Mexico_City' }, new Date().toISOString()) } catch { return null } })()
     : null
 
+  /**
+   * LAS ALERGIAS, CON EL PARSER DE TODOS Y NO CON UNO PROPIO.
+   *
+   * Aquí vivía un tercer `split` —sólo coma, punto y coma y salto de línea— con
+   * su propia heurística de negación. El canónico entiende además la barra y la
+   * «y» («Penicilina / Sulfas», «penicilina y sulfas» = DOS alérgenos), descarta
+   * los fragmentos negados uno por uno en vez de mirar sólo si la lista tiene un
+   * elemento, y lee `alergiasEstructuradas` cuando existen.
+   *
+   * El mismo campo no puede significar dos cosas según qué pantalla lo lea.
+   */
   const alergias = (() => {
-    const raw = paciente?.alergias
-    const lista = Array.isArray(raw) ? raw.map(a => String(a).trim()).filter(Boolean)
-      : (raw ? String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
-    const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
+    const lista = alergenosDe(paciente ?? {})
+    const negadas = lista.length === 0 && Boolean(String(paciente?.alergias ?? '').trim())
     return { lista, negadas }
   })()
 
