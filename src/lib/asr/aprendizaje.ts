@@ -43,6 +43,7 @@
  *
  * Módulo PURO.
  */
+import { sustituciones } from '@/lib/asr/alineacion'
 import { CLASES_ERROR_CRITICO, PARES_PROHIBIDOS, UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
 
 const limpia = (s: string) =>
@@ -127,12 +128,44 @@ export function paresDeUnaNota(
   final: string,
   excluir: readonly string[] = [],
 ): ParCorregido[] {
-  const a = (oido ?? '').trim().split(/\s+/).filter(Boolean)
-  const b = (final ?? '').trim().split(/\s+/).filter(Boolean)
-  if (!a.length || a.length !== b.length) return []
+  /**
+   * ── SE ALINEA DE VERDAD, NO POR POSICIÓN (5-ago-2026) ─────────────────────
+   *
+   * Aquí se exigía que las dos versiones tuvieran **el mismo número de
+   * palabras**, y si no, se devolvía vacío. El motivo era bueno —comparando por
+   * posición, una palabra añadida desplaza todas las siguientes y cada «par»
+   * sería una coincidencia— pero el precio no se había medido:
+   *
+   *     mismo largo ....... 19,4 % de las correcciones
+   *     largo distinto .... 80,6 %  ← se descartaban ENTERAS
+   *
+   * Cuatro de cada cinco correcciones del médico no enseñaban nada. Y de ahí se
+   * alimenta el sesgo de vocabulario, que es lo único que cambia lo que el motor
+   * OYE.
+   *
+   * `sustituciones()` usa la subsecuencia común más larga: sabe qué palabras se
+   * conservaron y, entre ellas, cuál ocupó el lugar de cuál. Sólo emite el caso
+   * inequívoco —una por una—, así que el criterio no se afloja: se aplica donde
+   * antes ni se miraba.
+   *
+   * ── LO QUE NO SE PUEDE PROMETER ───────────────────────────────────────────
+   *
+   * Sobre el corpus del Dr. esto recupera apenas un 6 % más de pares, y los que
+   * aparecen son ruido de sus filas corruptas («gramosuiada → guiada»). Ese
+   * corpus **no sirve para medir esto**: compara forma hablada contra escrita
+   * («cero punto cero tres» → «0.03»), que son reescrituras de varias palabras,
+   * no correcciones de un médico.
+   *
+   * La ganancia real sólo se puede medir con notas dictadas frente a notas
+   * firmadas, y eso todavía no está medido. Lo que sí se sabe es que antes se
+   * tiraba el 80,6 % de las oportunidades sin mirarlas.
+   */
   const out: ParCorregido[] = []
-  for (let i = 0; i < a.length; i++) {
-    const par = { oido: a[i].replace(/[.,;:¿?¡!()]/g, ''), corregido: b[i].replace(/[.,;:¿?¡!()]/g, '') }
+  for (const s of sustituciones(oido, final)) {
+    const par = {
+      oido: s.oido.replace(/[.,;:¿?¡!()]/g, ''),
+      corregido: s.corregido.replace(/[.,;:¿?¡!()]/g, ''),
+    }
     if (esAprendible(par, excluir)) out.push(par)
   }
   return out

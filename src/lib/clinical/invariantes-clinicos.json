@@ -795,6 +795,10 @@
     {
       "archivo": "src/__tests__/sesgo-medido.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/aprender-aunque-cambie-el-largo.test.ts",
+      "minCasos": 11
     }
   ]
 }
