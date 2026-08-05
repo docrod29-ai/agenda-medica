@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
+import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
@@ -785,6 +786,27 @@ export default function ConsultaActivaPage() {
     return desajustesTemporales(pasadas, textoNota)
       .filter(d => !avisosRevisados.includes(`temporal:${d.condicion}`))
   }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
+  /**
+   * LA VÍA QUE NADIE DICTÓ.
+   *
+   * Decisión del médico dueño (4-ago-2026): «déjalo oral pero que avise si no se
+   * dictó la vía». El prompt de extracción trae `"via": "oral"` en su plantilla,
+   * así que el modelo la rellena SIEMPRE — y la receta acaba afirmando una vía de
+   * administración que nadie dijo, con la misma tinta que las que sí se dictaron.
+   *
+   * Se decide mirando la CITA de la que salió cada fármaco, no preguntándole al
+   * modelo: «esto no se dijo» es justo la señal que un generativo peor distingue,
+   * porque rellenar huecos es lo que sabe hacer.
+   */
+  const viasAsumidas = useMemo(() => {
+    const delExtractor = (extraction as { medicamentos?: { nombre?: string; via?: string; source_quote?: string }[] } | undefined)?.medicamentos
+    if (!delExtractor?.length) return []
+    return conViaAsumida(delExtractor, voz.transcripcion)
+      .map(m => String(m.nombre ?? '').trim())
+      .filter(Boolean)
+      .filter(n => !avisosRevisados.includes(`via:${n}`))
+  }, [extraction, voz.transcripcion, avisosRevisados])
+
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
   const transcripcionRef = useRef('')
@@ -4071,6 +4093,28 @@ export default function ConsultaActivaPage() {
         crónico que el paciente negó y la nota afirma es un error de expediente,
         no de redacción.
       */}
+      {/*
+        VÍA NO DICTADA — decisión del médico dueño: se queda en ORAL y se avisa.
+        En ámbar y no en rojo: una vía asumida no es un error como afirmar algo
+        que se negó; casi siempre será oral de verdad. Lo que no puede es figurar
+        en una receta sin que nadie la haya mirado.
+        Un solo aviso para todos los fármacos: uno por medicamento sería la
+        fatiga de alerta que ya se corrigió en esta misma pantalla.
+      */}
+      {viasAsumidas.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <Alert tone="warning" icon={<AlertTriangle size={18} />} title="No se dictó la vía de administración">
+            <div style={{ lineHeight: 1.5 }}>
+              {avisoDeViaAsumida(viasAsumidas)}{' '}
+              <button
+                onClick={() => viasAsumidas.forEach(n => marcarRevisado('via', n))}
+                style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
+              >Ya lo revisé</button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       {contradiccionesNota.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <Alert tone="danger" icon={<AlertTriangle size={18} />} title="La nota afirma algo que en el dictado se negó">

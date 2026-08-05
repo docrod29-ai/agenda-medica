@@ -563,3 +563,29 @@ excepción del fail-open sobra: **sin dueño no se entrega**, y si el registro n
 puede leer, tampoco.
 
 **Golden** — `src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts` (7 casos).
+
+## REG-165 · La receta afirmaba una vía que nadie dictó
+
+**Decisión del médico dueño (4-ago-2026)**, textual: «déjalo oral pero que avise
+si no se dictó la vía». Es suya y no mía: yo detecto que el dato falta; qué se
+hace clínicamente cuando falta lo decide él.
+
+**Qué pasaba** — El prompt de extracción trae `"via": "oral"` en su plantilla, así
+que el modelo la rellena **siempre**, se haya dictado o no. La receta acababa
+afirmando una vía de administración que nadie dijo, con la misma tinta que las que
+sí se dictaron. `via-parenteral.ts` rescataba el caso más grave —«insulina ·
+oral», que no existe— pero sólo para fármacos sin presentación oral.
+
+**Reparación** — `src/lib/expediente/via-asumida.ts` (módulo puro). Se decide
+mirando la **cita** de la que salió cada fármaco, no preguntándole al modelo:
+«esto no se dijo» es justo la señal que un generativo peor distingue, porque
+rellenar el hueco es lo que sabe hacer. La vía se queda en ORAL y se avisa.
+
+**Diseño del aviso** — Ámbar y no rojo (una vía asumida casi siempre será oral de
+verdad; pintarla de rojo devaluaría el rojo). **Un solo aviso** para todos los
+fármacos: uno por medicamento sería la fatiga de alerta ya corregida en esta
+pantalla. Descartable con «Ya lo revisé», como pidió el Dr.
+
+**Golden** — `src/__tests__/via-no-dictada-avisa.test.ts` (17 casos), incluido que
+la cita propia manda sobre el texto de respaldo — sin eso, un solo «vía oral» en
+toda la consulta apagaría el aviso para todos los medicamentos.
