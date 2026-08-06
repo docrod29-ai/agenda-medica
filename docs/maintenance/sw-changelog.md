@@ -3,6 +3,19 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1078 — REG-197: el arnés no cazaba la alucinación que importa
+
+Medido con el propio motor: de tres alucinaciones clínicas, dos pasaban
+invisibles — y las dos eran las peligrosas. La alucinación real casi nunca es un
+texto entero inventado: es un texto correcto con dos palabras de más.
+
+Tres causas: `some()` en vez de proporción (bastaba UNA palabra compartida para
+absolver todo el valor); los campos esperados no se revisaban por contenido
+añadido; y `v.includes(ov)` absolvía cuando significa lo contrario.
+
+Un arnés que sólo caza lo fácil mide la tranquilidad, no el riesgo — y es el
+instrumento con el que se juzga si la IA mejora.
+
 ## v1077 — REG-196 (P0): «Nota de Primera Vez» con formato SOAP
 
 Dos causas. (1) De los TRECE tipos de nota, `primera_vez` y `alta_consulta` no

@@ -1736,3 +1736,48 @@ queda sin instrucción de formato. Un hueco en esa tabla es una nota con el
 formato de otra.
 
 **Golden** — `src/__tests__/cada-nota-con-su-formato.test.ts` (26 casos).
+
+---
+
+## REG-197 — el arnés no cazaba la alucinación que importa (v1078)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo F1), y
+**medido con el propio motor** antes de tocarlo.
+
+Entrada «El paciente tiene diabetes», oro `dx = diabetes mellitus tipo 2`:
+
+| Lo que inventa el modelo | ¿Se detectaba? |
+|---|---|
+| «diabetes **con nefropatía estadio 4 y retinopatía**» en campo nuevo | **no** |
+| «diabetes mellitus tipo 2 **con nefropatía estadio 4**» en el campo bueno | **no** |
+| «lupus eritematoso sistémico» (nada en común) | sí |
+
+**Dos de tres pasaban invisibles, y las dos eran las peligrosas.** La alucinación
+clínica real casi nunca es un texto entero inventado: es un texto correcto con
+dos palabras de más, y ésas son las que cambian el tratamiento.
+
+**Las tres causas**
+
+1. **`some()` en vez de proporción** — bastaba UNA palabra de más de tres letras
+   presente en la entrada para dar por sustentado todo el valor. Con «diabetes»
+   dentro, la nefropatía y la retinopatía entraban gratis.
+2. **Los campos esperados no se revisaban** — `if (campo in oro.esperado)
+   continue` los saltaba enteros: lo inventado pegado a un dato correcto era
+   invisible **por construcción**.
+3. **`v.includes(ov)` absolvía** — que el generado CONTENGA el valor del oro se
+   tomaba como respaldo, y es exactamente lo contrario: contiene el oro **y algo
+   más**. Se conserva el sentido útil (que el generado esté contenido EN el oro).
+
+**Reparación** — `sinSustento()` mide la **proporción** de palabras sin respaldo
+en la entrada ni en el oro, descontando palabras vacías. Umbral de método
+declarado (`PROPORCION_SIN_RESPALDO = 1/3`): por debajo es variación de
+redacción; por encima hay contenido que nadie dijo. Y la equivalencia decide si
+el campo es **correcto**, no si además trae contenido nuevo — son dos preguntas y
+antes las respondía una sola.
+
+**La lección** — Un arnés que sólo caza lo fácil mide la tranquilidad, no el
+riesgo. Y esto es el instrumento con el que se juzga si la IA mejora: si el
+instrumento no ve, ninguna medida hecha con él significa nada.
+
+**Golden** — `src/__tests__/el-arnes-caza-la-alucinacion-que-importa.test.ts` (12
+casos), los seis escenarios medidos contra el motor real.
