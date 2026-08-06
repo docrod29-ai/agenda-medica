@@ -614,10 +614,10 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1":
   },
 
   "safety": {
-    "fields_auto_filled": ["lista de campos con confidence alta y needs_review=false"],
-    "fields_requiring_review": ["lista de campos con needs_review=true"],
     "conflicts_detected": ["descripción breve de cualquier contradicción"],
-    "missing_critical_fields": ["alergias/medicamentos/etc no preguntados pero importantes"]
+    "missing_critical_fields": ["SÓLO lo que exige acción antes de firmar (regla 17). Máximo 3."],
+    "contenido_sospechoso": [{ "texto": "", "ubicacion": "", "interpretacion": "" }],
+    "dictamen": "cumple|no_cumple según NOM-004 para este tipo de nota"
   }
 }
 

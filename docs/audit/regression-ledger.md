@@ -1161,3 +1161,35 @@ nivel — el riesgo que este rediseño introduce.
 títulos de los recuadros viejos dentro del JSX. Se reapuntaron al módulo puro:
 lo que protegían no cambió, y ahora se vigila en una tabla de nueve líneas en vez
 de en un JSX de 5000.
+
+---
+
+## REG-182 — dos listas que se pagaban en cada nota y no leía nadie (v1065)
+
+**Encontrado** — 5-ago-2026, tirando del hilo de REG-179.
+
+**El defecto** — El prompt pedía en cada extracción `fields_auto_filled` y
+`fields_requiring_review`. Estaban declaradas en el esquema y en la interfaz de
+`RevisionPanel`, y **ningún componente las pintaba ni ninguna lógica las
+consultaba**. Se pagaban tokens por producirlas en cada nota y se descartaban.
+
+**Pero el gasto era lo de menos** — `needs_review` **ya viaja por campo**, dentro
+de cada `CampoAuditado`. Pedir además una lista de nombres es pedirle al modelo
+que repita en otro formato lo que ya dijo, y **dos fuentes de verdad para el
+mismo hecho se desincronizan**: el día que la lista dijera «alergias necesita
+revisión» y el campo `alergias` dijera `needs_review: false`, ninguna de las dos
+sería fiable y nadie sabría cuál creer.
+
+Es el patrón de REG-179 en el mismo objeto, visto del otro lado: allí el prompt
+prometía un campo que el esquema no declaraba; aquí pedía uno que nadie usaba.
+
+**Reparación** — Se dejan de pedir. En su hueco del prompt entran los dos que sí
+se leen ahora (`contenido_sospechoso` y `dictamen`, REG-179). El esquema los
+sigue aceptando: las notas ya guardadas los traen y dejar de pedir un campo no
+puede invalidar lo que está en el expediente.
+
+Lo que hacía falta se **deriva** con `camposQueRequierenRevision(extraction)`, que
+lee el `needs_review` de cada campo — donde el dato vive de verdad, así que no se
+puede desincronizar.
+
+**Golden** — `src/__tests__/lo-que-se-paga-y-no-se-lee.test.ts` (9 casos).

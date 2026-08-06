@@ -3,6 +3,18 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1065 — REG-182: dos listas que se pagaban en cada nota y no leía nadie
+
+`fields_auto_filled` y `fields_requiring_review` se le pedían al modelo en cada
+extracción y ningún componente las pintaba. Pero el gasto era lo de menos:
+`needs_review` ya viaja por campo, así que eran el mismo hecho contado dos veces
+—y dos fuentes de verdad se desincronizan.
+
+Se dejan de pedir; el esquema las sigue aceptando (las notas guardadas las
+traen). Lo que hacía falta se deriva con `camposQueRequierenRevision`.
+
+En su hueco del prompt entran los dos campos que sí se leen desde v1063.
+
 ## v1064 — REG-181: una barra de tres niveles, no ocho recuadros
 
 Paso 2 del plan `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`.

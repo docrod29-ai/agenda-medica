@@ -98,6 +98,24 @@ export type AlergiaAuditada = z.infer<typeof AlergiaAuditada>
 
 /** Bloque de seguridad/trazabilidad global. */
 export const SafetyBlock = z.object({
+  /**
+   * ── DOS LISTAS QUE SE PAGABAN Y SE TIRABAN (5-ago-2026, REG-182) ──────────
+   *
+   * El prompt le pedía al modelo, en cada nota, «la lista de campos con
+   * needs_review=true» y «la lista con needs_review=false». Nadie las leía:
+   * están declaradas aquí, están declaradas en la interfaz de `RevisionPanel`,
+   * y **ningún componente las pinta ni ninguna lógica las consulta**.
+   *
+   * Pero el problema no era sólo el gasto. `needs_review` ya viaja **por
+   * campo**, dentro de cada `CampoAuditado`. Pedir además una lista de nombres
+   * es pedirle al modelo que REPITA en otro formato lo que ya dijo — y una
+   * segunda fuente de verdad para el mismo hecho es una fuente que se puede
+   * desincronizar. Si algún día hacen falta, se DERIVAN del propio `extraction`,
+   * que es donde el dato vive de verdad (`camposQueRequierenRevision`).
+   *
+   * Se dejan declaradas, sin pedirlas: las notas ya guardadas las traen y el
+   * esquema tiene que seguir aceptándolas.
+   */
   fields_auto_filled:       z.array(z.string()).optional().default([]),
   fields_requiring_review:  z.array(z.string()).optional().default([]),
   conflicts_detected:       z.array(z.string()).optional().default([]),
@@ -156,6 +174,27 @@ export const SafetyBlock = z.object({
   dictamen: z.string().optional().default(''),
 })
 export type SafetyBlock = z.infer<typeof SafetyBlock>
+
+/**
+ * Los campos que piden revisión, DERIVADOS de la extracción.
+ *
+ * Sustituye a `safety.fields_requiring_review`, que se le pedía al modelo y no
+ * leía nadie. La diferencia importa: aquí el dato sale de donde vive —el
+ * `needs_review` de cada campo— así que no se puede desincronizar de la verdad.
+ * Aquella lista sí podía: era el mismo hecho contado dos veces.
+ *
+ * Función PURA.
+ */
+export function camposQueRequierenRevision(
+  extraction: unknown,
+): string[] {
+  const e = extraction as { secciones?: Record<string, { needs_review?: boolean }> } | null | undefined
+  const out: string[] = []
+  for (const [nombre, campo] of Object.entries(e?.secciones ?? {})) {
+    if (campo?.needs_review) out.push(nombre)
+  }
+  return out
+}
 
 /** Respuesta completa de la extracción IA. */
 export const RespuestaExtraccion = z.object({

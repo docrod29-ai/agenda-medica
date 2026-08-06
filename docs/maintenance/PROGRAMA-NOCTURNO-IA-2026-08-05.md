@@ -1,0 +1,69 @@
+# Programa nocturno — la mejor inteligencia médica del mundo
+
+**Encargo del Dr., 5-ago-2026:** «trabaja toda la noche en mejorar la inteligencia
+artificial de la app… un equipo de 30 agentes… que la aplicación tenga una
+interfaz amigable, fácil de usar pero muy sofisticada y tecnológica… tiene que
+ser la mejor aplicación del mundo compitiendo con las de USA, Europa, Suiza,
+Dinamarca».
+
+**Este archivo es la bitácora reanudable.** Si se acaban los créditos o el
+internet, el avance NO se pierde: se retoma desde aquí, no desde cero.
+
+---
+
+## Estado al arrancar (verificado en producción)
+
+| | |
+|---|---|
+| Versión viva | `nexusmed-v1064` |
+| Pruebas | 6795 en verde |
+| Lint | 97 (techo, sin deuda nueva) |
+| WER medido | 25,55 % crudo · 22,81 % con el pipeline |
+| Foso de vocabulario medido | 78,89 % → 80,90 % (catálogo) → 82,91 % (expediente) |
+
+### Lo cerrado esta noche, antes de arrancar el programa
+
+| Versión | Qué |
+|---|---|
+| v1061 | REG-177 · «No especificada» deja de entrar como dato (prompt + esquema) |
+| v1062 | REG-178 · el aviso de operación deja de cortar la consulta |
+| v1063 | REG-179/180 · la contradicción del prompt que fabricaba el recuadro naranja; el reporte de manipulación que zod borraba; `Spiolto` al vocabulario |
+| v1064 | REG-181 · ocho recuadros → una barra de tres niveles |
+
+---
+
+## Las nueve dimensiones que se auditan
+
+Cada una tiene un equipo propio. El criterio no es «¿está bonito?» sino **«¿un
+hospital suizo lo aceptaría?»**.
+
+1. **Escucha** — ASR, diarización, sesgo de vocabulario, ruido de consultorio.
+2. **Comprensión** — negación, temporalidad, atribución de hablante, incertidumbre.
+3. **Razonamiento clínico** — diagnóstico diferencial, PROA, evidencia con cita real.
+4. **Seguridad del medicamento** — dosis, unidades, alergias, interacciones, renal.
+5. **Redacción** — que la nota se lea como la escribiría un internista.
+6. **Determinismo** — qué calcula el LLM y qué debería calcular un motor.
+7. **Trazabilidad** — procedencia, sello, versión de prompt, auditoría.
+8. **Interfaz** — que sea fácil sin ser simplona, sofisticada sin ser confusa.
+9. **Frente a la competencia** — qué tiene Suiza/Dinamarca/USA que aquí falta.
+
+---
+
+## Reglas que no se rompen, ni de noche
+
+- **Ninguna cifra clínica se inventa.** Dosis, umbral o punto de corte que no
+  esté respaldado se marca `NEEDS_CLINICAL_REVIEW` y se sigue con otra cosa.
+- **Ningún dato real de paciente** sale del navegador del Dr.; de sus datos sólo
+  se sacan **recuentos**.
+- **Un hallazgo de agente no es un hecho.** Se verifica en el código antes de
+  tocar nada — ya pasó esta noche: de cuatro hallazgos, los cuatro eran ciertos,
+  pero se comprobaron uno por uno antes de actuar.
+- **El ciclo completo o nada**: vitest → tsc → lint → build → sw → commit →
+  deploy → verificar con curl → bitácora.
+
+---
+
+## Bitácora de la noche
+
+### Ronda 1 — auditoría de las nueve dimensiones
+_(en curso — se rellena al terminar cada fase)_
