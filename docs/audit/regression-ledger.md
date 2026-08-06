@@ -860,3 +860,27 @@ con él delante en la pantalla que lo mostraba. El defecto era **de flujo**: lle
 tarde.
 
 **Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (9 casos).
+
+## REG-174 · Sin dosis no se firma — decisión del médico dueño
+
+**Decisión textual (5-ago-2026):** «que bloquee la firma si falta la dosis».
+
+La tomó él con el dato delante: en sus notas ya firmadas había **4 medicamentos
+sin dosis de 28**. Hasta v1057 sólo se avisaba — y el aviso ni siquiera llegaba a
+tiempo (REG-173: vivía en la pantalla de la receta, después de firmar).
+
+**Qué bloquea** — Sólo la ausencia de cifra (`dosis_sin_cifra`). Un medicamento
+sin cantidad no se puede surtir: quien lo despacha no sabe cuánto dar. Y una vez
+firmada, la nota sólo se corrige con adenda.
+
+**Qué NO bloquea, a propósito** — La cifra **sin unidad** («Levotiroxina 100», que
+son 100 mcg en la vida real y 100 mg en el papel) sigue avisando en rojo sin
+bloquear. Él pidió bloquear cuando falta la dosis; ampliarlo a la unidad sería
+decidir por él una segunda vez. **Queda pendiente de su decisión.**
+
+**Detalle de diseño** — «Ya lo revisé» desaparece sobre lo que bloquea: ofrecerlo
+sería una promesa falsa — el aviso se iría y la firma seguiría sin dejarse pulsar,
+sin que el médico supiera por qué. Y el título del aviso lo dice: «no se puede
+firmar hasta corregirlo».
+
+**Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (11 casos).

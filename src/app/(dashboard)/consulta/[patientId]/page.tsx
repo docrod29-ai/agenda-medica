@@ -2698,6 +2698,43 @@ export default function ConsultaActivaPage() {
       toast(`No se puede firmar: ${val.errores[0]}`, 'error')
       return
     }
+
+    /**
+     * ── SIN DOSIS NO SE FIRMA — DECISIÓN DEL MÉDICO DUEÑO (5-ago-2026) ───────
+     *
+     * Textual: «que bloquee la firma si falta la dosis».
+     *
+     * La tomó él, y con el dato delante: en sus notas ya firmadas había **4
+     * medicamentos sin dosis de 28**. Hasta v1057 sólo se avisaba, y el aviso ni
+     * siquiera llegaba a tiempo — vivía en la pantalla de la receta, o sea
+     * después de firmar, cuando la nota ya es inmutable.
+     *
+     * Un medicamento sin cantidad no se puede surtir: quien lo despacha no sabe
+     * cuánto dar. Y una vez firmada, la nota sólo se corrige con adenda.
+     *
+     * ── QUÉ BLOQUEA, EXACTAMENTE ────────────────────────────────────────────
+     *
+     * Sólo la ausencia de cifra (`dosis_sin_cifra`). La cifra **sin unidad**
+     * —«Levotiroxina 100», que son 100 mcg en la vida real y 100 mg en el
+     * papel— sigue avisando en rojo pero no bloquea: él pidió bloquear cuando
+     * falta la dosis, y ampliarlo por mi cuenta sería decidir por él una segunda
+     * vez. Queda anotado para que lo decida.
+     *
+     * Un renglón a medio escribir no cuenta: sin nombre no hay medicamento.
+     */
+    const sinDosis = medicamentos
+      .filter(m => m.nombre?.trim())
+      .filter(m => revisarUnidadDosis(m.nombre, m.dosis)?.codigo === 'dosis_sin_cifra')
+      .map(m => m.nombre.trim())
+    if (sinDosis.length) {
+      toast(
+        sinDosis.length === 1
+          ? `No se puede firmar: falta la dosis de ${sinDosis[0]}. Sin cantidad, quien surta la receta no sabe cuánto dispensar.`
+          : `No se puede firmar: faltan las dosis de ${sinDosis.length} medicamentos (${sinDosis.slice(0, 3).join(', ')}${sinDosis.length > 3 ? '…' : ''}). Sin cantidad, quien surta la receta no sabe cuánto dispensar.`,
+        'error',
+      )
+      return
+    }
     /**
      * LA COMPUERTA MIRA LA CÉDULA EFECTIVA, NO LA DEL CONSULTORIO.
      *
@@ -4160,18 +4197,36 @@ export default function ConsultaActivaPage() {
         En rojo porque `revisarUnidadDosis` la marca de severidad ALTA: una
         receta sin cantidad no se puede surtir, y «100» sin unidad se lee como
         100 mg — mil veces la dosis en lo que va en microgramos.
-        No bloquea la firma: qué es exigible en una receta lo decide el médico.
+
+        Desde el 5-ago-2026, por decisión del médico dueño, la FALTA DE DOSIS
+        además BLOQUEA la firma (la compuerta vive en `firmar()`). La falta de
+        unidad sigue avisando sin bloquear: él pidió bloquear cuando falta la
+        dosis, y ampliarlo por mi cuenta sería decidir por él.
       */}
       {dosisIncompletas.length > 0 && (
         <div style={{ marginBottom: 12 }}>
-          <Alert tone="danger" icon={<AlertTriangle size={18} />} title="Falta la dosis o su unidad">
+          <Alert
+            tone="danger"
+            icon={<AlertTriangle size={18} />}
+            title={dosisIncompletas.some(d => d.aviso.codigo === 'dosis_sin_cifra')
+              ? 'Falta la dosis — no se puede firmar hasta corregirlo'
+              : 'Revisa la unidad de la dosis'}
+          >
             {dosisIncompletas.map((d, i) => (
               <div key={`${d.med}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
                 {d.aviso.mensaje}{' '}
-                <button
-                  onClick={() => marcarRevisado('dosis', d.med)}
-                  style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
-                >Ya lo revisé</button>
+                {/*
+                  «Ya lo revisé» SÓLO donde no bloquea.
+                  Ofrecerlo sobre la falta de dosis sería una promesa falsa: el
+                  aviso desaparecería y la firma seguiría sin dejarse pulsar, y
+                  el médico no sabría por qué.
+                */}
+                {d.aviso.codigo !== 'dosis_sin_cifra' && (
+                  <button
+                    onClick={() => marcarRevisado('dosis', d.med)}
+                    style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
+                  >Ya lo revisé</button>
+                )}
               </div>
             ))}
           </Alert>
