@@ -126,6 +126,15 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     (ej. "un antibiótico", "su inhalador"), registra lo que SÍ se sepa y añade a
     safety.missing_critical_fields una línea accionable (ej. "Antibiótico sin especificar:
     falta nombre, dosis y duración"). NO lo dejes como medicamento a medias "no especificado".
+6-ter. DISTINGUE LO QUE EL PACIENTE YA TOMA DE LO QUE EL MÉDICO RECETA HOY.
+   En cada medicamento pon "procedenciaClinica":
+     · "ya_lo_toma"       — el paciente refiere que lo toma (historia farmacológica).
+                            Que no sepa la dosis es un HALLAZGO, no un descuido.
+     · "se_prescribe_hoy" — el médico lo indica en esta consulta. Sale impreso en
+                            la receta, y sin cantidad nadie puede surtirla.
+   Si de verdad no puedes saber cuál es, OMITE el campo: no lo adivines. Un valor
+   inventado aquí es peor que su ausencia, porque de este eje depende cómo se
+   trata la falta de dosis.
 19-bis. UN HUECO SE ESCRIBE, NO SE RECLAMA. Es la regla que faltaba, y la que más cambia
     lo que el médico recibe.
     Cuando un dato de la HISTORIA no se captó —nombre de un fármaco que el paciente ya
@@ -483,7 +492,7 @@ ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extra
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "contenido o cadena vacía"')).join(',\n')}
   },
   "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo|definitivo|diferencial", "estado": "activo" }],
-  "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "" }],
+  "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "procedenciaClinica": "ya_lo_toma|se_prescribe_hoy" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
 ${tipo === 'valoracion_preoperatoria' ? `
@@ -600,7 +609,7 @@ ${tipo === 'valoracion_preoperatoria' ? `
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1": { "value": "", "confidence": "baja", "source_quote": "", "speaker": "desconocido", "needs_review": true, "reason": "" }')).join(',\n')}
     },
     "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo", "estado": "activo", "confidence": "media", "source_quote": "", "speaker": "medico", "needs_review": true, "reason": "" }],
-    "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
+    "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "procedenciaClinica": "ya_lo_toma|se_prescribe_hoy", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
     "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "moderada", "confirmada": false, "confidence": "alta", "source_quote": "", "speaker": "paciente", "needs_review": true, "reason": "Dato crítico — confirmar con paciente" }],
     "signosVitales": {
       "ta":          { "value": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },
@@ -614,10 +623,10 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1":
   },
 
   "safety": {
-    "fields_auto_filled": ["lista de campos con confidence alta y needs_review=false"],
-    "fields_requiring_review": ["lista de campos con needs_review=true"],
     "conflicts_detected": ["descripción breve de cualquier contradicción"],
-    "missing_critical_fields": ["alergias/medicamentos/etc no preguntados pero importantes"]
+    "missing_critical_fields": ["SÓLO lo que exige acción antes de firmar (regla 17). Máximo 3."],
+    "contenido_sospechoso": [{ "texto": "", "ubicacion": "", "interpretacion": "" }],
+    "dictamen": "cumple|no_cumple según NOM-004 para este tipo de nota"
   }
 }
 

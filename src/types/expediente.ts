@@ -94,6 +94,31 @@ export interface Medicamento {
   estado?: EstadoOrdenMedicamento
   /** Por qué se suspendió o se canceló. Sin esto, el cambio de estado no informa. */
   motivoEstado?: string
+  /**
+   * ── ¿YA LO TOMA, O SE LO RECETO HOY? (5-ago-2026, REG-183) ────────────────
+   *
+   * Es el eje que faltaba, y su ausencia costó caro. La compuerta de dosis
+   * (REG-174/175) trataba igual dos cosas que no se parecen:
+   *
+   *   · «Toma algo para la presión, no sé cuál» — es un HALLAZGO clínico.
+   *     Que el paciente no sepa la dosis es el dato, no un descuido del médico.
+   *   · «Le doy levotiroxina» sin cantidad — es un ERROR que sale impreso en la
+   *     receta, y quien la surta no puede saber cuánto dispensar.
+   *
+   * Al medirlo, 4 de 8 notas del Dr. NO se habrían podido firmar, y lo que las
+   * bloqueaba era medicación previa (REG-176). Sin este campo, ni el modelo ni
+   * la compuerta pueden distinguirlas: sólo ven un renglón sin dosis.
+   *
+   * OPCIONAL a propósito, y la ausencia NO significa nada: las notas anteriores
+   * no lo traen y no se puede adivinar cuál era cuál. Lo que no está declarado
+   * se trata como hasta ahora.
+   *
+   * QUÉ NO HACE, HOY — no cambia qué bloquea la firma. Eso lo decidió el médico
+   * dueño el 5-ago con el dato delante, y volver a decidirlo por mi cuenta sería
+   * pasar por encima de su decisión. De momento sirve para que el aviso DIGA de
+   * cuál de los dos se trata, que es información que hoy no tiene.
+   */
+  procedenciaClinica?: 'ya_lo_toma' | 'se_prescribe_hoy'
 }
 
 /**

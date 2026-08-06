@@ -1161,3 +1161,72 @@ nivel — el riesgo que este rediseño introduce.
 títulos de los recuadros viejos dentro del JSX. Se reapuntaron al módulo puro:
 lo que protegían no cambió, y ahora se vigila en una tabla de nueve líneas en vez
 de en un JSX de 5000.
+
+---
+
+## REG-182 — dos listas que se pagaban en cada nota y no leía nadie (v1065)
+
+**Encontrado** — 5-ago-2026, tirando del hilo de REG-179.
+
+**El defecto** — El prompt pedía en cada extracción `fields_auto_filled` y
+`fields_requiring_review`. Estaban declaradas en el esquema y en la interfaz de
+`RevisionPanel`, y **ningún componente las pintaba ni ninguna lógica las
+consultaba**. Se pagaban tokens por producirlas en cada nota y se descartaban.
+
+**Pero el gasto era lo de menos** — `needs_review` **ya viaja por campo**, dentro
+de cada `CampoAuditado`. Pedir además una lista de nombres es pedirle al modelo
+que repita en otro formato lo que ya dijo, y **dos fuentes de verdad para el
+mismo hecho se desincronizan**: el día que la lista dijera «alergias necesita
+revisión» y el campo `alergias` dijera `needs_review: false`, ninguna de las dos
+sería fiable y nadie sabría cuál creer.
+
+Es el patrón de REG-179 en el mismo objeto, visto del otro lado: allí el prompt
+prometía un campo que el esquema no declaraba; aquí pedía uno que nadie usaba.
+
+**Reparación** — Se dejan de pedir. En su hueco del prompt entran los dos que sí
+se leen ahora (`contenido_sospechoso` y `dictamen`, REG-179). El esquema los
+sigue aceptando: las notas ya guardadas los traen y dejar de pedir un campo no
+puede invalidar lo que está en el expediente.
+
+Lo que hacía falta se **deriva** con `camposQueRequierenRevision(extraction)`, que
+lee el `needs_review` de cada campo — donde el dato vive de verdad, así que no se
+puede desincronizar.
+
+**Golden** — `src/__tests__/lo-que-se-paga-y-no-se-lee.test.ts` (9 casos).
+
+---
+
+## REG-183 — el eje que faltaba: ¿ya lo toma, o se lo receto hoy? (v1066)
+
+**Encontrado** — 5-ago-2026, como el hueco estructural detrás de REG-176.
+
+**El defecto** — `Medicamento` no tenía forma de distinguir dos cosas que no se
+parecen, y la compuerta de dosis las trataba igual:
+
+| | Qué es | Qué significa no saber la dosis |
+|---|---|---|
+| «Toma algo para la presión, no sé cuál» | historia farmacológica | **un hallazgo clínico** |
+| «Le doy levotiroxina» sin cantidad | prescripción de hoy | **un error que sale impreso en la receta** |
+
+Al medirlo sobre sus notas reales, **4 de 8 no se habrían podido firmar**, y lo
+que las bloqueaba era medicación previa. Sin este campo, ni el modelo ni la
+compuerta pueden distinguirlas: sólo ven un renglón sin dosis.
+
+**Reparación** — `procedenciaClinica?: 'ya_lo_toma' | 'se_prescribe_hoy'` en el
+tipo, en el esquema y en el prompt (regla 6-ter). El aviso ahora **dice de cuál
+de los dos se trata**.
+
+**Sin valor por omisión, a propósito** — Darle uno sería el error de «No
+especificada» otra vez: rellenar un hueco con algo que parece un dato. Las notas
+anteriores no lo traen y no se puede adivinar cuál era cuál. Y al modelo se le
+ordena **omitirlo** si no lo sabe, en vez de adivinar.
+
+**LO QUE NO CAMBIA, Y ES DELIBERADO** — **No cambia qué bloquea la firma.** Eso
+lo decidió el médico dueño el 5-ago con el dato delante (REG-174/175/176), y
+volver a decidirlo por mi cuenta sería pasar por encima de su decisión. Lo que se
+añade es información.
+
+**Queda anotado para él** — Ahora que el eje existe, se puede plantear si la
+compuerta debe bloquear sólo lo que se prescribe hoy. Es su decisión, no mía.
+
+**Golden** — `src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts` (15 casos).
