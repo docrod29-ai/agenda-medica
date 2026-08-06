@@ -55,8 +55,15 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta).toContain('const dosisIncompletas')
   })
 
-  it('y lo enseña', () => {
-    expect(consulta).toContain('Falta la dosis o su unidad')
+  it('y lo enseña, diciendo que bloquea', () => {
+    /**
+     * El título cambió el 5-ago-2026 con la decisión del médico dueño («que
+     * bloquee la firma si falta la dosis»): un aviso que bloquea tiene que
+     * decirlo, o el médico pulsa Firmar y no entiende por qué no pasa nada.
+     */
+    expect(consulta).toContain('Falta la dosis — no se puede firmar hasta corregirlo')
+    // Y cuando sólo falta la unidad, que NO bloquea, el título es otro.
+    expect(consulta).toContain('Revisa la unidad de la dosis')
   })
 
   it('en rojo, porque el motor lo marca de severidad alta', () => {
@@ -64,8 +71,10 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * Una receta sin cantidad no se puede surtir, y «100» sin unidad se lee como
      * 100 mg. Eso no es un aviso ámbar.
      */
-    const i = consulta.indexOf('Falta la dosis o su unidad')
-    expect(consulta.slice(i - 300, i)).toContain('tone="danger"')
+    // El título ahora es dinámico, así que el ancla es el bloque del aviso.
+    const i = consulta.indexOf('Falta la dosis — no se puede firmar hasta corregirlo')
+    expect(i).toBeGreaterThan(0)
+    expect(consulta.slice(Math.max(0, i - 400), i)).toContain('tone="danger"')
   })
 
   it('con «Ya lo revisé», como los demás avisos', () => {
@@ -74,15 +83,31 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta).toContain('avisosRevisados.includes(`dosis:${x.med}`)')
   })
 
-  it('y NO bloquea la firma', () => {
+  it('la falta de DOSIS bloquea la firma — decisión del médico dueño', () => {
     /**
-     * Qué es exigible en una receta lo decide el médico dueño. Avisar no
-     * necesita su permiso; bloquear sí, y esa decisión está en su cola.
+     * 5-ago-2026, textual: «que bloquee la firma si falta la dosis». La tomó él,
+     * con el dato delante: 4 medicamentos sin dosis de 28 en notas ya firmadas.
      */
-    const i = consulta.indexOf('const dosisIncompletas')
-    // El porqué va en el comentario que PRECEDE al cálculo.
-    expect(consulta.slice(Math.max(0, i - 1400), i)).toMatch(/No bloquea/)
-    expect(consulta.slice(i, i + 900)).not.toContain('No se puede firmar')
+    expect(consulta).toContain("revisarUnidadDosis(m.nombre, m.dosis)?.codigo === 'dosis_sin_cifra'")
+    expect(consulta).toContain('No se puede firmar: falta la dosis de')
+  })
+
+  it('pero la falta de UNIDAD sólo avisa', () => {
+    /**
+     * Él pidió bloquear cuando falta la dosis. Ampliarlo a la unidad por mi
+     * cuenta sería decidir por él una segunda vez — queda anotado para que lo
+     * decida.
+     */
+    const i = consulta.indexOf('const sinDosis = medicamentos')
+    expect(consulta.slice(Math.max(0, i - 1600), i)).toMatch(/sin unidad.*no bloquea|no bloquea/s)
+  })
+
+  it('y «Ya lo revisé» no se ofrece sobre lo que bloquea', () => {
+    /**
+     * Sería una promesa falsa: el aviso desaparecería y la firma seguiría sin
+     * dejarse pulsar, sin que el médico supiera por qué.
+     */
+    expect(consulta).toContain("d.aviso.codigo !== 'dosis_sin_cifra' && (")
   })
 })
 

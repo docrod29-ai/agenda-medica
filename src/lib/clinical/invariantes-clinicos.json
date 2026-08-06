@@ -810,7 +810,7 @@
     },
     {
       "archivo": "src/__tests__/dosis-avisa-antes-de-firmar.test.ts",
-      "minCasos": 9
+      "minCasos": 11
     }
   ]
 }
