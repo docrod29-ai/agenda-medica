@@ -1634,3 +1634,64 @@ peor que no guardarla: parecería que se conserva y al abrir estaría vacía.
 deps, y costó su propia reparación. La lección no se había generalizado.
 
 **Golden** — `src/__tests__/la-proxima-consulta-no-se-pierde.test.ts` (8 casos).
+
+---
+
+## REG-195 — un diálogo le borró el plan de una nota real (v1076) · P0
+
+**Reportado por el Dr., 6-ago-2026, con sus palabras**: «tengo el plan hecho,
+borro medicamentos y me borras el plan de la nota y ya la firmé y ya se perdió».
+
+**La causa** — Al pulsar Firmar, si la IA había marcado líneas con `[IA — no
+dictado]`, salía un diálogo ofreciendo «Quitarlas y firmar». **El plan es
+justamente lo que la IA redacta**: el médico no dicta el plan palabra por
+palabra, lo dicta en prosa y el sistema lo estructura.
+
+**Fallaba en las tres mitades a la vez:**
+
+| | Qué hacía | Qué debía hacer |
+|---|---|---|
+| **Qué se quita** | «3 líneas que no dictaste» | enseñar CUÁLES — una era el plan entero |
+| **Reversibilidad** | ninguna | `snapshotUndo` existía desde hacía versiones y este camino no lo usaba |
+| **Qué promete** | «Quitarlas **y firmar**» | no firma: hace `return` |
+
+Las tres juntas son cómo se pierde una nota entera **sin un solo error en
+pantalla**: el médico pulsa creyendo que cierra la nota, se le borra el plan, la
+nota sigue abierta, y al volver a pulsar firmar la firma **sin el plan**.
+
+**Reparación**
+
+1. `lineasSugeridas()` — el diálogo enseña las líneas, con la sección delante:
+   «Plan de tratamiento: …» deja ver lo que «3 líneas» escondía.
+2. Se guarda `snapshotUndo` antes de quitar, y el diálogo lo dice: se puede
+   deshacer.
+3. El botón dice «Quitarlas», no «Quitarlas y firmar», porque no firma.
+
+**La lección** — Un diálogo que pide permiso para borrar **sin enseñar qué borra**
+no está pidiendo permiso. Y un botón que promete dos acciones y hace una deja al
+médico con un modelo mental falso de lo que acaba de pasar.
+
+**Golden** — `src/__tests__/el-plan-no-se-borra-de-un-clic.test.ts` (10 casos).
+
+---
+
+## REG-194 — «el LLM no calcula» sólo regía en UCI (v1076)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo E1).
+
+Es una regla permanente del repositorio y estaba escrita **sólo dentro de
+`evolucion_uci`**. Fuera, el prompt pedía lo contrario: «Pediatría: dosis en
+mg/kg/día Y mg/kg/dosis. Holliday-Segar para líquidos», «percentiles si hay
+datos». Aritmética pediátrica hecha por un modelo generativo, en una nota que se
+firma con cédula.
+
+**Reparación** — Regla 16-bis, global, que además **nombra los motores** que sí lo
+hacen (`oms-crecimiento`, `calcularDosisPediatrica`, `funcion-renal`): un «no lo
+hagas» sin decir quién lo hace deja el trabajo sin dueño. Y deja claro qué SÍ le
+toca al modelo: señalar el hueco cuando falta un dato para que el motor calcule.
+
+**NEEDS_CLINICAL_REVIEW** — Holliday-Segar **no tiene motor**. No se escribe uno
+sin que el Dr. valide la fórmula: mientras tanto el modelo transcribe lo dictado
+en vez de calcularlo, que es lo seguro de las dos opciones.
+
+**Golden** — `src/__tests__/el-llm-no-calcula-en-ninguna-nota.test.ts` (10 casos).

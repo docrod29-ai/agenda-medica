@@ -9,7 +9,7 @@ import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
 import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
-import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
+import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
@@ -2737,15 +2737,41 @@ export default function ConsultaActivaPage() {
 
     const pendientes = sugerenciasPendientes(secciones)
     if (pendientes > 0) {
+      /**
+       * ── ESTE DIÁLOGO LE BORRÓ EL PLAN AL DR. (6-ago-2026, REG-195) ────────
+       *
+       * Fallaba en las tres mitades a la vez:
+       *
+       * 1. **No decía QUÉ se iba a quitar.** «3 líneas que no dictaste» no deja
+       *    ver que una de ellas ES EL PLAN DE ABORDAJE ENTERO — porque el plan
+       *    es justamente lo que la IA propone cuando el médico no lo dicta
+       *    palabra por palabra.
+       * 2. **No se podía deshacer.** El `snapshotUndo` existía desde hacía
+       *    versiones y este camino no lo usaba: una vez quitado, quitado.
+       * 3. **«Quitarlas y firmar» NO FIRMA** — hace `return`. El médico pulsa
+       *    creyendo que cierra la nota, se le borra el plan, y la nota sigue
+       *    abierta. Si vuelve a pulsar firmar, la firma **sin el plan**.
+       *
+       * Las tres juntas son cómo se pierde una nota entera sin un solo error en
+       * pantalla.
+       */
+      const muestra = lineasSugeridas(secciones).slice(0, 5).map((l: string) => `· ${l}`).join('\n')
+      const mas = pendientes > 5 ? `\n…y ${pendientes - 5} más.` : ''
       const quitar = await confirm(
-        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'} (dosis, duraciones, signos de alarma…). ` +
-        'Si firmas, saldrían con tu cédula como indicación tuya.\n\n' +
-        '“Quitarlas y firmar” las elimina de la nota. “Revisar” te devuelve para leerlas y aceptarlas.',
-        { peligro: true, confirmar: 'Quitarlas y firmar', cancelar: 'Revisar' },
+        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'}:\n\n${muestra}${mas}\n\n` +
+        'Si firmas, saldrían con tu cédula como indicación tuya. ' +
+        'Si las quitas, PUEDES DESHACERLO con el botón «Deshacer» de arriba.',
+        { peligro: true, confirmar: 'Quitarlas', cancelar: 'Volver a la nota' },
       )
       if (!quitar) return
+      /** Se puede deshacer: el plan del médico no se pierde por un clic. */
+      setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
       setSecciones(prev => resolverSugerencias(prev, 'quitar'))
-      toast(`Se quitaron ${pendientes} ${pendientes === 1 ? 'sugerencia' : 'sugerencias'}. Revisa y vuelve a firmar.`, 'info')
+      toast(
+        `Se quitaron ${pendientes} ${pendientes === 1 ? 'sugerencia' : 'sugerencias'}. ` +
+        'Revisa la nota y vuelve a firmar — si te faltó algo, usa «Deshacer».',
+        'info',
+      )
       return   // se re-renderiza sin ellas; el médico confirma la nota final
     }
 

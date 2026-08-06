@@ -111,6 +111,21 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     explícitamente como "No referido" o "No explorado en esta consulta" — NUNCA en blanco.
     Las secciones OPCIONALES sin información sí van vacías "" (no inventes relleno).
 16. Documenta los NEGATIVOS PERTINENTES que el médico haya dicho ("niega fiebre, niega disnea").
+16-bis. TÚ NO CALCULAS. Es regla de toda la aplicación, no sólo de la nota de UCI.
+   NUNCA calcules una escala, un índice, un percentil, una dosis por kilo, una
+   superficie corporal, una depuración ni un volumen de líquidos. Para eso hay
+   MOTORES DETERMINISTAS, probados y con su propio panel: "oms-crecimiento"
+   (percentiles OMS), "calcularDosisPediatrica" (mg/kg), "funcion-renal" (TFG),
+   "prevent", "calculadoras".
+   TÚ TRANSCRIBES lo que se dictó, con su unidad, tal cual se dijo. Si el médico
+   dictó «pesa 14 kilos», escribe 14 kg — no escribas el percentil ni la dosis
+   que saldría de ahí, aunque sepas hacerla.
+   POR QUÉ: una cifra que calcula un modelo generativo puede estar mal **sin que
+   nadie lo note**, y va firmada con cédula profesional. Un motor equivocado se
+   arregla una vez y queda probado; un modelo equivocado falla distinto cada vez.
+   LO QUE SÍ HACES: si de lo dictado se desprende que falta un dato para que el
+   motor pueda calcular (p. ej. hay dosis pediátrica pero no peso), dilo en la
+   sección correspondiente. Señalar el hueco es tuyo; llenarlo con aritmética no.
 17. LÍMITE ABSOLUTO (no se rompe la regla 1): NUNCA inventes valores numéricos (signos
     vitales, dosis, fechas exactas) ni datos específicos que no se dijeron. Esos van vacíos/null.
     A safety.missing_critical_fields va SOLAMENTE lo que exige una acción del médico ANTES
@@ -225,7 +240,8 @@ CONTEXTO MEXICANO:
 
 POBLACIONES ESPECIALES:
 - Embarazo: edad gestacional + FUM + categoría FDA del fármaco. Evita FQ, tetraciclinas, sulfas T1/T3.
-- Pediatría: dosis en mg/kg/día Y mg/kg/dosis. Holliday-Segar para líquidos.
+- Pediatría: transcribe el peso y la dosis TAL COMO SE DICTARON. El mg/kg lo calcula
+  el motor calcularDosisPediatrica, y los líquidos son decisión del médico (ver regla 16-bis).
 - Geriatría ≥65: criterios de Beers — alerta anticolinérgicos, BZD, AINE crónicos.
 - Inmunosupresión: ajuste por TAR, niveles de inmunosupresor, neutropenia febril (IDSA 2018).
 
@@ -415,7 +431,7 @@ trasplante renal", "Portador de anti-HBc — riesgo de reactivación").`,
  */
 const ESPECIALIDAD_GUIA: Record<string, string> = {
   cardiolog: 'CARDIOLOGÍA: clasifica disnea (NYHA) y angina (CCS); documenta factores de riesgo CV (HTA, DM, dislipidemia, tabaquismo, AHF), hallazgos de ECG/eco si se mencionan, y estratifica riesgo. Plan: metas de TA/LDL, antiagregación/anticoagulación con justificación.',
-  pediatr: 'PEDIATRÍA: SIEMPRE peso, talla, perímetro cefálico (lactante) y percentiles si hay datos; dosis en mg/kg/día Y mg/kg/dosis; esquema de vacunación CENSIA; hitos del desarrollo; alimentación. Cálculo de líquidos Holliday-Segar cuando aplique.',
+  pediatr: 'PEDIATRÍA: SIEMPRE peso, talla y perímetro cefálico (lactante) TAL COMO SE DICTARON, con su unidad. NO calcules percentiles ni mg/kg: los hace el motor (regla 16-bis) y salen en su panel. Esquema de vacunación CENSIA; hitos del desarrollo; alimentación. Si se dictó un cálculo de líquidos, transcríbelo; no lo hagas tú.',
   ginec: 'GINECOLOGÍA/OBSTETRICIA: FUM, ciclo, G/P/A/C, método anticonceptivo, citología/mama; en embarazo: edad gestacional por FUM/USG, FCF, movimientos fetales, categoría FDA de fármacos. Evita teratógenos.',
   interna: 'MEDICINA INTERNA: enfoque por problemas (problem list), comorbilidades y su control, polifarmacia y conciliación, criterios de Beers en ≥65. Síntesis de sistemas.',
   urgenc: 'URGENCIAS: triage, ABCDE, tiempo de evolución, signos de alarma, escalas (qSOFA, Glasgow, dolor torácico). Plan: estabilización, estudios urgentes, criterios de ingreso/alta/observación.',

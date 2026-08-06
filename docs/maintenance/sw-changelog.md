@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1076 — REG-195 (P0): un diálogo le borró el plan de una nota real
+
+«Tengo el plan hecho, borro medicamentos y me borras el plan de la nota.»
+
+Al firmar, si la IA había marcado líneas con `[IA — no dictado]`, salía un
+diálogo con «Quitarlas y firmar». **El plan es justamente lo que la IA redacta**:
+el médico no lo dicta palabra por palabra.
+
+Fallaba en las TRES mitades: no decía QUÉ quitaba («3 líneas»), no se podía
+deshacer, y «Quitarlas y firmar» NO firmaba. Juntas: se pierde una nota entera
+sin un solo error en pantalla.
+
+Ahora enseña las líneas con su sección delante, guarda un punto de deshacer, y
+el botón dice sólo «Quitarlas».
+
+También REG-194: la regla «el LLM no calcula» regía sólo en UCI; fuera se le
+pedían mg/kg, percentiles y Holliday-Segar.
+
 ## v1075 — REG-193: la fecha de próxima consulta se perdía al recargar
 
 `proximoSeguimiento` sólo se persistía al FIRMAR. No estaba en el respaldo
