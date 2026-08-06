@@ -39,8 +39,10 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 
 const page = readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
+const barraDoc = readFileSync(join(process.cwd(), 'src', 'components', 'AntesDeFirmar.tsx'), 'utf8')
 const reglas = readFileSync(join(process.cwd(), 'firestore.rules'), 'utf8')
 
 describe('EL SERVIDOR TIENE RAZÓN AL RECHAZAR', () => {
@@ -80,14 +82,35 @@ describe('LOS AVISOS SE PUEDEN QUITAR', () => {
      * decorado y se deja de leer — y con él, el siguiente, que puede ser el que
      * importa.
      */
-    expect(page).toContain("marcarRevisado('negacion', c.condicion)")
-    expect(page).toContain("marcarRevisado('temporal', d.condicion)")
+    /**
+     * ── TRASLADADO A LA BARRA (5-ago-2026, REG-181) ───────────────────────
+     * Los siete recuadros de la consulta son ahora una barra de tres niveles.
+     * Lo que esta prueba protege no cambió; cambió DÓNDE está escrito: el nivel
+     * y el color los decide `avisos-consulta.ts`, un módulo puro cuya tabla se
+     * puede vigilar de un vistazo — que es más de lo que se podía hacer con el
+     * `tone="…"` de un JSX de 5000 líneas.
+     */
+    // La barra reenvía con la MISMA clave `${tipo}:${clave}`, para que lo ya
+    // descartado no resucite al recargar.
+    expect(page).toContain('marcarRevisado(tipo, clave)')
+    const avisos = construirAvisos({
+      contradicciones: [{ condicion: 'diabetes', mensaje: 'x' }],
+      desajustes: [{ condicion: 'fractura', mensaje: 'y' }],
+    })
+    expect(avisos.map(a => a.id)).toEqual(['negacion:diabetes', 'temporal:fractura'])
+    expect(avisos.every(a => a.descartable)).toBe(true)
   })
 
   it('quitarlo NO cambia la nota', () => {
     // Sólo dice «ya lo miré». El criterio clínico quedó en lo que el médico
     // escribió, no en si el aviso está visible.
-    expect(page).toMatch(/QUITARLO NO CAMBIA LA NOTA/)
+    // La razón vive ahora junto a la decisión, en el módulo puro.
+    expect(barraDoc).toMatch(/Ningún aviso desaparece/)
+    // Y lo descartado no vuelve a construirse.
+    expect(construirAvisos({
+      contradicciones: [{ condicion: 'diabetes', mensaje: 'x' }],
+      revisados: new Set(['negacion:diabetes']),
+    })).toHaveLength(0)
   })
 
   it('y el aviso vuelve si el contenido cambia', () => {

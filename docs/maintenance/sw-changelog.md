@@ -3,6 +3,82 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1064 — REG-181: una barra de tres niveles, no ocho recuadros
+
+Paso 2 del plan `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`.
+
+Sobre la nota había OCHO bloques de aviso con ~40 elementos; tres eran rojos y
+dos de los tres no bloqueaban nada. Ahora hay una barra:
+
+  BLOQUEA   — lo que hace que Firmar no responda. No se pliega.
+  REVISA    — lo que pide decisión. Los fijos siempre a la vista.
+  YA EN LA NOTA — contenido. Plegado siempre.
+
+`avisos-consulta.ts` (módulo puro, tabla de niveles vigilable) + `AntesDeFirmar`.
+Ningún aviso desapareció; lo que bloquea quedó MÁS visible. Lo que puede matar
+hoy —alergia ↔ medicamento— no se pliega nunca, aunque no bloquee.
+
+Y cuatro de las nueve viñetas de «datos críticos» eran ecos de la compuerta de
+dosis: nadie las cruzaba.
+
+## v1063 — REG-179/180: el recuadro naranja no era culpa del modelo
+
+Paso 3 del plan `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`, adelantado
+porque era la raíz.
+
+Dos reglas del prompt se contradecían: la G prohíbe hablar del audio en la prosa
+clínica y la 22 ordenaba escribir «no inteligible, confirmar», que es hablar del
+audio. Atrapado, el modelo sacaba el hueco de la nota y lo tiraba al recuadro de
+«datos críticos no documentados». Y no había ni una línea que le enseñara cómo se
+escribe un hueco en español clínico.
+
+- **22 reescrita**: el hueco se dice en términos del paciente, no del micrófono.
+- **19-bis, nueva**: un hueco documentado es documentación válida (NOM-004) y no
+  se repite en el recuadro. Con el límite duro escrito.
+- **17 acotada**: al recuadro sólo lo que exige acción y no se resuelve al
+  escribirlo. Máximo 3 renglones.
+- **`confianza-audio.ts`**: la misma orden vieja llegaba por la otra ruta.
+
+Además: `safety.contenido_sospechoso` —el reporte de manipulación del dictado—
+se pedía al modelo y **zod lo borraba** por no estar declarado. Mismo fallo que
+`alergia_conflicto`, mismo objeto, mismo día. Y `Spiolto` no estaba en el
+vocabulario: por eso el motor oyó «Espiolto o espineto».
+
+## v1062 — REG-178: el aviso de operación deja de cortar la consulta
+
+Paso 1 de `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`.
+
+Debajo de su nota, en rojo: «5 trabajo(s) automático(s) dejaron de correr».
+Cierto, suyo, y nada de eso se arregla desde la consulta. En las cuatro pantallas
+con un paciente esperando sólo entra ahora lo que impide atenderlo —la IA caída,
+la llave rechazada—; lo demás espera a que salga.
+
+`src/lib/ops/interrumpe-la-consulta.ts`. El filtro anterior preguntaba «¿es
+urgente?» y un cron muerto lo es; la pregunta con alguien delante es otra.
+
+## v1061 — REG-177: un hueco escrito con letras deja de entrar como dato
+
+El modelo escribe «No especificada» cuando no captura un campo, y ese texto se
+guardaba como si fuera un dato. Era la raíz común de tres defectos: apagó el
+guard que impide imprimir «insulina · oral», apagó el aviso de vía no dictada y
+—al cerrar la compuerta de firma— bloqueó la mitad de sus notas por medicamentos
+que sí estaban documentados.
+
+Dos capas, porque una sola no bastaba:
+
+- **Prompt** (`src/lib/expediente/prompts.ts`): regla 1-bis «vacío significa
+  vacío», con el porqué; y la plantilla deja de traer `"via": "oral"` de ejemplo,
+  que era lo que invitaba al modelo a rellenarla siempre.
+- **Esquema** (`src/lib/expediente/extraction-schema.ts`): el saneo va en la
+  frontera por la que entra toda extracción. Un prompt es persuasión; el esquema
+  es garantía — da igual qué redacción elija el modelo mañana.
+
+`src/lib/expediente/hueco-textual.ts` es ahora la única lista de «formas de decir
+no lo sé»; `via-normalizada.ts` la consumía duplicada y ya no.
+
+Lo que el médico declara a propósito NO se toca: la frase del botón «No la sabe»
+(v1060) sobrevive intacta, y «desconocida» a secas sigue siendo un hueco.
+
 ## Por qué se sacó (v953)
 
 Esa línea llegó a pesar **271 KB** —el archivo entero, 276 KB— y
@@ -1560,6 +1636,12 @@ MASTER LOOP V3 · FASE 1 (P1-3 y P1-4). NADA IMPEDIA VENDER UN MODULO EN CONSTRU
 ---
 
 v693 fue: // RECETA + ORDEN MEDICA: papel continuo APAISADO 250x150 mm (forma continua de matriz de puntos, p.ej. Epson). Antes la vista previa mostraba una hoja VERTICAL grande con la receta chiquita dentro porque el papel se 'hospedaba' en carta; una hoja mas ANCHA que la carta (250>216) ya no puede hospedarse y sale a su tamano real al 100%, sin escalar. Nuevo tamano seleccionable en Configuracion, @page 250mm 150mm margin 0, html/body fijados a la hoja y print-color-adjust exact (para que el membrete se imprima). Solo receta y orden: las NOTAS (evolucion/ingreso/egreso) NO cambian, va bajo bandera hojaExacta. +10 tests. --- v692: numeros dictados UCI, PHI homonimos, firma bloqueada.
+
+## v1060 — «El paciente no sabe la dosis», dicho a propósito
+
+La compuerta de v1058/v1059 bloqueaba la MITAD de las notas del Dr, y no por
+descuidos: por medicación previa que el paciente refiere sin saber cuánto toma.
+Botón «No la sabe». Lo que escribe la IA sigue bloqueando. REG-176.
 
 ## v1059 — Sin unidad tampoco se firma
 

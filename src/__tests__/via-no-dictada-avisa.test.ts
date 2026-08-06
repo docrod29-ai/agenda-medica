@@ -27,6 +27,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { seDictoLaVia, conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
+import { NIVEL } from '@/lib/expediente/avisos-consulta'
 
 describe('SE RECONOCE LA VÍA CUANDO SÍ SE DICTÓ', () => {
   it('dicha con todas sus letras', () => {
@@ -138,6 +139,8 @@ describe('ESTÁ CONECTADO Y SE PUEDE QUITAR', () => {
      * será oral de verdad. Pintarla de rojo devaluaría el rojo.
      */
     const i = pagina.indexOf('No se dictó la vía de administración')
-    expect(pagina.slice(i - 300, i)).toContain('tone="warning"')
+    // Ámbar y no rojo: una vía asumida no es un error como afirmar algo que se
+    // negó. El nivel lo declara el módulo puro, donde se puede vigilar.
+    expect(NIVEL.via_asumida).toBe('revisa')
   })
 })

@@ -67,11 +67,27 @@ dato clave para el razonamiento, señálalo en safety.missing_critical_fields.
 
 REGLAS ESTRICTAS DE EXTRACCIÓN:
 1. NUNCA inventes datos no mencionados. Si un dato no se mencionó, deja el campo vacío "".
+1-bis. VACÍO SIGNIFICA VACÍO — es la regla más incumplida y la que más daño hace.
+   Un campo que no captaste se deja como cadena vacía "". NUNCA escribas dentro
+   del campo frases como "No especificada", "no especificado", "desconocida",
+   "sin especificar", "no refiere", "N/A", "ninguna" ni equivalentes.
+   POR QUÉ: esos textos se guardan tal cual y el sistema los lee como si fueran
+   un DATO. En el expediente real de este consultorio, "No especificada" en el
+   campo "via" apagó el guard que impide imprimir "insulina · vía que no existe",
+   y en el campo "dosis" hizo que la mitad de las notas parecieran tener dosis
+   cuando no la tenían. Un hueco declarado como texto es peor que un hueco:
+   parece contestado.
+   La ÚNICA forma de decir "no se sabe" es dejarlo vacío. De ahí en adelante
+   decide el médico, y el sistema sabe que tiene que preguntárselo.
 2. Distingue NEGACIÓN EXPLÍCITA ("niega alergias") de AUSENCIA DE MENCIÓN (no se preguntó / no se dijo).
 3. Distingue SOSPECHA ("podría ser…", "probable…") de DIAGNÓSTICO CONFIRMADO. Por defecto tipo="presuntivo".
 4. Si el médico CORRIGE al paciente, prioriza la corrección del médico pero deja la cita textual como source_quote.
 5. Si el dato proviene de un ACOMPAÑANTE, marca speaker="acompanante".
 6. Para medicamentos extrae: nombre genérico, dosis, vía, frecuencia, duración. Si la dosis es ambigua, needs_review=true.
+6-bis. La VÍA sólo se llena si se dijo. La plantilla ya no trae "oral" de ejemplo
+   precisamente para que no la copies: si el dictado no dice por dónde va el
+   fármaco, "via" va vacía. El sistema tiene una regla propia para eso —decisión
+   del médico dueño— y no puede aplicarla si tú ya rellenaste el hueco.
 7. CODIFICACIÓN: para CADA diagnóstico propón el código CIE-10 más probable (no lo
    dejes vacío). Si tu confianza no es alta, igual proponlo PERO marca needs_review=true
    para que el médico confirme. Para procedimientos mencionados, sugiere el concepto
@@ -96,14 +112,38 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
 16. Documenta los NEGATIVOS PERTINENTES que el médico haya dicho ("niega fiebre, niega disnea").
 17. LÍMITE ABSOLUTO (no se rompe la regla 1): NUNCA inventes valores numéricos (signos
     vitales, dosis, fechas exactas) ni datos específicos que no se dijeron. Esos van vacíos/null.
-    Lo crítico faltante (alergias, dosis, exploración clave) va en safety.missing_critical_fields
-    como UNA lista corta y accionable — NO como secciones en blanco que el médico tenga que llenar.
+    A safety.missing_critical_fields va SOLAMENTE lo que exige una acción del médico ANTES
+    de firmar y que NO queda resuelto al escribirlo:
+      · dosis o unidad de un fármaco que se PRESCRIBE HOY (sale impreso en la receta);
+      · una contradicción entre dos datos incompatibles → ésa va en conflicts_detected;
+      · una alergia que choca con un fármaco del plan → ésa va en alergia_conflicto.
+    NO va lo que ya quedó documentado en una sección, ni lo que el sistema ya bloquea por
+    su cuenta. Máximo 3 renglones, cada uno con un verbo de acción. Si la lista se alarga,
+    es que estás RECLAMANDO en vez de REDACTAR: vuelve a la regla 19-bis.
 18. Objetivo medible: minimiza los campos que el médico debe escribir a mano. Si la consulta
     se cubrió, la nota debe salir ~completa y solo requerir revisión/edición ligera.
 19. FÁRMACO SIN ESPECIFICAR: si se menciona un medicamento sin nombre/dosis/vía/duración
     (ej. "un antibiótico", "su inhalador"), registra lo que SÍ se sepa y añade a
     safety.missing_critical_fields una línea accionable (ej. "Antibiótico sin especificar:
     falta nombre, dosis y duración"). NO lo dejes como medicamento a medias "no especificado".
+19-bis. UN HUECO SE ESCRIBE, NO SE RECLAMA. Es la regla que faltaba, y la que más cambia
+    lo que el médico recibe.
+    Cuando un dato de la HISTORIA no se captó —nombre de un fármaco que el paciente ya
+    toma, su dosis, la marca, el año, el tipo de reacción alérgica— se documenta DENTRO de
+    la sección que le corresponde, en español clínico y en tercera persona:
+      · "…cuyo nombre no fue posible precisar durante el interrogatorio"
+      · "…el paciente no precisó la dosis"
+      · "…no precisó el tipo de reacción ni su severidad"
+      · "No refiere haberse realizado [estudio]"
+    Un hueco DOCUMENTADO es documentación válida (NOM-004) y NO se repite en
+    safety.missing_critical_fields. Un internista no entrega una lista de lo que no supo:
+    lo escribe en la sección que toca, y firma.
+    LÍMITE QUE NO SE CRUZA: escribir el hueco es decir que no se precisó. NUNCA sustituye
+    al dato. Prohibido deducir el nombre, la cifra o el esquema "más probable" — un esquema
+    con una sola respuesta obvia sigue siendo una invención si nadie lo dictó.
+    Y la redacción va en la PROSA de las secciones: los campos estructurados (dosis, via,
+    reaccion) se quedan VACÍOS. Meter ahí "no fue posible precisar" reactivaría de golpe
+    los tres defectos que costaron REG-172, REG-176 y REG-177.
 20. PLAN: incluye SIEMPRE el plan de manejo (continuación/ajuste de tratamiento, duración,
     estudios, seguimiento y criterios de alarma) en la sección correspondiente; si la nota no
     tiene sección de plan, intégralo al final del padecimiento/evolución.
@@ -113,10 +153,18 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     falta un dato se dice en TÉRMINOS CLÍNICOS ("no referido"), nunca comentando la
     calidad del dictado: una nota que se describe a sí misma no es un documento clínico
     y en el expediente se lee como si el médico no hubiera atendido.
-22. LO QUE NO SE OYÓ NO SE DEDUCE. Si una palabra viene marcada como no entendida, o una
-    frase es ininteligible, escribe "no inteligible, confirmar" — NO la sustituyas por la
-    palabra que te parezca más probable. Y NUNCA conviertas una laguna en una afirmación
-    negativa: que no se oyera un antecedente no significa que el paciente lo niegue.
+22. LO QUE NO SE OYÓ NO SE DEDUCE — Y SE DICE EN TÉRMINOS DEL PACIENTE, NO DEL MICRÓFONO.
+    Si una palabra viene marcada como no entendida, NO la sustituyas por la que te
+    parezca más probable Y TAMPOCO escribas dentro de la nota que no se oyó: la regla G
+    lo prohíbe, y con razón —la nota es el documento clínico, no un reporte del audio.
+    Documenta el HECHO en la sección que corresponda, en lenguaje clínico:
+      · "un broncodilatador inhalado de mantenimiento cuya marca no fue posible
+         precisar durante el interrogatorio"
+      · "un segundo medicamento para el control glucémico, cuyo nombre no fue posible
+         precisar"
+    Escribe SÓLO lo que sí quedó claro —la clase, el uso, el número si el número se oyó
+    bien— y omite lo que no. Y NUNCA conviertas una laguna en una afirmación negativa:
+    que no se oyera un antecedente no significa que el paciente lo niegue.
     Ausencia de dato no es dato de ausencia.
 23. UNA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN DIAGNÓSTICO. El interrogatorio se
     hace nombrando padecimientos ("¿enfermedades crónicas como diabetes o presión
@@ -435,7 +483,7 @@ ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extra
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "contenido o cadena vacía"')).join(',\n')}
   },
   "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo|definitivo|diferencial", "estado": "activo" }],
-  "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "" }],
+  "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
 ${tipo === 'valoracion_preoperatoria' ? `
@@ -552,7 +600,7 @@ ${tipo === 'valoracion_preoperatoria' ? `
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1": { "value": "", "confidence": "baja", "source_quote": "", "speaker": "desconocido", "needs_review": true, "reason": "" }')).join(',\n')}
     },
     "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo", "estado": "activo", "confidence": "media", "source_quote": "", "speaker": "medico", "needs_review": true, "reason": "" }],
-    "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
+    "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
     "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "moderada", "confirmada": false, "confidence": "alta", "source_quote": "", "speaker": "paciente", "needs_review": true, "reason": "Dato crítico — confirmar con paciente" }],
     "signosVitales": {
       "ta":          { "value": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },

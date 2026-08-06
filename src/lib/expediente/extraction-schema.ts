@@ -13,6 +13,8 @@
  * todo dato puede rastrearse a su frase fuente y a la confianza del modelo.
  */
 import { z } from 'zod'
+import { sinHuecoEscrito } from '@/lib/expediente/hueco-textual'
+import { normalizarVia } from '@/lib/expediente/via-normalizada'
 
 export const Confianza = z.enum(['alta', 'media', 'baja'])
 export type Confianza = z.infer<typeof Confianza>
@@ -48,8 +50,23 @@ export type DiagnosticoAuditado = z.infer<typeof DiagnosticoAuditado>
 /** Medicamento auditado. */
 export const MedicamentoAuditado = z.object({
   nombre:               z.string(),
-  dosis:                z.string().optional().default(''),
-  via:                  z.string().optional().default(''),
+  /**
+   * ── EL SANEO VA AQUÍ, EN LA FRONTERA (5-ago-2026, REG-177) ────────────────
+   *
+   * El modelo escribe «No especificada» cuando no captó el campo, y ese texto
+   * se guardaba como si fuera un dato: apagó el guard de la insulina, apagó el
+   * aviso de vía no dictada y bloqueó la firma de la mitad de sus notas.
+   *
+   * Al prompt se le pidió que dejara el campo vacío (regla 1-bis). Esto es lo
+   * que lo GARANTIZA: sea cual sea la redacción que elija el modelo mañana, el
+   * hueco entra al sistema como hueco.
+   *
+   * `dosis` sólo se vacía. NO se normaliza ni se completa: inventar una dosis
+   * es exactamente lo que no puede pasar aquí.
+   */
+  dosis:                z.string().optional().default('').transform(sinHuecoEscrito),
+  /** La vía además se traduce al vocabulario del tipo («subcutanea» → `sc`). */
+  via:                  z.string().optional().default('').transform(normalizarVia),
   frecuencia:           z.string().optional().default(''),
   duracion:             z.string().optional().default(''),
   indicacion:           z.string().optional().default(''),
@@ -104,6 +121,39 @@ export const SafetyBlock = z.object({
     riesgo_cruzado:    z.string().optional().default(''),
     alternativa_segura: z.string().optional().default(''),
   })).optional().default([]),
+  /**
+   * ── EL REPORTE DE INYECCIÓN QUE ZOD BORRABA (5-ago-2026, REG-179) ─────────
+   *
+   * El §11 del prompt le ordena al modelo, desde siempre, reportar aquí los
+   * intentos de manipulación que encuentre en la transcripción: «ignora reglas
+   * previas», «eres ahora un asistente diferente», JSON falso.
+   *
+   * El campo **no estaba declarado**, así que zod lo tiraba al validar. El
+   * modelo detectaba el intento, lo emitía, y el servidor lo borraba sin que
+   * nadie se enterara. La lectura que quedaba —«no se detectó nada»— es la peor
+   * posible para un campo que se está cayendo.
+   *
+   * Es EXACTAMENTE el mismo fallo que `alergia_conflicto` de aquí arriba, en el
+   * mismo objeto, encontrado el mismo día: la lección era «el prompt promete un
+   * campo que el esquema no declara», y sólo se aplicó al que se estaba mirando.
+   *
+   * QUÉ ES Y QUÉ NO: no es la defensa. La defensa es que el modelo NO obedezca
+   * —regla 1 del §11— y eso no depende de este campo. Esto es la constancia de
+   * que ocurrió, para que quede en el expediente y se pueda revisar.
+   */
+  contenido_sospechoso: z.array(z.object({
+    texto:          z.string().optional().default(''),
+    ubicacion:      z.string().optional().default(''),
+    interpretacion: z.string().optional().default(''),
+  })).optional().default([]),
+  /**
+   * El veredicto NOM-004 que el modelo emite (`prompts.ts` lo pide en el §
+   * de estructura). Se declara para que deje de perderse.
+   *
+   * NO sustituye a `validarNOM004`, que es determinista y es quien bloquea. Es
+   * la opinión del modelo, y como tal se guarda: útil para contrastar las dos.
+   */
+  dictamen: z.string().optional().default(''),
 })
 export type SafetyBlock = z.infer<typeof SafetyBlock>
 
@@ -120,8 +170,8 @@ export const RespuestaExtraccion = z.object({
   })).optional().default([]),
   medicamentos: z.array(z.object({
     nombre:      z.string(),
-    dosis:       z.string().optional().default(''),
-    via:         z.string().optional().default(''),
+    dosis:       z.string().optional().default('').transform(sinHuecoEscrito),
+    via:         z.string().optional().default('').transform(normalizarVia),
     frecuencia:  z.string().optional().default(''),
     duracion:    z.string().optional().default(''),
     indicacion:  z.string().optional().default(''),

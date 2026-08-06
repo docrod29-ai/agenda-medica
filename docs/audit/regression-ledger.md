@@ -917,3 +917,247 @@ la menciona**. Un test que mira la prosa en vez del comportamiento se engaña so
 Ahora busca el `<button>`.
 
 **Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (12 casos).
+
+## REG-176 · «El paciente no sabe la dosis» — dicho, no callado
+
+**Por qué hizo falta** — Medido el impacto de REG-174/175 con el motor real sobre
+las notas del Dr.: **4 de 8 no se habrían podido firmar**. Y lo que las bloqueaba
+no eran descuidos:
+
+| Medicamento | Dosis registrada |
+|---|---|
+| Pregabalina | «No especificada» |
+| **Antibiótico no especificado** | «No especificada» |
+| **Antihipertensivo no especificado** | «No especificada» |
+| Telmisartán | *(vacío)* |
+
+Medicación previa que el paciente refiere y cuya dosis no conoce. «Toma algo para
+la presión» es un hecho clínico legítimo. Con la compuerta cerrada habría que
+**inventarse una dosis que el paciente no dijo** — peor que el problema evitado.
+
+**Decisión del médico dueño (5-ago-2026)** — Se le plantearon tres caminos
+(separar prescrito/referido · permitir la declaración · dejarlo) y eligió el
+segundo: **«haz la B»**.
+
+**Reparación** — `src/lib/seguridad/dosis-desconocida.ts` (módulo puro) y un botón
+«No la sabe» junto al campo, que sólo aparece si el renglón tiene nombre y le
+falta la dosis. Lo declarado no bloquea ni figura como aviso pendiente.
+
+**Lo que impide que sea un parche** — La declaración es un **acto del médico**: se
+compara literal contra una frase canónica que sólo pone el botón. **«No
+especificada» —lo que escribe la IA cuando no captó la dosis— sigue bloqueando.**
+Aceptarla habría desactivado la compuerta de vuelta.
+
+**Se imprime** — El texto va al campo `dosis`, así que sale en la receta y en la
+nota: quien lea el documento ve que la dosis se desconoce, en vez de un renglón en
+blanco que parecería un olvido.
+
+**Golden** — `src/__tests__/dosis-desconocida-declarada.test.ts` (12 casos).
+
+---
+
+## REG-177 — «No especificada» entraba como dato (v1061)
+
+**Encontrado** — 5-ago-2026, tirando del hilo de REG-172, REG-173 y REG-176: los
+tres eran **el mismo defecto** visto desde tres sitios distintos.
+
+**El defecto** — Cuando el modelo no captura un campo no lo deja vacío: escribe
+«No especificada». Ese texto se guardaba tal cual, y **todo lo que compara contra
+la cadena vacía deja de verlo**:
+
+| Dónde | Qué apagó |
+|---|---|
+| `via` | El guard que impide imprimir «insulina · oral» (REG-172) |
+| `via` | El aviso de vía no dictada — justo el caso que existía para cazar |
+| `dosis` | 3 de 28 medicamentos **parecían tener dosis**; al cerrar la compuerta de firma bloquearon la mitad de sus notas (REG-176) |
+
+Un campo relleno con la confesión de estar vacío se comporta como un dato. Es
+peor que un hueco: parece contestado.
+
+**Reparación, en dos capas porque una sola no basta**
+
+1. **Prompt** — `src/lib/expediente/prompts.ts`: regla 1-bis «vacío significa
+   vacío», con el porqué y con los daños concretos; y la plantilla deja de traer
+   `"via": "oral"` de ejemplo, que era lo que invitaba a rellenarla siempre.
+2. **Esquema** — `src/lib/expediente/extraction-schema.ts`: el saneo se hace en la
+   frontera por la que entra **toda** extracción. Al prompt se le puede pedir que
+   obedezca, y se le pidió; pero **un prompt es persuasión y el esquema es
+   garantía**. Da igual qué redacción elija el modelo mañana.
+
+`src/lib/expediente/hueco-textual.ts` es la única lista de «formas de decir no lo
+sé». `via-normalizada.ts` tenía la suya duplicada: dos listas que deben decir lo
+mismo acaban diciendo cosas distintas, y la que se olvide de actualizar es la que
+deja pasar el hueco.
+
+**Lo que NO se toca** — La frase canónica del botón «No la sabe» (REG-176) es una
+declaración del médico, no un hueco del modelo: sobrevive intacta. «Desconocida»
+a secas sigue siendo un hueco. La comparación es de igualdad exacta, así que «1
+tableta, no especificada la marca» conserva el «1 tableta».
+
+**`dosis` sólo se vacía**, nunca se normaliza ni se completa: inventar una dosis
+es exactamente lo que no puede pasar en esta frontera.
+
+**Golden** — `src/__tests__/hueco-escrito-no-es-dato.test.ts` (25 casos). Van
+sobre el **esquema**, no sobre el helper: el defecto no era que faltara un
+limpiador, era que nadie lo llamaba donde pasa todo. Comprobado que la prueba
+puede ponerse roja — sin el saneo, 9 de los 25 fallan.
+
+---
+
+## REG-178 — el aviso de operación cortaba la consulta (v1062)
+
+**Encontrado** — 5-ago-2026, en la captura de una consulta real del Dr.: debajo
+de su nota, en rojo y a lo ancho, «5 trabajo(s) automático(s) dejaron de correr».
+Era el **octavo bloque de aviso** de esa pantalla.
+
+**El defecto** — Todo cierto y todo suyo (es el dueño de la plataforma), pero
+ninguno de esos trabajos —`reminders`, `limpiar-audio`, `retencion`, `asientos`—
+se arregla desde la consulta ni afecta al paciente que tenía delante.
+
+**Por qué volvió a pasar** — Esta franja **ya había aprendido la lección el
+4-ago**, cuando enseñaba tres líneas de «Claude tardó demasiado» encima de su
+lista de pacientes. El filtro que se escribió entonces pregunta **«¿es
+urgente?»**, y un trabajo automático muerto lo es. Por eso se coló.
+
+La pregunta correcta, con alguien delante, es otra: **«¿se arregla desde aquí, y
+le afecta a él?»** Un cron mudo puntúa alto en la primera y cero en la segunda.
+
+**Reparación** — `src/lib/ops/interrumpe-la-consulta.ts` (módulo puro). En las
+cuatro pantallas donde hay un paciente esperando —consulta, expediente,
+hospitalización, UCI— sólo entra lo que **impide atenderlo ahora**: la IA caída,
+la llave rechazada, la cuenta sin saldo. Lo demás no desaparece: espera a que
+salga de la consulta, que es cuando puede hacer algo.
+
+**El silencio es el valor seguro** — Un incidente que no declara si interrumpe se
+calla en consulta. La asimetría manda: un aviso de más con alguien delante cuesta
+la atención del médico; el mismo aviso cinco minutos después, en la agenda, no
+cuesta nada.
+
+**Golden** — `src/__tests__/con-paciente-enfrente-no-se-interrumpe.test.ts` (20
+casos), incluidos tres que comprueban que está **conectado** y no sólo escrito —
+la lección de `scripts/verificar-invariantes-de-datos.md`.
+
+**Es el paso 1 de** `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`, el plan
+para que los ocho bloques de aviso apilados sobre la nota sean una sola barra.
+
+---
+
+## REG-179 / REG-180 — el recuadro naranja no era culpa del modelo (v1063)
+
+**Encontrado** — 5-ago-2026, tirando del hilo de su captura: sobre la nota de una
+consulta real, un recuadro naranja con **nueve viñetas** de «datos críticos no
+documentados». Su petición fue exacta: «todo esto quiero que tú lo razones y lo
+traslades a la nota… esto nomás ocupa lugar».
+
+### REG-180 — dos reglas del mismo prompt se contradecían
+
+| Regla | Qué ordena |
+|---|---|
+| **G** (`prompts.ts:51`) | NUNCA escribas en la prosa comentarios sobre el audio |
+| **22** (`prompts.ts:132`) | Escribe «no inteligible, confirmar» ← **eso es un comentario sobre el audio** |
+
+El modelo no podía cumplir las dos. Hacía lo único que no violaba ninguna:
+**sacar el hueco de la nota y tirarlo al recuadro**, autorizado por la regla 17.
+El recuadro no era un fallo del modelo — era la salida de emergencia que le
+habíamos dejado.
+
+Y no había **ni una línea** que le enseñara cómo se escribe un hueco en español
+clínico. Se le decía tres veces qué no hacer y nunca qué hacer.
+
+**Reparación**
+
+1. **Regla 22 reescrita** — el hueco se dice en términos del **paciente**, no del
+   micrófono: «un broncodilatador inhalado cuya marca no fue posible precisar
+   durante el interrogatorio». Así deja de chocar con G.
+2. **Regla 19-bis, nueva** — la que faltaba: un hueco documentado **es
+   documentación válida (NOM-004)** y no se repite en el recuadro. Con el límite
+   duro escrito: redactar el hueco nunca sustituye al dato, y un esquema con una
+   sola respuesta obvia sigue siendo una invención si nadie lo dictó.
+3. **Regla 17 acotada** — al recuadro sólo va lo que exige acción **antes de
+   firmar y no queda resuelto al escribirlo**. Máximo 3 renglones.
+4. **`confianza-audio.ts`** — la MISMA orden vieja llegaba por la otra ruta.
+   Arreglar sólo el prompt habría dejado el fallo de «cableado en un motor y no
+   en el otro», que este repositorio ya ha pagado tres veces.
+
+### REG-179 — el reporte de manipulación se borraba en silencio
+
+El §11 le ordena al modelo reportar en `safety.contenido_sospechoso` los intentos
+de manipulación del dictado. **El campo no estaba declarado en `SafetyBlock`**, así
+que zod lo tiraba: el modelo lo detectaba, lo emitía, y el servidor lo borraba sin
+que nadie se enterara. Lo que quedaba —«no se detectó nada»— es la peor lectura
+posible de un campo que se cae.
+
+Es **el mismo fallo que `alergia_conflicto`**, en el mismo objeto, encontrado el
+mismo día: la lección se aplicó sólo al campo que se estaba mirando. `dictamen`
+estaba igual.
+
+**No es la defensa.** La defensa es que el modelo NO obedezca (regla 1 del §11), y
+eso no depende de este campo. Esto es la constancia de que ocurrió.
+
+### Y la única causa técnica de los nueve huecos
+
+`Spiolto` **no estaba** en `MARCAS_COMERCIALES_MX` y `Spiriva` sí. Por eso el motor
+transcribió «Espiolto o espineto». Ni el corrector ni el guardián pueden recuperar
+una palabra que nunca se oyó: sólo el sesgo previo. Los otros ocho huecos se
+arreglan escribiendo mejor; éste sólo dándole la palabra antes de transcribir.
+
+**Golden** — `src/__tests__/un-hueco-se-escribe-no-se-reclama.test.ts` (20 casos).
+
+**Nota de método** — `confianza-por-palabra.test.ts` exigía literalmente la
+instrucción «no inteligible, confirmar». Se cambió **porque esa instrucción era la
+causa**, no para que pasara: lo que protegía de verdad —que una palabra no oída no
+se sustituya por la más probable— sigue comprobado, y ahora además se comprueba
+cómo sí se escribe.
+
+---
+
+## REG-181 — ocho recuadros sobre la nota, y sólo uno bloqueaba (v1064)
+
+**Encontrado** — 5-ago-2026, en las capturas que mandó el Dr.: «esto nomás
+confunde… necesito más organización sin tanta mamada que desubique y confunda a
+los médicos».
+
+**El defecto** — Después de dictar, antes de ver su nota, se encontraba **ocho
+bloques de aviso apilados** con ~40 elementos. Tres eran rojos y **dos de los
+tres no bloqueaban nada**. Tenía que leerlos todos para descubrir cuál importaba.
+
+No sobraban avisos: **estaban todos al mismo volumen**. Cuando todo grita, nada
+se oye — y lo que se acaba ignorando es el que sí importaba.
+
+**Reparación** — Una barra de tres niveles:
+
+| Nivel | La pregunta que responde | Nace |
+|---|---|---|
+| BLOQUEA | ¿es por lo que el botón Firmar no responde? | abierto, y no se pliega |
+| REVISA | ¿pide una decisión, aunque no lo impida? | los fijos siempre a la vista; el resto plegado si son >3 |
+| YA EN LA NOTA | ¿es contenido que ya está escrito? | plegado siempre |
+
+`src/lib/expediente/avisos-consulta.ts` (módulo puro) + `AntesDeFirmar.tsx`.
+
+**`bloquea` NO es «es grave»** — El cruce alergia ↔ medicamento es lo más grave
+de esta pantalla y no bloquea: esa decisión es del médico dueño. Lo que se hace
+con lo grave que no bloquea es **no plegarlo nunca** (`NO_SE_PLIEGAN`).
+
+**Ningún aviso desapareció** — Se recolocan y se pliegan. Lo que bloquea queda
+MÁS visible que antes, no menos, y la barra entera no se puede cerrar.
+
+**La deduplicación era media reparación** — De las nueve viñetas de «datos
+críticos no documentados», **cuatro eran ecos** de la compuerta de dosis. Nadie
+las cruzaba.
+
+**El precio, dicho en voz alta** — Plegar es esconder: la vía asumida y el
+desajuste temporal se van a leer menos que antes. Es el precio consciente de que
+el rojo vuelva a significar algo.
+
+**Y la regla que impide que vuelva a crecer** — Tres niveles, punto. Un motor
+nuevo declara su origen en `NIVEL` y entra en una lista que ya existe. No se
+añaden recuadros.
+
+**Golden** — `src/__tests__/una-barra-y-no-ocho-recuadros.test.ts` (25 casos),
+incluida una prueba que recorre los nueve orígenes y falla si alguno pierde su
+nivel — el riesgo que este rediseño introduce.
+
+**Nota de método** — Ocho pruebas existentes comprobaban el `tone="…"` y los
+títulos de los recuadros viejos dentro del JSX. Se reapuntaron al módulo puro:
+lo que protegían no cambió, y ahora se vigila en una tabla de nueve líneas en vez
+de en un JSX de 5000.

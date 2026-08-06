@@ -38,6 +38,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { NIVEL, NO_SE_PLIEGAN } from '@/lib/expediente/avisos-consulta'
 import {
   condicionesNegadas, contradicciones, avisoDeContradiccion, cronicasEn, CRONICAS,
   corregirCertezaPorNegacion,
@@ -185,7 +186,19 @@ describe('LA DEFENSA ES DE DOS CAPAS', () => {
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
     expect(page).toContain('condicionesNegadas(dictado)')
     expect(page).toContain('avisoDeContradiccion')
-    expect(page).toContain('La nota afirma algo que en el dictado se negó')
+    /**
+     * ── TRASLADADO A LA BARRA (5-ago-2026, REG-181) ───────────────────────
+     * Los siete recuadros de la consulta son ahora una barra de tres niveles.
+     * Lo que esta prueba protege no cambió; cambió DÓNDE está escrito: el nivel
+     * y el color los decide `avisos-consulta.ts`, un módulo puro cuya tabla se
+     * puede vigilar de un vistazo — que es más de lo que se podía hacer con el
+     * `tone="…"` de un JSX de 5000 líneas.
+     */
+    expect(NIVEL.contradiccion_negacion).toBe('revisa')
+    // Y NUNCA se pliega: un antecedente crónico falso se arrastra a todas las
+    // notas siguientes. El costo no se paga hoy, se paga en las diez que vienen.
+    expect(NO_SE_PLIEGAN).toContain('contradiccion_negacion')
+    expect(page).toContain('construirAvisos(')
   })
 
   it('y contrasta contra TODA la nota, no sólo contra el resumen', () => {

@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
    * tres documentos idénticos. Enseñarlos como tres avisos hace ver tres
    * problemas donde hay uno, y multiplica el ruido justo cuando más estorba.
    */
-  const porTitulo = new Map<string, { titulo: string; queHacer: string; urgente: boolean; veces: number }>()
+  const porTitulo = new Map<string, { titulo: string; queHacer: string; urgente: boolean; veces: number; interrumpeConsulta: boolean }>()
   for (const i of urgentes) {
     const clave = String(i.titulo ?? '')
     const y = porTitulo.get(clave)
@@ -73,6 +73,12 @@ export async function GET(req: NextRequest) {
     if (y) { y.veces += veces; continue }
     porTitulo.set(clave, {
       titulo: clave, queHacer: String(i.queHacer ?? ''), urgente: true, veces,
+      /**
+       * Estos SÍ cortan: son fallos de la IA vigentes —llave rechazada, cuenta
+       * sin saldo— y es justo lo que le va a fallar al pulsar «procesar» con el
+       * paciente delante. Enterarse antes le ahorra el intento.
+       */
+      interrumpeConsulta: true,
     })
   }
 
@@ -96,7 +102,7 @@ export async function GET(req: NextRequest) {
    * propios medios; lo que nadie más puede contar es el que **dejó de correr**,
    * porque un trabajo muerto no levanta la mano.
    */
-  const problemasDeCron: { titulo: string; queHacer: string; urgente: boolean; veces: number }[] = []
+  const problemasDeCron: { titulo: string; queHacer: string; urgente: boolean; veces: number; interrumpeConsulta: boolean }[] = []
   try {
     const latidos = await leerLatidos()
     const porJob = new Map<string, Latido>(latidos.map(l => [l.job, l]))
@@ -110,6 +116,12 @@ export async function GET(req: NextRequest) {
         queHacer: mudos.map(d => `${d.job}: ${d.porQue}`).join(' · ').slice(0, 300),
         urgente: true,
         veces: mudos.length,
+        /**
+         * NO corta una consulta. Un trabajo automático muerto es urgente, pero
+         * no se arregla desde la consulta y no afecta al paciente que está
+         * delante. Salía en rojo debajo de su nota el 5-ago.
+         */
+        interrumpeConsulta: false,
       })
     }
   } catch {

@@ -40,6 +40,16 @@ interface Props {
   aprobados: Set<string>
   onAprobar: (id: string) => void
   onRechazar: (id: string) => void
+  /**
+   * ── SIN MARCO, DENTRO DE LA BARRA (5-ago-2026, REG-181) ──────────────────
+   *
+   * Este panel dejó de ser un bloque suelto sobre la nota: vive plegado dentro
+   * de `AntesDeFirmar`, en el renglón «ya en la nota». Con esta prop no pinta
+   * su tarjeta ni su encabezado —la barra ya los da— ni los tres recuadros de
+   * conflictos / cruces / faltantes, que ahora viajan como avisos clasificados
+   * y se enseñan una sola vez, en el nivel que les toca.
+   */
+  sinMarco?: boolean
 }
 
 const CONF_COLOR: Record<Confianza, string> = { alta: '#4ade80', media: '#f59e0b', baja: '#f87171' }
@@ -47,7 +57,7 @@ const HABLANTE_LABEL: Record<Hablante, string> = {
   medico: 'Médico', paciente: 'Paciente', acompanante: 'Acompañante', desconocido: '—',
 }
 
-export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRechazar }: Props) {
+export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRechazar, sinMarco }: Props) {
   const [verFuente, setVerFuente] = useState<string | null>(null)
   const [verSeguros, setVerSeguros] = useState(false)
 
@@ -129,6 +139,11 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
   if (items.length === 0 && conflictos.length === 0 && faltantesCriticos.length === 0 && crucesAlergia.length === 0) {
     return null
   }
+  /**
+   * Dentro de la barra sólo aporta la lista de campos: los tres recuadros ya
+   * viajan como avisos. Sin campos no hay nada que enseñar aquí.
+   */
+  if (sinMarco && items.length === 0) return null
 
   // Render de un campo (se reutiliza para críticos y seguros)
   const renderItem = ({ id, label, campo, critico }: { id: string; label: string; campo: CampoAuditado; critico?: boolean }) => {
@@ -178,27 +193,27 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
   }
 
   return (
-    <div style={{
+    <div style={sinMarco ? { padding: 0 } : {
       background: 'var(--s1)', border: '1px solid rgba(96,165,250,0.3)', borderRadius: 12,
       padding: 16, marginBottom: 16,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+      {!sinMarco && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <Sparkles size={16} color="var(--blue)" />
         <strong style={{ fontSize: 14, color: 'var(--text)' }}>Extraído de tu dictado</strong>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>
           {aprobados.size} en la nota
         </span>
-      </div>
+      </div>}
       {/* Nada que aprobar: todo entra. El médico solo quita lo que sobre. */}
-      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.5 }}>
+      {!sinMarco && <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.5 }}>
         Todo esto ya está en la nota. <strong style={{ color: 'var(--text2)' }}>No tienes que aprobar nada</strong> — solo quita lo que no corresponda.
         {requierenRevision.length > 0 && (
           <> Los <strong style={{ color: 'var(--amber)' }}>{requierenRevision.length}</strong> datos delicados van arriba para que les des un vistazo.</>
         )}
-      </div>
+      </div>}
 
       {/* Conflictos detectados */}
-      {conflictos.length > 0 && (
+      {!sinMarco && conflictos.length > 0 && (
         <div style={{ background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 4 }}>
             <ShieldAlert size={14} /> Conflictos detectados
@@ -207,7 +222,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
         </div>
       )}
 
-      {crucesAlergia.length > 0 && (
+      {!sinMarco && crucesAlergia.length > 0 && (
         <div style={{ background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 4 }}>
             <ShieldAlert size={14} /> Cruce alergia ↔ medicamento
@@ -223,7 +238,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
       )}
 
       {/* Faltantes críticos */}
-      {faltantesCriticos.length > 0 && (
+      {!sinMarco && faltantesCriticos.length > 0 && (
         <div style={{ background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--amber)', fontWeight: 600, marginBottom: 4 }}>
             <AlertTriangle size={14} /> Datos críticos no documentados

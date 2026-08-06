@@ -47,27 +47,36 @@
  * no puede convertirse en un problema encima del que ya hay.
  */
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 
-interface Incidente {
-  titulo: string
-  queHacer: string
-  urgente: boolean
-  veces?: number
-}
+import { visiblesEn, type IncidenteVisible } from '@/lib/ops/interrumpe-la-consulta'
+
+type Incidente = IncidenteVisible
 
 export function AvisoIncidenteIA({ esDueno }: { esDueno: boolean }) {
-  const [incidentes, setIncidentes] = useState<Incidente[]>([])
+  const [todos, setTodos] = useState<Incidente[]>([])
   const [oculto, setOculto] = useState(false)
+  const ruta = usePathname()
+
+  /**
+   * ── CON UN PACIENTE ENFRENTE, SÓLO LO QUE IMPIDE ATENDERLO (5-ago-2026) ────
+   *
+   * El 5-ago le salió «5 trabajos automáticos dejaron de correr» en rojo debajo
+   * de la nota de una consulta real. Cierto, suyo, y **nada de eso se arregla
+   * desde ahí**. El filtro de esta franja preguntaba «¿es urgente?», y un cron
+   * muerto lo es; la pregunta con alguien delante es otra.
+   */
+  const incidentes = visiblesEn(todos, ruta)
 
   useEffect(() => {
     if (!esDueno) return
     let vivo = true
     fetchAutenticado('/api/superadmin/incidentes')
       .then(r => r.json())
-      .then(d => { if (vivo && d?.ok) setIncidentes(d.incidentes ?? []) })
+      .then(d => { if (vivo && d?.ok) setTodos(d.incidentes ?? []) })
       .catch(() => { /* un aviso que se rompe no puede estorbar */ })
     return () => { vivo = false }
   }, [esDueno])

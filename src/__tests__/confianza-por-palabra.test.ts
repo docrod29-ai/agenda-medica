@@ -281,7 +281,25 @@ describe('LAS DOS FRASES DE LA NOTA QUE FALLÓ, prohibidas en el prompt', () => 
 
   it('y una laguna no se convierte en una negación', () => {
     expect(prompts).toMatch(/Ausencia de dato no es dato de ausencia/)
-    expect(prompts).toMatch(/no inteligible, confirmar/)
+  })
+
+  it('la palabra no oída se documenta, pero en términos del paciente', () => {
+    /**
+     * ── ESTA PRUEBA CAMBIÓ, Y NO POR CONVENIENCIA (5-ago-2026, REG-180) ──────
+     *
+     * Antes exigía que el prompt dijera «no inteligible, confirmar». Esa
+     * instrucción resultó ser **la causa** del recuadro naranja de nueve
+     * viñetas que el Dr. mandó: contradecía a la regla G —que prohíbe hablar
+     * del audio dentro de la prosa clínica— y el modelo, atrapado entre las
+     * dos, sacaba el hueco de la nota y lo tiraba al recuadro.
+     *
+     * Lo que se protegía de verdad no era esa frase concreta: era que **una
+     * palabra no oída no se sustituya por la más probable**. Eso sigue aquí, y
+     * ahora además está dicho cómo SÍ se escribe.
+     */
+    expect(prompts).toMatch(/NO la sustituyas por la que te\s+parezca más probable/)
+    expect(prompts).toContain('no fue posible precisar durante el interrogatorio')
+    expect(prompts).toContain('EN TÉRMINOS DEL PACIENTE, NO DEL MICRÓFONO')
   })
 })
 
