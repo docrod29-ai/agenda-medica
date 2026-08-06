@@ -1824,3 +1824,45 @@ clínico no puede ser irreversible por un clic.
   eliminación.
 
 **Golden** — `src/__tests__/quitar-de-la-nota-quita-de-la-nota.test.ts` (16 casos).
+
+---
+
+## REG-199 — el sello decía «cubre todo» y el propio módulo sabía que no (v1080)
+
+**Del backlog del Master Loop V7** — `TRACE-001`, score 54.
+
+**El hallazgo original era medio falso, y hay que decirlo** — El módulo **ya
+documentaba** la exclusión: `CAMPOS_NO_SELLADOS_V3` explica que
+`transcripcionMotor` queda fuera y por qué (sellarlo cambiaría el hash de todo lo
+firmado y lo marcaría «alterada», la falsa alarma de REG-060). Esa decisión es
+correcta y se mantiene.
+
+**Lo que sí estaba mal, y es peor de lo que parece** — `COBERTURA_SELLO[3]`
+declaraba `noCubre: []`, y `cubreTodo` se derivaba de «¿es la última versión?».
+Resultado: **al médico se le decía en pantalla que el sello cubre el contenido
+íntegro de la nota**, mientras el código de al lado documentaba lo contrario.
+
+Contar una limitación hacia dentro y ocultarla hacia fuera es peor que no
+documentarla: **una afirmación de integridad más ancha que su alcance real se
+confía**.
+
+**Reparación, sin tocar el hash** — La cobertura se **deriva** de la misma lista
+que documenta las exclusiones, así que las dos no pueden volver a decir cosas
+distintas. `cubreTodo` pasa a significar «no queda nada fuera», no «es la última
+versión»: cuando v4 selle el origen, será `true` porque la lista quedará vacía —
+no porque alguien se acuerde de cambiarlo. Y cada exclusión gana una etiqueta
+legible («transcripción de origen del dictado»), porque el nombre técnico no le
+dice nada a quien lee el sello.
+
+**Tres pruebas certificaban la afirmación falsa** — Exigían `noCubre: []` y
+`cubreTodo: true`. Mismo patrón que el test de v1031 que exigía la línea rota: un
+golden puede fijar el defecto en vez de protegerlo.
+
+**Y el golden cazó un bug que introduje al repararlo** — Una nota **sin sello** no
+tiene cobertura, así que su lista de exclusiones está vacía… y con la primera
+versión del arreglo eso daba `cubreTodo: true`. Lista vacía no significa «cubre
+todo» cuando no hay sello: significa que no cubre nada.
+
+**Lo que queda es del médico** — Subir a `hashVersion` 4 para sellar el origen
+exige migración. Registrado en `agent-state/OWNER_DECISIONS_REQUIRED.md` (D-08).
+Tocar el hash es irreversible sobre documentos firmados con su cédula.

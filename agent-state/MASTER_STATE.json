@@ -11,7 +11,7 @@
     "cambiosDestructivos": false,
     "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "UX-001 (cerrada) → siguiente por score: TRACE-001",
+  "iteracionActual": "TRACE-001 (cerrada parcial) → siguiente por score: UX-002",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -19,7 +19,7 @@
     "agent/ops/OPS-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1079",
+  "ultimaVersionEnProduccion": "nexusmed-v1080",
   "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-06",
   "resumenDesdeElUltimoEstado": {

@@ -3,6 +3,17 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1080 — REG-199: el sello decía «cubre todo» y el módulo sabía que no
+
+Del backlog del Master Loop (TRACE-001). El hallazgo era medio falso: el módulo
+YA documentaba que `transcripcionMotor` queda fuera, con su razón (REG-060).
+
+Lo que sí mentía era la PANTALLA: `noCubre: []` y `cubreTodo` derivado de «¿es la
+última versión?». Al médico se le decía que el sello cubre el contenido íntegro.
+
+Reparado SIN tocar el hash. Subir a v4 exige migración y queda como decisión del
+dueño (D-08).
+
 ## v1079 — REG-198: «Quitar de la nota» no quitaba nada de la nota
 
 Del backlog del Master Loop V7 (UX-001, score 70 — el pendiente de mayor

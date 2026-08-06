@@ -127,11 +127,12 @@
       "irreversibilidad": 3,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO PARCIAL (v1080) — el resto necesita decisión del dueño",
       "reversible": false,
       "nota": "NO se toca el hash sin plan de migración: cambiarlo invalida todo lo firmado.",
       "origen": "auditoría de nueve dimensiones, hallazgo F2",
-      "score": 54
+      "score": 54,
+      "cierre": "REG-199. El hallazgo era medio falso: el módulo YA documentaba la exclusión de `transcripcionMotor` con su razón (REG-060). Lo que sí mentía era la PANTALLA: `noCubre: []` y `cubreTodo` derivado de «es la última versión». Reparado sin tocar el hash. Sellar el origen exige subir a v4 CON migración: esa parte queda en OWNER_DECISIONS_REQUIRED."
     },
     {
       "id": "EVAL-003",

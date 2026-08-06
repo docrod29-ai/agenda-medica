@@ -39,3 +39,30 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
+
+
+---
+
+## D-08 · ¿Se sube el sello a v4 para que cubra la transcripción de origen?
+
+**Estado**: pendiente · abierto el 6-ago-2026 (TRACE-001 / REG-199)
+
+**El hecho** — El sello v3 no cubre `transcripcionMotor`, que es el material de
+origen del que se re-proyecta la nota. La exclusión está documentada y tiene una
+razón sólida: añadirlo al canónico **cambiaría el hash de todas las notas ya
+firmadas** y las marcaría «alterada» de golpe — la falsa alarma que ya costó
+REG-060.
+
+**Lo que ya se hizo sin tocar nada** (v1080): la pantalla dejó de decir «cubre
+todo». Ahora declara qué queda fuera, con su nombre legible.
+
+**La decisión que es suya, no mía**
+
+| Opción | Qué implica |
+|---|---|
+| **Quedarse en v3** | El origen no va sellado. Se dice claramente. Cero riesgo. |
+| **Subir a v4** | El origen queda sellado en las notas NUEVAS. Las viejas conservan su sello v3 y se re-verifican con su propio algoritmo (ya está soportado). Coste: una migración y un periodo con dos versiones vivas. |
+
+**Lo que NO se hará sin su palabra** — Tocar el hash. Es irreversible sobre
+documentos firmados con su cédula, y ninguna mejora de trazabilidad justifica
+marcar como alteradas notas que están intactas.
