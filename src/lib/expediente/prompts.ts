@@ -67,11 +67,27 @@ dato clave para el razonamiento, señálalo en safety.missing_critical_fields.
 
 REGLAS ESTRICTAS DE EXTRACCIÓN:
 1. NUNCA inventes datos no mencionados. Si un dato no se mencionó, deja el campo vacío "".
+1-bis. VACÍO SIGNIFICA VACÍO — es la regla más incumplida y la que más daño hace.
+   Un campo que no captaste se deja como cadena vacía "". NUNCA escribas dentro
+   del campo frases como "No especificada", "no especificado", "desconocida",
+   "sin especificar", "no refiere", "N/A", "ninguna" ni equivalentes.
+   POR QUÉ: esos textos se guardan tal cual y el sistema los lee como si fueran
+   un DATO. En el expediente real de este consultorio, "No especificada" en el
+   campo "via" apagó el guard que impide imprimir "insulina · vía que no existe",
+   y en el campo "dosis" hizo que la mitad de las notas parecieran tener dosis
+   cuando no la tenían. Un hueco declarado como texto es peor que un hueco:
+   parece contestado.
+   La ÚNICA forma de decir "no se sabe" es dejarlo vacío. De ahí en adelante
+   decide el médico, y el sistema sabe que tiene que preguntárselo.
 2. Distingue NEGACIÓN EXPLÍCITA ("niega alergias") de AUSENCIA DE MENCIÓN (no se preguntó / no se dijo).
 3. Distingue SOSPECHA ("podría ser…", "probable…") de DIAGNÓSTICO CONFIRMADO. Por defecto tipo="presuntivo".
 4. Si el médico CORRIGE al paciente, prioriza la corrección del médico pero deja la cita textual como source_quote.
 5. Si el dato proviene de un ACOMPAÑANTE, marca speaker="acompanante".
 6. Para medicamentos extrae: nombre genérico, dosis, vía, frecuencia, duración. Si la dosis es ambigua, needs_review=true.
+6-bis. La VÍA sólo se llena si se dijo. La plantilla ya no trae "oral" de ejemplo
+   precisamente para que no la copies: si el dictado no dice por dónde va el
+   fármaco, "via" va vacía. El sistema tiene una regla propia para eso —decisión
+   del médico dueño— y no puede aplicarla si tú ya rellenaste el hueco.
 7. CODIFICACIÓN: para CADA diagnóstico propón el código CIE-10 más probable (no lo
    dejes vacío). Si tu confianza no es alta, igual proponlo PERO marca needs_review=true
    para que el médico confirme. Para procedimientos mencionados, sugiere el concepto
@@ -435,7 +451,7 @@ ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extra
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "contenido o cadena vacía"')).join(',\n')}
   },
   "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo|definitivo|diferencial", "estado": "activo" }],
-  "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "" }],
+  "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
 ${tipo === 'valoracion_preoperatoria' ? `
@@ -552,7 +568,7 @@ ${tipo === 'valoracion_preoperatoria' ? `
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '       "$1": { "value": "", "confidence": "baja", "source_quote": "", "speaker": "desconocido", "needs_review": true, "reason": "" }')).join(',\n')}
     },
     "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo", "estado": "activo", "confidence": "media", "source_quote": "", "speaker": "medico", "needs_review": true, "reason": "" }],
-    "medicamentos": [{ "nombre": "", "dosis": "", "via": "oral", "frecuencia": "", "duracion": "", "indicacion": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
+    "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" }],
     "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "moderada", "confirmada": false, "confidence": "alta", "source_quote": "", "speaker": "paciente", "needs_review": true, "reason": "Dato crítico — confirmar con paciente" }],
     "signosVitales": {
       "ta":          { "value": "", "confidence": "alta", "source_quote": "", "speaker": "medico", "needs_review": false, "reason": "" },

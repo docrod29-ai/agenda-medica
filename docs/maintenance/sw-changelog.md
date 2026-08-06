@@ -3,6 +3,29 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1061 — REG-177: un hueco escrito con letras deja de entrar como dato
+
+El modelo escribe «No especificada» cuando no captura un campo, y ese texto se
+guardaba como si fuera un dato. Era la raíz común de tres defectos: apagó el
+guard que impide imprimir «insulina · oral», apagó el aviso de vía no dictada y
+—al cerrar la compuerta de firma— bloqueó la mitad de sus notas por medicamentos
+que sí estaban documentados.
+
+Dos capas, porque una sola no bastaba:
+
+- **Prompt** (`src/lib/expediente/prompts.ts`): regla 1-bis «vacío significa
+  vacío», con el porqué; y la plantilla deja de traer `"via": "oral"` de ejemplo,
+  que era lo que invitaba al modelo a rellenarla siempre.
+- **Esquema** (`src/lib/expediente/extraction-schema.ts`): el saneo va en la
+  frontera por la que entra toda extracción. Un prompt es persuasión; el esquema
+  es garantía — da igual qué redacción elija el modelo mañana.
+
+`src/lib/expediente/hueco-textual.ts` es ahora la única lista de «formas de decir
+no lo sé»; `via-normalizada.ts` la consumía duplicada y ya no.
+
+Lo que el médico declara a propósito NO se toca: la frase del botón «No la sabe»
+(v1060) sobrevive intacta, y «desconocida» a secas sigue siendo un hueco.
+
 ## Por qué se sacó (v953)
 
 Esa línea llegó a pesar **271 KB** —el archivo entero, 276 KB— y

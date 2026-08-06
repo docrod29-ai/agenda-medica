@@ -43,6 +43,7 @@
  * Módulo PURO.
  */
 import type { Medicamento } from '@/types/expediente'
+import { esHuecoEscrito } from '@/lib/expediente/hueco-textual'
 
 type Via = Medicamento['via']
 
@@ -78,10 +79,14 @@ const SINONIMOS: Readonly<Record<string, Via>> = {
  * Se tratan como ausencia. Es la diferencia entre un dato y un hueco, y de ella
  * dependen el guard de parenterales y el aviso al médico.
  */
-const HUECOS: readonly string[] = [
-  'no especificada', 'no especificado', 'sin especificar', 'no definida', 'no definido',
-  'desconocida', 'desconocido', 'n/a', 'na', 'no aplica', '?', '-', '--',
-]
+/**
+ * ── UNA SOLA LISTA (5-ago-2026) ──────────────────────────────────────────────
+ *
+ * Esta lista vivía aquí duplicada. Al aparecer el MISMO defecto en `dosis` se
+ * movió a `hueco-textual.ts`: dos listas que tienen que decir lo mismo acaban
+ * diciendo cosas distintas, y la que se olvide de actualizar es la que deja
+ * pasar el hueco.
+ */
 
 const limpia = (v: unknown) =>
   String(v ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -92,9 +97,7 @@ const limpia = (v: unknown) =>
  * La cadena vacía también, claro: es el hueco de toda la vida.
  */
 export function esViaAusente(via: unknown): boolean {
-  const v = limpia(via)
-  if (!v) return true
-  return HUECOS.some(h => limpia(h) === v)
+  return esHuecoEscrito(via)
 }
 
 /**

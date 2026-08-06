@@ -953,3 +953,51 @@ nota: quien lea el documento ve que la dosis se desconoce, en vez de un renglón
 blanco que parecería un olvido.
 
 **Golden** — `src/__tests__/dosis-desconocida-declarada.test.ts` (12 casos).
+
+---
+
+## REG-177 — «No especificada» entraba como dato (v1061)
+
+**Encontrado** — 5-ago-2026, tirando del hilo de REG-172, REG-173 y REG-176: los
+tres eran **el mismo defecto** visto desde tres sitios distintos.
+
+**El defecto** — Cuando el modelo no captura un campo no lo deja vacío: escribe
+«No especificada». Ese texto se guardaba tal cual, y **todo lo que compara contra
+la cadena vacía deja de verlo**:
+
+| Dónde | Qué apagó |
+|---|---|
+| `via` | El guard que impide imprimir «insulina · oral» (REG-172) |
+| `via` | El aviso de vía no dictada — justo el caso que existía para cazar |
+| `dosis` | 3 de 28 medicamentos **parecían tener dosis**; al cerrar la compuerta de firma bloquearon la mitad de sus notas (REG-176) |
+
+Un campo relleno con la confesión de estar vacío se comporta como un dato. Es
+peor que un hueco: parece contestado.
+
+**Reparación, en dos capas porque una sola no basta**
+
+1. **Prompt** — `src/lib/expediente/prompts.ts`: regla 1-bis «vacío significa
+   vacío», con el porqué y con los daños concretos; y la plantilla deja de traer
+   `"via": "oral"` de ejemplo, que era lo que invitaba a rellenarla siempre.
+2. **Esquema** — `src/lib/expediente/extraction-schema.ts`: el saneo se hace en la
+   frontera por la que entra **toda** extracción. Al prompt se le puede pedir que
+   obedezca, y se le pidió; pero **un prompt es persuasión y el esquema es
+   garantía**. Da igual qué redacción elija el modelo mañana.
+
+`src/lib/expediente/hueco-textual.ts` es la única lista de «formas de decir no lo
+sé». `via-normalizada.ts` tenía la suya duplicada: dos listas que deben decir lo
+mismo acaban diciendo cosas distintas, y la que se olvide de actualizar es la que
+deja pasar el hueco.
+
+**Lo que NO se toca** — La frase canónica del botón «No la sabe» (REG-176) es una
+declaración del médico, no un hueco del modelo: sobrevive intacta. «Desconocida»
+a secas sigue siendo un hueco. La comparación es de igualdad exacta, así que «1
+tableta, no especificada la marca» conserva el «1 tableta».
+
+**`dosis` sólo se vacía**, nunca se normaliza ni se completa: inventar una dosis
+es exactamente lo que no puede pasar en esta frontera.
+
+**Golden** — `src/__tests__/hueco-escrito-no-es-dato.test.ts` (25 casos). Van
+sobre el **esquema**, no sobre el helper: el defecto no era que faltara un
+limpiador, era que nadie lo llamaba donde pasa todo. Comprobado que la prueba
+puede ponerse roja — sin el saneo, 9 de los 25 fallan.

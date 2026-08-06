@@ -13,6 +13,8 @@
  * todo dato puede rastrearse a su frase fuente y a la confianza del modelo.
  */
 import { z } from 'zod'
+import { sinHuecoEscrito } from '@/lib/expediente/hueco-textual'
+import { normalizarVia } from '@/lib/expediente/via-normalizada'
 
 export const Confianza = z.enum(['alta', 'media', 'baja'])
 export type Confianza = z.infer<typeof Confianza>
@@ -48,8 +50,23 @@ export type DiagnosticoAuditado = z.infer<typeof DiagnosticoAuditado>
 /** Medicamento auditado. */
 export const MedicamentoAuditado = z.object({
   nombre:               z.string(),
-  dosis:                z.string().optional().default(''),
-  via:                  z.string().optional().default(''),
+  /**
+   * ── EL SANEO VA AQUÍ, EN LA FRONTERA (5-ago-2026, REG-177) ────────────────
+   *
+   * El modelo escribe «No especificada» cuando no captó el campo, y ese texto
+   * se guardaba como si fuera un dato: apagó el guard de la insulina, apagó el
+   * aviso de vía no dictada y bloqueó la firma de la mitad de sus notas.
+   *
+   * Al prompt se le pidió que dejara el campo vacío (regla 1-bis). Esto es lo
+   * que lo GARANTIZA: sea cual sea la redacción que elija el modelo mañana, el
+   * hueco entra al sistema como hueco.
+   *
+   * `dosis` sólo se vacía. NO se normaliza ni se completa: inventar una dosis
+   * es exactamente lo que no puede pasar aquí.
+   */
+  dosis:                z.string().optional().default('').transform(sinHuecoEscrito),
+  /** La vía además se traduce al vocabulario del tipo («subcutanea» → `sc`). */
+  via:                  z.string().optional().default('').transform(normalizarVia),
   frecuencia:           z.string().optional().default(''),
   duracion:             z.string().optional().default(''),
   indicacion:           z.string().optional().default(''),
@@ -120,8 +137,8 @@ export const RespuestaExtraccion = z.object({
   })).optional().default([]),
   medicamentos: z.array(z.object({
     nombre:      z.string(),
-    dosis:       z.string().optional().default(''),
-    via:         z.string().optional().default(''),
+    dosis:       z.string().optional().default('').transform(sinHuecoEscrito),
+    via:         z.string().optional().default('').transform(normalizarVia),
     frecuencia:  z.string().optional().default(''),
     duracion:    z.string().optional().default(''),
     indicacion:  z.string().optional().default(''),
