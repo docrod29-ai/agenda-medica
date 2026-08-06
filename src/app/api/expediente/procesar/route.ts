@@ -26,13 +26,18 @@ import { reservarParaClinica, confirmarCreditos, devolverCreditos } from '@/lib/
 import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCreditos, registrarConsultaEconomica, economicasDelMes, entitlementsDe, creditosUsadosDelMes, creditosExtraDelMes  } from '@/lib/ai-keys'
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
+import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 // Versión del prompt/pipeline de la nota. Súbela al cambiar el prompt maestro:
 // queda registrada en el provenance inmutable de cada nota (trazabilidad SaMD).
-const PROMPT_VERSION = 'nota-2026-08'   // v1029: regla 24, el pasado no es el presente
+/**
+ * La versión vive en su módulo desde REG-191, con un candado que impide que se
+ * quede atrás cuando el prompt cambia. Redeclararla aquí era cómo se
+ * desincronizaba: el módulo y la ruta podían decir cosas distintas.
+ */
 
 // Tres PERFILES de modelo, según plan del consultorio y momento:
 //  · 'live'    → borrador EN VIVO (cada ~30s): Haiku, baratísimo y veloz. Sin thinking.

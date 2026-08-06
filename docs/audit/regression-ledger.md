@@ -1303,3 +1303,253 @@ mencionaba su texto).
 originales, falla en las dos. Un guardián que no puede fallar no guarda nada.
 
 **Golden** — `src/__tests__/el-prompt-no-se-contradice.test.ts` (21 casos).
+
+---
+
+## REG-186 — «en el segmento ST» se borraba de la nota (v1069)
+
+**Encontrado** — 6-ago-2026, por la auditoría de nueve dimensiones (78 agentes,
+68 hallazgos, 52 confirmados), y **reproducido con el motor real** antes de tocar
+nada.
+
+**El defecto** — El saneador de prosa borra al modelo describiendo su entrada:
+«no se refiere motivo **en este fragmento de consulta**». Su patrón llevaba un
+`?` que hacía **opcional** el «de la consulta», así que también cazaba «en el
+segmento», «en la parte», «en la porción» y «en el tramo» sueltos — que en una
+nota clínica son **localizaciones anatómicas**.
+
+Comprobado ejecutando la expresión real:
+
+| Dictado | Lo que se imprimía |
+|---|---|
+| ECG con infradesnivel **en el segmento** ST de 2 mm | ECG con infradesnivel**ST** de 2 mm |
+| Dolor **en la parte** baja de la espalda | Dolor**baja** de la espalda |
+| Lesión **en la porción** distal del húmero | Lesión**distal** del húmero |
+| Soplo **en el tramo** medio del esternón | Soplo**medio** del esternón |
+
+Cuatro de cada cinco frases clínicas legítimas salían amputadas. **La primera es
+un infarto**: el infradesnivel del ST se imprimía pegado al verbo, en un
+documento firmado con cédula profesional.
+
+**Reparación** — Se quita el `?`: el complemento es obligatorio. Sin él no hay
+metatexto que borrar, hay anatomía.
+
+**La asimetría que lo justifica** — Dejar pasar un metatexto ensucia la nota.
+Borrar una localización anatómica **cambia lo que dice el expediente**. No se
+parecen.
+
+**Golden** — `src/__tests__/la-anatomia-no-es-metatexto.test.ts` (11 casos).
+
+---
+
+## REG-187 — al reconocedor se le mandaba el nombre del cajón (v1069)
+
+**Encontrado** — 6-ago-2026, misma auditoría. El hallazgo más caro de los 52.
+
+**El defecto** — `especialidadesDelMedico()` y `CONTEXTOS_POR_MODULO` devuelven
+**nombres de vocabulario**, no términos. Esos nombres llegaban tal cual a
+`sesgo-diarizado`, que los mete en la lista con la que se sesga al reconocedor.
+
+En un pase de UCI se le decía al motor **«espera oír la frase *Sepsis y
+choque*»** —que nadie pronuncia— en vez de «norepinefrina, CVVHDF, RASS, FiO2».
+
+Medido antes de tocarlo:
+
+| Módulo | Se mandaba | Se manda ahora |
+|---|---|---|
+| UCI | **4** nombres de cajón | **67** términos reales |
+| Microbiología y PROA | **1** nombre | **29** términos reales |
+
+**Por qué duele más que otros fallos** — El sesgo es **lo único que cambia lo que
+la máquina OYE**. Una palabra que nunca llegó al reconocedor no la recupera
+ningún corrector de después. Es la lección de `Spiolto` (REG-179) multiplicada
+por el vocabulario entero de una especialidad.
+
+**Tercera vez con el mismo patrón** — «El trabajo está hecho y no llega»:
+REG-167 (el sesgo degradaba el motor al modelo viejo), v1025 (el vocabulario iba
+a la ruta de repuesto y no a la que corre), y ésta.
+
+**El nombre se conserva además del contenido** — Cuesta cuatro términos y alguna
+especialidad sí se dice en voz alta («lo mando a infectología»).
+
+**Lo que NO arregla, dicho claro** — El sesgo sólo puede ofrecer lo que alguien
+escribió antes. Expandir los nombres no crea vocabulario: hace que llegue el que
+ya existe.
+
+**Golden** — `src/__tests__/el-sesgo-manda-palabras-no-cajones.test.ts` (11 casos).
+
+---
+
+## REG-188 — los motores veían la receta de hoy, no al paciente (v1070)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones. El hallazgo más
+transformador de los 52.
+
+**El defecto** — La consulta **ya calculaba** la medicación vigente y los
+problemas activos del paciente (`medicamentosVigentes()`, `problemasActivos()`
+sobre las notas firmadas) y los pintaba en pantalla. A los motores clínicos les
+pasaba **sólo lo de hoy**.
+
+**El caso que lo demuestra**: warfarina de marzo, ketorolaco hoy. La regla de
+sangrado existe y está probada. **No disparaba**, porque la warfarina no estaba
+en la nota de hoy. Igual el ajuste renal de la metformina crónica, o la meta de
+LDL del diabético que hoy vino por faringitis.
+
+Es el patrón «escrito y sin conectar» — el más caro de este repositorio.
+
+**Por qué importa más de lo que parece** — En una consulta de **seguimiento**,
+que son la mayoría, lo de hoy son dos renglones nuevos sobre alguien que toma
+cinco cosas desde hace años. Un motor que sólo ve los dos renglones no razona
+sobre un paciente: razona sobre una receta.
+
+**Reparación** — `src/lib/expediente/cuadro-completo.ts` (módulo puro). Une las
+dos listas marcando la procedencia, porque el motor la necesita para redactar:
+«el ketorolaco que receta hoy con la warfarina que ya toma» dice mucho más que
+«ketorolaco + warfarina», y le dice al médico dónde mirar.
+
+**Lo de hoy manda** cuando el mismo fármaco está en las dos: si el médico está
+cambiando la dosis en esta consulta, la nueva es la buena.
+
+**No cambia ninguna compuerta** — Lo que entra son datos. Los motores que los
+consumen son de nivel `revisa`, nunca `bloquea`. Habrá más avisos —es el
+objetivo— pero ninguno impedirá firmar.
+
+**Dónde NO se aplica, y por qué** — `tareasDeNota` deriva los pendientes de la
+consulta que se firma, y ahí la medicación crónica no pinta nada: metería, en
+cada firma, tareas sobre fármacos que el paciente lleva años tomando. El cuadro
+completo es para **razonar**; el worklist es para **acordarse de lo que se
+pidió**. No es la misma pregunta.
+
+**Golden** — `src/__tests__/el-paciente-completo-llega-al-motor.test.ts` (15
+casos), incluidos tres que comprueban que está conectado en **los dos** sitios.
+
+---
+
+## REG-189 — el botón y la barra se contradecían (v1071)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos D1 y D2).
+
+**El defecto** — La razón por la que no se podía firmar estaba repartida en **dos
+sitios que no se hablaban**, y cada uno mentía a su manera:
+
+| Situación | El botón | La barra |
+|---|---|---|
+| Dosis incompleta | **encendido** — fallaba al pulsarlo | «1 bloquea» ✓ |
+| Sección obligatoria vacía | apagado ✓ | **«nada te impide firmar»** |
+
+El botón se apagaba con `validacion.valida` (sólo NOM-004) y la compuerta de
+dosis vivía **dentro** de `firmar()`. La barra, al revés, contaba la dosis y no
+miraba NOM-004. El médico veía la contradicción completa: un botón gris junto a
+un cartel diciendo que todo estaba bien, o un botón encendido que no hacía nada.
+
+**Y el mensaje que lo explicaba ya existía, inalcanzable** — el del toast sólo
+salía **al pulsar**; el de NOM-004 vive en un recuadro que queda fuera de la
+pantalla cuando el médico está abajo, junto a los botones, que es donde tiene el
+dedo. Un botón gris sin explicación es la peor forma de decir que no.
+
+**Reparación** — `src/lib/expediente/por-que-no-se-firma.ts` (módulo puro). Una
+sola fuente para el botón, para la barra y para el texto. El motivo viaja en el
+`title` y en un renglón junto a los botones. La barra gana el origen
+`requisito_nom004`, de nivel `bloquea`.
+
+**NO CAMBIA LA POLÍTICA** — Ni una condición se añade ni se quita: lo que impedía
+firmar ayer impide firmar hoy. Lo único que cambia es que **se dice en un sitio y
+antes de pulsar**. Que la falta de dosis bloquee fue decisión del médico dueño el
+5-ago, con el dato delante.
+
+**La compuerta de `firmar()` se queda** — Apagar el botón es defensa en
+profundidad, no sustitución: `firmar()` puede llamarse por otro camino.
+
+**Golden** — `src/__tests__/el-boton-dice-por-que-esta-apagado.test.ts` (18
+casos).
+
+---
+
+## REG-190 — el motor de sobredosis corría DESPUÉS de firmar (v1072)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo G1).
+
+**El defecto** — `revisarDosis()` caza sobredosis, techos por vía y edad, y el
+**error de decimal** —«500 mg donde iban 50»—, que es de los errores de
+prescripción que más daño hacen y que un modelo generativo pasa por alto sin
+despeinarse.
+
+Tenía **un solo llamador**: `receta/[patientId]/[notaId]/page.tsx`, la pantalla
+de la receta, que se abre desde una nota **ya firmada**. El motor corría cuando
+la nota estaba sellada y el paciente se había ido con la receta en la mano.
+
+**Por qué no bastaba con llamarlo** — La lógica que arma la entrada —sacar los mg
+del texto, distinguir mg de mg/kg, contar las tomas al día— vivía dentro de un
+`useMemo` de esa pantalla. Traerla a la consulta no era llamar a una función: era
+copiarla. Por eso se extrae a `src/lib/seguridad/dosis-de-la-lista.ts`.
+
+**Reparación** — La consulta lo calcula sobre la lista entera, con la edad y el
+peso del paciente (que es lo que activa la comprobación pediátrica por kg), y
+entra en la barra como origen `dosis_peligrosa`.
+
+**Nivel `revisa`, pero NO se pliega cuando es crítica** — Qué bloquea la firma lo
+decidió el médico dueño el 5-ago con el dato delante; ampliarlo por mi cuenta
+sería decidir por él. Pero «500 donde iban 50» es del mismo orden de daño que
+recetar aquello a lo que el paciente es alérgico, y sale impreso igual de rápido:
+entra en `NO_SE_PLIEGAN`, junto al cruce de alergias y la contradicción del
+dictado.
+
+**`sin_referencia` se descarta** — «Este fármaco no está en el catálogo» no es un
+hallazgo sobre el paciente, y en una lista de ocho llenaría la pantalla de avisos
+que no dicen nada. El motor ya advierte por su cuenta que la ausencia de alerta
+no significa dosis segura.
+
+**No se quita de la receta** — Esa pantalla se puede abrir sin pasar por la
+consulta de hoy.
+
+**Ningún umbral nuevo** — Todos salen del catálogo de `dosis.ts`, que ya existía
+y que el médico dueño ya revisó (REG-041).
+
+**Golden** — `src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts` (16
+casos).
+
+---
+
+## REG-191 — la versión del prompt llevaba siete cambios sin moverse (v1073)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo E3).
+
+**El defecto** — `PROMPT_VERSION` se sella en cada nota (`_promptVersion`) y es
+lo único que permite responder a la pregunta que importa cuando algo sale mal:
+**«¿qué notas se generaron con el prompt que tenía el fallo?»**
+
+En la noche del 5 al 6 de agosto el prompt cambió **siete veces** —regla 1-bis,
+6-bis, 6-ter, 19-bis, la 22 reescrita, la 17 acotada, dos campos retirados— y la
+versión siguió diciendo `nota-2026-08`. Dos notas con la misma etiqueta podían
+venir de prompts distintos: el lote afectado **no se podía acotar**. Es un
+requisito de IEC 62304, y era humo.
+
+**Y el candado estaba puesto al revés** — El único test que la miraba la
+**pineaba al literal** (`toContain("const PROMPT_VERSION = 'nota-2026-08'")`), así
+que subirla rompía la suite. Su intención era buena —exigir que cambiara— y su
+implementación impedía exactamente eso.
+
+**Reparación** — `src/lib/expediente/prompt-version.ts`: la versión, la lista de
+archivos que **son** el prompt, y una huella de su contenido. La prueba compara
+la huella real contra la declarada y, cuando falla, **trae la huella nueva en el
+mensaje** para que subirla sea copiar y pegar. Formato nuevo
+`nota-AAAA-MM-DD-N`: en una noche puede cambiar varias veces.
+
+**Vigila las DOS rutas** — `prompts.ts` y `confianza-audio.ts`. La segunda es por
+donde se coló REG-180: arreglar sólo el prompt principal dejó viva la orden vieja
+por el otro lado.
+
+**Por qué la huella es del archivo entero, comentarios incluidos** — Hashear
+«sólo lo que llega al modelo» exigiría construir el prompt para cada tipo de
+nota, especialidad e instrucciones; un candado que no se puede calcular con
+certeza no es un candado. Y en un sistema regulado la versión identifica **el
+artefacto**: dos builds con la misma versión deberían ser el mismo archivo. El
+coste de versionar de más es una línea; el de versionar de menos es no poder
+acotar un lote de notas clínicas.
+
+**La ruta la importa, no la redeclara** — Redeclararla era cómo se
+desincronizaba.
+
+**Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
+
+**Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).

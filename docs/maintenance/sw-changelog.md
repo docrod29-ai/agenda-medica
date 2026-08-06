@@ -3,6 +3,81 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
+
+`_promptVersion` se sella en cada nota y es lo único que permite acotar el lote
+afectado por un fallo. El prompt cambió siete veces esta noche y la etiqueta
+seguía siendo `nota-2026-08`.
+
+Y el candado estaba puesto al revés: el test la pineaba al literal, así que
+subirla rompía la suite. Su intención era buena; su implementación impedía
+exactamente lo que exigía.
+
+Ahora una huella del prompt real se compara con la declarada, en las DOS rutas
+por las que llegan instrucciones al modelo. Cuando falla, trae la huella nueva.
+
+## v1072 — REG-190: el motor de sobredosis corría después de firmar
+
+`revisarDosis()` caza sobredosis, techos por vía y edad, y el error de decimal
+—«500 mg donde iban 50»—. Tenía UN solo llamador: la pantalla de la receta, que
+se abre desde una nota YA FIRMADA.
+
+Ahora corre en la consulta, sobre la lista entera, con la edad y el peso. Nivel
+`revisa` —qué bloquea lo decidió el médico dueño— pero cuando es CRÍTICA no se
+pliega: «500 donde iban 50» es del mismo orden de daño que recetar aquello a lo
+que el paciente es alérgico.
+
+Ningún umbral nuevo: todos salen del catálogo que él ya revisó.
+
+## v1071 — REG-189: el botón y la barra se contradecían
+
+|  | El botón | La barra |
+|---|---|---|
+| Dosis incompleta | **encendido**, fallaba al pulsarlo | «1 bloquea» ✓ |
+| Sección obligatoria vacía | apagado ✓ | **«nada te impide firmar»** |
+
+Una sola fuente para los dos, y el motivo donde está el dedo: en el `title` del
+botón y en un renglón junto a él. El mensaje ya existía y era inalcanzable —el
+del toast sólo salía al pulsar.
+
+NO cambia la política: lo que impedía firmar ayer impide firmar hoy.
+
+## v1070 — REG-188: los motores veían la receta de hoy, no al paciente
+
+El hallazgo más transformador de la auditoría. `medicamentosVigentes()` y
+`problemasActivos()` ya se calculaban y se pintaban en pantalla; a los motores
+clínicos les llegaba SÓLO lo de esta consulta.
+
+Warfarina de marzo, ketorolaco hoy: la regla de sangrado existe, está probada, y
+no disparaba. Igual el ajuste renal de la metformina crónica y la meta de LDL
+del diabético que hoy vino por faringitis.
+
+En un seguimiento —la mayoría— lo de hoy son dos renglones sobre alguien que
+toma cinco cosas desde hace años. Un motor que sólo ve los dos renglones no
+razona sobre un paciente: razona sobre una receta.
+
+`cuadro-completo.ts` une las dos listas marcando la procedencia, porque el motor
+la necesita para redactar. No cambia ninguna compuerta: lo que entra son datos.
+
+De paso, el trinquete de lint bajó de 97 a 96.
+
+## v1069 — REG-186/187: la anatomía y el vocabulario que no llegaba
+
+Los dos primeros hallazgos de la auditoría de nueve dimensiones (78 agentes, 68
+hallazgos, 52 confirmados), reproducidos con el motor real antes de tocar nada.
+
+**REG-186** — «ECG con infradesnivel en el segmento ST» se imprimía como
+«infradesnivelST». Un `?` de más hacía opcional el «de la consulta», así que el
+saneador de metatexto se comía las localizaciones anatómicas. Cuatro de cada
+cinco frases clínicas legítimas salían amputadas, y la primera es un infarto.
+
+**REG-187** — Al reconocedor se le mandaba «Sepsis y choque» —el nombre del
+cajón— en vez de las palabras de dentro. UCI: 4 nombres → 67 términos. PROA: 1
+→ 29. El sesgo es lo único que cambia lo que la máquina OYE, y lo que no se oye
+no lo recupera ningún corrector.
+
+Tercera vez con el patrón «el trabajo está hecho y no llega».
+
 ## v1068 — REG-185: un guardián para que el prompt no vuelva a contradecirse
 
 El mismo fallo apareció dos veces la misma noche: se corrige una regla y no se

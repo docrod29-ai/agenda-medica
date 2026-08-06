@@ -45,6 +45,8 @@
  * tokenización interna», así que este número es el techo declarado, no una
  * garantía. Por eso el orden importa: lo que va primero es lo que seguro entra.
  */
+import { terminosDeEspecialidades } from '@/lib/asr/lexicon'
+
 export const TOPE_TERMINOS = 1000
 
 /**
@@ -177,10 +179,27 @@ export function componerSesgo(ctx: ContextoSesgo, global: readonly string[], top
     ...(ctx.alergias ?? []),
     ...(ctx.problemas ?? []),
   ]
+  /**
+   * ── LOS NOMBRES SE EXPANDEN A SUS TÉRMINOS (6-ago-2026, REG-187) ──────────
+   *
+   * Aquí entraba `ctx.especialidad` tal cual, y lo que trae son **nombres de
+   * cajón**: «Microbiología y PROA», «Sepsis y choque», «Ventilación mecánica».
+   * Se le estaba diciendo al reconocedor que esperara oír esas frases —que
+   * nadie pronuncia en una consulta— en vez de las palabras que hay dentro.
+   *
+   * El vocabulario del Dr. estaba escrito, curado por él y probado. No llegaba
+   * al único sitio donde cambia lo que la máquina OYE. Y lo que no se oye no lo
+   * recupera ningún corrector de después.
+   *
+   * El nombre se conserva ADEMÁS del contenido: cuesta cuatro términos y alguna
+   * especialidad sí se dice en voz alta («lo mando a infectología»).
+   */
+  const nombres = [...(ctx.especialidad ?? [])]
   const candidatos = [
     ...delPacienteCrudo,
     ...(ctx.aprendidas ?? []),
-    ...(ctx.especialidad ?? []),
+    ...terminosDeEspecialidades(nombres),
+    ...nombres,
     ...global,
   ]
 

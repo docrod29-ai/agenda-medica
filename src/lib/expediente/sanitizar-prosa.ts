@@ -28,7 +28,29 @@ const PATRONES: RegExp[] = [
    * En un expediente, una nota que se describe a sí misma se lee como si el
    * médico no hubiera atendido.
    */
-  /,?\s*en\s+(?:est[ea]|el|la)\s+(?:fragmento|segmento|porci[oó]n|parte|tramo)\s+(?:de\s+(?:la\s+)?(?:consulta|conversaci[oó]n|entrevista|grabaci[oó]n|audio|transcripci[oó]n))?/gi,
+  /**
+   * ── EL COMPLEMENTO ES OBLIGATORIO (6-ago-2026, REG-186) ────────────────────
+   *
+   * Aquí había un `?` al final que hacía OPCIONAL el «de la consulta». Con él,
+   * este patrón cazaba «en el segmento», «en la parte», «en la porción» y «en
+   * el tramo» sueltos — que en una nota clínica son LOCALIZACIONES ANATÓMICAS,
+   * no metatexto. Comprobado con el motor real:
+   *
+   *     «ECG con infradesnivel en el segmento ST de 2 mm»
+   *              → «ECG con infradesnivelST de 2 mm»
+   *     «Dolor en la parte baja de la espalda»
+   *              → «Dolorbaja de la espalda»
+   *     «Lesión en la porción distal del húmero»
+   *              → «Lesióndistal del húmero»
+   *
+   * Cuatro de cada cinco frases clínicas legítimas salían amputadas, y la
+   * primera es un infarto: el infradesnivel del ST se imprimía pegado al verbo.
+   *
+   * Lo que este patrón existe para borrar es «en este fragmento DE LA
+   * CONSULTA» — el modelo describiendo su entrada. Sin el complemento no hay
+   * metatexto que borrar: hay anatomía.
+   */
+  /,?\s*en\s+(?:est[ea]|el|la)\s+(?:fragmento|segmento|porci[oó]n|parte|tramo)\s+de\s+(?:la\s+)?(?:consulta|conversaci[oó]n|entrevista|grabaci[oó]n|audio|transcripci[oó]n)/gi,
   /,?\s*(?:seg[uú]n|de\s+acuerdo\s+(?:a|con))\s+(?:la\s+)?(?:transcripci[oó]n|grabaci[oó]n|el\s+audio|el\s+dictado)/gi,
   /,?\s*(?:no\s+se\s+dispone\s+del?|no\s+hay)\s+(?:audio|grabaci[oó]n|transcripci[oó]n)(?:\s+(?:completa|disponible))?/gi,
   /,?\s*(?:el\s+)?(?:fragmento|audio|dictado)\s+(?:proporcionado|recibido|analizado)/gi,

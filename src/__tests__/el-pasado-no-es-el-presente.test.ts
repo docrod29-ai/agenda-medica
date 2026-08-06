@@ -29,6 +29,7 @@ import { describe, it, expect } from 'vitest'
 import { NIVEL, NO_SE_PLIEGAN } from '@/lib/expediente/avisos-consulta'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 import {
   esFrasePasada, mencionesEnPasado, desajustesTemporales, avisoDeDesajuste,
   padecimientosEn, AGUDAS_FRECUENTES,
@@ -273,10 +274,24 @@ describe('LA REGLA DEL PROMPT ACOMPAÑA AL MOTOR', () => {
   })
 
   it('y la versión del prompt cambió, que es lo que queda en el registro', () => {
-    // `_promptVersion` viaja al sello de procedencia de cada nota: dejarla igual
-    // haría indistinguibles las notas hechas con una regla y con la otra.
-    const ruta = leer('src', 'app', 'api', 'expediente', 'procesar', 'route.ts')
-    expect(ruta).toContain("const PROMPT_VERSION = 'nota-2026-08'")
+    /**
+     * ── ESTE CANDADO ESTABA PUESTO AL REVÉS (6-ago-2026, REG-191) ──────────
+     *
+     * Su intención era buena y sigue siendo la misma: `_promptVersion` viaja al
+     * sello de procedencia de cada nota, y dejarla igual haría indistinguibles
+     * las notas hechas con una regla y con la otra.
+     *
+     * Pero la fijaba al literal `'nota-2026-08'`, así que **subirla rompía la
+     * suite**: el candado impedía justamente lo que existía para exigir. El
+     * prompt cambió siete veces en una noche y la versión no se movió.
+     *
+     * Ahora la intención se comprueba donde se puede comprobar de verdad —
+     * `la-version-del-prompt-no-miente.test.ts` compara una huella del prompt
+     * real contra la declarada— y aquí sólo se exige que la regla y su versión
+     * sigan existiendo.
+     */
+    expect(PROMPT_VERSION).toMatch(/^nota-\d{4}-\d{2}-\d{2}-\d+$/)
+    expect(PROMPT_VERSION).not.toBe('nota-2026-08')
   })
 })
 

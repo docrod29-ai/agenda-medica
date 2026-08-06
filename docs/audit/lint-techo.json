@@ -1,5 +1,5 @@
 {
-  "errores": 97,
+  "errores": 96,
   "porArchivo": {
     "src/app/(dashboard)/asistente/page.tsx": 2,
     "src/app/(dashboard)/citas/page.tsx": 2,
@@ -9,7 +9,7 @@
     "src/app/(dashboard)/configuracion/secciones-recetas.tsx": 1,
     "src/app/(dashboard)/configuracion/secciones-seguridad.tsx": 2,
     "src/app/(dashboard)/consulta/[patientId]/consulta-ui.tsx": 1,
-    "src/app/(dashboard)/consulta/[patientId]/page.tsx": 11,
+    "src/app/(dashboard)/consulta/[patientId]/page.tsx": 9,
     "src/app/(dashboard)/corte-caja/page.tsx": 1,
     "src/app/(dashboard)/cumplimiento/page.tsx": 1,
     "src/app/(dashboard)/cumplimiento/retencion/page.tsx": 1,

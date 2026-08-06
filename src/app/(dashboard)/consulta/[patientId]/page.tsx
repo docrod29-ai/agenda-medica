@@ -141,6 +141,9 @@ import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
+import { dosisPeligrosasDeLaLista } from '@/lib/seguridad/dosis-de-la-lista'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
 import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
@@ -645,12 +648,43 @@ export default function ConsultaActivaPage() {
    * en el JSX se creaba uno nuevo en CADA render, el useMemo del Copiloto nunca
    * acertaba y el motor se recalculaba en cada tecla del dictado.
    */
+  /**
+   * Suben aquí desde más abajo para que el cuadro completo (REG-188) pueda
+   * usarlas: son `useState` puros, y moverlos no cambia nada salvo el orden de
+   * declaración. Se rellenan en el efecto que lee las notas firmadas.
+   */
+  const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
+
+  /**
+   * ── EL CUADRO COMPLETO, FUERA DEL useMemo (REG-188) ─────────────────────────
+   *
+   * Se calculan aquí, en el cuerpo, y no dentro del `useMemo` de abajo: llamar
+   * a una función importada dentro de una memoización manual impide al React
+   * Compiler preservarla, y el trinquete de lint lo caza (5 errores nuevos).
+   * En el cuerpo el compilador las memoiza solo, que es lo idiomático.
+   */
+  const medsDelCuadro = medicacionDelCuadro(medicamentos, vigentes)
+  const dxDelCuadro = problemasDelCuadro(diagnosticos, problemas)
+
   const entradaCopiloto = useMemo(() => ({
     edad: patient?.edad,
     sexo: patient?.sexo,
     alergias: patient?.alergias,
-    diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
-    medicamentos: medicamentos.map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+    /**
+     * ── EL PACIENTE COMPLETO, NO SÓLO LO DE HOY (6-ago-2026, REG-188) ──────
+     *
+     * Aquí iban únicamente los renglones de esta consulta. En un seguimiento
+     * —la mayoría— eso es la punta del iceberg: dos líneas nuevas sobre alguien
+     * que toma cinco cosas desde hace años.
+     *
+     * `medicamentosVigentes` y `problemasActivos` ya estaban calculados y
+     * pintados en pantalla; simplemente no llegaban al motor. Warfarina de
+     * marzo + ketorolaco de hoy: la regla de sangrado existe, está probada, y
+     * no disparaba.
+     */
+    diagnosticos: dxDelCuadro,
+    medicamentos: medsDelCuadro,
     // signosNum, no signos: el copiloto compara contra umbrales y calcula IMC.
     // Con el valor en crudo, un "70.5" en texto rompería ambas cosas.
     signos: {
@@ -1003,9 +1037,7 @@ export default function ConsultaActivaPage() {
    * anotada en la consulta anterior no aparecía en ningún sitio salvo leyendo
    * esa nota entera.
    */
-  const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
   /** Qué TIENE el paciente y cuándo vino la última vez (ver `problemas-activos`). */
-  const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
   /**
    * El formulario que el paciente llenó desde su portal, si lo llenó. Se lee
    * aparte y NO se mezcla con el expediente: ver `lib/portal/formulario-previo`.
@@ -1363,8 +1395,9 @@ export default function ConsultaActivaPage() {
       const res = await fetchAutenticado('/api/expediente/evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
-          medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          /** El cuadro completo, igual que el copiloto (REG-188). */
+          diagnosticos: dxDelCuadro,
+          medicamentos: medsDelCuadro,
           motivo: motivo.slice(0, 400),
           motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
@@ -3095,6 +3128,26 @@ export default function ConsultaActivaPage() {
   const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
 
   /**
+   * ── UNA SOLA RESPUESTA A «¿POR QUÉ NO PUEDO FIRMAR?» (REG-189) ─────────────
+   *
+   * Antes vivía repartida: el botón se apagaba con NOM-004 y la compuerta de
+   * dosis estaba dentro de `firmar()`, así que con una dosis incompleta el
+   * botón se veía ENCENDIDO y fallaba al pulsarlo. La barra, al revés, no
+   * miraba NOM-004 y decía «nada te impide firmar» junto a un botón apagado.
+   *
+   * NO cambia la política: lo que impedía firmar ayer impide firmar hoy.
+   */
+  const bloqueosDeFirma = motivosParaNoFirmar({
+    erroresNOM004: validacion?.errores,
+    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
+  })
+  const motivoNoFirma = porQueNoSePuedeFirmar({
+    erroresNOM004: validacion?.errores,
+    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
+  })
+
+
+  /**
    * ¿El bloqueo de la firma es SÓLO la cédula que falta?
    *
    * Se mira la config, no el texto del error: comparar cadenas se rompe en
@@ -4254,6 +4307,21 @@ export default function ConsultaActivaPage() {
           avisoDeVia: avisoDeViaAsumida(viasAsumidas),
           interacciones: detectarInteracciones(medicamentos),
           controlados: detectarControlados(medicamentos),
+          /**
+           * ── LA SOBREDOSIS SE VE ANTES DE FIRMAR (REG-190) ─────────────────
+           * El motor `revisarDosis` —sobredosis, techos por vía y edad, error
+           * de decimal— tenía UN solo llamador: la pantalla de la receta, que
+           * se abre desde una nota YA FIRMADA. Cazaba «500 donde iban 50»
+           * cuando el paciente ya se había ido con la receta en la mano.
+           */
+          dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
+            edadAnios: patient?.edad ?? undefined,
+            pesoKg: signosNum.peso ?? undefined,
+          }).map(d => ({
+            med: d.med,
+            mensaje: d.alertas.map(a => a.mensaje).join(' · '),
+            critica: d.severidad === 'critica',
+          })),
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */
@@ -4746,12 +4814,39 @@ export default function ConsultaActivaPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={firmar} disabled={!validacion.valida || guardando} style={S.firmar(!validacion.valida || guardando)}>
+            {/*
+              ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──────
+              Se apagaba sólo con NOM-004, así que con una dosis incompleta se
+              veía ENCENDIDO: el médico lo pulsaba, salía un toast y no pasaba
+              nada. Ahora la fuente es una sola —la misma que cuenta la barra— y
+              el motivo viaja en el `title` y en el renglón de al lado.
+              NO cambia la política: lo que impedía firmar ayer impide hoy.
+            */}
+            <button
+              onClick={firmar}
+              disabled={bloqueosDeFirma.length > 0 || guardando}
+              title={motivoNoFirma || 'Firmar y cerrar la nota'}
+              style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
+            >
               <FileSignature size={17} /> Firmar y cerrar nota
             </button>
             <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
               {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
             </button>
+            {/*
+              El motivo, DONDE ESTÁ EL DEDO. El mensaje ya existía y era
+              inalcanzable: el del toast sólo salía al pulsar, y el de NOM-004
+              vive en un recuadro que queda fuera de pantalla cuando el médico
+              está abajo, junto a los botones.
+            */}
+            {bloqueosDeFirma.length > 0 && !guardando && (
+              <span role="status" style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.45, flexBasis: '100%' }}>
+                {motivoNoFirma}
+                {bloqueosDeFirma.length > 1 && (
+                  <span style={{ opacity: 0.85 }}> · y {bloqueosDeFirma.length - 1} más arriba</span>
+                )}
+              </span>
+            )}
             <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
               <Volume2 size={14} /> Leer resumen
             </button>
