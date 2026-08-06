@@ -1553,3 +1553,77 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-201 — el punto de orden tenía su propio parser de alergias (v1082)
+
+**Encontrado** — 6-ago-2026, verificando `SAFE-001` antes de darlo por cerrado.
+
+REG-171 unificó tres caminos —consulta, UCI y extractor de entidades— sobre
+`alergiasDe`. El backlog hablaba de «cuatro parsers»; recorriendo otra vez quién
+parte el campo apareció un quinto: `src/lib/hospital/cds.ts`, el **punto de
+orden** de hospitalización. Es el único sitio donde la alerta de alergia llega
+**antes** de que la indicación se firme, y era el que no estaba en la cuenta.
+
+**Cómo se reprodujo** — Con el motor real, sin mocks:
+
+```
+cdsMedicamento({ nombre: 'Sulfametoxazol/trimetoprima',
+                 alergias: 'Niega penicilina y alérgica a sulfas' })
+  → [{ nivel: 'info', texto: 'Fármaco de eliminación renal…' }]   ← cero críticas
+alergenosDe({ alergias: 'Niega penicilina y alérgica a sulfas' })
+  → ['alérgica a sulfas']                                          ← el canónico sí
+```
+
+**El defecto** — Tenía `split(/[,;.\n]/)` y su propia lista de negadores. Ni la
+«y» ni la barra separaban, así que «Niega penicilina y alérgica a sulfas» era
+**un solo fragmento**: el negador de delante lo tumbaba entero y la alergia a
+sulfas **desaparecía**. Es el mismo modo de fallo que el punto ya había enseñado
+en REG-171, un conector más tarde.
+
+Y `alergiasEstructuradas` no se miraba **por ninguno de los dos lados**: ni la
+firma de `CdsInput` la aceptaba, ni el llamador la pasaba (`patient?.alergias` a
+secas). El paciente mejor documentado era el que corría sin compuerta.
+
+**Por qué importa para un paciente** — Descartar primero lo frecuente y apuntar
+después lo que sí hay es la forma **normal** de escribir el campo. Con el parser
+viejo, ese orden bastaba para que la alergia posterior no existiera para el
+motor: se ordenaba el fármaco al que el paciente es alérgico sin un solo aviso,
+en el único momento en que el aviso todavía sirve.
+
+**Segundo hallazgo, en las mismas ocho líneas** — El bucle marcaba como
+`critica` **toda** alerta del cruce, incluida la que el motor había bajado a
+`advertencia` a propósito: con alergia a penicilina aislada, el carbapenémico no
+se bloquea (decisión del médico dueño, E0-15d — reactividad cruzada <1%, y una
+alerta roja ahí frena la primera línea justo en sepsis y meningitis). La franja
+salía **roja sobre un texto que dice «NO es contraindicación»**: la pantalla
+deshacía la decisión y devolvía la fatiga de alerta que la decisión existía para
+evitar. Misma familia que REG-189.
+
+**Reparación** — `cdsMedicamento` usa `alergiasDe`, acepta
+`alergiasEstructuradas` y la pantalla de hospitalización pasa **los dos** campos.
+Las alergias viajan completas, con su reacción: el cruce betalactámico↔
+carbapenémico la necesita para distinguir reacción cutánea grave. Y la severidad
+del motor se respeta en vez de aplanarse.
+
+**Ningún umbral nuevo** — No se toca el cruce ni su vocabulario; sólo quién le
+entrega la lista y cómo se pinta lo que devuelve. La decisión E0-15d no se
+cambia: se restituye.
+
+**Qué NO hace** — No mejora el cruce en sí: `validarAlergiasVsMedicamentos`
+sigue comparando por subcadena contra su vocabulario de familias, y un alérgeno
+fuera de ese vocabulario **sigue sin vigilarse** — eso es vocabulario, no
+criterio. Tampoco existe hoy ninguna ruta de escritura que llene
+`alergiasEstructuradas`: lo que se cierra es que el día que la haya, este camino
+ya la lea.
+
+**Qué queda para el médico** — El CDS del punto de orden sigue en
+`pendiente_validacion` en el registro (C-1 en la cola del dueño), y la
+clasificación de fármacos de alto riesgo sigue pendiente (C-3).
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos archivos: 8 de los 13
+casos fallan.
+
+**Golden** — `src/__tests__/el-cds-hospitalario-lee-las-mismas-alergias.test.ts`
+(13 casos).

@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1082 — REG-201: el punto de orden tenía su propio parser de alergias
+
+`hospital/cds.ts` es el único sitio donde la alerta de alergia llega ANTES de
+que la indicación se firme, y era el quinto parser del mismo campo. Ni la «y» ni
+la barra separaban: «Niega penicilina y alérgica a sulfas» era un fragmento, el
+negador de delante lo tumbaba entero y la alergia a sulfas desaparecía.
+
+`alergiasEstructuradas` tampoco se miraba — ni la firma la aceptaba, ni el
+llamador la pasaba. Ahora usa `alergiasDe`, con la reacción incluida.
+
+Y la severidad del motor deja de aplanarse a «crítica»: la franja pintaba rojo
+sobre un texto que dice «NO es contraindicación», deshaciendo la decisión E0-15d
+sobre el carbapenémico.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

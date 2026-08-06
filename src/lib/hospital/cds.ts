@@ -6,6 +6,8 @@
 // ══════════════════════════════════════════════════════════════
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { alergiasDe } from '@/lib/seguridad/alergias'
+import type { AlergiaEstructurada } from '@/types'
 
 export interface AlertaCDS {
   nivel: 'critica' | 'alta' | 'info'
@@ -25,6 +27,8 @@ const RENAL_AJUSTE = [
 export interface CdsInput {
   nombre: string
   alergias?: string
+  /** Alergias ya capturadas en estructura. Si vienen, mandan sobre el texto libre. */
+  alergiasEstructuradas?: AlergiaEstructurada[]
   medsActivos?: string[]   // nombres de otras indicaciones de medicamento activas
   tfg?: number | null      // ml/min si se conoce
 }
@@ -35,17 +39,50 @@ export function cdsMedicamento(opts: CdsInput): AlertaCDS[] {
   if (!nombre) return []
   const out: AlertaCDS[] = []
 
-  // 1) Alergias (crítico) — DESCARTAR los segmentos NEGADOS (auditoría P1): un campo
-  // "niega alergia a penicilina" / "sin alergias" NO debe disparar la alerta crítica
-  // que bloquea. Se separa también por punto para no perder una alergia real que
-  // venga después de una negada ("niega penicilina. alérgico a sulfas").
-  const NEG_SEG = /^\s*(?:niega|nieg[ao]|sin\b|no\s+(?:tiene|refiere|presenta|hay)|nunca|ausente|descart)/i
-  const alergias = (opts.alergias || '').split(/[,;.\n]/).map(s => s.trim()).filter(Boolean)
-    .filter(s => !NEG_SEG.test(s))
-    .map(a => ({ alergeno: a }))
+  /**
+   * 1) Alergias (crítico) — CON EL PARSER CANÓNICO, no con uno propio.
+   *
+   * ── EL QUINTO PARSER (6-ago-2026, SAFE-001) ────────────────────────────────
+   *
+   * Aquí vivía un `split(/[,;.\n]/)` con su propia lista de negadores. REG-171
+   * unificó la consulta, la UCI y el extractor de entidades sobre `alergiasDe`;
+   * este camino —el del punto de ORDEN hospitalario, donde la alerta llega antes
+   * de firmar— se quedó fuera. Perdía dos cosas:
+   *
+   * 1. **La «y» y la barra no separaban.** «Niega penicilina y alérgica a
+   *    sulfas» era UN fragmento; el negador de delante lo tumbaba entero y la
+   *    alergia a sulfas **desaparecía**. Al ordenar sulfametoxazol/trimetoprima
+   *    no salía ninguna alerta crítica. Es el mismo modo de fallo que el punto
+   *    ya había enseñado, un conector más tarde.
+   * 2. **`alergiasEstructuradas` no se miraba.** El paciente mejor documentado
+   *    —alergias capturadas en estructura, texto libre vacío— corría sin
+   *    compuerta.
+   *
+   * El canónico también parte «TMP/SMX» sólo cuando la barra lleva espacio, así
+   * que los combinados que el Dr. ordena a diario siguen enteros.
+   *
+   * Se pasan las alergias COMPLETAS (con su reacción), no sólo el nombre: el
+   * cruce betalactámico↔carbapenémico busca reacción cutánea grave en ese texto
+   * para decidir si la alerta es crítica o precaución.
+   */
+  const alergias = alergiasDe({
+    alergias: opts.alergias,
+    alergiasEstructuradas: opts.alergiasEstructuradas,
+  })
   if (alergias.length) {
     for (const a of validarAlergiasVsMedicamentos(alergias, [{ nombre }])) {
-      out.push({ nivel: 'critica', texto: a.mensaje })
+      /**
+       * La severidad del motor se RESPETA, no se aplana a «crítica».
+       *
+       * El cruce ya distingue: con alergia a penicilina aislada, el carbapenémico
+       * baja a `advertencia` por decisión del médico dueño (E0-15d) —la
+       * reactividad cruzada es <1% y una alerta roja ahí bloquea la primera línea
+       * justo en sepsis y meningitis—. Este bucle marcaba las tres severidades
+       * como críticas, así que la franja salía ROJA sobre un texto que dice «NO
+       * es contraindicación»: la pantalla contradecía al motor y devolvía la
+       * fatiga de alerta que la decisión existía para evitar.
+       */
+      out.push({ nivel: a.severidad === 'critica' ? 'critica' : 'alta', texto: a.mensaje })
     }
   }
 

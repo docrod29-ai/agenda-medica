@@ -332,8 +332,17 @@ export default function EpisodioPage() {
   // CDS EN VIVO para la indicación que se está capturando
   const alertasCDS: AlertaCDS[] = useMemo(() => {
     if (indForm.tipo !== 'medicamento' || !indForm.descripcion.trim()) return []
-    return cdsMedicamento({ nombre: indForm.descripcion, alergias: patient?.alergias, medsActivos })
-  }, [indForm.tipo, indForm.descripcion, patient?.alergias, medsActivos])
+    /**
+     * Las alergias van por los DOS campos (SAFE-001): pasar sólo el texto libre
+     * dejaba sin compuerta al paciente que las tiene capturadas en estructura.
+     */
+    return cdsMedicamento({
+      nombre: indForm.descripcion,
+      alergias: patient?.alergias,
+      alergiasEstructuradas: patient?.alergiasEstructuradas,
+      medsActivos,
+    })
+  }, [indForm.tipo, indForm.descripcion, patient?.alergias, patient?.alergiasEstructuradas, medsActivos])
 
   /**
    * NEWS2 — QUÉ SE PUNTÚA Y CÓMO SE LLAMA (decisión ICU-Q4.1 del Dr).

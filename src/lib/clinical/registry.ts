@@ -1614,7 +1614,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     id: 'cds-punto-de-orden', nombre: 'CDS en el punto de orden', especialidad: 'Hospital/Farmacia clínica',
     tipo: 'regla-de-seguridad',
     version: '1.0.0', referencia: 'Diseño de alta especificidad para evitar fatiga de alertas (ver encabezado del archivo)',
-    unidades: 'lista de medicamentos + alergias del paciente + TFG cuando existe',
+    unidades: 'lista de medicamentos + alergias del paciente (texto libre o estructuradas, vía alergiasDe) + TFG cuando existe',
     redondeo: 'no aplica (emite alertas)',
     rangoValido: {
       fuente: 'referencia',
@@ -1626,7 +1626,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     entryPoints: ['cdsMedicamento'],
     missingData: 'sin alergias registradas no afirma que no las hay; reutiliza los motores de alergia e interacciones.',
     adr: ADR('cds-punto-de-orden'),
-    goldenTests: ['hospital-cds.test.ts'],
+    goldenTests: ['hospital-cds.test.ts', 'el-cds-hospitalario-lee-las-mismas-alergias.test.ts'],
     estado: 'pendiente_validacion',
     porQueExiste: 'Es el único punto donde la alerta llega ANTES de que la orden se firme.',
   },
