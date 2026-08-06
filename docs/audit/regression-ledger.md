@@ -1625,5 +1625,16 @@ clasificación de fármacos de alto riesgo sigue pendiente (C-3).
 **Comprobado que puede ponerse rojo** — Revertidos los dos archivos: 8 de los 13
 casos fallan.
 
+**Y POR QUÉ NADIE LO VIO ANTES** — REG-171 dejó un guardián llamado «el que
+impide la quinta copia»… que recorría **dos archivos**: `consulta/page.tsx` y
+`uci/page.tsx`, precisamente los dos que acababa de reparar. La quinta copia
+existía **mientras el guardián estaba en verde**, porque vivía donde el guardián
+no miraba. Un candado que sólo inspecciona los archivos que ya arreglaste no
+puede encontrar el que se te pasó — la misma clase de fallo que REG-191.
+
+Ahora barre `src/` entero, con el módulo canónico y las pruebas excluidos a
+propósito. Comprobado al revés: reintroducido el troceador viejo, la prueba
+nombra el archivo (`src/lib/hospital/cds.ts`); el guardián anterior seguía verde.
+
 **Golden** — `src/__tests__/el-cds-hospitalario-lee-las-mismas-alergias.test.ts`
 (13 casos).

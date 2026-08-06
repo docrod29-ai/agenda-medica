@@ -35,9 +35,19 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 import { alergenosDe } from '@/lib/seguridad/alergias'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
+
+/** `grep` sin coincidencias sale con 1; aquí eso es la lista vacía, no un error. */
+const ejecutar = (cmd: string) => {
+  try {
+    return execSync(cmd, { cwd: process.cwd(), encoding: 'utf8' })
+  } catch {
+    return ''
+  }
+}
 
 describe('LO QUE LOS PARSERS DE FUERA PERDÍAN', () => {
   it('«Penicilina / Sulfas» son DOS alérgenos, no una frase', () => {
@@ -87,14 +97,34 @@ describe('LOS TRES LLAMADORES USAN EL MISMO', () => {
     expect(uci).toContain('const lista = alergenosDe(paciente ?? {})')
   })
 
-  it('y ya no queda ningún splitter propio del campo', () => {
+  it('y ya no queda ningún splitter propio del campo, EN TODO EL REPOSITORIO', () => {
     /**
-     * El guardián que impide la quinta copia. Si alguien vuelve a partir el
-     * campo a mano, esta prueba lo dice antes de que llegue a producción.
+     * ── EL GUARDIÁN MIRABA SÓLO DONDE YA SE HABÍA ARREGLADO (6-ago-2026) ─────
+     *
+     * Esto se llamaba «el guardián que impide la quinta copia» y recorría dos
+     * archivos: `consulta/page.tsx` y `uci/page.tsx` — precisamente los dos que
+     * acababan de repararse. La quinta copia **existía mientras el guardián
+     * estaba en verde**: vivía en `hospital/cds.ts`, el punto de orden, y allí
+     * el guardián no miraba (REG-201).
+     *
+     * Un candado que sólo inspecciona los archivos que ya arreglaste no puede
+     * encontrar el que se te pasó. Es la misma clase de fallo que REG-191: la
+     * intención era buena y la implementación la impedía.
+     *
+     * Por eso ahora barre `src/` entero. La lista de archivos deja de ser algo
+     * que alguien tenga que acordarse de ampliar.
      */
-    for (const [nombre, src] of [['consulta', consulta], ['uci', uci]] as const) {
-      expect(src, `${nombre} volvió a partir las alergias a mano`)
-        .not.toMatch(/alergias[^\n]*\.split\(\/\[/)
-    }
+    const sospechosos = ejecutar(
+      'grep -rlE "alergia[A-Za-z]*[^\\n]{0,60}\\.split\\(" --include=*.ts --include=*.tsx src/',
+    )
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      // El canónico ES el que parte el campo: es su trabajo, y de él salen los demás.
+      .filter(f => f !== 'src/lib/seguridad/alergias.ts')
+      // Las pruebas hablan del defecto; citarlo no es cometerlo.
+      .filter(f => !f.startsWith('src/__tests__/'))
+
+    expect(sospechosos, 'alguien volvió a partir el campo de alergias a mano').toEqual([])
   })
 })
