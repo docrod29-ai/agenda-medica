@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: cómo se dice que no en una consulta
+
+Medido con el motor real: de siete formas de negar, cazaba UNA. «Pues no»,
+«Fíjese que no», «Tampoco», «Diabetes no» y hasta «— No.» a secas se perdían,
+porque el motor exigía que la respuesta EMPEZARA por «no» y delante viene la
+marca de turno o una muletilla.
+
+Cada una era una enfermedad que el paciente negó y que la nota podía afirmar sin
+que nadie avisara.
+
+Y `parser-clinico.ts` tenía una segunda lista más pobre: «No padece diabetes»
+entraba como antecedente POSITIVO y contaminaba el STOP-BANG de la preoperatoria.
+
+LA TRAMPA: al quitar el guion, «— No sé» se vuelve «no sé» y contaría como
+negación. La guarda falló a la primera con `\bs[eé]\b` — en JavaScript `\w` es
+ASCII, así que «é» no cierra palabra y `\b` no encuentra límite. Cazaba «no se»
+y fallaba con «no sé», que es la forma que se escribe.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

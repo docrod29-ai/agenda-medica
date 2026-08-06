@@ -1553,3 +1553,51 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — cómo se dice que no en una consulta (v1074)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos C2 y C3),
+**medido con el motor real** antes de tocar nada.
+
+**El defecto** — El motor de negaciones exigía que la respuesta **empezara** por
+«no». En una transcripción real casi nunca empieza ahí: delante viene la marca de
+turno («—», «Paciente:») o una muletilla. De siete formas de decir que no,
+**cazaba una**:
+
+| Se dijo | ¿Se registró como negado? |
+|---|---|
+| «¿Padece diabetes? — No padece diabetes.» | sí (por otra vía) |
+| «¿Tiene hipertensión? — Pues no.» | **no** |
+| «¿Ha tenido asma? — Fíjese que no.» | **no** |
+| «¿Y tuberculosis? — Tampoco.» | **no** |
+| «¿Tiene cáncer? — No.» | **no** ← ni la más simple |
+
+Cada una es una enfermedad que el paciente negó y que el sistema no registró como
+negada — así que la nota podía afirmarla sin que nadie avisara. Es el motor que
+existe para impedir REG-023 («el interrogatorio nombra la enfermedad en la
+PREGUNTA y el extractor la cosecha»), trabajando a un séptimo de su capacidad.
+
+**Y una segunda lista, más pobre** — `parser-clinico.ts` tenía su propio
+`NEGADORES` sin `no padece`, `sin antecedentes de`, `ausencia de` ni `se
+descarta`. Consecuencia: **«No padece diabetes» entraba como antecedente
+positivo**, y de ahí contamina lo que se calcula encima (STOP-BANG en la
+valoración preoperatoria). Mismo patrón que REG-177 con la lista de huecos.
+
+**La trampa de la propia reparación** — Al quitar el guion de turno, «— No sé» se
+convierte en «no sé», que empieza por «no». Sin guarda, el sistema registraría
+que el paciente **negó** una enfermedad cuando dijo que **no lo sabe**.
+
+**Y la guarda falló a la primera, por algo que merece quedar escrito**: se
+escribió `\bs[eé]\b`, y en JavaScript `\w` es ASCII, así que «é» no cuenta como
+carácter de palabra y `\b` no encuentra límite entre «é» y «.». Cazaba «no se» y
+**fallaba con «no sé»** — justo la forma que se escribe. Se sustituyó por una
+anticipación negativa que sí entiende acentos.
+
+**Lo que sigue sin contar** — El silencio. Una respuesta afirmativa. Y un «no»
+final en una frase **larga** («me dijeron que fuera al cardiólogo pero no»):
+fabricar una negación es peor que perderla.
+
+**Golden** — `src/__tests__/como-se-dice-que-no-en-una-consulta.test.ts` (21
+casos), medidos contra el motor real.
