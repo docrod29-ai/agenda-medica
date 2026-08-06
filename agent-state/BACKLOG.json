@@ -107,8 +107,9 @@
       "complejidad": 2,
       "dependenciaExterna": 0,
       "score": 55,
-      "estado": "pendiente",
-      "reversible": true
+      "estado": "CERRADO (v1081)",
+      "reversible": true,
+      "cierre": "REG-200. Corpus oro de 32 frases (20 pasado + 12 presente). Medido antes: 16/26. Después de ampliar PASADO con las diez formas que faltaban: 30/30 sin falsos positivos."
     },
     {
       "id": "TRACE-001",
@@ -172,10 +173,27 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "NO CONFIRMADO — medido y falso (6-ago-2026)",
       "reversible": true,
       "origen": "auditoría de nueve dimensiones, hallazgo D4",
-      "score": 41
+      "score": 41,
+      "medicion": {
+        "metodo": "Luminancia relativa WCAG 2.1, calculada sobre los tokens reales de globals.css (fondo #0B0C0E, panel #131518).",
+        "reportado": {
+          "motivoNoFirma": "2.42:1",
+          "confianza": "1.93:1"
+        },
+        "medido": {
+          "motivo de no-firma (#f87171 sobre bg)": "7.07:1",
+          "aviso en panel (#f87171 sobre #131518)": "6.61:1",
+          "ámbar (#f59e0b sobre panel)": "8.52:1",
+          "botón Firmar APAGADO (#8A8F94 sobre #232629)": "4.66:1",
+          "texto secundario (#A8ACAE sobre bg)": "8.55:1"
+        },
+        "minimoAA": "4.5:1",
+        "veredicto": "Ninguno falla. El más apretado es el botón deshabilitado, y pasa."
+      },
+      "leccion": "El informe daba dos cifras concretas y las dos eran falsas. Cifras precisas inspiran más confianza que las vagas, y por eso hay que medirlas igual. Reparar esto habría cambiado colores que ya cumplen — tocar la app del médico sin motivo — y habría gastado el tiempo que necesita otro ítem."
     },
     {
       "id": "SAFE-003",

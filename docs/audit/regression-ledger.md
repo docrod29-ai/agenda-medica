@@ -1866,3 +1866,46 @@ todo» cuando no hay sello: significa que no cubre nada.
 **Lo que queda es del médico** — Subir a `hashVersion` 4 para sellar el origen
 exige migración. Registrado en `agent-state/OWNER_DECISIONS_REQUIRED.md` (D-08).
 Tocar el hash es irreversible sobre documentos firmados con su cédula.
+
+---
+
+## REG-200 — el motor de temporalidad se comía diez formas de decir «ya pasó» (v1081)
+
+**Del backlog del Master Loop V7** — `EVAL-002`, score 55.
+
+**Por qué se abrió** — El motor que distingue «tuvo neumonía hace tres años» de
+«tiene neumonía» existía y estaba probado, pero **no había un corpus con la
+respuesta correcta escrita**. Sin eso no se puede decir si mejora o empeora entre
+versiones: el mismo agujero que tenía el reconocedor de voz antes del WER.
+
+**Lo que salió al medirlo** — 26 frases de consulta mexicana real: **16 aciertos,
+10 fallos**. Los diez del mismo tipo, pasado no detectado, y **cero falsos
+positivos** — el motor erraba siempre del lado seguro, como declara su propia
+documentación («señala de menos, nunca de más»).
+
+Pero se le escapaban las formas más corrientes:
+
+| Se le escapaba | Qué es |
+|---|---|
+| «le dio hepatitis» | la forma mexicana de enfermar |
+| «había tenido convulsiones» | pluscuamperfecto |
+| «fue diagnosticada de asma» | pasiva del diagnóstico |
+| «ya no toma» · «dejó de» · «suspendieron» | **cese** — distingue fármaco vigente de suspendido |
+| «salió del hospital» · «le dieron de alta» | alta |
+| «antes fumaba» · «solía tener» | hábito previo |
+
+**Después de ampliarlo: 30 de 30, sin un solo falso positivo.**
+
+**Por qué importa para un paciente** — Un padecimiento pasado que entra como
+actual se arrastra a **todas las notas siguientes**, cambia el riesgo quirúrgico y
+cambia los fármacos. Y «ya no toma metformina» leído como vigente deja un fármaco
+fantasma en la lista contra la que se cruzan alergias e interacciones.
+
+**La asimetría que gobierna este motor** — Un aviso que no salta deja el trabajo
+al médico, que es lo que ya hace hoy. Un aviso falso le hace desconfiar de todos
+los demás. Por eso el corpus vigila las dos caras, pero **un falso positivo es un
+fallo más grave que una omisión**.
+
+**Golden** — `src/__tests__/corpus-oro-temporalidad.test.ts` (32 frases: 20 de
+pasado, 12 de presente). Es un corpus, no un test de humo: crece cuando aparezca
+una forma nueva, y el sello impide que encoja.

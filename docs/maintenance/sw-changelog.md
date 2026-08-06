@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1081 — REG-200: el motor de temporalidad se comía diez formas de «ya pasó»
+
+Del backlog del Master Loop (EVAL-002). Existía el motor y estaba probado, pero
+no había corpus con la respuesta correcta escrita — sin eso no se puede decir si
+mejora o empeora.
+
+Medido sobre habla de consulta mexicana: **16 de 26**. Los diez fallos, todos
+pasado no detectado; cero falsos positivos. Se le escapaban «le dio hepatitis»,
+«había tenido», «fue diagnosticada», «ya no toma», «dejó de», «salió del
+hospital», «antes fumaba», «solía tener».
+
+Ampliado: **30 de 30, sin falsos positivos.**
+
+«Ya no toma metformina» leído como vigente deja un fármaco fantasma en la lista
+contra la que se cruzan alergias e interacciones.
+
 ## v1080 — REG-199: el sello decía «cubre todo» y el módulo sabía que no
 
 Del backlog del Master Loop (TRACE-001). El hallazgo era medio falso: el módulo
