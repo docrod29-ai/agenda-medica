@@ -862,8 +862,9 @@ export default function ConsultaActivaPage() {
       .filter(m => m.nombre?.trim())
       // Ver `esDosisDeclaradaDesconocida`: una respuesta no es un aviso pendiente.
       .filter(m => !esDosisDeclaradaDesconocida(m.dosis))
-      .map(m => ({ med: m.nombre, aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
-      .filter((x): x is { med: string; aviso: NonNullable<ReturnType<typeof revisarUnidadDosis>> } => !!x.aviso)
+      /** La procedencia viaja con el aviso para que el texto pueda decir de cuál se trata (REG-183). */
+      .map(m => ({ med: m.nombre, aviso: revisarUnidadDosis(m.nombre, m.dosis), procedencia: m.procedenciaClinica }))
+      .filter((x): x is { med: string; aviso: NonNullable<ReturnType<typeof revisarUnidadDosis>>; procedencia: 'ya_lo_toma' | 'se_prescribe_hoy' | undefined } => !!x.aviso)
     /**
      * Sin filtro de «ya lo revisé»: desde que los dos casos bloquean la firma,
      * no hay nada que descartar — hay algo que escribir. Dejar el filtro sería
@@ -4244,7 +4245,7 @@ export default function ConsultaActivaPage() {
       {(() => {
         const alergiasPaciente = alergiasDe(patient ?? {})
         const avisos = construirAvisos({
-          dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje })),
+          dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
           alergiaMedicamento: validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
             .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),
           contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),

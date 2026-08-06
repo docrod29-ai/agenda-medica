@@ -113,7 +113,7 @@ export interface AvisoConsulta {
 }
 
 export interface EntradaAvisos {
-  dosisIncompletas?: readonly { med: string; mensaje: string }[]
+  dosisIncompletas?: readonly { med: string; mensaje: string; procedencia?: 'ya_lo_toma' | 'se_prescribe_hoy' }[]
   alergiaMedicamento?: readonly { mensaje: string; severidad: string }[]
   contradicciones?: readonly { condicion: string; mensaje: string }[]
   desajustes?: readonly { condicion: string; mensaje: string }[]
@@ -160,7 +160,22 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       origen: 'dosis_incompleta',
       nivel: nivelDe('dosis_incompleta'),
       texto: d.med,
-      detalle: d.mensaje,
+      /**
+       * ── EL AVISO DICE DE CUÁL DE LOS DOS SE TRATA (REG-183) ─────────────
+       *
+       * «Toma algo para la presión y no sabe la dosis» y «le receto
+       * levotiroxina sin cantidad» son cosas distintas, y hasta ahora se leían
+       * igual. Lo que se añade es la INFORMACIÓN, no un cambio de compuerta:
+       * qué bloquea lo decidió el médico dueño el 5-ago con el dato delante.
+       *
+       * Y si el modelo no supo cuál era, no se dice nada. Inventar la coletilla
+       * sería el mismo error que rellenar un hueco con «No especificada».
+       */
+      detalle: d.procedencia === 'ya_lo_toma'
+        ? `${d.mensaje} (medicación que el paciente ya toma)`
+        : d.procedencia === 'se_prescribe_hoy'
+          ? `${d.mensaje} (se prescribe en esta consulta)`
+          : d.mensaje,
       ancla: { seccion: 'medicamentos', nombre: d.med },
       /** Nunca descartable: el aviso se iría y la firma seguiría sin dejarse pulsar. */
       descartable: false,

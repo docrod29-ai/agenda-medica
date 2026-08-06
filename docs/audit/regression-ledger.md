@@ -1193,3 +1193,40 @@ lee el `needs_review` de cada campo — donde el dato vive de verdad, así que n
 puede desincronizar.
 
 **Golden** — `src/__tests__/lo-que-se-paga-y-no-se-lee.test.ts` (9 casos).
+
+---
+
+## REG-183 — el eje que faltaba: ¿ya lo toma, o se lo receto hoy? (v1066)
+
+**Encontrado** — 5-ago-2026, como el hueco estructural detrás de REG-176.
+
+**El defecto** — `Medicamento` no tenía forma de distinguir dos cosas que no se
+parecen, y la compuerta de dosis las trataba igual:
+
+| | Qué es | Qué significa no saber la dosis |
+|---|---|---|
+| «Toma algo para la presión, no sé cuál» | historia farmacológica | **un hallazgo clínico** |
+| «Le doy levotiroxina» sin cantidad | prescripción de hoy | **un error que sale impreso en la receta** |
+
+Al medirlo sobre sus notas reales, **4 de 8 no se habrían podido firmar**, y lo
+que las bloqueaba era medicación previa. Sin este campo, ni el modelo ni la
+compuerta pueden distinguirlas: sólo ven un renglón sin dosis.
+
+**Reparación** — `procedenciaClinica?: 'ya_lo_toma' | 'se_prescribe_hoy'` en el
+tipo, en el esquema y en el prompt (regla 6-ter). El aviso ahora **dice de cuál
+de los dos se trata**.
+
+**Sin valor por omisión, a propósito** — Darle uno sería el error de «No
+especificada» otra vez: rellenar un hueco con algo que parece un dato. Las notas
+anteriores no lo traen y no se puede adivinar cuál era cuál. Y al modelo se le
+ordena **omitirlo** si no lo sabe, en vez de adivinar.
+
+**LO QUE NO CAMBIA, Y ES DELIBERADO** — **No cambia qué bloquea la firma.** Eso
+lo decidió el médico dueño el 5-ago con el dato delante (REG-174/175/176), y
+volver a decidirlo por mi cuenta sería pasar por encima de su decisión. Lo que se
+añade es información.
+
+**Queda anotado para él** — Ahora que el eje existe, se puede plantear si la
+compuerta debe bloquear sólo lo que se prescribe hoy. Es su decisión, no mía.
+
+**Golden** — `src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts` (15 casos).

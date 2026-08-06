@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1066 — REG-183: el eje que faltaba, ¿ya lo toma o se lo receto hoy?
+
+La compuerta de dosis trataba igual «toma algo para la presión y no sabe cuál»
+—un hallazgo clínico— y «le doy levotiroxina sin cantidad» —un error que sale
+impreso en la receta. Al medirlo, 4 de 8 de sus notas no se habrían podido
+firmar por medicación previa.
+
+`procedenciaClinica?: 'ya_lo_toma' | 'se_prescribe_hoy'` en el tipo, el esquema
+y el prompt (regla 6-ter). Sin valor por omisión: darle uno sería «No
+especificada» otra vez. Al modelo se le ordena OMITIRLO si no lo sabe.
+
+NO cambia qué bloquea la firma: eso lo decidió el médico dueño con el dato
+delante. Lo que se añade es información — el aviso ahora dice de cuál se trata.
+
 ## v1065 — REG-182: dos listas que se pagaban en cada nota y no leía nadie
 
 `fields_auto_filled` y `fields_requiring_review` se le pedían al modelo en cada

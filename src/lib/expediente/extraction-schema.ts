@@ -67,6 +67,14 @@ export const MedicamentoAuditado = z.object({
   dosis:                z.string().optional().default('').transform(sinHuecoEscrito),
   /** La vía además se traduce al vocabulario del tipo («subcutanea» → `sc`). */
   via:                  z.string().optional().default('').transform(normalizarVia),
+  /**
+   * ¿Ya lo toma o se lo receta hoy? (REG-183)
+   *
+   * SIN `.default()` a propósito: la ausencia significa «no se sabe», y darle un
+   * valor por omisión sería exactamente el error de «No especificada» —rellenar
+   * un hueco con algo que parece un dato. Lo que no viene, no viene.
+   */
+  procedenciaClinica:   z.enum(['ya_lo_toma', 'se_prescribe_hoy']).optional(),
   frecuencia:           z.string().optional().default(''),
   duracion:             z.string().optional().default(''),
   indicacion:           z.string().optional().default(''),
