@@ -61,9 +61,12 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * bloquee la firma si falta la dosis»): un aviso que bloquea tiene que
      * decirlo, o el médico pulsa Firmar y no entiende por qué no pasa nada.
      */
-    expect(consulta).toContain('Falta la dosis — no se puede firmar hasta corregirlo')
-    // Y cuando sólo falta la unidad, que NO bloquea, el título es otro.
-    expect(consulta).toContain('Revisa la unidad de la dosis')
+    /**
+     * El título se unificó el 5-ago con la AMPLIACIÓN del médico dueño
+     * («bloquea también si falta la unidad»): ya no hay un caso que bloquee y
+     * otro que no, así que un solo título dice la verdad para los dos.
+     */
+    expect(consulta).toContain('Dosis incompleta — no se puede firmar hasta corregirlo')
   })
 
   it('en rojo, porque el motor lo marca de severidad alta', () => {
@@ -72,15 +75,47 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * 100 mg. Eso no es un aviso ámbar.
      */
     // El título ahora es dinámico, así que el ancla es el bloque del aviso.
-    const i = consulta.indexOf('Falta la dosis — no se puede firmar hasta corregirlo')
+    const i = consulta.indexOf('Dosis incompleta — no se puede firmar hasta corregirlo')
     expect(i).toBeGreaterThan(0)
     expect(consulta.slice(Math.max(0, i - 400), i)).toContain('tone="danger"')
   })
 
-  it('con «Ya lo revisé», como los demás avisos', () => {
-    // El Dr lo pidió con estas palabras: «estas cosas deben poderse quitar».
-    expect(consulta).toContain("marcarRevisado('dosis', d.med)")
-    expect(consulta).toContain('avisosRevisados.includes(`dosis:${x.med}`)')
+  it('SIN «Ya lo revisé» — porque esto no se descarta, se corrige', () => {
+    /**
+     * El Dr pidió que los avisos «se puedan quitar», y eso sigue valiendo para
+     * los informativos: la contradicción de negación, el desajuste temporal, la
+     * vía no dictada — todos llevan su botón.
+     *
+     * Éste no, desde que bloquea la firma (5-ago). Un botón que sólo esconde el
+     * mensaje sería una promesa falsa: el aviso se iría, la firma seguiría sin
+     * dejarse pulsar, y el médico no sabría por qué. Aquí no hay nada que
+     * descartar — hay una cantidad y una unidad que escribir.
+     */
+    /**
+     * La ventana se acota al PROPIO bloque —hasta su `</Alert>`— porque el aviso
+     * siguiente (la vía no dictada) sí lleva su botón, y una ventana de más
+     * caracteres lo alcanzaba y hacía fallar la comprobación por vecindad.
+     */
+    /**
+     * Se busca el BOTÓN, no la frase.
+     *
+     * La primera versión de esta comprobación buscaba la cadena «Ya lo revisé»
+     * en el código y fallaba… porque el COMENTARIO que explica su ausencia la
+     * menciona. Un test que mira la prosa del archivo en vez del comportamiento
+     * se engaña solo, y aquí se engañó conmigo.
+     */
+    const i = consulta.indexOf('Dosis incompleta — no se puede firmar hasta corregirlo')
+    const bloque = consulta.slice(i, consulta.indexOf('</Alert>', i))
+    expect(bloque).not.toContain('<button')
+    expect(bloque).not.toContain('marcarRevisado')
+    // Y el filtro de «revisados» tampoco queda como código muerto.
+    expect(consulta).not.toContain('avisosRevisados.includes(`dosis:${x.med}`)')
+  })
+
+  it('pero los avisos que NO bloquean sí se pueden quitar', () => {
+    // La petición del Dr sigue viva donde tiene sentido.
+    expect(consulta).toContain("marcarRevisado('via', n)")
+    expect(consulta).toContain("marcarRevisado('negacion', c.condicion)")
   })
 
   it('la falta de DOSIS bloquea la firma — decisión del médico dueño', () => {
@@ -88,8 +123,8 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * 5-ago-2026, textual: «que bloquee la firma si falta la dosis». La tomó él,
      * con el dato delante: 4 medicamentos sin dosis de 28 en notas ya firmadas.
      */
-    expect(consulta).toContain("revisarUnidadDosis(m.nombre, m.dosis)?.codigo === 'dosis_sin_cifra'")
-    expect(consulta).toContain('No se puede firmar: falta la dosis de')
+    expect(consulta).toContain("x.aviso?.codigo === 'dosis_sin_cifra'")
+    expect(consulta).toContain('No se puede firmar.')
   })
 
   it('pero la falta de UNIDAD sólo avisa', () => {
@@ -104,12 +139,14 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta.slice(Math.max(0, i - 1600), i)).toMatch(/sin unidad[\s\S]*no bloquea|no bloquea/)
   })
 
-  it('y «Ya lo revisé» no se ofrece sobre lo que bloquea', () => {
+  it('y «Ya lo revisé» no se ofrece en este aviso', () => {
     /**
-     * Sería una promesa falsa: el aviso desaparecería y la firma seguiría sin
-     * dejarse pulsar, sin que el médico supiera por qué.
+     * Desde que los DOS casos bloquean, no hay nada que descartar: hay algo que
+     * escribir. Un botón que sólo esconde el aviso sería una promesa falsa — el
+     * mensaje se iría y la firma seguiría sin dejarse pulsar.
      */
-    expect(consulta).toContain("d.aviso.codigo !== 'dosis_sin_cifra' && (")
+    const i = consulta.indexOf('Dosis incompleta — no se puede firmar hasta corregirlo')
+    expect(consulta.slice(i, consulta.indexOf('</Alert>', i))).not.toContain("marcarRevisado('dosis'")
   })
 })
 
