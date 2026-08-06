@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1077 — REG-196 (P0): «Nota de Primera Vez» con formato SOAP
+
+Dos causas. (1) De los TRECE tipos de nota, `primera_vez` y `alta_consulta` no
+tenían NINGUNA instrucción de formato en el prompt — y sin una, el modelo
+escribe la que le sale, que en documentación médica es SOAP. No bastaba con no
+pedirle SOAP: hay que pedirle lo suyo y prohibirle lo ajeno.
+
+(2) Al reprocesar sin cambiar de tipo, la base eran las secciones que YA HABÍA en
+memoria. Una clave de otro tipo, una vez dentro, no salía nunca.
+
+`seccionesDelTipo()` devuelve exactamente las del tipo conservando lo escrito. Lo
+que no encaja se devuelve aparte: NO se borra.
+
+Un guardián recorre los trece tipos y falla si alguno queda sin formato.
+
 ## v1076 — REG-195 (P0): un diálogo le borró el plan de una nota real
 
 «Tengo el plan hecho, borro medicamentos y me borras el plan de la nota.»

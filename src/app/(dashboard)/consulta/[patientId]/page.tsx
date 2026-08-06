@@ -36,7 +36,7 @@ import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineC
 import {
   createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
-import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
+import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
 import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
@@ -1565,7 +1565,19 @@ export default function ConsultaActivaPage() {
        */
       // La transcripción cruda NUNCA se vuelca dentro de la nota (es material de origen).
       setSecciones(prev => {
-        const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
+        /**
+       * ── LAS SECCIONES SON SIEMPRE LAS DEL TIPO ACTIVO (REG-196) ──────────────
+       *
+       * Antes, sin `tipoOverride`, la base era `prev`: las secciones que ya había en
+       * memoria. Si venían de otro tipo —porque la nota se creó como seguimiento y
+       * luego se marcó como primera vez— esas claves NO salían nunca, y la nota
+       * quedaba titulada «Primera Vez» con encabezados SUBJETIVO/OBJETIVO/PLAN.
+       *
+       * `seccionesDelTipo` devuelve exactamente las del tipo conservando lo escrito
+       * en las que coinciden; lo que no pertenece se queda fuera de la nota (y se
+       * devuelve aparte, no se borra).
+       */
+      const base = seccionesDelTipo(tipoActivo, tipoOverride ? [] : prev).secciones
         return base.map(s => {
           const valorIA = data.secciones?.[s.key]
           if (typeof valorIA !== 'string' || !valorIA.trim()) return s
@@ -1740,7 +1752,8 @@ export default function ConsultaActivaPage() {
     if (data.resumenEjecutivo?.trim()) setResumen(sanitizarProsa(data.resumenEjecutivo))
     else if (tipoOverride) setResumen('')
     setSecciones(prev => {
-      const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
+      /** Igual que arriba: nunca sobreviven claves de otro tipo (REG-196). */
+      const base = seccionesDelTipo(tipoActivo, tipoOverride ? [] : prev).secciones
       return base.map(s => {
         const v = data.secciones?.[s.key]
         return (typeof v === 'string' && v.trim()) ? { ...s, value: sanitizarProsa(v) } : s

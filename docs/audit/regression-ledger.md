@@ -1695,3 +1695,44 @@ sin que el Dr. valide la fórmula: mientras tanto el modelo transcribe lo dictad
 en vez de calcularlo, que es lo seguro de las dos opciones.
 
 **Golden** — `src/__tests__/el-llm-no-calcula-en-ninguna-nota.test.ts` (10 casos).
+
+---
+
+## REG-196 — «Nota de Primera Vez» con formato SOAP (v1077) · P0
+
+**Reportado por el Dr., 6-ago-2026, con captura**: una nota titulada «Nota de
+Primera Vez» **firmada**, con encabezados SUBJETIVO (S) / OBJETIVO (O) /
+EVALUACIÓN (A) / PLAN (P). Sus palabras: «cada nota debe tener su formato, no
+las mezcles».
+
+**Las dos causas**
+
+**1. Una ausencia en el prompt.** De los trece tipos de nota, `primera_vez` y
+`alta_consulta` **no tenían ninguna instrucción de formato**. Sin una, el modelo
+escribe la que le sale — y en documentación médica la que sale por defecto es
+SOAP, por ser la más frecuente en su entrenamiento. **No bastaba con no pedirle
+SOAP: hay que pedirle lo suyo y prohibirle lo ajeno.**
+
+**2. Las claves sobrevivían al cambio de tipo.** Al reprocesar sin `tipoOverride`,
+la base eran las secciones **que ya había en memoria** (`prev`). Una clave de
+otro tipo, una vez dentro, no salía nunca — por eso el documento tenía
+literalmente las secciones de seguimiento bajo un título de primera vez.
+
+**Reparación**
+
+- Instrucción propia para los dos tipos huérfanos, con prohibición **explícita**
+  de SOAP y de los encabezados «S:/O:/A:/P:».
+- Regla 18-bis, general: escribe únicamente en las claves de **este** tipo.
+- `seccionesDelTipo()` en `templates.ts`: devuelve exactamente las secciones del
+  tipo, conservando el texto de las que coinciden por clave.
+
+**Lo que NO hace: tirar texto clínico** — Lo que no encaja se devuelve aparte
+(`huerfanas`), no se borra. Perder prosa dictada para arreglar un problema de
+formato sería cambiar un defecto por otro peor, y en este repositorio la pérdida
+de datos es el fallo que más caro se ha pagado.
+
+**El guardián** — Una prueba recorre **los trece tipos** y falla si alguno se
+queda sin instrucción de formato. Un hueco en esa tabla es una nota con el
+formato de otra.
+
+**Golden** — `src/__tests__/cada-nota-con-su-formato.test.ts` (26 casos).

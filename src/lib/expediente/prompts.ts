@@ -151,6 +151,13 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
    Si de verdad no puedes saber cuál es, OMITE el campo: no lo adivines. Un valor
    inventado aquí es peor que su ausencia, porque de este eje depende cómo se
    trata la falta de dosis.
+18-bis. CADA NOTA CON SU FORMATO. Escribe ÚNICAMENTE en las claves de secciones
+   que te da la estructura de ESTE tipo de nota. No inventes secciones de otro
+   tipo ni traigas su formato: una nota de primera vez con encabezados SOAP, o
+   un seguimiento con "antecedentes heredo-familiares", no es un documento
+   clínico completo — es dos documentos a medias.
+   Si algo que se dictó no cabe en ninguna sección de este tipo, ponlo en la más
+   cercana; nunca crees una sección nueva.
 19-bis. UN HUECO SE ESCRIBE, NO SE RECLAMA. Es la regla que faltaba, y la que más cambia
     lo que el médico recibe.
     Cuando un dato de la HISTORIA no se captó —nombre de un fármaco que el paciente ya
@@ -301,7 +308,37 @@ INTEGRIDAD CIENTÍFICA:
 FORMATO DE RESPUESTA: ÚNICAMENTE JSON válido. Sin markdown, sin backticks, sin texto antes o después.
 `
 
+/**
+ * ── CADA NOTA CON SU FORMATO, SIN MEZCLAS (6-ago-2026, REG-196) ──────────────
+ *
+ * El Dr.: «no quiero que la nota de primera vez me la confundas con formato
+ * SOAP, cada nota debe tener su formato, no las mezcles».
+ *
+ * La causa era una AUSENCIA: de los trece tipos de nota, `primera_vez` y
+ * `alta_consulta` **no tenían ninguna instrucción de formato aquí**. Sin una,
+ * el modelo escribe la que le sale — y en documentación médica la que sale por
+ * defecto es SOAP, porque es la más frecuente en su entrenamiento.
+ *
+ * No bastaba con no pedirle SOAP: **hay que pedirle lo suyo, y prohibirle lo
+ * ajeno**. Un hueco en esta tabla es una nota con el formato de otra.
+ */
 const ESPECIFICO: Partial<Record<TipoNota, string>> = {
+  primera_vez: `Nota de PRIMERA VEZ en consulta externa. Estructura EXACTAMENTE en:
+motivo de consulta (en palabras del paciente), padecimiento actual (narración
+cronológica, OLDCARTS implícito), antecedentes relevantes, exploración física,
+plan de abordaje diagnóstico y plan de tratamiento.
+▸ NO uses formato SOAP. SOAP es para la nota de SEGUIMIENTO y para la evolución
+  hospitalaria, donde hay una evolución que contar contra una consulta previa.
+  En una primera vez no hay "subjetivo vs objetivo": hay una historia que se
+  levanta por primera vez, y mezclar los dos formatos deja un documento que no
+  es ninguno de los dos.
+▸ NO escribas "S:", "O:", "A:", "P:", ni "Subjetivo", "Objetivo", "Evaluación"
+  como encabezados dentro de ninguna sección.`,
+  alta_consulta: `Nota de ALTA DE CONSULTA EXTERNA: se cierra el seguimiento de
+un paciente ambulatorio. Estructura EXACTAMENTE en: resumen de la evolución
+(desde la primera consulta hasta hoy, qué se resolvió), indicaciones al alta y
+restricciones. NO uses formato SOAP: aquí no se documenta una consulta, se
+cierra un episodio.`,
   seguimiento: `Estructura en formato SOAP (Subjetivo, Objetivo, Evaluación, Plan). En "subjetivo" incluye evolución referida y cumplimiento del tratamiento. En "evaluacion" indica si cada diagnóstico está mejor/igual/peor/resuelto.`,
   evolucion: `Nota de evolución hospitalaria en formato SOAP diario. Para Infectología: menciona el día X de antibiótico, candidato a desescalada o switch IV→VO, y resultados de cultivos si se mencionan.`,
   evolucion_uci: `Nota de evolución de UCI ORGANIZADA POR LOS 7 SISTEMAS. La fuente es una DISCUSIÓN de pase de visita (médico adscrito, residentes, enfermería) — integra lo relevante de todos, atribuyendo decisiones al adscrito. Organiza EXACTAMENTE en: contexto/objetivos del día, neurológico (Glasgow/RASS/CAM-ICU/PIC-PPC/pupilas/sedación), respiratorio (modo/FiO2/VT/PEEP/Pplateau/driving pressure/USG pulmonar/gasometría/ECMO VV), hemodinámico (PAM/vasopresores con dosis y unidad/lactato/POCUS cardiaco/PLR/VExUS/ECMO VA), abdominodigestivo (abdomen/tolerancia enteral/nutrición/función hepática/PIA), hidrometabólico (balance/electrolitos/glucosa/ácido-base/creatinina/KDIGO/CKRT), hematoinfeccioso (Hb/plaquetas/coagulación/foco/cultivos/susceptibilidad/día de antibiótico), musculoesquelético (fuerza/debilidad adquirida en UCI/movilización/lesiones por presión/accesos), y plan por sistema.
