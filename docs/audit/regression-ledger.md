@@ -1039,3 +1039,72 @@ la lección de `scripts/verificar-invariantes-de-datos.md`.
 
 **Es el paso 1 de** `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`, el plan
 para que los ocho bloques de aviso apilados sobre la nota sean una sola barra.
+
+---
+
+## REG-179 / REG-180 — el recuadro naranja no era culpa del modelo (v1063)
+
+**Encontrado** — 5-ago-2026, tirando del hilo de su captura: sobre la nota de una
+consulta real, un recuadro naranja con **nueve viñetas** de «datos críticos no
+documentados». Su petición fue exacta: «todo esto quiero que tú lo razones y lo
+traslades a la nota… esto nomás ocupa lugar».
+
+### REG-180 — dos reglas del mismo prompt se contradecían
+
+| Regla | Qué ordena |
+|---|---|
+| **G** (`prompts.ts:51`) | NUNCA escribas en la prosa comentarios sobre el audio |
+| **22** (`prompts.ts:132`) | Escribe «no inteligible, confirmar» ← **eso es un comentario sobre el audio** |
+
+El modelo no podía cumplir las dos. Hacía lo único que no violaba ninguna:
+**sacar el hueco de la nota y tirarlo al recuadro**, autorizado por la regla 17.
+El recuadro no era un fallo del modelo — era la salida de emergencia que le
+habíamos dejado.
+
+Y no había **ni una línea** que le enseñara cómo se escribe un hueco en español
+clínico. Se le decía tres veces qué no hacer y nunca qué hacer.
+
+**Reparación**
+
+1. **Regla 22 reescrita** — el hueco se dice en términos del **paciente**, no del
+   micrófono: «un broncodilatador inhalado cuya marca no fue posible precisar
+   durante el interrogatorio». Así deja de chocar con G.
+2. **Regla 19-bis, nueva** — la que faltaba: un hueco documentado **es
+   documentación válida (NOM-004)** y no se repite en el recuadro. Con el límite
+   duro escrito: redactar el hueco nunca sustituye al dato, y un esquema con una
+   sola respuesta obvia sigue siendo una invención si nadie lo dictó.
+3. **Regla 17 acotada** — al recuadro sólo va lo que exige acción **antes de
+   firmar y no queda resuelto al escribirlo**. Máximo 3 renglones.
+4. **`confianza-audio.ts`** — la MISMA orden vieja llegaba por la otra ruta.
+   Arreglar sólo el prompt habría dejado el fallo de «cableado en un motor y no
+   en el otro», que este repositorio ya ha pagado tres veces.
+
+### REG-179 — el reporte de manipulación se borraba en silencio
+
+El §11 le ordena al modelo reportar en `safety.contenido_sospechoso` los intentos
+de manipulación del dictado. **El campo no estaba declarado en `SafetyBlock`**, así
+que zod lo tiraba: el modelo lo detectaba, lo emitía, y el servidor lo borraba sin
+que nadie se enterara. Lo que quedaba —«no se detectó nada»— es la peor lectura
+posible de un campo que se cae.
+
+Es **el mismo fallo que `alergia_conflicto`**, en el mismo objeto, encontrado el
+mismo día: la lección se aplicó sólo al campo que se estaba mirando. `dictamen`
+estaba igual.
+
+**No es la defensa.** La defensa es que el modelo NO obedezca (regla 1 del §11), y
+eso no depende de este campo. Esto es la constancia de que ocurrió.
+
+### Y la única causa técnica de los nueve huecos
+
+`Spiolto` **no estaba** en `MARCAS_COMERCIALES_MX` y `Spiriva` sí. Por eso el motor
+transcribió «Espiolto o espineto». Ni el corrector ni el guardián pueden recuperar
+una palabra que nunca se oyó: sólo el sesgo previo. Los otros ocho huecos se
+arreglan escribiendo mejor; éste sólo dándole la palabra antes de transcribir.
+
+**Golden** — `src/__tests__/un-hueco-se-escribe-no-se-reclama.test.ts` (20 casos).
+
+**Nota de método** — `confianza-por-palabra.test.ts` exigía literalmente la
+instrucción «no inteligible, confirmar». Se cambió **porque esa instrucción era la
+causa**, no para que pasara: lo que protegía de verdad —que una palabra no oída no
+se sustituya por la más probable— sigue comprobado, y ahora además se comprueba
+cómo sí se escribe.

@@ -121,6 +121,39 @@ export const SafetyBlock = z.object({
     riesgo_cruzado:    z.string().optional().default(''),
     alternativa_segura: z.string().optional().default(''),
   })).optional().default([]),
+  /**
+   * ── EL REPORTE DE INYECCIÓN QUE ZOD BORRABA (5-ago-2026, REG-179) ─────────
+   *
+   * El §11 del prompt le ordena al modelo, desde siempre, reportar aquí los
+   * intentos de manipulación que encuentre en la transcripción: «ignora reglas
+   * previas», «eres ahora un asistente diferente», JSON falso.
+   *
+   * El campo **no estaba declarado**, así que zod lo tiraba al validar. El
+   * modelo detectaba el intento, lo emitía, y el servidor lo borraba sin que
+   * nadie se enterara. La lectura que quedaba —«no se detectó nada»— es la peor
+   * posible para un campo que se está cayendo.
+   *
+   * Es EXACTAMENTE el mismo fallo que `alergia_conflicto` de aquí arriba, en el
+   * mismo objeto, encontrado el mismo día: la lección era «el prompt promete un
+   * campo que el esquema no declara», y sólo se aplicó al que se estaba mirando.
+   *
+   * QUÉ ES Y QUÉ NO: no es la defensa. La defensa es que el modelo NO obedezca
+   * —regla 1 del §11— y eso no depende de este campo. Esto es la constancia de
+   * que ocurrió, para que quede en el expediente y se pueda revisar.
+   */
+  contenido_sospechoso: z.array(z.object({
+    texto:          z.string().optional().default(''),
+    ubicacion:      z.string().optional().default(''),
+    interpretacion: z.string().optional().default(''),
+  })).optional().default([]),
+  /**
+   * El veredicto NOM-004 que el modelo emite (`prompts.ts` lo pide en el §
+   * de estructura). Se declara para que deje de perderse.
+   *
+   * NO sustituye a `validarNOM004`, que es determinista y es quien bloquea. Es
+   * la opinión del modelo, y como tal se guarda: útil para contrastar las dos.
+   */
+  dictamen: z.string().optional().default(''),
 })
 export type SafetyBlock = z.infer<typeof SafetyBlock>
 

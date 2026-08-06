@@ -192,8 +192,20 @@ export const INSTRUCCION_MARCAS =
   'ni en órgano, ni en fármaco, ni en dosis, ni en antecedente.\n' +
   '· No la corrijas, no la sustituyas por la palabra que te parezca más probable y ' +
   'no la interpretes: si el motor no la oyó, tú tampoco la oíste.\n' +
-  '· Si una frase depende de una palabra marcada, escríbela como «no inteligible, ' +
-  'confirmar» en vez de completarla.\n' +
+  // ── LA ORDEN VIEJA CONTRADECÍA A LA REGLA G (5-ago-2026, REG-180) ──────────
+  // Aquí se ordenaba escribir «no inteligible, confirmar» DENTRO de la nota, y la
+  // regla G del prompt prohíbe justamente eso: comentarios sobre el audio en la
+  // prosa clínica. El modelo no podía cumplir las dos, así que hacía lo único que
+  // no violaba ninguna — sacar el hueco de la nota y tirarlo al recuadro de
+  // «datos críticos no documentados». Ese recuadro no era un fallo del modelo:
+  // era la salida de emergencia que le dejamos.
+  // Se corrige aquí TAMBIÉN porque ésta es la otra ruta por la que llega la
+  // instrucción: arreglar sólo el prompt habría dejado la orden vieja viva por
+  // este lado, que es el fallo de «cableado en un motor y no en el otro».
+  '· Si una frase depende de una palabra marcada, documenta el hecho en términos ' +
+  'del paciente y no del audio: «un broncodilatador inhalado cuya marca no fue ' +
+  'posible precisar durante el interrogatorio». Escribe lo que sí quedó claro y ' +
+  'omite lo que no. Nunca escribas dentro de la nota que algo «no se entendió».\n' +
   '· Si por culpa de una marca no puedes afirmar algo, NO afirmes lo contrario: ' +
   'ausencia de dato no es dato de ausencia.'
 

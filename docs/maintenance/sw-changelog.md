@@ -3,6 +3,29 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1063 — REG-179/180: el recuadro naranja no era culpa del modelo
+
+Paso 3 del plan `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`, adelantado
+porque era la raíz.
+
+Dos reglas del prompt se contradecían: la G prohíbe hablar del audio en la prosa
+clínica y la 22 ordenaba escribir «no inteligible, confirmar», que es hablar del
+audio. Atrapado, el modelo sacaba el hueco de la nota y lo tiraba al recuadro de
+«datos críticos no documentados». Y no había ni una línea que le enseñara cómo se
+escribe un hueco en español clínico.
+
+- **22 reescrita**: el hueco se dice en términos del paciente, no del micrófono.
+- **19-bis, nueva**: un hueco documentado es documentación válida (NOM-004) y no
+  se repite en el recuadro. Con el límite duro escrito.
+- **17 acotada**: al recuadro sólo lo que exige acción y no se resuelve al
+  escribirlo. Máximo 3 renglones.
+- **`confianza-audio.ts`**: la misma orden vieja llegaba por la otra ruta.
+
+Además: `safety.contenido_sospechoso` —el reporte de manipulación del dictado—
+se pedía al modelo y **zod lo borraba** por no estar declarado. Mismo fallo que
+`alergia_conflicto`, mismo objeto, mismo día. Y `Spiolto` no estaba en el
+vocabulario: por eso el motor oyó «Espiolto o espineto».
+
 ## v1062 — REG-178: el aviso de operación deja de cortar la consulta
 
 Paso 1 de `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`.

@@ -360,7 +360,13 @@ export const MARCAS_COMERCIALES_MX = [
   'Augmentin', 'Amoxil', 'Pentrexyl', 'Bactrim', 'Septrin', 'Klaricid', 'Zithromax',
   'Cravit', 'Avelox', 'Ciproxina', 'Flagyl', 'Vibramicina', 'Dalacin', 'Rocephin',
   'Diflucan', 'Sporanox', 'Vfend', 'Zovirax', 'Valtrex', 'Tamiflu',
-  'Ventolin', 'Seretide', 'Symbicort', 'Spiriva', 'Relvar', 'Trelegy', 'Berodual',
+  // «Espiolto o espineto» — así transcribió el motor a Spiolto Respimat en una
+  // consulta real del Dr. (5-ago-2026). Spiriva estaba y Spiolto no; los
+  // genéricos sí. El corrector, el guardián y el aviso trabajan sobre lo ya
+  // oído: éste era el único de los nueve huecos de esa nota con causa técnica,
+  // y sólo se arregla dándole la palabra ANTES de transcribir.
+  'Ventolin', 'Seretide', 'Symbicort', 'Spiriva', 'Spiolto', 'Spiolto Respimat',
+  'Relvar', 'Trelegy', 'Berodual',
   'Singulair', 'Xolair', 'Nucala', 'Dupixent',
   'Allegra', 'Zyrtec', 'Claritin', 'Aerius', 'Avapena', 'Virlix',
   'Nasonex', 'Flonase', 'Rinofluimucil', 'Afrin',
