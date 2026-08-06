@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: la nota bien escrita apagaba las dos compuertas
+
+Las dos compuertas que confrontan el dictado con lo escrito —lo que el paciente
+negó y lo que el dictado puso en pasado— buscaban el padecimiento en la nota una
+sola vez por forma. En una nota bien redactada la primera aparición es la
+correcta: está en antecedentes o viene negada. Se descartaba, y ahí acababa la
+búsqueda; la afirmación de más abajo no se miraba nunca.
+
+Callaban justo en la nota mejor escrita, que es donde el médico más confía.
+
+La ventana de 60 caracteres hacia atrás, además, cruzaba el renglón: una negación
+que hablaba de otra enfermedad exculpaba a la de abajo.
+
+El rastreo vive ahora una sola vez, recorre todas las apariciones y corta la
+ventana en el límite de oración.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

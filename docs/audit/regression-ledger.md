@@ -1553,3 +1553,86 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — la nota bien escrita apagaba las dos compuertas (v1074)
+
+**Encontrado** — 6-ago-2026, auditando `temporalidad.ts` (el motor que EVAL-002
+señala como el único sin corpus), siguiendo el camino del padecimiento de punta a
+punta: quién lo pone en pasado, quién lo busca en la nota y qué lo exculpa.
+
+**El defecto** — `contradicciones()` (lo que el paciente negó y la nota afirma) y
+`desajustesTemporales()` (lo que el dictado puso en pasado y la nota afirma como
+actual) buscaban el padecimiento con un `indexOf` **por forma y una sola vez**, y
+descartaban esa aparición si venía encuadrada («niega …», «antecedente de …»).
+
+En una nota bien redactada la PRIMERA aparición es casi siempre la correcta
+—está en antecedentes, o viene negada en el interrogatorio—, así que se
+descartaba **y ahí acababa la búsqueda**. La afirmación de más abajo, que es
+justo el defecto que hay que cazar, no se miraba nunca:
+
+```
+dictado: «El paciente niega asma.»
+nota:    «Interrogatorio por aparatos: niega asma.
+          Se agrega en la lista de problemas asma persistente moderada.»
+aviso:   ninguno
+```
+
+**Y un segundo fallo, hermano** — La ventana de 60 caracteres hacia atrás se
+medía en caracteres, no en oraciones, y 60 caracteres cruzan un renglón sin
+esfuerzo. Un «no tiene antecedentes de tuberculosis» del renglón de arriba
+exculpaba al asma del de abajo. Las dos copias del rastreo llevaban el riesgo
+**escrito en su propio comentario** —«una negación ajena taparía una afirmación
+real, que es el fallo caro»— y ninguna lo había cerrado: acotar por número de
+caracteres no acota por oración.
+
+**Cómo se reprodujo** — Cuatro casos contra los motores reales antes de tocar
+nada (`condicionesNegadas` + `contradicciones`, `mencionesEnPasado` +
+`desajustesTemporales`): los cuatro devolvían lista vacía. Los controles —la
+misma nota sin el enmascarado— sí avisaban, así que no era que los motores
+estuvieran apagados.
+
+**Por qué importa para un paciente** — Las dos compuertas existen para que un
+antecedente que nadie dijo, o una enfermedad de hace tres años, no queden
+escritas como diagnóstico actual: eso se arrastra a todas las notas siguientes y
+cambia el riesgo quirúrgico y la elección de fármacos. Callaban **precisamente en
+la nota mejor escrita**, que es donde el médico más confía en ellas. Una nota
+descuidada —que nombra el padecimiento una sola vez y mal— sí saltaba.
+
+**Causa raíz** — El mismo rastreo copiado en dos módulos, con el mismo par de
+fallos en las dos copias. Es la lección de `SEPARADORES` en `alergias.ts` otra
+vez: dos rastreadores del mismo texto acaban dando la misma respuesta equivocada,
+y el día que se repara uno el otro sigue roto.
+
+**Reparación** — `src/lib/expediente/donde-lo-dice-la-nota.ts`: el rastreo, una
+sola vez. Recorre **todas** las apariciones de **todas** las formas y devuelve la
+más temprana que no venga encuadrada. La ventana sigue siendo de 60 caracteres
+pero se corta en el límite de oración —puntuación seguida de espacio, o salto de
+línea—, con el mismo criterio del espacio que ya usa `SEPARADORES` para no partir
+«Dr.», «c.s.p.» ni un decimal. **Los dos puntos NO cortan**: «Antecedentes
+personales patológicos: neumonía» es la forma correcta de escribirlo y la marca
+está antes del signo.
+
+De paso, `sinAcentos` deja de estar duplicado. En `temporalidad.ts` estaba
+escrito con los combinantes **en crudo** dentro de la clase de caracteres:
+invisibles en cualquier editor y a un `normalize` del fichero de dejar de
+funcionar en silencio.
+
+**Qué NO hace** — No decide nada clínico: dice dónde lo dice la nota. No amplía
+el vocabulario, así que lo que no está en `CRONICAS` ni en `AGUDAS_FRECUENTES`
+sigue sin vigilarse. No cubre notas sin puntuación: si todo va en una sola
+oración, la ventana vuelve a ser lo único que acota.
+
+**Qué queda para el médico** — Lo mismo que antes y por la misma razón: los dos
+avisos ponen las dos frases delante y **no dicen cuál es correcta**. Un paciente
+puede negar una diabetes que sí tiene documentada, y una neumonía de hace tres
+años puede seguir importando como antecedente. Lo que no puede es pasar en
+silencio.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos módulos a `HEAD`
+dejando el golden: 4 casos en rojo, los cuatro del defecto. Restaurados: 18 en
+verde.
+
+**Golden** — `src/__tests__/la-nota-bien-escrita-tapaba-el-error.test.ts` (18
+casos).

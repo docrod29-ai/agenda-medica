@@ -41,9 +41,7 @@
  * Módulo PURO.
  */
 import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
-
-const sinAcentos = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+import { sinAcentos, afirmacionSinEncuadre } from '@/lib/expediente/donde-lo-dice-la-nota'
 
 /**
  * Marcas de que la frase habla del PASADO.
@@ -209,25 +207,20 @@ export function desajustesTemporales(
   pasadas: readonly MencionPasada[],
   textoNota: string,
 ): DesajusteTemporal[] {
-  const t = sinAcentos(textoNota)
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres, la misma que usan las
-       * negaciones y por la misma razón: es lo que mide «antecedente de …» o
-       * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
-       * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
-       * que importa.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
-      out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    /**
+     * El rastreo lo pone `donde-lo-dice-la-nota.ts`, compartido con las
+     * negaciones. Aquí estaba copiado y traía los dos fallos que aquel módulo
+     * documenta (REG-192): sólo miraba la PRIMERA aparición —así que un
+     * «antecedente de neumonía» bien escrito arriba tapaba la neumonía afirmada
+     * como actual abajo— y la ventana de 60 caracteres saltaba de oración, con
+     * lo que un «antecedente» de OTRO padecimiento también exculpaba.
+     */
+    const idx = afirmacionSinEncuadre(textoNota, formas, antes => YA_ES_ANTECEDENTE.test(antes))
+    if (idx === null) continue
+    out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
   }
   return out
 }

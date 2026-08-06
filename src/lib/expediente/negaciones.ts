@@ -42,6 +42,7 @@
  *
  * Módulo PURO.
  */
+import { sinAcentos, afirmacionSinEncuadre } from '@/lib/expediente/donde-lo-dice-la-nota'
 
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
@@ -78,9 +79,6 @@ const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunc
 
 /** Marcas de que un término ya viene negado en la propia frase. */
 const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
-
-const sinAcentos = (s: string) =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 /** Trocea por frases conservando el signo, que es lo que distingue pregunta de respuesta. */
 export function frases(texto: string): string[] {
@@ -160,25 +158,20 @@ export interface Contradiccion extends Negada {
  * viene, no hay contradicción.
  */
 export function contradicciones(negadas: readonly Negada[], textoNota: string): Contradiccion[] {
-  const t = sinAcentos(textoNota)
   const out: Contradiccion[] = []
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres.
-       *
-       * Es la distancia en la que cabe «niega …» o «sin antecedente de …» en la
-       * misma oración. Más larga empezaría a leer la oración anterior y una
-       * negación ajena taparía una afirmación real — que es el fallo caro.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes)) continue
-      out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    /**
+     * El rastreo vive en `donde-lo-dice-la-nota.ts` y lo comparte con
+     * temporalidad. Aquí estaba escrito a mano y miraba **sólo la primera
+     * aparición** de cada forma: en una nota que primero escribe bien «niega
+     * asma» y más abajo la afirma, la primera exculpaba a la segunda y la
+     * contradicción no salía (REG-192). Y la ventana de 60 caracteres cruzaba
+     * el renglón, así que una negación de OTRA enfermedad también tapaba.
+     */
+    const idx = afirmacionSinEncuadre(textoNota, formas, antes => NIEGA_EN_LINEA.test(antes))
+    if (idx === null) continue
+    out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
   }
   return out
 }
