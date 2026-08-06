@@ -65,5 +65,25 @@ hospital suizo lo aceptaría?»**.
 
 ## Bitácora de la noche
 
+### Reparaciones cerradas mientras la auditoría corre
+
+Todas verificadas en producción con `curl /version.txt`, con el ciclo completo
+(vitest → tsc → lint → build → sw → commit → deploy → bitácora).
+
+| Versión | REG | Qué |
+|---|---|---|
+| v1065 | 182 | Dos listas que se pagaban en cada nota y no leía nadie. El gasto era lo de menos: `needs_review` ya viaja por campo, así que eran **el mismo hecho contado dos veces** — y dos fuentes de verdad se desincronizan. |
+| v1066 | 183 | **El eje que faltaba**: `Medicamento` no distinguía «el paciente ya lo toma» de «se lo receto hoy». Por eso la compuerta de dosis bloqueaba 4 de sus 8 notas por medicación previa. |
+
+**Pruebas: 6819 en verde. Lint 97 (techo). Build limpio.**
+
 ### Ronda 1 — auditoría de las nueve dimensiones
-_(en curso — se rellena al terminar cada fase)_
+_(en curso — se rellena al terminar)_
+
+Nueve equipos leyendo en paralelo, con un **escéptico independiente por
+hallazgo** cuya única misión es refutarlo abriendo el archivo. La carga de la
+prueba es del hallazgo: ante la duda, se descarta.
+
+Ya se comprobó esta noche por qué hace falta ese filtro — y también que funciona
+al revés: los cuatro hallazgos del primer panel resultaron **los cuatro ciertos**,
+y aun así se verificaron uno por uno antes de tocar nada.
