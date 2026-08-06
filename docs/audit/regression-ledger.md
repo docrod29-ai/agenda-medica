@@ -1601,3 +1601,36 @@ fabricar una negación es peor que perderla.
 
 **Golden** — `src/__tests__/como-se-dice-que-no-en-una-consulta.test.ts` (21
 casos), medidos contra el motor real.
+
+---
+
+## REG-193 — la fecha de próxima consulta se perdía al recargar (v1075)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo D3), y
+resultó **más grave** que lo reportado: no era una dependencia olvidada, era que
+el dato no estaba en el respaldo en absoluto.
+
+**El defecto** — `proximoSeguimiento` sólo se persistía **al firmar**. No estaba:
+
+- en el respaldo local (el que sobrevive a un crash o a una recarga),
+- en las dependencias de ese respaldo,
+- en la condición «¿hay algo que guardar?» — ni la del autoguardado al servidor
+  ni la del respaldo local.
+
+Teclear la fecha y recargar la borraba. Y si era lo **único** escrito —el caso de
+una consulta de control que se resuelve en dos minutos— el sistema consideraba
+que no había nada que guardar y no guardaba **nada**.
+
+**Por qué importa más de lo que parece** — Alimenta dos cosas que existían
+esperando este dato: la tarea «agendar el seguimiento» del worklist y el contador
+de seguimientos vencidos del CRM. Un paciente al que se le pierde la fecha no
+reaparece en ninguna lista: no hay error, no hay aviso, simplemente **no vuelve**.
+
+**Reparación** — En los cuatro sitios: el payload del respaldo, sus deps, las dos
+condiciones de contenido, y la restauración. Guardarla sin reponerla habría sido
+peor que no guardarla: parecería que se conserva y al abrir estaría vacía.
+
+**Mismo fallo que ya se pagó** — `estudiosOrden` y `preop` faltaban en esas mismas
+deps, y costó su propia reparación. La lección no se había generalizado.
+
+**Golden** — `src/__tests__/la-proxima-consulta-no-se-pierde.test.ts` (8 casos).

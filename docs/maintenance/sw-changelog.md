@@ -3,6 +3,19 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1075 — REG-193: la fecha de próxima consulta se perdía al recargar
+
+`proximoSeguimiento` sólo se persistía al FIRMAR. No estaba en el respaldo
+local, ni en sus deps, ni en la condición «¿hay algo que guardar?» de ninguna de
+las dos redes.
+
+Teclearla y recargar la borraba. Y si era lo único escrito —una consulta de
+control de dos minutos— el sistema decidía que no había nada que guardar.
+
+Alimenta la tarea «agendar el seguimiento» y el contador de seguimientos
+vencidos: un paciente al que se le pierde la fecha no reaparece en ninguna
+lista. No hay error, no hay aviso: simplemente no vuelve.
+
 ## v1074 — REG-192: cómo se dice que no en una consulta
 
 Medido con el motor real: de siete formas de negar, cazaba UNA. «Pues no»,

@@ -2318,7 +2318,7 @@ export default function ConsultaActivaPage() {
       const hayContenido =
         !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
            diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
-           signosConValor(signos) || estudiosOrden.length || preop)
+           signosConValor(signos) || estudiosOrden.length || preop || proximoSeguimiento.trim())
       if (hayContenido) guardarBorrador(true)
     }
   })
@@ -2335,13 +2335,26 @@ export default function ConsultaActivaPage() {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
       diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
-      signosConValor(signos) || estudiosOrden.length > 0 || !!preop
+      signosConValor(signos) || estudiosOrden.length > 0 || !!preop || proximoSeguimiento.trim()
     if (!hayContenido) return
     const id = setTimeout(() => {
       if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
       try {
         localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
           tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
+          /**
+           * ── LA FECHA DE PRÓXIMA CONSULTA SE PERDÍA (6-ago-2026, REG-193) ──
+           *
+           * No estaba en el respaldo, ni en sus deps, ni en la condición que
+           * decide si hay algo que guardar. Sólo se persistía **al firmar**:
+           * teclearla y recargar la borraba, y si era lo único escrito ni
+           * siquiera disparaba el autoguardado.
+           *
+           * Alimenta la tarea «agendar el seguimiento» del worklist y el
+           * contador de seguimientos vencidos del CRM — dos cosas que existían
+           * esperando este dato.
+           */
+          proximoSeguimiento,
           // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
           // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
           notaId: notaIdRef.current,
@@ -2354,7 +2367,7 @@ export default function ConsultaActivaPage() {
     // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
     // el debounce y el respaldo local se quedaba en la versión anterior. Con un
     // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, voz.transcripcion, respaldoKey])
+  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -2475,6 +2488,7 @@ export default function ConsultaActivaPage() {
     if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
     if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden as string[])
     if (b.preop) setPreop(b.preop as typeof preop)
+    if (typeof b.proximoSeguimiento === 'string') setProximoSeguimiento(b.proximoSeguimiento)
     if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
     setRespaldoDisponible(false)
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
