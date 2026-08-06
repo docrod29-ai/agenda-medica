@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1079 — REG-198: «Quitar de la nota» no quitaba nada de la nota
+
+Del backlog del Master Loop V7 (UX-001, score 70 — el pendiente de mayor
+prioridad por la fórmula del charter).
+
+El botón sacaba el id de `aprobados`, que sólo se guarda como metadato. Ni una
+línea de la nota cambiaba: el médico veía un diagnóstico mal extraído, pulsaba
+«Quitar de la nota», el renglón se tachaba… y el diagnóstico seguía en la nota
+que firmaba.
+
+Un control que miente sobre lo que hizo es peor que no tenerlo.
+
+Ahora quita de verdad, con punto de deshacer. Las alergias quedan fuera a
+propósito: viven en el expediente, no en la nota.
+
 ## v1078 — REG-197: el arnés no cazaba la alucinación que importa
 
 Medido con el propio motor: de tres alucinaciones clínicas, dos pasaban

@@ -1,16 +1,17 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "modo": "autonomo-sin-despliegue",
+  "modo": "autonomo-con-despliegue",
   "autorizaciones": {
     "abrirPR": true,
     "pushDeRama": true,
-    "desplegarAProduccion": false,
-    "fusionarAMain": false,
+    "desplegarAProduccion": true,
+    "fusionarAMain": true,
     "datosRealesDePacientes": false,
-    "cambiosDestructivos": false
+    "cambiosDestructivos": false,
+    "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "UX-001 (cerrada) → siguiente por score: TRACE-001",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -18,8 +19,14 @@
     "agent/ops/OPS-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1079",
+  "trabajoLocalSinSubir": [],
+  "actualizado": "2026-08-06",
+  "resumenDesdeElUltimoEstado": {
+    "versionesDesplegadas": "v1031 → v1078",
+    "regsCerradas": "REG-177 … REG-197",
+    "pruebas": 7006,
+    "lint": "96 (techo, bajado desde 97)",
+    "nota": "El estado se había quedado en v1030 mientras el trabajo seguía. Un tablero que no se actualiza miente con más autoridad que no tenerlo."
+  }
 }

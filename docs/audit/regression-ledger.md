@@ -1781,3 +1781,46 @@ instrumento no ve, ninguna medida hecha con él significa nada.
 
 **Golden** — `src/__tests__/el-arnes-caza-la-alucinacion-que-importa.test.ts` (12
 casos), los seis escenarios medidos contra el motor real.
+
+---
+
+## REG-198 — «Quitar de la nota» no quitaba nada de la nota (v1079)
+
+**Del backlog del Master Loop V7** — `UX-001`, score **70**, el pendiente de mayor
+prioridad según la fórmula del propio charter.
+
+**El defecto** — El panel de revisión pinta cada dato extraído con un botón rojo
+**«Quitar»**, bajo un título que promete «Todo esto ya está en la nota… solo
+quita lo que no corresponda». El botón sacaba el id del conjunto `aprobados` — y
+`aprobados` **sólo se guarda como metadato de auditoría** (`aprobadosPorMedico`,
+`camposAprobados`). Ni una línea de la nota cambiaba.
+
+El médico veía un diagnóstico mal extraído, pulsaba «Quitar de la nota», el
+renglón se tachaba en pantalla… y **el diagnóstico seguía en la nota que
+firmaba**.
+
+**Por qué es de los peores** — Un control que miente sobre lo que hizo es **peor
+que no tenerlo**. Sin el botón, el médico habría borrado el renglón a mano; con
+él se quedó tranquilo, y el dato equivocado viajó a la nota, a la receta y al
+expediente con su cédula.
+
+Es el mismo patrón que REG-195 («Quitarlas y firmar» no firmaba), encontrado el
+mismo día en la misma pantalla: **botones que prometen y no cumplen**.
+
+**Reparación** — `src/lib/expediente/quitar-de-la-nota.ts` (módulo puro) traduce
+el id del panel en la eliminación real. Con punto de **deshacer**: quitar un dato
+clínico no puede ser irreversible por un clic.
+
+**Lo que NO toca, y por qué**
+
+- **Las alergias.** Viven en el expediente del paciente, no en la nota. Borrarlas
+  desde el panel de una consulta las quitaría de **todas las futuras**, y el
+  cruce alergia ↔ fármaco dejaría de saltar para siempre. Quitar una alergia mal
+  registrada es un acto sobre el expediente y se hace donde se administra.
+- **Una sección se vacía, no se borra de la lista.** Una sección obligatoria que
+  desaparece rompe la validación NOM-004 de otra manera: el médico quiere quitar
+  un texto, no un apartado del documento.
+- **Un id fuera de rango o desconocido no borra nada.** Nunca se inventa una
+  eliminación.
+
+**Golden** — `src/__tests__/quitar-de-la-nota-quita-de-la-nota.test.ts` (16 casos).

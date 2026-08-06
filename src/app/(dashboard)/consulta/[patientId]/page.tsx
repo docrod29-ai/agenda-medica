@@ -142,6 +142,7 @@ import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
 import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
 import { dosisPeligrosasDeLaLista } from '@/lib/seguridad/dosis-de-la-lista'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
@@ -4404,7 +4405,28 @@ export default function ConsultaActivaPage() {
                 safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
                 aprobados={aprobados}
                 onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
-                onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
+                /**
+                 * ── «QUITAR» AHORA QUITA DE VERDAD (6-ago-2026, REG-198) ──────
+                 *
+                 * Antes esto sólo sacaba el id de `aprobados`, que se guarda
+                 * como metadato de auditoría y nada más: ni una línea de la nota
+                 * cambiaba. El médico veía un diagnóstico mal extraído, pulsaba
+                 * «Quitar de la nota», el renglón se tachaba en pantalla… y el
+                 * diagnóstico seguía en la nota que firmaba.
+                 *
+                 * Se guarda un punto de deshacer, como en REG-195: quitar un
+                 * dato clínico no puede ser irreversible por un clic.
+                 */
+                onRechazar={id => {
+                  setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })
+                  if (!sePuedeQuitar(id)) return
+                  setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
+                  const nuevo = quitarDeLaNota({ resumen, secciones, diagnosticos, medicamentos, signos }, id)
+                  setResumen(nuevo.resumen); setSecciones(nuevo.secciones)
+                  setDiagnosticos(nuevo.diagnosticos); setMedicamentos(nuevo.medicamentos)
+                  setSignos(nuevo.signos)
+                  toast('Quitado de la nota. Puedes deshacerlo con «Deshacer».', 'info')
+                }}
               />
             )}
           </AntesDeFirmar>

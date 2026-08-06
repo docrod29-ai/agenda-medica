@@ -1,27 +1,38 @@
-# Iteración actual — NEXUS-TRUTH-001
+# Iteración actual — el backlog del loop, al día
 
-**Modo**: auditoría del repositorio, producto, clínica y seguridad.
-**Restricción del dueño**: PR sí, despliegue no.
+**Modo**: autónomo CON despliegue. El dueño levantó la restricción de viva voz y
+por escrito varias veces («despliega el fix ya», «no pares», «quita los
+candados»). Lo demás sigue igual: nada de datos reales de pacientes, nada
+destructivo, ninguna cifra clínica inventada.
 
-## Hecho
+## Lo que estaba desactualizado
 
-1. Infraestructura del programa (`CLAUDE.md`, `.claude/rules/`, `.claude/agents/`,
-   `agent-state/`, carpetas de `docs/`).
-2. **Primera medición real del corpus V3 de 6 000 frases** — el que el dueño
-   reclamó, y con razón: existe en disco y nadie lo había corrido contra el
-   pipeline.
+El tablero decía **v1030** mientras producción iba por **v1079**. Un tablero que
+no se actualiza miente con más autoridad que no tenerlo, así que lo primero fue
+ponerlo al día: `MASTER_STATE.json`, `BACKLOG.json` con la fórmula de prioridad
+recalculada, y los ítems cerrados marcados.
 
-## Lo que la medición encontró
+- `SAFE-001` (score 73) — **ya estaba cerrado** y figuraba «a medias». Verificado:
+  `alergenosDe` es el parser único en consulta, UCI, receta y sesgo del
+  reconocedor, y lee `alergiasEstructuradas`.
+- `VOICE-004` — cerrado en v1031.
 
-`96.02 %` intactas · **cero términos clave perdidos** · `0.42 %` piden
-confirmación.
+## Cerrado en esta iteración
 
-Y un defecto concreto: **un balance hídrico negativo pide confirmación en cada
-frase**. `dosisSinNumero` no reconoce el signo menos, así que lee «−1500 mL» y
-cree que la cifra falta. Un balance negativo es lo normal en un paciente en
-diuresis o en ultrafiltración: preguntar en todos es fatiga de alerta justo donde
-la atención del médico es escasa.
+`UX-001` (score 70) — **«Quitar de la nota» no quitaba nada de la nota**. El
+botón sacaba el id de `aprobados`, que sólo se guarda como metadato. El médico
+quitaba un diagnóstico mal extraído y seguía en la nota que firmaba.
 
-## Siguiente
+Reparado con `quitarDeLaNota()`, módulo puro, con punto de deshacer. REG-198,
+desplegado en v1079.
 
-`VOICE-004` — reparar el signo, volver a medir y fijar el número con un golden.
+## Siguiente por score
+
+1. `TRACE-001` (54) — el sello de integridad dice «cubre todo» y deja fuera
+   `transcripcionMotor`. **No se toca el hash sin plan de migración**: cambiarlo
+   invalida todo lo firmado.
+2. `UX-002` (39) — el texto que explica por qué no se puede firmar está a 2.42:1
+   de contraste en tema oscuro. Ilegible equivale a ausente.
+3. `SAFE-003` — «sin referencia de dosis» se calla también en pediatría.
+   **Necesita decisión del médico**: en un niño, «no tengo referencia» no es lo
+   mismo que «no hay alerta».
