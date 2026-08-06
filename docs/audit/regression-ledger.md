@@ -884,3 +884,36 @@ sin que el médico supiera por qué. Y el título del aviso lo dice: «no se pue
 firmar hasta corregirlo».
 
 **Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (11 casos).
+
+## REG-175 · Sin unidad tampoco se firma — ampliación del médico dueño
+
+**Decisión textual (5-ago-2026):** «bloquea también si falta la unidad».
+
+Amplía REG-174, que sólo paraba cuando faltaba la cantidad.
+
+**Por qué este caso es, si acaso, peor** — Una receta **sin cantidad** no se
+despacha: quien la surte pregunta. Una con la cifra **sin unidad sí se despacha**,
+con la unidad que suponga quien la lea. «Levotiroxina 100» son 100 mcg en la vida
+real y 100 mg en el papel: **mil veces la dosis**, y en el papel no queda rastro
+de cuál se quiso decir.
+
+**Reparación** — La compuerta de `firmar()` para los dos códigos
+(`dosis_sin_cifra` y `dosis_sin_unidad`), y el aviso muestra el mensaje del motor,
+que explica el riesgo concreto de cada caso en vez de uno genérico.
+
+**Se retiró «Ya lo revisé» de este aviso** — Desde que los dos casos bloquean, no
+hay nada que descartar: hay una cantidad y una unidad que escribir. Un botón que
+sólo esconde el mensaje sería una promesa falsa: se iría el aviso y la firma
+seguiría sin dejarse pulsar. La petición del Dr («estas cosas deben poderse
+quitar») sigue viva en los avisos que **no** bloquean — negación, temporalidad,
+vía no dictada.
+
+También se quitó el filtro de «revisados» de este memo: sin botón no podía
+ejecutarse nunca.
+
+**Nota de método** — La comprobación de que el botón no está buscaba la frase «Ya
+lo revisé» en el archivo, y fallaba porque **el comentario que explica su ausencia
+la menciona**. Un test que mira la prosa en vez del comportamiento se engaña solo.
+Ahora busca el `<button>`.
+
+**Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (12 casos).

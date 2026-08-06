@@ -859,8 +859,12 @@ export default function ConsultaActivaPage() {
       .filter(m => m.nombre?.trim())
       .map(m => ({ med: m.nombre, aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
       .filter((x): x is { med: string; aviso: NonNullable<ReturnType<typeof revisarUnidadDosis>> } => !!x.aviso)
-      .filter(x => !avisosRevisados.includes(`dosis:${x.med}`))
-  }, [medicamentos, avisosRevisados])
+    /**
+     * Sin filtro de «ya lo revisé»: desde que los dos casos bloquean la firma,
+     * no hay nada que descartar — hay algo que escribir. Dejar el filtro sería
+     * código que no puede ejecutarse nunca.
+     */
+  }, [medicamentos])
 
   const vivoRef = useRef(false)
   const palabrasEstructuradasRef = useRef(0)
@@ -2714,23 +2718,34 @@ export default function ConsultaActivaPage() {
      *
      * ── QUÉ BLOQUEA, EXACTAMENTE ────────────────────────────────────────────
      *
-     * Sólo la ausencia de cifra (`dosis_sin_cifra`). La cifra **sin unidad**
-     * —«Levotiroxina 100», que son 100 mcg en la vida real y 100 mg en el
-     * papel— sigue avisando en rojo pero no bloquea: él pidió bloquear cuando
-     * falta la dosis, y ampliarlo por mi cuenta sería decidir por él una segunda
-     * vez. Queda anotado para que lo decida.
+     * Los dos casos, por decisión suya en dos pasos:
+     *
+     *  · **Falta la cantidad** (`dosis_sin_cifra`) — 5-ago, primera decisión.
+     *    Quien surta la receta no sabe cuánto dispensar.
+     *  · **Cantidad sin unidad** (`dosis_sin_unidad`) — 5-ago, ampliación:
+     *    «bloquea también si falta la unidad». «Levotiroxina 100» son 100 mcg en
+     *    la vida real y 100 mg en el papel: **mil veces la dosis**, y en el papel
+     *    no queda rastro de cuál se quiso decir.
+     *
+     * El segundo es, si acaso, más peligroso que el primero: una receta sin
+     * cantidad no se despacha —alguien pregunta—, pero una con la cifra sin
+     * unidad **sí se despacha**, con la unidad que suponga quien la lea.
      *
      * Un renglón a medio escribir no cuenta: sin nombre no hay medicamento.
      */
-    const sinDosis = medicamentos
+    const dosisMal = medicamentos
       .filter(m => m.nombre?.trim())
-      .filter(m => revisarUnidadDosis(m.nombre, m.dosis)?.codigo === 'dosis_sin_cifra')
-      .map(m => m.nombre.trim())
-    if (sinDosis.length) {
+      .map(m => ({ nombre: m.nombre.trim(), aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
+      .filter(x => x.aviso?.codigo === 'dosis_sin_cifra' || x.aviso?.codigo === 'dosis_sin_unidad')
+    if (dosisMal.length) {
+      /**
+       * Se enseña el mensaje del motor, que ya explica el riesgo concreto de
+       * cada caso — no uno genérico que valga para los dos y no diga ninguno.
+       */
       toast(
-        sinDosis.length === 1
-          ? `No se puede firmar: falta la dosis de ${sinDosis[0]}. Sin cantidad, quien surta la receta no sabe cuánto dispensar.`
-          : `No se puede firmar: faltan las dosis de ${sinDosis.length} medicamentos (${sinDosis.slice(0, 3).join(', ')}${sinDosis.length > 3 ? '…' : ''}). Sin cantidad, quien surta la receta no sabe cuánto dispensar.`,
+        dosisMal.length === 1
+          ? `No se puede firmar. ${dosisMal[0].aviso!.mensaje}`
+          : `No se puede firmar: ${dosisMal.length} medicamentos con la dosis incompleta (${dosisMal.slice(0, 3).map(x => x.nombre).join(', ')}${dosisMal.length > 3 ? '…' : ''}). Cada uno necesita cantidad Y unidad.`,
         'error',
       )
       return
@@ -4208,25 +4223,18 @@ export default function ConsultaActivaPage() {
           <Alert
             tone="danger"
             icon={<AlertTriangle size={18} />}
-            title={dosisIncompletas.some(d => d.aviso.codigo === 'dosis_sin_cifra')
-              ? 'Falta la dosis — no se puede firmar hasta corregirlo'
-              : 'Revisa la unidad de la dosis'}
+            title="Dosis incompleta — no se puede firmar hasta corregirlo"
           >
             {dosisIncompletas.map((d, i) => (
               <div key={`${d.med}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
                 {d.aviso.mensaje}{' '}
                 {/*
-                  «Ya lo revisé» SÓLO donde no bloquea.
-                  Ofrecerlo sobre la falta de dosis sería una promesa falsa: el
-                  aviso desaparecería y la firma seguiría sin dejarse pulsar, y
-                  el médico no sabría por qué.
+                  SIN «Ya lo revisé»: desde la ampliación del 5-ago los DOS
+                  casos bloquean la firma, y ofrecer un botón que sólo esconde
+                  el aviso sería una promesa falsa — el mensaje se iría y la
+                  firma seguiría sin dejarse pulsar, sin saber por qué.
+                  Aquí no hay nada que descartar: hay algo que escribir.
                 */}
-                {d.aviso.codigo !== 'dosis_sin_cifra' && (
-                  <button
-                    onClick={() => marcarRevisado('dosis', d.med)}
-                    style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
-                  >Ya lo revisé</button>
-                )}
               </div>
             ))}
           </Alert>
