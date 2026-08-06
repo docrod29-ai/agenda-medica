@@ -56,6 +56,7 @@ export type OrigenAviso =
   | 'controlado'
   | 'conflicto_extraccion'
   | 'dato_no_precisado'
+  | 'requisito_nom004'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -64,6 +65,8 @@ export type OrigenAviso =
 export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   /** Es literalmente la razón por la que `firmar()` no deja pulsar (REG-174/175). */
   dosis_incompleta:       'bloquea',
+  /** Secciones obligatorias, cédula, diagnóstico: es lo que apaga el botón. */
+  requisito_nom004:       'bloquea',
   /** Lo más grave de la pantalla — y NO bloquea: esa decisión es del médico dueño. */
   alergia_medicamento:    'revisa',
   contradiccion_negacion: 'revisa',
@@ -159,6 +162,26 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
   const revisados = e.revisados ?? new Set<string>()
   const vivo = (id: string) => !revisados.has(id)
   const out: AvisoConsulta[] = []
+
+  /**
+   * ── NOM-004 TAMBIÉN BLOQUEA, Y LA BARRA LO IGNORABA (REG-189) ─────────────
+   *
+   * La barra contaba sólo la dosis, así que con una sección obligatoria vacía
+   * decía «nada te impide firmar» **junto a un botón apagado**. Ahora lo que
+   * apaga el botón y lo que cuenta la barra salen del mismo sitio.
+   */
+  for (const requisito of e.yaLoBloqueaNOM004 ?? []) {
+    const texto = String(requisito ?? '').trim()
+    if (!texto) continue
+    out.push({
+      id: `nom004:${texto}`,
+      origen: 'requisito_nom004',
+      nivel: nivelDe('requisito_nom004'),
+      texto,
+      ancla: { seccion: 'nota' },
+      descartable: false,
+    })
+  }
 
   const bloqueados: string[] = []
   for (const d of e.dosisIncompletas ?? []) {

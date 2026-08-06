@@ -1422,3 +1422,43 @@ pidió**. No es la misma pregunta.
 
 **Golden** — `src/__tests__/el-paciente-completo-llega-al-motor.test.ts` (15
 casos), incluidos tres que comprueban que está conectado en **los dos** sitios.
+
+---
+
+## REG-189 — el botón y la barra se contradecían (v1071)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos D1 y D2).
+
+**El defecto** — La razón por la que no se podía firmar estaba repartida en **dos
+sitios que no se hablaban**, y cada uno mentía a su manera:
+
+| Situación | El botón | La barra |
+|---|---|---|
+| Dosis incompleta | **encendido** — fallaba al pulsarlo | «1 bloquea» ✓ |
+| Sección obligatoria vacía | apagado ✓ | **«nada te impide firmar»** |
+
+El botón se apagaba con `validacion.valida` (sólo NOM-004) y la compuerta de
+dosis vivía **dentro** de `firmar()`. La barra, al revés, contaba la dosis y no
+miraba NOM-004. El médico veía la contradicción completa: un botón gris junto a
+un cartel diciendo que todo estaba bien, o un botón encendido que no hacía nada.
+
+**Y el mensaje que lo explicaba ya existía, inalcanzable** — el del toast sólo
+salía **al pulsar**; el de NOM-004 vive en un recuadro que queda fuera de la
+pantalla cuando el médico está abajo, junto a los botones, que es donde tiene el
+dedo. Un botón gris sin explicación es la peor forma de decir que no.
+
+**Reparación** — `src/lib/expediente/por-que-no-se-firma.ts` (módulo puro). Una
+sola fuente para el botón, para la barra y para el texto. El motivo viaja en el
+`title` y en un renglón junto a los botones. La barra gana el origen
+`requisito_nom004`, de nivel `bloquea`.
+
+**NO CAMBIA LA POLÍTICA** — Ni una condición se añade ni se quita: lo que impedía
+firmar ayer impide firmar hoy. Lo único que cambia es que **se dice en un sitio y
+antes de pulsar**. Que la falta de dosis bloquee fue decisión del médico dueño el
+5-ago, con el dato delante.
+
+**La compuerta de `firmar()` se queda** — Apagar el botón es defensa en
+profundidad, no sustitución: `firmar()` puede llamarse por otro camino.
+
+**Golden** — `src/__tests__/el-boton-dice-por-que-esta-apagado.test.ts` (18
+casos).

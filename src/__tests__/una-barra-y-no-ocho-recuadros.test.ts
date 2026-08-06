@@ -29,7 +29,7 @@ const page = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 const ORIGENES: OrigenAviso[] = [
   'dosis_incompleta', 'alergia_medicamento', 'contradiccion_negacion',
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
-  'conflicto_extraccion', 'dato_no_precisado',
+  'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -44,9 +44,15 @@ describe('la tabla de niveles no se puede degradar en silencio', () => {
     expect(Object.keys(NIVEL).sort()).toEqual([...ORIGENES].sort())
   })
 
-  it('sólo la dosis bloquea — es la única compuerta que pidió el Dr.', () => {
-    const bloquean = ORIGENES.filter(o => NIVEL[o] === 'bloquea')
-    expect(bloquean).toEqual(['dosis_incompleta'])
+  it('bloquean exactamente los dos que apagan el botón', () => {
+    /**
+     * ── REG-189 ────────────────────────────────────────────────────────────
+     * Antes sólo estaba la dosis, y la barra decía «nada te impide firmar»
+     * junto a un botón apagado por NOM-004. Ahora lo que apaga el botón y lo
+     * que cuenta la barra salen del mismo sitio.
+     */
+    const bloquean = ORIGENES.filter(o => NIVEL[o] === 'bloquea').sort()
+    expect(bloquean).toEqual(['dosis_incompleta', 'requisito_nom004'])
   })
 
   it('«bloquea» NO significa «es lo más grave»', () => {
@@ -84,7 +90,7 @@ describe('lo que puede matar hoy nunca se pliega', () => {
 })
 
 describe('ningún aviso se perdió al reordenarlos', () => {
-  it('los siete motores siguen llegando a la barra', () => {
+  it('los ocho motores siguen llegando a la barra', () => {
     const avisos = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'sin cantidad' }],
       alergiaMedicamento: [{ mensaje: 'penicilina', severidad: 'critica' }],
@@ -96,6 +102,7 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       controlados: [{ farmaco: 'clonazepam', requisito: 'receta especial' }],
       conflictos: ['dos fechas distintas'],
       faltantesCriticos: ['confirmación bacteriológica'],
+      yaLoBloqueaNOM004: ['Falta: Exploración física'],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)
@@ -134,7 +141,11 @@ describe('los ecos se caen — cuatro de las nueve viñetas lo eran', () => {
       faltantesCriticos: ['Exploración física no realizada/documentada en esta consulta'],
       yaLoBloqueaNOM004: ['Falta: Exploración física'],
     })
-    expect(avisos).toHaveLength(0)
+    // UNA vez, y en el nivel que de verdad apaga el botón. El eco del recuadro
+    // naranja —que no añadía ninguna acción— se cae.
+    expect(avisos).toHaveLength(1)
+    expect(avisos[0].origen).toBe('requisito_nom004')
+    expect(avisos[0].nivel).toBe('bloquea')
   })
 
   it('pero lo que NOM-004 no bloquea sí llega', () => {
@@ -142,7 +153,9 @@ describe('los ecos se caen — cuatro de las nueve viñetas lo eran', () => {
       faltantesCriticos: ['Confirmación bacteriológica no referida'],
       yaLoBloqueaNOM004: ['Falta: Exploración física'],
     })
-    expect(avisos).toHaveLength(1)
+    // El requisito de NOM-004 y el faltante que NO es su eco: dos cosas
+    // distintas, cada una en su nivel.
+    expect(avisos.map(a => a.origen).sort()).toEqual(['dato_no_precisado', 'requisito_nom004'])
   })
 
   it('pero un faltante de otra cosa sí llega', () => {

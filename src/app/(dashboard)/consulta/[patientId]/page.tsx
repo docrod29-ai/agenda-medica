@@ -142,6 +142,7 @@ import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
 import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
@@ -3126,6 +3127,26 @@ export default function ConsultaActivaPage() {
   const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
 
   /**
+   * ── UNA SOLA RESPUESTA A «¿POR QUÉ NO PUEDO FIRMAR?» (REG-189) ─────────────
+   *
+   * Antes vivía repartida: el botón se apagaba con NOM-004 y la compuerta de
+   * dosis estaba dentro de `firmar()`, así que con una dosis incompleta el
+   * botón se veía ENCENDIDO y fallaba al pulsarlo. La barra, al revés, no
+   * miraba NOM-004 y decía «nada te impide firmar» junto a un botón apagado.
+   *
+   * NO cambia la política: lo que impedía firmar ayer impide firmar hoy.
+   */
+  const bloqueosDeFirma = motivosParaNoFirmar({
+    erroresNOM004: validacion?.errores,
+    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
+  })
+  const motivoNoFirma = porQueNoSePuedeFirmar({
+    erroresNOM004: validacion?.errores,
+    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
+  })
+
+
+  /**
    * ¿El bloqueo de la firma es SÓLO la cédula que falta?
    *
    * Se mira la config, no el texto del error: comparar cadenas se rompe en
@@ -4777,12 +4798,39 @@ export default function ConsultaActivaPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={firmar} disabled={!validacion.valida || guardando} style={S.firmar(!validacion.valida || guardando)}>
+            {/*
+              ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──────
+              Se apagaba sólo con NOM-004, así que con una dosis incompleta se
+              veía ENCENDIDO: el médico lo pulsaba, salía un toast y no pasaba
+              nada. Ahora la fuente es una sola —la misma que cuenta la barra— y
+              el motivo viaja en el `title` y en el renglón de al lado.
+              NO cambia la política: lo que impedía firmar ayer impide hoy.
+            */}
+            <button
+              onClick={firmar}
+              disabled={bloqueosDeFirma.length > 0 || guardando}
+              title={motivoNoFirma || 'Firmar y cerrar la nota'}
+              style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
+            >
               <FileSignature size={17} /> Firmar y cerrar nota
             </button>
             <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
               {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
             </button>
+            {/*
+              El motivo, DONDE ESTÁ EL DEDO. El mensaje ya existía y era
+              inalcanzable: el del toast sólo salía al pulsar, y el de NOM-004
+              vive en un recuadro que queda fuera de pantalla cuando el médico
+              está abajo, junto a los botones.
+            */}
+            {bloqueosDeFirma.length > 0 && !guardando && (
+              <span role="status" style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.45, flexBasis: '100%' }}>
+                {motivoNoFirma}
+                {bloqueosDeFirma.length > 1 && (
+                  <span style={{ opacity: 0.85 }}> · y {bloqueosDeFirma.length - 1} más arriba</span>
+                )}
+              </span>
+            )}
             <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
               <Volume2 size={14} /> Leer resumen
             </button>

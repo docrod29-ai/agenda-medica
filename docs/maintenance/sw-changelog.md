@@ -3,6 +3,19 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1071 — REG-189: el botón y la barra se contradecían
+
+|  | El botón | La barra |
+|---|---|---|
+| Dosis incompleta | **encendido**, fallaba al pulsarlo | «1 bloquea» ✓ |
+| Sección obligatoria vacía | apagado ✓ | **«nada te impide firmar»** |
+
+Una sola fuente para los dos, y el motivo donde está el dedo: en el `title` del
+botón y en un renglón junto a él. El mensaje ya existía y era inalcanzable —el
+del toast sólo salía al pulsar.
+
+NO cambia la política: lo que impedía firmar ayer impide firmar hoy.
+
 ## v1070 — REG-188: los motores veían la receta de hoy, no al paciente
 
 El hallazgo más transformador de la auditoría. `medicamentosVigentes()` y
