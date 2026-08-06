@@ -1001,3 +1001,41 @@ es exactamente lo que no puede pasar en esta frontera.
 sobre el **esquema**, no sobre el helper: el defecto no era que faltara un
 limpiador, era que nadie lo llamaba donde pasa todo. Comprobado que la prueba
 puede ponerse roja — sin el saneo, 9 de los 25 fallan.
+
+---
+
+## REG-178 — el aviso de operación cortaba la consulta (v1062)
+
+**Encontrado** — 5-ago-2026, en la captura de una consulta real del Dr.: debajo
+de su nota, en rojo y a lo ancho, «5 trabajo(s) automático(s) dejaron de correr».
+Era el **octavo bloque de aviso** de esa pantalla.
+
+**El defecto** — Todo cierto y todo suyo (es el dueño de la plataforma), pero
+ninguno de esos trabajos —`reminders`, `limpiar-audio`, `retencion`, `asientos`—
+se arregla desde la consulta ni afecta al paciente que tenía delante.
+
+**Por qué volvió a pasar** — Esta franja **ya había aprendido la lección el
+4-ago**, cuando enseñaba tres líneas de «Claude tardó demasiado» encima de su
+lista de pacientes. El filtro que se escribió entonces pregunta **«¿es
+urgente?»**, y un trabajo automático muerto lo es. Por eso se coló.
+
+La pregunta correcta, con alguien delante, es otra: **«¿se arregla desde aquí, y
+le afecta a él?»** Un cron mudo puntúa alto en la primera y cero en la segunda.
+
+**Reparación** — `src/lib/ops/interrumpe-la-consulta.ts` (módulo puro). En las
+cuatro pantallas donde hay un paciente esperando —consulta, expediente,
+hospitalización, UCI— sólo entra lo que **impide atenderlo ahora**: la IA caída,
+la llave rechazada, la cuenta sin saldo. Lo demás no desaparece: espera a que
+salga de la consulta, que es cuando puede hacer algo.
+
+**El silencio es el valor seguro** — Un incidente que no declara si interrumpe se
+calla en consulta. La asimetría manda: un aviso de más con alguien delante cuesta
+la atención del médico; el mismo aviso cinco minutos después, en la agenda, no
+cuesta nada.
+
+**Golden** — `src/__tests__/con-paciente-enfrente-no-se-interrumpe.test.ts` (20
+casos), incluidos tres que comprueban que está **conectado** y no sólo escrito —
+la lección de `scripts/verificar-invariantes-de-datos.md`.
+
+**Es el paso 1 de** `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`, el plan
+para que los ocho bloques de aviso apilados sobre la nota sean una sola barra.

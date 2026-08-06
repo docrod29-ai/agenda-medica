@@ -2,8 +2,12 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 2825,
+  "totalCasos": 3242,
   "archivos": [
+    {
+      "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
+      "minCasos": 11
+    },
     {
       "archivo": "src/__tests__/alergias.test.ts",
       "minCasos": 5
@@ -33,6 +37,10 @@
       "minCasos": 117
     },
     {
+      "archivo": "src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/antimicrobianos-v4-catalogo.test.ts",
       "minCasos": 14
     },
@@ -53,12 +61,20 @@
       "minCasos": 21
     },
     {
+      "archivo": "src/__tests__/aprender-aunque-cambie-el-largo.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/aprendizaje-del-medico.test.ts",
       "minCasos": 15
     },
     {
       "archivo": "src/__tests__/aprendizaje-por-consultorio.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/arco-oposicion.test.ts",
+      "minCasos": 17
     },
     {
       "archivo": "src/__tests__/asr-guardian-sustituciones.test.ts",
@@ -81,12 +97,24 @@
       "minCasos": 14
     },
     {
+      "archivo": "src/__tests__/auditoria-no-sobrevive-al-logout.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/auditoria-v7-dia1.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/authz-fundador.test.ts",
       "minCasos": 10
     },
     {
       "archivo": "src/__tests__/availability.test.ts",
       "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/balance-negativo-no-es-dosis-rota.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/bed-assignment.test.ts",
@@ -107,6 +135,10 @@
     {
       "archivo": "src/__tests__/campos-sin-leer.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/canal-whatsapp-no-se-secuestra.test.ts",
+      "minCasos": 11
     },
     {
       "archivo": "src/__tests__/cardiometabolico.test.ts",
@@ -145,6 +177,14 @@
       "minCasos": 42
     },
     {
+      "archivo": "src/__tests__/con-paciente-enfrente-no-se-interrumpe.test.ts",
+      "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/consulta-descartada-no-resucita.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/copiloto-ckdepi-pediatrico.test.ts",
       "minCasos": 2
     },
@@ -173,6 +213,10 @@
       "minCasos": 28
     },
     {
+      "archivo": "src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/dislipidemia.test.ts",
       "minCasos": 61
     },
@@ -185,7 +229,15 @@
       "minCasos": 13
     },
     {
+      "archivo": "src/__tests__/dosis-avisa-antes-de-firmar.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/dosis-decision-amoxicilina.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/dosis-desconocida-declarada.test.ts",
       "minCasos": 12
     },
     {
@@ -205,12 +257,28 @@
       "minCasos": 33
     },
     {
+      "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
+      "minCasos": 30
+    },
+    {
+      "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/errores-sin-phi.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/especialidad-del-medico.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/evidencia-presupuesto.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/farmacovigilancia.test.ts",
@@ -297,6 +365,10 @@
       "minCasos": 20
     },
     {
+      "archivo": "src/__tests__/hueco-escrito-no-es-dato.test.ts",
+      "minCasos": 25
+    },
+    {
       "archivo": "src/__tests__/ia-gateway.test.ts",
       "minCasos": 21
     },
@@ -307,6 +379,10 @@
     {
       "archivo": "src/__tests__/icu-observaciones-persistencia.test.ts",
       "minCasos": 22
+    },
+    {
+      "archivo": "src/__tests__/importar-no-pisa-lo-firmado.test.ts",
+      "minCasos": 9
     },
     {
       "archivo": "src/__tests__/infusion-library-capas.test.ts",
@@ -333,48 +409,12 @@
       "minCasos": 2
     },
     {
-      "archivo": "src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/balance-negativo-no-es-dosis-rota.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/nota-firmada-no-se-edita.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/auditoria-v7-dia1.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
-      "minCasos": 6
-    },
-    {
       "archivo": "src/__tests__/la-caida-de-ia-sigue-al-dueno.test.ts",
       "minCasos": 15
     },
     {
-      "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/trinquete-de-voz.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
-      "minCasos": 30
-    },
-    {
-      "archivo": "src/__tests__/lo-que-cita-la-auditoria-existe.test.ts",
-      "minCasos": 4
+      "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/lab-criticos.test.ts",
@@ -383,6 +423,14 @@
     {
       "archivo": "src/__tests__/laboratorio-extraccion.test.ts",
       "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/lo-que-cita-la-auditoria-existe.test.ts",
+      "minCasos": 4
     },
     {
       "archivo": "src/__tests__/medical-dictionary.test.ts",
@@ -411,6 +459,14 @@
     {
       "archivo": "src/__tests__/ngramas-antonimos.test.ts",
       "minCasos": 1
+    },
+    {
+      "archivo": "src/__tests__/nota-firmada-no-se-edita.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/nota-que-ya-no-existe.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/numeros-palabras-uci.test.ts",
@@ -465,6 +521,10 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/quien-vigila-al-vigilante.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/razonamiento.test.ts",
       "minCasos": 9
     },
@@ -517,6 +577,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/respaldo-consultorio.test.ts",
+      "minCasos": 21
+    },
+    {
       "archivo": "src/__tests__/roles-de-hablante.test.ts",
       "minCasos": 15
     },
@@ -533,6 +597,18 @@
       "minCasos": 11
     },
     {
+      "archivo": "src/__tests__/separacion-de-voces-fallida.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/sesgo-llega-al-motor-bueno.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/sesgo-medido.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/simulacro-respaldo.test.ts",
       "minCasos": 13
     },
@@ -543,6 +619,10 @@
     {
       "archivo": "src/__tests__/timezone-zona-consultorio.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/trinquete-de-voz.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/uci-benchmark-metricas.test.ts",
@@ -717,104 +797,32 @@
       "minCasos": 18
     },
     {
+      "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",
       "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/via-parenteral.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/whisper-prompt-presupuesto.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/respaldo-consultorio.test.ts",
-      "minCasos": 21
-    },
-    {
-      "archivo": "src/__tests__/anticipo-no-se-cobra-dos-veces.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/arco-oposicion.test.ts",
-      "minCasos": 17
-    },
-    {
-      "archivo": "src/__tests__/nota-que-ya-no-existe.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/evidencia-presupuesto.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/consulta-descartada-no-resucita.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/separacion-de-voces-fallida.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/wer-publicado.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/importar-no-pisa-lo-firmado.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/errores-sin-phi.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/auditoria-no-sobrevive-al-logout.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/canal-whatsapp-no-se-secuestra.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts",
-      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/via-no-dictada-avisa.test.ts",
       "minCasos": 17
     },
     {
-      "archivo": "src/__tests__/quien-vigila-al-vigilante.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/sesgo-llega-al-motor-bueno.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/sesgo-medido.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/aprender-aunque-cambie-el-largo.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
-      "minCasos": 11
-    },
-    {
       "archivo": "src/__tests__/via-no-especificada-es-un-hueco.test.ts",
       "minCasos": 13
     },
     {
-      "archivo": "src/__tests__/dosis-avisa-antes-de-firmar.test.ts",
-      "minCasos": 12
+      "archivo": "src/__tests__/via-parenteral.test.ts",
+      "minCasos": 7
     },
     {
-      "archivo": "src/__tests__/dosis-desconocida-declarada.test.ts",
-      "minCasos": 12
+      "archivo": "src/__tests__/wer-publicado.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/whisper-prompt-presupuesto.test.ts",
+      "minCasos": 7
     }
   ]
 }

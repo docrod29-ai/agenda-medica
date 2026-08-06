@@ -3,6 +3,18 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1062 — REG-178: el aviso de operación deja de cortar la consulta
+
+Paso 1 de `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`.
+
+Debajo de su nota, en rojo: «5 trabajo(s) automático(s) dejaron de correr».
+Cierto, suyo, y nada de eso se arregla desde la consulta. En las cuatro pantallas
+con un paciente esperando sólo entra ahora lo que impide atenderlo —la IA caída,
+la llave rechazada—; lo demás espera a que salga.
+
+`src/lib/ops/interrumpe-la-consulta.ts`. El filtro anterior preguntaba «¿es
+urgente?» y un cron muerto lo es; la pregunta con alguien delante es otra.
+
 ## v1061 — REG-177: un hueco escrito con letras deja de entrar como dato
 
 El modelo escribe «No especificada» cuando no captura un campo, y ese texto se
