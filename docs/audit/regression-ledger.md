@@ -1507,3 +1507,49 @@ y que el médico dueño ya revisó (REG-041).
 
 **Golden** — `src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts` (16
 casos).
+
+---
+
+## REG-191 — la versión del prompt llevaba siete cambios sin moverse (v1073)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo E3).
+
+**El defecto** — `PROMPT_VERSION` se sella en cada nota (`_promptVersion`) y es
+lo único que permite responder a la pregunta que importa cuando algo sale mal:
+**«¿qué notas se generaron con el prompt que tenía el fallo?»**
+
+En la noche del 5 al 6 de agosto el prompt cambió **siete veces** —regla 1-bis,
+6-bis, 6-ter, 19-bis, la 22 reescrita, la 17 acotada, dos campos retirados— y la
+versión siguió diciendo `nota-2026-08`. Dos notas con la misma etiqueta podían
+venir de prompts distintos: el lote afectado **no se podía acotar**. Es un
+requisito de IEC 62304, y era humo.
+
+**Y el candado estaba puesto al revés** — El único test que la miraba la
+**pineaba al literal** (`toContain("const PROMPT_VERSION = 'nota-2026-08'")`), así
+que subirla rompía la suite. Su intención era buena —exigir que cambiara— y su
+implementación impedía exactamente eso.
+
+**Reparación** — `src/lib/expediente/prompt-version.ts`: la versión, la lista de
+archivos que **son** el prompt, y una huella de su contenido. La prueba compara
+la huella real contra la declarada y, cuando falla, **trae la huella nueva en el
+mensaje** para que subirla sea copiar y pegar. Formato nuevo
+`nota-AAAA-MM-DD-N`: en una noche puede cambiar varias veces.
+
+**Vigila las DOS rutas** — `prompts.ts` y `confianza-audio.ts`. La segunda es por
+donde se coló REG-180: arreglar sólo el prompt principal dejó viva la orden vieja
+por el otro lado.
+
+**Por qué la huella es del archivo entero, comentarios incluidos** — Hashear
+«sólo lo que llega al modelo» exigiría construir el prompt para cada tipo de
+nota, especialidad e instrucciones; un candado que no se puede calcular con
+certeza no es un candado. Y en un sistema regulado la versión identifica **el
+artefacto**: dos builds con la misma versión deberían ser el mismo archivo. El
+coste de versionar de más es una línea; el de versionar de menos es no poder
+acotar un lote de notas clínicas.
+
+**La ruta la importa, no la redeclara** — Redeclararla era cómo se
+desincronizaba.
+
+**Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
+
+**Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).

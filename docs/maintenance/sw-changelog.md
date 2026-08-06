@@ -3,6 +3,19 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
+
+`_promptVersion` se sella en cada nota y es lo único que permite acotar el lote
+afectado por un fallo. El prompt cambió siete veces esta noche y la etiqueta
+seguía siendo `nota-2026-08`.
+
+Y el candado estaba puesto al revés: el test la pineaba al literal, así que
+subirla rompía la suite. Su intención era buena; su implementación impedía
+exactamente lo que exigía.
+
+Ahora una huella del prompt real se compara con la declarada, en las DOS rutas
+por las que llegan instrucciones al modelo. Cuando falla, trae la huella nueva.
+
 ## v1072 — REG-190: el motor de sobredosis corría después de firmar
 
 `revisarDosis()` caza sobredosis, techos por vía y edad, y el error de decimal
