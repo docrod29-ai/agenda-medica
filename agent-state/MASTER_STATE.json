@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-001 (cerrada — REG-201, v1082)",
+  "iteracionActual": "SAFE-001 (cerrada — REG-201, v1082, PR #231)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -20,5 +20,6 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
-  "notaDeEntorno": "`ops-timeout-y-punto-ciego.test.ts` («el error dice cuánto esperó y a quién») falla en el contenedor del agente y también en main: la salida a 10.255.255.1 devuelve error inmediato en vez de colgarse, así que `TiempoAgotado` nunca se lanza. Es artefacto del sandbox, no regresión — en CI pasa."
+  "notaDeEntorno": "`ops-timeout-y-punto-ciego.test.ts` («el error dice cuánto esperó y a quién») falla en el contenedor del agente y también en main: la salida a 10.255.255.1 devuelve error inmediato en vez de colgarse, así que `TiempoAgotado` nunca se lanza. Es artefacto del sandbox, no regresión — en CI pasa.",
+  "bloqueadorAbierto": "B-11: el CI de Actions no arranca en PR del agente; compuertas corridas en local y declaradas en el PR"
 }
