@@ -143,6 +143,7 @@ import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordene
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
+import { dosisPeligrosasDeLaLista } from '@/lib/seguridad/dosis-de-la-lista'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
 import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
@@ -4306,6 +4307,21 @@ export default function ConsultaActivaPage() {
           avisoDeVia: avisoDeViaAsumida(viasAsumidas),
           interacciones: detectarInteracciones(medicamentos),
           controlados: detectarControlados(medicamentos),
+          /**
+           * ── LA SOBREDOSIS SE VE ANTES DE FIRMAR (REG-190) ─────────────────
+           * El motor `revisarDosis` —sobredosis, techos por vía y edad, error
+           * de decimal— tenía UN solo llamador: la pantalla de la receta, que
+           * se abre desde una nota YA FIRMADA. Cazaba «500 donde iban 50»
+           * cuando el paciente ya se había ido con la receta en la mano.
+           */
+          dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
+            edadAnios: patient?.edad ?? undefined,
+            pesoKg: signosNum.peso ?? undefined,
+          }).map(d => ({
+            med: d.med,
+            mensaje: d.alertas.map(a => a.mensaje).join(' · '),
+            critica: d.severidad === 'critica',
+          })),
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */

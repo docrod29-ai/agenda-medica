@@ -57,6 +57,7 @@ export type OrigenAviso =
   | 'conflicto_extraccion'
   | 'dato_no_precisado'
   | 'requisito_nom004'
+  | 'dosis_peligrosa'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -75,6 +76,12 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   interaccion:            'revisa',
   controlado:             'revisa',
   conflicto_extraccion:   'revisa',
+  /**
+   * Sobredosis y error de decimal. NO bloquea: qué bloquea lo decidió el médico
+   * dueño el 5-ago con el dato delante, y ampliarlo por mi cuenta sería decidir
+   * por él. Pero cuando es CRÍTICA no se pliega (ver `NO_SE_PLIEGAN`).
+   */
+  dosis_peligrosa:        'revisa',
   dato_no_precisado:      'revisa',
 }
 
@@ -91,6 +98,12 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
 export const NO_SE_PLIEGAN: readonly OrigenAviso[] = [
   'alergia_medicamento',
   'contradiccion_negacion',
+  /**
+   * · **Dosis peligrosa** entra el 6-ago-2026 (REG-190). «500 mg donde iban 50»
+   *   es del mismo orden de daño que recetar aquello a lo que el paciente es
+   *   alérgico, y sale impreso en la receta igual de rápido.
+   */
+  'dosis_peligrosa',
 ]
 
 export interface AvisoConsulta {
@@ -124,6 +137,8 @@ export interface EntradaAvisos {
   avisoDeVia?: string | null
   interacciones?: readonly { titulo: string; detalle: string; severidad: string }[]
   controlados?: readonly { farmaco: string; requisito: string }[]
+  /** Sobredosis, techos por vía/edad y error de decimal (REG-190). */
+  dosisPeligrosas?: readonly { med: string; mensaje: string; critica: boolean }[]
   conflictos?: readonly string[]
   faltantesCriticos?: readonly string[]
   /**
@@ -265,6 +280,19 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       origen: 'controlado', nivel: nivelDe('controlado'),
       texto: `${c.farmaco} — ${c.requisito}`,
       ancla: { seccion: 'medicamentos' }, sello: 'farmacovigilancia',
+    })
+  }
+
+  for (const d of e.dosisPeligrosas ?? []) {
+    out.push({
+      id: `dosis-peligrosa:${d.med}`,
+      origen: 'dosis_peligrosa',
+      nivel: nivelDe('dosis_peligrosa'),
+      /** El mensaje del motor, literal: dice la cifra, el techo y el porqué. */
+      texto: d.mensaje,
+      ancla: { seccion: 'medicamentos', nombre: d.med },
+      /** Lo crítico no se descarta con un botón: se corrige o se decide. */
+      descartable: !d.critica,
     })
   }
 

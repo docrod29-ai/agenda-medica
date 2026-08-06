@@ -30,6 +30,7 @@ const ORIGENES: OrigenAviso[] = [
   'dosis_incompleta', 'alergia_medicamento', 'contradiccion_negacion',
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
+  'dosis_peligrosa',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -90,7 +91,7 @@ describe('lo que puede matar hoy nunca se pliega', () => {
 })
 
 describe('ningún aviso se perdió al reordenarlos', () => {
-  it('los ocho motores siguen llegando a la barra', () => {
+  it('los nueve motores siguen llegando a la barra', () => {
     const avisos = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'sin cantidad' }],
       alergiaMedicamento: [{ mensaje: 'penicilina', severidad: 'critica' }],
@@ -103,6 +104,7 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       conflictos: ['dos fechas distintas'],
       faltantesCriticos: ['confirmación bacteriológica'],
       yaLoBloqueaNOM004: ['Falta: Exploración física'],
+      dosisPeligrosas: [{ med: 'paracetamol', mensaje: '10 g por toma', critica: true }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

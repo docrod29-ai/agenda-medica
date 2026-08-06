@@ -1462,3 +1462,48 @@ profundidad, no sustitución: `firmar()` puede llamarse por otro camino.
 
 **Golden** — `src/__tests__/el-boton-dice-por-que-esta-apagado.test.ts` (18
 casos).
+
+---
+
+## REG-190 — el motor de sobredosis corría DESPUÉS de firmar (v1072)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgo G1).
+
+**El defecto** — `revisarDosis()` caza sobredosis, techos por vía y edad, y el
+**error de decimal** —«500 mg donde iban 50»—, que es de los errores de
+prescripción que más daño hacen y que un modelo generativo pasa por alto sin
+despeinarse.
+
+Tenía **un solo llamador**: `receta/[patientId]/[notaId]/page.tsx`, la pantalla
+de la receta, que se abre desde una nota **ya firmada**. El motor corría cuando
+la nota estaba sellada y el paciente se había ido con la receta en la mano.
+
+**Por qué no bastaba con llamarlo** — La lógica que arma la entrada —sacar los mg
+del texto, distinguir mg de mg/kg, contar las tomas al día— vivía dentro de un
+`useMemo` de esa pantalla. Traerla a la consulta no era llamar a una función: era
+copiarla. Por eso se extrae a `src/lib/seguridad/dosis-de-la-lista.ts`.
+
+**Reparación** — La consulta lo calcula sobre la lista entera, con la edad y el
+peso del paciente (que es lo que activa la comprobación pediátrica por kg), y
+entra en la barra como origen `dosis_peligrosa`.
+
+**Nivel `revisa`, pero NO se pliega cuando es crítica** — Qué bloquea la firma lo
+decidió el médico dueño el 5-ago con el dato delante; ampliarlo por mi cuenta
+sería decidir por él. Pero «500 donde iban 50» es del mismo orden de daño que
+recetar aquello a lo que el paciente es alérgico, y sale impreso igual de rápido:
+entra en `NO_SE_PLIEGAN`, junto al cruce de alergias y la contradicción del
+dictado.
+
+**`sin_referencia` se descarta** — «Este fármaco no está en el catálogo» no es un
+hallazgo sobre el paciente, y en una lista de ocho llenaría la pantalla de avisos
+que no dicen nada. El motor ya advierte por su cuenta que la ausencia de alerta
+no significa dosis segura.
+
+**No se quita de la receta** — Esa pantalla se puede abrir sin pasar por la
+consulta de hoy.
+
+**Ningún umbral nuevo** — Todos salen del catálogo de `dosis.ts`, que ya existía
+y que el médico dueño ya revisó (REG-041).
+
+**Golden** — `src/__tests__/la-sobredosis-se-ve-antes-de-firmar.test.ts` (16
+casos).

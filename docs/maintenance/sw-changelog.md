@@ -3,6 +3,19 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1072 — REG-190: el motor de sobredosis corría después de firmar
+
+`revisarDosis()` caza sobredosis, techos por vía y edad, y el error de decimal
+—«500 mg donde iban 50»—. Tenía UN solo llamador: la pantalla de la receta, que
+se abre desde una nota YA FIRMADA.
+
+Ahora corre en la consulta, sobre la lista entera, con la edad y el peso. Nivel
+`revisa` —qué bloquea lo decidió el médico dueño— pero cuando es CRÍTICA no se
+pliega: «500 donde iban 50» es del mismo orden de daño que recetar aquello a lo
+que el paciente es alérgico.
+
+Ningún umbral nuevo: todos salen del catálogo que él ya revisó.
+
 ## v1071 — REG-189: el botón y la barra se contradecían
 
 |  | El botón | La barra |
