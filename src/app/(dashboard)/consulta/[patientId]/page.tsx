@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
+import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
 import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
@@ -857,6 +858,8 @@ export default function ConsultaActivaPage() {
   const dosisIncompletas = useMemo(() => {
     return medicamentos
       .filter(m => m.nombre?.trim())
+      // Ver `esDosisDeclaradaDesconocida`: una respuesta no es un aviso pendiente.
+      .filter(m => !esDosisDeclaradaDesconocida(m.dosis))
       .map(m => ({ med: m.nombre, aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
       .filter((x): x is { med: string; aviso: NonNullable<ReturnType<typeof revisarUnidadDosis>> } => !!x.aviso)
     /**
@@ -2735,6 +2738,12 @@ export default function ConsultaActivaPage() {
      */
     const dosisMal = medicamentos
       .filter(m => m.nombre?.trim())
+      /**
+       * Lo DECLARADO desconocido no bloquea: es una respuesta, no un hueco.
+       * Y sólo cuenta la frase canónica que pone el botón — «No especificada»,
+       * que es lo que escribe la IA cuando no captó nada, sigue bloqueando.
+       */
+      .filter(m => !esDosisDeclaradaDesconocida(m.dosis))
       .map(m => ({ nombre: m.nombre.trim(), aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
       .filter(x => x.aviso?.codigo === 'dosis_sin_cifra' || x.aviso?.codigo === 'dosis_sin_unidad')
     if (dosisMal.length) {
@@ -4664,6 +4673,23 @@ export default function ConsultaActivaPage() {
             <input value={m.dosis} disabled={firmada} placeholder="Dosis"
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 70 }} />
+            {/*
+              «NO LA SABE» — la salida honesta cuando el paciente no conoce la dosis.
+              Decisión del médico dueño (5-ago-2026) tras medir que la compuerta de
+              firma bloqueaba la MITAD de sus notas: y lo que bloqueaba no eran
+              descuidos, sino medicación previa que el paciente refiere sin saber
+              cuánto toma. Sin esta salida habría que inventarse una dosis.
+              Sólo aparece si el renglón tiene nombre y le falta la dosis: no
+              estorba en el caso normal, que es teclear la cantidad.
+            */}
+            {!firmada && m.nombre?.trim() && !m.dosis?.trim() && (
+              <button
+                type="button"
+                onClick={() => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: DOSIS_DESCONOCIDA } : x))}
+                title="El paciente lo toma pero no sabe la dosis. Se registra así, y se imprime."
+                style={{ ...S.input, flex: '0 0 auto', cursor: 'pointer', fontSize: 12, padding: '0 10px', whiteSpace: 'nowrap' }}
+              >No la sabe</button>
+            )}
             {/*
               VÍA: no existía control para cambiarla y se creaba fija en 'oral'.
               La receta SÍ la imprime, así que una ceftriaxona IV salía impresa

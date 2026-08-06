@@ -917,3 +917,39 @@ la menciona**. Un test que mira la prosa en vez del comportamiento se engaña so
 Ahora busca el `<button>`.
 
 **Golden** — `src/__tests__/dosis-avisa-antes-de-firmar.test.ts` (12 casos).
+
+## REG-176 · «El paciente no sabe la dosis» — dicho, no callado
+
+**Por qué hizo falta** — Medido el impacto de REG-174/175 con el motor real sobre
+las notas del Dr.: **4 de 8 no se habrían podido firmar**. Y lo que las bloqueaba
+no eran descuidos:
+
+| Medicamento | Dosis registrada |
+|---|---|
+| Pregabalina | «No especificada» |
+| **Antibiótico no especificado** | «No especificada» |
+| **Antihipertensivo no especificado** | «No especificada» |
+| Telmisartán | *(vacío)* |
+
+Medicación previa que el paciente refiere y cuya dosis no conoce. «Toma algo para
+la presión» es un hecho clínico legítimo. Con la compuerta cerrada habría que
+**inventarse una dosis que el paciente no dijo** — peor que el problema evitado.
+
+**Decisión del médico dueño (5-ago-2026)** — Se le plantearon tres caminos
+(separar prescrito/referido · permitir la declaración · dejarlo) y eligió el
+segundo: **«haz la B»**.
+
+**Reparación** — `src/lib/seguridad/dosis-desconocida.ts` (módulo puro) y un botón
+«No la sabe» junto al campo, que sólo aparece si el renglón tiene nombre y le
+falta la dosis. Lo declarado no bloquea ni figura como aviso pendiente.
+
+**Lo que impide que sea un parche** — La declaración es un **acto del médico**: se
+compara literal contra una frase canónica que sólo pone el botón. **«No
+especificada» —lo que escribe la IA cuando no captó la dosis— sigue bloqueando.**
+Aceptarla habría desactivado la compuerta de vuelta.
+
+**Se imprime** — El texto va al campo `dosis`, así que sale en la receta y en la
+nota: quien lea el documento ve que la dosis se desconoce, en vez de un renglón en
+blanco que parecería un olvido.
+
+**Golden** — `src/__tests__/dosis-desconocida-declarada.test.ts` (12 casos).
