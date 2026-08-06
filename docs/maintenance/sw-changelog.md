@@ -3,6 +3,23 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1069 — REG-186/187: la anatomía y el vocabulario que no llegaba
+
+Los dos primeros hallazgos de la auditoría de nueve dimensiones (78 agentes, 68
+hallazgos, 52 confirmados), reproducidos con el motor real antes de tocar nada.
+
+**REG-186** — «ECG con infradesnivel en el segmento ST» se imprimía como
+«infradesnivelST». Un `?` de más hacía opcional el «de la consulta», así que el
+saneador de metatexto se comía las localizaciones anatómicas. Cuatro de cada
+cinco frases clínicas legítimas salían amputadas, y la primera es un infarto.
+
+**REG-187** — Al reconocedor se le mandaba «Sepsis y choque» —el nombre del
+cajón— en vez de las palabras de dentro. UCI: 4 nombres → 67 términos. PROA: 1
+→ 29. El sesgo es lo único que cambia lo que la máquina OYE, y lo que no se oye
+no lo recupera ningún corrector.
+
+Tercera vez con el patrón «el trabajo está hecho y no llega».
+
 ## v1068 — REG-185: un guardián para que el prompt no vuelva a contradecirse
 
 El mismo fallo apareció dos veces la misma noche: se corrige una regla y no se

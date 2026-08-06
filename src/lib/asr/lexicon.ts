@@ -108,6 +108,63 @@ export function contextosActivos(ctx: ContextoDictado): string[] {
   return out
 }
 
+/**
+ * LOS TÉRMINOS DE UNOS NOMBRES DE VOCABULARIO — Y NO LOS NOMBRES.
+ *
+ * ── EL DEFECTO QUE ESTO CIERRA (6-ago-2026, REG-187) ─────────────────────────
+ *
+ * `especialidadesDelMedico()` y `CONTEXTOS_POR_MODULO` devuelven **nombres de
+ * cajón**: «Microbiología y PROA», «Sepsis y choque», «Ventilación mecánica».
+ * Esos nombres viajaban tal cual hasta `sesgo-diarizado`, que los mete en la
+ * lista de términos con la que se sesga al reconocedor.
+ *
+ * Es decir: en un pase de UCI, al motor se le decía **«espera oír la frase
+ * *Sepsis y choque*»** —que nadie pronuncia— en vez de «espera oír
+ * norepinefrina, CVVHDF, RASS, decúbito prono».
+ *
+ * El vocabulario estaba escrito, curado y probado. Simplemente no llegaba.
+ *
+ * ── POR QUÉ DUELE MÁS QUE OTROS FALLOS ───────────────────────────────────────
+ *
+ * El sesgo es **lo único que cambia lo que la máquina OYE**. Una palabra que
+ * nunca llegó al reconocedor no la recupera ningún corrector de después: el
+ * corrector, el guardián y los avisos trabajan sobre lo ya oído.
+ *
+ * Es el mismo patrón de REG-167 —el sesgo llegaba mal y degradaba el motor— y
+ * de la v1025 —el vocabulario iba a la ruta de repuesto y no a la que corre.
+ * Tercera vez que el trabajo está hecho y no llega a donde cambia algo.
+ */
+export function terminosDeEspecialidades(nombres: readonly string[]): string[] {
+  const out: string[] = []
+  const vistos = new Set<string>()
+  const mete = (t: string) => {
+    const k = t.trim().toLowerCase()
+    if (!k || vistos.has(k)) return
+    vistos.add(k); out.push(t.trim())
+  }
+  /**
+   * El orden ES la política, igual que en `construir()`: primero lo crítico de
+   * todas las especialidades pedidas, luego lo prioritario, luego el resto. Si
+   * el presupuesto se agota, se agota por el final — que es lo prescindible.
+   */
+  const activas = nombres.filter(n => n in ESPECIALIDADES)
+  for (const n of activas) ESPECIALIDADES[n].critical_terms.forEach(mete)
+  for (const n of activas) ESPECIALIDADES[n].high_priority_terms.forEach(mete)
+  for (const n of activas) ESPECIALIDADES[n].normal_terms.forEach(mete)
+  return out
+}
+
+/**
+ * Los nombres de vocabulario que corresponden a un módulo de la aplicación.
+ *
+ * Se expone para que quien construye el sesgo pueda expandirlos: el módulo
+ * (UCI, hospitalización) es tan informativo como la especialidad del médico, y
+ * hasta REG-187 se perdía igual.
+ */
+export function nombresDelModulo(modulo: ModuloDictado | undefined): readonly string[] {
+  return (modulo && CONTEXTOS_POR_MODULO[modulo]) || []
+}
+
 /** Términos críticos de TODAS las especialidades: `merge_global_critical_lexicon`. */
 export function criticosGlobales(): string[] {
   return Object.values(ESPECIALIDADES).flatMap(e => e.critical_terms)

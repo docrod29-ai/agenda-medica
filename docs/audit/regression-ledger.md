@@ -1303,3 +1303,77 @@ mencionaba su texto).
 originales, falla en las dos. Un guardián que no puede fallar no guarda nada.
 
 **Golden** — `src/__tests__/el-prompt-no-se-contradice.test.ts` (21 casos).
+
+---
+
+## REG-186 — «en el segmento ST» se borraba de la nota (v1069)
+
+**Encontrado** — 6-ago-2026, por la auditoría de nueve dimensiones (78 agentes,
+68 hallazgos, 52 confirmados), y **reproducido con el motor real** antes de tocar
+nada.
+
+**El defecto** — El saneador de prosa borra al modelo describiendo su entrada:
+«no se refiere motivo **en este fragmento de consulta**». Su patrón llevaba un
+`?` que hacía **opcional** el «de la consulta», así que también cazaba «en el
+segmento», «en la parte», «en la porción» y «en el tramo» sueltos — que en una
+nota clínica son **localizaciones anatómicas**.
+
+Comprobado ejecutando la expresión real:
+
+| Dictado | Lo que se imprimía |
+|---|---|
+| ECG con infradesnivel **en el segmento** ST de 2 mm | ECG con infradesnivel**ST** de 2 mm |
+| Dolor **en la parte** baja de la espalda | Dolor**baja** de la espalda |
+| Lesión **en la porción** distal del húmero | Lesión**distal** del húmero |
+| Soplo **en el tramo** medio del esternón | Soplo**medio** del esternón |
+
+Cuatro de cada cinco frases clínicas legítimas salían amputadas. **La primera es
+un infarto**: el infradesnivel del ST se imprimía pegado al verbo, en un
+documento firmado con cédula profesional.
+
+**Reparación** — Se quita el `?`: el complemento es obligatorio. Sin él no hay
+metatexto que borrar, hay anatomía.
+
+**La asimetría que lo justifica** — Dejar pasar un metatexto ensucia la nota.
+Borrar una localización anatómica **cambia lo que dice el expediente**. No se
+parecen.
+
+**Golden** — `src/__tests__/la-anatomia-no-es-metatexto.test.ts` (11 casos).
+
+---
+
+## REG-187 — al reconocedor se le mandaba el nombre del cajón (v1069)
+
+**Encontrado** — 6-ago-2026, misma auditoría. El hallazgo más caro de los 52.
+
+**El defecto** — `especialidadesDelMedico()` y `CONTEXTOS_POR_MODULO` devuelven
+**nombres de vocabulario**, no términos. Esos nombres llegaban tal cual a
+`sesgo-diarizado`, que los mete en la lista con la que se sesga al reconocedor.
+
+En un pase de UCI se le decía al motor **«espera oír la frase *Sepsis y
+choque*»** —que nadie pronuncia— en vez de «norepinefrina, CVVHDF, RASS, FiO2».
+
+Medido antes de tocarlo:
+
+| Módulo | Se mandaba | Se manda ahora |
+|---|---|---|
+| UCI | **4** nombres de cajón | **67** términos reales |
+| Microbiología y PROA | **1** nombre | **29** términos reales |
+
+**Por qué duele más que otros fallos** — El sesgo es **lo único que cambia lo que
+la máquina OYE**. Una palabra que nunca llegó al reconocedor no la recupera
+ningún corrector de después. Es la lección de `Spiolto` (REG-179) multiplicada
+por el vocabulario entero de una especialidad.
+
+**Tercera vez con el mismo patrón** — «El trabajo está hecho y no llega»:
+REG-167 (el sesgo degradaba el motor al modelo viejo), v1025 (el vocabulario iba
+a la ruta de repuesto y no a la que corre), y ésta.
+
+**El nombre se conserva además del contenido** — Cuesta cuatro términos y alguna
+especialidad sí se dice en voz alta («lo mando a infectología»).
+
+**Lo que NO arregla, dicho claro** — El sesgo sólo puede ofrecer lo que alguien
+escribió antes. Expandir los nombres no crea vocabulario: hace que llegue el que
+ya existe.
+
+**Golden** — `src/__tests__/el-sesgo-manda-palabras-no-cajones.test.ts` (11 casos).
