@@ -1108,3 +1108,56 @@ instrucción «no inteligible, confirmar». Se cambió **porque esa instrucción
 causa**, no para que pasara: lo que protegía de verdad —que una palabra no oída no
 se sustituya por la más probable— sigue comprobado, y ahora además se comprueba
 cómo sí se escribe.
+
+---
+
+## REG-181 — ocho recuadros sobre la nota, y sólo uno bloqueaba (v1064)
+
+**Encontrado** — 5-ago-2026, en las capturas que mandó el Dr.: «esto nomás
+confunde… necesito más organización sin tanta mamada que desubique y confunda a
+los médicos».
+
+**El defecto** — Después de dictar, antes de ver su nota, se encontraba **ocho
+bloques de aviso apilados** con ~40 elementos. Tres eran rojos y **dos de los
+tres no bloqueaban nada**. Tenía que leerlos todos para descubrir cuál importaba.
+
+No sobraban avisos: **estaban todos al mismo volumen**. Cuando todo grita, nada
+se oye — y lo que se acaba ignorando es el que sí importaba.
+
+**Reparación** — Una barra de tres niveles:
+
+| Nivel | La pregunta que responde | Nace |
+|---|---|---|
+| BLOQUEA | ¿es por lo que el botón Firmar no responde? | abierto, y no se pliega |
+| REVISA | ¿pide una decisión, aunque no lo impida? | los fijos siempre a la vista; el resto plegado si son >3 |
+| YA EN LA NOTA | ¿es contenido que ya está escrito? | plegado siempre |
+
+`src/lib/expediente/avisos-consulta.ts` (módulo puro) + `AntesDeFirmar.tsx`.
+
+**`bloquea` NO es «es grave»** — El cruce alergia ↔ medicamento es lo más grave
+de esta pantalla y no bloquea: esa decisión es del médico dueño. Lo que se hace
+con lo grave que no bloquea es **no plegarlo nunca** (`NO_SE_PLIEGAN`).
+
+**Ningún aviso desapareció** — Se recolocan y se pliegan. Lo que bloquea queda
+MÁS visible que antes, no menos, y la barra entera no se puede cerrar.
+
+**La deduplicación era media reparación** — De las nueve viñetas de «datos
+críticos no documentados», **cuatro eran ecos** de la compuerta de dosis. Nadie
+las cruzaba.
+
+**El precio, dicho en voz alta** — Plegar es esconder: la vía asumida y el
+desajuste temporal se van a leer menos que antes. Es el precio consciente de que
+el rojo vuelva a significar algo.
+
+**Y la regla que impide que vuelva a crecer** — Tres niveles, punto. Un motor
+nuevo declara su origen en `NIVEL` y entra en una lista que ya existe. No se
+añaden recuadros.
+
+**Golden** — `src/__tests__/una-barra-y-no-ocho-recuadros.test.ts` (25 casos),
+incluida una prueba que recorre los nueve orígenes y falla si alguno pierde su
+nivel — el riesgo que este rediseño introduce.
+
+**Nota de método** — Ocho pruebas existentes comprobaban el `tone="…"` y los
+títulos de los recuadros viejos dentro del JSX. Se reapuntaron al módulo puro:
+lo que protegían no cambió, y ahora se vigila en una tabla de nueve líneas en vez
+de en un JSX de 5000.

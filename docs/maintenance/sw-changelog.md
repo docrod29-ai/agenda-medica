@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1064 — REG-181: una barra de tres niveles, no ocho recuadros
+
+Paso 2 del plan `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`.
+
+Sobre la nota había OCHO bloques de aviso con ~40 elementos; tres eran rojos y
+dos de los tres no bloqueaban nada. Ahora hay una barra:
+
+  BLOQUEA   — lo que hace que Firmar no responda. No se pliega.
+  REVISA    — lo que pide decisión. Los fijos siempre a la vista.
+  YA EN LA NOTA — contenido. Plegado siempre.
+
+`avisos-consulta.ts` (módulo puro, tabla de niveles vigilable) + `AntesDeFirmar`.
+Ningún aviso desapareció; lo que bloquea quedó MÁS visible. Lo que puede matar
+hoy —alergia ↔ medicamento— no se pliega nunca, aunque no bloquee.
+
+Y cuatro de las nueve viñetas de «datos críticos» eran ecos de la compuerta de
+dosis: nadie las cruzaba.
+
 ## v1063 — REG-179/180: el recuadro naranja no era culpa del modelo
 
 Paso 3 del plan `docs/maintenance/PLAN-2026-08-05-la-nota-manda.md`, adelantado

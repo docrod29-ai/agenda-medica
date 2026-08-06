@@ -43,6 +43,8 @@ import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
 import { PreopAssessment } from '@/components/PreopAssessment'
 import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
+import { AntesDeFirmar } from '@/components/AntesDeFirmar'
+import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -4227,160 +4229,61 @@ export default function ConsultaActivaPage() {
         unidad sigue avisando sin bloquear: él pidió bloquear cuando falta la
         dosis, y ampliarlo por mi cuenta sería decidir por él.
       */}
-      {dosisIncompletas.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert
-            tone="danger"
-            icon={<AlertTriangle size={18} />}
-            title="Dosis incompleta — no se puede firmar hasta corregirlo"
-          >
-            {dosisIncompletas.map((d, i) => (
-              <div key={`${d.med}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
-                {d.aviso.mensaje}{' '}
-                {/*
-                  SIN «Ya lo revisé»: desde la ampliación del 5-ago los DOS
-                  casos bloquean la firma, y ofrecer un botón que sólo esconde
-                  el aviso sería una promesa falsa — el mensaje se iría y la
-                  firma seguiría sin dejarse pulsar, sin saber por qué.
-                  Aquí no hay nada que descartar: hay algo que escribir.
-                */}
-              </div>
-            ))}
-          </Alert>
-        </div>
-      )}
-
       {/*
-        VÍA NO DICTADA — decisión del médico dueño: se queda en ORAL y se avisa.
-        En ámbar y no en rojo: una vía asumida no es un error como afirmar algo
-        que se negó; casi siempre será oral de verdad. Lo que no puede es figurar
-        en una receta sin que nadie la haya mirado.
-        Un solo aviso para todos los fármacos: uno por medicamento sería la
-        fatiga de alerta que ya se corrigió en esta misma pantalla.
+        ── UNA BARRA, TRES RENGLONES (5-ago-2026, REG-181) ────────────────────
+
+        Aquí vivían SIETE bloques de aviso, uno debajo de otro. El Dr. mandó la
+        captura: ocho recuadros sobre su nota, ~40 elementos, y sólo uno le
+        impedía firmar. Tres eran rojos y dos de los tres no bloqueaban nada.
+
+        Ninguno desapareció: se clasifican en `avisos-consulta.ts` —módulo puro,
+        con la tabla de niveles a la vista— y se pintan en un solo sitio, por
+        gravedad real. Lo que bloquea queda MÁS visible que antes; lo que puede
+        matar hoy (alergia ↔ medicamento) no se pliega nunca.
       */}
-      {viasAsumidas.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert tone="warning" icon={<AlertTriangle size={18} />} title="No se dictó la vía de administración">
-            <div style={{ lineHeight: 1.5 }}>
-              {avisoDeViaAsumida(viasAsumidas)}{' '}
-              <button
-                onClick={() => viasAsumidas.forEach(n => marcarRevisado('via', n))}
-                style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
-              >Ya lo revisé</button>
-            </div>
-          </Alert>
-        </div>
-      )}
-
-      {contradiccionesNota.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert tone="danger" icon={<AlertTriangle size={18} />} title="La nota afirma algo que en el dictado se negó">
-            {contradiccionesNota.map((c, i) => (
-              <div key={`${c.condicion}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
-                {avisoDeContradiccion(c)}{' '}
-                {/*
-                  QUITARLO NO CAMBIA LA NOTA: dice «ya lo miré». El criterio
-                  clínico quedó en lo que el médico escribió, no aquí. Y vuelve a
-                  salir si el texto cambia, porque entonces es otro aviso.
-                */}
-                <button
-                  onClick={() => marcarRevisado('negacion', c.condicion)}
-                  style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
-                >Ya lo revisé</button>
-              </div>
-            ))}
-            <div style={{ marginTop: 6, opacity: .9 }}>
-              El sistema no decide cuál es correcta —un paciente puede negar algo que sí tiene
-              documentado—: sólo se niega a dejarlo pasar en silencio.
-            </div>
-          </Alert>
-        </div>
-      )}
-
-      {/*
-        DESAJUSTE TEMPORAL DICTADO ↔ NOTA.
-        En ámbar y no en rojo a propósito: escribir un padecimiento pasado no es
-        un error como lo es afirmar algo que se negó. Puede seguir importando
-        como antecedente — lo que no puede es figurar como actual sin que nadie
-        lo haya mirado.
-      */}
-      {desajustesNota.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert tone="warning" icon={<AlertTriangle size={18} />} title="La nota da por actual algo que en el dictado se dijo en pasado">
-            {desajustesNota.map((d, i) => (
-              <div key={`${d.condicion}-${i}`} style={{ marginBottom: 6, lineHeight: 1.5 }}>
-                {avisoDeDesajuste(d)}{' '}
-                <button
-                  onClick={() => marcarRevisado('temporal', d.condicion)}
-                  style={{ background: 'none', border: '1px solid currentColor', borderRadius: 6, color: 'inherit', cursor: 'pointer', font: 'inherit', fontSize: 11.5, padding: '1px 8px', marginLeft: 4 }}
-                >Ya lo revisé</button>
-              </div>
-            ))}
-            <div style={{ marginTop: 6, opacity: .9 }}>
-              El sistema no decide si sigue activa: mira cómo se dijo la frase, no el hecho clínico.
-            </div>
-          </Alert>
-        </div>
-      )}
-
-      {/* ── Alertas clínicas cruzadas (punto de atención) ── */}
       {(() => {
-/**
-   * LA ALERTA DE ALERGIA USA EL PARSER DE TODOS (4-ago-2026).
-   *
-   * Aquí se metía el campo ENTERO como un solo alérgeno, sin partir y **sin
-   * filtrar negaciones**. Como el cruce compara con `includes`, «Niega alergia a
-   * penicilina» + amoxicilina pintaba la alerta **crítica roja** — en la pantalla
-   * donde se prescribe. Es REG-034 y REG-035, ya cerradas dos veces, en una
-   * tercera ruta; y en este mismo archivo había otras dos lecturas del campo que
-   * sí usaban el parser bueno.
-   *
-   * Un falso positivo aquí es peor que en otro sitio: gasta el panel rojo que
-   * también lleva los verdaderos.
-   */
-  const alergiasPaciente = alergiasDe(patient ?? {})
-        const alertas = validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
-        const interacciones = detectarInteracciones(medicamentos)
-        const controlados = detectarControlados(medicamentos)
-        if (alertas.length === 0 && interacciones.length === 0 && controlados.length === 0) return null
+        const alergiasPaciente = alergiasDe(patient ?? {})
+        const avisos = construirAvisos({
+          dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje })),
+          alergiaMedicamento: validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
+            .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),
+          contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
+          desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
+          viasAsumidas,
+          avisoDeVia: avisoDeViaAsumida(viasAsumidas),
+          interacciones: detectarInteracciones(medicamentos),
+          controlados: detectarControlados(medicamentos),
+          conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
+          faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
+        })
+        const extraidos = firmada ? 0 : aprobados.size
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            {alertas.length > 0 && (
-              <Alert tone="danger" icon={<AlertTriangle size={18} />} title="Alergia ↔ medicamento">
-                {alertas.map((a, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
-                    <strong style={{ color: a.severidad === 'critica' ? 'var(--red)' : 'var(--amber)' }}>[{a.severidad.toUpperCase()}]</strong> {a.mensaje}
-                  </div>
-                ))}
-              </Alert>
+          <AntesDeFirmar
+            avisos={avisos}
+            extraidos={extraidos}
+            soloLectura={firmada}
+            onIr={() => {
+              /* El ancla es el NOMBRE, nunca el índice: la lista se reordena. */
+              document.getElementById('seccion-medicamentos')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }}
+            onRevisado={id => {
+              const [tipo, ...resto] = id.split(':')
+              const clave = resto.join(':')
+              if (tipo === 'via') clave.split('|').forEach(n => marcarRevisado('via', n))
+              else marcarRevisado(tipo, clave)
+            }}
+          >
+            {(extraction || safety) && !firmada && (
+              <RevisionPanel
+                sinMarco
+                extraction={extraction as Parameters<typeof RevisionPanel>[0]['extraction']}
+                safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
+                aprobados={aprobados}
+                onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
+                onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
+              />
             )}
-            {/*
-              El sello va en el TÍTULO, junto al resultado — no arriba de la
-              pantalla ni en un modal. Estas alertas salen de `farmacovigilancia`,
-              que el registro clínico marca como `pendiente_validacion`: el médico
-              tiene derecho a saber que las reglas todavía no las revisó un
-              responsable, sin que eso le interrumpa la consulta. Si el motor pasa
-              a validado, la etiqueta desaparece sola.
-            */}
-            {interacciones.length > 0 && (
-              <Alert tone="warning" title={<>Posibles interacciones farmacológicas <SelloMotor id="farmacovigilancia" /></>}>
-                {interacciones.map((it, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
-                    <strong>{it.titulo}</strong>{it.severidad === 'mayor' ? ' (mayor)' : ''} — {it.detalle}
-                  </div>
-                ))}
-              </Alert>
-            )}
-            {controlados.length > 0 && (
-              <Alert tone="cobalt" icon={<Lock size={16} />} title={<>Controlado(s) — requisito COFEPRIS <SelloMotor id="farmacovigilancia" /></>}>
-                {controlados.map((c, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginTop: i ? 4 : 0 }}>
-                    <strong>{c.farmaco}</strong> — {c.requisito}
-                  </div>
-                ))}
-              </Alert>
-            )}
-          </div>
+          </AntesDeFirmar>
         )
       })()}
 
@@ -4406,16 +4309,7 @@ export default function ConsultaActivaPage() {
         )
       })()}
 
-      {/* ── Panel de revisión IA (Fase B) ── */}
-      {(extraction || safety) && !firmada && (
-        <RevisionPanel
-          extraction={extraction as Parameters<typeof RevisionPanel>[0]['extraction']}
-          safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
-          aprobados={aprobados}
-          onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
-          onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
-        />
-      )}
+      {/* El panel de revisión ya no va suelto: vive plegado dentro de la barra. */}
 
       {/* Sello de procedencia: de dónde salió CADA dato de la nota (dictado con
           cita / inferencia de IA / a mano). Medicolegal, solo lectura. Se muestra
@@ -4664,7 +4558,7 @@ export default function ConsultaActivaPage() {
       </Section>
 
       {/* ── Medicamentos ── */}
-      <Section title="Medicamentos / Plan farmacológico" icon={<Pill size={15} />}>
+      <Section id="seccion-medicamentos" title="Medicamentos / Plan farmacológico" icon={<Pill size={15} />}>
         {medicamentos.map((m, i) => (
           <div key={i} style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"

@@ -27,8 +27,10 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
+import { NIVEL, construirAvisos } from '@/lib/expediente/avisos-consulta'
 
 const consulta = readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
+const barra = readFileSync(join(process.cwd(), 'src', 'components', 'AntesDeFirmar.tsx'), 'utf8')
 
 describe('EL MOTOR YA SABÍA DETECTARLO', () => {
   it('una dosis vacía es severidad alta', () => {
@@ -66,7 +68,18 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * («bloquea también si falta la unidad»): ya no hay un caso que bloquee y
      * otro que no, así que un solo título dice la verdad para los dos.
      */
-    expect(consulta).toContain('Dosis incompleta — no se puede firmar hasta corregirlo')
+    /**
+     * ── TRASLADADO A LA BARRA (5-ago-2026, REG-181) ───────────────────────
+     * Los siete recuadros de la consulta son ahora una barra de tres niveles.
+     * Lo que esta prueba protege no cambió —qué bloquea, de qué color y qué se
+     * puede descartar—: cambió DÓNDE está escrito. La decisión vive en el
+     * módulo puro `avisos-consulta.ts`, que es justamente el sitio donde se
+     * puede vigilar.
+     */
+    expect(NIVEL.dosis_incompleta).toBe('bloquea')
+    expect(barra).toContain('BLOQUEA')
+    expect(barra).toContain('Falta la dosis de')
+    expect(consulta).toContain('construirAvisos(')
   })
 
   it('en rojo, porque el motor lo marca de severidad alta', () => {
@@ -74,10 +87,21 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * Una receta sin cantidad no se puede surtir, y «100» sin unidad se lee como
      * 100 mg. Eso no es un aviso ámbar.
      */
-    // El título ahora es dinámico, así que el ancla es el bloque del aviso.
-    const i = consulta.indexOf('Dosis incompleta — no se puede firmar hasta corregirlo')
+    /**
+     * ── TRASLADADO A LA BARRA (5-ago-2026, REG-181) ───────────────────────
+     * Los siete recuadros de la consulta son ahora una barra de tres niveles.
+     * Lo que esta prueba protege no cambió —qué bloquea, de qué color y qué se
+     * puede descartar—: cambió DÓNDE está escrito. La decisión vive en el
+     * módulo puro `avisos-consulta.ts`, que es justamente el sitio donde se
+     * puede vigilar.
+     */
+    // El renglón que bloquea es el único rojo de la barra, y lleva `role="alert"`.
+    const i = barra.indexOf('>BLOQUEA<')
     expect(i).toBeGreaterThan(0)
-    expect(consulta.slice(Math.max(0, i - 400), i)).toContain('tone="danger"')
+    // El chip que lo envuelve pinta con R = var(--red).
+    expect(barra.slice(Math.max(0, i - 120), i)).toContain('chip(R)')
+    expect(barra).toContain("const R = 'var(--red)'")
+    expect(barra).toContain("role={bloquean > 0 ? 'alert' : 'status'}")
   })
 
   it('SIN «Ya lo revisé» — porque esto no se descarta, se corrige', () => {
@@ -104,18 +128,34 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * menciona. Un test que mira la prosa del archivo en vez del comportamiento
      * se engaña solo, y aquí se engañó conmigo.
      */
-    const i = consulta.indexOf('Dosis incompleta — no se puede firmar hasta corregirlo')
-    const bloque = consulta.slice(i, consulta.indexOf('</Alert>', i))
-    expect(bloque).not.toContain('<button')
-    expect(bloque).not.toContain('marcarRevisado')
-    // Y el filtro de «revisados» tampoco queda como código muerto.
-    expect(consulta).not.toContain('avisosRevisados.includes(`dosis:${x.med}`)')
+    /**
+     * ── AHORA SE COMPRUEBA EL DATO, NO LA VECINDAD (REG-181) ──────────────
+     * Antes se acotaba una ventana de texto del JSX hasta su `</Alert>`. Con la
+     * barra, la garantía es más fuerte y más simple: el aviso NACE con
+     * `descartable: false`, y la barra sólo pinta «Ya lo revisé» sobre lo
+     * descartable. Ya no depende de que nadie meta un botón cerca.
+     */
+    const [bloqueo] = construirAvisos({
+      dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'la receta no lleva cantidad' }],
+    })
+    expect(bloqueo.nivel).toBe('bloquea')
+    expect(bloqueo.descartable).toBe(false)
+    expect(barra).toContain('a.descartable && onRevisado')
   })
 
   it('pero los avisos que NO bloquean sí se pueden quitar', () => {
-    // La petición del Dr sigue viva donde tiene sentido.
+    // La petición del Dr sigue viva donde tiene sentido: los informativos SÍ
+    // se descartan, y siguen usando la misma clave `${tipo}:${clave}` de
+    // `marcarRevisado`, para que lo ya descartado no resucite.
+    const avisos = construirAvisos({
+      contradicciones: [{ condicion: 'diabetes', mensaje: 'la nota afirma diabetes' }],
+      viasAsumidas: ['losartán'],
+      avisoDeVia: 'No se dictó la vía de losartán',
+    })
+    expect(avisos.find(a => a.origen === 'contradiccion_negacion')?.descartable).toBe(true)
+    expect(avisos.find(a => a.origen === 'via_asumida')?.descartable).toBe(true)
     expect(consulta).toContain("marcarRevisado('via', n)")
-    expect(consulta).toContain("marcarRevisado('negacion', c.condicion)")
+    expect(consulta).toContain('marcarRevisado(tipo, clave)')
   })
 
   it('la falta de DOSIS bloquea la firma — decisión del médico dueño', () => {

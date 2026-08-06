@@ -2,7 +2,7 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 3262,
+  "totalCasos": 3313,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -110,7 +110,7 @@
     },
     {
       "archivo": "src/__tests__/availability.test.ts",
-      "minCasos": 16
+      "minCasos": 21
     },
     {
       "archivo": "src/__tests__/balance-negativo-no-es-dosis-rota.test.ts",
@@ -210,7 +210,7 @@
     },
     {
       "archivo": "src/__tests__/csp-guard.test.ts",
-      "minCasos": 28
+      "minCasos": 34
     },
     {
       "archivo": "src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts",
@@ -310,7 +310,7 @@
     },
     {
       "archivo": "src/__tests__/firestore-rules-guard.test.ts",
-      "minCasos": 21
+      "minCasos": 24
     },
     {
       "archivo": "src/__tests__/funcion-renal-plausibilidad.test.ts",
@@ -438,11 +438,11 @@
     },
     {
       "archivo": "src/__tests__/modelo-y-voces-diarizacion.test.ts",
-      "minCasos": 16
+      "minCasos": 18
     },
     {
       "archivo": "src/__tests__/modulos-sin-conectar.test.ts",
-      "minCasos": 4
+      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/mrr-real.test.ts",
@@ -706,7 +706,7 @@
     },
     {
       "archivo": "src/__tests__/uci-handoff.test.ts",
-      "minCasos": 23
+      "minCasos": 27
     },
     {
       "archivo": "src/__tests__/uci-hemodinamia.test.ts",
@@ -803,6 +803,10 @@
     {
       "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/una-barra-y-no-ocho-recuadros.test.ts",
+      "minCasos": 25
     },
     {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",

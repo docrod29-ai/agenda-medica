@@ -26,6 +26,7 @@
  * se acaba ignorando, y con él se ignoran los que sí importan.
  */
 import { describe, it, expect } from 'vitest'
+import { NIVEL, NO_SE_PLIEGAN } from '@/lib/expediente/avisos-consulta'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -160,13 +161,21 @@ describe('ESTÁ CONECTADO A LA CONSULTA', () => {
      * Escribir un padecimiento pasado no es un error como lo es afirmar algo que
      * el paciente negó. El color dice cuánto pesa: igualarlos gastaría el rojo.
      */
-    expect(page).toContain('title="La nota da por actual algo que en el dictado se dijo en pasado"')
+    /**
+     * ── TRASLADADO A LA BARRA (5-ago-2026, REG-181) ───────────────────────
+     * Los siete recuadros de la consulta son ahora una barra de tres niveles.
+     * Lo que esta prueba protege no cambió; cambió DÓNDE está escrito: el nivel
+     * y el color los decide `avisos-consulta.ts`, un módulo puro cuya tabla se
+     * puede vigilar de un vistazo — que es más de lo que se podía hacer con el
+     * `tone="…"` de un JSX de 5000 líneas.
+     */
+    expect(NIVEL.desajuste_temporal).toBe('revisa')
     expect(page).toContain('avisoDeDesajuste(d)')
-    const linea = page.split('\n').find(l => l.includes('La nota da por actual algo que en el dictado'))
-    expect(linea, 'la alerta del desajuste temporal').toContain('tone="warning"')
-    // Y la de la negación sigue en rojo: son dos pesos distintos.
-    const roja = page.split('\n').find(l => l.includes('La nota afirma algo que en el dictado se negó'))
-    expect(roja).toContain('tone="danger"')
+    expect(page).toContain('construirAvisos(')
+    // Y la negación pesa más: no bloquea, pero NO se pliega nunca — el
+    // desajuste temporal sí. Ésa es la diferencia de peso, ahora explícita.
+    expect(NO_SE_PLIEGAN).toContain('contradiccion_negacion')
+    expect(NO_SE_PLIEGAN).not.toContain('desajuste_temporal')
   })
 })
 

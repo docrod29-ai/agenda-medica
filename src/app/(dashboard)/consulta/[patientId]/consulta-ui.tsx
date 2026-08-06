@@ -106,9 +106,13 @@ export function DialogoDiarizado({ utterances, rolesIniciales, onRolesChange }: 
   )
 }
 
-export function Section({ title, icon, obligatorio, children }: { title: string; icon?: React.ReactNode; obligatorio?: boolean; children: React.ReactNode }) {
+/**
+ * `id` existe para que la barra «Antes de firmar» pueda llevar al médico al
+ * sitio del problema con un clic, en vez de dejarlo buscando (REG-181).
+ */
+export function Section({ id, title, icon, obligatorio, children }: { id?: string; title: string; icon?: React.ReactNode; obligatorio?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div id={id} style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {icon && <span style={{ color: 'var(--teal)' }}>{icon}</span>}
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{title}</span>
