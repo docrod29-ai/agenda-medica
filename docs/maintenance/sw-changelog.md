@@ -3,6 +3,16 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1067 — REG-184: el recuadro repetía lo que NOM-004 ya bloqueaba
+
+«Exploración física no realizada» salía en el recuadro Y la sección obligatoria
+vacía ya impide firmar. Un aviso que no añade nada gasta la atención que
+necesitan los que sí.
+
+Y el prompt se contradecía otra vez: al acotar la regla 17 en v1063 quedaron
+vivas las líneas 66 y 243 diciendo lo contrario. Mismo patrón que REG-180 —
+corregir una regla obliga a buscar TODAS sus menciones.
+
 ## v1066 — REG-183: el eje que faltaba, ¿ya lo toma o se lo receto hoy?
 
 La compuerta de dosis trataba igual «toma algo para la presión y no sabe cuál»

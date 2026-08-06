@@ -1230,3 +1230,35 @@ añade es información.
 compuerta debe bloquear sólo lo que se prescribe hoy. Es su decisión, no mía.
 
 **Golden** — `src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts` (15 casos).
+
+---
+
+## REG-184 — el recuadro repetía lo que NOM-004 ya bloqueaba (v1067)
+
+**Encontrado** — 5-ago-2026, cerrando los ecos que quedaban del recuadro naranja.
+
+**El defecto, en dos partes**
+
+**1. Doble reporte.** «Exploración física no realizada» salía en el recuadro *y*
+la sección obligatoria vacía ya impide firmar por `validarNOM004`, con su propio
+mensaje y su propio sitio. El recuadro sólo repetía, sin añadir una acción — y un
+aviso que no añade nada gasta la atención que necesitan los que sí.
+
+**2. El prompt se contradecía consigo mismo, otra vez.** Al acotar la regla 17
+(v1063) quedaron dos líneas vivas que decían lo contrario:
+
+| Línea | Qué decía |
+|---|---|
+| 66 | «si falta un dato clave para el razonamiento, señálalo en `missing_critical_fields`» |
+| 243 | «`missing_critical_fields`: alergias/medicamentos/exploración no preguntados» |
+
+Es el mismo patrón de REG-180: una regla se acota y las otras menciones se
+quedan atrás, así que el modelo sigue recibiendo la orden vieja por otro sitio.
+**Corregir una regla obliga a buscar todas sus menciones.**
+
+**Reparación** — `yaLoBloqueaNOM004` en `construirAvisos`: los faltantes se
+cruzan contra dos cosas, los fármacos que ya bloquean arriba y lo que NOM-004
+bloquea por su cuenta. Y las líneas 66 y 243 alineadas con la 17 y la 19-bis.
+
+**Golden** — dos casos nuevos en
+`src/__tests__/una-barra-y-no-ocho-recuadros.test.ts` (27 en total).

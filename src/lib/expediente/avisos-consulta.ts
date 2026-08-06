@@ -123,6 +123,14 @@ export interface EntradaAvisos {
   controlados?: readonly { farmaco: string; requisito: string }[]
   conflictos?: readonly string[]
   faltantesCriticos?: readonly string[]
+  /**
+   * Lo que `validarNOM004` ya bloquea por su cuenta (`errores`).
+   *
+   * De las nueve viñetas de su captura, «Exploración física no realizada» era un
+   * DOBLE REPORTE: la sección obligatoria vacía ya impide firmar, con su propio
+   * mensaje y su propio sitio. El recuadro sólo repetía, sin añadir una acción.
+   */
+  yaLoBloqueaNOM004?: readonly string[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -244,8 +252,17 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     })
   }
 
+  /**
+   * Los faltantes se cruzan contra DOS cosas: los fármacos que ya bloquean
+   * arriba, y lo que NOM-004 bloquea por su cuenta. Lo que ya tiene quien lo
+   * diga y quien lo impida no necesita un tercer sitio donde decirlo.
+   */
+  const palabrasNOM = (e.yaLoBloqueaNOM004 ?? [])
+    .map(x => x.replace(/^Falta:?\s*/i, '').trim())
+    .filter(x => x.length >= 5)
   for (const f of e.faltantesCriticos ?? []) {
     if (!noEsEco(f, bloqueados)) continue
+    if (!noEsEco(f, palabrasNOM)) continue
     out.push({
       id: `faltante:${f}`, origen: 'dato_no_precisado',
       nivel: nivelDe('dato_no_precisado'), texto: f, ancla: { seccion: 'nota' },
@@ -293,6 +310,12 @@ export const POR_QUE_BLOQUEA_NO_ES_GRAVE =
 export const POR_QUE_TRES_Y_NO_MAS =
   'El próximo motor va a querer su recuadro y en seis meses hay ocho otra vez. ' +
   'Un motor nuevo declara su origen en NIVEL y entra en una lista que ya existe.'
+
+export const POR_QUE_TAMBIEN_SE_CRUZA_CON_NOM004 =
+  'De las nueve viñetas de su captura, «Exploración física no realizada» era un ' +
+  'doble reporte: la sección obligatoria vacía ya impide firmar, con su mensaje ' +
+  'y su sitio. El recuadro repetía sin añadir una acción — y un aviso que no ' +
+  'añade nada gasta la atención que necesitan los que sí.'
 
 export const POR_QUE_SE_DEDUPLICA =
   'De las nueve viñetas de «datos críticos no documentados» de su captura, cuatro ' +
