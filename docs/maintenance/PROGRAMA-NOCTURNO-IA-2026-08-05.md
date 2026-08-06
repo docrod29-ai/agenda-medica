@@ -77,8 +77,43 @@ Todas verificadas en producción con `curl /version.txt`, con el ciclo completo
 
 **Pruebas: 6819 en verde. Lint 97 (techo). Build limpio.**
 
-### Ronda 1 — auditoría de las nueve dimensiones
-_(en curso — se rellena al terminar)_
+### Ronda 1 — auditoría de las nueve dimensiones · TERMINADA
+
+**78 agentes · 68 hallazgos · 52 confirmados · 16 refutados** por el escéptico.
+
+Los **tres primeros del plan ya están en producción**, y los tres eran el mismo
+tipo de defecto: trabajo hecho que no llegaba a donde cambia algo.
+
+| Versión | REG | Qué |
+|---|---|---|
+| v1069 | 186 | «ECG con infradesnivel **en el segmento** ST» se imprimía «infradesnivel**ST**». Un `?` de más hacía opcional el «de la consulta» y el saneador de metatexto se comía las localizaciones anatómicas. Reproducido con el motor real: 4 de cada 5 frases clínicas amputadas, y la primera es un infarto. |
+| v1069 | 187 | Al reconocedor se le mandaba **el nombre del cajón** («Sepsis y choque») en vez de las palabras. UCI: 4 → **67 términos**. PROA: 1 → **29**. El sesgo es lo único que cambia lo que la máquina oye. |
+| v1070 | 188 | Los motores clínicos recibían **sólo la receta de hoy**. Warfarina de marzo + ketorolaco hoy: la regla de sangrado existe, está probada, y no disparaba. |
+
+**Pruebas: 6879 en verde. Lint bajó de 97 a 96 (trinquete apretado). Build limpio.**
+
+### Lo que queda del plan, por orden
+
+El plan completo de la auditoría lista 14 reparaciones verificadas línea por
+línea. Las siguientes por valor:
+
+- **D1** — el contador «nada te impide firmar» lee otra fuente que la que apaga
+  el botón: miente en 7 escenarios.
+- **D2** — el botón Firmar apagado no dice por qué (el mensaje existe y es
+  inalcanzable).
+- **G1** — el motor de sobredosis y error de decimal **sólo corre después de
+  firmar**.
+- **E3** — cuatro cambios de prompt sin mover `PROMPT_VERSION`: no se puede
+  acotar el lote afectado (IEC 62304).
+- **C2/C3** — «No padece diabetes» sale como antecedente positivo; faltan
+  negadores del habla real («pues no», «fíjese que no»).
+
+### Lo que NO se toca sin el Dr.
+
+Queda escrito aparte, sin ejecutar: el catálogo de sobredosis, las escalas sin
+motor (NYHA/GOLD/NIHSS), la ventana de antigüedad de la medicación vigente, y si
+la compuerta de dosis debe aplicar sólo a lo que se prescribe hoy (ahora que
+REG-183 hace esa distinción posible).
 
 Nueve equipos leyendo en paralelo, con un **escéptico independiente por
 hallazgo** cuya única misión es refutarlo abriendo el archivo. La carga de la
