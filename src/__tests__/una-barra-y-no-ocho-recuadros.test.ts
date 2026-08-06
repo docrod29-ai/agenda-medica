@@ -125,6 +125,26 @@ describe('los ecos se caen — cuatro de las nueve viñetas lo eran', () => {
     expect(avisos).toHaveLength(1)
   })
 
+  it('«Exploración física no realizada» no se dice tres veces', () => {
+    /**
+     * Era el doble reporte más claro de su captura: la sección obligatoria vacía
+     * ya impide firmar, con su mensaje y su sitio. El recuadro sólo repetía.
+     */
+    const avisos = construirAvisos({
+      faltantesCriticos: ['Exploración física no realizada/documentada en esta consulta'],
+      yaLoBloqueaNOM004: ['Falta: Exploración física'],
+    })
+    expect(avisos).toHaveLength(0)
+  })
+
+  it('pero lo que NOM-004 no bloquea sí llega', () => {
+    const avisos = construirAvisos({
+      faltantesCriticos: ['Confirmación bacteriológica no referida'],
+      yaLoBloqueaNOM004: ['Falta: Exploración física'],
+    })
+    expect(avisos).toHaveLength(1)
+  })
+
   it('pero un faltante de otra cosa sí llega', () => {
     const avisos = construirAvisos({
       dosisIncompletas: [{ med: 'dapagliflozina', mensaje: 'sin cantidad' }],

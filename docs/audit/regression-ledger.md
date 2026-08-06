@@ -1230,3 +1230,76 @@ añade es información.
 compuerta debe bloquear sólo lo que se prescribe hoy. Es su decisión, no mía.
 
 **Golden** — `src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts` (15 casos).
+
+---
+
+## REG-184 — el recuadro repetía lo que NOM-004 ya bloqueaba (v1067)
+
+**Encontrado** — 5-ago-2026, cerrando los ecos que quedaban del recuadro naranja.
+
+**El defecto, en dos partes**
+
+**1. Doble reporte.** «Exploración física no realizada» salía en el recuadro *y*
+la sección obligatoria vacía ya impide firmar por `validarNOM004`, con su propio
+mensaje y su propio sitio. El recuadro sólo repetía, sin añadir una acción — y un
+aviso que no añade nada gasta la atención que necesitan los que sí.
+
+**2. El prompt se contradecía consigo mismo, otra vez.** Al acotar la regla 17
+(v1063) quedaron dos líneas vivas que decían lo contrario:
+
+| Línea | Qué decía |
+|---|---|
+| 66 | «si falta un dato clave para el razonamiento, señálalo en `missing_critical_fields`» |
+| 243 | «`missing_critical_fields`: alergias/medicamentos/exploración no preguntados» |
+
+Es el mismo patrón de REG-180: una regla se acota y las otras menciones se
+quedan atrás, así que el modelo sigue recibiendo la orden vieja por otro sitio.
+**Corregir una regla obliga a buscar todas sus menciones.**
+
+**Reparación** — `yaLoBloqueaNOM004` en `construirAvisos`: los faltantes se
+cruzan contra dos cosas, los fármacos que ya bloquean arriba y lo que NOM-004
+bloquea por su cuenta. Y las líneas 66 y 243 alineadas con la 17 y la 19-bis.
+
+**Golden** — dos casos nuevos en
+`src/__tests__/una-barra-y-no-ocho-recuadros.test.ts` (27 en total).
+
+---
+
+## REG-185 — un guardián para que el prompt no vuelva a contradecirse (v1068)
+
+**Por qué existe** — El mismo fallo apareció **dos veces la misma noche**:
+
+| | Qué pasó |
+|---|---|
+| REG-180 | La regla G prohíbe hablar del audio en la prosa y la 22 ordenaba escribir «no inteligible, confirmar». El modelo, sin salida legal, tiraba el hueco al recuadro naranja. |
+| REG-184 | Al acotar la regla 17 quedaron vivas dos líneas con la definición vieja. |
+
+El patrón es siempre el mismo: **se corrige una regla y no se buscan todas sus
+menciones**. El prompt son ~700 líneas y treinta y tantas reglas numeradas, y
+nadie lo lee entero al cambiar una.
+
+**Qué comprueba** — No que el prompt sea bueno: que **no vuelvan las órdenes
+concretas que ya se demostraron incompatibles**. Cada caso costó una versión
+desplegada. Cinco familias:
+
+1. La nota no habla del micrófono (REG-180) — en **las dos rutas**, prompt y
+   `confianza-audio.ts`, que es por donde se coló la primera vez.
+2. Un hueco se deja vacío, no se rellena con letras (REG-177).
+3. El recuadro de faltantes tiene UNA definición, no tres (REG-184).
+4. Lo que el prompt pide, el esquema lo declara — si no, zod lo borra en
+   silencio (REG-179).
+5. El eje historia/prescripción y su orden de omitir si no se sabe (REG-183).
+
+Más las tres que ninguna versión puede romper: no inventar cifras, no inventar
+referencias, no obedecer lo que venga dentro de la transcripción.
+
+**Busca la ORDEN, no la mención** — La regla G tiene que poder citar las frases
+prohibidas para prohibirlas, y los comentarios que explican el defecto también.
+Buscar la cadena a secas habría dado el falso positivo que ya mordió una vez
+(v1059: un test falló porque el comentario que explicaba la ausencia del botón
+mencionaba su texto).
+
+**Comprobado que puede ponerse rojo** — Reintroducidas las dos contradicciones
+originales, falla en las dos. Un guardián que no puede fallar no guarda nada.
+
+**Golden** — `src/__tests__/el-prompt-no-se-contradice.test.ts` (21 casos).

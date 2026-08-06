@@ -4256,6 +4256,8 @@ export default function ConsultaActivaPage() {
           controlados: detectarControlados(medicamentos),
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
+          /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */
+          yaLoBloqueaNOM004: validacion?.errores ?? [],
         })
         const extraidos = firmada ? 0 : aprobados.size
         return (
