@@ -3,6 +3,25 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1070 — REG-188: los motores veían la receta de hoy, no al paciente
+
+El hallazgo más transformador de la auditoría. `medicamentosVigentes()` y
+`problemasActivos()` ya se calculaban y se pintaban en pantalla; a los motores
+clínicos les llegaba SÓLO lo de esta consulta.
+
+Warfarina de marzo, ketorolaco hoy: la regla de sangrado existe, está probada, y
+no disparaba. Igual el ajuste renal de la metformina crónica y la meta de LDL
+del diabético que hoy vino por faringitis.
+
+En un seguimiento —la mayoría— lo de hoy son dos renglones sobre alguien que
+toma cinco cosas desde hace años. Un motor que sólo ve los dos renglones no
+razona sobre un paciente: razona sobre una receta.
+
+`cuadro-completo.ts` une las dos listas marcando la procedencia, porque el motor
+la necesita para redactar. No cambia ninguna compuerta: lo que entra son datos.
+
+De paso, el trinquete de lint bajó de 97 a 96.
+
 ## v1069 — REG-186/187: la anatomía y el vocabulario que no llegaba
 
 Los dos primeros hallazgos de la auditoría de nueve dimensiones (78 agentes, 68

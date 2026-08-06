@@ -141,6 +141,7 @@ import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
 import { useDoctors } from '@/hooks/useDoctors'
 import { bloqueHospitalDe } from '@/lib/hospital/bloque-nota'
@@ -645,12 +646,43 @@ export default function ConsultaActivaPage() {
    * en el JSX se creaba uno nuevo en CADA render, el useMemo del Copiloto nunca
    * acertaba y el motor se recalculaba en cada tecla del dictado.
    */
+  /**
+   * Suben aquí desde más abajo para que el cuadro completo (REG-188) pueda
+   * usarlas: son `useState` puros, y moverlos no cambia nada salvo el orden de
+   * declaración. Se rellenan en el efecto que lee las notas firmadas.
+   */
+  const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
+  const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
+
+  /**
+   * ── EL CUADRO COMPLETO, FUERA DEL useMemo (REG-188) ─────────────────────────
+   *
+   * Se calculan aquí, en el cuerpo, y no dentro del `useMemo` de abajo: llamar
+   * a una función importada dentro de una memoización manual impide al React
+   * Compiler preservarla, y el trinquete de lint lo caza (5 errores nuevos).
+   * En el cuerpo el compilador las memoiza solo, que es lo idiomático.
+   */
+  const medsDelCuadro = medicacionDelCuadro(medicamentos, vigentes)
+  const dxDelCuadro = problemasDelCuadro(diagnosticos, problemas)
+
   const entradaCopiloto = useMemo(() => ({
     edad: patient?.edad,
     sexo: patient?.sexo,
     alergias: patient?.alergias,
-    diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
-    medicamentos: medicamentos.map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+    /**
+     * ── EL PACIENTE COMPLETO, NO SÓLO LO DE HOY (6-ago-2026, REG-188) ──────
+     *
+     * Aquí iban únicamente los renglones de esta consulta. En un seguimiento
+     * —la mayoría— eso es la punta del iceberg: dos líneas nuevas sobre alguien
+     * que toma cinco cosas desde hace años.
+     *
+     * `medicamentosVigentes` y `problemasActivos` ya estaban calculados y
+     * pintados en pantalla; simplemente no llegaban al motor. Warfarina de
+     * marzo + ketorolaco de hoy: la regla de sangrado existe, está probada, y
+     * no disparaba.
+     */
+    diagnosticos: dxDelCuadro,
+    medicamentos: medsDelCuadro,
     // signosNum, no signos: el copiloto compara contra umbrales y calcula IMC.
     // Con el valor en crudo, un "70.5" en texto rompería ambas cosas.
     signos: {
@@ -1003,9 +1035,7 @@ export default function ConsultaActivaPage() {
    * anotada en la consulta anterior no aparecía en ningún sitio salvo leyendo
    * esa nota entera.
    */
-  const [vigentes, setVigentes] = useState<OrdenVigente[]>([])
   /** Qué TIENE el paciente y cuándo vino la última vez (ver `problemas-activos`). */
-  const [problemas, setProblemas] = useState<ProblemaVigente[]>([])
   /**
    * El formulario que el paciente llenó desde su portal, si lo llenó. Se lee
    * aparte y NO se mezcla con el expediente: ver `lib/portal/formulario-previo`.
@@ -1363,8 +1393,9 @@ export default function ConsultaActivaPage() {
       const res = await fetchAutenticado('/api/expediente/evidencia', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          diagnosticos: diagnosticos.map(d => ({ descripcion: d.descripcion })),
-          medicamentos: medicamentos.map(m => ({ nombre: m.nombre })),
+          /** El cuadro completo, igual que el copiloto (REG-188). */
+          diagnosticos: dxDelCuadro,
+          medicamentos: medsDelCuadro,
           motivo: motivo.slice(0, 400),
           motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),

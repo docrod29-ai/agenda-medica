@@ -1377,3 +1377,48 @@ escribió antes. Expandir los nombres no crea vocabulario: hace que llegue el qu
 ya existe.
 
 **Golden** — `src/__tests__/el-sesgo-manda-palabras-no-cajones.test.ts` (11 casos).
+
+---
+
+## REG-188 — los motores veían la receta de hoy, no al paciente (v1070)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones. El hallazgo más
+transformador de los 52.
+
+**El defecto** — La consulta **ya calculaba** la medicación vigente y los
+problemas activos del paciente (`medicamentosVigentes()`, `problemasActivos()`
+sobre las notas firmadas) y los pintaba en pantalla. A los motores clínicos les
+pasaba **sólo lo de hoy**.
+
+**El caso que lo demuestra**: warfarina de marzo, ketorolaco hoy. La regla de
+sangrado existe y está probada. **No disparaba**, porque la warfarina no estaba
+en la nota de hoy. Igual el ajuste renal de la metformina crónica, o la meta de
+LDL del diabético que hoy vino por faringitis.
+
+Es el patrón «escrito y sin conectar» — el más caro de este repositorio.
+
+**Por qué importa más de lo que parece** — En una consulta de **seguimiento**,
+que son la mayoría, lo de hoy son dos renglones nuevos sobre alguien que toma
+cinco cosas desde hace años. Un motor que sólo ve los dos renglones no razona
+sobre un paciente: razona sobre una receta.
+
+**Reparación** — `src/lib/expediente/cuadro-completo.ts` (módulo puro). Une las
+dos listas marcando la procedencia, porque el motor la necesita para redactar:
+«el ketorolaco que receta hoy con la warfarina que ya toma» dice mucho más que
+«ketorolaco + warfarina», y le dice al médico dónde mirar.
+
+**Lo de hoy manda** cuando el mismo fármaco está en las dos: si el médico está
+cambiando la dosis en esta consulta, la nueva es la buena.
+
+**No cambia ninguna compuerta** — Lo que entra son datos. Los motores que los
+consumen son de nivel `revisa`, nunca `bloquea`. Habrá más avisos —es el
+objetivo— pero ninguno impedirá firmar.
+
+**Dónde NO se aplica, y por qué** — `tareasDeNota` deriva los pendientes de la
+consulta que se firma, y ahí la medicación crónica no pinta nada: metería, en
+cada firma, tareas sobre fármacos que el paciente lleva años tomando. El cuadro
+completo es para **razonar**; el worklist es para **acordarse de lo que se
+pidió**. No es la misma pregunta.
+
+**Golden** — `src/__tests__/el-paciente-completo-llega-al-motor.test.ts` (15
+casos), incluidos tres que comprueban que está conectado en **los dos** sitios.
