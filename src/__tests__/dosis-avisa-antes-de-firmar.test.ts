@@ -99,7 +99,9 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * decida.
      */
     const i = consulta.indexOf('const sinDosis = medicamentos')
-    expect(consulta.slice(Math.max(0, i - 1600), i)).toMatch(/sin unidad.*no bloquea|no bloquea/s)
+    // `[\s\S]` en vez del flag `s`: ese flag exige ES2018 y el typecheck de CI
+    // —más estricto que el de esta máquina— lo rechaza.
+    expect(consulta.slice(Math.max(0, i - 1600), i)).toMatch(/sin unidad[\s\S]*no bloquea|no bloquea/)
   })
 
   it('y «Ya lo revisé» no se ofrece sobre lo que bloquea', () => {
