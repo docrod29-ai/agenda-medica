@@ -1909,3 +1909,44 @@ fallo más grave que una omisión**.
 **Golden** — `src/__tests__/corpus-oro-temporalidad.test.ts` (32 frases: 20 de
 pasado, 12 de presente). Es un corpus, no un test de humo: crece cuando aparezca
 una forma nueva, y el sello impide que encoja.
+
+---
+
+## REG-201 — el §18 del charter existía como carpeta vacía (v1082)
+
+**Del charter Master Loop V7** — §18 exige un caso de seguridad clínica por
+función. `docs/clinical-safety/` existía **con cero archivos**, junto con otras
+ocho carpetas del §4.1 en el mismo estado.
+
+Es el patrón que este repositorio ya conoce —«escrito y sin conectar»— aplicado a
+la documentación: alguien creó el esqueleto y dio el trabajo por hecho.
+
+**Lo que se hizo** — `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` con **diez
+peligros en el formato exacto del charter** (peligro · causa · daño · afectados ·
+severidad · controles · pruebas · riesgo residual · responsable · aprobación).
+
+**Ninguno es hipotético.** Los diez ocurrieron de verdad y citan su REG:
+negación invertida (PEL-001), pasado como actual (PEL-002), receta sin unidad
+(PEL-003), alergia cruzada (PEL-004), error de decimal (PEL-005), dato inventado
+(PEL-006), pérdida de contenido (PEL-007), control que miente (PEL-008), fatiga
+de alerta (PEL-009), integridad sobredeclarada (PEL-010).
+
+**Lo que NO se hizo, a propósito**
+
+- **La probabilidad no se estima.** Se registra cuántas veces ocurrió de verdad.
+  Un número de probabilidad inventado es justo la clase de cifra que este
+  proyecto no se permite.
+- **Ninguna aprobación se marca.** La aceptación de un riesgo clínico residual es
+  del médico responsable (§18): el sistema que produce el riesgo no puede
+  aprobarlo. Las diez casillas quedan en ☐.
+
+**El guardián** — `src/__tests__/el-registro-de-peligros-esta-vivo.test.ts` (108 casos)
+comprueba que cada peligro traiga sus casillas, que **los archivos de prueba
+citados EXISTAN** —un registro que cita una prueba renombrada declara un control
+que no está—, y que ninguna aprobación aparezca firmada.
+
+**Declara sus huecos** — El propio documento dice qué **no** cubre todavía:
+paciente equivocado, fuga entre consultorios, inyección de instrucciones en el
+dictado, y embarazo/pediatría/renal. Un registro que aparenta ser completo es
+peor que uno que declara sus huecos: el primero se confía, el segundo se
+completa.

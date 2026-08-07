@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1082 — REG-201: el §18 del charter existía como carpeta vacía
+
+`docs/clinical-safety/` estaba con CERO archivos, junto con otras ocho carpetas
+del §4.1. El patrón «escrito y sin conectar», aplicado a la documentación.
+
+Ahora tiene diez peligros en el formato del charter, y ninguno es hipotético:
+los diez ocurrieron de verdad y citan su REG.
+
+Lo que NO se hizo a propósito: la probabilidad no se estima (se registra cuántas
+veces ocurrió), y ninguna aprobación se marca — aceptar un riesgo clínico
+residual es del médico, no del sistema que lo produce.
+
+Guardián de 108 casos que comprueba que los archivos de prueba citados EXISTAN:
+un registro que cita una prueba renombrada declara un control que no está.
+
 ## v1081 — REG-200: el motor de temporalidad se comía diez formas de «ya pasó»
 
 Del backlog del Master Loop (EVAL-002). Existía el motor y estaba probado, pero
