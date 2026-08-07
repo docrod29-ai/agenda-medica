@@ -11,22 +11,43 @@
     "cambiosDestructivos": false,
     "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "§5.1 ADR cerrado → quedan 5 carpetas vacías del §4.1",
+  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1084",
+  "ultimaVersionEnProduccion": "nexusmed-v1096",
   "trabajoLocalSinSubir": [],
-  "actualizado": "2026-08-06",
+  "actualizado": "2026-08-07",
   "resumenDesdeElUltimoEstado": {
-    "versionesDesplegadas": "v1031 → v1084",
-    "regsCerradas": "REG-177 … REG-203",
-    "pruebas": 7211,
-    "lint": "96 (techo, bajado desde 97)",
-    "nota": "El estado se había quedado en v1030 mientras el trabajo seguía. Un tablero que no se actualiza miente con más autoridad que no tenerlo."
-  }
+    "versionesDesplegadas": "v1085 → v1096",
+    "regsCerradas": "REG-204 … REG-214",
+    "pruebas": 7383,
+    "lint": "96 (techo)",
+    "nota": "El tablero volvió a quedarse atrás: decía v1084 mientras producción iba en v1096. Es la segunda vez. La causa no es descuido: es que actualizarlo depende de que yo me acuerde. Mientras no lo derive un script, va a volver a pasar."
+  },
+  "ramasDeLaRutinaSinRevisar": [
+    "agent/expediente/REG-192 — negación",
+    "agent/voice/VOICE-005 — negación, muletilla en medio",
+    "agent/eval/EVAL-002-corpus-temporalidad — temporalidad"
+  ],
+  "seccionesDelCharterCerradas": [
+    "§4.1",
+    "§5.1",
+    "§18",
+    "§24",
+    "§B5",
+    "§B6",
+    "§B8",
+    "§B10",
+    "§H6",
+    "§H7",
+    "§N3"
+  ],
+  "loQueSigueBloqueadoEnElDueno": [
+    "Titularidad del código a nombre de una sociedad — bloqueo nº1 de la sala de datos",
+    "Requisitos legales de la receta impresa",
+    "STRIPE_WEBHOOK_SECRET en Vercel",
+    "OPS_ALERTA_WEBHOOK para las alertas de operación"
+  ]
 }

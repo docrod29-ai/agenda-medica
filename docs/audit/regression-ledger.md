@@ -2706,3 +2706,68 @@ reproduce el defecto, comprueba el arreglo, verifica el TIPO, confirma que «nie
 alergia a penicilina» sigue sin contar como alergia, y **comprueba el cable** en
 la pantalla — porque el módulo puede estar perfecto y no correr, que es la
 familia más grande del ledger.
+
+---
+
+## REG-215 — el paciente decía «ya lo dejé» y la lista seguía igual para siempre (v1097)
+
+**§F3 del charter — reconciliación de medicamentos.**
+`DISCREPANCIA → DUEÑO → REVISIÓN → RESOLUCIÓN → CERRADA`
+
+**El agujero** — el paciente dice en la consulta:
+
+> «el losartán ya lo dejé» · «la metformina me la subieron a 850» ·
+> «me quitaron el losartán en el otro hospital»
+
+Y el expediente **seguía diciendo lo de antes. Para siempre.** Porque nada
+convertía «lo dejé» en un cambio de la lista.
+
+**Por qué es seguridad y no orden** — de esa lista cuelgan el cruce de
+interacciones, el cruce alergia ↔ fármaco, el motor de dosis y la receta que se
+imprime. Una lista desactualizada **no es un dato viejo: es un motor de
+seguridad razonando sobre un paciente que no existe.**
+
+**Lo que NO hace, y es deliberado** — no corrige la lista solo. Abre una tarea
+con dueño y la deja hasta que un humano decida. Tres razones: el paciente puede
+equivocarse («ya lo dejé» dicho del genérico mientras sigue con la marca), el
+reconocedor puede transcribir mal el nombre, y **suspender un anticoagulante o un
+antiepiléptico es un acto médico**. Es el §C3 al pie de la letra: *no elegir la
+verdad automáticamente*. La forma del dato lo garantiza — no existe ningún campo
+que diga «aplicar», y hay un caso del corpus que lo comprueba.
+
+### Los tres filtros, porque un worklist que se llena se abandona
+
+No genera discrepancia cuando la frase habla de un **familiar** («a mi mamá le
+quitaron el losartán»), cuando se dijo con **duda** («creo que ya no lo tomo» es
+una pregunta para el médico, no un hecho), o cuando el médico **lo receta hoy**
+—si lo tiene delante y lo prescribe, ya lo reconcilió con su criterio—.
+
+Los tres filtros reutilizan los motores de experienciador y certeza. **Ningún
+parser nuevo del mismo texto**: es la familia de defecto más cara del ledger
+(ADR-001).
+
+### Lo que costó medir, otra vez
+
+Dos formas reales del habla se escapaban, y las dos son las **más frecuentes**:
+
+| Se dijo | Fallaba porque |
+|---|---|
+| «la metformina me la subieron a **850**» | el patrón exigía unidad, y el paciente no la dice |
+| «**me quitaron** el losartán» | el patrón exigía el pronombre («me **lo** quitaron») |
+
+Seis de ocho casos a la primera. Como siempre: **medir contra frases reales, no
+leer el módulo**.
+
+**El motor de tareas ya existía y es bueno** — `tareas-clinicas/modelo.ts` tiene
+los seis estados del §F, la máquina de transiciones con veredicto y el
+escalamiento, y `tareasDeNota` está conectado a la consulta y a las órdenes desde
+antes. **Una auditoría mía anterior lo dio por inexistente: era falso.** Esto no
+construye un segundo motor — añade el tipo `reconciliacion_medicamento` al que ya
+había.
+
+**El guardián** —
+`src/__tests__/corpus-oro-reconciliacion-de-medicamentos.test.ts` (20 casos),
+con tres dedicados a **comprobar el cable**: que la consulta derive las tareas al
+firmar, que compare contra lo vigente y no contra lo de hoy, y que la pantalla de
+pendientes sepa etiquetar el tipo nuevo — porque un motor perfecto que no corre
+pasa su corpus en verde igual.

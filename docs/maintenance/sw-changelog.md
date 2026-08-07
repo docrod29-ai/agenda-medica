@@ -2170,3 +2170,10 @@ pantalla pintaba la alergia en rojo y la compuerta devolvía CERO errores. El
 betalactámico se firmaba sobre un alérgico con el aviso a la vista. Lo encontró
 la rutina autónoma; su diagnóstico era correcto y su reparación no (usaba el
 lector que devuelve texto plano, no objetos). Verificado antes de traerlo.
+
+## v1097 — §F3: el paciente decía «ya lo dejé» y la lista seguía igual
+REG-215. Reconciliación de medicamentos. De la lista vigente cuelgan el cruce de
+interacciones, el de alergias, el motor de dosis y la receta: desactualizada, es
+un motor de seguridad razonando sobre un paciente que no existe. NO corrige
+sola — abre una tarea con dueño (§C3). Tres filtros para no llenar el worklist:
+familiar, duda, y lo que el médico receta hoy.

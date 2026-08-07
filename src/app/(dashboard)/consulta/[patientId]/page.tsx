@@ -139,7 +139,8 @@ import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
 import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
-import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
+import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
+import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
@@ -3082,6 +3083,42 @@ export default function ConsultaActivaPage() {
           medicoUid: auth.currentUser?.uid,
           medicoNombre: config.nombreMedico,
         }, Date.now())).catch(() => { /* ver arriba: no puede tumbar la firma */ })
+
+        /**
+         * §F3 — RECONCILIACIÓN DE MEDICAMENTOS.
+         *
+         * El paciente dijo «el losartán ya lo dejé» y su lista lo tiene
+         * vigente. Sin esto, la lista sigue diciendo lo de antes PARA SIEMPRE —
+         * y de ella cuelgan el cruce de interacciones, el de alergias, el motor
+         * de dosis y la receta.
+         *
+         * Se compara contra la medicación VIGENTE del paciente, no contra la de
+         * hoy, y se descuenta lo que el médico receta en esta consulta: si lo
+         * tiene delante y lo prescribe, ya lo reconcilió con su criterio.
+         *
+         * No cambia la lista: abre una tarea. §C3, no elegir la verdad solo.
+         */
+        const disc = discrepanciasDeMedicacion({
+          dictado: voz.transcripcion,
+          /**
+           * Sólo los que YA tomaba, no los de hoy: `medsDelCuadro` marca el
+           * origen con `deHoy`, y una discrepancia contra algo que se acaba de
+           * escribir en esta consulta no es una discrepancia.
+           */
+          vigentes: medsDelCuadro
+            .filter(m => !m.deHoy)
+            .map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+          recetadosHoy: medicamentos.map(m => ({ nombre: m.nombre })),
+        })
+        if (disc.length) {
+          void crearTareas(clinicId, tareasDeReconciliacion({
+            clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
+            discrepancias: disc,
+            texto: d => comoSeDice(disc.find(x => x.farmaco === d.farmaco) ?? disc[0]),
+            medicoUid: auth.currentUser?.uid,
+            medicoNombre: config.nombreMedico,
+          }, Date.now())).catch(() => { /* igual que arriba */ })
+        }
       }
       /**
        * LA FECHA DE SEGUIMIENTO TAMBIÉN VA AL EXPEDIENTE DEL PACIENTE.
