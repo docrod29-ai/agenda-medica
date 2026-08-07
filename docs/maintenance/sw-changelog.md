@@ -2124,3 +2124,10 @@ módulos fuera»; era falso. El lector tenía cuatro cegueras (import type,
 import() dinámico, rutas relativas, comentarios leídos como código) y la última
 casi hace declarar desconectado el motor de inmunocomprometido, que sí corre.
 Real: 471 alcanzables, 29 no, 26 ya declarados. Trinquete en 29.
+
+## v1090 — «dos coma cinco miligramos» se leía como 2 mg
+REG-209. Benchmark del §B5 (números y unidades críticas): de 20 formas reales de
+dictar una cifra en México, el pipeline resolvía 14. Las dos peligrosas no
+perdían el dato — lo reducían a un valor plausible: «dos coma cinco miligramos»
+→ 2 mg, «un gramo y medio» → 1 g. La coma es el separador decimal mexicano.
+Reparado, con «media hora» y «dos veces y media» probadas intactas.

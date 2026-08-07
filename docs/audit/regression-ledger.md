@@ -2356,3 +2356,54 @@ perfectamente alcanzables que **llegaban tarde**. Prueba que **el cable existe**
 que es la condición previa a todo lo demás.
 
 **Documento** — `docs/product/EL-CAMINO-DEL-MEDICO.md`
+
+---
+
+## REG-209 — «dos coma cinco miligramos» se leía como 2 mg (v1090)
+
+**Cómo se encontró** — El §B5 del charter enumera los pares donde confundirse
+cambia la dosis, y el §9 lista el «benchmark numérico y de unidades» como activo
+propietario. **La política existía** (`politica-critica.ts`: los pares que jamás
+se autocorrigen). **La medición no.**
+
+Se escribieron 20 formas reales de dictar una cifra en un consultorio mexicano y
+se pasaron por el pipeline. Resolvía 14. **Fallaba en cinco maneras de decir una
+fracción.**
+
+**Las dos peligrosas, porque no pierden el dato — lo reducen a un valor
+plausible:**
+
+| Se dictó | Salía | Lo que lee el motor de dosis |
+|---|---|---|
+| «dos coma cinco miligramos» | `2 coma 5 mg` | **2 mg** — 20 % menos |
+| «un gramo y medio» | `1 g y medio` | **1 g** — un tercio menos |
+
+En México **la coma es el separador decimal al dictar**, y «y medio» es la forma
+normal de decir una dosis y media. Ninguna de las dos estaba cubierta.
+
+**Por qué es este modo de fallo y no otro** — una cifra que **desaparece** se
+nota: el campo queda vacío y hay guardianes que lo vigilan. Una cifra que se
+convierte en **otra cifra creíble** no la ve nadie: ni el médico al releer, ni el
+motor, ni el sello de integridad. Es el mismo patrón que el pH «7.30 y 5»
+(REG-159) y que la metformina «852 veces al día» (v746): **el error se lee bien**.
+
+**La reparación**
+
+1. **«coma» se trata como «punto»** — es la misma función gramatical. La guarda
+   que ya existía (`hay número delante` **y** `viene número detrás`) es lo que
+   impide que «el paciente está en coma» se rompa; está probado.
+2. **Las mitades habladas** — `medio <unidad>` → `0.5`, y `<n> <unidad> y medio`
+   → `<n>.5`. **Sólo con unidades de fármaco detrás**: «media hora», «a medio
+   camino», «la media de la serie» y «dos veces y media» se quedan intactas, y
+   los cuatro casos están en el corpus. Sin ellos, una regla demasiado ávida
+   pasaría igual — y su daño no se ve hasta que ensucia una nota real.
+
+**Lo que NO se arregló, escrito en vez de callado** — «punto cinco miligramos»
+(sin el «cero») es ambiguo con «el punto tres del plan»; convertirlo exige mirar
+si detrás hay una unidad, y esa regla toca el lector de números entero. Y «cinco
+décimas de miligramo» es aritmética, no gramática. Ambos quedan **como casos del
+corpus que documentan el límite actual**, no como huecos.
+
+**El guardián** — `src/__tests__/corpus-oro-numeros-y-unidades.test.ts`
+(8 casos, 22 aserciones). Es el benchmark del §B5 que el charter pedía y que no
+existía.

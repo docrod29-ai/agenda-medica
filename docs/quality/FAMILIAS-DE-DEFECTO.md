@@ -2,13 +2,13 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Fuente**: los 56 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Fuente**: los 57 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
 ## Por qué contar
 
-El ledger tiene 56 defectos con su causa raíz. Leídos de uno en uno son 56
+El ledger tiene 57 defectos con su causa raíz. Leídos de uno en uno son 57
 historias. **Contados por familia dicen algo que ninguno dice solo**: cuál es la
 forma de fallar que se repite.
 
@@ -22,7 +22,7 @@ Eso cambia dónde conviene mirar mañana.
 |---|---:|---|
 | **Escrito, probado y sin conectar** | **9** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | El sistema se contradice a sí mismo | 8 | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
-| El habla real no cabía en el motor | 5 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
+| El habla real no cabía en el motor | 6 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 5 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 4 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 4 | Un dato o un cobro cruza la frontera de su dueño |
@@ -38,7 +38,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 9 de 56, la familia más grande.**
+**«Escrito, probado y sin conectar» — 9 de 57, la familia más grande.**
 
 Es exactamente el patrón que ya estaba anotado como el fallo más caro, ahora con
 la cuenta detrás. Nueve veces el módulo estaba bien, sus pruebas pasaban, y el
@@ -58,7 +58,7 @@ no la pieza — o buscando el símbolo antes de dar algo por entregado.
 
 ## Lo que dice el segundo
 
-**«El sistema se contradice a sí mismo» — 8 de 56.** Ninguna de las dos partes
+**«El sistema se contradice a sí mismo» — 8 de 57.** Ninguna de las dos partes
 está mal por separado; por eso ninguna revisión de una sola pieza lo encuentra.
 Dos reglas del prompt que se anulan, un sello que afirma cubrirlo todo mientras
 el propio módulo sabe que no, un número de versión con siete cambios sin moverse.
@@ -69,7 +69,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 5 de 56**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 5 de 57**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
@@ -96,7 +96,7 @@ declara **DÉBIL**.
 
 `src/__tests__/de-que-se-enferma-este-sistema.test.ts` compara esta
 clasificación contra el ledger y **falla si un REG no tiene familia**. En cuanto
-aterrice el REG-209, esta prueba se pone roja hasta que alguien conteste «¿de qué
+aterrice el REG-210, esta prueba se pone roja hasta que alguien conteste «¿de qué
 familia es éste?» — que es la pregunta que convierte un defecto en aprendizaje en
 vez de en una entrada más.
 
