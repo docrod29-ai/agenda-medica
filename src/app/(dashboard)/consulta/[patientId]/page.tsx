@@ -121,6 +121,7 @@ import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 import { Copiloto } from '@/components/Copiloto'
 import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/lib/learning'
 import { Herramientas } from '@/components/Herramientas'
+import { QueNotaEs } from '@/components/QueNotaEs'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
@@ -3658,48 +3659,24 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* Selector tipo de nota — solo los que aplican al contexto (consultorio
-          vs internamiento), para no apilar filas de opciones que ahí no van. */}
+      {/*
+        ── QUÉ NOTA ES: UNA LÍNEA EN VEZ DE DOCE CONTROLES (7-ago-2026) ────────
+        Aquí había diez botones de tipo de nota en dos filas y un desplegable de
+        especialidad con su etiqueta y su explicación. El médico lo dijo con
+        estas palabras: «demasiadas cosas en pantalla antes de poder hablar».
+        Los diez tipos siguen estando —los usa todos— pero detrás del lápiz.
+      */}
       {!firmada && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {tiposVisibles(esNotaHospital, tipo).map(t => (
-            <button key={t} onClick={() => cambiarTipo(t)} style={S.chip(tipo === t)}>{TIPO_NOTA_LABEL[t]}</button>
-          ))}
-        </div>
-      )}
-
-      {/* Selector de ESPECIALIDAD — la IA estructura la nota a esa especialidad */}
-      {!firmada && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-          <Stethoscope size={14} style={{ color: 'var(--text3)' }} />
-          <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Especialidad de la nota:</span>
-          <select
-            value={especialidadEfectiva}
-            onChange={e => setEspecialidadNota(e.target.value)}
-            style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
-          >
-            <option value="">General / Otra</option>
-            {ESPECIALIDADES_POR_GRUPO.map(g => (
-              <optgroup key={g.grupo} label={g.grupo}>
-                {g.items.map(e => <option key={e} value={e}>{e}</option>)}
-              </optgroup>
-            ))}
-          </select>
-          <span style={{ fontSize: 11, color: 'var(--text3)' }}>· la IA la redacta como esa especialidad</span>
-
-          {/* Nota en tiempo real: SIEMPRE activa (se arma sola mientras hablas). */}
-          <span
-            title="La nota se va armando sola mientras grabas y se finaliza al detener"
-            style={{
-              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 'var(--r-pill)',
-              border: '1px solid var(--nexus)', background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
-            }}
-          >
-            <Sparkles size={13} /> Nota en vivo
-            {estructurandoVivo && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
-          </span>
-        </div>
+        <QueNotaEs
+          tipo={tipo}
+          etiquetaDe={t => TIPO_NOTA_LABEL[t]}
+          tiposDisponibles={tiposVisibles(esNotaHospital, tipo)}
+          alCambiarTipo={cambiarTipo}
+          especialidad={especialidadEfectiva}
+          especialidadesPorGrupo={ESPECIALIDADES_POR_GRUPO}
+          alCambiarEspecialidad={setEspecialidadNota}
+          estructurandoEnVivo={estructurandoVivo}
+        />
       )}
 
       {/* ── Grabación ── */}

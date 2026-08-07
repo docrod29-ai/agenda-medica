@@ -2203,3 +2203,10 @@ REG-219. Nadie comparaba la duración con el calendario: «7 días» prescrito h
 un mes seguía alimentando el cruce de interacciones y el motor de dosis. Ahora
 abre tarea de reconciliación — NO se marca terminado solo (§D1). Lo crónico no
 caduca, hay margen de gracia, y ante la duda se calla.
+
+## v1102 — el inicio de consulta: una línea en vez de doce controles
+Diez botones de tipo de nota en dos filas + un desplegable de especialidad con su
+etiqueta y su explicación pasan a ser UNA línea: «Nota de Primera Vez ·
+Infectología ✎». Los diez siguen ahí —el Dr. dijo que los usa todos— pero detrás
+del lápiz. El distintivo «Nota en vivo» sólo se enciende cuando de verdad está
+escribiendo. Objetivo de toque de 44 px, medido en navegador.
