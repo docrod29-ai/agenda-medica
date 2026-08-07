@@ -193,9 +193,27 @@ export function esAntecedenteFamiliar(frase: string): boolean {
  * Sirve para el aviso: «esto lo dijo de su mamá, no de él». No decide sola qué
  * se guarda — sólo señala dónde mirar.
  */
+/**
+ * Dónde termina una idea y empieza otra.
+ *
+ * ── UNA FRASE PUEDE TENER DOS DUEÑOS ────────────────────────────────────────
+ *
+ *     «yo no tengo diabetes pero mi mamá sí»
+ *
+ * Analizada entera, esta frase se atribuye al familiar y se pierde lo que de
+ * verdad dice: que **el paciente la niega** y que **la mamá sí la tiene**. Son
+ * dos datos distintos, de dos personas distintas, en catorce palabras.
+ *
+ * Por eso se corta también en los conectores que cambian de sujeto —«pero»,
+ * «aunque», «en cambio», «mientras que»— y no sólo en los puntos. Lo encontró
+ * medir frases compuestas: cada motor por su lado acertaba, y juntos mentían.
+ */
+const SEPARADOR_DE_CLAUSULAS =
+  /(?<=[.;:!?])\s+|\n+|\s+(?:pero|aunque|en\s+cambio|mientras\s+que|sin\s+embargo)\s+/iu
+
 export function frasesDeFamiliar(texto: string): { frase: string; parentesco?: string }[] {
   return String(texto ?? '')
-    .split(/(?<=[.;:!?])\s+|\n+/u)
+    .split(SEPARADOR_DE_CLAUSULAS)
     .map(f => f.trim())
     .filter(Boolean)
     .map(f => ({ f, r: deQuienEs(f) }))

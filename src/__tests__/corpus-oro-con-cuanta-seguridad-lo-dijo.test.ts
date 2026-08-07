@@ -97,6 +97,26 @@ describe('corpus oro · con cuánta seguridad lo dijo', () => {
     })
   })
 
+  describe('la duda que va al final', () => {
+    it.each([
+      'mi mamá no tuvo cáncer, creo',
+      'fue hace como diez años, creo yo',
+      'era penicilina, supongo',
+    ])('«%s» → incierto', frase => {
+      /**
+       * En el español hablado la duda se pospone muchísimo. El patrón que exige
+       * «creo QUE» dejaba pasar la frase entera — lo encontró medir frases
+       * compuestas, no leer el módulo.
+       */
+      expect(queTanSeguro(frase).certeza).toBe('incierto')
+    })
+
+    it('«creo un recordatorio» NO es una duda', () => {
+      // Se exige coma o final de frase delante justamente por esto.
+      expect(esIncierto('creo un recordatorio')).toBe(false)
+    })
+  })
+
   describe('sobre un dictado entero', () => {
     it('separa lo dudoso sin tocar lo afirmado', () => {
       const dictado = [
@@ -108,6 +128,17 @@ describe('corpus oro · con cuánta seguridad lo dijo', () => {
       const inciertas = frasesInciertas(dictado)
       expect(inciertas).toHaveLength(2)
       expect(inciertas.map(f => f.matiz)).toEqual(['duda', 'posibilidad'])
+    })
+
+    it('una frase con dos ideas se parte por el conector', () => {
+      /**
+       * «Tengo diabetes PERO creo que mi papá tenía anemia» son dos datos: uno
+       * firme del paciente y uno dudoso del padre. Sin partir por «pero», la
+       * duda se comía la frase entera o se perdía.
+       */
+      const r = frasesInciertas('tengo diabetes pero creo que mi papá tenía anemia')
+      expect(r).toHaveLength(1)
+      expect(r[0].frase).toContain('mi papá')
     })
   })
 })

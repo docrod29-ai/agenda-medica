@@ -89,6 +89,23 @@ const MARCAS: ReadonlyArray<{ matiz: MatizDeDuda; re: RegExp }> = [
     re: /\b(?:creo\s+que|yo\s+creo|se\s+me\s+hace\s+que|siento\s+que|me\s+imagino\s+que)(?![\p{L}])/iu,
   },
   {
+    /**
+     * EL «CREO» QUE VA AL FINAL.
+     *
+     *     «mi mamá no tuvo cáncer, creo»
+     *     «fue hace como diez años, creo yo»
+     *
+     * En el español hablado la duda se pospone muchísimo, y el patrón de arriba
+     * —que exige «creo QUE»— la dejaba pasar entera. Lo encontró medir frases
+     * compuestas, no leer el módulo.
+     *
+     * Se exige una coma o el final de la frase delante para no cazar el «creo»
+     * de «creo un recordatorio».
+     */
+    matiz: 'duda',
+    re: /(?:,\s*|^|\.\s*)(?:creo|supongo|imagino)(?:\s+yo)?\s*[.!?]?\s*$/iu,
+  },
+  {
     matiz: 'posibilidad',
     re: /\b(?:tal\s+vez|talvez|quiz[aá]s?|a\s+lo\s+mejor|capaz\s+que|puede\s+(?:ser|que)|posiblemente|probablemente|igual\s+y)(?![\p{L}])/iu,
   },
@@ -170,9 +187,27 @@ export function esIncierto(frase: string): boolean {
  * Señala; no decide. Que un antecedente sea incierto no lo invalida — obliga a
  * comprobarlo, que es exactamente lo que se pierde cuando la nota lo aplana.
  */
+/**
+ * Dónde termina una idea y empieza otra.
+ *
+ * ── UNA FRASE PUEDE TENER DOS DUEÑOS ────────────────────────────────────────
+ *
+ *     «yo no tengo diabetes pero mi mamá sí»
+ *
+ * Analizada entera, esta frase se atribuye al familiar y se pierde lo que de
+ * verdad dice: que **el paciente la niega** y que **la mamá sí la tiene**. Son
+ * dos datos distintos, de dos personas distintas, en catorce palabras.
+ *
+ * Por eso se corta también en los conectores que cambian de sujeto —«pero»,
+ * «aunque», «en cambio», «mientras que»— y no sólo en los puntos. Lo encontró
+ * medir frases compuestas: cada motor por su lado acertaba, y juntos mentían.
+ */
+const SEPARADOR_DE_CLAUSULAS =
+  /(?<=[.;:!?])\s+|\n+|\s+(?:pero|aunque|en\s+cambio|mientras\s+que|sin\s+embargo)\s+/iu
+
 export function frasesInciertas(texto: string): { frase: string; matiz?: MatizDeDuda; marca?: string }[] {
   return String(texto ?? '')
-    .split(/(?<=[.;:!?])\s+|\n+/u)
+    .split(SEPARADOR_DE_CLAUSULAS)
     .map(f => f.trim())
     .filter(Boolean)
     .map(f => ({ f, r: queTanSeguro(f) }))

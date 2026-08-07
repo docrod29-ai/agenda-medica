@@ -2542,3 +2542,50 @@ incierto» obligaría a releer el dictado entero.
 (26 aserciones, incluidas tres formas de «como» que **no** son aproximación) y
 `src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts` (9 casos, con
 prueba de que sigue cazando las tres reales).
+
+---
+
+## REG-212 — cada motor acertaba solo, y juntos mentían (v1094)
+
+**Cómo se encontró** — Los cuatro ejes ya existían y cada uno tenía su corpus:
+negación, temporalidad, experienciador, certeza. **Lo que nadie había probado es
+si se estorban entre ellos.** Se pasaron nueve frases que tocan varios ejes a la
+vez por los tres motores. Dos fallaron.
+
+### 1 · Una frase con dos dueños
+
+> «yo no tengo diabetes **pero** mi mamá sí»
+
+| Motor | Decía |
+|---|---|
+| negación | «diabetes negada» ✅ |
+| experienciador | «toda la frase es del familiar» ❌ |
+
+Analizada entera, la frase se atribuía al familiar y **se perdía lo que de verdad
+dice**: que el paciente la niega **y** que la mamá sí la tiene. Dos datos
+distintos, de dos personas distintas, en catorce palabras.
+
+**Cada motor por su lado acertaba; juntos mentían.** Ninguna prueba de pieza podía
+encontrarlo, porque el fallo no está en ninguna pieza — está en que ambas leen la
+frase entera cuando la frase cambia de sujeto a mitad.
+
+**La reparación** — se corta también en los conectores que cambian de sujeto
+(«pero», «aunque», «en cambio», «mientras que», «sin embargo»), no sólo en los
+puntos. Y hay un caso que comprueba que **sin conector no parte de más**.
+
+### 2 · La duda que va al final
+
+> «mi mamá no tuvo cáncer, **creo**»
+> «fue hace como diez años, **creo yo**»
+
+El patrón exigía «creo **que**». En el español hablado la duda se **pospone**
+muchísimo, y así la frase entera pasaba como afirmada.
+
+Se exige coma o final de frase delante, para no cazar el «creo» de «creo un
+recordatorio» — que está probado.
+
+**Lo que esto enseña sobre cómo probar** — los cuatro corpus oro que ya existían
+son correctos y no habrían encontrado ninguno de los dos. **El defecto vive en la
+composición**, y la composición sólo se ve midiéndola a propósito. Es el mismo
+patrón que la familia «escrito y sin conectar», un nivel más arriba: no es que el
+motor no corra, es que **corre sin ver lo que el otro ve**.

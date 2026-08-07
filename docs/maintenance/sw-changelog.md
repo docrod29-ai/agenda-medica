@@ -2151,3 +2151,9 @@ Corrección de v1092: cité el corpus nuevo sin `src/__tests__/` delante y el
 guardián del sello lo marcó como archivo sellado que ninguna fuente reclama.
 Desplegué con esa prueba en rojo; queda anotado porque el fallo fue mío, no del
 guardián.
+
+## v1094 — cada motor acertaba solo, y juntos mentían
+REG-212. Los cuatro ejes tenían su corpus; nadie había probado si se estorban.
+«Yo no tengo diabetes PERO mi mamá sí» se atribuía entera al familiar: se perdía
+que el paciente la niega y que la mamá sí la tiene. Y «…, creo» al final no
+contaba como duda. El defecto vive en la COMPOSICIÓN, que sólo se ve midiéndola.

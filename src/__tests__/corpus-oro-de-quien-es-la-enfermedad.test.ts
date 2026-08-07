@@ -100,6 +100,30 @@ describe('corpus oro · de quién es la enfermedad', () => {
     })
   })
 
+  describe('una frase con dos dueños', () => {
+    it('«yo no tengo diabetes pero mi mamá sí» separa al paciente del familiar', () => {
+      /**
+       * Analizada entera, esta frase se atribuía al familiar y se perdía lo que
+       * de verdad dice: que **el paciente la niega** y que **la mamá sí la
+       * tiene**. Dos datos distintos, de dos personas distintas, en catorce
+       * palabras.
+       *
+       * Cada motor por su lado acertaba; juntos mentían. Lo encontró medir la
+       * composición, que es lo que nadie prueba.
+       */
+      const r = frasesDeFamiliar('yo no tengo diabetes pero mi mamá sí')
+      expect(r).toHaveLength(1)
+      expect(r[0].frase).toBe('mi mamá sí')
+      expect(r[0].parentesco).toBe('mamá')
+    })
+
+    it('sin conector no parte de más', () => {
+      const r = frasesDeFamiliar('mi mamá tuvo cáncer de mama')
+      expect(r).toHaveLength(1)
+      expect(r[0].frase).toBe('mi mamá tuvo cáncer de mama')
+    })
+  })
+
   describe('la trampa que ya costó una vez', () => {
     it('«mamá» y «papá» se reconocen pese al acento', () => {
       /**
