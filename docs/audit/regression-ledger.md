@@ -2174,3 +2174,66 @@ el ledger y `src/__tests__/de-que-se-enferma-este-sistema.test.ts` (9 casos)
 la prueba se puso roja hasta clasificarlo.
 
 **Documento** — `docs/quality/FAMILIAS-DE-DEFECTO.md`
+
+---
+
+## REG-206 — la arquitectura estaba dibujada, no medida (v1087)
+
+**Qué faltaba** — `docs/architecture/` era la última carpeta técnica vacía del
+§4.1. Existía el mapa en `CLAUDE.md` y existían los ADR, pero **nadie había
+comparado el diagrama con el grafo de `import` real**.
+
+Un diagrama describe lo que alguien quiso. El grafo describe lo que hay. Cuando
+se separan, manda el segundo — y el diagrama pasa a ser un documento que
+tranquiliza sin proteger.
+
+**Lo medido, sobre 734 archivos de `src/`:**
+
+| | |
+|---|---|
+| Dependencias invertidas | **0** |
+| `lib/` que dependa de una pantalla o una ruta | **0** |
+| Ciclos de importación | **0** |
+
+**El resultado limpio no era el esperado y merece decirse tal cual**: la
+dirección `app/components → contexts → hooks → lib → types` se respeta en las
+1 314 aristas medidas. Ni un solo módulo de lógica clínica está atado a una
+pantalla — que es lo que le permitiría dejar de correr desde una ruta de API,
+por donde entran los motores cuando algo se automatiza.
+
+**La grieta encontrada: `types/` no era una hoja.** Dos archivos traían código en
+tiempo de ejecución desde `lib/`.
+
+- **Cerrada** — `src/types/hospital.ts` re-exportaba `ESPECIALIDADES_INTERCONSULTA`
+  (un valor, no un tipo) con un alias. Tenía **un solo consumidor**; ahora lo
+  importa de `@/lib/especialidades`, que siempre fue la fuente única. La comodidad
+  de un alias no valía una arista invertida.
+- **Declarada, no arreglada** — `src/types/clinical-quantity.ts` usa `num()` de
+  `lib/uci` **y hace bien**: es la fuente única de la coma decimal mexicana. Lo
+  que está mal es DÓNDE VIVE: es un módulo de dominio completo alojado en
+  `types/` por herencia. Moverlo toca a todos sus consumidores — se decide, no se
+  cuela en una madrugada.
+
+**Por qué importa que `types/` sea hoja** — hoy no hay ciclo, está comprobado,
+pero es por ahí por donde aparecería el primero (`lib/X → types/Y → lib/Z`). Un
+ciclo no siempre rompe; cuando rompe lo hace con un `undefined` dentro de un
+módulo que se lee perfecto. En un motor clínico eso es **una cifra que no sale**,
+no un error que salte.
+
+**Los `import type` no cuentan** — TypeScript los borra al compilar. Contarlos
+daría violaciones inexistentes, y es el mismo detalle que hizo pasar en verde a
+cuatro módulos huérfanos durante meses (v1019).
+
+**El guardián** — `src/__tests__/la-direccion-de-las-dependencias.test.ts`
+(8 casos) sobre `src/lib/arquitectura/grafo-de-dependencias.ts`. Las tres reglas
+se cumplen hoy; **el valor de la prueba no es certificarlo**, es que el día que
+alguien las rompa se entere en su PR y no seis meses después. Una arquitectura
+limpia no se mantiene sola: se mantiene porque algo se pone rojo.
+
+**Lo que la medición NO dice, escrito dentro** — que la dirección sea correcta no
+dice que los límites estén en el sitio correcto. Un `lib/` enorme con todo dentro
+cumpliría las tres reglas y seguiría siendo un nudo. Esto cubre el deterioro que
+**se cuela sin que nadie lo decida**; la otra clase se decide y se escribe en
+`docs/decisions/`.
+
+**Documento** — `docs/architecture/DIRECCION-DE-DEPENDENCIAS.md`

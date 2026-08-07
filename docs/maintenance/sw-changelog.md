@@ -2099,3 +2099,11 @@ que ya se sospechaba: el módulo estaba bien, sus pruebas pasaban, y no corría
 donde tenía que correr. La taxonomía es CÓDIGO (`src/lib/calidad/`) y un
 guardián falla si un REG se queda sin familia. El guardián de huérfanos cazó, al
 escribirlo, el módulo que documenta esa misma familia.
+
+## v1087 — la arquitectura, medida en vez de dibujada
+REG-206. Grafo de imports real sobre 734 archivos: **0 dependencias invertidas,
+0 ciclos, 0 módulos de lib atados a una pantalla**. La grieta encontrada era
+`types/`, que no era hoja: cerrada la de `hospital.ts` (un alias con un solo
+consumidor), declarada la de `clinical-quantity.ts` (vive en la capa equivocada;
+moverlo se decide, no se cuela). Guardián de 8 casos: el valor no es certificar
+el cero, es que quien lo rompa se entere en su PR.

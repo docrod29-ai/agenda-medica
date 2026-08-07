@@ -41,8 +41,9 @@ import { encuadrarNews2 } from '@/lib/hospital/news2-encuadre'
 import { textoOxigeno } from '@/lib/hospital/oxigeno'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
+import { ESPECIALIDADES_INTERCONSULTA as ESPECIALIDADES_IC } from '@/lib/especialidades'
 import {
-  diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ESPECIALIDADES_IC, ROL_HOSPITAL_LABEL,
+  diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ROL_HOSPITAL_LABEL,
   type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
 } from '@/types/hospital'
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
