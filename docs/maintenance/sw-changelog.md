@@ -2190,3 +2190,10 @@ concatenaban en cada pase en vivo —~40 por consulta— y el dedupe ignoraba el
 CIE-10; ahora se sustituye lo de la IA y se conserva lo del médico. (2) La regla
 15 del prompt ORDENABA escribir «No referido» y la 1-bis lo prohíbe: la primera
 pasada en vivo congelaba la nota hueca, y hueca PASABA la compuerta de firma.
+
+## v1100 — «Algo se atoró en esta pantalla»
+REG-218. Tres huecos que producen ese síntoma: la guarda estaba en 1 de 4 campos
+al cargar la nota; `Array.isArray` validaba el contenedor y no los elementos; y
+para el error más probable en un celular —un trozo de la app que no cargó—
+«Reintentar» NO podía funcionar. Ahora ese caso se reconoce, se registra aparte
+y el botón principal recarga. Regla: restaurar nunca debe tumbar la pantalla.

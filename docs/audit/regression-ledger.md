@@ -2866,3 +2866,72 @@ Vaciar por contención habría borrado los negativos pertinentes, que son de lo 
 valioso que tiene una nota.
 
 **Guardián** — `src/__tests__/la-nota-no-sale-hueca.test.ts` (10 casos).
+
+---
+
+## REG-218 — «Algo se atoró en esta pantalla» en el iPhone (v1100)
+
+**Reportado con captura**, con el aviso de «Hay audio guardado de una sesión
+anterior» justo antes.
+
+### Alcance honesto de esta entrada
+
+**La excepción concreta del iPhone del Dr. no se pudo leer.** Se registra en la
+colección `errores` con su traza, visible en `/superadmin/errores`; la llave de
+administrador vive sólo en Vercel y **descargar todos los secretos de producción
+a disco para leer un mensaje no es un cambio justo por ese valor**.
+
+Lo que sigue **no se declara como la causa de ese fallo concreto**: son huecos
+confirmados leyendo el código, que **pueden producir exactamente ese síntoma** y
+que son defectos por sí mismos. Se reparan por eso.
+
+### Hueco 1 — la guarda estaba en uno de cuatro
+
+```
+setSignos(n.signosVitales ?? {})   ← con guarda
+setSecciones(n.secciones)          ← SIN guarda
+setDiagnosticos(n.diagnosticos)    ← SIN guarda
+setMedicamentos(n.medicamentos)    ← SIN guarda
+```
+
+Alguien la puso en uno y no en los otros tres. Una nota vieja, o escrita por otro
+módulo, que no traiga el campo deja el estado en `undefined` y **el siguiente
+render revienta** en `.map` / `.filter`.
+
+### Hueco 2 — `Array.isArray` valida el contenedor, no los elementos
+
+```
+if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
+```
+
+Un `null` dentro del arreglo, o un elemento de un esquema anterior, **pasa entero
+y truena igual** en `m.nombre.trim()`. La lista es un arreglo; el problema está
+dentro. Y es el mismo momento de la sesión que el aviso de audio: los dos son
+«recuperación de sesión anterior» al montar.
+
+**La regla que sale de aquí**: *restaurar nunca debe poder tumbar la pantalla*.
+Ante un elemento con forma inesperada se descarta **ese elemento** y se conserva
+el resto — perder un renglón dudoso es infinitamente mejor que perder la consulta
+entera con el paciente delante.
+
+### Hueco 3 — «Reintentar» no podía funcionar para el error más probable en un celular
+
+La consulta carga ocho piezas bajo demanda y la app tiene service worker. En un
+celular con red inestable —o **justo después de un despliegue**, cuando los
+archivos viejos ya no existen— esa descarga falla y React lanza en el render.
+
+Para ese error, `reset()` vuelve a renderizar el mismo árbol y **el trozo sigue
+sin estar**. El médico pulsa «Reintentar», ve lo mismo, y concluye que la
+aplicación se rompió.
+
+Ahora el boundary lo reconoce, cambia el título por «Falta bajar una parte de la
+aplicación», y **el botón principal recarga** — que es lo único que trae los
+archivos nuevos. Y lo registra con origen propio (`boundary:consulta:chunk`),
+porque sin eso «Algo se atoró» son cinco fallos distintos bajo un mismo mensaje.
+
+**Guardián** — `src/__tests__/restaurar-no-tumba-la-pantalla.test.ts` (12 casos).
+
+**Lo que queda pendiente y es del dueño**: abrir `/superadmin/errores` y mirar el
+campo `origen` del registro de ese día. `boundary:consulta` frente a
+`boundary:consulta:chunk` parte el problema en dos por sí solo, y el `stack`
+confirma cuál de los tres huecos era.

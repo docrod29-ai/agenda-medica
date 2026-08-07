@@ -148,6 +148,7 @@ import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expedi
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
+import { diagnosticosSanos, medicamentosSanos, seccionesSanas } from '@/lib/expediente/nota-restaurada'
 import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
 import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
 import { dosisPeligrosasDeLaLista } from '@/lib/seguridad/dosis-de-la-lista'
@@ -1352,10 +1353,19 @@ export default function ConsultaActivaPage() {
       // aparezca distinto en Firestore a partir de aquí es de otra sesión.
       vistoEnRef.current = n.metadata?.fechaModificacion
       setTipo(n.tipo)
-      setSecciones(n.secciones)
+      /**
+       * ── LO QUE SE RESTAURA PUEDE VENIR DE OTRA ÉPOCA (REG-218) ────────────
+       *
+       * `signosVitales` llevaba guarda y estos tres NO. Una nota vieja, o
+       * escrita por otro módulo, que no traiga el campo dejaba el estado en
+       * `undefined` y el siguiente render reventaba en `.map` / `.filter`.
+       * El médico veía «Algo se atoró en esta pantalla», con el paciente
+       * delante.
+       */
+      setSecciones(seccionesSanas(n.secciones))
       setSignos(n.signosVitales ?? {})
-      setDiagnosticos(n.diagnosticos)
-      setMedicamentos(n.medicamentos)
+      setDiagnosticos(diagnosticosSanos(n.diagnosticos))
+      setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
       setFirmada(n.estado === 'firmada')
       if (n.preop) setPreop(n.preop)
@@ -2609,11 +2619,15 @@ export default function ConsultaActivaPage() {
       setNotaId(id)
     })()
     if (typeof b.tipo === 'string') setTipo(b.tipo as TipoNota)
-    if (Array.isArray(b.secciones)) setSecciones(b.secciones as NotaSeccion[])
+    /**
+     * `Array.isArray` valida el CONTENEDOR, no los elementos: un `null` dentro,
+     * o un elemento de un esquema anterior, pasaba entero y tronaba igual.
+     */
+    if (Array.isArray(b.secciones)) setSecciones(seccionesSanas(b.secciones))
     if (typeof b.resumen === 'string') setResumen(b.resumen)
     if (b.signos) setSignos(b.signos as SignosVitales)
-    if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos as Diagnostico[])
-    if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
+    if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
+    if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
     if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden as string[])
     if (b.preop) setPreop(b.preop as typeof preop)
     if (typeof b.proximoSeguimiento === 'string') setProximoSeguimiento(b.proximoSeguimiento)
@@ -2742,13 +2756,14 @@ export default function ConsultaActivaPage() {
       if (!raw) { setRespaldoDisponible(false); return }
       const b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
       if (b.tipo) setTipo(b.tipo)
-      if (Array.isArray(b.secciones)) setSecciones(b.secciones)
+      // Mismo saneo que arriba: tres sitios con la misma regla, no tres reglas.
+      if (Array.isArray(b.secciones)) setSecciones(seccionesSanas(b.secciones))
       if (typeof b.resumen === 'string') setResumen(b.resumen)
       if (b.signos) setSignos(b.signos)
       if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden)
       if (b.preop) setPreop(b.preop)
-      if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
-      if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
+      if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
+      if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
       if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
       /**
        * REPONER EL `notaId`, que faltaba SÓLO en esta ruta.

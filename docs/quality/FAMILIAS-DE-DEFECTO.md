@@ -2,13 +2,13 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Fuente**: los 65 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Fuente**: los 66 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
 ## Por qué contar
 
-El ledger tiene 65 defectos con su causa raíz. Leídos de uno en uno son 57
+El ledger tiene 66 defectos con su causa raíz. Leídos de uno en uno son 57
 historias. **Contados por familia dicen algo que ninguno dice solo**: cuál es la
 forma de fallar que se repite.
 
@@ -20,7 +20,7 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| Escrito, probado y sin conectar | 9 | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **10** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **10** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 9 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 6 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
@@ -38,7 +38,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«El sistema se contradice a sí mismo» — 10 de 65, y desde el 7-ago-2026 es la
+**«El sistema se contradice a sí mismo» — 10 de 66, y desde el 7-ago-2026 es la
 familia más grande.**
 
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
@@ -52,7 +52,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«Escrito, probado y sin conectar» — 9 de 65.**
+**«Escrito, probado y sin conectar» — 10 de 66.**
 
 Es exactamente el patrón que ya estaba anotado como el fallo más caro, ahora con
 la cuenta detrás. Nueve veces el módulo estaba bien, sus pruebas pasaban, y el
@@ -109,7 +109,7 @@ declara **DÉBIL**.
 
 `src/__tests__/de-que-se-enferma-este-sistema.test.ts` compara esta
 clasificación contra el ledger y **falla si un REG no tiene familia**. En cuanto
-aterrice el REG-218, esta prueba se pone roja hasta que alguien conteste «¿de qué
+aterrice el REG-219, esta prueba se pone roja hasta que alguien conteste «¿de qué
 familia es éste?» — que es la pregunta que convierte un defecto en aprendizaje en
 vez de en una entrada más.
 
