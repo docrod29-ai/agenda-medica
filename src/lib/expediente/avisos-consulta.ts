@@ -60,6 +60,7 @@ export type OrigenAviso =
   | 'dosis_peligrosa'
   | 'antecedente_del_familiar'
   | 'dato_incierto'
+  | 'sin_respaldo_en_el_dictado'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -99,6 +100,15 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    * que hay que comprobarlo.
    */
   dato_incierto:          'revisa',
+  /**
+   * «Esto no salió del dictado» (§B10, SUP-001).
+   *
+   * Nivel `revisa` y no `bloquea`: el motor no sabe si la afirmación es falsa,
+   * sabe que **nadie la dijo en voz alta**. Puede venir del expediente previo o
+   * de la exploración física. Bloquear la firma por eso sería decidir por el
+   * médico sobre algo que el motor no puede saber.
+   */
+  sin_respaldo_en_el_dictado: 'revisa',
 }
 
 /**
@@ -181,6 +191,13 @@ export interface EntradaAvisos {
    * era una duda.
    */
   datosInciertos?: readonly { frase: string; matiz?: string; marca?: string }[]
+  /**
+   * Afirmaciones de la nota que NINGÚN fragmento del dictado sostiene (§B10).
+   *
+   * Es la respuesta a «¿de dónde sacó la IA esto?» — la pregunta que hoy sólo se
+   * puede contestar reescuchando la consulta entera.
+   */
+  sinRespaldo?: readonly { afirmacion: string; huerfanas?: readonly string[] }[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -386,6 +403,24 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       texto: d.marca
         ? `Lo dijo con «${d.marca}», no como un hecho: «${d.frase}». Confírmalo antes de que quede como diagnóstico.`
         : `Lo dijo sin seguridad: «${d.frase}».`,
+      ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * Lo que no salió del dictado (§B10, SUP-001).
+   *
+   * Se nombran las palabras huérfanas porque son la parte accionable: en «se
+   * documenta nefropatía diabética estadio 4» lo que nadie dijo es
+   * «nefropatía, diabética, estadio», y verlo evita releer la consulta.
+   */
+  for (const r of e.sinRespaldo ?? []) {
+    const que = r.huerfanas?.length ? ` Nadie dijo: ${r.huerfanas.join(', ')}.` : ''
+    out.push({
+      id: `respaldo:${r.afirmacion.slice(0, 40)}`,
+      origen: 'sin_respaldo_en_el_dictado',
+      nivel: nivelDe('sin_respaldo_en_el_dictado'),
+      texto: `Esto no salió del dictado: «${r.afirmacion.trim()}».${que} Si viene del expediente o de la exploración, déjalo; si no, quítalo.`,
       ancla: { seccion: 'nota' },
     })
   }

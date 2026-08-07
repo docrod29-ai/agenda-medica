@@ -47,6 +47,7 @@ import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { frasesInciertas } from '@/lib/expediente/certeza'
+import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -853,6 +854,25 @@ export default function ConsultaActivaPage() {
     return frasesDeFamiliar(dictado)
       .filter(f => !avisosRevisados.includes(`familiar:${f.frase.slice(0, 40)}`))
   }, [voz.transcripcion, avisosRevisados])
+  /**
+   * ¿DE DÓNDE SALIÓ ESTO? (§B10 del charter · SUP-001)
+   *
+   * La pregunta que hoy sólo se puede contestar reescuchando la consulta
+   * entera. Cada afirmación de la nota se busca en el dictado; las que ningún
+   * fragmento sostiene se señalan con las palabras que nadie dijo.
+   *
+   * No acusa: puede venir del expediente previo o de la exploración física. Por
+   * eso el aviso dice «si viene de ahí, déjalo».
+   */
+  const sinRespaldo = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
+    if (!textoNota.trim()) return []
+    return afirmacionesSinRespaldo(textoNota, dictado)
+      .filter(r => !avisosRevisados.includes(`respaldo:${r.afirmacion.slice(0, 40)}`))
+      .map(r => ({ afirmacion: r.afirmacion, huerfanas: r.huerfanas }))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   /**
    * ¿CON CUÁNTA SEGURIDAD LO DIJO? (§B6 del charter, REG-211)
    *
@@ -4410,6 +4430,7 @@ export default function ConsultaActivaPage() {
           })),
           antecedentesDeFamiliar,
           datosInciertos,
+          sinRespaldo,
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */

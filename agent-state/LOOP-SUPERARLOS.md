@@ -26,7 +26,7 @@ nota primero.
 
 ### SUP-001 · Trazabilidad: de dónde salió cada frase de la nota
 **Cierra la distancia con**: Abridge (Linked Evidence)
-**Charter**: §B10 · **Estado**: ⬜ pendiente
+**Charter**: §B10 · **Estado**: ✅ **HECHO — v1095, REG-213**
 
 Cada afirmación de la nota debe poder señalar **el fragmento del dictado que la
 sostiene**. El médico resalta una línea y ve de dónde salió.
@@ -108,4 +108,4 @@ sala de datos, y el único que ninguna función arregla.
 
 | Iteración | Versión | Fecha | Resultado |
 |---|---|---|---|
-| — | — | — | (se llena al cerrar cada una) |
+| SUP-001 | v1095 | 7-ago-2026 | Motor de trazabilidad nota ↔ dictado, corpus de 13 casos, conectado a la barra. El hallazgo caro fue el falso positivo: «cefalea», «colecistectomía» y «madre» se marcaban como inventadas siendo traducciones correctas del habla del paciente. Sin la tabla de sinónimos, el aviso se habría aprendido a cerrar en dos consultas. |

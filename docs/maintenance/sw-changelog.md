@@ -2157,3 +2157,9 @@ REG-212. Los cuatro ejes tenían su corpus; nadie había probado si se estorban.
 «Yo no tengo diabetes PERO mi mamá sí» se atribuía entera al familiar: se perdía
 que el paciente la niega y que la mamá sí la tiene. Y «…, creo» al final no
 contaba como duda. El defecto vive en la COMPOSICIÓN, que sólo se ve midiéndola.
+
+## v1095 — SUP-001: de dónde salió cada frase de la nota
+REG-213. Cierra la distancia más grande frente a Abridge y el §B10 propio. Cada
+afirmación se enlaza al fragmento del dictado que la sostiene; lo que ninguno
+sostiene se declara con las palabras que nadie dijo. El hallazgo caro fue el
+falso positivo: «cefalea» ← «dolor de cabeza» se marcaba como invención.

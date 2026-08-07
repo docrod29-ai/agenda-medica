@@ -2589,3 +2589,69 @@ son correctos y no habrían encontrado ninguno de los dos. **El defecto vive en 
 composición**, y la composición sólo se ve midiéndola a propósito. Es el mismo
 patrón que la familia «escrito y sin conectar», un nivel más arriba: no es que el
 motor no corra, es que **corre sin ver lo que el otro ve**.
+
+---
+
+## REG-213 — «¿de dónde sacó la IA esto?» sólo se podía contestar reescuchando (v1095)
+
+**SUP-001 del loop competitivo.** Cierra la distancia más grande frente a
+Abridge (*Linked Evidence*), y es el **§B10 del charter propio**, que llevaba
+sin hacer desde que se escribió.
+
+**La pregunta** — frente a una nota generada, la duda del médico no es «¿está
+bien redactada?», es **«¿de dónde salió esto?»**. Hasta hoy la única forma de
+contestarla era **volver a oír la consulta entera**. Y un médico que tiene que
+reescuchar veinte minutos para comprobar una línea no comprueba: **firma**.
+
+**Lo que hace** — enlaza cada afirmación de la nota con el fragmento del dictado
+que la sostiene, con su posición para poder resaltarlo. Lo que ningún fragmento
+sostiene se declara, **con las palabras que nadie dijo**.
+
+**Lo que NO hace, escrito dentro del módulo** — no dice que la afirmación sea
+verdad: dice que hay un fragmento que la sostiene. El paciente pudo equivocarse o
+el reconocedor transcribir mal. Elimina **la frase que nadie dijo**, no todos los
+errores.
+
+**Y no elige por el médico**: cuando no encuentra respaldo lo dice, en vez de
+enlazar al fragmento menos malo. Un enlace inventado sería peor que ninguno —
+daría por comprobado justo lo que hay que comprobar.
+
+**Por qué no se le pide al modelo que cite sus fuentes** — un modelo que inventa
+una frase también puede inventar de dónde la sacó, y entonces el enlace
+**certifica la alucinación en vez de delatarla**.
+
+### El falso positivo que habría matado la función
+
+La primera medición sobre una nota realista marcaba como «nadie dijo»:
+
+| La nota escribe | El paciente había dicho |
+|---|---|
+| cefalea | «dolor de cabeza» |
+| colecistectomía | «me operaron de la vesícula» |
+| madre | «mi mamá» |
+
+**Las tres son traducciones correctas** que un médico hace al redactar. Un aviso
+que las señala se aprende a cerrar en dos consultas — y entonces deja de proteger
+de lo que sí importa, que **en esa misma nota** era «nefropatía diabética estadio
+4», inventada de cero.
+
+La tabla de sinónimos es **estrictamente lingüística**: habla del paciente ↔
+término técnico, nunca una inferencia clínica. «Dolor de cabeza» **es** cefalea;
+«cada mañana» **no es** «cada 24 horas» —eso es interpretar la pauta— y por eso
+se sigue marcando, con su caso en el corpus.
+
+**Es también el tipo de activo que no viene con ninguna API**: la tabla del
+español que se habla en un consultorio mexicano.
+
+**Conectado** a la barra como origen `sin_respaldo_en_el_dictado`, nivel
+`revisa`. No bloquea: el motor no sabe si la afirmación es falsa, sabe que
+**nadie la dijo en voz alta** — puede venir del expediente previo o de la
+exploración física, y el aviso lo dice.
+
+**El guardián de la nota entera saltó** — exigía que las defensas que leen la
+nota compartan constructor de texto, y pasaron de dos a tres. Que las tres vean
+**la misma nota** es justo lo que impide que una se quede ciega.
+
+**Los guardianes** — `src/__tests__/corpus-oro-de-donde-salio-esto.test.ts`
+(13 casos): enlaza lo dicho, declara lo inventado **sin fragmento**, no castiga
+la traducción del médico, y sigue marcando la interpretación de la pauta.
