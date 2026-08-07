@@ -2935,3 +2935,41 @@ porque sin eso «Algo se atoró» son cinco fallos distintos bajo un mismo mensa
 campo `origen` del registro de ese día. `boundary:consulta` frente a
 `boundary:consulta:chunk` parte el problema en dos por sí solo, y el `stack`
 confirma cuál de los tres huecos era.
+
+---
+
+## REG-219 — el antibiótico de hace un mes seguía «vigente» (v1101 · §D1)
+
+**El agujero** — un tratamiento prescrito «7 días» hace un mes seguía apareciendo
+como vigente. **Para siempre**, porque nadie comparaba la duración con el
+calendario.
+
+Y de esa lista cuelgan el cruce de interacciones, el cruce alergia ↔ fármaco y el
+motor de dosis. Es el daño de REG-215 **por otra puerta**: allá lo decía el
+paciente, aquí lo dice el calendario. En los dos casos, **motores de seguridad
+razonando sobre un paciente que no existe**.
+
+**Lo que el charter pide, literal** — *«cuando la duración expira:
+PROBABLY_COMPLETED. Pide reconciliación. NO lo marques completado en silencio.»*
+La tercera frase es la que importa.
+
+**Por qué «probablemente» y no «terminada»** — el sistema **no sabe** si el
+paciente lo terminó. Sabe que la duración escrita ya pasó. Pudo suspenderlo por
+un efecto adverso, alargarlo por indicación de otro médico, o no surtirlo nunca.
+Marcarlo «terminada» sería que el sistema afirme un hecho clínico que nadie
+comprobó.
+
+**Lo crónico no caduca** — la metformina de un diabético no «termina» a los 30
+días. Las duraciones sin término (`indefinido`, `permanente`, `de por vida`,
+`hasta nueva indicación`) se reconocen y se callan: marcarlas llenaría el
+worklist de tareas falsas cada mes, y un worklist que se llena se abandona.
+
+**El margen de gracia** — el paciente rara vez empieza el mismo día: surte la
+receta al día siguiente, o el lunes. Avisar el día exacto produce tareas que el
+médico cierra sin mirar.
+
+**Ante la duda, se calla** — duración incontable («hasta que se acabe el
+frasco»), fecha ilegible o fecha futura devuelven «no venció». **El error caro es
+decirle al médico que suspenda algo que el paciente debe seguir tomando.**
+
+**Guardián** — `src/__tests__/la-duracion-que-ya-vencio.test.ts` (26 casos).

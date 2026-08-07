@@ -2197,3 +2197,9 @@ al cargar la nota; `Array.isArray` validaba el contenedor y no los elementos; y
 para el error más probable en un celular —un trozo de la app que no cargó—
 «Reintentar» NO podía funcionar. Ahora ese caso se reconoce, se registra aparte
 y el botón principal recarga. Regla: restaurar nunca debe tumbar la pantalla.
+
+## v1101 — §D1: el antibiótico de hace un mes seguía «vigente»
+REG-219. Nadie comparaba la duración con el calendario: «7 días» prescrito hace
+un mes seguía alimentando el cruce de interacciones y el motor de dosis. Ahora
+abre tarea de reconciliación — NO se marca terminado solo (§D1). Lo crónico no
+caduca, hay margen de gracia, y ante la duda se calla.

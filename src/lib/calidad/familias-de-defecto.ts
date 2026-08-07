@@ -3,8 +3,8 @@
  *
  * ── DE DÓNDE SALE ────────────────────────────────────────────────────────────
  *
- * `docs/audit/regression-ledger.md` tiene 66 defectos con su causa raíz. Leídos
- * de uno en uno son 66 historias. Contados por familia dicen algo que ninguno
+ * `docs/audit/regression-ledger.md` tiene 67 defectos con su causa raíz. Leídos
+ * de uno en uno son 67 historias. Contados por familia dicen algo que ninguno
  * dice solo: **cuál es la forma de fallar que se repite**.
  *
  * Esto no es una taxonomía tomada de un libro. Cada familia salió de agrupar
@@ -13,8 +13,8 @@
  *
  * ── POR QUÉ ES CÓDIGO Y NO UNA TABLA EN UN MARKDOWN ──────────────────────────
  *
- * Porque una tabla escrita a mano envejece en silencio: el REG-219 aterriza, la
- * tabla sigue diciendo 66 cuando ya son 67, y nadie se entera. Aquí el guardián compara este
+ * Porque una tabla escrita a mano envejece en silencio: el REG-220 aterriza, la
+ * tabla sigue diciendo 67 cuando ya son 68, y nadie se entera. Aquí el guardián compara este
  * archivo contra el ledger y **falla si un REG no está clasificado** — lo que
  * obliga a clasificarlo, que es justo el momento en que uno se pregunta «¿y de
  * qué familia es éste?».
@@ -109,7 +109,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216],
+    regs: [157, 193, 195, 215, 216, 219],
   },
   {
     clave: 'tarde',

@@ -141,6 +141,7 @@ import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
 import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
+import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
@@ -3164,6 +3165,34 @@ export default function ConsultaActivaPage() {
             .map(m => ({ nombre: m.nombre, dosis: m.dosis })),
           recetadosHoy: medicamentos.map(m => ({ nombre: m.nombre })),
         })
+        /**
+         * §D1 — LA DURACIÓN QUE YA VENCIÓ.
+         *
+         * Un antibiótico de «7 días» prescrito hace un mes seguía apareciendo
+         * como vigente. Para siempre, porque nadie comparaba la duración con el
+         * calendario. Y de esa lista cuelgan el cruce de interacciones, el de
+         * alergias y el motor de dosis.
+         *
+         * NO se marca terminado: el sistema sabe que el calendario venció, no
+         * que el paciente lo terminara. Pudo suspenderlo por un efecto adverso o
+         * alargarlo por indicación de otro médico. Se abre tarea (§D1: «no lo
+         * marques completado en silencio»).
+         */
+        const vencidos = vigentes
+          .filter(v => !medicamentos.some(m => m.nombre?.trim().toLowerCase() === v.medicamento.nombre?.trim().toLowerCase()))
+          .map(v => ({ v, r: yaDebioTerminar({ duracion: v.medicamento.duracion, prescritoEn: v.dichoEn, ahoraMs: Date.now() }) }))
+          .filter(x => x.r.yaDebioTerminar)
+          .map(x => ({ farmaco: x.v.medicamento.nombre, frase: comoSeDiceVencido({ farmaco: x.v.medicamento.nombre, v: x.r }) }))
+        if (vencidos.length) {
+          void crearTareas(clinicId, tareasDeReconciliacion({
+            clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
+            discrepancias: vencidos,
+            texto: d => d.frase,
+            medicoUid: auth.currentUser?.uid,
+            medicoNombre: config.nombreMedico,
+          }, Date.now())).catch(() => { /* igual que arriba */ })
+        }
+
         if (disc.length) {
           void crearTareas(clinicId, tareasDeReconciliacion({
             clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
