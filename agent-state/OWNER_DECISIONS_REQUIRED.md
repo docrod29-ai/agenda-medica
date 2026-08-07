@@ -40,6 +40,26 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | N-1 | ¿Se puede repetir la prueba de 14 días? | Una por cuenta, comprobada contra Stripe | Cerrar el hueco de pruebas repetidas | El resto del cobro |
 | N-2 | Verificación de correo al registrarse | Activarla: un correo mal tecleado deja la cuenta irrecuperable | Recuperación sin soporte humano | El alta funciona |
 
+## URGENTE — TRAZABILIDAD (nace el 7-ago-2026)
+
+| # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |
+|---|---|---|---|---|
+| T-1 | **19 PRs abiertos, catorce dicen ser «REG-192 … (v1074)» y dos dicen ser «REG-194 … (v1076)»** — reparaciones DISTINTAS con el mismo número | Fusionar o cerrar por lotes, renumerando al fusionar. Y arreglar el arranque del bucle (ver abajo) | El número de regresión y la versión del service worker **dejan de acotar un lote de notas** — que es justo lo que REG-191 acababa de reparar para IEC 62304 | Cada reparación por separado es correcta y tiene sus compuertas en verde |
+
+**Por qué se repite y no se arregla solo.** La rutina nocturna arranca de `main`
+en cada firing. Desde `main`, el ítem de mayor score sigue siendo el mismo
+mientras nada se fusione, así que cada firing vuelve a elegirlo, le asigna el
+siguiente REG libre **según `main`** —que siempre es el mismo— y abre una rama
+nueva. No es que los agentes se equivoquen: es que ninguno ve el trabajo de los
+otros. El firing del 7-ago por la tarde empezó a reimplementar REG-192 entero por
+enésima vez y sólo se dio cuenta al fallar el `git push` contra una rama que ya
+existía.
+
+**Lo que se puede hacer sin decidir nada clínico:** que el bucle, antes de elegir,
+mire las ramas de `origin` y los PRs abiertos, y que el REG se tome del máximo
+entre `main` y las ramas vivas. Queda anotado como OPS-003 en el backlog. Pero
+mientras no se fusione nada, la cola sólo crece.
+
 ---
 
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
