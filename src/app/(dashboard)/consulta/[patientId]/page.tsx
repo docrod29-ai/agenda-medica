@@ -4751,7 +4751,7 @@ export default function ConsultaActivaPage() {
               <button
                 onClick={() => { setSecciones(prev => resolverSugerencias(prev, 'aceptar')); toast(`Aceptaste ${n} ${n === 1 ? 'sugerencia' : 'sugerencias'} como tuyas`, 'success') }}
                 className="lift"
-                style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 Las acepto
               </button>
               <button
@@ -4767,7 +4767,7 @@ export default function ConsultaActivaPage() {
       {/* ── Signos vitales ── */}
       {requiereSignosVitales(tipo) && (
         <Section title="Signos vitales" icon={<Stethoscope size={15} />}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(90px, 100%), 1fr))', gap: 10 }}>
             {([['ta', 'TA', '120/80'], ['fc', 'FC', 'lpm'], ['fr', 'FR', 'rpm'], ['temperatura', 'T°', '°C'], ['spo2', 'SpO₂', '%'], ['peso', 'Peso', 'kg'], ['talla', 'Talla', 'cm']] as const).map(([k, label, ph]) => (
               <div key={k}>
                 <label style={S.miniLabel}>{label}</label>

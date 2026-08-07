@@ -422,7 +422,7 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
       </button>
       {abierto && (
         <div style={{ padding: '4px 16px 14px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 10, marginTop: 12 }}>
             {conValor.map(([k, v]) => (
               <div key={k}>
                 <div style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>

@@ -66,12 +66,12 @@ export default function ConsultaError({ error, reset }: { error: Error & { diges
           como acción principal enseña al médico que la app no responde.
         */}
         {trozo ? (
-          <button onClick={() => location.reload()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => location.reload()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <RotateCcw size={16} /> Recargar
           </button>
         ) : (
           <>
-            <button onClick={() => reset()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => reset()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               <RotateCcw size={16} /> Reintentar
             </button>
             <button onClick={() => location.reload()} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>

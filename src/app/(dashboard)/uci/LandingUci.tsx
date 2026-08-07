@@ -180,7 +180,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 12 }}>
           {tarjetas.map(t => {
             const alerta = t.horasDesdeUltimaToma === null
             return (

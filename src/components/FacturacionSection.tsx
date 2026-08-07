@@ -155,7 +155,7 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
 
           {abierto === p.id && (
             <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 10 }}>
                 <div><label style={lbl}>RFC</label><input value={f.rfc ?? ''} onChange={e => setF({ ...f, rfc: e.target.value.toUpperCase() })} placeholder="XAXX010101000" style={inp} /></div>
                 <div><label style={lbl}>Razón social (como en el SAT)</label><input value={f.nombre ?? ''} onChange={e => setF({ ...f, nombre: e.target.value })} placeholder="Nombre o empresa" style={inp} /></div>
                 <div><label style={lbl}>Código postal fiscal</label><input value={f.cp ?? ''} onChange={e => setF({ ...f, cp: e.target.value })} placeholder="00000" style={inp} /></div>

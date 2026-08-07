@@ -60,7 +60,7 @@ export default function OperacionPage() {
         Lo que falta lo decimos con claridad — sin vender humo: si algo dice «Roadmap», es que todavía no existe.
       </p>
 
-      <div style={{ display: 'grid', gap: 12, marginTop: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 12, marginTop: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
         {FINANZAS.map(m => (
           <div key={m.nombre} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--panel, #fff)', padding: '16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>

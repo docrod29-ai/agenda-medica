@@ -683,7 +683,7 @@ export default function NotaImprimiblePage() {
               style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
               <button onClick={() => setModalAdenda(false)} disabled={guardandoAdenda} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3} className="lift" style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3 ? 'default' : 'pointer', opacity: (!textoAdenda.trim() || motivoAdenda.trim().length < 3) ? 0.6 : 1 }}>
+              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3} className="lift" style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3 ? 'default' : 'pointer', opacity: (!textoAdenda.trim() || motivoAdenda.trim().length < 3) ? 0.6 : 1 }}>
                 {guardandoAdenda ? 'Guardando…' : 'Agregar adenda'}
               </button>
             </div>

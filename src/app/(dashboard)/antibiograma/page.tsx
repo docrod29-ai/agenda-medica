@@ -377,7 +377,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         Si la CMI y la categoría del laboratorio no coinciden, el motor sólo puede corregirla cuando
         sabe con qué estándar se interpretó. Sin esto NO corrige nada — lo señala y te dice qué falta.
       </div>
-      <div style={{ display: 'grid', gap: 8, marginTop: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 8, marginTop: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))' }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Estándar</div>
           <select value={procedencia.estandar ?? ''} style={input}
@@ -455,7 +455,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       {res && (res.fenotipos.length > 0 || res.categoriasCMI.length > 0 || organismo.trim()) && (
         <div style={{ marginTop: 18 }}>
           <button type="button" onClick={razonarIA} disabled={razonando}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
             {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
           </button>
           {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{errorRaz}</div>}
@@ -530,7 +530,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
           onClick={() => onAgregarANota(resumenParaNota(entradaActual, res))}
           className="lift"
           style={{
-            marginTop: 16, background: 'var(--nexus)', color: '#fff', border: 'none',
+            marginTop: 16, background: 'var(--nexus-solido)', color: '#fff', border: 'none',
             borderRadius: 10, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
           }}>
           → Agregar el antibiograma a la nota
@@ -854,7 +854,7 @@ const delBtn: React.CSSProperties = { background: 'none', border: 'none', color:
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
 const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }
-const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
+const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
 const box: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 8, padding: '11px 13px', fontSize: 12.5, lineHeight: 1.5 }
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }
 

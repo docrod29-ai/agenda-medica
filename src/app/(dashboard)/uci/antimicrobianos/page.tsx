@@ -283,7 +283,7 @@ export default function AntimicrobianosPage() {
       </div>
 
       {pestana === 'caso' && (
-        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(280px, 1fr) minmax(300px, 1.2fr)' }}>
+        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(min(280px, 100%), 1fr) minmax(min(300px, 100%), 1.2fr)' }}>
           <div style={S.card}>
             <div style={{ display: 'grid', gap: 10 }}>
               <div>
@@ -547,7 +547,7 @@ export default function AntimicrobianosPage() {
       )}
 
       {pestana === 'topes' && (
-        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 1fr)' }}>
+        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(min(300px, 100%), 1fr) minmax(min(300px, 100%), 1fr)' }}>
           <div style={S.card}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: 'var(--text, #0f172a)' }}>Cargar un tope</div>
             <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '0 0 12px', lineHeight: 1.5 }}>

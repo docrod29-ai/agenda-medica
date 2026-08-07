@@ -2217,3 +2217,13 @@ COMPUTADORA» y «así como cuando te dictan a ti, que se vaya escribiendo».
 Barra pegajosa mientras se graba: pausar/terminar siempre al alcance, NIVEL DE
 VOZ moviéndose (la única prueba en vivo de que capta — un contador sigue
 corriendo con el micrófono silenciado), tiempo, y las últimas palabras oídas.
+
+## v1104 — la portada no cabía en un teléfono, y el blanco no se leía sobre el azul
+Tres defectos medidos con un navegador en un iPhone de 390 px, no leyendo código.
+(1) La barra de la portada pedía 417 px: el BOTÓN DE REGISTRO salía cortado por
+el borde y la página entera se movía de lado. (2) 41 rejillas con
+minmax(Npx, 1fr) — suelo que no baja ni en una pantalla de 320. (3) --nexus se
+aclaró para servir de TEXTO (5,96) y se seguía usando de RELLENO bajo texto
+blanco, donde da 3,28 y AA pide 4,5: 68 usos de .btn-primary + 26 en línea.
+Nace --nexus-solido (#3D5AFE, el azul del logotipo, 5,13). El tema claro nunca
+lo tuvo. Guardián: la-pantalla-cabe-en-un-telefono.test.ts.

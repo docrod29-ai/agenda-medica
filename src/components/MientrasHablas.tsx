@@ -82,7 +82,7 @@ function botonPrincipal(p: MientrasHablasProps) {
   if (p.estado === 'listo') {
     return (
       <button onClick={p.alGrabar} aria-label="Grabar la consulta"
-        style={{ ...comun, background: 'var(--nexus)', color: '#fff' }}>
+        style={{ ...comun, background: 'var(--nexus-solido)', color: '#fff' }}>
         <Mic size={26} />
       </button>
     )
@@ -99,7 +99,7 @@ function botonPrincipal(p: MientrasHablasProps) {
     <button
       onClick={pausado ? p.alReanudar : p.alPausar}
       aria-label={pausado ? 'Reanudar la grabación' : 'Pausar la grabación'}
-      style={{ ...comun, background: pausado ? 'var(--nexus)' : 'var(--s2)', color: pausado ? '#fff' : 'var(--text)', border: '1px solid var(--border)' }}
+      style={{ ...comun, background: pausado ? 'var(--nexus-solido)' : 'var(--s2)', color: pausado ? '#fff' : 'var(--text)', border: '1px solid var(--border)' }}
     >
       {pausado ? <Play size={24} /> : <Pause size={24} />}
     </button>

@@ -34,6 +34,29 @@
   --nexus:        #6E84FE;   /* AA sobre --s3 (4.63); antes #3D5AFE = 2.96 */
   --nexus-hover:  #2845EA;
   --nexus-soft:   rgba(61, 90, 254, 0.12);
+  /*
+    EL AZUL DE RELLENO — el que lleva texto blanco encima.
+
+    Un token no puede servir para las dos cosas: los requisitos son OPUESTOS.
+    · Como TEXTO sobre fondo oscuro hay que ACLARARLO para separarlo del fondo.
+    · Como RELLENO bajo texto blanco hay que OSCURECERLO para separarlo del texto.
+
+    --nexus se aclaró a #6E84FE para lo primero (5,96 sobre el lienzo, y así lo
+    dice el comentario de arriba). Pero se seguía usando también de relleno, y
+    ahí el blanco encima daba **3,28 : 1** — reprueba AA, que pide 4,5. Afectaba
+    a los 68 usos de .btn-primary y a 26 rellenos en línea: «Procesar con IA»,
+    «Guardar adenda», el CTA del antibiograma, el botón de registro de la
+    portada. El tema CLARO no lo tenía: usa #2845EA, que sí pasa.
+
+    Es la familia «el sistema se contradice a sí mismo»: ninguna de las dos
+    decisiones está mal por su cuenta, y por eso ninguna revisión de una sola
+    pieza lo encuentra.
+
+    #3D5AFE no es un color inventado: es el azul de marca original, el mismo del
+    logotipo y el que ya vive dentro de --nexus-soft. Medido con la fórmula de
+    luminancia relativa WCAG 2.1: blanco sobre #3D5AFE = 5,13 : 1.
+  */
+  --nexus-solido: #3D5AFE;
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -224,7 +247,8 @@ html, body {
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--nexus);
+  /* Relleno, no texto: va el azul sólido. Ver --nexus-solido arriba. */
+  background: var(--nexus-solido);
   color: #FFFFFF;
   font-weight: 600;
 }
@@ -234,6 +258,28 @@ html, body {
 .btn-primary:active:not(:disabled) {
   background: var(--nexus-hover);
   opacity: 0.92;
+}
+
+/* ── LA BARRA DE LA PORTADA EN UN TELÉFONO ─────────────────────────────────
+   MEDIDO el 7-ago-2026 sobre producción, en un iPhone de 390 px: la barra pedía
+   417. Es `flex` con `nowrap`, 24 px de relleno a cada lado y botones con
+   `white-space: nowrap`, así que NADA cede. Resultado: la página entera se movía
+   de lado y el botón de registro salía CORTADO por el borde derecho.
+
+   El botón de registro. En la portada. En un teléfono.
+
+   No se esconde ningún control: se estrecha lo que sobra, que es el relleno y
+   el ancho de los botones. Por debajo de 380 px se retira además el nombre
+   escrito «NexusMED» — el logotipo se queda, así que la marca sigue ahí.
+
+   Medido de nuevo tras el cambio: 390 → 390 y 320 → 312. Sin desborde. */
+@media (max-width: 460px) {
+  .nav-portada { padding-left: 12px !important; padding-right: 12px !important; }
+  .nav-portada .btn { padding: 0 12px; font-size: 13px; }
+}
+@media (max-width: 380px) {
+  .nav-portada-marca { display: none; }
+  .nav-portada .btn { padding: 0 10px; font-size: 12.5px; }
 }
 
 .btn-secondary {
@@ -958,6 +1004,10 @@ tbody tr:last-child { border-bottom: none; }
   --nexus:        #2845EA;
   --nexus-hover:  #1A35C8;
   --nexus-soft:   rgba(40, 69, 234, 0.10);
+  /* En claro el relleno ya era #2845EA (blanco encima = 6,71) y por eso este
+     tema nunca tuvo el fallo. Se nombra igual para que .btn-primary sirva a
+     los dos temas con una sola regla. */
+  --nexus-solido: #2845EA;
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -1013,6 +1063,7 @@ tbody tr:last-child { border-bottom: none; }
     --nexus:        #2845EA;
     --nexus-hover:  #1A35C8;
     --nexus-soft:   rgba(40, 69, 234, 0.10);
+    --nexus-solido: #2845EA;
     --teal:         var(--nexus);
     --teal-dim:     var(--nexus-hover);
     --teal-glow:    var(--nexus-soft);

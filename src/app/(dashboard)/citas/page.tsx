@@ -736,7 +736,7 @@ function AppointmentRowFull({
             className="btn btn-sm"
             title="Abrir la consulta de este paciente"
             style={{
-              background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 6,
+              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 6,
               fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}

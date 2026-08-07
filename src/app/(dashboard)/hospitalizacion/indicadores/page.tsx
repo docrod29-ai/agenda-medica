@@ -64,7 +64,7 @@ export default function IndicadoresPage() {
       </h1>
 
       {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> : (<>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12, marginBottom: 24 }}>
           <Kpi valor={m.activos} label="Internados ahora" color="var(--teal)" />
           <Kpi valor={m.estMedia} label="Estancia media (días)" />
           <Kpi valor={m.egresados} label="Egresos (histórico)" color="var(--amber)" />

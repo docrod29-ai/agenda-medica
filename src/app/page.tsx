@@ -118,7 +118,7 @@ const WHATSAPP_MESSAGES = [
 /* ─── Components ────────────────────────────────────────── */
 function Nav() {
   return (
-    <nav style={{
+    <nav className="nav-portada" style={{
       position: 'sticky', top: 0, zIndex: 100,
       background: 'rgba(11,12,14,0.78)', backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
@@ -141,7 +141,7 @@ function Nav() {
             <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
           </svg>
         </div>
-        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
+        <span className="nav-portada-marca" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -275,7 +275,7 @@ function Features() {
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24,
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 24,
       }}>
         {FEATURES.map(f => (
           <div key={f.title} style={{
@@ -435,7 +435,7 @@ function Pricing() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 24 }}>
         {PLANS.map(p => (
           <div key={p.name} style={{
             background: p.highlight ? 'rgba(61,90,254,0.05)' : 'var(--s1)',

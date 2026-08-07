@@ -150,7 +150,7 @@ export default function ContabilidadPage() {
       ) : data ? (
         <>
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(150px, 100%),1fr))', gap: 12, marginBottom: 18 }}>
             {[
               { lab: 'Ingresos del mes', val: mxn(data.resumen.ingresoMes), foot: `${data.resumen.numPagosMes} pagos · IVA ${mxn(data.resumen.ivaMes)}` },
               { lab: 'Costo total', val: mxn(data.resumen.costoTotal), foot: `IA ${mxn(data.resumen.costoIA)} · Stripe ${mxn(data.resumen.costoStripe)}` },

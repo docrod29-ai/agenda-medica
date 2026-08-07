@@ -782,7 +782,7 @@ export default function EpisodioPage() {
             </div>
           )}
           {/* Gráficas de tendencia */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 10, marginBottom: 14 }}>
             <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="var(--red)" />
             <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3d5afe" />
             <GraficaSignos titulo="Frecuencia respiratoria" unidad="rpm" puntos={serie('fr')} normalMin={12} normalMax={20} color="var(--purple)" />
