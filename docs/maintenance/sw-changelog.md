@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1076 — REG-194: «No pues sí» se leía como un no
+
+En el habla mexicana el «no» de arranque es una muletilla y lo que sigue es un sí
+rotundo: «¿Padece diabetes?» — «No pues sí, desde hace años». `NEGATIVAS` ancla
+en `^no`, así que se quedaba con el «no» inicial y daba la crónica por negada.
+
+Es la familia de «no sé» un escalón peor: allí el paciente decía que no lo sabía
+y se le fabricaba una ausencia; aquí AFIRMA la enfermedad en la misma frase y se
+le da la vuelta, y la condición sale reclasificada a «descartado».
+
+Una entrada más en `NO_ES_NEGACION`, que tiene un solo consumidor. Ningún
+vocabulario compartido se ensancha — que es la lección que dejó escrita la
+primera versión de REG-192.
+
+Lo que cuesta, declarado: sin acentos «sí» y «si» se confunden, así que «No, si
+yo nunca he tenido nada» deja de contar como negación. Se pierde un aviso, que es
+el sesgo del módulo; al revés se fabricaría el negativo.
+
 ## v1075 — REG-193: el lado del dictado leía la negación como se escribe
 
 v1074 reparó la NOTA. El DICTADO se quedó como estaba, y ahí «pues no», «fíjese

@@ -11,7 +11,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-004 (cerrada) — REG-193, v1075, sobre la misma rama que REG-192",
+  "iteracionActual": "REG-194 (cerrada) — v1076, sobre agent/safety/SAFE-003",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
@@ -31,5 +31,10 @@
     "C-6 separar los dos criterios de negación (nota vs dictado)",
     "C-7 compuestos del vocabulario (miocardiopatía, esteatohepatitis)"
   ],
-  "alertaParaElDueno": "HAY 12 PRs ABIERTOS SIN FUSIONAR, y 9 de ellos vienen de firings distintos de esta misma rutina: PR #230 a #241, todos ramificados del mismo main (6d35d95) y casi todos titulados «REG-192 … (v1074)». El número de regresión y la versión del service worker dejaron de ser únicos, y varios tocan el mismo archivo. Se necesita decidir el orden de fusión y renumerar antes de que se acumulen más."
+  "alertaParaElDueno": "HAY 12 PRs ABIERTOS SIN FUSIONAR, y 9 de ellos vienen de firings distintos de esta misma rutina: PR #230 a #241, todos ramificados del mismo main (6d35d95) y casi todos titulados «REG-192 … (v1074)». El número de regresión y la versión del service worker dejaron de ser únicos, y varios tocan el mismo archivo. Se necesita decidir el orden de fusión y renumerar antes de que se acumulen más.",
+  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1076",
+  "leccionesVivas": [
+    "Antes de tocar un regex, buscar TODOS sus llamadores (lección de REG-192).",
+    "Antes de abrir rama, mirar si origin ya tiene una con ese nombre: el 7-ago se reimplementó REG-192 entero en paralelo contra una rama que ya lo tenía resuelto y mejor. El trabajo duplicado se descartó, no se empujó."
+  ]
 }

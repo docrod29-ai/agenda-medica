@@ -116,12 +116,31 @@ const ARRANQUE = new RegExp(String.raw`^(?:${MULETILLA}\b[\s,.;]*)*`)
  *   `clinical-safety.md` —ausencia de dato no es dato de ausencia— dentro del
  *   módulo que la cita en su cabecera.
  * - **Negar en parte.** «No siempre», «no del todo»: un sí con matiz.
+ * - **Afirmar tras un «no» de arranque** (REG-194). En el habla mexicana el
+ *   «no» inicial es una muletilla y lo que sigue es un SÍ rotundo:
+ *
+ *       ¿Padece diabetes? — No pues sí, desde hace años.
+ *       ¿Es hipertenso?   — No, sí tengo.
+ *
+ *   Verificado con el motor real el 7-ago-2026: `esRespuestaNegativa` devolvía
+ *   `true` en las dos, y `condicionesNegadas` daba la diabetes por negada. El
+ *   paciente acababa de afirmarla en la misma frase. Es la misma familia de daño
+ *   que «no sé» —una ausencia fabricada— pero peor, porque aquí hay una
+ *   afirmación explícita del paciente a la que se le da la vuelta.
  *
  * Los hedges («creo que no», «casi no») quedan fuera a propósito: no cuentan
  * como negación, que es el lado seguro. Está en la cola del dueño (C-8).
+ *
+ * ── EL «si» SIN TILDE SE RESUELVE HACIA EL LADO SEGURO ───────────────────────
+ *
+ * El núcleo llega sin acentos, así que «sí» (afirmación) y «si» (condicional)
+ * se confunden. «No, si yo nunca he tenido nada» es una negación enfática y aquí
+ * dejará de contar como tal: se pierde un aviso, que es el sesgo declarado del
+ * módulo —señalar de menos, nunca de más—. Al revés sería fabricar el negativo,
+ * que es justo el daño que esta entrada viene a impedir.
  */
 const NO_ES_NEGACION = new RegExp(
-  String.raw`^no\s+(?:` + [
+  String.raw`^no[\s,;]+(?:pues\s+|pos\s+)?si\b|^no\s+(?:` + [
     String.raw`se\b`, String.raw`lo\s+se\b`, String.raw`sabria`, String.raw`recuerdo`,
     String.raw`me\s+acuerdo`, String.raw`estoy\s+segur[oa]`, String.raw`tengo\s+idea`,
     String.raw`me\s+(?:lo\s+|la\s+)?(?:han|he)\s+(?:dicho|checado|revisado|medido|hecho)`,

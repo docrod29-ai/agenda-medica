@@ -1841,3 +1841,53 @@ y con qué marca.
 
 **Golden** — `src/__tests__/la-negacion-se-oye-como-se-habla.test.ts` (18 `it(`,
 35 casos ejecutados).
+
+---
+
+## REG-194 — «No pues sí» se leía como un no (v1076)
+
+**Encontrado** — 7-ago-2026, sondeando el motor real de esta misma rama para ver
+qué quedaba vivo de C2/C3 después de REG-192 y REG-193.
+
+**Cómo se reprodujo** — Sonda temporal contra `esRespuestaNegativa` y
+`condicionesNegadas`, sin dobles, con frases sintéticas de consultorio:
+
+```
+esRespuestaNegativa('No pues sí, desde hace años.')  → true
+esRespuestaNegativa('No, sí tengo.')                 → true
+condicionesNegadas('¿Padece diabetes? No pues sí, desde hace años.')
+  → [{ condicion: 'diabetes' }]        ← el paciente ACABABA DE AFIRMARLA
+```
+
+**El defecto** — En el habla mexicana el «no» de arranque es una muletilla y lo
+que sigue es un sí rotundo: «¿Padece diabetes?» — «No pues sí, desde hace años».
+`NEGATIVAS` ancla en `^no\b`, así que se quedaba con el «no» inicial y daba la
+crónica por negada.
+
+**Por qué importa para un paciente** — Es la familia de «no sé» (REG-193, FALLO 2)
+un escalón peor. Allí el paciente decía que no lo sabía y se le fabricaba una
+ausencia; aquí el paciente **afirma** la enfermedad en la misma frase y se le da
+la vuelta: `corregirCertezaPorNegacion` la reclasifica a `descartado`, que es una
+afirmación de ausencia, sobre una crónica que el paciente acaba de reconocer. Y
+los antecedentes se arrastran a todas las notas siguientes.
+
+**Reparación** — Una entrada más en `NO_ES_NEGACION`, que es el sitio donde ya
+viven «no sé» y «no del todo». **No se ensancha ningún vocabulario compartido**:
+`NO_ES_NEGACION` tiene un solo consumidor (`esRespuestaNegativa`), que es
+justamente la lección que dejó escrita la primera versión de REG-192 —antes de
+tocar un regex, buscar todos sus llamadores—.
+
+**Qué NO hace** — El núcleo llega sin acentos, así que «sí» y «si» se confunden:
+«No, si yo nunca he tenido nada» es una negación enfática y deja de contar como
+tal. Se pierde un aviso, que es el sesgo declarado del módulo —señalar de menos,
+nunca de más—; al revés se fabricaría el negativo, que es el daño que esta
+guardia viene a impedir. Queda declarado en el golden.
+
+**Qué queda para el médico** — Nada cambia en lo que decide: el motor sigue sin
+juzgar quién tiene razón entre el dictado y la nota.
+
+**Comprobado que puede ponerse rojo** — Revertido el regex, el golden cae en 6 de
+sus casos nuevos.
+
+**Golden** — `src/__tests__/la-negacion-se-oye-como-se-habla.test.ts`, FALLO 4
+(18 → 22 casos estáticos).

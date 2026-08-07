@@ -155,6 +155,59 @@ describe('FALLO 2 · el que no sabe no está negando (regla 4)', () => {
   })
 })
 
+describe('FALLO 4 · el «no» de arranque que en realidad es un SÍ (REG-194)', () => {
+  /**
+   * ── CÓMO SE DESCUBRIÓ ──────────────────────────────────────────────────────
+   *
+   * Sondeando el motor real de esta misma rama, 7-ago-2026, mientras se
+   * comprobaba qué quedaba vivo de C2/C3. `esRespuestaNegativa` devolvía `true`
+   * para «No pues sí, desde hace años».
+   *
+   * ── POR QUÉ ES DE LOS CAROS ────────────────────────────────────────────────
+   *
+   * Es la familia de «no sé» (FALLO 2), pero un escalón peor: allí el paciente
+   * decía que no lo sabía y se le fabricaba una ausencia; aquí el paciente
+   * AFIRMA la enfermedad en la misma frase y se le da la vuelta. La condición
+   * sale reclasificada a `descartado` —una afirmación de ausencia— sobre una
+   * crónica que el paciente acaba de reconocer, y los antecedentes se arrastran
+   * a todas las notas siguientes.
+   */
+  for (const respuesta of ['No pues sí, desde hace años.', 'No, sí tengo.', 'No, sí padezco.', 'No pos sí.']) {
+    it(`«${respuesta}» NO es una negación`, () => {
+      expect(esRespuestaNegativa(respuesta)).toBe(false)
+      expect(negadas(`¿Padece diabetes? ${respuesta}`)).toEqual([])
+    })
+  }
+
+  it('no reclasifica a descartado una diabetes que el paciente acaba de afirmar', () => {
+    const n = condicionesNegadas('¿Padece diabetes? No pues sí, desde hace años.')
+    const { conditions, corregidas } = corregirCertezaPorNegacion(
+      [{ texto: 'diabetes mellitus tipo 2', certeza: 'confirmado' }], n,
+    )
+    expect(conditions[0].certeza).toBe('confirmado')
+    expect(corregidas).toEqual([])
+  })
+
+  it('y el «no» que sí niega no se toca', () => {
+    // El guardián al revés: si esto cae, el arreglo apagó la negación en vez de
+    // afinarla, y volvemos al caso del 3-ago.
+    for (const r of ['No.', 'No, ninguna.', 'Pues no, doctor.', 'No, gracias a Dios.']) {
+      expect(esRespuestaNegativa(r), r).toBe(true)
+    }
+    expect(negadas('¿Padece diabetes? No, ninguna.')).toContain('diabetes')
+  })
+
+  it('lo que cuesta queda declarado, no escondido', () => {
+    /**
+     * El núcleo llega sin acentos, así que «sí» y «si» se confunden: «No, si yo
+     * nunca he tenido nada» es una negación enfática y deja de contar como tal.
+     * Se pierde un aviso —el sesgo declarado del módulo—; al revés se fabricaría
+     * el negativo, que es el daño que esta guardia viene a impedir.
+     */
+    expect(esRespuestaNegativa('No, si yo nunca he tenido nada.')).toBe(false)
+  })
+})
+
 describe('FALLO 3 · el negador alcanza al término de al lado, no a la frase', () => {
   for (const frase of [
     'Niega tabaquismo, tiene diabetes en tratamiento.',
