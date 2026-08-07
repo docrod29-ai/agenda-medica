@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: la respuesta se leía por su primera palabra
+
+El motor de negaciones decidía si el paciente negaba mirando si la respuesta
+EMPEZABA por palabra negativa. Un prefijo no es una respuesta, y eso falla en los
+dos sentidos.
+
+Se perdían las negaciones de verdad —«Pues no», «Fíjese que no», «Para nada»,
+«Qué va», «Tampoco», o un guion de turno delante— y con ellas la defensa entera:
+el antecedente crónico inventado volvía a pasar.
+
+Y se inventaban negaciones que nadie dijo, que es peor: «No hace mucho, como dos
+años» empieza por «no» y afirma. Ahí no se perdía un aviso — se degradaba a
+*descartado* una diabetes que el paciente acababa de confirmar.
+
+Ahora la respuesta se lee entera: lista cerrada de muletillas delante, la
+negación tiene que cerrar detrás, y si aparece una afirmación no se decide nada.
+Señalar de menos, nunca de más.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

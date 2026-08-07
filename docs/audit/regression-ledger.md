@@ -1553,3 +1553,91 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — la respuesta se leía por su primera palabra (v1074)
+
+**Encontrado** — 7-ago-2026. Estaba anotado como **C2/C3** en el plan de la
+auditoría de las nueve dimensiones
+(`docs/maintenance/PROGRAMA-NOCTURNO-IA-2026-08-05.md`), y era lo siguiente por
+valor después de REG-189/190/191.
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada: 22 formas de
+negar del habla mexicana y 6 respuestas afirmativas que empiezan por palabra
+negativa, pasadas por `condicionesNegadas()` y por
+`corregirCertezaPorNegacion()`. Se perdían **9 de 22**; y **4 de 6**
+afirmaciones se leían como negación.
+
+**El defecto** — El motor de REG-«el paciente dijo que no» decidía si una
+respuesta negaba mirando si **empezaba** por una palabra negativa:
+
+```
+/^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|…)\b/
+```
+
+Un prefijo no es una respuesta, y eso falla en los dos sentidos a la vez.
+
+**Sentido A — negaciones perdidas.** Casi nadie contesta «No.» a secas. Contesta
+«Pues no», «Fíjese que no», «Para nada», «Qué va», «Gracias a Dios no»,
+«Tampoco», «La verdad que no» — o el transcriptor mete un guion de turno («— No»)
+o comillas, y el «no» deja de ser la primera palabra. Perdida la respuesta, la
+defensa entera no corría: el antecedente crónico inventado —el fallo original,
+del Dr., en producción— volvía a pasar tal cual.
+
+**Sentido B — negaciones inventadas, que es el caro.** «¿Desde cuándo tiene
+diabetes? **No hace mucho**, como dos años» empieza por «no» y es una
+afirmación. Igual «Nunca la he dejado de tomar», «Nada más esa, sí» y «No, bueno
+sí, la borderline». Aquí no se pierde un aviso: `corregirCertezaPorNegacion()`
+degradaba a **descartado** una diabetes que el paciente acababa de confirmar.
+
+**Por qué importa para un paciente** — Los dos sentidos acaban en lo mismo: un
+antecedente crónico equivocado. Y los antecedentes **se arrastran** —se copian a
+todas las notas siguientes—, así que el error se propaga solo y cada copia lo
+vuelve más creíble. Cambia el riesgo quirúrgico y cambia la elección de fármacos.
+El sentido B es peor porque **borra** un dato que el paciente sí dio.
+
+**Reparación** — `src/lib/expediente/negaciones.ts`. La respuesta se lee entera:
+
+1. Delante del «no» sólo se admite una **lista cerrada** de muletillas
+   (`PREAMBULOS`) y el signo de turno. Cualquier prefijo dejaría pasar «Sí, pero
+   no…», que afirma.
+2. Detrás, la negación tiene que **cerrar** (`NEG_CERRADA`): puntuación y más
+   negaciones, o una de las frases negativas conocidas (`NEG_FRASE`). Es lista
+   explícita y no patrón porque «nunca me la han detectado» niega y «nunca la he
+   dejado de tomar» afirma, y sólo se distinguen por el verbo.
+3. Si en la respuesta aparece una **afirmación** (`AFIRMA`), no se decide nada.
+   Señalar de menos, nunca de más (`clinical-safety.md` §5).
+
+**`NIEGA_PEGADO` va aparte de `NIEGA_EN_LINEA`, a propósito** — «no es
+diabético» niega, pero un «no es» suelto dentro de la ventana de 60 caracteres
+—«no es candidato a cirugía. Diabetes mellitus tipo 2»— **taparía una afirmación
+real**, que es el fallo caro de ese lado. Por eso se ancla al final: tiene que
+estar justo delante del término.
+
+**Vocabulario** — Se añaden las formas adjetivas que faltaban: `epiléptico` y
+`cardiópata`. Diabetes, hipertensión y asma ya las tenían; sin la forma que se
+dice de verdad en la consulta («¿es usted epiléptico?»), ese caso sencillamente
+no se vigilaba.
+
+**Ninguna cifra clínica** — No hay umbrales, dosis ni puntos de corte en esta
+reparación: es vocabulario y forma de la frase.
+
+**No decide quién tiene razón** — Sigue sin resolver si vale el dictado o la
+nota (`POR_QUE_NO_SE_CORRIGE_SOLO`). Eso es del médico.
+
+**Qué NO hace** — No protege el dictado **sin acentos**: la marca de afirmación
+busca «sí» acentuado porque sin acento se confunde con la conjunción «si».
+Muletillas, negaciones y frases negativas son **listas**: que falte una forma
+significa que ese caso no se vigila, no que se dé por afirmado. Y no mira quién
+habló: si el reconocedor atribuyó mal el turno, este motor razona sobre esa
+atribución (`roles-hablante.ts`).
+
+**Qué queda para el médico** — Resolver la contradicción cuando salte, y decir
+qué otras formas de negar oye en su consulta que no estén en la lista.
+
+**Comprobado que puede ponerse rojo** — Revertido el motor, **24 de 28** casos
+del golden fallan.
+
+**Golden** — `src/__tests__/la-negacion-se-lee-entera.test.ts` (14 casos
+estáticos, 28 ejecutados).

@@ -6831,3 +6831,9 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+## v1074 — REG-192: la respuesta se leía por su primera palabra
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **El motor de negaciones decidía por la primera palabra de la respuesta, y eso falla en los dos sentidos.** Por un lado se le escapaban las negaciones reales: casi nadie contesta «No.» a secas —dice «Pues no», «Fíjese que no», «Para nada», «Qué va», «Tampoco»— o el transcriptor mete un guion de turno delante, y el «no» deja de ser la primera palabra. Perdida la respuesta, la defensa entera no corría y el antecedente crónico inventado del 3-ago volvía a pasar tal cual. Por el otro —el caro— se inventaban negaciones que nadie dijo: «¿Desde cuándo tiene diabetes? **No hace mucho**, como dos años» empieza por «no» y afirma, y ahí no se pierde un aviso: `corregirCertezaPorNegacion()` degradaba a **descartado** una diabetes que el paciente acababa de confirmar. Reproducido antes de tocar nada con el motor real: **9 de 22** formas de negar perdidas, **4 de 6** afirmaciones leídas como negación. Ahora la respuesta se lee entera —lista **cerrada** de muletillas delante (cualquier prefijo dejaría pasar «Sí, pero no…»), la negación tiene que **cerrar** detrás, y si aparece una afirmación no se decide nada—. La negación pegada al término («no es diabético») va aparte de la de ventana, porque un «no es» suelto a 60 caracteres taparía una afirmación real. Se añaden las formas adjetivas que faltaban al vocabulario: `epiléptico`, `cardiópata`. **Ninguna cifra clínica**: es vocabulario y forma de la frase. **Comprobado al revés**: revertido el motor, 24 de 28 casos del golden fallan. |

@@ -58,26 +58,112 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
   { canonica: 'asma', formas: ['asma', 'asmático', 'asmatico', 'asmática'] },
   { canonica: 'cáncer', formas: ['cáncer', 'cancer', 'neoplasia', 'tumor maligno'] },
   { canonica: 'enfermedad renal crónica', formas: ['insuficiencia renal', 'enfermedad renal', 'renal crónica', 'renal cronica'] },
-  { canonica: 'cardiopatía', formas: ['cardiopatía', 'cardiopatia', 'infarto', 'insuficiencia cardiaca', 'insuficiencia cardíaca'] },
+  /**
+   * Las formas adjetivas van con las nominales: en la consulta se pregunta «¿es
+   * usted epiléptico?», no «¿padece epilepsia?». Diabetes, hipertensión y asma
+   * ya las tenían; a estas dos les faltaban, y sin la forma que se dice de
+   * verdad el caso sencillamente no se vigilaba.
+   */
+  { canonica: 'cardiopatía', formas: ['cardiopatía', 'cardiopatia', 'cardiópata', 'cardiopata', 'infarto', 'insuficiencia cardiaca', 'insuficiencia cardíaca'] },
   { canonica: 'hipotiroidismo', formas: ['hipotiroidismo', 'tiroides'] },
   { canonica: 'dislipidemia', formas: ['dislipidemia', 'colesterol alto', 'triglicéridos altos', 'trigliceridos altos'] },
-  { canonica: 'epilepsia', formas: ['epilepsia', 'convulsiones'] },
+  { canonica: 'epilepsia', formas: ['epilepsia', 'epiléptico', 'epileptico', 'epiléptica', 'epileptica', 'convulsiones'] },
   { canonica: 'VIH', formas: ['vih', 'sida'] },
   { canonica: 'tuberculosis', formas: ['tuberculosis', 'tb pulmonar'] },
   { canonica: 'EPOC', formas: ['epoc', 'enfisema', 'bronquitis crónica'] },
 ]
 
 /**
- * Respuestas que cuentan como negación.
+ * ── LA RESPUESTA SE LEE ENTERA, NO POR SU PRIMERA PALABRA ────────────────────
  *
- * «Ninguna» y «nada» se incluyen porque es como se contesta de verdad a «¿tiene
- * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
- * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
+ * La primera versión miraba si la respuesta EMPEZABA por una palabra negativa.
+ * Sobre las formas del habla real eso falla en los dos sentidos, y los dos
+ * duelen:
+ *
+ * **Se le escapaban las negaciones de verdad.** Casi nadie contesta «No.» a
+ * secas. Contesta «Pues no», «Fíjese que no», «Para nada», «Qué va», «Gracias a
+ * Dios no», «Tampoco» — o el transcriptor le pone un guion de turno delante
+ * («— No») y la palabra deja de ser la primera. Con eso, la defensa entera no
+ * corría y el antecedente inventado volvía a pasar.
+ *
+ * **Y señalaba negaciones que nadie dijo, que es peor.** «¿Desde cuándo tiene
+ * diabetes? **No hace mucho**, como dos años» empieza por «no» y es una
+ * afirmación. Igual «Nunca la he dejado de tomar» y «Nada más esa, sí». Ahí no
+ * se pierde un aviso: `corregirCertezaPorNegacion` degradaba a **descartado** una
+ * diabetes confirmada — el mismo antecedente perdido que este módulo existe para
+ * impedir, sólo que por el otro lado.
+ *
+ * Por eso ahora se exige que la negación **cierre la respuesta**: o no queda
+ * nada detrás salvo puntuación y más negaciones, o es una de las frases
+ * negativas conocidas. Y si en la respuesta aparece una afirmación, no se decide
+ * nada: se señala de menos, nunca de más.
  */
-const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
+
+/**
+ * Muletillas y cortesías que en el habla real van DELANTE del «no».
+ *
+ * Lista cerrada a propósito. Admitir cualquier prefijo dejaría pasar «Sí, pero
+ * no…», que es una afirmación. Va de más larga a más corta porque se recortan en
+ * orden y «la verdad que» tiene que salir antes que «la verdad».
+ */
+const PREAMBULOS = [
+  'hasta donde yo se', 'hasta donde se', 'gracias a dios', 'fijese que', 'fijate que',
+  'que yo sepa', 'me parece que', 'la verdad que', 'afortunadamente', 'de plano',
+  'la verdad', 'creo que', 'no pues', 'bueno', 'mire', 'oiga', 'pues', 'este',
+  'mmm', 'ah', 'eh', 'ay',
+] as const
+
+/**
+ * Marcas de que la respuesta afirma algo.
+ *
+ * Se mira sobre el texto CON acentos: sin ellos «sí» y la conjunción «si» son la
+ * misma palabra, y «no, si no fuera por eso» dejaría de leerse como negación.
+ * Consecuencia declarada: un dictado sin acentos no queda protegido por aquí.
+ */
+const AFIRMA = /\b(?:sí|sip|simón|claro|correcto|exacto|afirmativo|así\s+es|efectivamente)\b/i
+
+/**
+ * Las palabras con las que se niega. De más larga a más corta: la alternancia
+ * toma la primera que encaja, y si «nada» fuera antes, «nada de eso» se partiría.
+ *
+ * Es vocabulario, no criterio: que falte una forma significa que ese caso no se
+ * vigila —no que se dé por afirmado—, y por eso el motor sólo señala de menos.
+ */
+const NEG = '(?:nada\\s+de\\s+eso|en\\s+absoluto|para\\s+nada|que\\s+va|negativo|ninguna|ninguno|tampoco|nunca|jamas|nada|nop|nel|no)'
+
+/** Lo único que se admite DETRÁS de la negación sin que deje de ser un «no». */
+const COLA = `(?:${NEG}|de\\s+eso|que\\s+yo\\s+sepa|gracias\\s+a\\s+dios|doctor|doctora|senor|senora)`
+
+/** «No», «No, ninguna», «Nada de eso», «No que yo sepa»: la negación lo es todo. */
+const NEG_CERRADA = new RegExp(`^${NEG}\\b(?:[\\s,]+${COLA}\\b)*[\\s.,;!¡…"»'-]*$`)
+
+/**
+ * Frases negativas completas — las que llevan algo detrás y siguen negando.
+ *
+ * Lista explícita, no un patrón: «nunca me la han detectado» niega y «nunca la
+ * he dejado de tomar» afirma, y sólo se distinguen por el verbo.
+ */
+const NEG_FRASE = new RegExp(
+  '^(?:' +
+  'no\\s+(?:tengo|tiene|padezco|padece|he\\s+tenido|ha\\s+tenido|me\\s+(?:lo|la|los|las)\\s+han\\s+(?:dicho|detectado|diagnosticado|encontrado))' +
+  '|nunca\\s+me\\s+(?:lo|la|los|las)\\s+han\\s+(?:dicho|detectado|diagnosticado|encontrado)' +
+  '|(?:nunca|jamas)\\s+(?:he|ha)\\s+(?:tenido|padecido|sido)' +
+  ')\\b',
+)
 
 /** Marcas de que un término ya viene negado en la propia frase. */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|no\s+cuenta\s+con\s+antecedente[s]?\s+de|sin\s+antecedente[s]?\s+de|sin\s+datos\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+
+/**
+ * Negación que sólo vale PEGADA al término: «no es diabético», «niega ser
+ * hipertenso».
+ *
+ * No entra en `NIEGA_EN_LINEA` porque ahí se busca en una ventana de 60
+ * caracteres, y un «no es» suelto —«no es candidato a cirugía. Diabetes mellitus
+ * tipo 2»— taparía una afirmación real, que es el fallo caro. Anclada al final,
+ * tiene que estar justo delante del término.
+ */
+const NIEGA_PEGADO = /\b(?:no\s+(?:es|era|fue|soy|son)|niega\s+ser)\s+(?:un[ao]?\s+)?$/i
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -91,6 +177,58 @@ export function frases(texto: string): string[] {
 }
 
 const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
+
+/** Quita el guion de turno, las comillas y las muletillas que preceden al «no». */
+function sinPreambulo(t: string): string {
+  let s = t.replace(/^[\s—–\-*«"'“”:]+/, '')
+  for (let vuelta = 0; vuelta < PREAMBULOS.length; vuelta++) {
+    // Si ya empieza por una negación no se recorta más: «qué va» perdería el
+    // «que» si se tratara como muletilla.
+    if (new RegExp(`^${NEG}\\b`).test(s)) return s
+    const p = PREAMBULOS.find(x => new RegExp(`^${x}\\b`).test(s))
+    if (!p) return s
+    s = s.slice(p.length).replace(/^[\s,]+/, '')
+  }
+  return s
+}
+
+/**
+ * ¿Esta respuesta niega?
+ *
+ * El silencio NO cuenta: no contestar no es negar, y tratarlo como negación
+ * fabricaría un negativo que nadie dijo.
+ */
+export function esRespuestaNegativa(respuesta: string): boolean {
+  if (!respuesta.trim()) return false
+  if (AFIRMA.test(respuesta)) return false
+  const s = sinPreambulo(sinAcentos(respuesta))
+  return NEG_CERRADA.test(s) || NEG_FRASE.test(s)
+}
+
+/**
+ * Las crónicas que esta frase niega con la negación PEGADA al término.
+ *
+ * Se comprueba forma por forma —no con un patrón suelto— para que «no es
+ * diabético» cuente y «no es candidato… diabetes» no.
+ */
+function negadasPegadasEn(frase: string): string[] {
+  const t = sinAcentos(frase)
+  const out: string[] = []
+  for (const c of CRONICAS) {
+    for (const forma of c.formas) {
+      const f = sinAcentos(forma)
+      let desde = 0
+      for (;;) {
+        const idx = t.indexOf(f, desde)
+        if (idx < 0) break
+        if (NIEGA_PEGADO.test(t.slice(0, idx))) { out.push(c.canonica); break }
+        desde = idx + f.length
+      }
+      if (out[out.length - 1] === c.canonica) break
+    }
+  }
+  return out
+}
 
 /** Qué enfermedades crónicas nombra esta frase. */
 export function cronicasEn(frase: string): string[] {
@@ -134,13 +272,19 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
       for (const c of cs) anotar(c, f)
       continue
     }
+    // «No es diabético»: la negación va pegada al término y sólo cuenta ahí.
+    const pegadas = negadasPegadasEn(f)
+    if (pegadas.length) {
+      for (const c of pegadas) anotar(c, f)
+      continue
+    }
     if (!esPregunta(f)) continue
 
     // La respuesta: lo que sigue al signo de interrogación en la MISMA frase, o
     // la frase siguiente si la pregunta terminó ahí.
     const resto = f.slice(f.indexOf('?') + 1).trim()
     const respuesta = resto || (fs[i + 1] ?? '')
-    if (NEGATIVAS.test(respuesta)) {
+    if (esRespuestaNegativa(respuesta)) {
       for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
     }
   }
@@ -176,6 +320,9 @@ export function contradicciones(negadas: readonly Negada[], textoNota: string): 
        */
       const antes = textoNota.slice(Math.max(0, idx - 60), idx)
       if (NIEGA_EN_LINEA.test(antes)) continue
+      // «No es diabético» en la nota también es una negación bien escrita, pero
+      // sólo si está pegada: ver `NIEGA_PEGADO`.
+      if (NIEGA_PEGADO.test(antes)) continue
       out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
       break
     }

@@ -10,16 +10,22 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "VOICE-005 (cerrada) — REG-192 / v1074",
   "ramasActivas": [
     "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
+    "agent/ops/OPS-001",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/voice/VOICE-004",
+    "agent/voice/VOICE-005"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "compuertas": {
+    "vitest": "6946 en verde de 6947; el único fallo es AJENO y preexistente: ops-timeout-y-punto-ciego (la IP agujero negro 10.255.255.1 responde a través del proxy de este contenedor en vez de colgarse). Comprobado en árbol limpio, sin mis cambios.",
+    "tsc": "limpio",
+    "lint": "96, igual que el techo",
+    "build": "limpio con las variables placeholder de CI"
+  }
 }
