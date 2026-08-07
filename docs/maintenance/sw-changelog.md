@@ -2227,3 +2227,11 @@ aclaró para servir de TEXTO (5,96) y se seguía usando de RELLENO bajo texto
 blanco, donde da 3,28 y AA pide 4,5: 68 usos de .btn-primary + 26 en línea.
 Nace --nexus-solido (#3D5AFE, el azul del logotipo, 5,13). El tema claro nunca
 lo tuvo. Guardián: la-pantalla-cabe-en-un-telefono.test.ts.
+
+## v1105 — la consola del dueño tenía la puerta abierta
+/superadmin y sus ocho secciones viven fuera de (dashboard), que es donde está
+el único guardián de sesión del proyecto (no hay middleware.ts). Sólo `costos`
+traía comprobación propia; las otras ocho abrían sin sesión. Los DATOS estaban
+bien —las rutas /api/superadmin/* verifican el token—, así que lo que se
+filtraba era el mapa de la consola, no expedientes. Un layout.tsx cubre la
+carpeta entera, incluidas las rutas que aún no existen.
