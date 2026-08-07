@@ -16,6 +16,9 @@
  */
 
 import type { TipoNota } from '@/types/expediente'
+import {
+  AFIRMA, AUSENCIA, NIEGA_EXPLICITO, NO_MAS_VERBO, NUNCA, SIN_SUELTO, unir,
+} from '@/lib/expediente/negadores'
 
 // ─────────────────────────────────────────────────────────────────
 // Normalización
@@ -202,8 +205,18 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
 // Detección de negaciones
 // ─────────────────────────────────────────────────────────────────
 
-/** Frases negadoras antes de un término clínico. */
-const NEGADORES = /\b(?:niega|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
+/**
+ * Frases negadoras antes de un término clínico.
+ *
+ * El vocabulario ya no vive aquí: se comparte con los otros tres sitios que
+ * también leen negaciones (ver `negadores.ts`). Lo que sí es de este archivo es
+ * `SIN_SUELTO`, que sólo se sostiene porque la ventana de `estaNegado` mira
+ * hacia atrás y es corta.
+ */
+const NEGADORES = new RegExp(
+  `\\b(?:${unir(NIEGA_EXPLICITO, NO_MAS_VERBO, NUNCA, AUSENCIA, SIN_SUELTO)})\\b`,
+  'i',
+)
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -213,7 +226,7 @@ const NEGADORES = /\b(?:niega|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido
  *   "niega diabetes mellitus" → diabetes SÍ está negada.
  */
 /** Palabras afirmativas que CIERRAN una negación previa */
-const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
+const AFIRMADORES = new RegExp(`\\b(?:${AFIRMA})\\b`, 'i')
 
 export function estaNegado(texto: string, indiceMatch: number): boolean {
   const ventanaInicio = Math.max(0, indiceMatch - 40)

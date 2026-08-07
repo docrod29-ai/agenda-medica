@@ -43,6 +43,10 @@
  * Módulo PURO.
  */
 
+import {
+  AUSENCIA, NIEGA_EXPLICITO, NO_MAS_VERBO, NUNCA, unir,
+} from '@/lib/expediente/negadores'
+
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
  * formas en que se dicen en la consulta mexicana.
@@ -68,16 +72,51 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
 ]
 
 /**
+ * Las muletillas con las que EMPIEZA de verdad una respuesta hablada.
+ *
+ * ── EL CASO (7-ago-2026) ────────────────────────────────────────────────────
+ *
+ * El motor se escribió contra el dictado limpio: «¿Tiene diabetes?» «No.» Sobre
+ * habla real casi nadie contesta así. «**Pues** no», «**fíjese que** no»,
+ * «**bueno**, no» son la misma respuesta, y ninguna se reconocía: la negación se
+ * perdía entera y la enfermedad de la pregunta se cosechaba como antecedente.
+ *
+ * Se listan aparte del núcleo negativo a propósito. La muletilla sola no niega
+ * nada —«pues sí» sigue sin coincidir—; sólo permite que el «no» venga detrás.
+ */
+const MULETILLAS = String.raw`(?:ah?|este|pues|bueno|mire|mira|la\s+verdad|f[ií]j[ea]se\s+que|que\s+yo\s+sepa)`
+
+/**
  * Respuestas que cuentan como negación.
  *
  * «Ninguna» y «nada» se incluyen porque es como se contesta de verdad a «¿tiene
  * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
  * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
+ *
+ * Tampoco entra «qué va», que en el consultorio se dice pero se confunde con la
+ * frase que sigue: «¿la diabetes? que va bien controlada» **afirma** la
+ * enfermedad. Ante la duda, se señala de menos.
  */
-const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
+const NEGATIVAS = new RegExp(
+  `^\\s*(?:${MULETILLAS}[,\\s]+)*(?:no|nop|ninguna|ninguno|nada|negativo|nunca|tampoco|para\\s+nada|en\\s+absoluto)\\b`,
+  'i',
+)
 
-/** Marcas de que un término ya viene negado en la propia frase. */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+/**
+ * Marcas de que un término ya viene negado en la propia frase.
+ *
+ * El vocabulario se comparte con los otros tres sitios que leen negaciones (ver
+ * `negadores.ts`); antes vivía aquí y era el único que conocía «padece», con lo
+ * que «no presenta diabetes» —forma escrita, la que usa quien redacta la nota—
+ * pasaba de largo por este guardián.
+ *
+ * **`SIN_SUELTO` no entra.** Aquí no hay ventana que lo acote: se mira la frase
+ * entera, y «diabetes sin control» acabaría contando como una diabetes negada.
+ */
+const NIEGA_EN_LINEA = new RegExp(
+  `\\b(?:${unir(NIEGA_EXPLICITO, NO_MAS_VERBO, NUNCA, AUSENCIA)})\\b`,
+  'i',
+)
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()

@@ -10,6 +10,9 @@
  */
 
 import type { AlergiaEstructurada } from '@/types'
+import {
+  AUSENCIA, NIEGA_EXPLICITO, NINGUNO, NO_MAS_VERBO, NUNCA, SIN_SUELTO, unir,
+} from '@/lib/expediente/negadores'
 
 /**
  * NEGACIONES — «Niega alergia a penicilina» NO es una alergia a penicilina.
@@ -24,7 +27,26 @@ import type { AlergiaEstructurada } from '@/types'
  * Esto no decide nada clínico: lee lo que el campo dice. Si dice que el paciente
  * niega la alergia, no se registra la alergia.
  */
-const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|descartad[ao]s?|ningun[ao])\b/i
+/**
+ * ── EL VERBO QUE FALTABA (7-ago-2026) ───────────────────────────────────────
+ *
+ * Esta lista conocía «no refiere» y «no presenta», pero no «no padece» — que es
+ * como lo dice el paciente. Con el campo escrito «No padece alergia a
+ * penicilina» el fragmento entero pasaba el filtro y quedaba registrado como un
+ * **alérgeno llamado así**. Como el cruce busca el nombre del fármaco DENTRO del
+ * texto del alérgeno, esa cadena contiene «penicilina» y disparaba la alerta
+ * crítica que apaga el botón de Firmar — el mismo desenlace que esta constante
+ * se escribió para evitar, por la puerta de al lado.
+ *
+ * El vocabulario ahora se comparte (`negadores.ts`). **El ancla `^` se queda
+ * aquí**: es política de este campo, no del vocabulario. Un fragmento sólo está
+ * negado si la negación lo ABRE; «penicilina, sin datos de reacción» describe
+ * una alergia real y no puede filtrarse.
+ */
+const NEGADOR = new RegExp(
+  `^(?:${unir(NIEGA_EXPLICITO, NO_MAS_VERBO, NUNCA, AUSENCIA, SIN_SUELTO, NINGUNO)})\\b`,
+  'i',
+)
 
 /** ¿Este fragmento afirma la ausencia de una alergia? */
 export function esAlergiaNegada(fragmento: string): boolean {

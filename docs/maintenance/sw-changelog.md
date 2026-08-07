@@ -3,6 +3,28 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el verbo con el que el paciente niega
+
+«No padece alergia a penicilina», en el campo de alergias, quedaba registrado
+como un alérgeno **llamado así**. Como el cruce busca el fármaco DENTRO del texto
+del alérgeno, esa cadena contiene «penicilina» y disparaba la alerta crítica que
+apaga el botón de Firmar — en el paciente que acababa de negar la alergia.
+
+En el mismo dictado, «No padece diabetes» salía como antecedente positivo.
+
+La causa: **cuatro** listas de negadores, una por archivo, ninguna al tanto de
+las otras. Cada una creció el día que un defecto la tocó a ella, y el verbo que
+se añadía no llegaba a los otros tres sitios. «Padece» —con el que se contesta el
+interrogatorio en México— sólo lo conocía uno.
+
+La deriva iba también al revés: «niega tabaquismo, **padece** diabetes» borraba
+una diabetes real, mientras «…**tiene** diabetes» funcionaba.
+
+Ahora el vocabulario vive una sola vez (`negadores.ts`). El **anclaje no** se
+comparte: es política de cada sitio. Y se añaden las negaciones del habla real
+—«pues no», «fíjese que no», «para nada», «tampoco»—, que es como se contesta de
+verdad en el consultorio.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

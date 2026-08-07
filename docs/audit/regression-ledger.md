@@ -1553,3 +1553,103 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el verbo con el que el paciente niega (v1074)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos C2 y C3).
+Reproducido el 7-ago contra los motores reales antes de tocar nada.
+
+**El defecto** — «No padece alergia a penicilina», escrito en el campo de
+alergias, quedaba registrado como **un alérgeno llamado literalmente así**:
+
+```
+alergenosDe({ alergias: 'No padece alergia a penicilina' })
+  → ['No padece alergia a penicilina']      ← antes
+  → []                                       ← ahora
+```
+
+**Por qué le importa a un paciente** — El cruce alergia↔fármaco busca el nombre
+del fármaco **dentro** del texto del alérgeno. Esa cadena contiene «penicilina»,
+así que al prescribirla saltaba la alerta crítica de reacción cruzada — la que
+**apaga el botón de Firmar**— en el paciente que acababa de negar esa alergia. La
+única salida que le quedaba al médico era **borrar el texto del expediente**:
+exactamente el desenlace que `alergias.ts` se escribió para evitar, entrando por
+la puerta de al lado.
+
+Y en el mismo dictado, «No padece diabetes» salía como **antecedente positivo**
+(`extraerComorbilidades` → `positivas: ['Diabetes mellitus tipo 2']`). Un
+antecedente crónico que nadie tiene cambia el riesgo quirúrgico, cambia la
+elección de fármacos, y **se arrastra a todas las notas siguientes**.
+
+**Cómo se reprodujo** — Un test temporal llamando a los cuatro motores reales
+—`extraerComorbilidades`, `extraerAlergias`, `alergenosDe` y
+`condicionesNegadas`— e imprimiendo lo que devolvían frase por frase. Ningún
+hallazgo se reparó antes de verlo salir mal.
+
+**La causa raíz: cuatro listas de negadores que no se hablaban**
+
+| Archivo | Tenía | Le faltaba |
+|---|---|---|
+| `expediente/negaciones.ts` | `padece`, `padezco` | `presenta`, `nunca`, `ausente` |
+| `expediente/parser-clinico.ts` | `presenta`, `nunca` | `padece`, `sufre`, `cuenta con` |
+| `seguridad/alergias.ts` | `no refiere`, `no conocidas` | `padece`, `sufre`, `nunca` |
+| `asr/guardian-sustituciones.ts` | `observa`, `palpa`, `ausculta` | `padece`, `nunca` |
+
+Cada lista creció el día que un defecto la tocó **a ella**. El verbo que se
+añadía para cerrar un fallo no llegaba a los otros tres sitios, así que el mismo
+defecto seguía vivo en las otras tres pantallas. «Padece» —el verbo con el que se
+contesta el interrogatorio en México— sólo lo conocía uno de los cuatro.
+
+**La deriva iba también en sentido contrario** — `padece` faltaba igualmente en
+los AFIRMADORES, así que «niega tabaquismo, **padece diabetes**» mandaba la
+diabetes a `negadas`: una enfermedad **real, borrada**. Con «niega tabaquismo,
+**tiene** diabetes» funcionaba. Dos frases que un médico escribe
+indistintamente, con desenlaces opuestos.
+
+**Y así no se contesta en el consultorio** — El motor de contradicción sólo
+entendía «No.» a secas. Sobre habla real casi nadie contesta así: «**pues** no»,
+«**fíjese que** no», «**bueno**, no», «para nada», «tampoco» no se reconocían, y
+con la negación perdida la enfermedad **nombrada en la pregunta** se cosechaba
+como antecedente. Es el mismo modo de fallo que originó el motor (3-ago), vivo
+por la vía del habla real.
+
+**Reparación** — `src/lib/expediente/negadores.ts`: el vocabulario, una sola vez,
+en grupos. Los cuatro sitios lo importan y componen su propia expresión.
+
+**El anclaje NO se comparte, y es deliberado** — Es política de cada sitio: el
+campo de alergias exige que la negación **abra** el fragmento (`^`), porque
+«penicilina, sin datos de reacción» describe una alergia real y no puede
+filtrarse; el parser mira una ventana corta hacia atrás. Un anclaje común habría
+cambiado el significado en tres de los cuatro.
+
+**`sin` a secas se queda fuera del grupo común** — Suelto niega de más: «sin
+control de la diabetes» habla de una diabetes que **sí** existe. Lo componen sólo
+los sitios que ya lo tenían y que lo acotan con una ventana; ninguno lo hereda
+por accidente.
+
+**Ninguna cifra clínica, ningún umbral, ninguna política nueva** — Esto es
+vocabulario. Nada de lo que bloqueaba la firma ayer deja de bloquearla hoy: lo
+único que cambia es que una alergia **negada** deja de fabricar el bloqueo.
+
+**Comprobado que puede ponerse rojo** — Revertidos los cinco cambios uno por uno
+(NEGADORES y AFIRMADORES del parser, NEGADOR de alergias, NEGATIVAS y
+NIEGA_EN_LINEA de negaciones, NEGADORES del guardián): cada reversión pone en
+rojo entre 1 y 4 casos, y ninguno queda verde con el defecto dentro.
+
+**Qué NO hace** — No mide el habla real (las frases son sintéticas). No arregla
+`sin` suelto en `parser-clinico` («sin control de la diabetes» sigue contando
+como negada: defecto anterior, distinto, exige tocar la ventana y no el
+vocabulario). No distingue «nunca me la han **medido**» —ausencia de dato— de
+«nunca la he **tenido**» —negación—: `nunca` cuenta como negación en ambas, y
+queda declarado como la frontera del motor.
+
+**Qué queda para el médico** — Decidir si «nunca me la han medido» debe dejar de
+contar como negación; hacerlo bien exige mirar el verbo que sigue, y eso cambia
+lo que se marca `descartado` en el extractor de entidades. Anotado en
+`OWNER_DECISIONS_REQUIRED.md`.
+
+**Golden** — `src/__tests__/la-negacion-se-lee-igual-en-los-cuatro-sitios.test.ts`
+(20 casos), con un guardián de la deriva: si alguien vuelve a teclear la lista de
+verbos en su archivo en vez de importarla, se pone rojo.

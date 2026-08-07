@@ -32,6 +32,9 @@
 import {
   PARES_PROHIBIDOS, type ClaseErrorCritico, type ParProhibido,
 } from '@/lib/asr/politica-critica'
+import {
+  AUSENCIA, NIEGA_EXPLICITO, NO_MAS_VERBO, NO_SE_EXPLORA, NUNCA, SIN_SUELTO, unir,
+} from '@/lib/expediente/negadores'
 
 export interface Violacion {
   clase: ClaseErrorCritico
@@ -123,7 +126,18 @@ function contar(texto: string, termino: string): number {
   return (norm(texto).match(new RegExp(`${ini}${t}${fin}`, 'g')) ?? []).length
 }
 
-const NEGADORES = /(^|\s)(niega|sin|no\s+(se\s+)?(tiene|presenta|refiere|hay|observa|palpa|ausculta)|ausencia\s+de|negativo\s+para|se\s+descarta|descarta)(\s|$)/
+/**
+ * El vocabulario se comparte con los otros tres sitios que leen negaciones (ver
+ * `negadores.ts`); aquí sólo se compone. Este guardián es el único que necesita
+ * `NO_SE_EXPLORA`: vigila texto de exploración, donde «no se palpa» es la forma
+ * habitual de negar.
+ *
+ * **Los bordes se quedan aquí**: `(^|\s)…(\s|$)` en vez de `\b`, porque el
+ * guardián trabaja sobre texto ya normalizado y le importa la palabra entera.
+ */
+const NEGADORES = new RegExp(
+  `(^|\\s)(?:${unir(NIEGA_EXPLICITO, NO_MAS_VERBO, NO_SE_EXPLORA, NUNCA, AUSENCIA, SIN_SUELTO)})(\\s|$)`,
+)
 const DERECHA = /(^|\s)(derecho|derecha)(\s|[.,;:]|$)/
 const IZQUIERDA = /(^|\s)(izquierdo|izquierda)(\s|[.,;:]|$)/
 const BILATERAL = /(^|\s)bilateral(es)?(\s|[.,;:]|$)/
