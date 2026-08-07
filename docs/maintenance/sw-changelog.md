@@ -2131,3 +2131,10 @@ dictar una cifra en México, el pipeline resolvía 14. Las dos peligrosas no
 perdían el dato — lo reducían a un valor plausible: «dos coma cinco miligramos»
 → 2 mg, «un gramo y medio» → 1 g. La coma es el separador decimal mexicano.
 Reparado, con «media hora» y «dos veces y media» probadas intactas.
+
+## v1091 — «mi mamá tuvo cáncer» ya no queda como antecedente del paciente
+REG-210. El tercer eje del §B8: ¿a quién le pasó? Motor determinista sobre
+posesivos y parentescos (incluidas las formas coloquiales), regla 19-ter del
+prompt, y aviso conectado a la barra con nivel «revisa». La trampa que volvió a
+costar: en JavaScript `\b` no funciona detrás de «mamá» — el motor reconocía «mi
+abuela» y NO «mi mamá». Corpus oro de 25 casos.

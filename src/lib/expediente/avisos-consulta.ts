@@ -58,6 +58,7 @@ export type OrigenAviso =
   | 'dato_no_precisado'
   | 'requisito_nom004'
   | 'dosis_peligrosa'
+  | 'antecedente_del_familiar'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -83,6 +84,14 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    */
   dosis_peligrosa:        'revisa',
   dato_no_precisado:      'revisa',
+  /**
+   * «Esto lo dijo de su mamá, no de él» (§B8, REG-210).
+   *
+   * Nivel `revisa` y no `bloquea`: el motor señala de quién es la frase, pero
+   * quién decide dónde va el antecedente es el médico. Bloquear la firma por
+   * una atribución sería decidir por él.
+   */
+  antecedente_del_familiar: 'revisa',
 }
 
 /**
@@ -149,6 +158,14 @@ export interface EntradaAvisos {
    * mensaje y su propio sitio. El recuadro sólo repetía, sin añadir una acción.
    */
   yaLoBloqueaNOM004?: readonly string[]
+  /**
+   * Frases del dictado que hablan de un FAMILIAR, no del paciente (§B8).
+   *
+   * «Mi mamá tuvo cáncer de mama» como antecedente personal deja una historia
+   * clínica impecable afirmando un cáncer que el paciente nunca tuvo. No se ve
+   * raro: por eso se señala aquí en vez de confiar en que se note al releer.
+   */
+  antecedentesDeFamiliar?: readonly { frase: string; parentesco?: string }[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -317,6 +334,25 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     out.push({
       id: `faltante:${f}`, origen: 'dato_no_precisado',
       nivel: nivelDe('dato_no_precisado'), texto: f, ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * ¿De quién es la enfermedad? (§B8, REG-210)
+   *
+   * Se nombra el parentesco en el texto porque un aviso que dice sólo «revisa
+   * la atribución» obliga al médico a releer el dictado entero. Con «lo dijo de
+   * su mamá» se resuelve de un vistazo, que es la diferencia entre un aviso que
+   * se atiende y uno que se aprende a cerrar.
+   */
+  for (const a of e.antecedentesDeFamiliar ?? []) {
+    const dueno = a.parentesco ? `su ${a.parentesco}` : 'un familiar'
+    out.push({
+      id: `familiar:${a.frase.slice(0, 40)}`,
+      origen: 'antecedente_del_familiar',
+      nivel: nivelDe('antecedente_del_familiar'),
+      texto: `Esto lo dijo de ${dueno}, no de él: «${a.frase}». Va a antecedentes heredo-familiares.`,
+      ancla: { seccion: 'nota' },
     })
   }
 

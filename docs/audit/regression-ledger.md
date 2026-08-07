@@ -2407,3 +2407,61 @@ corpus que documentan el límite actual**, no como huecos.
 **El guardián** — `src/__tests__/corpus-oro-numeros-y-unidades.test.ts`
 (8 casos, 22 aserciones). Es el benchmark del §B5 que el charter pedía y que no
 existía.
+
+---
+
+## REG-210 — «mi mamá tuvo cáncer» podía quedar como antecedente del paciente (v1091)
+
+**El eje que faltaba** — Ya estaban medidos el **«¿sí o no?»** (negación,
+REG-192) y el **«¿cuándo?»** (temporalidad, REG-200). Faltaba el **«¿a quién?»**,
+que el §B8 del charter llama *experiencer* y que no tenía ni motor ni regla en el
+prompt.
+
+En una consulta, buena parte de lo que se dice sobre enfermedades **no es del
+paciente**: «mi mamá tuvo cáncer de mama», «mi papá murió de un infarto», «en mi
+familia todos son diabéticos».
+
+**Por qué es de los peores** — un extractor que no distingue al dueño de la frase
+convierte un antecedente **heredo-familiar** en uno **personal patológico**. Lo
+que queda no es un dato incompleto: es una historia clínica **impecablemente
+redactada** afirmando un cáncer que el paciente nunca tuvo, firmada con cédula
+profesional. **No se ve raro.** De ahí salen tamizajes que no tocan y decisiones
+que nadie puede rastrear.
+
+**Y el error al revés cuesta igual** — cuando el familiar sólo es **quien lo
+cuenta** («mi esposa dice que ronco», «mi mamá me dijo que yo tuve convulsiones
+de niño»), el síntoma **es del paciente**. Mandarlo a antecedentes familiares
+**borra un dato real**, que es tan malo como inventar uno.
+
+**La trampa que ya había costado una vez, y volvió a costar** — el motor se
+escribió con `\b` al final del patrón de parentescos. En JavaScript `\w` es
+**ASCII**: la `á` no cuenta como letra, así que **`\b` detrás de «mamá» no
+encuentra límite de palabra**. El motor reconocía «mi abuela» y **no** «mi mamá»
+ni «mi papá» — las dos formas más frecuentes. Media función muerta y la otra
+media funcionando, que es lo peor para darse cuenta.
+
+Es el mismo fallo que tuvo el motor de negación con «no sé». Ahora usa
+`(?![\p{L}])`, que sí entiende Unicode, y hay un caso del corpus dedicado a él.
+
+**Lo que se hizo**
+
+1. `src/lib/expediente/experienciador.ts` — motor determinista sobre posesivos y
+   parentescos, incluidas las formas coloquiales («jefa», «apá»): un motor que
+   sólo conoce «madre» y «padre» falla justo con quien habla con más confianza.
+   Devuelve `indeterminado` cuando no hay señal, **que no es un fallo**: es lo
+   que impide inventar un dueño.
+2. **Regla 19-ter del prompt** — al modelo se le pide, y aparte se comprueba.
+3. **Conectado a la barra** como origen `antecedente_del_familiar`, nivel
+   `revisa`: el motor dice de quién es la frase; **quién decide dónde va el
+   antecedente es el médico**.
+
+**Los guardianes hicieron su trabajo tres veces seguidas** — al escribir el motor
+saltó el de módulos huérfanos (no estaba conectado: la familia de defecto nº1);
+al cambiar el prompt saltó el de la versión (huella nueva sin bumpear); y al
+añadir el origen saltó el de la barra, que exige declarar el nivel de todo motor
+nuevo. **Ninguno de los tres me dejó entregarlo a medias.**
+
+**El guardián** — `src/__tests__/corpus-oro-de-quien-es-la-enfermedad.test.ts`
+(25 casos): 9 del familiar con su parentesco, 4 por marco de la frase, 3 donde el
+familiar sólo reporta, 4 de primera persona, 3 indeterminados, 1 sobre un dictado
+entero y 1 dedicado a la trampa del acento.

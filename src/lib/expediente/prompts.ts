@@ -176,6 +176,21 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     Y la redacción va en la PROSA de las secciones: los campos estructurados (dosis, via,
     reaccion) se quedan VACÍOS. Meter ahí "no fue posible precisar" reactivaría de golpe
     los tres defectos que costaron REG-172, REG-176 y REG-177.
+19-ter. ¿A QUIÉN LE PASÓ? DE SU MAMÁ NO ES DE ÉL.
+    En una consulta, buena parte de lo que se dice sobre enfermedades NO es del paciente:
+    "mi mamá tuvo cáncer de mama", "mi papá murió de un infarto", "en mi familia todos son
+    diabéticos".
+    Eso va a ANTECEDENTES HEREDO-FAMILIARES. NUNCA a antecedentes personales patológicos,
+    ni a la lista de problemas, ni al diagnóstico.
+    Meter el cáncer de la mamá como antecedente del paciente deja una historia clínica
+    impecablemente redactada afirmando una enfermedad que nunca tuvo, firmada con cédula.
+    No se ve raro: por eso es peligroso.
+    Y EL ERROR AL REVÉS CUESTA IGUAL. Cuando el familiar sólo es QUIEN LO CUENTA, el dato
+    es del paciente: "mi esposa dice que ronco", "mi mamá me dijo que yo tuve convulsiones
+    de niño". El ronquido y las convulsiones son SUYOS. Mandarlos a antecedentes familiares
+    BORRA un dato real.
+    Si la frase no dice de quién habla, no le adivines dueño: descríbela donde encaje sin
+    atribuirla.
 20. PLAN: incluye SIEMPRE el plan de manejo (continuación/ajuste de tratamiento, duración,
     estudios, seguimiento y criterios de alarma) en la sección correspondiente; si la nota no
     tiene sección de plan, intégralo al final del padecimiento/evolución.

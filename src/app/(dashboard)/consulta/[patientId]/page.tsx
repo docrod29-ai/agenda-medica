@@ -45,6 +45,7 @@ import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
+import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -834,6 +835,23 @@ export default function ConsultaActivaPage() {
     return contradicciones(negadas, textoNota)
       .filter(c => !avisosRevisados.includes(`negacion:${c.condicion}`))
   }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
+  /**
+   * ¿DE QUIÉN ES LA ENFERMEDAD? (§B8 del charter, REG-210)
+   *
+   * El tercer eje, junto a la negación (¿sí o no?) y la temporalidad (¿cuándo?).
+   * «Mi mamá tuvo cáncer de mama» metido como antecedente PERSONAL deja una
+   * historia clínica impecable afirmando un cáncer que el paciente nunca tuvo,
+   * firmada con cédula. No se ve raro: por eso hace falta señalarlo.
+   *
+   * Sólo se avisa cuando la nota YA dice algo — si el dictado aún está vacío no
+   * hay nada que atribuir mal.
+   */
+  const antecedentesDeFamiliar = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    return frasesDeFamiliar(dictado)
+      .filter(f => !avisosRevisados.includes(`familiar:${f.frase.slice(0, 40)}`))
+  }, [voz.transcripcion, avisosRevisados])
   /**
    * EL PASADO NO ES EL PRESENTE.
    *
@@ -4376,6 +4394,7 @@ export default function ConsultaActivaPage() {
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),
             critica: d.severidad === 'critica',
           })),
+          antecedentesDeFamiliar,
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */
