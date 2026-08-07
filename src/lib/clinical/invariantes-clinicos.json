@@ -434,7 +434,7 @@
     },
     {
       "archivo": "src/__tests__/la-negacion-se-lee-entera.test.ts",
-      "minCasos": 14
+      "minCasos": 16
     },
     {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",

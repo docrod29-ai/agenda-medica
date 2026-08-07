@@ -109,7 +109,7 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
 const PREAMBULOS = [
   'hasta donde yo se', 'hasta donde se', 'gracias a dios', 'fijese que', 'fijate que',
   'que yo sepa', 'me parece que', 'la verdad que', 'afortunadamente', 'de plano',
-  'la verdad', 'creo que', 'no pues', 'bueno', 'mire', 'oiga', 'pues', 'este',
+  'la verdad', 'creo que', 'bueno', 'mire', 'oiga', 'pues', 'este',
   'mmm', 'ah', 'eh', 'ay',
 ] as const
 
@@ -131,8 +131,15 @@ const AFIRMA = /\b(?:sí|sip|simón|claro|correcto|exacto|afirmativo|así\s+es|e
  */
 const NEG = '(?:nada\\s+de\\s+eso|en\\s+absoluto|para\\s+nada|que\\s+va|negativo|ninguna|ninguno|tampoco|nunca|jamas|nada|nop|nel|no)'
 
-/** Lo único que se admite DETRÁS de la negación sin que deje de ser un «no». */
-const COLA = `(?:${NEG}|de\\s+eso|que\\s+yo\\s+sepa|gracias\\s+a\\s+dios|doctor|doctora|senor|senora)`
+/**
+ * Lo único que se admite DETRÁS de la negación sin que deje de ser un «no».
+ *
+ * Las muletillas entran también aquí, no sólo en `PREAMBULOS`: «no pues no» es
+ * de las formas más comunes, y ahí la muletilla va EN MEDIO. Ponerla sólo
+ * delante no la alcanzaba nunca, porque el recorte se detiene en cuanto la
+ * cadena empieza por una negación.
+ */
+const COLA = `(?:${NEG}|de\\s+eso|que\\s+yo\\s+sepa|gracias\\s+a\\s+dios|pues|bueno|doctor|doctora|senor|senora)`
 
 /** «No», «No, ninguna», «Nada de eso», «No que yo sepa»: la negación lo es todo. */
 const NEG_CERRADA = new RegExp(`^${NEG}\\b(?:[\\s,]+${COLA}\\b)*[\\s.,;!¡…"»'-]*$`)

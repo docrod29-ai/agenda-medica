@@ -99,6 +99,20 @@ describe('LAS NEGACIONES QUE SE PERDÍAN — el habla real no dice «No.» a sec
   it('las muletillas se apilan, como en la consulta', () => {
     expect(niega('¿Tiene diabetes? Ah, pues no.')).toContain('diabetes')
   })
+
+  it('«no pues no» — la muletilla puede ir EN MEDIO', () => {
+    /**
+     * Por esto la muletilla vive en las dos listas. Ponerla sólo delante no la
+     * alcanzaba nunca: el recorte de preámbulo se detiene en cuanto la cadena
+     * empieza por una negación, y aquí empieza por «no».
+     */
+    expect(niega('¿Tiene diabetes? No pues no.')).toContain('diabetes')
+  })
+
+  it('pero la muletilla en medio no convierte cualquier cosa en negación', () => {
+    expect(niega('¿Tiene diabetes? No pues me acuerdo que sí, desde 2019.')).toEqual([])
+    expect(esRespuestaNegativa('No pues me acuerdo bien')).toBe(false)
+  })
 })
 
 describe('LAS AFIRMACIONES QUE SE LEÍAN COMO NEGACIÓN — el sentido caro', () => {
