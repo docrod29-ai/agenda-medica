@@ -10,16 +10,20 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "NEG-001 / REG-192 (cerrada)",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/clinico/NEG-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "ultimaVersionPreparada": "nexusmed-v1074 (en PR, sin desplegar)",
+  "ultimaIteracion": {
+    "fecha": "2026-08-07",
+    "item": "NEG-001",
+    "reg": "REG-192",
+    "compuertas": "vitest 6950 verdes (+36) · tsc limpio · lint 96 = techo · build limpio",
+    "salvedad": "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en ESTE contenedor y también en árbol limpio: el sandbox contesta a 10.255.255.1 en vez de tragarse el paquete. No es regresión y no se tocó.",
+    "siguiente": "C2/C3 cerrado. Del plan de la auditoría quedan las reparaciones sin priorizar; el siguiente ítem con score propio es NEG-002, bloqueado por la decisión C-6."
+  }
 }

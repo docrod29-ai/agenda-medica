@@ -12,6 +12,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-6 | La negación **con matiz** en el interrogatorio: «creo que no», «casi nunca», «hace mucho que no» (REG-192 las dejó sin detectar a propósito) | **No reclasificar.** Detectarlas con un nivel propio que *pregunte* al médico, en vez de marcar *descartado* — el motor de negaciones alimenta un reclasificador, y acertar de más ahí borra un diagnóstico de la pantalla | Que el matiz cuente como algo | Todo lo demás: la negación clara se detecta bien y el matiz simplemente no se vigila (señalar de menos) |
 
 ## DESPLIEGUE Y OPERACIÓN
 

@@ -3,6 +3,27 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el motor de negaciones leía la frase como un saco de palabras
+
+«¿Padece diabetes? **Pues** no» no se veía: `NEGATIVAS` exigía que el «no» fuera
+la primera palabra. Medido con el motor, once de diecisiete respuestas negativas
+del habla real de consulta se perdían — y cada una es un antecedente crónico
+negado que la nota puede afirmar sin que nadie avise.
+
+Al reproducirlo salieron cuatro defectos más, todos del mismo descuido: el motor
+no miraba DÓNDE estaban las cosas. «No sé» contaba como «no». Un negador negaba
+todo lo que hubiera en la frase, así que «Refiere diabetes de 10 años; niega
+asma» marcaba **la diabetes** como negada y el panel de entidades la
+reclasificaba sola a *descartado*. `indexOf` encontraba «asma» dentro de
+«pl·asma». Y la contradicción sólo se buscaba en la primera mención, así que una
+nota que niega arriba y afirma abajo no levantaba nada.
+
+Ahora el negador tiene que ir delante del término y en su cláusula (la coma no
+corta: es el separador de las enumeraciones negadas), el término se busca como
+palabra, «no sé» se mira antes que «no», y se revisan todas las apariciones.
+
+Ninguna cifra clínica nueva: todo el cambio es de vocabulario y de posición.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

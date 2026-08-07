@@ -1553,3 +1553,92 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el motor de negaciones leía la frase como un saco de palabras (v1074)
+
+**Encontrado** — 7-ago-2026, hallazgos C2/C3 de la auditoría de nueve
+dimensiones («faltan negadores del habla real»). Al reproducirlo con el motor
+—no leyendo el código— aparecieron **cinco** defectos, no uno, y de los dos
+signos: el motor no veía negaciones que sí se dijeron, y veía negaciones que
+nadie dijo.
+
+**Cómo se reprodujo** — Se le pasaron a `condicionesNegadas()` diecisiete
+respuestas negativas tal y como se contestan en un consultorio mexicano.
+**Once no se veían.** Después, con `cronicasEn()` y `contradicciones()` sobre
+frases de nota reales, salieron los otros cuatro.
+
+| # | Entrada | Antes |
+|---|---|---|
+| 1 | «¿Padece diabetes? **Pues** no» | no se veía la negación |
+| 2 | «¿Tiene diabetes? **No sé**» | se daba por negada |
+| 3 | «Refiere diabetes de 10 años; **niega asma**» | negaba **las dos** |
+| 4 | «se envía **pl·asma** fresco congelado» | contradicción falsa de asma |
+| 5 | «Niega asma… Dx: **Asma** persistente» | ningún aviso |
+
+**La causa raíz, que es una sola** — El motor no miraba **dónde** estaban las
+cosas. `NIEGA_EN_LINEA.test(frase)` preguntaba si había un negador en algún
+sitio de la frase; `indexOf` preguntaba si el término estaba en algún sitio del
+texto; y `NEGATIVAS` exigía que el «no» fuera la primera palabra de la respuesta.
+Los cinco síntomas son ese mismo descuido visto desde cinco ángulos.
+
+**Por qué importa para un paciente** — Los dos sentidos duelen, y no del mismo
+modo:
+
+- **No ver una negación** es el fallo original de este motor (3-ago): el paciente
+  contesta que no y la nota le pone la enfermedad. Un antecedente crónico falso
+  cambia el riesgo quirúrgico, cambia la elección de fármacos y **se arrastra a
+  todas las notas siguientes**, porque los antecedentes se copian. Y «No.» pelado
+  es como se contesta en una transcripción limpia, no en el consultorio: en el
+  habla real la respuesta viene con muletilla delante.
+- **Ver una negación de más** es peor de revisar, aunque suene menor. El defecto
+  3 hacía que «Refiere diabetes de 10 años; niega asma» marcara **la diabetes**
+  como negada, y `corregirCertezaPorNegacion` la reclasificaba sola a
+  *descartado* en el panel de entidades. El médico puede corregir lo que ve; no
+  puede corregir un diagnóstico que el sistema quitó de la pantalla. Es la regla
+  4 al revés — ausencia de dato tratada como dato de ausencia — y el defecto 2
+  («no sé» contado como «no») era exactamente el mismo error.
+- **El aviso falso** del defecto 4 gasta la atención que hace falta para el
+  verdadero: `contradiccion_negacion` está en `NO_SE_PLIEGAN`, así que no se
+  puede silenciar.
+
+**Reparación** — `src/lib/expediente/negaciones.ts`:
+
+1. `MULETILLA` — lo que va delante del «no» en el habla de consulta («pues»,
+   «fíjese que», «nombre», «mmm», «este…», «gracias a Dios»). No sustituye a la
+   negación: deja de taparla. Y se añaden las negaciones sin «no» («para nada»,
+   «qué va», «jamás»).
+2. `NO_SABE` — se mira **antes** que `NEGATIVAS`, porque las dos empiezan por
+   «no» y sólo una niega. «No sé», «no me acuerdo», «no estoy segura».
+3. `vieneNegado(texto, idx)` — el negador tiene que ir **delante** del término y
+   **en su cláusula**. La ventana de 60 caracteres se corta en `;`, `:`, `.`,
+   `?`, `!` y salto de línea; **la coma no corta**, que es el separador de las
+   enumeraciones negadas («no tiene diabetes, hipertensión ni asma»).
+4. `aparicionesDe()` — el término se busca como **palabra**, con el plural
+   incluido. Se acabó `plasma` → `asma`.
+5. `contradicciones()` mira **todas** las apariciones, no la primera. La nota que
+   niega arriba y afirma abajo es justo el caso que importa.
+
+**Ningún umbral ni cifra clínica nueva** — Todo el cambio es de vocabulario y de
+posición. `CRONICAS` no gana ni pierde una enfermedad.
+
+**Qué NO hace** — No cubre la negación con matiz («creo que no», «casi nunca»,
+«hace mucho que no»): se dejan sin detectar **a propósito**, porque son ambiguas
+y este motor alimenta un reclasificador que marca *descartado*; señalar de menos.
+No distingue turnos de habla (eso es diarización). No vigila lo que no está en
+`CRONICAS`, que es vocabulario y no criterio.
+
+**Qué queda para el médico** — Lo mismo que antes y por la misma razón: el motor
+**no decide** quién tiene razón. Un paciente puede negar una diabetes que sí
+tiene documentada. Lo único que se afirma es que el dictado y la nota se
+contradicen (`POR_QUE_NO_SE_CORRIGE_SOLO`).
+
+**Comprobado que puede ponerse rojo** — Revertido `negaciones.ts` al estado
+anterior: **23 de los 36 casos del golden fallan**, y entre ellos hay al menos
+uno de cada uno de los cinco defectos. Restaurado y en verde.
+
+**Golden** — `src/__tests__/asi-se-dice-que-no-en-mexico.test.ts` (16 casos
+declarados, 36 ejecutados por los `it.each`). Se sella también
+`src/__tests__/negacion-diagnostico-inventado.test.ts` (31), que protegía el caso
+original de este motor y no estaba en el sello.
