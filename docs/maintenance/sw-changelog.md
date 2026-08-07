@@ -2210,3 +2210,10 @@ etiqueta y su explicación pasan a ser UNA línea: «Nota de Primera Vez ·
 Infectología ✎». Los diez siguen ahí —el Dr. dijo que los usa todos— pero detrás
 del lápiz. El distintivo «Nota en vivo» sólo se enciende cuando de verdad está
 escribiendo. Objetivo de toque de 44 px, medido en navegador.
+
+## v1103 — la barra que no se va: el micrófono a la mano y las palabras saliendo
+Pedido del Dr. con sus palabras: «el micrófono es en el celular, EN LA
+COMPUTADORA» y «así como cuando te dictan a ti, que se vaya escribiendo».
+Barra pegajosa mientras se graba: pausar/terminar siempre al alcance, NIVEL DE
+VOZ moviéndose (la única prueba en vivo de que capta — un contador sigue
+corriendo con el micrófono silenciado), tiempo, y las últimas palabras oídas.

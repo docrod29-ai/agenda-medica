@@ -122,6 +122,7 @@ import { Copiloto } from '@/components/Copiloto'
 import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/lib/learning'
 import { Herramientas } from '@/components/Herramientas'
 import { QueNotaEs } from '@/components/QueNotaEs'
+import { MientrasHablas } from '@/components/MientrasHablas'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
@@ -3676,6 +3677,35 @@ export default function ConsultaActivaPage() {
           especialidadesPorGrupo={ESPECIALIDADES_POR_GRUPO}
           alCambiarEspecialidad={setEspecialidadNota}
           estructurandoEnVivo={estructurandoVivo}
+        />
+      )}
+
+      {/*
+        ── LA BARRA QUE NO SE VA (7-ago-2026) ─────────────────────────────────
+        El médico lo pidió con estas palabras: «el micrófono es en el celular, EN
+        LA COMPUTADORA» y «así como cuando te dictan a ti, que se vaya
+        escribiendo».
+
+        Grabar una consulta dura veinte minutos y en ese rato uno se desplaza por
+        la nota: el micrófono quedaba arriba del todo y para pausar había que
+        buscarlo. Y sobre todo, NO HABÍA FORMA DE SABER SI ESTABA OYENDO — un
+        micrófono encendido sin señal es indistinguible de uno apagado hasta que
+        terminas y no hay nada.
+
+        Sólo aparece MIENTRAS se graba: no es un segundo botón de iniciar, es el
+        control a la mano y la prueba en vivo de que capta.
+      */}
+      {!firmada && (audio.estado === 'grabando' || audio.estado === 'pausado' || audio.estado === 'subiendo') && (
+        <MientrasHablas
+          estado={audio.estado === 'subiendo' ? 'procesando' : audio.estado === 'pausado' ? 'pausado' : 'grabando'}
+          duracion={audio.duracion}
+          nivelAudio={audio.nivelAudio}
+          ultimasPalabras={audio.transcripcionParcial || voz.transcripcion}
+          escribiendo={estructurandoVivo}
+          alGrabar={() => { if (consentimiento) audio.iniciar(opcionesWhisper) }}
+          alPausar={() => audio.pausar()}
+          alReanudar={() => audio.reanudar()}
+          alDetener={() => { void audio.detener() }}
         />
       )}
 
