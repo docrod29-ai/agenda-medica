@@ -6831,3 +6831,31 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+---
+
+## 7-ago-2026 — iteración EVAL-002: el corpus oro encontró el defecto (v1074)
+
+El ítem era «el motor de temporalidad no tiene corpus: sus casos son los que yo
+escribí». Al escribir el corpus con la forma que tienen las notas de verdad
+—antecedentes arriba, impresión diagnóstica abajo— el motor se quedó mudo en
+todas. Y el motor de negaciones, que es tres versiones más viejo, también.
+
+**REG-192** — Los dos guardianes miraban una sola aparición del término, con una
+ventana de encuadre de 60 caracteres que se colaba al renglón anterior. La nota
+bien redactada era la única sin vigilancia: cuanto mejor escrita, más ciego el
+guardián.
+
+Reparado con un recorrido compartido (`buscar-en-la-nota.ts`), porque el defecto
+estaba dos veces por estar el bucle copiado dos veces. Golden de 18 casos,
+comprobado en rojo revirtiendo las tres piezas por separado.
+
+**Lo que esto dice del backlog**: los ítems de «hacer corpus» no son trabajo de
+medición, son trabajo de detección. Éste encontró un fallo de seguridad en un
+motor que llevaba desde la v985 en producción y con sus pruebas en verde.
+
+**Nuevo para el dueño**: C-6 en `OWNER_DECISIONS_REQUIRED.md` — si el encuadre
+temporal debe reconocer también la negación radiológica («sin datos de neumonía»).
+
+**Estado del backlog al empezar**: SAFE-001 y VOICE-004 figuraban pendientes y
+llevaban tiempo cerrados en el código. Se corrigieron sus estados.

@@ -41,6 +41,7 @@
  * Módulo PURO.
  */
 import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
+import { primeraMencionSinEncuadre } from '@/lib/expediente/buscar-en-la-nota'
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -204,30 +205,29 @@ export interface DesajusteTemporal extends MencionPasada {
  * como antecedente —«antecedente de neumonía», «tuvo neumonía»—, está bien
  * escrito y no hay nada que avisar. Sólo importa cuando la nota lo presenta como
  * algo de ahora.
+ *
+ * ── Y ESA MENCIÓN CORRECTA NO ABSUELVE AL RESTO DE LA NOTA (REG-192) ─────────
+ *
+ * Hasta el 7-ago-2026 se miraba **sólo la primera aparición**. La nota que hace
+ * bien las dos cosas que hay que hacer —listar el antecedente arriba y redactar
+ * la impresión diagnóstica abajo— era justo la que quedaba sin vigilar:
+ *
+ *     «Antecedentes: neumonía en 2023, resuelta.
+ *      Impresión diagnóstica: neumonía adquirida en la comunidad.»
+ *
+ * El arrastre de una neumonía de hace tres años al diagnóstico de hoy es el
+ * titular de este motor, y era el caso que no cazaba. Ahora cada aparición se
+ * juzga sola — el recorrido vive en `buscar-en-la-nota.ts`.
  */
 export function desajustesTemporales(
   pasadas: readonly MencionPasada[],
   textoNota: string,
 ): DesajusteTemporal[] {
-  const t = sinAcentos(textoNota)
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres, la misma que usan las
-       * negaciones y por la misma razón: es lo que mide «antecedente de …» o
-       * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
-       * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
-       * que importa.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
-      out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    const enLaNota = primeraMencionSinEncuadre(textoNota, formas, YA_ES_ANTECEDENTE)
+    if (enLaNota) out.push({ ...m, enLaNota })
   }
   return out
 }

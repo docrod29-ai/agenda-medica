@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: la nota bien escrita cegaba a los dos guardianes
+
+Los dos motores que contrastan el dictado contra la nota —lo que el paciente
+negó y lo que se dijo en pasado— miraban **una sola aparición** del término, y
+con una ventana de encuadre de 60 caracteres que se colaba al renglón anterior.
+
+Resultado: la nota que hace bien las dos cosas —registrar la negación o el
+antecedente arriba y redactar la impresión diagnóstica abajo— era la única que
+NO se vigilaba. «Niega diabetes mellitus» arriba y «diabetes mellitus tipo 2
+descontrolada, se inicia metformina» abajo pasaba sin un solo aviso.
+
+Ahora cada aparición se juzga sola, la ventana se corta en el fin de oración y
+se cita la mención mala, no la correcta. El recorrido es uno solo y compartido:
+el defecto estaba dos veces porque el bucle estaba copiado dos veces.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

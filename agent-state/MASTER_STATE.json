@@ -10,16 +10,17 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "EVAL-002 (cerrada) — REG-192, v1074",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/expediente/EVAL-002"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "notas": [
+    "BACKLOG.json estaba atrasado: SAFE-001 y VOICE-004 figuraban pendientes y llevaban tiempo cerrados en el codigo. Verificado y corregido el 7-ago-2026.",
+    "La compuerta npm run build necesita los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en /dr/[clinicId] por env, no por codigo.",
+    "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en contenedores sin salida a red a 10.255.255.1. Es del entorno: falla igual en el arbol limpio."
   ]
 }

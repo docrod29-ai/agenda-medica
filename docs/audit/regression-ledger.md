@@ -1553,3 +1553,88 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — la nota bien escrita cegaba a los dos guardianes (v1074)
+
+**Encontrado** — 7-ago-2026, iteración EVAL-002 del bucle autónomo. Al construir
+el corpus oro del motor de temporalidad —que no tenía ninguno, ése era el ítem—
+se escribieron notas con la forma que tienen las notas de verdad: sección de
+antecedentes arriba, impresión diagnóstica abajo. El motor se quedó **mudo en
+todas**. Los casos que ya existían usaban notas de una sola línea, y por eso
+nunca tocaron esto.
+
+**Cómo se reprodujo** — Con los motores reales, sin dobles:
+
+```
+dictado: «¿Es usted diabético? No, nunca me han dicho nada de azúcar.»
+nota:    «Interrogatorio: niega diabetes mellitus.
+          Impresión diagnóstica: diabetes mellitus tipo 2 descontrolada.
+          Se inicia metformina 850 mg cada 12 horas.»
+
+condicionesNegadas() → ['diabetes']     ✔ oyó la negación
+contradicciones()    → []               ✘ ningún aviso
+```
+
+Y el gemelo en temporalidad: «tuvo neumonía hace tres años» + una nota que lista
+el antecedente y luego diagnostica «neumonía adquirida en la comunidad» → cero
+avisos. Ése es **el titular del motor**, el ejemplo con el que se bautizó, y era
+justo el que no cazaba.
+
+**El defecto, en dos capas** — Las dos estaban duplicadas en los dos módulos:
+
+1. `t.indexOf(forma)` sin desplazamiento: se miraba **la primera aparición y
+   ninguna más**. El `continue` al encontrar el encuadre pasaba a la forma
+   siguiente, no a la aparición siguiente — «neumonía» y «neumonia» caen en el
+   mismo índice y el bucle se agotaba sin mirar nada más.
+2. La ventana de encuadre eran **60 caracteres**, no una oración. En una nota con
+   renglones cortos llega de sobra a la línea anterior: a 60 caracteres del
+   segundo «diabetes» está el «niega» del primero. Reparar sólo (1) no habría
+   servido de nada — cada aparición seguía tapada por el encuadre de la anterior.
+   El comentario que estaba escrito en los dos módulos, «más larga leería la
+   oración anterior», describía la intención y no lo que el código hacía.
+
+**Por qué importa para un paciente** — La dirección del incentivo estaba
+invertida: **cuanto mejor redactada la nota, más ciego el guardián**. Sólo
+saltaba en la nota descuidada que jamás registró la negación o el antecedente. La
+forma en que el Dr. escribe de verdad —y la que el propio sistema produce— era la
+que quedaba sin vigilancia. En el caso de arriba sale una receta de metformina
+para una diabetes que el paciente negó; en el gemelo, una neumonía de hace tres
+años entra como diagnóstico de hoy, se queda en el expediente y se copia a la
+nota siguiente.
+
+**Reparado** — `src/lib/expediente/buscar-en-la-nota.ts`, un solo recorrido
+compartido: todas las apariciones, ordenadas por posición, ventana cortada en el
+fin de oración, y se cita **la primera que aparece sin su encuadre** — la mala, no
+la correcta. Cada módulo conserva su propia marca de encuadre («niega …» /
+«antecedente de …»), que son las que el dueño ya revisó.
+
+**Por qué un módulo compartido y no dos parches** — El defecto estaba dos veces
+porque el bucle estaba copiado dos veces. Es la misma lección de REG-160 y
+REG-180: arreglar una de las dos rutas deja viva la otra.
+
+**El guardián heredofamiliar que la reparación obligó a poner** — «Antecedentes
+heredofamiliares: madre con diabetes e hipertensión» está en casi toda historia
+clínica de primera vez, y es compatible con que el paciente niegue las dos para
+sí mismo. Sin esa marca, reparar la ceguera habría convertido un fallo raro en un
+aviso que salta en la mayoría de las notas. No es criterio clínico: es encuadre
+de redacción, igual que «niega …». **Ninguna cifra clínica nueva.**
+
+**Qué NO hace** — No amplía el vocabulario ni las marcas de encuadre: lo que no
+esté en ellas se sigue sin vigilar. `YA_ES_ANTECEDENTE` no conoce «sin datos de
+neumonía», así que una radiografía que descarta el padecimiento cuenta como
+mención — antes esa mención sólo se alcanzaba si era la primera de la nota y
+ahora se alcanza siempre (queda en OWNER_DECISIONS_REQUIRED, C-6). Sigue siendo
+**un aviso por condición**, y sigue sin decidir nada clínico: no dice si tiene
+razón la nota o el dictado.
+
+**Qué queda para el médico** — Resolver la discrepancia. El aviso no bloquea la
+firma y se puede marcar como revisado, igual que antes.
+
+**Comprobado que puede ponerse rojo** — Las tres piezas se revirtieron por
+separado: sin el recorrido completo, 8 casos en rojo; sin el corte en fin de
+oración, 8; sin el guardián heredofamiliar, 1.
+
+**Golden** — `src/__tests__/la-nota-bien-escrita-no-ciega-al-guardian.test.ts`
+(18 casos).

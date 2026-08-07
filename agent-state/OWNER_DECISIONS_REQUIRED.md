@@ -12,6 +12,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-6 | ¿El encuadre temporal debe reconocer la negación radiológica («sin datos de neumonía», «se descarta neumonía»)? | **Añadirla**: hoy esa frase cuenta como si la nota afirmara el padecimiento. Sin ella el aviso es honesto pero ruidoso | Nada: el aviso no bloquea la firma | El guardián de arrastre ya corre y se puede marcar como revisado |
 
 ## DESPLIEGUE Y OPERACIÓN
 
