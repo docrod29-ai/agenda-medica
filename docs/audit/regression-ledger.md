@@ -2021,3 +2021,47 @@ adivinarlo: inventarlo sería exactamente el defecto que existe para evitar.
 
 **El bloqueo número uno de la sala de datos no es técnico**: el código está bajo
 una cuenta personal, no de la sociedad. Registrado para el dueño.
+
+---
+
+## REG-203 — las decisiones de arquitectura vivían en la cabeza de nadie (v1084)
+
+**Del charter Master Loop V7** — §5.1 exige registros de decisión;
+`docs/decisions/` existía **con cero archivos**.
+
+**Por qué importa aquí más que en un proyecto normal** — Un ADR sirve para
+**impedir que una decisión tomada con un dato delante se deshaga meses después
+por alguien que no vio ese dato**. Ya pasó dos veces esta semana: una regla se
+acota y otra mención queda viva diciendo lo contrario (REG-180, REG-184). Un ADR
+es más barato que la reparación.
+
+**Los cuatro escritos**, todos de decisiones **ya tomadas**, no propuestas:
+
+| ADR | Decisión | De dónde sale |
+|---|---|---|
+| 001 | Una fuente de verdad por entidad clínica | REG-034/035/171 (cuatro parsers de alergias), REG-177, REG-192 |
+| 002 | El LLM nunca calcula una cifra clínica | REG-194 |
+| 003 | El sello de integridad tiene versión propia | REG-060, REG-199 |
+| 004 | Tres niveles de aviso, no un recuadro por motor | REG-181 |
+
+**Las tres reglas del directorio, que es lo que los hace útiles**
+
+1. **Las alternativas descartadas se escriben.** Un ADR sin alternativas no
+   documenta una decisión: documenta un hecho consumado. Es lo que impide que
+   alguien vuelva a proponer lo mismo dentro de seis meses.
+2. **Las consecuencias negativas también.** Toda decisión de arquitectura cuesta
+   algo; callarlo hace que el coste se descubra tarde y **parezca un defecto** en
+   vez de una decisión. ADR-004 escribe la suya sin adornos: *plegar es esconder*.
+3. **Una decisión clínica del médico NO es un ADR.** Meterla aquí haría parecer
+   que el sistema decidió algo que no le corresponde. Ésas viven en el ledger y
+   en `OWNER_DECISIONS_REQUIRED.md`.
+
+**El guardián** — `src/__tests__/los-adr-no-mienten.test.ts` (28 casos)
+comprueba que cada ADR traiga sus alternativas, sus consecuencias aceptadas y su
+mecanismo de cumplimiento; que **los archivos y pruebas que cita existan** —un
+ADR que cita algo renombrado declara un control que no está—; y que ninguno fije
+un umbral clínico bajo forma de decisión de arquitectura.
+
+**Quedan tres decisiones ya tomadas sin ADR**: la separación Consulta/Hospital
+tras feature flag, los proveedores de voz intercambiables, y la política
+multi-inquilino. Escritas como pendientes en el índice, no calladas.

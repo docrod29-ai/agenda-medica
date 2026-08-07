@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1084 — REG-203: las decisiones de arquitectura vivían en la cabeza de nadie
+
+`docs/decisions/` estaba vacía. Cuatro ADR escritos, todos de decisiones YA
+tomadas: una fuente de verdad por entidad clínica, el LLM no calcula, el sello
+tiene versión, tres niveles de aviso.
+
+Las tres reglas que los hacen útiles: se escriben las alternativas descartadas
+(un ADR sin ellas documenta un hecho consumado, no una decisión), se escriben
+las consecuencias NEGATIVAS (callarlas hace que el coste parezca un defecto), y
+una decisión clínica del médico NO es un ADR.
+
+Guardián de 28 casos que verifica que lo citado exista y que ninguno fije un
+umbral clínico disfrazado de decisión de arquitectura.
+
 ## v1083 — REG-202: la sala de datos del §N3, y el guardián que me cazó inflando
 
 `docs/data-room/` estaba vacía. Ahora tiene el índice con ocho secciones, cada

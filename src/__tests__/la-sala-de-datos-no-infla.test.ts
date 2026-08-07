@@ -29,14 +29,23 @@ const sello = JSON.parse(
 const ledger = readFileSync(join(process.cwd(), 'docs/audit/regression-ledger.md'), 'utf8')
 
 describe('las cifras citadas son las reales', () => {
+  /**
+   * ── SI ESTO FALLA, NO ES UN BUG: ES EL DOCUMENTO DESFASADO ────────────────
+   *
+   * Pasa cada vez que el repositorio crece, que es justo el punto: un documento
+   * con cifras tecleadas miente al día siguiente. El arreglo es un comando, no
+   * un cambio de código, y el mensaje lo dice para no volver a diagnosticarlo.
+   */
+  const COMO_SE_ARREGLA = '\n\n  → node scripts/data-room/actualizar-cifras.mjs\n'
+
   it('el número de archivos sellados coincide', () => {
-    // Si el sello crece y el documento no, la sala de datos queda desfasada
-    // hacia abajo — menos grave que inflar, pero igual de desactualizado.
-    expect(doc).toContain(`${sello.archivos.length} archivos`)
+    expect(doc, `la sala de datos está desfasada${COMO_SE_ARREGLA}`)
+      .toContain(`${sello.archivos.length} archivos`)
   })
 
   it('el número de casos sellados coincide', () => {
-    expect(doc).toContain(`${sello.totalCasos} casos`)
+    expect(doc, `la sala de datos está desfasada${COMO_SE_ARREGLA}`)
+      .toContain(`${sello.totalCasos} casos`)
   })
 
   it('el número de REG documentados coincide', () => {

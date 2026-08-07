@@ -74,7 +74,7 @@ directas. `package-lock.json` está en el repositorio y lo permite generar.
 |---|---|
 | `CLAUDE.md` — misión, invariantes, mapa | ✅ existe |
 | `docs/architecture/` | ⬜ **VACÍA** |
-| Registros de decisión (ADR) | ⬜ `docs/decisions/` **VACÍA** |
+| Registros de decisión (ADR) | 🟡 **4 escritos** en `docs/decisions/` (una fuente de verdad · el LLM no calcula · sello versionado · tres niveles de aviso). Faltan tres decisiones ya tomadas y sin ADR. |
 | Modelo de datos | 🟡 en `src/types/` con comentarios extensos; sin documento |
 
 **Lo que sí se puede enseñar hoy**: el invariante de arquitectura del charter —un
@@ -112,9 +112,9 @@ rotación de credenciales.
 | | |
 |---|---|
 | Registro de peligros (§18) | `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` — **10 peligros**, ninguno hipotético |
-| Registro de regresiones | `docs/audit/regression-ledger.md` — **49 REG** con causa raíz |
-| Invariantes sellados | **226 archivos, 3532 casos** que no pueden encoger |
-| Suite completa | **7183 pruebas** en verde, en CI |
+| Registro de regresiones | `docs/audit/regression-ledger.md` — **50 REG** con causa raíz |
+| Invariantes sellados | **227 archivos, 3544 casos** que no pueden encoger |
+| Suite completa | **7211 pruebas** en verde, en CI |
 
 ⬜ **Lo que NO hay**: estudio de validación clínica con pacientes reales,
 comité de ética, ni aprobación regulatoria. **Ninguna de las diez casillas de
@@ -164,10 +164,10 @@ producto.
 
 ## 8 · Historial de incidentes
 
-✅ El `regression-ledger` **es** el historial: 49 defectos con su causa raíz, su
+✅ El `regression-ledger` **es** el historial: 50 defectos con su causa raíz, su
 reparación y su prueba de regresión permanente.
 
-**Es un activo, no un pasivo.** Un comprador que ve 49 defectos documentados con
+**Es un activo, no un pasivo.** Un comprador que ve 50 defectos documentados con
 su causa raíz aprende más del rigor del equipo que uno que ve una lista vacía —
 que sólo significa que nadie los estaba buscando.
 
@@ -175,12 +175,12 @@ que sólo significa que nadie los estaba buscando.
 
 ## Resumen honesto para una diligencia debida
 
-**Fuerte**: seguridad documentada, aislamiento probado en CI, 7183 pruebas,
+**Fuerte**: seguridad documentada, aislamiento probado en CI, 7211 pruebas,
 métricas de IA reales y reproducibles, historial de defectos con causa raíz,
 licencias limpias.
 
-**Débil**: titularidad del código en persona física, sin pentest externo, sin
-ADR, sin métricas de negocio, sin validación clínica formal.
+**Débil**: titularidad del código en persona física, sin pentest externo, ADR
+incompletos, sin métricas de negocio, sin validación clínica formal.
 
 **El bloqueo número uno** no es técnico: es que **el código pertenezca a la
 sociedad y no a una persona**.
