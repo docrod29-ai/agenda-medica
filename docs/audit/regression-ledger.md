@@ -1553,3 +1553,105 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el apartado de antecedentes dejaba ciego al diagnóstico de abajo (v1074)
+
+**Encontrado** — 7-ago-2026, leyendo `desajustesTemporales` y `contradicciones`
+de arriba abajo para armar el corpus oro del motor de temporalidad (EVAL-002 del
+backlog). No lo reportó nadie: no falla, no rompe una prueba y deja la suite en
+verde.
+
+**El defecto** — Los dos guardianes que contrastan el dictado contra la nota —el
+de negaciones («el paciente dijo que no y la nota lo afirma») y el de
+temporalidad («se dijo en pasado y la nota lo pone como actual»)— buscaban el
+padecimiento así:
+
+```ts
+const idx = t.indexOf(sinAcentos(forma))   // ← la PRIMERA aparición
+if (idx < 0) continue
+if (yaVieneBien.test(antes)) continue      // ← y si ésa venía bien, adiós
+```
+
+`indexOf` sin segundo argumento devuelve **la primera coincidencia**. La
+disculpa —«niega …», «antecedente de …»— se evaluaba sobre ella y **sólo** sobre
+ella. Si la primera aparición venía bien escrita, el guardián se daba por
+satisfecho y no volvía a mirar: todas las demás quedaban fuera de la vigilancia.
+
+**Y la primera aparición es justo la que suele estar bien** — En una nota real la
+primera vez que se nombra un padecimiento es la del apartado de antecedentes,
+que es donde el médico lo escribe correctamente. O sea que **cuanto mejor
+redactada estaba la nota arriba, más ciego se quedaba el guardián abajo**:
+
+```
+ANTECEDENTES: antecedente de neumonía adquirida en la comunidad en 2023, …
+ANÁLISIS Y PLAN: … Impresión diagnóstica: neumonía. Se inicia amoxicilina.
+```
+
+**Cómo se reprodujo** — Con los motores reales, antes de tocar nada, sobre notas
+sintéticas de tres renglones (la separación que tiene una nota de verdad entre
+antecedentes y análisis; más corta no prueba nada, porque la ventana de 60
+llegaría de la segunda mención a la primera y la disculparía con razón):
+
+- `desajustesTemporales(mencionesEnPasado('Tuvo neumonía hace tres años.'), nota)`
+  → `[]`, con la nota afirmando «Impresión diagnóstica: neumonía».
+- `contradicciones(condicionesNegadas('¿Ha tenido hipertensión? No, ninguna.'), nota)`
+  → `[]`, con la nota escribiendo «Se continúa losartán por su hipertensión
+  arterial» después de un «niega hipertensión arterial».
+
+El caso de las negaciones costó encontrarlo bien: con **diabetes** el defecto
+queda tapado por casualidad, porque el vocabulario trae la forma «diabetes
+mellitus» y su primera aparición sí es la mala. Con hipertensión —donde la
+segunda mención repite la misma palabra— no hay rescate. Un hallazgo que se
+reproduce por accidente no es un hallazgo reproducido.
+
+**Por qué importa para un paciente** — La mención de abajo es la que se arrastra.
+El texto que se contrasta lo arma `textoDeLaNota`: resumen, luego los
+diagnósticos estructurados, luego las secciones. El diagnóstico estructurado es
+el que se copia a la receta, al resumen de la consulta siguiente y al expediente
+—eso ya quedó documentado al reparar `[object Object]`— y quedaba **detrás** del
+resumen, tapado por él. Resultado: un paciente que negó su hipertensión y una
+nota que se la afirma en el plan; una neumonía de hace tres años escrita como
+diagnóstico de hoy. Sin un solo aviso.
+
+**Reparación** — `src/lib/expediente/mencion-en-la-nota.ts`: un solo buscador,
+`mencionSinDisculpa`, que recorre **todas** las apariciones de todas las formas,
+en orden de lectura, y devuelve la primera que no trae disculpa. Los dos motores
+lo llaman; la ventana de 60 vive una sola vez, no una por archivo.
+
+**No hay criterio nuevo** — Cada aparición se juzga con la MISMA ventana de 60
+caracteres y la MISMA expresión de disculpa que ya usaba cada motor. Lo único que
+cambia es cuántas veces se aplica: antes una, ahora todas, y basta con que una no
+tenga disculpa. Es lo que el comentario de la ventana de 60 ya decía en los dos
+archivos —«una negación ajena taparía una afirmación real, que es el fallo
+caro»— aplicado a la nota entera y no sólo a la oración.
+
+**La cita que se enseña ahora es la mala** — Antes dependía del orden de la lista
+de formas, un detalle interno del vocabulario; reordenarla cambiaba lo que veía
+el médico. Ahora manda la posición en la nota, que es la que le sirve para
+resolverlo sin volver al audio.
+
+**«Para descartar diabetes» — el falso positivo que esto habría creado** —
+`descarta` ya estaba declarado en `NIEGA_EN_LINEA`; su infinitivo no, y el plan
+de un internista se escribe casi siempre así: «se solicita hemoglobina
+glucosilada **para descartar** diabetes». Pedir un estudio para descartar algo es
+lo contrario de afirmarlo. Faltaba desde siempre y casi no se notaba porque sólo
+se juzgaba la primera mención; al juzgarlas todas habría empezado a disparar una
+alerta que **bloquea la firma**. Se añade la morfología del verbo que ya estaba
+en la lista (`descarta(?:r|n)?`), no un criterio nuevo.
+
+**Qué NO hace** — No mira más allá del vocabulario de cada motor: un padecimiento
+que no esté en `CRONICAS` ni en `AGUDAS_FRECUENTES` no se vigila, y eso no
+significa que se dé por bueno. No decide cuál de las dos versiones vale: eso
+sigue siendo del médico. Y la ventana sigue siendo de 60 hacia atrás, así que una
+disculpa escrita más lejos ahora dispara — es deliberado: a esa distancia el
+guardián no puede saber si la frase habla del antecedente o de un cuadro de hoy.
+
+**Qué queda para el médico** — Decidir, en cada aviso, cuál de las dos versiones
+corresponde. El sistema sólo se niega a dejarlo pasar en silencio.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos motores, el golden
+falla en sus tres casos de defecto y pasa en los nueve de no-regresión.
+
+**Golden** — `src/__tests__/la-nota-lo-dice-dos-veces.test.ts` (12 casos).

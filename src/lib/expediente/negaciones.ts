@@ -42,6 +42,7 @@
  *
  * Módulo PURO.
  */
+import { mencionSinDisculpa } from '@/lib/expediente/mencion-en-la-nota'
 
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
@@ -76,8 +77,22 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
  */
 const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
 
-/** Marcas de que un término ya viene negado en la propia frase. */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+/**
+ * Marcas de que un término ya viene negado en la propia frase.
+ *
+ * ── «PARA DESCARTAR DIABETES» (REG-192) ──────────────────────────────────────
+ *
+ * `descarta` ya estaba declarado; su infinitivo no, y en la nota mexicana se
+ * escribe casi siempre así: «se solicita HbA1c **para descartar** diabetes».
+ * Pedir un estudio para descartar algo no es afirmarlo — es lo contrario.
+ *
+ * Faltaba desde siempre, pero antes casi no se notaba: sólo se juzgaba la
+ * PRIMERA aparición del término, y ésa suele estar en antecedentes. Al pasar a
+ * juzgarlas todas, esta frase del plan empezaba a disparar una alerta que
+ * bloquea la firma. No es criterio nuevo: es la morfología de un verbo que ya
+ * estaba en la lista.
+ */
+const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta(?:r|n)?|ausencia\s+de|se\s+descarta)\b/i
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -160,25 +175,23 @@ export interface Contradiccion extends Negada {
  * viene, no hay contradicción.
  */
 export function contradicciones(negadas: readonly Negada[], textoNota: string): Contradiccion[] {
-  const t = sinAcentos(textoNota)
   const out: Contradiccion[] = []
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres.
-       *
-       * Es la distancia en la que cabe «niega …» o «sin antecedente de …» en la
-       * misma oración. Más larga empezaría a leer la oración anterior y una
-       * negación ajena taparía una afirmación real — que es el fallo caro.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes)) continue
-      out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    /**
+     * TODAS las apariciones, no sólo la primera (REG-192).
+     *
+     * `indexOf` a secas devolvía la primera, y en una nota real la primera es la
+     * del apartado de antecedentes —«niega diabetes», que está bien escrito—.
+     * Con eso el guardián se daba por satisfecho y no volvía a mirar: la
+     * afirmación de más abajo, la que se copia a la receta, pasaba en silencio.
+     *
+     * La ventana de 60 y el criterio son los mismos de siempre; viven en
+     * `mencion-en-la-nota.ts` porque el motor de temporalidad tenía esta misma
+     * línea copiada y los dos se quedaban ciegos igual.
+     */
+    const enLaNota = mencionSinDisculpa(textoNota, formas, NIEGA_EN_LINEA)
+    if (enLaNota !== null) out.push({ ...n, enLaNota })
   }
   return out
 }

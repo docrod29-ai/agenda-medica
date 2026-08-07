@@ -41,6 +41,7 @@
  * Módulo PURO.
  */
 import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
+import { mencionSinDisculpa } from '@/lib/expediente/mencion-en-la-nota'
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -209,25 +210,23 @@ export function desajustesTemporales(
   pasadas: readonly MencionPasada[],
   textoNota: string,
 ): DesajusteTemporal[] {
-  const t = sinAcentos(textoNota)
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres, la misma que usan las
-       * negaciones y por la misma razón: es lo que mide «antecedente de …» o
-       * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
-       * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
-       * que importa.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
-      out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    /**
+     * TODAS las apariciones, no sólo la primera (REG-192).
+     *
+     * Este motor copió la línea de las negaciones —`indexOf` a secas— y heredó
+     * su punto ciego: la primera vez que la nota nombra una neumonía suele ser
+     * «antecedente de neumonía en 2023», que está bien escrito, y con eso se
+     * daba por revisada la nota entera. El «paciente con neumonía» del análisis
+     * y plan, que es el que se arrastra al expediente, no se miraba nunca.
+     *
+     * La ventana de 60 y el criterio no cambian: viven en
+     * `mencion-en-la-nota.ts`, una sola vez para los dos motores.
+     */
+    const enLaNota = mencionSinDisculpa(textoNota, formas, YA_ES_ANTECEDENTE)
+    if (enLaNota !== null) out.push({ ...m, enLaNota })
   }
   return out
 }

@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el apartado de antecedentes dejaba ciego al diagnóstico de abajo
+
+Los dos guardianes que contrastan el dictado contra la nota buscaban el
+padecimiento con `indexOf` a secas: **sólo la primera aparición**. La disculpa
+—«niega …», «antecedente de …»— se evaluaba sobre ella y sólo sobre ella.
+
+Y la primera aparición es la del apartado de antecedentes, que es donde el
+médico lo escribe bien. Cuanto mejor redactada estaba la nota arriba, más ciego
+se quedaba el guardián abajo — justo sobre el diagnóstico estructurado, que es
+el que se copia a la receta y a la consulta siguiente.
+
+Ahora se recorren todas las apariciones, en orden de lectura, desde un solo
+buscador para los dos motores. Mismo criterio y misma ventana de 60: lo único
+que cambia es cuántas veces se aplica.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

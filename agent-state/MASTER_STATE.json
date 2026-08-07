@@ -1,6 +1,7 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
+  "actualizado": "2026-08-07",
   "modo": "autonomo-sin-despliegue",
   "autorizaciones": {
     "abrirPR": true,
@@ -10,16 +11,19 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-003 (cerrada) — REG-192, v1074",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/safety/SAFE-003"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "trabajoLocalSinSubir": [],
+  "notaSobreEsteArchivo": "Estaba congelado en v1030 mientras el ledger iba por REG-191/v1073: VOICE-004 y SAFE-001 figuraban abiertos y llevaban versiones reparados. Se reconciliaron contra el repositorio en esta iteración. Si vuelve a desfasarse, la fuente de verdad es docs/audit/regression-ledger.md, no este archivo.",
+  "compuertas": {
+    "vitest": "6926 pasan · 1 falla ajena (OPS-002, red del contenedor, reproducida en árbol limpio)",
+    "tsc": "limpio",
+    "lintTrinquete": "96, igual que el techo",
+    "build": "verde con los placeholders sintéticos de CI"
+  }
 }
