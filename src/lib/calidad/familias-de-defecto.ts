@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222],
   },
   {
     clave: 'se_contradice',
@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223],
   },
   {
     clave: 'habla_real',
@@ -57,7 +57,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El motor lingüístico cubre el español que uno escribiría, no el que se ' +
       'habla en un consultorio mexicano. Se descubre midiendo contra frases ' +
       'reales, nunca leyendo el código.',
-    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212],
+    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220],
   },
   {
     clave: 'sin_medir',
@@ -82,7 +82,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Un dato o un cobro que cruza la frontera de su dueño. Poco frecuente y ' +
       'de consecuencia alta: aquí un solo caso es un incidente, no una molestia.',
-    regs: [153, 161, 162, 163],
+    regs: [153, 161, 162, 163, 224],
   },
   {
     clave: 'charter_vacio',

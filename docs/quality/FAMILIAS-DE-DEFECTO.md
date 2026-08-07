@@ -2,13 +2,14 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Fuente**: los 67 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
+**Fuente**: los 72 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
 ## Por qué contar
 
-El ledger tiene 67 defectos con su causa raíz. Leídos de uno en uno son 57
+El ledger tiene 72 defectos con su causa raíz. Leídos de uno en uno son 72
 historias. **Contados por familia dicen algo que ninguno dice solo**: cuál es la
 forma de fallar que se repite.
 
@@ -20,12 +21,12 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **10** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
-| **El sistema se contradice a sí mismo** | **10** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
-| El habla real no cabía en el motor | 9 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
+| **Escrito, probado y sin conectar** | **12** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **El sistema se contradice a sí mismo** | **11** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
+| El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 6 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 4 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
-| Fuga entre consultorios y dinero | 4 | Un dato o un cobro cruza la frontera de su dueño |
+| Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
 | Estorba al médico | 3 | Correcto por dentro, insoportable por fuera |
 | Pérdida de datos | 6 | Trabajo del médico que desaparece o reaparece solo |
@@ -38,8 +39,19 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«El sistema se contradice a sí mismo» — 10 de 67, y desde el 7-ago-2026 es la
+**«Escrito, probado y sin conectar» — 12 de 72, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
+REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el
+tipo, en el esquema auditado, en el prompt y en una prueba SELLADA — y `z.object`
+lo borraba en la lista plana antes de que saliera del servidor. La prueba pasaba
+en verde porque comprobaba el esquema equivocado. REG-222: un aviso marcado
+`no-print` desaparecía al Imprimir y salía impreso al descargar el PDF, porque
+ese camino no es una impresión y nunca miró la marca.
+
+Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
+que correr**.
 
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
 escribir «No referido» y la 1-bis lo PROHÍBE. **Ninguna de las dos estaba mal por
@@ -52,7 +64,17 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«Escrito, probado y sin conectar» — 10 de 67.**
+**«El sistema se contradice a sí mismo» — 11 de 72.**
+
+Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
+se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
+contrario y daba 3,28. Ninguna de las dos decisiones estaba mal por su cuenta. Y
+el tema CLARO nunca lo tuvo — la corrección existía, aplicada a un solo tema.
+
+## El patrón que sostiene a las dos
+
+**Nueve veces** el módulo estaba bien, sus pruebas pasaban, y el sistema fallaba
+igual porque **el módulo no corría donde tenía que correr**:
 
 Es exactamente el patrón que ya estaba anotado como el fallo más caro, ahora con
 la cuenta detrás. Nueve veces el módulo estaba bien, sus pruebas pasaban, y el

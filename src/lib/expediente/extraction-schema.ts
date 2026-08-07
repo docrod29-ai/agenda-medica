@@ -222,6 +222,25 @@ export const RespuestaExtraccion = z.object({
     frecuencia:  z.string().optional().default(''),
     duracion:    z.string().optional().default(''),
     indicacion:  z.string().optional().default(''),
+    /**
+     * ¿YA LO TOMA, O SE LO RECETO HOY? — sin esta línea el eje no existía.
+     *
+     * El campo estaba en el tipo, en el esquema AUDITADO (abajo), en la regla
+     * 6-ter del prompt y en una prueba sellada. El modelo lo rellenaba. Pero
+     * esta lista PLANA —que es la que lee la pantalla de consulta y la que
+     * acaba en la receta impresa— no lo declaraba, y `z.object` **borra las
+     * claves que no declara**. Reproducido: entraba
+     * `{nombre, dosis, procedenciaClinica:'ya_lo_toma'}` y salía sin ella.
+     *
+     * Efecto para el médico: lo que el paciente dice que ya toma al recabar
+     * antecedentes acababa impreso en la receta de hoy, junto a lo que sí se
+     * prescribió. Su queja, textual: «no me gusta que hagas la receta con lo
+     * que te digo de antecedentes».
+     *
+     * Sin `.default()` a propósito: la AUSENCIA significa «no se sabe», y no
+     * es lo mismo que ninguno de los dos valores. Ver `que-va-en-la-receta.ts`.
+     */
+    procedenciaClinica: z.enum(['ya_lo_toma', 'se_prescribe_hoy']).optional(),
   })).optional().default([]),
   alergias: z.array(z.object({
     alergeno:   z.string(),

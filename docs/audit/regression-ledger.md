@@ -2973,3 +2973,192 @@ frasco»), fecha ilegible o fecha futura devuelven «no venció». **El error ca
 decirle al médico que suspenda algo que el paciente debe seguir tomando.**
 
 **Guardián** — `src/__tests__/la-duracion-que-ya-vencio.test.ts` (26 casos).
+
+---
+
+## REG-220 — un antibiótico se convertía en otro, sin un solo aviso (v1106)
+
+**Lo que el médico dijo** — «me estás confundiendo antibióticos». Es infectólogo;
+para él no hay defecto peor.
+
+**Reproducido con el pipeline de producción**, no deducido del código:
+
+```
+«Le doy azitro micina cinco días»   →  «Le roxitromicina 5 días»
+«Doy mico nazol tópico»             →  «Voriconazol tópico»
+«Le doy neo micina tópica»          →  «Le lincomicina tópica»
+«El paciente lleva cefa lotina…»    →  «…lleva cefazolina…»
+```
+
+Los cuatro con `violaciones: []`. **Ni una alerta.** El médico dicta un
+antibiótico, en la nota aparece otro, y nada se lo dice.
+
+**La causa** — cuando el reconocedor parte el nombre («azitro micina»), el
+corrector de n-gramas prueba ventanas de tres palabras y **se traga el verbo de
+delante** («doy azitro micina»). Esa unión se busca POR PARECIDO entre 6 117
+términos —4 053 de ellos de un diccionario médico en inglés— y gana el más
+cercano, que puede ser otro antimicrobiano.
+
+El filtro de longitud lo empeoraba: dejaba FUERA a la azitromicina correcta
+(12 caracteres fonéticos) y dejaba PASAR a la roxitromicina equivocada (13),
+porque la unión con el verbo medía 15.
+
+**Segundo mecanismo** — un antibiótico que no está en el vocabulario se sustituye
+por el más parecido que sí lo está. La **cefalotina** —que se usa en México y que
+este repositorio conoce en el antibiograma— salía convertida en **cefazolina
+siempre**, en los cinco puntos de corte posibles.
+
+**No había red debajo** — la clase `sustitucion_farmaco` está declarada en la
+política crítica y **ninguna regla la emite jamás**. Los `PARES_PROHIBIDOS`
+vigilan mg/mcg, ml/l, derecho/izquierdo, PEEP/PIP: cero pares de fármacos.
+
+**La regla** — un antimicrobiano sólo se acepta si coincide **exacto**. No hay
+distancia segura entre dos: sobre este mismo catálogo, 42 de 100 tienen un rival
+dentro del umbral, y algunos a distancia 1 (vancomicina ~ lincomicina, cefazolina
+~ ceftarolina). Cualquier número deja pares dentro.
+
+Lo útil se conserva: volver a unir un nombre partido («azitro micina» →
+azitromicina) coincide exacto y se acepta. **El problema nunca fue unir, fue
+aproximar.**
+
+**La lista de nombres no bastaba** — primer intento: comparar contra las listas
+en español. «mico nazol» pasó de «Voriconazol» a «Oxiconazol»: seguía mal, porque
+esos nombres viven en el léxico en inglés. Por eso además se miran las
+TERMINACIONES, derivadas de los propios nombres del catálogo.
+
+**Se prefiere lo visiblemente roto a lo invisiblemente cambiado** — sin
+coincidencia exacta, se deja lo dictado tal cual. Un nombre partido lo ve el
+médico y lo corrige; un nombre cambiado por otro fármaco real no se ve.
+
+**Guardián** — `src/__tests__/un-antibiotico-no-se-convierte-en-otro.test.ts`
+(8 casos, incluido un barrido de los 126 antimicrobianos del catálogo por cada
+punto de corte: antes devolvía 118 sustituciones).
+
+---
+
+## REG-221 — la receta se llenaba con los antecedentes (v1106)
+
+**Lo que el médico dijo** — «no me gusta que hagas la receta con lo que te digo
+de antecedentes, la receta es cuando ya te estén diciendo el plan».
+
+En el minuto dos se recaban antecedentes: «toma metformina y losartán desde hace
+tres años». En el minuto veinte se dicta el plan. Y la receta salía con los tres.
+
+**Dos causas distintas.**
+
+**1 · El eje de procedencia estaba escrito y sin conectar.**
+`procedenciaClinica: 'ya_lo_toma' | 'se_prescribe_hoy'` existía en el tipo, en el
+esquema AUDITADO, en la regla 6-ter del prompt y en una prueba sellada (REG-183).
+El modelo lo rellenaba. Pero la lista **plana** `RespuestaExtraccion.medicamentos`
+—la que lee la pantalla de consulta y la que acaba en la receta— **no lo
+declaraba**, y `z.object` borra las claves que no declara.
+
+Reproducido: entra `{nombre:'losartán', dosis:'50 mg', procedenciaClinica:'ya_lo_toma'}`
+y sale `{"nombre":"losartán","dosis":"50 mg","via":"","frecuencia":"","duracion":"","indicacion":""}`.
+
+El campo nunca llegó a la pantalla. La única función que lo usaba era código
+muerto — y sólo se habría poblado cuando la validación FALLA y la ruta devuelve
+el objeto crudo. La ironía exacta.
+
+**2 · La lista de medicamentos se acumulaba.** Hacía `[...previos, ...nuevos]` y
+sólo descartaba el repetido si el nombre coincidía letra por letra. Con el pase
+en vivo corriendo cada 15 s, lo que entró en el minuto dos no salía nunca. Los
+diagnósticos recibieron este arreglo en REG-217; los medicamentos se quedaron sin
+él.
+
+**Por qué NO se deja de extraer durante la grabación** — sería la lectura literal
+de «la receta es cuando ya te estén diciendo el plan», y sería una regresión: de
+esa lista cuelgan el cruce alergia ↔ fármaco, el de interacciones y el motor de
+dosis, que tienen que avisar MIENTRAS la consulta ocurre. Es REG-173 y REG-190
+otra vez, familia «llega tarde para servir».
+
+**Ante la duda se imprime** — sin etiqueta, el fármaco se queda en la receta.
+Dejar de más un renglón que se borra de un toque es una molestia; quitar de la
+receta un antibiótico que sí se prescribió es un paciente que no se lo toma.
+
+**No se adivina por el historial** — renovar hoy lo que ya tomaba es una receta
+normal. Marcarlo «previo» porque aparece en una nota anterior borraría del papel
+un tratamiento recién indicado.
+
+**Guardián** — `src/__tests__/que-va-en-la-receta.test.ts`.
+
+---
+
+## REG-222 — el aviso que no se imprime sí se descargaba (v1106)
+
+**Lo que el médico preguntó** — mandó el PDF de una nota firmada con un recuadro
+negro en medio («Sello de formato anterior (v3)… No cubre: metadata.hashIntegridad,
+metadata.hashVersion…») y preguntó: **«esto tiene que salir a fuerzas?»**
+
+**No.** El recuadro **ya estaba marcado** `no-print`. Al pulsar Imprimir
+desaparece. Pero la regla que lo oculta vive en un `@media print`, y **descargar
+el PDF no es imprimir**: html2canvas rasteriza el DOM tal como se ve, y
+`@media print` no se activa nunca.
+
+El mismo documento salía de dos maneras distintas según el botón — con jerga
+interna impresa en medio de una nota clínica que se entrega o se archiva.
+
+**Por qué no se borró el recuadro** — dice algo cierto: el sello de esa nota es de
+un formato viejo y no cubre toda la nota. Esconderlo sería ocultar una limitación
+real. Lo que estaba mal no era el aviso: era que este camino no miraba la marca.
+
+Por eso el arreglo va en el **exportador**, no en el recuadro: así protege a todos
+los avisos marcados, en todos los documentos, incluidos los que aún no existen.
+
+**Guardián** — `src/__tests__/lo-que-no-se-imprime-tampoco-se-descarga.test.ts`
+(5 casos).
+
+---
+
+## REG-223 — la portada no cabía en un teléfono (v1104)
+
+**Medido con un navegador en un iPhone de 390 px**, no leyendo código.
+
+**1 · El botón de registro salía cortado.** La barra pedía **417 px** donde había
+390: es `flex` con `nowrap`, 24 px de relleno y botones `white-space: nowrap`, y
+nada cedía. La página entera se movía de lado y «Prueba gratis →» quedaba partido
+por el borde derecho.
+
+**2 · Cuarenta y una rejillas no podían encoger.** `minmax(300px, 1fr)`: `auto-fit`
+colapsa columnas vacías, pero el suelo **no baja de 300 px** ni en una pantalla de
+320. `minmax(min(300px, 100%), 1fr)` es idéntico en pantalla ancha.
+
+**3 · El texto blanco sobre el azul daba 3,28 : 1** (AA pide 4,5). Y no era un
+botón: eran los 68 usos de `.btn-primary` más 26 rellenos en línea — «Procesar con
+IA», «Guardar adenda», el CTA del antibiograma.
+
+`--nexus` se había aclarado **a propósito y con razón**: como TEXTO sobre el
+lienzo oscuro da 5,96. Pero el mismo token se usaba de RELLENO bajo texto blanco,
+donde el requisito es el **contrario**. Un token, dos trabajos incompatibles —
+familia «el sistema se contradice a sí mismo». El tema CLARO nunca lo tuvo: allí
+`--nexus` ya era #2845EA. La corrección existía, aplicada a un solo tema.
+
+`--nexus-solido` = #3D5AFE no es un color inventado: es el azul de marca del
+logotipo, el que ya vivía dentro de `--nexus-soft`. Blanco encima: **5,13**.
+
+**Guardián** — `src/__tests__/la-pantalla-cabe-en-un-telefono.test.ts` (7 casos),
+que reproduce las tres cifras de contraste con la fórmula WCAG antes de creerse
+ninguna otra aserción.
+
+---
+
+## REG-224 — la consola del dueño tenía la puerta abierta (v1105)
+
+`/superadmin` y sus ocho secciones cuelgan **fuera** de `(dashboard)`, que es
+donde vive el único guardián de sesión del proyecto — no hay `middleware.ts`.
+Sólo `costos` traía su propia comprobación, copiada a mano. Las otras ocho abrían
+escribiendo la dirección, sin sesión.
+
+**Dicho sin inflarlo** — los DATOS estaban bien: las rutas `/api/superadmin/*`
+verifican el token contra `verificarSuperadmin`, así que sin sesión las pantallas
+salen vacías. Lo que se filtraba era el **mapa** de la consola. No son
+expedientes, y es lo primero que mira quien audite esto antes de comprarlo.
+
+**Un layout y no diez comprobaciones** — repetirla en cada página es exactamente
+cómo nació el agujero. El layout cubre además las rutas que todavía no existen.
+
+**No decide con la respuesta a medias** — mientras Firebase no conteste, la
+pantalla no se pinta. Sin eso quedaría un parpadeo en el que la consola entera es
+visible: el mismo agujero, más corto.
+
+**Guardián** — `src/__tests__/la-consola-del-dueno-tiene-puerta.test.ts` (4 casos).

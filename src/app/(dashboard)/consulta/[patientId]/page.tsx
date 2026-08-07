@@ -150,6 +150,7 @@ import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordene
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
+import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
 import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
 import { diagnosticosSanos, medicamentosSanos, seccionesSanas } from '@/lib/expediente/nota-restaurada'
 import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
@@ -367,6 +368,16 @@ export default function ConsultaActivaPage() {
    * llegaba a 19 diagnósticos con tres redacciones del mismo R59.1.
    */
   const dxDeLaIaRef = useRef<Diagnostico[]>([])
+
+  /**
+   * Y lo mismo para los MEDICAMENTOS, que es la lista que se imprime.
+   *
+   * Los diagnósticos recibieron este arreglo y los medicamentos no. El pase en
+   * vivo corre cada 15 s, y lo que se dictó al recabar antecedentes en el
+   * minuto dos («toma metformina y losartán») se quedaba en la lista para
+   * siempre — y de esa lista sale la receta.
+   */
+  const medDeLaIaRef = useRef<Medicamento[]>([])
 
   /**
    * LO YA DICTADO NO SE PIERDE AL VOLVER A GRABAR.
@@ -1707,11 +1718,25 @@ export default function ConsultaActivaPage() {
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
       if (tipoOverride) {
         setMedicamentos(nuevosMed)
+        medDeLaIaRef.current = nuevosMed
       } else if (nuevosMed.length > 0) {
-        setMedicamentos(prev => {
-          const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
-          return [...prev, ...nuevosMed.filter((m: Medicamento) => !vistos.has(m.nombre.trim().toLowerCase()))]
-        })
+        /**
+         * FUSIÓN CON PROCEDENCIA — la lista deja de acumular.
+         *
+         * Antes hacía `[...previos, ...nuevos]` y sólo descartaba el repetido si
+         * el nombre coincidía letra por letra. Con el pase en vivo corriendo
+         * cada 15 s, lo que se dictó al recabar ANTECEDENTES en el minuto dos
+         * («toma metformina y losartán») se quedaba en la lista para siempre —
+         * y esa lista es la que se imprime en la receta.
+         *
+         * Es el mismo arreglo que ya tenían los diagnósticos, y que a los
+         * medicamentos nunca se les aplicó: se sustituye SÓLO lo que la IA puso
+         * en su pasada anterior y se conserva siempre lo que escribió el médico.
+         */
+        setMedicamentos(prev => fusionarMedicamentos({
+          previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+        }))
+        medDeLaIaRef.current = nuevosMed
       }
 
       if (data.signosVitales) {
@@ -1873,11 +1898,15 @@ export default function ConsultaActivaPage() {
       dxDeLaIaRef.current = nuevosDx
     }
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (tipoOverride) setMedicamentos(nuevosMed)
-    else if (nuevosMed.length > 0) setMedicamentos(prev => {
-      const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
-      return [...prev, ...nuevosMed.filter(m => !vistos.has(m.nombre.trim().toLowerCase()))]
-    })
+    if (tipoOverride) { setMedicamentos(nuevosMed); medDeLaIaRef.current = nuevosMed }
+    else if (nuevosMed.length > 0) {
+      // Mismo criterio que el camino de primer plano: se sustituye lo de la IA,
+      // se conserva lo del médico. Ver `fusionarMedicamentos`.
+      setMedicamentos(prev => fusionarMedicamentos({
+        previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+      }))
+      medDeLaIaRef.current = nuevosMed
+    }
     if (data.signosVitales) {
       const sv = data.signosVitales
       setSignos(prev => ({ fc: sv.fc || prev.fc, fr: sv.fr || prev.fr, ta: sv.ta || prev.ta, temperatura: sv.temperatura || prev.temperatura, spo2: sv.spo2 || prev.spo2, peso: sv.peso || prev.peso, talla: sv.talla || prev.talla }))

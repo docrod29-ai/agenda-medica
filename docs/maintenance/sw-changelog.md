@@ -2235,3 +2235,16 @@ traía comprobación propia; las otras ocho abrían sin sesión. Los DATOS estab
 bien —las rutas /api/superadmin/* verifican el token—, así que lo que se
 filtraba era el mapa de la consola, no expedientes. Un layout.tsx cubre la
 carpeta entera, incluidas las rutas que aún no existen.
+
+## v1106 — un antibiótico se convertía en otro; la receta se llenaba de antecedentes
+Tres quejas del Dr., las tres reales, las tres reproducidas.
+(1) P0 — «me estás confundiendo antibióticos»: «Le doy azitro micina» salía
+«Le roxitromicina», «cefa lotina» salía «cefazolina» SIEMPRE, con cero avisos.
+El corrector se tragaba el verbo de delante y buscaba por parecido entre 6 117
+términos, 4 053 de ellos en inglés. Regla nueva: un antimicrobiano sólo se
+acepta si coincide EXACTO (REG-220).
+(2) «la receta es cuando ya te estén diciendo el plan»: procedenciaClinica
+existía en el tipo, el prompt y una prueba sellada — y z.object la borraba en la
+lista plana. Además la lista acumulaba de los ~40 pases en vivo (REG-221).
+(3) «esto tiene que salir a fuerzas?»: el aviso marcado no-print desaparecía al
+Imprimir y salía impreso en el PDF (REG-222).
