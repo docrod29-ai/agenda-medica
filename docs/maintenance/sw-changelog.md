@@ -2177,3 +2177,9 @@ interacciones, el de alergias, el motor de dosis y la receta: desactualizada, es
 un motor de seguridad razonando sobre un paciente que no existe. NO corrige
 sola — abre una tarea con dueño (§C3). Tres filtros para no llenar el worklist:
 familiar, duda, y lo que el médico receta hoy.
+
+## v1098 — CRON_SECRET puesto: los cinco trabajos automáticos pueden correr
+El Dr. configuró `CRON_SECRET` en Vercel. Las cinco rutas de cron estaban
+cerradas (fail-closed) desde siempre por falta de esa variable: los recordatorios
+de cita por WhatsApp NUNCA salieron solos, y el barrido de audios viejos nunca
+corrió. Este despliegue es para que producción tome la variable.
