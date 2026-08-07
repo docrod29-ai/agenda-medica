@@ -2237,3 +2237,62 @@ cumpliría las tres reglas y seguiría siendo un nudo. Esto cubre el deterioro q
 `docs/decisions/`.
 
 **Documento** — `docs/architecture/DIRECCION-DE-DEPENDENCIAS.md`
+
+---
+
+## REG-207 — el guardián de afirmaciones no miraba donde más importa (v1088)
+
+**El hueco** — `claims-guard.test.ts` vigila el copy público —landing, precios,
+demo— para que no reaparezcan afirmaciones engañosas. Cuatro archivos de `src/`.
+
+**No vigilaba `docs/`.** Y `docs/` es lo que lee un comprador en una diligencia
+debida.
+
+De los dos públicos, **el segundo es el que tiene consecuencias**: un visitante
+que lee una exageración en la landing se encoge de hombros; un comprador que
+verifica una y la encuentra falsa **deja de creerse el resto del paquete**,
+incluido lo que sí está medido.
+
+**Lo que encontró al encenderse** — seis afirmaciones sobre terceros **sin una
+sola fuente** en `docs/COMPETITIVE_ANALYSIS.md`, bajo una columna titulada
+literalmente «Por qué somos superiores»:
+
+> «Nadie con esa granularidad» · «Pocos en LATAM» · «Pocos lo tienen integrado» ·
+> «Casi nadie en EHR cloud» · «nadie lo expone visualmente»
+
+**La regla que ordena esto** — un documento competitivo tiene dos clases de frase
+y sólo una se sostiene en diligencia: **lo que hacemos nosotros** (verificable en
+el repositorio, con su comando) y **lo que hace un tercero** (necesita fuente y
+fecha, o no se escribe). El documento las mezclaba.
+
+**Qué se hizo con el documento viejo** — no se borró. Se le puso un aviso de
+alcance y se reescribió la tabla para decir **sólo qué hace este producto y dónde
+comprobarlo**. Borrar habría escondido que alguna vez se afirmó — y esconderlo es
+lo que hace que se vuelva a afirmar.
+
+**El documento nuevo** — `docs/competitive/EL-FOSO.md` separa lo que es foso
+(corpus mexicano medido, motores deterministas, 54 REG con causa raíz,
+guardianes) de **lo que NO lo es**, escrito para no engañarnos: usar un modelo de
+frontera, transcribir voz, tener agenda/receta/expediente, «UX bonita», el número
+de funciones. **Casi todo lo que un usuario ve no es foso.**
+
+**El guardián me cazó dos veces, y las dos son la misma lección**
+
+1. Cazó el documento escrito para **denunciar** esas frases: `EL-FOSO.md` las
+   cita textualmente. Arreglo: **afirmar es distinto de citar** — lo
+   entrecomillado con «…» no cuenta.
+2. Impedía escribir «No somos los únicos» y «Ninguno de los ceros está medido» —
+   dos declaraciones de hueco **sobre nosotros mismos**. Arreglo: exclusión de la
+   negación y `ninguno de ellos` en vez de `ninguno de los`.
+
+Es exactamente el error del guardián de la sala de datos (v1083), que cazaba «ni
+hospitales clientes». **Un guardián de honestidad que castiga la honestidad
+empuja a callar el hueco en vez de escribirlo**, que es lo contrario de para lo
+que se puso.
+
+**El guardián** — `src/__tests__/el-foso-no-inventa-competidores.test.ts`
+(6 casos, 10 aserciones) sobre cinco documentos cara al comprador. Incluye una
+prueba de que **sigue cazando las frases reales** del documento anterior: si el
+patrón se afloja, el guardián queda apagado sin que nadie lo note.
+
+**Documento** — `docs/competitive/EL-FOSO.md`

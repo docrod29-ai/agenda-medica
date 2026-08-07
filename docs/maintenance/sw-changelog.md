@@ -2107,3 +2107,12 @@ REG-206. Grafo de imports real sobre 734 archivos: **0 dependencias invertidas,
 consumidor), declarada la de `clinical-quantity.ts` (vive en la capa equivocada;
 moverlo se decide, no se cuela). Guardián de 8 casos: el valor no es certificar
 el cero, es que quien lo rompa se entere en su PR.
+
+## v1088 — el foso, sin inventar competidores
+REG-207. El guardián de afirmaciones vigilaba la landing y NO `docs/`, que es lo
+que lee un comprador en diligencia. Al extenderlo salieron **seis afirmaciones
+sobre terceros sin una sola fuente** («Nadie con esa granularidad», «Casi nadie
+en EHR cloud») bajo una columna titulada «Por qué somos superiores». Documento
+nuevo que separa lo que ES foso de lo que NO lo es. Y el guardián me cazó dos
+veces: al citar las frases para denunciarlas, y al impedirme declarar un hueco
+propio — la misma lección de v1083.

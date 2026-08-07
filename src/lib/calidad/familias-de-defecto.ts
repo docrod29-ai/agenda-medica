@@ -3,8 +3,8 @@
  *
  * ── DE DÓNDE SALE ────────────────────────────────────────────────────────────
  *
- * `docs/audit/regression-ledger.md` tiene 54 defectos con su causa raíz. Leídos
- * de uno en uno son 54 historias. Contados por familia dicen algo que ninguno
+ * `docs/audit/regression-ledger.md` tiene 55 defectos con su causa raíz. Leídos
+ * de uno en uno son 55 historias. Contados por familia dicen algo que ninguno
  * dice solo: **cuál es la forma de fallar que se repite**.
  *
  * Esto no es una taxonomía tomada de un libro. Cada familia salió de agrupar
@@ -13,8 +13,8 @@
  *
  * ── POR QUÉ ES CÓDIGO Y NO UNA TABLA EN UN MARKDOWN ──────────────────────────
  *
- * Porque una tabla escrita a mano envejece en silencio: el REG-207 aterriza, la
- * tabla sigue diciendo 54 cuando ya son 55, y nadie se entera. Aquí el guardián compara este
+ * Porque una tabla escrita a mano envejece en silencio: el REG-208 aterriza, la
+ * tabla sigue diciendo 55 cuando ya son 56, y nadie se entera. Aquí el guardián compara este
  * archivo contra el ledger y **falla si un REG no está clasificado** — lo que
  * obliga a clasificarlo, que es justo el momento en que uno se pregunta «¿y de
  * qué familia es éste?».
@@ -91,7 +91,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Una sección del charter que vivía como carpeta vacía. No rompe nada hoy; ' +
       'es la diferencia entre un sistema que dice tener un control y uno que lo ' +
       'tiene.',
-    regs: [201, 202, 203, 204, 205, 206],
+    regs: [201, 202, 203, 204, 205, 206, 207],
   },
   {
     clave: 'estorba',
