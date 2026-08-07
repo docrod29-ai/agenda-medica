@@ -10,16 +10,13 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-004 / REG-194 (cerrada)",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/safety/SAFE-004"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "ultimaVersionPreparada": "nexusmed-v1076 (en PR, sin desplegar)",
+  "notaDeEstado": "El backlog del 4-ago está agotado: VOICE-004 y SAFE-001 se cerraron en el ledger (REG-144, dosis-sin-numero) y EVAL-001 sigue bloqueado por B-01. Las iteraciones siguientes salen de auditoría, no del backlog. La rama agent/safety/SAFE-003 (REG-192/193, negaciones de la nota y del dictado) sigue SIN FUSIONAR y ya reservaba v1074-v1075: esta iteración numera REG-194 y v1076 para no chocar. Al fusionar, el segundo en entrar resuelve ledger, sw.js, version.txt e invariantes-clinicos.json."
 }

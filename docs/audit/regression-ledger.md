@@ -1553,3 +1553,80 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-194 — «Niega alergia a penicilina» disparaba la alerta de alergia (v1076)
+
+**Encontrado** — 7-ago-2026, siguiendo el camino del campo de alergias hasta su
+último consumidor. REG-144 unificó cuatro parsers en `alergenosDe` y dejó un
+guardián para impedir el quinto. El guardián buscaba un `split` a mano; el
+consumidor que faltaba **no partía el campo en absoluto**.
+
+**El defecto** — `alergiaVsReceta` (`src/lib/expediente/copiloto.ts`), el cruce
+alergia↔fármaco, normalizaba el campo **entero** y buscaba el fármaco dentro con
+un `includes`, con un limpiador propio de palabras de negación.
+
+La negación va pegada a UN alérgeno; el `includes` los mira todos a la vez. Por
+eso el limpiador no podía funcionar por muchas palabras que se le añadieran: en
+«Niega alergia a penicilina» sobra «a penicilina» después de limpiar, así que la
+comprobación seguía viva y el campo seguía conteniendo la palabra.
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada, sobre nueve
+frases de consultorio. **Cuatro daban una crítica falsa** y `alergenosDe`
+acertaba en las nueve:
+
+```
+"Niega alergia a penicilina"          + Amoxicilina  → critico   (debía callar)
+"No refiere alergia a penicilina"     + Amoxicilina  → critico   (debía callar)
+"Niega alergia a sulfas"              + TMP/SMX      → critico   (debía callar)
+"Sin alergia a AINEs"                 + Ketorolaco   → critico   (debía callar)
+"Niega penicilina. Alérgico a sulfas" + Amoxicilina  → critico   (debía callar)
+"Niega penicilina. Alérgico a sulfas" + TMP/SMX      → critico   ✓
+"Alérgico a penicilina"               + Amoxicilina  → critico   ✓
+"Sulfas; no refiere otras"            + TMP/SMX      → critico   ✓
+"Alergia a ketorolaco"                + Ibuprofeno   → critico   ✓
+```
+
+El campo con una negada y una real es el que lo prueba: **las dos** familias
+saltaban, porque el campo entero contiene las dos palabras.
+
+**Por qué importa para un paciente** — El aviso de alergia es de los que **no se
+pliegan** (`avisos-consulta.ts`), y es la decisión correcta: es lo más grave de
+esa pantalla. Un aviso que no se puede cerrar y que además es falso deja al
+médico una sola salida para poder trabajar: **borrar el texto del expediente**.
+Es literalmente el desenlace que la cabecera de `alergias.ts` describe como el
+fallo a evitar, cometido otra vez por un consumidor distinto.
+
+Y el daño no se queda en ese paciente: una crítica roja que sale donde no debe
+enseña a ignorar las críticas rojas. La siguiente sí será real.
+
+**Reparación** — El cruce lee el campo **alérgeno por alérgeno**, por
+`alergenosDe`, que es el único sitio donde vive cómo se parte el campo y qué
+fragmento está negado. De paso entra `alergiasEstructuradas`: hoy no lo llena
+ninguna ruta de escritura, pero cualquier importación desde otro sistema lo
+activa el mismo día, y hasta ahora el paciente **mejor documentado** era el
+único sin cruce. La consulta se lo pasa al motor.
+
+**El guardián, ampliado por su punto ciego** — El de REG-144 buscaba un quinto
+`split`; el nuevo busca lo otro: un consumidor que trate el campo como una sola
+cadena, que es el mismo defecto hecho más grande. Y `copiloto.ts` entra en la
+lista de llamadores de `un-solo-parser-de-alergias.test.ts`, que es donde se
+mira quién lee este campo.
+
+**Qué NO hace** — No toca `FAMILIAS_ALERGIA`: los mismos disparadores, los
+mismos miembros, la misma precaución de carbapenémicos (≈1 %). No cambia el
+nivel del aviso ni qué bloquea la firma — eso lo decidió el médico dueño
+(REG-181). No juzga la reacción previa: un rash y una anafilaxia siguen entrando
+igual.
+
+**Qué queda para el médico** — Distinguir la gravedad de la reacción previa
+sigue siendo decisión suya (C-3 en `OWNER_DECISIONS_REQUIRED.md`). Y un negador
+que no esté en la lista de `alergias.ts` («descarta alergia a…») haría falta
+añadirlo ahí: la prueba lo vería fallar, no lo adivinaría.
+
+**Comprobado que puede ponerse rojo** — Revertido el arreglo, 8 de los 14 casos
+fallan; restaurado, los 14 pasan.
+
+**Golden** — `src/__tests__/la-alergia-negada-no-es-una-alergia.test.ts`
+(14 casos).

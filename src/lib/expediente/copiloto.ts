@@ -24,6 +24,8 @@ import { clasificarIMC } from './cardiometabolico/obesidad'
 import { fib4, interpretarFib4 } from './cardiometabolico/masld'
 import { prevent, motivoSinPrevent } from './prevent'
 import { extraerMg, esDosisPorKg } from '@/lib/seguridad/dosis'
+import { alergenosDe } from '@/lib/seguridad/alergias'
+import type { AlergiaEstructurada } from '@/types'
 
 export type NivelSugerencia = 'critico' | 'accion' | 'info'
 
@@ -55,6 +57,11 @@ export interface EntradaCopiloto {
   edad?: number
   sexo?: string
   alergias?: string
+  /**
+   * Las alergias capturadas en campo, cuando existen. Mandan sobre el texto
+   * libre — lo decide `alergenosDe`, no este motor.
+   */
+  alergiasEstructuradas?: AlergiaEstructurada[]
   diagnosticos?: DiagnosticoConsulta[]
   medicamentos?: MedicamentoConsulta[]
   signos?: SignosConsulta
@@ -129,22 +136,40 @@ const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]
 // ── 1. SEGURIDAD: alergia contra lo recetado ────────────────────────────────
 
 function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
-  const alergias = norm(e.alergias ?? '')
-  // Suprime SOLO si el campo es una NEGACIÓN PURA (sin alérgeno escrito). Antes,
-  // una negación referida a OTRAS alergias ("sulfas; no refiere otras" — fraseo muy
-  // común en México) hacía match con /no refier/ y apagaba TODO el chequeo, dejando
-  // pasar la sulfa. Ahora se limpian las palabras de negación/relleno y, si queda un
-  // alérgeno real escrito, la verificación sigue viva.
-  const restante = alergias
-    .replace(/ning\w*|niega\w*|no\s+refiere|sin\s+alergias?|conocid\w*|otr\w*|previ\w*|alergi\w*|medicament\w*|aliment\w*|ambient\w*|nkda|ska|negad\w*/g, ' ')
-    .replace(/[^a-z]+/g, ' ').trim()
-  if (!alergias || !restante) return []
+  /**
+   * ── EL CAMPO SE LEE ALÉRGENO POR ALÉRGENO (7-ago-2026, REG-194) ────────────
+   *
+   * Aquí se normalizaba el campo ENTERO y se buscaba el fármaco dentro con un
+   * `includes`, con un limpiador propio de negaciones. Sobre una frase suelta eso
+   * funciona; sobre el campo entero no puede funcionar, porque la negación va
+   * pegada a UN alérgeno y el `includes` mira todos a la vez:
+   *
+   *   «Niega alergia a penicilina» + amoxicilina → alerta CRÍTICA
+   *   «Niega penicilina. Alérgico a sulfas» + amoxicilina → alerta CRÍTICA
+   *
+   * Reproducido con este motor: 4 de 9 frases del consultorio daban una
+   * crítica falsa. El aviso de alergia es de los que **no se pliegan**
+   * (`avisos-consulta.ts`), así que la única salida que le quedaba al médico
+   * era borrar el texto del expediente — mutilando el registro para poder
+   * trabajar. Es el mismo desenlace que ya describía la cabecera de
+   * `alergias.ts`, cometido otra vez por un consumidor distinto.
+   *
+   * `alergenosDe` ya parte el campo por fragmentos y descarta los negados uno
+   * a uno, y encima lee `alergiasEstructuradas`. El guardián de REG-144 buscaba
+   * un quinto `split` a mano; éste no partía el campo **en absoluto**, que es
+   * el mismo defecto hecho más grande.
+   */
+  const alergenos = alergenosDe({
+    alergias: e.alergias,
+    alergiasEstructuradas: e.alergiasEstructuradas,
+  }).map(norm).filter(Boolean)
+  if (alergenos.length === 0) return []
   const meds = e.medicamentos ?? []
   if (meds.length === 0) return []
 
   const out: Sugerencia[] = []
   for (const fam of FAMILIAS_ALERGIA) {
-    if (!fam.dispara.some(d => alergias.includes(d))) continue
+    if (!fam.dispara.some(d => alergenos.some(a => a.includes(d)))) continue
     for (const m of meds) {
       const nm = norm(m.nombre ?? '')
       if (!nm) continue

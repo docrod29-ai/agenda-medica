@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1076 — REG-194: «Niega alergia a penicilina» disparaba la alerta de alergia
+
+El cruce alergia↔fármaco leía el campo ENTERO y buscaba el fármaco dentro con un
+`includes`. La negación va pegada a UN alérgeno, así que «Niega alergia a
+penicilina» + amoxicilina daba una crítica. Cuatro de nueve frases del
+consultorio salían mal.
+
+Ese aviso no se pliega —y hace bien—, así que la única salida que le quedaba al
+médico era borrar el texto del expediente para poder trabajar.
+
+Ahora lee alérgeno por alérgeno, por `alergenosDe`, que ya sabía qué fragmento
+está negado. De paso entra `alergiasEstructuradas`: el paciente mejor
+documentado era el único sin cruce.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

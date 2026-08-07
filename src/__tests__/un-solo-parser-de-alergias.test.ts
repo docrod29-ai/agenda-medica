@@ -87,6 +87,17 @@ describe('LOS TRES LLAMADORES USAN EL MISMO', () => {
     expect(uci).toContain('const lista = alergenosDe(paciente ?? {})')
   })
 
+  it('y el cruce alergia↔fármaco del copiloto (REG-194)', () => {
+    /**
+     * El cuarto llamador, que esta lista no tenía: no partía el campo a mano
+     * —por eso el guardián de abajo no lo veía— sino que lo leía ENTERO y
+     * buscaba el fármaco dentro con un `includes`, negaciones incluidas.
+     * Se apunta aquí porque ésta es la lista donde se mira quién lee el campo.
+     */
+    const copiloto = leer('src', 'lib', 'expediente', 'copiloto.ts')
+    expect(copiloto).toContain('alergenosDe({')
+  })
+
   it('y ya no queda ningún splitter propio del campo', () => {
     /**
      * El guardián que impide la quinta copia. Si alguien vuelve a partir el
