@@ -74,6 +74,39 @@ const CITA_ATRAS = 40
 const CITA_ADELANTE = 60
 
 /**
+ * ¿La coincidencia EMPIEZA una palabra, o va pegada al final de otra?
+ *
+ * ── «PLASMA» NO ES «ASMA» (verificado el 7-ago-2026) ─────────────────────────
+ *
+ * `indexOf` no sabe de palabras. Con un paciente que negó el asma, la línea de
+ * laboratorio «glucosa en plasma venoso 96 mg/dL» disparaba una contradicción de
+ * ASMA citando el laboratorio. Y «plasma» sale en casi toda nota con estudios,
+ * así que era un falso positivo de alta frecuencia sobre un aviso que **no se
+ * puede plegar** (`NO_SE_PLIEGAN`): justo la receta para que el médico aprenda a
+ * ignorarlo, y con él los que sí importan.
+ *
+ * Lo mismo con «sida» dentro de «presidatura» y «ivu» dentro de «divulgar».
+ *
+ * ── SÓLO SE EXIGE FRONTERA POR DELANTE, NO POR DETRÁS ────────────────────────
+ *
+ * Por detrás no, para no perder los plurales y las flexiones: «infartos»,
+ * «cirugías», «fracturas» tienen que seguir contando. Exigir frontera por los
+ * dos lados convertiría un falso positivo en una ceguera, que es peor.
+ *
+ * ── LO QUE ESTO SÍ CUESTA, DECLARADO ─────────────────────────────────────────
+ *
+ * Un padecimiento escrito como parte de una palabra compuesta deja de contar:
+ * «miocardiopatía» ya no cuenta como «cardiopatía», ni «esteatohepatitis» como
+ * «hepatitis». `bronconeumonía` no se pierde porque está listada aparte, y ése
+ * es el patrón correcto: **el compuesto se declara en el vocabulario**, no se
+ * caza por subcadena. Distinguir «miocardiopatía» (relacionado) de «plasma»
+ * (nada que ver) exige saber medicina, y eso no lo decide este módulo.
+ *
+ * Qué compuestos añadir al vocabulario está en la cola del dueño (C-7).
+ */
+const LETRA_O_DIGITO = /[\p{L}\p{N}]/u
+
+/**
  * La primera mención de este padecimiento en la nota que **no** trae disculpa.
  *
  * @param textoNota  la nota entera, tal como la lee el médico.
@@ -95,7 +128,10 @@ export function mencionSinDisculpa(
   for (const forma of formas) {
     const f = sinAcentos(forma)
     if (!f) continue
-    for (let i = t.indexOf(f); i >= 0; i = t.indexOf(f, i + 1)) posiciones.add(i)
+    for (let i = t.indexOf(f); i >= 0; i = t.indexOf(f, i + 1)) {
+      if (i > 0 && LETRA_O_DIGITO.test(t[i - 1])) continue // «plasma» no es «asma»
+      posiciones.add(i)
+    }
   }
   /**
    * En orden de lectura, no en orden de vocabulario. Antes la cita dependía de

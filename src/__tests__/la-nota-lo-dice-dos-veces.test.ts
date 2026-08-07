@@ -140,24 +140,70 @@ describe('LO QUE NO CAMBIA — el falso positivo sigue sin dispararse', () => {
     expect(contradicciones(negadas, nota)).toEqual([])
   })
 
-  it('«para descartar diabetes» en el plan no es afirmar diabetes', () => {
-    /**
-     * Pedir un estudio para descartar algo es lo contrario de afirmarlo. El
-     * infinitivo faltaba en `NIEGA_EN_LINEA` y antes casi no se notaba, porque
-     * sólo se juzgaba la primera mención. Al juzgarlas todas, esta frase —que es
-     * como escribe el plan un internista— habría empezado a bloquear la firma.
-     */
-    const nota = [
-      'ANTECEDENTES: niega diabetes, niega hipertensión arterial.',
-      'EXPLORACIÓN FÍSICA: consciente, orientada, sin datos de dificultad respiratoria.',
-      'ANÁLISIS Y PLAN: se solicita hemoglobina glucosilada para descartar diabetes.',
-    ].join('\n')
-    expect(contradicciones(negadas, nota)).toEqual([])
-  })
-
   it('y la nota que no lo menciona sigue sin generar nada', () => {
     expect(contradicciones(negadas, 'Faringitis aguda. Se indica sintomático.')).toEqual([])
     expect(desajustesTemporales(mencionesEnPasado('Tuvo asma de niño.'), 'Faringitis aguda.')).toEqual([])
+  })
+})
+
+describe('LO QUE LA REVISIÓN DEL PR CAZÓ — la reparación que se pasó de lista', () => {
+  /**
+   * La primera versión de REG-192 añadió el infinitivo `descartar` a
+   * `NIEGA_EN_LINEA` para que «se solicita HbA1c para descartar diabetes» no
+   * disparara al juzgar todas las menciones de la nota.
+   *
+   * Dos cosas estaban mal, y las dos se verificaron con el motor real:
+   *
+   * 1. La justificación era falsa. `contradiccion_negacion` es nivel `revisa`,
+   *    NO bloquea la firma (`avisos-consulta.ts`); sólo `dosis_incompleta` y
+   *    `requisito_nom004` bloquean. El aviso sí es de los que no se pliegan, que
+   *    es otra cosa.
+   * 2. `NIEGA_EN_LINEA` tiene DOS consumidores. Además de la disculpa sobre la
+   *    nota, `condicionesNegadas` lo usa sobre el DICTADO, y de ahí sale
+   *    `corregirCertezaPorNegacion`. El ensanche fabricaba una negación que el
+   *    paciente nunca dijo.
+   *
+   * Se revirtió. Estos casos existen para que no vuelva a entrar.
+   */
+  it('un estudio pedido para descartar algo NO es una negación del paciente', () => {
+    const dictado = 'Vamos a solicitar hemoglobina glucosilada para descartar diabetes.'
+    expect(condicionesNegadas(dictado)).toEqual([])
+  })
+
+  it('y la disculpa de OTRA condición no exonera a la que sí se afirma', () => {
+    /**
+     * «…para descartar neoplasia; paciente con diabetes mellitus descompensada…»
+     * — el «descartar» es de la neoplasia y caía dentro de los 60 caracteres de
+     * «diabetes». Con el ensanche, la diabetes afirmada quedaba en silencio: el
+     * mismo «una disculpa ajena taparía una afirmación real» que la ventana de
+     * 60 existe para evitar.
+     */
+    const negadas = condicionesNegadas('¿Ha tenido diabetes? No, ninguna.')
+    const nota = 'PLAN: se solicita TAC de tórax para descartar neoplasia; paciente con diabetes mellitus descompensada, se inicia metformina.'
+    expect(contradicciones(negadas, nota).map(c => c.condicion)).toEqual(['diabetes'])
+  })
+
+  it('DECLARADO: una negación que el vocabulario no conoce sí dispara', () => {
+    /**
+     * Éste NO es un caso que se repare: es el precio conocido de mirar todas las
+     * apariciones, y se deja escrito para que nadie lo descubra en producción
+     * creyendo que es un defecto nuevo.
+     *
+     * «No se documenta … ninguna alteración sugestiva de diabetes» no afirma la
+     * diabetes, pero ni «no se documenta» ni «ninguna» están en `NIEGA_EN_LINEA`,
+     * y la mención queda a más de 60 caracteres del «niega» de arriba. Antes no
+     * saltaba porque no se miraba; ahora sí.
+     *
+     * Ensanchar la lista de disculpas es lo que acaba de salir mal por tocar un
+     * regex con dos consumidores, así que la decisión es del dueño (C-6) y no se
+     * toma aquí.
+     */
+    const negadas = condicionesNegadas('¿Ha tenido diabetes? No, ninguna.')
+    const nota = [
+      'ANTECEDENTES: niega diabetes, niega hipertensión arterial.',
+      'ANÁLISIS Y PLAN: no se documenta, en los estudios de control del mes pasado, ninguna alteración sugestiva de diabetes.',
+    ].join('\n')
+    expect(contradicciones(negadas, nota).map(c => c.condicion)).toEqual(['diabetes'])
   })
 })
 
@@ -182,14 +228,39 @@ describe('EL BUSCADOR COMPARTIDO — una sola definición para los dos motores',
      * Antes la cita dependía de cómo estuviera ordenada la lista de formas —un
      * detalle interno del vocabulario—, así que reordenarla cambiaba lo que veía
      * el médico. Ahora manda la posición en la nota.
+     *
+     * OJO CON CÓMO SE ESCRIBE ESTE CASO: la primera versión usaba `asma` y
+     * `asmático`, que **coinciden en el mismo índice** —«asma» es el principio de
+     * «asmático»—, así que pasaba igual con la lógica vieja y no probaba el
+     * `sort`. Lo cazó la revisión del PR. Hacen falta dos formas que caigan en
+     * posiciones distintas y en orden inverso al del vocabulario.
      */
-    const nota = 'El paciente es asmático. Más abajo se vuelve a hablar del asma.'
-    const cita = mencionSinDisculpa(nota, ['asma', 'asmático'], DISCULPA)
-    expect(cita).toContain('asmático')
+    const nota = 'Se documenta HTA en la consulta previa y más abajo se escribe hipertension arterial.'
+    const cita = mencionSinDisculpa(nota, ['hipertension', 'hta'], DISCULPA)
+    expect(cita).toContain('HTA')
+    expect(cita).not.toContain('más abajo se escribe hipertension')
   })
 
   it('ignora las formas vacías sin devolver la nota entera', () => {
     expect(mencionSinDisculpa('Faringitis aguda.', ['', 'asma'], DISCULPA)).toBeNull()
+  })
+
+  it('«plasma» no es «asma»: la coincidencia tiene que EMPEZAR una palabra', () => {
+    /**
+     * `indexOf` no sabe de palabras. «Glucosa en plasma venoso» disparaba una
+     * contradicción de ASMA citando el laboratorio — y «plasma» sale en casi
+     * toda nota con estudios, sobre un aviso que además no se puede plegar.
+     */
+    expect(mencionSinDisculpa('LABORATORIO: glucosa en plasma venoso 96 mg/dL.', ['asma'], DISCULPA)).toBeNull()
+    expect(mencionSinDisculpa('Trámite de presidatura.', ['sida'], DISCULPA)).toBeNull()
+    expect(mencionSinDisculpa('Se prohíbe divulgar el expediente.', ['ivu'], DISCULPA)).toBeNull()
+  })
+
+  it('pero por DETRÁS no se exige frontera: los plurales siguen contando', () => {
+    // Exigir frontera por los dos lados convertiría un falso positivo en una
+    // ceguera, que es peor. «Infartos» tiene que seguir siendo «infarto».
+    expect(mencionSinDisculpa('Dos infartos previos no documentados.', ['infarto'], /\bnada\b/i))
+      .toContain('infartos')
   })
 
   it('la ventana de 60 vive UNA vez, no una por motor', () => {

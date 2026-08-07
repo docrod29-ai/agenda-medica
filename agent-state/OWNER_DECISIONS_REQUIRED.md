@@ -12,6 +12,8 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-6 | El guardián de negaciones usa **un mismo regex** para dos preguntas: «¿esta mención de la nota ya viene explicada?» y «¿el médico negó esto en el dictado?». ¿Se separan, y qué frases cuentan como negación en una NOTA? | **Separarlos.** Ensanchar el compartido ya fabricó una negación que el paciente no dijo (REG-192) | Que «no se documenta … ninguna alteración sugestiva de diabetes» deje de disparar un aviso | El guardián corre; el falso positivo está declarado y va con su golden |
+| C-7 | ¿Se añaden los **compuestos** al vocabulario — «miocardiopatía» como cardiopatía, «esteatohepatitis» como hepatitis? | Añadirlos como formas, igual que ya está `bronconeumonía` | Que esos compuestos se vigilen | Todo lo demás; hoy esos casos no se vigilan y así queda declarado |
 
 ## DESPLIEGUE Y OPERACIÓN
 

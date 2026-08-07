@@ -80,19 +80,36 @@ const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunc
 /**
  * Marcas de que un término ya viene negado en la propia frase.
  *
- * ── «PARA DESCARTAR DIABETES» (REG-192) ──────────────────────────────────────
+ * ── ESTE REGEX TIENE DOS CONSUMIDORES, Y NO PREGUNTAN LO MISMO ───────────────
  *
- * `descarta` ya estaba declarado; su infinitivo no, y en la nota mexicana se
- * escribe casi siempre así: «se solicita HbA1c **para descartar** diabetes».
- * Pedir un estudio para descartar algo no es afirmarlo — es lo contrario.
+ * Aviso para quien venga a ensancharlo: no es sólo la «disculpa» que
+ * `contradicciones` aplica sobre la NOTA. `condicionesNegadas` lo usa aquí
+ * abajo sobre el DICTADO, y de ahí sale `corregirCertezaPorNegacion`, que marca
+ * condiciones extraídas como `descartado`.
  *
- * Faltaba desde siempre, pero antes casi no se notaba: sólo se juzgaba la
- * PRIMERA aparición del término, y ésa suele estar en antecedentes. Al pasar a
- * juzgarlas todas, esta frase del plan empezaba a disparar una alerta que
- * bloquea la firma. No es criterio nuevo: es la morfología de un verbo que ya
- * estaba en la lista.
+ * Son dos preguntas distintas: «¿esta mención de la nota ya viene explicada?» y
+ * «¿el médico negó esto en el dictado?». Una palabra que sea buena disculpa para
+ * la primera puede fabricar una negación falsa en la segunda.
+ *
+ * ── LO QUE YA PASÓ, PARA QUE NO SE REPITA (REG-192, 7-ago-2026) ──────────────
+ *
+ * En la primera versión de REG-192 se añadió el infinitivo `descartar` pensando
+ * sólo en la nota: «se solicita HbA1c para descartar diabetes» parecía una
+ * disculpa razonable. Sobre el dictado el efecto era el contrario y mucho peor —
+ * verificado con el motor real:
+ *
+ *     condicionesNegadas('Vamos a solicitar HbA1c para descartar diabetes.')
+ *       → [{ condicion: 'diabetes' }]      ← el paciente NUNCA negó nada
+ *
+ * Un diferencial abierto quedaba escrito como `descartado`. Es la regla 4 de
+ * `clinical-safety.md` del revés: no es que la ausencia de dato se tome por dato
+ * de ausencia, es que se **fabrica** una ausencia que nadie dijo. Se revirtió.
+ *
+ * Separar los dos criterios está anotado como decisión del dueño (C-6): elegir
+ * qué frases cuentan como negación en una nota es vocabulario clínico y no lo
+ * decide el software.
  */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta(?:r|n)?|ausencia\s+de|se\s+descarta)\b/i
+const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()

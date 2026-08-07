@@ -18,6 +18,11 @@ Ahora se recorren todas las apariciones, en orden de lectura, desde un solo
 buscador para los dos motores. Mismo criterio y misma ventana de 60: lo único
 que cambia es cuántas veces se aplica.
 
+La revisión del PR tumbó dos cosas de la primera versión, y tenía razón en las
+dos: el ensanche de `NIEGA_EN_LINEA` fabricaba una negación que el paciente no
+dijo (ese regex también se usa sobre el DICTADO), y faltaba frontera de palabra
+—«plasma» disparaba un aviso de «asma» citando el laboratorio—.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

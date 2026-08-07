@@ -1632,14 +1632,69 @@ de formas, un detalle interno del vocabulario; reordenarla cambiaba lo que veía
 el médico. Ahora manda la posición en la nota, que es la que le sirve para
 resolverlo sin volver al audio.
 
-**«Para descartar diabetes» — el falso positivo que esto habría creado** —
-`descarta` ya estaba declarado en `NIEGA_EN_LINEA`; su infinitivo no, y el plan
-de un internista se escribe casi siempre así: «se solicita hemoglobina
-glucosilada **para descartar** diabetes». Pedir un estudio para descartar algo es
-lo contrario de afirmarlo. Faltaba desde siempre y casi no se notaba porque sólo
-se juzgaba la primera mención; al juzgarlas todas habría empezado a disparar una
-alerta que **bloquea la firma**. Se añade la morfología del verbo que ya estaba
-en la lista (`descarta(?:r|n)?`), no un criterio nuevo.
+**«Para descartar diabetes» — la reparación que se pasó de lista, y se revirtió**
+
+La primera versión de este REG añadió el infinitivo `descartar` a
+`NIEGA_EN_LINEA`, razonando que al juzgar todas las menciones «se solicita HbA1c
+para descartar diabetes» empezaría a disparar. **La revisión del PR lo tumbó, con
+razón, y se verificó con el motor real.** Dos cosas estaban mal:
+
+1. **La justificación era falsa.** Se escribió que ese aviso «bloquea la firma».
+   No es cierto: `avisos-consulta.ts` clasifica `contradiccion_negacion` como
+   nivel `revisa`, y lo único que bloquea son `dosis_incompleta` y
+   `requisito_nom004`. Sí es de los que **no se pliegan**, que es otra cosa y
+   menos grave. La premisa que sostenía el cambio no existía.
+
+2. **`NIEGA_EN_LINEA` tiene DOS consumidores.** No es sólo la disculpa que
+   `contradicciones` aplica sobre la nota: `condicionesNegadas` lo usa sobre el
+   **DICTADO**, y de ahí sale `corregirCertezaPorNegacion`, que marca condiciones
+   extraídas como `descartado`. Con el ensanche:
+
+   ```
+   condicionesNegadas('Vamos a solicitar HbA1c para descartar diabetes.')
+     → [{ condicion: 'diabetes' }]      ← el paciente NUNCA negó nada
+   ```
+
+   Un diferencial abierto quedaba escrito como ya descartado. Es la regla 4 de
+   `clinical-safety.md` del revés: no es que la ausencia de dato se tome por dato
+   de ausencia — es que se **fabrica** una ausencia que nadie dijo.
+
+   Y de paso creaba un silencio: en «…para descartar neoplasia; paciente con
+   diabetes mellitus descompensada…», el «descartar» de la neoplasia caía dentro
+   de los 60 caracteres de «diabetes» y exoneraba una afirmación real.
+
+Revertido. Quedan dos golden que impiden que vuelva a entrar, y el regex lleva
+ahora escrito encima que tiene dos consumidores que no preguntan lo mismo.
+
+**«Plasma» no es «asma» — frontera de palabra**
+
+También de la revisión, también verificado: `indexOf` no sabe de palabras. Con un
+paciente que negó el asma, la línea «glucosa en plasma venoso 96 mg/dL» disparaba
+una contradicción de ASMA citando el laboratorio. «Plasma» sale en casi toda nota
+con estudios, así que era un falso positivo de alta frecuencia sobre un aviso que
+**no se puede plegar**: la receta exacta para que el médico aprenda a ignorarlo.
+Igual con «sida» dentro de «presidatura» y «ivu» dentro de «divulgar».
+
+Se exige frontera **sólo por delante**. Por detrás no, para no perder plurales y
+flexiones —«infartos», «cirugías»—: exigir las dos convertiría un falso positivo
+en una ceguera, que es peor.
+
+**Lo que esa frontera cuesta, declarado** — Un padecimiento escrito dentro de una
+palabra compuesta deja de contar: «miocardiopatía» ya no cuenta como
+«cardiopatía», ni «esteatohepatitis» como «hepatitis». `bronconeumonía` no se
+pierde porque está listada aparte, y ése es el patrón correcto: el compuesto se
+declara en el vocabulario, no se caza por subcadena. Distinguir «miocardiopatía»
+(relacionado) de «plasma» (nada que ver) exige saber medicina. Qué compuestos
+añadir es decisión del dueño (C-7).
+
+**El falso positivo que SÍ queda, declarado y sin reparar** — «No se documenta,
+en los estudios del mes pasado, ninguna alteración sugestiva de diabetes» dispara
+un aviso, porque ni «no se documenta» ni «ninguna» están en `NIEGA_EN_LINEA` y la
+mención queda a más de 60 caracteres del «niega» de arriba. Antes no saltaba
+porque no se miraba. **Es el precio conocido de mirar todas las apariciones**, y
+va con su golden para que nadie lo descubra en producción creyéndolo un defecto
+nuevo. Ensanchar la lista de disculpas es justo lo que acaba de salir mal, así
+que la decisión es del dueño (C-6) y no se toma aquí.
 
 **Qué NO hace** — No mira más allá del vocabulario de cada motor: un padecimiento
 que no esté en `CRONICAS` ni en `AGUDAS_FRECUENTES` no se vigila, y eso no
@@ -1652,6 +1707,9 @@ guardián no puede saber si la frase habla del antecedente o de un cuadro de hoy
 corresponde. El sistema sólo se niega a dejarlo pasar en silencio.
 
 **Comprobado que puede ponerse rojo** — Revertidos los dos motores, el golden
-falla en sus tres casos de defecto y pasa en los nueve de no-regresión.
+falla en sus tres casos de defecto. Y cada guardia añadida tras la revisión se
+comprobó por separado: sin la frontera de palabra falla el caso de «plasma»; con
+el ensanche de `descartar` de vuelta fallan los dos de la negación fabricada; sin
+el orden por posición falla el de la cita.
 
-**Golden** — `src/__tests__/la-nota-lo-dice-dos-veces.test.ts` (12 casos).
+**Golden** — `src/__tests__/la-nota-lo-dice-dos-veces.test.ts` (16 casos).
