@@ -2114,3 +2114,63 @@ cuenta los casos de cada archivo y no deja que encojan— detecta la segunda. Ha
 falta la pareja: hasta hoy sólo existía la mitad.
 
 **Documento** — `docs/evals/PUERTA-DE-LIBERACION.md`
+
+---
+
+## REG-205 — 52 defectos y nadie los había contado por familia (v1086)
+
+**Qué faltaba** — El §H7 del charter pide que cada defecto se convierta en
+aprendizaje permanente. La mitad estaba hecha: cada REG tiene su prueba de
+regresión. **La otra mitad no**: nadie había mirado los 52 juntos para preguntar
+de qué se enferma este sistema.
+
+Leídos de uno en uno son 52 historias. Contados por familia dicen algo que
+ninguno dice solo.
+
+**Lo que salió, con la cuenta detrás:**
+
+| Familia | Casos |
+|---|---:|
+| **Escrito, probado y sin conectar** | **9** |
+| El sistema se contradice a sí mismo | 8 |
+| El habla real no cabía en el motor | 5 |
+| Nadie lo estaba midiendo | 5 |
+| El hueco tratado como dato | 4 |
+| Fuga entre consultorios y dinero | 4 |
+| El charter existía sin encarnar | 4 |
+| Estorba al médico · Pérdida de datos | 3 y 3 |
+| Llega tarde para servir · El mensaje mentía | 2 y 2 |
+| *Decisión del dueño, no defecto* | 2 |
+| Al modelo de datos le faltaba un eje | 1 |
+
+**La familia más grande confirma lo que ya se sospechaba, ahora con número** —
+nueve veces el módulo estaba bien, sus pruebas pasaban, y el sistema fallaba
+igual **porque el módulo no corría donde tenía que correr**: el motor de
+sobredosis después de firmar (REG-190), «Quitar de la nota» tocando un metadato
+de auditoría (REG-198), los motores recibiendo la receta de hoy en vez del
+paciente entero (REG-188), el 80,6 % de las correcciones tirado sin mirar
+(REG-169) y el bucle que debía aprender de ellas sin haber aprendido nada
+(REG-170).
+
+**Lo que implica**: una prueba unitaria verde es compatible con las nueve. Sólo
+las cazan las pruebas que recorren **el camino**, no la pieza.
+
+**La segunda familia justifica los guardianes de coherencia** — ocho casos donde
+**ninguna de las dos partes está mal por separado**, así que ninguna revisión de
+una sola pieza los encuentra. No hay dónde poner una prueba que vigile una
+contradicción entre dos módulos salvo **un tercero que compare**.
+
+**Lo que el conteo NO dice, escrito dentro del documento** — sólo se cuentan los
+defectos **encontrados**, y encontrar depende de dónde se miró. Una familia
+pequeña puede serlo porque es rara o **porque nadie la busca**, y las dos se ven
+idénticas desde aquí. La sospechosa es «fuga entre consultorios»: cuatro casos,
+los cuatro hallados auditando a propósito, ninguno en uso normal — y es uno de
+los dos ceros que la puerta de liberación declara DÉBIL.
+
+**Por qué la taxonomía es código y no una tabla** — una tabla escrita a mano
+envejece en silencio. `src/lib/calidad/familias-de-defecto.ts` se compara contra
+el ledger y `src/__tests__/de-que-se-enferma-este-sistema.test.ts` (9 casos)
+**falla si un REG no tiene familia**. Este mismo REG-205 lo estrenó: al añadirlo,
+la prueba se puso roja hasta clasificarlo.
+
+**Documento** — `docs/quality/FAMILIAS-DE-DEFECTO.md`

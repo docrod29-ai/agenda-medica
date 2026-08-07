@@ -2091,3 +2091,11 @@ charter. Ahora están en `docs/evals/PUERTA-DE-LIBERACION.md` con su prueba, y u
 guardián de 15 casos comprueba que ninguna desaparezca. Los nueve ya tenían
 cobertura; **dos quedan declarados DÉBILES** —paciente equivocado y aislamiento
 entre consultorios— en vez de pintarlos de verde.
+
+## v1086 — de qué se enferma este sistema
+REG-205. Los 53 REG del ledger, contados por familia de causa raíz. La más
+grande —**«escrito, probado y sin conectar», 9 de 53**— confirma con número lo
+que ya se sospechaba: el módulo estaba bien, sus pruebas pasaban, y no corría
+donde tenía que correr. La taxonomía es CÓDIGO (`src/lib/calidad/`) y un
+guardián falla si un REG se queda sin familia. El guardián de huérfanos cazó, al
+escribirlo, el módulo que documenta esa misma familia.
