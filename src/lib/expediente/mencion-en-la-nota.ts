@@ -74,6 +74,87 @@ const CITA_ATRAS = 40
 const CITA_ADELANTE = 60
 
 /**
+ * Dónde acaba el apartado anterior: hasta ahí, y no más atrás, se mira.
+ *
+ * ── LA VENTANA CRUZABA DE APARTADO (verificado el 7-ago-2026) ────────────────
+ *
+ * Mirar todas las apariciones no bastaba, y se comprobó con los motores reales
+ * sobre la nota que motiva este módulo:
+ *
+ *     ANTECEDENTES PERSONALES PATOLÓGICOS: niega diabetes mellitus, niega hipertensión.
+ *     IMPRESIÓN DIAGNÓSTICA: 1. Diabetes mellitus tipo 2 descontrolada.
+ *
+ *     contradicciones(...)  →  []
+ *
+ * La segunda aparición —la que hay que cazar— tiene el «niega hipertensión» de
+ * la línea de ARRIBA dentro de sus 60 caracteres previos. Se recorrían todas las
+ * apariciones y se descartaban todas: el guardián seguía ciego con el arreglo
+ * puesto, sobre el caso exacto que lo motivó.
+ *
+ * Es, palabra por palabra, lo que el comentario de `VENTANA_ATRAS` ya temía —«una
+ * disculpa ajena taparía una afirmación real»—. Acortar la ventana sólo lo hacía
+ * menos probable; lo que hacía falta era no salirse del apartado.
+ *
+ * ── QUÉ CORTA Y QUÉ NO ───────────────────────────────────────────────────────
+ *
+ * El punto, el salto de línea, el punto y coma y los dos puntos separan lo que en
+ * una nota clínica son apartados distintos («ANTECEDENTES:», «1.»).
+ *
+ * La coma **NO** corta, y eso es deliberado: «niega diabetes, hipertensión y
+ * asma» es una sola enumeración negada, y cortarla resucitaría de golpe el falso
+ * positivo que la ventana existía para evitar.
+ */
+const FIN_DE_APARTADO = /[.\n;:!?¡¿]/g
+
+/** Los `VENTANA_ATRAS` caracteres previos, recortados en su propio apartado. */
+function contextoPrevio(textoNota: string, idx: number): string {
+  const ventana = textoNota.slice(Math.max(0, idx - VENTANA_ATRAS), idx)
+  let corte = 0
+  for (const m of ventana.matchAll(FIN_DE_APARTADO)) corte = m.index + 1
+  return ventana.slice(corte)
+}
+
+/**
+ * Menciones que NO afirman el padecimiento, y que sólo se ven al recortar.
+ *
+ * ── POR QUÉ NACE CON EL RECORTE Y NO ANTES ───────────────────────────────────
+ *
+ * Mientras la ventana cruzaba de apartado, «Antecedentes: niega diabetes. Plan:
+ * glucosa para descartar diabetes» se callaba **por el motivo equivocado**: el
+ * «niega» de la frase anterior tapaba la segunda mención. Al recortar, esa
+ * segunda mención queda sola —«glucosa para descartar »— y `DISCULPA_EN_LA_NOTA`
+ * no la reconoce: su `descarta` no casa con «descartar».
+ *
+ * O sea que arreglar el recorte sin esto **estrenaría** un falso positivo de alta
+ * frecuencia —el plan de estudios de casi cualquier nota— sobre un aviso que no
+ * se puede plegar. Es el mismo daño que «plasma»/«asma» y por eso va en el mismo
+ * sitio.
+ *
+ * Es **vocabulario, no criterio**: que falte una forma significa que esa mención
+ * se sigue contando como afirmación —se avisa de más, no de menos— y el aviso
+ * lleva la cita delante para descartarlo de un vistazo.
+ *
+ * ── VA ANCLADO AL TÉRMINO, Y ESO NO ES ESTILO ────────────────────────────────
+ *
+ * Sin el `$`, el «descartar» de «glucosa para descartar diabetes y control de la
+ * hipertensión» callaría también a la hipertensión, que la nota sí afirma. La
+ * marca sólo vale si va pegada a la mención que se está juzgando.
+ *
+ * ── Y NO VIVE EN `DISCULPA_EN_LA_NOTA` ───────────────────────────────────────
+ *
+ * Ése es el regex que C-6 separó del lado del dictado. «Lo mandé a descartar
+ * diabetes» no es el paciente negando nada: meterlo allí volvería a mezclar las
+ * dos preguntas que C-6 acababa de separar.
+ */
+const COLA = '(?:\\s+(?:de|del|de\\s+la|la|el|los|las|un|una))?\\s*$'
+const NO_AFIRMA = new RegExp([
+  '\\bdescartar' + COLA,
+  '\\b(?:prevenir|prevencion|profilaxis)' + COLA,
+  '\\briesgo\\s+(?:de|para)' + COLA,
+  '\\b(?:tamizaje|cribado|escrutinio)' + COLA,
+].join('|'), 'i')
+
+/**
  * ¿La coincidencia EMPIEZA una palabra, o va pegada al final de otra?
  *
  * ── «PLASMA» NO ES «ASMA» (verificado el 7-ago-2026) ─────────────────────────
@@ -162,12 +243,20 @@ export function mencionSinDisculpa(
    * médico necesita ver es la primera vez que la nota lo dice mal.
    */
   for (const { inicio: idx } of apariciones(textoNota, formas)) {
-    const antes = textoNota.slice(Math.max(0, idx - VENTANA_ATRAS), idx)
-    if (disculpa.test(sinAcentos(antes))) continue
+    const antes = sinAcentos(contextoPrevio(textoNota, idx))
+    if (disculpa.test(antes)) continue
+    if (NO_AFIRMA.test(antes)) continue
     return textoNota.slice(Math.max(0, idx - CITA_ATRAS), idx + CITA_ADELANTE).trim()
   }
   return null
 }
+
+export const POR_QUE_EL_CONTEXTO_NO_SALE_DEL_APARTADO =
+  'Mirar todas las apariciones no bastaba: la segunda mención tenía el «niega» ' +
+  'de la línea de arriba dentro de sus 60 caracteres previos, así que se ' +
+  'descartaba igual y el guardián seguía ciego sobre el caso que lo motivó. El ' +
+  'contexto se recorta en el punto, el salto de línea, el punto y coma y los dos ' +
+  'puntos — no en la coma, que es la que enumera lo negado.'
 
 export const POR_QUE_TODAS_LAS_APARICIONES =
   'La primera vez que una nota nombra un padecimiento suele ser la del apartado ' +

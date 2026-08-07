@@ -3,6 +3,26 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1077 — REG-195: mirar todas las apariciones no bastaba
+
+REG-192 hizo que los dos guardianes recorrieran TODAS las menciones de la nota
+y no sólo la primera. Con ese arreglo puesto y su golden en verde, el caso que
+lo motivó seguía sin avisar:
+
+    ANTECEDENTES: niega diabetes mellitus, niega hipertensión.
+    IMPRESIÓN DIAGNÓSTICA: 1. Diabetes mellitus tipo 2 descontrolada.
+
+La segunda mención —la del diagnóstico— tiene el «niega hipertensión» de la
+línea de ARRIBA dentro de sus 60 caracteres previos. Se recorrían todas las
+apariciones y se descartaban todas.
+
+Ahora el contexto se recorta en el fin de apartado: punto, salto de línea, punto
+y coma y dos puntos. La coma no, que es la que enumera lo negado.
+
+Y con el recorte llega `NO_AFIRMA`: al dejar sola a la segunda mención, «glucosa
+para descartar diabetes» habría empezado a avisar en casi cualquier nota, sobre
+un aviso que no se puede plegar.
+
 ## v1076 — REG-194: «No pues sí» se leía como un no
 
 En el habla mexicana el «no» de arranque es una muletilla y lo que sigue es un sí

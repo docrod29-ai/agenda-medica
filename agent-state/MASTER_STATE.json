@@ -11,7 +11,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-194 (cerrada) — v1076, sobre agent/safety/SAFE-003",
+  "iteracionActual": "REG-195 (cerrada) — v1077, sobre agent/safety/SAFE-003",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
@@ -21,20 +21,21 @@
   "trabajoLocalSinSubir": [],
   "notaSobreEsteArchivo": "Estaba congelado en v1030 mientras el ledger iba por REG-191/v1073: VOICE-004 y SAFE-001 figuraban abiertos y llevaban versiones reparados. Se reconciliaron contra el repositorio en esta iteración. Si vuelve a desfasarse, la fuente de verdad es docs/audit/regression-ledger.md, no este archivo.",
   "compuertas": {
-    "vitest": "6970 en verde, la suite entera (incluido ops-timeout, que esta vez sí pudo agotar el tiempo)",
+    "vitest": "la suite entera en verde salvo ops-timeout-y-punto-ciego, que en este entorno falla porque la red RECHAZA la IP agujero negro en vez de colgarse — comprobado que falla igual en main sin ningún cambio",
     "tsc": "limpio",
     "lintTrinquete": "96, igual que el techo",
     "build": "verde con los placeholders sintéticos de CI"
   },
-  "leccionDeEstaIteracion": "La iteración empezó desde `main` y llegó a un repositorio distinto del que dejó la anterior: REG-192 y v1074 ya estaban tomados, y no por una rama sino por SIETE PRs abiertos a la vez, todos con el mismo número y la misma versión. Lo correcto fue tirar mi rama y rehacer el trabajo encima de origin/agent/safety/SAFE-003. Y hacer caso de la lección anterior: NO ensanché NIEGA_EN_LINEA — le cambié el alcance. El vocabulario de negación de la NOTA queda en C-6 para el Dr., aunque lo tenga reproducido, porque ampliarlo por mi cuenta es exactamente lo que costó el revert de v1074.",
+  "leccionDeEstaIteracion": "Otro firing arrancado desde `main` que volvió a reimplementar REG-192 entero: van quince. Se descartó la rama duplicada y se rehizo encima de origin/agent/safety/SAFE-003, como ya había hecho la iteración anterior. Y de ahí salió lo único nuevo: al PROBAR la rama existente con los motores reales antes de darla por buena, el caso del titular seguía sin avisar. La reparación estaba puesta, tenía golden en verde, y el hueco seguía abierto — la ventana de 60 caracteres cruzaba de apartado. Verificar la reparación ajena valió más que la reparación propia.",
   "decisionesNuevasParaElDueno": [
     "C-6 separar los dos criterios de negación (nota vs dictado)",
     "C-7 compuestos del vocabulario (miocardiopatía, esteatohepatitis)"
   ],
-  "alertaParaElDueno": "HAY 12 PRs ABIERTOS SIN FUSIONAR, y 9 de ellos vienen de firings distintos de esta misma rutina: PR #230 a #241, todos ramificados del mismo main (6d35d95) y casi todos titulados «REG-192 … (v1074)». El número de regresión y la versión del service worker dejaron de ser únicos, y varios tocan el mismo archivo. Se necesita decidir el orden de fusión y renumerar antes de que se acumulen más.",
-  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1076",
+  "alertaParaElDueno": "SUBE A 19+ PRs ABIERTOS SIN FUSIONAR (T-1). El firing del 7-ago por la tarde volvió a empezar REG-192 desde cero por enésima vez y sólo se enteró al fallar el push. Mientras no se fusione nada, cada firing repite el mismo ítem, toma el mismo REG y la misma versión de service worker: el número de regresión ya no acota un lote de notas, que es justo lo que REG-191 acababa de reparar para IEC 62304. Decidir orden de fusión y renumerar.",
+  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1077",
   "leccionesVivas": [
     "Antes de tocar un regex, buscar TODOS sus llamadores (lección de REG-192).",
-    "Antes de abrir rama, mirar si origin ya tiene una con ese nombre: el 7-ago se reimplementó REG-192 entero en paralelo contra una rama que ya lo tenía resuelto y mejor. El trabajo duplicado se descartó, no se empujó."
+    "Antes de abrir rama, mirar si origin ya tiene una con ese nombre: el 7-ago se reimplementó REG-192 entero en paralelo contra una rama que ya lo tenía resuelto y mejor. El trabajo duplicado se descartó, no se empujó.",
+    "Un golden en verde no dice que el defecto esté cerrado: dice que el caso escrito pasa. Probar el caso del TITULAR contra los motores reales, aunque la reparación ya esté puesta."
   ]
 }
