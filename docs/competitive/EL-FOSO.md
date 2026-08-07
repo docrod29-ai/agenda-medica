@@ -60,10 +60,10 @@ reescribir su producto.
 
 ### 3 · El historial de defectos con causa raíz
 
-55 REG con causa raíz, reparación y prueba de regresión permanente; 13 familias
+56 REG con causa raíz, reparación y prueba de regresión permanente; 13 familias
 de causa contadas ([`docs/quality/`](../quality/FAMILIAS-DE-DEFECTO.md)).
 
-**Por qué es foso, y es contraintuitivo**: 55 defectos documentados enseñan más
+**Por qué es foso, y es contraintuitivo**: 56 defectos documentados enseñan más
 del rigor del equipo que una lista vacía — que sólo significa que nadie los
 estaba buscando. Y la lista de familias dice **dónde mirar mañana**, que es
 conocimiento operativo que no viene con ninguna API.

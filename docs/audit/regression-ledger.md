@@ -2296,3 +2296,63 @@ prueba de que **sigue cazando las frases reales** del documento anterior: si el
 patrón se afloja, el guardián queda apagado sin que nadie lo note.
 
 **Documento** — `docs/competitive/EL-FOSO.md`
+
+---
+
+## REG-208 — el instrumento que mide «¿esto llega al médico?» estaba ciego cuatro veces (v1089)
+
+**Qué se construyó** — El §4.1 pedía `docs/product/`. Se escribió el camino
+clínico de siete pasos y una prueba que **lo recorre de verdad**: parte de
+`src/app/` y sigue los imports hasta donde lleguen.
+
+Existe porque la familia de defecto más grande del ledger —**9 de 55**— es
+«escrito, probado y sin conectar», y **los nueve tenían prueba unitaria en
+verde**. Ninguna prueba de pieza hacía la pregunta que importa: *¿esto está en el
+camino?*
+
+**Lo que pasó al encenderlo, que es el verdadero contenido de este REG** — la
+primera medición dijo **87 módulos fuera del camino**. La cifra era falsa. El
+lector tenía **cuatro cegueras**, todas del mismo tipo: **veía texto donde tenía
+que ver código**.
+
+| # | Ceguera | Efecto | Tras arreglarla |
+|---|---|---|---|
+| 1 | `import type` contado como dependencia | dependencias que no existen | (ya estaba) |
+| 2 | `await import()` y `dynamic(() => import())` invisibles | **los paneles clínicos de Next** parecían fuera | 87 → 70 |
+| 3 | Rutas relativas `./x` ignoradas | **el interior de cada motor** parecía fuera: los 19 archivos del antibiograma | 70 → 29 |
+| 4 | Comentarios leídos como código | imports comentados contaban como vivos | 29 → 35 |
+
+**Y la cuarta trajo la peor**: al quitar comentarios, el orden importaba. Un
+comentario de línea de `ValoracionInmuno.tsx` dice *«la lógica vive en
+`src/lib/inmuno/*`»* — esa **barra-asterisco abría un bloque falso** y el
+limpiador se comía los seis imports del motor de inmunocomprometido. **El módulo
+aparecía desconectado estando montado en la consulta.** Se arregló quitando
+primero las líneas `//` y después los bloques.
+
+**Por qué esto importa más que el número** — un instrumento que declara
+desconectado un motor clínico que sí corre es **peor que no tenerlo**: manda a
+buscar donde no hay nada y desacredita las veces que acierta. La regla que sale
+de aquí: **antes de reportar una cifra, comprobar el instrumento con un caso cuya
+respuesta ya se conoce.**
+
+**El resultado real, ya verificado**: 500 módulos, **471 alcanzables, 29 no**. De
+esos 29, **26 ya estaban declarados** como huérfanos aceptados con su motivo. Que
+dos instrumentos independientes converjan en el mismo conjunto es la mejor señal
+que puede dar una medición.
+
+**Los otros 3 son lo que este instrumento ve y el otro no**: están importados
+—así que no son huérfanos— **pero por un módulo que tampoco corre**. Islas de
+dos: `clinica/simulacro`, `compliance/country-profiles`, `uci/benchmark-metricas`.
+Ninguno alarmante; los tres son lo que quedaba por ver.
+
+**El guardián** — `src/__tests__/el-camino-del-medico-llega-entero.test.ts`
+(9 casos, 21 aserciones). Comprueba los siete pasos, que sus módulos existan y se
+alcancen, y **pone un trinquete en 29**: el número puede bajar, no subir sin que
+alguien lo escriba.
+
+**Lo que NO prueba, escrito dentro** — que el módulo funcione (para eso están sus
+pruebas) ni que corra **en el momento correcto**: REG-190 y REG-173 eran motores
+perfectamente alcanzables que **llegaban tarde**. Prueba que **el cable existe**,
+que es la condición previa a todo lo demás.
+
+**Documento** — `docs/product/EL-CAMINO-DEL-MEDICO.md`

@@ -2116,3 +2116,11 @@ en EHR cloud») bajo una columna titulada «Por qué somos superiores». Documen
 nuevo que separa lo que ES foso de lo que NO lo es. Y el guardián me cazó dos
 veces: al citar las frases para denunciarlas, y al impedirme declarar un hueco
 propio — la misma lección de v1083.
+
+## v1089 — el camino del médico, y el instrumento que estaba ciego
+REG-208. Documento de producto: los 7 pasos del paciente a la nota firmada, con
+una prueba que RECORRE el camino desde `src/app/`. Al encenderlo dijo «87
+módulos fuera»; era falso. El lector tenía cuatro cegueras (import type,
+import() dinámico, rutas relativas, comentarios leídos como código) y la última
+casi hace declarar desconectado el motor de inmunocomprometido, que sí corre.
+Real: 471 alcanzables, 29 no, 26 ya declarados. Trinquete en 29.

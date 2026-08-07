@@ -47,8 +47,78 @@ export const PERMITIDO: Record<Capa, readonly Capa[]> = {
   types: [],
 }
 
-const ESPECIFICADOR = /(?:from|import)\s+['"](@\/[^'"]+)['"]/g
+const ESPECIFICADOR = /(?:from|import)\s+['"]((?:@\/|\.\.?\/)[^'"]+)['"]/g
 const IMPORT_DE_TIPO = /^\s*(?:export|import)\s+type\s/
+
+/**
+ * LOS DOS `import()` QUE SÍ CARGAN CÓDIGO — y el que no.
+ *
+ * El lector original sólo veía `import … from '…'`. Se le escapaban las dos
+ * formas dinámicas reales de este repositorio:
+ *
+ *   await import('@/lib/whatsapp-send')                    ← carga perezosa
+ *   dynamic(() => import('@/components/PanelPediatria'))   ← componente de Next
+ *
+ * **Con los paneles clínicos cargados así**, un lector ciego a esto los declara
+ * fuera del camino cuando están en el centro. La primera medición dio 87 módulos
+ * inalcanzables; la cifra estaba inflada por esto y no se publicó.
+ *
+ * Lo que NO cuenta: `x as unknown as import('@/types').ClinicConfig`. Ahí
+ * `import()` está en posición de TIPO y TypeScript lo borra. Por eso se exige
+ * `await` o `=>` delante: los dos marcan una carga de verdad.
+ */
+const DINAMICO_REAL = [
+  /await\s+import\s*\(\s*['"]((?:@\/|\.\.?\/)[^'"]+)['"]/g,
+  /=>\s*import\s*\(\s*['"]((?:@\/|\.\.?\/)[^'"]+)['"]/g,
+]
+
+/**
+ * Quita los comentarios antes de leer.
+ *
+ * Sin esto el lector cuenta como dependencia viva **un import escrito dentro de
+ * un comentario** — un ejemplo en la documentación, o una línea comentada al
+ * depurar. Lo cazó este mismo archivo: el bloque que explica
+ * `dynamic(() => import('@/components/…'))` hacía que `lib/` pareciera depender
+ * de un componente, o sea una dependencia invertida que no existe.
+ *
+ * Es la cuarta ceguera del mismo lector en una noche. Todas del mismo tipo:
+ * **el lector veía texto donde tenía que ver código.**
+ *
+ * ── EL ORDEN NO ES INDIFERENTE, Y CASI ME CUESTA UN MÓDULO CLÍNICO ───────────
+ *
+ * Primero se quitan las líneas `//`, DESPUÉS los bloques. Al revés no.
+ *
+ * `ValoracionInmuno.tsx` lleva en su cabecera un comentario de línea que dice
+ * «la lógica vive en src/lib/inmuno/**\***». Esa barra-asterisco **abre un bloque
+ * falso**, y el limpiador se comía todo hasta el siguiente cierre — incluidos
+ * los seis imports del motor de inmunocomprometido. El módulo aparecía fuera del
+ * camino estando montado en la consulta.
+ *
+ * Un instrumento que declara desconectado un motor clínico que sí corre es peor
+ * que no tenerlo: manda a buscar donde no hay nada, y de paso desacredita las
+ * veces que acierta.
+ */
+function sinComentarios(src: string): string {
+  return src
+    .split('\n')
+    .filter(l => !l.trimStart().startsWith('//'))
+    .join('\n')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+}
+
+/** Los especificadores de una línea, estáticos y dinámicos. */
+function especificadoresDe(linea: string): string[] {
+  const out: string[] = []
+  ESPECIFICADOR.lastIndex = 0
+  let m: RegExpExecArray | null
+  while ((m = ESPECIFICADOR.exec(linea))) out.push(m[1])
+  for (const re of DINAMICO_REAL) {
+    re.lastIndex = 0
+    let d: RegExpExecArray | null
+    while ((d = re.exec(linea))) out.push(d[1])
+  }
+  return out
+}
 
 export interface Arista {
   desde: string
@@ -62,12 +132,39 @@ function capaDe(ruta: string): Capa | null {
   return null
 }
 
-function resolver(espec: string): string | null {
-  const base = `src/${espec.slice(2)}`
+/**
+ * `@/lib/x` **o** `./x` → la ruta real.
+ *
+ * Las relativas hacían falta y faltaban. Dentro de una carpeta los módulos se
+ * importan entre sí con `./`, así que un lector que sólo sigue `@/` declara
+ * inalcanzable **el interior de cada motor**: el de antibiograma entero, 19
+ * archivos, aparecía fuera del camino sólo porque su `index.ts` reexporta con
+ * rutas relativas.
+ *
+ * Es la tercera ceguera del mismo lector en una noche —`import type`,
+ * `import()` dinámico, rutas relativas— y las tres daban el mismo resultado:
+ * **más módulos «desconectados» de los que hay**. Un instrumento que exagera el
+ * problema se desactiva igual de rápido que uno que lo esconde.
+ */
+function resolver(espec: string, desde?: string): string | null {
+  const base = espec.startsWith('@/')
+    ? `src/${espec.slice(2)}`
+    : normalizar(`${(desde ?? '').split('/').slice(0, -1).join('/')}/${espec}`)
   for (const c of [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')]) {
     if (existsSync(c)) return c
   }
   return null
+}
+
+/** Resuelve `a/b/../c` sin tocar el disco. */
+function normalizar(ruta: string): string {
+  const out: string[] = []
+  for (const parte of ruta.split('/')) {
+    if (parte === '' || parte === '.') continue
+    if (parte === '..') out.pop()
+    else out.push(parte)
+  }
+  return out.join('/')
 }
 
 function fuentes(raiz = 'src'): string[] {
@@ -91,12 +188,10 @@ export function aristas(): Arista[] {
   for (const f of fuentes()) {
     const capaDesde = capaDe(f)
     if (!capaDesde) continue
-    for (const linea of readFileSync(f, 'utf8').split('\n')) {
+    for (const linea of sinComentarios(readFileSync(f, 'utf8')).split('\n')) {
       if (IMPORT_DE_TIPO.test(linea)) continue
-      ESPECIFICADOR.lastIndex = 0
-      let m: RegExpExecArray | null
-      while ((m = ESPECIFICADOR.exec(linea))) {
-        const hacia = resolver(m[1])
+      for (const espec of especificadoresDe(linea)) {
+        const hacia = resolver(espec, f)
         if (!hacia || hacia === f) continue
         const capaHacia = capaDe(hacia)
         if (!capaHacia || capaHacia === capaDesde) continue
@@ -156,12 +251,10 @@ function aristasTodas(): Arista[] {
   const out: Arista[] = []
   for (const f of fuentes()) {
     const capaDesde = capaDe(f)
-    for (const linea of readFileSync(f, 'utf8').split('\n')) {
+    for (const linea of sinComentarios(readFileSync(f, 'utf8')).split('\n')) {
       if (IMPORT_DE_TIPO.test(linea)) continue
-      ESPECIFICADOR.lastIndex = 0
-      let m: RegExpExecArray | null
-      while ((m = ESPECIFICADOR.exec(linea))) {
-        const hacia = resolver(m[1])
+      for (const espec of especificadoresDe(linea)) {
+        const hacia = resolver(espec, f)
         if (!hacia || hacia === f) continue
         out.push({
           desde: f,
@@ -200,3 +293,50 @@ export const POR_QUE_LA_DIRECCION_IMPORTA =
   'Un lib/ que importa un componente ata la lógica clínica a una pantalla: deja ' +
   'de poder probarse sin montar la interfaz y deja de poder reusarse desde una ' +
   'ruta de API, que es por donde entran los motores cuando se automatiza algo.'
+
+/**
+ * ¿A qué se llega, de verdad, desde una pantalla o una ruta?
+ *
+ * ── POR QUÉ ESTA FUNCIÓN ES LA MÁS ÚTIL DEL ARCHIVO ──────────────────────────
+ *
+ * La familia de defecto más grande del ledger —9 de 55— es «escrito, probado y
+ * sin conectar»: el módulo existe, sus pruebas pasan, y **no corre en el camino
+ * que el médico recorre**.
+ *
+ * `modulos-sin-conectar.test.ts` caza el caso extremo: el módulo que NADIE
+ * importa. Pero un módulo puede estar importado por otro módulo que tampoco
+ * corre — una isla de dos. Esto responde la pregunta de verdad: partiendo de
+ * `src/app/`, siguiendo imports, **¿se llega hasta aquí?**
+ */
+export function alcanzableDesdeLaApp(): Set<string> {
+  const salidas = new Map<string, string[]>()
+  for (const a of aristasTodasPub()) {
+    const l = salidas.get(a.desde)
+    if (l) l.push(a.hacia)
+    else salidas.set(a.desde, [a.hacia])
+  }
+
+  const visto = new Set<string>()
+  const pila = fuentes().filter(f => f.startsWith('src/app/'))
+  for (const f of pila) visto.add(f)
+
+  while (pila.length) {
+    const n = pila.pop()!
+    for (const m of salidas.get(n) ?? []) {
+      if (visto.has(m)) continue
+      visto.add(m)
+      pila.push(m)
+    }
+  }
+  return visto
+}
+
+/** `aristasTodas` es privada; esto la expone sin cambiar su contrato. */
+function aristasTodasPub(): Arista[] {
+  return aristasTodas()
+}
+
+export const POR_QUE_LA_ALCANZABILIDAD =
+  'Un módulo puede estar importado por otro que tampoco corre — una isla de dos. ' +
+  'Lo único que contesta la pregunta real es partir de src/app/ y seguir los ' +
+  'imports hasta donde lleguen.'
