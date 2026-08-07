@@ -1,5 +1,5 @@
 import { analitoDe, valorPlausible, type Analito } from './analitos'
-import { evaluarCriticoLab } from '@/lib/hospital/lab-criticos'
+import { evaluarCriticoLab, censuraDe, type Censura } from '@/lib/hospital/lab-criticos'
 
 /**
  * VALIDACIÓN DE LO QUE LA IA EXTRAE DE UN PDF/FOTO DE LABORATORIO.
@@ -30,6 +30,14 @@ export interface ResultadoValidado {
   clave: string
   etiqueta: string
   valor: number
+  /**
+   * El reporte no dio el número exacto sino un límite: «>400», «<50». El campo
+   * `valor` guarda el número pelado (las gráficas necesitan un número), así que
+   * SIN esto el expediente afirmaría una glucosa de 400 donde el laboratorio
+   * sólo dijo «más de 400». El prompt de visión ordena conservar el signo; aquí
+   * es donde tiene que llegar (REG-192).
+   */
+  censurada?: Censura
   unidad: string
   referencia?: string
   critico: boolean
@@ -107,10 +115,19 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[] }): Pa
     const unidad = fila.unidad?.trim() || a.unidad
     // Se evalúa con la unidad TAL COMO la reportó el laboratorio (no la del analito):
     // si difiere del umbral, evaluable=false y se marca «verificar» en vez de normal.
-    const ev = evaluarCriticoLab(a.clave, num, fila.unidad?.trim() || undefined)
-    const noEvaluable = !ev.evaluable && !!fila.unidad?.trim()
+    // Y con el comparador, que `aNumero` acaba de pelar: sin él, «>400» se
+    // comparaba como 400 y una hiperglucemia de pánico se archivaba como normal.
+    const censurada = censuraDe(fila.valor)
+    const ev = evaluarCriticoLab(a.clave, num, fila.unidad?.trim() || undefined, censurada)
+    /**
+     * «Verificar» sólo cuando la duda se puede resolver mirando: la unidad no
+     * cuadra con la del umbral, o el intervalo de un valor censurado cruza el
+     * corte. «Sin rango crítico definido» no es un aviso —ese analito no tiene
+     * valor de pánico y no lo va a tener— y llenaría la pantalla de ámbar.
+     */
+    const noEvaluable = !ev.evaluable && (!!fila.unidad?.trim() || !!censurada)
     resultados.push({
-      clave: a.clave, etiqueta: a.etiqueta, valor: num, unidad,
+      clave: a.clave, etiqueta: a.etiqueta, valor: num, censurada, unidad,
       referencia: fila.referencia?.trim() || undefined,
       critico: ev.critico,
       noEvaluable: noEvaluable || undefined,
@@ -133,7 +150,8 @@ export interface SerieAnalito {
   grupo: string
   refMin?: number
   refMax?: number
-  puntos: { fecha: string; valor: number; critico: boolean }[]
+  /** El comparador viaja con el punto: la franja de críticos lo imprime (REG-192). */
+  puntos: { fecha: string; valor: number; critico: boolean; censurada?: Censura }[]
 }
 
 export function seriesDesdeHistorial(
@@ -151,7 +169,7 @@ export function seriesDesdeHistorial(
         s = { clave: r.clave, etiqueta: r.etiqueta, unidad: r.unidad, grupo: meta?.grupo ?? 'otro', refMin: meta?.refMin, refMax: meta?.refMax, puntos: [] }
         porClave.set(r.clave, s)
       }
-      s.puntos.push({ fecha: panel.fecha, valor: r.valor, critico: r.critico })
+      s.puntos.push({ fecha: panel.fecha, valor: r.valor, critico: r.critico, censurada: r.censurada })
     }
   }
   // Solo series con ≥1 punto (las de ≥2 se dibujan como línea; 1 punto = marcador).

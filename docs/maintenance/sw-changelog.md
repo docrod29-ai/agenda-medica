@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el valor de pánico censurado se archivaba como normal
+
+El laboratorio no siempre da el número: cuando el analizador se satura reporta
+un límite. «Glucosa >400». «Plaquetas <20». «<50» en una hipoglucemia severa.
+
+El prompt de visión ordena conservar ese signo, y la IA lo devolvía. Pero
+`aNumero` lo pelaba y los cortes son ESTRICTOS: `400 > 400` es falso, `50 < 50`
+es falso. El renglón salía «evaluado y normal» — no en ámbar: en blanco.
+
+Ahora se juzga el INTERVALO, que es lo único que el reporte afirma. Si cae
+entero del lado crítico, es crítico; si cae entero del lado sano, es sano; si lo
+cruza, se dice que no se sabe. Ningún umbral cambia. El comparador viaja además
+hasta la nota y hasta la franja de críticos, y el LIS por FHIR deja de tirar su
+`comparator`.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

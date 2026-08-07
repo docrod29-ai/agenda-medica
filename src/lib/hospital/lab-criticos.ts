@@ -86,6 +86,66 @@ const CRITICOS: RangoCritico[] = [
   { re: /bilirrubina/,                  unidad: U.mgdl,  alto: 15 },
 ]
 
+/**
+ * El comparador con el que el laboratorio CENSURÓ el valor: «>400», «<50».
+ *
+ * `≥` se lee como `>` y `≤` como `<`, la misma normalización que ya hace el
+ * antibiograma (`antibiograma/cmi.ts`): dos criterios distintos para el mismo
+ * signo en el mismo repositorio es como se cuelan las contradicciones.
+ */
+export type Censura = '>' | '<'
+
+/** Lee el comparador de una cadena de laboratorio; `undefined` si no lo trae. */
+export function censuraDe(v: string | number | undefined | null): Censura | undefined {
+  if (typeof v !== 'string') return undefined
+  const t = v.trim()
+  return /^[>≥]/.test(t) ? '>' : /^[<≤]/.test(t) ? '<' : undefined
+}
+
+/**
+ * Juzga un valor CENSURADO por intervalo, no por el número pelado.
+ *
+ * ── EL DEFECTO QUE CIERRA (REG-192) ──────────────────────────────────────────
+ *
+ * El prompt de visión ordena, literalmente, conservar el «<» o el «>» del
+ * reporte. Y llegaba: la IA lo devolvía. Pero `aNumero` lo pelaba y aquí se
+ * comparaba el número desnudo con `>` y `<` ESTRICTOS, así que una glucosa
+ * «>400» quedaba en `400 > 400` = falso y se archivaba como **normal**. Lo
+ * mismo con «<50»: `50 < 50` = falso. El dato cruzaba toda la tubería y moría
+ * en la última línea, justo en el valor de pánico.
+ *
+ * Pelar el signo —lo que hizo REG-036 en UCI— no bastaba aquí: allí los cortes
+ * son inclusivos (`k >= 6.5`) y aquí son estrictos. Por eso se razona sobre el
+ * intervalo real, que es lo único que el reporte afirma:
+ *
+ *   «>n»  ⇒  el valor real está en (n, ∞)
+ *   «<n»  ⇒  el valor real está en (−∞, n)
+ *
+ * Cuando el intervalo entero cae del lado crítico, es crítico. Cuando cae
+ * entero del lado sano, es sano. Cuando el intervalo CRUZA el umbral —una
+ * glucosa «>200» contra un corte de 400— no se sabe, y se dice que no se sabe:
+ * ausencia de dato no es dato de ausencia.
+ *
+ * No se toca ni un umbral: todos son los que ya estaban en `CRITICOS`.
+ */
+function evaluarCensurado(cen: Censura, v: number, r: RangoCritico): EvaluacionCritico {
+  if (cen === '>') {
+    // Real ∈ (v, ∞): sólo puede disparar el corte ALTO.
+    if (r.alto != null && v >= r.alto) return { critico: true, evaluable: true }
+    // Sin corte alto, y ya por encima del bajo, el intervalo entero es sano.
+    if (r.alto == null && (r.bajo == null || v >= r.bajo)) return { critico: false, evaluable: true }
+  } else {
+    // Real ∈ (−∞, v): sólo puede disparar el corte BAJO.
+    if (r.bajo != null && v <= r.bajo) return { critico: true, evaluable: true }
+    if (r.bajo == null && (r.alto == null || v <= r.alto)) return { critico: false, evaluable: true }
+  }
+  return {
+    critico: false,
+    evaluable: false,
+    motivo: `valor censurado («${cen}${v}»): el intervalo real cruza el umbral crítico y no se puede juzgar`,
+  }
+}
+
 /** Normaliza texto para comparar: minúsculas, sin acentos. */
 function norm(s: string): string {
   return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -112,8 +172,17 @@ export function evaluarCriticoLab(
   estudio: string,
   valor: string | number,
   unidad?: string | null,
+  /**
+   * El comparador, cuando quien llama YA peló el número (la ruta del panel de
+   * laboratorio pasa por `aNumero`, que lo quita). Si `valor` viene como cadena
+   * con su signo, se lee de ahí y no hace falta pasarlo.
+   */
+  censurada?: Censura,
 ): EvaluacionCritico {
-  const v = typeof valor === 'number' ? valor : parseFloat(String(valor).replace(',', '.'))
+  const cen = censurada ?? censuraDe(valor)
+  const v = typeof valor === 'number'
+    ? valor
+    : parseFloat(String(valor).replace(',', '.').replace(/^\s*[<>≤≥]+\s*/, ''))
   if (isNaN(v)) return { critico: false, evaluable: false, motivo: 'el valor no es numérico' }
   const n = norm(estudio)
   const u = normUnidad(unidad)
@@ -129,6 +198,7 @@ export function evaluarCriticoLab(
     if (u && !r.unidad.test(u)) {
       return { critico: false, evaluable: false, motivo: `reportado en ${unidad}, el umbral está en otra unidad` }
     }
+    if (cen) return evaluarCensurado(cen, v, r)
     if (r.bajo != null && v < r.bajo) return { critico: true, evaluable: true }
     if (r.alto != null && v > r.alto) return { critico: true, evaluable: true }
     return { critico: false, evaluable: true }
@@ -137,6 +207,6 @@ export function evaluarCriticoLab(
 }
 
 /** ¿El valor numérico de este estudio cae en rango crítico (pánico)? */
-export function esCriticoLab(estudio: string, valor: string | number, unidad?: string | null): boolean {
-  return evaluarCriticoLab(estudio, valor, unidad).critico
+export function esCriticoLab(estudio: string, valor: string | number, unidad?: string | null, censurada?: Censura): boolean {
+  return evaluarCriticoLab(estudio, valor, unidad, censurada).critico
 }

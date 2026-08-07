@@ -10,16 +10,19 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "LAB-CENSURA-001 (cerrada) — REG-192 / nexusmed-v1074",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/safety/LAB-CENSURA-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "trabajoLocalSinSubir": [],
+  "notaDelEstado": "El 7-ago se verificó el backlog contra el código: VOICE-004, SAFE-001 y EVAL-003 llevaban días cerrados y seguían apareciendo como pendientes. De los pendientes reales, EVAL-001 sigue bloqueado por B-01 y EVAL-002 pasó a decisión del dueño (E-2). La iteración se tomó del pozo de hallazgos sin verificar de docs/audit/hallazgos-crudos-workflow.json, que todavía tiene material.",
+  "compuertas": {
+    "vitest": "6934 pasan · 1 falla PREEXISTENTE y ajena: ops-timeout-y-punto-ciego espera que una IP agujero-negro (10.255.255.1) cuelgue hasta el timeout, y este entorno la rechaza al instante. Comprobado en árbol limpio antes de tocar nada.",
+    "tsc": "limpio",
+    "lintTrinquete": "96, igual que el techo",
+    "build": "compila (con los marcadores sintéticos de Firebase que usa CI)"
+  }
 }

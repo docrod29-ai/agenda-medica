@@ -281,6 +281,10 @@
       "minCasos": 11
     },
     {
+      "archivo": "src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts",
+      "minCasos": 20
+    },
+    {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
       "minCasos": 7
     },

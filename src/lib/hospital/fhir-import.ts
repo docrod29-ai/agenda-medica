@@ -20,7 +20,12 @@ interface FhirObs {
    */
   subject?: { reference?: string; display?: string; identifier?: { value?: string } }
   code?: { text?: string; coding?: { display?: string }[] }
-  valueQuantity?: { value?: number; unit?: string }
+  /**
+   * `comparator` es FHIR estándar y es como el LIS dice «>400» o «<50». Se
+   * ignoraba, así que el valor de pánico entraba como el número pelado y el
+   * motor lo daba por normal (REG-192, mismo defecto que en la ruta de visión).
+   */
+  valueQuantity?: { value?: number; unit?: string; comparator?: string }
   valueString?: string
   referenceRange?: { low?: { value?: number }; high?: { value?: number }; text?: string }[]
   interpretation?: { coding?: { code?: string }[]; text?: string }[]
@@ -145,12 +150,19 @@ export function parsearLabsFhir(json: string): ResultadoLab[] {
    * que podía venir en mmol/L o µmol/L. Ver `evaluarCriticoLab`.
    */
   const critOf = (o: FhirObs, est: string, val: string, unidad?: string) => esCriticoFlag(o) || esCriticoLab(est, val, unidad)
+  /**
+   * El valor TAL COMO lo afirma el LIS, comparador incluido. Se guarda así en el
+   * expediente y así se lo come el motor: «>400» no es 400, y era la diferencia
+   * entre una alerta de pánico y un renglón que parecía normal.
+   */
+  const conComparador = (q: { value?: number; comparator?: string }) =>
+    q.value == null ? '' : `${q.comparator ?? ''}${q.value}`
   const out: ResultadoLab[] = []
   for (const o of obs) {
-    if (o.valueQuantity) { const est = nombre(o), val = String(o.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: o.valueQuantity.unit, referencia: rango(o), critico: critOf(o, est, val, o.valueQuantity.unit) }) }
+    if (o.valueQuantity) { const est = nombre(o), val = conComparador(o.valueQuantity); out.push({ estudio: est, valor: val, unidad: o.valueQuantity.unit, referencia: rango(o), critico: critOf(o, est, val, o.valueQuantity.unit) }) }
     else if (o.valueString) out.push({ estudio: nombre(o), valor: o.valueString, referencia: rango(o), critico: esCriticoFlag(o) })
     for (const c of o.component ?? []) {
-      if (c.valueQuantity) { const est = nombre(c, nombre(o)), val = String(c.valueQuantity.value ?? ''); out.push({ estudio: est, valor: val, unidad: c.valueQuantity.unit, referencia: rango(c), critico: critOf(c, est, val, c.valueQuantity.unit) }) }
+      if (c.valueQuantity) { const est = nombre(c, nombre(o)), val = conComparador(c.valueQuantity); out.push({ estudio: est, valor: val, unidad: c.valueQuantity.unit, referencia: rango(c), critico: critOf(c, est, val, c.valueQuantity.unit) }) }
     }
   }
   return out

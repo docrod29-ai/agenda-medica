@@ -1595,7 +1595,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
   {
     id: 'lab-criticos', nombre: 'Valores críticos de laboratorio (valores de pánico)', especialidad: 'Hospital/Laboratorio',
     tipo: 'regla-de-seguridad',
-    version: '1.1.0', referencia: 'Umbrales heredados del propio módulo, SIN fuente citada (declarado en su encabezado)',
+    version: '1.2.0', referencia: 'Umbrales heredados del propio módulo, SIN fuente citada (declarado en su encabezado)',
     unidades: 'la unidad se compara explícitamente por analito (mg/dL vs mmol/L vs g/dL vs g/L)',
     redondeo: 'no aplica (marca crítico/no crítico)',
     rangoValido: {
@@ -1603,10 +1603,10 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
       preguntaAlMedico: 'Los umbrales de valor crítico de este módulo NO tienen fuente citada (así lo declara su propio encabezado). ¿Los adopta como política del servicio, o aporta la tabla de valores de pánico que quiere usar?',
     },
     file: 'src/lib/hospital/lab-criticos.ts',
-    entryPoints: ['evaluarCriticoLab', 'esCriticoLab'],
-    missingData: 'sin unidad reconocida NO compara (antes comparaba a ciegas e invertía la dirección de la alerta).',
+    entryPoints: ['evaluarCriticoLab', 'esCriticoLab', 'censuraDe'],
+    missingData: 'sin unidad reconocida NO compara (antes comparaba a ciegas e invertía la dirección de la alerta). Un valor CENSURADO («>400», «<50») se juzga por intervalo: si cruza el umbral, se declara no evaluable en vez de darse por normal (REG-192).',
     adr: ADR('lab-criticos'),
-    goldenTests: ['lab-criticos.test.ts'],
+    goldenTests: ['lab-criticos.test.ts', 'el-valor-censurado-no-se-da-por-normal.test.ts'],
     estado: 'pendiente_validacion',
     porQueExiste: 'Red de seguridad para que un potasio de 7.2 no se pierda porque el LIS no puso el flag.',
   },

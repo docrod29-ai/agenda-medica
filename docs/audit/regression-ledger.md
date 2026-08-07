@@ -1553,3 +1553,101 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — un valor de pánico CENSURADO se archivaba como normal (v1074)
+
+**Encontrado** — 7-ago-2026, revisando `docs/audit/hallazgos-crudos-workflow.json`
+(P1) contra el código de hoy. La mitad de aquellos hallazgos ya estaban cerrados
+—el gemelo del antibiograma, `interpretarCMI` con `cmiCensurada`, se reparó en
+su día— y éste, que es el mismo defecto en la ruta del laboratorio, seguía vivo.
+
+**Reproducido antes de tocar nada** — Cinco casos por las dos rutas
+(`validarPanel` y `esCriticoLab`), los cinco en rojo:
+
+```
+validarPanel  Glucosa   «>400» mg/dL      → critico: false
+validarPanel  Glucosa   «<50»  mg/dL      → critico: false
+validarPanel  Plaquetas «<20»  ×10³/µL    → critico: false
+esCriticoLab  Glucosa   «>400» mg/dL      → false
+esCriticoLab  Potasio   «>6.5» mmol/L     → false
+```
+
+**El defecto** — El laboratorio no siempre da el número. Cuando el analizador se
+satura reporta un límite: «Glucosa >400 mg/dL», «Plaquetas <20 ×10³/µL», «<50»
+en una hipoglucemia severa. El prompt de visión lo ordena con esas palabras —«Si
+el valor trae "<" o ">", consérvalo en "valor"»— y la IA obedecía.
+
+El dato **llegaba** y se moría en la última línea. `aNumero` pelaba el signo
+(`extraccion.ts:61`) y `evaluarCriticoLab` comparaba el número desnudo contra
+cortes **estrictos**:
+
+| Reporte | Se comparaba | Corte | Resultado |
+|---|---|---|---|
+| Glucosa «>400» | `400 > 400` | alto 400 | **falso** → normal |
+| Glucosa «<50» | `50 < 50` | bajo 50 | **falso** → normal |
+| Plaquetas «<20» | `20 < 20` | bajo 20 | **falso** → normal |
+
+**Y no quedaba ni en ámbar.** Devolvía `evaluable: true`: «se juzgó y está
+bien». El renglón se guardaba en el expediente como un valor normal más.
+
+**Por qué importa para un paciente** — Los valores censurados no son casos raros
+de laboratorio: aparecen **precisamente en el extremo**, que es exactamente
+donde vive el valor de pánico. Este módulo existe, dice su propio encabezado,
+«para que un potasio de 7.2 no se pierda porque el LIS no puso el flag», y tenía
+el agujero justo en la forma en que un laboratorio reporta los extremos: una
+hipoglucemia «<50», una plaquetopenia «<20», un INR «>5».
+
+**Pelar el signo no bastaba** — Es lo que hizo REG-036 para las alertas de UCI,
+pero allí los cortes son inclusivos (`k >= 6.5`) y aquí son estrictos. Copiar
+aquella solución habría dejado vivo el caso del borde, que es el único que
+importa. Por eso se razona sobre el **intervalo**, que es lo único que el reporte
+afirma:
+
+```
+«>n»  ⇒  el valor real está en (n, ∞)
+«<n»  ⇒  el valor real está en (−∞, n)
+```
+
+Intervalo entero del lado crítico → crítico. Entero del lado sano → sano.
+**Cruza el umbral** —una glucosa «>200» contra un corte de 400— → `evaluable:
+false` con su motivo, y la pantalla lo pinta en ámbar. Ausencia de dato no es
+dato de ausencia.
+
+**Ni un umbral nuevo** — Todos los cortes son los que ya estaban en `CRITICOS`.
+Lo que cambia es **cómo** se comparan, no **contra qué**. Los umbrales de este
+módulo siguen sin fuente citada y en `pendiente_validacion` (C-1 del dueño).
+
+**`≥` se lee como `>`, `≤` como `<`** — La misma normalización que ya hacía
+`antibiograma/cmi.ts`. Dos criterios distintos para el mismo signo en el mismo
+repositorio es como se cuelan las contradicciones.
+
+**El comparador también tenía que LLEGAR** — `valor` guarda el número pelado
+porque las gráficas necesitan un número, así que sin el campo nuevo el
+expediente afirmaría una glucosa de 400 donde la hoja sólo dijo «más de 400».
+`censurada` viaja ahora hasta el punto de la serie, hasta la franja de valores
+críticos y hasta **el texto que se pega en la nota clínica**.
+
+**La tercera frontera: el LIS por FHIR** — `valueQuantity.comparator` es FHIR
+estándar y es como un LIS dice «>400». Se ignoraba por completo en
+`fhir-import.ts`: mismo defecto, tercer camino.
+
+**Qué NO hace** — No valida los umbrales (eso es C-1). No interpreta el rango de
+referencia del reporte, que sigue guardándose como texto. No toca
+`labs-desde-texto.ts` ni el dictado de UCI, que van por `numA` (REG-036) con
+cortes inclusivos. Y **no decide qué bloquea**: un «no evaluable» se pinta en
+ámbar, como los demás; qué detiene una firma lo decidió el médico dueño el 5-ago
+y no se amplía por cuenta propia.
+
+**Qué queda para el médico** — Decidir si un «no evaluable» por censura merece
+más que ámbar, y C-1: adoptar estos umbrales o aportar su tabla de valores de
+pánico.
+
+**Comprobado que puede ponerse rojo** — Quitada la línea `if (cen) return
+evaluarCensurado(...)`: **13 de 20 casos fallan**. Los 7 que sobreviven son los
+controles —los que exigen que NO se inventen alertas— y deben pasar en ambos
+sentidos.
+
+**Golden** — `src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts`
+(20 casos).
