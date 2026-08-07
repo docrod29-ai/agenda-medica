@@ -59,6 +59,7 @@ export type OrigenAviso =
   | 'requisito_nom004'
   | 'dosis_peligrosa'
   | 'antecedente_del_familiar'
+  | 'dato_incierto'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -92,6 +93,12 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    * una atribución sería decidir por él.
    */
   antecedente_del_familiar: 'revisa',
+  /**
+   * «Lo dijo con duda» (§B6, REG-211). Nivel `revisa`: un dato incierto sigue
+   * siendo un dato útil — lo que se pierde al aplanarlo es la información de
+   * que hay que comprobarlo.
+   */
+  dato_incierto:          'revisa',
 }
 
 /**
@@ -166,6 +173,14 @@ export interface EntradaAvisos {
    * raro: por eso se señala aquí en vez de confiar en que se note al releer.
    */
   antecedentesDeFamiliar?: readonly { frase: string; parentesco?: string }[]
+  /**
+   * Frases que el paciente dijo SIN estar seguro (§B6).
+   *
+   * «Creo que me dijeron que tenía anemia» aplanado a «Anemia» convierte una
+   * duda en un diagnóstico. A partir de la segunda consulta ya nadie sabe que
+   * era una duda.
+   */
+  datosInciertos?: readonly { frase: string; matiz?: string; marca?: string }[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -352,6 +367,25 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       origen: 'antecedente_del_familiar',
       nivel: nivelDe('antecedente_del_familiar'),
       texto: `Esto lo dijo de ${dueno}, no de él: «${a.frase}». Va a antecedentes heredo-familiares.`,
+      ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * Lo dicho con duda (§B6, REG-211).
+   *
+   * Se cita la palabra exacta que lo delató —«creo que», «a lo mejor»— porque un
+   * aviso que sólo dice «hay un dato incierto» obliga a releer el dictado. Con
+   * la marca delante se confirma o se descarta de un vistazo.
+   */
+  for (const d of e.datosInciertos ?? []) {
+    out.push({
+      id: `incierto:${d.frase.slice(0, 40)}`,
+      origen: 'dato_incierto',
+      nivel: nivelDe('dato_incierto'),
+      texto: d.marca
+        ? `Lo dijo con «${d.marca}», no como un hecho: «${d.frase}». Confírmalo antes de que quede como diagnóstico.`
+        : `Lo dijo sin seguridad: «${d.frase}».`,
       ancla: { seccion: 'nota' },
     })
   }

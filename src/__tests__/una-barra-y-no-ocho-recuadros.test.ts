@@ -36,7 +36,7 @@ const ORIGENES: OrigenAviso[] = [
   'dosis_incompleta', 'alergia_medicamento', 'contradiccion_negacion',
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
-  'dosis_peligrosa', 'antecedente_del_familiar',
+  'dosis_peligrosa', 'antecedente_del_familiar', 'dato_incierto',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -112,6 +112,7 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       yaLoBloqueaNOM004: ['Falta: Exploración física'],
       dosisPeligrosas: [{ med: 'paracetamol', mensaje: '10 g por toma', critica: true }],
       antecedentesDeFamiliar: [{ frase: 'mi mamá tuvo cáncer de mama', parentesco: 'mamá' }],
+      datosInciertos: [{ frase: 'creo que tenía anemia', matiz: 'duda', marca: 'creo que' }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

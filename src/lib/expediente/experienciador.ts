@@ -129,9 +129,17 @@ const VUELVE_AL_PACIENTE = [
 
 /** Primera persona clara: la frase es del paciente. */
 const PRIMERA_PERSONA = [
-  /\b(?:yo|a\s+m[ií])\b/iu,
-  /\bme\s+(?:duele|dieron|dio|salio|salió|detectaron|diagnosticaron|operaron|internaron)\b/iu,
-  /\b(?:tengo|tuve|padezco|padec[ií]|siento|sent[ií]|traigo|ando)\b/iu,
+  /**
+   * Los tres cierran con `(?![\p{L}])` y no con `\b` por lo mismo de arriba:
+   * escritos con `\b`, «a mí», «me salió», «padecí» y «sentí» NO disparaban.
+   *
+   * Los cazó el guardián `el-limite-de-palabra-no-entiende-acentos` en el mismo
+   * archivo donde la lección ya estaba escrita — que es exactamente por qué la
+   * lección tenía que dejar de ser un comentario y volverse una prueba.
+   */
+  /\b(?:yo|a\s+m[ií])(?![\p{L}])/iu,
+  /\bme\s+(?:duele|dieron|dio|salio|salió|detectaron|diagnosticaron|operaron|internaron)(?![\p{L}])/iu,
+  /\b(?:tengo|tuve|padezco|padec[ií]|siento|sent[ií]|traigo|ando)(?![\p{L}])/iu,
 ] as const
 
 /**

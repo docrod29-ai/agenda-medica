@@ -46,6 +46,7 @@ import { RevisionPanel } from '@/components/RevisionPanel'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
+import { frasesInciertas } from '@/lib/expediente/certeza'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -851,6 +852,19 @@ export default function ConsultaActivaPage() {
     if (!dictado.trim()) return []
     return frasesDeFamiliar(dictado)
       .filter(f => !avisosRevisados.includes(`familiar:${f.frase.slice(0, 40)}`))
+  }, [voz.transcripcion, avisosRevisados])
+  /**
+   * ¿CON CUÁNTA SEGURIDAD LO DIJO? (§B6 del charter, REG-211)
+   *
+   * El cuarto eje. «Creo que me dijeron que tenía anemia» aplanado a «Anemia»
+   * convierte una duda del paciente en un diagnóstico del expediente — y a
+   * partir de la segunda consulta ya nadie sabe que era una duda.
+   */
+  const datosInciertos = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    return frasesInciertas(dictado)
+      .filter(f => !avisosRevisados.includes(`incierto:${f.frase.slice(0, 40)}`))
   }, [voz.transcripcion, avisosRevisados])
   /**
    * EL PASADO NO ES EL PRESENTE.
@@ -4395,6 +4409,7 @@ export default function ConsultaActivaPage() {
             critica: d.severidad === 'critica',
           })),
           antecedentesDeFamiliar,
+          datosInciertos,
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */

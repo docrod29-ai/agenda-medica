@@ -2465,3 +2465,79 @@ nuevo. **Ninguno de los tres me dejó entregarlo a medias.**
 (25 casos): 9 del familiar con su parentesco, 4 por marco de la frase, 3 donde el
 familiar sólo reporta, 4 de primera persona, 3 indeterminados, 1 sobre un dictado
 entero y 1 dedicado a la trampa del acento.
+
+---
+
+## REG-211 — «creo que me dijeron que tenía anemia» podía quedar como «Anemia» (v1092)
+
+**El cuarto eje** — el §B6 del charter pide distinguir *presente, ausente,
+posible, probable, incierto, histórico, condicional y no mencionado*. Sin este
+motor, los ocho colapsaban en dos: **dicho o no dicho**.
+
+|  |  |
+|---|---|
+| ¿sí o no? | `negaciones` (REG-192) |
+| ¿cuándo? | `temporalidad` (REG-200) |
+| ¿a quién? | `experienciador` (REG-210) |
+| **¿qué tan seguro?** | **esto** |
+
+**El daño** — lo que el paciente ofreció como **duda** queda en el expediente
+como **diagnóstico**. Y a partir de la segunda consulta ya nadie sabe que era una
+duda: se lee igual que un dato confirmado, se arrastra a todas las notas
+siguientes y termina cambiando tratamientos.
+
+**Cuatro matices, porque cambian qué hay que hacer con el dato**: `duda` («creo
+que», «no estoy segura»), `posibilidad` («a lo mejor», «tal vez»), `referido`
+(«me dijeron que») y `aproximado` («como cinco años»).
+
+**Y la salvedad que evita el aviso inútil** — si el paciente **trae la
+constancia** («aquí traigo la biometría», «confirmado con biopsia»), ya no es
+duda. Sin esto, el aviso saltaría teniendo el papel en la mano, y un aviso que
+salta de más se aprende a cerrar.
+
+**Por omisión, `afirmado`. No al revés**: marcar como incierto lo que no lo es
+llenaría la nota de dudas inventadas.
+
+---
+
+### El mismo defecto, TRES veces en una noche — y por fin un guardián
+
+En JavaScript `\w` es **ASCII**. Un `\b` detrás de una letra acentuada **no
+encuentra límite de palabra y el patrón no dispara**:
+
+| Patrón | No cazaba | Motor |
+|---|---|---|
+| `/\b(?:no\s+s[eé])\b/` | «no sé» | negación (ya reparado) |
+| `/\b(mamá\|papá)\b/` | «mi mamá» | experienciador (REG-210) |
+| `/\b(?:quiz[aá]s?)\b/` | «quizá» | certeza (hoy) |
+
+El síntoma es siempre el mismo y es el peor posible: **media función viva y media
+muerta**. «no sé si» sí, «no sé» no. «mi abuela» sí, «mi mamá» no. «quizas» sí,
+«quizá» no. Nada revienta, nada avisa, y la mitad que funciona hace creer que
+funciona entera.
+
+**Un comentario en cada archivo no bastó**: el tercero se escribió con la lección
+ya escrita dos veces. Por eso ahora es una prueba —
+`src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts` — que revisa los
+seis motores de lenguaje.
+
+**Y encontró tres más en el acto**, en el módulo escrito una hora antes:
+`a\s+m[ií])\b`, `salió)\b` y `padec[ií]|sent[ií])\b`. Es decir: «a mí», «me
+salió», «padecí» y «sentí» **tampoco disparaban**. La lección tenía que dejar de
+ser un comentario exactamente por esto.
+
+**El guardián marca de más a propósito** — un patrón con acento en una rama y
+`\b` cerrando otra que acaba en consonante es inofensivo. Se acepta: en un motor
+de español hablado `(?![\p{L}])` es correcto siempre, así que exigirlo de forma
+uniforme no cuesta nada y **elimina la clase entera de fallo**.
+
+---
+
+**Lo hecho** — `src/lib/expediente/certeza.ts`, regla **19-quater** del prompt, y
+conectado a la barra como origen `dato_incierto` (nivel `revisa`): el aviso cita
+la palabra exacta que lo delató, porque uno que sólo dijera «hay un dato
+incierto» obligaría a releer el dictado entero.
+
+**Los guardianes** — `corpus-oro-con-cuanta-seguridad-lo-dijo.test.ts` (26
+aserciones, incluidas tres formas de «como» que **no** son aproximación) y el del
+límite de palabra (9 casos, con prueba de que sigue cazando las tres reales).

@@ -2138,3 +2138,10 @@ posesivos y parentescos (incluidas las formas coloquiales), regla 19-ter del
 prompt, y aviso conectado a la barra con nivel «revisa». La trampa que volvió a
 costar: en JavaScript `\b` no funciona detrás de «mamá» — el motor reconocía «mi
 abuela» y NO «mi mamá». Corpus oro de 25 casos.
+
+## v1092 — una duda no es un diagnóstico, y el `\b` que falló tres veces
+REG-211. Cuarto eje del §B6: «creo que me dijeron que tenía anemia» ya no puede
+quedar como «Anemia». Cuatro matices (duda, posibilidad, referido, aproximado) y
+la salvedad de la constancia. Y por fin un GUARDIÁN para el fallo del límite de
+palabra tras acento — que ya había costado en «no sé», «mamá» y «quizá», y que
+cazó tres más en el acto: «a mí», «me salió», «padecí».

@@ -191,6 +191,16 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     BORRA un dato real.
     Si la frase no dice de quién habla, no le adivines dueño: descríbela donde encaje sin
     atribuirla.
+19-quater. ¿CON CUÁNTA SEGURIDAD LO DIJO? UNA DUDA NO ES UN DIAGNÓSTICO.
+    "Creo que me dijeron que tenía anemia" NO es "Anemia". "A lo mejor fue hepatitis" NO
+    es "Hepatitis". "Me dijeron que estaba prediabético" es un dato REFERIDO, no confirmado.
+    Conserva la duda en la prosa: "refiere que posiblemente...", "menciona, sin poder
+    precisarlo, que...". Y NO lo pongas como diagnóstico ni en la lista de problemas.
+    POR QUÉ: aplanado a un diagnóstico, a partir de la segunda consulta ya nadie sabe que
+    era una duda. Se lee igual que un dato confirmado, se arrastra a todas las notas
+    siguientes y termina cambiando tratamientos.
+    LO CONTRARIO TAMBIÉN ES ERROR: si el paciente trae la constancia ("aquí traigo la
+    biometría", "confirmado con biopsia"), ya no es duda. No lo marques como incierto.
 20. PLAN: incluye SIEMPRE el plan de manejo (continuación/ajuste de tratamiento, duración,
     estudios, seguimiento y criterios de alarma) en la sección correspondiente; si la nota no
     tiene sección de plan, intégralo al final del padecimiento/evolución.
