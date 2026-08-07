@@ -1,5 +1,5 @@
 {
-  "generadoEn": "2026-08-06",
+  "generadoEn": "2026-08-07",
   "formulaDePrioridad": "5*SEGURIDAD + 5*INTEGRIDAD + 4*INGRESO + 4*FRECUENCIA + 4*MOAT + 3*FIABILIDAD + 3*REGULATORIO + 2*APRENDIZAJE - 3*IRREVERSIBILIDAD - 2*COMPLEJIDAD - 2*DEPENDENCIA_EXTERNA",
   "items": [
     {
@@ -106,6 +106,27 @@
       "complejidad": 2,
       "dependenciaExterna": 1,
       "score": 48,
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
+      "id": "SAFE-003",
+      "titulo": "Al unificar parsers, inventariar lo que reconocía el que se retira",
+      "hallazgo": "REG-202: REG-201 unificó el punto de orden sobre el parser canónico y perdió tres formas de negación que sólo conocía el hospitalario. Quedan por revisar del mismo modo las otras unificaciones de REG-171 (consulta, UCI, extraer-entidades): ¿alguno de esos tres reconocía algo que el canónico no?",
+      "porQueImporta": "Es el mismo modo de fallo, y ya cobró una vez. Una unificación se piensa como «el bueno absorbe al malo» y el que se retira puede llevar aprendizaje que nadie inventarió.",
+      "archivo": "src/lib/seguridad/alergias.ts · git log de REG-171",
+      "seguridad": 3,
+      "integridad": 1,
+      "ingreso": 0,
+      "frecuencia": 2,
+      "moat": 0,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 1,
+      "dependenciaExterna": 0,
+      "score": 41,
       "estado": "pendiente",
       "reversible": true
     }

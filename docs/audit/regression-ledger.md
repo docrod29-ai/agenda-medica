@@ -1638,3 +1638,67 @@ nombra el archivo (`src/lib/hospital/cds.ts`); el guardián anterior seguía ver
 
 **Golden** — `src/__tests__/el-cds-hospitalario-lee-las-mismas-alergias.test.ts`
 (13 casos).
+
+---
+
+## REG-202 — unificar dos parsers perdió el negador de uno (v1083)
+
+**Encontrado** — 7-ago-2026, auditando REG-201 antes de darlo por bueno.
+
+**Cómo se reprodujo** — Contra `cdsMedicamento` real, sobre la rama ya reparada
+por REG-201:
+
+```
+cdsMedicamento({ nombre: 'Penicilina G',
+                 alergias: 'nunca ha tenido reacción a penicilina' })
+  → [{ nivel: 'critica', … }]      ← antes de REG-201 este campo estaba NEGADO
+```
+
+**El defecto** — REG-201 hizo lo correcto: traer el punto de orden hospitalario
+al parser canónico. Pero `hospital/cds.ts` no sólo tenía su propio `split` —
+tenía **su propia lista de negadores**, y no era un subconjunto de la canónica.
+Conocía tres formas que aquí no estaban:
+
+```
+nunca · ausente · descart (a secas, no sólo «descartada»)
+```
+
+y el canónico no conocía «no hay». Al mudar el camino, esas formas dejaron de
+filtrarse.
+
+**Por qué importa para un paciente** — «Nunca ha tenido reacción a penicilina»
+pasó a valer como una **alergia a penicilina**. En el punto de orden —el único
+sitio donde la alerta llega antes de que la indicación se firme— eso es una roja
+sobre un paciente que puede recibir el fármaco. Es la fatiga de alerta que
+REG-201 acababa de reducir por el otro lado, reintroducida por la puerta de
+atrás: en un CDS que existe declaradamente para tener alta especificidad, una
+crítica falsa es la que enseña a ignorar la verdadera.
+
+**Reparación** — El negador canónico pasa a ser la **UNIÓN** de los dos.
+
+**La regla que queda** — Al fusionar dos motores que deciden lo mismo, el
+resultado es la unión de lo que cada uno reconocía, no lo que traiga el que se
+quedó con el archivo. El que se retira puede llevar encima aprendizaje que nadie
+inventarió — aquí, campos escritos por un médico hospitalario.
+
+**Y la condición para ampliar un negador** — Una palabra sólo entra si **no
+puede encabezar el nombre de un alérgeno**. Ampliar sin esa condición es el error
+contrario, y es el caro: escondería una alergia real. No hay fármaco que se llame
+«nunca» ni «ausente».
+
+**Qué NO hace** — No es un vocabulario completo de negación en español: es la
+unión de lo que los dos motores ya reconocían. Una forma de negar que no esté
+aquí sigue registrándose como alergia — se señala de más, nunca de menos. No
+toca el cruce alergia↔fármaco, ni sus umbrales, ni qué bloquea la firma. Ninguna
+cifra clínica nueva.
+
+**Qué queda para el médico** — Decidir si «nunca» y «ausente» deben leerse como
+negación también en el texto que se IMPRIME (receta, orden, referencia). Hoy
+`alergiasParaImpreso` cae al texto libre tal cual cuando la lista sale vacía, así
+que el papel sigue mostrando la frase entera — que es lo prudente, pero es una
+decisión suya y no mía.
+
+**Comprobado que puede ponerse rojo** — Revertido el negador, 5 de los 8 casos
+fallan.
+
+**Golden** — `src/__tests__/unificar-no-pierde-el-negador.test.ts` (8 casos).

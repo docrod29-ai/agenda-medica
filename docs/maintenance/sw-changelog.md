@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1083 — REG-202: unificar dos parsers perdió el negador de uno
+
+REG-201 trajo el punto de orden hospitalario al parser canónico de alergias, que
+era lo correcto. Pero `hospital/cds.ts` no sólo tenía su propio split: tenía su
+propia lista de negadores, y no era un subconjunto de la canónica — conocía
+«nunca», «ausente» y `descart` a secas.
+
+Al mudarlo, «nunca ha tenido reacción a penicilina» dejó de estar negado y pasó
+a valer como alergia: una crítica falsa en el punto de orden, justo donde
+REG-201 acababa de reducir la fatiga de alerta por el otro lado.
+
+El negador canónico es ahora la UNIÓN de los dos. Al fusionar dos motores que
+deciden lo mismo, el resultado es la unión de lo que cada uno reconocía — el que
+se retira puede llevar encima aprendizaje que nadie inventarió.
+
 ## v1082 — REG-201: el punto de orden tenía su propio parser de alergias
 
 `hospital/cds.ts` es el único sitio donde la alerta de alergia llega ANTES de

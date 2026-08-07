@@ -23,8 +23,24 @@ import type { AlergiaEstructurada } from '@/types'
  *
  * Esto no decide nada clínico: lee lo que el campo dice. Si dice que el paciente
  * niega la alergia, no se registra la alergia.
+ *
+ * ── LA UNIÓN DE LOS DOS NEGADORES (7-ago-2026, REG-202) ─────────────────────
+ *
+ * REG-201 trajo el punto de orden hospitalario a este parser, y con la mudanza
+ * se quedó atrás el negador que ese camino tenía: él conocía «nunca», «ausente»
+ * y `descart` a secas; éste conocía «ninguna», «no conocidas» y «no tiene» —
+ * pero no «no hay». El resultado fue que un campo que decía «nunca ha tenido
+ * reacción a penicilina» dejó de estar negado y pasó a valer como alergia,
+ * sacando una CRÍTICA en el punto de orden donde el hospital llevaba meses sin
+ * sacarla. Unificar dos motores no puede empeorar a ninguno de los dos: el
+ * negador canónico es la UNIÓN.
+ *
+ * Ninguna de las palabras añadidas puede encabezar el nombre de un alérgeno
+ * —no hay fármaco que se llame «nunca» ni «ausente»—, que es la condición para
+ * que ampliar un negador no esconda una alergia real. Ampliar sin esa condición
+ * sería justo el error contrario, y aquí es el caro.
  */
-const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|descartad[ao]s?|ningun[ao])\b/i
+const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|no\s+hay|descart\w*|ningun[ao]|nunca|ausentes?)\b/i
 
 /** ¿Este fragmento afirma la ausencia de una alergia? */
 export function esAlergiaNegada(fragmento: string): boolean {

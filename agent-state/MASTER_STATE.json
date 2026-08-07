@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-001 (cerrada — REG-201, v1082, PR #231)",
+  "iteracionActual": "REG-202 (cerrada — v1083, sobre la rama de SAFE-001)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -21,5 +21,7 @@
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
   "notaDeEntorno": "`ops-timeout-y-punto-ciego.test.ts` («el error dice cuánto esperó y a quién») falla en el contenedor del agente y también en main: la salida a 10.255.255.1 devuelve error inmediato en vez de colgarse, así que `TiempoAgotado` nunca se lanza. Es artefacto del sandbox, no regresión — en CI pasa.",
-  "bloqueadorAbierto": "B-11: el CI de Actions no arranca en PR del agente; compuertas corridas en local y declaradas en el PR"
+  "bloqueadorAbierto": "B-11: el CI de Actions no arranca en PR del agente; compuertas corridas en local y declaradas en el PR",
+  "ultimaVersionPreparada": "nexusmed-v1083 (en PR #231, sin desplegar)",
+  "notaDeIteracion": "Esta iteración empezó tomando SAFE-001 del backlog: el contenedor se clona de `main`, que NO tiene REG-201, así que el hallazgo se reprodujo y se reparó de cero antes de ver que la rama remota ya lo traía. De ese trabajo duplicado salió lo único que no era duplicado y que sí es un defecto: REG-202, la unificación de REG-201 había perdido tres formas de negación. Para la próxima: `git fetch` de la rama del ítem ANTES de reproducir, no después."
 }
