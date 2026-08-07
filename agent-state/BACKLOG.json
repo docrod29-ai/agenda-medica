@@ -152,7 +152,7 @@
     {
       "id": "OPS-002",
       "titulo": "El test del timeout de red es intermitente fuera de la máquina del dueño",
-      "hallazgo": "`src/__tests__/ops-timeout-y-punto-ciego.test.ts` > «el error dice cuánto esperó y a quién» corre una carrera de 30 ms contra una conexión a 10.255.255.1. Donde la red RECHAZA en vez de colgar, el timeout nunca dispara. Falla también con los cambios guardados aparte: no lo causa REG-192.",
+      "hallazgo": "`src/__tests__/ops-timeout-y-punto-ciego.test.ts` > «el error dice cuánto esperó y a quién» corre una carrera de 30 ms contra una conexión a 10.255.255.1. Donde la red RECHAZA en vez de colgar, el timeout nunca dispara. Falla también con los cambios guardados aparte, y el job `verificar` del PR #245 pasó en verde con esos mismos cambios: no lo causa REG-192 — depende de la red de la máquina.",
       "porQueImporta": "Un caso que falla por dónde corre y no por lo que prueba enseña a ignorar el rojo — y con él se ignoran los que sí importan.",
       "archivo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:54",
       "seguridad": 0,
@@ -167,7 +167,7 @@
       "complejidad": 1,
       "dependenciaExterna": 2,
       "score": 18,
-      "estado": "pendiente — observado el 7-ago",
+      "estado": "pendiente — confirmado el 7-ago contra CI (verde allí, rojo en contenedor)",
       "reversible": true
     }
   ]
