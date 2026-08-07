@@ -1553,3 +1553,92 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el motor de temporalidad nunca se había medido (v1074)
+
+**Encontrado** — 7-ago-2026, ítem EVAL-002 del backlog: escribir el corpus oro
+que el motor no tenía y correrlo **antes** de tocar una línea de código.
+
+**El defecto** — `src/lib/expediente/temporalidad.ts` avisa cuando el dictado
+sitúa un padecimiento en pasado y la nota lo afirma como actual. Se construyó
+entre la v1027 y la v1030 y sus únicos casos eran los que escribió quien lo
+escribió, sacados de las mismas expresiones regulares que se estaban probando:
+**pasaban por construcción**.
+
+Medido contra 57 frases de consulta mexicana escritas a mano y etiquetadas antes
+de volver a mirar el código, el motor falló **15 veces** — con la suite entera en
+verde y los quince dentro.
+
+**Cómo se reprodujo** — `src/__tests__/fixtures/corpus-temporalidad.ts` contra el
+motor real, sin mocks: 12 falsos negativos y 3 falsos positivos. Después del
+arreglo, 0 y 0.
+
+**Causa raíz, que son tres**
+
+1. **`meses?` nunca casó «mes».** Es «mese» con una ese opcional, escrito por
+   analogía con «años». «Hace un mes tuvo neumonía» —de las formas más comunes
+   de fechar algo en una consulta— era invisible. Es el defecto más barato de
+   escribir y el más caro de encontrar: no falla, no rompe una prueba, y borra un
+   mes entero de historia clínica.
+2. **Faltaban familias enteras de pasado**: la pasiva («fue operado de
+   apendicectomía»), el infinitivo compuesto («refiere haber tenido»), «el año
+   pasado», «a los quince años» y «de la infancia» —esta última porque la lista
+   pedía «de» pegado al sustantivo o «en la» delante, y «de la infancia» no es
+   ninguno de los dos—.
+3. **La marca de tiempo mandaba sobre el verbo de estado.** «Hace tres días
+   inició con fiebre y **tiene** neumonía» se leía como pasado.
+
+**Por qué importa para un paciente** — Los dos lados hacen daño, y no el mismo.
+
+El falso negativo deja pasar el defecto original: una neumonía de hace tres años
+escrita como diagnóstico actual se queda en el expediente, se copia a la nota
+siguiente y cambia lo que otro médico lee dentro de seis meses.
+
+El falso positivo es peor de lo que parece. La frase que marcaba mal es el
+**padecimiento actual**, que es la frase más frecuente de toda la consulta: el
+motivo de consulta siempre se dicta con cuánto lleva, porque es lo primero que se
+pregunta. El aviso saltaba justo ahí. Un aviso que salta donde no debe se acaba
+ignorando, y con él se ignoran los que sí importan — que aquí son antecedentes
+inventados. Es la misma trampa que el módulo ya tenía escrita para «desde hace»,
+con otra forma; el motor había previsto el veneno y no la dosis.
+
+**Reparación** — `PASADO` se parte en dos familias con distinta autoridad, que es
+lo que la gramática pedía desde el principio:
+
+```
+presente explícito  → manda sobre todo        (sigue, todavía, en tratamiento…)
+verbo en pasado     → manda sobre la marca    (tuvo, fue operado, haber tenido…)
+marca de tiempo     → cede ante el verbo de estado en presente
+```
+
+`PRESENTE_DE_ESTADO` (`tiene`, `presenta`, `cursa`, `está con`) veta **sólo** a la
+marca de tiempo. Contra el verbo en pasado no puede: si venciera, «tuvo neumonía
+hace tres años y tiene diabetes» dejaría de cazarse — el titular del motor.
+
+**«Refiere» no está en esa lista, a propósito** — Es un verbo de decir, no de
+estado: lo que hace el paciente ahora, no lo que le pasa. «Refiere tuberculosis
+hace diez años» es presente en la forma y pasado en el hecho. Meterlo apagaría el
+interrogatorio dirigido entero, que es justo donde se cuenta el pasado.
+
+**Qué NO hace** — Sigue sin decidir nada clínico: señala el desacuerdo entre el
+dictado y la nota y lo resuelve el médico. Sigue siendo por oración: la frase con
+dos padecimientos en tiempos distintos queda fuera, porque resolverla exige
+decidir por padecimiento y eso es otro motor. Y el corpus es de **texto**: no mide
+lo que el reconocedor oyó mal — eso es EVAL-003, que sigue abierto.
+
+**Ningún umbral clínico nuevo** — Es gramática, no medicina: verbos y marcas de
+tiempo. No hay una cifra, una dosis ni un punto de corte en toda la reparación.
+
+**Qué queda para el médico** — Nada que decidir. Si aparece una forma de decir el
+pasado que el motor no caza, se añade al corpus **con su etiqueta puesta a mano**:
+un corpus etiquetado con la salida del sistema que mide sólo sabe decir que el
+sistema no ha cambiado.
+
+**Comprobado que puede ponerse rojo** — Revertidas las tres causas por separado
+sobre `temporalidad.ts`: con `meses?` caen 2 pruebas, sin las familias nuevas
+caen 4, sin `PRESENTE_DE_ESTADO` caen 3.
+
+**Golden** — `src/__tests__/el-corpus-oro-de-la-temporalidad.test.ts` (15 casos),
+sobre `src/__tests__/fixtures/corpus-temporalidad.ts` (57 frases sintéticas).

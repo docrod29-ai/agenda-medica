@@ -21,6 +21,28 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | O-2 | Simulacro de restauración con `gcloud firestore databases restore` | Cronometrarlo una vez, en un proyecto de prueba | El acta de restauración real | La ida y vuelta del respaldo ya está medida |
 | O-3 | Pentest externo y PITR | Contratar cuando haya clientes de pago | El registro de riesgos lo declara pendiente | Todo lo demás |
 | O-4 | Cuenta de prueba en los secretos de CI | Una cuenta de juguete con datos sintéticos | El E2E sólo cubre lo público | El resto de CI |
+| O-5 | **17 PR abiertos y 16 se llaman «REG-192 / v1074»** | Fusionar o cerrar por lotes, empezando por los que tocan `temporalidad.ts` (#233, #234 y éste), y **después** renumerar el ledger de una vez | Que el número de REG y la versión del SW vuelvan a identificar algo | Cada rama pasa sus compuertas por separado; el trabajo no se pierde, sólo colisiona el nombre |
+
+**Sobre O-5** — No es un descuido de una ejecución: es estructural. Cada ciclo
+autónomo arranca de `main`, lee que el ledger acaba en REG-191 y toma el
+siguiente número — que las ejecuciones anteriores ya tomaron, porque ninguna se
+fusionó. Fusionar es lo único que rompe el bucle, y fusionar es decisión del
+dueño. Mientras tanto seguirán naciendo REG-192.
+
+Tres PR tocan `src/lib/expediente/temporalidad.ts` con arreglos **distintos y
+parcialmente incompatibles** del mismo falso positivo. Lo que cada uno cubre, para
+poder elegir sin abrir los tres:
+
+| PR | Cómo arregla el falso positivo | Qué más trae | Qué pierde |
+|---|---|---|---|
+| #233 | La marca de tiempo sola sólo vale si es **remota** (`hace N años`) | Corta la ventana de la nota en el punto — un «sin antecedentes» de la frase anterior ya no calla el aviso | «Neumonía hace tres meses», sin verbo, deja de vigilarse |
+| éste | La marca de tiempo cede ante un **verbo de estado en presente** (`tiene`, `presenta`) | Repara `meses?`, que nunca casó «mes»; añade la pasiva, el infinitivo compuesto, «el año pasado», «a los N años» y «de la infancia». Corpus de 57 frases | No toca la ventana de la nota |
+| #234 | Por frase compuesta | — | — |
+
+**Recomendación**: los arreglos de #233 y de éste **se complementan** — la ventana
+de la nota y la gramática del dictado son dos sitios distintos. Se pueden fusionar
+los dos si se resuelve a mano el conflicto en `PASADO`, quedándose con el veto por
+verbo de estado (conserva «hace un mes» vigilado) **y** con `ventanaAntes`.
 
 ## EVALUACIÓN
 

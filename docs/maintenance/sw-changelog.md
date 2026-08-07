@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el motor de temporalidad nunca se había medido
+
+Avisa cuando el dictado pone un padecimiento en pasado y la nota lo afirma como
+actual. Se construyó en la v1027-v1030 y sus únicos casos eran los de quien lo
+escribió, sacados de las mismas expresiones regulares que probaban: pasaban por
+construcción.
+
+Contra 57 frases de consulta mexicana escritas a mano, falló 15 veces con la
+suite entera en verde. `meses?` es «mese» con una ese opcional y nunca casó
+«mes», así que «hace un mes tuvo neumonía» era invisible. Faltaban la pasiva
+(«fue operado»), el infinitivo compuesto («refiere haber tenido»), «el año
+pasado», «a los quince años» y «de la infancia».
+
+Y marcaba como pasado el PADECIMIENTO ACTUAL: «hace tres días inició con fiebre
+y tiene neumonía» — la frase más frecuente de toda la consulta. Ahora el verbo de
+estado en presente vence a la marca de tiempo, pero no al verbo en pasado: «tuvo
+neumonía hace tres años y tiene diabetes» se sigue cazando.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

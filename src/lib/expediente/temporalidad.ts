@@ -46,27 +46,77 @@ const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 /**
- * Marcas de que la frase habla del PASADO.
+ * Cantidades como llegan del dictado: en cifra o en letra.
  *
- * Dos familias, porque se dice de las dos maneras:
+ * Se comparte entre «hace N años» y «a los N años» porque son la misma cuenta
+ * dicha dos veces; tenerla escrita dos veces fue cómo se desincronizaron otras
+ * listas de este repositorio.
+ */
+const NUMERO =
+  '(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|quince|veinte|treinta|varios|muchos|algunos)'
+
+/**
+ * Unidades de tiempo.
  *
- * · El verbo en pretérito o copretérito: «tuvo», «tenía», «padeció», «le
- *   operaron», «se le quitó».
- * · La marca de cuándo: «hace tres años», «en 2019», «de niño».
+ * ── EL DEFECTO QUE ESTO REPARA (REG-192) ─────────────────────────────────────
+ *
+ * Aquí decía `meses?`, que es «mese» con una ese opcional: casaba «meses» y
+ * «mese», y **nunca «mes»**. Así que «hace un mes tuvo neumonía» —de las formas
+ * más comunes de fechar algo en una consulta— no se veía. El plural de «mes» es
+ * «meses», no «mes» + «es», y una `?` puesta por analogía con «años» se llevó
+ * por delante todo un mes de historia clínica sin romper una sola prueba.
+ */
+const UNIDAD_TIEMPO = '(?:anos?|mes(?:es)?|semanas?|dias?)'
+
+/**
+ * EL VERBO en pasado — pretérito, copretérito, pasiva o infinitivo compuesto.
+ *
+ * Esta familia **manda**: un verbo en pasado sitúa la frase en el pasado aunque
+ * más adelante aparezca un verbo de estado. «Tuvo neumonía» es pasado, punto.
  *
  * Que falte una forma significa que ese caso no se vigila — no que se dé por
  * bueno. Este motor sólo puede señalar de menos, nunca de más.
  */
-const PASADO = new RegExp([
+const PASADO_VERBO = new RegExp([
   '\\b(?:tuvo|tuve|tenia|tenian|padecio|padeci|padecia|sufrio|sufri|presento)\\b',
   '\\b(?:le\\s+)?(?:operaron|extirparon|quitaron|resecaron)\\b',
   '\\b(?:ya\\s+)?se\\s+le\\s+(?:quito|curo|resolvio)\\b',
-  '\\bhace\\s+(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)\\s*(?:anos?|meses?|semanas?|dias?)\\b',
-  '\\ben\\s+(?:19|20)\\d{2}\\b',
-  '\\b(?:de|en\\s+la)\\s+(?:nino|nina|infancia|juventud)\\b',
-  '\\banos\\s+atras\\b',
+  /**
+   * La pasiva es como se cuenta lo que le hicieron en un hospital —«fue operado
+   * de apendicectomía»— y no tiene lectura en presente: «fue» ya es pretérito.
+   */
+  '\\bfue\\s+(?:operad|intervenid|hospitalizad|diagnosticad|tratad)[oa]\\b',
+  /**
+   * El infinitivo compuesto llega por el interrogatorio dirigido: el médico
+   * dicta «refiere haber tenido…», y el verbo que manda («refiere») está en
+   * presente aunque lo referido sea pasado. Lo que fecha la frase es el
+   * «haber tenido».
+   */
+  '\\bhaber\\s+(?:tenido|padecido|sufrido|presentado|estado)\\b',
   '\\banteriormente\\b',
   '\\ben\\s+el\\s+pasado\\b',
+].join('|'), 'i')
+
+/**
+ * LA MARCA DE CUÁNDO, sin verbo que la acompañe.
+ *
+ * Esta familia **cede** ante un verbo de estado en presente: ver
+ * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-192.
+ */
+const PASADO_MARCA = new RegExp([
+  `\\bhace\\s+${NUMERO}\\s*${UNIDAD_TIEMPO}\\b`,
+  '\\ben\\s+(?:19|20)\\d{2}\\b',
+  /**
+   * `de la infancia` faltaba: la lista pedía «de» pegado al sustantivo o «en la»
+   * delante, y «de la infancia» no es ninguno de los dos. Se dice de las cuatro
+   * maneras, así que el artículo va suelto.
+   */
+  '\\b(?:de|en)\\s+(?:la\\s+)?(?:nino|nina|infancia|juventud|adolescencia)\\b',
+  /** «el año pasado», «la semana pasada», «el invierno pasado». */
+  '\\b(?:el|la)\\s+(?:ano|mes|semana|invierno|verano|primavera|otono|temporada)\\s+pasad[oa]\\b',
+  /** La edad a la que ocurrió: «a los quince años», «a los 12 años». */
+  `\\ba\\s+los\\s+${NUMERO}\\s*anos\\b`,
+  '\\banos\\s+atras\\b',
 ].join('|'), 'i')
 
 /**
@@ -85,6 +135,44 @@ const PRESENTE = new RegExp([
   '\\b(?:tiene|padece|cursa|presenta)\\s+(?:actualmente|todavia)\\b',
   '\\ben\\s+control\\b',
   '\\ben\\s+tratamiento\\b',
+].join('|'), 'i')
+
+/**
+ * EL VERBO DE ESTADO en presente — «tiene», «presenta», «cursa con».
+ *
+ * ── EL DEFECTO QUE ESTO REPARA (REG-192) ─────────────────────────────────────
+ *
+ * El corpus oro destapó el falso positivo más caro que podía tener este motor:
+ *
+ *     «Hace tres días inició con fiebre y tiene neumonía.»
+ *
+ * La marca «hace tres días» lo mandaba al pasado, y esa frase es el
+ * **padecimiento actual** — la forma en que se dicta SIEMPRE el motivo de
+ * consulta, porque lo primero que se pregunta es cuánto lleva. El motor avisaba
+ * de que la nota afirmaba como actual una neumonía que es actual.
+ *
+ * Es exactamente la trampa que el módulo ya tenía escrita para «desde hace», con
+ * otra forma: la marca de tiempo mide la DURACIÓN de lo de ahora, no la fecha de
+ * lo de antes. Y su daño es el de siempre — un aviso que salta donde no debe se
+ * acaba ignorando, y con él se ignoran los que sí importan.
+ *
+ * ── POR QUÉ SÓLO VETA A LA MARCA, NO AL VERBO EN PASADO ──────────────────────
+ *
+ * «Tuvo neumonía hace tres años y tiene diabetes» tiene las dos cosas. Si el
+ * verbo de estado venciera al pretérito, el titular del motor dejaría de
+ * cazarse. Por eso el orden es: presente explícito → verbo en pasado → marca de
+ * tiempo vetada por el verbo de estado.
+ *
+ * ── POR QUÉ «REFIERE» NO ESTÁ AQUÍ ───────────────────────────────────────────
+ *
+ * «Refiere tuberculosis hace diez años» es presente en la forma y pasado en el
+ * hecho: «refiere» es lo que hace el paciente ahora, no lo que le pasa. Un verbo
+ * de decir no es un verbo de estado, y meterlo aquí apagaría el interrogatorio
+ * entero, que es justo donde se cuenta el pasado.
+ */
+const PRESENTE_DE_ESTADO = new RegExp([
+  '\\b(?:tiene|tienen|padece|padecen|presenta|presentan|cursa|cursan|manifiesta)\\b',
+  '\\besta\\s+con\\b',
 ].join('|'), 'i')
 
 /**
@@ -151,11 +239,20 @@ export function padecimientosEn(frase: string): string[] {
   return out
 }
 
-/** ¿Esta frase encuadra lo que dice en el pasado? */
+/**
+ * ¿Esta frase encuadra lo que dice en el pasado?
+ *
+ * El orden de las tres preguntas ES la política, y está razonado arriba en cada
+ * lista: el presente explícito manda sobre todo; el verbo en pasado manda sobre
+ * la marca de tiempo; y la marca de tiempo sola cede ante un verbo de estado en
+ * presente, que es lo que distingue el padecimiento actual de un antecedente.
+ */
 export function esFrasePasada(frase: string): boolean {
   const t = sinAcentos(frase)
   if (PRESENTE.test(t)) return false
-  return PASADO.test(t)
+  if (PASADO_VERBO.test(t)) return true
+  if (!PASADO_MARCA.test(t)) return false
+  return !PRESENTE_DE_ESTADO.test(t)
 }
 
 export interface MencionPasada {
