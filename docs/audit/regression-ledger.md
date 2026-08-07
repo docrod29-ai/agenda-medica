@@ -2065,3 +2065,52 @@ un umbral clínico bajo forma de decisión de arquitectura.
 **Quedan tres decisiones ya tomadas sin ADR**: la separación Consulta/Hospital
 tras feature flag, los proveedores de voz intercambiables, y la política
 multi-inquilino. Escritas como pendientes en el índice, no calladas.
+
+---
+
+## REG-204 — los nueve ceros del §H6 no tenían puerta (v1085)
+
+**Qué faltaba** — El charter §H6 fija **nueve cosas que deben dar cero** para
+poder liberar una versión: paciente equivocado, error de medicación silencioso,
+error de unidad silencioso, negación invertida silenciosa, cita fabricada, orden
+activa no confirmada, acceso entre consultorios, pérdida de datos y pago
+duplicado. Cualquiera distinta de cero **bloquea la liberación**.
+
+No estaban escritos en ningún sitio del repositorio. Vivían en el charter — es
+decir, fuera del código que tienen que bloquear.
+
+**Lo que la medición encontró, y no era lo esperado** — La corazonada era que
+faltarían pruebas. Al mapear cada cero contra la suite, **los nueve ya tenían
+cobertura**: ninguno estaba desnudo. Lo que faltaba no era protección, era
+**la declaración de que esa protección es una puerta** y el guardián que
+comprueba que siga en pie.
+
+**Los dos que sí están flojos, dichos como son:**
+
+| # | Cero | Por qué es débil |
+|---|---|---|
+| 1 | **Paciente equivocado** | Es el **primero** de la lista del charter y el peor cubierto. Lo protegen controles reales pero **derivados** (`deEstePaciente`, reglas por `clinicId`); ninguno se escribió pensando en «paciente equivocado» como peligro con nombre. **No hay corpus adversarial**: nadie intenta a propósito meter la nota de un paciente en el expediente de otro. |
+| 7 | **Acceso entre consultorios** | La puerta `aislamiento-tenant` corre en cada PR y es real, pero prueba **lo que se le pidió probar**. No hay equipo rojo independiente intentando romperla, que es lo que pide el §5.16. |
+
+**La palabra que hace el trabajo es «silencioso»** — seis de los nueve la llevan.
+Un error que el sistema detecta y avisa es trabajo hecho; lo que esta puerta
+persigue es el que **pasa sin que nadie se entere**, el que se lee igual que un
+dato correcto dentro de un documento firmado con cédula.
+
+**Lo que la puerta NO significa, escrito dentro de ella** — un cero aquí no
+significa que el error no pueda ocurrir: significa que, sobre el conjunto de
+casos que **alguien pensó en escribir**, no ocurrió sin avisar. Cada REG de este
+ledger empezó siendo un caso que nadie había pensado.
+
+**El guardián** — `src/__tests__/la-puerta-de-liberacion-sigue-cerrada.test.ts`
+(15 casos) comprueba que sean exactamente nueve, que cada uno tenga al menos una
+prueba viva, que **ninguna prueba citada haya desaparecido**, que el documento
+declare los débiles como débiles y no en verde, y que nadie borre la frase que
+impide leer la puerta como una garantía.
+
+**Las dos formas de perder una protección sin enterarse** son que se borre y que
+se ahueque. Este guardián detecta la primera; el sello de invariantes —que
+cuenta los casos de cada archivo y no deja que encojan— detecta la segunda. Hacía
+falta la pareja: hasta hoy sólo existía la mitad.
+
+**Documento** — `docs/evals/PUERTA-DE-LIBERACION.md`

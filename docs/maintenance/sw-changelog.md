@@ -2082,3 +2082,12 @@ que llegara el webhook, el efecto fallaba, la marca se retiraba y Stripe
 reintentaba durante tres días — escribiendo un cobro nuevo cada vez. Ahora el
 identificador es `stripe_{session.id}`: reintentar es reescribir el mismo
 documento. REG-153.
+
+## v1085 — la puerta de liberación del §H6
+REG-204. Los nueve ceros que bloquean una liberación (paciente equivocado, error
+de medicación/unidad/negación silencioso, cita fabricada, orden no confirmada,
+acceso entre consultorios, pérdida de datos, pago duplicado) vivían sólo en el
+charter. Ahora están en `docs/evals/PUERTA-DE-LIBERACION.md` con su prueba, y un
+guardián de 15 casos comprueba que ninguna desaparezca. Los nueve ya tenían
+cobertura; **dos quedan declarados DÉBILES** —paciente equivocado y aislamiento
+entre consultorios— en vez de pintarlos de verde.
