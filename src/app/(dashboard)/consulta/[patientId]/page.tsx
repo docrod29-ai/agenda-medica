@@ -2082,10 +2082,32 @@ export default function ConsultaActivaPage() {
        * Se registra el alérgeno tal como está escrito y nada más. Los campos que
        * no se saben quedan ausentes, que es la única representación honesta.
        */
-      // Una entrada POR alérgeno, no el párrafo entero como un solo alérgeno —y
-      // sin lo que el propio campo niega («niega alergia a penicilina» no es una
-      // alergia a penicilina, y hacía saltar la alerta que bloquea la firma).
-      alergias: parsearAlergiasTexto(patient?.alergias),
+      /**
+       * ── LA ALERGIA ESTRUCTURADA NO LLEGABA A LA COMPUERTA (7-ago-2026) ──────
+       *
+       * `parsearAlergiasTexto(patient?.alergias)` sólo mira el TEXTO LIBRE. Un
+       * paciente cuya alergia vive en `alergiasEstructuradas` —que es donde la
+       * deja el registro estructurado— sellaba `alergias: []` en la nota.
+       *
+       * Y de `nota.alergias` cuelga la COMPUERTA que bloquea la firma
+       * (`nom004.ts`): el cruce por subcadena y el de reactividad cruzada por
+       * familias. Reproducido con el motor real:
+       *
+       *     paciente con «Penicilina» sólo en el campo estructurado
+       *     + prescripción de cefalexina
+       *     → la pantalla pinta la alergia en rojo (lee `alergiasDe`)
+       *     → la compuerta devuelve CERO errores
+       *     → el betalactámico se firma sobre un alérgico, con el aviso a la vista
+       *
+       * `alergiasDe` lee LAS DOS fuentes y devuelve el mismo tipo que la
+       * compuerta espera. Es el mismo defecto de siempre: **dos lecturas del
+       * mismo campo** (ADR-001, REG-034/035/171). La pantalla y lo que se sella
+       * tienen que leer de la misma fuente.
+       *
+       * Sigue quitando lo que el campo NIEGA: «niega alergia a penicilina» no es
+       * una alergia, y hacía saltar la alerta que bloquea la firma.
+       */
+      alergias: alergiasDe(patient ?? {}),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
       // El bloque hospitalario, que hasta v941 se sellaba vacío. Lo que el

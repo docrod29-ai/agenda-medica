@@ -2655,3 +2655,54 @@ nota compartan constructor de texto, y pasaron de dos a tres. Que las tres vean
 **Los guardianes** — `src/__tests__/corpus-oro-de-donde-salio-esto.test.ts`
 (13 casos): enlaza lo dicho, declara lo inventado **sin fragmento**, no castiga
 la traducción del médico, y sigue marcando la interpretación de la pauta.
+
+---
+
+## REG-214 — la alergia estructurada no llegaba a la compuerta de firma (v1096) · P0
+
+**Reproducido con los motores reales, sin simular nada:**
+
+```
+Paciente con «Penicilina» SÓLO en el campo estructurado
++ prescripción de cefalexina
+
+lo que se sellaba HOY  →  0 alergias  →  la compuerta da 0 errores  →  SE FIRMA
+con el lector correcto →  1 alergia   →  «[Contraindicado] beta-lactámicos»
+```
+
+**El betalactámico se firmaba sobre un alérgico, con el aviso a la vista en la
+pantalla.** Porque la pantalla lee `alergiasDe` —y pinta la alergia en rojo— y lo
+que se sella en la nota leía `parsearAlergiasTexto`, que **sólo mira el texto
+libre**. De `nota.alergias` cuelga la compuerta de `nom004.ts`: el cruce por
+subcadena y el de reactividad cruzada por familias. Con la lista vacía, los dos
+callan.
+
+**De qué familia es** — **dos lecturas del mismo campo**: la de REG-034, REG-035
+y REG-171, y exactamente lo que el ADR-001 existe para impedir. Aquí había dos
+lecturas y **la que gobernaba la seguridad era la ciega**.
+
+### Quién lo encontró, y por qué no se fusionó a ojo
+
+Lo encontró **la rutina autónoma del Master Loop**, trabajando en su propia rama
+`agent/safety/SAFE-001-sello-de-la-nota`. Su diagnóstico era correcto y el caso
+que construyó era real.
+
+**Su reparación no lo era**: usaba `alergenosDe`, que devuelve `string[]`, cuando
+la compuerta espera `AlergiaEstructurada[]` y hace `al.alergeno.toLowerCase()`.
+Con cadenas sueltas la compuerta revienta o queda ciega por otra puerta. La
+correcta es `alergiasDe`, que lee **las dos fuentes** y devuelve el tipo bueno.
+
+Se verificó antes de traerla, y por eso hay un caso del corpus dedicado al
+**tipo** que devuelve el lector: aquí el tipo **es** parte del arreglo.
+
+**La lección de operación** — la rutina trabaja sobre `main` y esta sesión sobre
+`agent/pagos/PAY-001`. Dos carriles que nunca se cruzaron: su trabajo llevaba un
+día parado sin llegar a producción. Además **los números de REG colisionaron**
+—su REG-202 es otro defecto que el mío—, porque cada uno numeró sin ver al otro.
+
+**El guardián** —
+`src/__tests__/la-alergia-estructurada-llega-a-la-compuerta.test.ts` (7 casos):
+reproduce el defecto, comprueba el arreglo, verifica el TIPO, confirma que «niega
+alergia a penicilina» sigue sin contar como alergia, y **comprueba el cable** en
+la pantalla — porque el módulo puede estar perfecto y no correr, que es la
+familia más grande del ledger.

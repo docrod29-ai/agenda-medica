@@ -2163,3 +2163,10 @@ REG-213. Cierra la distancia más grande frente a Abridge y el §B10 propio. Cad
 afirmación se enlaza al fragmento del dictado que la sostiene; lo que ninguno
 sostiene se declara con las palabras que nadie dijo. El hallazgo caro fue el
 falso positivo: «cefalea» ← «dolor de cabeza» se marcaba como invención.
+
+## v1096 — P0: la alergia estructurada no llegaba a la compuerta de firma
+REG-214. Paciente con penicilina SÓLO en el campo estructurado + cefalexina: la
+pantalla pintaba la alergia en rojo y la compuerta devolvía CERO errores. El
+betalactámico se firmaba sobre un alérgico con el aviso a la vista. Lo encontró
+la rutina autónoma; su diagnóstico era correcto y su reparación no (usaba el
+lector que devuelve texto plano, no objetos). Verificado antes de traerlo.
