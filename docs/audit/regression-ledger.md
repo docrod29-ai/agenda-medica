@@ -1713,3 +1713,131 @@ el ensanche de `descartar` de vuelta fallan los dos de la negación fabricada; s
 el orden por posición falla el de la cita.
 
 **Golden** — `src/__tests__/la-nota-lo-dice-dos-veces.test.ts` (16 casos).
+
+---
+
+## REG-193 — el lado del dictado leía la negación como se escribe (v1075)
+
+**Encontrado** — 7-ago-2026, al tomar el punto **C2/C3** del plan de la auditoría
+de nueve dimensiones del 6-ago («faltan negadores del habla real»).
+
+**Lo primero fue refutar el hallazgo tal como venía escrito.** C2 decía que «No
+padece diabetes» salía como antecedente positivo. Es **falso**: `no\s+padece`
+estaba en la expresión desde el primer día. Los tres fallos que sí había salieron
+de correr el motor real, y ninguno estaba en el reporte.
+
+REG-192 había reparado el lado de la **nota** —se miraba sólo la primera
+aparición, y «plasma» contaba como «asma»—. El lado del **dictado** se quedó como
+estaba.
+
+### 1 · La negación con muletilla se perdía entera
+
+```
+condicionesNegadas('¿Padece diabetes? Pues no.')        → []
+condicionesNegadas('¿Padece diabetes? Fíjese que no.')  → []
+condicionesNegadas('¿Tiene diabetes? Que yo sepa, no.') → []
+```
+
+`NEGATIVAS` anclaba en `^` y sólo toleraba «ah» como arranque. El tercero duele
+especialmente: la variante estaba declarada —«que yo sepa no»— y **la coma** la
+rompía. Una coma es un artefacto de transcripción, no un hecho clínico.
+
+**Por qué importa para un paciente** — Es el caso del 3-ago (REG-158) otra vez,
+con una palabra delante: el paciente contesta que no y la nota le pone la
+crónica. Un antecedente crónico inventado cambia el riesgo quirúrgico, cambia la
+elección de fármacos y se arrastra a todas las notas siguientes.
+
+### 2 · No saber se registraba como negar
+
+«No sé», «no me acuerdo», «no estoy seguro», «no me han checado» empiezan por
+«no», así que entraban como negación — y `corregirCertezaPorNegacion` marcaba la
+condición como `descartado`.
+
+**Por qué importa para un paciente** — `descartado` es una **afirmación de
+ausencia**. Un paciente con diabetes sin diagnosticar contesta exactamente así, y
+el expediente acababa afirmando por él algo que nunca dijo. Es la regla 4
+—ausencia de dato no es dato de ausencia— rota dentro del módulo que la cita en
+su propia cabecera. Es el mismo error que costó el revert de REG-192, por el otro
+extremo: allí se fabricaba una negación desde la nota, aquí desde la respuesta.
+
+### 3 · El negador se aplicaba a la FRASE ENTERA — el más caro
+
+```
+condicionesNegadas('Niega tabaquismo, tiene diabetes en tratamiento.')
+  → [{ condicion: 'diabetes' }]        ← el negador era del tabaquismo
+```
+
+La comprobación era `NIEGA_EN_LINEA.test(frase)`: basta con que la oración
+contenga un negador para dar por negada **cualquier** crónica nombrada en ella.
+
+**Por qué importa para un paciente** — Una diabetes activa, en tratamiento,
+desaparecía del panel de entidades reclasificada a `descartado` porque la frase
+negaba **otra cosa**. Y «Niega tabaquismo y alcoholismo, tiene diabetes de 10
+años de evolución» es literalmente cómo empieza un antecedente personal
+patológico.
+
+### Reparación — sin tocar el vocabulario compartido
+
+La lección de REG-192 está escrita encima de `NIEGA_EN_LINEA`: tiene **dos
+consumidores que no preguntan lo mismo**, y ensancharlo fabricó una negación que
+el paciente no dijo. Así que aquí **no se ensancha**. Se reutiliza tal cual y se
+le cambia el **alcance**:
+
+- `NIEGA_PEGADO = new RegExp(NIEGA_EN_LINEA.source + PUENTE + '$')` — las mismas
+  palabras, ancladas al término que tienen al lado. El puente sólo cruza palabras
+  vacías («sin antecedentes personales patológicos **de** …»); cualquier palabra
+  con contenido corta el vínculo, y eso es lo que salva «paciente sin fiebre, con
+  diabetes».
+- En la respuesta, la muletilla se **quita primero** y después se exige un núcleo
+  negativo. Más seguro que alargar la lista: si tras la muletilla no viene un
+  «no», no hay negación — «pues mi mamá sí» pierde el «pues» y se queda en «mi».
+- `NO_ES_NEGACION` saca del camino las dos familias que empiezan por «no» y no
+  niegan: no saber, y negar en parte.
+
+**El dictado usa ahora el mismo `apariciones()` que la nota** — se sacó de
+`mencion-en-la-nota.ts` para que la frontera de palabra de REG-192 valga para los
+dos lados. Dos copias de esa regla acabarían separándose y una volvería a leer
+«asma» dentro de «plasma».
+
+**La adyacencia apaga sola la regresión de REG-192** — en «para descartar
+diabetes» el infinitivo rompe la frontera de palabra de `descarta`, así que no
+hay negador pegado. Va sellado en el golden para que se note si alguien vuelve a
+ensanchar el vocabulario.
+
+**La enumeración hereda el negador de su cabeza** — «niega diabetes,
+hipertensión y dislipidemia». Esto no lo encontré yo: lo cazó el golden de
+REG-158, que exige cero alarmas sobre «niega diabetes e hipertensión arterial».
+Con adyacencia estricta, **la nota mejor escrita** era la que disparaba el aviso.
+La herencia se corta en cuanto entre dos crónicas hay algo que no sea una
+conjunción: «niega diabetes, tiene hipertensión» son dos hechos, no una lista.
+
+**Un negador dentro de la pregunta no contesta por el paciente** — a «¿no tiene
+diabetes?» se puede contestar que sí.
+
+**Ninguna cifra clínica** — el cambio es de lenguaje. `CRONICAS` no se tocó.
+
+### Qué NO hace
+
+- **El lado de la NOTA no se toca.** «Negó diabetes» (con acento; `nieg[ao]` no
+  cubre `negó`), «Sin diabetes», «No es diabético» y «DM2 (-)» siguen sin contar
+  como disculpa, así que el aviso sigue saltando contra una nota que dice lo
+  mismo que el dictado. Reproducido y anotado en la cola del dueño (**C-6**):
+  ampliar el vocabulario de negación de una NOTA es vocabulario clínico, y
+  hacerlo por mi cuenta es exactamente lo que costó el revert de REG-192.
+- **No avisa de que el paciente no sabe.** «No sé» deja de contar como negación y
+  la condición se queda como la puso el extractor. Que la duda llegue a la
+  pantalla es otra pieza (**C-8**).
+- **Hedges fuera**: «creo que no», «casi no» siguen sin contar como negación.
+- **`CRONICAS` es vocabulario, no criterio.**
+
+### Qué queda para el médico
+
+**C-6** (ya abierta, ahora con las formas reproducidas: «negó», «sin X», «no es
+X», «X (-)»), y **C-8** nueva: si «el paciente no sabe» debe verse en la consulta
+y con qué marca.
+
+**Comprobado que puede ponerse rojo** — Revertidos `negaciones.ts` y
+`mencion-en-la-nota.ts`, el golden falla en 29 de sus 35 casos.
+
+**Golden** — `src/__tests__/la-negacion-se-oye-como-se-habla.test.ts` (18 `it(`,
+35 casos ejecutados).

@@ -118,27 +118,50 @@ const LETRA_O_DIGITO = /[\p{L}\p{N}]/u
  * @returns la cita para enseñar al médico, o `null` si todas las apariciones
  *   venían bien escritas — o si la nota no la nombra.
  */
-export function mencionSinDisculpa(
-  textoNota: string,
-  formas: readonly string[],
-  disculpa: RegExp,
-): string | null {
-  const t = sinAcentos(textoNota)
-  const posiciones = new Set<number>()
+export interface Aparicion {
+  inicio: number
+  fin: number
+}
+
+/**
+ * Dónde nombra el texto este padecimiento, en orden de lectura.
+ *
+ * Se saca aparte porque el dictado necesita lo mismo que la nota —dónde está
+ * cada mención, con la frontera de palabra que impide que «plasma» sea «asma»—
+ * pero no necesita la cita. Dos copias de la regla de frontera acabarían
+ * separándose, y una de las dos volvería a leer «asma» dentro de «plasma».
+ *
+ * Cuando dos formas empiezan en el mismo sitio («diabetes» dentro de «diabetes
+ * mellitus») se conserva **la más larga**: es la misma mención escrita de dos
+ * maneras, y el final más lejano es el que mide de verdad dónde acaba.
+ */
+export function apariciones(texto: string, formas: readonly string[]): Aparicion[] {
+  const t = sinAcentos(texto)
+  const porInicio = new Map<number, number>()
   for (const forma of formas) {
     const f = sinAcentos(forma)
     if (!f) continue
     for (let i = t.indexOf(f); i >= 0; i = t.indexOf(f, i + 1)) {
       if (i > 0 && LETRA_O_DIGITO.test(t[i - 1])) continue // «plasma» no es «asma»
-      posiciones.add(i)
+      porInicio.set(i, Math.max(porInicio.get(i) ?? 0, i + f.length))
     }
   }
+  return [...porInicio.entries()]
+    .map(([inicio, fin]) => ({ inicio, fin }))
+    .sort((a, b) => a.inicio - b.inicio)
+}
+
+export function mencionSinDisculpa(
+  textoNota: string,
+  formas: readonly string[],
+  disculpa: RegExp,
+): string | null {
   /**
    * En orden de lectura, no en orden de vocabulario. Antes la cita dependía de
    * cómo estuviera ordenada la lista de formas —un detalle interno—, y lo que el
    * médico necesita ver es la primera vez que la nota lo dice mal.
    */
-  for (const idx of [...posiciones].sort((a, b) => a - b)) {
+  for (const { inicio: idx } of apariciones(textoNota, formas)) {
     const antes = textoNota.slice(Math.max(0, idx - VENTANA_ATRAS), idx)
     if (disculpa.test(sinAcentos(antes))) continue
     return textoNota.slice(Math.max(0, idx - CITA_ATRAS), idx + CITA_ADELANTE).trim()

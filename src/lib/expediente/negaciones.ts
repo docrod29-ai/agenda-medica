@@ -42,7 +42,7 @@
  *
  * Módulo PURO.
  */
-import { mencionSinDisculpa } from '@/lib/expediente/mencion-en-la-nota'
+import { apariciones, mencionSinDisculpa, VENTANA_ATRAS } from '@/lib/expediente/mencion-en-la-nota'
 
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
@@ -75,7 +75,58 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
  * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
  * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
  */
-const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
+const NEGATIVAS = /^(?:no|nop|ninguna|ninguno|nada|negativo|nunca|nel|para\s+nada|en\s+lo\s+absoluto)\b/
+
+/**
+ * ── LA RESPUESTA LLEGA CON MULETILLA DELANTE (REG-193, 7-ago-2026) ───────────
+ *
+ * `NEGATIVAS` anclaba en `^` y sólo toleraba «ah» como arranque, así que el
+ * paciente que contesta como se contesta de verdad no negaba nada — verificado
+ * con el motor real:
+ *
+ *     condicionesNegadas('¿Padece diabetes? Pues no.')            → []
+ *     condicionesNegadas('¿Padece diabetes? Fíjese que no.')      → []
+ *     condicionesNegadas('¿Tiene diabetes? Que yo sepa, no.')     → []
+ *
+ * El último duele especialmente: la variante estaba declarada —«que yo sepa
+ * no»— y **la coma** la rompía. Una coma es un artefacto de transcripción, no
+ * un hecho clínico.
+ *
+ * Es el caso del 3-ago (REG-158) otra vez, con una palabra delante: el paciente
+ * contesta que no y la nota le pone la crónica.
+ *
+ * Se quita la muletilla primero y se exige después un núcleo negativo. Es más
+ * seguro que alargar la lista de negaciones —que es justo lo que salió mal al
+ * ensanchar `NIEGA_EN_LINEA`—: si tras la muletilla no viene un «no», no hay
+ * negación. «Pues mi mamá sí» pierde el «pues» y se queda en «mi».
+ */
+const MULETILLA = String.raw`(?:ah?|eh+|ay|uy|hijole|mm+|mh+|este|pues|pos|bueno|mire|oiga|fijese|o\s+sea|doctor|doctora|doc|que|yo|sepa|recuerde)`
+const ARRANQUE = new RegExp(String.raw`^(?:${MULETILLA}\b[\s,.;]*)*`)
+
+/**
+ * Lo que empieza por «no» y aun así **no niega el antecedente**.
+ *
+ * Dos familias, y las dos acaban en el mismo daño: `corregirCertezaPorNegacion`
+ * marca la condición como `descartado`, que es una **afirmación de ausencia**, y
+ * a partir de ahí el expediente afirma por el paciente algo que nunca dijo.
+ *
+ * - **No saber.** «No sé», «no me acuerdo», «no me han checado». Un paciente con
+ *   diabetes sin diagnosticar contesta exactamente así. Es la regla 4 de
+ *   `clinical-safety.md` —ausencia de dato no es dato de ausencia— dentro del
+ *   módulo que la cita en su cabecera.
+ * - **Negar en parte.** «No siempre», «no del todo»: un sí con matiz.
+ *
+ * Los hedges («creo que no», «casi no») quedan fuera a propósito: no cuentan
+ * como negación, que es el lado seguro. Está en la cola del dueño (C-8).
+ */
+const NO_ES_NEGACION = new RegExp(
+  String.raw`^no\s+(?:` + [
+    String.raw`se\b`, String.raw`lo\s+se\b`, String.raw`sabria`, String.raw`recuerdo`,
+    String.raw`me\s+acuerdo`, String.raw`estoy\s+segur[oa]`, String.raw`tengo\s+idea`,
+    String.raw`me\s+(?:lo\s+|la\s+)?(?:han|he)\s+(?:dicho|checado|revisado|medido|hecho)`,
+    String.raw`siempre`, String.raw`mucho`, String.raw`tanto`, String.raw`del\s+todo`,
+  ].join('|') + String.raw`)`,
+)
 
 /**
  * Marcas de que un término ya viene negado en la propia frase.
@@ -113,6 +164,49 @@ const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|r
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+/**
+ * \u2500\u2500 EL NEGADOR ALCANZA AL T\u00c9RMINO DE AL LADO, NO A LA FRASE (REG-193) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+ *
+ * Sobre el dictado, la pregunta era `NIEGA_EN_LINEA.test(frase)`: basta con que
+ * la oraci\u00f3n contenga un negador para dar por negada **cualquier** cr\u00f3nica
+ * nombrada en ella. Verificado con el motor real:
+ *
+ *     condicionesNegadas('Niega tabaquismo, tiene diabetes en tratamiento.')
+ *       \u2192 [{ condicion: 'diabetes' }]      \u2190 el negador era del tabaquismo
+ *
+ * Una diabetes activa, en tratamiento, sal\u00eda reclasificada a `descartado` en el
+ * panel de entidades porque la frase negaba **otra cosa**. Y \u00abNiega tabaquismo y
+ * alcoholismo, tiene diabetes de 10 a\u00f1os de evoluci\u00f3n\u00bb es literalmente c\u00f3mo
+ * empieza un antecedente personal patol\u00f3gico.
+ *
+ * **No se toca el vocabulario compartido**, que es lo que ya sali\u00f3 mal una vez:
+ * se reutiliza `NIEGA_EN_LINEA` tal cual y se le cambia el ALCANCE, anclando en
+ * `$` para que el negador tenga que estar pegado al t\u00e9rmino. Las dos preguntas
+ * de C-6 siguen usando las mismas palabras; lo que cambia es cu\u00e1nto abarcan.
+ *
+ * De regalo, la premisa de la que avisa `NIEGA_EN_LINEA` se apaga sola: en \u00abpara
+ * descartar diabetes\u00bb el infinitivo rompe la frontera de palabra de `descarta`,
+ * as\u00ed que la adyacencia no encuentra negador.
+ */
+const PUENTE = String.raw`(?:\s+(?:de|del|la|el|los|las|un|una|antecedentes?|historia|personal(?:es)?|patologic[oa]s?|familiar(?:es)?|con|que|a|al|su))*[\s:,;.-]*`
+const NIEGA_PEGADO = new RegExp(NIEGA_EN_LINEA.source + PUENTE + '$', 'i')
+
+/** Lo \u00fanico que puede separar dos cr\u00f3nicas de una misma enumeraci\u00f3n negada. */
+const ENUMERACION = /^[\s,;]*(?:(?:y|e|o|u|ni|tampoco)\b[\s,;]*)?$/
+
+/**
+ * Si esta respuesta cuenta como una negaci\u00f3n.
+ *
+ * Se exporta porque la pregunta \u00ab\u00bfesto es un no?\u00bb se repite fuera de aqu\u00ed, y
+ * tenerla en un solo sitio impide que dos m\u00f3dulos disientan sobre si \u00abpues no\u00bb
+ * niega.
+ */
+export function esRespuestaNegativa(respuesta: string): boolean {
+  const nucleo = sinAcentos(respuesta).trim().replace(ARRANQUE, '')
+  if (!nucleo || NO_ES_NEGACION.test(nucleo)) return false
+  return NEGATIVAS.test(nucleo)
+}
 
 /** Trocea por frases conservando el signo, que es lo que distingue pregunta de respuesta. */
 export function frases(texto: string): string[] {
@@ -159,21 +253,57 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
 
   for (let i = 0; i < fs.length; i++) {
     const f = fs[i]
-    const cs = cronicasEn(f)
-    if (!cs.length) continue
-
-    if (NIEGA_EN_LINEA.test(f)) {
-      for (const c of cs) anotar(c, f)
-      continue
-    }
-    if (!esPregunta(f)) continue
+    const menciones = CRONICAS.flatMap(c =>
+      apariciones(f, c.formas).map(a => ({ ...a, canonica: c.canonica })),
+    ).sort((a, b) => a.inicio - b.inicio)
+    if (!menciones.length) continue
+    const plano = sinAcentos(f)
 
     // La respuesta: lo que sigue al signo de interrogación en la MISMA frase, o
     // la frase siguiente si la pregunta terminó ahí.
-    const resto = f.slice(f.indexOf('?') + 1).trim()
-    const respuesta = resto || (fs[i + 1] ?? '')
-    if (NEGATIVAS.test(respuesta)) {
-      for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
+    const pregunta = esPregunta(f)
+    const corte = f.indexOf('?')
+    const resto = corte >= 0 ? f.slice(corte + 1).trim() : ''
+    const respuesta = pregunta ? resto || (fs[i + 1] ?? '') : ''
+    const contestaQueNo = !!respuesta && esRespuestaNegativa(respuesta)
+
+    /**
+     * Una enumeración hereda el negador de su cabeza: en «niega diabetes,
+     * hipertensión y dislipidemia» sólo la primera lo tiene al lado y las tres
+     * están negadas. Sin herencia, la nota **mejor escrita** —la que las niega
+     * todas de una vez— era la que disparaba el aviso, y en las dos últimas.
+     * Lo cazó el golden de REG-158, no yo.
+     *
+     * La herencia se corta en cuanto entre dos crónicas hay algo que no sea una
+     * conjunción: «niega diabetes, tiene hipertensión» son dos hechos.
+     */
+    const negadaAqui: boolean[] = []
+    for (let k = 0; k < menciones.length; k++) {
+      const m = menciones[k]
+      if (NIEGA_PEGADO.test(plano.slice(Math.max(0, m.inicio - VENTANA_ATRAS), m.inicio))) {
+        negadaAqui[k] = true
+        continue
+      }
+      negadaAqui[k] = false
+      for (let j = k - 1; j >= 0; j--) {
+        if (menciones[j].fin > m.inicio) continue // la misma mención, escrita de dos formas
+        negadaAqui[k] = negadaAqui[j] && ENUMERACION.test(plano.slice(menciones[j].fin, m.inicio))
+        break
+      }
+    }
+
+    for (const [k, m] of menciones.entries()) {
+      /**
+       * Lo nombrado DENTRO de la pregunta lo contesta la respuesta, no el
+       * negador que pudiera haber en la pregunta misma: a «¿no tiene diabetes?»
+       * se puede contestar que sí, y quedarse con el «no» de la pregunta
+       * afirmaría lo contrario de lo que dijo el paciente.
+       */
+      if (pregunta && (corte < 0 || m.inicio < corte)) {
+        if (contestaQueNo) anotar(m.canonica, `${f} ${respuesta}`.trim())
+        continue
+      }
+      if (negadaAqui[k]) anotar(m.canonica, f)
     }
   }
   return [...vistas.values()]
@@ -230,6 +360,21 @@ export const POR_QUE_NO_SE_CORRIGE_SOLO =
   'negar una diabetes que sí tiene documentada, y entonces la nota tiene razón ' +
   'y el interrogatorio no. Lo único que se afirma es que dictado y nota se ' +
   'contradicen; cuál vale es una decisión clínica del médico.'
+
+export const POR_QUE_NO_SABER_NO_ES_NEGAR =
+  '«No sé», «no me acuerdo» y «no me han checado» empiezan por «no» y no niegan ' +
+  'nada: dicen que el paciente no lo sabe. Contarlas como negación reclasifica ' +
+  'la condición a descartado y deja el expediente afirmando una ausencia que ' +
+  'nadie afirmó — un paciente con diabetes sin diagnosticar contesta ' +
+  'exactamente así. Ausencia de dato no es dato de ausencia.'
+
+export const POR_QUE_EL_NEGADOR_NO_ALCANZA_A_TODA_LA_FRASE =
+  'Un negador niega el término que tiene al lado, no la oración donde aparece. ' +
+  '«Niega tabaquismo, tiene diabetes en tratamiento» niega el tabaquismo; dar ' +
+  'por negada la diabetes borraría una crónica activa del panel de entidades ' +
+  'porque la frase negaba otra cosa. Se cambia el ALCANCE del negador, nunca su ' +
+  'vocabulario: ensanchar el vocabulario compartido ya fabricó una vez una ' +
+  'negación que el paciente no dijo.'
 
 export const POR_QUE_UN_MOTOR_Y_NO_SOLO_PROMPT =
   'La regla del prompt se añade igual porque es barata, pero un prompt es una ' +

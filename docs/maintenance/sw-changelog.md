@@ -3,6 +3,28 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1075 — REG-193: el lado del dictado leía la negación como se escribe
+
+v1074 reparó la NOTA. El DICTADO se quedó como estaba, y ahí «pues no», «fíjese
+que no» y «que yo sepa, no» no contaban como negación — hasta la coma rompía la
+variante que sí estaba declarada. El paciente contesta que no y la nota le pone
+la crónica: el caso del 3-ago con una palabra delante.
+
+Al revés, «no sé» y «no me acuerdo» sí contaban, y marcaban la condición como
+`descartado` — una afirmación de ausencia puesta en boca de quien sólo dijo que
+no lo sabe.
+
+Y el negador se aplicaba a la frase entera: «Niega tabaquismo, tiene diabetes en
+tratamiento» borraba una diabetes activa del panel de entidades.
+
+El vocabulario compartido NO se ensancha —eso ya fabricó una negación falsa en
+v1074—: se reutiliza tal cual y se le cambia el alcance, anclándolo al término
+que tiene al lado. El dictado usa ya el mismo `apariciones()` que la nota, así
+que la frontera de palabra de v1074 vale para los dos.
+
+Queda para el Dr.: el vocabulario de negación de la NOTA (C-6) y si «el paciente
+no sabe» debe verse (C-8).
+
 ## v1074 — REG-192: el apartado de antecedentes dejaba ciego al diagnóstico de abajo
 
 Los dos guardianes que contrastan el dictado contra la nota buscaban el

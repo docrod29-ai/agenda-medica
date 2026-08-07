@@ -11,25 +11,25 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-003 (cerrada tras revisión) — REG-192, v1074",
+  "iteracionActual": "SAFE-004 (cerrada) — REG-193, v1075, sobre la misma rama que REG-192",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1074",
+  "ultimaVersionEnRama": "nexusmed-v1075",
   "trabajoLocalSinSubir": [],
   "notaSobreEsteArchivo": "Estaba congelado en v1030 mientras el ledger iba por REG-191/v1073: VOICE-004 y SAFE-001 figuraban abiertos y llevaban versiones reparados. Se reconciliaron contra el repositorio en esta iteración. Si vuelve a desfasarse, la fuente de verdad es docs/audit/regression-ledger.md, no este archivo.",
   "compuertas": {
-    "vitest": "6934 pasan · 1 falla ajena (OPS-002, red del contenedor, reproducida en árbol limpio; verde en CI)",
+    "vitest": "6970 en verde, la suite entera (incluido ops-timeout, que esta vez sí pudo agotar el tiempo)",
     "tsc": "limpio",
     "lintTrinquete": "96, igual que el techo",
-    "build": "verde con los placeholders sintéticos de CI",
-    "ci": "5/5 jobs en verde sobre b8867c2"
+    "build": "verde con los placeholders sintéticos de CI"
   },
-  "leccionDeEstaIteracion": "La revisión del PR tumbó mi propia reparación acompañante y tenía razón. Dos cosas que conviene no repetir: (1) ensanché NIEGA_EN_LINEA mirando sólo a uno de sus DOS consumidores — también se usa sobre el dictado, y el ensanche fabricaba una negación que el paciente no dijo; (2) justifiqué el cambio diciendo que ese aviso «bloquea la firma» sin ir a leer avisos-consulta.ts, donde es «revisa». Confundí NO_SE_PLIEGAN con bloquear. Antes de tocar un regex compartido, buscar TODOS sus llamadores; antes de invocar una consecuencia, leerla en el código.",
+  "leccionDeEstaIteracion": "La iteración empezó desde `main` y llegó a un repositorio distinto del que dejó la anterior: REG-192 y v1074 ya estaban tomados, y no por una rama sino por SIETE PRs abiertos a la vez, todos con el mismo número y la misma versión. Lo correcto fue tirar mi rama y rehacer el trabajo encima de origin/agent/safety/SAFE-003. Y hacer caso de la lección anterior: NO ensanché NIEGA_EN_LINEA — le cambié el alcance. El vocabulario de negación de la NOTA queda en C-6 para el Dr., aunque lo tenga reproducido, porque ampliarlo por mi cuenta es exactamente lo que costó el revert de v1074.",
   "decisionesNuevasParaElDueno": [
     "C-6 separar los dos criterios de negación (nota vs dictado)",
     "C-7 compuestos del vocabulario (miocardiopatía, esteatohepatitis)"
-  ]
+  ],
+  "alertaParaElDueno": "HAY 12 PRs ABIERTOS SIN FUSIONAR, y 9 de ellos vienen de firings distintos de esta misma rutina: PR #230 a #241, todos ramificados del mismo main (6d35d95) y casi todos titulados «REG-192 … (v1074)». El número de regresión y la versión del service worker dejaron de ser únicos, y varios tocan el mismo archivo. Se necesita decidir el orden de fusión y renumerar antes de que se acumulen más."
 }
