@@ -21,6 +21,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | O-2 | Simulacro de restauración con `gcloud firestore databases restore` | Cronometrarlo una vez, en un proyecto de prueba | El acta de restauración real | La ida y vuelta del respaldo ya está medida |
 | O-3 | Pentest externo y PITR | Contratar cuando haya clientes de pago | El registro de riesgos lo declara pendiente | Todo lo demás |
 | O-4 | Cuenta de prueba en los secretos de CI | Una cuenta de juguete con datos sintéticos | El E2E sólo cubre lo público | El resto de CI |
+| O-5 | **19 PRs abiertos del programa autónomo, todos numerados `REG-192` y `v1074`** | Fusionar por orden de daño y renumerar al fusionar, o pausar el loop hasta vaciar la cola. Cada corrida arranca del mismo `main` (último merge: #229), elige el mismo módulo y reclama el mismo número | Que cualquiera de los 19 llegue a producción: se pisan en `negaciones.ts`, `temporalidad.ts`, el ledger, `sw.js`, `version.txt` y el sello | Nada del producto. Los defectos que describen son reales y están reparados **en sus ramas** |
 
 ## EVALUACIÓN
 

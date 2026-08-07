@@ -40,7 +40,10 @@
  *
  * Módulo PURO.
  */
-import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
+import {
+  CRONICAS, frases, cronicasEn,
+  esPregunta, respuestaA, esRespuestaAfirmativa, esRespuestaNegativa, niegaEnLinea,
+} from '@/lib/expediente/negaciones'
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -170,14 +173,76 @@ export interface MencionPasada {
  * Se reutiliza el vocabulario de `negaciones.ts` a propósito: es el mismo
  * diccionario y mantener dos listas garantiza que se separen. Lo que falte no se
  * vigila —y así está declarado allí—, no se da por bueno.
+ *
+ * ── EL INTERROGATORIO NO ES UN ANTECEDENTE (REG-203) ─────────────────────────
+ *
+ * Esta función miraba frase a frase, sin distinguir quién hablaba ni si la frase
+ * era una pregunta. Así que el interrogatorio dirigido —que se dicta **nombrando
+ * la enfermedad en la pregunta**— entraba entero:
+ *
+ *     «¿Tuvo tuberculosis?  No.»   →  mención pasada: tuberculosis
+ *
+ * Es el mismo defecto que costó tres versiones reparar en `negaciones.ts`, y el
+ * encabezado de este módulo dice que viene a evitarlo. Lo traía dentro.
+ *
+ * Y aquí sale más caro que un aviso de más: `avisosTemporalesDelExtractor` le
+ * enseña al médico que esa condición «se dijo en pasado», que es la frase con la
+ * que uno la mueve a antecedentes. **Una negación convertida en antecedente es
+ * historia clínica fabricada** — un «nunca tuve tuberculosis» acaba escrito como
+ * tuberculosis pasada, se arrastra a las notas siguientes y cambia cómo se lee
+ * un PPD dentro de seis meses.
+ *
+ * ── LO QUE SÍ HAY QUE COSECHAR DE LA PREGUNTA ────────────────────────────────
+ *
+ * Saltarse las preguntas y ya está habría perdido el caso legítimo, que es la
+ * otra mitad del interrogatorio:
+ *
+ *     «¿Ha tenido neumonía alguna vez?  Sí, hace tres años.»
+ *
+ * La pregunta dice **qué** y no dice cuándo; la respuesta dice **cuándo** y no
+ * dice qué. Por separado ninguna de las dos es una mención pasada, y por eso
+ * antes se perdía. Así que el par se junta y se juzga entero — con el mismo
+ * emparejado que usa el motor de negaciones, para que los dos lean el mismo
+ * turno.
+ *
+ * Juntar el par en vez de ampliar `PASADO` con «ha tenido» es deliberado: «ha
+ * tenido fiebre desde ayer» es presente en la consulta mexicana, y meter esa
+ * forma en la lista global marcaría lo de hoy como pasado.
  */
 export function mencionesEnPasado(transcripcion: string): MencionPasada[] {
+  const fs = frases(transcripcion)
   const vistas = new Map<string, MencionPasada>()
-  for (const f of frases(transcripcion)) {
-    if (!esFrasePasada(f)) continue
-    for (const c of padecimientosEn(f)) {
-      if (!vistas.has(c)) vistas.set(c, { condicion: c, cita: f.trim().slice(0, 200) })
+  const anotar = (condicion: string, cita: string) => {
+    if (!vistas.has(condicion)) vistas.set(condicion, { condicion, cita: cita.trim().slice(0, 200) })
+  }
+
+  for (let i = 0; i < fs.length; i++) {
+    const f = fs[i]
+    const cs = padecimientosEn(f)
+    if (!cs.length) continue
+
+    /**
+     * Negado en línea: no es un antecedente, es lo contrario. «No tuvo
+     * tuberculosis» trae un pretérito y por eso caía aquí dentro. De lo negado
+     * ya se ocupa `condicionesNegadas`, y con su propia explicación.
+     */
+    if (niegaEnLinea(f)) continue
+
+    if (esPregunta(f)) {
+      const respuesta = respuestaA(fs, i)
+      /**
+       * Contestada que no, o sin contestar: no hay antecedente. El silencio no
+       * es una respuesta — tratarlo como un sí fabricaría el mismo dato que
+       * este motor existe para no fabricar.
+       */
+      if (!esRespuestaAfirmativa(respuesta) || esRespuestaNegativa(respuesta)) continue
+      const par = `${f} ${respuesta}`.trim()
+      if (esFrasePasada(par)) for (const c of cs) anotar(c, par)
+      continue
     }
+
+    if (!esFrasePasada(f)) continue
+    for (const c of cs) anotar(c, f)
   }
   return [...vistas.values()]
 }

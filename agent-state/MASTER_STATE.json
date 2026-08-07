@@ -10,16 +10,28 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "REG-203 (cerrada) — el interrogatorio en pasado no es un antecedente",
+  "ultimaIteracion": {
+    "fecha": "2026-08-07",
+    "itemDelBacklog": "EVAL-002",
+    "reg": "REG-203",
+    "version": "nexusmed-v1084",
+    "rama": "agent/expediente/REG-203",
+    "golden": "src/__tests__/el-interrogatorio-en-pasado-no-es-un-antecedente.test.ts",
+    "comprobadoAlReves": "17 de 21 casos fallan sin la reparación"
+  },
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-001",
+    "agent/expediente/REG-203"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "notasDeLaCorrida": [
+    "El backlog venía del 4-ago y estaba desincronizado con el código: VOICE-004 y SAFE-001 ya estaban reparados en main. Verificado archivo por archivo antes de cerrarlos.",
+    "En este contenedor no hay credenciales de Firebase ni red saliente directa: `npm run build` exige variables NEXT_PUBLIC_FIREBASE_* (con valores de relleno compila entero) y un caso de ops-timeout falla por el proxy. Los dos fallan igual antes del cambio."
   ]
 }

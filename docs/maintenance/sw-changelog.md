@@ -3,6 +3,26 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1084 — REG-203: el interrogatorio en pasado se cosechaba como antecedente
+
+> El salto de v1073 a v1084 no es un hueco: v1074–v1083 están **reclamadas por
+> PRs abiertos** que todavía no se fusionan. Se numeró por encima de todas para
+> no chocar. Ver la nota de la tanda en la bitácora.
+
+«¿Tuvo tuberculosis? No.» dejaba una mención pasada de tuberculosis, con la
+pregunta como cita. Y «no tuvo tuberculosis» también, porque la negación en línea
+sólo conocía el presente.
+
+El aviso que sale de ahí dice «esto se dijo en pasado», que es la frase con la que
+uno mueve una condición a antecedentes: una negación convertida en antecedente es
+historia clínica fabricada.
+
+Al revés faltaba lo legítimo: «¿Ha tenido neumonía alguna vez? Sí, hace tres
+años» no devolvía nada — la pregunta dice qué y la respuesta dice cuándo.
+
+Ahora la pregunta sólo cuenta con su respuesta delante, el par se juzga entero y
+el emparejado vive en un solo sitio para que los dos motores lean el mismo turno.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

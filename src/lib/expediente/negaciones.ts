@@ -76,8 +76,32 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
  */
 const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
 
-/** Marcas de que un término ya viene negado en la propia frase. */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+/**
+ * Respuestas que cuentan como AFIRMACIÓN.
+ *
+ * Hermana de `NEGATIVAS` y por el mismo motivo: la enfermedad se nombra en la
+ * pregunta y la respuesta es una palabra suelta en otra frase. Sin ella, «¿Ha
+ * tenido neumonía alguna vez? Sí, hace tres años» no se puede leer — la pregunta
+ * no dice cuándo y la respuesta no dice qué (REG-203).
+ *
+ * Sólo afirmativas **claras y al principio**. «Creo que sí» y «no sé» se quedan
+ * fuera a propósito: en la duda no se afirma, y aquí no afirmar sólo cuesta un
+ * aviso que no sale.
+ */
+const AFIRMATIVAS = /^\s*(?:ah?,?\s*)?(?:si|sip|claro|correcto|efectivamente|asi\s+es|exacto|afirmativo)\b/i
+
+/**
+ * Marcas de que un término ya viene negado en la propia frase.
+ *
+ * ── EL PRETÉRITO FALTABA (REG-203) ───────────────────────────────────────────
+ *
+ * Sólo miraba el presente («no tiene», «no padece»), así que «**no tuvo**
+ * tuberculosis» y «**nunca ha tenido** neumonía» pasaban por afirmaciones. En el
+ * motor de negaciones eso es una contradicción que no se avisa; en el de
+ * temporalidad, que se apoya en esta misma expresión, era peor: la negación se
+ * cosechaba como un antecedente en pasado.
+ */
+const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido|he\s+tenido|tuvo|tuve|padecio|padeci|padecia|tenia|sufrio)|nunca\s+(?:tuvo|tuve|ha\s+tenido|he\s+tenido|padecio|padeci)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -90,7 +114,47 @@ export function frases(texto: string): string[] {
     .filter(Boolean)
 }
 
-const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
+export const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
+
+/**
+ * ¿Esta frase niega en línea lo que nombra?
+ *
+ * El acento se normaliza **aquí dentro**, y no en cada llamador, porque los dos
+ * probaban el texto crudo: las formas nuevas en pretérito se dictan con acento
+ * («no padeció», «no sufrió») y sin normalizar no habrían servido de nada.
+ */
+export const niegaEnLinea = (texto: string): boolean => NIEGA_EN_LINEA.test(sinAcentos(texto))
+
+/** ¿La respuesta a la pregunta del interrogatorio fue que no? */
+export const esRespuestaNegativa = (texto: string): boolean => NEGATIVAS.test(sinAcentos(texto))
+
+/**
+ * ¿Y fue que sí?
+ *
+ * No es la negación de la anterior: el silencio y la duda no son ninguna de las
+ * dos, y ésa es justamente la respuesta que no se puede inventar.
+ */
+export const esRespuestaAfirmativa = (texto: string): boolean => AFIRMATIVAS.test(sinAcentos(texto))
+
+/**
+ * La respuesta a la pregunta que está en `fs[i]`.
+ *
+ * Lo que sigue al signo de cierre en la MISMA frase, o la frase siguiente si la
+ * pregunta terminó ahí: el dictado corrido no separa turnos. Vive aquí, y no
+ * copiado en cada motor, porque los dos que lo necesitan tienen que emparejar
+ * igual — si uno leyera una frase más allá que el otro, el mismo dictado daría
+ * un aviso de negación y otro de temporalidad que se contradicen.
+ *
+ * Sin signo de cierre no hay resto: `indexOf('?')` devolvía −1 y el `slice(0)`
+ * que salía de ahí entregaba la pregunta entera como si fuera su propia
+ * respuesta.
+ */
+export function respuestaA(fs: readonly string[], i: number): string {
+  const f = fs[i] ?? ''
+  const cierre = f.indexOf('?')
+  const resto = cierre >= 0 ? f.slice(cierre + 1).trim() : ''
+  return resto || (fs[i + 1] ?? '')
+}
 
 /** Qué enfermedades crónicas nombra esta frase. */
 export function cronicasEn(frase: string): string[] {
@@ -130,17 +194,14 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     const cs = cronicasEn(f)
     if (!cs.length) continue
 
-    if (NIEGA_EN_LINEA.test(f)) {
+    if (niegaEnLinea(f)) {
       for (const c of cs) anotar(c, f)
       continue
     }
     if (!esPregunta(f)) continue
 
-    // La respuesta: lo que sigue al signo de interrogación en la MISMA frase, o
-    // la frase siguiente si la pregunta terminó ahí.
-    const resto = f.slice(f.indexOf('?') + 1).trim()
-    const respuesta = resto || (fs[i + 1] ?? '')
-    if (NEGATIVAS.test(respuesta)) {
+    const respuesta = respuestaA(fs, i)
+    if (esRespuestaNegativa(respuesta)) {
       for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
     }
   }
@@ -175,7 +236,7 @@ export function contradicciones(negadas: readonly Negada[], textoNota: string): 
        * negación ajena taparía una afirmación real — que es el fallo caro.
        */
       const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes)) continue
+      if (niegaEnLinea(antes)) continue
       out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
       break
     }

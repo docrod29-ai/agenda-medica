@@ -1553,3 +1553,103 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-203 — el interrogatorio en pasado se cosechaba como antecedente (v1084)
+
+**Encontrado** — 7-ago-2026, iteración del Master Loop V7 sobre el ítem
+`EVAL-002` del backlog: «el motor de temporalidad no tiene corpus, sus casos son
+los que yo escribí». Al escribir las frases del **interrogatorio dirigido** —las
+que el Dr. dicta en cada consulta y que ningún caso del motor tocaba— los tres
+defectos salieron en la primera corrida contra el motor real.
+
+**Cómo se reprodujo** — Un test temporal contra `mencionesEnPasado`, sin tocar
+nada:
+
+```
+dictado: «¿Ha tenido neumonía alguna vez? No, nunca. ¿Tuvo tuberculosis? No.»
+motor:   [{ condicion: 'tuberculosis', cita: '¿Tuvo tuberculosis?' }]
+
+dictado: «No tuvo tuberculosis.»
+motor:   [{ condicion: 'tuberculosis', cita: 'No tuvo tuberculosis.' }]
+
+dictado: «¿Ha tenido neumonía alguna vez? Sí, hace tres años.»
+motor:   []
+```
+
+**El defecto** — Tres, del mismo origen:
+
+1. **La pregunta se cosechaba.** `mencionesEnPasado` leía frase a frase sin mirar
+   si la frase era una pregunta ni quién contestaba. El interrogatorio dirigido
+   se dicta **nombrando la enfermedad en la pregunta**, así que entraba entero —
+   incluso cuando el paciente contestaba que no.
+2. **La negación en pretérito se cosechaba.** `NIEGA_EN_LINEA` sólo conocía el
+   presente («no tiene», «no padece»), así que «**no tuvo** tuberculosis» y
+   «**nunca ha tenido** asma» pasaban por afirmaciones. En el motor de negaciones
+   eso además era una contradicción real que nunca se avisaba.
+3. **Y el caso legítimo se perdía.** «¿Ha tenido neumonía alguna vez? Sí, hace
+   tres años» devolvía **nada**: la pregunta dice *qué* y no dice *cuándo*, la
+   respuesta dice *cuándo* y no dice *qué*, y por separado ninguna de las dos es
+   una mención pasada.
+
+**La causa raíz** — El encabezado de `temporalidad.ts` dice que este motor viene
+a evitar el defecto que costó tres versiones reparar en `negaciones.ts` —«el
+interrogatorio nombraba la enfermedad en la PREGUNTA y el extractor la
+cosechaba»— y lo traía dentro. Reutilizó el **vocabulario** de aquel módulo, pero
+no su **emparejado de pregunta y respuesta**.
+
+**Por qué importa para un paciente** — Porque el aviso que sale de aquí dice
+«esto se dijo en pasado», que es la frase con la que uno mueve una condición a
+antecedentes. Y llega por las dos puertas: la barra de avisos de la consulta y
+`avisosTemporalesDelExtractor`, donde una entidad estructurada tiene peor pinta
+porque parece un dato verificado.
+
+**Una negación convertida en antecedente es historia clínica fabricada.** Un
+«nunca tuve tuberculosis» acaba escrito como tuberculosis pasada, se arrastra a
+las notas siguientes y cambia cómo otro médico lee un PPD dentro de seis meses.
+Por el otro lado, el mismo dictado producía **dos avisos del mismo hecho con
+explicaciones que se contradicen** —uno de negación y otro de temporalidad—, que
+es la manera más rápida de que se dejen de leer los dos.
+
+**Reparación** — `mencionesEnPasado` deja de leer frase a frase:
+
+- Lo negado en línea **no** es un antecedente: se salta, y de ello ya se ocupa
+  `condicionesNegadas` con su propia explicación.
+- Una pregunta sólo cuenta **con su respuesta delante**, y sólo si la respuesta
+  es un sí claro. El par se junta y se juzga entero, con lo cual el caso legítimo
+  del punto 3 pasa a detectarse.
+- El **presente sigue mandando** también dentro del par: «¿Tiene diabetes? Sí,
+  desde hace tres años» no se marca.
+
+**El emparejado vive en un solo sitio** — `respuestaA()` sale a `negaciones.ts` y
+lo usan los dos motores. Si uno leyera una frase más allá que el otro, el mismo
+dictado daría un aviso de negación y otro de temporalidad que se contradicen —
+que es el defecto de partida. De paso se corrige que `indexOf('?')` devolvía −1
+en una pregunta sin signo de cierre y el `slice(0)` entregaba **la pregunta
+entera como su propia respuesta**.
+
+**El acento se normaliza dentro de `niegaEnLinea()`** — Las formas nuevas en
+pretérito se dictan con acento («no padeció», «no sufrió») y los dos llamadores
+probaban el texto crudo: sin normalizar no habrían servido de nada.
+
+**Ninguna cifra clínica** — Todo el cambio es gramática: tiempos verbales,
+respuestas afirmativas y negativas del interrogatorio. No hay umbral, dosis ni
+criterio clínico nuevo, y el motor sigue sin decidir si una enfermedad está
+resuelta.
+
+**Lo que NO hace** — No separa voces: si el dictado no lleva signos de
+interrogación, la pregunta no se reconoce como tal. «Creo que sí», «puede ser» y
+«no sé» **no** cuentan como afirmación, así que esos casos dejan de vigilarse —
+es la dirección segura, pero es un hueco declarado, no un acierto. El vocabulario
+sigue siendo el que es: lo que falte no se vigila, no se da por bueno.
+
+**Qué queda para el médico** — Nada bloqueante. El aviso sigue siendo `revisa` y
+sigue sin decir cuál de las dos versiones vale: eso lo decide él antes de firmar.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos módulos, **17 de los
+21 casos fallan**; los 4 que siguen verdes son a propósito los que guardan lo que
+ya funcionaba.
+
+**Golden** — `src/__tests__/el-interrogatorio-en-pasado-no-es-un-antecedente.test.ts`
+(21 casos).

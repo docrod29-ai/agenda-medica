@@ -6831,3 +6831,39 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+## CUADRAGÉSIMA OCTAVA TANDA — v1084 (REG-203: la pregunta no es un antecedente)
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **El interrogatorio dirigido se cosechaba como antecedente.** `mencionesEnPasado` leía frase a frase sin mirar si la frase era una pregunta ni si venía negada, así que «¿Tuvo tuberculosis? **No.**» dejaba una mención pasada de tuberculosis —con la pregunta como cita— y «**no tuvo** tuberculosis» también, porque la negación en línea sólo conocía el presente. Importa porque el aviso que sale de ahí dice «esto se dijo en pasado», que es la frase con la que uno mueve una condición a antecedentes: **una negación convertida en antecedente es historia clínica fabricada**, y se arrastra a todas las notas siguientes. Es el mismo defecto que costó tres versiones reparar en `negaciones.ts` — y el encabezado de `temporalidad.ts` dice que viene a evitarlo. Reutilizó el vocabulario de aquel módulo, no su emparejado de pregunta y respuesta. **Al revés faltaba lo legítimo**: «¿Ha tenido neumonía alguna vez? Sí, hace tres años» devolvía nada, porque la pregunta dice *qué* y la respuesta dice *cuándo*. Ahora la pregunta sólo cuenta con su respuesta delante y sólo si es un sí claro; el par se juzga entero y el presente sigue mandando dentro de él. `respuestaA()` sale a `negaciones.ts`: si un motor leyera una frase más allá que el otro, el mismo dictado daría dos avisos que se contradicen. **Encontrado trabajando el ítem `EVAL-002` del backlog** — el motor no tenía corpus y las frases del interrogatorio nunca se le habían puesto delante. |
+
+### Notas de la corrida (contenedor sin credenciales)
+
+Dos rojos que **no** son del cambio y quedan declarados para no confundirlos con
+uno:
+
+- `ops-timeout-y-punto-ciego.test.ts` → «el error dice cuánto esperó y a quién».
+  El caso cuenta con que `10.255.255.1` se trague la conexión; el proxy de este
+  contenedor la rechaza en el acto, así que nunca se agota el tiempo. Falla igual
+  **antes** del cambio (comprobado revirtiendo).
+- `npm run build` sin las variables `NEXT_PUBLIC_FIREBASE_*` muere recogiendo
+  `/dr/[clinicId]`. Con valores de relleno compila entero. `npx tsc --noEmit`
+  pasa limpio, que es lo que la compuerta busca aquí.
+
+### El programa autónomo está apilando trabajo que choca entre sí
+
+Al ir a subir esta rama, el remoto tenía **19 PRs abiertos** y **todos** decían
+`REG-192` y `v1074`: cada corrida del loop arranca del mismo `main` —el último
+merge es el #229—, elige el mismo vecindario (`negaciones.ts`,
+`temporalidad.ts`) y reclama el mismo número de regresión y la misma versión del
+service worker.
+
+Ninguno es basura: son defectos distintos y reales del mismo módulo. El problema
+es que **no se pueden fusionar en cualquier orden**: se pisan en los dos módulos,
+en el ledger, en `sw.js`, en `version.txt` y en el sello de invariantes.
+
+Esta tanda se numeró `REG-203` / `v1084` para quedar por encima de todo lo
+abierto. **Es un parche de cortesía, no la solución**: la decisión de en qué
+orden se fusionan —y si conviene pausar el programa hasta vaciar la cola— es del
+dueño. Queda anotado en `OWNER_DECISIONS_REQUIRED.md` como `O-5`.
