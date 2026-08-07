@@ -1553,3 +1553,89 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — un derrame pleural salía como evento vascular cerebral (v1074)
+
+**Encontrado** — 7-ago-2026, auditando el motor de temporalidad porque el
+backlog lo pedía (`EVAL-002`: «se construyó en v1027-v1030 y no tiene corpus:
+sus casos son los que yo escribí»).
+
+**Cómo se reprodujo** — Con el motor real, no leyendo. Un corpus escrito **al
+revés**: frases donde la forma del vocabulario aparece como subcadena pero el
+diagnóstico es otro. Seis de doce salieron mal, todas del mismo tipo:
+
+```
+padecimientosEn('Tuvo derrame pleural derecho hace tres años.')
+  → ['evento vascular cerebral']
+padecimientosEn('Tenía trombosis arterial de miembro inferior.')
+  → ['trombosis venosa']
+```
+
+Y de extremo a extremo, que es como lo ve el médico:
+
+```
+dictado: «Tuvo derrame pleural derecho hace tres años, drenado.»
+nota:    «Paciente con derrame pleural derecho de nueva aparición…»
+aviso:   «evento vascular cerebral»: en el dictado se dijo en pasado…
+```
+
+**La causa raíz** — `padecimientosEn` busca cada forma como **subcadena**, y dos
+formas de `AGUDAS_FRECUENTES` eran cabezas sin calificador: `derrame` y
+`trombosis`. Una cabeza sin calificador **no nombra una condición** — la nombra
+el calificador que viene detrás. Un derrame cerebral es un ictus; uno pleural,
+pericárdico o articular, no. Una trombosis venosa no es una arterial.
+
+**Por qué importa para un paciente** — Esto no es un aviso de sobra. El aviso
+afirma, con la cita del dictado delante, que se habló en pasado de un **evento
+vascular cerebral**, y nadie dijo eso: es un **hecho clínico fabricado**, de otro
+órgano y otra gravedad, puesto delante del médico en el segundo en que va a
+firmar — que es cuando menos se contrasta. Un derrame pleural es de lo más
+frecuente que ve un infectólogo (paraneumónico, empiema, tuberculoso), así que no
+es un caso de esquina.
+
+Y gasta la credibilidad de la barra entera: la misma barra que avisa de la
+neumonía que sí se coló como diagnóstico actual.
+
+El módulo declaraba **tres veces** que «sólo puede señalar de menos, nunca de
+más». Era mentira y nadie lo había medido: los 30 casos del golden comprobaban
+que cazara lo que debía, ninguno que **no** cazara lo que no.
+
+**Reparación** — Sale la cabeza sola y entran las formas que sí nombran la
+condición: `derrame cerebral`; `trombosis venosa` y `trombosis profunda`.
+Estrechar es la única dirección segura de este motor.
+
+**Y el guardián, no el parche** — `CABEZAS_QUE_NO_NOMBRAN_SOLAS` declara las
+palabras que sólo nombran algo con su calificador (`derrame`, `trombosis`,
+`embolia`, `infarto`, `hemorragia`, `absceso`, `masa`…) y el golden prohíbe que
+cualquiera vuelva a entrar suelta en el vocabulario. Sin él, la siguiente forma
+suelta que alguien añada reintroduce esto sin romper ninguna prueba — que es
+exactamente como entró.
+
+`fractura` y `neumonía` NO están en esa lista a propósito: ahí el calificador
+dice **dónde**, no **qué**, y toda fractura sigue siendo una fractura.
+
+**Qué NO hace** — `infarto cerebral` no se añadió a la entrada del EVC: `infarto`
+ya vive en `CRONICAS` como forma de `cardiopatía`, así que la frase saldría con
+las dos condiciones y se cambiaría un aviso fabricado por otro.
+
+**Qué queda vivo, declarado en `LO_QUE_NO_DISTINGUE`** — La cistitis intersticial
+se sigue contando como infección urinaria (sobra el aviso, no fabrica un órgano),
+y las cabezas sueltas de `CRONICAS` —`infarto` → `cardiopatía`, `tiroides` →
+`hipotiroidismo`— producen el mismo defecto por la misma vía: «infarto cerebral»
+→ cardiopatía, «cáncer de tiroides» → hipotiroidismo. **Comprobado con el motor
+real**, y no se toca aquí: ese vocabulario vive en `negaciones.ts`, donde además
+decide **qué cuenta como una negación**. Estrecharlo cambia otra defensa y es
+otra decisión, no un efecto secundario de ésta. Queda en el backlog como
+`SAFE-003`.
+
+**Qué queda para el médico** — Nada que decidir. No se añadió ni se movió ninguna
+cifra, umbral ni criterio clínico: sólo se quitaron dos palabras que no nombraban
+lo que decían nombrar.
+
+**Comprobado que puede ponerse rojo** — Devueltas las dos formas a secas: fallan
+7 casos, incluido el guardián por su cuenta.
+
+**Golden** — `src/__tests__/el-pasado-no-es-el-presente.test.ts` (34 casos, sello
+subido de 30).

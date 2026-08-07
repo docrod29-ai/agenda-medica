@@ -111,6 +111,31 @@ const PRESENTE = new RegExp([
  * válidos ni un criterio clínico, y no decide nada sobre ningún paciente. Que
  * falte un padecimiento significa que ese caso no se vigila — **no que se dé por
  * bueno**. Este motor sólo puede señalar de menos, nunca de más.
+ *
+ * ── Y «NUNCA DE MÁS» ERA MENTIRA (7-ago-2026, REG-192) ───────────────────────
+ *
+ * `padecimientosEn` busca cada forma como **subcadena**. Dos formas de esta
+ * lista eran cabezas sin calificador —`derrame` y `trombosis`— y una cabeza sin
+ * calificador **no nombra una condición**: la nombra el calificador que viene
+ * detrás. Medido con el motor real:
+ *
+ *     «Tuvo derrame pleural derecho hace tres años»  →  evento vascular cerebral
+ *     «Tenía trombosis arterial de miembro inferior» →  trombosis venosa
+ *
+ * El aviso que veía el médico decía, con las dos frases delante, que el dictado
+ * había puesto en pasado un **evento vascular cerebral**. Nadie dijo eso. Un
+ * derrame pleural es de lo más frecuente que ve un infectólogo —paraneumónico,
+ * empiema, tuberculoso— y el aviso lo convertía en un ictus.
+ *
+ * Es peor que un aviso de sobra: es un **hecho clínico fabricado** puesto
+ * delante del médico en el momento de firmar, que es justo cuando se contrasta
+ * poco. Y gasta la credibilidad de la barra entera: la misma que avisa de la
+ * neumonía que sí se coló.
+ *
+ * La reparación es estrechar, que es la única dirección segura de este motor:
+ * la cabeza sola sale y entran las formas que **sí** nombran la condición. Se
+ * pierde «tuvo un derrame hace tres años» dicho a secas — y se pierde a
+ * propósito, porque a secas no dice cuál.
  */
 export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[] = [
   { canonica: 'neumonía', formas: ['neumonía', 'neumonia', 'bronconeumonía', 'bronconeumonia'] },
@@ -122,15 +147,71 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
    * futuro no hay nada que corregir.
    */
   { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
-  { canonica: 'trombosis venosa', formas: ['trombosis', 'tvp', 'trombosis venosa'] },
+  /**
+   * `trombosis` a secas salía porque el calificador decide la condición:
+   * venosa y arterial no son la misma y esta entrada sólo nombra la venosa.
+   */
+  { canonica: 'trombosis venosa', formas: ['trombosis venosa', 'trombosis profunda', 'tvp'] },
   { canonica: 'embolia pulmonar', formas: ['embolia pulmonar', 'tromboembolia', 'tep'] },
-  { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame'] },
+  /**
+   * `derrame` a secas salía por lo mismo: el cerebral es un ictus y el pleural,
+   * el pericárdico y el articular no. `derrame cerebral` es como se cuenta en la
+   * consulta mexicana y es la forma que sí lo nombra.
+   *
+   * `infarto cerebral` NO se añade aquí: `infarto` ya vive en `CRONICAS` como
+   * forma de `cardiopatía`, así que la frase saldría con las dos condiciones y
+   * se cambiaría un aviso fabricado por otro.
+   */
+  { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame cerebral'] },
   { canonica: 'hemorragia digestiva', formas: ['hemorragia digestiva', 'sangrado de tubo digestivo', 'stda'] },
   { canonica: 'pancreatitis', formas: ['pancreatitis'] },
   { canonica: 'infección urinaria', formas: ['infección urinaria', 'infeccion urinaria', 'ivu', 'cistitis', 'pielonefritis'] },
   { canonica: 'dengue', formas: ['dengue'] },
   { canonica: 'hepatitis', formas: ['hepatitis'] },
 ]
+
+/**
+ * CABEZAS QUE NO NOMBRAN NADA SOLAS — el guardián de REG-192.
+ *
+ * Una palabra entra aquí cuando **calificadores distintos dan condiciones
+ * distintas**: un derrame cerebral es un ictus y uno pleural no; una trombosis
+ * venosa no es una arterial; un infarto de miocardio no es uno cerebral. Puesta
+ * como forma a secas, la búsqueda por subcadena la hace coincidir con todas y el
+ * motor afirma la que le tocó en la lista.
+ *
+ * No es el caso de `fractura` ni de `neumonía`: ahí el calificador dice dónde,
+ * no qué, y toda fractura sigue siendo una fractura.
+ *
+ * `src/__tests__/el-pasado-no-es-el-presente.test.ts` prohíbe que cualquiera de
+ * éstas vuelva a entrar sola en `AGUDAS_FRECUENTES`. La lista se puede alargar;
+ * lo que no se puede es meter una cabeza suelta sin darse cuenta.
+ */
+export const CABEZAS_QUE_NO_NOMBRAN_SOLAS: readonly string[] = [
+  'derrame', 'trombosis', 'embolia', 'infarto', 'hemorragia', 'sangrado',
+  'absceso', 'lesion', 'lesión', 'masa', 'quiste', 'edema', 'insuficiencia',
+  'ruptura', 'perforacion', 'perforación', 'obstruccion', 'obstrucción',
+]
+
+/**
+ * LO QUE ESTE MOTOR NO DISTINGUE — declarado, no descubierto dentro de un año.
+ *
+ * · `cistitis` se cuenta como `infección urinaria`, y la **cistitis
+ *   intersticial** no es una infección. Es raro en esta consulta y el aviso
+ *   sobra, no fabrica un órgano nuevo; queda anotado en el backlog en vez de
+ *   estrecharse a ciegas, porque quitar `cistitis` perdería la ITU pasada, que
+ *   sí es frecuente.
+ * · Las cabezas sueltas de `CRONICAS` —`infarto` como `cardiopatía`, `tiroides`
+ *   como `hipotiroidismo`— producen el mismo defecto por la misma vía
+ *   («infarto cerebral» → cardiopatía). Viven en `negaciones.ts`, donde el
+ *   vocabulario decide además **qué cuenta como negación**: tocarlas cambia otra
+ *   defensa y es otra decisión, no un efecto secundario de ésta.
+ */
+export const LO_QUE_NO_DISTINGUE =
+  'La cistitis intersticial se cuenta como infección urinaria, y las cabezas ' +
+  'sueltas del vocabulario crónico —«infarto», «tiroides»— siguen produciendo ' +
+  'el mismo desajuste por la misma vía. Están declaradas, no reparadas: ' +
+  'estrechar el vocabulario de `negaciones.ts` cambiaría qué cuenta como una ' +
+  'negación, que es otra defensa.'
 
 /** El vocabulario completo que este motor mira: lo crónico y lo agudo. */
 const VOCABULARIO = () => [...CRONICAS, ...AGUDAS_FRECUENTES]

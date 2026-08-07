@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: un derrame pleural salía como evento vascular cerebral
+
+El motor de temporalidad busca cada forma del vocabulario como SUBCADENA, y dos
+formas eran cabezas sin calificador: `derrame` y `trombosis`. Una cabeza sin
+calificador no nombra una condición — la nombra el calificador. Así, «tuvo
+derrame pleural hace tres años» producía un aviso que afirmaba, con la cita
+delante, que se había hablado en pasado de un evento vascular cerebral.
+
+No es un aviso de sobra: es un hecho clínico fabricado, de otro órgano y otra
+gravedad, delante del médico en el segundo de firmar. El módulo declaraba tres
+veces que «sólo señala de menos, nunca de más» y nadie lo había medido.
+
+Fuera la cabeza sola; dentro `derrame cerebral`, `trombosis venosa` y `trombosis
+profunda`. Y un guardián —`CABEZAS_QUE_NO_NOMBRAN_SOLAS`— que impide que la
+siguiente forma suelta lo reintroduzca sin romper nada. REG-192.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote
