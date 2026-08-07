@@ -21,7 +21,6 @@ import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
-import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
@@ -97,8 +96,15 @@ function textoDeLaNota(
   ].filter(Boolean).join('\n')
 }
 
-function alergiasArray(alergias?: string): string[] {
-  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
+/**
+ * Los alérgenos del paciente para el manifiesto de procedencia y la compuerta de
+ * evidencia. Recibe el PACIENTE, no su campo de texto: la versión anterior
+ * (que recibía `patient?.alergias`) era el cuarto parser del mismo campo y
+ * perdía `alergiasEstructuradas`, así que un alérgeno bien capturado no aparecía
+ * en el sello medicolegal que dice de dónde salió cada dato.
+ */
+function alergiasArray(p: Partial<Patient> | null | undefined): string[] {
+  return alergenosDe(p ?? {})
 }
 import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
@@ -2019,7 +2025,24 @@ export default function ConsultaActivaPage() {
       // Una entrada POR alérgeno, no el párrafo entero como un solo alérgeno —y
       // sin lo que el propio campo niega («niega alergia a penicilina» no es una
       // alergia a penicilina, y hacía saltar la alerta que bloquea la firma).
-      alergias: parsearAlergiasTexto(patient?.alergias),
+      /**
+       * ── CON `alergiasDe`, NO CON EL TEXTO LIBRE A SECAS (7-ago-2026) ────────
+       *
+       * `parsearAlergiasTexto(patient?.alergias)` sólo mira el texto libre, así
+       * que un paciente cuya alergia vive en `alergiasEstructuradas` sellaba
+       * `alergias: []` en la nota. Y de `nota.alergias` cuelga la COMPUERTA que
+       * bloquea la firma (`nom004.ts`): el cruce por subcadena y el de
+       * reactividad cruzada por familias.
+       *
+       * Reproducido con el motor real: paciente con «Penicilina» sólo en el campo
+       * estructurado + prescripción de cefalexina → la pantalla pinta la alergia
+       * en rojo (lee `alergiasDe`) y la compuerta no devuelve **ni un error**. El
+       * betalactámico se firmaba sobre un alérgico con el aviso a la vista.
+       *
+       * La pantalla y lo que se sella tienen que leer de la misma fuente — es la
+       * misma divergencia que `alergiasParaImpreso` ya documentaba para el papel.
+       */
+      alergias: alergiasDe(patient ?? {}),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
       // El bloque hospitalario, que hasta v941 se sellaba vacío. Lo que el
@@ -2034,7 +2057,7 @@ export default function ConsultaActivaPage() {
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
         procedencia: construirManifiesto(
           {
-            diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias),
+            diagnosticos, medicamentos, alergias: alergiasArray(patient),
             signosVitales: signosNum as unknown as Record<string, unknown>,
             /**
              * Y LA PROSA, que era justo lo que faltaba.
@@ -2698,7 +2721,7 @@ export default function ConsultaActivaPage() {
      * vez. «ia» aquí significa «no verificado», no «inventado».
      */
     const sinEvidencia = camposSinEvidencia(construirManifiesto(
-      { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
+      { diagnosticos, medicamentos, alergias: alergiasArray(patient) },
       extraction as never,
       aprobados,
       {
@@ -4387,7 +4410,7 @@ export default function ConsultaActivaPage() {
           también en la nota firmada — es parte del registro. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0) && (
         <SelloProcedencia
-          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
           aprobados={aprobados}
           transcripcion={voz.transcripcion}

@@ -21,6 +21,18 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | O-2 | Simulacro de restauración con `gcloud firestore databases restore` | Cronometrarlo una vez, en un proyecto de prueba | El acta de restauración real | La ida y vuelta del respaldo ya está medida |
 | O-3 | Pentest externo y PITR | Contratar cuando haya clientes de pago | El registro de riesgos lo declara pendiente | Todo lo demás |
 | O-4 | Cuenta de prueba en los secretos de CI | Una cuenta de juguete con datos sintéticos | El E2E sólo cubre lo público | El resto de CI |
+| O-5 | Cómo se reparte el número de REG y de `vNNN` entre iteraciones en paralelo | Reservar al abrir la rama (un archivo de contador que se commitea primero), o renumerar al fusionar | Que dos PR abiertos puedan citarse sin ambigüedad | Cada iteración toma un número por encima de todo lo reclamado, como hizo REG-202 |
+
+**Sobre O-5 — qué se vio el 7-ago-2026.** Cada iteración rama desde `main` y
+elige el siguiente número mirando **sólo `main`**. Con varias en paralelo sin
+fusionar, todas eligen el mismo: los PR **#232, #233, #234 y #235 reclaman los
+cuatro `REG-192` y `v1074`**; el #230 reclama `v1074-v1075` y el #231 `REG-201/
+v1082`. El número de REG es la única forma de citar una regresión en el ledger y
+en el sello de invariantes, y `vNNN` es **la clave de la caché del service
+worker**: dos PR con la misma `vNNN` publican caché distinta bajo la misma
+etiqueta y el navegador se queda con la primera que vio. Al fusionar, cuatro
+entradas `REG-192` distintas en el mismo ledger no se pueden desambiguar a
+posteriori.
 
 ## EVALUACIÓN
 

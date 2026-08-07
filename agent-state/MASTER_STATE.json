@@ -10,16 +10,28 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-001 (cerrada — REG-202, v1083)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-001",
+    "agent/safety/SAFE-001",
+    "agent/safety/SAFE-001-sello-de-la-nota"
   ],
+  "colisionDeNumeracion": {
+    "quePasa": "Cada iteracion programada rama desde main (6d35d95) y elige el siguiente REG/vNNN mirando SOLO main. Como hay varias en paralelo sin fusionar, todas eligen el mismo numero.",
+    "estadoAl2026-08-07": "Los PR #232, #233, #234 y #235 reclaman los CUATRO el mismo REG-192 y la misma v1074. El #230 reclama v1074-v1075. El #231 reclama REG-201/v1082.",
+    "porQueImporta": "El numero de REG es la unica forma de citar una regresion en el ledger y en el sello de invariantes, y vNNN es la clave de la cache del service worker. Dos PR con la misma vNNN publican cache distinta con la misma etiqueta: el navegador se queda con la primera que vio.",
+    "loQueHizoEstaIteracion": "Tomar REG-202/v1083, por encima de todo lo reclamado. No resuelve la colision de los otros cinco PR.",
+    "decisionDelDueno": "Hace falta una regla de asignacion (reservar el numero al abrir la rama, o renumerar al fusionar). Anotado en OWNER_DECISIONS_REQUIRED como O-5."
+  },
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "trabajoLocalSinSubir": [],
+  "notasDeEntorno": [
+    "El contenedor del agente clona en HEAD desatado y sin node_modules: hay que npm ci antes de las compuertas.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_*; sin ellas falla al recolectar /dr/[clinicId] por auth/invalid-api-key, no por el codigo. Comprobado en v1083 con valores de juguete: compila entero.",
+    "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla aqui por la politica de red saliente, igual en el arbol limpio. Anotado como OPS-002."
   ]
 }

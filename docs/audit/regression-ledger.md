@@ -1553,3 +1553,64 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-202 — la alergia estructurada no llegaba a la compuerta que bloquea la firma (v1083)
+
+**Encontrado** — 7-ago-2026, cerrando SAFE-001. Los tres parsers de fuera ya
+usaban `alergenosDe`, así que el ítem parecía hecho. Aplicando «el dato tiene que
+LLEGAR» —¿dónde **acaba** el alérgeno y quién lo lee del otro lado?— aparecieron
+dos llamadores más en la consulta, y uno de ellos es **el que sella la nota**.
+
+**El defecto** — `nota.alergias` se sellaba con
+`parsearAlergiasTexto(patient?.alergias)`, que sólo mira el **texto libre**. Un
+paciente cuya alergia vive en `alergiasEstructuradas` sellaba `alergias: []`.
+
+Y de `nota.alergias` cuelga la compuerta de firma (`nom004.ts`): el cruce por
+subcadena y el de **reactividad cruzada por familias**. Con la lista vacía la
+compuerta no tiene contra qué cruzar y devuelve verde.
+
+**Cómo se reprodujo** — Test temporal contra el motor real, antes de tocar nada.
+Paciente con «Penicilina» **sólo** en `alergiasEstructuradas` + prescripción de
+cefalexina:
+
+```
+PANTALLA (alergiasDe):      [{"alergeno":"Penicilina"}]
+NOTA SELLADA (hoy):         []
+validarNOM004 con lo sellado:  errores: []
+validarNOM004 con la pantalla: errores: ["⚠️ [Contraindicado] Paciente con
+   alergia documentada a beta-lactámicos y se prescribe Cefalexina 500 mg."]
+```
+
+**Por qué importa para un paciente** — El betalactámico se firma sobre un
+alérgico **con el aviso a la vista**. Es peor que no mostrar nada: la pantalla
+pinta la alergia en rojo, y eso invita a confiar en que la compuerta también la
+conoce. La única señal que quedaba era la que el médico ya había leído y
+descartado como «el sistema ya lo sabe».
+
+**Reparación** — La consulta sella con `alergiasDe(patient ?? {})`, la misma
+fuente que pinta la pantalla. El cuarto parser (`alergiasArray`, que recibía
+`patient?.alergias`) ahora recibe el **paciente** y delega en `alergenosDe`: de
+él cuelgan el manifiesto de procedencia y la compuerta de evidencia, así que un
+alérgeno estructurado tampoco tenía procedencia que enseñar.
+
+**Ningún umbral nuevo** — No se toca el catálogo de familias ni ninguna cifra:
+esto es fontanería de una fuente de verdad que ya existía.
+
+**Qué NO hace** — Hoy **ninguna ruta de escritura llena `alergiasEstructuradas`**:
+el campo está tipado, declarado en `CAMPOS_CLINICOS_PACIENTE`, en las reglas y en
+el manifiesto del respaldo, pero ninguna pantalla lo escribe. El defecto era
+**latente** y se activaba el día de la primera importación, mapeo FHIR o
+migración. Se cierra antes de ese día, no después.
+
+**Qué queda para el médico** — `/verificar-nota` y `/evidencia` siguen recibiendo
+`patient?.alergias` en crudo como contexto para el modelo. No son compuertas
+deterministas, pero el modelo redacta con una lista incompleta si la alergia es
+estructurada. Queda en el backlog como `SAFE-003`.
+
+**Comprobado que puede ponerse rojo** — Revertida la reparación, las tres
+aserciones de llamador fallan.
+
+**Golden** — `src/__tests__/la-alergia-estructurada-llega-a-la-compuerta.test.ts`
+(8 casos).

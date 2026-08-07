@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1083 — REG-202: la alergia estructurada no llegaba a la compuerta de firma
+
+`nota.alergias` se sellaba mirando **sólo el texto libre**. Un paciente cuya
+alergia vive en `alergiasEstructuradas` sellaba la lista vacía, y de esa lista
+cuelga la compuerta que bloquea la firma: el cruce por subcadena y el de
+reactividad cruzada por familias.
+
+Reproducido con el motor real: «Penicilina» estructurada + cefalexina → la
+pantalla la pinta en rojo y la compuerta devuelve cero errores. El betalactámico
+se firmaba sobre un alérgico con el aviso a la vista.
+
+La consulta sella ahora con `alergiasDe`, la misma fuente que pinta la pantalla,
+y el cuarto parser (`alergiasArray`) recibe el paciente en vez de su campo de
+texto. Defecto latente —hoy nada llena el campo estructurado— cerrado antes de la
+primera importación que lo llene.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

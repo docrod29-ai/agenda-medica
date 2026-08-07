@@ -25,7 +25,35 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 73,
-      "estado": "a medias, sin subir",
+      "estado": "cerrado",
+      "cerradoEn": "2026-08-07",
+      "cierre": "REG-202 (v1083). Los tres parsers de fuera ya usaban alergenosDe; faltaban DOS llamadores en la consulta, y uno era el que SELLA la nota. nota.alergias se sellaba con parsearAlergiasTexto(texto libre), así que una alergia estructurada sellaba [] y la compuerta de firma de nom004 no tenia contra que cruzar. Reproducido con el motor real: Penicilina estructurada + cefalexina = cero errores en la compuerta con la alergia pintada en rojo en pantalla.",
+      "reversible": true
+    },
+    {
+      "id": "SAFE-003",
+      "titulo": "El contexto que se le manda al modelo sigue leyendo solo el texto libre",
+      "hallazgo": "/verificar-nota y /evidencia reciben `contexto: { edad, sexo, alergias: patient?.alergias }` en crudo. Si la alergia vive en alergiasEstructuradas, el modelo redacta con una lista incompleta.",
+      "porQueImporta": "No es una compuerta determinista —el modelo redacta y extrae, no decide— pero es el mismo dato llegando a medias por una tercera puerta. Lo encontro REG-202 al seguir el alergeno hasta donde acaba.",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:1331 · :1404",
+      "seguridad": 2, "integridad": 1, "ingreso": 0, "frecuencia": 3, "moat": 1,
+      "fiabilidad": 2, "regulatorio": 0, "aprendizaje": 1,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 41,
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
+      "id": "OPS-002",
+      "titulo": "ops-timeout-y-punto-ciego falla donde la red no deja agotar el tiempo",
+      "hallazgo": "El caso «el error dice cuanto espero y a quien» abre una conexion a 10.255.255.1 esperando que agote 30 ms. En un contenedor con politica de red saliente la conexion se rechaza de inmediato y el error no es TiempoAgotado. Falla igual en el arbol limpio: NO lo causo REG-202.",
+      "porQueImporta": "Una prueba que depende de que la red se comporte de una manera concreta pasa o falla por el entorno, no por el codigo. Enmascara y se acaba ignorando.",
+      "archivo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:54",
+      "seguridad": 0, "integridad": 0, "ingreso": 0, "frecuencia": 2, "moat": 0,
+      "fiabilidad": 4, "regulatorio": 0, "aprendizaje": 2,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 2,
+      "score": 25,
+      "estado": "pendiente",
       "reversible": true
     },
     {
