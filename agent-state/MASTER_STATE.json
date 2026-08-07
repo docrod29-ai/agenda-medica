@@ -11,7 +11,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-003 (cerrada) — REG-192, v1074",
+  "iteracionActual": "SAFE-003 (cerrada tras revisión) — REG-192, v1074",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
@@ -21,9 +21,15 @@
   "trabajoLocalSinSubir": [],
   "notaSobreEsteArchivo": "Estaba congelado en v1030 mientras el ledger iba por REG-191/v1073: VOICE-004 y SAFE-001 figuraban abiertos y llevaban versiones reparados. Se reconciliaron contra el repositorio en esta iteración. Si vuelve a desfasarse, la fuente de verdad es docs/audit/regression-ledger.md, no este archivo.",
   "compuertas": {
-    "vitest": "6926 pasan · 1 falla ajena (OPS-002, red del contenedor, reproducida en árbol limpio)",
+    "vitest": "6934 pasan · 1 falla ajena (OPS-002, red del contenedor, reproducida en árbol limpio; verde en CI)",
     "tsc": "limpio",
     "lintTrinquete": "96, igual que el techo",
-    "build": "verde con los placeholders sintéticos de CI"
-  }
+    "build": "verde con los placeholders sintéticos de CI",
+    "ci": "5/5 jobs en verde sobre b8867c2"
+  },
+  "leccionDeEstaIteracion": "La revisión del PR tumbó mi propia reparación acompañante y tenía razón. Dos cosas que conviene no repetir: (1) ensanché NIEGA_EN_LINEA mirando sólo a uno de sus DOS consumidores — también se usa sobre el dictado, y el ensanche fabricaba una negación que el paciente no dijo; (2) justifiqué el cambio diciendo que ese aviso «bloquea la firma» sin ir a leer avisos-consulta.ts, donde es «revisa». Confundí NO_SE_PLIEGAN con bloquear. Antes de tocar un regex compartido, buscar TODOS sus llamadores; antes de invocar una consecuencia, leerla en el código.",
+  "decisionesNuevasParaElDueno": [
+    "C-6 separar los dos criterios de negación (nota vs dictado)",
+    "C-7 compuestos del vocabulario (miocardiopatía, esteatohepatitis)"
+  ]
 }
