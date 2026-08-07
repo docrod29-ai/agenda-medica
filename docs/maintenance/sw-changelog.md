@@ -3,6 +3,25 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1083 — REG-202: la sala de datos del §N3, y el guardián que me cazó inflando
+
+`docs/data-room/` estaba vacía. Ahora tiene el índice con ocho secciones, cada
+una marcada VERIFICADO / PARCIAL / NO EXISTE / DEL DUEÑO.
+
+EL GUARDIÁN ME CAZÓ DOS VECES, y eso es lo que vale contar:
+
+1. Escribí «49 REG» cuando eran 48 — una cifra inflada, sin querer, en el
+   documento cuya primera línea dice «nada de tracción falsa».
+2. Al añadir mis propias pruebas, el sello creció y el documento quedó
+   desfasado EN EL ACTO. No fue descuido: es estructural. Un documento con
+   cifras tecleadas miente el día que el repositorio crece.
+
+Por eso las cifras ahora se DERIVAN (`scripts/data-room/actualizar-cifras.mjs`).
+Y lo que no puede derivar —el total de pruebas— lo avisa en vez de adivinarlo.
+
+Declarado como inexistente en vez de callado: pentest externo NO realizado,
+métricas de negocio no existen, sin validación clínica formal.
+
 ## v1082 — REG-201: el §18 del charter existía como carpeta vacía
 
 `docs/clinical-safety/` estaba con CERO archivos, junto con otras ocho carpetas

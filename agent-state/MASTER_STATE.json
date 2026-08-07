@@ -11,7 +11,7 @@
     "cambiosDestructivos": false,
     "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "REG-201 (§18 cerrado) → siguiente: §N3 data-room y las 7 carpetas que quedan",
+  "iteracionActual": "§N3 sala de datos cerrada → siguen 6 carpetas vacías del §4.1",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -19,13 +19,13 @@
     "agent/ops/OPS-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1082",
+  "ultimaVersionEnProduccion": "nexusmed-v1083",
   "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-06",
   "resumenDesdeElUltimoEstado": {
-    "versionesDesplegadas": "v1031 → v1082",
-    "regsCerradas": "REG-177 … REG-201",
-    "pruebas": 7166,
+    "versionesDesplegadas": "v1031 → v1083",
+    "regsCerradas": "REG-177 … REG-202",
+    "pruebas": 7183,
     "lint": "96 (techo, bajado desde 97)",
     "nota": "El estado se había quedado en v1030 mientras el trabajo seguía. Un tablero que no se actualiza miente con más autoridad que no tenerlo."
   }

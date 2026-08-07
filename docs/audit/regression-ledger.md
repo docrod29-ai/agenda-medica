@@ -1950,3 +1950,74 @@ paciente equivocado, fuga entre consultorios, inyección de instrucciones en el
 dictado, y embarazo/pediatría/renal. Un registro que aparenta ser completo es
 peor que uno que declara sus huecos: el primero se confía, el segundo se
 completa.
+
+---
+
+## REG-202 — la sala de datos del §N3, y el guardián que me cazó inflando (v1083)
+
+**Del charter Master Loop V7** — §N3 exige una sala de datos; `docs/data-room/`
+existía **con cero archivos**.
+
+**Lo que se hizo** — `docs/data-room/INDICE.md` con ocho secciones, cada una
+marcada como **VERIFICADO / PARCIAL / NO EXISTE / DEL DUEÑO**. La distinción
+importa más que el contenido: un comprador no pide una demo, pide evidencia.
+
+**Verificado hoy, con su comando**
+
+| | |
+|---|---|
+| Licencias | 40 dependencias directas: 29 MIT, 9 Apache-2.0, 1 ISC, 1 BSD-2. **Ninguna copyleft fuerte.** Comprobable con `scripts/data-room/licencias.mjs` |
+| Peligros clínicos | 10, ninguno hipotético |
+| Regresiones | 48 REG con causa raíz |
+| Invariantes | 225 archivos, 3518 casos |
+| Métricas de IA | WER 25,55 / 22,81 · foso 78,89 → 82,91 |
+
+**Declarado como inexistente, en vez de callado** — Pentest externo **NO
+realizado** (el charter lo prohíbe afirmar). Métricas de negocio: **no existen**.
+Validación clínica formal: **no hay**. Ninguna aprobación de riesgo firmada.
+Y un resumen con la parte **débil** al final, porque un índice que sólo enumera
+fortalezas se lee como folleto.
+
+**EL GUARDIÁN ME CAZÓ A MÍ, Y ESO ES LO QUE VALE CONTAR**
+
+`src/__tests__/la-sala-de-datos-no-infla.test.ts` compara las cifras del
+documento contra el repositorio real. En la primera pasada falló:
+
+```
+expected '…' to contain '48 REG'      ← yo había escrito 49
+```
+
+**Escribí una cifra inflada en una sala de datos**, sin querer, en el mismo
+documento cuya primera línea dice «nada de tracción falsa». Si el guardián no
+existiera, ese 49 se habría quedado ahí — y una cifra optimista descubierta en
+diligencia debida contamina todo lo demás del documento, incluido lo que era
+verdad.
+
+**Y el guardián también estaba mal a la primera** — su patrón contra «hospitales
+clientes» cazaba la propia **negación** («ni hospitales clientes»), o sea que
+impedía declarar la ausencia. Un guardián que impide declarar un hueco es peor
+que no tenerlo: empuja a callarlo. Corregido con una anticipación negativa.
+
+**Lo que el guardián vigila** — que las cifras coincidan con las reales, que lo
+inexistente esté declarado, que no aparezca ninguna de las cuatro afirmaciones
+que el §N5 prohíbe, y que lo verificable traiga su comando.
+
+**Y EL GUARDIÁN VOLVIÓ A CAZARME, CON ALGO MEJOR**
+
+Al añadir los dos archivos de prueba de esta misma iteración, el sello pasó de
+225 a 226 archivos y el documento **quedó desfasado en el acto**.
+
+No fue un descuido: es **estructural**. Un documento con cifras tecleadas miente
+el día que el repositorio crece, y en una sala de datos ese desfase se lee como
+falta de rigor — o se descubre en diligencia debida.
+
+Por eso las cifras ahora se **derivan**: `scripts/data-room/actualizar-cifras.mjs`
+las regenera desde el sello, el ledger y el registro de peligros. Correrlo es
+parte de cerrar una iteración, igual que subir el service worker.
+
+**Lo que el script NO deriva, y lo dice** — el total de pruebas, porque exige
+correr la suite entera y este script tiene que tardar un segundo. Avisa en vez de
+adivinarlo: inventarlo sería exactamente el defecto que existe para evitar.
+
+**El bloqueo número uno de la sala de datos no es técnico**: el código está bajo
+una cuenta personal, no de la sociedad. Registrado para el dueño.
