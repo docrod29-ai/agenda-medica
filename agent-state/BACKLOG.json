@@ -134,7 +134,7 @@
     {
       "id": "OPS-002",
       "titulo": "El test del timeout de red no puede fallar en un contenedor sin salida",
-      "hallazgo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:54 espera que conectar a 10.255.255.1 se agote a los 30 ms. En el contenedor remoto la pila de red rechaza de inmediato, así que TiempoAgotado no llega a lanzarse y el caso falla. Reproducido sobre el árbol LIMPIO, sin ningún cambio mío.",
+      "hallazgo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:54 espera que conectar a 10.255.255.1 se agote a los 30 ms. En el contenedor remoto la pila de red rechaza de inmediato, así que TiempoAgotado no llega a lanzarse y el caso falla. Reproducido sobre el árbol LIMPIO, sin ningún cambio mío. CONFIRMADO en CI: el job `verificar` del PR #241 corre la suite entera y pasa, así que el rojo es del entorno y no del test ni del código.",
       "porQueImporta": "No afecta al paciente, pero deja la suite en rojo permanente fuera de CI y enseña a ignorar el rojo — que es lo que después esconde un defecto de verdad.",
       "archivo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:54",
       "seguridad": 0,
@@ -149,7 +149,7 @@
       "complejidad": 1,
       "dependenciaExterna": 2,
       "score": 16,
-      "estado": "pendiente · no es regresión de esta iteración",
+      "estado": "pendiente · confirmado ajeno (verde en CI, rojo sólo en contenedor sin salida de red)",
       "reversible": true
     }
   ],
