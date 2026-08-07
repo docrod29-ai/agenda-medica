@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el antecedente bien escrito tapaba el resto de la nota
+
+`desajustesTemporales` buscaba cada padecimiento con un `indexOf` suelto, una
+sola vez. La nota le llega como un texto plano, así que la primera mención
+decidía por el documento entero: si venía bien escrita como antecedente, la
+comprobación se daba por satisfecha y no volvía a mirar.
+
+Y ése es el orden de una historia clínica de NOM-004 — los antecedentes van
+antes que el plan. Cuanto mejor estructurada estaba la nota, menos vigilada
+quedaba: una neumonía archivada como antecedente de 2019 tapaba el
+levofloxacino que la nota recetaba hoy por esa misma neumonía.
+
+Ahora se recorren todas las apariciones. El golden es además el corpus oro que
+este motor nunca tuvo, y deja declarado lo que sigue sin vigilarse.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

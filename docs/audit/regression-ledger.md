@@ -1553,3 +1553,71 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el antecedente bien escrito tapaba el resto de la nota (v1074)
+
+**Encontrado** — 7-ago-2026, construyendo el corpus oro que pedía EVAL-002. El
+motor de temporalidad se escribió en v1027-v1030 y **nunca tuvo corpus**: sus
+únicos casos eran los que escribió quien lo escribió. Al pasarle frases de
+consulta que él no había visto, salió esto.
+
+**El defecto** — `desajustesTemporales` buscaba cada padecimiento en la nota con
+un `indexOf` suelto, **una sola vez**. La nota le llega como un texto plano
+—`resumen`, los diagnósticos y todas las secciones pegados con `\n` en
+`textoDeLaNota`—, así que **la primera mención decidía por el documento entero**.
+Si esa primera venía bien escrita como antecedente, la comprobación se daba por
+satisfecha y no volvía a mirar.
+
+Y ése es justo el orden de una historia clínica de NOM-004: en
+`SECCIONES_POR_TIPO.historia_clinica`, «Antecedentes personales patológicos» va
+antes que «Plan de tratamiento». **Cuanto mejor estructurada estaba la nota,
+menos vigilada quedaba.** El médico que archiva bien el antecedente apagaba la
+defensa; el que no lo archivaba la conservaba.
+
+**Cómo se reprodujo** — Con el motor real, sobre una nota completa de historia
+clínica: dictado «tuvo neumonía hace tres años, ya resuelta», antecedentes
+«Antecedente de neumonía en 2019, resuelta», plan «se inicia levofloxacino 750 mg
+cada 24 horas por neumonía adquirida en la comunidad». Devolvía `[]`.
+**Intercambiando esas dos líneas y sin tocar nada más, devolvía el aviso.** La
+misma nota, el mismo motor: el resultado dependía del orden.
+
+**Por qué importa para un paciente** — El motor existe para poner las dos frases
+delante del médico antes de firmar. Con el defecto no enseñaba ninguna: el
+antibiótico salía impreso, con cédula profesional, contra un diagnóstico que el
+propio médico había situado en 2019. Y el diagnóstico se queda en el expediente y
+se copia a la nota siguiente — el mismo arrastre que motivó el motor.
+
+**Reparación** — Se recorren **todas** las apariciones de cada forma, no la
+primera. Se avisa de la primera que la nota afirma como actual; si todas vienen
+precedidas de marca de antecedente, no se avisa. Un aviso por padecimiento, como
+antes.
+
+**Lo que esto cuesta, dicho** — Una nota que nombre el padecimiento dos veces
+dentro de la misma sección de antecedentes, con la segunda mención a más de 60
+caracteres de la marca, ahora avisa de más. Se acepta: el aviso no bloquea la
+firma, enseña las dos frases y se descarta con un clic, mientras que el silencio
+anterior no se podía ni ver.
+
+**Ningún umbral nuevo** — La ventana de 60 caracteres y el vocabulario son los
+que ya había. No entra ninguna cifra clínica.
+
+**Qué NO repara** — Sigue sin cubrirse la frase compuesta («tuvo neumonía hace
+tres años y sigue con diabetes»): un `PRESENTE` en cualquier parte veta la
+oración entera y se pierden las dos. Queda como `TEMP-001` en el backlog. Seis
+formas verbales de pasado que el corpus encontró sin cobertura («se recuperó de»,
+«cursó con», «fue operado de», «hospitalizada por», «ya no tiene», «haber
+tenido») quedan **declaradas y medidas** en el golden como trinquete que sólo
+puede bajar: no se añaden aquí porque cada forma nueva ensancha también el riesgo
+de avisar de más, y eso se mide aparte (`TEMP-002`).
+
+**Qué queda para el médico** — Nada que decidir. Es gramática, no política
+clínica: el aviso ya existía y ya estaba en el nivel que él fijó; lo único que
+cambia es que ahora sale cuando tiene que salir.
+
+**Comprobado que puede ponerse rojo** — Revertido `temporalidad.ts`, los dos
+casos del defecto fallan; restaurado, pasan.
+
+**Golden** — `src/__tests__/el-antecedente-bien-escrito-tapaba-el-resto.test.ts`
+(11 casos), que es además el corpus oro que EVAL-002 pedía para este motor.

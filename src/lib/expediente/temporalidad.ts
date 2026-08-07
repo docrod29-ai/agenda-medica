@@ -204,6 +204,34 @@ export interface DesajusteTemporal extends MencionPasada {
  * como antecedente —«antecedente de neumonía», «tuvo neumonía»—, está bien
  * escrito y no hay nada que avisar. Sólo importa cuando la nota lo presenta como
  * algo de ahora.
+ *
+ * ── SE MIRAN TODAS LAS MENCIONES, NO LA PRIMERA (v1074) ──────────────────────
+ *
+ * La nota llega aquí como UN texto plano: `resumen`, luego los diagnósticos,
+ * luego las secciones, pegados con saltos de línea. Buscar con `indexOf` una
+ * sola vez hacía que **la primera mención decidiera por toda la nota**: si esa
+ * primera venía bien escrita como antecedente, la comprobación se daba por
+ * satisfecha y no volvía a mirar.
+ *
+ * Y ése es justo el orden de una historia clínica de NOM-004, donde
+ * «Antecedentes personales patológicos» va antes que «Plan de tratamiento».
+ * Medido el 7-ago-2026 sobre el corpus oro de este motor: la misma nota, con la
+ * línea del antecedente y la del plan intercambiadas, avisaba en un orden y
+ * callaba en el otro. Callaba en el orden real.
+ *
+ * O sea: cuanto MEJOR estructurada estaba la nota, menos vigilada quedaba. Una
+ * neumonía correctamente archivada como antecedente de 2019 tapaba el
+ * levofloxacino que la nota recetaba hoy por esa misma neumonía.
+ *
+ * ── LO QUE ESTO CUESTA ───────────────────────────────────────────────────────
+ *
+ * Una nota que nombre el padecimiento dos veces dentro de la misma sección de
+ * antecedentes, y cuya segunda mención quede a más de 60 caracteres de la marca
+ * («…tratada con levofloxacino 7 días sin complicaciones. La neumonía dejó
+ * secuelas…»), ahora avisa de más. Se acepta: el aviso no bloquea la firma,
+ * enseña las dos frases y se descarta con un clic — mientras que el silencio
+ * anterior no se podía ni ver. Un aviso de más se ignora; uno que nunca sale no
+ * existe.
  */
 export function desajustesTemporales(
   pasadas: readonly MencionPasada[],
@@ -213,21 +241,27 @@ export function desajustesTemporales(
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
+    let hallado: DesajusteTemporal | undefined
     for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres, la misma que usan las
-       * negaciones y por la misma razón: es lo que mide «antecedente de …» o
-       * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
-       * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
-       * que importa.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
-      out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
+      const aguja = sinAcentos(forma)
+      if (!aguja) continue
+      for (let idx = t.indexOf(aguja); idx >= 0; idx = t.indexOf(aguja, idx + aguja.length)) {
+        /**
+         * La ventana hacia atrás es de 60 caracteres, la misma que usan las
+         * negaciones y por la misma razón: es lo que mide «antecedente de …» o
+         * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
+         * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
+         * que importa.
+         */
+        const antes = textoNota.slice(Math.max(0, idx - 60), idx)
+        if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
+        hallado = { ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() }
+        break
+      }
+      if (hallado) break
     }
+    /** Un aviso por padecimiento: la primera mención que la nota afirma como actual. */
+    if (hallado) out.push(hallado)
   }
   return out
 }

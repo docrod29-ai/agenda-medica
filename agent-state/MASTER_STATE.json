@@ -1,6 +1,7 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
+  "actualizado": "2026-08-07",
   "modo": "autonomo-sin-despliegue",
   "autorizaciones": {
     "abrirPR": true,
@@ -10,16 +11,17 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
-  "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
-  ],
-  "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "iteracionActual": "EVAL-002 → REG-192 (cerrada)",
+  "queSeHizo": "El corpus oro que EVAL-002 pedía para el motor de temporalidad. Al pasarlo por el motor real salió REG-192: desajustesTemporales miraba sólo la PRIMERA mención de cada padecimiento en la nota, así que un antecedente bien escrito apagaba la defensa para el resto del documento — y ése es el orden real de NOM-004.",
+  "ramaDeEstaIteracion": "agent/expediente/REG-192",
+  "ultimaVersionDelPaqueteSinDesplegar": "nexusmed-v1074",
+  "ultimaVersionEnProduccion": "desconocida desde este entorno — el despliegue no es autónomo; verificar con curl al sw.js",
+  "compuertas": {
+    "vitest": "6925 pasan · 1 falla PREEXISTENTE y ajena: ops-timeout-y-punto-ciego.test.ts necesita un agujero negro de red real y este contenedor no lo tiene. Comprobado sobre el árbol limpio antes de tocar nada.",
+    "tsc": "limpio",
+    "trinquete": "96, igual que el techo",
+    "build": "compila (con los placeholders de Firebase que usa el CI; sin ellos falla por auth/invalid-api-key, que es de entorno)"
+  },
+  "notaSobreElEstadoAnterior": "Este archivo y BACKLOG.json se habían quedado en la foto del 4-ago (decían v1030) mientras el ledger llegaba a REG-191/v1073. Reconciliados contra el código el 7-ago.",
+  "siguiente": "TEMP-001 (score 52) — la frase compuesta pierde el pasado y el presente. Exige partir por conjunción y medir el riesgo de avisar de más sobre el corpus que acaba de nacer."
 }
