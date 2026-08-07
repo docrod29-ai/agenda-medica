@@ -190,13 +190,16 @@ describe('LO QUE LA REVISIÓN DEL PR CAZÓ — la reparación que se pasó de li
      * creyendo que es un defecto nuevo.
      *
      * «No se documenta … ninguna alteración sugestiva de diabetes» no afirma la
-     * diabetes, pero ni «no se documenta» ni «ninguna» están en `NIEGA_EN_LINEA`,
-     * y la mención queda a más de 60 caracteres del «niega» de arriba. Antes no
-     * saltaba porque no se miraba; ahora sí.
+     * diabetes, pero ni «no se documenta» ni «ninguna» están en
+     * `DISCULPA_EN_LA_NOTA`, y la mención queda a más de 60 caracteres del
+     * «niega» de arriba. Antes no saltaba porque no se miraba; ahora sí.
      *
-     * Ensanchar la lista de disculpas es lo que acaba de salir mal por tocar un
-     * regex con dos consumidores, así que la decisión es del dueño (C-6) y no se
-     * toma aquí.
+     * C-6 (separar el regex de la nota del regex del dictado) ya está resuelto:
+     * `DISCULPA_EN_LA_NOTA` y `NIEGA_EN_EL_DICTADO` son dos constantes propias.
+     * Lo que queda abierto es otra cosa — qué frases adicionales cuentan como
+     * disculpa en la NOTA es vocabulario clínico, y ensancharlo sin criterio es
+     * lo que acaba de salir mal (REG-192). Decisión del dueño, anotada como
+     * C-6-bis en agent-state/OWNER_DECISIONS_REQUIRED.md.
      */
     const negadas = condicionesNegadas('¿Ha tenido diabetes? No, ninguna.')
     const nota = [
@@ -268,5 +271,34 @@ describe('EL BUSCADOR COMPARTIDO — una sola definición para los dos motores',
     // a juzgar con una distancia distinta sin que nadie lo notara.
     expect(VENTANA_ATRAS).toBe(60)
     expect(POR_QUE_TODAS_LAS_APARICIONES).toMatch(/antecedentes/i)
+  })
+})
+
+describe('C-6 RESUELTO — la nota y el dictado ya no comparten un regex de negación', () => {
+  /**
+   * `negaciones.ts` tenía UNA constante, `NIEGA_EN_LINEA`, para dos preguntas
+   * distintas: la disculpa que `contradicciones()` mira sobre la NOTA y el
+   * negador que `condicionesNegadas()` busca en el DICTADO. Ensancharla para la
+   * primera pregunta fabricó una negación falsa en la segunda (REG-192, arriba
+   * en este mismo archivo). Ahora son dos constantes propias —
+   * `DISCULPA_EN_LA_NOTA` y `NIEGA_EN_EL_DICTADO`— con el mismo texto de hoy
+   * pero sin nada que las obligue a seguir coincidiendo.
+   *
+   * No hay forma de importar dos regex internos para comparar identidad de
+   * objeto sin exponer detalle de implementación, así que el guardián es
+   * conductual: el mismo dictado, contra las dos preguntas, tiene que seguir
+   * dando la respuesta correcta en cada una — que es exactamente el caso que
+   * REG-192 rompió al compartir el regex.
+   */
+  it('«para descartar diabetes»: no es negación en el dictado, y si la nota lo repite igual, no es contradicción', () => {
+    const dictado = 'Vamos a solicitar HbA1c para descartar diabetes.'
+    const negadas = condicionesNegadas(dictado)
+    // Pregunta del DICTADO: el médico no negó nada, sólo pidió un estudio.
+    expect(negadas).toEqual([])
+
+    // Pregunta de la NOTA, con el mismo giro: tampoco es una contradicción,
+    // porque no hay ninguna condición negada de la que partir.
+    const nota = 'PLAN: se solicita HbA1c para descartar diabetes.'
+    expect(contradicciones(negadas, nota)).toEqual([])
   })
 })

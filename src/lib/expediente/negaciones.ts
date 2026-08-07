@@ -97,8 +97,9 @@ const NEGATIVAS = /^(?:no|nop|ninguna|ninguno|nada|negativo|nunca|nel|para\s+nad
  *
  * Se quita la muletilla primero y se exige después un núcleo negativo. Es más
  * seguro que alargar la lista de negaciones —que es justo lo que salió mal al
- * ensanchar `NIEGA_EN_LINEA`—: si tras la muletilla no viene un «no», no hay
- * negación. «Pues mi mamá sí» pierde el «pues» y se queda en «mi».
+ * ensanchar el vocabulario de negación compartido—: si tras la muletilla no
+ * viene un «no», no hay negación. «Pues mi mamá sí» pierde el «pues» y se
+ * queda en «mi».
  */
 const MULETILLA = String.raw`(?:ah?|eh+|ay|uy|hijole|mm+|mh+|este|pues|pos|bueno|mire|oiga|fijese|o\s+sea|doctor|doctora|doc|que|yo|sepa|recuerde)`
 const ARRANQUE = new RegExp(String.raw`^(?:${MULETILLA}\b[\s,.;]*)*`)
@@ -129,77 +130,86 @@ const NO_ES_NEGACION = new RegExp(
 )
 
 /**
- * Marcas de que un término ya viene negado en la propia frase.
+ * ── C-6 RESUELTO: DOS PREGUNTAS, DOS REGEX (7-ago-2026) ──────────────────────
  *
- * ── ESTE REGEX TIENE DOS CONSUMIDORES, Y NO PREGUNTAN LO MISMO ───────────────
+ * Este vocabulario tenía UN sólo regex para dos consumidores que no preguntan
+ * lo mismo: «¿esta mención de la nota ya viene explicada?» (la disculpa que
+ * `contradicciones` aplica sobre la NOTA) y «¿el médico negó esto en el
+ * dictado?» (lo que `condicionesNegadas` lee del DICTADO, y de ahí sale
+ * `corregirCertezaPorNegacion`, que marca condiciones extraídas como
+ * `descartado`).
  *
- * Aviso para quien venga a ensancharlo: no es sólo la «disculpa» que
- * `contradicciones` aplica sobre la NOTA. `condicionesNegadas` lo usa aquí
- * abajo sobre el DICTADO, y de ahí sale `corregirCertezaPorNegacion`, que marca
- * condiciones extraídas como `descartado`.
- *
- * Son dos preguntas distintas: «¿esta mención de la nota ya viene explicada?» y
- * «¿el médico negó esto en el dictado?». Una palabra que sea buena disculpa para
- * la primera puede fabricar una negación falsa en la segunda.
- *
- * ── LO QUE YA PASÓ, PARA QUE NO SE REPITA (REG-192, 7-ago-2026) ──────────────
- *
- * En la primera versión de REG-192 se añadió el infinitivo `descartar` pensando
- * sólo en la nota: «se solicita HbA1c para descartar diabetes» parecía una
- * disculpa razonable. Sobre el dictado el efecto era el contrario y mucho peor —
+ * Compartirlo ya fabricó una negación que el paciente no dijo: la primera
+ * versión de REG-192 añadió el infinitivo `descartar` pensando sólo en la nota
+ * —«se solicita HbA1c para descartar diabetes» parecía una disculpa
+ * razonable—, y sobre el dictado el efecto fue el contrario y mucho peor,
  * verificado con el motor real:
  *
  *     condicionesNegadas('Vamos a solicitar HbA1c para descartar diabetes.')
  *       → [{ condicion: 'diabetes' }]      ← el paciente NUNCA negó nada
  *
  * Un diferencial abierto quedaba escrito como `descartado`. Es la regla 4 de
- * `clinical-safety.md` del revés: no es que la ausencia de dato se tome por dato
- * de ausencia, es que se **fabrica** una ausencia que nadie dijo. Se revirtió.
+ * `clinical-safety.md` del revés: no es que la ausencia de dato se tome por
+ * dato de ausencia, es que se **fabrica** una ausencia que nadie dijo.
  *
- * Separar los dos criterios está anotado como decisión del dueño (C-6): elegir
- * qué frases cuentan como negación en una nota es vocabulario clínico y no lo
- * decide el software.
+ * La decisión (C-6, dueño, 7-ago-2026): separar los dos vocabularios en dos
+ * constantes propias, para que ensanchar uno no pueda volver a tocar el otro
+ * por accidente. Hoy dicen lo mismo —nadie ha pedido todavía que difieran— pero
+ * son dos fuentes de verdad distintas desde ahora, no una compartida por
+ * casualidad.
  */
-const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+
+/**
+ * Cuenta como que una mención de la NOTA ya viene explicada. La usa
+ * `contradicciones()`, como la `disculpa` que le pasa a `mencionSinDisculpa`.
+ */
+const DISCULPA_EN_LA_NOTA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
+
+/**
+ * Cuenta como que el DICTADO negó el término. La usa `condicionesNegadas()`,
+ * a través de `NIEGA_PEGADO` (que le añade el ancla de adyacencia de REG-193),
+ * y de ahí sale `corregirCertezaPorNegacion`.
+ */
+const NIEGA_EN_EL_DICTADO = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 /**
- * \u2500\u2500 EL NEGADOR ALCANZA AL T\u00c9RMINO DE AL LADO, NO A LA FRASE (REG-193) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+ * ── EL NEGADOR ALCANZA AL TÉRMINO DE AL LADO, NO A LA FRASE (REG-193) ────────
  *
- * Sobre el dictado, la pregunta era `NIEGA_EN_LINEA.test(frase)`: basta con que
- * la oraci\u00f3n contenga un negador para dar por negada **cualquier** cr\u00f3nica
- * nombrada en ella. Verificado con el motor real:
+ * Sobre el dictado, la pregunta era `NIEGA_EN_EL_DICTADO.test(frase)`: basta
+ * con que la oración contenga un negador para dar por negada **cualquier**
+ * crónica nombrada en ella. Verificado con el motor real:
  *
  *     condicionesNegadas('Niega tabaquismo, tiene diabetes en tratamiento.')
- *       \u2192 [{ condicion: 'diabetes' }]      \u2190 el negador era del tabaquismo
+ *       → [{ condicion: 'diabetes' }]      ← el negador era del tabaquismo
  *
- * Una diabetes activa, en tratamiento, sal\u00eda reclasificada a `descartado` en el
- * panel de entidades porque la frase negaba **otra cosa**. Y \u00abNiega tabaquismo y
- * alcoholismo, tiene diabetes de 10 a\u00f1os de evoluci\u00f3n\u00bb es literalmente c\u00f3mo
- * empieza un antecedente personal patol\u00f3gico.
+ * Una diabetes activa, en tratamiento, salía reclasificada a `descartado` en el
+ * panel de entidades porque la frase negaba **otra cosa**. Y «Niega tabaquismo y
+ * alcoholismo, tiene diabetes de 10 años de evolución» es literalmente cómo
+ * empieza un antecedente personal patológico.
  *
- * **No se toca el vocabulario compartido**, que es lo que ya sali\u00f3 mal una vez:
- * se reutiliza `NIEGA_EN_LINEA` tal cual y se le cambia el ALCANCE, anclando en
- * `$` para que el negador tenga que estar pegado al t\u00e9rmino. Las dos preguntas
- * de C-6 siguen usando las mismas palabras; lo que cambia es cu\u00e1nto abarcan.
+ * **No se ensancha el vocabulario para arreglar esto**, que es lo que ya salió
+ * mal una vez: se reutiliza `NIEGA_EN_EL_DICTADO` tal cual y se le cambia el
+ * ALCANCE, anclando en `$` para que el negador tenga que estar pegado al
+ * término.
  *
- * De regalo, la premisa de la que avisa `NIEGA_EN_LINEA` se apaga sola: en \u00abpara
- * descartar diabetes\u00bb el infinitivo rompe la frontera de palabra de `descarta`,
- * as\u00ed que la adyacencia no encuentra negador.
+ * De regalo, la premisa de la que avisa `NIEGA_EN_EL_DICTADO` se apaga sola: en
+ * «para descartar diabetes» el infinitivo rompe la frontera de palabra de
+ * `descarta`, así que la adyacencia no encuentra negador.
  */
 const PUENTE = String.raw`(?:\s+(?:de|del|la|el|los|las|un|una|antecedentes?|historia|personal(?:es)?|patologic[oa]s?|familiar(?:es)?|con|que|a|al|su))*[\s:,;.-]*`
-const NIEGA_PEGADO = new RegExp(NIEGA_EN_LINEA.source + PUENTE + '$', 'i')
+const NIEGA_PEGADO = new RegExp(NIEGA_EN_EL_DICTADO.source + PUENTE + '$', 'i')
 
-/** Lo \u00fanico que puede separar dos cr\u00f3nicas de una misma enumeraci\u00f3n negada. */
+/** Lo único que puede separar dos crónicas de una misma enumeración negada. */
 const ENUMERACION = /^[\s,;]*(?:(?:y|e|o|u|ni|tampoco)\b[\s,;]*)?$/
 
 /**
- * Si esta respuesta cuenta como una negaci\u00f3n.
+ * Si esta respuesta cuenta como una negación.
  *
- * Se exporta porque la pregunta \u00ab\u00bfesto es un no?\u00bb se repite fuera de aqu\u00ed, y
- * tenerla en un solo sitio impide que dos m\u00f3dulos disientan sobre si \u00abpues no\u00bb
+ * Se exporta porque la pregunta «¿esto es un no?» se repite fuera de aquí, y
+ * tenerla en un solo sitio impide que dos módulos disientan sobre si «pues no»
  * niega.
  */
 export function esRespuestaNegativa(respuesta: string): boolean {
@@ -337,7 +347,7 @@ export function contradicciones(negadas: readonly Negada[], textoNota: string): 
      * `mencion-en-la-nota.ts` porque el motor de temporalidad tenía esta misma
      * línea copiada y los dos se quedaban ciegos igual.
      */
-    const enLaNota = mencionSinDisculpa(textoNota, formas, NIEGA_EN_LINEA)
+    const enLaNota = mencionSinDisculpa(textoNota, formas, DISCULPA_EN_LA_NOTA)
     if (enLaNota !== null) out.push({ ...n, enLaNota })
   }
   return out

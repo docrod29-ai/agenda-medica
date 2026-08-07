@@ -38,12 +38,16 @@
  *
  * ── LA REGLA QUE LO HACE SEGURO ──────────────────────────────────────────────
  *
- * **No se toca el vocabulario compartido.** `NIEGA_EN_LINEA` responde a dos
- * preguntas distintas (nota y dictado) y ensancharlo ya fabricó una vez una
- * negación que el paciente no dijo — «para descartar diabetes», REG-192. Aquí se
- * reutiliza tal cual y se le cambia el **alcance**: anclado en `$`, el negador
- * tiene que estar pegado al término, con un puente de palabras vacías que
- * cualquier palabra con contenido corta.
+ * **No se toca el vocabulario para arreglar esto.** En el momento de este
+ * arreglo, nota y dictado todavía compartían un mismo regex de negación para
+ * dos preguntas distintas, y ensancharlo ya había fabricado una vez una
+ * negación que el paciente no dijo — «para descartar diabetes», REG-192. Aquí
+ * se reutiliza tal cual y se le cambia el **alcance**: anclado en `$`, el
+ * negador tiene que estar pegado al término, con un puente de palabras vacías
+ * que cualquier palabra con contenido corta. (El regex compartido se separó
+ * después, en `DISCULPA_EN_LA_NOTA` / `NIEGA_EN_EL_DICTADO`, resolviendo C-6 —
+ * pero el alcance por adyacencia que arregla este golden sigue haciendo falta
+ * del lado del dictado con o sin esa separación.)
  *
  * Y en la respuesta se quita la muletilla primero y se exige después un núcleo
  * negativo, en vez de alargar la lista de negaciones.
@@ -53,8 +57,8 @@
  * - **El lado de la NOTA no se toca.** «Negó diabetes» (con acento), «Sin
  *   diabetes», «No es diabético» y «DM2 (-)» siguen sin contar como disculpa y
  *   siguen disparando el aviso contra una nota que dice lo mismo que el dictado.
- *   Está reproducido y anotado como decisión del dueño (C-6): qué frases cuentan
- *   como negación en una nota es vocabulario clínico.
+ *   Está reproducido y anotado como decisión del dueño (C-6-bis): qué frases
+ *   adicionales cuentan como disculpa en una nota es vocabulario clínico.
  * - **No avisa de que el paciente no sabe.** «No sé» deja de contar como
  *   negación; la condición se queda como la puso el extractor. Que la duda
  *   llegue a la pantalla es otra pieza (C-8).
