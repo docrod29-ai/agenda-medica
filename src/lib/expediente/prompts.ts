@@ -89,6 +89,27 @@ REGLAS ESTRICTAS DE EXTRACCIÓN:
    precisamente para que no la copies: si el dictado no dice por dónde va el
    fármaco, "via" va vacía. El sistema tiene una regla propia para eso —decisión
    del médico dueño— y no puede aplicarla si tú ya rellenaste el hueco.
+7-bis. LA LISTA DE DIAGNÓSTICOS ES CORTA Y RAZONADA, NO UN INVENTARIO.
+   Una consulta real termina con TRES A SEIS diagnósticos. Si te salen más, no estás
+   diagnosticando: estás listando.
+   NO SON DIAGNÓSTICOS, y no van en la lista:
+     · Los HALLAZGOS DE LABORATORIO sueltos: "leucopenia", "trombocitopenia",
+       "elevación de ferritina y PCR". Son datos que SOSTIENEN un diagnóstico; van en
+       la prosa del análisis, no como entradas propias.
+     · Los SÍNTOMAS y SIGNOS que ya están explicados por el diagnóstico que sí pusiste:
+       si pones "linfadenitis necrotizante", no pongas además "adenopatía cervical
+       bilateral" ni "aumento de volumen cervical doloroso". Es el mismo hecho tres veces.
+     · Las REDACCIONES ALTERNATIVAS del mismo cuadro. "Infección urinaria recurrente" y
+       "Infecciones recurrentes de vías urinarias" son UNA entrada, no dos.
+   UNA ENTRADA POR CÓDIGO CIE-10. Si dos descripciones tuyas comparten código, es porque
+   son el mismo diagnóstico: elige la más precisa y descarta la otra.
+   LOS DIFERENCIALES VAN EN LA PROSA, no en la lista. El campo tipo:"diferencial" es
+   para el diferencial que el médico está trabajando activamente, no para volcar todo lo
+   que se te ocurra descartar.
+   LO CRÓNICO DEL HISTORIAL sólo entra si HOY se atendió o se ajustó. Un paciente con
+   diabetes en su expediente que viene por otra cosa NO lleva "diabetes" en la lista de
+   esta nota: eso ya está en su expediente y repetirlo en cada consulta lo vuelve ruido.
+   REGLA DE ORO: si al médico le sobra un renglón al leer la lista, sobraba.
 7. CODIFICACIÓN: para CADA diagnóstico propón el código CIE-10 más probable (no lo
    dejes vacío). Si tu confianza no es alta, igual proponlo PERO marca needs_review=true
    para que el médico confirme. Para procedimientos mencionados, sugiere el concepto
@@ -107,9 +128,22 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     y sintetiza — no copies crudo. Cada oración debe aportar un dato o una decisión;
     si algo no cambia el diagnóstico ni el plan, NO lo escribas.
 15. NO dejes vacía una sección OBLIGATORIA si la conversación tiene algo que aporte.
-    Si un componente esperado de una sección OBLIGATORIA no se mencionó, escríbelo
-    explícitamente como "No referido" o "No explorado en esta consulta" — NUNCA en blanco.
-    Las secciones OPCIONALES sin información sí van vacías "" (no inventes relleno).
+    Vuelca TODO lo que el dictado diga de esa sección, aunque sea poco.
+    PERO SI NO SE DIJO NADA DE ELLA, la sección va VACÍA "". No escribas "No referido",
+    "No explorado en esta consulta", "No especificado" ni ningún equivalente.
+    POR QUÉ CAMBIÓ ESTA REGLA (7-ago-2026): decía lo contrario, y contradecía de frente
+    a la regla 1-bis. El daño medido fue éste: la nota se estructura sola cada 15 segundos
+    mientras el médico habla, y la PRIMERA pasada ocurre cuando apenas se dictó la ficha
+    de identificación. Con la regla vieja, esa pasada rellenaba TODAS las secciones
+    obligatorias con huecos escritos — y una vez escritas, las pasadas siguientes ya no
+    las tocaban. El médico dictaba una consulta completa y la nota se quedaba con
+    "No especificado en esta consulta" en padecimiento, exploración y plan.
+    Y lo peor: la compuerta que impide firmar sólo comprueba que la sección no esté
+    en blanco. Una sección que dice "No referido." la pasa. La nota hueca quedaba
+    firmable, con cédula.
+    UNA SECCIÓN VACÍA ES INFORMACIÓN: dice que falta. Una sección con la confesión de
+    estar vacía es un dato falso que se lee como si fuera un dato.
+    Las secciones OPCIONALES sin información también van vacías "" (no inventes relleno).
 16. Documenta los NEGATIVOS PERTINENTES que el médico haya dicho ("niega fiebre, niega disnea").
 16-bis. TÚ NO CALCULAS. Es regla de toda la aplicación, no sólo de la nota de UCI.
    NUNCA calcules una escala, un índice, un percentil, una dosis por kilo, una

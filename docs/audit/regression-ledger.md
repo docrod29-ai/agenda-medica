@@ -2771,3 +2771,98 @@ con tres dedicados a **comprobar el cable**: que la consulta derive las tareas a
 firmar, que compare contra lo vigente y no contra lo de hoy, y que la pantalla de
 pendientes sepa etiquetar el tipo nuevo — porque un motor perfecto que no corre
 pasa su corpus en verde igual.
+
+---
+
+## REG-216 — 19 diagnósticos en una nota, con el mismo cuadro tres veces (v1099)
+
+**Reportado con captura.** Una consulta terminó con 19 diagnósticos y parejas que
+son el mismo, con el **mismo CIE-10**: R59.1 tres veces, D64.9 dos, N39.0 dos.
+
+**Las dos causas, y cuál pesaba**
+
+1. La fusión **concatenaba** y sólo descartaba el repetido si el texto era
+   idéntico letra por letra. **El código CIE-10 —que estaba ahí, y que el propio
+   prompt obliga a rellenar— se ignoraba.**
+2. **El multiplicador**: el pase en vivo dispara cada 15 s / 18 palabras nuevas.
+   Una consulta de diez minutos son **~40 pasadas**, cada una mandando la
+   transcripción entera y re-redactando los síndromes distinto. Cuarenta tandas
+   sumadas. Sin esto darían 8, no 19.
+
+**También explica los dos cuadros mezclados** (IVU recurrente + linfadenitis):
+lo de una pasada anterior se quedaba y lo nuevo se le sumaba encima.
+
+**Por qué no se arregla reemplazando** — la fusión existía por una razón buena y
+documentada: reemplazar **borraba el diagnóstico que el médico había capturado a
+mano** con su CIE-10. La distinción correcta no es «viejo contra nuevo»: es **lo
+que puso la IA contra lo que puso el médico**.
+
+`src/lib/expediente/fusionar-diagnosticos.ts` sustituye sólo lo de la pasada
+anterior de la IA, conserva siempre lo del médico, y deduplica **por código**
+cuando lo hay. Si no se sabe qué puso la IA antes, **no quita nada**: el error
+caro es borrarle un diagnóstico al médico.
+
+**Y el prompt** — regla **7-bis**: tres a seis diagnósticos, una entrada por
+CIE-10, los hallazgos de laboratorio no son diagnósticos, los diferenciales van
+en la prosa, y lo crónico del historial no se repite en cada consulta.
+
+**Guardián** — `src/__tests__/los-diagnosticos-no-se-acumulan.test.ts` (15 casos),
+incluida una prueba que **simula las 40 pasadas** con la IA redactando distinto
+cada vez y exige que la lista no crezca.
+
+---
+
+## REG-217 — la nota salía hueca, y hueca se podía firmar (v1099)
+
+**Reportado con captura.** El médico dictó la consulta entera y la nota salió con
+«No especificado en esta consulta», «No referida», «No referido» en padecimiento,
+exploración y plan — **con el dictado completo delante**.
+
+### La causa: dos reglas del prompt que se contradecían
+
+La regla **15 ORDENABA** escribir «No referido» / «No explorado en esta consulta»
+en toda sección obligatoria sin contenido. La regla **1-bis lo PROHÍBE**.
+
+El modelo obedecía a la 15. Y el guardián de contradicciones **no lo cazaba
+porque esas dos frases no estaban en su lista** — la contradicción vivió meses.
+
+Es el mismo patrón que el recuadro naranja (REG-179/180): dos reglas anulándose,
+ninguna mal por su cuenta.
+
+### El mecanismo, que es lo que lo hacía irreparable
+
+La nota se estructura sola cada 15 s. La **primera** pasada ocurre cuando apenas
+se dictó la ficha de identificación → la regla 15 rellenaba **todas** las
+obligatorias con huecos escritos.
+
+Y entonces la guarda `if (enVivo && s.value?.trim())` daba el hueco por
+contenido: **ninguna pasada posterior podía corregirlo**. El médico dictaba
+veinte minutos y la nota se quedaba con lo de los primeros quince segundos.
+
+### Y lo peor
+
+La compuerta que impide firmar sólo comprueba `!s.value.trim()`. Una sección que
+dice «No referido.» **la pasa**. **La nota hueca quedaba firmable, con cédula
+profesional.** Hay una prueba que conserva ese hecho para que no se pueda
+certificar otra cosa.
+
+### La reparación, en tres capas
+
+1. **La regla 15 dice ahora lo mismo que la 1-bis**: si no se dijo nada, la
+   sección va vacía. *Una sección vacía es información: dice que falta.*
+2. **`seccionEsHueco` / `sinHuecoDeProsa`** en `hueco-textual.ts` — la red debajo
+   del prompt, aplicada en los **dos** sitios que escriben secciones, y **antes**
+   de la guarda del pase en vivo. El orden ES el arreglo.
+3. **El guardián de contradicciones** ya vigila las dos frases.
+
+**La distinción delicada, y la razón de comparar la sección entera**:
+
+| | |
+|---|---|
+| «No referida.» | hueco |
+| «No refiere fiebre ni disnea.» | **dato clínico** — el negativo pertinente que la regla 16 pide |
+
+Vaciar por contención habría borrado los negativos pertinentes, que son de lo más
+valioso que tiene una nota.
+
+**Guardián** — `src/__tests__/la-nota-no-sale-hueca.test.ts` (10 casos).

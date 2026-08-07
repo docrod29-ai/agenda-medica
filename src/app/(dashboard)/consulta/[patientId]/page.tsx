@@ -146,6 +146,8 @@ import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
+import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
 import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
 import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
 import { dosisPeligrosasDeLaLista } from '@/lib/seguridad/dosis-de-la-lista'
@@ -350,6 +352,17 @@ export default function ConsultaActivaPage() {
   // Cuando termina Whisper, copia el texto a voz.setTranscripcion para reutilizar el flujo de IA
   // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
   const autoProcRef = useRef(false)
+  /**
+   * LO QUE LA IA PUSO EN LA PASADA ANTERIOR.
+   *
+   * Es lo único que permite distinguir sus diagnósticos de los que escribió el
+   * médico — y por tanto lo único que hace seguro SUSTITUIR en vez de acumular.
+   *
+   * Sin esto, el pase en vivo (cada 15 s, ~40 por consulta) sumaba una tanda
+   * entera cada vez, con la IA redactando distinto en cada pasada. Así se
+   * llegaba a 19 diagnósticos con tres redacciones del mismo R59.1.
+   */
+  const dxDeLaIaRef = useRef<Diagnostico[]>([])
 
   /**
    * LO YA DICTADO NO SE PIERDE AL VOLVER A GRABAR.
@@ -1635,8 +1648,22 @@ export default function ConsultaActivaPage() {
         return base.map(s => {
           const valorIA = data.secciones?.[s.key]
           if (typeof valorIA !== 'string' || !valorIA.trim()) return s
+          /**
+           * ── UN HUECO ESCRITO NO ES UNA SECCIÓN ESCRITA (REG-217) ──────────
+           *
+           * «No referido.» se descarta ANTES de la guarda de abajo. Si no, la
+           * primera pasada en vivo —que ocurre cuando apenas se dictó la ficha
+           * de identificación— escribía el hueco, y `s.value?.trim()` lo daba
+           * por contenido: NINGUNA pasada posterior podía corregirlo. El médico
+           * dictaba la consulta entera y la nota se quedaba hueca.
+           *
+           * Distingue el hueco del negativo pertinente: «no refiere fiebre ni
+           * disnea» es un dato clínico y se conserva.
+           */
+          const limpio = sinHuecoDeProsa(valorIA)
+          if (!limpio) return s
           if (enVivo && s.value?.trim()) return s      // ya escrito a mano: no se toca
-          return { ...s, value: sanitizarProsa(valorIA) }
+          return { ...s, value: sanitizarProsa(limpio) }
         })
       })
 
@@ -1644,15 +1671,24 @@ export default function ConsultaActivaPage() {
       if (tipoOverride) {
         // RE-PROYECCIÓN a otra modalidad de nota: se parte de plantilla limpia a propósito.
         setDiagnosticos(nuevosDx)
+        dxDeLaIaRef.current = nuevosDx
       } else if (nuevosDx.length > 0) {
-        // FUSIÓN: tanto el pase en vivo como "Procesar de nuevo" AÑADEN lo que la IA
-        // detectó pero NUNCA borran lo que el médico agregó a mano. Antes, reprocesar
-        // hacía setDiagnosticos(nuevosDx) y borraba en silencio el Dx con su CIE-10 que
-        // el médico había capturado (la IA nunca lo supo). Pérdida de datos clínicos.
-        setDiagnosticos(prev => {
-          const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
-          return [...prev, ...nuevosDx.filter((d: Diagnostico) => !vistos.has(d.descripcion.trim().toLowerCase()))]
-        })
+        /**
+         * FUSIÓN CON PROCEDENCIA — no acumula, y sigue sin borrar lo del médico.
+         *
+         * La versión anterior concatenaba y sólo descartaba el repetido si el
+         * texto era IDÉNTICO letra por letra. Con el pase en vivo disparando
+         * cada 15 s y la IA redactando distinto cada vez, una consulta acababa
+         * con 19 diagnósticos y tres redacciones del mismo código.
+         *
+         * Ahora se sustituye SÓLO lo que la IA puso en su pasada anterior, se
+         * conserva siempre lo que escribió el médico, y se deduplica por CIE-10
+         * cuando lo hay — que es para lo que existe el código.
+         */
+        setDiagnosticos(prev => fusionarDiagnosticos({
+          previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+        }))
+        dxDeLaIaRef.current = nuevosDx
       }
 
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
@@ -1809,17 +1845,20 @@ export default function ConsultaActivaPage() {
       /** Igual que arriba: nunca sobreviven claves de otro tipo (REG-196). */
       const base = seccionesDelTipo(tipoActivo, tipoOverride ? [] : prev).secciones
       return base.map(s => {
-        const v = data.secciones?.[s.key]
-        return (typeof v === 'string' && v.trim()) ? { ...s, value: sanitizarProsa(v) } : s
+        // El mismo saneo que arriba: dos sitios con la misma regla, no dos reglas.
+        const v = sinHuecoDeProsa(data.secciones?.[s.key])
+        return v ? { ...s, value: sanitizarProsa(v) } : s
       })
     })
     const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
     if (tipoOverride) setDiagnosticos(nuevosDx)   // re-proyección: plantilla limpia
-    else if (nuevosDx.length > 0) setDiagnosticos(prev => {
-      // FUSIÓN anti-pérdida: no borra lo que el médico agregó a mano mientras la IA corría.
-      const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
-      return [...prev, ...nuevosDx.filter(d => !vistos.has(d.descripcion.trim().toLowerCase()))]
-    })
+    else if (nuevosDx.length > 0) {
+      // El mismo motor que arriba: dos sitios con la misma regla, no dos reglas.
+      setDiagnosticos(prev => fusionarDiagnosticos({
+        previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+      }))
+      dxDeLaIaRef.current = nuevosDx
+    }
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
     if (tipoOverride) setMedicamentos(nuevosMed)
     else if (nuevosMed.length > 0) setMedicamentos(prev => {

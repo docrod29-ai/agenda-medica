@@ -2183,3 +2183,10 @@ El Dr. configuró `CRON_SECRET` en Vercel. Las cinco rutas de cron estaban
 cerradas (fail-closed) desde siempre por falta de esa variable: los recordatorios
 de cita por WhatsApp NUNCA salieron solos, y el barrido de audios viejos nunca
 corrió. Este despliegue es para que producción tome la variable.
+
+## v1099 — la nota hueca y los 19 diagnósticos
+REG-216 y REG-217, los dos reportados con captura. (1) Los diagnósticos se
+concatenaban en cada pase en vivo —~40 por consulta— y el dedupe ignoraba el
+CIE-10; ahora se sustituye lo de la IA y se conserva lo del médico. (2) La regla
+15 del prompt ORDENABA escribir «No referido» y la 1-bis lo prohíbe: la primera
+pasada en vivo congelaba la nota hueca, y hueca PASABA la compuerta de firma.
