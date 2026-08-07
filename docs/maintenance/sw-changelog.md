@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: la mención bien escrita tapaba a la mala
+
+Los dos motores que contrastan el dictado con la nota —negaciones y
+temporalidad— buscaban el término con un `indexOf` y, si esa primera aparición
+venía bien escrita, no miraban ninguna más.
+
+La nota real hace las dos cosas: el negativo pertinente arriba, en el resumen
+—que es lo que el prompt le ordena escribir—, y el diagnóstico arrastrado abajo,
+en la lista. La de arriba callaba a la de abajo. Cuanto mejor redactada la nota,
+más ciega la defensa.
+
+Ahora se miran todas las apariciones de todas las formas: para que el motor
+calle, tienen que estar bien escritas todas.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

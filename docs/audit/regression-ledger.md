@@ -1553,3 +1553,72 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — la mención bien escrita tapaba a la mala (v1074)
+
+**Encontrado** — 7-ago-2026, auditando el motor de temporalidad porque el
+backlog (EVAL-002) decía que no tenía corpus. El corpus de 6 000 frases del Dr.
+**no sirve como oro para esto**: son órdenes y cifras, no interrogatorio, y el
+motor no se dispara ni una vez sobre él (0 de 6 000; queda medido). Así que se
+sondeó con notas armadas como las arma la aplicación — y la primera con las dos
+menciones salió muda.
+
+**El defecto** — Los dos motores que contrastan el dictado con la nota
+—negaciones (`contradicciones`) y temporalidad (`desajustesTemporales`)—
+buscaban el término con un `indexOf` y, si esa **primera** aparición venía bien
+escrita, hacían `break` y no miraban ninguna más.
+
+La nota que se contrasta no es un párrafo: `textoDeLaNota` pega el resumen,
+después los diagnósticos y después las secciones, en ese orden. Y la regla 16
+del prompt ordena documentar los negativos pertinentes —«niega diabetes e
+hipertensión»—, que caen en el resumen: **al principio de la cadena**.
+
+Así que la nota que hace las dos cosas —el negativo pertinente bien puesto
+arriba y el diagnóstico arrastrado abajo, que es la nota real— pasaba en
+**silencio completo**:
+
+```
+resumen:      «… Niega diabetes e hipertensión arterial. …»   ← primera, correcta
+diagnósticos: «Hipertensión arterial sistémica I10»           ← nadie la miraba
+```
+
+**Por qué importa para un paciente** — Es exactamente el caso que fundó el motor
+(3-ago-2026): «¿Enfermedades crónicas como diabetes o presión alta? No.» → la
+nota salió con «Hipertensión arterial, Diabetes mellitus tipo 2». Un antecedente
+crónico inventado cambia el riesgo quirúrgico, cambia los fármacos y se copia a
+todas las notas siguientes. El motor existía para cazarlo y, en cuanto la nota
+también escribía el negativo pertinente —que es lo que el prompt le ordena
+hacer—, se callaba. **Cuanto mejor redactada la nota, más ciega la defensa.**
+
+**Y escapaba por suerte** — En negaciones el aviso salía si alguna forma más
+larga del vocabulario («diabetes mellitus») casaba con la segunda mención. Con
+«hipertensión», cuyas formas no tienen esa suerte, la nota quedaba muda. Un
+guardián que depende de qué sinónimo eligió el modelo no es un guardián.
+
+**Reparación** — `primeraMencionSinMarca` en `negaciones.ts`, que los dos
+motores usan: mira **todas** las apariciones de **todas** las formas, en el
+orden en que salen en la nota, y devuelve la primera que no viene marcada. Para
+que el motor calle, tienen que estar bien escritas todas. Un solo escáner y dos
+juegos de marcas —`NIEGA_EN_LINEA` y `YA_ES_ANTECEDENTE`—; no una quinta copia
+de la misma lógica.
+
+**Lo que NO hace** — No toca la ventana de 60 caracteres ni el vocabulario. Una
+marca ajena que caiga dentro de esos 60 caracteres sigue tapando esa mención:
+«sin trauma previo» delante de un diagnóstico de neumonía sigue silenciándolo,
+porque `YA_ES_ANTECEDENTE` acepta «previo» a secas. Se encontró al construir
+este golden y queda en el backlog como hallazgo aparte (SAFE-002), sin reparar:
+es otro defecto y merece su propia medición.
+
+**Qué queda para el médico** — Todo lo clínico. El motor no decide si el
+paciente tiene la diabetes que negó ni si la neumonía sigue activa: enseña las
+dos frases —lo que se oyó y lo que se escribió— y quien resuelve es él.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos módulos, los tres
+casos de comportamiento fallan («expected [] to contain 'hipertensión
+arterial'»); los cuatro que exigen que el motor siga callado ante la nota bien
+escrita pasan en los dos lados, que es lo que se quería.
+
+**Golden** — `src/__tests__/la-mencion-buena-no-responde-por-la-mala.test.ts`
+(13 casos).

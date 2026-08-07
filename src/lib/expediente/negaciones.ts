@@ -153,32 +153,82 @@ export interface Contradiccion extends Negada {
 }
 
 /**
+ * La ventana hacia atrás es de 60 caracteres.
+ *
+ * Es la distancia en la que cabe «niega …», «sin antecedente de …» o
+ * «antecedente de …» en la misma oración. Más larga empezaría a leer la oración
+ * anterior y una marca ajena taparía una afirmación real — que es el fallo caro.
+ */
+const VENTANA_ATRAS = 60
+
+/**
+ * LA PRIMERA MENCIÓN BIEN ESCRITA NO PUEDE TAPAR A LAS DEMÁS.
+ *
+ * ── EL DEFECTO QUE ESTO REPARA (7-ago-2026) ──────────────────────────────────
+ *
+ * Los dos motores que contrastan el dictado con la nota —éste y el de
+ * temporalidad— buscaban el término con un `indexOf` y, si esa **primera**
+ * aparición venía bien escrita, se daban por satisfechos y no miraban más.
+ *
+ * La nota que se contrasta no es un párrafo: es el resumen, más los
+ * diagnósticos, más las secciones, pegados en una sola cadena y en ese orden
+ * (`textoDeLaNota`). Y el prompt de la nota ordena documentar los negativos
+ * pertinentes —«niega diabetes e hipertensión»—, que caen en el resumen, o sea
+ * **al principio de la cadena**.
+ *
+ * Así que la nota que hace las dos cosas —la de verdad: el negativo pertinente
+ * bien puesto arriba y el diagnóstico arrastrado abajo— pasaba en **silencio
+ * completo**:
+ *
+ *     resumen:      «… niega diabetes e hipertensión …»   ← primera aparición, correcta
+ *     diagnósticos: «Diabetes mellitus tipo 2»            ← NADIE la miraba
+ *
+ * Es el fallo que el comentario de la ventana de 60 caracteres decía estar
+ * evitando: «una negación ajena taparía una afirmación real». La ventana lo
+ * impedía a 60 caracteres y el `indexOf` lo dejaba entrar a cualquier distancia.
+ *
+ * ── LA REGLA ─────────────────────────────────────────────────────────────────
+ *
+ * Se miran **todas** las apariciones de todas las formas, en el orden en que
+ * salen en la nota, y se devuelve la primera que **no** viene marcada. Una
+ * mención bien escrita ya no responde por las que vienen después: para callar,
+ * tienen que estar bien escritas todas.
+ *
+ * @returns la posición de la primera mención sin marca, o -1 si no hay ninguna.
+ */
+export function primeraMencionSinMarca(
+  textoNota: string,
+  formas: readonly string[],
+  marca: RegExp,
+): number {
+  const t = sinAcentos(textoNota)
+  const posiciones: number[] = []
+  for (const forma of formas) {
+    const f = sinAcentos(forma)
+    if (!f) continue
+    for (let i = t.indexOf(f); i >= 0; i = t.indexOf(f, i + 1)) posiciones.push(i)
+  }
+  for (const idx of posiciones.sort((a, b) => a - b)) {
+    if (marca.test(t.slice(Math.max(0, idx - VENTANA_ATRAS), idx))) continue
+    return idx
+  }
+  return -1
+}
+
+/**
  * Dónde la nota AFIRMA algo que el paciente negó.
  *
  * Una mención no basta: la nota puede decir «niega diabetes», que es justo lo
  * correcto. Se busca el término y se mira hacia atrás por si ya viene negado; si
- * viene, no hay contradicción.
+ * viene, esa mención no contradice nada — pero se siguen mirando las demás.
  */
 export function contradicciones(negadas: readonly Negada[], textoNota: string): Contradiccion[] {
-  const t = sinAcentos(textoNota)
   const out: Contradiccion[] = []
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres.
-       *
-       * Es la distancia en la que cabe «niega …» o «sin antecedente de …» en la
-       * misma oración. Más larga empezaría a leer la oración anterior y una
-       * negación ajena taparía una afirmación real — que es el fallo caro.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes)) continue
-      out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    const idx = primeraMencionSinMarca(textoNota, formas, NIEGA_EN_LINEA)
+    if (idx < 0) continue
+    out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
   }
   return out
 }
