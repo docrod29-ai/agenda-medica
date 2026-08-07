@@ -47,7 +47,17 @@ describe('parsearAlergiasTexto', () => {
   })
 
   it('lo negado se puede consultar, no se esconde', () => {
-    expect(negacionesEnTexto('Niega alergia a penicilina, sulfas')).toEqual(['Niega alergia a penicilina'])
+    /**
+     * «sulfas» ENTRA EN LA LISTA A PARTIR DE REG-192.
+     *
+     * Cuando esta prueba se escribió, «sulfas» no salía por aquí porque no se
+     * descartaba: se registraba como una alergia que el campo estaba negando.
+     * Hoy la negación alcanza a toda la enumeración, así que el fragmento SÍ se
+     * descarta — y justo por eso tiene que poder enseñarse. La intención de esta
+     * prueba («no se esconde») se cumple mejor ahora que antes.
+     */
+    expect(negacionesEnTexto('Niega alergia a penicilina, sulfas'))
+      .toEqual(['Niega alergia a penicilina', 'sulfas'])
   })
 })
 

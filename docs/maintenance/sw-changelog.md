@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el paciente que NEGABA la alergia quedaba alérgico
+
+«Niega alergias a penicilina **y sulfas**» dejaba una alergia a las sulfas. El
+negador está escrito una sola vez, en el primer fragmento, y el alcance de la
+negación se perdía en el separador. De ahí salía la alerta crítica que apaga
+Firmar, el recuadro rojo de la receta que va a la farmacia y el sello de una
+nota inmutable — todos afirmando una alergia que el campo estaba negando.
+
+La negación ahora alcanza a toda la enumeración, y se corta con un punto o con
+una palabra que afirme, para no llevarse por delante la alergia real escrita
+después de una negada.
+
+De paso, `hospital/cds.ts` tenía la **quinta** copia del partidor del campo: se
+le escapó al guardián de REG-144, que sólo miraba `consulta` y `uci`. Ya usa el
+canónico.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

@@ -31,6 +31,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
 import { getPatient, getDoctors } from '@/lib/firestore'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
+import { alergenosDe } from '@/lib/seguridad/alergias'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
@@ -332,8 +333,12 @@ export default function EpisodioPage() {
   // CDS EN VIVO para la indicación que se está capturando
   const alertasCDS: AlertaCDS[] = useMemo(() => {
     if (indForm.tipo !== 'medicamento' || !indForm.descripcion.trim()) return []
-    return cdsMedicamento({ nombre: indForm.descripcion, alergias: patient?.alergias, medsActivos })
-  }, [indForm.tipo, indForm.descripcion, patient?.alergias, medsActivos])
+    // Con `alergenosDe` y no con `patient?.alergias` en crudo: es la misma razón
+    // que en la consulta (REG-144) —el CDS leía sólo el texto libre, así que el
+    // paciente con sus alergias en `alergiasEstructuradas` llegaba al punto de
+    // orden sin ninguna.
+    return cdsMedicamento({ nombre: indForm.descripcion, alergias: alergenosDe(patient ?? {}), medsActivos })
+  }, [indForm.tipo, indForm.descripcion, patient, medsActivos])
 
   /**
    * NEWS2 — QUÉ SE PUNTÚA Y CÓMO SE LLAMA (decisión ICU-Q4.1 del Dr).

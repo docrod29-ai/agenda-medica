@@ -12,7 +12,7 @@
       "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 3,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 60,
-      "estado": "en curso",
+      "estado": "cerrado (REG-141, v1031)",
       "reversible": true
     },
     {
@@ -25,7 +25,46 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 73,
-      "estado": "a medias, sin subir",
+      "estado": "cerrado (REG-144, v1032). La QUINTA copia —hospital/cds.ts— la cerró REG-192",
+      "reversible": true
+    },
+    {
+      "id": "SAFE-002",
+      "titulo": "La negación no alcanzaba a toda la enumeración del campo de alergias",
+      "hallazgo": "«Niega alergias a penicilina y sulfas» dejaba ['sulfas']. El negador se escribe una vez, en el primer fragmento; el resto salía del separador sin la negación que lo cubría. El cruce devolvía una CRÍTICA ante TMP/SMX.",
+      "porQueImporta": "La alergia inventada apaga Firmar, se imprime en la receta que va a la farmacia y se sella en una nota inmutable. En infectología una etiqueta falsa de alergia empuja a segunda línea: peor tratamiento por un dato que nadie afirmó.",
+      "archivo": "src/lib/seguridad/alergias.ts:79 · src/lib/hospital/cds.ts:43",
+      "seguridad": 5, "integridad": 4, "ingreso": 0, "frecuencia": 4, "moat": 2,
+      "fiabilidad": 3, "regulatorio": 2, "aprendizaje": 2,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 86,
+      "estado": "cerrado (REG-192, v1074)",
+      "reversible": true
+    },
+    {
+      "id": "SAFE-003",
+      "titulo": "Lo que la negación descarta no lo pinta nadie",
+      "hallazgo": "`negacionesEnTexto` devuelve los fragmentos descartados del campo de alergias y NO tiene un solo llamador en la interfaz: sólo lo llaman los tests. Escrito y sin conectar.",
+      "porQueImporta": "Regla 3 de seguridad clínica: nada cambia en silencio. Con REG-192 se descarta MÁS texto que antes (toda la enumeración negada), y el médico no tiene dónde verlo. Lo descartado es consultable, no visible.",
+      "archivo": "src/lib/seguridad/alergias.ts:110",
+      "seguridad": 2, "integridad": 2, "ingreso": 0, "frecuencia": 3, "moat": 1,
+      "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 1,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 45,
+      "estado": "pendiente — toca pantalla: decisión de dónde y cómo se enseña",
+      "reversible": true
+    },
+    {
+      "id": "SAFE-004",
+      "titulo": "La nota FIRMADA sella las alergias del texto libre, ignorando las estructuradas",
+      "hallazgo": "consulta/page.tsx:2022 sella `parsearAlergiasTexto(patient?.alergias)` y el manifiesto de procedencia usa `alergiasArray(patient?.alergias)`. La pantalla, al lado, usa `alergiasDe(patient)`. Divergencia LATENTE: hoy ninguna ruta de escritura llena `alergiasEstructuradas`; la activa la primera importación de otro sistema.",
+      "porQueImporta": "De `nota.alergias` cuelga la compuerta NOM-004 que bloquea la firma. Un paciente con las alergias sólo en el campo estructurado firmaría una nota que afirma que no tiene ninguna.",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:2022,2037",
+      "seguridad": 4, "integridad": 4, "ingreso": 0, "frecuencia": 1, "moat": 1,
+      "fiabilidad": 2, "regulatorio": 2, "aprendizaje": 1,
+      "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 0,
+      "score": 58,
+      "estado": "no confirmado en producción — reproducible sólo construyendo el paciente a mano; ninguna ruta llena hoy el campo",
       "reversible": true
     },
     {

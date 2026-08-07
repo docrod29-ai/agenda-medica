@@ -5,6 +5,7 @@
 // de alta especificidad reduce errores). Reutiliza los motores ya probados.
 // ══════════════════════════════════════════════════════════════
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
+import { alergenosDe } from '@/lib/seguridad/alergias'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 
 export interface AlertaCDS {
@@ -24,7 +25,8 @@ const RENAL_AJUSTE = [
 
 export interface CdsInput {
   nombre: string
-  alergias?: string
+  /** Texto libre del expediente, o la lista ya resuelta por `alergenosDe`. */
+  alergias?: string | readonly unknown[]
   medsActivos?: string[]   // nombres de otras indicaciones de medicamento activas
   tfg?: number | null      // ml/min si se conoce
 }
@@ -35,14 +37,20 @@ export function cdsMedicamento(opts: CdsInput): AlertaCDS[] {
   if (!nombre) return []
   const out: AlertaCDS[] = []
 
-  // 1) Alergias (crítico) — DESCARTAR los segmentos NEGADOS (auditoría P1): un campo
-  // "niega alergia a penicilina" / "sin alergias" NO debe disparar la alerta crítica
-  // que bloquea. Se separa también por punto para no perder una alergia real que
-  // venga después de una negada ("niega penicilina. alérgico a sulfas").
-  const NEG_SEG = /^\s*(?:niega|nieg[ao]|sin\b|no\s+(?:tiene|refiere|presenta|hay)|nunca|ausente|descart)/i
-  const alergias = (opts.alergias || '').split(/[,;.\n]/).map(s => s.trim()).filter(Boolean)
-    .filter(s => !NEG_SEG.test(s))
-    .map(a => ({ alergeno: a }))
+  /**
+   * 1) Alergias (crítico) — con EL MISMO parser que la consulta y la receta.
+   *
+   * Aquí vivía la quinta copia del partidor del campo de alergias (`/[,;.\n]/`
+   * con su propia lista de negadores). REG-144 unificó tres; ésta se quedó fuera
+   * porque el guardián sólo miraba `consulta` y `uci`. Traía enteros los dos
+   * modos de fallo del canónico: no partía por «/» ni por « y » —así que
+   * «Penicilina / Sulfas» viajaba como un término— y **su negador tampoco
+   * alcanzaba al segundo fragmento** («niega penicilina, sulfas» dejaba «sulfas»
+   * como alergia y disparaba la crítica en el punto de orden). Los negadores que
+   * este archivo tenía de más —«nunca», «ausente»— se subieron al canónico para
+   * no perderlos.
+   */
+  const alergias = alergenosDe({ alergias: opts.alergias }).map(alergeno => ({ alergeno }))
   if (alergias.length) {
     for (const a of validarAlergiasVsMedicamentos(alergias, [{ nombre }])) {
       out.push({ nivel: 'critica', texto: a.mensaje })

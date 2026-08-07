@@ -10,16 +10,17 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-002 (cerrada) — REG-192, v1074",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/safety/SAFE-002-alcance-negacion"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "El backlog venía del 4-ago y estaba atrasado: VOICE-004 lo cerró REG-141 y SAFE-001 REG-144. Se pusieron al día antes de elegir.",
+    "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en ESTE entorno (espera que 10.255.255.1 sea un agujero negro; el sandbox contesta). Comprobado en HEAD limpio antes de tocar nada: no lo causa esta iteración.",
+    "npm run build necesita las variables NEXT_PUBLIC_FIREBASE_* de relleno que usa CI; sin ellas falla al recolectar /dr/[clinicId] con auth/invalid-api-key."
   ]
 }

@@ -24,12 +24,21 @@ import type { AlergiaEstructurada } from '@/types'
  * Esto no decide nada clínico: lee lo que el campo dice. Si dice que el paciente
  * niega la alergia, no se registra la alergia.
  */
-const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|descartad[ao]s?|ningun[ao])\b/i
+const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|no\s+hay|nunca|ausentes?|descartad[ao]s?|ningun[ao])\b/i
 
 /** ¿Este fragmento afirma la ausencia de una alergia? */
 export function esAlergiaNegada(fragmento: string): boolean {
   return NEGADOR.test(fragmento.trim())
 }
+
+/**
+ * MARCAS DE QUE EL FRAGMENTO AFIRMA — cortan el alcance de la negación anterior.
+ *
+ * «Niega alergia a penicilina, alérgico a sulfas» es un campo real y las dos
+ * mitades dicen cosas opuestas. Sin esto, la segunda heredaría la negación de la
+ * primera y **la alergia a sulfas desaparecería**, que es el fallo caro.
+ */
+const AFIRMADOR = /^(?:al[eé]rgic|alergi|hipersensib|reacci[oó]n|refiere|presenta|s[ií]\b)/i
 
 /**
  * Cómo se parte el texto libre. Una sola definición: dos splitters distintos
@@ -76,23 +85,84 @@ export function esAlergiaNegada(fragmento: string): boolean {
  * sulfas» es una lista; «TMP/SMX» es un nombre). Es la misma solución que ya se
  * aplicó al punto: exigir el espacio para no partir lo que va junto.
  */
-const SEPARADORES = /[,;\n]+|\s+\/\s*|\s*\/\s+|\.\s+|\sy\s/
+const SEPARADORES = /([,]+|[;\n]+|\s+\/\s*|\s*\/\s+|\.\s+|\sy\s)/
+
+/**
+ * ── HASTA DÓNDE ALCANZA UNA NEGACIÓN (7-ago-2026, REG-192) ──────────────────
+ *
+ * `esAlergiaNegada` mira **el principio del fragmento**, y el negador sólo está
+ * escrito una vez, en el primero:
+ *
+ *     «Niega alergias a penicilina y sulfas»
+ *       → ['Niega alergias a penicilina', 'sulfas']
+ *       → se descarta el primero y **«sulfas» queda como alergia**
+ *
+ * El paciente que NIEGA la alergia acaba con una alergia inventada. Y de ahí
+ * salta la alerta crítica al prescribir TMP/SMX —la que deshabilita Firmar—,
+ * se imprime «ALERGIAS: sulfas» en la receta que va a la farmacia y se sella en
+ * una nota que ya no se puede tocar. La etiqueta falsa de alergia no es un
+ * aviso de más: empuja a segunda línea en el consultorio de un infectólogo.
+ *
+ * Es exactamente el desenlace que `POR_QUE_LA_NEGACION_IMPORTA` describe como el
+ * fallo a evitar. Aquello se arregló para «niega X»; **el campo enumerado se
+ * quedó fuera**, y enumerar es como se escribe de verdad.
+ *
+ * ── LA REGLA, Y POR QUÉ NO ES MÁS AMPLIA ────────────────────────────────────
+ *
+ * La negación se hereda al fragmento siguiente **dentro de la misma frase**, y
+ * deja de heredarse en cuanto aparece cualquiera de las dos cosas:
+ *
+ * 1. Un **fin de frase** —punto, punto y coma o salto de línea—. Es lo que hace
+ *    que «Niega penicilina. Alérgico a sulfas» siga conservando las sulfas: ese
+ *    caso se ganó el 4-ago y no se pierde hoy.
+ * 2. Una **marca de que el fragmento afirma** (`AFIRMADOR`), para
+ *    «Niega alergia a penicilina, alérgico a sulfas».
+ *
+ * La coma y la «y» heredan; el punto no. Esto no decide nada clínico: lee el
+ * alcance de lo que el campo dice. Y lo heredado **no se esconde** — sale por
+ * `negacionesEnTexto`, que es lo que existe para poder enseñarlo.
+ */
+const FIN_DE_FRASE = /^(?:[;\n]+|\.\s+)$/
+
+interface FragmentoDeAlergia {
+  texto: string
+  /** Descartado por una negación: la suya propia o la de la frase que lo abre. */
+  negado: boolean
+}
+
+/** Parte el campo y resuelve el alcance de cada negación. Interno: una sola pasada. */
+function fragmentarAlergias(texto: string): FragmentoDeAlergia[] {
+  // `split` con grupo de captura intercala los separadores: [frag, sep, frag, …].
+  const partes = texto.split(SEPARADORES)
+  const out: FragmentoDeAlergia[] = []
+  let negando = false
+  for (let i = 0; i < partes.length; i += 2) {
+    if (i > 0 && FIN_DE_FRASE.test(partes[i - 1] ?? '')) negando = false
+    const frag = (partes[i] ?? '').trim()
+    if (!frag) continue
+    if (esAlergiaNegada(frag)) {
+      negando = true
+      out.push({ texto: frag, negado: true })
+      continue
+    }
+    if (AFIRMADOR.test(frag)) negando = false
+    out.push({ texto: frag, negado: negando })
+  }
+  return out
+}
 
 /** Los fragmentos NEGADOS del campo, para poder mostrarlos en vez de esconderlos. */
 export function negacionesEnTexto(texto: string | undefined): string[] {
   if (!texto?.trim()) return []
-  return texto.split(SEPARADORES).map(a => a.trim()).filter(a => a && esAlergiaNegada(a))
+  return fragmentarAlergias(texto).filter(f => f.negado).map(f => f.texto)
 }
 
 /** Divide un texto libre de alergias en alérgenos ("Penicilina, Sulfas; Mariscos"). */
 export function parsearAlergiasTexto(texto: string | undefined): AlergiaEstructurada[] {
   if (!texto?.trim()) return []
-  return texto
-    .split(SEPARADORES)
-    .map(a => a.trim())
-    .filter(Boolean)
-    .filter(a => !esAlergiaNegada(a))
-    .map(alergeno => ({ alergeno }))
+  return fragmentarAlergias(texto)
+    .filter(f => !f.negado)
+    .map(f => ({ alergeno: f.texto }))
 }
 
 /**

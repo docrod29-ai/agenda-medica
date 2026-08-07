@@ -1553,3 +1553,78 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el paciente que NEGABA la alergia quedaba alérgico (v1074)
+
+**Encontrado** — 7-ago-2026, recorriendo por tercera vez el camino del alérgeno
+de punta a punta —el mismo recorrido de REG-144 y REG-171— pero probando el
+parser canónico contra el campo escrito **como se escribe de verdad**: en lista.
+
+**Cómo se reprodujo** — Corriendo `alergenosDe` y el cruce alergia↔fármaco sobre
+siete redacciones reales del campo. Dos devolvieron un alérgeno que el campo
+estaba negando:
+
+```
+«Niega alergias a penicilina y sulfas»      → ['sulfas']
+«Niega alergia a penicilina, sulfas y mariscos» → ['sulfas', 'mariscos']
+```
+
+Y el cruce, con esa entrada y una receta de TMP/SMX, devolvió literalmente:
+`critica — «Alergia a sulfas y se prescribe Trimetoprima/Sulfametoxazol»`.
+
+**El defecto** — `esAlergiaNegada` mira **el principio de cada fragmento**, y el
+negador está escrito una sola vez: en el primero. `SEPARADORES` parte por « y » y
+por coma, así que el resto de la enumeración salía del separador **sin la
+negación que lo cubría** y se registraba como alergia.
+
+**Por qué importa para un paciente** — La alergia inventada no se queda quieta.
+Dispara la alerta crítica que **deshabilita Firmar**; se imprime en el recuadro
+rojo de la receta que va a la farmacia; se sella en una nota firmada, que es
+inmutable; y la lee el siguiente médico. En el consultorio de un infectólogo una
+etiqueta falsa de alergia a betalactámicos o a sulfas **empuja a segunda línea**:
+es peor tratamiento, por un dato que nadie afirmó nunca.
+
+Y al médico le dejaba la única salida que este repositorio ya documentó como el
+fallo a evitar (`POR_QUE_LA_NEGACION_IMPORTA`): **borrar el texto del
+expediente**, perdiendo a la vez el dato y la compuerta. Aquello se arregló para
+«niega X»; **el campo enumerado se quedó fuera**, y enumerar es lo normal.
+
+**Reparación** — El campo se parte una sola vez y se resuelve el **alcance** de
+cada negación: se hereda al fragmento siguiente dentro de la misma frase y se
+corta con (1) un fin de frase —punto, punto y coma, salto de línea— o (2) una
+marca de que el fragmento afirma (`alérgic-`, `alergia`, `reacción`, `refiere`,
+`presenta`). Los dos cortes existen para **no cometer el error contrario**, que
+es el caro: borrar la alergia real escrita después de una negada. El caso
+«Niega penicilina. Alérgico a sulfas», ganado el 4-ago, se vuelve a fijar aquí.
+
+**Esto no es política clínica nueva** — Lee el alcance de lo que el campo dice.
+Qué bloquea la firma no se toca: lo que impedía firmar ayer impide firmar hoy.
+
+**La quinta copia del partidor** — `src/lib/hospital/cds.ts` tenía la suya
+(`/[,;.\n]/` con su propia lista de negadores). El guardián de REG-144 sólo
+miraba `consulta` y `uci`, y por eso sobrevivió. Traía enteros los dos modos de
+fallo: no partía por «/» ni por « y » —«Penicilina / Sulfas» viajaba como un
+término, y el cruce podía no dispararse— y su negador tampoco alcanzaba al
+segundo fragmento. Ya usa el canónico; sus negadores de más («nunca»,
+«ausente») se **subieron** al canónico para no perderlos, y el guardián ahora
+cubre también ese archivo. El llamador del punto de orden pasa
+`alergenosDe(patient)`, así que las `alergiasEstructuradas` por fin le llegan.
+
+**Qué NO hace** — No adivina un alcance que el campo no marca: «Niega
+penicilina, sulfas» descarta las dos. Si el médico quiso decir que sí es
+alérgico a las sulfas, tiene que escribirlo con punto o con la palabra que lo
+afirme.
+
+**Qué queda para el médico** — `negacionesEnTexto` devuelve lo descartado, y
+**no lo pinta nadie**: la función no tiene un solo llamador en la interfaz. Lo
+negado es consultable, no visible. Enseñarlo junto al campo de alergias es una
+decisión de pantalla y queda en el backlog (`SAFE-003`), no se hace por mi
+cuenta.
+
+**Probado al revés** — Revertido `alergias.ts`: 6 casos en rojo, empezando por
+`expected [ 'sulfas' ] to deeply equal []`. Revertido sólo `cds.ts`: 3 en rojo.
+
+**Golden** — `src/__tests__/la-negacion-alcanza-a-toda-la-lista.test.ts` (14
+casos).
