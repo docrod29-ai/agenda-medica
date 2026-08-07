@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el padecimiento de hoy se leía como antecedente
+
+El motor de temporalidad daba a «hace tres días» el mismo peso que a «hace tres
+años». «Inicia hace tres días con fiebre y tos, se integra neumonía adquirida en
+la comunidad» salía como neumonía pasada, y la nota que escribía esa neumonía
+—la de hoy— recibía el aviso de desajuste. En una consulta de agudos, casi
+siempre.
+
+Y la ventana con la que se mira la nota cruzaba el punto: un «sin antecedentes de
+importancia» en la frase anterior callaba el aviso de verdad. El comentario del
+código decía que la ventana era corta justo para evitar eso.
+
+Ahora la marca de tiempo sola sólo encuadra en pasado cuando es remota —en el
+rango corto hace falta el verbo, que ya bastaba por su cuenta— y la ventana se
+corta en el cierre de oración.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

@@ -1553,3 +1553,82 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el padecimiento de hoy se leía como antecedente (v1074)
+
+**Encontrado** — 7-ago-2026, cerrando `EVAL-002` del backlog: *«el motor de
+temporalidad se construyó en la v1027-v1030 y no tiene corpus: sus casos son los
+que yo escribí»*. Un motor probado sólo contra las frases que imaginó su autor no
+está medido, está confirmado.
+
+**Cómo se reprodujo** — Se le pasó al motor real un corpus de siete frases
+escritas **sin mirar el código**, con la forma en que se dicta el padecimiento
+actual en una consulta de agudos mexicana: primero cuándo empezó, después qué se
+integra. Seis de las siete salieron encuadradas en el pasado.
+
+```
+"Inicia hace tres días con fiebre y tos, se integra neumonía adquirida
+ en la comunidad."            → esFrasePasada = true, menciones = [neumonía]
+```
+
+Y con la nota puesta —`Impresión diagnóstica: neumonía adquirida en la
+comunidad`— el motor emitía un aviso de desajuste temporal sobre el diagnóstico
+de hoy, correctamente escrito.
+
+**Defecto 1 — «hace tres días» pesaba lo mismo que «hace tres años».** La marca
+de tiempo bastaba por sí sola para encuadrar la frase en el pasado, y su rango
+incluía días, semanas y meses. `src/lib/expediente/temporalidad.ts`, `PASADO`.
+
+**Defecto 2 — la ventana de la nota cruzaba la oración.** El comentario del
+código decía que la ventana era corta justo para no leer la oración anterior,
+«porque un “antecedente” ajeno taparía una afirmación en presente, que es el
+fallo que importa». Sesenta caracteres cruzan el punto: en «Sin antecedentes de
+importancia. Neumonía adquirida en la comunidad» hay 33 antes de la palabra, y
+ese «antecedentes» —de una frase que ni habla de neumonía— callaba el aviso. La
+intención estaba escrita; el código no la cumplía.
+
+**Por qué importa para un paciente** — El primero salta en casi toda consulta de
+agudos, que es la consulta de este médico todo el día: gasta la única defensa
+que hay contra el antecedente inventado, y el propio módulo tenía escrito que un
+aviso que salta donde no debe se acaba ignorando y con él se ignoran los que sí
+importan. El segundo la apaga precisamente en la nota que empieza por «sin
+antecedentes» — la del paciente nuevo, donde el expediente longitudinal nace y
+donde un diagnóstico mal situado en el tiempo se arrastra más lejos.
+
+**Reparación** — La marca de tiempo, **sola**, sólo encuadra en pasado cuando es
+remota (`hace N años`, `en 2019`, `años atrás`, `de niño`). En el rango corto
+hace falta el verbo, y el verbo ya bastaba por su cuenta porque las dos familias
+se suman: «tuvo neumonía hace dos semanas» y «presentó una crisis hace tres
+días» se siguen vigilando. Y `ventanaAntes()` corta la ventana en el cierre de
+oración — conservador en la dirección correcta: la deja más corta, nunca más
+larga.
+
+**Ninguna cifra clínica** — Los dos cambios son gramaticales. El motor sigue sin
+decidir si una enfermedad está activa: eso es clínico y no es suyo.
+
+**Qué NO hace**
+
+- **El pasado cercano sin verbo y sin «antecedente»** —«neumonía hace tres
+  meses», suelta— ya no se marca. Es el precio declarado del arreglo 1, y está
+  escrito como prueba para que quien lo cambie tenga que borrar esa línea.
+- **La nota se sigue mirando sólo en su PRIMERA aparición.** Si la escribe como
+  antecedente y más abajo la afirma como actual, no avisa. Confirmado y **no
+  reparado a propósito**: ahí la nota puede tener razón —un antecedente y un
+  cuadro nuevo del mismo padecimiento conviven— y avisar sería señalar de más.
+  Queda como `EVAL-004`.
+- **Una frase que mezcla pasado y presente de padecimientos distintos** («tuvo
+  neumonía hace tres años y sigue con diabetes») se lee entera como presente y
+  la neumonía se pierde: `esFrasePasada` juzga la frase, no cada padecimiento.
+  Queda como `EVAL-005`.
+
+**Qué queda para el médico** — Nada que decidir. Si en su consulta aparece una
+forma de contar el pasado que el motor no vigila, se añade al vocabulario; la
+lista es vocabulario, no criterio.
+
+**Comprobado que puede ponerse rojo** — Revertido `temporalidad.ts`: 6 de los 11
+casos fallan.
+
+**Golden** — `src/__tests__/el-padecimiento-de-hoy-no-es-antecedente.test.ts`
+(11 casos).

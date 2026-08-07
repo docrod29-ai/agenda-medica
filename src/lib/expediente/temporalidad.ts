@@ -52,7 +52,24 @@ const sinAcentos = (s: string) =>
  *
  * · El verbo en pretérito o copretérito: «tuvo», «tenía», «padeció», «le
  *   operaron», «se le quitó».
- * · La marca de cuándo: «hace tres años», «en 2019», «de niño».
+ * · La marca de cuándo, y sólo cuando es REMOTA: «hace tres años», «en 2019»,
+ *   «de niño».
+ *
+ * ── POR QUÉ LA MARCA SOLA TIENE QUE SER REMOTA (v1074, REG-192) ─────────────
+ *
+ * «Hace tres días» estaba en la misma lista que «hace tres años», y con eso el
+ * motor leía como pasado **el padecimiento actual**: «inicia hace tres días con
+ * fiebre y tos, se integra neumonía adquirida en la comunidad» salía marcado, y
+ * la nota que escribía esa misma neumonía —correctamente, es la de hoy— recibía
+ * el aviso. En una consulta de agudos eso es en casi todas: fatiga de alerta
+ * exactamente donde este módulo tenía escrito que no debía provocarla.
+ *
+ * Lo que se pierde es poco y se recupera solo: un padecimiento realmente pasado
+ * contado en el rango corto casi siempre trae el verbo —«tuvo neumonía hace dos
+ * semanas», «presentó una crisis hace tres días»—, y el verbo basta por su
+ * cuenta porque estas familias se suman, no se exigen juntas. Lo que se pierde
+ * de verdad es la forma sin verbo y sin «antecedente»: «neumonía hace tres
+ * meses», suelta. Está declarado en el golden.
  *
  * Que falte una forma significa que ese caso no se vigila — no que se dé por
  * bueno. Este motor sólo puede señalar de menos, nunca de más.
@@ -61,7 +78,7 @@ const PASADO = new RegExp([
   '\\b(?:tuvo|tuve|tenia|tenian|padecio|padeci|padecia|sufrio|sufri|presento)\\b',
   '\\b(?:le\\s+)?(?:operaron|extirparon|quitaron|resecaron)\\b',
   '\\b(?:ya\\s+)?se\\s+le\\s+(?:quito|curo|resolvio)\\b',
-  '\\bhace\\s+(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)\\s*(?:anos?|meses?|semanas?|dias?)\\b',
+  '\\bhace\\s+(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)\\s*anos?\\b',
   '\\ben\\s+(?:19|20)\\d{2}\\b',
   '\\b(?:de|en\\s+la)\\s+(?:nino|nina|infancia|juventud)\\b',
   '\\banos\\s+atras\\b',
@@ -197,6 +214,31 @@ export interface DesajusteTemporal extends MencionPasada {
   enLaNota: string
 }
 
+/** Lo que la nota dice justo antes del padecimiento, SIN salirse de la oración. */
+const ANTES = 60
+
+/**
+ * La ventana de 60 caracteres hacia atrás, cortada en el punto anterior.
+ *
+ * ── EL DEFECTO QUE ESTO REPARA (v1074, REG-192) ──────────────────────────────
+ *
+ * La ventana ya estaba, y su comentario decía por qué era corta: «más larga
+ * leería la oración anterior y un “antecedente” ajeno taparía una afirmación en
+ * presente, que es el fallo que importa». Sesenta caracteres **cruzan la oración
+ * igual**: «Sin antecedentes de importancia. Neumonía adquirida en la
+ * comunidad» son 33 antes de la palabra, así que el «antecedentes» de una frase
+ * que no habla de neumonía callaba el aviso. La intención estaba escrita; el
+ * código no la cumplía.
+ *
+ * Cortar en el cierre de oración es conservador en la dirección correcta: deja
+ * la ventana más corta, nunca más larga.
+ */
+function ventanaAntes(textoNota: string, idx: number): string {
+  const crudo = textoNota.slice(Math.max(0, idx - ANTES), idx)
+  const corte = crudo.search(/[.?!\n][^.?!\n]*$/)
+  return corte < 0 ? crudo : crudo.slice(corte + 1)
+}
+
 /**
  * Dónde la nota afirma en PRESENTE algo que el dictado puso en pasado.
  *
@@ -221,9 +263,9 @@ export function desajustesTemporales(
        * negaciones y por la misma razón: es lo que mide «antecedente de …» o
        * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
        * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
-       * que importa.
+       * que importa — por eso `ventanaAntes` la corta en el punto.
        */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
+      const antes = ventanaAntes(textoNota, idx)
       if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
       out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
       break
