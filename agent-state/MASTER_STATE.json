@@ -10,16 +10,26 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "REG-192 (cerrada) — el vocabulario clínico casaba dentro de otras palabras",
+  "ultimaIteracion": {
+    "fecha": "2026-08-07",
+    "itemDelBacklog": "EVAL-002 (auditoría del motor de temporalidad)",
+    "reg": "REG-192",
+    "version": "nexusmed-v1074",
+    "rama": "agent/expediente/vocabulario-clinico",
+    "golden": "src/__tests__/un-termino-clinico-es-una-palabra.test.ts (21 casos, sellado)",
+    "compuertas": "vitest 6959/6960 · tsc limpio · trinquete 96 (igual que el techo) · build verde",
+    "falloAjenoConocido": "src/__tests__/ops-timeout-y-punto-ciego.test.ts «el error dice cuánto esperó y a quién» falla en este entorno sin salida a 10.255.255.1 (la conexión se rechaza en vez de colgarse). Comprobado sobre el árbol limpio, con git stash: no es de este cambio.",
+    "concurrencia": "Diez corridas de esta misma rutina abrieron PR la misma noche, todas partiendo de main y todas numeradas REG-192/v1074. El «derrame pleural → EVC» que esta corrida también encontró ya lo repara el PR #239: se retiró de aquí para no arreglar lo mismo dos veces. El número final lo decide el orden de fusión."
+  },
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-001",
+    "agent/expediente/vocabulario-clinico"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": []
 }

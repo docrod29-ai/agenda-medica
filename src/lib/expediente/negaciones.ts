@@ -42,6 +42,12 @@
  *
  * Módulo PURO.
  */
+/**
+ * El buscador de términos vive aparte desde REG-192: lo comparten este motor y
+ * el de temporalidad, y dos copias de «cómo se busca una palabra» acabarían
+ * divergiendo como ya divergieron los cuatro parsers de alergias (REG-144).
+ */
+import { sinAcentos, contieneTermino, indiceDeTermino } from '@/lib/expediente/vocabulario-clinico'
 
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
@@ -58,7 +64,13 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
   { canonica: 'asma', formas: ['asma', 'asmático', 'asmatico', 'asmática'] },
   { canonica: 'cáncer', formas: ['cáncer', 'cancer', 'neoplasia', 'tumor maligno'] },
   { canonica: 'enfermedad renal crónica', formas: ['insuficiencia renal', 'enfermedad renal', 'renal crónica', 'renal cronica'] },
-  { canonica: 'cardiopatía', formas: ['cardiopatía', 'cardiopatia', 'infarto', 'insuficiencia cardiaca', 'insuficiencia cardíaca'] },
+  /**
+   * `miocardiopatía`, `postinfarto` y sus formas sin tilde estaban casando por
+   * accidente cuando el vocabulario se buscaba con `includes` (REG-192). Son el
+   * mismo padecimiento, así que se declaran en vez de perderse: el paso a
+   * búsqueda por palabra no debe quitar ni una coincidencia legítima.
+   */
+  { canonica: 'cardiopatía', formas: ['cardiopatía', 'cardiopatia', 'miocardiopatía', 'miocardiopatia', 'infarto', 'postinfarto', 'insuficiencia cardiaca', 'insuficiencia cardíaca'] },
   { canonica: 'hipotiroidismo', formas: ['hipotiroidismo', 'tiroides'] },
   { canonica: 'dislipidemia', formas: ['dislipidemia', 'colesterol alto', 'triglicéridos altos', 'trigliceridos altos'] },
   { canonica: 'epilepsia', formas: ['epilepsia', 'convulsiones'] },
@@ -79,8 +91,6 @@ const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunc
 /** Marcas de que un término ya viene negado en la propia frase. */
 const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
 
-const sinAcentos = (s: string) =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 /** Trocea por frases conservando el signo, que es lo que distingue pregunta de respuesta. */
 export function frases(texto: string): string[] {
@@ -97,7 +107,7 @@ export function cronicasEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out: string[] = []
   for (const c of CRONICAS) {
-    if (c.formas.some(f => t.includes(sinAcentos(f)))) out.push(c.canonica)
+    if (c.formas.some(f => contieneTermino(t, sinAcentos(f)))) out.push(c.canonica)
   }
   return out
 }
@@ -165,7 +175,7 @@ export function contradicciones(negadas: readonly Negada[], textoNota: string): 
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
     for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
+      const idx = indiceDeTermino(t, sinAcentos(forma))
       if (idx < 0) continue
       /**
        * La ventana hacia atrás es de 60 caracteres.

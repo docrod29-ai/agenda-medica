@@ -3,6 +3,26 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: «obesidad» contenía «sida», y con eso se descartaba un VIH
+
+Los dos vocabularios clínicos del expediente se buscaban con
+`texto.includes(forma)`, y un `includes` no sabe dónde empieza una palabra:
+«obe**sida**d» y «nece**sida**d» daban VIH, «pl**asma**» daba asma,
+«pre**diabetes**» daba diabetes, «cole**cistitis**» daba infección urinaria y
+«Klebsiella p**neumonia**e» daba neumonía.
+
+Medido sobre las 6 000 frases del corpus del Dr.: 68 frases casaban sólo por
+dentro de otra palabra y 55 eran falsas.
+
+El ruido era lo de menos. `corregirCertezaPorNegacion` **reclasifica**: un
+paciente que niega la obesidad hacía que un VIH dictado por el médico saliera
+marcado como descartado.
+
+Ahora hay un solo buscador de términos para los dos motores: frontera de palabra
+por los dos lados, y detrás sólo el plural — «neumonías» es neumonía y
+«prediabetes» no es diabetes. Las 13 coincidencias que sí eran legítimas
+—miocardiopatía, neurocirugía, postinfarto— quedan declaradas como formas.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

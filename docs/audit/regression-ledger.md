@@ -1553,3 +1553,76 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — «obesidad» contenía «sida», y con eso se descartaba un VIH (v1074)
+
+**Encontrado** — 7-ago-2026, auditando el motor de temporalidad. Estaba en el
+backlog como `EVAL-002` por una razón honesta: el motor se construyó en la
+v1027-v1030 y **sus únicos casos eran los que escribió el propio agente**. Al
+abrirlo para darle corpus, el defecto estaba en la primera función.
+
+**El defecto** — Los dos vocabularios clínicos del expediente —`CRONICAS` en
+`negaciones.ts` y `AGUDAS_FRECUENTES` en `temporalidad.ts`— se buscaban con
+`texto.includes(forma)`. Un `includes` no sabe dónde empieza una palabra, así que
+el término casaba **dentro** de otra:
+
+| La palabra dictada | contiene | y salía como |
+|---|---|---|
+| obe**sida**d · nece**sida**d | «sida» | **VIH** |
+| pl**asma** · mel**asma** | «asma» | asma |
+| pre**diabetes** | «diabetes» | diabetes |
+| cole**cistitis** | «cistitis» | infección urinaria |
+| Klebsiella p**neumonia**e | «neumonia» | neumonía |
+| **enfisema**tosa | «enfisema» | EPOC |
+| **epoc**a | «epoc» | EPOC |
+
+**Cómo se reprodujo** — Con el motor real, y después **medido** contra las 6 000
+frases del corpus del Dr. (`fixtures/voz/corpus-v3-6000.csv`) en vez de suponer:
+**68 frases** casaban sólo por dentro de otra palabra y **55 eran falsas**
+—«Indicar evaluación diaria de necesidad de catéter» → VIH; «Se administran 2
+unidades de plasma fresco congelado» → asma; «Cultivo positivo para Klebsiella
+pneumoniae» → neumonía—. Las 13 restantes —miocardiopatía, neurocirugía,
+postinfarto— sí eran el mismo padecimiento.
+
+**Por qué importa para un paciente** — Por el camino ruidoso, la contradicción
+del dictado es un aviso **rojo que no se pliega** (REG-181): al médico le decía
+«VIH» de un paciente con obesidad. Pero el camino caro es el otro:
+`corregirCertezaPorNegacion` **reclasifica** —lo que el paciente negó pasa a
+`descartado` en las entidades extraídas—, así que un paciente que **niega la
+obesidad** hacía que un **VIH dictado por el médico** saliera marcado como
+descartado. Un diagnóstico apagado por una palabra que nadie dijo, en la consulta
+de un infectólogo.
+
+**Reparación** — `src/lib/expediente/vocabulario-clinico.ts`: un solo buscador de
+términos para los dos motores. La forma casa si empieza y termina en frontera de
+palabra, y detrás sólo se admite el **plural** (`-s`, `-es`), que es la única
+flexión que deja la misma palabra: «neumonías» es neumonía y «prediabetes» no es
+diabetes. Dos copias de «cómo se busca una palabra» acabarían divergiendo como
+divergieron los cuatro parsers de alergias (REG-144), así que vive aparte y lo
+importan los dos.
+
+**No se pierde ninguna coincidencia legítima** — Las 13 buenas se declaran como
+formas propias (`miocardiopatía`, `postinfarto` en `CRONICAS`; `neurocirugía` en
+`AGUDAS_FRECUENTES`). No es ensanchar el vocabulario: es escribir lo que ya
+casaba por accidente. `cronicasEn` sigue decidiendo lo mismo sobre lo mismo.
+
+**Lo que NO entra aquí, y por qué** — «Derrame pleural» casa como palabra entera
+y sigue saliendo como evento vascular cerebral: eso no es el buscador sino la
+lista, y lo repara el PR #239 —encontrado la misma noche por otra corrida, con
+`trombosis` de propina—. Meterlo aquí también sería el mismo arreglo dos veces.
+
+**Qué NO hace** — No amplía ningún vocabulario: lo que no está en la lista sigue
+sin vigilarse, y eso no cambia. No mira la ortografía del reconocedor. No juzga
+el sentido clínico de un término que sí es palabra entera.
+
+**Qué queda para el médico** — Decidir si «prediabetes» merece vocabulario
+propio: hoy no se vigila, y antes se vigilaba mal —salía como «diabetes»—.
+Anotado en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
+
+**Comprobado que puede ponerse rojo** — Con el buscador devuelto a `indexOf`
+fallan 14 de los 21 casos.
+
+**Golden** — `src/__tests__/un-termino-clinico-es-una-palabra.test.ts` (21 casos),
+con un trinquete que vuelve a medir sobre las 6 000 frases del corpus.

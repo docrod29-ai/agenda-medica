@@ -41,9 +41,7 @@
  * Módulo PURO.
  */
 import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
-
-const sinAcentos = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+import { sinAcentos, contieneTermino, indiceDeTermino } from '@/lib/expediente/vocabulario-clinico'
 
 /**
  * Marcas de que la frase habla del PASADO.
@@ -121,7 +119,12 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
    * cuenta así, con el verbo. «Lo van a operar» NO — ése es el futuro, y en el
    * futuro no hay nada que corregir.
    */
-  { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
+  /**
+   * `neurocirugía` se declara desde REG-192: casaba por accidente dentro de la
+   * búsqueda por `includes` y es cirugía de verdad, así que pasar a búsqueda por
+   * palabra no puede costarla.
+   */
+  { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'neurocirugía', 'neurocirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
   { canonica: 'trombosis venosa', formas: ['trombosis', 'tvp', 'trombosis venosa'] },
   { canonica: 'embolia pulmonar', formas: ['embolia pulmonar', 'tromboembolia', 'tep'] },
   { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame'] },
@@ -146,7 +149,7 @@ export function padecimientosEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out = [...cronicasEn(frase)]
   for (const c of AGUDAS_FRECUENTES) {
-    if (c.formas.some(f => t.includes(sinAcentos(f))) && !out.includes(c.canonica)) out.push(c.canonica)
+    if (c.formas.some(f => contieneTermino(t, sinAcentos(f))) && !out.includes(c.canonica)) out.push(c.canonica)
   }
   return out
 }
@@ -214,7 +217,7 @@ export function desajustesTemporales(
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
     for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
+      const idx = indiceDeTermino(t, sinAcentos(forma))
       if (idx < 0) continue
       /**
        * La ventana hacia atrás es de 60 caracteres, la misma que usan las
