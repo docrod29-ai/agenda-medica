@@ -1553,3 +1553,96 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — «no sé» se guardaba como «no lo tengo» (v1074)
+
+**Encontrado** — 7-ago-2026. Último punto abierto del plan de la auditoría de
+las nueve dimensiones (hallazgo C2/C3: «faltan negadores del habla real»).
+
+**Cómo se reprodujo** — Antes de tocar nada se pasaron por `condicionesNegadas`
+diecisiete respuestas de consulta hablada, con el motor real. Fallaron seis. Y al
+probar la dirección contraria —lo que el motor detecta de **más**— apareció un
+defecto peor, que ningún agente había reportado.
+
+**El defecto que se buscaba** — La expresión anclaba la negativa al principio de
+la respuesta, y en la consulta casi nadie contesta con el «no» pelado:
+
+| Se dijo | Se entendía |
+|---|---|
+| «¿Padece diabetes o hipertensión? **Pues no**» | no hay negación |
+| «¿Tiene diabetes? **Fíjese que no**» | no hay negación |
+| «¿Es diabético? **Gracias a Dios no**» | no hay negación |
+| «¿Tiene diabetes? **Para nada**» / «**Qué va**» | no hay negación |
+
+Como la enfermedad se nombra en la **pregunta**, perder el «no» deja el
+antecedente crónico cosechado y confirmado — el caso que el Dr. encontró el
+3-ago (REG del `negacion-diagnostico-inventado`), protegido hasta hoy sólo para
+la forma de respuesta que él dictó aquel día.
+
+**El defecto peor, y por qué importa para un paciente** —
+
+```
+«¿Tiene diabetes?  No sé.»          →  la condición salía  certeza: descartado
+«¿Tiene diabetes?  No me acuerdo.»  →  la condición salía  certeza: descartado
+```
+
+Reproducido llamando a `corregirCertezaPorNegacion`, que es lo que corre en
+`api/expediente/extraer-entidades`. **El paciente decía que no sabía y el
+expediente escribía que lo había negado.** Es la regla 4 del charter al revés
+—ausencia de dato convertida en dato de ausencia— y no en una frase de la nota,
+sino en un campo estructurado que se arrastra a todas las notas siguientes con
+la misma pinta de dato verificado que tendría uno real. Un «descartado» falso en
+diabetes cambia el riesgo quirúrgico y la elección de fármacos igual que un
+«confirmado» falso, y no deja rastro de que nadie lo preguntó nunca.
+
+La causa era **la misma línea** que el defecto de arriba: «no sé» empieza por
+«no».
+
+**Y un tercero, del mismo sitio** — «¿Tiene diabetes o hipertensión? **Nada más**
+la diabetes» significa *sólo* la diabetes; el `nada` suelto lo leía como una
+negación de las dos y el extractor pasaba a `descartado` la enfermedad que el
+paciente **acababa de afirmar**.
+
+**Reparación** — `src/lib/expediente/negaciones.ts`:
+
+1. Un preámbulo de muletillas antes de la negativa, en **lista cerrada**. Aceptar
+   «cualquier cosa antes del no» dejaría entrar «Sí, desde hace diez años, pero
+   no tomo nada» como negación: el error caro va en esa dirección — perder una
+   negación cuesta un aviso, fabricarla **borra un antecedente**.
+2. `condicionesDudosas()` aparte de `condicionesNegadas()`. La duda se mira
+   **antes** que la negativa y **no reclasifica nada**: ni «confirmado» ni
+   «descartado» es lo que el paciente dijo.
+3. `nada` deja de contar cuando le sigue «más».
+4. Las negativas se comparan sin acentos: «Fíjese» y «Qué va» llegan del
+   reconocedor acentuados o no según el día.
+
+**Lo dudoso no se calla** — Quitar la duda sin más habría dejado la nota
+afirmando el antecedente **sin un solo aviso**, que es peor que el aviso mal
+redactado. Sale por `avisosDeDudaDelExtractor` en el panel NER, y en la consulta
+entra en la barra de avisos con su propio texto: «el paciente dijo que no lo
+sabía… no está negado ni confirmado: falta el dato». Se pregunta, no se adivina.
+
+**Están separadas por TIPO, no por un campo** — Quien reclasifica a `descartado`
+pide `condicionesNegadas`; una duda no llega ahí ni queriendo. Un campo `motivo`
+que el llamador tuviera que acordarse de mirar es justo lo que deja que la
+próxima ruta las vuelva a tratar igual.
+
+**Ninguna cifra ni criterio clínico nuevo** — Es vocabulario del habla, no un
+umbral. La lista de muletillas que falte deja esa respuesta **sin vigilar**, no
+por buena.
+
+**Qué NO hace** — No lee dudas dentro de la nota («niega diabetes» escrito sobre
+un «no sé» del paciente lo salta la ventana de 60 caracteres). No detecta la duda
+en tercera persona («no sabe si tiene diabetes»). No está medido sobre corpus:
+los casos son habla de consulta mexicana escrita a mano.
+
+**Qué queda para el médico** — La duda llega como aviso ámbar y **no bloquea la
+firma**. Que un «no me acuerdo» deba impedir firmar es política clínica y la
+decide el dueño; queda anotado en `OWNER_DECISIONS_REQUIRED.md`.
+
+**Comprobado que puede ponerse rojo** — Revertido `negaciones.ts` con el resto
+del cambio en su sitio: **22 de 28 casos fallan**.
+
+**Golden** — `src/__tests__/no-saber-no-es-negar.test.ts` (16 `it(`, 28 casos).

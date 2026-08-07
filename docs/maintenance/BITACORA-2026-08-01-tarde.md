@@ -6831,3 +6831,9 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+## CUADRAGÉSIMA OCTAVA TANDA — v1074 (REG-192: la duda que se guardaba como negación)
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **«No sé» se escribía en el expediente como «no lo tengo».** Se abrió el último punto del plan de la auditoría de las nueve dimensiones —C2/C3, «faltan negadores del habla real»— y se comprobó con el motor real antes de tocar nada: de diecisiete respuestas de consulta hablada, **seis se perdían** («Pues no», «Fíjese que no», «Gracias a Dios no», «Para nada», «Qué va», «Mmm, no»). Como la enfermedad se nombra en la **pregunta**, perder el «no» deja el antecedente crónico cosechado y confirmado. Y al probar la dirección contraria apareció uno peor que nadie había reportado: **«¿Tiene diabetes? No sé» salía con `certeza: descartado`** — el paciente decía que no sabía y el sistema escribía que lo había negado, en un campo estructurado que se arrastra a todas las notas siguientes. Es la regla 4 del charter al revés. La causa era la misma línea: «no sé» empieza por «no». Un tercero del mismo sitio: «Nada más la diabetes» negaba **las dos** enfermedades de la pregunta y borraba la que el paciente acababa de afirmar. Ahora la duda va **separada por tipo** (`condicionesDudosas`, no un campo que el llamador tenga que acordarse de mirar), **no reclasifica nada** y **no calla**: sale como aviso en el panel NER y en la barra de la consulta, con su propio texto. Las muletillas admitidas son **lista cerrada** — aceptar «cualquier cosa antes del no» dejaría entrar «Sí, desde hace diez años, pero no tomo nada» como negación, y el error caro va en esa dirección. Golden probado al revés: **22 de 28 casos fallan** sin el arreglo. |

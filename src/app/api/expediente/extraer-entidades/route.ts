@@ -13,7 +13,7 @@
  * principal de extracción pero con un prompt NER puro.
  */
 import { anotarLlamada } from '@/lib/ia/gateway'
-import { condicionesNegadas, corregirCertezaPorNegacion } from '@/lib/expediente/negaciones'
+import { condicionesNegadas, condicionesDudosas, corregirCertezaPorNegacion, avisosDeDudaDelExtractor } from '@/lib/expediente/negaciones'
 import { mencionesEnPasado, avisosTemporalesDelExtractor } from '@/lib/expediente/temporalidad'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
@@ -203,6 +203,20 @@ export async function POST(req: NextRequest) {
     }
 
     /**
+     * Y LA TERCERA COSECHA: LA QUE EL PACIENTE NO SUPO CONTESTAR.
+     *
+     * «¿Tiene diabetes? No sé» empieza por «no», así que hasta hoy entraba por
+     * la puerta de arriba y salía `descartado`: el paciente decía que no se
+     * acordaba y el expediente escribía que lo había negado. Aquí NO se
+     * reclasifica —ni «confirmado» ni «descartado» es lo que dijo— y se señala.
+     */
+    const dudosas = condicionesDudosas(texto)
+    const avisosDeDuda = avisosDeDudaDelExtractor(conditions, dudosas)
+    if (avisosDeDuda.length) {
+      safeLog.info(`[extraer-entidades] ${avisosDeDuda.length} condición(es) que el paciente dijo no saber`)
+    }
+
+    /**
      * Y LA OTRA COSECHA: LA QUE VIENE EN PASADO.
      *
      * `estado` nace en `activo` por omisión del esquema, así que «tuvo neumonía
@@ -221,6 +235,8 @@ export async function POST(req: NextRequest) {
       negacionesCorregidas: corregidas,
       /** Y lo NO corregido también: señalar sin tocar sólo sirve si se enseña. */
       avisosTemporales,
+      /** Lo que el paciente dijo no saber. Ni confirmado ni descartado: falta. */
+      avisosDeDuda,
     })
   } catch (err) {
     safeLog.error('[extraer-entidades] Exception:', err)

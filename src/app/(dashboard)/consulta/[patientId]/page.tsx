@@ -100,7 +100,7 @@ function textoDeLaNota(
 function alergiasArray(alergias?: string): string[] {
   return parsearAlergiasTexto(alergias).map(a => a.alergeno)
 }
-import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
+import { NerPanel, type NegacionCorregida, type AvisoTemporal, type AvisoDeDuda } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
@@ -152,7 +152,7 @@ import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { palabrasDudosas, marcarTurno, paraElMedico, anexoDeDudas, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
 import { medicamentosSoloPropuestos, estudiosSoloPropuestos } from '@/lib/asr/intencion-de-orden'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
-import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
+import { condicionesNegadas, condicionesDudosas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
@@ -827,7 +827,17 @@ export default function ConsultaActivaPage() {
   const contradiccionesNota = useMemo(() => {
     const dictado = voz.transcripcion
     if (!dictado.trim()) return []
-    const negadas = condicionesNegadas(dictado)
+    /**
+     * ── Y LO QUE EL PACIENTE DIJO NO SABER ─────────────────────────────────
+     *
+     * «¿Tiene diabetes? No sé» encajaba en la negativa —empieza por «no»— y
+     * llegaba aquí disfrazado de negación: el aviso le decía al médico que el
+     * paciente lo había negado, con una cita que decía otra cosa. Ahora viene
+     * por su lado y con su propio texto. Si se hubiera quitado sin más, la nota
+     * se quedaría afirmando el antecedente **sin un solo aviso**, que es peor
+     * que el aviso mal redactado.
+     */
+    const negadas = [...condicionesNegadas(dictado), ...condicionesDudosas(dictado)]
     if (!negadas.length) return []
     const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
     return contradicciones(negadas, textoNota)
@@ -915,6 +925,8 @@ export default function ConsultaActivaPage() {
   const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
   /** Condiciones activas que el dictado situó en pasado. No se tocan: se enseñan. */
   const [avisosTemporales, setAvisosTemporales] = useState<AvisoTemporal[]>([])
+  /** Condiciones que el paciente dijo no saber. Tampoco se tocan: se preguntan. */
+  const [avisosDeDuda, setAvisosDeDuda] = useState<AvisoDeDuda[]>([])
   const [nerCargando, setNerCargando] = useState(false)
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -1936,6 +1948,7 @@ export default function ConsultaActivaPage() {
       setEntidades(data as EntidadesExtraidas)
       setNegacionesCorregidas(((data as { negacionesCorregidas?: NegacionCorregida[] }).negacionesCorregidas) ?? [])
       setAvisosTemporales(((data as { avisosTemporales?: AvisoTemporal[] }).avisosTemporales) ?? [])
+      setAvisosDeDuda(((data as { avisosDeDuda?: AvisoDeDuda[] }).avisosDeDuda) ?? [])
       const bloquea = (data.cross_check?.alergia_vs_medicamento ?? []).filter((c: { RIESGO_MAXIMO: boolean }) => c.RIESGO_MAXIMO).length
       const intGraves = (data.cross_check?.interacciones_farmacologicas ?? []).filter((i: { severidad: string }) => i.severidad === 'mayor' || i.severidad === 'contraindicada').length
       if (bloquea > 0) toast(`${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
@@ -3961,6 +3974,7 @@ export default function ConsultaActivaPage() {
             entidades={entidades}
             negacionesCorregidas={negacionesCorregidas}
             avisosTemporales={avisosTemporales}
+            avisosDeDuda={avisosDeDuda}
             cargando={nerCargando}
             error={nerError}
             onCerrar={() => { setEntidades(null); setNerError(''); setNegacionesCorregidas([]) }}

@@ -3,6 +3,32 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: «no sé» se guardaba como «no lo tengo»
+
+Dos defectos en la misma línea del motor de negaciones, uno en cada dirección.
+
+El buscado (hallazgo C2/C3 de la auditoría): la negativa iba anclada al
+principio de la respuesta, y en la consulta casi nadie contesta con el «no»
+pelado. «Pues no», «Fíjese que no», «Gracias a Dios no», «Para nada» — seis de
+diecisiete respuestas reales se perdían, y con ellas el antecedente crónico que
+se había nombrado en la PREGUNTA se quedaba confirmado.
+
+El que apareció al probar la dirección contraria, y es peor: «¿Tiene diabetes?
+No sé» salía como `certeza: descartado`. El paciente decía que no sabía y el
+expediente escribía que lo había negado — ausencia de dato convertida en dato de
+ausencia, en un campo estructurado que se arrastra a todas las notas siguientes.
+
+Y un tercero del mismo sitio: «Nada más la diabetes» negaba las dos enfermedades
+de la pregunta, borrando la que el paciente acababa de afirmar.
+
+Ahora la duda va por su lado —`condicionesDudosas`, separada por TIPO y no por
+un campo que el llamador tenga que acordarse de mirar—, no reclasifica nada y no
+calla: sale como aviso en el panel NER y en la barra de la consulta. Se pregunta,
+no se adivina.
+
+Las muletillas admitidas son lista cerrada: aceptar «cualquier cosa antes del
+no» dejaría entrar «Sí, desde hace diez años, pero no tomo nada» como negación.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

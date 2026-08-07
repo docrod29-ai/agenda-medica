@@ -29,6 +29,14 @@ export interface NegacionCorregida { texto: string; condicion: string; cita: str
  */
 export interface AvisoTemporal { texto: string; condicion: string; cita: string }
 
+/**
+ * Condiciones que el paciente dijo NO SABER y el extractor da por buenas.
+ *
+ * Tampoco se tocaron, y por una razón más fuerte que la temporal: «descartado»
+ * es una afirmación sobre el paciente y el paciente no la hizo. Se pregunta.
+ */
+export interface AvisoDeDuda { texto: string; condicion: string; cita: string }
+
 interface NerPanelProps {
   entidades: EntidadesExtraidas | null
   /**
@@ -42,12 +50,14 @@ interface NerPanelProps {
   negacionesCorregidas?: NegacionCorregida[]
   /** Lo que salió como activo y en el dictado iba en pasado. Ver `AvisoTemporal`. */
   avisosTemporales?: AvisoTemporal[]
+  /** Lo que el paciente dijo no saber. Ver `AvisoDeDuda`. */
+  avisosDeDuda?: AvisoDeDuda[]
   cargando?: boolean
   error?: string
   onCerrar?: () => void
 }
 
-export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, cargando, error, onCerrar }: NerPanelProps) {
+export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, avisosDeDuda, cargando, error, onCerrar }: NerPanelProps) {
   if (cargando) {
     return (
       <div className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -195,6 +205,25 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
           </div>
           <div style={{ marginTop: 4, opacity: .9 }}>
             No se borraron: negar una enfermedad es información clínica (negativo pertinente).
+          </div>
+        </div>
+      )}
+
+      {/* ── LO QUE EL PACIENTE DIJO NO SABER ───────────────────── */}
+      {(avisosDeDuda?.length ?? 0) > 0 && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
+          color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+        }}>
+          <b>{avisosDeDuda!.length} condición(es) que el paciente dijo NO SABER.</b>
+          <div style={{ marginTop: 4 }}>
+            {avisosDeDuda!.map((d, i) => (
+              <div key={`${d.condicion}-${i}`}>«{d.texto}» · en el dictado: {d.cita}</div>
+            ))}
+          </div>
+          <div style={{ marginTop: 4, opacity: .9 }}>
+            No se descartaron: «no me acuerdo» no es «no lo tengo». Falta el dato — se pregunta.
           </div>
         </div>
       )}

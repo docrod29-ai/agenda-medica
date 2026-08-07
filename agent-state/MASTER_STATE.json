@@ -10,16 +10,15 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-003 / REG-192 (cerrada, PR abierto)",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/safety/SAFE-003"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "notas": [
+    "El backlog iba por detrás del repositorio: VOICE-004 y SAFE-001 figuraban abiertos y llevaban cerrados desde v1031/v1032. Verificado con el motor real y con el ledger antes de elegir tarea.",
+    "npm run build NO compila en este contenedor por falta de credenciales de Firebase (auth/invalid-api-key al recoger /dr/[clinicId]); comprobado que falla igual con el árbol limpio. npx tsc --noEmit pasa."
   ]
 }
