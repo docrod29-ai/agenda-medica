@@ -165,18 +165,109 @@ export interface MencionPasada {
 }
 
 /**
+ * Trocea una frase en CLÁUSULAS.
+ *
+ * ── LA FRASE ENTERA NO ERA LA UNIDAD CORRECTA (corpus oro, 7-ago-2026) ───────
+ *
+ * El motor juzgaba el tiempo de la frase completa y cosechaba TODO padecimiento
+ * nombrado en ella. En la consulta, sin embargo, un antecedente y un
+ * padecimiento actual viajan pegados en la misma frase, unidos por una coma o
+ * por una «y» — es la forma normal de resumir:
+ *
+ *     «Tuvo neumonía hace tres años y ahora tiene diabetes.»
+ *
+ * La frase llevaba marca de pasado, así que **la diabetes salía también como
+ * dicha en pasado**: si la nota la afirmaba como actual —que es lo correcto—, el
+ * motor avisaba de un desajuste que no existía, justo sobre un diagnóstico
+ * activo. Y al revés:
+ *
+ *     «Padeció dengue en 2019 y su asma sigue activa.»
+ *
+ * el «sigue» del asma indultaba la frase entera y **el dengue dejaba de
+ * vigilarse**. Un aviso de más y otro de menos, del mismo defecto.
+ *
+ * La marca de tiempo pertenece a la cláusula, no a la frase. Así que se trocea
+ * por lo que en el dictado separa dos predicados: los signos y las conjunciones
+ * coordinantes. Ninguna forma del vocabulario lleva coma ni «y» dentro, de modo
+ * que trocear no parte un término por la mitad.
+ */
+const SEPARADOR_DE_CLAUSULA = /[;,]|\s+(?:y|e|pero|aunque|mientras|adem[áa]s|sin\s+embargo)\s+/i
+
+const clausulas = (frase: string) =>
+  frase.split(SEPARADOR_DE_CLAUSULA).map(c => c?.trim() ?? '').filter(Boolean)
+
+/**
+ * Palabras que no aportan predicado.
+ *
+ * Sirven para distinguir las dos cosas que quedan al otro lado de una «y»:
+ *
+ *     «Tuvo diabetes e hipertensión.»            → «hipertensión» es una ENUMERACIÓN
+ *     «Tuvo neumonía … y ahora tiene diabetes.»  → «ahora tiene diabetes» es OTRO predicado
+ *
+ * Si al quitar el vocabulario de la cláusula sólo queda relleno, no había verbo:
+ * es un elemento más de la lista y le toca el tiempo del verbo que la encabeza.
+ * Si queda cualquier otra cosa, la cláusula habla por su cuenta y no hereda nada.
+ */
+const RELLENO = /^(?:de|del|la|el|los|las|un|una|unos|unas|su|sus|mi|mis|con|a|al|tambien|y|e)$/
+
+const esEnumeracion = (clausula: string, nombra: readonly string[]) => {
+  if (!nombra.length) return false
+  let resto = sinAcentos(clausula)
+  for (const c of VOCABULARIO()) {
+    for (const f of c.formas) resto = resto.split(sinAcentos(f)).join(' ')
+  }
+  return resto.split(/[^a-z0-9]+/).filter(Boolean).every(p => RELLENO.test(p))
+}
+
+/**
  * Lo que el dictado situó en el pasado.
  *
  * Se reutiliza el vocabulario de `negaciones.ts` a propósito: es el mismo
  * diccionario y mantener dos listas garantiza que se separen. Lo que falte no se
  * vigila —y así está declarado allí—, no se da por bueno.
+ *
+ * ── CÓMO MANDA EL PRESENTE, AHORA QUE SE MIRA POR CLÁUSULAS ──────────────────
+ *
+ * Sigue mandando —es la trampa que este motor no puede pisar—, pero ya no
+ * indulta la frase entera a ciegas. Un presente sólo calla el padecimiento del
+ * que habla:
+ *
+ * · Si la cláusula en presente **nombra** un padecimiento, habla de ése y sólo
+ *   de ése: «…y su asma sigue activa» no dice nada del dengue anterior.
+ * · Si **no nombra ninguno**, es una elipsis y se refiere a lo recién dicho:
+ *   «Tenía diabetes, actualmente descontrolada» habla de la diabetes, y ésa se
+ *   calla. Sin esta mitad, trocear habría fabricado un aviso nuevo donde antes
+ *   no lo había.
+ *
+ * Una cláusula que no lleva ninguna de las dos marcas —«y ahora tiene
+ * diabetes»— no es pasado: no se cosecha. La única excepción es la enumeración
+ * («Tuvo diabetes e hipertensión»), que no tiene verbo propio porque lo comparte
+ * con la cláusula anterior. El motor sólo puede señalar de menos.
  */
 export function mencionesEnPasado(transcripcion: string): MencionPasada[] {
   const vistas = new Map<string, MencionPasada>()
   for (const f of frases(transcripcion)) {
-    if (!esFrasePasada(f)) continue
-    for (const c of padecimientosEn(f)) {
-      if (!vistas.has(c)) vistas.set(c, { condicion: c, cita: f.trim().slice(0, 200) })
+    const enPasado: string[] = []
+    const calladas = new Set<string>()
+    let vieneDePasado = false
+    for (const c of clausulas(f)) {
+      const t = sinAcentos(c)
+      const nombra = padecimientosEn(c)
+      if (PRESENTE.test(t)) {
+        for (const p of nombra.length ? nombra : enPasado) calladas.add(p)
+        vieneDePasado = false
+        continue
+      }
+      if (PASADO.test(t)) {
+        enPasado.push(...nombra)
+        vieneDePasado = true
+        continue
+      }
+      if (vieneDePasado && esEnumeracion(c, nombra)) enPasado.push(...nombra)
+    }
+    for (const c of enPasado) {
+      if (calladas.has(c) || vistas.has(c)) continue
+      vistas.set(c, { condicion: c, cita: f.trim().slice(0, 200) })
     }
   }
   return [...vistas.values()]

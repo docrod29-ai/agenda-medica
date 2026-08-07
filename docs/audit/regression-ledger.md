@@ -1553,3 +1553,79 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — la frase compuesta tenía dos tiempos y el motor le daba uno (v1074)
+
+**Encontrado** — 7-ago-2026, al escribir por primera vez el corpus oro del motor
+de temporalidad (EVAL-002 del backlog: «el motor se construyó en v1027-v1030 y no
+tiene corpus: sus casos son los que yo escribí»).
+
+**Cómo se reprodujo** — Se escribieron 34 frases sintéticas imitando cómo se
+resume un interrogatorio en la consulta mexicana
+(`fixtures/temporalidad/corpus-oro.json`) y se midió el motor contra ellas: **6
+de 34 mal, y las 6 eran la misma frase compuesta**. Con el arreglo, 34 de 34.
+Comprobado al revés revirtiendo `temporalidad.ts`: el golden se pone rojo en 7 de
+sus 13 casos.
+
+**El defecto** — El motor juzgaba el tiempo de la **frase entera** y cosechaba
+todo padecimiento nombrado en ella. Pero en el dictado el antecedente y el
+padecimiento actual viajan pegados, unidos por una coma o por una «y»:
+
+    «Tuvo neumonía hace tres años y ahora tiene diabetes.»
+
+La frase llevaba marca de pasado, así que **la diabetes salía también como dicha
+en pasado**. Y por el otro lado:
+
+    «Padeció dengue en 2019 y su asma sigue activa.»
+
+el «sigue» del asma indultaba la frase entera y **el dengue dejaba de vigilarse**.
+Un aviso de más y otro de menos, del mismo defecto. `frases()` parte por punto,
+no por punto y coma, así que «…hace dos años; su hipertensión está descontrolada»
+caía igual.
+
+**Por qué importa para un paciente** — Los dos lados hacen daño y no el mismo. El
+falso positivo empuja a degradar a antecedente una diabetes que está **activa**, y
+los antecedentes se arrastran a todas las notas siguientes: cambia el riesgo
+quirúrgico y la elección de fármacos que otro médico lee dentro de seis meses. El
+falso negativo deja pasar la neumonía de hace tres años escrita como diagnóstico
+de hoy, que es el titular del motor. Y hay un tercer daño, más callado: un aviso
+que salta donde no debe se acaba ignorando, y con él se ignoran los que sí
+importan — el mismo argumento de REG-141.
+
+**Reparación** — La marca de tiempo pertenece a la **cláusula**, no a la frase. Se
+trocea por lo que en el dictado separa dos predicados (los signos y las
+conjunciones coordinantes) y el presente sólo calla el padecimiento del que
+habla: si la cláusula en presente **nombra** uno, habla de ése y sólo de ése; si
+**no nombra ninguno**, es una elipsis y se refiere a lo recién dicho
+(«Tenía diabetes, actualmente descontrolada»). Sin esa segunda mitad, trocear
+habría fabricado un aviso nuevo donde antes no lo había.
+
+**La enumeración comparte el verbo** — «Tuvo diabetes e hipertensión»: la cola no
+tiene verbo propio y trocear la habría perdido. Hereda el tiempo de la cláusula
+que la encabeza, y sólo ella: se distingue porque, al quitarle el vocabulario,
+no queda más que relleno. «Y ahora tiene diabetes» deja «ahora tiene» y por eso
+no hereda nada. Con esto el motor **no pierde nada** respecto al de antes: gana
+por los dos lados.
+
+**Ningún umbral clínico nuevo** — Es gramática, no medicina. El motor sigue sin
+decidir si una enfermedad está activa, sigue sin reclasificar y sigue enseñando
+la **frase entera** como cita: se trocea para juzgar, no para citar, porque media
+frase no basta para resolverlo sin volver al audio.
+
+**Qué NO hace** — El vocabulario sigue siendo el límite y está declarado
+(TMP-122: «gastritis» no está en ninguna de las dos listas, así que ese caso no
+se vigila — no se da por bueno). «Desde entonces» no está declarado como presente
+(TMP-042): esa diabetes no se cosecha porque no lleva marca de pasado propia, no
+porque el motor entienda que sigue. Y el corpus es **sintético y de una sola
+mano**: mide que el motor haga lo que dice su gramática, no con qué frecuencia
+aparece cada forma en la consulta real.
+
+**Qué queda para el médico** — Nada cambia en lo que se le pide decidir: el aviso
+sigue siendo ámbar, sigue enseñando las dos frases y sigue sin decir cuál vale.
+Lo que cambia es que ahora salta menos veces donde no debía y una vez más donde
+sí. Medir el corpus contra dictado real sigue pendiente (EVAL-001/EVAL-003).
+
+**Golden** — `src/__tests__/la-frase-compuesta-tiene-dos-tiempos.test.ts` (13
+casos) sobre `fixtures/temporalidad/corpus-oro.json` (34 frases sintéticas).

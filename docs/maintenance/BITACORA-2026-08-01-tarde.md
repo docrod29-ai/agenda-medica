@@ -6831,3 +6831,42 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+---
+
+## 7-ago-2026 — v1074 · el motor de temporalidad por fin tiene con qué medirse
+
+Iteración del MASTER LOOP V7. Se tomó **EVAL-002** del backlog («el motor se
+construyó en v1027-v1030 y no tiene corpus: sus casos son los que yo escribí»),
+que era el ítem pendiente de mayor score una vez comprobado que SAFE-001 (REG-144)
+y VOICE-004 (REG-141) ya estaban cerrados en el ledger y sólo faltaba anotarlo.
+
+**Primero el corpus, después la medición.** 34 frases sintéticas
+(`fixtures/temporalidad/corpus-oro.json`) imitando cómo se resume un
+interrogatorio en la consulta mexicana, con las dos direcciones representadas:
+las que deben avisar y las que deben callar. Un corpus que sólo trajera casos que
+avisan certificaría un motor que avisa siempre.
+
+**El motor falló 6 de 34, y las 6 eran la misma frase.** La compuesta: el
+antecedente y el padecimiento actual pegados por una coma o por una «y». El
+motor juzgaba el tiempo de la frase entera, así que la diabetes de «tuvo neumonía
+hace tres años y ahora tiene diabetes» salía como pasada — un aviso sobre un
+diagnóstico ACTIVO — y el dengue de «padeció dengue en 2019 y su asma sigue
+activa» dejaba de vigilarse. Queda como REG-192.
+
+**Lo que vale la pena recordar de esta iteración**: el defecto llevaba cuatro
+versiones vivo con las pruebas en verde, y no lo encontró leer el código — lo
+encontró tener con qué medirlo. Los casos que uno mismo escribe cubren lo que uno
+mismo imaginó.
+
+### Lo que se dejó anotado y no se tocó
+
+- `src/__tests__/ops-timeout-y-punto-ciego.test.ts` falla en este contenedor
+  —también sobre el árbol limpio, antes de tocar nada—: espera que
+  `http://10.255.255.1` sea un pozo sin fondo y aquí la conexión se rechaza antes
+  del plazo de 30 ms. Es fragilidad de la prueba, no del producto, y depende de
+  la red de quien la corra. Va al backlog como OPS-002.
+- `npm run build` no termina aquí por falta de `.env` (Firebase,
+  `auth/invalid-api-key` al recolectar `/dr/[clinicId]`), igual sobre el árbol
+  limpio. La mitad que sí se puede correr sin credenciales —`npx tsc --noEmit`—
+  pasa limpia.

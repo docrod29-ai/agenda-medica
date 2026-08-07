@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: la frase compuesta tenía dos tiempos y el motor le daba uno
+
+El motor de temporalidad juzgaba el tiempo de la FRASE entera. En el dictado el
+antecedente y el padecimiento actual viajan pegados: «Tuvo neumonía hace tres
+años **y ahora tiene diabetes**» ponía la diabetes en pasado, y «Padeció dengue
+en 2019 **y su asma sigue activa**» indultaba el dengue. Un aviso de más sobre un
+diagnóstico activo y otro de menos sobre el titular del motor.
+
+La marca de tiempo pertenece a la cláusula. El presente sólo calla el
+padecimiento del que habla; si no nombra ninguno, es elipsis y se refiere a lo
+recién dicho. La enumeración hereda el verbo que comparte, y sólo ella.
+
+Salió de escribir el primer corpus oro del motor (EVAL-002): 34 frases
+sintéticas, 6 mal. Ahora 34 de 34.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

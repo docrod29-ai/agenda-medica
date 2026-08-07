@@ -1,0 +1,253 @@
+{
+  "corpus": "temporalidad — el pasado no es el presente",
+  "creado": "2026-08-07",
+  "origen": "SINTÉTICO. Ni una frase viene de un paciente real. Se redactaron imitando cómo se resume un interrogatorio en la consulta mexicana: el antecedente y el padecimiento actual pegados en la misma frase, unidos por coma o por «y».",
+  "queEtiqueta": "`esperado` es la lista de padecimientos que el DICTADO sitúa en pasado, según el vocabulario declarado del motor (CRONICAS + AGUDAS_FRECUENTES). Es una etiqueta GRAMATICAL, no clínica: no dice si la enfermedad sigue activa — eso es del médico. Un padecimiento fuera del vocabulario no se etiqueta aquí, porque el motor declara que no lo vigila.",
+  "comoSeLee": "falso POSITIVO = el motor devuelve algo que no está en `esperado`. Es el que hace daño: degrada a antecedente un diagnóstico que se dijo en presente. falso NEGATIVO = falta algo de `esperado`. Es el coste declarado del motor: señalar de menos, nunca de más.",
+  "casos": [
+    {
+      "id": "TMP-001",
+      "familia": "titular",
+      "dictado": "Tuvo neumonía hace tres años.",
+      "esperado": ["neumonía"],
+      "porQue": "El caso con el que se bautizó el motor. Verbo en pretérito y marca de cuándo."
+    },
+    {
+      "id": "TMP-002",
+      "familia": "titular",
+      "dictado": "Padeció tuberculosis en 2018.",
+      "esperado": ["tuberculosis"],
+      "porQue": "La otra forma de la marca de cuándo: el año."
+    },
+    {
+      "id": "TMP-003",
+      "familia": "titular",
+      "dictado": "Le operaron de la vesícula en 2019.",
+      "esperado": ["cirugía"],
+      "porQue": "En la consulta la cirugía se cuenta con el verbo, no con el sustantivo."
+    },
+    {
+      "id": "TMP-004",
+      "familia": "titular",
+      "dictado": "Tenía asma de niño.",
+      "esperado": ["asma"],
+      "porQue": "Copretérito más marca de infancia."
+    },
+    {
+      "id": "TMP-005",
+      "familia": "titular",
+      "dictado": "Tuvo un infarto años atrás.",
+      "esperado": ["cardiopatía"],
+      "porQue": "«Años atrás» sin cifra sigue siendo pasado."
+    },
+    {
+      "id": "TMP-006",
+      "familia": "titular",
+      "dictado": "Ya se le quitó el dengue.",
+      "esperado": ["dengue"],
+      "porQue": "La resolución explícita también es pasado."
+    },
+    {
+      "id": "TMP-007",
+      "familia": "titular",
+      "dictado": "Anteriormente presentó pancreatitis.",
+      "esperado": ["pancreatitis"],
+      "porQue": "«Anteriormente» sin fecha."
+    },
+    {
+      "id": "TMP-008",
+      "familia": "titular",
+      "dictado": "Sufrió un evento vascular cerebral hace ocho meses.",
+      "esperado": ["evento vascular cerebral"],
+      "porQue": "Marca de cuándo en meses, no en años."
+    },
+
+    {
+      "id": "TMP-020",
+      "familia": "trampa: es presente aunque traiga fecha",
+      "dictado": "Desde hace tres años tiene diabetes.",
+      "esperado": [],
+      "porQue": "La forma más común de contar un crónico. Marcarla sería peor que no mirar nada."
+    },
+    {
+      "id": "TMP-021",
+      "familia": "trampa: es presente aunque traiga fecha",
+      "dictado": "Hipertensión arterial en control desde 2019.",
+      "esperado": [],
+      "porQue": "«En control» dice que sigue."
+    },
+    {
+      "id": "TMP-022",
+      "familia": "trampa: es presente aunque traiga fecha",
+      "dictado": "Hipotiroidismo en tratamiento desde hace años.",
+      "esperado": [],
+      "porQue": "«En tratamiento» dice que sigue."
+    },
+    {
+      "id": "TMP-023",
+      "familia": "trampa: es presente aunque traiga fecha",
+      "dictado": "Tuvo hipertensión y sigue con hipertensión.",
+      "esperado": [],
+      "porQue": "El mismo padecimiento en pasado y en presente: manda el presente."
+    },
+    {
+      "id": "TMP-024",
+      "familia": "trampa: es presente aunque traiga fecha",
+      "dictado": "Desde hace tres años tiene neumonía recurrente.",
+      "esperado": [],
+      "porQue": "«Desde hace» manda igual sobre lo agudo: una neumonía recurrente actual no se degrada a antecedente."
+    },
+    {
+      "id": "TMP-025",
+      "familia": "trampa: es presente aunque traiga fecha",
+      "dictado": "Padeció asma y todavía tiene asma.",
+      "esperado": [],
+      "porQue": "«Todavía» es continuidad explícita."
+    },
+
+    {
+      "id": "TMP-040",
+      "familia": "frase compuesta — pasado + actual",
+      "dictado": "Tuvo neumonía hace tres años y ahora tiene diabetes.",
+      "esperado": ["neumonía"],
+      "porQue": "EL DEFECTO QUE ABRIÓ ESTE CORPUS. La diabetes se dijo en presente y salía marcada como pasada: un aviso sobre un diagnóstico activo."
+    },
+    {
+      "id": "TMP-041",
+      "familia": "frase compuesta — pasado + actual",
+      "dictado": "El paciente tuvo una fractura de cadera hace dos años; su hipertensión está descontrolada.",
+      "esperado": ["fractura"],
+      "porQue": "El punto y coma separa dos predicados y `frases()` no lo parte: la hipertensión actual heredaba el pretérito de la fractura."
+    },
+    {
+      "id": "TMP-042",
+      "familia": "frase compuesta — pasado + actual",
+      "dictado": "Hace cinco años le operaron de la vesícula y desde entonces tiene diabetes tipo 2.",
+      "esperado": ["cirugía"],
+      "porQue": "«Desde entonces» no es una marca declarada de presente, así que la diabetes no se cosecha: no lleva marca de pasado propia."
+    },
+    {
+      "id": "TMP-043",
+      "familia": "frase compuesta — actual indulta al pasado",
+      "dictado": "Padeció dengue en 2019 y su asma sigue activa.",
+      "esperado": ["dengue"],
+      "porQue": "El otro lado del mismo defecto: el «sigue» del asma indultaba la frase entera y el dengue dejaba de vigilarse."
+    },
+    {
+      "id": "TMP-044",
+      "familia": "frase compuesta — actual indulta al pasado",
+      "dictado": "Tuvo COVID en 2021, hipertenso en tratamiento con losartán.",
+      "esperado": ["COVID-19"],
+      "porQue": "«En tratamiento» habla de la hipertensión, no del COVID."
+    },
+    {
+      "id": "TMP-045",
+      "familia": "frase compuesta — actual indulta al pasado",
+      "dictado": "Tuvo neumonía hace tres años, actualmente con diabetes en control.",
+      "esperado": ["neumonía"],
+      "porQue": "La cláusula en presente nombra su propio padecimiento: habla de ése y sólo de ése."
+    },
+    {
+      "id": "TMP-046",
+      "familia": "elipsis — el presente sin sujeto habla de lo recién dicho",
+      "dictado": "Tenía diabetes, actualmente descontrolada.",
+      "esperado": [],
+      "porQue": "La cláusula en presente no nombra padecimiento: se refiere a la diabetes anterior. Sin esta mitad, trocear por cláusulas habría fabricado un aviso nuevo."
+    },
+    {
+      "id": "TMP-047",
+      "familia": "elipsis — el presente sin sujeto habla de lo recién dicho",
+      "dictado": "Tuvo cáncer de colon en 2020, todavía en tratamiento.",
+      "esperado": [],
+      "porQue": "«Todavía en tratamiento» sin nombrar nada se refiere al cáncer: sigue siendo actual."
+    },
+
+    {
+      "id": "TMP-060",
+      "familia": "el futuro no se toca",
+      "dictado": "Lo van a operar de la vesícula.",
+      "esperado": [],
+      "porQue": "En el futuro no hay nada que corregir."
+    },
+    {
+      "id": "TMP-061",
+      "familia": "el futuro no se toca",
+      "dictado": "Si no mejora tendría que operarse de la vesícula.",
+      "esperado": [],
+      "porQue": "Condicional, no pretérito."
+    },
+
+    {
+      "id": "TMP-080",
+      "familia": "varias frases",
+      "dictado": "El paciente tuvo cáncer hace tres años. Hoy viene por dolor de garganta.",
+      "esperado": ["cáncer"],
+      "porQue": "El troceo por frases ya existía y sigue: la segunda frase no arrastra la marca de la primera."
+    },
+    {
+      "id": "TMP-081",
+      "familia": "varias frases",
+      "dictado": "Padeció tuberculosis en la juventud. Actualmente con diabetes en control. Le operaron de apendicitis hace diez años.",
+      "esperado": ["tuberculosis", "cirugía"],
+      "porQue": "Tres frases, tres tiempos distintos, y ninguna contamina a la otra."
+    },
+    {
+      "id": "TMP-082",
+      "familia": "varias frases",
+      "dictado": "Tuvo neumonía hace tres años. Tuvo neumonía otra vez el año pasado.",
+      "esperado": ["neumonía"],
+      "porQue": "El mismo padecimiento en dos frases se reporta una sola vez, con la primera cita."
+    },
+
+    {
+      "id": "TMP-100",
+      "familia": "nada que decir",
+      "dictado": "",
+      "esperado": [],
+      "porQue": "Sin dictado no se inventa nada."
+    },
+    {
+      "id": "TMP-101",
+      "familia": "nada que decir",
+      "dictado": "Acude por odinofagia de dos días de evolución. Exploración sin datos de alarma.",
+      "esperado": [],
+      "porQue": "Un padecimiento actual y ningún antecedente: el motor debe callarse."
+    },
+    {
+      "id": "TMP-102",
+      "familia": "nada que decir",
+      "dictado": "Tuvo mucho estrés en el trabajo el año pasado.",
+      "esperado": [],
+      "porQue": "Marca de pasado sin ningún padecimiento del vocabulario. El motor sólo habla de lo que sabe nombrar."
+    },
+    {
+      "id": "TMP-103",
+      "familia": "nada que decir",
+      "dictado": "Niega diabetes, niega hipertensión.",
+      "esperado": [],
+      "porQue": "Una negación no es un pasado. De eso se ocupa otro motor, y este no debe duplicarlo."
+    },
+
+    {
+      "id": "TMP-120",
+      "familia": "enumeración: el verbo se comparte",
+      "dictado": "Tuvo diabetes e hipertensión.",
+      "esperado": ["diabetes", "hipertensión arterial"],
+      "porQue": "La cola de la enumeración no tiene verbo propio: lo comparte con «Tuvo». Trocear por cláusulas la habría perdido, y por eso la enumeración hereda el tiempo de la cláusula que la encabeza."
+    },
+    {
+      "id": "TMP-121",
+      "familia": "enumeración: el verbo se comparte",
+      "dictado": "Tuvo, hace tres años, neumonía.",
+      "esperado": ["neumonía"],
+      "porQue": "El inciso entre comas separa el verbo del padecimiento. Nadie dicta así, pero la misma regla de la enumeración lo cubre sin tener que tratarlo aparte."
+    },
+    {
+      "id": "TMP-122",
+      "familia": "lo que NO se vigila — declarado, no arreglado",
+      "dictado": "Tuvo gastritis crónica hace tres años.",
+      "esperado": [],
+      "porQue": "COSTE CONOCIDO. La gastritis no está en ninguno de los dos vocabularios. Que falte significa que ese caso no se vigila — NO que se dé por bueno."
+    }
+  ]
+}
