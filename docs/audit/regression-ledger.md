@@ -2538,6 +2538,7 @@ conectado a la barra como origen `dato_incierto` (nivel `revisa`): el aviso cita
 la palabra exacta que lo delató, porque uno que sólo dijera «hay un dato
 incierto» obligaría a releer el dictado entero.
 
-**Los guardianes** — `corpus-oro-con-cuanta-seguridad-lo-dijo.test.ts` (26
-aserciones, incluidas tres formas de «como» que **no** son aproximación) y el del
-límite de palabra (9 casos, con prueba de que sigue cazando las tres reales).
+**Los guardianes** — `src/__tests__/corpus-oro-con-cuanta-seguridad-lo-dijo.test.ts`
+(26 aserciones, incluidas tres formas de «como» que **no** son aproximación) y
+`src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts` (9 casos, con
+prueba de que sigue cazando las tres reales).

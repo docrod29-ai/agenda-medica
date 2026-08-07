@@ -2145,3 +2145,9 @@ quedar como «Anemia». Cuatro matices (duda, posibilidad, referido, aproximado)
 la salvedad de la constancia. Y por fin un GUARDIÁN para el fallo del límite de
 palabra tras acento — que ya había costado en «no sé», «mamá» y «quizá», y que
 cazó tres más en el acto: «a mí», «me salió», «padecí».
+
+## v1093 — el sello pedía la ruta completa
+Corrección de v1092: cité el corpus nuevo sin `src/__tests__/` delante y el
+guardián del sello lo marcó como archivo sellado que ninguna fuente reclama.
+Desplegué con esa prueba en rojo; queda anotado porque el fallo fue mío, no del
+guardián.
