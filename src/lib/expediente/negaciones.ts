@@ -153,32 +153,107 @@ export interface Contradiccion extends Negada {
 }
 
 /**
+ * El primer sitio de la nota donde un término aparece SIN que la línea lo excuse.
+ *
+ * Lo comparten los dos guardianes que contrastan dictado contra nota —las
+ * negaciones y la temporalidad—: los dos buscan un término, miran hacia atrás
+ * por si ya viene excusado («niega diabetes», «antecedente de neumonía») y sólo
+ * avisan si no lo está. Cambia la excusa, no el recorrido.
+ *
+ * ── TODAS LAS APARICIONES, NO LA PRIMERA (REG-192) ───────────────────────────
+ *
+ * Hasta la v1073 se miraba **sólo la primera** aparición de cada forma: si venía
+ * excusada, el término se daba por bien escrito y no se miraba más. Eso convertía
+ * la primera mención en un interruptor que apagaba todas las demás.
+ *
+ * Y la nota se arma —`textoDeLaNota`, consulta/page.tsx— resumen, luego
+ * diagnósticos, luego secciones. El resumen es justo donde se narra bien
+ * («niega diabetes», «con antecedente de neumonía en 2023») y el diagnóstico va
+ * después. O sea que en la disposición NORMAL de una nota el guardián callaba
+ * **siempre**, y sólo hablaba cuando el error casualmente iba primero.
+ *
+ * Una nota que a la vez dice «niega diabetes» y diagnostica «diabetes mellitus
+ * tipo 2» es exactamente la contradicción que hay que enseñar antes de firmar.
+ *
+ * ── Y LA EXCUSA TIENE QUE ESTAR EN LA MISMA FRASE (REG-192) ──────────────────
+ *
+ * La ventana hacia atrás era de 60 caracteres **a pelo**, y el comentario que la
+ * acompañaba decía exactamente lo que no hacía: «más larga empezaría a leer la
+ * oración anterior y una negación ajena taparía una afirmación real — que es el
+ * fallo caro». Con 60 caracteres crudos ya lo leía.
+ *
+ * Medido el 7-ago-2026 sobre una nota como las que arma la app:
+ *
+ *     Masculino de 54 años. Niega diabetes e hipertensión.
+ *     Diagnóstico: Diabetes mellitus tipo 2 descontrolada E11.9
+ *
+ * Del «Diabetes» del diagnóstico al «Niega» del resumen hay 53 caracteres. La
+ * negación de la frase ANTERIOR tapaba la afirmación de ésta, y el aviso —el
+ * único que cruza dictado contra nota antes de firmar— no salía.
+ *
+ * Por eso la ventana se corta en el final de frase, con el mismo criterio que
+ * `frases()`: la excusa sólo vale si está donde el médico la escribió.
+ *
+ * Devuelve el fragmento con contexto para enseñarlo, o `null` si toda aparición
+ * viene excusada.
+ */
+export function primeraMencionSinExcusa(
+  textoNota: string,
+  formas: readonly string[],
+  excusa: RegExp,
+): string | null {
+  const t = sinAcentos(textoNota)
+  for (const forma of formas) {
+    const f = sinAcentos(forma)
+    if (!f) continue
+    for (let idx = t.indexOf(f); idx >= 0; idx = t.indexOf(f, idx + 1)) {
+      if (excusa.test(sinAcentos(ventanaDeLaMismaFrase(textoNota, idx)))) continue
+      return textoNota.slice(Math.max(0, idx - 40), idx + 60).trim()
+    }
+  }
+  return null
+}
+
+/** Los caracteres que `frases()` toma por final de frase. */
+const FIN_DE_FRASE = '.?!¡¿\n'
+
+/**
+ * Lo que hay antes del término dentro de SU MISMA frase, hasta 60 caracteres.
+ *
+ * Sesenta es la distancia en la que cabe «niega …», «sin antecedente de …» o
+ * «antecedente de …» delante del término. El corte por frase es lo que impide
+ * que una excusa de la línea anterior cuente como excusa de ésta.
+ */
+function ventanaDeLaMismaFrase(textoNota: string, idx: number): string {
+  const bruto = textoNota.slice(Math.max(0, idx - 60), idx)
+  let corte = -1
+  for (let i = 0; i < bruto.length; i++) {
+    if (!FIN_DE_FRASE.includes(bruto[i])) continue
+    /**
+     * Un punto entre dígitos es un decimal —«glucosa de 110.5 mg/dL», «E11.9»—,
+     * no un final de frase. Cortar ahí tiraría la negación por culpa de una
+     * cifra y devolvería el falso positivo por la otra puerta.
+     */
+    const esDecimal = bruto[i] === '.'
+      && /\d/.test(bruto[i - 1] ?? '') && /\d/.test(bruto[i + 1] ?? '')
+    if (!esDecimal) corte = i
+  }
+  return bruto.slice(corte + 1)
+}
+
+/**
  * Dónde la nota AFIRMA algo que el paciente negó.
  *
  * Una mención no basta: la nota puede decir «niega diabetes», que es justo lo
  * correcto. Se busca el término y se mira hacia atrás por si ya viene negado; si
- * viene, no hay contradicción.
+ * viene, esa aparición no cuenta — pero se siguen mirando las demás (REG-192).
  */
 export function contradicciones(negadas: readonly Negada[], textoNota: string): Contradiccion[] {
-  const t = sinAcentos(textoNota)
   const out: Contradiccion[] = []
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres.
-       *
-       * Es la distancia en la que cabe «niega …» o «sin antecedente de …» en la
-       * misma oración. Más larga empezaría a leer la oración anterior y una
-       * negación ajena taparía una afirmación real — que es el fallo caro.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes)) continue
-      out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    const enLaNota = primeraMencionSinExcusa(textoNota, formas, NIEGA_EN_LINEA)
+    if (enLaNota !== null) out.push({ ...n, enLaNota })
   }
   return out
 }

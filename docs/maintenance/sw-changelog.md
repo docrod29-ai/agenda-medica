@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: la excusa de la línea anterior callaba las dos alarmas
+
+Los dos guardianes que cruzan dictado contra nota antes de firmar —lo que el
+paciente negó y lo que el dictado puso en pasado— buscaban el término, miraban
+60 caracteres hacia atrás y, si veían «niega …» o «antecedente de …», callaban.
+
+Miraban sólo la PRIMERA aparición, y los 60 caracteres cruzaban el fin de frase.
+En una nota como las que arma la app —resumen, luego diagnósticos— del «Diabetes»
+del diagnóstico al «Niega» del resumen hay 53 caracteres: la negación de la línea
+de arriba tapaba la afirmación de abajo. O sea que en la disposición normal de
+una nota los dos callaban siempre.
+
+Ahora comparten un solo recorrido: todas las apariciones, y la ventana recortada
+en el fin de frase. Un punto entre dígitos («E11.9») es un decimal y no corta.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

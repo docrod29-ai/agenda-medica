@@ -1553,3 +1553,80 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — la excusa de la línea anterior callaba las dos alarmas (v1074)
+
+**Encontrado** — 7-ago-2026, armando el corpus oro del motor de temporalidad
+(EVAL-002 del backlog). El primer caso escrito con la nota dispuesta **como la
+arma la app de verdad** devolvió lista vacía.
+
+**El defecto** — Los dos guardianes que contrastan el dictado contra la nota
+antes de firmar —`contradicciones` (lo que el paciente negó, REG-152) y
+`desajustesTemporales` (lo que el dictado puso en pasado, v1027-v1030)— buscaban
+el término en la nota, miraban 60 caracteres hacia atrás y, si hallaban una
+excusa («niega …», «antecedente de …»), lo daban por bien escrito.
+
+Dos cosas mal, las dos hacia el mismo lado — el de **callar**:
+
+1. **Sólo se miraba la PRIMERA aparición.** Si venía excusada, las demás ni se
+   miraban. La primera mención funcionaba como interruptor de las siguientes.
+2. **Los 60 caracteres cruzaban el fin de frase.** El comentario del propio
+   código decía lo que no hacía: «más larga empezaría a leer la oración anterior
+   y una negación ajena taparía una afirmación real — que es el fallo caro». Con
+   60 caracteres a pelo ya la leía.
+
+**Cómo se reprodujo** — Con el motor real, sobre el texto que produce
+`textoDeLaNota` (consulta/page.tsx: resumen, luego diagnósticos, luego el valor
+de cada sección):
+
+```
+Masculino de 54 años. Niega diabetes e hipertensión.
+Diabetes mellitus tipo 2 descontrolada E11.9
+```
+
+`contradicciones(condicionesNegadas('¿Ha tenido diabetes? No, ninguna.'), nota)`
+→ `[]`. Se midió la distancia: del «Diabetes» del diagnóstico al «Niega» del
+resumen hay **53 caracteres**, menos de 60. El mismo caso con «tuvo neumonía
+hace tres años» y un diagnóstico de neumonía → `[]` igual.
+
+**Por qué importa para un paciente** — El resumen es justo donde se narra bien el
+antecedente o la negación, y el diagnóstico va **después**. O sea que en la
+disposición **normal** de una nota los dos guardianes callaban siempre, y sólo
+hablaban cuando el error casualmente iba primero. Una nota que a la vez dice
+«niega diabetes» y diagnostica «diabetes mellitus tipo 2» es exactamente la
+contradicción que hay que ver antes de firmar: lo que se firma queda en el
+expediente y se copia a la nota siguiente.
+
+Es «escrito y conectado, pero el dato no llega»: los dos motores corrían, estaban
+cableados a la pantalla y sus pruebas pasaban — con notas de una sola línea.
+
+**Reparación** — Un solo recorrido, `primeraMencionSinExcusa` en `negaciones.ts`,
+que usan los dos motores. Recorre **todas** las apariciones y recorta la ventana
+de 60 caracteres en el fin de frase, con el mismo criterio que `frases()`. Lo
+único propio de cada motor es qué cuenta como excusa: `NIEGA_EN_LINEA` en uno,
+`YA_ES_ANTECEDENTE` en el otro. Tenerlo copiado fue cómo el mismo defecto se coló
+en los dos a la vez.
+
+**El decimal no corta** — Un punto entre dígitos («E11.9», «glucosa de 110.5») es
+un decimal, no un final de frase. Si cortara, la negación se perdería por culpa
+de una cifra y el falso positivo entraría por la otra puerta. Tiene sus dos casos.
+
+**Qué NO hace** — No decide nada clínico: los dos motores siguen enseñando las
+dos frases para que el médico resuelva, y ninguno borra ni reclasifica. No cambia
+el vocabulario: lo que no está en `CRONICAS` ni en `AGUDAS_FRECUENTES` sigue sin
+vigilarse. No cambia la ventana de 60 caracteres, sólo la recorta por frase.
+
+**Qué queda para el médico** — Con el arreglo el aviso aparecerá en notas donde
+antes no salía. Si en su uso resulta ruidoso en algún patrón concreto de
+redacción, es una decisión suya cuál excusa añadir a
+`YA_ES_ANTECEDENTE`/`NIEGA_EN_LINEA`; el agente no amplía un criterio clínico por
+su cuenta.
+
+**Comprobado que puede ponerse rojo** — Las tres partes del arreglo revertidas
+por separado: sólo-primera-aparición → 4 casos en rojo; ventana sin recortar → 4
+en rojo; decimal cortando la frase → 2 en rojo.
+
+**Golden** — `src/__tests__/la-excusa-tiene-que-estar-en-la-misma-frase.test.ts`
+(15 casos).

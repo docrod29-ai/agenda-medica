@@ -6786,6 +6786,12 @@ paciente + mensajería**. ~36 hallazgos con archivo:línea.
 |---|---|
 | **898** | **El formulario previo llegaba y nadie se enteraba.** v887 hizo que el consultorio supiera de las citas y cancelaciones del portal, y **v889 volvió a abrir el hueco** con el formulario. El paciente lo llena la noche antes y el médico sólo lo ve si abre la consulta y mira la tarjeta — uno que dice «soy alérgico a la penicilina» merece saberse **antes** de tenerlo enfrente. Ahora avisa por el mismo helper. **No viaja el contenido**: son datos de salud por un canal externo; el aviso dice que llegó y de quién, lo demás se lee en el expediente. Encontrado revisando mi propio trabajo del día. |
 
+## TANDA AUTÓNOMA — v1074 (REG-192)
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **La excusa de la línea anterior callaba las dos alarmas que cruzan dictado y nota.** `contradicciones` (lo que el paciente negó) y `desajustesTemporales` (lo que el dictado puso en pasado) buscaban el término en la nota, miraban 60 caracteres hacia atrás y, si veían «niega …» o «antecedente de …», lo daban por bien escrito. Miraban **sólo la primera aparición**, y los 60 caracteres **cruzaban el fin de frase**. La nota se arma resumen → diagnósticos → secciones, y el resumen es justo donde se narra bien el antecedente: del «Diabetes» del diagnóstico al «Niega» del resumen hay **53 caracteres**. O sea que en la disposición normal de una nota los dos guardianes callaban **siempre**, y sólo hablaban cuando el error casualmente iba primero. Encontrado armando el corpus oro de temporalidad (EVAL-002): el primer caso escrito como la app arma la nota de verdad devolvió lista vacía. Ahora los dos comparten un solo recorrido —todas las apariciones, ventana recortada en el fin de frase—, y un punto entre dígitos («E11.9», «110.5») es un decimal y no corta. **No decide nada clínico**: sigue enseñando las dos frases para que resuelva el médico. |
+
 ## LO QUE ENCONTRARON LOS AUDITORES Y NO ESTÁ REPARADO
 
 Por orden de daño. Todo con archivo:línea, verificable.

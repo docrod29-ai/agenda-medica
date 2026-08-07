@@ -10,16 +10,17 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "REG-192 (cerrada, PR abierto)",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/expediente/REG-192"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "7-ago-2026: este archivo iba atrasado 43 versiones (decía v1030 con la v1073 ya en main). Se corrigió leyendo public/sw.js, que es la fuente.",
+    "VOICE-004 y SAFE-001 estaban marcados como pendientes y ya estaban en producción; verificado en el código y cerrados en el backlog.",
+    "El único rojo de `npx vitest run` en este entorno es ops-timeout-y-punto-ciego.test.ts, que falla también en main limpio (3 de 3) por el proxy saliente. Anotado como OPS-002; no lo causa este cambio."
   ]
 }
