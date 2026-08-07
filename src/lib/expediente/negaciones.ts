@@ -68,13 +68,92 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
 ]
 
 /**
- * Respuestas que cuentan como negación.
+ * El núcleo de una respuesta negativa.
  *
  * «Ninguna» y «nada» se incluyen porque es como se contesta de verdad a «¿tiene
  * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
  * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
+ *
+ * Se compara sobre texto sin acentos y en minúsculas, porque el reconocedor
+ * acentúa de forma inconstante y «jamás»/«jamas» son la misma respuesta.
  */
-const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
+const NUCLEO_NEGATIVO =
+  '(?:no|nop|ninguna|ningunos?|ninguno|nada(?:\\s+de\\s+eso|\\s+que\\s+ver)?|negativo|nunca|jamas|tampoco|para\\s+nada|que\\s+va|en\\s+absoluto)'
+
+/**
+ * Muletillas y atenuantes que en la consulta real van DELANTE del «no».
+ *
+ * ── MEDIDO CON EL MOTOR REAL (7-ago-2026) ────────────────────────────────────
+ *
+ * El paciente casi nunca contesta «No.» a secas. Contesta «Pues no, doctor»,
+ * «Fíjese que no», «Gracias a Dios no», «Hasta ahorita no», «Yo no». La
+ * expresión anterior anclaba la negación al principio de la frase, así que las
+ * ocho formas que se probaron se perdieron **todas**. Y una negación perdida no
+ * es un aviso de menos: es que la nota puede afirmar la diabetes que el paciente
+ * acaba de negar y nadie contrasta las dos — el defecto original de REG-140.
+ *
+ * ── POR QUÉ UNA LISTA CERRADA Y NO UN COMODÍN ────────────────────────────────
+ *
+ * `/.*no/` arreglaría las ocho de un golpe y abriría el fallo caro: «Sí,
+ * diabetes desde hace diez años; presión alta no» acabaría contando como una
+ * negación **de la diabetes**, porque la frase lleva las dos enfermedades. Las
+ * muletillas son cortas y son pocas; el comodín no tiene fondo.
+ *
+ * Se quitan de una en una porque se acumulan: «Ay pues fíjese que no» lleva tres.
+ * Las más largas van primero — si «el» se quitara antes que «el paciente»,
+ * quedaría «paciente no» y ya no habría muletilla que quitar.
+ */
+const ANTES_DE_LA_NEGACION = [
+  'el paciente', 'la paciente', 'hasta el momento', 'gracias a dios',
+  'que yo sepa', 'hasta ahorita', 'afortunadamente', 'por fortuna',
+  'fijese que', 'fijate que', 'hasta ahora', 'hasta hoy',
+  'bueno', 'ella', 'pues', 'este', 'pos', 'ay', 'ah', 'yo', 'el', 'eh', 'a',
+].sort((x, y) => y.length - x.length)
+
+const PREFIJO_NEGATIVA = new RegExp(
+  `^(?:${ANTES_DE_LA_NEGACION.map(p => p.replace(/ /g, '\\s+')).join('|')})[\\s,]+`,
+)
+
+const NEGATIVA_NUCLEO = new RegExp(`^${NUCLEO_NEGATIVO}\\b`)
+
+/**
+ * «No sé» **no** es «no».
+ *
+ * ── REGLA 4 DEL CHARTER, ROTA POR EL PROPIO MOTOR (7-ago-2026) ───────────────
+ *
+ * «¿Tiene diabetes? No sé, nunca me han revisado» se leía como una negación. Y
+ * eso no se queda en un aviso: `corregirCertezaPorNegacion` bajaba a
+ * **`descartado`** una diabetes que el extractor había marcado como confirmada.
+ * Reproducido con el motor: la condición salía descartada y el médico veía la
+ * corrección como si el paciente hubiera dicho que no.
+ *
+ * Ausencia de dato no es dato de ausencia. Quien no se acuerda no ha negado
+ * nada, y con la negación inventada se pierde justo el antecedente que el
+ * interrogatorio no pudo cerrar.
+ *
+ * El punto o la coma después de «no sé» es lo que lo distingue de «no se
+ * preocupe», que no es una respuesta al interrogatorio.
+ */
+const NO_SABE = new RegExp(
+  '^no\\s+(?:lo\\s+)?se\\s*(?:[.,;:!?…]|$)' +
+    '|^no\\s+(?:me\\s+acuerdo|recuerdo|estoy\\s+segur[oa]|sabria|tengo\\s+idea|que\\s+recuerde)\\b',
+)
+
+/**
+ * Si esta respuesta cuenta como negación.
+ *
+ * Expuesta porque el corpus del Dr. se mide contra ella: una respuesta que el
+ * motor no reconoce es una negación que se pierde, y eso hay que poder contarlo
+ * sin pasar por una transcripción entera.
+ */
+export function esRespuestaNegativa(respuesta: string): boolean {
+  let t = sinAcentos(respuesta).trim()
+  // Cuatro pasadas: más muletillas seguidas que ésas no se han visto, y el tope
+  // impide que una expresión mal escrita deje el bucle girando.
+  for (let i = 0; i < 4 && PREFIJO_NEGATIVA.test(t); i++) t = t.replace(PREFIJO_NEGATIVA, '')
+  if (NO_SABE.test(t)) return false
+  return NEGATIVA_NUCLEO.test(t)
+}
 
 /** Marcas de que un término ya viene negado en la propia frase. */
 const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
@@ -140,7 +219,7 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     // la frase siguiente si la pregunta terminó ahí.
     const resto = f.slice(f.indexOf('?') + 1).trim()
     const respuesta = resto || (fs[i + 1] ?? '')
-    if (NEGATIVAS.test(respuesta)) {
+    if (esRespuestaNegativa(respuesta)) {
       for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
     }
   }

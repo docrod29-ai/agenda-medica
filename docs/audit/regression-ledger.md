@@ -1553,3 +1553,87 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el paciente no contesta «No.» a secas (v1074)
+
+**Encontrado** — 7-ago-2026. Hallazgo C2/C3 de la auditoría de las nueve
+dimensiones, el último de su lista que quedaba sin reparar.
+
+**Reproducido antes de tocar nada** — Con el motor real (`condicionesNegadas`),
+sobre doce respuestas del habla de consulta mexicana:
+
+| Se dictó | Se detectó |
+|---|---|
+| «¿Padece diabetes? **Pues no, doctor.**» | nada |
+| «¿Tiene diabetes? **Fíjese que no.**» | nada |
+| «¿Padece diabetes? **Qué va.**» | nada |
+| «¿Tiene diabetes? **Gracias a Dios no.**» | nada |
+| «¿Tiene usted asma? **Yo no.**» | nada |
+| «¿Padece hipertensión? **Tampoco.**» | nada |
+| «¿Es diabético? **Para nada.**» | nada |
+| «¿Tiene diabetes? **Hasta ahorita no.**» | nada |
+| «¿Tiene diabetes? **No sé.**» | negación (**inventada**) |
+| «¿Tiene diabetes? **No me acuerdo.**» | negación (**inventada**) |
+| «¿Tiene diabetes? **No estoy seguro.**» | negación (**inventada**) |
+| «¿Tiene diabetes? **No sabría decirle.**» | negación (**inventada**) |
+
+Ocho de ocho perdidas, cuatro de cuatro fabricadas.
+
+**El defecto** — `NEGATIVAS` exigía que la negación fuera **la primera palabra**
+de la respuesta (`/^\s*(?:ah?,?\s*)?(?:no|nop|…)/`). En el habla real va detrás
+de una muletilla, y las muletillas se acumulan: «Ay pues fíjese que no» lleva
+tres. A la vez, cualquier cosa que empezara por «no» contaba — incluido «no sé».
+
+**Por qué importa para un paciente**, en las dos direcciones:
+
+- **La negación perdida** deja pasar REG-140 entero. El modelo cosecha
+  «diabetes» de la **pregunta**, la nota la afirma, y el contraste que debería
+  avisar no tiene negación que contrastar. El paciente dijo que no y se va con
+  una enfermedad crónica en el expediente — que se arrastra a todas las notas
+  siguientes, cambia el riesgo quirúrgico y cambia la elección de fármacos.
+- **La negación inventada** es la regla 4 del charter rota por el propio motor.
+  No se queda en un aviso que se pueda ignorar: `corregirCertezaPorNegacion`
+  bajaba a `descartado` una diabetes que el extractor había marcado
+  **confirmada**, porque el paciente contestó «No sé». Ausencia de dato no es
+  dato de ausencia; quien no se acuerda no ha negado nada, y con la negación
+  inventada se pierde justo el antecedente que el interrogatorio no pudo cerrar.
+
+**Reparación** — `src/lib/expediente/negaciones.ts`. La respuesta se normaliza,
+se le quitan las muletillas de una en una (tope de cuatro pasadas), se descarta
+si es una respuesta de **ignorancia**, y sólo entonces se busca el núcleo
+negativo. El núcleo gana las formas que valen solas: «tampoco», «para nada»,
+«qué va», «nada de eso», «en absoluto», «jamás». Se expone
+`esRespuestaNegativa()` para poder medir el corpus del Dr. contra ella sin pasar
+por una transcripción entera.
+
+**Llega a los dos consumidores por construcción** — El aviso de contradicción de
+la consulta y la corrección de certeza del extractor de entidades llaman los dos
+a `condicionesNegadas`; no hubo que cablear nada, y por eso mismo el fallo salía
+por los dos lados.
+
+**Por qué una lista cerrada y no un comodín** — `/.*no/` habría arreglado las
+ocho de un golpe y abierto el fallo caro: «Sí, diabetes desde hace diez años;
+presión alta no» contaría como negación **de la diabetes**, porque la frase lleva
+las dos enfermedades. Va probado al revés en el golden.
+
+**Ninguna cifra clínica nueva** — Es vocabulario del habla, no criterio: se
+señala de menos, nunca de más. La muletilla que falte no se vigila, y se declara
+en el módulo.
+
+**Qué NO hace** — No cubre la negación repartida entre dos turnos de habla
+(«mi mamá sí, yo no»): eso necesita atribución de hablante, que es otro motor.
+No cubre la negación que llega tres frases después de la pregunta. Y sigue sin
+decidir nada clínico: afirma que dictado y nota se contradicen, no cuál vale.
+
+**Qué queda para el médico** — Resolver la contradicción cuando salte, como
+hasta ahora. Y decir si alguna muletilla suya falta en la lista: se añade en una
+línea y el golden la fija.
+
+**Comprobado que puede ponerse rojo** — Revertido `negaciones.ts`, el golden cae
+con 18 de 21 casos en rojo; los 3 que sobreviven son los controles de lo que ya
+funcionaba.
+
+**Golden** — `src/__tests__/el-paciente-no-contesta-no-a-secas.test.ts` (10 casos
+declarados, 21 ejecutados).

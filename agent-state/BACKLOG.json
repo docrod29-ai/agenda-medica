@@ -1,7 +1,34 @@
 {
   "generadoEn": "2026-08-04",
+  "actualizado": "2026-08-07",
   "formulaDePrioridad": "5*SEGURIDAD + 5*INTEGRIDAD + 4*INGRESO + 4*FRECUENCIA + 4*MOAT + 3*FIABILIDAD + 3*REGULATORIO + 2*APRENDIZAJE - 3*IRREVERSIBILIDAD - 2*COMPLEJIDAD - 2*DEPENDENCIA_EXTERNA",
   "items": [
+    {
+      "id": "NEG-001",
+      "titulo": "El paciente no contesta «No.» a secas — y «no sé» no es «no»",
+      "hallazgo": "C2/C3 de la auditoría de las nueve dimensiones. `condicionesNegadas` exigía la negación como PRIMERA palabra de la respuesta: de ocho formas del habla real («Pues no, doctor», «Fíjese que no», «Gracias a Dios no», «Hasta ahorita no», «Yo no», «Tampoco», «Para nada», «Qué va») reconocía cero. Y al revés, contaba como negación las cuatro respuestas de ignorancia («No sé», «No me acuerdo», «No estoy seguro», «No sabría decirle»).",
+      "porQueImporta": "Los dos lados hacen daño. La negación perdida deja pasar REG-140 entero: la nota afirma la crónica que el paciente acaba de negar y nadie contrasta. La negación inventada baja a `descartado` un antecedente que el extractor había marcado confirmado — regla 4 del charter rota por el propio motor.",
+      "archivo": "src/lib/expediente/negaciones.ts:77",
+      "seguridad": 5, "integridad": 3, "ingreso": 0, "frecuencia": 5, "moat": 3,
+      "fiabilidad": 3, "regulatorio": 1, "aprendizaje": 2,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 86,
+      "estado": "cerrado (REG-192, v1074)",
+      "reversible": true
+    },
+    {
+      "id": "SAFE-001",
+      "titulo": "Cuatro parsers distintos del campo de alergias",
+      "hallazgo": "El canónico entiende «Penicilina / Sulfas» y «Penicilina y sulfas» como dos alérgenos y descarta «niega alergias». Los otros tres —incluido el que alimenta el sesgo del reconocedor— no. Y ninguno de los tres lee alergiasEstructuradas.",
+      "porQueImporta": "El cruce alergia↔fármaco compara contra LO QUE SE OYÓ. Un alérgeno que no llega al sesgo es un cruce que nunca salta.",
+      "archivo": "src/lib/seguridad/alergias.ts",
+      "seguridad": 5, "integridad": 2, "ingreso": 0, "frecuencia": 4, "moat": 2,
+      "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 73,
+      "estado": "cerrado (REG-144, v1032)",
+      "reversible": true
+    },
     {
       "id": "VOICE-004",
       "titulo": "El balance hídrico negativo pide confirmación en cada frase",
@@ -12,20 +39,7 @@
       "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 3,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 60,
-      "estado": "en curso",
-      "reversible": true
-    },
-    {
-      "id": "SAFE-001",
-      "titulo": "Cuatro parsers distintos del campo de alergias",
-      "hallazgo": "El canónico entiende «Penicilina / Sulfas» y «Penicilina y sulfas» como dos alérgenos y descarta «niega alergias». Los otros tres —incluido el que alimenta el sesgo del reconocedor— no. Y ninguno de los tres lee alergiasEstructuradas.",
-      "porQueImporta": "El cruce alergia↔fármaco compara contra LO QUE SE OYÓ. Un alérgeno que no llega al sesgo es un cruce que nunca salta.",
-      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:923 · uci/page.tsx:225 · api/expediente/extraer-entidades",
-      "seguridad": 5, "integridad": 2, "ingreso": 0, "frecuencia": 4, "moat": 2,
-      "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
-      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
-      "score": 73,
-      "estado": "a medias, sin subir",
+      "estado": "cerrado (el signo se acepta y está comentado en el módulo)",
       "reversible": true
     },
     {
@@ -51,6 +65,19 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 5,
       "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 0,
       "score": 55,
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
+      "id": "NEG-002",
+      "titulo": "Corpus del habla real para el motor de negación",
+      "hallazgo": "Derivado de NEG-001: la lista de muletillas es cerrada a propósito, así que la que falte no se vigila. Hoy no hay forma de saber cuántas faltan — las ocho de REG-192 salieron de escribirlas a mano, no de medir. `esRespuestaNegativa()` ya está expuesta para poder contarlas.",
+      "porQueImporta": "Una lista de vocabulario sin medición no dice si cubre el 40 % o el 95 % del habla del Dr., y la diferencia son antecedentes crónicos inventados.",
+      "archivo": "src/lib/expediente/negaciones.ts",
+      "seguridad": 3, "integridad": 2, "ingreso": 0, "frecuencia": 4, "moat": 3,
+      "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 4,
+      "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 1,
+      "score": 60,
       "estado": "pendiente",
       "reversible": true
     },

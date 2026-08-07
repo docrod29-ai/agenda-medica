@@ -3,6 +3,23 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el paciente no contesta «No.» a secas
+
+`condicionesNegadas` exigía que la negación fuera la primera palabra de la
+respuesta. Medido con el motor: de ocho formas del habla real —«Pues no,
+doctor», «Fíjese que no», «Gracias a Dios no», «Hasta ahorita no», «Yo no»,
+«Tampoco», «Para nada», «Qué va»— reconocía **cero**. Sin negación no hay nada
+que contrastar, y la nota se queda con la diabetes que el paciente acababa de
+negar.
+
+Y al revés: cualquier cosa que empezara por «no» contaba, incluido **«no sé»**.
+Eso no se quedaba en un aviso — el extractor bajaba a `descartado` una diabetes
+marcada como confirmada porque el paciente no se acordaba. Ausencia de dato no
+es dato de ausencia.
+
+Lista cerrada de muletillas, no comodín: `/.*no/` habría hecho que «Sí, diabetes
+desde hace diez años; presión alta no» negara la diabetes. Va probado al revés.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

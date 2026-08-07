@@ -10,16 +10,14 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "NEG-001 (cerrada) — REG-192, v1074",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/clinico/NEG-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnRepositorio": "nexusmed-v1074",
+  "ultimaVersionEnProduccion": "pendiente de confirmar por el dueño; el repositorio va por v1074 y el despliegue no es autónomo",
+  "trabajoLocalSinSubir": [],
+  "planDeAuditoriaDeNueveDimensiones": "TERMINADO — D1/D2 (REG-189), G1 (REG-190), E3 (REG-191) y C2/C3 (REG-192) cerrados. Lo que queda de esa auditoría necesita decisión del dueño y vive en OWNER_DECISIONS_REQUIRED.md",
+  "notaDeEntorno": "En el contenedor remoto, `ops-timeout-y-punto-ciego.test.ts` cae en un caso porque la salida de red a 10.255.255.1 falla al instante en vez de colgarse. Comprobado rojo también sobre el arbol limpio: es del entorno, no del codigo."
 }

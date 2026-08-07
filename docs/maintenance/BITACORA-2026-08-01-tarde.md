@@ -6831,3 +6831,15 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+## v1074 — REG-192: el paciente no contesta «No.» a secas
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **De ocho negativas del habla real, el motor reconocía cero.** `condicionesNegadas` exigía que la negación fuera la **primera palabra** de la respuesta, y en la consulta va detrás de una muletilla —«Pues no, doctor», «Fíjese que no», «Gracias a Dios no», «Hasta ahorita no», «Yo no», «Tampoco», «Para nada», «Qué va»—, que además se acumulan: «Ay pues fíjese que no» lleva tres. Sin negación detectada no hay nada que contrastar, y la nota se queda con la enfermedad crónica que el paciente **acababa de negar** — que se arrastra a todas las notas siguientes. Es REG-140 otra vez, entrando por la puerta de al lado. **Y el mismo defecto fallaba al revés**: cualquier respuesta que empezara por «no» contaba, incluido **«No sé»**, «No me acuerdo», «No estoy seguro». Eso no se queda en un aviso ignorable: `corregirCertezaPorNegacion` bajaba a `descartado` una diabetes que el extractor había marcado **confirmada**, porque el paciente no se acordaba. Regla 4 del charter rota por el propio motor. Ahora la respuesta se normaliza, se le quitan las muletillas de una en una, se descarta si es una respuesta de **ignorancia**, y sólo entonces se busca el núcleo negativo. **Lista cerrada, no comodín**: `/.*no/` habría hecho que «Sí, diabetes desde hace diez años; presión alta no» negara la diabetes, y eso va probado al revés en el golden. Ninguna cifra clínica nueva: es vocabulario del habla, se señala de menos y la muletilla que falte se declara. Reproducido con el motor real **antes** de tocar una línea; golden comprobado en rojo (18 de 21 casos) revirtiendo el arreglo. Último hallazgo (C2/C3) de la auditoría de las nueve dimensiones. |
+
+**Nota de entorno** — En este contenedor remoto `ops-timeout-y-punto-ciego.test.ts`
+cae en un caso: el test espera que una conexión a `10.255.255.1` se quede colgada
+para que salte el timeout, y aquí la salida de red falla al instante. Es del
+entorno, no del código: se comprobó rojo también sobre el árbol limpio, antes de
+tocar nada. En CI pasa.
