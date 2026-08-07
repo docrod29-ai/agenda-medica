@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-003 / REG-192 (cerrada, PR abierto)",
+  "iteracionActual": "SAFE-003-negacion-duda — rama subida, PR NO abierto a propósito (ver B-11)",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
@@ -19,6 +19,8 @@
   "trabajoLocalSinSubir": [],
   "notas": [
     "El backlog iba por detrás del repositorio: VOICE-004 y SAFE-001 figuraban abiertos y llevaban cerrados desde v1031/v1032. Verificado con el motor real y con el ledger antes de elegir tarea.",
-    "npm run build NO compila en este contenedor por falta de credenciales de Firebase (auth/invalid-api-key al recoger /dr/[clinicId]); comprobado que falla igual con el árbol limpio. npx tsc --noEmit pasa."
+    "npm run build NO compila en este contenedor por falta de credenciales de Firebase (auth/invalid-api-key al recoger /dr/[clinicId]); comprobado que falla igual con el árbol limpio. npx tsc --noEmit pasa.",
+    "NO se abrió PR: había 13 PRs abiertos titulados REG-192 y el #241 ya repara los dos defectos principales de esta rama. Lo único que aporta y nadie más cubre es «Nada más la diabetes» (el `nada` suelto negaba las dos enfermedades de la pregunta y borraba la que el paciente acababa de afirmar): verificado contra los propios regex del #241, sigue vivo ahí.",
+    "Antes de elegir tarea, la próxima iteración debe listar los PRs abiertos: el estado en `main` no refleja el trabajo de las ramas y por eso el número de REG y la versión de sw se repiten."
   ]
 }

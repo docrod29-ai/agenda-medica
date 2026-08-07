@@ -15,3 +15,32 @@ trabajo.
 | B-08 | Clasificación de seguridad por fármaco (P7/P8) | Decisión clínica | El esquema existe y está vacío |
 | B-09 | Pentest externo y PITR | Contratación y consolas | Declarado en el registro de riesgos |
 | B-10 | Cuenta de prueba en los secretos de CI | Credencial | El E2E sólo cubre lo público |
+
+---
+
+## B-11 — EL PROGRAMA AUTÓNOMO ESTÁ EN BUCLE (7-ago-2026)
+
+**Qué se necesita**: que el dueño **fusione o cierre** la cola de PRs abiertos.
+Es lo único que desbloquea; no hay nada que el agente pueda arreglar en el
+código.
+
+**Qué pasa**. `main` no se mueve desde REG-191 (v1073). Cada iteración arranca
+desde `main`, lee un `agent-state/` que no conoce ninguna rama abierta, y por
+tanto:
+
+- toma **el mismo siguiente número de regresión**: hay **13 PRs abiertos
+  titulados REG-192**, y varios REG-194 distintos;
+- toma **la misma versión de service worker**: casi todos suben a `v1074`;
+- audita **el mismo vecindario** —`negaciones.ts` y `temporalidad.ts`—, porque
+  es el último punto abierto que el plan de la auditoría deja escrito en `main`.
+
+Los PRs 232-248 son en su mayoría reparaciones reales y verificadas, pero
+**tocan las mismas líneas del mismo archivo**: fusionarlos en cualquier orden va
+a dar conflicto, y el ledger tiene el número 192 repetido trece veces.
+
+**Impacto mientras tanto**: cada iteración gasta su presupuesto redescubriendo
+defectos ya reparados en una rama que no ve. Esta misma (SAFE-003-negacion-duda)
+reprodujo con el motor real dos defectos que el PR #241 ya arregla.
+
+**Sugerencia de orden**: #241 primero (es el más completo sobre `negaciones.ts`:
+cubre REG-192/193/194), y renumerar el resto contra el ledger ya fusionado.
