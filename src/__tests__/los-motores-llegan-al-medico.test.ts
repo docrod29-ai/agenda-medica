@@ -60,7 +60,9 @@ function medir(): { total: number; huerfanas: string[]; inalcanzables: string[] 
  * No es una meta de cero: es el tope de hoy. Cada iteración del loop puede
  * quitar una o dos, y ninguna puede añadir.
  */
-const TOPE = { huerfanasMax: 50, totalMin: 771 }
+const TOPE = { huerfanasMax: 48, totalMin: 771 }
+/* 50 → 48 el 8-ago-2026: se conectó la bandeja de alertas (REG-256). Cada
+   iteración del loop cierra una o dos y baja este número. */
 
 describe('el trinquete de conexión', () => {
   const m = medir()
@@ -106,7 +108,7 @@ describe('el instrumento no repite el error que ya cometió', () => {
   it('sigue la cadena de importaciones desde las pantallas', () => {
     /** Un módulo que ninguna pantalla alcanza no corre, por muy usado que esté. */
     expect(s).toMatch(/const alcanzables = new Set\(\)/)
-    expect(s).toMatch(/src\/app\/.*src\/components\/.*src\/hooks\//s)
+    expect(s.replace(/\n/g, ' ')).toMatch(/src\/app\/.*src\/components\/.*src\/hooks\//)
   })
 
   it('sólo mira dominios clínicos, para que la señal no se ahogue', () => {

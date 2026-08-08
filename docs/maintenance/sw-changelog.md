@@ -2495,3 +2495,9 @@ lo que se vigila es el APORTE. La regla queda en docs/evals/COMO-SE-MIDE.md.
 21 de 102 defectos son motores que existen y no corren, y los 21 se encontraron
 por casualidad. Ahora hay un barrido: 50 de 771 funciones clínicas no se usan en
 ningún sitio, y el trinquete impide que crezcan.
+
+## v1138 — la bandeja de alertas que nadie abría (REG-256)
+
+Las alertas del episodio —lab crítico, NEWS2, interconsulta— se guardaban y
+ninguna pantalla las leía. Ahora hay bandeja en la ficha, encima de las
+pestañas, y se marcan vistas con un clic.

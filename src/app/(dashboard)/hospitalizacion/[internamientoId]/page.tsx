@@ -21,7 +21,7 @@ import {
   agregarIndicacion, suspenderIndicacion, editarIndicacion, borrarIndicacion, registrarAdministracion,
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
   agregarSignos, corregirSignos, getSignos, getRolUsuario, setRolUsuario,
-  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, type AlertaHospital,
+  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, getAlertas, marcarAlertaLeida, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
   suscribirInternamiento, suscribirSignos, getAsignacionesCama,
 } from '@/lib/hospital/firestore'
@@ -41,6 +41,7 @@ import { encuadrarNews2 } from '@/lib/hospital/news2-encuadre'
 import { textoOxigeno } from '@/lib/hospital/oxigeno'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
+import { AlertasDelEpisodio } from '@/components/AlertasDelEpisodio'
 import { ESPECIALIDADES_INTERCONSULTA as ESPECIALIDADES_IC } from '@/lib/especialidades'
 import {
   diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ROL_HOSPITAL_LABEL,
@@ -543,6 +544,25 @@ export default function EpisodioPage() {
           </div>
         )
       })()}
+
+      {/*
+        LA BANDEJA QUE NADIE ABRÍA (REG-256).
+
+        `crearAlerta()` escribía en `hospital_alertas` —lab crítico, NEWS2,
+        interconsulta— y NINGUNA pantalla leía esa colección: `getAlertas()` y
+        `marcarAlertaLeida()` estaban escritas y sin un solo llamador.
+
+        Va ARRIBA de las pestañas a propósito: una alerta que hay que ir a
+        buscar en una pestaña no es una alerta.
+      */}
+      {clinicId && (
+        <AlertasDelEpisodio
+          clinicId={clinicId}
+          internamientoId={internamientoId}
+          cargar={getAlertas}
+          marcarLeida={marcarAlertaLeida}
+        />
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>

@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256],
   },
   {
     clave: 'se_contradice',

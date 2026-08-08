@@ -16,20 +16,22 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1137",
+  "ultimaVersionEnProduccion": "nexusmed-v1138",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M docs/quality/MOTORES-SIN-CONECTAR.md",
     " M public/sw.js",
     " M public/version.txt",
+    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
+    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/quality/MOTORES-SIN-CONECTAR.md",
-    "?? scripts/calidad/",
-    "?? src/__tests__/los-motores-llegan-al-medico.test.ts"
+    "?? src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",
+    "?? src/components/AlertasDelEpisodio.tsx"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +67,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 103,
-    "ultimaREG": "REG-255",
-    "archivosDePrueba": 533,
-    "casosDePrueba": 7089,
+    "regsEnElLedger": 104,
+    "ultimaREG": "REG-256",
+    "archivosDePrueba": 534,
+    "casosDePrueba": 7101,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

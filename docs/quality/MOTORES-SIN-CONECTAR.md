@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**50** no se usan en ningún sitio fuera de su propia declaración.
+**48** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -29,6 +29,12 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `esAntecedenteFamiliar` | 1 | distingue al paciente de su familia |
 | `csvDeBitacora` | 1 | exportación de la bitácora |
 | `verificarIntegridad` | **0** | código muerto, no engaña |
+
+### Cerradas ya
+
+| Símbolo | Cómo se cerró |
+|---|---|
+| `getAlertas` · `marcarAlertaLeida` | REG-256 · las alertas del episodio se escribían y nadie las leía; ahora hay bandeja en la ficha |
 
 ## Lo que NO significa estar en esta lista
 
@@ -75,10 +81,8 @@ que es el mismo fallo que se repara en los avisos clínicos.
 - `src/lib/hospital/eventos.ts::contarAdministracionesVigentes`
 - `src/lib/hospital/eventos.ts::serieSignosVigente`
 - `src/lib/hospital/eventos.ts::validarCorreccion`
-- `src/lib/hospital/firestore.ts::getAlertas`
 - `src/lib/hospital/firestore.ts::getBandejaLab`
 - `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
-- `src/lib/hospital/firestore.ts::marcarAlertaLeida`
 - `src/lib/hospital/firestore.ts::suscribirUnidades`
 - `src/lib/hospital/oxigeno.ts::oxigenoSinDeclarar`
 - `src/lib/seguridad/alergias.ts::negacionesEnTexto`

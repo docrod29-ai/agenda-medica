@@ -4511,3 +4511,44 @@ Familia `sin_medir`: no faltaba producto, faltaba el instrumento.
 
 **Guardián.** `src/__tests__/los-motores-llegan-al-medico.test.ts`, 8 casos.
 **Lista.** `docs/quality/MOTORES-SIN-CONECTAR.md`, con las 50 nombradas.
+
+## REG-256 — las alertas del episodio se escribían y nadie las leía (v1138)
+
+**Primera cosecha del instrumento de REG-255**, y salió de lo alto de la lista:
+
+    src/lib/hospital/firestore.ts::getAlertas
+    src/lib/hospital/firestore.ts::marcarAlertaLeida
+
+`crearAlerta()` guarda cada alerta del episodio en `hospital_alertas`: valor de
+laboratorio **crítico**, NEWS2, interconsulta, resultado listo. La colección
+existe, tiene reglas de Firestore, está en la lista de respaldos y en la matriz
+de acceso.
+
+Y **ninguna pantalla la leía**. Las dos funciones de lectura estaban escritas y
+sin un solo llamador en todo el repositorio.
+
+Traducido: el potasio de 7.2 se marca crítico, se escribe la alerta, y va a
+parar a **un cajón que no tiene tirador**.
+
+**Lo que sí funcionaba, para no exagerar.** El envío por WhatsApp sí corría, y
+el propio código ya avisaba cuando no salía. Pero WhatsApp es un canal que se
+pierde: se lee en el pasillo, se olvida, o el teléfono no está registrado —que
+es el estado por defecto de una clínica recién configurada—. **La alerta en la
+ficha del paciente es la que sigue ahí mañana.**
+
+**Las tres decisiones del diseño.**
+
+1. **Encima de las pestañas.** Una alerta que hay que ir a buscar en una pestaña
+   no es una alerta. Se comprueba por posición en la prueba.
+2. **Se marca leída con un clic, no al mirarla.** Marcar por el hecho de que la
+   lista aparezca convierte el estado en ruido: se «leen» solas al abrir la
+   ficha por cualquier otro motivo. Un clic distingue «lo vi» de «pasó por
+   delante».
+3. **Si la consulta falla, se dice.** No se enseña «0 alertas» — fingir una
+   bandeja vacía sería la misma mentira que este componente repara. Y si el
+   WhatsApp no salió, se enseña también: el médico tiene que saber que esa
+   alerta sólo existe ahí.
+
+**El trinquete baja: 50 → 48.** Familia `no_conectado`, la vigésima segunda.
+
+**Guardián.** `src/__tests__/la-alerta-tiene-quien-la-lea.test.ts`, 12 casos.
