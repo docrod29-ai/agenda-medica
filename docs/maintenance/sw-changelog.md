@@ -2369,3 +2369,13 @@ Nada se borra: la fila entera vuelve cuando hay algo grabado (REG-236).
 Y sus capturas enseñaron que los botones flotantes tapan los campos Peso y
 Exploración física; ningún barrido lo cazaba porque el medidor saltaba los
 elementos fijos y no comprobaba si algo tapa a otra cosa (REG-237).
+
+## v1120 — una frecuencia tiene forma de frecuencia (REG-238)
+
+De una nota **firmada suya**: «por 14 **editas**» y «**24 tras**». Nadie
+comprobaba que una frecuencia tuviera forma de frecuencia ni una duración forma
+de duración — sólo se exigía cifra y unidad en la DOSIS.
+
+Nuevo motor puro `forma-de-la-pauta.ts` + aviso `pauta_deformada` (nivel
+`revisa`, ancla en medicamentos → se ve **mientras receta**). Avisa de lo que no
+entiende; **nunca propone el valor correcto**.

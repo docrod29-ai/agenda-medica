@@ -3732,3 +3732,51 @@ quede pegado. Donde no exista, la regla no aplica y queda el comportamiento de
 hoy — el peor caso, no el único.
 
 **Guardián** — `src/__tests__/nada-tapa-un-campo-que-se-llena.test.ts` (6 casos).
+
+## REG-238 — «14 editas» y «24 tras»: nadie comprobaba la forma de una pauta (v1120)
+
+**Cómo se encontró.** El médico dueño mandó la captura de una nota **suya, ya
+firmada**, con su cédula. En el plan de tratamiento:
+
+> «Moxifloxacino 400 mg vo cada 24 horas por 14 **editas**»
+
+Y unas líneas más abajo, el mismo fármaco en el plan farmacológico:
+
+> «Moxifloxacino tabletas 400 mg · oral · **24 tras** · 14 días»
+
+`14 editas` por `14 días`. `24 tras` por `24 horas`. La **duración y la
+frecuencia de un antibiótico**, en un documento firmado.
+
+**Qué se descartó midiendo.** Se le pasó al corrector léxico el texto limpio y
+el partido —«por 14 di as», «cada 24 ho ras», «cada 24 hrs», «por 14 d»— y no
+corrompe ninguno; tampoco produce «editas» ni «tras», que no están en su
+vocabulario. El corrector quedó descartado **con la medición, no leyendo**.
+
+**La huella que dice de dónde vino.** Los dos sitios se rompieron **distinto**:
+la prosa perdió los días y conservó las horas; la lista estructurada perdió las
+horas y conservó los días. Un corrector sustituye igual en todas partes; esto
+no. Viene del reconocedor o del modelo al rellenar los campos.
+
+**La causa raíz.** No había **ninguna** comprobación de la FORMA de una pauta.
+`revisarUnidadDosis` exige cifra y unidad en la DOSIS (REG-173) —por eso «400
+mg» estaba bien—, pero frecuencia y duración aceptaban cualquier cadena.
+
+Y peor: la aplicación **ya sabía** que «14 editas» no es una duración.
+`diasDeDuracion()` devuelve `null` para eso desde hace versiones. **Nadie se lo
+preguntaba.** Familia `no_conectado`.
+
+**El arreglo.** `src/lib/seguridad/forma-de-la-pauta.ts`, módulo puro:
+`esFrecuenciaReconocible()` y `esDuracionReconocible()` miran la forma de lo
+escrito; el segundo se apoya en el `diasDeDuracion()` que ya existía. Nuevo
+origen de aviso `pauta_deformada`, nivel **`revisa`** y ancla en
+`medicamentos`, para que salga **mientras receta** y no al firmar (REG-173,
+REG-190). Conectado en `page.tsx` con `pautas: medicamentos`.
+
+**Lo que NO hace, y es la decisión importante.** No propone el valor correcto.
+Dice ««24 tras» no se entiende como una frecuencia»; **no** dice «debería ser
+cada 24 horas». Lo primero es un hecho comprobable; lo segundo sería inventar
+una pauta clínica.
+
+**Guardián.** `src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts`
+— 55 casos con su caso real como fixture, incluida una prueba que falla si
+algún mensaje llega a proponer el valor «correcto».

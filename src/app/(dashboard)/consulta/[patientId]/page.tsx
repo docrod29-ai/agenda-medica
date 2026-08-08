@@ -4880,6 +4880,12 @@ export default function ConsultaActivaPage() {
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),
             critica: d.severidad === 'critica',
           })),
+          /**
+           * «14 editas» y «24 tras», de una nota YA FIRMADA suya (REG-238).
+           * Va aquí y NO en `avisosParaFirmar`: es de prescripción, se ve
+           * mientras receta.
+           */
+          pautas: medicamentos,
           antecedentesDeFamiliar,
           datosInciertos,
           sinRespaldo,

@@ -38,6 +38,12 @@ const ORIGENES: OrigenAviso[] = [
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
   'dosis_peligrosa', 'antecedente_del_familiar', 'dato_incierto',
   'sin_respaldo_en_el_dictado',
+  /**
+   * REG-238 — «14 editas», «24 tras». Declarado aquí a mano y a propósito:
+   * esta lista es la que impide que un motor nuevo se cuele en la barra sin
+   * que alguien diga si bloquea. Este AVISA, no bloquea.
+   */
+  'pauta_deformada',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
@@ -115,6 +121,8 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       antecedentesDeFamiliar: [{ frase: 'mi mamá tuvo cáncer de mama', parentesco: 'mamá' }],
       datosInciertos: [{ frase: 'creo que tenía anemia', matiz: 'duda', marca: 'creo que' }],
       sinRespaldo: [{ afirmacion: 'nefropatía diabética estadio 4', huerfanas: ['nefropatia'] }],
+      /** Su caso literal, de una nota ya firmada (REG-238). */
+      pautas: [{ nombre: 'Moxifloxacino', frecuencia: '24 tras', duracion: '14 editas' }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

@@ -41,6 +41,8 @@
  *
  * Módulo PURO.
  */
+import { pautasDeformadas } from '@/lib/seguridad/forma-de-la-pauta'
+
 
 /** Los tres niveles. No hay un cuarto. */
 export type NivelAviso = 'bloquea' | 'revisa' | 'contexto'
@@ -61,6 +63,13 @@ export type OrigenAviso =
   | 'antecedente_del_familiar'
   | 'dato_incierto'
   | 'sin_respaldo_en_el_dictado'
+  /**
+   * La frecuencia o la duración no tienen forma de lo que dicen ser.
+   *
+   * Nació de una nota YA FIRMADA del médico dueño: «cada 24 horas por 14
+   * EDITAS», y en la misma nota «24 TRAS · 14 días». Ver `forma-de-la-pauta`.
+   */
+  | 'pauta_deformada'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -76,6 +85,15 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   contradiccion_negacion: 'revisa',
   desajuste_temporal:     'revisa',
   via_asumida:            'revisa',
+  /**
+   * NO bloquea, y es deliberado: «14 editas» puede ser una palabra mal oída o
+   * una forma que este motor no conoce todavía. Apagar el botón por algo que
+   * podría ser un falso positivo enseñaría a esquivar la compuerta.
+   *
+   * Sí es de PRESCRIPCIÓN —ancla en medicamentos— porque sale impreso en la
+   * receta: tiene que verse MIENTRAS receta, no al firmar.
+   */
+  pauta_deformada:        'revisa',
   interaccion:            'revisa',
   controlado:             'revisa',
   conflicto_extraccion:   'revisa',
@@ -165,6 +183,13 @@ export interface EntradaAvisos {
   controlados?: readonly { farmaco: string; requisito: string }[]
   /** Sobredosis, techos por vía/edad y error de decimal (REG-190). */
   dosisPeligrosas?: readonly { med: string; mensaje: string; critica: boolean }[]
+  /**
+   * La frecuencia y la duración escritas, tal cual, para mirarles la FORMA.
+   *
+   * Se pasa la lista entera y `construirAvisos` decide: así la pantalla no
+   * tiene que saber qué cuenta como frecuencia reconocible.
+   */
+  pautas?: readonly { nombre?: unknown; frecuencia?: unknown; duracion?: unknown }[]
   conflictos?: readonly string[]
   faltantesCriticos?: readonly string[]
   /**
@@ -234,6 +259,32 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
    * decía «nada te impide firmar» **junto a un botón apagado**. Ahora lo que
    * apaga el botón y lo que cuenta la barra salen del mismo sitio.
    */
+  /**
+   * ── «14 EDITAS» Y «24 TRAS» (REG-238) ────────────────────────────────────
+   *
+   * Salieron de una nota YA FIRMADA suya. Nadie comprobaba que una frecuencia
+   * tuviera forma de frecuencia: sólo se exigía cifra y unidad en la DOSIS.
+   *
+   * Ancla en `medicamentos` a propósito — es de PRESCRIPCIÓN, y esas se ven
+   * MIENTRAS receta, no al firmar (REG-173/REG-190).
+   */
+  for (const p of pautasDeformadas(e.pautas ?? [])) {
+    for (const a of p.avisos) {
+      const id = `pauta:${p.med}:${a.campo}`
+      if (!vivo(id)) continue
+      out.push({
+        id,
+        origen: 'pauta_deformada',
+        nivel: nivelDe('pauta_deformada'),
+        texto: `${p.med || 'Un medicamento'}: «${a.loEscrito}» no se entiende como ${a.campo === 'frecuencia' ? 'una frecuencia' : 'una duración'}`,
+        /** El mensaje entero del motor: dice POR QUÉ importa —sale impreso—. */
+        detalle: a.mensaje,
+        ancla: { seccion: 'medicamentos', nombre: p.med || undefined },
+        descartable: true,
+      })
+    }
+  }
+
   for (const requisito of e.yaLoBloqueaNOM004 ?? []) {
     const texto = String(requisito ?? '').trim()
     if (!texto) continue
