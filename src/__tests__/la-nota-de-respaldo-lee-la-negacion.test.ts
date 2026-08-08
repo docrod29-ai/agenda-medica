@@ -1,5 +1,5 @@
 /**
- * GOLDEN — «No padece diabetes» salía como ANTECEDENTE POSITIVO (REG-195).
+ * GOLDEN — «No padece diabetes» salía como ANTECEDENTE POSITIVO (REG-205).
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *

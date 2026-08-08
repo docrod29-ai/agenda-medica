@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1077 — REG-195: «no padece diabetes» era un antecedente positivo
+## v1086 — REG-205: «no padece diabetes» era un antecedente positivo
 
 El parser clínico —el que escribe la nota cuando la IA devuelve 529— conocía
 `no tiene`, `no presenta`, `no refiere` y poco más. «No padece», «no tengo», «no

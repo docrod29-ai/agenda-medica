@@ -1894,7 +1894,13 @@ sus casos nuevos.
 
 ---
 
-## REG-195 — «no padece diabetes» era un antecedente positivo (v1077)
+## REG-205 — «no padece diabetes» era un antecedente positivo (v1086)
+
+> **Por qué el número salta de 195 a 205.** Esta reparación nació como REG-195 /
+> v1077 y los dos estaban ya tomados por otra rama abierta. Es **T-1**: la rutina
+> nocturna arranca de `main` en cada firing, 24 PRs conviven y catorce se llaman
+> «REG-192 · v1074». Se renumeró al primero que ningún PR abierto reclamaba en
+> ese momento. El hueco 196–204 lo ocupan reparaciones de otras ramas.
 
 **Encontrado** — 8-ago-2026. La auditoría de nueve dimensiones del 6-ago lo dejó
 apuntado en una línea (hallazgo C2/C3): *«"No padece diabetes" sale como
