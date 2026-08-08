@@ -278,7 +278,7 @@ I-8, junto con el segundo modelo.
 
 ---
 
-## I-7 · Firmar cierra la consulta entera
+## I-7 · Menos pasos para cerrar la consulta — ✅ PARCIAL (v1112)
 
 > «que sea más fácil, con menos pasos» · «que no tenga tantas maneras de
 > confundirse»
@@ -293,9 +293,27 @@ sistema se equivocó antes; I-1 a I-3 los quitan.
 - **Firmar deja la receta lista en los tres canales** —papel, WhatsApp y PDF— y
   **el cobro registrado**. Sin saltar de pantalla.
 
-**Lo que NO se mueve** — los cinco avisos de prescripción (alergia ↔ fármaco,
-sobredosis, dosis incompleta, interacción, vía) tienen que llegar **mientras
-receta** o no sirven. Eso ya costó dos regresiones (REG-173, REG-190).
+**Hecho en v1112**
+- **Consentimiento una vez por paciente**: queda en el expediente con quién lo
+  recabó y cuándo. Ausente = nunca se pidió; no se asume otorgado jamás.
+- **Los avisos rojos dejan de tapar la nota.** La barra sólo lleva los cinco de
+  PRESCRIPCIÓN —que tienen que llegar mientras receta—; los de revisión del
+  texto aparecen al firmar, que es cuando sirven.
+- La distinción sale del campo `ancla.seccion` que cada aviso ya traía: no hay
+  lista nueva que mantener.
+
+**Lo que NO se mueve, y es deliberado** — los cinco de prescripción (alergia ↔
+fármaco, sobredosis, dosis incompleta, interacción, vía) tienen que llegar
+**mientras receta** o no sirven. Eso ya costó dos regresiones (REG-173, REG-190).
+
+**Cierra con** — REG-231 · `menos-pasos-para-cerrar-la-consulta.test.ts` (19).
+
+**Queda pendiente de esta iteración**
+- Quitar el «Procesar con IA» manual (el pase final ya corre solo al detener).
+- La pantalla única de cierre.
+- Que firmar deje la receta lista en los tres canales y el cobro registrado.
+Son cambios grandes de pantalla sobre un archivo de 5 300 líneas con pruebas
+selladas: van en su propia iteración, no de propina.
 
 ---
 

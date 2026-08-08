@@ -2299,3 +2299,11 @@ dice, en vez de caer a criterio genérico en silencio. Más la regla 14-bis: la
 prosa RAZONA (conecta hallazgo→dx→plan) en vez de enumerar. Comprobado byte a
 byte que la mudanza no cambió el prompt. Un defecto lo cazó su propia prueba:
 «Infectología pediátrica» caía en pediatría por el orden del arreglo (REG-230).
+
+## v1112 — menos pasos para cerrar la consulta (I-7, parcial)
+Dos pasos menos por consulta. (1) El consentimiento vivía en un useState y salía
+en CADA consulta del mismo paciente; ahora queda en el expediente con quién y
+cuándo, y no se vuelve a pedir. (2) Los avisos rojos ya no tapan la nota desde
+el minuto uno: la barra sólo lleva los cinco de PRESCRIPCIÓN —que deben llegar
+mientras receta— y los de revisión del texto aparecen al firmar. La distinción
+sale del campo ancla.seccion que cada aviso ya traía (REG-231).

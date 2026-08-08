@@ -3440,3 +3440,53 @@ dueño no ejerce. Las dieciséis están porque ya estaban.
 **Guardián** — `src/__tests__/la-nota-la-escribe-un-especialista.test.ts`
 (19 casos), incluido uno que falla si el menú ofrece una especialidad sin guía.
 **Versión de prompt** — `nota-2026-08-07-4`.
+
+---
+
+## REG-231 — menos pasos para cerrar la consulta (v1112 · I-7)
+
+**Lo que el médico pidió** — «que sea más fácil, **con menos pasos**» · «que no
+tenga tantas maneras de confundirse». Y en las doce preguntas: consentimiento
+**una vez por paciente**, firma **con el paciente enfrente**.
+
+**Dos pasos que desaparecen de cada consulta.**
+
+**1 · El consentimiento moría al cerrar la pantalla.** Vivía en un `useState`, así
+que el modal salía en CADA consulta del mismo paciente — un paso repetido cien
+veces al mes, y encima sin nada que exhibir ante una queja salvo el registro de
+auditoría. Ahora queda **en el expediente**, con quién lo recabó y cuándo, que es
+donde un consentimiento tiene sentido. Ausente = nunca se pidió: **no se da por
+otorgado por omisión jamás**. Si el guardado falla, la grabación no se cae — se
+volverá a pedir, que es el lado seguro del error.
+
+**2 · Los avisos rojos ya no tapan la nota desde el minuto uno.** La barra se
+pintaba **por encima** de los signos vitales, las secciones narrativas, los
+diagnósticos y los medicamentos: lo primero que veía al abrir la consulta era la
+lista de lo que está mal en una nota que todavía no había dictado.
+
+**Pero no se mueve entera, y eso es lo importante.** Cinco de esos avisos son de
+PRESCRIPCIÓN —alergia ↔ fármaco, sobredosis, dosis incompleta, interacción, vía
+asumida— y tienen que llegar **mientras receta**: después de firmar, la receta ya
+se imprimió. Llevarlos al final es exactamente el defecto que este repositorio ya
+reparó **dos veces** (REG-173 y REG-190, familia «llega tarde para servir»), y no
+se reintroduce por comodidad visual.
+
+Los de REVISIÓN DEL TEXTO —contradicción, dato incierto, antecedente del
+familiar, requisito NOM— no cambian lo que se le da al paciente: cambian lo que
+se lee antes de firmar. Ése es su momento.
+
+**Sin inventar una clasificación nueva** — cada aviso ya traía `ancla.seccion`
+para saber a dónde lleva su botón. Ese campo ya distinguía lo que hacía falta;
+nadie lo usaba para decidir *cuándo*. No hay lista nueva que mantener: un aviso
+futuro anclado a medicamentos aparece durante la consulta sin que nadie lo apunte.
+
+**Ante la duda, durante la consulta** — un aviso sin ancla se trata como de
+prescripción. Uno que llega pronto de más estorba; uno que llega tarde no
+protege, y las dos molestias no cuestan lo mismo.
+
+**Sigue habiendo UN solo panel montado** — partir la barra no podía convertirse en
+dos recuadros: la nota se llenaría de cajas, que es el defecto que la barra vino
+a cerrar.
+
+**Guardián** — `src/__tests__/menos-pasos-para-cerrar-la-consulta.test.ts`
+(19 casos).

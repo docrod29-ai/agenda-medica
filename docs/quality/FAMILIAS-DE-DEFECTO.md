@@ -3,13 +3,13 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 78 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 79 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
 ## Por qué contar
 
-El ledger tiene 78 defectos con su causa raíz. Leídos de uno en uno son 78
+El ledger tiene 79 defectos con su causa raíz. Leídos de uno en uno son 79
 historias. **Contados por familia dicen algo que ninguno dice solo**: cuál es la
 forma de fallar que se repite.
 
@@ -28,7 +28,7 @@ Eso cambia dónde conviene mirar mañana.
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 3 | Correcto por dentro, insoportable por fuera |
+| Estorba al médico | 4 | Correcto por dentro, insoportable por fuera |
 | Pérdida de datos | 6 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 14 de 78, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 14 de 79, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 14 de 78.**
+**«El sistema se contradice a sí mismo» — 14 de 79.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el

@@ -153,6 +153,7 @@ import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
 import { huellaRevisable, estadoDeRevision, COMO_SE_DICE, type ContenidoRevisable } from '@/lib/expediente/lo-que-se-reviso'
+import { mientrasReceta, alFirmar, comoSeDicenAlFirmar } from '@/lib/expediente/cuando-avisar'
 import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
 import { diagnosticosSanos, medicamentosSanos, seccionesSanas } from '@/lib/expediente/nota-restaurada'
 import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
@@ -1262,12 +1263,25 @@ export default function ConsultaActivaPage() {
     else voz.iniciar()
   }
 
+  /**
+   * ¿ESTE PACIENTE YA CONSINTIÓ, EN ESTA U OTRA CONSULTA?
+   *
+   * El médico eligió «una vez por paciente, y ya». Antes el consentimiento
+   * vivía en un `useState` que moría con la pantalla, así que el modal salía en
+   * CADA consulta del mismo paciente — un paso repetido cien veces al mes.
+   *
+   * `consentimiento` (el estado) sigue existiendo para la consulta en curso; lo
+   * que se añade es mirar TAMBIÉN el expediente. Ausente = nunca se pidió: no
+   * se da por otorgado por omisión jamás.
+   */
+  const yaConsintio = consentimiento || !!patient?.consentimientoGrabacion?.fecha
+
   const iniciarGrabacion = () => {
     // arrancarSegunModo, NO voz.iniciar directo: `modoVoz` está en 'whisper', así
     // que el grabador real es `audio`. Llamar voz.iniciar() arrancaba un SEGUNDO
     // grabador (Web Speech) en paralelo al de Whisper — dos motores escribiendo la
     // misma transcripción. El atajo de teclado disparaba justo este camino.
-    if (consentimiento) { arrancarSegunModo(); return }
+    if (yaConsintio) { arrancarSegunModo(); return }
     setModalConsentimiento(true)
   }
   /** Lo que decían las alergias al abrir, para poder asentar QUÉ cambió. */
@@ -1289,6 +1303,21 @@ export default function ConsultaActivaPage() {
      * bitácora.
      */
     void logAudit({ evento: 'consentimiento_grabacion', clinicId: clinicId ?? '', patientId })
+    /**
+     * Y QUEDA EN EL EXPEDIENTE, no sólo en la bitácora.
+     *
+     * La bitácora sirve para auditar; el expediente es donde un consentimiento
+     * tiene sentido y donde se puede consultar sin pedirle nada a nadie. Es
+     * además lo que permite no volver a preguntarlo.
+     *
+     * Con su propio `catch`: si Firestore falla, la grabación NO se cae — se
+     * volverá a pedir la próxima vez, que es el lado seguro del error.
+     */
+    if (clinicId) {
+      void updatePatient(clinicId, patientId, {
+        consentimientoGrabacion: { fecha: new Date().toISOString(), medicoId: auth.currentUser?.uid },
+      }).catch(() => { /* se volverá a pedir: es el lado seguro */ })
+    }
     arrancarSegunModo()
   }
 
@@ -2956,6 +2985,34 @@ export default function ConsultaActivaPage() {
     },
   }) === 'caducada', [verificacion?.huella, resumen, secciones, diagnosticos, medicamentos])
 
+  /**
+   * `validacion` vive AQUÍ, antes de `firmar`, y no seiscientas líneas después.
+   *
+   * Funcionaba —es una clausura— pero el compilador de React lo marca como
+   * acceso antes de la declaración, y tiene razón: un arreglo de dependencias
+   * SÍ se evalúa durante el render. Subirla no cambia lo que hace; la pone
+   * donde se lee.
+   */
+  const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
+
+  /**
+   * Los avisos de REVISIÓN DEL TEXTO, para el momento de firmar.
+   *
+   * La barra de arriba ya no los lleva —estorbaban desde el minuto uno—, así
+   * que aparecen aquí, que es cuando sirven. Ver `lib/expediente/cuando-avisar.ts`.
+   */
+  const avisosParaFirmar = useMemo(() => alFirmar(construirAvisos({
+    dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
+    contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
+    desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
+    antecedentesDeFamiliar,
+    datosInciertos,
+    sinRespaldo,
+    conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
+    faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
+    yaLoBloqueaNOM004: validacion?.errores ?? [],
+  })), [dosisIncompletas, contradiccionesNota, desajustesNota, antecedentesDeFamiliar, datosInciertos, sinRespaldo, safety, validacion])
+
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
     if (!clinicId) return
@@ -2994,6 +3051,23 @@ export default function ConsultaActivaPage() {
      * No acusa: dice cuáles no se pudieron comprobar y deja aceptarlos de una
      * vez. «ia» aquí significa «no verificado», no «inventado».
      */
+    /**
+     * ── Y AQUÍ SÍ: LO QUE HABÍA QUE REVISAR DEL TEXTO (I-7) ────────────────
+     *
+     * Estos avisos estaban en la barra de arriba desde el minuto uno, tapando
+     * la nota. No cambian lo que se le da al paciente —para eso están los de
+     * prescripción, que siguen apareciendo mientras receta—: cambian lo que hay
+     * que leer antes de firmar. Éste es ese momento.
+     */
+    if (avisosParaFirmar.length > 0) {
+      const seguir = await confirm(
+        `${comoSeDicenAlFirmar(avisosParaFirmar)}\n\n` +
+        'Ninguno impide firmar por sí solo; son para que los mires una vez.',
+        { confirmar: 'Los revisé, firmar', cancelar: 'Volver a la nota' },
+      )
+      if (!seguir) return
+    }
+
     /**
      * ── LO QUE SE REVISÓ NO ERA LO QUE SE FIRMA (I-8) ─────────────────────
      *
@@ -3550,7 +3624,8 @@ export default function ConsultaActivaPage() {
   }
 
   // useMemo: construirNota no es barato y esto corría en CADA render.
-  const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
+
+
 
   /**
    * ── UNA SOLA RESPUESTA A «¿POR QUÉ NO PUEDO FIRMAR?» (REG-189) ─────────────
@@ -4779,9 +4854,29 @@ export default function ConsultaActivaPage() {
           yaLoBloqueaNOM004: validacion?.errores ?? [],
         })
         const extraidos = firmada ? 0 : aprobados.size
+        /**
+         * ── LA BARRA SÓLO LLEVA LO QUE CAMBIA LA RECETA (I-7) ───────────────
+         *
+         * Su queja, repetida: «los avisos rojos me tapan la nota desde el
+         * principio». Y es literal: la barra se pinta por ENCIMA de los signos
+         * vitales, las secciones, los diagnósticos y los medicamentos. Lo
+         * primero que ve al abrir es la lista de lo que está mal en una nota
+         * que todavía no ha dictado.
+         *
+         * Pero no se mueve entera al final. Los cinco de PRESCRIPCIÓN —alergia
+         * ↔ fármaco, sobredosis, dosis incompleta, interacción, vía— tienen que
+         * llegar mientras receta: después de firmar, la receta ya se imprimió.
+         * Llevarlos al final es REG-173 y REG-190 otra vez.
+         *
+         * Los de REVISIÓN DEL TEXTO —contradicción, dato incierto, antecedente
+         * del familiar, requisito NOM— no cambian lo que se le da al paciente:
+         * cambian lo que se lee antes de firmar. Y ése es su momento.
+         *
+         * Se sigue montando UN solo panel, con menos dentro.
+         */
         return (
           <AntesDeFirmar
-            avisos={avisos}
+            avisos={mientrasReceta(avisos)}
             extraidos={extraidos}
             soloLectura={firmada}
             onIr={() => {
