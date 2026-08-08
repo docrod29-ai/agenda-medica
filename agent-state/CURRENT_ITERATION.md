@@ -13,7 +13,42 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001`
+**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
+**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
+
+---
+
+## V9 · lo que encontró la auditoría, en una frase
+
+**El producto pierde consultas ya grabadas, y le dice al paciente que su cita no
+existe.**
+
+Y una que no se esperaba: **la premisa de la directiva no se cumple.** No hay
+«cara de producto generado por IA» —cero degradados, cero morados, una tarjeta
+`rounded-2xl` en toda la aplicación— sino una identidad declarada con el
+contraste medido a mano. El defecto es el contrario: **el sistema de diseño
+existe y la aplicación no le obedece** (88,5 % de los archivos con estilo en
+línea; primitivos compartidos al 24 %).
+
+| P0 | Estado |
+|---|---|
+| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | ABIERTO `PATIENT-AUDIO-001` |
+| Navegar **termina la grabación** en silencio | ABIERTO `PATIENT-AUDIO-002` |
+| El cierre por inactividad **no oye dictar** y borra la recuperación | ABIERTO `PATIENT-AUDIO-003` |
+| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+
+Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
+donde ya había red** —el texto de la nota, con borrador en memoria, respaldo
+local, autoguardado y volcado— **y no donde no la hay**: el audio, que no tiene
+segunda copia en ninguna parte.
+
+También reparado: **REG-266**, `@keyframes spin` no existía en ningún sitio
+global pese a 90 referencias, incluidos los dos primitivos compartidos. El giro
+funcionaba «según en qué pantalla estuvieras».
+
+Detalle: `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` y sus seis hermanos.
+Estado por dominio: `DESIGN_STATE.md` · `PATIENT_COMPANION_STATE.md`.
 
 **Modo V9**: autónomo **SIN desplegar y SIN fusionar a `main`**. El dueño
 restableció el candado de despliegue al abrir V9 (§9 de la directiva). Lo demás

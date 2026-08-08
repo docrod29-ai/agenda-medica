@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 111 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 8-ago-2026.
+**Fuente**: los 113 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 27 de 111, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 28 de 113, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -52,6 +52,19 @@ ese camino no es una impresión y nunca miró la marca.
 
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
+
+Y el 8-ago-2026 llegó el vigésimo octavo, **REG-265**, con una variante que
+merece nombre propio: la pieza corría, el dato existía y estaba **a mano** — y
+aun así no llegaba. El enlace de la videoconsulta se componía sin el token del
+paciente, así que la defensa de titularidad le contestaba **404 «Cita no
+encontrada»** al dueño de la cita, **desde su propio portal**, donde el token
+estaba en la barra de direcciones.
+
+Lo que lo hizo invisible durante meses no fue la complejidad: fue **quién
+recorre el camino**. El botón del médico sí llevaba token. Sólo fallaba el
+trayecto que ningún empleado hace nunca. Cuando el usuario del camino roto no
+trabaja aquí, ninguna cantidad de uso interno lo encuentra — y esa es la lección
+que V9 tiene que llevarse entera.
 
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
 escribir «No referido» y la 1-bis lo PROHÍBE. **Ninguna de las dos estaba mal por
