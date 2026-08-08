@@ -56,11 +56,18 @@ describe('CLINICAL SAFETY HARNESS · CKD-EPI 2021', () => {
 })
 
 describe('CLINICAL SAFETY HARNESS · Cockcroft-Gault', () => {
+  // REG-192: igual que CKD-EPI, el motor devuelve PRECISIÓN COMPLETA y el redondeo
+  // es de presentación. Los valores golden NO cambiaron — se redondean al leerlos.
   it.each([
     ['H, Cr 1.0, 40a, 70kg', 1.0, 40, 'Masculino' as const, 70, 97],
     ['M, Cr 1.2, 60a, 65kg', 1.2, 60, 'Femenino' as const, 65, 51],
-  ])('%s → %d mL/min', (_l, cr, edad, sexo, peso, esperado) => {
-    expect(crclDe(cr, edad, sexo, peso)).toBe(esperado)
+  ])('%s → %d mL/min (al redondear)', (_l, cr, edad, sexo, peso, esperado) => {
+    expect(Math.round(crclDe(cr, edad, sexo, peso))).toBe(esperado)
+  })
+  it('devuelve PRECISIÓN COMPLETA (no redondea el motor)', () => {
+    const v = crclDe(1.0, 40, 'Masculino', 70)
+    expect(v).toBeCloseTo(97.222, 2)
+    expect(Number.isInteger(v)).toBe(false)   // el motor NO redondea
   })
 })
 

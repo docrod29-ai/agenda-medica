@@ -1553,3 +1553,72 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el redondeo del motor renal se comía las alertas del borde (v1074)
+
+**Encontrado** — 8-ago-2026, auditoría del módulo `funcion-renal.ts` (ningún ítem
+pendiente del backlog era reproducible: SAFE-001 y VOICE-004 ya estaban cerrados
+en el árbol y los EVAL-xxx siguen bloqueados por el corpus del dueño).
+
+**La pista** — La asimetría estaba escrita en el propio archivo. `ckdEpi2021`
+lleva un comentario que dice, por decisión del Dr. (L6), que devuelve **precisión
+completa** «porque un `Math.round` interno podía cambiar clasificaciones,
+comparaciones o cálculos posteriores». Tres funciones más abajo,
+`cockcroftGault` —que es el que de verdad alimenta los umbrales de dosis, porque
+`evaluarFuncionRenal` lo prefiere sobre CKD-EPI cuando hay peso— terminaba en
+`return cantidad(Math.round(crcl), …)`.
+
+**El defecto** — Ese entero era el número que `ajusteRenalFarmacos` comparaba
+contra los 18 umbrales de `REGLAS_RENALES`. Toda depuración en
+`[umbral − 0.5, umbral)` se redondeaba **hacia arriba** hasta el umbral exacto, y
+`crcl < umbral` pasaba de verdadero a falso. La ventana ciega existía en los
+cuatro umbrales del catálogo a la vez (30, 40, 50 y 60 mL/min).
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada. Paciente
+sintético: hombre de 80 años, 64 kg, creatinina 1.8 mg/dL.
+
+```
+CrCl real (Cockcroft-Gault) = (140−80) × 64 / (72 × 1.8) = 29.6296 mL/min
+CrCl que devolvía el motor  = 30
+ajusteRenalFarmacos([metformina, nitrofurantoína]) → []   ← cero alertas
+```
+
+**Por qué importa para un paciente** — Ese señor no es un extremo de
+laboratorio: es un anciano delgado de consultorio, con la creatinina justo donde
+metformina deja de poder darse (contraindicada por acidosis láctica con CrCl<30)
+y donde nitrofurantoína ni siquiera alcanza concentración útil en orina. El
+sistema callaba **precisamente en el borde**, que es donde el médico más
+agradece que algo hable. Y callaba en silencio: no había aviso de que el número
+se hubiera redondeado.
+
+**Reparación** — Se movió el redondeo de donde se calcula a donde se pinta, que
+es la regla que CKD-EPI ya seguía:
+
+1. `cockcroftGault` devuelve precisión completa.
+2. `ajusteRenalFarmacos` **compara con el valor completo y escribe el
+   redondeado** (`crclTexto`), así que ni un mensaje cambió de texto.
+3. La receta redondea al mostrar el CrCl, igual que ya hacía con la TFG. En
+   pantalla se ve el mismo entero de siempre.
+
+**Ningún umbral, mensaje ni fármaco cambió.** No se inventó ninguna cifra
+clínica: los 18 umbrales de `REGLAS_RENALES` son los que ya estaban y siguen
+siendo decisión del médico.
+
+**Qué NO hace** — No opina sobre si debe alertarse cuando la base es la TFG
+indexada en vez de la depuración (sigue siendo la Q2 abierta con el Dr.). No
+alerta «por cercanía»: un CrCl real de 30.4 sigue sin alertar, y debe seguir
+así. Y no vigila los demás motores que redondean por dentro — si alguno compara
+contra un umbral con el valor ya redondeado, tiene este mismo defecto.
+
+**Qué queda para el médico** — Decidir si un CrCl al borde del umbral (dentro de
+±1 mL/min) merece un aviso propio de «estás en la frontera», que es una política
+clínica, no un arreglo de software. Anotado en `OWNER_DECISIONS_REQUIRED.md`.
+
+**Comprobado que puede ponerse rojo** — Restaurado el `Math.round` dentro del
+motor: 4 de los 25 casos del golden fallan, incluido el de las dos alertas
+perdidas. Restaurado el arreglo: 25/25 en verde.
+
+**Golden** — `src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts`
+(7 casos declarados, 25 ejecutados).

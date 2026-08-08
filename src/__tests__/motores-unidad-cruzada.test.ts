@@ -110,9 +110,15 @@ describe('E0-05 · equivalencia numérica congelada (motor pre-migración)', () 
     [3.4, 85, 'Femenino', 12.712359301827584, 13, 'G5'],
   ]
 
+  /**
+   * REG-192: la columna de CrCl son ENTEROS porque el motor pre-migración
+   * redondeaba dentro. Ese redondeo se movió a la capa de presentación —comparar
+   * contra los umbrales con el valor ya redondeado borraba las alertas del borde—
+   * así que aquí se redondea AL LEER. Ni uno de los 18 valores congelados cambió.
+   */
   it.each(RENAL)('renal Scr %s, %s a, %s → TFG y CrCl idénticos', (cr, edad, sexo, tfg, crcl, estadio) => {
     expect(tfgDe(cr, edad, sexo)).toBe(tfg)
-    expect(crclDe(cr, edad, sexo, 70)).toBe(crcl)
+    expect(Math.round(crclDe(cr, edad, sexo, 70))).toBe(crcl)
     const r = evaluarFuncionRenal(mgPorDl(cr), edad, sexo, kg(70))
     expect(r.estadio).toBe(estadio)
     // Con peso, la depuración para dosificar es la de Cockcroft y lo DECLARA.
@@ -120,7 +126,7 @@ describe('E0-05 · equivalencia numérica congelada (motor pre-migración)', () 
     // deja sacar mL/min de algo que podría ser mL/min/1.73 m². Ese es el punto.
     const dep = r.depuracionParaDosis!
     expect(dep.base).toBe('cockcroft-gault')
-    if (dep.base === 'cockcroft-gault') expect(valorEn(dep.q, 'mL/min')).toBe(crcl)
+    if (dep.base === 'cockcroft-gault') expect(Math.round(valorEn(dep.q, 'mL/min'))).toBe(crcl)
   })
 
   it('sin peso, la depuración para dosificar es la TFG indexada y lo declara', () => {

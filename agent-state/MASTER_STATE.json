@@ -10,16 +10,13 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "REN-001 (cerrada) — REG-192, v1074",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/renal/REN-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnRama": "nexusmed-v1074",
+  "notaDeSincronia": "8-ago-2026: este archivo iba tres días por detrás del repositorio (decía v1030 con `main` en v1073 y daba por pendientes SAFE-001 y VOICE-004, que ya estaban reparados y sellados). Se comprobó ítem por ítem contra el árbol antes de elegir trabajo. La versión desplegada la fija el dueño: la rama deja v1074 lista, no publicada."
 }

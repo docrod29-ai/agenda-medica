@@ -702,7 +702,11 @@ export default function GeneradorRecetaPage() {
                   {renal.egfrCkdEpi
                     ? <div><strong>TFG (CKD-EPI):</strong> {Math.round(valorEn(renal.egfrCkdEpi, 'mL/min/1.73m²'))} mL/min/1.73m² · <strong>{renal.estadio}</strong> ({renal.estadioDesc})</div>
                     : <div>{renal.estadioDesc}</div>}
-                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {valorEn(renal.crClCockcroft, 'mL/min')} mL/min</div>}
+                  {/* El Math.round es de AQUÍ desde que cockcroftGault devuelve precisión
+                      completa (8-ago-2026): redondear dentro del motor hacía que un CrCl de
+                      29.63 se comparara como 30 y se perdieran las alertas de <30. Lo que se
+                      ve en pantalla es el mismo número entero que antes. */}
+                  {renal.crClCockcroft != null && <div><strong>CrCl (Cockcroft):</strong> {Math.round(valorEn(renal.crClCockcroft, 'mL/min'))} mL/min</div>}
                 </div>
               )}
             </div>

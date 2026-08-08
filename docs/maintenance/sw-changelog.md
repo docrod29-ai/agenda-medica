@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el redondeo del motor renal se comía las alertas del borde
+
+`cockcroftGault` devolvía `Math.round(crcl)`, y ese entero era el que se comparaba
+contra los umbrales de ajuste renal. Todo CrCl entre `umbral − 0.5` y el umbral
+subía al umbral exacto y la alerta no salía.
+
+Hombre de 80 años, 64 kg, creatinina 1.8: CrCl real 29.63 mL/min, con metformina
+y nitrofurantoína en la receta. Cero alertas — y las dos son de EVITAR por debajo
+de 30.
+
+Ahora se compara con el valor completo y se escribe el redondeado, que es la
+regla que CKD-EPI ya seguía. Ningún umbral cambió y en pantalla se ve el mismo
+entero de siempre.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote
