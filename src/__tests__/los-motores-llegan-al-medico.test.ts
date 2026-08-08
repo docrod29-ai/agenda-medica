@@ -68,12 +68,13 @@ function medir(): {
  * No es una meta de cero: es el tope de hoy. Cada iteración del loop puede
  * quitar una o dos, y ninguna puede añadir.
  */
-const TOPE = { huerfanasMax: 42, totalMin: 771 }
+const TOPE = { huerfanasMax: 41, totalMin: 771 }
 /* 50 → 48 → 44 el 8-ago-2026:
      · REG-256, la bandeja de alertas del episodio (2)
      · REG-257, CAM-ICU y tres motores POCUS del panel de UCI (4)
      · REG-258, el oxígeno con cifras y sin declarar (1)
      · REG-259, lo que el texto de la IA OMITE del motor (1)
+     · REG-261, los ingresos hospitalarios en el expediente (1)
    Cada iteración del loop cierra una o dos y baja este número. */
 
 describe('el trinquete de conexión', () => {
@@ -148,7 +149,7 @@ describe('el número significa algo: tres categorías (REG-260)', () => {
   })
 
   it('los que tienen cuerpo real son POCOS y están nombrados', () => {
-    expect(m.conCuerpo.length).toBeLessThanOrEqual(8)
+    expect(m.conCuerpo.length).toBeLessThanOrEqual(7)
     const doc = readFileSync(join(RAIZ, 'docs/quality/MOTORES-SIN-CONECTAR.md'), 'utf8')
     for (const x of m.conCuerpo) expect(doc, `${x} no está en el documento`).toContain(x)
   })

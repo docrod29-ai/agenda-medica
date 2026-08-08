@@ -3,7 +3,7 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 108 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 109 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 25 de 108, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 26 de 109, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.

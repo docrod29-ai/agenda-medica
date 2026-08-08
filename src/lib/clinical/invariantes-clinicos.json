@@ -1111,6 +1111,10 @@
     {
       "archivo": "src/__tests__/lo-que-el-texto-se-callo.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
+      "minCasos": 10
     }
   ]
 }

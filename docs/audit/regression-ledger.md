@@ -4717,3 +4717,48 @@ Familia `sin_medir`: el instrumento existía y medía de más.
 `src/__tests__/los-motores-llegan-al-medico.test.ts` — que las dos categorías
 sumen el total, que los de cuerpo real estén **nombrados en el documento**, y
 que `POLITICA_CORRECCION` siga en `null` con su decisión en la cola del dueño.
+
+## REG-261 — el expediente no enseñaba los ingresos hospitalarios (v1143)
+
+**Y lo pedía el propio código.** `getInternamientosDePaciente()` llevaba escrito
+en su comentario, desde que se escribió:
+
+> «Internamientos de UN paciente (**para mostrarlos en su expediente**).»
+
+El expediente no los mostraba. Sin llamador y **sin prueba** — de los ocho con
+cuerpo real que dejó el instrumento de REG-255, era uno de los dos que no tenía
+ni eso.
+
+**Por qué no es un detalle.** La constitución del charter V7 dice, en
+mayúsculas: **UN PACIENTE · UN EXPEDIENTE LONGITUDINAL**. Un paciente ingresado
+dos veces tenía esos episodios sólo en la pantalla de hospitalización, a la que
+se llega por el censo. **Desde su expediente no había forma de saber que
+existieron.**
+
+Las notas de hospital sí aparecían bajo su pestaña. Pero una nota suelta no dice
+cuándo ingresó, cuántos días estuvo, ni cómo egresó.
+
+**Va antes de los filtros de notas**, y se comprueba por posición: saber que
+estuvo ingresado dos veces es contexto para leer todo lo de abajo, no una
+pestaña más.
+
+**Lo que NO hace, y es deliberado.** No calcula días de estancia ni reingresos:
+esos motores existen aparte, con sus reglas y su zona horaria, y recalcularlos
+aquí sería **una segunda verdad para el mismo dato** — el defecto que ya se
+evitó con los umbrales de POCUS (REG-257). Tampoco reordena: la consulta ya
+ordena por fecha.
+
+Y si la lectura falla **no enseña una lista vacía**: eso afirmaría que el
+paciente nunca estuvo ingresado. `null` es «no se pudo leer».
+
+**El trinquete baja: 42 → 41** (34 envoltorios · **7** con cuerpo real).
+Familia `no_conectado`, la vigésima sexta.
+
+**Guardián.** `src/__tests__/el-expediente-ensena-los-ingresos.test.ts`, 10 casos.
+
+**Y un tropiezo de codificación que vale la pena dejar escrito.** El guardián se
+llamó primero `…enseña…`, y el sello clínico lo dio por huérfano: macOS guarda
+los nombres de archivo en **NFD** y el ledger los cita en **NFC**, así que *la
+misma palabra no casaba consigo misma*. No es una curiosidad del sistema de
+archivos: **cualquier compuerta que compare un nombre de archivo con un texto
+escrito a mano se rompe igual**. Los nombres de archivo van en ASCII.

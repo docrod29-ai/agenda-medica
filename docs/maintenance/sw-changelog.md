@@ -2525,3 +2525,9 @@ carbapenemasa— sin contradecir nada, y nadie lo notaba. Ahora se avisa, en
 Decía 42 y significaba otra cosa: 34 son envoltorios de ≤3 líneas sobre algo que
 sí corre, y sólo 8 tienen cuerpo real. Uno de esos ocho está bloqueado en una
 decisión de política del Dr., no en el código.
+
+## v1143 — los ingresos hospitalarios, en el expediente (REG-261)
+
+Un paciente ingresado dos veces no tenía forma, desde su expediente, de saber
+que esos episodios existieron. La función existía y su comentario pedía justo
+esto.

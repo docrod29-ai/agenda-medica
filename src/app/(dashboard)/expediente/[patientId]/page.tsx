@@ -25,6 +25,8 @@ import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
+import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
+import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
@@ -292,6 +294,27 @@ export default function ExpedientePage() {
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
         Historia clínica
       </div>
+
+      {/*
+        LOS INGRESOS DE ESTE PACIENTE (REG-261).
+
+        `getInternamientosDePaciente()` decía en su comentario «para mostrarlos
+        en su expediente» y el expediente NO los mostraba: la función no tenía
+        llamador ni prueba.
+
+        Va ANTES de los filtros de notas a propósito: la constitución del
+        charter es «un paciente, un expediente longitudinal», y saber que
+        estuvo ingresado dos veces es contexto para leer todo lo de abajo, no
+        una pestaña más.
+      */}
+      {clinicId && (
+        <InternamientosDelPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          cargar={getInternamientosDePaciente}
+          alAbrir={id => router.push(`/hospitalizacion/${id}`)}
+        />
+      )}
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>

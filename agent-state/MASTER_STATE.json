@@ -16,10 +16,9 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1142",
+  "ultimaVersionEnProduccion": "nexusmed-v1143",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
-    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
@@ -27,10 +26,12 @@
     " M docs/quality/MOTORES-SIN-CONECTAR.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M scripts/calidad/motores-conectados.mjs",
     " M src/__tests__/los-motores-llegan-al-medico.test.ts",
+    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json"
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
+    "?? src/components/InternamientosDelPaciente.tsx"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +67,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 108,
-    "ultimaREG": "REG-260",
-    "archivosDePrueba": 537,
-    "casosDePrueba": 7141,
+    "regsEnElLedger": 109,
+    "ultimaREG": "REG-261",
+    "archivosDePrueba": 538,
+    "casosDePrueba": 7151,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**42** no se usan en ningún sitio fuera de su propia declaración.
+**41** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -41,6 +41,7 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `oxigenoSinDeclarar` | REG-258 · detecta flujo/FiO₂ sin la casilla de «recibe O₂»; NEWS2 suma 2 puntos por oxígeno y sin ella la puntuación sale baja |
 | `omiteAlertasCriticas` | REG-259 · el texto de la IA podía CALLARSE una carbapenemasa detectada por el motor; contradecir era ruidoso, omitir no chocaba con nada |
 | `sePuedeFirmar` · `esAntecedenteFamiliar` · y 32 más | REG-260 · **no son defectos**: envoltorios de ≤3 líneas sobre funciones que sí corren |
+| `getInternamientosDePaciente` | REG-261 · su comentario decía «para mostrarlos en su expediente» y el expediente no los mostraba |
 
 ## Lo que NO significa estar en esta lista
 
@@ -124,7 +125,6 @@ crezca.
 - `src/lib/hospital/eventos.ts::serieSignosVigente`
 - `src/lib/hospital/eventos.ts::validarCorreccion`
 - `src/lib/hospital/firestore.ts::getBandejaLab`
-- `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
 - `src/lib/hospital/firestore.ts::suscribirUnidades`
 - `src/lib/seguridad/alergias.ts::negacionesEnTexto`
 - `src/lib/seguridad/ofuscar-local.ts::estaOfuscado`
