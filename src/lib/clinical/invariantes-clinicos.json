@@ -1059,6 +1059,10 @@
     {
       "archivo": "src/__tests__/que-es-de-que.test.ts",
       "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts",
+      "minCasos": 19
     }
   ]
 }

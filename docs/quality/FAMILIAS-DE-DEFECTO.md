@@ -3,7 +3,7 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 91 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 92 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 18 de 91, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 19 de 92, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 14 de 91.**
+**«El sistema se contradice a sí mismo» — 14 de 92.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el

@@ -3981,3 +3981,42 @@ Reutiliza `segmentar()` de `trazabilidad.ts`: dos formas de trocear el dictado
 darían dos verdades distintas.
 
 **Guardián.** `src/__tests__/que-es-de-que.test.ts`, 16 casos.
+
+## REG-244 — con receta Y estudios, la orden no se imprimía nunca (v1125)
+
+**El defecto.** Al firmar, la consulta elegía **un** destino:
+
+- con medicamentos → la receta
+- sin medicamentos, con estudios → la orden
+- ninguno → el expediente
+
+Con medicamentos **y** estudios —media consulta de medicina interna— iba a la
+receta y **la orden se quedaba sin imprimir**. El paciente salía con su receta y
+sin su solicitud de estudios, y **todo se veía correcto**: nota firmada, cita
+marcada como atendida, ningún aviso. Familia `no_conectado`: la ruta de la orden
+existe, funciona y tiene pruebas — simplemente no corría en el camino que el
+médico recorre.
+
+**Lo incómodo.** El comentario del propio código ya avisaba de la mitad —«antes
+solo ramificaba a receta y la orden se quedaba en el tintero»— y lo arregló para
+el caso «sin medicamentos». El caso «con los dos» siguió igual.
+
+**Y estaba duplicado.** La misma cadena de `if` vivía otra vez en el cierre del
+modal de cobro, con el mismo defecto: tras cobrar, con receta y estudios, se iba
+a la receta y la orden no se imprimía. Dos copias de una decisión es dos sitios
+donde arreglarla, y sólo se arregla uno.
+
+**Por qué no se arregla con otro `if`.** Porque el problema no es a cuál de los
+dos ir: **es que son dos**. Cualquier regla que elija uno deja el otro sin hacer.
+
+**El arreglo.** `queFaltaParaCerrar()` devuelve lo que queda, con **lo que pasa
+si no se hace** —«el laboratorio no le va a tomar la muestra sin la solicitud»,
+no «orden de estudios»—; y `aDondeIrDirecto()` decide si hay un destino claro.
+
+**Lo que NO cambia, y es deliberado.** Con un solo destino se sigue navegando
+directo. Ese caso nunca estuvo roto, y meterle una pantalla de por medio sería
+añadir un clic a la consulta más común para arreglar un problema que esa
+consulta no tiene.
+
+**Guardián.** `src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts`, 19
+casos, incluido uno que falla si vuelve a aparecer la cadena de `if`.

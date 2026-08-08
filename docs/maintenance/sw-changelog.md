@@ -2412,3 +2412,9 @@ comprueba que ninguna cifra se invente ni se pierda.
 El plan atado al problema que lo motivó, con la frase del dictado que lo prueba.
 Lo que no consta queda sin asignar, a la vista. NO se infiere: con dos
 infecciones simultáneas, inferir acierta por suerte.
+
+## v1125 — la orden ya no se queda en el tintero (REG-244)
+
+Con receta Y estudios, firmar llevaba a la receta y la orden no se imprimía
+nunca. Ahora, cuando queda más de una cosa, se enseña qué falta y qué pasa si no
+se hace. Con un solo destino se sigue yendo directo.

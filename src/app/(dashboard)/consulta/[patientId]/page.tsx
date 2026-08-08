@@ -52,6 +52,8 @@ import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
+import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
+import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -3523,16 +3525,29 @@ export default function ConsultaActivaPage() {
       if (config?.pedirCobroAlCerrar === true) {
         setCobrar(true)
       } else {
-        const nid = notaIdRef.current
-        router.push(
-          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
-          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
-          // médica (antes solo ramificaba a receta y la orden se quedaba en el
-          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
-          // ni lo uno ni lo otro → expediente.
-          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
-          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
-          : `/expediente/${patientId}`)
+        /**
+         * ── LA ORDEN SE QUEDABA EN EL TINTERO (REG-244) ──────────────────
+         *
+         * Esto elegía UN destino. Con medicamentos **y** estudios —media
+         * consulta de medicina interna— iba a la receta y la orden no se
+         * imprimía nunca: el paciente salía sin su solicitud, y todo se veía
+         * correcto (nota firmada, cita atendida).
+         *
+         * El problema no era a cuál de los dos ir: era que son dos. Cualquier
+         * regla que elija uno deja el otro sin hacer.
+         *
+         * Con un solo destino se sigue yendo DIRECTO —ese caso nunca estuvo
+         * roto—; con dos o más se enseña qué falta y se hace en cualquier
+         * orden.
+         */
+        const destino = aDondeIrDirecto({
+          patientId,
+          notaId: notaIdRef.current,
+          hayMedicamentos: medicamentos.length > 0,
+          hayEstudios: estudiosOrden.length > 0,
+          internamientoActivo,
+        })
+        if (destino) router.push(destino)
       }
     } catch (e) {
       toast('Error al firmar', 'error')
@@ -5039,6 +5054,30 @@ export default function ConsultaActivaPage() {
       )}
 
       {/*
+        CÓMO CERRAR LA CONSULTA (REG-244) — sólo si quedó más de una cosa por
+        hacer. Con un solo destino se navegó directo y esto no aparece.
+      */}
+      {firmada && (
+        <ComoCerrarLaConsulta
+          pasos={queFaltaParaCerrar({
+            patientId,
+            /**
+             * `notaId` de ESTADO, no el ref: leer un ref durante el render es
+             * lo que marca el compilador de React, y aquí no hace falta —
+             * `setNotaId` acompaña a cada asignación del ref, así que el estado
+             * ya tiene el mismo valor cuando la nota está firmada.
+             */
+            notaId,
+            hayMedicamentos: medicamentos.length > 0,
+            hayEstudios: estudiosOrden.length > 0,
+            pideCobro: config?.pedirCobroAlCerrar === true,
+            internamientoActivo,
+          })}
+          alIr={r => router.push(r)}
+        />
+      )}
+
+      {/*
         QUÉ ES DE QUÉ (REG-243) — el plan atado al problema que lo motivó, y
         atado SÓLO donde él lo dijo. Lo que no consta se ve sin asignar: un
         hueco visible es información, un vínculo inventado es un error que se
@@ -5659,18 +5698,23 @@ export default function ConsultaActivaPage() {
           }}
           onClose={() => {
             setCobrar(false)
-            // Fluidez: si la consulta dejó medicamentos, encadena directo a la
-            // RECETA (acabas de prescribir → imprímela); si no, al expediente.
-            const nid = notaId || notaIdRef.current
-            router.push(
-          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
-          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
-          // médica (antes solo ramificaba a receta y la orden se quedaba en el
-          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
-          // ni lo uno ni lo otro → expediente.
-          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
-          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
-          : `/expediente/${patientId}`)
+            /**
+             * La MISMA cadena de ifs estaba duplicada aquí (REG-244). El
+             * defecto también: con medicamentos y estudios, tras cobrar se iba
+             * a la receta y la orden no se imprimía nunca.
+             *
+             * Ya no se pasa `pideCobro`: el cobro acaba de hacerse. Si queda
+             * más de una cosa, no se navega y el panel de cierre —que sigue
+             * montado en la consulta— enseña qué falta.
+             */
+            const destino = aDondeIrDirecto({
+              patientId,
+              notaId: notaId || notaIdRef.current,
+              hayMedicamentos: medicamentos.length > 0,
+              hayEstudios: estudiosOrden.length > 0,
+              internamientoActivo,
+            })
+            if (destino) router.push(destino)
           }}
         />
       )}
