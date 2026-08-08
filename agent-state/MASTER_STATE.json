@@ -10,9 +10,9 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-003 / REG-192 (cerrada)",
+  "iteracionActual": "SAFE-005 / REG-192 provisional (cerrada)",
   "ramasActivas": [
-    "agent/safety/SAFE-003"
+    "agent/safety/SAFE-005-cmi-censurada"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
@@ -21,6 +21,7 @@
   "pendientesReales": [
     "EVAL-001 (58) — bloqueado B-01: los 429 MB de audio no están aquí.",
     "EVAL-002 (55) — corpus oro del motor de temporalidad; sigue pendiente.",
-    "190 hallazgos P1 sin triar en docs/audit/hallazgos-crudos-workflow.json: hay que verificarlos uno a uno antes de darlos por buenos."
+    "190 hallazgos P1 sin triar en docs/audit/hallazgos-crudos-workflow.json: hay que verificarlos uno a uno antes de darlos por buenos.",
+    "COLISIÓN: ~15 ramas en vuelo toman REG-192 y nexusmed-v1074 sobre la misma base (main = REG-191 / v1073). El renumerado al fusionar es del dueño (T-1)."
   ]
 }

@@ -39,3 +39,9 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
+
+## NUMERACIÓN (añadido 8-ago-2026)
+
+| # | Decisión | Recomendación | Bloqueado | Sigue sin ella |
+|---|---|---|---|---|
+| T-1b | **Colisión de REG-xxx y de `nexusmed-vNNNN` entre ramas en vuelo.** El 8-ago-2026 hay ~15 ramas de agente basadas en `main` (REG-191 · v1073) y **todas** reclaman REG-192 y v1074; alguna llega a REG-233 · v1115. El número sale de contar lo que hay en `main`, y `main` no se mueve hasta que el dueño fusiona | Renumerar **al fusionar**, en el orden en que se acepten, y no antes: cualquier número elegido hoy vuelve a colisionar mañana. Alternativa si molesta: reservar bloques por rama | Nada del trabajo clínico | Todo: cada rama trae su defecto reparado y sus compuertas en verde; sólo la etiqueta está por decidir |

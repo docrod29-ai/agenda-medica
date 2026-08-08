@@ -111,7 +111,7 @@
       "cierre": "CERRADO — REG-145 (v1032). `trinquete-de-voz.test.ts`: las 6 000 frases pesan 1,2 MB y viven en `fixtures/voz/corpus-v3-6000.csv`; los 429 MB de mp3 se quedan fuera."
     },
     {
-      "id": "SAFE-003",
+      "id": "SAFE-005",
       "titulo": "La CMI censurada se leía como exacta en los fenotipos de Gram positivos",
       "hallazgo": "`cmiDe` devolvía `r.cmi` pelado y tiraba `r.cmiCensurada`. Neumococo con penicilina «>2» salía como «tratable con penicilina parenteral a dosis altas»; SARM con vancomicina «>2» como sospecha de hVISA; E. faecium con daptomicina «>4» en silencio; y un tamiz de gentamicina «<500» declaraba HLAR falso.",
       "porQueImporta": "Es una frase que el médico lee como permiso, impresa en la nota, con el número que la niega al lado. El motor de puntos de corte ya respetaba el operador desde REG-044 y el de fenotipos no, sobre el MISMO panel.",
@@ -129,7 +129,7 @@
       "dependenciaExterna": 0,
       "score": 73,
       "estado": "cerrado",
-      "cierre": "CERRADO — REG-192 (v1074). Golden `la-cmi-censurada-no-se-lee-como-exacta.test.ts`, 20 casos, 8 rojos sin el arreglo.",
+      "cierre": "CERRADO — REG-192 (v1074) — número provisional, ver colisión en OWNER_DECISIONS_REQUIRED. Golden `la-cmi-censurada-no-se-lee-como-exacta.test.ts`, 20 casos, 8 rojos sin el arreglo.",
       "reversible": true
     }
   ],
