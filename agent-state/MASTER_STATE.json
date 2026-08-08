@@ -10,16 +10,28 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "NEG-001 (cerrada)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-001",
+    "agent/safety/NEG-001"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1074",
   "trabajoLocalSinSubir": [
     "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  ],
+  "planDeAuditoriaRonda1": {
+    "estado": "cerrado",
+    "hallazgos": ["D1 (REG-189)", "D2 (REG-189)", "G1 (REG-190)", "E3 (REG-191)", "C2/C3 (REG-192)"]
+  },
+  "compuertasDelUltimoCiclo": {
+    "vitest": "6946 en verde; 1 rojo AJENO (ops-timeout-y-punto-ciego: espera que 10.255.255.1 se cuelgue y el proxy del contenedor la corta antes; falla igual en main sin tocar nada)",
+    "tsc": "limpio",
+    "lintTrinquete": "96, igual que el techo",
+    "build": "no concluye en este contenedor por falta de configuración de Firebase (auth/invalid-api-key al recolectar /dr/[clinicId]); comprobado que falla igual en main. El build real corre en CI."
+  }
 }

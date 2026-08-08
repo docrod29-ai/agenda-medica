@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: «no sé» se guardaba como «no»
+
+El motor que contrasta lo que el paciente negó contra lo que la nota afirma sólo
+entendía el español de un formulario. De doce formas reales de contestar que no
+en una consulta mexicana, siete no se reconocían: «pues no», «fíjese que no»,
+«para nada», «qué va», «tampoco», «nel», «no es diabético». Para esos pacientes
+la defensa contra el antecedente cosechado de la pregunta no existía.
+
+Y una se reconocía sin deber: «no sé» empieza por «no», así que entraba como
+negación y el extractor bajaba la condición a `descartado`. Un «no lo sé» del
+paciente se volvía un «no la tiene» del expediente — la regla 4 al revés.
+
+Ahora la duda gana sobre la negativa, las marcas se leen sin acentos («negó» no
+encajaba en `nieg[ao]`) y las que niegan un término suelto exigen adyacencia: en
+«no es fumador, tiene diabetes» el «no es» habla del tabaco.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

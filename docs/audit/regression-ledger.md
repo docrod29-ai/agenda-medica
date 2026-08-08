@@ -1553,3 +1553,89 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — «no sé» se guardaba como «no», y siete formas de decir que no no se oían (v1074)
+
+**Encontrado** — 8-ago-2026, hallazgos C2 y C3 de la auditoría de nueve
+dimensiones, los dos que quedaban del plan.
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada: se le pasaron a
+`condicionesNegadas` las formas en que se contesta de verdad en una consulta
+mexicana y se miró qué devolvía. De doce, **siete no se reconocían**:
+
+```
+«¿Padece diabetes?  Pues no.»            → []
+«¿Tiene hipertensión?  Fíjese que no.»   → []
+«¿Es asmático?  Para nada.»              → []
+«¿Ha tenido cáncer?  Qué va.»            → []
+«¿Tiene VIH?  Nel.»                      → []
+«¿Presión alta?  Tampoco.»               → []
+«No es diabético.»                       → []
+```
+
+Y una se reconocía y **no debía**:
+
+```
+«¿Tiene diabetes?  No sé.»               → ['diabetes']   ← negada
+```
+
+**Por qué le importa a un paciente** — Las dos mitades son el mismo motor, y las
+dos acaban en el expediente.
+
+La que se escapa: este motor es la única defensa determinista contra el fallo que
+el Dr. encontró en producción el 3-ago (REG del interrogatorio dirigido). El
+interrogatorio se dicta **nombrando** las enfermedades en la pregunta, el
+extractor las cosecha, y el paciente que contestó que no sale con dos crónicas
+que no tiene. Si el motor no entiende **cómo** contestó ese paciente, para él la
+defensa no existe — y el antecedente se arrastra a todas las notas siguientes,
+cambia el riesgo quirúrgico y cambia la elección de fármacos.
+
+La que sobra es peor, porque **escribe**. «No sé» empieza por «no», así que
+entraba como negación, y `corregirCertezaPorNegacion` bajaba la condición a
+`descartado`. El sistema convertía un «no lo sé» del paciente en un «no la tiene»
+del expediente. Es la regla 4 de seguridad clínica exactamente al revés:
+**ausencia de dato no es dato de ausencia**.
+
+**Reparación** — En `src/lib/expediente/negaciones.ts`:
+
+1. `DUDA`, que se mira **antes** que `NEGATIVAS` y gana: «no sé», «no me
+   acuerdo», «no estoy seguro», «quién sabe», «no me han checado».
+2. `NEGATIVAS` aprende el habla real: «pues no», «fíjese que no», «para nada»,
+   «qué va», «tampoco», «nel», «jamás», y las muletillas que las preceden.
+3. `NIEGA_EL_TERMINO`, para «no es diabético» y «nunca ha tenido asma», que la
+   lista anterior no cubría porque sólo entendía «no tiene».
+4. Todas las marcas se prueban sobre el texto **plegado sin acentos**: «negó
+   diabetes» no encajaba en `nieg[ao]` —la «ó» no es «o»— y la frase se leía como
+   una afirmación.
+
+**Por qué las marcas de término exigen adyacencia** — «No es fumador, tiene
+diabetes de diez años» tiene un «no es» que habla del tabaco. Buscarlo en
+cualquier posición de la frase habría borrado un antecedente **real**, que es el
+daño en la dirección cara. Entre la marca y el término sólo se admite la
+enumeración que la propia marca niega («no es diabético ni hipertenso»); de eso
+se encarga `niegaAlTermino`, con un bucle y no con una alternación repetida —un
+regex así se cuelga con el texto que no encaja.
+
+**Las dos direcciones no son simétricas** — Señalar de menos deja un aviso sin
+salir. Fabricar un negativo hace que el expediente afirme que el paciente NO
+tiene algo que nadie descartó. Todo lo dudoso cae del lado de señalar de menos.
+
+**Ningún umbral ni cifra clínica** — Esto es vocabulario, no criterio: la lista
+de crónicas no cambió y sigue valiendo que lo que no está en ella no se vigila.
+
+**Qué NO hace** — No detecta la duda **como** duda: «¿Tiene diabetes? No sé» deja
+de negar, pero nadie avisa de que quedó una pregunta abierta, y si la nota afirma
+la diabetes a partir de ese «no sé» este motor no lo ve. Hace falta un canal de
+«declarado incierto» que hoy no existe.
+
+**Qué queda para el médico** — Igual que antes: el motor sólo afirma que dictado
+y nota se contradicen. Un paciente puede negar una diabetes que sí tiene
+documentada; cuál de las dos vale es una decisión clínica suya.
+
+**Comprobado que puede ponerse rojo** — Revertido `negaciones.ts` con el golden
+puesto: **23 de sus 32 casos fallan**; restaurado, los 32 pasan.
+
+**Golden** — `src/__tests__/el-no-de-la-consulta-no-es-el-del-formulario.test.ts`
+(20 casos declarados, 32 ejecutados).
