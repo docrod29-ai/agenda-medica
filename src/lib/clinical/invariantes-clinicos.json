@@ -1123,6 +1123,10 @@
     {
       "archivo": "src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts",
+      "minCasos": 9
     }
   ]
 }

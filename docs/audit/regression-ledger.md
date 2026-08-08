@@ -4834,3 +4834,47 @@ use `listarVersiones` y no `obtenerVersion`.
 Familia `sin_medir`.
 
 **Guardián.** `src/__tests__/el-barrido-de-motores-esta-explicado.test.ts`, 8 casos.
+
+## REG-265 — el barrido de pantalla estrecha, y el resultado incómodo (v1147)
+
+El guardián `la-pantalla-cabe-en-un-telefono` declaraba en su propio comentario
+lo que **no** podía ver: *«un `width` fijo, una tabla ancha, una imagen sin
+`max-width` pasa por aquí sin despeinarse»*. Ese hueco llevaba sesiones en la
+cola sin instrumento.
+
+Ahora lo hay, para tres clases: **ancho fijo > 360 px**, **rejilla
+`minmax(Npx)` sin `min()`** e **imagen sin restricción de ancho**.
+
+**El resultado: cero.** No hay ninguna en toda la aplicación.
+
+**Pero la primera medición dijo 23 anchos y 15 imágenes**, y ninguno era real:
+
+| Lo que contaba de más | Por qué no es un defecto |
+|---|---|
+| `max-width: 540px` | La expresión casaba con la **cola** de `max-width`, que es lo contrario del defecto: es la cura |
+| Receta y orden a 1000 px | Son **carta**. Ese documento no se lee en un teléfono, se imprime |
+| Brazalete en `document.write` | Sale por la impresora |
+| Once imágenes | Tenían `width: 100%` |
+| Dos QR de 200 px | Caben de sobra en 360 |
+| Un QR en `mm` | Unidad de papel: no vive en una pantalla |
+| **Dos `<img>`** | Estaban **dentro de un comentario** explicando cómo se captura el membrete en el PDF |
+
+**Es la cuarta vez en esta sesión** que un medidor mío informa de más antes de
+decir la verdad: 152 motores que eran 50 (REG-255), 42 que eran 8 (REG-260), el
+guardián de pautas gritando en toda la UCI (REG-245), y ahora 23 anchos que eran
+cero.
+
+**Un medidor que informa de más enseña a ignorarlo**, exactamente igual que un
+aviso clínico. Por eso las exclusiones viven escritas en el script **con su
+motivo**, y hay un caso por cada una: que no case con `max-width`, que excluya
+impresión, que excluya milímetros, y que quite los comentarios **antes** de
+mirar.
+
+**Y lo que este barrido NO hace, escrito y comprobado:** no sustituye al
+navegador. Creer que un barrido de código fuente cubre el desborde real sería el
+peor resultado posible de este trabajo. Lo que quede sólo se ve **abriendo un
+navegador con un teléfono emulado**.
+
+Familia `sin_medir`.
+
+**Guardián.** `src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts`, 9 casos.

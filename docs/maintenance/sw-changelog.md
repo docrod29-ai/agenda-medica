@@ -2552,3 +2552,9 @@ vacíos. La nota por aparatos —lo que ningún competidor hace— no corría so
 
 Paquete de este despliegue: REG-264 (código) + la documentación de apertura de
 V9 (sin código).
+
+## v1147 — el barrido de pantalla estrecha (REG-265)
+
+Instrumento para las tres clases que el guardián anterior declaraba no poder
+ver: ancho fijo, rejilla rígida, imagen sin tope. Resultado: cero. La primera
+medición decía 23 y ninguno era real.
