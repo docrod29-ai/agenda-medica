@@ -5273,7 +5273,7 @@ export default function ConsultaActivaPage() {
               {chatCorr.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
                   {chatCorr.map((m, i) => (
-                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus, #3d5afe)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
+                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
                       {m.texto}
                     </div>
                   ))}
@@ -5293,7 +5293,7 @@ export default function ConsultaActivaPage() {
                     ↩ Deshacer
                   </button>
                 )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus, #3d5afe)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
                 </button>
               </div>
@@ -5340,7 +5340,7 @@ export default function ConsultaActivaPage() {
                 <button
                   onClick={() => void guardarCedulaRapida()}
                   disabled={!cedulaRapida.trim() || guardandoCedula}
-                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus, #3d5afe)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   {guardandoCedula ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : 'Guardar y seguir'}
                 </button>

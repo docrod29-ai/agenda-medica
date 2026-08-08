@@ -147,7 +147,7 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
               </div>
             ) : (
               <button onClick={() => { setAbierto(abierto === p.id ? null : p.id); setMsg('') }}
-                style={{ background: abierto === p.id ? 'var(--s2)' : 'var(--nexus, #3d5afe)', color: abierto === p.id ? 'var(--text)' : '#fff', border: abierto === p.id ? '1px solid var(--border)' : 'none', borderRadius: 8, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ background: abierto === p.id ? 'var(--s2)' : 'var(--nexus-solido)', color: abierto === p.id ? 'var(--text)' : '#fff', border: abierto === p.id ? '1px solid var(--border)' : 'none', borderRadius: 8, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                 {abierto === p.id ? 'Cancelar' : 'Solicitar factura'}
               </button>
             )}

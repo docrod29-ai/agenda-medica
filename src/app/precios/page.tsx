@@ -60,7 +60,9 @@ function Card({ plan }: { plan: PlanCreditos }) {
       <Link href="/registro" style={{
         display: 'block', textAlign: 'center', marginTop: 18, padding: '12px 0', borderRadius: 12,
         fontSize: 15, fontWeight: 700, textDecoration: 'none',
-        background: destacado ? 'var(--nexus, #3d5afe)' : 'transparent',
+        /* Relleno con texto blanco encima → el azul SÓLIDO (5,13 : 1). Como
+           texto sobre transparente se queda --nexus, que es el que se lee. */
+        background: destacado ? 'var(--nexus-solido)' : 'transparent',
         color: destacado ? '#fff' : 'var(--nexus, #3d5afe)',
         border: '1px solid var(--nexus, #3d5afe)',
       }}>Prueba gratis 14 días</Link>

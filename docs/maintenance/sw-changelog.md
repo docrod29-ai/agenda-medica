@@ -2325,3 +2325,12 @@ prueba era tan estrecha como el barrido que la escribió; ahora es por patrón.
 (2) Cinco pestañas de /demo/interactivo pedían 425 px en 390. (3) Login y
 registro tenían <label> visible pero SIN asociar: el lector de pantalla decía
 «edición de texto». Parecía resuelto y no lo estaba (REG-233).
+
+## v1115 — el mismo error de guardián, dos veces seguidas
+Tras v1114 volví a barrer con el navegador y /precios seguía a 3,28. La causa:
+mi guardián nuevo miraba `background: 'var(--nexus…)'` en forma DIRECTA y el
+sitio lo escribía dentro de un ternario. Dos veces seguidas escribí la prueba
+con la forma que acababa de arreglar, en vez de con la forma que el defecto
+puede tomar. Ahora el patrón admite ternarios; 5 sitios más corregidos
+(ToastContext, dos de la consulta, facturación, precios). Verificado en vivo:
+las 8 pantallas a 4,66 o mejor.

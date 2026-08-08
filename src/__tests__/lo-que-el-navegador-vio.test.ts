@@ -64,8 +64,16 @@ describe('ningún relleno azul lleva texto blanco, se escriba como se escriba', 
      * eso siete pantallas siguieron fallando a 3,28. Ahora es por patrón.
      */
     const culpables: string[] = []
-    const relleno = /background: *'var\(--(?:nexus|teal)(?:,[^']*)?\)'/
-    const blanco = /color: *'(?:#fff|#FFF|#ffffff|#FFFFFF|white)'/
+    /**
+     * Y también DENTRO DE UN TERNARIO. La primera versión de este guardián sólo
+     * miraba la forma directa, y por eso `/precios` siguió fallando a 3,28 con
+     * `background: destacado ? 'var(--nexus, #3d5afe)' : 'transparent'`.
+     *
+     * Dos veces seguidas el mismo error: escribir la prueba con la forma que
+     * acabo de arreglar, en vez de con la forma que el defecto puede tomar.
+     */
+    const relleno = /background: *[^,;\n]*'var\(--(?:nexus|teal)(?:,[^']*)?\)'/
+    const blanco = /color: *[^,;\n]*'(?:#fff|#FFF|#ffffff|#FFFFFF|white)'/
     for (const f of archivosDePantalla()) {
       readFileSync(f, 'utf8').split('\n').forEach((linea, i) => {
         if (relleno.test(linea) && blanco.test(linea)) {
