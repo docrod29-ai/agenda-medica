@@ -16,20 +16,21 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1130",
+  "ultimaVersionEnProduccion": "nexusmed-v1131",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
+    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/alergias-negacion.test.ts",
-    " M src/__tests__/un-antibiotico-no-se-convierte-en-otro.test.ts",
+    " M src/__tests__/sesgo-con-el-paciente.test.ts",
+    " M src/hooks/useGrabacionAudio.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/seguridad/alergias.ts"
+    "?? src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +66,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 96,
-    "ultimaREG": "REG-248",
-    "archivosDePrueba": 526,
-    "casosDePrueba": 7008,
+    "regsEnElLedger": 97,
+    "ultimaREG": "REG-249",
+    "archivosDePrueba": 527,
+    "casosDePrueba": 7019,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

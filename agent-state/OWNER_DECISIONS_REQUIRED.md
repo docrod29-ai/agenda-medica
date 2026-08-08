@@ -66,3 +66,29 @@ todo». Ahora declara qué queda fuera, con su nombre legible.
 **Lo que NO se hará sin su palabra** — Tocar el hash. Es irreversible sobre
 documentos firmados con su cédula, y ninguna mejora de trazabilidad justifica
 marcar como alteradas notas que están intactas.
+
+## CLÍNICA/LEGAL · Cuánto tiempo se conserva el audio de la consulta
+
+**Estado**: el Dr. autorizó **conservarlo** («conserva el audio», 8-ago-2026). Lo
+que falta es el **periodo**.
+
+**Por qué se pregunta y no se asume.** El audio de una consulta es dato de salud.
+El código no lleva ningún periodo escrito a mano justamente para que la respuesta
+sea suya y no un supuesto mío enterrado en una constante.
+
+**Lo que ya es cierto hoy**: el audio vive en `consultas-audio/{uid}/`, sólo lo
+lee su dueño (regla de Storage), y en el expediente se guarda **la ruta**, nunca
+la URL de descarga —que llevaría un token dentro—.
+
+**Recomendación por defecto** (si no decide otra cosa, no se implementa nada:
+el audio simplemente se queda): alinear la retención con la del expediente en
+NOM-004 y borrar automáticamente al vencer. Eso exige una tarea de limpieza y
+**su confirmación del plazo**.
+
+**Alternativas**: (a) conservarlo indefinidamente; (b) borrarlo al firmar la nota
+—se pierde el clic-a-audio, que es justo lo que él pidió—; (c) un plazo fijo.
+
+**Qué queda bloqueado sin la respuesta**: nada del clic-a-audio. Sólo la tarea de
+borrado automático.
+
+**Qué cuesta responder**: una frase.

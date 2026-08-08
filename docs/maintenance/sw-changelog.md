@@ -2450,3 +2450,10 @@ alto riesgo— y un aviso falso ahí enseña a ignorar el aviso verdadero.
 El reconocedor de negaciones estaba anclado al principio: «negadas» funcionaba y
 «alergias negadas» no, ni «NKDA». Lo no reconocido se registraba como alérgeno y
 salía impreso en la receta.
+
+## v1131 — el audio de la consulta ya no se tira (REG-249)
+
+Se subía a Storage, se usaba para diarizar y se descartaba: no había nada que
+reproducir. Ahora la RUTA (no la URL, que lleva un token dentro) vuelve al
+llamador. El camino corto también guarda, para que la función no dependa de la
+duración. Es el eslabón que faltaba para el clic-a-audio.

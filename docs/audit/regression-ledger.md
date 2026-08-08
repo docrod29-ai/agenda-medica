@@ -4163,3 +4163,49 @@ límite por defecto de 5 s. Se le declaró un tiempo explícito de 30 s.
 Una prueba de seguridad clínica que falla al azar es peor que una que no existe:
 la primera vez se investiga, la segunda se repite la corrida, y a la tercera se
 deja de creer al rojo.
+
+## REG-249 — el audio se subía y se tiraba: no había nada que reproducir (v1131)
+
+**El eslabón que bloqueaba el hueco nº2 del dueño** — «pulsar cualquier frase de
+la nota y escuchar el audio exacto que la originó», lo que Abridge llama
+*Linked Evidence*.
+
+Casi todo estaba: los tiempos sobreviven (cada palabra lleva su `inicioMs`), el
+trazado frase→dictado existe (`trazabilidad.ts`), y la regla de lectura de
+`consultas-audio/` se reparó al cerrar el corte de las grabaciones largas.
+
+Faltaba una sola cosa, y lo bloqueaba todo: **el audio se subía a Storage, se
+sacaba su URL para dársela al motor de diarización, y se tiraba**. Nunca volvía
+al llamador ni se guardaba con la nota. Familia `no_conectado` — la vigésima.
+
+**Y sólo pasaba en las largas.** El camino corto —el de la mayoría de las
+consultas— manda el audio como multipart y **nunca lo subía**. Sin tocarlo,
+«escuchar de dónde salió esto» habría sido una función que aparece pasados unos
+minutos y antes no, sin que el médico pueda predecir cuándo.
+
+**La ruta, nunca la URL.** `getDownloadURL` devuelve una URL con un **token de
+acceso dentro**. Guardarla en Firestore sería dejar una llave escrita en el
+expediente — y una llave que sigue sirviendo aunque después cambien las reglas o
+se revoque el acceso. Se guarda la ruta; la URL se vuelve a pedir al reproducir,
+que es cuando las reglas se evalúan otra vez con quien esté mirando.
+
+**Lo que NO se guarda, y es deliberado.** Las PARTES de un lote no dejan audio:
+`transcribirParte` procesa un trozo, no una consulta, y guardar cada trozo
+dejaría N audios que no corresponden a ninguna nota y que nadie borraría nunca.
+
+**Si la subida falla, la transcripción no se pierde**: se sube después de tener
+el texto y en su propio `try`. Se queda sin ruta —que es exactamente lo que
+significa, no hay audio que reproducir— y no se inventa una.
+
+**La decisión que no es mía.** Conservar el audio lo autorizó el médico dueño
+explícitamente. **Cuánto tiempo** sigue siendo suyo, y está en
+`OWNER_DECISIONS_REQUIRED.md`: por eso no hay ningún plazo escrito a mano en el
+código.
+
+**De paso, una prueba quebradiza.** `sesgo-con-el-paciente` clavaba la firma
+ENTERA de la llamada, paréntesis de cierre incluido. Al añadir un quinto
+argumento se puso roja sin que el contexto del paciente hubiera dejado de viajar
+ni un momento. Ahora comprueba la intención. Una prueba que se rompe con cada
+añadido enseña a editarla sin leerla, y entonces deja de proteger.
+
+**Guardián.** `src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts`, 11 casos.
