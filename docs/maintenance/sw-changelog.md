@@ -2307,3 +2307,12 @@ cuándo, y no se vuelve a pedir. (2) Los avisos rojos ya no tapan la nota desde
 el minuto uno: la barra sólo lleva los cinco de PRESCRIPCIÓN —que deben llegar
 mientras receta— y los de revisión del texto aparecen al firmar. La distinción
 sale del campo ancla.seccion que cada aviso ya traía (REG-231).
+
+## v1113 — los alérgenos se tiraban en el último metro (I-9, parcial)
+El vocabulario del reconocedor cabe en 224 tokens y el orden ES la política. La
+pantalla calculaba los alérgenos, el grabador los mandaba por la red con un
+comentario explicando por qué son la pista más valiosa, y la ruta NO los leía.
+Ahora entran, y antes que los fármacos: un alérgeno mal oído es un cruce que
+nunca salta y del que nadie se entera; un fármaco mal oído sale impreso y se ve.
+También se probó y se DESCARTÓ reordenar por especialidad: medido idéntico, y
+queda anotado para que nadie lo reintente (REG-232).

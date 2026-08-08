@@ -3490,3 +3490,50 @@ a cerrar.
 
 **Guardián** — `src/__tests__/menos-pasos-para-cerrar-la-consulta.test.ts`
 (19 casos).
+
+---
+
+## REG-232 — los alérgenos se tiraban en el último metro (v1113 · I-9)
+
+**Lo que el médico pidió** — «necesito **mejor precisión, con el audio, mejor
+inteligencia artificial**».
+
+**El hallazgo** — el vocabulario que se le manda al reconocedor cabe en **224
+tokens**, y el orden en que se gasta ese presupuesto ES la política: lo más
+específico primero.
+
+La pantalla ya calculaba los alérgenos del expediente. El grabador ya los mandaba
+por la red, **con un comentario largo explicando por qué son la pista de más
+valor que existe**. Y la ruta de transcripción leía `medicamentos`, `problemas`,
+`aprendidas` y `especialidades` del formulario — **y no `alergias`**. El
+constructor del vocabulario ni siquiera tenía un campo para ellos.
+
+Escrito, probado, viajando por la red, y sin conectar en el último salto.
+
+**Por qué este campo importa más que los otros** — no porque sea más frecuente:
+por lo que cuesta oírlo mal. El cruce alergia ↔ fármaco compara contra **lo que
+se oyó**. Un alérgeno mal transcrito es **un cruce que nunca salta**, y nadie se
+entera: la nota no enseña un hueco, enseña una palabra parecida y el guardián
+calla. Un fármaco mal oído sale impreso en la receta y el médico lo ve.
+
+Por eso van **antes que los fármacos**, y sólo detrás de lo aprendido —lo único
+que se ganó con evidencia real de este médico.
+
+**Medido**: con tres alérgenos declarados, los tres entran en las tres primeras
+posiciones del vocabulario. Antes no entraba ninguno.
+
+**Una mejora que se midió y se DESCARTÓ** — en la misma iteración se probó poner
+lo crítico de su especialidad por delante de lo crítico de las demás. Parecía
+obvio. Medido: **idéntico** —68 términos, 35 de su rama, antes y después—, porque
+`criticosGlobales()` es la unión de las 79 y lo suyo ya venía dentro.
+
+Se revirtió, y quedó anotado en el código para que nadie lo reintente creyendo
+que gana algo. Dejar el cambio con un comentario prometiendo una mejora medida en
+cero habría sido peor que no hacerlo.
+
+**Guardián** — `src/__tests__/los-alergenos-llegan-al-reconocedor.test.ts`
+(11 casos), que comprueba el camino ENTERO: pantalla → grabador → ruta → módulo.
+
+**Lo que NO cierra esta iteración** — la cifra de error (25,55 % crudo / 22,81 %
+pipeline) sigue siendo la de REG-159. Volver a medirla exige dictado real del
+médico; sin cifra nueva, **no se declara mejorada**.

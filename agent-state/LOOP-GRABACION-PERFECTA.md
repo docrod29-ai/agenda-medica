@@ -342,7 +342,7 @@ compuerta, era poder decir la verdad.
 
 ---
 
-## I-9 · Más precisión en el audio
+## I-9 · Más precisión en el audio — ✅ PARCIAL (v1113)
 
 > «necesito mejor precisión, con el audio, mejor inteligencia artificial»
 
@@ -362,8 +362,23 @@ lo que cuesta mantenerlo.
 - **Dosis y unidades** merecen el mismo trato que ya tienen los antimicrobianos
   (I-10): nunca sustituir por parecido.
 
-**Cierra con** — una cifra nueva medida sobre su dictado, publicada como la
-anterior. **Sin cifra no se declara mejorado.**
+**Hecho en v1113**
+- **Los alérgenos llegan al reconocedor.** La pantalla los calculaba, el grabador
+  los mandaba por la red, y **la ruta no los leía**: se tiraban en el último
+  salto. Van antes que los fármacos, porque un alérgeno mal oído es un cruce de
+  seguridad que **nunca salta y del que nadie se entera**; un fármaco mal oído
+  sale impreso y se ve. Medido: con tres declarados, los tres entran en cabeza.
+- **Una mejora medida y DESCARTADA**: poner lo crítico de su especialidad por
+  delante de lo de las demás. Idéntico (68 términos, 35 de su rama, antes y
+  después) porque el catálogo global es la unión de las 79. Revertido y anotado
+  en el código para que nadie lo reintente.
+
+**Cierra con** — REG-232 · `los-alergenos-llegan-al-reconocedor.test.ts` (11),
+que comprueba el camino entero: pantalla → grabador → ruta → módulo.
+
+**Lo que NO cierra** — la cifra de error sigue siendo la de REG-159 (25,55 %
+crudo / 22,81 % pipeline). Volver a medirla exige **dictado real del médico**.
+**Sin cifra nueva no se declara mejorada.**
 
 ---
 
