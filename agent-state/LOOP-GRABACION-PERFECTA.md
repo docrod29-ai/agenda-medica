@@ -202,7 +202,7 @@ al paciente. **Ante la duda, se diariza.**
 
 ---
 
-## I-5 · La nota como la escribe cada especialista
+## I-5 · La nota como la escribe cada especialista — ✅ CERRADA (v1111)
 
 > «nota como internista, pediatra, ginecólogo, cirujano, intensivista,
 > infectólogo etcétera según sea el caso» · «como la escribe un internista: prosa
@@ -221,10 +221,27 @@ rama eso no escala.
 - Que las correcciones del médico **alimenten** su perfil (lo exige la respuesta
   «el médico de esa especialidad valida al usarla»).
 
-**Límite duro** — se construye la máquina y se rellena con lo que el repo ya
-tiene. Lo que falte de pediatría, gineco o cirugía se marca
-`NEEDS_CLINICAL_REVIEW`: **no se redacta criterio clínico de ramas que el dueño
-no ejerce**.
+**Lo que se construyó**
+- Las 16 guías salieron de `prompts.ts` a `guias-de-especialidad.ts`, como DATOS
+  con procedencia (`repositorio` / `del_medico`). Comprobado antes de tocar: el
+  prompt resultante es **idéntico byte a byte**.
+- **La del médico manda sobre la del repositorio**, y puede añadir una rama nueva
+  — que es lo que exige «cada especialista valida su propia rama al usarla».
+- **Cuando NO hay guía, se dice.** Antes caía a genérico en silencio.
+- Regla 14-bis: **la prosa razona, no enumera** — conecta hallazgo → síndrome →
+  diagnóstico → plan, y ata cada indicación a lo que la justifica. Sin aflojar la
+  prohibición de inventar: razonar no es rellenar.
+- Un guardián falla si el menú ofrece una especialidad **sin** guía.
+
+**Un defecto que encontró su propia prueba** — «Infectología pediátrica» caía en
+PEDIATRÍA sólo porque `pediatr` estaba antes en la lista. Ahora gana la raíz que
+aparece **antes en el texto**: en español el núcleo del nombre va primero.
+
+**Límite duro, sin cambios** — no se redacta criterio clínico de ramas que el
+dueño no ejerce. Las dieciséis están porque ya estaban.
+
+**Cierra con** — REG-230 · `la-nota-la-escribe-un-especialista.test.ts`
+(19 casos). Prompt `nota-2026-08-07-4`.
 
 ---
 

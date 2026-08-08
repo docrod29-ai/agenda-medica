@@ -64,21 +64,33 @@ describe('la regla es global, no de un tipo de nota', () => {
   })
 })
 
+/**
+ * Desde I-5 las guías por especialidad viven en su propio archivo — se mudaron
+ * porque la app la van a usar médicos de cualquier rama y un criterio clínico
+ * que sólo se cambia recompilando no sirve para eso.
+ *
+ * Estas aserciones siguen mirando EL MISMO CONTENIDO; lo único que cambia es
+ * dónde está. Se lee el archivo nuevo Y el prompt, porque lo que no puede pasar
+ * es que la orden de calcular reaparezca en cualquiera de los dos.
+ */
+const guias = readFileSync(join(process.cwd(), 'src/lib/expediente/guias-de-especialidad.ts'), 'utf8')
+const promptYGuias = prompts + '\n' + guias
+
 describe('las guías de especialidad dejaron de pedir aritmética', () => {
   it('pediatría ya no ordena calcular mg/kg', () => {
-    expect(prompts).not.toContain('Pediatría: dosis en mg/kg/día Y mg/kg/dosis. Holliday-Segar')
+    expect(promptYGuias).not.toContain('Pediatría: dosis en mg/kg/día Y mg/kg/dosis. Holliday-Segar')
   })
 
   it('ni percentiles', () => {
-    expect(prompts).not.toContain('percentiles si hay datos; dosis en mg/kg/día')
+    expect(promptYGuias).not.toContain('percentiles si hay datos; dosis en mg/kg/día')
   })
 
   it('ahora manda transcribir lo dictado, con su unidad', () => {
-    expect(prompts).toContain('TAL COMO SE DICTARON')
+    expect(promptYGuias).toContain('TAL COMO SE DICTARON')
   })
 
   it('y los líquidos son decisión del médico', () => {
-    expect(prompts).toContain('Si se dictó un cálculo de líquidos, transcríbelo; no lo hagas tú')
+    expect(promptYGuias).toContain('Si se dictó un cálculo de líquidos, transcríbelo; no lo hagas tú')
   })
 })
 

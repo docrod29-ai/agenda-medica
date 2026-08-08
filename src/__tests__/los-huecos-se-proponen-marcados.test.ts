@@ -138,10 +138,21 @@ describe('la pantalla ya sabe contar y resolver lo propuesto', () => {
 })
 
 describe('la versión del prompt subió con el cambio', () => {
-  it('no se quedó atrás', () => {
+  it('no se quedó en la de antes de esta regla', () => {
+    /**
+     * PINEAR EL LITERAL ES EL ERROR QUE ESTE MISMO REPOSITORIO YA COMETIÓ.
+     *
+     * `prompt-version.ts` lo documenta: el único test que miraba la versión la
+     * pineaba al literal, «así que subirla rompía la suite — el candado estaba
+     * puesto justo del lado que impedía hacerlo bien».
+     *
+     * Lo escribí así y volvió a pasar en la iteración siguiente. Lo que hay que
+     * comprobar no es que sea UNA versión concreta: es que **no se quedó en la
+     * de antes** y que sigue teniendo forma de versión. De que suba cuando el
+     * prompt cambia ya se encarga la huella, que es el candado de verdad.
+     */
     const v = leer('src/lib/expediente/prompt-version.ts')
-    // Si el prompt cambia y la versión no, no se puede acotar qué notas salieron
-    // con qué prompt — que es lo que exige IEC 62304.
-    expect(v).toMatch(/PROMPT_VERSION = 'nota-2026-08-07-3'/)
+    expect(v).not.toMatch(/PROMPT_VERSION = 'nota-2026-08-07-2'/)
+    expect(v).toMatch(/PROMPT_VERSION = 'nota-\d{4}-\d{2}-\d{2}(-\d+)?'/)
   })
 })

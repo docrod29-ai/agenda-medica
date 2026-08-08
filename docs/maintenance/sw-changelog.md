@@ -2289,3 +2289,13 @@ huella estable de lo que se revisó (ordenada antes de medir, con separador de
 campo, sin contar secciones vacías) y se dice cuando caduca, en el panel y al
 firmar. No bloquea: bloquear por una coma corregida se aprende a esquivar
 (REG-229).
+
+## v1111 — la nota como la escribe cada especialista (I-5)
+Las 16 guías por especialidad salieron del prompt a su propio archivo, como datos
+con procedencia — porque el Dr. contestó que lo usarán médicos de CUALQUIER rama
+y que cada especialista valida la suya al usarla. La del médico manda sobre la
+del repositorio y puede añadir una nueva. Y lo importante: cuando NO hay guía se
+dice, en vez de caer a criterio genérico en silencio. Más la regla 14-bis: la
+prosa RAZONA (conecta hallazgo→dx→plan) en vez de enumerar. Comprobado byte a
+byte que la mudanza no cambió el prompt. Un defecto lo cazó su propia prueba:
+«Infectología pediátrica» caía en pediatría por el orden del arreglo (REG-230).

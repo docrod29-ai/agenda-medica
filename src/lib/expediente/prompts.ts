@@ -1,3 +1,4 @@
+import { bloqueDeEspecialidad } from './guias-de-especialidad'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { SECCIONES_POR_TIPO } from './templates'
 
@@ -127,6 +128,18 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
     CONCRETA (alto rendimiento, no telegráfica pero SIN relleno). Estructura, ordena
     y sintetiza — no copies crudo. Cada oración debe aportar un dato o una decisión;
     si algo no cambia el diagnóstico ni el plan, NO lo escribas.
+14-bis. LA PROSA RAZONA, NO ENUMERA.
+    Petición literal del médico dueño: la nota tiene que leerse **«como la escribe
+    un internista»**. Eso quiere decir que el análisis CONECTA: los hallazgos con
+    el síndrome, el síndrome con el diagnóstico, y el diagnóstico con el plan —
+    diciendo POR QUÉ. Una lista de datos yuxtapuestos no es una nota clínica: es
+    un inventario.
+    · En la evaluación/análisis: nombra el dato que sostiene el diagnóstico y el
+      que lo aleja, y por qué pesa más uno.
+    · En el plan: cada indicación va atada a lo que la justifica ("por la fiebre
+      de 72 h y el foco pulmonar, se inicia…"), no suelta.
+    · Lo que NO cambia: sigue prohibido inventar el dato que conecta. Si el
+      dictado no lo trae, la frase se queda sin él — razonar no es rellenar.
 15. NO dejes vacía una sección OBLIGATORIA si la conversación tiene algo que aporte.
     Vuelca TODO lo que el dictado diga de esa sección, aunque sea poco.
     PERO SI NO SE DIJO NADA DE ELLA, la sección va VACÍA "". No escribas "No referido",
@@ -532,37 +545,17 @@ trasplante renal", "Portador de anti-HBc — riesgo de reactivación").`,
 }
 
 /**
- * Guía por especialidad: qué enfatizar/estructurar para que la nota salga como
- * la haría un especialista de esa rama. Se inyecta según la especialidad del
- * médico. Texto libre normalizado (sin acentos, minúsculas) → busca substring.
+ * La guía por ESPECIALIDAD ya no vive aquí: vive en `guias-de-especialidad.ts`.
+ *
+ * Se mudó porque el médico dueño contestó que lo van a usar **médicos de
+ * cualquier especialidad**, y que **cada especialista valida su propia rama al
+ * usarla**. Un criterio clínico que sólo se cambia recompilando no sirve para
+ * eso. Allí son datos con procedencia declarada, y se puede saber cuándo NO hay
+ * guía en vez de caer a genérico en silencio.
+ *
+ * El formato del bloque es idéntico al que había: mudarlo no podía cambiar ni un
+ * carácter de lo que ve el modelo. Hay una prueba que lo comprueba.
  */
-const ESPECIALIDAD_GUIA: Record<string, string> = {
-  cardiolog: 'CARDIOLOGÍA: clasifica disnea (NYHA) y angina (CCS); documenta factores de riesgo CV (HTA, DM, dislipidemia, tabaquismo, AHF), hallazgos de ECG/eco si se mencionan, y estratifica riesgo. Plan: metas de TA/LDL, antiagregación/anticoagulación con justificación.',
-  pediatr: 'PEDIATRÍA: SIEMPRE peso, talla y perímetro cefálico (lactante) TAL COMO SE DICTARON, con su unidad. NO calcules percentiles ni mg/kg: los hace el motor (regla 16-bis) y salen en su panel. Esquema de vacunación CENSIA; hitos del desarrollo; alimentación. Si se dictó un cálculo de líquidos, transcríbelo; no lo hagas tú.',
-  ginec: 'GINECOLOGÍA/OBSTETRICIA: FUM, ciclo, G/P/A/C, método anticonceptivo, citología/mama; en embarazo: edad gestacional por FUM/USG, FCF, movimientos fetales, categoría FDA de fármacos. Evita teratógenos.',
-  interna: 'MEDICINA INTERNA: enfoque por problemas (problem list), comorbilidades y su control, polifarmacia y conciliación, criterios de Beers en ≥65. Síntesis de sistemas.',
-  urgenc: 'URGENCIAS: triage, ABCDE, tiempo de evolución, signos de alarma, escalas (qSOFA, Glasgow, dolor torácico). Plan: estabilización, estudios urgentes, criterios de ingreso/alta/observación.',
-  infectolog: 'INFECTOLOGÍA/PROA: foco infeccioso, síndrome, microbiología (cultivos/antibiograma), empírico vs dirigido, esquema completo (fármaco+dosis+vía+intervalo+duración+ajuste renal), desescalada y switch IV→VO, día de tratamiento y reevaluación 48-72h.',
-  cirug: 'CIRUGÍA: diagnóstico quirúrgico, indicación, riesgo (ASA), consentimiento, plan quirúrgico, profilaxis antibiótica y tromboprofilaxis, cuidados pre/postoperatorios.',
-  psiqui: 'PSIQUIATRÍA: examen mental estructurado, riesgo suicida/heteroagresividad, antecedentes psiquiátricos y de consumo, escalas (PHQ-9, GAD-7) si se mencionan, plan farmacológico + psicoterapia.',
-  dermatolog: 'DERMATOLOGÍA: describe lesión elemental (tipo, color, forma, bordes, distribución, topografía), dermatoscopía si aplica, diagnóstico diferencial dermatológico.',
-  ortoped: 'ORTOPEDIA/TRAUMA: mecanismo de lesión, exploración articular (arcos, estabilidad, neurovascular distal), imagen (Rx/TAC), clasificación de fractura, plan (inmovilización/quirúrgico).',
-  endocrin: 'ENDOCRINOLOGÍA: control metabólico (HbA1c, glucosa, perfil tiroideo/lipídico), metas terapéuticas, ajuste de insulina/hipoglucemiantes, complicaciones micro/macrovasculares.',
-  neurolog: 'NEUROLOGÍA: exploración neurológica estructurada (pares, fuerza, sensibilidad, reflejos, marcha, cognición), escalas (NIHSS, Glasgow), localización topográfica del déficit.',
-  neumolog: 'NEUMOLOGÍA: patrón respiratorio, SpO2, espirometría si se menciona, tabaquismo (índice paquetes/año), clasificación (GOLD/GINA), plan inhalado.',
-  gastro: 'GASTROENTEROLOGÍA: síntomas digestivos, signos de alarma, endoscopia si aplica, función hepática, plan dietético y farmacológico.',
-  nefrolog: 'NEFROLOGÍA: función renal (creatinina, eGFR, estadio ERC), balance hídrico, electrolitos, ajuste de fármacos por TFG, indicación de diálisis si aplica.',
-  oncolog: 'ONCOLOGÍA: estadificación (TNM), ECOG/Karnofsky, línea de tratamiento, toxicidades, plan oncológico y de soporte.',
-}
-
-function guiaEspecialidad(especialidad?: string): string {
-  if (!especialidad) return ''
-  const norm = especialidad.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  for (const [clave, guia] of Object.entries(ESPECIALIDAD_GUIA)) {
-    if (norm.includes(clave)) return `\nENFOQUE POR ESPECIALIDAD — ${guia}\n`
-  }
-  return ''
-}
 
 /**
  * Plantilla DINÁMICA por motivo de consulta: el motor detecta el motivo principal
@@ -662,7 +655,7 @@ export function buildSystemPrompt(tipo: TipoNota, especialidad?: string, instruc
   return `${GUARDA_INYECCION}
 
 ${REGLAS_BASE}
-${guiaEspecialidad(especialidad)}${GUIA_MOTIVOS}${guiaInstrucciones(instrucciones)}${opciones?.proponerHuecos ? COMPLETA_LOS_HUECOS : ''}${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
+${bloqueDeEspecialidad(especialidad)}${GUIA_MOTIVOS}${guiaInstrucciones(instrucciones)}${opciones?.proponerHuecos ? COMPLETA_LOS_HUECOS : ''}${ESPECIFICO[tipo] ? `\nINSTRUCCIONES ESPECÍFICAS:\n${ESPECIFICO[tipo]}\n` : ''}
 ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extraction" + "safety"):
 {
   "resumenEjecutivo": "1 línea que resume el caso",

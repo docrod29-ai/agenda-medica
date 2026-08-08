@@ -3390,3 +3390,53 @@ era una compuerta más: era **poder decir la verdad**. Al firmar se dice, con la
 opción de firmar así.
 
 **Guardián** — `src/__tests__/lo-revisado-es-lo-que-se-firma.test.ts` (18 casos).
+
+---
+
+## REG-230 — la nota de otra especialidad salía genérica en silencio (v1111 · I-5)
+
+**Lo que el médico pidió** — «nota como **internista, pediatra, ginecólogo,
+cirujano, intensivista, infectólogo** etcétera según sea el caso», y «como la
+escribe un internista: **prosa que razona**».
+
+Y contestó dos cosas que cambian el ALCANCE del producto: lo van a usar **médicos
+de cualquier especialidad**, y **cada especialista valida su propia rama al
+usarla**.
+
+**Lo que había** — dieciséis guías dentro de `prompts.ts`, en medio de un archivo
+de 800 líneas. Mientras la app era para un internista-infectólogo, bastaba. Deja
+de bastar en cuanto la usa un pediatra: **su criterio no puede vivir en una
+constante que sólo se cambia recompilando**.
+
+**El defecto de verdad era el silencio** — `guiaEspecialidad()` devolvía cadena
+vacía cuando no encontraba la rama. Un reumatólogo, un geriatra, un neumólogo
+pediatra recibía una nota redactada **con criterio genérico y sin que nadie se lo
+dijera**. Un genérico silencioso es la peor de las tres opciones: no es la nota
+de su especialidad, y encima parece que sí. Ahora la ruta lo reporta.
+
+**La mudanza no podía cambiar nada, y se comprobó ANTES de tocar** — para las
+dieciséis especialidades y para una desconocida, el prompt resultante es
+**idéntico byte a byte** al de antes. Mover criterio clínico de sitio y que
+cambie de comportamiento sería el peor refactor posible.
+
+**Un defecto que encontró su propia prueba** — la primera versión del buscador
+devolvía la primera coincidencia del arreglo, y con eso **«Infectología
+pediátrica» caía en PEDIATRÍA**: sólo porque `pediatr` estaba antes que
+`infectolog` en la lista. En español el núcleo del nombre va primero
+(«Cirugía pediátrica» es cirugía), así que gana **la raíz que aparece antes en el
+texto**, no el orden de la lista.
+
+**La del médico manda sobre la del repositorio** — es lo que exige su respuesta
+«el médico de esa especialidad valida al usarla»: si un pediatra corrige la guía
+de pediatría, gana la suya. Y puede añadir una rama que no existía.
+
+**La prosa que razona** — regla 14-bis: el análisis CONECTA hallazgo → síndrome →
+diagnóstico → plan, diciendo por qué; cada indicación va atada a lo que la
+justifica. Y **no afloja la prohibición de inventar**: razonar no es rellenar.
+
+**El límite, y es duro** — aquí no se redacta criterio clínico de ramas que el
+dueño no ejerce. Las dieciséis están porque ya estaban.
+
+**Guardián** — `src/__tests__/la-nota-la-escribe-un-especialista.test.ts`
+(19 casos), incluido uno que falla si el menú ofrece una especialidad sin guía.
+**Versión de prompt** — `nota-2026-08-07-4`.
