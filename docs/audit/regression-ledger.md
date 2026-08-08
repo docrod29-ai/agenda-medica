@@ -4304,3 +4304,48 @@ comportamiento roto.
 
 **Guardián.** `src/__tests__/el-panel-no-certifica-lo-contrario.test.ts`, 12
 casos, con las reproducciones exactas.
+
+## REG-252 — el bucle de resultados tenía fuga del 100 %, por construcción (v1134)
+
+**Hallazgo del equipo rojo, verificado aquí.** El charter V7 §F1 pide este ciclo
+y que se **cierre**:
+
+    ORDEN → TOMA → RESULTADO → REVISIÓN → CONDUCTA → PACIENTE → CERRADO
+
+`tareaDeResultado()` existía y estaba probada. Y **no la llamaba nadie**: cero
+referencias en todo el repositorio fuera de su propio archivo de pruebas.
+Comprobado con `grep`. Ningún resultado de laboratorio generaba jamás una tarea
+de revisión.
+
+No es que el ciclo se cerrara poco: **nunca empezaba**.
+
+Familia `no_conectado` — la **vigésima primera**.
+
+**Había una alerta, y no es lo mismo.** Los valores críticos disparaban una
+alerta. Pero una alerta se lee, se cierra, y nadie vuelve a saber si alguien
+actuó. El charter lo dice con estas palabras: *«NexusMED debe CERRAR el trabajo,
+no sólo mostrar alertas»*. Y los resultados NO críticos no tenían ni eso.
+
+**Dónde se conectó, y por qué ahí.** En `cargarResultadosLab`, que es el cuello
+de botella: los dos caminos por los que hoy entra un resultado —carga manual e
+importación FHIR— pasan obligatoriamente por esa función. Conectarlo en las
+pantallas habría dejado que el tercer camino que alguien añada naciera con la
+misma fuga. Es la lección de las veintiuna veces anteriores: **se conecta donde
+el dato pasa a la fuerza, no donde es cómodo**.
+
+Una tarea **por estudio**, no una por sobre: el médico revisa resultados, no
+sobres. Lo crítico vence el mismo día; lo demás, en dos.
+
+**Lo que este código NO decide.** Qué es crítico viaja tal cual llega en el
+resultado. Decidirlo aquí sería meter criterio clínico en un archivo de
+persistencia, y ya vive con sus rangos en `lab-criticos.ts`. Y sin paciente en
+la solicitud no se crea tarea: una tarea colgada del paciente equivocado es peor
+que ninguna tarea.
+
+**Si la tarea no se crea, no se calla.** La función devolvía `void`, lo que
+habría hecho **invisible** un fallo al crearla — exactamente el defecto que se
+está reparando. Ahora devuelve `{ tareasCreadas, tareasEsperadas }` y las dos
+pantallas avisan al médico. El resultado guardado no se pierde por eso: su
+transacción va antes y no depende de la tarea.
+
+**Guardián.** `src/__tests__/un-resultado-genera-tarea.test.ts`, 13 casos.

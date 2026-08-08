@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1133",
+  "ultimaVersionEnProduccion": "nexusmed-v1134",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
@@ -25,10 +25,11 @@
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
+    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/trazabilidad.ts",
-    "?? src/__tests__/el-panel-no-certifica-lo-contrario.test.ts"
+    " M src/lib/hospital/firestore.ts",
+    "?? src/__tests__/un-resultado-genera-tarea.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +65,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 99,
-    "ultimaREG": "REG-251",
-    "archivosDePrueba": 529,
-    "casosDePrueba": 7050,
+    "regsEnElLedger": 100,
+    "ultimaREG": "REG-252",
+    "archivosDePrueba": 530,
+    "casosDePrueba": 7063,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -2470,3 +2470,9 @@ localiza la frase con seguridad, no hay botón — nunca se aproxima.
 penicilina» salía en VERDE con cobertura 1,00. «Warfarina 10 mg» contra «2 mg»,
 también. Causas: «niega» era palabra vacía y las cifras se filtraban por
 longitud. Reparado, y una cifra huérfana ya nunca puede salir en verde.
+
+## v1134 — un resultado de laboratorio ya genera tarea de revisión (REG-252)
+
+`tareaDeResultado()` existía, estaba probada y no la llamaba nadie: el bucle
+ORDEN→RESULTADO→REVISIÓN→CERRADO nunca empezaba. Conectado en el cuello de
+botella (carga manual + FHIR). Si la tarea no se crea, se avisa.

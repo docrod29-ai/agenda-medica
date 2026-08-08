@@ -1457,7 +1457,15 @@ export default function EpisodioPage() {
           // Respaldo determinista: marca crítico por rango aunque no se haya marcado a mano.
           const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor, r.unidad) }))
           try {
-            await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
+            const guardado = await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
+            /*
+              Si la tarea de revisión no se creó, se DICE (REG-252). Callarlo
+              devolvería el bucle a la fuga que esto repara: el resultado
+              guardado, nadie asignado a mirarlo, y todo con aspecto correcto.
+            */
+            if (guardado.tareasCreadas < guardado.tareasEsperadas) {
+              toast('Los resultados se guardaron, pero no se creó la tarea de revisión: revísalos a mano.', 'error')
+            }
             const criticos = resultados.filter(r => r.critico)
             if (criticos.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO', detalle: criticos.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') })
             else await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'resultado', titulo: 'Resultado de laboratorio listo', detalle: cargandoRes.estudios.join(', ') })
@@ -1514,7 +1522,10 @@ export default function EpisodioPage() {
               `Este archivo no identifica al paciente. Los ${resultados.length} resultados se archivarán en el expediente de ${inter.pacienteNombre}. ¿Es correcto?`
             ))) return
             await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios: resultados.map(r => r.estudio), prioridad: 'rutina', solicitadaPor: 'Importación FHIR', fecha: new Date().toISOString() })
-              .then(async (id) => { await cargarResultadosLab(clinicId, id, resultados, 'FHIR'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
+              .then(async (id) => { const g = await cargarResultadosLab(clinicId, id, resultados, 'FHIR');
+                /* Igual que en la carga manual: una fuga silenciosa aquí es peor,
+                   porque nadie estaba mirando la pantalla cuando entró (REG-252). */
+                if (g.tareasCreadas < g.tareasEsperadas) toast('Resultados FHIR guardados, pero sin tarea de revisión: revísalos a mano.', 'error'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
             toast(`Importados ${resultados.length} resultados`, 'success'); setModalImport(false); cargar()
           } catch { toast('FHIR inválido', 'error') } finally { setBusy(false) }
         }}>Importar</Button></>}>
