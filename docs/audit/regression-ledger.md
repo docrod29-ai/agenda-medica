@@ -1553,3 +1553,114 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-1XX — así no se niega en la consulta (número y versión POR ASIGNAR)
+
+**El número está en disputa** — El 8-ago-2026 hay **14 PRs abiertos titulados
+«REG-192 · v1074»**: cada disparo del bucle autónomo parte de `main`, ve el mismo
+último REG y elige el mismo siguiente. `main` no se mueve desde el PR #229, así
+que ninguno de los catorce sabe de los otros trece. Está diagnosticado en el
+PR #251 (OPS-003). Esta entrada NO reclama número ni versión de service worker:
+se los pone quien la fusione. Reclamar `REG-192 (v1074)` sería el decimoquinto.
+
+**Encontrado** — Hallazgo C2/C3 de la auditoría de nueve dimensiones (6-ago-2026),
+**reproducido con los motores reales** el 8-ago-2026 antes de tocar una línea.
+
+**El defecto** — Los tres motores que leen el dictado para decidir si un
+antecedente está negado usaban un vocabulario escrito mirando la nota redactada
+(«niega diabetes»), no el habla del consultorio. Fallaban en las **dos**
+direcciones, y las dos acaban escritas en el expediente:
+
+**1. Negación que no se ve → antecedente crónico inventado.**
+
+| Se dictó | `extraerComorbilidades` devolvía |
+|---|---|
+| No padece diabetes. | `positivas: ['Diabetes mellitus tipo 2']` |
+| El paciente no padece hipertensión arterial. | `positivas: ['Hipertensión arterial']` |
+| No padezco diabetes, doctor. | `positivas: ['Diabetes mellitus tipo 2']` |
+| No sufre de diabetes. | `positivas: ['Diabetes mellitus tipo 2']` |
+| Negó diabetes. | `positivas: ['Diabetes mellitus tipo 2']` |
+
+Y `parsearTranscripcion('Paciente de 54 años. No padece diabetes ni
+hipertensión.')` imprimía, literal: **«Antecedentes: Hipertensión arterial,
+Diabetes mellitus tipo 2.»**
+
+`padece`, `padezco`, `sufre` y `sufro` no estaban entre los negadores. `negó`
+tampoco, y por partida doble: `\b` de JavaScript **no considera letra a la «ó»**,
+así que `/negó\b/` no casa con «negó diabetes» — una regla que se lee bien y no
+dispara nunca.
+
+**2. Negación que se ve donde no la hay → antecedente borrado.**
+
+«¿Tiene diabetes? **No sé**, doctor.» contaba como negación —empieza por «no»— y
+`corregirCertezaPorNegacion` reclasificaba a `descartado` una diabetes que venía
+`confirmado`. La pantalla de contradicciones le decía además al médico que el
+dictado la negaba. El paciente sólo dijo que no lo sabe. Lo mismo con «no
+recuerdo», «no me acuerdo», «no estoy seguro», «no sabría decirle».
+
+**Y en medio, cómo se contesta de verdad** — «Pues no», «Fíjese que no», «Mmm,
+no», «Este… no», «Para nada», «Creo que no» **no** contaban como respuesta
+negativa. El paciente decía que no y el motor no se enteraba.
+
+**Por qué importa para un paciente** — El primero es el caso que el Dr. encontró
+en producción (REG del 3-ago-2026) por otra puerta: un antecedente crónico
+inventado cambia el riesgo quirúrgico, cambia la elección de fármacos y **se
+arrastra a todas las notas siguientes**, porque los antecedentes se copian. El
+segundo es su espejo: una diabetes real degradada a «descartado» sin que nadie la
+descartara. Y el parser local **no es un rincón**: es el camino que se toma
+cuando la IA falla, o sea justo cuando el proveedor está caído y el médico tiene
+prisa.
+
+**Reparado en las TRES rutas, no en una** — Es la lección de REG-180 y REG-187:
+arreglar un solo camino deja vivo el otro.
+
+| Archivo | Qué se amplió |
+|---|---|
+| `src/lib/expediente/parser-clinico.ts` | `NEGADORES`: `no padece/padezco/padecía`, `no sufre/sufro/sufría`, `negó/negaron`. Y la ventana se **normaliza** antes de probarla, porque `estaNegado` se llama por dos caminos —uno con el texto ya normalizado y otro con el crudo— y una negación acentuada sólo fallaba por el segundo. |
+| `src/lib/expediente/negaciones.ts` | Muletillas de arranque (`pues`, `mmm`, `este`, `eh`, `bueno`…), negaciones reales (`fíjese que no`, `creo que no`, `para nada`, `jamás`) y un guardián de **incertidumbre** que gana sobre la negación. |
+| `src/lib/asr/guardian-sustituciones.ts` | `NEGADORES`: sin `padece/sufre`, un corrector que convirtiera «no padece diabetes» en «padece diabetes» no volteaba ninguna marca —ni antes ni después había negador— y el guardián de volteo dejaba pasar la inversión más cara que existe aquí. |
+
+**Lo que NO se metió** — «Qué va». En respuesta a una pregunta puede empezar una
+frase («qué va a pasar si…»), y aquí un falso positivo **descarta un antecedente
+real**. Los vocabularios señalan de menos, nunca de más.
+
+**Lo que NO hace, y queda para el médico** — Cuando la respuesta es «no sé», el
+motor deja de afirmar que el paciente negó **y ahí se detiene**: la condición que
+el extractor cosechó de la PREGUNTA conserva la certeza que él le puso, que suele
+ser `confirmado`. Ya no se descarta lo que nadie descartó, pero tampoco se avisa
+de que lo afirmado salió de una pregunta sin respuesta. Repararlo bien no es
+ampliar una expresión regular: es una **tercera salida** —«el paciente dice que
+no lo sabe»— que hay que enseñar en pantalla y que resuelve el médico, como ya se
+hace con las contradicciones. Queda declarado en el módulo
+(`LO_QUE_NO_SE_CUBRE_AUN`) y abierto en el backlog como `SAFE-005`; hoy la única
+defensa por ese lado es la regla del prompt del extractor, y una regla del prompt
+es una petición.
+
+Tampoco se toca el campo de **alergias** (`cds.ts`, `alergias.ts`): ése es
+SAFE-001 y va por su cuenta.
+
+**Comprobado que puede ponerse rojo** — Revertidos los tres archivos, **17 de los
+20 casos fallan**. Los 3 que siguen verdes son los controles a propósito: que lo
+afirmado siga afirmado, que el impersonal escrito «no se refiere X» siga siendo
+negación, y que una corrección léxica que respeta la negación no se marque.
+
+**Se solapa con el PR #245** — Ese PR («el verbo con el que el paciente niega»)
+ya repara la mitad de esto, y **mejor**: saca el vocabulario a un
+`negadores.ts` compartido en vez de ampliar tres expresiones sueltas. Lo que aquí
+queda como aportación propia, comprobado leyendo su rama:
+
+1. **«No sé» no es una negación** — el #245 no lo mira, y sus muletillas nuevas
+   lo **empeoran**: con ellas «Pues no sé» pasa a contar como negación, que hoy
+   no cuenta. Reproducido en el motor real: degrada a `descartado` una diabetes
+   `confirmado`.
+2. **La frontera de palabra con tilde** — su `NIEGA_EXPLICITO` no incluye `negó`,
+   y aunque lo incluyera, `\b` de JavaScript no cierra tras la «ó».
+3. **La ventana de `estaNegado` sin normalizar** — se llama por dos caminos, uno
+   crudo y otro normalizado, y por el crudo ninguna negación acentuada casaba.
+
+Al fusionar, lo de aquí debería aplicarse **encima** de `negadores.ts`, no en
+lugar suyo.
+
+**Golden** — `src/__tests__/asi-se-niega-en-la-consulta.test.ts` (20 casos).

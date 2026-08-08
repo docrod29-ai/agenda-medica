@@ -202,8 +202,24 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
 // Detección de negaciones
 // ─────────────────────────────────────────────────────────────────
 
-/** Frases negadoras antes de un término clínico. */
-const NEGADORES = /\b(?:niega|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
+/**
+ * Frases negadoras antes de un término clínico.
+ *
+ * `padece/padezco/padecía` y `sufre/sufro/sufría` se añadieron el 8-ago-2026:
+ * son la forma en que un paciente mexicano contesta —«no padezco diabetes»— y
+ * NO estaban. Reproducido con este mismo motor: `extraerComorbilidades('No
+ * padece diabetes.')` devolvía `positivas: ['Diabetes mellitus tipo 2']`, y
+ * `parsearTranscripcion` imprimía **«Antecedentes: Diabetes mellitus tipo 2.»**
+ * sobre un dictado que la niega.
+ *
+ * Esto no es un rincón: es el fallback que corre cuando la IA falla —el camino
+ * que se toma justo cuando el proveedor está caído y el médico tiene prisa— y su
+ * salida entra al resumen clínico de la nota.
+ *
+ * La ventana se normaliza antes de probarla (ver `estaNegado`), así que aquí se
+ * escriben las formas SIN tilde: `negó` llega como `nego`.
+ */
+const NEGADORES = /\b(?:niega|niegan|nego|negaron|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido|padece|padezco|padecia|sufre|sufro|sufria)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -236,7 +252,16 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
     ultimoAfirm = m.index; lenUltimo = m[0].length
   }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
-  return NEGADORES.test(ventana)
+  /**
+   * La ventana se normaliza para probar el negador.
+   *
+   * `estaNegado` se llama por dos caminos: desde `extraerComorbilidades`, con el
+   * texto ya normalizado, y desde los extractores de alergias, STOP-BANG y
+   * Caprini, con el texto CRUDO. Por el segundo camino una negación acentuada
+   * («negó», «descartó») no casaba, porque `\b` de JavaScript no considera letra
+   * a la «ó». El mismo negador tenía que valer por los dos caminos.
+   */
+  return NEGADORES.test(normalizar(ventana))
 }
 
 // ─────────────────────────────────────────────────────────────────

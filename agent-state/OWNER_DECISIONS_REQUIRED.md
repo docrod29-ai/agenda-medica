@@ -3,6 +3,26 @@
 El programa las **junta**; no las pregunta una por una. Cada entrada dice qué se
 puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
+## URGENTE — LA COLA DE PRs ESTÁ ATASCADA (8-ago-2026)
+
+Hay **25 PRs abiertos** y `main` no se mueve desde el #229. **14 de ellos se
+llaman «REG-192 · v1074»**: cada disparo del bucle autónomo parte de `main`, lee
+el mismo último REG del ledger y elige el mismo número siguiente y la misma
+versión de service worker. Ninguno sabe de los otros trece. Está diagnosticado
+por el propio bucle en el PR #251 (OPS-003).
+
+**Por qué se atasca solo**: los catorce tocan las mismas tres líneas —el `CACHE`
+de `public/sw.js`, la cola del `regression-ledger.md` y
+`invariantes-clinicos.json`—. Cada fusión hace que los trece restantes den
+conflicto, así que el coste de la cola **crece** con cada iteración que se añade.
+
+| # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |
+|---|---|---|---|---|
+| M-1 | Fusionar o cerrar la cola de 25 PRs | Empezar por los de **negaciones**, que son cuatro sobre el mismo módulo (#241, #244, #245, #237) y hay que reconciliarlos, no fusionarlos en fila | Todo lo demás: mientras `main` no avance, cada iteración nueva vuelve a colisionar | Nada. El bucle sigue produciendo trabajo que no se puede integrar |
+| M-2 | Quién asigna el número REG y la versión del SW | Que lo ponga **quien fusiona**, no quien escribe. La rama no puede saberlo | Que dos ramas reclamen el mismo número | Las ramas se escriben sin número, como ésta |
+
+Fusionar a `main` es decisión suya: el bucle llega hasta el PR y ahí se para.
+
 ## CLÍNICAS
 
 | # | Decisión | Recomendación por omisión | Qué queda bloqueado | Qué sigue sin ella |

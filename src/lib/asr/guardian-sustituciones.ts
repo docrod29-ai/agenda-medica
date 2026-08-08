@@ -123,7 +123,16 @@ function contar(texto: string, termino: string): number {
   return (norm(texto).match(new RegExp(`${ini}${t}${fin}`, 'g')) ?? []).length
 }
 
-const NEGADORES = /(^|\s)(niega|sin|no\s+(se\s+)?(tiene|presenta|refiere|hay|observa|palpa|ausculta)|ausencia\s+de|negativo\s+para|se\s+descarta|descarta)(\s|$)/
+/**
+ * Lo que cuenta como negación para el guardián de volteo.
+ *
+ * `padece/padezco/sufre/sufro` se añadieron el 8-ago-2026 con el mismo hallazgo
+ * que tocó al parser local y al motor de contradicciones: sin ellos, un corrector
+ * que convirtiera «no padece diabetes» en «padece diabetes» no volteaba ninguna
+ * marca —ni antes ni después había negador— y el guardián dejaba pasar la
+ * inversión más cara que existe aquí.
+ */
+const NEGADORES = /(^|\s)(niega|sin|no\s+(se\s+)?(tiene|presenta|refiere|hay|observa|palpa|ausculta|padece|padezco|sufre|sufro)|ausencia\s+de|negativo\s+para|se\s+descarta|descarta)(\s|$)/
 const DERECHA = /(^|\s)(derecho|derecha)(\s|[.,;:]|$)/
 const IZQUIERDA = /(^|\s)(izquierdo|izquierda)(\s|[.,;:]|$)/
 const BILATERAL = /(^|\s)bilateral(es)?(\s|[.,;:]|$)/

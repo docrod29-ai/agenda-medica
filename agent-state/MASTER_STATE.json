@@ -10,16 +10,33 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-004 (cerrada, sin número REG ni versión: la numeración está en disputa)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-001",
+    "agent/safety/NEG-002-no-saber-no-es-negar"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [
     "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  ],
+  "siguientePorValor": [
+    "Nada nuevo hasta que main avance: el bucle deberia LEER LAS RAMAS ABIERTAS antes de elegir item (PR #251)",
+    "SAFE-005 (59) — la tercera salida: «el paciente dice que no lo sabe»",
+    "SAFE-001 (73) — cuatro parsers del campo de alergias, a medias y sin subir"
+  ],
+  "notasDelEntorno": [
+    "src/__tests__/ops-timeout-y-punto-ciego.test.ts > «el error dice cuánto esperó y a quién» falla en este contenedor y NO por el cambio: comprobado 5/5 sobre el árbol limpio. Depende de que 10.255.255.1 no conteste en 30 ms, y aquí el proxy corta antes. En CI pasa.",
+    "npm run build necesita los placeholders NEXT_PUBLIC_FIREBASE_* del workflow; sin ellos falla al recolectar /dr/[clinicId], no por el código."
+  ],
+  "bloqueoDelPrograma": {
+    "que": "25 PRs abiertos y main parado desde el #229. 14 se llaman «REG-192 · v1074»: cada disparo del bucle parte de main, lee el mismo ledger y elige el mismo número y la misma versión de SW.",
+    "porQueSeAtascaSolo": "Los 14 tocan las mismas tres lineas (CACHE de public/sw.js, la cola del ledger, invariantes-clinicos.json). Cada fusion hace que los 13 restantes den conflicto: el coste de la cola crece con cada iteracion nueva.",
+    "yaDiagnosticado": "PR #251 (OPS-003)",
+    "quienLoDesatasca": "solo el dueno: fusionar a main no esta autorizado al bucle",
+    "loQueHizoEstaIteracion": "NO reclamar REG-192 ni v1074 (habrian sido el decimoquinto), declarar el solapamiento con el PR #245 y escribir M-1/M-2 en OWNER_DECISIONS_REQUIRED.md"
+  }
 }
