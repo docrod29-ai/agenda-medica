@@ -4457,3 +4457,57 @@ independiente — ahí está el foso. **Un 94 % publicado y reproducible le gana
 99 % afirmado.**
 
 **Guardián.** `src/__tests__/el-motor-tiene-que-aportar.test.ts`, 8 casos.
+
+## REG-255 — un instrumento para la familia de defectos más grande (v1137)
+
+**No repara un defecto: repara la forma de encontrarlos.**
+
+«Escrito, probado y sin conectar» es 21 de 102 REG — la familia más grande con
+diferencia. Y los veintiuno se encontraron **de uno en uno, por casualidad**:
+leyendo otra cosa, o porque un equipo rojo tropezó. `tareaDeResultado()` fue el
+último: existía, estaba probada, y el bucle de laboratorio **nunca empezaba**.
+
+Encontrarlos por suerte no escala.
+
+**El instrumento.** `scripts/calidad/motores-conectados.mjs` barre los dominios
+clínicos y de seguridad —771 funciones exportadas— y pregunta dos cosas:
+
+1. ¿Se usa en algún sitio, incluido su propio archivo más allá de su
+   declaración?
+2. ¿Su módulo llega al camino del médico, siguiendo la cadena de importaciones
+   desde `app/`, `components/` y `hooks/`?
+
+**Resultado: 50 funciones sin ningún uso.** El trinquete las congela: sólo
+pueden bajar. Un motor clínico nuevo que nazca sin conectar pone esto en rojo el
+mismo día, en vez de esperar seis meses a que alguien tropiece.
+
+**Dos cosas distintas, y la segunda es la cara.** *Código muerto* —
+`verificarIntegridad`, **cero archivos de prueba**— molesta pero no engaña.
+*Probado y sin conectar* —`sePuedeFirmar`, `resumenVigentes`,
+`esAntecedenteFamiliar`, `csvDeBitacora`, todas con su prueba en verde— es el
+caro: **el verde de la prueba hace creer que está en marcha**.
+
+**Y un falso positivo propio que casi cuesta caro.** La primera versión daba
+**152**, no 50, porque preguntaba «¿lo usa algún archivo que no sea el suyo?».
+La primera que fui a reparar, por parecer la más peligrosa, era falsa:
+
+    crossResistenciaFQ   (EUCAST T13, cross-resistencia de fluoroquinolonas)
+
+La llama `analizarSeguridad`, **en el mismo archivo**, y ésa sí corre en el
+motor. Era un ayudante interno. Casi «reparo» algo que funcionaba, y justo en el
+módulo de antibiogramas — el que más le importa al médico dueño.
+
+Un medidor que grita 152 cuando hay 50 enseña a ignorarlo: **es el mismo fallo
+que se repara en los avisos clínicos**. Hay un caso que comprueba que el arreglo
+sigue puesto y otro que exige que el nombre `crossResistenciaFQ` siga escrito en
+el script, para que el próximo entienda por qué el medidor es más complicado de
+lo que parece necesario.
+
+**El guardián NO exige cero**: no todo lo de la lista es un defecto — puede ser
+API legítima o un símbolo exportado para poder probarlo. Congela la cuenta y
+cada iteración cierra una o dos con criterio.
+
+Familia `sin_medir`: no faltaba producto, faltaba el instrumento.
+
+**Guardián.** `src/__tests__/los-motores-llegan-al-medico.test.ts`, 8 casos.
+**Lista.** `docs/quality/MOTORES-SIN-CONECTAR.md`, con las 50 nombradas.

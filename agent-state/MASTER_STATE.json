@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1136",
+  "ultimaVersionEnProduccion": "nexusmed-v1137",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
@@ -27,8 +27,9 @@
     " M public/version.txt",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/evals/COMO-SE-MIDE.md",
-    "?? src/__tests__/el-motor-tiene-que-aportar.test.ts"
+    "?? docs/quality/MOTORES-SIN-CONECTAR.md",
+    "?? scripts/calidad/",
+    "?? src/__tests__/los-motores-llegan-al-medico.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +65,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 102,
-    "ultimaREG": "REG-254",
-    "archivosDePrueba": 532,
-    "casosDePrueba": 7081,
+    "regsEnElLedger": 103,
+    "ultimaREG": "REG-255",
+    "archivosDePrueba": 533,
+    "casosDePrueba": 7089,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

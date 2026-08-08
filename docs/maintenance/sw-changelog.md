@@ -2489,3 +2489,9 @@ aparece una sola high en producción.
 La exactitud de unidades daba 99,54 % con el motor y 99,54 % sin el motor: medía
 el comparador, no el producto. Ahora cada categoría se mide con y sin pipeline y
 lo que se vigila es el APORTE. La regla queda en docs/evals/COMO-SE-MIDE.md.
+
+## v1137 — el instrumento contra «escrito, probado y sin conectar» (REG-255)
+
+21 de 102 defectos son motores que existen y no corren, y los 21 se encontraron
+por casualidad. Ahora hay un barrido: 50 de 771 funciones clínicas no se usan en
+ningún sitio, y el trinquete impide que crezcan.

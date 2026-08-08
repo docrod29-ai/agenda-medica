@@ -1091,6 +1091,10 @@
     {
       "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/los-motores-llegan-al-medico.test.ts",
+      "minCasos": 8
     }
   ]
 }
