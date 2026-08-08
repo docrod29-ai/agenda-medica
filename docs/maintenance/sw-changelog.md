@@ -2513,3 +2513,9 @@ llegaba a la pantalla. Ahora se enseña sin filtro de modo avanzado.
 Una toma con flujo o FiO₂ pero sin la casilla de «recibe O₂» hacía que NEWS2
 saliera 2 puntos por debajo. Ahora se marca en la tabla de signos, explicando el
 efecto. No se deduce: lo decide el médico.
+
+## v1141 — lo que el texto de la IA se calla (REG-259)
+
+El razonamiento del antibiograma podía omitir una alerta crítica del motor —una
+carbapenemasa— sin contradecir nada, y nadie lo notaba. Ahora se avisa, en
+ámbar, para los dos modelos.

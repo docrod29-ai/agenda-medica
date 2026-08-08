@@ -1107,6 +1107,10 @@
     {
       "archivo": "src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/lo-que-el-texto-se-callo.test.ts",
+      "minCasos": 9
     }
   ]
 }

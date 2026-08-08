@@ -4645,3 +4645,37 @@ por bajar un número sería usar el instrumento al revés.
 **Guardián.** `src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts`, 12 casos,
 incluido uno que comprueba que la decisión de NO conectar esté escrita donde se
 lee.
+
+## REG-259 — el texto de la IA podía callarse una carbapenemasa (v1141)
+
+**Cuarta cosecha del instrumento de REG-255**, y ataca el modo de fallo más
+silencioso que hay en este módulo.
+
+`validarRazonamiento` ya cazaba lo que el modelo dice y **contradice** al motor
+determinista. No cazaba lo que el modelo **omite**: el motor detecta una
+carbapenemasa, el texto no la menciona, y el médico lee un razonamiento
+impecable que **no dice lo único que había que decir**.
+
+Contradecir es ruidoso — choca con lo que hay al lado. **Omitir no choca con
+nada**, y por eso hace falta un motor que lo busque.
+
+`omiteAlertasCriticas` existía exactamente para esto, con su prueba, y sin un
+solo llamador.
+
+**Se conecta para los DOS modelos**, el principal y la segunda opinión. Ya pasó
+una vez que `contradiccionesSegundaOpinion` viajaba desde el servidor y el
+cliente la tiraba: la segunda opinión se enseñaba sin su caja roja. Hay un caso
+que impide que se repita con las omisiones.
+
+**En ámbar, no en rojo.** El rojo está reservado para la contradicción, que es
+peor: una dice que el texto está equivocado, la otra que está incompleto. Si
+todo grita igual, nada se oye (REG-245).
+
+**Lo que no se hace.** No se reescribe el texto ni se le añade la alerta que
+falta. Se avisa, y las alertas del motor están arriba, enteras. Completar el
+razonamiento del modelo por cuenta propia sería poner en su boca un juicio que
+no hizo — y este proyecto no cruza esa línea ni cuando sería cómodo.
+
+**El trinquete baja: 43 → 42.** Familia `no_conectado`, la vigésima quinta.
+
+**Guardián.** `src/__tests__/lo-que-el-texto-se-callo.test.ts`, 9 casos.

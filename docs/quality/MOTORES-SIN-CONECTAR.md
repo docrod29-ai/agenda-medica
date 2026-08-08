@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**43** no se usan en ningún sitio fuera de su propia declaración.
+**42** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -39,6 +39,7 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `obstruccionTSVI` | REG-257 · decía «NO escalar inotrópicos» y no llegaba a ninguna pantalla; ahora se enseña SIN filtro de modo avanzado |
 | `signo6060` · `pulsatilidadPorta` | REG-257 · conectados en el bloque POCUS; la pulsatilidad se calcula de Vmáx/Vmín en vez de clasificarse a ojo |
 | `oxigenoSinDeclarar` | REG-258 · detecta flujo/FiO₂ sin la casilla de «recibe O₂»; NEWS2 suma 2 puntos por oxígeno y sin ella la puntuación sale baja |
+| `omiteAlertasCriticas` | REG-259 · el texto de la IA podía CALLARSE una carbapenemasa detectada por el motor; contradecir era ruidoso, omitir no chocaba con nada |
 
 ## Lo que NO significa estar en esta lista
 
@@ -75,7 +76,6 @@ crezca.
 - `src/lib/clinical/safety-gate.ts::invariantesProtegidos`
 - `src/lib/expediente/antibiograma/intrinseca.ts::carbapenemIntrinsecoR`
 - `src/lib/expediente/antibiograma/util.ts::fueEditado`
-- `src/lib/expediente/antibiograma/validar-razonamiento.ts::omiteAlertasCriticas`
 - `src/lib/expediente/bitacora-csv.ts::csvDeBitacora`
 - `src/lib/expediente/cuadro-completo.ts::resumenDelCuadro`
 - `src/lib/expediente/experienciador.ts::esAntecedenteFamiliar`

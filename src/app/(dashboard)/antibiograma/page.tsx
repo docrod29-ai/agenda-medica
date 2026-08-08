@@ -143,7 +143,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
   // Razonamiento con IA sobre el motor determinista.
   const [razonando, setRazonando] = useState(false)
-  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[]; contradiccionesSegunda?: { agente: string; motivo: string }[] } | null>(null)
+  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[]; contradiccionesSegunda?: { agente: string; motivo: string }[]; omite?: boolean; omiteSegunda?: boolean } | null>(null)
   const [errorRaz, setErrorRaz] = useState('')
 
   const razonarIA = async () => {
@@ -175,6 +175,9 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         segunda: data.segundaOpinion,
         contradicciones: data.contradicciones,
         contradiccionesSegunda: data.contradiccionesSegundaOpinion,
+        /* REG-259 — lo que el texto se CALLÓ, no sólo lo que contradice. */
+        omite: data.omiteAlertasCriticas,
+        omiteSegunda: data.omiteAlertasCriticasSegundaOpinion,
       })
     } catch (e) {
       setErrorRaz('Error de red: ' + (e instanceof Error ? e.message : String(e)))
@@ -486,6 +489,31 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
                     </ul>
                     <div style={{ color: 'var(--text3)', marginTop: 6, fontSize: 12 }}>
                       Los puntos de corte y el fenotipo los calcula el motor determinista; la IA solo razona sobre ellos.
+                    </div>
+                  </div>
+                )}
+                {/*
+                  LO QUE EL TEXTO SE CALLÓ (REG-259).
+
+                  La caja de arriba avisa de lo que el texto CONTRADICE. Ésta,
+                  de lo que OMITE — el otro modo de fallo, y el más silencioso:
+                  el motor detecta una carbapenemasa, el texto no la menciona,
+                  y se lee un razonamiento impecable que no dice lo único que
+                  había que decir.
+
+                  Se avisa, no se completa: las alertas del motor están arriba,
+                  enteras. Rellenar el razonamiento del modelo por su cuenta
+                  sería inventar juicio clínico.
+                */}
+                {razonamiento.omite && (
+                  <div style={{
+                    background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+                    borderRadius: 10, padding: '11px 13px', marginBottom: 12,
+                    fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
+                  }}>
+                    <strong>El texto de abajo no menciona las alertas críticas del motor.</strong>
+                    <div style={{ color: 'var(--text3)', marginTop: 6, fontSize: 12 }}>
+                      No las contradice: las omite. Léelas arriba antes de decidir.
                     </div>
                   </div>
                 )}
