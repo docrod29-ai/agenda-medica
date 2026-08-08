@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el motor de temporalidad se midió por primera vez y falló 9 de 61
+
+Se construyó en v1027-v1030 y salió sin corpus: sus únicos casos eran los que se
+escribieron junto al código, o sea los que ya se sabía que pasaban. Con 49 frases
+y 12 notas sintéticas delante aparecieron cuatro defectos, ninguno de los cuales
+rompía una prueba.
+
+«En control» y «en tratamiento» anulaban el pretérito —«le operaron en 2018 y
+quedó en control» se leía como presente—. En la nota sólo se miraba la primera
+aparición, así que un antecedente bien escrito arriba tapaba la afirmación en
+presente de abajo. «Derrame pleural» se etiquetaba como evento vascular cerebral.
+Y «le extirparon el apéndice» salía sin padecimiento que contrastar.
+
+Ahora el orden es la política: la continuidad gana a todo, el pretérito gana al
+estado, el estado gana a la marca de tiempo. Y la nota se mira entera.
+
+Gramática y vocabulario: ni una cifra clínica nueva.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

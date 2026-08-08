@@ -1553,3 +1553,79 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — el motor de temporalidad se midió por primera vez y falló 9 de 61 (v1074)
+
+**Encontrado** — 7-ago-2026, EVAL-002 del backlog: «el motor de temporalidad se
+construyó en v1027-v1030 y **no tiene corpus**: sus casos son los que yo
+escribí». Una defensa medida sólo contra sí misma no dice si protege o si
+estorba.
+
+**Cómo se reprodujo** — Se escribieron 49 frases y 12 notas sintéticas del habla
+de la consulta mexicana —positivos y negativos, porque un corpus de sólo
+positivos premia al motor que marca todo— y se corrieron contra el motor real
+**antes de tocar una línea**. Nueve salieron mal. No es una auditoría de lectura:
+es la salida de `mencionesEnPasado()` y `desajustesTemporales()`.
+
+**Los cuatro defectos, y ninguno rompía una prueba**
+
+1. **«En control» y «en tratamiento» anulaban el pretérito.** «Le operaron de la
+   vesícula en 2018 y **quedó en control** por consulta externa» se leía como
+   presente. El control era de entonces, igual que la cirugía. Lo mismo con
+   «tuvo neumonía hace tres años y estuvo **en tratamiento** con levofloxacino».
+2. **En la nota sólo se miraba la PRIMERA aparición.** Una nota ordenada empieza
+   por los antecedentes: «Antecedentes: neumonía en 2019 … Impresión diagnóstica:
+   neumonía adquirida en la comunidad». `indexOf` devuelve una posición, y el
+   antecedente —que está **bien** escrito— tapaba la afirmación en presente de
+   abajo. Bastaba con que la nota estuviera bien escrita una vez para que dejara
+   de mirarse.
+3. **«Derrame pleural» se etiquetaba como evento vascular cerebral.** «Derrame»
+   entró como forma coloquial del ictus y se lleva por delante las colecciones de
+   líquido.
+4. **«Le extirparon el apéndice» quedaba sin padecimiento.** El verbo contaba
+   como pasado desde la v1027 pero no como cirugía: la frase se detectaba y salía
+   sin nada que contrastar contra la nota.
+
+**Por qué le importa a un paciente** — Una neumonía de hace tres años escrita
+como diagnóstico actual se queda en el expediente, se copia a la nota siguiente y
+cambia lo que otro médico lee dentro de seis meses. Y por el otro lado: un aviso
+que salta donde no debe —un «evento vascular cerebral» que nadie mencionó— se
+acaba ignorando, y con él se ignoran los que sí importan.
+
+**Reparación** — La causa raíz es una sola: el motor era una carrera de
+expresiones regulares **sin orden declarado**. Ahora el orden ES la política y se
+lee de arriba abajo: la continuidad (`sigue`, `todavía`, `desde hace`) gana a
+todo; el pretérito gana al estado; el estado (`en control`, `en tratamiento`)
+gana a la marca de tiempo suelta. En la nota se miran **todas** las apariciones:
+basta una en presente para avisar, y si todas van encuadradas como antecedente no
+se avisa nada. `excepto` veta las apariciones que otra frase reclama
+(`derrame pleural`), y `extirparon`/`resecaron` entran como cirugía.
+
+**Lo que NO hace** — No juzga si la enfermedad sigue activa: eso es clínico y no
+es suyo. No reclasifica nada. Y la ventana de 60 caracteres **sigue siendo ciega
+en notas cortas**: «Antecedentes: neumonía en 2019. Dx: neumonía adquirida en la
+comunidad» cabe entera en la ventana y el encabezado silencia el diagnóstico de
+hoy. Cortar por el punto arreglaría ese caso y rompería «Antecedentes: 1.
+neumonía», que es igual de común — se dejó señalando de menos, a sabiendas.
+
+**«Quitaron» se queda fuera a propósito** — Le quitan a uno el yeso, los puntos y
+la sonda, y ninguna de las tres es una cirugía.
+
+**Ningún umbral ni cifra clínica** — Todo el cambio es gramática y vocabulario.
+No se añadió ni una dosis, ni un punto de corte, ni un criterio de actividad de
+enfermedad.
+
+**Lo que queda para el médico** — El corpus es sintético y pequeño: dice si el
+motor determinista sigue en pie, **no** con qué frecuencia acierta sobre el habla
+real de la consulta. Ese número necesita transcripciones anotadas por un clínico
+y depende de E-1 de la cola de decisiones. Y el vocabulario sigue siendo
+vocabulario: «gastroenteritis» está dicho en pasado y no se vigila — el corpus lo
+deja escrito en vez de fingir que está cubierto.
+
+**Comprobado que puede ponerse rojo** — Revertido `temporalidad.ts`, fallan 7 de
+los 14 casos del golden, incluidos los cuatro que nombran cada defecto.
+
+**Golden** — `src/__tests__/el-corpus-mide-la-temporalidad.test.ts` (14 casos)
+sobre `src/lib/expediente/corpus-temporalidad.ts` (49 frases + 12 notas).

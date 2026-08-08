@@ -72,6 +72,7 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   //  para decidir qué NEWS2 enseñar y con qué nombre.)
   'src/lib/mobile/consulta-cierre.ts': 'Núcleo del cierre de consulta: dos funciones puras esperando su interfaz.',
   'src/lib/ia/casos-oro.ts': 'Corpus oro de alucinación: lo consume su prueba en el CI, que es donde le toca. Un corpus con pantalla sería un corpus que alguien edita para que pase.',
+  'src/lib/expediente/corpus-temporalidad.ts': 'Corpus oro del motor de temporalidad (REG-192): lo consume su prueba en el CI. Mismo criterio que casos-oro.ts — un corpus con pantalla es un corpus que alguien edita para que pase.',
   'src/lib/uci/benchmark.ts': 'Arnés de estrés de los motores de UCI (icu-014): lo corre su propia prueba en el CI, que es donde le toca. No necesita pantalla.',
 
   // ── Los que el guardián roto NO veía (v935) ──────────────────────────────

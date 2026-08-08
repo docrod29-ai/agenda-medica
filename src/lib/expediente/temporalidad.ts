@@ -57,10 +57,15 @@ const sinAcentos = (s: string) =>
  * Que falte una forma significa que ese caso no se vigila — no que se dé por
  * bueno. Este motor sólo puede señalar de menos, nunca de más.
  */
-const PASADO = new RegExp([
+/** El verbo en pretérito o copretérito: el pasado dicho con la conjugación. */
+const PASADO_VERBO = new RegExp([
   '\\b(?:tuvo|tuve|tenia|tenian|padecio|padeci|padecia|sufrio|sufri|presento)\\b',
   '\\b(?:le\\s+)?(?:operaron|extirparon|quitaron|resecaron)\\b',
   '\\b(?:ya\\s+)?se\\s+le\\s+(?:quito|curo|resolvio)\\b',
+].join('|'), 'i')
+
+/** La marca de cuándo: el pasado dicho con la fecha, sin tocar el verbo. */
+const PASADO_MARCA = new RegExp([
   '\\bhace\\s+(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)\\s*(?:anos?|meses?|semanas?|dias?)\\b',
   '\\ben\\s+(?:19|20)\\d{2}\\b',
   '\\b(?:de|en\\s+la)\\s+(?:nino|nina|infancia|juventud)\\b',
@@ -72,17 +77,40 @@ const PASADO = new RegExp([
 /**
  * Marcas de que, pese a todo, la frase habla del PRESENTE.
  *
- * Manda sobre `PASADO`. «Desde hace tres años tiene diabetes» trae una marca de
- * tiempo y es presente; «sigue con», «todavía» y «actualmente» dicen
- * explícitamente que continúa. Sin esta prioridad, el motor marcaría justo la
- * forma más común de contar un padecimiento crónico.
+ * Manda sobre las dos familias de pasado. «Desde hace tres años tiene diabetes»
+ * trae una marca de tiempo y es presente; «sigue con», «todavía» y «actualmente»
+ * dicen explícitamente que continúa. Sin esta prioridad, el motor marcaría justo
+ * la forma más común de contar un padecimiento crónico.
+ *
+ * Todas afirman la CONTINUIDAD del padecimiento. Por eso ganan siempre.
  */
-const PRESENTE = new RegExp([
+const PRESENTE_CONTINUIDAD = new RegExp([
   '\\bdesde\\s+hace\\b',
   '\\bdesde\\s+(?:los\\s+)?(?:19|20)\\d{2}\\b',
   '\\b(?:sigue|continua|persiste|permanece)\\b',
   '\\b(?:todavia|aun|actualmente|hoy\\s+en\\s+dia|en\\s+la\\s+actualidad)\\b',
   '\\b(?:tiene|padece|cursa|presenta)\\s+(?:actualmente|todavia)\\b',
+].join('|'), 'i')
+
+/**
+ * Marcas de ESTADO, que sólo valen si nadie las puso en pasado.
+ *
+ * ── EL DEFECTO QUE ESTO REPARA (REG-192) ─────────────────────────────────────
+ *
+ * «En control» y «en tratamiento» viajaban junto a las de continuidad y ganaban
+ * igual. Pero no dicen cuándo: dicen en qué situación. Medido con el corpus oro:
+ *
+ *     «Tuvo neumonía hace tres años y estuvo EN TRATAMIENTO con levofloxacino»
+ *     «Le operaron de la vesícula en 2018 y quedó EN CONTROL por consulta externa»
+ *
+ * Las dos se leían como presente y el aviso no salía. El tratamiento y el
+ * control eran de entonces, igual que la neumonía y que la cirugía.
+ *
+ * Por eso pierden contra el VERBO en pretérito —que es una afirmación sobre
+ * cuándo ocurrió—, y siguen ganando contra la mera marca de tiempo: «diabetes en
+ * control desde 2019» es presente y tiene que seguir siéndolo.
+ */
+const PRESENTE_ESTADO = new RegExp([
   '\\ben\\s+control\\b',
   '\\ben\\s+tratamiento\\b',
 ].join('|'), 'i')
@@ -112,7 +140,21 @@ const PRESENTE = new RegExp([
  * falte un padecimiento significa que ese caso no se vigila — **no que se dé por
  * bueno**. Este motor sólo puede señalar de menos, nunca de más.
  */
-export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[] = [
+export const AGUDAS_FRECUENTES: {
+  canonica: string
+  formas: readonly string[]
+  /**
+   * Frases que EMPIEZAN por una forma y significan otra cosa. La aparición se
+   * descarta entera.
+   *
+   * Nació de «derrame» (REG-192): en la consulta mexicana «le dio un derrame» es
+   * un ictus, pero «derrame pleural» y «derrame pericárdico» son colecciones de
+   * líquido y no tienen nada que ver. Etiquetar mal es peor que no vigilar: el
+   * médico ve un aviso de un evento vascular que nadie mencionó, y la siguiente
+   * vez ya no lo lee.
+   */
+  excepto?: readonly string[]
+}[] = [
   { canonica: 'neumonía', formas: ['neumonía', 'neumonia', 'bronconeumonía', 'bronconeumonia'] },
   { canonica: 'COVID-19', formas: ['covid', 'covid-19', 'coronavirus', 'sars-cov-2'] },
   { canonica: 'fractura', formas: ['fractura', 'fracturas', 'fracturó', 'fracturo'] },
@@ -120,11 +162,22 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
    * «Le operaron» entra como forma de «cirugía» a propósito: en la consulta se
    * cuenta así, con el verbo. «Lo van a operar» NO — ése es el futuro, y en el
    * futuro no hay nada que corregir.
+   *
+   * «Extirparon» y «resecaron» se añadieron en REG-192: ya contaban como pasado
+   * —están en `PASADO_VERBO` desde la v1027— pero no como padecimiento, así que
+   * «hace cinco años le extirparon el apéndice» se detectaba como frase pasada y
+   * salía sin nada que contrastar contra la nota. «Quitaron» se queda fuera a
+   * propósito: le quitan a uno el yeso, los puntos y la sonda, y ninguna de las
+   * tres es una cirugía.
    */
-  { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
+  { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'extirparon', 'resecaron', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
   { canonica: 'trombosis venosa', formas: ['trombosis', 'tvp', 'trombosis venosa'] },
   { canonica: 'embolia pulmonar', formas: ['embolia pulmonar', 'tromboembolia', 'tep'] },
-  { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame'] },
+  {
+    canonica: 'evento vascular cerebral',
+    formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame'],
+    excepto: ['derrame pleural', 'derrame pericárdico', 'derrame pericardico', 'derrame articular', 'derrame sinovial', 'derrame ocular'],
+  },
   { canonica: 'hemorragia digestiva', formas: ['hemorragia digestiva', 'sangrado de tubo digestivo', 'stda'] },
   { canonica: 'pancreatitis', formas: ['pancreatitis'] },
   { canonica: 'infección urinaria', formas: ['infección urinaria', 'infeccion urinaria', 'ivu', 'cistitis', 'pielonefritis'] },
@@ -133,7 +186,26 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
 ]
 
 /** El vocabulario completo que este motor mira: lo crónico y lo agudo. */
-const VOCABULARIO = () => [...CRONICAS, ...AGUDAS_FRECUENTES]
+const VOCABULARIO = (): {
+  canonica: string; formas: readonly string[]; excepto?: readonly string[]
+}[] => [...CRONICAS, ...AGUDAS_FRECUENTES]
+
+/**
+ * Dónde aparece esta forma en un texto YA normalizado, saltándose las
+ * apariciones que una excepción reclama para otra cosa.
+ *
+ * Devuelve TODAS, no la primera: es el defecto de REG-192 en `desajustes`.
+ */
+function ocurrenciasDe(t: string, forma: string, excepto: readonly string[] = []): number[] {
+  const f = sinAcentos(forma)
+  const veto = excepto.map(sinAcentos)
+  const out: number[] = []
+  for (let i = t.indexOf(f); i >= 0; i = t.indexOf(f, i + 1)) {
+    if (veto.some(e => t.startsWith(e, i))) continue
+    out.push(i)
+  }
+  return out
+}
 
 /**
  * Qué padecimientos nombra esta frase, de los DOS vocabularios.
@@ -146,16 +218,24 @@ export function padecimientosEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out = [...cronicasEn(frase)]
   for (const c of AGUDAS_FRECUENTES) {
-    if (c.formas.some(f => t.includes(sinAcentos(f))) && !out.includes(c.canonica)) out.push(c.canonica)
+    const nombrada = c.formas.some(f => ocurrenciasDe(t, f, c.excepto).length > 0)
+    if (nombrada && !out.includes(c.canonica)) out.push(c.canonica)
   }
   return out
 }
 
-/** ¿Esta frase encuadra lo que dice en el pasado? */
+/**
+ * ¿Esta frase encuadra lo que dice en el pasado?
+ *
+ * El orden es la política, y se lee de arriba abajo: la continuidad gana a todo,
+ * el pretérito gana al estado, y el estado gana a la marca de tiempo suelta.
+ */
 export function esFrasePasada(frase: string): boolean {
   const t = sinAcentos(frase)
-  if (PRESENTE.test(t)) return false
-  return PASADO.test(t)
+  if (PRESENTE_CONTINUIDAD.test(t)) return false
+  if (PASADO_VERBO.test(t)) return true
+  if (PRESENTE_ESTADO.test(t)) return false
+  return PASADO_MARCA.test(t)
 }
 
 export interface MencionPasada {
@@ -212,16 +292,34 @@ export function desajustesTemporales(
   const t = sinAcentos(textoNota)
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
-    const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
+    const entrada = VOCABULARIO().find(c => c.canonica === m.condicion)
+    const formas = entrada?.formas ?? [m.condicion]
+    /**
+     * TODAS las apariciones, no la primera (REG-192). Una nota bien ordenada
+     * empieza por los antecedentes: «Antecedentes: neumonía en 2019 … Impresión
+     * diagnóstica: neumonía adquirida en la comunidad». Mirando sólo la primera,
+     * el antecedente —que está bien escrito— tapaba la afirmación en presente de
+     * abajo, que es exactamente el fallo que este motor existe para ver.
+     *
+     * Basta con que UNA aparición la afirme en presente. Al revés, si todas
+     * están encuadradas como antecedente, no hay nada que avisar.
+     */
+    const sitios = formas.flatMap(f => ocurrenciasDe(t, f, entrada?.excepto)).sort((a, b) => a - b)
+    for (const idx of sitios) {
       /**
        * La ventana hacia atrás es de 60 caracteres, la misma que usan las
        * negaciones y por la misma razón: es lo que mide «antecedente de …» o
        * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
        * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
        * que importa.
+       *
+       * La ventana NO se corta en el punto anterior, y es a sabiendas: en una
+       * nota corta —«Antecedentes: neumonía en 2019. Dx: neumonía adquirida en
+       * la comunidad»— el encabezado cabe dentro de los 60 caracteres y silencia
+       * el diagnóstico de hoy. Cortar por el punto arreglaría ese caso y rompería
+       * el simétrico, «Antecedentes: 1. neumonía», que es igual de común: la
+       * enumeración deja un punto en medio y el encabezado se perdería. Entre
+       * señalar de menos y señalar de más, este motor señala de menos.
        */
       const antes = textoNota.slice(Math.max(0, idx - 60), idx)
       if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
