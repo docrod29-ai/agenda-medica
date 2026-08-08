@@ -10,16 +10,18 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "EVAL-002 (reparado, sin número reclamado)",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/safety/SAFE-001 (PR #231, CI verde)",
+    "agent/eval/EVAL-002",
+    "agent/pagos/PAY-001 (PR #230)"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
   "trabajoLocalSinSubir": [
     "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  ],
+  "ultimaVersionPreparada": "ninguna — versión NO reclamada a propósito",
+  "notaDeIteracion": "EVAL-002 se tomó tras comprobar que VOICE-004 —el de score más alto— ya estaba cerrado desde el 4-ago (REG-141) y el backlog decía «en curso». EVAL-003 igual. Aplicada la lección de la iteración pasada: `git fetch` de la rama del ítem ANTES de reproducir; la rama agent/voice/VOICE-004 resultó no tener ni un commit sobre main. Corregidos los tres estados falsos del backlog.",
+  "colisionDeNumeracion": "8-ago: 14 PR abiertos se llaman «REG-192 · v1074» y hay CINCO ramas para EVAL-002. Varias corridas del bucle eligen ítem sin mirar las ramas de las demás. El PR #251 (OPS-003) es sobre esto. Esta iteración NO reclama número ni versión: quien consolide asigna."
 }

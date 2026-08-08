@@ -60,7 +60,13 @@ const sinAcentos = (s: string) =>
 const PASADO = new RegExp([
   '\\b(?:tuvo|tuve|tenia|tenian|padecio|padeci|padecia|sufrio|sufri|presento)\\b',
   '\\b(?:le\\s+)?(?:operaron|extirparon|quitaron|resecaron)\\b',
-  '\\b(?:ya\\s+)?se\\s+le\\s+(?:quito|curo|resolvio)\\b',
+  /**
+   * El «le» era obligatorio y no debía serlo (medido el 7-ago-2026): «ya se le
+   * curó» se marcaba y «ya se curó» no, siendo la forma más corta y más común.
+   * Se añade «se recuperó de», que es como se cuenta el final de un cuadro
+   * agudo — justo lo que este motor existe para no dar por activo.
+   */
+  '\\b(?:ya\\s+)?se\\s+(?:le\\s+)?(?:quito|curo|resolvio|recupero)\\b',
   '\\bhace\\s+(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)\\s*(?:anos?|meses?|semanas?|dias?)\\b',
   '\\ben\\s+(?:19|20)\\d{2}\\b',
   '\\b(?:de|en\\s+la)\\s+(?:nino|nina|infancia|juventud)\\b',
@@ -77,6 +83,32 @@ const PASADO = new RegExp([
  * explícitamente que continúa. Sin esta prioridad, el motor marcaría justo la
  * forma más común de contar un padecimiento crónico.
  */
+/**
+ * ── «HACE TRES AÑOS QUE TIENE DIABETES» (7-ago-2026, medido) ────────────────
+ *
+ * El encabezado de este módulo ya advertía la trampa: «hace tres años» no es
+ * pasado por sí sola, y marcarla «sería peor que no mirar nada». La cubría en
+ * UNA forma —«**desde** hace tres años tiene diabetes»— y no en la otra:
+ *
+ *     «hace tres años QUE tiene diabetes»   → se marcaba pasado
+ *     «tiene diabetes hace tres años»       → se marcaba pasado
+ *
+ * Son el mismo significado con otro orden de palabras, y en la consulta mexicana
+ * son la forma NORMAL de decir que un padecimiento crónico sigue activo. Medido
+ * sobre el corpus oro: las dos familias fallaban al 100 %.
+ *
+ * Lo que decide no es la marca de tiempo sino **el tiempo del verbo que gobierna
+ * al padecimiento**. Por eso las dos entradas exigen un verbo en presente:
+ * «hace tres años que TUVO neumonía» no cae aquí y se sigue marcando pasado.
+ *
+ * El límite de 40 caracteres en la segunda acota la ventana a la misma oración:
+ * sin él, un «tiene» de una frase anterior alcanzaría a un «hace» de la
+ * siguiente y apagaría un aviso legítimo. Señalar de menos, nunca de más — pero
+ * tampoco apagar a ciegas.
+ */
+const VERBO_PRESENTE = '(?:tiene|padece|presenta|cursa|vive|esta|sigue|toma|maneja|refiere)'
+const CUANTIFICADOR = '(?:\\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|muchos|algunos)'
+
 const PRESENTE = new RegExp([
   '\\bdesde\\s+hace\\b',
   '\\bdesde\\s+(?:los\\s+)?(?:19|20)\\d{2}\\b',
@@ -85,6 +117,10 @@ const PRESENTE = new RegExp([
   '\\b(?:tiene|padece|cursa|presenta)\\s+(?:actualmente|todavia)\\b',
   '\\ben\\s+control\\b',
   '\\ben\\s+tratamiento\\b',
+  // «hace tres años QUE tiene diabetes» — el verbo va detrás del «que».
+  `\\bhace\\s+${CUANTIFICADOR}?\\s*(?:anos?|meses?|semanas?|dias?)?\\s*que\\s+${VERBO_PRESENTE}\\b`,
+  // «tiene diabetes hace tres años» — el verbo va delante de la marca.
+  `\\b${VERBO_PRESENTE}\\b[^.;]{0,40}?\\bhace\\s+${CUANTIFICADOR}\\s*(?:anos?|meses?|semanas?|dias?)\\b`,
 ].join('|'), 'i')
 
 /**

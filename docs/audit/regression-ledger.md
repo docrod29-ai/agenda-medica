@@ -1553,3 +1553,82 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## SIN NÚMERO — el motor de temporalidad marcaba como pasado la forma normal de decir «lo tiene»
+
+**Sin `REG-xxx` y sin versión de SW, a propósito.** Al ir a numerar esto había
+**14 PR abiertos llamados «REG-192 · v1074»** y el número siguiente que me tocaba
+—REG-204 / v1085— ya lo reclamaba el PR #253. Varias corridas del bucle eligen
+ítem sin mirar las ramas de las demás; el PR #251 (OPS-003) es justo sobre eso.
+Reclamar un número en disputa perpetúa el problema, así que quien consolide
+asigna el número. Mismo criterio que el PR #254.
+
+**Encontrado** — 7-ago-2026, construyendo el corpus oro que pedía `EVAL-002`. No
+se buscaba un defecto: se buscaba una vara. La vara lo encontró en la primera
+pasada.
+
+**Cómo se reprodujo** — Marcos etiquetados por gramática española **antes** de
+correr el motor, cruzados con su propio vocabulario. Dos familias enteras
+fallaban al 100 %:
+
+```
+esFrasePasada('hace tres años que tiene diabetes')  → true   (es PRESENTE)
+esFrasePasada('tiene diabetes hace tres años')      → true   (es PRESENTE)
+esFrasePasada('se recuperó de la neumonía')         → false  (es PASADO)
+esFrasePasada('ya se curó de la neumonía')          → false  (es PASADO)
+```
+
+**El defecto** — El módulo tenía la trampa **escrita en su propio encabezado**:
+«"Hace tres años" no significa pasado por sí sola… marcar eso sería peor que no
+mirar nada». Y la cubría en UNA sola forma —«**desde** hace tres años tiene
+diabetes»— dejando fuera «hace tres años **que** tiene diabetes» y «tiene
+diabetes **hace** tres años», que son el mismo significado con otro orden de
+palabras y la manera normal de contarlo en la consulta mexicana.
+
+Del otro lado, `(?:ya\s+)?se\s+le\s+(?:quito|curo|resolvio)` exigía el «le»: «ya
+se **le** curó» se reconocía y «ya se curó» no.
+
+**Por qué importa para un paciente** — Los dos errores son caros y en direcciones
+opuestas. De más: el aviso salta sobre el crónico que sigue activo, y un aviso
+que salta donde no debe se acaba ignorando — con él se ignoran los que sí
+importan. De menos: un cuadro agudo ya resuelto pasa por activo, queda en el
+expediente, se copia a la nota siguiente y cambia lo que otro médico lee dentro
+de seis meses.
+
+**Reparación** — El criterio no es la marca de tiempo sino **el tiempo del verbo
+que gobierna al padecimiento**. Dos entradas nuevas en `PRESENTE` que exigen
+verbo en presente, y el «le» pasa a opcional con `recupero` añadido.
+
+**Ningún criterio clínico nuevo** — Esto es gramática, no medicina, como declara
+el propio módulo: decide si el dictado encuadró la frase en pasado, no si la
+enfermedad sigue activa. Sigue sin borrar, sin reclasificar y sin decidir.
+
+**El control que impide pasarse de listo** — «hace tres años que **tuvo**
+neumonía» sigue siendo pasado con el mismo «hace…que». Si alguien apagara la
+trampa mirando sólo la marca de tiempo, ese marco se pone rojo.
+
+**La vara** — `fixtures/temporalidad/corpus-oro.csv`, 496 frases **sintéticas**,
+producto cruzado de 31 marcos × 16 padecimientos, generado por
+`scripts/generar-corpus-temporalidad.mjs`. La etiqueta la pone el marco, no el
+motor: no pueden coincidir por construcción. Criterio CERO, como el corpus de
+alucinación — el corpus se controla entero.
+
+**Qué NO hace** — No es una medición de producción: es sintético y son
+plantillas, no dictado real. Dice si la defensa gramatical sigue en pie, no
+cuánto acierta sobre la consulta real; ese número necesita transcripciones y
+anotación clínica del médico. No mide el vocabulario, no mide la frase compuesta
+(«tuvo neumonía hace tres años y ahora tiene diabetes») y no juzga la decisión
+clínica.
+
+**Dos huecos declarados, no reparados aquí** — (1) «artritis» no está en
+`CRONICAS`: se descubrió porque el trinquete separa el fallo de vocabulario del
+de tiempo, y las 31 filas salieron ciegas. (2) **Ni `temporalidad.ts` ni su
+hermano `negaciones.ts` están declarados en `registry.ts`**, que la regla de
+seguridad clínica §7 exige para todo motor clínico. Los dos van al backlog.
+
+**Comprobado que puede ponerse rojo** — Revertido el motor: 4 de los 8 casos
+fallan, y el mensaje trae las frases delante.
+
+**Golden** — `src/__tests__/trinquete-temporalidad.test.ts` (8 casos).
