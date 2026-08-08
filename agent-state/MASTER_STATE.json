@@ -10,16 +10,20 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "OPS-003 (cerrada) — 8-ago-2026",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-003-arranque-del-bucle"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "ramasSinFusionar": 33,
+  "prsAbiertos": 22,
+  "siguienteLibre": {
+    "reg": "REG-225",
+    "sw": "nexusmed-v1107",
+    "comoSeSabe": "node scripts/estado-de-las-ramas.mjs"
+  },
+  "antesDeElegir": "node scripts/estado-de-las-ramas.mjs <archivo> — qué ramas ya tocan ese módulo. Esta iteración reprodujo un defecto real de negaciones.ts, vio que el PR #237 ya lo resolvía mejor y NO abrió un PR duplicado.",
+  "bloqueoPrincipal": "T-1: 22 PRs abiertos, catorce llamados REG-192/v1074. Fusionar o cerrar es del dueño; mientras no se fusione nada, la cola sólo crece."
 }
