@@ -1119,6 +1119,10 @@
     {
       "archivo": "src/__tests__/el-expediente-resume-el-estado.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
+      "minCasos": 8
     }
   ]
 }

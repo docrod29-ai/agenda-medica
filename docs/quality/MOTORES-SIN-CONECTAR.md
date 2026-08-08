@@ -89,6 +89,27 @@ nace en `null` a propósito. Quién puede corregir, en qué ventana y si el moti
 es obligatorio son decisiones de política de registro clínico con peso NOM-004.
 Está en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
 
+## El barrido, cerrado: los cinco que quedan (REG-263)
+
+Empezó en **50**. Once motores se conectaron de verdad. De los **39** que
+quedan, **34 son envoltorios** y **cinco tienen cuerpo real** — y **ninguno de
+los cinco es un defecto**. Verificado uno a uno, leyendo el código:
+
+| Símbolo | Por qué no tiene llamador |
+|---|---|
+| `validarCorreccion` | **Bloqueado en el dueño.** Exige una política como parámetro obligatorio y `POLITICA_CORRECCION` nace en `null` a propósito |
+| `coherenteConElTipo` | Su comentario dice que se exporta «para que un caso del **golden** la ejecute», y el golden la ejecuta |
+| `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
+| `correrBenchmark` | Arranque de un banco de pruebas que **se corre a mano** y se paga |
+| `obtenerVersion` | **Redundante**: `listarVersiones` ya devuelve las versiones enteras, así que restaurar no necesita una segunda lectura |
+
+**Un residuo explicado no es deuda: es una decisión.** Conectar `obtenerVersion`
+añadiría una lectura de Firestore para traer lo que ya está en memoria; conectar
+`validarCorreccion` exigiría inventarse la política.
+
+`el-barrido-de-motores-esta-explicado` falla si aparece un motor con cuerpo real
+sin explicación **y también** si una explicación sobrevive a lo que explicaba.
+
 ## Lo que se decidió NO conectar, y por qué
 
 Es una **decisión, no un olvido**. El trinquete no exige cero: exige que no

@@ -2537,3 +2537,9 @@ esto.
 Dos motores pedían «el encabezado de la consulta», pero ahí las listas ya salen
 enteras. Su sitio era el expediente, que no resumía nada: había que leerse todas
 las notas para saber qué tiene y qué toma.
+
+## v1145 — el barrido de motores, cerrado (REG-263)
+
+50 → 39. Once motores conectados de verdad; 34 envoltorios que no son defectos;
+y los cinco con cuerpo real que quedan están explicados uno a uno, con prueba
+que falla si alguien los «arregla» sin leer.

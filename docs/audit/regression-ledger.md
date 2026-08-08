@@ -4794,3 +4794,43 @@ paciente está sano.
 ellos bloqueado en el dueño). Familia `no_conectado`, la vigésima séptima.
 
 **Guardián.** `src/__tests__/el-expediente-resume-el-estado.test.ts`, 10 casos.
+
+## REG-263 — el barrido se cierra: los cinco que quedan están explicados (v1145)
+
+**Cierre del hilo que abrió REG-255.** El instrumento encontró **50** funciones
+de motores clínicos sin ningún uso. En siete versiones se conectaron **once de
+verdad** —la bandeja de alertas, CAM-ICU, tres motores POCUS, el oxígeno sin
+declarar, la omisión de alertas críticas, los ingresos hospitalarios y los dos
+resúmenes— y el número bajó a **39**.
+
+De esos 39, **34 son envoltorios** de ≤3 líneas (REG-260). Quedan **cinco con
+cuerpo real**, y **ninguno es un defecto**. Verificado uno a uno, leyendo el
+código:
+
+| Símbolo | Por qué no tiene llamador |
+|---|---|
+| `validarCorreccion` | **Bloqueado en el dueño**: exige una política como parámetro obligatorio y `POLITICA_CORRECCION` nace en `null` |
+| `coherenteConElTipo` | Su comentario dice que se exporta «para que un caso del **golden** la ejecute», y el golden la ejecuta |
+| `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
+| `correrBenchmark` | Arranque de un banco que **se corre a mano** y se paga |
+| `obtenerVersion` | **Redundante**: `listarVersiones` ya devuelve las versiones enteras, así que restaurar no necesita una segunda lectura |
+
+**Por qué esto es una prueba y no una nota.** Dentro de tres meses alguien —yo
+incluido— va a mirar la lista, ver cinco nombres y «arreglarlos». Conectar
+`obtenerVersion` añadiría una lectura de Firestore para traer lo que ya está en
+memoria; conectar `validarCorreccion` exigiría inventarse la política.
+
+**Un residuo explicado no es deuda: es una decisión.**
+
+El guardián falla en los **dos** sentidos: si aparece un motor con cuerpo real
+sin explicación, y **también si una explicación sobrevive a lo que explicaba** —
+una lista de excusas que no se limpia es la forma más silenciosa de que un
+guardián deje de guardar.
+
+Y comprueba que las razones sean **verificables en el código**, no de palabra: la
+constante en `null`, el golden ejecutando de verdad, y que `HistorialVersiones`
+use `listarVersiones` y no `obtenerVersion`.
+
+Familia `sin_medir`.
+
+**Guardián.** `src/__tests__/el-barrido-de-motores-esta-explicado.test.ts`, 8 casos.

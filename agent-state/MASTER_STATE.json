@@ -16,9 +16,10 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1144",
+  "ultimaVersionEnProduccion": "nexusmed-v1145",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
+    "M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
@@ -26,11 +27,9 @@
     " M docs/quality/MOTORES-SIN-CONECTAR.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/app/(dashboard)/expediente/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-expediente-resume-el-estado.test.ts"
+    "?? src/__tests__/el-barrido-de-motores-esta-explicado.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -64,12 +63,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/pagos/PAY-001",
+  "ramaActual": "claude/nexus-patient-ux-v9",
   "derivado": {
-    "regsEnElLedger": 110,
-    "ultimaREG": "REG-262",
-    "archivosDePrueba": 539,
-    "casosDePrueba": 7161,
+    "regsEnElLedger": 111,
+    "ultimaREG": "REG-263",
+    "archivosDePrueba": 540,
+    "casosDePrueba": 7169,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
