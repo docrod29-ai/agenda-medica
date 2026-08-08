@@ -4209,3 +4209,46 @@ ni un momento. Ahora comprueba la intención. Una prueba que se rompe con cada
 añadido enseña a editarla sin leerla, y entonces deja de proteger.
 
 **Guardián.** `src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts`, 11 casos.
+
+## REG-250 — pulsar una frase y escuchar el segundo exacto (v1132)
+
+**La cadena que pidió el médico, cerrada**: «hacer clic en cualquier frase de la
+nota → escuchar exactamente el audio que la originó». Es lo que Abridge llama
+*Linked Evidence* — y lo que **Nabla estructuralmente no puede tener**, porque
+borra el audio original (AP, oct-2024). Familia `hueco_frente_al_mercado`.
+
+    frase de la nota → trozo del dictado → SEGUNDO EXACTO → audio
+
+Los dos primeros pasos ya existían (`trazabilidad.ts`); el audio se guarda desde
+REG-249. Faltaba el puente del medio: los segmentos llevan posición en
+**caracteres** y el audio se busca por **tiempo**.
+
+**Por qué no vale una regla de tres.** Repartir la duración total entre los
+caracteres del dictado falla justo donde importa: la gente se calla, tose,
+repite, y el paciente habla a otra velocidad que el médico. Tres segundos de
+desfase dejan al médico oyendo la frase equivocada — y **una prueba en el
+segundo equivocado es peor que ninguna**, porque tiene aspecto de prueba.
+
+Se busca la frase **en las palabras que el motor oyó** y se devuelve el
+`inicioMs` de la que de verdad la empieza, con el hablante.
+
+**Cuándo NO sale botón, que es la mitad del diseño.** Cuando el motor no localiza
+la frase con seguridad devuelve `null` y la interfaz no ofrece nada:
+
+- frase de menos de tres palabras («Sí», «Correcto») — esa palabra aparece diez
+  veces en la consulta y cualquiera parecería igual de buena;
+- frase que no está en el dictado;
+- turnos **sin tiempos** —un borrador anterior a que se guardaran— porque
+  rellenar con cero pondría toda la consulta al principio del audio, y sonaría
+  plausible.
+
+**El reproductor.** Un solo elemento `<audio>` para toda la página (decenas de
+frases son decenas de descargas del mismo archivo y dos audios sonando a la vez);
+la URL se pide **al pulsar**, que es cuando las reglas de Storage se evalúan otra
+vez con quien esté mirando; y **se para al desmontar** — dejar sonando el audio
+de un paciente después de cerrar su nota es exactamente lo que no puede pasar.
+
+`firebase/storage` se importa de forma perezosa: no se paga en las consultas que
+nunca escuchan nada.
+
+**Guardián.** `src/__tests__/escuchar-de-donde-salio.test.ts`, 22 casos.

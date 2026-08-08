@@ -1071,6 +1071,10 @@
     {
       "archivo": "src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/escuchar-de-donde-salio.test.ts",
+      "minCasos": 19
     }
   ]
 }

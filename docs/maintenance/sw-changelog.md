@@ -2457,3 +2457,9 @@ Se subía a Storage, se usaba para diarizar y se descartaba: no había nada que
 reproducir. Ahora la RUTA (no la URL, que lleva un token dentro) vuelve al
 llamador. El camino corto también guarda, para que la función no dependa de la
 duración. Es el eslabón que faltaba para el clic-a-audio.
+
+## v1132 — escuchar de dónde salió cada frase (REG-250)
+
+En «¿de dónde salió esto?», cada frase respaldada trae ahora un botón con el
+minuto exacto: se pulsa y suena ese momento de la consulta. Si el motor no
+localiza la frase con seguridad, no hay botón — nunca se aproxima.

@@ -16,21 +16,23 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1131",
+  "ultimaVersionEnProduccion": "nexusmed-v1132",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
-    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/sesgo-con-el-paciente.test.ts",
-    " M src/hooks/useGrabacionAudio.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/components/DeDondeSalioEsto.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts"
+    " M synthetic-data/dialogos-consulta/salida/INFORME_DIARIZACION.json",
+    "?? src/__tests__/escuchar-de-donde-salio.test.ts",
+    "?? src/components/EscucharElMomento.tsx",
+    "?? src/lib/expediente/cuando-se-dijo.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +68,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 97,
-    "ultimaREG": "REG-249",
-    "archivosDePrueba": 527,
-    "casosDePrueba": 7019,
+    "regsEnElLedger": 98,
+    "ultimaREG": "REG-250",
+    "archivosDePrueba": 528,
+    "casosDePrueba": 7038,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

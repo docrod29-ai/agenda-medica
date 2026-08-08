@@ -41,6 +41,9 @@
  */
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Quote } from 'lucide-react'
+import type { Utterance } from '@/hooks/useGrabacionAudio'
+import { cuandoSeDijo } from '@/lib/expediente/cuando-se-dijo'
+import { EscucharElMomento } from '@/components/EscucharElMomento'
 import { rastrearNota, type Respaldo } from '@/lib/expediente/trazabilidad'
 
 export interface DeDondeSalioEstoProps {
@@ -48,6 +51,15 @@ export interface DeDondeSalioEstoProps {
   nota: string
   /** El dictado, que es la fuente. */
   dictado: string
+  /**
+   * Los turnos con sus tiempos por palabra. Sin ellos no hay botón de escuchar
+   * — que es lo correcto: no se sabe en qué segundo se dijo (REG-250).
+   */
+  utterances?: readonly Utterance[]
+  /** Ruta del audio en Storage. `null` mientras no haya audio guardado. */
+  audioPath?: string | null
+  /** Resuelve la ruta a URL reproducible, en el momento de pulsar. */
+  resolverUrlDeAudio?: (path: string) => Promise<string>
 }
 
 const COLOR: Record<Respaldo['estado'], { punto: string; rotulo: string }> = {
@@ -133,13 +145,36 @@ export function DeDondeSalioEsto(p: DeDondeSalioEstoProps) {
                 */}
                 {t.segmento
                   ? (
-                    <p style={{
-                      margin: '6px 0 0', fontSize: 13, color: 'var(--text3)',
-                      lineHeight: 1.5, paddingLeft: 10,
-                      borderLeft: `2px solid ${COLOR[t.estado].punto}`,
-                    }}>
-                      «{t.segmento.texto}»
-                    </p>
+                    <>
+                      <p style={{
+                        margin: '6px 0 0', fontSize: 13, color: 'var(--text3)',
+                        lineHeight: 1.5, paddingLeft: 10,
+                        borderLeft: `2px solid ${COLOR[t.estado].punto}`,
+                      }}>
+                        «{t.segmento.texto}»
+                      </p>
+
+                      {/*
+                        ESCUCHARLO (REG-250). Sólo aparece si se sabe en qué
+                        segundo se dijo Y hay audio guardado. Si el motor no
+                        localiza la frase con seguridad devuelve null y aquí no
+                        sale botón: nunca se aproxima, porque una prueba en el
+                        segundo equivocado es peor que ninguna prueba.
+                      */}
+                      {p.resolverUrlDeAudio && (() => {
+                        const m = cuandoSeDijo(t.segmento.texto, p.utterances)
+                        return m ? (
+                          <span style={{ paddingLeft: 10 }}>
+                            <EscucharElMomento
+                              audioPath={p.audioPath}
+                              inicioMs={m.inicioMs}
+                              resolverUrl={p.resolverUrlDeAudio!}
+                              etiqueta={t.afirmacion}
+                            />
+                          </span>
+                        ) : null
+                      })()}
+                    </>
                   )
                   : (
                     <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--red)' }}>

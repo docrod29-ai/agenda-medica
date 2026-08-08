@@ -5118,6 +5118,21 @@ export default function ConsultaActivaPage() {
       <DeDondeSalioEsto
         nota={textoDeLaNota(resumen, diagnosticos, secciones)}
         dictado={voz.transcripcion}
+        /*
+          ESCUCHAR EL MOMENTO (REG-250). Los turnos traen el `inicioMs` de cada
+          palabra; la ruta del audio la devuelve el grabador desde REG-249.
+
+          La URL se resuelve AL PULSAR, no aquí: es cuando las reglas de Storage
+          se evalúan otra vez con quien esté mirando. Y se importa `firebase/
+          storage` de forma perezosa para no cargarlo en las consultas que
+          nunca pulsan.
+        */
+        utterances={audio.utterances}
+        audioPath={audio.audioPath}
+        resolverUrlDeAudio={async (path: string) => {
+          const { getStorage, ref, getDownloadURL } = await import('firebase/storage')
+          return getDownloadURL(ref(getStorage(), path))
+        }}
       />
 
       {/* Historial de versiones: la vía de rescate si dos pestañas se pisaron. */}
