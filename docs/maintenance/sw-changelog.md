@@ -2444,3 +2444,9 @@ Unidades de infusión añadidas y ordenadas de más larga a más corta EN CÓDIG
 
 «2 U/h» salía como dosis sin unidad. Es una infusión de insulina —fármaco de
 alto riesgo— y un aviso falso ahí enseña a ignorar el aviso verdadero.
+
+## v1130 — «alergias negadas» ya no es una alergia (REG-248)
+
+El reconocedor de negaciones estaba anclado al principio: «negadas» funcionaba y
+«alergias negadas» no, ni «NKDA». Lo no reconocido se registraba como alérgeno y
+salía impreso en la receta.

@@ -136,6 +136,20 @@ describe('el barrido: ningún antimicrobiano del catálogo se convierte en otro'
    * deja «ampicilina» suelta, que es un componente del propio fármaco dictado,
    * no otro distinto. Es un artefacto de partir por la barra, no del corrector.
    */
+  /**
+   * ── POR QUÉ ESTE CASO LLEVA TIEMPO EXPLÍCITO (8-ago-2026) ────────────────
+   *
+   * Falló UNA vez en la corrida completa y pasó al repetirla, aislado y en
+   * conjunto. No fue una rotura: fue el tiempo. El barrido recorre los 126
+   * antimicrobianos contra el corrector y tarda ~1,7 s él solo; con dieciséis
+   * archivos en paralelo rebasa el límite por defecto de 5 s.
+   *
+   * Una prueba de seguridad clínica que falla al azar es peor que una que no
+   * existe: la primera vez se investiga, la segunda se repite la corrida, y a
+   * la tercera se deja de creer al rojo. El charter lo pide por su nombre —
+   * reproducibilidad—, así que el tiempo se declara en vez de depender de la
+   * carga de la máquina.
+   */
   it(`ninguno de los ${TODOS.length} desaparece y sale otro en su lugar`, () => {
     const culpables: string[] = []
     const conocidos = new Set(TODOS.map(norm))
@@ -154,5 +168,5 @@ describe('el barrido: ningún antimicrobiano del catálogo se convierte en otro'
       }
     }
     expect(culpables.slice(0, 12), `${culpables.length} sustituciones`).toEqual([])
-  })
+  }, 30_000)
 })

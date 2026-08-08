@@ -4114,3 +4114,52 @@ Se comprobó de paso que las velocidades de infusión (`0.1 mcg/kg/min`,
 — ensanchar la lista es donde se pierde lo que protegía.
 
 Familia `sin_medir`.
+
+## REG-248 — «alergias negadas» quedaba registrado como una alergia (v1130)
+
+**Cuarto del barrido «apuntar los motores de seguridad a la UCI y al hospital».**
+
+`NEGADOR` en `alergias.ts` estaba **anclado al principio**, y con razón: «Alérgico
+a penicilina, niega sulfas» tiene que conservar la penicilina. Pero el ancla
+significa que **cualquier palabra delante lo rompe**. Medido:
+
+| Campo de alergias | v1129 |
+|---|---|
+| `negadas` | negación reconocida ✓ |
+| **`alergias negadas`** | **NO reconocida** ← la frase natural en español |
+| **`NKDA`** · `NKA` | **NO reconocida** ← el estándar hospitalario |
+| `se niegan` · `no` · `(-)` | NO reconocidas |
+
+**La consecuencia.** Lo que no se reconoce como negación **se registra como
+alérgeno**. De aquí leen la receta impresa, la nota, el recurso FHIR y el sesgo
+del reconocedor: **la receta con su cédula y su firma salía diciendo que el
+paciente es alérgico a «alergias negadas»**.
+
+**Dos arreglos, y son dos por una razón.**
+
+1. **La cabecera se descuenta.** Si el fragmento empieza por «alergias» /
+   «alergia» / «antecedentes alérgicos» (con o sin dos puntos), se quita y se
+   vuelve a preguntar: «alergias negadas» se juzga por «negadas».
+2. **Las formas completas.** `NKDA`, `NKA`, `(-)`, `-`, `no`, `ninguna`,
+   `negativo` no llevan negador: son la negación entera. Se comparan con el
+   fragmento **completo**, nunca como prefijo — «no» de prefijo convertiría
+   **«naproxeno»** —un alérgeno real y frecuente— en una negación, y la alergia
+   desaparecería del expediente sin que nadie lo notara. Hay una prueba para eso.
+
+**Lo que el ancla protegía sigue protegido**: «Niega penicilina. Alérgico a
+sulfas» conserva las sulfas, con su propio caso.
+
+**Guardián.** `src/__tests__/alergias-negacion.test.ts`, 12 casos.
+
+Familia `sin_medir`.
+
+---
+
+**Y una prueba inestable, cazada de paso.** El barrido de 126 antimicrobianos
+falló UNA vez en la corrida completa y pasó al repetirlo. No era una rotura: era
+el tiempo — tarda ~1,7 s solo y con dieciséis archivos en paralelo rebasa el
+límite por defecto de 5 s. Se le declaró un tiempo explícito de 30 s.
+
+Una prueba de seguridad clínica que falla al azar es peor que una que no existe:
+la primera vez se investiga, la segunda se repite la corrida, y a la tercera se
+deja de creer al rojo.
