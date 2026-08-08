@@ -31,6 +31,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { getNotas } from '@/lib/expediente/firestore'
 import { getPatient, getDoctors } from '@/lib/firestore'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
+import { estadoAlergias } from '@/lib/seguridad/alergias'
 import { cdsMedicamento, type AlertaCDS } from '@/lib/hospital/cds'
 import { code39Svg } from '@/lib/hospital/barcode'
 import { buscarMed } from '@/lib/hospital/medicamentos-catalogo'
@@ -530,12 +531,16 @@ export default function EpisodioPage() {
           resto del equipo (enfermería que administra, quien prescribe a mano) no
           las veía. Rojo si hay; ámbar si no hay registro (no asumir "sin alergias"). */}
       {(() => {
-        const raw = patient?.alergias
-        const lista = Array.isArray(raw)
-          ? raw.map(a => String(a).trim()).filter(Boolean)
-          : (raw ? String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
-        const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
-        if (lista.length && !negadas) {
+        /**
+         * Por el estado canónico y no por un splitter propio (REG-204). Éste
+         * partía sólo por coma, punto y coma y salto de línea, así que «Niega
+         * penicilina. Alérgico a sulfas» era UN fragmento que empezaba por
+         * «niega»: la franja anunciaba «Alergias negadas por el paciente» a todo
+         * el piso sobre un paciente alérgico a sulfas. Y tampoco miraba
+         * `alergiasEstructuradas`.
+         */
+        const { alergenos: lista, negadas } = estadoAlergias(patient ?? {})
+        if (lista.length) {
           return (
             <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--red) 45%, transparent)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', color: 'var(--red)' }}>
               <AlertTriangle size={16} style={{ flexShrink: 0 }} />

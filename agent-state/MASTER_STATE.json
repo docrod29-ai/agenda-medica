@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-001 (cerrada, REG-203, v1084)",
+  "iteracionActual": "SAFE-004 (cerrada, REG-204, v1085)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -22,7 +22,7 @@
   "trabajoLocalSinSubir": [],
   "notaDeEntorno": "`ops-timeout-y-punto-ciego.test.ts` («el error dice cuánto esperó y a quién») falla en el contenedor del agente y también en main: la salida a 10.255.255.1 devuelve error inmediato en vez de colgarse, así que `TiempoAgotado` nunca se lanza. Es artefacto del sandbox, no regresión — en CI pasa.",
   "bloqueadorAbierto": "B-11: el CI de Actions no arranca en PR del agente; compuertas corridas en local y declaradas en el PR",
-  "ultimaVersionPreparada": "nexusmed-v1084 (rama agent/safety/SAFE-001, sin desplegar)",
-  "notaDeIteracion": "Esta iteración empezó tomando SAFE-001 del backlog: el contenedor se clona de `main`, que NO tiene REG-201, así que el hallazgo se reprodujo y se reparó de cero antes de ver que la rama remota ya lo traía. De ese trabajo duplicado salió lo único que no era duplicado y que sí es un defecto: REG-202, la unificación de REG-201 había perdido tres formas de negación. Para la próxima: `git fetch` de la rama del ítem ANTES de reproducir, no después.",
+  "ultimaVersionPreparada": "nexusmed-v1085 (rama agent/safety/SAFE-001, sin desplegar)",
+  "notaDeIteracion": "Segunda vez que el contenedor arranca desde `main` y se reproduce de cero algo que la rama remota ya traía: la nota de la iteración anterior lo avisaba y aun así volvió a pasar, porque el aviso vive en un archivo que se lee DESPUÉS de elegir el ítem. De la reparación duplicada sobrevivió lo que no era duplicado —REG-204, la franja del piso— porque se comparó el trabajo propio contra la rama remota archivo por archivo en vez de descartarlo entero. Para la próxima: `git fetch origin <rama del ítem>` es el PRIMER paso del punto 3, antes de abrir el archivo.",
   "notaDelEntorno": "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en el entorno remoto de este agente: el test agota un tiempo contra 10.255.255.1 y el proxy de salida lo rechaza al instante en vez de dejarlo colgado. Falla igual en HEAD limpio; no es de ningún cambio."
 }

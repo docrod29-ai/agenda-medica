@@ -12,6 +12,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-6 | ¿El campo de alergias se captura **estructurado** en vez de prosa? | Sí, con el texto libre como respaldo: el parser existe porque el campo es prosa, y de la prosa salen etiquetas como «Alérgico a sulfas» o «SMX)» tomadas por nombre de alérgeno | Normalizar el alérgeno que se imprime y retirar el parser de texto libre | El parser canónico ya cubre los dos caminos (REG-171, REG-201, REG-204) |
 
 ## DESPLIEGUE Y OPERACIÓN
 

@@ -112,13 +112,30 @@ export function parsearAlergiasTexto(texto: string | undefined): AlergiaEstructu
 }
 
 /**
+ * El campo reducido a texto. En el repositorio llega de las dos formas —cadena
+ * del expediente y lista ya partida por quien lo leyó antes— y normalizarlo aquí
+ * es lo que permite que todos entren por la misma puerta sin que cada llamador
+ * se invente su conversión.
+ */
+export function textoDeAlergias(alergias?: string | readonly unknown[]): string | undefined {
+  if (!Array.isArray(alergias)) return alergias as string | undefined
+  return alergias
+    .map(a => String(typeof a === 'object' && a ? ((a as { alergeno?: string }).alergeno ?? '') : a))
+    .filter(Boolean)
+    .join(', ')
+}
+
+/**
  * Devuelve las alergias estructuradas efectivas de un paciente: las explícitas si
  * existen, si no, las derivadas del texto libre. Deduplica por alérgeno.
  */
-export function alergiasDe(p: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): AlergiaEstructurada[] {
+export function alergiasDe(p: {
+  alergias?: string | readonly unknown[]
+  alergiasEstructuradas?: AlergiaEstructurada[]
+}): AlergiaEstructurada[] {
   const base = (p.alergiasEstructuradas && p.alergiasEstructuradas.length)
     ? p.alergiasEstructuradas.filter(a => a?.alergeno?.trim())
-    : parsearAlergiasTexto(p.alergias)
+    : parsearAlergiasTexto(textoDeAlergias(p.alergias))
   const vistos = new Set<string>()
   const out: AlergiaEstructurada[] = []
   for (const a of base) {
@@ -161,13 +178,53 @@ export function alergenosDe(p: {
   alergias?: string | readonly unknown[]
   alergiasEstructuradas?: AlergiaEstructurada[]
 }): string[] {
-  const texto = Array.isArray(p.alergias)
-    ? p.alergias.map(a => String(typeof a === 'object' && a
-        ? ((a as { alergeno?: string }).alergeno ?? '')
-        : a)).filter(Boolean).join(', ')
-    : (p.alergias as string | undefined)
-  return alergiasDe({ alergias: texto, alergiasEstructuradas: p.alergiasEstructuradas })
-    .map(a => a.alergeno)
+  return alergiasDe(p).map(a => a.alergeno)
+}
+
+/**
+ * LO QUE UNA PANTALLA PUEDE AFIRMAR SOBRE EL CAMPO.
+ *
+ * ── LA FRANJA DEL INTERNAMIENTO NEGABA UNA ALERGIA QUE SÍ ESTABA (8-ago) ─────
+ *
+ * REG-201 llevó al punto de orden al parser canónico y amplió el guardián a
+ * `src/` entero. La franja de alergias del internamiento —la que ve TODO el
+ * equipo del piso durante todo el ingreso, enfermería que administra incluida—
+ * se quedó con el suyo, y el guardián no la vio: **copia el campo a una variable
+ * antes de partirlo**, así que la palabra «alergias» y el `.split(` quedan en
+ * líneas distintas y el barrido pasa de largo.
+ *
+ * Partía por `/[,;\n]+/`. Sin el punto, «Niega penicilina. Alérgico a sulfas»
+ * era UN fragmento; su regla de negación —«un solo fragmento que empiece por
+ * niega/no/ninguna/sin»— daba entonces `negadas = true`, y la franja anunciaba:
+ *
+ *     «Alergias negadas por el paciente.»
+ *
+ * Sobre un paciente alérgico a sulfas. No es que faltara un aviso: es el sistema
+ * **afirmando la ausencia**, y para quien prescribe a mano sin pasar por el punto
+ * de orden era la única señal que había.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * `negadas` sólo es cierto cuando **no queda ningún alérgeno** y además hay al
+ * menos un fragmento negado. Un campo vacío no niega nada: eso es «sin
+ * registro», y se dice distinto. Ausencia de dato no es dato de ausencia.
+ */
+export interface EstadoAlergias {
+  /** Los alérgenos efectivos, ya deduplicados. Vacío NO significa «no tiene». */
+  alergenos: string[]
+  /** El campo AFIRMA la ausencia: hay negación explícita y no queda alérgeno. */
+  negadas: boolean
+}
+
+export function estadoAlergias(p: {
+  alergias?: string | readonly unknown[]
+  alergiasEstructuradas?: AlergiaEstructurada[]
+}): EstadoAlergias {
+  const alergenos = alergenosDe(p)
+  return {
+    alergenos,
+    negadas: alergenos.length === 0 && negacionesEnTexto(textoDeAlergias(p.alergias)).length > 0,
+  }
 }
 
 /** ¿Hay alguna alergia grave registrada? (para resaltar en la UI/receta). */

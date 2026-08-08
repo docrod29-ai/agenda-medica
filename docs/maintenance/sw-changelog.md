@@ -3,6 +3,23 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1085 — REG-204: la franja del piso negaba una alergia que sí estaba
+
+Con el campo escrito «Niega penicilina. Alérgico a sulfas», la franja de alergias
+del internamiento —la que ve todo el equipo del piso, y la única señal para quien
+no pasa por el punto de orden— anunciaba en gris «Alergias negadas por el
+paciente». Partía sin el punto, así que era un fragmento y empezaba por «niega».
+
+No faltaba un aviso: el sistema afirmaba la ausencia.
+
+El guardián de REG-201 no la vio porque la franja copiaba el campo a una variable
+antes de partirlo: la palabra «alergias» y el `.split(` caían en líneas distintas
+y el barrido pasaba de largo. Ahora hay un segundo barrido que busca la FORMA del
+splitter, no el nombre del campo, y un renombrado ya no lo esquiva.
+
+`estadoAlergias` deja «negadas» en cierto sólo cuando no queda ningún alérgeno y
+hay un fragmento negado. Un campo vacío no niega nada: eso es «sin registro».
+
 ## v1084 — REG-203: la nota firmada no llevaba las alergias estructuradas
 
 Un paciente cuya alergia vive sólo en `alergiasEstructuradas` salía con la alerta

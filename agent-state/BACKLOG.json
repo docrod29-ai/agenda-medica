@@ -129,6 +129,28 @@
       "score": 41,
       "estado": "pendiente",
       "reversible": true
+    },
+    {
+      "id": "SAFE-004",
+      "titulo": "El guardián de copias no ve a quien renombra el campo antes de partirlo",
+      "hallazgo": "REG-204: la franja de alergias del internamiento partía el campo por su cuenta y afirmaba «Alergias negadas por el paciente» sobre «Niega penicilina. Alérgico a sulfas». El barrido de REG-201 exige la palabra «alergia» a menos de 60 caracteres del `.split(`, en la misma línea; la franja copiaba el campo a `raw` y partía en la siguiente. Reparado con `estadoAlergias` + un segundo barrido por la FORMA del splitter.",
+      "porQueImporta": "La franja es la única señal de alergia para quien no pasa por el punto de orden. Afirmar la ausencia es peor que callar.",
+      "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx · src/lib/seguridad/alergias.ts",
+      "seguridad": 5,
+      "integridad": 1,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 1,
+      "fiabilidad": 3,
+      "regulatorio": 1,
+      "aprendizaje": 4,
+      "irreversibilidad": 0,
+      "complejidad": 1,
+      "dependenciaExterna": 0,
+      "score": 71,
+      "estado": "cerrado (v1085, REG-204)",
+      "reversible": true,
+      "queQueda": "El barrido nuevo caza una forma concreta (`.split(/[,;`). Quien parta por otro separador, o pase la lista ya partida desde otro módulo, sigue sin ser visto: eso lo cubre `alergiasDe` aceptando el campo venga como venga, no el grep."
     }
   ]
 }

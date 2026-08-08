@@ -1758,3 +1758,72 @@ clínico nuevo. Se lee el campo que ya existía.
 afirmaciones de llamador (nota, sello, ayudante retirado).
 
 **Golden** — `src/__tests__/un-solo-parser-de-alergias.test.ts` (16 casos, sellado).
+
+---
+
+## REG-204 — la franja del piso negaba una alergia que el expediente sí tenía (v1085)
+
+**Encontrado** — 8-ago-2026, siguiendo el campo de alergias después de REG-203.
+Quedaba un camino sin migrar: la **franja de alergias del internamiento**, la que
+se ve en todo momento del ingreso y que existe precisamente para quien **no** pasa
+por el punto de orden — enfermería que administra, quien prescribe a mano.
+
+**Cómo se reprodujo** — Copiando la lógica de la franja **literalmente** a un
+script y pasándole tres campos de ejemplo. Con «Niega penicilina. Alérgico a
+sulfas» devolvía `GRIS — Alergias negadas por el paciente.`; con las alergias sólo
+en `alergiasEstructuradas`, `GRIS — Sin alergias registradas`.
+
+**El defecto** — Partía por `/[,;\n]+/`. Sin el punto entre los separadores,
+«Niega penicilina. Alérgico a sulfas» era **un** fragmento; su regla de negación
+—«un solo fragmento que empiece por niega/no/ninguna/sin»— daba `negadas = true`.
+
+**Por qué importa para un paciente** — No es un aviso que falte. Es el sistema
+**afirmando la ausencia** de una alergia que el expediente sí registra, en la
+única señal que ve el equipo del piso. Ausencia de dato no es dato de ausencia, y
+esto era peor: dato de ausencia inventado. Descartar primero lo frecuente y
+apuntar después lo que sí hay es la forma normal de escribir el campo — la misma
+que ya costó REG-171 y REG-201.
+
+**POR QUÉ EL GUARDIÁN NO LA VIO** — REG-201 amplió el barrido a `src/` entero,
+harto de listas de archivos que hay que acordarse de ampliar. Busca
+`alergia[A-Za-z]*[^\n]{0,60}\.split\(`. La franja **copiaba el campo a una
+variable antes de partirlo**:
+
+```
+const raw = patient?.alergias
+... String(raw).split(/[,;\n]+/) ...
+```
+
+La palabra «alergias» y el `.split(` quedaban en **líneas distintas**, así que el
+barrido pasaba de largo: el guardián en verde y la copia viva. Es la lección de
+REG-201 repetida un renombrado más tarde.
+
+**Reparación** — `estadoAlergias(p)` en el módulo canónico: devuelve los alérgenos
+y un `negadas` que sólo es cierto cuando **no queda ningún alérgeno** y hay al
+menos un fragmento negado. La franja entra por ahí. `alergiasDe` acepta ya el
+campo venga como venga (texto o lista), con la conversión en un solo sitio
+(`textoDeAlergias`) en vez de dentro de `alergenosDe`.
+
+**Y un segundo barrido para el guardián** — No busca el nombre del campo sino la
+**forma** del splitter (`.split(/[,;`), que es la firma de partir a mano una lista
+escrita a mano. Un renombrado ya no lo esquiva. Hoy sólo la tiene el canónico.
+
+**Qué NO hace** — No mejora el cruce alergia↔fármaco: esta franja no cruza nada,
+sólo enseña lo que hay. No normaliza lo que enseña: «Niega penicilina. Alérgico a
+sulfas» sale como el alérgeno «Alérgico a sulfas» —correcto como alerta, feo como
+etiqueta—. El barrido nuevo caza una forma concreta: quien parta por otro
+separador, o pase la lista ya partida desde otro módulo, sigue sin ser visto por
+el grep — eso lo cubre `alergiasDe` aceptando el campo venga como venga, no el
+guardián.
+
+**Qué queda para el médico** — Si el campo debe capturarse estructurado de una vez
+(hoy es prosa, y de la prosa salen etiquetas como «Alérgico a sulfas» o «SMX)»), y
+si el alérgeno debería normalizarse al guardarlo. En `OWNER_DECISIONS_REQUIRED.md`
+como C-6.
+
+**Comprobado que puede ponerse rojo** — Revertidos uno a uno los tres trozos: el
+splitter propio de la franja (3 casos), el `negadas` sin exigir lista vacía (2) y
+`alergiasDe` sin normalizar la lista (1).
+
+**Golden** — `src/__tests__/la-franja-del-piso-no-niega-una-alergia.test.ts`
+(12 casos).
