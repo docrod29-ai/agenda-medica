@@ -94,10 +94,14 @@ describe('ESTÁ CABLEADO EN LA PANTALLA', () => {
      *
      * Eran dos defensas —contradicción y temporalidad— y desde SUP-001 son
      * TRES: la trazabilidad contrasta la nota entera contra el dictado para
-     * saber qué afirmación no salió de ahí. Que las tres compartan constructor
-     * es justamente lo que impide que una vea una nota distinta de las otras.
+     * saber qué afirmación no salió de ahí. Que compartan constructor es
+     * justamente lo que impide que una vea una nota distinta de las otras.
+     *
+     * Desde REG-239 son CUATRO: el panel «¿de dónde salió esto?» enseña esa
+     * misma traza al médico. Trazar un texto distinto del que se firma sería
+     * comprobar algo que nadie va a leer.
      */
-    const DEFENSAS_QUE_LEEN_LA_NOTA = 3
+    const DEFENSAS_QUE_LEEN_LA_NOTA = 4
     expect(page.split('textoDeLaNota(resumen, diagnosticos, secciones)').length - 1)
       .toBe(DEFENSAS_QUE_LEEN_LA_NOTA)
   })

@@ -2379,3 +2379,10 @@ de duración — sólo se exigía cifra y unidad en la DOSIS.
 Nuevo motor puro `forma-de-la-pauta.ts` + aviso `pauta_deformada` (nivel
 `revisa`, ancla en medicamentos → se ve **mientras receta**). Avisa de lo que no
 entiende; **nunca propone el valor correcto**.
+
+## v1121 — «¿de dónde salió esto?» (REG-239)
+
+Cada frase de la nota, junto al trozo de dictado que la sostiene. El motor
+(`rastrearNota`, con corpus oro) existía y la pantalla sólo usaba su mitad
+negativa. Es el mecanismo que en el mercado sólo tiene Abridge — y que Nabla no
+puede tener porque borra el audio.

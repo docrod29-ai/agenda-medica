@@ -49,6 +49,7 @@ import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
 import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
+import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
 /**
@@ -5001,6 +5002,17 @@ export default function ConsultaActivaPage() {
           transcripcion={voz.transcripcion}
         />
       )}
+
+      {/*
+        ¿DE DÓNDE SALIÓ ESTO? — cada frase de la nota junto al trozo de dictado
+        que la sostiene. El motor (`rastrearNota`) existía con corpus oro y la
+        pantalla sólo usaba su mitad negativa. Es el mecanismo que en el mercado
+        sólo tiene Abridge, y que Nabla no puede tener porque borra el audio.
+      */}
+      <DeDondeSalioEsto
+        nota={textoDeLaNota(resumen, diagnosticos, secciones)}
+        dictado={voz.transcripcion}
+      />
 
       {/* Historial de versiones: la vía de rescate si dos pestañas se pisaron. */}
       {!firmada && clinicId && (

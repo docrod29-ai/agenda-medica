@@ -1039,6 +1039,10 @@
     {
       "archivo": "src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts",
       "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/de-donde-salio-esto-se-ve.test.ts",
+      "minCasos": 12
     }
   ]
 }

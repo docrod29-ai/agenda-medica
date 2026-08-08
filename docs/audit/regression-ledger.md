@@ -3780,3 +3780,48 @@ una pauta clínica.
 **Guardián.** `src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts`
 — 55 casos con su caso real como fixture, incluida una prueba que falla si
 algún mensaje llega a proponer el valor «correcto».
+
+## REG-239 — el «Linked Evidence» estaba escrito y sin conectar (v1121)
+
+**De dónde salió.** De la investigación del mercado (7-ago-2026, I-12). Dos
+datos publicados que juntos mandan qué construir:
+
+- Sobre **62 811 pares borrador→nota final** en la Universidad de California,
+  los médicos borraron **216 199 oraciones** e insertaron 165 939. El borrador
+  de IA no se firma: se reescribe.
+- Y se reescribe para **añadir cautela** — 3 440 secciones hacia más
+  incertidumbre contra 2 516 hacia más certeza (Wilcoxon, p < 0,001). Los
+  borradores afirman de más.
+
+De los tres productos que dominan el mercado, **sólo Abridge** tiene un
+mecanismo contra eso: *Linked Evidence* — subrayas una frase de la nota y ves
+el fragmento del que salió. **Suki no publica ninguno**, y **Nabla borra el
+audio original** (AP, oct-2024), con lo cual estructuralmente no puede tenerlo.
+
+**El defecto.** `rastrearNota()` en `lib/expediente/trazabilidad.ts` ya devolvía
+exactamente eso —cada frase de la nota con el fragmento del dictado que la
+sostiene y sus posiciones— y tiene corpus oro desde hace versiones.
+
+La consulta importaba **sólo `afirmacionesSinRespaldo`**: la mitad negativa. La
+mitad que contesta la pregunta que el médico se hace de verdad —«¿de dónde sacó
+la IA esto?»— no llegaba a ninguna pantalla. Familia `no_conectado`, la número
+uno de este sistema.
+
+**El arreglo.** `src/components/DeDondeSalioEsto.tsx`, montado en la consulta
+con **el mismo `textoDeLaNota(...)` que se firma** —trazar otro texto sería
+comprobar algo que nadie lee— y `voz.transcripcion` como fuente.
+
+**Decisiones, y por qué.** Empieza **cerrado**: un panel abierto delante de una
+nota correcta es el ruido del que ya se quejó. **No puntúa** la nota con un
+porcentaje: un «94 % respaldada» invita a firmar por el número en vez de por las
+tres frases en rojo. Y **no dice que una frase sin respaldo sea falsa** — puede
+venir del expediente o de una exploración no narrada en voz alta; lo que dice es
+que el dictado no la sostiene.
+
+**Un defecto propio, cazado en el camino.** La primera versión usaba los tokens
+`--ok`, `--warn` y `--danger`. **Ninguno de los tres existe** en `globals.css`;
+los reales son `--green`, `--amber` y `--red`. Un token inexistente no truena:
+pinta transparente. Se cazó mirando el archivo, no ejecutando — y quedó una
+prueba que lo comprueba.
+
+**Guardián.** `src/__tests__/de-donde-salio-esto-se-ve.test.ts`, 18 casos.
