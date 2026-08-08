@@ -83,12 +83,92 @@ export function estado(resultados: ResultadoAntibiograma[], sinonimos: string[])
   return null
 }
 
-/** CMI (mg/L) del primer antibiótico que coincida con algún sinónimo y traiga CMI numérica. */
-export function cmiDe(resultados: ResultadoAntibiograma[], sinonimos: string[]): number | null {
+/**
+ * ── UNA CMI ES UN INTERVALO, NO UN NÚMERO ───────────────────────────────────
+ *
+ * Ésta es la decisión E0-15c del médico dueño, la misma que gobierna
+ * `interpretarCMI` desde la REG-044. Aquí llegó por la puerta de atrás.
+ *
+ * `cmiDe` devolvía `r.cmi` **pelado** y tiraba `r.cmiCensurada`, así que los
+ * fenotipos de Gram positivos leían «>2» como «2 exacto». Medido el 8-ago-2026
+ * con el motor real:
+ *
+ *   - neumococo penicilina «>2» no meníngea → «CMI 2 ≤2 → tratable con
+ *     penicilina parenteral a dosis altas». El laboratorio dijo que la CMI está
+ *     POR ENCIMA de 2 (I 4 / R ≥8) y la nota imprimía el número que la niega;
+ *   - SARM con vancomicina «>2» → «sospecha de hVISA (límite alto de S)» en vez
+ *     de la rama de eficacia reducida;
+ *   - E. faecium con daptomicina «>4» → ni fenotipo ni alerta: se leía como el
+ *     4 exacto, que en esa especie es la banda utilizable a dosis alta.
+ *
+ * Es el defecto de la REG-044 en el módulo de al lado: el motor de puntos de
+ * corte ya respetaba el operador y el de fenotipos no, sobre el MISMO panel.
+ *
+ * Por eso `cmiDe` desaparece en vez de convivir con la versión buena: mientras
+ * exista una forma de pedir «el número» alguien la volverá a usar.
+ */
+export type CmiReportada = { valor: number, censura?: '>' | '<' }
+
+/** CMI del primer antibiótico que coincida con algún sinónimo, CON su operador. */
+export function cmiConCensuraDe(resultados: ResultadoAntibiograma[], sinonimos: string[]): CmiReportada | null {
   for (const r of resultados) {
-    if (casaAlguno(r.antibiotico, sinonimos) && typeof r.cmi === 'number') return r.cmi
+    if (casaAlguno(r.antibiotico, sinonimos) && typeof r.cmi === 'number') {
+      return { valor: r.cmi, ...(r.cmiCensurada ? { censura: r.cmiCensurada } : {}) }
+    }
   }
   return null
+}
+
+/** Cómo lo reportó el laboratorio: «>2», «<0.25», «2». Nunca el número solo. */
+export function textoCmi(c: CmiReportada | null): string {
+  return c === null ? '' : `${c.censura ?? ''}${c.valor}`
+}
+
+/**
+ * ── LOS TRES PREDICADOS DE INTERVALO ────────────────────────────────────────
+ *
+ * Escritos en POSITIVO y por separado a propósito, como `ES_S`/`NO_S`: con un
+ * intervalo, «no se sabe que alcanza» y «se sabe que no alcanza» son cosas
+ * distintas, y un `!` las confunde. Los tres devuelven `false` cuando la
+ * respuesta es «no se sabe» — y para eso está `cmiIndeterminadaEn`.
+ *
+ *   «>2»   ⇒ el valor real está en (2, +∞)
+ *   «<0.5» ⇒ el valor real está en (−∞, 0.5)
+ */
+
+/** ¿Se SABE que la CMI llega a `u` o lo pasa? (el lado de la resistencia) */
+export function cmiAlcanza(c: CmiReportada | null, u: number): boolean {
+  if (c === null) return false
+  if (c.censura === '>') return c.valor >= u   // real > valor ≥ u
+  if (c.censura === '<') return false          // real < valor: nunca se puede afirmar
+  return c.valor >= u
+}
+
+/** ¿Se SABE que la CMI pasa `u` de forma ESTRICTA? */
+export function cmiSupera(c: CmiReportada | null, u: number): boolean {
+  if (c === null) return false
+  if (c.censura === '>') return c.valor >= u   // real > valor ≥ u ⇒ real > u
+  if (c.censura === '<') return false
+  return c.valor > u
+}
+
+/** ¿Se SABE que la CMI no pasa de `u`? (el lado de la sensibilidad) */
+export function cmiNoPasaDe(c: CmiReportada | null, u: number): boolean {
+  if (c === null) return false
+  if (c.censura === '<') return c.valor <= u   // real < valor ≤ u
+  if (c.censura === '>') return false          // real > valor: nunca se puede afirmar
+  return c.valor <= u
+}
+
+/**
+ * ¿El operador deja la pregunta «¿alcanza `u`?» sin respuesta?
+ *
+ * Sólo se declara para «>»: es la dirección que ESCONDE resistencia. Con «<» el
+ * efecto de respetar el intervalo es que una alerta falsa deja de salir, y ésa
+ * no hay que anunciarla.
+ */
+export function cmiIndeterminadaEn(c: CmiReportada | null, u: number): boolean {
+  return c !== null && c.censura === '>' && c.valor < u
 }
 
 /** ¿Está el antibiótico presente en el panel (independiente de su S/I/R)? */

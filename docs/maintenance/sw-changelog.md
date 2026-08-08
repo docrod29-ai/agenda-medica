@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: el «>2» del laboratorio se leía como un 2
+
+Una CMI es un intervalo, no un número — la decisión E0-15c del Dr., la misma que
+gobierna `interpretarCMI` desde la REG-044. `cmiDe` devolvía el número pelado y
+tiraba el operador, así que los fenotipos de Gram positivos leían el MISMO panel
+sin él, mientras el motor de puntos de corte sí lo respetaba.
+
+Neumococo con penicilina «>2» salía como «tratable con penicilina parenteral a
+dosis altas». SARM con vancomicina «>2», como «sospecha de hVISA, límite alto de
+S». E. faecium con daptomicina «>4», en silencio. Y al revés, un tamiz de
+gentamicina «<500» declaraba HLAR y hacía abandonar la sinergia en endocarditis.
+
+`cmiDe` desaparece. Tres predicados de intervalo en positivo lo sustituyen, y
+cuando el operador deja la duda el motor lo dice y pide dilución. Ningún punto de
+corte nuevo, y nada se sube a R.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote
