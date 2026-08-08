@@ -40,7 +40,7 @@
  *
  * Módulo PURO.
  */
-import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
+import { CRONICAS, frases, cronicasEn, indiceDeTermino, mencionaTermino } from '@/lib/expediente/negaciones'
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -124,7 +124,22 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
   { canonica: 'cirugía', formas: ['cirugía', 'cirugia', 'operación', 'operacion', 'operaron', 'operado', 'operada', 'apendicectomía', 'apendicectomia', 'colecistectomía', 'colecistectomia'] },
   { canonica: 'trombosis venosa', formas: ['trombosis', 'tvp', 'trombosis venosa'] },
   { canonica: 'embolia pulmonar', formas: ['embolia pulmonar', 'tromboembolia', 'tep'] },
-  { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame'] },
+  /**
+   * ── «DERRAME» A SECAS DEJA DE VIGILARSE (8-ago-2026) ───────────────────────
+   *
+   * En México «un derrame» significa coloquialmente un EVC, y por eso estaba.
+   * Pero en la consulta de un internista la palabra sale casi siempre con
+   * apellido: **derrame pleural**, **pericárdico**, **articular**. Con el
+   * motor real, «Hace dos meses tuvo derrame pleural derecho» avisaba de un
+   * «evento vascular cerebral» que el paciente nunca tuvo.
+   *
+   * La palabra entera no arregla esto —«derrame» YA es palabra entera—: lo que
+   * sobra es el término. Se exige el apellido cerebral. Se pierde el «tuvo un
+   * derrame» coloquial: ese caso **deja de vigilarse**, no se da por bueno. Es
+   * la dirección obligatoria — señalar de menos, nunca de más — porque el aviso
+   * que sobra nombra un ictus en el expediente de quien no lo tuvo.
+   */
+  { canonica: 'evento vascular cerebral', formas: ['evento vascular', 'evc', 'embolia cerebral', 'derrame cerebral'] },
   { canonica: 'hemorragia digestiva', formas: ['hemorragia digestiva', 'sangrado de tubo digestivo', 'stda'] },
   { canonica: 'pancreatitis', formas: ['pancreatitis'] },
   { canonica: 'infección urinaria', formas: ['infección urinaria', 'infeccion urinaria', 'ivu', 'cistitis', 'pielonefritis'] },
@@ -146,7 +161,9 @@ export function padecimientosEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out = [...cronicasEn(frase)]
   for (const c of AGUDAS_FRECUENTES) {
-    if (c.formas.some(f => t.includes(sinAcentos(f))) && !out.includes(c.canonica)) out.push(c.canonica)
+    // Palabra entera: «cistitis» vive dentro de «colecistitis», y una
+    // colecistectomía de hace tres años avisaba de una infección urinaria.
+    if (c.formas.some(f => mencionaTermino(t, f)) && !out.includes(c.canonica)) out.push(c.canonica)
   }
   return out
 }
@@ -214,7 +231,9 @@ export function desajustesTemporales(
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
     for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
+      // Palabra entera, por lo mismo que en las contradicciones: el índice de
+      // una subcadena hacía leer la ventana de antes en el sitio equivocado.
+      const idx = indiceDeTermino(t, forma)
       if (idx < 0) continue
       /**
        * La ventana hacia atrás es de 60 caracteres, la misma que usan las

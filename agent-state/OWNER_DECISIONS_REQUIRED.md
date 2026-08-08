@@ -12,6 +12,8 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-6 | ¿«Tuvo un derrame» a secas debe volver a vigilarse como EVC? (REG-192) | **No.** «Derrame pleural / pericárdico / articular» son lo que usted dicta a diario y avisaban de un ictus inexistente. Si se reactiva, hace falta una lista de apellidos que lo excluyan | Que el coloquial mexicano se cace | «Derrame cerebral», «EVC», «evento vascular» y «embolia cerebral» sí se vigilan |
+| C-7 | Revisar el vocabulario agudo completo de `temporalidad.ts` (12 canónicas) | Leerlo de una sentada: es vocabulario, no criterio clínico, y nunca ha pasado por usted | Nada — el motor declara que lo que falta no se vigila | El motor corre y avisa |
 
 ## DESPLIEGUE Y OPERACIÓN
 

@@ -92,12 +92,63 @@ export function frases(texto: string): string[] {
 
 const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
 
+/**
+ * DÓNDE EMPIEZA UN TÉRMINO DEL VOCABULARIO DENTRO DE UN TEXTO — palabra entera.
+ *
+ * ── EL DEFECTO QUE ESTO REPARA (8-ago-2026) ──────────────────────────────────
+ *
+ * Aquí se buscaba con `includes`, que no sabe dónde acaba una palabra. La forma
+ * `sida` del VIH vive dentro de **«obesidad»**, **«necesidad»** y
+ * **«densidad»**; `asma` vive dentro de **«plasma»** y **«plasmaféresis»**; y
+ * `cistitis` vive dentro de **«colecistitis»**.
+ *
+ * Reproducido con el motor real:
+ *
+ *     dictado: «Paciente con VIH en control con antirretroviral.
+ *               Niega necesidad de oxígeno suplementario.»
+ *     → condicionesNegadas() devuelve  [VIH negado]
+ *     → corregirCertezaPorNegacion()   pasa la condición «VIH en control con
+ *                                      TAR» de `confirmado` a `descartado`
+ *
+ * El paciente no negó nada: negó necesitar oxígeno. Y el VIH —el diagnóstico
+ * que sostiene el tratamiento completo en la consulta de un infectólogo— sale
+ * del expediente reclasificado como descartado, arrastrándose a la nota
+ * siguiente como todos los antecedentes.
+ *
+ * Es exactamente lo que las dos listas de vocabulario tienen prohibido:
+ * **señalar de menos, nunca de más**.
+ *
+ * ── POR QUÉ SE TOLERA EL PLURAL ──────────────────────────────────────────────
+ *
+ * Exigir la palabra exacta perdería «fracturas», «infartos» y «convulsiones»
+ * —que el dictado dice en plural más veces que en singular— y eso sí sería
+ * quitar vigilancia. El plural no reintroduce ninguna colisión: las tres de
+ * arriba fallan por el PRINCIPIO de la palabra, no por el final.
+ *
+ * Se devuelve el índice, y no un booleano, porque quien busca el término en la
+ * NOTA necesita saber dónde está para leer los 60 caracteres de antes: con
+ * `indexOf` se leía la ventana equivocada, la de «obesidad».
+ *
+ * @param textoSinAcentos texto YA pasado por `sinAcentos`.
+ * @returns el índice donde empieza el término, o -1 si no está.
+ */
+export function indiceDeTermino(textoSinAcentos: string, forma: string): number {
+  const f = sinAcentos(forma).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const m = new RegExp(`(?<![a-z0-9])${f}(?:e?s)?(?![a-z0-9])`).exec(textoSinAcentos)
+  return m ? m.index : -1
+}
+
+/** ¿Este texto nombra el término como palabra entera? */
+export function mencionaTermino(textoSinAcentos: string, forma: string): boolean {
+  return indiceDeTermino(textoSinAcentos, forma) >= 0
+}
+
 /** Qué enfermedades crónicas nombra esta frase. */
 export function cronicasEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out: string[] = []
   for (const c of CRONICAS) {
-    if (c.formas.some(f => t.includes(sinAcentos(f)))) out.push(c.canonica)
+    if (c.formas.some(f => mencionaTermino(t, f))) out.push(c.canonica)
   }
   return out
 }
@@ -165,7 +216,10 @@ export function contradicciones(negadas: readonly Negada[], textoNota: string): 
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
     for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
+      // Palabra entera, igual que al leer el dictado: con `indexOf` la nota que
+      // decía «obesidad» daba el índice de «sida» y la ventana de abajo se leía
+      // sesenta caracteres antes de un término que nadie escribió.
+      const idx = indiceDeTermino(t, forma)
       if (idx < 0) continue
       /**
        * La ventana hacia atrás es de 60 caracteres.

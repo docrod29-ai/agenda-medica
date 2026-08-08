@@ -10,16 +10,21 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "VOCAB-001 (cerrada) — REG-192, v1074",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/ops/OPS-001",
+    "agent/expediente/VOCAB-001"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnRepositorio": "nexusmed-v1074",
+  "trabajoLocalSinSubir": [],
+  "notasDeLaIteracion": [
+    "SAFE-001 y VOICE-004 estaban marcados 'a medias' / 'en curso' y ya estaban reparados en el repositorio. Verificados los dos con el motor real antes de cerrarlos, no leyendo el estado.",
+    "Compuerta con un fallo AJENO en este entorno: src/__tests__/ops-timeout-y-punto-ciego.test.ts espera que la conexión a 10.255.255.1 se cuelgue hasta el timeout; el sandbox la rechaza al instante. Falla igual en el árbol limpio (comprobado con git stash). No es de este cambio.",
+    "npm run build necesita los placeholders sintéticos de NEXT_PUBLIC_FIREBASE_* del ci.yml: sin ellos falla al recolectar /dr/[clinicId] por auth/invalid-api-key. Con ellos compila entero."
   ]
 }

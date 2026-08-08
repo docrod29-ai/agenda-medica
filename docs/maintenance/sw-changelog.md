@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: «obesidad» decía VIH, y el VIH salía descartado
+
+Los dos motores que leen vocabulario clínico —negaciones y temporalidad—
+buscaban cada forma con `includes`, que no sabe dónde acaba una palabra. `sida`
+vive dentro de «obesidad», «necesidad» y «densidad»; `asma` dentro de «plasma»;
+`cistitis` dentro de «colecistitis».
+
+Y negaciones no sólo avisa: reclasifica. «Niega necesidad de oxígeno
+suplementario» pasaba un VIH confirmado a descartado, y de ahí se arrastraba a
+todas las notas siguientes.
+
+Ahora la frontera de palabra es una sola definición que usan los dos, y devuelve
+el índice —no un booleano— porque la ventana de los 60 caracteres se leía en el
+sitio de «obesidad». El plural se tolera: «fracturas» e «infartos» se dicen así.
+
+«Derrame» se retiró del vocabulario: avisaba de un ictus en cada derrame pleural.
+Se exige «derrame cerebral» y el coloquial deja de vigilarse — declarado.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

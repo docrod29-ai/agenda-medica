@@ -1,18 +1,19 @@
 {
   "generadoEn": "2026-08-04",
+  "actualizadoEn": "2026-08-08",
   "formulaDePrioridad": "5*SEGURIDAD + 5*INTEGRIDAD + 4*INGRESO + 4*FRECUENCIA + 4*MOAT + 3*FIABILIDAD + 3*REGULATORIO + 2*APRENDIZAJE - 3*IRREVERSIBILIDAD - 2*COMPLEJIDAD - 2*DEPENDENCIA_EXTERNA",
   "items": [
     {
-      "id": "VOICE-004",
-      "titulo": "El balance hídrico negativo pide confirmación en cada frase",
-      "hallazgo": "dosisSinNumero no reconoce el signo menos: lee «-1500 mL» y cree que falta la cifra. 25 de 6000 frases del corpus del dueño, todas de balance hídrico.",
-      "porQueImporta": "Fatiga de alerta. Un aviso que salta donde no debe se acaba ignorando, y con él se ignoran los que sí importan — que aquí son dosis perdidas.",
-      "archivo": "src/lib/uci/dosis-sin-numero.ts:36",
-      "seguridad": 3, "integridad": 1, "ingreso": 0, "frecuencia": 4, "moat": 2,
-      "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 3,
-      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
-      "score": 60,
-      "estado": "en curso",
+      "id": "VOCAB-001",
+      "titulo": "El vocabulario clínico se buscaba con `includes`: «obesidad» decía VIH",
+      "hallazgo": "Los dos motores de vocabulario —negaciones (v985) y temporalidad (v1027)— buscaban cada forma como subcadena. `sida` vive dentro de «obesidad», «necesidad» y «densidad»; `asma` dentro de «plasma»; `cistitis` dentro de «colecistitis». Y «derrame» nombraba un ictus en cada derrame pleural.",
+      "porQueImporta": "Negaciones no sólo avisa: RECLASIFICA. Reproducido con el motor real, «Niega necesidad de oxígeno suplementario» pasaba un VIH confirmado a `descartado` — y los antecedentes se arrastran a todas las notas siguientes.",
+      "archivo": "src/lib/expediente/negaciones.ts:96 · src/lib/expediente/temporalidad.ts:145",
+      "seguridad": 5, "integridad": 5, "ingreso": 0, "frecuencia": 3, "moat": 2,
+      "fiabilidad": 4, "regulatorio": 2, "aprendizaje": 3,
+      "irreversibilidad": 1, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 89,
+      "estado": "cerrado — REG-192 (v1074)",
       "reversible": true
     },
     {
@@ -20,12 +21,25 @@
       "titulo": "Cuatro parsers distintos del campo de alergias",
       "hallazgo": "El canónico entiende «Penicilina / Sulfas» y «Penicilina y sulfas» como dos alérgenos y descarta «niega alergias». Los otros tres —incluido el que alimenta el sesgo del reconocedor— no. Y ninguno de los tres lee alergiasEstructuradas.",
       "porQueImporta": "El cruce alergia↔fármaco compara contra LO QUE SE OYÓ. Un alérgeno que no llega al sesgo es un cruce que nunca salta.",
-      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:923 · uci/page.tsx:225 · api/expediente/extraer-entidades",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:1127 · uci/page.tsx:236 · api/expediente/extraer-entidades",
       "seguridad": 5, "integridad": 2, "ingreso": 0, "frecuencia": 4, "moat": 2,
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 73,
-      "estado": "a medias, sin subir",
+      "estado": "cerrado — verificado con el motor real el 8-ago: `alergenosDe()` es el único parser en los tres llamadores, golden en un-solo-parser-de-alergias.test.ts",
+      "reversible": true
+    },
+    {
+      "id": "VOICE-004",
+      "titulo": "El balance hídrico negativo pide confirmación en cada frase",
+      "hallazgo": "dosisSinNumero no reconoce el signo menos: lee «-1500 mL» y cree que falta la cifra. 25 de 6000 frases del corpus del dueño, todas de balance hídrico.",
+      "porQueImporta": "Fatiga de alerta. Un aviso que salta donde no debe se acaba ignorando, y con él se ignoran los que sí importan — que aquí son dosis perdidas.",
+      "archivo": "src/lib/uci/dosis-sin-numero.ts:57",
+      "seguridad": 3, "integridad": 1, "ingreso": 0, "frecuencia": 4, "moat": 2,
+      "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 3,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 60,
+      "estado": "cerrado — verificado con el motor real el 8-ago: los cuatro signos se aceptan y «Meropenem gramos» se sigue marcando",
       "reversible": true
     },
     {
@@ -51,8 +65,22 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 5,
       "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 0,
       "score": 55,
-      "estado": "pendiente",
+      "estado": "pendiente — empezado el 8-ago: el primer lote de veinte términos limpios ya destapó VOCAB-001. Falta el corpus de casos POSITIVOS (pasado real) y la medición de cobertura",
       "reversible": true
+    },
+    {
+      "id": "TEMP-002",
+      "titulo": "La nota que escribe el antecedente arriba y el diagnóstico actual abajo no avisa",
+      "hallazgo": "CONFIRMADO con el motor real el 8-ago-2026. `desajustesTemporales()` y `contradicciones()` miran sólo la PRIMERA aparición del término en la nota. Dictado «tuvo neumonía hace tres años» + nota «Antecedentes: antecedente de neumonía en 2023.\\nDiagnósticos: Neumonía adquirida en la comunidad» → cero avisos: la primera aparición trae «antecedente de» delante y la función se detiene ahí.",
+      "porQueImporta": "Es la disposición NORMAL de una nota: antecedentes antes que diagnósticos. Justo la nota bien estructurada es la que se queda sin vigilancia.",
+      "archivo": "src/lib/expediente/temporalidad.ts:229 · src/lib/expediente/negaciones.ts:222",
+      "seguridad": 2, "integridad": 1, "ingreso": 0, "frecuencia": 4, "moat": 2,
+      "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 2,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 50,
+      "estado": "pendiente",
+      "reversible": true,
+      "nota": "Es señalar de MENOS, que es la dirección tolerada — por eso no se reparó junto a VOCAB-192, que era señalar de más. Al repararlo hay que cuidar no invertir eso: recorrer todas las apariciones puede hacer saltar el aviso en notas donde hoy calla con razón."
     },
     {
       "id": "EVAL-003",

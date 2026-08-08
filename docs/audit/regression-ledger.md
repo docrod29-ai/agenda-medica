@@ -1553,3 +1553,80 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — «obesidad» decía VIH, y el VIH salía descartado (v1074)
+
+**Encontrado** — 8-ago-2026, construyendo el corpus sintético del motor de
+temporalidad (EVAL-002 del backlog). El corpus no era de temporalidad: era una
+lista de veinte términos que un internista dicta a diario y que **no** son
+ninguna de las canónicas del vocabulario. **Trece devolvieron una.**
+
+**El defecto** — Los dos motores que leen vocabulario clínico —negaciones (v985)
+y temporalidad (v1027)— buscaban cada forma con `includes`, que no sabe dónde
+acaba una palabra:
+
+```
+«sida»     (VIH)                  vive dentro de   obesidad · necesidad · densidad
+«asma»     (asma)                 vive dentro de   plasma · plasmaféresis
+«cistitis» (infección urinaria)   vive dentro de   colecistitis
+```
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada:
+
+```
+dictado: «Paciente con VIH en control con antirretroviral.
+          Niega necesidad de oxígeno suplementario.»
+
+condicionesNegadas()         → [VIH negado]
+corregirCertezaPorNegacion() → «VIH en control con TAR»: confirmado → descartado
+```
+
+**Por qué importa para un paciente** — El motor de negaciones no sólo avisa:
+**reclasifica**, y con razón (REG-…: una condición negada que viaja como
+confirmada se comporta como antecedente y se arrastra a todas las notas
+siguientes). Aquí ese acierto se vuelve el daño. El paciente negó necesitar
+oxígeno; lo que salió del expediente marcado como descartado fue el diagnóstico
+que sostiene el tratamiento entero en la consulta de un infectólogo. Y se
+arrastra igual.
+
+Es exactamente la mitad prohibida de la regla que los dos vocabularios llevan
+escrita desde el primer día: **señalar de menos, nunca de más**.
+
+**Reparación** — `indiceDeTermino()` en `negaciones.ts`: frontera de palabra
+(`(?<![a-z0-9]) … (?![a-z0-9])`), una sola definición que usan los dos motores.
+Devuelve el **índice** y no un booleano porque quien busca el término en la nota
+lee los 60 caracteres anteriores para ver si ya viene negado: apuntando dentro de
+«obesidad» se leía una ventana que no existía.
+
+**El plural se tolera a propósito** — `(?:e?s)?`. Exigir la palabra exacta
+perdería «fracturas», «infartos» y «convulsiones», que el dictado dice en plural
+más veces que en singular, y eso sí sería quitar vigilancia. Ninguna de las tres
+colisiones vuelve: las tres fallan por el **principio** de la palabra.
+
+**«Derrame» se retiró del vocabulario** — La cuarta colisión no la arregla la
+palabra entera, porque el término sobra: «derrame» YA es palabra entera y
+«derrame pleural», «pericárdico» y «articular» avisaban de un ictus. Ahora se
+exige «derrame cerebral». **Se pierde** el «tuvo un derrame» coloquial: ese caso
+deja de vigilarse, no se da por bueno. Es la dirección obligatoria.
+
+**Ninguna cifra clínica nueva** — Esto es gramática. No se añadió, quitó ni
+movió ningún umbral, dosis ni criterio; sólo se corrigió **dónde empieza una
+palabra**.
+
+**Lo que NO hace** — No busca colisiones nuevas: cada forma que se añada al
+vocabulario puede traer la suya. No arregla las formas que sobran por
+significado en vez de por subcadena; de ésas sólo se retiró «derrame».
+
+**Lo que queda para el médico** — Decidir si «tuvo un derrame» a secas debe
+volver a vigilarse (anotado en `OWNER_DECISIONS_REQUIRED.md`, C-6) y revisar el
+vocabulario agudo completo, que nunca ha pasado por él.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos archivos: 11 de los
+17 casos fallan. Los 6 que siguen verdes son los guardianes de no-regresión
+—diabetes, plurales, guiones, el titular del motor de temporalidad—, que es
+exactamente lo que deben hacer.
+
+**Golden** — `src/__tests__/el-vocabulario-no-vive-dentro-de-otra-palabra.test.ts`
+(17 casos).
