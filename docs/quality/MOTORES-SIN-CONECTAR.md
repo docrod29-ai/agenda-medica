@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**48** no se usan en ningún sitio fuera de su propia declaración.
+**44** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -35,6 +35,9 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | Símbolo | Cómo se cerró |
 |---|---|
 | `getAlertas` · `marcarAlertaLeida` | REG-256 · las alertas del episodio se escribían y nadie las leía; ahora hay bandeja en la ficha |
+| `camIcu` | REG-257 · el cribado de delirium no corría; ahora está junto al RASS, y el rasgo 3 sale del RASS en vez de preguntarse dos veces |
+| `obstruccionTSVI` | REG-257 · decía «NO escalar inotrópicos» y no llegaba a ninguna pantalla; ahora se enseña SIN filtro de modo avanzado |
+| `signo6060` · `pulsatilidadPorta` | REG-257 · conectados en el bloque POCUS; la pulsatilidad se calcula de Vmáx/Vmín en vez de clasificarse a ojo |
 
 ## Lo que NO significa estar en esta lista
 
@@ -96,10 +99,6 @@ que es el mismo fallo que se repara en los avisos clínicos.
 - `src/lib/uci/formato-nota.ts::renglonesAhorrados`
 - `src/lib/uci/labs-nota.ts::analitosConAbreviatura`
 - `src/lib/uci/observaciones.ts::tomaVigenteEn`
-- `src/lib/uci/pocus.ts::obstruccionTSVI`
-- `src/lib/uci/pocus.ts::pulsatilidadPorta`
-- `src/lib/uci/pocus.ts::signo6060`
 - `src/lib/uci/reparto-sistemas.ts::tuvoEstructura`
-- `src/lib/uci/scores.ts::camIcu`
 - `src/lib/uci/scores.ts::descripcionRASS`
 - `src/lib/uci/scores.ts::esSedacionLigera`

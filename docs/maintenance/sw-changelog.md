@@ -2501,3 +2501,9 @@ ningún sitio, y el trinquete impide que crezcan.
 Las alertas del episodio —lab crítico, NEWS2, interconsulta— se guardaban y
 ninguna pantalla las leía. Ahora hay bandeja en la ficha, encima de las
 pestañas, y se marcan vistas con un clic.
+
+## v1139 — CAM-ICU y tres motores POCUS ya corren (REG-257)
+
+Estaban escritos con su fuente y no los llamaba nadie. El más grave:
+`obstruccionTSVI` dice «no escalar inotrópicos» con gradiente ≥ 30 mmHg y nunca
+llegaba a la pantalla. Ahora se enseña sin filtro de modo avanzado.

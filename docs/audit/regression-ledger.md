@@ -4552,3 +4552,53 @@ ficha del paciente es la que sigue ahí mañana.**
 **El trinquete baja: 50 → 48.** Familia `no_conectado`, la vigésima segunda.
 
 **Guardián.** `src/__tests__/la-alerta-tiene-quien-la-lea.test.ts`, 12 casos.
+
+## REG-257 — cuatro motores de UCI escritos y sin correr (v1139)
+
+**Segunda cosecha del instrumento de REG-255**, y de las que duelen porque el
+médico dueño es intensivista de guardia:
+
+    src/lib/uci/scores.ts::camIcu
+    src/lib/uci/pocus.ts::obstruccionTSVI
+    src/lib/uci/pocus.ts::signo6060
+    src/lib/uci/pocus.ts::pulsatilidadPorta
+
+Los cuatro escritos, con su fuente y sus umbrales —Ely JAMA 2001, Soliman 2026,
+Beaubien-Souligny 2020— y **sin un solo llamador**. En su panel de UCI, sin
+correr.
+
+**El que cambia el tratamiento.** `obstruccionTSVI`, con gradiente ≥ 30 mmHg,
+dice literalmente:
+
+> «obstrucción dinámica — **NO escalar inotrópicos** (los empeora)»
+
+Un motor que dice eso y no corre es el peor caso de esta familia: no es que
+falte una función, es que **la advertencia existe escrita en el repositorio y
+nunca llegó a una pantalla**. Por eso su resultado se enseña **sin** el filtro
+de modo avanzado, a diferencia de los otros: esconder tras un interruptor algo
+que cambia la conducta es tenerlo y no enseñarlo.
+
+**CAM-ICU, y una decisión de captura.** El cribado de delirium no corría nunca.
+Se conecta junto al RASS, y **el Rasgo 3 (conciencia alterada) no se pregunta**:
+sale del RASS que ya está capturado arriba. Pedir dos veces el mismo dato es
+como se consigue que no se llene ninguna.
+
+Se enseña **también cuando no es evaluable**, diciendo qué rasgo falta: un
+cribado en blanco que desaparece de la pantalla no se llena nunca, y «no se
+sabe» es información. Lo que no se hace es dar por negativo lo que falta — el
+motor ya lo impide, y su comentario explica que tratarlo así producía un **falso
+negativo de delirium**.
+
+**La pulsatilidad portal se calcula.** Antes había que clasificar el patrón a
+ojo en un desplegable; ahora sale de Vmáx y Vmín, y si falta una de las dos no
+se dice nada.
+
+**No se inventó ningún umbral.** Los 30 mmHg, los 60 ms, el 50 % de
+pulsatilidad y los cuatro rasgos **ya estaban en los motores, con su cita**.
+Conectar es trabajo de software; los cortes son de los autores. Hay un caso que
+comprueba que la pantalla **no define ningún corte propio**: dos verdades para
+el mismo umbral y la primera vez que se separaran nadie sabría cuál creer.
+
+**El trinquete baja: 48 → 44.** Familia `no_conectado`, la vigésima tercera.
+
+**Guardián.** `src/__tests__/los-motores-de-uci-corren.test.ts`, 17 casos.

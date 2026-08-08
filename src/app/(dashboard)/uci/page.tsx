@@ -46,8 +46,8 @@ import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { cantidad, cantidadDesde } from '@/types/clinical-quantity'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
-import { calcularSOFA } from '@/lib/uci/scores'
-import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
+import { calcularSOFA, camIcu } from '@/lib/uci/scores'
+import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, signo6060, obstruccionTSVI, pulsatilidadPorta, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from '@/lib/uci/ckrt'
 import { analizarECMO, type ConfigECMO } from '@/lib/uci/ecmo'
 import { CATALOGO_INFUSIONES, farmacoPorKey, dosisARate, rateADosis } from '@/lib/uci/infusiones'
@@ -523,6 +523,28 @@ export default function UciPanelPage() {
   const plr = useMemo(() => respuestaPLR(n('plrDelta'), (v.plrParam as ParametroPLR) || undefined), [v])
   const tapse = useMemo(() => disfuncionVD_TAPSE(n('tapse')), [v])
   const vdvi = useMemo(() => sobrecargaVD_VDVI(n('vdvi')), [v])
+  /**
+   * ── TRES MOTORES POCUS QUE NO CORRÍAN (REG-257) ──────────────────────────
+   *
+   * Estaban escritos, con su fuente y sus umbrales, y ninguna pantalla los
+   * llamaba. El instrumento de REG-255 los sacó de la lista.
+   *
+   * El que más pesa es `obstruccionTSVI`: un gradiente ≥ 30 mmHg significa
+   * **no escalar inotrópicos**, porque los empeora. Un motor que dice eso y
+   * no corre es exactamente el defecto que este loop persigue.
+   */
+  const tsvi = useMemo(() => obstruccionTSVI(n('tsviGrad')), [v])
+  const s6060 = useMemo(() => signo6060(n('pat'), n('itGrad')), [v])
+  /* La fracción de pulsatilidad portal se CALCULA de vmax/vmin, en vez de
+     pedirle al médico que la clasifique a ojo. Si no hay las dos, no se dice
+     nada: no se adivina un patrón. */
+  const porta = useMemo(() => pulsatilidadPorta(n('portaVmax'), n('portaVmin')), [v])
+  const cam = useMemo(() => camIcu({
+    inicioAgudoOFluctuante: v.camAgudo === 'si' ? true : v.camAgudo === 'no' ? false : undefined,
+    inatencion: v.camInatencion === 'si' ? true : v.camInatencion === 'no' ? false : undefined,
+    nivelConcienciaAlterado: n('rass') !== null ? Number(n('rass')) !== 0 : undefined,
+    pensamientoDesorganizado: v.camPensamiento === 'si' ? true : v.camPensamiento === 'no' ? false : undefined,
+  }), [v])
   const lb = useMemo(() => lineasBPocus(n('lineasB')), [v])
 
   // ── Soportes extracorpóreos: CKRT/PRISMA + ECMO ──
@@ -1387,6 +1409,20 @@ export default function UciPanelPage() {
               { val: '1', txt: '+1 Inquieto' }, { val: '0', txt: '0 Alerta y tranquilo' }, { val: '-1', txt: '−1 Somnoliento' },
               { val: '-2', txt: '−2 Sedación ligera' }, { val: '-3', txt: '−3 Sedación moderada' },
               { val: '-4', txt: '−4 Sedación profunda' }, { val: '-5', txt: '−5 Sin respuesta' }]} />
+            {/*
+              CAM-ICU (REG-257). El motor existía —Ely, JAMA 2001— y no lo
+              llamaba nadie: el cribado de delirium no corría nunca.
+
+              El Rasgo 3 (conciencia alterada) NO se pregunta: sale del RASS
+              que ya está arriba. Pedir dos veces el mismo dato es como se
+              consigue que no se llene ninguna.
+            */}
+            <Selector label="CAM-ICU 1 · inicio agudo/fluctuante" k="camAgudo" v={v} set={set} w={200}
+              opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
+            <Selector label="CAM-ICU 2 · inatención" k="camInatencion" v={v} set={set} w={170}
+              opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
+            <Selector label="CAM-ICU 4 · pensamiento desorganizado" k="camPensamiento" v={v} set={set} w={220}
+              opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
           </Bloque>
           <Bloque icon={Waves} titulo="POCUS · ultrasonido a pie de cama">
             <Campo label="VCI" k="vci" v={v} set={set} sufijo="cm" w={80} />
@@ -1398,6 +1434,12 @@ export default function UciPanelPage() {
             <Campo label="TAPSE" k="tapse" v={v} set={set} sufijo="mm" w={80} />
             <Campo label="VD/VI" k="vdvi" v={v} set={set} w={80} />
             <Campo label="Líneas B/esp." k="lineasB" v={v} set={set} w={100} />
+            {/* REG-257 — entradas de los tres motores que ya existían. */}
+            <Campo label="Gradiente TSVI" k="tsviGrad" v={v} set={set} sufijo="mmHg" w={100} />
+            <Campo label="PAT" k="pat" v={v} set={set} sufijo="ms" w={80} />
+            <Campo label="Gradiente IT" k="itGrad" v={v} set={set} sufijo="mmHg" w={100} />
+            <Campo label="Porta Vmáx" k="portaVmax" v={v} set={set} sufijo="cm/s" w={95} />
+            <Campo label="Porta Vmín" k="portaVmin" v={v} set={set} sufijo="cm/s" w={95} />
           </Bloque>
         </div>
         )}
@@ -1439,6 +1481,21 @@ export default function UciPanelPage() {
               <Resultado label="TAPSE (VD)" r={{ ...tapse, unidad: 'mm' }} ocultar={!modoAvanzado} />
               <Resultado label="VD/VI" r={vdvi} ocultar={!modoAvanzado} />
               <Resultado label="Líneas B" r={lb} ocultar={!modoAvanzado} />
+              {/*
+                REG-257. `obstruccionTSVI` va SIN `ocultar`: su hallazgo cambia
+                el tratamiento —no escalar inotrópicos— y esconderlo tras el
+                modo avanzado sería tenerlo y no enseñarlo, que es donde
+                empezó todo esto.
+              */}
+              <Resultado label="Obstrucción del TSVI" r={{ ...tsvi, unidad: 'mmHg' }} />
+              <Resultado label="Signo 60/60 (HTP aguda)" r={{ ...s6060, unidad: 'ms' }} ocultar={!modoAvanzado} />
+              {porta.pf !== null && (
+                <Resultado
+                  label="Pulsatilidad portal"
+                  r={{ ok: true, valor: porta.pf, motivoBloqueo: null, interpretacion: `FP ${porta.pf} % · patrón ${porta.patron} (VExUS-C, Beaubien-Souligny 2020)`, unidad: '%' }}
+                  ocultar={!modoAvanzado}
+                />
+              )}
             </div>
             {modoAvanzado && <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.4 }}>
               VExUS-C requiere VCI ≥ 2.0 cm + Doppler venoso. PLR: ≥10 % en gasto/VS/LVOT-VTI = respondedor (la presión de pulso no es criterio válido). Ninguna medida aislada decide conducta.
@@ -1456,6 +1513,27 @@ export default function UciPanelPage() {
                 {neuro.picEstado && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{neuro.picEstado}</div>}
                 {!neuro.gcsValorable && <div style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic' }}>Paciente intubado: GCS verbal no valorable (reportar “T”). Conciencia/sedación → RASS.</div>}
                 {neuro.rass.ok && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}><b>RASS {neuro.rass.valor! > 0 ? '+' : ''}{neuro.rass.valor} · {neuro.rass.etiqueta}</b> — {neuro.rass.interpretacion}</div>}
+                {/*
+                  CAM-ICU (REG-257). Se enseña también cuando NO es evaluable,
+                  diciendo qué rasgo falta: «no se sabe» es información, y un
+                  cribado en blanco que desaparece de la pantalla no se llena
+                  nunca.
+
+                  Lo que NO se hace es dar por negativo lo que falta — el motor
+                  ya lo impide, y su comentario explica que tratarlo así era un
+                  falso negativo.
+                */}
+                {(cam.evaluable || cam.faltan.length > 0) && (
+                  <div style={{
+                    fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)',
+                    borderLeft: `3px solid ${cam.positivo ? 'var(--red)' : cam.evaluable ? 'var(--green)' : 'var(--text3)'}`,
+                    color: 'var(--text2)',
+                  }}>
+                    <b>{cam.evaluable ? cam.explicacion : 'CAM-ICU no evaluable'}</b>
+                    {!cam.evaluable && <> — falta {cam.faltan.join(', ')}</>}
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{cam.fuente}</span>
+                  </div>
+                )}
                 {neuro.banderas.map((b, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[b.nivel]}` }}>
                     <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[b.nivel], textTransform: 'uppercase', width: 58, flexShrink: 0 }}>{b.nivel}</span>
