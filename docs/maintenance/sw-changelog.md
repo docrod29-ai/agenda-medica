@@ -2279,3 +2279,13 @@ consulta entera, que es lo que pasó con REG-217; (2) NINGUNA cifra, porque una
 sección propuesta se juzga y se borra, pero una cifra propuesta se lee idéntica
 a una medida real. Todo lo propuesto va con [IA — no dictado] y entra con un
 toque (REG-228). Prompt nota-2026-08-07-3.
+
+## v1110 — lo revisado no era lo que se firma (I-8)
+La segunda opinión ya corría sola. El problema: después el Dr. edita la nota, y
+el panel seguía diciendo EN VERDE «sin observaciones de seguridad» de una
+versión del texto que ya no existía. Un sello caducado se lee igual que uno
+vigente — peor que no tenerlo, porque invita a no releer. Ahora se guarda una
+huella estable de lo que se revisó (ordenada antes de medir, con separador de
+campo, sin contar secciones vacías) y se dice cuando caduca, en el panel y al
+firmar. No bloquea: bloquear por una coma corregida se aprende a esquivar
+(REG-229).

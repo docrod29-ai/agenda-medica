@@ -282,12 +282,28 @@ receta** o no sirven. Eso ya costó dos regresiones (REG-173, REG-190).
 
 ---
 
-## I-8 · El segundo modelo que revisa
+## I-8 · El segundo modelo que revisa — ✅ CERRADA (v1110)
 
 > Respuesta 12: «que un segundo modelo la revise»
 
-Ya existe `/api/expediente/verificar-nota`. Falta que sea **parte del cierre** y
-no una opción, y que lo que reporte sea **accionable**, no un párrafo.
+Ya existía y corría sola. **Ése era el problema**: después de que corre, el
+médico edita —corrige un apartado, cambia una dosis, acepta las líneas
+propuestas— y el panel seguía diciendo en verde «sin observaciones de seguridad»
+de una versión del texto que ya no existe.
+
+Un sello sobre un texto que cambió no es una garantía: es una garantía caducada
+que **se lee igual que una vigente**. Peor que no tenerla, porque invita a no
+releer — que es justo para lo que él la quería.
+
+**Lo que faltaba** era una huella estable de lo que se revisó, para poder
+comparar. Se ordena antes de medir (reordenar la lista no puede caducar una
+revisión válida), lleva separador de campo, y una sección vacía no cuenta.
+
+**No bloquea**: bloquear por una revisión caducada convertiría cada coma en un
+trámite y el médico aprendería a esquivarlo. Lo que faltaba no era otra
+compuerta, era poder decir la verdad.
+
+**Cierra con** — REG-229 · `lo-revisado-es-lo-que-se-firma.test.ts` (18 casos).
 
 ---
 

@@ -3350,3 +3350,43 @@ repositorio.
 
 **Guardián** — `src/__tests__/los-huecos-se-proponen-marcados.test.ts` (15 casos).
 **Versión de prompt** — `nota-2026-08-07-3`.
+
+---
+
+## REG-229 — lo revisado no era lo que se firma (v1110 · I-8)
+
+**Lo que el médico pidió** — preguntado qué le haría confiar en la nota **sin
+releerla entera**, eligió «que un segundo modelo la revise».
+
+**Y ya existía. Ése era el problema.** La segunda opinión lleva tiempo
+corriendo: otro modelo compara la nota contra el dictado y devuelve hallazgos de
+seguridad, sola al terminar el pase de IA.
+
+Pero después de eso **el médico edita**: corrige un apartado, cambia una dosis,
+acepta las líneas propuestas, quita un diagnóstico. Y el panel seguía diciendo,
+**en verde**, «sin observaciones de seguridad» — de una versión del texto que ya
+no existe.
+
+Un sello de revisión sobre un texto que cambió no es una garantía: es una
+garantía caducada que **se lee igual que una vigente**. Es peor que no tenerla,
+porque invita a no releer — que es exactamente para lo que él la quería.
+
+**La pieza que faltaba** — una huella estable de lo que se revisó, para poder
+comparar. `lib/expediente/lo-que-se-reviso.ts`:
+- `huellaRevisable()` sobre resumen, apartados, diagnósticos y medicamentos.
+- Se **ordena antes de medir**: reordenar la lista no puede caducar una revisión
+  válida. (Un hash sobre `JSON.stringify` cambia cuando Firestore reordena las
+  llaves — eso ya costó un banner de «INTEGRIDAD NO VERIFICADA» que era falso.)
+- Separador de campo entre valores: sin él, «ab»+«c» y «a»+«bc» colisionan.
+- Una sección VACÍA no cuenta: no se revisó, así que su presencia no caduca nada.
+
+**La huella es de lo que SE MANDÓ, no de lo que hay al volver** — entre que sale
+la petición y regresa, el médico puede teclear. Medir al volver marcaría como
+caducada una revisión que sí cubrió lo que se mandó.
+
+**No bloquea la firma.** Bloquear por una revisión caducada convertiría cada coma
+corregida en un trámite, y el médico aprendería a esquivarlo. Lo que faltaba no
+era una compuerta más: era **poder decir la verdad**. Al firmar se dice, con la
+opción de firmar así.
+
+**Guardián** — `src/__tests__/lo-revisado-es-lo-que-se-firma.test.ts` (18 casos).

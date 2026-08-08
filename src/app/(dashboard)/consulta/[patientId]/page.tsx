@@ -152,6 +152,7 @@ import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
+import { huellaRevisable, estadoDeRevision, COMO_SE_DICE, type ContenidoRevisable } from '@/lib/expediente/lo-que-se-reviso'
 import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
 import { diagnosticosSanos, medicamentosSanos, seccionesSanas } from '@/lib/expediente/nota-restaurada'
 import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
@@ -760,7 +761,14 @@ export default function ConsultaActivaPage() {
   const [rolesHablante, setRolesHablante] = useState<Record<string, string>>({})
   // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 4.8.
   type Hallazgo = { severidad: string; tema: string; problema: string; sugerencia: string }
-  const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
+  /**
+   * La segunda opinión, CON la huella de lo que revisó.
+   *
+   * Sin la huella, el resultado seguía diciendo «sin observaciones» después de
+   * que el médico editara la nota — un sello de una versión que ya no existe.
+   * Ver `lib/expediente/lo-que-se-reviso.ts`.
+   */
+  const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[]; huella: string } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
   // Menú de IA: motor elegido por el médico para esta nota. null = default del plan
@@ -1462,7 +1470,10 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [] })
+      // La huella es de lo que SE MANDÓ a revisar, no de lo que hay en pantalla
+      // ahora: entre que salió la petición y volvió, el médico pudo teclear.
+      const huella = huellaRevisable(nota as ContenidoRevisable)
+      if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [], huella })
       // Auditoría 2026-07 (P1): NO mostrar «sin observaciones» si la revisión falló.
       // La segunda opinión queda nula (no verde) y se avisa que no se verificó.
       else if (data?.incompleto) {
@@ -1479,7 +1490,7 @@ export default function ConsultaActivaPage() {
          * lee como una revisión completa.
          */
         const parciales = Array.isArray(data.hallazgos) ? data.hallazgos : []
-        if (parciales.length > 0) setVerificacion({ modelo: `${data.modelo ?? 'IA'} · revisión parcial`, hallazgos: parciales })
+        if (parciales.length > 0) setVerificacion({ modelo: `${data.modelo ?? 'IA'} · revisión parcial`, hallazgos: parciales, huella })
       }
     } catch { /* silencioso: la segunda opinión es un extra, no bloquea */ }
     finally { setVerificando(false) }
@@ -2930,6 +2941,21 @@ export default function ConsultaActivaPage() {
     window.speechSynthesis.speak(u)
   }, [diagnosticos, medicamentos, resumen, toast])
 
+  /**
+   * ¿La segunda opinión sigue valiendo para lo que hay en pantalla?
+   *
+   * Se recalcula con la nota, así que en cuanto el médico teclea, el sello deja
+   * de decir que está al día. Ver `lib/expediente/lo-que-se-reviso.ts`.
+   */
+  const revisionCaducada = useMemo(() => estadoDeRevision({
+    huellaRevisada: verificacion?.huella,
+    ahora: {
+      resumen,
+      secciones: secciones.map(x => ({ titulo: x.label, contenido: x.value })),
+      diagnosticos, medicamentos,
+    },
+  }) === 'caducada', [verificacion?.huella, resumen, secciones, diagnosticos, medicamentos])
+
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
     if (!clinicId) return
@@ -2968,6 +2994,44 @@ export default function ConsultaActivaPage() {
      * No acusa: dice cuáles no se pudieron comprobar y deja aceptarlos de una
      * vez. «ia» aquí significa «no verificado», no «inventado».
      */
+    /**
+     * ── LO QUE SE REVISÓ NO ERA LO QUE SE FIRMA (I-8) ─────────────────────
+     *
+     * El médico eligió «que un segundo modelo la revise» como lo que le haría
+     * confiar en la nota sin releerla entera. Y la revisión ya existía —corre
+     * sola al terminar el pase de IA—.
+     *
+     * Pero después de eso él edita: corrige un apartado, cambia una dosis,
+     * acepta las líneas propuestas, quita un diagnóstico. Y el panel seguía
+     * diciendo «sin observaciones de seguridad» de **una versión del texto que
+     * ya no existe**.
+     *
+     * Un sello de revisión sobre un texto que cambió no es una garantía: es una
+     * garantía caducada que se lee igual que una vigente. Peor que no tenerla,
+     * porque invita a no releer.
+     *
+     * NO bloquea. Bloquear por una revisión caducada convertiría cada coma
+     * corregida en un trámite, y él aprendería a esquivarlo. Lo que faltaba no
+     * era una compuerta más: era poder decir la verdad.
+     */
+    const revision = estadoDeRevision({
+      huellaRevisada: verificacion?.huella,
+      ahora: {
+        resumen,
+        secciones: secciones.map(x => ({ titulo: x.label, contenido: x.value })),
+        diagnosticos, medicamentos,
+      },
+    })
+    if (revision === 'caducada') {
+      const seguir = await confirm(
+        `${COMO_SE_DICE.caducada}\n\n` +
+        'Los hallazgos que ves son de antes de tus cambios. Puedes volver a pedirla, ' +
+        'o firmar sabiéndolo.',
+        { confirmar: 'Firmar así', cancelar: 'Volver y pedirla de nuevo' },
+      )
+      if (!seguir) return
+    }
+
     const sinEvidencia = camposSinEvidencia(construirManifiesto(
       { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
       extraction as never,
@@ -4419,10 +4483,28 @@ export default function ConsultaActivaPage() {
           <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Segunda opinión en curso — otro modelo de IA revisa la nota…
         </div>
       )}
+      {/*
+        ── EL SELLO CADUCA CUANDO LA NOTA CAMBIA (I-8) ─────────────────────────
+        «Sin observaciones» se quedaba en verde después de que el médico editara
+        la nota: un sello de una versión que ya no existe. Aquí se dice, y el
+        verde deja de ser verde en cuanto deja de ser cierto.
+      */}
+      {verificacion && !verificando && revisionCaducada && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: 'var(--amber)' }}>
+          <AlertTriangle size={14} /> {COMO_SE_DICE.caducada}{' '}
+          {planActual === 'pro' && (
+            <button onClick={pedirSegundaOpinion}
+              style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, padding: 0, textDecoration: 'underline' }}>
+              Pedirla otra vez
+            </button>
+          )}
+        </div>
+      )}
       {verificacion && !verificando && (
         verificacion.hallazgos.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: 'var(--teal)' }}>
-            <CheckCircle2 size={14} /> Segunda opinión ({verificacion.modelo}): sin observaciones de seguridad.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: revisionCaducada ? 'var(--text3)' : 'var(--teal)' }}>
+            <CheckCircle2 size={14} /> Segunda opinión ({verificacion.modelo}): sin observaciones de seguridad
+            {revisionCaducada ? ' — sobre la versión anterior.' : '.'}
           </div>
         ) : (
           <Alert tone="warning" icon={<AlertTriangle size={18} />} title={`Segunda opinión (${verificacion.modelo}) — ${verificacion.hallazgos.length} observación(es) a revisar`}>
