@@ -17,20 +17,7 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1145",
-  "trabajoLocalSinSubir": [
-    "M agent-state/CURRENT_ITERATION.md",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/quality/MOTORES-SIN-CONECTAR.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-barrido-de-motores-esta-explicado.test.ts"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",

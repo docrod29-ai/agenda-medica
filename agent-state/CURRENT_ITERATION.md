@@ -1,17 +1,27 @@
-# Iteración actual — MASTER LOOP V7
+# Iteración actual — MASTER LOOP V7 · programa hijo **V9** abierto
 
 > **La cabecera de cifras se DERIVA**: `node scripts/agent-state/actualizar.mjs`
 > escribe versión, última REG y conteo de pruebas en `MASTER_STATE.json`, y
 > `el-tablero-del-loop-no-miente` falla si se desfasa (REG-241). Lo de este
 > archivo es **criterio**, y el criterio no sale de un `grep`.
+>
+> **Las cifras ya no se copian aquí a mano** — era la cuarta vez que se
+> desfasaban. Se leen de `MASTER_STATE.json`, que las deriva del repositorio.
+> Ver `agent-state/RECONCILIACION-V9-2026-08-08.md`.
 
-**Producción**: `nexusmed-v1144` · **Pruebas**: 8 063 · **Lint**: 96 (techo)
-**Rama**: `agent/pagos/PAY-001` · **REG**: 110 clasificados en 16 familias
+**Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
+**Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
+· directiva íntegra en
+[`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
+**Unidad actual**: `PATIENT-UX-TRUTH-001`
 
-**Modo**: autónomo CON despliegue. El dueño levantó §31 por escrito muchas
-veces. Lo que **no** se relaja: nada de datos reales de pacientes, nada
-destructivo, **ninguna cifra clínica inventada** (se marca
-`NEEDS_CLINICAL_REVIEW` y se sigue con otra cosa).
+**Modo V9**: autónomo **SIN desplegar y SIN fusionar a `main`**. El dueño
+restableció el candado de despliegue al abrir V9 (§9 de la directiva). Lo demás
+sigue igual: nada de datos reales de pacientes, nada destructivo, **ninguna cifra
+clínica inventada** (se marca `NEEDS_CLINICAL_REVIEW` y se sigue con otra cosa).
+
+> El historial de V7 que sigue abajo **se conserva íntegro**. V9 extiende, no
+> sustituye.
 
 ---
 
