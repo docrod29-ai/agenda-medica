@@ -2352,3 +2352,10 @@ selectores, nunca con capturas ni innerText: una auditoría de diseño no necesi
 ver el nombre de un paciente. El grep del código decía 371; el navegador, 20. La
 diferencia son los que van envueltos en su label. Manda la medición, no el grep
 (REG-235). Sigue sin medirse el ancho de teléfono en pantallas internas.
+
+## v1118 — los dos últimos campos sin etiqueta
+De 15 a 0 en configuración: los dos que quedaban (el selector de médico y la
+llave de la API) no tenían etiqueta visible, así que van con aria-label. Y
+REG-235 quedó clasificado en su familia — el guardián lo cazó: un defecto en la
+bitácora sin familia pone la suite en rojo hasta que alguien conteste «¿de qué
+se enfermó éste?».
