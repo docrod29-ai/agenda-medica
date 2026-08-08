@@ -36,7 +36,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execSync } from 'node:child_process'
-import { alergenosDe } from '@/lib/seguridad/alergias'
+import { alergenosDe, alergiasDe } from '@/lib/seguridad/alergias'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
@@ -126,5 +126,90 @@ describe('LOS TRES LLAMADORES USAN EL MISMO', () => {
       .filter(f => !f.startsWith('src/__tests__/'))
 
     expect(sospechosos, 'alguien volvió a partir el campo de alergias a mano').toEqual([])
+  })
+})
+
+/**
+ * ── EL SEXTO CAMINO: LO QUE SE FIRMA (8-ago-2026, REG-203) ──────────────────
+ *
+ * REG-201 amplió el guardián a `src/` entero para que ninguna copia se
+ * escondiera en un archivo que la lista no nombraba. Barre lo que **parte** el
+ * campo a mano. Y quedaban dos sitios de la consulta que no partían nada: el
+ * campo `alergias` de la NOTA QUE SE FIRMA y la lista del sello de procedencia
+ * (tres usos, tras un ayudante local de una línea, `alergiasArray`). Los dos
+ * llamaban a `parsearAlergiasTexto` — el partidor bueno, sobre **una sola de las
+ * dos fuentes**.
+ *
+ * Reproducido con las funciones reales, sobre un paciente sintético cuya alergia
+ * vive sólo en `alergiasEstructuradas`:
+ *
+ *     pantalla / receta impresa → [{ alergeno: 'Penicilina', severidad: 'grave' }]
+ *     NOTA FIRMADA / sello      → []
+ *
+ * ── POR QUÉ IMPORTA PARA UN PACIENTE ─────────────────────────────────────────
+ *
+ * La nota firmada es el registro medicolegal, y es lo que leen la consulta
+ * siguiente y quien reciba al paciente. Decía «no consta ninguna alergia» de un
+ * paciente con alergia grave a penicilina documentada, mientras la misma
+ * pantalla la enseñaba en rojo. Y el sello de procedencia, al contar cero
+ * alergias, dejaba fuera de `camposSinEvidencia` justo el dato que gobierna la
+ * compuerta de la receta.
+ *
+ * `alergiasEstructuradas` está en `CAMPOS_CLINICOS_PACIENTE` —lista blanca de
+ * escritura—, así que cualquier importación o mapeo desde otro sistema lo activa
+ * el mismo día. Es el modo de fallo que `alergiasParaImpreso` ya había cerrado
+ * para el papel; faltaba cerrarlo para lo que se firma.
+ *
+ * ── LO QUE ESTA FAMILIA DE FALLOS ENSEÑA ─────────────────────────────────────
+ *
+ * Los guardianes anteriores buscaban un **partidor propio**. Aquí no faltaba el
+ * partidor: faltaba **una fuente**. Por eso estas afirmaciones miran qué función
+ * se llama, no cómo se corta el texto.
+ *
+ * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
+ *
+ * No comprueba que la nota se GUARDE con ese campo —eso vive del otro lado de la
+ * frontera de escritura—, ni que `alergiasEstructuradas` se llene alguna vez: hoy
+ * ninguna ruta de la app lo escribe. Cubre que, si llega, la firma la vea.
+ */
+describe('LA NOTA FIRMA LO MISMO QUE LA PANTALLA ENSEÑA', () => {
+  const consulta = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+
+  it('una alergia que sólo vive en el campo estructurado llega a la nota', () => {
+    // Sintético. Es exactamente el paciente que salía con `alergias: []` firmado.
+    const paciente = { alergiasEstructuradas: [{ alergeno: 'Penicilina', severidad: 'grave' as const }] }
+    expect(alergiasDe(paciente)).toEqual([{ alergeno: 'Penicilina', severidad: 'grave' }])
+  })
+
+  it('y también al sello de procedencia, que contaba cero', () => {
+    expect(alergenosDe({ alergiasEstructuradas: [{ alergeno: 'Penicilina' }] })).toEqual(['Penicilina'])
+  })
+
+  it('el mismo alérgeno escrito dos veces se firma una', () => {
+    // La nota llevaba ['Penicilina', 'penicilina']; la pantalla, una sola.
+    expect(alergiasDe({ alergias: 'Penicilina, penicilina' })).toEqual([{ alergeno: 'Penicilina' }])
+  })
+
+  it('el campo de la nota firmada usa el canónico', () => {
+    expect(consulta).toContain('alergias: alergiasDe(patient ?? {})')
+  })
+
+  it('y los tres usos del sello también', () => {
+    const usos = consulta.match(/alergias: alergenosDe\(patient \?\? \{\}\)/g) ?? []
+    // Uno es el sesgo del reconocedor; los otros tres, el sello de procedencia:
+    // el manifiesto de la nota, `camposSinEvidencia` y el panel en pantalla.
+    expect(usos.length).toBe(4)
+  })
+
+  it('y la consulta ya no tiene ayudante propio de alergias', () => {
+    /**
+     * `alergiasArray` era un envoltorio de una línea sobre `parsearAlergiasTexto`.
+     * Parecía inofensivo —usaba el partidor bueno— y por eso sobrevivió a dos
+     * limpiezas: lo que perdía no era el partidor, era la otra fuente.
+     */
+    expect(consulta, 'volvió el ayudante local de alergias').not.toContain('function alergiasArray')
+    // La LLAMADA, no la mención: el comentario del arreglo nombra la función que
+    // se retiró, y es justo lo que explica por qué se retiró.
+    expect(consulta, 'la consulta volvió a leer sólo el texto libre').not.toMatch(/parsearAlergiasTexto\(/)
   })
 })

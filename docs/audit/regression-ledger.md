@@ -1702,3 +1702,59 @@ decisión suya y no mía.
 fallan.
 
 **Golden** — `src/__tests__/unificar-no-pierde-el-negador.test.ts` (8 casos).
+
+---
+
+## REG-203 — la nota firmada no llevaba las alergias estructuradas (v1084)
+
+**Encontrado** — 8-ago-2026, cerrando SAFE-001. REG-201 amplió el guardián a
+`src/` entero, y con razón: la quinta copia vivía donde la lista no miraba.
+Barre lo que **parte** el campo a mano. Repasando el camino del alérgeno hasta el
+final aparecieron dos sitios más, en la consulta, que **no partían nada**: el
+campo `alergias` de la nota que se firma y la lista que alimenta el sello de
+procedencia (tres usos, tras un ayudante local de una línea, `alergiasArray`).
+Los dos llamaban a `parsearAlergiasTexto` — el partidor bueno, sobre **una sola
+de las dos fuentes**.
+
+**Cómo se reprodujo** — Con las funciones reales, sobre un paciente sintético
+cuya alergia vive sólo en `alergiasEstructuradas`:
+
+```
+pantalla / receta impresa (alergiasDe)         → [{alergeno:'Penicilina', severidad:'grave'}]
+NOTA FIRMADA / sello (parsearAlergiasTexto)    → []
+```
+
+Y con el texto libre `«Penicilina, penicilina»` la nota firmaba **dos** alérgenos
+donde la pantalla enseñaba uno.
+
+**Por qué importa para un paciente** — La nota firmada es el registro
+medicolegal, y es lo que leen la consulta siguiente y quien reciba al paciente.
+Decía «no consta ninguna alergia» de un paciente con alergia grave a penicilina
+documentada, mientras la misma pantalla la enseñaba en rojo y el papel la
+imprimía. El sello de procedencia, al contar cero alergias, dejaba además fuera
+de `camposSinEvidencia` justo el dato que gobierna la compuerta de la receta.
+
+**Por qué sobrevivió a las dos limpiezas anteriores** — Los guardianes buscaban
+un **partidor propio** (`split(`). Aquí no faltaba el partidor: faltaba **una
+fuente**. Un envoltorio de una línea sobre la función canónica parece inofensivo
+justo porque usa la función canónica; lo que se perdía era el otro campo. La
+regla que deja: cuando un dato tiene **dos** orígenes posibles, el guardián tiene
+que mirar **qué función se llama**, no cómo se corta el texto.
+
+**Reparación** — La consulta ya no tiene ayudante propio: la nota usa
+`alergiasDe(patient ?? {})` y los tres usos del sello, `alergenosDe(patient ?? {})`.
+Es el mismo cierre que `alergiasParaImpreso` ya había hecho para el papel.
+
+**Qué NO hace** — No comprueba que la nota quede **guardada** con ese campo: eso
+vive del otro lado de la frontera de escritura. Y hoy **ninguna ruta de la app
+llena `alergiasEstructuradas`**, así que la divergencia estaba latente; el campo
+está en `CAMPOS_CLINICOS_PACIENTE` —lista blanca de escritura—, y cualquier
+importación o mapeo desde otro sistema la activa el mismo día.
+
+**Qué queda para el médico** — Nada que decidir: ningún umbral, dosis ni criterio
+clínico nuevo. Se lee el campo que ya existía.
+
+**Comprobado que puede ponerse rojo** — Revertido `page.tsx`, fallan las tres
+afirmaciones de llamador (nota, sello, ayudante retirado).
+
+**Golden** — `src/__tests__/un-solo-parser-de-alergias.test.ts` (16 casos, sellado).

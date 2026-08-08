@@ -3,6 +3,17 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1084 — REG-203: la nota firmada no llevaba las alergias estructuradas
+
+Un paciente cuya alergia vive sólo en `alergiasEstructuradas` salía con la alerta
+roja en pantalla, con «Penicilina» en la receta impresa… y con `alergias: []` en
+la NOTA FIRMADA. El registro medicolegal decía que no constaba ninguna alergia.
+
+Quedaban dos llamadas a `parsearAlergiasTexto` —el partidor bueno, pero sobre una
+sola de las dos fuentes— en la consulta: el campo de la nota y el sello de
+procedencia. Los guardianes de REG-201/202 buscaban un partidor propio; aquí no
+faltaba el partidor, faltaba una fuente.
+
 ## v1083 — REG-202: unificar dos parsers perdió el negador de uno
 
 REG-201 trajo el punto de orden hospitalario al parser canónico de alergias, que

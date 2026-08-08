@@ -838,7 +838,7 @@
     },
     {
       "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
-      "minCasos": 10
+      "minCasos": 16
     },
     {
       "archivo": "src/__tests__/una-barra-y-no-ocho-recuadros.test.ts",

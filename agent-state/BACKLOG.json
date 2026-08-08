@@ -41,10 +41,10 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 73,
-      "estado": "cerrado (REG-201, v1082)",
+      "estado": "cerrado (v1084, REG-203)",
       "reversible": true,
-      "cierre": "Quedaba un QUINTO parser fuera de la cuenta: el punto de orden hospitalario (hospital/cds.ts). Ni la «y» ni la barra separaban —la alergia que sigue a una negada desaparecía— y `alergiasEstructuradas` no se miraba ni en la firma ni en el llamador. Unificado sobre `alergiasDe`. De paso, la severidad del motor dejaba de respetarse: toda alerta del cruce se pintaba roja, incluida la que E0-15d baja a precaución.",
-      "golden": "src/__tests__/el-cds-hospitalario-lee-las-mismas-alergias.test.ts (13 casos)"
+      "cierre": "Cerrado tras REG-171 (tres llamadores), REG-201 (el quinto, en el punto de orden), REG-202 (el negador que esa unificación perdió) y REG-203 (los dos que no partían nada: la nota que se firma y el sello de procedencia). Reproducido: paciente con la alergia sólo en `alergiasEstructuradas` → pantalla y receta la enseñan, la NOTA FIRMADA sale con []. Hoy los seis caminos leen de `alergiasDe`/`alergenosDe`.",
+      "golden": "src/__tests__/un-solo-parser-de-alergias.test.ts (16 casos, sellado)"
     },
     {
       "id": "EVAL-001",

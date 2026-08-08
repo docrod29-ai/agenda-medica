@@ -21,7 +21,6 @@ import { hoyISO } from '@/lib/timezone'
 import type { Appointment } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
-import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
@@ -48,14 +47,6 @@ import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
-/**
- * Alergias del paciente (texto libre) → lista para el sello de procedencia.
- *
- * Usa el MISMO partidor que el cruce de seguridad. Había dos: éste cortaba por
- * `[,;\n]` y `parsearAlergiasTexto` por `[,;/]`, así que «Penicilina / Sulfas»
- * era una alergia para el sello y dos para la alerta. El mismo campo no puede
- * significar dos cosas según quién lo lea.
- */
 /**
  * TODO LO QUE LA NOTA AFIRMA, EN TEXTO — y de verdad.
  *
@@ -97,9 +88,6 @@ function textoDeLaNota(
   ].filter(Boolean).join('\n')
 }
 
-function alergiasArray(alergias?: string): string[] {
-  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
-}
 import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
@@ -2019,7 +2007,14 @@ export default function ConsultaActivaPage() {
       // Una entrada POR alérgeno, no el párrafo entero como un solo alérgeno —y
       // sin lo que el propio campo niega («niega alergia a penicilina» no es una
       // alergia a penicilina, y hacía saltar la alerta que bloquea la firma).
-      alergias: parsearAlergiasTexto(patient?.alergias),
+      //
+      // Con `alergiasDe` y no con `parsearAlergiasTexto`: éste sólo mira el texto
+      // libre. Un paciente cuya alergia vive únicamente en `alergiasEstructuradas`
+      // —el campo está en la lista blanca de escritura y cualquier importación lo
+      // llena— salía con la alerta roja en pantalla, con «Penicilina» en la receta
+      // impresa… y con `alergias: []` en la NOTA FIRMADA. El registro medicolegal
+      // decía que no constaba ninguna alergia mientras la pantalla las gritaba.
+      alergias: alergiasDe(patient ?? {}),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
       // El bloque hospitalario, que hasta v941 se sellaba vacío. Lo que el
@@ -2034,7 +2029,7 @@ export default function ConsultaActivaPage() {
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
         procedencia: construirManifiesto(
           {
-            diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias),
+            diagnosticos, medicamentos, alergias: alergenosDe(patient ?? {}),
             signosVitales: signosNum as unknown as Record<string, unknown>,
             /**
              * Y LA PROSA, que era justo lo que faltaba.
@@ -2698,7 +2693,7 @@ export default function ConsultaActivaPage() {
      * vez. «ia» aquí significa «no verificado», no «inventado».
      */
     const sinEvidencia = camposSinEvidencia(construirManifiesto(
-      { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
+      { diagnosticos, medicamentos, alergias: alergenosDe(patient ?? {}) },
       extraction as never,
       aprobados,
       {
@@ -4387,7 +4382,7 @@ export default function ConsultaActivaPage() {
           también en la nota firmada — es parte del registro. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0) && (
         <SelloProcedencia
-          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          final={{ diagnosticos, medicamentos, alergias: alergenosDe(patient ?? {}), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
           aprobados={aprobados}
           transcripcion={voz.transcripcion}
