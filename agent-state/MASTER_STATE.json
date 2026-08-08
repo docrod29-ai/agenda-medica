@@ -16,8 +16,24 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1096",
-  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnProduccion": "nexusmed-v1122",
+  "trabajoLocalSinSubir": [
+    "M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/maintenance/sw-changelog.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M public/sw.js",
+    " M public/version.txt",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? scripts/agent-state/",
+    "?? src/__tests__/el-tablero-del-loop-no-miente.test.ts",
+    "?? src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
+    "?? src/lib/seguridad/la-reescritura-no-pierde-cifras.ts"
+  ],
   "actualizado": "2026-08-07",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -49,5 +65,13 @@
     "Requisitos legales de la receta impresa",
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
-  ]
+  ],
+  "ramaActual": "agent/pagos/PAY-001",
+  "derivado": {
+    "regsEnElLedger": 89,
+    "ultimaREG": "REG-241",
+    "archivosDePrueba": 523,
+    "casosDePrueba": 6941,
+    "lint": "ver scripts/lint-trinquete.mjs"
+  }
 }

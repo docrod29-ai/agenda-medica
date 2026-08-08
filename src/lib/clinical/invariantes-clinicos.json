@@ -1043,6 +1043,14 @@
     {
       "archivo": "src/__tests__/de-donde-salio-esto-se-ve.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
+      "minCasos": 17
+    },
+    {
+      "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
+      "minCasos": 10
     }
   ]
 }

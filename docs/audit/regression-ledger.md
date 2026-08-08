@@ -3825,3 +3825,85 @@ pinta transparente. Se cazó mirando el archivo, no ejecutando — y quedó una
 prueba que lo comprueba.
 
 **Guardián.** `src/__tests__/de-donde-salio-esto-se-ve.test.ts`, 18 casos.
+
+## REG-240 — una reescritura podía llevarse una cifra por delante (v1122)
+
+**El hueco.** El editor por chat ya existía y **ya estaba conectado**: el médico
+escribe «la dosis es 500 mg» o «haz esto más conciso» y el modelo devuelve la
+nota reescrita. Lo que no existía es nada que comprobara **qué se llevó por
+delante**.
+
+Pedirle «más conciso» a un modelo, sobre un plan de tratamiento, puede hacer que
+desaparezca «cada 8 horas» o que «400 mg» quede en «400». **El texto sigue
+leyéndose bien** — ésa es exactamente la trampa. Familia `sin_medir`: no faltaba
+el producto, faltaba el instrumento.
+
+**Por qué no es paranoia.** Está medido: sobre 62 811 pares borrador→nota final
+en la Universidad de California (AMIA 2026), los médicos **eliminaron 216 199
+oraciones** y reemplazaron 52 542. Un modelo que reescribe texto clínico cambia
+mucho más de lo que se le pidió.
+
+**La regla, y hubo que afinarla.** Toda cifra con unidad sobrevive salvo que la
+INSTRUCCIÓN la autorice. La primera versión sólo dejaba pasar la cifra literal —
+y con «la dosis es 500 mg» denunciaba que 400 mg desapareciera, **que es justo
+lo que el médico acababa de pedir**. Corregir una dosis es sustituirla.
+
+Afinado: se autoriza **por unidad**. Nombrar un `mg` autoriza los `mg`; no
+autoriza tocar las `horas` ni los `días`. Y «hazlo más conciso» no nombra
+ninguna unidad, así que no autoriza nada.
+
+**Lo que no hace.** No repara el texto. No vuelve a meter la cifra caída — eso
+sería reescribir una nota clínica por cuenta propia. Dice qué se perdió, con las
+cifras literales («ya no aparecen: 24horas, 14dias»), en el mismo chat donde él
+pidió el cambio, y deja que decida: aceptar, deshacer o reformular.
+
+**Guardián.** `src/__tests__/la-reescritura-no-pierde-cifras.test.ts`, 17 casos.
+
+## REG-241 — el tablero del loop mentía sobre la versión, tres veces (v1122)
+
+**Los hechos.** `agent-state/MASTER_STATE.json` es la memoria del programa: de
+ahí arranca la siguiente sesión.
+
+- Dijo v1030 con producción en v1079. Se puso al día.
+- Dijo v1084 con producción en v1096. Se puso al día.
+- Dijo v1096 con producción en **v1121**.
+
+**Lo peor no es el desfase.** Es que el propio archivo ya tenía escrito el
+diagnóstico correcto después de la segunda vez:
+
+> «La causa no es descuido: es que actualizarlo depende de que yo me acuerde.
+> Mientras no lo derive un script, va a volver a pasar.»
+
+Escribir el diagnóstico correcto y no actuar sobre él es peor que no haberlo
+escrito: deja constancia de que se sabía.
+
+**Por qué importa.** El charter V7 exige que el programa sea reanudable, y el
+médico dueño lo pidió con esas palabras: «si se acaban los tokens guarda el
+avance y cuando te ponga 1 sigue donde te quedaste». Un tablero que dice v1096
+cuando hay v1121 hace que la siguiente sesión rehaga trabajo hecho — o lo dé por
+pendiente y lo pise.
+
+**El arreglo.** `scripts/agent-state/actualizar.mjs` **deriva** del repositorio
+la versión (`public/version.txt`), la última REG (el ledger), el conteo de
+pruebas (el mismo regex que el sello clínico, para que no haya dos cifras de lo
+mismo) y la rama. Lo que es criterio —iteración en curso, bloqueos, decisiones
+del dueño— sigue escribiéndose a mano: eso no sale de un `grep`.
+
+**Guardián.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` falla si el
+tablero se desfasa, y el script tiene modo `--verificar` para una compuerta.
+
+**Y un defecto propio, cazado al escribir el guardián.** El primer regex de
+conteo era `^## REG-(\d+)`: sólo veía el primer número de la línea. Existe una
+cabecera combinada —`## REG-179 / REG-180`, porque las dos salieron del mismo
+recuadro naranja—, así que el script informó de **88 REG cuando eran 89** y
+denunció un REG-180 «clasificado pero inexistente» que sí existía.
+
+Se arregló leyendo todos los `REG-\d+` del encabezado, y se añadió la
+comprobación en el sentido contrario —que ningún número clasificado sea humo—,
+que es la que no existía y habría cazado esto sola.
+
+**Familia NUEVA: `depende_de_recordar`.** Ninguna de las trece anteriores lo
+describía. El dato correcto existe en el repositorio y un segundo sitio lo
+repite a mano; el segundo se desfasa siempre, y como tiene forma de registro
+oficial se le cree más que a la fuente. **La reparación nunca es volver a
+copiarlo bien: es derivarlo, y poner una compuerta que falle cuando se separen.**

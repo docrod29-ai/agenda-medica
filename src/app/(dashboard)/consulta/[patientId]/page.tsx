@@ -50,6 +50,7 @@ import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
+import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
 /**
@@ -3596,6 +3597,14 @@ export default function ConsultaActivaPage() {
     setInstruccionCorr('')
     setCorrigiendo(true)
     setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
+    /**
+     * ── UNA REESCRITURA NO PIERDE UNA CIFRA (REG-240) ─────────────────────
+     *
+     * Se guarda el texto ANTES para poder compararlo con el después. No hay
+     * otra forma: cuando el modelo devuelve, lo que había ya se perdió.
+     */
+    const cifrasAntes = [resumen, ...secciones.map(x => x.value),
+      ...medicamentos.map(m => `${m.nombre} ${m.dosis} ${m.frecuencia} ${m.duracion ?? ''}`)].join(' ')
     try {
       const nota = {
         resumenEjecutivo: resumen,
@@ -3627,7 +3636,31 @@ export default function ConsultaActivaPage() {
         )
         setSignos(prev => ({ ...prev, ...soloPresentes }))
       }
+      /**
+       * ── LO QUE SE LLEVÓ POR DELANTE (REG-240) ──────────────────────────
+       *
+       * Un modelo al que se le pide «más conciso» acorta, y acortar sobre un
+       * plan puede llevarse «cada 8 horas» o dejar «400 mg» en «400». El texto
+       * sigue leyéndose bien — ésa es la trampa.
+       *
+       * La instrucción es la llave: una cifra que el médico nombró está
+       * autorizada a entrar o salir. Lo demás, no.
+       *
+       * No se repara: se DICE. Volver a meter la cifra caída sería reescribir
+       * una nota clínica por cuenta propia.
+       */
+      const cifrasDespues = [
+        typeof data.resumenEjecutivo === 'string' ? data.resumenEjecutivo : resumen,
+        ...(data.secciones && typeof data.secciones === 'object'
+          ? Object.values(data.secciones as Record<string, unknown>).map(String) : []),
+        ...(Array.isArray(data.medicamentos)
+          ? (data.medicamentos as Medicamento[]).map(m => `${m.nombre} ${m.dosis} ${m.frecuencia} ${m.duracion ?? ''}`)
+          : []),
+      ].join(' ')
+      const aviso = loQueSeLlevoPorDelante(queCambioEnLasCifras(cifrasAntes, cifrasDespues, instr))
+
       setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
+      if (aviso) setChatCorr(c => [...c, { rol: 'ia', texto: `⚠ ${aviso}` }])
     } catch {
       setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)
     } finally { setCorrigiendo(false) }

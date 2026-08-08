@@ -2386,3 +2386,14 @@ Cada frase de la nota, junto al trozo de dictado que la sostiene. El motor
 (`rastrearNota`, con corpus oro) existía y la pantalla sólo usaba su mitad
 negativa. Es el mecanismo que en el mercado sólo tiene Abridge — y que Nabla no
 puede tener porque borra el audio.
+
+## v1122 — la reescritura no pierde cifras + el tablero se deriva (REG-240, REG-241)
+
+**REG-240**: el editor por chat podía llevarse «cada 8 horas» al hacer la nota
+«más concisa» y el texto seguía leyéndose bien. Ahora se compara antes/después y
+se dice qué cifra se cayó. Se autoriza por UNIDAD: nombrar un `mg` autoriza los
+`mg`, no las horas.
+
+**REG-241**: `MASTER_STATE.json` mintió sobre la versión tres veces. Ahora se
+deriva del repositorio y una prueba falla si se desfasa. Familia nueva:
+`depende_de_recordar`.

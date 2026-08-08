@@ -65,7 +65,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240],
   },
   {
     clave: 'hueco_como_dato',
@@ -136,6 +136,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'nada roto: lo decidió el médico responsable. Se cuentan aparte para no ' +
       'inflar la cuenta de defectos con decisiones.',
     regs: [174, 175],
+  },
+  {
+    /**
+     * Familia NUEVA, abierta el 8-ago-2026 con REG-241.
+     *
+     * Se abre porque ninguna de las trece anteriores la describía. No es que el
+     * sistema mienta sobre la causa (`mensaje_miente`) ni que falte el
+     * instrumento (`sin_medir`): el dato correcto EXISTE en el repositorio y el
+     * registro que lo copia se queda atrás porque copiarlo depende de que
+     * alguien se acuerde.
+     */
+    clave: 'depende_de_recordar',
+    nombre: 'Depende de que alguien se acuerde',
+    patron:
+      'Hay un dato que ya vive en el repositorio y un segundo sitio que lo ' +
+      'repite a mano. El segundo se desfasa —siempre—, y como tiene forma de ' +
+      'registro oficial se le cree más que a la fuente. La reparación nunca es ' +
+      'volver a copiarlo bien: es DERIVARLO, y poner una compuerta que falle ' +
+      'cuando se separen.',
+    regs: [241],
   },
   {
     clave: 'falta_un_eje',
