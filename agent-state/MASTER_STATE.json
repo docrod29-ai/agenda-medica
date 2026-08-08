@@ -1,7 +1,7 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "actualizado": "2026-08-07",
+  "actualizado": "2026-08-08",
   "modo": "autonomo-sin-despliegue",
   "autorizaciones": {
     "abrirPR": true,
@@ -11,30 +11,31 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-194 (cerrada) — v1076, sobre agent/safety/SAFE-003",
+  "iteracionActual": "SAFE-004 / REG-195 (cerrada) — C2/C3, el último punto abierto del plan de la auditoría de nueve dimensiones",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1075",
+  "ultimaVersionEnRama": "nexusmed-v1077",
   "trabajoLocalSinSubir": [],
   "notaSobreEsteArchivo": "Estaba congelado en v1030 mientras el ledger iba por REG-191/v1073: VOICE-004 y SAFE-001 figuraban abiertos y llevaban versiones reparados. Se reconciliaron contra el repositorio en esta iteración. Si vuelve a desfasarse, la fuente de verdad es docs/audit/regression-ledger.md, no este archivo.",
   "compuertas": {
-    "vitest": "6970 en verde, la suite entera (incluido ops-timeout, que esta vez sí pudo agotar el tiempo)",
+    "vitest": "6996 en verde. Falla sólo ops-timeout-y-punto-ciego, comprobado que falla IGUAL en el árbol limpio: necesita una IP que trague el paquete y este entorno la rechaza rápido. Ajeno al cambio; en CI pasa.",
     "tsc": "limpio",
     "lintTrinquete": "96, igual que el techo",
     "build": "verde con los placeholders sintéticos de CI"
   },
-  "leccionDeEstaIteracion": "La iteración empezó desde `main` y llegó a un repositorio distinto del que dejó la anterior: REG-192 y v1074 ya estaban tomados, y no por una rama sino por SIETE PRs abiertos a la vez, todos con el mismo número y la misma versión. Lo correcto fue tirar mi rama y rehacer el trabajo encima de origin/agent/safety/SAFE-003. Y hacer caso de la lección anterior: NO ensanché NIEGA_EN_LINEA — le cambié el alcance. El vocabulario de negación de la NOTA queda en C-6 para el Dr., aunque lo tenga reproducido, porque ampliarlo por mi cuenta es exactamente lo que costó el revert de v1074.",
+  "leccionDeEstaIteracion": "Otra vez desde `main`: REG-192 y v1074 estaban tomados y la rama agent/safety/SAFE-003 ya iba por REG-194/v1076. Tiré mi rama y rehíce el trabajo encima de origin. Y al leer lo ya hecho encontré que mi reparación original —unificar el vocabulario de negación de parser-clinico.ts con el de negaciones.ts— contradecía la decisión C-6 que el dueño acababa de tomar el 7-ago: separar los criterios, no compartirlos. Se rehízo respetándola: se ensancha SÓLO el vocabulario del parser de respaldo, que era el que estaba corto y que ninguna iteración anterior había tocado. Tres consumidores, tres preguntas, tres vocabularios.",
   "decisionesNuevasParaElDueno": [
     "C-6 separar los dos criterios de negación (nota vs dictado)",
     "C-7 compuestos del vocabulario (miocardiopatía, esteatohepatitis)"
   ],
-  "alertaParaElDueno": "HAY 12 PRs ABIERTOS SIN FUSIONAR, y 9 de ellos vienen de firings distintos de esta misma rutina: PR #230 a #241, todos ramificados del mismo main (6d35d95) y casi todos titulados «REG-192 … (v1074)». El número de regresión y la versión del service worker dejaron de ser únicos, y varios tocan el mismo archivo. Se necesita decidir el orden de fusión y renumerar antes de que se acumulen más.",
-  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1076",
+  "alertaParaElDueno": "PRs ABIERTOS SIN FUSIONAR de firings distintos de esta misma rutina (#230 en adelante), casi todos titulados «REG-192 … (v1074)»: el número de regresión y la versión del service worker dejaron de ser únicos, que es justo lo que REG-191 acababa de reparar para IEC 62304. Sube como T-1. Esta iteración NO abrió un PR nuevo: empujó sobre la rama que ya existía, para no sumar otro duplicado.",
+  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1077",
   "leccionesVivas": [
     "Antes de tocar un regex, buscar TODOS sus llamadores (lección de REG-192).",
-    "Antes de abrir rama, mirar si origin ya tiene una con ese nombre: el 7-ago se reimplementó REG-192 entero en paralelo contra una rama que ya lo tenía resuelto y mejor. El trabajo duplicado se descartó, no se empujó."
+    "Antes de abrir rama, mirar si origin ya tiene una con ese nombre: el 7-ago se reimplementó REG-192 entero en paralelo contra una rama que ya lo tenía resuelto y mejor. El trabajo duplicado se descartó, no se empujó.",
+    "Antes de reparar, leer las decisiones YA tomadas por el dueño: el 8-ago la reparación obvia (un solo vocabulario de negación) era exactamente lo que C-6 había decidido no hacer."
   ]
 }

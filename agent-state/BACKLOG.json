@@ -271,6 +271,27 @@
       "score": 40,
       "estado": "pendiente — confirmado con el motor real; pide medición sobre corpus antes de tocar",
       "reversible": true
+    },
+    {
+      "id": "VOC-001",
+      "titulo": "«diabético» / «hipertenso» no están en el diccionario de comorbilidades",
+      "hallazgo": "«No es diabético» no se detecta como término: COMORBILIDADES_DIC sólo tiene el sustantivo. Descubierto midiendo REG-195; es hueco de vocabulario, no de negación.",
+      "porQueImporta": "El adjetivo es como se dicta de verdad. Un término que no está no se vigila — ni en positivo ni en negado.",
+      "archivo": "src/lib/expediente/parser-clinico.ts:135",
+      "seguridad": 3,
+      "integridad": 1,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 1,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 1,
+      "irreversibilidad": 0,
+      "complejidad": 1,
+      "dependenciaExterna": 0,
+      "score": 48,
+      "estado": "pendiente — emparenta con la decisión C-7 del dueño",
+      "reversible": true
     }
   ],
   "actualizado": "2026-08-07"

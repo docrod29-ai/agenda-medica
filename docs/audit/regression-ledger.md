@@ -1891,3 +1891,93 @@ sus casos nuevos.
 
 **Golden** — `src/__tests__/la-negacion-se-oye-como-se-habla.test.ts`, FALLO 4
 (18 → 22 casos estáticos).
+
+---
+
+## REG-195 — «no padece diabetes» era un antecedente positivo (v1077)
+
+**Encontrado** — 8-ago-2026. La auditoría de nueve dimensiones del 6-ago lo dejó
+apuntado en una línea (hallazgo C2/C3): *«"No padece diabetes" sale como
+antecedente positivo; faltan negadores del habla real»*. Es el último punto del
+plan de aquella auditoría que quedaba sin cerrar.
+
+**Dónde** — `src/lib/expediente/parser-clinico.ts:206`. **No** es el módulo de
+REG-193/194: aquéllos son el lado del dictado (`negaciones.ts`). Éste es el motor
+que **arma la nota cuando la IA falla** — el fallback de
+`/api/expediente/procesar` cuando el proveedor devuelve 529.
+
+**Cómo se reprodujo** — Con `extraerComorbilidades()`, el motor real, antes de
+tocar nada. Resultó más ancho que la línea de la auditoría:
+
+| Se dictó | Salía |
+|---|---|
+| «No padece diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «No padezco diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «No tengo diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «No he tenido diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «Nunca he tenido diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «Jamás ha tenido diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «Tampoco tiene diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «No sufre de diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «No cuenta con diabetes.» | Antecedentes: **Diabetes mellitus tipo 2** |
+| «No fuma.» | Antecedentes: **Tabaquismo** |
+| «No es fumador.» | Antecedentes: **Tabaquismo** |
+
+**No es que no detectara la negación: es que afirmaba la enfermedad.**
+`extraerComorbilidades` tiene dos casillas, y lo que no cae en `negadas` cae en
+`positivas`.
+
+**Por qué importa para un paciente** — Un antecedente crónico inventado cambia el
+riesgo quirúrgico, cambia la elección de fármacos y **se arrastra**: los
+antecedentes se copian a las notas siguientes y cada copia lo vuelve más
+creíble. Y `tabaquismoActivo` no se queda en la prosa — entra en **STOP-BANG y en
+Caprini**, que son escalas preoperatorias: el paciente que dijo que no fuma
+puntuaba como fumador.
+
+**Dos defectos más, encontrados al reproducir:**
+
+1. **El error contrario** — «Niega tabaquismo, **padece** diabetes mellitus» daba
+   la diabetes por **negada**: `padece` no estaba entre los afirmadores, así que
+   el `niega` del principio alcanzaba al término de la segunda cláusula. Una
+   enfermedad real que desaparece de la nota es tan caro como una inventada.
+2. **«No fuma»** — cuando el término clínico **es** el verbo (el patrón de
+   tabaquismo es `tabaquismo|fuma(dor)?|fumar`), entre el negador y el término no
+   queda nada que reconocer: la ventana hacia atrás terminaba en «no ». Se añade
+   la partícula pegada, **sin admitir la coma** — «hipertensión no, diabetes sí»
+   no niega la diabetes.
+
+**Reparación** — El vocabulario de negadores de este parser pasa a cubrir las tres
+personas del habla real (el médico del paciente, el paciente de sí mismo, el
+médico en primera persona) y los tiempos compuestos; `padece`, `sufre` y `fuma`
+entran como afirmadores; `tampoco` y `jamás` entran en la guarda que impide que
+un afirmador embebido en un negador cierre la negación.
+
+**NO se comparte con `negaciones.ts` — y es a propósito.** El dueño decidió lo
+contrario el 7-ago (**C-6**): aquel módulo separó `DISCULPA_EN_LA_NOTA` de
+`NIEGA_EN_EL_DICTADO` justo para que ensanchar un vocabulario no pudiera tocar el
+otro por accidente, después de que el compartido fabricara una negación que el
+paciente nunca dijo. Aquí la pregunta es una tercera —«¿el texto crudo niega este
+término?»— y se ensancha **sólo** el vocabulario que estaba corto. Unificarlos
+sería reabrir una decisión ya tomada.
+
+**No es un comodín** — No se acepta «no» + cualquier verbo. Los participios van
+uno por uno porque «no ha mejorado su diabetes» **no** la niega: la afirma.
+
+**Ninguna cifra clínica, ningún criterio nuevo** — Esto es gramática y
+vocabulario del español; no decide si el paciente tiene la enfermedad.
+
+**Qué NO hace** — «No es diabético» sigue sin detectarse **como término**:
+`diabético` no está en `COMORBILIDADES_DIC`. Es hueco del diccionario de
+enfermedades, no de la negación; queda en el backlog como **VOC-001** y emparenta
+con la decisión **C-7** (los compuestos del vocabulario). Tampoco toca el lado del
+dictado ni la disculpa en la nota: son otras dos preguntas, cada una con su
+golden.
+
+**Qué queda para el médico** — Si `diabético`, `hipertenso` y demás adjetivos
+deben entrar al diccionario de comorbilidades (C-7 / VOC-001).
+
+**Comprobado que puede ponerse rojo** — Con el vocabulario anterior restaurado,
+**18 de los 26 casos** del golden fallan.
+
+**Golden** — `src/__tests__/la-nota-de-respaldo-lee-la-negacion.test.ts`
+(12 casos estáticos, 26 ejecutados).
