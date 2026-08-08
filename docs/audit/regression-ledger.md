@@ -1553,3 +1553,80 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-264 — lo que el paciente NIEGA puntuaba en STOP-BANG (v1146)
+
+**Encontrado** — 8-ago-2026, repasando los hallazgos crudos del barrido de
+auditoría (`docs/audit/hallazgos-crudos-workflow.json`) contra el código de hoy.
+El reporte señalaba una sola frase —«niega presión alta»—; al pasarle al motor
+real las cuatro preguntas del interrogatorio, negadas de las formas en que se
+dictan, **las cuatro salieron en `true`**.
+
+**Cómo se reprodujo** — `extraerStopBang()` directo, sin mocks, con las frases
+tal cual salen del dictado. Antes del arreglo:
+
+```
+"niega presión alta"          → { pressure: true }
+"sin hipertensión arterial"   → { pressure: true }
+"no tiene hipertensión"       → { pressure: true }
+"descarta HTA"                → { pressure: true }
+"niega somnolencia diurna"    → { tiredness: true }
+"la esposa niega apneas obs." → { observed: true }
+"no ronca fuerte"             → { snoring: true }
+```
+
+**El defecto** — Los cuatro ítems que se preguntan de viva voz —ronquido,
+somnolencia diurna, apneas presenciadas e hipertensión— se marcaban **con sólo
+mencionar el término**. El único guardián era el literal
+`!/niega (hipertension|hta)/`, que cubría una forma de negar y dejaba pasar las
+otras cuatro: «niega **presión alta**», «**sin** hipertensión», «**no tiene**
+hipertensión», «**descarta** HTA». Los otros tres ítems no tenían guardián de
+ninguna clase.
+
+Y dos funciones más abajo, **en este mismo archivo**, Caprini ya llamaba a
+`estaNegado()` por exactamente este motivo. STOP-BANG se había quedado fuera: no
+faltaba el motor de negación, faltaba usarlo.
+
+**Por qué importa para un paciente** — Un varón de 58 años que **niega las cuatro
+preguntas** salía con **5/8 — riesgo Alto**, que imprime «considerar
+polisomnografía y valoración por neumología/medicina del sueño, precauciones de
+vía aérea, minimizar opioides y sedantes, oximetría continua posoperatoria». Con
+los cuatro puntos fabricados retirados puntúa **1/8 — Bajo**.
+
+No es un aviso de más: es un dato **inventado** que alimenta una escala
+determinista y sale impreso como conducta perioperatoria. Y la casilla llega
+**palomeada** a la pantalla del preoperatorio: al médico le toca notar que sobra,
+que es mucho más difícil que notar que falta.
+
+**Reparación** — `extraerStopBang()` pasa al mismo motor de negación que el resto
+del archivo: `marcarSegunNegacion()` sobre `estaNegado()`. Una sola fuente de
+verdad para «lo negado no se documenta como presente», en vez de un guardián
+literal por ítem — que es como se llegó aquí.
+
+**El ronquido lleva un negador propio** — Es el único de los cuatro cuyo término
+es un **verbo**. `NEGADORES` cubre «no tiene / no presenta / no refiere» porque
+los demás términos clínicos son sustantivos; «no ronca fuerte» es como se dicta y
+casaba con el patrón de ronquido fuerte. Se resuelve en el módulo que tiene la
+semántica del ítem, no ampliando `NEGADORES` para todo el expediente.
+
+**Lo negado se escribe `false`, no se deja vacío** — Un antecedente que el
+paciente negó es un dato, igual que ya hacía el ronquido. **No enciende la escala
+en la nota**: `capturado()` en `PreopAssessment` descarta los `false`, así que una
+valoración donde el paciente lo negó todo sigue sin imprimir el renglón de
+STOP-BANG. Si el médico quiere dejar constancia del negativo, palomea; no se
+decide por él.
+
+**Ningún umbral nuevo** — Los cortes de la escala (≤2 Bajo, 3-4 Intermedio, ≥5
+Alto) son los de `calcularStopBang`, sin tocar.
+
+**Qué NO cubre** — No amplía `NEGADORES`: siguen sin reconocerse «lo dudo», «para
+nada», «que yo sepa no». No toca IMC, cuello, sexo ni edad, que salen de una
+cifra y no de una respuesta negable. **Queda para el médico** la casilla: el
+extractor prellena, la valoración la firma él.
+
+**Comprobado que puede ponerse rojo** — Revertido `parser-clinico.ts`, el golden
+falla en **13 de sus 21 casos**.
+
+**Golden** — `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` (21 casos).

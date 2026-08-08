@@ -333,24 +333,48 @@ export function extraerAlergias(texto: string): string[] {
 // Escalas preoperatorias (STOP-BANG, etc.)
 // ─────────────────────────────────────────────────────────────────
 
+/** Ronquido que puntúa en STOP-BANG: el ítem exige que sea FUERTE. */
+const RONQUIDO_FUERTE = /\bronc(?:a|ar)\s+(?:fuerte|muy\s+fuerte|tras\s+puertas\s+cerradas)\b/i
+
+/**
+ * NEGACIÓN EN STOP-BANG — los cuatro ítems que se preguntan de viva voz.
+ *
+ * Los cuatro se marcaban con SOLO MENCIONAR el término, mientras Caprini —dos
+ * funciones más abajo, en este mismo archivo— ya llamaba a `estaNegado()` por
+ * este mismo motivo. El único guardián que había aquí era el literal
+ * `!/niega (hipertension|hta)/`, que dejaba pasar «niega **presión alta**»,
+ * «**sin** hipertensión», «**no tiene** hipertensión» y «**descarta** HTA» — la
+ * misma idea escrita de otras cuatro maneras.
+ *
+ * Medido sobre el motor real: un paciente que NIEGA las cuatro preguntas se
+ * llevaba **cuatro puntos fabricados de los ocho** de la escala. Con «varón de
+ * 58 años» delante son **5/8 — riesgo Alto**, que imprime «considerar
+ * polisomnografía y valoración por neumología, minimizar opioides y sedantes».
+ * Y la casilla ya viene palomeada en la pantalla: al médico le toca notar que
+ * sobra, que es mucho más difícil que notar que falta.
+ *
+ * Se pasa al mismo motor de negación que el resto del archivo — una sola fuente
+ * de verdad para «lo negado no se documenta como presente».
+ */
 export function extraerStopBang(textoOriginal: string): Record<string, boolean> {
   const texto = normalizar(textoOriginal)
   const flags: Record<string, boolean> = {}
+  /**
+   * El ronquido es el único de los cuatro cuyo término ES un verbo, y `NEGADORES`
+   * sólo cubre «no tiene / no presenta / no refiere» porque los demás términos
+   * clínicos son sustantivos. «No ronca fuerte» es como se dicta, y sin esto
+   * casaba con el patrón de ronquido fuerte y puntuaba.
+   */
+  const NIEGA_RONCAR = /\b(?:no|niega)\s+ronc(?:a|ar)\b/i
   // Ronquido FUERTE — exige el adjetivo o expresión equivalente
-  if (/\bronc(?:a|ar)\s+(?:fuerte|muy\s+fuerte|tras\s+puertas\s+cerradas)\b/i.test(texto)) {
-    flags.snoring = true
-  } else if (/\bronc(?:a|ar)\b.*\b(?:poco|bajo|leve)\b/i.test(texto) || /\bniega\s+roncar\b/i.test(texto)) {
+  if (RONQUIDO_FUERTE.test(texto) && !NIEGA_RONCAR.test(texto)) {
+    marcarSegunNegacion(texto, RONQUIDO_FUERTE, flags, 'snoring')
+  } else if (/\bronc(?:a|ar)\b.*\b(?:poco|bajo|leve)\b/i.test(texto) || NIEGA_RONCAR.test(texto)) {
     flags.snoring = false
   }
-  if (/\b(?:somnolencia\s+diurna|cansancio\s+diurno|fatiga\s+diurna|se\s+queda\s+dormido\s+(?:de\s+d[ií]a|en\s+el\s+d[ií]a))\b/i.test(texto)) {
-    flags.tiredness = true
-  }
-  if (/\b(?:observad[ao]\s+apnea|apneas?\s+observad[ao]s?|deja\s+de\s+respirar)\b/i.test(texto)) {
-    flags.observed = true
-  }
-  if (/\b(?:hipertension|hta|presi[oó]n\s+alta)\b/i.test(texto) && !/\bniega\s+(?:hipertension|hta)\b/i.test(texto)) {
-    flags.pressure = true
-  }
+  marcarSegunNegacion(texto, /\b(?:somnolencia\s+diurna|cansancio\s+diurno|fatiga\s+diurna|se\s+queda\s+dormido\s+(?:de\s+d[ií]a|en\s+el\s+d[ií]a))\b/i, flags, 'tiredness')
+  marcarSegunNegacion(texto, /\b(?:observad[ao]\s+apnea|apneas?\s+observad[ao]s?|deja\s+de\s+respirar)\b/i, flags, 'observed')
+  marcarSegunNegacion(texto, /\b(?:hipertension|hta|presi[oó]n\s+alta)\b/i, flags, 'pressure')
   if (/\bimc\s*(?:de\s*)?(\d{2}(?:\.\d)?)/i.test(texto)) {
     const imc = Number(RegExp.$1)
     if (imc > 35) flags.bmi35 = true
@@ -362,6 +386,21 @@ export function extraerStopBang(textoOriginal: string): Record<string, boolean> 
   if (/\b(?:hombre|masculino|var[oó]n)\b/i.test(texto)) flags.genderMale = true
   if (/\b(?:mujer|femenin[ao])\b/i.test(texto)) flags.genderMale = false
   return flags
+}
+
+/**
+ * Marca el flag a `true` si el término aparece y a `false` si aparece NEGADO.
+ * Si no aparece, no toca nada: la casilla se queda sin contestar.
+ *
+ * Devuelve el negativo explícito —y no `undefined`— porque un antecedente que el
+ * médico negó es un dato, igual que ya hacía el ronquido. No enciende la escala
+ * en la nota: el `capturado()` de `PreopAssessment` descarta los `false`, así que
+ * una valoración donde el paciente lo negó todo sigue sin imprimir STOP-BANG.
+ */
+function marcarSegunNegacion(texto: string, re: RegExp, flags: Record<string, boolean>, clave: string): void {
+  const m = texto.match(re)
+  if (!m || m.index === undefined) return
+  flags[clave] = !estaNegado(texto, m.index)
 }
 
 /** Marca el flag solo si el término aparece Y no viene negado. */

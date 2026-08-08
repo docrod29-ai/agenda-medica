@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1146 — REG-264: lo que el paciente NIEGA puntuaba en STOP-BANG
+
+Los cuatro ítems que se preguntan de viva voz —ronquido, somnolencia diurna,
+apneas presenciadas e hipertensión— se marcaban con sólo mencionar el término.
+
+El único guardián era el literal `!/niega (hipertension|hta)/`: cubría una forma
+de negar y dejaba pasar «sin hipertensión», «no tiene hipertensión», «descarta
+HTA» y «niega presión alta». Los otros tres ítems no tenían ninguno.
+
+Un varón de 58 años que niega las cuatro preguntas salía 5/8 — riesgo Alto, con
+polisomnografía y neumología impresas. Ahora puntúa 1/8.
+
+El motor de negación ya existía y Caprini ya lo usaba, dos funciones más abajo en
+el mismo archivo. No faltaba el motor: faltaba usarlo.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

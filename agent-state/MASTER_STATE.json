@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "SAFE-006 (cerrada) — REG-264, v1146",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -19,7 +19,12 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "trabajoLocalSinSubir": [],
+  "ultimaVersionPreparada": "nexusmed-v1146 (en rama, sin desplegar: no hay credenciales aqui)",
+  "notasDelEntorno": [
+    "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en este contenedor y NO por el cambio: comprobado sobre el arbol limpio. El caso espera que una conexion a 10.255.255.1 agote el tiempo, y aqui el proxy de salida la rechaza de inmediato. En CI pasa.",
+    "npm run build necesita los placeholders sinteticos de Firebase del ci.yml; sin ellos falla al recolectar /dr/[clinicId]. Con ellos compila entero.",
+    "El numero de REG y la version del sw NO se tomaron de main: se midieron sobre TODAS las ramas vivas con scripts/estado-de-las-ramas.mjs (de la rama agent/ops/OPS-003-arranque-del-bucle, PR #251, sin fusionar). main iba por REG-191/v1073 y alguna rama ya gastaba REG-263/v1145: tomar el siguiente de main habria repetido numero, que es el defecto T-1. Libre de verdad: REG-264 / v1146."
+  ],
+  "comprobadoAntesDeElegir": "Ninguna de las 7 ramas que tocan parser-clinico.ts habia reparado extraerStopBang: comprobado leyendo la funcion en cada una, no por confianza."
 }
