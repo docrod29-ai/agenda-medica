@@ -2418,3 +2418,9 @@ infecciones simultáneas, inferir acierta por suerte.
 Con receta Y estudios, firmar llevaba a la receta y la orden no se imprimía
 nunca. Ahora, cuando queda más de una cosa, se enseña qué falta y qué pasa si no
 se hace. Con un solo destino se sigue yendo directo.
+
+## v1126 — la hoja del paciente no sale en un internado
+
+La nota de hospital y la de UCI se escriben en la MISMA pantalla de consulta
+(`?internamiento=…`), así que sin guardia la hoja de «cómo tomarlo» aparecía
+también sobre fármacos intravenosos de un paciente intubado.

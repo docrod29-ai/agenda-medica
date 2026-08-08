@@ -16,21 +16,16 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1125",
+  "ultimaVersionEnProduccion": "nexusmed-v1126",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
+    "M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/MASTER_STATE.json",
     " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
+    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts",
-    "?? src/components/ComoCerrarLaConsulta.tsx",
-    "?? src/lib/expediente/que-falta-para-cerrar.ts"
+    " M src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -69,7 +64,7 @@
     "regsEnElLedger": 92,
     "ultimaREG": "REG-244",
     "archivosDePrueba": 526,
-    "casosDePrueba": 6994,
+    "casosDePrueba": 6995,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

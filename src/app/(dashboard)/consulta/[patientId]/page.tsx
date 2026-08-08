@@ -5094,11 +5094,20 @@ export default function ConsultaActivaPage() {
         existía. Se COMPONE de lo que él ya revisó; no lo redacta un modelo, que
         es donde se colaría un consejo que nadie firmó.
       */}
-      <HojaParaElPaciente
-        medicamentos={medicamentos}
-        estudios={estudiosOrden}
-        proximaCita={undefined}
-      />
+      {/*
+        NO en un paciente INTERNADO: no se lleva nada a casa hoy, y una hoja de
+        «cómo tomarlo» sobre fármacos intravenosos de UCI confunde en vez de
+        ayudar. La nota de hospital y la de UCI se escriben en esta misma
+        pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
+        aparecería ahí también.
+      */}
+      {!esNotaHospital && (
+        <HojaParaElPaciente
+          medicamentos={medicamentos}
+          estudios={estudiosOrden}
+          proximaCita={undefined}
+        />
+      )}
 
       {/*
         ¿DE DÓNDE SALIÓ ESTO? — cada frase de la nota junto al trozo de dictado

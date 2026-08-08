@@ -194,6 +194,16 @@ describe('está CONECTADO', () => {
     expect(page).toMatch(/estudios=\{estudiosOrden\}/)
   })
 
+  it('NO aparece en un paciente internado', () => {
+    /**
+     * La nota de hospital y la de UCI se escriben en esta MISMA pantalla
+     * (`/consulta/[id]?internamiento=…`). Sin este guardia, a un paciente
+     * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
+     * intravenosos.
+     */
+    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+  })
+
   it('los botones no salen impresos en la hoja del paciente', () => {
     const comp = readFileSync(join(process.cwd(), 'src/components/HojaParaElPaciente.tsx'), 'utf8')
     expect(comp).toMatch(/className="no-print"/)
