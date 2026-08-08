@@ -12,6 +12,7 @@
 |---|---|
 | **Rama** | `claude/nexus-patient-ux-v9` |
 | **SHA base de esta sesión** | `0abcba2` (`chore(deploy): v1146 — REG-264`) |
+| **SHA de cierre** | `639ca73` |
 | **Unidad cerrada** | **`PATIENT-UX-TRUTH-001`** (iteración 0 de V9) |
 | **Siguiente unidad** | ver «Qué hacer al reanudar» |
 

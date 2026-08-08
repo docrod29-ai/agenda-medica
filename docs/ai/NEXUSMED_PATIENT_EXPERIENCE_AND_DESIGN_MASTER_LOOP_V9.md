@@ -692,4 +692,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 
 | Fecha | Unidad | SHA | Qué quedó | REG |
 |---|---|---|---|---|
-| 2026-08-08 | **PATIENT-UX-TRUTH-001** | *(este commit)* | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
+| 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
