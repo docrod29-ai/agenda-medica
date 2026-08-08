@@ -2,78 +2,141 @@
 
 **Abierto**: 7-ago-2026 · **Estado**: en curso · **Versión al abrir**: v1106
 
-Loop finito y reanudable. **Una iteración por vez, cerrada y desplegada antes de
-empezar la siguiente.** Si se corta la sesión, se retoma leyendo este archivo:
-cada iteración dice qué la cierra y cómo se comprueba.
+---
+
+## EL OBJETIVO, CON SUS PALABRAS
+
+> «tiene que ser la mejor herramienta para el médico, **única en el mundo**»
+>
+> «objetivo: tener la mejor aplicación de este tipo en el mundo, **que sorprenda
+> al mejor programador y al mejor médico del mundo**»
+>
+> «que esté perfecto, que no tenga errores, que sea 100 % funcional, aplicable,
+> útil, **simple pero complejo**, tecnológico, mejor que todas las aplicaciones»
+>
+> «sobre todo quiero mejorar **el proceso de grabación, el procesamiento de la
+> nota y la nota final debe de ser perfecta**»
+
+Ese último renglón es el que ordena el loop: **grabación → procesamiento → nota
+final**. Todo lo demás es consecuencia.
 
 ---
 
-## De dónde sale
+## LO QUE PIDIÓ, TEXTUAL, Y DÓNDE SE ATIENDE
 
-De doce preguntas al médico dueño, contestadas el 7-ago-2026. No es una lista de
-ideas: **cada iteración existe porque una respuesta suya la exige**.
+Ninguna iteración existe porque se me ocurriera. Cada una viene de una frase suya
+o de una respuesta a las doce preguntas.
 
-| # | Lo que contestó | Qué obliga |
+| Lo que dijo | Iteración |
+|---|---|
+| «me paras en seco y me dices que recupere el audio» | **I-1** ✅ |
+| «que capte la grabación lo largo que sea y **no pare**» | **I-1** ✅ |
+| «no llenas los apartados como es» | **I-2** ✅ · **I-3** |
+| «no puedes entender en la grabación el motivo de consulta, el padecimiento actual, los antecedentes» | **I-3** |
+| «**el plan debe ser cuando el médico diga el plan**» | **I-3** |
+| «arreglar el flujo de grabación (**consulta, UCI y hospital**)» | **I-4** |
+| «la mejor nota médica: **de primera vez, de seguimiento, historia clínica, evolución clínica**» | **I-4** · **I-5** |
+| «nota como **internista, pediatra, ginecólogo, cirujano, intensivista, infectólogo** etcétera según sea el caso» | **I-5** |
+| «dejas espacios porque la inteligencia no entendió» · «**deja dudas**» | **I-6** |
+| «que sea más fácil, **con menos pasos**» · «que no tenga tantas maneras de confundirse» | **I-7** |
+| «no me gusta nada, deja dudas» (confianza en la nota) | **I-8** |
+| «necesito **mejor precisión, con el audio, mejor inteligencia artificial**» | **I-9** |
+| «**me estás confundiendo medicamentos**» / antibióticos | **I-10** ✅ |
+| «la receta es cuando ya te estén diciendo el plan» | **I-11** ✅ |
+| «investiga a **Abridge, Suki, Nabla** (y Huli), toma ideas pero mejóralas, sé más original, **algo nunca antes visto**» | **I-12** |
+| «utiliza **Google Chrome** y navega por toda la app para detectar conflictos, problemas, errores» | **I-13** |
+| «utiliza **todos los agentes y expertos**» | Ver *El panel* |
+
+### Y las doce respuestas
+
+| # | Contestó | Obliga |
 |---|---|---|
-| 1 | Corta **antes de 10 min**, **igual en iPhone que en computadora** | Descarta el navegador. Es aritmética → **I-1** |
-| 2 | Dicta **saltando de tema** | La nota no se puede armar por orden → **I-2, I-3** |
-| 3 | Los huecos: **que la IA los complete** | Pero como propuesta que él acepta → **I-6** |
-| 4 | Graba **conversación** en consulta, **dictado** en UCI y hospital | Tres modos distintos, un solo motor → **I-4** |
-| 5 | **Sí** a palabras clave, y que además adivine | Ancla determinista + LLM → **I-3** |
-| 6 | Al cortarse, **recupera pero con pasos** | La recuperación tiene que ser sola → **I-1** |
-| 7 | Nota **«como la escribe un internista»**: prosa que razona | → **I-5** |
-| 8 | Lo usarán médicos de **cualquier especialidad** | La nota se adapta a la rama → **I-5** |
-| 9 | Firma **con el paciente enfrente** | Cerrar todo en un gesto → **I-7** |
-| 10 | Receta en **papel, WhatsApp y PDF**, según el paciente | Los tres desde la misma pantalla → **I-7** |
-| 11 | Consentimiento **una vez por paciente** | Quitar un paso de cada consulta → **I-7** |
-| 12 | Confianza: **que un segundo modelo la revise** | → **I-8** |
+| 1 | Corta **antes de 10 min**, **igual en iPhone que en computadora** | Descarta el navegador: es aritmética → I-1 |
+| 2 | Dicta **saltando de tema** | La nota no se arma por orden → I-2, I-3 |
+| 3 | Huecos: **que la IA los complete** | Como propuesta que él acepta → I-6 |
+| 4 | **Conversación** en consulta; **dictado** en UCI y hospital | Tres modos → I-4 |
+| 5 | **Sí** a palabras clave, y que además adivine | Ancla + LLM → I-3 |
+| 6 | Al cortarse, **recupera pero con pasos** | Tiene que ser solo → I-1 |
+| 7 | Nota **«como la escribe un internista»**: prosa que razona | → I-5 |
+| 8 | Lo usarán médicos de **CUALQUIER especialidad** | Configurable, no fijo → I-5 |
+| 9 | Firma **con el paciente enfrente** | Cerrar en un gesto → I-7 |
+| 10 | Receta en **papel, WhatsApp y PDF**, según el paciente | Los tres desde una pantalla → I-7 |
+| 11 | Consentimiento **una vez por paciente** | Un paso menos → I-7 |
+| 12 | Confianza: **que un segundo modelo la revise** | → I-8 |
 
-Y dos respuestas que **cambian el alcance del producto**, no sólo del loop:
+### Dos respuestas que cambian el ALCANCE del producto
 
 - **«Médicos de CUALQUIER especialidad»** — deja de ser una app para él. Todo lo
-  que se codifique con su criterio personal tiene que volverse configurable.
+  que hoy está codificado con su criterio personal tiene que volverse
+  **configurable**.
 - **«El médico de esa especialidad, al usarla»** valida su propia rama. O sea:
-  las primeras notas de un pediatra saldrán imperfectas **a propósito**, y la
-  app tiene que dejarle corregirlas y aprender de eso.
+  las primeras notas de un pediatra saldrán imperfectas **a propósito**, y la app
+  tiene que dejarle corregirlas y **aprender de esas correcciones**.
 
 ---
 
-## Reglas del loop
+## EL PANEL — qué experto entra en cada iteración
 
-1. **Una iteración por vez.** Se cierra —desplegada y verificada— antes de la
-   siguiente. Nada de ramas paralelas.
-2. **Reproducir antes de reparar.** Ninguna iteración empieza sin un caso que
-   falle de verdad. Los cuatro defectos de hoy se encontraron así, no leyendo.
-3. **Nunca una cifra clínica inventada.** Ni dosis, ni umbral, ni percentil. Lo
+Pidió que se usen todos. Se usan **donde aportan**, no todos en todo.
+
+| Experto | Entra en |
+|---|---|
+| Ingeniero de software / sistemas | I-1, I-4, I-7 (caminos, estados, límites de infraestructura) |
+| Experto en programación | I-2, I-3 (motores deterministas y su conexión real) |
+| Experto en inteligencia artificial | I-3, I-5, I-6, I-8, I-9 (prompt, modelos, medición) |
+| Experto en apps médicas (Abridge, Suki, Nabla, Huli) | I-12, y revisión de I-7 |
+| Clínicos por especialidad | I-5 — **proponen**, no aprueban solos |
+| Equipo rojo | Cierre de cada iteración: intenta refutar el arreglo |
+| Seguridad del paciente | I-3, I-5, I-6 (todo lo que pueda afirmar algo falso) |
+
+---
+
+## LAS REGLAS DEL LOOP
+
+1. **No para hasta terminar.** Se sigue sin preguntar entre iteraciones. Sólo se
+   detiene ante algo que sólo él puede decidir, y se dice cuál es.
+2. **Una iteración por vez**, cerrada y desplegada antes de la siguiente.
+3. **Reproducir antes de reparar.** Ninguna empieza sin un caso que falle de
+   verdad. Los cinco defectos de hoy salieron así, no leyendo código.
+4. **Nunca una cifra clínica inventada.** Ni dosis, ni umbral, ni percentil. Lo
    que falte se marca `NEEDS_CLINICAL_REVIEW` y se sigue con otra cosa.
-4. **Cada iteración deja un guardián** que falla si el defecto vuelve, y una
+5. **Cada iteración deja un guardián** que falla si el defecto vuelve, y una
    entrada en el ledger con su causa raíz.
-5. **Lo que no se puede medir, no se declara arreglado.**
+6. **Lo que no se puede medir, no se declara arreglado.**
 
 ---
 
-## I-1 · Que la grabación no se corte — **CERRADA** (v1107)
+# LAS ITERACIONES
+
+## I-1 · Que la grabación no se corte — ✅ CERRADA (v1107)
+
+> «me paras en seco» · «que capte lo largo que sea y no pare»
 
 **Causa** — a los 7 min 30 s (3,6 MB a 64 kbps) el audio deja de caber en el
-cuerpo de la petición y cambia al camino «grande», que subía a Storage y pedía
-la URL con `getDownloadURL()`. La regla de Storage decía `allow read: if false`:
-fallaba en el primer segundo, y el error se etiquetaba «tiempo agotado».
+cuerpo de la petición y cambia al camino «grande»: subir a Storage y pedir la URL
+con `getDownloadURL()`. La regla decía `allow read: if false` → fallaba en el
+primer segundo, y el error se etiquetaba «tiempo agotado».
 
-Tres daños colaterales reparados con él: el motivo que mentía, el texto en vivo
-que se tiraba cuando era lo único que quedaba, y la recuperación que siempre
+Misma causa raíz que v245 en el otro bucket. Igual en iPhone que en computadora
+porque **es aritmética de bytes**.
+
+**Tres daños colaterales reparados con él**: el motivo que mentía; el texto en
+vivo que se tiraba cuando era lo único que quedaba; la recuperación que siempre
 tomaba el camino roto.
 
 **Cierra con** — REG-225 · `la-grabacion-larga-no-muere.test.ts` (11 casos).
-**Se comprueba** — grabando **más de ocho minutos** y viendo que la nota sale
-con voces separadas. Requiere `npx firebase deploy --only storage`.
+**Comprobación pendiente del Dr.** — grabar **más de ocho minutos** y ver que la
+nota sale con voces separadas.
 
 ---
 
-## I-2 · Que la primera versión no congele el apartado — **CERRADA** (v1107)
+## I-2 · Que la primera versión no congele el apartado — ✅ CERRADA (v1107)
 
-**Causa** — `if (enVivo && s.value?.trim()) return s` congelaba el apartado en
-cuanto cualquiera escribía algo, incluido un pase anterior de la propia IA. Con
-el pase en vivo cada 15 s y el modelo rápido, la peor versión se quedaba fija.
+> «no llenas los apartados como es»
+
+`if (enVivo && s.value?.trim()) return s` congelaba el apartado en cuanto
+cualquiera escribía algo — **incluido un pase anterior de la propia IA**, cada
+15 s, con el modelo rápido, el primero con la consulta apenas empezada.
 
 **Cierra con** — REG-226 · `la-nota-no-sale-hueca.test.ts`, ampliado.
 
@@ -81,104 +144,229 @@ el pase en vivo cada 15 s y el modelo rápido, la peor versión se quedaba fija.
 
 ## I-3 · El dictado que salta: anclas + regla
 
-**Lo que falta hoy** — el reparto por apartados lo decide el modelo entero, sin
-una sola regla que contemple que el médico salta de tema y regresa. Y el repo ya
-tiene escritos los patrones para detectar «el plan es…» (`uci/discusion.ts`),
-sólo que se usan para decidir **quién habla**, no **de qué apartado se habla**.
+> «el plan debe ser cuando el médico diga el plan» · «no puedes entender el
+> motivo de consulta, el padecimiento actual, los antecedentes»
+
+**Lo que falta hoy, verificado** — el reparto por apartados lo decide el modelo
+**entero**, sin un solo ancla determinista y **sin ninguna regla que contemple
+que el médico salta de tema y regresa**. Y el repo ya tiene escritos los patrones
+para detectar «el plan es…», «indico…», «suspendo…» (`uci/discusion.ts`), sólo
+que se usan para decidir **quién habla**, no **de qué apartado se habla**.
 
 **Qué se construye**
-- Un motor determinista de **anclas de apartado**: cuando el médico dice «plan»,
-  «antecedentes», «exploración», todo lo que sigue va a ese apartado, seguro.
-- Cuando **no** dice ninguna, el LLM reparte como hoy.
-- Una regla nueva en el prompt que le diga al modelo, con estas palabras, que el
-  dictado **no es lineal**: el médico vuelve sobre temas ya tratados y lo último
-  que diga de un tema es lo que vale.
+- Motor determinista de **anclas de apartado**: dicho «plan», «antecedentes»,
+  «exploración», todo lo que sigue va ahí, **seguro**, sin criterio del modelo.
+- Si **no** dice ninguna, el LLM reparte como hoy (él pidió las dos cosas).
+- Regla nueva en el prompt: el dictado **no es lineal**; el médico vuelve sobre
+  temas ya tratados y **lo último que diga de un tema es lo que vale**.
+- Que la nota diga **qué frase ancló cada apartado**, para poder auditarlo.
 
-**Cierra con** — un guardián con frases reales de dictado no lineal, y la regla
-citada en el ledger. **Ojo**: la lista de palabras ancla es contenido clínico —
-la propone el médico, no yo.
+**Cierra con** — guardián con frases reales de dictado no lineal.
+**Bloqueado en el Dr.** — la lista de palabras ancla es contenido clínico: la
+propone él.
 
 ---
 
-## I-4 · Un motor, tres modos
+## I-4 · Un motor, tres modos, cuatro notas
 
-Consulta = conversación entre dos. UCI y hospital = él dictando solo. Hoy la
-diarización se pide igual en los tres, y en un dictado de una sola voz eso es
-trabajo inútil que además puede partir el texto en turnos falsos.
+> «el flujo de grabación (consulta, UCI y hospital)» · «la mejor nota médica: de
+> primera vez, de seguimiento, historia clínica, evolución clínica»
+
+**Tres modos**: consulta = conversación entre dos; UCI = él dictando por aparatos
+y sistemas; hospital = él dictando la evolución.
+
+Hoy la separación de voces se pide **igual en los tres**. En un dictado de una
+sola voz eso es trabajo inútil que además **inventa un «paciente» que no habló**.
+
+**Cuatro notas que tienen que salir perfectas**: primera vez, seguimiento,
+historia clínica, evolución. Seguimiento y evolución son SOAP; las otras dos no.
+Lo que hoy les falla es el reparto (I-3) y la prosa (I-5).
 
 **Qué se construye** — que el modo se derive del tipo de nota, no de una opción
-más en pantalla.
+más en pantalla. Menos que decidir = menos maneras de confundirse.
 
 ---
 
 ## I-5 · La nota como la escribe cada especialista
 
-Hoy existen 17 guías de especialidad en el prompt. Con médicos de **cualquier**
-rama, eso tiene que dejar de ser una lista fija en el código.
+> «nota como internista, pediatra, ginecólogo, cirujano, intensivista,
+> infectólogo etcétera según sea el caso» · «como la escribe un internista: prosa
+> que razona»
+
+Hoy hay **17 guías de especialidad fijas en el código**. Con médicos de cualquier
+rama eso no escala.
 
 **Qué se construye**
-- El perfil de especialidad como **dato configurable por médico**, no como
-  constante. Se siembra con las 17 que ya hay.
-- El **motivo de consulta** como segunda capa (ya existe `GUIA_MOTIVOS`), y que
-  la nota diga qué plantilla usó — él lo pidió así.
-- La prosa de internista: que el análisis **conecte** hallazgos con diagnóstico y
+- El perfil de especialidad como **dato configurable por médico**, sembrado con
+  las 17 que ya existen.
+- El **motivo de consulta** como segunda capa (`GUIA_MOTIVOS` ya existe), y que
+  la nota **diga qué plantilla usó** — él lo pidió así.
+- **Prosa que razona**: que el análisis conecte hallazgos con diagnóstico y
   justifique el plan, en vez de enumerar.
+- Que las correcciones del médico **alimenten** su perfil (lo exige la respuesta
+  «el médico de esa especialidad valida al usarla»).
 
-**Límite duro** — yo construyo la máquina y la relleno con lo que el repo ya
+**Límite duro** — se construye la máquina y se rellena con lo que el repo ya
 tiene. Lo que falte de pediatría, gineco o cirugía se marca
-`NEEDS_CLINICAL_REVIEW`: **no voy a redactar criterio clínico de ramas que el
-dueño no ejerce**.
+`NEEDS_CLINICAL_REVIEW`: **no se redacta criterio clínico de ramas que el dueño
+no ejerce**.
 
 ---
 
 ## I-6 · Los huecos se completan como propuesta
 
-Él pidió que la IA rellene lo que falta. Se hace — **marcado y sin entrar solo**.
+> «dejas espacios porque la inteligencia no entendió» · «no me gusta nada, deja
+> dudas»
+
+Pidió que la IA rellene lo que falta. Se hace — **marcado y sin entrar solo**.
 
 Una nota es un documento legal con su firma: si dice «niega tabaquismo» y el
-paciente nunca lo dijo, eso lo afirmó él. La maquinaria ya existe a medias
-(`sugerenciasPendientes`, las marcas `[IA — no dictado]`); falta que redacte la
-propuesta y que se acepte con un toque.
+paciente nunca lo dijo, **eso lo afirmó él**. La maquinaria existe a medias
+(`sugerenciasPendientes`, marcas `[IA — no dictado]`); falta que **redacte la
+propuesta** y que se acepte con un toque.
+
+Y lo dudoso, **subrayado en la nota** — como contestó en la pregunta 8.
 
 ---
 
 ## I-7 · Firmar cierra la consulta entera
 
-Hoy son 15 pasos y 3 pantallas. Cuatro de esos pasos existen sólo porque el
-sistema se equivocó antes (I-1 a I-3 los quitan).
+> «que sea más fácil, con menos pasos» · «que no tenga tantas maneras de
+> confundirse»
 
-**Qué se construye** — consentimiento una vez por paciente; el pase final que
-ya corre solo al detener; y **una sola pantalla de cierre**: nota + lo que falta
-+ firmar, donde firmar deja la receta lista (papel, WhatsApp o PDF) y el cobro
-registrado.
+**Hoy son 15 pasos y 3 pantallas.** Cuatro de esos pasos existen sólo porque el
+sistema se equivocó antes; I-1 a I-3 los quitan.
 
-Los avisos de prescripción **no** se mueven ahí: alergia ↔ fármaco, sobredosis,
-dosis incompleta, interacción y vía tienen que llegar **mientras receta** o no
-sirven de nada. Eso ya costó dos regresiones (REG-173, REG-190).
+**Qué se construye**
+- Consentimiento **una vez por paciente**.
+- El pase final ya corre solo al detener: quitar el «Procesar con IA» manual.
+- **Una sola pantalla de cierre**: nota + lo que falta + firmar.
+- **Firmar deja la receta lista en los tres canales** —papel, WhatsApp y PDF— y
+  **el cobro registrado**. Sin saltar de pantalla.
+
+**Lo que NO se mueve** — los cinco avisos de prescripción (alergia ↔ fármaco,
+sobredosis, dosis incompleta, interacción, vía) tienen que llegar **mientras
+receta** o no sirven. Eso ya costó dos regresiones (REG-173, REG-190).
 
 ---
 
 ## I-8 · El segundo modelo que revisa
 
-Su respuesta a «qué te haría confiar sin releerla entera». Ya existe
-`/api/expediente/verificar-nota`; falta que sea parte del cierre y no una opción,
-y que lo que reporte sea accionable, no un párrafo.
+> Respuesta 12: «que un segundo modelo la revise»
+
+Ya existe `/api/expediente/verificar-nota`. Falta que sea **parte del cierre** y
+no una opción, y que lo que reporte sea **accionable**, no un párrafo.
 
 ---
 
-## I-9 · Barrido de toda la app con el navegador
+## I-9 · Más precisión en el audio
 
-Al final, no al principio: recorrer la app con un navegador real y un teléfono
-emulado, buscando lo que ninguna prueba unitaria ve. Los cuatro defectos de la
-portada salieron así.
+> «necesito mejor precisión, con el audio, mejor inteligencia artificial»
+
+Iteración aparte porque **no se arregla con prompts: se mide y se sube**.
+
+**Lo que ya sabemos, medido** — error de transcripción **25,55 % en crudo** y
+**22,81 % con el pipeline** (REG-159). Menos de 3 puntos de ganancia: poco para
+lo que cuesta mantenerlo.
+
+**Qué se construye**
+- Volver a medir sobre **dictado real suyo**, no sobre el corpus viejo.
+- El vocabulario que se le manda al reconocedor cabe en **224 tokens** y hoy se
+  llena con criterio genérico. Debe llenarse con **los fármacos y términos de
+  ESTE paciente y ESTA especialidad**, que ya tenemos.
+- La cascada de motores: medir **cuál acierta más en español mexicano** y ponerlo
+  primero, en vez del orden actual.
+- **Dosis y unidades** merecen el mismo trato que ya tienen los antimicrobianos
+  (I-10): nunca sustituir por parecido.
+
+**Cierra con** — una cifra nueva medida sobre su dictado, publicada como la
+anterior. **Sin cifra no se declara mejorado.**
 
 ---
 
-## Lo que este loop NO va a hacer
+## I-10 · Que no confunda medicamentos — ✅ CERRADA (v1106)
+
+> «me estás confundiendo medicamentos» / «me estás confundiendo antibióticos»
+
+Reproducido con el pipeline de producción, **con cero avisos**:
+
+```
+«Le doy azitro micina cinco días»  →  «Le roxitromicina 5 días»
+«Doy mico nazol tópico»            →  «Voriconazol tópico»
+«Le doy neo micina tópica»         →  «Le lincomicina tópica»
+«lleva cefa lotina»                →  «lleva cefazolina»   (siempre)
+```
+
+Regla nueva: **un antimicrobiano sólo se acepta si coincide exacto**. Barrido de
+los 126 del catálogo: antes 118 sustituciones, ahora cero.
+
+**Cierra con** — REG-220 · `un-antibiotico-no-se-convierte-en-otro.test.ts`.
+**Pendiente en I-9** — el mismo trato para dosis y unidades.
+
+---
+
+## I-11 · La receta sólo con lo del plan — ✅ CERRADA (v1106)
+
+> «no me gusta que hagas la receta con lo que te digo de antecedentes, la receta
+> es cuando ya te estén diciendo el plan»
+
+Dos causas: el eje `procedenciaClinica` existía en el tipo, el prompt y una
+prueba sellada, pero **el validador lo borraba** antes de salir del servidor; y
+la lista **acumulaba** de los ~40 pases en vivo.
+
+**Cierra con** — REG-221 · `que-va-en-la-receta.test.ts`.
+
+---
+
+## I-12 · Abridge, Suki, Nabla y Huli
+
+> «investiga a Abridge, Suki y Nabla, toma ideas pero mejóralas, sé más original,
+> **que sea algo nunca antes visto**, pero ve cómo lo hacen ellos y agarra una
+> idea»
+
+**Estado** — investigación en curso. Se llenará con: cómo captura cada uno el
+audio, cómo estructura la nota, cómo maneja la especialidad, cómo demuestra que
+no alucina, **qué NO hacen**, y —lo que importa— **tres huecos que ninguno
+cubre**.
+
+**Lo que ya se sabe sin investigar**: ninguno está hecho para México —español
+mexicano, NOM-004/NOM-024, receta impresa con cédula— y **ninguno hace
+antibiograma ni PROA**. Ése es terreno propio, no copiado.
+
+**Regla** — nada entra aquí sin fuente. Una cifra de marketing se etiqueta como
+marketing.
+
+---
+
+## I-13 · Barrido de toda la app con el navegador
+
+> «utiliza Google Chrome y navega por toda la app para detectar conflictos,
+> problemas, errores etcétera»
+
+Recorrer la app con un navegador real y un teléfono emulado, buscando lo que
+ninguna prueba unitaria ve. **Va al final, no al principio**: primero hay que
+arreglar lo que ya sabemos que está roto.
+
+Los cuatro defectos de la portada (v1104-v1105) salieron exactamente así, y
+ninguno era visible desde el código.
+
+---
+
+## LO QUE ESTE LOOP NO VA A HACER
 
 - **Redactar criterio clínico de especialidades que el dueño no ejerce.** Se
-  construye la máquina; el contenido lo pone quien lo ejerce.
+  construye la máquina; el contenido lo pone quien la ejerce.
 - **Rellenar la nota con lo probable sin marcarlo.** Ver I-6.
 - **Mover los avisos de prescripción al final.** Ver I-7.
 - **Declarar arreglado lo que no se pueda medir.** I-1 no está comprobada hasta
   que una grabación real de más de ocho minutos salga con voces separadas.
+
+---
+
+## BLOQUEADO EN EL DR.
+
+| Qué | Para |
+|---|---|
+| Grabar **8+ minutos** y decir si salió bien | Cerrar I-1 |
+| La lista de **palabras ancla** que dice al cambiar de tema | I-3 |
+| Una nota real con **demasiados diagnósticos**: cuántos y cuáles sobraban | Afinar el tope |
