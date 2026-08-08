@@ -65,7 +65,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245],
   },
   {
     clave: 'hueco_como_dato',

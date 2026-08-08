@@ -4020,3 +4020,42 @@ consulta no tiene.
 
 **Guardián.** `src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts`, 19
 casos, incluido uno que falla si vuelve a aparecer la cadena de `if`.
+
+## REG-245 — el guardián de pautas daba falso positivo en toda la UCI (v1127)
+
+**Un defecto MÍO, de v1120, cazado antes de que lo viera el médico.**
+
+`forma-de-la-pauta.ts` (REG-238) se escribió con la receta de consultorio en la
+cabeza: «cada 8 horas», «3 veces al día», «14 días». Medido después contra
+pautas de terapia intensiva, daba **falso positivo en casi todo vasopresor**:
+
+| Pauta real de UCI | Veredicto de v1120 |
+|---|---|
+| `infusión continua` | «no se entiende como una frecuencia» |
+| `en bolo` · `dosis única` · `DU` | «no se entiende» |
+| `0.1 mcg/kg/min` · `5 mL/h` | «no se entiende» |
+| `titular a efecto` · `a demanda` | «no se entiende» |
+| `a criterio` · `en revisión diaria` | «no se entiende como una duración» |
+
+Una nota de UCI con seis infusiones habría salido con seis avisos falsos. Eso
+**no es un aviso inútil: es un aviso dañino** — es exactamente cómo se le enseña
+a un médico a ignorar la compuerta, y la compuerta que se ignora deja de
+proteger. Es la queja que él ya había puesto por escrito: «esto nomás confunde».
+
+**Cómo se encontró.** Midiendo el motor contra el caso real, no leyéndolo. Se le
+pasaron quince pautas de terapia intensiva y se miró el veredicto.
+
+**El arreglo.** Cuatro formas nuevas: infusión/perfusión/continua/BIC; bolo,
+dosis única, carga, impregnación; velocidad (`n mcg/kg/min`, `n mL/h`); y
+titulación/demanda. En duración: «a criterio», «en revisión diaria», «sin fecha
+de término», «hasta extubación/destete».
+
+Un fármaco en infusión continua **no tiene frecuencia, y no tenerla es
+correcto**. Aquí sólo se reconoce la FORMA; que la velocidad sea la adecuada lo
+juzga el intensivista.
+
+**La prueba que importa.** Ensanchar un motor de seguridad es donde se pierde lo
+que ya protegía. Hay un caso que comprueba que, después de abrir la puerta a
+UCI, **«24 tras» y «14 editas» siguen cazándose**.
+
+Familia `sin_medir`: el instrumento existía y no se había apuntado a la UCI.

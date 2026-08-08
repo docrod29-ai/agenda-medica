@@ -16,16 +16,19 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1126",
+  "ultimaVersionEnProduccion": "nexusmed-v1127",
   "trabajoLocalSinSubir": [
-    "M agent-state/CURRENT_ITERATION.md",
-    " M agent-state/MASTER_STATE.json",
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/lib/clinical/invariantes-clinicos.json"
+    " M src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/seguridad/forma-de-la-pauta.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -61,10 +64,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 92,
-    "ultimaREG": "REG-244",
+    "regsEnElLedger": 93,
+    "ultimaREG": "REG-245",
     "archivosDePrueba": 526,
-    "casosDePrueba": 6995,
+    "casosDePrueba": 6998,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

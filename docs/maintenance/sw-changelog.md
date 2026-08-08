@@ -2424,3 +2424,12 @@ se hace. Con un solo destino se sigue yendo directo.
 La nota de hospital y la de UCI se escriben en la MISMA pantalla de consulta
 (`?internamiento=…`), así que sin guardia la hoja de «cómo tomarlo» aparecía
 también sobre fármacos intravenosos de un paciente intubado.
+
+## v1127 — el guardián de pautas ya no grita en UCI (REG-245)
+
+Defecto propio de v1120: «infusión continua», «en bolo», «0.1 mcg/kg/min», «DU»
+y «titular a efecto» salían como pautas no reconocidas. Una nota de UCI con seis
+infusiones habría dado seis avisos falsos.
+
+Reparado, y con una prueba que comprueba que «24 tras» y «14 editas» siguen
+cazándose después de ensanchar el motor.

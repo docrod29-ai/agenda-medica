@@ -72,6 +72,32 @@ const FORMAS_DE_FRECUENCIA: readonly RegExp[] = [
   /\b(?:diario|diaria(?:mente)?|al\s+dia|una\s+vez|dosis\s+unica|por\s+la\s+(?:manana|noche))\b/,
   /* «24 horas» a secas — sin el «cada», que el médico se come al dictar */
   /^\s*\d+(?:[.,]\d+)?\s*(?:h|hr|hrs|horas?)\s*$/,
+
+  /**
+   * ── UCI: LA PAUTA NO ES UNA FRECUENCIA ────────────────────────────────────
+   *
+   * Se añadió tras medir el propio motor contra pautas de terapia intensiva.
+   * La primera versión —hecha con la receta de consultorio en la cabeza— daba
+   * FALSO POSITIVO en casi todo vasopresor: «infusión continua», «en bolo»,
+   * «0.1 mcg/kg/min», «DU», «titular a efecto».
+   *
+   * En una nota de UCI eso habría llenado la pantalla de avisos falsos, que es
+   * exactamente cómo se enseña a un médico a ignorar la compuerta — y la
+   * compuerta que se ignora deja de proteger.
+   *
+   * Un fármaco en infusión continua NO tiene frecuencia, y no tenerla es
+   * correcto. Aquí sólo se reconoce la FORMA; que la velocidad sea la adecuada
+   * lo juzga el intensivista.
+   */
+  /\binfusi[óo]n\b|\bcontinu[ao]\b|\bperfusi[óo]n\b|\bbic\b/,
+  /* Bolos y dosis únicas, con las abreviaturas que se dictan de verdad. */
+  /\bbolo\b|\bdosis\s+[úu]nica\b|^\s*du\s*$|\bcarga\b|\bimpregnaci[óo]n\b/,
+  /* «0.1 mcg/kg/min», «5 mL/h»: la velocidad ES la pauta. */
+  /\d\s*(?:mcg|µg|ug|mg|ml|u|ui|meq|mmol)\s*\/\s*(?:kg\s*\/\s*)?(?:min|h|hr|hora|kg)\b/,
+  /* Titulación y demanda: pautas reales sin cifra. */
+  /\btitular\b|\ba\s+efecto\b|\ba\s+demanda\b|\bsegun\s+(?:respuesta|meta|objetivo)\b|\brazon\s+necesaria\b/,
+  /* «para pasar en 30 minutos», «en 24 horas», «ahora», «al momento». */
+  /\bpara\s+pasar\s+en\b|^\s*en\s+\d+\s*(?:min|minutos?|h|horas?)\s*$|^\s*(?:ahora|al\s+momento|inmediato)\s*$/,
 ]
 
 /**
@@ -99,6 +125,12 @@ export function esDuracionReconocible(txt: unknown): boolean {
   if (diasDeDuracion(t) !== null) return true
   /* Lo crónico: `diasDeDuracion` devuelve null a propósito, y es válido. */
   return /\b(?:indefinid|permanente|cronic|continu|de\s+por\s+vida|sin\s+suspender|hasta\s+nueva|mientras)/.test(t)
+    /**
+     * UCI: la duración de una infusión casi nunca es un número de días. «A
+     * criterio», «en revisión diaria», «sin fecha de término» son duraciones
+     * reales — y marcarlas como deformadas sería enseñar a ignorar el aviso.
+     */
+    || /\ba\s+criterio\b|\brevisi[óo]n\s+diaria\b|\bsin\s+fecha\b|\bhasta\s+(?:extubaci|retiro|destete|mejor|resoluci)/.test(t)
     /* «hasta terminar el frasco», «según respuesta» — duraciones reales sin cifra. */
     || /\bhasta\s+\w+|segun\s+(?:respuesta|evolucion|indicacion)\b/.test(t)
 }

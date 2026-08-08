@@ -100,6 +100,45 @@ describe('lo que SÍ es una frecuencia no se toca', () => {
   })
 })
 
+describe('UCI: la pauta no es una frecuencia — y casi la rompo', () => {
+  /**
+   * ── EL FALSO POSITIVO QUE ME CACÉ A MÍ MISMO ─────────────────────────────
+   *
+   * La primera versión de este motor se escribió con la receta de consultorio
+   * en la cabeza. Medido contra pautas de terapia intensiva, daba FALSO
+   * POSITIVO en casi todo vasopresor: «infusión continua», «en bolo»,
+   * «0.1 mcg/kg/min», «DU», «titular a efecto».
+   *
+   * En una nota de UCI eso habría llenado la pantalla de avisos falsos — que
+   * es exactamente cómo se enseña a un médico a ignorar la compuerta. Y la
+   * compuerta que se ignora deja de proteger.
+   *
+   * Se encontró **midiendo el motor contra el caso real**, no leyéndolo.
+   */
+  it.each([
+    'infusión continua', 'en infusión', 'continua', 'perfusión', 'BIC',
+    '0.1 mcg/kg/min', '5 mL/h', '2 mcg/min',
+    'bolo único', 'en bolo', 'dosis única', 'DU', 'carga', 'impregnación',
+    'titular a efecto', 'a demanda', 'según meta',
+    'para pasar en 30 minutos', 'en 24 horas', 'ahora',
+  ])('«%s» es una pauta válida en UCI', (f) => expect(esFrecuenciaReconocible(f)).toBe(true))
+
+  it.each([
+    'mientras persista el choque', 'a criterio', 'en revisión diaria',
+    'sin fecha de término', 'hasta extubación', 'hasta destete',
+  ])('«%s» es una duración válida en UCI', (d) => expect(esDuracionReconocible(d)).toBe(true))
+
+  it('y SU caso sigue cazándose después de abrir la puerta a UCI', () => {
+    /**
+     * Ensanchar un motor de seguridad es donde se pierde lo que ya protegía.
+     * Esta prueba es la que impide que la reparación del falso positivo se
+     * lleve por delante el defecto original.
+     */
+    expect(esFrecuenciaReconocible('24 tras')).toBe(false)
+    expect(esDuracionReconocible('14 editas')).toBe(false)
+  })
+})
+
 describe('lo que SÍ es una duración no se toca', () => {
   it.each([
     '14 días', '7 dias', 'siete días', 'un mes', '2 semanas', '3 meses',
