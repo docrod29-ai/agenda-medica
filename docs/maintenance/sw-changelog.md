@@ -2433,3 +2433,9 @@ infusiones habría dado seis avisos falsos.
 
 Reparado, y con una prueba que comprueba que «24 tras» y «14 editas» siguen
 cazándose después de ensanchar el motor.
+
+## v1128 — perder el «/kg» ya no pasa indetectado (REG-246)
+
+`0.1 mcg/kg/min` se leía como `0.1 mcg`: una reescritura que convirtiera una
+infusión por peso en tasa fija —70 veces menos en un adulto— pasaba sin aviso.
+Unidades de infusión añadidas y ordenadas de más larga a más corta EN CÓDIGO.

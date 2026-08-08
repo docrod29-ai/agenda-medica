@@ -4059,3 +4059,32 @@ que ya protegía. Hay un caso que comprueba que, después de abrir la puerta a
 UCI, **«24 tras» y «14 editas» siguen cazándose**.
 
 Familia `sin_medir`: el instrumento existía y no se había apuntado a la UCI.
+
+## REG-246 — perder el «/kg» de una infusión pasaba indetectado (v1128)
+
+**Otro defecto mío de esta noche, del motor de REG-240, cazado midiéndolo contra
+UCI.**
+
+En una alternancia de regex gana **la primera alternativa que casa**, no la más
+larga. La lista de unidades tenía `mcg` antes que `mcg/kg/min`, así que
+«0.1 mcg/kg/min» se leía como **«0.1 mcg»** y el resto se tiraba.
+
+**La consecuencia, medida.** Una reescritura que convirtiera
+
+    Norepinefrina 0.1 mcg/kg/min   →   Norepinefrina 0.1 mcg/min
+
+pasaba **completamente indetectada**: las dos normalizaban a la misma cifra. Es
+convertir una infusión por peso en una tasa fija — en un adulto de 70 kg, unas
+**70 veces menos** noradrenalina. El guardián que existe justo para que una
+reescritura no cambie una dosis, no veía la más grave de todas.
+
+**El arreglo.** Se añadieron las velocidades de infusión que se dictan de verdad
+(`mcg/kg/min`, `mg/kg/h`, `ml/h`, `U/h`, `cmH2O`, `mmol/L`…) y —lo importante—
+la lista **se ordena de más larga a más corta en código**, no a mano: una lista
+ordenada a mano se desordena en el primer añadido, y el defecto vuelve sin que
+nadie lo note, porque no truena: sólo deja de ver.
+
+Hay una prueba que comprueba que ese `sort` siga ahí.
+
+Familia `sin_medir`, como REG-245: el instrumento existía y no se había apuntado
+a la UCI.

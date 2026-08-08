@@ -59,6 +59,44 @@ describe('lee las cifras que importan', () => {
   })
 })
 
+describe('UCI: perder el «/kg» son 70 veces la dosis (REG-246)', () => {
+  /**
+   * ── EL DEFECTO, Y ERA MÍO ────────────────────────────────────────────────
+   *
+   * En una alternancia de regex gana **la primera que casa**, no la más larga.
+   * Con `mcg` antes que `mcg/kg/min`, «0.1 mcg/kg/min» se leía como «0.1 mcg».
+   *
+   * Consecuencia: una reescritura que convertía `0.1 mcg/kg/min` en
+   * `0.1 mcg/min` —una infusión por peso en una tasa fija, unas 70 veces menos
+   * en un adulto de 70 kg— pasaba **completamente indetectada**, porque las dos
+   * normalizaban a la misma cifra.
+   *
+   * Se encontró midiendo el motor contra pautas de terapia intensiva.
+   */
+  it('lee la velocidad ENTERA, no su primera sílaba', () => {
+    const c = [...cifrasClinicas(
+      'Norepinefrina 0.1 mcg/kg/min, propofol 2 mg/kg/h, insulina 2 U/h, PEEP 8 cmH2O, Cr 1.2 mg/dL',
+    ).keys()]
+    expect(c).toEqual(['0.1mcg/kg/min', '2mg/kg/h', '2u/h', '8cmh2o', '1.2mg/dl'])
+  })
+
+  it('caza que se pierda el «/kg»', () => {
+    const c = queCambioEnLasCifras(
+      'Norepinefrina 0.1 mcg/kg/min', 'Norepinefrina 0.1 mcg/min', 'resume')
+    expect(c.perdidas).toContain('0.1mcg/kg/min')
+  })
+
+  it('la lista de unidades se ordena EN CÓDIGO, no a mano', () => {
+    /**
+     * Una lista ordenada a mano se desordena en el primer añadido, y el
+     * defecto vuelve sin que nadie lo note: no truena, sólo deja de ver.
+     */
+    const mod = readFileSync(
+      join(process.cwd(), 'src/lib/seguridad/la-reescritura-no-pierde-cifras.ts'), 'utf8')
+    expect(mod).toMatch(/sort\(\(a, b\) => b\.length - a\.length\)/)
+  })
+})
+
 describe('el caso que lo motiva: «hazlo más conciso»', () => {
   const CONCISO = 'Moxifloxacino 400 mg oral. Paracetamol 500 mg si dolor. TA 120/80 mmHg.'
 

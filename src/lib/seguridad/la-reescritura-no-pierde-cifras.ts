@@ -39,14 +39,45 @@
  * Módulo PURO.
  */
 
-/** Unidades que convierten un número en una cifra clínica y no en una fecha. */
-const UNIDADES = [
+/**
+ * Unidades que convierten un número en una cifra clínica y no en una fecha.
+ *
+ * ── EL ORDEN NO ES COSMÉTICO (REG-246) ──────────────────────────────────────
+ *
+ * En una alternancia de regex gana **la primera que casa**, no la más larga. Con
+ * `mcg` antes que `mcg/kg/min`, «0.1 mcg/kg/min» se leía como **«0.1 mcg»** y el
+ * `/kg/min` se tiraba.
+ *
+ * Consecuencia medida: una reescritura que convertía `0.1 mcg/kg/min` en
+ * `0.1 mcg/min` —una infusión por peso en una tasa fija, unas **70 veces** menos
+ * en un adulto de 70 kg— pasaba **completamente indetectada**. Las dos cifras
+ * normalizaban a lo mismo.
+ *
+ * Por eso la lista se ordena de MÁS LARGA a más corta antes de construir el
+ * regex, y se hace en código en vez de a mano: una lista ordenada a mano se
+ * desordena en el primer añadido.
+ */
+const UNIDADES_CRUDAS = [
+  /* Velocidades de infusión: lo que se dicta en terapia intensiva. */
+  'mcg/kg/min', 'mcg/kg/h', 'mg/kg/min', 'mg/kg/h', 'ug/kg/min', 'ui/kg/h',
+  'ml/kg/h', 'mcg/min', 'mcg/h', 'mg/min', 'mg/h', 'ml/h', 'ml/min', 'u/h', 'ui/h',
+  'mg/kg', 'mcg/kg', 'ml/kg', 'meq/kg', 'ui/kg',
+  /* Concentraciones y presiones. */
+  'mg/dl', 'g/dl', 'mmol/l', 'meq/l', 'mg/dia', 'mmhg', 'cmh2o',
+  /* Masa, volumen y unidades sueltas. */
   'mg', 'g', 'mcg', 'ug', 'µg', 'kg', 'ml', 'l', 'ui', 'u', 'meq', 'mmol', 'mol',
-  'mg/kg', 'mcg/kg', 'mg/dl', 'mg/dia', 'g/dl', 'mmhg', 'mm', 'cm', 'lpm', 'rpm',
+  'mm', 'cm', 'lpm', 'rpm',
+  /* Tiempo. */
   'horas', 'hora', 'h', 'hrs', 'hr', 'min', 'dias', 'dia', 'semanas', 'semana',
-  'meses', 'mes', 'anios', 'anos', 'gotas', 'tabletas', 'tableta', 'capsulas',
-  'capsula', 'ampolletas', 'ampolleta', 'veces', 'grados', '%',
+  'meses', 'mes', 'anios', 'anos',
+  /* Formas y varios. */
+  'gotas', 'tabletas', 'tableta', 'capsulas', 'capsula', 'ampolletas',
+  'ampolleta', 'veces', 'grados', '%',
 ] as const
+
+/** De más larga a más corta: en una alternancia gana la primera que casa. */
+const UNIDADES: readonly string[] =
+  [...UNIDADES_CRUDAS].sort((a, b) => b.length - a.length)
 
 const norm = (v: unknown) =>
   String(v ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')

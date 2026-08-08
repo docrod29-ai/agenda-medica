@@ -1046,7 +1046,7 @@
     },
     {
       "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
-      "minCasos": 17
+      "minCasos": 20
     },
     {
       "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
