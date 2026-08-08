@@ -45,8 +45,15 @@
  * - **No amplía `NEGADORES`.** Sigue cubriendo «niega / sin / no tiene / no
  *   presenta / no refiere / no hay / no ha tenido / nunca ha / nunca tuvo /
  *   ausente / descarta». Formas que NO reconoce: «lo dudo», «para nada», «que yo
- *   sepa no». El ronquido lleva su propio «no ronca» porque su término es un
- *   verbo y no un sustantivo — los otros tres no lo necesitan.
+ *   sepa no». Lo único que se añade es el negador PEGADO al término («no
+ *   ronca», «nunca ronca»), que sin contexto no tiene otra lectura.
+ * - **El interrogatorio en formato pregunta-respuesta sigue fabricando los
+ *   cuatro puntos** — «¿Ronca fuerte? No.» Falla igual en `main`, así que no es
+ *   una regresión de esta reparación, pero es probablemente la forma más común
+ *   de dictar este interrogatorio. Exige que el motor de negación entienda la
+ *   pareja pregunta/respuesta —cambio del expediente entero, ya en curso en
+ *   otras ramas—, así que queda declarado abajo con una prueba que fija el
+ *   estado conocido y en el backlog como SAFE-007.
  * - **No toca los ítems que no se interrogan**: IMC, cuello, sexo y edad salen de
  *   una cifra o de una palabra, no de una respuesta que se pueda negar.
  * - **No cambia los umbrales de la escala** (≤2 Bajo, 3-4 Intermedio, ≥5 Alto):
@@ -133,6 +140,93 @@ describe('el positivo sigue puntuando — la defensa no se comió el dato', () =
 
   it('«ronca poco» sigue siendo negativo documentado', () => {
     expect(extraerStopBang('ronca poco, casi nada').snoring).toBe(false)
+  })
+})
+
+/**
+ * ── LA REVISIÓN INDEPENDIENTE DEL PR ─────────────────────────────────────────
+ *
+ * Estos casos NO estaban en la primera versión del golden. Los levantó una
+ * revisión adversarial del PR corriendo el motor, no razonando, y el primero era
+ * una **regresión de la propia reparación**: mirar una sola aparición congelaba
+ * el flag en la primera, así que un interrogatorio negativo arriba borraba el
+ * diagnóstico escrito abajo. Se documenta que vinieron de ahí porque un caso sin
+ * origen se borra en seis meses por parecer trivial.
+ */
+describe('la afirmación de abajo no la borra la negación de arriba', () => {
+  it('«niega presión alta. Hipertensión en tratamiento» SÍ puntúa — el hipertenso documentado', () => {
+    const r = extraerStopBang(
+      'En el interrogatorio inicial niega presión alta. Hipertensión arterial en tratamiento con losartán.',
+    )
+    expect(r.pressure).toBe(true)
+  })
+
+  it('«Niega roncar. Ronca fuerte tras puertas cerradas» SÍ puntúa', () => {
+    expect(extraerStopBang('Niega roncar. Ronca fuerte tras puertas cerradas.').snoring).toBe(true)
+  })
+
+  it('«Niega somnolencia diurna. Refiere somnolencia diurna importante» SÍ puntúa', () => {
+    expect(extraerStopBang('Niega somnolencia diurna. Refiere somnolencia diurna importante.').tiredness).toBe(true)
+  })
+
+  it('y con TODAS las menciones negadas sigue sin puntuar — la reparación no se deshizo', () => {
+    const r = extraerStopBang('Niega presión alta. Sin hipertensión arterial conocida.')
+    expect(r.pressure).toBe(false)
+  })
+})
+
+describe('«pero» cierra la cláusula negativa, como el punto', () => {
+  it('«sin apneas observadas pero con somnolencia diurna» — la somnolencia SÍ puntúa', () => {
+    const r = extraerStopBang('sin apneas observadas pero con somnolencia diurna')
+    expect(r.observed).toBe(false)
+    expect(r.tiredness).toBe(true)
+  })
+
+  it('«pero refiere» ya funcionaba por el afirmador — no se rompe', () => {
+    expect(extraerStopBang('niega apneas observadas pero refiere somnolencia diurna').tiredness).toBe(true)
+  })
+
+  it('la enumeración sigue negando todos sus elementos — no se corta en la coma', () => {
+    const r = extraerStopBang('no tiene hipertensión ni somnolencia diurna')
+    expect(r.pressure).toBe(false)
+    expect(r.tiredness).toBe(false)
+  })
+})
+
+describe('el negador pegado al verbo', () => {
+  it('«nunca ronca fuerte» no puntúa', () => {
+    expect(extraerStopBang('nunca ronca fuerte').snoring).toBe(false)
+  })
+
+  it('«jamás ronca fuerte» no puntúa', () => {
+    expect(extraerStopBang('jamás ronca fuerte').snoring).toBe(false)
+  })
+})
+
+describe('LO QUE SIGUE SIN CUBRIRSE — declarado, no disimulado', () => {
+  /**
+   * El interrogatorio en formato pregunta-respuesta. `estaNegado()` busca
+   * negadores léxicos cerca del término y no sabe que un «No.» suelto contesta a
+   * la pregunta anterior. **Falla igual en `main`**: no es una regresión de esta
+   * reparación, es el mismo defecto por otra puerta, y probablemente la forma
+   * más común de dictar ESTE interrogatorio.
+   *
+   * No se repara aquí a propósito: exige que el motor de negación entienda la
+   * pareja pregunta/respuesta, que es un cambio del expediente entero y que ya
+   * tienen en curso otras ramas (NEG-001, NEG-002, SAFE-003). Queda en el
+   * backlog como SAFE-007 en vez de reimplementarse por tercera vez.
+   *
+   * Esta prueba fija el estado CONOCIDO. Cuando alguien lo repare se pondrá
+   * roja, y eso es lo que se busca: que el día que cambie, se note.
+   */
+  it('el formato pregunta-respuesta todavía fabrica los cuatro puntos (SAFE-007)', () => {
+    const r = extraerStopBang(
+      '¿Ronca fuerte? No. ¿Tiene somnolencia diurna? No. '
+      + '¿Le han observado apneas? No. ¿Tiene presión alta? No.',
+    )
+    expect(r.snoring).toBe(true)
+    expect(r.tiredness).toBe(true)
+    expect(r.pressure).toBe(true)
   })
 })
 

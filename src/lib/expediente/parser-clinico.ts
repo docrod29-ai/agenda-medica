@@ -222,6 +222,20 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
   // — la cláusula anterior no negaría a la siguiente
   const corte = Math.max(ventana.lastIndexOf('.'), ventana.lastIndexOf(';'), ventana.lastIndexOf('\n'))
   if (corte !== -1) ventana = ventana.slice(corte + 1)
+  /**
+   * «pero» cierra la cláusula negativa igual que el punto. Levantado en la
+   * revisión de REG-264: «sin apneas observadas pero con somnolencia diurna»
+   * daba la somnolencia por negada, porque la ventana llegaba hasta el «sin» de
+   * la frase ANTERIOR.
+   *
+   * Los afirmadores de abajo ya cerraban «pero REFIERE» y «pero TIENE» —lo que
+   * falla es el «pero con», sin verbo—, así que esto sólo añade el caso que
+   * quedaba suelto. No se añade la coma: una enumeración («niega diabetes,
+   * hipertensión, tabaquismo») niega TODOS sus elementos, y cortar en la coma
+   * dejaría vivos los que van después del primero.
+   */
+  const pero = ventana.lastIndexOf(' pero ')
+  if (pero !== -1) ventana = ventana.slice(pero + ' pero '.length)
   // Si hay un afirmador entre el negador y el término, busca el
   // ÚLTIMO afirmador y descarta todo lo previo (la negación quedó cerrada)
   const re = new RegExp(AFIRMADORES.source, 'gi')
@@ -359,17 +373,19 @@ const RONQUIDO_FUERTE = /\bronc(?:a|ar)\s+(?:fuerte|muy\s+fuerte|tras\s+puertas\
 export function extraerStopBang(textoOriginal: string): Record<string, boolean> {
   const texto = normalizar(textoOriginal)
   const flags: Record<string, boolean> = {}
+  // Ronquido FUERTE — exige el adjetivo o expresión equivalente. El negador
+  // pegado («no ronca», «nunca ronca») lo resuelve `marcarSegunNegacion`: el
+  // ronquido es el único de los cuatro cuyo término ES un verbo.
+  marcarSegunNegacion(texto, RONQUIDO_FUERTE, flags, 'snoring')
   /**
-   * El ronquido es el único de los cuatro cuyo término ES un verbo, y `NEGADORES`
-   * sólo cubre «no tiene / no presenta / no refiere» porque los demás términos
-   * clínicos son sustantivos. «No ronca fuerte» es como se dicta, y sin esto
-   * casaba con el patrón de ronquido fuerte y puntuaba.
+   * El ronquido negado SIN el adjetivo. Sólo si arriba no hubo ninguna
+   * aparición de «ronca fuerte»: si la hubo, ella manda — «Niega roncar. Ronca
+   * fuerte tras puertas cerradas» es un ronquido documentado, y mirarlo con un
+   * `test()` sobre el texto entero lo daba por negado.
    */
-  const NIEGA_RONCAR = /\b(?:no|niega)\s+ronc(?:a|ar)\b/i
-  // Ronquido FUERTE — exige el adjetivo o expresión equivalente
-  if (RONQUIDO_FUERTE.test(texto) && !NIEGA_RONCAR.test(texto)) {
-    marcarSegunNegacion(texto, RONQUIDO_FUERTE, flags, 'snoring')
-  } else if (/\bronc(?:a|ar)\b.*\b(?:poco|bajo|leve)\b/i.test(texto) || NIEGA_RONCAR.test(texto)) {
+  const NIEGA_RONCAR = /\b(?:no|niega|nunca|jamas)\s+ronc(?:a|ar)\b/i
+  if (!('snoring' in flags)
+      && (/\bronc(?:a|ar)\b.*\b(?:poco|bajo|leve)\b/i.test(texto) || NIEGA_RONCAR.test(texto))) {
     flags.snoring = false
   }
   marcarSegunNegacion(texto, /\b(?:somnolencia\s+diurna|cansancio\s+diurno|fatiga\s+diurna|se\s+queda\s+dormido\s+(?:de\s+d[ií]a|en\s+el\s+d[ií]a))\b/i, flags, 'tiredness')
@@ -388,6 +404,9 @@ export function extraerStopBang(textoOriginal: string): Record<string, boolean> 
   return flags
 }
 
+/** Negador pegado al término: «no ronca», «nunca ronca». */
+const NEGADOR_PEGADO = /\b(?:no|niega|nunca|jamas)\s+$/i
+
 /**
  * Marca el flag a `true` si el término aparece y a `false` si aparece NEGADO.
  * Si no aparece, no toca nada: la casilla se queda sin contestar.
@@ -396,11 +415,41 @@ export function extraerStopBang(textoOriginal: string): Record<string, boolean> 
  * médico negó es un dato, igual que ya hacía el ronquido. No enciende la escala
  * en la nota: el `capturado()` de `PreopAssessment` descarta los `false`, así que
  * una valoración donde el paciente lo negó todo sigue sin imprimir STOP-BANG.
+ *
+ * ── MIRA TODAS LAS APARICIONES, Y GANA LA AFIRMACIÓN ─────────────────────────
+ *
+ * Levantado en la revisión de REG-264. Con `texto.match()` —una sola aparición,
+ * que es lo que hace el resto del archivo— el flag se congelaba en la PRIMERA y
+ * la segunda mención no se miraba nunca. El patrón es real: interrogatorio
+ * negativo arriba, lista de problemas y medicación abajo.
+ *
+ *     «Niega presión alta. Hipertensión arterial en tratamiento con losartán.»
+ *
+ * daba `pressure: false` y el hipertenso documentado y tratado dejaba de
+ * puntuar — el mismo daño que REG-264, en la dirección contraria, y lo habría
+ * introducido la propia reparación.
+ *
+ * Gana la afirmación porque **ausencia de dato no es dato de ausencia**: que en
+ * un renglón se niegue no borra lo que está escrito en otro. Y con esa regla
+ * este módulo nunca marca `false` donde antes había `true`, salvo cuando TODAS
+ * las menciones están negadas — que es exactamente lo que vino a reparar.
  */
 function marcarSegunNegacion(texto: string, re: RegExp, flags: Record<string, boolean>, clave: string): void {
-  const m = texto.match(re)
-  if (!m || m.index === undefined) return
-  flags[clave] = !estaNegado(texto, m.index)
+  const todas = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`)
+  let visto = false
+  for (const m of texto.matchAll(todas)) {
+    if (m.index === undefined) continue
+    visto = true
+    // El negador pegado va aparte de `estaNegado`: «nunca» y «no» a secas no
+    // están en NEGADORES —serían demasiado anchos para todo el expediente— pero
+    // pegados al término no tienen otra lectura.
+    const pegado = NEGADOR_PEGADO.test(texto.slice(Math.max(0, m.index - 8), m.index))
+    if (!pegado && !estaNegado(texto, m.index)) {
+      flags[clave] = true
+      return
+    }
+  }
+  if (visto) flags[clave] = false
 }
 
 /** Marca el flag solo si el término aparece Y no viene negado. */

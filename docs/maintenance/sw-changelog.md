@@ -18,6 +18,15 @@ polisomnografía y neumología impresas. Ahora puntúa 1/8.
 El motor de negación ya existía y Caprini ya lo usaba, dos funciones más abajo en
 el mismo archivo. No faltaba el motor: faltaba usarlo.
 
+Segunda vuelta, tras una revisión independiente que corrió el motor: la primera
+versión miraba una sola aparición del término, así que «Niega presión alta.
+Hipertensión en tratamiento» dejaba de puntuar a un hipertenso documentado — el
+mismo daño, en la dirección contraria. Ahora se miran todas y gana la afirmación.
+Y «pero» cierra la cláusula negativa igual que el punto.
+
+Lo que sigue sin cubrirse, declarado con su prueba: el interrogatorio en formato
+pregunta-respuesta («¿Ronca fuerte? No.»), que falla igual en main.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

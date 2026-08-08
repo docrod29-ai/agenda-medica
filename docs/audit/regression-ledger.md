@@ -1629,4 +1629,64 @@ extractor prellena, la valoración la firma él.
 **Comprobado que puede ponerse rojo** — Revertido `parser-clinico.ts`, el golden
 falla en **13 de sus 21 casos**.
 
-**Golden** — `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` (21 casos).
+**── LA REVISIÓN INDEPENDIENTE ENCONTRÓ UNA REGRESIÓN DE ESTA MISMA REPARACIÓN ──**
+
+Una revisión adversarial del PR corrió el motor —no razonó— y levantó tres cosas.
+La primera era **de la reparación misma**, y en la dirección contraria al defecto
+que venía a cerrar:
+
+`marcarSegunNegacion` miraba **una sola aparición** (`texto.match`), que es lo
+que hace el resto del archivo. El flag se congelaba en la primera y la segunda
+mención no se miraba nunca. Patrón real: interrogatorio negativo arriba, lista de
+problemas y medicación abajo.
+
+```
+"Niega presión alta. Hipertensión arterial en tratamiento con losartán."
+   main → { pressure: true }      la v1 de este PR → { pressure: false }
+```
+
+**El hipertenso documentado y tratado dejaba de puntuar.** Reproducido en los
+cuatro ítems, no sólo en la presión: «Niega roncar. Ronca fuerte tras puertas
+cerradas» daba `snoring: false`.
+
+**Reparado** — se miran **todas** las apariciones y **gana la afirmación**:
+ausencia de dato no es dato de ausencia, y que en un renglón se niegue no borra
+lo escrito en otro. Con esa regla el módulo nunca marca `false` donde antes había
+`true`, salvo cuando TODAS las menciones están negadas — que es justo el defecto
+original.
+
+**Segundo hallazgo, también reparado** — «sin apneas observadas pero con
+somnolencia diurna» daba la somnolencia por negada: la ventana de `estaNegado()`
+llegaba hasta el «sin» de la frase anterior. Ahora **«pero» cierra la cláusula
+negativa igual que el punto**. Los afirmadores ya cerraban «pero refiere» y «pero
+tiene»; lo que fallaba era el «pero con», sin verbo. **No se corta en la coma**:
+una enumeración («niega diabetes, hipertensión, tabaquismo») niega todos sus
+elementos, y cortar ahí dejaría vivos los que van después del primero. Es el
+único cambio de este REG que toca el motor compartido; las 6 949 pruebas
+restantes lo arbitran en verde.
+
+De paso, «nunca ronca fuerte» y «jamás ronca fuerte» fabricaban punto en `main` y
+en la v1. El negador **pegado** al término se resuelve aparte de `NEGADORES`:
+«no» y «nunca» a secas serían demasiado anchos para todo el expediente, pero
+pegados al término no tienen otra lectura.
+
+**Tercer hallazgo — NO reparado, declarado** — El interrogatorio en formato
+**pregunta-respuesta** sigue fabricando los cuatro puntos:
+
+```
+"¿Ronca fuerte? No. ¿Tiene somnolencia diurna? No. ¿Tiene presión alta? No."
+   → { snoring: true, tiredness: true, pressure: true }
+```
+
+Falla **igual en `main`**: no es una regresión de esta reparación, es el mismo
+defecto por otra puerta — y probablemente la forma más común de dictar ESTE
+interrogatorio. No se repara aquí porque exige que el motor de negación entienda
+la pareja pregunta/respuesta, que es un cambio del expediente entero y que ya
+tienen en curso otras ramas (NEG-001, NEG-002, SAFE-003). Reimplementarlo por
+tercera vez es exactamente lo que OPS-003 pidió dejar de hacer. **Queda con una
+prueba que fija el estado conocido** —se pondrá roja el día que alguien lo
+repare, que es lo que se busca— y como `SAFE-007` en el backlog.
+
+**Golden** — `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` sube de 21 a
+**31 casos**. Comprobado que puede ponerse rojo por partida doble: **18 de 31**
+caen contra `main`, y los **6 casos nuevos** caen contra la v1 de este mismo PR.
