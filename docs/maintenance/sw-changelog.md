@@ -3,6 +3,22 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1085 — REG-204: «veinticinco miligramos» se leía como una dosis sin cantidad
+
+La lista de números en letra que valen como cantidad iba 1…12, saltaba a 15, a
+20 y de ahí a las decenas. Faltaban el 13, el 14, el 16-19 y todo el 21-29.
+
+«Metoprolol veinticinco miligramos» salía marcado como dosis sin cantidad —con
+la cantidad delante— y, por `corrector-vigilado`, le pedía confirmación al
+médico. El hueco cae sobre la posología más repetida de la consulta: 25 mg de
+metoprolol o de espironolactona, 18 unidades de glargina.
+
+Las decenas con «y» se salvaban por accidente («treinta y cinco» → la palabra
+previa es «cinco»); por eso el hueco pasó dos revisiones sin verse.
+
+Ninguna cifra clínica cambia: lo que cambia es qué cuenta como número escrito en
+letra. El motor sigue detectando y sin completar ninguna dosis.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

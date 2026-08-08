@@ -53,12 +53,40 @@ const UNIDADES_DOSIS = [
  *
  * **No debilita la defensa**: el signo sólo vale si va pegado a una cifra. Una
  * unidad sin número delante se sigue marcando igual.
+ *
+ * ── EL HUECO DEL 13 AL 29 (medido el 8-ago-2026) ─────────────────────────────
+ *
+ * La lista iba 1…12, saltaba a 15, a 20, y de ahí a las decenas. Faltaban en
+ * letra el 13, el 14, el 16-19 y **todo el 21-29**. Como el reconocedor
+ * transcribe en letra lo que se dicta en letra, «metoprolol veinticinco
+ * miligramos» se leía como una unidad sin cantidad delante:
+ *
+ *     ALERTA  «veinticinco miligramos»: falta la cantidad.
+ *
+ * — con la cantidad delante, en la misma frase. Y no era sólo un cartel: en
+ * `corrector-vigilado.ts` una dosis rota levanta `requiereConfirmacion`, así que
+ * la dosis bien dictada le pedía confirmación al médico.
+ *
+ * El hueco cae justo donde vive la posología de consulta: 25 mg es metoprolol,
+ * espironolactona, captopril, hidroclorotiazida, losartán; 18 unidades es una
+ * glargina cualquiera. Es el mismo daño que el balance negativo de arriba —
+ * fatiga de alerta en la compuerta que avisa de una dosis perdida — pero en la
+ * pantalla que más se usa.
+ *
+ * Las decenas compuestas con «y» ya funcionaban por accidente: en «treinta y
+ * cinco miligramos» la palabra previa es «cinco». Sólo fallaban las que se
+ * escriben en una sola palabra, que son precisamente las del 21 al 29.
+ *
+ * Van sin acento a propósito: lo que se compara es la salida de `norm`, que ya
+ * quitó los diacríticos («dieciséis» → «dieciseis», «veintiún» → «veintiun»).
  */
 const ES_CANTIDAD = new RegExp(
   '^([-+−–]?\\d+([.,]\\d+)?|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|'
-  + 'once|doce|quince|veinte|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|'
-  + 'noventa|cien|ciento|cientos|doscientos|trescientos|cuatrocientos|quinientos|'
-  + 'seiscientos|setecientos|ochocientos|novecientos|mil|medio|media)$', 'i')
+  + 'once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|'
+  + 'veintiun|veintiuno|veintiuna|veintidos|veintitres|veinticuatro|veinticinco|'
+  + 'veintiseis|veintisiete|veintiocho|veintinueve|treinta|cuarenta|cincuenta|sesenta|'
+  + 'setenta|ochenta|noventa|cien|ciento|cientos|doscientos|trescientos|cuatrocientos|'
+  + 'quinientos|seiscientos|setecientos|ochocientos|novecientos|mil|medio|media)$', 'i')
 
 export interface DosisRota {
   /** La palabra anterior a la unidad: normalmente el fármaco. */

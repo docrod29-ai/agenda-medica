@@ -10,16 +10,30 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
-  "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
-  ],
+  "iteracionActual": "VOICE-007 / REG-204 (cerrada, 8-ago-2026)",
+  "ramaDeEstaIteracion": "agent/voice/VOICE-007-numerales-13-29",
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionPreparada": "nexusmed-v1085 (en PR, sin desplegar)",
+  "trabajoLocalSinSubir": [],
+  "compuertasDeLaIteracion": {
+    "vitest": "6926 pasan · 1 falla PREEXISTENTE y ajena (ops-timeout-y-punto-ciego: necesita que 10.255.255.1 sea un agujero negro; en este contenedor el proxy contesta antes de los 30 ms. Comprobado con mis cambios guardados aparte: falla igual)",
+    "tsc": "limpio",
+    "lintTrinquete": "96, igual que el techo",
+    "build": "verde con los rellenos de build que documenta .github/workflows/ci.yml (sin ellos falla con auth/invalid-api-key: este contenedor no trae las variables de Firebase)"
+  },
+  "ATASCO": {
+    "queEs": "24 PRs abiertos y ninguno fusionado. main lleva parado en 6d35d95 desde el 6-ago. Como cada ejecución del bucle parte de main, TODAS eligen el mismo REG y la misma versión: 14 de los 24 PRs se titulan «REG-192 · v1074» y son catorce defectos DISTINTOS.",
+    "yaEstabaReportado": "PR #251 (agent/ops/OPS-003) lo describe. Sigue igual: esta ejecución lo encontró por las malas, al chocar con una rama agent/voice/VOICE-005 que ya existía en el remoto con otro REG-192 dentro.",
+    "queHizoEstaEjecucion": "Renumeró a REG-204 y v1085 (los siguientes libres por encima del máximo visto en los PRs abiertos: REG-203 y v1084) y usó un nombre de rama único. NO se tocó ninguna rama ajena.",
+    "porQueSoloLoArreglaElDueno": "El desatasco es fusionar a main, y fusionar a main es decisión suya. Mientras main no avance, el choque se repite en cada ejecución.",
+    "riesgoSiSigue": "Trabajo duplicado (varias ramas auditando el mismo módulo), y una fusión futura con conflictos en ledger, sw.js, version.txt e invariantes-clinicos.json en CADA PR, porque los 24 tocan las mismas líneas."
+  },
+  "notasParaLaProximaIteracion": [
+    "ANTES de elegir REG y versión: mirar los PRs abiertos, no sólo main. Es el paso que le faltaba al bucle y lo que provocó el choque de hoy.",
+    "El BACKLOG estaba desfasado: SAFE-001 y VOICE-004 figuraban abiertos y llevaban días reparados. Verificar contra el código antes de elegir ítem — es el paso 3 y es lo que salvó esta iteración.",
+    "EVAL-002 no lo puede cerrar un agente: el hallazgo es que los casos los escribí yo, y que yo escriba más casos no lo repara. Marcado 'requiere al dueño'.",
+    "EVAL-003 tiene una mitad que sí se puede hacer sola: que los scripts de corpus fallen a gritos cuando no encuentran sus datos, en vez de pasar en verde sin medir.",
+    "VOICE-006 quedó anotado SIN confirmar: la unidad en la primerísima palabra del dictado no se mira. No se reparó porque no se pudo reproducir sobre dictado real."
   ]
 }

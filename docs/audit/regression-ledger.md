@@ -1553,3 +1553,78 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-204 — «veinticinco miligramos» se leía como una dosis sin cantidad (v1085)
+
+**Encontrado** — 8-ago-2026, auditando `uci-dosis-sin-numero` con frases de
+posología de consulta (de libro, ninguna de paciente). Se llegó a él por el
+camino de REG-141: el mismo módulo ya había fallado en agosto con el signo
+menos del balance hídrico, y un módulo que enumera a mano lo que cuenta como
+cantidad merecía que se le contara la enumeración entera.
+
+**El defecto** — `ES_CANTIDAD` lista los números en letra que valen como dosis, y
+la lista tenía un hueco: iba 1…12, saltaba a **15**, a **20**, y de ahí a las
+decenas. Faltaban el 13, el 14, el 16-19 y **todo el 21-29**.
+
+**Reproducido con el motor real**, no leyendo el código:
+
+```
+ALERTA  Metoprolol veinticinco miligramos cada doce horas  ->  veinticinco miligramos
+ALERTA  Insulina glargina dieciocho unidades subcutáneas   ->  dieciocho unidades
+   ok   Metoprolol cincuenta miligramos cada doce horas
+```
+
+El aviso decía, literalmente, `«veinticinco miligramos»: falta la cantidad` —
+con la cantidad delante, en la misma frase.
+
+**Y no se quedaba en el cartel** — En `corrector-vigilado.ts` una dosis rota
+levanta `requiereConfirmacion`. Comprobado en el pipeline entero: la dosis bien
+dictada llegaba con `requiereConfirmacion: true`. La compuerta le pedía al médico
+que confirmara lo que había dictado correctamente.
+
+**Por qué importa para un paciente** — El hueco cae justo sobre la posología más
+repetida de la consulta: 25 mg es metoprolol, espironolactona, captopril,
+hidroclorotiazida, losartán; 18 unidades es una glargina cualquiera. Esta
+compuerta existe para avisar de una dosis que **perdió su número** al
+transcribirse — el fallo más peligroso del corpus de 498 audios. Una compuerta
+que salta donde no debe se acaba ignorando, y con ella se ignora el aviso que sí
+importa. Es el mismo daño que el balance negativo de REG-141, pero en la
+pantalla que más se usa: la consulta de Practice.
+
+**Las decenas con «y» se salvaban por accidente** — En «treinta y cinco
+miligramos» la palabra previa a la unidad es «cinco», que sí estaba en la lista.
+Sólo caían los numerales que se escriben en **una sola palabra**, que son
+exactamente los del 21 al 29 y los del 13 al 19. Por eso el hueco pasó dos
+revisiones sin verse.
+
+**Reparación** — `src/lib/uci/dosis-sin-numero.ts`: se completa la enumeración
+del 1 al 29. Van sin acento a propósito — lo que se compara es la salida de
+`norm`, que ya quitó los diacríticos («dieciséis» → «dieciseis»).
+
+**No debilita la defensa** — Son numerales puros: ninguno puede aparecer delante
+de una unidad de dosis significando otra cosa. La regla sigue siendo «unidad sin
+cantidad delante». Tres casos del golden lo comprueban al revés, incluido el del
+meropenem que dio origen al módulo y dos palabras que **empiezan** por un numeral
+sin serlo («veintiunico», «dieciochoavo»), que se siguen marcando.
+
+**Ninguna cifra clínica** — No se añade, quita ni toca un umbral, una dosis ni un
+punto de corte. Lo que cambia es qué cuenta como *número escrito en letra* en
+español; el motor sigue sin completar ninguna dosis (`missingData` intacto).
+
+**Qué NO hace** — No cubre el 31-99 escrito sin «y» («treintaicinco»): no es la
+forma que produce el reconocedor y no está medida. No cubre la unidad como
+primerísima palabra del dictado: el bucle arranca en el índice 1 porque necesita
+una palabra previa que mirar. Y sigue siendo un **detector**: una dosis perdida
+se avisa, nunca se completa.
+
+**Qué queda para el médico** — Nada bloqueante. Si en su dictado aparece alguna
+otra forma en letra que la lista no reconozca, el síntoma es este mismo: un aviso
+de «falta la cantidad» sobre una frase que la tiene. Vale con reportar la frase.
+
+**Comprobado que puede ponerse rojo** — Revertido `dosis-sin-numero.ts`, el
+golden falla 6 de 12; restaurado, pasa 12 de 12. Los 6 que pasan sin el arreglo
+son justamente los de «la defensa NO se debilitó».
+
+**Golden** — `src/__tests__/los-numeros-en-letra-son-cantidad.test.ts` (12 casos).

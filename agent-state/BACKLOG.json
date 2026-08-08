@@ -1,18 +1,22 @@
 {
   "generadoEn": "2026-08-04",
+  "revisadoEn": "2026-08-08",
   "formulaDePrioridad": "5*SEGURIDAD + 5*INTEGRIDAD + 4*INGRESO + 4*FRECUENCIA + 4*MOAT + 3*FIABILIDAD + 3*REGULATORIO + 2*APRENDIZAJE - 3*IRREVERSIBILIDAD - 2*COMPLEJIDAD - 2*DEPENDENCIA_EXTERNA",
+  "notaDeLaRevision": "8-ago-2026: los dos ítems de mayor score (SAFE-001, VOICE-004) se comprobaron CERRADOS contra el código, no contra el informe. Se cierran con la evidencia de dónde se verificó. Lo que quedaba pendiente sin bloqueo era todo de evaluación y depende de datos que viven fuera del repositorio, así que la iteración se gastó auditando un motor clínico — de ahí salió REG-204.",
   "items": [
     {
-      "id": "VOICE-004",
-      "titulo": "El balance hídrico negativo pide confirmación en cada frase",
-      "hallazgo": "dosisSinNumero no reconoce el signo menos: lee «-1500 mL» y cree que falta la cifra. 25 de 6000 frases del corpus del dueño, todas de balance hídrico.",
-      "porQueImporta": "Fatiga de alerta. Un aviso que salta donde no debe se acaba ignorando, y con él se ignoran los que sí importan — que aquí son dosis perdidas.",
-      "archivo": "src/lib/uci/dosis-sin-numero.ts:36",
-      "seguridad": 3, "integridad": 1, "ingreso": 0, "frecuencia": 4, "moat": 2,
-      "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 3,
+      "id": "VOICE-005",
+      "titulo": "«veinticinco miligramos» se leía como una dosis sin cantidad",
+      "hallazgo": "ES_CANTIDAD enumeraba los números en letra con un hueco: 1…12, 15, 20 y las decenas. Faltaban 13, 14, 16-19 y todo el 21-29. Reproducido con el motor real: «Metoprolol veinticinco miligramos» → ALERTA «falta la cantidad», y requiereConfirmacion=true en el pipeline vigilado.",
+      "porQueImporta": "El hueco cae sobre la posología más repetida de la consulta (25 mg, 18 unidades de glargina). Una compuerta que salta donde no debe se acaba ignorando, y ésta es la que avisa de una dosis que perdió su número.",
+      "archivo": "src/lib/uci/dosis-sin-numero.ts:ES_CANTIDAD",
+      "seguridad": 3, "integridad": 1, "ingreso": 0, "frecuencia": 5, "moat": 2,
+      "fiabilidad": 4, "regulatorio": 0, "aprendizaje": 3,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
-      "score": 60,
-      "estado": "en curso",
+      "score": 64,
+      "estado": "CERRADO",
+      "cerradoEn": "2026-08-08 · REG-204 · v1085",
+      "golden": "src/__tests__/los-numeros-en-letra-son-cantidad.test.ts",
       "reversible": true
     },
     {
@@ -20,12 +24,29 @@
       "titulo": "Cuatro parsers distintos del campo de alergias",
       "hallazgo": "El canónico entiende «Penicilina / Sulfas» y «Penicilina y sulfas» como dos alérgenos y descarta «niega alergias». Los otros tres —incluido el que alimenta el sesgo del reconocedor— no. Y ninguno de los tres lee alergiasEstructuradas.",
       "porQueImporta": "El cruce alergia↔fármaco compara contra LO QUE SE OYÓ. Un alérgeno que no llega al sesgo es un cruce que nunca salta.",
-      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:923 · uci/page.tsx:225 · api/expediente/extraer-entidades",
+      "archivo": "src/lib/seguridad/alergias.ts:alergenosDe",
       "seguridad": 5, "integridad": 2, "ingreso": 0, "frecuencia": 4, "moat": 2,
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 73,
-      "estado": "a medias, sin subir",
+      "estado": "CERRADO",
+      "cerradoEn": "2026-08-08 (verificado; la reparación es anterior)",
+      "comoSeVerifico": "consulta/[patientId]/page.tsx:1127 y :1924 y uci/page.tsx:236 llaman alergenosDe(); api/expediente/extraer-entidades recibe esa misma lista por alergiasRegistradas. Golden vivo: src/__tests__/un-solo-parser-de-alergias.test.ts.",
+      "reversible": true
+    },
+    {
+      "id": "VOICE-004",
+      "titulo": "El balance hídrico negativo pide confirmación en cada frase",
+      "hallazgo": "dosisSinNumero no reconocía el signo menos: leía «-1500 mL» y creía que faltaba la cifra. 25 de 6000 frases del corpus del dueño, todas de balance hídrico.",
+      "porQueImporta": "Fatiga de alerta. Un aviso que salta donde no debe se acaba ignorando, y con él se ignoran los que sí importan — que aquí son dosis perdidas.",
+      "archivo": "src/lib/uci/dosis-sin-numero.ts:ES_CANTIDAD",
+      "seguridad": 3, "integridad": 1, "ingreso": 0, "frecuencia": 4, "moat": 2,
+      "fiabilidad": 3, "regulatorio": 0, "aprendizaje": 3,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 60,
+      "estado": "CERRADO",
+      "cerradoEn": "2026-08-08 (verificado; la reparación es anterior)",
+      "comoSeVerifico": "Los cuatro signos están en ES_CANTIDAD y el golden src/__tests__/balance-negativo-no-es-dosis-rota.test.ts pasa. REG-204 (que cita este cierre como REG-141) encontró el hueco HERMANO en la misma expresión.",
       "reversible": true
     },
     {
@@ -39,6 +60,7 @@
       "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 3,
       "score": 58,
       "estado": "bloqueado B-01",
+      "porQueBloqueado": "El corpus vive en el disco del dueño y no puede entrar al repositorio (la voz es biométrica, regla data-privacy). Un agente sin ese disco no puede ejecutarlo.",
       "reversible": true
     },
     {
@@ -51,7 +73,8 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 5,
       "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 0,
       "score": 55,
-      "estado": "pendiente",
+      "estado": "pendiente · requiere al dueño",
+      "porQueRequiereAlDueno": "El hallazgo es que los casos los escribí yo. Que yo escriba MÁS casos no lo repara: mide el motor contra el mismo criterio que lo construyó. El corpus tiene que etiquetarlo el médico, o venir de otra fuente.",
       "reversible": true
     },
     {
@@ -65,6 +88,20 @@
       "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 1,
       "score": 48,
       "estado": "pendiente",
+      "nota": "La MITAD que sí se puede hacer sin el corpus: que los scripts fallen a gritos cuando no encuentran sus datos, en vez de salir en verde. Eso es fail-closed y no necesita al dueño. Candidato para la próxima iteración.",
+      "reversible": true
+    },
+    {
+      "id": "VOICE-006",
+      "titulo": "La unidad de dosis en la primerísima palabra del dictado no se mira",
+      "hallazgo": "El bucle de dosisSinNumero arranca en el índice 1 porque necesita una palabra previa. Si el dictado EMPIEZA por la unidad («Gramos cada ocho horas de meropenem»), no se evalúa. Encontrado leyendo el motor durante REG-204; NO reproducido sobre dictado real: no se sabe con qué frecuencia el reconocedor produce esa forma.",
+      "porQueImporta": "Es un falso negativo de la compuerta, que es la dirección cara: una dosis perdida que pasa desapercibida. Pero sólo afecta a la primera palabra del texto entero, no a la de cada frase.",
+      "archivo": "src/lib/uci/dosis-sin-numero.ts:84",
+      "seguridad": 2, "integridad": 0, "ingreso": 0, "frecuencia": 1, "moat": 0,
+      "fiabilidad": 2, "regulatorio": 0, "aprendizaje": 1,
+      "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
+      "score": 20,
+      "estado": "pendiente · no confirmado",
       "reversible": true
     }
   ]
