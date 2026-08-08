@@ -2483,3 +2483,9 @@ El documento publicado decía «8 · 0 high»; el comando devolvía «12 · 3 hi
 con pdfjs-dist permitiendo ejecución arbitraria de JS al abrir un PDF. Cerradas
 las tres. Y la cifra ya se deriva del comando, con una prueba que falla si
 aparece una sola high en producción.
+
+## v1136 — la prueba de placebo para las métricas de voz (REG-254)
+
+La exactitud de unidades daba 99,54 % con el motor y 99,54 % sin el motor: medía
+el comparador, no el producto. Ahora cada categoría se mide con y sin pipeline y
+lo que se vigila es el APORTE. La regla queda en docs/evals/COMO-SE-MIDE.md.

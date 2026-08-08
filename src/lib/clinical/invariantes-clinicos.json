@@ -1087,6 +1087,10 @@
     {
       "archivo": "src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
+      "minCasos": 6
     }
   ]
 }

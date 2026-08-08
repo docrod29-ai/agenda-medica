@@ -16,24 +16,19 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1135",
+  "ultimaVersionEnProduccion": "nexusmed-v1136",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/seguridad/npm-audit-2026-07-30.md",
-    " M package-lock.json",
-    " M package.json",
-    " M public/pdf.worker.min.mjs",
     " M public/sw.js",
     " M public/version.txt",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/seguridad/ESTADO-DEPENDENCIAS.md",
-    "?? scripts/seguridad/",
-    "?? src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts"
+    "?? docs/evals/COMO-SE-MIDE.md",
+    "?? src/__tests__/el-motor-tiene-que-aportar.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -69,10 +64,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 101,
-    "ultimaREG": "REG-253",
-    "archivosDePrueba": 531,
-    "casosDePrueba": 7075,
+    "regsEnElLedger": 102,
+    "ultimaREG": "REG-254",
+    "archivosDePrueba": 532,
+    "casosDePrueba": 7081,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

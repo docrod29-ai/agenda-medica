@@ -4410,3 +4410,50 @@ Detalle que se documenta porque tiene trampa: `npm audit` sale con código ≠ 0
 justo cuando hay algo que contar.
 
 **Guardián.** `src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts`, 11 casos.
+
+## REG-254 — una métrica que daba lo mismo con el motor y sin el motor (v1136)
+
+**Refutación del equipo rojo, reproducida aquí sobre las 6 000 frases.**
+
+| Categoría | n | Con motor | Sin motor | **Aporte** |
+|---|---|---|---|---|
+| Unidades | 216 | 99,54 % | 99,54 % | **0,00 pp** |
+| Números | 498 | 50,60 % | 47,59 % | 3,01 pp |
+| Acrónimos | 1 738 | 44,42 % | 40,39 % | 4,03 pp |
+
+**El 99,54 % de exactitud de unidades no mide el producto: mide el comparador.**
+`canonizar()` traduce «microgramos por kilo por minuto» a `mcg/kg/min` por su
+cuenta, así que el término «sobrevive» tanto si el pipeline lo tocó como si no.
+Es una cifra real y es una cifra **inútil** para juzgar el motor.
+
+Familia `sin_medir`: no faltaba producto, faltaba el instrumento que distinguiera
+producto de ausencia de producto.
+
+**Lo que se construyó: la prueba de placebo.** Cada categoría se mide dos veces —
+con el pipeline y con el texto crudo— y lo que se congela es el **aporte**, no la
+exactitud absoluta. Un cambio que suba la exactitud sin subir el aporte no ha
+mejorado el motor: ha mejorado el comparador, y eso es justo lo que hay que poder
+distinguir.
+
+El aporte de unidades se congela en **0,00 pp a propósito**. No es una meta: es
+el registro honesto de que hoy el motor no aporta nada medible ahí. Si algún día
+sí aporta, el caso se pondrá rojo — y será una buena noticia que habrá que venir
+a escribir.
+
+**Y se congela también lo que la cifra NO es.** Hay un caso que falla si la
+exactitud absoluta de números o acrónimos llegara al 90 %, porque hoy ronda el
+50 %. El dueño escribió como meta «99,4 % / 99,7 %»; dejarlo medido en una prueba
+impide que la cifra deseada se cuele como si fuera la real.
+
+**La n también se declara**: 1 738 «acrónimos» son **56 acrónimos distintos**
+repetidos, y 216 «unidades» son **25 distintas**. Un porcentaje sobre
+repeticiones dice menos de lo que parece.
+
+**La regla queda escrita** en `docs/evals/COMO-SE-MIDE.md`, y la prueba falla si
+ese documento deja de decirla: *una cifra que no distingue producto de ausencia
+de producto no se publica como desempeño*. Ninguno de los productos de
+referencia publica WER, tasa de alucinación ni ablación sobre un banco
+independiente — ahí está el foso. **Un 94 % publicado y reproducible le gana a un
+99 % afirmado.**
+
+**Guardián.** `src/__tests__/el-motor-tiene-que-aportar.test.ts`, 8 casos.
