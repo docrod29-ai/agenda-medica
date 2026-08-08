@@ -1553,3 +1553,86 @@ desincronizaba.
 **Comprobado que puede ponerse rojo** — Tocado `confianza-audio.ts`, falla.
 
 **Golden** — `src/__tests__/la-version-del-prompt-no-miente.test.ts` (6 casos).
+
+---
+
+## REG-192 — «No sé» se leía como «No» (v1074)
+
+**Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos C2 y C3).
+Reproducido con el motor real antes de tocar nada: de veinte respuestas de habla
+real, **siete se leían al revés de como se dijeron**.
+
+**El defecto, y falla en las dos direcciones** — El motor de negaciones decidía
+si el paciente había dicho que no con una lista de palabras:
+
+```
+/^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|…)\b/i
+```
+
+**1. Disparaba de más.** `^no\b` leía «No sé, doctor» como una negación. Ese es
+literalmente el caso oro `oro-rol-acompanante`: el médico pregunta por la
+diabetes, la paciente contesta «No sé, doctor» y **el acompañante la confirma
+acto seguido** («sí, es diabética desde hace años, yo le pongo la insulina»).
+`corregirCertezaPorNegacion` reclasificaba entonces a `descartado` una diabetes
+referida y cierta — y una entidad estructurada tiene peor pinta que una frase:
+parece un dato verificado. Igual con «No me acuerdo», «No estoy seguro», «No
+recuerdo», «No tengo idea», «No sabría decirle».
+
+**2. Disparaba de menos.** De las formas en que de verdad se contesta que no en
+una consulta mexicana sólo entraba la escueta. Quedaban fuera «Pues no, doctor»,
+«Fíjese que no», «Para nada», «Tampoco», «Mmm no», «Este, no», «Ay no» — y cada
+una de ésas es el fallo original de REG-153 vivo por otra puerta: la nota cosecha
+«diabetes» de la PREGUNTA y le fabrica al paciente un antecedente crónico.
+
+**Por qué le importa a un paciente** — Un antecedente crónico se arrastra: cambia
+el riesgo quirúrgico, cambia la elección de fármacos y se copia a todas las notas
+siguientes, y cada copia lo vuelve más creíble. El defecto lo fabricaba por un
+lado (la negación no reconocida) y **borraba uno cierto por el otro** (la duda
+leída como negación).
+
+**La causa raíz** — Una lista de palabras haciendo de modelo del habla. El habla
+real trae muletillas delante, trae formas de negar que no empiezan por «no», y
+trae un «no» que no niega nada porque va pegado a un verbo de saber.
+
+**Reparación** — Se quita el relleno (`MULETILLAS`) y se juzga el núcleo, y la
+DUDA se comprueba **antes** que la negación, porque todas sus formas empiezan por
+«no». `condicionesInciertas()` devuelve lo que el paciente dijo no saber, aparte
+de lo que negó.
+
+**Y NO se reclasifica.** Con una negación el paciente afirmó algo en contra y
+`descartado` es lo que él dijo. Con un «no sé» no dijo nada: moverle la certeza
+hacia `descartado` borra lo que el acompañante confirmó, y hacia `confirmado` le
+inventa una postura que no tomó. Se señala y decide el médico — el mismo criterio
+que los avisos temporales (REG-183). Es la regla 4 de seguridad clínica: ausencia
+de dato no es dato de ausencia, y **duda tampoco**.
+
+**El aviso dice mucho menos que el de la contradicción** — No afirma que la nota
+se equivoque, porque puede tener razón de sobra: pide que el respaldo conste. Por
+eso `duda_del_paciente` es nivel `revisa` y **sí se pliega**, a diferencia de
+`contradiccion_negacion`. Qué bloquea la firma no se tocó: lo decidió el médico
+dueño el 5-ago.
+
+**El candado que más costó** — «nada más el asma» no es una negación, es un
+recorte: a «¿diabetes, hipertensión o asma?» AFIRMA el asma. Sin el
+`(?!\s+mas\b)` el núcleo `nada` marcaba las tres como negadas, incluida la que el
+paciente acababa de reconocer.
+
+**Lo que NO hace** — No mide cobertura del habla real: `MULETILLAS` y `DUDA` son
+vocabulario, no criterio, y lo que falte no se vigila. Sin corpus de consulta
+ambulatoria con diálogo (bloqueador B-02) no hay número que ponerle. Tampoco
+cubre el dictado con turnos etiquetados («Paciente: No sé»): hoy a este motor le
+llega el texto corrido del reconocedor, y con etiquetas el ancla `^` no ve la
+respuesta y el motor calla entero — hueco distinto y anterior a éste, anotado en
+el backlog.
+
+**Qué queda para el médico** — Decidir, cuando el aviso salte, si el dato viene
+del acompañante, del expediente o de un laboratorio, y dejarlo escrito.
+
+**El dato LLEGA** — Motor → `extraer-entidades` (`avisosDuda`) → `NerPanel`, y
+motor → consulta (`dudasNota`) → barra `AntesDeFirmar`. Los cuatro tramos tienen
+prueba.
+
+**Comprobado que puede ponerse rojo** — Restaurada la semántica anterior con la
+API nueva intacta: **8 de los 21 casos fallan**.
+
+**Golden** — `src/__tests__/no-se-no-es-no.test.ts` (21 casos).

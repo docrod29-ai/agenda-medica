@@ -51,6 +51,7 @@ export type OrigenAviso =
   | 'alergia_medicamento'
   | 'contradiccion_negacion'
   | 'desajuste_temporal'
+  | 'duda_del_paciente'
   | 'via_asumida'
   | 'interaccion'
   | 'controlado'
@@ -72,6 +73,12 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   alergia_medicamento:    'revisa',
   contradiccion_negacion: 'revisa',
   desajuste_temporal:     'revisa',
+  /**
+   * «No sé» no es «no» (REG-192). No afirma que la nota se equivoque —el dato
+   * puede venir del acompañante— sino que pide que ese respaldo conste. Por eso
+   * es `revisa` y SÍ se pliega: una contradicción es un hecho, una duda no.
+   */
+  duda_del_paciente:      'revisa',
   via_asumida:            'revisa',
   interaccion:            'revisa',
   controlado:             'revisa',
@@ -133,6 +140,8 @@ export interface EntradaAvisos {
   alergiaMedicamento?: readonly { mensaje: string; severidad: string }[]
   contradicciones?: readonly { condicion: string; mensaje: string }[]
   desajustes?: readonly { condicion: string; mensaje: string }[]
+  /** El paciente dijo no saberlo y la nota lo da por hecho (REG-192). */
+  dudas?: readonly { condicion: string; mensaje: string }[]
   viasAsumidas?: readonly string[]
   avisoDeVia?: string | null
   interacciones?: readonly { titulo: string; detalle: string; severidad: string }[]
@@ -251,6 +260,14 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     const id = `temporal:${d.condicion}`
     if (vivo(id)) out.push({
       id, origen: 'desajuste_temporal', nivel: nivelDe('desajuste_temporal'),
+      texto: d.mensaje, ancla: { seccion: 'nota' }, descartable: true,
+    })
+  }
+
+  for (const d of e.dudas ?? []) {
+    const id = `duda:${d.condicion}`
+    if (vivo(id)) out.push({
+      id, origen: 'duda_del_paciente', nivel: nivelDe('duda_del_paciente'),
       texto: d.mensaje, ancla: { seccion: 'nota' }, descartable: true,
     })
   }

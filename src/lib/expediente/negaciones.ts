@@ -68,13 +68,54 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
 ]
 
 /**
- * Respuestas que cuentan como negación.
+ * ── LO QUE ARRANCA UNA RESPUESTA HABLADA SIN CAMBIARLA (6-ago-2026) ──────────
+ *
+ * La expresión original sólo admitía «ah» delante del «no». Contra el habla real
+ * de la consulta mexicana eso deja fuera la mitad de las respuestas: «Pues no,
+ * doctor», «Fíjese que no», «Este, no», «Mmm no», «Ay no». Medido con el motor:
+ * de siete formas de decir que no, **cinco no se reconocían**, y cada una es un
+ * antecedente crónico que la nota puede fabricar a partir de la pregunta.
+ *
+ * Se quitan por delante y se juzga lo que queda. Todas son palabras de relleno
+ * —ninguna afirma ni niega—, así que quitarlas no puede convertir un «sí» en un
+ * «no»: después de quitarlas todavía hace falta un núcleo negativo.
+ */
+const MULETILLAS = /^(?:[\s,.;:¡!¿?"'«»—–-]|(?:a[hy]|eh+|este|mm+|hmm+|pues|bueno|o\s*sea|fijese|fijate|mire|mira|que|yo|sepa)\b)+/
+
+/**
+ * El núcleo que sí niega.
  *
  * «Ninguna» y «nada» se incluyen porque es como se contesta de verdad a «¿tiene
  * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
  * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
+ *
+ * **«nada más» queda fuera a propósito.** No es una negación, es un recorte: a
+ * «¿diabetes, hipertensión o asma?» la respuesta «nada más el asma» AFIRMA el
+ * asma. Sin el candado, las tres salían negadas — incluida la que el paciente
+ * acababa de reconocer.
  */
-const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
+const NEGATIVAS = /^(?:no|nop|ninguna|ninguno|nada(?!\s+mas\b)|negativo|nunca|jamas|tampoco|para\s+nada|en\s+absoluto)\b/
+
+/**
+ * ── «NO SÉ» NO ES «NO» (6-ago-2026) ──────────────────────────────────────────
+ *
+ * `^no\b` leía «No sé, doctor» como una negación. Es exactamente el caso oro
+ * `oro-rol-acompanante`: el médico pregunta por la diabetes, la paciente no sabe
+ * y **el acompañante la confirma**. El motor afirmaba que la paciente lo había
+ * negado y el extractor reclasificaba a `descartado` una diabetes referida y
+ * cierta.
+ *
+ * Es la regla 4 de seguridad clínica del derecho y del revés: ausencia de dato
+ * no es dato de ausencia, y **duda tampoco**. Se comprueba ANTES que la
+ * negación, porque todas estas formas empiezan por «no».
+ *
+ * «No que yo sepa» se queda fuera de esta lista: es una negación con reserva, y
+ * el módulo ya la trataba como negación desde el principio.
+ */
+const DUDA = /^(?:no\s+(?:se\b|sabe\b|sabemos\b|sabria\b|sabria\s+decirle\b|estoy\s+segur|esta\s+segur|me\s+acuerdo\b|recuerdo\b|tengo\s+idea\b|me\s+han\s+dicho\b)|creo\s+que\s+no\b|quien\s+sabe\b|tal\s+vez\b|a\s+lo\s+mejor\b)/
+
+/** Lo que queda de una respuesta después de quitarle el relleno, sin acentos. */
+const nucleoDe = (respuesta: string) => sinAcentos(respuesta).replace(MULETILLAS, '')
 
 /** Marcas de que un término ya viene negado en la propia frase. */
 const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
@@ -119,10 +160,34 @@ export interface Negada {
  * 2. **Negación en línea**: «niega diabetes», «no tiene hipertensión».
  */
 export function condicionesNegadas(transcripcion: string): Negada[] {
+  return leerElInterrogatorio(transcripcion).negadas
+}
+
+/**
+ * Lo que el paciente dijo NO SABER, leído del mismo sitio y en la misma pasada.
+ *
+ * Se separa de lo negado porque son dos hechos distintos y se resuelven
+ * distinto: lo negado el paciente lo afirmó en contra y se puede reclasificar;
+ * la duda no dice nada del paciente, sólo que él no lo sabe.
+ */
+export function condicionesInciertas(transcripcion: string): Negada[] {
+  return leerElInterrogatorio(transcripcion).inciertas
+}
+
+/**
+ * Una sola pasada por el dictado: negó, o dijo que no sabe.
+ *
+ * Van juntas porque comparten el trabajo caro —trocear en frases, decidir qué
+ * es pregunta y emparejarla con su respuesta— y porque son excluyentes: una
+ * respuesta no puede ser las dos, y de eso depende que «No sé» deje de leerse
+ * como «No».
+ */
+function leerElInterrogatorio(transcripcion: string): { negadas: Negada[]; inciertas: Negada[] } {
   const fs = frases(transcripcion)
-  const vistas = new Map<string, Negada>()
-  const anotar = (condicion: string, cita: string) => {
-    if (!vistas.has(condicion)) vistas.set(condicion, { condicion, cita: cita.slice(0, 200) })
+  const negadas = new Map<string, Negada>()
+  const inciertas = new Map<string, Negada>()
+  const anotar = (donde: Map<string, Negada>, condicion: string, cita: string) => {
+    if (!donde.has(condicion)) donde.set(condicion, { condicion, cita: cita.slice(0, 200) })
   }
 
   for (let i = 0; i < fs.length; i++) {
@@ -131,7 +196,7 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     if (!cs.length) continue
 
     if (NIEGA_EN_LINEA.test(f)) {
-      for (const c of cs) anotar(c, f)
+      for (const c of cs) anotar(negadas, c, f)
       continue
     }
     if (!esPregunta(f)) continue
@@ -140,11 +205,16 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     // la frase siguiente si la pregunta terminó ahí.
     const resto = f.slice(f.indexOf('?') + 1).trim()
     const respuesta = resto || (fs[i + 1] ?? '')
-    if (NEGATIVAS.test(respuesta)) {
-      for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
-    }
+    const nucleo = nucleoDe(respuesta)
+    // La duda se mira primero: todas sus formas empiezan por «no».
+    const donde = DUDA.test(nucleo) ? inciertas : NEGATIVAS.test(nucleo) ? negadas : null
+    if (!donde) continue
+    for (const c of cs) anotar(donde, c, `${f} ${respuesta}`.trim())
   }
-  return [...vistas.values()]
+  // Lo negado gana: si en otra parte del interrogatorio el paciente lo negó de
+  // frente, esa respuesta es más informativa que el «no sé» de antes.
+  for (const c of negadas.keys()) inciertas.delete(c)
+  return { negadas: [...negadas.values()], inciertas: [...inciertas.values()] }
 }
 
 export interface Contradiccion extends Negada {
@@ -194,6 +264,66 @@ export function contradicciones(negadas: readonly Negada[], textoNota: string): 
 export function avisoDeContradiccion(c: Contradiccion): string {
   return `«${c.condicion}»: en el dictado se oyó una negación (${c.cita}), pero la nota lo afirma (…${c.enLaNota}…). Revisa cuál corresponde antes de firmar.`
 }
+
+/**
+ * Dónde la nota AFIRMA algo que el paciente dijo NO SABER.
+ *
+ * La búsqueda es la misma —el término, y la negación en línea que lo excusa—: lo
+ * único que cambia es cómo se lee el hallazgo. Por eso reutiliza
+ * `contradicciones` en vez de copiarla. Este repositorio ya pagó una defensa
+ * cableada por un solo lado (REG-170); dos búsquedas gemelas se desincronizan.
+ */
+export function afirmacionesSobreLoQueNoSabe(
+  inciertas: readonly Negada[],
+  textoNota: string,
+): Contradiccion[] {
+  return contradicciones(inciertas, textoNota)
+}
+
+/**
+ * El aviso de la duda, que dice mucho menos que el de la contradicción.
+ *
+ * No afirma que la nota se equivoque: el dato puede venir del acompañante, del
+ * expediente o de un laboratorio, y entonces la nota tiene razón y el paciente
+ * simplemente no lo sabía. Lo único que se pide es que ese respaldo **conste**.
+ */
+export function avisoDeDuda(c: Contradiccion): string {
+  return `«${c.condicion}»: el paciente dijo no saberlo (${c.cita}), y la nota lo da por hecho (…${c.enLaNota}…). Si viene de otra fuente —acompañante, expediente, laboratorio— déjalo escrito.`
+}
+
+/**
+ * Lo mismo sobre las entidades extraídas: se SEÑALA, no se toca.
+ *
+ * Aquí no hay nada que reclasificar. Con una negación el paciente afirmó algo en
+ * contra y `descartado` es literalmente lo que él dijo; con un «no sé» no dijo
+ * nada, y mover la certeza en cualquier dirección sería inventarle una postura.
+ *
+ * Sólo se mira lo que viaja como `confirmado`: `sospecha`, `descartado` e
+ * `historia` ya declaran su propia reserva, y repetírsela al médico es la fatiga
+ * de alerta que costó REG-181.
+ */
+export function avisosDeDudaDelExtractor<T extends CondicionExtraida>(
+  conditions: readonly T[],
+  inciertas: readonly Negada[],
+): CorreccionCerteza[] {
+  if (!inciertas.length) return []
+  const out: CorreccionCerteza[] = []
+  for (const c of conditions) {
+    if (c.certeza !== 'confirmado') continue
+    const enc = cronicasEn(String(c.texto ?? ''))
+    const n = inciertas.find(x => enc.includes(x.condicion))
+    if (!n) continue
+    out.push({ texto: String(c.texto ?? ''), condicion: n.condicion, cita: n.cita })
+  }
+  return out
+}
+
+export const POR_QUE_LA_DUDA_NO_SE_RECLASIFICA =
+  'Con una negación se puede reclasificar: el paciente dijo que no, y ' +
+  '«descartado» es lo que él afirmó. Con un «no sé» no dijo nada. Marcarlo como ' +
+  'descartado borraría una diabetes que el acompañante acaba de confirmar —el ' +
+  'caso oro `oro-rol-acompanante`—, y marcarlo como confirmado sería inventarle ' +
+  'al paciente una afirmación que no hizo. Se señala y decide el médico.'
 
 export const POR_QUE_NO_SE_CORRIGE_SOLO =
   'Este motor no borra el diagnóstico ni lo da por falso. Un paciente puede ' +

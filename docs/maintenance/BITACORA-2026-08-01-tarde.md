@@ -6831,3 +6831,23 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+## CUADRAGÉSIMA OCTAVA TANDA — v1074 (REG-192: «No sé» no es «No»)
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **El motor de negaciones fallaba en las dos direcciones, y las dos hacen daño.** `^no\b` leía «No sé, doctor» como una negación: es el caso oro `oro-rol-acompanante` —la paciente no sabe y **el acompañante confirma** la diabetes— y el extractor reclasificaba a `descartado` un antecedente cierto y referido. Y al revés: de las formas en que de verdad se contesta que no en una consulta mexicana sólo entraba la escueta; «Pues no, doctor», «Fíjese que no», «Para nada», «Tampoco», «Mmm no» se perdían, y cada una es el fallo original de REG-153 vivo por otra puerta — la nota cosecha «diabetes» de la PREGUNTA. Ahora se quita el relleno y se juzga el núcleo, y **la duda se comprueba antes que la negación**. La duda **se señala, no se corrige**: hacia `descartado` borra lo que el acompañante confirmó y hacia `confirmado` le inventa al paciente una postura que no tomó. Regla 4 del derecho y del revés: ausencia de dato no es dato de ausencia, y duda tampoco. Nivel `revisa` y plegable —una contradicción es un hecho, una duda no—; **qué bloquea la firma no se tocó**. El candado que más costó: «nada más el asma» AFIRMA el asma, así que `nada` deja de valer cuando le sigue «más». Reproducido con el motor real antes de tocar nada (7 de 20 respuestas se leían al revés) y comprobado en rojo (8 de 21 casos fallan sin el arreglo). |
+
+### Lo que esta tanda dejó anotado y NO reparó
+
+- **El dictado con turnos etiquetados deja ciego al motor de negaciones.** Si al
+  texto le llegan etiquetas («Paciente: No sé»), el ancla `^` de la respuesta no
+  la ve y el motor calla entero — no marca ni negación ni duda. Hoy no ocurre:
+  a este motor le llega el `text` corrido del reconocedor. Pero es un hueco real
+  el día que la diarización alimente esta ruta. Anotado en el backlog como
+  `VOICE-005`.
+- **`ops-timeout-y-punto-ciego.test.ts` falla en este contenedor**, y ya fallaba
+  antes de tocar nada (comprobado con el árbol limpio). Depende de que
+  `10.255.255.1` no conteste en 30 ms; detrás del proxy de salida de este entorno
+  el intento muere antes y el error no es `TiempoAgotado`. Es del entorno, no del
+  código. Anotado como `EVAL-004`.

@@ -25,16 +25,18 @@ const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const barra = leer('src', 'components', 'AntesDeFirmar.tsx')
 const page = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 
-/** Los nueve orígenes, para que añadir uno obligue a declarar su nivel. */
+/** Los orígenes, para que añadir uno obligue a declarar su nivel. */
 const ORIGENES: OrigenAviso[] = [
   'dosis_incompleta', 'alergia_medicamento', 'contradiccion_negacion',
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
   'dosis_peligrosa',
+  /** «No sé» no es «no» (REG-192): la duda del paciente pide respaldo, no corrige. */
+  'duda_del_paciente',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
-  it('los nueve orígenes tienen nivel explícito', () => {
+  it('todos los orígenes tienen nivel explícito', () => {
     for (const o of ORIGENES) {
       expect(NIVEL[o], `${o} sin nivel declarado`).toBeDefined()
       expect(['bloquea', 'revisa', 'contexto']).toContain(NIVEL[o])
@@ -91,12 +93,13 @@ describe('lo que puede matar hoy nunca se pliega', () => {
 })
 
 describe('ningún aviso se perdió al reordenarlos', () => {
-  it('los nueve motores siguen llegando a la barra', () => {
+  it('todos los motores siguen llegando a la barra', () => {
     const avisos = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'sin cantidad' }],
       alergiaMedicamento: [{ mensaje: 'penicilina', severidad: 'critica' }],
       contradicciones: [{ condicion: 'diabetes', mensaje: 'x' }],
       desajustes: [{ condicion: 'fractura', mensaje: 'y' }],
+      dudas: [{ condicion: 'diabetes', mensaje: 'z' }],
       viasAsumidas: ['losartán'],
       avisoDeVia: 'No se dictó la vía de losartán',
       interacciones: [{ titulo: 'AINE + IECA', detalle: 'riesgo renal', severidad: 'mayor' }],

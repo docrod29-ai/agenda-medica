@@ -13,7 +13,7 @@
  * principal de extracción pero con un prompt NER puro.
  */
 import { anotarLlamada } from '@/lib/ia/gateway'
-import { condicionesNegadas, corregirCertezaPorNegacion } from '@/lib/expediente/negaciones'
+import { condicionesNegadas, condicionesInciertas, corregirCertezaPorNegacion, avisosDeDudaDelExtractor } from '@/lib/expediente/negaciones'
 import { mencionesEnPasado, avisosTemporalesDelExtractor } from '@/lib/expediente/temporalidad'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
@@ -215,12 +215,29 @@ export async function POST(req: NextRequest) {
       safeLog.info(`[extraer-entidades] ${avisosTemporales.length} condición(es) activas que el dictado situó en pasado`)
     }
 
+    /**
+     * Y LA TERCERA: LO QUE EL PACIENTE DIJO NO SABER (REG-192).
+     *
+     * `^no\b` leía «No sé, doctor» como una negación y esto reclasificaba a
+     * `descartado` una condición que el paciente nunca negó — la del caso oro
+     * `oro-rol-acompanante`, donde el acompañante la confirma acto seguido.
+     *
+     * Tampoco se reclasifica en la otra dirección: con un «no sé» el paciente no
+     * dijo nada, y moverle la certeza sería inventarle una postura. Se señala,
+     * como los avisos temporales, y decide el médico.
+     */
+    const avisosDuda = avisosDeDudaDelExtractor(conditions, condicionesInciertas(texto))
+    if (avisosDuda.length) {
+      safeLog.info(`[extraer-entidades] ${avisosDuda.length} condición(es) confirmadas que el paciente dijo no saber`)
+    }
+
     return NextResponse.json({
       ok: true, ...validation.data, conditions, model,
       /** Lo corregido se DICE: una corrección silenciosa se ve igual que un extractor que acertó. */
       negacionesCorregidas: corregidas,
       /** Y lo NO corregido también: señalar sin tocar sólo sirve si se enseña. */
       avisosTemporales,
+      avisosDuda,
     })
   } catch (err) {
     safeLog.error('[extraer-entidades] Exception:', err)

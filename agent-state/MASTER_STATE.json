@@ -10,16 +10,12 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "OPS-001 (cerrada)",
+  "iteracionActual": "REG-192 (cerrada) — «No sé» no es «No»",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/voz/REG-192"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ]
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "trabajoLocalSinSubir": [],
+  "versionPreparadaSinDesplegar": "nexusmed-v1074"
 }

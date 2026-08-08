@@ -42,12 +42,20 @@ interface NerPanelProps {
   negacionesCorregidas?: NegacionCorregida[]
   /** Lo que salió como activo y en el dictado iba en pasado. Ver `AvisoTemporal`. */
   avisosTemporales?: AvisoTemporal[]
+  /**
+   * Lo que salió como CONFIRMADO y el paciente había dicho no saber (REG-192).
+   *
+   * Aquí no se corrigió nada, a diferencia de `negacionesCorregidas`: con un «no
+   * sé» el paciente no dijo nada, y moverle la certeza en cualquier dirección
+   * sería inventarle una postura que no tomó.
+   */
+  avisosDuda?: AvisoTemporal[]
   cargando?: boolean
   error?: string
   onCerrar?: () => void
 }
 
-export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, cargando, error, onCerrar }: NerPanelProps) {
+export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, avisosDuda, cargando, error, onCerrar }: NerPanelProps) {
   if (cargando) {
     return (
       <div className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -214,6 +222,25 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
           </div>
           <div style={{ marginTop: 4, opacity: .9 }}>
             No se cambiaron: decidir que están resueltas sería una decisión clínica, no de la pantalla.
+          </div>
+        </div>
+      )}
+
+      {/* ── LO QUE EL PACIENTE DIJO NO SABER Y SALIÓ CONFIRMADO ── */}
+      {(avisosDuda?.length ?? 0) > 0 && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
+          color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
+        }}>
+          <b>{avisosDuda!.length} condición(es) salen como confirmadas y el paciente dijo no saberlo.</b>
+          <div style={{ marginTop: 4 }}>
+            {avisosDuda!.map((a, i) => (
+              <div key={`${a.condicion}-${i}`}>«{a.texto}» · en el dictado: {a.cita}</div>
+            ))}
+          </div>
+          <div style={{ marginTop: 4, opacity: .9 }}>
+            No se tocaron: puede venir del acompañante o del expediente. Si es así, déjalo escrito.
           </div>
         </div>
       )}

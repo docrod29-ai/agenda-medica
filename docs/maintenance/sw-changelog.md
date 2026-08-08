@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1074 — REG-192: «No sé» se leía como «No»
+
+El motor de negaciones fallaba en las dos direcciones. `^no\b` leía «No sé,
+doctor» como una negación —el caso oro `oro-rol-acompanante`, donde la paciente
+no sabe y el acompañante confirma la diabetes— y el extractor reclasificaba a
+`descartado` un antecedente cierto. Y al revés: «Pues no, doctor», «Fíjese que
+no», «Para nada», «Tampoco» no se reconocían como negación, así que la nota podía
+cosechar «diabetes» de la PREGUNTA y fabricar el antecedente crónico de REG-153.
+
+Ahora se quita el relleno y se juzga el núcleo, y la duda se comprueba ANTES que
+la negación. La duda **se señala y no se corrige**: hacia `descartado` borraría lo
+que el acompañante confirmó, hacia `confirmado` inventaría una postura que el
+paciente no tomó. Nivel `revisa`, plegable; qué bloquea la firma no se tocó.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

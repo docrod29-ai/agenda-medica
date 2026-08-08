@@ -152,7 +152,7 @@ import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
 import { palabrasDudosas, marcarTurno, paraElMedico, anexoDeDudas, INSTRUCCION_MARCAS } from '@/lib/expediente/confianza-audio'
 import { medicamentosSoloPropuestos, estudiosSoloPropuestos } from '@/lib/asr/intencion-de-orden'
 import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
-import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
+import { condicionesNegadas, condicionesInciertas, contradicciones, afirmacionesSobreLoQueNoSabe, avisoDeContradiccion, avisoDeDuda } from '@/lib/expediente/negaciones'
 import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import {
@@ -834,6 +834,27 @@ export default function ConsultaActivaPage() {
       .filter(c => !avisosRevisados.includes(`negacion:${c.condicion}`))
   }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   /**
+   * Y LO QUE EL PACIENTE DIJO NO SABER (REG-192).
+   *
+   * Hasta hoy esto viajaba disfrazado de contradicción: `^no\b` leía «No sé,
+   * doctor» como una negación y el aviso afirmaba que el paciente lo había
+   * negado. Es la regla 4 al revés — la duda no es un dato de ausencia — y el
+   * caso oro `oro-rol-acompanante` es justo éste: la paciente no sabe y el
+   * acompañante confirma la diabetes.
+   *
+   * La nota puede tener razón de sobra. Lo que se pide no es corregirla, sino
+   * que el respaldo conste.
+   */
+  const dudasNota = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    const inciertas = condicionesInciertas(dictado)
+    if (!inciertas.length) return []
+    const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
+    return afirmacionesSobreLoQueNoSabe(inciertas, textoNota)
+      .filter(c => !avisosRevisados.includes(`duda:${c.condicion}`))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
+  /**
    * EL PASADO NO ES EL PRESENTE.
    *
    * El hermano del anterior, y el hueco que la propia auditoría de voz declaraba
@@ -915,6 +936,8 @@ export default function ConsultaActivaPage() {
   const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
   /** Condiciones activas que el dictado situó en pasado. No se tocan: se enseñan. */
   const [avisosTemporales, setAvisosTemporales] = useState<AvisoTemporal[]>([])
+  /** Condiciones confirmadas que el paciente dijo no saber (REG-192). Tampoco se tocan. */
+  const [avisosDuda, setAvisosDuda] = useState<AvisoTemporal[]>([])
   const [nerCargando, setNerCargando] = useState(false)
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -1936,6 +1959,7 @@ export default function ConsultaActivaPage() {
       setEntidades(data as EntidadesExtraidas)
       setNegacionesCorregidas(((data as { negacionesCorregidas?: NegacionCorregida[] }).negacionesCorregidas) ?? [])
       setAvisosTemporales(((data as { avisosTemporales?: AvisoTemporal[] }).avisosTemporales) ?? [])
+      setAvisosDuda(((data as { avisosDuda?: AvisoTemporal[] }).avisosDuda) ?? [])
       const bloquea = (data.cross_check?.alergia_vs_medicamento ?? []).filter((c: { RIESGO_MAXIMO: boolean }) => c.RIESGO_MAXIMO).length
       const intGraves = (data.cross_check?.interacciones_farmacologicas ?? []).filter((i: { severidad: string }) => i.severidad === 'mayor' || i.severidad === 'contraindicada').length
       if (bloquea > 0) toast(`${bloquea} alergia(s) cruzada(s) — revisa el panel`, 'error')
@@ -3961,6 +3985,7 @@ export default function ConsultaActivaPage() {
             entidades={entidades}
             negacionesCorregidas={negacionesCorregidas}
             avisosTemporales={avisosTemporales}
+            avisosDuda={avisosDuda}
             cargando={nerCargando}
             error={nerError}
             onCerrar={() => { setEntidades(null); setNerError(''); setNegacionesCorregidas([]) }}
@@ -4303,6 +4328,7 @@ export default function ConsultaActivaPage() {
             .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),
           contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
           desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
+          dudas: dudasNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDuda(d) })),
           viasAsumidas,
           avisoDeVia: avisoDeViaAsumida(viasAsumidas),
           interacciones: detectarInteracciones(medicamentos),
