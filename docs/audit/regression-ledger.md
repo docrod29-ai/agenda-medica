@@ -3947,3 +3947,37 @@ hoja. Una hoja que se come la duración manda al paciente a casa sin saber
 cuántos días toma el antibiótico.
 
 **Guardián.** `src/__tests__/lo-que-se-lleva-el-paciente.test.ts`, 18 casos.
+
+## REG-243 — el plan no decía qué era de qué (v1124)
+
+**Tampoco es un defecto**: familia `hueco_frente_al_mercado`. Suki lo llama
+*problem-based charting* — cada problema con su código y debajo el plan de ESE
+problema. Aquí la nota tenía una lista de diagnósticos y otra de medicamentos,
+sin relación entre ellas. Con dos problemas y cinco fármacos, quién era de quién
+quedaba en la cabeza del médico, y en la del que lea la nota después, que no
+estuvo.
+
+**La línea que no se cruza, y es todo el diseño.** Inferir sería fácil:
+«moxifloxacino es antibiótico, hay una neumonía, luego es de la neumonía». Eso
+es razonamiento clínico. Con **dos infecciones simultáneas** acierta por suerte
+— y el error se lee exactamente igual que el acierto.
+
+Se ata **sólo lo que el médico dijo**, en el mismo tramo del dictado, y se
+enseña la frase que lo prueba. Lo demás queda **sin asignar**, a la vista, con
+una línea que explica que no consta en el dictado y que eso no lo vuelve un
+error.
+
+**Por qué el dictado y no la nota.** La nota es prosa reordenada por el modelo:
+ahí el fármaco y el diagnóstico pueden acabar en el mismo párrafo sin que nadie
+los relacionara nunca. El dictado es lo que se dijo, en el orden en que se dijo.
+
+**Dos salvaguardas más.** Una palabra corta compartida no basta para atar
+—«aguda» aparece en muchos diagnósticos, y atar por eso colgaría el fármaco del
+problema equivocado con toda la apariencia de estar bien—; y el panel **no
+ofrece dónde editar**: el sitio donde se corrige un plan es el plan, y un
+segundo lugar donde editar lo mismo separa las dos versiones.
+
+Reutiliza `segmentar()` de `trazabilidad.ts`: dos formas de trocear el dictado
+darían dos verdades distintas.
+
+**Guardián.** `src/__tests__/que-es-de-que.test.ts`, 16 casos.

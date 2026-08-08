@@ -51,6 +51,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -5036,6 +5037,18 @@ export default function ConsultaActivaPage() {
           transcripcion={voz.transcripcion}
         />
       )}
+
+      {/*
+        QUÉ ES DE QUÉ (REG-243) — el plan atado al problema que lo motivó, y
+        atado SÓLO donde él lo dijo. Lo que no consta se ve sin asignar: un
+        hueco visible es información, un vínculo inventado es un error que se
+        lee como un acierto.
+      */}
+      <PlanPorProblema
+        diagnosticos={diagnosticos.map(d => d.descripcion)}
+        medicamentos={medicamentos}
+        dictado={voz.transcripcion}
+      />
 
       {/*
         LO QUE SE LLEVA EL PACIENTE (REG-242) — Suki y Nabla lo tienen y aquí no

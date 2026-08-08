@@ -1055,6 +1055,10 @@
     {
       "archivo": "src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
       "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/que-es-de-que.test.ts",
+      "minCasos": 16
     }
   ]
 }

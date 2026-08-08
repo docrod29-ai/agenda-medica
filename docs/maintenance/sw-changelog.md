@@ -2406,3 +2406,9 @@ Instrucciones en español llano bajo la nota: medicamentos con «por la boca» y
 
 Se COMPONEN de lo que él firmó; no las redacta un modelo. Una compuerta
 comprueba que ninguna cifra se invente ni se pierda.
+
+## v1124 — qué es de qué (REG-243)
+
+El plan atado al problema que lo motivó, con la frase del dictado que lo prueba.
+Lo que no consta queda sin asignar, a la vista. NO se infiere: con dos
+infecciones simultáneas, inferir acierta por suerte.
