@@ -47,7 +47,15 @@ import { execSync } from 'child_process'
 
 const RAIZ = process.cwd()
 
-function medir(): { total: number; huerfanas: string[]; inalcanzables: string[] } {
+function medir(): {
+  total: number
+  huerfanas: string[]
+  /** ≤3 líneas sobre algo que sí corre: comodidad, no defecto (REG-260). */
+  envoltorios: string[]
+  /** Los que merecen mirarse uno a uno. */
+  conCuerpo: string[]
+  inalcanzables: string[]
+} {
   const out = execSync('node scripts/calidad/motores-conectados.mjs --json', {
     cwd: RAIZ, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
   })
@@ -122,6 +130,45 @@ describe('el instrumento no repite el error que ya cometió', () => {
     expect(s).not.toMatch(/'src\/lib\/utils'/)
   })
 })
+
+describe('el número significa algo: tres categorías (REG-260)', () => {
+  const m = medir()
+
+  it('el instrumento separa envoltorios de cuerpos reales', () => {
+    /**
+     * Decir «42 motores sin conectar» era inflar. 34 son envoltorios de ≤3
+     * líneas sobre algo que sí corre — `sePuedeFirmar` es
+     * `motivosParaNoFirmar().length === 0` —. No son defectos: son comodidad
+     * que nadie usó.
+     *
+     * Un número que mezcla las dos cosas no sirve para decidir nada.
+     */
+    expect(m.envoltorios.length + m.conCuerpo.length).toBe(m.huerfanas.length)
+    expect(m.envoltorios.length).toBeGreaterThan(m.conCuerpo.length)
+  })
+
+  it('los que tienen cuerpo real son POCOS y están nombrados', () => {
+    expect(m.conCuerpo.length).toBeLessThanOrEqual(8)
+    const doc = readFileSync(join(RAIZ, 'docs/quality/MOTORES-SIN-CONECTAR.md'), 'utf8')
+    for (const x of m.conCuerpo) expect(doc, `${x} no está en el documento`).toContain(x)
+  })
+
+  it('y uno de ellos está bloqueado en el DUEÑO, no en el código', () => {
+    /**
+     * `validarCorreccion` exige una política como parámetro obligatorio y
+     * `POLITICA_CORRECCION` nace en `null` a propósito: quién puede corregir un
+     * registro ya hecho, en qué ventana y si el motivo es obligatorio es
+     * política de registro clínico con peso NOM-004.
+     *
+     * Elegir un valor «razonable» y enterrarlo en una constante sería
+     * exactamente lo que este proyecto no hace.
+     */
+    const ev = readFileSync(join(RAIZ, 'src/lib/hospital/eventos.ts'), 'utf8')
+    expect(ev).toMatch(/export const POLITICA_CORRECCION: PoliticaCorreccion \| null = null/)
+    const dec = readFileSync(join(RAIZ, 'agent-state/OWNER_DECISIONS_REQUIRED.md'), 'utf8')
+    expect(dec).toMatch(/Política de correcciones a un registro ya hecho/)
+  })
+}, 300_000)
 
 describe('lo que el instrumento encontró y hay que ir cerrando', () => {
   it('la lista vive en un sitio que se puede leer', () => {

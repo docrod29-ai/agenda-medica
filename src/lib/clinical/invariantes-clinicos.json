@@ -1094,7 +1094,7 @@
     },
     {
       "archivo": "src/__tests__/los-motores-llegan-al-medico.test.ts",
-      "minCasos": 8
+      "minCasos": 11
     },
     {
       "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",

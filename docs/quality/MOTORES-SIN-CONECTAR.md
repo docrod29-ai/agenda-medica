@@ -40,6 +40,7 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `signo6060` · `pulsatilidadPorta` | REG-257 · conectados en el bloque POCUS; la pulsatilidad se calcula de Vmáx/Vmín en vez de clasificarse a ojo |
 | `oxigenoSinDeclarar` | REG-258 · detecta flujo/FiO₂ sin la casilla de «recibe O₂»; NEWS2 suma 2 puntos por oxígeno y sin ella la puntuación sale baja |
 | `omiteAlertasCriticas` | REG-259 · el texto de la IA podía CALLARSE una carbapenemasa detectada por el motor; contradecir era ruidoso, omitir no chocaba con nada |
+| `sePuedeFirmar` · `esAntecedenteFamiliar` · y 32 más | REG-260 · **no son defectos**: envoltorios de ≤3 líneas sobre funciones que sí corren |
 
 ## Lo que NO significa estar en esta lista
 
@@ -57,6 +58,34 @@ llama su vecina de archivo `analizarSeguridad`, y ésa sí corre.
 Casi «reparo» algo que funcionaba, en el módulo de antibiogramas — el que más
 le importa al médico dueño. Un medidor que grita de más enseña a ignorarlo,
 que es el mismo fallo que se repara en los avisos clínicos.
+
+## El número, desglosado (REG-260)
+
+Decir «42 motores sin conectar» era inflar. Medido:
+
+| | Cuántos | Qué son |
+|---|---|---|
+| **Envoltorios** | 34 | ≤3 líneas sobre una función que **sí corre**. `sePuedeFirmar` es `motivosParaNoFirmar().length === 0`. No son defectos: son comodidad que nadie usó. |
+| **Con cuerpo real** | 8 | Los que merecen mirarse uno a uno. |
+
+**Un número que mezcla las tres cosas no sirve para decidir nada.**
+
+### Los ocho con cuerpo real
+
+- `src/lib/clinical/safety-gate.ts::invariantesProtegidos`
+- `src/lib/expediente/ordenes-medicamento.ts::resumenVigentes`
+- `src/lib/expediente/problemas-activos.ts::resumenProblemas`
+- `src/lib/expediente/versioning.ts::obtenerVersion`
+- `src/lib/hospital/estados-cama.ts::coherenteConElTipo`
+- `src/lib/hospital/eventos.ts::validarCorreccion`
+- `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
+- `src/lib/uci/benchmark.ts::correrBenchmark`
+
+De esos ocho, **`validarCorreccion` está bloqueado en el dueño, no en el
+código**: exige una política como parámetro obligatorio y `POLITICA_CORRECCION`
+nace en `null` a propósito. Quién puede corregir, en qué ventana y si el motivo
+es obligatorio son decisiones de política de registro clínico con peso NOM-004.
+Está en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
 
 ## Lo que se decidió NO conectar, y por qué
 

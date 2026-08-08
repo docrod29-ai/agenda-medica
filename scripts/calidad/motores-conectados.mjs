@@ -136,7 +136,24 @@ while (cola.length) {
   }
 }
 
+/** Líneas de código del cuerpo de una función, sin comentarios ni vacías. */
+function cuerpoDe(texto, simbolo) {
+  const m = new RegExp(`^export\\s+(?:async\\s+)?function\\s+${simbolo}\\b`, 'm').exec(texto)
+  if (!m) return null
+  let i = texto.indexOf('{', m.index)
+  if (i < 0) return null
+  let prof = 0, j = i
+  for (; j < texto.length; j++) {
+    if (texto[j] === '{') prof++
+    else if (texto[j] === '}' && --prof === 0) break
+  }
+  return texto.slice(i + 1, j).split('\n')
+    .filter(l => l.trim() && !/^\s*(\/\/|\*|\/\*)/.test(l)).length
+}
+
 const huerfanas = []
+const envoltorios = []
+const conCuerpo = []
 const inalcanzables = []
 let total = 0
 
@@ -158,8 +175,32 @@ for (const dom of DOMINIOS) {
         if (p === archivo) continue
         if (new RegExp(`\\b${simbolo}\\b`).test(t)) { fuera = true; break }
       }
-      if (!enElSuyo && !fuera) huerfanas.push(`${relative(RAIZ, archivo)}::${simbolo}`)
-      else if (!llegaAlMedico && !fuera) inalcanzables.push(`${relative(RAIZ, archivo)}::${simbolo}`)
+      if (!enElSuyo && !fuera) {
+        const id = `${relative(RAIZ, archivo)}::${simbolo}`
+        huerfanas.push(id)
+        /**
+         * ── TRES CATEGORÍAS, NO UNA (REG-260) ──────────────────────────────
+         *
+         * Decir «42 motores sin conectar» era inflar. Medido:
+         *
+         *   34  ENVOLTORIOS de ≤3 líneas sobre una función que SÍ corre
+         *       (`sePuedeFirmar` es `motivosParaNoFirmar().length === 0`).
+         *       No son defectos: son comodidad que nadie usó.
+         *    8  con CUERPO REAL — los que merecen mirarse uno a uno.
+         *
+         * Y de esos ocho, alguno está **bloqueado en el dueño**, no en mí:
+         * `validarCorreccion` exige una política como parámetro obligatorio y
+         * su constante nace en `null` a propósito, porque quién puede
+         * corregir, en qué ventana y si el motivo es obligatorio son
+         * decisiones suyas. Conectarla inventándome la política sería
+         * exactamente lo que este proyecto no hace.
+         *
+         * Un número que mezcla las tres cosas no sirve para decidir nada.
+         */
+        const cuerpo = cuerpoDe(texto, simbolo)
+        if (cuerpo !== null && cuerpo <= 3) envoltorios.push(id)
+        else conCuerpo.push(id)
+      } else if (!llegaAlMedico && !fuera) inalcanzables.push(`${relative(RAIZ, archivo)}::${simbolo}`)
     }
   }
 }
@@ -168,12 +209,14 @@ inalcanzables.sort()
 huerfanas.sort()
 
 if (process.argv.includes('--json')) {
-  console.log(JSON.stringify({ total, huerfanas, inalcanzables }, null, 2))
+  console.log(JSON.stringify({ total, huerfanas, envoltorios, conCuerpo, inalcanzables }, null, 2))
 } else {
   console.log(
     `\n  Motores clínicos y de seguridad: ${total} funciones exportadas.\n` +
-    `  CÓDIGO MUERTO (nadie las usa, en ningún sitio): ${huerfanas.length}\n`)
-  for (const h of huerfanas) console.log(`     · ${h}`)
+    `  Sin ningún uso: ${huerfanas.length}\n` +
+    `     · ${envoltorios.length} son ENVOLTORIOS de ≤3 líneas sobre algo que sí corre\n` +
+    `     · ${conCuerpo.length} tienen CUERPO REAL — éstos son los que hay que mirar\n`)
+  for (const h of conCuerpo) console.log(`     ! ${h}`)
   console.log(
     `\n  SIN LLEGAR AL MÉDICO (sólo se usan dentro de un módulo que ninguna\n` +
     `  pantalla alcanza): ${inalcanzables.length}\n`)

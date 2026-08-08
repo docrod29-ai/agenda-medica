@@ -16,9 +16,10 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1141",
+  "ultimaVersionEnProduccion": "nexusmed-v1142",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
+    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
@@ -26,12 +27,10 @@
     " M docs/quality/MOTORES-SIN-CONECTAR.md",
     " M public/sw.js",
     " M public/version.txt",
+    " M scripts/calidad/motores-conectados.mjs",
     " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/app/(dashboard)/antibiograma/page.tsx",
-    " M src/app/api/expediente/antibiograma-razonar/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/lo-que-el-texto-se-callo.test.ts"
+    " M src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -67,10 +66,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 107,
-    "ultimaREG": "REG-259",
+    "regsEnElLedger": 108,
+    "ultimaREG": "REG-260",
     "archivosDePrueba": 537,
-    "casosDePrueba": 7138,
+    "casosDePrueba": 7141,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

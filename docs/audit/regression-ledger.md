@@ -4679,3 +4679,41 @@ no hizo — y este proyecto no cruza esa línea ni cuando sería cómodo.
 **El trinquete baja: 43 → 42.** Familia `no_conectado`, la vigésima quinta.
 
 **Guardián.** `src/__tests__/lo-que-el-texto-se-callo.test.ts`, 9 casos.
+
+## REG-260 — el número decía 42 y significaba otra cosa (v1142)
+
+**El instrumento de REG-255 empezaba a mentir por agregación.** Decía «42
+motores clínicos sin conectar», y con ese número no se puede decidir nada.
+Medido:
+
+| | Cuántos | Qué son |
+|---|---|---|
+| **Envoltorios** | 34 | ≤3 líneas sobre una función que **sí corre**. `sePuedeFirmar` es literalmente `motivosParaNoFirmar().length === 0`. **No son defectos**: son comodidad que nadie usó |
+| **Con cuerpo real** | 8 | Los que merecen mirarse uno a uno |
+
+Un medidor que cuenta 42 cuando hay 8 que mirar es el mismo defecto que ya se
+reparó en él mismo (152 → 50) y el mismo que se repara en los avisos clínicos:
+**si todo cuenta igual, nada se mira**.
+
+**Y una tercera categoría que no existía: bloqueado en el dueño.**
+
+De los ocho con cuerpo real, `validarCorreccion` **no es un defecto de
+software**. Exige una política como parámetro **obligatorio** y
+`POLITICA_CORRECCION` nace en `null` a propósito. Su comentario lo dice: *«la
+única forma de usar esta función es que alguien haya decidido Q2-Q4 y lo haya
+escrito»*.
+
+Quién puede corregir un registro ya hecho, en qué ventana, quién puede **anular
+una administración de medicamento** y si el motivo es obligatorio son decisiones
+de política de registro clínico con peso NOM-004. Elegir valores «razonables» y
+enterrarlos en una constante sería exactamente lo que este proyecto no hace.
+
+Llevado a `agent-state/OWNER_DECISIONS_REQUIRED.md`: **cuatro preguntas, cuatro
+frases, y queda conectado**.
+
+Familia `sin_medir`: el instrumento existía y medía de más.
+
+**Guardián**: tres casos nuevos en
+`src/__tests__/los-motores-llegan-al-medico.test.ts` — que las dos categorías
+sumen el total, que los de cuerpo real estén **nombrados en el documento**, y
+que `POLITICA_CORRECCION` siga en `null` con su decisión en la cola del dueño.

@@ -92,3 +92,31 @@ NOM-004 y borrar automáticamente al vencer. Eso exige una tarea de limpieza y
 borrado automático.
 
 **Qué cuesta responder**: una frase.
+
+## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho
+
+**Encontrado por el instrumento de REG-255** (`validarCorreccion`, 18 líneas de
+cuerpo real, sin llamador). **No es un defecto de software**: la función exige
+una política como parámetro **obligatorio**, y `POLITICA_CORRECCION` nace en
+`null` a propósito. Su propio comentario lo dice: *«la única forma de usar esta
+función es que alguien haya decidido Q2-Q4 y lo haya escrito»*.
+
+Sin su respuesta, **corregir una toma de signos o una administración ya
+registrada no está habilitado**. El motor está escrito y probado.
+
+Cuatro preguntas, y con las cuatro queda conectado:
+
+1. **¿Quién puede corregir?** (roles: médico, enfermería, farmacia,
+   laboratorio, administración)
+2. **¿Quién puede ANULAR una administración de medicamento?** Es aparte porque
+   anular una administración borra la constancia de que algo se dio.
+3. **¿Cuántas horas después del evento se admite corregir?** ¿Y se admite
+   corregir en un episodio ya egresado?
+4. **¿El motivo escrito es obligatorio?**
+
+**Por qué no lo decido yo.** Es política de registro clínico con peso
+NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
+«razonable» y enterrarlo en una constante sería exactamente lo que este proyecto
+no hace.
+
+**Qué cuesta responder**: cuatro frases.

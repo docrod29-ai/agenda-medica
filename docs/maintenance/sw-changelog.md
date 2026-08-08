@@ -2519,3 +2519,9 @@ efecto. No se deduce: lo decide el médico.
 El razonamiento del antibiograma podía omitir una alerta crítica del motor —una
 carbapenemasa— sin contradecir nada, y nadie lo notaba. Ahora se avisa, en
 ámbar, para los dos modelos.
+
+## v1142 — el número de motores sin conectar, desglosado (REG-260)
+
+Decía 42 y significaba otra cosa: 34 son envoltorios de ≤3 líneas sobre algo que
+sí corre, y sólo 8 tienen cuerpo real. Uno de esos ocho está bloqueado en una
+decisión de política del Dr., no en el código.
