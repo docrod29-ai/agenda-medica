@@ -128,9 +128,10 @@
       "complejidad": 2,
       "dependenciaExterna": 0,
       "score": 56,
-      "estado": "pendiente",
-      "reversible": true
+      "estado": "cerrado",
+      "reversible": true,
+      "cierre": "REG-193 (v1075). Medido antes de tocarlo, como exigía el propio ítem: nueve formas de nota sintética contra los motores reales, antes y después. La ventana se corta donde acaba la afirmación anterior y el encabezado de sección se consulta aparte — los dos puntos abren, el punto cierra. El número 60 NO se movió. Golden el-escudo-no-cruza-el-punto.test.ts (17 casos, 9 en rojo sin el arreglo). Reparó además una falsa alarma que ya existía: la lista bajo encabezado largo separada por puntos."
     }
   ],
-  "actualizado": "2026-08-08"
+  "actualizado": "2026-08-09"
 }

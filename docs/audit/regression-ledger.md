@@ -1623,3 +1623,92 @@ falla en sus tres casos (los dos de comportamiento y el estructural).
 
 **Golden** — `src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts` (14
 casos).
+
+---
+
+## REG-193 — el escudo de una oración le prestaba silencio a la siguiente (v1075)
+
+**Encontrado** — 8-ago-2026. No es un hallazgo nuevo: es el límite que REG-192
+dejó declarado por escrito («la ventana sigue cruzando el punto») y que quedó en
+el backlog como **TEMP-001** con una condición explícita — medirlo antes de tocar
+el número, porque acotar la ventana a la oración rompería la nota con encabezado
+de sección, que es igual de común.
+
+**El defecto** — `primeraMencionSinEscudo` miraba 60 caracteres hacia atrás
+**contados a ciegas**. Un «Niega diabetes.» al final de una oración escudaba a la
+palabra que cayera en los primeros 60 caracteres de la siguiente, aunque fuera
+otra condición y otra afirmación.
+
+**Cómo se reprodujo** — Con los motores reales, antes de tocar nada, sobre nueve
+formas de nota sintética. Dos de ellas:
+
+```
+nota:    Niega diabetes. Hipertensión arterial sistémica descompensada.
+dictado: Niega diabetes. Niega hipertensión.
+contradicciones(...) → []            ← debía avisar de la hipertensión
+
+nota:    Antecedentes: neumonía en 2019. Impresión diagnóstica: neumonía adquirida.
+dictado: Tuvo neumonía hace tres años.
+desajustesTemporales(...) → []       ← debía avisar de la impresión diagnóstica
+```
+
+**El segundo caso es el caro: es la nota de REG-192 otra vez.** REG-192 reparó
+exactamente esa nota, pero la escribió **larga** («neumonía en 2019, manejada de
+forma ambulatoria con amoxicilina durante siete días»), y esa longitud empujaba
+la palabra «Antecedentes» más allá de los 60 caracteres. Escrito corto, el
+antecedente volvía a alcanzar y la impresión diagnóstica se callaba igual que
+antes. **El aviso dependía de cuánto hubiera escrito el médico en el renglón de
+arriba**, que no es criterio de nada.
+
+**Por qué importa para un paciente** — Es un escudo que no le corresponde a la
+mención que silencia. El paciente que negó la hipertensión salía con
+«hipertensión arterial sistémica» escrita como diagnóstico, y el motor que existe
+para cazar justo eso se callaba porque dos renglones antes la nota había negado
+**otra cosa**. El diagnóstico es lo que se arrastra a la nota siguiente y lo que
+otro médico lee dentro de seis meses.
+
+**Reparación** — El escudo alcanza desde donde empezó **esta** afirmación —punto,
+interrogación, admiración o salto de línea la cierran— y como mucho
+`VENTANA_DEL_ESCUDO` hacia atrás. Los dos puntos **no** cierran: abren una sección
+y gobiernan lo que viene detrás, así que el encabezado se consulta aparte y escuda
+a todas las afirmaciones de su sección. Eso es lo que salva la nota que TEMP-001
+protegía:
+
+```
+Antecedentes personales patológicos:
+Neumonía en 2019.                          ← sigue callada, la escuda el encabezado
+
+Antecedentes personales patológicos: apendicectomía en 2010. Neumonía en 2019.
+                                           ← ahora también, y antes NO: avisaba
+```
+
+Esa segunda forma **era una falsa alarma antes del arreglo**, por el mismo motivo
+que el defecto: con el encabezado corto («Antecedentes:») callaba y con el largo
+avisaba. Lo que decidía era la cuenta de caracteres. Ahora decide la estructura.
+
+**La ventana de 60 no se movió.** Sigue siendo el tope hacia atrás y ahora sirve
+además para distinguir el encabezado de la prosa: lo que no cabe en ella no es un
+encabezado.
+
+**Qué NO hace**
+
+- Un encabezado que no cabe en la ventana no escuda: «Antecedentes personales
+  patológicos de importancia para el padecimiento actual:» mide 77 caracteres y
+  se descarta como prosa, así que la mención de debajo se señala. Falsa alarma,
+  era ya el comportamiento anterior y queda declarada — el tope no se toca sin
+  medirlo, que es justo la lección de TEMP-001.
+- Un encabezado sin dos puntos tampoco escuda: sólo lo alcanza la ventana de 60.
+- La prosa larga que acaba en dos puntos todavía puede escudar de más («…que
+  niega tabaquismo desde hace años, presenta: hipertensión»): cabe en la ventana
+  y pasa por encabezado. Sin cambio respecto de antes.
+- No amplía el vocabulario: lo que no está en `CRONICAS` ni en
+  `AGUDAS_FRECUENTES` sigue sin vigilarse, y así está declarado allí.
+
+**Qué queda para el médico** — Lo mismo que en REG-192: los dos motores señalan,
+no deciden. Puede que la nota tenga razón y el interrogatorio no.
+
+**Comprobado que puede ponerse rojo** — Revertido `primeraMencionSinEscudo` a la
+ventana ciega, el golden falla en **9 de sus 17 casos**; los 8 que siguen verdes
+son precisamente los que no podían romperse.
+
+**Golden** — `src/__tests__/el-escudo-no-cruza-el-punto.test.ts` (17 casos).

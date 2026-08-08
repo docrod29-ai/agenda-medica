@@ -3,6 +3,29 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1075 — REG-193: el escudo de una oración le prestaba silencio a la siguiente
+
+La v1074 dejó vivo su reverso y lo dejó por escrito: la ventana de 60 caracteres
+que busca el escudo («niega…», «antecedente de…») se contaba a ciegas y **cruzaba
+el punto**. Un «Niega diabetes.» al final de una oración escudaba a la palabra
+que cayera en los primeros 60 caracteres de la siguiente, aunque fuera otra
+condición.
+
+El caso caro era la propia nota de REG-192 escrita corta: «Antecedentes: neumonía
+en 2019. Impresión diagnóstica: neumonía adquirida.» Ahí los 60 caracteres del
+segundo «neumonía» todavía alcanzaban «Antecedentes», y la impresión diagnóstica
+se callaba otra vez. El aviso dependía de cuánto hubiera escrito el médico en el
+renglón de arriba.
+
+Ahora el escudo alcanza desde donde empezó **esta** afirmación —el punto, la
+interrogación, la admiración y el salto de línea la cierran— y el encabezado de
+sección se consulta aparte, porque los dos puntos no cierran: abren. Eso es lo
+que salva la nota con «Antecedentes personales patológicos:» arriba, que era la
+razón de no haberlo tocado a ojo.
+
+La ventana de 60 no se movió: sigue siendo el tope hacia atrás, y ahora sirve
+además para distinguir un encabezado de la prosa.
+
 ## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
 
 Los dos motores que contrastan el dictado contra la nota —negaciones y

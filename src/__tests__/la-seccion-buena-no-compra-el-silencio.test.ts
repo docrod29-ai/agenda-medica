@@ -42,12 +42,13 @@
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
- * · **La ventana sigue cruzando el punto.** «Niega diabetes.» al final de una
- *   oración escuda a la palabra que aparece en los primeros 60 caracteres de la
- *   siguiente. Es un escudo prestado y hoy sigue vivo; acotarlo a la oración
- *   rompería la nota con encabezado de sección («Antecedentes:\nNeumonía…»), que
- *   es igual de común. Queda medido y anotado en el backlog como TEMP-001, no
- *   reparado a ojo.
+ * · **La ventana cruzaba el punto** cuando se escribió esto: «Niega diabetes.»
+ *   al final de una oración escudaba a la palabra que apareciera en los primeros
+ *   60 caracteres de la siguiente. Quedó anotado como TEMP-001 para medirlo
+ *   antes de tocar el número, y se reparó en la iteración siguiente (REG-193):
+ *   la ventana se corta en el punto y el encabezado de sección se consulta
+ *   aparte, que es lo que salvaba la nota con «Antecedentes:\nNeumonía…». Su
+ *   caso oro es `el-escudo-no-cruza-el-punto.test.ts`.
  * · **Un aviso por condición**, no uno por aparición: si la nota la afirma tres
  *   veces se avisa una vez. Es deliberado — la fatiga de alerta cuesta más que
  *   la precisión del conteo.
@@ -118,10 +119,11 @@ describe('EL AYUDANTE, DIRECTO', () => {
 
   it('devuelve la primera aparición sin escudo, no la primera aparición', () => {
     /**
-     * El relleno del medio no es adorno: la ventana de 60 caracteres cruza el
-     * punto, así que un «niega» pegado a la oración anterior todavía escuda. Es
-     * el límite declarado en la cabecera (TEMP-001) y esta prueba lo respeta en
-     * vez de fingir que no existe.
+     * El relleno del medio se escribió cuando la ventana de 60 caracteres
+     * cruzaba el punto: sin él, el «niega» de la oración anterior escudaba
+     * también al segundo «asma». Desde REG-193 ya no hace falta, pero se deja:
+     * la prueba comprueba que se devuelve la primera SIN escudo y no la primera
+     * a secas, y eso vale con relleno y sin él.
      */
     const texto = 'niega asma. Refiere buen apetito, sueño conservado y actividad '
       + 'física habitual diaria. El asma está descompensada hoy.'

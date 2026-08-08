@@ -10,17 +10,22 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-192 (cerrada, PR abierto)",
+  "iteracionActual": "REG-193 / TEMP-001 (cerrada, PR abierto)",
   "ramasActivas": [
-    "agent/expediente/TEMP-192"
+    "agent/expediente/TEMP-192",
+    "agent/expediente/TEMP-001-escudo"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1074",
+  "ultimaVersionEnRama": "nexusmed-v1075",
   "trabajoLocalSinSubir": [],
   "notasDeEstado": [
-    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
-    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
+    "9-ago-2026: TEMP-001 era el ítem pendiente de mayor score (56) y traía una condición escrita — medirlo antes de tocar el número. Se midió: nueve formas de nota contra los motores reales, antes y después del cambio. REG-193.",
+    "La v1075 se apila sobre la v1074, que sigue sin desplegar en su propia rama. Un despliegue arrastra las dos.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Vuelto a comprobar el 9-ago con git stash sobre el árbol limpio. No se tocó.",
+    "El techo del trinquete es 96, no 98: la v1070 lo bajó y esta nota estaba atrasada.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data». node_modules no viene con el contenedor: npm ci primero.",
+    "COLISIÓN DE NUMERACIÓN, no resuelta aquí: hay ~30 PRs abiertos de ejecuciones paralelas de este mismo bucle. REG-193 lo reclama también el PR #241 y v1075 el PR #230; el REG más alto reclamado es 264 y la versión más alta v1146. Se conservan REG-193/v1075 porque son los correctos contra `main`, que es lo único fusionado. Ya está reportado como OPS-003 en el PR #251.",
+    "SOLAPE: el PR #249 (REG-195, rama agent/safety/SAFE-003-ventana) ataca este mismo defecto desde otra ejecución. Esta reparación además cubre el encabezado de sección, que era la razón declarada de no tocarlo a ojo."
   ]
 }
