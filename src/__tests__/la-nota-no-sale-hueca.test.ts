@@ -135,19 +135,62 @@ describe('la nota no sale hueca', () => {
   describe('ESTÁ CABLEADO', () => {
     const page = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 
-    it('los DOS sitios que escriben secciones sanean el hueco', () => {
-      expect(page.split('sinHuecoDeProsa(').length - 1).toBe(2)
+    it('todo lo que llega a una sección pasa por el saneo del hueco', () => {
+      /**
+       * Eran dos sitios. Desde REG-226 son tres: se añadió un cálculo previo de
+       * «qué escribió la IA» —para poder distinguir su texto del del médico— y
+       * ése también tiene que sanear, o la anotación de procedencia guardaría el
+       * hueco como si fuera contenido.
+       *
+       * Se comprueba el MÍNIMO, no la cifra exacta: la cifra exacta convierte
+       * cualquier sitio nuevo en un fallo aunque esté bien escrito. Lo que no
+       * puede bajar es la cobertura.
+       */
+      expect(page.split('sinHuecoDeProsa(').length - 1).toBeGreaterThanOrEqual(3)
     })
 
     it('el saneo va ANTES de la guarda del pase en vivo', () => {
       /**
-       * El orden ES el arreglo. Si el hueco se escribe primero, `s.value?.trim()`
-       * lo da por contenido y lo congela para el resto de la consulta.
+       * El orden ES el arreglo: si el hueco se escribiera primero, quedaría
+       * anotado como texto de la IA y sobreviviría a los pases siguientes.
        */
       const i = page.indexOf('const limpio = sinHuecoDeProsa(valorIA)')
-      const j = page.indexOf("if (enVivo && s.value?.trim()) return s")
+      const j = page.indexOf('if (enVivo && loCambioElMedico) return s')
       expect(i).toBeGreaterThan(-1)
       expect(j).toBeGreaterThan(i)
+    })
+
+    it('la guarda del pase en vivo mira QUIÉN escribió, no si hay texto (REG-226)', () => {
+      /**
+       * LA FORMA VIEJA NO PUEDE VOLVER.
+       *
+       * `if (enVivo && s.value?.trim()) return s` congelaba el apartado en
+       * cuanto CUALQUIERA escribía algo — incluido un pase anterior de la propia
+       * IA, hecho con el modelo rápido y la consulta apenas empezada. Ninguna
+       * pasada posterior podía corregirlo.
+       *
+       * Le pegaba justo al médico que dicta SALTANDO de tema: cuando regresaba a
+       * antecedentes en el minuto diez, el apartado llevaba nueve minutos
+       * congelado con la peor versión.
+       *
+       * La distinción correcta no es «vacío o lleno»: es quién lo escribió.
+       */
+      expect(page).not.toContain('if (enVivo && s.value?.trim()) return s')
+      expect(page).toContain('const loPusoLaIa = seccionesDeLaIaRef.current[s.key]')
+      expect(page).toContain('if (enVivo && loCambioElMedico) return s')
+    })
+
+    it('la anotación de procedencia se hace FUERA del actualizador de estado', () => {
+      /**
+       * React puede ejecutar un actualizador de estado dos veces. Anotar desde
+       * dentro dejaría el registro de «esto lo escribió la IA» dependiendo de
+       * cuántas veces corrió — y con él, la decisión de si el apartado se puede
+       * corregir o no.
+       */
+      const anotar = page.indexOf('seccionesDeLaIaRef.current = { ...seccionesDeLaIaRef.current')
+      const cierraSet = page.indexOf('setSecciones(prev => {')
+      expect(anotar).toBeGreaterThan(cierraSet)
+      expect(page).toContain('const loQueEscribeLaIa: Record<string, string> = {}')
     })
   })
 })

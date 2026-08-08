@@ -380,6 +380,16 @@ export default function ConsultaActivaPage() {
   const medDeLaIaRef = useRef<Medicamento[]>([])
 
   /**
+   * Y lo mismo para las SECCIONES: qué texto dejó la IA en cada apartado.
+   *
+   * Es lo único que distingue «esto lo escribió un pase anterior mío, puedo
+   * mejorarlo» de «esto lo escribió el médico, no se toca». Sin esta anotación,
+   * la primera versión —la peor, del modelo rápido, con la consulta empezando—
+   * congelaba el apartado para el resto de la consulta.
+   */
+  const seccionesDeLaIaRef = useRef<Record<string, string>>({})
+
+  /**
    * LO YA DICTADO NO SE PIERDE AL VOLVER A GRABAR.
    *
    * Los dos efectos de abajo hacían `setTranscripcion(...)` a secas, que
@@ -1654,6 +1664,20 @@ export default function ConsultaActivaPage() {
        * En vivo la IA solo RELLENA huecos. En el "Procesar" normal (que el médico
        * pidió a propósito) sigue mandando la IA, como hasta ahora.
        */
+      /**
+       * ── LO QUE LA IA ESCRIBIÓ, ANTES DE TOCAR LA PANTALLA ────────────────────
+       *
+       * Se calcula aquí y no dentro del `setSecciones` porque React puede
+       * ejecutar un actualizador de estado dos veces; anotar la procedencia
+       * desde dentro dejaría el registro dependiendo de cuántas veces corrió.
+       */
+      const loQueEscribeLaIa: Record<string, string> = {}
+      for (const [clave, valor] of Object.entries(data.secciones ?? {})) {
+        if (typeof valor !== 'string' || !valor.trim()) continue
+        const limpio = sinHuecoDeProsa(valor)
+        if (limpio) loQueEscribeLaIa[clave] = sanitizarProsa(limpio)
+      }
+
       // La transcripción cruda NUNCA se vuelca dentro de la nota (es material de origen).
       setSecciones(prev => {
         /**
@@ -1686,10 +1710,39 @@ export default function ConsultaActivaPage() {
            */
           const limpio = sinHuecoDeProsa(valorIA)
           if (!limpio) return s
-          if (enVivo && s.value?.trim()) return s      // ya escrito a mano: no se toca
+          /**
+           * ── LA PRIMERA VERSIÓN YA NO CONGELA EL APARTADO ────────────────────
+           *
+           * Antes decía: «si en vivo la sección ya tiene texto, no la toques».
+           * La intención era buena —no pisar lo que el médico teclea mientras la
+           * IA corre—, pero «ya tiene texto» **incluía lo que había escrito un
+           * pase anterior DE LA PROPIA IA**.
+           *
+           * Y el pase en vivo corre cada 15 segundos, con el modelo rápido, y el
+           * primero ocurre con la consulta apenas empezada. Resultado: la
+           * versión más pobre de cada apartado se quedaba fija para siempre.
+           *
+           * Le pega justo a este médico, que dicta SALTANDO: cuando regresa a
+           * antecedentes en el minuto diez, ningún pase posterior podía ya
+           * corregir lo que se escribió en el minuto uno. Es su queja literal —
+           * «no llenas los apartados como es».
+           *
+           * La distinción correcta no es «vacío o lleno»: es **quién lo
+           * escribió**. Si lo que hay coincide con lo que la IA puso en su pase
+           * anterior, es suyo y puede mejorarlo. Si NO coincide, lo cambió el
+           * médico y no se toca — que era lo que la guarda quería proteger.
+           *
+           * Mismo criterio que ya usan los diagnósticos y los medicamentos.
+           */
+          const loPusoLaIa = seccionesDeLaIaRef.current[s.key]
+          const loCambioElMedico = !!s.value?.trim()
+            && s.value.trim() !== (loPusoLaIa ?? '').trim()
+          if (enVivo && loCambioElMedico) return s
           return { ...s, value: sanitizarProsa(limpio) }
         })
       })
+      // Queda anotado qué dejó la IA, para que el próximo pase sepa qué es suyo.
+      seccionesDeLaIaRef.current = { ...seccionesDeLaIaRef.current, ...loQueEscribeLaIa }
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
       if (tipoOverride) {

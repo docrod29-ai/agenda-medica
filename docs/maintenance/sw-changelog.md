@@ -2248,3 +2248,15 @@ existía en el tipo, el prompt y una prueba sellada — y z.object la borraba en
 lista plana. Además la lista acumulaba de los ~40 pases en vivo (REG-221).
 (3) «esto tiene que salir a fuerzas?»: el aviso marcado no-print desaparecía al
 Imprimir y salía impreso en el PDF (REG-222).
+
+## v1107 — la grabación se moría a los 7 min 30 s
+Causa: a 64 kbps, 3,6 MB son exactamente 450 s. Ahí el audio cambia al camino
+«grande» (subir a Storage + diarizar por URL), y la regla decía
+`allow read: if false` — `getDownloadURL()` fallaba en el primer segundo. Misma
+causa raíz que v245 en el otro bucket. Igual en iPhone que en computadora porque
+es aritmética de bytes. +3 daños colaterales: el motivo mentía («tiempo
+agotado» por un permiso denegado), el texto en vivo se tiraba cuando era lo
+único que quedaba, y la recuperación siempre tomaba el camino roto (REG-225).
+También: la primera versión de cada apartado dejaba de congelarlo — la guarda
+del pase en vivo ahora mira QUIÉN lo escribió, no si hay texto (REG-226).
+REQUIERE despliegue aparte: npx firebase deploy --only storage

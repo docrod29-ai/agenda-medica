@@ -260,6 +260,20 @@ const SALTO_SOSPECHOSO_MS = 2000
 // volvió de 48k/128k a esto porque el archivo pesado (~2.5×) cruzaba el umbral de
 // "audio grande" y en Safari (mp4) el troceado por partes fallaba → "no se pudo
 // transcribir". Ligero = sube rápido, no hace timeout y no rompe la transcripción.
+/**
+ * A PARTIR DE AQUÍ EL AUDIO NO CABE EN EL CUERPO DE LA PETICIÓN.
+ *
+ * Vercel limita el cuerpo de una función a ~4,5 MB; se deja margen. Era un
+ * número suelto dentro de `detener()`, y por eso `recuperarAudio` no lo miraba
+ * y siempre tomaba el camino largo.
+ *
+ * Con BITRATE_OPUS = 64 kbps son 8 000 bytes por segundo, así que este umbral
+ * se cruza a los **7 min 30 s** de grabación. Ése es el minuto exacto en el que
+ * toda consulta cambiaba de camino — y el camino de destino estaba muerto por
+ * una regla de Storage (REG-225).
+ */
+const LIMITE_CUERPO_BYTES = 3_600_000
+
 const BITRATE_OPUS = 64_000
 const SAMPLE_RATE_OBJETIVO = 16_000
 const INTERVALO_CHUNK_DEFAULT_MS = 20_000
@@ -357,6 +371,10 @@ const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
  * pagada; lo que falló fue el reloj.
  */
 export type MotivoSinDiarizacion = 'sin_llave' | 'error_proveedor' | 'tiempo_agotado' | 'red' | 'sin_texto'
+  /** El audio subió pero no se pudo LEER su URL: permiso de Storage. */
+  | 'sin_permiso_de_lectura'
+  /** No se pudo ni subir el audio al almacenamiento. */
+  | 'no_se_pudo_subir'
 
 export interface ResultadoDiarizacion {
   ok: boolean
@@ -509,7 +527,21 @@ async function intentarDiarizarLargo(
       if (d.status === 'error' || d.ok === false) return falla('error_proveedor')
     }
     return falla('tiempo_agotado')
-  } catch {
+  } catch (e) {
+    /**
+     * EL MOTIVO TIENE QUE SER EL DE VERDAD.
+     *
+     * Este `catch` decía «tiempo_agotado» pasara lo que pasara. Durante meses
+     * lo que pasaba era un `storage/unauthorized` en `getDownloadURL()` —falta
+     * de permiso, en el primer segundo— y el médico leía «se agotó el tiempo»,
+     * así que buscaba el problema en su internet.
+     *
+     * Un motivo que miente cuesta doble: la avería, y las horas persiguiendo la
+     * avería equivocada. Es una familia de defecto entera de este repositorio.
+     */
+    const codigo = String((e as { code?: string })?.code ?? '')
+    if (codigo.startsWith('storage/')) return falla('sin_permiso_de_lectura')
+    if (!subido) return falla('no_se_pudo_subir')
     return falla('tiempo_agotado')
   } finally {
     /**
@@ -1411,8 +1443,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     motivoFalloTranscripcion = ''  // limpia causa previa
-    // El body de las funciones de Vercel está limitado a ~4.5MB.
-    const GRANDE = blob.size > 3_600_000
+    const GRANDE = blob.size > LIMITE_CUERPO_BYTES
 
     // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
     //    Storage y se diariza por URL (sin chocar con el límite de Vercel).
@@ -1451,7 +1482,24 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       : { texto: await transcribirBlobSimple(blob, ext, ctxConDuracion), lotesFallidos: 0 }
     const texto = porPartes.texto
 
-    if (texto.trim()) {
+    /**
+     * ── UN TEXTO HECHO SÓLO DE ADVERTENCIAS NO ES UN TEXTO ────────────────────
+     *
+     * `texto.trim()` era verdadero **aunque TODOS los lotes hubieran fallado**,
+     * porque los marcadores `[⚠ FALTA UN TRAMO DE LA GRABACIÓN…]` son texto. Así
+     * que el respaldo de abajo —la transcripción en vivo, que sí existía y que
+     * el médico estaba viendo en pantalla— era inalcanzable.
+     *
+     * El médico acababa con una «nota» hecha de advertencias, y con lo bueno
+     * descartado. Justo cuando ya había ido mal una vez.
+     *
+     * La misma cuenta que hizo falta para no borrar el audio (`lotesFallidos`)
+     * servía para esto y no se usaba.
+     */
+    const todoFalló = porPartes.lotesFallidos > 0 && !porPartes.texto
+      .replace(/\[⚠[^\]]*\]/g, '').trim()
+
+    if (texto.trim() && !todoFalló) {
       aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
       // audio es lo único que permite recuperarlo: se conserva.
@@ -1521,7 +1569,21 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       : Math.round((chunks.length * TROZO_MS) / 1000)
 
     const blob = new Blob(chunks, { type: mime })
-    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey, segundosEstimados, ctx)
+    /**
+     * ── LA RECUPERACIÓN ELIGE CAMINO POR TAMAÑO, COMO `detener()` ─────────────
+     *
+     * Llamaba SIEMPRE a `intentarDiarizarLargo`, mirara o no el tamaño. Para un
+     * audio de dos minutos eso significa subirlo a Storage y pedir su URL sin
+     * ninguna necesidad — el camino más largo, más caro y más frágil de los dos,
+     * para el caso que menos lo pide.
+     *
+     * El mismo umbral que usa `detener()`, para que los dos caminos no se
+     * contradigan: por debajo de 3,6 MB el audio cabe en el cuerpo de la
+     * petición y va directo.
+     */
+    const diar = blob.size > LIMITE_CUERPO_BYTES
+      ? await intentarDiarizarLargo(blob, ext, recoveryKey, segundosEstimados, ctx)
+      : await intentarDiarizar(blob, ext, segundosEstimados, ctx)
     let texto = ''
     if (diar && diar.text.trim()) {
       { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }

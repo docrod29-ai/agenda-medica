@@ -3162,3 +3162,94 @@ pantalla no se pinta. Sin eso quedaría un parpadeo en el que la consola entera 
 visible: el mismo agujero, más corto.
 
 **Guardián** — `src/__tests__/la-consola-del-dueno-tiene-puerta.test.ts` (4 casos).
+
+---
+
+## REG-225 — la grabación se moría a los 7 min 30 s (v1107)
+
+**Lo que el médico reportó** — «estoy grabando y pasa un tiempo y me paras en
+seco y me dices que recupere el audio». Preguntado, dio los dos datos que
+señalan la causa: **antes de 10 minutos**, e **igual en iPhone que en
+computadora**. Que pase igual en los dos aparatos descarta el navegador.
+
+**La aritmética**:
+
+```
+64 000 bits/s ÷ 8            = 8 000 bytes por segundo
+3 600 000 bytes ÷ 8 000 B/s  = 450 s = 7 min 30 s
+```
+
+A los 7 min 30 s el audio deja de caber en el cuerpo de la petición y `detener()`
+cambia al camino «grande»: subir a Storage y diarizar por URL.
+
+**Y ese camino estaba muerto.** Para mandar la URL hay que pedirla con
+`getDownloadURL()`, que es un GET de metadatos gobernado por la regla `read` de
+Storage. Y la regla decía `allow read: if false`. Lanzaba `storage/unauthorized`
+en el primer segundo.
+
+**Es la MISMA causa raíz que ya se reparó en v245** para `receta-diseno`, donde
+el propio `storage.rules` lo deja escrito cinco líneas más abajo: *«LECTURA por
+el dueño: es OBLIGATORIA para que getDownloadURL() funcione en el navegador»*.
+Aquí se olvidó porque el comentario de arriba sólo pensó en AssemblyAI —que
+descarga por URL con token y no por reglas— y no en que el cliente tiene que
+LEER la URL antes de poder mandársela.
+
+**Tres daños colaterales, reparados con él:**
+
+**1 · El motivo mentía.** El `catch` devolvía `tiempo_agotado` pasara lo que
+pasara. El médico leía «se agotó el tiempo» y buscaba el problema en su
+internet, cuando fue un permiso denegado en el primer segundo. Ahora hay
+`sin_permiso_de_lectura` y `no_se_pudo_subir`, y el texto le dice explícitamente
+que **no es su conexión**.
+
+**2 · El texto en vivo se tiraba justo cuando era lo único que quedaba.**
+`texto.trim()` era verdadero aunque fallaran TODOS los lotes, porque los
+marcadores `[⚠ FALTA UN TRAMO…]` son texto. El respaldo con la transcripción en
+vivo —que el médico estaba viendo en pantalla— era inalcanzable. La misma cuenta
+que hizo falta para no borrar el audio (`lotesFallidos`) servía para esto.
+
+**3 · La recuperación usaba SIEMPRE el camino roto**, sin mirar el tamaño. El
+botón que se ofrece como red de seguridad estaba garantizado a degradar, en la
+consulta que ya había fallado una vez. El umbral pasó a ser una constante con
+nombre (`LIMITE_CUERPO_BYTES`) que usan los dos caminos.
+
+**Guardián** — `src/__tests__/la-grabacion-larga-no-muere.test.ts` (11 casos),
+que además rehace la aritmética: si alguien cambia el bitrate, la prueba avisa.
+
+**Ojo al desplegar** — las reglas de Storage **no** se publican con
+`vercel --prod`. Requieren `npx firebase deploy --only storage`.
+
+---
+
+## REG-226 — la primera versión congelaba el apartado (v1107)
+
+**Lo que el médico dijo** — «no llenas los apartados como es». Y antes había
+contestado que dicta **saltando de tema**: empieza por el motivo, regresa a
+antecedentes a media consulta, el plan sale al final.
+
+**La línea**:
+
+```ts
+if (enVivo && s.value?.trim()) return s      // ya escrito a mano: no se toca
+```
+
+La intención era buena —no pisar lo que el médico teclea mientras la IA corre—,
+pero «ya tiene texto» **incluía lo que había escrito un pase anterior DE LA
+PROPIA IA**. Y el pase en vivo corre cada 15 segundos, con el modelo rápido, y
+el primero ocurre con la consulta apenas empezada.
+
+Resultado: **la peor versión de cada apartado se quedaba fija para el resto de
+la consulta**. Cuando el médico regresaba a antecedentes en el minuto diez,
+ningún pase posterior podía ya corregir lo que se escribió en el minuto uno.
+
+**La distinción correcta no es «vacío o lleno»: es quién lo escribió.** Si lo
+que hay coincide con lo que la IA puso en su pase anterior, es suyo y puede
+mejorarlo; si no coincide, lo cambió el médico y no se toca — que era lo que la
+guarda quería proteger. Mismo criterio que ya usaban los diagnósticos (REG-217)
+y los medicamentos (REG-221).
+
+La anotación se hace **fuera** del actualizador de estado: React puede
+ejecutarlo dos veces, y el registro de procedencia no puede depender de eso.
+
+**Guardián** — `src/__tests__/la-nota-no-sale-hueca.test.ts`, ampliado con la
+prohibición explícita de que vuelva la forma vieja.
