@@ -2397,3 +2397,12 @@ se dice qué cifra se cayó. Se autoriza por UNIDAD: nombrar un `mg` autoriza lo
 **REG-241**: `MASTER_STATE.json` mintió sobre la versión tres veces. Ahora se
 deriva del repositorio y una prueba falla si se desfasa. Familia nueva:
 `depende_de_recordar`.
+
+## v1123 — lo que se lleva el paciente (REG-242)
+
+Instrucciones en español llano bajo la nota: medicamentos con «por la boca» y
+«3 veces al día», estudios, indicaciones y próxima cita. Se puede copiar
+—WhatsApp— o imprimir.
+
+Se COMPONEN de lo que él firmó; no las redacta un modelo. Una compuerta
+comprueba que ninguna cifra se invente ni se pierda.

@@ -1051,6 +1051,10 @@
     {
       "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
+      "minCasos": 18
     }
   ]
 }

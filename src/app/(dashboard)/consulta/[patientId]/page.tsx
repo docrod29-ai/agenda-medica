@@ -50,6 +50,7 @@ import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
+import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -5035,6 +5036,17 @@ export default function ConsultaActivaPage() {
           transcripcion={voz.transcripcion}
         />
       )}
+
+      {/*
+        LO QUE SE LLEVA EL PACIENTE (REG-242) — Suki y Nabla lo tienen y aquí no
+        existía. Se COMPONE de lo que él ya revisó; no lo redacta un modelo, que
+        es donde se colaría un consejo que nadie firmó.
+      */}
+      <HojaParaElPaciente
+        medicamentos={medicamentos}
+        estudios={estudiosOrden}
+        proximaCita={undefined}
+      />
 
       {/*
         ¿DE DÓNDE SALIÓ ESTO? — cada frase de la nota junto al trozo de dictado

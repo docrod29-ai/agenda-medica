@@ -158,6 +158,27 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     regs: [241],
   },
   {
+    /**
+     * Familia abierta el 8-ago-2026 con REG-242, y va a crecer.
+     *
+     * No es un defecto: no había nada roto. Es una función que el mercado da
+     * por supuesta y que aquí **nunca existió**, y por eso ninguna prueba, ni
+     * ninguna auditoría interna, podía delatarla — sólo se ve comparando.
+     *
+     * Se cuenta aparte a propósito. Mezclarla con los defectos haría creer que
+     * el sistema falla más de lo que falla, y haría perder de vista que estos
+     * se encuentran con OTRO instrumento: mirar afuera, no mirar el código.
+     */
+    clave: 'hueco_frente_al_mercado',
+    nombre: 'El mercado lo tiene y aquí nunca existió',
+    patron:
+      'Función que los productos de referencia dan por supuesta y que aquí no ' +
+      'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
+      'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
+      'código.',
+    regs: [242],
+  },
+  {
     clave: 'falta_un_eje',
     nombre: 'Al modelo de datos le faltaba un eje',
     patron:

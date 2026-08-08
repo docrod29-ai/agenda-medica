@@ -16,10 +16,9 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1122",
+  "ultimaVersionEnProduccion": "nexusmed-v1123",
   "trabajoLocalSinSubir": [
-    "M agent-state/CURRENT_ITERATION.md",
-    " M agent-state/MASTER_STATE.json",
+    "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/maintenance/sw-changelog.md",
@@ -29,12 +28,11 @@
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? scripts/agent-state/",
-    "?? src/__tests__/el-tablero-del-loop-no-miente.test.ts",
-    "?? src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
-    "?? src/lib/seguridad/la-reescritura-no-pierde-cifras.ts"
+    "?? src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
+    "?? src/components/HojaParaElPaciente.tsx",
+    "?? src/lib/paciente/"
   ],
-  "actualizado": "2026-08-07",
+  "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -68,10 +66,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 89,
-    "ultimaREG": "REG-241",
-    "archivosDePrueba": 523,
-    "casosDePrueba": 6941,
+    "regsEnElLedger": 90,
+    "ultimaREG": "REG-242",
+    "archivosDePrueba": 524,
+    "casosDePrueba": 6959,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

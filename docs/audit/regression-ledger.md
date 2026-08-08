@@ -3907,3 +3907,43 @@ describía. El dato correcto existe en el repositorio y un segundo sitio lo
 repite a mano; el segundo se desfasa siempre, y como tiene forma de registro
 oficial se le cree más que a la fuente. **La reparación nunca es volver a
 copiarlo bien: es derivarlo, y poner una compuerta que falle cuando se separen.**
+
+## REG-242 — el paciente salía sin nada escrito (v1123)
+
+**No es un defecto.** No había nada roto. Es una función que los productos de
+referencia dan por supuesta y que aquí **nunca existió** — por eso ninguna
+prueba interna podía delatarla. Familia NUEVA: `hueco_frente_al_mercado`.
+
+**Cómo se encontró.** Comparando (I-12). Suki tiene instrucciones para el
+paciente «a nivel de lectura de quinto grado, en 80 idiomas». Nabla también — y
+son lo **único** que traduce al idioma del paciente, porque la nota clínica la
+deja en inglés «per U.S. regulations». Aquí el paciente salía del consultorio
+con una receta y con lo que hubiera retenido de la conversación.
+
+**La decisión que separa esto de lo suyo.** Ellos las **generan** con un modelo.
+Aquí se **componen**.
+
+Un modelo que redacta instrucciones puede añadir «tome mucha agua» o «si empeora
+acuda a urgencias». En un papel que sale con el membrete y la cédula del médico,
+eso es **una indicación médica que nadie firmó**. Cada línea de esta hoja sale de
+un campo que él ya revisó: fármaco, dosis, vía, frecuencia, duración, estudio,
+cita.
+
+**Lo que sí se permite, y por qué es seguro.** Traducir «vía oral» a «por la
+boca» es la misma indicación en las palabras del paciente. Convertir «cada 8
+horas» en «cada 8 horas (3 veces al día)» es 24 ÷ 8, aritmética exacta sobre lo
+dictado — y **sólo cuando el resultado es exacto**: «cada 5 horas» no son «4,8
+veces al día», y redondearlo sí sería inventarle una pauta al médico.
+
+**La compuerta cazó su propia función, y eso la mejoró.** La primera versión de
+la prueba exigía que ninguna cifra de la hoja faltara en la nota, y **falló con
+«3 veces»** — que es 24 ÷ 8. Perdonar la unidad «veces» sin más habría abierto
+un boquete. Lo que se comprueba ahora es más estrecho: que el número sea
+exactamente 24 dividido entre unas horas que sí están en la nota. Si alguien
+«mejora» la función y empieza a redondear, la prueba falla.
+
+Y se comprueba el sentido contrario: **ninguna cifra de la nota se pierde** en la
+hoja. Una hoja que se come la duración manda al paciente a casa sin saber
+cuántos días toma el antibiótico.
+
+**Guardián.** `src/__tests__/lo-que-se-lleva-el-paciente.test.ts`, 18 casos.
