@@ -1628,7 +1628,9 @@ de crónicas no cambió y sigue valiendo que lo que no está en ella no se vigil
 **Qué NO hace** — No detecta la duda **como** duda: «¿Tiene diabetes? No sé» deja
 de negar, pero nadie avisa de que quedó una pregunta abierta, y si la nota afirma
 la diabetes a partir de ese «no sé» este motor no lo ve. Hace falta un canal de
-«declarado incierto» que hoy no existe.
+«declarado incierto» que hoy no existe. Queda anotado como **NEG-002** en
+`agent-state/BACKLOG.json`, con la decisión que lleva dentro —si el aviso bloquea
+la firma o sólo se declara— marcada como del médico dueño.
 
 **Qué queda para el médico** — Igual que antes: el motor sólo afirma que dictado
 y nota se contradicen. Un paciente puede negar una diabetes que sí tiene
