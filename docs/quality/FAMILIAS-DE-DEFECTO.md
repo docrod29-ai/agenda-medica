@@ -3,13 +3,13 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 74 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 75 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
 ## Por qué contar
 
-El ledger tiene 74 defectos con su causa raíz. Leídos de uno en uno son 74
+El ledger tiene 75 defectos con su causa raíz. Leídos de uno en uno son 75
 historias. **Contados por familia dicen algo que ninguno dice solo**: cuál es la
 forma de fallar que se repite.
 
@@ -33,13 +33,13 @@ Eso cambia dónde conviene mirar mañana.
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
 | *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
-| Al modelo de datos le faltaba un eje | 1 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
+| Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 13 de 74, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 13 de 75, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 12 de 74.**
+**«El sistema se contradice a sí mismo» — 12 de 75.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el

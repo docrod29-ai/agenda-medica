@@ -144,7 +144,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El dato se guardaba entero y correcto, pero sin la distinción que lo hace ' +
       'utilizable. No se arregla con una validación: se arregla añadiendo la ' +
       'pregunta que faltaba.',
-    regs: [183],
+    regs: [183, 227],
   },
 ] as const
 

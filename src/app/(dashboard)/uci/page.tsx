@@ -63,6 +63,7 @@ import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
+import { esMonologo } from '@/lib/asr/un-solo-hablante'
 import { DosisMeropenem } from './DosisMeropenem'
 
 type Campos = Record<string, string>
@@ -300,6 +301,12 @@ export default function UciPanelPage() {
   const opcionesDictadoUci = useMemo(() => ({
     recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}`,
     contexto: 'uci' as const,
+    /**
+     * En UCI dicta SOLO, por aparatos y sistemas — lo contestó él. Pedir
+     * separación de voces aquí es trabajo y espera para nada, y puede partir su
+     * dictado en dos hablantes y atribuírselo a un paciente que no habló.
+     */
+    modoDeHabla: 'dictado' as const,
     medicamentos: (inter?.indicaciones ?? [])
       .map(i => String((i as { medicamento?: string; nombre?: string })?.medicamento
         ?? (i as { nombre?: string })?.nombre ?? '').trim())
@@ -416,7 +423,18 @@ export default function UciPanelPage() {
   const aplicarPase = (t: string, utterances?: Utterance[]) => {
     const txt = (t ?? '').trim()
     if (!txt) return
-    const turnos = (utterances && utterances.length)
+    /**
+     * UN PASE DICTADO POR UNA SOLA PERSONA NO ES UNA DISCUSIÓN.
+     *
+     * El médico contestó que en UCI **dicta solo, por aparatos**. El diarizador
+     * parte a una sola persona en dos hablantes cuando cambia el tono o hay una
+     * pausa larga, y entonces `atribuirRolesDiscusion` reparte roles —adscrito,
+     * residente, enfermería, paciente— entre trozos del MISMO dictado.
+     *
+     * Con un solo hablante hay un turno: el suyo. Igual que cuando no hay
+     * diarización, que es el caso que la rama de abajo ya trataba bien.
+     */
+    const turnos = (utterances && utterances.length && !esMonologo(utterances))
       ? utterances.map(u => ({ hablante: u.speaker, texto: u.text }))
       : [{ hablante: 'A', texto: txt }]
     setDiscusionTxt(formatearDiscusion(atribuirRolesDiscusion(turnos)))

@@ -167,7 +167,7 @@ propone él.
 
 ---
 
-## I-4 · Un motor, tres modos, cuatro notas
+## I-4 · Un motor, tres modos, cuatro notas — ✅ CERRADA (v1108)
 
 > «el flujo de grabación (consulta, UCI y hospital)» · «la mejor nota médica: de
 > primera vez, de seguimiento, historia clínica, evolución clínica»
@@ -182,8 +182,23 @@ sola voz eso es trabajo inútil que además **inventa un «paciente» que no hab
 historia clínica, evolución. Seguimiento y evolución son SOAP; las otras dos no.
 Lo que hoy les falla es el reparto (I-3) y la prosa (I-5).
 
-**Qué se construye** — que el modo se derive del tipo de nota, no de una opción
-más en pantalla. Menos que decidir = menos maneras de confundirse.
+**Lo que se construyó** — dos piezas, en este orden:
+
+**1 · La red** (`esMonologo`) — si al final hubo un solo hablante, no se arma
+diálogo: va texto plano. Funciona pase lo que pase.
+
+**2 · El ahorro** (`esDictado`) — si el tipo de nota es de dictado, ni se pide la
+separación de voces. UCI siempre; en consulta, según el tipo.
+
+El orden importa: con la red puesta, equivocarse clasificando sólo cuesta una
+diarización inútil. Sin ella, un tipo mal clasificado se traga la conversación
+real.
+
+La lista de dictado es corta a propósito —`evolucion_uci` y `evolucion`, las dos
+que él nombró—. El INGRESO no entra aunque sea de hospital: se hace interrogando
+al paciente. **Ante la duda, se diariza.**
+
+**Cierra con** — REG-227 · `un-monologo-no-es-un-dialogo.test.ts` (16 casos).
 
 ---
 

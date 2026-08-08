@@ -151,6 +151,7 @@ import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expedi
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
+import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
 import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
 import { diagnosticosSanos, medicamentosSanos, seccionesSanas } from '@/lib/expediente/nota-restaurada'
 import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
@@ -817,7 +818,24 @@ export default function ConsultaActivaPage() {
     const dialogo = audio.utterances
       .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
       .join('\n')
-    if (audio.utterances.length > 0 && !multiTramo) {
+    /**
+     * UN MONÓLOGO NO SE ARMA COMO DIÁLOGO.
+     *
+     * El médico contestó que en UCI y en hospital **dicta solo**. Y el
+     * diarizador parte a una sola persona en dos hablantes cuando cambia el
+     * tono o hay una pausa larga — con lo que su propio dictado salía así:
+     *
+     *     Médico adscrito: el paciente lleva tres días con fiebre
+     *     Paciente: y la creatinina en uno punto ocho
+     *
+     * A partir de ahí el motor de negaciones y el de procedencia razonan sobre
+     * una atribución falsa: la diferencia entre «el paciente lo afirmó» y «el
+     * médico lo dictó» es la que sostiene esas dos defensas.
+     *
+     * Con un solo hablante no hay nada que atribuir: va texto plano. Las marcas
+     * de duda no se pierden — se anexan abajo, como en multi-tramo.
+     */
+    if (audio.utterances.length > 0 && !multiTramo && !esMonologo(audio.utterances)) {
       return dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo
     }
     /**
@@ -1184,6 +1202,17 @@ export default function ConsultaActivaPage() {
      * un internamiento.
      */
     contexto: (internamientoActivo ? 'hospitalizacion' : 'consulta') as 'consulta' | 'hospitalizacion',
+    /**
+     * ¿HABLAN DOS, O DICTA UNO SOLO? — lo decide el TIPO de nota.
+     *
+     * El médico contestó que la evolución de hospital la **dicta solo**, y que
+     * la consulta la **conversa con el paciente**. Sale del tipo y no de una
+     * opción más en pantalla: menos que decidir es menos maneras de
+     * equivocarse, que es justo lo que pidió.
+     *
+     * Ante la duda, `conversacion`. Ver `lib/asr/un-solo-hablante.ts`.
+     */
+    modoDeHabla: (esDictado(tipo) ? 'dictado' : 'conversacion') as 'dictado' | 'conversacion',
     medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
     problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
     /**
@@ -1217,7 +1246,7 @@ export default function ConsultaActivaPage() {
      * mandaba CERO.
      */
     alergias: alergenosDe(patient ?? {}),
-  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido])
+  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido, tipo])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {

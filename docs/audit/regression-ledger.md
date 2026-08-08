@@ -3253,3 +3253,55 @@ ejecutarlo dos veces, y el registro de procedencia no puede depender de eso.
 
 **Guardián** — `src/__tests__/la-nota-no-sale-hueca.test.ts`, ampliado con la
 prohibición explícita de que vuelva la forma vieja.
+
+---
+
+## REG-227 — un monólogo se armaba como diálogo (v1108 · I-4)
+
+**De dónde sale** — preguntado quién habla en la grabación, el médico marcó tres
+casillas y **no** marcó una cuarta: consulta = conversación con el paciente; UCI
+= él dictando por aparatos; hospital = él dictando la evolución. **No** marcó
+«consulta: yo dictando solo».
+
+O sea: en dos de los tres módulos habla **una sola persona**. Y el sistema pedía
+separación de voces en los tres por igual.
+
+**El daño, que no es sólo costo** — el texto que ve la IA se arma como un diálogo
+con etiquetas. Si el reconocedor parte a UNA sola persona en dos hablantes —cosa
+que hace cuando cambia el tono o hay una pausa larga—, el pase de visita sale
+así:
+
+```
+Médico adscrito: el paciente lleva tres días con fiebre
+Paciente: y la creatinina en uno punto ocho
+```
+
+Y a partir de ahí **el motor de negaciones y el de procedencia razonan sobre una
+atribución falsa**: la diferencia entre «el paciente lo afirmó» y «el médico lo
+dictó» es justo la que sostiene esas dos defensas. En un pase de visita, el
+médico dictando los datos de su propio paciente se convertía en un paciente que
+nunca habló.
+
+**Dos piezas, en este orden.**
+
+**1 · La red** (`esMonologo`) — si al final hubo un solo hablante, no se arma
+diálogo: va texto plano. Funciona pase lo que pase, aunque el tipo de nota esté
+mal clasificado.
+
+**2 · El ahorro** (`esDictado`) — si el tipo de nota es de dictado, ni se pide la
+separación: es trabajo, dinero y espera para nada.
+
+**El orden importa.** Con la red puesta, equivocarse clasificando sólo cuesta una
+diarización inútil. Sin ella, un tipo mal clasificado se traga la conversación
+real y no hay forma de recuperarla.
+
+**La lista de dictado es corta a propósito** — sólo `evolucion_uci` y
+`evolucion`, que son las dos que él nombró. La nota de INGRESO no entra aunque
+sea de hospital: un ingreso se hace interrogando al paciente, y ahí sí hay dos
+voces. Ante la duda, se diariza.
+
+**Saltarse la diarización no se anuncia como fallo** — `sinDiarizacion` se queda
+en `null`: no es que fallara, es que no hacía falta. Un aviso de algo que salió
+bien se aprende a ignorar, y con él los que sí importan.
+
+**Guardián** — `src/__tests__/un-monologo-no-es-un-dialogo.test.ts` (16 casos).

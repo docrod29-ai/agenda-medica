@@ -2260,3 +2260,13 @@ agotado» por un permiso denegado), el texto en vivo se tiraba cuando era lo
 También: la primera versión de cada apartado dejaba de congelarlo — la guarda
 del pase en vivo ahora mira QUIÉN lo escribió, no si hay texto (REG-226).
 REQUIERE despliegue aparte: npx firebase deploy --only storage
+
+## v1108 — un monólogo se armaba como diálogo (I-4)
+El médico dicta SOLO en UCI y en hospital (lo contestó él), y el sistema pedía
+separación de voces en los tres módulos por igual. El diarizador parte a una
+sola persona en dos hablantes cuando cambia el tono, y entonces su propio
+dictado salía atribuido a un «paciente» que nunca habló — con el motor de
+negaciones y el de procedencia razonando sobre esa atribución falsa. Dos piezas:
+la red (un solo hablante → texto plano, pase lo que pase) y el ahorro (tipo de
+nota de dictado → ni se pide). La red va primero, y por eso el ahorro puede ser
+conservador (REG-227).

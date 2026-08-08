@@ -80,6 +80,20 @@ export interface OpcionesGrabacion {
    */
   contexto?: 'consulta' | 'hospitalizacion' | 'uci' | 'urgencias' | 'quirofano'
   /**
+   * ¿Hablan dos, o dicta uno solo?
+   *
+   * El médico contestó que en UCI y en hospital **dicta solo**. Pedir separación
+   * de voces ahí es trabajo, dinero y espera para nada — y peor: el diarizador
+   * parte a una sola persona en dos hablantes cuando cambia el tono, con lo que
+   * su propio dictado sale atribuido a un «paciente» que nunca habló.
+   *
+   * Por omisión, `conversacion`: **ante la duda se diariza**. Perder la
+   * separación en una conversación real cuesta información irrecuperable;
+   * diarizar un monólogo sólo cuesta unos segundos, y `esMonologo` limpia el
+   * resultado aguas abajo. Ver `lib/asr/un-solo-hablante.ts`.
+   */
+  modoDeHabla?: 'conversacion' | 'dictado'
+  /**
    * Vocabulario de ESTE paciente, para el prompt del reconocedor.
    *
    * El prompt es lo único que cambia lo que el modelo OYE, y su presupuesto son
@@ -907,6 +921,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const textosChunksRef = useRef<string[]>([])
   const recoveryKeyRef = useRef<string>('')
   const contextoRef = useRef<CtxDictado>({})
+  /** Ver `OpcionesGrabacion.modoDeHabla`. Por omisión se diariza. */
+  const modoDeHablaRef = useRef<'conversacion' | 'dictado'>('conversacion')
   // Anti-pérdida: desde qué índice persistir en IndexedDB. Si ya hay audio de una
   // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
@@ -1167,6 +1183,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
+    modoDeHablaRef.current = opts?.modoDeHabla ?? 'conversacion'
     contextoRef.current = {
       contexto: opts?.contexto,
       especialidades: opts?.especialidades,
@@ -1444,6 +1461,31 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     motivoFalloTranscripcion = ''  // limpia causa previa
     const GRANDE = blob.size > LIMITE_CUERPO_BYTES
+
+    /**
+     * ── UN DICTADO NO NECESITA SEPARACIÓN DE VOCES ──────────────────────────
+     *
+     * En UCI y en hospital el médico dicta SOLO —lo contestó él—. Pedir la
+     * separación ahí es trabajo, dinero y espera para nada, y el diarizador
+     * puede partirlo en dos hablantes y atribuir su propio dictado a un
+     * «paciente» que nunca habló.
+     *
+     * El `sinDiarizacion` se deja en `null` a propósito: **no es un fallo**, es
+     * que no hacía falta. Poner un motivo aquí le enseñaría al médico un aviso
+     * de algo que salió bien.
+     */
+    if (modoDeHablaRef.current === 'dictado') {
+      const texto = GRANDE
+        ? (await transcribirEnPartes(allChunks, rec.mimeType, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })).texto
+        : await transcribirBlobSimple(blob, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })
+      if (texto.trim()) {
+        setUtterances([]); utterancesRef.current = []
+        aplicar(texto)
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+        return
+      }
+      // Sin texto: cae al camino de siempre, que ya sabe usar el respaldo en vivo.
+    }
 
     // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
     //    Storage y se diariza por URL (sin chocar con el límite de Vercel).
