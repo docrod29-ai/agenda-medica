@@ -2270,3 +2270,12 @@ negaciones y el de procedencia razonando sobre esa atribución falsa. Dos piezas
 la red (un solo hablante → texto plano, pase lo que pase) y el ahorro (tipo de
 nota de dictado → ni se pide). La red va primero, y por eso el ahorro puede ser
 conservador (REG-227).
+
+## v1109 — los huecos se proponen, marcados y sólo al final (I-6)
+El Dr. eligió —leyendo la advertencia de que inventa contenido— que la IA
+complete lo que falta. Se hace, con dos fronteras: (1) SÓLO en el pase final,
+porque con la propuesta activa en vivo la primera pasada de 30 s rellenaría la
+consulta entera, que es lo que pasó con REG-217; (2) NINGUNA cifra, porque una
+sección propuesta se juzga y se borra, pero una cifra propuesta se lee idéntica
+a una medida real. Todo lo propuesto va con [IA — no dictado] y entra con un
+toque (REG-228). Prompt nota-2026-08-07-3.

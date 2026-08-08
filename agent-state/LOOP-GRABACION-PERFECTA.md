@@ -228,7 +228,7 @@ no ejerce**.
 
 ---
 
-## I-6 · Los huecos se completan como propuesta
+## I-6 · Los huecos se completan como propuesta — ✅ CERRADA (v1109)
 
 > «dejas espacios porque la inteligencia no entendió» · «no me gusta nada, deja
 > dudas»
@@ -240,7 +240,24 @@ paciente nunca lo dijo, **eso lo afirmó él**. La maquinaria existe a medias
 (`sugerenciasPendientes`, marcas `[IA — no dictado]`); falta que **redacte la
 propuesta** y que se acepte con un toque.
 
-Y lo dudoso, **subrayado en la nota** — como contestó en la pregunta 8.
+**Las dos fronteras que lo hacen seguro**
+
+**1 · Sólo en el pase FINAL.** La nota se estructura sola cada 15 s y la primera
+pasada ocurre con la ficha de identificación apenas dictada. Con la propuesta
+activa ahí, esa pasada rellenaría la consulta entera antes de la primera palabra
+clínica — que es exactamente lo que pasó con REG-217. Durante la consulta, un
+apartado vacío sigue diciendo que falta.
+
+**2 · Ninguna cifra.** Una sección propuesta se lee, se juzga y se acepta o se
+borra. Una CIFRA propuesta se lee **idéntica a una medida real**, y ahí ya nadie
+puede distinguirlas. Si un apartado sólo se podría llenar con cifras, se queda
+vacío.
+
+**Cierra con** — REG-228 · `los-huecos-se-proponen-marcados.test.ts` (15 casos).
+Prompt `nota-2026-08-07-3`.
+
+**Pendiente** — lo dudoso subrayado dentro de la nota (respuesta 8) se hace en
+I-8, junto con el segundo modelo.
 
 ---
 

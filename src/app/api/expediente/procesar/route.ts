@@ -415,7 +415,14 @@ export async function POST(req: NextRequest) {
   const planDeRespuesta = perfil === 'premium' ? 'premium' : 'pro'
 
   try {
-    const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)
+    /**
+     * La propuesta de apartados vacíos SÓLO en el pase final.
+     *
+     * `rapido` es verdadero en los pases en vivo y en el preliminar. En esos, un
+     * apartado vacío sigue significando «falta»; en el final ya no va a llenarse
+     * solo, y ahí sí se propone — marcado. Ver `COMPLETA_LOS_HUECOS`.
+     */
+    const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA, { proponerHuecos: !rapido })
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
     let model = await resolverModelo(API_KEY, perfil)

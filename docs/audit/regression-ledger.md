@@ -3305,3 +3305,48 @@ en `null`: no es que fallara, es que no hacía falta. Un aviso de algo que sali�
 bien se aprende a ignorar, y con él los que sí importan.
 
 **Guardián** — `src/__tests__/un-monologo-no-es-un-dialogo.test.ts` (16 casos).
+
+---
+
+## REG-228 — los huecos se proponen, marcados y sólo al final (v1109 · I-6)
+
+**Lo que el médico pidió** — «dejas espacios porque la inteligencia no entendió»
+· «no me gusta nada, deja dudas». Preguntado qué prefería, eligió —leyendo la
+advertencia de que eso inventa contenido clínico— **«que la IA lo complete con lo
+que sea probable»**.
+
+**Cómo se hace sin que sea una falsificación** — se completa, pero **marcado y
+sin entrar solo**. Una nota es un documento legal con su cédula: si dice «niega
+tabaquismo» y el paciente nunca lo dijo, **eso lo afirmó él**. La diferencia
+entre completar y falsificar es que lo propuesto se vea, se pueda juzgar, y entre
+con un toque.
+
+La marca `[IA — no dictado]` y su maquinaria de aceptar/quitar **ya existían**,
+pero sólo servían para completar el PLAN. Lo que faltaba era extenderlas a los
+apartados vacíos, y las dos fronteras que lo hacen seguro.
+
+**Frontera 1 · SÓLO EN EL PASE FINAL.** La nota se estructura sola cada 15
+segundos y la primera pasada ocurre cuando apenas se dictó la ficha de
+identificación. Con la propuesta activa ahí, esa pasada rellenaría la consulta
+entera antes de que el médico dijera una palabra clínica. **Eso ya pasó** con la
+regla vieja que escribía «No referido» en todo (REG-217), y fue el defecto más
+caro de aquella noche. Durante la consulta, un apartado vacío sigue diciendo lo
+que dice: que falta.
+
+Se ata a `rapido`, que es lo que ya distinguía el pase en vivo del final:
+`proponerHuecos: !rapido`.
+
+**Frontera 2 · NINGUNA CIFRA.** Una sección propuesta se lee, se juzga y se
+acepta o se borra. Una **cifra** propuesta —una tensión, un peso, una
+creatinina— **se lee exactamente igual que una medida real**, y a partir de ahí
+nadie puede distinguirlas. Si un apartado sólo se podría llenar con cifras, se
+queda vacío. Está escrito dos veces —en la regla 15-bis y en el bloque— a
+propósito: es la frontera entre completar y falsificar.
+
+**La regla es condicional, no contradictoria** — la 15-bis vive siempre en el
+prompt y declara que sólo se activa con el bloque presente. Así el modelo no ve
+dos reglas que se anulan, que es la familia de defecto más grande de este
+repositorio.
+
+**Guardián** — `src/__tests__/los-huecos-se-proponen-marcados.test.ts` (15 casos).
+**Versión de prompt** — `nota-2026-08-07-3`.
