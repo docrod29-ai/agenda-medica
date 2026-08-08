@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1128",
+  "ultimaVersionEnProduccion": "nexusmed-v1129",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
@@ -25,10 +25,10 @@
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
+    " M src/__tests__/dosis-avisa-antes-de-firmar.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/seguridad/la-reescritura-no-pierde-cifras.ts"
+    " M src/lib/seguridad/dosis.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -64,10 +64,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 94,
-    "ultimaREG": "REG-246",
+    "regsEnElLedger": 95,
+    "ultimaREG": "REG-247",
     "archivosDePrueba": 526,
-    "casosDePrueba": 7001,
+    "casosDePrueba": 7004,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

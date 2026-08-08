@@ -266,7 +266,7 @@
     },
     {
       "archivo": "src/__tests__/dosis-avisa-antes-de-firmar.test.ts",
-      "minCasos": 12
+      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/dosis-decision-amoxicilina.test.ts",

@@ -2439,3 +2439,8 @@ cazándose después de ensanchar el motor.
 `0.1 mcg/kg/min` se leía como `0.1 mcg`: una reescritura que convirtiera una
 infusión por peso en tasa fija —70 veces menos en un adulto— pasaba sin aviso.
 Unidades de infusión añadidas y ordenadas de más larga a más corta EN CÓDIGO.
+
+## v1129 — la «U» de insulina es una unidad (REG-247)
+
+«2 U/h» salía como dosis sin unidad. Es una infusión de insulina —fármaco de
+alto riesgo— y un aviso falso ahí enseña a ignorar el aviso verdadero.

@@ -4088,3 +4088,29 @@ Hay una prueba que comprueba que ese `sort` siga ahí.
 
 Familia `sin_medir`, como REG-245: el instrumento existía y no se había apuntado
 a la UCI.
+
+## REG-247 — «2 U/h» de insulina salía como dosis sin unidad (v1129)
+
+**Tercero del mismo barrido**: apuntar los motores de seguridad a la UCI, en vez
+de leerlos.
+
+`RE_FORMA` en `dosis.ts` (el motor de REG-173, anterior a esta noche) tenía `ui`
+y `u.i.` pero **no la `u` sola**. Medido: «2 U/h» —una infusión de insulina,
+exactamente como se dicta en terapia intensiva— salía como **«dosis sin
+unidad»**.
+
+**Por qué éste importa más que los otros dos.** La insulina es un fármaco de
+**alto riesgo**. Un aviso falso sobre ella es de los peores que puede dar este
+sistema: enseña a ignorar su aviso, y el día que el aviso sea verdadero también
+se ignorará.
+
+**El detalle de implementación que se documenta.** La `u` va **después** de `ui`
+y `unidades` en la alternancia: gana la primera que casa, y una `u` delante se
+comería la «u» de «ui». Es la misma lección de orden que REG-246, en el mismo
+turno.
+
+Se comprobó de paso que las velocidades de infusión (`0.1 mcg/kg/min`,
+`2 mg/kg/h`, `5 mL/h`) ya pasaban, y que **«Levotiroxina 100» se sigue cazando**
+— ensanchar la lista es donde se pierde lo que protegía.
+
+Familia `sin_medir`.
