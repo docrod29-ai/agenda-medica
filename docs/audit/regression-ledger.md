@@ -3667,3 +3667,68 @@ Redimensionar la ventana de Chrome no cambia el viewport que ven las
 media-queries, así que el desborde móvil de la consulta, la UCI y el hospital
 **no está medido**. Contraste, nombres y etiquetas sí lo están: no dependen del
 ancho.
+
+---
+
+## REG-236 — la maqueta se enseñó y sólo se construyó la mitad (v1119)
+
+**Lo que el médico dijo** — mandó la captura de la maqueta que se le había
+enseñado y escribió: **«¿y por qué no se ve así? no has desplegado»**.
+
+Tenía razón. La maqueta tenía dos mitades:
+- Arriba, los diez botones de tipo de nota reducidos a **una línea**. Se
+  construyó y se desplegó (`QueNotaEs`, v1102). En sus capturas del iPhone se ve.
+- Abajo, un **botón grande y centrado** para grabar. **Se quedó en dibujo.**
+
+Enseñar un diseño y entregar la mitad es peor que no enseñarlo: él se quedó
+esperando algo que nunca salió, y lo notó él, no yo.
+
+**Lo que había antes de poder hablar**, contado sobre su captura:
+
+1. «Modo: Conversación completa (médico + paciente) — se graba y separa…»
+2. Un botón «Manos libres OFF»
+3. El micrófono, a un lado
+4. Un título: «Grabar la conversación completa (médico + paciente)»
+5. Una descripción: «Capta a los dos · separación de voces con AssemblyAI…»
+6. Un «Procesar con IA», apagado
+
+**Seis cosas para pulsar una. Y tres decían lo mismo con distintas palabras.**
+
+**Lo que queda** — el botón (96 px, centrado) y una línea. Nada se borra: la fila
+entera vuelve **en cuanto hay algo grabado**, que es cuando pausar, cancelar y
+procesar significan algo. Lo que cambia no es qué existe: es **cuándo aparece**.
+
+**Los 96 px no son decoración** — es lo único que se pulsa con el paciente ya
+sentado enfrente, muchas veces al día y a veces sin mirar.
+
+**Guardián** — `src/__tests__/la-maqueta-se-construyo-entera.test.ts`.
+
+---
+
+## REG-237 — los botones flotantes tapaban los campos (v1119)
+
+**Cómo se encontró** — el médico mandó tres capturas de la consulta en su iPhone.
+En una, el botón de ayuda estaba **encima del campo Peso**; en otra, **encima de
+Exploración física**.
+
+**Por qué ningún barrido lo cazó** — el instrumento no lo buscaba. El medidor de
+las catorce pantallas hacía dos cosas que juntas lo volvían ciego:
+
+1. **Saltaba los elementos `position: fixed`** al buscar desbordes — con razón:
+   un elemento fijo nunca «desborda», está anclado a la ventana.
+2. **No comprobaba si un elemento TAPA a otro.** Medía contraste, tamaño de
+   toque, etiquetas y desborde. Encimarse no estaba en la lista.
+
+Un hueco del instrumento, no del producto: **una auditoría sólo encuentra lo que
+sabe buscar**.
+
+**No se arregla moviéndolos** — con `position: fixed` y `right: 16px`, en 390 px
+el botón cae siempre dentro de la columna del formulario, y reservarle margen le
+robaría ancho a la nota. La solución es de MOMENTO, no de sitio: mientras un
+campo tiene el foco, se apartan; vuelven al soltar.
+
+Con `:has()` y sin JavaScript: cero escuchadores que quitar, cero estado que se
+quede pegado. Donde no exista, la regla no aplica y queda el comportamiento de
+hoy — el peor caso, no el único.
+
+**Guardián** — `src/__tests__/nada-tapa-un-campo-que-se-llena.test.ts` (6 casos).

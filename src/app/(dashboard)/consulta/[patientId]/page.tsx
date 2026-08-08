@@ -152,6 +152,7 @@ import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
+import { EmpezarAGrabar } from '@/components/EmpezarAGrabar'
 import { huellaRevisable, estadoDeRevision, COMO_SE_DICE, type ContenidoRevisable } from '@/lib/expediente/lo-que-se-reviso'
 import { mientrasReceta, alFirmar, comoSeDicenAlFirmar } from '@/lib/expediente/cuando-avisar'
 import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
@@ -1275,6 +1276,21 @@ export default function ConsultaActivaPage() {
    * se da por otorgado por omisión jamás.
    */
   const yaConsintio = consentimiento || !!patient?.consentimientoGrabacion?.fecha
+
+  /**
+   * ¿ESTAMOS AL PRINCIPIO — sin nada grabado todavía?
+   *
+   * Es lo que decide si se enseña sólo el botón grande o la fila entera de
+   * controles. Al principio, pausar, cancelar y «Procesar con IA» no significan
+   * nada: no hay nada que pausar ni que procesar.
+   *
+   * Se mira el estado del grabador Y la transcripción: si el médico vuelve a
+   * una consulta con algo ya dictado, tiene que ver los controles aunque el
+   * grabador esté parado.
+   */
+  const esElPrincipio = audio.estado === 'inactivo'
+    && !voz.grabando
+    && !voz.transcripcion.trim()
 
   const iniciarGrabacion = () => {
     // arrancarSegunModo, NO voz.iniciar directo: `modoVoz` está en 'whisper', así
@@ -3962,11 +3978,19 @@ export default function ConsultaActivaPage() {
       {/* ── Grabación ── */}
       {!firmada && (
         <div style={S.grabCard}>
-          {/* Única opción: Conversación completa (médico + paciente). Sin toggle. */}
-          {audio.soportado && audio.estado !== 'grabando' && (
-            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--text3)' }}>
-              Modo: <b style={{ color: 'var(--text2)' }}>Conversación completa</b> (médico + paciente) — se graba y separa ambas voces
-            </div>
+          {/*
+            EL BOTÓN, Y NADA MÁS, HASTA QUE HAY ALGO GRABADO.
+            El rótulo de modo que vivía aquí —«Conversación completa (médico +
+            paciente) — se graba y separa ambas voces»— decía lo mismo que el
+            título y que la descripción de abajo. Ahora lo dice el propio botón,
+            una vez.
+          */}
+          {esElPrincipio && (
+            <EmpezarAGrabar
+              estado={audio.estado === 'subiendo' ? 'procesando' : 'listo'}
+              noSoportado={!audio.soportado && !voz.soportado}
+              alPulsar={iniciarGrabacion}
+            />
           )}
 
           {/* Mensaje útil cuando NO hay opción de voz */}
@@ -4011,6 +4035,16 @@ export default function ConsultaActivaPage() {
 
           {/* Modo WHISPER (MediaRecorder + servidor) */}
           {modoVoz === 'whisper' && audio.soportado && (
+            /*
+              ── AL PRINCIPIO, SÓLO EL BOTÓN ───────────────────────────────
+              Antes de dictar había SEIS cosas antes de poder hablar —el rótulo
+              de modo, «Manos libres», el micrófono, un título, una descripción
+              y un «Procesar con IA» apagado— y tres de ellas decían lo mismo
+              con distintas palabras.
+              Nada se quita: esta fila entera vuelve en cuanto hay algo grabado,
+              que es cuando pausar, cancelar y procesar significan algo.
+            */
+            !esElPrincipio && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               {ofreceRecovery && audio.estado === 'inactivo' && (
                 <div style={{
@@ -4331,6 +4365,7 @@ export default function ConsultaActivaPage() {
                 {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
+            )
           )}
 
           {/* ── MENÚ DE IA: motor por nota + medidor de créditos ── */}

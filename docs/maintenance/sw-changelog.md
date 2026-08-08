@@ -2359,3 +2359,13 @@ llave de la API) no tenían etiqueta visible, así que van con aria-label. Y
 REG-235 quedó clasificado en su familia — el guardián lo cazó: un defecto en la
 bitácora sin familia pone la suite en rojo hasta que alguien conteste «¿de qué
 se enfermó éste?».
+
+## v1119 — la mitad de la maqueta que faltaba, y los botones que tapaban
+El Dr. mandó la maqueta y preguntó por qué no se veía así. Tenía razón: de las
+dos mitades sólo se había construido la de arriba (la línea del tipo de nota).
+Ahora está la de abajo: un botón de 96 px centrado y UNA línea, en vez de las
+seis cosas que había antes de poder hablar —tres de ellas diciendo lo mismo—.
+Nada se borra: la fila entera vuelve cuando hay algo grabado (REG-236).
+Y sus capturas enseñaron que los botones flotantes tapan los campos Peso y
+Exploración física; ningún barrido lo cazaba porque el medidor saltaba los
+elementos fijos y no comprobaba si algo tapa a otra cosa (REG-237).

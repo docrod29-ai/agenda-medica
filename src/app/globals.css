@@ -1228,6 +1228,32 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   transform: scale(1.05);
 }
 .theme-toggle:active { transform: scale(0.95); }
+
+/* ── LOS BOTONES FLOTANTES NO TAPAN UN CAMPO QUE SE ESTÁ LLENANDO ──────────
+   El médico mandó tres capturas de la consulta en su iPhone. En una, el botón
+   de ayuda estaba encima del campo **Peso**; en otra, encima de **Exploración
+   física**.
+
+   Es inevitable con `position: fixed` en un teléfono: `right: 16px` cae dentro
+   de la columna del formulario cuando la pantalla mide 390 px. No hay margen
+   que reservar sin robarle ancho a la nota.
+
+   Y no lo cazaba nada: mi propio medidor SALTABA los elementos fijos al buscar
+   desbordes —porque un elemento fijo nunca «desborda»— y no comprobaba si algo
+   TAPA a otra cosa. Un hueco de mi instrumento, no del producto.
+
+   La solución es de momento, no de sitio: mientras hay un campo con el foco, se
+   apartan. Vuelven en cuanto se deja de escribir. `:has()` lo resuelve sin una
+   línea de JavaScript, y donde no exista simplemente no se aplica — el
+   comportamiento de hoy, que es el peor caso, no el único. */
+@media (max-width: 900px) {
+  html:has(input:focus, textarea:focus, select:focus) .theme-toggle,
+  html:has(input:focus, textarea:focus, select:focus) .boton-ayuda-fab {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+.theme-toggle, .boton-ayuda-fab { transition: opacity 140ms ease; }
 .theme-toggle svg {
   width: 18px;
   height: 18px;
