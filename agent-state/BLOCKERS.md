@@ -15,4 +15,4 @@ trabajo.
 | B-08 | Clasificación de seguridad por fármaco (P7/P8) | Decisión clínica | El esquema existe y está vacío |
 | B-09 | Pentest externo y PITR | Contratación y consolas | Declarado en el registro de riesgos |
 | B-10 | Cuenta de prueba en los secretos de CI | Credencial | El E2E sólo cubre lo público |
-| B-11 | El CI de GitHub Actions **no arranca** en los PR abiertos por el agente | Un push tuyo a la rama, o un «Re-run» desde la pestaña Actions | El *required check* `clinical-safety` no existe (no falla: no corre) y el PR queda `blocked`. Las compuertas se corren en local y se declaran en el PR |
+| ~~B-11~~ | ~~El CI de GitHub Actions **no arranca** en los PR abiertos por el agente~~ | — | **CERRADO el 8-ago-2026 (REG-204).** El push del agente a `agent/safety/SAFE-001` disparó los 5 jobs por sí solo y los 5 pasaron. Lo que se observó el 6-ago era el evento `opened` y los `synchronize` de aquel día, no una regla permanente: **no hace falta un push del dueño**. Si vuelve a no arrancar, medirlo otra vez antes de declararlo bloqueador |

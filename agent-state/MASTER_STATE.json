@@ -21,8 +21,8 @@
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
   "notaDeEntorno": "`ops-timeout-y-punto-ciego.test.ts` («el error dice cuánto esperó y a quién») falla en el contenedor del agente y también en main: la salida a 10.255.255.1 devuelve error inmediato en vez de colgarse, así que `TiempoAgotado` nunca se lanza. Es artefacto del sandbox, no regresión — en CI pasa.",
-  "bloqueadorAbierto": "B-11: el CI de Actions no arranca en PR del agente; compuertas corridas en local y declaradas en el PR",
   "ultimaVersionPreparada": "nexusmed-v1085 (rama agent/safety/SAFE-001, sin desplegar)",
   "notaDeIteracion": "Segunda vez que el contenedor arranca desde `main` y se reproduce de cero algo que la rama remota ya traía: la nota de la iteración anterior lo avisaba y aun así volvió a pasar, porque el aviso vive en un archivo que se lee DESPUÉS de elegir el ítem. De la reparación duplicada sobrevivió lo que no era duplicado —REG-204, la franja del piso— porque se comparó el trabajo propio contra la rama remota archivo por archivo en vez de descartarlo entero. Para la próxima: `git fetch origin <rama del ítem>` es el PRIMER paso del punto 3, antes de abrir el archivo.",
-  "notaDelEntorno": "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en el entorno remoto de este agente: el test agota un tiempo contra 10.255.255.1 y el proxy de salida lo rechaza al instante en vez de dejarlo colgado. Falla igual en HEAD limpio; no es de ningún cambio."
+  "notaDelEntorno": "El contenedor arranca sin node_modules (`npm ci` primero) y sin variables de Firebase: `npm run build` sólo pasa con los placeholders sintéticos del CI (.github/workflows/ci.yml:109). Y `ops-timeout-y-punto-ciego.test.ts` falla aquí y también en `main` limpio —la salida a 10.255.255.1 se rechaza al instante en vez de colgarse—; MEDIDO en CI el 8-ago: allí pasa. Artefacto del sandbox, confirmado.",
+  "bloqueadorCerrado": "B-11 cerrado el 8-ago-2026: el push del agente disparó los 5 jobs de CI por sí solo y los 5 pasaron sobre d6824a4. No hace falta un push del dueño; lo del 6-ago no era una regla permanente."
 }
