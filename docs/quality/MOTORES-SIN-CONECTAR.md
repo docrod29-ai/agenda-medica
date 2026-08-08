@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**39** no se usan en ningún sitio fuera de su propia declaración.
+**38** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -43,6 +43,7 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `sePuedeFirmar` · `esAntecedenteFamiliar` · y 32 más | REG-260 · **no son defectos**: envoltorios de ≤3 líneas sobre funciones que sí corren |
 | `getInternamientosDePaciente` | REG-261 · su comentario decía «para mostrarlos en su expediente» y el expediente no los mostraba |
 | `resumenProblemas` · `resumenVigentes` | REG-262 · pedían «el encabezado de la consulta», pero ahí las listas ya salen enteras; su sitio era el expediente, que no resumía nada |
+| `tuvoEstructura` | REG-264 · decía si el pase de UCI traía encabezados por aparato, y nadie preguntaba |
 
 ## Lo que NO significa estar en esta lista
 
@@ -157,6 +158,5 @@ crezca.
 - `src/lib/uci/formato-nota.ts::renglonesAhorrados`
 - `src/lib/uci/labs-nota.ts::analitosConAbreviatura`
 - `src/lib/uci/observaciones.ts::tomaVigenteEn`
-- `src/lib/uci/reparto-sistemas.ts::tuvoEstructura`
 - `src/lib/uci/scores.ts::descripcionRASS`
 - `src/lib/uci/scores.ts::esSedacionLigera`

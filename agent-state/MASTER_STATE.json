@@ -16,21 +16,26 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1147",
+  "ultimaVersionEnProduccion": "nexusmed-v1145",
   "trabajoLocalSinSubir": [
-    "M agent-state/CURRENT_ITERATION.md",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/maintenance/sw-changelog.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
+    " M docs/quality/MOTORES-SIN-CONECTAR.md",
+    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
+    " M src/app/(dashboard)/uci/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? agent-state/V7-ITERACION.md",
-    "?? scripts/calidad/cabe-en-un-telefono.mjs",
-    "?? src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts"
+    " M src/lib/uci/reparto-sistemas.ts",
+    "?? .claude/agents/design-systems-lead.md",
+    "?? .claude/agents/patient-experience-lead.md",
+    "?? .claude/rules/design-system.md",
+    "?? .claude/rules/patient-facing-ai.md",
+    "?? .claude/skills/",
+    "?? agent-state/DESIGN_STATE.md",
+    "?? agent-state/LAST_SAFE_CHECKPOINT.md",
+    "?? agent-state/PATIENT_COMPANION_STATE.md",
+    "?? src/__tests__/el-pase-dictado-se-reparte.test.ts",
+    "?? src/lib/uci/como-vino-el-pase.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -64,12 +69,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/nexus-patient-ux-v9",
   "derivado": {
     "regsEnElLedger": 112,
-    "ultimaREG": "REG-265",
+    "ultimaREG": "REG-264",
     "archivosDePrueba": 541,
-    "casosDePrueba": 7178,
+    "casosDePrueba": 7183,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

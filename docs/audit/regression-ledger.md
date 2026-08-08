@@ -4835,6 +4835,61 @@ Familia `sin_medir`.
 
 **Guardián.** `src/__tests__/el-barrido-de-motores-esta-explicado.test.ts`, 8 casos.
 
+## REG-264 — el pase de UCI dictado no se repartía por aparatos (hueco 2)
+
+**El hueco que ningún producto del mercado cubre**, y resultó ser un defecto
+concreto con una causa de una línea.
+
+De la investigación (I-12): Suki, Nabla, Abridge y DAX asumen todos una
+**conversación ambulatoria de dos partes**. En UCI no hay conversación con el
+paciente: el pase es un **monólogo por aparatos y sistemas**. Por eso el *Linked
+Evidence* de Abridge —enlazar cada afirmación a un enunciado— no aplica ahí. Y
+en los 2,5 millones de usos de Kaiser, **infectología fue de las especialidades
+que MENOS lo usó**.
+
+**La causa.** `repartirPorSistemas()` —el corazón de la nota de UCI— partía el
+texto por `\n`. Correcto para un pase escrito o pegado. Pero **un pase dictado
+llega como un párrafo corrido, sin un solo salto de línea**: no encontraba ni un
+encabezado y el pase caía **entero en el plan**, con las secciones por aparato
+vacías y sin que nadie lo dijera.
+
+La nota por aparatos —justo lo que nadie más hace— **no corría sobre voz**.
+
+**El arreglo, deliberadamente estrecho.** Se inserta un salto sólo cuando el
+nombre del aparato aparece al principio o tras un punto **y** lleva `,` o `:`
+detrás. «Respiratorio, PEEP diez» parte; «el sistema respiratorio está
+comprometido» y «hemodinámicamente estable» **no**. Partir de más sería peor que
+no partir: metería medio párrafo del aparato anterior en el siguiente, y eso es
+**un dato clínico en la sección equivocada**.
+
+**Dos cosas que costó encontrar, y quedan escritas:**
+
+1. Con el salto sólo DELANTE, la línea quedaba «Neurológico, RASS menos dos…» y
+   el detector la reconocía **entera como rótulo**, descartando el contenido —
+   sobrevivía sólo el primer aparato. El salto va delante **y detrás**.
+2. La primera versión **no era idempotente**: volvía a insertar sobre lo que
+   ella misma había escrito. Un pase guardado y reprocesado se habría ido
+   partiendo en pedazos. Se arregló consumiendo el separador entero.
+
+**Y la otra mitad: decirlo cuando no se pudo.** `tuvoEstructura()` existía y no
+la llamaba nadie. Ahora, si el pase vino de corrido, se explica **qué pasó y
+cómo evitarlo**; y si vino por aparatos, se listan en gris los que quedaron sin
+texto propio — saltarse uno en un pase focalizado es normal, no un error.
+
+**Calla cuando todo va bien.** Un aviso que sale también con el pase bien
+estructurado es ruido, y el ruido se aprende a ignorar (REG-245).
+
+**Mi propio guardián me cazó.** Al crear `como-vino-el-pase.ts` el trinquete de
+REG-255 subió: **escribí un motor y no lo conecté**, la familia que llevo toda
+la sesión reparando. Conectado en el panel de UCI, el trinquete bajó a **38**.
+
+Familia `no_conectado`, la vigésima octava.
+
+**Guardián.** `src/__tests__/el-pase-dictado-se-reparte.test.ts`, 17 casos, con
+el pase real, las cuatro trampas y la idempotencia.
+
+---
+
 ## REG-265 — el barrido de pantalla estrecha, y el resultado incómodo (v1147)
 
 El guardián `la-pantalla-cabe-en-un-telefono` declaraba en su propio comentario

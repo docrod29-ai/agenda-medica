@@ -31,6 +31,7 @@ import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
+import { comoVinoElPaseDeTexto, aparatosSinTexto } from '@/lib/uci/como-vino-el-pase'
 import { guardarToma, getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { getEstanciaUci, guardarSoportesUci, fijarPesoDosificacion } from '@/lib/uci/estancia-cliente'
 import { validarPeso, pesoParaCalcular, avisoSinPeso, validarTalla, tallaParaCalcular, TIPOS_PESO, ETIQUETA_TIPO_PESO, type PesoFijado, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
@@ -819,6 +820,20 @@ export default function UciPanelPage() {
   const notaSecciones = useMemo(() => formatear(notaCruda, formatoNota), [notaCruda, formatoNota])
   const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
 
+  /**
+   * ── ¿EL PASE VINO POR APARATOS? (REG-264) ─────────────────────────────────
+   *
+   * Un pase DICTADO llega como un párrafo corrido, sin saltos de línea. Hasta
+   * ahora eso hacía que el reparto por sistemas no encontrara ni un encabezado
+   * y el pase cayera ENTERO en el plan, con los aparatos vacíos y sin que nadie
+   * lo dijera.
+   *
+   * El reparto ya sabe partir el dictado; esto es la otra mitad: **decírselo
+   * cuando NO se pudo**. Calla cuando el pase vino bien — un aviso que sale
+   * siempre es ruido.
+   */
+  const formaDelPase = useMemo(() => comoVinoElPaseDeTexto(discusionTxt), [discusionTxt])
+
   // ── Pasar la nota YA generada al expediente para revisar y FIRMAR ──
   const pasarANota = () => {
     if (!inter || !internamientoId) return
@@ -1276,6 +1291,21 @@ export default function UciPanelPage() {
 
       {/* NOTA EN VIVO: se ARMA sola con lo que dictas/capturas. "Pasar a nota" solo
           la abre en el expediente para revisar y firmar (no es un segundo dictado). */}
+      {/* REG-264 — el pase vino de corrido y los aparatos quedaron vacíos. */}
+      {formaDelPase.mensaje && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 16,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 32%, transparent)',
+          borderRadius: 12, padding: '11px 13px',
+        }}>
+          <Waves size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text2)' }}>
+            {formaDelPase.mensaje}
+          </div>
+        </div>
+      )}
+
       {notaLlenas.length > 0 && (
         <details open style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 14px', marginBottom: 16 }}>
           <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', fontWeight: 600, fontSize: 14 }}>
@@ -1300,6 +1330,23 @@ export default function UciPanelPage() {
               ))}
             </span>
           </summary>
+
+          {/*
+            LOS APARATOS QUE NO SE MENCIONARON (REG-264).
+
+            En GRIS y sin icono de alarma: saltarse un aparato en un pase
+            focalizado es normal, no un error. Es un dato para que el
+            intensivista decida, no un aviso que haya que atender.
+
+            Sólo sale cuando el pase SÍ vino por aparatos: si vino de corrido,
+            arriba ya está el recuadro que lo explica, y decir además «faltan
+            siete» sería contarlo dos veces.
+          */}
+          {aparatosSinTexto(formaDelPase).length > 0 && (
+            <p style={{ margin: '0 0 10px', fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
+              Sin texto propio en este pase: {aparatosSinTexto(formaDelPase).join(' · ')}.
+            </p>
+          )}
           {inter && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 4 }}>Revísala y pulsa “Pasar a nota” para firmarla</div>}
           <div style={{ display: 'grid', gap: 10, marginTop: 6 }}>
             {notaLlenas.map(s => (
