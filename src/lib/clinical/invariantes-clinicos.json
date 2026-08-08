@@ -1103,6 +1103,10 @@
     {
       "archivo": "src/__tests__/los-motores-de-uci-corren.test.ts",
       "minCasos": 17
+    },
+    {
+      "archivo": "src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts",
+      "minCasos": 11
     }
   ]
 }

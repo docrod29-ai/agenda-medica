@@ -2507,3 +2507,9 @@ pestañas, y se marcan vistas con un clic.
 Estaban escritos con su fuente y no los llamaba nadie. El más grave:
 `obstruccionTSVI` dice «no escalar inotrópicos» con gradiente ≥ 30 mmHg y nunca
 llegaba a la pantalla. Ahora se enseña sin filtro de modo avanzado.
+
+## v1140 — el oxígeno sin declarar se ve (REG-258)
+
+Una toma con flujo o FiO₂ pero sin la casilla de «recibe O₂» hacía que NEWS2
+saliera 2 puntos por debajo. Ahora se marca en la tabla de signos, explicando el
+efecto. No se deduce: lo decide el médico.

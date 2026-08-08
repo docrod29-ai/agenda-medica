@@ -4602,3 +4602,46 @@ el mismo umbral y la primera vez que se separaran nadie sabría cuál creer.
 **El trinquete baja: 48 → 44.** Familia `no_conectado`, la vigésima tercera.
 
 **Guardián.** `src/__tests__/los-motores-de-uci-corren.test.ts`, 17 casos.
+
+## REG-258 — oxígeno con cifras y sin declarar: NEWS2 salía bajo (v1140)
+
+**Tercera cosecha del instrumento de REG-255.** `oxigenoSinDeclarar` estaba
+escrita, con su comentario, su `NEEDS_CLINICAL_REVIEW` y su prueba — y **sin un
+solo llamador**.
+
+Detecta la toma de signos que trae **flujo o FiO₂ registrados** pero sin la
+casilla de «recibe O₂ suplementario».
+
+**Por qué importa más de lo que parece.** NEWS2 **suma 2 puntos** por oxígeno
+suplementario. Sin esa casilla la puntuación sale más baja de lo que le toca — y
+NEWS2 es justo lo que dispara la escalada. Un paciente con 5 L/min anotados y la
+casilla sin marcar puede quedarse **dos puntos por debajo** del umbral que
+habría pedido revisión.
+
+**Lo que NO se hace, y ya estaba escrito en el motor.** No se deduce. Sus
+palabras: *«decidir que un flujo registrado significa "recibe O₂ suplementario"
+es una regla clínica, y aplicarla cambiaría el NEWS2 —el modificador suma
+puntos—. Se declara y lo decide el médico. NEEDS_CLINICAL_REVIEW.»*
+
+Se **señala** en la celda de oxígeno, y el texto explica el **efecto**, no sólo
+la ausencia: «falta declarar el oxígeno» no mueve a nadie; «NEWS2 suma 2 puntos
+por oxígeno, sin esa casilla la puntuación sale más baja» sí.
+
+---
+
+**Y una decisión de no hacer, que también se registra.**
+
+`negacionesEnTexto` sigue en la lista de huérfanas **a propósito**. Su único
+sitio natural sería otro aviso en pantalla —«el campo de alergias dice que se
+interrogó y se negó»— y eso es información de bajo valor compitiendo por el
+mismo espacio que las alertas que **sí bloquean la firma**.
+
+Añadir ruido es exactamente el defecto que este loop lleva reparando (REG-245,
+REG-247). **El trinquete no exige cero: exige que no crezca.** Conectar algo
+por bajar un número sería usar el instrumento al revés.
+
+**El trinquete baja: 44 → 43.** Familia `no_conectado`, la vigésima cuarta.
+
+**Guardián.** `src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts`, 12 casos,
+incluido uno que comprueba que la decisión de NO conectar esté escrita donde se
+lee.

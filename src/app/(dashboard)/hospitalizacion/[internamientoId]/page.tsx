@@ -38,7 +38,7 @@ import { esCriticoLab } from '@/lib/hospital/lab-criticos'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { nivelDeSigno, calcularNews2 } from '@/lib/hospital/news2'
 import { encuadrarNews2 } from '@/lib/hospital/news2-encuadre'
-import { textoOxigeno } from '@/lib/hospital/oxigeno'
+import { textoOxigeno, oxigenoSinDeclarar } from '@/lib/hospital/oxigeno'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
 import { AlertasDelEpisodio } from '@/components/AlertasDelEpisodio'
@@ -853,7 +853,27 @@ export default function EpisodioPage() {
                       «—» es «no se registró», que NO es lo mismo que aire ambiente:
                       por eso son etiquetas distintas.
                     */}
-                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }} title={textoOxigeno(s).ayuda}>{textoOxigeno(s).texto}</td>
+                    {/*
+                      OXÍGENO CON CIFRAS Y SIN DECLARAR (REG-258).
+
+                      `oxigenoSinDeclarar` existía —con su comentario y su
+                      NEEDS_CLINICAL_REVIEW— y no la llamaba nadie. Detecta la
+                      toma que trae flujo o FiO₂ **sin la casilla de «recibe O₂»**.
+
+                      Importa porque NEWS2 **suma 2 puntos** por oxígeno
+                      suplementario: sin la casilla, la puntuación sale más baja
+                      de lo que le toca, y NEWS2 es lo que dispara la escalada.
+
+                      No se deduce: deducir que un flujo registrado significa
+                      «recibe O₂» es una regla clínica y cambiaría el score. Se
+                      SEÑALA y decide el médico.
+                    */}
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }} title={oxigenoSinDeclarar(s) ? 'Hay flujo o FiO₂ registrados pero NO se marcó «recibe O₂ suplementario». NEWS2 suma 2 puntos por oxígeno: sin esa casilla la puntuación sale más baja de lo que le toca.' : textoOxigeno(s).ayuda}>
+                      {textoOxigeno(s).texto}
+                      {oxigenoSinDeclarar(s) && (
+                        <span style={{ color: 'var(--amber)', fontWeight: 700, marginLeft: 4 }} aria-label="oxígeno con cifras pero sin declarar">⚠</span>
+                      )}
+                    </td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
                     {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>

@@ -60,10 +60,11 @@ function medir(): { total: number; huerfanas: string[]; inalcanzables: string[] 
  * No es una meta de cero: es el tope de hoy. Cada iteración del loop puede
  * quitar una o dos, y ninguna puede añadir.
  */
-const TOPE = { huerfanasMax: 44, totalMin: 771 }
+const TOPE = { huerfanasMax: 43, totalMin: 771 }
 /* 50 → 48 → 44 el 8-ago-2026:
      · REG-256, la bandeja de alertas del episodio (2)
      · REG-257, CAM-ICU y tres motores POCUS del panel de UCI (4)
+     · REG-258, el oxígeno con cifras y sin declarar (1)
    Cada iteración del loop cierra una o dos y baja este número. */
 
 describe('el trinquete de conexión', () => {

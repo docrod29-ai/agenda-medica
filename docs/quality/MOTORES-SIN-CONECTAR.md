@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**44** no se usan en ningún sitio fuera de su propia declaración.
+**43** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -38,6 +38,7 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `camIcu` | REG-257 · el cribado de delirium no corría; ahora está junto al RASS, y el rasgo 3 sale del RASS en vez de preguntarse dos veces |
 | `obstruccionTSVI` | REG-257 · decía «NO escalar inotrópicos» y no llegaba a ninguna pantalla; ahora se enseña SIN filtro de modo avanzado |
 | `signo6060` · `pulsatilidadPorta` | REG-257 · conectados en el bloque POCUS; la pulsatilidad se calcula de Vmáx/Vmín en vez de clasificarse a ojo |
+| `oxigenoSinDeclarar` | REG-258 · detecta flujo/FiO₂ sin la casilla de «recibe O₂»; NEWS2 suma 2 puntos por oxígeno y sin ella la puntuación sale baja |
 
 ## Lo que NO significa estar en esta lista
 
@@ -55,6 +56,15 @@ llama su vecina de archivo `analizarSeguridad`, y ésa sí corre.
 Casi «reparo» algo que funcionaba, en el módulo de antibiogramas — el que más
 le importa al médico dueño. Un medidor que grita de más enseña a ignorarlo,
 que es el mismo fallo que se repara en los avisos clínicos.
+
+## Lo que se decidió NO conectar, y por qué
+
+Es una **decisión, no un olvido**. El trinquete no exige cero: exige que no
+crezca.
+
+| Símbolo | Por qué se deja |
+|---|---|
+| `negacionesEnTexto` | Su único sitio natural sería otro aviso —«el campo de alergias dice que se interrogó y se negó»—, información de bajo valor compitiendo por el mismo espacio que las alertas que **sí bloquean**. Añadir ruido es el defecto que este loop lleva reparando (REG-245, REG-247). |
 
 ## La lista completa
 
@@ -87,7 +97,6 @@ que es el mismo fallo que se repara en los avisos clínicos.
 - `src/lib/hospital/firestore.ts::getBandejaLab`
 - `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
 - `src/lib/hospital/firestore.ts::suscribirUnidades`
-- `src/lib/hospital/oxigeno.ts::oxigenoSinDeclarar`
 - `src/lib/seguridad/alergias.ts::negacionesEnTexto`
 - `src/lib/seguridad/ofuscar-local.ts::estaOfuscado`
 - `src/lib/tareas-clinicas/modelo.ts::estaViva`

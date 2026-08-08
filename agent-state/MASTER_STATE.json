@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1139",
+  "ultimaVersionEnProduccion": "nexusmed-v1140",
   "trabajoLocalSinSubir": [
     "M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
@@ -27,10 +27,10 @@
     " M public/sw.js",
     " M public/version.txt",
     " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/app/(dashboard)/uci/page.tsx",
+    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/los-motores-de-uci-corren.test.ts"
+    "?? src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +66,10 @@
   ],
   "ramaActual": "agent/pagos/PAY-001",
   "derivado": {
-    "regsEnElLedger": 105,
-    "ultimaREG": "REG-257",
-    "archivosDePrueba": 535,
-    "casosDePrueba": 7118,
+    "regsEnElLedger": 106,
+    "ultimaREG": "REG-258",
+    "archivosDePrueba": 536,
+    "casosDePrueba": 7129,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
