@@ -2,7 +2,7 @@
 
 **Medido el 8-ago-2026** por `node scripts/calidad/motores-conectados.mjs`.
 De **771** funciones exportadas en los dominios clínicos y de seguridad,
-**41** no se usan en ningún sitio fuera de su propia declaración.
+**39** no se usan en ningún sitio fuera de su propia declaración.
 
 El trinquete `los-motores-llegan-al-medico` congela ese número: **sólo puede bajar**.
 
@@ -42,6 +42,7 @@ que está en marcha. Ejemplos medidos, con su número de archivos de prueba:
 | `omiteAlertasCriticas` | REG-259 · el texto de la IA podía CALLARSE una carbapenemasa detectada por el motor; contradecir era ruidoso, omitir no chocaba con nada |
 | `sePuedeFirmar` · `esAntecedenteFamiliar` · y 32 más | REG-260 · **no son defectos**: envoltorios de ≤3 líneas sobre funciones que sí corren |
 | `getInternamientosDePaciente` | REG-261 · su comentario decía «para mostrarlos en su expediente» y el expediente no los mostraba |
+| `resumenProblemas` · `resumenVigentes` | REG-262 · pedían «el encabezado de la consulta», pero ahí las listas ya salen enteras; su sitio era el expediente, que no resumía nada |
 
 ## Lo que NO significa estar en esta lista
 
@@ -112,10 +113,8 @@ crezca.
 - `src/lib/expediente/exportacion.ts::clavesEsperadas`
 - `src/lib/expediente/integrity.ts::verificarIntegridad`
 - `src/lib/expediente/medical-dictionary.ts::validacionesGeneralesMedicamentos`
-- `src/lib/expediente/ordenes-medicamento.ts::resumenVigentes`
 - `src/lib/expediente/parser-clinico.ts::extraerAntibioticosYPatogenos`
 - `src/lib/expediente/por-que-no-se-firma.ts::sePuedeFirmar`
-- `src/lib/expediente/problemas-activos.ts::resumenProblemas`
 - `src/lib/expediente/procedencia.ts::esDeMaquina`
 - `src/lib/expediente/que-va-en-la-receta.ts::loQueYaTomaba`
 - `src/lib/expediente/templates.ts::esHospitalaria`

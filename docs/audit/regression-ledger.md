@@ -4762,3 +4762,35 @@ los nombres de archivo en **NFD** y el ledger los cita en **NFC**, así que *la
 misma palabra no casaba consigo misma*. No es una curiosidad del sistema de
 archivos: **cualquier compuerta que compare un nombre de archivo con un texto
 escrito a mano se rompe igual**. Los nombres de archivo van en ASCII.
+
+## REG-262 — el expediente no resumía el estado del paciente (v1144)
+
+`resumenProblemas` y `resumenVigentes` llevaban el mismo comentario —*«frase
+corta para el encabezado de la consulta»*— y **ninguna tenía llamador**.
+
+**Y el comentario pedía un sitio que no era el suyo.** En la consulta las dos
+listas ya se enseñan **enteras**: una versión corta al lado de la larga no
+informa, duplica. Hay un caso que deja esto escrito para que nadie lo «arregle»
+moviéndolas allí.
+
+Su sitio es el **expediente**, que es donde el charter V7 §8 dice que el médico
+llega preparado —«resumen conciso, problemas activos, medicación actual»— y
+donde **no había ningún resumen**: para saber qué tiene y qué toma había que
+leerse la lista de notas entera. Y cuesta **cero lecturas más**: el expediente
+ya tenía las notas cargadas.
+
+**La misma proyección, no una parecida.** El `{ fecha, medicamentos,
+diagnosticos }` se arma **igual** que en la consulta, y hay un caso que compara
+las dos pantallas. Si aquí se construyera distinto, el mismo paciente tendría
+dos «problemas activos» según desde dónde se le mire — la clase de segunda
+verdad que este loop lleva reparando.
+
+**Detalles que el motor ya hacía bien y ahora se ven:** sólo cuenta lo
+**firmado** —un borrador no es historia clínica—, y con nada registrado dice
+«Sin problemas **registrados**», no «sin problemas»: lo segundo afirmaría que el
+paciente está sano.
+
+**El trinquete baja: 41 → 39** (34 envoltorios · **5** con cuerpo real, uno de
+ellos bloqueado en el dueño). Familia `no_conectado`, la vigésima séptima.
+
+**Guardián.** `src/__tests__/el-expediente-resume-el-estado.test.ts`, 10 casos.

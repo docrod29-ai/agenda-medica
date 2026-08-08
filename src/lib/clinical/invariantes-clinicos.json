@@ -1115,6 +1115,10 @@
     {
       "archivo": "src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/el-expediente-resume-el-estado.test.ts",
+      "minCasos": 10
     }
   ]
 }

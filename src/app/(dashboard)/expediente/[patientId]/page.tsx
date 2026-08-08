@@ -27,6 +27,8 @@ import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
+import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
@@ -294,6 +296,49 @@ export default function ExpedientePage() {
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
         Historia clínica
       </div>
+
+      {/*
+        EL ESTADO ACTUAL, EN UNA LÍNEA (REG-262).
+
+        `resumenProblemas` y `resumenVigentes` decían en su comentario «frase
+        corta para el encabezado de la consulta», y no las llamaba nadie.
+
+        No van en la consulta: ahí las dos listas ya se enseñan ENTERAS, y una
+        versión corta al lado de la larga es duplicar. Van aquí, donde el
+        expediente ya tiene las notas cargadas —así que no cuesta ni una
+        lectura más— y no había ningún resumen: para saber qué tiene y qué toma
+        había que leerse la lista de notas.
+
+        Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
+      */}
+      {(() => {
+        /* La MISMA proyección que usa la consulta: si aquí se armara distinto,
+           el mismo paciente tendría dos «problemas activos» según la pantalla. */
+        const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
+          fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+          medicamentos: n.medicamentos,
+          diagnosticos: n.diagnosticos,
+        }))
+        const problemas = problemasActivos(firmadas)
+        const vigentes = medicamentosVigentes(firmadas)
+        if (!problemas.length && !vigentes.length) return null
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            borderRadius: 11, padding: '10px 13px',
+          }}>
+            <Stethoscope size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
+              <div><strong style={{ color: 'var(--text)' }}>Problemas:</strong> {resumenProblemas(problemas)}</div>
+              <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/*
         LOS INGRESOS DE ESTE PACIENTE (REG-261).

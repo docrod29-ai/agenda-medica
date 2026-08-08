@@ -2531,3 +2531,9 @@ decisión de política del Dr., no en el código.
 Un paciente ingresado dos veces no tenía forma, desde su expediente, de saber
 que esos episodios existieron. La función existía y su comentario pedía justo
 esto.
+
+## v1144 — el expediente resume problemas y medicación (REG-262)
+
+Dos motores pedían «el encabezado de la consulta», pero ahí las listas ya salen
+enteras. Su sitio era el expediente, que no resumía nada: había que leerse todas
+las notas para saber qué tiene y qué toma.
