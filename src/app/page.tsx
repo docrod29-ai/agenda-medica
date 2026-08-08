@@ -403,7 +403,7 @@ function HowItWorks() {
       </div>
 
       <div style={{ maxWidth: 1100, margin: '48px auto 0', display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus, #3d5afe)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
+        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
           Ver cómo razona la IA en vivo →
         </Link>
         <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>

@@ -329,7 +329,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
         {SITIOS.map(s => (
           <button key={s.v} type="button" onClick={() => setSitio(s.v)}
-            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--teal)', color: '#fff', borderColor: 'var(--teal)' } : {}) }}>
+            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--nexus-solido)', color: '#fff', borderColor: 'var(--teal)' } : {}) }}>
             {s.t}
           </button>
         ))}

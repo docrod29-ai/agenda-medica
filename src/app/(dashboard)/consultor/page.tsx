@@ -159,7 +159,7 @@ export default function ConsultorPage() {
         {turnos.map((t, i) => (
           <div key={i}>
             <div style={{ display: 'flex', gap: 9, marginBottom: 10 }}>
-              <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'var(--nexus, #3d5afe)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Dr</div>
+              <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'var(--nexus-solido)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Dr</div>
               <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)', paddingTop: 3 }}>{t.pregunta}</div>
             </div>
             <div style={{ display: 'flex', gap: 9 }}>

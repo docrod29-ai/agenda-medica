@@ -436,7 +436,7 @@ export default function AntimicrobianosPage() {
                 <button onClick={() => void cargarTodos()} disabled={cargandoTodo || ocupado !== null} style={{
                   padding: '11px 22px', borderRadius: 9, fontSize: 14, fontWeight: 700,
                   border: 'none', cursor: cargandoTodo ? 'wait' : 'pointer',
-                  background: 'var(--nexus, #3d5afe)', color: '#fff',
+                  background: 'var(--nexus-solido)', color: '#fff',
                 }}>{cargandoTodo ? `Cargando… ${progreso}` : 'Cargar todos'}</button>
               </div>
             </div>
@@ -468,7 +468,7 @@ export default function AntimicrobianosPage() {
                     disabled={ocupado !== null || cargandoTodo} style={{
                     padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
                     border: 'none', cursor: ocupado ? 'wait' : 'pointer',
-                    background: 'var(--nexus, #3d5afe)', color: '#fff', opacity: ocupado === t.farmaco ? 0.6 : 1,
+                    background: 'var(--nexus-solido)', color: '#fff', opacity: ocupado === t.farmaco ? 0.6 : 1,
                   }}>{ocupado === t.farmaco ? 'Guardando…' : 'Confirmar'}</button>
                 </div>
               </div>

@@ -36,7 +36,7 @@ const botonBase: React.CSSProperties = {
   padding: '9px 15px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
 }
 const botonPrimario: React.CSSProperties = {
-  ...botonBase, background: 'var(--nexus,#3d5afe)', border: '1px solid transparent', color: '#fff',
+  ...botonBase, background: 'var(--nexus-solido)', border: '1px solid transparent', color: '#fff',
 }
 const botonSecundario: React.CSSProperties = {
   ...botonBase, background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',

@@ -373,7 +373,7 @@ export default function CitasPage() {
             >
               <DollarSign size={13} className="ds-icon" /> Por cobrar
               <span style={{
-                background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r-pill)',
+                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
                 padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
               }}>{daySummary.porCobrar}</span>
             </button>

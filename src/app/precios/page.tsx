@@ -29,7 +29,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
       {destacado && (
         <div style={{
           position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--nexus, #3d5afe)', color: '#fff', fontSize: 12, fontWeight: 700,
+          background: 'var(--nexus-solido)', color: '#fff', fontSize: 12, fontWeight: 700,
           padding: '4px 14px', borderRadius: 'var(--r-pill)', letterSpacing: 0.3,
         }}>Más popular</div>
       )}

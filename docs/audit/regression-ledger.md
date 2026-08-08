@@ -3537,3 +3537,50 @@ cero habría sido peor que no hacerlo.
 **Lo que NO cierra esta iteración** — la cifra de error (25,55 % crudo / 22,81 %
 pipeline) sigue siendo la de REG-159. Volver a medirla exige dictado real del
 médico; sin cifra nueva, **no se declara mejorada**.
+
+---
+
+## REG-233 — lo que el navegador vio (v1114 · I-13)
+
+Barrido de las **catorce pantallas públicas** con un iPhone emulado. Ninguno de
+los tres hallazgos era visible desde el código.
+
+**1 · Mi propio guardián era demasiado estrecho.** En v1104 se reparó el
+contraste de los rellenos azules con texto blanco (3,28 : 1; AA pide 4,5) y se
+dejó una prueba. La prueba buscaba la cadena **exacta**
+`background: 'var(--nexus)'`.
+
+El barrido encontró el mismo 3,28 en **siete pantallas más**, escrito de otras
+tres maneras que la prueba no miraba:
+
+```
+background: 'var(--nexus, #3d5afe)'    ← con valor de respaldo
+background: 'var(--nexus,#3d5afe)'     ← sin espacio
+background: 'var(--teal)'              ← el alias de retro-compatibilidad
+```
+
+La lección no es que faltaran sitios: es que **el guardián era tan estrecho como
+el barrido que lo escribió**. Una prueba que sólo comprueba la forma que uno
+arregló no protege de la forma que uno no vio. Ahora la comprobación es por
+patrón. 15 líneas corregidas.
+
+**2 · Unas pestañas que no cabían.** En `/demo/interactivo`, cinco pestañas en
+una fila `flex` sin `wrap` pedían **425 px en una pantalla de 390**. La página
+entera se movía de lado — en la pantalla que existe para enseñarle el producto a
+alguien que lo está evaluando.
+
+**3 · Las etiquetas estaban puestas y no servían.** En `/login` y `/registro` los
+campos tenían su `<label>` visible encima —«Correo electrónico», «Contraseña»—
+pero **sin asociar**: ni `htmlFor`, ni `id`, ni `aria-label`. Un lector de
+pantalla dice «edición de texto» y ya. Y el botón de mostrar/ocultar la
+contraseña no tenía nombre: «botón».
+
+Es el peor tipo de defecto de accesibilidad, porque **parece resuelto**: mirando
+la pantalla se ve una etiqueta; mirando el árbol accesible no hay ninguna.
+
+**Lo que este barrido NO cubrió** — sólo lo público, catorce pantallas sin
+sesión. La consulta, la UCI y el hospital —donde vive el trabajo— no se
+barrieron: hacen falta credenciales. Un barrido que no dice qué no miró se lee
+como si lo hubiera mirado todo.
+
+**Guardián** — `src/__tests__/lo-que-el-navegador-vio.test.ts` (11 casos).

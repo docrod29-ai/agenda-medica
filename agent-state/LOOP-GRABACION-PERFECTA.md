@@ -436,7 +436,7 @@ marketing.
 
 ---
 
-## I-13 · Barrido de toda la app con el navegador
+## I-13 · Barrido de toda la app con el navegador — ✅ PARCIAL (v1114)
 
 > «utiliza Google Chrome y navega por toda la app para detectar conflictos,
 > problemas, errores etcétera»
@@ -447,6 +447,24 @@ arreglar lo que ya sabemos que está roto.
 
 Los cuatro defectos de la portada (v1104-v1105) salieron exactamente así, y
 ninguno era visible desde el código.
+
+**Hecho en v1114** — barrido de las 14 pantallas públicas con un iPhone emulado.
+Tres hallazgos, ninguno visible desde el código:
+
+1. **Mi propio guardián era demasiado estrecho.** El de v1104 buscaba
+   `background: 'var(--nexus)'` LITERAL; el mismo 3,28 : 1 seguía en 7 pantallas
+   escrito con valor de respaldo, sin espacio, o por el alias `--teal`. Ahora la
+   comprobación es por patrón. 15 líneas corregidas.
+2. **Cinco pestañas de `/demo/interactivo` pedían 425 px** en una pantalla de
+   390: la página se movía de lado, justo en la pantalla que enseña el producto.
+3. **Las etiquetas de login y registro estaban puestas y no servían**: `<label>`
+   visible pero sin `htmlFor`/`id`. El lector de pantalla decía «edición de
+   texto». El peor tipo de defecto de accesibilidad, porque parece resuelto.
+
+**Cierra con** — REG-233 · `lo-que-el-navegador-vio.test.ts` (11 casos).
+
+**Lo que NO cubrió** — sólo lo público. La consulta, la UCI y el hospital, que es
+donde vive el trabajo, necesitan credenciales. Queda pendiente y se dice.
 
 ---
 

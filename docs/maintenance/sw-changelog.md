@@ -2316,3 +2316,12 @@ Ahora entran, y antes que los fármacos: un alérgeno mal oído es un cruce que
 nunca salta y del que nadie se entera; un fármaco mal oído sale impreso y se ve.
 También se probó y se DESCARTÓ reordenar por especialidad: medido idéntico, y
 queda anotado para que nadie lo reintente (REG-232).
+
+## v1114 — lo que el navegador vio (I-13, parcial)
+Barrido de las 14 pantallas públicas con un iPhone emulado. (1) Mi guardián de
+v1104 buscaba `background: 'var(--nexus)'` LITERAL: el mismo 3,28:1 seguía en 7
+pantallas escrito con valor de respaldo, sin espacio o por el alias --teal. La
+prueba era tan estrecha como el barrido que la escribió; ahora es por patrón.
+(2) Cinco pestañas de /demo/interactivo pedían 425 px en 390. (3) Login y
+registro tenían <label> visible pero SIN asociar: el lector de pantalla decía
+«edición de texto». Parecía resuelto y no lo estaba (REG-233).

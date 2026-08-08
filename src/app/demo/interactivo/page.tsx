@@ -96,7 +96,9 @@ function Pasos({ paso }: { paso: DemoPaso }) {
   const orden = items.map(i => i.k)
   const actualI = orden.indexOf(paso)
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    // `flexWrap` porque en un teléfono de 390 px estas cinco pestañas piden 425 y
+    // la página entera se movía de lado. Medido con el navegador, no leído.
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
       {items.map((it, i) => {
         const hecho = i < actualI, activo = i === actualI
         return (
