@@ -444,24 +444,24 @@ export default function ConfiguracionPage() {
       {tab === 'general' && (
         <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
           <div className="form-group">
-            <label className="label">Nombre del médico</label>
-            <input className="input" value={form.nombreMedico} onChange={upd('nombreMedico')} placeholder="Dr. García López" />
+            <label className="label" htmlFor="cfg-nombre-del-medico">Nombre del médico</label>
+            <input id="cfg-nombre-del-medico" className="input" value={form.nombreMedico} onChange={upd('nombreMedico')} placeholder="Dr. García López" />
           </div>
           <div className="form-group">
-            <label className="label">Nombre de la clínica / consultorio</label>
-            <input className="input" value={form.nombreClinica} onChange={upd('nombreClinica')} placeholder="Consultorio Médico García" />
+            <label className="label" htmlFor="cfg-nombre-de-la-clinica-consultorio">Nombre de la clínica / consultorio</label>
+            <input id="cfg-nombre-de-la-clinica-consultorio" className="input" value={form.nombreClinica} onChange={upd('nombreClinica')} placeholder="Consultorio Médico García" />
           </div>
           <div className="form-group">
-            <label className="label">Cédula profesional <span style={{ color: 'var(--red)' }}>*</span></label>
-            <input className="input" value={form.cedulaProfesional ?? ''} onChange={upd('cedulaProfesional')} placeholder="12345678 (requerida para firmar expedientes)" />
+            <label className="label" htmlFor="cfg-cedula-profesional">Cédula profesional <span style={{ color: 'var(--red)' }}>*</span></label>
+            <input id="cfg-cedula-profesional" className="input" value={form.cedulaProfesional ?? ''} onChange={upd('cedulaProfesional')} placeholder="12345678 (requerida para firmar expedientes)" />
           </div>
           <div className="form-group">
-            <label className="label">Especialidad</label>
-            <input className="input" value={form.especialidad ?? ''} onChange={upd('especialidad')} placeholder="Infectología" />
+            <label className="label" htmlFor="cfg-especialidad">Especialidad</label>
+            <input id="cfg-especialidad" className="input" value={form.especialidad ?? ''} onChange={upd('especialidad')} placeholder="Infectología" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="label">Estilo de mis notas (la IA escribe a tu manera)</label>
-            <textarea
+            <label className="label" htmlFor="cfg-estilo-de-mis-notas-la-ia-escribe-">Estilo de mis notas (la IA escribe a tu manera)</label>
+            <textarea id="cfg-estilo-de-mis-notas-la-ia-escribe-"
               className="input"
               rows={3}
               value={form.instruccionesIA ?? ''}
@@ -488,20 +488,20 @@ export default function ConfiguracionPage() {
             </div>
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="label">Dirección</label>
-            <input className="input" value={form.direccion} onChange={upd('direccion')} placeholder="Av. Independencia 123, Col. Centro" />
+            <label className="label" htmlFor="cfg-direccion">Dirección</label>
+            <input id="cfg-direccion" className="input" value={form.direccion} onChange={upd('direccion')} placeholder="Av. Independencia 123, Col. Centro" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="label">URL Google Maps</label>
-            <input className="input" value={form.googleMapsUrl} onChange={upd('googleMapsUrl')} placeholder="https://maps.google.com/…" />
+            <label className="label" htmlFor="cfg-url-google-maps">URL Google Maps</label>
+            <input id="cfg-url-google-maps" className="input" value={form.googleMapsUrl} onChange={upd('googleMapsUrl')} placeholder="https://maps.google.com/…" />
           </div>
           <div className="form-group">
-            <label className="label">Teléfono admin</label>
-            <input className="input" type="tel" value={form.telefonoAdmin} onChange={upd('telefonoAdmin')} placeholder="6641234567" />
+            <label className="label" htmlFor="cfg-telefono-admin">Teléfono admin</label>
+            <input id="cfg-telefono-admin" className="input" type="tel" value={form.telefonoAdmin} onChange={upd('telefonoAdmin')} placeholder="6641234567" />
           </div>
           <div className="form-group">
-            <label className="label">WhatsApp consultorio</label>
-            <input className="input" type="tel" value={form.whatsappConsultorio} onChange={upd('whatsappConsultorio')} placeholder="6641234567" />
+            <label className="label" htmlFor="cfg-whatsapp-consultorio">WhatsApp consultorio</label>
+            <input id="cfg-whatsapp-consultorio" className="input" type="tel" value={form.whatsappConsultorio} onChange={upd('whatsappConsultorio')} placeholder="6641234567" />
           </div>
 
           {/* ── Identidad fiscal y de privacidad (alimenta el aviso y el contrato de encargo) ── */}
@@ -512,35 +512,35 @@ export default function ConfiguracionPage() {
             </div>
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="label">Razón social o nombre completo del responsable</label>
-            <input className="input" value={form.razonSocial ?? ''} onChange={upd('razonSocial')} placeholder="Servicios Médicos del Norte, S.C. / Dr. Juan Pérez López" />
+            <label className="label" htmlFor="cfg-razon-social-o-nombre-completo-del">Razón social o nombre completo del responsable</label>
+            <input id="cfg-razon-social-o-nombre-completo-del" className="input" value={form.razonSocial ?? ''} onChange={upd('razonSocial')} placeholder="Servicios Médicos del Norte, S.C. / Dr. Juan Pérez López" />
           </div>
           <div className="form-group">
-            <label className="label">RFC</label>
-            <input className="input" value={form.rfc ?? ''} onChange={upd('rfc')} placeholder="XAXX010101000" />
+            <label className="label" htmlFor="cfg-rfc">RFC</label>
+            <input id="cfg-rfc" className="input" value={form.rfc ?? ''} onChange={upd('rfc')} placeholder="XAXX010101000" />
           </div>
           <div className="form-group">
-            <label className="label">Correo de contacto ARCO</label>
-            <input className="input" type="email" value={form.correoArco ?? ''} onChange={upd('correoArco')} placeholder="privacidad@tuconsultorio.mx" />
+            <label className="label" htmlFor="cfg-correo-de-contacto-arco">Correo de contacto ARCO</label>
+            <input id="cfg-correo-de-contacto-arco" className="input" type="email" value={form.correoArco ?? ''} onChange={upd('correoArco')} placeholder="privacidad@tuconsultorio.mx" />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="label">Domicilio fiscal (si difiere del domicilio del consultorio)</label>
-            <input className="input" value={form.domicilioFiscal ?? ''} onChange={upd('domicilioFiscal')} placeholder="Av. Fiscal 100, Col. Centro, C.P. 22000, Tijuana, B.C." />
+            <label className="label" htmlFor="cfg-domicilio-fiscal-si-difiere-del-do">Domicilio fiscal (si difiere del domicilio del consultorio)</label>
+            <input id="cfg-domicilio-fiscal-si-difiere-del-do" className="input" value={form.domicilioFiscal ?? ''} onChange={upd('domicilioFiscal')} placeholder="Av. Fiscal 100, Col. Centro, C.P. 22000, Tijuana, B.C." />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="label">Responsable de privacidad (persona)</label>
-            <input className="input" value={form.responsablePrivacidad ?? ''} onChange={upd('responsablePrivacidad')} placeholder="Nombre de quien atiende solicitudes de datos personales" />
+            <label className="label" htmlFor="cfg-responsable-de-privacidad-persona">Responsable de privacidad (persona)</label>
+            <input id="cfg-responsable-de-privacidad-persona" className="input" value={form.responsablePrivacidad ?? ''} onChange={upd('responsablePrivacidad')} placeholder="Nombre de quien atiende solicitudes de datos personales" />
           </div>
 
           <div className="form-group">
-            <label className="label">Intervalo de agenda (min)</label>
-            <select className="input" value={form.intervaloMinutos} onChange={upd('intervaloMinutos')}>
+            <label className="label" htmlFor="cfg-intervalo-de-agenda-min">Intervalo de agenda (min)</label>
+            <select id="cfg-intervalo-de-agenda-min" className="input" value={form.intervaloMinutos} onChange={upd('intervaloMinutos')}>
               {[5, 10, 15, 20, 30].map(v => <option key={v} value={v}>{v} minutos</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label className="label">Zona horaria</label>
-            <select className="input" value={form.zonaHoraria} onChange={upd('zonaHoraria')}>
+            <label className="label" htmlFor="cfg-zona-horaria">Zona horaria</label>
+            <select id="cfg-zona-horaria" className="input" value={form.zonaHoraria} onChange={upd('zonaHoraria')}>
               <option value="America/Chihuahua">Chihuahua / Ciudad Juárez (UTC-6)</option>
               <option value="America/Mexico_City">Ciudad de México (UTC-6)</option>
               <option value="America/Monterrey">Monterrey (UTC-6)</option>
@@ -822,8 +822,8 @@ export default function ConfiguracionPage() {
             </div>
           </div>
           <div className="form-group" style={{ maxWidth: 200 }}>
-            <label className="label">Hora de resumen diario</label>
-            <input className="input" type="time" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />
+            <label className="label" htmlFor="cfg-hora-de-resumen-diario">Hora de resumen diario</label>
+            <input id="cfg-hora-de-resumen-diario" className="input" type="time" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />
           </div>
         </div>
       )}
@@ -913,8 +913,8 @@ export default function ConfiguracionPage() {
             {/* Calendar selector */}
             {gcalConnected && gcalCalendars.length > 0 && (
               <div style={{ marginTop: 16 }}>
-                <label className="label">Calendario destino</label>
-                <select
+                <label className="label" htmlFor="cfg-calendario-destino">Calendario destino</label>
+                <select id="cfg-calendario-destino"
                   className="input"
                   value={form.googleCalendarId}
                   onChange={upd('googleCalendarId')}

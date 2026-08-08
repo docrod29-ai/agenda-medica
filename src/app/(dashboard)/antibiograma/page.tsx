@@ -320,8 +320,8 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       </div>
 
       {/* Organismo + sitio */}
-      <label style={label}>Organismo</label>
-      <input value={organismo} onChange={e => setOrganismo(e.target.value)}
+      <label style={label} htmlFor="atb-organismo">Organismo</label>
+      <input id="atb-organismo" value={organismo} onChange={e => setOrganismo(e.target.value)}
         placeholder="p. ej. Escherichia coli, Klebsiella pneumoniae, Pseudomonas aeruginosa, S. aureus"
         style={{ ...input, marginBottom: 14 }} />
 

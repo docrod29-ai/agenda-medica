@@ -3624,3 +3624,46 @@ por eso vale más que el barrido que la originó.
 **Guardián** — ampliado en `lo-que-el-navegador-vio.test.ts`: ahora prohíbe el
 relleno azul con texto blanco **y con texto negro**, en cualquier forma
 sintáctica.
+
+---
+
+## REG-235 — veinte campos sin etiqueta, DETRÁS del login (v1117 · I-13)
+
+**Cómo se encontraron** — el médico dueño señaló que su sesión de Chrome estaba
+abierta y preguntó por qué no se probaba ahí. Tenía razón: era la herramienta
+correcta y el barrido anterior se había quedado en lo público por no usarla.
+
+**La regla que se puso al usarla** — medir con **cifras y selectores**, nunca con
+capturas ni con `innerText`. Una auditoría de diseño no necesita ver el nombre de
+un paciente, y traerlo a la conversación sería PHI que no hace falta.
+
+**Lo medido, con sesión abierta**:
+
+| Pantalla | Campos sin etiqueta asociada |
+|---|---:|
+| `/configuracion` | 15 |
+| `/antibiograma` | 2 |
+| `/citas` | 2 (+1 botón sin nombre) |
+| `/pacientes` | 1 |
+
+Tablero, UCI y hospitalización: limpios en contraste, nombres y etiquetas.
+
+**Por qué el grep del código NO servía** — buscando en el fuente salían **371**
+campos «sin etiqueta». El navegador encontró **veinte**. La diferencia son los
+que van envueltos en su `<label>`, que es una asociación válida y que ninguna
+expresión regular razonable distingue.
+
+Es la lección de la iteración: **manda la medición, no el grep**. Actuar sobre
+los 371 habría sido tocar 350 sitios que ya estaban bien.
+
+**Lo que se arregló** — 18 campos de configuración con `htmlFor`/`id` derivados
+de su propia etiqueta visible, el organismo del antibiograma, y los dos
+buscadores con `aria-label` (no tienen etiqueta visible, y ponerles una sería
+cambiar el diseño para arreglar la accesibilidad, cuando `aria-label` lo resuelve
+sin tocar la pantalla).
+
+**Lo que sigue sin barrerse** — el ancho de TELÉFONO en las pantallas internas.
+Redimensionar la ventana de Chrome no cambia el viewport que ven las
+media-queries, así que el desborde móvil de la consulta, la UCI y el hospital
+**no está medido**. Contraste, nombres y etiquetas sí lo están: no dependen del
+ancho.

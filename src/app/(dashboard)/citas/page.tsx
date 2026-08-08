@@ -350,6 +350,7 @@ export default function CitasPage() {
             className="input"
             style={{ paddingLeft: 32 }}
             placeholder="Buscar paciente…"
+            aria-label="Buscar un paciente por nombre"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />

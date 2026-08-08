@@ -2343,3 +2343,12 @@ cambia de brillo con el tema: 6,39 en oscuro, 3,13 en claro (el mínimo es 4,5).
 Es el espejo de REG-223. 32 sitios en 25 archivos; el navegador sólo podía ver
 DOS — los otros treinta viven detrás del login y los cubre la prueba, no el
 barrido (REG-234). El escritorio salió limpio en las catorce pantallas.
+
+## v1117 — veinte campos sin etiqueta, detrás del login (I-13)
+El Dr. señaló que su sesión de Chrome estaba abierta. Con ella: 15 campos de
+configuración, 2 del antibiograma, 2 de citas y 1 de pacientes SIN etiqueta
+asociada — el lector de pantalla decía «edición de texto». Medido con cifras y
+selectores, nunca con capturas ni innerText: una auditoría de diseño no necesita
+ver el nombre de un paciente. El grep del código decía 371; el navegador, 20. La
+diferencia son los que van envueltos en su label. Manda la medición, no el grep
+(REG-235). Sigue sin medirse el ancho de teléfono en pantallas internas.
