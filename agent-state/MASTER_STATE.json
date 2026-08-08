@@ -10,17 +10,18 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "EVAL-002 (cerrada) — REG-192, v1074",
+  "iteracionActual": "EVAL-002 (reparada en rama; PR NO abierto por duplicidad — ver T-1 / OPS-003 #251)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
     "agent/ops/OPS-001",
-    "agent/eval/EVAL-002"
+    "agent/eval/EVAL-002-corpus-oro-0808"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
   "trabajoLocalSinSubir": [],
   "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1074",
-  "notaSobreLaVersionEnProduccion": "El campo `ultimaVersionEnProduccion` lleva atrasado desde la v1030 y NO se actualiza desde aquí: este entorno no despliega ni puede verificar con curl qué sirve Vercel. Lo que sí es cierto es lo preparado y fusionable."
+  "notaSobreLaVersionEnProduccion": "El campo `ultimaVersionEnProduccion` lleva atrasado desde la v1030 y NO se actualiza desde aquí: este entorno no despliega ni puede verificar con curl qué sirve Vercel. Lo que sí es cierto es lo preparado y fusionable.",
+  "bloqueoDelPrograma": "La cola no avanza porque nada se fusiona a `main`. Con `main` quieto, cada disparo del bucle vuelve a elegir el mismo ítem, el mismo REG y la misma versión de service worker: hay 22+ PRs abiertos y catorce se titulan «REG-192 · v1074». Medido y escalado en OPS-003 / PR #251 como decisión T-1. Hasta que el dueño fusione o cierre, cada iteración nueva produce duplicados aunque haga bien su trabajo."
 }

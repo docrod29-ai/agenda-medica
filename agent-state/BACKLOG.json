@@ -83,9 +83,10 @@
       "complejidad": 2,
       "dependenciaExterna": 0,
       "score": 55,
-      "estado": "cerrado (v1074, REG-192)",
+      "estado": "reparado en rama, PR NO abierto — duplica PRs abiertos #246, #240 y #239",
       "reversible": true,
-      "resultado": "49 frases + 12 notas sintéticas. Medido contra el motor real ANTES de tocar nada: 9 de 61 fallaban. Cuatro defectos reparados (estado que anulaba el pretérito, sólo la primera aparición en la nota, «derrame pleural» como ictus, «extirparon» sin cirugía). Golden de 14 casos, sellado. Queda abierto el número sobre habla REAL: depende de E-1."
+      "resultado": "49 frases + 12 notas sintéticas. Medido contra el motor real ANTES de tocar nada: 9 de 61 fallaban. Cuatro defectos reparados (estado que anulaba el pretérito, sólo la primera aparición en la nota, «derrame pleural» como ictus, «extirparon» sin cirugía). Golden de 14 casos, sellado. Queda abierto el número sobre habla REAL: depende de E-1.",
+      "duplicidad": "Comprobado con `git ls-remote` DESPUÉS de terminar: hay cinco ramas vivas sobre EVAL-002 y tres PRs abiertos que reparan trozos de lo mismo en el mismo archivo. #246 (agent/eval/EVAL-002-gramatica-temporal) parte PASADO en verbo y marca, igual que esta rama. #239 (agent/clinical/REG-192) veta «derrame pleural». #240 (agent/expediente/EVAL-002) ataca la ceguera de la nota. Esta rama hace los tres más «extirparon/resecaron», pero abrir un PR más sería el decimoquinto titulado «REG-192 · v1074» — que es justo el defecto que OPS-003 (#251) mide y escala como T-1. La rama se sube para que el trabajo no se pierda; NO se fusiona como está."
     },
     {
       "id": "EVAL-003",
