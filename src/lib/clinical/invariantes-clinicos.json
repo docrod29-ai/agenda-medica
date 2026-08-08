@@ -1083,6 +1083,10 @@
     {
       "archivo": "src/__tests__/un-resultado-genera-tarea.test.ts",
       "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts",
+      "minCasos": 12
     }
   ]
 }

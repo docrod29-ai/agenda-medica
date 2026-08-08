@@ -2476,3 +2476,10 @@ longitud. Reparado, y una cifra huérfana ya nunca puede salir en verde.
 `tareaDeResultado()` existía, estaba probada y no la llamaba nadie: el bucle
 ORDEN→RESULTADO→REVISIÓN→CERRADO nunca empezaba. Conectado en el cuello de
 botella (carga manual + FHIR). Si la tarea no se crea, se avisa.
+
+## v1135 — cero vulnerabilidades high en producción (REG-253)
+
+El documento publicado decía «8 · 0 high»; el comando devolvía «12 · 3 high»,
+con pdfjs-dist permitiendo ejecución arbitraria de JS al abrir un PDF. Cerradas
+las tres. Y la cifra ya se deriva del comando, con una prueba que falla si
+aparece una sola high en producción.

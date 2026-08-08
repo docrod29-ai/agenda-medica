@@ -4349,3 +4349,64 @@ pantallas avisan al médico. El resultado guardado no se pierde por eso: su
 transacción va antes y no depende de la tarea.
 
 **Guardián.** `src/__tests__/un-resultado-genera-tarea.test.ts`, 13 casos.
+
+## REG-253 — la cifra de seguridad publicada se pudrió en nueve días (v1135)
+
+**Hallazgo del equipo rojo, verificado con el comando.**
+`docs/seguridad/npm-audit-2026-07-30.md` decía en su columna «después»:
+
+    Rama de producción: 8 · 0 high · 8 moderate
+
+Nueve días más tarde, `npm audit --omit=dev` devolvía **12 · 3 high**:
+
+| Paquete | Qué es |
+|---|---|
+| **`pdfjs-dist`** | **Ejecución arbitraria de JavaScript al abrir un PDF malicioso** (GHSA-hq66-cqwq-w95j) |
+| `nanoid` | Bucle infinito con tamaño cero |
+| `brace-expansion` | DoS por arreglos intermedios sin cota |
+
+La primera importa de verdad **en este producto**: el médico abre PDF de
+laboratorio todos los días, así que el camino de ataque es «el laboratorio le
+manda un PDF al médico».
+
+**El documento no mintió cuando se escribió: se pudrió.** Familia
+`depende_de_recordar`, la misma que el tablero del loop (REG-241): un dato que
+el sistema ya sabe y un segundo sitio que lo repite a mano.
+
+**Y éste es peor que el del tablero.** El tablero lo leo yo. **Este documento se
+le enseña a un comprador.** Una cifra de seguridad obsoleta en una sala de datos
+no es un despiste: es una afirmación falsa sobre el riesgo de un producto
+sanitario.
+
+**Dos reparaciones, y hacen falta las dos.**
+
+1. **Se cerraron las tres.** `pdfjs-dist` 6.0.227 → **6.2.108**; `nanoid` y
+   `brace-expansion` por `overrides`, porque son transitivas (`next→postcss` y
+   `@capacitor/cli→rimraf→glob→minimatch`). Producción quedó en **9 · 0 high ·
+   0 critical**. Verificado que el visor de PDF sigue funcionando: worker
+   recopiado, 7 963 pruebas y `npm run build` en verde.
+2. **La cifra se deriva.** `scripts/seguridad/auditar.mjs` corre el comando y
+   reescribe el bloque de `ESTADO-DEPENDENCIAS.md`. El documento viejo queda con
+   un aviso arriba: sus cifras están caducadas, su **análisis** sigue valiendo —
+   eso es criterio, y el criterio no caduca solo.
+
+**La compuerta que de verdad protege** no mide el documento: mide el producto.
+`la-cifra-de-seguridad-no-se-pudre` falla si aparece **una sola `high` en la rama
+de producción**, sin que nadie tenga que acordarse de mirar.
+
+**Y un tropiezo propio que vale la pena dejar escrito.** El primer intento puso
+`brace-expansion: ^5.0.9` **global**, y **rompió ESLint**: un `minimatch`
+antiguo del árbol de herramientas espera la API v1/v2 (`expand` como función) y
+la v5 la cambió. El trinquete de lint hizo exactamente lo que debía — falló en
+vez de pasar en silencio: *«un gate que no mide no protege: se falla»*.
+
+La vulnerable sólo vivía bajo `@capacitor/cli`; las demás copias del árbol son
+1.1.x y 2.x, **fuera del rango del aviso**. Acotar el override arregla lo que
+hay que arreglar sin tocar lo que ya estaba sano. Un `override` global es una
+escopeta: llega más lejos de lo que se apunta.
+
+Detalle que se documenta porque tiene trampa: `npm audit` sale con código ≠ 0
+**cuando encuentra algo**. Un script que lo tratara como error se quedaría mudo
+justo cuando hay algo que contar.
+
+**Guardián.** `src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts`, 11 casos.
