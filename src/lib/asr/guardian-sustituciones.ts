@@ -131,8 +131,17 @@ function contar(texto: string, termino: string): number {
  * que convirtiera «no padece diabetes» en «padece diabetes» no volteaba ninguna
  * marca —ni antes ni después había negador— y el guardián dejaba pasar la
  * inversión más cara que existe aquí.
+ *
+ * La revisión del Dr. (8-ago-2026) encontró que la reparación se había quedado a
+ * medias justo aquí, y por dos motivos:
+ *
+ *   - Faltaba `negó` (que llega como `nego`: `norm()` quita la tilde).
+ *   - El cierre `(\s|$)` **no cierra en un punto**, así que «el paciente no
+ *     padece.» no casaba y perder el «no» al final de una frase —donde acaban
+ *     tantas— no se marcaba. Se cambia por un veto de letra o dígito, que es lo
+ *     mismo que hace `contar()` unas líneas más arriba y por la misma razón.
  */
-const NEGADORES = /(^|\s)(niega|sin|no\s+(se\s+)?(tiene|presenta|refiere|hay|observa|palpa|ausculta|padece|padezco|sufre|sufro)|ausencia\s+de|negativo\s+para|se\s+descarta|descarta)(\s|$)/
+const NEGADORES = /(^|\s)(niega|nego|negaron|sin|no\s+(se\s+)?(tiene|presenta|refiere|hay|observa|palpa|ausculta|padece|padezco|padecio|sufre|sufro|sufrio)|ausencia\s+de|negativo\s+para|se\s+descarta|descarta)(?![a-z0-9])/
 const DERECHA = /(^|\s)(derecho|derecha)(\s|[.,;:]|$)/
 const IZQUIERDA = /(^|\s)(izquierdo|izquierda)(\s|[.,;:]|$)/
 const BILATERAL = /(^|\s)bilateral(es)?(\s|[.,;:]|$)/

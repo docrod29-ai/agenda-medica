@@ -103,10 +103,35 @@ const FIN_DE_PALABRA = String.raw`(?![a-záéíóúüñ])`
  * decir que no; «para nada» y «jamás», porque son enfáticas y no ambiguas. NO
  * entra «qué va»: en respuesta a una pregunta puede empezar una frase
  * («qué va a pasar si…»), y aquí un falso positivo descarta un antecedente real.
+ *
+ * **«nada más» / «no más» quedan fuera** (revisión del Dr., 8-ago-2026). Son la
+ * forma mexicana de AFIRMAR EN PARTE: «¿diabetes o presión alta? **Nada más** la
+ * diabetes» nombra las dos y afirma una. Contarlo como negación descartaba las
+ * dos —incluida la que se acababa de afirmar— y reclasificaba a `descartado` una
+ * hipertensión `confirmado`. Es el mismo daño que este módulo repara, en la
+ * dirección que la regla §5 prohíbe: señalar de más.
+ *
+ * El veto va tras el núcleo entero y no sólo tras «no»/«nada» a propósito:
+ * «nunca más», «ninguno más» tampoco son respuestas que se deban leer como una
+ * negación limpia. Y no toca la negación de verdad: «No, nada más.» sigue
+ * contando, porque ahí el «más» no viene pegado al primer «no».
  */
 const NEGATIVAS = new RegExp(
   `^\\s*${MULETILLAS}(?:no|nop|ninguna|ninguno|nada|negativo|nunca|jam[aá]s|para\\s+nada`
-  + `|f[ií]jese\\s+que\\s+no|creo\\s+que\\s+no|que\\s+yo\\s+sepa\\s+no)\\b`, 'i')
+  + `|f[ií]jese\\s+que\\s+no|creo\\s+que\\s+no|que\\s+yo\\s+sepa\\s+no)\\b(?!\\s+m[aá]s\\b)`, 'i')
+
+/**
+ * El «no» que corrige y afirma en la misma frase.
+ *
+ * «¿Tiene diabetes? **No, sí tengo**, desde hace años.» El paciente se
+ * desdice —empieza negando y acaba afirmando— y el módulo se quedaba con la
+ * primera palabra. Es el gemelo exacto de «no sé»: `NEGATIVAS` sólo mira el
+ * arranque de la respuesta, y el arranque no siempre es lo que se contestó.
+ *
+ * Encontrado por la revisión del Dr. sobre este mismo PR (8-ago-2026).
+ */
+const NO_CORRECTIVO = new RegExp(
+  `^\\s*${MULETILLAS}no[,\\s]+(?:s[ií]|claro|efectivamente|as[ií]\\s+es)${FIN_DE_PALABRA}`, 'i')
 
 /**
  * «No sé» empieza por «no» y NO niega nada.
@@ -132,10 +157,13 @@ const INCERTIDUMBRE = new RegExp(
  *
  * `sufre/sufro` y `negó/negaron` se añadieron el 8-ago-2026 por el mismo motivo
  * que las muletillas: son habla real de consulta que el módulo no reconocía.
+ * `padeció` entró con la revisión del Dr. ese mismo día: estaban las tres
+ * conjugaciones vecinas y faltaba el pretérito, que es como se cuenta un
+ * antecedente — «no padeció» estaba a una conjugación de un diagnóstico inventado.
  */
 const NIEGA_EN_LINEA = new RegExp(
-  String.raw`\b(?:niega|nieg[ao]|neg[oó]|negaron|no\s+(?:tiene|tengo|padece|padezco|padec[ií]a`
-  + String.raw`|sufre|sufro|sufr[ií]a|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de`
+  String.raw`\b(?:niega|nieg[ao]|neg[oó]|negaron|no\s+(?:tiene|tengo|padece|padezco|padec[ií]a|padeci[oó]`
+  + String.raw`|sufre|sufro|sufr[ií]a|sufri[oó]|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de`
   + String.raw`|descarta|ausencia\s+de|se\s+descarta)` + FIN_DE_PALABRA, 'i')
 
 const sinAcentos = (s: string) =>
@@ -199,9 +227,10 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     // la frase siguiente si la pregunta terminó ahí.
     const resto = f.slice(f.indexOf('?') + 1).trim()
     const respuesta = resto || (fs[i + 1] ?? '')
-    // La incertidumbre gana: «no sé» empieza por «no» y contestaría que sí a
-    // NEGATIVAS. No saber no es negar.
-    if (INCERTIDUMBRE.test(respuesta)) continue
+    // La incertidumbre y la corrección ganan: «no sé» y «no, sí tengo» empiezan
+    // por «no» y contestarían que sí a NEGATIVAS. Ni no saber ni desdecirse es
+    // negar, y la primera palabra de la respuesta no siempre es la respuesta.
+    if (INCERTIDUMBRE.test(respuesta) || NO_CORRECTIVO.test(respuesta)) continue
     if (NEGATIVAS.test(respuesta)) {
       for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
     }

@@ -216,10 +216,16 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
  * que se toma justo cuando el proveedor está caído y el médico tiene prisa— y su
  * salida entra al resumen clínico de la nota.
  *
+ * El pretérito `padeció`/`sufrió` entró con la revisión del Dr. (8-ago-2026):
+ * estaban las tres conjugaciones vecinas y faltaba justo la que se usa para
+ * contar un antecedente. `No padeció diabetes.` seguía devolviendo la diabetes
+ * como positiva — el caso 1 de este mismo arreglo, a una conjugación de
+ * distancia.
+ *
  * La ventana se normaliza antes de probarla (ver `estaNegado`), así que aquí se
  * escriben las formas SIN tilde: `negó` llega como `nego`.
  */
-const NEGADORES = /\b(?:niega|niegan|nego|negaron|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido|padece|padezco|padecia|sufre|sufro|sufria)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
+const NEGADORES = /\b(?:niega|niegan|nego|negaron|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido|padece|padezco|padecia|padecio|sufre|sufro|sufria|sufrio)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -233,7 +239,23 @@ const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|cursa\s+con|acude\s+por|en
 
 export function estaNegado(texto: string, indiceMatch: number): boolean {
   const ventanaInicio = Math.max(0, indiceMatch - 40)
-  let ventana = texto.slice(ventanaInicio, indiceMatch)
+  /**
+   * La ventana se normaliza UNA VEZ, aquí, y de ella comen los dos lados.
+   *
+   * `estaNegado` se llama por dos caminos: desde `extraerComorbilidades`, con el
+   * texto ya normalizado, y desde los extractores de alergias, STOP-BANG y
+   * Caprini, con el texto CRUDO. Por el segundo camino una negación acentuada
+   * («negó», «descartó») no casaba, porque `\b` de JavaScript no considera letra
+   * a la «ó».
+   *
+   * Normalizar sólo antes de `NEGADORES` —como se hizo primero— dejaba a
+   * `AFIRMADORES` mirando el texto crudo, y con eso «con **diagnóstico** de» no
+   * cerraba una negación que «con diagnostico de» sí cerraba: la misma frase
+   * daba dos respuestas según llevara tilde. Lo señaló la revisión del Dr.
+   * (8-ago-2026). Los índices que siguen son de la ventana normalizada, que es
+   * la única que se toca a partir de aquí.
+   */
+  let ventana = normalizar(texto.slice(ventanaInicio, indiceMatch))
   // Corta en el último signo terminal (punto, punto-y-coma, salto de línea)
   // — la cláusula anterior no negaría a la siguiente
   const corte = Math.max(ventana.lastIndexOf('.'), ventana.lastIndexOf(';'), ventana.lastIndexOf('\n'))
@@ -252,16 +274,7 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
     ultimoAfirm = m.index; lenUltimo = m[0].length
   }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
-  /**
-   * La ventana se normaliza para probar el negador.
-   *
-   * `estaNegado` se llama por dos caminos: desde `extraerComorbilidades`, con el
-   * texto ya normalizado, y desde los extractores de alergias, STOP-BANG y
-   * Caprini, con el texto CRUDO. Por el segundo camino una negación acentuada
-   * («negó», «descartó») no casaba, porque `\b` de JavaScript no considera letra
-   * a la «ó». El mismo negador tenía que valer por los dos caminos.
-   */
-  return NEGADORES.test(normalizar(ventana))
+  return NEGADORES.test(ventana)
 }
 
 // ─────────────────────────────────────────────────────────────────

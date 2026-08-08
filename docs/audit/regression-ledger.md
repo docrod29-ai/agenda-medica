@@ -1663,4 +1663,39 @@ queda como aportación propia, comprobado leyendo su rama:
 Al fusionar, lo de aquí debería aplicarse **encima** de `negadores.ts`, no en
 lugar suyo.
 
-**Golden** — `src/__tests__/asi-se-niega-en-la-consulta.test.ts` (20 casos).
+**SEGUNDA RONDA — lo que encontró la revisión del Dr. sobre este mismo arreglo**
+
+Tres huecos más, de la misma familia, reproducidos uno por uno antes de tocar
+nada. Los dos primeros son el defecto que este REG repara, en frases que el
+primer corpus de casos no cubría — y ésa es la lección: el arreglo se probó con
+las frases que a mí se me ocurrieron.
+
+| Hueco | Qué pasaba | Por qué importa |
+|---|---|---|
+| **«Nada más la diabetes»** | `condicionesNegadas('¿Tiene diabetes o presión alta? Nada más la diabetes.')` devolvía **las dos**, y `corregirCertezaPorNegacion` bajaba una hipertensión `confirmado` a `descartado` | Es una afirmación **parcial** leída como negación: descartaba incluso la que se acababa de afirmar. Señalar de más, justo lo que la regla §5 prohíbe |
+| **«No, sí tengo»** | El paciente se desdice a media frase y el motor se quedaba con la primera palabra | Gemelo exacto de «no sé»: `NEGATIVAS` sólo mira el ARRANQUE de la respuesta, y el arranque no siempre es lo que se contestó |
+| **«No padeció»** | `extraerComorbilidades('No padeció diabetes.')` → `positivas: ['Diabetes mellitus tipo 2']` | Estaban `padece`, `padezco` y `padecía`; faltaba justo el pretérito, que es como se cuenta un antecedente. Un diagnóstico inventado a una conjugación de distancia |
+
+Y dos asimetrías que la primera ronda dejó a medias:
+
+- **El guardián no cerraba en punto.** Su terminador era `(\s|$)`, así que «el
+  paciente no padece.» no casaba: perder el «no» al final de una frase —donde
+  acaban tantas— no se marcaba. Y tampoco conocía `negó`. El PR decía «reparado
+  en las tres rutas»: en ésta iba a medias.
+- **`AFIRMADORES` se probaba sobre la ventana cruda** mientras `NEGADORES` ya se
+  normalizaba, así que «con **diagnóstico** de» y «con diagnostico de» daban
+  respuestas distintas sobre la misma frase. La asimetría la introdujo la primera
+  ronda al normalizar un solo lado. Ahora la ventana se normaliza **una vez**, al
+  entrar, y de ella comen los dos.
+
+**El veto de «más» va tras el núcleo entero**, no sólo tras «no» y «nada»:
+«nunca más», «ninguno más» tampoco son respuestas que se deban leer como una
+negación limpia. Y no toca la negación de verdad: «No, nada más.» sigue contando,
+porque ahí el «más» no viene pegado al primer «no». Hay un caso de control que lo
+fija.
+
+**Comprobado que puede ponerse rojo, otra vez** — Revertida sólo la segunda
+ronda, **7 de los 8 casos nuevos fallan**. El que queda verde es el control del
+veto de «más».
+
+**Golden** — `src/__tests__/asi-se-niega-en-la-consulta.test.ts` (28 casos).
