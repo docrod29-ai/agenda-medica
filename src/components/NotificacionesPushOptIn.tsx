@@ -101,7 +101,7 @@ export function NotificacionesPushOptIn() {
             onClick={aceptar}
             disabled={solicitando}
             style={{
-              background: 'var(--teal)', color: '#000', border: 'none',
+              background: 'var(--nexus-solido)', color: '#fff', border: 'none',
               borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700,
               cursor: 'pointer',
             }}

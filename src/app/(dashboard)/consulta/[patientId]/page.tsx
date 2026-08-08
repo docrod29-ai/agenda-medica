@@ -4487,7 +4487,7 @@ export default function ConsultaActivaPage() {
             Para reactivarla, compra más consultas o sube de plan.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
@@ -4511,7 +4511,7 @@ export default function ConsultaActivaPage() {
             recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
@@ -4763,7 +4763,7 @@ export default function ConsultaActivaPage() {
           <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
               <FlaskConical size={15} /> Análisis basado en evidencia
-              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--teal)', color: generandoAnalisis ? 'var(--text3)' : '#000', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
+              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--nexus-solido)', color: generandoAnalisis ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
                 {generandoAnalisis ? 'Agregando…' : '→ Agregar a la nota'}
               </button>
               <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>

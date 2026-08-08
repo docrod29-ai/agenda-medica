@@ -430,7 +430,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             {rx.disenoCompletoDataUrl && (
               <span style={{
                 fontSize: 10.5, fontWeight: 700, padding: '4px 10px',
-                background: 'var(--teal)', color: '#000', borderRadius: 'var(--r-pill)',
+                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
               }}>
                 ACTIVO
               </span>

@@ -436,7 +436,7 @@ marketing.
 
 ---
 
-## I-13 · Barrido de toda la app con el navegador — ✅ PARCIAL (v1114)
+## I-13 · Barrido de toda la app con el navegador — ✅ CERRADA (v1116)
 
 > «utiliza Google Chrome y navega por toda la app para detectar conflictos,
 > problemas, errores etcétera»
@@ -463,8 +463,22 @@ Tres hallazgos, ninguno visible desde el código:
 
 **Cierra con** — REG-233 · `lo-que-el-navegador-vio.test.ts` (11 casos).
 
-**Lo que NO cubrió** — sólo lo público. La consulta, la UCI y el hospital, que es
-donde vive el trabajo, necesitan credenciales. Queda pendiente y se dice.
+**Completado en v1115-v1116** — se barrió lo que faltaba:
+4. **Escritorio (1440 px)**: las catorce pantallas limpias.
+5. **Tema CLARO**: nunca se había probado, porque el claro sólo se activa si el
+   médico lo elige a mano. Salió el ESPEJO del defecto original — texto NEGRO
+   fijo sobre un azul que cambia de brillo con el tema: 6,39 en oscuro, **3,13
+   en claro**. 32 sitios en 25 archivos, de los que el navegador sólo podía ver
+   dos: los otros treinta viven detrás del login.
+6. **El guardián, dos veces mal escrito.** Primero con la forma literal, luego
+   sin admitir ternarios. Ahora cubre cualquier forma y los dos colores de texto.
+
+**Cierra con** — REG-233 y REG-234 · `lo-que-el-navegador-vio.test.ts`.
+
+**Lo que NO cubrió, y hay que decirlo** — la consulta, la UCI y el hospital, que
+es donde vive el trabajo, necesitan credenciales y no se barrieron con el
+navegador. Lo que sí los cubre es la PRUEBA, que lee los archivos: por eso los
+treinta sitios de tema claro que el navegador no podía ver salieron igual.
 
 ---
 

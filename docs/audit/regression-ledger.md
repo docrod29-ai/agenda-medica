@@ -3584,3 +3584,43 @@ barrieron: hacen falta credenciales. Un barrido que no dice qué no miró se lee
 como si lo hubiera mirado todo.
 
 **Guardián** — `src/__tests__/lo-que-el-navegador-vio.test.ts` (11 casos).
+
+---
+
+## REG-234 — el espejo del contraste, en tema claro (v1116 · I-13)
+
+Terminando el barrido de I-13 se probó lo que nunca se había probado: **el tema
+claro**, y el **escritorio**.
+
+El escritorio salió limpio en las catorce pantallas. El tema claro no.
+
+**Por qué nunca se había visto** — el tema por omisión es OSCURO, por identidad
+de marca, y el claro **sólo se activa si el médico lo elige** (documentado en
+`layout.tsx`). Un barrido que emula la preferencia del sistema no lo alcanza: hay
+que ponerlo a mano. Por eso llevaba ahí desde siempre.
+
+**El defecto, medido**:
+
+```
+NEGRO sobre #6E84FE (tema oscuro):  6,39   ✓
+NEGRO sobre #2845EA (tema CLARO):   3,13   ✗   ← el mínimo es 4,5
+BLANCO sobre #3D5AFE (sólido oscuro): 5,13 ✓
+BLANCO sobre #2845EA (sólido claro):  6,71 ✓
+```
+
+`--nexus` **cambia de brillo con el tema**. Un color de texto FIJO encima —negro—
+funciona en uno y reprueba en el otro. Es exactamente la misma familia que el
+defecto original (REG-223), por el otro lado: allí era blanco sobre el claro,
+aquí es negro sobre el oscuro.
+
+El azul SÓLIDO con blanco pasa en los DOS temas, y por eso es el único relleno
+correcto.
+
+**32 sitios en 25 archivos.** El navegador sólo podía ver dos —la insignia «MÁS
+POPULAR» de la portada y el botón de registro—; los otros treinta viven detrás
+del login, donde el barrido no entra. **La prueba es lo único que los cubre**, y
+por eso vale más que el barrido que la originó.
+
+**Guardián** — ampliado en `lo-que-el-navegador-vio.test.ts`: ahora prohíbe el
+relleno azul con texto blanco **y con texto negro**, en cualquier forma
+sintáctica.

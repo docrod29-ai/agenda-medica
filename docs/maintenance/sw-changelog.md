@@ -2334,3 +2334,12 @@ con la forma que acababa de arreglar, en vez de con la forma que el defecto
 puede tomar. Ahora el patrón admite ternarios; 5 sitios más corregidos
 (ToastContext, dos de la consulta, facturación, precios). Verificado en vivo:
 las 8 pantallas a 4,66 o mejor.
+
+## v1116 — el espejo del contraste, en tema claro (I-13 cerrada)
+Terminando el barrido salió lo que nunca se había probado: el TEMA CLARO. El
+claro sólo se activa si el médico lo elige a mano, así que un barrido que emula
+la preferencia del sistema no lo alcanza. Texto NEGRO fijo sobre un azul que
+cambia de brillo con el tema: 6,39 en oscuro, 3,13 en claro (el mínimo es 4,5).
+Es el espejo de REG-223. 32 sitios en 25 archivos; el navegador sólo podía ver
+DOS — los otros treinta viven detrás del login y los cubre la prueba, no el
+barrido (REG-234). El escritorio salió limpio en las catorce pantallas.

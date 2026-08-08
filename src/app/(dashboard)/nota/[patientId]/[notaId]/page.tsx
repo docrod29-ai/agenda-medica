@@ -292,7 +292,7 @@ export default function NotaImprimiblePage() {
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
-          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
             {descargando
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}

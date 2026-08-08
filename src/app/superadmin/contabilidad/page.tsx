@@ -136,7 +136,7 @@ export default function ContabilidadPage() {
             {meses.map(m => <option key={m} value={m}>{nombreMes(m)}</option>)}
           </select>
           <button onClick={exportarCSV} disabled={!data}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             <Download size={14} /> Exportar CSV
           </button>
         </div>

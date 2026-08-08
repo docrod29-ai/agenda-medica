@@ -130,7 +130,7 @@ export default function SuperadminPage() {
           <a href="/superadmin/csp" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <ShieldCheck size={14} /> Seguridad web
           </a>
-          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <TrendingUp size={14} /> Contabilidad
           </a>
           <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={cargar}>Actualizar</Button>

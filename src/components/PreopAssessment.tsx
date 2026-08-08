@@ -349,7 +349,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       {!disabled && (
         <button onClick={aplicar} style={{
           display: 'flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-          background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10,
+          background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
           padding: '11px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}>
           <Check size={16} /> Aplicar escalas y recomendaciones a la nota

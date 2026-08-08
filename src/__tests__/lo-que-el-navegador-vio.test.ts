@@ -84,6 +84,35 @@ describe('ningún relleno azul lleva texto blanco, se escriba como se escriba', 
     expect(culpables, 'usar var(--nexus-solido) en el relleno').toEqual([])
   })
 
+  it('ni con texto NEGRO — el espejo del mismo defecto en tema claro', () => {
+    /**
+     * ── EL ESPEJO, MEDIDO ────────────────────────────────────────────────
+     *
+     * `--nexus` cambia de brillo con el tema: #6E84FE en oscuro, #2845EA en
+     * claro. Un texto NEGRO fijo encima da 6,39 en oscuro —bien— y **3,13 en
+     * claro**, que reprueba.
+     *
+     * Es la misma familia que el defecto original, por el otro lado: un color
+     * de texto fijo sobre un fondo que se mueve. El azul SÓLIDO con blanco pasa
+     * en los dos temas (5,13 y 6,71) y por eso es el único relleno correcto.
+     *
+     * Salieron 32 sitios en 25 archivos. Sólo dos eran visibles desde el
+     * navegador —el resto vive detrás del login—, así que esta prueba es lo
+     * único que los cubre.
+     */
+    const culpables: string[] = []
+    const relleno = /background: *[^,;\n]*'var\(--(?:nexus|teal)(?:,[^']*)?\)'/
+    const negro = /color: *[^,;\n]*'#000(?:000)?'/
+    for (const f of archivosDePantalla()) {
+      readFileSync(f, 'utf8').split('\n').forEach((linea, i) => {
+        if (relleno.test(linea) && negro.test(linea)) {
+          culpables.push(`${f.replace(process.cwd() + '/', '')}:${i + 1}`)
+        }
+      })
+    }
+    expect(culpables, 'texto negro sobre el azul reprueba en tema CLARO').toEqual([])
+  })
+
   it('y el token sólido sigue existiendo para que haya a dónde ir', () => {
     const css = leer('src', 'app', 'globals.css')
     expect(css).toMatch(/--nexus-solido: #3D5AFE/)

@@ -3,13 +3,13 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 81 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 82 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
 ## Por qué contar
 
-El ledger tiene 81 defectos con su causa raíz. Leídos de uno en uno son 81
+El ledger tiene 82 defectos con su causa raíz. Leídos de uno en uno son 82
 historias. **Contados por familia dicen algo que ninguno dice solo**: cuál es la
 forma de fallar que se repite.
 
@@ -22,7 +22,7 @@ Eso cambia dónde conviene mirar mañana.
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
 | **Escrito, probado y sin conectar** | **15** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
-| **El sistema se contradice a sí mismo** | **13** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
+| **El sistema se contradice a sí mismo** | **14** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 6 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 15 de 81, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 15 de 82, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 15 de 81.**
+**«El sistema se contradice a sí mismo» — 15 de 82.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el

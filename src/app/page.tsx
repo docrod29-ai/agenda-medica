@@ -446,7 +446,7 @@ function Pricing() {
             {p.highlight && (
               <div style={{
                 position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-                background: 'var(--teal)', color: '#000', fontSize: 12, fontWeight: 700,
+                background: 'var(--nexus-solido)', color: '#fff', fontSize: 12, fontWeight: 700,
                 padding: '4px 16px', borderRadius: 'var(--r-pill)',
               }}>
                 MÁS POPULAR
@@ -596,7 +596,7 @@ function FinalCTA() {
       </p>
       <Link href="/registro" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'var(--teal)', color: '#000', fontWeight: 700,
+        background: 'var(--nexus-solido)', color: '#fff', fontWeight: 700,
         fontSize: 18, padding: '16px 36px', borderRadius: 14,
         textDecoration: 'none',
       }}>
