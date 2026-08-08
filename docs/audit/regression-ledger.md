@@ -4252,3 +4252,55 @@ de un paciente después de cerrar su nota es exactamente lo que no puede pasar.
 nunca escuchan nada.
 
 **Guardián.** `src/__tests__/escuchar-de-donde-salio.test.ts`, 22 casos.
+
+## REG-251 — el panel certificaba EN VERDE lo contrario de lo que se dijo (v1133) · P0
+
+**El defecto más grave encontrado en toda la sesión, y no salió leyendo código.**
+
+Un equipo rojo independiente —25 agentes lanzados a **refutar** los planes de
+métricas en vez de aprobarlos— le pasó al comparador pares que cualquier médico
+reconocería como opuestos. Dos agentes distintos reprodujeron lo mismo. Después
+se reprodujo en esta máquina, con `rastrearNota`:
+
+| La nota decía | El dictado decía | Veredicto del panel |
+|---|---|---|
+| «Paciente **niega** alergia a penicilina» | «Soy **alérgico** a la penicilina» | **respaldada · 1,00 · VERDE** |
+| «Warfarina **10 mg**» | «Warfarina **2 mg**» | **respaldada · 1,00 · VERDE** |
+
+Una **inversión de negación** y una **dosis de anticoagulante multiplicada por
+cinco**, las dos selladas como «se dijo en la consulta».
+
+**Por qué es peor que un fallo normal.** Este panel no informa: **tranquiliza**.
+Le dice al médico «esto se dijo», en verde. Un verificador que certifica lo
+contrario de lo que ocurrió es más peligroso que no tener verificador, porque
+sustituye la duda del médico por una falsa certeza. Y en v1132 se le acababa de
+poner encima un botón para escuchar el audio, que lo vuelve más creíble todavía.
+
+Familia `mensaje_miente`.
+
+**Dos causas, tres reparaciones.**
+
+1. **`'niega'` estaba en la lista de palabras VACÍAS.** Al ignorarla, «niega
+   alergia a penicilina» y «alérgico a la penicilina» eran la MISMA frase para
+   el comparador. → Los negadores son contenido, y el **signo se compara aparte
+   y manda sobre la cobertura**: un fragmento que dice lo contrario no respalda
+   nada, por muchas palabras que comparta.
+2. **`contenido()` filtraba `w.length > 3`.** Eso tira «10», «mg», «850», «2»,
+   «12» — es decir, **todas las dosis**. → Las cifras y las unidades entran
+   siempre. Un número es el contenido más específico de una frase clínica: si el
+   de la nota no está en el dictado, eso no es ruido, es la señal más fuerte que
+   existe.
+3. Con las dos anteriores, una frase **larga** todavía diluía la cifra
+   equivocada por encima del umbral (0,78 > 0,70). → **Una cifra huérfana nunca
+   puede ser verde**: tope de «parcial», con la cifra nombrada.
+
+**Lo que sigue en verde**, y se comprueba: la misma negación en los dos sitios,
+la misma dosis en los dos sitios, y el sinónimo del paciente («cefalea» ←
+«dolor de cabeza»). Endurecer un verificador es donde se fabrica el ruido, y un
+panel que marca en ámbar media nota correcta se aprende a ignorar.
+
+Las 7 938 pruebas existentes siguieron pasando: ninguna dependía del
+comportamiento roto.
+
+**Guardián.** `src/__tests__/el-panel-no-certifica-lo-contrario.test.ts`, 12
+casos, con las reproducciones exactas.

@@ -126,7 +126,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'Falla algo y el sistema culpa a otra cosa. Cuesta doble: la avería y las ' +
       'horas persiguiendo la avería equivocada.',
-    regs: [155, 156],
+    regs: [155, 156, 251],
   },
   {
     clave: 'decision_del_dueno',

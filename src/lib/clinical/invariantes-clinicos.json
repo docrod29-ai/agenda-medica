@@ -1075,6 +1075,10 @@
     {
       "archivo": "src/__tests__/escuchar-de-donde-salio.test.ts",
       "minCasos": 19
+    },
+    {
+      "archivo": "src/__tests__/el-panel-no-certifica-lo-contrario.test.ts",
+      "minCasos": 12
     }
   ]
 }

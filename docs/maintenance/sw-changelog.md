@@ -2463,3 +2463,10 @@ duración. Es el eslabón que faltaba para el clic-a-audio.
 En «¿de dónde salió esto?», cada frase respaldada trae ahora un botón con el
 minuto exacto: se pulsa y suena ese momento de la consulta. Si el motor no
 localiza la frase con seguridad, no hay botón — nunca se aproxima.
+
+## v1133 — el panel ya no certifica lo contrario (REG-251, P0)
+
+«Paciente niega alergia a penicilina» contra un dictado de «soy alérgico a la
+penicilina» salía en VERDE con cobertura 1,00. «Warfarina 10 mg» contra «2 mg»,
+también. Causas: «niega» era palabra vacía y las cifras se filtraban por
+longitud. Reparado, y una cifra huérfana ya nunca puede salir en verde.

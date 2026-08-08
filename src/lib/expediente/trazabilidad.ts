@@ -72,13 +72,41 @@ export interface Respaldo {
 export const COBERTURA_RESPALDADA = 0.7
 export const MINIMO_PARCIAL = 0.35
 
-/** Palabras sin contenido: su ausencia en el dictado no significa nada. */
+/**
+ * Palabras sin contenido: su ausencia en el dictado no significa nada.
+ *
+ * ── «NIEGA» YA NO ESTÁ AQUÍ, Y ES UN P0 (REG-251) ───────────────────────────
+ *
+ * Estaba, y con ella el panel certificaba en VERDE, con cobertura 1,00:
+ *
+ *     nota:    «Paciente NIEGA alergia a penicilina.»
+ *     dictado: «Doctor, soy ALÉRGICO a la penicilina.»
+ *
+ * Al tratar «niega» como palabra vacía, la afirmación de la nota y la del
+ * paciente quedaban **idénticas** para el comparador. La inversión de negación
+ * —el fallo más peligroso que existe en documentación clínica— salía sellada
+ * como «se dijo en la consulta».
+ *
+ * Los negadores son ahora contenido de primera clase, y además se comparan
+ * aparte: ver `negacionCoincide()`.
+ */
 const VACIAS = new Set([
   'con', 'sin', 'para', 'por', 'que', 'del', 'las', 'los', 'una', 'uno', 'como',
   'este', 'esta', 'esto', 'muy', 'mas', 'pero', 'sus', 'era', 'son', 'fue', 'hay',
-  'the', 'and', 'refiere', 'presenta', 'paciente', 'niega', 'segun', 'sobre',
+  'the', 'and', 'refiere', 'presenta', 'paciente', 'segun', 'sobre',
   'desde', 'hasta', 'entre', 'cuando', 'donde', 'porque', 'tambien', 'ademas',
 ])
+
+/**
+ * Marcas de negación en la nota o en el dictado.
+ *
+ * `sin` sigue en VACIAS porque «sin dolor» y «con dolor» ya se distinguen por el
+ * resto de la frase; aquí interesan las que invierten una afirmación entera.
+ */
+const NEGADORES = /\b(?:niega|niego|niegan|negad[ao]s?|no|nunca|jamas|tampoco|descarta|ausencia|ausente)\b/
+
+/** Unidades que convierten un número suelto en un dato clínico. */
+const UNIDAD_PEGADA = /^(?:mg|g|mcg|ug|kg|ml|l|ui|u|meq|mmol|mmhg|mm|cm|h|hr|hrs|min|dl)$/
 
 /**
  * LO QUE EL PACIENTE DICE ↔ LO QUE EL MÉDICO ESCRIBE.
@@ -166,9 +194,40 @@ const norm = (s: string) =>
   (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[.,;:()¿?¡!"']/g, ' ').replace(/\s+/g, ' ').trim()
 
-/** Las palabras que de verdad cargan significado clínico. */
+/**
+ * Las palabras que de verdad cargan significado clínico.
+ *
+ * ── LAS CIFRAS SE CAÍAN ANTES DE COMPARAR (REG-251) ─────────────────────────
+ *
+ * El filtro era `w.length > 3`. Eso tira **«10», «mg», «850», «2», «12»** — o
+ * sea, **todas las dosis**. Medido, el panel certificaba en VERDE con cobertura
+ * 1,00:
+ *
+ *     nota:    «Warfarina 10 mg al día.»
+ *     dictado: «Le doy warfarina 2 mg al día.»
+ *
+ * Cinco veces la dosis de un anticoagulante, sellada como «se dijo».
+ *
+ * Un número es el contenido MÁS específico que puede llevar una frase clínica:
+ * si el de la nota no está en el dictado, eso no es ruido, es la señal más
+ * fuerte que existe. Ahora las cifras y las unidades entran siempre, sea cual
+ * sea su longitud.
+ */
 function contenido(texto: string): string[] {
-  return norm(texto).split(/\s+/).filter(w => w.length > 3 && !VACIAS.has(w))
+  return norm(texto).split(/\s+/).filter(w =>
+    (/\d/.test(w) || UNIDAD_PEGADA.test(w) || w.length > 3) && !VACIAS.has(w))
+}
+
+/**
+ * ¿La nota y el fragmento están de acuerdo en NEGAR o en AFIRMAR?
+ *
+ * Es una comprobación aparte de la cobertura a propósito. La cobertura mide
+ * cuánto del contenido aparece; la negación cambia el SIGNO de todo el
+ * contenido. Una frase puede compartir el 100 % de las palabras y decir lo
+ * contrario — que es exactamente el caso de la penicilina.
+ */
+function negacionCoincide(afirmacion: string, fragmento: string): boolean {
+  return NEGADORES.test(norm(afirmacion)) === NEGADORES.test(norm(fragmento))
 }
 
 /**
@@ -214,7 +273,18 @@ export function respaldoDe(afirmacion: string, segmentos: readonly Segmento[]): 
     const hallada = palabras.filter(
       w => enSeg.has(w) || respaldadaPorSinonimo(w, enSeg) || [...enSeg].some(x => mismaRaiz(w, x)),
     ).length
-    const cobertura = hallada / palabras.length
+    /**
+     * ── EL SIGNO MANDA SOBRE LA COBERTURA (REG-251) ────────────────────────
+     *
+     * Un fragmento que dice lo CONTRARIO no respalda nada, por muchas palabras
+     * que comparta. «Soy alérgico a la penicilina» comparte el 100 % del
+     * contenido con «niega alergia a penicilina» y afirma lo opuesto.
+     *
+     * No se descarta el fragmento —sigue siendo el trozo relevante que el
+     * médico querrá leer y escuchar—: se le pone la cobertura a cero, que es lo
+     * que de verdad respalda.
+     */
+    const cobertura = negacionCoincide(afirmacion, seg.texto) ? hallada / palabras.length : 0
     if (!mejor || cobertura > mejor.cobertura) mejor = { seg, cobertura }
   }
 
@@ -230,9 +300,28 @@ export function respaldoDe(afirmacion: string, segmentos: readonly Segmento[]): 
   )
 
   const cobertura = mejor?.cobertura ?? 0
+
+  /**
+   * ── UNA CIFRA HUÉRFANA NUNCA ES «RESPALDADA» (REG-251) ───────────────────
+   *
+   * Poner el signo por delante y devolver las cifras al comparador arregló los
+   * casos cortos, pero dejaba vivo el peor: en una frase LARGA una sola cifra
+   * equivocada se diluye entre las palabras que sí coinciden.
+   *
+   *     nota:    «Warfarina 10 mg vía oral cada 24 horas por tiempo indefinido»
+   *     dictado: «Le doy warfarina 2 mg vía oral cada 24 horas indefinidamente»
+   *
+   * Ahí la cobertura pasa del 0,7 y volvería a salir en verde con la dosis
+   * quintuplicada. Una cifra de la nota que no está en el dictado es la señal
+   * MÁS fuerte que puede dar este motor: se le pone tope de «parcial», nunca
+   * verde. Que quede en ámbar y con la cifra nombrada es todo lo que hace falta
+   * para que el médico la mire.
+   */
+  const cifraHuerfana = huerfanas.some(w => /\d/.test(w))
+
   const estado: Respaldo['estado'] =
-    cobertura >= COBERTURA_RESPALDADA ? 'respaldada'
-      : cobertura >= MINIMO_PARCIAL ? 'parcial'
+    cobertura >= COBERTURA_RESPALDADA && !cifraHuerfana ? 'respaldada'
+      : cobertura >= MINIMO_PARCIAL || (cifraHuerfana && cobertura > 0) ? 'parcial'
         : 'sin_respaldo'
 
   return {
