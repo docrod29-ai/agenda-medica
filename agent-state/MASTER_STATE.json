@@ -16,26 +16,24 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1145",
+  "ultimaVersionEnProduccion": "nexusmed-v1148",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/MASTER_STATE.json",
+    "MM docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    "MM docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/quality/MOTORES-SIN-CONECTAR.md",
-    " M src/__tests__/los-motores-llegan-al-medico.test.ts",
-    " M src/app/(dashboard)/uci/page.tsx",
+    "M  public/sw.js",
+    "M  public/version.txt",
+    " M scripts/data-room/actualizar-cifras.mjs",
+    " M src/__tests__/la-sala-de-datos-no-infla.test.ts",
+    "M  src/app/(dashboard)/expediente/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/uci/reparto-sistemas.ts",
-    "?? .claude/agents/design-systems-lead.md",
-    "?? .claude/agents/patient-experience-lead.md",
-    "?? .claude/rules/design-system.md",
-    "?? .claude/rules/patient-facing-ai.md",
-    "?? .claude/skills/",
-    "?? agent-state/DESIGN_STATE.md",
-    "?? agent-state/LAST_SAFE_CHECKPOINT.md",
-    "?? agent-state/PATIENT_COMPANION_STATE.md",
-    "?? src/__tests__/el-pase-dictado-se-reparte.test.ts",
-    "?? src/lib/uci/como-vino-el-pase.ts"
+    "?? src/__tests__/los-cabos-sueltos-del-paciente.test.ts",
+    "?? src/__tests__/una-version-desplegada-no-miente.test.ts",
+    "?? src/components/CabosSueltosDelPaciente.tsx",
+    "?? src/lib/tareas-clinicas/cabos-del-paciente.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -69,12 +67,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/nexus-patient-ux-v9",
+  "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 112,
-    "ultimaREG": "REG-264",
-    "archivosDePrueba": 541,
-    "casosDePrueba": 7183,
+    "regsEnElLedger": 115,
+    "ultimaREG": "REG-267",
+    "archivosDePrueba": 544,
+    "casosDePrueba": 7213,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

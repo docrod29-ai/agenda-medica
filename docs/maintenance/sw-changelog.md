@@ -2558,3 +2558,27 @@ V9 (sin código).
 Instrumento para las tres clases que el guardián anterior declaraba no poder
 ver: ancho fijo, rejilla rígida, imagen sin tope. Resultado: cero. La primera
 medición decía 23 y ninguno era real.
+
+## v1148 — REG-266: los pendientes del paciente, en su expediente
+
+`tareasDePaciente()` decía «para su expediente» y el expediente no los enseñaba:
+cero llamadores. El barrido de motores no lo vio porque hay otra función con el
+mismo nombre en enfermería de UCI — un medidor que informa de MENOS.
+
+Primero «resultado sin leer» (`completada` sin cerrar), luego lo vencido, luego
+lo que tiene plazo. El orden es administrativo; la gravedad la puso quien creó
+la tarea.
+
+## v1148 — REG-264 (recuperado), REG-266 y REG-267
+
+**REG-267 · v1146 se publicó anunciando REG-264 y no lo llevaba.** El commit se
+quedó en una rama lateral que la otra rutina creó sobre el mismo directorio. Se
+recupera aquí, y con él una compuerta que compara lo que el changelog anuncia con
+lo que el repositorio contiene — comprobada contra el defecto real.
+
+**REG-264 (por fin en producción)** · el pase de UCI dictado se reparte por
+aparatos. Llegaba como párrafo corrido y caía entero en el plan.
+
+**REG-266** · los pendientes de un paciente, en su expediente. `tareasDePaciente`
+decía «para su expediente» y no tenía llamador; el barrido no lo vio porque hay
+otra función con el mismo nombre en enfermería de UCI.

@@ -4933,3 +4933,137 @@ navegador con un teléfono emulado**.
 Familia `sin_medir`.
 
 **Guardián.** `src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts`, 9 casos.
+
+---
+
+## REG-266 — los pendientes de este paciente no salían en su expediente (v1148)
+
+`tareasDePaciente()`, en `src/lib/tareas-clinicas/firestore.ts`, lleva escrito en
+su comentario desde el día que se escribió:
+
+> «Los pendientes de UN paciente, **para su expediente**.»
+
+Y el expediente no los enseñaba. La función **no tenía un solo llamador**.
+
+### Por qué el instrumento no lo vio, que es lo que hay que aprender
+
+El barrido de motores sin conectar (REG-255) busca por **nombre**. Y hay otra
+`tareasDePaciente` —la de turnos de enfermería, en `src/lib/uci/enfermeria.ts`—
+así que el barrido veía un llamador donde no lo había.
+
+Es el quinto medidor de esta sesión que informa mal, y el primero que lo hace
+**por defecto** en vez de por exceso: 152 motores que eran 50, 42 que eran 8, el
+guardián de pautas gritando en toda la UCI, 23 anchos que eran cero — y ahora
+uno que se calló un hueco real por una colisión de nombres.
+
+Por eso la prueba de conexión de esta reparación no busca el nombre: exige el
+**import del módulo correcto** y prohíbe el de enfermería.
+
+### Por qué no bastaba con `/pendientes`
+
+El worklist existe y funciona: enseña los cabos sueltos de toda la consulta,
+mezclados. Sirve para trabajar la lista un martes por la tarde.
+
+Pero el momento en que un pendiente se resuelve es **el paciente sentado
+enfrente**. Ahí «pediste una biometría hace tres semanas y el resultado lleva
+nueve días sin que nadie lo lea» cambia lo que pasa en los siguientes diez
+minutos. En una lista de trescientas filas, ese renglón no se encuentra.
+
+### El orden, y que es administrativo
+
+Primero **«resultado sin leer»** — el estado `completada`, que el propio modelo
+define como «el trabajo se hizo» frente a `cerrada`, «alguien lo miró y
+decidió». *Entre esas dos vive el daño que el módulo existe para evitar.* Gana
+incluso a lo más vencido: un estudio que aún no se ha hecho y lleva 90 días de
+retraso no es lo mismo que un resultado que ya está en el sistema y nadie ha
+abierto.
+
+Después lo vencido por antigüedad, después lo que aún tiene plazo. **Ninguna
+gravedad se deduce**: la `prioridad` la puso quien creó la tarea y aquí sólo
+desempata. Ordenar por tipo de estudio sí sería criterio médico.
+
+### Lo que NO hace
+
+- **No cierra tareas.** Cerrar es una transición del ciclo que ya valida
+  `cambiarEstado`; repetir esa validación en una segunda pantalla la desalinea
+  en la primera prisa. El botón lleva a `/pendientes`.
+- **No enseña ceros.** Sin nada vivo, la tarjeta no aparece. Una que dijera «0
+  pendientes» ocupa el mismo sitio que una que dice algo, y enseñar ceros
+  entrena a no mirar — la misma lección que el aviso clínico que grita de más.
+- **No lee el reloj al pintar.** El linter de pureza lo prohibió y tenía razón:
+  cada repintado habría dado un reparto distinto. Se agrupa una vez, al cargar.
+
+### Archivos
+
+- `src/lib/tareas-clinicas/cabos-del-paciente.ts` (nuevo, puro)
+- `src/components/CabosSueltosDelPaciente.tsx` (nuevo)
+- `src/app/(dashboard)/expediente/[patientId]/page.tsx` (montado lo primero)
+- `src/__tests__/los-cabos-sueltos-del-paciente.test.ts` (17 casos, sellado)
+
+---
+
+## REG-267 — v1146 se publicó anunciando un arreglo que no llevaba (v1148)
+
+**Lo peor de esta sesión, y no es un fallo de código: es un despliegue que
+mintió.**
+
+v1146 salió a producción declarando REG-264 —el pase de UCI dictado repartido
+por aparatos, el hueco 2 de la investigación de mercado— y **no lo llevaba**.
+
+El commit del arreglo (`c56c9eda`) quedó en `backup/uci-before-v9-routine`, una
+rama que la otra rutina creó sobre el mismo directorio de trabajo. El commit de
+despliegue se hizo sobre la línea de V7, que no lo contenía. El `sw-changelog` lo
+daba por publicado; el mensaje del commit lo daba por publicado; el arreglo no
+estaba en ninguna parte del árbol desplegado.
+
+Se descubrió **dos versiones después, por casualidad**, buscando otra cosa.
+
+### Por qué ninguna compuerta lo vio
+
+Todas las que existían miran el árbol **contra sí mismo**:
+
+- el sello clínico exige que cada fichero sellado esté reclamado por el ledger —
+  pero el fichero de pruebas de REG-264 se fue con el código a la rama lateral,
+  así que no había nada sellado que reclamar;
+- la compuerta de familias exige que cada REG del ledger tenga familia — pero
+  REG-264 tampoco estaba en el ledger, por lo mismo.
+
+**Un conjunto coherente al que le falta una pieza ENTERA sigue siendo
+coherente.** Faltaban el código, su prueba, su entrada y su familia — las cuatro
+a la vez, que es justo lo que hace invisible el hueco. Nadie comparaba *lo que el
+changelog anuncia* con *lo que el repositorio contiene*.
+
+### Lo que se hizo
+
+1. **Recuperado** `c56c9eda` a la rama de V7. REG-264 existe por fin: 14 casos
+   sellados, la nota de UCI se reparte por aparatos sobre voz.
+2. **Nueva compuerta** `una-version-desplegada-no-miente`: todo REG citado en el
+   changelog tiene que existir en el ledger; `sw.js` y `version.txt` tienen que
+   coincidir; la versión en curso tiene que estar declarada; ningún fichero
+   sellado puede faltar del disco.
+3. **Comprobada contra el defecto real**: retirando REG-264 del ledger, falla
+   con el texto exacto *«v1146 anuncia REG-264 y el ledger no lo tiene»*.
+
+### Y de paso, una cifra que se publicaba mal
+
+`scripts/data-room/actualizar-cifras.mjs` contaba **encabezados** en vez de REG,
+así que `## REG-179 / REG-180` valía uno: la sala de datos publicaba **113 donde
+hay 114**. Su propia prueba usaba la misma expresión equivocada, de modo que los
+dos instrumentos se confirmaban mutuamente. Que el error fuera a la baja no lo
+hace inocuo: un documento que se enseña a un comprador tiene que cuadrar en las
+dos direcciones.
+
+### La lección
+
+**Dos programas no comparten un directorio de trabajo.** V7 y V9 se separaron en
+ramas distintas justo *una versión después* de que esto ocurriera. Y las
+compuertas que sólo miran hacia dentro no detectan lo que falta entero: hace
+falta al menos una que compare lo declarado con lo que hay.
+
+### Archivos
+
+- `src/__tests__/una-version-desplegada-no-miente.test.ts` (nuevo, 4 casos, sellado)
+- `scripts/data-room/actualizar-cifras.mjs` (cuenta REG, no encabezados)
+- `src/__tests__/la-sala-de-datos-no-infla.test.ts` (misma corrección)
+- Recuperado a la rama de V7: `src/lib/uci/como-vino-el-pase.ts`,
+  `src/lib/uci/reparto-sistemas.ts`, `src/__tests__/el-pase-dictado-se-reparte.test.ts`

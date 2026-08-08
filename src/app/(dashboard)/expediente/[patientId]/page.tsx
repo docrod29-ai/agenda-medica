@@ -26,6 +26,8 @@ import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
+import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
+import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
 import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
@@ -339,6 +341,25 @@ export default function ExpedientePage() {
           </div>
         )
       })()}
+
+      {/*
+        LO QUE QUEDÓ PENDIENTE DE ESTE PACIENTE (REG-266).
+
+        `tareasDePaciente()` decía en su comentario «para su expediente» y el
+        expediente no las enseñaba: la función NO tenía un solo llamador.
+
+        Va lo PRIMERO de la pantalla, encima incluso de los ingresos: un cabo
+        suelto es lo único de aquí que exige una decisión hoy. Lo demás es
+        historia, y la historia espera.
+      */}
+      {clinicId && (
+        <CabosSueltosDelPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          cargar={tareasDePaciente}
+          alAbrirPendientes={() => router.push('/pendientes')}
+        />
+      )}
 
       {/*
         LOS INGRESOS DE ESTE PACIENTE (REG-261).

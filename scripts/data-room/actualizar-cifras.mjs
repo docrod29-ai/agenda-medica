@@ -33,7 +33,22 @@ const peligros = readFileSync('docs/clinical-safety/REGISTRO-DE-PELIGROS.md', 'u
 const cifras = {
   archivos: sello.archivos.length,
   casos: sello.totalCasos,
-  regs: (ledger.match(/^## REG-\d+/gm) || []).length,
+  /**
+   * Se cuentan los REG, NO los encabezados — y la diferencia no es teórica.
+   *
+   * Existe `## REG-179 / REG-180` porque las dos reparaciones salieron juntas.
+   * `/^## REG-\d+/` casa esa línea UNA vez, así que la sala de datos publicaba
+   * **113 donde había 114**: la misma trampa que ya costó un REG-180
+   * «clasificado pero inexistente» y que el tablero del loop arregló en
+   * REG-241. Aquí seguía viva.
+   *
+   * Que el error sea a la BAJA no lo hace inocuo: un documento que se enseña a
+   * un comprador tiene que cuadrar con el repositorio en las dos direcciones.
+   */
+  regs: new Set(
+    (ledger.match(/^## REG-.*$/gm) || [])
+      .flatMap(l => [...l.matchAll(/REG-(\d+)/g)].map(m => Number(m[1]))),
+  ).size,
   peligros: (peligros.match(/^## PEL-\d+/gm) || []).length,
 }
 
