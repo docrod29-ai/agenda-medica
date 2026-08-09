@@ -10,17 +10,23 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "LAB-CENSURA-001 (cerrada) — REG-204 / nexusmed-v1086",
+  "iteracionActual": "LAB-CENSURA-001 (cerrada, PR #243 abierto) — REG-204 / nexusmed-v1086",
   "ramasActivas": [
-    "agent/safety/LAB-CENSURA-001"
+    "agent/safety/LAB-CENSURA-001",
+    "agent/expediente/TEMP-192"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "ultimaVersionEnRama": "nexusmed-v1086",
   "trabajoLocalSinSubir": [],
-  "notaDelEstado": "El 7-ago se verificó el backlog contra el código: VOICE-004, SAFE-001 y EVAL-003 llevaban días cerrados y seguían apareciendo como pendientes. De los pendientes reales, EVAL-001 sigue bloqueado por B-01 y EVAL-002 pasó a decisión del dueño (E-2). La iteración se tomó del pozo de hallazgos sin verificar de docs/audit/hallazgos-crudos-workflow.json, que todavía tiene material.",
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "9-ago-2026: el bucle autónomo corrió en paralelo y ~20 ramas reclamaron el mismo REG-192 y la misma v1074, que main ya tenía fusionados. La secuencia se reparte por número de PR ascendente (OPS-003): a esta rama le tocó REG-204 / v1086. Renumerar no toca una línea de lógica.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó — y en CI pasa.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
+  ],
   "compuertas": {
-    "vitest": "6934 pasan · 1 falla PREEXISTENTE y ajena: ops-timeout-y-punto-ciego espera que una IP agujero-negro (10.255.255.1) cuelgue hasta el timeout, y este entorno la rechaza al instante. Comprobado en árbol limpio antes de tocar nada.",
+    "vitest": "pasa entera en CI (job «verificar»)",
     "tsc": "limpio",
     "lintTrinquete": "96, igual que el techo",
     "build": "compila (con los marcadores sintéticos de Firebase que usa CI)"
