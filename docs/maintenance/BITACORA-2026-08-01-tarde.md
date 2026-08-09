@@ -6862,7 +6862,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
 
 | v | Qué se reparó |
 |---|---|
-| **1074** | **«No sé» se guardaba como «no», y siete formas de decir que no no se oían.** El motor de negaciones —la única defensa determinista contra el fallo del 3-ago, cuando el paciente contestó que no y la nota le puso dos crónicas— sólo entendía el español de un formulario. Medido con el motor real contra el habla de la consulta mexicana: de doce formas reales de contestar que no, **siete no se reconocían** («pues no», «fíjese que no», «para nada», «qué va», «tampoco», «nel», «no es diabético»). Para esos pacientes la defensa no existía y el antecedente inventado se arrastra a todas las notas siguientes. Y una se reconocía **sin deber**: «no sé» empieza por «no», así que entraba como negación y `corregirCertezaPorNegacion` bajaba la condición a `descartado` — el sistema convertía un «no lo sé» del paciente en un «no la tiene» del expediente, que es la regla 4 exactamente al revés. Ahora la duda gana sobre la negativa; las marcas se leen sin acentos, porque «negó» no encajaba en `nieg[ao]` y la frase se leía como afirmación; y las que niegan un término suelto exigen **adyacencia**, porque en «no es fumador, tiene diabetes de diez años» el «no es» habla del tabaco y leerlo como negación borraría un antecedente real. Comprobado al revés: revertido el arreglo, 23 de los 32 casos del golden se ponen rojos. REG-270. |
+| **1151** | **«No sé» se guardaba como «no», y siete formas de decir que no no se oían.** El motor de negaciones —la única defensa determinista contra el fallo del 3-ago, cuando el paciente contestó que no y la nota le puso dos crónicas— sólo entendía el español de un formulario. Medido con el motor real contra el habla de la consulta mexicana: de doce formas reales de contestar que no, **siete no se reconocían** («pues no», «fíjese que no», «para nada», «qué va», «tampoco», «nel», «no es diabético»). Para esos pacientes la defensa no existía y el antecedente inventado se arrastra a todas las notas siguientes. Y una se reconocía **sin deber**: «no sé» empieza por «no», así que entraba como negación y `corregirCertezaPorNegacion` bajaba la condición a `descartado` — el sistema convertía un «no lo sé» del paciente en un «no la tiene» del expediente, que es la regla 4 exactamente al revés. Ahora la duda gana sobre la negativa; las marcas se leen sin acentos, porque «negó» no encajaba en `nieg[ao]` y la frase se leía como afirmación; y las que niegan un término suelto exigen **adyacencia**, porque en «no es fumador, tiene diabetes de diez años» el «no es» habla del tabaco y leerlo como negación borraría un antecedente real. Comprobado al revés: revertido el arreglo, 23 de los 32 casos del golden se ponen rojos. REG-270. |
 
 Con esto queda cerrado el plan de la ronda 1: los cinco hallazgos priorizados
 (D1, D2, G1, E3, C2/C3) están reparados y en rama.
@@ -6877,22 +6877,47 @@ que sólo estaba sin configurar. Lo que sí es del entorno es
 `ops-timeout-y-punto-ciego.test.ts`, que espera que una conexión a 10.255.255.1
 se cuelgue: aquí el proxy la corta antes, y falla en `main` sin tocar nada.
 
-## LA RAMA SE RENUMERÓ Y SE FUSIONÓ CON MAIN — v1151, REG-270
+## LA RAMA SE RENUMERÓ TRES VECES Y PERDIÓ LA MITAD DE SU HALLAZGO — v1151, REG-270
 
-El bucle autónomo corrió en paralelo y unas veinte ramas reclamaron el mismo
-REG-192 y la misma v1074. `main` fusionó otro REG-192 distinto —«la sección bien
-escrita compraba el silencio de la mal escrita»— así que ésta pasó a **REG-270 /
-v1151** (commit `a0424b7`, sólo números).
+El bucle autónomo corrió en paralelo y esta rama chocó **dos veces** por número:
+fue REG-192/v1074, luego REG-216/v1098 (commit `a0424b7`) y acabó en
+**REG-270/v1151**, porque `main` fusionó un REG-192 y después un REG-216
+distintos mientras esperaba. Eso, sólo números.
 
-Al traer `main`, el choque interesante no fue de numeración sino de código: los
-dos tocamos `contradicciones()`. `main` la reescribió para mirar **todas** las
-apariciones del término mediante `primeraMencionSinEscudo`, y de paso llegó por
-su cuenta al mismo arreglo de acentos que ésta. La fusión no elige: `main` pone
-el recorrido y esta rama pone la **segunda** marca de escudo, la de adyacencia,
-porque «no es diabético» no cabe en `NIEGA_EN_LINEA` sin dejar que un «no es»
-ajeno tape una afirmación real. El escudo pasó a poder ser una función además de
-un regex (`Escudo` en `mencion-en-la-nota.ts`); temporalidad sigue pasando el
-suyo sin enterarse.
+Lo que no fue números: al traer `main` resultó que había cerrado su propio
+REG-192 sobre el mismo módulo y **resuelto mejor la mitad de la respuesta** —
+marcas de turno («—», «Paciente:»), el «no sé», «tampoco», «para nada», y la
+negación pospuesta («Diabetes no.»), que aquí ni se había visto. Así que C3 es
+suyo: **se descartó la implementación de esta rama en vez de imponerla**, porque
+imponerla habría hecho perder la marca de turno y la pospuesta. Se escribe porque
+dos reparaciones del mismo defecto compitiendo terminan con la peor ganando por
+llegar más tarde.
 
-Esa costura tiene tres casos propios en el golden, comprobados al revés:
-devolviendo el escudo a una sola marca, los tres se ponen rojos.
+Lo que sí aporta esta rama, todo del lado de la frase y no de la respuesta: la
+negación **pegada al término** («no es diabético», «nunca ha tenido asma») con
+adyacencia obligatoria —en «no es fumador, tiene diabetes» el «no es» habla del
+tabaco, y leerlo como negación borraría una diabetes real—, «negó» con acento, el
+escudo **doble** de `contradicciones` (que obligó a que `Escudo` en
+`mencion-en-la-nota.ts` admita también una función; temporalidad sigue pasando su
+regex sin enterarse), y dos guardas de precisión.
+
+**El `\b` que muerde dos veces.** `main` ya había documentado que en JavaScript
+`\w` es ASCII y que tras vocal acentuada no hay límite de palabra. Al añadir
+`neg[oó]` aquí se cayó en esa misma trampa sin verla: el `\b` que cierra el grupo
+entero hacía que «Negó diabetes» siguiera sin cazar **aunque la alternativa
+estuviera escrita**. Lo destapó el golden al ponerse rojo, no la lectura del
+regex.
+
+**Y un daño que me hice yo al fusionar.** Resolviendo `invariantes-clinicos.json`
+con una sustitución automática me llevé por delante **42 entradas selladas de
+`main`**: protección real, borrada en silencio. Lo cazó el metagate del sello. Se
+rehízo el inventario desde la versión de `main` y se le sumó una sola entrada. La
+lección: un conflicto en un archivo que **es un inventario** no se resuelve con un
+regex; se reconstruye desde la fuente y se le añade lo propio. También quedó un
+bloque huérfano en el ledger, de la primera fusión, colgando bajo otro REG.
+Retirado.
+
+**Compuertas sobre el árbol ya fusionado**: 8182 pruebas en verde (549 archivos,
+ninguna roja — el fallo de `ops-timeout` que este entorno daba ya no aparece),
+`tsc` limpio, lint 96 en el techo y `npm run build` **completo** con las
+`NEXT_PUBLIC_FIREBASE_*` de relleno del CI.
