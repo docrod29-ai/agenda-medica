@@ -6551,3 +6551,64 @@ defecto algo que no puede ocurrir es la otra forma de mentir con un informe.
 
 - `src/app/api/stripe/webhook/route.ts`
 - `src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-294 — la hoja que se lleva a casa no sale de un borrador (sin desplegar)
+
+`HojaParaElPaciente` se montaba con el estado **VIVO** de `medicamentos` y
+`estudiosOrden`. La única guarda era `{!esNotaHospital}`. Justo encima, en la
+misma pantalla y a veinte líneas, `ComoCerrarLaConsulta` sí exigía
+`{firmada && …}`.
+
+El médico podía componer la hoja a media consulta, pulsar «Copiar» y mandarla
+por WhatsApp. Lo que el paciente se llevaba a casa no era lo que el médico
+había revisado: era lo que hubiera en pantalla en ese segundo.
+
+### Cómo se descubrió
+
+Auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026), ítem `POSTVISIT-GATE-001`
+en `agent-state/BACKLOG.json`. Ninguna prueba lo delató: las de REG-242 cubren
+el **motor** —qué dice la hoja— y el motor siempre estuvo bien. El defecto
+estaba en **cuándo** se puede entregar lo que el motor compone.
+
+### Causa raíz
+
+La cabecera del módulo afirmaba —desde REG-242— que cada línea sale de un
+campo que el médico «ya revisó y firmó». Era intención de diseño escrita en un
+comentario, y un comentario no es una precondición. Nada lo comprobaba.
+
+### Solución
+
+Firmar y entregar son dos actos (`patient-facing-ai.md` §4). El estado se
+**deriva** de la firma (`estadoDeLaHoja`) y sin `RELEASED` no se entrega.
+Fail-closed: cualquier cosa que no sea `true` es borrador, así que una prop
+olvidada en un sitio de llamada nuevo no puede convertirse en «entregable».
+`notaFirmada` es obligatoria (no `notaFirmada?:`), y por eso `tsc` limpio
+demuestra que no queda ningún sitio sin compuerta.
+
+Se sigue **enseñando** sin firmar — el médico necesita ver qué se compone
+mientras dicta — pero copiar e imprimir quedan cerrados en el manejador (no
+sólo en el atributo `disabled`, que se quita desde las herramientas del
+navegador) y la hoja se marca como borrador.
+
+Y el aviso de borrador **se imprime**, que es la mitad que se olvida:
+deshabilitar los botones sólo cierra el camino de esta pantalla, y la página
+de consulta esconde todos los `button` con `@media print`. Sin un aviso que
+imprima, el papel de un borrador saldría idéntico a uno entregable.
+
+### Qué NO se hace
+
+No convierte esto en el `PatientVisitPackage` completo que pide V9 — no hay
+`approvedAt`, `approvedBy` ni `version`. Es su cimiento (`estadoDeLaHoja`
+DRAFT/RELEASED), no el paquete. Tampoco cubre el portal del paciente: hoy la
+hoja no llega ahí por ningún camino (`POSTVISIT-ENTREGA-001`, sigue abierto).
+Cuando llegue, la compuerta tendrá que vivir **en el servidor**, no sólo en
+este componente — §3 de `patient-facing-ai.md`.
+
+### Archivos
+
+- `src/lib/paciente/como-se-lo-explico.ts`
+- `src/components/HojaParaElPaciente.tsx`
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts` (nuevo, 12 casos, sellado)

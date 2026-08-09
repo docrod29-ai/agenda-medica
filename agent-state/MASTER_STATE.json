@@ -17,7 +17,16 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1167",
-  "trabajoLocalSinSubir": [],
+  "trabajoLocalSinSubir": [
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/components/HojaParaElPaciente.tsx",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/paciente/como-se-lo-explico.ts",
+    "?? src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts"
+  ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -50,12 +59,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/clever-lamport-a9htn3",
   "derivado": {
-    "regsEnElLedger": 141,
-    "ultimaREG": "REG-293",
-    "archivosDePrueba": 569,
-    "casosDePrueba": 7481,
+    "regsEnElLedger": 142,
+    "ultimaREG": "REG-294",
+    "archivosDePrueba": 570,
+    "casosDePrueba": 7493,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

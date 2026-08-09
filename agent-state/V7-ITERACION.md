@@ -101,13 +101,44 @@ código. Quedan cuatro que dependen de mí: `invariantesProtegidos`,
 
 ---
 
+## Sesión 9-ago (continuación)
+
+**El archivo de esta directiva no existía en `main`** — la rama que lo instaló
+(`3f8b70d2`, en `agent/v7/master-loop`) quedó huérfana sin fusionar cuando otra
+sesión reanudó desde `main` y siguió sin él. Traído por cherry-pick a esta rama
+(sha256 verificado contra el original) antes de arrancar; sigue pendiente
+fusionarlo a `main` de verdad.
+
+Los **cuatro** motores con cuerpo real de la cola anterior
+(`invariantesProtegidos`, `obtenerVersion`, `coherenteConElTipo`,
+`correrBenchmark`) ya NO son cola: `el-barrido-de-motores-esta-explicado.
+test.ts` los documentó como intencionales (consumidor es la propia compuerta,
+redundante, ejercitado por el golden, arranque manual) en una sesión posterior.
+Cerrados sin acción.
+
+**REG-294** (`POSTVISIT-GATE-001`, sin desplegar) — recuperado de un fix
+validado en la misma rama huérfana (`5056a08d`), renumerado de REG-293 (que en
+`main` ya es «el día de un cobro», REG-294 era el siguiente libre) para no
+repetir el choque de números que documenta `OWNER_DECISIONS_REQUIRED.md` T-1.
+Aplicó limpio contra `main` sin deriva. `HojaParaElPaciente` ya no entrega
+desde el borrador en curso: `notaFirmada` es obligatoria, el estado se deriva
+(`DRAFT`/`RELEASED`) y falla cerrado. Vitest 8 508/8 509 en verde (1 fallo
+preexistente de entorno, `ops-timeout-y-punto-ciego`, confirmado en `HEAD`
+limpio), lint-trinquete 96/96, `tsc` limpio, `npm run build` compila (falla
+después al recolectar `/dr/[clinicId]` por falta de credenciales de Firebase
+en este contenedor — documentado, entorno no código).
+
 ## Cola inmediata
 
-1. Los **cuatro** motores con cuerpo real que dependen de mí.
-2. **Hueco 2 de la investigación** — UCI: dictado por aparatos y sistemas, donde
+1. **`PATIENT-PORTAL-001`** (P1, score 62) — `/api/portal` sin límite de tasa;
+   la comprobación de revocación falla **abierta**. Es seguridad real
+   (aislamiento de acceso), no cosmético.
+2. **`POSTVISIT-ENTREGA-001`** (P1, score 60) — la hoja del paciente sigue sin
+   llegarle nunca; sólo copiar/imprimir desde la pantalla del médico.
+3. **Hueco 2 de la investigación** — UCI: dictado por aparatos y sistemas, donde
    el mercado es más débil y su especialidad está peor servida (Kaiser, 2,5 M de
    usos).
-3. Barrido de pantalla estrecha en pantallas internas (sin instrumento aún).
+4. Barrido de pantalla estrecha en pantallas internas (sin instrumento aún).
 
 ---
 

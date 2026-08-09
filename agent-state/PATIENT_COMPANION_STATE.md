@@ -79,8 +79,18 @@ por el paciente.
 
 - `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa; revocación que falla
   **abierta**.
-- `POSTVISIT-GATE-001` — sin compuerta de firma.
 - `POSTVISIT-ENTREGA-001` — la hoja no llega al paciente.
+
+## P1 cerrados (sin desplegar)
+
+- `POSTVISIT-GATE-001` — **REG-294**, rama `claude/clever-lamport-a9htn3`.
+  `HojaParaElPaciente` ahora exige `notaFirmada: boolean` (obligatoria, sin
+  `?`) y deriva `estadoDeLaHoja` (`DRAFT`/`RELEASED`); copiar e imprimir se
+  cierran en el manejador, no sólo en `disabled`, y el aviso de borrador se
+  imprime. Sigue siendo el cimiento del `PatientVisitPackage`, no el paquete
+  entero: falta `approvedAt`/`approvedBy`/`version`, y la compuerta vive en el
+  componente, no en el servidor — cuando exista `POSTVISIT-ENTREGA-001` la
+  compuerta real tiene que estar ahí (`patient-facing-ai.md` §3).
 
 ## Lo que este estado NO afirma
 
