@@ -66,6 +66,45 @@ const PASADO = new RegExp([
   '\\banos\\s+atras\\b',
   '\\banteriormente\\b',
   '\\ben\\s+el\\s+pasado\\b',
+  /**
+   * ── LAS DIEZ FORMAS QUE SE ESCAPABAN (6-ago-2026, REG-200) ─────────────────
+   *
+   * Medido contra 26 frases de consulta mexicana: **10 no se detectaban**, y
+   * las diez eran del mismo tipo — pasado no reconocido. Cero falsos positivos,
+   * o sea que el motor erraba siempre del lado seguro, pero dejaba pasar las
+   * formas más corrientes de contar una enfermedad que ya pasó:
+   *
+   *     «le dio hepatitis cuando era joven»   «se curó de la anemia»
+   *     «dejó de tomar el medicamento»        «había tenido convulsiones»
+   *     «fue diagnosticada de asma»           «ya no toma metformina»
+   *     «salió del hospital en mayo»          «le hicieron una cesárea»
+   *     «antes fumaba»                        «solía tener migrañas»
+   *
+   * «Le dio» es la forma mexicana de «enfermó de», y no estaba. Tampoco el
+   * pluscuamperfecto («había tenido»), ni la pasiva del diagnóstico («fue
+   * diagnosticada»), ni el cese («ya no toma», «dejó de»), que es justo lo que
+   * distingue un fármaco vigente de uno suspendido.
+   */
+  // «Le dio hepatitis», «me dio covid» — la forma mexicana de enfermar.
+  '\\b(?:le|me|nos)\\s+dio\\b',
+  // Pluscuamperfecto: «había tenido», «había presentado».
+  '\\bhabia\\s+(?:tenido|presentado|padecido|sufrido|estado)\\b',
+  // Pasiva del diagnóstico y del procedimiento.
+  '\\bfue\\s+(?:diagnosticad[oa]|operad[oa]|intervenid[oa]|hospitalizad[oa]|internad[oa])\\b',
+  '\\ble\\s+(?:hicieron|realizaron|practicaron|pusieron|colocaron)\\b',
+  // Resolución explícita.
+  '\\bse\\s+(?:curo|alivio|recupero|mejoro\\s+del?)\\b',
+  // Cese de un tratamiento o hábito: distingue lo vigente de lo suspendido.
+  '\\b(?:dejo|dejaron)\\s+de\\b',
+  '\\bya\\s+no\\s+(?:toma|tomo|usa|uso|recibe|recibia|fuma|fumo)\\b',
+  '\\bsuspendi(?:o|eron)\\b',
+  // Alta hospitalaria.
+  '\\bsali(?:o|eron)\\s+del\\s+(?:hospital|internamiento)\\b',
+  '\\ble\\s+dieron\\s+de\\s+alta\\b',
+  // Hábito o padecimiento previo.
+  '\\bantes\\s+(?:fumaba|tomaba|bebia|usaba|trabajaba)\\b',
+  '\\bsolia\\b',
+  '\\bex\\s*-?\\s*(?:fumador|alcoholico|usuario)\\b',
 ].join('|'), 'i')
 
 /**
@@ -121,7 +160,7 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
    * futuro no hay nada que corregir.
    */
   /**
-   * `neurocirugía` se declara desde REG-203: casaba por accidente dentro de la
+   * `neurocirugía` se declara desde REG-268: casaba por accidente dentro de la
    * búsqueda por `includes` y es cirugía de verdad, así que pasar a búsqueda por
    * palabra no puede costarla.
    */

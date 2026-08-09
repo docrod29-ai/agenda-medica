@@ -80,6 +80,20 @@ export interface OpcionesGrabacion {
    */
   contexto?: 'consulta' | 'hospitalizacion' | 'uci' | 'urgencias' | 'quirofano'
   /**
+   * ¿Hablan dos, o dicta uno solo?
+   *
+   * El médico contestó que en UCI y en hospital **dicta solo**. Pedir separación
+   * de voces ahí es trabajo, dinero y espera para nada — y peor: el diarizador
+   * parte a una sola persona en dos hablantes cuando cambia el tono, con lo que
+   * su propio dictado sale atribuido a un «paciente» que nunca habló.
+   *
+   * Por omisión, `conversacion`: **ante la duda se diariza**. Perder la
+   * separación en una conversación real cuesta información irrecuperable;
+   * diarizar un monólogo sólo cuesta unos segundos, y `esMonologo` limpia el
+   * resultado aguas abajo. Ver `lib/asr/un-solo-hablante.ts`.
+   */
+  modoDeHabla?: 'conversacion' | 'dictado'
+  /**
    * Vocabulario de ESTE paciente, para el prompt del reconocedor.
    *
    * El prompt es lo único que cambia lo que el modelo OYE, y su presupuesto son
@@ -142,6 +156,8 @@ export interface UseGrabacionAudio {
    * fallback a Whisper era invisible y la nota salía idéntica.
    */
   sinDiarizacion: MotivoSinDiarizacion | null
+  /** Ruta en Storage del audio de esta consulta, o `null` si no se guardó. */
+  audioPath: string | null
   duracion: number
   transcripcion: string
   /** Turnos de habla separados por voz (vacío si no hubo diarización). */
@@ -260,6 +276,20 @@ const SALTO_SOSPECHOSO_MS = 2000
 // volvió de 48k/128k a esto porque el archivo pesado (~2.5×) cruzaba el umbral de
 // "audio grande" y en Safari (mp4) el troceado por partes fallaba → "no se pudo
 // transcribir". Ligero = sube rápido, no hace timeout y no rompe la transcripción.
+/**
+ * A PARTIR DE AQUÍ EL AUDIO NO CABE EN EL CUERPO DE LA PETICIÓN.
+ *
+ * Vercel limita el cuerpo de una función a ~4,5 MB; se deja margen. Era un
+ * número suelto dentro de `detener()`, y por eso `recuperarAudio` no lo miraba
+ * y siempre tomaba el camino largo.
+ *
+ * Con BITRATE_OPUS = 64 kbps son 8 000 bytes por segundo, así que este umbral
+ * se cruza a los **7 min 30 s** de grabación. Ése es el minuto exacto en el que
+ * toda consulta cambiaba de camino — y el camino de destino estaba muerto por
+ * una regla de Storage (REG-225).
+ */
+const LIMITE_CUERPO_BYTES = 3_600_000
+
 const BITRATE_OPUS = 64_000
 const SAMPLE_RATE_OBJETIVO = 16_000
 const INTERVALO_CHUNK_DEFAULT_MS = 20_000
@@ -357,6 +387,10 @@ const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
  * pagada; lo que falló fue el reloj.
  */
 export type MotivoSinDiarizacion = 'sin_llave' | 'error_proveedor' | 'tiempo_agotado' | 'red' | 'sin_texto'
+  /** El audio subió pero no se pudo LEER su URL: permiso de Storage. */
+  | 'sin_permiso_de_lectura'
+  /** No se pudo ni subir el audio al almacenamiento. */
+  | 'no_se_pudo_subir'
 
 export interface ResultadoDiarizacion {
   ok: boolean
@@ -364,6 +398,20 @@ export interface ResultadoDiarizacion {
   utterances: Utterance[]
   /** Por qué NO hubo separación de voces. Sólo cuando `ok` es false. */
   motivo?: MotivoSinDiarizacion
+  /**
+   * ── LA RUTA DEL AUDIO EN STORAGE (REG-249) ────────────────────────────────
+   *
+   * Se subía el audio, se sacaba su URL para dársela al motor de diarización, y
+   * **se tiraba**. Nunca volvía aquí ni se guardaba con la nota — así que no
+   * había nada que reproducir, por muy buenos que fueran los tiempos.
+   *
+   * Es la RUTA, no la URL de descarga. Una URL de Firebase Storage lleva un
+   * token de acceso dentro; persistirla en Firestore sería dejar una llave
+   * escrita en el expediente, y una llave que no caduca cuando cambian los
+   * permisos. La URL se vuelve a pedir con `getDownloadURL` en el momento de
+   * reproducir, que es cuando las reglas se evalúan de nuevo.
+   */
+  audioPath?: string
 }
 
 /**
@@ -410,6 +458,8 @@ export function esperaDiarizacion(segundosAudio: number): { intentos: number; pa
  */
 async function intentarDiarizar(
   blob: Blob, ext: string, segundosAudio: number, ctx: CtxDictado = {},
+  /** Para nombrar el audio guardado igual que en el camino largo (REG-249). */
+  recoveryKey = '',
 ): Promise<ResultadoDiarizacion> {
   const falla = (motivo: MotivoSinDiarizacion): ResultadoDiarizacion =>
     ({ ok: false, text: '', utterances: [], motivo })
@@ -445,7 +495,24 @@ async function intentarDiarizar(
       if (d.status === 'completed') {
         const text = String(d.text ?? '')
         if (!text.trim()) return falla('sin_texto')
-        return { ok: true, text, utterances: (d.utterances ?? []) as Utterance[] }
+        /**
+         * ── EL AUDIO CORTO TAMBIÉN SE GUARDA (REG-249) ────────────────────
+         *
+         * Este camino manda el audio como multipart y NUNCA lo subía a
+         * Storage. Sin eso, «escuchar de dónde salió esta frase» sólo
+         * funcionaría en las consultas largas — una función que aparece
+         * pasados unos minutos y antes no, y que el médico no puede predecir.
+         *
+         * Se sube DESPUÉS de tener el texto y en un `try` propio: si la
+         * subida falla, la transcripción ya está y no se pierde nada. Se
+         * queda sin `audioPath`, que es exactamente lo que significa —no hay
+         * audio que reproducir—, y no se inventa una ruta.
+         */
+        let audioPath: string | undefined
+        try {
+          audioPath = await guardarAudioDeLaConsulta(blob, ext, recoveryKey)
+        } catch { /* Sin audio guardado; la nota y el dictado siguen intactos. */ }
+        return { ok: true, text, utterances: (d.utterances ?? []) as Utterance[], audioPath }
       }
       if (d.status === 'error' || d.ok === false) return falla('error_proveedor')
     }
@@ -453,6 +520,37 @@ async function intentarDiarizar(
   } catch {
     return falla('red')
   }
+}
+
+/**
+ * Sube el audio de la consulta a Storage y devuelve su RUTA.
+ *
+ * ── POR QUÉ LA RUTA Y NO LA URL ─────────────────────────────────────────────
+ *
+ * `getDownloadURL` devuelve una URL con un token de acceso dentro. Guardarla en
+ * Firestore sería dejar una llave escrita en el expediente — y una llave que
+ * sigue sirviendo aunque después cambien las reglas o se revoque el acceso.
+ *
+ * Se guarda la ruta, y la URL se vuelve a pedir en el momento de reproducir:
+ * ahí es donde las reglas se evalúan otra vez, con quien esté mirando en ese
+ * momento.
+ *
+ * ── DÓNDE VIVE ──────────────────────────────────────────────────────────────
+ *
+ * Bajo `consultas-audio/{uid}/`, que es la carpeta que ya existía y cuya regla
+ * de lectura se reparó en REG-2xx (`allow read: if request.auth.uid == uid`).
+ * No se abre ningún sitio nuevo.
+ */
+async function guardarAudioDeLaConsulta(
+  blob: Blob, ext: string, recoveryKey: string,
+): Promise<string | undefined> {
+  if (!storage || !auth.currentUser) return undefined
+  /* Sin clave no se guarda: es una parte de un lote, no una consulta. */
+  if (!recoveryKey) return undefined
+  const uid = auth.currentUser.uid
+  const path = `consultas-audio/${uid}/${(recoveryKey || 'tmp').replace(/[^\w-]/g, '_')}-${Date.now()}.${ext}`
+  await uploadBytes(storageRef(storage, path), blob, { contentType: blob.type || 'audio/webm' })
+  return path
 }
 
 /**
@@ -504,12 +602,26 @@ async function intentarDiarizarLargo(
       if (d.status === 'completed') {
         const text = String(d.text ?? '')
         if (!text.trim()) return falla('sin_texto')
-        return { ok: true, text, utterances: (d.utterances ?? []) as Utterance[] }
+        return { ok: true, text, utterances: (d.utterances ?? []) as Utterance[], audioPath: path }
       }
       if (d.status === 'error' || d.ok === false) return falla('error_proveedor')
     }
     return falla('tiempo_agotado')
-  } catch {
+  } catch (e) {
+    /**
+     * EL MOTIVO TIENE QUE SER EL DE VERDAD.
+     *
+     * Este `catch` decía «tiempo_agotado» pasara lo que pasara. Durante meses
+     * lo que pasaba era un `storage/unauthorized` en `getDownloadURL()` —falta
+     * de permiso, en el primer segundo— y el médico leía «se agotó el tiempo»,
+     * así que buscaba el problema en su internet.
+     *
+     * Un motivo que miente cuesta doble: la avería, y las horas persiguiendo la
+     * avería equivocada. Es una familia de defecto entera de este repositorio.
+     */
+    const codigo = String((e as { code?: string })?.code ?? '')
+    if (codigo.startsWith('storage/')) return falla('sin_permiso_de_lectura')
+    if (!subido) return falla('no_se_pudo_subir')
     return falla('tiempo_agotado')
   } finally {
     /**
@@ -631,6 +743,9 @@ async function transcribirParte(blob: Blob, ext: string, contexto: CtxDictado = 
   const openai = await transcribirBlobSimple(blob, ext, contexto)
   if (openai) return openai
   // Fallback: AssemblyAI (la misma llave que usa la diarización)
+  /* Sin `recoveryKey` a propósito: esto es UNA PARTE de un lote, no la consulta
+     entera. Guardar cada trozo dejaría N audios sueltos que no corresponden a
+     ninguna nota y que nadie borraría nunca. */
   const aai = await intentarDiarizar(blob, ext, contexto.duracionSeg ?? 0, contexto)
   return aai.ok ? aai.text : ''
 }
@@ -784,6 +899,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    * escrita con el motor de repuesto se ve igual que una escrita con el bueno.
    */
   const [sinDiarizacion, setSinDiarizacion] = useState<MotivoSinDiarizacion | null>(null)
+  /**
+   * La ruta en Storage del audio de ESTA consulta (REG-249).
+   *
+   * `null` mientras no haya audio guardado — que es lo que significa: no hay
+   * nada que reproducir. No se inventa una ruta ni se guarda una URL.
+   */
+  const [audioPath, setAudioPath] = useState<string | null>(null)
   const [chunksTranscritos, setChunksTranscritos] = useState(0)
   const [chunksFallidos, setChunksFallidos] = useState(0)
   /** Lo que el navegador concedió de verdad al abrir el micrófono. */
@@ -875,6 +997,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const textosChunksRef = useRef<string[]>([])
   const recoveryKeyRef = useRef<string>('')
   const contextoRef = useRef<CtxDictado>({})
+  /** Ver `OpcionesGrabacion.modoDeHabla`. Por omisión se diariza. */
+  const modoDeHablaRef = useRef<'conversacion' | 'dictado'>('conversacion')
   // Anti-pérdida: desde qué índice persistir en IndexedDB. Si ya hay audio de una
   // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
@@ -936,6 +1060,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     liberarRecursos()
     setEstado('inactivo'); duracionRef.current = 0; duracionUltimoTrozoRef.current = 0; setDuracion(0); setTranscripcion(''); setError('')
     setCorrecciones([]); setCambiosCifras([]); setUtterances([]); utterancesRef.current = []; setAlertasDictado([])
+    /* Al reiniciar no queda audio de esta consulta que reproducir (REG-249). */
+    setAudioPath(null)
     if (rk) borrarChunks(rk)
     recoveryKeyRef.current = ''
   }, [liberarRecursos])
@@ -1135,6 +1261,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
+    modoDeHablaRef.current = opts?.modoDeHabla ?? 'conversacion'
     contextoRef.current = {
       contexto: opts?.contexto,
       especialidades: opts?.especialidades,
@@ -1411,14 +1538,39 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     motivoFalloTranscripcion = ''  // limpia causa previa
-    // El body de las funciones de Vercel está limitado a ~4.5MB.
-    const GRANDE = blob.size > 3_600_000
+    const GRANDE = blob.size > LIMITE_CUERPO_BYTES
+
+    /**
+     * ── UN DICTADO NO NECESITA SEPARACIÓN DE VOCES ──────────────────────────
+     *
+     * En UCI y en hospital el médico dicta SOLO —lo contestó él—. Pedir la
+     * separación ahí es trabajo, dinero y espera para nada, y el diarizador
+     * puede partirlo en dos hablantes y atribuir su propio dictado a un
+     * «paciente» que nunca habló.
+     *
+     * El `sinDiarizacion` se deja en `null` a propósito: **no es un fallo**, es
+     * que no hacía falta. Poner un motivo aquí le enseñaría al médico un aviso
+     * de algo que salió bien.
+     */
+    if (modoDeHablaRef.current === 'dictado') {
+      const texto = GRANDE
+        ? (await transcribirEnPartes(allChunks, rec.mimeType, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })).texto
+        : await transcribirBlobSimple(blob, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })
+      if (texto.trim()) {
+        setUtterances([]); utterancesRef.current = []
+        aplicar(texto)
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+        return
+      }
+      // Sin texto: cae al camino de siempre, que ya sabe usar el respaldo en vivo.
+    }
 
     // 1) Diarización (separa voces): audio corto pasa directo; audio LARGO sube a
     //    Storage y se diariza por URL (sin chocar con el límite de Vercel).
     const diar = GRANDE
       ? await intentarDiarizarLargo(blob, ext, recoveryKeyRef.current, duracionRef.current, contextoRef.current)
-      : await intentarDiarizar(blob, ext, duracionRef.current, contextoRef.current)
+      : await intentarDiarizar(blob, ext, duracionRef.current, contextoRef.current, recoveryKeyRef.current)
+    if (diar.audioPath) setAudioPath(diar.audioPath)
     if (diar.ok && diar.text.trim()) {
       { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       aplicar(diar.text)
@@ -1451,7 +1603,24 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       : { texto: await transcribirBlobSimple(blob, ext, ctxConDuracion), lotesFallidos: 0 }
     const texto = porPartes.texto
 
-    if (texto.trim()) {
+    /**
+     * ── UN TEXTO HECHO SÓLO DE ADVERTENCIAS NO ES UN TEXTO ────────────────────
+     *
+     * `texto.trim()` era verdadero **aunque TODOS los lotes hubieran fallado**,
+     * porque los marcadores `[⚠ FALTA UN TRAMO DE LA GRABACIÓN…]` son texto. Así
+     * que el respaldo de abajo —la transcripción en vivo, que sí existía y que
+     * el médico estaba viendo en pantalla— era inalcanzable.
+     *
+     * El médico acababa con una «nota» hecha de advertencias, y con lo bueno
+     * descartado. Justo cuando ya había ido mal una vez.
+     *
+     * La misma cuenta que hizo falta para no borrar el audio (`lotesFallidos`)
+     * servía para esto y no se usaba.
+     */
+    const todoFalló = porPartes.lotesFallidos > 0 && !porPartes.texto
+      .replace(/\[⚠[^\]]*\]/g, '').trim()
+
+    if (texto.trim() && !todoFalló) {
       aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
       // audio es lo único que permite recuperarlo: se conserva.
@@ -1521,7 +1690,22 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       : Math.round((chunks.length * TROZO_MS) / 1000)
 
     const blob = new Blob(chunks, { type: mime })
-    const diar = await intentarDiarizarLargo(blob, ext, recoveryKey, segundosEstimados, ctx)
+    /**
+     * ── LA RECUPERACIÓN ELIGE CAMINO POR TAMAÑO, COMO `detener()` ─────────────
+     *
+     * Llamaba SIEMPRE a `intentarDiarizarLargo`, mirara o no el tamaño. Para un
+     * audio de dos minutos eso significa subirlo a Storage y pedir su URL sin
+     * ninguna necesidad — el camino más largo, más caro y más frágil de los dos,
+     * para el caso que menos lo pide.
+     *
+     * El mismo umbral que usa `detener()`, para que los dos caminos no se
+     * contradigan: por debajo de 3,6 MB el audio cabe en el cuerpo de la
+     * petición y va directo.
+     */
+    const diar = blob.size > LIMITE_CUERPO_BYTES
+      ? await intentarDiarizarLargo(blob, ext, recoveryKey, segundosEstimados, ctx)
+      : await intentarDiarizar(blob, ext, segundosEstimados, ctx, recoveryKey)
+    if (diar?.audioPath) setAudioPath(diar.audioPath)
     let texto = ''
     if (diar && diar.text.trim()) {
       { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
@@ -1596,7 +1780,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   return {
     soportado, estado, duracion, transcripcion, utterances, transcripcionParcial, error,
-    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, transcripcionMotor, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, cambiosCifras, sinDiarizacion,
+    nivelAudio, silencioProlongado, recorte, motivosConfirmacion, transcripcionMotor, bytesGrabados, chunksTranscritos, chunksFallidos, captura, correcciones, cambiosCifras, sinDiarizacion, audioPath,
     alertasDictado,
     iniciar, detener, pausar, reanudar, reset, setTranscripcion, sembrarDictado,
     hayRecovery, recuperarAudio, descargarAudioGuardado, descartarRecovery,

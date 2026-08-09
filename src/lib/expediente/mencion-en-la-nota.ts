@@ -35,7 +35,7 @@
  */
 
 /**
- * El término se busca **como palabra** (REG-203): con `indexOf` a secas, la
+ * El término se busca **como palabra** (REG-268): con `indexOf` a secas, la
  * «sida» de «obesidad» y el «asma» de «plasma» contaban como aparición, y esta
  * función iba a buscarlas a la nota. El buscador es el mismo que usan los dos
  * vocabularios, para que no puedan divergir.

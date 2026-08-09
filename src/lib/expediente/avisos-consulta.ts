@@ -41,6 +41,8 @@
  *
  * Módulo PURO.
  */
+import { pautasDeformadas } from '@/lib/seguridad/forma-de-la-pauta'
+
 
 /** Los tres niveles. No hay un cuarto. */
 export type NivelAviso = 'bloquea' | 'revisa' | 'contexto'
@@ -58,6 +60,16 @@ export type OrigenAviso =
   | 'dato_no_precisado'
   | 'requisito_nom004'
   | 'dosis_peligrosa'
+  | 'antecedente_del_familiar'
+  | 'dato_incierto'
+  | 'sin_respaldo_en_el_dictado'
+  /**
+   * La frecuencia o la duración no tienen forma de lo que dicen ser.
+   *
+   * Nació de una nota YA FIRMADA del médico dueño: «cada 24 horas por 14
+   * EDITAS», y en la misma nota «24 TRAS · 14 días». Ver `forma-de-la-pauta`.
+   */
+  | 'pauta_deformada'
 
 /**
  * La tabla. Explícita y a la vista **a propósito**: es el único sitio donde se
@@ -73,6 +85,15 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   contradiccion_negacion: 'revisa',
   desajuste_temporal:     'revisa',
   via_asumida:            'revisa',
+  /**
+   * NO bloquea, y es deliberado: «14 editas» puede ser una palabra mal oída o
+   * una forma que este motor no conoce todavía. Apagar el botón por algo que
+   * podría ser un falso positivo enseñaría a esquivar la compuerta.
+   *
+   * Sí es de PRESCRIPCIÓN —ancla en medicamentos— porque sale impreso en la
+   * receta: tiene que verse MIENTRAS receta, no al firmar.
+   */
+  pauta_deformada:        'revisa',
   interaccion:            'revisa',
   controlado:             'revisa',
   conflicto_extraccion:   'revisa',
@@ -83,6 +104,29 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    */
   dosis_peligrosa:        'revisa',
   dato_no_precisado:      'revisa',
+  /**
+   * «Esto lo dijo de su mamá, no de él» (§B8, REG-210).
+   *
+   * Nivel `revisa` y no `bloquea`: el motor señala de quién es la frase, pero
+   * quién decide dónde va el antecedente es el médico. Bloquear la firma por
+   * una atribución sería decidir por él.
+   */
+  antecedente_del_familiar: 'revisa',
+  /**
+   * «Lo dijo con duda» (§B6, REG-211). Nivel `revisa`: un dato incierto sigue
+   * siendo un dato útil — lo que se pierde al aplanarlo es la información de
+   * que hay que comprobarlo.
+   */
+  dato_incierto:          'revisa',
+  /**
+   * «Esto no salió del dictado» (§B10, SUP-001).
+   *
+   * Nivel `revisa` y no `bloquea`: el motor no sabe si la afirmación es falsa,
+   * sabe que **nadie la dijo en voz alta**. Puede venir del expediente previo o
+   * de la exploración física. Bloquear la firma por eso sería decidir por el
+   * médico sobre algo que el motor no puede saber.
+   */
+  sin_respaldo_en_el_dictado: 'revisa',
 }
 
 /**
@@ -139,6 +183,13 @@ export interface EntradaAvisos {
   controlados?: readonly { farmaco: string; requisito: string }[]
   /** Sobredosis, techos por vía/edad y error de decimal (REG-190). */
   dosisPeligrosas?: readonly { med: string; mensaje: string; critica: boolean }[]
+  /**
+   * La frecuencia y la duración escritas, tal cual, para mirarles la FORMA.
+   *
+   * Se pasa la lista entera y `construirAvisos` decide: así la pantalla no
+   * tiene que saber qué cuenta como frecuencia reconocible.
+   */
+  pautas?: readonly { nombre?: unknown; frecuencia?: unknown; duracion?: unknown }[]
   conflictos?: readonly string[]
   faltantesCriticos?: readonly string[]
   /**
@@ -149,6 +200,29 @@ export interface EntradaAvisos {
    * mensaje y su propio sitio. El recuadro sólo repetía, sin añadir una acción.
    */
   yaLoBloqueaNOM004?: readonly string[]
+  /**
+   * Frases del dictado que hablan de un FAMILIAR, no del paciente (§B8).
+   *
+   * «Mi mamá tuvo cáncer de mama» como antecedente personal deja una historia
+   * clínica impecable afirmando un cáncer que el paciente nunca tuvo. No se ve
+   * raro: por eso se señala aquí en vez de confiar en que se note al releer.
+   */
+  antecedentesDeFamiliar?: readonly { frase: string; parentesco?: string }[]
+  /**
+   * Frases que el paciente dijo SIN estar seguro (§B6).
+   *
+   * «Creo que me dijeron que tenía anemia» aplanado a «Anemia» convierte una
+   * duda en un diagnóstico. A partir de la segunda consulta ya nadie sabe que
+   * era una duda.
+   */
+  datosInciertos?: readonly { frase: string; matiz?: string; marca?: string }[]
+  /**
+   * Afirmaciones de la nota que NINGÚN fragmento del dictado sostiene (§B10).
+   *
+   * Es la respuesta a «¿de dónde sacó la IA esto?» — la pregunta que hoy sólo se
+   * puede contestar reescuchando la consulta entera.
+   */
+  sinRespaldo?: readonly { afirmacion: string; huerfanas?: readonly string[] }[]
   /** Lo ya descartado con «Ya lo revisé», con la misma clave `${tipo}:${clave}`. */
   revisados?: ReadonlySet<string>
 }
@@ -185,6 +259,32 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
    * decía «nada te impide firmar» **junto a un botón apagado**. Ahora lo que
    * apaga el botón y lo que cuenta la barra salen del mismo sitio.
    */
+  /**
+   * ── «14 EDITAS» Y «24 TRAS» (REG-238) ────────────────────────────────────
+   *
+   * Salieron de una nota YA FIRMADA suya. Nadie comprobaba que una frecuencia
+   * tuviera forma de frecuencia: sólo se exigía cifra y unidad en la DOSIS.
+   *
+   * Ancla en `medicamentos` a propósito — es de PRESCRIPCIÓN, y esas se ven
+   * MIENTRAS receta, no al firmar (REG-173/REG-190).
+   */
+  for (const p of pautasDeformadas(e.pautas ?? [])) {
+    for (const a of p.avisos) {
+      const id = `pauta:${p.med}:${a.campo}`
+      if (!vivo(id)) continue
+      out.push({
+        id,
+        origen: 'pauta_deformada',
+        nivel: nivelDe('pauta_deformada'),
+        texto: `${p.med || 'Un medicamento'}: «${a.loEscrito}» no se entiende como ${a.campo === 'frecuencia' ? 'una frecuencia' : 'una duración'}`,
+        /** El mensaje entero del motor: dice POR QUÉ importa —sale impreso—. */
+        detalle: a.mensaje,
+        ancla: { seccion: 'medicamentos', nombre: p.med || undefined },
+        descartable: true,
+      })
+    }
+  }
+
   for (const requisito of e.yaLoBloqueaNOM004 ?? []) {
     const texto = String(requisito ?? '').trim()
     if (!texto) continue
@@ -317,6 +417,62 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     out.push({
       id: `faltante:${f}`, origen: 'dato_no_precisado',
       nivel: nivelDe('dato_no_precisado'), texto: f, ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * ¿De quién es la enfermedad? (§B8, REG-210)
+   *
+   * Se nombra el parentesco en el texto porque un aviso que dice sólo «revisa
+   * la atribución» obliga al médico a releer el dictado entero. Con «lo dijo de
+   * su mamá» se resuelve de un vistazo, que es la diferencia entre un aviso que
+   * se atiende y uno que se aprende a cerrar.
+   */
+  for (const a of e.antecedentesDeFamiliar ?? []) {
+    const dueno = a.parentesco ? `su ${a.parentesco}` : 'un familiar'
+    out.push({
+      id: `familiar:${a.frase.slice(0, 40)}`,
+      origen: 'antecedente_del_familiar',
+      nivel: nivelDe('antecedente_del_familiar'),
+      texto: `Esto lo dijo de ${dueno}, no de él: «${a.frase}». Va a antecedentes heredo-familiares.`,
+      ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * Lo dicho con duda (§B6, REG-211).
+   *
+   * Se cita la palabra exacta que lo delató —«creo que», «a lo mejor»— porque un
+   * aviso que sólo dice «hay un dato incierto» obliga a releer el dictado. Con
+   * la marca delante se confirma o se descarta de un vistazo.
+   */
+  for (const d of e.datosInciertos ?? []) {
+    out.push({
+      id: `incierto:${d.frase.slice(0, 40)}`,
+      origen: 'dato_incierto',
+      nivel: nivelDe('dato_incierto'),
+      texto: d.marca
+        ? `Lo dijo con «${d.marca}», no como un hecho: «${d.frase}». Confírmalo antes de que quede como diagnóstico.`
+        : `Lo dijo sin seguridad: «${d.frase}».`,
+      ancla: { seccion: 'nota' },
+    })
+  }
+
+  /**
+   * Lo que no salió del dictado (§B10, SUP-001).
+   *
+   * Se nombran las palabras huérfanas porque son la parte accionable: en «se
+   * documenta nefropatía diabética estadio 4» lo que nadie dijo es
+   * «nefropatía, diabética, estadio», y verlo evita releer la consulta.
+   */
+  for (const r of e.sinRespaldo ?? []) {
+    const que = r.huerfanas?.length ? ` Nadie dijo: ${r.huerfanas.join(', ')}.` : ''
+    out.push({
+      id: `respaldo:${r.afirmacion.slice(0, 40)}`,
+      origen: 'sin_respaldo_en_el_dictado',
+      nivel: nivelDe('sin_respaldo_en_el_dictado'),
+      texto: `Esto no salió del dictado: «${r.afirmacion.trim()}».${que} Si viene del expediente o de la exploración, déjalo; si no, quítalo.`,
+      ancla: { seccion: 'nota' },
     })
   }
 

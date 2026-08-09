@@ -5,7 +5,11 @@
  *  - API y orígenes externos (Firestore/googleapis): se dejan pasar sin tocar
  *    (Firestore maneja su propia persistencia offline vía IndexedDB)
  */
-const CACHE = 'nexusmed-v1085'  // La bitácora de cada versión vive en docs/maintenance/sw-changelog.md (v953: pesaba 271 KB aquí y se bajaba entera en cada carga).
+<<<<<<< HEAD
+const CACHE = 'nexusmed-v1150'  // La bitácora de cada versión vive en docs/maintenance/sw-changelog.md (v953: pesaba 271 KB aquí y se bajaba entera en cada carga).
+=======
+const CACHE = 'nexusmed-v1149'  // La bitácora de cada versión vive en docs/maintenance/sw-changelog.md (v953: pesaba 271 KB aquí y se bajaba entera en cada carga).
+>>>>>>> origin/main
 // (v601):
 
 self.addEventListener('install', (event) => {
