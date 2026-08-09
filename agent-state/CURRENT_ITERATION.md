@@ -16,8 +16,6 @@ tal como venía escrito («No padece diabetes» sale como antecedente positivo) 
 se reprodujo — `NIEGA_EN_LINEA` ya cubría «no padece». Lo que sí se reprodujo, y
 es peor, fue lo de al lado: `^no\b` leyendo «No sé, doctor» como una negación.
 
-## Hecho
-
 - El relleno se quita y se juzga el núcleo; la duda se comprueba antes que la
   negación.
 - `condicionesInciertas()`, y la duda **se señala, no se reclasifica**.

@@ -20,9 +20,9 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 60,
-      "estado": "cerrado — el signo entra en ES_CANTIDAD (src/lib/uci/dosis-sin-numero.ts)",
-      "reversible": true
-    },
+      "estado": "cerrado",
+      "reversible": true,
+      "cierre": "ES_CANTIDAD acepta los cuatro signos (dosis-sin-numero.ts:57). Verificado en el árbol el 8-ago."    },
     {
       "id": "SAFE-001",
       "titulo": "Cuatro parsers distintos del campo de alergias",
@@ -41,9 +41,9 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 73,
-      "estado": "cerrado — alergenosDe() es el único parser; golden un-solo-parser-de-alergias.test.ts",
-      "reversible": true
-    },
+      "estado": "cerrado",
+      "reversible": true,
+      "cierre": "alergenosDe() es el único parser y los tres llamadores lo usan; golden un-solo-parser-de-alergias.test.ts. Verificado en el árbol el 8-ago: el backlog estaba atrasado."    },
     {
       "id": "EVAL-001",
       "titulo": "Medir el reconocedor sobre los 6000 audios del corpus V3",
@@ -148,6 +148,28 @@
       "score": 14,
       "estado": "no confirmado — es del entorno, no del código; reproducido con el árbol limpio",
       "reversible": true
-    }
-  ]
+    },
+    {
+      "id": "TEMP-001",
+      "titulo": "La ventana del escudo cruza el punto y presta la negación de la oración anterior",
+      "hallazgo": "primeraMencionSinEscudo mira 60 caracteres hacia atrás sin parar en el punto. «Niega diabetes.» al final de una oración escuda a la palabra que caiga en los primeros 60 caracteres de la siguiente — probado el 8-ago con los motores reales al reparar REG-192.",
+      "porQueImporta": "Es un escudo que no le corresponde: silencia una afirmación real de la nota. Del mismo orden que REG-192, sólo que en la dirección contraria.",
+      "porQueNoSeArreglaAOjo": "Acotar la ventana a la oración rompe la nota con encabezado de sección («Antecedentes:\\nNeumonía en 2019.»), que es igual de común, y ahí sí se convertiría en fatiga de alerta. Necesita corpus de notas sintéticas con las dos formas antes de tocar el número.",
+      "archivo": "src/lib/expediente/mencion-en-la-nota.ts:88",
+      "seguridad": 3,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "score": 56,
+      "estado": "pendiente",
+      "reversible": true    }
+  ],
+  "actualizado": "2026-08-08"
 }
