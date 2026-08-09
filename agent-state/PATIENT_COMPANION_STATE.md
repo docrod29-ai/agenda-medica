@@ -3,13 +3,67 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306, REG-307.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS, que es lo más peligroso que va a
+construir este proyecto: la primera vez que la IA le habla a alguien que no
+puede detectar el error.
+
+> Anterior: `PATIENT-COMPANION-001` (9-ago · REG-304, REG-305) montó los cinco
+> destinos, el modelo `PaqueteDeVisita` y la compuerta del servidor.
 
 ---
 
-## Lo que quedó montado en `PATIENT-COMPANION-001`
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El paquete ya existe de verdad.** `componerPaquete` y `cambiosDeMedicacion`
+—diferidas en la unidad anterior por no tener llamador— llegaron con él:
+`/api/paciente/paquete`. Ningún motor huérfano nuevo.
+
+**La compuerta de firma, en el motor.** `componerPaquete` **lanza** ante una nota
+sin firmar: un valor de retorno se ignora, una excepción no. Copiar e imprimir
+—que son entrega— van detrás de la firma; la vista previa se queda, marcada como
+borrador, porque esconderla no protegía a nadie.
+
+**El contenido lo compone el servidor.** El navegador manda tres
+identificadores. Si mandara el paquete armado, la aprobación no significaría
+nada: bastaría un POST a mano para entregar la dosis que uno quisiera con el
+nombre del médico encima.
+
+**Liberar pide `firmar`**, la misma capacidad que sella una nota o una receta.
+`approvedBy` sale de la sesión verificada. Queda asiento propio en la bitácora
+(`paquete_visita_liberado`) —aparte del de la firma, porque responde otra
+pregunta— y **sin PHI**: cuántos medicamentos, no cuáles.
+
+**Versiones, no reescrituras.** Contenido idéntico no escribe nada; contenido
+distinto libera una versión nueva y conserva la anterior. Lo que se entregó, se
+entregó.
+
+**«Cuidado» ya tiene qué enseñar**: resumen, medicamentos en español llano, qué
+cambió, estudios, seguimiento y cómo contactar al consultorio.
+
+## Lo que el paquete NO afirma
+
+- Sin notas firmadas anteriores, `medicationChanges` es `null` y la pantalla del
+  paciente **no pinta el bloque**. No «sin cambios».
+- **El silencio no suspende**: lo que ya tomaba y hoy no se mencionó no sale como
+  suspendido. Decirle a un paciente que deje algo que su médico no suspendió es
+  el peor error posible de esta superficie.
+- **`warningSigns` va vacío**, declarado: es indicación médica y hoy no hay campo
+  donde el médico la escriba. Rellenarlo con lo «típico» de un diagnóstico sería
+  inventar.
+- **`followUp` va vacío**: `proximoSeguimiento` vive en el CRM del paciente, no
+  en la nota firmada. Antes que inventar una fecha que nadie acordó, se queda sin
+  bloque. Queda dicho como deuda de `CLOSED-LOOP-PATIENT-001`.
+
+## Lo que este estado NO afirma
+
+**Nada se ha visto en un navegador.** El doble de Firestore comprueba qué escribe
+la ruta y dónde, no que las reglas la dejen; que el portal pinte el paquete se
+comprueba leyendo su código. `NAV-NAVEGADOR-001` sigue abierto.
+
+---
+
+## Lo que quedó montado en `PATIENT-COMPANION-001` (unidad anterior)
 
 **Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
 · Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la

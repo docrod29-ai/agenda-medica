@@ -42,8 +42,16 @@ export function estaVigente(m: Pick<Medicamento, 'estado'>): boolean {
   return estadoDeOrden(m) === 'activa'
 }
 
-/** Clave para reconocer «el mismo fármaco» entre notas distintas. */
-function claveFarmaco(m: Pick<Medicamento, 'nombre'>): string {
+/**
+ * Clave para reconocer «el mismo fármaco» entre notas distintas.
+ *
+ * Se EXPORTA desde aquí y no se recrea en cada módulo que compare fármacos: la
+ * identidad de un medicamento es una sola decisión —minúsculas, sin acentos,
+ * espacios colapsados— y dos normalizadores distintos producen dos respuestas
+ * distintas a «¿es el mismo?». El paquete de la visita (`lib/paciente`) la
+ * consume para decidir qué es nuevo y qué ya tomaba.
+ */
+export function claveFarmaco(m: Pick<Medicamento, 'nombre'>): string {
   return String(m.nombre ?? '')
     .toLowerCase()
     .normalize('NFD')

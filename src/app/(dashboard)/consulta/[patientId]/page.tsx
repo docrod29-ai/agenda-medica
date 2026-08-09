@@ -1089,6 +1089,17 @@ export default function ConsultaActivaPage() {
   const [nerError, setNerError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [firmada, setFirmada] = useState(false)
+  /**
+   * LA ENTREGA AL PACIENTE — V9 `POSTVISIT-001`.
+   *
+   * `entregadoEn` no es un booleano de pantalla: se pregunta al servidor al
+   * abrir una nota firmada. Sin preguntarlo, volver a la consulta enseñaría
+   * «Entregar» sobre algo ya entregado, y el médico no tendría forma de saberlo
+   * salvo preguntándole al paciente.
+   */
+  const [entregadoEn, setEntregadoEn] = useState<number | null>(null)
+  const [entregando, setEntregando] = useState(false)
+  const [errorEntrega, setErrorEntrega] = useState('')
   const [errorCargaNota, setErrorCargaNota] = useState('')
   /**
    * La lectura del PACIENTE falló — auditoría 2026-07 (P0). Sin este flag, si
@@ -3649,6 +3660,61 @@ export default function ConsultaActivaPage() {
     }
   }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente])
 
+  /**
+   * ── LO QUE SE LLEVA EL PACIENTE, ENTREGADO DE VERDAD (V9 `POSTVISIT-001`) ──
+   *
+   * `POSTVISIT-ENTREGA-001`: la hoja se componía bien y no salía de esta
+   * pantalla. Copiar e imprimir eran las dos únicas puertas, y las dos exigen
+   * que el paciente esté enfrente y se lleve un papel que se pierde.
+   *
+   * Aquí sólo se manda **quién y qué nota**. El contenido lo compone el
+   * servidor leyendo la nota firmada: si lo compusiera el navegador, un POST a
+   * mano podría entregarle al paciente una dosis que nadie firmó, con el nombre
+   * del médico encima.
+   */
+  const entregarAlPaciente = useCallback(async () => {
+    if (!clinicId || !patientId || !notaId || !firmada) return
+    setEntregando(true)
+    setErrorEntrega('')
+    try {
+      const res = await fetchAutenticado('/api/paciente/paquete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId, notaId }),
+      })
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; approvedAt?: number }
+      if (!res.ok || !data.ok) {
+        setErrorEntrega(data.error ?? 'No se pudo entregar. Inténtalo otra vez.')
+        return
+      }
+      setEntregadoEn(data.approvedAt ?? Date.now())
+      toast('Entregado. Tu paciente ya puede verlo en su enlace.', 'success')
+    } catch {
+      setErrorEntrega('No se pudo entregar: revisa la conexión e inténtalo otra vez.')
+    } finally {
+      setEntregando(false)
+    }
+  }, [clinicId, patientId, notaId, firmada, toast])
+
+  /**
+   * ¿Esta consulta ya se entregó? Se le pregunta al servidor, no se recuerda.
+   *
+   * Volver a una nota firmada tiene que enseñar el estado REAL: un botón que
+   * dice «Entregar» sobre algo ya entregado invita a entregarlo dos veces, y un
+   * booleano de pantalla se pierde con cada recarga.
+   */
+  useEffect(() => {
+    if (!clinicId || !patientId || !notaId || !firmada) return
+    let vivo = true
+    void fetchAutenticado(`/api/paciente/paquete?clinicId=${encodeURIComponent(clinicId)}&patientId=${encodeURIComponent(patientId)}&notaId=${encodeURIComponent(notaId)}`)
+      .then(r => r.json())
+      .then((d: { entregado?: { approvedAt?: number } | null }) => {
+        if (vivo && d?.entregado?.approvedAt) setEntregadoEn(d.entregado.approvedAt)
+      })
+      .catch(() => { /* saberlo es un extra: si falla, el botón sigue disponible */ })
+    return () => { vivo = false }
+  }, [clinicId, patientId, notaId, firmada])
+
   // ── Atajos de teclado ──────────────────────────────────────────
   //
   // Historia de este bloque:
@@ -5194,11 +5260,23 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
+      {/*
+        Y NO SE ENTREGA DE UN BORRADOR (`POSTVISIT-GATE-001`). La hoja se sigue
+        viendo mientras se dicta —sirve para saber qué se está construyendo—,
+        pero copiar, imprimir y entregar van detrás de la firma: las tres son
+        entrega, y hasta la firma esto contiene una dosis que todavía se va a
+        corregir.
+      */}
       {!esNotaHospital && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
           proximaCita={undefined}
+          firmada={firmada}
+          entregadoEn={entregadoEn}
+          entregando={entregando}
+          errorDeEntrega={errorEntrega}
+          onEntregar={entregarAlPaciente}
         />
       )}
 

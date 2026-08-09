@@ -12,6 +12,7 @@ import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 interface DocReceta {
   id: string
@@ -114,6 +115,8 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /** Los paquetes de visita que su médico ya liberó. `null` = todavía cargando. */
+  const [paquetes, setPaquetes] = useState<(PaqueteDeVisita & { id: string })[] | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +143,21 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+      /**
+       * LO QUE TU MÉDICO LIBERÓ — V9 `POSTVISIT-001`.
+       *
+       * En paralelo y sin bloquear las citas, igual que las recetas: si esto
+       * fallara, el paciente sigue viendo su cita de mañana, que es la razón
+       * número uno por la que abre este enlace.
+       *
+       * El servidor sólo devuelve paquetes `RELEASED` con aprobador y fecha
+       * (`visibleParaElPaciente`). Aquí no hay ningún filtro: si lo hubiera, la
+       * pantalla estaría decidiendo algo que decide la compuerta.
+       */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(d.paquetes || []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -427,13 +445,99 @@ export default function MiPortalPage() {
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+          {(!paquetes || paquetes.length === 0) && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+          {(paquetes ?? []).map(paq => {
+            const f = fmtFecha(new Date(paq.approvedAt ?? 0).toISOString(), tzClinica)
+            /**
+             * `medicationChanges === null` NO se pinta como «sin cambios».
+             * Significa que no se pudo determinar qué tomaba antes —una primera
+             * consulta, por ejemplo—, y decirle «no cambió nada» a alguien que
+             * sí dejó de tomar algo es peor que no decirle nada.
+             */
+            const cambios = paq.medicationChanges
+            return (
+              <article key={paq.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', padding: 18, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }} className="t-num">
+                  Consulta del {f.fecha}
+                </div>
+                {paq.encounterSummary && (
+                  <p style={{ fontSize: 16, color: 'var(--text)', margin: '0 0 14px', lineHeight: 1.6 }}>
+                    {paq.encounterSummary}
+                  </p>
+                )}
+
+                {paq.medicationInstructions.length > 0 && (
+                  <section style={{ marginBottom: 14 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 6px' }}>
+                      Tus medicamentos
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {paq.medicationInstructions.map(m => (
+                        <li key={m.nombre} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{m.instruccion}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {cambios && cambios.some(c => c.tipo !== 'sin-cambio') && (
+                  <section style={{ marginBottom: 14 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 6px' }}>
+                      Qué cambió
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {cambios.filter(c => c.tipo !== 'sin-cambio').map(c => (
+                        <li key={c.nombre} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
+                          {/* El estado va en PALABRAS, no sólo en color: la regla de
+                              accesibilidad prohíbe representar el riesgo sólo con color. */}
+                          {c.tipo === 'nuevo' ? `${c.nombre} — nuevo` : `${c.nombre} — tu médico lo suspendió`}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {paq.orders.length > 0 && (
+                  <section style={{ marginBottom: 14 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 6px' }}>
+                      Estudios que te pidió
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {paq.orders.map(o => (
+                        <li key={o} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{o}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {paq.followUp && (
+                  <section style={{ marginBottom: 14 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 6px' }}>
+                      Tu próxima cita
+                    </h3>
+                    <p style={{ fontSize: 14, color: 'var(--text)', margin: 0, lineHeight: 1.6 }}>{paq.followUp}</p>
+                  </section>
+                )}
+
+                {paq.clinicianContactRules && (
+                  <p style={{ fontSize: 14, color: 'var(--text2)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                    {paq.clinicianContactRules}
+                  </p>
+                )}
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.6 }}>
+                  Esto lo revisó y liberó tu médico. Si algo no coincide con lo que
+                  recuerdas de la consulta, pregúntale antes de cambiar nada.
+                </p>
+              </article>
+            )
+          })}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>

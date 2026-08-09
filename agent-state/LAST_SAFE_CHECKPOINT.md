@@ -6,7 +6,52 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El paquete de la visita **se genera del encuentro y sólo se libera con
+aprobación del médico**, que es la condición de terminado de la unidad. Cierra
+además los dos P1 que la esperaban: `POSTVISIT-GATE-001` y
+`POSTVISIT-ENTREGA-001`.
+
+- **REG-306** La hoja del paciente se componía del borrador EN CURSO y la
+  compuerta vivía en un comentario. `componerPaquete` **lanza** ante una nota sin
+  firmar; copiar e imprimir —que son entrega— van detrás de la firma. La vista
+  previa se queda, marcada como borrador.
+- **REG-307** Y aun así no llegaba nunca. `/api/paciente/paquete` compone desde
+  la nota firmada, libera con capacidad `firmar`, versiona sin reescribir, y
+  `/mi/[token]` lo pide y lo pinta en «Cuidado». Los deberes que
+  `PATIENT-COMPANION-001` había diferido —`componerPaquete` y
+  `cambiosDeMedicacion`— **llegaron con su llamador**, que era la condición para
+  no añadir un motor huérfano más.
+
+**Lo que el paquete NO afirma**: sin notas firmadas anteriores,
+`medicationChanges` es `null` y la pantalla no pinta nada — no «sin cambios». Y
+el silencio no suspende: lo que ya tomaba y hoy no se mencionó no sale como
+suspendido.
+
+**Compuertas en este checkpoint**
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 596 casos · 0 fallos** (576 archivos) |
+| `node scripts/lint-trinquete.mjs` | **96, igual que el techo** |
+| trinquete de diseño | `radiosFueraDeEscala` **638 → 636**; el resto igual |
+| `npm run build` | **compila** (con las llaves sintéticas del CI) |
+| navegador | **no ejecutado** |
+
+**Lo que este checkpoint NO garantiza.** Que nada de esto funcione en un
+navegador. El doble de Firestore comprueba qué escribe la ruta y dónde, no que
+las reglas la dejen; que el portal pinte el paquete se comprueba leyendo su
+código. Sigue pendiente `NAV-NAVEGADOR-001`.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

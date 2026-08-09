@@ -7013,3 +7013,98 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente se componía de un borrador, y la compuerta vivía en un comentario
+
+**Unidad** V9 `POSTVISIT-001`. Hallazgo `POSTVISIT-GATE-001` de la auditoría del
+producto real (`PATIENT-UX-TRUTH-001`, 8-ago-2026).
+
+**Qué pasaba.** `HojaParaElPaciente` —lo que el paciente se lleva a casa: sus
+medicamentos en español llano, sus estudios— se montaba con el estado **VIVO** de
+la consulta. La única guarda era `{!esNotaHospital}`. Así que a mitad del dictado
+el médico podía pulsar «Copiar» o «Imprimir» y entregar una hoja compuesta de una
+nota a medio escribir: con la dosis que todavía iba a corregir, con el fármaco
+que aún no había decidido. Y salía con el membrete del consultorio.
+
+**Causa raíz.** La precondición estaba escrita en un **comentario**: la cabecera
+del módulo afirma que el contenido sale de lo «ya revisado y firmado». Era
+intención de diseño, no precondición — no había una línea de código que la
+impusiera. Y treinta líneas más arriba, en la misma pantalla,
+`ComoCerrarLaConsulta` sí exigía `{firmada && …}`: dos bloques vecinos, dos
+criterios.
+
+**Arreglo.** `componerPaquete` **lanza** ante una nota sin firmar, en vez de
+devolver algo marcado: un valor de retorno se ignora sin escribir nada, una
+excepción no. La compuerta vive en el motor, para que ninguna pantalla futura
+pueda saltársela, y se repite en `/api/paciente/paquete` para poder dar un
+mensaje que el médico entienda en vez de un 500.
+
+Copiar e imprimir **son entrega** y van detrás de la firma, igual que la entrega
+al portal. La hoja se sigue **viendo** mientras se dicta, marcada como borrador:
+esconderla no protegía a nadie —las salidas ya están cerradas— y quitaría lo
+único que le dice al médico qué se está construyendo.
+
+**Lo que NO cubre.** Que el botón esté `disabled` se comprueba leyendo el
+componente, no pulsándolo: este repositorio no tiene render de React. Verlo con
+los ojos sigue en `NAV-NAVEGADOR-001`.
+
+**Familia.** `se_contradice` — el módulo afirmaba en su cabecera lo contrario de
+lo que hacía su código, y el vecino de al lado aplicaba la regla correcta.
+
+**Guardián.** `src/__tests__/la-hoja-no-se-entrega-de-un-borrador.test.ts`,
+20 casos. Probado al revés: quitando el `throw` caen dos, quitando el
+`disabled={!firmada}` cae el tercero.
+
+---
+
+## REG-307 — Lo mejor del lado del paciente no llegaba al paciente
+
+**Unidad** V9 `POSTVISIT-001`. Hallazgo `POSTVISIT-ENTREGA-001` de la misma
+auditoría.
+
+**Qué pasaba.** `HojaParaElPaciente` tenía exactamente dos salidas: copiar al
+portapapeles e imprimir. Ni una línea en `/mi/[token]`, ni una acción en
+`/api/portal`, ni una plantilla de WhatsApp. La pieza mejor pensada del lado del
+paciente —determinista, sin modelo, incapaz de inventar una cifra— **no salía de
+la pantalla del médico**. Y el compañero del paciente, montado en
+`PATIENT-COMPANION-001`, tenía la superficie lista y **nada que enseñar**: ningún
+paquete existía porque no había quien los creara.
+
+**Causa raíz.** El contenido se resolvió antes que el camino, y como la hoja SÍ
+se veía en pantalla, parecía entregada.
+
+**Arreglo.** `/api/paciente/paquete`: POST compone desde la nota firmada, llama a
+`liberar()` y escribe la versión en `paquetes_visita`; GET dice si esa consulta ya
+se entregó. El botón «Entregar al paciente» vive junto a la hoja y es un acto
+**explícito y aparte de firmar** — firmar es hacia el expediente, liberar es hacia
+el paciente. `/mi/[token]` pide los paquetes y los pinta en «Cuidado».
+
+**Tres decisiones que sostienen la aprobación.**
+
+- **El contenido lo compone el SERVIDOR.** El navegador manda tres
+  identificadores. Si mandara el paquete armado, la compuerta sería decorativa:
+  un POST a mano entregaría la dosis que a uno le apetezca, aprobada con el
+  nombre del médico y su hora.
+- **`firmar` como capacidad**, la misma que sella una nota o una receta. Liberar
+  le pone el nombre de alguien a lo que el paciente va a leer y a obedecer.
+- **Versiones, no reescrituras.** Contenido idéntico no escribe nada —pulsar dos
+  veces no duplica la visita—; contenido distinto libera una versión nueva y la
+  anterior se conserva. Lo que se entregó, se entregó.
+
+**Y lo que el paquete NO afirma.** Sin notas firmadas anteriores,
+`medicationChanges` es `null` y la pantalla del paciente **no pinta nada** — no
+«sin cambios». Y el silencio no suspende: un fármaco que ya tomaba y del que hoy
+no se habló no sale como suspendido. Decirle a un paciente que deje algo que su
+médico no suspendió es el peor error posible de esta superficie.
+
+**Lo que NO cubre.** El doble de Firestore comprueba qué escribe la ruta y dónde,
+no que las reglas la dejen; que el portal pinte el paquete se comprueba leyendo
+su código. Nada de esto se ha visto en un navegador.
+
+**Familia.** `no_conectado` — «escrito, probado y sin conectar» en su forma más
+cara: la pieza estaba bien y el producto no la entregaba.
+
+**Guardián.** `src/__tests__/el-paquete-liberado-llega-al-paciente.test.ts`,
+22 casos.

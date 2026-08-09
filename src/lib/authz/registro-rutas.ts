@@ -183,6 +183,20 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'receta/detectar-campos': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'uci/copilot': { tipo: 'entitlementIA', modulo: 'uci', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
 
+  // ── lo que se le entrega al paciente ─────────────────────────────────────
+  /**
+   * V9 · `POSTVISIT-001`. **POST libera** el paquete de la visita: es un acto de
+   * aprobación clínica —le pone el nombre de un médico a lo que el paciente va a
+   * leer y a obedecer—, así que pide `firmar`, la misma capacidad que sella una
+   * nota o una receta, y NO `clinico.escribir`.
+   *
+   * GET sólo dice si esa consulta ya se entregó y cuándo; eso lo puede ver quien
+   * lee el expediente en el pase de visita.
+   */
+  'paciente/paquete': {
+    tipo: 'porMetodo', metodos: { GET: 'clinico.leer', POST: 'firmar' },
+  },
+
   // ── expediente: export e interoperabilidad ───────────────────────────────
   'fhir/paciente/[patientId]': {
     // Export COMPLETO del expediente. NO se mapea a `clinico.leer` (que incluiría a

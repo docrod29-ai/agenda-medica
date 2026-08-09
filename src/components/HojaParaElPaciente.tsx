@@ -24,7 +24,7 @@
  * inventa un canal nuevo que haya que mantener.
  */
 import { useMemo, useState } from 'react'
-import { ClipboardCheck, Copy, Printer } from 'lucide-react'
+import { ClipboardCheck, Copy, Printer, Send, Check, Loader2, Lock } from 'lucide-react'
 import {
   comoSeLoExplico, comoTexto,
   type EntradaInstrucciones,
@@ -33,16 +33,37 @@ import {
 export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
+  /**
+   * ¿Está firmada la nota de la que sale esta hoja? — `POSTVISIT-GATE-001`.
+   *
+   * **Por omisión, `false`.** Fallar cerrado no es prudencia genérica: esta
+   * hoja se compone del estado VIVO de la consulta, así que mientras el médico
+   * dicta contiene una dosis que todavía va a corregir. Copiar e imprimir **son
+   * entrega** —el papel sale del consultorio con el membrete del médico— y por
+   * eso van detrás de la firma, igual que la entrega al portal.
+   *
+   * La hoja se sigue viendo mientras se dicta, marcada como borrador: sirve
+   * para saber qué se está construyendo. Lo que se cierra es la salida.
+   */
+  firmada?: boolean
+  /** Ya se le entregó al paciente en su portal, con la hora de aprobación. */
+  entregadoEn?: number | null
+  /** Sin esto no hay botón de entrega: la pantalla que no sepa entregar, no ofrece. */
+  onEntregar?: () => void | Promise<void>
+  entregando?: boolean
+  errorDeEntrega?: string
 }
 
 export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
   const [copiado, setCopiado] = useState(false)
   const bloques = useMemo(() => comoSeLoExplico(p), [p])
+  const firmada = p.firmada === true
 
   /* Sin nada que decirle al paciente no se enseña una hoja vacía. */
   if (!bloques.length) return null
 
   const copiar = async () => {
+    if (!firmada) return
     try {
       await navigator.clipboard.writeText(comoTexto(bloques))
       setCopiado(true)
@@ -69,35 +90,100 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
           en sus palabras, sin nada que usted no haya escrito
         </span>
 
-        <div className="no-print" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+        <div className="no-print" style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {!firmada && (
+            <span
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 12, color: 'var(--text3)',
+              }}
+            >
+              <Lock size={13} aria-hidden="true" /> Se entrega al firmar
+            </span>
+          )}
           <button
             onClick={copiar}
+            disabled={!firmada}
+            title={firmada ? undefined : 'Se habilita al firmar la nota'}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600,
+              padding: '7px 12px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600,
               background: 'var(--s3)', color: 'var(--text)',
-              border: '1px solid var(--border)', cursor: 'pointer',
+              border: '1px solid var(--border)',
+              cursor: firmada ? 'pointer' : 'not-allowed', opacity: firmada ? 1 : 0.5,
             }}
           >
             {copiado ? <ClipboardCheck size={14} /> : <Copy size={14} />}
             {copiado ? 'Copiado' : 'Copiar'}
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={() => { if (firmada) window.print() }}
+            disabled={!firmada}
             aria-label="Imprimir la hoja del paciente"
+            title={firmada ? undefined : 'Se habilita al firmar la nota'}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600,
+              padding: '7px 12px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600,
               background: 'var(--s3)', color: 'var(--text)',
-              border: '1px solid var(--border)', cursor: 'pointer',
+              border: '1px solid var(--border)',
+              cursor: firmada ? 'pointer' : 'not-allowed', opacity: firmada ? 1 : 0.5,
             }}
           >
             <Printer size={14} /> Imprimir
           </button>
+          {/*
+            ENTREGAR AL PACIENTE — `POSTVISIT-ENTREGA-001`.
+
+            Hasta hoy esta hoja no salía de la pantalla: copiar e imprimir eran
+            las dos únicas puertas, y las dos exigen que el paciente esté
+            enfrente y se lleve un papel.
+
+            El botón es un acto EXPLÍCITO y aparte de firmar. No se dispara solo
+            al firmar aunque se pudiera: firmar es hacia el expediente, liberar
+            es hacia el paciente, y hay consultas que se firman y no se
+            entregan todavía.
+          */}
+          {firmada && p.onEntregar && (
+            p.entregadoEn ? (
+              <span
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  fontSize: 12, color: 'var(--success)', fontWeight: 600,
+                }}
+              >
+                <Check size={14} aria-hidden="true" /> Entregado
+              </span>
+            ) : (
+              /* `btn btn-primary`, el primitivo compartido, y no un botón
+                 pintado a mano: se rellena con `--nexus-solido` —el azul de
+                 RELLENO, que sí contrasta con el texto blanco— mientras que
+                 `--nexus` es el azul de TEXTO. Escribirlo en línea es cómo se
+                 coló ese defecto en 26 sitios (REG-223). */
+              <button
+                onClick={() => { void p.onEntregar?.() }}
+                disabled={p.entregando === true}
+                className="btn btn-primary btn-sm"
+              >
+                {p.entregando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
+                {p.entregando ? 'Entregando…' : 'Entregar al paciente'}
+              </button>
+            )
+          )}
         </div>
       </header>
 
       <div style={{ padding: '4px 14px 14px' }}>
+        {!firmada && (
+          <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+            Vista previa de la nota en curso. No se entrega hasta que la firme:
+            lo que el paciente se lleva sale de la nota firmada.
+          </p>
+        )}
+        {p.errorDeEntrega && (
+          <p role="alert" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--red)', lineHeight: 1.6 }}>
+            {p.errorDeEntrega}
+          </p>
+        )}
         {p.nombreDelPaciente && (
           <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--text3)' }}>
             Para {p.nombreDelPaciente}

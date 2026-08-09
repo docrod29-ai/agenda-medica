@@ -1,5 +1,35 @@
 # Bitácora del trabajo autónomo
 
+## 2026-08-09 — V9 `POSTVISIT-001` · lo que se lleva el paciente, entregado de verdad
+
+Dos hallazgos de la auditoría del producto real, cerrados juntos porque son la
+misma pieza vista por sus dos extremos.
+
+**REG-306 · La compuerta vivía en un comentario.** `HojaParaElPaciente` se
+componía del estado VIVO de la consulta: a mitad del dictado se podía copiar e
+imprimir una hoja con la dosis que todavía iba a corregirse. La cabecera del
+módulo afirmaba que el contenido salía de lo «ya revisado y firmado» — era
+intención de diseño, no precondición. Ahora `componerPaquete` **lanza** ante una
+nota sin firmar, y copiar e imprimir —que son entrega— van detrás de la firma.
+
+**REG-307 · Y aun así no llegaba.** La pieza mejor pensada del lado del paciente
+tenía exactamente dos salidas: portapapeles e impresora. `/api/paciente/paquete`
+compone desde la nota firmada, libera con la capacidad `firmar`, versiona sin
+reescribir, y `/mi/[token]` lo pide y lo pinta en «Cuidado».
+
+**La decisión que sostiene la aprobación**: el contenido lo compone el
+**servidor**. El navegador manda tres identificadores. Si mandara el paquete
+armado, bastaría un POST a mano para entregarle al paciente la dosis que uno
+quisiera, aprobada con el nombre del médico y su hora.
+
+**Y llegaron con su llamador.** `componerPaquete` y `cambiosDeMedicacion` se
+habían escrito y quitado en la unidad anterior por ser motores sin llamador. No
+se añadió ninguno huérfano.
+
+**Compuertas**: 8 596 casos en verde · lint 96 (techo) · trinquete de diseño
+`radiosFueraDeEscala` 638 → 636 · `npm run build` compila. **Navegador: no
+ejecutado.**
+
 ## 2026-08-04 — INFRA-001 · el sistema operativo del programa
 
 - `CLAUDE.md` reescrito: misión, invariantes, comandos, mapa, seguridad clínica,
