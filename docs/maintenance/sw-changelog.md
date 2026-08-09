@@ -2720,3 +2720,19 @@ de menos.
 Ocho formas más reparadas, incluidas «no fuma» y «no es fumador», donde el
 término clínico ES el verbo. Y los dos lados salen ya de **una sola lista**: la
 desalineación deja de ser posible, no sólo improbable.
+
+## v1158 — 22 minutos de dictado que se borraban solos (REG-283/284)
+
+**REG-283** · dictar 22 min → tocar «Agenda» → volver → dictar 90 s → detener
+**perdía los 22 minutos**. Sin error y justo tras una transcripción exitosa.
+`detener()` armaba el blob con los trozos de la sesión en curso y borraba el
+rango **completo** de una llave que es la misma para ese paciente siempre.
+
+El hook YA sabía que el huérfano existe —arranca su índice después para no
+pisarlo—: **la defensa protegía al escribir y no al borrar**, y el comentario
+afirmaba lo contrario de lo que ocurría. Es uno de los tres P0 de integridad que
+la auditoría de V9 había dejado abiertos.
+
+**REG-284** · «No pues sí» seguía leyéndose como una negación: el guardián de
+REG-271 exigía el «sí» pegado al «no», y en el habla real entre los dos cabe la
+muletilla.

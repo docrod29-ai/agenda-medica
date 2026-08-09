@@ -57,7 +57,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El motor lingüístico cubre el español que uno escribiría, no el que se ' +
       'habla en un consultorio mexicano. Se descubre midiendo contra frases ' +
       'reales, nunca leyendo el código.',
-    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276, 280, 281, 282],
+    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276, 280, 281, 282, 284],
   },
   {
     clave: 'sin_medir',
@@ -109,7 +109,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219],
+    regs: [157, 193, 195, 215, 216, 219, 283],
   },
   {
     clave: 'tarde',

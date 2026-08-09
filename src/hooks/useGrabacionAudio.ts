@@ -356,12 +356,44 @@ async function leerChunks(recoveryKey: string): Promise<Blob[]> {
   }
 }
 
-async function borrarChunks(recoveryKey: string) {
+/**
+ * ── BORRAR SÓLO LO QUE SE ACABA DE LEER — REG-283 ────────────────────────────
+ *
+ * Dictar 22 min → tocar «Agenda» → volver → dictar 90 s → detener **perdía los
+ * 22 minutos**. Sin error, sin aviso, y justo después de una transcripción
+ * exitosa.
+ *
+ * `detener()` arma el blob con los trozos de la sesión EN CURSO, pero al
+ * terminar borraba el rango **completo** de la llave. Y la llave no es por
+ * sesión: es `consulta-{patientId}`, la misma cada vez que se abre a ese
+ * paciente. Debajo puede haber audio de una grabación anterior que nadie
+ * transcribió — porque navegar fuera desmonta el hook y libera el micrófono sin
+ * llamar a `detener()`.
+ *
+ * **El hook YA sabía que ese huérfano existe**: al empezar a grabar cuenta los
+ * trozos que hay y arranca su índice después (`recoveryBaseRef`) para no
+ * pisarlo. La defensa estaba escrita **a medias — protegía al escribir y no al
+ * borrar**, y el comentario de `iniciar()` afirmaba lo contrario de lo que
+ * ocurría: por eso se podía leer el código entero sin ver el agujero.
+ *
+ * `desde` acota el borrado. El cambio **sólo puede conservar más audio, nunca
+ * menos**.
+ */
+/**
+ * El rango que se borra, aparte y PURO — para que se pueda probar sin abrir una
+ * base de datos. Es la línea donde vivía el defecto: `desde` era siempre 0.
+ */
+export function rangoABorrar(recoveryKey: string, desde = 0): [unknown[], unknown[]] {
+  return [[recoveryKey, desde], [recoveryKey, Number.MAX_SAFE_INTEGER]]
+}
+
+async function borrarChunks(recoveryKey: string, desde = 0) {
   try {
     const db = await abrirDB()
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite')
-      const range = IDBKeyRange.bound([recoveryKey, 0], [recoveryKey, Number.MAX_SAFE_INTEGER])
+      const [ini, fin] = rangoABorrar(recoveryKey, desde)
+      const range = IDBKeyRange.bound(ini, fin)
       tx.objectStore(STORE).delete(range)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
@@ -1559,7 +1591,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (texto.trim()) {
         setUtterances([]); utterancesRef.current = []
         aplicar(texto)
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
         return
       }
       // Sin texto: cae al camino de siempre, que ya sabe usar el respaldo en vivo.
@@ -1575,7 +1607,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       aplicar(diar.text)
       setSinDiarizacion(null)
-      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
     /**
@@ -1624,7 +1656,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
       // audio es lo único que permite recuperarlo: se conserva.
-      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current)
+      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
 

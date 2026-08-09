@@ -5995,3 +5995,74 @@ verbo a una sola — ya pasó dos veces en el mismo día.
 
 - `src/lib/expediente/parser-clinico.ts`
 - `src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts` (nuevo, 16 casos, sellado)
+
+---
+
+## REG-283 — transcribir una grabación borraba el audio de OTRA (v1158)
+
+**Dictar 22 min → tocar «Agenda» → volver → dictar 90 s → detener perdía los 22
+minutos.** Sin error, sin aviso, y justo después de una transcripción exitosa —
+que es cuando menos se sospecha.
+
+Encontrado por la rutina `PATIENT-AUDIO-001`, y es uno de los tres P0 de
+integridad que la auditoría de V9 había dejado **abiertos**.
+
+### La causa
+
+`detener()` arma el blob con los trozos de la sesión **en curso**, pero al
+terminar borraba el rango **completo** de la llave. Y la llave no es por sesión:
+es `consulta-{patientId}`, la misma cada vez que se abre a ese paciente. Debajo
+puede haber audio de una grabación anterior que nadie transcribió — porque
+navegar fuera desmonta el hook y libera el micrófono **sin llamar a `detener()`**.
+
+### La defensa estaba escrita a medias
+
+**El hook ya sabía que ese huérfano existe.** Al empezar a grabar cuenta los
+trozos que hay y arranca su índice después (`recoveryBaseRef`) para no pisarlo.
+
+Protegía al **escribir** y no al **borrar**. Y el comentario de `iniciar()`
+afirmaba lo contrario de lo que ocurría: por eso se podía leer el código entero
+sin ver el agujero. **Un comentario que miente es peor que ninguno.**
+
+### El arreglo
+
+`borrarChunks(recoveryKey, desde = 0)`. Las **tres** salidas exitosas de
+`detener()` pasan `recoveryBaseRef`. Quien transcribe el rango entero
+(`recuperarAudio`) y quien descarta a propósito (`descartarRecovery`) siguen
+borrando todo — acotarlos dejaría audio huérfano imposible de eliminar, que es el
+defecto contrario y también real.
+
+**El cambio sólo puede conservar más audio, nunca menos.**
+
+### Lo que la prueba NO cubre, dicho en vez de dejarlo creer
+
+No abre una IndexedDB de verdad: eso exigiría una dependencia nueva. Comprueba el
+**rango** —la línea exacta donde vivía el defecto— y quién lo acota. Queda sin
+cubrir el comportamiento del almacén, no la decisión de qué se borra.
+
+---
+
+## REG-284 — «No pues sí» seguía leyéndose como una negación (v1158)
+
+REG-271 arregló el «no» correctivo, pero exigía el «sí» **pegado** al «no». En el
+habla real entre los dos cabe la muletilla. Medido:
+
+| Respuesta | Antes |
+|---|---|
+| «No pues sí» | NIEGA |
+| «No pues sí tengo» | NIEGA |
+| «no, pues sí» | NIEGA |
+| «No, pues sí, desde hace años» | NIEGA |
+
+Es el mismo defecto **a una muletilla de distancia**, y la misma lección que ya
+costó el ruido de turno al principio de la respuesta: **la muletilla no vive sólo
+delante**.
+
+Encontrado por la rutina `SAFE-003-ventana`. Las siete negaciones legítimas
+—incluida «No, sino la de mi hermana»— siguen contando.
+
+### Archivos
+
+- `src/hooks/useGrabacionAudio.ts` (`rangoABorrar`, `borrarChunks`)
+- `src/lib/expediente/negaciones.ts` (`MULETILLA_INTERMEDIA`)
+- `src/__tests__/transcribir-no-borra-el-audio-de-otra.test.ts` (nuevo, 8 casos, sellado)

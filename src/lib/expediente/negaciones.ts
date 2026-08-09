@@ -173,8 +173,21 @@ const NIEGA_POSPUESTO = /\b(?:no|nunca|jam[aá]s)\s*[.,;!]?\s*$/i
  * para el motor la «í» ya es no-letra. Se mira hacia delante por letra en vez de
  * por frontera. Es la misma trampa que apagó `NO_ES_NEGACION` con «No sé.».
  */
-const NO_CORRECTIVO =
-  /^\s*no[,\s]+(?:s[ií]|claro|efectivamente|as[ií]\s+es)(?![a-záéíóúüñ])/i
+const MULETILLA_INTERMEDIA = String.raw`(?:(?:pues|ps|bueno|este|mmm+|eh+|ay|mire|la\s+verdad)[,\s]+)*`
+
+/**
+ * ── LA MULETILLA TAMBIÉN VA EN MEDIO ────────────────────────────────────────
+ *
+ * «**No pues sí**» y «No, pues sí, desde hace años» seguían leyéndose como una
+ * negación: el guardián exigía el «sí» PEGADO al «no», y en el habla real entre
+ * los dos cabe la muletilla. Medido el 9-ago-2026, cuatro formas fallaban.
+ *
+ * Es el mismo defecto de REG-271 a una muletilla de distancia — y la misma
+ * lección que ya costó el ruido de turno al PRINCIPIO de la respuesta: **la
+ * muletilla no vive sólo delante**.
+ */
+const NO_CORRECTIVO = new RegExp(
+  `^\\s*no[,\\s]+${MULETILLA_INTERMEDIA}(?:s[ií]|claro|efectivamente|as[ií]\\s+es)(?![a-záéíóúüñ])`, 'i')
 
 /** ¿Esta respuesta niega? Con el ruido de turno y de muletilla ya quitado. */
 export function respuestaNiega(respuesta: string): boolean {
