@@ -232,17 +232,17 @@ export default function ReservarPage() {
 
         {step === 'datos' && (
           <Card title="Tus datos" onBack={() => setStep('hora')}>
-            <FormField label="Nombre completo *">
-              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan García López" autoFocus />
+            <FormField id="rsv-nombre" label="Nombre completo *">
+              <input id="rsv-nombre" className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan García López" autoFocus />
             </FormField>
-            <FormField label="Teléfono / WhatsApp *">
-              <input className="input" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="614-123-4567" type="tel" />
+            <FormField id="rsv-telefono" label="Teléfono / WhatsApp *">
+              <input id="rsv-telefono" className="input" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="614-123-4567" type="tel" />
             </FormField>
-            <FormField label="Correo (opcional)">
-              <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" type="email" />
+            <FormField id="rsv-correo" label="Correo (opcional)">
+              <input id="rsv-correo" className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" type="email" />
             </FormField>
-            <FormField label="Motivo (opcional)">
-              <textarea className="input" rows={2} value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Describe brevemente el motivo de tu visita" style={{ resize: 'vertical' }} />
+            <FormField id="rsv-motivo" label="Motivo (opcional)">
+              <textarea id="rsv-motivo" className="input" rows={2} value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Describe brevemente el motivo de tu visita" style={{ resize: 'vertical' }} />
             </FormField>
             <button
               disabled={!nombre.trim() || telefono.replace(/\D/g, '').length < 7}
@@ -330,10 +330,33 @@ function Card({ title, children, onBack }: { title: string; children: React.Reac
     </div>
   )
 }
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * LA ETIQUETA QUE SE VE NO ERA LA ETIQUETA QUE SE OYE — REG-292.
+ *
+ * El `<label>` se pintaba encima del campo, sin `htmlFor` y sin envolverlo. A la
+ * vista, un formulario etiquetado; para la máquina, cuatro controles **sin
+ * nombre**: un lector de pantalla anunciaba «cuadro de edición» en blanco, y
+ * tocar la palabra «Teléfono» no enfocaba el campo — en móvil, toques perdidos.
+ *
+ * Ésta es la primera pantalla que toca un paciente nuevo. `useId()` da un
+ * identificador estable entre servidor y cliente, y se le pasa al hijo, así que
+ * el quinto campo que alguien añada nace etiquetado sin tener que acordarse.
+ */
+/**
+ * El `id` es OBLIGATORIO, y va a mano en los dos sitios a propósito.
+ *
+ * La primera versión de este arreglo lo generaba con `useId()` y se lo inyectaba
+ * al hijo con `cloneElement`: funcionaba, no había nada que recordar… y **el
+ * guardián no podía verlo**, porque el `id` no aparece escrito junto al campo.
+ * Un arreglo que la compuerta no comprueba es un arreglo que puede deshacerse en
+ * silencio — basta con que alguien envuelva el campo en un `<div>`.
+ *
+ * Así que se escribe, y `un-campo-sin-nombre-no-existe.test.ts` lo exige.
+ */
+function FormField({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={id} style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>{label}</label>
       {children}
     </div>
   )

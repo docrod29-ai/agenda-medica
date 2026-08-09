@@ -434,7 +434,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "A11Y-GATE-001",
@@ -445,7 +445,8 @@
       "porQueImporta": "Objetivo declarado de V9: WCAG 2.2 AA. Hoy nada impide una regresión. Y el contraste de los 1205 hexadecimales nunca se midió — los tokens sí, y con la fórmula escrita en el CSS.",
       "archivo": "package.json · eslint.config.mjs · src/__tests__/a11y-zoom-guard.test.ts",
       "plan": "axe sobre la superficie del paciente primero (9 pantallas), que es lo que V9 gobierna. Luego trinquete.",
-      "score": 45
+      "score": 45,
+      "cierre": "CERRADO · REG-292 — compuerta de nombres accesibles: CERO en la superficie del paciente, trinquete de 312 en el resto. Nueve controles reparados, incluidos los cinco del formulario ARCO y las cinco estrellas de /resena. El contraste y el foco NO entran: siguen en A11Y-AXE-001."
     },
     {
       "seguridad": 0,
@@ -594,6 +595,31 @@
       "archivo": "201 sitios en src/**/*.tsx — recuento en REG-291",
       "plan": "Sustitución pura var(--x, #hex) → var(--x), sin cambio de píxel. Después, medir de nuevo los hexadecimales que QUEDAN: ésos sí son deriva real y ninguno tiene el contraste medido. Antes de tocar nada hay que comprobar que ningún contexto renderiza fuera de :root — la ventana de impresión copia los <link> globales y por tanto sí los ve (verificado en REG-291); los documentos en papel usan literales a propósito y no entran.",
       "score": 30
+    },
+    {
+      "seguridad": 1,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 0,
+      "fiabilidad": 2,
+      "regulatorio": 4,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 4,
+      "dependenciaExterna": 3,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "REG-292 (V9 · A11Y-GATE-001) — declarado al cerrar la compuerta estática, 9-ago-2026",
+      "id": "A11Y-AXE-001",
+      "prioridadV9": "P1",
+      "unidad": "DESIGN-SYSTEM-001",
+      "titulo": "Lo que sólo se ve con la aplicación corriendo: contraste, foco, aria-live",
+      "hallazgo": "La compuerta de REG-292 es ESTÁTICA. Cubre nombre accesible de botones, campos e imágenes. NO cubre: contraste real (los ~900 hexadecimales sueltos nunca se midieron), orden de foco, trampa de foco en modales, foco visible, aria-live (2 en toda la aplicación), aria-busy (1), objetivo táctil real, ni zoom al 200 %.",
+      "porQueImporta": "WCAG 2.2 AA es el objetivo declarado de V9 y la mitad de sus criterios no se pueden comprobar sin renderizar. Además, la directiva V9 §4 prohíbe aprobar interfaz leyendo código: hoy NINGUNA pantalla del paciente está aprobada, sólo tiene red de seguridad.",
+      "archivo": "package.json — no hay axe-core, ni jest-axe, ni @axe-core/playwright",
+      "plan": "Necesita entorno con credenciales de Firebase para levantar la aplicación (mismo bloqueo que NAV-NAVEGADOR-001). Con él: @axe-core/playwright sobre las nueve rutas del paciente, viewport de móvil y de escritorio, y las comprobaciones de teclado a mano. Sin él, las pantallas del paciente que NO necesitan sesión (/reservar, /privacidad, /dr) podrían atacarse antes con jsdom + jest-axe, que no exige credenciales pero tampoco ve contraste calculado.",
+      "score": 44
     }
   ],
   "actualizado": "2026-08-08",

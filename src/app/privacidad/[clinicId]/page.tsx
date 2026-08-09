@@ -5,7 +5,7 @@
  * El paciente NO necesita cuenta — solo identificarse con sus datos básicos.
  * La solicitud llega a la clínica que la atiende en máximo 20 días hábiles.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { crearSolicitudArco, ARCO_TIPO_LABEL, type ArcoTipo } from '@/lib/arco'
 import { generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
@@ -195,10 +195,11 @@ export default function PortalPrivacidadPage() {
               <Field label="CURP (opcional, ayuda a localizar tu expediente)" value={curp} onChange={(v) => setCurp(v.toUpperCase())} maxLength={18} />
               <Field label="Identificación oficial (ej. INE folio 1234)" value={identificacion} onChange={setIdentificacion} />
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                <label htmlFor="arco-descripcion" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
                   Describe tu solicitud *
                 </label>
                 <textarea
+                  id="arco-descripcion"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value.slice(0, 1000))}
                   rows={4}
@@ -236,11 +237,22 @@ export default function PortalPrivacidadPage() {
   )
 }
 
+/**
+ * LA ETIQUETA QUE SE VE NO ERA LA ETIQUETA QUE SE OYE — REG-292.
+ *
+ * El `<label>` no señalaba a nada, así que los cinco campos de esta solicitud
+ * no tenían nombre accesible. Aquí pesa más que en cualquier otra pantalla:
+ * **esto es el formulario de derechos ARCO**. Quien no puede ver es
+ * precisamente quien más necesita poder pedir su expediente por escrito, y el
+ * plazo de 20 días hábiles corre por ley.
+ */
 function Field({ label, value, onChange, type = 'text', placeholder, maxLength }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number }) {
+  const id = useId()
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={id} style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
       <input
+        id={id}
         type={type} value={value} maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

@@ -15,8 +15,11 @@
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
 **Unidad actual**: `DESIGN-SYSTEM-001` (abierta 9-ago).
 `PATIENT-UX-TRUTH-001` ✅ cerrada (8-ago) · los tres P0 de audio ✅ cerrados
-(v1158/v1161) · `DESIGN-THEME-001` ✅ cerrado (REG-291, 9-ago).
-Queda de esta iteración: `A11Y-GATE-001`, los literales *slate* y las tablas.
+(v1158/v1161) · `DESIGN-THEME-001` ✅ cerrado (REG-291) · `A11Y-GATE-001` ✅
+cerrado (REG-292).
+Queda de esta iteración: los literales *slate*, las tablas, y `A11Y-AXE-001`
+—contraste y foco— que **necesita navegador** y comparte bloqueo con
+`NAV-NAVEGADOR-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -52,6 +55,15 @@ Causa raíz común con toda la deriva visual: `@theme inline` exponía **cuatro*
 tokens, así que no había utilidad que usar y el código no tenía alternativa al
 estilo en línea. Ensanchado, con compuerta que **compila el CSS** y exige que la
 utilidad valga `var(--token)` y no el hexadecimal.
+
+Y el mismo día, la accesibilidad: **la etiqueta que se ve no era la etiqueta que
+se oye** (REG-292). En las cuatro pantallas donde el paciente escribe, el
+`<label>` no señalaba al campo. Nueve controles sin nombre, incluidos los cinco
+del formulario **ARCO** —un derecho con plazo legal— y las cinco estrellas de
+`/resena`, que eran cinco botones mudos.
+
+De 568 archivos de prueba, **uno** era de accesibilidad. Ahora hay compuerta:
+**cero** en la superficie del paciente, trinquete de 312 en el resto.
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

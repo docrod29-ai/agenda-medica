@@ -30,7 +30,27 @@ salen del token y nunca del cuerpo, y **revocación por contador de versión**.
 | **DOCUMENTS** | parcial y **derivado**: «Mis recetas» se recalcula en cada lectura desde notas firmadas. No hay colección, ni versiones, ni estados |
 | **PROFILE** | no existe. Sin idioma, sin cuidador, sin preferencias |
 
-## Reparado en esta iteración
+## Reparado el 9-ago: el paciente que no ve tampoco podía escribir (REG-292)
+
+Nueve controles de las cuatro pantallas donde el paciente **escribe** no tenían
+nombre accesible. El `<label>` estaba pintado y no señalaba al campo.
+
+| Pantalla | Qué no tenía nombre |
+|---|---|
+| `/reservar` | Los cuatro campos del alta. Es la primera pantalla que toca un paciente nuevo |
+| `/privacidad/[clinicId]` | Los cinco campos de la solicitud **ARCO** y su descripción |
+| `/resena` | El comentario, y **las cinco estrellas** — cinco botones mudos: la única acción de la pantalla era imposible sin ver |
+| `/mi/[token]` | El campo de fecha para reagendar |
+
+El de ARCO es el que más pesa: ese formulario **es** el ejercicio de un derecho
+con plazo legal de 20 días hábiles, y `data-privacy.md` dice que el acceso *se
+entrega*. Quien no puede ver es quien más necesita poder pedirlo por escrito.
+
+Compuerta: **cero** hallazgos en las nueve rutas del paciente, para siempre
+(`un-campo-sin-nombre-no-existe.test.ts`). Lo que la compuerta **no** cubre
+—contraste, foco, `aria-live`— es `A11Y-AXE-001` y necesita navegador.
+
+## Reparado en la iteración anterior
 
 **REG-265 · El enlace de la videoconsulta no llevaba token** → el paciente
 recibía **404 «Cita no encontrada»** al pulsar «Entrar a la videoconsulta»

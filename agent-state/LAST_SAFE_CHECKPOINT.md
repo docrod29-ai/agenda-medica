@@ -6,89 +6,103 @@
 
 ---
 
-## Checkpoint · 9-ago-2026
+## Checkpoint · 9-ago-2026 (2)
 
 | | |
 |---|---|
 | **Rama** | `claude/compassionate-galileo-sw6sdc` |
 | **SHA base de esta sesión** | `0144257` (merge de la PR #271, v1163) |
-| **SHA de cierre** | `e49bef8` |
-| **Unidad cerrada** | **`DESIGN-THEME-001`** — primera mitad de `DESIGN-SYSTEM-001` (iteración 1 de V9) |
-| **Siguiente unidad** | `A11Y-GATE-001` (ver «Qué hacer al reanudar») |
+| **SHA de cierre** | *(el commit de REG-292 de esta sesión)* |
+| **Unidad cerrada** | **`A11Y-GATE-001`** — segunda mitad de `DESIGN-SYSTEM-001` |
+| **Siguiente unidad** | los literales *slate* (ver «Qué hacer al reanudar») |
 
 ### Qué quedó hecho
 
-**REG-291 — el token que no existe no falla: se calla.**
+**REG-292 — la etiqueta que se ve no es la etiqueta que se oye.**
 
-- **`@theme inline` ensanchado**: de 4 a 20 colores, 5 radios, 7 espacios, 2
-  sombras y 6 tamaños de tipo. Es la causa raíz del monolito de estilo en línea
-  (6 065 `style={{` en 88,5 % de los archivos): sin utilidad que usar, el código
-  no tenía alternativa. Aditivo, cero píxeles cambiados.
-- **Tokens declarados** que `docs/DESIGN_SYSTEM.md` ya pedía en prosa y no
-  existían en CSS: radio (6/10/14), espacio (múltiplos de 4), dos sombras de
-  overlay, y los seis pasos de la escala tipográfica — que vivían dentro de las
-  clases `.t-*` y ahora se leen desde token.
-- **Catorce referencias a tokens inexistentes, reparadas.** Las dos que muerden:
-  el contador «Fallidos» de mensajes al paciente (`var(--danger)`) **nunca se
-  ponía rojo**, y el aviso de posible paciente duplicado se pintaba con su
-  respaldo, que era crema de tema claro.
-- **`--warn-*` declarados en los dos temas**, derivados de las insignias ámbar
-  que ya estaban medidas.
+En las cuatro pantallas donde el paciente **escribe**, el `<label>` se pintaba
+encima del campo y no lo señalaba: sin `htmlFor`, sin `id`, sin envolverlo. A la
+vista, un formulario etiquetado; para un lector de pantalla, «cuadro de edición»
+en blanco. Nueve controles:
 
-**Compuerta**: `src/__tests__/un-token-que-no-existe-no-se-calla.test.ts`
-(6 casos, sellada). La última **compila `globals.css` con Tailwind** y exige que
-la utilidad se emita y valga `var(--token)`, no el hexadecimal. Probada al revés
-cuatro veces.
+- **`/reservar`** — los cuatro campos del alta. Primera pantalla de un paciente nuevo.
+- **`/privacidad/[clinicId]`** — los cinco campos de la solicitud **ARCO** y su
+  descripción. Es el que más pesa: derecho con plazo legal de 20 días hábiles.
+- **`/resena`** — el comentario, y **las cinco estrellas**, que eran cinco
+  botones mudos: la única acción de la pantalla, imposible sin ver.
+- **`/mi/[token]`** — el campo de fecha para reagendar.
 
-**Estado reconciliado**: los tres P0 de audio quedan `cerrado` en
-`BACKLOG.json` — estaban `pendiente` ahí mientras `CURRENT_ITERATION.md` los
-daba por cerrados desde el 8-ago. Es la cuarta vez que un tablero se desfasa
-(REG-241): lo que no se deriva, se olvida.
+**La compuerta que faltaba**: de 568 archivos de prueba, **uno** era de
+accesibilidad y era una expresión regular sobre `layout.tsx`.
 
-**Backlog nuevo**: `DESIGN-RESPALDOS-001` (P2) — 281 respaldos
-`var(--token, #hex)` que nombran colores que el token abandonó.
+| Compuerta | Exige |
+|---|---|
+| superficie del paciente (9 rutas) | **cero** controles sin nombre |
+| resto de la aplicación | trinquete de **312**, sólo baja |
+
+Instrumento: `scripts/a11y/nombres-accesibles.mjs`, también `npm run a11y`. Usa
+el parseador de TypeScript porque con expresiones regulares fallaba en **las dos
+direcciones** sobre estas mismas nueve pantallas. Sigue la etiqueta a través de
+una frontera de componente (`FormField`, `Field`, `Campo`), que es el patrón de
+esta base de código.
+
+**El arreglo tuvo que rehacerse para que la compuerta pudiera verlo**: la primera
+versión inyectaba el `id` con `useId()` + `cloneElement` — funcionaba y el
+guardián no podía comprobarlo. Un arreglo que la compuerta no ve puede
+deshacerse en silencio.
+
+**Backlog nuevo**: `A11Y-AXE-001` (P1) — contraste, orden de foco, trampa de
+foco, `aria-live`, objetivo táctil. Necesita navegador; mismo bloqueo que
+`NAV-NAVEGADOR-001`.
 
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | **8 465 en verde**, 567 archivos, 1 saltado. `ops-timeout-y-punto-ciego` —que el checkpoint anterior daba por fallo fijo de entorno— pasó aquí: abre una conexión a una IP no enrutable esperando que expire, así que **depende de cómo responda el proxy del contenedor**. Es intermitente, no fijo; conviene decirlo así |
+| `npx vitest run` | **8 471 en verde**, 568 archivos, 1 saltado. Falla sólo `ops-timeout-y-punto-ciego`, que ya se sabe **intermitente en este contenedor** (abre una conexión a una IP no enrutable esperando que expire) |
+| `npm run a11y` | **paciente en cero, resto igual que el techo** |
 | `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** |
-| `npm run build` | **compila** («Compiled successfully in 62s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código — igual que el checkpoint anterior |
-| compilación real del CSS | **verificada dentro de la prueba**: las once utilidades de sonda se emiten y todas valen `var(--token)` |
-| navegador / móvil / a11y | **no ejecutadas** |
+| `npm run build` | **compila** («Compiled successfully in 56s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
+| navegador / móvil / contraste | **no ejecutadas** |
+
+> **Aviso sobre la suite**: tres pruebas de red (`audit-log-cola`,
+> `tope-creditos`, `ops-timeout-y-punto-ciego`) fallan de forma **intermitente**
+> bajo carga completa en este contenedor y pasan las tres al correrlas solas. No
+> son regresiones: son el proxy. Conviene saberlo antes de diagnosticar.
 
 ---
 
 ## Qué hacer al reanudar
 
-**1. Comprobar** que `git log --oneline -3` incluye el commit de REG-291 y correr
+**1. Comprobar** que `git log --oneline -3` incluye el commit de REG-292 y correr
 `node scripts/agent-state/actualizar.mjs`.
 
-**2. NO rehacer** `PATIENT-UX-TRUTH-001`, los tres P0 de audio ni
-`DESIGN-THEME-001`. Están cerrados con su SHA.
+**2. NO rehacer** `PATIENT-UX-TRUTH-001`, los tres P0 de audio,
+`DESIGN-THEME-001` ni `A11Y-GATE-001`. Están cerrados con su SHA.
 
-**3. Seguir con `A11Y-GATE-001`** — el P1 que queda de `DESIGN-SYSTEM-001`, y el
-único P0 de la auditoría de accesibilidad: de 566 archivos de prueba, **uno** es
-de accesibilidad y es una expresión regular sobre `layout.tsx`. Ni `axe-core`, ni
-`jest-axe`, ni `@axe-core/playwright` en `package.json`.
+**3. Siguiente sin bloqueo — los literales *slate* que no siguen al tema**, en 10
+archivos. `/privacidad/[clinicId]` es el caso de libro y acaba de quedar a la
+vista: pinta `#374151`, `#d1d5db`, `#f9fafb` y `#111827` a mano, así que es una
+pantalla **del paciente** clavada en tema claro dentro de una aplicación oscura.
+Es la reaparición del defecto ya documentado en `globals.css:25-30`.
 
-Empezar por la **superficie del paciente** (9 pantallas), que es lo que V9
-gobierna, con objetivo WCAG 2.2 AA. Los mínimos que fallan la compuerta están en
-`.claude/rules/design-system.md`.
+**4. Luego**: las tablas con `.table-wrap.rwd`, y `DESIGN-RESPALDOS-001` (281
+respaldos `var(--token, #hex)` que nombran colores abandonados).
 
-**4. Luego**, en este orden: los literales *slate* que no siguen al tema (10
-archivos), las tablas con `.table-wrap.rwd`, y `DESIGN-RESPALDOS-001`.
-
-**5. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
-de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en
-P0.**
+**5. Cuando haya entorno con credenciales de Firebase**, dos unidades se
+desbloquean a la vez:
+- `A11Y-AXE-001` — contraste, foco, `aria-live` con `axe` sobre la aplicación.
+- `NAV-NAVEGADOR-001` — las seis comprobaciones de navegación. **Dos de ellas
+  pueden convertir un P2 en P0.**
 
 ## Lo que este checkpoint NO garantiza
 
-**Nadie ha abierto una pantalla.** Dos cambios de este commit mueven píxeles y
-están razonados, no observados: `.t-h3` → `.t-h2` (dos títulos de sección que
-salían del tamaño del texto corrido) y el aviso de duplicados, que pasa de crema
-de tema claro a los tokens ámbar. Los dos van en la dirección del sistema, y los
-dos siguen pendientes de mirar.
+**Nadie ha abierto una pantalla.** La compuerta de REG-292 es **estática**: dice
+que los controles del paciente tienen nombre, no que la pantalla se pueda usar.
+Contraste, orden de foco, trampa de foco y objetivo táctil siguen sin comprobarse
+—los ~900 hexadecimales sueltos del código nunca se midieron— y la directiva V9
+§4 prohíbe aprobar interfaz leyendo código. **Ninguna pantalla está aprobada.**
+
+Del commit anterior siguen pendientes de mirar dos cambios que mueven píxeles:
+`.t-h3` → `.t-h2` y el aviso de duplicados con los tokens ámbar.

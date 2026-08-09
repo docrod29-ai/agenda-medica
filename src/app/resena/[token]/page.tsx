@@ -64,7 +64,16 @@ export default function ResenaPage() {
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, margin: '16px 0' }}>
           {[1,2,3,4,5].map(n => (
+            /**
+             * REG-292 — las cinco estrellas eran cinco botones SIN NOMBRE. Un
+             * lector de pantalla anunciaba «botón, botón, botón, botón, botón»:
+             * la única acción de esta pantalla era imposible de ejecutar sin ver.
+             * `aria-pressed` además dice cuál está elegida, que es la otra mitad
+             * del problema.
+             */
             <button key={n} type="button"
+              aria-label={n === 1 ? '1 estrella' : `${n} estrellas`}
+              aria-pressed={rating === n}
               onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
               onClick={() => setRating(n)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
@@ -74,6 +83,7 @@ export default function ResenaPage() {
         </div>
 
         <textarea
+          aria-label="Tu comentario (opcional)"
           value={texto} onChange={e => setTexto(e.target.value.slice(0, 1000))}
           placeholder="¿Qué te gustaría compartir? (opcional)"
           rows={4}

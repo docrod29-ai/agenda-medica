@@ -5,8 +5,9 @@
 
 **Iteración en curso**: `DESIGN-SYSTEM-001`, abierta el 9-ago-2026.
 `PATIENT-UX-TRUTH-001` cerrada el 8-ago. Dentro de la iteración en curso,
-`DESIGN-THEME-001` **cerrado** (REG-291); quedan la compuerta de accesibilidad,
-los literales *slate* y las tablas.
+`DESIGN-THEME-001` **cerrado** (REG-291) y `A11Y-GATE-001` **cerrado**
+(REG-292); quedan los literales *slate*, las tablas y `A11Y-AXE-001` — lo que
+sólo se ve con la aplicación corriendo.
 
 ---
 
@@ -46,7 +47,34 @@ directiva y además el color no es el problema.
 adopciones**. Un token bien puesto sí se adopta aquí. Falta repetirlo para
 espacio, radio, tipografía y color, **cada uno con su guardián**.
 
-## Cerrado el 9-ago: los tokens existen y hay quien los exija (REG-291)
+## Cerrado el 9-ago (2): la red de accesibilidad que no existía (REG-292)
+
+De **568 archivos de prueba, uno** era de accesibilidad, y era una expresión
+regular sobre `layout.tsx`. Ya no.
+
+**La etiqueta que se ve no era la etiqueta que se oye.** En las pantallas donde
+el paciente escribe, el `<label>` se pintaba encima del campo y no lo señalaba.
+A la vista, un formulario etiquetado; para un lector de pantalla, «cuadro de
+edición» en blanco. Nueve controles, incluidos los cinco del formulario **ARCO**
+—un derecho con plazo legal— y las cinco estrellas de `/resena`, que eran cinco
+botones mudos: la única acción de esa pantalla era imposible sin ver.
+
+| Compuerta | Dónde | Qué exige |
+|---|---|---|
+| nombre accesible | superficie del paciente (9 rutas) | **cero** hallazgos |
+| nombre accesible | resto de la aplicación | trinquete de 312, sólo baja |
+
+El instrumento (`scripts/a11y/nombres-accesibles.mjs`, también `npm run a11y`)
+usa el parseador de TypeScript, no expresiones regulares: con `grep` fallaba en
+**las dos direcciones** sobre estas mismas nueve pantallas — escondía el botón
+mudo y marcaba cinco que sí tienen texto. Un instrumento que se equivoca en las
+dos direcciones no mide: opina.
+
+Y sigue la etiqueta **a través de una frontera de componente** (`FormField`,
+`Field`, `Campo`), que es el patrón de esta base de código. Verificar las dos
+puntas es lo que manda `el-dato-tiene-que-LLEGAR`.
+
+## Cerrado el 9-ago (1): los tokens existen y hay quien los exija (REG-291)
 
 **La causa raíz está reparada.** `@theme inline` exponía cuatro cosas y ahora
 expone 20 colores, 5 radios, 7 espacios, 2 sombras y 6 tamaños de tipo. La
@@ -84,20 +112,28 @@ referencian 90 sitios incluidos `ui/Spinner` y `ui/Button loading`. Lo definían
 pantalla estuvieras». Reparado y sellado con
 `toda-animacion-tiene-su-fotograma.test.ts`.
 
-## Compuertas nuevas: ninguna todavía
+## Compuertas nuevas
 
-Accesibilidad, regresión visual, móvil y flujo en navegador **siguen sin
-definirse**. Es lo que `DESIGN-SYSTEM-001` tiene que entregar. Hoy hay **1**
-prueba de accesibilidad entre 540, y es una expresión regular sobre `layout.tsx`.
+| Compuerta | Estado |
+|---|---|
+| **tokens** | **hecha** (REG-291) — compila el CSS y exige `var(--token)` |
+| **accesibilidad · nombre accesible** | **hecha** (REG-292) — cero en el paciente, trinquete en el resto |
+| accesibilidad · contraste, foco, `aria-live` | **falta** — `A11Y-AXE-001`, necesita navegador |
+| regresión visual | **falta** |
+| móvil | **falta** |
+| flujo en navegador | **falta** — bloqueada por credenciales de Firebase |
 
 ## Orden para `DESIGN-SYSTEM-001`
 
 1. ~~Ensanchar `@theme inline`.~~ **Hecho** (REG-291).
 2. ~~Tokens de espacio, radio y sombra.~~ **Hecho** (REG-291), más los de
    tipografía, que estaban dentro de las clases.
-3. **Siguiente**: `axe` sobre las 9 pantallas del paciente. Objetivo WCAG 2.2 AA.
-   Es `A11Y-GATE-001` y es el P1 que queda de esta iteración.
-4. Los literales *slate* que no siguen al tema, en 10 archivos.
+3. ~~Red de accesibilidad.~~ **Hecha** en su mitad estática (REG-292). La otra
+   mitad —contraste, foco, `aria-live`— es `A11Y-AXE-001` y **necesita
+   navegador**: mismo bloqueo que `NAV-NAVEGADOR-001`.
+4. **Siguiente sin bloqueo**: los literales *slate* que no siguen al tema, en 10
+   archivos. `/privacidad` es el caso de libro — pinta `#374151` y `#d1d5db` a
+   mano, y es una pantalla del paciente.
 5. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
 6. Los 281 respaldos rancios (`DESIGN-RESPALDOS-001`): sustitución pura, sin
    cambio de píxel, que quita ~30 % de los hexadecimales y deja a la vista los

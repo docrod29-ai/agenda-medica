@@ -648,7 +648,8 @@ V9 añade las suyas. **Ningún candidato a liberación con un P0 abierto.**
 | lint | `node scripts/lint-trinquete.mjs` (techo 98, sólo baja) | existente |
 | unit + integration | `npx vitest run` | existente |
 | E2E | CI | existente, limitado (B-10: falta cuenta de prueba) |
-| **accessibility** | por definir en DESIGN-SYSTEM-001 · objetivo **WCAG 2.2 AA** | **nueva** |
+| **accessibility · nombre accesible** | `npm run a11y` + `un-campo-sin-nombre-no-existe.test.ts` — cero en el paciente, trinquete en el resto (REG-292) | **en pie** |
+| **accessibility · contraste, foco, `aria-live`** | `axe` sobre la aplicación corriendo · objetivo **WCAG 2.2 AA** — `A11Y-AXE-001`, bloqueada por credenciales | **falta** |
 | **visual regression** | por definir en DESIGN-SYSTEM-001 | **nueva** |
 | **mobile** | `agent-browser` con viewport móvil | **nueva** |
 | **browser workflow** | `agent-browser` sobre la app corriendo | **nueva** |
@@ -695,3 +696,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
 | 2026-08-08 | Los tres P0 de audio | `7be23e9` · `2340e63` | Volver a grabar ya no borra los 22 min de antes; navegar grabando avisa; grabar cuenta como actividad | **283, 287** |
 | 2026-08-09 | **DESIGN-THEME-001** (1ª mitad de `DESIGN-SYSTEM-001`) | `e49bef8` | `@theme inline` de 4 a 40 tokens · radio, espacio, sombra y tipografía declarados · 14 tokens huérfanos reparados —incluido el contador «Fallidos» que nunca se ponía rojo— · compuerta que **compila el CSS** | **291** |
+| 2026-08-09 | **A11Y-GATE-001** | *(esta sesión)* | Nombre accesible: **cero** en las 9 rutas del paciente, trinquete de 312 en el resto · 9 controles reparados, entre ellos los 5 del formulario ARCO y las 5 estrellas de `/resena` | **292** |

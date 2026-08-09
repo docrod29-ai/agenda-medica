@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 33 de 139, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 34 de 140, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -53,7 +53,12 @@ ese camino no es una impresión y nunca miró la marca.
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
 
-El 9-ago-2026 la familia apareció en la capa que nadie había mirado: **CSS**
+El mismo 9-ago, la etiqueta de un formulario: el `<label>` de las pantallas del
+paciente estaba escrito, se veía, y **no señalaba al campo** (REG-292). Escrito y
+sin conectar en su forma más literal — y por eso «a la vista» no lo delata: hay
+que preguntarle a la máquina, no al ojo.
+
+El 9-ago-2026 la familia apareció también en la capa que nadie había mirado: **CSS**
 (REG-291). Catorce tokens del sistema de diseño se usaban sin estar declarados
 en ninguna parte. Aquí ni siquiera hace falta un camino que no se recorra: una
 declaración cuyo `var()` no resuelve es *inválida a la computación* y el
@@ -72,7 +77,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 139.**
+**«El sistema se contradice a sí mismo» — 23 de 140.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -112,7 +117,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 139**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 140**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

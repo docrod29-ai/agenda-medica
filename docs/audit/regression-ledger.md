@@ -6468,3 +6468,107 @@ a `.t-display`, la única clase que la usa. La prueba lo prohíbe explícitament
 - `src/app/(dashboard)/membresias/page.tsx` · `src/app/superadmin/contabilidad/page.tsx`
 - `src/components/AntesDeFirmar.tsx` · `src/components/CobrarModal.tsx`
 - `src/__tests__/un-token-que-no-existe-no-se-calla.test.ts` (nuevo, 6 casos, sellado)
+
+---
+
+## REG-292 — la etiqueta que se ve no es la etiqueta que se oye (V9 · A11Y-GATE-001)
+
+En las pantallas del paciente, el `<label>` se pintaba encima del campo y **no
+lo señalaba**: sin `htmlFor`, sin `id`, sin envolverlo. A la vista, un
+formulario etiquetado. Para un lector de pantalla, «cuadro de edición», en
+blanco, sin decir qué va ahí. Y tocar la palabra «Teléfono» no enfocaba el campo
+— en móvil, toques que no hacen nada.
+
+Nueve controles, en las cuatro pantallas donde el paciente **escribe**:
+
+| Dónde | Qué |
+|---|---|
+| `/reservar` | Los cuatro campos del alta: nombre, teléfono, correo, motivo. Es la primera pantalla que toca un paciente nuevo |
+| `/privacidad/[clinicId]` | Los cinco campos de la solicitud **ARCO** y su descripción |
+| `/resena` | El comentario, con sólo `placeholder`… y **las cinco estrellas**, que eran cinco botones sin nombre: un lector anunciaba «botón, botón, botón, botón, botón» y la única acción de la pantalla era imposible sin ver |
+| `/mi/[token]` | El campo de fecha para reagendar, con un `<div>` por encabezado |
+
+### Por qué el de ARCO pesa más que los demás
+
+Ese formulario **es** el ejercicio de un derecho reconocido por la LFPDPPP, con
+plazo legal de 20 días hábiles. `.claude/rules/data-privacy.md` dice que el
+acceso *se entrega*, no se resuelve escribiendo un texto. Quien no puede ver es
+precisamente quien más necesita poder pedir su expediente por escrito.
+
+Y hay una asimetría que V9 ya había nombrado para la IA y vale igual aquí: del
+lado del médico, un control sin nombre lo sortea alguien que usa la pantalla
+ochenta veces al día. Del lado del paciente, no.
+
+### Cómo se descubrió
+
+La auditoría de `PATIENT-UX-TRUTH-001` contó «41 botones sólo-icono y sólo 4 con
+`aria-label`» y lo declaró **un suelo, no un techo**: la búsqueda era una
+expresión regular que sólo cazaba hijos autocerrados. Al construir la compuerta
+con el parseador de TypeScript aparecieron los **campos**, que nadie había
+contado — y son más, y peores.
+
+### El instrumento se equivocó dos veces, y eso es parte del hallazgo
+
+Con expresiones regulares falló en **las dos direcciones** sobre estas mismas
+pantallas:
+
+- `<button onMouseEnter={() => …}>` — el `>` de la flecha corta la lista de
+  atributos, y el botón de estrella (el único realmente mudo) no se detectaba.
+- Descartar las expresiones marcaba como mudos cinco botones cuyo texto viene de
+  una variable: `{s}` la hora, `{m.nombre}` el médico, `{ARCO_TIPO_LABEL[t]}` el
+  derecho. **Cinco falsas alarmas de seis.**
+
+Un instrumento que se equivoca en las dos direcciones no mide: opina. Y la
+lección de REG-245 es que un guardián que grita de más se acaba silenciando,
+igual que una alerta clínica. El analizador final usa el parseador de verdad y,
+ante la duda, decide a favor de «tiene nombre».
+
+### El arreglo tuvo que rehacerse para que la compuerta pudiera verlo
+
+La primera versión del arreglo de `/reservar` generaba el `id` con `useId()` y se
+lo inyectaba al hijo con `cloneElement`. Funcionaba, no había nada que recordar…
+y **el guardián no podía verlo**, porque el `id` no aparece escrito junto al
+campo. Un arreglo que la compuerta no comprueba puede deshacerse en silencio —
+basta con que alguien envuelva el campo en un `<div>`. Se rehízo con el `id`
+escrito en las dos puntas.
+
+A cambio, el analizador **sigue la etiqueta a través de una frontera de
+componente**: si un componente local pinta `<label htmlFor={id}>`, los valores
+que se le pasen en la prop `id` cuentan como destino. Es el patrón de esta base
+de código (`FormField`, `Field`, `Campo`) y verificarlo exige mirar las dos
+puntas, que es lo que manda `el-dato-tiene-que-LLEGAR`.
+
+### La compuerta
+
+`src/__tests__/un-campo-sin-nombre-no-existe.test.ts` (7 casos, sellada), sobre
+`scripts/a11y/nombres-accesibles.mjs` — el mismo analizador que `npm run a11y`.
+
+- **Superficie del paciente: cero.** No hay techo, hay cero.
+- **Resto de la aplicación: trinquete.** 312 hallazgos congelados en
+  `docs/audit/a11y-techo.json` (268 campos sin etiqueta · 13 botones sólo-icono ·
+  31 botones cuyo único nombre es `title`). Sólo pueden bajar, y falla también si
+  bajan sin apretar el techo.
+- Probada al revés **sobre el fuente en memoria**, sin tocar el disco: quitando
+  el `htmlFor` de `/reservar` caza los 4 campos; quitando el `aria-label` de las
+  estrellas caza el botón.
+- Y probada **en el otro sentido**: los botones con texto de variable no se
+  marcan. Sin esa prueba, la próxima vuelta del instrumento vuelve a gritar de
+  más y alguien lo silencia.
+
+### Qué NO cubre
+
+- **Que el nombre sea bueno.** `aria-label="botón"` pasa y no sirve.
+- **Contraste, orden de foco, trampa de foco, `aria-live`, objetivo táctil.** Eso
+  exige un navegador, y este contenedor no tiene credenciales para levantar la
+  aplicación. Queda como `A11Y-AXE-001` en el backlog. Esta compuerta es la red
+  que faltaba, **no** la aprobación de ninguna pantalla.
+- **Controles hechos con `div` + `onClick`**: 16 en la aplicación, ninguno en la
+  superficie del paciente.
+- **El resto de la aplicación no está arreglado.** Está congelado.
+
+### Archivos
+
+- `scripts/a11y/nombres-accesibles.mjs` (nuevo) · `docs/audit/a11y-techo.json` (nuevo)
+- `src/app/reservar/[clinicId]/page.tsx` · `src/app/privacidad/[clinicId]/page.tsx`
+- `src/app/resena/[token]/page.tsx` · `src/app/mi/[token]/page.tsx`
+- `src/__tests__/un-campo-sin-nombre-no-existe.test.ts` (nuevo, 7 casos, sellado)

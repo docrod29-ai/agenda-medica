@@ -460,8 +460,14 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
 
   return (
     <div style={{ marginTop: 14, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" /> Elige un nuevo horario</div>
-      <input type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      {/**
+        * REG-292 — este encabezado era un `<div>`, así que el campo de fecha no
+        * tenía nombre. El formulario previo de más abajo, en este mismo archivo,
+        * ya usaba `htmlFor`/`id` bien: el patrón correcto se conocía y no se
+        * aplicó aquí.
+        */}
+      <label htmlFor="reagendar-fecha" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" /> Elige un nuevo horario</label>
+      <input id="reagendar-fecha" type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
       {cargandoSlots ? (
         <div style={{ color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Buscando horarios…</div>
       ) : slots && slots.length === 0 ? (

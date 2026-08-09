@@ -35,12 +35,12 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 581 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 587 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
-| `/privacidad/[clinicId]` | paciente | ✅ | 265 | 0 | — | ✅ | — |
-| `/resena/[token]` | paciente | ✅ | 100 | 0 | — | ✅ | — |
-| `/reservar/[clinicId]` | paciente | ✅ | 371 | 0 | — | ✅ | — |
+| `/privacidad/[clinicId]` | paciente | ✅ | 277 | 0 | — | ✅ | — |
+| `/resena/[token]` | paciente | ✅ | 110 | 0 | — | ✅ | — |
+| `/reservar/[clinicId]` | paciente | ✅ | 394 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 103 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 97 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 899 | 0 | — | ✅ | — |
