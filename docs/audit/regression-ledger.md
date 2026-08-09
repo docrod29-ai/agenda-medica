@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — «no sé» se guardaba como «no», y siete formas de decir que no no se oían (v1074)
+## REG-216 — «no sé» se guardaba como «no», y siete formas de decir que no no se oían (v1098)
 
 **Encontrado** — 8-ago-2026, hallazgos C2 y C3 de la auditoría de nueve
 dimensiones, los dos que quedaban del plan.

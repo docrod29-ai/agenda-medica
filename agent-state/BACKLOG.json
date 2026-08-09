@@ -23,8 +23,8 @@
       "estado": "cerrado",
       "reversible": true,
       "cerradoEn": "2026-08-08",
-      "reg": "REG-192",
-      "version": "nexusmed-v1074",
+      "reg": "REG-216",
+      "version": "nexusmed-v1098",
       "rama": "agent/safety/NEG-001",
       "golden": "src/__tests__/el-no-de-la-consulta-no-es-el-del-formulario.test.ts",
       "comprobadoAlReves": "revertido negaciones.ts, 23 de 32 casos en rojo"
@@ -32,7 +32,7 @@
     {
       "id": "NEG-002",
       "titulo": "El canal de «declarado incierto»: la duda deja de negar, pero nadie se entera",
-      "hallazgo": "Consecuencia declarada de REG-192. condicionesNegadas() ya NO trata «no sé» como negación —eso era el defecto que escribía en el expediente— pero tampoco lo registra como duda: devuelve lista vacía y la pregunta abierta se pierde. Si la nota afirma la diabetes a partir de ese «no sé», ningún motor lo ve, porque contradicciones() sólo contrasta contra lo NEGADO. La duda no tiene dónde vivir: no hay valor de certeza para ella, no hay aviso, y no llega a la barra de la consulta.",
+      "hallazgo": "Consecuencia declarada de REG-216. condicionesNegadas() ya NO trata «no sé» como negación —eso era el defecto que escribía en el expediente— pero tampoco lo registra como duda: devuelve lista vacía y la pregunta abierta se pierde. Si la nota afirma la diabetes a partir de ese «no sé», ningún motor lo ve, porque contradicciones() sólo contrasta contra lo NEGADO. La duda no tiene dónde vivir: no hay valor de certeza para ella, no hay aviso, y no llega a la barra de la consulta.",
       "porQueImporta": "Es el otro lado del mismo hueco del 3-ago. La enfermedad se sigue cosechando de la pregunta del interrogatorio, y ahora el caso «no sé» pasa en silencio: el expediente puede acabar afirmando un antecedente crónico que el paciente ni confirmó ni descartó, y los antecedentes se arrastran a todas las notas siguientes. Es además la regla 6 de seguridad clínica —se pregunta, no se adivina— sin superficie donde preguntar.",
       "archivo": "src/lib/expediente/negaciones.ts:314 (el `if (DUDA.test(...)) continue` que hoy sólo descarta)",
       "porDonde": "DUDA ya distingue el caso; falta (1) devolverlo como `Incierta[]` junto a `Negada[]`, (2) un motivo reutilizado de src/lib/asr/politica-critica.ts en vez de un criterio nuevo, (3) contrastarlo contra la nota igual que contradicciones(), y (4) que el extractor pueda marcar `sospechado`/`no_confirmado` en vez de quedarse en `confirmado`.",
@@ -51,7 +51,7 @@
       "score": 69,
       "estado": "pendiente",
       "reversible": true,
-      "origen": "REG-192 — «Qué NO hace», declarado en docs/audit/regression-ledger.md"
+      "origen": "REG-216 — «Qué NO hace», declarado en docs/audit/regression-ledger.md"
     },
     {
       "id": "VOICE-004",

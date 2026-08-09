@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: «no sé» se guardaba como «no»
+## v1098 — REG-216: «no sé» se guardaba como «no»
 
 El motor que contrasta lo que el paciente negó contra lo que la nota afirma sólo
 entendía el español de un formulario. De doce formas reales de contestar que no
