@@ -12,6 +12,15 @@
 |---|---|
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306 |
 | **SHA** | `6be6ad38` |
+| **Rama** | `claude/relaxed-fermi-14g8we` — **no** `claude/nexus-patient-ux-v9` |
+
+> **Por qué otra rama.** La especificación fija `claude/nexus-patient-ux-v9` como
+> rama persistente, y la sesión de nube trajo `claude/relaxed-fermi-14g8we`
+> asignada, con prohibición explícita de empujar a otra. No se perdió nada ni se
+> duplicó trabajo: la rama de V9 ya se había fusionado (PR #279) y `origin/main`
+> apuntaba exactamente al mismo commit del que sale ésta. La memoria del programa
+> vive en `agent-state/` y en el ledger, no en el nombre de la rama; la siguiente
+> ejecución reanuda por este checkpoint valga la rama que valga.
 | **Siguiente** | **`PATIENT-AI-001`** |
 
 El paquete **se compone del encuentro y sólo sale con aprobación del médico**,
