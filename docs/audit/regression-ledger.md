@@ -1716,7 +1716,7 @@ el orden por posición falla el de la cita.
 
 ---
 
-## REG-193 — el lado del dictado leía la negación como se escribe (v1075)
+## REG-199 — el lado del dictado leía la negación como se escribe (v1081)
 
 **Encontrado** — 7-ago-2026, al tomar el punto **C2/C3** del plan de la auditoría
 de nueve dimensiones del 6-ago («faltan negadores del habla real»).
@@ -1844,10 +1844,10 @@ y con qué marca.
 
 ---
 
-## REG-194 — «No pues sí» se leía como un no (v1076)
+## REG-200 — «No pues sí» se leía como un no (v1082)
 
 **Encontrado** — 7-ago-2026, sondeando el motor real de esta misma rama para ver
-qué quedaba vivo de C2/C3 después de REG-192 y REG-193.
+qué quedaba vivo de C2/C3 después de REG-192 y REG-199.
 
 **Cómo se reprodujo** — Sonda temporal contra `esRespuestaNegativa` y
 `condicionesNegadas`, sin dobles, con frases sintéticas de consultorio:
@@ -1864,7 +1864,7 @@ que sigue es un sí rotundo: «¿Padece diabetes?» — «No pues sí, desde hac
 `NEGATIVAS` ancla en `^no\b`, así que se quedaba con el «no» inicial y daba la
 crónica por negada.
 
-**Por qué importa para un paciente** — Es la familia de «no sé» (REG-193, FALLO 2)
+**Por qué importa para un paciente** — Es la familia de «no sé» (REG-199, FALLO 2)
 un escalón peor. Allí el paciente decía que no lo sabía y se le fabricaba una
 ausencia; aquí el paciente **afirma** la enfermedad en la misma frase y se le da
 la vuelta: `corregirCertezaPorNegacion` la reclasifica a `descartado`, que es una
@@ -1894,7 +1894,7 @@ sus casos nuevos.
 
 ---
 
-## REG-205 — «no padece diabetes» era un antecedente positivo (v1086)
+## REG-201 — «no padece diabetes» era un antecedente positivo (v1083)
 
 > **Por qué el número salta de 195 a 205.** Esta reparación nació como REG-195 /
 > v1077 y los dos estaban ya tomados por otra rama abierta. Es **T-1**: la rutina
@@ -1908,7 +1908,7 @@ antecedente positivo; faltan negadores del habla real»*. Es el último punto de
 plan de aquella auditoría que quedaba sin cerrar.
 
 **Dónde** — `src/lib/expediente/parser-clinico.ts:206`. **No** es el módulo de
-REG-193/194: aquéllos son el lado del dictado (`negaciones.ts`). Éste es el motor
+REG-199/194: aquéllos son el lado del dictado (`negaciones.ts`). Éste es el motor
 que **arma la nota cuando la IA falla** — el fallback de
 `/api/expediente/procesar` cuando el proveedor devuelve 529.
 

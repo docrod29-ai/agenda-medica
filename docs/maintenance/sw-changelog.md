@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1086 — REG-205: «no padece diabetes» era un antecedente positivo
+## v1083 — REG-201: «no padece diabetes» era un antecedente positivo
 
 El parser clínico —el que escribe la nota cuando la IA devuelve 529— conocía
 `no tiene`, `no presenta`, `no refiere` y poco más. «No padece», «no tengo», «no
@@ -20,7 +20,7 @@ fuma» no se detectaba porque el término clínico ES el verbo.
 NO se comparte el vocabulario con `negaciones.ts`: el dueño decidió separarlos el
 7-ago (C-6). Aquí se ensancha sólo el que estaba corto.
 
-## v1076 — REG-194: «No pues sí» se leía como un no
+## v1082 — REG-200: «No pues sí» se leía como un no
 
 En el habla mexicana el «no» de arranque es una muletilla y lo que sigue es un sí
 rotundo: «¿Padece diabetes?» — «No pues sí, desde hace años». `NEGATIVAS` ancla
@@ -38,7 +38,7 @@ Lo que cuesta, declarado: sin acentos «sí» y «si» se confunden, así que «
 yo nunca he tenido nada» deja de contar como negación. Se pierde un aviso, que es
 el sesgo del módulo; al revés se fabricaría el negativo.
 
-## v1075 — REG-193: el lado del dictado leía la negación como se escribe
+## v1081 — REG-199: el lado del dictado leía la negación como se escribe
 
 v1074 reparó la NOTA. El DICTADO se quedó como estaba, y ahí «pues no», «fíjese
 que no» y «que yo sepa, no» no contaban como negación — hasta la coma rompía la

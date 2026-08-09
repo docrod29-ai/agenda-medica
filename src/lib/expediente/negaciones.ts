@@ -78,7 +78,7 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
 const NEGATIVAS = /^(?:no|nop|ninguna|ninguno|nada|negativo|nunca|nel|para\s+nada|en\s+lo\s+absoluto)\b/
 
 /**
- * ── LA RESPUESTA LLEGA CON MULETILLA DELANTE (REG-193, 7-ago-2026) ───────────
+ * ── LA RESPUESTA LLEGA CON MULETILLA DELANTE (REG-199, 7-ago-2026) ───────────
  *
  * `NEGATIVAS` anclaba en `^` y sólo toleraba «ah» como arranque, así que el
  * paciente que contesta como se contesta de verdad no negaba nada — verificado
@@ -116,7 +116,7 @@ const ARRANQUE = new RegExp(String.raw`^(?:${MULETILLA}\b[\s,.;]*)*`)
  *   `clinical-safety.md` —ausencia de dato no es dato de ausencia— dentro del
  *   módulo que la cita en su cabecera.
  * - **Negar en parte.** «No siempre», «no del todo»: un sí con matiz.
- * - **Afirmar tras un «no» de arranque** (REG-194). En el habla mexicana el
+ * - **Afirmar tras un «no» de arranque** (REG-200). En el habla mexicana el
  *   «no» inicial es una muletilla y lo que sigue es un SÍ rotundo:
  *
  *       ¿Padece diabetes? — No pues sí, desde hace años.
@@ -186,7 +186,7 @@ const DISCULPA_EN_LA_NOTA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|pade
 
 /**
  * Cuenta como que el DICTADO negó el término. La usa `condicionesNegadas()`,
- * a través de `NIEGA_PEGADO` (que le añade el ancla de adyacencia de REG-193),
+ * a través de `NIEGA_PEGADO` (que le añade el ancla de adyacencia de REG-199),
  * y de ahí sale `corregirCertezaPorNegacion`.
  */
 const NIEGA_EN_EL_DICTADO = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/i
@@ -195,7 +195,7 @@ const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 /**
- * ── EL NEGADOR ALCANZA AL TÉRMINO DE AL LADO, NO A LA FRASE (REG-193) ────────
+ * ── EL NEGADOR ALCANZA AL TÉRMINO DE AL LADO, NO A LA FRASE (REG-199) ────────
  *
  * Sobre el dictado, la pregunta era `NIEGA_EN_EL_DICTADO.test(frase)`: basta
  * con que la oración contenga un negador para dar por negada **cualquier**

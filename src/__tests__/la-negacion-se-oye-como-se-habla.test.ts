@@ -155,7 +155,7 @@ describe('FALLO 2 · el que no sabe no está negando (regla 4)', () => {
   })
 })
 
-describe('FALLO 4 · el «no» de arranque que en realidad es un SÍ (REG-194)', () => {
+describe('FALLO 4 · el «no» de arranque que en realidad es un SÍ (REG-200)', () => {
   /**
    * ── CÓMO SE DESCUBRIÓ ──────────────────────────────────────────────────────
    *

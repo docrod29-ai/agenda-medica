@@ -205,7 +205,7 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
 /**
  * Frases negadoras antes de un término clínico.
  *
- * ── EL CASO, MEDIDO CON ESTE MOTOR (8-ago-2026, REG-205) ─────────────────────
+ * ── EL CASO, MEDIDO CON ESTE MOTOR (8-ago-2026, REG-201) ─────────────────────
  *
  * La lista sólo conocía `no (tiene|presenta|refiere|hay|ha tenido)`, así que
  * media docena de formas normales de negar salían como ANTECEDENTE POSITIVO:
@@ -281,7 +281,7 @@ const PARTICULA_PEGADA_AL_TERMINO = new RegExp(`\\b(?:${PARTICULAS_NEGATIVAS})\\
  * Palabras afirmativas que CIERRAN una negación previa.
  *
  * `padece`, `sufre` y `fuma` se añadieron el 8-ago por el error CONTRARIO
- * (REG-205): «Niega tabaquismo, **padece** diabetes mellitus» daba la diabetes
+ * (REG-201): «Niega tabaquismo, **padece** diabetes mellitus» daba la diabetes
  * por negada, porque el `niega` del principio seguía alcanzando al término de la
  * segunda cláusula. Una enfermedad real que desaparece de la nota es tan caro
  * como una inventada.

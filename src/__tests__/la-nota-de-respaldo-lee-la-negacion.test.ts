@@ -1,5 +1,5 @@
 /**
- * GOLDEN — «No padece diabetes» salía como ANTECEDENTE POSITIVO (REG-205).
+ * GOLDEN — «No padece diabetes» salía como ANTECEDENTE POSITIVO (REG-201).
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -53,7 +53,7 @@
  *   negación (queda en el backlog como VOC-001, y emparenta con C-7).
  * · La lista es **vocabulario**: que falte una forma de negar significa que ese
  *   caso no se vigila, no que se dé por bueno.
- * · No toca el lado del dictado (`negaciones.ts`, REG-193/194) ni la disculpa en
+ * · No toca el lado del dictado (`negaciones.ts`, REG-199/194) ni la disculpa en
  *   la nota. Son otras dos preguntas, con su golden.
  * · No decide nada clínico: sólo si la frase niega el término.
  */
