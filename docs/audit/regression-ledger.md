@@ -5247,7 +5247,9 @@ y las cabezas sueltas de `CRONICAS` —`infarto` → `cardiopatía`, `tiroides` 
 real**, y no se toca aquí: ese vocabulario vive en `negaciones.ts`, donde además
 decide **qué cuenta como una negación**. Estrecharlo cambia otra defensa y es
 otra decisión, no un efecto secundario de ésta. Queda en el backlog como
-`SAFE-003`.
+`SAFE-005` — nació como `SAFE-003` y se renumeró: `main` ya tenía un `SAFE-003`
+distinto, y al fusionar deduplicando por identificador este hallazgo **estuvo a
+punto de perderse**. El ID coincidía; el hallazgo, no.
 
 **Qué queda para el médico** — Nada que decidir. No se añadió ni se movió ninguna
 cifra, umbral ni criterio clínico: sólo se quitaron dos palabras que no nombraban
