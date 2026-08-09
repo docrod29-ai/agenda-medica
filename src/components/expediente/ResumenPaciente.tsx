@@ -58,7 +58,7 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, marginBottom: 16 }}>
       <div style={tarjeta}>
         <div style={encabezado}><Activity size={13} /> Últimos signos</div>
         {vitales.length > 0 ? (

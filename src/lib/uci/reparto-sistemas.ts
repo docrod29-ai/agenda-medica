@@ -134,11 +134,88 @@ const VACIO = (): RepartoSistemas => ({
  * @returns el texto de cada sistema. Lo que no cayó bajo ningún encabezado se
  *   queda en `plan` — si el médico no dijo a qué aparato pertenece, no se adivina.
  */
+/**
+ * ── EL PASE DICTADO NO TIENE SALTOS DE LÍNEA (REG-264) ──────────────────────
+ *
+ * Éste era el hueco 2 entero. `repartirPorSistemas` parte por `\n`, lo cual es
+ * correcto para un pase **escrito o pegado**. Pero un pase **dictado** llega
+ * como un párrafo corrido:
+ *
+ *   «Neurológico, RASS menos dos, pupilas isocóricas. Respiratorio, PEEP diez,
+ *    FiO2 sesenta. Hemodinámico, norepinefrina cero punto uno…»
+ *
+ * Sin un solo `\n`, el reparto **no encontraba ni un encabezado** y el pase
+ * caía ENTERO en el plan. El corazón de la nota de UCI —la nota por aparatos y
+ * sistemas, que es justo lo que ningún producto del mercado cubre— **no corría
+ * sobre voz**.
+ *
+ * ── LA REGLA, Y ES DELIBERADAMENTE ESTRECHA ─────────────────────────────────
+ *
+ * Se inserta un salto **sólo** cuando el nombre del aparato aparece:
+ *
+ *   1. al principio del texto o después de un punto/punto y coma, **y**
+ *   2. seguido inmediatamente de `,` o `:`
+ *
+ * «Respiratorio, PEEP diez» parte. «El sistema respiratorio está comprometido»
+ * **no**: ni empieza frase ni lleva separador detrás. «Hemodinámicamente
+ * estable» tampoco.
+ *
+ * Partir de más sería peor que no partir: metería medio párrafo del aparato
+ * anterior en el siguiente, y eso es un dato clínico en la sección equivocada.
+ */
+const INICIO_DE_APARATO = new RegExp(
+  /*
+    `[ \t]+` y NO `\s+`: el separador tiene que estar en la MISMA línea.
+    Con `\s+` la expresión también casaba «.\nRespiratorio:» —lo que ella
+    misma acababa de escribir— y cada nueva pasada añadía otro salto. Un pase
+    guardado y vuelto a procesar se habría ido partiendo en pedazos.
+  */
+  '(^|[.;][ \\t]+)(' + [
+    'neurol[oó]gic[oa]', 'sedoanalgesia', 'sedaci[oó]n', 'delirium',
+    'respiratori[oa]', 'ventilaci[oó]n', 'ventilador', 'v[ií]a a[eé]rea', 'destete',
+    'cardiovascular', 'hemodin[aá]mic[oa]', 'hemodinamia', 'perfusi[oó]n',
+    'abdominal', 'digestivo', 'nutrici[oó]n',
+    'renal', 'hidroelectrol[ií]tic[oa]', 'metab[oó]lic[oa]',
+    'hematol[oó]gic[oa]', 'infeccios[oa]', 'antimicrobian[oa]s?',
+    'musculoesquel[eé]tic[oa]', 'piel y faneras', 'movilizaci[oó]n',
+    /*
+      El separador se consume ENTERO, incluido el espacio o el salto que venga
+      detrás: así la segunda pasada reemplaza lo que la primera escribió en vez
+      de añadirle otro salto. Es lo que hace la función idempotente.
+    */
+  ].join('|') + ')(\\s*[,:]\\s*)',
+  'gi',
+)
+
+/**
+ * Devuelve el pase con un salto de línea antes de cada aparato nombrado.
+ *
+ * Es idempotente: sobre un texto que ya trae saltos no cambia nada, porque el
+ * nombre ya está a principio de línea y el `(^|[.;])` no casa dentro de ella.
+ */
+export function conSaltosAntesDeCadaAparato(texto: string): string {
+  /**
+   * El salto va ANTES **y DESPUÉS** del rótulo, y ésa es la parte que costó.
+   *
+   * Con sólo el salto de delante, la línea quedaba «Neurológico, RASS menos
+   * dos, pupilas isocóricas.» — el detector la reconocía ENTERA como rótulo y
+   * **descartaba el contenido**, porque el encabezado no se copia. Sólo
+   * sobrevivía el primer aparato.
+   *
+   * El separador se normaliza a `:` porque `claveDeEncabezado` ya lo recorta.
+   * No se pierde nada: el rótulo se descarta de todas formas; lo que viaja es
+   * lo que viene detrás.
+   */
+  return String(texto ?? '').replace(INICIO_DE_APARATO, (_m, antes, nombre) =>
+    `${antes === '' ? '' : antes.trimEnd() + '\n'}${nombre}:\n`)
+}
+
 export function repartirPorSistemas(texto: string): RepartoSistemas {
   const out = VACIO()
   if (!texto?.trim()) return out
 
-  const lineas = texto.split('\n')
+  /* El pase dictado viene sin saltos: se los ponemos antes de partir (REG-264). */
+  const lineas = conSaltosAntesDeCadaAparato(texto).split('\n')
   const descartadas: string[] = []
   let actual: ClaveSistema = 'plan'
   const buffers: Record<ClaveSistema, string[]> = {

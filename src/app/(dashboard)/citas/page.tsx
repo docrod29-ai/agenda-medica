@@ -350,6 +350,7 @@ export default function CitasPage() {
             className="input"
             style={{ paddingLeft: 32 }}
             placeholder="Buscar paciente…"
+            aria-label="Buscar un paciente por nombre"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -373,7 +374,7 @@ export default function CitasPage() {
             >
               <DollarSign size={13} className="ds-icon" /> Por cobrar
               <span style={{
-                background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r-pill)',
+                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
                 padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
               }}>{daySummary.porCobrar}</span>
             </button>
@@ -736,7 +737,7 @@ function AppointmentRowFull({
             className="btn btn-sm"
             title="Abrir la consulta de este paciente"
             style={{
-              background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 6,
+              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 6,
               fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}

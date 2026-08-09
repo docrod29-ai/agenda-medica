@@ -73,6 +73,36 @@ export async function descargarPaginasComoPDF(
   raiz.setAttribute('data-theme', 'light')
 
   /**
+   * LO QUE NO SE IMPRIME TAMPOCO SE DESCARGA.
+   *
+   * `.no-print` marca los avisos que son para el médico en pantalla y no para
+   * el documento: banners, aclaraciones, el recuadro de cobertura del sello.
+   * Pero la regla que los oculta vive dentro de un `@media print`, y esto **no
+   * es una impresión**: html2canvas rasteriza el DOM tal como está en pantalla
+   * y `@media print` nunca se activa.
+   *
+   * Resultado, hasta hoy: al pulsar Imprimir el aviso desaparecía, y al
+   * descargar el PDF del MISMO documento salía impreso — un recuadro negro con
+   * jerga interna («metadata.hashIntegridad») en medio de una nota clínica que
+   * se entrega o se archiva. El médico lo vio y preguntó si tenía que salir a
+   * fuerzas. No: es que este camino nunca miró la marca.
+   *
+   * Se ocultan aquí y se restauran en el `finally`, con la misma disciplina que
+   * el tema claro de arriba: el DOM real se toca y se devuelve como estaba.
+   */
+  const ocultados: { el: HTMLElement; display: string }[] = []
+  for (const pagina of paginas) {
+    const marcados = [
+      ...(pagina.matches('.no-print') ? [pagina] : []),
+      ...Array.from(pagina.querySelectorAll<HTMLElement>('.no-print')),
+    ]
+    for (const el of marcados) {
+      ocultados.push({ el, display: el.style.display })
+      el.style.display = 'none'
+    }
+  }
+
+  /**
    * Host fuera de pantalla SOLO para hojas dentro de un preview ESCALADO
    * (receta/orden con `transform: scale`). html2canvas mide mal las letras bajo
    * un ancestro escalado y las ENCIMA; se mueve el nodo REAL (imágenes ya
@@ -134,6 +164,8 @@ export async function descargarPaginasComoPDF(
     }
   } finally {
     document.body.removeChild(host)
+    // Devolver a la vista lo que sólo se ocultó para rasterizar.
+    for (const { el, display } of ocultados) el.style.display = display
     // Restaurar el tema original de la app.
     if (temaPrevio === null) raiz.removeAttribute('data-theme')
     else raiz.setAttribute('data-theme', temaPrevio)
@@ -171,6 +203,16 @@ export async function descargarComoPDF(elemento: HTMLElement, opts: PdfOptions):
         backgroundColor: '#ffffff',
         letterRendering: true,     // mejora kerning del texto
         imageTimeout: 30000,       // espera hasta 30s a que carguen imágenes (membrete, firma)
+        /**
+         * Lo mismo que en `descargarPaginasComoPDF`, por el otro camino.
+         *
+         * Aquí sí hay un clon del documento, así que basta con ocultar en él lo
+         * marcado `.no-print`. La regla real vive en un `@media print` que este
+         * camino nunca activa — no es una impresión, es una rasterización.
+         */
+        onclone: (doc: Document) => {
+          doc.querySelectorAll<HTMLElement>('.no-print').forEach(el => { el.style.display = 'none' })
+        },
       },
       jsPDF: {
         unit: 'mm', format, orientation,

@@ -221,7 +221,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
 
       {/* ── Caprini ── */}
       <Card icon={<Droplets size={15} />} titulo="Caprini — Riesgo de tromboembolia venosa (TEV)" color="#fb923c">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '0 20px' }}>
           {CAPRINI_ITEMS.map(it => chk(
             !!caprini[it.key], () => setCaprini(c => ({ ...c, [it.key]: !c[it.key] })), it.label, it.peso
           ))}
@@ -241,7 +241,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
           <Sel label="Duración de cirugía" value={ariscat.duracion} onChange={v => setAriscat(a => ({ ...a, duracion: v as AriscatInput['duracion'] }))}
             opciones={[['', '—'], ['menos2h', '< 2 h'], ['de2a3h', '2-3 h (+16)'], ['mas3h', '> 3 h (+23)']]} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0 20px', marginTop: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '0 20px', marginTop: 6 }}>
           {chk(ariscat.infeccionRespiratoria, () => setAriscat(a => ({ ...a, infeccionRespiratoria: !a.infeccionRespiratoria })), 'Infección respiratoria en el último mes (+17)')}
           {chk(ariscat.anemia, () => setAriscat(a => ({ ...a, anemia: !a.anemia })), 'Anemia preoperatoria (Hb ≤ 10 g/dL) (+11)')}
           {chk(ariscat.emergencia, () => setAriscat(a => ({ ...a, emergencia: !a.emergencia })), 'Procedimiento de emergencia (+8)')}
@@ -253,7 +253,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
 
       {/* ── STOP-BANG ── */}
       <Card icon={<Moon size={15} />} titulo="STOP-BANG — Riesgo de apnea obstructiva del sueño" color="#818cf8">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '0 20px' }}>
           {STOPBANG_ITEMS.map(it => chk(!!stopbang[it.key], () => setStopbang(s => ({ ...s, [it.key]: !s[it.key] })), it.label))}
         </div>
         <Resultado>
@@ -279,7 +279,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
 
       {/* ── Contexto / Medicamentos ── */}
       <Card icon={<Pill size={15} />} titulo="Medicamentos y situación clínica (para recomendaciones)" color="#3D5AFE">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '0 20px' }}>
           {chk(ctx.hipertension, () => setCtx(c => ({ ...c, hipertension: !c.hipertension })), 'Hipertensión arterial')}
           {chk(ctx.insuficienciaCardiacaFErEF, () => setCtx(c => ({ ...c, insuficienciaCardiacaFErEF: !c.insuficienciaCardiacaFErEF })), 'Insuficiencia cardiaca con FE reducida')}
           {chk(ctx.tomaBetabloqueador, () => setCtx(c => ({ ...c, tomaBetabloqueador: !c.tomaBetabloqueador })), 'Toma betabloqueador (crónico)')}
@@ -349,7 +349,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       {!disabled && (
         <button onClick={aplicar} style={{
           display: 'flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-          background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10,
+          background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
           padding: '11px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}>
           <Check size={16} /> Aplicar escalas y recomendaciones a la nota

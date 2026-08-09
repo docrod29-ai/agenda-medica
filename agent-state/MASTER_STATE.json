@@ -1,30 +1,83 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "modo": "autonomo-sin-despliegue",
+  "modo": "autonomo-con-despliegue",
   "autorizaciones": {
     "abrirPR": true,
     "pushDeRama": true,
-    "desplegarAProduccion": false,
-    "fusionarAMain": false,
+    "desplegarAProduccion": true,
+    "fusionarAMain": true,
     "datosRealesDePacientes": false,
-    "cambiosDestructivos": false
+    "cambiosDestructivos": false,
+    "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "REG-198 (cerrada, PR #239 abierto y fusionado con main)",
+  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
   "ramasActivas": [
-    "agent/clinical/REG-198"
+    "agent/pagos/PAY-001 (esta sesión, la que despliega)",
+    "agent/clinical/REG-198 (PR #239, sólo PR: esta sesión corre sin credenciales de despliegue)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnMain": "nexusmed-v1074 (REG-192, fusionado)",
-  "ultimaVersionEnRama": "nexusmed-v1080 (sin desplegar: el despliegue lo autoriza el dueño)",
-  "trabajoLocalSinSubir": [],
-  "notasDeEstado": [
-    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
-    "7-ago-2026, misma conclusión por otro camino: el estado estaba atrasado 43 versiones y VOICE-004, SAFE-001 y EVAL-003 llevaban cerradas desde la v1032 (REG-141/144/145). Dos iteraciones en paralelo tropezaron con lo mismo — el estado se lee, no se cree.",
-    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin cambios encima, y el CI de GitHub lo pasa. No se tocó. Anotado como INFRA-002.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
-    "9-ago-2026: el bucle corrió en PARALELO y ~20 ramas reclamaron el mismo REG-192 y la misma v1074. main cerró el suyo (88a3832); esta rama se renumeró a REG-198/v1080 por PR ascendente. Ver OPS-003."
+  "ultimaVersionEnProduccion": "nexusmed-v1151",
+  "trabajoLocalSinSubir": [
+    "A  .claude/agents/design-systems-lead.md",
+    "A  .claude/agents/patient-experience-lead.md",
+    "A  .claude/rules/design-system.md",
+    "A  .claude/rules/patient-facing-ai.md",
+    "A  .claude/skills/v9/SKILL.md",
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "A  agent-state/DESIGN_STATE.md",
+    "A  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "A  agent-state/LOOP-GRABACION-PERFECTA.md",
+    "A  agent-state/LOOP-SUPERARLOS.md",
+    "M  agent-state/MASTER_STATE.json",
+    "M  agent-state/OWNER_DECISIONS_REQUIRED.md",
+    "A  agent-state/PATIENT_COMPANION_STATE.md",
+    "A  agent-state/RECONCILIACION-V9-2026-08-08.md",
+    "A  agent-state/V7-ITERACION.md",
+    "M  docs/COMPETITIVE_ANALYSIS.md",
+    "A  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "A  docs/architecture/DIRECCION-DE-DEPENDENCIAS.md",
+    "M  docs/audit/regression-ledger.md"
   ],
-  "siguientePorScore": "SAFE-003 (71) — las cabezas sueltas de CRONICAS, misma familia que REG-198"
+  "actualizado": "2026-08-09",
+  "resumenDesdeElUltimoEstado": {
+    "versionesDesplegadas": "v1085 → v1096",
+    "regsCerradas": "REG-204 … REG-214",
+    "pruebas": 7383,
+    "lint": "96 (techo)",
+    "nota": "El tablero volvió a quedarse atrás: decía v1084 mientras producción iba en v1096. Es la segunda vez. La causa no es descuido: es que actualizarlo depende de que yo me acuerde. Mientras no lo derive un script, va a volver a pasar."
+  },
+  "ramasDeLaRutinaSinRevisar": [
+    "agent/expediente/REG-192 — negación",
+    "agent/voice/VOICE-005 — negación, muletilla en medio",
+    "agent/eval/EVAL-002-corpus-temporalidad — temporalidad"
+  ],
+  "seccionesDelCharterCerradas": [
+    "§4.1",
+    "§5.1",
+    "§18",
+    "§24",
+    "§B5",
+    "§B6",
+    "§B8",
+    "§B10",
+    "§H6",
+    "§H7",
+    "§N3"
+  ],
+  "loQueSigueBloqueadoEnElDueno": [
+    "Titularidad del código a nombre de una sociedad — bloqueo nº1 de la sala de datos",
+    "Requisitos legales de la receta impresa",
+    "STRIPE_WEBHOOK_SECRET en Vercel",
+    "OPS_ALERTA_WEBHOOK para las alertas de operación"
+  ],
+  "ramaActual": "agent/clinical/REG-192",
+  "derivado": {
+    "regsEnElLedger": 118,
+    "ultimaREG": "REG-270",
+    "archivosDePrueba": 548,
+    "casosDePrueba": 7247,
+    "lint": "ver scripts/lint-trinquete.mjs"
+  }
 }

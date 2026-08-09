@@ -200,3 +200,33 @@ describe('UN RENGLÓN A MEDIO ESCRIBIR NO CUENTA', () => {
     expect(consulta.slice(i, i + 400)).toContain("filter(m => m.nombre?.trim())")
   })
 })
+
+describe('UCI: la «U» suelta es una unidad (REG-247)', () => {
+  /**
+   * ── EL FALSO POSITIVO, MEDIDO ────────────────────────────────────────────
+   *
+   * La lista de formas tenía `ui` y `u.i.` pero NO la `u` sola. «2 U/h» —una
+   * infusión de insulina, exactamente como se dicta en terapia intensiva—
+   * salía como «dosis sin unidad».
+   *
+   * Un aviso falso sobre una insulina es de los peores que puede dar este
+   * sistema: es un fármaco de alto riesgo, y enseñar a ignorar su aviso es
+   * enseñar a ignorarlo el día que sea verdadero.
+   */
+  it.each(['2 U/h', '10 U', '2 UI/h', '100 UI', '5 unidades', '20 mEq'])(
+    '«%s» tiene unidad', (d) => expect(revisarUnidadDosis('Insulina', d)).toBeNull())
+
+  it('y una dosis SIN unidad se sigue cazando', () => {
+    /**
+     * Ensanchar la lista es donde se pierde lo que protegía. «Levotiroxina
+     * 100» son 100 mcg o 100 mg — un factor de mil.
+     */
+    expect(revisarUnidadDosis('Levotiroxina', '100')?.codigo).toBe('dosis_sin_unidad')
+    expect(revisarUnidadDosis('Levotiroxina', '500')?.codigo).toBe('dosis_sin_unidad')
+  })
+
+  it('las velocidades de infusión ya pasaban, y siguen pasando', () => {
+    for (const d of ['0.1 mcg/kg/min', '2 mg/kg/h', '5 mL/h'])
+      expect(revisarUnidadDosis('Norepinefrina', d), d).toBeNull()
+  })
+})

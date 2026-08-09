@@ -145,7 +145,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
           </div>
 
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
             <Kpi icon={<Wallet size={16} />} titulo="Total neto" valor={fmtMXN(corte.neto)} color="var(--nexus)" />
             <Kpi icon={<span style={{ fontSize: 15 }}>💵</span>} titulo="Efectivo en caja" valor={fmtMXN(corte.efectivo)} color="var(--green)" />
             {/*

@@ -159,7 +159,7 @@ export default function ConsultorPage() {
         {turnos.map((t, i) => (
           <div key={i}>
             <div style={{ display: 'flex', gap: 9, marginBottom: 10 }}>
-              <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'var(--nexus, #3d5afe)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Dr</div>
+              <div style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'var(--nexus-solido)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Dr</div>
               <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text)', paddingTop: 3 }}>{t.pregunta}</div>
             </div>
             <div style={{ display: 'flex', gap: 9 }}>
@@ -268,7 +268,7 @@ export default function ConsultorPage() {
             style={{ flex: 1, resize: 'none', maxHeight: 120, padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, lineHeight: 1.4, fontFamily: 'inherit' }}
           />
           <button onClick={() => preguntar(pregunta)} disabled={cargando || !pregunta.trim()}
-            style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, border: 'none', cursor: cargando || !pregunta.trim() ? 'default' : 'pointer', background: cargando || !pregunta.trim() ? 'var(--s3)' : 'var(--teal)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, border: 'none', cursor: cargando || !pregunta.trim() ? 'default' : 'pointer', background: cargando || !pregunta.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {cargando ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}
           </button>
         </div>

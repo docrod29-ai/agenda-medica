@@ -11,7 +11,7 @@
  * «Penicilina, Sulfas» era un único alérgeno llamado «Penicilina, Sulfas».
  */
 import { describe, it, expect } from 'vitest'
-import { parsearAlergiasTexto, negacionesEnTexto, esAlergiaNegada, alergiasDe } from '@/lib/seguridad/alergias'
+import { parsearAlergiasTexto, negacionesEnTexto, esAlergiaNegada, alergiasDe, alergenosDe } from '@/lib/seguridad/alergias'
 import { validarNOM004 } from '@/lib/expediente/nom004'
 import type { NotaMedica } from '@/types/expediente'
 
@@ -73,5 +73,60 @@ describe('la compuerta de alergia por nombre exacto', () => {
   it('no inventa una alergia donde no la hay', () => {
     const r = validarNOM004(notaCon([{ alergeno: 'Tramadol' }], ['Metformina 850 mg']))
     expect(r.errores.some(e => e.includes('Metformina'))).toBe(false)
+  })
+})
+
+describe('EL ANCLA ERA EL FALLO — REG-248', () => {
+  /**
+   * ── LO QUE SALÍA IMPRESO ─────────────────────────────────────────────────
+   *
+   * `NEGADOR` estaba anclado al principio, y con razón: «Alérgico a penicilina,
+   * niega sulfas» tiene que conservar la penicilina. Pero el ancla significa que
+   * **cualquier palabra delante lo rompe**:
+   *
+   *     «negadas»          → reconocida ✓
+   *     «alergias negadas» → NO reconocida ✗   ← la frase natural en español
+   *     «NKDA»             → NO reconocida ✗   ← el estándar hospitalario
+   *     «se niegan» · «no» · «(-)» → NO reconocidas ✗
+   *
+   * Lo que no se reconoce como negación **se registra como alérgeno**. De aquí
+   * leen la receta impresa, la nota, el recurso FHIR y el sesgo del reconocedor:
+   * la receta con su cédula salía diciendo que el paciente es alérgico a
+   * «alergias negadas».
+   */
+  it.each([
+    'alergias negadas', 'Alergias: negadas', 'Alergia: ninguna',
+    'antecedentes alérgicos negados',
+    'NKDA', 'nkda', 'NKA',
+    'se niegan', 'interrogadas y negadas', 'no conocidas',
+    'no', 'ninguna', '(-)', '-', 'negativo',
+  ])('«%s» es una negación', (t) => expect(esAlergiaNegada(t)).toBe(true))
+
+  it.each([
+    'penicilina', 'naproxeno', 'nogal', 'nueces', 'Alérgico a sulfas',
+    'TMP/SMX', 'metamizol', 'alergia a penicilina',
+  ])('«%s» NO es una negación', (t) => expect(esAlergiaNegada(t)).toBe(false))
+
+  it('«naproxeno» y «nogal» son la razón de comparar el fragmento ENTERO', () => {
+    /**
+     * «no» está en la lista de negaciones completas. Si se comparara como
+     * PREFIJO, «naproxeno» —un alérgeno real y frecuente— desaparecería del
+     * expediente sin que nadie lo notara.
+     */
+    expect(alergenosDe({ alergias: 'naproxeno, nogal' })).toEqual(['naproxeno', 'nogal'])
+  })
+
+  it('el caso que el ancla protegía sigue protegido', () => {
+    /**
+     * Ensanchar el reconocedor de negaciones es donde se pierde una alergia
+     * real. «Niega penicilina. Alérgico a sulfas» tiene que conservar sulfas.
+     */
+    expect(alergenosDe({ alergias: 'Niega penicilina. Alérgico a sulfas' }))
+      .toEqual(['Alérgico a sulfas'])
+  })
+
+  it('«alergias negadas» y «NKDA» ya no dejan un alérgeno fantasma', () => {
+    expect(alergenosDe({ alergias: 'Alergias negadas' })).toEqual([])
+    expect(alergenosDe({ alergias: 'NKDA' })).toEqual([])
   })
 })
