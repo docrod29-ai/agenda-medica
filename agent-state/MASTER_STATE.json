@@ -12,24 +12,20 @@
   },
   "iteracionActual": "EVAL-002 (cerrada — REG-207, v1089)",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001",
     "agent/eval/EVAL-002-gramatica-temporal"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ],
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1089",
+  "trabajoLocalSinSubir": [],
   "colisionDelPrograma": {
-    "que": "17 PR abiertos, ninguno fusionado, y DIECISÉIS de ellos se llaman «REG-207» y «v1089». Cada ejecución autónoma arranca de `main`, lee que el ledger acaba en REG-191/v1073 y toma el número siguiente — que ya está tomado por las anteriores.",
-    "porQueImporta": "El número de REG y la versión del service worker son identificadores: si dos cambios distintos se llaman igual, deja de poder acotarse qué notas se generaron con qué código. Es el mismo requisito que REG-191 acaba de reparar para el prompt, roto ahora por el propio programa.",
-    "quienLoDecide": "El dueño — ver OWNER_DECISIONS_REQUIRED, entrada O-5.",
-    "loQueNoSePuedeHacerSolo": "Fusionar a main, que es lo único que rompe el ciclo."
+    "que": "El 7-ago se abrieron ~20 PR y sonaba dieciséis veces el mismo «REG-192 / v1074»: cada ejecución arrancaba de main, leía que el ledger acababa en REG-191 y tomaba el número siguiente, que las anteriores ya habían tomado.",
+    "estado": "RESUELTO en esta rama. main fusionó su REG-192/v1074 (la sección bien escrita compraba el silencio de la mal escrita) y esta rama se renumeró a REG-207/v1089, repartiendo la secuencia por número de PR ascendente. Seguimiento: OPS-003 en el PR #251.",
+    "loQueNoSePuedeHacerSolo": "Fusionar a main, que es lo único que impide que el patrón vuelva."
   },
-  "avisosDelEntorno": [
-    "src/__tests__/ops-timeout-y-punto-ciego.test.ts → «el error dice cuánto esperó y a quién» falla EN ESTE ENTORNO REMOTO, no por el cambio: la prueba cuenta con que 10.255.255.1 no conteste, y aquí la salida pasa por el proxy del agente. Comprobado contra el árbol limpio antes de tocar nada. En CI pasa."
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin los cambios de esta rama. En CI pasa. No se tocó.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
   ]
 }

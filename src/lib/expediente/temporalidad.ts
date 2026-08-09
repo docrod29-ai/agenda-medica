@@ -41,6 +41,7 @@
  * Módulo PURO.
  */
 import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
+import { primeraMencionSinEscudo } from '@/lib/expediente/mencion-en-la-nota'
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -301,30 +302,20 @@ export interface DesajusteTemporal extends MencionPasada {
  * como antecedente —«antecedente de neumonía», «tuvo neumonía»—, está bien
  * escrito y no hay nada que avisar. Sólo importa cuando la nota lo presenta como
  * algo de ahora.
+ *
+ * Y se miran **todas** las apariciones: el antecedente bien escrito de arriba le
+ * compraba el silencio a la impresión diagnóstica de abajo, que es la que cambia
+ * la conducta de hoy (REG-192).
  */
 export function desajustesTemporales(
   pasadas: readonly MencionPasada[],
   textoNota: string,
 ): DesajusteTemporal[] {
-  const t = sinAcentos(textoNota)
   const out: DesajusteTemporal[] = []
   for (const m of pasadas) {
     const formas = VOCABULARIO().find(c => c.canonica === m.condicion)?.formas ?? [m.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres, la misma que usan las
-       * negaciones y por la misma razón: es lo que mide «antecedente de …» o
-       * «tuvo …» en la misma oración. Más larga leería la oración anterior y un
-       * «antecedente» ajeno taparía una afirmación en presente, que es el fallo
-       * que importa.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (YA_ES_ANTECEDENTE.test(sinAcentos(antes))) continue
-      out.push({ ...m, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    const enc = primeraMencionSinEscudo(textoNota, formas, YA_ES_ANTECEDENTE)
+    if (enc) out.push({ ...m, enLaNota: enc.cita })
   }
   return out
 }
