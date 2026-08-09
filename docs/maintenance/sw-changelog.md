@@ -2751,3 +2751,13 @@ De las **seis ramas de temporalidad**: sus afirmaciones ya estaban reparadas
 aquí, medidas caso a caso. Lo único vivo era esta comparación — que ninguna de
 ellas nombraba como su hallazgo principal. Seis ramas, un defecto real, una
 línea.
+
+## v1160 — el escudo de una oración se prestaba a la siguiente (REG-286)
+
+**«Niega diabetes. Diagnóstico de diabetes tipo 2.» no avisaba.** La nota afirma
+lo que el paciente negó y la alarma de contradicción —la razón de existir de ese
+motor— se quedaba muda: el escudo de la primera oración cruzaba el punto.
+
+El comentario ya nombraba este fallo y eligió 60 caracteres como defensa. Pero
+«Antecedente de asma. » mide 21. **Un número no puede expresar «la misma
+oración»**: la ventana se queda como tope y el corte lo hace el punto.

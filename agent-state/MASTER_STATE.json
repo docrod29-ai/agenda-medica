@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1159",
+  "ultimaVersionEnProduccion": "nexusmed-v1160",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
@@ -25,9 +25,8 @@
     " M public/version.txt",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/negaciones.ts",
-    " M src/lib/expediente/temporalidad.ts",
-    "?? src/__tests__/obesidad-no-dice-vih.test.ts"
+    " M src/lib/expediente/mencion-en-la-nota.ts",
+    "?? src/__tests__/el-escudo-no-cruza-el-punto.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +62,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 133,
-    "ultimaREG": "REG-285",
-    "archivosDePrueba": 562,
-    "casosDePrueba": 7422,
+    "regsEnElLedger": 134,
+    "ultimaREG": "REG-286",
+    "archivosDePrueba": 563,
+    "casosDePrueba": 7430,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

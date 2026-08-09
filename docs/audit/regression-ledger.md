@@ -6125,3 +6125,48 @@ incompatibles de `temporalidad.ts` para arreglar lo que se arregla en una línea
 - `src/lib/expediente/negaciones.ts` (`comoPalabra`, exportado)
 - `src/lib/expediente/temporalidad.ts` (usa el mismo comparador)
 - `src/__tests__/obesidad-no-dice-vih.test.ts` (nuevo, 16 casos, sellado)
+
+---
+
+## REG-286 — el escudo de una oración se prestaba a la siguiente (v1160)
+
+`VENTANA_DEL_ESCUDO` llevaba escrito, desde que se fijó:
+
+> *«Más larga empezaría a leer la oración anterior y un escudo ajeno taparía una
+> afirmación real — que es el fallo caro.»*
+
+**Conocía el modo de fallo exacto** y eligió 60 caracteres como defensa.
+
+### Pero 60 caracteres no son una oración
+
+«Antecedente de asma. » mide **21**. El escudo cruzaba el punto sin esfuerzo.
+Medido con `primeraMencionSinEscudo` de verdad:
+
+| Nota | Antes |
+|---|---|
+| «Antecedente de asma. Cursa con neumonía.» | CALLABA |
+| «Niega diabetes. Diagnóstico de diabetes tipo 2.» | CALLABA |
+
+**El segundo es el que duele.** La nota **afirma** una diabetes justo después de
+que el paciente la negara, y la alarma de contradicción —la que nació del caso
+que el Dr. encontró en producción, la razón de existir de este motor— se quedaba
+muda.
+
+### La lección
+
+**Un número no puede expresar «la misma oración».** La ventana de 60 se queda
+como **tope** —para eso sirve un número— y el corte lo hace el punto, que es lo
+que de verdad separa una afirmación de otra. Es el mismo criterio que
+`estaNegado` ya usaba en `parser-clinico.ts`: dos motores hermanos, uno lo tenía
+y el otro no.
+
+### Y el tope no sobra
+
+Sin él, un «niega» al principio de un párrafo largo escudaría todo lo que viniera
+detrás hasta el siguiente punto. Los dos límites hacen falta, y ahora cada uno
+expresa lo suyo.
+
+### Archivos
+
+- `src/lib/expediente/mencion-en-la-nota.ts`
+- `src/__tests__/el-escudo-no-cruza-el-punto.test.ts` (nuevo, 11 casos, sellado)
