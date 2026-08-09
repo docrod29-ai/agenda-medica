@@ -144,15 +144,99 @@ export function negacionesEnTexto(texto: string | undefined): string[] {
   return texto.split(SEPARADORES).map(a => a.trim()).filter(a => a && esAlergiaNegada(a))
 }
 
+/**
+ * ── LA NEGACIÓN SE ESCRIBE UNA VEZ Y CUBRE TODA LA ENUMERACIÓN — REG-276 ────
+ *
+ * «Niega alergias a penicilina **y sulfas**» devolvía **`['sulfas']`**.
+ *
+ * El negador aparece una sola vez, en el primer fragmento, y `SEPARADORES`
+ * parte también por « y » y por coma: el resto de la lista salía del separador
+ * ya sin la negación que lo cubría, y se registraba como alergia REAL. Medido
+ * con el motor el 9-ago-2026, sobre el árbol de producción:
+ *
+ *     «Niega alergias a penicilina y sulfas»        → ['sulfas']
+ *     «Niega alergia a penicilina, sulfas y AINEs»  → ['sulfas', 'AINEs']
+ *
+ * ── POR QUÉ ES DE LOS CAROS ─────────────────────────────────────────────────
+ *
+ * Una alergia que **nadie afirmó** apaga el botón de Firmar, se imprime en el
+ * recuadro rojo de la receta que va a la farmacia, y se sella dentro de una nota
+ * firmada, que es inmutable. En un consultorio de infectología una etiqueta
+ * falsa de betalactámicos o de sulfas empuja a segunda línea: **peor
+ * tratamiento por un dato inventado**.
+ *
+ * Y al médico le dejaba como única salida la que este repositorio ya tiene
+ * documentada como el fallo a evitar — borrar el texto del expediente, con lo
+ * que se pierden a la vez el dato y la compuerta.
+ *
+ * ── LA REGLA, Y SUS DOS CORTES ──────────────────────────────────────────────
+ *
+ * Se parte en DOS niveles, porque el campo tiene dos:
+ *
+ *   · **oración** — un punto, un punto y coma o un salto CIERRAN el alcance de
+ *     la negación. «Niega alergias. Alérgico a la penicilina.» son dos cosas.
+ *   · **lista** — dentro de una oración, la coma, « y » y « ni » enumeran, y la
+ *     negación del principio las cubre a todas.
+ *
+ * Los dos cortes existen para no cometer el error contrario, **que es el peor**:
+ * llevarse por delante una alergia real escrita después de una negada.
+ */
+const FIN_DE_ORACION = /\.\s+|[;\n]+\s*/
+const SEPARADOR_DE_LISTA = /,+|\s+\/\s*|\s*\/\s+|\sy\s|\sni\s/
+
+/**
+ * «Alérgico a», «alergia a», «alergias a» delante del primer elemento.
+ *
+ * Sin quitarlo, «Alérgico a penicilina y sulfas» daba
+ * `['Alérgico a penicilina', 'sulfas']`: el primer alérgeno llevaba la frase
+ * pegada y **no coincidía con ningún fármaco**, así que el cruce
+ * alergia↔medicamento podía no dispararse justo con el que importa. Es
+ * exactamente el daño de «SMX)», por otra puerta.
+ */
+const AFIRMA_ALERGIA = /^\s*(?:es\s+)?(?:al[eé]rgic[oa]\s+a|alergias?\s+a|refiere\s+alergias?\s+a)\s+(?:la\s+|el\s+|los\s+|las\s+)?/i
+
 /** Divide un texto libre de alergias en alérgenos ("Penicilina, Sulfas; Mariscos"). */
 export function parsearAlergiasTexto(texto: string | undefined): AlergiaEstructurada[] {
   if (!texto?.trim()) return []
-  return texto
-    .split(SEPARADORES)
-    .map(a => a.trim())
-    .filter(Boolean)
-    .filter(a => !esAlergiaNegada(a))
-    .map(alergeno => ({ alergeno }))
+  const fuera: AlergiaEstructurada[] = []
+
+  for (const oracion of texto.split(FIN_DE_ORACION)) {
+    if (!oracion.trim()) continue
+    /**
+     * ¿La ORACIÓN entera niega? Se juzga por su primer fragmento, que es donde
+     * se escribe el negador, y la respuesta cubre toda la enumeración.
+     */
+    const trozos = oracion.split(SEPARADOR_DE_LISTA)
+    const niega = esAlergiaNegada(trozos[0]?.trim() ?? '')
+
+    for (const [i, bruto] of trozos.entries()) {
+      /**
+       * ── EL SEGUNDO CORTE: UN FRAGMENTO QUE AFIRMA ROMPE EL ALCANCE ────────
+       *
+       * «Niega alergia a penicilina, **alérgico a sulfas**» — la coma enumera,
+       * pero el segundo fragmento **dice que sí**. Sin este corte, la negación
+       * del principio se lo llevaba por delante y se perdía una alergia REAL:
+       * el error contrario, y el peor de los dos.
+       *
+       * Lo cacé aquí, con las pruebas que ya existían: la primera versión de
+       * esta reparación devolvía `[]` para esa frase. Un arreglo de seguridad
+       * que borra el dato que protege es peor que el defecto.
+       */
+      if (niega && !AFIRMA_ALERGIA.test(bruto)) continue
+      if (niega && i === 0) continue
+      /* El prefijo afirmativo sólo puede ir en el primero de la lista. */
+      /**
+       * El punto FINAL del texto no lo quita `FIN_DE_ORACION`, que exige un
+       * espacio detrás para no partir «2.5 mg». Sin esto, «Alérgico a la
+       * penicilina.» daba el alérgeno «penicilina.» — con punto pegado, que no
+       * casa con ningún fármaco del catálogo. El mismo daño que «SMX)».
+       */
+      const f = (i === 0 ? bruto.replace(AFIRMA_ALERGIA, '') : bruto).trim().replace(/[.\s]+$/, '')
+      /* Y aun así cada fragmento se juzga: «penicilina, ninguna otra». */
+      if (f && !esAlergiaNegada(f)) fuera.push({ alergeno: f })
+    }
+  }
+  return fuera
 }
 
 /**

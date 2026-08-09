@@ -121,8 +121,16 @@ describe('EL ANCLA ERA EL FALLO — REG-248', () => {
      * Ensanchar el reconocedor de negaciones es donde se pierde una alergia
      * real. «Niega penicilina. Alérgico a sulfas» tiene que conservar sulfas.
      */
+    /**
+     * REG-276 — antes esperaba `['Alérgico a sulfas']`, CON el prefijo dentro
+     * del nombre. Se cambia porque un alérgeno llamado «Alérgico a sulfas» no
+     * casa con ningún fármaco del catálogo, así que el cruce
+     * alergia↔medicamento podía no dispararse justo con el que importa. Es el
+     * mismo daño que «SMX)», por otra puerta. Lo que la prueba defiende —que la
+     * alergia de después de una negación SIGA APARECIENDO— no cambia.
+     */
     expect(alergenosDe({ alergias: 'Niega penicilina. Alérgico a sulfas' }))
-      .toEqual(['Alérgico a sulfas'])
+      .toEqual(['sulfas'])
   })
 
   it('«alergias negadas» y «NKDA» ya no dejan un alérgeno fantasma', () => {

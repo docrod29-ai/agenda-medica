@@ -5668,3 +5668,72 @@ repare, que es lo que se busca— y como `SAFE-007` en el backlog.
 caen contra `main`, y los **6 casos nuevos** caen contra la v1 de este mismo PR.
 
 *(venía como REG-218 en `agent/safety/SAFE-006-stopbang-negacion`)*
+
+---
+
+## REG-276 — «Niega alergias a penicilina y sulfas» registraba una alergia a sulfas (v1152)
+
+**Encontrado** por la rutina `SAFE-002`. **Reproducido aquí antes de absorber
+nada**, sobre el árbol de producción, con `parsearAlergiasTexto` de verdad:
+
+| Campo de alergias | Lo que devolvía |
+|---|---|
+| «Niega alergias a penicilina y sulfas» | `['sulfas']` |
+| «Niega alergia a penicilina, sulfas y AINEs» | `['sulfas', 'AINEs']` |
+| «Alérgico a penicilina y sulfas» | `['Alérgico a penicilina', 'sulfas']` |
+
+Las dos primeras son **alergias que nadie afirmó**. La tercera es el daño de
+«SMX)» por otra puerta: un alérgeno con la frase pegada no casa con ningún
+fármaco del catálogo, y el cruce alergia↔medicamento **puede no dispararse
+justo con el que importa**.
+
+### La causa
+
+El negador se escribe **una sola vez**, en el primer fragmento, y `SEPARADORES`
+partía también por « y » y por coma. El resto de la enumeración salía del
+separador ya sin la negación que lo cubría.
+
+### Por qué es de los caros
+
+Una alergia que nadie afirmó **apaga el botón de Firmar**, se imprime en el
+recuadro rojo de la receta que va a la farmacia, y se sella dentro de una nota
+firmada, que es inmutable. En un consultorio de infectología una etiqueta falsa
+de betalactámicos o de sulfas empuja a segunda línea: **peor tratamiento por un
+dato inventado**.
+
+Y al médico le dejaba como única salida la que este repositorio ya documenta
+como el fallo a evitar: borrar el texto del expediente, perdiendo a la vez el
+dato y la compuerta.
+
+### La regla: dos niveles y dos cortes
+
+El campo tiene dos niveles, y se parte por los dos:
+
+- **oración** — un punto, un punto y coma o un salto **cierran** el alcance;
+- **lista** — dentro de una oración, la coma, « y » y « ni » enumeran y heredan
+  la negación del principio.
+
+Y el alcance se rompe además cuando un fragmento **afirma**: «Niega alergia a
+penicilina, **alérgico a sulfas**» conserva las sulfas.
+
+### El fallo que me cacé a mí mismo
+
+La primera versión de esta reparación devolvía **`[]`** para esa frase: la
+negación se comía la afirmación que venía después en la misma oración. Lo cazaron
+las pruebas que ya existían.
+
+**Un arreglo de seguridad que borra el dato que protege es peor que el defecto.**
+Perder una alergia real es más grave que arrastrar una falsa: la falsa estorba,
+la perdida daña.
+
+### Dos aserciones antiguas cambiadas, con su motivo escrito
+
+`'Alérgico a sulfas'` → `'sulfas'` y `'Penicilina G.'` → `'Penicilina G'`. Lo que
+esas pruebas defendían —que la alergia posterior a una negación siga apareciendo,
+y que el punto no parta el nombre— sigue en pie. Lo que cambia es que el prefijo
+y el punto final ya no viajan dentro del nombre del alérgeno.
+
+### Archivos
+
+- `src/lib/seguridad/alergias.ts`
+- `src/__tests__/la-negacion-cubre-toda-la-lista.test.ts` (nuevo, 15 casos, sellado)

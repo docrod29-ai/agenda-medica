@@ -2641,3 +2641,16 @@ Las ramas de **temporalidad** se pelean entre ellas: cada una trae su versión d
 `temporalidad.ts` y las pruebas de las otras dejan de pasar. Apilarlas dio 45
 fallos. Se revirtieron. No es una rama que falte fusionar: es un trabajo que hay
 que hacer una vez y bien.
+
+## v1152 — la negación cubre toda la enumeración de alergias (REG-276)
+
+«Niega alergias a penicilina **y sulfas**» registraba una alergia a **sulfas**
+que nadie afirmó. Con coma, dos. Esa alergia fabricada apaga el botón de Firmar,
+se imprime en rojo en la receta que va a la farmacia y se sella dentro de una
+nota firmada — y en infectología empuja a segunda línea.
+
+Se parte en dos niveles: la oración cierra el alcance de la negación, la lista lo
+hereda, y un fragmento que **afirma** lo rompe. La primera versión de mi
+reparación perdía la alergia real de «Niega penicilina, alérgico a sulfas»: lo
+cazaron las pruebas viejas. Un arreglo de seguridad que borra el dato que protege
+es peor que el defecto.

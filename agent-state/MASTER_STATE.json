@@ -16,18 +16,20 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1151",
+  "ultimaVersionEnProduccion": "nexusmed-v1152",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/el-no-que-corrige-afirma.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    " M src/__tests__/alergia-combinada-no-se-parte.test.ts",
+    " M src/__tests__/alergias-negacion.test.ts",
+    " M src/__tests__/auditoria-v7-dia1.test.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/seguridad/alergias.ts",
+    "?? src/__tests__/la-negacion-cubre-toda-la-lista.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +65,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 123,
-    "ultimaREG": "REG-275",
-    "archivosDePrueba": 554,
-    "casosDePrueba": 7346,
+    "regsEnElLedger": 124,
+    "ultimaREG": "REG-276",
+    "archivosDePrueba": 555,
+    "casosDePrueba": 7361,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
