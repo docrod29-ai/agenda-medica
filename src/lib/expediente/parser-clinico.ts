@@ -16,6 +16,7 @@
  */
 
 import type { TipoNota } from '@/types/expediente'
+import { respuestaNiega } from '@/lib/expediente/negaciones'
 
 // ─────────────────────────────────────────────────────────────────
 // Normalización
@@ -223,7 +224,32 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
  * Lo que sí se hace es que ésta no vuelva a quedarse corta, y una prueba
  * comprueba que todos los verbos de la otra están aquí.
  */
-const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
+/**
+ * ── «TAMPOCO» FALTABA, Y FABRICABA UN ANTECEDENTE — REG-280 ──────────────────
+ *
+ * Medido con el motor real el 9-ago-2026:
+ *
+ *     «Tampoco diabetes»  →  positivas: ['Diabetes mellitus tipo 2']
+ *
+ * En un interrogatorio dirigido —**«¿Diabetes? No. ¿Hipertensión? Tampoco.»**—
+ * la segunda enfermedad quedaba registrada como que **sí la tiene**. Y
+ * «tampoco» es exactamente como se contesta a la segunda pregunta de una serie:
+ * no es una forma rebuscada, es la normal.
+ *
+ * Es el mismo daño que ya costó un motor entero: **la nota afirmando lo que el
+ * paciente negó**. Aquí el negador simplemente no estaba en la lista.
+ *
+ * Se añaden con el mismo criterio que los que ya había — **sólo lo que no
+ * admite otra lectura**:
+ *
+ *   · `tampoco`, `jamás` — negativos puros, sin uso afirmativo;
+ *   · `niego` — la primera persona, que faltaba junto a `niega`/`niego`;
+ *   · `no es` / `no soy` / `no son` — la forma con adjetivo («no es diabético»).
+ *
+ * Y NO se añade `no` a secas: «no acude por diabetes» no niega la diabetes, y
+ * negar de más borra un antecedente real — el error caro, no el otro.
+ */
+const NEGADORES = /\b(?:niega|nieg[ao]|niego|tampoco|jam[aá]s|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|es|soy|son|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -235,7 +261,98 @@ const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:t
 /** Palabras afirmativas que CIERRAN una negación previa */
 const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
 
+/**
+ * ── LA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN ANTECEDENTE — REG-281 ─────
+ *
+ * **El fallo más repetido de este repositorio**, y seguía vivo en el motor
+ * local. Medido el 9-ago-2026:
+ *
+ *     «¿Diabetes? No. ¿Hipertensión? Tampoco.»
+ *       → positivas: ['Hipertensión arterial', 'Diabetes mellitus tipo 2']
+ *
+ * El interrogatorio dirigido **nombra la enfermedad en la PREGUNTA**, y
+ * `estaNegado` sólo mira hacia ATRÁS: delante de «¿Diabetes?» no hay ningún
+ * negador porque la negación viene **después**, en la respuesta.
+ *
+ * ── POR QUÉ SOBREVIVIÓ A SU PROPIA REPARACIÓN ───────────────────────────────
+ *
+ * Esto se arregló en v976 — pero **para la vía de la IA**:
+ * `corregirCertezaPorNegacion` reclasifica lo que el modelo extrae. El **motor
+ * determinista local**, que es el que entra cuando la IA falla (sin créditos,
+ * timeout, límite de peticiones), nunca pasó por ese guardián.
+ *
+ * Es la misma forma que REG-267: **reparado en un sitio, vivo en el de al
+ * lado**. Y el sitio que quedó vivo es justo el que corre cuando lo demás no.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * Si el término está dentro de una pregunta, **decide la respuesta**, no el
+ * texto de antes. La pregunta se reconoce por un `?` que llega antes que
+ * cualquier fin de oración; da igual que falte el `¿` de apertura, porque el
+ * dictado casi nunca lo pone.
+ *
+ * Si no hay respuesta legible detrás, **no se afirma nada**: se deja que el
+ * juicio hacia atrás decida, que es lo que hacía antes. Inventar una negación
+ * es tan malo como inventar un antecedente.
+ */
+const FIN_DE_ORACION_TRAS_LA_PREGUNTA = /[.;\n]/
+
+function respuestaDeLaPregunta(texto: string, indiceMatch: number): string | null {
+  const desde = texto.slice(indiceMatch)
+  const cierre = desde.indexOf('?')
+  if (cierre === -1) return null
+  /* Un fin de oración antes del «?» significa que ese «?» es de OTRA pregunta. */
+  if (FIN_DE_ORACION_TRAS_LA_PREGUNTA.test(desde.slice(0, cierre))) return null
+  /**
+   * La respuesta es lo que va del «?» al siguiente fin de oración o a la
+   * siguiente pregunta. Sin ese tope, «¿Diabetes? No. ¿Hipertensión? Sí» daría
+   * a la diabetes la respuesta de la hipertensión.
+   */
+  const resto = desde.slice(cierre + 1)
+  const hasta = resto.search(/[.;\n?¿]/)
+  const respuesta = (hasta === -1 ? resto : resto.slice(0, hasta)).trim()
+  return respuesta || null
+}
+
+/**
+ * Respuestas que AFIRMAN. Cortas y sin ambigüedad, a propósito: lo que no esté
+ * aquí ni en `respuestaNiega` se trata como «no se sabe», que es más honesto que
+ * elegir un lado.
+ */
+const RESPUESTA_AFIRMA =
+  /^\s*(?:s[ií]|as[ií]\s+es|correcto|exacto|efectivamente|claro|desde\s+hace|hace\s+\d|me\s+lo\s+(?:dijeron|diagnosticaron)|padezco|tengo)\b/i
+
+/**
+ * ── NI AFIRMADA NI NEGADA: SÓLO PREGUNTADA — REG-281 ────────────────────────
+ *
+ * «¿Padece asma? **No sé**» dejaba el asma como antecedente POSITIVO.
+ *
+ * «No sé» no niega —y hace bien en no negar: no saber no es negar—, pero
+ * tampoco afirma. El término aparece **únicamente porque el médico lo preguntó**,
+ * y una lista de comorbilidades que sólo tiene dos casillas lo empujaba a la
+ * equivocada.
+ *
+ * Se excluye de las dos. **Ausencia de dato no es dato de ausencia, y tampoco
+ * es dato de presencia.**
+ */
+export function esSoloLaPregunta(texto: string, indiceMatch: number): boolean {
+  const respuesta = respuestaDeLaPregunta(texto, indiceMatch)
+  if (respuesta === null) return false
+  if (respuestaNiega(respuesta) || RESPUESTA_AFIRMA.test(respuesta)) return false
+  /**
+   * Y sólo si el término NO aparece afirmado en otro sitio del texto: «¿Asma?
+   * No sé. En tratamiento con salbutamol por asma» sí es un antecedente, y
+   * callarlo por la primera mención sería perder el dato.
+   */
+  return !/\b(?:tiene|padece|en\s+tratamiento|diagnosticad[oa]|conocid[oa])\b/i
+    .test(texto.slice(indiceMatch + 1))
+}
+
 export function estaNegado(texto: string, indiceMatch: number): boolean {
+  /* Si el término vive dentro de una pregunta, manda la respuesta. */
+  const respuesta = respuestaDeLaPregunta(texto, indiceMatch)
+  if (respuesta !== null && respuestaNiega(respuesta)) return true
+
   const ventanaInicio = Math.max(0, indiceMatch - 40)
   let ventana = texto.slice(ventanaInicio, indiceMatch)
   // Corta en el último signo terminal (punto, punto-y-coma, salto de línea)
@@ -290,6 +407,12 @@ export function extraerComorbilidades(texto: string): {
   for (const item of COMORBILIDADES_DIC) {
     const match = t.match(item.patron)
     if (!match || match.index === undefined) continue
+    /**
+     * Ni afirmada ni negada: el término está ahí sólo porque se preguntó y
+     * la respuesta no decide («no sé»). No entra en NINGUNA de las dos listas
+     * (REG-281). Ausencia de dato no es dato de ausencia — ni de presencia.
+     */
+    if (esSoloLaPregunta(t, match.index)) continue
     if (estaNegado(t, match.index)) {
       negadas.add(item.canonico)
       if (item.preopKey) preopFlags[item.preopKey] = false

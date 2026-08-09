@@ -57,7 +57,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El motor lingüístico cubre el español que uno escribiría, no el que se ' +
       'habla en un consultorio mexicano. Se descubre midiendo contra frases ' +
       'reales, nunca leyendo el código.',
-    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276],
+    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276, 280, 281],
   },
   {
     clave: 'sin_medir',

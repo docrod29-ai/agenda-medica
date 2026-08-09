@@ -2689,3 +2689,19 @@ campo estructurado.
 
 No es un aviso que falte: es el sistema afirmando la ausencia de una alergia que
 el expediente sí registra. Un hueco calla; esto miente.
+
+## v1156 — la pregunta del interrogatorio ya no es un antecedente (REG-280/281)
+
+**«¿Diabetes? No. ¿Hipertensión? Tampoco.»** dejaba las **dos** enfermedades como
+antecedentes POSITIVOS. Dos causas: «tampoco» no estaba entre los negadores, y
+`estaNegado` sólo miraba hacia atrás — pero el interrogatorio nombra la
+enfermedad en la **pregunta** y la niega en la **respuesta**.
+
+Se reparó en v976 para la vía de la IA. El motor determinista local —el que entra
+**cuando la IA falla**— nunca pasó por ese guardián.
+
+Y un tercer estado que faltaba: «¿Padece asma? No sé» dejaba el asma positiva.
+Ahora no entra en ninguna lista, salvo si consta afirmada en otro sitio.
+
+SAFE-007 se cierra: su prueba fijaba el defecto y decía «cuando alguien lo repare
+se pondrá roja». Se puso roja.

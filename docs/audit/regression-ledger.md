@@ -5877,3 +5877,68 @@ franja gritara en todos los ingresos hasta que nadie la mirara.
 
 - `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`
 - `src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-280 / REG-281 — la enfermedad nombrada en la pregunta se cosechaba como antecedente (v1156)
+
+**El fallo más repetido de este repositorio**, y seguía vivo en el motor
+determinista local. Medido el 9-ago-2026 con `extraerComorbilidades` de verdad:
+
+```
+«¿Diabetes? No. ¿Hipertensión? Tampoco.»
+  → positivas: ['Hipertensión arterial', 'Diabetes mellitus tipo 2']
+```
+
+Dos enfermedades que el paciente **acababa de negar**, registradas como que sí
+las tiene.
+
+### Dos causas
+
+**REG-280 — «tampoco» no estaba entre los negadores.** Y «tampoco» es
+exactamente como se contesta a la segunda pregunta de una serie: no es una forma
+rebuscada, es la normal. Se añaden con el mismo criterio que los que ya había —
+sólo lo que no admite otra lectura: `tampoco`, `jamás`, `niego`, `no es/soy/son`.
+**No** se añade `no` a secas: «no acude por diabetes» no niega la diabetes, y
+negar de más **borra un antecedente real**, que es el error caro.
+
+**REG-281 — el interrogatorio nombra la enfermedad en la PREGUNTA.** `estaNegado`
+sólo miraba hacia atrás, y delante de «¿Diabetes?» no hay negador: la negación
+viene **después**, en la respuesta. Ahora, si el término vive dentro de una
+pregunta, **decide la respuesta**. Funciona sin el «¿» de apertura, porque el
+dictado casi nunca lo pone, y cada pregunta se queda con **su** respuesta.
+
+### Por qué sobrevivió a su propia reparación
+
+Esto se arregló en **v976 — para la vía de la IA**:
+`corregirCertezaPorNegacion` reclasifica lo que el modelo extrae. El motor
+determinista local, que es el que entra **cuando la IA falla** (sin créditos,
+timeout, límite de peticiones), nunca pasó por ese guardián.
+
+Es la forma de REG-267: reparado en un sitio, vivo en el de al lado. Y el que
+quedó vivo es justo **el que corre cuando lo demás no**.
+
+### Y un tercer estado que faltaba
+
+«¿Padece asma? **No sé**» dejaba el asma POSITIVA. «No sé» no niega —y hace
+bien: no saber no es negar— pero tampoco afirma. Con sólo dos casillas, el
+término caía en la equivocada. Ahora no entra en ninguna… salvo si consta
+afirmado en otro sitio del texto, porque callarlo por la primera mención sería
+perder el dato.
+
+**Ausencia de dato no es dato de ausencia, y tampoco es dato de presencia.**
+
+### SAFE-007 se cierra, y su prueba lo dijo antes
+
+`lo-negado-no-puntua-en-stop-bang` traía una prueba que **fijaba el defecto** con
+este comentario: *«Cuando alguien lo repare se pondrá roja, y eso es lo que se
+busca: que el día que cambie, se note.»* Se puso roja. La aserción se invierte.
+
+**Un pendiente declarado con una prueba es la única clase de pendiente que avisa
+cuando deja de serlo.**
+
+### Archivos
+
+- `src/lib/expediente/parser-clinico.ts` (`NEGADORES`, `respuestaDeLaPregunta`, `esSoloLaPregunta`)
+- `src/__tests__/la-pregunta-no-es-un-antecedente.test.ts` (nuevo, 15 casos, sellado)
+- `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` (SAFE-007 cerrado)

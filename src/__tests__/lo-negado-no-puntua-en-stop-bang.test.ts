@@ -203,7 +203,7 @@ describe('el negador pegado al verbo', () => {
   })
 })
 
-describe('LO QUE SIGUE SIN CUBRIRSE — declarado, no disimulado', () => {
+describe('LO QUE ESTABA DECLARADO SIN CUBRIR — y quedó cubierto (REG-281)', () => {
   /**
    * El interrogatorio en formato pregunta-respuesta. `estaNegado()` busca
    * negadores léxicos cerca del término y no sabe que un «No.» suelto contesta a
@@ -219,10 +219,34 @@ describe('LO QUE SIGUE SIN CUBRIRSE — declarado, no disimulado', () => {
    * Esta prueba fija el estado CONOCIDO. Cuando alguien lo repare se pondrá
    * roja, y eso es lo que se busca: que el día que cambie, se note.
    */
-  it('el formato pregunta-respuesta todavía fabrica los cuatro puntos (SAFE-007)', () => {
+  /**
+   * ── SE PUSO ROJA, QUE ERA LO QUE SE BUSCABA ─────────────────────────────
+   *
+   * El comentario de arriba decía, palabra por palabra: «Esta prueba fija el
+   * estado CONOCIDO. Cuando alguien lo repare se pondrá roja, y eso es lo que
+   * se busca: que el día que cambie, se note.»
+   *
+   * Se reparó el 9-ago-2026 en REG-281: `estaNegado` mira ahora la RESPUESTA
+   * cuando el término vive dentro de una pregunta. Así que la aserción se
+   * invierte — de fijar el defecto a fijar el arreglo.
+   *
+   * **Un pendiente declarado con una prueba es la única clase de pendiente que
+   * avisa cuando deja de serlo.** SAFE-007 se cierra aquí.
+   */
+  it('el formato pregunta-respuesta ya NO fabrica los cuatro puntos (SAFE-007, cerrado)', () => {
     const r = extraerStopBang(
       '¿Ronca fuerte? No. ¿Tiene somnolencia diurna? No. '
       + '¿Le han observado apneas? No. ¿Tiene presión alta? No.',
+    )
+    expect(r.snoring, 'ronquido fabricado sobre una negación').toBe(false)
+    expect(r.tiredness, 'somnolencia fabricada sobre una negación').toBe(false)
+    expect(r.pressure, 'hipertensión fabricada sobre una negación').toBe(false)
+  })
+
+  it('y con respuestas afirmativas sí puntúa, que es lo otro que hay que sostener', () => {
+    /** Perder los puntos reales sería el error contrario, y el caro. */
+    const r = extraerStopBang(
+      '¿Ronca fuerte? Sí. ¿Tiene somnolencia diurna? Sí. ¿Tiene presión alta? Sí.',
     )
     expect(r.snoring).toBe(true)
     expect(r.tiredness).toBe(true)

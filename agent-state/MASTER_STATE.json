@@ -16,18 +16,18 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1155",
+  "ultimaVersionEnProduccion": "nexusmed-v1156",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
+    " M src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts"
+    " M src/lib/expediente/parser-clinico.ts",
+    "?? src/__tests__/la-pregunta-no-es-un-antecedente.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +63,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 127,
-    "ultimaREG": "REG-279",
-    "archivosDePrueba": 558,
-    "casosDePrueba": 7379,
+    "regsEnElLedger": 129,
+    "ultimaREG": "REG-281",
+    "archivosDePrueba": 559,
+    "casosDePrueba": 7392,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
