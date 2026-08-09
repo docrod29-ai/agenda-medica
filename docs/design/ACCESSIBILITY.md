@@ -65,3 +65,55 @@ poblarla. La siembra manda (V10 §33.2: datos sintéticos realistas).
 
 Pendiente de la línea base (no lo cubre axe): recorrido de teclado completo,
 lector de pantalla real y foco visible — se levantan en `V10-A11Y-001`.
+
+## Segunda línea base independiente — 9-ago-2026 (corrida paralela)
+
+Una corrida paralela levantó SU propia línea base con otro arnés y otro método
+de conteo (nodos, no tipos), **sobre una línea de código que aún no llevaba los
+arreglos de arriba** — por eso sus números no son comparables uno a uno con la
+re-medición. Se conserva íntegra porque encontró fallos que la primera línea
+base no vio (el FAB de tema sin nombre en TODAS las pantallas, y calendario
+completo, que la primera no auditó):
+
+**Método**: axe-core 4.11.4 inyectado en las 7 pantallas del golden flow,
+autenticado, datos sintéticos, build de producción, 1440 y 390
+(`bash scripts/design/arnes-capturas-v10.sh axe`). Resultado completo:
+`tests/accessibility/axe-baseline-v10.json`.
+
+**Total: 71 nodos con fallo — 30 críticos, 41 serios. 5 reglas distintas.**
+
+| Regla (impacto) | Dónde | Qué es |
+|---|---|---|
+| `button-name` (crítico) | **TODAS las pantallas** (1 botón recurrente — el FAB de luna/tema) + 3 en citas y calendario (iconos chat/lápiz/kebab) | Botones sin nombre accesible: un lector de pantalla anuncia «botón» y nada más |
+| `label` (crítico) | consulta: **4 textareas clínicas** con `placeholder=""`; citas: `input[type="date"]` | Campos clínicos sin etiqueta programática — el dictado de la nota es invisible para tecnologías de apoyo |
+| `color-contrast` (serio) | dashboard: `.prox-hero-cta` (el CTA **primario** «Iniciar consulta»); citas: «Registrar cobro»; calendario: ranuras | Texto bajo 4.5:1 — incluye el botón más importante del dashboard |
+| `nested-interactive` (serio) | calendario: `role="button"` dentro de `role="button"` en las ranuras | El elemento interno no es alcanzable por teclado/lector |
+| `target-size` (serio) | login: ojo de contraseña; calendario: ranuras | Objetivo táctil bajo el mínimo (WCAG 2.2) |
+
+**Lecturas**: el fallo más repetido (FAB sin nombre) confirma el hallazgo del
+revisor visual (V10-FABS-DOBLES). Lo más grave clínicamente son las textareas
+de la consulta sin etiqueta. Lo más visible: el contraste del CTA primario.
+
+**Lo que esta línea NO mide** (declarado, para señalar de menos): orden real
+de tabulación, visibilidad del foco al navegar, trampas de foco en modales,
+experiencia de lector de pantalla. Se mide a mano en `V10-A11Y-001`.
+
+Los defectos están en `V10_BACKLOG.json` (`V10-A11Y-*`); la compuerta de CI
+nace en `V10-A11Y-001` cuando los críticos estén en cero.
+
+## Reconciliación de las dos líneas (9-ago-2026, fusión)
+
+Tras fusionar las dos corridas, quedan **abiertos** (unión de ambas mediciones,
+descontando lo ya reparado con guardián):
+
+| Hallazgo | Origen | Dueño |
+|---|---|---|
+| FAB de luna/tema sin `button-name`, todas las pantallas | 2.ª línea | V10-FABS-DOBLES / V10-SHELL-001 |
+| Iconos chat/lápiz/kebab sin nombre en citas y calendario | 2.ª línea (agenda ya reparada) | V10-AGENDA-001 |
+| `color-contrast` hoy/agenda/nota (subtítulos, «Registrar cobro», etiquetas grises) | ambas | V10-TODAY/AGENDA-001, DEBT-008 |
+| `nested-interactive` pacientes (fila poblada) y calendario (ranuras) | ambas | DEBT-010 / V10-AGENDA-001 |
+| `target-size` ranuras de calendario | 2.ª línea | V10-AGENDA-001 |
+
+La próxima medición axe corre sobre la línea FUSIONADA (las dos ramas ya son
+una), con siembra poblada en todas las pantallas — las cifras de referencia a
+partir de ahí son las de esa corrida, no las de estas dos.

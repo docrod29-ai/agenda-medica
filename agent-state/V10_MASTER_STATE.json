@@ -32,10 +32,25 @@
         "fecha": "2026-08-09-madrugada-3",
         "rama": "claude/kind-brahmagupta-ysxb6q",
         "trabajo": "V10-DEBT-006 quick-strike (mitad expediente): CTA primario primero en móvil con rejilla exp-actions, guardián probado al revés, capturas + axe re-verificados. De paso: el trinquete de escala volvió a verde (fontSize: 25 suelto de /cumplimiento/motores → t-h1; lo introdujo v1163 en main)"
+      },
+      {
+        "fecha": "2026-08-09-tarde-2",
+        "rama": "claude/kind-brahmagupta-iurzog",
+        "trabajo": "paralela a la cadena (no la vio): arnés propio scripts/design/arnes-capturas-v10.sh sobre build de producción, scorecard con revisor INDEPENDIENTE (§40), backlog con 24 hallazgos, arreglo V10-SAFETY-ALERGIAS-WORDING con guardián, candado demo-* en firebase.ts con guardián, línea base axe propia (71 nodos)"
+      },
+      {
+        "fecha": "2026-08-09",
+        "rama": "claude/nexus-visual-excellence-v10",
+        "trabajo": "HOME-001 (sesión local del dueño): /dashboard deja de ser tablero — orden §14, sin KPI, sin accesos rápidos, móvil primero"
+      },
+      {
+        "fecha": "2026-08-09-tarde-3",
+        "rama": "claude/kind-brahmagupta-40oom1",
+        "trabajo": "RECONCILIACIÓN: las tres líneas fusionadas en una; estado cruzado (HOME-001 cierra 2 hallazgos de iurzog, DEBT-005 cierra 1, alergias cerrado); trinquete de diseño BAJA a 560/2020/637 medido sobre la fusión; c51p2n y 9xajvg superadas"
       }
     ]
   },
-  "iteracionActual": "V10-DEBT-006 mitad-expediente CERRADA; siguiente: V10-D1 sigue abierta → si se decide, V10-CONSTITUTION-001; si no, DEBT-010 espera fusión V9 (pacientes/page.tsx) — el siguiente quick-strike sin riesgo es la mitad HOY de DEBT-006 (V10-TODAY-001) o DEBT-007 (resaltado de barra lateral en /pacientes)",
+  "iteracionActual": "V10-CONSTITUTION-001 (DEBT-001/002, desbloqueada por V10-D1) — con re-captura pendiente de /dashboard (HOME-001) y nota--* para cerrar evidencia",
   "iteracionesCerradas": [
     "V10-TRUTH-001 (2026-08-09 noche)"
   ],
@@ -64,5 +79,10 @@
     "auditoriaProducto": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
     "sistemaDeDiseno": "docs/DESIGN_SYSTEM.md (fuente de verdad visual hoy)",
     "matricesCompetitivas": "docs/competitive/UX_UI_MATRIX.md · docs/competitive/PATIENT_EXPERIENCE_MATRIX.md · docs/competitive/EL-FOSO.md"
+  },
+  "puntaReconciliada": "claude/kind-brahmagupta-40oom1 (9-ago-2026): fusión de la cadena ysxb6q + iurzog + HOME-001 (dee76d35). LA SIGUIENTE CORRIDA ARRANCA DE AQUÍ.",
+  "ramasSuperadas": {
+    "claude/kind-brahmagupta-c51p2n": "duplicado paralelo de TRUTH-001 (capturas+scorecard sobre base vieja) — su sustancia está cubierta por la cadena e iurzog",
+    "claude/kind-brahmagupta-9xajvg": "acta de bloqueo errónea (la directiva sí existía)"
   }
 }

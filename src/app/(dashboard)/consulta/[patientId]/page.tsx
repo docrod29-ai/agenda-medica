@@ -3885,7 +3885,14 @@ export default function ConsultaActivaPage() {
             void logAudit({ evento: 'paciente_modificado', clinicId, patientId, meta: { campo: 'alergias', antes, despues, vaciado: !despues.trim() && !!antes.trim() } })
             alergiasAlAbrir.current = despues
           }}
-          placeholder="Sin alergias conocidas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
+          // «No registradas», nunca «Sin alergias conocidas»: el campo vacío
+          // significa que NADIE preguntó todavía, no que el paciente niegue.
+          // «Sin alergias conocidas» es además una frase de NEGACIÓN del
+          // vocabulario clínico (alergias-negacion.test.ts): sólo puede
+          // escribirla el médico como dato, no el placeholder como adorno.
+          // Regla 4 de clinical-safety: ausencia de dato no es dato de ausencia.
+          // Guardián: alergias-placeholder-no-afirma.test.ts
+          placeholder="No registradas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />

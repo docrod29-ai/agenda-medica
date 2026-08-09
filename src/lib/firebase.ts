@@ -68,15 +68,20 @@ export const storage = (() => {
   try { return getStorage(app) } catch { return null }
 })()
 
-// ── Emuladores locales — SÓLO arnés de capturas y pruebas de interfaz ──────
-// Se activa únicamente con NEXT_PUBLIC_FIREBASE_EMULATORS=1 (vive en .env.local,
-// que git ignora; ningún despliegue la define). Con la bandera apagada este
-// bloque no ejecuta nada: producción queda idéntica.
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1') {
-  try {
-    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-    connectFirestoreEmulator(db, '127.0.0.1', 8080)
-  } catch { /* HMR re-ejecuta el módulo; el SDK prohíbe reconectar y no hace falta */ }
+// ── Emuladores locales (arnés de pruebas/capturas V10) ──────────────────
+// Doble candado: exige NEXT_PUBLIC_FIREBASE_EMULATORS=1 Y que el projectId
+// empiece con `demo-` (prefijo que Firebase reserva para proyectos que SOLO
+// existen en el emulador). Con un projectId real esto es inerte aunque la
+// variable se filtre a un despliegue: nunca puede apuntar la app de producción
+// a un emulador ni viceversa.
+// Síncrono a propósito: conectar DESPUÉS de la primera operación lanza; por
+// eso corre aquí, en el init del módulo, antes de que nadie use auth/db.
+if (
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1' &&
+  (firebaseConfig.projectId ?? '').startsWith('demo-')
+) {
+  try { connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true }) } catch { /* ya conectado */ }
+  try { connectFirestoreEmulator(db, '127.0.0.1', 8080) } catch { /* ya conectado */ }
 }
 
 /**

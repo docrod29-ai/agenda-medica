@@ -4,74 +4,72 @@
 [`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`](../docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md)
 antes de tocar nada.
 
-**Rama**: historia V10 encadenada — `claude/nexus-visual-excellence-v10`
-(instalación) → `claude/kind-brahmagupta-exbp9m` (arnés) →
-`claude/kind-brahmagupta-2yxowl` (cierre TRUTH-001) →
-`claude/kind-brahmagupta-rms50y` (quick-strike NOTE-001) →
-`claude/kind-brahmagupta-ysxb6q` (quick-strike DEBT-006, 9-ago). Cada sesión
-cloud empuja a su rama configurada y arranca de la punta más adelantada
-(V10 §3). OJO para la siguiente corrida: la punta es **ysxb6q**.
+**Rama**: la historia V10 quedó **RECONCILIADA** el 9-ago-2026 (tarde) en
+`claude/kind-brahmagupta-40oom1`. OJO para la siguiente corrida: **la punta es
+40oom1** — contiene la cadena completa (instalación → exbp9m → 2yxowl →
+rms50y → ysxb6q), la corrida paralela iurzog y HOME-001 de la rama canónica.
+`c51p2n` y `9xajvg` están superadas: no arrancar de ellas ni fusionarlas.
 
-**Iteración en curso**: quick-strikes entre unidades. `V10-NOTE-001` quick
-cerrado (DEBT-008/009); `V10-DEBT-006` **mitad expediente cerrada** (la mitad
-HOY va en V10-TODAY-001). Las unidades completas de la secuencia §32 esperan
-V10-D1.
+## Por qué hizo falta reconciliar (que no se repita)
 
-## Corrida del 9-ago (madrugada-3) — qué se hizo
+El 9-ago corrieron **en paralelo** varias sesiones V10 sin verse entre sí:
+la cadena (que sí se encadenaba corrida a corrida), iurzog (arrancó de la rama
+canónica vieja) y la sesión local del dueño (HOME-001 en la rama canónica).
+Resultado: dos arneses de captura para lo mismo, dos scorecards de las mismas
+pantallas, dos líneas base de accesibilidad, y hallazgos re-encontrados que la
+otra línea ya había reparado. **Protocolo desde ahora**: antes de trabajar,
+`git fetch` y comparar TODAS las ramas `claude/*` y la canónica por fecha de
+commit; si hay una corrida viva (push < 10 min), no tocar sus archivos y
+reconciliar sólo cuando quede quieta (V10 §41).
 
-| Qué | Evidencia |
+## Estado tras la reconciliación
+
+| Qué | Estado |
 |---|---|
-| **DEBT-006 (mitad expediente) cerrado** — el CTA primario va primero en móvil | Bajo 480px `exp-actions` pasa a rejilla: «Nueva consulta con IA» (último hijo DOM — escritorio y orden de foco intactos) sube a la primera fila completa con `order:-1`; Carta de referencia a su fila; Expediente completo \| FHIR comparten; objetivos 44px. Mismo patrón que `nota-toolbar` (§8.33). Captura `expediente--390.png` nueva |
-| **Guardián probado al revés** | `src/__tests__/expediente-cta-primero-movil.test.ts` — 4/5 fallan sin el arreglo (git stash); el 5.º es el canario del orden DOM (documenta que `last-child` apunta al botón correcto) |
-| **Trinquete de escala reparado** | `escala-visual-trinquete` fallaba en rojo EN MAIN: v1163 (`/cumplimiento/motores`, corrida V7) metió `fontSize: 25` — 39.º tamaño distinto contra techo 38. El h1 pasó a `className="t-h1"` como sus 7 páginas hermanas. No fue esta corrida quien lo rompió (verificado con stash contra HEAD) |
-| **axe re-verificado** | expediente **0 critical/serious** en 1440 y 390; el programa sigue en 6 hallazgos (contraste hoy/agenda → TODAY/AGENDA-001, nested-interactive pacientes → DEBT-010). `reporte-a11y.json` regenerado |
-| **Scorecard** | expediente 8.7 → **8.8** (jerarquía 9→9.5, responsive 8→8.5) · global **8.28** |
+| **V10-TRUTH-001** | ✅ CERRADA (cadena, 9-ago noche) y ENRIQUECIDA por iurzog: scorecard con revisor independiente (§40), 2.ª línea base axe, backlog +24 hallazgos con evidencia |
+| **V10-D1 (fusión V9)** | ✅ EJECUTADA: PR #279 en main (`56d9fc7a`); REG de V9 = 294…305 |
+| **HOME-001** (/dashboard) | ✅ implementado y fusionado; **re-captura pendiente** para puntuar con revisor independiente (las dos puntuaciones existentes son de la pantalla ANTERIOR) |
+| **NOTE-001 quick** (DEBT-008/009) | ✅ cerrado; re-captura `nota--*.png` pendiente (banda 13→14, radio 12→10) |
+| **DEBT-006a** (expediente móvil) | ✅ cerrado con guardián |
+| **V10-SAFETY-ALERGIAS-WORDING** | ✅ cerrado (iurzog): «No registradas», con guardián |
+| **Alineación a11y** | unión de las dos líneas en `docs/design/ACCESSIBILITY.md`; abiertos: FAB de tema sin nombre (todas), iconos citas/calendario, contrastes hoy/agenda/nota, nested-interactive pacientes/calendario |
+| **Trinquete de diseño** | BAJÓ a **560 hex / 2020 tamaños / 637 radios** medido sobre la fusión |
+| **Backlog** | 32 items reconciliados en `V10_BACKLOG.json` (estado cruzado: lo que una línea encontró y otra reparó, marcado) |
 
-## Compuertas de esta corrida
+## Compuertas de esta corrida (reconciliación)
 
-- `npx vitest run`: **8 478 pasan · 1 saltada · 1 falla** — la falla es
-  `ops-timeout-y-punto-ciego`, la MISMA falla de entorno documentada en las dos
-  corridas anteriores (espera que `10.255.255.1` cuelgue y el proxy del sandbox
-  contesta al instante). En CI de GitHub pasa. No se tocó el test.
-- `lint-trinquete`: **96, igual que el techo.**
-- `escala-visual-trinquete`: **verde otra vez** (38 = techo 38).
-- `npm run build`: **compila.**
-- axe en navegador real: expediente **0** critical/serious (ambos anchos).
-
-## Advertencia de concurrencia (V10 §41)
-
-`expediente/[patientId]/page.tsx` NO está entre los archivos de la rama V9 sin
-fusionar (sólo `src/lib/expediente/exportacion.ts` — otro archivo). El arreglo
-del trinquete tocó `cumplimiento/motores/page.tsx`, archivo nuevo de main
-(v1163), tampoco en la rama V9. Cero riesgo de pisar trabajo validado.
+- `npx vitest run`: **8 592 pasan · 1 falla** — `ops-timeout-y-punto-ciego`,
+  la MISMA falla de entorno documentada por las tres corridas anteriores (el
+  proxy del sandbox contesta donde el test espera un cuelgue; en CI pasa).
+- `lint-trinquete`: **96 = techo**.
+- trinquete de diseño: **verde, techos bajados** (560/2020/637).
+- `npm run build`: **compila** (161 páginas). OJO contenedor nuevo: el build
+  necesita el `.env.local` demo ANTES de arrancar — sin ninguna config de
+  Firebase, `collecting page data` revienta en `/dr/[clinicId]` con
+  `auth/invalid-api-key`. No es defecto del código: es el paso 0 del arnés.
+- Resolución de `firebase.ts`: gana la versión iurzog (doble candado
+  `NEXT_PUBLIC_FIREBASE_EMULATORS=1` **y** projectId `demo-*`, conexión también
+  en servidor) — su guardián `emulador-solo-demo.test.ts` la exige y hace
+  posible fotografiar el build de producción.
 
 ## Próxima acción exacta (siguiente corrida)
 
-**V10-D1 EJECUTADA HASTA EL FINAL** (9-ago tarde): PR #279 **FUSIONADO a
-main** (`56d9fc7a`) con CI en verde, y main ya está fusionado también en esta
-rama V10. OJO: las REG de V9 quedaron finalmente en **REG-294…305** — el loop
-V7 acuñó 291…293 en paralelo y obligó a una segunda renumeración (la historia
-completa está en la nota de fusión del ledger).
+1. **Re-captura y puntuación independiente** de `/dashboard` (HOME-001) y
+   `nota--*` con cualquiera de los dos arneses — cierra la evidencia de las
+   dos unidades ya implementadas. De paso: primera puntuación de expediente y
+   consulta con siembra fiel (quedaron SIN PUNTUAR).
+2. **V10-CONSTITUTION-001** (DEBT-001/002, ya sin candado V9): construir los
+   tokens/utilidades que faltan SOBRE el sistema de diseño de V9 que ya está
+   en main — no rehacerlo.
+3. Después, por prioridad del backlog: DEBT-003 (agenda móvil rota, P1) y
+   DEBT-010 + nested-interactive (pacientes móvil).
+4. Consolidar los DOS arneses de captura en uno (registrado en backlog) al
+   abrir V10-VISUAL-REGRESSION-001.
 
-De paso en esta corrida: los techos del trinquete de diseño BAJARON a
-564 hex / 2026 tamaños / 638 radios (la tinta del papel de la nota vive en
-una constante `TINTA`, la banda BORRADOR quedó en 14/radio 10, y el 72 de la
-marca de agua es atributo del SVG, no escalón tipográfico). Pendiente de la
-siguiente corrida: re-capturar `nota--*.png` con el arnés (el cambio es
-mínimo: banda 13→14 y radio 12→10).
-
-1. **V10-CONSTITUTION-001** (DEBT-001/002): es lo que desbloquea todo lo
-   demás. El sistema de diseño de V9 ya está en main; la unidad NO lo
-   rehace — construye los tokens/utilidades que faltan sobre él.
-2. Ya sin candado V9: **DEBT-003** (agenda móvil, la pantalla más usada) y
-   **DEBT-010** (pacientes móvil) entran en secuencia normal.
-3. Quick-strikes aún válidos: DEBT-007a (resaltado de barra lateral en
-   /pacientes) y DEBT-006b (círculos de icono de hoy-escritorio).
-
-### Cómo relanzar el arnés (resumen operativo)
+### Cómo relanzar el arnés (resumen operativo — contenedor nuevo)
 
 ```bash
-# 0. .env.local demo (si el contenedor es nuevo — valores NO reales):
+# 0. .env.local demo (OBLIGATORIO antes de npm run build; valores NO reales):
 #    NEXT_PUBLIC_FIREBASE_API_KEY=demo-nexusmed-api-key
 #    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-nexusmed-test.firebaseapp.com
 #    NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-nexusmed-test
@@ -82,10 +80,11 @@ mínimo: banda 13→14 y radio 12→10).
 # 1. emuladores            npx firebase-tools emulators:start --only firestore,auth --project demo-nexusmed-test
 # 2. siembra               FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 #                            GCLOUD_PROJECT=demo-nexusmed-test node tests/visual/sembrar-sinteticos.mjs
-# 3. app                   npm run dev
-# 4. capturas + rendimiento ARNES_CHROMIUM=/opt/pw-browsers/chromium node tests/visual/arnes-capturas.mjs
-# 5. accesibilidad         npm i --no-save axe-core && ARNES_CHROMIUM=... node tests/visual/arnes-a11y.mjs
+# 3a. app (arnés dev)      npm run dev
+# 4a. capturas             ARNES_CHROMIUM=/opt/pw-browsers/chromium node tests/visual/arnes-capturas.mjs
+# 5a. accesibilidad        npm i --no-save axe-core && ARNES_CHROMIUM=... node tests/visual/arnes-a11y.mjs
+# 3b. ALTERNATIVA prod:    bash scripts/design/arnes-capturas-v10.sh   (build real + siembra propia + axe propio)
 # Trampas: localhost (no 127.0.0.1), --no-proxy-server, waitUntil:'load',
-# esperar a que el emulador ESCUCHE de verdad antes de sembrar (el primer curl
-# puede mentir), y pre-marcar tour y push en localStorage (ya lo hacen los arneses).
+# esperar a que el emulador ESCUCHE antes de sembrar, pre-marcar tour y push
+# en localStorage (los arneses ya lo hacen).
 ```

@@ -66,3 +66,6 @@ synthetic-data/dialogos-consulta/salida/silencio.mp3
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Capturas de trabajo del arnés visual — se curan a mano tras revisión
+tests/visual/capturas/

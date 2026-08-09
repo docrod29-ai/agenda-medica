@@ -44,6 +44,15 @@ nunca hidrata), `--no-proxy-server` en Chromium, `waitUntil: 'load'` (los
 onSnapshot de Firestore impiden networkidle), y pre-marcar en localStorage el
 tour (`nexus_tour_v1_<uid>`) y el opt-in de push (`agenda-medica:push-dismissed`).
 
+**Segundo arnés de la corrida paralela (también en el repo)**:
+`scripts/design/arnes-capturas-v10.sh` (emuladores demo → siembra
+`scripts/design/sembrar-demo-v10.mjs` → `next start` con build real →
+playwright `scripts/design/capturas-v10.mjs` → axe `scripts/design/axe-v10.mjs`).
+Fotografía el build de PRODUCCIÓN (el otro usa `next dev`). El candado demo-*
+de `src/lib/firebase.ts` tiene guardián (`emulador-solo-demo.test.ts`, probado
+al revés). DOS arneses para lo mismo es deuda: consolidar en uno al abrir
+V10-VISUAL-REGRESSION-001 (registrado en el backlog).
+
 Historia del intento original (referencia):
 
 ### (histórico) Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
