@@ -5942,3 +5942,56 @@ cuando deja de serlo.**
 - `src/lib/expediente/parser-clinico.ts` (`NEGADORES`, `respuestaDeLaPregunta`, `esSoloLaPregunta`)
 - `src/__tests__/la-pregunta-no-es-un-antecedente.test.ts` (nuevo, 15 casos, sellado)
 - `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` (SAFE-007 cerrado)
+
+---
+
+## REG-282 — un negador sin su afirmador gemelo BORRA un antecedente (v1157)
+
+**La regla que faltaba, y que costó el mismo daño dos veces en el mismo día.**
+
+Un verbo puede entrar en una negación —«no **padece** diabetes»— y también
+**cerrar** una anterior —«niega tabaquismo, **padece** diabetes»—. Si entra en
+`NEGADORES` y no en `AFIRMADORES`, el arreglo **no repara la mitad: la mueve al
+lado que no se ve**, porque nadie echa de menos un antecedente que no está.
+
+| Cuándo | Qué se añadió sólo a un lado | Qué produjo |
+|---|---|---|
+| REG-192 | `padece` / `padezco` | «Niega tabaquismo, padece diabetes» → **diabetes NEGADA** |
+| REG-280 (mío, hoy) | `es` / `soy` / `son` | «Niega diabetes, es fumador» → **tabaquismo NEGADO** |
+
+Las dos **borran un antecedente real**, y eso es peor que inventarlo: el
+inventado estorba y se ve; el borrado no se echa de menos. Encontrado porque la
+rutina `REG-270-negacion-parser` dejó la regla escrita — y lo primero que hice
+al leerla fue comprobar si yo acababa de romperla. La había roto.
+
+### Las ocho formas que caían del lado afirmativo
+
+Medidas sobre el árbol de producción: «no he tenido», «nunca he tenido», «jamás
+ha tenido», «tampoco tiene», «no sufre de», «no cuenta con», «no fuma», «no es
+fumador».
+
+Las dos últimas son de otra clase: ahí **el término clínico ES el verbo**, así
+que entre el negador y el término no queda nada que reconocer. Se cubren
+exigiendo que el negador esté **inmediatamente antes** — con eso «no acude por
+diabetes» sigue sin negar la diabetes, que es el error contrario.
+
+### Dos defectos de ventana, propios
+
+- El afirmador se juzgaba con **7 caracteres** de contexto, y «tampoco » mide
+  ocho: se leía «ampoco », que no casa. El `tiene` de «tampoco tiene diabetes»
+  cerraba entonces la negación que el `tampoco` acababa de abrir.
+- `tampoco` y `jamás` no estaban entre los que **abren** negación junto a
+  `no`/`nunca`/`sin`.
+
+### El arreglo es estructural, no una lista más larga
+
+Los dos lados salen de **`VERBOS_DE_TENENCIA`**, una sola lista. Añadir un verbo
+lo añade a las dos caras a la vez: **la desalineación deja de ser posible**, que
+es distinto de ser improbable. La prueba lo comprueba leyendo la fuente, porque
+mientras las dos expresiones se tecleen por separado alguien volverá a añadir un
+verbo a una sola — ya pasó dos veces en el mismo día.
+
+### Archivos
+
+- `src/lib/expediente/parser-clinico.ts`
+- `src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts` (nuevo, 16 casos, sellado)

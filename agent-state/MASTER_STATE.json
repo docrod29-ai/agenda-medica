@@ -16,18 +16,17 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1156",
+  "ultimaVersionEnProduccion": "nexusmed-v1157",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
     " M src/lib/expediente/parser-clinico.ts",
-    "?? src/__tests__/la-pregunta-no-es-un-antecedente.test.ts"
+    "?? src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +62,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 129,
-    "ultimaREG": "REG-281",
-    "archivosDePrueba": 559,
-    "casosDePrueba": 7392,
+    "regsEnElLedger": 130,
+    "ultimaREG": "REG-282",
+    "archivosDePrueba": 560,
+    "casosDePrueba": 7402,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

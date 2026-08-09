@@ -249,7 +249,55 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
  * Y NO se añade `no` a secas: «no acude por diabetes» no niega la diabetes, y
  * negar de más borra un antecedente real — el error caro, no el otro.
  */
-const NEGADORES = /\b(?:niega|nieg[ao]|niego|tampoco|jam[aá]s|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|es|soy|son|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
+/**
+ * ── LOS AFIRMADORES SE DERIVAN DE LOS NEGADORES — REG-282 ────────────────────
+ *
+ * **La regla que faltaba, y que costó dos veces el mismo daño.**
+ *
+ * Un verbo puede entrar en una negación («no **padece** diabetes») y también
+ * cerrar una anterior («niega tabaquismo, **padece** diabetes»). Si entra en
+ * `NEGADORES` y no en `AFIRMADORES`, el arreglo **no repara la mitad: la mueve
+ * al lado que no se ve** — porque nadie echa de menos un antecedente que no
+ * está.
+ *
+ * Pasó dos veces, medido:
+ *
+ *     REG-192 añadió `padece`/`padezco` sólo a NEGADORES:
+ *       «Niega tabaquismo, padece diabetes» → diabetes NEGADA
+ *
+ *     REG-280 (mío, hoy) añadió `es`/`soy`/`son` sólo a NEGADORES:
+ *       «Niega diabetes, es fumador»        → tabaquismo NEGADO
+ *
+ * Las dos borran un antecedente real, que es peor que inventarlo: el inventado
+ * estorba y se ve; el borrado no se echa de menos.
+ *
+ * Por eso los dos lados salen de **una sola lista**. Añadir un verbo aquí lo
+ * añade a las dos caras a la vez, y la desalineación deja de ser posible.
+ */
+const VERBOS_DE_TENENCIA = [
+  'tiene', 'tengo', 'tuvo', 'presenta', 'refiere', 'refiero', 'padece', 'padezco',
+  'sufre', 'sufro', 'cuenta\\s+con', 'ha\\s+tenido', 'he\\s+tenido', 'hay',
+  'es', 'soy', 'son', 'era',
+].join('|')
+
+/**
+ * Los que sólo niegan: no tienen cara afirmativa que pueda cerrar nada.
+ *
+ * `tampoco` y `jamás` se listan CON el verbo opcional detrás a propósito
+ * («tampoco diabetes» y «tampoco tiene diabetes» son la misma respuesta), y ahí
+ * está el segundo defecto que esto cierra: con `tampoco` suelto, el `tiene` de
+ * «tampoco tiene diabetes» cerraba la negación que el `tampoco` acababa de
+ * abrir.
+ */
+const NEGADORES = new RegExp(
+  '\\b(?:'
+  + 'niega|nieg[ao]|niego'
+  + `|(?:no|nunca|jam[aá]s|tampoco)\\s+(?:${VERBOS_DE_TENENCIA})`
+  + '|(?:tampoco|jam[aá]s)'
+  + '|nunca\\s+(?:ha|tuvo)'
+  + '|sin(?:\\s+antecedente[s]?\\s+de)?'
+  + '|ausente|ausencia\\s+de|(?:se\\s+)?descart[ao]'
+  + ')\\b', 'i')
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -259,7 +307,14 @@ const NEGADORES = /\b(?:niega|nieg[ao]|niego|tampoco|jam[aá]s|sin(?:\s+antecede
  *   "niega diabetes mellitus" → diabetes SÍ está negada.
  */
 /** Palabras afirmativas que CIERRAN una negación previa */
-const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
+/**
+ * Los afirmadores: los MISMOS verbos de tenencia, más las formas que sólo
+ * afirman. Derivados, no tecleados — ver REG-282 arriba.
+ */
+const AFIRMADORES = new RegExp(
+  `\\b(?:${VERBOS_DE_TENENCIA}`
+  + '|cursa\\s+con|acude\\s+por|en\\s+tratamiento|con\\s+diagnostico|diagnosticad[oa]'
+  + ')\\b', 'i')
 
 /**
  * ── LA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN ANTECEDENTE — REG-281 ─────
@@ -382,11 +437,33 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
     // refiere", "nunca tuvo") NO cierra la negación. Sin esto, "no tiene diabetes"
     // se leía como diabetes POSITIVA (el "tiene" cancelaba el "no"). Se ignora el
     // afirmador precedido inmediatamente por no/nunca/sin.
-    const antes = ventana.slice(Math.max(0, m.index - 7), m.index)
-    if (/\b(?:no|nunca|sin)\s+$/i.test(antes)) continue
+    /**
+     * Diez caracteres, no siete: «tampoco » mide ocho y con la ventana corta se
+     * leía «ampoco », que no casa con `\btampoco\s+$`. El `tiene` de «tampoco
+     * tiene diabetes» cerraba entonces la negación que el `tampoco` abría.
+     */
+    const antes = ventana.slice(Math.max(0, m.index - 10), m.index)
+    /* REG-282: `tampoco` y `jamás` abren negación igual que `no`/`nunca`/`sin`.
+       Sin ellos, el `tiene` de «tampoco tiene diabetes» cerraba la negación que
+       el `tampoco` acababa de abrir. */
+    if (/\b(?:no|nunca|sin|tampoco|jam[aá]s)\s+$/i.test(antes)) continue
     ultimoAfirm = m.index; lenUltimo = m[0].length
   }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
+
+  /**
+   * ── EL NEGADOR PEGADO, CUANDO EL TÉRMINO ES EL VERBO — REG-282 ────────────
+   *
+   * «**No fuma**», «**nunca fumó**». Aquí el término clínico ES el verbo, así
+   * que entre el negador y el término no queda nada que reconocer: `NEGADORES`
+   * busca «no + verbo de tenencia» y «fuma» no es uno de ellos.
+   *
+   * Se exige que el negador esté **inmediatamente antes**. Con eso, «no acude
+   * por diabetes» sigue sin negar la diabetes —la ventana acaba en «por »— y
+   * «no fuma» sí niega el tabaquismo.
+   */
+  if (/\b(?:no|nunca|tampoco|jam[aá]s|sin)\s+$/i.test(ventana)) return true
+
   return NEGADORES.test(ventana)
 }
 

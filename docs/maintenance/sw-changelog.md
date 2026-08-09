@@ -2705,3 +2705,18 @@ Ahora no entra en ninguna lista, salvo si consta afirmada en otro sitio.
 
 SAFE-007 se cierra: su prueba fijaba el defecto y decía «cuando alguien lo repare
 se pondrá roja». Se puso roja.
+
+## v1157 — un negador sin su afirmador gemelo BORRA un antecedente (REG-282)
+
+Un verbo puede entrar en una negación («no **padece** diabetes») y también
+cerrar una anterior («niega tabaquismo, **padece** diabetes»). Metido en un solo
+lado, el arreglo **no repara la mitad: la mueve al lado que no se ve**.
+
+Pasó dos veces el mismo día: REG-192 con `padece`, y **REG-280 con `es` — mío**.
+«Niega diabetes, es fumador» dejaba el tabaquismo NEGADO. Borrar un antecedente
+real es peor que inventarlo: el inventado estorba y se ve; el borrado no se echa
+de menos.
+
+Ocho formas más reparadas, incluidas «no fuma» y «no es fumador», donde el
+término clínico ES el verbo. Y los dos lados salen ya de **una sola lista**: la
+desalineación deja de ser posible, no sólo improbable.
