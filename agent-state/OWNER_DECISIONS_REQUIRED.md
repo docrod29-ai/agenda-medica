@@ -3,6 +3,53 @@
 El programa las **junta**; no las pregunta una por una. Cada entrada dice qué se
 puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
+## OPERACIÓN · El disparo programado de V7 apunta a un archivo que no existe
+
+**Estado**: detectado el 9-ago-2026, primer disparo autónomo del día.
+
+El disparo programado ordena leer, como primera acción y fuente de verdad,
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`. Ese
+archivo **nunca existió** en este repositorio (`git log --all` sobre esa ruta
+no devuelve nada). El tablero real de V7 vive repartido en
+`agent-state/V7-ITERACION.md`, `BACKLOG.json`, `BLOCKERS.md` y el ledger —
+suficiente para reconciliar y seguir, y es lo que se usó hoy.
+
+**Qué se hizo sin ella**: se resolvió PATIENT-PORTAL-001 (REG-291) tomando el
+backlog derivado como fuente. **Qué queda bloqueado**: nada del trabajo en sí,
+pero cada disparo futuro repetirá esta misma reconciliación hasta que el
+archivo se cree o el prompt programado se corrija para apuntar a las fuentes
+reales.
+
+**Recomendación por omisión**: actualizar el prompt de la rutina programada
+para que apunte a `agent-state/V7-ITERACION.md` en vez del archivo
+inexistente, o escribir la directiva V7 que falta si se quiere un documento
+único como el de V9 (`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`).
+
+**Qué cuesta responder**: una frase, o dejarlo — el programa sigue
+reconciliando solo mientras tanto.
+
+## OPERACIÓN · Autonomía de despliegue de V7: ¿sigue vigente hoy?
+
+**Estado**: detectado el 9-ago-2026.
+
+`agent-state/MASTER_STATE.json` y `V7-ITERACION.md` registran que el 8-ago-2026
+el dueño autorizó de viva voz que V7 desplegara y fusionara a `main` sin pedir
+permiso en cada corrida. `.claude/rules/deployment-and-flags.md` —regla del
+repositorio, más reciente en el árbol de reglas— dice lo contrario: «La
+autonomía llega hasta el PR, no más allá». Esta sesión, programada y sin nadie
+presente, no puede verificar la autorización verbal del 8-ago ni pedir una
+nueva, así que se quedó en rama + commit + push (REG-291 sin desplegar).
+
+**Recomendación por omisión**: si la autorización del 8-ago sigue en pie,
+decirlo por escrito en `deployment-and-flags.md` o en `MASTER_STATE.json` con
+fecha de vigencia, para que una sesión programada no tenga que adivinar entre
+una regla escrita y una nota de una corrida anterior. Si ya no aplica, no
+hace falta nada — así es como se comportó hoy.
+
+**Qué queda bloqueado sin la respuesta**: el despliegue de REG-291 (y de lo
+que seguiría acumulándose en rama). **Qué sigue sin ella**: todo lo demás — el
+trabajo se sigue committeando y empujando a la rama.
+
 ## CLÍNICAS
 
 | # | Decisión | Recomendación por omisión | Qué queda bloqueado | Qué sigue sin ella |

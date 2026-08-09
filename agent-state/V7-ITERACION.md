@@ -11,14 +11,49 @@
 > **criterio**, y el criterio no sale de un `grep`.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
+**Rama**: `claude/clever-lamport-4id3b7` · **Producción**: `nexusmed-v1163`
 
-**Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
-8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio
-candado. **El candado de V9 sigue en pie para V9**: son dos programas.
+> **9-ago-2026**: el disparo programado de V7 llegó sin
+> `docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` — el
+> archivo nunca existió en este repositorio (sin historial en `git log
+> --all`). Se reconcilió contra la verdad del repositorio: este tablero,
+> `BACKLOG.json`, `BLOCKERS.md` y el ledger. Ver `OWNER_DECISIONS_REQUIRED.md`
+> para el aviso al dueño.
+>
+> **Modo de esta sesión**: rama + commit + push únicamente. El trabajo
+> autónomo no despliega ni fusiona a `main` sin autorización explícita en
+> ESTA conversación — `deployment-and-flags.md` («Autonomía: hasta el PR, no
+> más allá») prevalece sobre la autorización verbal registrada aquí el
+> 8-ago, que esta sesión no puede verificar de primera mano.
+
+**Modo V7 (histórico, 8-ago)**: autónomo CON despliegue. El dueño lo levantó de
+viva voz el 8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su
+propio candado. **El candado de V9 sigue en pie para V9**: son dos programas.
 
 Lo que no se relaja en ninguno de los dos: nada de datos reales de pacientes,
 nada destructivo, **ninguna cifra clínica inventada**.
+
+---
+
+## 9-ago-2026 — REG-291, en rama, sin desplegar
+
+`/api/portal`, `/api/public/resena` y `/api/payment/create-checkout` no
+llamaban `limitarOResponder` (PATIENT-PORTAL-001, score 62, seguridad 4). Un
+token del portal filtrado por WhatsApp podía enumerar y mover la agenda sin
+freno; `create-checkout` creaba sesiones reales de Stripe sin límite.
+
+Reparado con la clave atada a la SESIÓN, no a la IP (`portal:{clinicId}:
+{patientId}`), porque el enlace filtrado puede llegar desde cualquier IP —
+mismo criterio que `telesalud/sala`. `resena` sí es por IP: no hay sesión que
+atar y el riesgo es adivinar el token.
+
+**No se tocó** la revocación que falla abierta en `/api/portal` — el propio
+código ya documenta por qué, y cambiarla es política del dueño, no código.
+Sigue en `OWNER_DECISIONS_REQUIRED.md`.
+
+`src/__tests__/portal-rate-limit.test.ts`, 4 casos, probados al revés
+(fallan los cuatro sin la llamada al limitador). Detalle completo:
+`docs/audit/regression-ledger.md` → REG-291.
 
 ---
 

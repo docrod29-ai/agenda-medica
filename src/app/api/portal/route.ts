@@ -7,6 +7,7 @@ import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -161,6 +162,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
   const { clinicId, patientId, alcance } = sesion
+
+  /**
+   * LÍMITE DE TASA — el token viaja por WhatsApp y puede reenviarse o filtrarse.
+   *
+   * Todas las demás rutas del paciente (telesalud/sala, public/booking) frenan
+   * el abuso con `limitarOResponder`; ésta, que puede leer, cancelar y mover
+   * la agenda entera del consultorio con el mismo enlace, no tenía nada. Una
+   * clave por token —no por IP— porque es la sesión del paciente la que hay
+   * que acotar, y un enlace filtrado puede llegar desde cualquier IP.
+   */
+  const limite = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 600,
+    'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
+  if (limite) return limite
 
   /**
    * ¿SIGUE VIGENTE ESTE ENLACE?

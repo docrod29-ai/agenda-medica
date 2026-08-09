@@ -6379,3 +6379,71 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — el enlace del portal, sin ningún freno de tasa (PATIENT-PORTAL-001, sin desplegar)
+
+Hallazgo de la auditoría del producto real (PATIENT-UX-TRUTH-001, V9,
+8-ago-2026), cerrado desde V7: `/api/portal` no llamaba `limitarOResponder` en
+ningún punto, pese a que sus siete acciones —incluidas `cancelar` y
+`reagendar`— mutan la agenda entera de un paciente con el mismo token HMAC.
+Tampoco lo tenían `/api/public/resena` ni `/api/payment/create-checkout`.
+
+### Por qué importa un enlace, no una contraseña
+
+El token del portal viaja por WhatsApp: se reenvía, se reusa desde un
+teléfono perdido o un número reciclado, y no hay segundo factor. Un token
+filtrado, sin freno de tasa, permite **enumerar y mover** la agenda del
+consultorio a la velocidad que el script del atacante aguante. `resena` es
+además adivinable por fuerza bruta del `token` (id de documento), y
+`create-checkout` crea una sesión REAL de Stripe por llamada — cada petición
+sin freno le cuesta al consultorio, no sólo lo expone.
+
+### La clave no es la IP — es la sesión
+
+`public/booking` limita por IP porque no hay sesión: cualquiera puede pedir
+una cita. El portal sí tiene una: la clave es `portal:{clinicId}:{patientId}`,
+derivada del token YA VERIFICADO. Limitar por IP aquí sería un colador — el
+mismo enlace filtrado sirve desde cualquier IP, y el freno tiene que seguir
+al token, no a la red. `create-checkout` limita por cita
+(`checkout:{clinicId}:{citaId}`), igual que `telesalud/sala`. `resena` sí es
+por IP: ahí no hay sesión que atar, el token es de un solo uso y lo que se
+frena es la adivinanza del id.
+
+### Lo que NO se tocó
+
+El propio código de `/api/portal` ya documenta, con su razón, que la
+comprobación de revocación (`portalTokenVersion`) **falla abierta** si la
+lectura de Firestore lanza: es una decisión de política ya razonada
+("dejar al paciente fuera de su propia agenda por un mal minuto de Firestore
+es peor que el riesgo que esto acota"), no un descuido. Cambiarla a fallo
+cerrado es un cambio de política, no de código — sigue en
+`OWNER_DECISIONS_REQUIRED.md`, sin tocar.
+
+### Verificado al revés
+
+`src/__tests__/portal-rate-limit.test.ts` prueba las tres rutas: con cupo,
+la clave lleva la sesión del paciente (no la IP); sin cupo, la ruta corta con
+el 429 del limitador **antes** de leer Firestore o crear la sesión de
+Stripe. Las cuatro pruebas fallan si se quita la llamada a
+`limitarOResponder` de cualquiera de las tres rutas — se comprobó quitándola
+antes de escribir esto.
+
+### Sin desplegar
+
+Esta iteración llega a rama + commit; desplegar a producción es decisión del
+dueño (`deployment-and-flags.md`). `npx vitest run` completo (8 463/8 464,
+el único rojo es `ops-timeout-y-punto-ciego.test.ts` — una prueba de red real
+contra `10.255.255.1` que ya fallaba igual en `HEAD` sin este cambio, por el
+proxy saliente de este espacio) y el trinquete de lint sin deuda nueva (96).
+`npm run build` compila TypeScript limpio; la recolección de datos estáticos
+de `/dr/[clinicId]` falla por falta de credenciales de Firebase en este
+entorno efímero — no por este cambio.
+
+### Archivos
+
+- `src/app/api/portal/route.ts`
+- `src/app/api/public/resena/route.ts`
+- `src/app/api/payment/create-checkout/route.ts`
+- `src/__tests__/portal-rate-limit.test.ts` (nuevo, 4 casos, sellado)

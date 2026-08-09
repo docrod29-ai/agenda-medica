@@ -18,6 +18,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -37,6 +38,12 @@ export async function POST(req: NextRequest) {
     const { clinicId, patientId } = sesion
 
     if (!citaId) return NextResponse.json({ ok: false, error: 'Falta la cita' }, { status: 400 })
+
+    // RATE-LIMIT: cada llamada crea una sesión real en Stripe (cuesta una
+    // petición a un tercero). Por cita, igual que telesalud/sala.
+    const limite = await limitarOResponder(`checkout:${clinicId}:${citaId}`, 12, 600,
+      'Demasiados intentos de pago. Espera un momento e inténtalo de nuevo.')
+    if (limite) return limite
 
     const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
     const citaSnap = await citaRef.get()
