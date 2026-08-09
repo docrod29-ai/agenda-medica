@@ -1,9 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence,
+  connectFirestoreEmulator,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -66,6 +67,17 @@ export const storage = (() => {
   if (typeof window === 'undefined') return null
   try { return getStorage(app) } catch { return null }
 })()
+
+// ── Emuladores locales — SÓLO arnés de capturas y pruebas de interfaz ──────
+// Se activa únicamente con NEXT_PUBLIC_FIREBASE_EMULATORS=1 (vive en .env.local,
+// que git ignora; ningún despliegue la define). Con la bandera apagada este
+// bloque no ejecuta nada: producción queda idéntica.
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1') {
+  try {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+    connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  } catch { /* HMR re-ejecuta el módulo; el SDK prohíbe reconectar y no hace falta */ }
+}
 
 /**
  * Limpia la caché OFFLINE de Firestore en IndexedDB (expedientes, Dx, medicamentos,

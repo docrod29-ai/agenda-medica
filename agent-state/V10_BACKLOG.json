@@ -3,6 +3,46 @@
   "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
   "items": [
     {
+      "id": "V10-DEBT-003",
+      "titulo": "AGENDA MÓVIL (390) rota: nombre del paciente palabra por palabra, botones de acción fuera del viewport, filtros en 3 filas, barra de fecha envuelta",
+      "fuente": "captura agenda--390.png (9-ago-2026, arnés V10)",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001 (o arreglo puntual previo: es la pantalla más usada en móvil)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-004",
+      "titulo": "El shell móvil dice «Agenda Médica» en la cabecera — no es la marca; y el FAB de ayuda tapa el conmutador de tema en TODAS las pantallas móviles",
+      "fuente": "capturas hoy/agenda/expediente/consulta--390.png",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-005",
+      "titulo": "Accesibilidad critical en el flujo central: botones de icono sin nombre y fecha sin etiqueta (agenda), 4 textareas sin etiqueta (consulta)",
+      "fuente": "tests/visual/capturas/reporte-a11y.json (9-ago-2026)",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001 (adelantable: son arreglos de etiqueta, no de rediseño)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-006",
+      "titulo": "Jerarquía de acción invertida: expediente móvil pone el CTA primario (Nueva consulta con IA) en CUARTO lugar tras tres secundarios de igual peso; hoy-escritorio reparte 4 KPI con círculos de icono (§9)",
+      "fuente": "capturas expediente--390.png, hoy--1440.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001 / V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-007",
+      "titulo": "Navegación: la barra lateral resalta «Consulta» estando en /pacientes; sobredosis de píldoras en agenda (4 familias de pill en una pantalla)",
+      "fuente": "capturas pacientes--1440.png, agenda--1440.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001 / V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
       "id": "V10-DEBT-001",
       "titulo": "La aplicación no obedece al sistema de diseño: 6 065 style={{ en 177/200 archivos, 1 205 hex a mano, ~60 tamaños de fuente contra 6 declarados",
       "fuente": "agent-state/DESIGN_STATE.md (V9, medido)",
@@ -26,7 +66,8 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
-      "estado": "abierto"
+      "estado": "hecho-parcial",
+      "nota": "9-ago: arnés completo (emuladores + siembra + capturas 4 anchos + axe) y scorecard poblado. Falta: (a) sembrar ultimaCita para puntuar la lista de pacientes poblada; (b) crear una nota borrador para puntuar el editor de nota; (c) puntuar receta/orden."
     }
   ]
 }

@@ -5,6 +5,93 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "capturadoEl": "2026-08-09",
+  "metodo": "tests/visual/arnes-capturas.mjs + arnes-a11y.mjs · emuladores Auth+Firestore con siembra sintética (tests/visual/sembrar-sinteticos.mjs) · 4 anchos (1440/1024/768/390) · evidencia en tests/visual/capturas/",
+  "pantallas": [
+    {
+      "pantalla": "hoy",
+      "ruta": "/dashboard",
+      "capturas": ["hoy--1440.png", "hoy--1024.png", "hoy--768.png", "hoy--390.png"],
+      "dimensiones": {
+        "jerarquia": 8.5, "claridad": 9, "coherencia": 8.5, "tipografia": 9,
+        "espaciado": 8.5, "densidad": 8, "interaccion": 8.5, "responsive": 6.5,
+        "accesibilidad": 7.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8.5,
+        "originalidad": 7.5
+      },
+      "promedio": 8.2,
+      "genericAiLook": 2.5,
+      "justificacion": "Escritorio fuerte: saludo con serif display, cola «Siguiente acción» con urgencia real, próxima cita con CTA primario único (Iniciar consulta), agenda del día. En móvil las 4 tarjetas KPI se apilan a pantalla completa (§27: escritorio estirado), el FAB de ayuda tapa el conmutador de tema, y los círculos de icono de las KPI son patrón §9. Contraste insuficiente en .prox-hero-cta (axe ×4)."
+    },
+    {
+      "pantalla": "agenda",
+      "ruta": "/citas",
+      "capturas": ["agenda--1440.png", "agenda--1024.png", "agenda--768.png", "agenda--390.png"],
+      "dimensiones": {
+        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
+        "espaciado": 8, "densidad": 8.5, "interaccion": 8, "responsive": 4.5,
+        "accesibilidad": 6.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8.5,
+        "originalidad": 7
+      },
+      "promedio": 7.8,
+      "genericAiLook": 3,
+      "justificacion": "Escritorio: filas claras con estado visible; pero 3–4 botones de igual peso por fila (§8.19) y sobredosis de píldoras (conteo + filtros + estado + asignada = 4 familias, §9). Móvil 390 ROTO: el nombre del paciente parte palabra por palabra, los botones de acción se salen del viewport, los filtros ocupan 3 filas y la barra de fecha se envuelve. axe: 2 critical (botones de icono sin nombre, input de fecha sin etiqueta) + contraste ×6."
+    },
+    {
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "capturas": ["pacientes--1440.png", "pacientes--390.png"],
+      "dimensiones": {
+        "claridad": 8.5, "tipografia": 8.5, "accesibilidad": 9, "rendimientoPercibido": 8.5
+      },
+      "promedio": null,
+      "genericAiLook": 1.5,
+      "justificacion": "PARCIAL: el filtro por omisión «Recientes» sale vacío aunque hay 4 pacientes con cita hoy (la vista depende de ultimaCita, que la siembra no escribe — ver siguiente corrida). El estado vacío sí enseña la salida. axe: 0 violaciones. Defecto de navegación: la barra lateral resalta «Consulta» estando en /pacientes. La lista poblada queda pendiente de puntuar."
+    },
+    {
+      "pantalla": "expediente",
+      "ruta": "/expediente/[patientId]",
+      "capturas": ["expediente--1440.png", "expediente--1024.png", "expediente--768.png", "expediente--390.png"],
+      "dimensiones": {
+        "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 9,
+        "espaciado": 9, "densidad": 8.5, "interaccion": 8.5, "responsive": 8,
+        "accesibilidad": 8.5, "rendimientoPercibido": 8.5, "confianzaClinica": 9.5,
+        "originalidad": 8
+      },
+      "promedio": 8.7,
+      "genericAiLook": 2,
+      "justificacion": "La mejor pantalla capturada: banda de alergias SIEMPRE arriba, identidad inconfundible, CTA primario claro, estados vacíos que explican la siguiente acción (§26). En móvil los 4 botones de acción se vuelven columnas de igual peso y el primario (Nueva consulta con IA) queda CUARTO — jerarquía invertida (§8.3). Ilustración de estado vacío genérica. axe: 0 violaciones."
+    },
+    {
+      "pantalla": "consulta",
+      "ruta": "/consulta/[patientId]",
+      "capturas": ["consulta--1440.png", "consulta--1024.png", "consulta--768.png", "consulta--390.png"],
+      "dimensiones": {
+        "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 8.5,
+        "espaciado": 8.5, "densidad": 8.5, "interaccion": 8.5, "responsive": 8.5,
+        "accesibilidad": 7, "rendimientoPercibido": 8.5, "confianzaClinica": 9,
+        "originalidad": 8.5
+      },
+      "promedio": 8.5,
+      "genericAiLook": 1.5,
+      "justificacion": "El modo encuentro se distingue del navegar expediente (§18): objetivo de grabación dominante con promesa clara («Capta a los dos y separa las voces»), herramientas clínicas plegadas, signos vitales con unidad pegada al campo (§37). Alergia mostrada DOS veces (banda + píldora) — redundancia menor. axe: 4 textareas sin etiqueta (critical)."
+    },
+    {
+      "pantalla": "nota",
+      "ruta": "/nota/[patientId]",
+      "capturas": ["nota--1440.png", "nota--390.png"],
+      "dimensiones": {},
+      "promedio": null,
+      "genericAiLook": null,
+      "justificacion": "NO PUNTUADA: /nota/[patientId] sin notaId muestra «Nota no encontrada» (estado de error correcto: explica y ofrece salida). Puntuar el editor real exige una nota borrador creada por el flujo de consulta — pendiente para el arnés (siguiente corrida)."
+    }
+  ],
+  "resumen": {
+    "promedioGlobal": 8.3,
+    "brechaContraMeta": "Meta 9.3; hoy 8.3. Ninguna pantalla llega a 9.0 todavía. El déficit se concentra en RESPONSIVE móvil (agenda 4.5, hoy 6.5) y ACCESIBILIDAD (12 hallazgos critical/serious de axe).",
+    "hallazgosP1": [
+      "AGENDA MÓVIL (390): fila de cita rota — nombre palabra por palabra, botones fuera del viewport (V10-DEBT-003)",
+      "Cabecera móvil dice «Agenda Médica», no NexusMED — marca inconsistente en todo el shell móvil (V10-DEBT-004)",
+      "12 hallazgos axe critical/serious en el golden flow (V10-DEBT-005)"
+    ]
+  }
 }

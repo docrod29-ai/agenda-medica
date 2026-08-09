@@ -1,0 +1,192 @@
+[
+  {
+    "pantalla": "login",
+    "viewport": "1440",
+    "violaciones": [
+      {
+        "id": "target-size",
+        "impact": "serious",
+        "help": "All touch targets must be 24px large, or leave sufficient space",
+        "nodos": 1,
+        "ejemplos": [
+          "button[aria-label=\"Mostrar la contraseña\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "hoy",
+    "viewport": "1440",
+    "violaciones": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 4,
+        "ejemplos": [
+          ".prox-hero-cta",
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "agenda",
+    "viewport": "1440",
+    "violaciones": [
+      {
+        "id": "button-name",
+        "impact": "critical",
+        "help": "Buttons must have discernible text",
+        "nodos": 2,
+        "ejemplos": [
+          ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
+          "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 6,
+        "ejemplos": [
+          ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+          ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+          ".nx-reveal:nth-child(3) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+        ]
+      },
+      {
+        "id": "label",
+        "impact": "critical",
+        "help": "Form elements must have labels",
+        "nodos": 1,
+        "ejemplos": [
+          "input[type=\"date\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "pacientes",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "expediente",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "consulta",
+    "viewport": "1440",
+    "violaciones": [
+      {
+        "id": "label",
+        "impact": "critical",
+        "help": "Form elements must have labels",
+        "nodos": 4,
+        "ejemplos": [
+          "div:nth-child(8) > textarea[placeholder=\"\"]",
+          "div:nth-child(9) > textarea[placeholder=\"\"]",
+          "div:nth-child(10) > textarea[placeholder=\"\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "login",
+    "viewport": "390",
+    "violaciones": [
+      {
+        "id": "target-size",
+        "impact": "serious",
+        "help": "All touch targets must be 24px large, or leave sufficient space",
+        "nodos": 1,
+        "ejemplos": [
+          "button[aria-label=\"Mostrar la contraseña\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "hoy",
+    "viewport": "390",
+    "violaciones": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 4,
+        "ejemplos": [
+          ".prox-hero-cta",
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "agenda",
+    "viewport": "390",
+    "violaciones": [
+      {
+        "id": "button-name",
+        "impact": "critical",
+        "help": "Buttons must have discernible text",
+        "nodos": 2,
+        "ejemplos": [
+          ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
+          "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 3,
+        "ejemplos": [
+          ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+          ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+          ".nx-reveal:nth-child(4) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+        ]
+      },
+      {
+        "id": "label",
+        "impact": "critical",
+        "help": "Form elements must have labels",
+        "nodos": 1,
+        "ejemplos": [
+          "input[type=\"date\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "pacientes",
+    "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "expediente",
+    "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "consulta",
+    "viewport": "390",
+    "violaciones": [
+      {
+        "id": "label",
+        "impact": "critical",
+        "help": "Form elements must have labels",
+        "nodos": 4,
+        "ejemplos": [
+          "div:nth-child(8) > textarea[placeholder=\"\"]",
+          "div:nth-child(9) > textarea[placeholder=\"\"]",
+          "div:nth-child(10) > textarea[placeholder=\"\"]"
+        ]
+      }
+    ]
+  }
+]

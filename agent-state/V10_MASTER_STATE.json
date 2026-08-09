@@ -5,6 +5,13 @@
   "lineasDirectiva": 828,
   "instaladoEl": "2026-08-09",
   "ramaCanonica": "claude/nexus-visual-excellence-v10",
+  "ramasDeSesion": {
+    "nota": "Cada sesión cloud sólo puede empujar a su rama configurada (V10 §3). La historia V10 se encadena: cada corrida arranca de la punta más adelantada.",
+    "corridas": [
+      { "fecha": "2026-08-09", "rama": "claude/nexus-visual-excellence-v10", "trabajo": "instalación V10 + arranque TRUTH-001" },
+      { "fecha": "2026-08-09-tarde", "rama": "claude/kind-brahmagupta-exbp9m", "trabajo": "arnés de capturas completo + scorecard + línea base a11y" }
+    ]
+  },
   "iteracionActual": "V10-TRUTH-001",
   "iteracionesCerradas": [],
   "estadoV10Complete": false,
