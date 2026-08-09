@@ -62,3 +62,4 @@ synthetic-data/dialogos-consulta/salida/DIARIZACION/
 synthetic-data/dialogos-consulta/salida/*.txt
 synthetic-data/dialogos-consulta/salida/silencio.mp3
 tests/visual/capturas/
+firebase-debug.log
