@@ -5125,7 +5125,7 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
 
-        SÓLO CON `firmada` (REG-291, POSTVISIT-GATE-001) — antes se componía del
+        SÓLO CON `firmada` (REG-294, POSTVISIT-GATE-001) — antes se componía del
         borrador EN CURSO: medicamentos y estudios a medio dictar, sin firmar,
         ya eran «lo que se lleva el paciente» y se podían copiar o imprimir. El
         cabezal del módulo afirma que sale de lo «ya revisado y firmado»: era

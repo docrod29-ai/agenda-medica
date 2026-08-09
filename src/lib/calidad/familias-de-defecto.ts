@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 294],
   },
   {
     clave: 'habla_real',
@@ -135,7 +135,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Están en el ledger porque cambiaron el comportamiento, pero no había ' +
       'nada roto: lo decidió el médico responsable. Se cuentan aparte para no ' +
       'inflar la cuenta de defectos con decisiones.',
-    regs: [174, 175],
+    regs: [174, 175, 292],
   },
   {
     /**

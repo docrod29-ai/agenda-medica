@@ -374,7 +374,7 @@
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
       "score": 63,
       "estado": "CERRADO (sin desplegar)",
-      "cierre": "REG-291. El guardia pasó a {!esNotaHospital && firmada && (...)}, mismo patrón que ComoCerrarLaConsulta. No cierra POSTVISIT-ENTREGA-001 (la hoja sigue sin llegar al portal del paciente), que queda pendiente y depende de éste."
+      "cierre": "REG-294. El guardia pasó a {!esNotaHospital && firmada && (...)}, mismo patrón que ComoCerrarLaConsulta. No cierra POSTVISIT-ENTREGA-001 (la hoja sigue sin llegar al portal del paciente), que queda pendiente y depende de éste."
     },
     {
       "seguridad": 1,

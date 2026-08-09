@@ -25,7 +25,7 @@ la instrucción de la rutina quedó desactualizada. Sin esa respuesta, cada
 disparo de esta rutina va a repetir el mismo hallazgo.
 
 **Qué sigue sin ella**: todo — el resto de agent-state es suficiente para
-priorizar trabajo real, como demuestra este mismo disparo (REG-291).
+priorizar trabajo real, como demuestra este mismo disparo (REG-294).
 
 ## CLÍNICAS
 

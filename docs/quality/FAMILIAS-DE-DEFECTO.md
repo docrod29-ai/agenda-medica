@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 139, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 32 de 142, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,10 +64,13 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 24 de 139.** Suma REG-291: el cabezal
-de `HojaParaElPaciente` afirmaba que su contenido salía de lo «ya revisado y
-firmado», y el código no exigía `firmada` para mostrarlo — la afirmación y el
-guardia decían cosas distintas.
+**«El sistema se contradice a sí mismo» — 26 de 142.** Sumó REG-291 (un valor
+NORMAL de calcio iónico marcado CRÍTICO: el módulo excluía otros analitos con
+el mismo nombre y no éste) y REG-293 (el día del cobro se fijaba con la zona de
+CDMX en vez de leer la del consultorio, pese a que el módulo de zonas ya
+existía). Y REG-294: el cabezal de `HojaParaElPaciente` afirmaba que su
+contenido salía de lo «ya revisado y firmado», y el código no exigía `firmada`
+para mostrarlo — la afirmación y el guardia decían cosas distintas.
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -107,11 +110,11 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 139**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 142**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
-**«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
+**«Decisión del médico dueño» — 3**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.
 
 ---
