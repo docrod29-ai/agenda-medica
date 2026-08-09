@@ -1,0 +1,10 @@
+{
+  "_nota": "Puntuaciones por pantalla crítica según V10 §34 (0–10 en 12 dimensiones) y §35 (GENERIC_AI_LOOK_SCORE). Regla dura: ninguna puntuación sin captura de pantalla y justificación — no se rellena desde el código (V10 §33: «Never approve a screen only by reading JSX/CSS»).",
+  "_metas": {
+    "promedioPantallasCriticas": ">= 9.3",
+    "minimoPantallaCritica": ">= 9.0",
+    "genericAiLookCriticas": "<= 1.0"
+  },
+  "capturadoEl": null,
+  "pantallas": []
+}
