@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el verbo con el que el paciente niega
+## v1088 — REG-206: el verbo con el que el paciente niega
 
 «No padece alergia a penicilina», en el campo de alergias, quedaba registrado
 como un alérgeno **llamado así**. Como el cruce busca el fármaco DENTRO del texto

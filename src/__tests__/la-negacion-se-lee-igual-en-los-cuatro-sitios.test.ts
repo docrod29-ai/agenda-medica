@@ -1,5 +1,5 @@
 /**
- * EL VERBO CON EL QUE EL PACIENTE NIEGA — REG-192.
+ * EL VERBO CON EL QUE EL PACIENTE NIEGA — REG-206.
  *
  * ── EL DEFECTO ───────────────────────────────────────────────────────────────
  *

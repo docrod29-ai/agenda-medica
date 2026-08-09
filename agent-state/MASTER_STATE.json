@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "NEG-001 (cerrada) — REG-192, v1074",
+  "iteracionActual": "NEG-001 (cerrada) — REG-206, v1088",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/negaciones/NEG-001",
@@ -23,5 +23,5 @@
   "trabajoLocalSinSubir": [
     "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
   ],
-  "notaDeEstado": "v1074 (REG-192) queda en rama con las cuatro compuertas en verde; desplegar lo decide el dueño. El backlog del 4-ago estaba desfasado respecto al ledger: la cola viva es el plan de la auditoría de nueve dimensiones (docs/maintenance/PROGRAMA-NOCTURNO-IA-2026-08-05.md), del que C2/C3 era lo último pendiente."
+  "notaDeEstado": "v1088 (REG-206) queda en rama con las cuatro compuertas en verde; desplegar lo decide el dueño. El backlog del 4-ago estaba desfasado respecto al ledger: la cola viva es el plan de la auditoría de nueve dimensiones (docs/maintenance/PROGRAMA-NOCTURNO-IA-2026-08-05.md), del que C2/C3 era lo último pendiente."
 }

@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el verbo con el que el paciente niega (v1074)
+## REG-206 — el verbo con el que el paciente niega (v1088)
 
 **Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos C2 y C3).
 Reproducido el 7-ago contra los motores reales antes de tocar nada.

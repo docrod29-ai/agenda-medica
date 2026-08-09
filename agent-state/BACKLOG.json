@@ -20,7 +20,7 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 83,
-      "estado": "cerrado — REG-192 (v1074)",
+      "estado": "cerrado — REG-206 (v1088)",
       "reversible": true
     },
     {
@@ -132,7 +132,7 @@
       "id": "NEG-002",
       "titulo": "«sin» suelto niega de más en parser-clinico",
       "hallazgo": "La ventana de estaNegado mira 40 caracteres hacia atrás y acepta `sin` a secas: «sin control de la diabetes» cuenta como diabetes NEGADA, cuando habla de una diabetes que sí existe.",
-      "porQueImporta": "Es la dirección cara del error en sentido contrario a REG-192: borra un antecedente REAL en vez de fabricar uno falso. Encontrado al reparar REG-192; no se tocó porque exige cambiar la ventana, no el vocabulario.",
+      "porQueImporta": "Es la dirección cara del error en sentido contrario a REG-206: borra un antecedente REAL en vez de fabricar uno falso. Encontrado al reparar REG-206; no se tocó porque exige cambiar la ventana, no el vocabulario.",
       "archivo": "src/lib/expediente/parser-clinico.ts:216",
       "seguridad": 4,
       "integridad": 3,
@@ -152,7 +152,7 @@
     {
       "id": "OPS-002",
       "titulo": "El test del timeout de red es intermitente fuera de la máquina del dueño",
-      "hallazgo": "`src/__tests__/ops-timeout-y-punto-ciego.test.ts` > «el error dice cuánto esperó y a quién» corre una carrera de 30 ms contra una conexión a 10.255.255.1. Donde la red RECHAZA en vez de colgar, el timeout nunca dispara. Falla también con los cambios guardados aparte, y el job `verificar` del PR #245 pasó en verde con esos mismos cambios: no lo causa REG-192 — depende de la red de la máquina.",
+      "hallazgo": "`src/__tests__/ops-timeout-y-punto-ciego.test.ts` > «el error dice cuánto esperó y a quién» corre una carrera de 30 ms contra una conexión a 10.255.255.1. Donde la red RECHAZA en vez de colgar, el timeout nunca dispara. Falla también con los cambios guardados aparte, y el job `verificar` del PR #245 pasó en verde con esos mismos cambios: no lo causa REG-206 — depende de la red de la máquina.",
       "porQueImporta": "Un caso que falla por dónde corre y no por lo que prueba enseña a ignorar el rojo — y con él se ignoran los que sí importan.",
       "archivo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:54",
       "seguridad": 0,
