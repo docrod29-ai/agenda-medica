@@ -21,6 +21,33 @@
       "estado": "esperando-fusion-v9"
     },
     {
+      "id": "V10-HOME-002",
+      "titulo": "«¿Qué puedo continuar?» — cola de notas en borrador sin firmar en la pantalla de inicio",
+      "fuente": "V10 §14, pregunta 4. Declarada al cerrar HOME-001 en vez de rellenarse con algo que lo pareciera",
+      "porQueNoSeHizoYa": "no existe hook que lea borradores sin firmar; hay que decidir dónde vive el dato antes de pintarlo",
+      "prioridad": "P1",
+      "unidadV10": "V10-HOME-002",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-HOME-003",
+      "titulo": "«¿Qué preparó NexusMED?» — lo que la aplicación dejó listo desde la última sesión",
+      "fuente": "V10 §14, pregunta 5. Declarada al cerrar HOME-001",
+      "porQueNoSeHizoYa": "no hay fuente de datos; inventarla sería una pantalla que afirma trabajo que no ocurrió (§6)",
+      "prioridad": "P2",
+      "unidadV10": "V10-HOME-003",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-003",
+      "titulo": "`.kpi-card` y sus derivadas quedan en `globals.css` sin ningún consumidor",
+      "fuente": "HOME-001: la última pantalla que las usaba dejó de hacerlo",
+      "porQueNoSeBorroYa": "§14 sitúa las métricas administrativas en Operaciones/Analítica, donde la tarjeta KPI sí es legítima; borrarla ahora obligaría a reescribirla allí",
+      "prioridad": "P3",
+      "unidadV10": "V10-OPERATIONS-001",
+      "estado": "abierto"
+    },
+    {
       "id": "V10-TRUTH-CAPTURAS",
       "titulo": "Inventario de capturas escritorio/móvil con datos sintéticos + puntuación visual por pantalla crítica",
       "fuente": "V10 §47 salidas 2, 14, 15",

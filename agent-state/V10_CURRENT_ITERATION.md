@@ -27,7 +27,53 @@ producto (V10 §47).
 | 14 | Puntuación visual por pantalla crítica | ⏳ pendiente | `agent-state/V10_VISUAL_SCORECARD.json` (exige captura — V10 §34) |
 | 15 | Puntuación «cara de IA» por pantalla | ✅ parcial | conteos globales sí; por pantalla exige captura |
 | 16 | Backlog visual P0–P3 | 🔄 en curso | `agent-state/V10_BACKLOG.json` |
-| 17 | Primera iteración de implementación | ⏳ decidir al cierre | depende de la fusión de V9 (ver herencia) |
+| 17 | Primera iteración de implementación | ✅ **HOME-001** | `/dashboard` rediseñada — ver abajo |
+
+## HOME-001 — la pantalla de inicio deja de ser un tablero
+
+**Orden del dueño**, 9-ago-2026, después de ver su propia aplicación a 390 px de
+ancho en su sesión: *«arranca ya con el rediseño de esta pantalla»*.
+
+**Lo medido antes de tocar nada** (captura real, cuenta del dueño, 390×844):
+las cuatro tarjetas seguían de dos en dos, «Agenda de hoy» y «Accesos rápidos»
+seguían lado a lado en un teléfono, la columna derecha quedaba cortada fuera de
+la pantalla y «Citas hoy 0» salía dos veces.
+
+**La causa**: `gridTemplateColumns: '1fr 300px'` —fija, en píxeles— y **ni una
+sola consulta de medios propia** en toda la pantalla. Una rejilla así no se
+apila nunca. No se arregla con un `minmax`: se arregla no teniendo dos columnas
+que defender, y eso obliga a decidir qué sobra en la pantalla.
+
+**Lo que quedó**, por el orden de urgencia de §14:
+
+1. **¿Quién sigue?** — la próxima cita, arriba del todo. Antes salía en cuarto
+   lugar, debajo de cuatro tarjetas de estadística.
+2. **¿Qué necesita atención?** — la cola de pendientes.
+3. **¿Qué pasa hoy?** — la agenda a todo el ancho, con el recuento del día en un
+   renglón de texto dentro de su encabezado.
+
+**Lo que se fue**: las 4 tarjetas KPI (§14), «Accesos rápidos» (§9, navegación
+duplicada), el «Citas hoy» del encabezado (§9, encabezado duplicado) y el
+sparkline de 7 días (métrica sin acción).
+
+**Verificado**: 8 577 pruebas en verde (575 archivos), `tsc` limpio, lint 96
+(el techo, sin deuda nueva), build de producción limpio. El trinquete de diseño
+**bajó** en tres contadores: `hexEnLinea` 565→561, `tamanosFueraDeEscala`
+2027→2021, `radiosFueraDeEscala` 638→637.
+
+**Cerrojo**: `src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts` —
+19 casos. Falla si vuelve una columna fija en píxeles, si vuelve una tarjeta
+KPI, si «Accesos rápidos» reaparece, si «Citas hoy» sale dos veces, si alguno
+de los cuatro destinos desaparece del menú al haber quitado el atajo, o si el
+color de la línea de resumen deja de estar reservado a lo accionable.
+
+**Sin desplegar**: §6 lo prohíbe («never deploy production»). Espera el visto
+bueno del dueño.
+
+**Lo que esta pantalla todavía no contesta**: de las cinco preguntas de §14
+quedan dos sin fuente de datos — «qué puedo continuar» y «qué preparó
+NexusMED». Declaradas en `V10_BACKLOG.json` (`V10-HOME-002`, `V10-HOME-003`)
+en vez de rellenarse con algo que lo pareciera.
 
 **Regla de esta iteración**: no re-auditar lo que V9 ya midió con método y
 guardián. TRUTH-001 **reconcilia y completa**; no repite.
