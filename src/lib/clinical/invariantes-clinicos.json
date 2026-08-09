@@ -589,6 +589,10 @@
       "minCasos": 13
     },
     {
+      "archivo": "src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
+      "minCasos": 14
+    },
+    {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
       "minCasos": 6
     },

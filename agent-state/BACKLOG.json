@@ -459,7 +459,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "NAV-AGENDA-001",
@@ -470,7 +470,8 @@
       "porQueImporta": "Renavegar tras CADA paciente. Y la agenda pierde fecha, vista, filtro y búsqueda al volver (citas:61,86,87; calendario:41,58): quien trabaja el jueves desde el martes vuelve a poner la fecha cada vez.",
       "archivo": "src/app/(dashboard)/citas/page.tsx:436,61,86,87,117,124 · consulta:265,3752 · calendario:41,58",
       "plan": "useSmartBack en la consulta (ya existe y lo usan 10 pantallas) + llevar el estado de la agenda a la URL o al layout, como ya se hizo con BorradorContext.",
-      "score": 40
+      "score": 40,
+      "cierre": "CERRADO (REG-277, REG-278). El atrás de la consulta usa useSmartBack —existía y lo usaban diez pantallas, la consulta no— y el estado de la agenda (día, filtro, búsqueda) vive en la URL, validado, con replace y rebote. Las dos limpiezas del parámetro id ya no borran el contexto."
     },
     {
       "seguridad": 0,
@@ -590,10 +591,11 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "REG-268/269 — residuo declarado al cerrar PATIENT-AUDIO-002",
-      "score": 38
+      "score": 38,
+      "cierre": "CERRADO (REG-279). useAvisoAlSalirGrabando intercepta el clic en enlaces internos SÓLO mientras se graba: pregunta, no impide. No cubre el atrás del navegador (popstate, no clic) y está declarado en el hook."
     },
     {
       "id": "DESIGN-MIGRAR-001",

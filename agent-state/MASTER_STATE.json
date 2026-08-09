@@ -20,24 +20,20 @@
   "trabajoLocalSinSubir": [
     "M agent-state/BACKLOG.json",
     " M agent-state/CURRENT_ITERATION.md",
-    " M agent-state/DESIGN_STATE.md",
     " M agent-state/LAST_SAFE_CHECKPOINT.md",
     " M agent-state/MASTER_STATE.json",
+    " M agent-state/V9_COMPLETE_CRITERIA.md",
     " M docs/ai/V9-BITACORA-Y-OPERACION.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M scripts/design/inventario-de-pantallas.mjs",
-    " M src/app/(dashboard)/antibiograma/page.tsx",
-    " M src/app/(dashboard)/configuracion/secciones-comunicacion.tsx",
+    " M src/app/(dashboard)/citas/page.tsx",
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/consultor/page.tsx",
-    " M src/app/(dashboard)/cumplimiento/motores/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/camas/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/indicadores/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/unidades/page.tsx"
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
+    "?? src/hooks/useAvisoAlSalirGrabando.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -73,10 +69,10 @@
   ],
   "ramaActual": "claude/nexus-patient-ux-v9",
   "derivado": {
-    "regsEnElLedger": 123,
-    "ultimaREG": "REG-275",
-    "archivosDePrueba": 551,
-    "casosDePrueba": 7281,
+    "regsEnElLedger": 127,
+    "ultimaREG": "REG-279",
+    "archivosDePrueba": 552,
+    "casosDePrueba": 7295,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "v9": {

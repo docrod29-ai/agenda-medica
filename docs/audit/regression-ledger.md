@@ -5434,3 +5434,115 @@ módulo se invoca directamente (`import.meta.url` contra `process.argv[1]`).
 **Guardián.** Los dos guardianes de siempre, ahora fallando de verdad al revés:
 añadiendo una pantalla sin regenerar, el inventario cae; reponiendo un respaldo,
 el trinquete cae.
+
+---
+
+## REG-276 — La fecha de seguimiento se perdía, y el volcado borraba la copia buena
+
+**Encontrado por** la auditoría de navegación de `PATIENT-UX-TRUTH-001`,
+reparado en `NAVIGATION-001`.
+
+**Qué pasaba.** `proximoSeguimiento` estaba en el respaldo con rebote y en la
+restauración, pero **ausente** del espejo vivo, del espejo en memoria y del
+volcado al desmontar. Como el espejo en memoria es el que manda al restaurar, el
+campo salía en blanco al volver de otra pantalla. Y peor: `flushRespaldo`
+**reescribía la clave de `localStorage` sin el campo**, borrando lo que el rebote
+de 1 500 ms ya había guardado bien.
+
+**Qué se pierde.** La fecha de seguimiento alimenta el contador de seguimientos
+vencidos del CRM y la tarea de la lista de trabajo. El comentario del propio
+código ya documentaba que **este mismo campo se había perdido una vez**
+(REG-193): aquel arreglo cubrió **uno** de los tres caminos de escritura.
+
+**Causa raíz — y es la que importa.** La regla «¿hay algo que valga la pena
+guardar?» estaba escrita **tres veces, palabra por palabra**: en el espejo en
+memoria, en el volcado y en el oyente de `nx:guardar-todo`. Familia
+`depende_de_recordar`. Basta añadir un campo en dos de los tres para que el
+tercero empiece a decir que la nota está vacía cuando no lo está.
+
+**Arreglo.** Una sola definición, `hayContenido(e)`, y las tres la llaman. El
+campo viaja ya en el espejo vivo y en los dos respaldos.
+
+**Guardián.** `src/__tests__/la-navegacion-devuelve-el-contexto.test.ts`. Probado
+al revés: quitando el campo del volcado, o devolviendo una de las tres copias de
+la regla, falla.
+
+---
+
+## REG-277 — El atrás de la consulta nunca volvía a la agenda
+
+**Qué pasaba.** El botón de atrás hacía `router.push(volverA)`: un destino
+**fijo** —el expediente— y además **apilando** una entrada nueva en el historial.
+
+La agenda abre la consulta directamente (`citas` → `/consulta/:id`), que es el
+camino normal del día. Así que el médico salía al expediente, no a su agenda; y
+desde el expediente, cuyo atrás **sí** es inteligente, volvía a la consulta.
+Quedaba oscilando entre dos pantallas **sin poder regresar a la lista del día**,
+salvo por la barra lateral — que monta `/citas` de cero y pierde el contexto
+(REG-278).
+
+**Lo que lo hace tonto de puro evitable**: `useSmartBack` existía desde hace
+tiempo y lo usaban **diez** pantallas. La consulta, que es la que más falta
+hacía, era de las pocas que no.
+
+**Arreglo.** `useSmartBack(volverA)`: si hay historial dentro de la aplicación,
+se vuelve por donde se vino; si se llegó por enlace directo, recarga o
+notificación, el destino fijo sigue de respaldo. El `push` que queda es el de
+**descartar** la consulta, que sí es un destino y no un regreso.
+
+**Familia.** `estorba`.
+
+---
+
+## REG-278 — La agenda olvidaba el día que se estaba mirando
+
+**Qué pasaba.** `selectedDate`, el filtro de estado y la búsqueda eran `useState`
+puro. Como `(dashboard)/template.tsx` desmonta la página en **cada** navegación,
+volver de una consulta devolvía la agenda a hoy, «todas» y sin búsqueda.
+
+En una jornada normal eso es **una vez por paciente**: quien trabaja el jueves
+desde el martes vuelve a poner la fecha después de cada uno.
+
+Y había un segundo mordisco: al abrir una cita por enlace (`?id=`), las dos
+limpiezas hacían `router.replace('/citas')` **pelado**, que quitaba el `id` **y
+de paso** el día, el filtro y la búsqueda.
+
+**Arreglo.** El estado vive en la URL (`?d=&f=&q=`), que es lo que la
+especificación pide con esas palabras («URL-addressable state») y además lo más
+barato: la URL ya sobrevive al desmontaje, al atrás del navegador y a compartir
+el enlace. Se escribe con `replace` y con rebote —cambiar de día no debe llenar
+el historial— y lo que viene de la URL **se valida**: `?d=borrame` dejaría la
+agenda pidiendo una ventana inexistente y la pantalla en blanco sin decir por
+qué.
+
+**Familia.** `perdida`.
+
+---
+
+## REG-279 — Navegar dentro de la aplicación cortaba el dictado sin avisar
+
+**Qué pasaba.** REG-271 y REG-272 cerraron la **pérdida**: el trozo final se
+persiste, el audio sobrevive en IndexedDB y hay `beforeunload` al recargar o
+cerrar la pestaña. Quedaba el **aviso** dentro de la aplicación:
+`beforeunload` **no se dispara en un `router.push`**, y `template.tsx` desmonta
+la página en cada navegación. Tocar «Agenda» seguía terminando la grabación sin
+que el médico se enterara.
+
+**Por qué se interceptan los clics y no la ruta.** El App Router **no expone
+eventos de ruta**. Las alternativas eran parchear `history.pushState` —global, y
+capaz de romper cualquier navegación— o mirar los clics. Se miran los clics, y
+**sólo mientras se graba**: es el ámbito más pequeño que cubre el caso real,
+porque todas las salidas de la consulta son `<Link>`.
+
+**Arreglo.** `useAvisoAlSalirGrabando`. Pregunta, **no impide**: el audio está a
+salvo y el médico tiene que poder irse. No se mete donde no desmonta nada —
+modificador, botón secundario, `target`, enlace externo, o enlace a la pantalla
+en la que ya se está, que es lo que hace el botón central de la barra inferior
+durante una consulta. Un aviso que salta donde no debe se acaba ignorando
+(REG-245).
+
+**Lo que NO cubre, declarado en el propio hook**: el botón «atrás» del navegador
+es un `popstate`, no un clic, y cancelarlo exigiría empujar una entrada falsa al
+historial — la clase de truco que rompe el atrás para todo lo demás. No se hace.
+
+**Familia.** `no_conectado`.

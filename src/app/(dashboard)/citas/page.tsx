@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect, useRef} from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
 import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -52,13 +52,44 @@ function todayStr() {
   return hoyISO()  // zona MX, no UTC
 }
 
+/**
+ * La fecha de la URL se VALIDA antes de creerla. `?d=borrame` dejaría la agenda
+ * pidiendo citas de una ventana inexistente y la pantalla en blanco, sin decir
+ * por qué. Ante un valor que no es una fecha, hoy.
+ */
+function paramFecha(v: string | null): string {
+  return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : todayStr()
+}
+
+/** Igual con el filtro: sólo se aceptan los valores que la pantalla sabe pintar. */
+const FILTROS_VALIDOS = ['todas', 'por-cobrar', 'pendiente', 'confirmada', 'atendida', 'cancelada', 'no-asistio'] as const
+function paramFiltro(v: string | null): AppointmentStatus | 'todas' | 'por-cobrar' {
+  return (FILTROS_VALIDOS as readonly string[]).includes(v ?? '')
+    ? (v as AppointmentStatus | 'todas' | 'por-cobrar')
+    : 'todas'
+}
+
 function prevDay(d: string) { return sumarDiasISO(d, -1) }
 function nextDay(d: string) { return sumarDiasISO(d, 1) }
 
 export default function CitasPage() {
   const params = useSearchParams()
   const router = useRouter()
-  const [selectedDate, setSelectedDate] = useState(todayStr())
+  /**
+   * EL DÍA QUE SE ESTÁ MIRANDO VIVE EN LA URL — REG-278.
+   *
+   * `selectedDate`, el filtro y la búsqueda eran `useState` puro. Como
+   * `(dashboard)/template.tsx` desmonta la página en CADA navegación, volver de
+   * una consulta devolvía la agenda a hoy, «todas» y sin búsqueda.
+   *
+   * En una consulta normal eso es una vez por paciente: el médico que trabaja el
+   * jueves desde el martes vuelve a poner la fecha **después de cada uno**.
+   *
+   * La directiva V9 pide «URL-addressable state» con esas palabras, y aquí es
+   * además lo más barato: la URL ya sobrevive al desmontaje, al atrás del
+   * navegador y a compartir el enlace. No hace falta almacén nuevo.
+   */
+  const [selectedDate, setSelectedDate] = useState(() => paramFecha(params.get('d')))
   // Pide la ventana desde el día que estás viendo: retroceder de día en día
   // sigue trayendo las citas de esas fechas en vez de mostrar el día vacío.
   const { appointments, loading, error: errorCitas } = useAppointments(`${selectedDate} 00:00`)
@@ -83,14 +114,49 @@ export default function CitasPage() {
    * que acordarse de quién ya salió. Esta vista responde su única pregunta:
    * atendidos y todavía sin cobrar.
    */
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>('todas')
-  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>(() => paramFiltro(params.get('f')))
+  const [search, setSearch] = useState(() => params.get('q') ?? '')
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
   // El menú de la cita se cerraba SOLO con un clic fuera (v963).
   useCerrarConEscape(!!menuId, () => setMenuId(null))
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  /**
+   * La URL que describe lo que se está mirando ahora mismo. Se omite lo que vale
+   * lo de siempre para no ensuciar la barra de direcciones con `?d=hoy&f=todas`.
+   */
+  const urlAgenda = useCallback(() => {
+    const q = new URLSearchParams()
+    if (selectedDate !== todayStr()) q.set('d', selectedDate)
+    if (statusFilter !== 'todas') q.set('f', statusFilter)
+    if (search.trim()) q.set('q', search.trim())
+    const s = q.toString()
+    return s ? `/citas?${s}` : '/citas'
+  }, [selectedDate, statusFilter, search])
+
+  /**
+   * Y se escribe en la URL con `replace`, no con `push`: cambiar de día no debe
+   * llenar el historial de entradas que el botón «atrás» del navegador tenga que
+   * deshacer una por una. Lo que se quiere es que la ENTRADA ACTUAL describa la
+   * pantalla actual, para que al volver de una consulta se restaure sola.
+   *
+   * El rebote es por la búsqueda: sin él se reescribiría la URL en cada tecla.
+   */
+  // El ref se actualiza en un efecto, no durante el render: tocarlo mientras se
+  // renderiza es error del compilador de React y sube el trinquete de lint.
+  const urlAgendaRef = useRef(urlAgenda)
+  useEffect(() => { urlAgendaRef.current = urlAgenda }, [urlAgenda])
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const destino = urlAgendaRef.current()
+      if (destino !== window.location.pathname + window.location.search) {
+        router.replace(destino, { scroll: false })
+      }
+    }, 300)
+    return () => clearTimeout(id)
+  }, [selectedDate, statusFilter, search, router])
 
   // Solo abrir modal cuando es para EDITAR (ya no auto-abre para crear).
   //
@@ -114,14 +180,14 @@ export default function CitasPage() {
       if (!loading) {
         idAbierto.current = id
         toast('No encontramos esa cita. Puede ser muy antigua: búscala por fecha.', 'error')
-        router.replace('/citas', { scroll: false })
+        router.replace(urlAgendaRef.current(), { scroll: false })
       }
       return
     }
     idAbierto.current = id
     setEditAppt(found)
     setModalOpen(true)
-    router.replace('/citas', { scroll: false })
+    router.replace(urlAgendaRef.current(), { scroll: false })
   }, [params, appointments, router, loading, toast])
 
   // Índice O(1) por id: antes cada fila hacía pacientes.find() lineal → O(filas ×

@@ -28,8 +28,9 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ (8-ago) · **los tres P0 de audio**
-✅ (9-ago) · **`DESIGN-SYSTEM-001`** ✅ (9-ago) → **`NAVIGATION-001`**.
+**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ · **los tres P0 de audio** ✅ ·
+**`DESIGN-SYSTEM-001`** ✅ · **`NAVIGATION-001`** ✅ (9-ago) →
+**`PATIENT-COMPANION-001`**.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---

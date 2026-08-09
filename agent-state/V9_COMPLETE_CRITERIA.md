@@ -39,8 +39,8 @@ Sin SHA, una unidad no está cerrada.
 | # | Unidad | Estado | SHA |
 |---|---|---|---|
 | 0 | `PATIENT-UX-TRUTH-001` | ✅ **cerrada** | `6a6501d` |
-| 1 | `DESIGN-SYSTEM-001` | ⬜ pendiente | — |
-| 2 | `NAVIGATION-001` | ⬜ pendiente | — |
+| 1 | `DESIGN-SYSTEM-001` | ✅ **cerrada** | `5bb1a2c` |
+| 2 | `NAVIGATION-001` | ✅ **cerrada** | *(este commit)* |
 | 3 | `PATIENT-COMPANION-001` | ⬜ pendiente | — |
 | 4 | `POSTVISIT-001` | ⬜ pendiente | — |
 | 5 | `PATIENT-AI-001` | ⬜ pendiente | — |
@@ -51,8 +51,9 @@ Sin SHA, una unidad no está cerrada.
 
 > Los tres P0 de audio (REG-270 a REG-273) se cerraron **fuera de turno**, por la
 > regla de prioridad autónoma de la especificación: seguridad del paciente e
-> integridad de datos van antes que el orden de la lista. No cierran
-> `NAVIGATION-001`, que sigue pendiente entera.
+> integridad de datos van antes que el orden de la lista. No cerraban
+> `NAVIGATION-001` por sí solos; esa unidad se cerró aparte, con REG-276 a
+> REG-279.
 
 ### 2 · Cero P0 y cero P1 bloqueantes
 
@@ -64,7 +65,7 @@ distinto de `CERRADO`.
 | Prioridad | Id |
 |---|---|
 | P0 | `PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp sigue sin token |
-| P1 | `PATIENT-AUDIO-004` · `PATIENT-PORTAL-001` · `POSTVISIT-GATE-001` · `POSTVISIT-ENTREGA-001` · `DESIGN-THEME-001` · `A11Y-GATE-001` · `NAV-AGENDA-001` · `NAV-NAVEGADOR-001` |
+| P1 | `PATIENT-PORTAL-001` · `POSTVISIT-GATE-001` · `POSTVISIT-ENTREGA-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
 
 Un P1 sólo deja de bloquear si el **dueño** lo acepta por escrito en
 `OWNER_DECISIONS_REQUIRED.md` como riesgo residual: aceptar riesgo residual

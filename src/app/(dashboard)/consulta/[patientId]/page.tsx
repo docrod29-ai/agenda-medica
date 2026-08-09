@@ -32,6 +32,8 @@ import { useComandoVoz } from '@/hooks/useComandoVoz'
 import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
 import { borradoresBloqueados } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
+import { useSmartBack } from '@/hooks/useSmartBack'
+import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
 import {
   createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
@@ -263,6 +265,24 @@ export default function ConsultaActivaPage() {
   const internamientoActivo = internamientoParam || notaInternamientoId
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
+  /**
+   * ATRÁS DE VERDAD — REG-277.
+   *
+   * Este botón hacía `router.push(volverA)`: un destino FIJO, y además apilando
+   * una entrada nueva en el historial. El médico que entra desde la agenda del
+   * día —que es el camino normal, `citas` abre la consulta directamente— salía a
+   * `/expediente`, no a su agenda. Y desde el expediente, cuyo atrás sí es
+   * inteligente, volvía a la consulta. Quedaba oscilando entre dos pantallas
+   * **sin poder regresar a la lista del día**, salvo por la barra lateral, que
+   * monta `/citas` de cero y pierde fecha, filtro y búsqueda.
+   *
+   * `useSmartBack` ya existía y lo usaban diez pantallas. La consulta —la que
+   * más falta hacía— era de las pocas que no.
+   *
+   * El destino fijo se conserva como respaldo: quien llega por enlace directo,
+   * recarga o notificación no tiene historial al que volver.
+   */
+  const volverAtras = useSmartBack(volverA)
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
   const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
@@ -2816,7 +2836,23 @@ export default function ConsultaActivaPage() {
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
-  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada })
+  /**
+   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-276.
+   *
+   * Esta regla estaba escrita TRES veces, palabra por palabra, en el espejo en
+   * memoria, en el volcado a `localStorage` y en el oyente de `nx:guardar-todo`.
+   * Tres copias de la misma decisión es la familia `depende_de_recordar`: basta
+   * que alguien añada un campo en dos de los tres para que el tercero empiece a
+   * decir que la nota está vacía cuando no lo está.
+   *
+   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-276).
+   */
+  const hayContenido = (e: { resumen?: string; secciones?: { value?: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; transcripcion?: string; signos?: Parameters<typeof signosConValor>[0]; estudiosOrden?: unknown[]; preop?: unknown; proximoSeguimiento?: string }) =>
+    !!(e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length ||
+       e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) ||
+       (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop || e.proximoSeguimiento?.trim())
+
+  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada })
   /**
    * Espejo del estado del dictado, por el mismo motivo que el de arriba: el
    * oyente de `nx:guardar-todo` se registra con `[guardarBorrador]` en las
@@ -2828,12 +2864,15 @@ export default function ConsultaActivaPage() {
   // Se actualiza en un efecto, no durante el render: tocar un ref mientras se
   // renderiza es error del compilador de React y sube el trinquete de lint.
   useEffect(() => { audioEstadoRef.current = audio.estado }, [audio.estado])
+
+  // Avisar antes de que una navegación dentro de la app corte el dictado (REG-279).
+  useAvisoAlSalirGrabando(audio.estado === 'grabando', confirm)
   useEffect(() => {
-    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada }
+    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada }
     // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
     // volver la nota está exactamente como la dejaste, al instante.
     const e = estadoVivoRef.current
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+    const hay = hayContenido(e)
     /**
      * NUNCA se borra el respaldo por verse VACÍO — esa era la fuente del
      * "a veces se borra y tengo que empezar otra vez".
@@ -2850,7 +2889,7 @@ export default function ConsultaActivaPage() {
      * contenido se escribe; si está vacío y sin firmar, se deja como está.
      */
     if (e.firmada) borradorMem.borrar(respaldoKey)
-    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, proximoSeguimiento: e.proximoSeguimiento, transcripcion: e.transcripcion, notaId: notaIdRef.current })
   })
   /**
    * RESTAURAR LA POSICIÓN al volver a la nota.
@@ -2886,12 +2925,13 @@ export default function ConsultaActivaPage() {
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+    const hay = hayContenido(e)
     if (!hay) return
     try {
       localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
         tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, notaId: notaIdRef.current,
+        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop,
+        proximoSeguimiento: e.proximoSeguimiento, notaId: notaIdRef.current,
         transcripcion: e.transcripcion, ts: Date.now(),
       }), secretoLocal(auth.currentUser?.uid)))
     } catch { /* almacenamiento lleno */ }
@@ -2934,9 +2974,7 @@ export default function ConsultaActivaPage() {
 
       const e = estadoVivoRef.current
       if (e.firmada) return
-      const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
-        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() ||
-        signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+      const hay = hayContenido(e)
       if (!hay) return
       /**
        * SE ENTREGA LA PROMESA, NO SÓLO SE DISPARA EL GUARDADO.
@@ -3780,7 +3818,7 @@ export default function ConsultaActivaPage() {
 
   return (
     <div className="page-pad" style={{ maxWidth: 980, margin: '0 auto' }}>
-      <button onClick={() => router.push(volverA)} style={S.back}>
+      <button onClick={volverAtras} style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
 

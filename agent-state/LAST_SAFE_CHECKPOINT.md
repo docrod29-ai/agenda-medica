@@ -6,7 +6,36 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`DESIGN-SYSTEM-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`NAVIGATION-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`NAVIGATION-001`** — REG-276 a REG-279 |
+| **Siguiente** | **`PATIENT-COMPANION-001`** |
+
+El ciclo que pide la especificación —Agenda → Paciente → Consulta → Resultados →
+Consulta— ya devuelve el contexto. Con un descubrimiento que ahorró trabajo: **la
+pata de «Resultados» no era una navegación** (`PanelLaboratorios` se monta dentro
+de la consulta y del expediente), así que sólo costaba la pata de la Agenda.
+
+- **REG-276** `proximoSeguimiento` se perdía al navegar, y el volcado **borraba**
+  la copia que el rebote ya había guardado. Causa raíz: la regla de «hay
+  contenido» estaba escrita **tres veces**. Ahora una.
+- **REG-277** El atrás de la consulta era un destino fijo con `push`: quien venía
+  de la agenda nunca volvía a ella. `useSmartBack` existía y lo usaban diez
+  pantallas; la consulta no.
+- **REG-278** Día, filtro y búsqueda de la agenda viven en la URL, validados.
+- **REG-279** Navegar dentro de la app ya avisa antes de cortar el dictado.
+
+Cierra además `PATIENT-AUDIO-004`, el residuo declarado del turno anterior.
+
+**Lo que sigue abierto de navegación**: evidencia, verificación, entidades y
+roles de hablante siguen muriendo al navegar; el scroll sólo se restaura en la
+consulta. Y **nada de esto se ha visto en un navegador**.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`DESIGN-SYSTEM-001` cerrada**
 
 | | |
 |---|---|
