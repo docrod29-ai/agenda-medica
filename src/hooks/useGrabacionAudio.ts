@@ -305,7 +305,7 @@ const TROZO_MS = 2000
 
 /**
  * Latido que emite el dictado para que `AutoLogout` sepa que hay alguien
- * delante. Ver el efecto de `estado === 'grabando'` y REG-269.
+ * delante. Ver el efecto de `estado === 'grabando'` y REG-272.
  *
  * Vive aquí y no en `AutoLogout` porque quien sabe que se está grabando es el
  * hook; el componente de cierre sólo escucha.
@@ -371,7 +371,7 @@ async function leerChunks(recoveryKey: string): Promise<Blob[]> {
 /**
  * Borra el audio de recuperación **desde un índice**, no siempre todo.
  *
- * ── POR QUÉ EL PARÁMETRO `desde` — REG-267 ──────────────────────────────────
+ * ── POR QUÉ EL PARÁMETRO `desde` — REG-270 ──────────────────────────────────
  *
  * Al terminar bien una transcripción se borraba el rango COMPLETO de la clave.
  * Pero el blob que se acababa de transcribir se arma sólo con los trozos de
@@ -1047,7 +1047,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
   const recoveryBaseRef = useRef<number>(0)
   /**
-   * Índice ABSOLUTO con el que se persiste el siguiente trozo — REG-268.
+   * Índice ABSOLUTO con el que se persiste el siguiente trozo — REG-271.
    *
    * Antes se derivaba de la longitud del array: `recoveryBase +
    * todosChunks.length - 1`. Eso ataba el índice de disco a un array que se
@@ -1067,7 +1067,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
       /**
-       * EL BUFFER FINAL YA NO SE TIRA — REG-268.
+       * EL BUFFER FINAL YA NO SE TIRA — REG-271.
        *
        * Aquí se desenganchaba el handler antes de parar. La razón era buena:
        * `stop()` dispara un `ondataavailable` FINAL de forma asíncrona, y justo
@@ -1136,7 +1136,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   useEffect(() => () => { liberarRecursos() }, [liberarRecursos])
 
   /**
-   * MIENTRAS SE GRABA, DOS COSAS QUE ANTES NO PASABAN — REG-269.
+   * MIENTRAS SE GRABA, DOS COSAS QUE ANTES NO PASABAN — REG-272.
    *
    * ── 1. DICTAR CUENTA COMO ACTIVIDAD ─────────────────────────────────────
    *
@@ -1391,7 +1391,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
     }
     // El contador de persistencia arranca donde acaba lo que ya había: a partir
-    // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-268).
+    // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-271).
     persistIdxRef.current = recoveryBaseRef.current
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
@@ -1510,7 +1510,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           todosChunksRef.current.push(e.data)
           setBytesGrabados(prev => prev + e.data.size)
           // Persistir en IndexedDB para crash recovery. El índice viene de un
-          // contador que sólo sube (REG-268): derivarlo de la longitud del
+          // contador que sólo sube (REG-271): derivarlo de la longitud del
           // array lo ataba a algo que se vacía, y el trozo final pisaba uno
           // bueno. Ver `persistIdxRef`.
           if (recoveryKeyRef.current) {

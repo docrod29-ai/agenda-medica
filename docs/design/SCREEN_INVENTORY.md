@@ -58,7 +58,7 @@
 | `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 378 | 7 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 648 | 11 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 669 | 12 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 683 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |
@@ -80,7 +80,7 @@
 | `/hospitalizacion/camas` | alpha | ✅ | 239 | 1 | — | ✅ | — |
 | `/hospitalizacion/indicadores` | alpha | ✅ | 102 | 0 | — | ✅ | — |
 | `/hospitalizacion/unidades` | alpha | ✅ | 171 | 0 | — | ✅ | — |
-| `/uci` | alpha | ✅ | 1885 | 2 | — | ✅ | ✅ |
+| `/uci` | alpha | ✅ | 1932 | 2 | — | ✅ | ✅ |
 | `/uci/antimicrobianos` | alpha | ✅ | 683 | 0 | — | ✅ | — |
 | `/uci/benchmark` | alpha | ✅ | 265 | 0 | — | ✅ | — |
 | `/uci/dosificacion` | alpha | ✅ | 585 | 0 | — | ✅ | — |

@@ -50,7 +50,7 @@ export interface DetalleGuardarTodo {
    * Lo llama quien tenga audio grabado que **todavía no se ha transcrito**.
    *
    * Sirve para una sola cosa: que la purga NO se lleve ese audio. Ver
-   * `ResultadoGuardado.audioSinTranscribir` y REG-270.
+   * `ResultadoGuardado.audioSinTranscribir` y REG-273.
    *
    * Opcional a propósito, como `esperar`: una pantalla que no lo use sigue
    * funcionando igual.
@@ -77,7 +77,7 @@ export interface ResultadoGuardado {
    * Alguien declaró audio grabado y **sin transcribir todavía**.
    *
    * Cuando es cierto, el audio local NO se purga: es la única copia que existe
-   * de lo que dijo el paciente. Ver REG-270.
+   * de lo que dijo el paciente. Ver REG-273.
    */
   audioSinTranscribir: boolean
 }
@@ -165,7 +165,7 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
    * es donde espera la escritura pendiente para reintentarse al volver.
    */
   /**
-   * EL AUDIO SIN TRANSCRIBIR NO SE PURGA — REG-270.
+   * EL AUDIO SIN TRANSCRIBIR NO SE PURGA — REG-273.
    *
    * `limpiarAudioLocal()` se llamaba en LAS DOS ramas, sin condición, y hace
    * `deleteDatabase('nexusmed-recovery')`: se lleva el audio de recuperación
@@ -176,7 +176,7 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
    * grabación no lo es: la cola sin transcribir no existe en ningún otro sitio.
    *
    * Y el caso que lo dispara es justo ése. El cierre por inactividad no oía
-   * dictar (REG-269), así que quien se llevaba el audio era, con diferencia
+   * dictar (REG-272), así que quien se llevaba el audio era, con diferencia
    * mayor, la consulta que se estaba dictando en ese momento.
    *
    * Ahora quien tenga audio en vuelo lo declara, y aquí se respeta. Es el mismo

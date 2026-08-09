@@ -2552,3 +2552,65 @@ vacíos. La nota por aparatos —lo que ningún competidor hace— no corría so
 
 Paquete de este despliegue: REG-264 (código) + la documentación de apertura de
 V9 (sin código).
+
+## v1147 — el barrido de pantalla estrecha (REG-265)
+
+Instrumento para las tres clases que el guardián anterior declaraba no poder
+ver: ancho fijo, rejilla rígida, imagen sin tope. Resultado: cero. La primera
+medición decía 23 y ninguno era real.
+
+## v1148 — REG-266: los pendientes del paciente, en su expediente
+
+`tareasDePaciente()` decía «para su expediente» y el expediente no los enseñaba:
+cero llamadores. El barrido de motores no lo vio porque hay otra función con el
+mismo nombre en enfermería de UCI — un medidor que informa de MENOS.
+
+Primero «resultado sin leer» (`completada` sin cerrar), luego lo vencido, luego
+lo que tiene plazo. El orden es administrativo; la gravedad la puso quien creó
+la tarea.
+
+## v1148 — REG-264 (recuperado), REG-266 y REG-267
+
+**REG-267 · v1146 se publicó anunciando REG-264 y no lo llevaba.** El commit se
+quedó en una rama lateral que la otra rutina creó sobre el mismo directorio. Se
+recupera aquí, y con él una compuerta que compara lo que el changelog anuncia con
+lo que el repositorio contiene — comprobada contra el defecto real.
+
+**REG-264 (por fin en producción)** · el pase de UCI dictado se reparte por
+aparatos. Llegaba como párrafo corrido y caía entero en el plan.
+
+**REG-266** · los pendientes de un paciente, en su expediente. `tareasDePaciente`
+decía «para su expediente» y no tenía llamador; el barrido no lo vio porque hay
+otra función con el mismo nombre en enfermería de UCI.
+
+## v1149 — REG-192 vuelve a la línea desplegada
+
+`origin/main` llevaba tres commits que la rama de V7 no tenía: el PR #260 con
+REG-192, *«la sección bien escrita compraba el silencio de la mal escrita»*.
+
+`contradicciones()` miraba **sólo la primera aparición** de cada enfermedad. Una
+nota que niega la diabetes en el interrogatorio y la diagnostica en la impresión
+tenía las dos cosas, y la primera silenciaba a la segunda. Ahora se miran todas,
+con el criterio en `mencion-en-la-nota.ts` — la temporalidad tenía esa misma
+línea copiada.
+
+No es código nuevo: es código que se había quedado fuera de la rama que se
+despliega. La misma familia que REG-267, con otro disfraz.
+
+## v1150 — el trabajo de V9: la superficie del paciente
+
+**REG-268** · el enlace de la videoconsulta del paciente no llevaba token, así
+que `/api/telesalud/sala` le contestaba **404 «Cita no encontrada» al dueño de la
+cita** —desde su propio portal, a la hora de su consulta—. Nadie lo vio porque el
+botón del médico sí lo lleva: sólo fallaba el camino que ningún empleado recorre.
+El token pasa a ser obligatorio en la firma.
+
+**REG-269** · `@keyframes spin` no existía en ningún sitio global pese a 90
+referencias, incluidos `ui/Spinner` y el estado «cargando» de `ui/Button`. Lo
+definían 31 pantallas en `<style>` locales, así que el giro funcionaba según en
+qué pantalla estuvieras. Un indicador parado no dice «esperando»: dice «se
+colgó», y se vuelve a pulsar sobre una petición que sí corría.
+
+Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
+reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
+programas compartieran directorio de trabajo, después de REG-267.

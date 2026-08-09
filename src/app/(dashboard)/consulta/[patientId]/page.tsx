@@ -2822,7 +2822,7 @@ export default function ConsultaActivaPage() {
    * oyente de `nx:guardar-todo` se registra con `[guardarBorrador]` en las
    * dependencias, así que leer `audio.estado` dentro de él capturaría el valor
    * que hubiera al registrarse — «inactivo», casi siempre. Un ref se lee
-   * siempre vivo (REG-270).
+   * siempre vivo (REG-273).
    */
   const audioEstadoRef = useRef(audio.estado)
   // Se actualiza en un efecto, no durante el render: tocar un ref mientras se
@@ -2914,7 +2914,7 @@ export default function ConsultaActivaPage() {
     const alGuardarTodo = (ev: Event) => {
       const detalleAudio = (ev as CustomEvent<{ marcarAudioSinTranscribir?: () => void }>).detail
       /**
-       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-270.
+       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-273.
        *
        * La declaración va la primera a propósito. Debajo hay un `return`
        * temprano cuando la nota está vacía, y una grabación recién empezada es

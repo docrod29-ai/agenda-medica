@@ -2,7 +2,7 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 3868,
+  "totalCasos": 4215,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -365,6 +365,10 @@
       "minCasos": 30
     },
     {
+      "archivo": "src/__tests__/el-pase-dictado-se-reparte.test.ts",
+      "minCasos": 14
+    },
+    {
       "archivo": "src/__tests__/el-plan-no-se-borra-de-un-clic.test.ts",
       "minCasos": 10
     },
@@ -661,6 +665,10 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/lo-revisado-es-lo-que-se-firma.test.ts",
       "minCasos": 18
     },
@@ -671,6 +679,10 @@
     {
       "archivo": "src/__tests__/los-alergenos-llegan-al-reconocedor.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/los-cabos-sueltos-del-paciente.test.ts",
+      "minCasos": 17
     },
     {
       "archivo": "src/__tests__/los-diagnosticos-no-se-acumulan.test.ts",
@@ -1111,6 +1123,10 @@
     {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/una-version-desplegada-no-miente.test.ts",
+      "minCasos": 4
     },
     {
       "archivo": "src/__tests__/via-no-dictada-avisa.test.ts",

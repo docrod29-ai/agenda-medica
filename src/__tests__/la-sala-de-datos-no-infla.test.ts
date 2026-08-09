@@ -49,7 +49,18 @@ describe('las cifras citadas son las reales', () => {
   })
 
   it('el número de REG documentados coincide', () => {
-    const regs = (ledger.match(/^## REG-\d+/gm) || []).length
+    /**
+     * Se cuentan los REG, NO los encabezados.
+     *
+     * `## REG-179 / REG-180` es una línea con DOS reparaciones. Contando
+     * encabezados salían 113 donde hay 114 — y esta prueba daba verde porque
+     * usaba la misma expresión equivocada que el script: dos instrumentos que
+     * comparten el error se confirman el uno al otro.
+     */
+    const regs = new Set(
+      (ledger.match(/^## REG-.*$/gm) || [])
+        .flatMap(l => [...l.matchAll(/REG-(\d+)/g)].map(m => Number(m[1]))),
+    ).size
     expect(doc).toContain(`${regs} REG`)
   })
 

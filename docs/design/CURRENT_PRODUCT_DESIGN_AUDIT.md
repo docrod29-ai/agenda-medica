@@ -32,7 +32,7 @@ superficie del paciente que ya quedó reparado en esta misma unidad.
 | 1 | **Volver a grabar borra el audio anterior.** El blob se arma con los trozos de esta sesión; el borrado arrasa el rango entero de la clave. 22 minutos grabados desaparecen sin transcribir | **ABIERTO** — `PATIENT-AUDIO-001` |
 | 2 | **Navegar termina la grabación en silencio.** El desmontaje libera recursos sin llamar a `detener()`, y `template.tsx` garantiza el desmontaje en cada navegación | **ABIERTO** — `PATIENT-AUDIO-002` |
 | 3 | **El cierre por inactividad no oye dictar y se lleva la recuperación.** Hablar no genera ratón ni teclado; a los 30 minutos cierra sesión y borra la base de recuperación en **las dos** ramas | **ABIERTO** — `PATIENT-AUDIO-003` |
-| 4 | **El enlace de la videoconsulta del paciente no llevaba token** → 404 «Cita no encontrada» en la hora de su consulta, incluso desde su propio portal | **REPARADO** — REG-265 |
+| 4 | **El enlace de la videoconsulta del paciente no llevaba token** → 404 «Cita no encontrada» en la hora de su consulta, incluso desde su propio portal | **REPARADO** — REG-268 |
 
 Los tres primeros comparten una causa de fondo que conviene nombrar: **el
 esfuerzo de persistencia se puso donde ya había red** —el texto de la nota, que
@@ -41,7 +41,7 @@ no la hay**: el audio, que no tiene segunda copia en ninguna parte.
 
 ## §3 — Los dos defectos reparados en esta unidad
 
-**REG-265 · El enlace del paciente no llevaba con qué entrar.**
+**REG-268 · El enlace del paciente no llevaba con qué entrar.**
 `enlaceSalaPaciente` componía `?c=<clinicId>` y nada más; `/api/telesalud/sala`
 exige token HMAC o sesión de miembro, y responde 404 a quien no trae ninguno —
 a propósito, para no confirmar que el `citaId` existe. El paciente pulsaba
@@ -52,7 +52,7 @@ Nadie de dentro lo veía: el botón del médico sí añade `&t=`. **Sólo fallab
 camino que ningún empleado recorre.** El token es ahora un parámetro obligatorio,
 y el portal pasa el suyo.
 
-**REG-266 · `@keyframes spin` no existía en ningún sitio global.** 90
+**REG-269 · `@keyframes spin` no existía en ningún sitio global.** 90
 referencias, incluidas las dos piezas compartidas del sistema de diseño. Lo
 definían 31 archivos de pantalla en `<style>` locales, así que el giro funcionaba
 mientras alguno estuviera montado y se congelaba en cuanto no. Un indicador de

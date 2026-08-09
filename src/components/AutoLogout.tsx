@@ -93,7 +93,7 @@ export function AutoLogout() {
     eventos.forEach(e => window.addEventListener(e, onActividad, { passive: true }))
 
     /**
-     * DICTAR TAMBIÉN ES ACTIVIDAD — REG-269.
+     * DICTAR TAMBIÉN ES ACTIVIDAD — REG-272.
      *
      * Los cinco eventos de arriba son de ratón, teclado y dedo. **Hablar no
      * genera ninguno**, y esta pantalla es la de un médico que dicta: la

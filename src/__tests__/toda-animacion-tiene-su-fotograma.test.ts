@@ -1,5 +1,5 @@
 /**
- * TODA ANIMACIÓN TIENE SU FOTOGRAMA — V9 · REG-266.
+ * TODA ANIMACIÓN TIENE SU FOTOGRAMA — V9 · REG-269.
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *

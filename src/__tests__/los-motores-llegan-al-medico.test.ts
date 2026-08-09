@@ -68,7 +68,7 @@ function medir(): {
  * No es una meta de cero: es el tope de hoy. Cada iteración del loop puede
  * quitar una o dos, y ninguna puede añadir.
  */
-const TOPE = { huerfanasMax: 39, totalMin: 771 }
+const TOPE = { huerfanasMax: 38, totalMin: 771 }
 /* 50 → 48 → 44 el 8-ago-2026:
      · REG-256, la bandeja de alertas del episodio (2)
      · REG-257, CAM-ICU y tres motores POCUS del panel de UCI (4)
@@ -76,6 +76,7 @@ const TOPE = { huerfanasMax: 39, totalMin: 771 }
      · REG-259, lo que el texto de la IA OMITE del motor (1)
      · REG-261, los ingresos hospitalarios en el expediente (1)
      · REG-262, el resumen de problemas y medicación en el expediente (2)
+     · REG-264, el pase de UCI dictado se reparte por aparatos (1)
    Cada iteración del loop cierra una o dos y baja este número. */
 
 describe('el trinquete de conexión', () => {

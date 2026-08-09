@@ -102,7 +102,7 @@ que ningún empleado recorre** — que es exactamente lo que V9 existe para mira
 
 **Reparado**: el token es un parámetro **obligatorio** de `enlaceSalaPaciente`, y
 el portal pasa el suyo. Sellado en
-`src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts` (REG-265).
+`src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts` (REG-268).
 
 **Lo que NO cierra**: el enlace que viaja por **WhatsApp**. `api/cron/reminders`
 y el webhook componen el mensaje sin token porque hoy no lo acuñan. Desde este

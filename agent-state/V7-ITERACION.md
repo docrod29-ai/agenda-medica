@@ -1,75 +1,24 @@
-# Iteración actual — MASTER LOOP V7 · programa hijo **V9** abierto
+# MASTER LOOP V7 — tablero propio
 
-> **La cabecera de cifras se DERIVA**: `node scripts/agent-state/actualizar.mjs`
-> escribe versión, última REG y conteo de pruebas en `MASTER_STATE.json`, y
-> `el-tablero-del-loop-no-miente` falla si se desfasa (REG-241). Lo de este
-> archivo es **criterio**, y el criterio no sale de un `grep`.
+> **Separado de V9 el 8-ago-2026.** Los dos programas compartían
+> `CURRENT_ITERATION.md` y se pisaban: V9 reescribió la cabecera mientras V7
+> trabajaba. Ahora cada uno tiene el suyo.
 >
-> **Las cifras ya no se copian aquí a mano** — era la cuarta vez que se
-> desfasaban. Se leen de `MASTER_STATE.json`, que las deriva del repositorio.
-> Ver `agent-state/RECONCILIACION-V9-2026-08-08.md`.
+> · **V7** (éste) → rama `agent/v7/master-loop`
+> · **V9** → rama `claude/nexus-patient-ux-v9`, tablero en `CURRENT_ITERATION.md`
+>
+> Las cifras se DERIVAN: `node scripts/agent-state/actualizar.mjs`. Lo de aquí es
+> **criterio**, y el criterio no sale de un `grep`.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
-· directiva íntegra en
-[`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ (8-ago) · **los tres P0 de audio**
-✅ (9-ago) → **`DESIGN-SYSTEM-001`**, empezando por `@theme inline`.
-Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
+**Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
 
----
+**Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
+8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio
+candado. **El candado de V9 sigue en pie para V9**: son dos programas.
 
-## V9 · lo que encontró la auditoría, en una frase
-
-**El producto pierde consultas ya grabadas, y le dice al paciente que su cita no
-existe.**
-
-Y una que no se esperaba: **la premisa de la directiva no se cumple.** No hay
-«cara de producto generado por IA» —cero degradados, cero morados, una tarjeta
-`rounded-2xl` en toda la aplicación— sino una identidad declarada con el
-contraste medido a mano. El defecto es el contrario: **el sistema de diseño
-existe y la aplicación no le obedece** (88,5 % de los archivos con estilo en
-línea; primitivos compartidos al 24 %).
-
-| P0 | Estado |
-|---|---|
-| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | **REG-267 · cerrado** |
-| Navegar **termina la grabación** en silencio y tira el trozo final | **REG-268/269 · cerrado en parte** → residuo `PATIENT-AUDIO-004` |
-| El cierre por inactividad **no oye dictar** y borra la recuperación | **REG-269/270 · cerrado** |
-| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · cerrado** |
-
-**Los cuatro compartían un sesgo, y por eso se arreglaron juntos**: toda la
-persistencia se había puesto donde YA había red —el texto de la nota tiene cuatro
-copias— y el audio, que no tiene ninguna otra, se quedó fuera de todas. Cuando
-hubo que elegir entre proteger el texto y proteger el audio, en la purga del
-cierre de sesión, se protegió el texto.
-
-**Residuo declarado**: navegar dentro de la aplicación sigue terminando la
-grabación **sin avisar**. Ya no se pierde audio —los trozos están en IndexedDB,
-el final incluido— pero el médico no se entera. `beforeunload` no se dispara en
-un `router.push` y App Router no expone eventos de ruta: se decide con la
-aplicación abierta (`PATIENT-AUDIO-004`, P1).
-
-Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
-donde ya había red** —el texto de la nota, con borrador en memoria, respaldo
-local, autoguardado y volcado— **y no donde no la hay**: el audio, que no tiene
-segunda copia en ninguna parte.
-
-También reparado: **REG-266**, `@keyframes spin` no existía en ningún sitio
-global pese a 90 referencias, incluidos los dos primitivos compartidos. El giro
-funcionaba «según en qué pantalla estuvieras».
-
-Detalle: `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` y sus seis hermanos.
-Estado por dominio: `DESIGN_STATE.md` · `PATIENT_COMPANION_STATE.md`.
-
-**Modo V9**: autónomo **SIN desplegar y SIN fusionar a `main`**. El dueño
-restableció el candado de despliegue al abrir V9 (§9 de la directiva). Lo demás
-sigue igual: nada de datos reales de pacientes, nada destructivo, **ninguna cifra
-clínica inventada** (se marca `NEEDS_CLINICAL_REVIEW` y se sigue con otra cosa).
-
-> **V7 se mudó** el 8-ago-2026 a `agent-state/V7-ITERACION.md` y a la rama
-> `agent/v7/master-loop`: los dos programas se pisaban en este archivo. Lo que
-> sigue abajo es el historial de V7 hasta la mudanza, conservado como estaba.
+Lo que no se relaja en ninguno de los dos: nada de datos reales de pacientes,
+nada destructivo, **ninguna cifra clínica inventada**.
 
 ---
 
