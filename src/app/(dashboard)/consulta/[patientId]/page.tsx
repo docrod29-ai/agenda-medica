@@ -725,6 +725,13 @@ export default function ConsultaActivaPage() {
     sexo: patient?.sexo,
     alergias: patient?.alergias,
     /**
+     * Las capturadas en campo, para que el cruce las vea igual que el sesgo de
+     * voz y los impresos (REG-208). Hoy ninguna ruta de escritura las llena,
+     * pero cualquier importación desde otro sistema las activa el mismo día, y
+     * entonces el paciente MEJOR documentado sería el único sin cruce.
+     */
+    alergiasEstructuradas: patient?.alergiasEstructuradas,
+    /**
      * ── EL PACIENTE COMPLETO, NO SÓLO LO DE HOY (6-ago-2026, REG-188) ──────
      *
      * Aquí iban únicamente los renglones de esta consulta. En un seguimiento
@@ -761,7 +768,7 @@ export default function ConsultaActivaPage() {
     labs: labsDesdeEstudios(
       (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
     ),
-  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signosNum, extraction])
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
