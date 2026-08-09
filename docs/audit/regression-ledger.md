@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el «>2» del laboratorio se leía como un 2 (v1074)
+## REG-211 — el «>2» del laboratorio se leía como un 2 (v1093)
 
 **Encontrado** — 8-ago-2026, revisando por qué `cmiDe` no propagaba
 `cmiCensurada` cuando el módulo de al lado sí lo respeta desde la REG-044.

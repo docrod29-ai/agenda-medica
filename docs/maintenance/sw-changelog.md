@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el «>2» del laboratorio se leía como un 2
+## v1093 — REG-211: el «>2» del laboratorio se leía como un 2
 
 Una CMI es un intervalo, no un número — la decisión E0-15c del Dr., la misma que
 gobierna `interpretarCMI` desde la REG-044. `cmiDe` devolvía el número pelado y

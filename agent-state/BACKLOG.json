@@ -129,7 +129,7 @@
       "dependenciaExterna": 0,
       "score": 73,
       "estado": "cerrado",
-      "cierre": "CERRADO — REG-192 (v1074) — número provisional, ver colisión en OWNER_DECISIONS_REQUIRED. Golden `la-cmi-censurada-no-se-lee-como-exacta.test.ts`, 20 casos, 8 rojos sin el arreglo.",
+      "cierre": "CERRADO — REG-211 (v1093) — número provisional, ver colisión en OWNER_DECISIONS_REQUIRED. Golden `la-cmi-censurada-no-se-lee-como-exacta.test.ts`, 20 casos, 8 rojos sin el arreglo.",
       "reversible": true
     }
   ],
