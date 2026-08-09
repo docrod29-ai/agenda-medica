@@ -3,9 +3,61 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
-**Siguiente que toca esta superficie**: `PATIENT-COMPANION-001` (tras
-`DESIGN-SYSTEM-001` y `NAVIGATION-001`).
+**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
+**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
+`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+
+---
+
+## Lo que quedó montado en `PATIENT-COMPANION-001`
+
+**Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
+· Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la
+sala de espera. Cinco es el techo de la especificación, no el objetivo.
+
+**`PaqueteDeVisita`**, trece campos, dos estados. Nace `DRAFT` **aunque la nota
+esté firmada**: firmar va hacia el expediente, liberar va hacia el paciente, y
+son dos actos.
+
+**La compuerta**: `visibleParaElPaciente` exige estado, aprobador **y** fecha —
+un `RELEASED` sin `approvedBy` es un documento al que alguien le puso el estado a
+mano. Y la aplica el **servidor**, en `/api/portal`, con alcance `clinico`.
+Esconder una pestaña no cierra una ruta HTTP.
+
+**Declarado en cuatro sitios**, no tres: reglas de Firestore con escritura
+cerrada, matriz de acceso, manifiesto del respaldo **y exportación ARCO** — el
+paquete es dato del titular, borradores incluidos.
+
+## Lo que NO se hizo, y por qué importa
+
+`componerPaquete` se escribió y el guardián de conexión la cazó: motor con
+cuerpo real, cero llamadores. Se difirió a `POSTVISIT-001`, que es donde vive la
+pantalla que la llamará. Al quitarla, el guardián cazó a su ayudante en la vuelta
+siguiente — **un motor sin llamador no deja de serlo porque su vecino se haya
+ido**. Se fueron los dos.
+
+«Escrito, probado y sin conectar» es la familia más grande del proyecto (32 de
+129). Añadirle una más a sabiendas, con nota o sin ella, era justo lo que no
+toca.
+
+## Dos pantallas que dicen la verdad en vez de fingir
+
+- **Preguntar no responde.** Escala al consultorio. Un cuadro de texto que
+  conteste «lo que sea» es lo que la regla de IA de cara al paciente prohíbe, y
+  se lo diría a alguien que no puede detectar el error. `PATIENT-AI-001`.
+- **Perfil** dice que el idioma es es-MX y que todavía no se puede autorizar a un
+  cuidador. Un selector con un solo idioma le miente al paciente sobre lo que
+  puede esperar.
+
+## Lo que este estado NO afirma
+
+Nada se ha visto en un navegador. **Y hoy ningún paquete existe en producción**:
+falta la pantalla del médico para liberarlos. La superficie del paciente está
+lista para recibirlos y el estado vacío lo dice.
+
+---
+
+## Línea base anterior (`PATIENT-UX-TRUTH-001`, 8-ago)
 
 ---
 
@@ -77,13 +129,14 @@ por el paciente.
 
 ## P1 abiertos
 
-- `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa; revocación que falla
-  **abierta**.
+- `PATIENT-PORTAL-001` — **parcial**: `/api/portal` ya tiene límite de tasa
+  (REG-307); la revocación que falla **abierta** sigue sin decidir, en
+  `OWNER_DECISIONS_REQUIRED.md`.
 - `POSTVISIT-ENTREGA-001` — la hoja no llega al paciente.
 
 ## P1 cerrados (sin desplegar)
 
-- `POSTVISIT-GATE-001` — **REG-294**, rama `claude/clever-lamport-a9htn3`.
+- `POSTVISIT-GATE-001` — **REG-306**, rama `claude/clever-lamport-a9htn3`.
   `HojaParaElPaciente` ahora exige `notaFirmada: boolean` (obligatoria, sin
   `?`) y deriva `estadoDeLaHoja` (`DRAFT`/`RELEASED`); copiar e imprimir se
   cierran en el manejador, no sólo en `disabled`, y el aviso de borrador se

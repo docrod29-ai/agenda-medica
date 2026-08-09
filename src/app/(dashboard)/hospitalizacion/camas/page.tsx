@@ -118,7 +118,7 @@ export default function CamasPage() {
         {esAdmin && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setForm({ servicio: SERVICIOS_HOSPITAL[0], etiqueta: '', tipo: '' }); setModal(true) }}>Agregar cama</Button>}
       </div>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BedDouble size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Tablero de camas
+        <BedDouble size={22} style={{ color: 'var(--nexus)' }} /> Tablero de camas
       </h1>
       {sinCamaEnInventario.length > 0 && (
         <div style={{

@@ -91,7 +91,7 @@ export const COLECCIONES: ColeccionRespaldo[] = [
     hijas: [
       // La nota lleva DEBAJO su corrección legal (adenda) y su historial.
       { ruta: 'notas', hijas: [{ ruta: 'adendas' }, { ruta: 'versions' }] },
-      'laboratorios', 'fotos', 'clinico', 'formularios_previos',
+      'laboratorios', 'fotos', 'clinico', 'formularios_previos', 'paquetes_visita',
     ],
   },
   { ruta: 'appointments', descripcion: 'Citas: fecha, tipo, estado, médico y paciente.' },

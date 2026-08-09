@@ -161,7 +161,7 @@ export default function SuperadminPage() {
       */}
       {alcance?.consultorios.recortado && (
         <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, fontSize: 13,
-          border: '1px solid var(--amber, #b45309)', color: 'var(--text)' }}>
+          border: '1px solid var(--amber)', color: 'var(--text)' }}>
           Sólo se están enseñando los {alcance.consultorios.etiqueta}. Hay más consultorios que no
           caben en esta lectura.
         </div>

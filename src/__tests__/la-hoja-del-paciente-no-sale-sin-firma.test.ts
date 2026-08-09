@@ -1,5 +1,5 @@
 /**
- * LA HOJA DEL PACIENTE NO SALE SIN FIRMA — REG-294 (V7 · POSTVISIT-GATE-001).
+ * LA HOJA DEL PACIENTE NO SALE SIN FIRMA — REG-306 (V7 · POSTVISIT-GATE-001).
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *
@@ -168,6 +168,6 @@ describe('la razón queda escrita donde se pueda leer', () => {
     // Antes decía «se componen de lo que el médico ya revisó y firmó» y nada lo
     // comprobaba. Ahora tiene que decir que es una precondición.
     expect(COMPONENTE).toMatch(/precondici[óo]n/i)
-    expect(COMPONENTE).toMatch(/REG-294/)
+    expect(COMPONENTE).toMatch(/REG-306/)
   })
 })

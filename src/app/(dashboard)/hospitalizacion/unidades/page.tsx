@@ -90,7 +90,7 @@ export default function UnidadesPage() {
         <ArrowLeft size={15} /> Atrás
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Building2 size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Unidades del hospital
+        <Building2 size={22} style={{ color: 'var(--nexus)' }} /> Unidades del hospital
       </h1>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px', lineHeight: 1.6 }}>
         Su hospital llama a cada unidad como quiera. Lo que el sistema necesita saber es
@@ -135,7 +135,7 @@ export default function UnidadesPage() {
                 value={u.tipo}
                 disabled={!esAdmin}
                 onChange={e => guardar({ ...u, tipo: e.target.value as TipoUnidad })}
-                style={{ minHeight: 36, background: 'var(--s1)', border: `1px solid ${u.tipo === 'critica' ? 'var(--nexus,#3d5afe)' : 'var(--border)'}`, borderRadius: 8, padding: '6px 9px', fontSize: 12.5, color: u.tipo === 'critica' ? 'var(--nexus,#3d5afe)' : 'var(--text2)', fontWeight: u.tipo === 'critica' ? 700 : 500 }}
+                style={{ minHeight: 36, background: 'var(--s1)', border: `1px solid ${u.tipo === 'critica' ? 'var(--nexus)' : 'var(--border)'}`, borderRadius: 8, padding: '6px 9px', fontSize: 12.5, color: u.tipo === 'critica' ? 'var(--nexus)' : 'var(--text2)', fontWeight: u.tipo === 'critica' ? 700 : 500 }}
               >
                 {TIPOS_UNIDAD.map(t => <option key={t} value={t}>{TIPO_UNIDAD_LABEL[t]}</option>)}
               </select>

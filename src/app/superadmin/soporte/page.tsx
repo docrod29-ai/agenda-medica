@@ -84,7 +84,7 @@ export default function SoporteInbox() {
               {m.estado !== 'resuelto' && <button onClick={() => marcar(m.id, 'resuelto')} style={{ fontSize: 12, fontWeight: 600, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Marcar resuelto</button>}
               {m.estado === 'nuevo' && <button onClick={() => marcar(m.id, 'visto')} style={{ fontSize: 12, fontWeight: 600, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Marcar visto</button>}
               {m.estado === 'resuelto' && <button onClick={() => marcar(m.id, 'visto')} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reabrir</button>}
-              {m.email && <a href={`mailto:${m.email}`} style={{ fontSize: 12, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', alignSelf: 'center' }}>Responder por correo →</a>}
+              {m.email && <a href={`mailto:${m.email}`} style={{ fontSize: 12, color: 'var(--nexus)', textDecoration: 'none', alignSelf: 'center' }}>Responder por correo →</a>}
             </div>
           </div>
         )

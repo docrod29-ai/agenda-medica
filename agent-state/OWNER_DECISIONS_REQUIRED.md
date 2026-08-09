@@ -149,10 +149,10 @@ no hace.
 ## SEGURIDAD · ¿La revocación del enlace del portal falla cerrada o abierta?
 
 **Estado**: pendiente · encontrado en `PATIENT-PORTAL-001` (V9, 8-ago-2026),
-código sin tocar en esta iteración (V7, 9-ago-2026 — REG-295 sólo puso límite
+código sin tocar en esta iteración (V7, 9-ago-2026 — REG-307 sólo puso límite
 de tasa, no esto).
 
-**El hecho** — `src/app/api/portal/route.ts:177-186` comprueba en cada
+**El hecho** — `src/app/api/portal/route.ts:186-203` comprueba en cada
 petición si `portalTokenVersion` del expediente sigue siendo la del token
 (`tokenVigente`, `patient-token.ts`). Si la LECTURA de esa comprobación lanza
 —incidencia de Firestore—, el `catch` está vacío: se sigue como si el enlace

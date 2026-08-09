@@ -64,18 +64,18 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
 
   return (
     <section style={{
-      border: '1px solid var(--border)', borderRadius: 12,
+      border: '1px solid var(--border)', borderRadius: 14,
       background: 'var(--s2)', overflow: 'hidden',
     }}>
       <header style={{ padding: '13px 15px 0' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.titulo}</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{p.titulo}</h3>
           <span style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: 'var(--text3)',
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '.04em', color: 'var(--text3)',
             border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '1px 7px',
           }}>{p.reg}</span>
         </div>
-        <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
+        <p style={{ margin: '7px 0 0', fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
           {p.porQue}
         </p>
       </header>
@@ -90,7 +90,7 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
             spellCheck={false}
             style={{
               width: '100%', maxWidth: '100%', boxSizing: 'border-box',
-              padding: '9px 11px', borderRadius: 9, resize: 'vertical',
+              padding: '9px 11px', borderRadius: 10, resize: 'vertical',
               border: '1px solid var(--border)', background: 'var(--s1)',
               color: 'var(--text)', font: 'inherit', fontSize: 14, lineHeight: 1.5,
             }}
@@ -100,29 +100,29 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
         {/* ANTES — citado, no calculado. La distinción va escrita en la etiqueta. */}
         <div style={{
           display: 'flex', gap: 9, alignItems: 'flex-start', padding: '9px 11px',
-          borderRadius: 9, border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
+          borderRadius: 10, border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
           background: 'color-mix(in srgb, var(--red) 8%, transparent)',
         }}>
           <AlertTriangle size={15} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--red)', letterSpacing: '.03em' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--red)', letterSpacing: '.03em' }}>
               ANTES · lo que hacía, según el registro
             </div>
-            <div style={{ fontSize: 13.5, color: 'var(--text)', marginTop: 3, lineHeight: 1.5 }}>{p.antes}</div>
+            <div style={{ fontSize: 14, color: 'var(--text)', marginTop: 3, lineHeight: 1.5 }}>{p.antes}</div>
           </div>
         </div>
 
         {/* AHORA — calculado en este instante, con lo que haya en el campo. */}
         <div style={{
           display: 'flex', gap: 9, alignItems: 'flex-start', padding: '9px 11px',
-          borderRadius: 9,
+          borderRadius: 10,
           border: `1px solid color-mix(in srgb, ${reventó ? 'var(--amber)' : 'var(--teal)'} 35%, transparent)`,
           background: `color-mix(in srgb, ${reventó ? 'var(--amber)' : 'var(--teal)'} 9%, transparent)`,
         }}>
           <Check size={15} style={{ color: reventó ? 'var(--amber)' : 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: '.03em',
+              fontSize: 10.5, fontWeight: 700, letterSpacing: '.03em',
               color: reventó ? 'var(--amber)' : 'var(--teal)',
             }}>
               AHORA · el motor, corriendo sobre lo de arriba
@@ -135,7 +135,7 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
               donde se ven las cosas que ninguna prueba mira.
             */}
             <div style={{
-              fontSize: 13.5, color: 'var(--text)', marginTop: 3, lineHeight: 1.55,
+              fontSize: 14, color: 'var(--text)', marginTop: 3, lineHeight: 1.55,
               fontFamily: 'var(--font-mono, ui-monospace, monospace)', wordBreak: 'break-word',
               whiteSpace: 'pre-line',
             }}>{dice}</div>

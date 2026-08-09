@@ -18,16 +18,26 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1167",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M agent-state/MASTER_STATE.json",
-    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/api/portal/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-portal-del-paciente-tiene-limite-de-tasa.test.ts"
+    "M  CLAUDE.md",
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/CHANGELOG_AGENT.md",
+    "M  agent-state/DESIGN_STATE.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/MASTER_STATE.json",
+    "M  agent-state/PATIENT_COMPANION_STATE.md",
+    "A  agent-state/V9_COMPLETE_CRITERIA.md",
+    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "A  docs/ai/V9-BITACORA-Y-OPERACION.md",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "A  docs/design/NEXUS_DESIGN_SYSTEM.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  docs/security/matriz-acceso-phi.md",
+    "M  firestore.rules",
+    "M  scripts/design/inventario-de-pantallas.mjs",
+    "A  scripts/design/techos-de-diseno.json",
+    "A  scripts/design/trinquete-de-diseno.mjs"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +73,10 @@
   ],
   "ramaActual": "claude/clever-lamport-a9htn3",
   "derivado": {
-    "regsEnElLedger": 143,
-    "ultimaREG": "REG-295",
-    "archivosDePrueba": 571,
-    "casosDePrueba": 7499,
+    "regsEnElLedger": 155,
+    "ultimaREG": "REG-307",
+    "archivosDePrueba": 576,
+    "casosDePrueba": 7564,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -13,7 +13,7 @@
  * ya revisó y firmó — el motor está en `lib/paciente/como-se-lo-explico.ts` y
  * es determinista.
  *
- * ── Y «FIRMÓ» ES AHORA UNA PRECONDICIÓN, NO UNA INTENCIÓN (REG-294) ─────────
+ * ── Y «FIRMÓ» ES AHORA UNA PRECONDICIÓN, NO UNA INTENCIÓN (REG-306) ─────────
  *
  * Esa frase de arriba llevaba desde REG-242 siendo una declaración de propósito
  * que nada comprobaba: la hoja se componía del borrador EN CURSO y se podía
@@ -41,7 +41,7 @@ export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
   /**
-   * ¿Está firmada la nota de la que sale esta hoja? — REG-294.
+   * ¿Está firmada la nota de la que sale esta hoja? — REG-306.
    *
    * OBLIGATORIA a propósito. Si fuera opcional, un sitio de llamada nuevo la
    * olvidaría y la hoja volvería a ser entregable desde un borrador sin que
@@ -157,7 +157,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
             padding: '10px 14px',
             borderBottom: '1px solid var(--border)',
             background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
-            color: 'var(--amber)', fontSize: 13, fontWeight: 600,
+            color: 'var(--amber)', fontSize: 12, fontWeight: 600,
           }}
         >
           <Lock size={14} aria-hidden />

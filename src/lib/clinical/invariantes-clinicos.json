@@ -2,11 +2,15 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4478,
+  "totalCasos": 4534,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/alergias-negacion.test.ts",
+      "minCasos": 12
     },
     {
       "archivo": "src/__tests__/alergias.test.ts",
@@ -245,6 +249,10 @@
       "minCasos": 34
     },
     {
+      "archivo": "src/__tests__/de-donde-salio-esto-se-ve.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/de-que-se-enferma-este-sistema.test.ts",
       "minCasos": 9
     },
@@ -297,12 +305,32 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/el-audio-grabado-no-se-borra.test.ts",
+      "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/el-boton-dice-por-que-esta-apagado.test.ts",
       "minCasos": 18
     },
     {
       "archivo": "src/__tests__/el-camino-del-medico-llega-entero.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/el-expediente-resume-el-estado.test.ts",
+      "minCasos": 10
     },
     {
       "archivo": "src/__tests__/el-foso-no-inventa-competidores.test.ts",
@@ -317,12 +345,28 @@
       "minCasos": 10
     },
     {
+      "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
+      "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/el-paciente-completo-llega-al-motor.test.ts",
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/el-panel-no-certifica-lo-contrario.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/el-pasado-no-es-el-presente.test.ts",
       "minCasos": 30
+    },
+    {
+      "archivo": "src/__tests__/el-pase-dictado-se-reparte.test.ts",
+      "minCasos": 14
     },
     {
       "archivo": "src/__tests__/el-plan-no-se-borra-de-un-clic.test.ts",
@@ -345,6 +389,18 @@
       "minCasos": 11
     },
     {
+      "archivo": "src/__tests__/el-sistema-de-diseno-no-pierde-terreno.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts",
       "minCasos": 20
     },
@@ -355,6 +411,10 @@
     {
       "archivo": "src/__tests__/errores-sin-phi.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/escuchar-de-donde-salio.test.ts",
+      "minCasos": 19
     },
     {
       "archivo": "src/__tests__/especialidad-del-medico.test.ts",
@@ -497,12 +557,24 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/la-anatomia-no-es-metatexto.test.ts",
       "minCasos": 6
     },
     {
       "archivo": "src/__tests__/la-caida-de-ia-sigue-al-dueno.test.ts",
       "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/la-consola-del-dueno-tiene-puerta.test.ts",
+      "minCasos": 4
     },
     {
       "archivo": "src/__tests__/la-direccion-de-las-dependencias.test.ts",
@@ -513,12 +585,36 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/la-grabacion-larga-no-muere.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
+      "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
+      "minCasos": 14
+    },
+    {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
       "minCasos": 6
     },
     {
+      "archivo": "src/__tests__/la-nota-la-escribe-un-especialista.test.ts",
+      "minCasos": 19
+    },
+    {
       "archivo": "src/__tests__/la-nota-no-sale-hueca.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts",
+      "minCasos": 19
+    },
+    {
+      "archivo": "src/__tests__/la-pantalla-cabe-en-un-telefono.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/la-proxima-consulta-no-se-pierde.test.ts",
@@ -527,6 +623,10 @@
     {
       "archivo": "src/__tests__/la-puerta-de-liberacion-sigue-cerrada.test.ts",
       "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
+      "minCasos": 20
     },
     {
       "archivo": "src/__tests__/la-sala-de-datos-no-infla.test.ts",
@@ -557,20 +657,68 @@
       "minCasos": 4
     },
     {
+      "archivo": "src/__tests__/lo-que-el-navegador-vio.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/lo-que-el-texto-se-callo.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/lo-que-no-se-imprime-tampoco-se-descarga.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
+      "minCasos": 19
+    },
+    {
       "archivo": "src/__tests__/lo-que-se-paga-y-no-se-lee.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts",
+      "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/lo-revisado-es-lo-que-se-firma.test.ts",
+      "minCasos": 18
     },
     {
       "archivo": "src/__tests__/los-adr-no-mienten.test.ts",
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/los-alergenos-llegan-al-reconocedor.test.ts",
+      "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/los-cabos-sueltos-del-paciente.test.ts",
+      "minCasos": 17
+    },
+    {
       "archivo": "src/__tests__/los-diagnosticos-no-se-acumulan.test.ts",
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/los-huecos-se-proponen-marcados.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/los-motores-de-uci-corren.test.ts",
+      "minCasos": 17
+    },
+    {
+      "archivo": "src/__tests__/los-motores-llegan-al-medico.test.ts",
+      "minCasos": 11
+    },
+    {
       "archivo": "src/__tests__/medical-dictionary.test.ts",
       "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/menos-pasos-para-cerrar-la-consulta.test.ts",
+      "minCasos": 19
     },
     {
       "archivo": "src/__tests__/modelo-y-voces-diarizacion.test.ts",
@@ -583,6 +731,10 @@
     {
       "archivo": "src/__tests__/mrr-real.test.ts",
       "minCasos": 18
+    },
+    {
+      "archivo": "src/__tests__/nada-tapa-un-campo-que-se-llena.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/negacion-parser.test.ts",
@@ -651,6 +803,14 @@
     {
       "archivo": "src/__tests__/procedencia-de-la-prosa.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/que-es-de-que.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/que-va-en-la-receta.test.ts",
+      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/quien-hablo-se-archiva.test.ts",
@@ -763,6 +923,10 @@
     {
       "archivo": "src/__tests__/timezone-zona-consultorio.test.ts",
       "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/toda-animacion-tiene-su-fotograma.test.ts",
+      "minCasos": 3
     },
     {
       "archivo": "src/__tests__/trinquete-de-voz.test.ts",
@@ -941,8 +1105,24 @@
       "minCasos": 18
     },
     {
+      "archivo": "src/__tests__/un-antibiotico-no-se-convierte-en-otro.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/un-borrador-no-llega-al-paciente.test.ts",
+      "minCasos": 13
+    },
+    {
       "archivo": "src/__tests__/un-hueco-se-escribe-no-se-reclama.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/un-monologo-no-es-un-dialogo.test.ts",
+      "minCasos": 16
+    },
+    {
+      "archivo": "src/__tests__/un-resultado-genera-tarea.test.ts",
+      "minCasos": 13
     },
     {
       "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
@@ -953,8 +1133,16 @@
       "minCasos": 27
     },
     {
+      "archivo": "src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts",
+      "minCasos": 21
+    },
+    {
       "archivo": "src/__tests__/una-sola-implementacion-fhir.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/una-version-desplegada-no-miente.test.ts",
+      "minCasos": 4
     },
     {
       "archivo": "src/__tests__/via-no-dictada-avisa.test.ts",
@@ -979,178 +1167,6 @@
     {
       "archivo": "src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
       "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/un-antibiotico-no-se-convierte-en-otro.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/lo-que-no-se-imprime-tampoco-se-descarga.test.ts",
-      "minCasos": 5
-    },
-    {
-      "archivo": "src/__tests__/la-pantalla-cabe-en-un-telefono.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/la-consola-del-dueno-tiene-puerta.test.ts",
-      "minCasos": 4
-    },
-    {
-      "archivo": "src/__tests__/que-va-en-la-receta.test.ts",
-      "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/la-grabacion-larga-no-muere.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/un-monologo-no-es-un-dialogo.test.ts",
-      "minCasos": 16
-    },
-    {
-      "archivo": "src/__tests__/los-huecos-se-proponen-marcados.test.ts",
-      "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/lo-revisado-es-lo-que-se-firma.test.ts",
-      "minCasos": 18
-    },
-    {
-      "archivo": "src/__tests__/la-nota-la-escribe-un-especialista.test.ts",
-      "minCasos": 19
-    },
-    {
-      "archivo": "src/__tests__/menos-pasos-para-cerrar-la-consulta.test.ts",
-      "minCasos": 19
-    },
-    {
-      "archivo": "src/__tests__/los-alergenos-llegan-al-reconocedor.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/lo-que-el-navegador-vio.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/nada-tapa-un-campo-que-se-llena.test.ts",
-      "minCasos": 6
-    },
-    {
-      "archivo": "src/__tests__/la-maqueta-se-construyo-entera.test.ts",
-      "minCasos": 13
-    },
-    {
-      "archivo": "src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts",
-      "minCasos": 21
-    },
-    {
-      "archivo": "src/__tests__/de-donde-salio-esto-se-ve.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
-      "minCasos": 20
-    },
-    {
-      "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
-      "minCasos": 19
-    },
-    {
-      "archivo": "src/__tests__/que-es-de-que.test.ts",
-      "minCasos": 16
-    },
-    {
-      "archivo": "src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts",
-      "minCasos": 19
-    },
-    {
-      "archivo": "src/__tests__/alergias-negacion.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/escuchar-de-donde-salio.test.ts",
-      "minCasos": 19
-    },
-    {
-      "archivo": "src/__tests__/el-panel-no-certifica-lo-contrario.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/un-resultado-genera-tarea.test.ts",
-      "minCasos": 13
-    },
-    {
-      "archivo": "src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
-      "minCasos": 6
-    },
-    {
-      "archivo": "src/__tests__/los-motores-llegan-al-medico.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/los-motores-de-uci-corren.test.ts",
-      "minCasos": 17
-    },
-    {
-      "archivo": "src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts",
-      "minCasos": 11
-    },
-    {
-      "archivo": "src/__tests__/lo-que-el-texto-se-callo.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/el-expediente-resume-el-estado.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/el-barrido-de-motores-esta-explicado.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts",
-      "minCasos": 9
-    },
-    {
-      "archivo": "src/__tests__/el-pase-dictado-se-reparte.test.ts",
-      "minCasos": 14
-    },
-    {
-      "archivo": "src/__tests__/los-cabos-sueltos-del-paciente.test.ts",
-      "minCasos": 17
-    },
-    {
-      "archivo": "src/__tests__/una-version-desplegada-no-miente.test.ts",
-      "minCasos": 4
-    },
-    {
-      "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/toda-animacion-tiene-su-fotograma.test.ts",
-      "minCasos": 3
     },
     {
       "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",

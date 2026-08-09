@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303],
   },
   {
     clave: 'se_contradice',
@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305],
   },
   {
     clave: 'habla_real',
@@ -65,7 +65,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299],
   },
   {
     clave: 'hueco_como_dato',
@@ -100,7 +100,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Correcto por dentro, insoportable por fuera: avisos que interrumpen, se ' +
       'repiten o tapan la nota. Un aviso que estorba se aprende a ignorar, y ' +
       'entonces deja de proteger.',
-    regs: [178, 181, 184, 231, 233],
+    regs: [178, 181, 184, 231, 233, 301],
   },
   {
     clave: 'perdida',
@@ -109,7 +109,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219, 283, 287],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302],
   },
   {
     clave: 'tarde',
@@ -176,7 +176,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250],
+    regs: [242, 243, 250, 304],
   },
   {
     clave: 'falta_un_eje',
@@ -189,8 +189,10 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
   },
   {
     /**
-     * Familia NUEVA, abierta el 9-ago-2026 con REG-294 (V7, tras la reanudación
-     * del programa).
+     * Familia NUEVA, abierta el 9-ago-2026 con REG-306 (V7, tras la reanudación
+     * del programa). Renumerada de 294 a 306 al fusionar: V9 acuñó REG-294 en
+     * paralelo para un defecto de audio distinto — misma colisión que ya
+     * documenta OWNER_DECISIONS_REQUIRED.md (T-1).
      *
      * No es `hueco_como_dato`: ahí el vacío clínico se guarda como si alguien
      * lo hubiera dicho. Aquí el vacío es de APROBACIÓN, no de contenido — el
@@ -202,10 +204,11 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo declaraba en prosa qué tenía que ser cierto antes de actuar ' +
       '—firmado, aprobado, revisado— pero nada lo comprobaba antes de actuar. ' +
       'Un comentario describe la intención; no es una compuerta que la aplique.',
-    regs: [294],
+    regs: [306],
   },
   {
-    /** Familia NUEVA, abierta el 9-ago-2026 con REG-295 (V7). */
+    /** Familia NUEVA, abierta el 9-ago-2026 con REG-307 (V7). Renumerada de
+     *  295 a 307 al fusionar, por la misma colisión con V9. */
     clave: 'salvaguarda_a_medias',
     nombre: 'La misma defensa, aplicada a unas rutas y no a sus hermanas',
     patron:
@@ -213,7 +216,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'límite de tasa, validación, aislamiento— pero una ruta que corre el ' +
       'mismo riesgo que sus hermanas se quedó sin él. No falta inventar la ' +
       'defensa: falta copiarla al sitio que la necesitaba igual.',
-    regs: [295],
+    regs: [307],
   },
 ] as const
 

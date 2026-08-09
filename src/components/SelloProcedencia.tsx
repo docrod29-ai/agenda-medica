@@ -38,8 +38,8 @@ interface Props {
  * mano» sería decir que el médico lo escribió.
  */
 const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
-  dictado:   { color: 'var(--teal, #2dd4bf)', Icon: Mic },
-  ia:        { color: 'var(--nexus, #3d5afe)', Icon: Sparkles },
+  dictado:   { color: 'var(--teal)', Icon: Mic },
+  ia:        { color: 'var(--nexus)', Icon: Sparkles },
   manual:    { color: 'var(--text3)', Icon: PenLine },
   calculado: { color: 'var(--blue)', Icon: Calculator },
   importado: { color: 'var(--purple)', Icon: Activity },
@@ -63,7 +63,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
         onClick={() => setAbierto(a => !a)}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left' }}
       >
-        <Fingerprint size={15} style={{ color: 'var(--nexus, #3d5afe)', flexShrink: 0 }} />
+        <Fingerprint size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 700 }}>Procedencia de la nota</span>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>{resumenProcedencia(resumen)}</span>
         <ChevronDown size={15} style={{ marginLeft: 'auto', color: 'var(--text3)', transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
@@ -72,7 +72,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
       {abierto && (
         <div style={{ padding: '0 13px 13px', display: 'flex', flexDirection: 'column', gap: 5 }}>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 4 }}>
-            Cada dato estructurado de la nota, con su origen. Lo <strong style={{ color: 'var(--teal, #2dd4bf)' }}>del dictado</strong> conserva la frase exacta; lo <strong style={{ color: 'var(--nexus, #3d5afe)' }}>de IA</strong> es inferencia sin cita literal; lo <strong>a mano</strong> lo capturaste tú.
+            Cada dato estructurado de la nota, con su origen. Lo <strong style={{ color: 'var(--teal)' }}>del dictado</strong> conserva la frase exacta; lo <strong style={{ color: 'var(--nexus)' }}>de IA</strong> es inferencia sin cita literal; lo <strong>a mano</strong> lo capturaste tú.
           </div>
           {campos.map(c => {
             const { color, Icon } = ESTILO[c.origen]
@@ -92,7 +92,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
                     dos cosas distintas, y en una revisión la segunda pesa más.
                   */}
                   {c.confirmado === true && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal, #2dd4bf)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', display: 'inline-flex', alignItems: 'center', gap: 3, background: 'color-mix(in srgb, currentColor 12%, transparent)', padding: '2px 7px', borderRadius: 'var(--r-pill)' }}>
                       <CheckCircle2 size={10} /> lo aceptaste
                     </span>
                   )}

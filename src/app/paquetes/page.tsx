@@ -21,7 +21,7 @@ export default function PaquetesPage() {
           <ArrowLeft size={15} /> Ver los motores
         </Link>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus, #3d5afe)', background: 'var(--nexus-soft, rgba(61,90,254,.09))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus)', background: 'var(--nexus-soft, rgba(61,90,254,.09))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
           <Layers size={14} /> Specialty Packages
         </div>
 
@@ -72,7 +72,7 @@ export default function PaquetesPage() {
           })}
         </div>
 
-        <div style={{ marginTop: 22, padding: '16px 18px', border: '1px solid var(--border)', borderLeft: '3px solid var(--nexus, #3d5afe)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,.04))', fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 22, padding: '16px 18px', border: '1px solid var(--border)', borderLeft: '3px solid var(--nexus)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,.04))', fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--text)' }}>Medicina general, familiar y urgencias ven TODO.</strong> Es a
           propósito: atienden al niño, a la embarazada y al adulto complejo el mismo día. Filtrarles
           herramientas no les ahorra tiempo, se lo quita. El paquete tiene sentido para el
