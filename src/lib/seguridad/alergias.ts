@@ -206,7 +206,27 @@ export function parsearAlergiasTexto(texto: string | undefined): AlergiaEstructu
      * ¿La ORACIÓN entera niega? Se juzga por su primer fragmento, que es donde
      * se escribe el negador, y la respuesta cubre toda la enumeración.
      */
+    /**
+     * ── PRIMERO LA ORACIÓN ENTERA, QUE PUEDE SER UNA NEGACIÓN CON « Y » ─────
+     *
+     * «**Interrogadas y negadas**» es una negación completa —así se dicta en
+     * hospital— y el separador de lista la partía en «Interrogadas» + «negadas»,
+     * dejando **«Interrogadas» como alérgeno**. Un alérgeno llamado
+     * «Interrogadas» no casa con ningún fármaco, así que no dispara nada… hasta
+     * que se imprime en el recuadro rojo de la receta.
+     *
+     * Se juzga la frase entera ANTES de partirla. No lo vio ninguna prueba: lo
+     * enseñó comparar este módulo con la copia del hospital.
+     */
     const trozos = oracion.split(SEPARADOR_DE_LISTA)
+    /**
+     * Sólo si NINGÚN fragmento afirma. Sin esa condición, «Niega alergia a
+     * penicilina, alérgico a sulfas» se iba entera y se perdía una alergia
+     * REAL — es la segunda vez en esta misma reparación que la comprobación de
+     * más se lleva por delante el dato que protege.
+     */
+    if (!trozos.some(f => AFIRMA_ALERGIA.test(f)) && esAlergiaNegada(oracion.trim())) continue
+
     const niega = esAlergiaNegada(trozos[0]?.trim() ?? '')
 
     for (const [i, bruto] of trozos.entries()) {
@@ -224,14 +244,21 @@ export function parsearAlergiasTexto(texto: string | undefined): AlergiaEstructu
        */
       if (niega && !AFIRMA_ALERGIA.test(bruto)) continue
       if (niega && i === 0) continue
-      /* El prefijo afirmativo sólo puede ir en el primero de la lista. */
+      /**
+       * El prefijo se quita de CUALQUIER fragmento, no sólo del primero.
+       *
+       * «Niega penicilina, **alérgico a sulfas**» dejaba el alérgeno
+       * «alérgico a sulfas» —con la frase dentro— mientras que el mismo texto
+       * en primera posición sí se limpiaba. Dos comportamientos para lo mismo
+       * según la posición es cómo se cuela una tercera verdad.
+       */
       /**
        * El punto FINAL del texto no lo quita `FIN_DE_ORACION`, que exige un
        * espacio detrás para no partir «2.5 mg». Sin esto, «Alérgico a la
        * penicilina.» daba el alérgeno «penicilina.» — con punto pegado, que no
        * casa con ningún fármaco del catálogo. El mismo daño que «SMX)».
        */
-      const f = (i === 0 ? bruto.replace(AFIRMA_ALERGIA, '') : bruto).trim().replace(/[.\s]+$/, '')
+      const f = bruto.replace(AFIRMA_ALERGIA, '').trim().replace(/[.\s]+$/, '')
       /* Y aun así cada fragmento se juzga: «penicilina, ninguna otra». */
       if (f && !esAlergiaNegada(f)) fuera.push({ alergeno: f })
     }

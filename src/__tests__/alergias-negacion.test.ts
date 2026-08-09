@@ -37,8 +37,17 @@ describe('parsearAlergiasTexto', () => {
   })
 
   it('descarta lo negado y conserva lo afirmado en la misma frase', () => {
+    /**
+     * REG-276/277 — antes esperaba `['alérgico a sulfas']`, con la frase dentro
+     * del nombre, y sólo porque el fragmento no era el primero de la lista: el
+     * mismo texto en primera posición sí se limpiaba. Dos comportamientos para
+     * lo mismo según la posición es como se cuela una tercera verdad.
+     *
+     * Lo que esta prueba defiende —que la afirmación posterior a una negación
+     * SOBREVIVA— es exactamente lo que sigue comprobando.
+     */
     expect(parsearAlergiasTexto('Niega alergia a penicilina, alérgico a sulfas').map(a => a.alergeno))
-      .toEqual(['alérgico a sulfas'])
+      .toEqual(['sulfas'])
   })
 
   it('un campo entero de negación no deja ninguna alergia', () => {

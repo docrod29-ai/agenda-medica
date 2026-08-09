@@ -2654,3 +2654,17 @@ hereda, y un fragmento que **afirma** lo rompe. La primera versión de mi
 reparación perdía la alergia real de «Niega penicilina, alérgico a sulfas»: lo
 cazaron las pruebas viejas. Un arreglo de seguridad que borra el dato que protege
 es peor que el defecto.
+
+## v1153 — el hospital y la consulta leen la misma alergia (REG-277)
+
+`hospital/cds.ts` tenía su propio partidor —la quinta copia— y **9 de 11 textos
+se leían distinto** en planta que en consulta. «NKDA», «(-)», «n/a» y «ninguna»
+—lo que se dicta en planta todos los días— pasaban por alérgenos: no disparan
+alerta porque no casan con ningún fármaco, pero se imprimen en el recuadro rojo.
+
+Lo grave no es cada caso: es que las dos superficies decidían distinto sobre el
+mismo campo del mismo paciente.
+
+De camino apareció un hueco propio: «Interrogadas y negadas» dejaba
+«Interrogadas» como alérgeno. Ninguna prueba lo veía; lo enseñó comparar los dos
+módulos.

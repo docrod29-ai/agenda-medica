@@ -5737,3 +5737,59 @@ y el punto final ya no viajan dentro del nombre del alérgeno.
 
 - `src/lib/seguridad/alergias.ts`
 - `src/__tests__/la-negacion-cubre-toda-la-lista.test.ts` (nuevo, 15 casos, sellado)
+
+---
+
+## REG-277 — el hospital y la consulta decidían distinto sobre la misma alergia (v1153)
+
+`src/lib/hospital/cds.ts` tenía **su propio partidor de alergias**, con su propia
+idea de qué es una negación. Era la **quinta copia**. Medida la divergencia sobre
+los mismos textos, **9 de 11 discrepaban**:
+
+| Campo | Hospital | Consulta |
+|---|---|---|
+| «NKDA» | alérgeno «NKDA» | ninguno |
+| «(-)» · «Ninguna» · «Negadas» · «n/a» | alérgeno | ninguno |
+| «Paracetamol 2.5 mg» | «Paracetamol 2» + «5 mg» | «Paracetamol 2.5 mg» |
+| «Alérgico a penicilina» | «Alérgico a penicilina» | «penicilina» |
+
+`NKDA`, `(-)`, `n/a` y «ninguna» son lo que se dicta en planta todos los días.
+Ninguno casa con un fármaco del catálogo, así que **no disparan la alerta** — y
+en cambio se imprimen: un recuadro rojo que dice «NKDA». Y el punto sin espacio
+detrás partía las dosis.
+
+### Pero lo grave no es cada caso
+
+Es que **el hospital y la consulta decidían distinto sobre el mismo campo del
+mismo paciente**. El médico ve una cosa en el consultorio y otra en planta, y
+ninguna de las dos pantallas dice que existe la otra.
+
+### Por qué el guardián anterior no lo vio
+
+El guardián de copias miraba sólo `consulta` y `uci` — donde ya se había
+arreglado. **Un guardián que mira donde ya se arregló no guarda nada.** El nuevo
+comprueba por FORMA en todo `src/lib` y `src/app`: una copia en un fichero que
+todavía no existe también falla.
+
+### Y de camino, un hueco propio
+
+Comparar los dos módulos enseñó que **«Interrogadas y negadas»** —negación
+completa que se dicta en hospital— se partía por « y » y dejaba **«Interrogadas»
+como alérgeno**. Ninguna prueba lo veía. Ahora la oración se juzga entera antes
+de partirla… salvo si algún fragmento afirma, porque **la primera versión de esa
+comprobación se volvió a llevar por delante «Niega penicilina, alérgico a
+sulfas»**. Es la segunda vez en la misma reparación que la comprobación de más
+borra el dato que protege.
+
+### La prueba no lista casos: compara superficies
+
+`hospital-y-consulta-leen-la-misma-alergia` comprueba que la alerta crítica del
+hospital dispara **exactamente** cuando la consulta ve el alérgeno, sobre 28
+formas reales de escribir el campo. Una divergencia nueva falla ahí aunque nadie
+haya pensado en ese caso.
+
+### Archivos
+
+- `src/lib/hospital/cds.ts` (usa `alergiasDe`, sin partidor propio)
+- `src/lib/seguridad/alergias.ts` (negación por oración entera + prefijo en cualquier posición)
+- `src/__tests__/hospital-y-consulta-leen-la-misma-alergia.test.ts` (nuevo, 30 casos, sellado)
