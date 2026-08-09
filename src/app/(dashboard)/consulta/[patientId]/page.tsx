@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { LiberarAlPaciente } from '@/components/LiberarAlPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5194,13 +5195,33 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {/*
+        Y la compuerta de firma (POSTVISIT-GATE-001): la hoja se MIRA mientras
+        se dicta, pero copiar e imprimir —lo que la saca del consultorio— sólo
+        con la nota firmada. Y la próxima cita ya no va fija en `undefined`: el
+        cuarto bloque llevaba desde REG-242 sin poder renderizarse jamás,
+        teniendo el dato en esta misma pantalla.
+      */}
+      {!esNotaHospital && (<>
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          proximaCita={proximoSeguimiento || undefined}
+          firmada={firmada}
         />
-      )}
+        {/*
+          LIBERÁRSELO AL PACIENTE (V9 · POSTVISIT-001) — el acto que faltaba.
+          Hasta hoy la superficie del paciente estaba montada y ningún paquete
+          existía, porque no había dónde pulsar. El contenido lo compone el
+          SERVIDOR desde la nota firmada: de aquí sólo salen tres identificadores.
+        */}
+        <LiberarAlPaciente
+          clinicId={clinicId ?? undefined}
+          patientId={patientId}
+          notaId={notaId}
+          firmada={firmada}
+        />
+      </>)}
 
       {/*
         ¿DE DÓNDE SALIÓ ESTO? — cada frase de la nota junto al trozo de dictado

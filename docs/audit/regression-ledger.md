@@ -7013,3 +7013,86 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — El paquete del paciente: se componía del borrador, y no llegaba
+
+**Unidad** V9 `POSTVISIT-001`. Cierra `POSTVISIT-GATE-001` y
+`POSTVISIT-ENTREGA-001`, los dos P1 que abrió la auditoría
+`PATIENT-UX-TRUTH-001`.
+
+**Qué pasaba.** Tres cosas, y ninguna rompía nada:
+
+1. **La hoja del paciente se componía del borrador EN CURSO.** «Copiar» e
+   «Imprimir» estaban disponibles con la nota a medio dictar: el médico podía
+   entregarle en mano, con su membrete, un tratamiento que diez minutos después
+   sería otro. Y nada en el papel decía que era un borrador.
+2. **La superficie del paciente estaba montada y vacía por construcción.**
+   `PATIENT-COMPANION-001` dejó el modelo, la compuerta del servidor y los cinco
+   destinos — y **no había dónde pulsar para crear un paquete**. Cero documentos
+   en producción, para siempre.
+3. **La acción `paquetes` de `/api/portal` no la llamaba nadie.** El servidor
+   sabía filtrar y responder; la pantalla del paciente nunca preguntaba.
+
+**Cómo se descubrió.** Leyendo el checkpoint de la unidad anterior, que lo dejó
+escrito: «hoy ningún paquete existe en producción: falta la pantalla del médico
+para liberarlos».
+
+**Causa raíz, que es una sola.** El producto tenía **el contenido resuelto**
+—`como-se-lo-explico` compone instrucciones sin inventar una cifra desde
+REG-242— y **no tenía ni la compuerta ni el camino**. Lo que faltaba no era
+saber qué decirle al paciente: era decidir *cuándo* deja de ser un borrador y
+*por dónde* llega.
+
+**Arreglo.**
+
+- `componerPaquete` vuelve al módulo —se había quitado en REG-304 por no tener
+  llamador— **con la compuerta que le faltaba**: se niega si la nota no está
+  `firmada`. Lanza en vez de devolver `null`, porque un `null` se ignora con un
+  `?.` y el camino sigue.
+- `POST /api/expediente/paquete-visita` recibe **tres identificadores y nada
+  más**. El contenido no viaja desde el navegador: el servidor lee la nota
+  firmada y compone él mismo. Y `approvedBy` sale de la **sesión verificada**,
+  nunca del cuerpo — un aprobador que llegara del navegador convertiría el campo
+  en decorativo.
+- Se escribe con `create`, nunca `set`: un paquete liberado es inmutable.
+  Corregirlo libera `{notaId}__v{n+1}`, y `ultimaVersionPorNota` deja que el
+  paciente vea **una sola versión por consulta** — las dos pasan la compuerta, y
+  enseñárselas juntas es cómo se acaba tomando la dosis vieja y la corregida el
+  mismo día.
+- `cambiosDeMedicacion` estrena un cuarto tipo, `ajustado`. Con los tres
+  declarados en REG-304, un fármaco que sigue en las dos listas **con otra
+  dosis** caía en `sin-cambio`: «sigue igual» sobre un medicamento que se acaba
+  de duplicar es la frase que hace que el paciente tome la vieja.
+- Copiar e imprimir en `HojaParaElPaciente` esperan a la firma, y `firmada` es
+  **opcional con valor seguro por defecto**: quien monte la hoja en una pantalla
+  nueva y no diga nada obtiene la vista previa, no la entrega.
+- La pantalla del paciente **pide** los paquetes y los pinta; un cambio de
+  medicación se dice con palabras («ya no lo tomes»), nunca sólo con color.
+- Y `proximaCita={undefined}`, fijo desde REG-242, pasa a ser el seguimiento que
+  el médico escribió en esa misma pantalla: el cuarto bloque de la hoja no se
+  había podido renderizar nunca.
+
+**Lo que sigue vacío, y declarado.** `warningSigns`, `educationalMaterial`,
+`documents` y `unansweredQuestions`. Los signos de alarma son indicación médica
+y el material educativo es evidencia curada: rellenarlos con «lo habitual» es la
+regla 1 de seguridad clínica al revés, y aquí se lo diría a alguien que no puede
+detectar el error.
+
+**Familia.** `no_conectado`, en su forma de «el dato tiene que LLEGAR»: la ruta
+del servidor existía —filtrada, autorizada y probada— y no había nadie del otro
+lado que la llamara.
+
+*(La casilla de aprobación explícita antes de publicarle nada al paciente sigue
+vacía en todo el material público de Abridge, Nabla, Suki y Dragon Copilot; eso
+es el `hueco_frente_al_mercado` que ya quedó anotado en REG-304. Aquí la causa
+raíz es la otra, y un defecto tiene UNA.)*
+
+**Guardián.** `src/__tests__/el-paquete-de-la-visita-se-libera-firmado.test.ts`.
+Los dos casos que muerden están probados al revés: quitando el `if` de la firma,
+compone un borrador; comparando los medicamentos sólo por nombre, una dosis
+duplicada sale como «sin cambio».
+
+**Lo que NO cubre.** Nada de esto se ha visto en un navegador — ni el botón, ni
+la pantalla del paciente, ni el enlace. `NAV-NAVEGADOR-001` sigue abierto.

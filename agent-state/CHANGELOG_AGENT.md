@@ -1,5 +1,40 @@
 # Bitácora del trabajo autónomo
 
+## 2026-08-09 — V9 · `POSTVISIT-001` · el paquete se libera firmado, y llega
+
+**Qué cambió.** El médico ya puede liberarle al paciente el resumen de su
+consulta, y el paciente lo ve. Antes: la hoja se componía del borrador en curso
+y podía imprimirse sin firma, no había dónde crear un paquete —así que ninguno
+existía— y la acción `paquetes` de `/api/portal` no la llamaba nadie.
+
+**Lo que más dice de esta unidad**, otra vez, es dónde se pusieron las
+defensas:
+
+- El contenido **no viaja desde el navegador**: la ruta recibe tres
+  identificadores y compone ella desde la nota firmada.
+- `approvedBy` sale de la **sesión verificada**, nunca del cuerpo.
+- `componerPaquete` **lanza** con una nota en borrador; no devuelve `null`,
+  porque un `null` se ignora con un `?.`.
+- Se escribe con `create`: un paquete liberado no se pisa.
+
+**Y un defecto que sólo apareció al escribir la composición**: con los tres
+tipos de cambio declarados en REG-304, duplicar una dosis salía como «sin
+cambio». Nace `ajustado`.
+
+**Archivos**: `src/lib/paciente/paquete-de-visita.ts` ·
+`src/app/api/expediente/paquete-visita/route.ts` ·
+`src/components/LiberarAlPaciente.tsx` · `src/components/HojaParaElPaciente.tsx`
+· `src/app/(dashboard)/consulta/[patientId]/page.tsx` ·
+`src/app/mi/[token]/page.tsx` · `src/app/api/portal/route.ts` ·
+`src/lib/authz/registro-rutas.ts` · `src/lib/expediente/audit-eventos.ts`.
+
+**Compuertas**: vitest 8 587 casos (1 fallo preexistente de entorno,
+`ops-timeout`) · lint 96 = techo · trinquete de diseño sin deuda nueva · build
+compila. **Navegador: no ejecutado.**
+
+**Riesgo declarado**: nada de esto se ha visto corriendo. `NAV-NAVEGADOR-001`
+sigue abierto y ahora tiene más que verificar.
+
 ## 2026-08-04 — INFRA-001 · el sistema operativo del programa
 
 - `CLAUDE.md` reescrito: misión, invariantes, comandos, mapa, seguridad clínica,

@@ -43,6 +43,28 @@ interface Cita {
   lugar?: string
   confirmadoPaciente: boolean
 }
+/**
+ * LO QUE EL MÉDICO LIBERÓ de una consulta (V9 · POSTVISIT-001).
+ *
+ * Llega ya filtrado por el servidor: `visibleParaElPaciente` en `/api/portal`
+ * deja fuera todo lo que no esté RELEASED con aprobador y fecha, y
+ * `ultimaVersionPorNota` deja una sola versión por consulta. Aquí no se vuelve
+ * a decidir quién puede ver qué — se pinta lo que llegó.
+ */
+interface PaquetePaciente {
+  id: string
+  notaId: string
+  encounterSummary: string
+  medicationInstructions: { nombre: string; instruccion: string }[]
+  medicationChanges: { nombre: string; tipo: 'nuevo' | 'suspendido' | 'ajustado' | 'sin-cambio' }[] | null
+  orders: string[]
+  followUp: string
+  warningSigns: string[]
+  clinicianContactRules: string
+  approvedAt: number | null
+  version: number
+}
+
 interface Sesion {
   paciente: string
   /** Para armar el enlace de la sala de teleconsulta. */
@@ -114,6 +136,7 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  const [paquetes, setPaquetes] = useState<PaquetePaciente[] | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +163,21 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+
+      /**
+       * Y EL PLAN DE CUIDADO — POSTVISIT-001, la pata que faltaba.
+       *
+       * La acción `paquetes` existía desde REG-304 y **nadie la llamaba**: el
+       * servidor sabía filtrar y responder, y esta pantalla nunca preguntaba.
+       * Escrito, conectado del lado del servidor, y el dato no llegaba.
+       *
+       * Va en paralelo con las citas a propósito: si el plan tarda, las citas
+       * ya están en pantalla.
+       */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(Array.isArray(d?.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -422,18 +460,111 @@ export default function MiPortalPage() {
           {/*
             LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
             RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
-            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
-            el estado vacío dice la verdad en vez de fingir que no hay nada.
+            borrador no sale de ahí (REG-304). Desde POSTVISIT-001 el médico
+            tiene dónde liberarlos y esta pantalla por fin los PIDE: hasta
+            entonces la acción existía en el servidor y nadie la llamaba.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {(!paquetes || paquetes.length === 0) && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+
+          {(paquetes ?? []).map(pq => (
+            <article
+              key={pq.id}
+              style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}
+            >
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>
+                Consulta del {fmtFecha(new Date(pq.approvedAt ?? 0).toISOString(), tzClinica).fecha}
+              </p>
+              {pq.encounterSummary && (
+                <p style={{ fontSize: 16, color: 'var(--text)', margin: '6px 0 0', lineHeight: 1.6 }}>
+                  {pq.encounterSummary}
+                </p>
+              )}
+
+              {/*
+                QUÉ CAMBIÓ, ANTES QUE LA LISTA. `null` no es «no hubo cambios»:
+                es «no se pudo saber», y entonces no se dice nada — inventar un
+                «sigue todo igual» es dato de ausencia.
+              */}
+              {pq.medicationChanges && pq.medicationChanges.some(c => c.tipo !== 'sin-cambio') && (
+                <div style={{ marginTop: 14 }}>
+                  <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: 0, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    Qué cambió desde tu visita anterior
+                  </h3>
+                  <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                    {pq.medicationChanges.filter(c => c.tipo !== 'sin-cambio').map(c => (
+                      <li key={c.nombre + c.tipo} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
+                        {/* Nunca sólo por color: la palabra lo dice (§ACCESIBILIDAD). */}
+                        <strong>{c.nombre}</strong>{' — '}
+                        {c.tipo === 'nuevo' ? 'nuevo' : c.tipo === 'suspendido' ? 'ya no lo tomes' : 'cambió cómo tomarlo'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pq.medicationInstructions.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: 0, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    Tus medicamentos
+                  </h3>
+                  <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                    {pq.medicationInstructions.map(m => (
+                      <li key={m.nombre} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{m.instruccion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pq.orders.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: 0, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    Estudios que te pidió
+                  </h3>
+                  <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                    {pq.orders.map(o => (
+                      <li key={o} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{o}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pq.followUp && (
+                <p style={{ fontSize: 14, color: 'var(--text)', margin: '14px 0 0' }}>
+                  <strong>Vuelve el {pq.followUp}.</strong>
+                </p>
+              )}
+
+              {/* Signos de alarma: sólo si TU médico los escribió. Nunca compuestos. */}
+              {pq.warningSigns.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: 0, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    Cuándo buscar ayuda
+                  </h3>
+                  <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                    {pq.warningSigns.map(w => (
+                      <li key={w} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pq.clinicianContactRules && (
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                  {pq.clinicianContactRules}
+                </p>
+              )}
+            </article>
+          ))}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>

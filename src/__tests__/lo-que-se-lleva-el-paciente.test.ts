@@ -200,8 +200,16 @@ describe('está CONECTADO', () => {
      * (`/consulta/[id]?internamiento=…`). Sin este guardia, a un paciente
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
+     *
+     * El guardián exigía que `<HojaParaElPaciente` fuera lo PRIMERO tras el
+     * `&& (`. POSTVISIT-001 metió el botón de liberar dentro del mismo guardia
+     * —también hay que liberar sólo a quien se va a casa— y con él un
+     * fragmento, así que lo que se exige es lo que importa: que la hoja siga
+     * **dentro** del guardia, no en qué posición del bloque está.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    const guardia = /\{!esNotaHospital && \(([\s\S]*?)\n      \)\}/.exec(page)?.[1] ?? ''
+    expect(guardia).toContain('<HojaParaElPaciente')
+    expect(guardia).toContain('<LiberarAlPaciente')
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {

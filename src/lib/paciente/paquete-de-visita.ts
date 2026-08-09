@@ -62,28 +62,21 @@
  */
 
 /**
- * ── POR QUÉ AQUÍ NO ESTÁ LA COMPOSICIÓN ─────────────────────────────────────
+ * ── LA COMPOSICIÓN LLEGÓ CON QUIEN LA LLAMA (V9 · POSTVISIT-001) ────────────
  *
- * `componerPaquete` —la función que arma el contenido a partir de la nota
- * firmada— y su ayudante `cambiosDeMedicacion` **no viven todavía en este
- * archivo, a propósito.**
+ * `componerPaquete` y su ayudante `cambiosDeMedicacion` se escribieron en
+ * `PATIENT-COMPANION-001` y se **quitaron el mismo día**: el guardián de
+ * conexión las cazó como motores con cuerpo real y cero llamadores, y
+ * «escrito, probado y sin conectar» es la familia de defectos más grande de
+ * este repositorio —32 de 127 regresiones—.
  *
- * Se escribió, y su guardián de conexión la cazó al instante: era un motor con
- * cuerpo real y **sin un solo llamador**. Su llamador natural es la pantalla
- * donde el médico revisa y libera, y esa pantalla es `POSTVISIT-001`.
- *
- * «Escrito, probado y sin conectar» es la familia de defectos **más grande de
- * este proyecto** —32 de 127 regresiones—, y añadirle una más a sabiendas,
- * aunque fuera con una nota explicándolo, sería exactamente lo que este
- * repositorio lleva meses persiguiendo. Llegan con quien las llame.
- *
- * Se intentó dejar sólo el ayudante, y el guardián volvió a cazarlo al turno
- * siguiente: un motor sin llamador no deja de serlo porque su vecino se haya
- * ido. Se van los dos.
- *
- * Lo que SÍ vive aquí es lo que ya corre: el modelo, la máquina de estados y la
- * compuerta que usa `/api/portal`.
+ * Vuelven ahora porque ya existe quien las llame: `POST /api/expediente/
+ * paquete-visita`, la ruta que el médico dispara al liberar. Y vuelven con la
+ * compuerta que les faltaba: **de una nota que no está firmada no se compone
+ * nada**.
  */
+
+import { comoTomarlo, type MedicamentoParaExplicar } from './como-se-lo-explico'
 
 /** Los dos únicos estados. No hay un tercero, y `DRAFT` no se le enseña a nadie. */
 export type EstadoPaquete = 'DRAFT' | 'RELEASED'
@@ -104,10 +97,22 @@ export interface MedicacionDelPaquete {
  * exige que quien llame le pase esa lista: **sin lista previa no se afirma
  * nada**, porque «no aparecía antes» y «no sé qué había antes» son cosas
  * distintas y confundirlas es dato de ausencia.
+ *
+ * ── POR QUÉ HAY UN CUARTO TIPO, `ajustado` ──────────────────────────────────
+ *
+ * `PATIENT-COMPANION-001` declaró tres —nuevo, suspendido, sin-cambio— sin la
+ * composición delante. Al escribirla se vio el hueco: un fármaco que sigue en
+ * las dos listas **con otra dosis** caía en `sin-cambio`, y eso no es un
+ * matiz. «Sigue igual» sobre un medicamento cuya dosis se acaba de duplicar es
+ * la frase que hace que el paciente siga tomando la vieja.
+ *
+ * Se compara la **instrucción compuesta entera** —nombre, dosis, vía,
+ * frecuencia y duración—, no sólo el nombre: cualquier cosa que el paciente
+ * tenga que hacer distinta entra por ahí.
  */
 export interface CambioDeMedicacion {
   nombre: string
-  tipo: 'nuevo' | 'suspendido' | 'sin-cambio'
+  tipo: 'nuevo' | 'suspendido' | 'ajustado' | 'sin-cambio'
 }
 
 export interface PaqueteDeVisita {
@@ -166,6 +171,171 @@ export function liberar(p: PaqueteDeVisita, aprobadoPor: string, cuando: number)
  */
 export function visibleParaElPaciente(p: Pick<PaqueteDeVisita, 'estado' | 'approvedAt' | 'approvedBy'>): boolean {
   return p.estado === 'RELEASED' && !!p.approvedBy && !!p.approvedAt
+}
+
+/**
+ * De todos los paquetes de un paciente, **el último de cada consulta**.
+ *
+ * Un paquete liberado es inmutable: corregirlo es liberar una versión nueva,
+ * igual que una adenda no reescribe la nota. Eso deja dos documentos de la
+ * misma visita en la base, y **los dos pasan la compuerta** — el viejo se
+ * liberó de verdad, con su aprobador y su fecha.
+ *
+ * Enseñarle al paciente los dos, uno al lado del otro, es exactamente cómo se
+ * toma la dosis corregida y la equivocada el mismo día. El expediente conserva
+ * las dos versiones —eso es la trazabilidad—; **el paciente ve la vigente**.
+ */
+export function ultimaVersionPorNota<T extends Pick<PaqueteDeVisita, 'notaId' | 'version'>>(
+  paquetes: readonly T[],
+): T[] {
+  const porNota = new Map<string, T>()
+  for (const p of paquetes) {
+    const previo = porNota.get(p.notaId)
+    if (!previo || (p.version ?? 0) > (previo.version ?? 0)) porNota.set(p.notaId, p)
+  }
+  return [...porNota.values()]
+}
+
+/** Comparación de nombres de fármaco: sin acentos, sin mayúsculas, sin espacios de más. */
+const claveDeFarmaco = (v: unknown): string =>
+  texto(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ')
+
+/**
+ * Qué cambió respecto de la visita anterior.
+ *
+ * **`undefined` como lista previa devuelve `null`**, y ésa es toda la razón de
+ * ser de esta firma. «No aparecía antes» y «no sé qué había antes» son cosas
+ * distintas: la primera se le puede decir al paciente, la segunda no. Un
+ * arreglo vacío sí es conocimiento —la visita anterior existió y no llevaba
+ * medicación—, y por eso no se confunde con la ausencia de lista.
+ */
+export function cambiosDeMedicacion(
+  actuales: readonly MedicamentoParaExplicar[],
+  previas: readonly MedicamentoParaExplicar[] | undefined,
+): CambioDeMedicacion[] | null {
+  if (!previas) return null
+
+  /* La instrucción se compara NORMALIZADA: `AMOXICILINA` y `Amoxicilina` son
+     el mismo fármaco, y decirle al paciente que uno se suspendió y otro empezó
+     —el mismo día, por una mayúscula— es peor que no decirle nada. */
+  const antes = new Map<string, string>()
+  for (const m of previas) {
+    const k = claveDeFarmaco(m?.nombre)
+    if (k) antes.set(k, claveDeFarmaco(comoTomarlo(m)))
+  }
+
+  const salida: CambioDeMedicacion[] = []
+  const vistos = new Set<string>()
+
+  for (const m of actuales) {
+    const k = claveDeFarmaco(m?.nombre)
+    if (!k || vistos.has(k)) continue
+    vistos.add(k)
+    const nombre = texto(m?.nombre)
+    if (!antes.has(k)) { salida.push({ nombre, tipo: 'nuevo' }); continue }
+    salida.push({ nombre, tipo: antes.get(k) === claveDeFarmaco(comoTomarlo(m)) ? 'sin-cambio' : 'ajustado' })
+  }
+
+  for (const m of previas) {
+    const k = claveDeFarmaco(m?.nombre)
+    if (!k || vistos.has(k)) continue
+    vistos.add(k)
+    salida.push({ nombre: texto(m?.nombre), tipo: 'suspendido' })
+  }
+
+  return salida
+}
+
+/** Lo que la ruta le pasa a la composición: una nota tal como está en la base. */
+export interface NotaParaComponer {
+  id?: unknown
+  estado?: unknown
+  resumenEjecutivo?: unknown
+  diagnosticos?: readonly { descripcion?: unknown }[]
+  medicamentos?: readonly MedicamentoParaExplicar[]
+  estudiosOrden?: readonly unknown[]
+}
+
+/** Lo que la composición NO puede sacar de la nota y quien llama tiene que traer. */
+export interface ContextoDelPaquete {
+  /**
+   * La medicación de la visita anterior. **Omitir** —no `[]`— cuando no se
+   * sabe: de ahí sale el `null` de `medicationChanges`.
+   */
+  medicacionPrevia?: readonly MedicamentoParaExplicar[]
+  /** El seguimiento que el médico indicó en ESTA consulta. Vive en su tarea. */
+  seguimiento?: unknown
+  /** Cómo contactar al consultorio. Dato administrativo, no indicación clínica. */
+  contactoDelConsultorio?: unknown
+  /** es-MX hoy. `PATIENT-LANGUAGE-001` traerá los demás. */
+  idioma?: string
+}
+
+/** El error de la compuerta de firma, con nombre para poder exigirlo en una prueba. */
+export const NOTA_SIN_FIRMAR = 'De una nota sin firmar no se compone un paquete para el paciente'
+
+/**
+ * Compone el paquete de una visita. **Determinista, sin modelo de lenguaje.**
+ *
+ * ── LA COMPUERTA DE FIRMA (`POSTVISIT-GATE-001`) ────────────────────────────
+ *
+ * Se niega si la nota no está `firmada`, y ésa es la reparación que da nombre a
+ * esta unidad. Hasta hoy la hoja del paciente se componía **del borrador en
+ * curso**: el médico podía imprimirle y entregarle en mano un tratamiento que
+ * todavía estaba escribiendo, y que diez minutos después sería otro.
+ *
+ * Se lanza en vez de devolver `null` a propósito. Un `null` se ignora con un
+ * `?.` y el camino sigue; lo que este error protege es que **no exista una
+ * segunda puerta** por la que un borrador llegue al paciente.
+ *
+ * ── DE DÓNDE SALE CADA CAMPO, Y DE DÓNDE NO ─────────────────────────────────
+ *
+ * El resumen va **literal** del documento firmado. Reescribirlo «en palabras
+ * más sencillas» es lo único que aquí podría inventar algo, y quien lo haría
+ * sería un modelo: eso es `PATIENT-LANGUAGE-001` y `PATIENT-AI-001`, con las
+ * defensas de §1 de `patient-facing-ai.md`, no esta función.
+ *
+ * Las instrucciones de los medicamentos las compone `como-se-lo-explico`, que
+ * ya tiene la garantía probada: ninguna cifra puede aparecer si no está en la
+ * nota, y una frecuencia que no divide 24 no se convierte en «veces al día».
+ *
+ * Y tres campos se quedan **vacíos y declarados**: los signos de alarma son
+ * indicación médica —los escribe el médico o no existen—, el material
+ * educativo es evidencia curada, y los documentos llegan con `DOCUMENTS-001`.
+ * Rellenarlos con «lo habitual» es la regla 1 de seguridad clínica al revés.
+ *
+ * Nace `DRAFT` **siempre**: liberar es otro acto, y lo hace `liberar()`.
+ */
+export function componerPaquete(nota: NotaParaComponer, ctx: ContextoDelPaquete = {}): PaqueteDeVisita {
+  const notaId = texto(nota?.id)
+  if (!notaId) throw new Error('No se puede componer un paquete sin saber de qué nota sale')
+  if (texto(nota?.estado) !== 'firmada') throw new Error(NOTA_SIN_FIRMAR)
+
+  const medicamentos = (nota.medicamentos ?? []).filter(m => texto(m?.nombre))
+  const diagnosticos = (nota.diagnosticos ?? []).map(d => texto(d?.descripcion)).filter(Boolean)
+
+  return {
+    notaId,
+    /* El resumen firmado; si no lo hay, los diagnósticos, que también lo están. */
+    encounterSummary: texto(nota.resumenEjecutivo) || diagnosticos.join(', '),
+    medicationInstructions: medicamentos.map(m => ({
+      nombre: texto(m?.nombre),
+      instruccion: comoTomarlo(m),
+    })),
+    medicationChanges: cambiosDeMedicacion(medicamentos, ctx.medicacionPrevia),
+    orders: (nota.estudiosOrden ?? []).map(texto).filter(Boolean),
+    followUp: texto(ctx.seguimiento),
+    warningSigns: [],
+    educationalMaterial: [],
+    documents: [],
+    unansweredQuestions: [],
+    clinicianContactRules: texto(ctx.contactoDelConsultorio),
+    language: texto(ctx.idioma) || 'es-MX',
+    estado: 'DRAFT',
+    approvedAt: null,
+    approvedBy: null,
+    version: 1,
+  }
 }
 
 /** Los cinco destinos del compañero. El orden es el de la especificación. */

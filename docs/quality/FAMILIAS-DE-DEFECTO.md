@@ -21,7 +21,7 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **32** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **35** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
@@ -39,8 +39,13 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 154, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+El 9-ago-2026 sumó REG-306 con la variante más limpia de todas: `/api/portal`
+sabía filtrar y responder los paquetes del paciente —autorizado, con compuerta y
+con prueba— y **la pantalla del paciente nunca preguntaba**. Escrito de un lado,
+conectado del lado del servidor, y el dato sin llegar.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el

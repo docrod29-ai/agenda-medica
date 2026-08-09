@@ -167,6 +167,17 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── expediente e IA clínica (entitlement de plan + rol) ───────────────────
   'consultor-evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/exportar/[patientId]': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
+  /**
+   * Liberarle al paciente el paquete de su visita (V9 · POSTVISIT-001).
+   *
+   * GET lee qué se liberó ya de esa consulta —`clinico.leer`—; POST **aprueba y
+   * publica** contenido clínico hacia el paciente, que es una escritura, y
+   * `approvedBy` sale de la sesión que este guardián verifica.
+   */
+  'expediente/paquete-visita': {
+    tipo: 'porMetodo',
+    metodos: { GET: 'clinico.leer', POST: 'clinico.escribir' },
+  },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },

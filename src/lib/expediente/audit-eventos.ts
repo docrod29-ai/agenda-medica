@@ -105,6 +105,14 @@ export type AuditEvento =
   | 'cita_reagendada_portal'     // el paciente movió su cita desde su enlace
   | 'cita_cancelada_whatsapp'    // el paciente canceló hablando con el bot
   | 'formulario_previo_enviado'  // el paciente llenó su información antes de la consulta
+  /**
+   * Y lo que el MÉDICO decide sobre lo que el paciente puede leer.
+   *
+   * Liberar el paquete de una visita es un acto de aprobación con destinatario
+   * fuera del consultorio: queda quién lo aprobó, cuándo y qué versión. Sin
+   * contenido clínico en la bitácora — dice qué pasó, no qué decía.
+   */
+  | 'paquete_visita_liberado'    // el médico liberó el resumen de una consulta al paciente
 
 /**
  * CÓMO SE LEE CADA EVENTO — en la pantalla de cumplimiento y en cualquier otra.
@@ -164,6 +172,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   cita_reagendada_portal: 'El paciente reagendó (portal)',
   cita_cancelada_whatsapp: 'El paciente canceló (WhatsApp)',
   formulario_previo_enviado: 'El paciente envió su información previa',
+  paquete_visita_liberado: 'Liberó el resumen de la consulta al paciente',
 }
 
 /** Cómo enseñar un evento, incluido uno que todavía no tenga etiqueta. */

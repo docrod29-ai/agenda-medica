@@ -3,13 +3,63 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS, con las cinco clases de respuesta,
+la jerarquía de fuentes y las doce pruebas de equipo rojo como fixture
+permanente.
 
 ---
 
-## Lo que quedó montado en `PATIENT-COMPANION-001`
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El paquete existe de verdad.** El médico lo libera desde la consulta, con la
+nota firmada delante, y el paciente lo ve en su teléfono. Hasta hoy la
+superficie estaba montada y **vacía por construcción**: no había dónde pulsar.
+
+**Firmar y liberar siguen siendo dos actos**, y ahora se nota en pantalla: el
+botón dice qué hace y por qué es aparte, y enseña si ya se liberó y en qué
+versión.
+
+**El contenido no viaja desde el navegador.** La ruta recibe `clinicId`,
+`patientId` y `notaId`. Lee la nota firmada y compone ella. Si el contenido
+llegara en el cuerpo, sería un «escribe lo que quieras en el expediente del
+paciente» con buenos modales.
+
+**El seguimiento sale de la tarea de ESA consulta**, no de
+`patients.proximoSeguimiento`, que lo pisa cada visita nueva: un paquete de hace
+tres meses habría dicho una fecha decidida en otra consulta.
+
+**`ajustado`, el cuarto tipo de cambio.** Con los tres declarados en REG-304,
+un fármaco que sigue en las dos listas con otra dosis salía como «sin cambio».
+«Sigue igual» sobre una dosis duplicada es la frase que hace que el paciente
+tome la vieja.
+
+**Una versión por consulta.** Corregir libera una versión nueva y el expediente
+guarda las dos; el paciente ve la vigente.
+
+## Lo que NO se hizo, otra vez a propósito
+
+**`warningSigns`, `educationalMaterial`, `documents` y `unansweredQuestions`
+siguen vacíos.** Los signos de alarma son indicación médica y el material
+educativo es evidencia curada. Los documentos llegan con `DOCUMENTS-001` y las
+preguntas con `PATIENT-AI-001`.
+
+**El resumen va LITERAL de la nota firmada.** Reescribirlo «en palabras más
+sencillas» lo haría un modelo, y eso es `PATIENT-LANGUAGE-001` con las defensas
+de §1 de la regla de IA de cara al paciente. Lo que el médico aprueba al liberar
+es exactamente lo que la vista previa le enseñó.
+
+**No se manda ningún mensaje.** La ruta devuelve el enlace y el médico decide
+por dónde se lo hace llegar.
+
+## Lo que este estado NO afirma
+
+Nada se ha visto en un navegador: ni el botón, ni la pantalla del paciente, ni
+el enlace que se emite.
+
+---
+
+## Lo que quedó montado en `PATIENT-COMPANION-001` (anterior)
 
 **Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
 · Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la
@@ -131,8 +181,8 @@ por el paciente.
 
 - `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa; revocación que falla
   **abierta**.
-- `POSTVISIT-GATE-001` — sin compuerta de firma.
-- `POSTVISIT-ENTREGA-001` — la hoja no llega al paciente.
+- ~~`POSTVISIT-GATE-001`~~ — **cerrado** con REG-306.
+- ~~`POSTVISIT-ENTREGA-001`~~ — **cerrado** con REG-306.
 
 ## Lo que este estado NO afirma
 

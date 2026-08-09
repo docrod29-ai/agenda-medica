@@ -13,7 +13,7 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
-import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import { visibleParaElPaciente, ultimaVersionPorNota, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -592,10 +592,20 @@ export async function POST(req: NextRequest) {
           .collection('patients').doc(patientId)
           .collection('paquetes_visita')
           .get()
-        const paquetes = snapPaq.docs
-          .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
-          .filter(visibleParaElPaciente)
-          .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
+        /**
+         * Y **una sola versión por consulta** (POSTVISIT-001).
+         *
+         * Un paquete liberado es inmutable: corregirlo libera la versión
+         * siguiente y las dos quedan en la base, las dos con su aprobador y su
+         * fecha, así que las dos pasan la compuerta. Enseñárselas juntas al
+         * paciente es cómo se acaba tomando la dosis vieja y la corregida el
+         * mismo día. El expediente guarda las dos; él ve la vigente.
+         */
+        const paquetes = ultimaVersionPorNota(
+          snapPaq.docs
+            .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
+            .filter(visibleParaElPaciente),
+        ).sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
         return NextResponse.json({ paquetes })
       }
 

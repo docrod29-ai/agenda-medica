@@ -6,7 +6,54 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El paquete **se compone del encuentro y sólo sale con aprobación del médico**,
+que es la condición de terminado de esta unidad. Cierra además los dos P1 que
+la auditoría había abierto: `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001`.
+
+**Lo que quedó montado**
+
+- `componerPaquete` vuelve al módulo **con la compuerta que le faltaba**: se
+  niega si la nota no está firmada. Se difirió en REG-304 por no tener llamador;
+  hoy lo tiene.
+- `POST /api/expediente/paquete-visita` recibe **tres identificadores y nada
+  más**. El servidor lee la nota firmada y compone él mismo; `approvedBy` sale de
+  la sesión verificada. Escribe con `create`: un paquete liberado no se pisa.
+- El paciente ve **una sola versión por consulta** (`ultimaVersionPorNota`).
+  Enseñarle la corregida junto a la vieja es cómo se toman las dos el mismo día.
+- `cambiosDeMedicacion` estrena `ajustado`: con los tres tipos declarados en
+  REG-304, duplicar una dosis salía como «sin cambio».
+- La hoja del paciente **espera a la firma** para copiar e imprimir, y `firmada`
+  es opcional con el valor seguro por defecto.
+- La pantalla del paciente **pide** los paquetes: la acción existía en el
+  servidor desde REG-304 y nadie la llamaba.
+
+**Compuertas en este checkpoint**
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 587 casos · 1 fallo preexistente y de entorno** (`ops-timeout`, necesita una IP que trague paquetes) |
+| `lint-trinquete` | **96, igual que el techo** |
+| trinquete de diseño | **sin deuda nueva** (los cinco contadores, iguales) |
+| `npm run build` | **compila** (con los placeholders de Firebase del CI) |
+| navegador | **no ejecutado** |
+
+**Lo que este checkpoint NO garantiza.** Que nada de esto funcione **en un
+navegador**: ni el botón de liberar, ni la pantalla del paciente, ni el enlace
+que se emite. Los guardianes comprueban que las decisiones quedaron escritas
+donde tienen que estar y los dos que muerden fallan al revés — pero Firestore y
+`fetch` no corren en Node. `NAV-NAVEGADOR-001` sigue abierto y ahora tiene más
+que verificar.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

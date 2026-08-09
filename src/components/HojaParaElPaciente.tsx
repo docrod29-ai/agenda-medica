@@ -22,6 +22,23 @@
  * Porque el paciente mexicano lleva WhatsApp, no siempre impresora. Copiar el
  * texto es la vía más corta entre la consulta y el teléfono del paciente — y no
  * inventa un canal nuevo que haya que mantener.
+ *
+ * ── LA COMPUERTA DE FIRMA (V9 · POSTVISIT-GATE-001) ─────────────────────────
+ *
+ * Esta hoja se compone del **borrador en curso**, y eso está bien para MIRARLA:
+ * el médico ve mientras dicta lo que se va a llevar el paciente, y eso es medio
+ * producto.
+ *
+ * Lo que no puede pasar es que **salga del consultorio** antes de la firma.
+ * Copiar e imprimir entregan en mano un tratamiento que todavía se está
+ * escribiendo y que diez minutos después será otro — con el membrete del
+ * médico y sin nada que diga que era un borrador. Así que las dos acciones de
+ * entrega aparecen **sólo con la nota firmada**, y mientras tanto la hoja dice
+ * en voz alta que es una vista previa.
+ *
+ * La compuerta se pone aquí y no sólo en la pantalla que la usa: una hoja que
+ * se pueda imprimir sin firma volvería en cuanto alguien la monte en un segundo
+ * sitio.
  */
 import { useMemo, useState } from 'react'
 import { ClipboardCheck, Copy, Printer } from 'lucide-react'
@@ -33,11 +50,20 @@ import {
 export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
+  /**
+   * ¿Está firmada la nota de la que sale esto?
+   *
+   * Por defecto **no**: quien monte esta hoja en una pantalla nueva y no diga
+   * nada obtiene la vista previa, no la entrega. Una compuerta que hay que
+   * recordar activar no es una compuerta.
+   */
+  firmada?: boolean
 }
 
 export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
   const [copiado, setCopiado] = useState(false)
   const bloques = useMemo(() => comoSeLoExplico(p), [p])
+  const entregable = p.firmada === true
 
   /* Sin nada que decirle al paciente no se enseña una hoja vacía. */
   if (!bloques.length) return null
@@ -66,10 +92,13 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
           Lo que se lleva el paciente
         </span>
         <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>
-          en sus palabras, sin nada que usted no haya escrito
+          {entregable
+            ? 'en sus palabras, sin nada que usted no haya escrito'
+            : 'vista previa — se entrega cuando firme la nota'}
         </span>
 
         <div className="no-print" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {entregable && (<>
           <button
             onClick={copiar}
             style={{
@@ -94,6 +123,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
           >
             <Printer size={14} /> Imprimir
           </button>
+          </>)}
         </div>
       </header>
 
@@ -125,6 +155,12 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
     </section>
   )
 }
+
+export const POR_QUE_LA_ENTREGA_ESPERA_A_LA_FIRMA =
+  'Mirar el borrador es medio producto: el médico ve mientras dicta lo que se ' +
+  'lleva el paciente. Entregarlo es otra cosa — sale del consultorio con su ' +
+  'membrete un tratamiento que todavía se está escribiendo. Por eso copiar e ' +
+  'imprimir esperan a la firma, y la hoja dice que es una vista previa.'
 
 export const POR_QUE_SE_PUEDE_COPIAR =
   'El paciente mexicano lleva WhatsApp, no siempre impresora. Copiar es la vía ' +
