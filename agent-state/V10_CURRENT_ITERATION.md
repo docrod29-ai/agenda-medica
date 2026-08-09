@@ -47,18 +47,20 @@ del trinquete tocó `cumplimiento/motores/page.tsx`, archivo nuevo de main
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. Arrancar de `claude/kind-brahmagupta-ysxb6q` (o su descendiente más
-   adelantado) y verificar si el dueño ya decidió **V10-D1** (fusión V9).
-2. Si V10-D1 decidido a favor → **V10-CONSTITUTION-001** (DEBT-001/002) sobre
-   main fusionado — es lo que desbloquea todo lo demás.
-3. Si no → quick-strikes restantes sin riesgo V9:
-   - **DEBT-007a**: la barra lateral resalta «Consulta» estando en `/pacientes`
-     (mirar el matcher de rutas del shell; OJO: si el shell está en la rama V9,
-     saltar a la b);
-   - **DEBT-006b**: círculos de icono de las 4 KPI de hoy-escritorio (§9) —
-     `dashboard/page.tsx` no está en la rama V9.
-4. DEBT-003 (agenda móvil) y DEBT-010 (pacientes móvil) siguen esperando
-   V10-D1: `citas/page.tsx` y `pacientes/page.tsx` SÍ están en la rama V9.
+**V10-D1 QUEDÓ DECIDIDA Y EJECUTADA** (9-ago mediodía): el dueño aprobó la
+fusión V9; el merge está resuelto y empujado a `claude/nexus-patient-ux-v9`
+y el **PR #279** espera CI + fusión a main. OJO: en la fusión las REG de V9
+se renumeraron — REG-270…281 (V9) son ahora **REG-291…302**.
+
+1. Verificar el estado del PR #279. Si ya está fusionado: `git merge
+   origin/main` en la rama V10 de la sesión y correr las compuertas.
+2. Con main fusionado → **V10-CONSTITUTION-001** (DEBT-001/002): es lo que
+   desbloquea todo lo demás. El sistema de diseño de V9 ya está en main;
+   la unidad NO lo rehace — construye los tokens/utilidades que faltan.
+3. Ya sin candado V9: **DEBT-003** (agenda móvil, la pantalla más usada) y
+   **DEBT-010** (pacientes móvil) entran en secuencia normal.
+4. Quick-strikes aún válidos si algo bloquea: DEBT-007a (resaltado de barra
+   lateral en /pacientes) y DEBT-006b (círculos de icono de hoy-escritorio).
 
 ### Cómo relanzar el arnés (resumen operativo)
 

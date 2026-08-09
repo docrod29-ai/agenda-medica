@@ -3,7 +3,15 @@
 > Un blocker no detiene el programa: se documenta, se recomienda el mejor
 > default y se sigue con otra tarea (V10 §5, §42).
 
-## B-V10-1 · Trabajo V9 validado sin fusionar (afecta la secuencia V10)
+## B-V10-1 · Trabajo V9 validado sin fusionar — RESUELTO el 9-ago-2026 (V10-D1)
+
+El dueño decidió V10-D1. El merge de main (v1163) en la rama V9 quedó resuelto
+(colisión de REG renumerada a 291…302, mecanismo de audio unificado en el de
+main, trinquete de diseño respetado) y el **PR #279** espera CI + fusión.
+En cuanto main lo tenga: fusionar main a la rama V10 y abrir
+V10-CONSTITUTION-001.
+
+Historia del blocker (referencia):
 
 `origin/claude/nexus-patient-ux-v9` (6feaf5a) lleva **8 commits que main no
 tiene**: DESIGN-SYSTEM-001 (REG-274/275), NAVIGATION-001 (REG-276…279) y

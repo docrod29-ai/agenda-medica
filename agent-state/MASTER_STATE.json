@@ -18,22 +18,12 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/Sidebar.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/rutas-privadas.ts",
-    " M src/lib/seguridad/dosis.ts",
-    "?? src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-    "?? src/app/(dashboard)/motores/",
-    "?? src/components/motores/"
+    "M agent-state/V10_BLOCKERS.md",
+    " M agent-state/V10_CURRENT_ITERATION.md",
+    " M agent-state/V10_DECISION_LOG.md",
+    " M agent-state/V10_OWNER_DECISIONS_REQUIRED.md"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -65,12 +55,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/kind-brahmagupta-ysxb6q",
   "derivado": {
     "regsEnElLedger": 138,
     "ultimaREG": "REG-290",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "archivosDePrueba": 569,
+    "casosDePrueba": 7479,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
