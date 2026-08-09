@@ -30,6 +30,7 @@ const RUTAS = [
   { ruta: '/pacientes', nombre: 'pacientes' },
   { ruta: '/expediente/pac-sint-01', nombre: 'expediente' },
   { ruta: '/consulta/pac-sint-03', nombre: 'consulta' },
+  { ruta: '/nota/pac-sint-01/nota-sint-01', nombre: 'nota' },
 ]
 
 const navegador = await chromium.launch({

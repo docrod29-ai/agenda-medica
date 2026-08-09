@@ -327,8 +327,10 @@ function RegistroInner() {
                   onClick={() => setShowPwd(s => !s)}
                   /* Sin esto el lector de pantalla sólo dice «botón». */
                   aria-label={showPwd ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
+                  /* Área táctil 44×44 (axe: target-size; regla propia de diseño). */
                   style={{
-                    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                    width: 44, height: 44, justifyContent: 'center', alignItems: 'center',
                     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',
                     display: 'flex', padding: 0,
                   }}

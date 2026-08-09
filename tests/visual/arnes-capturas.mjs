@@ -14,6 +14,7 @@
  * Salidas:
  *   tests/visual/capturas/<ruta>--<ancho>.png
  *   tests/visual/capturas/reporte-consola.json
+ *   tests/visual/capturas/reporte-rendimiento.json   (V10 §47 salida 12, @1440)
  */
 import { chromium } from 'playwright-core'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -42,7 +43,8 @@ const RUTAS = [
   { ruta: '/pacientes', nombre: 'pacientes' },
   { ruta: '/expediente/pac-sint-01', nombre: 'expediente' },
   { ruta: '/consulta/pac-sint-03', nombre: 'consulta' },
-  { ruta: '/nota/pac-sint-01', nombre: 'nota' },
+  // Nota BORRADOR sembrada: /nota/{patientId} a secas sólo enseña «no encontrada».
+  { ruta: '/nota/pac-sint-01/nota-sint-01', nombre: 'nota' },
 ]
 
 mkdirSync(DIR, { recursive: true })
@@ -55,6 +57,7 @@ const navegador = await chromium.launch({
 })
 
 const reporte = []
+const rendimiento = []
 
 for (const vp of VIEWPORTS) {
   const contexto = await navegador.newContext({
@@ -98,6 +101,24 @@ for (const vp of VIEWPORTS) {
     await page.goto(`${BASE}${r.ruta}`, { waitUntil: 'load' })
     await page.waitForTimeout(3500)
     await page.screenshot({ path: join(DIR, `${r.nombre}--${vp.nombre}.png`) })
+
+    // Línea base de rendimiento (V10 §47 salida 12), sólo @1440 para no medir
+    // cuatro veces lo mismo. OJO: es DEV SERVER — sirve para comparar pantallas
+    // entre sí y contra corridas futuras, no como cifra absoluta de producción.
+    if (vp.nombre === '1440') {
+      const m = await page.evaluate(() => {
+        const nav = performance.getEntriesByType('navigation')[0]
+        const fcp = performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint')
+        return nav ? {
+          ttfbMs: Math.round(nav.responseStart - nav.requestStart),
+          domContentLoadedMs: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
+          loadMs: Math.round(nav.loadEventEnd - nav.startTime),
+          fcpMs: fcp ? Math.round(fcp.startTime) : null,
+          transferKB: Math.round((nav.transferSize ?? 0) / 1024),
+        } : null
+      })
+      rendimiento.push({ pantalla: r.nombre, ruta: r.ruta, ...m })
+    }
     console.log(`✓ ${r.nombre} @ ${vp.nombre}`)
   }
 
@@ -106,5 +127,10 @@ for (const vp of VIEWPORTS) {
 }
 
 writeFileSync(join(DIR, 'reporte-consola.json'), JSON.stringify(reporte, null, 2))
+writeFileSync(join(DIR, 'reporte-rendimiento.json'), JSON.stringify({
+  _nota: 'Dev server, no producción: comparar entre pantallas y entre corridas, no como cifra absoluta.',
+  capturadoEl: new Date().toISOString().slice(0, 10),
+  pantallas: rendimiento,
+}, null, 2))
 console.log(`✓ capturas en ${DIR} · ${reporte.length} errores de consola registrados`)
 await navegador.close()

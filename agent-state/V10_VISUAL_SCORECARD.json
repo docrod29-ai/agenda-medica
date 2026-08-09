@@ -39,13 +39,16 @@
     {
       "pantalla": "pacientes",
       "ruta": "/pacientes",
-      "capturas": ["pacientes--1440.png", "pacientes--390.png"],
+      "capturas": ["pacientes--1440.png", "pacientes--1024.png", "pacientes--768.png", "pacientes--390.png"],
       "dimensiones": {
-        "claridad": 8.5, "tipografia": 8.5, "accesibilidad": 9, "rendimientoPercibido": 8.5
+        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
+        "espaciado": 8.5, "densidad": 8, "interaccion": 7.5, "responsive": 6,
+        "accesibilidad": 7.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8,
+        "originalidad": 7.5
       },
-      "promedio": null,
+      "promedio": 7.9,
       "genericAiLook": 1.5,
-      "justificacion": "PARCIAL: el filtro por omisión «Recientes» sale vacío aunque hay 4 pacientes con cita hoy (la vista depende de ultimaCita, que la siembra no escribe — ver siguiente corrida). El estado vacío sí enseña la salida. axe: 0 violaciones. Defecto de navegación: la barra lateral resalta «Consulta» estando en /pacientes. La lista poblada queda pendiente de puntuar."
+      "justificacion": "PUNTUADA con la lista poblada (9-ago tarde: la siembra ya escribe ultimaCita). Escritorio: lista limpia, CTA primario único, identidad por avatar+nombre. MÓVIL 390: los NOMBRES se truncan («María Fernanda…», «José Emilio Car…») mientras el botón secundario Editar conserva todo su ancho — la identidad es el dato de seguridad primario y es lo primero que se sacrifica; y las 3 acciones de cabecera se apilan en 3 filas antes del contenido (§27). axe NUEVO con lista poblada: nested-interactive serious ×3 (la fila es div[role=button] con botones dentro). Sigue el defecto de navegación: la barra lateral resalta «Consulta» en /pacientes."
     },
     {
       "pantalla": "expediente",
@@ -77,21 +80,31 @@
     },
     {
       "pantalla": "nota",
-      "ruta": "/nota/[patientId]",
-      "capturas": ["nota--1440.png", "nota--390.png"],
-      "dimensiones": {},
-      "promedio": null,
-      "genericAiLook": null,
-      "justificacion": "NO PUNTUADA: /nota/[patientId] sin notaId muestra «Nota no encontrada» (estado de error correcto: explica y ofrece salida). Puntuar el editor real exige una nota borrador creada por el flujo de consulta — pendiente para el arnés (siguiente corrida)."
+      "ruta": "/nota/[patientId]/[notaId]",
+      "capturas": ["nota--1440.png", "nota--1024.png", "nota--768.png", "nota--390.png"],
+      "dimensiones": {
+        "jerarquia": 8.5, "claridad": 9, "coherencia": 8.5, "tipografia": 9,
+        "espaciado": 8.5, "densidad": 8.5, "interaccion": 7.5, "responsive": 5.5,
+        "accesibilidad": 7.5, "rendimientoPercibido": 7, "confianzaClinica": 7,
+        "originalidad": 8.5
+      },
+      "promedio": 7.9,
+      "genericAiLook": 1.0,
+      "justificacion": "PUNTUADA con nota BORRADOR sembrada (nota-sint-01). Fuerte: metáfora de papel membretado distintiva, alergias en banda roja SIEMPRE, tipografía de documento excelente. HALLAZGO DE FACTORES HUMANOS (§8.30, §37): el estado BORRADOR sólo existe como línea gris de 9.5px al FINAL del documento, DESPUÉS de la línea de firma con el nombre impreso del médico — en pantalla queda bajo el pliegue y a golpe de vista es indistinguible de una nota firmada, con Descargar PDF / Imprimir / Word ofrecidos igual. MÓVIL 390 ROTO: las 3 acciones se apilan a ancho completo sobre el documento y «Atrás» queda recortado y tapado detrás. axe: contraste serious ×7 en la tabla de datos del paciente (etiquetas grises sobre papel). Rendimiento: la ruta más pesada del flujo (28.7s load en dev, primera compilación)."
     }
   ],
   "resumen": {
-    "promedioGlobal": 8.3,
-    "brechaContraMeta": "Meta 9.3; hoy 8.3. Ninguna pantalla llega a 9.0 todavía. El déficit se concentra en RESPONSIVE móvil (agenda 4.5, hoy 6.5) y ACCESIBILIDAD (12 hallazgos critical/serious de axe).",
+    "actualizadoEl": "2026-08-09 (noche)",
+    "promedioGlobal": 8.2,
+    "pantallasPuntuadas": "6 de 6 críticas del flujo (login se captura pero no se puntúa como crítica)",
+    "brechaContraMeta": "Meta 9.3; hoy 8.2. Ninguna pantalla llega a 9.0 todavía. El déficit se concentra en RESPONSIVE móvil (agenda 4.5, nota 5.5, pacientes 6.0, hoy 6.5) y en los 8 serious de axe restantes (contraste agenda/hoy/nota, nested-interactive pacientes). Los 4 CRITICAL de axe se repararon el 9-ago noche (12→8 hallazgos).",
     "hallazgosP1": [
       "AGENDA MÓVIL (390): fila de cita rota — nombre palabra por palabra, botones fuera del viewport (V10-DEBT-003)",
       "Cabecera móvil dice «Agenda Médica», no NexusMED — marca inconsistente en todo el shell móvil (V10-DEBT-004)",
-      "12 hallazgos axe critical/serious en el golden flow (V10-DEBT-005)"
+      "NOTA BORRADOR indistinguible de firmada a golpe de vista — marcador de 9.5px al final, bajo el pliegue, tras la línea de firma (V10-DEBT-008, §8.30/§37)"
+    ],
+    "cerradosP1": [
+      "V10-DEBT-005: los 4 axe critical del flujo — reparados y verificados con axe en navegador real, guardián a11y-flujo-central-etiquetas probado al revés"
     ]
   }
 }

@@ -313,7 +313,8 @@ export default function CitasPage() {
 
       {/* Date navigator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setSelectedDate(prevDay(selectedDate))}>
+        {/* Sin nombre accesible el lector de pantalla sólo dice «botón» (axe: button-name, critical). */}
+        <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día anterior" onClick={() => setSelectedDate(prevDay(selectedDate))}>
           <ChevronLeft size={16} />
         </button>
         <div style={{ flex: 1, textAlign: 'center' }}>
@@ -322,10 +323,11 @@ export default function CitasPage() {
         </div>
         <input
           type="date" value={selectedDate}
+          aria-label="Ir a una fecha"
           onChange={e => setSelectedDate(e.target.value)}
           style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}
         />
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setSelectedDate(nextDay(selectedDate))}>
+        <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día siguiente" onClick={() => setSelectedDate(nextDay(selectedDate))}>
           <ChevronRight size={16} />
         </button>
         <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDate(todayStr())}>

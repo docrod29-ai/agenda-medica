@@ -47,9 +47,9 @@
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 330 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 864 | 5 | — | ✅ | — |
+| `/citas` | medico | ✅ | 866 | 5 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 5803 | 5 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 5806 | 5 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 282 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
@@ -94,12 +94,12 @@
 | `/demo/razonamiento` | publica | ✅ | 146 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 81 | 1 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |
-| `/login` | publica | ✅ | 392 | 4 | — | ✅ | — |
+| `/login` | publica | ✅ | 395 | 4 | — | ✅ | — |
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
 | `/precios` | publica | — | 182 | 1 | — | ✅ | — |
 | `/privacidad` | publica | — | 134 | 0 | — | — | — |
-| `/registro` | publica | ✅ | 389 | 3 | — | ✅ | — |
+| `/registro` | publica | ✅ | 391 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 145 | 2 | — | ✅ | — |
 | `/setup` | publica | ✅ | 279 | 2 | — | ✅ | — |
 | `/terminos` | publica | — | 140 | 0 | — | ✅ | — |

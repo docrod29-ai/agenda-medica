@@ -23,7 +23,32 @@
       "titulo": "Accesibilidad critical en el flujo central: botones de icono sin nombre y fecha sin etiqueta (agenda), 4 textareas sin etiqueta (consulta)",
       "fuente": "tests/visual/capturas/reporte-a11y.json (9-ago-2026)",
       "prioridad": "P1",
-      "unidadV10": "V10-A11Y-001 (adelantable: son arreglos de etiqueta, no de rediseño)",
+      "unidadV10": "V10-A11Y-001 (adelantado)",
+      "estado": "CERRADO 9-ago-2026 (noche)",
+      "cierre": "Los 4 critical reparados y verificados con axe en navegador real (12→8 hallazgos, 0 critical): chevrones y fecha de agenda con nombre, textareas de consulta con aria-label, y de paso .prox-hero-cta al azul sólido (mismo 3.28:1 de v1104 en CSS global) y el toggle de contraseña a 44×44. Guardián probado al revés: src/__tests__/a11y-flujo-central-etiquetas.test.ts. Los 8 serious restantes quedan repartidos: contraste agenda/hoy → V10-AGENDA-001/V10-TODAY-001; nested-interactive pacientes → V10-DEBT-010; contraste nota → V10-DEBT-008."
+    },
+    {
+      "id": "V10-DEBT-008",
+      "titulo": "FACTORES HUMANOS (§8.30, §37): la nota BORRADOR es indistinguible de una firmada a golpe de vista — el único marcador es una línea gris de 9.5px al final, DESPUÉS de la línea de firma con el nombre del médico, bajo el pliegue; y Descargar PDF / Imprimir / Word se ofrecen igual que en una firmada. Además: contraste serious ×7 en la tabla de datos del paciente",
+      "fuente": "captura nota--1440.png / nota--390.png (9-ago noche, nota borrador sembrada) + nota/[patientId]/[notaId]/page.tsx:542",
+      "prioridad": "P1",
+      "unidadV10": "V10-NOTE-001 (adelantable como quick-strike: banda BORRADOR no-print arriba + marca de agua en impreso; la nota NO fue tocada por la rama V9)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-009",
+      "titulo": "NOTA MÓVIL (390) rota: las 3 acciones de exportar se apilan a ancho completo SOBRE el documento y «Atrás» queda recortado y tapado detrás de Imprimir",
+      "fuente": "captura nota--390.png (9-ago noche)",
+      "prioridad": "P2",
+      "unidadV10": "V10-NOTE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-010",
+      "titulo": "PACIENTES MÓVIL: los nombres se truncan («María Fernanda…») mientras el botón secundario Editar conserva su ancho — la identidad es el dato de seguridad primario; 3 acciones de cabecera apiladas en 3 filas; y nested-interactive serious ×3 (fila div[role=button] con botones dentro)",
+      "fuente": "captura pacientes--390.png + reporte-a11y.json (9-ago noche, lista poblada)",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001 (OJO: pacientes/page.tsx SÍ fue tocado por la rama V9 — esperar V10-D1 o rebasar)",
       "estado": "abierto"
     },
     {
@@ -66,8 +91,8 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
-      "estado": "hecho-parcial",
-      "nota": "9-ago: arnés completo (emuladores + siembra + capturas 4 anchos + axe) y scorecard poblado. Falta: (a) sembrar ultimaCita para puntuar la lista de pacientes poblada; (b) crear una nota borrador para puntuar el editor de nota; (c) puntuar receta/orden."
+      "estado": "CERRADO 9-ago-2026 (noche)",
+      "cierre": "Siembra extendida (ultimaCita + nota borrador nota-sint-01), 7 de 7 pantallas del flujo puntuadas con captura, rendimiento @1440 en reporte-rendimiento.json. Receta/orden quedan para sus unidades (V10-MEDS-001/V10-ORDERS-001): no son parte del flujo capturado y puntuar sin rediseñar duplica trabajo."
     }
   ]
 }

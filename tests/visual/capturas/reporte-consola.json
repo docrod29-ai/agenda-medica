@@ -11,8 +11,28 @@
   },
   {
     "viewport": "1440",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1440",
     "url": "http://localhost:3000/citas",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/citas",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/citas",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
   },
   {
     "viewport": "1440",
@@ -21,8 +41,58 @@
   },
   {
     "viewport": "1440",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1440",
     "url": "http://localhost:3000/expediente/pac-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
   },
   {
     "viewport": "1440",
@@ -31,8 +101,58 @@
   },
   {
     "viewport": "1440",
-    "url": "http://localhost:3000/nota/pac-sint-01",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1440",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
   },
   {
     "viewport": "1024",
@@ -46,8 +166,28 @@
   },
   {
     "viewport": "1024",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1024",
     "url": "http://localhost:3000/citas",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/citas",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/citas",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
   },
   {
     "viewport": "1024",
@@ -56,8 +196,58 @@
   },
   {
     "viewport": "1024",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1024",
     "url": "http://localhost:3000/expediente/pac-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
   },
   {
     "viewport": "1024",
@@ -66,8 +256,58 @@
   },
   {
     "viewport": "1024",
-    "url": "http://localhost:3000/nota/pac-sint-01",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "1024",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
   },
   {
     "viewport": "768",
@@ -81,8 +321,28 @@
   },
   {
     "viewport": "768",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "768",
     "url": "http://localhost:3000/citas",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/citas",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/citas",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
   },
   {
     "viewport": "768",
@@ -91,8 +351,58 @@
   },
   {
     "viewport": "768",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "768",
     "url": "http://localhost:3000/expediente/pac-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
   },
   {
     "viewport": "768",
@@ -101,8 +411,58 @@
   },
   {
     "viewport": "768",
-    "url": "http://localhost:3000/nota/pac-sint-01",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "768",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
   },
   {
     "viewport": "390",
@@ -116,8 +476,28 @@
   },
   {
     "viewport": "390",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/dashboard",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "390",
     "url": "http://localhost:3000/citas",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/citas",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/citas",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
   },
   {
     "viewport": "390",
@@ -126,8 +506,58 @@
   },
   {
     "viewport": "390",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/pacientes",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "390",
     "url": "http://localhost:3000/expediente/pac-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/expediente/pac-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
   },
   {
     "viewport": "390",
@@ -136,7 +566,57 @@
   },
   {
     "viewport": "390",
-    "url": "http://localhost:3000/nota/pac-sint-01",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/consulta/pac-sint-03",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
     "texto": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the serv"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "viewport": "390",
+    "url": "http://localhost:3000/nota/pac-sint-01/nota-sint-01",
+    "texto": "[auditoria] asiento RECHAZADO y descartado nota_lectura 401"
   }
 ]

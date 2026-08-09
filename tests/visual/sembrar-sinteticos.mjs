@@ -86,17 +86,30 @@ async function sembrarClinica() {
   console.log('✓ clínica + membresía + config')
 }
 
+/** Días atrás → 'YYYY-MM-DD' local del consultorio. */
+function diasAtras(n) {
+  const f = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chihuahua', year: 'numeric', month: '2-digit', day: '2-digit',
+  })
+  return f.format(new Date(Date.now() - n * 86400000))
+}
+
 const PACIENTES = [
   {
     id: 'pac-sint-01', nombre: 'María Fernanda Saldívar Roble', telefono: '55 0000 0001',
     edad: 54, sexo: 'Femenino', alergias: 'Penicilina (rash generalizado)',
     alergiasEstructuradas: [{ alergeno: 'Penicilina', tipo: 'medicamento', severidad: 'moderada', reaccion: 'rash generalizado' }],
     tags: ['seguimiento', 'cronico'], notas: 'HTA esencial en control. DM2 en metas.',
+    // Mismo formato que escribe contadores-paciente.ts: fechaHora.slice(0, 10).
+    // Sin esto, la vista «Recientes» de /pacientes sale vacía (quedó sin puntuar
+    // en la corrida del 9-ago justo por esta ausencia).
+    ultimaCita: diasAtras(7),
   },
   {
     id: 'pac-sint-02', nombre: 'José Emilio Carranza Peón', telefono: '55 0000 0002',
     edad: 67, sexo: 'Masculino', alergias: '',
     tags: ['alto-riesgo', 'pendiente-estudios'], notas: 'EPOC GOLD B. Exfumador.',
+    ultimaCita: diasAtras(21),
   },
   {
     id: 'pac-sint-03', nombre: 'Guadalupe Contreras Ávila', telefono: '55 0000 0003',
@@ -108,6 +121,7 @@ const PACIENTES = [
     id: 'pac-sint-04', nombre: 'Ernesto Villanueva Paredes', telefono: '55 0000 0004',
     edad: 29, sexo: 'Masculino', alergias: '',
     tags: ['frecuente'], notas: 'Deportista. Sin crónicos.',
+    ultimaCita: diasAtras(90),
   },
 ]
 
@@ -154,9 +168,68 @@ async function sembrarCitas() {
   console.log(`✓ ${CITAS.length} citas de hoy (${dia})`)
 }
 
+/**
+ * Nota BORRADOR para puntuar el editor/visor de nota (V10 §34): sin una nota,
+ * /nota/... sólo enseña «Nota no encontrada». La forma imita lo que escribe
+ * `construirNota('borrador')` en consulta/page.tsx (mirado del lado que LEE:
+ * getNota → normNota exige arreglos, getNotas ordena por fechaConsulta).
+ * Contenido 100 % sintético; dosis de libro de texto, no calculadas aquí.
+ */
+async function sembrarNotaBorrador() {
+  const p = PACIENTES[0]
+  const dia = hoyLocal()
+  await db.doc(`clinics/${CLINIC_ID}/patients/${p.id}/notas/nota-sint-01`).set({
+    id: 'nota-sint-01',
+    clinicId: CLINIC_ID,
+    pacienteId: p.id,
+    pacienteNombre: p.nombre,
+    tipo: 'seguimiento',
+    estado: 'borrador',
+    fechaConsulta: `${dia}T09:20:00.000Z`,
+    metadata: {
+      id: 'nota-sint-01',
+      tipoNota: 'seguimiento',
+      clinicId: CLINIC_ID,
+      pacienteId: p.id,
+      medicoId: UID,
+      cedulaProfesional: '0000000 (DEMO)',
+      especialidad: 'Medicina Interna · Infectología',
+      establecimiento: 'Consultorio de Medicina Interna e Infectología',
+      fechaCreacion: `${dia}T09:20:00.000Z`,
+      fechaModificacion: `${dia}T09:38:00.000Z`,
+      hashIntegridad: '',
+      version: 1,
+      estado: 'borrador',
+      fuenteGeneracion: 'ia_voz',
+    },
+    resumenEjecutivo: 'Seguimiento de HTA y DM2 en metas; se mantiene tratamiento y se solicita panel de control.',
+    secciones: [
+      { key: 'subjetivo', label: 'Subjetivo', obligatorio: true, value: 'Acude a control programado de hipertensión arterial y diabetes tipo 2. Refiere apego al tratamiento, sin cefalea, sin visión borrosa, sin dolor torácico ni disnea. Automonitoreo domiciliario con cifras tensionales estables. Niega hipoglucemias.' },
+      { key: 'objetivo', label: 'Objetivo', obligatorio: true, value: 'Consciente, orientada, hidratada. Cardiopulmonar sin agregados. Abdomen blando, sin visceromegalias. Extremidades sin edema; pulsos distales presentes y simétricos.' },
+      { key: 'analisis', label: 'Análisis', obligatorio: true, value: 'HTA esencial en control ambulatorio adecuado. DM2 en metas por automonitoreo; pendiente corroborar con HbA1c del trimestre.' },
+      { key: 'plan', label: 'Plan', obligatorio: true, value: 'Se mantiene tratamiento actual. Se solicita química sanguínea, HbA1c y perfil lipídico. Cita de control en 4 semanas con resultados. Datos de alarma explicados.' },
+    ],
+    signosVitales: { ta: '124/78', fc: 72, fr: 16, temp: 36.6, peso: 68.4, talla: 158 },
+    diagnosticos: [
+      { descripcion: 'Hipertensión esencial (primaria)', codigoCIE10: 'I10', tipo: 'definitivo', estado: 'cronico' },
+      { descripcion: 'Diabetes mellitus tipo 2 sin complicaciones', codigoCIE10: 'E11.9', tipo: 'definitivo', estado: 'cronico' },
+    ],
+    medicamentos: [
+      { nombre: 'Losartán', dosis: '50 mg', via: 'oral', frecuencia: 'cada 24 horas', duracion: 'indefinido', indicacion: 'HTA' },
+      { nombre: 'Metformina', dosis: '850 mg', via: 'oral', frecuencia: 'cada 12 horas', duracion: 'indefinido', indicacion: 'DM2' },
+    ],
+    alergias: [{ alergeno: 'Penicilina', tipo: 'medicamento', severidad: 'moderada', reaccion: 'rash generalizado' }],
+    createdAt: `${dia}T09:20:00.000Z`,
+    updatedAt: `${dia}T09:38:00.000Z`,
+    creadoPor: UID,
+  })
+  console.log('✓ nota borrador nota-sint-01 (pac-sint-01)')
+}
+
 await sembrarAuth()
 await sembrarClinica()
 await sembrarPacientes()
 await sembrarCitas()
+await sembrarNotaBorrador()
 console.log('✓ siembra sintética completa')
 process.exit(0)

@@ -5337,7 +5337,10 @@ export default function ConsultaActivaPage() {
       {/* ── Secciones narrativas ── */}
       {secciones.map((s, i) => (
         <Section key={s.key} title={s.label} obligatorio={s.obligatorio}>
+          {/* El título del Section es visual, no está asociado: sin aria-label el
+              lector de pantalla dice «edición de texto» a secas (axe: label, critical). */}
           <textarea
+            aria-label={s.label}
             value={s.value}
             onChange={e => {
               // Se anota que el médico ESCRIBIÓ. Lo usa la re-proyección con voces

@@ -1547,7 +1547,9 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 .prox-hero-cta {
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
-  background: var(--nexus); color: #fff;
+  /* --nexus (#6E84FE) con blanco da 3.28:1 y reprueba AA; el sólido pasa en los
+     dos temas (5.13 / 6.71) — misma doctrina que el guardián de estilos en línea. */
+  background: var(--nexus-solido); color: #fff;
   border: none; border-radius: 12px;
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;

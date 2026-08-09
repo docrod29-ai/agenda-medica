@@ -2,17 +2,7 @@
   {
     "pantalla": "login",
     "viewport": "1440",
-    "violaciones": [
-      {
-        "id": "target-size",
-        "impact": "serious",
-        "help": "All touch targets must be 24px large, or leave sufficient space",
-        "nodos": 1,
-        "ejemplos": [
-          "button[aria-label=\"Mostrar la contraseña\"]"
-        ]
-      }
-    ]
+    "violaciones": []
   },
   {
     "pantalla": "hoy",
@@ -22,11 +12,11 @@
         "id": "color-contrast",
         "impact": "serious",
         "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 4,
+        "nodos": 3,
         "ejemplos": [
-          ".prox-hero-cta",
           "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
-          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)"
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)",
+          ".card > div:nth-child(2) > div:nth-child(1) > span"
         ]
       }
     ]
@@ -35,16 +25,6 @@
     "pantalla": "agenda",
     "viewport": "1440",
     "violaciones": [
-      {
-        "id": "button-name",
-        "impact": "critical",
-        "help": "Buttons must have discernible text",
-        "nodos": 2,
-        "ejemplos": [
-          ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
-          "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
-        ]
-      },
       {
         "id": "color-contrast",
         "impact": "serious",
@@ -55,22 +35,25 @@
           ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
           ".nx-reveal:nth-child(3) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
         ]
-      },
-      {
-        "id": "label",
-        "impact": "critical",
-        "help": "Form elements must have labels",
-        "nodos": 1,
-        "ejemplos": [
-          "input[type=\"date\"]"
-        ]
       }
     ]
   },
   {
     "pantalla": "pacientes",
     "viewport": "1440",
-    "violaciones": []
+    "violaciones": [
+      {
+        "id": "nested-interactive",
+        "impact": "serious",
+        "help": "Interactive controls must not be nested",
+        "nodos": 3,
+        "ejemplos": [
+          "div[role=\"button\"]:nth-child(2)",
+          "div[role=\"button\"]:nth-child(3)",
+          "div[role=\"button\"]:nth-child(4)"
+        ]
+      }
+    ]
   },
   {
     "pantalla": "expediente",
@@ -80,16 +63,21 @@
   {
     "pantalla": "consulta",
     "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "nota",
+    "viewport": "1440",
     "violaciones": [
       {
-        "id": "label",
-        "impact": "critical",
-        "help": "Form elements must have labels",
-        "nodos": 4,
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 7,
         "ejemplos": [
-          "div:nth-child(8) > textarea[placeholder=\"\"]",
-          "div:nth-child(9) > textarea[placeholder=\"\"]",
-          "div:nth-child(10) > textarea[placeholder=\"\"]"
+          "tr:nth-child(1) > td:nth-child(1)",
+          "td:nth-child(1) > strong",
+          "tr:nth-child(1) > td:nth-child(2)"
         ]
       }
     ]
@@ -97,17 +85,7 @@
   {
     "pantalla": "login",
     "viewport": "390",
-    "violaciones": [
-      {
-        "id": "target-size",
-        "impact": "serious",
-        "help": "All touch targets must be 24px large, or leave sufficient space",
-        "nodos": 1,
-        "ejemplos": [
-          "button[aria-label=\"Mostrar la contraseña\"]"
-        ]
-      }
-    ]
+    "violaciones": []
   },
   {
     "pantalla": "hoy",
@@ -117,11 +95,11 @@
         "id": "color-contrast",
         "impact": "serious",
         "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 4,
+        "nodos": 3,
         "ejemplos": [
-          ".prox-hero-cta",
           "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
-          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)"
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)",
+          ".card > div:nth-child(2) > div:nth-child(1) > span"
         ]
       }
     ]
@@ -130,16 +108,6 @@
     "pantalla": "agenda",
     "viewport": "390",
     "violaciones": [
-      {
-        "id": "button-name",
-        "impact": "critical",
-        "help": "Buttons must have discernible text",
-        "nodos": 2,
-        "ejemplos": [
-          ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
-          "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
-        ]
-      },
       {
         "id": "color-contrast",
         "impact": "serious",
@@ -150,22 +118,25 @@
           ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
           ".nx-reveal:nth-child(4) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
         ]
-      },
-      {
-        "id": "label",
-        "impact": "critical",
-        "help": "Form elements must have labels",
-        "nodos": 1,
-        "ejemplos": [
-          "input[type=\"date\"]"
-        ]
       }
     ]
   },
   {
     "pantalla": "pacientes",
     "viewport": "390",
-    "violaciones": []
+    "violaciones": [
+      {
+        "id": "nested-interactive",
+        "impact": "serious",
+        "help": "Interactive controls must not be nested",
+        "nodos": 3,
+        "ejemplos": [
+          "div[role=\"button\"]:nth-child(2)",
+          "div[role=\"button\"]:nth-child(3)",
+          "div[role=\"button\"]:nth-child(4)"
+        ]
+      }
+    ]
   },
   {
     "pantalla": "expediente",
@@ -175,16 +146,21 @@
   {
     "pantalla": "consulta",
     "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "nota",
+    "viewport": "390",
     "violaciones": [
       {
-        "id": "label",
-        "impact": "critical",
-        "help": "Form elements must have labels",
-        "nodos": 4,
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 7,
         "ejemplos": [
-          "div:nth-child(8) > textarea[placeholder=\"\"]",
-          "div:nth-child(9) > textarea[placeholder=\"\"]",
-          "div:nth-child(10) > textarea[placeholder=\"\"]"
+          "tr:nth-child(1) > td:nth-child(1)",
+          "td:nth-child(1) > strong",
+          "tr:nth-child(1) > td:nth-child(2)"
         ]
       }
     ]
