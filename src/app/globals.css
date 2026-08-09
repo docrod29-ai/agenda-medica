@@ -1706,7 +1706,9 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 .prox-hero-cta {
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
-  background: var(--nexus); color: #fff;
+  /* Relleno, no texto: va el azul sólido (blanco sobre --nexus = 2.9:1, falla AA;
+     sobre --nexus-solido = 5.1:1). Lo midió axe sobre la captura real. */
+  background: var(--nexus-solido); color: #fff;
   border: none; border-radius: 12px;
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;

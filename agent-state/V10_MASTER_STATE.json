@@ -17,13 +17,9 @@
       "PATIENT-UX-TRUTH-001 (639ca73, sellado 6a6501d)",
       "los tres P0 de audio (d22fbfd, REG-287)"
     ],
-    "cerradoEnRamaV9SinFusionar": [
-      "DESIGN-SYSTEM-001 (5bb1a2c, REG-274/275)",
-      "NAVIGATION-001 (fed81cc, REG-276 a 279)",
-      "PATIENT-COMPANION-001 (5d496cf, REG-280/281)"
-    ],
-    "ramaV9": "origin/claude/nexus-patient-ux-v9 (6feaf5a; 8 adelante, 48 atrás de main)",
-    "regla": "V10 NO duplica ni revierte ese trabajo. Las unidades V10 que toquen sistema de diseño, navegación o compañero del paciente esperan la fusión de V9 o se rebasan sobre ella (V10 §41). La decisión de fusionar es del dueño — ver V10_OWNER_DECISIONS_REQUIRED.md."
+    "cerradoEnRamaV9SinFusionar": [],
+    "ramaV9": "FUSIONADA a main el 9-ago-2026 (PR #279, 56d9fc7); REG de V9 renumeradas a 294…305",
+    "regla": "V10-D1 ejecutada: todo el trabajo V9 está en main. Las unidades V10 de sistema de diseño/navegación/compañero construyen SOBRE lo fusionado, sin rehacerlo."
   },
   "documentosValidadosPreexistentes": {
     "inventarioPantallas": "docs/design/SCREEN_INVENTORY.md (GENERADO por scripts/design/inventario-de-pantallas.mjs — no editar a mano)",
@@ -32,5 +28,11 @@
     "auditoriaProducto": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
     "sistemaDeDiseno": "docs/DESIGN_SYSTEM.md (fuente de verdad visual hoy)",
     "matricesCompetitivas": "docs/competitive/UX_UI_MATRIX.md · docs/competitive/PATIENT_EXPERIENCE_MATRIX.md · docs/competitive/EL-FOSO.md"
+  },
+  "ramaDeTrabajo9AgoTarde": "claude/kind-brahmagupta-9r4m7a — fast-forward desde la punta de la canónica (sin divergencia)",
+  "arnesDeCapturas": {
+    "estado": "operativo (9-ago-2026)",
+    "receta": "docs/design/capturas/v10-truth/README.md",
+    "primerosHallazgos": "REG-307, REG-308 (v1169) — reparados y verificados re-capturando"
   }
 }

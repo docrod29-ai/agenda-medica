@@ -5,6 +5,73 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "capturadoEl": "2026-08-09",
+  "metodo": "scripts/design/capturar-golden-flow.mjs — emuladores Auth+Firestore, siembra sintética (sembrar-capturas.mjs), build de producción, Chromium real a 1440×900 / 768×1024 / 390×844, axe-core 4.11 en escritorio. Evidencia: docs/design/capturas/v10-truth/",
+  "promedioCriticas": 7.4,
+  "pantallas": [
+    {
+      "ruta": "/dashboard",
+      "critica": true,
+      "visual": 8.6,
+      "genericAiLook": 1.0,
+      "evidencia": ["dashboard--desktop.png", "dashboard--mobile.png", "dashboard--tablet.png"],
+      "fortalezas": "La jerarquía de §14 se cumple y se ve: próxima cita → siguiente acción → agenda del día. Cero violaciones axe tras REG-308. Color sólo en lo accionable. Sin tarjetas KPI, sin navegación duplicada (HOME-001 verificado en navegador, no sólo en el diff).",
+      "defectos": "Móvil: el overline «PRÓXIMA CITA · EN 38 MIN» se parte en tres renglones; el nombre del paciente se trunca («Catalina…») con espacio de sobra debajo; «2 por confirmar» se parte a media frase en la línea de resumen; los botones flotantes (ayuda, tema) tapan la lista de la agenda al hacer scroll."
+    },
+    {
+      "ruta": "/citas",
+      "critica": true,
+      "visual": 5.5,
+      "genericAiLook": 3.5,
+      "evidencia": ["citas--desktop.png", "citas--mobile.png"],
+      "fortalezas": "La información por fila es completa y el estado de cada cita se distingue.",
+      "defectos": "P0 móvil: la fila mantiene su estructura de escritorio a 390 px — el nombre queda en una columna que parte palabra por palabra y los botones se PINTAN ENCIMA del texto (captura citas--mobile.png). Escritorio: muro de botones — 4 CTA de 3 colores por fila × 6 filas (§9 «every action presented as a button», «buttons with equal emphasis»); el filtro está dos veces (chips de conteo + segmentos); la etiqueta «Elena» (el propio médico) se repite en cada fila sin aportar en un consultorio de un médico; el teléfono completo en cada fila compite con el motivo clínico. axe: 2 botones de icono sin nombre, 7 contrastes, 1 input de fecha sin etiqueta."
+    },
+    {
+      "ruta": "/calendario",
+      "critica": true,
+      "visual": 6.5,
+      "genericAiLook": 2.0,
+      "evidencia": ["calendario--desktop.png", "calendario--mobile.png"],
+      "fortalezas": "Escritorio: semana limpia, poco ruido, día activo señalado.",
+      "defectos": "P1 móvil: la vista semana es el escritorio encogido (§27 y regla 39 de la constitución) — 7 columnas ilegibles a 390 px con los eventos truncados a «09:0…»; debería abrir en vista Día. Todos los eventos van del mismo naranja sin distinguir estado (§15: color con moderación PERO para estado); confirmada vs pendiente sólo se distingue por un borde punteado sutil. axe: 2 botones sin nombre, huecos de agenda como div[role=button] anidando botones (nested-interactive ×5), objetivo táctil chico."
+    },
+    {
+      "ruta": "/pacientes",
+      "critica": true,
+      "visual": 7.5,
+      "genericAiLook": 1.5,
+      "evidencia": ["pacientes--desktop.png", "pacientes--mobile.png"],
+      "fortalezas": "Lista sobria, búsqueda prominente con los campos reales (nombre, teléfono, correo, CURP), filtros con conteo, sin tarjetas.",
+      "defectos": "Móvil: el nombre del paciente —el dato primario— se trunca («Luz María Cerv…») mientras «Editar», una acción secundaria, conserva todo su ancho: la jerarquía está invertida. axe: fila entera como div[role=button] con botones dentro (nested-interactive ×5)."
+    },
+    {
+      "ruta": "/expediente/[patientId]",
+      "critica": true,
+      "visual": 8.2,
+      "genericAiLook": 1.5,
+      "evidencia": ["expediente--desktop.png", "expediente--mobile.png"],
+      "fortalezas": "Identidad del paciente inconfundible; alergias en franja roja ANTES que nada (correcto clínicamente); acción primaria única y clara («Nueva consulta con IA»); cero violaciones axe; el estado vacío de historia clínica enseña el siguiente paso.",
+      "defectos": "Con el expediente vacío, tres tarjetas de resumen sin dato («Sin signos», «Sin diagnósticos», «0 consultas») ocupan el espacio más caro de la pantalla — un estado vacío por tarjeta en vez de uno solo que diga qué hacer. Móvil: 4 botones de acción apilados a lo ancho empujan el contenido clínico un viewport hacia abajo."
+    },
+    {
+      "ruta": "/consulta/[patientId]",
+      "critica": true,
+      "visual": 7.8,
+      "genericAiLook": 1.2,
+      "evidencia": ["consulta--desktop.png", "consulta--mobile.png"],
+      "fortalezas": "El momento de grabar domina la pantalla — un solo círculo cobalto, «Capta a los dos y separa las voces» como microcopy honesto; herramientas clínicas en lista compacta, no en rejilla de tarjetas; signos vitales con unidad pegada al campo.",
+      "defectos": "La alergia sale DOS veces a 40 px de distancia (franja superior + píldora bajo el nombre): señal duplicada que se lee como ruido y devalúa la franja (§9 encabezados duplicados — pero es señal de seguridad: al consolidar, conservar la más visible, nunca las dos a medias). Móvil: el texto de la franja se corta sin envolver («…2019»→«201»). axe: 4 textareas sin etiqueta programática (crítico — son los campos de la nota)."
+    },
+    {
+      "ruta": "/pendientes",
+      "critica": false,
+      "visual": 7.6,
+      "genericAiLook": 1.0,
+      "evidencia": ["pendientes--desktop.png"],
+      "fortalezas": "El mejor estado vacío del producto: dice qué es, por qué está vacío y cuándo se llenará («Cuando firmes una consulta con estudios o receta…»). Cero axe.",
+      "defectos": "El título queda pegado al borde superior, sin el aire que el resto de las pantallas sí tiene."
+    }
+  ],
+  "conclusionTruth001": "El producto NO tiene cara de IA genérica (confirma la auditoría V9): identidad oscura propia, serif sólo display, cobalto con semántica. La distancia a la meta (7.4 vs 9.3) está en DENSIDAD DE ACCIÓN (muro de botones en /citas), MÓVIL (citas rota, calendario encogido, truncados) y ACCESIBILIDAD DE NOMBRE/ETIQUETA (botones de icono y textareas sin nombre). Eso ordena las siguientes iteraciones: CITAS-MOBILE → A11Y de nombres → calendario móvil."
 }

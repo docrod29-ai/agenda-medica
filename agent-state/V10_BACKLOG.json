@@ -1,15 +1,41 @@
 {
-  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Se llena durante V10-TRUTH-001; nada aquí duplica un REG ya reparado ni una unidad V9 cerrada.",
+  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Nada aquí duplica un REG ya reparado ni una unidad V9 cerrada. Los ítems con evidencia citan su captura en docs/design/capturas/v10-truth/.",
   "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
   "items": [
+    {
+      "id": "V10-CITAS-001",
+      "titulo": "P0 móvil: la fila de /citas mantiene la estructura de escritorio a 390 px — los botones se pintan ENCIMA del nombre y el motivo; el nombre parte palabra por palabra",
+      "evidencia": "citas--mobile.png (9-ago-2026)",
+      "prioridad": "P0",
+      "unidadV10": "V10-AGENDA-001",
+      "nota": "Misma familia que el defecto de HOME-001 (escritorio no encogible). Incluye el muro de botones del escritorio: 4 CTA × 3 colores por fila, filtro duplicado (chips + segmentos), etiqueta del propio médico repetida en cada fila.",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-001",
+      "titulo": "P1: axe en el golden flow — botones de icono sin nombre (citas ×2, calendario ×2), textareas de la NOTA sin etiqueta (consulta ×4), input de fecha sin etiqueta, filas/huecos div[role=button] anidando botones (pacientes ×5, calendario ×5), 7 contrastes en citas",
+      "evidencia": "axe-baseline.json (9-ago-2026)",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001",
+      "nota": "Dos familias reparables en lote: aria-label/etiquetas, y sustituir div[role=button] contenedores por estructura sin anidamiento interactivo.",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-AGENDA-002",
+      "titulo": "P1 móvil: /calendario abre la vista semana a 390 px — 7 columnas ilegibles (escritorio encogido, constitución regla 39); debería abrir en Día",
+      "evidencia": "calendario--mobile.png (9-ago-2026)",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
     {
       "id": "V10-DEBT-001",
       "titulo": "La aplicación no obedece al sistema de diseño: 6 065 style={{ en 177/200 archivos, 1 205 hex a mano, ~60 tamaños de fuente contra 6 declarados",
       "fuente": "agent-state/DESIGN_STATE.md (V9, medido)",
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
-      "dependeDe": "fusión de DESIGN-SYSTEM-001 (rama V9) — no rehacer ese trabajo",
-      "estado": "esperando-fusion-v9"
+      "estado": "desbloqueado",
+      "nota": "V10-D1 decidida: V9 fusionada en main (PR #279). Retomar SOBRE lo fusionado, sin rehacer DESIGN-SYSTEM-001."
     },
     {
       "id": "V10-DEBT-002",
@@ -17,8 +43,47 @@
       "fuente": "agent-state/DESIGN_STATE.md §causa-raíz",
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
-      "dependeDe": "fusión de DESIGN-SYSTEM-001",
-      "estado": "esperando-fusion-v9"
+      "estado": "desbloqueado"
+    },
+    {
+      "id": "V10-DASHBOARD-002",
+      "titulo": "P2 móvil del héroe de HOME-001: overline en 3 renglones, nombre truncado con espacio de sobra, «2 por confirmar» partido a media frase, botones flotantes tapando la agenda",
+      "evidencia": "dashboard--mobile.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONSULTA-001",
+      "titulo": "P2: la alergia sale dos veces a 40 px (franja + píldora) en /consulta; en móvil la franja trunca sin envolver. Consolidar en UNA señal — la más visible, nunca las dos a medias (señal de seguridad: revisar con clinical-safety antes de tocar)",
+      "evidencia": "consulta--desktop.png, consulta--mobile.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PACIENTES-001",
+      "titulo": "P2 móvil: en /pacientes el nombre (dato primario) se trunca mientras «Editar» (secundario) conserva su ancho — jerarquía invertida",
+      "evidencia": "pacientes--mobile.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CALENDARIO-002",
+      "titulo": "P2: todos los eventos del calendario van del mismo naranja sin distinguir estado; confirmada vs pendiente sólo por borde punteado sutil",
+      "evidencia": "calendario--desktop.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-001",
+      "titulo": "P3: con expediente vacío, tres tarjetas «sin dato» ocupan el espacio más caro; un solo estado vacío que enseñe el siguiente paso comunica más",
+      "evidencia": "expediente--desktop.png (9-ago-2026)",
+      "prioridad": "P3",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
     },
     {
       "id": "V10-HOME-002",
@@ -53,6 +118,14 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
+      "estado": "CERRADO 9-ago-2026 — 21 capturas (7 pantallas × 3 anchos), axe, scorecard con evidencia. Ver V10_VISUAL_SCORECARD.json"
+    },
+    {
+      "id": "V10-HARNESS-OBS-001",
+      "titulo": "P3 observación del arnés: aviso de hidratación en dev en /dashboard (saludo por hora local del servidor vs cliente) y un intento de conexión Firestore antes del login que loguea «unavailable» con emulador",
+      "evidencia": "consola del arnés, corrida dev del 9-ago-2026 (en producción no se reproduce el error de consola)",
+      "prioridad": "P3",
+      "unidadV10": "V10-PERF-001",
       "estado": "abierto"
     }
   ]

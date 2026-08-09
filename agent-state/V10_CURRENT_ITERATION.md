@@ -2,98 +2,81 @@
 
 **Directiva**: leer COMPLETO
 [`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`](../docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md)
-antes de tocar nada. Rama: `claude/nexus-visual-excellence-v10`.
+antes de tocar nada. Rama canónica: `claude/nexus-visual-excellence-v10`; la
+corrida del 9-ago (tarde) trabajó en `claude/kind-brahmagupta-9r4m7a` (la rama
+asignada a su sesión) **partiendo de la punta de la canónica por fast-forward**
+— sin divergencia: la canónica quedó como ancestro estricto.
 
 **Iteración en curso**: `V10-TRUTH-001` — auditoría de verdad visual y de
-producto (V10 §47).
+producto (V10 §47). **De las 17 salidas: 14 cerradas, 3 abiertas** (tabla).
 
-## Estado de V10-TRUTH-001 (17 salidas requeridas)
+## Corrida del 9-ago-2026 (tarde) — el arnés de capturas, construido y cobrando
 
-| # | Salida | Estado | Dónde |
-|---|---|---|---|
-| 1 | Inventario de pantallas Practice | ✅ heredado, vivo | `docs/design/SCREEN_INVENTORY.md` (generado; guardián en CI) |
-| 2 | Inventario de capturas escritorio/móvil | 🔄 método probado | públicas capturadas (landing/login, 1440×900 y 390×844); golden flow autenticado requiere arnés de emulador — ver `V10_BLOCKERS.md` B-V10-2 |
-| 3 | Inventario de tokens de diseño | ✅ inicial | `docs/design/DESIGN_SYSTEM.md` + `agent-state/DESIGN_STATE.md` (V9) |
-| 4 | Inventario de componentes | 🔄 en curso | `docs/design/COMPONENT_INVENTORY.md` |
-| 5 | Inventario de anti-patrones «cara de IA» | ✅ heredado | `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md` (conteos medidos) |
-| 6 | Mapa de navegación | ✅ heredado | `docs/design/NAVIGATION_STATE_AUDIT.md` |
-| 7 | Mapa de interacción | ⏳ pendiente | `docs/design/INTERACTION_PATTERNS.md` |
-| 8 | Defectos de pérdida de estado | ✅ heredado + reparado | REG-276…279 (rama V9, sin fusionar) |
-| 9 | Inconsistencias visuales | ✅ heredado | `agent-state/DESIGN_STATE.md`: 6 065 `style={{`, 1 205 hex a mano |
-| 10 | Línea base de accesibilidad | ⏳ pendiente | `docs/design/ACCESSIBILITY.md` |
-| 11 | Línea base móvil | ⏳ pendiente | con la salida 2 |
-| 12 | Línea base de rendimiento | ⏳ pendiente | con navegador |
-| 13 | Matriz de principios de competidores | ✅ heredada, extender | `docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md` |
-| 14 | Puntuación visual por pantalla crítica | ⏳ pendiente | `agent-state/V10_VISUAL_SCORECARD.json` (exige captura — V10 §34) |
-| 15 | Puntuación «cara de IA» por pantalla | ✅ parcial | conteos globales sí; por pantalla exige captura |
-| 16 | Backlog visual P0–P3 | 🔄 en curso | `agent-state/V10_BACKLOG.json` |
-| 17 | Primera iteración de implementación | ✅ **HOME-001** | `/dashboard` rediseñada — ver abajo |
+1. **B-V10-2 RESUELTO.** Arnés completo del golden flow AUTENTICADO:
+   emuladores Auth+Firestore (candado `demo-*`), siembra sintética
+   (`scripts/design/sembrar-capturas.mjs`), conexión de la app a emuladores
+   SÓLO bajo `NEXT_PUBLIC_FIREBASE_EMULATORS=1` (`src/lib/firebase.ts`),
+   capturas + axe (`scripts/design/capturar-golden-flow.mjs`). Receta en
+   `docs/design/capturas/v10-truth/README.md`.
+2. **Salida 2**: 21 capturas — 7 pantallas × 3 anchos (1440/768/390), build de
+   producción, datos sintéticos — committeadas como evidencia en
+   `docs/design/capturas/v10-truth/`.
+3. **Salidas 14 y 15**: `V10_VISUAL_SCORECARD.json`, cada puntuación con su
+   captura y su porqué. **Promedio de pantallas críticas: 7.4/10** (meta
+   ≥9.3); generic-AI-look ≤1.5 en todas salvo `/citas` (3.5). La distancia a
+   la meta quedó medida y nombrada: móvil roto en `/citas` (P0), muro de
+   botones, nombres/etiquetas de accesibilidad.
+4. **Salida 10**: línea base axe WCAG 2.x AA por pantalla
+   (`docs/design/ACCESSIBILITY.md` + `axe-baseline.json`). Tres pantallas en
+   CERO (dashboard, expediente, pendientes); el resto son dos familias
+   reparables en lote (`V10-A11Y-001`).
+5. **El arnés cobró el primer día — REG-307 y REG-308** (v1169): el saludo
+   «Buenas tardes, Dra.» (título sin nombre; media defensa) y el CTA del héroe
+   a 2.9:1 (el azul de TEXTO usado como relleno). Reparados, con guardián
+   `lo-que-la-captura-real-midio.test.ts` (8 casos, probado al revés),
+   sellados en invariantes, y verificados **re-capturando**: `/dashboard`
+   quedó en 0 violaciones axe.
+6. **B-V10-1 RESUELTO**: el dueño decidió V10-D1 — V9 fusionada a main (PR
+   #279). `V10-DEBT-001/002` pasan a `desbloqueado`.
 
-## HOME-001 — la pantalla de inicio deja de ser un tablero
+## Estado de V10-TRUTH-001 (17 salidas)
 
-**Orden del dueño**, 9-ago-2026, después de ver su propia aplicación a 390 px de
-ancho en su sesión: *«arranca ya con el rediseño de esta pantalla»*.
+| # | Salida | Estado |
+|---|---|---|
+| 1 | Inventario de pantallas | ✅ heredado, vivo (generado + guardián CI) |
+| 2 | Capturas escritorio/móvil | ✅ **21 capturas, golden flow autenticado** |
+| 3 | Tokens de diseño | ✅ inicial |
+| 4 | Inventario de componentes | 🔄 en curso |
+| 5 | Anti-patrones «cara de IA» | ✅ heredado (conteos) + por pantalla (scorecard) |
+| 6 | Mapa de navegación | ✅ heredado |
+| 7 | Mapa de interacción | ⏳ pendiente |
+| 8 | Pérdida de estado | ✅ heredado + reparado (REG-300…303 en main) |
+| 9 | Inconsistencias visuales | ✅ heredado |
+| 10 | Línea base de accesibilidad | ✅ **axe medido; teclado/lector → V10-A11Y-001** |
+| 11 | Línea base móvil | ✅ **medida — es la peor noticia del scorecard** |
+| 12 | Línea base de rendimiento | ⏳ pendiente (V10-PERF-001) |
+| 13 | Matriz de competidores | ✅ heredada, extender |
+| 14 | Puntuación visual por pantalla | ✅ **scorecard con evidencia** |
+| 15 | Puntuación «cara de IA» | ✅ **por pantalla en scorecard** |
+| 16 | Backlog P0–P3 | ✅ **15 ítems con evidencia y prioridad** |
+| 17 | Primera implementación | ✅ HOME-001 (+ REG-307/308 de esta corrida) |
 
-**Lo medido antes de tocar nada** (captura real, cuenta del dueño, 390×844):
-las cuatro tarjetas seguían de dos en dos, «Agenda de hoy» y «Accesos rápidos»
-seguían lado a lado en un teléfono, la columna derecha quedaba cortada fuera de
-la pantalla y «Citas hoy 0» salía dos veces.
+## Compuertas de esta corrida (9-ago-2026, tarde)
 
-**La causa**: `gridTemplateColumns: '1fr 300px'` —fija, en píxeles— y **ni una
-sola consulta de medios propia** en toda la pantalla. Una rejilla así no se
-apila nunca. No se arregla con un `minmax`: se arregla no teniendo dos columnas
-que defender, y eso obliga a decidir qué sobra en la pantalla.
-
-**Lo que quedó**, por el orden de urgencia de §14:
-
-1. **¿Quién sigue?** — la próxima cita, arriba del todo. Antes salía en cuarto
-   lugar, debajo de cuatro tarjetas de estadística.
-2. **¿Qué necesita atención?** — la cola de pendientes.
-3. **¿Qué pasa hoy?** — la agenda a todo el ancho, con el recuento del día en un
-   renglón de texto dentro de su encabezado.
-
-**Lo que se fue**: las 4 tarjetas KPI (§14), «Accesos rápidos» (§9, navegación
-duplicada), el «Citas hoy» del encabezado (§9, encabezado duplicado) y el
-sparkline de 7 días (métrica sin acción).
-
-**Verificado**: 8 577 pruebas en verde (575 archivos), `tsc` limpio, lint 96
-(el techo, sin deuda nueva), build de producción limpio. El trinquete de diseño
-**bajó** en tres contadores: `hexEnLinea` 565→561, `tamanosFueraDeEscala`
-2027→2021, `radiosFueraDeEscala` 638→637.
-
-**Cerrojo**: `src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts` —
-19 casos. Falla si vuelve una columna fija en píxeles, si vuelve una tarjeta
-KPI, si «Accesos rápidos» reaparece, si «Citas hoy» sale dos veces, si alguno
-de los cuatro destinos desaparece del menú al haber quitado el atajo, o si el
-color de la línea de resumen deja de estar reservado a lo accionable.
-
-**Sin desplegar**: §6 lo prohíbe («never deploy production»). Espera el visto
-bueno del dueño.
-
-**Lo que esta pantalla todavía no contesta**: de las cinco preguntas de §14
-quedan dos sin fuente de datos — «qué puedo continuar» y «qué preparó
-NexusMED». Declaradas en `V10_BACKLOG.json` (`V10-HOME-002`, `V10-HOME-003`)
-en vez de rellenarse con algo que lo pareciera.
-
-**Regla de esta iteración**: no re-auditar lo que V9 ya midió con método y
-guardián. TRUTH-001 **reconcilia y completa**; no repite.
-
-## Compuertas de esta corrida (9-ago-2026)
-
-- `npx vitest run`: **8 458 pasan · 1 falla preexistente y de entorno**
-  (`ops-timeout-y-punto-ciego`, la misma que documentó V9 en
-  `LAST_SAFE_CHECKPOINT.md`: espera un timeout contra IP no enrutable y el
-  proxy del contenedor falla rápido). Cambio de esta corrida: sólo docs/estado.
-- `lint-trinquete`: **96, igual que el techo.** Sin deuda nueva.
+Se corren completas antes del commit; resultado en el mensaje del commit.
+Guardianes nuevos **probados al revés**: 3 casos fallan con cada defecto
+repuesto y pasan con el arreglo.
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. **Arnés de capturas del golden flow**: levantar emuladores Auth+Firestore
-   (`demo-nexusmed-test`), sembrar paciente/citas sintéticos, iniciar sesión y
-   capturar las pantallas del golden flow en 1440×900, 1024, 768 y 390×844
-   (V10 §39). Método base ya probado — ver `V10_BLOCKERS.md` B-V10-2.
-2. Con capturas: puntuar pantallas críticas con `V10_VISUAL_RUBRIC.md` →
-   `V10_VISUAL_SCORECARD.json` (salidas 14 y 15).
-3. Línea base de accesibilidad sobre esas mismas pantallas (salida 10).
-4. Revisar si el dueño ya decidió V10-D1 (fusión de la rama V9); si sí,
-   desbloquear V10-DEBT-001/002.
+1. **`V10-CITAS-001` (P0)**: la fila de `/citas` a 390 px — botones pintados
+   ENCIMA del texto (evidencia `citas--mobile.png`). Misma cirugía que
+   HOME-001: decidir qué sobra de la fila (muro de 4 CTA, filtro duplicado,
+   badge «Elena», teléfono en cada fila) y hacerla apilable. Re-capturar y
+   re-puntuar al cerrar.
+2. Con el mismo impulso, **`V10-A11Y-001` primera tanda**: `aria-label` de los
+   botones de icono (citas, calendario) y etiquetas de las 4 textareas de la
+   nota — es el campo de trabajo principal del médico.
+3. Si queda espacio: **`V10-AGENDA-002`** — `/calendario` móvil abre en Día.
+4. Salidas 7 (mapa de interacción) y 12 (rendimiento) siguen abiertas para
+   cerrar TRUTH-001; no bloquean los P0/P1 ya medidos.

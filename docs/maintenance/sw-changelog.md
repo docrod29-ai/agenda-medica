@@ -3,6 +3,19 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1169 — el arnés de capturas encuentra sus dos primeros defectos (REG-307, REG-308)
+
+Primera pasada del golden flow AUTENTICADO en navegador real (emuladores +
+datos sintéticos + build de producción). Dos defectos en la pantalla de inicio
+recién rediseñada, invisibles para las 8 500 pruebas:
+
+- El saludo decía «Buenas tardes, Dra.» — la rama del `displayName` no quitaba
+  el título antes de tomar el primer nombre (la del médico sí: media defensa).
+- «Iniciar consulta», el CTA principal, pintaba blanco sobre el azul de TEXTO
+  (2.9:1, falla AA). El azul de RELLENO existía y `.btn-primary` ya lo usaba.
+
+Verificado re-capturando: `/dashboard` quedó en cero violaciones axe.
+
 ## v1168 — REG-306: el medidor del teléfono decía 0 con la pantalla rota
 
 La pantalla de inicio se salía de un iPhone: `gridTemplateColumns: '1fr 300px'`,

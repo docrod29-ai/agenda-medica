@@ -3,37 +3,31 @@
 > Un blocker no detiene el programa: se documenta, se recomienda el mejor
 > default y se sigue con otra tarea (V10 §5, §42).
 
-## B-V10-1 · Trabajo V9 validado sin fusionar (afecta la secuencia V10)
+## B-V10-1 · Trabajo V9 validado sin fusionar — **RESUELTO (9-ago-2026)**
 
-`origin/claude/nexus-patient-ux-v9` (6feaf5a) lleva **8 commits que main no
-tiene**: DESIGN-SYSTEM-001 (REG-274/275), NAVIGATION-001 (REG-276…279) y
-PATIENT-COMPANION-001 (REG-280/281). La rama está 48 commits detrás de main.
+El dueño decidió V10-D1: la rama V9 se fusionó a main (PR #279, `56d9fc7`),
+con las REG de V9 renumeradas a 294…305 y los sellos en unión. Ya no hay
+trabajo V9 validado fuera de main. **Consecuencia**: `V10-DEBT-001/002`
+(sistema de diseño) quedan desbloqueados — ver `V10_BACKLOG.json`.
 
-- **Riesgo**: si V10 rediseña sobre main sin ese trabajo, lo duplica o lo
-  pisa — prohibido por V10 §41 y por la orden del dueño de preservar V7/V9.
-- **Default recomendado**: fusionar la rama V9 a main (o abrir su PR) antes de
-  que V10 toque sistema de diseño, navegación o compañero del paciente.
-- **Mientras tanto**: V10 avanza con TRUTH-001 (auditoría y estado), que no
-  toca esos archivos.
-- **Decisión**: del dueño — registrada en `V10_OWNER_DECISIONS_REQUIRED.md`.
+## B-V10-2 · Capturas de pantalla reales — **RESUELTO (9-ago-2026)**
 
-## B-V10-2 · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
+El arnés existe y corrió completo. Piezas, todas en el repo:
 
-Intento del 9-ago-2026, en esta corrida:
+1. `src/lib/firebase.ts` conecta a los emuladores **sólo** con
+   `NEXT_PUBLIC_FIREBASE_EMULATORS=1` en `.env.local` (gitignorado) **y**
+   projectId `demo-*` (candado anti-producción, el de `emulator/entorno.ts`).
+2. `firebase.json` declara el emulador de Auth (9099) junto al de Firestore
+   (8080). `test:emulador` no cambia (sigue `--only firestore`).
+3. `scripts/design/sembrar-capturas.mjs` — consultorio sintético completo:
+   médica, clínica en prueba (9 días restantes), 6 pacientes, 7 citas de hoy
+   con estados variados. Cero datos reales.
+4. `scripts/design/capturar-golden-flow.mjs` — login real, tour marcado visto
+   (con la clave real de `OnboardingTour`), 7 pantallas × 3 anchos, axe-core
+   WCAG 2.x AA en escritorio, errores de consola recogidos.
 
-- **Sin variables `NEXT_PUBLIC_FIREBASE_*` la app entera da 500** (hasta la
-  landing): `src/lib/firebase.ts` inicializa en import y `auth/invalid-api-key`
-  tumba el render.
-- **Con `.env.local` demo** (valores no reales, proyecto `demo-nexusmed-test`,
-  ignorado por git) la app levanta y las pantallas públicas rinden 200.
-- **Capturas verificadas en navegador real** (chromium + playwright del repo):
-  landing y login, 1440×900 y 390×844. La landing ya obedece la identidad
-  declarada (oscuro, Fraunces sólo display, cobalto en acción); sin cara de IA.
-- **Lo que falta para el golden flow autenticado** (salidas 2, 10, 11, 12, 14,
-  15 completas): emulador de Auth + Firestore con datos sintéticos sembrados.
-  El repo ya trae el camino: `npm run test:emulador` usa
-  `firebase emulators:exec --project demo-nexusmed-test`. La siguiente corrida
-  construye ese arnés (levantar emuladores + sembrar paciente sintético +
-  sesión) y captura las pantallas del golden flow.
+**Receta completa** en `docs/design/capturas/v10-truth/README.md`.
+Primera corrida: 21 capturas + línea base axe + **2 defectos reales
+encontrados y reparados el mismo día** (REG-307, REG-308).
 
-Nada de esto usa datos reales ni toca producción.
+## (sin blockers abiertos)

@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
-  getFirestore, initializeFirestore,
+  getFirestore, initializeFirestore, connectFirestoreEmulator,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore'
@@ -23,6 +23,17 @@ const firebaseConfig = {
 }
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+
+// ── Emuladores (SOLO arnés de capturas/pruebas locales) ─────────────────
+// Se activa únicamente con NEXT_PUBLIC_FIREBASE_EMULATORS=1 en .env.local
+// (gitignorado). En Vercel esa variable no existe, así que producción nunca
+// entra aquí. El candado extra: sólo conecta si el projectId empieza por
+// `demo-`, la convención que hace que el SDK se niegue a tocar un proyecto
+// real (misma regla que emulator/entorno.ts).
+const USAR_EMULADORES =
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1' &&
+  typeof window !== 'undefined' &&
+  String(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID).startsWith('demo-')
 
 // ── App Check (anti-abuso) ──────────────────────────────────────────────
 // Verifica que las llamadas a Firestore/Storage vengan de TU app real y no de
@@ -51,12 +62,21 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_S
 
 export const auth = getAuth(app)
 
-// Persistencia offline habilitada (multi-pestaña para uso en varias ventanas)
-export const db = typeof window !== 'undefined'
+// Persistencia offline habilitada (multi-pestaña para uso en varias ventanas).
+// Con emuladores NO se usa caché persistente: una corrida de capturas debe leer
+// exactamente lo sembrado, no residuos de la corrida anterior en IndexedDB.
+export const db = typeof window !== 'undefined' && !USAR_EMULADORES
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+if (USAR_EMULADORES) {
+  // Import estático de las dos funciones: tree-shaken en producción porque la
+  // rama es inalcanzable sin la variable de entorno.
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+}
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.
