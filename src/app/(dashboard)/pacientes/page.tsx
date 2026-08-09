@@ -213,7 +213,7 @@ export default function PacientesPage() {
           border: '1px solid var(--border)', background: 'var(--s1)',
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
         }}>
-          <AlertCircle size={16} style={{ color: 'var(--amber, #f59e0b)', flexShrink: 0 }} />
+          <AlertCircle size={16} style={{ color: 'var(--amber)', flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600 }}>
               {duplicados.length === 1
@@ -246,7 +246,7 @@ export default function PacientesPage() {
               <div key={`${par.a.id}|${par.b.id}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
                 <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
                   {par.motivo}
-                  {par.certeza === 'seguro' && <strong style={{ color: 'var(--amber, #f59e0b)' }}> · muy probable</strong>}
+                  {par.certeza === 'seguro' && <strong style={{ color: 'var(--amber)' }}> · muy probable</strong>}
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {[par.a, par.b].map(p => (
@@ -706,11 +706,11 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
           {posiblesDuplicados.length > 0 && (
             <div style={{
               marginBottom: 16, padding: '12px 14px', borderRadius: 10,
-              border: '1px solid var(--warn-border, #f0c36d)', background: 'var(--warn-bg, #fff8e6)',
+              border: '1px solid var(--warn-border)', background: 'var(--warn-bg)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <AlertCircle size={16} style={{ color: 'var(--warn-text, #8a6100)', flexShrink: 0 }} />
-                <strong style={{ fontSize: 13.5, color: 'var(--warn-text, #8a6100)' }}>
+                <AlertCircle size={16} style={{ color: 'var(--warn-text)', flexShrink: 0 }} />
+                <strong style={{ fontSize: 13.5, color: 'var(--warn-text)' }}>
                   {posiblesDuplicados.length === 1 ? 'Puede que ya esté registrado' : 'Puede que ya estén registrados'}
                 </strong>
               </div>

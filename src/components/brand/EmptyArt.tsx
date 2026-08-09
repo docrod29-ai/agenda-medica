@@ -1,5 +1,5 @@
 /**
- * Ilustraciones de marca para estados vacíos. Line-art cobalto (var(--nexus))
+ * Ilustraciones de marca para estados vacíos. Line-art cobalto (var(--nexus)
  * con el pulso cardiaco que las une como familia. Usan currentColor → respetan
  * claro/oscuro y el color de marca. Transparentes, nítidas, ~1KB.
  */

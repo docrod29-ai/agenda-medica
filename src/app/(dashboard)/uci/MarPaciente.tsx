@@ -63,7 +63,7 @@ export default function MarPaciente(
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Pill size={16} style={{ color: 'var(--nexus,#3d5afe)' }} />
+          <Pill size={16} style={{ color: 'var(--nexus)' }} />
           <span style={{ fontWeight: 600, fontSize: 14 }}>MAR</span>
           <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· charter §37</span>
         </div>

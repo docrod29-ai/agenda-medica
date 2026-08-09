@@ -65,6 +65,22 @@ Todo trabajo V10 **lee COMPLETO**
 antes de tocar nada. Rama persistente: `claude/nexus-visual-excellence-v10`.
 Estado: `agent-state/V10_*`. La ley de diseño detallada vive en `docs/design/`.
 
+## V9 — antes de tocar nada del programa V9
+
+**Fuente de verdad única**:
+[`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
+— la especificación del dueño, **íntegra**.
+
+Toda ejecución de V9 la lee **COMPLETA** antes de decidir qué trabajo hacer. No
+se resume, no se sustituye por un plan más corto, no se decide desde el
+checkpoint sin haberla leído. Si algo de este repositorio la contradice, **gana
+la especificación**.
+
+Después: `agent-state/LAST_SAFE_CHECKPOINT.md` para saber por dónde se sigue, y
+`agent-state/V9_COMPLETE_CRITERIA.md` para saber cuándo se para. La lectura
+operativa y la bitácora de unidades cerradas viven en
+[`docs/ai/V9-BITACORA-Y-OPERACION.md`](docs/ai/V9-BITACORA-Y-OPERACION.md).
+
 ## Reglas detalladas
 
 `.claude/rules/` — leerlas antes de tocar su dominio:

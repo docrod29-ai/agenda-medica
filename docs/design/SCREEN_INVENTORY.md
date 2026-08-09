@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 581 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 710 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 265 | 0 | — | ✅ | — |
@@ -47,9 +47,9 @@
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 330 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 864 | 5 | — | ✅ | — |
+| `/citas` | medico | ✅ | 930 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 5803 | 5 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 5872 | 5 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 282 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
@@ -86,7 +86,7 @@
 | `/uci/benchmark` | alpha | ✅ | 265 | 0 | — | ✅ | — |
 | `/uci/dosificacion` | alpha | ✅ | 585 | 0 | — | ✅ | — |
 | `/uci/enfermeria` | alpha | ✅ | 206 | 1 | — | ✅ | — |
-| `/` | publica | ✅ | 666 | 13 | — | ✅ | — |
+| `/` | publica | ✅ | 662 | 12 | — | ✅ | — |
 | `/arquitectura` | publica | — | 112 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 69 | 2 | — | ✅ | — |
 | `/demo` | publica | — | 312 | 5 | — | ✅ | — |

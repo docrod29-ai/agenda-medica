@@ -83,6 +83,10 @@ export const SECCIONES: SeccionExpediente[] = [
     clave: 'formularios_previos', ruta: 'formularios_previos',
     descripcion: 'Lo que el paciente contestó antes de la consulta desde su enlace.',
   },
+  {
+    clave: 'paquetes_visita', ruta: 'paquetes_visita',
+    descripcion: 'Lo que se le entregó al paciente de cada consulta: sus medicamentos en palabras sencillas, los estudios, el seguimiento y quién lo aprobó. Se entregan también los borradores: el derecho de acceso es sobre SUS datos, y un paquete que se compuso y no se liberó sigue siendo un dato suyo.',
+  },
 ]
 
 /**

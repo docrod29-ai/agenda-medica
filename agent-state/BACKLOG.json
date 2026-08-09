@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,8 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cierre": "CERRADO (REG-267). borrarChunks acepta `desde`; los tres caminos de éxito borran sólo desde recoveryBase. El huérfano sobrevive para el cartel de Recuperar. No se fusionan los dos audios: son sesiones distintas de MediaRecorder y concatenarlas da un archivo ilegible."
     },
     {
       "seguridad": 3,
@@ -255,7 +256,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-002",
@@ -266,7 +267,8 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "cierre": "CERRADO PARCIAL (REG-268, REG-269). El trozo final ya se persiste (persistIdxRef monótono; se retira el desenganche del handler) y se avisa antes de recargar o cerrar la pestaña. SIGUE ABIERTO el aviso ante navegación DENTRO de la aplicación (router.push): App Router no expone eventos de ruta y interceptar clics es invasivo. Ver PATIENT-AUDIO-004."
     },
     {
       "seguridad": 3,
@@ -280,7 +282,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-003",
@@ -291,7 +293,8 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "cierre": "CERRADO (REG-269, REG-294). Dictar emite un latido que reinicia el contador de inactividad, y la purga del audio pasa a ser condicional: quien tenga audio sin transcribir lo declara y no se borra. No se intenta transcribir durante el cierre — apostar el audio a que la red responda es peor que conservarlo."
     },
     {
       "seguridad": 2,
@@ -405,7 +408,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -416,7 +419,8 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "cierre": "CERRADO (REG-298). @theme inline expone ~35 tokens con prefijo nx- (no pisa la escala de Tailwind, así que se puede migrar poco a poco). Nacen las escalas de radio, espacio, elevación, movimiento y tipografía. Y el hallazgo que no se buscaba: 280 respaldos var(--x,#hex), 253 obsoletos y 5 sobre tokens inexistentes — un segundo sistema de color entero escondido en el primero. Cero respaldos ahora, con techo 0. Trinquete de diseño en scripts/design/trinquete-de-diseno.mjs."
     },
     {
       "seguridad": 1,
@@ -455,7 +459,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "NAV-AGENDA-001",
@@ -466,7 +470,8 @@
       "porQueImporta": "Renavegar tras CADA paciente. Y la agenda pierde fecha, vista, filtro y búsqueda al volver (citas:61,86,87; calendario:41,58): quien trabaja el jueves desde el martes vuelve a poner la fecha cada vez.",
       "archivo": "src/app/(dashboard)/citas/page.tsx:436,61,86,87,117,124 · consulta:265,3752 · calendario:41,58",
       "plan": "useSmartBack en la consulta (ya existe y lo usan 10 pantallas) + llevar el estado de la agenda a la URL o al layout, como ya se hizo con BorradorContext.",
-      "score": 40
+      "score": 40,
+      "cierre": "CERRADO (REG-301, REG-302). El atrás de la consulta usa useSmartBack —existía y lo usaban diez pantallas, la consulta no— y el estado de la agenda (día, filtro, búsqueda) vive en la URL, validado, con replace y rebote. Las dos limpiezas del parámetro id ya no borran el contexto."
     },
     {
       "seguridad": 0,
@@ -565,9 +570,60 @@
       "archivo": "src/lib/portal/formulario-previo.ts:87",
       "plan": "Buscar el símbolo en app/, hooks/ y components/ — el instrumento de REG-255.",
       "score": 24
+    },
+    {
+      "id": "PATIENT-AUDIO-004",
+      "prioridadV9": "P1",
+      "unidad": "NAVIGATION-001",
+      "titulo": "Navegar DENTRO de la aplicación sigue sin avisar de que hay una grabación en curso",
+      "hallazgo": "REG-268/269 cierran el trozo final y el aviso al recargar o cerrar la pestaña (beforeunload). Pero beforeunload no se dispara en un router.push, y  desmonta la página en cada navegación, así que tocar «Agenda» sigue terminando la grabación — ahora sin perder audio, pero también sin avisar.",
+      "porQueImporta": "Ya no se pierde nada: los trozos están en IndexedDB, el final incluido, y el cartel de «Recuperar» los ofrece al volver. Lo que queda es que el médico no se entera en el momento, y la recuperación es opcional y fácil de no ver.",
+      "archivo": "src/hooks/useGrabacionAudio.ts (efecto de estado grabando) · src/app/(dashboard)/template.tsx:19",
+      "plan": "App Router no expone eventos de ruta. Opciones: (a) interceptar clics en los destinos reales (BottomNav, Sidebar) cuando se está grabando; (b) un cartel persistente de «grabación en curso» que siga al médico entre pantallas. (b) es menos invasiva y además resuelve NAV-18 (no hay forma de volver a una consulta en curso). Decidir con la app abierta, no leyendo código.",
+      "seguridad": 0,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 4,
+      "moat": 0,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 1,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "estado": "CERRADO",
+      "reversible": true,
+      "origen": "REG-268/269 — residuo declarado al cerrar PATIENT-AUDIO-002",
+      "score": 38,
+      "cierre": "CERRADO (REG-303). useAvisoAlSalirGrabando intercepta el clic en enlaces internos SÓLO mientras se graba: pregunta, no impide. No cubre el atrás del navegador (popstate, no clic) y está declarado en el hook."
+    },
+    {
+      "id": "DESIGN-MIGRAR-001",
+      "prioridadV9": "P2",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "Nadie usa todavía las utilidades nx- que ya expone Tailwind",
+      "hallazgo": "DESIGN-SYSTEM-001 puso el cimiento: ~35 tokens visibles para Tailwind y cinco escalas. Ninguna pantalla se ha migrado. El trinquete mide lo que falta: 565 hex en línea, 2029 tamaños fuera de escala, 638 radios, 24 sombras.",
+      "porQueImporta": "El cimiento sin migración no cambia lo que el médico ve. Pero migrar antes del cimiento era repintar dos veces, y por eso va en este orden.",
+      "archivo": "scripts/design/techos-de-diseno.json",
+      "plan": "Empezar por los cinco archivos que son el 24% del TSX. Bajar el techo con --actualizar en cada tanda; el guardián exige que el sello no lleve holgura.",
+      "seguridad": 0,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "DESIGN-SYSTEM-001 — residuo declarado",
+      "score": 30
     }
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"
