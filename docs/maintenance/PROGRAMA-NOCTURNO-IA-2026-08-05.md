@@ -106,8 +106,8 @@ línea. Las siguientes por valor:
 - **E3** — cuatro cambios de prompt sin mover `PROMPT_VERSION`: no se puede
   acotar el lote afectado (IEC 62304).
 - ~~**C2/C3** — «No padece diabetes» sale como antecedente positivo; faltan
-  negadores del habla real («pues no», «fíjese que no»)~~ — HECHO (v1074,
-  REG-192). Con un matiz: la primera mitad **no se pudo reproducir** —«no
+  negadores del habla real («pues no», «fíjese que no»)~~ — HECHO (v1079,
+  REG-197). Con un matiz: la primera mitad **no se pudo reproducir** —«no
   padece» ya estaba cubierto—; lo que sí fallaba era la forma adjetiva («no es
   diabético»). Y al reproducirlo apareció el sentido contrario, más caro: cuatro
   de cada seis afirmaciones que empiezan por palabra negativa («no hace mucho,

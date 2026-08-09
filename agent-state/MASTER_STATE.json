@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "VOICE-005 (cerrada) — REG-192 / v1074",
+  "iteracionActual": "VOICE-005 (cerrada) — REG-197 / v1079",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/ops/OPS-001",
@@ -21,7 +21,7 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
-  "ultimaVersionEnRama": "nexusmed-v1074",
+  "ultimaVersionEnRama": "nexusmed-v1079",
   "compuertas": {
     "vitest": "6946 en verde de 6947; el único fallo es AJENO y preexistente: ops-timeout-y-punto-ciego (la IP agujero negro 10.255.255.1 responde a través del proxy de este contenedor en vez de colgarse). Comprobado en árbol limpio, sin mis cambios.",
     "tsc": "limpio",

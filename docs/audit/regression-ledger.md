@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — la respuesta se leía por su primera palabra (v1074)
+## REG-197 — la respuesta se leía por su primera palabra (v1079)
 
 **Encontrado** — 7-ago-2026. Estaba anotado como **C2/C3** en el plan de la
 auditoría de las nueve dimensiones

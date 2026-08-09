@@ -6832,7 +6832,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
 
-## v1074 — REG-192: la respuesta se leía por su primera palabra
+## v1079 — REG-197: la respuesta se leía por su primera palabra
 
 | v | Qué se reparó |
 |---|---|

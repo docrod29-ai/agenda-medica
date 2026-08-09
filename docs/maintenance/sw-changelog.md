@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: la respuesta se leía por su primera palabra
+## v1079 — REG-197: la respuesta se leía por su primera palabra
 
 El motor de negaciones decidía si el paciente negaba mirando si la respuesta
 EMPEZABA por palabra negativa. Un prefijo no es una respuesta, y eso falla en los

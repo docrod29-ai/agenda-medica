@@ -20,7 +20,7 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 87,
-      "estado": "cerrado — REG-192 (v1074)",
+      "estado": "cerrado — REG-197 (v1079)",
       "reversible": true,
       "golden": "src/__tests__/la-negacion-se-lee-entera.test.ts"
     },
@@ -133,7 +133,7 @@
   "notas": [
     {
       "fecha": "2026-08-07",
-      "nota": "NO CONFIRMADO — la mitad de C2/C3 que decía «No padece diabetes sale como antecedente positivo» no se pudo reproducir: NIEGA_EN_LINEA ya cubría «no padece». Lo que sí falla es «no es diabético» (forma adjetiva), reparado en REG-192."
+      "nota": "NO CONFIRMADO — la mitad de C2/C3 que decía «No padece diabetes sale como antecedente positivo» no se pudo reproducir: NIEGA_EN_LINEA ya cubría «no padece». Lo que sí falla es «no es diabético» (forma adjetiva), reparado en REG-197."
     }
   ]
 }
