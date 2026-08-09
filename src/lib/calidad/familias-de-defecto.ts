@@ -135,7 +135,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Están en el ledger porque cambiaron el comportamiento, pero no había ' +
       'nada roto: lo decidió el médico responsable. Se cuentan aparte para no ' +
       'inflar la cuenta de defectos con decisiones.',
-    regs: [174, 175],
+    regs: [174, 175, 292],
   },
   {
     /**

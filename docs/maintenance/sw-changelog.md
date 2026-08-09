@@ -2840,3 +2840,20 @@ fosfatasa y la HbA1c — la clase estaba identificada y la lista se quedó corta
 
 No se inventa el umbral del iónico: queda declarado, y **apareció solo** en la
 lista de decisiones del dueño.
+
+## v1166 — «Lo que te protege» sale del menú diario
+
+Error de producto mío, corregido a las pocas horas. Esa pantalla habla de
+**reparaciones, números internos y de «lo que hacía antes»** — y estaba en el
+menú del médico, entre Antibiograma y Lista de espera.
+
+**Al médico le importa qué HACE la aplicación, no cómo se arregló.** Una entrada
+así en el camino de todos los días gasta atención en algo que no usa nunca.
+
+Se queda accesible desde **Configuración → Seguridad**, con un enlace discreto:
+sirve para enseñársela a quien pregunta cómo se protege el expediente, pero fuera
+del flujo diario.
+
+Comprobado de paso que **ninguna** página que ve el cliente —arquitectura,
+operación, evidencia, seguridad, demo— enseña números de reparación ni jerga
+interna. La fuga era sólo ésa.

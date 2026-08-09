@@ -6432,3 +6432,63 @@ de existir. El guardián del documento falló hasta que la decisión quedó pedi
 - `src/lib/hospital/lab-criticos.ts`
 - `docs/DECISIONES-DEL-DUENO.md`
 - `src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts` (nuevo, 14 casos, sellado)
+
+---
+
+## REG-292 — se dice lo que HACE, nunca cómo lo hace (v1166)
+
+Regla del dueño, en sus palabras:
+
+> *«la manera en que funciona la app no debe de enseñarse, sólo se menciona lo
+> que puede ser para promocionar, sólo lo que hace, no cómo lo hace»*
+
+Y antes, sobre la pantalla que yo había puesto en su menú:
+
+> *«al cliente le importan lo funcional y lo que va a hacer… hay muchas cosas que
+> no sabe ni qué es, así que eso escóndelo»*
+
+### Lo que estaba expuesto
+
+- **`/motores`** — pantalla mía, puesta en el **menú del médico** entre
+  Antibiograma y Lista de espera. Habla de reparaciones, de números internos y de
+  «lo que hacía antes». **Error de producto mío**, de hace unas horas.
+- **`/arquitectura`** — enlazada **dos veces desde la portada**: un botón que
+  decía «Ver los 10 motores» y un enlace en el pie. Nombra los motores por dentro
+  y dice cuáles corren con código y cuáles con IA.
+- **«Ver cómo razona la IA en vivo»** — el verbo era «cómo». Ahora ofrece ver la
+  aplicación en marcha, que es lo que el médico quiere saber.
+
+### Por qué importa, y no es estética
+
+1. **Es suyo.** El diseño interno de los motores es lo que distingue este
+   producto. Publicarlo en la portada es regalarle el mapa a quien quiera
+   copiarlo.
+2. **Al cliente no le sirve.** Un médico decide por lo que la aplicación **hace**.
+   Una entrada de menú que no entiende gasta atención que necesita para su
+   consulta.
+
+### Lo que NO se hizo: borrarlas
+
+Las dos páginas **siguen existiendo** y se llegan por su dirección. Al dueño le
+sirven para una revisión técnica o para enseñárselas a quien compre — con él
+delante, decidiendo qué se cuenta. Lo que se quita es que **se ofrezcan solas**.
+
+### Y comprobado que no había más fugas
+
+Ninguna otra página que ve el cliente —operación, evidencia, seguridad, demo—
+enseña números de reparación ni jerga interna. `/operacion` enumera **qué
+resuelve** (cuentas por cobrar, inventario, CFDI, reportes), que es exactamente
+lo que la regla permite.
+
+### El guardián
+
+`lo-que-hace-si-como-lo-hace-no` comprueba que **ninguna superficie del cliente**
+—portada, menú lateral, barra inferior, configuración— vuelva a enlazar esas
+páginas. Y comprueba lo contrario también: que la portada **siga diciendo lo que
+la aplicación hace**, para que la regla no se cumpla a base de callarse.
+
+### Archivos
+
+- `src/app/page.tsx` · `src/components/Sidebar.tsx`
+- `src/app/(dashboard)/configuracion/secciones-seguridad.tsx`
+- `src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts` (nuevo, 8 casos, sellado)
