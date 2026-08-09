@@ -673,7 +673,7 @@ export default function ConsultaActivaPage() {
     alergias: patient?.alergias,
     /**
      * Las capturadas en campo, para que el cruce las vea igual que el sesgo de
-     * voz y los impresos (REG-194). Hoy ninguna ruta de escritura las llena,
+     * voz y los impresos (REG-208). Hoy ninguna ruta de escritura las llena,
      * pero cualquier importación desde otro sistema las activa el mismo día, y
      * entonces el paciente MEJOR documentado sería el único sin cruce.
      */

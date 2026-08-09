@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1076 — REG-194: «Niega alergia a penicilina» disparaba la alerta de alergia
+## v1090 — REG-208: «Niega alergia a penicilina» disparaba la alerta de alergia
 
 El cruce alergia↔fármaco leía el campo ENTERO y buscaba el fármaco dentro con un
 `includes`. La negación va pegada a UN alérgeno, así que «Niega alergia a

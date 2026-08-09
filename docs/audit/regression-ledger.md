@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-194 — «Niega alergia a penicilina» disparaba la alerta de alergia (v1076)
+## REG-208 — «Niega alergia a penicilina» disparaba la alerta de alergia (v1090)
 
 **Encontrado** — 7-ago-2026, siguiendo el camino del campo de alergias hasta su
 último consumidor. REG-144 unificó cuatro parsers en `alergenosDe` y dejó un
