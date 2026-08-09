@@ -1,83 +1,72 @@
 /**
- * ASÍ SE NIEGA EN LA CONSULTA — REG-192
+ * ASÍ SE NIEGA EN LA CONSULTA — lo que le faltaba al motor DESPUÉS de REG-192
  *
- * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
+ * ── DE DÓNDE VIENE ESTE ARCHIVO ──────────────────────────────────────────────
  *
- * Los tres motores que leen lo que se dictó para decidir si un antecedente está
- * NEGADO usaban un vocabulario que no es el del consultorio mexicano. Fallaban
- * en las dos direcciones, y las dos acaban en el expediente:
+ * Nació del hallazgo C2/C3 de la auditoría de nueve dimensiones (6-ago-2026) y
+ * cubría dos cosas que, mientras esperaba en la cola de PRs, **REG-192 reparó
+ * mejor y ya está en `main`**: la limpieza del ruido de turno y de muletillas
+ * (`respuestaNiega`, `RUIDO_ANTES_DE_LA_RESPUESTA`) y el «no sé»
+ * (`NO_ES_NEGACION`, que además cubre «no tengo idea» y «no le puedo decir»).
+ * Eso se adoptó entero y se tiró lo de aquí que hacía lo mismo peor.
  *
- *   1. Negación que no se ve → antecedente crónico INVENTADO.
- *      `extraerComorbilidades('No padece diabetes.')` devolvía
- *      `positivas: ['Diabetes mellitus tipo 2']`, y la nota del parser local
- *      imprimía «Antecedentes: Diabetes mellitus tipo 2.» sobre un dictado que
- *      la niega. «Padece» no estaba entre los negadores; tampoco «sufre», ni
- *      «negó».
+ * De los 28 casos, **16 pasan ya sobre `main` sin tocar nada**: son los que
+ * REG-192 cubre, y se conservan porque siguen siendo el contrato de este motor.
+ * Los **12 restantes fallan sobre `main`** y son lo que esta rama aporta.
  *
- *   2. Negación que se ve donde no la hay → antecedente BORRADO.
- *      «¿Tiene diabetes? No sé, doctor.» contaba como negación —empieza por
- *      «no»— y `corregirCertezaPorNegacion` reclasificaba a `descartado` una
- *      diabetes confirmada. No saber no es negar.
+ * ── LOS 12 QUE FALLAN SIN ESTE CAMBIO ────────────────────────────────────────
  *
- *   Y en medio, el habla real: «Pues no», «Fíjese que no», «Mmm, no», «Este… no»
- *   NO contaban como respuesta negativa. El paciente decía que no y el motor no
- *   se enteraba.
+ *   1. **«Nada más la diabetes»** — afirmación PARCIAL leída como negación.
+ *      Descartaba las dos, incluida la que se acababa de afirmar, y bajaba una
+ *      hipertensión `confirmado` a `descartado`. Y la limpieza de ruido de
+ *      REG-192 lo **agrava**: quita el «pues» y deja la frase empezando por
+ *      «nada», así que llegan aquí frases que antes ni se miraban. Es la misma
+ *      trampa que `NO_ES_NEGACION` documenta para «no sé», por el otro lado.
  *
- * ── Y LO QUE ENCONTRÓ LA REVISIÓN, SOBRE ESTE MISMO ARREGLO ──────────────────
+ *   2. **«No, sí tengo»** — el paciente se desdice y el motor se quedaba con la
+ *      primera palabra. Gemelo de «no sé»: el arranque no es la respuesta.
  *
- * Tres huecos más, de la misma familia. Los dos primeros son el defecto que este
- * archivo repara, en frases que el primer corpus de casos no cubría:
+ *   3. **Las conjugaciones que faltaban** — `no sufre/sufro/sufría/sufrió`,
+ *      `no padecía/padeció`, `negó/negaron`. El pretérito es como se cuenta un
+ *      antecedente, y «No padeció diabetes.» seguía saliendo POSITIVA.
  *
- *   3. «¿Diabetes o presión alta? **Nada más** la diabetes.» — afirmación
- *      PARCIAL leída como negación: descartaba las dos, incluida la que se
- *      acababa de afirmar, y bajaba una hipertensión `confirmado` a
- *      `descartado`. Señalar de más, que es lo que la regla §5 prohíbe.
+ *   4. **El impersonal escrito** — «No se refiere asma» es como se redacta un
+ *      negativo pertinente, y `NO_ES_NEGACION` se lo traga («no se» casa con
+ *      `s[eé]`). Se reconoce en `NIEGA_EN_LINEA`, que se prueba antes, para no
+ *      tocar la defensa del «no sé», que está bien puesta.
  *
- *   4. «¿Tiene diabetes? **No, sí tengo**, desde hace años.» — el paciente se
- *      desdice y el motor se quedaba con la primera palabra.
+ *   5. **El guardián del reconocedor**, que nadie había tocado: sin
+ *      `padece/sufre` no veía voltearse «no padece diabetes», y su cierre
+ *      `(\s|$)` no cerraba en un punto — donde acaban tantas frases dictadas.
  *
- *   5. «No **padeció** diabetes.» — estaban `padece`, `padezco` y `padecía`, y
- *      faltaba justo el pretérito, que es como se cuenta un antecedente.
- *
- *   Y dos asimetrías: el guardián del reconocedor no cerraba en punto (así que
- *   perder el «no» al final de una frase no se marcaba) ni conocía «negó»; y
- *   `AFIRMADORES` se probaba sobre la ventana cruda mientras `NEGADORES` ya se
- *   normalizaba, con lo que una tilde decidía si una negación quedaba cerrada.
+ *   6. **La ventana de `estaNegado`, sin normalizar** — se llama por dos
+ *      caminos y por el crudo ninguna negación acentuada casaba. Normalizarla
+ *      sólo para `NEGADORES` dejaba a `AFIRMADORES` mirando el crudo: la misma
+ *      frase daba dos respuestas según llevara tilde.
  *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
- * Hallazgo C2/C3 de la auditoría de nueve dimensiones (6-ago-2026), reproducido
- * el 8-ago-2026 ejecutando los motores reales sobre frases de consulta antes de
- * tocar una línea. El caso 2 apareció al reproducir: no estaba en el hallazgo.
- * Los casos 3, 4 y 5 los encontró la revisión del Dr. sobre este PR, y se
- * reprodujeron uno por uno igual antes de tocar nada.
- *
- * ── CAUSA RAÍZ ───────────────────────────────────────────────────────────────
- *
- * Vocabulario escrito mirando la nota redactada («niega diabetes») y no el
- * dictado hablado («pues no, doctor»). Y un detalle del motor de expresiones:
- * `\b` de JavaScript no considera letra a la «é», así que `/no sé\b/` nunca casa
- * con «no sé, doctor» — una regla que se lee bien y no dispara jamás.
+ * Los tres primeros salieron de reproducir el hallazgo con los motores reales
+ * antes de tocar nada. Los del bloque 1-2-3 los encontró la **revisión del Dr.**
+ * sobre este mismo arreglo, en frases que el corpus de casos no cubría. El 4 lo
+ * cazó este propio archivo al reconciliar con `main`: el caso ya estaba escrito
+ * y se puso rojo solo.
  *
  * ── LA REGLA QUE LO HACE SEGURO ──────────────────────────────────────────────
  *
- * Ausencia de dato no es dato de ausencia (`clinical-safety.md` §4): no saber no
- * es negar. Y los vocabularios son vocabulario, no criterio (§5): por eso «qué
- * va» queda fuera —puede empezar una frase— y por eso se prefiere no señalar a
+ * Ausencia de dato no es dato de ausencia (`clinical-safety.md` §4). Y los
+ * vocabularios son vocabulario, no criterio (§5): se prefiere no señalar a
  * señalar de más, que aquí significa descartar un antecedente real.
  *
  * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
  *
- * - Cuando la respuesta es «no sé», la condición que el extractor cosechó de la
- *   PREGUNTA conserva su certeza (`LO_QUE_NO_SE_CUBRE_AUN`). Sólo se garantiza
- *   que no se descarte. La tercera salida —«el paciente dice que no lo sabe»,
- *   enseñada en pantalla— queda en el backlog.
- * - No mide el corpus: son casos escritos, no frases medidas del dictado real.
- *   Los tres huecos de la revisión salieron justo de ahí — frases que nadie
- *   había escrito— y no hay razón para creer que fueran los últimos.
+ * - Con «no sé», la condición que el extractor cosechó de la PREGUNTA conserva
+ *   su certeza. Sólo se garantiza que no se descarte. La tercera salida —«el
+ *   paciente dice que no lo sabe», en pantalla— sigue en el backlog (SAFE-005).
+ * - No mide el corpus: son casos escritos. Los huecos de la revisión salieron
+ *   justo de ahí, y no hay razón para creer que fueran los últimos.
  * - No toca el campo de alergias (`cds.ts`, `alergias.ts`): ése es SAFE-001.
- * - No decide quién tiene razón si el dictado y la nota se contradicen. Eso
- *   sigue siendo del médico.
+ * - No decide quién tiene razón si el dictado y la nota se contradicen.
  */
 
 import { describe, it, expect } from 'vitest'

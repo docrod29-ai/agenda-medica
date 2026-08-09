@@ -60,7 +60,7 @@ export default function OperacionPage() {
         Lo que falta lo decimos con claridad — sin vender humo: si algo dice «Roadmap», es que todavía no existe.
       </p>
 
-      <div style={{ display: 'grid', gap: 12, marginTop: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 12, marginTop: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
         {FINANZAS.map(m => (
           <div key={m.nombre} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--panel, #fff)', padding: '16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -85,7 +85,7 @@ export default function OperacionPage() {
       </div>
 
       <div style={{ marginTop: 30, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal, #0d9488)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
+        <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
           Ver los motores del sistema
         </Link>
         <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2, #334155)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border, #e5e7eb)' }}>

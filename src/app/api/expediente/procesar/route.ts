@@ -13,6 +13,7 @@
 import { revalidarCitas } from '@/lib/ia/revalidar-citas'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
+import { tieneGuia } from '@/lib/expediente/guias-de-especialidad'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import { parserClinicoComoRespuestaIA } from '@/lib/expediente/parser-clinico'
 import { safeLog, redactarString } from '@/lib/security/sanitize'
@@ -415,7 +416,14 @@ export async function POST(req: NextRequest) {
   const planDeRespuesta = perfil === 'premium' ? 'premium' : 'pro'
 
   try {
-    const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA)
+    /**
+     * La propuesta de apartados vacíos SÓLO en el pase final.
+     *
+     * `rapido` es verdadero en los pases en vivo y en el preliminar. En esos, un
+     * apartado vacío sigue significando «falta»; en el final ya no va a llenarse
+     * solo, y ahí sí se propone — marcado. Ver `COMPLETA_LOS_HUECOS`.
+     */
+    const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA, { proponerHuecos: !rapido })
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
     let model = await resolverModelo(API_KEY, perfil)
@@ -631,7 +639,19 @@ export async function POST(req: NextRequest) {
     // _plan: el cliente decide con esto si la 2ª opinión (GPT-5) es automática. Va
     // 'premium' SOLO si la nota usó el motor 💎 Máxima (Opus). _motor: qué motor se
     // usó (para la insignia). _modoEconomico: bajó a ⚡ Rápida por falta de créditos.
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion })
+    /**
+     * ¿SE REDACTÓ CON EL CRITERIO DE SU RAMA, O CON EL DE NADIE?
+     *
+     * `guiaDe()` devuelve null cuando la especialidad no tiene guía —un
+     * reumatólogo, un geriatra, cualquiera fuera de las dieciséis—. Antes eso
+     * era una cadena vacía y la nota salía con criterio GENÉRICO sin que nadie
+     * se lo dijera.
+     *
+     * Un genérico silencioso es la peor de las opciones: el médico no sabe que
+     * su nota se redactó con el criterio de ninguna rama. Se dice.
+     */
+    const conGuia = tieneGuia(contexto.especialidad)
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {

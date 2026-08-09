@@ -917,6 +917,52 @@ export function aplicarConfusionesConocidas(texto: string): ResultadoCorreccion 
 /** ¿El token es una palabra "pura" (sin puntuación pegada)? */
 const REGEX_PALABRA_PURA = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9-]*$/
 
+/**
+ * LOS ANTIMICROBIANOS, EN FORMA FONÉTICA. Se calcula una vez.
+ *
+ * No es una lista nueva: son las cuatro familias que este mismo archivo ya
+ * declara (`ANTIBIOTICOS`, `ANTIFUNGICOS`, `ANTIVIRALES`, `ANTIRRETROVIRALES`).
+ */
+const FONETICA_ANTIMICROBIANOS: Set<string> = new Set(
+  [...ANTIBIOTICOS, ...ANTIFUNGICOS, ...ANTIVIRALES, ...ANTIRRETROVIRALES]
+    .map(t => fonetEs(t.split(/\s+/)[0])),
+)
+
+/**
+ * LAS TERMINACIONES DE LOS ANTIMICROBIANOS — sacadas del propio catálogo.
+ *
+ * La lista de nombres no basta. El vocabulario del reconocedor incluye 4 053
+ * términos de un diccionario médico EN INGLÉS, y ahí viven antimicrobianos que
+ * las listas en español no nombran: `voriconazol`, `oxiconazol`, `roxitromicina`.
+ * Comprobado: con sólo los nombres, «mico nazol» seguía saliendo «Oxiconazol».
+ *
+ * Así que además del nombre se mira la TERMINACIÓN. Y no se inventa ninguna:
+ * se toman los últimos seis caracteres de cada antimicrobiano que este mismo
+ * archivo ya declara —«onazol», «micina», «cilina», «oxacino», «penem»…—. Es
+ * aritmética sobre datos del repositorio, no una lista traída de fuera.
+ *
+ * ── POR QUÉ SE PUEDE SER GENEROSO AQUÍ ──────────────────────────────────────
+ *
+ * Porque equivocarse de más NO HACE DAÑO. Lo único que provoca marcar algo como
+ * antimicrobiano sin serlo es que ese término no se corrija por parecido: se
+ * queda como se dictó. Equivocarse de menos, en cambio, es un antibiótico
+ * cambiado por otro. Las dos equivocaciones no cuestan lo mismo, así que la
+ * regla se inclina a propósito hacia el lado barato.
+ */
+const TERMINACIONES_ANTIMICROBIANAS: Set<string> = new Set(
+  [...ANTIBIOTICOS, ...ANTIFUNGICOS, ...ANTIVIRALES, ...ANTIRRETROVIRALES]
+    .map(t => fonetEs(t.split(/\s+/)[0]))
+    .filter(f => f.length >= 8)
+    .map(f => f.slice(-6)),
+)
+
+/** ¿Este término es un antimicrobiano? Por su nombre o por su terminación. */
+function esAntimicrobiano(term: string): boolean {
+  const f = fonetEs(String(term ?? '').split(/\s+/)[0])
+  if (FONETICA_ANTIMICROBIANOS.has(f)) return true
+  return f.length >= 8 && TERMINACIONES_ANTIMICROBIANAS.has(f.slice(-6))
+}
+
 function buscarTerminoUnido(fonUnido: string, estricto = false): string | null {
   // Coincidencia exacta en el índice fonético
   const exacto = INDICE_FONETICO.get(fonUnido)
@@ -947,6 +993,54 @@ function buscarTerminoUnido(fonUnido: string, estricto = false): string | null {
       if (Math.abs(fonet.length - fonUnido.length) > deltaMax) continue
       const d = levenshtein(fonet, fonUnido)
       if (!distAceptable(d, Math.max(fonet.length, fonUnido.length))) continue
+      /**
+       * UN ANTIMICROBIANO NO SE ADIVINA. Sólo se acepta si coincide EXACTO.
+       *
+       * ── LO QUE PASABA, REPRODUCIDO CON EL PIPELINE DE PRODUCCIÓN ──────────
+       *
+       *   «Le doy azitro micina cinco días»      → «Le roxitromicina 5 días»
+       *   «Doy mico nazol tópico»                → «Voriconazol tópico»
+       *   «Le doy neo micina tópica»             → «Le lincomicina tópica»
+       *   «El paciente lleva cefa lotina…»       → «…lleva cefazolina…»
+       *
+       * Los cuatro con `violaciones: []`. Ni un aviso. El médico dicta un
+       * antibiótico y en la nota aparece otro, sin que nada se lo diga.
+       *
+       * ── POR QUÉ OCURRÍA ──────────────────────────────────────────────────
+       *
+       * Cuando el reconocedor parte el nombre («azitro micina»), la ventana de
+       * tres palabras se traga también el verbo de delante («doy azitro
+       * micina»), y esa unión se busca POR PARECIDO entre 6 117 términos —de
+       * los que 4 053 vienen de un diccionario médico en inglés—. Gana el más
+       * cercano, que puede ser otro antimicrobiano.
+       *
+       * Y el filtro de longitud empeoraba las cosas: dejaba fuera a la
+       * azitromicina correcta (12 caracteres fonéticos) y dejaba pasar a la
+       * roxitromicina equivocada (13), porque la unión medía 15.
+       *
+       * ── POR QUÉ «EXACTO» Y NO UN UMBRAL MÁS ESTRICTO ─────────────────────
+       *
+       * Porque no hay distancia segura entre dos antimicrobianos. Medido sobre
+       * este mismo catálogo: 42 de 100 tienen al menos un rival dentro del
+       * umbral, y varios están a distancia 1 ó 2 — vancomicina y lincomicina,
+       * azitromicina y eritromicina, cefazolina y ceftarolina. Cualquier
+       * número que se elija deja pares dentro.
+       *
+       * Lo que SÍ se conserva es lo útil: volver a unir un nombre partido.
+       * «azitro micina» → «azitromicina» coincide exacto y se acepta; el
+       * problema nunca fue unir, fue APROXIMAR.
+       *
+       * ── LO QUE ESTA REGLA HACE CUANDO NO ENCUENTRA NADA ──────────────────
+       *
+       * Deja lo dictado tal cual. La cefalotina —que se usa en México y que
+       * este repositorio conoce en el antibiograma— no está en el vocabulario
+       * del reconocedor, y por eso salía convertida en cefazolina SIEMPRE.
+       * Ahora se queda como se dijo: partida, quizá, pero suya.
+       *
+       * Un nombre partido lo ve el médico y lo corrige. Un nombre cambiado por
+       * otro fármaco real no se ve.
+       */
+      if (d > 0 && esAntimicrobiano(term)) continue
       if (!mejor || d < mejor.dist) mejor = { term, dist: d }
       if (mejor.dist === 0) break
     }

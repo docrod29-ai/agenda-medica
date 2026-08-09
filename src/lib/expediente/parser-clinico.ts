@@ -205,27 +205,34 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
 /**
  * Frases negadoras antes de un término clínico.
  *
- * `padece/padezco/padecía` y `sufre/sufro/sufría` se añadieron el 8-ago-2026:
- * son la forma en que un paciente mexicano contesta —«no padezco diabetes»— y
- * NO estaban. Reproducido con este mismo motor: `extraerComorbilidades('No
- * padece diabetes.')` devolvía `positivas: ['Diabetes mellitus tipo 2']`, y
- * `parsearTranscripcion` imprimía **«Antecedentes: Diabetes mellitus tipo 2.»**
- * sobre un dictado que la niega.
+ * ── DOS LISTAS PARA LO MISMO (6-ago-2026, REG-192) ──────────────────────────
  *
- * Esto no es un rincón: es el fallback que corre cuando la IA falla —el camino
- * que se toma justo cuando el proveedor está caído y el médico tiene prisa— y su
- * salida entra al resumen clínico de la nota.
+ * `negaciones.ts` tiene su propia `NIEGA_EN_LINEA`, y ésta se había quedado
+ * corta: le faltaban `no padece`, `no padezco`, `sin antecedentes de`,
+ * `ausencia de` y `se descarta`. La consecuencia concreta es que **«No padece
+ * diabetes» entraba al expediente como antecedente positivo**, y de ahí pasa a
+ * contaminar lo que se calcula encima (STOP-BANG en la valoración
+ * preoperatoria, por ejemplo).
  *
- * El pretérito `padeció`/`sufrió` entró con la revisión del Dr. (8-ago-2026):
- * estaban las tres conjugaciones vecinas y faltaba justo la que se usa para
- * contar un antecedente. `No padeció diabetes.` seguía devolviendo la diabetes
- * como positiva — el caso 1 de este mismo arreglo, a una conjugación de
- * distancia.
+ * Es el mismo patrón que costó REG-177 con la lista de huecos: dos listas que
+ * tienen que decir lo mismo acaban diciendo cosas distintas, y la que se olvide
+ * de actualizar es la que deja pasar el error.
  *
- * La ventana se normaliza antes de probarla (ver `estaNegado`), así que aquí se
- * escriben las formas SIN tilde: `negó` llega como `nego`.
+ * No se fusionan en una sola constante porque no hacen lo mismo: aquí se mira
+ * hacia atrás en una ventana de texto y allí se decide sobre una frase entera.
+ * Lo que sí se hace es que ésta no vuelva a quedarse corta, y una prueba
+ * comprueba que todos los verbos de la otra están aquí.
+ *
+ * `sufre/sufro/sufría/sufrió`, `padecía/padeció` y `negó/negaron` se añadieron el
+ * 8-ago-2026. El pretérito lo señaló la revisión del Dr.: estaban las
+ * conjugaciones vecinas y faltaba justo la que se usa para contar un
+ * antecedente, así que `No padeció diabetes.` seguía devolviendo la diabetes
+ * como POSITIVA.
+ *
+ * Se escriben SIN tilde porque la ventana se normaliza antes de probarla (ver
+ * `estaNegado`): `negó` llega aquí como `nego`.
  */
-const NEGADORES = /\b(?:niega|niegan|nego|negaron|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido|padece|padezco|padecia|padecio|sufre|sufro|sufria|sufrio)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
+const NEGADORES = /\b(?:niega|nieg[ao]|nego|negaron|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|padecia|padecio|sufre|sufro|sufria|sufrio|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -246,14 +253,14 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
    * texto ya normalizado, y desde los extractores de alergias, STOP-BANG y
    * Caprini, con el texto CRUDO. Por el segundo camino una negación acentuada
    * («negó», «descartó») no casaba, porque `\b` de JavaScript no considera letra
-   * a la «ó».
+   * a la «ó» — la misma trampa que documenta `NO_ES_NEGACION` en `negaciones.ts`.
    *
-   * Normalizar sólo antes de `NEGADORES` —como se hizo primero— dejaba a
-   * `AFIRMADORES` mirando el texto crudo, y con eso «con **diagnóstico** de» no
-   * cerraba una negación que «con diagnostico de» sí cerraba: la misma frase
-   * daba dos respuestas según llevara tilde. Lo señaló la revisión del Dr.
-   * (8-ago-2026). Los índices que siguen son de la ventana normalizada, que es
-   * la única que se toca a partir de aquí.
+   * Normalizar sólo antes de `NEGADORES` dejaría a `AFIRMADORES` mirando texto
+   * crudo, y entonces «con **diagnóstico** de» no cerraría una negación que «con
+   * diagnostico de» sí cierra: la misma frase daría dos respuestas según llevara
+   * tilde. Lo señaló la revisión del Dr. (8-ago-2026). Los índices de aquí abajo
+   * son de la ventana normalizada, que es la única que se toca a partir de este
+   * punto.
    */
   let ventana = normalizar(texto.slice(ventanaInicio, indiceMatch))
   // Corta en el último signo terminal (punto, punto-y-coma, salto de línea)

@@ -82,6 +82,22 @@ export interface ContextoDictado {
    * general.
    */
   aprendidas?: readonly string[]
+  /**
+   * ALÉRGENOS DEL EXPEDIENTE — la pista de más valor de todas.
+   *
+   * Van **antes que los fármacos**, y sólo detrás de lo aprendido. La razón no
+   * es que sean más frecuentes: es lo que cuesta oírlos mal.
+   *
+   * El cruce alergia ↔ fármaco compara contra lo que se OYÓ. Un alérgeno mal
+   * transcrito es **un cruce que nunca salta**, y nadie se entera: la nota no
+   * enseña un hueco, enseña una palabra parecida y el guardián calla. Un fármaco
+   * mal oído, en cambio, sale impreso en la receta y el médico lo ve.
+   *
+   * Este campo llevaba tiempo viajando desde la pantalla hasta la ruta —el
+   * grabador lo mandaba, con su comentario explicando por qué importaba— y aquí
+   * no existía. Se tiraba en el último metro.
+   */
+  alergias?: readonly string[]
   /** Fármacos activos del paciente. Lo más específico que existe. */
   medicamentos?: readonly string[]
   /** Lista de problemas y diagnósticos. */
@@ -202,10 +218,28 @@ export function construir(ctx: ContextoDictado, limite = LIMITE_TOKENS_PROMPT): 
   // este paciente. Lo aprendido se ganó con evidencia; el catálogo es un supuesto.
   const candidatos: string[] = [
     ...(ctx.aprendidas ?? []),
+    // Los alérgenos ANTES que los fármacos: un alérgeno mal oído es un cruce de
+    // seguridad que nunca salta y del que nadie se entera. Ver `alergias`.
+    ...(ctx.alergias ?? []),
     ...(ctx.medicamentos ?? []),
     ...(ctx.problemas ?? []),
+    /**
+     * MEDIDO Y DESCARTADO (7-ago-2026): poner lo crítico de SU especialidad por
+     * delante de lo crítico de las demás **no cambia nada**.
+     *
+     * Parecía una mejora obvia —un término crítico en su rama es más probable
+     * que uno crítico en una rama que no ejerce— y se implementó. Al medirla,
+     * idéntica: 68 términos, 35 de su rama, 3 del paciente, antes y después.
+     *
+     * La razón es que `criticosGlobales()` es la UNIÓN de lo crítico de las 79,
+     * así que lo suyo ya venía dentro. Reordenar movía de sitio términos que
+     * iban a entrar igual.
+     *
+     * Se deja anotado para que nadie lo vuelva a intentar creyendo que gana algo.
+     * Si algún día hay que ganar sitio de verdad, lo que hay que tocar es el
+     * presupuesto o el catálogo, no el orden.
+     */
     ...(ESTRATEGIA.merge_global_critical_lexicon ? criticosGlobales() : []),
-    ...especialidades.flatMap(e => ESPECIALIDADES[e].critical_terms),
     ...especialidades.flatMap(e => ESPECIALIDADES[e].high_priority_terms),
     ...especialidades.flatMap(e => ESPECIALIDADES[e].normal_terms),
     /**

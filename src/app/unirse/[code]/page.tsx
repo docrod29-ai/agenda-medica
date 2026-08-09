@@ -138,7 +138,7 @@ export default function UnirsePage() {
             href={`/registro?invite=${code}`}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'var(--nexus)', color: '#fff', fontWeight: 600,
+              background: 'var(--nexus-solido)', color: '#fff', fontWeight: 600,
               fontSize: 15, padding: '12px 22px', borderRadius: 12, textDecoration: 'none',
             }}
           >
@@ -180,7 +180,7 @@ export default function UnirsePage() {
           disabled={aceptando}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'var(--nexus)', color: '#fff', fontWeight: 600,
+            background: 'var(--nexus-solido)', color: '#fff', fontWeight: 600,
             fontSize: 15, padding: '12px 24px', borderRadius: 12, border: 'none',
             cursor: aceptando ? 'default' : 'pointer',
           }}

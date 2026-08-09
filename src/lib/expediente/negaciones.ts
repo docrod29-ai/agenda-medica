@@ -69,103 +69,149 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
 ]
 
 /**
- * Con lo que ARRANCA una respuesta hablada antes de llegar a la palabra que
- * niega.
- *
- * No niegan nada por sí solas: se saltan. El paciente no contesta «No.» a secas
- * casi nunca; contesta «Pues no», «Mmm, no», «Este… no». Sin esto la respuesta
- * negativa no se reconocía y el «no» del paciente se perdía — que es justo el
- * defecto que este módulo existe para impedir.
- *
- * Sólo se saltan las que ocurren de verdad al principio de una respuesta, y como
- * mucho dos: una lista larga acabaría saltándose media frase para encontrar un
- * «no» que pertenece a otra cosa.
- */
-const MULETILLAS = String.raw`(?:(?:ah?|ay|eh|mm+|este|pues|bueno|ps)\b[\s,.;:…]*){0,2}`
-
-/**
- * Fin de palabra que sirve cuando la palabra ACABA en tilde.
- *
- * `\b` de JavaScript no considera letra a la «é», así que `/no sé\b/` no casa con
- * «no sé, doctor» — la frontera exigiría un cambio letra→no-letra y para el motor
- * la «é» ya es no-letra. Se descubrió probando esto mismo: el guardián de
- * incertidumbre no disparaba nunca, y su regla parecía correcta leída.
- */
-const FIN_DE_PALABRA = String.raw`(?![a-záéíóúüñ])`
-
-/**
  * Respuestas que cuentan como negación.
  *
  * «Ninguna» y «nada» se incluyen porque es como se contesta de verdad a «¿tiene
  * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
  * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
  *
- * «Fíjese que no» y «creo que no» entran porque son la forma cortés mexicana de
- * decir que no; «para nada» y «jamás», porque son enfáticas y no ambiguas. NO
- * entra «qué va»: en respuesta a una pregunta puede empezar una frase
- * («qué va a pasar si…»), y aquí un falso positivo descarta un antecedente real.
- *
  * **«nada más» / «no más» quedan fuera** (revisión del Dr., 8-ago-2026). Son la
  * forma mexicana de AFIRMAR EN PARTE: «¿diabetes o presión alta? **Nada más** la
- * diabetes» nombra las dos y afirma una. Contarlo como negación descartaba las
- * dos —incluida la que se acababa de afirmar— y reclasificaba a `descartado` una
- * hipertensión `confirmado`. Es el mismo daño que este módulo repara, en la
- * dirección que la regla §5 prohíbe: señalar de más.
+ * diabetes» nombra las dos y afirma una. Contarlo como negación las descartaba
+ * las dos —incluida la que se acababa de afirmar— y bajaba a `descartado` una
+ * hipertensión `confirmado`. Es el daño que este módulo repara, en la dirección
+ * que la regla §5 prohíbe: señalar de más.
  *
- * El veto va tras el núcleo entero y no sólo tras «no»/«nada» a propósito:
- * «nunca más», «ninguno más» tampoco son respuestas que se deban leer como una
- * negación limpia. Y no toca la negación de verdad: «No, nada más.» sigue
- * contando, porque ahí el «más» no viene pegado al primer «no».
+ * Y la limpieza de `RUIDO_ANTES_DE_LA_RESPUESTA` lo agrava en vez de salvarlo:
+ * quita el «pues» y deja «nada más la diabetes» empezando por «nada». Es la
+ * misma trampa que `NO_ES_NEGACION` documenta para «no sé» — reparar el ruido
+ * hace que lleguen aquí frases que antes ni se miraban.
+ *
+ * El veto va tras el núcleo entero y no sólo tras «no»/«nada»: «nunca más»,
+ * «ninguno más» tampoco son respuestas que se deban leer como negación limpia.
+ * No toca la negación de verdad: «No, nada más.» sigue contando, porque ahí el
+ * «más» no viene pegado al primer «no».
  */
-const NEGATIVAS = new RegExp(
-  `^\\s*${MULETILLAS}(?:no|nop|ninguna|ninguno|nada|negativo|nunca|jam[aá]s|para\\s+nada`
-  + `|f[ií]jese\\s+que\\s+no|creo\\s+que\\s+no|que\\s+yo\\s+sepa\\s+no)\\b(?!\\s+m[aá]s\\b)`, 'i')
+const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunca|que\s+yo\s+sepa\s+no)\b(?!\s+m[aá]s\b)/i
 
 /**
  * El «no» que corrige y afirma en la misma frase.
  *
- * «¿Tiene diabetes? **No, sí tengo**, desde hace años.» El paciente se
- * desdice —empieza negando y acaba afirmando— y el módulo se quedaba con la
- * primera palabra. Es el gemelo exacto de «no sé»: `NEGATIVAS` sólo mira el
- * arranque de la respuesta, y el arranque no siempre es lo que se contestó.
+ * «¿Tiene diabetes? **No, sí tengo**, desde hace años.» El paciente se desdice
+ * —empieza negando y acaba afirmando— y el módulo se quedaba con la primera
+ * palabra. Es el gemelo exacto de «no sé», que `NO_ES_NEGACION` ya ataja: mirar
+ * el arranque de la respuesta no basta, porque el arranque no siempre es lo que
+ * se contestó.
  *
- * Encontrado por la revisión del Dr. sobre este mismo PR (8-ago-2026).
+ * Encontrado por la revisión del Dr. (8-ago-2026).
  */
-const NO_CORRECTIVO = new RegExp(
-  `^\\s*${MULETILLAS}no[,\\s]+(?:s[ií]|claro|efectivamente|as[ií]\\s+es)${FIN_DE_PALABRA}`, 'i')
+const NO_CORRECTIVO = /^\s*no[,\s]+(?:s[ií]|claro|efectivamente|as[ií]\s+es)(?![a-záéíóúñ])/i
 
 /**
- * «No sé» empieza por «no» y NO niega nada.
+ * ── LO QUE ESTORBA DELANTE DE LA RESPUESTA (6-ago-2026, REG-192) ─────────────
  *
- * Reproducido con el motor real (8-ago-2026): «¿Tiene diabetes? No sé, doctor.»
- * devolvía `diabetes` como negada, y con eso `corregirCertezaPorNegacion`
- * reclasificaba a **descartado** una diabetes que el paciente no había
- * descartado — y la pantalla de contradicciones le decía al médico que el
- * dictado la negaba. El paciente sólo dijo que no lo sabe.
+ * `NEGATIVAS` exige que la respuesta EMPIECE por la negación, y en una
+ * transcripción real casi nunca empieza ahí: delante viene la marca de turno
+ * («—», «-», «Paciente:») o una muletilla («pues», «fíjese que», «mmm»).
  *
- * Ausencia de dato no es dato de ausencia: no saber no es negar, y un «no sé»
- * convertido en «descartado» es un antecedente borrado sin que nadie lo borrara.
+ * Medido con el motor real sobre respuestas de consulta mexicana: de siete
+ * formas de decir que no, **cazaba una**.
  *
- * La excepción de `no se tiene/refiere/…` deja fuera el impersonal escrito
- * («no se refiere dolor»), que sí es una negación y sigue su camino normal.
+ *     «¿Padece diabetes? — No padece diabetes.»  →  detectada (por otra vía)
+ *     «¿Tiene hipertensión? — Pues no.»          →  NO
+ *     «¿Ha tenido asma? — Fíjese que no.»        →  NO
+ *     «¿Y tuberculosis? — Tampoco.»              →  NO
+ *     «¿Tiene cáncer? — No.»                     →  NO  ← ni la más simple
+ *
+ * Se quita lo que estorba antes de mirar. NO se toca `NEGATIVAS`: se le da la
+ * frase limpia.
  */
-const INCERTIDUMBRE = new RegExp(
-  `^\\s*${MULETILLAS}no\\s+(?:s[eé]|sabr[ií]a|sabemos|recuerdo|me\\s+acuerdo|estoy\\s+segur[oa])`
-  + `${FIN_DE_PALABRA}(?!\\s+(?:tiene|tengo|padece|padezco|refiere|presenta|hay|observa)\\b)`, 'i')
+const RUIDO_ANTES_DE_LA_RESPUESTA =
+  /^\s*(?:[-—–:>»"'`]+\s*)*(?:(?:paciente|acompa[ñn]ante|familiar|sr|sra|se[ñn]or[a]?)\s*:\s*)?(?:(?:pues|bueno|este|mmm+|eh+|ay|f[ií]jese\s+que|la\s+verdad(?:\s+es\s+que)?|mire|d[ée]jeme\s+ver|creo\s+que)\s*,?\s*)*/i
 
 /**
- * Marcas de que un término ya viene negado en la propia frase.
+ * «No sé» NO ES UNA NEGACIÓN — y al limpiar el ruido pasaría a serlo.
  *
- * `sufre/sufro` y `negó/negaron` se añadieron el 8-ago-2026 por el mismo motivo
- * que las muletillas: son habla real de consulta que el módulo no reconocía.
- * `padeció` entró con la revisión del Dr. ese mismo día: estaban las tres
- * conjugaciones vecinas y faltaba el pretérito, que es como se cuenta un
- * antecedente — «no padeció» estaba a una conjugación de un diagnóstico inventado.
+ * Ésta es la trampa de la reparación: quitando el guion de turno, «— No sé» se
+ * convierte en «no sé», que empieza por «no» y `NEGATIVAS` lo daría por bueno.
+ * El sistema registraría que el paciente **negó** una enfermedad cuando lo que
+ * dijo es que **no lo sabe**.
+ *
+ * Es exactamente la regla que este archivo ya defiende del otro lado: ausencia
+ * de dato no es dato de ausencia. Aquí se defiende de la reparación misma.
  */
-const NIEGA_EN_LINEA = new RegExp(
-  String.raw`\b(?:niega|nieg[ao]|neg[oó]|negaron|no\s+(?:tiene|tengo|padece|padezco|padec[ií]a|padeci[oó]`
-  + String.raw`|sufre|sufro|sufr[ií]a|sufri[oó]|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de`
-  + String.raw`|descarta|ausencia\s+de|se\s+descarta)` + FIN_DE_PALABRA, 'i')
+const NO_ES_NEGACION =
+  /^\s*no\s+(?:s[eé]|me\s+acuerdo|recuerdo|estoy\s+segur[oa]|sabr[ií]a\s+decirle|s[eé]\s+si|tengo\s+idea|le\s+puedo\s+decir)(?![a-záéíóúñ])/i
+/**
+ * ── OJO CON `\b` DESPUÉS DE UNA VOCAL ACENTUADA ──────────────────────────────
+ *
+ * Aquí había un `\b` al final y **no cazaba «No sé.»**: en JavaScript `\w` es
+ * ASCII, así que «é» no cuenta como carácter de palabra y entre «é» y «.» no hay
+ * límite de palabra que valga. `\bs[eé]\b` funcionaba con «se» y fallaba con
+ * «sé» — justo la forma que se escribe.
+ *
+ * El resultado era el peor posible: «¿Tiene epilepsia? — No sé» quedaba
+ * registrado como que el paciente **negó** la epilepsia.
+ *
+ * Se sustituye por una anticipación negativa que sí entiende acentos.
+ */
+
+/**
+ * Las formas de decir que no que NO empiezan por «no».
+ *
+ * `tampoco` es la más frecuente cuando se pregunta por varias cosas seguidas:
+ * «¿Diabetes? No. ¿Hipertensión? Tampoco.»
+ */
+const NEGATIVAS_SIN_NO = /^\s*(?:tampoco|jam[aá]s|para\s+nada|en\s+absoluto|qu[eé]\s+va|negativo)\b/i
+
+/**
+ * La condición dicha y negada después: «Diabetes no.», «Asma no, gracias a Dios».
+ *
+ * En el habla se responde repitiendo lo preguntado. Sin esto, la respuesta más
+ * natural a «¿diabetes?» se perdía.
+ */
+const NIEGA_POSPUESTO = /\b(?:no|nunca|jam[aá]s)\s*[.,;!]?\s*$/i
+
+/** ¿Esta respuesta niega? Con el ruido de turno y de muletilla ya quitado. */
+export function respuestaNiega(respuesta: string): boolean {
+  const limpia = String(respuesta ?? '').replace(RUIDO_ANTES_DE_LA_RESPUESTA, '')
+  if (!limpia.trim()) return false
+  /**
+   * Primero lo que NO es negación. Las dos empiezan por «no» y ninguna niega:
+   * «no sé» dice que no lo sabe, y «no, sí tengo» se desdice a media frase.
+   */
+  if (NO_ES_NEGACION.test(limpia)) return false
+  if (NO_CORRECTIVO.test(limpia)) return false
+  if (NEGATIVAS.test(limpia)) return true
+  if (NEGATIVAS_SIN_NO.test(limpia)) return true
+  /**
+   * La pospuesta sólo cuenta en respuestas cortas. En una frase larga un «no»
+   * final puede pertenecer a otra cosa («…me dijeron que fuera pero no»), y
+   * fabricar una negación es peor que perderla.
+   */
+  if (limpia.length <= 40 && NIEGA_POSPUESTO.test(limpia)) return true
+  return false
+}
+
+/** Marcas de que un término ya viene negado en la propia frase. */
+/**
+ * `sufre/sufro/sufría/sufrió`, `padecía/padeció` y `negó/negaron` entraron el
+ * 8-ago-2026: es habla de consulta que el módulo no reconocía. El pretérito lo
+ * señaló la revisión del Dr. — estaban las conjugaciones vecinas y faltaba justo
+ * la que se usa para contar un antecedente, así que «no padeció diabetes» quedaba
+ * a una conjugación de un diagnóstico inventado.
+ *
+ * El cierre es `(?![a-záéíóúñ])` y no `\b` por lo mismo que explica
+ * `NO_ES_NEGACION`: `\b` no cierra tras la «ó» de «negó».
+ *
+ * **El impersonal escrito va aquí, y hace falta que vaya.** «No se refiere asma»
+ * es como se redacta un negativo pertinente, y `NO_ES_NEGACION` —que busca «no
+ * sé»— se lo traga: «no se» casa con `s[eé]` y la frase entera pasa por
+ * incertidumbre. Como `NIEGA_EN_LINEA` se prueba ANTES que la vía de
+ * pregunta-respuesta, reconocerlo aquí lo resuelve sin tocar la defensa del «no
+ * sé», que es delicada y está bien puesta.
+ */
+const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|neg[oó]|negaron|no\s+(?:se\s+(?:refiere|presenta|observa|reporta|palpa|ausculta)|tiene|tengo|padece|padezco|padec[ií]a|padeci[oó]|sufre|sufro|sufr[ií]a|sufri[oó]|refiere|refiero|ha\s+tenido)|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)(?![a-záéíóúñ])/i
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -228,11 +274,7 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     // la frase siguiente si la pregunta terminó ahí.
     const resto = f.slice(f.indexOf('?') + 1).trim()
     const respuesta = resto || (fs[i + 1] ?? '')
-    // La incertidumbre y la corrección ganan: «no sé» y «no, sí tengo» empiezan
-    // por «no» y contestarían que sí a NEGATIVAS. Ni no saber ni desdecirse es
-    // negar, y la primera palabra de la respuesta no siempre es la respuesta.
-    if (INCERTIDUMBRE.test(respuesta) || NO_CORRECTIVO.test(respuesta)) continue
-    if (NEGATIVAS.test(respuesta)) {
+    if (respuestaNiega(respuesta)) {
       for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
     }
   }
@@ -342,26 +384,6 @@ export function corregirCertezaPorNegacion<T extends CondicionExtraida>(
   })
   return { conditions: out, corregidas }
 }
-
-/**
- * ── LO QUE ESTE MÓDULO SIGUE SIN CUBRIR (8-ago-2026) ─────────────────────────
- *
- * Cuando la respuesta es «no sé», el módulo deja de afirmar que el paciente negó
- * — y ahí se detiene. La condición que el extractor cosechó de la PREGUNTA se
- * queda con la certeza que él le puso, que suele ser `confirmado`. O sea: ya no
- * se descarta lo que nadie descartó, pero tampoco se avisa de que lo afirmado
- * salió de una pregunta sin respuesta.
- *
- * Repararlo bien no es ampliar una expresión regular: es una tercera salida
- * («el paciente dice que no lo sabe») que hay que enseñar en pantalla y que el
- * médico resuelve, como se hace con las contradicciones. Queda declarado aquí y
- * en el backlog, no escondido: la única defensa hoy es la regla del prompt del
- * extractor, y una regla del prompt es una petición.
- */
-export const LO_QUE_NO_SE_CUBRE_AUN =
-  'Una condición nombrada en la pregunta cuya respuesta fue «no sé» conserva la ' +
-  'certeza que le puso el extractor. Este motor sólo garantiza que NO se ' +
-  'reclasifique como descartada: no saber no es negar.'
 
 export const POR_QUE_SE_RECLASIFICA_Y_NO_SE_BORRA =
   'Borrar la condición negada perdería información clínica real: «niega ' +

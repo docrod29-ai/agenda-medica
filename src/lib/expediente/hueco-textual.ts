@@ -95,3 +95,68 @@ export const POR_QUE_EN_EL_ESQUEMA =
 export const POR_QUE_IGUALDAD_EXACTA =
   'Se compara el campo entero, no si contiene la frase. «1 tableta, no ' +
   'especificada la marca» es un dato con ruido: vaciarlo perdería el «1 tableta».'
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LA PROSA DE UNA SECCIÓN — el mismo problema, otra forma
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Las frases que un modelo escribe cuando se le obliga a no dejar una sección
+ * en blanco.
+ *
+ * ── DE DÓNDE SALEN (7-ago-2026, REG-217) ────────────────────────────────────
+ *
+ * La regla 15 del prompt ORDENABA escribirlas —«No referido», «No explorado en
+ * esta consulta»— contradiciendo de frente a la regla 1-bis, que las prohíbe.
+ * El modelo obedecía a la 15 y la nota salía hueca.
+ *
+ * La regla ya se corrigió. Esto es la red debajo: **un prompt es persuasión, un
+ * saneo en la frontera es garantía.**
+ */
+const HUECOS_DE_PROSA: readonly string[] = [
+  'no referido', 'no referida', 'no referidos', 'no referidas',
+  'no explorado', 'no explorada', 'no explorado en esta consulta',
+  'no explorada en esta consulta', 'no se exploro', 'no se exploro en esta consulta',
+  'no especificado en esta consulta', 'no especificada en esta consulta',
+  'no especificado', 'no especificada', 'no mencionado', 'no mencionada',
+  'sin datos en esta consulta', 'sin informacion en esta consulta',
+  'no consignado', 'no consignada', 'no documentado', 'no documentada',
+  'no valorado', 'no valorada', 'no interrogado', 'no interrogada',
+  'no se refirio', 'no se menciono', 'no se consigno',
+]
+
+/**
+ * ¿Esta sección está vacía, aunque tenga letras dentro?
+ *
+ * ── LA DISTINCIÓN QUE HACE ÚTIL A ESTA FUNCIÓN ─────────────────────────────
+ *
+ *     «No referido.»                  → HUECO. La sección no dice nada.
+ *     «No refiere fiebre ni disnea.»  → DATO. Es un negativo pertinente, y la
+ *                                       regla 16 del prompt lo pide a propósito.
+ *
+ * Por eso se compara **la sección entera** —quitando puntuación final— y no si
+ * contiene la frase. Vaciar por contención borraría los negativos pertinentes,
+ * que son de lo más valioso que tiene una nota.
+ */
+export function seccionEsHueco(valor: unknown): boolean {
+  const v = limpiaTexto(valor).replace(/[.;,:!?\s]+$/g, '').trim()
+  if (!v) return true
+  if (HUECOS_ESCRITOS.some(h => limpiaTexto(h) === v)) return true
+  return HUECOS_DE_PROSA.some(h => h === v)
+}
+
+/** La sección tal cual, o vacía si era un hueco con letras. */
+export function sinHuecoDeProsa(valor: unknown): string {
+  const original = String(valor ?? '').trim()
+  return seccionEsHueco(original) ? '' : original
+}
+
+export const POR_QUE_LA_SECCION_SE_COMPARA_ENTERA =
+  'Vaciar por contención borraría los negativos pertinentes —«no refiere fiebre ' +
+  'ni disnea»—, que son de lo más valioso que tiene una nota y que el propio ' +
+  'prompt pide documentar.'
+
+export const POR_QUE_IMPORTA_QUE_QUEDE_VACIA =
+  'La compuerta que impide firmar sólo comprueba que la sección obligatoria no ' +
+  'esté en blanco. Una sección que dice «No referido.» la pasa: la nota hueca ' +
+  'quedaba firmable, con cédula. Vaciarla es lo que hace que la compuerta la vea.'

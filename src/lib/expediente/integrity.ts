@@ -236,6 +236,21 @@ export function normalizarParaSello(nota: NotaMedica): NotaMedica {
  * comodidad: sellar cualquiera de ellas marcaría "alterada" a notas legítimas
  * (que es el modo de falla grave del sello: la alarma roja que no debe existir).
  */
+/**
+ * Cómo se le nombra al médico cada exclusión.
+ *
+ * El nombre técnico no le dice nada a quien lee el sello en pantalla: lo que
+ * necesita saber es QUÉ parte del documento queda fuera, en su idioma.
+ */
+export const ETIQUETA_NO_SELLADO: Readonly<Record<string, string>> = {
+  transcripcionMotor: 'transcripción de origen del dictado',
+  palabrasAVerificar: 'marcas de duda del audio',
+  id: 'identificador interno del documento',
+  updatedAt: 'fecha de última modificación',
+  estado: 'estado del documento',
+  firma: 'bloque de firma',
+}
+
 export const CAMPOS_NO_SELLADOS_V3: readonly { campo: string; razon: string }[] = [
   {
     campo: 'transcripcionMotor',
@@ -313,10 +328,29 @@ export const COBERTURA_SELLO: Record<VersionSello, {
       'estudios solicitados', 'encabezado (cédula y establecimiento)',
     ],
   },
+  /**
+   * ── v3 NO CUBRE TODO, Y LA PANTALLA DECÍA QUE SÍ (6-ago-2026, REG-199) ────
+   *
+   * Aquí estaba `noCubre: []` y `verificarIntegridadDetalle` deriva de ahí un
+   * `cubreTodo: version === HASH_VERSION`. Resultado: al médico se le decía que
+   * el sello cubre el contenido íntegro de la nota.
+   *
+   * Y el propio módulo, veinte líneas más arriba, declara lo contrario:
+   * `CAMPOS_NO_SELLADOS_V3` documenta que `transcripcionMotor` —el material de
+   * origen del que se re-proyecta la nota— **no está sellado**, y por qué:
+   * añadirlo al canónico cambiaría el hash de TODAS las notas ya firmadas y las
+   * marcaría «alterada» de golpe (REG-060).
+   *
+   * Esa decisión es correcta y se mantiene. Lo que no se sostiene es contarla
+   * hacia dentro y ocultarla hacia fuera: **una afirmación de integridad más
+   * ancha que su alcance real es peor que no afirmar nada**, porque se confía
+   * en ella. La cobertura se deriva ahora de la misma lista que documenta las
+   * exclusiones, así que las dos no pueden volver a decir cosas distintas.
+   */
   3: {
     cubre: CAMPOS_SELLADOS_V3,
-    noCubre: [],
-    noCubreEtiquetas: [],
+    noCubre: CAMPOS_NO_SELLADOS_V3.map(x => x.campo),
+    noCubreEtiquetas: CAMPOS_NO_SELLADOS_V3.map(x => ETIQUETA_NO_SELLADO[x.campo] ?? x.campo),
   },
 }
 
@@ -389,7 +423,26 @@ export async function verificarIntegridadDetalle(nota: NotaMedica): Promise<Deta
   return {
     estado,
     version,
-    cubreTodo: version === HASH_VERSION,
+    /**
+     * ── «CUBRE TODO» SIGNIFICA CUBRE TODO (REG-199) ──────────────────────────
+     *
+     * Antes bastaba con ser la versión actual del sello. Pero ser la última
+     * versión no significa cubrirlo todo: v3 es la actual y deja fuera la
+     * transcripción de origen, a propósito y por una razón buena (REG-060).
+     *
+     * Ahora se deriva de la cobertura real. Cuando v4 selle también el origen,
+     * esto pasará a `true` solo porque la lista de exclusiones quedará vacía —
+     * no porque alguien se acuerde de cambiarlo aquí.
+     */
+    /**
+     * OJO CON LA NOTA SIN SELLO: no tiene versión, así que no tiene cobertura,
+     * así que su lista de exclusiones está vacía — y «lista vacía» NO significa
+     * aquí «cubre todo», significa que no cubre nada. Se exige que haya sello.
+     *
+     * (Lo cazó el propio golden al primer intento: `sin-sello` daba
+     * `cubreTodo: true`.)
+     */
+    cubreTodo: cobertura !== undefined && cobertura.noCubre.length === 0,
     noCubre: cobertura?.noCubre ?? [],
     noCubreEtiquetas: cobertura?.noCubreEtiquetas ?? [],
   }

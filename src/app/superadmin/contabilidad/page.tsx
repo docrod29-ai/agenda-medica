@@ -136,7 +136,7 @@ export default function ContabilidadPage() {
             {meses.map(m => <option key={m} value={m}>{nombreMes(m)}</option>)}
           </select>
           <button onClick={exportarCSV} disabled={!data}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             <Download size={14} /> Exportar CSV
           </button>
         </div>
@@ -150,7 +150,7 @@ export default function ContabilidadPage() {
       ) : data ? (
         <>
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(150px, 100%),1fr))', gap: 12, marginBottom: 18 }}>
             {[
               { lab: 'Ingresos del mes', val: mxn(data.resumen.ingresoMes), foot: `${data.resumen.numPagosMes} pagos · IVA ${mxn(data.resumen.ivaMes)}` },
               { lab: 'Costo total', val: mxn(data.resumen.costoTotal), foot: `IA ${mxn(data.resumen.costoIA)} · Stripe ${mxn(data.resumen.costoStripe)}` },

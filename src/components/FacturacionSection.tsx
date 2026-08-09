@@ -142,12 +142,12 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
             </div>
             {p.facturado ? (
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => descargar(p.id, 'pdf')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}><Download size={13} /> PDF</button>
+                <button onClick={() => descargar(p.id, 'pdf')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}><Download size={13} /> PDF</button>
                 <button onClick={() => descargar(p.id, 'xml')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}><FileText size={13} /> XML</button>
               </div>
             ) : (
               <button onClick={() => { setAbierto(abierto === p.id ? null : p.id); setMsg('') }}
-                style={{ background: abierto === p.id ? 'var(--s2)' : 'var(--nexus, #3d5afe)', color: abierto === p.id ? 'var(--text)' : '#fff', border: abierto === p.id ? '1px solid var(--border)' : 'none', borderRadius: 8, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ background: abierto === p.id ? 'var(--s2)' : 'var(--nexus-solido)', color: abierto === p.id ? 'var(--text)' : '#fff', border: abierto === p.id ? '1px solid var(--border)' : 'none', borderRadius: 8, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                 {abierto === p.id ? 'Cancelar' : 'Solicitar factura'}
               </button>
             )}
@@ -155,7 +155,7 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
 
           {abierto === p.id && (
             <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 10 }}>
                 <div><label style={lbl}>RFC</label><input value={f.rfc ?? ''} onChange={e => setF({ ...f, rfc: e.target.value.toUpperCase() })} placeholder="XAXX010101000" style={inp} /></div>
                 <div><label style={lbl}>Razón social (como en el SAT)</label><input value={f.nombre ?? ''} onChange={e => setF({ ...f, nombre: e.target.value })} placeholder="Nombre o empresa" style={inp} /></div>
                 <div><label style={lbl}>Código postal fiscal</label><input value={f.cp ?? ''} onChange={e => setF({ ...f, cp: e.target.value })} placeholder="00000" style={inp} /></div>
@@ -171,7 +171,7 @@ export default function FacturacionSection({ clinicId }: { clinicId: string }) {
               </div>
               {msg && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{msg}</div>}
               <button onClick={() => solicitar(p.id)} disabled={enviando}
-                style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: enviando ? 'wait' : 'pointer' }}>
+                style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: enviando ? 'wait' : 'pointer' }}>
                 {enviando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Timbrando…</> : 'Emitir factura'}
               </button>
               <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8 }}>Verifica que tus datos coincidan EXACTO con tu Constancia de Situación Fiscal — el SAT rechaza si no.</div>
