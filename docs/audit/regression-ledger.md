@@ -1556,6 +1556,73 @@ desincronizaba.
 
 ---
 
+## REG-192 — la sección bien escrita compraba el silencio de la mal escrita (v1074)
+
+**Encontrado** — 8-ago-2026, leyendo `desajustesTemporales` al ir a por EVAL-002
+(«el motor de temporalidad no tiene corpus»). No salió de un reporte: salió de
+mirar la línea.
+
+**El defecto** — Los dos motores que contrastan el dictado contra la nota
+—`contradicciones` (negaciones, REG-153) y `desajustesTemporales` (temporalidad,
+v1027-v1030)— buscaban el término con `t.indexOf(forma)`: **la primera aparición
+y sólo ésa**. Si esa primera venía escudada —«niega diabetes», «antecedente de
+neumonía»—, la condición se descartaba entera y el resto de la nota no se miraba
+nunca.
+
+**Cómo se reprodujo** — Con los motores reales, antes de tocar nada, sobre una
+nota sintética con la forma que tiene una nota bien estructurada:
+
+```
+Antecedentes personales patológicos: neumonía en 2019, manejada de forma
+ambulatoria con amoxicilina durante siete días.
+Impresión diagnóstica: neumonía adquirida en la comunidad.
+```
+
+`desajustesTemporales(mencionesEnPasado('Tuvo neumonía hace tres años.'), nota)`
+devolvía `[]`. Lo mismo con «niega hipertensión» arriba y «hipertensión arterial
+sistémica» en la impresión diagnóstica: `contradicciones` devolvía `[]`.
+
+**Por qué importa para un paciente** — El reparto es el peor posible: la mención
+que se callaba es **la que manda**. Un antecedente no cambia la conducta de hoy;
+una impresión diagnóstica sí, y es la que se arrastra a la nota siguiente y la
+que otro médico lee dentro de seis meses. El paciente que negó la diabetes salía
+con diabetes escrita como diagnóstico, y el único motor que podía cazarlo ya se
+había dado por satisfecho renglones antes — precisamente **porque** la nota había
+hecho bien la otra mitad.
+
+**Y era la misma línea copiada dos veces** — El caso oro de la v1035 ya lo decía
+con todas sus letras: «lo mismo para el motor de temporalidad, que copió la misma
+línea». Es el patrón de REG-180 y REG-184: se repara una copia y la otra sigue
+viva. Por eso el criterio se saca a `src/lib/expediente/mencion-en-la-nota.ts` y
+los dos motores lo importan — una tercera copia era cuestión de tiempo.
+
+**Reparación** — `primeraMencionSinEscudo` recorre todas las apariciones de todas
+las formas, en orden de aparición, y devuelve la primera cuyo contexto previo no
+traiga el escudo. Un aviso por condición, como antes.
+
+**Sólo puede señalar de más, nunca de menos** — La ventana de 60 caracteres no se
+toca y cada aparición se juzga con exactamente el mismo criterio que antes. Una
+mención que el sistema consideraba bien escrita la sigue considerando bien
+escrita; lo único que cambia es que ahora también mira las siguientes.
+
+**Qué NO hace** — La ventana **sigue cruzando el punto**: un «niega diabetes.» al
+final de una oración escuda a la palabra que caiga en los primeros 60 caracteres
+de la siguiente. Es un escudo prestado y sigue vivo. Acotarlo a la oración
+rompería la nota con encabezado de sección (`Antecedentes:\nNeumonía…`), que es
+igual de común, así que no se arregla a ojo: queda como **TEMP-001** en el
+backlog, para medirlo antes de tocarlo.
+
+Tampoco amplía el vocabulario: lo que no está en `CRONICAS` ni en
+`AGUDAS_FRECUENTES` sigue sin vigilarse, y así está declarado allí.
+
+**Qué queda para el médico** — Lo mismo que antes: los dos motores señalan, no
+deciden. Puede que la nota tenga razón y el interrogatorio no.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos motores, el golden
+falla en sus tres casos (los dos de comportamiento y el estructural).
+
+**Golden** — `src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts` (14
+casos).
 ## REG-196 — la alergia estructurada no llegaba a la compuerta que bloquea la firma (v1078)
 
 **Encontrado** — 7-ago-2026, cerrando SAFE-001. Los tres parsers de fuera ya

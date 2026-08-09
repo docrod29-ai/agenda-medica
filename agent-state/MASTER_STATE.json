@@ -10,14 +10,15 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-001 (cerrada — REG-196, v1078)",
+  "iteracionActual": "SAFE-001 / el sello de la nota (cerrada — REG-196, v1078). En main quedó cerrada REG-192 (v1074).",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
     "agent/ops/OPS-001",
     "agent/safety/SAFE-001",
-    "agent/safety/SAFE-001-sello-de-la-nota"
+    "agent/safety/SAFE-001-sello-de-la-nota",
+    "agent/expediente/TEMP-192"
   ],
   "colisionDeNumeracion": {
     "quePasa": "Cada iteracion programada rama desde main (6d35d95) y elige el siguiente REG/vNNN mirando SOLO main. Como hay varias en paralelo sin fusionar, todas eligen el mismo numero.",
@@ -27,11 +28,14 @@
     "decisionDelDueno": "Hace falta una regla de asignacion (reservar el numero al abrir la rama, o renumerar al fusionar). Anotado en OWNER_DECISIONS_REQUIRED como O-5."
   },
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1078",
   "trabajoLocalSinSubir": [],
-  "notasDeEntorno": [
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "9-ago-2026: SAFE-001 tenía una segunda capa viva por debajo de esa verificación — el SELLO de la nota, que no es un llamador del parser sino quien escribe nota.alergias. Cerrada del todo en REG-196.",
     "El contenedor del agente clona en HEAD desatado y sin node_modules: hay que npm ci antes de las compuertas.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_*; sin ellas falla al recolectar /dr/[clinicId] por auth/invalid-api-key, no por el codigo. Comprobado en v1078 con valores de juguete: compila entero.",
-    "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla aqui por la politica de red saliente, igual en el arbol limpio. Anotado como OPS-002."
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó. Anotado como OPS-002.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»; sin ellas falla al recolectar /dr/[clinicId] por auth/invalid-api-key, no por el código."
   ]
 }
