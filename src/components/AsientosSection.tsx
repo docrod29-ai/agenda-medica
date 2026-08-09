@@ -50,7 +50,7 @@ export default function AsientosSection({ clinicId }: { clinicId: string }) {
       </div>
 
       {st.requiereActualizar && (
-        <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, border: '1px solid var(--amber, #d97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)' }}>
+        <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)' }}>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 8 }}>
             Tienes <strong>{st.medicos}</strong> médicos pero tu cobro es por <strong>{st.contratados}</strong>. Actualiza para ajustar la suscripción (se prorratea).
           </div>

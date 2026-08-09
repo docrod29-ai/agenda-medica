@@ -94,7 +94,7 @@ export function CabosSueltosDelPaciente(p: CabosSueltosDelPacienteProps) {
 
   return (
     <section style={{
-      border: `1px solid ${urgente ? 'color-mix(in srgb, var(--red) 40%, var(--border))' : 'var(--border)'}`,
+      border: `1px solid ${urgente ? 'color-mix(in srgb, var(--red) 40%, var(--border)' : 'var(--border)'}`,
       borderRadius: 11, background: 'var(--s2)', marginBottom: 20, overflow: 'hidden',
     }}>
       <header style={{

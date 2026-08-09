@@ -175,13 +175,13 @@ export default function MotoresPage() {
           <ShieldCheck size={20} style={{ color: 'var(--teal)' }} />
           <h1 className="t-h1" style={{ margin: 0 }}>Lo que te protege, funcionando</h1>
         </div>
-        <p style={{ margin: 0, fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+        <p style={{ margin: 0, fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
           Cada caja de abajo es una defensa que <strong>falló de verdad</strong> y que ya está
           reparada. Los motores <strong>corren aquí</strong>, en tu navegador, sobre lo que
           escribas: no hay nada grabado. Cambia el texto y mira cómo responden.
         </p>
         <p style={{
-          margin: '10px 0 0', fontSize: 13, color: 'var(--text3)', lineHeight: 1.6,
+          margin: '10px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6,
           paddingLeft: 11, borderLeft: '2px solid var(--border)',
         }}>
           El <strong>«antes»</strong> se cita del registro de reparaciones, no se calcula: ese
@@ -196,7 +196,7 @@ export default function MotoresPage() {
       </div>
 
       <p style={{
-        margin: '24px 0 0', fontSize: 13, color: 'var(--text3)', lineHeight: 1.6,
+        margin: '24px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6,
         textAlign: 'center',
       }}>
         Nueve defensas de las que se repararon esta semana. El registro completo vive en{' '}

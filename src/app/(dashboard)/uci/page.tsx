@@ -910,8 +910,8 @@ export default function UciPanelPage() {
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '9px 14px',
                 fontSize: 13, fontWeight: pestana === k ? 700 : 500, minHeight: 40,
-                color: pestana === k ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
-                borderBottom: `2px solid ${pestana === k ? 'var(--nexus,#3d5afe)' : 'transparent'}`,
+                color: pestana === k ? 'var(--nexus)' : 'var(--text3)',
+                borderBottom: `2px solid ${pestana === k ? 'var(--nexus)' : 'transparent'}`,
                 marginBottom: -1,
               }}
             >
@@ -961,9 +961,9 @@ export default function UciPanelPage() {
                         style={{
                           fontSize: 11.5, fontWeight: 600, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
                           minHeight: 30,
-                          border: `1px solid ${on ? 'var(--nexus,#3d5afe)' : 'var(--border)'}`,
+                          border: `1px solid ${on ? 'var(--nexus)' : 'var(--border)'}`,
                           background: on ? 'rgba(61,90,254,0.14)' : 'transparent',
-                          color: on ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+                          color: on ? 'var(--nexus)' : 'var(--text3)',
                         }}
                       >
                         {SOPORTE_LABEL[sp]}
