@@ -364,7 +364,7 @@ describe('EL TITULAR, QUE ES LO QUE FALTABA', () => {
 })
 
 /**
- * ── «SÓLO PUEDE SEÑALAR DE MENOS, NUNCA DE MÁS» ERA MENTIRA (v1074, REG-192) ──
+ * ── «SÓLO PUEDE SEÑALAR DE MENOS, NUNCA DE MÁS» ERA MENTIRA (v1080, REG-198) ──
  *
  * El módulo lo dice tres veces y una prueba lo repetía. Nadie lo había MEDIDO en
  * la otra dirección: todos los casos existentes comprobaban que el motor cazara
@@ -446,7 +446,7 @@ describe('NUNCA DE MÁS — el corpus escrito al revés', () => {
   it('ninguna cabeza sin calificador puede volver a entrar en el vocabulario', () => {
     /**
      * El guardián, no el parche. Sin esto, la quinta forma suelta que alguien
-     * añada reintroduce REG-192 sin romper ninguna prueba — que es exactamente
+     * añada reintroduce REG-198 sin romper ninguna prueba — que es exactamente
      * como entró ésta.
      */
     for (const c of AGUDAS_FRECUENTES) {

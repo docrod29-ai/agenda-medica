@@ -87,7 +87,7 @@
       "score": 55,
       "estado": "cerrado",
       "reversible": true,
-      "cierre": "CERRADO v1074 (REG-192) — el corpus escrito AL REVÉS es lo que faltaba. Los 30 casos del golden medían que el motor cazara lo que debía y ninguno que NO cazara lo que no; el primer corpus adversarial encontró que «derrame pleural» salía como evento vascular cerebral."
+      "cierre": "CERRADO v1080 (REG-198) — el corpus escrito AL REVÉS es lo que faltaba. Los 30 casos del golden medían que el motor cazara lo que debía y ninguno que NO cazara lo que no; el primer corpus adversarial encontró que «derrame pleural» salía como evento vascular cerebral."
     },
     {
       "id": "EVAL-003",
@@ -114,10 +114,10 @@
     {
       "id": "SAFE-003",
       "titulo": "Las cabezas sueltas del vocabulario crónico fabrican el mismo diagnóstico ajeno",
-      "hallazgo": "Mismo defecto que REG-192, otra lista. `CRONICAS` en negaciones.ts tiene formas a secas cuyo calificador cambia la condición. Reproducido con el motor real: «Tuvo un infarto cerebral en 2019» → ['cardiopatía']; «Le operaron de cáncer de tiroides hace tres años» → ['cáncer','hipotiroidismo','cirugía']; «Tenía nódulo de tiroides» → ['hipotiroidismo'].",
+      "hallazgo": "Mismo defecto que REG-198, otra lista. `CRONICAS` en negaciones.ts tiene formas a secas cuyo calificador cambia la condición. Reproducido con el motor real: «Tuvo un infarto cerebral en 2019» → ['cardiopatía']; «Le operaron de cáncer de tiroides hace tres años» → ['cáncer','hipotiroidismo','cirugía']; «Tenía nódulo de tiroides» → ['hipotiroidismo'].",
       "porQueImporta": "Un aviso que afirma un diagnóstico que nadie dijo, en el segundo de firmar. Y esta lista pesa el doble: decide además QUÉ CUENTA COMO NEGACIÓN, así que una cabeza suelta puede dar por negado algo que el paciente nunca negó.",
       "archivo": "src/lib/expediente/negaciones.ts:56 (CRONICAS: 'infarto', 'tiroides')",
-      "porQueNoSeHizoYa": "Estrecharlo cambia OTRA defensa —qué se considera una negación— y eso es otra decisión, no un efecto secundario de REG-192. Necesita su propio corpus adversarial de negaciones antes de tocar nada.",
+      "porQueNoSeHizoYa": "Estrecharlo cambia OTRA defensa —qué se considera una negación— y eso es otra decisión, no un efecto secundario de REG-198. Necesita su propio corpus adversarial de negaciones antes de tocar nada.",
       "seguridad": 5,
       "integridad": 2,
       "ingreso": 0,
@@ -138,7 +138,7 @@
       "id": "SAFE-004",
       "titulo": "La cistitis intersticial se cuenta como infección urinaria",
       "hallazgo": "padecimientosEn('Tuvo cistitis intersticial hace años.') → ['infección urinaria'].",
-      "porQueImporta": "Sobra el aviso; no fabrica un órgano nuevo, así que pesa mucho menos que REG-192. Pero sigue siendo señalar de más, que es lo que el módulo dice que no puede hacer.",
+      "porQueImporta": "Sobra el aviso; no fabrica un órgano nuevo, así que pesa mucho menos que REG-198. Pero sigue siendo señalar de más, que es lo que el módulo dice que no puede hacer.",
       "archivo": "src/lib/expediente/temporalidad.ts (AGUDAS_FRECUENTES: 'cistitis')",
       "porQueNoSeHizoYa": "Quitar `cistitis` perdería la ITU pasada, que sí es frecuente. Pide una excepción por entidad más específica, que es un mecanismo nuevo — no se estrecha a ciegas.",
       "seguridad": 1,

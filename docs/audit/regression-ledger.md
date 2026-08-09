@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — un derrame pleural salía como evento vascular cerebral (v1074)
+## REG-198 — un derrame pleural salía como evento vascular cerebral (v1080)
 
 **Encontrado** — 7-ago-2026, auditando el motor de temporalidad porque el
 backlog lo pedía (`EVAL-002`: «se construyó en v1027-v1030 y no tiene corpus:

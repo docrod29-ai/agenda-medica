@@ -10,14 +10,14 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-192 (cerrada) — motor de temporalidad, corpus adversarial",
+  "iteracionActual": "REG-198 (cerrada) — motor de temporalidad, corpus adversarial",
   "ramasActivas": [
-    "agent/clinical/REG-192"
+    "agent/clinical/REG-198"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
-  "ultimaVersionEnRama": "nexusmed-v1074 (sin desplegar: el despliegue lo autoriza el dueño)",
+  "ultimaVersionEnRama": "nexusmed-v1080 (sin desplegar: el despliegue lo autoriza el dueño)",
   "notaDeEstado": "Las entradas de este archivo y de BACKLOG.json venían del 4-ago y estaban atrasadas 43 versiones: VOICE-004, SAFE-001 y EVAL-003 llevaban cerradas desde la v1032 y seguían figurando como pendientes. Revisado contra el ledger y corregido el 7-ago-2026.",
-  "siguientePorScore": "SAFE-003 (71) — las cabezas sueltas de CRONICAS, misma familia que REG-192"
+  "siguientePorScore": "SAFE-003 (71) — las cabezas sueltas de CRONICAS, misma familia que REG-198"
 }

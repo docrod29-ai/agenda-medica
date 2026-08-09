@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: un derrame pleural salía como evento vascular cerebral
+## v1080 — REG-198: un derrame pleural salía como evento vascular cerebral
 
 El motor de temporalidad busca cada forma del vocabulario como SUBCADENA, y dos
 formas eran cabezas sin calificador: `derrame` y `trombosis`. Una cabeza sin
@@ -17,7 +17,7 @@ veces que «sólo señala de menos, nunca de más» y nadie lo había medido.
 
 Fuera la cabeza sola; dentro `derrame cerebral`, `trombosis venosa` y `trombosis
 profunda`. Y un guardián —`CABEZAS_QUE_NO_NOMBRAN_SOLAS`— que impide que la
-siguiente forma suelta lo reintroduzca sin romper nada. REG-192.
+siguiente forma suelta lo reintroduzca sin romper nada. REG-198.
 
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 

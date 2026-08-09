@@ -112,7 +112,7 @@ const PRESENTE = new RegExp([
  * falte un padecimiento significa que ese caso no se vigila — **no que se dé por
  * bueno**. Este motor sólo puede señalar de menos, nunca de más.
  *
- * ── Y «NUNCA DE MÁS» ERA MENTIRA (7-ago-2026, REG-192) ───────────────────────
+ * ── Y «NUNCA DE MÁS» ERA MENTIRA (7-ago-2026, REG-198) ───────────────────────
  *
  * `padecimientosEn` busca cada forma como **subcadena**. Dos formas de esta
  * lista eran cabezas sin calificador —`derrame` y `trombosis`— y una cabeza sin
@@ -171,7 +171,7 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
 ]
 
 /**
- * CABEZAS QUE NO NOMBRAN NADA SOLAS — el guardián de REG-192.
+ * CABEZAS QUE NO NOMBRAN NADA SOLAS — el guardián de REG-198.
  *
  * Una palabra entra aquí cuando **calificadores distintos dan condiciones
  * distintas**: un derrame cerebral es un ictus y uno pleural no; una trombosis
