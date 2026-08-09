@@ -78,22 +78,41 @@ en vez de rellenarse con algo que lo pareciera.
 **Regla de esta iteración**: no re-auditar lo que V9 ya midió con método y
 guardián. TRUTH-001 **reconcilia y completa**; no repite.
 
-## Compuertas de esta corrida (9-ago-2026)
+## Corrida del 9-ago-2026 (tarde) — TRUTH-001: capturas + puntuación + axe
 
-- `npx vitest run`: **8 458 pasan · 1 falla preexistente y de entorno**
-  (`ops-timeout-y-punto-ciego`, la misma que documentó V9 en
-  `LAST_SAFE_CHECKPOINT.md`: espera un timeout contra IP no enrutable y el
-  proxy del contenedor falla rápido). Cambio de esta corrida: sólo docs/estado.
-- `lint-trinquete`: **96, igual que el techo.** Sin deuda nueva.
+**Lo que cerró** (era la «próxima acción exacta» y se hizo entera):
+
+1. **Arnés de capturas del golden flow — construido y corriendo** (B-V10-2
+   resuelto): emuladores Auth+Firestore, siembra sintética que ABORTA sin
+   emuladores, `NEXT_PUBLIC_FIREBASE_EMULATORS=1` en `src/lib/firebase.ts`
+   (constante en build: en Vercel el bloque no existe), build de producción,
+   login real y **36 capturas** (9 pantallas × 4 anchos) en
+   `docs/design/capturas/golden-flow/`. Receta: `tests/visual/README.md`.
+2. **Salidas 14 y 15**: `V10_VISUAL_SCORECARD.json` — 5 pantallas puntuadas
+   con ambos anchos inspeccionados (hoy 8.2 · expediente 8.0 · consulta 7.8 ·
+   calendario 6.6 · citas 6.6; generic-AI ≤ 2.5 en todas). 4 quedan
+   declaradas sin puntuar (landing, login, pacientes, pendientes).
+3. **Salida 10**: línea base axe en `docs/design/capturas/axe-linea-base.json`
+   y resumida en `docs/design/ACCESSIBILITY.md` — 2 reglas CRÍTICAS
+   (`button-name` ×8, `label` ×10), 4 serias; pacientes/expediente/pendientes
+   limpias.
+4. **V10-D1 ya decidida y ejecutada** por el dueño (PR #279): B-V10-1 cerrado,
+   V10-DEBT-001/002 desbloqueadas.
+
+**El hallazgo que manda**: la agenda en móvil está ROTA (citas conserva la
+rejilla de escritorio con botones fuera de pantalla; calendario mete 7 columnas
+en 390 px). Registrado como `V10-AGENDA-MOVIL` (P1) con capturas. HOME-001 en
+cambio SÍ se apila — verificado en navegador por primera vez.
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. **Arnés de capturas del golden flow**: levantar emuladores Auth+Firestore
-   (`demo-nexusmed-test`), sembrar paciente/citas sintéticos, iniciar sesión y
-   capturar las pantallas del golden flow en 1440×900, 1024, 768 y 390×844
-   (V10 §39). Método base ya probado — ver `V10_BLOCKERS.md` B-V10-2.
-2. Con capturas: puntuar pantallas críticas con `V10_VISUAL_RUBRIC.md` →
-   `V10_VISUAL_SCORECARD.json` (salidas 14 y 15).
-3. Línea base de accesibilidad sobre esas mismas pantallas (salida 10).
-4. Revisar si el dueño ya decidió V10-D1 (fusión de la rama V9); si sí,
-   desbloquear V10-DEBT-001/002.
+1. **`V10-AGENDA-MOVIL` (P1)**: vista móvil nativa de Citas (tarjeta apilada,
+   acciones dentro del viewport, una sola representación de fecha) y vista
+   día por defecto del Calendario en móvil. Con capturas antes/después del
+   mismo arnés y prueba tipo «cabe-en-un-telefono» que falle con la rejilla
+   fija (probada al revés).
+2. **`V10-A11Y-CRITICOS` (P1)**: nombre accesible a los 8 botones, etiqueta a
+   los 10 campos; re-correr `linea-base-axe.mjs` y actualizar la línea base.
+3. Puntuar las 4 pantallas restantes del scorecard (capturas ya tomadas).
+4. El servidor/emuladores del arnés NO quedan corriendo entre corridas: se
+   relevantan con la receta de `tests/visual/README.md`.

@@ -23,7 +23,8 @@
       "PATIENT-COMPANION-001 (5d496cf, REG-280/281)"
     ],
     "ramaV9": "origin/claude/nexus-patient-ux-v9 (6feaf5a; 8 adelante, 48 atrás de main)",
-    "regla": "V10 NO duplica ni revierte ese trabajo. Las unidades V10 que toquen sistema de diseño, navegación o compañero del paciente esperan la fusión de V9 o se rebasan sobre ella (V10 §41). La decisión de fusionar es del dueño — ver V10_OWNER_DECISIONS_REQUIRED.md."
+    "regla": "CUMPLIDA: la fusión ocurrió. V10 construye sobre main, que ya trae el sistema de diseño real.",
+    "fusionada": "2026-08-09 — V10-D1 ejecutada: d088c34 + PR #279 (56d9fc7). DESIGN-SYSTEM-001, NAVIGATION-001 y PATIENT-COMPANION-001 están en main; REG renumeradas a 291…305."
   },
   "documentosValidadosPreexistentes": {
     "inventarioPantallas": "docs/design/SCREEN_INVENTORY.md (GENERADO por scripts/design/inventario-de-pantallas.mjs — no editar a mano)",
@@ -32,5 +33,10 @@
     "auditoriaProducto": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
     "sistemaDeDiseno": "docs/DESIGN_SYSTEM.md (fuente de verdad visual hoy)",
     "matricesCompetitivas": "docs/competitive/UX_UI_MATRIX.md · docs/competitive/PATIENT_EXPERIENCE_MATRIX.md · docs/competitive/EL-FOSO.md"
+  },
+  "arnesCapturas": {
+    "estado": "operativo desde 2026-08-09",
+    "receta": "tests/visual/README.md",
+    "evidencia": "docs/design/capturas/golden-flow/ (36 PNG) + docs/design/capturas/axe-linea-base.json"
   }
 }

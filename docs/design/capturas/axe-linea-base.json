@@ -1,0 +1,262 @@
+{
+  "fecha": "2026-08-09T21:30:47.912Z",
+  "base": "http://localhost:3000",
+  "pantallas": [
+    {
+      "pantalla": "landing",
+      "viewport": "escritorio",
+      "violaciones": [
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 2,
+          "ejemplo": "div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1)"
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impacto": "serious",
+          "descripcion": "Scrollable region must have keyboard access",
+          "nodos": 1,
+          "ejemplo": "#como-funciona > div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+        }
+      ]
+    },
+    {
+      "pantalla": "login",
+      "viewport": "escritorio",
+      "violaciones": [
+        {
+          "id": "target-size",
+          "impacto": "serious",
+          "descripcion": "All touch targets must be 24px large, or leave sufficient space",
+          "nodos": 1,
+          "ejemplo": "button[aria-label=\"Mostrar la contraseña\"]"
+        }
+      ]
+    },
+    {
+      "pantalla": "hoy",
+      "viewport": "escritorio",
+      "violaciones": [
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 6,
+          "ejemplo": "a[href=\"/citas?id=cita-sint-01\"] > div:nth-child(1) > div:nth-child(2)"
+        }
+      ]
+    },
+    {
+      "pantalla": "calendario",
+      "viewport": "escritorio",
+      "violaciones": [
+        {
+          "id": "button-name",
+          "impacto": "critical",
+          "descripcion": "Buttons must have discernible text",
+          "nodos": 2,
+          "ejemplo": ".btn-ghost.btn-icon.btn:nth-child(4)"
+        },
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 5,
+          "ejemplo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]"
+        },
+        {
+          "id": "nested-interactive",
+          "impacto": "serious",
+          "descripcion": "Interactive controls must not be nested",
+          "nodos": 5,
+          "ejemplo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)"
+        }
+      ]
+    },
+    {
+      "pantalla": "citas",
+      "viewport": "escritorio",
+      "violaciones": [
+        {
+          "id": "button-name",
+          "impacto": "critical",
+          "descripcion": "Buttons must have discernible text",
+          "nodos": 2,
+          "ejemplo": "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(1)"
+        },
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 4,
+          "ejemplo": ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+        },
+        {
+          "id": "label",
+          "impacto": "critical",
+          "descripcion": "Form elements must have labels",
+          "nodos": 1,
+          "ejemplo": "input[type=\"date\"]"
+        }
+      ]
+    },
+    {
+      "pantalla": "pacientes",
+      "viewport": "escritorio",
+      "violaciones": []
+    },
+    {
+      "pantalla": "expediente",
+      "viewport": "escritorio",
+      "violaciones": []
+    },
+    {
+      "pantalla": "consulta",
+      "viewport": "escritorio",
+      "violaciones": [
+        {
+          "id": "label",
+          "impacto": "critical",
+          "descripcion": "Form elements must have labels",
+          "nodos": 4,
+          "ejemplo": "div:nth-child(8) > textarea[placeholder=\"\"]"
+        }
+      ]
+    },
+    {
+      "pantalla": "pendientes",
+      "viewport": "escritorio",
+      "violaciones": []
+    },
+    {
+      "pantalla": "landing",
+      "viewport": "movil",
+      "violaciones": [
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 2,
+          "ejemplo": "div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1)"
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impacto": "serious",
+          "descripcion": "Scrollable region must have keyboard access",
+          "nodos": 1,
+          "ejemplo": "#como-funciona > div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+        }
+      ]
+    },
+    {
+      "pantalla": "login",
+      "viewport": "movil",
+      "violaciones": [
+        {
+          "id": "target-size",
+          "impacto": "serious",
+          "descripcion": "All touch targets must be 24px large, or leave sufficient space",
+          "nodos": 1,
+          "ejemplo": "button[aria-label=\"Mostrar la contraseña\"]"
+        }
+      ]
+    },
+    {
+      "pantalla": "hoy",
+      "viewport": "movil",
+      "violaciones": [
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 6,
+          "ejemplo": "a[href=\"/citas?id=cita-sint-01\"] > div:nth-child(1) > div:nth-child(2)"
+        }
+      ]
+    },
+    {
+      "pantalla": "calendario",
+      "viewport": "movil",
+      "violaciones": [
+        {
+          "id": "button-name",
+          "impacto": "critical",
+          "descripcion": "Buttons must have discernible text",
+          "nodos": 2,
+          "ejemplo": ".btn-ghost.btn-icon.btn:nth-child(4)"
+        },
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 5,
+          "ejemplo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]"
+        },
+        {
+          "id": "nested-interactive",
+          "impacto": "serious",
+          "descripcion": "Interactive controls must not be nested",
+          "nodos": 5,
+          "ejemplo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)"
+        }
+      ]
+    },
+    {
+      "pantalla": "citas",
+      "viewport": "movil",
+      "violaciones": [
+        {
+          "id": "button-name",
+          "impacto": "critical",
+          "descripcion": "Buttons must have discernible text",
+          "nodos": 2,
+          "ejemplo": "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(1)"
+        },
+        {
+          "id": "color-contrast",
+          "impacto": "serious",
+          "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 2,
+          "ejemplo": ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+        },
+        {
+          "id": "label",
+          "impacto": "critical",
+          "descripcion": "Form elements must have labels",
+          "nodos": 1,
+          "ejemplo": "input[type=\"date\"]"
+        }
+      ]
+    },
+    {
+      "pantalla": "pacientes",
+      "viewport": "movil",
+      "violaciones": []
+    },
+    {
+      "pantalla": "expediente",
+      "viewport": "movil",
+      "violaciones": []
+    },
+    {
+      "pantalla": "consulta",
+      "viewport": "movil",
+      "violaciones": [
+        {
+          "id": "label",
+          "impacto": "critical",
+          "descripcion": "Form elements must have labels",
+          "nodos": 4,
+          "ejemplo": "div:nth-child(8) > textarea[placeholder=\"\"]"
+        }
+      ]
+    },
+    {
+      "pantalla": "pendientes",
+      "viewport": "movil",
+      "violaciones": []
+    }
+  ]
+}

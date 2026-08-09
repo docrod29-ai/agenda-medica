@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
-  getFirestore, initializeFirestore,
+  getFirestore, initializeFirestore, connectFirestoreEmulator,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore'
@@ -57,6 +57,19 @@ export const db = typeof window !== 'undefined'
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+// ── Emuladores locales (arnés de capturas y pruebas — NUNCA producción) ──────
+// NEXT_PUBLIC_FIREBASE_EMULATORS=1 conecta Auth y Firestore a los emuladores de
+// `firebase emulators:start --project demo-nexusmed-test`. La variable no existe
+// en Vercel, así que en producción este bloque se elimina en build (la condición
+// es una constante). El try/catch cubre el doble-connect del hot reload de dev,
+// que lanza si el cliente ya hizo una operación.
+if (process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1') {
+  try {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+    connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  } catch { /* ya conectados (hot reload) */ }
+}
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.

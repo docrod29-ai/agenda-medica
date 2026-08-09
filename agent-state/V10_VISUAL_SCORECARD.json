@@ -5,6 +5,54 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "capturadoEl": "2026-08-09",
+  "evidencia": "docs/design/capturas/golden-flow/ — 9 pantallas × 4 anchos (1440×900, 1024×768, 768×1024, 390×844), sesión autenticada, datos sintéticos de tests/visual/sembrar-sintetico.mjs, build de producción",
+  "dimensiones": ["jerarquia", "claridad", "coherencia", "tipografia", "espaciado", "densidad", "interaccion", "responsive", "accesibilidad", "rendimientoPercibido", "confianzaClinica", "originalidad"],
+  "pantallas": [
+    {
+      "pantalla": "hoy (/dashboard)",
+      "capturas": ["03-hoy--1440x900.png", "03-hoy--390x844.png"],
+      "puntuaciones": { "jerarquia": 8.5, "claridad": 8.5, "coherencia": 8, "tipografia": 8.5, "espaciado": 8, "densidad": 8, "interaccion": 8, "responsive": 8.5, "accesibilidad": 7.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8.5, "originalidad": 7.5 },
+      "promedio": 8.2,
+      "genericAiLook": 1.5,
+      "justificacion": "HOME-001 verificada por fin en navegador: contesta ¿quién sigue?/¿qué necesita atención?/¿qué pasa hoy? en ese orden y SE APILA a 390 px. El saludo editorial con serif y la línea de resumen con color sólo en lo accionable son identidad, no decoración. Contra: en móvil el botón flotante de ayuda TAPA la píldora «Atendida» de la primera cita; la cabecera móvil dice «Agenda Médica» (marca vieja) y no NexusMED; 1 violación seria de contraste (axe); la línea de resumen parte «1 por confirmar» en dos renglones con «Ver todas» incrustado."
+    },
+    {
+      "pantalla": "calendario (/calendario)",
+      "capturas": ["04-calendario--1440x900.png", "04-calendario--390x844.png"],
+      "puntuaciones": { "jerarquia": 7.5, "claridad": 7, "coherencia": 7.5, "tipografia": 7.5, "espaciado": 7.5, "densidad": 6.5, "interaccion": 6.5, "responsive": 3, "accesibilidad": 5.5, "rendimientoPercibido": 8, "confianzaClinica": 7, "originalidad": 6 },
+      "promedio": 6.6,
+      "genericAiLook": 1.5,
+      "justificacion": "Escritorio: semana limpia, color con moderación (§15 se cumple ahí), estados de cita distinguibles. MÓVIL ROTO: la vista semanal mete 7 columnas en 390 px — chips truncados a «09:0», días de ~45 px, imposible de tocar con precisión; no hay vista día nativa por defecto (§15 exige vista móvil nativa; constitución 39 prohíbe escritorio encogido). axe: botones sin nombre accesible + controles interactivos anidados (role=button dentro de role=button) — teclado comprometido."
+    },
+    {
+      "pantalla": "citas (/citas)",
+      "capturas": ["05-citas--1440x900.png", "05-citas--390x844.png"],
+      "puntuaciones": { "jerarquia": 7, "claridad": 7.5, "coherencia": 7, "tipografia": 7.5, "espaciado": 7, "densidad": 7, "interaccion": 6.5, "responsive": 2.5, "accesibilidad": 5.5, "rendimientoPercibido": 8, "confianzaClinica": 7.5, "originalidad": 6 },
+      "promedio": 6.6,
+      "genericAiLook": 2.5,
+      "justificacion": "Escritorio funcional: buscador, filtros por estado, acciones por fila. Pero cada fila lleva 3 botones de color pleno (Cobrar verde, Consulta azul, Recordar verde) + 3 iconos — todo pesa lo mismo (§9 «buttons with equal emphasis», «every action presented as a button»). MÓVIL ROTO: la fila conserva la rejilla de escritorio — el nombre cae palabra por palabra en columna angosta, los botones se SALEN del viewport (Cobrar cortado a «Cob»), la cabecera de fecha parte «2026-08-09» en dos renglones y el input nativo muestra «08/09/2026» (formato MM/DD gringo junto a ISO — dos formatos de fecha en el mismo renglón, §28). axe: botones sin nombre + input de fecha sin etiqueta (crítico). El microcopy «1 pendientes» no concuerda en número."
+    },
+    {
+      "pantalla": "expediente (/expediente/[id])",
+      "capturas": ["07-expediente--1440x900.png", "07-expediente--390x844.png"],
+      "puntuaciones": { "jerarquia": 8, "claridad": 8, "coherencia": 8, "tipografia": 8, "espaciado": 8, "densidad": 8, "interaccion": 8, "responsive": 7.5, "accesibilidad": 8.5, "rendimientoPercibido": 8, "confianzaClinica": 8.5, "originalidad": 7.5 },
+      "promedio": 8.0,
+      "genericAiLook": 1.5,
+      "justificacion": "La banda de alergias arriba del todo y ANTES que la identidad es exactamente la jerarquía clínica correcta (§16); el estado vacío de notas enseña la acción siguiente (§26). axe: 0 violaciones. Contra: en móvil las 3 acciones secundarias (Carta, Expediente completo, FHIR) van ANTES del CTA primario «Nueva consulta con IA» — jerarquía invertida a una pantalla de pulgar; «FHIR» es jerga sin traducción para el médico (§28); el FAB de ayuda tapa la tarjeta de Actividad; la edad no se muestra pese a existir fecha de nacimiento (§16 pide edad cuando es clínicamente relevante)."
+    },
+    {
+      "pantalla": "consulta (/consulta/[id])",
+      "capturas": ["08-consulta--1440x900.png", "08-consulta--390x844.png"],
+      "puntuaciones": { "jerarquia": 8, "claridad": 7.5, "coherencia": 7.5, "tipografia": 8, "espaciado": 8, "densidad": 8, "interaccion": 8, "responsive": 8, "accesibilidad": 7, "rendimientoPercibido": 8, "confianzaClinica": 7.5, "originalidad": 8 },
+      "promedio": 7.8,
+      "genericAiLook": 1.5,
+      "justificacion": "El grabador es el héroe de la pantalla con un solo CTA («Grabar la consulta / Capta a los dos y separa las voces») — §18 bien resuelto, también en móvil. Signos vitales con unidad pegada al campo (§21). Contra: la alergia sale DOS veces (banda roja arriba + píldora bajo el nombre) — encabezado duplicado (§9); «Alergias: Ninguna conocida» pintada en banda ROJA de peligro es una señal de alarma para un no-hallazgo — desgasta la alarma para cuando sí haya anafilaxia (§37 «are warnings overused?»); axe: campo sin etiqueta (crítico)."
+    }
+  ],
+  "sinPuntuar": {
+    "razon": "Sin inspección visual completa (escritorio Y móvil) en esta corrida — la rúbrica prohíbe puntuar sin mirar ambas. Capturas ya tomadas, puntuación en la siguiente corrida.",
+    "pantallas": ["landing (/)", "login (/login)", "pacientes (/pacientes) — escritorio inspeccionado: estado vacío de «Recientes» correcto; la barra lateral resalta «Consulta» estando en /pacientes (etiqueta↔ruta inconsistente)", "pendientes (/pendientes)"]
+  },
+  "lecturaGlobal": "Promedio de las 5 puntuadas: 7.4 — lejos de la meta 9.3, y las dos pantallas de agenda (calendario 6.6, citas 6.6) son las peores por su vista móvil rota. La identidad NO parece IA genérica (generic-AI ≤ 2.5 en todo lo visto; la landing y el sistema oscuro son distintivos). El trabajo que más sube el promedio: móvil de citas/calendario (V10-AGENDA-001) y los 2 críticos de axe."
 }

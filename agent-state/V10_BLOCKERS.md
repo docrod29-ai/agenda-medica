@@ -3,7 +3,13 @@
 > Un blocker no detiene el programa: se documenta, se recomienda el mejor
 > default y se sigue con otra tarea (V10 §5, §42).
 
-## B-V10-1 · Trabajo V9 validado sin fusionar (afecta la secuencia V10)
+## B-V10-1 · Trabajo V9 validado sin fusionar — **RESUELTO 9-ago-2026**
+
+El dueño decidió V10-D1: la fusión se ejecutó (`d088c34`, REG renumeradas a
+291…305) y entró a main por el PR #279 (`56d9fc7`). V10-DEBT-001/002 quedan
+desbloqueadas. Detalle histórico abajo.
+
+## B-V10-1 (histórico) · Trabajo V9 validado sin fusionar (afecta la secuencia V10)
 
 `origin/claude/nexus-patient-ux-v9` (6feaf5a) lleva **8 commits que main no
 tiene**: DESIGN-SYSTEM-001 (REG-274/275), NAVIGATION-001 (REG-276…279) y
@@ -17,7 +23,17 @@ PATIENT-COMPANION-001 (REG-280/281). La rama está 48 commits detrás de main.
   toca esos archivos.
 - **Decisión**: del dueño — registrada en `V10_OWNER_DECISIONS_REQUIRED.md`.
 
-## B-V10-2 · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
+## B-V10-2 · Capturas de pantalla reales — **RESUELTO 9-ago-2026**
+
+El arnés completo existe y corrió: emuladores Auth+Firestore
+(`demo-nexusmed-test`), siembra sintética (`tests/visual/sembrar-sintetico.mjs`
+— aborta sin emuladores), conexión de la app detrás de
+`NEXT_PUBLIC_FIREBASE_EMULATORS=1` (`src/lib/firebase.ts`), build de
+producción, 36 capturas autenticadas (9 pantallas × 4 anchos) en
+`docs/design/capturas/golden-flow/` y línea base axe. Receta completa:
+`tests/visual/README.md`. Detalle histórico abajo.
+
+## B-V10-2 (histórico) · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
 
 Intento del 9-ago-2026, en esta corrida:
 

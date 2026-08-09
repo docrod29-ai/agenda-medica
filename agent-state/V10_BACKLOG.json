@@ -53,6 +53,72 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
+      "estado": "cerrado-2026-08-09",
+      "cierre": "Arnés de emuladores + siembra sintética + 36 capturas (9 pantallas × 4 anchos) + axe. Puntuadas 5/9 pantallas con ambos anchos inspeccionados; landing/login/pacientes/pendientes quedan para la siguiente corrida."
+    },
+    {
+      "id": "V10-AGENDA-MOVIL",
+      "titulo": "Citas y Calendario ROTOS a 390 px: la fila de citas conserva la rejilla de escritorio (botones fuera del viewport, nombre palabra por palabra); el calendario mete la semana de 7 columnas en el teléfono sin vista día nativa",
+      "fuente": "capturas 05-citas--390x844.png y 04-calendario--390x844.png (9-ago-2026)",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CRITICOS",
+      "titulo": "axe críticos: 8 botones sin nombre accesible (calendario, citas) y 10 campos sin etiqueta (citas, consulta — incluye input[type=date])",
+      "fuente": "docs/design/capturas/axe-linea-base.json",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001",
+      "estado": "abierto",
+      "nota": "El mínimo «campo sin etiqueta» ya falla la compuerta de .claude/rules/design-system.md — es deuda que la compuerta aún no ve porque no corre sobre DOM"
+    },
+    {
+      "id": "V10-FAB-SOLAPA",
+      "titulo": "El botón flotante de ayuda (y el conmutador de tema) tapan contenido en móvil: la píldora «Atendida» en Hoy, el botón Cobrar en Citas, la tarjeta Actividad en Expediente",
+      "fuente": "capturas 03/05/07 @390x844",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONSULTA-ALERGIA",
+      "titulo": "La alergia sale dos veces en Consulta (banda + píldora) y «Ninguna conocida» se pinta en banda ROJA de peligro — alarma para un no-hallazgo, desgasta la señal (§37)",
+      "fuente": "captura 08-consulta--1440x900.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MARCA-CABECERA-MOVIL",
+      "titulo": "La cabecera móvil dice «Agenda Médica» (marca vieja) en toda la app autenticada; el escritorio dice NexusMED/consultorio",
+      "fuente": "capturas @390x844",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONTENIDO-FECHAS",
+      "titulo": "Microcopy y fechas: «1 pendientes» (concordancia), «Hoy 2026-08-09» junto a input nativo «08/09/2026» (MM/DD vs ISO en el mismo renglón)",
+      "fuente": "captura 05-citas--1440x900.png",
+      "prioridad": "P3",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-CTA-MOVIL",
+      "titulo": "Expediente móvil: 3 acciones secundarias antes del CTA primario «Nueva consulta con IA»; «FHIR» como etiqueta de cara al médico; la edad no se muestra aunque hay fecha de nacimiento",
+      "fuente": "captura 07-expediente--390x844.png",
+      "prioridad": "P3",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-NAV-ETIQUETA-PACIENTES",
+      "titulo": "La barra lateral resalta «Consulta» estando en /pacientes — etiqueta y ruta no se corresponden",
+      "fuente": "captura 06-pacientes--1440x900.png",
+      "prioridad": "P3",
+      "unidadV10": "V10-SHELL-001",
       "estado": "abierto"
     }
   ]
