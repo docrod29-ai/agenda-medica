@@ -694,4 +694,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
 | 2026-08-08 | **Los tres P0 de audio** | `7be23e9` · `2340e63` | Volver a grabar ya no borra la grabación anterior · navegar no termina la grabación · dictar cuenta como actividad | **283, 284, 287** |
-| 2026-08-09 | **`PATIENT-TELE-002`** | *(esta sesión)* | El enlace de la videoconsulta viaja por WhatsApp con su token · la revocación llega a la sala · tableros reconciliados. **Cero P0 abiertos en V9** | **291** |
+| 2026-08-09 | **`PATIENT-TELE-002`** | `4852e23` | El enlace de la videoconsulta viaja por WhatsApp con su token · la revocación llega a la sala · tableros reconciliados. **Cero P0 abiertos en V9** | **291** |

@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-gxalc8` |
 | **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
-| **SHA de cierre** | *(el commit de esta unidad; ver `git log -1`)* |
+| **SHA de cierre** | `4852e23` |
 | **Unidad cerrada** | **`PATIENT-TELE-002`** — el último P0 abierto de V9 |
 | **Siguiente unidad** | **`DESIGN-SYSTEM-001`** (iteración 1 de §1 de la directiva) |
 
