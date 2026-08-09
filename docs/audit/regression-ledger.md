@@ -6445,3 +6445,104 @@ sin deuda nueva** · `npx tsc --noEmit` **limpio**.
 `git revert` del commit. Las tres rutas vuelven a su comportamiento anterior; no
 hay migración ni dato escrito que deshacer. La colección `rate_limits` ya existía
 y la comparten las rutas que ya limitaban.
+
+## REG-293 — la hoja del paciente se entregaba desde un borrador a medio dictar (V7 · POSTVISIT-GATE-001)
+
+**Cómo se descubrió**: la auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026) lo
+dejó anotado en `agent-state/BACKLOG.json` con score 63. Lo cierra V7.
+
+**El hecho**: `HojaParaElPaciente` se montaba con el estado **vivo** de
+`medicamentos` y `estudiosOrden`. La única guarda era `{!esNotaHospital}`. Justo
+encima, en la misma pantalla y a veinte líneas, `ComoCerrarLaConsulta` sí exigía
+`{firmada && …}`.
+
+El médico podía componer la hoja a media consulta, pulsar «Copiar» y mandarla por
+WhatsApp. Lo que el paciente se llevaba a casa no era lo que el médico había
+revisado: era lo que hubiera en pantalla en ese segundo.
+
+**Causa raíz**: la cabecera del módulo afirmaba —desde REG-242— que cada línea
+sale de un campo que el médico «ya revisó y firmó». Era **intención de diseño
+escrita en un comentario**, y un comentario no es una precondición. Nada lo
+comprobaba. Es la hermana de la familia `no_conectado`: no es que el código
+estuviera mal, es que la condición que el texto daba por cierta no existía.
+
+**Por qué no lo delató ninguna prueba**: las de REG-242 cubren el **motor** —qué
+dice la hoja— y el motor siempre estuvo bien. El defecto estaba en **cuándo** se
+puede entregar lo que el motor compone. Ninguna prueba miraba eso.
+
+**La regla que lo hace seguro**: `patient-facing-ai.md` §4 — firmar y entregar
+son **dos actos**. Firmar es medicolegal, hacia el expediente; entregar es
+comunicación, hacia el paciente. El estado se **deriva** de la firma
+(`estadoDeLaHoja`) y sin `RELEASED` no se entrega. **Fail-closed**: cualquier
+cosa que no sea `true` es borrador, así que una prop olvidada en un sitio de
+llamada nuevo no puede convertirse en «entregable».
+
+### Se sigue enseñando, lo que se cierra es la entrega
+
+No se esconde la hoja sin firmar: el médico necesita ver qué se está componiendo
+mientras dicta, y §4 de la regla dice que un `DRAFT` no es visible **para el
+paciente** — el médico es justo quien lo revisa. Lo que se cierra es copiar e
+imprimir, y la hoja se marca como borrador.
+
+### El aviso de borrador SE IMPRIME, y ésa es la mitad que se olvida
+
+Deshabilitar los botones sólo cierra el camino de esa pantalla. El médico puede
+darle a Ctrl+P del navegador, y la página de consulta esconde todos los `button`
+al imprimir:
+
+```css
+@media print { button, textarea:disabled { display: none; } }
+```
+
+Sin un aviso que imprima, el papel de un borrador saldría **idéntico** a uno
+entregable. Por eso el aviso no lleva `no-print`. Es «el dato tiene que LLEGAR»
+aplicado al revés: no comprobar que algo llega, sino que la advertencia no se
+quede por el camino.
+
+Además la puerta va en el manejador, no sólo en el `disabled`: un `disabled` se
+quita desde las herramientas del navegador, y deshabilitar un control es decorar,
+no impedir.
+
+### Probado al revés — cinco defectos inyectados, cinco fallos
+
+| Defecto inyectado | Prueba que se puso roja |
+|---|---|
+| Quitar la guarda del manejador de copiar | «se cierran en el manejador, no sólo en el atributo» |
+| `notaFirmada?: boolean` (opcional otra vez) | «`notaFirmada` es OBLIGATORIA» |
+| El sitio de llamada deja de pasar la firma | «la pantalla de consulta le pasa la firma de verdad» |
+| Marcar el aviso de borrador con `no-print` | «el aviso NO lleva la clase que lo quitaría del papel» |
+| `notaFirmada ?` en vez de `=== true` | 5 casos de «cualquier cosa que no sea `true` es DRAFT» |
+
+### Qué NO cubre
+
+- **No se ha abierto un navegador.** `design-system.md` exige recorrer el flujo
+  de verdad y eso sigue pendiente (`NAV-NAVEGADOR-001`, bloqueado por
+  credenciales de Firebase en este contenedor).
+- **No cubre el portal del paciente**: hoy la hoja no llega ahí por ningún camino
+  (`POSTVISIT-ENTREGA-001`, abierto). Cuando llegue, la compuerta tendrá que
+  vivir **en el servidor** — §3 de `patient-facing-ai.md`: la prohibición no
+  puede vivir sólo en la pantalla.
+- **No es el `PatientVisitPackage` completo** de V9: no hay `approvedAt`,
+  `approvedBy` ni `version`. Es su cimiento, no el paquete.
+
+### Archivos
+
+- `src/lib/paciente/como-se-lo-explico.ts` — `estadoDeLaHoja`, `sePuedeEntregar`
+- `src/components/HojaParaElPaciente.tsx`
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts` (nuevo, 12 casos declarados · 20 en ejecución, porque un `it.each` de 9 cuenta como uno para el sello)
+
+### Compuertas
+
+`npx vitest run` **8 489 pasan** · 1 fallo **preexistente y de entorno**
+(`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando
+que expire, y tras el proxy de este contenedor falla rápido — comprobado en
+`HEAD` limpio con los cambios guardados aparte: falla igual) · `lint-trinquete`
+**96, el techo, sin deuda nueva** · `npx tsc --noEmit` **limpio** — y eso prueba
+que no queda ningún otro sitio de llamada sin compuerta, porque la prop es
+obligatoria · `npm run build` **compila**.
+
+### Rollback
+
+`git revert` del commit. No hay migración ni dato escrito que deshacer: la
+compuerta es de presentación y el motor sigue siendo puro.

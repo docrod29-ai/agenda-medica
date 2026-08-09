@@ -18,19 +18,18 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M src/app/api/payment/create-checkout/route.ts",
-    " M src/app/api/portal/route.ts",
-    " M src/app/api/public/resena/route.ts",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/components/HojaParaElPaciente.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md",
-    "?? src/__tests__/checkout-limite-de-tasa.test.ts",
-    "?? src/__tests__/portal-limite-de-tasa.test.ts",
-    "?? src/__tests__/resena-limite-de-tasa.test.ts"
+    " M src/lib/paciente/como-se-lo-explico.ts",
+    "?? src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -64,10 +63,10 @@
   ],
   "ramaActual": "claude/clever-lamport-3fkemu",
   "derivado": {
-    "regsEnElLedger": 139,
-    "ultimaREG": "REG-291",
-    "archivosDePrueba": 569,
-    "casosDePrueba": 7471,
+    "regsEnElLedger": 140,
+    "ultimaREG": "REG-293",
+    "archivosDePrueba": 570,
+    "casosDePrueba": 7483,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

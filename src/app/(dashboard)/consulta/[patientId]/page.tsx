@@ -5125,11 +5125,20 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
+      {/*
+        Y NO SE ENTREGA HASTA QUE ESTÉ FIRMADA (REG-293).
+
+        Se sigue ENSEÑANDO sin firmar —el médico necesita ver qué se está
+        componiendo mientras dicta—, pero copiar e imprimir quedan cerrados y
+        la hoja se marca como borrador. Firmar y entregar son dos actos:
+        `patient-facing-ai.md` §4.
+      */}
       {!esNotaHospital && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
           proximaCita={undefined}
+          notaFirmada={firmada}
         />
       )}
 

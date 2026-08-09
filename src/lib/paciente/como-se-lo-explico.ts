@@ -168,6 +168,51 @@ export function comoTexto(bloques: readonly BloqueInstrucciones[]): string {
     .join('\n\n')
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * LA COMPUERTA DE FIRMA — REG-293.
+ *
+ * La cabecera de este módulo lleva desde REG-242 afirmando que cada línea sale
+ * de un campo que el médico «ya revisó y firmó». Era **intención de diseño, no
+ * precondición**: nada lo comprobaba. La hoja se componía del borrador EN CURSO
+ * y se podía copiar al portapapeles a medio dictar.
+ *
+ * Firmar y entregar son DOS ACTOS (regla `patient-facing-ai.md` §4). Firmar es
+ * medicolegal, hacia el expediente; entregar es comunicación, hacia el
+ * paciente. Se pueden hacer seguidos, pero el segundo no puede ocurrir sin el
+ * primero.
+ *
+ * Esto es la semilla del `PatientVisitPackage` que pide V9: el estado nace
+ * DRAFT y sólo pasa a RELEASED con la firma.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export type EstadoDeLaHoja = 'DRAFT' | 'RELEASED'
+
+/**
+ * El estado de la hoja se DERIVA de la firma de la nota. No es un campo que
+ * alguien ponga a mano: un segundo sitio donde el dato se repite es la familia
+ * `depende_de_recordar`, y acabaría desfasado.
+ *
+ * Cualquier cosa que no sea `true` es DRAFT — fail-closed. Un `undefined` por
+ * una prop que nadie pasó no puede convertirse en «entregable».
+ */
+export function estadoDeLaHoja(notaFirmada: unknown): EstadoDeLaHoja {
+  return notaFirmada === true ? 'RELEASED' : 'DRAFT'
+}
+
+/** Sólo se entrega lo liberado. Es la única puerta; no hay una segunda. */
+export function sePuedeEntregar(estado: EstadoDeLaHoja): boolean {
+  return estado === 'RELEASED'
+}
+
+export const AVISO_BORRADOR =
+  'BORRADOR — no se entrega. La nota todavía no está firmada.'
+
+export const POR_QUE_FIRMAR_Y_ENTREGAR_SON_DOS_ACTOS =
+  'Firmar es un acto medicolegal hacia el expediente; entregar es un acto de ' +
+  'comunicación hacia el paciente. Se pueden hacer seguidos, pero el segundo ' +
+  'no puede ocurrir sin el primero: lo que el paciente se lleva a casa tiene ' +
+  'que ser lo que el médico revisó, no lo que había a medio dictar.'
+
 export const POR_QUE_SE_COMPONE_Y_NO_SE_GENERA =
   'Un modelo que redacta instrucciones puede añadir un consejo que el médico no ' +
   'dio. En un papel con su membrete, eso es una indicación médica que nadie ' +

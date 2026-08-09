@@ -32,18 +32,31 @@ Instalado desde el adjunto del dueño, **íntegro y verificado**: 2 290 líneas,
 idéntico byte a byte al adjunto. No se resumió, no se reescribió, no se
 reinterpretó.
 
-**Iteración cerrada**: `PATIENT-PORTAL-001` → **REG-291**. Ver el ledger.
+**Iteraciones cerradas en esta corrida**:
+
+1. `PATIENT-PORTAL-001` → **REG-291**. Límite de tasa en las tres rutas que no
+   lo tenían.
+2. `POSTVISIT-GATE-001` → **REG-293**. La hoja del paciente no se entrega sin
+   firma. Comprobado antes de empezar que V9 **no** lo tenía abierto: sus
+   unidades vivas son `PATIENT-COMPANION-001`, `NAVIGATION-001` y
+   `DESIGN-SYSTEM-001`.
+
+**REG-292 lo tomó otra rutina** en `agent/v7/master-loop` mientras ésta corría.
+Por eso el número siguiente se saca de `scripts/estado-de-las-ramas.mjs` sobre
+**todas** las ramas, nunca de `main`: desde `main` los dos disparos habrían
+elegido 291.
 
 **Siguiente por el algoritmo §7** (los tres P0 de audio ya están cerrados por V9
 en v1158/v1161 — **no se rehacen**):
 
-1. `POSTVISIT-GATE-001` (63) — la hoja del paciente se compone del borrador en
-   curso, sin compuerta de firma. Es el cimiento `DRAFT→RELEASED` de V9: **antes
-   de tocarlo hay que comprobar si V9 ya lo tiene abierto**, o los dos programas
-   se pisan.
-2. `POSTVISIT-ENTREGA-001` (60) — la hoja no llega nunca al paciente.
-3. `PATIENT-TELE-002` (55) — el enlace de videoconsulta que viaja por WhatsApp
+1. `POSTVISIT-ENTREGA-001` (60) — la hoja no llega nunca al paciente: dos
+   botones, portapapeles e impresora, y nada en `/mi/[token]` ni en
+   `/api/portal`. Es la continuación natural de REG-293, y **ahí la compuerta
+   tendrá que vivir en el servidor**, no en el componente (§3 de
+   `patient-facing-ai.md`).
+2. `PATIENT-TELE-002` (55) — el enlace de videoconsulta que viaja por WhatsApp
    sigue sin token (REG-265 sólo cerró el camino del portal).
+3. `DESIGN-THEME-001` (52) — **de V9**: comprobar antes de tocarlo.
 
 **Lo que quedó abierto de este mismo ítem y NO se cierra por mi cuenta**: la
 comprobación de revocación (`portalTokenVersion`) falla ABIERTA. Que un enlace
