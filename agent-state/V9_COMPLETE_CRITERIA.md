@@ -42,7 +42,7 @@ Sin SHA, una unidad no está cerrada.
 | 1 | `DESIGN-SYSTEM-001` | ✅ **cerrada** | `5bb1a2c` |
 | 2 | `NAVIGATION-001` | ✅ **cerrada** | `fed81cc` |
 | 3 | `PATIENT-COMPANION-001` | ✅ **cerrada** | `5d496cf` |
-| 4 | `POSTVISIT-001` | ✅ **cerrada** | `PENDIENTE_SHA` |
+| 4 | `POSTVISIT-001` | ✅ **cerrada** | `4eb71bf` |
 | 5 | `PATIENT-AI-001` | ⬜ pendiente | — |
 | 6 | `DOCUMENTS-001` | ⬜ pendiente | — |
 | 7 | `CLOSED-LOOP-PATIENT-001` | ⬜ pendiente | — |

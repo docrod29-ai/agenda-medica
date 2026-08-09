@@ -18,24 +18,8 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1167",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M agent-state/LAST_SAFE_CHECKPOINT.md",
-    " M agent-state/PATIENT_COMPANION_STATE.md",
-    " M agent-state/V9_COMPLETE_CRITERIA.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/__tests__/authz-rutas-declaradas.test.ts",
-    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
-    " M src/__tests__/un-borrador-no-llega-al-paciente.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/mi/[token]/page.tsx",
-    " M src/lib/authz/registro-rutas.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/paciente/paquete-de-visita.ts",
-    " M src/types/expediente.ts",
-    "?? src/__tests__/el-paquete-sale-de-lo-firmado.test.ts",
-    "?? src/app/api/expediente/paquete-visita/",
-    "?? src/components/LiberarParaElPaciente.tsx"
+    "M agent-state/V9_COMPLETE_CRITERIA.md",
+    " M docs/ai/V9-BITACORA-Y-OPERACION.md"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
