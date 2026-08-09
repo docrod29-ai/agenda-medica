@@ -11,11 +11,24 @@
     {
       "pantalla": "hoy",
       "ruta": "/dashboard",
-      "capturas": ["hoy--1440.png", "hoy--1024.png", "hoy--768.png", "hoy--390.png"],
+      "capturas": [
+        "hoy--1440.png",
+        "hoy--1024.png",
+        "hoy--768.png",
+        "hoy--390.png"
+      ],
       "dimensiones": {
-        "jerarquia": 8.5, "claridad": 9, "coherencia": 8.5, "tipografia": 9,
-        "espaciado": 8.5, "densidad": 8, "interaccion": 8.5, "responsive": 6.5,
-        "accesibilidad": 7.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8.5,
+        "jerarquia": 8.5,
+        "claridad": 9,
+        "coherencia": 8.5,
+        "tipografia": 9,
+        "espaciado": 8.5,
+        "densidad": 8,
+        "interaccion": 8.5,
+        "responsive": 6.5,
+        "accesibilidad": 7.5,
+        "rendimientoPercibido": 8.5,
+        "confianzaClinica": 8.5,
         "originalidad": 7.5
       },
       "promedio": 8.2,
@@ -25,11 +38,24 @@
     {
       "pantalla": "agenda",
       "ruta": "/citas",
-      "capturas": ["agenda--1440.png", "agenda--1024.png", "agenda--768.png", "agenda--390.png"],
+      "capturas": [
+        "agenda--1440.png",
+        "agenda--1024.png",
+        "agenda--768.png",
+        "agenda--390.png"
+      ],
       "dimensiones": {
-        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
-        "espaciado": 8, "densidad": 8.5, "interaccion": 8, "responsive": 4.5,
-        "accesibilidad": 6.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8.5,
+        "jerarquia": 8,
+        "claridad": 8.5,
+        "coherencia": 8.5,
+        "tipografia": 8.5,
+        "espaciado": 8,
+        "densidad": 8.5,
+        "interaccion": 8,
+        "responsive": 4.5,
+        "accesibilidad": 6.5,
+        "rendimientoPercibido": 8.5,
+        "confianzaClinica": 8.5,
         "originalidad": 7
       },
       "promedio": 7.8,
@@ -39,11 +65,24 @@
     {
       "pantalla": "pacientes",
       "ruta": "/pacientes",
-      "capturas": ["pacientes--1440.png", "pacientes--1024.png", "pacientes--768.png", "pacientes--390.png"],
+      "capturas": [
+        "pacientes--1440.png",
+        "pacientes--1024.png",
+        "pacientes--768.png",
+        "pacientes--390.png"
+      ],
       "dimensiones": {
-        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
-        "espaciado": 8.5, "densidad": 8, "interaccion": 7.5, "responsive": 6,
-        "accesibilidad": 7.5, "rendimientoPercibido": 8.5, "confianzaClinica": 8,
+        "jerarquia": 8,
+        "claridad": 8.5,
+        "coherencia": 8.5,
+        "tipografia": 8.5,
+        "espaciado": 8.5,
+        "densidad": 8,
+        "interaccion": 7.5,
+        "responsive": 6,
+        "accesibilidad": 7.5,
+        "rendimientoPercibido": 8.5,
+        "confianzaClinica": 8,
         "originalidad": 7.5
       },
       "promedio": 7.9,
@@ -53,11 +92,24 @@
     {
       "pantalla": "expediente",
       "ruta": "/expediente/[patientId]",
-      "capturas": ["expediente--1440.png", "expediente--1024.png", "expediente--768.png", "expediente--390.png"],
+      "capturas": [
+        "expediente--1440.png",
+        "expediente--1024.png",
+        "expediente--768.png",
+        "expediente--390.png"
+      ],
       "dimensiones": {
-        "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 9,
-        "espaciado": 9, "densidad": 8.5, "interaccion": 8.5, "responsive": 8,
-        "accesibilidad": 8.5, "rendimientoPercibido": 8.5, "confianzaClinica": 9.5,
+        "jerarquia": 9,
+        "claridad": 9,
+        "coherencia": 9,
+        "tipografia": 9,
+        "espaciado": 9,
+        "densidad": 8.5,
+        "interaccion": 8.5,
+        "responsive": 8,
+        "accesibilidad": 8.5,
+        "rendimientoPercibido": 8.5,
+        "confianzaClinica": 9.5,
         "originalidad": 8
       },
       "promedio": 8.7,
@@ -67,11 +119,24 @@
     {
       "pantalla": "consulta",
       "ruta": "/consulta/[patientId]",
-      "capturas": ["consulta--1440.png", "consulta--1024.png", "consulta--768.png", "consulta--390.png"],
+      "capturas": [
+        "consulta--1440.png",
+        "consulta--1024.png",
+        "consulta--768.png",
+        "consulta--390.png"
+      ],
       "dimensiones": {
-        "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 8.5,
-        "espaciado": 8.5, "densidad": 8.5, "interaccion": 8.5, "responsive": 8.5,
-        "accesibilidad": 7, "rendimientoPercibido": 8.5, "confianzaClinica": 9,
+        "jerarquia": 9,
+        "claridad": 9,
+        "coherencia": 9,
+        "tipografia": 8.5,
+        "espaciado": 8.5,
+        "densidad": 8.5,
+        "interaccion": 8.5,
+        "responsive": 8.5,
+        "accesibilidad": 7,
+        "rendimientoPercibido": 8.5,
+        "confianzaClinica": 9,
         "originalidad": 8.5
       },
       "promedio": 8.5,
@@ -81,16 +146,30 @@
     {
       "pantalla": "nota",
       "ruta": "/nota/[patientId]/[notaId]",
-      "capturas": ["nota--1440.png", "nota--1024.png", "nota--768.png", "nota--390.png"],
+      "capturas": [
+        "nota--1440.png",
+        "nota--1024.png",
+        "nota--768.png",
+        "nota--390.png"
+      ],
       "dimensiones": {
-        "jerarquia": 8.5, "claridad": 9, "coherencia": 8.5, "tipografia": 9,
-        "espaciado": 8.5, "densidad": 8.5, "interaccion": 7.5, "responsive": 5.5,
-        "accesibilidad": 7.5, "rendimientoPercibido": 7, "confianzaClinica": 7,
+        "jerarquia": 9,
+        "claridad": 9,
+        "coherencia": 8.5,
+        "tipografia": 9,
+        "espaciado": 8.5,
+        "densidad": 8.5,
+        "interaccion": 8,
+        "responsive": 8,
+        "accesibilidad": 9,
+        "rendimientoPercibido": 7,
+        "confianzaClinica": 9,
         "originalidad": 8.5
       },
-      "promedio": 7.9,
+      "promedio": 8.5,
       "genericAiLook": 1.0,
-      "justificacion": "PUNTUADA con nota BORRADOR sembrada (nota-sint-01). Fuerte: metáfora de papel membretado distintiva, alergias en banda roja SIEMPRE, tipografía de documento excelente. HALLAZGO DE FACTORES HUMANOS (§8.30, §37): el estado BORRADOR sólo existe como línea gris de 9.5px al FINAL del documento, DESPUÉS de la línea de firma con el nombre impreso del médico — en pantalla queda bajo el pliegue y a golpe de vista es indistinguible de una nota firmada, con Descargar PDF / Imprimir / Word ofrecidos igual. MÓVIL 390 ROTO: las 3 acciones se apilan a ancho completo sobre el documento y «Atrás» queda recortado y tapado detrás. axe: contraste serious ×7 en la tabla de datos del paciente (etiquetas grises sobre papel). Rendimiento: la ruta más pesada del flujo (28.7s load en dev, primera compilación)."
+      "justificacion": "RE-PUNTUADA tras V10-NOTE-001 (capturas nuevas nota--1440/390, nota BORRADOR sembrada). El estado BORRADOR ahora es inconfundible (§8.30, §37): banda ámbar role=status arriba (no-print), marca de agua diagonal BORRADOR dentro del documento (pantalla, PDF, impresión — repetida por hoja impresa vía regla @media print global; por hoja en la vía membretada) y banda roja en el Word editable. MÓVIL 390 reparado: «Atrás» visible en su fila, Descargar PDF primario a fila completa, resto en rejilla 2×N con objetivos de 44px. axe: 0 critical/serious en 1440 y 390 (antes contraste serious ×7 — tbody td de la app pintaba gris del tema sobre el papel; y el hover de tabla dibujaba una banda oscura sobre los datos del paciente, también reparado). La marca de agua es SVG imagen-de-texto: decoración redundante intencional (WCAG 1.4.3), no texto de bajo contraste. Pendiente para V10-NOTE-001 completa: rendimiento de la ruta (28.7s primera compilación dev) y tipografía/diff del editor (§20). El FAB de ayuda que tapa el conmutador de tema es del shell (DEBT-004), no de esta pantalla.",
+      "reScore": "2026-08-09 (V10-NOTE-001)"
     }
   ],
   "resumen": {
@@ -106,5 +185,11 @@
     "cerradosP1": [
       "V10-DEBT-005: los 4 axe critical del flujo — reparados y verificados con axe en navegador real, guardián a11y-flujo-central-etiquetas probado al revés"
     ]
+  },
+  "_promedioGlobal": {
+    "valor": 8.27,
+    "pantallas": 6,
+    "fecha": "2026-08-09",
+    "nota": "tras V10-NOTE-001"
   }
 }

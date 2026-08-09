@@ -68,7 +68,7 @@
 | `/migracion` | medico | ✅ | 370 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 74 | 2 | — | ✅ | — |
-| `/nota/[patientId]/[notaId]` | medico | ✅ | 841 | 2 | — | ✅ | — |
+| `/nota/[patientId]/[notaId]` | medico | ✅ | 922 | 2 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 793 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 836 | 9 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 259 | 1 | — | ✅ | — |

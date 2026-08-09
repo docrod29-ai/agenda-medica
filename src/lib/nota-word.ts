@@ -94,6 +94,7 @@ body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1
 <body>${fondo.background}<div class="WordSection1">
   ${encabezado}
   <div style="text-align:center;font-size:13pt;font-weight:bold;text-transform:uppercase;margin-bottom:8pt;">${esc(TIPO_NOTA_LABEL[nota.tipo])}</div>
+  ${nota.estado !== 'firmada' ? `<div style="text-align:center;border:1.5pt solid #b91c1c;color:#b91c1c;font-weight:bold;font-size:11pt;letter-spacing:2pt;padding:4pt 8pt;margin-bottom:8pt;">BORRADOR — DOCUMENTO NO FIRMADO, SIN VALIDEZ LEGAL</div>` : ''}
   <div style="font-size:10.5pt;margin-bottom:4pt;"><b>Paciente:</b> ${esc(nota.pacienteNombre)}${extra?.edad ? ' · Edad: ' + esc(String(extra.edad)) + ' años' : ''}${extra?.sexo ? ' · ' + esc(extra.sexo) : ''}${extra?.telefono ? ' · Tel: ' + esc(extra.telefono) : ''} &nbsp;&nbsp; <b>Fecha:</b> ${esc(fecha)}</div>
   ${alergias}
   ${nota.resumenEjecutivo ? `<div style="font-style:italic;margin-bottom:6pt;font-size:10.5pt;">${esc(nota.resumenEjecutivo)}</div>` : ''}

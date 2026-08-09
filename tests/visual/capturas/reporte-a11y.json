@@ -68,19 +68,7 @@
   {
     "pantalla": "nota",
     "viewport": "1440",
-    "violaciones": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 7,
-        "ejemplos": [
-          "tr:nth-child(1) > td:nth-child(1)",
-          "td:nth-child(1) > strong",
-          "tr:nth-child(1) > td:nth-child(2)"
-        ]
-      }
-    ]
+    "violaciones": []
   },
   {
     "pantalla": "login",
@@ -151,18 +139,6 @@
   {
     "pantalla": "nota",
     "viewport": "390",
-    "violaciones": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 7,
-        "ejemplos": [
-          "tr:nth-child(1) > td:nth-child(1)",
-          "td:nth-child(1) > strong",
-          "tr:nth-child(1) > td:nth-child(2)"
-        ]
-      }
-    ]
+    "violaciones": []
   }
 ]

@@ -5,79 +5,74 @@
 antes de tocar nada.
 
 **Rama**: historia V10 encadenada — `claude/nexus-visual-excellence-v10`
-(instalación) → `claude/kind-brahmagupta-exbp9m` (arnés, 9-ago tarde) →
-`claude/kind-brahmagupta-2yxowl` (cierre de TRUTH-001, 9-ago noche). Cada
-sesión cloud empuja a su rama configurada y arranca de la punta más adelantada
-(V10 §3). OJO para la siguiente corrida: la punta es **2yxowl**.
+(instalación) → `claude/kind-brahmagupta-exbp9m` (arnés) →
+`claude/kind-brahmagupta-2yxowl` (cierre TRUTH-001) →
+`claude/kind-brahmagupta-rms50y` (quick-strike NOTE-001, 9-ago). Cada sesión
+cloud empuja a su rama configurada y arranca de la punta más adelantada
+(V10 §3). OJO para la siguiente corrida: la punta es **rms50y**.
 
-**Iteración en curso**: ninguna — `V10-TRUTH-001` **CERRADA** (9-ago noche).
-La siguiente corrida abre la primera implementación (ver «Próxima acción»).
+**Iteración en curso**: `V10-NOTE-001` — el **quick-strike quedó CERRADO**
+(DEBT-008 y DEBT-009). La unidad completa de §20 (editor premium, tiempo a
+primer borrador, rendimiento de la ruta) sigue en la secuencia normal.
 
-## V10-TRUTH-001 — cerrada con sus 17 salidas
+## Corrida del 9-ago (madrugada-2) — qué se hizo
 
-| # | Salida | Dónde |
-|---|---|---|
-| 1 | Inventario de pantallas | `docs/design/SCREEN_INVENTORY.md` (generado; guardián en CI) |
-| 2 | Capturas escritorio/móvil | `tests/visual/capturas/` — golden flow × 4 anchos, con nota borrador y pacientes poblados |
-| 3 | Tokens de diseño | `docs/design/DESIGN_SYSTEM.md` + `agent-state/DESIGN_STATE.md` (V9) |
-| 4 | Inventario de componentes | `docs/design/COMPONENT_INVENTORY.md` — **completado 9-ago noche** (93 medidos: 6 primitivos reales, 6 muertos, 56 de-una-pantalla, 3 duplicaciones) |
-| 5 | Anti-patrones «cara de IA» | `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md` (V9, conteos) |
-| 6 | Mapa de navegación | `docs/design/NAVIGATION_STATE_AUDIT.md` (V9) |
-| 7 | Mapa de interacción | `docs/design/INTERACTION_PATTERNS.md` — **completado 9-ago noche** (4 mecanismos de navegación, ⌘K existe como paleta de navegación, guardado en 3 capas, tabla vacío/carga/error) |
-| 8 | Defectos de pérdida de estado | REG-276…279 (rama V9, sin fusionar) |
-| 9 | Inconsistencias visuales | `DESIGN_STATE.md` + scorecard |
-| 10 | Línea base de accesibilidad | `reporte-a11y.json` — re-medida 9-ago noche: **12 → 8 hallazgos, 0 critical** (los 4 critical reparados esta corrida) |
-| 11 | Línea base móvil | capturas 390 × 7 pantallas; defectos en backlog (DEBT-003/004/009/010) |
-| 12 | Línea base de rendimiento | `tests/visual/capturas/reporte-rendimiento.json` — **completada 9-ago noche** (Performance API @1440; dev server, cifras relativas) |
-| 13 | Matriz de competidores | `docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md` |
-| 14 | Puntuación visual | scorecard: **7 de 7 pantallas** puntuadas con captura |
-| 15 | Puntuación «cara de IA» | scorecard: 7 de 7 (rango 1.0–3.0 vs meta ≤1.0) |
-| 16 | Backlog P0–P3 | `V10_BACKLOG.json` — 10 items (DEBT-005 y TRUTH-CAPTURAS cerrados) |
-| 17 | Primera implementación | **ya empezó**: los 4 axe critical del flujo (DEBT-005) se repararon esta corrida con guardián probado al revés |
+| Qué | Evidencia |
+|---|---|
+| **DEBT-008 cerrado** — la nota BORRADOR es inconfundible | Banda ámbar `role=status` arriba (no-print) · marca de agua SVG «BORRADOR» dentro de `#doc` — pantalla, PDF e impresión (repetida por hoja impresa vía `@media print` en globals.css, porque el popup de impresión sólo copia los `<link>`; la vía membretada la estampa en cada `.nota-sheet`) · Word con banda roja. Capturas `nota--1440.png` / `nota--390.png` nuevas |
+| **Contraste serious ×7 reparado de raíz** | `tbody td { color: var(--text2) }` de la app se colaba en el documento-papel (pantalla Y popup de impresión → papel impreso con datos en gris). Los `<td>` del papel llevan `#1a1a1a` inline. Y `tbody tr:hover` pintaba una BANDA oscura sobre Edad/Sexo/Tel — neutralizado con `#doc tbody tr` |
+| **DEBT-009 cerrado** — barra móvil | Bajo 480px: barra envuelve, «Atrás» visible, PDF primario a fila completa, resto rejilla 2×N, objetivos 44px. Captura `nota--390.png` |
+| **axe nota: 0 critical/serious** en 1440 y 390 | `reporte-a11y.json`: programa 12 → 8 → **6** hallazgos (los 6 restantes: contraste hoy/agenda → V10-TODAY/AGENDA-001, nested-interactive pacientes → DEBT-010) |
+| **Guardián probado al revés** | `src/__tests__/nota-borrador-inconfundible.test.ts` — 9/9 fallan sin el arreglo (verificado con stash), 9/9 pasan con él |
+| **Scorecard** | nota 7.9 → **8.5** · global 8.2 → **8.27** · cara-de-IA nota se mantiene 1.0 (la marca de agua es práctica documental clásica) |
 
-## Foto del scorecard al cierre de TRUTH-001
+## Compuertas de esta corrida
 
-Promedio global **8.2** (6 pantallas críticas; meta 9.3) · ninguna pantalla ≥9.0 ·
-cara-de-IA 1.0–3.0 (meta ≤1.0). El déficit vive en RESPONSIVE móvil
-(agenda 4.5, nota 5.5, pacientes 6.0) y en los 8 serious de axe restantes.
-
-## Compuertas de la corrida del 9-ago (noche)
-
-- `npx vitest run`: **8 465 pasan · 1 saltada · 0 fallas** (incluye el guardián
-  nuevo `a11y-flujo-central-etiquetas`, probado al revés: 6/6 fallan sin el
-  arreglo). La falla de entorno `ops-timeout-y-punto-ciego` esta vez PASÓ.
+- `npx vitest run`: **8 473 pasan · 1 saltada · 1 falla** — la falla es
+  `ops-timeout-y-punto-ciego` («el error dice cuánto esperó y a quién»), la
+  MISMA falla de entorno documentada en la corrida anterior: espera que
+  `10.255.255.1` cuelgue hasta el timeout y el proxy del sandbox contesta al
+  instante. No toca nada de esta corrida (el cambio es JSX/CSS puro) y en CI
+  de GitHub pasa. No se tocó el test.
 - `lint-trinquete`: **96, igual que el techo.**
 - `npm run build`: **compila.**
-- axe en navegador real: 12 → 8 critical/serious; **0 critical**.
+- axe en navegador real: nota **0** critical/serious (ambos anchos).
 
 ## Advertencia de concurrencia (V10 §41)
 
-La rama V9 sin fusionar (`origin/claude/nexus-patient-ux-v9`) tocó
-`citas/page.tsx`, `pacientes/page.tsx` y `globals.css`. Los arreglos a11y de
-esta corrida en esos archivos son mínimos (atributos y un token) y el guardián
-`a11y-flujo-central-etiquetas.test.ts` **fallará si una fusión los pierde** —
-ese es su segundo trabajo. Rediseños mayores de esas pantallas esperan V10-D1.
+Esta corrida tocó `globals.css` (regla `@media print` de 6 líneas al final del
+bloque de tokens de impresión) — archivo que la rama V9 sin fusionar también
+toca. El guardián `nota-borrador-inconfundible.test.ts` **falla si una fusión
+pierde la regla** (test 4). La nota en sí NO fue tocada por V9: cero riesgo ahí.
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. Arrancar de `claude/kind-brahmagupta-2yxowl` (o su descendiente más
+1. Arrancar de `claude/kind-brahmagupta-rms50y` (o su descendiente más
    adelantado) y verificar si el dueño ya decidió **V10-D1** (fusión V9).
-2. **Abrir V10-NOTE-001 como quick-strike** sobre los dos P1/P2 de la nota
-   (DEBT-008: estado BORRADOR invisible — banda no-print + marca de agua en
-   impreso; DEBT-009: barra de acciones móvil rota). La nota NO fue tocada por
-   la rama V9 → cero riesgo de pisar trabajo validado. Guardián para cada uno.
-3. Si V10-D1 ya se decidió a favor: abrir en paralelo la ruta
-   V10-CONSTITUTION-001 (DEBT-001/002) sobre main ya fusionado.
-4. Si no: después de la nota, V10-DEBT-003 (agenda móvil) sólo si se acepta el
-   riesgo de rebase sobre V9 en `citas/page.tsx` — documentar la decisión.
+2. Si V10-D1 decidido a favor → **V10-CONSTITUTION-001** (DEBT-001/002) sobre
+   main fusionado — es lo que desbloquea todo lo demás.
+3. Si no → **quick-strike V10-DEBT-006 en el expediente** (CTA primario «Nueva
+   consulta con IA» en 4.º lugar tras tres secundarios de igual peso en móvil):
+   `expediente/[patientId]/page.tsx` NO fue tocado por la rama V9 → cero
+   riesgo. Con guardián y capturas antes/después.
+4. DEBT-003 (agenda móvil, la pantalla más usada) sigue esperando: `citas/page.tsx`
+   SÍ está en la rama V9 — sólo con decisión explícita de rebase o tras V10-D1.
 
 ### Cómo relanzar el arnés (resumen operativo)
 
 ```bash
-# 1. emuladores            npx firebase emulators:start --only firestore,auth --project demo-nexusmed-test
+# 0. .env.local demo (si el contenedor es nuevo — valores NO reales):
+#    NEXT_PUBLIC_FIREBASE_API_KEY=demo-nexusmed-api-key
+#    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-nexusmed-test.firebaseapp.com
+#    NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-nexusmed-test
+#    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=demo-nexusmed-test.appspot.com
+#    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000
+#    NEXT_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:demo
+#    NEXT_PUBLIC_FIREBASE_EMULATORS=1
+# 1. emuladores            npx firebase-tools emulators:start --only firestore,auth --project demo-nexusmed-test
 # 2. siembra               FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 #                            GCLOUD_PROJECT=demo-nexusmed-test node tests/visual/sembrar-sinteticos.mjs
-# 3. app                   npm run dev   (con .env.local demo: NEXT_PUBLIC_FIREBASE_EMULATORS=1)
+# 3. app                   npm run dev
 # 4. capturas + rendimiento ARNES_CHROMIUM=/opt/pw-browsers/chromium node tests/visual/arnes-capturas.mjs
 # 5. accesibilidad         npm i --no-save axe-core && ARNES_CHROMIUM=... node tests/visual/arnes-a11y.mjs
 # Trampas: localhost (no 127.0.0.1), --no-proxy-server, waitUntil:'load',

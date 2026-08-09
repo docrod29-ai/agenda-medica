@@ -33,7 +33,8 @@
       "fuente": "captura nota--1440.png / nota--390.png (9-ago noche, nota borrador sembrada) + nota/[patientId]/[notaId]/page.tsx:542",
       "prioridad": "P1",
       "unidadV10": "V10-NOTE-001 (adelantable como quick-strike: banda BORRADOR no-print arriba + marca de agua en impreso; la nota NO fue tocada por la rama V9)",
-      "estado": "abierto"
+      "estado": "CERRADO 9-ago-2026 (V10-NOTE-001 quick-strike)",
+      "cierre": "Banda BORRADOR ámbar (role=status, no-print) arriba; marca de agua SVG diagonal dentro de #doc (viaja por outerHTML a impresión y PDF; @media print en globals.css la vuelve fixed → se repite por hoja; la vía membretada la estampa en cada .nota-sheet); Word con banda roja BORRADOR. Contraste serious ×7 reparado de raíz: los <td> del papel declaran color #1a1a1a inline (tbody td de globals se colaba en pantalla Y en el popup de impresión) y el hover de tabla de la app ya no pinta bandas sobre el papel. axe 0 critical/serious en nota@1440 y @390. Guardián probado al revés (9/9 fallan sin el arreglo): src/__tests__/nota-borrador-inconfundible.test.ts"
     },
     {
       "id": "V10-DEBT-009",
@@ -41,7 +42,8 @@
       "fuente": "captura nota--390.png (9-ago noche)",
       "prioridad": "P2",
       "unidadV10": "V10-NOTE-001",
-      "estado": "abierto"
+      "estado": "CERRADO 9-ago-2026 (V10-NOTE-001 quick-strike)",
+      "cierre": "Bajo 480px la barra envuelve (flex-wrap): «Atrás» visible en su propia fila, Descargar PDF (primario) a fila completa, resto en rejilla 2 columnas con min-height 44px y sin celdas huérfanas (última acción impar ocupa la fila). Verificado con captura nota--390.png nueva. Mismo guardián."
     },
     {
       "id": "V10-DEBT-010",

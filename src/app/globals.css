@@ -1364,6 +1364,16 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     --purple: #6D28D9;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
+
+  /* V10-NOTE-001 (DEBT-008): la marca de agua BORRADOR de la nota sin firmar se
+     REPITE en cada hoja impresa. Vive aquí y no en el <style> de la página
+     porque la ventana de impresión (print-element.ts) sólo copia los <link>
+     globales; en pantalla el elemento es absolute (inline) y esta regla no
+     aplica. Sólo la vía continua la usa: la membretada estampa por hoja. */
+  .nota-marca-borrador {
+    position: fixed !important;
+    inset: 0 !important;
+  }
 }
 
 /* Impresión aislada de UNA receta: el botón "Imprimir prueba" del editor de
