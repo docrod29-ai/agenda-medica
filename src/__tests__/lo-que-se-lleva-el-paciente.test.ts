@@ -194,14 +194,21 @@ describe('está CONECTADO', () => {
     expect(page).toMatch(/estudios=\{estudiosOrden\}/)
   })
 
-  it('NO aparece en un paciente internado', () => {
+  it('NO aparece en un paciente internado, NI sobre un borrador', () => {
     /**
      * La nota de hospital y la de UCI se escriben en esta MISMA pantalla
      * (`/consulta/[id]?internamiento=…`). Sin este guardia, a un paciente
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
+     *
+     * Y desde V9 · `POSTVISIT-GATE-001` (REG-306), la segunda condición: **la
+     * nota tiene que estar firmada**. Antes bastaba con no ser hospital, y la
+     * hoja se componía del estado vivo de la pantalla —a medio dictar—, así que
+     * el médico podía copiarla y entregarla. La cabecera del módulo decía que el
+     * contenido salía de «lo ya revisado y firmado»: era intención de diseño, no
+     * precondición.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toMatch(/\{!esNotaHospital && firmada && \(\s*\n\s*<HojaParaElPaciente/)
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {

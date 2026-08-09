@@ -3,7 +3,7 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
-**Fuente**: los 129 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 155 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -39,8 +39,13 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 155, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+El 9-ago-2026 sumó a REG-307: la hoja del paciente, la pieza mejor pensada de
+esa superficie —determinista, sin modelo, capaz de negarse a expandir «cada 5
+horas»—, tenía dos botones y ninguno la hacía llegar a nadie. Es el patrón en su
+forma más cara: no hay nada roto que medir, sólo un camino que no existe.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el

@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 307],
   },
   {
     clave: 'se_contradice',
@@ -177,6 +177,31 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
     regs: [242, 243, 250, 304],
+  },
+  {
+    /**
+     * Familia NUEVA, abierta el 9-ago-2026 con REG-306.
+     *
+     * Se abre porque ninguna de las quince anteriores la describía. No es
+     * `no_conectado` —el módulo SÍ corría, y en el sitio correcto— ni
+     * `se_contradice` —no hay dos partes que se peleen—. Lo que faltaba no era
+     * el llamador ni el acuerdo: era **la comprobación** de una precondición que
+     * el propio módulo declaraba por escrito.
+     *
+     * Es la hermana de «el dato tiene que LLEGAR» mirando hacia atrás: aquélla
+     * pregunta si el dato llegó al otro lado; ésta, si la condición que se dijo
+     * exigir se exige de verdad.
+     */
+    clave: 'contrato_en_prosa',
+    nombre: 'La precondición vivía en un comentario',
+    patron:
+      'La cabecera del módulo declara de qué material sale su contenido, o qué ' +
+      'tiene que cumplirse antes de llamarlo, y no hay una sola línea de código ' +
+      'que lo compruebe. Se lee como una garantía y funciona como una ' +
+      'intención. Nadie lo encuentra revisando el módulo —el comentario es ' +
+      'cierto sobre lo que el autor quería—, sólo comparándolo con lo que hace ' +
+      'su vecino con la misma fuente.',
+    regs: [306],
   },
   {
     clave: 'falta_un_eje',

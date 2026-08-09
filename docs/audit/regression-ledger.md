@@ -7013,3 +7013,103 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente se componía del borrador EN CURSO
+
+**Encontrado** leyendo la pantalla de consulta de arriba abajo en la auditoría de
+V9 (`PATIENT-UX-TRUTH-001`), y comparando la guarda de la hoja con la de su
+vecina **de dos líneas más arriba**.
+
+**Qué pasaba.** `HojaParaElPaciente` se montaba con el estado **vivo** de la
+pantalla —`medicamentos` y `estudiosOrden` a medio dictar— y la única condición
+era `{!esNotaHospital}`. Justo encima, `ComoCerrarLaConsulta` sí exigía
+`{firmada && …}`. Dos criterios distintos para dos cosas que salen de la misma
+nota.
+
+Así que el médico podía copiar o imprimir —y entregar— una hoja compuesta de una
+nota sin firmar. Con dosis todavía sin revisar y diagnósticos que eran una
+hipótesis a medio dictar.
+
+**Causa raíz.** **La compuerta vivía en un comentario.** La cabecera del módulo
+declaraba que el contenido salía de «lo ya revisado y firmado», y no había una
+sola línea de código que lo comprobara. Un contrato escrito en prosa no es un
+contrato: es una intención. Es la misma forma que REG-170 —lo acordado se
+*decía* y no se comprobaba del otro lado— aplicada a una precondición en vez de
+a un campo.
+
+**Arreglo.** Tres capas, y las tres hacen falta:
+
+1. **`componerPaquete` lanza** si la nota no está firmada — y lanza en vez de
+   devolver vacío, porque un valor de retorno se ignora y una excepción no.
+2. **La ruta lo comprueba antes**, para poder explicarlo con un 409 que la
+   pantalla enseña. Dos veces a propósito: ningún llamador futuro —otra ruta, un
+   script, una migración— puede saltarse la del compositor.
+3. **La pantalla exige `firmada`** para montar la hoja siquiera.
+
+Y una decisión que salió de mirar el caso peor: `medicationChanges` gana un
+cuarto tipo, **`cambiado`**. Comparando sólo por nombre, un paciente cuya
+warfarina pasó de 2 mg a 10 mg leía literalmente «sin cambio». La lista decía la
+verdad sobre la lista y mentía sobre lo único que al paciente le importa. Ahora
+se compara el nombre **y la línea de instrucción ya compuesta**.
+
+**Familia.** `contrato_en_prosa` — la precondición estaba documentada y no
+ejecutada. Cerca de «escrito y sin conectar», pero al revés: aquí lo que faltaba
+no era el llamador, era la comprobación.
+
+**Guardián.** `src/__tests__/el-paquete-sale-de-lo-firmado-y-llega.test.ts`,
+30 casos. Probado al revés: quitando la línea de la compuerta, dos casos caen.
+
+---
+
+## REG-307 — La hoja del paciente no llegaba nunca al paciente
+
+**Encontrado** en la misma auditoría, buscando quién importaba
+`HojaParaElPaciente` en producción. La respuesta era: una pantalla, y ningún
+camino de salida.
+
+**Qué pasaba.** Dos botones —copiar al portapapeles e imprimir— y **ninguno de
+los dos la hace llegar a nadie**. No estaba en `/mi/[token]`, ni en
+`/api/portal`, ni en ninguna plantilla de WhatsApp. Y `proximaCita={undefined}`
+estaba **fijo** desde que nació, así que su cuarto bloque —«Su próxima cita»— no
+podía renderizarse jamás, con el dato a una variable de distancia en la misma
+pantalla.
+
+**Por qué importa.** El contenido estaba resuelto y bien: determinista, sin
+modelo, se niega a expandir «cada 5 horas» porque 24 ÷ 5 no es exacto. Es
+«escrito, probado y sin conectar» en su forma más cara — la pieza mejor pensada
+del lado del paciente, sin entregar.
+
+**Arreglo.** `POST /api/expediente/paquete-visita`, con las decisiones donde
+tienen que estar:
+
+- **`approvedBy` sale de la sesión verificada**, nunca del cuerpo. Un campo de
+  aprobación que escribe el navegador convierte la bitácora de quién aprobó en
+  decoración. El guardián lo vigila **en negativo**: si mañana aparece
+  `body.approvedBy`, se pone en rojo.
+- **Capacidad `firmar`**, no `clinico.escribir`: liberar es un acto de
+  aprobación clínica del mismo peso que firmar la nota.
+- **Un paquete liberado no se sobrescribe.** Se crea con `.create()` bajo
+  `{notaId}__v{n}`, porque «¿qué se le dijo exactamente a este paciente el 9 de
+  agosto?» tiene que poder contestarse dentro de un año, cuando el código que lo
+  compuso ya sea otro. `/api/portal` se queda con la versión más alta de cada
+  nota: el expediente las conserva todas, el paciente ve una por consulta.
+- **El seguimiento sólo se pega a la última nota firmada.** Vive en el paciente y
+  se sobrescribe en cada consulta; pegarlo a una nota vieja le pondría a esa
+  consulta el seguimiento de otra. Cuando no es la última va **vacío**: un hueco
+  es información, un seguimiento de la consulta equivocada se lee como un
+  acierto.
+- **Sin índice compuesto.** La historia se lee con una sola igualdad y se ordena
+  en memoria. Un índice que falta no falla en la prueba: falla en producción, el
+  día que un médico pulsa «entregar».
+
+**Familia.** `escrito_probado_y_sin_conectar`, la más grande del proyecto.
+
+**Guardián.** El mismo de REG-306.
+
+**Lo que NO cubre.** Nada de esto se ha visto en un navegador. El botón, el
+estado de error y la tarjeta del portal están sellados por lectura del código,
+no por uso — `NAV-NAVEGADOR-001` sigue abierto. Y liberar **no manda ningún
+mensaje**: deja el paquete visible en el portal. Avisarle al paciente es
+`CLOSED-LOOP-PATIENT-001`.

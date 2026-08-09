@@ -167,6 +167,13 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── expediente e IA clínica (entitlement de plan + rol) ───────────────────
   'consultor-evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/exportar/[patientId]': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
+  /**
+   * `firmar`, no `clinico.escribir`: liberar el paquete de la visita es un acto de
+   * aprobación clínica hacia el paciente, del mismo peso que firmar la nota (V9
+   * `POSTVISIT-001`). La previsualización exige lo mismo — quien no puede liberar
+   * tampoco necesita ver el borrador de lo que se le entregaría al paciente.
+   */
+  'expediente/paquete-visita': { tipo: 'capacidad', capacidad: 'firmar' },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },

@@ -105,6 +105,7 @@ export type AuditEvento =
   | 'cita_reagendada_portal'     // el paciente movió su cita desde su enlace
   | 'cita_cancelada_whatsapp'    // el paciente canceló hablando con el bot
   | 'formulario_previo_enviado'  // el paciente llenó su información antes de la consulta
+  | 'paquete_visita_liberado'    // el médico LIBERÓ al paciente el resumen de una consulta (V9)
 
 /**
  * CÓMO SE LEE CADA EVENTO — en la pantalla de cumplimiento y en cualquier otra.
@@ -164,6 +165,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   cita_reagendada_portal: 'El paciente reagendó (portal)',
   cita_cancelada_whatsapp: 'El paciente canceló (WhatsApp)',
   formulario_previo_enviado: 'El paciente envió su información previa',
+  paquete_visita_liberado: 'El médico liberó al paciente el resumen de una consulta',
 }
 
 /** Cómo enseñar un evento, incluido uno que todavía no tenga etiqueta. */

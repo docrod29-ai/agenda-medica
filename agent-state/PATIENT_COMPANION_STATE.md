@@ -3,9 +3,48 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306, REG-307.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS con sus cinco clases de respuesta y
+las doce pruebas de equipo rojo de la especificación como fixture permanente.
+
+---
+
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El paquete se genera del encuentro y sólo se libera con aprobación del
+médico.** `componerPaquete` vuelve al módulo con su llamador —
+`POST /api/expediente/paquete-visita`, bajo capacidad `firmar`— y compone de la
+nota **firmada que está en la base**, no del estado vivo de la pantalla.
+
+**La compuerta de firma está tres veces**, y no es redundancia: el compositor
+lanza (para que ningún llamador futuro se la salte), la ruta responde 409 (para
+que la pantalla pueda explicarlo) y la pantalla ni monta la hoja. Antes vivía en
+un comentario.
+
+**`approvedBy` sale de la sesión verificada**, nunca del cuerpo. El guardián lo
+vigila en negativo: si mañana aparece `body.approvedBy`, se pone en rojo.
+
+**Un paquete liberado no se sobrescribe.** Se crea bajo `{notaId}__v{n}` y
+`/api/portal` se queda con la versión más alta de cada nota: el expediente
+conserva todas, el paciente ve una entrada por consulta.
+
+**Un cuarto tipo de cambio, `cambiado`.** Con tres tipos, la comparación era por
+nombre, y una warfarina que pasó de 2 mg a 10 mg salía «sin cambio» — la peor
+frase posible en el peor sitio posible. Ahora se compara nombre **y** línea de
+instrucción compuesta.
+
+## Lo que NO se hizo en esta unidad, y por qué
+
+- **Liberar no manda ningún mensaje.** Deja el paquete visible en el portal.
+  Avisarle al paciente es `CLOSED-LOOP-PATIENT-001`.
+- **`warningSigns` y `educationalMaterial` siguen vacíos.** No hay de dónde
+  sacarlos sin inventar: los signos de alarma son indicación médica y el material
+  educativo es evidencia curada.
+- **El seguimiento sólo se pega a la última nota firmada.** Vive en el paciente y
+  se sobrescribe en cada consulta; ponerlo en un paquete de una nota vieja le
+  daría a esa consulta el seguimiento de otra. En las demás va vacío.
+- **Nada se ha visto en un navegador**, y la ruta no se ha ejecutado contra
+  Firestore.
 
 ---
 
@@ -131,8 +170,8 @@ por el paciente.
 
 - `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa; revocación que falla
   **abierta**.
-- `POSTVISIT-GATE-001` — sin compuerta de firma.
-- `POSTVISIT-ENTREGA-001` — la hoja no llega al paciente.
+- ~~`POSTVISIT-GATE-001`~~ — **cerrado** 9-ago-2026 (REG-306).
+- ~~`POSTVISIT-ENTREGA-001`~~ — **cerrado** 9-ago-2026 (REG-307).
 
 ## Lo que este estado NO afirma
 

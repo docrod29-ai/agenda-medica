@@ -3838,6 +3838,33 @@ export default function ConsultaActivaPage() {
     }
   }, [cedulaRapida, clinicId])
 
+  /**
+   * ENTREGARLE LA HOJA AL PACIENTE — V9 · POSTVISIT-ENTREGA-001 (REG-307).
+   *
+   * La pieza mejor pensada del lado del paciente —determinista, sin modelo, se
+   * niega a expandir «cada 5 horas»— tenía dos botones: copiar e imprimir.
+   * Ninguno de los dos la hace llegar a nadie. No estaba en `/mi/[token]`, ni en
+   * `/api/portal`, ni en ninguna plantilla de WhatsApp.
+   *
+   * Esto la entrega: el servidor la recompone **de la nota firmada que ya está
+   * en la base** —no de este estado de pantalla— y la libera al portal.
+   *
+   * NO SE MANDA `approvedBy`: quién aprueba sale de la sesión, en el servidor. Un
+   * campo de aprobación que viaja desde el navegador no vale nada.
+   */
+  const entregarLaHoja = useCallback(async () => {
+    const id = notaIdRef.current
+    if (!clinicId || !id) throw new Error('Todavía no hay una nota firmada que entregar.')
+    const res = await fetchAutenticado('/api/expediente/paquete-visita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'liberar', clinicId, patientId, notaId: id }),
+    })
+    const j = await res.json().catch(() => ({} as { error?: string }))
+    if (!res.ok) throw new Error(j?.error || 'No se pudo entregar la hoja al paciente.')
+    toast('Entregada. Ya la ve en su portal.', 'success')
+  }, [clinicId, patientId])
+
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
@@ -5194,11 +5221,31 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {/*
+        Y **SÓLO CON LA NOTA FIRMADA** (V9 · POSTVISIT-GATE-001, REG-306).
+
+        Antes bastaba con no ser una nota de hospital: la hoja se componía del
+        estado VIVO de la pantalla —a medio dictar— y el médico podía copiarla y
+        entregarla. La cabecera del módulo decía que el contenido salía de «lo ya
+        revisado y firmado»: era intención de diseño, no precondición.
+
+        Justo encima, `ComoCerrarLaConsulta` ya exigía `firmada`. Eran dos
+        criterios distintos para dos cosas que salen de la misma nota.
+
+        «Never expose a clinical draft to the patient as final» — la
+        especificación, literal.
+      */}
+      {!esNotaHospital && firmada && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          /*
+            El cuarto bloque llevaba `undefined` FIJO desde que nació, así que
+            «Su próxima cita» no podía renderizarse jamás — y el dato estaba a
+            una variable de distancia, en la misma pantalla.
+          */
+          proximaCita={proximoSeguimiento || undefined}
+          alEntregar={entregarLaHoja}
         />
       )}
 

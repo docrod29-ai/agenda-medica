@@ -24,7 +24,7 @@
  * inventa un canal nuevo que haya que mantener.
  */
 import { useMemo, useState } from 'react'
-import { ClipboardCheck, Copy, Printer } from 'lucide-react'
+import { ClipboardCheck, Copy, Printer, Send, Check, Loader2 } from 'lucide-react'
 import {
   comoSeLoExplico, comoTexto,
   type EntradaInstrucciones,
@@ -33,10 +33,23 @@ import {
 export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
+  /**
+   * ENTREGARLA AL PACIENTE — V9 · `POSTVISIT-001`, `POSTVISIT-ENTREGA-001`.
+   *
+   * Sin este manejador la hoja se comporta como siempre (copiar e imprimir). Con
+   * él aparece el tercer botón, el que la deja visible en el portal del paciente.
+   *
+   * La compuerta de firma **no vive aquí**: quien monta la hoja decide si la
+   * enseña, y el servidor vuelve a comprobarlo al liberar. Un botón escondido no
+   * cierra una ruta HTTP.
+   */
+  alEntregar?: () => Promise<void>
 }
 
 export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
   const [copiado, setCopiado] = useState(false)
+  const [entrega, setEntrega] = useState<'inicial' | 'enviando' | 'hecho'>('inicial')
+  const [errorEntrega, setErrorEntrega] = useState('')
   const bloques = useMemo(() => comoSeLoExplico(p), [p])
 
   /* Sin nada que decirle al paciente no se enseña una hoja vacía. */
@@ -50,11 +63,29 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
     } catch { /* Sin portapapeles, el botón de imprimir sigue ahí. */ }
   }
 
+  /**
+   * El error se ENSEÑA, no se traga. Si la liberación falla —la nota no está
+   * firmada, el rol no puede aprobar, la red se cayó— el médico tiene que
+   * enterarse: creer que el paciente ya tiene su hoja cuando no la tiene es
+   * peor que no haber pulsado.
+   */
+  const entregar = async () => {
+    if (!p.alEntregar || entrega !== 'inicial') return
+    setEntrega('enviando'); setErrorEntrega('')
+    try {
+      await p.alEntregar()
+      setEntrega('hecho')
+    } catch (e) {
+      setEntrega('inicial')
+      setErrorEntrega(e instanceof Error ? e.message : 'No se pudo entregar la hoja.')
+    }
+  }
+
   return (
     <section
       className="hoja-paciente"
       style={{
-        border: '1px solid var(--border)', borderRadius: 11,
+        border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
         background: 'var(--s2)', marginTop: 16, overflow: 'hidden',
       }}
     >
@@ -65,7 +96,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
           Lo que se lleva el paciente
         </span>
-        <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>
+        <span style={{ fontSize: 'var(--t-caption)', color: 'var(--text3)' }}>
           en sus palabras, sin nada que usted no haya escrito
         </span>
 
@@ -74,7 +105,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
             onClick={copiar}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600,
+              padding: '7px 12px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-body)', fontWeight: 600,
               background: 'var(--s3)', color: 'var(--text)',
               border: '1px solid var(--border)', cursor: 'pointer',
             }}
@@ -87,19 +118,48 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
             aria-label="Imprimir la hoja del paciente"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600,
+              padding: '7px 12px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-body)', fontWeight: 600,
               background: 'var(--s3)', color: 'var(--text)',
               border: '1px solid var(--border)', cursor: 'pointer',
             }}
           >
             <Printer size={14} /> Imprimir
           </button>
+          {p.alEntregar && (
+            <button
+              onClick={entregar}
+              disabled={entrega !== 'inicial'}
+              aria-label="Entregar la hoja al paciente en su portal"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-body)', fontWeight: 600,
+                background: entrega === 'hecho' ? 'var(--s3)' : 'var(--nexus)',
+                color: entrega === 'hecho' ? 'var(--text)' : '#fff',
+                border: '1px solid ' + (entrega === 'hecho' ? 'var(--border)' : 'var(--nexus)'),
+                cursor: entrega === 'inicial' ? 'pointer' : 'default',
+                minHeight: 44,
+              }}
+            >
+              {entrega === 'enviando' ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                : entrega === 'hecho' ? <Check size={14} /> : <Send size={14} />}
+              {entrega === 'enviando' ? 'Entregando…' : entrega === 'hecho' ? 'Entregada' : 'Entregar al paciente'}
+            </button>
+          )}
         </div>
       </header>
 
+      {errorEntrega && (
+        <p role="alert" style={{
+          margin: 0, padding: '10px 14px', fontSize: 'var(--t-body)', lineHeight: 1.5,
+          color: 'var(--red)', borderBottom: '1px solid var(--border)',
+        }}>
+          {errorEntrega}
+        </p>
+      )}
+
       <div style={{ padding: '4px 14px 14px' }}>
         {p.nombreDelPaciente && (
-          <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--text3)' }}>
+          <p style={{ margin: '10px 0 0', fontSize: 'var(--t-body)', color: 'var(--text3)' }}>
             Para {p.nombreDelPaciente}
           </p>
         )}
@@ -107,14 +167,14 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
         {bloques.map(b => (
           <div key={b.titulo} style={{ marginTop: 14 }}>
             <h4 style={{
-              margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '.04em',
+              margin: 0, fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em',
               textTransform: 'uppercase', color: 'var(--text3)',
             }}>
               {b.titulo}
             </h4>
             <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
               {b.lineas.map((l, i) => (
-                <li key={i} style={{ fontSize: 14.5, color: 'var(--text)', lineHeight: 1.6 }}>
+                <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>
                   {l}
                 </li>
               ))}

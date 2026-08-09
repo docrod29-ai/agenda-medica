@@ -13,8 +13,11 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `POSTVISIT-001` ✅ **CERRADA** (9-ago) — cinco de diez
+cerradas (`PATIENT-UX-TRUTH-001`, `DESIGN-SYSTEM-001`, `NAVIGATION-001`,
+`PATIENT-COMPANION-001`, `POSTVISIT-001`), más los tres P0 de audio fuera de
+turno. **Siguiente: `PATIENT-AI-001`** — ASK NEXUS con sus cinco clases de
+respuesta y las doce pruebas de equipo rojo como fixture permanente.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -37,6 +40,11 @@ línea; primitivos compartidos al 24 %).
 | Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
 | El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+
+| P1 de `POSTVISIT-001` | Estado |
+|---|---|
+| La hoja del paciente se componía del **borrador en curso**, sin compuerta de firma | CERRADO 9-ago (REG-306) — `POSTVISIT-GATE-001` |
+| La hoja **no llegaba nunca** al paciente | CERRADO 9-ago (REG-307) — `POSTVISIT-ENTREGA-001` |
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

@@ -12,6 +12,7 @@ import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 interface DocReceta {
   id: string
@@ -72,6 +73,34 @@ const DESTINOS = [
   { id: 'perfil' as const,     etiqueta: 'Perfil',     icono: User },
 ]
 
+/**
+ * CÓMO SE LE DICE AL PACIENTE QUE ALGO CAMBIÓ — V9 · POSTVISIT-001.
+ *
+ * `sin-cambio` dice «sigue igual» **y añade que se toma igual**, porque ésa es
+ * la afirmación que de verdad se sostiene: la comparación mira la línea de
+ * instrucción completa, no sólo el nombre del fármaco. Un «sin cambio» a secas
+ * junto a una warfarina cuya dosis se dobló sería la peor frase posible en el
+ * peor sitio posible, y se la lee alguien que no puede detectar el error.
+ */
+const ETIQUETA_CAMBIO: Record<string, string> = {
+  nuevo: 'es nuevo, empieza a tomarlo',
+  suspendido: 'ya no lo tomes',
+  cambiado: 'cambió cómo se toma — mira la instrucción de arriba',
+  'sin-cambio': 'sigue igual, se toma igual que antes',
+}
+
+/** Bloque con título de la hoja del paciente. Misma forma en toda la tarjeta. */
+function BloquePaciente({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 14 }}>
+      <h3 style={{ margin: 0, fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+        {titulo}
+      </h3>
+      <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{children}</ul>
+    </div>
+  )
+}
+
 const ESTADO_TERMINAL = new Set(['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada'])
 const TIPO_LABEL: Record<string, string> = {
   'primera-vez': 'Primera vez', 'seguimiento': 'Seguimiento', 'urgente': 'Urgente',
@@ -124,6 +153,8 @@ export default function MiPortalPage() {
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState('')
   const [destino, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
+  /** Lo que su médico LIBERÓ de cada consulta. `null` = todavía no se sabe. */
+  const [paquetes, setPaquetes] = useState<(PaqueteDeVisita & { id: string })[] | null>(null)
 
   const cargar = useCallback(async () => {
     try {
@@ -140,6 +171,16 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+      /*
+        Los paquetes de visita liberados — V9 · POSTVISIT-001. En paralelo y sin
+        bloquear: si esta llamada falla, el paciente sigue viendo sus citas.
+        Un 403 aquí es el mismo caso que en documentos (enlace sin alcance
+        clínico) y ya está dicho arriba; no se repite el cartel.
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(d.paquetes || []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -427,13 +468,70 @@ export default function MiPortalPage() {
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+          {(paquetes ?? []).length === 0 && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+          {(paquetes ?? []).map(p => (
+            <article key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', padding: 18, marginBottom: 16 }}>
+              <p style={{ margin: 0, fontSize: 'var(--t-caption)', color: 'var(--text3)' }} className="t-num">
+                {fmtFecha(new Date(p.approvedAt ?? 0).toISOString(), sesion.zonaHoraria || TZ_DEFAULT).fecha}
+              </p>
+              {p.encounterSummary && (
+                <p style={{ margin: '6px 0 0', fontSize: 'var(--t-h2)', color: 'var(--text)', lineHeight: 1.55, fontWeight: 600 }}>
+                  {p.encounterSummary}
+                </p>
+              )}
+
+              {p.medicationInstructions.length > 0 && (
+                <BloquePaciente titulo="Tus medicamentos">
+                  {p.medicationInstructions.map((m, i) => (
+                    <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{m.instruccion}</li>
+                  ))}
+                </BloquePaciente>
+              )}
+
+              {/*
+                QUÉ CAMBIÓ. `null` significa «no se pudo determinar», y entonces
+                NO se dibuja nada: una casilla vacía diría «no cambió nada», que
+                es justo lo contrario. Ausencia de dato no es dato de ausencia.
+              */}
+              {p.medicationChanges && p.medicationChanges.length > 0 && (
+                <BloquePaciente titulo="Qué cambió respecto de tu visita anterior">
+                  {p.medicationChanges.map((c, i) => (
+                    <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>
+                      <strong>{c.nombre}</strong> — {ETIQUETA_CAMBIO[c.tipo]}
+                    </li>
+                  ))}
+                </BloquePaciente>
+              )}
+
+              {p.orders.length > 0 && (
+                <BloquePaciente titulo="Estudios que te pidió">
+                  {p.orders.map((o, i) => (
+                    <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{o}</li>
+                  ))}
+                </BloquePaciente>
+              )}
+
+              {p.followUp && (
+                <BloquePaciente titulo="Tu próximo seguimiento">
+                  <li style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{p.followUp}</li>
+                </BloquePaciente>
+              )}
+
+              {p.clinicianContactRules && (
+                <p style={{ margin: '14px 0 0', fontSize: 'var(--t-body)', color: 'var(--text3)', lineHeight: 1.55 }}>
+                  {p.clinicianContactRules}
+                </p>
+              )}
+            </article>
+          ))}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>

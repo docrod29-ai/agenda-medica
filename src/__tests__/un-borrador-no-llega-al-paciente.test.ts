@@ -161,7 +161,7 @@ describe('el servidor filtra, no la pantalla', () => {
      * ruta que alguien escriba.
      */
     expect(RUTA).toContain("import { visibleParaElPaciente")
-    expect(RUTA).toContain('.filter(visibleParaElPaciente)')
+    expect(RUTA).toContain('if (!visibleParaElPaciente(p)) continue')
   })
 
   it('la acción exige alcance clínico', () => {

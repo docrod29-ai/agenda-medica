@@ -6,7 +6,61 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El paquete **se genera del encuentro y sólo se libera con aprobación del
+médico**, que es literalmente la condición de terminado de esta unidad. Cierra
+además los dos P1 que la auditoría le había asignado: `POSTVISIT-GATE-001` y
+`POSTVISIT-ENTREGA-001`.
+
+**Lo que se movió, en tres frases.** `componerPaquete` y `cambiosDeMedicacion`
+vuelven al módulo —ahora con llamador—, nace
+`POST /api/expediente/paquete-visita` bajo capacidad `firmar`, y la hoja del
+paciente deja de componerse del borrador en curso para hacerlo de la nota
+firmada que ya está en la base.
+
+**Tres decisiones que conviene no redescubrir:**
+
+1. **La compuerta de firma está tres veces**: en el compositor (lanza), en la
+   ruta (409 explicable) y en la pantalla (no monta la hoja). El compositor es la
+   que importa: impide que un llamador futuro se la salte.
+2. **`approvedBy` sale de la sesión**, y el guardián lo vigila **en negativo** —
+   si aparece `body.approvedBy`, rojo.
+3. **`medicationChanges` gana un cuarto tipo, `cambiado`.** Comparando sólo por
+   nombre, una warfarina que pasó de 2 mg a 10 mg salía «sin cambio». Ahora se
+   compara nombre **y** línea de instrucción compuesta.
+
+**Y una restricción de datos que hay que respetar al seguir**: el seguimiento
+vive en el paciente, no en la nota, así que sólo se pega al paquete **de la
+última nota firmada**. En las demás va vacío a propósito.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 588 casos · 1 fallo preexistente y de entorno** (`ops-timeout`: necesita que una IP agujero-negro agote el plazo, y este contenedor rechaza la conexión al instante) |
+| `lint-trinquete` | **96, igual que el techo** |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **compila** (con variables de Firebase de relleno: sin ellas el contenedor no puede recoger `/dr/[clinicId]`, y eso no es del cambio) |
+| trinquete de diseño | **bajó**: tamaños 2027 → 2022, radios 638 → 635 |
+| navegador | **no ejecutado** |
+
+### Lo que este checkpoint NO garantiza
+
+Que nada de esto funcione **en un navegador**. El botón «Entregar al paciente»,
+su estado de error y la tarjeta del portal están sellados por lectura del
+código, no por uso. Y **la ruta no se ha ejecutado contra Firestore**: montarla
+de verdad exige el emulador, que es otra suite. `NAV-NAVEGADOR-001` sigue
+abierto y con esto gana dos comprobaciones más.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

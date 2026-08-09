@@ -592,10 +592,26 @@ export async function POST(req: NextRequest) {
           .collection('patients').doc(patientId)
           .collection('paquetes_visita')
           .get()
-        const paquetes = snapPaq.docs
-          .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
-          .filter(visibleParaElPaciente)
-          .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
+        /**
+         * Y SÓLO LA VERSIÓN MÁS ALTA DE CADA NOTA — V9 REG-306.
+         *
+         * Un paquete liberado es inmutable: corregirlo es liberar una versión
+         * nueva, que se guarda aparte (`{notaId}__v{n}`) para poder contestar
+         * dentro de un año «¿qué se le dijo exactamente a este paciente?».
+         *
+         * Al paciente, en cambio, hay que darle **una entrada por consulta**.
+         * Enseñarle las dos versiones de la misma visita es peor que no enseñar
+         * nada: son dos hojas parecidas con dosis distintas y sin forma de saber
+         * cuál manda. El expediente las conserva todas; él ve la vigente.
+         */
+        const porNota = new Map<string, PaqueteDeVisita & { id: string }>()
+        for (const d of snapPaq.docs) {
+          const p = ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string }
+          if (!visibleParaElPaciente(p)) continue
+          const previo = porNota.get(p.notaId)
+          if (!previo || (p.version ?? 0) > (previo.version ?? 0)) porNota.set(p.notaId, p)
+        }
+        const paquetes = [...porNota.values()].sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
         return NextResponse.json({ paquetes })
       }
 

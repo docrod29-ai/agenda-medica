@@ -80,3 +80,31 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+## 2026-08-09 — V9 · POSTVISIT-001 · lo que el paciente se lleva, y por dónde sale
+
+Dos defectos hermanos que la auditoría de V9 había marcado P1, y los dos vivían
+en la misma pantalla.
+
+**REG-306 — la hoja se componía del borrador EN CURSO.** La condición era
+`{!esNotaHospital}`; su vecina de dos líneas más arriba ya exigía `{firmada}`.
+La precondición estaba **escrita en la cabecera del módulo** y no la comprobaba
+una sola línea de código. Familia nueva: `contrato_en_prosa`.
+
+**REG-307 — la hoja no llegaba nunca al paciente.** Copiar e imprimir, y ningún
+camino de salida; `proximaCita={undefined}` fijo desde que nació, así que su
+cuarto bloque no podía renderizarse jamás. «Escrito, probado y sin conectar» en
+su forma más cara.
+
+Lo que quedó: `componerPaquete` vuelve **con su llamador**,
+`POST /api/expediente/paquete-visita` bajo capacidad `firmar`, `approvedBy` de la
+sesión y no del cuerpo, paquete inmutable con versión, y la tarjeta del plan de
+cuidado en `/mi/[token]`.
+
+Y una decisión que salió de mirar el caso peor: `medicationChanges` gana el tipo
+`cambiado`, porque comparando sólo por nombre una warfarina de 2 mg → 10 mg
+salía «sin cambio».
+
+**Compuertas**: vitest 8 588 (1 fallo de entorno preexistente, `ops-timeout`) ·
+lint 96 = techo · `tsc` limpio · build compila · trinquete de diseño **bajó**
+(2027 → 2022 y 638 → 635). **Navegador: no ejecutado.**
