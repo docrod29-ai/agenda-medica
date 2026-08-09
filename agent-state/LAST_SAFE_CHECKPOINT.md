@@ -1,72 +1,87 @@
 # Último punto seguro de reanudación
 
-> **Para qué sirve este archivo.** Si se acaba el crédito, se cae la sesión, se
-> compacta el contexto o se reinicia la computadora, esto es lo primero que se
-> lee. Dice exactamente dónde se quedó el trabajo y, sobre todo, **qué NO hay que
-> volver a hacer**.
-
-**Actualizado**: 2026-08-08
-**Rama**: `claude/nexus-patient-ux-v9`
-**Loop**: V9 — Patient Companion + World-Class Product Experience
-**Unidad en curso**: `PATIENT-UX-TRUTH-001` (auditoría de verdad; read-only)
+> **Para qué sirve**: que la siguiente sesión sepa, sin leerse todo, qué está
+> cerrado y qué es lo siguiente. Se actualiza **tras cada unidad cerrada**, con
+> su SHA. Sin SHA, una unidad no está cerrada.
 
 ---
 
-## Protocolo de reanudación
+## Checkpoint · 8-ago-2026
 
-```bash
-cd /Users/davidrdz/Desktop/agenda-medica
-git log --oneline -5                                  # ¿coincide con el SHA de abajo?
-git status --porcelain                                # ¿árbol limpio?
-node scripts/agent-state/actualizar.mjs --verificar    # ¿el tablero miente?
-```
+| | |
+|---|---|
+| **Rama** | `claude/nexus-patient-ux-v9` |
+| **SHA base de esta sesión** | `0abcba2` (`chore(deploy): v1146 — REG-264`) |
+| **SHA de cierre** | `639ca73` |
+| **Unidad cerrada** | **`PATIENT-UX-TRUTH-001`** (iteración 0 de V9) |
+| **Siguiente unidad** | ver «Qué hacer al reanudar» |
 
-Después: leer `agent-state/CURRENT_ITERATION.md` (criterio) y la tabla de abajo.
-**Nunca rehacer una unidad marcada CERRADA con su SHA.**
+### Qué quedó hecho
+
+**Los siete documentos de la unidad**, todos con sección «qué NO cubre»:
+
+- `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` — cabecera
+- `docs/design/SCREEN_INVENTORY.md` — **generado**, 78 pantallas
+- `docs/design/NAVIGATION_STATE_AUDIT.md`
+- `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md`
+- `docs/patient/PATIENT_COMPANION_BASELINE.md`
+- `docs/competitive/PATIENT_EXPERIENCE_MATRIX.md`
+- `docs/competitive/UX_UI_MATRIX.md`
+
+**Backlog**: 14 elementos V9 en `agent-state/BACKLOG.json` con `prioridadV9` y
+`unidad` (4 P0 · 7 P1 · 3 P2).
+
+**Dos defectos reparados y sellados**, con prueba que falla al revés:
+
+- **REG-265** — el enlace de la videoconsulta del paciente no llevaba token:
+  404 «Cita no encontrada» desde su propio portal.
+- **REG-266** — `@keyframes spin` no existía en ningún sitio global; 90
+  referencias, incluidos los dos primitivos compartidos.
+
+**Un instrumento**: `scripts/design/inventario-de-pantallas.mjs` +
+`el-inventario-de-pantallas-no-miente.test.ts`, para que el inventario no se
+pudra.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | 8 083 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). Comprobado en `HEAD` limpio con los cambios guardados aparte: falla igual |
+| `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **compila** («Compiled successfully in 41s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
+| navegador / móvil / a11y | **no ejecutadas** |
 
 ---
 
-## Unidades cerradas de V9
+## Qué hacer al reanudar
 
-| # | Unidad | SHA | Fecha | Qué quedó en disco |
-|---|---|---|---|---|
-| 0.a | Apertura de V9 + reconciliación del tablero | `c5afd57d` | 2026-08-08 | `docs/ai/…MASTER_LOOP_V9.md` (directiva íntegra) · `RECONCILIACION-V9-2026-08-08.md` · `MASTER_STATE.json` derivado · `CURRENT_ITERATION.md` sin cifras a mano |
+**1. Comprobar** que `git log --oneline -3` incluye el commit de
+`PATIENT-UX-TRUTH-001` y correr `node scripts/agent-state/actualizar.mjs`.
 
-## Unidad en curso
+**2. NO rehacer la auditoría.** Está cerrada. Su producto es el backlog.
 
-**`PATIENT-UX-TRUTH-001`** — auditoría del producto real y del repositorio.
-**Read-only**: no toca código productivo. Si se interrumpe aquí, no hay nada que
-revertir; se relanza la auditoría.
+**3. Empezar por los tres P0 de audio**, aunque su ficha diga `NAVIGATION-001`.
+Son pérdida **irreversible** de una consulta ya grabada, y un P0 de integridad
+manda sobre el orden de las iteraciones:
 
-Entregables comprometidos (existe = hecho):
+- `PATIENT-AUDIO-001` — volver a grabar borra el audio anterior. Es el más caro y
+  el arreglo es el más pequeño: limitar el borrado al rango de esta sesión.
+- `PATIENT-AUDIO-002` — navegar termina la grabación en silencio.
+- `PATIENT-AUDIO-003` — el cierre por inactividad no oye dictar y borra la
+  recuperación.
 
-- [ ] `docs/design/SCREEN_INVENTORY.md`
-- [ ] `docs/design/NAVIGATION_STATE_AUDIT.md`
-- [ ] `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md`
-- [ ] `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md`
-- [ ] `docs/patient/PATIENT_COMPANION_BASELINE.md`
-- [ ] `docs/competitive/PATIENT_EXPERIENCE_MATRIX.md`
-- [ ] `docs/competitive/UX_UI_MATRIX.md`
-- [ ] Backlog P0/P1/P2/P3 en `agent-state/BACKLOG.json`
+Los tres, con su plan de arreglo escrito, en `agent-state/BACKLOG.json`.
 
-## Secuencia pendiente (§1 de V9)
+**4. Luego `DESIGN-SYSTEM-001`**, empezando por `@theme inline`
+(`globals.css:126-131`) — **no por colores**, que lo prohíbe §13 de la directiva
+y además no es el problema.
 
-`DESIGN-SYSTEM-001` → `NAVIGATION-001` → `PATIENT-COMPANION-001` →
-`POSTVISIT-001` → `PATIENT-AI-001` → `DOCUMENTS-001` →
-`CLOSED-LOOP-PATIENT-001` → `PATIENT-LANGUAGE-001` → `VISUAL-EXCELLENCE-001`
+**5. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
+de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en
+P0.**
 
----
+## Lo que este checkpoint NO garantiza
 
-## Candados vigentes en V9 (§9 de la directiva)
-
-**NO** desplegar a producción · **NO** fusionar a `main` · **NO** datos reales de
-pacientes · **NO** tocar Stripe productivo · **NO** mandar mensajes reales ·
-**NO** emitir recetas reales · **NO** migraciones destructivas.
-
-El trabajo llega hasta **rama + commit**. El dueño decide el resto.
-
-## Estado de los loops hermanos — vivos, no tocar
-
-- **V7** (`MASTER_STATE.json`): §4.1 cerrado. Prod v1145.
-- **SUPERARLOS**: SUP-001 ✅ · SUP-002…005 pendientes.
-- **GRABACIÓN PERFECTA**: I-3 e I-12 abiertas · I-7 e I-9 parciales.
+Que la interfaz esté bien. **Nadie ha abierto una pantalla.** Ninguna pantalla
+está aprobada y la auditoría no aprueba ninguna: prioriza el barrido.

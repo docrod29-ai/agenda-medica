@@ -724,6 +724,43 @@ tbody tr:last-child { border-bottom: none; }
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
+
+/*
+  EL GIRO DEL INDICADOR DE CARGA — nunca estuvo definido en ningún sitio global.
+
+  `animation: spin 1s linear infinite` se referencia **90 veces** en el código,
+  incluidas las dos piezas COMPARTIDAS del sistema de diseño:
+  `components/ui/Spinner.tsx` (27 usos) y el estado `loading` de
+  `components/ui/Button.tsx` (58 usos).
+
+  Ninguna de las dos definía el fotograma. Lo definían —cada uno por su cuenta,
+  en una etiqueta `<style>` local— **31 archivos de pantalla**. Y una etiqueta
+  `<style>` renderizada es GLOBAL al documento: mientras alguno de esos 31
+  estuviera montado, el giro funcionaba en toda la app. En cuanto el usuario
+  caía en una pantalla que no monta ninguno, el mismo componente compartido
+  dibujaba un `Loader2` **congelado**.
+
+  Tailwind v4 tampoco lo salvaba: sólo emite su fotograma `spin` si aparece la
+  utilidad `animate-spin`, y aquí se usa **cero** veces.
+
+  Un indicador de carga parado no es un detalle estético: es la señal de «esto
+  se colgó». El médico espera, no pasa nada, y vuelve a pulsar «Procesar con
+  IA» — sobre una petición que sí estaba corriendo.
+
+  Es la familia «el sistema se contradice a sí mismo»: cada pieza está bien por
+  separado —el componente compartido es correcto, las 31 pantallas también— y
+  por eso ninguna revisión de una sola pieza lo encuentra. Lo caza el guardián
+  `toda-animacion-tiene-su-fotograma`, que exige que un archivo que NO define
+  una animación la encuentre aquí.
+
+  Los 31 `<style>` locales se quedan de momento: son inofensivos (redefinen lo
+  mismo) y quitarlos son 31 diffs que no aportan seguridad. Se barren en
+  DESIGN-SYSTEM-001.
+*/
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .animate-fade-in { animation: fadeIn 0.2s ease; }
 
 /* Transición de entrada al cambiar de pantalla (ver (dashboard)/template.tsx).

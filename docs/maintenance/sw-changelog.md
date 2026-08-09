@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1150 — REG-268: «obesidad» contenía «sida», y con eso se descartaba un VIH
+## v1151 — REG-270: «obesidad» contenía «sida», y con eso se descartaba un VIH
 
 Los dos vocabularios clínicos del expediente se buscaban con
 `texto.includes(forma)`, y un `includes` no sabe dónde empieza una palabra:
@@ -23,7 +23,7 @@ por los dos lados, y detrás sólo el plural — «neumonías» es neumonía y
 «prediabetes» no es diabetes. Las 13 coincidencias que sí eran legítimas
 —miocardiopatía, neurocirugía, postinfarto— quedan declaradas como formas.
 ## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
-## v1084 — REG-268: las decisiones de arquitectura vivían en la cabeza de nadie
+## v1084 — REG-270: las decisiones de arquitectura vivían en la cabeza de nadie
 
 `docs/decisions/` estaba vacía. Cuatro ADR escritos, todos de decisiones YA
 tomadas: una fuente de verdad por entidad clínica, el LLM no calcula, el sello
@@ -2103,7 +2103,7 @@ reintentaba durante tres días — escribiendo un cobro nuevo cada vez. Ahora el
 identificador es `stripe_{session.id}`: reintentar es reescribir el mismo
 documento. REG-153.
 
-## v1150 — la puerta de liberación del §H6
+## v1151 — la puerta de liberación del §H6
 REG-204. Los nueve ceros que bloquean una liberación (paciente equivocado, error
 de medicación/unidad/negación silencioso, cita fabricada, orden no confirmada,
 acceso entre consultorios, pérdida de datos, pago duplicado) vivían sólo en el
@@ -2616,3 +2616,21 @@ línea copiada.
 
 No es código nuevo: es código que se había quedado fuera de la rama que se
 despliega. La misma familia que REG-267, con otro disfraz.
+
+## v1151 — el trabajo de V9: la superficie del paciente
+
+**REG-270** · el enlace de la videoconsulta del paciente no llevaba token, así
+que `/api/telesalud/sala` le contestaba **404 «Cita no encontrada» al dueño de la
+cita** —desde su propio portal, a la hora de su consulta—. Nadie lo vio porque el
+botón del médico sí lo lleva: sólo fallaba el camino que ningún empleado recorre.
+El token pasa a ser obligatorio en la firma.
+
+**REG-269** · `@keyframes spin` no existía en ningún sitio global pese a 90
+referencias, incluidos `ui/Spinner` y el estado «cargando» de `ui/Button`. Lo
+definían 31 pantallas en `<style>` locales, así que el giro funcionaba según en
+qué pantalla estuvieras. Un indicador parado no dice «esperando»: dice «se
+colgó», y se vuelve a pulsar sobre una petición que sí corría.
+
+Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
+reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
+programas compartieran directorio de trabajo, después de REG-267.

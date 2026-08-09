@@ -1,46 +1,75 @@
 # Estado del sistema de diseño — V9
 
-**Abierto**: 2026-08-08 · **Unidades**: `DESIGN-SYSTEM-001`, `NAVIGATION-001`,
-`VISUAL-EXCELLENCE-001`
-**Regla que lo gobierna**: `.claude/rules/design-system.md`
+> Se escribe **a mano**, tras cada iteración. Las cifras derivables viven en
+> `MASTER_STATE.json` y en `docs/design/SCREEN_INVENTORY.md` (generado).
+
+**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
+**Siguiente**: `DESIGN-SYSTEM-001`.
 
 ---
 
-## Dónde estamos
+## Lo que se sabe hoy, y no se sabía ayer
 
-**`PATIENT-UX-TRUTH-001` en curso.** Todavía no se ha tocado una sola clase de
-CSS, y así debe ser: la instrucción §13 del dueño es explícita — *no empezar por
-cambiar colores*. Primero se mide qué hay.
+**La premisa de la directiva no se cumple aquí.** No hay «cara de producto
+generado por IA»: cero degradados, cero `from-purple`, una `rounded-2xl`, una
+`shadow-2xl`, un `backdrop-blur`. Hay una identidad declarada, oscura por
+defecto, con los cocientes de contraste WCAG calculados a mano y escritos en el
+propio CSS.
 
-Lo que ya se sabe sin necesidad de auditoría, por conteo directo del repositorio:
+**El defecto real es otro: el sistema existe y la aplicación no le obedece.**
 
-| Hecho | Cifra | Por qué importa |
-|---|---|---|
-| Pantallas (`page.tsx`) | **78** | Un rediseño sin sistema es 78 rediseños |
-| Componentes | **81** archivos, ~13 800 líneas | Hay masa suficiente para que la duplicación duela |
-| La pantalla de consulta | **5 778 líneas**, un solo archivo | Es la pantalla central del producto y es la más difícil de cambiar sin romper |
-| Configuración | 2 605 líneas | Segunda más grande; señal de pantalla sin propósito único |
-| Documento de diseño existente | `docs/DESIGN_SYSTEM.md`, **14-jun-2026** | Existe desde hace ocho semanas; falta comprobar si el código lo obedece |
+| Medida | Valor |
+|---|---|
+| `style={{` | **6 065** en **177 de 200** archivos (88,5 %) |
+| `className` | 816 |
+| Hexadecimales a mano | **1 205** (151 distintos) |
+| `fontSize` en línea | ~3 000, ~**60 valores** — la escala declarada tiene 6 |
+| Radios en línea | ~19 valores — el sistema declara 3 |
+| Adopción de `components/ui/` | **48 de 200** archivos (~24 %) |
+| Tokens que Tailwind ve | **4** (`globals.css:126-131`) |
 
-## Lo que NO se ha hecho todavía
+## La causa raíz, y por dónde se empieza
 
-- No hay tokens de color verificados como fuente única.
-- No hay escala tipográfica ni de espacio verificada.
-- No hay capa de primitivas confirmada (`Button`, `Input`, `Card`).
-- No hay compuerta de accesibilidad, ni de regresión visual, ni de móvil.
-- No hay paleta de comandos `Cmd/Ctrl+K`.
+`@theme inline` expone a Tailwind cuatro valores. Todo lo demás vive en
+variables CSS que Tailwind no ve, así que **no hay utilidades que usar** y el
+código no tiene alternativa al estilo en línea. No es dejadez: es mecánica.
 
-Todo eso son **objetivos de `DESIGN-SYSTEM-001`**, no defectos declarados: hasta
-que la auditoría lo confirme con conteos y `file:line`, ninguno está probado.
+`DESIGN-SYSTEM-001` empieza ahí. **No por colores** — lo prohíbe §13 de la
+directiva y además el color no es el problema.
 
-## Decisiones de diseño ya tomadas (reversibles, mías)
+## La prueba de que el enfoque funciona
 
-Ninguna todavía. Se registrarán aquí conforme se tomen, con la razón, para que la
-siguiente sesión no las re-litigue.
+`--r-pill`. La píldora estaba escrita de cinco formas (`100`, `999`, `9999`,
+`99`, `50`). Se creó **un** token con su razón escrita, y hoy tiene **131
+adopciones**. Un token bien puesto sí se adopta aquí. Falta repetirlo para
+espacio, radio, tipografía y color, **cada uno con su guardián**.
 
-## Decisiones que serán del dueño
+## Reparado en esta iteración
 
-Se acumulan en `agent-state/OWNER_DECISIONS_REQUIRED.md`, no se preguntan de una
-en una. Candidata previsible: la **identidad visual** de NexusMED (marca, no
-tokens) — el dueño pidió «original», y «original» tiene tantas lecturas que
-elegir una por él sería adivinar.
+**REG-266 · `@keyframes spin`** no existía en ningún sitio global, y lo
+referencian 90 sitios incluidos `ui/Spinner` y `ui/Button loading`. Lo definían
+31 pantallas en `<style>` locales, así que el giro funcionaba «según en qué
+pantalla estuvieras». Reparado y sellado con
+`toda-animacion-tiene-su-fotograma.test.ts`.
+
+## Compuertas nuevas: ninguna todavía
+
+Accesibilidad, regresión visual, móvil y flujo en navegador **siguen sin
+definirse**. Es lo que `DESIGN-SYSTEM-001` tiene que entregar. Hoy hay **1**
+prueba de accesibilidad entre 540, y es una expresión regular sobre `layout.tsx`.
+
+## Orden para `DESIGN-SYSTEM-001`
+
+1. Ensanchar `@theme inline`.
+2. Tokens de espacio, radio y sombra.
+3. Un guardián de trinquete por token. Empezar por `#3d5afe`/`#3D5AFE` (125 usos
+   en dos mayúsculas): es puro y no cambia un píxel.
+4. `axe` sobre las 9 pantallas del paciente. Objetivo WCAG 2.2 AA.
+5. Los literales *slate* que no siguen al tema, en 10 archivos.
+6. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
+
+## Lo que este estado NO afirma
+
+Nadie ha abierto una pantalla. Todo son recuentos sobre el código. **Ninguna
+pantalla está aprobada**, y la directiva V9 §4 dice que no se aprueba interfaz
+leyendo código.

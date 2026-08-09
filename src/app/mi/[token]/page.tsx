@@ -268,7 +268,11 @@ export default function MiPortalPage() {
                 const v = ventanaDeSala(c.fechaHora, ahora, tzClinica)
                 return v.estado === 'abierta' ? (
                   <a
-                    href={enlaceSalaPaciente(c.id, sesion.clinicId ?? '')}
+                    /* El token del propio portal: el paciente ya está
+                       autenticado con él en esta pantalla, y `/api/telesalud/sala`
+                       lo exige del otro lado. Sin propagarlo, este botón
+                       contestaba «Cita no encontrada». */
+                    href={enlaceSalaPaciente(c.id, sesion.clinicId ?? '', token)}
                     target="_blank" rel="noopener noreferrer"
                     className="btn btn-primary btn-sm"
                     style={{ display: 'inline-flex', marginTop: 14 }}

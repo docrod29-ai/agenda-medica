@@ -44,7 +44,7 @@
  */
 import { primeraMencionSinEscudo } from '@/lib/expediente/mencion-en-la-nota'
 /**
- * El buscador de términos vive aparte desde REG-268: lo comparten este motor, el
+ * El buscador de términos vive aparte desde REG-270: lo comparten este motor, el
  * de temporalidad y la búsqueda en la nota. Dos copias de «cómo se busca una
  * palabra» acabarían divergiendo como divergieron los cuatro parsers de alergias
  * (REG-144).
@@ -68,7 +68,7 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
   { canonica: 'enfermedad renal crónica', formas: ['insuficiencia renal', 'enfermedad renal', 'renal crónica', 'renal cronica'] },
   /**
    * `miocardiopatía`, `postinfarto` y sus formas sin tilde estaban casando por
-   * accidente cuando el vocabulario se buscaba con `includes` (REG-268). Son el
+   * accidente cuando el vocabulario se buscaba con `includes` (REG-270). Son el
    * mismo padecimiento, así que se declaran en vez de perderse: el paso a
    * búsqueda por palabra no debe quitar ni una coincidencia legítima.
    */
