@@ -33,9 +33,9 @@ línea; primitivos compartidos al 24 %).
 
 | P0 | Estado |
 |---|---|
-| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | ABIERTO `PATIENT-AUDIO-001` |
-| Navegar **termina la grabación** en silencio | ABIERTO `PATIENT-AUDIO-002` |
-| El cierre por inactividad **no oye dictar** y borra la recuperación | ABIERTO `PATIENT-AUDIO-003` |
+| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | CERRADO v1158 (REG-283) — `PATIENT-AUDIO-001` |
+| Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
+| El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
