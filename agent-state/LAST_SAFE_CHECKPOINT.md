@@ -52,7 +52,7 @@ daba por cerrados desde el 8-ago. Es la cuarta vez que un tablero se desfasa
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 8 469 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). Es el mismo fallo del checkpoint anterior |
+| `npx vitest run` | **8 465 en verde**, 567 archivos, 1 saltado. `ops-timeout-y-punto-ciego` —que el checkpoint anterior daba por fallo fijo de entorno— pasó aquí: abre una conexión a una IP no enrutable esperando que expire, así que **depende de cómo responda el proxy del contenedor**. Es intermitente, no fijo; conviene decirlo así |
 | `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** |
 | `npm run build` | **compila** («Compiled successfully in 62s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código — igual que el checkpoint anterior |
