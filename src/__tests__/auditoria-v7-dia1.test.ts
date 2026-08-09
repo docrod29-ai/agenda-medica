@@ -82,7 +82,15 @@ describe('2 · LA ALERGIA QUE VENÍA DETRÁS DE UNA NEGACIÓN', () => {
      * «Penicilina G.» se partirían y el arreglo crearía un problema nuevo.
      */
     expect(parsearAlergiasTexto('Paracetamol 2.5 mg')[0].alergeno).toBe('Paracetamol 2.5 mg')
-    expect(parsearAlergiasTexto('Penicilina G.')[0].alergeno).toBe('Penicilina G.')
+    /**
+     * REG-276 — antes esperaba «Penicilina G.» CON el punto final. Lo que esta
+     * prueba defiende es que el punto **no PARTA** el nombre, y eso sigue en
+     * pie: sale un solo alérgeno. Lo que cambia es que el punto que cierra el
+     * texto ya no se queda pegado, porque «Penicilina G.» no casa con ningún
+     * fármaco del catálogo y «Penicilina G» sí.
+     */
+    expect(parsearAlergiasTexto('Penicilina G.')).toHaveLength(1)
+    expect(parsearAlergiasTexto('Penicilina G.')[0].alergeno).toBe('Penicilina G')
   })
 
   it('y lo de siempre sigue igual', () => {

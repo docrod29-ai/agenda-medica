@@ -4,7 +4,7 @@
 > `scripts/design/techos-de-diseno.json` (selladas) y en
 > `docs/design/SCREEN_INVENTORY.md` (generado).
 
-**Unidad**: `DESIGN-SYSTEM-001` **cerrada** el 9-ago-2026 · REG-274, REG-275.
+**Unidad**: `DESIGN-SYSTEM-001` **cerrada** el 9-ago-2026 · REG-295, REG-296.
 **Siguiente**: `NAVIGATION-001`.
 **El porqué completo**: [`docs/design/NEXUS_DESIGN_SYSTEM.md`](../docs/design/NEXUS_DESIGN_SYSTEM.md).
 
@@ -59,7 +59,7 @@ que mide el script. Un techo con margen es un techo que no muerde.
 
 ## Dos defectos que esta unidad introdujo, y uno que llevaba dos commits
 
-`REG-275`. Los dos scripts de `scripts/design/` ejecutaban su cuerpo de línea de
+`REG-296`. Los dos scripts de `scripts/design/` ejecutaban su cuerpo de línea de
 órdenes **al importarlos**. El del trinquete tumbaba la recolección de la prueba
 con `process.exit(1)`; el del inventario **reescribía el markdown antes de
 compararlo**, así que **ese guardián no podía fallar nunca**.

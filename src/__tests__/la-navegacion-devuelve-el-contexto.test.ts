@@ -1,5 +1,5 @@
 /**
- * LA NAVEGACIÓN DEVUELVE EL CONTEXTO — V9 · NAVIGATION-001 · REG-276 a REG-279.
+ * LA NAVEGACIÓN DEVUELVE EL CONTEXTO — V9 · NAVIGATION-001 · REG-297 a REG-300.
  *
  * ── EL REQUISITO, LITERAL ───────────────────────────────────────────────────
  *
@@ -17,13 +17,13 @@
  *
  * ── LOS CUATRO DEFECTOS QUE ESTA UNIDAD CIERRA ──────────────────────────────
  *
- *   · **REG-276** `proximoSeguimiento` se perdía al navegar — y el volcado de
+ *   · **REG-297** `proximoSeguimiento` se perdía al navegar — y el volcado de
  *     desmontaje **borraba** la copia que el rebote ya había guardado.
- *   · **REG-277** El atrás de la consulta era un destino FIJO con `push`, así
+ *   · **REG-298** El atrás de la consulta era un destino FIJO con `push`, así
  *     que quien venía de la agenda nunca volvía a ella.
- *   · **REG-278** Fecha, filtro y búsqueda de la agenda se reiniciaban en cada
+ *   · **REG-299** Fecha, filtro y búsqueda de la agenda se reiniciaban en cada
  *     vuelta: el médico volvía a poner la fecha después de CADA paciente.
- *   · **REG-279** Navegar dentro de la aplicación terminaba la grabación sin
+ *   · **REG-300** Navegar dentro de la aplicación terminaba la grabación sin
  *     avisar.
  *
  * ── QUÉ **NO** CUBRE ESTE ARCHIVO ───────────────────────────────────────────
@@ -50,7 +50,7 @@ const CONSULTA = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'p
 const CITAS = leer('src', 'app', '(dashboard)', 'citas', 'page.tsx')
 const AVISO = leer('src', 'hooks', 'useAvisoAlSalirGrabando.ts')
 
-describe('REG-276 · la fecha de seguimiento sobrevive a la navegación', () => {
+describe('REG-297 · la fecha de seguimiento sobrevive a la navegación', () => {
   it('viaja en el espejo en memoria Y en el volcado a localStorage', () => {
     /**
      * Ésta es la que muerde. `proximoSeguimiento` estaba en el respaldo con
@@ -103,7 +103,7 @@ describe('REG-276 · la fecha de seguimiento sobrevive a la navegación', () => 
   })
 })
 
-describe('REG-277 · el atrás de la consulta vuelve por donde se vino', () => {
+describe('REG-298 · el atrás de la consulta vuelve por donde se vino', () => {
   it('usa `useSmartBack`, con el destino fijo sólo de respaldo', () => {
     /**
      * Probada al revés: devolviendo `onClick={() => router.push(volverA)}`,
@@ -127,7 +127,7 @@ describe('REG-277 · el atrás de la consulta vuelve por donde se vino', () => {
   })
 })
 
-describe('REG-278 · la agenda recuerda el día que se estaba mirando', () => {
+describe('REG-299 · la agenda recuerda el día que se estaba mirando', () => {
   it('el estado inicial sale de la URL', () => {
     expect(CITAS).toContain("useState(() => paramFecha(params.get('d')))")
     expect(CITAS).toContain("useState<AppointmentStatus | 'todas' | 'por-cobrar'>(() => paramFiltro(params.get('f')))")
@@ -163,7 +163,7 @@ describe('REG-278 · la agenda recuerda el día que se estaba mirando', () => {
   })
 })
 
-describe('REG-279 · avisa antes de que una navegación corte el dictado', () => {
+describe('REG-300 · avisa antes de que una navegación corte el dictado', () => {
   it('sólo escucha mientras se graba', () => {
     /** Un interceptor de clics permanente es una forma excelente de romper la
      *  navegación de toda la aplicación. El ámbito es el arreglo. */
@@ -190,7 +190,7 @@ describe('REG-279 · avisa antes de que una navegación corte el dictado', () =>
   })
 
   it('pregunta, no impide', () => {
-    /** El audio ya está a salvo (REG-270/271). Bloquear la salida sería peor que
+    /** El audio ya está a salvo (REG-291/271). Bloquear la salida sería peor que
      *  el problema: el médico tiene que poder irse. */
     expect(AVISO).toContain('.then(ok => { if (ok) router.push(href) })')
   })

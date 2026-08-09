@@ -15,3 +15,4 @@ trabajo.
 | B-08 | Clasificación de seguridad por fármaco (P7/P8) | Decisión clínica | El esquema existe y está vacío |
 | B-09 | Pentest externo y PITR | Contratación y consolas | Declarado en el registro de riesgos |
 | B-10 | Cuenta de prueba en los secretos de CI | Credencial | El E2E sólo cubre lo público |
+| B-11 | Medir **diarización y atribución de rol** sobre el corpus actuado | La llave de **AssemblyAI** en esta máquina. `vercel env pull` la devuelve como `[SENSITIVE]`: Vercel redacta los valores sensibles, así que no hay forma de obtenerla sin que el Dr. la ponga en el entorno local. **El corpus y el medidor ya están hechos y probados**: en cuanto haya llave, es un comando | El corpus actuado (12 diálogos, 72 turnos, 5m12s, con el milisegundo de cada turno) está generado y sin medir |

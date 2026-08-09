@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 129, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 34 de 150, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -55,8 +55,8 @@ que correr**.
 
 ## La que más creció de golpe
 
-**«Pérdida de datos» — de 6 a 9 en un solo día**, con REG-270, REG-271 y
-REG-273: los tres caminos por los que una consulta **ya grabada** desaparecía.
+**«Pérdida de datos» — de 6 a 9 en un solo día**, con REG-291, REG-292 y
+REG-294: los tres caminos por los que una consulta **ya grabada** desaparecía.
 
 Y los tres tenían la misma causa de fondo, que es lo que merece quedar escrito:
 
@@ -86,7 +86,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 17 de 129.**
+**«El sistema se contradice a sí mismo» — 25 de 150.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -126,7 +126,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 129**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 21 de 150**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

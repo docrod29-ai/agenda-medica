@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { salirSeguro } from '@/lib/salir-seguro'
-import { EVENTO_ACTIVIDAD_DICTADO } from '@/hooks/useGrabacionAudio'
+import { EVENTO_GRABANDO } from '@/lib/seguridad/estoy-grabando'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -93,29 +93,37 @@ export function AutoLogout() {
     eventos.forEach(e => window.addEventListener(e, onActividad, { passive: true }))
 
     /**
-     * DICTAR TAMBIÉN ES ACTIVIDAD — REG-272.
+     * ── GRABAR ES ACTIVIDAD — REG-287 ────────────────────────────────────────
      *
-     * Los cinco eventos de arriba son de ratón, teclado y dedo. **Hablar no
-     * genera ninguno**, y esta pantalla es la de un médico que dicta: la
-     * cabecera de este archivo ya lo reconocía y el arreglo de entonces fue
-     * guardar la nota antes de cerrar. Correcto, pero dejaba la causa en pie —
-     * una consulta dictada de 45 minutos cerraba sesión en el minuto 30.
+     * El comentario de este archivo ya nombraba el escenario: *«el médico DICTA,
+     * y dictar no genera mousemove ni teclas»*. Su defensa fue **guardar la nota
+     * antes de cerrar** — eso salva el texto, pero la sesión **se seguía
+     * cerrando a mitad de frase** en un pase de UCI de media hora.
      *
-     * El latido lo emite `useGrabacionAudio` mientras graba, porque es quien
-     * sabe que se está grabando. **Va sin el estrangulador**: llega una vez por
-     * minuto a propósito y perderlo sería justo lo que se intenta evitar.
+     * Guardar la nota no era el arreglo: era el consuelo.
      *
-     * Esto NO desactiva el cierre por inactividad: en cuanto la grabación para,
-     * el contador corre como siempre. El control de PHI en dispositivo
-     * compartido se mantiene entero.
+     * ── Y ESTE LATIDO SÍ CANCELA EL AVISO, QUE ES LA DECISIÓN ───────────────
+     *
+     * Durante la cuenta atrás sólo el botón reactiva, y con razón: un
+     * `mousemove` perdido no puede impedir un cierre legítimo en un equipo
+     * compartido.
+     *
+     * **Una grabación en curso no es un `mousemove` perdido.** Es prueba
+     * positiva de que hay alguien delante hablando: evidencia de presencia más
+     * fuerte que mover el ratón. Sin esta línea, el aviso saldría en el minuto
+     * 30 del dictado y cerraría igual — y el defecto seguiría abierto con un
+     * arreglo puesto.
+     *
+     * Es una decisión de seguridad y se deja escrita para que el dueño pueda
+     * revertirla: alarga la sesión mientras se graba.
      */
-    const onDictado = () => { if (!avisandoRef.current) reiniciar() }
-    window.addEventListener(EVENTO_ACTIVIDAD_DICTADO, onDictado)
+    const onGrabando = () => reiniciar()
+    window.addEventListener(EVENTO_GRABANDO, onGrabando)
 
     reiniciar()
     return () => {
       eventos.forEach(e => window.removeEventListener(e, onActividad))
-      window.removeEventListener(EVENTO_ACTIVIDAD_DICTADO, onDictado)
+      window.removeEventListener(EVENTO_GRABANDO, onGrabando)
       limpiar()
     }
     // El efecto ya NO depende de `avisando` → no se re-monta al aparecer el aviso.

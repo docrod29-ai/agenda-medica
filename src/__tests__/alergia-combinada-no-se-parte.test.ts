@@ -81,7 +81,15 @@ describe('LO QUE YA FUNCIONABA NO SE ROMPIÓ', () => {
      * penicilina. Alérgico a sulfas» era un solo fragmento negado y la alergia
      * a sulfas DESAPARECÍA de la compuerta de la receta.
      */
-    expect(alergenos('Niega penicilina. Alérgico a sulfas')).toEqual(['Alérgico a sulfas'])
+    /**
+     * REG-276 — antes esperaba `['Alérgico a sulfas']`, CON el prefijo dentro
+     * del nombre. Se cambia porque un alérgeno llamado «Alérgico a sulfas» no
+     * casa con ningún fármaco del catálogo, así que el cruce
+     * alergia↔medicamento podía no dispararse justo con el que importa. Es el
+     * mismo daño que «SMX)», por otra puerta. Lo que la prueba defiende —que la
+     * alergia de después de una negación SIGA APARECIENDO— no cambia.
+     */
+    expect(alergenos('Niega penicilina. Alérgico a sulfas')).toEqual(['sulfas'])
   })
 
   it('y las negaciones se siguen reconociendo', () => {

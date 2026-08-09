@@ -10,7 +10,7 @@
 
 | | |
 |---|---|
-| **Unidad cerrada** | **`PATIENT-COMPANION-001`** — REG-280, REG-281 |
+| **Unidad cerrada** | **`PATIENT-COMPANION-001`** — REG-301, REG-302 |
 | **Siguiente** | **`POSTVISIT-001`** |
 
 Los cinco destinos existen en `/mi/[token]`, el `PaqueteDeVisita` tiene sus dos
@@ -20,7 +20,7 @@ aislamiento **y en la exportación ARCO**.
 
 **`POSTVISIT-001` empieza con deberes ya escritos**: `componerPaquete` y
 `cambiosDeMedicacion` se difirieron allí porque no tenían llamador, y su llamador
-es la pantalla donde el médico revisa y libera. Están descritas en REG-280 con
+es la pantalla donde el médico revisa y libera. Están descritas en REG-301 con
 sus reglas —sin lista previa de medicación, `null` y no «sin cambios»— para que
 no haya que redescubrirlas.
 
@@ -30,7 +30,7 @@ no haya que redescubrirlas.
 
 | | |
 |---|---|
-| **Unidad cerrada** | **`NAVIGATION-001`** — REG-276 a REG-279 |
+| **Unidad cerrada** | **`NAVIGATION-001`** — REG-297 a REG-300 |
 | **Siguiente** | **`PATIENT-COMPANION-001`** |
 
 El ciclo que pide la especificación —Agenda → Paciente → Consulta → Resultados →
@@ -38,14 +38,14 @@ Consulta— ya devuelve el contexto. Con un descubrimiento que ahorró trabajo: 
 pata de «Resultados» no era una navegación** (`PanelLaboratorios` se monta dentro
 de la consulta y del expediente), así que sólo costaba la pata de la Agenda.
 
-- **REG-276** `proximoSeguimiento` se perdía al navegar, y el volcado **borraba**
+- **REG-297** `proximoSeguimiento` se perdía al navegar, y el volcado **borraba**
   la copia que el rebote ya había guardado. Causa raíz: la regla de «hay
   contenido» estaba escrita **tres veces**. Ahora una.
-- **REG-277** El atrás de la consulta era un destino fijo con `push`: quien venía
+- **REG-298** El atrás de la consulta era un destino fijo con `push`: quien venía
   de la agenda nunca volvía a ella. `useSmartBack` existía y lo usaban diez
   pantallas; la consulta no.
-- **REG-278** Día, filtro y búsqueda de la agenda viven en la URL, validados.
-- **REG-279** Navegar dentro de la app ya avisa antes de cortar el dictado.
+- **REG-299** Día, filtro y búsqueda de la agenda viven en la URL, validados.
+- **REG-300** Navegar dentro de la app ya avisa antes de cortar el dictado.
 
 Cierra además `PATIENT-AUDIO-004`, el residuo declarado del turno anterior.
 
@@ -59,7 +59,7 @@ consulta. Y **nada de esto se ha visto en un navegador**.
 
 | | |
 |---|---|
-| **Unidad cerrada** | **`DESIGN-SYSTEM-001`** — REG-274, REG-275 |
+| **Unidad cerrada** | **`DESIGN-SYSTEM-001`** — REG-295, REG-296 |
 | **Siguiente** | **`NAVIGATION-001`** |
 
 `@theme inline` pasó de exponer 4 tokens a ~35 (con prefijo `nx-`, para poder
@@ -81,26 +81,26 @@ Detalle: `agent-state/DESIGN_STATE.md` y `docs/design/NEXUS_DESIGN_SYSTEM.md`.
 |---|---|
 | **Rama** | `claude/nexus-patient-ux-v9` |
 | **SHA anterior** | `6a6501d` (cierre de `PATIENT-UX-TRUTH-001`) |
-| **Unidad cerrada** | **`PATIENT-AUDIO-001/002/003`** — REG-270, 271, 272, 273 |
+| **Unidad cerrada** | **`PATIENT-AUDIO-001/002/003`** — REG-291, 271, 272, 273 |
 | **Siguiente** | `DESIGN-SYSTEM-001`, empezando por `@theme inline` |
 
 ### Qué quedó hecho
 
-**REG-270 · Volver a grabar ya no borra el audio anterior.**
+**REG-291 · Volver a grabar ya no borra el audio anterior.**
 `borrarChunks(clave, desde)`; los tres caminos de éxito borran sólo desde
 `recoveryBase`. El huérfano sobrevive para el cartel de «Recuperar».
 
-**REG-271 · El trozo final ya no se tira al salir grabando.** El índice de disco
+**REG-292 · El trozo final ya no se tira al salir grabando.** El índice de disco
 sale de un contador monótono (`persistIdxRef`) en vez de la longitud de un array,
 así que la colisión que obligaba a desenganchar el handler ya no puede ocurrir.
 
-**REG-272 · Dictar cuenta como actividad.** El hook late cada minuto mientras
+**REG-293 · Dictar cuenta como actividad.** El hook late cada minuto mientras
 graba y `AutoLogout` reinicia el contador. **No desactiva** el cierre por
 inactividad: al parar la grabación, corre como siempre. Y se registra el primer
 `beforeunload` del repositorio mientras se graba — cubre también la recarga que
 hace el service worker al desplegar.
 
-**REG-273 · Cerrar sesión ya no se lleva el audio sin transcribir.** El acuse de
+**REG-294 · Cerrar sesión ya no se lleva el audio sin transcribir.** El acuse de
 `nx:guardar-todo` gana `marcarAudioSinTranscribir()`; la purga pasa a ser
 condicional, igual que ya lo era la del borrador de la nota.
 

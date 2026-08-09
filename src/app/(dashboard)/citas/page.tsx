@@ -76,7 +76,7 @@ export default function CitasPage() {
   const params = useSearchParams()
   const router = useRouter()
   /**
-   * EL DÍA QUE SE ESTÁ MIRANDO VIVE EN LA URL — REG-278.
+   * EL DÍA QUE SE ESTÁ MIRANDO VIVE EN LA URL — REG-299.
    *
    * `selectedDate`, el filtro y la búsqueda eran `useState` puro. Como
    * `(dashboard)/template.tsx` desmonta la página en CADA navegación, volver de

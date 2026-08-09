@@ -33,6 +33,7 @@ import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 import {
   esFrasePasada, mencionesEnPasado, desajustesTemporales, avisoDeDesajuste,
   padecimientosEn, AGUDAS_FRECUENTES,
+  CABEZAS_QUE_NO_NOMBRAN_SOLAS, LO_QUE_NO_DISTINGUE,
   POR_QUE_EL_PRESENTE_MANDA, POR_QUE_NO_DECIDE, POR_QUE_IMPORTA,
 } from '@/lib/expediente/temporalidad'
 
@@ -359,5 +360,105 @@ describe('EL TITULAR, QUE ES LO QUE FALTABA', () => {
      */
     const { cronicasEn } = await import('@/lib/expediente/negaciones')
     expect(cronicasEn('neumonía')).toEqual([])
+  })
+})
+
+/**
+ * ── «SÓLO PUEDE SEÑALAR DE MENOS, NUNCA DE MÁS» ERA MENTIRA (v1080, REG-198) ──
+ *
+ * El módulo lo dice tres veces y una prueba lo repetía. Nadie lo había MEDIDO en
+ * la otra dirección: todos los casos existentes comprobaban que el motor cazara
+ * lo que debía, ninguno que no cazara lo que no.
+ *
+ * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
+ *
+ * Auditoría del motor de temporalidad (backlog EVAL-002: «se construyó en
+ * v1027-v1030 y no tiene corpus»). Al pasarle frases de infectología escritas al
+ * revés —la forma aparece como subcadena pero el diagnóstico es otro— salieron
+ * seis de doce mal, todas del mismo tipo.
+ *
+ * ── LA CAUSA RAÍZ ────────────────────────────────────────────────────────────
+ *
+ * `padecimientosEn` busca cada forma como subcadena. `derrame` y `trombosis`
+ * estaban puestas como formas **a secas**, y una cabeza sin calificador no
+ * nombra una condición: la nombra el calificador. Así, «derrame pleural»
+ * coincidía con la entrada de `evento vascular cerebral`.
+ *
+ * ── POR QUÉ IMPORTA MÁS QUE UN AVISO DE SOBRA ────────────────────────────────
+ *
+ * El aviso no dice «revisa el derrame»: dice, con la cita del dictado delante,
+ * que se habló en pasado de un **evento vascular cerebral**. Es un hecho clínico
+ * fabricado, de otro órgano y otra gravedad, puesto delante del médico en el
+ * segundo en que va a firmar. Y un derrame pleural es de lo más frecuente que ve
+ * un infectólogo.
+ *
+ * ── LO QUE ESTOS CASOS NO CUBREN ─────────────────────────────────────────────
+ *
+ * · La cistitis intersticial sigue contándose como infección urinaria: sobra el
+ *   aviso, no fabrica un órgano. Está declarado en `LO_QUE_NO_DISTINGUE`.
+ * · Las cabezas sueltas de `CRONICAS` («infarto» → cardiopatía, «tiroides» →
+ *   hipotiroidismo) producen el mismo defecto y **siguen vivas**: viven en
+ *   `negaciones.ts`, donde el vocabulario decide además qué cuenta como
+ *   negación. Aquí sólo se declaran.
+ * · Nada de esto mide lo que el reconocedor OYE. Otro corpus, otro coste.
+ *
+ * Pacientes sintéticos: ninguna frase viene de una consulta real.
+ */
+describe('NUNCA DE MÁS — el corpus escrito al revés', () => {
+  /** [frase, condiciones que el motor DEBE nombrar — ni una más]. */
+  const CORPUS: readonly [string, readonly string[]][] = [
+    // La cabeza sola no nombra nada: el calificador decide el órgano.
+    ['Tuvo derrame pleural derecho hace tres años, drenado.', []],
+    ['Presentó derrame pericárdico en 2019.', []],
+    ['Tuvo derrame articular de rodilla hace dos meses.', []],
+    ['Tenía trombosis arterial de miembro inferior.', []],
+    ['Tuvo trombosis de la arteria mesentérica en 2020.', []],
+    // Y lo que sí nombra la condición se sigue cazando.
+    ['Tuvo un derrame cerebral en 2018.', ['evento vascular cerebral']],
+    ['Padeció un EVC hace cinco años.', ['evento vascular cerebral']],
+    ['Tuvo trombosis venosa profunda hace dos años.', ['trombosis venosa']],
+    ['Le diagnosticaron TVP en 2021.', ['trombosis venosa']],
+    // El resto del vocabulario, para que estrechar no se lleve nada por delante.
+    ['Tuvo neumonía adquirida en la comunidad hace tres años.', ['neumonía']],
+    ['Presentó fractura de cadera hace cinco años.', ['fractura']],
+    ['Tuvo pancreatitis biliar en 2020.', ['pancreatitis']],
+    ['Padeció dengue hace un año.', ['dengue']],
+    ['Le operaron de la vesícula en 2019.', ['cirugía']],
+    // Vecinos que nunca coincidieron y deben seguir sin coincidir.
+    ['Tuvo tromboflebitis superficial.', []],
+    ['Presentó neumonitis por hipersensibilidad en 2019.', []],
+  ]
+
+  it.each(CORPUS)('«%s» → sólo %j', (frase, esperado) => {
+    expect(padecimientosEn(frase).sort()).toEqual([...esperado].sort())
+  })
+
+  it('el caso que lo motiva, entero: un derrame pleural NO es un ictus', () => {
+    /**
+     * Extremo a extremo, como lo ve el médico: dictado, nota y aviso. Antes de
+     * la reparación esto devolvía un desajuste de «evento vascular cerebral».
+     */
+    const dictado = 'Tuvo derrame pleural derecho hace tres años, drenado.'
+    const nota = 'Paciente con derrame pleural derecho de nueva aparición. Se solicita toracocentesis.'
+    expect(desajustesTemporales(mencionesEnPasado(dictado), nota)).toEqual([])
+  })
+
+  it('ninguna cabeza sin calificador puede volver a entrar en el vocabulario', () => {
+    /**
+     * El guardián, no el parche. Sin esto, la quinta forma suelta que alguien
+     * añada reintroduce REG-198 sin romper ninguna prueba — que es exactamente
+     * como entró ésta.
+     */
+    for (const c of AGUDAS_FRECUENTES) {
+      for (const forma of c.formas) {
+        expect(CABEZAS_QUE_NO_NOMBRAN_SOLAS, `«${forma}» en ${c.canonica}`)
+          .not.toContain(forma.toLowerCase())
+      }
+    }
+  })
+
+  it('y lo que sigue sin distinguirse está escrito, no descubierto dentro de un año', () => {
+    expect(LO_QUE_NO_DISTINGUE).toMatch(/cistitis intersticial/)
+    expect(LO_QUE_NO_DISTINGUE).toMatch(/negaciones\.ts/)
   })
 })

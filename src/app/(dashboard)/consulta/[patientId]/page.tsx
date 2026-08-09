@@ -18,7 +18,7 @@ import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
 import { usePatientAppointments } from '@/hooks/useAppointments'
 import { hoyISO } from '@/lib/timezone'
-import type { Appointment } from '@/types'
+import type { Appointment, AlergiaEstructurada } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
@@ -108,8 +108,25 @@ function textoDeLaNota(
   ].filter(Boolean).join('\n')
 }
 
-function alergiasArray(alergias?: string): string[] {
-  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
+/**
+ * ── EL SELLO DE PROCEDENCIA CONTABA CERO ALERGIAS — REG-278 ──────────────────
+ *
+ * Recibía `alergias?: string` y llamaba a `parsearAlergiasTexto`, que mira
+ * **sólo el texto libre**. Un paciente cuya alergia vive en
+ * `alergiasEstructuradas` —que es donde la deja el registro estructurado—
+ * sellaba una lista vacía.
+ *
+ * La compuerta que bloquea la firma ya se había reparado (usa `alergiasDe`).
+ * Esto es el **sello de procedencia**, que dice de dónde salió cada dato de la
+ * nota: contando cero, dejaba la alergia fuera de `camposSinEvidencia`. El
+ * registro medicolegal quedaba diciendo que ahí no había nada que respaldar.
+ *
+ * Es el mismo defecto de siempre —**dos lecturas del mismo campo**— sobrevivido
+ * en un envoltorio de una línea, que es justo donde un guardián que busca
+ * `.split(` no mira.
+ */
+function alergiasArray(p?: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): string[] {
+  return alergiasDe(p ?? {}).map(a => a.alergeno)
 }
 import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
@@ -266,7 +283,7 @@ export default function ConsultaActivaPage() {
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
   /**
-   * ATRÁS DE VERDAD — REG-277.
+   * ATRÁS DE VERDAD — REG-298.
    *
    * Este botón hacía `router.push(volverA)`: un destino FIJO, y además apilando
    * una entrada nueva en el historial. El médico que entra desde la agenda del
@@ -745,6 +762,13 @@ export default function ConsultaActivaPage() {
     sexo: patient?.sexo,
     alergias: patient?.alergias,
     /**
+     * Las capturadas en campo, para que el cruce las vea igual que el sesgo de
+     * voz y los impresos (REG-208). Hoy ninguna ruta de escritura las llena,
+     * pero cualquier importación desde otro sistema las activa el mismo día, y
+     * entonces el paciente MEJOR documentado sería el único sin cruce.
+     */
+    alergiasEstructuradas: patient?.alergiasEstructuradas,
+    /**
      * ── EL PACIENTE COMPLETO, NO SÓLO LO DE HOY (6-ago-2026, REG-188) ──────
      *
      * Aquí iban únicamente los renglones de esta consulta. En un seguimiento
@@ -781,7 +805,7 @@ export default function ConsultaActivaPage() {
     labs: labsDesdeEstudios(
       (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
     ),
-  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signosNum, extraction])
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
@@ -2368,7 +2392,7 @@ export default function ConsultaActivaPage() {
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
         procedencia: construirManifiesto(
           {
-            diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias),
+            diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}),
             signosVitales: signosNum as unknown as Record<string, unknown>,
             /**
              * Y LA PROSA, que era justo lo que faltaba.
@@ -2837,7 +2861,7 @@ export default function ConsultaActivaPage() {
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
   /**
-   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-276.
+   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-297.
    *
    * Esta regla estaba escrita TRES veces, palabra por palabra, en el espejo en
    * memoria, en el volcado a `localStorage` y en el oyente de `nx:guardar-todo`.
@@ -2845,7 +2869,7 @@ export default function ConsultaActivaPage() {
    * que alguien añada un campo en dos de los tres para que el tercero empiece a
    * decir que la nota está vacía cuando no lo está.
    *
-   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-276).
+   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-297).
    */
   const hayContenido = (e: { resumen?: string; secciones?: { value?: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; transcripcion?: string; signos?: Parameters<typeof signosConValor>[0]; estudiosOrden?: unknown[]; preop?: unknown; proximoSeguimiento?: string }) =>
     !!(e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length ||
@@ -2858,14 +2882,14 @@ export default function ConsultaActivaPage() {
    * oyente de `nx:guardar-todo` se registra con `[guardarBorrador]` en las
    * dependencias, así que leer `audio.estado` dentro de él capturaría el valor
    * que hubiera al registrarse — «inactivo», casi siempre. Un ref se lee
-   * siempre vivo (REG-273).
+   * siempre vivo (REG-294).
    */
   const audioEstadoRef = useRef(audio.estado)
   // Se actualiza en un efecto, no durante el render: tocar un ref mientras se
   // renderiza es error del compilador de React y sube el trinquete de lint.
   useEffect(() => { audioEstadoRef.current = audio.estado }, [audio.estado])
 
-  // Avisar antes de que una navegación dentro de la app corte el dictado (REG-279).
+  // Avisar antes de que una navegación dentro de la app corte el dictado (REG-300).
   useAvisoAlSalirGrabando(audio.estado === 'grabando', confirm)
   useEffect(() => {
     estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada }
@@ -2954,7 +2978,7 @@ export default function ConsultaActivaPage() {
     const alGuardarTodo = (ev: Event) => {
       const detalleAudio = (ev as CustomEvent<{ marcarAudioSinTranscribir?: () => void }>).detail
       /**
-       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-273.
+       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-294.
        *
        * La declaración va la primera a propósito. Debajo hay un `return`
        * temprano cuando la nota está vacía, y una grabación recién empezada es
@@ -3198,7 +3222,7 @@ export default function ConsultaActivaPage() {
     }
 
     const sinEvidencia = camposSinEvidencia(construirManifiesto(
-      { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
+      { diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}) },
       extraction as never,
       aprobados,
       {
@@ -5115,7 +5139,7 @@ export default function ConsultaActivaPage() {
           también en la nota firmada — es parte del registro. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0) && (
         <SelloProcedencia
-          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
           aprobados={aprobados}
           transcripcion={voz.transcripcion}

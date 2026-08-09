@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 272, 279],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 293, 300],
   },
   {
     clave: 'se_contradice',
@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 274, 281],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 295, 302],
   },
   {
     clave: 'habla_real',
@@ -57,7 +57,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El motor lingüístico cubre el español que uno escribiría, no el que se ' +
       'habla en un consultorio mexicano. Se descubre midiendo contra frases ' +
       'reales, nunca leyendo el código.',
-    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220],
+    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276, 280, 281, 282, 284, 289],
   },
   {
     clave: 'sin_medir',
@@ -65,7 +65,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 275],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 296],
   },
   {
     clave: 'hueco_como_dato',
@@ -100,7 +100,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Correcto por dentro, insoportable por fuera: avisos que interrumpen, se ' +
       'repiten o tapan la nota. Un aviso que estorba se aprende a ignorar, y ' +
       'entonces deja de proteger.',
-    regs: [178, 181, 184, 231, 233, 277],
+    regs: [178, 181, 184, 231, 233, 298],
   },
   {
     clave: 'perdida',
@@ -109,7 +109,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219, 270, 271, 273, 276, 278],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 291, 292, 294, 297, 299],
   },
   {
     clave: 'tarde',
@@ -176,7 +176,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250, 280],
+    regs: [242, 243, 250, 301],
   },
   {
     clave: 'falta_un_eje',

@@ -294,7 +294,7 @@
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
       "score": 82,
-      "cierre": "CERRADO (REG-269, REG-270). Dictar emite un latido que reinicia el contador de inactividad, y la purga del audio pasa a ser condicional: quien tenga audio sin transcribir lo declara y no se borra. No se intenta transcribir durante el cierre — apostar el audio a que la red responda es peor que conservarlo."
+      "cierre": "CERRADO (REG-269, REG-291). Dictar emite un latido que reinicia el contador de inactividad, y la purga del audio pasa a ser condicional: quien tenga audio sin transcribir lo declara y no se borra. No se intenta transcribir durante el cierre — apostar el audio a que la red responda es peor que conservarlo."
     },
     {
       "seguridad": 2,
@@ -420,7 +420,7 @@
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
       "score": 52,
-      "cierre": "CERRADO (REG-274). @theme inline expone ~35 tokens con prefijo nx- (no pisa la escala de Tailwind, así que se puede migrar poco a poco). Nacen las escalas de radio, espacio, elevación, movimiento y tipografía. Y el hallazgo que no se buscaba: 280 respaldos var(--x,#hex), 253 obsoletos y 5 sobre tokens inexistentes — un segundo sistema de color entero escondido en el primero. Cero respaldos ahora, con techo 0. Trinquete de diseño en scripts/design/trinquete-de-diseno.mjs."
+      "cierre": "CERRADO (REG-295). @theme inline expone ~35 tokens con prefijo nx- (no pisa la escala de Tailwind, así que se puede migrar poco a poco). Nacen las escalas de radio, espacio, elevación, movimiento y tipografía. Y el hallazgo que no se buscaba: 280 respaldos var(--x,#hex), 253 obsoletos y 5 sobre tokens inexistentes — un segundo sistema de color entero escondido en el primero. Cero respaldos ahora, con techo 0. Trinquete de diseño en scripts/design/trinquete-de-diseno.mjs."
     },
     {
       "seguridad": 1,
@@ -471,7 +471,7 @@
       "archivo": "src/app/(dashboard)/citas/page.tsx:436,61,86,87,117,124 · consulta:265,3752 · calendario:41,58",
       "plan": "useSmartBack en la consulta (ya existe y lo usan 10 pantallas) + llevar el estado de la agenda a la URL o al layout, como ya se hizo con BorradorContext.",
       "score": 40,
-      "cierre": "CERRADO (REG-277, REG-278). El atrás de la consulta usa useSmartBack —existía y lo usaban diez pantallas, la consulta no— y el estado de la agenda (día, filtro, búsqueda) vive en la URL, validado, con replace y rebote. Las dos limpiezas del parámetro id ya no borran el contexto."
+      "cierre": "CERRADO (REG-298, REG-299). El atrás de la consulta usa useSmartBack —existía y lo usaban diez pantallas, la consulta no— y el estado de la agenda (día, filtro, búsqueda) vive en la URL, validado, con replace y rebote. Las dos limpiezas del parámetro id ya no borran el contexto."
     },
     {
       "seguridad": 0,
@@ -595,7 +595,7 @@
       "reversible": true,
       "origen": "REG-268/269 — residuo declarado al cerrar PATIENT-AUDIO-002",
       "score": 38,
-      "cierre": "CERRADO (REG-279). useAvisoAlSalirGrabando intercepta el clic en enlaces internos SÓLO mientras se graba: pregunta, no impide. No cubre el atrás del navegador (popstate, no clic) y está declarado en el hook."
+      "cierre": "CERRADO (REG-300). useAvisoAlSalirGrabando intercepta el clic en enlaces internos SÓLO mientras se graba: pregunta, no impide. No cubre el atrás del navegador (popstate, no clic) y está declarado en el hook."
     },
     {
       "id": "DESIGN-MIGRAR-001",

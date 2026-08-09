@@ -49,11 +49,11 @@ Sin SHA, una unidad no está cerrada.
 | 8 | `PATIENT-LANGUAGE-001` | ⬜ pendiente | — |
 | 9 | `VISUAL-EXCELLENCE-001` | ⬜ pendiente | — |
 
-> Los tres P0 de audio (REG-270 a REG-273) se cerraron **fuera de turno**, por la
+> Los tres P0 de audio (REG-291 a REG-294) se cerraron **fuera de turno**, por la
 > regla de prioridad autónoma de la especificación: seguridad del paciente e
 > integridad de datos van antes que el orden de la lista. No cerraban
-> `NAVIGATION-001` por sí solos; esa unidad se cerró aparte, con REG-276 a
-> REG-279.
+> `NAVIGATION-001` por sí solos; esa unidad se cerró aparte, con REG-297 a
+> REG-300.
 
 ### 2 · Cero P0 y cero P1 bloqueantes
 

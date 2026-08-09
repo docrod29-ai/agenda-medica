@@ -1,5 +1,5 @@
 /**
- * EL SISTEMA DE DISEÑO NO PIERDE TERRENO — V9 · DESIGN-SYSTEM-001 · REG-274.
+ * EL SISTEMA DE DISEÑO NO PIERDE TERRENO — V9 · DESIGN-SYSTEM-001 · REG-295.
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *

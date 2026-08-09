@@ -1,5 +1,5 @@
 /**
- * EL AUDIO GRABADO NO SE BORRA — V9 · REG-270, REG-271, REG-272, REG-273.
+ * EL AUDIO GRABADO NO SE BORRA — V9 · REG-291, REG-292, REG-293, REG-294.
  *
  * ── LOS CUATRO DEFECTOS, Y LO QUE TENÍAN EN COMÚN ───────────────────────────
  *
@@ -14,10 +14,10 @@
  * defensas. Y cuando hubo que elegir entre proteger el texto y proteger el
  * audio —en la purga del cierre de sesión— se protegió el texto.
  *
- *   · **REG-270** Volver a grabar borraba el audio de la grabación anterior.
- *   · **REG-271** El trozo final se tiraba al salir de la pantalla grabando.
- *   · **REG-272** El cierre por inactividad no oía dictar.
- *   · **REG-273** Y al cerrar, se llevaba el audio sin transcribir.
+ *   · **REG-291** Volver a grabar borraba el audio de la grabación anterior.
+ *   · **REG-292** El trozo final se tiraba al salir de la pantalla grabando.
+ *   · **REG-293** El cierre por inactividad no oía dictar.
+ *   · **REG-294** Y al cerrar, se llevaba el audio sin transcribir.
  *
  * ── QUÉ **NO** CUBRE ESTE ARCHIVO ───────────────────────────────────────────
  *
@@ -46,8 +46,19 @@ const HOOK = leer('src', 'hooks', 'useGrabacionAudio.ts')
 const SALIR = leer('src', 'lib', 'salir-seguro.ts')
 const AUTOLOGOUT = leer('src', 'components', 'AutoLogout.tsx')
 const CONSULTA = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+/**
+ * NOTA DE FUSIÓN V10-D1 (9-ago-2026). Main reparó estos mismos defectos en
+ * paralelo (REG-283 el rango del borrado, REG-287 el latido + beforeunload) y
+ * su mecanismo es el que sobrevivió a la fusión: `rangoABorrar` como función
+ * pura, y el latido `EVENTO_GRABANDO` declarado UNA vez en
+ * `lib/seguridad/estoy-grabando` (con guardián propio:
+ * `grabar-es-actividad.test.ts`). Las comprobaciones de mecanismo de este
+ * archivo se adaptaron a esa implementación; las de COMPORTAMIENTO (qué se
+ * borra, qué se conserva, cuándo se avisa) no cambiaron.
+ */
+const ESTOY = leer('src', 'lib', 'seguridad', 'estoy-grabando.ts')
 
-describe('REG-270 · el borrado de éxito no arrasa el audio de otra sesión', () => {
+describe('REG-291 · el borrado de éxito no arrasa el audio de otra sesión', () => {
   it('`borrarChunks` acepta desde qué índice borrar', () => {
     expect(HOOK).toMatch(/async function borrarChunks\(recoveryKey: string, desde = 0\)/)
   })
@@ -59,8 +70,11 @@ describe('REG-270 · el borrado de éxito no arrasa el audio de otra sesión', (
      * anterior que nunca se transcribió. Probada al revés: devolviendo el 0
      * literal, falla.
      */
+    // Tras la fusión, el rango vive en `rangoABorrar` (REG-283, función pura
+    // para poder probarla sin abrir IndexedDB) y `borrarChunks` lo consume.
+    expect(HOOK).toContain('return [[recoveryKey, desde], [recoveryKey, Number.MAX_SAFE_INTEGER]]')
     const cuerpo = /async function borrarChunks[\s\S]*?\n}/.exec(HOOK)?.[0] ?? ''
-    expect(cuerpo).toContain('IDBKeyRange.bound([recoveryKey, desde]')
+    expect(cuerpo).toContain('rangoABorrar(recoveryKey, desde)')
     expect(cuerpo).not.toContain('IDBKeyRange.bound([recoveryKey, 0]')
   })
 
@@ -88,7 +102,7 @@ describe('REG-270 · el borrado de éxito no arrasa el audio de otra sesión', (
   })
 })
 
-describe('REG-271 · el trozo final se persiste al salir grabando', () => {
+describe('REG-292 · el trozo final se persiste al salir grabando', () => {
   it('el índice de disco sale de un contador, no de la longitud de un array', () => {
     /**
      * La causa raíz. `recoveryBase + todosChunks.length - 1` ataba el índice a
@@ -118,10 +132,13 @@ describe('REG-271 · el trozo final se persiste al salir grabando', () => {
   })
 })
 
-describe('REG-272 · dictar cuenta como actividad, y avisa antes de recargar', () => {
+describe('REG-293 · dictar cuenta como actividad, y avisa antes de recargar', () => {
   it('el hook emite un latido mientras graba', () => {
-    expect(HOOK).toContain("export const EVENTO_ACTIVIDAD_DICTADO = 'nx:actividad-dictado'")
-    expect(HOOK).toMatch(/setInterval\(latido, LATIDO_DICTADO_MS\)/)
+    // El nombre del evento vive UNA vez, en `lib/seguridad/estoy-grabando`
+    // (REG-287): una cadena repetida en dos archivos es una compuerta que se
+    // abre sola el día que alguien corrige una errata en uno de los dos.
+    expect(HOOK).toContain("import { EVENTO_GRABANDO, LATIDO_MS } from '@/lib/seguridad/estoy-grabando'")
+    expect(HOOK).toMatch(/new CustomEvent\(EVENTO_GRABANDO\)\), LATIDO_MS\)/)
   })
 
   it('el latido va MUY por debajo del umbral de inactividad', () => {
@@ -131,7 +148,7 @@ describe('REG-272 · dictar cuenta como actividad, y avisa antes de recargar', (
      * plano. Se comprueba la relación, no el número: si alguien baja el umbral
      * a 2 minutos, esta prueba tiene que seguir teniendo sentido.
      */
-    const latidoMs = Number(/const LATIDO_DICTADO_MS = ([\d_]+)/.exec(HOOK)?.[1]?.replace(/_/g, ''))
+    const latidoMs = Number(/export const LATIDO_MS = ([\d_]+)/.exec(ESTOY)?.[1]?.replace(/_/g, ''))
     const inactividadMin = Number(/const INACTIVIDAD_MIN = (\d+)/.exec(AUTOLOGOUT)?.[1])
     expect(latidoMs).toBeGreaterThan(0)
     expect(inactividadMin).toBeGreaterThan(0)
@@ -151,9 +168,13 @@ describe('REG-272 · dictar cuenta como actividad, y avisa antes de recargar', (
      * oyente que sobrevive al componente es una fuga que reinicia el contador
      * de una sesión que ya no existe.
      */
-    expect(AUTOLOGOUT).toContain('window.addEventListener(EVENTO_ACTIVIDAD_DICTADO, onDictado)')
-    expect(AUTOLOGOUT).toContain('window.removeEventListener(EVENTO_ACTIVIDAD_DICTADO, onDictado)')
-    expect(AUTOLOGOUT).toMatch(/const onDictado = \(\) => \{ if \(!avisandoRef\.current\) reiniciar\(\) \}/)
+    expect(AUTOLOGOUT).toContain('window.addEventListener(EVENTO_GRABANDO, onGrabando)')
+    expect(AUTOLOGOUT).toContain('window.removeEventListener(EVENTO_GRABANDO, onGrabando)')
+    // Sin la guarda del aviso, A PROPÓSITO: una grabación en curso es evidencia
+    // de presencia más fuerte que un mousemove, y cancela también la cuenta
+    // atrás. Es la decisión documentada de REG-287 (y de su guardián
+    // `grabar-es-actividad.test.ts`); revertirla es decisión del dueño.
+    expect(AUTOLOGOUT).toMatch(/const onGrabando = \(\) => reiniciar\(\)/)
   })
 
   it('el latido NO pasa por el estrangulador de 5 s de los otros eventos', () => {
@@ -163,7 +184,7 @@ describe('REG-272 · dictar cuenta como actividad, y avisa antes de recargar', (
      * lo tratara igual, un latido podría caer dentro de la ventana de otro
      * evento y perderse. Por eso tiene su propio oyente.
      */
-    expect(AUTOLOGOUT).not.toMatch(/EVENTO_ACTIVIDAD_DICTADO[\s\S]{0,80}onActividad/)
+    expect(AUTOLOGOUT).not.toMatch(/EVENTO_GRABANDO[\s\S]{0,80}onActividad/)
   })
 
   it('avisa antes de recargar o cerrar la pestaña mientras graba', () => {
@@ -179,12 +200,14 @@ describe('REG-272 · dictar cuenta como actividad, y avisa antes de recargar', (
   it('el aviso sólo existe mientras se graba', () => {
     /** Un `beforeunload` permanente pregunta «¿seguro?» al salir de una
      *  pantalla vacía, y eso enseña a decir que sí sin leer. */
-    const efecto = /if \(estado !== 'grabando'\) return[\s\S]*?\n  \}, \[estado\]\)/.exec(HOOK)?.[0] ?? ''
+    // `pausado` también cuenta: una grabación en pausa sigue siendo audio sin
+    // transcribir que se perdería sin aviso (REG-287 lo amplió).
+    const efecto = /if \(estado !== 'grabando' && estado !== 'pausado'\) return[\s\S]*?\n  \}, \[estado\]\)/.exec(HOOK)?.[0] ?? ''
     expect(efecto).toContain('beforeunload')
   })
 })
 
-describe('REG-273 · al cerrar sesión, el audio sin transcribir se conserva', () => {
+describe('REG-294 · al cerrar sesión, el audio sin transcribir se conserva', () => {
   it('la purga del audio es CONDICIONAL', () => {
     /**
      * Ésta es la que muerde. `limpiarAudioLocal()` se llamaba en las dos ramas,

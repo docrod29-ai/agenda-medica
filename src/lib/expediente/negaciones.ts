@@ -142,12 +142,61 @@ const NEGATIVAS_SIN_NO = /^\s*(?:tampoco|jam[aá]s|para\s+nada|en\s+absoluto|qu[
  */
 const NIEGA_POSPUESTO = /\b(?:no|nunca|jam[aá]s)\s*[.,;!]?\s*$/i
 
+/**
+ * EL «NO» QUE CORRIGE Y AFIRMA EN LA MISMA FRASE — REG-271.
+ *
+ * «¿Tiene diabetes? — **No, sí tengo**, desde hace años.»
+ *
+ * El paciente se desdice: empieza negando y acaba afirmando. Y este módulo se
+ * quedaba con la primera palabra. Medido con el motor real el 9-ago-2026, las
+ * **cinco** formas se leían como negación:
+ *
+ *     «No, sí tengo.»        → NIEGA
+ *     «No, sí padezco»       → NIEGA
+ *     «no, claro que sí»     → NIEGA
+ *     «No, así es»           → NIEGA
+ *     «No, efectivamente»    → NIEGA
+ *
+ * Es el gemelo exacto de «no sé», y el daño va en la dirección peor: el paciente
+ * **afirma** que la padece y el expediente registra que la **negó**. Después
+ * `corregirCertezaPorNegacion` la reclasifica a `descartado`, y la pantalla de
+ * contradicciones le dice al médico que todo cuadra.
+ *
+ * `NEGATIVAS` sólo mira el arranque de la respuesta, y **el arranque no siempre
+ * es lo que se contestó**. Encontrado por la rutina `NEG-002` y confirmado aquí
+ * reproduciéndolo.
+ *
+ * ── EL FIN DE PALABRA, QUE NO ES `\b` ───────────────────────────────────────
+ *
+ * `\b` de JavaScript no considera letra a la «í», así que `/s[ií]\b/` no casa
+ * con «sí» seguido de nada — la frontera exigiría un cambio letra→no-letra y
+ * para el motor la «í» ya es no-letra. Se mira hacia delante por letra en vez de
+ * por frontera. Es la misma trampa que apagó `NO_ES_NEGACION` con «No sé.».
+ */
+const MULETILLA_INTERMEDIA = String.raw`(?:(?:pues|ps|bueno|este|mmm+|eh+|ay|mire|la\s+verdad)[,\s]+)*`
+
+/**
+ * ── LA MULETILLA TAMBIÉN VA EN MEDIO ────────────────────────────────────────
+ *
+ * «**No pues sí**» y «No, pues sí, desde hace años» seguían leyéndose como una
+ * negación: el guardián exigía el «sí» PEGADO al «no», y en el habla real entre
+ * los dos cabe la muletilla. Medido el 9-ago-2026, cuatro formas fallaban.
+ *
+ * Es el mismo defecto de REG-271 a una muletilla de distancia — y la misma
+ * lección que ya costó el ruido de turno al PRINCIPIO de la respuesta: **la
+ * muletilla no vive sólo delante**.
+ */
+const NO_CORRECTIVO = new RegExp(
+  `^\\s*no[,\\s]+${MULETILLA_INTERMEDIA}(?:s[ií]|claro|efectivamente|as[ií]\\s+es)(?![a-záéíóúüñ])`, 'i')
+
 /** ¿Esta respuesta niega? Con el ruido de turno y de muletilla ya quitado. */
 export function respuestaNiega(respuesta: string): boolean {
   const limpia = String(respuesta ?? '').replace(RUIDO_ANTES_DE_LA_RESPUESTA, '')
   if (!limpia.trim()) return false
   /** Primero lo que NO es negación: «no sé» empieza por «no» y no niega nada. */
   if (NO_ES_NEGACION.test(limpia)) return false
+  /** Y el que niega para corregirse: «no, sí tengo» AFIRMA. */
+  if (NO_CORRECTIVO.test(limpia)) return false
   if (NEGATIVAS.test(limpia)) return true
   if (NEGATIVAS_SIN_NO.test(limpia)) return true
   /**
@@ -175,12 +224,59 @@ export function frases(texto: string): string[] {
 
 const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
 
+/**
+ * ── «OBE-SIDA-D» DECÍA VIH, Y CON ESO SE DESCARTABA UN VIH — REG-285 ─────────
+ *
+ * `t.includes(forma)` casa **subcadenas**. Y «obesidad» contiene «sida»:
+ *
+ *     condicionesNegadas('Niega obesidad')  →  [{ condicion: 'VIH' }]
+ *
+ * De ahí lo lee `corregirCertezaPorNegacion`, que reclasifica a **`descartado`**
+ * lo que la IA extrajo. Un paciente con VIH real cuyo expediente diga «niega
+ * obesidad» quedaba con **el VIH descartado** — en un consultorio de
+ * infectología, que es donde más importa.
+ *
+ * ── POR QUÉ EL LÍMITE NO ES `\b` ────────────────────────────────────────────
+ *
+ * El texto ya viene sin tildes, así que `\b` funcionaría… hasta que alguien
+ * quite la normalización. Se mira hacia los lados por **carácter** —letra o
+ * dígito— que es lo que de verdad se quiere decir y no depende de qué considere
+ * `\w` una letra.
+ *
+ * El dígito importa: «dm 2» y «tb pulmonar» llevan número, y sin él «dm 2»
+ * casaría dentro de «dm 20».
+ */
+const SIN_LETRA_NI_DIGITO_ANTES = '(?<![a-z0-9])'
+const SIN_LETRA_NI_DIGITO_DESPUES = '(?![a-z0-9])'
+
+/** Escapa una forma para meterla en una expresión sin que sus signos manden. */
+const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * Se exporta porque `temporalidad.ts` tenía **la misma comparación por
+ * subcadena** sobre su propio vocabulario. Dos formas de comparar es cómo se
+ * arregla un módulo y se deja el de al lado — la forma de REG-267 otra vez.
+ *
+ * Se construye UNA vez por forma. Sin esto se compilaría una expresión por
+ * término y por frase, y `cronicasEn` corre sobre cada frase del dictado.
+ */
+const FORMA_COMO_PALABRA = new Map<string, RegExp>()
+export function comoPalabra(forma: string): RegExp {
+  const clave = sinAcentos(forma)
+  let re = FORMA_COMO_PALABRA.get(clave)
+  if (!re) {
+    re = new RegExp(SIN_LETRA_NI_DIGITO_ANTES + literal(clave) + SIN_LETRA_NI_DIGITO_DESPUES, 'i')
+    FORMA_COMO_PALABRA.set(clave, re)
+  }
+  return re
+}
+
 /** Qué enfermedades crónicas nombra esta frase. */
 export function cronicasEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out: string[] = []
   for (const c of CRONICAS) {
-    if (c.formas.some(f => t.includes(sinAcentos(f)))) out.push(c.canonica)
+    if (c.formas.some(f => comoPalabra(f).test(t))) out.push(c.canonica)
   }
   return out
 }

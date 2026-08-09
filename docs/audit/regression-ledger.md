@@ -5175,7 +5175,1216 @@ las tres cosas. **Un guardián que grita de más se acaba silenciando** — REG-
 
 ---
 
-## REG-270 — Volver a grabar borraba el audio de la grabación anterior
+> **Venía numerado REG-211 por la rutina `SAFE-005`.** Ese número ya estaba
+> ocupado desde v1092 («creo que me dijeron que tenía anemia»). Cada rutina
+> numeraba contra el `main` que veía; ésta es la cuarta colisión del mismo
+> origen (ver REG-267). El texto va tal cual, con el número corregido.
+
+---
+
+## REG-270 — el «>2» del laboratorio se leía como un 2 (v1151)
+
+**Encontrado** — 8-ago-2026, revisando por qué `cmiDe` no propagaba
+`cmiCensurada` cuando el módulo de al lado sí lo respeta desde la REG-044.
+
+**El defecto** — Una CMI **es un intervalo, no un número**: es la decisión
+E0-15c del médico dueño y es la que gobierna `interpretarCMI` desde la REG-044.
+`cmiDe` (`antibiograma/util.ts`) devolvía `r.cmi` **pelado** y tiraba
+`r.cmiCensurada`, así que los fenotipos de Gram positivos leían el mismo panel
+sin el operador. **El motor de puntos de corte lo respetaba y el de fenotipos
+no, sobre el MISMO resultado.**
+
+**Cómo se reprodujo** — Con `interpretarAntibiograma`, el motor completo, no la
+función suelta. Tres salidas medidas antes de tocar una línea:
+
+| Reporte del laboratorio | Lo que salía | Lo que dijo el laboratorio |
+|---|---|---|
+| Neumococo, penicilina **«>2»**, foco no meníngeo | «CMI 2 ≤2 → **tratable con penicilina parenteral a dosis altas**» | La CMI está POR ENCIMA de 2 (I 4 · R ≥8) |
+| SARM, vancomicina **«>2»** | «sospecha de hVISA (**límite alto de S**)» | Por encima de 2 → eficacia reducida |
+| E. faecium, daptomicina **«>4»** | nada: ni fenotipo, ni alerta, ni advertencia | Por encima de la banda utilizable (SDD ≤4) |
+
+Y en el otro sentido, el «<» sobre-avisaba: un tamiz de gentamicina de alto
+nivel reportado **«<500»** declaraba HLAR, y con él se abandona la sinergia
+β-lactámico + aminoglucósido en una endocarditis.
+
+**Por qué importa para un paciente** — La primera fila es la peor: es una frase
+que el médico lee como permiso, impresa en la nota, con el número que la niega
+al lado. Un neumococo con penicilina «>2» tratado con penicilina a dosis altas
+es una neumonía que no responde. La tercera es la contraria y también duele: el
+silencio de un motor que sí sabe hablar se lee como «no hay nada que decir».
+
+**Reparación** — `cmiDe` **desaparece**; mientras exista una forma de pedir «el
+número», alguien la volverá a usar. En su lugar, `cmiConCensuraDe` devuelve el
+intervalo y tres predicados escritos **en positivo** lo interrogan:
+`cmiAlcanza`, `cmiSupera`, `cmiNoPasaDe` — los tres devuelven `false` cuando la
+respuesta es «no se sabe», y `cmiIndeterminadaEn` es la que lo dice. Con un
+valor exacto los predicados reparten todo el rango y **nada cambia**; sólo el
+operador altera el resultado.
+
+**Ningún punto de corte nuevo** — Los umbrales (0,06 · 2 · 4 · 16 · 8 · 500)
+ya estaban en el módulo, citados a Torres & Cercenado 2010 y CLSI M100. Y **no
+se sube nada a R**: con «>» y el valor en el techo de S, S es imposible, pero el
+valor real puede quedar en la banda intermedia — subirlo sería inventar en la
+otra dirección. Es la misma regla de la REG-044, palabra por palabra.
+
+**Lo que hace cuando no sabe** — Lo dice y pide dilución, con el operador a la
+vista. Es el §6 de la regla clínica: se pregunta, no se adivina. Se declara para
+«>», que es la dirección que ESCONDE resistencia; con «<» el efecto es que una
+alerta falsa deja de salir, y ésa no hay que anunciarla.
+
+**Qué NO hace** — No inventa la CMI real ni decide por el médico. Un «<» por
+encima de los umbrales (vancomicina «<16», que podría ser un 8 = VISA) deja al
+módulo callado: se prefiere el silencio a inventar una banda, y la categoría del
+laboratorio se sigue mostrando aparte. Sólo cubre `grampositivos.ts` — los Gram
+negativos leen la CMI por `interpretarCMI`, que ya respeta el operador.
+
+**Qué queda para el médico** — Decidir si un «>» que cae dentro de la banda
+intermedia debe además bloquear la firma de la receta con ese fármaco. Hoy
+advierte y no bloquea.
+
+**Comprobado que puede ponerse rojo** — Reintroducido el defecto en
+`cmiConCensuraDe` (devolver `{ valor }` sin el operador): **8 de los 20 casos
+fallan**.
+
+**Golden** — `src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts`
+(20 casos).
+
+---
+
+## REG-271 — «No, sí tengo» quedaba registrado como que el paciente lo negó (v1151)
+
+**Encontrado** por la rutina `NEG-002` en su rama. **Reproducido aquí antes de
+absorber nada**, sobre el árbol que corre en producción, con `respuestaNiega` de
+verdad. Las cinco formas se leían como negación:
+
+| Respuesta | Lo que hacía |
+|---|---|
+| «No, sí tengo.» | NIEGA |
+| «No, sí padezco» | NIEGA |
+| «no, claro que sí» | NIEGA |
+| «No, así es» | NIEGA |
+| «No, efectivamente» | NIEGA |
+
+### Por qué es de los peores
+
+El daño va en la dirección mala. El paciente **afirma** que padece la
+enfermedad, el expediente registra que la **negó**, y después
+`corregirCertezaPorNegacion` la reclasifica a `descartado`. La pantalla de
+contradicciones no salta: para ella todo cuadra.
+
+Es el gemelo de «no sé» —que ya estaba resuelto— y el reverso de REG-251: allí
+el panel certificaba en verde lo contrario de lo dictado; aquí el motor
+convierte un sí en un no antes de que nadie lo mire.
+
+### La causa, en una línea
+
+`NEGATIVAS` sólo mira el **arranque** de la respuesta. Y el arranque no siempre
+es lo que se contestó.
+
+### El fin de palabra, que no es `\b`
+
+`\b` de JavaScript trabaja sobre `\w`, que es ASCII: entre «í» y el final de la
+cadena **no hay frontera de palabra**. Un `/s[ií]\b/` no casaría con «no, sí».
+Es la misma trampa que ya tuvo apagado el guardián de «No sé.» sin que su regla
+pareciera mal escrita leyéndola. Se mira hacia delante por letra:
+`(?![a-záéíóúüñ])`.
+
+### Las dos direcciones se sostienen
+
+Perder una negación deja un antecedente sin descartar; fabricarla descarta uno
+real. Las siete negaciones legítimas siguen contando, y «No, **sino** la de mi
+hermana» sigue negando — el guardián mira por letra, no por frontera.
+
+### Archivos
+
+- `src/lib/expediente/negaciones.ts` (`NO_CORRECTIVO`)
+- `src/__tests__/el-no-que-corrige-afirma.test.ts` (nuevo, 17 casos, sellado)
+
+
+---
+
+> **Las cuatro que siguen vienen de rutinas autónomas** que numeraron contra
+> el `main` que veían. Sus números ya estaban ocupados; se renumeran y el texto
+> va tal cual lo escribió cada una. Todas traían su golden, y el golden pasa
+> sobre este árbol — que es la condición para absorberlas.
+
+---
+
+## REG-272 — la sección bien escrita compraba el silencio de la mal escrita (v1151)
+
+**Encontrado** — 8-ago-2026, leyendo `desajustesTemporales` al ir a por EVAL-002
+(«el motor de temporalidad no tiene corpus»). No salió de un reporte: salió de
+mirar la línea.
+
+**El defecto** — Los dos motores que contrastan el dictado contra la nota
+—`contradicciones` (negaciones, REG-153) y `desajustesTemporales` (temporalidad,
+v1027-v1030)— buscaban el término con `t.indexOf(forma)`: **la primera aparición
+y sólo ésa**. Si esa primera venía escudada —«niega diabetes», «antecedente de
+neumonía»—, la condición se descartaba entera y el resto de la nota no se miraba
+nunca.
+
+**Cómo se reprodujo** — Con los motores reales, antes de tocar nada, sobre una
+nota sintética con la forma que tiene una nota bien estructurada:
+
+```
+Antecedentes personales patológicos: neumonía en 2019, manejada de forma
+ambulatoria con amoxicilina durante siete días.
+Impresión diagnóstica: neumonía adquirida en la comunidad.
+```
+
+`desajustesTemporales(mencionesEnPasado('Tuvo neumonía hace tres años.'), nota)`
+devolvía `[]`. Lo mismo con «niega hipertensión» arriba y «hipertensión arterial
+sistémica» en la impresión diagnóstica: `contradicciones` devolvía `[]`.
+
+**Por qué importa para un paciente** — El reparto es el peor posible: la mención
+que se callaba es **la que manda**. Un antecedente no cambia la conducta de hoy;
+una impresión diagnóstica sí, y es la que se arrastra a la nota siguiente y la
+que otro médico lee dentro de seis meses. El paciente que negó la diabetes salía
+con diabetes escrita como diagnóstico, y el único motor que podía cazarlo ya se
+había dado por satisfecho renglones antes — precisamente **porque** la nota había
+hecho bien la otra mitad.
+
+**Y era la misma línea copiada dos veces** — El caso oro de la v1035 ya lo decía
+con todas sus letras: «lo mismo para el motor de temporalidad, que copió la misma
+línea». Es el patrón de REG-180 y REG-184: se repara una copia y la otra sigue
+viva. Por eso el criterio se saca a `src/lib/expediente/mencion-en-la-nota.ts` y
+los dos motores lo importan — una tercera copia era cuestión de tiempo.
+
+**Reparación** — `primeraMencionSinEscudo` recorre todas las apariciones de todas
+las formas, en orden de aparición, y devuelve la primera cuyo contexto previo no
+traiga el escudo. Un aviso por condición, como antes.
+
+**Sólo puede señalar de más, nunca de menos** — La ventana de 60 caracteres no se
+toca y cada aparición se juzga con exactamente el mismo criterio que antes. Una
+mención que el sistema consideraba bien escrita la sigue considerando bien
+escrita; lo único que cambia es que ahora también mira las siguientes.
+
+**Qué NO hace** — La ventana **sigue cruzando el punto**: un «niega diabetes.» al
+final de una oración escuda a la palabra que caiga en los primeros 60 caracteres
+de la siguiente. Es un escudo prestado y sigue vivo. Acotarlo a la oración
+rompería la nota con encabezado de sección (`Antecedentes:\nNeumonía…`), que es
+igual de común, así que no se arregla a ojo: queda como **TEMP-001** en el
+backlog, para medirlo antes de tocarlo.
+
+Tampoco amplía el vocabulario: lo que no está en `CRONICAS` ni en
+`AGUDAS_FRECUENTES` sigue sin vigilarse, y así está declarado allí.
+
+**Qué queda para el médico** — Lo mismo que antes: los dos motores señalan, no
+deciden. Puede que la nota tenga razón y el interrogatorio no.
+
+**Comprobado que puede ponerse rojo** — Revertidos los dos motores, el golden
+falla en sus tres casos (los dos de comportamiento y el estructural).
+
+**Golden** — `src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts` (14
+casos).
+
+*(venía como REG-192 en `agent/clinical/REG-192`)*
+
+---
+
+## REG-273 — «Niega alergia a penicilina» disparaba la alerta de alergia (v1151)
+
+**Encontrado** — 7-ago-2026, siguiendo el camino del campo de alergias hasta su
+último consumidor. REG-144 unificó cuatro parsers en `alergenosDe` y dejó un
+guardián para impedir el quinto. El guardián buscaba un `split` a mano; el
+consumidor que faltaba **no partía el campo en absoluto**.
+
+**El defecto** — `alergiaVsReceta` (`src/lib/expediente/copiloto.ts`), el cruce
+alergia↔fármaco, normalizaba el campo **entero** y buscaba el fármaco dentro con
+un `includes`, con un limpiador propio de palabras de negación.
+
+La negación va pegada a UN alérgeno; el `includes` los mira todos a la vez. Por
+eso el limpiador no podía funcionar por muchas palabras que se le añadieran: en
+«Niega alergia a penicilina» sobra «a penicilina» después de limpiar, así que la
+comprobación seguía viva y el campo seguía conteniendo la palabra.
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada, sobre nueve
+frases de consultorio. **Cuatro daban una crítica falsa** y `alergenosDe`
+acertaba en las nueve:
+
+```
+"Niega alergia a penicilina"          + Amoxicilina  → critico   (debía callar)
+"No refiere alergia a penicilina"     + Amoxicilina  → critico   (debía callar)
+"Niega alergia a sulfas"              + TMP/SMX      → critico   (debía callar)
+"Sin alergia a AINEs"                 + Ketorolaco   → critico   (debía callar)
+"Niega penicilina. Alérgico a sulfas" + Amoxicilina  → critico   (debía callar)
+"Niega penicilina. Alérgico a sulfas" + TMP/SMX      → critico   ✓
+"Alérgico a penicilina"               + Amoxicilina  → critico   ✓
+"Sulfas; no refiere otras"            + TMP/SMX      → critico   ✓
+"Alergia a ketorolaco"                + Ibuprofeno   → critico   ✓
+```
+
+El campo con una negada y una real es el que lo prueba: **las dos** familias
+saltaban, porque el campo entero contiene las dos palabras.
+
+**Por qué importa para un paciente** — El aviso de alergia es de los que **no se
+pliegan** (`avisos-consulta.ts`), y es la decisión correcta: es lo más grave de
+esa pantalla. Un aviso que no se puede cerrar y que además es falso deja al
+médico una sola salida para poder trabajar: **borrar el texto del expediente**.
+Es literalmente el desenlace que la cabecera de `alergias.ts` describe como el
+fallo a evitar, cometido otra vez por un consumidor distinto.
+
+Y el daño no se queda en ese paciente: una crítica roja que sale donde no debe
+enseña a ignorar las críticas rojas. La siguiente sí será real.
+
+**Reparación** — El cruce lee el campo **alérgeno por alérgeno**, por
+`alergenosDe`, que es el único sitio donde vive cómo se parte el campo y qué
+fragmento está negado. De paso entra `alergiasEstructuradas`: hoy no lo llena
+ninguna ruta de escritura, pero cualquier importación desde otro sistema lo
+activa el mismo día, y hasta ahora el paciente **mejor documentado** era el
+único sin cruce. La consulta se lo pasa al motor.
+
+**El guardián, ampliado por su punto ciego** — El de REG-144 buscaba un quinto
+`split`; el nuevo busca lo otro: un consumidor que trate el campo como una sola
+cadena, que es el mismo defecto hecho más grande. Y `copiloto.ts` entra en la
+lista de llamadores de `un-solo-parser-de-alergias.test.ts`, que es donde se
+mira quién lee este campo.
+
+**Qué NO hace** — No toca `FAMILIAS_ALERGIA`: los mismos disparadores, los
+mismos miembros, la misma precaución de carbapenémicos (≈1 %). No cambia el
+nivel del aviso ni qué bloquea la firma — eso lo decidió el médico dueño
+(REG-181). No juzga la reacción previa: un rash y una anafilaxia siguen entrando
+igual.
+
+**Qué queda para el médico** — Distinguir la gravedad de la reacción previa
+sigue siendo decisión suya (C-3 en `OWNER_DECISIONS_REQUIRED.md`). Y un negador
+que no esté en la lista de `alergias.ts` («descarta alergia a…») haría falta
+añadirlo ahí: la prueba lo vería fallar, no lo adivinaría.
+
+**Comprobado que puede ponerse rojo** — Revertido el arreglo, 8 de los 14 casos
+fallan; restaurado, los 14 pasan.
+
+**Golden** — `src/__tests__/la-alergia-negada-no-es-una-alergia.test.ts`
+(14 casos).
+
+*(venía como REG-208 en `agent/safety/SAFE-004`)*
+
+---
+
+## REG-274 — el redondeo del motor renal se comía las alertas del borde (v1151)
+
+**Encontrado** — 8-ago-2026, auditoría del módulo `funcion-renal.ts` (ningún ítem
+pendiente del backlog era reproducible: SAFE-001 y VOICE-004 ya estaban cerrados
+en el árbol y los EVAL-xxx siguen bloqueados por el corpus del dueño).
+
+**La pista** — La asimetría estaba escrita en el propio archivo. `ckdEpi2021`
+lleva un comentario que dice, por decisión del Dr. (L6), que devuelve **precisión
+completa** «porque un `Math.round` interno podía cambiar clasificaciones,
+comparaciones o cálculos posteriores». Tres funciones más abajo,
+`cockcroftGault` —que es el que de verdad alimenta los umbrales de dosis, porque
+`evaluarFuncionRenal` lo prefiere sobre CKD-EPI cuando hay peso— terminaba en
+`return cantidad(Math.round(crcl), …)`.
+
+**El defecto** — Ese entero era el número que `ajusteRenalFarmacos` comparaba
+contra los 18 umbrales de `REGLAS_RENALES`. Toda depuración en
+`[umbral − 0.5, umbral)` se redondeaba **hacia arriba** hasta el umbral exacto, y
+`crcl < umbral` pasaba de verdadero a falso. La ventana ciega existía en los
+cuatro umbrales del catálogo a la vez (30, 40, 50 y 60 mL/min).
+
+**Cómo se reprodujo** — Con el motor real, antes de tocar nada. Paciente
+sintético: hombre de 80 años, 64 kg, creatinina 1.8 mg/dL.
+
+```
+CrCl real (Cockcroft-Gault) = (140−80) × 64 / (72 × 1.8) = 29.6296 mL/min
+CrCl que devolvía el motor  = 30
+ajusteRenalFarmacos([metformina, nitrofurantoína]) → []   ← cero alertas
+```
+
+**Por qué importa para un paciente** — Ese señor no es un extremo de
+laboratorio: es un anciano delgado de consultorio, con la creatinina justo donde
+metformina deja de poder darse (contraindicada por acidosis láctica con CrCl<30)
+y donde nitrofurantoína ni siquiera alcanza concentración útil en orina. El
+sistema callaba **precisamente en el borde**, que es donde el médico más
+agradece que algo hable. Y callaba en silencio: no había aviso de que el número
+se hubiera redondeado.
+
+**Reparación** — Se movió el redondeo de donde se calcula a donde se pinta, que
+es la regla que CKD-EPI ya seguía:
+
+1. `cockcroftGault` devuelve precisión completa.
+2. `ajusteRenalFarmacos` **compara con el valor completo y escribe el
+   redondeado** (`crclTexto`), así que ni un mensaje cambió de texto.
+3. La receta redondea al mostrar el CrCl, igual que ya hacía con la TFG. En
+   pantalla se ve el mismo entero de siempre.
+
+**Ningún umbral, mensaje ni fármaco cambió.** No se inventó ninguna cifra
+clínica: los 18 umbrales de `REGLAS_RENALES` son los que ya estaban y siguen
+siendo decisión del médico.
+
+**Qué NO hace** — No opina sobre si debe alertarse cuando la base es la TFG
+indexada en vez de la depuración (sigue siendo la Q2 abierta con el Dr.). No
+alerta «por cercanía»: un CrCl real de 30.4 sigue sin alertar, y debe seguir
+así. Y no vigila los demás motores que redondean por dentro — si alguno compara
+contra un umbral con el valor ya redondeado, tiene este mismo defecto.
+
+**Qué queda para el médico** — Decidir si un CrCl al borde del umbral (dentro de
+±1 mL/min) merece un aviso propio de «estás en la frontera», que es una política
+clínica, no un arreglo de software. Anotado en `OWNER_DECISIONS_REQUIRED.md`.
+
+**Comprobado que puede ponerse rojo** — Restaurado el `Math.round` dentro del
+motor: 4 de los 25 casos del golden fallan, incluido el de las dos alertas
+perdidas. Restaurado el arreglo: 25/25 en verde.
+
+**Golden** — `src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts`
+(7 casos declarados, 25 ejecutados).
+
+*(venía como REG-214 en `agent/renal/REN-001`)*
+
+---
+
+## REG-275 — lo que el paciente NIEGA puntuaba en STOP-BANG (v1151)
+
+**Encontrado** — 8-ago-2026, repasando los hallazgos crudos del barrido de
+auditoría (`docs/audit/hallazgos-crudos-workflow.json`) contra el código de hoy.
+El reporte señalaba una sola frase —«niega presión alta»—; al pasarle al motor
+real las cuatro preguntas del interrogatorio, negadas de las formas en que se
+dictan, **las cuatro salieron en `true`**.
+
+**Cómo se reprodujo** — `extraerStopBang()` directo, sin mocks, con las frases
+tal cual salen del dictado. Antes del arreglo:
+
+```
+"niega presión alta"          → { pressure: true }
+"sin hipertensión arterial"   → { pressure: true }
+"no tiene hipertensión"       → { pressure: true }
+"descarta HTA"                → { pressure: true }
+"niega somnolencia diurna"    → { tiredness: true }
+"la esposa niega apneas obs." → { observed: true }
+"no ronca fuerte"             → { snoring: true }
+```
+
+**El defecto** — Los cuatro ítems que se preguntan de viva voz —ronquido,
+somnolencia diurna, apneas presenciadas e hipertensión— se marcaban **con sólo
+mencionar el término**. El único guardián era el literal
+`!/niega (hipertension|hta)/`, que cubría una forma de negar y dejaba pasar las
+otras cuatro: «niega **presión alta**», «**sin** hipertensión», «**no tiene**
+hipertensión», «**descarta** HTA». Los otros tres ítems no tenían guardián de
+ninguna clase.
+
+Y dos funciones más abajo, **en este mismo archivo**, Caprini ya llamaba a
+`estaNegado()` por exactamente este motivo. STOP-BANG se había quedado fuera: no
+faltaba el motor de negación, faltaba usarlo.
+
+**Por qué importa para un paciente** — Un varón de 58 años que **niega las cuatro
+preguntas** salía con **5/8 — riesgo Alto**, que imprime «considerar
+polisomnografía y valoración por neumología/medicina del sueño, precauciones de
+vía aérea, minimizar opioides y sedantes, oximetría continua posoperatoria». Con
+los cuatro puntos fabricados retirados puntúa **1/8 — Bajo**.
+
+No es un aviso de más: es un dato **inventado** que alimenta una escala
+determinista y sale impreso como conducta perioperatoria. Y la casilla llega
+**palomeada** a la pantalla del preoperatorio: al médico le toca notar que sobra,
+que es mucho más difícil que notar que falta.
+
+**Reparación** — `extraerStopBang()` pasa al mismo motor de negación que el resto
+del archivo: `marcarSegunNegacion()` sobre `estaNegado()`. Una sola fuente de
+verdad para «lo negado no se documenta como presente», en vez de un guardián
+literal por ítem — que es como se llegó aquí.
+
+**El ronquido lleva un negador propio** — Es el único de los cuatro cuyo término
+es un **verbo**. `NEGADORES` cubre «no tiene / no presenta / no refiere» porque
+los demás términos clínicos son sustantivos; «no ronca fuerte» es como se dicta y
+casaba con el patrón de ronquido fuerte. Se resuelve en el módulo que tiene la
+semántica del ítem, no ampliando `NEGADORES` para todo el expediente.
+
+**Lo negado se escribe `false`, no se deja vacío** — Un antecedente que el
+paciente negó es un dato, igual que ya hacía el ronquido. **No enciende la escala
+en la nota**: `capturado()` en `PreopAssessment` descarta los `false`, así que una
+valoración donde el paciente lo negó todo sigue sin imprimir el renglón de
+STOP-BANG. Si el médico quiere dejar constancia del negativo, palomea; no se
+decide por él.
+
+**Ningún umbral nuevo** — Los cortes de la escala (≤2 Bajo, 3-4 Intermedio, ≥5
+Alto) son los de `calcularStopBang`, sin tocar.
+
+**Qué NO cubre** — No amplía `NEGADORES`: siguen sin reconocerse «lo dudo», «para
+nada», «que yo sepa no». No toca IMC, cuello, sexo ni edad, que salen de una
+cifra y no de una respuesta negable. **Queda para el médico** la casilla: el
+extractor prellena, la valoración la firma él.
+
+**Comprobado que puede ponerse rojo** — Revertido `parser-clinico.ts`, el golden
+falla en **13 de sus 21 casos**.
+
+**── LA REVISIÓN INDEPENDIENTE ENCONTRÓ UNA REGRESIÓN DE ESTA MISMA REPARACIÓN ──**
+
+Una revisión adversarial del PR corrió el motor —no razonó— y levantó tres cosas.
+La primera era **de la reparación misma**, y en la dirección contraria al defecto
+que venía a cerrar:
+
+`marcarSegunNegacion` miraba **una sola aparición** (`texto.match`), que es lo
+que hace el resto del archivo. El flag se congelaba en la primera y la segunda
+mención no se miraba nunca. Patrón real: interrogatorio negativo arriba, lista de
+problemas y medicación abajo.
+
+```
+"Niega presión alta. Hipertensión arterial en tratamiento con losartán."
+   main → { pressure: true }      la v1 de este PR → { pressure: false }
+```
+
+**El hipertenso documentado y tratado dejaba de puntuar.** Reproducido en los
+cuatro ítems, no sólo en la presión: «Niega roncar. Ronca fuerte tras puertas
+cerradas» daba `snoring: false`.
+
+**Reparado** — se miran **todas** las apariciones y **gana la afirmación**:
+ausencia de dato no es dato de ausencia, y que en un renglón se niegue no borra
+lo escrito en otro. Con esa regla el módulo nunca marca `false` donde antes había
+`true`, salvo cuando TODAS las menciones están negadas — que es justo el defecto
+original.
+
+**Segundo hallazgo, también reparado** — «sin apneas observadas pero con
+somnolencia diurna» daba la somnolencia por negada: la ventana de `estaNegado()`
+llegaba hasta el «sin» de la frase anterior. Ahora **«pero» cierra la cláusula
+negativa igual que el punto**. Los afirmadores ya cerraban «pero refiere» y «pero
+tiene»; lo que fallaba era el «pero con», sin verbo. **No se corta en la coma**:
+una enumeración («niega diabetes, hipertensión, tabaquismo») niega todos sus
+elementos, y cortar ahí dejaría vivos los que van después del primero. Es el
+único cambio de este REG que toca el motor compartido; las 6 949 pruebas
+restantes lo arbitran en verde.
+
+De paso, «nunca ronca fuerte» y «jamás ronca fuerte» fabricaban punto en `main` y
+en la v1. El negador **pegado** al término se resuelve aparte de `NEGADORES`:
+«no» y «nunca» a secas serían demasiado anchos para todo el expediente, pero
+pegados al término no tienen otra lectura.
+
+**Tercer hallazgo — NO reparado, declarado** — El interrogatorio en formato
+**pregunta-respuesta** sigue fabricando los cuatro puntos:
+
+```
+"¿Ronca fuerte? No. ¿Tiene somnolencia diurna? No. ¿Tiene presión alta? No."
+   → { snoring: true, tiredness: true, pressure: true }
+```
+
+Falla **igual en `main`**: no es una regresión de esta reparación, es el mismo
+defecto por otra puerta — y probablemente la forma más común de dictar ESTE
+interrogatorio. No se repara aquí porque exige que el motor de negación entienda
+la pareja pregunta/respuesta, que es un cambio del expediente entero y que ya
+tienen en curso otras ramas (NEG-001, NEG-002, SAFE-003). Reimplementarlo por
+tercera vez es exactamente lo que OPS-003 pidió dejar de hacer. **Queda con una
+prueba que fija el estado conocido** —se pondrá roja el día que alguien lo
+repare, que es lo que se busca— y como `SAFE-007` en el backlog.
+
+**Golden** — `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` sube de 21 a
+**31 casos**. Comprobado que puede ponerse rojo por partida doble: **18 de 31**
+caen contra `main`, y los **6 casos nuevos** caen contra la v1 de este mismo PR.
+
+*(venía como REG-218 en `agent/safety/SAFE-006-stopbang-negacion`)*
+
+---
+
+## REG-276 — «Niega alergias a penicilina y sulfas» registraba una alergia a sulfas (v1152)
+
+**Encontrado** por la rutina `SAFE-002`. **Reproducido aquí antes de absorber
+nada**, sobre el árbol de producción, con `parsearAlergiasTexto` de verdad:
+
+| Campo de alergias | Lo que devolvía |
+|---|---|
+| «Niega alergias a penicilina y sulfas» | `['sulfas']` |
+| «Niega alergia a penicilina, sulfas y AINEs» | `['sulfas', 'AINEs']` |
+| «Alérgico a penicilina y sulfas» | `['Alérgico a penicilina', 'sulfas']` |
+
+Las dos primeras son **alergias que nadie afirmó**. La tercera es el daño de
+«SMX)» por otra puerta: un alérgeno con la frase pegada no casa con ningún
+fármaco del catálogo, y el cruce alergia↔medicamento **puede no dispararse
+justo con el que importa**.
+
+### La causa
+
+El negador se escribe **una sola vez**, en el primer fragmento, y `SEPARADORES`
+partía también por « y » y por coma. El resto de la enumeración salía del
+separador ya sin la negación que lo cubría.
+
+### Por qué es de los caros
+
+Una alergia que nadie afirmó **apaga el botón de Firmar**, se imprime en el
+recuadro rojo de la receta que va a la farmacia, y se sella dentro de una nota
+firmada, que es inmutable. En un consultorio de infectología una etiqueta falsa
+de betalactámicos o de sulfas empuja a segunda línea: **peor tratamiento por un
+dato inventado**.
+
+Y al médico le dejaba como única salida la que este repositorio ya documenta
+como el fallo a evitar: borrar el texto del expediente, perdiendo a la vez el
+dato y la compuerta.
+
+### La regla: dos niveles y dos cortes
+
+El campo tiene dos niveles, y se parte por los dos:
+
+- **oración** — un punto, un punto y coma o un salto **cierran** el alcance;
+- **lista** — dentro de una oración, la coma, « y » y « ni » enumeran y heredan
+  la negación del principio.
+
+Y el alcance se rompe además cuando un fragmento **afirma**: «Niega alergia a
+penicilina, **alérgico a sulfas**» conserva las sulfas.
+
+### El fallo que me cacé a mí mismo
+
+La primera versión de esta reparación devolvía **`[]`** para esa frase: la
+negación se comía la afirmación que venía después en la misma oración. Lo cazaron
+las pruebas que ya existían.
+
+**Un arreglo de seguridad que borra el dato que protege es peor que el defecto.**
+Perder una alergia real es más grave que arrastrar una falsa: la falsa estorba,
+la perdida daña.
+
+### Dos aserciones antiguas cambiadas, con su motivo escrito
+
+`'Alérgico a sulfas'` → `'sulfas'` y `'Penicilina G.'` → `'Penicilina G'`. Lo que
+esas pruebas defendían —que la alergia posterior a una negación siga apareciendo,
+y que el punto no parta el nombre— sigue en pie. Lo que cambia es que el prefijo
+y el punto final ya no viajan dentro del nombre del alérgeno.
+
+### Archivos
+
+- `src/lib/seguridad/alergias.ts`
+- `src/__tests__/la-negacion-cubre-toda-la-lista.test.ts` (nuevo, 15 casos, sellado)
+
+---
+
+## REG-277 — el hospital y la consulta decidían distinto sobre la misma alergia (v1153)
+
+`src/lib/hospital/cds.ts` tenía **su propio partidor de alergias**, con su propia
+idea de qué es una negación. Era la **quinta copia**. Medida la divergencia sobre
+los mismos textos, **9 de 11 discrepaban**:
+
+| Campo | Hospital | Consulta |
+|---|---|---|
+| «NKDA» | alérgeno «NKDA» | ninguno |
+| «(-)» · «Ninguna» · «Negadas» · «n/a» | alérgeno | ninguno |
+| «Paracetamol 2.5 mg» | «Paracetamol 2» + «5 mg» | «Paracetamol 2.5 mg» |
+| «Alérgico a penicilina» | «Alérgico a penicilina» | «penicilina» |
+
+`NKDA`, `(-)`, `n/a` y «ninguna» son lo que se dicta en planta todos los días.
+Ninguno casa con un fármaco del catálogo, así que **no disparan la alerta** — y
+en cambio se imprimen: un recuadro rojo que dice «NKDA». Y el punto sin espacio
+detrás partía las dosis.
+
+### Pero lo grave no es cada caso
+
+Es que **el hospital y la consulta decidían distinto sobre el mismo campo del
+mismo paciente**. El médico ve una cosa en el consultorio y otra en planta, y
+ninguna de las dos pantallas dice que existe la otra.
+
+### Por qué el guardián anterior no lo vio
+
+El guardián de copias miraba sólo `consulta` y `uci` — donde ya se había
+arreglado. **Un guardián que mira donde ya se arregló no guarda nada.** El nuevo
+comprueba por FORMA en todo `src/lib` y `src/app`: una copia en un fichero que
+todavía no existe también falla.
+
+### Y de camino, un hueco propio
+
+Comparar los dos módulos enseñó que **«Interrogadas y negadas»** —negación
+completa que se dicta en hospital— se partía por « y » y dejaba **«Interrogadas»
+como alérgeno**. Ninguna prueba lo veía. Ahora la oración se juzga entera antes
+de partirla… salvo si algún fragmento afirma, porque **la primera versión de esa
+comprobación se volvió a llevar por delante «Niega penicilina, alérgico a
+sulfas»**. Es la segunda vez en la misma reparación que la comprobación de más
+borra el dato que protege.
+
+### La prueba no lista casos: compara superficies
+
+`hospital-y-consulta-leen-la-misma-alergia` comprueba que la alerta crítica del
+hospital dispara **exactamente** cuando la consulta ve el alérgeno, sobre 28
+formas reales de escribir el campo. Una divergencia nueva falla ahí aunque nadie
+haya pensado en ese caso.
+
+### Archivos
+
+- `src/lib/hospital/cds.ts` (usa `alergiasDe`, sin partidor propio)
+- `src/lib/seguridad/alergias.ts` (negación por oración entera + prefijo en cualquier posición)
+- `src/__tests__/hospital-y-consulta-leen-la-misma-alergia.test.ts` (nuevo, 30 casos, sellado)
+
+---
+
+## REG-278 — el sello de procedencia contaba cero alergias (v1154)
+
+La compuerta que bloquea la firma **ya se había reparado**: sella
+`alergias: alergiasDe(patient ?? {})`, que lee las dos fuentes.
+
+Lo que quedó atrás fue el **sello de procedencia** —el que dice de dónde salió
+cada dato de la nota—, y llegaba por un envoltorio de una línea:
+
+```ts
+function alergiasArray(alergias?: string) {
+  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
+}
+```
+
+`parsearAlergiasTexto` mira **sólo el texto libre**. Un paciente cuya alergia
+vive en `alergiasEstructuradas` —que es donde la deja el registro estructurado—
+sellaba una lista vacía en sus **tres** llamadas, y con ella el dato se quedaba
+fuera de `camposSinEvidencia`: el registro medicolegal decía que ahí no había
+nada que respaldar.
+
+### Por qué sobrevivió a dos guardianes
+
+El guardián de copias busca **quién PARTE el campo a mano**. Este envoltorio no
+parte nada: llama al partidor bueno — sobre **una sola de las dos fuentes**.
+
+**Cuando un dato tiene dos orígenes, el guardián tiene que mirar qué función se
+llama, no cómo se corta el texto.** Un envoltorio de una línea es exactamente
+donde se esconde esa diferencia.
+
+### Lo que impide la recaída
+
+La firma de `alergiasArray` ya no acepta una cadena: recibe al paciente. Mientras
+aceptara `string`, alguien volvería a pasarle `patient?.alergias`.
+
+### Archivos
+
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts` (nuevo, 7 casos, sellado)
+
+---
+
+## REG-279 — la franja del piso afirmaba la ausencia de una alergia que sí estaba (v1155)
+
+La franja de alergias del internamiento —la que se ve en **todo momento** del
+ingreso, y que existe precisamente para quien **no** pasa por el punto de orden:
+enfermería que administra, quien prescribe a mano— tenía la **sexta** copia de la
+lógica de alergias:
+
+```ts
+split(/[,;\n]+/)                                        // sin el punto, sin la barra
+negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
+```
+
+Reproducido: **«Niega penicilina. Alérgico a sulfas»** quedaba como UN fragmento,
+empezaba por «niega», y la franja anunciaba en gris **«Alergias negadas por el
+paciente»** sobre un paciente alérgico a sulfas.
+
+### Por qué es lo peor de la serie
+
+No es un aviso que falte. Es el sistema **afirmando la ausencia** de una alergia
+que el expediente sí registra, en la **única señal que ve el equipo del piso**.
+Un hueco calla; esto miente.
+
+Y descartar primero lo frecuente y apuntar después lo que sí hay es la forma
+**normal** de escribir el campo: ya costó REG-171 y REG-201. Además ignoraba
+`alergiasEstructuradas` por completo.
+
+### La segunda condición, que es la que arregla
+
+«Negadas» ahora exige **las dos cosas**: que el campo tenga una negación
+explícita **y** que no quede ningún alérgeno. Con sólo la primera se vuelve a
+poder decir «negadas» habiendo alergia — que es exactamente el defecto.
+
+Y los tres estados siguen distinguiéndose: **rojo** con alergia, **gris** con
+negación de verdad, **ámbar** sin registro. Confundir gris y ámbar haría que la
+franja gritara en todos los ingresos hasta que nadie la mirara.
+
+### Archivos
+
+- `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`
+- `src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-280 / REG-281 — la enfermedad nombrada en la pregunta se cosechaba como antecedente (v1156)
+
+**El fallo más repetido de este repositorio**, y seguía vivo en el motor
+determinista local. Medido el 9-ago-2026 con `extraerComorbilidades` de verdad:
+
+```
+«¿Diabetes? No. ¿Hipertensión? Tampoco.»
+  → positivas: ['Hipertensión arterial', 'Diabetes mellitus tipo 2']
+```
+
+Dos enfermedades que el paciente **acababa de negar**, registradas como que sí
+las tiene.
+
+### Dos causas
+
+**REG-280 — «tampoco» no estaba entre los negadores.** Y «tampoco» es
+exactamente como se contesta a la segunda pregunta de una serie: no es una forma
+rebuscada, es la normal. Se añaden con el mismo criterio que los que ya había —
+sólo lo que no admite otra lectura: `tampoco`, `jamás`, `niego`, `no es/soy/son`.
+**No** se añade `no` a secas: «no acude por diabetes» no niega la diabetes, y
+negar de más **borra un antecedente real**, que es el error caro.
+
+**REG-281 — el interrogatorio nombra la enfermedad en la PREGUNTA.** `estaNegado`
+sólo miraba hacia atrás, y delante de «¿Diabetes?» no hay negador: la negación
+viene **después**, en la respuesta. Ahora, si el término vive dentro de una
+pregunta, **decide la respuesta**. Funciona sin el «¿» de apertura, porque el
+dictado casi nunca lo pone, y cada pregunta se queda con **su** respuesta.
+
+### Por qué sobrevivió a su propia reparación
+
+Esto se arregló en **v976 — para la vía de la IA**:
+`corregirCertezaPorNegacion` reclasifica lo que el modelo extrae. El motor
+determinista local, que es el que entra **cuando la IA falla** (sin créditos,
+timeout, límite de peticiones), nunca pasó por ese guardián.
+
+Es la forma de REG-267: reparado en un sitio, vivo en el de al lado. Y el que
+quedó vivo es justo **el que corre cuando lo demás no**.
+
+### Y un tercer estado que faltaba
+
+«¿Padece asma? **No sé**» dejaba el asma POSITIVA. «No sé» no niega —y hace
+bien: no saber no es negar— pero tampoco afirma. Con sólo dos casillas, el
+término caía en la equivocada. Ahora no entra en ninguna… salvo si consta
+afirmado en otro sitio del texto, porque callarlo por la primera mención sería
+perder el dato.
+
+**Ausencia de dato no es dato de ausencia, y tampoco es dato de presencia.**
+
+### SAFE-007 se cierra, y su prueba lo dijo antes
+
+`lo-negado-no-puntua-en-stop-bang` traía una prueba que **fijaba el defecto** con
+este comentario: *«Cuando alguien lo repare se pondrá roja, y eso es lo que se
+busca: que el día que cambie, se note.»* Se puso roja. La aserción se invierte.
+
+**Un pendiente declarado con una prueba es la única clase de pendiente que avisa
+cuando deja de serlo.**
+
+### Archivos
+
+- `src/lib/expediente/parser-clinico.ts` (`NEGADORES`, `respuestaDeLaPregunta`, `esSoloLaPregunta`)
+- `src/__tests__/la-pregunta-no-es-un-antecedente.test.ts` (nuevo, 15 casos, sellado)
+- `src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts` (SAFE-007 cerrado)
+
+---
+
+## REG-282 — un negador sin su afirmador gemelo BORRA un antecedente (v1157)
+
+**La regla que faltaba, y que costó el mismo daño dos veces en el mismo día.**
+
+Un verbo puede entrar en una negación —«no **padece** diabetes»— y también
+**cerrar** una anterior —«niega tabaquismo, **padece** diabetes»—. Si entra en
+`NEGADORES` y no en `AFIRMADORES`, el arreglo **no repara la mitad: la mueve al
+lado que no se ve**, porque nadie echa de menos un antecedente que no está.
+
+| Cuándo | Qué se añadió sólo a un lado | Qué produjo |
+|---|---|---|
+| REG-192 | `padece` / `padezco` | «Niega tabaquismo, padece diabetes» → **diabetes NEGADA** |
+| REG-280 (mío, hoy) | `es` / `soy` / `son` | «Niega diabetes, es fumador» → **tabaquismo NEGADO** |
+
+Las dos **borran un antecedente real**, y eso es peor que inventarlo: el
+inventado estorba y se ve; el borrado no se echa de menos. Encontrado porque la
+rutina `REG-270-negacion-parser` dejó la regla escrita — y lo primero que hice
+al leerla fue comprobar si yo acababa de romperla. La había roto.
+
+### Las ocho formas que caían del lado afirmativo
+
+Medidas sobre el árbol de producción: «no he tenido», «nunca he tenido», «jamás
+ha tenido», «tampoco tiene», «no sufre de», «no cuenta con», «no fuma», «no es
+fumador».
+
+Las dos últimas son de otra clase: ahí **el término clínico ES el verbo**, así
+que entre el negador y el término no queda nada que reconocer. Se cubren
+exigiendo que el negador esté **inmediatamente antes** — con eso «no acude por
+diabetes» sigue sin negar la diabetes, que es el error contrario.
+
+### Dos defectos de ventana, propios
+
+- El afirmador se juzgaba con **7 caracteres** de contexto, y «tampoco » mide
+  ocho: se leía «ampoco », que no casa. El `tiene` de «tampoco tiene diabetes»
+  cerraba entonces la negación que el `tampoco` acababa de abrir.
+- `tampoco` y `jamás` no estaban entre los que **abren** negación junto a
+  `no`/`nunca`/`sin`.
+
+### El arreglo es estructural, no una lista más larga
+
+Los dos lados salen de **`VERBOS_DE_TENENCIA`**, una sola lista. Añadir un verbo
+lo añade a las dos caras a la vez: **la desalineación deja de ser posible**, que
+es distinto de ser improbable. La prueba lo comprueba leyendo la fuente, porque
+mientras las dos expresiones se tecleen por separado alguien volverá a añadir un
+verbo a una sola — ya pasó dos veces en el mismo día.
+
+### Archivos
+
+- `src/lib/expediente/parser-clinico.ts`
+- `src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts` (nuevo, 16 casos, sellado)
+
+---
+
+## REG-283 — transcribir una grabación borraba el audio de OTRA (v1158)
+
+**Dictar 22 min → tocar «Agenda» → volver → dictar 90 s → detener perdía los 22
+minutos.** Sin error, sin aviso, y justo después de una transcripción exitosa —
+que es cuando menos se sospecha.
+
+Encontrado por la rutina `PATIENT-AUDIO-001`, y es uno de los tres P0 de
+integridad que la auditoría de V9 había dejado **abiertos**.
+
+### La causa
+
+`detener()` arma el blob con los trozos de la sesión **en curso**, pero al
+terminar borraba el rango **completo** de la llave. Y la llave no es por sesión:
+es `consulta-{patientId}`, la misma cada vez que se abre a ese paciente. Debajo
+puede haber audio de una grabación anterior que nadie transcribió — porque
+navegar fuera desmonta el hook y libera el micrófono **sin llamar a `detener()`**.
+
+### La defensa estaba escrita a medias
+
+**El hook ya sabía que ese huérfano existe.** Al empezar a grabar cuenta los
+trozos que hay y arranca su índice después (`recoveryBaseRef`) para no pisarlo.
+
+Protegía al **escribir** y no al **borrar**. Y el comentario de `iniciar()`
+afirmaba lo contrario de lo que ocurría: por eso se podía leer el código entero
+sin ver el agujero. **Un comentario que miente es peor que ninguno.**
+
+### El arreglo
+
+`borrarChunks(recoveryKey, desde = 0)`. Las **tres** salidas exitosas de
+`detener()` pasan `recoveryBaseRef`. Quien transcribe el rango entero
+(`recuperarAudio`) y quien descarta a propósito (`descartarRecovery`) siguen
+borrando todo — acotarlos dejaría audio huérfano imposible de eliminar, que es el
+defecto contrario y también real.
+
+**El cambio sólo puede conservar más audio, nunca menos.**
+
+### Lo que la prueba NO cubre, dicho en vez de dejarlo creer
+
+No abre una IndexedDB de verdad: eso exigiría una dependencia nueva. Comprueba el
+**rango** —la línea exacta donde vivía el defecto— y quién lo acota. Queda sin
+cubrir el comportamiento del almacén, no la decisión de qué se borra.
+
+---
+
+## REG-284 — «No pues sí» seguía leyéndose como una negación (v1158)
+
+REG-271 arregló el «no» correctivo, pero exigía el «sí» **pegado** al «no». En el
+habla real entre los dos cabe la muletilla. Medido:
+
+| Respuesta | Antes |
+|---|---|
+| «No pues sí» | NIEGA |
+| «No pues sí tengo» | NIEGA |
+| «no, pues sí» | NIEGA |
+| «No, pues sí, desde hace años» | NIEGA |
+
+Es el mismo defecto **a una muletilla de distancia**, y la misma lección que ya
+costó el ruido de turno al principio de la respuesta: **la muletilla no vive sólo
+delante**.
+
+Encontrado por la rutina `SAFE-003-ventana`. Las siete negaciones legítimas
+—incluida «No, sino la de mi hermana»— siguen contando.
+
+### Archivos
+
+- `src/hooks/useGrabacionAudio.ts` (`rangoABorrar`, `borrarChunks`)
+- `src/lib/expediente/negaciones.ts` (`MULETILLA_INTERMEDIA`)
+- `src/__tests__/transcribir-no-borra-el-audio-de-otra.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-285 — «obe·SIDA·d» decía VIH, y con eso se descartaba un VIH (v1159)
+
+`cronicasEn` comparaba con `t.includes(forma)` — **subcadena, sin límite de
+palabra**. Y «obesidad» contiene «sida»:
+
+```
+condicionesNegadas('Niega obesidad')  →  [{ condicion: 'VIH' }]
+```
+
+### Por qué no se queda ahí
+
+De esa lista lee `corregirCertezaPorNegacion`, que reclasifica a **`descartado`**
+lo que la IA extrajo. Un paciente con **VIH real** cuyo expediente diga «niega
+obesidad» quedaba con el **VIH descartado**.
+
+En un consultorio de infectología eso no es una curiosidad de cadenas de texto.
+
+### El límite no es `\b`, y eso importa
+
+El texto ya viene sin tildes, así que `\b` funcionaría… hasta que alguien quite
+la normalización. Se mira hacia los lados por **carácter** —letra o dígito—, que
+es lo que de verdad se quiere decir.
+
+El **dígito** no sobra: «dm 2» y «tb pulmonar» llevan número, y sin esa condición
+«dm 2» casaría dentro de «dm 20 mg».
+
+### Y la misma comparación vivía en el módulo de al lado
+
+`temporalidad.ts` tenía el mismo `includes` sobre su propio vocabulario. Se
+arregla con **el mismo comparador exportado**, no con una copia: dos formas de
+comparar es exactamente cómo se arregla un módulo y se deja el de al lado — la
+forma de REG-267, otra vez.
+
+### El barrido, no el caso
+
+La prueba no comprueba «obesidad»: pasa **todo el vocabulario** contra palabras
+trampa (obesidad, sobrepeso, desidia, presidencia, residual, cancerbero). Una
+forma nueva que fuera subcadena de una palabra común falla ahí aunque nadie haya
+pensado en ella.
+
+### Lo que se midió de las seis ramas de temporalidad
+
+Sus afirmaciones —«el padecimiento de hoy se leía como antecedente», «el escudo
+cruzaba de apartado»— **ya estaban reparadas** en este árbol: medido caso a caso
+con `padecimientosEn`, `esFrasePasada` y `mencionesEnPasado`. Lo único que
+quedaba vivo de las seis era la comparación por subcadena, que ninguna de ellas
+nombraba como su hallazgo principal.
+
+**Seis ramas, un defecto real.** Fusionarlas habría traído seis versiones
+incompatibles de `temporalidad.ts` para arreglar lo que se arregla en una línea.
+
+### Archivos
+
+- `src/lib/expediente/negaciones.ts` (`comoPalabra`, exportado)
+- `src/lib/expediente/temporalidad.ts` (usa el mismo comparador)
+- `src/__tests__/obesidad-no-dice-vih.test.ts` (nuevo, 16 casos, sellado)
+
+---
+
+## REG-286 — el escudo de una oración se prestaba a la siguiente (v1160)
+
+`VENTANA_DEL_ESCUDO` llevaba escrito, desde que se fijó:
+
+> *«Más larga empezaría a leer la oración anterior y un escudo ajeno taparía una
+> afirmación real — que es el fallo caro.»*
+
+**Conocía el modo de fallo exacto** y eligió 60 caracteres como defensa.
+
+### Pero 60 caracteres no son una oración
+
+«Antecedente de asma. » mide **21**. El escudo cruzaba el punto sin esfuerzo.
+Medido con `primeraMencionSinEscudo` de verdad:
+
+| Nota | Antes |
+|---|---|
+| «Antecedente de asma. Cursa con neumonía.» | CALLABA |
+| «Niega diabetes. Diagnóstico de diabetes tipo 2.» | CALLABA |
+
+**El segundo es el que duele.** La nota **afirma** una diabetes justo después de
+que el paciente la negara, y la alarma de contradicción —la que nació del caso
+que el Dr. encontró en producción, la razón de existir de este motor— se quedaba
+muda.
+
+### La lección
+
+**Un número no puede expresar «la misma oración».** La ventana de 60 se queda
+como **tope** —para eso sirve un número— y el corte lo hace el punto, que es lo
+que de verdad separa una afirmación de otra. Es el mismo criterio que
+`estaNegado` ya usaba en `parser-clinico.ts`: dos motores hermanos, uno lo tenía
+y el otro no.
+
+### Y el tope no sobra
+
+Sin él, un «niega» al principio de un párrafo largo escudaría todo lo que viniera
+detrás hasta el siguiente punto. Los dos límites hacen falta, y ahora cada uno
+expresa lo suyo.
+
+### Archivos
+
+- `src/lib/expediente/mencion-en-la-nota.ts`
+- `src/__tests__/el-escudo-no-cruza-el-punto.test.ts` (nuevo, 11 casos, sellado)
+
+---
+
+## REG-287 — grabar es actividad, y salir grabando avisa (v1161)
+
+**Los dos últimos P0 de integridad de la auditoría de V9, y compartían causa:
+nadie sabía que se estaba grabando.**
+
+### 1. La sesión se cerraba en mitad del dictado
+
+`AutoLogout` escucha `mousemove`, `mousedown`, `keydown`, `touchstart` y
+`scroll`. Su propio comentario nombra el escenario que lo rompe:
+
+> *«el médico DICTA, y dictar no genera mousemove ni teclas»*
+
+**Lo conocía.** Su defensa fue *guardar la nota antes de cerrar*. Eso salva el
+texto — y **sigue cerrando la sesión a mitad de frase** en un pase de UCI de
+media hora.
+
+**Guardar la nota no era el arreglo: era el consuelo.**
+
+### 2. Salir no avisaba
+
+No había **ningún** `beforeunload` en toda la aplicación. Cerrar la pestaña o
+recargar durante el dictado paraba la grabación sin decir nada. Los trozos ya
+volcados sobreviven y al volver aparece el ofrecimiento de recuperación — pero el
+médico no lo sabe **en el momento en que decide**, que es el único que importa.
+
+### Por qué un evento y no una referencia
+
+El grabador no debe saber que existe un cierre por inactividad, ni al revés. Si
+se conocieran, cada pantalla nueva que grabe tendría que **acordarse** de avisar
+— y «acordarse» es la familia `depende_de_recordar`. Con un evento, **cualquier**
+superficie que grabe queda cubierta el día que exista.
+
+El nombre vive en `lib/seguridad/estoy-grabando.ts`, una sola vez: una cadena
+literal repetida en dos archivos es una compuerta que se abre sola el día que
+alguien corrige una errata en uno de los dos.
+
+### La decisión que hace que sirva, y queda escrita para revertirla
+
+Durante la cuenta atrás **sólo el botón reactiva**, y con razón: un `mousemove`
+perdido no puede impedir un cierre legítimo en un equipo compartido.
+
+**Una grabación en curso no es un `mousemove` perdido.** Es prueba positiva de
+que hay alguien delante hablando — evidencia de presencia más fuerte que mover el
+ratón. Sin esa línea el aviso saldría en el minuto 30 del dictado y cerraría
+igual: **el defecto seguiría abierto con un arreglo puesto encima**.
+
+Es una decisión de seguridad —alarga la sesión mientras se graba— y por eso está
+escrita donde se lee. El resto de eventos sigue respetando la guarda del aviso.
+
+### Detalles que deciden si funciona
+
+- Un latido **inmediato** además del periódico: empezar a grabar en el minuto 29
+  de inactividad llegaría tarde con sólo el `setInterval`.
+- El latido **sólo** mientras se graba o está en pausa; latir siempre convertiría
+  el cierre por inactividad en decorativo.
+- El `beforeunload` **se quita al parar**: uno que sobrevive a la grabación
+  pregunta al salir de cualquier pantalla, se aprende a ignorar en dos días, y
+  entonces tampoco se lee el que importa.
+
+### Archivos
+
+- `src/lib/seguridad/estoy-grabando.ts` (nuevo)
+- `src/hooks/useGrabacionAudio.ts`
+- `src/components/AutoLogout.tsx`
+- `src/__tests__/grabar-es-actividad.test.ts` (nuevo, 13 casos, sellado)
+
+---
+
+## REG-288 — las decisiones del dueño estaban escritas y nadie las leía (v1162)
+
+Este repositorio tiene una regla que ha funcionado: **cuando falta un criterio
+clínico u operativo, no se inventa un valor por defecto — se declara.** De ahí
+salen `FALTA_GRACIA`, `FALTA_POLITICA_Q2_Q4`, `FALTA_VENTANA_REINGRESO`,
+`FALTA_VENTANA_TEMPORAL` y `LO_QUE_HACE_FALTA_DEL_DR`.
+
+Cada una está escrita con cuidado, dice **qué** hace falta y **por qué** no puede
+decidirlo el software. Y **nadie las leía**: viven repartidas en cinco módulos.
+
+### Es la familia más grande, aplicada a las decisiones
+
+«Escrito y sin conectar», pero de **decisiones** en vez de código. La declaración
+existía; el camino hasta quien decide, no. El resultado se veía: llevaban meses
+citándose de memoria al final de cada informe, con el riesgo de que la lista
+dijera una cosa y el código esperase otra.
+
+### Derivado, no una lista
+
+`scripts/calidad/lo-que-espera-al-dueno.mjs` las recoge **del código**, buscando
+por forma —una constante exportada `FALTA_*` o `LO_QUE_HACE_FALTA_*`— y no por
+lista de ficheros: una declaración nueva en un módulo que todavía no existe
+aparece igual.
+
+Una lista escrita a mano se desfasa. Ya pasó dos veces con cifras de este mismo
+repositorio (REG-241 y la sala de datos). Aquí el daño sería peor: **seguir
+pidiendo algo ya resuelto hace que se dejen de leer todas.**
+
+### El guardián falla en las DOS direcciones
+
+Comprobado retirando y añadiendo entradas: falla cuando el código declara algo
+que el documento no pide, **y** cuando el documento pide algo que el código ya no
+espera. La segunda es la que envenena.
+
+### Lo que el documento deliberadamente no hace
+
+**No propone respuestas.** Ninguna sugerida, ningún valor «recomendado», ningún
+número de ejemplo copiable.
+
+Poner un valor razonable al lado de la pregunta es exactamente cómo el criterio
+del dueño se convierte en el default de un agente sin que nadie firme nada — y
+esas cinco constantes existen para impedirlo. Hay una prueba que lo comprueba.
+
+### El instrumento tampoco puede mirar al vacío
+
+Si el barrido no encuentra ninguna declaración, **falla** en vez de parecer decir
+«no queda nada pendiente». Es la misma regla del trinquete de lint: *un gate que
+no mide no protege*.
+
+### Archivos
+
+- `scripts/calidad/lo-que-espera-al-dueno.mjs` (nuevo)
+- `docs/DECISIONES-DEL-DUENO.md` (nuevo, derivado)
+- `src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts` (nuevo, 7 casos, sellado)
+
+---
+
+## REG-289 — «500 microgramos» se leía como 500 mg, y «QID» apagaba el techo diario (v1163)
+
+Medido con `extraerMg` y `extraerTomasDia` de verdad, sobre el árbol de
+producción:
+
+| Escrito | Se leía |
+|---|---|
+| `500 mcg` | 0,5 mg ✓ |
+| **`500 microgramos`** | **500 mg** ← mil veces la dosis |
+| **`1000 UI`** | **1000 mg** ← no son miligramos de nada |
+| **`QID`** | *no se entiende* → el llamador asume **1 toma/día** |
+
+### La causa no es la lista corta: es el paso 3
+
+`extraerMg` termina con «número sin unidad: se asume mg». Correcto para un «500»
+pelado — y se tragaba **cualquier unidad que la lista no conociera**,
+convirtiéndola en miligramos en silencio.
+
+Es el mismo daño que ya costó el volumen. Entonces se arregló devolviendo `null`
+para mililitros, con este comentario en el propio código: *«Antes "5 mL" se leía
+como 5 mg y silenciaba la red de seguridad»*. **La lección no se generalizó: sólo
+se tapó el caso encontrado.**
+
+### Y el techo diario no fallaba: no se ejecutaba
+
+`QID`, `TID`, `BID` devolvían `null`, y el llamador hace
+`Math.max(1, Math.floor(tomasDia ?? 1))`. Paracetamol 1000 mg `QID` son **4 000
+mg** —el techo entero— y se comprobaban 1 000.
+
+El módulo ya había documentado ese modo de fallo para los números escritos con
+letra. La lista era corta; el modo de fallo, el mismo.
+
+---
+
+## REG-290 — quince versiones de reparaciones que no se veían (v1163)
+
+Lo dijo el dueño, y tenía razón:
+
+> *«no he visto ningún cambio en la aplicación»*
+
+Verificado antes de contestar: producción respondía la versión correcta y el
+código nuevo estaba en el paquete servido. **El despliegue era real; el problema
+era otro.**
+
+De quince versiones, doce eran **defensas** — hacen que **no** pase algo malo, que
+es lo más difícil de ver que existe. Y las tres visibles dependen de que exista
+el dato: la tarjeta de pendientes sólo aparece si el paciente tiene pendientes.
+
+**Una defensa que no se puede enseñar es, para quien paga, una defensa que no
+existe.**
+
+### La pantalla `/motores` — «Lo que te protege»
+
+Nueve defensas, cada una con el caso real que falló, qué hacía antes, y **el
+motor corriendo en vivo** sobre lo que se escriba. Los motores son puros, así que
+se ejecutan en el navegador: **si uno se rompe mañana, la pantalla lo enseña
+roto.**
+
+Es la diferencia entre una demo y una prueba: una demo se prepara, esto se
+ejecuta.
+
+### El «antes» se cita, no se calcula — y se dice en la pantalla
+
+El código viejo ya no existe. Presentar como medido algo que sólo está recordado
+sería exactamente el defecto que la mitad de esos motores existen para evitar,
+así que la cabecera lo declara y cada caja separa las dos cosas visualmente.
+
+### Lo que quedó verificado, y lo que no
+
+Compilado como página estática, `tsc` limpio, y los motores que llama son los
+mismos que cubren las 8 459 pruebas. **No pude abrirla en un navegador**: el
+servidor de desarrollo de este espacio apunta a otro proyecto y producción exige
+su sesión. Se dice en vez de darlo por hecho.
+
+### Archivos
+
+- `src/app/(dashboard)/motores/page.tsx` (nuevo)
+- `src/components/motores/QueDiceElMotor.tsx` (nuevo)
+- `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
+- `src/lib/seguridad/dosis.ts`
+- `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+<!-- NOTA DE FUSIÓN V10-D1 (9-ago-2026): las 12 entradas siguientes nacieron
+     en la rama V9 como REG-270…281 y COLISIONABAN con los REG-270…290 que
+     main acuñó en paralelo. Se renumeraron a REG-291…302 conservando su
+     contenido; sus guardianes y sellos se renumeraron igual. -->
+
+## REG-291 — Volver a grabar borraba el audio de la grabación anterior
 
 **Encontrado por** la auditoría de navegación y estado de
 `PATIENT-UX-TRUTH-001` (V9).
@@ -5212,7 +6421,7 @@ Probado al revés: reponiendo el rango desde 0, falla.
 
 ---
 
-## REG-271 — El trozo final del audio se tiraba al salir de la pantalla grabando
+## REG-292 — El trozo final del audio se tiraba al salir de la pantalla grabando
 
 **Encontrado por** la misma auditoría.
 
@@ -5245,7 +6454,7 @@ desenganche deja de hacer falta y el trozo final se persiste en su sitio.
 
 ---
 
-## REG-272 — El cierre por inactividad no oía dictar
+## REG-293 — El cierre por inactividad no oía dictar
 
 **Encontrado por** la misma auditoría.
 
@@ -5285,7 +6494,7 @@ archivo persigue. Ahora se exige el registro y su retirada.
 
 ---
 
-## REG-273 — Al cerrar sesión se borraba el audio sin transcribir
+## REG-294 — Al cerrar sesión se borraba el audio sin transcribir
 
 **Encontrado por** la misma auditoría.
 
@@ -5302,7 +6511,7 @@ transcrito vive en el borrador que se está conservando»— es cierto sólo par
 grabación **terminada**. A mitad de grabación, la cola sin transcribir no existe
 en ningún otro sitio.
 
-Y el disparador más frecuente era REG-272: como el cierre por inactividad no oía
+Y el disparador más frecuente era REG-293: como el cierre por inactividad no oía
 dictar, la sesión que se cerraba era, con diferencia, la que se estaba dictando.
 
 **Arreglo.** El acuse de `nx:guardar-todo` gana
@@ -5336,7 +6545,7 @@ archivo, que es lo que sí depende de nosotros.
 
 ---
 
-## REG-274 — Un segundo sistema de color, obsoleto, escondido dentro del primero
+## REG-295 — Un segundo sistema de color, obsoleto, escondido dentro del primero
 
 **Encontrado por** `DESIGN-SYSTEM-001` (V9), al ir a sustituir los literales de
 color que había contado la auditoría anterior.
@@ -5401,9 +6610,9 @@ revés: reponiendo un solo respaldo, quitando un token de aviso o estrechando
 
 ---
 
-## REG-275 — Dos guardianes con cuerpo de línea de órdenes en el ámbito del módulo
+## REG-296 — Dos guardianes con cuerpo de línea de órdenes en el ámbito del módulo
 
-**Encontrado** al comprobar al revés el guardián de REG-274.
+**Encontrado** al comprobar al revés el guardián de REG-295.
 
 **Qué pasaba.** Los dos scripts de `scripts/design/` ejecutaban su cuerpo de
 línea de órdenes **al importarlos**. Consecuencias distintas y las dos malas:
@@ -5437,7 +6646,7 @@ el trinquete cae.
 
 ---
 
-## REG-276 — La fecha de seguimiento se perdía, y el volcado borraba la copia buena
+## REG-297 — La fecha de seguimiento se perdía, y el volcado borraba la copia buena
 
 **Encontrado por** la auditoría de navegación de `PATIENT-UX-TRUTH-001`,
 reparado en `NAVIGATION-001`.
@@ -5469,7 +6678,7 @@ la regla, falla.
 
 ---
 
-## REG-277 — El atrás de la consulta nunca volvía a la agenda
+## REG-298 — El atrás de la consulta nunca volvía a la agenda
 
 **Qué pasaba.** El botón de atrás hacía `router.push(volverA)`: un destino
 **fijo** —el expediente— y además **apilando** una entrada nueva en el historial.
@@ -5479,7 +6688,7 @@ camino normal del día. Así que el médico salía al expediente, no a su agenda
 desde el expediente, cuyo atrás **sí** es inteligente, volvía a la consulta.
 Quedaba oscilando entre dos pantallas **sin poder regresar a la lista del día**,
 salvo por la barra lateral — que monta `/citas` de cero y pierde el contexto
-(REG-278).
+(REG-299).
 
 **Lo que lo hace tonto de puro evitable**: `useSmartBack` existía desde hace
 tiempo y lo usaban **diez** pantallas. La consulta, que es la que más falta
@@ -5494,7 +6703,7 @@ notificación, el destino fijo sigue de respaldo. El `push` que queda es el de
 
 ---
 
-## REG-278 — La agenda olvidaba el día que se estaba mirando
+## REG-299 — La agenda olvidaba el día que se estaba mirando
 
 **Qué pasaba.** `selectedDate`, el filtro de estado y la búsqueda eran `useState`
 puro. Como `(dashboard)/template.tsx` desmonta la página en **cada** navegación,
@@ -5519,9 +6728,9 @@ qué.
 
 ---
 
-## REG-279 — Navegar dentro de la aplicación cortaba el dictado sin avisar
+## REG-300 — Navegar dentro de la aplicación cortaba el dictado sin avisar
 
-**Qué pasaba.** REG-271 y REG-272 cerraron la **pérdida**: el trozo final se
+**Qué pasaba.** REG-292 y REG-293 cerraron la **pérdida**: el trozo final se
 persiste, el audio sobrevive en IndexedDB y hay `beforeunload` al recargar o
 cerrar la pestaña. Quedaba el **aviso** dentro de la aplicación:
 `beforeunload` **no se dispara en un `router.push`**, y `template.tsx` desmonta
@@ -5549,7 +6758,7 @@ historial — la clase de truco que rompe el atrás para todo lo demás. No se h
 
 ---
 
-## REG-280 — El compañero del paciente, y la compuerta que impide enseñarle un borrador
+## REG-301 — El compañero del paciente, y la compuerta que impide enseñarle un borrador
 
 **Unidad** V9 `PATIENT-COMPANION-001`. No repara un defecto observado: **pone la
 defensa antes de que exista la superficie que la necesita**, y por eso merece
@@ -5614,7 +6823,7 @@ vacía en todo el material público de Abridge, Nabla, Suki y Dragon Copilot.
 
 ---
 
-## REG-281 — Dos guardianes de diseño que se contradecían
+## REG-302 — Dos guardianes de diseño que se contradecían
 
 **Encontrado** al montar la pantalla del paciente con los tokens nuevos.
 

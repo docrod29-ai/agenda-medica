@@ -10,12 +10,12 @@
 > `Resp: —` y eso **no** significa que no sea adaptable. Sirve para ordenar el
 > barrido; aprobar una pantalla exige abrirla en un navegador.
 
-**Total: 78 pantallas.**
+**Total: 79 pantallas.**
 
 | Superficie | Pantallas |
 |---|---|
 | paciente | 9 |
-| medico | 32 |
+| medico | 33 |
 | alpha | 10 |
 | publica | 18 |
 | interna | 9 |
@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 330 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 930 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 5848 | 5 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 5872 | 5 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 282 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
@@ -66,17 +66,18 @@
 | `/lista-espera` | medico | ✅ | 285 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
 | `/migracion` | medico | ✅ | 370 | 0 | — | ✅ | — |
+| `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 74 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 841 | 2 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 793 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 836 | 9 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 259 | 1 | — | ✅ | — |
 | `/reactivacion` | medico | ✅ | 250 | 0 | — | ✅ | — |
-| `/receta/[patientId]/[notaId]` | medico | ✅ | 973 | 2 | — | ✅ | — |
+| `/receta/[patientId]/[notaId]` | medico | ✅ | 977 | 2 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 276 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 425 | 5 | — | ✅ | — |
-| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1701 | 4 | — | ✅ | ✅ |
+| `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1725 | 4 | — | ✅ | ✅ |
 | `/hospitalizacion/camas` | alpha | ✅ | 239 | 1 | — | ✅ | — |
 | `/hospitalizacion/indicadores` | alpha | ✅ | 102 | 0 | — | ✅ | — |
 | `/hospitalizacion/unidades` | alpha | ✅ | 171 | 0 | — | ✅ | — |

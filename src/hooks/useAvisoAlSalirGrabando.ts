@@ -3,11 +3,11 @@ import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
 /**
- * AVISA ANTES DE QUE UNA NAVEGACIÓN TERMINE LA GRABACIÓN — REG-279.
+ * AVISA ANTES DE QUE UNA NAVEGACIÓN TERMINE LA GRABACIÓN — REG-300.
  *
  * ── QUÉ QUEDABA ABIERTO ─────────────────────────────────────────────────────
  *
- * REG-271 y REG-272 arreglaron la PÉRDIDA: el trozo final ya se persiste, el
+ * REG-292 y REG-293 arreglaron la PÉRDIDA: el trozo final ya se persiste, el
  * audio sobrevive en IndexedDB y hay `beforeunload` al recargar o cerrar la
  * pestaña. Lo que quedaba era el AVISO dentro de la aplicación.
  *

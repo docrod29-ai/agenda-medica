@@ -9,28 +9,12 @@
 > desfasaban. Se leen de `MASTER_STATE.json`, que las deriva del repositorio.
 > Ver `agent-state/RECONCILIACION-V9-2026-08-08.md`.
 
-> ## ⚠️ LA FUENTE DE VERDAD DE V9 ES LA ESPECIFICACIÓN, NO ESTE ARCHIVO
->
-> [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-> — 907 líneas, entregada por el dueño el 9-ago-2026 y guardada **íntegra**.
->
-> **Se lee COMPLETA antes de decidir qué trabajo hacer.** No se resume, no se
-> sustituye por un plan más corto, y no se decide leyendo sólo el checkpoint. Si
-> algo de este repositorio la contradice, **gana la especificación**.
->
-> Este archivo es **criterio de la iteración en curso**, subordinado a ella.
-> Cuándo se para: [`V9_COMPLETE_CRITERIA.md`](./V9_COMPLETE_CRITERIA.md) —
-> `V9_COMPLETE.md` **no existe** y no puede crearse antes de tiempo (hay
-> guardián). Bitácora y lectura operativa:
-> [`docs/ai/V9-BITACORA-Y-OPERACION.md`](../docs/ai/V9-BITACORA-Y-OPERACION.md).
-
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ · **los tres P0 de audio** ✅ ·
-**`DESIGN-SYSTEM-001`** ✅ · **`NAVIGATION-001`** ✅ ·
-**`PATIENT-COMPANION-001`** ✅ (9-ago) → **`POSTVISIT-001`**.
+**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
+**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -49,29 +33,17 @@ línea; primitivos compartidos al 24 %).
 
 | P0 | Estado |
 |---|---|
-| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | **REG-270 · cerrado** |
-| Navegar **termina la grabación** en silencio y tira el trozo final | **REG-271/272 · cerrado en parte** → residuo `PATIENT-AUDIO-004` |
-| El cierre por inactividad **no oye dictar** y borra la recuperación | **REG-272/273 · cerrado** |
-| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-268 · cerrado** |
-
-**Los cuatro compartían un sesgo, y por eso se arreglaron juntos**: toda la
-persistencia se había puesto donde YA había red —el texto de la nota tiene cuatro
-copias— y el audio, que no tiene ninguna otra, se quedó fuera de todas. Cuando
-hubo que elegir entre proteger el texto y proteger el audio, en la purga del
-cierre de sesión, se protegió el texto.
-
-**Residuo declarado**: navegar dentro de la aplicación sigue terminando la
-grabación **sin avisar**. Ya no se pierde audio —los trozos están en IndexedDB,
-el final incluido— pero el médico no se entera. `beforeunload` no se dispara en
-un `router.push` y App Router no expone eventos de ruta: se decide con la
-aplicación abierta (`PATIENT-AUDIO-004`, P1).
+| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | CERRADO v1158 (REG-283) — `PATIENT-AUDIO-001` |
+| Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
+| El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
+| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo
 local, autoguardado y volcado— **y no donde no la hay**: el audio, que no tiene
 segunda copia en ninguna parte.
 
-También reparado: **REG-269**, `@keyframes spin` no existía en ningún sitio
+También reparado: **REG-266**, `@keyframes spin` no existía en ningún sitio
 global pese a 90 referencias, incluidos los dos primitivos compartidos. El giro
 funcionaba «según en qué pantalla estuvieras».
 

@@ -3,7 +3,7 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-280, REG-281.
+**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-301, REG-302.
 **Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
 `cambiosDeMedicacion` se difirieron ahí por no tener llamador.
 

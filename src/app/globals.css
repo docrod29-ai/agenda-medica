@@ -177,7 +177,7 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 
   /*
-    ─── AVISO Y ÉXITO — cuatro tokens que se USABAN SIN EXISTIR (REG-274) ───
+    ─── AVISO Y ÉXITO — cuatro tokens que se USABAN SIN EXISTIR (REG-295) ───
 
     `var(--warn-bg, #fff8e6)`, `var(--warn-border, #f0c36d)`,
     `var(--warn-text, #8a6100)` y `var(--success, #16a34a)` aparecían en el
@@ -1231,7 +1231,7 @@ tbody tr:last-child { border-bottom: none; }
 
   /* Aviso y éxito — el tema claro conserva EXACTAMENTE lo que se venía
      pintando con los respaldos, para no cambiar lo que hoy se ve bien.
-     Ver el bloque de `--warn-*` en `:root` y REG-274. */
+     Ver el bloque de `--warn-*` en `:root` y REG-295. */
   --warn-bg:     #FFF8E6;
   --warn-border: #F0C36D;
   --warn-text:   #8A6100;

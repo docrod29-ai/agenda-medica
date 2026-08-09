@@ -29,9 +29,9 @@ superficie del paciente que ya quedó reparado en esta misma unidad.
 
 | # | P0 | Estado |
 |---|---|---|
-| 1 | **Volver a grabar borra el audio anterior.** El blob se arma con los trozos de esta sesión; el borrado arrasa el rango entero de la clave. 22 minutos grabados desaparecen sin transcribir | **ABIERTO** — `PATIENT-AUDIO-001` |
-| 2 | **Navegar termina la grabación en silencio.** El desmontaje libera recursos sin llamar a `detener()`, y `template.tsx` garantiza el desmontaje en cada navegación | **ABIERTO** — `PATIENT-AUDIO-002` |
-| 3 | **El cierre por inactividad no oye dictar y se lleva la recuperación.** Hablar no genera ratón ni teclado; a los 30 minutos cierra sesión y borra la base de recuperación en **las dos** ramas | **ABIERTO** — `PATIENT-AUDIO-003` |
+| 1 | **Volver a grabar borra el audio anterior.** El blob se arma con los trozos de esta sesión; el borrado arrasa el rango entero de la clave. 22 minutos grabados desaparecen sin transcribir | **CERRADO v1158 (REG-283)** — `PATIENT-AUDIO-001` |
+| 2 | **Navegar termina la grabación en silencio.** El desmontaje libera recursos sin llamar a `detener()`, y `template.tsx` garantiza el desmontaje en cada navegación | **CERRADO v1161 (REG-287)** — `PATIENT-AUDIO-002` |
+| 3 | **El cierre por inactividad no oye dictar y se lleva la recuperación.** Hablar no genera ratón ni teclado; a los 30 minutos cierra sesión y borra la base de recuperación en **las dos** ramas | **CERRADO v1161 (REG-287)** — `PATIENT-AUDIO-003` |
 | 4 | **El enlace de la videoconsulta del paciente no llevaba token** → 404 «Cita no encontrada» en la hora de su consulta, incluso desde su propio portal | **REPARADO** — REG-268 |
 
 Los tres primeros comparten una causa de fondo que conviene nombrar: **el
