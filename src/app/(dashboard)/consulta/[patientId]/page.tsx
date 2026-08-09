@@ -5125,7 +5125,16 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {/*
+        SÓLO CON LA NOTA FIRMADA (REG-291) — el encabezado del componente
+        afirmaba que se compone «de lo que el médico ya revisó y firmó», pero la
+        única guarda era `!esNotaHospital`: con nota en borrador, a medio
+        dictar, `medicamentos` y `estudiosOrden` ya traían el estado EN CURSO.
+        Es el cimiento DRAFT→RELEASED que pide la IA de cara al paciente — un
+        paquete no se muestra hasta que alguien lo aprueba, y aquí «firmar» es
+        esa aprobación.
+      */}
+      {firmada && !esNotaHospital && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}

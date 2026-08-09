@@ -9,9 +9,66 @@
 >
 > Las cifras se DERIVAN: `node scripts/agent-state/actualizar.mjs`. Lo de aquí es
 > **criterio**, y el criterio no sale de un `grep`.
+>
+> **9-ago-2026**: el disparo programado de V7 pide leer
+> `docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` como
+> especificación autoritativa. **Ese archivo no existe** en el repositorio ni en
+> su historia (B-12 en `BLOCKERS.md`). Este tablero y `BACKLOG.json` +
+> `docs/audit/regression-ledger.md` son la especificación operativa real — es
+> lo que ya usaban las 27 versiones anteriores.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
+**Rama de esta sesión**: `claude/clever-lamport-c0vsq7` (el disparador asignó
+esta rama; `agent/v7/master-loop` sigue siendo la rama de referencia del
+programa) · **Producción**: `nexusmed-v1163` (sin desplegar esta sesión — ver
+abajo)
+
+---
+
+## Sesión 9-ago-2026 — REG-291
+
+**Baseline al arrancar** (con dependencias reinstaladas desde cero, el
+contenedor no las traía): `npx vitest run` → 8 458 pasan, **1 fallo** ya
+documentado como de entorno (`ops-timeout-y-punto-ciego`, ver
+`LAST_SAFE_CHECKPOINT.md` — abre un socket a una IP no enrutable y el proxy de
+este contenedor lo corta rápido en vez de agotar el tiempo; confirmado flaky
+corriéndolo 3 veces suelto: 1-2 fallos según la carrera). `lint-trinquete`: 96,
+en el techo. `tsc --noEmit`: limpio. `npm run build`: compila y falla
+recolectando datos de página por falta de claves de Firebase — mismo defecto de
+entorno que ya declaraba el checkpoint anterior.
+
+**Reconciliado contra el repositorio real** (backlog vs ledger vs
+`CURRENT_ITERATION.md`): `PATIENT-AUDIO-001/002/003` seguían en `"pendiente"` en
+`BACKLOG.json` pese a estar cerrados desde v1158/v1161 (REG-283, REG-287). Es
+exactamente el defecto que el propio programa señala en su sección «Lo que este
+sistema repite»: un tablero que no se deriva se desfasa. Marcados `CERRADO` con
+su REG.
+
+**Trabajado — `POSTVISIT-GATE-001` (score 63, el más alto pendiente)**: la hoja
+para el paciente se montaba con `{!esNotaHospital && (<HojaParaElPaciente…}`,
+sin exigir `firmada`. El propio encabezado del componente afirma que compone
+«de lo que el médico ya revisó y firmó» — era intención de diseño, no
+precondición. Arreglo de un operando: `{firmada && !esNotaHospital && (…)}`.
+Prueba nueva en `lo-que-se-lleva-el-paciente.test.ts`, probada al revés
+(revirtiendo el archivo se confirma que falla sin el arreglo). Detalle completo
+en `docs/audit/regression-ledger.md` REG-291.
+
+**Gates tras el cambio**: vitest 8 459/8 460 (mismo fallo de entorno, cero
+nuevos), `lint-trinquete` 96 (sin subir), `tsc --noEmit` limpio,
+`clinical-safety-gate.test.ts` (metagate E0-11) 37/37.
+
+**No desplegado.** El dueño autorizó despliegue en V7 el 8-ago, pero esta rama
+la asignó el disparador de la sesión (`claude/clever-lamport-c0vsq7`), distinta
+de `agent/v7/master-loop`; se deja en rama + commit, sin desplegar ni fusionar,
+para no mezclar dos ramas «autorizadas para desplegar» a la vez.
+
+**Siguiente iteración V7**: `PATIENT-PORTAL-001` (score 62) — falta de límite de
+tasa en `/api/portal`, `/api/public/resena`, `/api/payment/create-checkout`, y
+la comprobación de revocación de token de portal **falla ABIERTA** si la
+lectura del expediente lanza (route.ts:183). El límite de tasa es mecánico
+(mismo patrón que telesalud/booking); el modo de fallo de la revocación es
+decisión de política — declarar por qué se elige fallar cerrado antes de
+tocarlo.
 
 **Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
 8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio

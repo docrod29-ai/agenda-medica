@@ -6379,3 +6379,57 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — la hoja del paciente se componía del borrador EN CURSO (v1164)
+
+**Auditoría del producto real V9 (PATIENT-UX-TRUTH-001), backlog
+`POSTVISIT-GATE-001`, score 63 — el más alto pendiente.**
+
+### El hueco
+
+`HojaParaElPaciente` afirma en su propio encabezado que se compone «de lo que
+el médico ya revisó y firmó». La única guarda de montaje en la pantalla de
+consulta era `{!esNotaHospital && (<HojaParaElPaciente …/>)}` — **sin exigir
+`firmada`**. Dos bloques más arriba, en la misma pantalla, `ComoCerrarLaConsulta`
+sí lleva `{firmada && (…)}` desde REG-244.
+
+`medicamentos` y `estudiosOrden` son el estado EN VIVO del formulario: con la
+nota a medio dictar, el médico ya podía copiar o imprimir una hoja para el
+paciente con una lista de medicamentos que todavía no había terminado de
+revisar. La cabecera del módulo describía una precondición que el código nunca
+comprobaba — intención de diseño, no cierre.
+
+### Por qué importa
+
+Es el cimiento de DRAFT→RELEASED que exige `patient-facing-ai.md` #4: un
+`PatientVisitPackage` nace `DRAFT` y sólo es visible para el paciente tras la
+aprobación de quien firma. Aquí «firmar la nota» ES esa aprobación — sin la
+guarda, el paquete era efectivamente `RELEASED` desde el primer carácter
+dictado.
+
+### El arreglo
+
+`{firmada && !esNotaHospital && (<HojaParaElPaciente …/>)}`. Un solo operando
+añadido; no toca el motor determinista (`como-se-lo-explico.ts`, ya probado por
+REG-242) ni la guarda de hospitalización, que sigue vigente.
+
+### Prueba al revés
+
+`lo-que-se-lleva-el-paciente.test.ts` gana un caso que falla contra el código
+de antes del arreglo (comprobado revirtiendo el archivo y corriendo sólo ese
+test: falla con `!esNotaHospital` solo, pasa con `firmada && !esNotaHospital`).
+
+### Lo que NO cubre
+
+Es una aserción sobre el texto fuente, igual que el resto de la familia «está
+CONECTADO» de este archivo — no renderiza la pantalla de consulta completa (su
+estado es demasiado grande para una prueba unitaria). No cubre
+`POSTVISIT-ENTREGA-001` (la hoja sigue sin llegar al portal del paciente,
+`/mi/[token]`): ese ítem queda pendiente en el backlog y depende de este cierre.
+
+### Archivos
+
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/lo-que-se-lleva-el-paciente.test.ts` (2 casos nuevos, sellado)

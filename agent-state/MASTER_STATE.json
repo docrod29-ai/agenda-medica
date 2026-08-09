@@ -11,27 +11,20 @@
     "cambiosDestructivos": false,
     "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
+  "iteracionActual": "9-ago-2026: REG-291 cerrado (POSTVISIT-GATE-001, compuerta de firma de la hoja del paciente). Siguiente: PATIENT-PORTAL-001. Detalle: agent-state/V7-ITERACION.md",
   "ramasActivas": [
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/BLOCKERS.md",
+    " M agent-state/V7-ITERACION.md",
+    " M docs/audit/regression-ledger.md",
     " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/Sidebar.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/rutas-privadas.ts",
-    " M src/lib/seguridad/dosis.ts",
-    "?? src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-    "?? src/app/(dashboard)/motores/",
-    "?? src/components/motores/"
+    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,12 +58,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/clever-lamport-c0vsq7",
   "derivado": {
-    "regsEnElLedger": 138,
-    "ultimaREG": "REG-290",
+    "regsEnElLedger": 139,
+    "ultimaREG": "REG-291",
     "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "casosDePrueba": 7461,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

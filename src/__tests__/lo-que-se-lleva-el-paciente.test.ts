@@ -201,7 +201,42 @@ describe('está CONECTADO', () => {
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toMatch(/\{firmada && !esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+  })
+
+  it('NO aparece con la nota SIN FIRMAR — REG-291', () => {
+    /**
+     * GOLDEN — qué fallaba: la única guarda era `!esNotaHospital`. El
+     * componente se montaba con `medicamentos` y `estudiosOrden` en su estado
+     * EN CURSO, así que el médico podía copiar y entregar una hoja compuesta
+     * de un borrador a medio dictar. El encabezado del módulo afirmaba lo
+     * contrario («se compone de lo ya revisado y firmado»): era intención de
+     * diseño, no precondición.
+     *
+     * Cómo se descubrió: auditoría del producto real V9 (PATIENT-UX-TRUTH-001,
+     * POSTVISIT-GATE-001, 8-ago-2026), leyendo la condición de montaje junto a
+     * la de `ComoCerrarLaConsulta` dos bloques más arriba — esa sí exige
+     * `firmada`.
+     *
+     * Causa raíz: dos guardas nacieron por separado (REG-244 para
+     * `ComoCerrarLaConsulta`, éste para `HojaParaElPaciente`) y nadie llevó el
+     * mismo criterio al segundo componente que compone contenido para el
+     * paciente.
+     *
+     * La regla que lo hace seguro: `patient-facing-ai.md` #4 — un
+     * `PatientVisitPackage` nace DRAFT y sólo es visible para el paciente tras
+     * la aprobación de quien firma. Aquí «firmar» ES esa aprobación.
+     *
+     * Probada al revés: con sólo `!esNotaHospital` (el código de antes del
+     * arreglo) esta prueba falla, porque no exige `firmada` delante.
+     *
+     * Qué NO cubre: no renderiza el componente de verdad (la pantalla entera
+     * tiene demasiado estado para montarla en una prueba unitaria) — comprueba
+     * la condición fuente, igual que el resto de «está CONECTADO» en este
+     * archivo y que REG-244 para `ComoCerrarLaConsulta`.
+     */
+    expect(page).not.toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toMatch(/\{firmada && !esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {
