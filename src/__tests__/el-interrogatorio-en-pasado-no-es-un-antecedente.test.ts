@@ -1,5 +1,5 @@
 /**
- * CASO ORO — REG-203: EL INTERROGATORIO EN PASADO NO ES UN ANTECEDENTE.
+ * CASO ORO — REG-210: EL INTERROGATORIO EN PASADO NO ES UN ANTECEDENTE.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *

@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-203 — el interrogatorio en pasado se cosechaba como antecedente (v1084)
+## REG-210 — el interrogatorio en pasado se cosechaba como antecedente (v1092)
 
 **Encontrado** — 7-ago-2026, iteración del Master Loop V7 sobre el ítem
 `EVAL-002` del backlog: «el motor de temporalidad no tiene corpus, sus casos son

@@ -10,13 +10,13 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-203 (cerrada) — el interrogatorio en pasado no es un antecedente",
+  "iteracionActual": "REG-210 (cerrada) — el interrogatorio en pasado no es un antecedente",
   "ultimaIteracion": {
     "fecha": "2026-08-07",
     "itemDelBacklog": "EVAL-002",
-    "reg": "REG-203",
-    "version": "nexusmed-v1084",
-    "rama": "agent/expediente/REG-203",
+    "reg": "REG-210",
+    "version": "nexusmed-v1092",
+    "rama": "agent/expediente/REG-210",
     "golden": "src/__tests__/el-interrogatorio-en-pasado-no-es-un-antecedente.test.ts",
     "comprobadoAlReves": "17 de 21 casos fallan sin la reparación"
   },
@@ -25,7 +25,7 @@
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
     "agent/ops/OPS-001",
-    "agent/expediente/REG-203"
+    "agent/expediente/REG-210"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",

@@ -82,7 +82,7 @@ const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada|negativo|nunc
  * Hermana de `NEGATIVAS` y por el mismo motivo: la enfermedad se nombra en la
  * pregunta y la respuesta es una palabra suelta en otra frase. Sin ella, «¿Ha
  * tenido neumonía alguna vez? Sí, hace tres años» no se puede leer — la pregunta
- * no dice cuándo y la respuesta no dice qué (REG-203).
+ * no dice cuándo y la respuesta no dice qué (REG-210).
  *
  * Sólo afirmativas **claras y al principio**. «Creo que sí» y «no sé» se quedan
  * fuera a propósito: en la duda no se afirma, y aquí no afirmar sólo cuesta un
@@ -93,7 +93,7 @@ const AFIRMATIVAS = /^\s*(?:ah?,?\s*)?(?:si|sip|claro|correcto|efectivamente|asi
 /**
  * Marcas de que un término ya viene negado en la propia frase.
  *
- * ── EL PRETÉRITO FALTABA (REG-203) ───────────────────────────────────────────
+ * ── EL PRETÉRITO FALTABA (REG-210) ───────────────────────────────────────────
  *
  * Sólo miraba el presente («no tiene», «no padece»), así que «**no tuvo**
  * tuberculosis» y «**nunca ha tenido** neumonía» pasaban por afirmaciones. En el

@@ -6832,7 +6832,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
 
-## CUADRAGÉSIMA OCTAVA TANDA — v1084 (REG-203: la pregunta no es un antecedente)
+## CUADRAGÉSIMA OCTAVA TANDA — v1092 (REG-210: la pregunta no es un antecedente)
 
 | v | Qué se reparó |
 |---|---|
@@ -6863,7 +6863,7 @@ Ninguno es basura: son defectos distintos y reales del mismo módulo. El problem
 es que **no se pueden fusionar en cualquier orden**: se pisan en los dos módulos,
 en el ledger, en `sw.js`, en `version.txt` y en el sello de invariantes.
 
-Esta tanda se numeró `REG-203` / `v1084` para quedar por encima de todo lo
+Esta tanda se numeró `REG-210` / `v1092` para quedar por encima de todo lo
 abierto. **Es un parche de cortesía, no la solución**: la decisión de en qué
 orden se fusionan —y si conviene pausar el programa hasta vaciar la cola— es del
 dueño. Queda anotado en `OWNER_DECISIONS_REQUIRED.md` como `O-5`.

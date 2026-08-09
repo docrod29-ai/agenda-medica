@@ -3,9 +3,9 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1084 — REG-203: el interrogatorio en pasado se cosechaba como antecedente
+## v1092 — REG-210: el interrogatorio en pasado se cosechaba como antecedente
 
-> El salto de v1073 a v1084 no es un hueco: v1074–v1083 están **reclamadas por
+> El salto de v1073 a v1092 no es un hueco: v1074–v1083 están **reclamadas por
 > PRs abiertos** que todavía no se fusionan. Se numeró por encima de todas para
 > no chocar. Ver la nota de la tanda en la bitácora.
 

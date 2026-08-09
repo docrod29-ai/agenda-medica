@@ -89,7 +89,7 @@
       "score": 55,
       "estado": "en curso",
       "reversible": true,
-      "nota": "7-ago: al escribir las frases del interrogatorio dirigido —el hueco del corpus— salieron tres defectos reales en la primera corrida. Reparados en REG-203 (v1084). El corpus en sí sigue pendiente: lo que hay es un golden de 21 casos, no una medición."
+      "nota": "7-ago: al escribir las frases del interrogatorio dirigido —el hueco del corpus— salieron tres defectos reales en la primera corrida. Reparados en REG-210 (v1092). El corpus en sí sigue pendiente: lo que hay es un golden de 21 casos, no una medición."
     },
     {
       "id": "EVAL-003",
@@ -116,7 +116,7 @@
       "id": "VOICE-005",
       "titulo": "El motor de temporalidad no sabe quién habla",
       "hallazgo": "Reconocer la pregunta del interrogatorio depende de que el dictado traiga signos de interrogación. Sin ellos —y el reconocedor no siempre los pone— una pregunta se lee como una frase declarativa cualquiera. La diarización ya sabe quién habló y este motor no la mira.",
-      "porQueImporta": "Es el mismo daño de REG-203 por el camino que quedó abierto: la enfermedad se nombra en la pregunta y se cosecha como antecedente del paciente.",
+      "porQueImporta": "Es el mismo daño de REG-210 por el camino que quedó abierto: la enfermedad se nombra en la pregunta y se cosecha como antecedente del paciente.",
       "archivo": "src/lib/expediente/temporalidad.ts:174",
       "seguridad": 3,
       "integridad": 2,
@@ -132,7 +132,7 @@
       "score": 58,
       "estado": "pendiente",
       "reversible": true,
-      "origen": "declarado como «lo que NO cubre» en el golden de REG-203"
+      "origen": "declarado como «lo que NO cubre» en el golden de REG-210"
     },
     {
       "id": "OPS-002",

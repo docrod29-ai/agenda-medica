@@ -174,7 +174,7 @@ export interface MencionPasada {
  * diccionario y mantener dos listas garantiza que se separen. Lo que falte no se
  * vigila —y así está declarado allí—, no se da por bueno.
  *
- * ── EL INTERROGATORIO NO ES UN ANTECEDENTE (REG-203) ─────────────────────────
+ * ── EL INTERROGATORIO NO ES UN ANTECEDENTE (REG-210) ─────────────────────────
  *
  * Esta función miraba frase a frase, sin distinguir quién hablaba ni si la frase
  * era una pregunta. Así que el interrogatorio dirigido —que se dicta **nombrando
