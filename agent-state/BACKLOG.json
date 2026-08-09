@@ -44,7 +44,7 @@
       "score": 60,
       "estado": "cerrado",
       "reversible": true,
-      "cierre": "Verificado en el árbol el 8-ago-2026: `ES_CANTIDAD` acepta los cuatro signos que aparecen en un dictado (-, +, U+2212, U+2013) y el comentario del módulo documenta las 25 frases de balance hídrico del corpus."
+      "cierre": "ES_CANTIDAD acepta los cuatro signos (dosis-sin-numero.ts:57). Verificado en el árbol el 8-ago."
     },
     {
       "id": "SAFE-001",
@@ -66,7 +66,7 @@
       "score": 73,
       "estado": "cerrado",
       "reversible": true,
-      "cierre": "Verificado en el árbol el 8-ago-2026: `alergenosDe` es el único parser, lo usan consulta y UCI, y el sesgo del reconocedor recibe su salida. Golden `src/__tests__/un-solo-parser-de-alergias.test.ts`. El estado «a medias, sin subir» era del agent-state, que se había quedado atrás del repositorio (decía v1030 con la rama en v1073)."
+      "cierre": "alergenosDe() es el único parser y los tres llamadores lo usan; golden un-solo-parser-de-alergias.test.ts. Verificado en el árbol el 8-ago: el backlog estaba atrasado."
     },
     {
       "id": "EVAL-001",
@@ -130,8 +130,31 @@
       "score": 48,
       "estado": "pendiente",
       "reversible": true
+    },
+    {
+      "id": "TEMP-001",
+      "titulo": "La ventana del escudo cruza el punto y presta la negación de la oración anterior",
+      "hallazgo": "primeraMencionSinEscudo mira 60 caracteres hacia atrás sin parar en el punto. «Niega diabetes.» al final de una oración escuda a la palabra que caiga en los primeros 60 caracteres de la siguiente — probado el 8-ago con los motores reales al reparar REG-192.",
+      "porQueImporta": "Es un escudo que no le corresponde: silencia una afirmación real de la nota. Del mismo orden que REG-192, sólo que en la dirección contraria.",
+      "porQueNoSeArreglaAOjo": "Acotar la ventana a la oración rompe la nota con encabezado de sección («Antecedentes:\\nNeumonía en 2019.»), que es igual de común, y ahí sí se convertiría en fatiga de alerta. Necesita corpus de notas sintéticas con las dos formas antes de tocar el número.",
+      "archivo": "src/lib/expediente/mencion-en-la-nota.ts:88",
+      "seguridad": 3,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "score": 56,
+      "estado": "pendiente",
+      "reversible": true
     }
   ],
-  "notaDeLaIteracion": "8-ago-2026 — Los cinco ítems de este archivo se comprobaron uno por uno antes de tocar nada. SAFE-001 y VOICE-004 ya estaban reparados en el árbol (el agent-state iba tres días por detrás del repositorio); EVAL-001 y EVAL-003 siguen bloqueados por B-01 (el corpus vive en el disco del dueño) y EVAL-002 depende de un corpus oro que no puede escribir el mismo agente que escribió el motor. Por eso la iteración auditó un módulo clínico —`funcion-renal.ts`— y su hallazgo (REN-001) es lo que se reparó.",
-  "avisoSobreLosScores": "Los scores de los ítems de 2026-08-04 no salen exactos de `formulaDePrioridad` (SAFE-001 da 70 y dice 73; EVAL-001 da 62 y dice 58). No se tocaron: reescribirlos cambiaría un orden de prioridad que el dueño ya vio. REN-001 sí está calculado con la fórmula tal como está escrita."
+  "actualizado": "2026-08-08",
+  "notaDeLaIteracion": "8-ago-2026 — Los ítems se comprobaron uno por uno antes de tocar nada. SAFE-001 y VOICE-004 ya estaban reparados en el árbol (el agent-state iba tres días por detrás); EVAL-001 y EVAL-003 siguen bloqueados por B-01 (el corpus vive en el disco del dueño) y EVAL-002 depende de un corpus oro que no puede escribir el mismo agente que escribió el motor. Por eso la iteración auditó un módulo clínico —`funcion-renal.ts`— y su hallazgo (REN-001) es lo que se reparó.",
+  "avisoSobreLosScores": "Los scores de los ítems de 2026-08-04 no salen exactos de `formulaDePrioridad` (SAFE-001 da 70 y dice 73). No se tocaron: reescribirlos cambiaría un orden de prioridad que el dueño ya vio. REN-001 sí está calculado con la fórmula tal como está escrita."
 }

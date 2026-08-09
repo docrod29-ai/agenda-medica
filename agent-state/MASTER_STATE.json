@@ -10,13 +10,19 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REN-001 (cerrada) — REG-214, v1096",
+  "iteracionActual": "REN-001 (cerrada, PR #255 abierto) — REG-214, v1096",
   "ramasActivas": [
+    "agent/expediente/TEMP-192",
     "agent/renal/REN-001"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "trabajoLocalSinSubir": [],
   "ultimaVersionEnRama": "nexusmed-v1096",
-  "notaDeSincronia": "8-ago-2026: este archivo iba tres días por detrás del repositorio (decía v1030 con `main` en v1073 y daba por pendientes SAFE-001 y VOICE-004, que ya estaban reparados y sellados). Se comprobó ítem por ítem contra el árbol antes de elegir trabajo. La versión desplegada la fija el dueño: la rama deja v1096 lista, no publicada."
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
+    "9-ago-2026: el bucle autónomo corrió en paralelo y varias ramas reclamaron el mismo REG-192 y la misma v1074. main se quedó con REG-192/v1074 (TEMP-192) y esta rama se renumeró a REG-214/v1096 (OPS-003). El renumerado no toca lógica: sólo identificadores."
+  ]
 }
