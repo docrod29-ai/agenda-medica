@@ -3,6 +3,28 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1168 — REG-306: el medidor del teléfono decía 0 con la pantalla rota
+
+La pantalla de inicio se salía de un iPhone: `gridTemplateColumns: '1fr 300px'`,
+fija en píxeles, sin una sola consulta de medios propia. De los 328 px útiles de
+un teléfono de 360, la columna derecha se llevaba 300.
+
+Y el instrumento existía. `cabe-en-un-telefono.mjs` (REG-265) llevaba una semana
+midiendo esto y decía **cero**: sus tres clases eran `width: Npx`, `minmax(Npx,…)`
+sin `min()` e imagen sin tope, y una pista de rejilla clavada **no es ninguna de
+las tres**. La clase estaba al lado de las tres y nadie la escribió.
+
+Se arregló la pantalla (V10 · HOME-001) y se escribió la cuarta clase. La primera
+medición de la clase nueva dio cuatro, y los cuatro eran falsos: configuración,
+recetas, orden y receta llevan su consulta de medios en `1fr !important`, que es
+la forma correcta. Excluidos por lo que hacen, no por su nombre.
+
+De la pantalla se fueron las cuatro tarjetas KPI (§14 del charter V10: «no
+construyas un tablero de KPIs genérico para médicos»), «Accesos rápidos» (§9,
+navegación duplicada), el «Citas hoy» del encabezado (§9, encabezado duplicado)
+y el sparkline. Los números siguen, en un renglón. La próxima cita sube al primer
+lugar: antes salía en cuarto, debajo de cuatro tarjetas de estadística.
+
 ## v1084 — REG-203: las decisiones de arquitectura vivían en la cabeza de nadie
 
 `docs/decisions/` estaba vacía. Cuatro ADR escritos, todos de decisiones YA

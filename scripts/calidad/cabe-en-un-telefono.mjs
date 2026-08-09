@@ -83,9 +83,48 @@ function esImpresion(contextoAntes) {
   return /document\.write|@media print|window\.open\(|membrete|hoja-carta|\.hoja\b/i.test(contextoAntes)
 }
 
+/**
+ * Ancho a partir del cual una COLUMNA FIJA de una rejilla ya no cabe.
+ *
+ * Un teléfono de 360 px con el relleno habitual deja unos 328 útiles. Una
+ * columna clavada en 160 px se lleva la mitad y deja a la otra sin sitio; a
+ * partir de ahí la página se va de lado. Por debajo de 160 son columnas de
+ * icono, de hora o de casilla, que sí caben.
+ */
+const COLUMNA_FIJA_MAXIMA = 160
+
+/**
+ * ¿Esta rejilla YA se apila en el teléfono?
+ *
+ * La primera medición de la clase 4 dio **cuatro**: configuración, la sección
+ * de recetas, la orden y la receta. Los cuatro eran falsos: cada uno lleva su
+ * `className`, y cada archivo trae su propia consulta de medios que la pone en
+ * `grid-template-columns: 1fr !important` por debajo de 900 o 1000 px.
+ *
+ * El `!important` no es descuido: un estilo en línea gana a una clase, y sin él
+ * la consulta de medios no haría nada. Es la forma **correcta** de tener una
+ * rejilla de dos columnas en escritorio.
+ *
+ * Lo que sí era defecto —la pantalla de inicio, REG-306— no tenía `className`
+ * ni consulta de medios: sólo la rejilla clavada. Ésa es la diferencia que hay
+ * que medir, y no la presencia del `px`.
+ */
+function seApilaEnMovil(archivo, contextoAntes) {
+  const clase = [...contextoAntes.matchAll(/className=["'`]([^"'`]+)["'`]/g)].pop()
+  if (!clase) return false
+  for (const nombre of clase[1].split(/\s+/)) {
+    if (!nombre) continue
+    const re = new RegExp(
+      `@media[^{]*max-width[\\s\\S]{0,400}?\\.${nombre}\\s*\\{[^}]*grid-template-columns:[^;]*!important`)
+    if (re.test(archivo)) return true
+  }
+  return false
+}
+
 const anchosFijos = []
 const rejillasRigidas = []
 const imagenesSinTope = []
+const columnasClavadas = []
 
 for (const dir of DONDE) {
   for (const p of archivos(join(RAIZ, dir))) {
@@ -114,6 +153,35 @@ for (const dir of DONDE) {
       if (!antes.includes('min(')) rejillasRigidas.push(`${rel}::minmax(${m[1]}px`)
     }
 
+    /**
+     * CLASE 4 — columna de rejilla clavada en píxeles.  REG-306.
+     *
+     * `gridTemplateColumns: '1fr 300px'` no es un `width:` ni un `minmax(`, así
+     * que las clases 1 y 2 no lo veían. Y es el defecto que dejó la pantalla de
+     * inicio saliéndose del teléfono: 300 de los 328 píxeles útiles se los
+     * llevaba la columna derecha, y lo demás se iba de lado.
+     *
+     * No basta con encontrar el `px`: **la forma correcta también lo tiene**.
+     * `minmax(min(180px, 100%), 1fr)` cede en pantalla estrecha, y una columna
+     * de 44 px para la hora cabe de sobra. Por eso sólo cuenta la pista que
+     * (a) es un número seco de píxeles —ni dentro de `minmax`, ni de `min`— y
+     * (b) pasa de `COLUMNA_FIJA_MAXIMA`.
+     */
+    for (const m of t.matchAll(/grid-?[Tt]emplate-?[Cc]olumns:\s*['"`]?([^'"`;\n}]+)/g)) {
+      const valor = m[1]
+      /* Lo que va dentro de minmax()/min()/clamp() ya sabe ceder: se retira
+         antes de mirar, en vez de intentar excluirlo con el vistazo atrás que
+         a este mismo script ya se le coló dos veces. */
+      const seco = valor.replace(/(?:minmax|min|clamp)\([^)]*\)/g, ' ')
+      for (const px of seco.matchAll(/(\d{2,4})px/g)) {
+        const n = Number(px[1])
+        if (n <= COLUMNA_FIJA_MAXIMA) continue
+        if (esImpresion(t.slice(Math.max(0, m.index - 300), m.index))) continue
+        if (seApilaEnMovil(t, t.slice(Math.max(0, m.index - 220), m.index))) continue
+        columnasClavadas.push(`${rel}::${valor.trim().slice(0, 40)}`)
+      }
+    }
+
     for (const m of t.matchAll(/<img\b[\s\S]{0,400}?\/?>/g)) {
       const g = m[0]
       if (/maxWidth|max-width|width:\s*'?100%|width=|className|objectFit|inset:\s*0/.test(g)) continue
@@ -134,17 +202,18 @@ for (const dir of DONDE) {
   }
 }
 
-const total = anchosFijos.length + rejillasRigidas.length + imagenesSinTope.length
+const total = anchosFijos.length + rejillasRigidas.length + imagenesSinTope.length + columnasClavadas.length
 
 if (process.argv.includes('--json')) {
-  console.log(JSON.stringify({ total, anchosFijos, rejillasRigidas, imagenesSinTope }, null, 2))
+  console.log(JSON.stringify({ total, anchosFijos, rejillasRigidas, imagenesSinTope, columnasClavadas }, null, 2))
 } else {
   console.log(
     `\n  Lo que un teléfono de ${ANCHO_MINIMO} px no puede encoger: ${total}\n` +
     `     · anchos fijos     ${anchosFijos.length}\n` +
     `     · rejillas rígidas ${rejillasRigidas.length}\n` +
-    `     · imágenes sin tope ${imagenesSinTope.length}\n`)
-  for (const x of [...anchosFijos, ...rejillasRigidas, ...imagenesSinTope]) console.log(`     · ${x}`)
+    `     · imágenes sin tope ${imagenesSinTope.length}\n` +
+    `     · columnas clavadas ${columnasClavadas.length}\n`)
+  for (const x of [...anchosFijos, ...rejillasRigidas, ...imagenesSinTope, ...columnasClavadas]) console.log(`     · ${x}`)
   console.log(
     total === 0
       ? '\n  Ninguno. Lo que quede sólo se ve abriendo un navegador con un teléfono emulado.\n'

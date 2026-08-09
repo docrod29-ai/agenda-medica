@@ -16,29 +16,8 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1167",
-  "trabajoLocalSinSubir": [
-    "UU CLAUDE.md",
-    "M  agent-state/BACKLOG.json",
-    "M  agent-state/CHANGELOG_AGENT.md",
-    "M  agent-state/DESIGN_STATE.md",
-    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
-    "UU agent-state/MASTER_STATE.json",
-    "M  agent-state/PATIENT_COMPANION_STATE.md",
-    "A  agent-state/V9_COMPLETE_CRITERIA.md",
-    "M  docs/DECISIONES-DEL-DUENO.md",
-    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
-    "A  docs/ai/V9-BITACORA-Y-OPERACION.md",
-    "M  docs/audit/regression-ledger.md",
-    "M  docs/data-room/INDICE.md",
-    "A  docs/design/NEXUS_DESIGN_SYSTEM.md",
-    "UU docs/design/SCREEN_INVENTORY.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  docs/security/matriz-acceso-phi.md",
-    "M  firestore.rules",
-    "M  public/sw.js"
-  ],
+  "ultimaVersionEnProduccion": "nexusmed-v1168",
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -71,12 +50,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/kind-brahmagupta-ysxb6q",
+  "ramaActual": "claude/kind-brahmagupta-40oom1 (reconciliación V10 del 9-ago: cadena + iurzog + canónica fusionadas)",
   "derivado": {
-    "regsEnElLedger": 153,
-    "ultimaREG": "REG-305",
-    "archivosDePrueba": 577,
-    "casosDePrueba": 7565,
+    "regsEnElLedger": 154,
+    "ultimaREG": "REG-306",
+    "archivosDePrueba": 575,
+    "casosDePrueba": 7567,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
