@@ -89,7 +89,7 @@
       "dependenciaExterna": 0,
       "score": 55,
       "estado": "a medias",
-      "queSeHizo": "Al abrir el motor para darle corpus, el defecto estaba en la primera función: el vocabulario se buscaba con includes y casaba dentro de otras palabras (REG-192). Se midió contra las 6 000 frases del Dr. y el golden dejó el trinquete puesto sobre ellas.",
+      "queSeHizo": "Al abrir el motor para darle corpus, el defecto estaba en la primera función: el vocabulario se buscaba con includes y casaba dentro de otras palabras (REG-203). Se midió contra las 6 000 frases del Dr. y el golden dejó el trinquete puesto sobre ellas.",
       "queFalta": "Lo que el ítem pedía de verdad: frases dictadas con la etiqueta de si son pasado o presente. El corpus V3 mide vocabulario, no temporalidad — ninguna de sus frases está anotada como antecedente vs padecimiento actual. Sigue sin haber recall medido del motor.",
       "reversible": true
     },
@@ -118,8 +118,8 @@
     {
       "id": "VOCAB-001",
       "titulo": "Los vocabularios clínicos no tienen guardián contra la forma corta",
-      "hallazgo": "REG-192 tapó el agujero del buscador, pero nada impide que mañana alguien añada una forma de tres letras a CRONICAS o AGUDAS_FRECUENTES —«tep», «evc», «ivu» ya están— que case como palabra dentro de una frase donde no toca. El golden vigila las ocho trampas medidas, no las futuras.",
-      "porQueImporta": "El mismo defecto de REG-192 con otro término. La lista crece cada vez que el médico pide vigilar algo nuevo, y ése es justo el momento en que nadie mide.",
+      "hallazgo": "REG-203 tapó el agujero del buscador, pero nada impide que mañana alguien añada una forma de tres letras a CRONICAS o AGUDAS_FRECUENTES —«tep», «evc», «ivu» ya están— que case como palabra dentro de una frase donde no toca. El golden vigila las ocho trampas medidas, no las futuras.",
+      "porQueImporta": "El mismo defecto de REG-203 con otro término. La lista crece cada vez que el médico pide vigilar algo nuevo, y ése es justo el momento en que nadie mide.",
       "archivo": "src/lib/expediente/vocabulario-clinico.ts",
       "seguridad": 3,
       "integridad": 1,

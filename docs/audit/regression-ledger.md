@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — «obesidad» contenía «sida», y con eso se descartaba un VIH (v1074)
+## REG-203 — «obesidad» contenía «sida», y con eso se descartaba un VIH (v1085)
 
 **Encontrado** — 7-ago-2026, auditando el motor de temporalidad. Estaba en el
 backlog como `EVAL-002` por una razón honesta: el motor se construyó en la

@@ -120,7 +120,7 @@ export const AGUDAS_FRECUENTES: { canonica: string; formas: readonly string[] }[
    * futuro no hay nada que corregir.
    */
   /**
-   * `neurocirugía` se declara desde REG-192: casaba por accidente dentro de la
+   * `neurocirugía` se declara desde REG-203: casaba por accidente dentro de la
    * búsqueda por `includes` y es cirugía de verdad, así que pasar a búsqueda por
    * palabra no puede costarla.
    */

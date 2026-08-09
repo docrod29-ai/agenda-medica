@@ -12,7 +12,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
-| C-6 | ¿«Prediabetes» merece vocabulario propio? (REG-192) | Decidirlo usted: hoy **no se vigila**, y antes se vigilaba mal —salía como «diabetes», que es otro diagnóstico y otro riesgo | Que el motor de negación y el de temporalidad la miren | Los dos motores, con la diabetes de verdad |
+| C-6 | ¿«Prediabetes» merece vocabulario propio? (REG-203) | Decidirlo usted: hoy **no se vigila**, y antes se vigilaba mal —salía como «diabetes», que es otro diagnóstico y otro riesgo | Que el motor de negación y el de temporalidad la miren | Los dos motores, con la diabetes de verdad |
 
 ## DESPLIEGUE Y OPERACIÓN
 

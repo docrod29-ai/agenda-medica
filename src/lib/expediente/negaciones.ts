@@ -43,7 +43,7 @@
  * Módulo PURO.
  */
 /**
- * El buscador de términos vive aparte desde REG-192: lo comparten este motor y
+ * El buscador de términos vive aparte desde REG-203: lo comparten este motor y
  * el de temporalidad, y dos copias de «cómo se busca una palabra» acabarían
  * divergiendo como ya divergieron los cuatro parsers de alergias (REG-144).
  */
@@ -66,7 +66,7 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
   { canonica: 'enfermedad renal crónica', formas: ['insuficiencia renal', 'enfermedad renal', 'renal crónica', 'renal cronica'] },
   /**
    * `miocardiopatía`, `postinfarto` y sus formas sin tilde estaban casando por
-   * accidente cuando el vocabulario se buscaba con `includes` (REG-192). Son el
+   * accidente cuando el vocabulario se buscaba con `includes` (REG-203). Son el
    * mismo padecimiento, así que se declaran en vez de perderse: el paso a
    * búsqueda por palabra no debe quitar ni una coincidencia legítima.
    */

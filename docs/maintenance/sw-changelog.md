@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: «obesidad» contenía «sida», y con eso se descartaba un VIH
+## v1085 — REG-203: «obesidad» contenía «sida», y con eso se descartaba un VIH
 
 Los dos vocabularios clínicos del expediente se buscaban con
 `texto.includes(forma)`, y un `includes` no sabe dónde empieza una palabra:

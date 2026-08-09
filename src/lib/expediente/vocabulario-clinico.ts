@@ -1,7 +1,7 @@
 /**
  * UN TÉRMINO CLÍNICO ES UNA PALABRA, NO UNA CADENA DE LETRAS.
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-192) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-203) ─────────────────────────────────────
  *
  * Los dos vocabularios del expediente —`CRONICAS` (negaciones) y
  * `AGUDAS_FRECUENTES` (temporalidad)— se buscaban con `texto.includes(forma)`.
