@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el redondeo del motor renal se comía las alertas del borde (v1074)
+## REG-214 — el redondeo del motor renal se comía las alertas del borde (v1096)
 
 **Encontrado** — 8-ago-2026, auditoría del módulo `funcion-renal.ts` (ningún ítem
 pendiente del backlog era reproducible: SAFE-001 y VOICE-004 ya estaban cerrados

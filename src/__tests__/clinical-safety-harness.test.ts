@@ -56,7 +56,7 @@ describe('CLINICAL SAFETY HARNESS · CKD-EPI 2021', () => {
 })
 
 describe('CLINICAL SAFETY HARNESS · Cockcroft-Gault', () => {
-  // REG-192: igual que CKD-EPI, el motor devuelve PRECISIÓN COMPLETA y el redondeo
+  // REG-214: igual que CKD-EPI, el motor devuelve PRECISIÓN COMPLETA y el redondeo
   // es de presentación. Los valores golden NO cambiaron — se redondean al leerlos.
   it.each([
     ['H, Cr 1.0, 40a, 70kg', 1.0, 40, 'Masculino' as const, 70, 97],

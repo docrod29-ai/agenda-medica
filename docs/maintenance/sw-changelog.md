@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el redondeo del motor renal se comía las alertas del borde
+## v1096 — REG-214: el redondeo del motor renal se comía las alertas del borde
 
 `cockcroftGault` devolvía `Math.round(crcl)`, y ese entero era el que se comparaba
 contra los umbrales de ajuste renal. Todo CrCl entre `umbral − 0.5` y el umbral

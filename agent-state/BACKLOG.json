@@ -22,7 +22,7 @@
       "score": 60,
       "estado": "cerrado",
       "reversible": true,
-      "cierre": "REG-192 (v1074). El redondeo se movió a la capa de presentación: se COMPARA con el valor completo y se ESCRIBE el redondeado. Ningún umbral, mensaje ni fármaco cambió. Golden `src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts`, sellado con 7 casos; comprobado en rojo restaurando el `Math.round`."
+      "cierre": "REG-214 (v1096). El redondeo se movió a la capa de presentación: se COMPARA con el valor completo y se ESCRIBE el redondeado. Ningún umbral, mensaje ni fármaco cambió. Golden `src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts`, sellado con 7 casos; comprobado en rojo restaurando el `Math.round`."
     },
     {
       "id": "VOICE-004",

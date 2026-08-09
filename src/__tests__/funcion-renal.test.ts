@@ -32,7 +32,7 @@ describe('CKD-EPI 2021', () => {
 describe('Cockcroft-Gault', () => {
   it('calcula CrCl con peso', () => {
     // (140-40)×70 / (72×1.0) = 97.222…
-    // REG-192: antes el motor redondeaba a 97 aquí dentro y ese 97 era el que se
+    // REG-214: antes el motor redondeaba a 97 aquí dentro y ese 97 era el que se
     // comparaba contra los umbrales. Ahora sale completo; el 97 lo hace quien pinta.
     expect(valorEn(cockcroftGault(mgPorDl(1.0), 40, 'Masculino', kg(70)), 'mL/min')).toBeCloseTo(97.222, 2)
   })
