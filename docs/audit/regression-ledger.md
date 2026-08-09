@@ -5172,3 +5172,79 @@ registrarse: leer el primer identificador tras `animation:` capturaba la
 condición de un ternario (`voz`), y leer toda cadena entrecomillada capturaba un
 valor comparado (`'grabando'`). Exigir que la cadena traiga duración distingue
 las tres cosas. **Un guardián que grita de más se acaba silenciando** — REG-245.
+
+---
+
+> **Venía numerado REG-211 por la rutina `SAFE-005`.** Ese número ya estaba
+> ocupado desde v1092 («creo que me dijeron que tenía anemia»). Cada rutina
+> numeraba contra el `main` que veía; ésta es la cuarta colisión del mismo
+> origen (ver REG-267). El texto va tal cual, con el número corregido.
+
+---
+
+## REG-270 — el «>2» del laboratorio se leía como un 2 (v1151)
+
+**Encontrado** — 8-ago-2026, revisando por qué `cmiDe` no propagaba
+`cmiCensurada` cuando el módulo de al lado sí lo respeta desde la REG-044.
+
+**El defecto** — Una CMI **es un intervalo, no un número**: es la decisión
+E0-15c del médico dueño y es la que gobierna `interpretarCMI` desde la REG-044.
+`cmiDe` (`antibiograma/util.ts`) devolvía `r.cmi` **pelado** y tiraba
+`r.cmiCensurada`, así que los fenotipos de Gram positivos leían el mismo panel
+sin el operador. **El motor de puntos de corte lo respetaba y el de fenotipos
+no, sobre el MISMO resultado.**
+
+**Cómo se reprodujo** — Con `interpretarAntibiograma`, el motor completo, no la
+función suelta. Tres salidas medidas antes de tocar una línea:
+
+| Reporte del laboratorio | Lo que salía | Lo que dijo el laboratorio |
+|---|---|---|
+| Neumococo, penicilina **«>2»**, foco no meníngeo | «CMI 2 ≤2 → **tratable con penicilina parenteral a dosis altas**» | La CMI está POR ENCIMA de 2 (I 4 · R ≥8) |
+| SARM, vancomicina **«>2»** | «sospecha de hVISA (**límite alto de S**)» | Por encima de 2 → eficacia reducida |
+| E. faecium, daptomicina **«>4»** | nada: ni fenotipo, ni alerta, ni advertencia | Por encima de la banda utilizable (SDD ≤4) |
+
+Y en el otro sentido, el «<» sobre-avisaba: un tamiz de gentamicina de alto
+nivel reportado **«<500»** declaraba HLAR, y con él se abandona la sinergia
+β-lactámico + aminoglucósido en una endocarditis.
+
+**Por qué importa para un paciente** — La primera fila es la peor: es una frase
+que el médico lee como permiso, impresa en la nota, con el número que la niega
+al lado. Un neumococo con penicilina «>2» tratado con penicilina a dosis altas
+es una neumonía que no responde. La tercera es la contraria y también duele: el
+silencio de un motor que sí sabe hablar se lee como «no hay nada que decir».
+
+**Reparación** — `cmiDe` **desaparece**; mientras exista una forma de pedir «el
+número», alguien la volverá a usar. En su lugar, `cmiConCensuraDe` devuelve el
+intervalo y tres predicados escritos **en positivo** lo interrogan:
+`cmiAlcanza`, `cmiSupera`, `cmiNoPasaDe` — los tres devuelven `false` cuando la
+respuesta es «no se sabe», y `cmiIndeterminadaEn` es la que lo dice. Con un
+valor exacto los predicados reparten todo el rango y **nada cambia**; sólo el
+operador altera el resultado.
+
+**Ningún punto de corte nuevo** — Los umbrales (0,06 · 2 · 4 · 16 · 8 · 500)
+ya estaban en el módulo, citados a Torres & Cercenado 2010 y CLSI M100. Y **no
+se sube nada a R**: con «>» y el valor en el techo de S, S es imposible, pero el
+valor real puede quedar en la banda intermedia — subirlo sería inventar en la
+otra dirección. Es la misma regla de la REG-044, palabra por palabra.
+
+**Lo que hace cuando no sabe** — Lo dice y pide dilución, con el operador a la
+vista. Es el §6 de la regla clínica: se pregunta, no se adivina. Se declara para
+«>», que es la dirección que ESCONDE resistencia; con «<» el efecto es que una
+alerta falsa deja de salir, y ésa no hay que anunciarla.
+
+**Qué NO hace** — No inventa la CMI real ni decide por el médico. Un «<» por
+encima de los umbrales (vancomicina «<16», que podría ser un 8 = VISA) deja al
+módulo callado: se prefiere el silencio a inventar una banda, y la categoría del
+laboratorio se sigue mostrando aparte. Sólo cubre `grampositivos.ts` — los Gram
+negativos leen la CMI por `interpretarCMI`, que ya respeta el operador.
+
+**Qué queda para el médico** — Decidir si un «>» que cae dentro de la banda
+intermedia debe además bloquear la firma de la receta con ese fármaco. Hoy
+advierte y no bloquea.
+
+**Comprobado que puede ponerse rojo** — Reintroducido el defecto en
+`cmiConCensuraDe` (devolver `{ valor }` sin el operador): **8 de los 20 casos
+fallan**.
+
+**Golden** — `src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts`
+(20 casos).
