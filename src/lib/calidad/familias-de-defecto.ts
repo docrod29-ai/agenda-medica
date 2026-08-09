@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273],
   },
   {
     clave: 'habla_real',
@@ -57,7 +57,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El motor lingüístico cubre el español que uno escribiría, no el que se ' +
       'habla en un consultorio mexicano. Se descubre midiendo contra frases ' +
       'reales, nunca leyendo el código.',
-    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271],
+    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275],
   },
   {
     clave: 'sin_medir',
@@ -65,7 +65,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
       'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274],
   },
   {
     clave: 'hueco_como_dato',

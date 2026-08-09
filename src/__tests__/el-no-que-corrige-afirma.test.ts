@@ -30,6 +30,8 @@
  * es lo que se contestó.**
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { respuestaNiega } from '@/lib/expediente/negaciones'
 
 describe('«no, sí» afirma: no puede quedar como negación', () => {
@@ -96,10 +98,8 @@ describe('el fin de palabra: `\\b` no vale tras una vocal acentuada', () => {
      * de la cadena no hay frontera de palabra. Es la misma trampa que tuvo
      * apagado el guardián de «No sé.» sin que su regla pareciera mal escrita.
      */
-    const fuente = String(respuestaNiega)
-    expect(fuente).toBeTruthy()
-    const modulo = require('fs').readFileSync(
-      require('path').join(process.cwd(), 'src/lib/expediente/negaciones.ts'), 'utf8')
+    const modulo = readFileSync(
+      join(process.cwd(), 'src/lib/expediente/negaciones.ts'), 'utf8')
     expect(modulo).toMatch(/NO_CORRECTIVO[\s\S]{0,200}\(\?!\[a-záéíóúüñ\]\)/)
   })
 })

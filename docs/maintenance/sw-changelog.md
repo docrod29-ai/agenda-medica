@@ -2614,3 +2614,30 @@ colgó», y se vuelve a pulsar sobre una petición que sí corría.
 Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
 reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
 programas compartieran directorio de trabajo, después de REG-267.
+
+## v1151 — siete ramas de las rutinas autónomas, absorbidas una a una
+
+**REG-270** · una CMI censurada «>2» se leía como **2 exacto**: `cmiDe` devolvía
+el número pelado y tiraba el operador. Neumococo con penicilina «>2» imprimía
+«tratable con penicilina parenteral», SARM con vancomicina «>2» daba «límite alto
+de S», y daptomicina «>4» en *E. faecium* no generaba ni fenotipo ni alerta. El
+motor de puntos de corte ya respetaba el operador y el de fenotipos no, **sobre
+el mismo panel**.
+
+**REG-271** · «**No, sí tengo**» quedaba registrado como que el paciente lo
+**negó** — las cinco formas del «no» correctivo. Encontrado por una rutina y
+**reproducido aquí antes de absorberlo**, sobre el árbol de producción. Después
+`corregirCertezaPorNegacion` lo reclasificaba a `descartado` y la pantalla de
+contradicciones no saltaba, porque para ella todo cuadraba.
+
+**REG-272 · 273 · 274 · 275** · la sección bien escrita compraba el silencio de
+la mal escrita · una alergia negada contaba como alergia · el redondeo cruzaba
+un umbral renal · lo negado puntuaba en STOP-BANG. Cada una traía su golden, y
+**el golden pasa sobre este árbol**: ésa fue la condición para absorberla.
+
+### Lo que NO entró, y por qué
+
+Las ramas de **temporalidad** se pelean entre ellas: cada una trae su versión de
+`temporalidad.ts` y las pruebas de las otras dejan de pasar. Apilarlas dio 45
+fallos. Se revirtieron. No es una rama que falte fusionar: es un trabajo que hay
+que hacer una vez y bien.
