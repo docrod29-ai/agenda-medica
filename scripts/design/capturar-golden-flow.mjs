@@ -115,7 +115,16 @@ async function main() {
     // El chromium preinstalado del entorno: la versión pinneada de Playwright
     // puede pedir una build más nueva que no está descargada; el binario del
     // sistema (symlink estable) evita descargar navegadores en cada corrida.
-    const navegador = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
+    //
+    // --no-proxy-server: en entornos con proxy corporativo (HTTP_PROXY en el
+    // ambiente), chromium enruta TAMBIÉN localhost por el proxy — el websocket
+    // de HMR responde ERR_INVALID_HTTP_RESPONSE, los bundles se cuelgan y la
+    // página queda en el spinner sin hidratar. Todo lo que este arnés visita
+    // es local (next dev + emuladores), así que directo, sin proxy, siempre.
+    const navegador = await chromium.launch({
+      executablePath: '/opt/pw-browsers/chromium',
+      args: ['--no-proxy-server'],
+    })
     const erroresConsola = []
 
     for (const vista of VISTAS) {
