@@ -1,5 +1,5 @@
 /**
- * CASO ORO — REG-210: EL INTERROGATORIO EN PASADO NO ES UN ANTECEDENTE.
+ * CASO ORO — REG-268: EL INTERROGATORIO EN PASADO NO ES UN ANTECEDENTE.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -59,9 +59,14 @@
  * · No separa voces. Si el dictado no lleva signos de interrogación, la pregunta
  *   no se reconoce como tal y se lee como una frase cualquiera. La diarización
  *   es otro camino y otra defensa.
- * · «Creo que sí», «puede ser» y «no sé» **no** cuentan como afirmación: esos
- *   casos dejan de vigilarse. Es la dirección segura —señalar de menos— pero es
- *   un hueco declarado, no un acierto.
+ * · «No sé» y «puede ser» **no** cuentan como afirmación: esos casos dejan de
+ *   vigilarse. Es la dirección segura —señalar de menos— pero es un hueco
+ *   declarado, no un acierto.
+ * · «Creo que sí» **sí** cuenta, porque `RUIDO_ANTES_DE_LA_RESPUESTA` trata
+ *   «creo que» como muletilla. No es una decisión de este golden: es la que ya
+ *   tomó `negaciones.ts` para el lado negativo («creo que no» cuenta como
+ *   negación), y dos motores que discrepen sobre qué significa «creo que» es
+ *   exactamente la divergencia que esta reparación viene a quitar.
  * · Sigue sin decidir nada clínico: no reclasifica, no borra y no afirma que la
  *   enfermedad esté resuelta.
  * · El vocabulario es el que es. Que falte un padecimiento significa que ese
@@ -71,7 +76,7 @@ import { describe, it, expect } from 'vitest'
 import {
   mencionesEnPasado, desajustesTemporales, avisosTemporalesDelExtractor,
 } from '@/lib/expediente/temporalidad'
-import { condicionesNegadas, niegaEnLinea, respuestaA, esRespuestaAfirmativa } from '@/lib/expediente/negaciones'
+import { condicionesNegadas, niegaEnLinea, respuestaA, respuestaAfirma } from '@/lib/expediente/negaciones'
 
 describe('la pregunta del interrogatorio no es un antecedente', () => {
   it('«¿Tuvo tuberculosis? No.» no deja ninguna mención pasada', () => {
@@ -139,9 +144,17 @@ describe('la mitad legítima del interrogatorio sí se cosecha', () => {
     expect(mencionesEnPasado('¿Tiene diabetes? Sí, desde hace tres años.')).toEqual([])
   })
 
-  it('«creo que sí» no cuenta como afirmación — hueco declarado, no acierto', () => {
-    expect(esRespuestaAfirmativa('Creo que sí')).toBe(false)
-    expect(mencionesEnPasado('¿Tuvo neumonía? Creo que sí, hace años.')).toEqual([])
+  it('«no sé» no cuenta como afirmación: la duda no fabrica un antecedente', () => {
+    expect(respuestaAfirma('No sé')).toBe(false)
+    expect(mencionesEnPasado('¿Tuvo neumonía? No sé, hace años quizá.')).toEqual([])
+  })
+
+  it('«Sí» acentuado se reconoce — el \\b de ASCII no lo cazaba', () => {
+    // Misma trampa que negaciones.ts documenta para «No sé»: entre «í» y «,» no
+    // hay límite de palabra, así que `s[ií]\\b` fallaba justo con la forma que se
+    // escribe. Sin esto, el caso legítimo del interrogatorio se seguía perdiendo.
+    expect(respuestaAfirma('Sí, hace tres años.')).toBe(true)
+    expect(respuestaAfirma('Siempre me ha costado respirar')).toBe(false)
   })
 })
 

@@ -76,6 +76,33 @@ export function resolverSugerencias<T extends { value?: string }>(
   return secciones.map(s => (s.value && tieneSugerencias(s.value) ? { ...s, value: fn(s.value) } : s))
 }
 
+/**
+ * LAS LÍNEAS QUE SE VAN A QUITAR, PARA PODER ENSEÑARLAS.
+ *
+ * ── POR QUÉ HACÍA FALTA (6-ago-2026, REG-195) ────────────────────────────────
+ *
+ * El diálogo de firma decía «la IA añadió 3 líneas que no dictaste» y ofrecía
+ * quitarlas. No decía CUÁLES. Y una de esas líneas puede ser el **plan de
+ * abordaje entero**, porque el plan es justamente lo que la IA redacta cuando el
+ * médico no lo dicta palabra por palabra.
+ *
+ * El Dr. pulsó «quitarlas» y perdió el plan de una nota real. Un diálogo que
+ * pide permiso para borrar sin enseñar qué borra no está pidiendo permiso.
+ */
+export function lineasSugeridas(secciones: readonly { value?: string; label?: string }[]): string[] {
+  const out: string[] = []
+  for (const s of secciones) {
+    for (const linea of String(s.value ?? '').split('\n')) {
+      if (!tieneSugerencias(linea)) continue
+      const limpia = linea.split(MARCA_SUGERENCIA).join('').trim()
+      if (!limpia) continue
+      /** Con la sección delante: «Plan de tratamiento: …» dice mucho más que el texto solo. */
+      out.push(s.label ? `${s.label}: ${limpia.slice(0, 90)}` : limpia.slice(0, 90))
+    }
+  }
+  return out
+}
+
 /** Total de sugerencias pendientes en la nota completa. */
 export function sugerenciasPendientes(secciones: readonly { value?: string }[]): number {
   return secciones.reduce((n, s) => n + contarSugerencias(s.value), 0)

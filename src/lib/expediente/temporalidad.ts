@@ -42,7 +42,7 @@
  */
 import {
   CRONICAS, frases, cronicasEn,
-  esPregunta, respuestaA, esRespuestaAfirmativa, esRespuestaNegativa, niegaEnLinea,
+  esPregunta, respuestaA, respuestaAfirma, respuestaNiega, niegaEnLinea,
 } from '@/lib/expediente/negaciones'
 import { primeraMencionSinEscudo } from '@/lib/expediente/mencion-en-la-nota'
 
@@ -71,6 +71,45 @@ const PASADO = new RegExp([
   '\\banos\\s+atras\\b',
   '\\banteriormente\\b',
   '\\ben\\s+el\\s+pasado\\b',
+  /**
+   * ── LAS DIEZ FORMAS QUE SE ESCAPABAN (6-ago-2026, REG-200) ─────────────────
+   *
+   * Medido contra 26 frases de consulta mexicana: **10 no se detectaban**, y
+   * las diez eran del mismo tipo — pasado no reconocido. Cero falsos positivos,
+   * o sea que el motor erraba siempre del lado seguro, pero dejaba pasar las
+   * formas más corrientes de contar una enfermedad que ya pasó:
+   *
+   *     «le dio hepatitis cuando era joven»   «se curó de la anemia»
+   *     «dejó de tomar el medicamento»        «había tenido convulsiones»
+   *     «fue diagnosticada de asma»           «ya no toma metformina»
+   *     «salió del hospital en mayo»          «le hicieron una cesárea»
+   *     «antes fumaba»                        «solía tener migrañas»
+   *
+   * «Le dio» es la forma mexicana de «enfermó de», y no estaba. Tampoco el
+   * pluscuamperfecto («había tenido»), ni la pasiva del diagnóstico («fue
+   * diagnosticada»), ni el cese («ya no toma», «dejó de»), que es justo lo que
+   * distingue un fármaco vigente de uno suspendido.
+   */
+  // «Le dio hepatitis», «me dio covid» — la forma mexicana de enfermar.
+  '\\b(?:le|me|nos)\\s+dio\\b',
+  // Pluscuamperfecto: «había tenido», «había presentado».
+  '\\bhabia\\s+(?:tenido|presentado|padecido|sufrido|estado)\\b',
+  // Pasiva del diagnóstico y del procedimiento.
+  '\\bfue\\s+(?:diagnosticad[oa]|operad[oa]|intervenid[oa]|hospitalizad[oa]|internad[oa])\\b',
+  '\\ble\\s+(?:hicieron|realizaron|practicaron|pusieron|colocaron)\\b',
+  // Resolución explícita.
+  '\\bse\\s+(?:curo|alivio|recupero|mejoro\\s+del?)\\b',
+  // Cese de un tratamiento o hábito: distingue lo vigente de lo suspendido.
+  '\\b(?:dejo|dejaron)\\s+de\\b',
+  '\\bya\\s+no\\s+(?:toma|tomo|usa|uso|recibe|recibia|fuma|fumo)\\b',
+  '\\bsuspendi(?:o|eron)\\b',
+  // Alta hospitalaria.
+  '\\bsali(?:o|eron)\\s+del\\s+(?:hospital|internamiento)\\b',
+  '\\ble\\s+dieron\\s+de\\s+alta\\b',
+  // Hábito o padecimiento previo.
+  '\\bantes\\s+(?:fumaba|tomaba|bebia|usaba|trabajaba)\\b',
+  '\\bsolia\\b',
+  '\\bex\\s*-?\\s*(?:fumador|alcoholico|usuario)\\b',
 ].join('|'), 'i')
 
 /**
@@ -175,7 +214,7 @@ export interface MencionPasada {
  * diccionario y mantener dos listas garantiza que se separen. Lo que falte no se
  * vigila —y así está declarado allí—, no se da por bueno.
  *
- * ── EL INTERROGATORIO NO ES UN ANTECEDENTE (REG-210) ─────────────────────────
+ * ── EL INTERROGATORIO NO ES UN ANTECEDENTE (REG-268) ─────────────────────────
  *
  * Esta función miraba frase a frase, sin distinguir quién hablaba ni si la frase
  * era una pregunta. Así que el interrogatorio dirigido —que se dicta **nombrando
@@ -236,7 +275,7 @@ export function mencionesEnPasado(transcripcion: string): MencionPasada[] {
        * es una respuesta — tratarlo como un sí fabricaría el mismo dato que
        * este motor existe para no fabricar.
        */
-      if (!esRespuestaAfirmativa(respuesta) || esRespuestaNegativa(respuesta)) continue
+      if (!respuestaAfirma(respuesta) || respuestaNiega(respuesta)) continue
       const par = `${f} ${respuesta}`.trim()
       if (esFrasePasada(par)) for (const c of cs) anotar(c, par)
       continue

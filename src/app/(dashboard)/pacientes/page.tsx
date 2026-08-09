@@ -274,7 +274,7 @@ export default function PacientesPage() {
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
-        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono, correo o CURP…" value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="input" style={{ paddingLeft: 32 }} placeholder="Buscar por nombre, teléfono, correo o CURP…" aria-label="Buscar un paciente por nombre, teléfono, correo o CURP" value={search} onChange={e => setSearch(e.target.value)} />
         {search && (
           <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
             <X size={14} />

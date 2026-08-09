@@ -178,6 +178,44 @@ export function tareaDeResultado(p: {
   }
 }
 
+/**
+ * §F3 — una tarea por cada discrepancia entre lo dicho y la lista.
+ *
+ * Prioridad `alta` y no `critica`: una lista desactualizada es peligrosa a lo
+ * largo de las consultas siguientes, no en los próximos minutos. Lo `critico`
+ * se reserva para lo que se decide hoy — si todo es crítico, nada lo es.
+ *
+ * Vence en el mismo plazo que un estudio: si nadie la mira en dos semanas, la
+ * lista ya lleva dos semanas mintiéndole a los motores de seguridad.
+ */
+export function tareasDeReconciliacion(p: {
+  clinicId: string
+  pacienteId: string
+  pacienteNombre?: string
+  notaId?: string
+  discrepancias: readonly { farmaco: string; frase: string }[]
+  texto: (d: { farmaco: string; frase: string }) => string
+  medicoUid?: string
+  medicoNombre?: string
+}, ahoraMs: number): Omit<TareaClinica, 'id'>[] {
+  return p.discrepancias.map(d => ({
+    clinicId: p.clinicId,
+    patientId: p.pacienteId,
+    patientNombre: p.pacienteNombre,
+    notaId: p.notaId,
+    tipo: 'reconciliacion_medicamento' as const,
+    titulo: `Reconciliar ${d.farmaco}`,
+    detalle: p.texto(d),
+    prioridad: 'alta' as const,
+    ownerUid: p.medicoUid,
+    ownerNombre: p.medicoNombre,
+    estado: 'solicitada' as const,
+    creadaEn: new Date(ahoraMs).toISOString(),
+    venceEn: new Date(ahoraMs + DIAS_PARA_RECLAMAR_ESTUDIO * 86400000).toISOString(),
+    origen: 'consulta:reconciliacion',
+  }))
+}
+
 export const POR_QUE_NO_SE_INFIERE =
   'Porque un worklist que se llena de tareas que nadie pidió se abandona en una ' +
   'semana, y entonces tampoco se ve el estudio que sí importaba. Se deriva lo ' +

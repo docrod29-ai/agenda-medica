@@ -1,8 +1,15 @@
 # Análisis competitivo · Agenda Médica
 
-> Última actualización: 2026-05-26. Documento técnico interno. No copia
-> propiedad intelectual; analiza funciones públicas para identificar
-> diferenciadores legítimos.
+> Última actualización: 2026-05-26. Revisado el 6-ago-2026. Documento técnico
+> interno. No copia propiedad intelectual; analiza funciones públicas para
+> identificar diferenciadores legítimos.
+>
+> **AVISO DE ALCANCE (6-ago-2026)** — Las filas sobre competidores de la matriz
+> de abajo se escribieron **sin dejar constancia de fuente ni fecha de
+> consulta**. Sirven como notas de orientación interna y **no se pueden usar en
+> una diligencia debida, una presentación a inversión ni material comercial**.
+> Lo que sí está verificado y es reproducible vive en
+> [`docs/competitive/EL-FOSO.md`](competitive/EL-FOSO.md).
 
 ## Matriz comparativa
 
@@ -23,22 +30,31 @@
 | Setmore | Global | Multi-industria | Gratuito, onboarding rápido | No clínico | Velocidad de onboarding | Falta de profundidad médica |
 | Calendly (salud) | Global | Booking minimal | UX simple | No clínico | Simplicidad de reserva | Falta de contexto clínico |
 
-## Ventajas REALES que ya tiene Agenda Médica vs los competidores
+## Lo que este producto hace, verificable en el repositorio
 
-| Función | Nuestra implementación | Mejor competidor en esto | Por qué somos superiores |
-|---|---|---|---|
-| Extracción IA con metadatos por campo (`value`, `confidence`, `source_quote`, `speaker`, `needs_review`) | ✅ con Zod + revisión por campo | Nadie con esa granularidad | Auditable a nivel de fuente textual |
-| 7 escalas preoperatorias con motor de recomendaciones COR/LOE | ✅ Lee/DASI/Caprini/STOP-BANG/ARISCAT/CHA₂DS₂-VASc/HAS-BLED | Calculadoras separadas (MDCalc) o EHR sin escalas integradas | Cálculo + conducta + clase de evidencia + cita |
-| Vocabulario médico fonético español + Whisper biased | ✅ 700+ términos + corrector | Modelos genéricos | Diseñado para español MX/LATAM |
-| Sello SHA-256 NOM-024 + inmutabilidad rules-level | ✅ Firestore Rules bloquea update/delete | Pocos en LATAM | Inmutabilidad criptográfica |
-| Chat médico↔asistente nativo + real-time | ✅ Firestore onSnapshot | Pocos lo tienen integrado | Sin app externa |
-| WhatsApp bot multi-tenant para auto-agendamiento | ✅ Webhook + meta + 360dialog/manual | Ventaja clave LATAM | Mismo flujo de pacientes habitual |
-| Offline real con Firestore IndexedDB + Service Worker | ✅ Multi-tab tab manager | Casi nadie en EHR cloud | Continuidad clínica sin red |
+**La columna «mejor competidor en esto» se retiró el 6-ago-2026.** Decía «Nadie
+con esa granularidad», «Pocos en LATAM», «Casi nadie en EHR cloud» — seis
+afirmaciones sobre terceros **sin una sola fuente**. Un comprador que verifica
+una y la encuentra falsa deja de creerse el resto del paquete, incluido lo que
+sí está medido (§N5).
+
+Lo que queda es lo único que se puede sostener: **qué hace este producto**, con
+dónde comprobarlo. Comparar con otro exige mirar al otro y dejar la fecha.
+
+| Función | Implementación | Dónde se comprueba |
+|---|---|---|
+| Extracción IA con metadatos por campo (`value`, `confidence`, `source_quote`, `speaker`, `needs_review`) | Zod + revisión campo a campo | `src/lib/expediente/`, sus pruebas |
+| 7 escalas preoperatorias con conducta COR/LOE | Lee/DASI/Caprini/STOP-BANG/ARISCAT/CHA₂DS₂-VASc/HAS-BLED, deterministas | registro clínico + golden |
+| Vocabulario médico en español de México | 700+ términos + corrector; **foso medido 78,89 % → 82,91 %** | `docs/voice/SESGO-MEDIDO.md` |
+| Sello SHA-256 con inmutabilidad a nivel de reglas | Firestore Rules bloquea update/delete | `firestore.rules`, ADR-003 |
+| Chat médico↔asistente en tiempo real | Firestore `onSnapshot` | módulo de mensajería |
+| WhatsApp multi-inquilino para auto-agendamiento | Webhook + 360dialog | puerta `aislamiento-tenant` en CI |
+| Funcionamiento sin red | IndexedDB + Service Worker, multi-pestaña | `public/sw.js` |
 
 ## Oportunidades de superación (ordenadas por impacto)
 
 1. **Reserva pública 24/7 (portal paciente)** — superar a Doctoralia con mejor UX y sin marketplace.
-2. **Riesgo de no-show con IA** — diferenciar vs cualquier competidor (nadie lo expone visualmente).
+2. **Riesgo de no-show con IA** — exponerlo de forma visible al médico. (La nota anterior afirmaba que ningún competidor lo hace; se retiró por no tener fuente.)
 3. **Configuración multi-país con matriz normativa** — superar AgendaPro y Huli con base normativa explícita.
 4. **Carta de referencia con AI** — superar a SimplePractice/Jane con flujo nativo.
 5. **Telemedicina integrada en el flujo de agenda** — no como módulo separado.

@@ -15,6 +15,8 @@ import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, TipoIndicacion, Administracion, RegistroSignos, RolHospital,
   SolicitudLab, ResultadoLab, Cama, EstadoCama, BedAssignment,
 } from '@/types/hospital'
+import { tareaDeResultado } from '@/lib/tareas-clinicas/derivar'
+import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 
 function internamientosCol(clinicId: string) {
   return collection(db, 'clinics', clinicId, 'internamientos')
@@ -348,12 +350,50 @@ export async function borrarSolicitudLab(clinicId: string, ordenId: string): Pro
  * cargan a la vez), lo que ya había se empuja a `historialResultados` antes de
  * escribir la nueva versión. Nada se pierde; `resultados` sigue siendo la última.
  */
-export async function cargarResultadosLab(clinicId: string, ordenId: string, resultados: ResultadoLab[], por: string): Promise<void> {
+/**
+ * ── EL BUCLE DE RESULTADOS TENÍA FUGA DEL 100 % (REG-252) ───────────────────
+ *
+ * `tareaDeResultado()` existía, estaba probada y **no la llamaba nadie en
+ * producción**: cero referencias fuera de su propio archivo de pruebas. Ningún
+ * resultado de laboratorio generaba jamás una tarea de revisión.
+ *
+ * Había una alerta para los valores críticos, sí — pero **una alerta no cierra
+ * un bucle**. Se lee, se cierra, y nadie vuelve a saber si alguien actuó. El
+ * charter lo dice con estas palabras: «NexusMED debe CERRAR el trabajo, no sólo
+ * mostrar alertas».
+ *
+ * ── POR QUÉ SE CONECTA AQUÍ Y NO EN LAS PANTALLAS ───────────────────────────
+ *
+ * Porque éste es el cuello de botella: los dos caminos por los que hoy entra un
+ * resultado —la carga manual y la importación FHIR— pasan por esta función. Si
+ * la tarea se creara en las pantallas, el tercer camino que alguien añada
+ * nacería con la misma fuga. Es la lección de las veintiuna veces que en este
+ * repositorio algo estaba «escrito, probado y sin conectar».
+ *
+ * ── SI LA TAREA NO SE PUEDE CREAR, NO SE CALLA ──────────────────────────────
+ *
+ * El resultado ya está guardado y eso no se toca: perderlo sería peor. Pero
+ * devolver `void` haría que un fallo al crear la tarea fuera **invisible**, que
+ * es exactamente el defecto que se está reparando. Se devuelve qué pasó y quien
+ * llama decide qué decir.
+ */
+export interface ResultadoGuardado {
+  /** Cuántas tareas de revisión quedaron creadas. */
+  tareasCreadas: number
+  /** Cuántas se esperaban. Si no coinciden, algo se perdió y hay que decirlo. */
+  tareasEsperadas: number
+}
+
+export async function cargarResultadosLab(
+  clinicId: string, ordenId: string, resultados: ResultadoLab[], por: string,
+): Promise<ResultadoGuardado> {
   const ref = doc(db, 'clinics', clinicId, 'laboratorio', ordenId)
   const ahora = new Date().toISOString()
+  let solicitud: Partial<SolicitudLab> = {}
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref)
     const data = snap.data() ?? {}
+    solicitud = data as Partial<SolicitudLab>
     const previos = (data.resultados as ResultadoLab[] | undefined) ?? []
     const historial = (data.historialResultados as unknown[] | undefined) ?? []
     // Solo se archiva si ya había una carga real (no re-guardar un arreglo vacío).
@@ -366,6 +406,26 @@ export async function cargarResultadosLab(clinicId: string, ordenId: string, res
       historialResultados: nuevoHistorial,
     }))
   })
+
+  /**
+   * UNA tarea por estudio, no una por carga: el médico revisa resultados, no
+   * sobres. Y el `critico` viaja tal cual lo trae el resultado — aquí no se
+   * decide qué es crítico, eso es criterio clínico y vive en `lab-criticos.ts`.
+   */
+  const pacienteId = String(solicitud.pacienteId ?? '')
+  const aCrear = pacienteId
+    ? resultados.filter(r => r?.estudio).map(r => tareaDeResultado({
+      clinicId,
+      patientId: pacienteId,
+      patientNombre: solicitud.pacienteNombre,
+      estudio: String(r.estudio),
+      critico: !!r.critico,
+      ahoraMs: Date.parse(ahora),
+    }))
+    : []
+
+  const tareasCreadas = aCrear.length ? await crearTareas(clinicId, aCrear) : 0
+  return { tareasCreadas, tareasEsperadas: aCrear.length }
 }
 
 // ── F5 · Alertas hospitalarias (lab crítico, NEWS2, interconsulta/resultado) ──

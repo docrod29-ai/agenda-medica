@@ -148,7 +148,7 @@ function Mock({ tipo }: { tipo: string }) {
     return (
       <div style={base}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <span style={{ maxWidth: '80%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--nexus)', color: '#fff' }}>¿Dosis de cefepime con TFG 35?</span>
+          <span style={{ maxWidth: '80%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--nexus-solido)', color: '#fff' }}>¿Dosis de cefepime con TFG 35?</span>
         </div>
         <div style={{ display: 'flex', marginBottom: 8 }}>
           <span style={{ maxWidth: '85%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', lineHeight: 1.5 }}>Con TFG 30–60 mL/min, ajusta el intervalo de cefepime. Dime indicación y peso y te doy la dosis exacta.</span>

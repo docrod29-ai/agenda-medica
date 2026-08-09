@@ -1,37 +1,86 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "modo": "autonomo-sin-despliegue",
+  "modo": "autonomo-con-despliegue",
   "autorizaciones": {
     "abrirPR": true,
     "pushDeRama": true,
-    "desplegarAProduccion": false,
-    "fusionarAMain": false,
+    "desplegarAProduccion": true,
+    "fusionarAMain": true,
     "datosRealesDePacientes": false,
-    "cambiosDestructivos": false
+    "cambiosDestructivos": false,
+    "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "REG-210 (cerrada, PR #250) — el interrogatorio en pasado no es un antecedente",
-  "ultimaIteracion": {
-    "fecha": "2026-08-08",
-    "itemDelBacklog": "EVAL-002",
-    "reg": "REG-210",
-    "version": "nexusmed-v1092",
-    "rama": "agent/expediente/REG-203-interrogatorio",
-    "pr": 250,
-    "golden": "src/__tests__/el-interrogatorio-en-pasado-no-es-un-antecedente.test.ts",
-    "comprobadoAlReves": "17 de 21 casos fallan sin la reparación"
-  },
+  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
   "ramasActivas": [
-    "agent/expediente/REG-203-interrogatorio"
+    "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1092",
-  "trabajoLocalSinSubir": [],
-  "notasDeEstado": [
-    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
-    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó. En los runners de CI pasa.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
-    "El programa corrió en paralelo consigo mismo y ~20 ramas reclamaron REG-192/v1074. main ya fusionó el REG-192 verdadero; esta rama se renumeró a REG-210/v1092. Decisión pendiente del dueño: O-5."
+  "ultimaVersionEnProduccion": "nexusmed-v1150",
+  "trabajoLocalSinSubir": [
+    "A  .claude/agents/design-systems-lead.md",
+    "A  .claude/agents/patient-experience-lead.md",
+    "A  .claude/rules/design-system.md",
+    "A  .claude/rules/patient-facing-ai.md",
+    "A  .claude/skills/v9/SKILL.md",
+    "MM agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "A  agent-state/DESIGN_STATE.md",
+    "A  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "A  agent-state/LOOP-GRABACION-PERFECTA.md",
+    "A  agent-state/LOOP-SUPERARLOS.md",
+    "MM agent-state/MASTER_STATE.json",
+    "MM agent-state/OWNER_DECISIONS_REQUIRED.md",
+    "A  agent-state/PATIENT_COMPANION_STATE.md",
+    "A  agent-state/RECONCILIACION-V9-2026-08-08.md",
+    "A  agent-state/V7-ITERACION.md",
+    "M  docs/COMPETITIVE_ANALYSIS.md",
+    "A  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "A  docs/architecture/DIRECCION-DE-DEPENDENCIAS.md",
+    "MM docs/audit/regression-ledger.md"
+  ],
+  "actualizado": "2026-08-09",
+  "resumenDesdeElUltimoEstado": {
+    "versionesDesplegadas": "v1085 → v1096",
+    "regsCerradas": "REG-204 … REG-214",
+    "pruebas": 7383,
+    "lint": "96 (techo)",
+    "nota": "El tablero volvió a quedarse atrás: decía v1084 mientras producción iba en v1096. Es la segunda vez. La causa no es descuido: es que actualizarlo depende de que yo me acuerde. Mientras no lo derive un script, va a volver a pasar."
+  },
+  "ramasDeLaRutinaSinRevisar": [
+    "agent/expediente/REG-192 — negación",
+    "agent/voice/VOICE-005 — negación, muletilla en medio",
+    "agent/eval/EVAL-002-corpus-temporalidad — temporalidad",
+    "agent/expediente/REG-203-interrogatorio — REG-268/v1150, PR #250: la pregunta del interrogatorio se cosechaba como antecedente. CI verde antes de fusionar main."
+  ],
+  "seccionesDelCharterCerradas": [
+    "§4.1",
+    "§5.1",
+    "§18",
+    "§24",
+    "§B5",
+    "§B6",
+    "§B8",
+    "§B10",
+    "§H6",
+    "§H7",
+    "§N3"
+  ],
+  "loQueSigueBloqueadoEnElDueno": [
+    "Titularidad del código a nombre de una sociedad — bloqueo nº1 de la sala de datos",
+    "Requisitos legales de la receta impresa",
+    "STRIPE_WEBHOOK_SECRET en Vercel",
+    "OPS_ALERTA_WEBHOOK para las alertas de operación"
+  ],
+  "ramaActual": "agent/expediente/REG-203-interrogatorio",
+  "derivado": {
+    "regsEnElLedger": 116,
+    "ultimaREG": "REG-268",
+    "archivosDePrueba": 546,
+    "casosDePrueba": 7249,
+    "lint": "ver scripts/lint-trinquete.mjs"
+  },
+  "notasDeLaRutina": [
+    "8-ago-2026: esta rama se ha renumerado DOS veces (REG-203→REG-210→REG-268, v1084→v1092→v1150) porque main avanzó por debajo mientras estaba abierta. La reparación no ha cambiado ni una línea de lógica entre renumeraciones; lo que cambia es el identificador. Es el coste de O-5."
   ]
 }

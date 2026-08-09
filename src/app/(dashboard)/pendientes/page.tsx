@@ -32,6 +32,7 @@ const ETIQUETA_TIPO: Record<string, string> = {
   seguimiento: 'Seguimiento',
   receta_por_entregar: 'Receta',
   indicacion_paciente: 'Indicación',
+  reconciliacion_medicamento: 'Reconciliar',
   otra: 'Pendiente',
 }
 
