@@ -2857,3 +2857,19 @@ del flujo diario.
 Comprobado de paso que **ninguna** página que ve el cliente —arquitectura,
 operación, evidencia, seguridad, demo— enseña números de reparación ni jerga
 interna. La fuga era sólo ésa.
+
+## v1167 — el día de un cobro es el del consultorio (REG-293)
+
+El webhook de Stripe sellaba el día del cobro con la zona de **Ciudad de México
+escrita a mano**, y de ahí salen los campos que filtra el corte de caja.
+
+A las 06:30 UTC, CDMX dice **9 de agosto** y Tijuana dice **8**: un cobro de las
+11:30 de la noche en Baja California caía en el corte del **día siguiente**, y en
+el cambio de mes, en el mes siguiente.
+
+El consultorio ya tenía su zona configurada y `clinicId` estaba a mano. De
+catorce sitios que nombran la zona, éste era **el único** que no la leía. Se
+arregló en la pantalla del corte de caja y quedó vivo en el lado que escribe.
+
+Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
+cortes que usted ya cuadró.

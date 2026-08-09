@@ -16,22 +16,19 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1166",
+  "ultimaVersionEnProduccion": "nexusmed-v1167",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/app/page.tsx",
-    " M src/components/Sidebar.tsx",
+    " M src/app/api/stripe/webhook/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts"
+    "?? src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -65,10 +62,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 140,
-    "ultimaREG": "REG-292",
-    "archivosDePrueba": 568,
-    "casosDePrueba": 7473,
+    "regsEnElLedger": 141,
+    "ultimaREG": "REG-293",
+    "archivosDePrueba": 569,
+    "casosDePrueba": 7481,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

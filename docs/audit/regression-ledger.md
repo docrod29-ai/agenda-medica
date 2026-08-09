@@ -6492,3 +6492,62 @@ la aplicación hace**, para que la regla no se cumpla a base de callarse.
 - `src/app/page.tsx` · `src/components/Sidebar.tsx`
 - `src/app/(dashboard)/configuracion/secciones-seguridad.tsx`
 - `src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-293 — el día de un cobro era el de CDMX, no el del consultorio (v1167)
+
+El webhook de Stripe calculaba el día del cobro con la zona **escrita a mano**:
+
+```ts
+new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' })
+```
+
+Y de ese `dia` cuelgan el campo `dia` y el `mes` del cobro — **los que filtra el
+corte de caja**.
+
+### Medido
+
+A las **06:30 UTC**, Ciudad de México dice **9 de agosto** y Tijuana dice **8**.
+Un cobro a las 11:30 de la noche en Baja California se sellaba con la fecha del
+**día siguiente**: caía en el corte del día que no era. En el cambio de mes, en
+el mes que no era.
+
+### Por qué es el patrón de siempre
+
+El consultorio **ya tiene** su `zonaHoraria` configurada, hay un módulo
+`timezone.ts` entero para esto con `fechaISOLocal`, y `clinicId` estaba a mano en
+esa misma función.
+
+De **catorce** sitios que nombran la zona, éste era **el único que la fijaba sin
+leer nunca la del consultorio**.
+
+Y la memoria del repositorio lo dice: el corte de caja ya tuvo un arreglo de zona
+horaria **en la pantalla**. Quedó vivo en el lado que **escribe** — que es el que
+deja el dato guardado para siempre. La forma de REG-267, otra vez.
+
+### Los respaldos, que no sobran
+
+Sin `zonaHoraria` configurada cae en la de por defecto; si la lectura falla,
+también. **Un cobro no puede perderse porque no se pudo leer el consultorio**, y
+tenerlo con la zona de la capital es mejor que no tenerlo.
+
+### Lo que NO se hace
+
+Los cobros **ya guardados conservan su día**. Recalcularlos sería reescribir
+cortes de caja que el dueño ya cerró y cuadró, y eso no lo decide un arreglo de
+software.
+
+### Y lo que se buscó y NO era defecto
+
+En el mismo barrido se midieron dos candidatos del módulo de dinero:
+`decidirCobroAnticipo` con importe negativo, y `ajusteAlConfirmar` con reserva
+negativa —que devuelve un cobro negativo—. **Los dos están protegidos en el
+llamador** (`if (r.apartados <= 0) return`, y `amount_total` de Stripe nunca es
+negativo). Se anotan como asimetrías latentes, **no como hallazgos**: vender como
+defecto algo que no puede ocurrir es la otra forma de mentir con un informe.
+
+### Archivos
+
+- `src/app/api/stripe/webhook/route.ts`
+- `src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts` (nuevo, 8 casos, sellado)
