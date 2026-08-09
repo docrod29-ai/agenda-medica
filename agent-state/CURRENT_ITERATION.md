@@ -9,6 +9,21 @@
 > desfasaban. Se leen de `MASTER_STATE.json`, que las deriva del repositorio.
 > Ver `agent-state/RECONCILIACION-V9-2026-08-08.md`.
 
+> ## ⚠️ LA FUENTE DE VERDAD DE V9 ES LA ESPECIFICACIÓN, NO ESTE ARCHIVO
+>
+> [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
+> — 907 líneas, entregada por el dueño el 9-ago-2026 y guardada **íntegra**.
+>
+> **Se lee COMPLETA antes de decidir qué trabajo hacer.** No se resume, no se
+> sustituye por un plan más corto, y no se decide leyendo sólo el checkpoint. Si
+> algo de este repositorio la contradice, **gana la especificación**.
+>
+> Este archivo es **criterio de la iteración en curso**, subordinado a ella.
+> Cuándo se para: [`V9_COMPLETE_CRITERIA.md`](./V9_COMPLETE_CRITERIA.md) —
+> `V9_COMPLETE.md` **no existe** y no puede crearse antes de tiempo (hay
+> guardián). Bitácora y lectura operativa:
+> [`docs/ai/V9-BITACORA-Y-OPERACION.md`](../docs/ai/V9-BITACORA-Y-OPERACION.md).
+
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en

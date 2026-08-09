@@ -18,26 +18,14 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1150",
   "trabajoLocalSinSubir": [
-    "A  .claude/agents/design-systems-lead.md",
-    "A  .claude/agents/patient-experience-lead.md",
-    "A  .claude/rules/design-system.md",
-    "A  .claude/rules/patient-facing-ai.md",
-    "A  .claude/skills/v9/SKILL.md",
-    "M  agent-state/CURRENT_ITERATION.md",
-    "UU agent-state/MASTER_STATE.json",
-    "A  agent-state/V7-ITERACION.md",
-    "MM docs/audit/regression-ledger.md",
-    "UU docs/data-room/INDICE.md",
-    "M  docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  docs/patient/PATIENT_COMPANION_BASELINE.md",
-    "UU docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  docs/quality/MOTORES-SIN-CONECTAR.md",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    "A  scripts/calidad/cabe-en-un-telefono.mjs",
-    "M  scripts/data-room/actualizar-cifras.mjs"
+    "M CLAUDE.md",
+    " M agent-state/CHANGELOG_AGENT.md",
+    " M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "?? agent-state/V9_COMPLETE_CRITERIA.md",
+    "?? docs/ai/V9-BITACORA-Y-OPERACION.md",
+    "?? src/__tests__/v9-completo-no-se-declara-antes-de-tiempo.test.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -75,8 +63,19 @@
   "derivado": {
     "regsEnElLedger": 121,
     "ultimaREG": "REG-273",
-    "archivosDePrueba": 549,
-    "casosDePrueba": 7263,
+    "archivosDePrueba": 550,
+    "casosDePrueba": 7272,
     "lint": "ver scripts/lint-trinquete.mjs"
+  },
+  "v9": {
+    "fuenteDeVerdad": "docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "instaladaEl": "2026-08-09",
+    "lineas": 907,
+    "md5": "f4a6d421c2944ccc565a670037940419",
+    "regla": "Toda ejecución de V9 lee ese archivo COMPLETO antes de decidir qué trabajo hacer. No se resume ni se sustituye por un plan más corto. Si el repositorio la contradice, gana la especificación.",
+    "operacionYBitacora": "docs/ai/V9-BITACORA-Y-OPERACION.md",
+    "criterioDeTerminacion": "agent-state/V9_COMPLETE_CRITERIA.md",
+    "v9Completo": false,
+    "guardian": "src/__tests__/v9-completo-no-se-declara-antes-de-tiempo.test.ts"
   }
 }
