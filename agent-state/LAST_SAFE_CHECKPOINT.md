@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-5njokt` (nace de `main` = `0144257`) |
 | **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
-| **SHA de cierre** | `cd238f4` (`DESIGN-SYSTEM-001`) · *(este commit)* (`A11Y-GATE-001`) |
+| **SHA de cierre** | `cd238f4` (`DESIGN-SYSTEM-001`) · `3125a98` (`A11Y-GATE-001`) |
 | **Unidad cerrada** | **`DESIGN-SYSTEM-001` — el cimiento** · **`A11Y-GATE-001` — parcial**: las dos compuertas que se pueden ejecutar sin navegador |
 | **Siguiente unidad** | ver «Qué hacer al reanudar» |
 
