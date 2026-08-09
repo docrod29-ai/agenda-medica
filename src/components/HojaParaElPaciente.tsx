@@ -157,7 +157,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
             padding: '10px 14px',
             borderBottom: '1px solid var(--border)',
             background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
-            color: 'var(--amber)', fontSize: 13, fontWeight: 600,
+            color: 'var(--amber)', fontSize: 12, fontWeight: 600,
           }}
         >
           <Lock size={14} aria-hidden />

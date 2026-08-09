@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
- * POSTVISIT-ENTREGA-001 (REG-308) — la hoja del paciente LLEGA al portal.
+ * POSTVISIT-ENTREGA-001 (REG-308) — la acción del servidor, sin llamador A PROPÓSITO.
  *
- * ── EL HUECO ─────────────────────────────────────────────────────────────
+ * ── EL HUECO ORIGINAL ────────────────────────────────────────────────────
  *
  * `comoSeLoExplico`/`HojaParaElPaciente` existen desde REG-242 y se componían
  * bien: cada línea sale de un campo que el médico ya revisó. REG-307 cerró
@@ -12,20 +12,36 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * ninguna pantalla que el PACIENTE pudiera abrir. El único importador en
  * producción era la pantalla de consulta del médico.
  *
- * «Escrito, probado y sin conectar» en su forma más cara — la pieza mejor
- * pensada del lado del paciente. El propio REG-307 lo dejó escrito como lo
- * que NO cubría: "Cuando llegue, la compuerta tendrá que vivir en el
- * servidor — §3 de patient-facing-ai.md: la prohibición no puede vivir sólo
- * en la pantalla."
+ * ── POR QUÉ ESTA ACCIÓN NO TIENE LLAMADOR — Y NO ES UN OLVIDO ────────────
  *
- * ── LA COMPUERTA, AHORA EN EL SERVIDOR ──────────────────────────────────
+ * Esta unidad SÍ conectó `/mi/[token]` a esta acción, y se DESCONECTÓ antes
+ * de fusionar con `main`. Ahí apareció `lib/paciente/paquete-de-visita.ts`
+ * (V9 · `PATIENT-COMPANION-001`), que construye el `PatientVisitPackage` de
+ * la especificación con más rigor: nace DRAFT y sólo pasa a RELEASED con un
+ * acto de aprobación aparte de la firma (`approvedAt`/`approvedBy`). Su
+ * pestaña «Cuidado» en `/mi/[token]` ya enseña, a propósito, un estado vacío
+ * honesto hasta que exista `POSTVISIT-001` (la pantalla del médico que
+ * libera). Conectar esta acción habría hecho que la sola firma bastara para
+ * mostrarle algo al paciente — exactamente lo que prohíbe la regla 4 de
+ * `.claude/rules/patient-facing-ai.md`: *"Que el médico haya firmado la nota
+ * no libera el paquete: son dos actos."*
+ *
+ * Por eso esta prueba llama a la acción DIRECTAMENTE, por HTTP simulado —
+ * igual que `portal-alcance.test.ts` prueba `documentos` — y ninguno de sus
+ * casos depende de que exista una pantalla que la use. Es el mismo patrón
+ * que `validarCorreccion` en `OWNER_DECISIONS_REQUIRED.md`: motor escrito,
+ * probado y sellado, bloqueado por una decisión que no le toca a este
+ * programa. La pregunta —¿basta el estándar de `documentos` (firma sola,
+ * sin liberación aparte) o hace falta el nivel de `PatientVisitPackage`?—
+ * está en `OWNER_DECISIONS_REQUIRED.md`.
+ *
+ * ── LA COMPUERTA QUE SÍ ESTÁ ACTIVA HOY, EN EL SERVIDOR ──────────────────
  *
  * La acción `instrucciones` de `/api/portal`:
  *   1. exige alcance `clinico` — mismo gate que `documentos` (REG visto en
  *      `portal-alcance.test.ts`), porque esto también es secreto médico;
  *   2. sólo lee notas con `estado === 'firmada'` — nunca hay aquí una
- *      versión de borrador que entregar, así que `notaFirmada` viaja fijo
- *      en `true` del lado del cliente;
+ *      versión de borrador que entregar;
  *   3. excluye toda nota con `internamientoId` — nadie se lleva a casa un
  *      fármaco intravenoso de UCI. Es la MISMA regla que ya aplicaba la
  *      pantalla de consulta (`!esNotaHospital`), reescrita aquí porque el

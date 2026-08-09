@@ -53,8 +53,36 @@ const U = {
 const CRITICOS: RangoCritico[] = [
   { re: /potasio|\bk\b|kalio/,          unidad: U.meql,  bajo: 2.5, alto: 6.5 },
   { re: /sodio|\bna\b|natrem/,          unidad: U.meql,  bajo: 120, alto: 160 },
-  { re: /glucosa|glicemia|glucemia/,    unidad: U.mgdl,  bajo: 50,  alto: 400 },
-  { re: /calcio/,                       unidad: U.mgdl,  bajo: 6,   alto: 13 },
+  /**
+   * ── LA GLUCOSA DE LA ORINA NO ES LA DE LA SANGRE — REG-291 ────────────────
+   *
+   * «Glucosa en orina (EGO)» = 500 mg/dL disparaba **crítico**. Una glucosuria
+   * de 500 es corriente en un diabético descompensado y **no es un valor
+   * crítico**: dispara la misma alerta —y el mismo WhatsApp— que una glucemia
+   * de 500, que sí lo es.
+   *
+   * Es exactamente la clase que este mismo módulo ya excluyó para el pH («un pH
+   * urinario de 5.5 disparaba alerta de acidemia»). El examen general de orina
+   * trae varios analitos con el mismo nombre que los de sangre y otra escala
+   * entera; la exclusión se puso para uno y se quedó corta.
+   */
+  { re: /glucosa|glicemia|glucemia/, no: /orina|urin|ego\b/, unidad: U.mgdl, bajo: 50, alto: 400 },
+  /**
+   * ── EL CALCIO IÓNICO TIENE OTRA ESCALA — REG-291 ──────────────────────────
+   *
+   * «Calcio iónico» = **4.8 mg/dL** salía **CRÍTICO** contra el umbral bajo de 6,
+   * que es el del calcio TOTAL. Y 4.8 es un valor **normal** de iónico.
+   *
+   * Un valor normal marcado como crítico es peor que un umbral que falta: el que
+   * falta se nota, y éste enseña una alarma roja sobre un paciente que está
+   * bien. En terapia el iónico se mide a todas horas.
+   *
+   * **No se le pone umbral propio**: cuál es el crítico del calcio iónico es una
+   * decisión clínica, y este archivo no inventa cifras. Queda declarado en
+   * `FALTA_CRITICO_CALCIO_IONICO` y sale solo en la lista de decisiones del
+   * dueño.
+   */
+  { re: /calcio/, no: /i[oó]nico|ionizado|libre/, unidad: U.mgdl, bajo: 6, alto: 13 },
   { re: /magnesio/,                     unidad: U.mgdl,  bajo: 1,   alto: 4.7 },
   /**
    * "fosfat" casaba FOSFATASA ALCALINA, que viene en las pruebas de función
@@ -83,7 +111,8 @@ const CRITICOS: RangoCritico[] = [
   { re: /troponina/,                    unidad: U.ngml,  alto: 0.04 },
   /** "creatinina" casaba también la creatinina EN ORINA (otra escala por completo). */
   { re: /creatinina/, no: /orina|urin|depuracion|clearance/, unidad: U.mgdl, alto: 4 },
-  { re: /bilirrubina/,                  unidad: U.mgdl,  alto: 15 },
+  /** La bilirrubina del EGO es cualitativa y de otra escala (REG-291). */
+  { re: /bilirrubina/, no: /orina|urin|ego\b/, unidad: U.mgdl, alto: 15 },
 ]
 
 /**
@@ -210,3 +239,21 @@ export function evaluarCriticoLab(
 export function esCriticoLab(estudio: string, valor: string | number, unidad?: string | null, censurada?: Censura): boolean {
   return evaluarCriticoLab(estudio, valor, unidad, censurada).critico
 }
+
+/**
+ * NO SE INVENTA EL UMBRAL DEL CALCIO IÓNICO — REG-291.
+ *
+ * Se excluyó del rango del calcio total porque 4.8 mg/dL, que es NORMAL en
+ * iónico, salía crítico. Pero excluirlo no es lo mismo que resolverlo: mientras
+ * no haya umbral propio, un iónico de verdad crítico **no se marca**.
+ *
+ * Se dice aquí en vez de dejarlo creer, y así aparece en la lista de decisiones
+ * del dueño (`scripts/calidad/lo-que-espera-al-dueno.mjs`).
+ */
+export const FALTA_CRITICO_CALCIO_IONICO =
+  'NEEDS_CLINICAL_REVIEW: el calcio IÓNICO tiene otra escala que el total '
+  + '(normal ~4.5-5.6 mg/dL frente a 8.5-10.5) y no tiene umbral crítico '
+  + 'propio en este módulo. Se excluyó del rango del calcio total para no '
+  + 'marcar como crítico un valor normal; mientras no se defina el suyo, un '
+  + 'iónico realmente crítico NO se marca. Hace falta el par bajo/alto en '
+  + 'mg/dL o en mmol/L, con la unidad declarada.'

@@ -51,11 +51,10 @@ elegido 291.
 **Siguiente por el algoritmo §7** (los tres P0 de audio ya están cerrados por V9
 en v1158/v1161 — **no se rehacen**):
 
-1. ~~`POSTVISIT-ENTREGA-001` (60)~~ → **CERRADO, REG-308** (ver «Esta corrida»
-   arriba). La hoja no llegaba nunca al paciente: dos botones, portapapeles e
-   impresora, y nada en `/mi/[token]` ni en `/api/portal`. Continuación
-   natural de REG-307; la compuerta vive en el servidor, no en el componente
-   (§3 de `patient-facing-ai.md`).
+1. `POSTVISIT-ENTREGA-001` (60) → **REG-308, BLOQUEADO EN EL DUEÑO, no cerrado**
+   (ver «Esta corrida» abajo). Se construyó la entrega y se retiró antes de
+   fusionar: chocaba con la regla de dos actos que `PATIENT-COMPANION-001` de
+   V9 ya resolvía bien. Pregunta en `OWNER_DECISIONS_REQUIRED.md`.
 2. `PATIENT-TELE-002` (55) — el enlace de videoconsulta que viaja por WhatsApp
    sigue sin token (REG-265 sólo cerró el camino del portal).
 3. `DESIGN-THEME-001` (52) — **de V9**: comprobar antes de tocarlo.
@@ -95,7 +94,7 @@ hasta el PR, no más allá». Rama + commit + PR, sin tocar `public/sw.js` ni
 
 | REG | Qué |
 |---|---|
-| REG-308 | **POSTVISIT-ENTREGA-001** — la hoja del paciente (REG-242/307) nunca llegaba a `/mi/[token]`: sólo se pintaba en la pantalla del médico. Acción `instrucciones` en `/api/portal` con el mismo gate de alcance clínico que `documentos`; sólo entrega notas FIRMADAS y excluye las de internamiento — los dos filtros viven en el servidor, no en la pantalla (`patient-facing-ai.md` §3) |
+| REG-308 | **POSTVISIT-ENTREGA-001** — se construyó la acción `instrucciones` en `/api/portal` (mismo gate que `documentos`, sólo notas FIRMADAS, excluye internamiento) y se conectó `/mi/[token]`. Al fusionar con `main` apareció `PATIENT-COMPANION-001` (V9): su `PatientVisitPackage` exige un acto de liberación **aparte** de la firma, y su pestaña «Cuidado» ya enseña un vacío honesto por eso. Conectar mi acción habría violado esa regla (patient-facing-ai.md §4). Se retiró el cableado antes de fusionar; se conserva la acción del servidor, sin llamador, a propósito. Pregunta abierta para el dueño. |
 
 ## Desplegado y verificado en vivo (v1120 → v1144)
 

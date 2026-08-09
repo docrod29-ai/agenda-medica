@@ -3,7 +3,7 @@
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
 **Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
-**Fuente**: los 141 REG de `docs/audit/regression-ledger.md`.
+**Fuente**: los 156 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -21,15 +21,15 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **16** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
-| **El sistema se contradice a sí mismo** | **14** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
+| **Escrito, probado y sin conectar** | **37** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
-| Nadie lo estaba midiendo | 8 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
+| Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 5 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 6 | Trabajo del médico que desaparece o reaparece solo |
+| Estorba al médico | 6 | Correcto por dentro, insoportable por fuera |
+| Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
 | *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
@@ -39,10 +39,16 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 35 de 141.** Sigue siendo la familia más
-grande; el 9-ago-2026 sumó REG-308 (`POSTVISIT-ENTREGA-001`): la hoja del
-paciente estaba compuesta, probada y bien desde REG-242/307, y no llegaba a
-ninguna pantalla que el paciente pudiera abrir — el mismo patrón, otra vez.
+**«Escrito, probado y sin conectar» — 37 de 156.** Sigue siendo la familia más
+grande; el 9-ago-2026 sumó tres más de una sesión distinta que trabajó en
+paralelo: REG-306 (límite de tasa que existía y tres rutas nunca lo
+importaron), REG-307 (la compuerta de firma existía como intención de diseño
+y nada la comprobaba) y REG-308 (la hoja del paciente se componía bien y no
+llegaba a ninguna pantalla que el paciente pudiera abrir — sólo se pintaba en
+la del médico).
+
+Y el 7-ago-2026 volvió a serlo con dos casos del mismo día, los dos el patrón
+en estado puro.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el
@@ -55,6 +61,28 @@ ese camino no es una impresión y nunca miró la marca.
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
 
+## La que más creció de golpe
+
+**«Pérdida de datos» — de 6 a 9 en un solo día**, con REG-294, REG-295 y
+REG-297: los tres caminos por los que una consulta **ya grabada** desaparecía.
+
+Y los tres tenían la misma causa de fondo, que es lo que merece quedar escrito:
+
+> **Todo el esfuerzo de persistencia se puso donde YA había red.**
+
+El texto de la nota tiene borrador en memoria, respaldo en `localStorage`,
+autoguardado a Firestore cada 30 s y volcado al desmontar: **cuatro copias**. El
+audio, que no tiene ninguna otra copia en ningún sitio, se quedó fuera de todas
+esas defensas. Y cuando hubo que elegir entre proteger el texto y proteger el
+audio —en la purga del cierre de sesión— se protegió el texto, con un comentario
+que explicaba muy bien por qué.
+
+No fue descuido: fue que **cada arreglo se hizo mirando el activo que ya se
+sabía frágil**. Nadie preguntó cuál era el activo sin ninguna red.
+
+La pregunta que deja esta familia, para la próxima vez que se refuerce algo:
+**¿qué otra cosa se pierde en este mismo camino, y cuántas copias tiene?**
+
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
 escribir «No referido» y la 1-bis lo PROHÍBE. **Ninguna de las dos estaba mal por
 su cuenta** — y por eso ninguna revisión de una sola pieza lo encuentra. El fallo
@@ -66,7 +94,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 140.**
+**«El sistema se contradice a sí mismo» — 27 de 153.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -106,7 +134,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 140**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 21 de 153**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

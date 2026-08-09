@@ -1036,6 +1036,20 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
   const recoveryBaseRef = useRef<number>(0)
+  /**
+   * Índice ABSOLUTO con el que se persiste el siguiente trozo — REG-295.
+   *
+   * Antes se derivaba de la longitud del array: `recoveryBase +
+   * todosChunks.length - 1`. Eso ataba el índice de disco a un array que se
+   * vacía, y por eso `stop()` —que dispara un `ondataavailable` final de forma
+   * asíncrona, después del vaciado— calculaba `recoveryBase - 1` y pisaba un
+   * trozo bueno, o escribía en el índice -1.
+   *
+   * La defensa de entonces fue desenganchar el handler antes de parar, a costa
+   * de tirar el último buffer (~2 s). Con un contador que sólo sube, la
+   * colisión no puede ocurrir, así que ya no hace falta tirar nada.
+   */
+  const persistIdxRef = useRef<number>(0)
   const streamingActivoRef = useRef<boolean>(true)
   const mimeRef = useRef<string>('')
 
@@ -1043,15 +1057,25 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
       /**
-       * DESENGANCHAR el handler ANTES de parar — auditoría 2026-07 (P0). `stop()`
-       * dispara un `ondataavailable` FINAL de forma asíncrona, y justo abajo se
-       * resetea `todosChunksRef = []`. Ese último evento calculaba
-       * `localIdx = recoveryBaseRef - 1` y PISABA un chunk válido del respaldo en
-       * IndexedDB (o escribía en idx -1), corrompiendo el audio de recuperación al
-       * salir de la consulta grabando. Los chunks ya persistidos quedan intactos;
-       * solo se descarta el buffer final (~2 s), que es el intercambio correcto.
+       * EL BUFFER FINAL YA NO SE TIRA — REG-295.
+       *
+       * Aquí se desenganchaba el handler antes de parar. La razón era buena:
+       * `stop()` dispara un `ondataavailable` FINAL de forma asíncrona, y justo
+       * abajo se vacía `todosChunksRef`; como el índice de disco se derivaba de
+       * la longitud de ese array, el último evento calculaba
+       * `recoveryBase - 1` y PISABA un trozo válido del respaldo (o escribía en
+       * el índice -1). Se prefirió perder ~2 s de audio a corromper el respaldo,
+       * y era el intercambio correcto **con aquel índice**.
+       *
+       * Con `persistIdxRef` —un contador que sólo sube y no depende de ningún
+       * array— la colisión ya no puede ocurrir, así que el intercambio deja de
+       * hacer falta: el trozo final se persiste en su sitio.
+       *
+       * Importa porque este camino es el de **salir de la consulta grabando**.
+       * Los ~2 s que se tiraban eran justo los últimos que dijo el médico antes
+       * de irse a otra pantalla — la parte más fácil de echar en falta y la
+       * única que no está en ninguna otra copia.
        */
-      try { rec.ondataavailable = null } catch { /* */ }
       try { rec.stop() } catch { /* */ }
     }
     mediaRef.current = null
@@ -1366,6 +1390,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (recoveryKeyRef.current) {
       try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
     }
+    // El contador de persistencia arranca donde acaba lo que ya había: a partir
+    // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-295).
+    persistIdxRef.current = recoveryBaseRef.current
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
     try {
@@ -1482,10 +1509,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           chunksRef.current.push(e.data)
           todosChunksRef.current.push(e.data)
           setBytesGrabados(prev => prev + e.data.size)
-          // Persistir en IndexedDB para crash recovery
+          // Persistir en IndexedDB para crash recovery. El índice viene de un
+          // contador que sólo sube (REG-295): derivarlo de la longitud del
+          // array lo ataba a algo que se vacía, y el trozo final pisaba uno
+          // bueno. Ver `persistIdxRef`.
           if (recoveryKeyRef.current) {
-            const localIdx = recoveryBaseRef.current + todosChunksRef.current.length - 1
-            guardarChunk(recoveryKeyRef.current, localIdx, e.data)
+            guardarChunk(recoveryKeyRef.current, persistIdxRef.current++, e.data)
           }
         }
       }

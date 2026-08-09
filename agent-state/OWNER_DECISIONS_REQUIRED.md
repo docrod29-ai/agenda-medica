@@ -178,3 +178,53 @@ y §3.2 de la directiva V7 dice que eso lo firma el dueño, no el agente.
 y el resto del portal funciona.
 
 **Qué cuesta responder**: una frase.
+
+---
+
+## PRODUCTO/SEGURIDAD · ¿La firma sola basta para mostrarle algo al paciente, o siempre hace falta un acto de liberación aparte?
+
+**Estado**: pendiente · abierto el 9-ago-2026 (V7 · POSTVISIT-ENTREGA-001 /
+REG-308, al chocar con `PATIENT-COMPANION-001` de V9)
+
+**El hecho** — Esta corrida construyó una acción `instrucciones` en
+`/api/portal` para entregar la hoja de instrucciones (REG-242/307) al
+paciente, con el mismo gate que la acción `documentos` ya usa para las
+recetas descargables: `alcance === 'clinico'` y sólo notas `estado ===
+'firmada'`. Al fusionar con `main` apareció el módulo de V9
+`lib/paciente/paquete-de-visita.ts`, que construye el `PatientVisitPackage`
+de la especificación con precisión mayor: nace `DRAFT`, y sólo pasa a
+`RELEASED` con un acto de aprobación explícito y registrado
+(`approvedAt`/`approvedBy`), **distinto y posterior** a la firma de la nota.
+Su propio comentario cita la regla:
+
+> Que el médico haya firmado la nota no libera el paquete: son dos actos.
+
+Conectar mi acción a `/mi/[token]` habría hecho lo que esa regla prohíbe:
+mostrarle al paciente contenido cuya única compuerta es la firma, sin ningún
+acto de liberación aparte. Se retiró el cableado antes de fusionar; la
+pestaña «Cuidado» del portal sigue enseñando su estado vacío honesto —
+`PATIENT-COMPANION-001` ya lo resolvió bien.
+
+**La tensión que es suya, no mía** — El patrón que retiré es **el mismo**
+que ya usa `documentos` (recetas): firma + alcance clínico, sin liberación
+aparte, y esa acción **ya está en producción**. No es una decisión que yo
+pueda tomar sola porque toca dos cosas a la vez: qué tan estricto debe ser
+el nuevo companion, y si eso implica revisar algo que ya se envió.
+
+| Opción | Qué implica |
+|---|---|
+| **El estándar de `documentos` basta** (firma + alcance clínico) | Conectar `instrucciones` a `/mi/[token]` es seguro tal como está. Coherente con lo que ya se envió; no resuelve la brecha que `PATIENT-COMPANION-001` señaló a propósito. |
+| **El companion exige siempre el nivel de `PatientVisitPackage`** (liberación aparte de la firma) | `instrucciones` se queda sin llamador hasta que exista `POSTVISIT-001` (la pantalla del médico que libera). Más lento, pero es lo que dice `patient-facing-ai.md` §4 al pie de la letra — y entonces cabría preguntarse si `documentos` también debería subir ese nivel. |
+
+**Recomendación por omisión**: **no conectar nada todavía** — es la opción
+reversible y la que ya está en el código (la pestaña «Cuidado» sigue
+enseñando el estado vacío). Subir el estándar de `documentos` con
+retroactividad es un cambio de alcance mayor que esta sesión no debe decidir
+por su cuenta.
+
+**Qué queda bloqueado sin la respuesta**: que la hoja de instrucciones llegue
+al paciente por cualquier camino automático. El médico la sigue viendo y
+copiando/imprimiendo desde su propia pantalla (REG-307).
+
+**Qué cuesta responder**: una frase — «basta con la firma» o «espera a
+`POSTVISIT-001`».

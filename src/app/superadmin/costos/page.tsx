@@ -130,19 +130,19 @@ export default function CostosPage() {
 
   return (
     <div style={{ padding: '28px 20px 60px', maxWidth: 980, margin: '0 auto' }}>
-      <Link href="/superadmin" style={{ fontSize: 13, color: 'var(--nexus, #3d5afe)', textDecoration: 'none' }}>← Consola</Link>
-      <h1 style={{ fontSize: 26, fontWeight: 800, margin: '10px 0 4px', color: 'var(--text, #0f172a)' }}>Costo de la IA</h1>
-      <p style={{ fontSize: 14, color: 'var(--text3, #64748b)', margin: '0 0 20px', lineHeight: 1.5 }}>
+      <Link href="/superadmin" style={{ fontSize: 13, color: 'var(--nexus)', textDecoration: 'none' }}>← Consola</Link>
+      <h1 style={{ fontSize: 26, fontWeight: 800, margin: '10px 0 4px', color: 'var(--text)' }}>Costo de la IA</h1>
+      <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 20px', lineHeight: 1.5 }}>
         Tokens, modelo y latencia de cada llamada. No guarda prompts, respuestas ni pacientes.
       </p>
 
-      <label style={{ fontSize: 13, color: 'var(--text2, #334155)' }}>
+      <label style={{ fontSize: 13, color: 'var(--text2)' }}>
         Mes{' '}
         <input type="month" value={mes} onChange={e => { setMes(e.target.value); void cargar(e.target.value) }}
-          style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13 }} />
+          style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
       </label>
 
-      {cargando && <p style={{ marginTop: 20, fontSize: 14, color: 'var(--text3, #64748b)' }}>Cargando…</p>}
+      {cargando && <p style={{ marginTop: 20, fontSize: 14, color: 'var(--text3)' }}>Cargando…</p>}
       {error && <p style={{ marginTop: 20, fontSize: 14, color: 'var(--red)' }}>{error}</p>}
 
       {datos && !cargando && (
@@ -166,28 +166,28 @@ export default function CostosPage() {
           */}
           {datos.webhook?.avisoModo && (
             <div style={{
-              border: '1px solid var(--border, #e5e7eb)', background: 'var(--panel, #f8fafc)',
+              border: '1px solid var(--border)', background: 'var(--panel)',
               borderRadius: 10, padding: '12px 14px', margin: '18px 0 8px',
             }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                 Stripe: modo {datos.webhook.modo === 'prueba' ? 'de prueba' : datos.webhook.modo === 'sin_llave' ? 'sin configurar' : 'producción'}
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text2, #334155)', marginTop: 4, lineHeight: 1.55 }}>{datos.webhook.avisoModo}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 4, lineHeight: 1.55 }}>{datos.webhook.avisoModo}</div>
             </div>
           )}
 
           {datos.webhook?.aviso && (
             <div style={{
               border: `1px solid ${datos.webhook.faltanCriticos.length ? '#dc2626' : 'var(--border)'}`,
-              background: datos.webhook.faltanCriticos.length ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--panel, #f8fafc)',
+              background: datos.webhook.faltanCriticos.length ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--panel)',
               borderRadius: 10, padding: '13px 15px', margin: '18px 0 4px',
             }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: datos.webhook.faltanCriticos.length ? '#b91c1c' : 'var(--text, #0f172a)' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: datos.webhook.faltanCriticos.length ? '#b91c1c' : 'var(--text)' }}>
                 {datos.webhook.faltanCriticos.length ? '⚠︎ ' : ''}Webhook de Stripe
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 5, lineHeight: 1.55 }}>{datos.webhook.aviso}</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 5, lineHeight: 1.55 }}>{datos.webhook.aviso}</div>
               <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer"
-                 style={{ display: 'inline-block', marginTop: 9, fontSize: 12.5, fontWeight: 600, color: 'var(--nexus, #3d5afe)' }}>
+                 style={{ display: 'inline-block', marginTop: 9, fontSize: 12.5, fontWeight: 600, color: 'var(--nexus)' }}>
                 Abrir el panel de Stripe ↗
               </a>
             </div>
@@ -200,10 +200,10 @@ export default function CostosPage() {
             separación de voces si se contesta tarde.
           */}
           <div style={{ margin: '18px 0 4px' }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: 'var(--text, #0f172a)' }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: 'var(--text)' }}>
               Saldo con los proveedores de IA
             </h2>
-            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '0 0 10px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 10px', lineHeight: 1.5 }}>
               <strong>Estimado.</strong> Ninguno de los tres publica su saldo por API, así que se calcula
               con lo que usted anota aquí menos lo que dice el libro de costos. Puede diferir del estado de
               cuenta por impuestos, redondeos o llamadas que no pasaron por el libro.
@@ -212,17 +212,17 @@ export default function CostosPage() {
               {(datos.saldos ?? []).map(sp => (
                 <div key={sp.proveedor} style={{
                   flex: '1 1 220px', minWidth: 220,
-                  border: `1px solid ${sp.nivel === 'ok' ? 'var(--border, #e5e7eb)' : 'var(--red)'}`,
-                  background: sp.nivel === 'ok' ? 'var(--panel, #f8fafc)' : 'color-mix(in srgb, var(--red) 7%, transparent)',
+                  border: `1px solid ${sp.nivel === 'ok' ? 'var(--border)' : 'var(--red)'}`,
+                  background: sp.nivel === 'ok' ? 'var(--panel)' : 'color-mix(in srgb, var(--red) 7%, transparent)',
                   borderRadius: 10, padding: '12px 14px',
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4, color: 'var(--text3, #64748b)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4, color: 'var(--text3)' }}>
                     {sp.proveedor}
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text, #0f172a)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                     {sp.cargadoUsd > 0 ? '$' + sp.restanteUsd.toFixed(2) : '—'}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 4, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
                     {sp.cargadoUsd <= 0
                       ? 'Sin abonos registrados: no se puede estimar el saldo (y por eso no se pinta en rojo).'
                       : <>Abonado ${sp.cargadoUsd.toFixed(2)} · gastado ${sp.gastadoUsd.toFixed(2)}
@@ -242,7 +242,7 @@ export default function CostosPage() {
                 value={abono.proveedor}
                 onChange={e => setAbono(a => ({ ...a, proveedor: e.target.value }))}
                 aria-label="Proveedor al que se abonó"
-                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, minHeight: 44 }}
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, minHeight: 44 }}
               >
                 {(datos.saldos ?? []).map(sp => <option key={sp.proveedor} value={sp.proveedor}>{sp.proveedor}</option>)}
               </select>
@@ -252,14 +252,14 @@ export default function CostosPage() {
                 value={abono.montoUsd}
                 onChange={e => setAbono(a => ({ ...a, montoUsd: e.target.value }))}
                 aria-label="Monto abonado en dólares"
-                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, minHeight: 44, width: 150 }}
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, minHeight: 44, width: 150 }}
               />
               <input
                 placeholder="Referencia del cargo (opcional)"
                 value={abono.referencia}
                 onChange={e => setAbono(a => ({ ...a, referencia: e.target.value }))}
                 aria-label="Referencia del cargo"
-                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, minHeight: 44, flex: '1 1 200px' }}
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, minHeight: 44, flex: '1 1 200px' }}
               />
               <button
                 onClick={registrarAbono}
@@ -272,7 +272,7 @@ export default function CostosPage() {
               >
                 {guardando ? 'Registrando…' : 'Registrar abono'}
               </button>
-              {avisoAbono && <span style={{ fontSize: 12.5, color: 'var(--text2, #334155)' }}>{avisoAbono}</span>}
+              {avisoAbono && <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{avisoAbono}</span>}
             </div>
           </div>
 
@@ -283,20 +283,20 @@ export default function CostosPage() {
           */}
           {(datos.incidentes?.length ?? 0) > 0 && (
             <div style={{ margin: '18px 0 4px' }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: 'var(--text, #0f172a)' }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: 'var(--text)' }}>
                 Incidencias de la llave de la plataforma
               </h2>
               {datos.incidentes!.map(i => (
                 <div key={i.id} style={{
-                  border: `1px solid ${i.urgente ? '#dc2626' : 'var(--border, #e5e7eb)'}`,
-                  background: i.urgente ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--panel, #f8fafc)',
+                  border: `1px solid ${i.urgente ? '#dc2626' : 'var(--border)'}`,
+                  background: i.urgente ? 'color-mix(in srgb, var(--red) 7%, transparent)' : 'var(--panel)',
                   borderRadius: 10, padding: '12px 14px', marginBottom: 8,
                 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: i.urgente ? '#b91c1c' : 'var(--text, #0f172a)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: i.urgente ? '#b91c1c' : 'var(--text)' }}>
                     {i.urgente ? '⚠︎ ' : ''}{i.titulo}
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 4, lineHeight: 1.5 }}>{i.queHacer}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 6 }}>
+                  <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, lineHeight: 1.5 }}>{i.queHacer}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
                     {n(i.veces ?? 0)} {(i.veces ?? 0) === 1 ? 'vez' : 'veces'} · {i.hora?.replace('T', ' a las ')} h
                     {i.features?.length ? ` · afectó: ${i.features.join(', ')}` : ''}
                     {i.ultimoStatus ? ` · HTTP ${i.ultimoStatus}` : ''}
@@ -407,9 +407,9 @@ function Aviso({ tono, children }: { tono: 'alerta' | 'neutro'; children: React.
   return (
     <div style={{
       marginTop: 18, padding: '13px 16px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55,
-      background: alerta ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--s2, #f1f5f9)',
-      border: '1px solid ' + (alerta ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'var(--border, #e5e7eb)'),
-      color: 'var(--text2, #334155)',
+      background: alerta ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--s2)',
+      border: '1px solid ' + (alerta ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'var(--border)'),
+      color: 'var(--text2)',
     }}>{children}</div>
   )
 }
@@ -417,12 +417,12 @@ function Aviso({ tono, children }: { tono: 'alerta' | 'neutro'; children: React.
 function Tarjeta({ titulo, valor, pie }: { titulo: string; valor: string; pie?: string }) {
   return (
     <div style={{
-      flex: '1 1 170px', minWidth: 160, background: 'var(--s1, #fff)',
-      border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '14px 16px',
+      flex: '1 1 170px', minWidth: 160, background: 'var(--s1)',
+      border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px',
     }}>
-      <div style={{ fontSize: 12, color: 'var(--text3, #64748b)' }}>{titulo}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text, #0f172a)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{valor}</div>
-      {pie && <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)', marginTop: 3 }}>{pie}</div>}
+      <div style={{ fontSize: 12, color: 'var(--text3)' }}>{titulo}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{valor}</div>
+      {pie && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3 }}>{pie}</div>}
     </div>
   )
 }
@@ -431,19 +431,19 @@ function Tabla({ titulo, filas, nota }: { titulo: string; filas: Grupo[]; nota?:
   if (filas.length === 0) return null
   return (
     <div style={{ marginTop: 30 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text, #0f172a)', margin: '0 0 4px' }}>{titulo}</h2>
-      {nota && <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '0 0 10px', lineHeight: 1.5 }}>{nota}</p>}
+      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>{titulo}</h2>
+      {nota && <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 10px', lineHeight: 1.5 }}>{nota}</p>}
       {/* Las tablas anchas se desplazan solas: el cuerpo de la página nunca. */}
-      <div style={{ overflowX: 'auto', border: '1px solid var(--border, #e5e7eb)', borderRadius: 10 }}>
+      <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 520 }}>
           <thead>
-            <tr style={{ background: 'var(--s2, #f1f5f9)' }}>
+            <tr style={{ background: 'var(--s2)' }}>
               <Th align="left">Concepto</Th><Th>Llamadas</Th><Th>Entrada</Th><Th>Salida</Th><Th>Costo</Th>
             </tr>
           </thead>
           <tbody>
             {filas.map(g => (
-              <tr key={g.clave} style={{ borderTop: '1px solid var(--border, #e5e7eb)' }}>
+              <tr key={g.clave} style={{ borderTop: '1px solid var(--border)' }}>
                 <Td align="left">{g.clave}</Td>
                 <Td>{n(g.resumen.llamadas)}</Td>
                 <Td>{n(g.resumen.tokensEntrada)}</Td>
@@ -463,10 +463,10 @@ function Tabla({ titulo, filas, nota }: { titulo: string; filas: Grupo[]; nota?:
 }
 
 const Th = ({ children, align = 'right' }: { children: React.ReactNode; align?: 'left' | 'right' }) => (
-  <th style={{ textAlign: align, padding: '9px 12px', fontWeight: 600, color: 'var(--text2, #334155)', fontSize: 12 }}>{children}</th>
+  <th style={{ textAlign: align, padding: '9px 12px', fontWeight: 600, color: 'var(--text2)', fontSize: 12 }}>{children}</th>
 )
 const Td = ({ children, align = 'right' }: { children: React.ReactNode; align?: 'left' | 'right' }) => (
-  <td style={{ textAlign: align, padding: '9px 12px', color: 'var(--text, #0f172a)', fontVariantNumeric: 'tabular-nums' }}>{children}</td>
+  <td style={{ textAlign: align, padding: '9px 12px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{children}</td>
 )
 
 /**
