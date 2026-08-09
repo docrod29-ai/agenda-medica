@@ -23,7 +23,7 @@ const getNotas = vi.fn()
  * El documento del PACIENTE, que la ruta lee para comprobar la revocación
  * (`portalTokenVersion`). Antes el doble no lo tenía y nadie lo notó: la
  * comprobación fallaba ABIERTA, así que el `TypeError` del doble incompleto se
- * tragaba en silencio y los tests pasaban sin ejercitarla jamás (REG-292).
+ * tragaba en silencio y los tests pasaban sin ejercitarla jamás (REG-295).
  * Con el fail-closed, un doble incompleto daría 503 — el test ya no puede
  * mentir.
  */
@@ -61,7 +61,7 @@ const CLINICA = 'clinica-ficticia'
 const PACIENTE = 'pac-ficticio-001'
 
 function req(body: unknown) {
-  // `headers` hace falta desde REG-292: el freno por IP lee x-forwarded-for.
+  // `headers` hace falta desde REG-295: el freno por IP lee x-forwarded-for.
   return { json: async () => body, headers: new Headers() } as unknown as Parameters<typeof POST>[0]
 }
 

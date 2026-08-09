@@ -1,5 +1,5 @@
 /**
- * EL PORTAL TIENE FRENO, Y LA REVOCACIÓN FALLA CERRADA — REG-292.
+ * EL PORTAL TIENE FRENO, Y LA REVOCACIÓN FALLA CERRADA — REG-295.
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *
@@ -108,7 +108,7 @@ beforeEach(() => {
   getConfig.mockResolvedValue({ exists: false })
 })
 
-describe('REG-292 · el freno corre ANTES que el token', () => {
+describe('REG-295 · el freno corre ANTES que el token', () => {
   it('sin cupo responde 429 aunque el token sea basura', async () => {
     /**
      * Es la propiedad que hace útil el freno: el guion que prueba tokens no
@@ -142,7 +142,7 @@ describe('REG-292 · el freno corre ANTES que el token', () => {
   })
 })
 
-describe('REG-292 · la revocación falla CERRADA', () => {
+describe('REG-295 · la revocación falla CERRADA', () => {
   it('un enlace de versión vieja recibe 401 — la revocación de verdad revoca', async () => {
     /**
      * Este caso llevaba sin poder ejecutarse desde que existe la revocación:
@@ -179,7 +179,7 @@ describe('REG-292 · la revocación falla CERRADA', () => {
   })
 })
 
-describe('REG-292 · las otras dos rutas sin freno quedaron cableadas', () => {
+describe('REG-295 · las otras dos rutas sin freno quedaron cableadas', () => {
   const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
   it('api/public/resena frena por IP, con el cupo del booking', () => {

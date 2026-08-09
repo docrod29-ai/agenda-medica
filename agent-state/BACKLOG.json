@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "CERRADO (v1165)",
+      "estado": "CERRADO (v1169)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",
@@ -345,7 +345,7 @@
       "archivo": "src/app/api/portal/route.ts:183 · src/app/api/public/resena/route.ts · src/app/api/payment/create-checkout/route.ts",
       "plan": "Aplicar limitar* como ya lo hacen telesalud/sala (12/600 s) y public/booking (8/h por IP). Para la revocación, decidir si falla cerrado — es un cambio de política, no sólo de código.",
       "score": 62,
-      "cierre": "REG-292, 9-ago: dos frenos en /api/portal (IP antes del HMAC, paciente después), freno por IP en resena y create-checkout, y la revocación falla CERRADA (503) — el fail-open sólo revalidaba el enlace revocado durante una incidencia, porque la agenda también vive en Firestore. Destapado de paso: los dobles de portal-alcance nunca habían ejercitado la revocación (TypeError tragado por el fail-open). 9 casos nuevos, probados al revés, sellados."
+      "cierre": "REG-295, 9-ago: dos frenos en /api/portal (IP antes del HMAC, paciente después), freno por IP en resena y create-checkout, y la revocación falla CERRADA (503) — el fail-open sólo revalidaba el enlace revocado durante una incidencia, porque la agenda también vive en Firestore. Destapado de paso: los dobles de portal-alcance nunca habían ejercitado la revocación (TypeError tragado por el fail-open). 9 casos nuevos, probados al revés, sellados."
     },
     {
       "seguridad": 3,
@@ -359,7 +359,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "CERRADO (v1164)",
+      "estado": "CERRADO (v1168)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-GATE-001",
@@ -371,7 +371,7 @@
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
       "score": 63,
-      "cierre": "Verificado el 9-ago: guarda `firmada && !esNotaHospital` en consulta:5117 (REG-291). Prueba al revés confirmada revirtiendo el archivo y viendo fallar `lo-que-se-lleva-el-paciente.test.ts`. Abre camino a POSTVISIT-ENTREGA-001, que sigue pendiente."
+      "cierre": "Verificado el 9-ago: guarda `firmada && !esNotaHospital` en consulta:5117 (REG-294). Prueba al revés confirmada revirtiendo el archivo y viendo fallar `lo-que-se-lleva-el-paciente.test.ts`. Abre camino a POSTVISIT-ENTREGA-001, que sigue pendiente."
     },
     {
       "seguridad": 1,

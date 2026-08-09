@@ -204,7 +204,7 @@ describe('está CONECTADO', () => {
     expect(page).toMatch(/\{firmada && !esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
   })
 
-  it('NO aparece con la nota SIN FIRMAR — REG-291', () => {
+  it('NO aparece con la nota SIN FIRMAR — REG-294', () => {
     /**
      * GOLDEN — qué fallaba: la única guarda era `!esNotaHospital`. El
      * componente se montaba con `medicamentos` y `estudiosOrden` en su estado

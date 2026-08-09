@@ -18,6 +18,7 @@ import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
 import { MODULOS_DE_PLAN } from '@/lib/modulos'
 import type { PlanKey } from '@/lib/stripe'
 import type { EstadoDisputa } from '@/lib/finanzas/movimientos'
+import { fechaISOLocal, TZ_DEFAULT } from '@/lib/timezone'
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
 
@@ -346,9 +347,32 @@ export async function POST(req: NextRequest) {
           try {
           const ahora = new Date()
           const iso = ahora.toISOString()
-          const dia = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit',
-          }).format(ahora)
+          /**
+           * ── EL DÍA DEL COBRO ES EL DEL CONSULTORIO, NO EL DE CDMX — REG-293 ─
+           *
+           * Aquí la zona estaba escrita a mano. Y de este `dia` cuelgan el campo
+           * `dia` y el `mes` del cobro, que son **los que filtra el corte de
+           * caja**.
+           *
+           * Medido: a las 06:30 UTC, Ciudad de México dice **9 de agosto** y
+           * Tijuana dice **8**. Un cobro a las 11:30 de la noche en Baja
+           * California se sellaba con la fecha del **día siguiente** — y caía en
+           * el corte del día que no era. En el cambio de mes, en el mes que no
+           * era.
+           *
+           * El consultorio tiene su `zonaHoraria` configurada, y aquí estaba a
+           * mano: `clinicId` ya se conoce. Se arregló en la PANTALLA del corte
+           * de caja y quedó vivo en el lado que ESCRIBE — la misma forma de
+           * REG-267.
+           */
+          const tzClinica = await (async () => {
+            try {
+              const c = await adminDb.collection('clinics').doc(clinicId).get()
+              const z = (c.data() as Record<string, unknown> | undefined)?.zonaHoraria
+              return typeof z === 'string' && z ? z : TZ_DEFAULT
+            } catch { return TZ_DEFAULT }
+          })()
+          const dia = fechaISOLocal(ahora, tzClinica)
           const monto = (session.amount_total ?? 0) / 100
           const citaRef = citaId ? adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId) : null
           const cita = citaRef ? (await citaRef.get()).data() as Record<string, unknown> | undefined : undefined

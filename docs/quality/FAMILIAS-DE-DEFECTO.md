@@ -39,10 +39,10 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 33 de 140, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 33 de 143, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El caso 33 es REG-292 (9-ago): el limitador de tasa existía, probado, y las tres
+El caso 33 es REG-295 (9-ago): el limitador de tasa existía, probado, y las tres
 superficies del paciente que más lo necesitaban no lo corrían — y la
 comprobación de revocación del portal llevaba desde su nacimiento sin
 ejercitarse ni siquiera en los tests, porque el doble estaba incompleto y el
@@ -70,7 +70,11 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 138.**
+**«El sistema se contradice a sí mismo» — 26 de 143.**
+
+El caso 26 es REG-294 (9-ago): la cabecera de `HojaParaElPaciente` afirmaba
+«se compone de lo ya revisado y firmado» y la guarda de montaje no exigía
+`firmada` — la promesa y el código decían cosas incompatibles.
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -110,7 +114,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 138**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 143**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

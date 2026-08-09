@@ -2817,3 +2817,59 @@ desconocida se convertía en miligramos en silencio («1000 UI» → 1000 mg).
 Y **`QID` apagaba el techo diario**: devolvía «no se entiende» y el llamador
 asume una toma al día. Paracetamol 1000 mg QID son 4 000 mg y se comprobaban
 1 000. El techo no fallaba: **no se ejecutaba**.
+
+## v1164 — las respuestas de varios renglones ya no se aplastan
+
+Defecto propio, encontrado **mirando la pantalla en producción** con la sesión
+del Dr.: varios motores contestan en varias líneas —qué tiene y qué niega, qué ve
+la consulta frente al hospital, el pase repartido por aparatos— y se pegaban en
+un solo renglón.
+
+Los nueve motores quedaron verificados en vivo, uno a uno, cambiando el texto y
+viendo cambiar la respuesta en las dos direcciones.
+
+## v1165 — un valor normal marcado como crítico (REG-291)
+
+**«Glucosa en orina» = 500 → CRÍTICO** (una glucosuria corriente disparaba la
+alerta de glucemia) y **«Calcio iónico» = 4,8 → CRÍTICO**, que es un valor
+**normal**: se comparaba contra el umbral del calcio total.
+
+Un valor normal en rojo es peor que un umbral que falta: el que falta se nota;
+éste enseña a ignorar las alarmas. El módulo ya excluía el pH de orina, la
+fosfatasa y la HbA1c — la clase estaba identificada y la lista se quedó corta.
+
+No se inventa el umbral del iónico: queda declarado, y **apareció solo** en la
+lista de decisiones del dueño.
+
+## v1166 — «Lo que te protege» sale del menú diario
+
+Error de producto mío, corregido a las pocas horas. Esa pantalla habla de
+**reparaciones, números internos y de «lo que hacía antes»** — y estaba en el
+menú del médico, entre Antibiograma y Lista de espera.
+
+**Al médico le importa qué HACE la aplicación, no cómo se arregló.** Una entrada
+así en el camino de todos los días gasta atención en algo que no usa nunca.
+
+Se queda accesible desde **Configuración → Seguridad**, con un enlace discreto:
+sirve para enseñársela a quien pregunta cómo se protege el expediente, pero fuera
+del flujo diario.
+
+Comprobado de paso que **ninguna** página que ve el cliente —arquitectura,
+operación, evidencia, seguridad, demo— enseña números de reparación ni jerga
+interna. La fuga era sólo ésa.
+
+## v1167 — el día de un cobro es el del consultorio (REG-293)
+
+El webhook de Stripe sellaba el día del cobro con la zona de **Ciudad de México
+escrita a mano**, y de ahí salen los campos que filtra el corte de caja.
+
+A las 06:30 UTC, CDMX dice **9 de agosto** y Tijuana dice **8**: un cobro de las
+11:30 de la noche en Baja California caía en el corte del **día siguiente**, y en
+el cambio de mes, en el mes siguiente.
+
+El consultorio ya tenía su zona configurada y `clinicId` estaba a mano. De
+catorce sitios que nombran la zona, éste era **el único** que no la leía. Se
+arregló en la pantalla del corte de caja y quedó vivo en el lado que escribe.
+
+Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
+cortes que usted ya cuadró.

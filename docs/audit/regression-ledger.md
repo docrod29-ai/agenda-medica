@@ -6382,7 +6382,179 @@ su sesión. Se dice en vez de darlo por hecho.
 
 ---
 
-## REG-291 — la hoja del paciente se componía del borrador EN CURSO (v1164)
+## REG-291 — un valor NORMAL marcado como crítico (v1165)
+
+Medido con `evaluarCriticoLab` de verdad:
+
+| Estudio | Valor | Decía |
+|---|---|---|
+| **Glucosa en orina (EGO)** | 500 mg/dL | **CRÍTICO** |
+| **Calcio iónico** | 4,8 mg/dL | **CRÍTICO** |
+
+La primera es una **glucosuria corriente** en un diabético descompensado, y
+disparaba la misma alerta —y el mismo WhatsApp— que una glucemia de 500, que sí
+lo es.
+
+La segunda es peor: **4,8 mg/dL es un valor NORMAL de calcio iónico** (~4,5-5,6).
+Se comparaba contra el umbral bajo del calcio **total**, que es 6. Y en terapia
+el iónico se mide a todas horas.
+
+### Por qué es de los que más daño hacen a largo plazo
+
+**Un valor normal marcado como crítico es peor que un umbral que falta.** El que
+falta se nota cuando se busca; éste enseña una alarma roja sobre un paciente que
+está bien — y eso es lo que enseña a ignorar las alarmas. Es la lección que este
+repositorio ya tiene escrita para los avisos clínicos y para sus propios
+medidores, aplicada al laboratorio.
+
+### Dónde se quedó corta la defensa
+
+El módulo **ya excluye** el pH urinario, la fosfatasa alcalina, la hemoglobina
+glucosilada y la creatinina en orina — cada una con su comentario y su caso real.
+
+**La clase estaba identificada y la lista se quedó corta.** El examen general de
+orina trae varios analitos con el mismo nombre que los de sangre; se cubrió el pH
+y no la glucosa ni la bilirrubina. Es la misma forma que REG-289: la lección
+escrita para un caso y no generalizada.
+
+### Lo que NO se hizo: inventar el umbral del iónico
+
+Excluirlo no es resolverlo. Mientras no tenga umbral propio, **un calcio iónico
+realmente crítico no se marca**, y eso queda declarado en
+`FALTA_CRITICO_CALCIO_IONICO`.
+
+**Y apareció sola en la lista de decisiones del dueño**, sin que nadie la
+añadiera: es la convención `FALTA_*` de REG-288 justificándose a las pocas horas
+de existir. El guardián del documento falló hasta que la decisión quedó pedida.
+
+### Archivos
+
+- `src/lib/hospital/lab-criticos.ts`
+- `docs/DECISIONES-DEL-DUENO.md`
+- `src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts` (nuevo, 14 casos, sellado)
+
+---
+
+## REG-292 — se dice lo que HACE, nunca cómo lo hace (v1166)
+
+Regla del dueño, en sus palabras:
+
+> *«la manera en que funciona la app no debe de enseñarse, sólo se menciona lo
+> que puede ser para promocionar, sólo lo que hace, no cómo lo hace»*
+
+Y antes, sobre la pantalla que yo había puesto en su menú:
+
+> *«al cliente le importan lo funcional y lo que va a hacer… hay muchas cosas que
+> no sabe ni qué es, así que eso escóndelo»*
+
+### Lo que estaba expuesto
+
+- **`/motores`** — pantalla mía, puesta en el **menú del médico** entre
+  Antibiograma y Lista de espera. Habla de reparaciones, de números internos y de
+  «lo que hacía antes». **Error de producto mío**, de hace unas horas.
+- **`/arquitectura`** — enlazada **dos veces desde la portada**: un botón que
+  decía «Ver los 10 motores» y un enlace en el pie. Nombra los motores por dentro
+  y dice cuáles corren con código y cuáles con IA.
+- **«Ver cómo razona la IA en vivo»** — el verbo era «cómo». Ahora ofrece ver la
+  aplicación en marcha, que es lo que el médico quiere saber.
+
+### Por qué importa, y no es estética
+
+1. **Es suyo.** El diseño interno de los motores es lo que distingue este
+   producto. Publicarlo en la portada es regalarle el mapa a quien quiera
+   copiarlo.
+2. **Al cliente no le sirve.** Un médico decide por lo que la aplicación **hace**.
+   Una entrada de menú que no entiende gasta atención que necesita para su
+   consulta.
+
+### Lo que NO se hizo: borrarlas
+
+Las dos páginas **siguen existiendo** y se llegan por su dirección. Al dueño le
+sirven para una revisión técnica o para enseñárselas a quien compre — con él
+delante, decidiendo qué se cuenta. Lo que se quita es que **se ofrezcan solas**.
+
+### Y comprobado que no había más fugas
+
+Ninguna otra página que ve el cliente —operación, evidencia, seguridad, demo—
+enseña números de reparación ni jerga interna. `/operacion` enumera **qué
+resuelve** (cuentas por cobrar, inventario, CFDI, reportes), que es exactamente
+lo que la regla permite.
+
+### El guardián
+
+`lo-que-hace-si-como-lo-hace-no` comprueba que **ninguna superficie del cliente**
+—portada, menú lateral, barra inferior, configuración— vuelva a enlazar esas
+páginas. Y comprueba lo contrario también: que la portada **siga diciendo lo que
+la aplicación hace**, para que la regla no se cumpla a base de callarse.
+
+### Archivos
+
+- `src/app/page.tsx` · `src/components/Sidebar.tsx`
+- `src/app/(dashboard)/configuracion/secciones-seguridad.tsx`
+- `src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-293 — el día de un cobro era el de CDMX, no el del consultorio (v1167)
+
+El webhook de Stripe calculaba el día del cobro con la zona **escrita a mano**:
+
+```ts
+new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' })
+```
+
+Y de ese `dia` cuelgan el campo `dia` y el `mes` del cobro — **los que filtra el
+corte de caja**.
+
+### Medido
+
+A las **06:30 UTC**, Ciudad de México dice **9 de agosto** y Tijuana dice **8**.
+Un cobro a las 11:30 de la noche en Baja California se sellaba con la fecha del
+**día siguiente**: caía en el corte del día que no era. En el cambio de mes, en
+el mes que no era.
+
+### Por qué es el patrón de siempre
+
+El consultorio **ya tiene** su `zonaHoraria` configurada, hay un módulo
+`timezone.ts` entero para esto con `fechaISOLocal`, y `clinicId` estaba a mano en
+esa misma función.
+
+De **catorce** sitios que nombran la zona, éste era **el único que la fijaba sin
+leer nunca la del consultorio**.
+
+Y la memoria del repositorio lo dice: el corte de caja ya tuvo un arreglo de zona
+horaria **en la pantalla**. Quedó vivo en el lado que **escribe** — que es el que
+deja el dato guardado para siempre. La forma de REG-267, otra vez.
+
+### Los respaldos, que no sobran
+
+Sin `zonaHoraria` configurada cae en la de por defecto; si la lectura falla,
+también. **Un cobro no puede perderse porque no se pudo leer el consultorio**, y
+tenerlo con la zona de la capital es mejor que no tenerlo.
+
+### Lo que NO se hace
+
+Los cobros **ya guardados conservan su día**. Recalcularlos sería reescribir
+cortes de caja que el dueño ya cerró y cuadró, y eso no lo decide un arreglo de
+software.
+
+### Y lo que se buscó y NO era defecto
+
+En el mismo barrido se midieron dos candidatos del módulo de dinero:
+`decidirCobroAnticipo` con importe negativo, y `ajusteAlConfirmar` con reserva
+negativa —que devuelve un cobro negativo—. **Los dos están protegidos en el
+llamador** (`if (r.apartados <= 0) return`, y `amount_total` de Stripe nunca es
+negativo). Se anotan como asimetrías latentes, **no como hallazgos**: vender como
+defecto algo que no puede ocurrir es la otra forma de mentir con un informe.
+
+### Archivos
+
+- `src/app/api/stripe/webhook/route.ts`
+- `src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-294 — la hoja del paciente se componía del borrador EN CURSO (v1168)
 
 **Auditoría del producto real V9 (PATIENT-UX-TRUTH-001), backlog
 `POSTVISIT-GATE-001`, score 63 — el más alto pendiente.**
@@ -6436,7 +6608,7 @@ estado es demasiado grande para una prueba unitaria). No cubre
 
 ---
 
-## REG-292 — el portal sin freno, y una revocación que fallaba abierta (v1165)
+## REG-295 — el portal sin freno, y una revocación que fallaba abierta (v1169)
 
 **Backlog `PATIENT-PORTAL-001` (score 62), de la auditoría del producto real
 V9.** Tres rutas y un modo de fallo:

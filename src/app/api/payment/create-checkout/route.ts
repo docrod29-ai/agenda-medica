@@ -25,7 +25,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.ve
 export async function POST(req: NextRequest) {
   try {
     /**
-     * FRENO POR IP (REG-292). Cada llamada crea una sesión de Checkout en
+     * FRENO POR IP (REG-295). Cada llamada crea una sesión de Checkout en
      * Stripe y reescribe la cita a 'pendiente-pago': sin freno, un token
      * filtrado permitía fabricar sesiones sin tope. Pagar de verdad requiere
      * a lo sumo un par de intentos; 10/600 s cubre al que cierra la pestaña

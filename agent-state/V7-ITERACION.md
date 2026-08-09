@@ -20,12 +20,20 @@
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
 **Rama de esta sesión**: `claude/clever-lamport-c0vsq7` (el disparador asignó
 esta rama; `agent/v7/master-loop` sigue siendo la rama de referencia del
-programa) · **Producción**: `nexusmed-v1163` (sin desplegar esta sesión — ver
+programa) · **Producción**: `nexusmed-v1167` (sin desplegar esta sesión — ver
 abajo)
+
+> **Renumeración del 9-ago**: esta sesión usó primero REG-291/292 (v1164/1165)
+> y otra sesión concurrente fusionó a `main` SUS REG-291/292/293 (v1164–v1167)
+> — el defecto T-1 otra vez, y otra vez por no correr
+> `scripts/estado-de-las-ramas.mjs` antes de numerar. Los de esta sesión son
+> ahora **REG-294** (hoja del paciente) y **REG-295** (portal), v1168/v1169,
+> renumerados al fusionar `origin/main` en la rama. Los commits `982fd90` y
+> `3e8ac7c` llevan los números viejos en el mensaje; el ledger manda.
 
 ---
 
-## Sesión 9-ago-2026 — REG-291
+## Sesión 9-ago-2026 — REG-294
 
 **Baseline al arrancar** (con dependencias reinstaladas desde cero, el
 contenedor no las traía): `npx vitest run` → 8 458 pasan, **1 fallo** ya
@@ -51,7 +59,7 @@ sin exigir `firmada`. El propio encabezado del componente afirma que compone
 precondición. Arreglo de un operando: `{firmada && !esNotaHospital && (…)}`.
 Prueba nueva en `lo-que-se-lleva-el-paciente.test.ts`, probada al revés
 (revirtiendo el archivo se confirma que falla sin el arreglo). Detalle completo
-en `docs/audit/regression-ledger.md` REG-291.
+en `docs/audit/regression-ledger.md` REG-294.
 
 **Gates tras el cambio**: vitest 8 459/8 460 (mismo fallo de entorno, cero
 nuevos), `lint-trinquete` 96 (sin subir), `tsc --noEmit` limpio,
@@ -62,7 +70,7 @@ la asignó el disparador de la sesión (`claude/clever-lamport-c0vsq7`), distint
 de `agent/v7/master-loop`; se deja en rama + commit, sin desplegar ni fusionar,
 para no mezclar dos ramas «autorizadas para desplegar» a la vez.
 
-**Segunda iteración de la sesión — REG-292 (`PATIENT-PORTAL-001`, ordenada por
+**Segunda iteración de la sesión — REG-295 (`PATIENT-PORTAL-001`, ordenada por
 el dueño: «sigue con PATIENT-PORTAL-001»)**: dos frenos en `/api/portal` (por
 IP antes del HMAC, por paciente después), freno por IP en `public/resena` y
 `payment/create-checkout`, `ipDe` compartida desde `lib/rate-limit.ts`, y la
@@ -72,10 +80,10 @@ revocación del enlace ahora **falla cerrada** (503) — decisión documentada e
 la comprobación de revocación llevaba desde su nacimiento tirando `TypeError`
 en los tests y el fail-open se lo tragaba — **los tests pasaban porque el
 defecto los dejaba pasar**. Probada al revés: revirtiendo sólo la ruta, 3 de
-los 9 casos nuevos fallan. Detalle: `regression-ledger.md` REG-292.
+los 9 casos nuevos fallan. Detalle: `regression-ledger.md` REG-295.
 
 **Siguiente iteración V7**: `POSTVISIT-ENTREGA-001` (score 60) — la hoja del
-paciente sigue sin llegar al portal (`/mi/[token]`); REG-291 ya le dio la
+paciente sigue sin llegar al portal (`/mi/[token]`); REG-294 ya le dio la
 compuerta de firma (DRAFT→RELEASED) de la que este ítem declaraba depender.
 Alternativa de menor riesgo si esa superficie exige decisión de producto:
 `DESIGN-THEME-001` (score 52).

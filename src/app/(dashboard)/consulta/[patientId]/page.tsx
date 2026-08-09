@@ -5126,7 +5126,7 @@ export default function ConsultaActivaPage() {
         aparecería ahí también.
       */}
       {/*
-        SÓLO CON LA NOTA FIRMADA (REG-291) — el encabezado del componente
+        SÓLO CON LA NOTA FIRMADA (REG-294) — el encabezado del componente
         afirmaba que se compone «de lo que el médico ya revisó y firmó», pero la
         única guarda era `!esNotaHospital`: con nota en borrador, a medio
         dictar, `medicamentos` y `estudiosOrden` ya traían el estado EN CURSO.

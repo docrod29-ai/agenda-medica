@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
   }
 
   /**
-   * FRENO POR IP, ANTES de verificar el token (REG-292).
+   * FRENO POR IP, ANTES de verificar el token (REG-295).
    *
    * Esta ruta era la única superficie del paciente sin `limitar*`: telesalud
    * lleva 12/600 s y el booking público 8/h por IP, y aquí un token filtrado
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
    * única salida era esperar a que caducara. El expediente lleva ahora un
    * contador; subirlo tumba de golpe todos los enlaces anteriores.
    *
-   * ── SI LA LECTURA FALLA, SE CIERRA (REG-292) ──────────────────────────────
+   * ── SI LA LECTURA FALLA, SE CIERRA (REG-295) ──────────────────────────────
    *
    * Antes se dejaba pasar, con este argumento: «dejar al paciente fuera de su
    * propia agenda por un mal minuto de Firestore es peor que el riesgo que
