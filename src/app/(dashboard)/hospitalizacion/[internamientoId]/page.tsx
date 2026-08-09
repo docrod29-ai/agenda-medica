@@ -21,7 +21,7 @@ import {
   agregarIndicacion, suspenderIndicacion, editarIndicacion, borrarIndicacion, registrarAdministracion,
   verificarIndicacionFarmacia, guardarMedicamentosCasa,
   agregarSignos, corregirSignos, getSignos, getRolUsuario, setRolUsuario,
-  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, type AlertaHospital,
+  crearSolicitudLab, getSolicitudesLabDeEpisodio, cargarResultadosLab, borrarSolicitudLab, crearAlerta, getAlertas, marcarAlertaLeida, type AlertaHospital,
   trasladarInternamiento, cambiarTratante,
   suscribirInternamiento, suscribirSignos, getAsignacionesCama,
 } from '@/lib/hospital/firestore'
@@ -38,11 +38,13 @@ import { esCriticoLab } from '@/lib/hospital/lab-criticos'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { nivelDeSigno, calcularNews2 } from '@/lib/hospital/news2'
 import { encuadrarNews2 } from '@/lib/hospital/news2-encuadre'
-import { textoOxigeno } from '@/lib/hospital/oxigeno'
+import { textoOxigeno, oxigenoSinDeclarar } from '@/lib/hospital/oxigeno'
 import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSignos'
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
+import { AlertasDelEpisodio } from '@/components/AlertasDelEpisodio'
+import { ESPECIALIDADES_INTERCONSULTA as ESPECIALIDADES_IC } from '@/lib/especialidades'
 import {
-  diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ESPECIALIDADES_IC, ROL_HOSPITAL_LABEL,
+  diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ROL_HOSPITAL_LABEL,
   type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
 } from '@/types/hospital'
 import { TIPO_NOTA_LABEL, type NotaMedica } from '@/types/expediente'
@@ -543,6 +545,25 @@ export default function EpisodioPage() {
         )
       })()}
 
+      {/*
+        LA BANDEJA QUE NADIE ABRÍA (REG-256).
+
+        `crearAlerta()` escribía en `hospital_alertas` —lab crítico, NEWS2,
+        interconsulta— y NINGUNA pantalla leía esa colección: `getAlertas()` y
+        `marcarAlertaLeida()` estaban escritas y sin un solo llamador.
+
+        Va ARRIBA de las pestañas a propósito: una alerta que hay que ir a
+        buscar en una pestaña no es una alerta.
+      */}
+      {clinicId && (
+        <AlertasDelEpisodio
+          clinicId={clinicId}
+          internamientoId={internamientoId}
+          cargar={getAlertas}
+          marcarLeida={marcarAlertaLeida}
+        />
+      )}
+
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
         {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['enfermeria', 'Enfermería'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
@@ -781,7 +802,7 @@ export default function EpisodioPage() {
             </div>
           )}
           {/* Gráficas de tendencia */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 10, marginBottom: 14 }}>
             <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="var(--red)" />
             <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3d5afe" />
             <GraficaSignos titulo="Frecuencia respiratoria" unidad="rpm" puntos={serie('fr')} normalMin={12} normalMax={20} color="var(--purple)" />
@@ -832,7 +853,27 @@ export default function EpisodioPage() {
                       «—» es «no se registró», que NO es lo mismo que aire ambiente:
                       por eso son etiquetas distintas.
                     */}
-                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }} title={textoOxigeno(s).ayuda}>{textoOxigeno(s).texto}</td>
+                    {/*
+                      OXÍGENO CON CIFRAS Y SIN DECLARAR (REG-258).
+
+                      `oxigenoSinDeclarar` existía —con su comentario y su
+                      NEEDS_CLINICAL_REVIEW— y no la llamaba nadie. Detecta la
+                      toma que trae flujo o FiO₂ **sin la casilla de «recibe O₂»**.
+
+                      Importa porque NEWS2 **suma 2 puntos** por oxígeno
+                      suplementario: sin la casilla, la puntuación sale más baja
+                      de lo que le toca, y NEWS2 es lo que dispara la escalada.
+
+                      No se deduce: deducir que un flujo registrado significa
+                      «recibe O₂» es una regla clínica y cambiaría el score. Se
+                      SEÑALA y decide el médico.
+                    */}
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }} title={oxigenoSinDeclarar(s) ? 'Hay flujo o FiO₂ registrados pero NO se marcó «recibe O₂ suplementario». NEWS2 suma 2 puntos por oxígeno: sin esa casilla la puntuación sale más baja de lo que le toca.' : textoOxigeno(s).ayuda}>
+                      {textoOxigeno(s).texto}
+                      {oxigenoSinDeclarar(s) && (
+                        <span style={{ color: 'var(--amber)', fontWeight: 700, marginLeft: 4 }} aria-label="oxígeno con cifras pero sin declarar">⚠</span>
+                      )}
+                    </td>
                     <td style={{ padding: '7px 10px' }}>{s.glucosa ?? '—'}</td>
                     <td style={{ padding: '7px 10px' }}>{s.dolor != null ? `${s.dolor}/10` : '—'}</td>
                     {puedeEnfermeria && !egresado && <td style={{ padding: '7px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -1456,7 +1497,15 @@ export default function EpisodioPage() {
           // Respaldo determinista: marca crítico por rango aunque no se haya marcado a mano.
           const resultados = resForm.filter(r => r.valor.trim()).map(r => ({ ...r, critico: r.critico || esCriticoLab(r.estudio, r.valor, r.unidad) }))
           try {
-            await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
+            const guardado = await cargarResultadosLab(clinicId, cargandoRes.id, resultados, ROL_HOSPITAL_LABEL[rol])
+            /*
+              Si la tarea de revisión no se creó, se DICE (REG-252). Callarlo
+              devolvería el bucle a la fuga que esto repara: el resultado
+              guardado, nadie asignado a mirarlo, y todo con aspecto correcto.
+            */
+            if (guardado.tareasCreadas < guardado.tareasEsperadas) {
+              toast('Los resultados se guardaron, pero no se creó la tarea de revisión: revísalos a mano.', 'error')
+            }
             const criticos = resultados.filter(r => r.critico)
             if (criticos.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO', detalle: criticos.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') })
             else await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'resultado', titulo: 'Resultado de laboratorio listo', detalle: cargandoRes.estudios.join(', ') })
@@ -1513,7 +1562,10 @@ export default function EpisodioPage() {
               `Este archivo no identifica al paciente. Los ${resultados.length} resultados se archivarán en el expediente de ${inter.pacienteNombre}. ¿Es correcto?`
             ))) return
             await crearSolicitudLab(clinicId, { clinicId, internamientoId, pacienteId: inter.pacienteId, pacienteNombre: inter.pacienteNombre, estudios: resultados.map(r => r.estudio), prioridad: 'rutina', solicitadaPor: 'Importación FHIR', fecha: new Date().toISOString() })
-              .then(async (id) => { await cargarResultadosLab(clinicId, id, resultados, 'FHIR'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
+              .then(async (id) => { const g = await cargarResultadosLab(clinicId, id, resultados, 'FHIR');
+                /* Igual que en la carga manual: una fuga silenciosa aquí es peor,
+                   porque nadie estaba mirando la pantalla cuando entró (REG-252). */
+                if (g.tareasCreadas < g.tareasEsperadas) toast('Resultados FHIR guardados, pero sin tarea de revisión: revísalos a mano.', 'error'); const crit = resultados.filter(r => r.critico); if (crit.length) await dispararAlerta({ internamientoId, pacienteNombre: inter.pacienteNombre, tipo: 'lab_critico', titulo: 'Valor de laboratorio CRÍTICO (FHIR)', detalle: crit.map(c => `${c.estudio}: ${c.valor} ${c.unidad ?? ''}`).join('; ') }) })
             toast(`Importados ${resultados.length} resultados`, 'success'); setModalImport(false); cargar()
           } catch { toast('FHIR inválido', 'error') } finally { setBusy(false) }
         }}>Importar</Button></>}>

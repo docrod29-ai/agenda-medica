@@ -40,8 +40,83 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
 
-## NUMERACIÓN (añadido 8-ago-2026)
 
-| # | Decisión | Recomendación | Bloqueado | Sigue sin ella |
-|---|---|---|---|---|
-| T-1b | **Colisión de REG-xxx y de `nexusmed-vNNNN` entre ramas en vuelo.** El 8-ago-2026 hay ~15 ramas de agente basadas en `main` (REG-191 · v1073) y **todas** reclaman REG-211 y v1093; alguna llega a REG-233 · v1115. El número sale de contar lo que hay en `main`, y `main` no se mueve hasta que el dueño fusiona | Renumerar **al fusionar**, en el orden en que se acepten, y no antes: cualquier número elegido hoy vuelve a colisionar mañana. Alternativa si molesta: reservar bloques por rama | Nada del trabajo clínico | Todo: cada rama trae su defecto reparado y sus compuertas en verde; sólo la etiqueta está por decidir |
+---
+
+## D-08 · ¿Se sube el sello a v4 para que cubra la transcripción de origen?
+
+**Estado**: pendiente · abierto el 6-ago-2026 (TRACE-001 / REG-199)
+
+**El hecho** — El sello v3 no cubre `transcripcionMotor`, que es el material de
+origen del que se re-proyecta la nota. La exclusión está documentada y tiene una
+razón sólida: añadirlo al canónico **cambiaría el hash de todas las notas ya
+firmadas** y las marcaría «alterada» de golpe — la falsa alarma que ya costó
+REG-060.
+
+**Lo que ya se hizo sin tocar nada** (v1080): la pantalla dejó de decir «cubre
+todo». Ahora declara qué queda fuera, con su nombre legible.
+
+**La decisión que es suya, no mía**
+
+| Opción | Qué implica |
+|---|---|
+| **Quedarse en v3** | El origen no va sellado. Se dice claramente. Cero riesgo. |
+| **Subir a v4** | El origen queda sellado en las notas NUEVAS. Las viejas conservan su sello v3 y se re-verifican con su propio algoritmo (ya está soportado). Coste: una migración y un periodo con dos versiones vivas. |
+
+**Lo que NO se hará sin su palabra** — Tocar el hash. Es irreversible sobre
+documentos firmados con su cédula, y ninguna mejora de trazabilidad justifica
+marcar como alteradas notas que están intactas.
+
+## CLÍNICA/LEGAL · Cuánto tiempo se conserva el audio de la consulta
+
+**Estado**: el Dr. autorizó **conservarlo** («conserva el audio», 8-ago-2026). Lo
+que falta es el **periodo**.
+
+**Por qué se pregunta y no se asume.** El audio de una consulta es dato de salud.
+El código no lleva ningún periodo escrito a mano justamente para que la respuesta
+sea suya y no un supuesto mío enterrado en una constante.
+
+**Lo que ya es cierto hoy**: el audio vive en `consultas-audio/{uid}/`, sólo lo
+lee su dueño (regla de Storage), y en el expediente se guarda **la ruta**, nunca
+la URL de descarga —que llevaría un token dentro—.
+
+**Recomendación por defecto** (si no decide otra cosa, no se implementa nada:
+el audio simplemente se queda): alinear la retención con la del expediente en
+NOM-004 y borrar automáticamente al vencer. Eso exige una tarea de limpieza y
+**su confirmación del plazo**.
+
+**Alternativas**: (a) conservarlo indefinidamente; (b) borrarlo al firmar la nota
+—se pierde el clic-a-audio, que es justo lo que él pidió—; (c) un plazo fijo.
+
+**Qué queda bloqueado sin la respuesta**: nada del clic-a-audio. Sólo la tarea de
+borrado automático.
+
+**Qué cuesta responder**: una frase.
+
+## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho
+
+**Encontrado por el instrumento de REG-255** (`validarCorreccion`, 18 líneas de
+cuerpo real, sin llamador). **No es un defecto de software**: la función exige
+una política como parámetro **obligatorio**, y `POLITICA_CORRECCION` nace en
+`null` a propósito. Su propio comentario lo dice: *«la única forma de usar esta
+función es que alguien haya decidido Q2-Q4 y lo haya escrito»*.
+
+Sin su respuesta, **corregir una toma de signos o una administración ya
+registrada no está habilitado**. El motor está escrito y probado.
+
+Cuatro preguntas, y con las cuatro queda conectado:
+
+1. **¿Quién puede corregir?** (roles: médico, enfermería, farmacia,
+   laboratorio, administración)
+2. **¿Quién puede ANULAR una administración de medicamento?** Es aparte porque
+   anular una administración borra la constancia de que algo se dio.
+3. **¿Cuántas horas después del evento se admite corregir?** ¿Y se admite
+   corregir en un episodio ya egresado?
+4. **¿El motivo escrito es obligatorio?**
+
+**Por qué no lo decido yo.** Es política de registro clínico con peso
+NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
+«razonable» y enterrarlo en una constante sería exactamente lo que este proyecto
+no hace.
+
+**Qué cuesta responder**: cuatro frases.

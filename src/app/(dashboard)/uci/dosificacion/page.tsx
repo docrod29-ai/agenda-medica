@@ -225,7 +225,7 @@ function Consultar({ firmas }: { firmas: Record<string, FirmaValidacion> }) {
         padding: 10, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--s2)',
       }}>{POR_QUE_NO_CALCULA}</p>
 
-      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(min(190px, 100%), 1fr))' }}>
         <Campo etiqueta="Fármaco">
           <input
             className="input" list="farmacos-dosis" value={campos.farmaco}
@@ -556,7 +556,7 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
                 onClick={onValidar}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-                  borderRadius: 7, border: 'none', background: 'var(--teal)', color: '#fff',
+                  borderRadius: 7, border: 'none', background: 'var(--nexus-solido)', color: '#fff',
                   cursor: 'pointer', fontSize: 13, fontWeight: 600,
                 }}
               ><CheckCircle2 size={14} /> Validar esta regla</button>

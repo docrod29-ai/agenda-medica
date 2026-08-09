@@ -1,5 +1,5 @@
 /**
- * ── LA CMI CENSURADA NO SE LEE COMO EXACTA (REG-211) ─────────────────────────
+ * ── LA CMI CENSURADA NO SE LEE COMO EXACTA (REG-271) ─────────────────────────
  *
  * QUÉ FALLABA
  * -----------
