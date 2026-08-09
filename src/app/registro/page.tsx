@@ -262,10 +262,11 @@ function RegistroInner() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Nombre */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+              <label htmlFor="reg-tu-nombre-completo" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
                 Tu nombre completo
               </label>
               <input
+                id="reg-tu-nombre-completo"
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
                 placeholder="Dr. Juan García"
@@ -282,10 +283,11 @@ function RegistroInner() {
 
             {/* Email */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+              <label htmlFor="reg-correo-electronico" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
                 Correo electrónico
               </label>
               <input
+                id="reg-correo-electronico"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -302,11 +304,12 @@ function RegistroInner() {
 
             {/* Password */}
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
+              <label htmlFor="reg-contrasena" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
                 Contraseña
               </label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="reg-contrasena"
                   type={showPwd ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -322,6 +325,8 @@ function RegistroInner() {
                 <button
                   type="button"
                   onClick={() => setShowPwd(s => !s)}
+                  /* Sin esto el lector de pantalla sólo dice «botón». */
+                  aria-label={showPwd ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
                   style={{
                     position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',

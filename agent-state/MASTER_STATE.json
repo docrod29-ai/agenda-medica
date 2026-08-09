@@ -1,30 +1,88 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "modo": "autonomo-sin-despliegue",
+  "modo": "autonomo-con-despliegue",
   "autorizaciones": {
     "abrirPR": true,
     "pushDeRama": true,
-    "desplegarAProduccion": false,
-    "fusionarAMain": false,
+    "desplegarAProduccion": true,
+    "fusionarAMain": true,
     "datosRealesDePacientes": false,
-    "cambiosDestructivos": false
+    "cambiosDestructivos": false,
+    "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "SAFE-003/REG-218 v1100 (cerrada, PR #259 con revision incorporada). Antes: REG-192 v1074, ya fusionado a main.",
+  "iteracionActual": "SAFE-003/REG-276 v1152 (cerrada, PR #259, revision incorporada)",
   "ramasActivas": [
-    "agent/expediente/TEMP-192",
+    "agent/pagos/PAY-001 (esta sesión, la que despliega)",
     "agent/safety/SAFE-006-stopbang-negacion"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1100",
-  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnProduccion": "nexusmed-v1152",
+  "trabajoLocalSinSubir": [
+    "A  .claude/agents/design-systems-lead.md",
+    "A  .claude/agents/patient-experience-lead.md",
+    "A  .claude/rules/design-system.md",
+    "A  .claude/rules/patient-facing-ai.md",
+    "A  .claude/skills/v9/SKILL.md",
+    "UU agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "A  agent-state/DESIGN_STATE.md",
+    "A  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "A  agent-state/LOOP-GRABACION-PERFECTA.md",
+    "A  agent-state/LOOP-SUPERARLOS.md",
+    "UU agent-state/MASTER_STATE.json",
+    "M  agent-state/OWNER_DECISIONS_REQUIRED.md",
+    "A  agent-state/PATIENT_COMPANION_STATE.md",
+    "A  agent-state/RECONCILIACION-V9-2026-08-08.md",
+    "A  agent-state/V7-ITERACION.md",
+    "M  docs/COMPETITIVE_ANALYSIS.md",
+    "A  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "A  docs/architecture/DIRECCION-DE-DEPENDENCIAS.md",
+    "UU docs/audit/regression-ledger.md"
+  ],
+  "actualizado": "2026-08-09",
+  "resumenDesdeElUltimoEstado": {
+    "versionesDesplegadas": "v1085 → v1096",
+    "regsCerradas": "REG-204 … REG-214",
+    "pruebas": 7383,
+    "lint": "96 (techo)",
+    "nota": "El tablero volvió a quedarse atrás: decía v1084 mientras producción iba en v1096. Es la segunda vez. La causa no es descuido: es que actualizarlo depende de que yo me acuerde. Mientras no lo derive un script, va a volver a pasar."
+  },
+  "ramasDeLaRutinaSinRevisar": [
+    "agent/expediente/REG-192 — negación",
+    "agent/voice/VOICE-005 — negación, muletilla en medio",
+    "agent/eval/EVAL-002-corpus-temporalidad — temporalidad"
+  ],
+  "seccionesDelCharterCerradas": [
+    "§4.1",
+    "§5.1",
+    "§18",
+    "§24",
+    "§B5",
+    "§B6",
+    "§B8",
+    "§B10",
+    "§H6",
+    "§H7",
+    "§N3"
+  ],
+  "loQueSigueBloqueadoEnElDueno": [
+    "Titularidad del código a nombre de una sociedad — bloqueo nº1 de la sala de datos",
+    "Requisitos legales de la receta impresa",
+    "STRIPE_WEBHOOK_SECRET en Vercel",
+    "OPS_ALERTA_WEBHOOK para las alertas de operación"
+  ],
+  "ramaActual": "agent/safety/SAFE-006-stopbang-negacion",
+  "derivado": {
+    "regsEnElLedger": 118,
+    "ultimaREG": "REG-276",
+    "archivosDePrueba": 549,
+    "casosDePrueba": 7274,
+    "lint": "ver scripts/lint-trinquete.mjs"
+  },
+  "ultimaVersionEnRama": "nexusmed-v1152",
   "notasDeEstado": [
-    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
-    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
-    "REG-218/v1100: el numero NO se tomo de main. Otra sesion renumero la rama (7e60e57) repartiendo la secuencia por numero de PR desde el ultimo cerrado en main (REG-192/v1074); verificado que ese commit solo cambia identificadores y ni una linea de logica.",
-    "La revision independiente del PR #259 encontro una REGRESION de la propia reparacion: mirar una sola aparicion congelaba el flag y «Niega presion alta. Hipertension en tratamiento» dejaba de puntuar al hipertenso documentado. Reparado; el golden lo fija y se pone rojo contra la v1.",
-    "ops-timeout-y-punto-ciego OSCILA en este contenedor: una corrida entera paso 6950/6950 y la siguiente volvio a fallarlo. Es la red del sandbox; en CI pasa."
+    "RENUMERADO DOS VECES. Otra sesion bajo esta rama a REG-218/v1100 repartiendo por numero de PR desde main; main avanzo despues y REG-218/v1100 quedaron TOMADOS alli por un arreglo ajeno (el del iPhone). Medido de nuevo sobre las 50 ramas vivas: REG-276 / v1152. Leccion: renumerar contra main solo vale mientras main no se mueva.",
+    "CI NO se dispara cuando el PR esta en conflicto con main: los workflows de `pull_request` corren sobre el merge ref, y GitHub no puede calcularlo si la rama esta 'dirty'. Por eso los pushes 7e60e57 y 4924c4f no generaron ninguna corrida mientras otras ramas si corrian. Se arregla fusionando main; conviene mirarlo en cualquier PR que lleve rato sin checks."
   ]
 }

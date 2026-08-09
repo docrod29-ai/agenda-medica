@@ -118,7 +118,7 @@ const WHATSAPP_MESSAGES = [
 /* ─── Components ────────────────────────────────────────── */
 function Nav() {
   return (
-    <nav style={{
+    <nav className="nav-portada" style={{
       position: 'sticky', top: 0, zIndex: 100,
       background: 'rgba(11,12,14,0.78)', backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
@@ -141,7 +141,7 @@ function Nav() {
             <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
           </svg>
         </div>
-        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
+        <span className="nav-portada-marca" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -275,7 +275,7 @@ function Features() {
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24,
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 24,
       }}>
         {FEATURES.map(f => (
           <div key={f.title} style={{
@@ -403,7 +403,7 @@ function HowItWorks() {
       </div>
 
       <div style={{ maxWidth: 1100, margin: '48px auto 0', display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus, #3d5afe)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
+        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
           Ver cómo razona la IA en vivo →
         </Link>
         <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>
@@ -435,7 +435,7 @@ function Pricing() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 24 }}>
         {PLANS.map(p => (
           <div key={p.name} style={{
             background: p.highlight ? 'rgba(61,90,254,0.05)' : 'var(--s1)',
@@ -446,7 +446,7 @@ function Pricing() {
             {p.highlight && (
               <div style={{
                 position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-                background: 'var(--teal)', color: '#000', fontSize: 12, fontWeight: 700,
+                background: 'var(--nexus-solido)', color: '#fff', fontSize: 12, fontWeight: 700,
                 padding: '4px 16px', borderRadius: 'var(--r-pill)',
               }}>
                 MÁS POPULAR
@@ -596,7 +596,7 @@ function FinalCTA() {
       </p>
       <Link href="/registro" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'var(--teal)', color: '#000', fontWeight: 700,
+        background: 'var(--nexus-solido)', color: '#fff', fontWeight: 700,
         fontSize: 18, padding: '16px 36px', borderRadius: 14,
         textDecoration: 'none',
       }}>

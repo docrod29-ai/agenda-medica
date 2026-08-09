@@ -163,9 +163,22 @@ describe('ESTÁ CONECTADO — por los DOS caminos', () => {
   })
 
   it('el hook manda el contexto por los dos caminos', () => {
+    /**
+     * ── SE COMPRUEBA LA INTENCIÓN, NO EL PARÉNTESIS ─────────────────────────
+     *
+     * La primera versión clavaba la firma ENTERA, cierre incluido. Al añadir un
+     * quinto argumento en REG-249 —la clave con la que se nombra el audio
+     * guardado— la prueba se puso roja sin que el contexto hubiera dejado de
+     * viajar ni un momento.
+     *
+     * Lo que esta prueba protege es que el contexto del paciente llegue por los
+     * DOS caminos; cuántos argumentos más lleve la llamada no es su asunto. Una
+     * prueba que se rompe con cada añadido enseña a editarla sin leerla, y
+     * entonces deja de proteger lo que decía proteger.
+     */
     const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
-    expect(hook).toMatch(/intentarDiarizar\(blob, ext, duracionRef\.current, contextoRef\.current\)/)
-    expect(hook).toMatch(/intentarDiarizarLargo\(blob, ext, recoveryKeyRef\.current, duracionRef\.current, contextoRef\.current\)/)
+    expect(hook).toMatch(/intentarDiarizar\(blob, ext, duracionRef\.current, contextoRef\.current[,)]/)
+    expect(hook).toMatch(/intentarDiarizarLargo\(blob, ext, recoveryKeyRef\.current, duracionRef\.current, contextoRef\.current[,)]/)
   })
 
   it('y la consulta aporta fármacos, diagnósticos y ALERGIAS', () => {

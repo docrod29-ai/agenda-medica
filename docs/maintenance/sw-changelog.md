@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1100 — REG-218: lo que el paciente NIEGA puntuaba en STOP-BANG
+## v1152 — REG-276: lo que el paciente NIEGA puntuaba en STOP-BANG
 
 Los cuatro ítems que se preguntan de viva voz —ronquido, somnolencia diurna,
 apneas presenciadas e hipertensión— se marcaban con sólo mencionar el término.
@@ -27,19 +27,172 @@ Y «pero» cierra la cláusula negativa igual que el punto.
 Lo que sigue sin cubrirse, declarado con su prueba: el interrogatorio en formato
 pregunta-respuesta («¿Ronca fuerte? No.»), que falla igual en main.
 ## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
+## v1084 — REG-203: las decisiones de arquitectura vivían en la cabeza de nadie
 
-Los dos motores que contrastan el dictado contra la nota —negaciones y
-temporalidad— miraban **la primera** aparición del término y sólo ésa. Si venía
-escudada («niega diabetes», «antecedente de neumonía»), la condición se
-descartaba entera.
+`docs/decisions/` estaba vacía. Cuatro ADR escritos, todos de decisiones YA
+tomadas: una fuente de verdad por entidad clínica, el LLM no calcula, el sello
+tiene versión, tres niveles de aviso.
 
-Que es la forma de una nota bien estructurada: el antecedente correcto arriba, la
-impresión diagnóstica equivocada abajo. Y la de abajo es la que cambia la
-conducta de hoy y viaja a la nota siguiente.
+Las tres reglas que los hacen útiles: se escriben las alternativas descartadas
+(un ADR sin ellas documenta un hecho consumado, no una decisión), se escriben
+las consecuencias NEGATIVAS (callarlas hace que el coste parezca un defecto), y
+una decisión clínica del médico NO es un ADR.
 
-Ahora se recorren todas las apariciones. La ventana de 60 caracteres no cambia:
-cada mención se juzga con el mismo criterio, así que esto sólo puede señalar más
-de lo que señalaba. El criterio vive en un módulo, no en dos copias.
+Guardián de 28 casos que verifica que lo citado exista y que ninguno fije un
+umbral clínico disfrazado de decisión de arquitectura.
+
+## v1083 — REG-202: la sala de datos del §N3, y el guardián que me cazó inflando
+
+`docs/data-room/` estaba vacía. Ahora tiene el índice con ocho secciones, cada
+una marcada VERIFICADO / PARCIAL / NO EXISTE / DEL DUEÑO.
+
+EL GUARDIÁN ME CAZÓ DOS VECES, y eso es lo que vale contar:
+
+1. Escribí «49 REG» cuando eran 48 — una cifra inflada, sin querer, en el
+   documento cuya primera línea dice «nada de tracción falsa».
+2. Al añadir mis propias pruebas, el sello creció y el documento quedó
+   desfasado EN EL ACTO. No fue descuido: es estructural. Un documento con
+   cifras tecleadas miente el día que el repositorio crece.
+
+Por eso las cifras ahora se DERIVAN (`scripts/data-room/actualizar-cifras.mjs`).
+Y lo que no puede derivar —el total de pruebas— lo avisa en vez de adivinarlo.
+
+Declarado como inexistente en vez de callado: pentest externo NO realizado,
+métricas de negocio no existen, sin validación clínica formal.
+
+## v1082 — REG-201: el §18 del charter existía como carpeta vacía
+
+`docs/clinical-safety/` estaba con CERO archivos, junto con otras ocho carpetas
+del §4.1. El patrón «escrito y sin conectar», aplicado a la documentación.
+
+Ahora tiene diez peligros en el formato del charter, y ninguno es hipotético:
+los diez ocurrieron de verdad y citan su REG.
+
+Lo que NO se hizo a propósito: la probabilidad no se estima (se registra cuántas
+veces ocurrió), y ninguna aprobación se marca — aceptar un riesgo clínico
+residual es del médico, no del sistema que lo produce.
+
+Guardián de 108 casos que comprueba que los archivos de prueba citados EXISTAN:
+un registro que cita una prueba renombrada declara un control que no está.
+
+## v1081 — REG-200: el motor de temporalidad se comía diez formas de «ya pasó»
+
+Del backlog del Master Loop (EVAL-002). Existía el motor y estaba probado, pero
+no había corpus con la respuesta correcta escrita — sin eso no se puede decir si
+mejora o empeora.
+
+Medido sobre habla de consulta mexicana: **16 de 26**. Los diez fallos, todos
+pasado no detectado; cero falsos positivos. Se le escapaban «le dio hepatitis»,
+«había tenido», «fue diagnosticada», «ya no toma», «dejó de», «salió del
+hospital», «antes fumaba», «solía tener».
+
+Ampliado: **30 de 30, sin falsos positivos.**
+
+«Ya no toma metformina» leído como vigente deja un fármaco fantasma en la lista
+contra la que se cruzan alergias e interacciones.
+
+## v1080 — REG-199: el sello decía «cubre todo» y el módulo sabía que no
+
+Del backlog del Master Loop (TRACE-001). El hallazgo era medio falso: el módulo
+YA documentaba que `transcripcionMotor` queda fuera, con su razón (REG-060).
+
+Lo que sí mentía era la PANTALLA: `noCubre: []` y `cubreTodo` derivado de «¿es la
+última versión?». Al médico se le decía que el sello cubre el contenido íntegro.
+
+Reparado SIN tocar el hash. Subir a v4 exige migración y queda como decisión del
+dueño (D-08).
+
+## v1079 — REG-198: «Quitar de la nota» no quitaba nada de la nota
+
+Del backlog del Master Loop V7 (UX-001, score 70 — el pendiente de mayor
+prioridad por la fórmula del charter).
+
+El botón sacaba el id de `aprobados`, que sólo se guarda como metadato. Ni una
+línea de la nota cambiaba: el médico veía un diagnóstico mal extraído, pulsaba
+«Quitar de la nota», el renglón se tachaba… y el diagnóstico seguía en la nota
+que firmaba.
+
+Un control que miente sobre lo que hizo es peor que no tenerlo.
+
+Ahora quita de verdad, con punto de deshacer. Las alergias quedan fuera a
+propósito: viven en el expediente, no en la nota.
+
+## v1078 — REG-197: el arnés no cazaba la alucinación que importa
+
+Medido con el propio motor: de tres alucinaciones clínicas, dos pasaban
+invisibles — y las dos eran las peligrosas. La alucinación real casi nunca es un
+texto entero inventado: es un texto correcto con dos palabras de más.
+
+Tres causas: `some()` en vez de proporción (bastaba UNA palabra compartida para
+absolver todo el valor); los campos esperados no se revisaban por contenido
+añadido; y `v.includes(ov)` absolvía cuando significa lo contrario.
+
+Un arnés que sólo caza lo fácil mide la tranquilidad, no el riesgo — y es el
+instrumento con el que se juzga si la IA mejora.
+
+## v1077 — REG-196 (P0): «Nota de Primera Vez» con formato SOAP
+
+Dos causas. (1) De los TRECE tipos de nota, `primera_vez` y `alta_consulta` no
+tenían NINGUNA instrucción de formato en el prompt — y sin una, el modelo
+escribe la que le sale, que en documentación médica es SOAP. No bastaba con no
+pedirle SOAP: hay que pedirle lo suyo y prohibirle lo ajeno.
+
+(2) Al reprocesar sin cambiar de tipo, la base eran las secciones que YA HABÍA en
+memoria. Una clave de otro tipo, una vez dentro, no salía nunca.
+
+`seccionesDelTipo()` devuelve exactamente las del tipo conservando lo escrito. Lo
+que no encaja se devuelve aparte: NO se borra.
+
+Un guardián recorre los trece tipos y falla si alguno queda sin formato.
+
+## v1076 — REG-195 (P0): un diálogo le borró el plan de una nota real
+
+«Tengo el plan hecho, borro medicamentos y me borras el plan de la nota.»
+
+Al firmar, si la IA había marcado líneas con `[IA — no dictado]`, salía un
+diálogo con «Quitarlas y firmar». **El plan es justamente lo que la IA redacta**:
+el médico no lo dicta palabra por palabra.
+
+Fallaba en las TRES mitades: no decía QUÉ quitaba («3 líneas»), no se podía
+deshacer, y «Quitarlas y firmar» NO firmaba. Juntas: se pierde una nota entera
+sin un solo error en pantalla.
+
+Ahora enseña las líneas con su sección delante, guarda un punto de deshacer, y
+el botón dice sólo «Quitarlas».
+
+También REG-194: la regla «el LLM no calcula» regía sólo en UCI; fuera se le
+pedían mg/kg, percentiles y Holliday-Segar.
+
+## v1075 — REG-193: la fecha de próxima consulta se perdía al recargar
+
+`proximoSeguimiento` sólo se persistía al FIRMAR. No estaba en el respaldo
+local, ni en sus deps, ni en la condición «¿hay algo que guardar?» de ninguna de
+las dos redes.
+
+Teclearla y recargar la borraba. Y si era lo único escrito —una consulta de
+control de dos minutos— el sistema decidía que no había nada que guardar.
+
+Alimenta la tarea «agendar el seguimiento» y el contador de seguimientos
+vencidos: un paciente al que se le pierde la fecha no reaparece en ninguna
+lista. No hay error, no hay aviso: simplemente no vuelve.
+
+## v1074 — REG-192: cómo se dice que no en una consulta
+
+Medido con el motor real: de siete formas de negar, cazaba UNA. «Pues no»,
+«Fíjese que no», «Tampoco», «Diabetes no» y hasta «— No.» a secas se perdían,
+porque el motor exigía que la respuesta EMPEZARA por «no» y delante viene la
+marca de turno o una muletilla.
+
+Cada una era una enfermedad que el paciente negó y que la nota podía afirmar sin
+que nadie avisara.
+
+Y `parser-clinico.ts` tenía una segunda lista más pobre: «No padece diabetes»
+entraba como antecedente POSITIVO y contaminaba el STOP-BANG de la preoperatoria.
+
+LA TRAMPA: al quitar el guion, «— No sé» se vuelve «no sé» y contaría como
+negación. La guarda falló a la primera con `\bs[eé]\b` — en JavaScript `\w` es
+ASCII, así que «é» no cierra palabra y `\b` no encuentra límite. Cazaba «no se»
+y fallaba con «no sé», que es la forma que se escribe.
 
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
@@ -1953,3 +2106,535 @@ que llegara el webhook, el efecto fallaba, la marca se retiraba y Stripe
 reintentaba durante tres días — escribiendo un cobro nuevo cada vez. Ahora el
 identificador es `stripe_{session.id}`: reintentar es reescribir el mismo
 documento. REG-153.
+
+## v1085 — la puerta de liberación del §H6
+REG-204. Los nueve ceros que bloquean una liberación (paciente equivocado, error
+de medicación/unidad/negación silencioso, cita fabricada, orden no confirmada,
+acceso entre consultorios, pérdida de datos, pago duplicado) vivían sólo en el
+charter. Ahora están en `docs/evals/PUERTA-DE-LIBERACION.md` con su prueba, y un
+guardián de 15 casos comprueba que ninguna desaparezca. Los nueve ya tenían
+cobertura; **dos quedan declarados DÉBILES** —paciente equivocado y aislamiento
+entre consultorios— en vez de pintarlos de verde.
+
+## v1086 — de qué se enferma este sistema
+REG-205. Los 53 REG del ledger, contados por familia de causa raíz. La más
+grande —**«escrito, probado y sin conectar», 9 de 53**— confirma con número lo
+que ya se sospechaba: el módulo estaba bien, sus pruebas pasaban, y no corría
+donde tenía que correr. La taxonomía es CÓDIGO (`src/lib/calidad/`) y un
+guardián falla si un REG se queda sin familia. El guardián de huérfanos cazó, al
+escribirlo, el módulo que documenta esa misma familia.
+
+## v1087 — la arquitectura, medida en vez de dibujada
+REG-206. Grafo de imports real sobre 734 archivos: **0 dependencias invertidas,
+0 ciclos, 0 módulos de lib atados a una pantalla**. La grieta encontrada era
+`types/`, que no era hoja: cerrada la de `hospital.ts` (un alias con un solo
+consumidor), declarada la de `clinical-quantity.ts` (vive en la capa equivocada;
+moverlo se decide, no se cuela). Guardián de 8 casos: el valor no es certificar
+el cero, es que quien lo rompa se entere en su PR.
+
+## v1088 — el foso, sin inventar competidores
+REG-207. El guardián de afirmaciones vigilaba la landing y NO `docs/`, que es lo
+que lee un comprador en diligencia. Al extenderlo salieron **seis afirmaciones
+sobre terceros sin una sola fuente** («Nadie con esa granularidad», «Casi nadie
+en EHR cloud») bajo una columna titulada «Por qué somos superiores». Documento
+nuevo que separa lo que ES foso de lo que NO lo es. Y el guardián me cazó dos
+veces: al citar las frases para denunciarlas, y al impedirme declarar un hueco
+propio — la misma lección de v1083.
+
+## v1089 — el camino del médico, y el instrumento que estaba ciego
+REG-208. Documento de producto: los 7 pasos del paciente a la nota firmada, con
+una prueba que RECORRE el camino desde `src/app/`. Al encenderlo dijo «87
+módulos fuera»; era falso. El lector tenía cuatro cegueras (import type,
+import() dinámico, rutas relativas, comentarios leídos como código) y la última
+casi hace declarar desconectado el motor de inmunocomprometido, que sí corre.
+Real: 471 alcanzables, 29 no, 26 ya declarados. Trinquete en 29.
+
+## v1090 — «dos coma cinco miligramos» se leía como 2 mg
+REG-209. Benchmark del §B5 (números y unidades críticas): de 20 formas reales de
+dictar una cifra en México, el pipeline resolvía 14. Las dos peligrosas no
+perdían el dato — lo reducían a un valor plausible: «dos coma cinco miligramos»
+→ 2 mg, «un gramo y medio» → 1 g. La coma es el separador decimal mexicano.
+Reparado, con «media hora» y «dos veces y media» probadas intactas.
+
+## v1091 — «mi mamá tuvo cáncer» ya no queda como antecedente del paciente
+REG-210. El tercer eje del §B8: ¿a quién le pasó? Motor determinista sobre
+posesivos y parentescos (incluidas las formas coloquiales), regla 19-ter del
+prompt, y aviso conectado a la barra con nivel «revisa». La trampa que volvió a
+costar: en JavaScript `\b` no funciona detrás de «mamá» — el motor reconocía «mi
+abuela» y NO «mi mamá». Corpus oro de 25 casos.
+
+## v1092 — una duda no es un diagnóstico, y el `\b` que falló tres veces
+REG-211. Cuarto eje del §B6: «creo que me dijeron que tenía anemia» ya no puede
+quedar como «Anemia». Cuatro matices (duda, posibilidad, referido, aproximado) y
+la salvedad de la constancia. Y por fin un GUARDIÁN para el fallo del límite de
+palabra tras acento — que ya había costado en «no sé», «mamá» y «quizá», y que
+cazó tres más en el acto: «a mí», «me salió», «padecí».
+
+## v1093 — el sello pedía la ruta completa
+Corrección de v1092: cité el corpus nuevo sin `src/__tests__/` delante y el
+guardián del sello lo marcó como archivo sellado que ninguna fuente reclama.
+Desplegué con esa prueba en rojo; queda anotado porque el fallo fue mío, no del
+guardián.
+
+## v1094 — cada motor acertaba solo, y juntos mentían
+REG-212. Los cuatro ejes tenían su corpus; nadie había probado si se estorban.
+«Yo no tengo diabetes PERO mi mamá sí» se atribuía entera al familiar: se perdía
+que el paciente la niega y que la mamá sí la tiene. Y «…, creo» al final no
+contaba como duda. El defecto vive en la COMPOSICIÓN, que sólo se ve midiéndola.
+
+## v1095 — SUP-001: de dónde salió cada frase de la nota
+REG-213. Cierra la distancia más grande frente a Abridge y el §B10 propio. Cada
+afirmación se enlaza al fragmento del dictado que la sostiene; lo que ninguno
+sostiene se declara con las palabras que nadie dijo. El hallazgo caro fue el
+falso positivo: «cefalea» ← «dolor de cabeza» se marcaba como invención.
+
+## v1096 — P0: la alergia estructurada no llegaba a la compuerta de firma
+REG-214. Paciente con penicilina SÓLO en el campo estructurado + cefalexina: la
+pantalla pintaba la alergia en rojo y la compuerta devolvía CERO errores. El
+betalactámico se firmaba sobre un alérgico con el aviso a la vista. Lo encontró
+la rutina autónoma; su diagnóstico era correcto y su reparación no (usaba el
+lector que devuelve texto plano, no objetos). Verificado antes de traerlo.
+
+## v1097 — §F3: el paciente decía «ya lo dejé» y la lista seguía igual
+REG-215. Reconciliación de medicamentos. De la lista vigente cuelgan el cruce de
+interacciones, el de alergias, el motor de dosis y la receta: desactualizada, es
+un motor de seguridad razonando sobre un paciente que no existe. NO corrige
+sola — abre una tarea con dueño (§C3). Tres filtros para no llenar el worklist:
+familiar, duda, y lo que el médico receta hoy.
+
+## v1098 — CRON_SECRET puesto: los cinco trabajos automáticos pueden correr
+El Dr. configuró `CRON_SECRET` en Vercel. Las cinco rutas de cron estaban
+cerradas (fail-closed) desde siempre por falta de esa variable: los recordatorios
+de cita por WhatsApp NUNCA salieron solos, y el barrido de audios viejos nunca
+corrió. Este despliegue es para que producción tome la variable.
+
+## v1099 — la nota hueca y los 19 diagnósticos
+REG-216 y REG-217, los dos reportados con captura. (1) Los diagnósticos se
+concatenaban en cada pase en vivo —~40 por consulta— y el dedupe ignoraba el
+CIE-10; ahora se sustituye lo de la IA y se conserva lo del médico. (2) La regla
+15 del prompt ORDENABA escribir «No referido» y la 1-bis lo prohíbe: la primera
+pasada en vivo congelaba la nota hueca, y hueca PASABA la compuerta de firma.
+
+## v1152 — «Algo se atoró en esta pantalla»
+REG-276. Tres huecos que producen ese síntoma: la guarda estaba en 1 de 4 campos
+al cargar la nota; `Array.isArray` validaba el contenedor y no los elementos; y
+para el error más probable en un celular —un trozo de la app que no cargó—
+«Reintentar» NO podía funcionar. Ahora ese caso se reconoce, se registra aparte
+y el botón principal recarga. Regla: restaurar nunca debe tumbar la pantalla.
+
+## v1101 — §D1: el antibiótico de hace un mes seguía «vigente»
+REG-219. Nadie comparaba la duración con el calendario: «7 días» prescrito hace
+un mes seguía alimentando el cruce de interacciones y el motor de dosis. Ahora
+abre tarea de reconciliación — NO se marca terminado solo (§D1). Lo crónico no
+caduca, hay margen de gracia, y ante la duda se calla.
+
+## v1102 — el inicio de consulta: una línea en vez de doce controles
+Diez botones de tipo de nota en dos filas + un desplegable de especialidad con su
+etiqueta y su explicación pasan a ser UNA línea: «Nota de Primera Vez ·
+Infectología ✎». Los diez siguen ahí —el Dr. dijo que los usa todos— pero detrás
+del lápiz. El distintivo «Nota en vivo» sólo se enciende cuando de verdad está
+escribiendo. Objetivo de toque de 44 px, medido en navegador.
+
+## v1103 — la barra que no se va: el micrófono a la mano y las palabras saliendo
+Pedido del Dr. con sus palabras: «el micrófono es en el celular, EN LA
+COMPUTADORA» y «así como cuando te dictan a ti, que se vaya escribiendo».
+Barra pegajosa mientras se graba: pausar/terminar siempre al alcance, NIVEL DE
+VOZ moviéndose (la única prueba en vivo de que capta — un contador sigue
+corriendo con el micrófono silenciado), tiempo, y las últimas palabras oídas.
+
+## v1104 — la portada no cabía en un teléfono, y el blanco no se leía sobre el azul
+Tres defectos medidos con un navegador en un iPhone de 390 px, no leyendo código.
+(1) La barra de la portada pedía 417 px: el BOTÓN DE REGISTRO salía cortado por
+el borde y la página entera se movía de lado. (2) 41 rejillas con
+minmax(Npx, 1fr) — suelo que no baja ni en una pantalla de 320. (3) --nexus se
+aclaró para servir de TEXTO (5,96) y se seguía usando de RELLENO bajo texto
+blanco, donde da 3,28 y AA pide 4,5: 68 usos de .btn-primary + 26 en línea.
+Nace --nexus-solido (#3D5AFE, el azul del logotipo, 5,13). El tema claro nunca
+lo tuvo. Guardián: la-pantalla-cabe-en-un-telefono.test.ts.
+
+## v1105 — la consola del dueño tenía la puerta abierta
+/superadmin y sus ocho secciones viven fuera de (dashboard), que es donde está
+el único guardián de sesión del proyecto (no hay middleware.ts). Sólo `costos`
+traía comprobación propia; las otras ocho abrían sin sesión. Los DATOS estaban
+bien —las rutas /api/superadmin/* verifican el token—, así que lo que se
+filtraba era el mapa de la consola, no expedientes. Un layout.tsx cubre la
+carpeta entera, incluidas las rutas que aún no existen.
+
+## v1106 — un antibiótico se convertía en otro; la receta se llenaba de antecedentes
+Tres quejas del Dr., las tres reales, las tres reproducidas.
+(1) P0 — «me estás confundiendo antibióticos»: «Le doy azitro micina» salía
+«Le roxitromicina», «cefa lotina» salía «cefazolina» SIEMPRE, con cero avisos.
+El corrector se tragaba el verbo de delante y buscaba por parecido entre 6 117
+términos, 4 053 de ellos en inglés. Regla nueva: un antimicrobiano sólo se
+acepta si coincide EXACTO (REG-220).
+(2) «la receta es cuando ya te estén diciendo el plan»: procedenciaClinica
+existía en el tipo, el prompt y una prueba sellada — y z.object la borraba en la
+lista plana. Además la lista acumulaba de los ~40 pases en vivo (REG-221).
+(3) «esto tiene que salir a fuerzas?»: el aviso marcado no-print desaparecía al
+Imprimir y salía impreso en el PDF (REG-222).
+
+## v1107 — la grabación se moría a los 7 min 30 s
+Causa: a 64 kbps, 3,6 MB son exactamente 450 s. Ahí el audio cambia al camino
+«grande» (subir a Storage + diarizar por URL), y la regla decía
+`allow read: if false` — `getDownloadURL()` fallaba en el primer segundo. Misma
+causa raíz que v245 en el otro bucket. Igual en iPhone que en computadora porque
+es aritmética de bytes. +3 daños colaterales: el motivo mentía («tiempo
+agotado» por un permiso denegado), el texto en vivo se tiraba cuando era lo
+único que quedaba, y la recuperación siempre tomaba el camino roto (REG-225).
+También: la primera versión de cada apartado dejaba de congelarlo — la guarda
+del pase en vivo ahora mira QUIÉN lo escribió, no si hay texto (REG-226).
+REQUIERE despliegue aparte: npx firebase deploy --only storage
+
+## v1108 — un monólogo se armaba como diálogo (I-4)
+El médico dicta SOLO en UCI y en hospital (lo contestó él), y el sistema pedía
+separación de voces en los tres módulos por igual. El diarizador parte a una
+sola persona en dos hablantes cuando cambia el tono, y entonces su propio
+dictado salía atribuido a un «paciente» que nunca habló — con el motor de
+negaciones y el de procedencia razonando sobre esa atribución falsa. Dos piezas:
+la red (un solo hablante → texto plano, pase lo que pase) y el ahorro (tipo de
+nota de dictado → ni se pide). La red va primero, y por eso el ahorro puede ser
+conservador (REG-227).
+
+## v1109 — los huecos se proponen, marcados y sólo al final (I-6)
+El Dr. eligió —leyendo la advertencia de que inventa contenido— que la IA
+complete lo que falta. Se hace, con dos fronteras: (1) SÓLO en el pase final,
+porque con la propuesta activa en vivo la primera pasada de 30 s rellenaría la
+consulta entera, que es lo que pasó con REG-217; (2) NINGUNA cifra, porque una
+sección propuesta se juzga y se borra, pero una cifra propuesta se lee idéntica
+a una medida real. Todo lo propuesto va con [IA — no dictado] y entra con un
+toque (REG-228). Prompt nota-2026-08-07-3.
+
+## v1110 — lo revisado no era lo que se firma (I-8)
+La segunda opinión ya corría sola. El problema: después el Dr. edita la nota, y
+el panel seguía diciendo EN VERDE «sin observaciones de seguridad» de una
+versión del texto que ya no existía. Un sello caducado se lee igual que uno
+vigente — peor que no tenerlo, porque invita a no releer. Ahora se guarda una
+huella estable de lo que se revisó (ordenada antes de medir, con separador de
+campo, sin contar secciones vacías) y se dice cuando caduca, en el panel y al
+firmar. No bloquea: bloquear por una coma corregida se aprende a esquivar
+(REG-229).
+
+## v1111 — la nota como la escribe cada especialista (I-5)
+Las 16 guías por especialidad salieron del prompt a su propio archivo, como datos
+con procedencia — porque el Dr. contestó que lo usarán médicos de CUALQUIER rama
+y que cada especialista valida la suya al usarla. La del médico manda sobre la
+del repositorio y puede añadir una nueva. Y lo importante: cuando NO hay guía se
+dice, en vez de caer a criterio genérico en silencio. Más la regla 14-bis: la
+prosa RAZONA (conecta hallazgo→dx→plan) en vez de enumerar. Comprobado byte a
+byte que la mudanza no cambió el prompt. Un defecto lo cazó su propia prueba:
+«Infectología pediátrica» caía en pediatría por el orden del arreglo (REG-230).
+
+## v1112 — menos pasos para cerrar la consulta (I-7, parcial)
+Dos pasos menos por consulta. (1) El consentimiento vivía en un useState y salía
+en CADA consulta del mismo paciente; ahora queda en el expediente con quién y
+cuándo, y no se vuelve a pedir. (2) Los avisos rojos ya no tapan la nota desde
+el minuto uno: la barra sólo lleva los cinco de PRESCRIPCIÓN —que deben llegar
+mientras receta— y los de revisión del texto aparecen al firmar. La distinción
+sale del campo ancla.seccion que cada aviso ya traía (REG-231).
+
+## v1113 — los alérgenos se tiraban en el último metro (I-9, parcial)
+El vocabulario del reconocedor cabe en 224 tokens y el orden ES la política. La
+pantalla calculaba los alérgenos, el grabador los mandaba por la red con un
+comentario explicando por qué son la pista más valiosa, y la ruta NO los leía.
+Ahora entran, y antes que los fármacos: un alérgeno mal oído es un cruce que
+nunca salta y del que nadie se entera; un fármaco mal oído sale impreso y se ve.
+También se probó y se DESCARTÓ reordenar por especialidad: medido idéntico, y
+queda anotado para que nadie lo reintente (REG-232).
+
+## v1114 — lo que el navegador vio (I-13, parcial)
+Barrido de las 14 pantallas públicas con un iPhone emulado. (1) Mi guardián de
+v1104 buscaba `background: 'var(--nexus)'` LITERAL: el mismo 3,28:1 seguía en 7
+pantallas escrito con valor de respaldo, sin espacio o por el alias --teal. La
+prueba era tan estrecha como el barrido que la escribió; ahora es por patrón.
+(2) Cinco pestañas de /demo/interactivo pedían 425 px en 390. (3) Login y
+registro tenían <label> visible pero SIN asociar: el lector de pantalla decía
+«edición de texto». Parecía resuelto y no lo estaba (REG-233).
+
+## v1115 — el mismo error de guardián, dos veces seguidas
+Tras v1114 volví a barrer con el navegador y /precios seguía a 3,28. La causa:
+mi guardián nuevo miraba `background: 'var(--nexus…)'` en forma DIRECTA y el
+sitio lo escribía dentro de un ternario. Dos veces seguidas escribí la prueba
+con la forma que acababa de arreglar, en vez de con la forma que el defecto
+puede tomar. Ahora el patrón admite ternarios; 5 sitios más corregidos
+(ToastContext, dos de la consulta, facturación, precios). Verificado en vivo:
+las 8 pantallas a 4,66 o mejor.
+
+## v1116 — el espejo del contraste, en tema claro (I-13 cerrada)
+Terminando el barrido salió lo que nunca se había probado: el TEMA CLARO. El
+claro sólo se activa si el médico lo elige a mano, así que un barrido que emula
+la preferencia del sistema no lo alcanza. Texto NEGRO fijo sobre un azul que
+cambia de brillo con el tema: 6,39 en oscuro, 3,13 en claro (el mínimo es 4,5).
+Es el espejo de REG-223. 32 sitios en 25 archivos; el navegador sólo podía ver
+DOS — los otros treinta viven detrás del login y los cubre la prueba, no el
+barrido (REG-234). El escritorio salió limpio en las catorce pantallas.
+
+## v1117 — veinte campos sin etiqueta, detrás del login (I-13)
+El Dr. señaló que su sesión de Chrome estaba abierta. Con ella: 15 campos de
+configuración, 2 del antibiograma, 2 de citas y 1 de pacientes SIN etiqueta
+asociada — el lector de pantalla decía «edición de texto». Medido con cifras y
+selectores, nunca con capturas ni innerText: una auditoría de diseño no necesita
+ver el nombre de un paciente. El grep del código decía 371; el navegador, 20. La
+diferencia son los que van envueltos en su label. Manda la medición, no el grep
+(REG-235). Sigue sin medirse el ancho de teléfono en pantallas internas.
+
+## v1118 — los dos últimos campos sin etiqueta
+De 15 a 0 en configuración: los dos que quedaban (el selector de médico y la
+llave de la API) no tenían etiqueta visible, así que van con aria-label. Y
+REG-235 quedó clasificado en su familia — el guardián lo cazó: un defecto en la
+bitácora sin familia pone la suite en rojo hasta que alguien conteste «¿de qué
+se enfermó éste?».
+
+## v1119 — la mitad de la maqueta que faltaba, y los botones que tapaban
+El Dr. mandó la maqueta y preguntó por qué no se veía así. Tenía razón: de las
+dos mitades sólo se había construido la de arriba (la línea del tipo de nota).
+Ahora está la de abajo: un botón de 96 px centrado y UNA línea, en vez de las
+seis cosas que había antes de poder hablar —tres de ellas diciendo lo mismo—.
+Nada se borra: la fila entera vuelve cuando hay algo grabado (REG-236).
+Y sus capturas enseñaron que los botones flotantes tapan los campos Peso y
+Exploración física; ningún barrido lo cazaba porque el medidor saltaba los
+elementos fijos y no comprobaba si algo tapa a otra cosa (REG-237).
+
+## v1120 — una frecuencia tiene forma de frecuencia (REG-238)
+
+De una nota **firmada suya**: «por 14 **editas**» y «**24 tras**». Nadie
+comprobaba que una frecuencia tuviera forma de frecuencia ni una duración forma
+de duración — sólo se exigía cifra y unidad en la DOSIS.
+
+Nuevo motor puro `forma-de-la-pauta.ts` + aviso `pauta_deformada` (nivel
+`revisa`, ancla en medicamentos → se ve **mientras receta**). Avisa de lo que no
+entiende; **nunca propone el valor correcto**.
+
+## v1121 — «¿de dónde salió esto?» (REG-239)
+
+Cada frase de la nota, junto al trozo de dictado que la sostiene. El motor
+(`rastrearNota`, con corpus oro) existía y la pantalla sólo usaba su mitad
+negativa. Es el mecanismo que en el mercado sólo tiene Abridge — y que Nabla no
+puede tener porque borra el audio.
+
+## v1122 — la reescritura no pierde cifras + el tablero se deriva (REG-240, REG-241)
+
+**REG-240**: el editor por chat podía llevarse «cada 8 horas» al hacer la nota
+«más concisa» y el texto seguía leyéndose bien. Ahora se compara antes/después y
+se dice qué cifra se cayó. Se autoriza por UNIDAD: nombrar un `mg` autoriza los
+`mg`, no las horas.
+
+**REG-241**: `MASTER_STATE.json` mintió sobre la versión tres veces. Ahora se
+deriva del repositorio y una prueba falla si se desfasa. Familia nueva:
+`depende_de_recordar`.
+
+## v1123 — lo que se lleva el paciente (REG-242)
+
+Instrucciones en español llano bajo la nota: medicamentos con «por la boca» y
+«3 veces al día», estudios, indicaciones y próxima cita. Se puede copiar
+—WhatsApp— o imprimir.
+
+Se COMPONEN de lo que él firmó; no las redacta un modelo. Una compuerta
+comprueba que ninguna cifra se invente ni se pierda.
+
+## v1124 — qué es de qué (REG-243)
+
+El plan atado al problema que lo motivó, con la frase del dictado que lo prueba.
+Lo que no consta queda sin asignar, a la vista. NO se infiere: con dos
+infecciones simultáneas, inferir acierta por suerte.
+
+## v1125 — la orden ya no se queda en el tintero (REG-244)
+
+Con receta Y estudios, firmar llevaba a la receta y la orden no se imprimía
+nunca. Ahora, cuando queda más de una cosa, se enseña qué falta y qué pasa si no
+se hace. Con un solo destino se sigue yendo directo.
+
+## v1126 — la hoja del paciente no sale en un internado
+
+La nota de hospital y la de UCI se escriben en la MISMA pantalla de consulta
+(`?internamiento=…`), así que sin guardia la hoja de «cómo tomarlo» aparecía
+también sobre fármacos intravenosos de un paciente intubado.
+
+## v1127 — el guardián de pautas ya no grita en UCI (REG-245)
+
+Defecto propio de v1120: «infusión continua», «en bolo», «0.1 mcg/kg/min», «DU»
+y «titular a efecto» salían como pautas no reconocidas. Una nota de UCI con seis
+infusiones habría dado seis avisos falsos.
+
+Reparado, y con una prueba que comprueba que «24 tras» y «14 editas» siguen
+cazándose después de ensanchar el motor.
+
+## v1128 — perder el «/kg» ya no pasa indetectado (REG-246)
+
+`0.1 mcg/kg/min` se leía como `0.1 mcg`: una reescritura que convirtiera una
+infusión por peso en tasa fija —70 veces menos en un adulto— pasaba sin aviso.
+Unidades de infusión añadidas y ordenadas de más larga a más corta EN CÓDIGO.
+
+## v1129 — la «U» de insulina es una unidad (REG-247)
+
+«2 U/h» salía como dosis sin unidad. Es una infusión de insulina —fármaco de
+alto riesgo— y un aviso falso ahí enseña a ignorar el aviso verdadero.
+
+## v1130 — «alergias negadas» ya no es una alergia (REG-248)
+
+El reconocedor de negaciones estaba anclado al principio: «negadas» funcionaba y
+«alergias negadas» no, ni «NKDA». Lo no reconocido se registraba como alérgeno y
+salía impreso en la receta.
+
+## v1131 — el audio de la consulta ya no se tira (REG-249)
+
+Se subía a Storage, se usaba para diarizar y se descartaba: no había nada que
+reproducir. Ahora la RUTA (no la URL, que lleva un token dentro) vuelve al
+llamador. El camino corto también guarda, para que la función no dependa de la
+duración. Es el eslabón que faltaba para el clic-a-audio.
+
+## v1132 — escuchar de dónde salió cada frase (REG-250)
+
+En «¿de dónde salió esto?», cada frase respaldada trae ahora un botón con el
+minuto exacto: se pulsa y suena ese momento de la consulta. Si el motor no
+localiza la frase con seguridad, no hay botón — nunca se aproxima.
+
+## v1133 — el panel ya no certifica lo contrario (REG-251, P0)
+
+«Paciente niega alergia a penicilina» contra un dictado de «soy alérgico a la
+penicilina» salía en VERDE con cobertura 1,00. «Warfarina 10 mg» contra «2 mg»,
+también. Causas: «niega» era palabra vacía y las cifras se filtraban por
+longitud. Reparado, y una cifra huérfana ya nunca puede salir en verde.
+
+## v1134 — un resultado de laboratorio ya genera tarea de revisión (REG-252)
+
+`tareaDeResultado()` existía, estaba probada y no la llamaba nadie: el bucle
+ORDEN→RESULTADO→REVISIÓN→CERRADO nunca empezaba. Conectado en el cuello de
+botella (carga manual + FHIR). Si la tarea no se crea, se avisa.
+
+## v1135 — cero vulnerabilidades high en producción (REG-253)
+
+El documento publicado decía «8 · 0 high»; el comando devolvía «12 · 3 high»,
+con pdfjs-dist permitiendo ejecución arbitraria de JS al abrir un PDF. Cerradas
+las tres. Y la cifra ya se deriva del comando, con una prueba que falla si
+aparece una sola high en producción.
+
+## v1136 — la prueba de placebo para las métricas de voz (REG-254)
+
+La exactitud de unidades daba 99,54 % con el motor y 99,54 % sin el motor: medía
+el comparador, no el producto. Ahora cada categoría se mide con y sin pipeline y
+lo que se vigila es el APORTE. La regla queda en docs/evals/COMO-SE-MIDE.md.
+
+## v1137 — el instrumento contra «escrito, probado y sin conectar» (REG-255)
+
+21 de 102 defectos son motores que existen y no corren, y los 21 se encontraron
+por casualidad. Ahora hay un barrido: 50 de 771 funciones clínicas no se usan en
+ningún sitio, y el trinquete impide que crezcan.
+
+## v1138 — la bandeja de alertas que nadie abría (REG-256)
+
+Las alertas del episodio —lab crítico, NEWS2, interconsulta— se guardaban y
+ninguna pantalla las leía. Ahora hay bandeja en la ficha, encima de las
+pestañas, y se marcan vistas con un clic.
+
+## v1139 — CAM-ICU y tres motores POCUS ya corren (REG-257)
+
+Estaban escritos con su fuente y no los llamaba nadie. El más grave:
+`obstruccionTSVI` dice «no escalar inotrópicos» con gradiente ≥ 30 mmHg y nunca
+llegaba a la pantalla. Ahora se enseña sin filtro de modo avanzado.
+
+## v1140 — el oxígeno sin declarar se ve (REG-258)
+
+Una toma con flujo o FiO₂ pero sin la casilla de «recibe O₂» hacía que NEWS2
+saliera 2 puntos por debajo. Ahora se marca en la tabla de signos, explicando el
+efecto. No se deduce: lo decide el médico.
+
+## v1141 — lo que el texto de la IA se calla (REG-259)
+
+El razonamiento del antibiograma podía omitir una alerta crítica del motor —una
+carbapenemasa— sin contradecir nada, y nadie lo notaba. Ahora se avisa, en
+ámbar, para los dos modelos.
+
+## v1142 — el número de motores sin conectar, desglosado (REG-260)
+
+Decía 42 y significaba otra cosa: 34 son envoltorios de ≤3 líneas sobre algo que
+sí corre, y sólo 8 tienen cuerpo real. Uno de esos ocho está bloqueado en una
+decisión de política del Dr., no en el código.
+
+## v1143 — los ingresos hospitalarios, en el expediente (REG-261)
+
+Un paciente ingresado dos veces no tenía forma, desde su expediente, de saber
+que esos episodios existieron. La función existía y su comentario pedía justo
+esto.
+
+## v1144 — el expediente resume problemas y medicación (REG-262)
+
+Dos motores pedían «el encabezado de la consulta», pero ahí las listas ya salen
+enteras. Su sitio era el expediente, que no resumía nada: había que leerse todas
+las notas para saber qué tiene y qué toma.
+
+## v1145 — el barrido de motores, cerrado (REG-263)
+
+50 → 39. Once motores conectados de verdad; 34 envoltorios que no son defectos;
+y los cinco con cuerpo real que quedan están explicados uno a uno, con prueba
+que falla si alguien los «arregla» sin leer.
+
+## v1146 — el pase de UCI dictado se reparte por aparatos (REG-264)
+
+El hueco 2: `repartirPorSistemas` partía por saltos de línea y un pase DICTADO
+llega como párrafo corrido, así que caía entero en el plan con los aparatos
+vacíos. La nota por aparatos —lo que ningún competidor hace— no corría sobre voz.
+
+Paquete de este despliegue: REG-264 (código) + la documentación de apertura de
+V9 (sin código).
+
+## v1147 — el barrido de pantalla estrecha (REG-265)
+
+Instrumento para las tres clases que el guardián anterior declaraba no poder
+ver: ancho fijo, rejilla rígida, imagen sin tope. Resultado: cero. La primera
+medición decía 23 y ninguno era real.
+
+## v1148 — REG-266: los pendientes del paciente, en su expediente
+
+`tareasDePaciente()` decía «para su expediente» y el expediente no los enseñaba:
+cero llamadores. El barrido de motores no lo vio porque hay otra función con el
+mismo nombre en enfermería de UCI — un medidor que informa de MENOS.
+
+Primero «resultado sin leer» (`completada` sin cerrar), luego lo vencido, luego
+lo que tiene plazo. El orden es administrativo; la gravedad la puso quien creó
+la tarea.
+
+## v1148 — REG-264 (recuperado), REG-266 y REG-267
+
+**REG-267 · v1146 se publicó anunciando REG-264 y no lo llevaba.** El commit se
+quedó en una rama lateral que la otra rutina creó sobre el mismo directorio. Se
+recupera aquí, y con él una compuerta que compara lo que el changelog anuncia con
+lo que el repositorio contiene — comprobada contra el defecto real.
+
+**REG-264 (por fin en producción)** · el pase de UCI dictado se reparte por
+aparatos. Llegaba como párrafo corrido y caía entero en el plan.
+
+**REG-266** · los pendientes de un paciente, en su expediente. `tareasDePaciente`
+decía «para su expediente» y no tenía llamador; el barrido no lo vio porque hay
+otra función con el mismo nombre en enfermería de UCI.
+
+## v1149 — REG-192 vuelve a la línea desplegada
+
+`origin/main` llevaba tres commits que la rama de V7 no tenía: el PR #260 con
+REG-192, *«la sección bien escrita compraba el silencio de la mal escrita»*.
+
+`contradicciones()` miraba **sólo la primera aparición** de cada enfermedad. Una
+nota que niega la diabetes en el interrogatorio y la diagnostica en la impresión
+tenía las dos cosas, y la primera silenciaba a la segunda. Ahora se miran todas,
+con el criterio en `mencion-en-la-nota.ts` — la temporalidad tenía esa misma
+línea copiada.
+
+No es código nuevo: es código que se había quedado fuera de la rama que se
+despliega. La misma familia que REG-267, con otro disfraz.
+
+## v1150 — el trabajo de V9: la superficie del paciente
+
+**REG-268** · el enlace de la videoconsulta del paciente no llevaba token, así
+que `/api/telesalud/sala` le contestaba **404 «Cita no encontrada» al dueño de la
+cita** —desde su propio portal, a la hora de su consulta—. Nadie lo vio porque el
+botón del médico sí lo lleva: sólo fallaba el camino que ningún empleado recorre.
+El token pasa a ser obligatorio en la firma.
+
+**REG-269** · `@keyframes spin` no existía en ningún sitio global pese a 90
+referencias, incluidos `ui/Spinner` y el estado «cargando» de `ui/Button`. Lo
+definían 31 pantallas en `<style>` locales, así que el giro funcionaba según en
+qué pantalla estuvieras. Un indicador parado no dice «esperando»: dice «se
+colgó», y se vuelve a pulsar sobre una petición que sí corría.
+
+Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
+reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
+programas compartieran directorio de trabajo, después de REG-267.

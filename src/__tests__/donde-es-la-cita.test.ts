@@ -28,11 +28,31 @@ describe('dondeEsLaCita', () => {
   it('una teleconsulta lleva el ENLACE y NO la dirección', () => {
     // Mandar las dos cosas deja que el paciente elija mal, y el que se equivoca
     // pierde la consulta.
-    const l = dondeEsLaCita(VIDEO)
+    //
+    // REG-265 añadió el token: el enlace SIN él contestaba «Cita no encontrada»
+    // al propio dueño de la cita, porque `/api/telesalud/sala` exige prueba de
+    // titularidad. Este caso pasa a mandarlo — lo que se comprueba aquí sigue
+    // siendo lo de siempre: que haya enlace y no haya dirección.
+    const l = dondeEsLaCita({ ...VIDEO, tokenPaciente: 'tok.abc' })
     expect(l.esVideo).toBe(true)
     const texto = l.lineas.join('\n')
     expect(texto).toContain(`${BASE}/teleconsulta/cita-1?c=clin-1`)
     expect(texto).not.toContain('Av. Universidad')
+    expect(texto).toMatch(/videoconsulta/i)
+  })
+
+  it('SIN token no manda enlace: prefiere no darlo a darlo roto', () => {
+    /**
+     * REG-265. Los dos llamadores de servidor —`api/cron/reminders` y el
+     * webhook— todavía no acuñan token, así que hoy caen aquí. Un paciente sin
+     * enlace llama al consultorio; un paciente con un enlace que contesta 404
+     * cree que se quedó sin cita.
+     *
+     * Este caso deja de valer el día que se cierre `PATIENT-TELE-002`: entonces
+     * habrá token siempre y lo que hay que vigilar es que no falte.
+     */
+    const texto = dondeEsLaCita(VIDEO).lineas.join('\n')
+    expect(texto).not.toContain('/teleconsulta/')
     expect(texto).toMatch(/videoconsulta/i)
   })
 

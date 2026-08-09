@@ -25,6 +25,12 @@ import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
+import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
+import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
+import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
+import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
+import { problemasActivos, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import { medicamentosVigentes, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 
 /** Icono lineal por tipo de nota — nodo del timeline clínico. */
 const ICONO_TIPO_NOTA: Record<TipoNota, LucideIcon> = {
@@ -293,6 +299,89 @@ export default function ExpedientePage() {
         Historia clínica
       </div>
 
+      {/*
+        EL ESTADO ACTUAL, EN UNA LÍNEA (REG-262).
+
+        `resumenProblemas` y `resumenVigentes` decían en su comentario «frase
+        corta para el encabezado de la consulta», y no las llamaba nadie.
+
+        No van en la consulta: ahí las dos listas ya se enseñan ENTERAS, y una
+        versión corta al lado de la larga es duplicar. Van aquí, donde el
+        expediente ya tiene las notas cargadas —así que no cuesta ni una
+        lectura más— y no había ningún resumen: para saber qué tiene y qué toma
+        había que leerse la lista de notas.
+
+        Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
+      */}
+      {(() => {
+        /* La MISMA proyección que usa la consulta: si aquí se armara distinto,
+           el mismo paciente tendría dos «problemas activos» según la pantalla. */
+        const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
+          fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+          medicamentos: n.medicamentos,
+          diagnosticos: n.diagnosticos,
+        }))
+        const problemas = problemasActivos(firmadas)
+        const vigentes = medicamentosVigentes(firmadas)
+        if (!problemas.length && !vigentes.length) return null
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+            background: 'var(--s2)', border: '1px solid var(--border)',
+            borderRadius: 11, padding: '10px 13px',
+          }}>
+            <Stethoscope size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
+              <div><strong style={{ color: 'var(--text)' }}>Problemas:</strong> {resumenProblemas(problemas)}</div>
+              <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/*
+        LO QUE QUEDÓ PENDIENTE DE ESTE PACIENTE (REG-266).
+
+        `tareasDePaciente()` decía en su comentario «para su expediente» y el
+        expediente no las enseñaba: la función NO tenía un solo llamador.
+
+        Va lo PRIMERO de la pantalla, encima incluso de los ingresos: un cabo
+        suelto es lo único de aquí que exige una decisión hoy. Lo demás es
+        historia, y la historia espera.
+      */}
+      {clinicId && (
+        <CabosSueltosDelPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          cargar={tareasDePaciente}
+          alAbrirPendientes={() => router.push('/pendientes')}
+        />
+      )}
+
+      {/*
+        LOS INGRESOS DE ESTE PACIENTE (REG-261).
+
+        `getInternamientosDePaciente()` decía en su comentario «para mostrarlos
+        en su expediente» y el expediente NO los mostraba: la función no tenía
+        llamador ni prueba.
+
+        Va ANTES de los filtros de notas a propósito: la constitución del
+        charter es «un paciente, un expediente longitudinal», y saber que
+        estuvo ingresado dos veces es contexto para leer todo lo de abajo, no
+        una pestaña más.
+      */}
+      {clinicId && (
+        <InternamientosDelPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          cargar={getInternamientosDePaciente}
+          alAbrir={id => router.push(`/hospitalizacion/${id}`)}
+        />
+      )}
+
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {([['todas', 'Todas'], ['consulta', 'Consulta'], ['hospital', 'Hospital']] as const).map(([k, l]) => (
@@ -422,7 +511,7 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
       </button>
       {abierto && (
         <div style={{ padding: '4px 16px 14px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 10, marginTop: 12 }}>
             {conValor.map(([k, v]) => (
               <div key={k}>
                 <div style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
@@ -574,6 +663,6 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
 
 const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
 const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
-const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
+const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
 const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
-const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--teal)' : 'var(--s2)', color: active ? '#000' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })
+const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--nexus-solido)' : 'var(--s2)', color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

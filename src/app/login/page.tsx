@@ -216,8 +216,9 @@ function LoginInner() {
                 Tu cuenta tiene segundo factor. Abre tu app de autenticación (Google Authenticator, Authy…) y escribe el código de 6 dígitos.
               </p>
               <div className="form-group">
-                <label className="label">Código de 6 dígitos</label>
+                <label className="label" htmlFor="codigo-de-6-digitos">Código de 6 dígitos</label>
                 <input
+                id="codigo-de-6-digitos"
                   className="input"
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -280,8 +281,9 @@ function LoginInner() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="form-group">
-              <label className="label">Correo electrónico</label>
+              <label className="label" htmlFor="correo-electronico">Correo electrónico</label>
               <input
+                id="correo-electronico"
                 type="email"
                 className="input"
                 placeholder="doctor@clinica.com"
@@ -293,9 +295,10 @@ function LoginInner() {
             </div>
 
             <div className="form-group">
-              <label className="label">Contraseña</label>
+              <label className="label" htmlFor="contrasena">Contraseña</label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="contrasena"
                   type={showPwd ? 'text' : 'password'}
                   className="input"
                   placeholder="••••••••"
@@ -307,6 +310,8 @@ function LoginInner() {
                 <button
                   type="button"
                   onClick={() => setShowPwd(v => !v)}
+                  /* Sin esto el lector de pantalla sólo dice «botón». */
+                  aria-label={showPwd ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
                   style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',
