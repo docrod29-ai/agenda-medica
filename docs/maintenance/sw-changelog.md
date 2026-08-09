@@ -3,6 +3,23 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1083 — REG-201: «no padece diabetes» era un antecedente positivo
+
+El parser clínico —el que escribe la nota cuando la IA devuelve 529— conocía
+`no tiene`, `no presenta`, `no refiere` y poco más. «No padece», «no tengo», «no
+he tenido», «nunca he tenido», «jamás ha tenido», «tampoco tiene», «no sufre de»
+y «no fuma» salían todas como ANTECEDENTE POSITIVO. No es que no detectara la
+negación: es que afirmaba la enfermedad.
+
+`tabaquismoActivo` entra en STOP-BANG y en Caprini, así que el paciente que dijo
+que no fuma puntuaba como fumador.
+
+Dos defectos más: «niega tabaquismo, padece diabetes» borraba la diabetes, y «no
+fuma» no se detectaba porque el término clínico ES el verbo.
+
+NO se comparte el vocabulario con `negaciones.ts`: el dueño decidió separarlos el
+7-ago (C-6). Aquí se ensancha sólo el que estaba corto.
+
 ## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
 
 Los dos motores que contrastan el dictado contra la nota —negaciones y
