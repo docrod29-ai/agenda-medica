@@ -12,6 +12,7 @@
 |---|---|
 | **SHA de cierre** | `35fba2d` |
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Rama** | `claude/relaxed-fermi-vkeu6s` — la rama persistente de la especificación, `claude/nexus-patient-ux-v9`, se fusionó en el PR #279 y ya no existe en `origin`; su historia está en `main`, que es de donde arranca ésta |
 | **Siguiente** | **`PATIENT-AI-001`** |
 
 El paquete de la visita **se genera del encuentro y sólo se libera con
