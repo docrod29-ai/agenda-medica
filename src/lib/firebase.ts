@@ -1,11 +1,16 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence,
+  connectFirestoreEmulator,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
+import {
+  emuladoresActivos, EMULADOR_AUTH_URL,
+  EMULADOR_FIRESTORE_HOST, EMULADOR_FIRESTORE_PORT,
+} from './firebase-emuladores'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -62,6 +67,17 @@ export const db = typeof window !== 'undefined'
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.
 // Defensivo: si el bucket no está bien configurado, NO debe tronar la carga de
 // la app — queda null y la diarización de audio largo cae a su fallback.
+// ── Emuladores (SOLO desarrollo, opt-in explícito) ──────────────────────
+// Arnés de capturas V10: la app entera corre contra Auth + Firestore emulados
+// con datos sintéticos. La compuerta (doble cerrojo: bandera + NODE_ENV) vive
+// en `firebase-emuladores.ts`, donde está probada al derecho y al revés.
+// Solo en el navegador: el lado servidor usa el Admin SDK, que ya obedece
+// FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST por sí mismo.
+if (typeof window !== 'undefined' && emuladoresActivos()) {
+  connectAuthEmulator(auth, EMULADOR_AUTH_URL, { disableWarnings: true })
+  connectFirestoreEmulator(db, EMULADOR_FIRESTORE_HOST, EMULADOR_FIRESTORE_PORT)
+}
+
 export const storage = (() => {
   if (typeof window === 'undefined') return null
   try { return getStorage(app) } catch { return null }
