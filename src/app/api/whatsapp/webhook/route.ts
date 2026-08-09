@@ -38,6 +38,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenDeSalaParaElPaciente } from '@/lib/telesalud/token-de-sala'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1075,6 +1076,15 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
+      // PATIENT-TELE-002 — sin token no hay enlace (REG-265). Se acuña aquí, en
+      // el servidor: `lib/whatsapp.ts` también se importa desde el navegador.
+      const tokenSalaBot = await tokenDeSalaParaElPaciente({
+        tipo: datos.tipo, clinicId, pacienteId: pacienteIdBot,
+        // La MISMA cadena que se escribió en la cita, no otra igual: dos sitios
+        // que la componen a mano acaban diciendo cosas distintas.
+        fechaHora,
+        ahoraMs: Date.parse(now), tz: config?.zonaHoraria || TZ_DEFAULT,
+      })
       await send(from, [
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
@@ -1084,6 +1094,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenSalaBot,
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1273,10 +1284,17 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       {
+        // PATIENT-TELE-002 — igual que el alta normal: el token se acuña aquí.
+        const tokenSalaLE = await tokenDeSalaParaElPaciente({
+          tipo: datos.tipo, clinicId, pacienteId: pacienteIdLE,
+          fechaHora: `${slotFecha} ${slotHora}`,
+          ahoraMs: Date.parse(now), tz: config?.zonaHoraria || TZ_DEFAULT,
+        })
         const donde = dondeEsLaCita({
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenSalaLE,
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

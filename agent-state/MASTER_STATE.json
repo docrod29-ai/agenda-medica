@@ -18,17 +18,18 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1161",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/AutoLogout.tsx",
-    " M src/hooks/useGrabacionAudio.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
+    "M agent-state/BACKLOG.json",
+    " M docs/audit/regression-ledger.md",
+    " M src/__tests__/authz-rutas-declaradas.test.ts",
+    " M src/__tests__/donde-es-la-cita.test.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/whatsapp/webhook/route.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/grabar-es-actividad.test.ts",
-    "?? src/lib/seguridad/estoy-grabando.ts"
+    " M src/lib/patient-token.ts",
+    " M src/lib/telesalud/donde-es.ts",
+    " M src/lib/telesalud/ventana-sala.ts",
+    "?? src/__tests__/el-enlace-de-la-sala-llega-por-whatsapp.test.ts",
+    "?? src/lib/telesalud/token-de-sala.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -62,12 +63,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/compassionate-galileo-sg8lel",
   "derivado": {
-    "regsEnElLedger": 135,
-    "ultimaREG": "REG-287",
-    "archivosDePrueba": 564,
-    "casosDePrueba": 7443,
+    "regsEnElLedger": 136,
+    "ultimaREG": "REG-288",
+    "archivosDePrueba": 565,
+    "casosDePrueba": 7458,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

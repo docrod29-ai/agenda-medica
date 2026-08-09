@@ -69,9 +69,20 @@ export const ES_TELECONSULTA = 'teleconsulta'
 export const SIN_ENLACE =
   'Recibirás el enlace de la videollamada por este medio antes de tu cita.'
 
+/**
+ * ¿Es una videoconsulta?
+ *
+ * Está fuera de `dondeEsLaCita` porque quien acuña el token necesita saberlo
+ * **antes** de componer el mensaje: acuñar exige leer el expediente, y no se
+ * hace una lectura por cada cita presencial del día.
+ */
+export function esTeleconsulta(tipo?: string | null): boolean {
+  return String(tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+}
+
 /** Qué decirle al paciente sobre dónde es su cita. */
 export function dondeEsLaCita(d: DatosDeLugar): Lugar {
-  const esVideo = String(d.tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+  const esVideo = esTeleconsulta(d.tipo)
 
   if (!esVideo) {
     const lineas: string[] = []

@@ -6238,3 +6238,80 @@ escrita donde se lee. El resto de eventos sigue respetando la guarda del aviso.
 - `src/hooks/useGrabacionAudio.ts`
 - `src/components/AutoLogout.tsx`
 - `src/__tests__/grabar-es-actividad.test.ts` (nuevo, 13 casos, sellado)
+
+---
+
+## REG-288 — la videoconsulta se anunciaba por WhatsApp sin enlace (PATIENT-TELE-002)
+
+**El último P0 abierto de la auditoría de V9.** El paciente de una teleconsulta
+recibía, por WhatsApp:
+
+> «Recibirás el enlace de la videollamada **por este medio** antes de tu cita.»
+
+En el mensaje que era ese medio. Y el recordatorio de 24 h decía lo mismo. Y el
+de la mañana de la cita, también.
+
+### Por qué el mensaje era honesto y aun así estaba roto
+
+REG-265 puso la regla correcta en `dondeEsLaCita`: **sin token no se emite
+enlace**. `/api/telesalud/sala` responde 404 «Cita no encontrada» a quien no
+trae prueba de titularidad —a propósito, para no confirmarle a un desconocido
+que ese `citaId` existe—, así que un enlace sin token le dice al dueño de la
+cita que su cita no existe, media hora antes de la consulta. Preferir el texto
+al enlace roto fue correcto.
+
+Lo que quedó sin hacer es el otro lado: los **tres** llamadores de servidor
+—`api/cron/reminders` y los dos mensajes de «cita agendada» del bot— nunca
+acuñaron token. La función quedó bien y sus llamadores no. Familia
+«escrito y sin conectar», en su variante más cara: **conectado a medias**, con
+un texto de reserva tan razonable que nadie lo leyó como un defecto.
+
+### La causa raíz
+
+Firmar exige `PORTAL_PACIENTE_SECRET`, que sólo vive en el servidor, y el módulo
+que compone los mensajes (`lib/whatsapp.ts`) se importa **también desde el
+navegador**: acuñar allí filtraría el secreto al paquete del cliente. Faltaba la
+pieza intermedia, y no la puso nadie. Es `lib/telesalud/token-de-sala.ts`.
+
+### El defecto dentro del arreglo: el número redondo
+
+El plan escrito decía «token de 1 día». El recordatorio de 24 h sale entre 23 y
+26 horas antes de la cita: **un token de 24 h caduca antes de la consulta que
+anuncia.** El enlace habría llegado, y habría fallado solo, exactamente el día
+de la cita — con la prueba de contrato en verde, porque el token se emite bien.
+
+Por eso la vida del token **se deriva de la hora de la cita**
+(`diasDeVidaDelEnlace`): muere cuando muere la sala, más un día de gracia. La
+gracia existe para que el que llega tarde lea «la sala de esta consulta ya se
+cerró» y no «Cita no encontrada»; la sala sigue cerrada, y quien lo comprueba es
+el servidor.
+
+Y hay un tope de 7 días: el bot confirma citas que pueden estar a semanas, y un
+token vivo semanas en un mensaje que se reenvía es justo lo que se recortó al
+bajar el portal de 30 días a 7. Más allá del tope **no se emite enlace** — el
+mensaje dice que llegará antes de la cita, y el recordatorio de 24 h lo cumple.
+
+### Lo que NO se cerró aquí, y queda anotado
+
+- **`TELE-ALCANCE-001`** (P1 nuevo) — el token es de alcance `agenda`, el mismo
+  que el enlace del portal que ya viaja por WhatsApp. No es una capacidad nueva,
+  pero un alcance `sala` sería más estrecho y exige tocar el modelo del token y
+  dos rutas más.
+- **`TELE-REVOCA-001`** (P2 nuevo) — `/api/telesalud/sala` **no** comprueba
+  `tokenVigente`. El token nace con la versión del expediente, pero quien la
+  mira hoy es `/api/portal`: una revocación no cierra la sala hasta que el token
+  caduca por tiempo.
+
+### Archivos
+
+- `src/lib/telesalud/token-de-sala.ts` (nuevo)
+- `src/lib/telesalud/ventana-sala.ts` — `diasDeVidaDelEnlace`, con su cabecera
+- `src/lib/telesalud/donde-es.ts` — `esTeleconsulta` extraído (evita una lectura
+  del expediente por cada cita presencial del día)
+- `src/lib/patient-token.ts` — el `exp` se redondea fuera, para admitir un TTL
+  fraccionario sin escribir decimales en el payload
+- `src/app/api/cron/reminders/route.ts`
+- `src/app/api/whatsapp/webhook/route.ts` (los dos mensajes)
+- `src/__tests__/el-enlace-de-la-sala-llega-por-whatsapp.test.ts` (nuevo, 15
+  casos, sellado) — probado al revés: con `ttlDias = 1` fijo, el caso «el token
+  sigue siendo válido A LA HORA de la cita» falla

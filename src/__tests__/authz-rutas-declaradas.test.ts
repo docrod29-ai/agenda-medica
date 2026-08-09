@@ -637,6 +637,17 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 2026-08-09 (REG-288). El cron de recordatorios pasa a leer
+       * `patients` para UNA cosa: `portalTokenVersion`, y sólo cuando la cita es
+       * teleconsulta. Es la misma lectura que ya hacía `portal/link`, por la
+       * misma razón —que una revocación tumbe el enlace que se acaba de
+       * mandar—, y llega aquí a través de `lib/telesalud/token-de-sala.ts`.
+       *
+       * Ni nombre, ni teléfono, ni un dato clínico: el nombre y el teléfono del
+       * paciente ya venían en la CITA, que es lo que este cron recorre.
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja

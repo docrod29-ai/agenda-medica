@@ -93,7 +93,10 @@ export function crearTokenPaciente(
   alcance: AlcanceToken = ALCANCE_DEFECTO,
   version = 0,
 ): string {
-  const exp = Math.floor(Date.now() / 1000) + ttlDias * 86400
+  // El redondeo va FUERA, no sobre `Date.now()`: `ttlDias` puede venir
+  // fraccionario (el enlace de la sala deriva su vida de la hora de la cita) y
+  // un `exp` con decimales acabaría escrito en el payload.
+  const exp = Math.floor(Date.now() / 1000 + ttlDias * 86400)
   const payload: PayloadPaciente = { c: clinicId, p: patientId, e: exp, a: alcance, v: version }
   const payloadB64 = b64url(JSON.stringify(payload))
   return `${payloadB64}.${firmar(payloadB64)}`

@@ -43,13 +43,14 @@ describe('dondeEsLaCita', () => {
 
   it('SIN token no manda enlace: prefiere no darlo a darlo roto', () => {
     /**
-     * REG-265. Los dos llamadores de servidor —`api/cron/reminders` y el
-     * webhook— todavía no acuñan token, así que hoy caen aquí. Un paciente sin
-     * enlace llama al consultorio; un paciente con un enlace que contesta 404
-     * cree que se quedó sin cita.
+     * REG-265. Un paciente sin enlace llama al consultorio; un paciente con un
+     * enlace que contesta 404 cree que se quedó sin cita.
      *
-     * Este caso deja de valer el día que se cierre `PATIENT-TELE-002`: entonces
-     * habrá token siempre y lo que hay que vigilar es que no falte.
+     * `PATIENT-TELE-002` (REG-288) cerró el otro lado: los tres llamadores de
+     * servidor ya acuñan token. Esta regla **sigue vigente** y ahora es la red:
+     * cuando no hay token —cita fuera de plazo, expediente sin id— el mensaje
+     * dice la verdad en vez de mandar un enlace roto. Que los llamadores lo
+     * acuñen se vigila en `el-enlace-de-la-sala-llega-por-whatsapp.test.ts`.
      */
     const texto = dondeEsLaCita(VIDEO).lineas.join('\n')
     expect(texto).not.toContain('/teleconsulta/')

@@ -83,6 +83,63 @@ export function ventanaDeSala(
 }
 
 /**
+ * CUÁNTO TIENE QUE VIVIR EL ENLACE QUE SE MANDA POR WHATSAPP.
+ *
+ * El token del paciente caduca por tiempo, y aquí se decide cuánto. Fijar un
+ * número redondo —«un día»— rompe el caso más importante: el recordatorio de
+ * 24 h sale entre 23 y 26 horas antes de la cita, así que un token de 24 h
+ * caduca **justo antes** de la consulta que anuncia. El enlace llegaría, y
+ * fallaría solo, exactamente el día de la cita.
+ *
+ * Por eso la vida del enlace se deriva de la cita, no de una constante: muere
+ * cuando muere la sala, más un día de gracia.
+ *
+ * ── POR QUÉ HAY UN DÍA DE GRACIA ─────────────────────────────────────────────
+ *
+ * `/api/telesalud/sala` responde **404 «Cita no encontrada»** a quien no trae
+ * titularidad, a propósito. Si el token caducara en el mismo instante que la
+ * sala, el paciente que entra tarde leería que su cita no existe en vez de «la
+ * sala de esta consulta ya se cerró, llama al consultorio». La gracia sólo
+ * cambia el mensaje: la sala sigue cerrada, la comprueba el servidor.
+ *
+ * ── POR QUÉ HAY UN TOPE, Y QUÉ PASA CUANDO SE CRUZA ──────────────────────────
+ *
+ * El bot confirma citas que pueden estar a semanas. Un token vivo semanas en un
+ * mensaje de WhatsApp —que se reenvía, que se queda en un teléfono perdido— es
+ * justo lo que se recortó al bajar el portal de 30 días a 7. Cuando la cita cae
+ * más allá del tope **no se emite enlace**: el mensaje dice que lo recibirá por
+ * este medio antes de su cita, y el recordatorio de 24 h lo cumple.
+ */
+export const MAX_DIAS_ENLACE_SALA = 7
+/** Horas que el enlace sobrevive al cierre de la sala, sólo para dar el mensaje bueno. */
+export const GRACIA_HORAS = 24
+
+/**
+ * Días de vida que debe tener el token del enlace, o `null` si no se emite.
+ *
+ * `null` significa **no mandes enlace**, y tiene dos causas legítimas: la cita
+ * ya pasó (no hay sala que abrir) o está más allá del tope (lo llevará el
+ * recordatorio).
+ */
+export function diasDeVidaDelEnlace(
+  fechaHora: string | undefined | null,
+  ahoraMs: number,
+  tz: string = TZ_DEFAULT,
+): number | null {
+  const [f, h] = String(fechaHora ?? '').split(/[ T]/)
+  if (!f) return null
+
+  const inicio = instanteMX(f, (h ?? '00:00').slice(0, 5), tz).getTime()
+  if (!Number.isFinite(inicio)) return null
+
+  const muere = inicio + HORAS_DESPUES * 3_600_000 + GRACIA_HORAS * 3_600_000
+  const dias = (muere - ahoraMs) / 86_400_000
+  if (!(dias > 0)) return null
+  if (dias > MAX_DIAS_ENLACE_SALA) return null
+  return dias
+}
+
+/**
  * El enlace del PACIENTE. Sin `dr=1`: eso abre el panel clínico del médico.
  *
  * ── EL ENLACE DEL PACIENTE NO LLEVABA CON QUÉ ENTRAR ─────────────────────────

@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,8 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cierre": "cerrado v1158 (REG-283)"
     },
     {
       "seguridad": 3,
@@ -255,7 +256,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-002",
@@ -266,7 +267,8 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "cierre": "cerrado v1161 (REG-287)"
     },
     {
       "seguridad": 3,
@@ -280,7 +282,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-003",
@@ -291,7 +293,8 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "cierre": "cerrado v1161 (REG-287)"
     },
     {
       "seguridad": 2,
@@ -305,7 +308,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-TELE-002",
@@ -316,7 +319,8 @@
       "porQueImporta": "La videoconsulta se anuncia por WhatsApp. Sin enlace en el mensaje, el paciente depende de entrar al portal — que también le llega por WhatsApp, así que el camino existe, pero es un paso más justo cuando va con prisa.",
       "archivo": "src/lib/telesalud/donde-es.ts:70 · src/app/api/cron/reminders/route.ts:212 · src/app/api/whatsapp/webhook/route.ts:1083,1276",
       "plan": "Acuñar el token en el servidor con crearTokenPaciente(clinicId, patientId, 1, alcance agenda, portalTokenVersion) en los dos llamadores de servidor y pasarlo por DatosDeLugar.tokenPaciente. NO en src/lib/whatsapp.ts: ese módulo se importa desde el navegador y firmar ahí filtraría el secreto.",
-      "score": 55
+      "score": 55,
+      "cierre": "cerrado (REG-288)"
     },
     {
       "seguridad": 4,
@@ -565,9 +569,59 @@
       "archivo": "src/lib/portal/formulario-previo.ts:87",
       "plan": "Buscar el símbolo en app/, hooks/ y components/ — el instrumento de REG-255.",
       "score": 24
+    },
+    {
+      "seguridad": 3,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 0,
+      "fiabilidad": 0,
+      "regulatorio": 0,
+      "aprendizaje": 0,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "REG-288 (PATIENT-TELE-002) — residuo declarado al cerrar, 9-ago-2026",
+      "id": "TELE-ALCANCE-001",
+      "prioridadV9": "P1",
+      "unidad": "PATIENT-COMPANION-001",
+      "titulo": "El enlace de la sala lleva un token que también abre el portal",
+      "hallazgo": "tokenDeSalaParaElPaciente acuña alcance agenda, el único que sirve: verificarTokenPaciente degrada cualquier alcance desconocido a agenda, así que un alcance sala no fallaría cerrado sin tocar el modelo.",
+      "porQueImporta": "No es una capacidad nueva —el enlace del portal con ese mismo alcance ya viaja por WhatsApp desde /api/portal/link— pero sí una credencial más en circulación, en el mensaje que más se reenvía.",
+      "archivo": "src/lib/patient-token.ts:135 · src/lib/telesalud/token-de-sala.ts · src/app/api/portal/route.ts:163 · src/app/api/payment/create-checkout/route.ts",
+      "plan": "Añadir sala a AlcanceToken; que verificarTokenPaciente lo devuelva TAL CUAL en vez de degradarlo, y que /api/portal y create-checkout rechacen todo lo que no sea agenda o clinico. Prueba al revés: un token sala tiene que rebotar en /api/portal.",
+      "score": 36
+    },
+    {
+      "seguridad": 2,
+      "integridad": 1,
+      "ingreso": 0,
+      "frecuencia": 0,
+      "moat": 0,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 0,
+      "irreversibilidad": 0,
+      "complejidad": 1,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "REG-288 (PATIENT-TELE-002) — residuo declarado al cerrar, 9-ago-2026",
+      "id": "TELE-REVOCA-001",
+      "prioridadV9": "P2",
+      "unidad": "PATIENT-COMPANION-001",
+      "titulo": "/api/telesalud/sala no comprueba la revocación del enlace",
+      "hallazgo": "El token nace con portalTokenVersion, pero la sala sólo compara clinicId y patientId. Quien mira tokenVigente es /api/portal. Revocar los enlaces de un paciente no le cierra la sala.",
+      "porQueImporta": "La revocación existe para el teléfono perdido y el mensaje reenviado. Que funcione en una ruta y no en la otra es peor que no tenerla: el consultorio cree que cortó el acceso.",
+      "archivo": "src/app/api/telesalud/sala/route.ts:64",
+      "plan": "Leer portalTokenVersion del expediente y aplicar tokenVigente en la rama del token, igual que /api/portal:179. Prueba al revés: subir la versión y comprobar que la sala responde 404.",
+      "score": 18
     }
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"

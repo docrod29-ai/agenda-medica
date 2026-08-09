@@ -9,6 +9,7 @@ import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/wha
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenDeSalaParaElPaciente } from '@/lib/telesalud/token-de-sala'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -209,6 +210,24 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          /**
+           * PATIENT-TELE-002 — el recordatorio es el sitio donde el enlace más
+           * hace falta, y era el que no lo llevaba. `dondeEsLaCita` exige token
+           * para emitir enlace (REG-265) y aquí no se acuñaba ninguno, así que
+           * el paciente de una videoconsulta recibía «recibirás el enlace por
+           * este medio antes de tu cita» — en el mensaje que ERA ese medio.
+           *
+           * Sólo se acuña para teleconsultas: `tokenDeSalaParaElPaciente` lee el
+           * expediente y no se hace una lectura por cada cita presencial del día.
+           */
+          const tokenPaciente = await tokenDeSalaParaElPaciente({
+            tipo: appt.tipo,
+            clinicId,
+            pacienteId: appt.pacienteId,
+            fechaHora: appt.fechaHora,
+            ahoraMs: now.getTime(),
+            tz: tzClinica,
+          })
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +235,7 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente,
           })
           const msgData = {
             paciente: appt.pacienteNombre,
