@@ -40,7 +40,7 @@ Sin SHA, una unidad no está cerrada.
 |---|---|---|---|
 | 0 | `PATIENT-UX-TRUTH-001` | ✅ **cerrada** | `6a6501d` |
 | 1 | `DESIGN-SYSTEM-001` | ✅ **cerrada** | `5bb1a2c` |
-| 2 | `NAVIGATION-001` | ✅ **cerrada** | *(este commit)* |
+| 2 | `NAVIGATION-001` | ✅ **cerrada** | `fed81cc` |
 | 3 | `PATIENT-COMPANION-001` | ⬜ pendiente | — |
 | 4 | `POSTVISIT-001` | ⬜ pendiente | — |
 | 5 | `PATIENT-AI-001` | ⬜ pendiente | — |
