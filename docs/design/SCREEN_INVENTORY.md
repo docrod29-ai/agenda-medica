@@ -65,7 +65,7 @@
 | `/guia` | medico | ✅ | 131 | 0 | — | ✅ | — |
 | `/lista-espera` | medico | ✅ | 285 | 0 | — | ✅ | — |
 | `/membresias` | medico | ✅ | 281 | 0 | — | ✅ | — |
-| `/migracion` | medico | ✅ | 370 | 0 | — | ✅ | — |
+| `/migracion` | medico | ✅ | 371 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 74 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 841 | 2 | — | ✅ | — |
@@ -88,7 +88,7 @@
 | `/uci/enfermeria` | alpha | ✅ | 206 | 1 | — | ✅ | — |
 | `/` | publica | ✅ | 662 | 12 | — | ✅ | — |
 | `/arquitectura` | publica | — | 112 | 2 | — | ✅ | — |
-| `/contacto` | publica | — | 69 | 2 | — | ✅ | — |
+| `/contacto` | publica | — | 70 | 2 | — | ✅ | — |
 | `/demo` | publica | — | 312 | 5 | — | ✅ | — |
 | `/demo/interactivo` | publica | ✅ | 772 | 2 | — | ✅ | — |
 | `/demo/razonamiento` | publica | ✅ | 146 | 3 | — | ✅ | — |
@@ -98,11 +98,11 @@
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
 | `/precios` | publica | — | 182 | 1 | — | ✅ | — |
-| `/privacidad` | publica | — | 134 | 0 | — | — | — |
+| `/privacidad` | publica | — | 135 | 0 | — | — | — |
 | `/registro` | publica | ✅ | 389 | 3 | — | ✅ | — |
-| `/seguridad` | publica | — | 145 | 2 | — | ✅ | — |
+| `/seguridad` | publica | — | 146 | 2 | — | ✅ | — |
 | `/setup` | publica | ✅ | 279 | 2 | — | ✅ | — |
-| `/terminos` | publica | — | 140 | 0 | — | ✅ | — |
+| `/terminos` | publica | — | 141 | 0 | — | ✅ | — |
 | `/unirse/[code]` | publica | ✅ | 197 | 4 | — | ✅ | — |
 | `/superadmin` | interna | ✅ | 690 | 1 | — | ✅ | — |
 | `/superadmin/contabilidad` | interna | ✅ | 292 | 1 | — | ✅ | — |

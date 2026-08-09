@@ -5,6 +5,7 @@
 // y del expediente. Texto base sólido; conviene revisión por abogado antes de
 // escalar la venta.
 import type { Metadata } from 'next'
+import { CORREO_SOPORTE } from '@/lib/contacto'
 
 export const metadata: Metadata = {
   title: 'Términos y Condiciones — NexusMED',
@@ -118,7 +119,7 @@ export default function TerminosPage() {
       </Section>
 
       <Section titulo="13. Contacto">
-        Dudas sobre estos Términos: <strong>soporte@nexusmed.mx</strong>. Consulta también nuestro{' '}
+        Dudas sobre estos Términos: <strong>{CORREO_SOPORTE}</strong>. Consulta también nuestro{' '}
         <a href="/privacidad" style={{ color: 'var(--teal)', fontWeight: 600 }}>Aviso de Privacidad</a>.
       </Section>
 

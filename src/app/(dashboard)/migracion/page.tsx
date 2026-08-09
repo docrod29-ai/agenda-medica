@@ -13,6 +13,7 @@ import {
   normalizarTel, type FilaImport, type EstadoFila,
 } from '@/lib/csv-pacientes'
 import { Download, Upload, Users, CheckCircle2, AlertTriangle, FileSpreadsheet } from 'lucide-react'
+import { CORREO_SOPORTE } from '@/lib/contacto'
 
 type Clasificada = { fila: FilaImport; estado: EstadoFila }
 
@@ -361,7 +362,7 @@ export default function MigracionPage() {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 16, lineHeight: 1.5 }}>
-        ¿Tienes miles de expedientes en otro sistema o en PDF? Escríbenos a soporte@nexusmed.mx y te ayudamos
+        ¿Tienes miles de expedientes en otro sistema o en PDF? Escríbenos a {CORREO_SOPORTE} y te ayudamos
         con la migración asistida — nosotros movemos tus pacientes, tú sigues consultando.
       </p>
     </div>

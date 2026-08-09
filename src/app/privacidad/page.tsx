@@ -2,6 +2,7 @@
 // URL fija /privacidad — la que pide Meta para la revisión de la app de WhatsApp
 // (además de los avisos por consultorio en /privacidad/[clinicId]).
 import type { Metadata } from 'next'
+import { CORREO_PRIVACIDAD } from '@/lib/contacto'
 
 export const metadata: Metadata = {
   title: 'Aviso de Privacidad — NexusMED',
@@ -24,7 +25,7 @@ export default function PrivacidadGeneralPage() {
 
       <Section titulo="1. Identidad del operador">
         NexusMED es una plataforma operada por <strong>David Alonso Rodríguez Luna</strong> (persona física con actividad
-        empresarial), con domicilio en México. Contacto para asuntos de privacidad: <strong>privacidad@nexusmed.mx</strong>.
+        empresarial), con domicilio en México. Contacto para asuntos de privacidad: <strong>{CORREO_PRIVACIDAD}</strong>.
         Los datos de identificación fiscal y el domicilio completo del operador están disponibles para las autoridades
         competentes y para los titulares que lo soliciten; no se publican en este aviso por seguridad.
       </Section>
@@ -44,7 +45,7 @@ export default function PrivacidadGeneralPage() {
         tu cuenta, cobrar la suscripción, emitir comprobantes fiscales, brindar soporte y cumplir obligaciones legales y
         fiscales. La base del tratamiento es la <strong>relación contractual</strong> contigo. Los datos de pago los procesan
         el proveedor de pagos y el PAC de facturación como encargados; NexusMED no almacena los datos completos de la tarjeta.
-        Puedes ejercer tus derechos ARCO escribiendo a <strong>privacidad@nexusmed.mx</strong>.
+        Puedes ejercer tus derechos ARCO escribiendo a <strong>{CORREO_PRIVACIDAD}</strong>.
       </Section>
 
       <Section titulo="4. Datos que se recaban (de pacientes)">
@@ -113,7 +114,7 @@ export default function PrivacidadGeneralPage() {
       </Section>
 
       <Section titulo="11. Contacto">
-        Dudas sobre este aviso o sobre el tratamiento de datos: <strong>privacidad@nexusmed.mx</strong>.
+        Dudas sobre este aviso o sobre el tratamiento de datos: <strong>{CORREO_PRIVACIDAD}</strong>.
       </Section>
 
       <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>
