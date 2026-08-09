@@ -104,6 +104,80 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /* La escalera de radios, medida sobre el código (DESIGN-SYSTEM-001).
+     22 valores distintos en 1 099 usos en línea; seis cubren el 87 %:
+       8px=245 · 10px=245 · 12px=163 · 6px=104 · 14px=65 · 16px=25 · 4px=23
+     Se declaran seis peldaños y NO se repinta nada: la escalera existe para que
+     el próximo componente no invente el séptimo. El 13 % restante es deuda con
+     trinquete (`scripts/design/trinquete-de-diseno.mjs`). */
+  --r-xs:  4px;
+  --r-sm:  6px;
+  --r-md:  8px;
+  --r-lg:  10px;
+  --r-xl:  12px;
+  --r-2xl: 16px;
+
+  /* ─── ESPACIO ────────────────────────────────────────────────────────────
+     NO HABÍA ESCALA DE ESPACIO. NINGUNA.
+
+     Medido sobre el código: 33 valores distintos de padding/margin en 1 239
+     usos en línea, y **todos los enteros del 1 al 16 están usados**. Eso no es
+     una escala con excepciones: es un continuo. 10px (181 usos) y 9px (99) y
+     11px (63) conviven sin que nadie pueda distinguirlos, y por eso ninguna
+     pantalla tiene ritmo — tiene inventario.
+
+     La escalera es de base 4 con dos medios pasos abajo (2 y 6), que es donde
+     un producto clínico denso los necesita de verdad. Cubre 544 de los 1 239
+     usos actuales tal cual están; el resto es deuda declarada, con trinquete.
+
+     Lo que esta escalera NO hace: repintar. Cambiar 9px por 8px en 99 sitios es
+     una modificación visual de toda la aplicación, y la directiva V9 §4 prohíbe
+     aprobar interfaz leyendo el código. La colapsación va detrás del navegador. */
+  --sp-1:  2px;
+  --sp-2:  4px;
+  --sp-3:  6px;
+  --sp-4:  8px;
+  --sp-5:  12px;
+  --sp-6:  16px;
+  --sp-7:  24px;
+  --sp-8:  32px;
+  --sp-9:  48px;
+
+  /* ─── TIPOGRAFÍA ─────────────────────────────────────────────────────────
+     39 TAMAÑOS DISTINTOS EN 2 903 USOS.
+
+     Y la mitad del volumen vive en MEDIOS PÍXELES: 12.5px (466 usos), 11.5px
+     (274), 13.5px (127), 10.5px (115). Nadie distingue 12,5 de 13 mirando una
+     pantalla; lo que sí se nota es que no hay jerarquía, porque entre el título
+     y el pie de tabla hay once escalones y ninguno significa nada.
+
+     Escalera anclada en 13px, que es el cuerpo real de esta aplicación (539
+     usos, el valor más frecuente de los 39):
+
+       10 · 11 · 12 · 13 · 14 · 16 · 20 · 26 · 34
+
+     Nueve peldaños con un salto que se ve. Los medios píxeles NO se declaran:
+     no son un peldaño, son el ruido que esta escalera existe para retirar.
+     Retirarlos del código es un repintado, y va detrás del navegador. */
+  --fs-1:  10px;   /* micro: sellos, superíndices, marcas de procedencia */
+  --fs-2:  11px;   /* pie de tabla, metadatos */
+  --fs-3:  12px;   /* secundario */
+  --fs-4:  13px;   /* CUERPO — el tamaño por defecto de la aplicación */
+  --fs-5:  14px;   /* cuerpo enfatizado, campos de formulario */
+  --fs-6:  16px;   /* subtítulo de sección */
+  --fs-7:  20px;   /* título de pantalla */
+  --fs-8:  26px;   /* display */
+  --fs-9:  34px;   /* hero — sólo con --font-display */
+
+  /* ─── ELEVACIÓN ──────────────────────────────────────────────────────────
+     22 sombras distintas en 24 usos en línea: prácticamente ninguna se repite.
+     Tres peldaños, y el negro se tinta con el texto del tema en vez de fijarse
+     en `rgba(0,0,0,…)` — así la sombra sigue al tema claro en vez de manchar el
+     crema con una mancha negra pensada para el lienzo oscuro. */
+  --elev-1: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+  --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 10%, transparent);
+  --elev-3: 0 20px 60px -12px color-mix(in srgb, var(--text) 18%, transparent);
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
   --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
@@ -123,11 +197,101 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
+/*
+  ═══ EL SISTEMA QUE TAILWIND VE ═══════════════════════════════════════════
+
+  AQUÍ ESTABA LA CAUSA RAÍZ DEL ESTILO EN LÍNEA, y no era dejadez.
+
+  Hasta hoy `@theme inline` exponía CUATRO valores. Todo lo demás vivía en
+  variables CSS que Tailwind no mira, así que **no existía la utilidad que
+  usar**: quien escribía una pantalla no tenía `bg-nx-s1` ni `text-nx-4` a mano
+  y sólo le quedaba `style={{…}}`. 6 065 estilos en línea en 177 de 200 archivos
+  no son 177 descuidos: son una mecánica. Se arregla la mecánica.
+
+  PREFIJO `nx-`, y no es cosmética. El código ya usa utilidades por defecto de
+  Tailwind —`text-xs` (29), `text-sm` (24), `p-6`, `px-2`, `gap-2`, `rounded-md`
+  (8), `shadow-2xl`—. Declarar `--text-sm` o `--spacing-4` aquí las
+  **reescribiría en silencio** y encogería pantallas que hoy están bien, sin que
+  ninguna prueba lo notara y sin que nadie abriera un navegador. El prefijo hace
+  imposible esa colisión, y además vuelve el sistema greppable: `nx-` es nuestro.
+
+  Este bloque NO cambia un píxel de lo que ya existe: sólo añade utilidades que
+  antes no se podían escribir.
+
+  Guardián: `src/__tests__/el-sistema-de-diseno-tiene-trinquete.test.ts` falla si
+  un peldaño declarado arriba no llega hasta aquí. Un token que Tailwind no ve es
+  un token que no existe — la regla «el dato tiene que LLEGAR» aplicada al CSS.
+  ══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Lienzo y superficies */
+  --color-nx-bg:      var(--bg);
+  --color-nx-s1:      var(--s1);
+  --color-nx-s2:      var(--s2);
+  --color-nx-s3:      var(--s3);
+  --color-nx-borde:   var(--border);
+  --color-nx-borde2:  var(--border2);
+
+  /* Texto */
+  --color-nx-ink:     var(--text);
+  --color-nx-ink2:    var(--text2);
+  --color-nx-ink3:    var(--text3);
+
+  /* Marca. `nexus` es el azul de TEXTO; `nexus-solido` el de RELLENO bajo texto
+     blanco. Son dos tokens porque los requisitos de contraste son opuestos —
+     está razonado arriba, en la declaración de --nexus-solido. */
+  --color-nx-nexus:        var(--nexus);
+  --color-nx-nexus-hover:  var(--nexus-hover);
+  --color-nx-nexus-soft:   var(--nexus-soft);
+  --color-nx-nexus-solido: var(--nexus-solido);
+
+  /* Semántica clínica */
+  --color-nx-rojo:    var(--red);
+  --color-nx-ambar:   var(--amber);
+  --color-nx-verde:   var(--green);
+  --color-nx-azul:    var(--blue);
+  --color-nx-morado:  var(--purple);
+
+  /* Tipografía */
+  --text-nx-1: var(--fs-1);
+  --text-nx-2: var(--fs-2);
+  --text-nx-3: var(--fs-3);
+  --text-nx-4: var(--fs-4);
+  --text-nx-5: var(--fs-5);
+  --text-nx-6: var(--fs-6);
+  --text-nx-7: var(--fs-7);
+  --text-nx-8: var(--fs-8);
+  --text-nx-9: var(--fs-9);
+
+  /* Espacio */
+  --spacing-nx-1: var(--sp-1);
+  --spacing-nx-2: var(--sp-2);
+  --spacing-nx-3: var(--sp-3);
+  --spacing-nx-4: var(--sp-4);
+  --spacing-nx-5: var(--sp-5);
+  --spacing-nx-6: var(--sp-6);
+  --spacing-nx-7: var(--sp-7);
+  --spacing-nx-8: var(--sp-8);
+  --spacing-nx-9: var(--sp-9);
+
+  /* Radio */
+  --radius-nx-xs:  var(--r-xs);
+  --radius-nx-sm:  var(--r-sm);
+  --radius-nx-md:  var(--r-md);
+  --radius-nx-lg:  var(--r-lg);
+  --radius-nx-xl:  var(--r-xl);
+  --radius-nx-2xl: var(--r-2xl);
+  --radius-nx-pill:    var(--r-pill);
+  --radius-nx-circulo: var(--r-circulo);
+
+  /* Elevación */
+  --shadow-nx-1: var(--elev-1);
+  --shadow-nx-2: var(--elev-2);
+  --shadow-nx-3: var(--elev-3);
 }
 
 * {

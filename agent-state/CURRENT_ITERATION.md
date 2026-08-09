@@ -13,8 +13,10 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `DESIGN-SYSTEM-001` — **en curso** (9-ago).
+· `DESIGN-THEME-001` **CERRADO**
+· `A11Y-GATE-001` abierto, es lo siguiente
+Antes: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) y los tres P0 de audio ✅.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -30,6 +32,14 @@ Y una que no se esperaba: **la premisa de la directiva no se cumple.** No hay
 contraste medido a mano. El defecto es el contrario: **el sistema de diseño
 existe y la aplicación no le obedece** (88,5 % de los archivos con estilo en
 línea; primitivos compartidos al 24 %).
+
+> **9-ago** — el tablero se contradecía a sí mismo. Este archivo y el documento
+> de auditoría daban los tres P0 de audio por **CERRADOS** desde el 8-ago;
+> `BACKLOG.json`, que es el que la directiva §3 nombra como backlog del programa
+> y el único que se puede leer con un `grep`, seguía diciendo `pendiente`. El
+> commit que cerró los tableros (`d22fbfd`) avisaba en su mensaje de este mismo
+> defecto y lo cometió mientras lo describía. Reparado, y ahora hay guardián:
+> `un-pendiente-cerrado-lo-esta-en-los-tres-tableros.test.ts`.
 
 | P0 | Estado |
 |---|---|

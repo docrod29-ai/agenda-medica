@@ -3,8 +3,11 @@
 > Se escribe **a mano**, tras cada iteración. Las cifras derivables viven en
 > `MASTER_STATE.json` y en `docs/design/SCREEN_INVENTORY.md` (generado).
 
-**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
-**Siguiente**: `DESIGN-SYSTEM-001`.
+**Iteración en curso**: `DESIGN-SYSTEM-001`, abierta el 9-ago-2026.
+`DESIGN-THEME-001` **CERRADO** · `A11Y-GATE-001` abierto.
+Antes: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
+
+El sistema, escrito: [`docs/design/NEXUS_DESIGN_SYSTEM.md`](../docs/design/NEXUS_DESIGN_SYSTEM.md).
 
 ---
 
@@ -52,21 +55,62 @@ referencian 90 sitios incluidos `ui/Spinner` y `ui/Button loading`. Lo definían
 pantalla estuvieras». Reparado y sellado con
 `toda-animacion-tiene-su-fotograma.test.ts`.
 
-## Compuertas nuevas: ninguna todavía
+## Hecho en `DESIGN-SYSTEM-001` (9-ago) — la mecánica, no el repintado
 
-Accesibilidad, regresión visual, móvil y flujo en navegador **siguen sin
-definirse**. Es lo que `DESIGN-SYSTEM-001` tiene que entregar. Hoy hay **1**
-prueba de accesibilidad entre 540, y es una expresión regular sobre `layout.tsx`.
+`@theme inline` pasó de **4 a 47** tokens, y nacieron las escaleras que
+faltaban: `--sp-1..9` (**no había ninguna escala de espacio**), `--fs-1..9`
+anclada en 13 px, `--r-xs..2xl` y `--elev-1..3`. Cada peldaño con la medición
+que lo justifica escrita al lado.
 
-## Orden para `DESIGN-SYSTEM-001`
+Prefijo `nx-` en las utilidades nuevas, y no es cosmética: el código ya usa
+`text-xs` (29), `text-sm` (24), `p-6`, `rounded-md` (8). Declarar `--text-sm`
+aquí las habría reescrito **en silencio**, encogiendo pantallas que hoy están
+bien sin que ninguna prueba lo notara.
 
-1. Ensanchar `@theme inline`.
-2. Tokens de espacio, radio y sombra.
-3. Un guardián de trinquete por token. Empezar por `#3d5afe`/`#3D5AFE` (125 usos
-   en dos mayúsculas): es puro y no cambia un píxel.
+**No se repintó nada, a propósito.** Colapsar 12,5 px en 13 px son 466 cambios
+visuales por toda la aplicación, y §4 de la directiva prohíbe aprobar interfaz
+leyendo el código.
+
+Trinquete: `scripts/design/trinquete-de-diseno.mjs`, congelado en
+`docs/design/design-techo.json`, corriendo dentro de `vitest`.
+
+| Métrica congelada | Techo |
+|---|---|
+| Hexadecimales a mano | 1 199 usos · 141 distintos |
+| Tamaños de letra en línea | 2 903 usos · 39 distintos |
+| Radios en línea | 1 099 usos · 22 distintos |
+| Espacio en línea | 1 246 usos · 33 distintos |
+| `style={{` | 6 193 en 182 archivos |
+
+## Una corrección a lo que decía este archivo
+
+Decía que sustituir `#3d5afe` por su token «es puro y no cambia un píxel».
+**Es falso en el tema claro**: `--nexus-solido` vale `#2845EA` ahí. Sustituir
+sigue siendo lo correcto —el literal ignora el tema— pero es un cambio visual en
+127 sitios y necesita navegador. Va en `DESIGN-LITERAL-001`.
+
+## Compuertas nuevas: una de cuatro
+
+| Compuerta | Estado |
+|---|---|
+| trinquete de tokens de diseño | **existe** (9-ago) |
+| accesibilidad | **sin definir** — `A11Y-GATE-001` |
+| regresión visual | **sin definir** |
+| móvil / flujo en navegador | **sin definir** |
+
+Hoy hay **1** prueba de accesibilidad entre 540, y es una expresión regular
+sobre `layout.tsx`.
+
+## Orden para lo que queda de `DESIGN-SYSTEM-001`
+
+1. ~~Ensanchar `@theme inline`~~ ✅
+2. ~~Tokens de espacio, radio y sombra~~ ✅
+3. ~~Trinquete por token~~ ✅ (uno, con cuatro métricas)
 4. `axe` sobre las 9 pantallas del paciente. Objetivo WCAG 2.2 AA.
-5. Los literales *slate* que no siguen al tema, en 10 archivos.
-6. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
+5. Migrar `components/ui/` (12 primitivas, 24 % de adopción) a las utilidades
+   `nx-`: es donde el cambio se multiplica sin repintar a mano.
+6. Los literales *slate* que no siguen al tema, en 10 archivos.
+7. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
 
 ## Lo que este estado NO afirma
 

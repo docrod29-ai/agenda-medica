@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,16 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cierre": {
+        "fecha": "2026-08-08",
+        "evidencia": [
+          "REG-283",
+          "v1158",
+          "src/hooks/useGrabacionAudio.ts:1651,1667,1716 — borrarChunks(clave, recoveryBase)",
+          "docs/audit/regression-ledger.md#reg-283"
+        ]
+      }
     },
     {
       "seguridad": 3,
@@ -255,7 +264,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-002",
@@ -266,7 +275,15 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "cierre": {
+        "fecha": "2026-08-08",
+        "evidencia": [
+          "REG-287",
+          "v1161",
+          "docs/audit/regression-ledger.md#reg-287"
+        ]
+      }
     },
     {
       "seguridad": 3,
@@ -280,7 +297,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-003",
@@ -291,7 +308,15 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "cierre": {
+        "fecha": "2026-08-08",
+        "evidencia": [
+          "REG-287",
+          "v1161",
+          "docs/audit/regression-ledger.md#reg-287"
+        ]
+      }
     },
     {
       "seguridad": 2,
@@ -405,7 +430,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -416,7 +441,18 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "cierre": {
+        "fecha": "2026-08-09",
+        "evidencia": [
+          "DESIGN-SYSTEM-001",
+          "src/app/globals.css — escaleras --sp-*, --fs-*, --r-*, --elev-* y @theme inline ensanchado de 4 a 47 tokens",
+          "scripts/design/trinquete-de-diseno.mjs + docs/design/design-techo.json",
+          "src/__tests__/el-sistema-de-diseno-tiene-trinquete.test.ts (8 casos, dos al revés)",
+          "docs/design/NEXUS_DESIGN_SYSTEM.md"
+        ]
+      },
+      "notaDeCierre": "Se cierra la MECÁNICA (no había utilidad que usar) y se congela la deuda. NO se hizo la sustitución de literales que el plan sugería: ver DESIGN-LITERAL-001, donde se corrige la premisa de que fuera pixel-neutra."
     },
     {
       "seguridad": 1,
@@ -565,9 +601,59 @@
       "archivo": "src/lib/portal/formulario-previo.ts:87",
       "plan": "Buscar el símbolo en app/, hooks/ y components/ — el instrumento de REG-255.",
       "score": 24
+    },
+    {
+      "seguridad": 0,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 2,
+      "moat": 0,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 1,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "DESIGN-SYSTEM-001 (V9) — 9-ago-2026",
+      "id": "DESIGN-LITERAL-001",
+      "prioridadV9": "P2",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "Los 127 literales #3d5afe no siguen al tema — y NO es un cambio pixel-neutro",
+      "hallazgo": "#3d5afe (101 usos) y #3D5AFE (26) escritos a mano. El token equivalente es --nexus-solido, que vale #3D5AFE en oscuro pero #2845EA en claro (globals.css, bloque light y @media prefers-color-scheme). El literal ignora el tema.",
+      "porQueImporta": "DESIGN_STATE.md afirmaba que esta sustitución era pura y no cambiaba un pixel. Es falso en el tema claro. Sustituir es un ARREGLO —el literal no obedece al tema— pero es un cambio visual en 127 sitios y la directiva V9 §4 prohibe aprobar interfaz leyendo el codigo.",
+      "archivo": "127 sitios; ver node scripts/design/trinquete-de-diseno.mjs",
+      "plan": "Detras del navegador. Sustituir por var(--nexus-solido), abrir las pantallas afectadas en los dos temas, y apretar el trinquete de hexadecimales al bajar.",
+      "score": 24
+    },
+    {
+      "seguridad": 0,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 0,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 1,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "DESIGN-SYSTEM-001 (V9) — 9-ago-2026",
+      "id": "DESIGN-MEDIOPIXEL-001",
+      "prioridadV9": "P2",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "La mitad del volumen tipografico vive en medios pixeles",
+      "hallazgo": "12.5px (466 usos), 11.5px (274), 13.5px (127), 10.5px (115), 14.5px (25), 9.5px (18) — 1 025 de 2 903 usos. La escalera declarada (--fs-1..9) no los incluye a proposito.",
+      "porQueImporta": "Nadie distingue 12,5 de 13 mirando una pantalla; lo que si se nota es que no hay jerarquia. Pero colapsarlos son 1 025 cambios visuales repartidos por toda la aplicacion.",
+      "archivo": "167 archivos; ver node scripts/design/trinquete-de-diseno.mjs",
+      "plan": "Detras del navegador, por pantalla y no de golpe. Cada colapso aprieta el trinquete de tamanosDeLetra.",
+      "score": 28
     }
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"

@@ -6379,3 +6379,69 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — tres P0 cerrados en dos tableros y abiertos en el tercero (V9)
+
+El 8-ago se cerraron los tres P0 de audio de V9 —`PATIENT-AUDIO-001`, `-002` y
+`-003`, ya reparados y desplegados en v1158 y v1161—. El commit que lo anotaba
+(`d22fbfd`) lo dice en su propio mensaje:
+
+> «Se marcan donde V9 los declaró abiertos, no sólo en el ledger: un pendiente
+> que se cierra en un sitio y sigue abierto en otro es la misma forma de
+> REG-267.»
+
+Y tocó dos archivos: `CURRENT_ITERATION.md` y `CURRENT_PRODUCT_DESIGN_AUDIT.md`.
+
+**No tocó `agent-state/BACKLOG.json`.** Que es justo el que la directiva V9 §3
+nombra como el backlog priorizado del programa, y el único que una sesión nueva
+puede leer con un `grep` para saber qué queda abierto.
+
+**El commit cometió el defecto mientras lo describía.**
+
+### El coste, medido
+
+Al reanudar V9 el 9-ago, la primera pregunta de la sesión —«¿qué está
+abierto?»— se contestó con **tres P0 falsos**. Tres P0 de pérdida irreversible
+de audio que llevaban un día arreglados. El daño de un pendiente fantasma no es
+que se rehaga el trabajo: es que **desplaza al pendiente real**. En ese mismo
+tablero, `PATIENT-TELE-002` sí seguía abierto de verdad, y compartía prioridad
+con tres cadáveres.
+
+### Por qué no basta con acordarse
+
+Es la familia `depende_de_recordar`, la misma de REG-241 (el tablero del loop
+mintió **tres** veces) y de REG-267. La respuesta de esta casa ya está escrita:
+lo derivable se deriva. Aquí no se puede derivar —el criterio de cierre es
+humano— así que **se cruza**: si un tablero dice CERRADO, el backlog no puede
+decir pendiente.
+
+### El silencio no cierra nada
+
+La regla que hace seguro al guardián no es la que salta a la vista. Sólo se
+comparan **afirmaciones**: que un tablero no mencione un elemento no dice nada
+sobre él. Es la regla 4 de seguridad clínica —ausencia de dato no es dato de
+ausencia— aplicada a un tablero de trabajo. Si el guardián dedujera cierres del
+silencio, cerraría solo la mitad del backlog.
+
+Hay un caso probado al revés para cada dirección: una línea con `CERRADO` junto
+al identificador lo cierra; una que sólo lo menciona, no.
+
+### Y una tercera regla: sin evidencia no está cerrado
+
+Todo elemento marcado `cerrado` trae ahora `cierre: { fecha, evidencia[] }` con
+su REG, su versión y el archivo donde vive el arreglo. Es la misma exigencia que
+el loop se aplica a sí mismo: sin SHA, una unidad no está cerrada.
+
+### Lo que este guardián NO caza
+
+El caso inverso —arreglado en el código y abierto en los tres tableros—, que es
+exactamente lo que pasó aquí antes de existir. Para eso hay que leer el código,
+y eso no se deriva. Se dice en vez de dejarlo suponer.
+
+### Archivos
+
+- `agent-state/BACKLOG.json` — 3 P0 cerrados con evidencia · 2 hallazgos nuevos
+- `src/__tests__/un-pendiente-cerrado-lo-esta-en-los-tres-tableros.test.ts` (nuevo, 5 casos, sellado)
+- `agent-state/CURRENT_ITERATION.md`
