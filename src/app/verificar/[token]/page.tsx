@@ -17,8 +17,8 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
   const r = verificarTokenReceta(token)
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg, #0b0c0e)', color: 'var(--text, #e9edef)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1, #16181c)', border: '1px solid var(--border, #2a2d33)', borderRadius: 16, padding: 28 }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(61,90,254,0.15)', display: 'grid', placeItems: 'center', color: '#3D5AFE' }}>
             <Stethoscope size={18} />
@@ -77,7 +77,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
           </div>
         )}
 
-        <p style={{ fontSize: 11, opacity: 0.55, marginTop: 18, borderTop: '1px solid var(--border, #2a2d33)', paddingTop: 12, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 11, opacity: 0.55, marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 12, lineHeight: 1.5 }}>
           La verificación dentro de NexusMED no sustituye los requisitos legales, la firma profesional
           ni las disposiciones aplicables a la dispensación de medicamentos.
         </p>
@@ -88,7 +88,7 @@ export default async function VerificarPage({ params }: { params: Promise<{ toke
 
 function Fila({ k, v }: { k: string; v: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '7px 0', borderBottom: '1px solid var(--border, #2a2d33)', fontSize: 13.5 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13.5 }}>
       <span style={{ opacity: 0.6 }}>{k}</span>
       <span style={{ fontWeight: 600, textAlign: 'right' }}>{v}</span>
     </div>

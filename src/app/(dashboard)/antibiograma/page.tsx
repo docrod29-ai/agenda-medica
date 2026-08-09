@@ -648,7 +648,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                   <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: 'var(--s2)', color: 'var(--text3)' }}>{m.categoria}{m.ambler ? ` · clase ${m.ambler}` : ''}</span>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 5px', lineHeight: 1.5 }}>{m.explicacion}</p>
-                <p style={{ fontSize: 10.5, color: 'var(--text4, var(--text3))', margin: 0, fontStyle: 'italic' }}>{m.referencia}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--text3)', margin: 0, fontStyle: 'italic' }}>{m.referencia}</p>
               </div>
             ))}
           </div>

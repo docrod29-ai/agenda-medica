@@ -105,7 +105,7 @@ export default function BenchmarkVozPage() {
         <ArrowLeft size={15} /> Pacientes y camas de UCI
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BarChart3 size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Benchmark de voz
+        <BarChart3 size={22} style={{ color: 'var(--nexus)' }} /> Benchmark de voz
       </h1>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 16px', lineHeight: 1.6 }}>
         Mide cuánto entiende de verdad el dictado de UCI. Grabas, el sistema transcribe,
@@ -126,8 +126,8 @@ export default function BenchmarkVozPage() {
         {([['guion', 'Leer el guion'], ['libre', 'Dictado libre']] as const).map(([k, txt]) => (
           <button key={k} onClick={() => setModo(k)} style={{
             background: modo === k ? 'rgba(61,90,254,0.14)' : 'none',
-            border: `1px solid ${modo === k ? 'var(--nexus,#3d5afe)' : 'var(--border)'}`,
-            color: modo === k ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+            border: `1px solid ${modo === k ? 'var(--nexus)' : 'var(--border)'}`,
+            color: modo === k ? 'var(--nexus)' : 'var(--text3)',
             borderRadius: 9, padding: '7px 13px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', minHeight: 36,
           }}>{txt}</button>
         ))}

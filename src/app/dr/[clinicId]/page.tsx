@@ -237,7 +237,7 @@ export default async function PerfilPublico({ params }: { params: Promise<{ clin
                 <div key={i} style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
                   <div style={{ display: 'flex', gap: 2, marginBottom: 6 }}>
                     {Array.from({ length: 5 }).map((_, j) => (
-                      <Star key={j} size={13} fill={j < r.rating ? 'var(--amber)' : 'transparent'} color={j < r.rating ? 'var(--amber)' : 'var(--border2, var(--border))'} />
+                      <Star key={j} size={13} fill={j < r.rating ? 'var(--amber)' : 'transparent'} color={j < r.rating ? 'var(--amber)' : 'var(--border2, var(--border)'} />
                     ))}
                   </div>
                   {r.texto && <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 6px' }}>“{r.texto}”</p>}

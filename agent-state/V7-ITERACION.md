@@ -43,7 +43,7 @@ la ruta correcta.
 `pendiente` que el propio `MASTER_STATE.json` y el ledger (REG-283/284, REG-287)
 ya daban por cerrados desde v1158/v1161. Reconciliados sin tocar código.
 
-**REG-294 — `POSTVISIT-GATE-001` cerrado**: `HojaParaElPaciente` se montaba con
+**REG-306 — `POSTVISIT-GATE-001` cerrado**: `HojaParaElPaciente` se montaba con
 el estado VIVO del borrador (medicamentos, estudios), sin exigir `firmada`,
 a diferencia de `ComoCerrarLaConsulta` que sí la exige. Un médico podía copiar
 o imprimir «lo que se lleva el paciente» a medio dictar. Guardia añadida:

@@ -52,6 +52,7 @@
  */
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const RAIZ = process.cwd()
 const APP = join(RAIZ, 'src', 'app')
@@ -193,20 +194,40 @@ ${tabla(ordenadas)}
 `
 }
 
-const contenido = generar()
+/**
+ * EL CUERPO DE LÍNEA DE ÓRDENES SÓLO CORRE SI SE INVOCA DIRECTAMENTE.
+ *
+ * Sin esta guarda, `import` desde una prueba ejecuta el script entero. Costó
+ * dos defectos reales, y el segundo es el que da miedo:
+ *
+ *  1. `trinquete-de-diseno.mjs` llamaba a `process.exit(1)` al importarlo, así
+ *     que una regresión de diseño **tumbaba la recolección** de la prueba en vez
+ *     de fallar un caso. El fallo se veía, pero decía otra cosa.
+ *
+ *  2. `inventario-de-pantallas.mjs` REESCRIBÍA el markdown al importarlo. La
+ *     prueba comparaba el archivo contra `generar()`… después de que el propio
+ *     import lo hubiera puesto al día. **El guardián no podía fallar nunca.**
+ *     Una prueba que no puede fallar no es una prueba — y ésta llevaba dos
+ *     commits fingiendo que lo era.
+ */
+const INVOCADO_DIRECTAMENTE = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href
 
-if (process.argv.includes('--verificar')) {
-  let actual = ''
-  try { actual = readFileSync(SALIDA, 'utf8') } catch { /* no existe */ }
-  if (actual !== contenido) {
-    console.error('✗ docs/design/SCREEN_INVENTORY.md está desfasado. Corre: node scripts/design/inventario-de-pantallas.mjs')
-    process.exit(1)
+if (INVOCADO_DIRECTAMENTE) {
+  const contenido = generar()
+
+  if (process.argv.includes('--verificar')) {
+    let actual = ''
+    try { actual = readFileSync(SALIDA, 'utf8') } catch { /* no existe */ }
+    if (actual !== contenido) {
+      console.error('✗ docs/design/SCREEN_INVENTORY.md está desfasado. Corre: node scripts/design/inventario-de-pantallas.mjs')
+      process.exit(1)
+    }
+    console.log('✓ El inventario de pantallas coincide con el árbol de rutas.')
+  } else {
+    mkdirSync(join(RAIZ, 'docs', 'design'), { recursive: true })
+    writeFileSync(SALIDA, contenido)
+    console.log(`✓ docs/design/SCREEN_INVENTORY.md — ${contenido.split('\n').filter((l) => l.startsWith('| `/')).length} pantallas`)
   }
-  console.log('✓ El inventario de pantallas coincide con el árbol de rutas.')
-} else {
-  mkdirSync(join(RAIZ, 'docs', 'design'), { recursive: true })
-  writeFileSync(SALIDA, contenido)
-  console.log(`✓ docs/design/SCREEN_INVENTORY.md — ${contenido.split('\n').filter((l) => l.startsWith('| `/')).length} pantallas`)
 }
 
 export { generar }

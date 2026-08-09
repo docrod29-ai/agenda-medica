@@ -210,7 +210,7 @@ describe('está CONECTADO', () => {
   })
 })
 
-describe('POSTVISIT-GATE-001 (REG-294) — no se entrega sin firmar', () => {
+describe('POSTVISIT-GATE-001 (REG-306) — no se entrega sin firmar', () => {
   /**
    * ── EL HUECO ──────────────────────────────────────────────────────────────
    *
@@ -248,7 +248,7 @@ describe('POSTVISIT-GATE-001 (REG-294) — no se entrega sin firmar', () => {
     /**
      * Prueba al revés: si alguien vuelve a escribir el guardia como
      * `{!esNotaHospital && (` — sin `firmada` — esta prueba falla. Es
-     * justo el defecto que REG-294 reparó.
+     * justo el defecto que REG-306 reparó.
      */
     const bloque = page.slice(page.indexOf('LO QUE SE LLEVA EL PACIENTE (REG-242)'))
     const guardia = bloque.match(/\{[^{}]*&&[^{}]*\(\s*\n\s*<HojaParaElPaciente/)?.[0] ?? ''

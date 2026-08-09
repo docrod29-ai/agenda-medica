@@ -267,7 +267,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
       <Card padding={14}>
         <div className="flex items-center gap-2 mb-2">
           <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
-          <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple,#7c3aed)' }}>Copiloto de Infectología · en vivo</span>
+          <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple)' }}>Copiloto de Infectología · en vivo</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {huesped && huesped !== '—' && <Pill label={huesped} color="#0ea5e9" />}
@@ -505,7 +505,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
         {/* Borrador IA */}
         {iaTexto && (
           <Card padding={14}>
-            <div className="text-xs font-semibold mb-1" style={{ color: 'var(--purple,#7c3aed)' }}>Borrador IA — valida y edita antes de usar</div>
+            <div className="text-xs font-semibold mb-1" style={{ color: 'var(--purple)' }}>Borrador IA — valida y edita antes de usar</div>
             <textarea className={inputCls} rows={12} value={iaTexto} onChange={(e) => setIaTexto(e.target.value)} />
             <div className="flex gap-2 mt-2">
               <Button variant="secondary" size="sm" icon={<Download size={15} />} onClick={() => descargarWord(iaTexto)}>Descargar Word</Button>

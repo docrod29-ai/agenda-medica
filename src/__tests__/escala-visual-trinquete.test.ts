@@ -122,7 +122,22 @@ describe('espaciado', () => {
 })
 
 describe('radio', () => {
-  const rad = contar(/borderRadius:\s*([\d.]+|'[^']+'|`[^`]+`)/g)
+  /**
+   * UN TOKEN NO CUENTA COMO RADIO SUELTO — corregido en PATIENT-COMPANION-001.
+   *
+   * Este contador metía en el mismo saco `borderRadius: 7` y
+   * `borderRadius: 'var(--r-lg)'`. El primero es deriva; el segundo es
+   * exactamente lo que el sistema de diseño pide.
+   *
+   * El resultado era una contradicción entre dos guardianes: el trinquete de
+   * diseño premia usar el token y éste lo castigaba, así que la primera pantalla
+   * que hizo lo correcto puso el CI en rojo. Es la familia
+   * `se_contradice` — cada guardián bien por su cuenta, el fallo en el hueco.
+   *
+   * Se excluyen los valores que son una variable CSS. `var(--r-pill)` ya estaba
+   * exento de hecho, porque el caso de la píldora se vigila aparte, abajo.
+   */
+  const rad = contar(/borderRadius:\s*([\d.]+|'(?!var\(--)[^']+'|`(?!\$\{|var\(--)[^`]+`)/g)
 
   it(`no hay más de ${TECHO_RADIOS} radios distintos`, () => {
     const lista = sueltos(rad).map(([v, n]) => `${v}(${n})`).join(' ')

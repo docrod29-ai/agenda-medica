@@ -1,0 +1,102 @@
+{
+  "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
+  "techos": {
+    "respaldosDeToken": 0,
+    "hexEnLinea": 565,
+    "tamanosFueraDeEscala": 2027,
+    "radiosFueraDeEscala": 638,
+    "sombrasEnLinea": 24
+  },
+  "peores": [
+    {
+      "archivo": "src/app/(dashboard)/configuracion/page.tsx",
+      "respaldos": 0,
+      "hex": 22,
+      "tam": 99,
+      "rad": 45,
+      "sombras": 2,
+      "total": 168
+    },
+    {
+      "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
+      "respaldos": 0,
+      "hex": 34,
+      "tam": 89,
+      "rad": 22,
+      "sombras": 1,
+      "total": 146
+    },
+    {
+      "archivo": "src/app/(dashboard)/uci/page.tsx",
+      "respaldos": 0,
+      "hex": 8,
+      "tam": 93,
+      "rad": 30,
+      "sombras": 0,
+      "total": 131
+    },
+    {
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "respaldos": 0,
+      "hex": 14,
+      "tam": 86,
+      "rad": 29,
+      "sombras": 1,
+      "total": 130
+    },
+    {
+      "archivo": "src/app/demo/interactivo/page.tsx",
+      "respaldos": 0,
+      "hex": 20,
+      "tam": 67,
+      "rad": 15,
+      "sombras": 0,
+      "total": 102
+    },
+    {
+      "archivo": "src/app/superadmin/page.tsx",
+      "respaldos": 0,
+      "hex": 16,
+      "tam": 53,
+      "rad": 29,
+      "sombras": 0,
+      "total": 98
+    },
+    {
+      "archivo": "src/app/(dashboard)/uci/antimicrobianos/page.tsx",
+      "respaldos": 0,
+      "hex": 14,
+      "tam": 45,
+      "rad": 8,
+      "sombras": 0,
+      "total": 67
+    },
+    {
+      "archivo": "src/app/(dashboard)/configuracion/secciones-recetas.tsx",
+      "respaldos": 0,
+      "hex": 9,
+      "tam": 36,
+      "rad": 17,
+      "sombras": 1,
+      "total": 63
+    },
+    {
+      "archivo": "src/app/(dashboard)/antibiograma/page.tsx",
+      "respaldos": 0,
+      "hex": 8,
+      "tam": 40,
+      "rad": 7,
+      "sombras": 0,
+      "total": 55
+    },
+    {
+      "archivo": "src/app/demo/page.tsx",
+      "respaldos": 0,
+      "hex": 11,
+      "tam": 26,
+      "rad": 15,
+      "sombras": 1,
+      "total": 53
+    }
+  ]
+}

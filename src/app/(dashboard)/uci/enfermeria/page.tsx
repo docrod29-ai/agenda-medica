@@ -111,7 +111,7 @@ export default function EnfermeriaUciPage() {
         <ArrowLeft size={15} /> Pacientes y camas de UCI
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <HeartPulse size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Turno de enfermería
+        <HeartPulse size={22} style={{ color: 'var(--nexus)' }} /> Turno de enfermería
       </h1>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, margin: '10px 0 18px', padding: '11px 13px', borderRadius: 11, background: 'var(--s2)', border: '1px solid var(--border)' }}>

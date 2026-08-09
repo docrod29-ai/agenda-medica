@@ -46,6 +46,16 @@ export const EVENTO_GUARDAR_TODO = 'nx:guardar-todo'
  */
 export interface DetalleGuardarTodo {
   esperar: (p: Promise<unknown>) => void
+  /**
+   * Lo llama quien tenga audio grabado que **todavía no se ha transcrito**.
+   *
+   * Sirve para una sola cosa: que la purga NO se lleve ese audio. Ver
+   * `ResultadoGuardado.audioSinTranscribir` y REG-297.
+   *
+   * Opcional a propósito, como `esperar`: una pantalla que no lo use sigue
+   * funcionando igual.
+   */
+  marcarAudioSinTranscribir?: () => void
 }
 
 /** Margen para que un listener reaccione cuando NADIE entrega promesa. */
@@ -63,6 +73,13 @@ export interface ResultadoGuardado {
   todoGuardado: boolean
   /** Se agotó el tope antes de que respondieran. */
   seAgotoElTiempo: boolean
+  /**
+   * Alguien declaró audio grabado y **sin transcribir todavía**.
+   *
+   * Cuando es cierto, el audio local NO se purga: es la única copia que existe
+   * de lo que dijo el paciente. Ver REG-297.
+   */
+  audioSinTranscribir: boolean
 }
 
 /**
@@ -74,12 +91,16 @@ export interface ResultadoGuardado {
  */
 export async function guardarTodoYEsperar(topeMs = TOPE_MS): Promise<ResultadoGuardado> {
   const promesas: Promise<unknown>[] = []
-  const detalle: DetalleGuardarTodo = { esperar: p => { promesas.push(p) } }
+  let audioSinTranscribir = false
+  const detalle: DetalleGuardarTodo = {
+    esperar: p => { promesas.push(p) },
+    marcarAudioSinTranscribir: () => { audioSinTranscribir = true },
+  }
   window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO, { detail: detalle }))
 
   if (promesas.length === 0) {
     await dormir(ESPERA_SIN_ACUSE_MS)
-    return { huboAcuse: false, todoGuardado: false, seAgotoElTiempo: false }
+    return { huboAcuse: false, todoGuardado: false, seAgotoElTiempo: false, audioSinTranscribir }
   }
 
   let seAgotoElTiempo = false
@@ -89,12 +110,13 @@ export async function guardarTodoYEsperar(topeMs = TOPE_MS): Promise<ResultadoGu
   ])
 
   if (seAgotoElTiempo || resultados === null) {
-    return { huboAcuse: true, todoGuardado: false, seAgotoElTiempo: true }
+    return { huboAcuse: true, todoGuardado: false, seAgotoElTiempo: true, audioSinTranscribir }
   }
   return {
     huboAcuse: true,
     todoGuardado: resultados.every(r => r.status === 'fulfilled'),
     seAgotoElTiempo: false,
+    audioSinTranscribir,
   }
 }
 
@@ -142,10 +164,35 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
    * local es la única copia: se conserva, y con él la caché de Firestore, que
    * es donde espera la escritura pendiente para reintentarse al volver.
    */
+  /**
+   * EL AUDIO SIN TRANSCRIBIR NO SE PURGA — REG-297.
+   *
+   * `limpiarAudioLocal()` se llamaba en LAS DOS ramas, sin condición, y hace
+   * `deleteDatabase('nexusmed-recovery')`: se lleva el audio de recuperación
+   * entero.
+   *
+   * La razón escrita era «el texto ya transcrito vive en el borrador que se
+   * está conservando», y es cierta **para una grabación terminada**. A mitad de
+   * grabación no lo es: la cola sin transcribir no existe en ningún otro sitio.
+   *
+   * Y el caso que lo dispara es justo ése. El cierre por inactividad no oía
+   * dictar (REG-296), así que quien se llevaba el audio era, con diferencia
+   * mayor, la consulta que se estaba dictando en ese momento.
+   *
+   * Ahora quien tenga audio en vuelo lo declara, y aquí se respeta. Es el mismo
+   * criterio que ya gobierna el borrador de la nota —no se purga lo que es
+   * única copia— aplicado a la otra mitad del trabajo.
+   *
+   * **La sesión se cierra igual**: eso sí es seguridad. Lo que se conserva es
+   * un archivo local que ya estaba en el disco, y que el propio médico puede
+   * descartar desde el cartel de recuperación.
+   */
+  const purgarAudio = () => { if (!r.audioSinTranscribir) limpiarAudioLocal() }
+
   if (r.todoGuardado) {
     limpiarBorradoresLocales()
     try { await auth.signOut() } finally {
-      limpiarAudioLocal()
+      purgarAudio()
       await limpiarCacheFirestore()
       window.location.href = destino
     }
@@ -155,9 +202,7 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
   try {
     await auth.signOut()
   } finally {
-    // El audio crudo sí se va: es el PHI más pesado del disco y el texto ya
-    // transcrito vive en el borrador que se está conservando.
-    limpiarAudioLocal()
+    purgarAudio()
     const aviso = r.seAgotoElTiempo
       ? 'guardado_lento'
       : r.huboAcuse ? 'guardado_fallido' : 'sin_confirmar'

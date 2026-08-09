@@ -132,9 +132,9 @@ export default function PreciosSuperadmin() {
 
       {/* Lo rechazado se enseña SIEMPRE, aunque el guardado saliera bien. */}
       {rechazos.length > 0 && (
-        <div style={{ padding: '12px 14px', borderRadius: 10, border: '1px solid var(--amber, #f59e0b)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)', marginBottom: 14 }}>
+        <div style={{ padding: '12px 14px', borderRadius: 10, border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5, marginBottom: 5 }}>
-            <AlertTriangle size={15} style={{ color: 'var(--amber, #f59e0b)' }} /> Esto NO se guardó
+            <AlertTriangle size={15} style={{ color: 'var(--amber)' }} /> Esto NO se guardó
           </div>
           {rechazos.map((r, i) => <div key={i} style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>· {r}</div>)}
         </div>
