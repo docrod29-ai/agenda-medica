@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1085 — REG-204: «veinticinco miligramos» se leía como una dosis sin cantidad
+## v1094 — REG-212: «veinticinco miligramos» se leía como una dosis sin cantidad
 
 La lista de números en letra que valen como cantidad iba 1…12, saltaba a 15, a
 20 y de ahí a las decenas. Faltaban el 13, el 14, el 16-19 y todo el 21-29.

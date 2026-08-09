@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-204 — «veinticinco miligramos» se leía como una dosis sin cantidad (v1085)
+## REG-212 — «veinticinco miligramos» se leía como una dosis sin cantidad (v1094)
 
 **Encontrado** — 8-ago-2026, auditando `uci-dosis-sin-numero` con frases de
 posología de consulta (de libro, ninguna de paciente). Se llegó a él por el

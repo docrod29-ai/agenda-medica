@@ -2,7 +2,7 @@
   "generadoEn": "2026-08-04",
   "revisadoEn": "2026-08-08",
   "formulaDePrioridad": "5*SEGURIDAD + 5*INTEGRIDAD + 4*INGRESO + 4*FRECUENCIA + 4*MOAT + 3*FIABILIDAD + 3*REGULATORIO + 2*APRENDIZAJE - 3*IRREVERSIBILIDAD - 2*COMPLEJIDAD - 2*DEPENDENCIA_EXTERNA",
-  "notaDeLaRevision": "8-ago-2026: los dos ítems de mayor score (SAFE-001, VOICE-004) se comprobaron CERRADOS contra el código, no contra el informe. Se cierran con la evidencia de dónde se verificó. Lo que quedaba pendiente sin bloqueo era todo de evaluación y depende de datos que viven fuera del repositorio, así que la iteración se gastó auditando un motor clínico — de ahí salió REG-204.",
+  "notaDeLaRevision": "8-ago-2026: los dos ítems de mayor score (SAFE-001, VOICE-004) se comprobaron CERRADOS contra el código, no contra el informe. Se cierran con la evidencia de dónde se verificó. Lo que quedaba pendiente sin bloqueo era todo de evaluación y depende de datos que viven fuera del repositorio, así que la iteración se gastó auditando un motor clínico — de ahí salió REG-212.",
   "items": [
     {
       "id": "VOICE-005",
@@ -15,7 +15,7 @@
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 64,
       "estado": "CERRADO",
-      "cerradoEn": "2026-08-08 · REG-204 · v1085",
+      "cerradoEn": "2026-08-08 · REG-212 · v1094",
       "golden": "src/__tests__/los-numeros-en-letra-son-cantidad.test.ts",
       "reversible": true
     },
@@ -46,7 +46,7 @@
       "score": 60,
       "estado": "CERRADO",
       "cerradoEn": "2026-08-08 (verificado; la reparación es anterior)",
-      "comoSeVerifico": "Los cuatro signos están en ES_CANTIDAD y el golden src/__tests__/balance-negativo-no-es-dosis-rota.test.ts pasa. REG-204 (que cita este cierre como REG-141) encontró el hueco HERMANO en la misma expresión.",
+      "comoSeVerifico": "Los cuatro signos están en ES_CANTIDAD y el golden src/__tests__/balance-negativo-no-es-dosis-rota.test.ts pasa. REG-212 (que cita este cierre como REG-141) encontró el hueco HERMANO en la misma expresión.",
       "reversible": true
     },
     {
@@ -94,7 +94,7 @@
     {
       "id": "VOICE-006",
       "titulo": "La unidad de dosis en la primerísima palabra del dictado no se mira",
-      "hallazgo": "El bucle de dosisSinNumero arranca en el índice 1 porque necesita una palabra previa. Si el dictado EMPIEZA por la unidad («Gramos cada ocho horas de meropenem»), no se evalúa. Encontrado leyendo el motor durante REG-204; NO reproducido sobre dictado real: no se sabe con qué frecuencia el reconocedor produce esa forma.",
+      "hallazgo": "El bucle de dosisSinNumero arranca en el índice 1 porque necesita una palabra previa. Si el dictado EMPIEZA por la unidad («Gramos cada ocho horas de meropenem»), no se evalúa. Encontrado leyendo el motor durante REG-212; NO reproducido sobre dictado real: no se sabe con qué frecuencia el reconocedor produce esa forma.",
       "porQueImporta": "Es un falso negativo de la compuerta, que es la dirección cara: una dosis perdida que pasa desapercibida. Pero sólo afecta a la primera palabra del texto entero, no a la de cada frase.",
       "archivo": "src/lib/uci/dosis-sin-numero.ts:84",
       "seguridad": 2, "integridad": 0, "ingreso": 0, "frecuencia": 1, "moat": 0,
