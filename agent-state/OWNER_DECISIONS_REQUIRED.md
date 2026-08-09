@@ -120,3 +120,34 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+## INTERFAZ · «Cancelar y borrar esta grabación» dice *esta* y borra *todas*
+
+**Encontrado de camino a REG-271**, 9-ago-2026. No se tocó: es un botón
+destructivo que usted aprieta a sabiendas, y cambiarle qué borra sin su palabra
+sería cambiarle la decisión.
+
+**Lo que hay hoy.** El botón rojo de la consulta pregunta «¿Cancelar y borrar
+**esta** grabación? No se transcribirá ni se guardará». Al confirmar llama a
+`descartarRecovery`, que borra **el rango completo** de la llave del paciente.
+
+**Por qué ahora importa y antes no se notaba.** Hasta REG-271 el rango completo y
+«esta grabación» eran casi siempre lo mismo, porque cualquier transcripción
+exitosa ya había vaciado la llave. Con REG-271 puede quedar audio huérfano
+guardado a propósito — precisamente el de una consulta que se perdió — y ese
+botón se lo lleva junto con la grabación que usted sí quería cancelar.
+
+**Las dos opciones, y qué cuesta cada una:**
+
+| Opción | Consecuencia |
+|---|---|
+| **Dejarlo como está** | Un solo botón, sin preguntas. Riesgo: cancelar una grabación de 30 s puede borrar los 22 min de otra que estaba esperando recuperarse. |
+| **Que borre sólo la grabación en curso** | El huérfano sobrevive y sigue ofreciéndose en «Recuperar audio». Coste: si usted quería limpiar del todo, hace falta además el botón «Descartar audio guardado», que ya existe. |
+
+**Recomendación** (no implementada): la segunda, porque el texto del botón ya
+promete la segunda. Pero el cambio es visible para usted en la consulta y por eso
+se pregunta.
+
+**Qué queda bloqueado sin su respuesta**: nada. REG-271 funciona igual.
+
+**Qué cuesta responder**: una frase.
