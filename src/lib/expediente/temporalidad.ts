@@ -55,7 +55,7 @@ const sinAcentos = (s: string) =>
  * · La marca de cuándo, y sólo cuando es REMOTA: «hace tres años», «en 2019»,
  *   «de niño».
  *
- * ── POR QUÉ LA MARCA SOLA TIENE QUE SER REMOTA (v1074, REG-192) ─────────────
+ * ── POR QUÉ LA MARCA SOLA TIENE QUE SER REMOTA (v1076, REG-194) ─────────────
  *
  * «Hace tres días» estaba en la misma lista que «hace tres años», y con eso el
  * motor leía como pasado **el padecimiento actual**: «inicia hace tres días con
@@ -220,7 +220,7 @@ const ANTES = 60
 /**
  * La ventana de 60 caracteres hacia atrás, cortada en el punto anterior.
  *
- * ── EL DEFECTO QUE ESTO REPARA (v1074, REG-192) ──────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (v1076, REG-194) ──────────────────────────────
  *
  * La ventana ya estaba, y su comentario decía por qué era corta: «más larga
  * leería la oración anterior y un “antecedente” ajeno taparía una afirmación en

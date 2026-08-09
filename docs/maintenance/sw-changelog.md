@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el padecimiento de hoy se leía como antecedente
+## v1076 — REG-194: el padecimiento de hoy se leía como antecedente
 
 El motor de temporalidad daba a «hace tres días» el mismo peso que a «hace tres
 años». «Inicia hace tres días con fiebre y tos, se integra neumonía adquirida en

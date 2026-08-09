@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el padecimiento de hoy se leía como antecedente (v1074)
+## REG-194 — el padecimiento de hoy se leía como antecedente (v1076)
 
 **Encontrado** — 7-ago-2026, cerrando `EVAL-002` del backlog: *«el motor de
 temporalidad se construyó en la v1027-v1030 y no tiene corpus: sus casos son los

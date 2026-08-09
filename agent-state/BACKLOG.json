@@ -83,7 +83,7 @@
       "complejidad": 2,
       "dependenciaExterna": 0,
       "score": 55,
-      "estado": "cerrado (REG-192, v1074)",
+      "estado": "cerrado (REG-194, v1076)",
       "reversible": true,
       "cerradoEn": "2026-08-07",
       "queEncontro": "El corpus escrito sin mirar el codigo marco 6 de 7 frases del padecimiento actual como pasado. Dos defectos reparados; dos confirmados y NO reparados a proposito: EVAL-004 y EVAL-005."
