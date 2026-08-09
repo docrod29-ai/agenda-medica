@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290],
   },
   {
     clave: 'se_contradice',
@@ -57,7 +57,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El motor lingüístico cubre el español que uno escribiría, no el que se ' +
       'habla en un consultorio mexicano. Se descubre midiendo contra frases ' +
       'reales, nunca leyendo el código.',
-    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276, 280, 281, 282, 284],
+    regs: [158, 186, 187, 192, 200, 209, 210, 211, 212, 220, 271, 275, 276, 280, 281, 282, 284, 289],
   },
   {
     clave: 'sin_medir',

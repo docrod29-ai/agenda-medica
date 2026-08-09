@@ -66,6 +66,12 @@ export const RUTAS_PRIVADAS = [
   'pacientes',
   // El worklist enseña nombre de paciente y qué se le pidió: es PHI en pantalla.
   'pendientes',
+  /**
+   * «Lo que te protege»: corre los motores clínicos en vivo sobre el texto que
+   * se escriba. No lee PHI de Firestore, pero se abre DENTRO de la sesión del
+   * médico — y esa sesión es lo que un iframe invisible querría aprovechar.
+   */
+  'motores',
   'reactivacion',
   'receta',
   'referencia',

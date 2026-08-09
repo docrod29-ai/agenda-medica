@@ -275,12 +275,25 @@ export function revisarDosis(e: EntradaDosis): AlertaDosis[] {
 export function extraerMg(texto: string): number | null {
   const t = normaliza(texto)
   // 1) Cantidad con unidad de MASA explícita (mg/g/mcg) — la que de verdad importa.
-  const masa = t.match(/(\d+(?:[.,]\d+)?)\s*(mcg|µg|ug|mg|g|gr|gramos?)\b/)
+  /**
+   * ── «500 MICROGRAMOS» SE LEÍA COMO 500 mg — REG-289 ────────────────────────
+   *
+   * La abreviatura `mcg` estaba; **la palabra escrita no**. Y el paso 3 —«número
+   * sin unidad se asume mg»— la recogía:
+   *
+   *     extraerMg('500 mcg')          →  0.5   ✓
+   *     extraerMg('500 microgramos')  →  500   ← MIL VECES la dosis
+   *
+   * Se dicta con la palabra entera todos los días. Y el mismo agujero se tragaba
+   * cualquier unidad que la lista no conociera, convirtiéndola en miligramos en
+   * silencio: `1000 UI` salía como 1000 mg.
+   */
+  const masa = t.match(/(\d+(?:[.,]\d+)?)\s*(mcg|microgramos?|µg|ug|miligramos?|mg|gramos?|gr|g)\b/)
   if (masa) {
     const val = parseFloat(masa[1].replace(',', '.'))
     if (!Number.isFinite(val)) return null
     const u = masa[2]
-    if (u.startsWith('mcg') || u === 'µg' || u === 'ug') return val / 1000
+    if (u.startsWith('mcg') || u.startsWith('microgramo') || u === 'µg' || u === 'ug') return val / 1000
     if (u === 'g' || u === 'gr' || u.startsWith('gramo')) return val * 1000
     return val
   }
@@ -288,6 +301,18 @@ export function extraerMg(texto: string): number | null {
   //    concentración → null. Antes "5 mL" se leía como 5 mg y silenciaba la red de
   //    seguridad (el clásico error de jarabes quedaba fuera).
   if (/\d+(?:[.,]\d+)?\s*(ml|mililitros?|c\.?\s?c\.?|cc)\b/.test(t)) return null
+  /**
+   * 2-bis) UNIDADES QUE NO SON MASA — REG-289.
+   *
+   * `1000 UI` de vitamina D, `2 U` de insulina, `10 mEq` de potasio, `20 gotas`.
+   * Ninguna es miligramos, y el paso 3 las convertía en miligramos **en
+   * silencio**. Es el mismo daño que ya costó el volumen: una red de seguridad
+   * que compara peras con manzanas y no lo dice.
+   *
+   * `null` = «no se puede validar en mg», que es la respuesta honesta. El
+   * llamador ya sabe tratarlo: es lo que hace con los mililitros.
+   */
+  if (/\d+(?:[.,]\d+)?\s*(ui|u|ud|uds|unidades?|meq|mmol|mol|%|gotas?|puff|inhalaciones?)\b/.test(t)) return null
   // 3) Número sin unidad: se asume mg (comportamiento previo para "500").
   const bare = t.match(/(\d+(?:[.,]\d+)?)/)
   if (!bare) return null
@@ -331,6 +356,34 @@ export function extraerTomasDia(frecuencia: string): number | null {
   const mh = t.match(/cada\s*(una?|dos|tres|cuatro|seis|ocho|doce|veinticuatro)\s*(h|hrs?|horas?)/)
   if (mh && NUM[mh[1]]) { const h = NUM[mh[1]]; return h > 0 ? Math.round(24 / h) : null }
   if (/una vez|1 vez|diaria|al dia|cada 24|cada veinticuatro/.test(t)) return 1
+
+  /**
+   * ── LAS ABREVIATURAS LATINAS — REG-289 ────────────────────────────────────
+   *
+   * `QID`, `TID`, `BID`, `QD`, `QHS`, `Q8H`. Se escriben en receta mexicana
+   * todos los días y devolvían **`null`**.
+   *
+   * Y `null` no es inocuo aquí: el llamador hace
+   * `Math.max(1, Math.floor(tomasDia ?? 1))`, así que **asume una toma al día y
+   * el techo DIARIO se apaga en silencio**. Paracetamol 1000 mg `QID` son
+   * 4 000 mg —el techo entero— y se comprobaban 1 000.
+   *
+   * Es exactamente el fallo que ya documentó el comentario de los números
+   * escritos con letra, por otra puerta. La lista era corta; el modo de fallo,
+   * el mismo.
+   */
+  const LATINAS: Record<string, number> = {
+    qd: 1, qod: 1, hs: 1, qhs: 1, om: 1, on: 1,
+    bid: 2, bd: 2,
+    tid: 3, tds: 3,
+    qid: 4, qds: 4,
+  }
+  const lat = t.match(/\b(qid|qds|tid|tds|bid|bd|qhs|qod|qd|hs|om|on)\b/)
+  if (lat && LATINAS[lat[1]]) return LATINAS[lat[1]]
+  /* `q6h`, `q 8 h`: la forma latina del intervalo. */
+  const qh = t.match(/\bq\s*(\d+)\s*h\b/)
+  if (qh) { const h = parseInt(qh[1], 10); return h > 0 ? Math.round(24 / h) : null }
+
   return null
 }
 

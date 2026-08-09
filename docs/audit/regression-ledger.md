@@ -6295,3 +6295,87 @@ no mide no protege*.
 - `scripts/calidad/lo-que-espera-al-dueno.mjs` (nuevo)
 - `docs/DECISIONES-DEL-DUENO.md` (nuevo, derivado)
 - `src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts` (nuevo, 7 casos, sellado)
+
+---
+
+## REG-289 — «500 microgramos» se leía como 500 mg, y «QID» apagaba el techo diario (v1163)
+
+Medido con `extraerMg` y `extraerTomasDia` de verdad, sobre el árbol de
+producción:
+
+| Escrito | Se leía |
+|---|---|
+| `500 mcg` | 0,5 mg ✓ |
+| **`500 microgramos`** | **500 mg** ← mil veces la dosis |
+| **`1000 UI`** | **1000 mg** ← no son miligramos de nada |
+| **`QID`** | *no se entiende* → el llamador asume **1 toma/día** |
+
+### La causa no es la lista corta: es el paso 3
+
+`extraerMg` termina con «número sin unidad: se asume mg». Correcto para un «500»
+pelado — y se tragaba **cualquier unidad que la lista no conociera**,
+convirtiéndola en miligramos en silencio.
+
+Es el mismo daño que ya costó el volumen. Entonces se arregló devolviendo `null`
+para mililitros, con este comentario en el propio código: *«Antes "5 mL" se leía
+como 5 mg y silenciaba la red de seguridad»*. **La lección no se generalizó: sólo
+se tapó el caso encontrado.**
+
+### Y el techo diario no fallaba: no se ejecutaba
+
+`QID`, `TID`, `BID` devolvían `null`, y el llamador hace
+`Math.max(1, Math.floor(tomasDia ?? 1))`. Paracetamol 1000 mg `QID` son **4 000
+mg** —el techo entero— y se comprobaban 1 000.
+
+El módulo ya había documentado ese modo de fallo para los números escritos con
+letra. La lista era corta; el modo de fallo, el mismo.
+
+---
+
+## REG-290 — quince versiones de reparaciones que no se veían (v1163)
+
+Lo dijo el dueño, y tenía razón:
+
+> *«no he visto ningún cambio en la aplicación»*
+
+Verificado antes de contestar: producción respondía la versión correcta y el
+código nuevo estaba en el paquete servido. **El despliegue era real; el problema
+era otro.**
+
+De quince versiones, doce eran **defensas** — hacen que **no** pase algo malo, que
+es lo más difícil de ver que existe. Y las tres visibles dependen de que exista
+el dato: la tarjeta de pendientes sólo aparece si el paciente tiene pendientes.
+
+**Una defensa que no se puede enseñar es, para quien paga, una defensa que no
+existe.**
+
+### La pantalla `/motores` — «Lo que te protege»
+
+Nueve defensas, cada una con el caso real que falló, qué hacía antes, y **el
+motor corriendo en vivo** sobre lo que se escriba. Los motores son puros, así que
+se ejecutan en el navegador: **si uno se rompe mañana, la pantalla lo enseña
+roto.**
+
+Es la diferencia entre una demo y una prueba: una demo se prepara, esto se
+ejecuta.
+
+### El «antes» se cita, no se calcula — y se dice en la pantalla
+
+El código viejo ya no existe. Presentar como medido algo que sólo está recordado
+sería exactamente el defecto que la mitad de esos motores existen para evitar,
+así que la cabecera lo declara y cada caja separa las dos cosas visualmente.
+
+### Lo que quedó verificado, y lo que no
+
+Compilado como página estática, `tsc` limpio, y los motores que llama son los
+mismos que cubren las 8 459 pruebas. **No pude abrirla en un navegador**: el
+servidor de desarrollo de este espacio apunta a otro proyecto y producción exige
+su sesión. Se dice en vez de darlo por hecho.
+
+### Archivos
+
+- `src/app/(dashboard)/motores/page.tsx` (nuevo)
+- `src/components/motores/QueDiceElMotor.tsx` (nuevo)
+- `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
+- `src/lib/seguridad/dosis.ts`
+- `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
