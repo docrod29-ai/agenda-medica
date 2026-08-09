@@ -2779,3 +2779,20 @@ dictando paraba la grabación sin decir nada.
 El latido **cancela también el aviso de cierre** — una grabación en curso es
 prueba de que hay alguien delante, no un `mousemove` perdido. Es una decisión de
 seguridad y queda escrita para poder revertirla.
+
+## v1162 — las decisiones del dueño, derivadas del código (REG-288)
+
+Las cinco decisiones que bloquean motores estaban **declaradas con cuidado en el
+código** —`FALTA_GRACIA`, `FALTA_POLITICA_Q2_Q4`, `FALTA_VENTANA_REINGRESO`,
+`FALTA_VENTANA_TEMPORAL`, `LO_QUE_HACE_FALTA_DEL_DR`— y repartidas en cinco
+módulos donde nadie las leía. «Escrito y sin conectar», aplicado a las
+decisiones.
+
+`node scripts/calidad/lo-que-espera-al-dueno.mjs` las recoge del código y
+`docs/DECISIONES-DEL-DUENO.md` las presenta. Un guardián falla si el documento y
+el código se separan **en las dos direcciones** — seguir pidiendo algo ya
+resuelto es lo que hace que se dejen de leer todas.
+
+El documento **no propone respuestas**, y hay una prueba que lo comprueba: un
+valor «razonable» al lado de la pregunta es cómo el criterio del dueño se
+convierte en el default de un agente.
