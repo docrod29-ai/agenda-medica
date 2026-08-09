@@ -1037,7 +1037,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
   const recoveryBaseRef = useRef<number>(0)
   /**
-   * Índice ABSOLUTO con el que se persiste el siguiente trozo — REG-292.
+   * Índice ABSOLUTO con el que se persiste el siguiente trozo — REG-295.
    *
    * Antes se derivaba de la longitud del array: `recoveryBase +
    * todosChunks.length - 1`. Eso ataba el índice de disco a un array que se
@@ -1057,7 +1057,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
       /**
-       * EL BUFFER FINAL YA NO SE TIRA — REG-292.
+       * EL BUFFER FINAL YA NO SE TIRA — REG-295.
        *
        * Aquí se desenganchaba el handler antes de parar. La razón era buena:
        * `stop()` dispara un `ondataavailable` FINAL de forma asíncrona, y justo
@@ -1391,7 +1391,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
     }
     // El contador de persistencia arranca donde acaba lo que ya había: a partir
-    // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-292).
+    // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-295).
     persistIdxRef.current = recoveryBaseRef.current
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
@@ -1510,7 +1510,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           todosChunksRef.current.push(e.data)
           setBytesGrabados(prev => prev + e.data.size)
           // Persistir en IndexedDB para crash recovery. El índice viene de un
-          // contador que sólo sube (REG-292): derivarlo de la longitud del
+          // contador que sólo sube (REG-295): derivarlo de la longitud del
           // array lo ataba a algo que se vacía, y el trozo final pisaba uno
           // bueno. Ver `persistIdxRef`.
           if (recoveryKeyRef.current) {

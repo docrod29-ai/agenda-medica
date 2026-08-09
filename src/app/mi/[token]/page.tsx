@@ -422,7 +422,7 @@ export default function MiPortalPage() {
           {/*
             LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
             RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-301). Hoy nada los crea todavía — la
+            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
             pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}

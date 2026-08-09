@@ -127,9 +127,17 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
             }}>
               AHORA · el motor, corriendo sobre lo de arriba
             </div>
+            {/*
+              `pre-line` NO es cosmético: varios motores contestan en VARIAS
+              líneas —qué tiene y qué niega, qué ve la consulta y qué el
+              hospital, el pase repartido por aparatos— y sin esto se aplastan
+              en una sola. Encontrado mirando la pantalla en producción, que es
+              donde se ven las cosas que ninguna prueba mira.
+            */}
             <div style={{
-              fontSize: 14, color: 'var(--text)', marginTop: 3, lineHeight: 1.5,
+              fontSize: 14, color: 'var(--text)', marginTop: 3, lineHeight: 1.55,
               fontFamily: 'var(--font-mono, ui-monospace, monospace)', wordBreak: 'break-word',
+              whiteSpace: 'pre-line',
             }}>{dice}</div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 /**
- * EL AUDIO GRABADO NO SE BORRA — V9 · REG-291, REG-292, REG-293, REG-294.
+ * EL AUDIO GRABADO NO SE BORRA — V9 · REG-294, REG-295, REG-296, REG-297.
  *
  * ── LOS CUATRO DEFECTOS, Y LO QUE TENÍAN EN COMÚN ───────────────────────────
  *
@@ -14,10 +14,10 @@
  * defensas. Y cuando hubo que elegir entre proteger el texto y proteger el
  * audio —en la purga del cierre de sesión— se protegió el texto.
  *
- *   · **REG-291** Volver a grabar borraba el audio de la grabación anterior.
- *   · **REG-292** El trozo final se tiraba al salir de la pantalla grabando.
- *   · **REG-293** El cierre por inactividad no oía dictar.
- *   · **REG-294** Y al cerrar, se llevaba el audio sin transcribir.
+ *   · **REG-294** Volver a grabar borraba el audio de la grabación anterior.
+ *   · **REG-295** El trozo final se tiraba al salir de la pantalla grabando.
+ *   · **REG-296** El cierre por inactividad no oía dictar.
+ *   · **REG-297** Y al cerrar, se llevaba el audio sin transcribir.
  *
  * ── QUÉ **NO** CUBRE ESTE ARCHIVO ───────────────────────────────────────────
  *
@@ -58,7 +58,7 @@ const CONSULTA = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'p
  */
 const ESTOY = leer('src', 'lib', 'seguridad', 'estoy-grabando.ts')
 
-describe('REG-291 · el borrado de éxito no arrasa el audio de otra sesión', () => {
+describe('REG-294 · el borrado de éxito no arrasa el audio de otra sesión', () => {
   it('`borrarChunks` acepta desde qué índice borrar', () => {
     expect(HOOK).toMatch(/async function borrarChunks\(recoveryKey: string, desde = 0\)/)
   })
@@ -102,7 +102,7 @@ describe('REG-291 · el borrado de éxito no arrasa el audio de otra sesión', (
   })
 })
 
-describe('REG-292 · el trozo final se persiste al salir grabando', () => {
+describe('REG-295 · el trozo final se persiste al salir grabando', () => {
   it('el índice de disco sale de un contador, no de la longitud de un array', () => {
     /**
      * La causa raíz. `recoveryBase + todosChunks.length - 1` ataba el índice a
@@ -132,7 +132,7 @@ describe('REG-292 · el trozo final se persiste al salir grabando', () => {
   })
 })
 
-describe('REG-293 · dictar cuenta como actividad, y avisa antes de recargar', () => {
+describe('REG-296 · dictar cuenta como actividad, y avisa antes de recargar', () => {
   it('el hook emite un latido mientras graba', () => {
     // El nombre del evento vive UNA vez, en `lib/seguridad/estoy-grabando`
     // (REG-287): una cadena repetida en dos archivos es una compuerta que se
@@ -207,7 +207,7 @@ describe('REG-293 · dictar cuenta como actividad, y avisa antes de recargar', (
   })
 })
 
-describe('REG-294 · al cerrar sesión, el audio sin transcribir se conserva', () => {
+describe('REG-297 · al cerrar sesión, el audio sin transcribir se conserva', () => {
   it('la purga del audio es CONDICIONAL', () => {
     /**
      * Ésta es la que muerde. `limpiarAudioLocal()` se llamaba en las dos ramas,

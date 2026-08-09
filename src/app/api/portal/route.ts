@@ -564,7 +564,7 @@ export async function POST(req: NextRequest) {
 
       case 'paquetes': {
         /**
-         * LOS PAQUETES DE VISITA QUE EL PACIENTE PUEDE VER — V9 REG-301.
+         * LOS PAQUETES DE VISITA QUE EL PACIENTE PUEDE VER — V9 REG-304.
          *
          * Alcance `clinico` por lo mismo que `documentos`: aquí hay diagnóstico
          * y medicación. Un token de agenda —el que emite cualquier miembro para

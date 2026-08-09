@@ -283,7 +283,7 @@ export default function ConsultaActivaPage() {
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
   /**
-   * ATRÁS DE VERDAD — REG-298.
+   * ATRÁS DE VERDAD — REG-301.
    *
    * Este botón hacía `router.push(volverA)`: un destino FIJO, y además apilando
    * una entrada nueva en el historial. El médico que entra desde la agenda del
@@ -2861,7 +2861,7 @@ export default function ConsultaActivaPage() {
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
   /**
-   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-297.
+   * ¿HAY ALGO QUE VALGA LA PENA GUARDAR? — una sola definición, REG-300.
    *
    * Esta regla estaba escrita TRES veces, palabra por palabra, en el espejo en
    * memoria, en el volcado a `localStorage` y en el oyente de `nx:guardar-todo`.
@@ -2869,7 +2869,7 @@ export default function ConsultaActivaPage() {
    * que alguien añada un campo en dos de los tres para que el tercero empiece a
    * decir que la nota está vacía cuando no lo está.
    *
-   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-297).
+   * Y eso es exactamente lo que pasó con `proximoSeguimiento` (REG-300).
    */
   const hayContenido = (e: { resumen?: string; secciones?: { value?: string }[]; diagnosticos?: unknown[]; medicamentos?: unknown[]; transcripcion?: string; signos?: Parameters<typeof signosConValor>[0]; estudiosOrden?: unknown[]; preop?: unknown; proximoSeguimiento?: string }) =>
     !!(e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length ||
@@ -2882,14 +2882,14 @@ export default function ConsultaActivaPage() {
    * oyente de `nx:guardar-todo` se registra con `[guardarBorrador]` en las
    * dependencias, así que leer `audio.estado` dentro de él capturaría el valor
    * que hubiera al registrarse — «inactivo», casi siempre. Un ref se lee
-   * siempre vivo (REG-294).
+   * siempre vivo (REG-297).
    */
   const audioEstadoRef = useRef(audio.estado)
   // Se actualiza en un efecto, no durante el render: tocar un ref mientras se
   // renderiza es error del compilador de React y sube el trinquete de lint.
   useEffect(() => { audioEstadoRef.current = audio.estado }, [audio.estado])
 
-  // Avisar antes de que una navegación dentro de la app corte el dictado (REG-300).
+  // Avisar antes de que una navegación dentro de la app corte el dictado (REG-303).
   useAvisoAlSalirGrabando(audio.estado === 'grabando', confirm)
   useEffect(() => {
     estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada }
@@ -2978,7 +2978,7 @@ export default function ConsultaActivaPage() {
     const alGuardarTodo = (ev: Event) => {
       const detalleAudio = (ev as CustomEvent<{ marcarAudioSinTranscribir?: () => void }>).detail
       /**
-       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-294.
+       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-297.
        *
        * La declaración va la primera a propósito. Debajo hay un `return`
        * temprano cuando la nota está vacía, y una grabación recién empezada es

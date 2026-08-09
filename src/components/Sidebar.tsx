@@ -7,7 +7,7 @@ import { useConfig } from '@/hooks/useConfig'
 import {
   LayoutDashboard, CalendarDays, Calendar, Users, Clock,
   Settings, LogOut, Stethoscope, Shield, Bot, UserSquare2, FileText, Search,
-  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity, ClipboardList, Radar,
+  MessageCircle, TrendingUp, Star, ShieldCheck, Pill, BedDouble, BookOpen, FlaskConical, ArrowLeftRight, HeartHandshake, Bug, CreditCard, Activity, ClipboardList,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
@@ -34,15 +34,6 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/uci',           label: 'UCI',            icon: Activity,        modos: 'medico' },   // /uci es el expediente de terapia, no la calculadora
   { href: '/consultor',     label: 'Consultor IA',   icon: FlaskConical,    modos: 'medico' },
   { href: '/antibiograma',  label: 'Antibiograma',   icon: Bug,             modos: 'medico' },
-  /**
-   * «Lo que te protege» — las defensas clínicas, corriendo en vivo.
-   *
-   * Va entre las herramientas clínicas porque eso es: se abre para ver qué
-   * contesta un motor ante una frase concreta. Nació de que el dueño dijera,
-   * con razón, que quince versiones de reparaciones no se veían por ningún
-   * lado. Icono distinto del de Cumplimiento a propósito: son cosas distintas.
-   */
-  { href: '/motores',       label: 'Lo que te protege', icon: Radar,        modos: 'medico' },
   { href: '/lista-espera',  label: 'Lista de espera',icon: Clock,           modos: 'ambos' },
   { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
