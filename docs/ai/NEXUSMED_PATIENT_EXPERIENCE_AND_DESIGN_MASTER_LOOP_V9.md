@@ -648,7 +648,8 @@ V9 añade las suyas. **Ningún candidato a liberación con un P0 abierto.**
 | lint | `node scripts/lint-trinquete.mjs` (techo 98, sólo baja) | existente |
 | unit + integration | `npx vitest run` | existente |
 | E2E | CI | existente, limitado (B-10: falta cuenta de prueba) |
-| **accessibility** | por definir en DESIGN-SYSTEM-001 · objetivo **WCAG 2.2 AA** | **nueva** |
+| **accessibility** | `jsx-a11y` recomendado en aviso + `scripts/design/trinquete-a11y.mjs` (techo **por regla**, 211). Cubre 2 de los 7 mínimos; los otros 5 piden `axe` sobre el producto corriendo | **parcial** (9-ago) |
+| **sistema de diseño** | `scripts/design/trinquete-de-diseno.mjs` — 6 cifras que sólo bajan | **nueva** (9-ago) |
 | **visual regression** | por definir en DESIGN-SYSTEM-001 | **nueva** |
 | **mobile** | `agent-browser` con viewport móvil | **nueva** |
 | **browser workflow** | `agent-browser` sobre la app corriendo | **nueva** |
@@ -695,4 +696,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
 | 2026-08-08 | Los tres P0 de audio (`PATIENT-AUDIO-001/002/003`) | `7be23e9`, `2340e63` | Volver a grabar ya no borra el audio anterior · navegar avisa · grabar cuenta como actividad | **283, 287** |
 | 2026-08-09 | `PATIENT-TELE-002` — el último P0 de V9 | `f981d9c` | Los tres llamadores de servidor acuñan el token de la sala; la vida del enlace se deriva de la hora de la cita, no de un número redondo. Residuos declarados: `TELE-ALCANCE-001`, `TELE-REVOCA-001` | **288** |
-| 2026-08-09 | **DESIGN-SYSTEM-001** *(abierta, no cerrada)* | *(esta sesión)* | `@theme inline` de 4 a 41 tokens —la causa raíz del estilo en línea—; escalas de radio (8) y espacio (10) **medidas**, no inventadas; `.t-body-sm` y `.t-micro`; ortografía del color a **0** dobles; compuerta `trinquete-de-diseno` de 6 cifras que sólo bajan. **Falta**: accesibilidad, regresión visual, adopción de primitivos | — |
+| 2026-08-09 | **DESIGN-SYSTEM-001** *(abierta, no cerrada)* | *(esta sesión)* | `@theme inline` de 4 a 41 tokens —la causa raíz del estilo en línea—; escalas de radio (8) y espacio (10) **medidas**, no inventadas; `.t-body-sm` y `.t-micro`; ortografía del color a **0** dobles; compuerta `trinquete-de-diseno` de 6 cifras que sólo bajan. **Falta**: la mitad de navegador de la accesibilidad, regresión visual, adopción de primitivos | — |

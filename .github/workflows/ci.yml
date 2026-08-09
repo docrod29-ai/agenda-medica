@@ -135,6 +135,34 @@ jobs:
       - run: npm ci
       - run: node scripts/lint-trinquete.mjs
 
+  # ── V9 · DESIGN-SYSTEM-001 — los dos trinquetes del sistema de diseño ──────
+  #
+  # Mismo patrón y misma razón que el de lint: la deuda se congela y sólo puede
+  # bajar. Van en un job aparte porque miden cosas distintas y porque el de
+  # diseño no necesita `eslint` — falla en dos segundos y dice exactamente qué
+  # cifra subió.
+  #
+  #   diseño  — colores a mano, tamaños, radios y espacios en línea. Sube en
+  #             cuanto una pantalla nueva se escribe sin usar los tokens.
+  #   a11y    — avisos `jsx-a11y`, contados POR REGLA para que nadie canjee
+  #             veinte etiquetas por quince `<div onClick>`.
+  #
+  # Lo que NINGUNO de los dos ve: contraste real, foco visible, atrapado de foco
+  # en un modal, cierre con Escape y objetivo táctil. Eso pide el producto
+  # corriendo con `axe`, y sigue abierto.
+  diseno:
+    name: diseño (trinquetes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/design/trinquete-de-diseno.mjs
+      - run: node scripts/design/trinquete-a11y.mjs
+
   # ── P0-5: el smoke público NO corría en ningún lado ───────────────────────
   #
   # `playwright.config.ts` y dos specs existían desde hace tiempo, pero ningún

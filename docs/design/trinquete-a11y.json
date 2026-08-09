@@ -1,0 +1,13 @@
+{
+  "porQue": "Techo de accesibilidad (V9 · A11Y-GATE-001). POR REGLA, y sólo puede BAJAR. Ver scripts/design/trinquete-a11y.mjs.",
+  "total": 211,
+  "porRegla": {
+    "jsx-a11y/label-has-associated-control": 156,
+    "jsx-a11y/click-events-have-key-events": 19,
+    "jsx-a11y/no-static-element-interactions": 18,
+    "jsx-a11y/no-autofocus": 14,
+    "jsx-a11y/no-noninteractive-element-interactions": 3,
+    "jsx-a11y/media-has-caption": 1
+  },
+  "archivosConHallazgos": 46
+}

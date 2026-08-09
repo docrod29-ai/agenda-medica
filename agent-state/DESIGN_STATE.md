@@ -32,6 +32,8 @@ obedece.** Y la causa era mecánica, no cultural.
 | El mismo color en dos mayúsculas | 7 valores · 175 sitios | **0** |
 | Hexadecimales distintos | 146 | **139** |
 | Compuerta de diseño | **ninguna** | trinquete de 6 cifras, sólo baja |
+| Reglas de accesibilidad encendidas | 6 (todas ARIA) | **conjunto recomendado**, en aviso |
+| Compuerta de accesibilidad | **ninguna** | trinquete **por regla**: 211 avisos en 46 archivos |
 
 **La causa raíz, con nombre**: `@theme inline` exponía cuatro tokens, así que no
 había utilidades que usar y el código **no tenía alternativa** al estilo en
@@ -57,10 +59,19 @@ leyendo el código**. Es `VISUAL-EXCELLENCE-001`.
 
 ## Lo que falta para cerrar `DESIGN-SYSTEM-001`
 
-1. **`A11Y-GATE-001`** — hoy hay **1** prueba de accesibilidad entre 566, y es
-   una expresión regular sobre `layout.tsx`. Objetivo WCAG 2.2 AA. Necesita
-   `axe` sobre el producto corriendo, y este contenedor no tiene credenciales de
-   Firebase.
+1. **`A11Y-GATE-001` — la mitad de navegador.** La mitad estática está hecha:
+   `eslint-plugin-jsx-a11y` recomendado en aviso, con trinquete **por regla**
+   (`scripts/design/trinquete-a11y.mjs`, techo 211 en 46 archivos). Cubre **dos**
+   de los siete mínimos de la regla de diseño: campo sin etiqueta (156) y control
+   que el teclado no puede pulsar (37).
+
+   Los otros cinco —contraste real, foco visible, atrapado de foco en un modal,
+   cierre con Escape, objetivo táctil 44×44— **necesitan `axe` sobre el producto
+   corriendo**, y este contenedor no tiene credenciales de Firebase.
+
+   Las reglas van en **aviso** a propósito: `lint-trinquete` cuenta errores
+   contra un techo de 96, y meterle 211 hallazgos reventaría un instrumento que
+   lleva meses funcionando.
 2. **Regresión visual** — no existe línea base.
 3. **Adopción de primitivos** (`components/ui/`, 24 %) — el trinquete no la
    mide: se puede escribir una pantalla entera con tokens y sin un `<Button>`.

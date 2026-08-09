@@ -18,26 +18,16 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1161",
   "trabajoLocalSinSubir": [
-    "M agent-state/CURRENT_ITERATION.md",
+    "M .github/workflows/ci.yml",
     " M agent-state/DESIGN_STATE.md",
     " M agent-state/LAST_SAFE_CHECKPOINT.md",
-    " M agent-state/PATIENT_COMPANION_STATE.md",
     " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
-    " M docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
-    " M src/__tests__/la-maqueta-se-construyo-entera.test.ts",
-    " M src/app/(dashboard)/antibiograma/page.tsx",
-    " M src/app/(dashboard)/asistente/page.tsx",
-    " M src/app/(dashboard)/chat/page.tsx",
-    " M src/app/(dashboard)/citas/page.tsx",
-    " M src/app/(dashboard)/configuracion/page.tsx",
-    " M src/app/(dashboard)/configuracion/secciones-comunicacion.tsx",
-    " M src/app/(dashboard)/configuracion/secciones-cuenta.tsx",
-    " M src/app/(dashboard)/configuracion/secciones-recetas.tsx",
-    " M src/app/(dashboard)/configuracion/secciones-seguridad.tsx",
-    " M src/app/(dashboard)/consulta/[patientId]/consulta-ui.tsx",
-    " M src/app/(dashboard)/consulta/[patientId]/error.tsx",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/consultor/page.tsx"
+    " M eslint.config.mjs",
+    " M package-lock.json",
+    " M package.json",
+    "?? docs/design/trinquete-a11y.json",
+    "?? scripts/design/trinquete-a11y.mjs",
+    "?? src/__tests__/el-trinquete-de-a11y-solo-baja.test.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -75,8 +65,8 @@
   "derivado": {
     "regsEnElLedger": 136,
     "ultimaREG": "REG-288",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7471,
+    "archivosDePrueba": 567,
+    "casosDePrueba": 7482,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

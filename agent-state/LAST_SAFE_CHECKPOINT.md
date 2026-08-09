@@ -46,13 +46,24 @@ mensaje que era ese medio**.
   y sólo las deja bajar. Una pantalla nueva con estilo en línea la falla.
 - `docs/design/NEXUS_DESIGN_SYSTEM.md`.
 
+**3 · `A11Y-GATE-001`, la mitad que no necesita navegador.**
+
+- `eslint-plugin-jsx-a11y` recomendado **en aviso** sobre `src/**/*.tsx`, y
+  declarado como dependencia en vez de llegar de rebote por `eslint-config-next`.
+- `scripts/design/trinquete-a11y.mjs`: techo **por regla** —no un total— para que
+  nadie canjee veinte etiquetas por quince `<div onClick>`. **211 avisos en 46
+  archivos**: 156 campos sin etiqueta, 37 controles que el teclado no puede
+  pulsar, 14 `autofocus`.
+- Los dos trinquetes nuevos corren en CI, en su propio job (`diseño`).
+
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 8 461 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). **Comprobado con `git stash`: falla igual en `HEAD` limpio** |
+| `npx vitest run` | 8 472 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). **Comprobado con `git stash`: falla igual en `HEAD` limpio** |
 | `lint-trinquete` | **96, igual que el techo** |
 | `trinquete-de-diseno` | techo fijado hoy: 1 161 · 139 · **0** · 2 888 · 1 092 · 3 162 |
+| `trinquete-a11y` | techo fijado hoy: **211** avisos en 46 archivos, por regla |
 | `npx tsc --noEmit` | **limpio** |
 | `npm run build` | **compila** («Compiled successfully in 35s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
 | navegador / móvil / a11y | **no ejecutadas** — sin credenciales, el producto no arranca aquí |
@@ -66,11 +77,11 @@ mensaje que era ese medio**.
 
 **2. Terminar `DESIGN-SYSTEM-001`.** Lo que falta, en orden:
 
-- **`A11Y-GATE-001`** — hoy hay **1** prueba de accesibilidad entre 566, y es una
-  expresión regular sobre `layout.tsx`. Objetivo WCAG 2.2 AA. Dos mitades: lo que
-  se puede hacer sin navegador (`eslint-plugin-jsx-a11y` con trinquete, sobre las
-  9 pantallas del paciente primero) y lo que no (`axe` sobre el producto
-  corriendo).
+- **`A11Y-GATE-001`, la mitad de navegador.** La estática está hecha (trinquete
+  por regla, techo 211). Faltan los cinco mínimos que sólo se ven corriendo:
+  contraste real, foco visible, atrapado de foco en un modal, cierre con Escape y
+  objetivo táctil 44×44. Y hay 156 campos sin etiqueta esperando a que alguien
+  los mire de uno en uno — empezando por las 9 pantallas del paciente.
 - **Regresión visual** — no hay línea base.
 - **Adopción de primitivos** (`components/ui/`, 24 %) — el trinquete de hoy no la
   mide.
