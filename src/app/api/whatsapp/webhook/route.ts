@@ -37,7 +37,8 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
-import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
+import { tokenDeSalaParaPaciente } from '@/lib/telesalud/token-de-sala'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1079,11 +1080,18 @@ export async function handleMessage(from: string, body: string, clinicId: string
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
         `📅 ${formatDate(datos.fecha)} a las ${datos.hora} hrs`,
-        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala.
+        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala
+        // — con su token acuñado en el servidor (V9 · PATIENT-TELE-002).
         ...dondeEsLaCita({
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: esTeleconsulta(datos.tipo)
+            ? await tokenDeSalaParaPaciente({
+                clinicId, patientId: pacienteIdBot, fechaHora: datos.fecha,
+                hoyISO: todayStr(config?.zonaHoraria || TZ_DEFAULT),
+              })
+            : undefined,
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1277,6 +1285,13 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          // Con token, igual que los demás mensajes (V9 · PATIENT-TELE-002).
+          tokenPaciente: esTeleconsulta(datos.tipo)
+            ? await tokenDeSalaParaPaciente({
+                clinicId, patientId: pacienteIdLE, fechaHora: slotFecha,
+                hoyISO: todayStr(config?.zonaHoraria || TZ_DEFAULT),
+              })
+            : undefined,
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

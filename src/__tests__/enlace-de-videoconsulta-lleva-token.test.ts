@@ -62,12 +62,11 @@
  *   lleva el token y que el portal lo pasa. Que `/api/telesalud/sala` acepte
  *   ese token concreto es otra prueba (`telesalud-sala-or.test.ts`) y sigue
  *   mockeada.
- * - **El camino de WhatsApp sigue sin enlace.** `api/cron/reminders` y el
- *   webhook llaman a `dondeEsLaCita` sin token porque hoy no lo emiten; desde
- *   este cambio mandan el texto «recibirás el enlace» en vez de un enlace roto.
- *   Emitirlo ahí exige acuñar el token en el servidor y está abierto en el
- *   backlog de V9 como `PATIENT-TELE-002`. **Esto NO cierra ese hueco: lo hace
- *   honesto.**
+ * - **El camino de WhatsApp no lo cubre este archivo.** Cuando se escribió, ni
+ *   `api/cron/reminders` ni el webhook acuñaban token, así que mandaban el texto
+ *   «recibirás el enlace» en vez de un enlace roto: honesto, pero sin enlace.
+ *   Ese hueco —`PATIENT-TELE-002` en el backlog de V9— lo cierra **REG-291**, y
+ *   lo defiende `el-enlace-de-video-llega-por-whatsapp.test.ts`.
  * - No comprueba la ventana horaria de la sala: eso es `ventanaDeSala`.
  */
 import { describe, it, expect } from 'vitest'

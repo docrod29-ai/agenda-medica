@@ -8,7 +8,8 @@ import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
-import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
+import { tokenDeSalaParaPaciente } from '@/lib/telesalud/token-de-sala'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -209,6 +210,25 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          /**
+           * EL ENLACE DE LA SALA, ACUÑADO AQUÍ (V9 · PATIENT-TELE-002).
+           *
+           * Este mensaje es el que anuncia la videoconsulta. Sin token,
+           * `dondeEsLaCita` mandaba «recibirás el enlace por este medio» — y
+           * este medio es justo éste: nadie más se lo iba a mandar.
+           *
+           * Sólo para teleconsultas: a una cita presencial no se le lee el
+           * expediente para nada, y son la mayoría.
+           */
+          const tokenPaciente = esTeleconsulta(appt.tipo)
+            ? await tokenDeSalaParaPaciente({
+                clinicId,
+                patientId: appt.pacienteId,
+                fechaHora: appt.fechaHora,
+                hoyISO: hoyISO(tzClinica),
+              })
+            : undefined
+
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +236,7 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente,
           })
           const msgData = {
             paciente: appt.pacienteNombre,

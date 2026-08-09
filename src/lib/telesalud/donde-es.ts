@@ -69,9 +69,21 @@ export const ES_TELECONSULTA = 'teleconsulta'
 export const SIN_ENLACE =
   'Recibirás el enlace de la videollamada por este medio antes de tu cita.'
 
+/**
+ * ¿Es una videoconsulta?
+ *
+ * Exportado porque quien acuña el token de sala tiene que decidir lo MISMO que
+ * decide este módulo. Con el criterio escrito dos veces, el día que cambie
+ * («video», «telemedicina») uno de los dos sitios se queda atrás y el mensaje
+ * vuelve a salir sin enlace, en silencio.
+ */
+export function esTeleconsulta(tipo: string | undefined | null): boolean {
+  return String(tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+}
+
 /** Qué decirle al paciente sobre dónde es su cita. */
 export function dondeEsLaCita(d: DatosDeLugar): Lugar {
-  const esVideo = String(d.tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+  const esVideo = esTeleconsulta(d.tipo)
 
   if (!esVideo) {
     const lineas: string[] = []

@@ -6379,3 +6379,74 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — el enlace de la videoconsulta no llegaba por donde se anuncia (V9 · PATIENT-TELE-002)
+
+`REG-268` cerró el camino del portal: allí el token del paciente ya estaba en la
+barra de direcciones y sólo había que pasarlo al botón. Y dejó **escrito su
+propio hueco**, en el golden y en el backlog:
+
+> *«El camino de WhatsApp sigue sin enlace… Esto NO cierra ese hueco: lo hace
+> honesto.»*
+
+Honesto quería decir esto: los tres mensajes que anuncian una videoconsulta —el
+alta de la cita por el bot, la cita ganada desde la lista de espera y los dos
+recordatorios del cron— mandaban al paciente
+
+    «Recibirás el enlace de la videollamada por este medio antes de tu cita.»
+
+**Y este medio era justo ése.** No había ningún mensaje detrás. El enlace sólo
+existía dentro del portal, al que el paciente tenía que acordarse de entrar, a la
+hora de su consulta.
+
+### Por qué duró
+
+Firmar el token exige `PORTAL_PACIENTE_SECRET`, que sólo vive en el servidor, y
+el módulo donde caía natural acuñarlo —`lib/whatsapp.ts`— **se importa también
+desde el navegador**. Acuñar ahí habría metido el secreto en el paquete del
+cliente. Nadie quiso hacerlo, y por eso no se hizo en ninguna parte: el hueco no
+nació de un descuido sino de una frontera bien vista y mal resuelta.
+
+`src/lib/telesalud/token-de-sala.ts` la resuelve donde tocaba: un módulo de
+servidor que los tres llamadores usan.
+
+### Tres decisiones que no son de estilo
+
+- **Alcance `agenda`, nunca `clinico`.** `/api/telesalud/sala` sólo comprueba que
+  el token sea del paciente de esa cita. Darle alcance clínico convertiría un
+  WhatsApp reenviable en una credencial capaz de leer documentos clínicos — el
+  mismo vector que ya se cerró en `/api/portal/link`.
+- **Nace con la versión vigente del expediente**, así que una revocación lo tumba
+  junto con los demás enlaces de ese paciente. Sin versión, el enlace sobreviviría
+  a la revocación que se hizo precisamente porque ese mensaje acabó donde no debía.
+- **A una cita a más de 7 días no se le manda enlace.** Un token de tres meses
+  viajando en un mensaje que se reenvía es peor que un paso extra: el paciente
+  recibe el texto de siempre, y ahora es verdad, porque el recordatorio de 24 h sí
+  se lo manda.
+
+### El `+2` de la vigencia
+
+El token se acuña *ahora* y caduca a las 24 h × N; la cita puede caer a las 23:59
+de su día y la sala **sigue aceptando dos horas después**. Con `+1`, un caso
+extremo dejaba el token caducado *antes* de que cerrara la sala: el paciente
+pulsaba su enlace dentro de la ventana y recibía el 404 que REG-268 cerró. La
+prueba recorre los ocho días posibles y compara caducidad contra cierre de sala.
+
+### El criterio de «esto es una videoconsulta», en un solo sitio
+
+`esTeleconsulta()` se exporta y lo usan tanto quien redacta el mensaje como quien
+acuña el token. Escrito dos veces, el día que cambie el nombre del tipo uno de los
+dos se queda atrás y el enlace vuelve a desaparecer en silencio — que es
+exactamente este defecto.
+
+Familia: **«el dato tiene que LLEGAR»**. El mensaje se componía, se enviaba y se
+leía; lo que no llegaba era aquello de lo que hablaba el mensaje.
+
+### Archivos
+
+- `src/lib/telesalud/token-de-sala.ts` (nuevo)
+- `src/lib/telesalud/donde-es.ts` — `esTeleconsulta` exportado
+- `src/app/api/cron/reminders/route.ts` · `src/app/api/whatsapp/webhook/route.ts`
+- `src/__tests__/el-enlace-de-video-llega-por-whatsapp.test.ts` (nuevo, sellado)
