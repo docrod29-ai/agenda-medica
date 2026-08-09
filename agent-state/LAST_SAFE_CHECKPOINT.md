@@ -10,6 +10,8 @@
 
 | | |
 |---|---|
+| **Rama** | `claude/relaxed-fermi-h960jf` — ver la nota de rama abajo |
+| **SHA de cierre** | `67ab2a5a` |
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
 | **Siguiente** | **`PATIENT-AI-001`** |
 
@@ -49,6 +51,19 @@ vive en el paciente, no en la nota, así que sólo se pega al paquete **de la
 | `npm run build` | **compila** (con variables de Firebase de relleno: sin ellas el contenedor no puede recoger `/dr/[clinicId]`, y eso no es del cambio) |
 | trinquete de diseño | **bajó**: tamaños 2027 → 2022, radios 638 → 635 |
 | navegador | **no ejecutado** |
+
+### Nota de rama — leer antes de reanudar
+
+La especificación nombra `claude/nexus-patient-ux-v9` como rama persistente. Esa
+rama **ya se fusionó a `main`** en el PR #279, así que su historia está en
+`origin/main` y no se ha perdido nada. Esta ejecución recibió del arnés la rama
+`claude/relaxed-fermi-h960jf`, nacida de `origin/main` y por tanto con todo V9
+dentro, y trabajó ahí: empujar a otra rama sin permiso explícito está prohibido
+por las instrucciones de operación.
+
+**Al reanudar**: comprobar primero qué rama asigna el arnés y si sigue viva
+`claude/nexus-patient-ux-v9`. Lo que manda es `origin/main` + el ledger, no el
+nombre de la rama.
 
 ### Lo que este checkpoint NO garantiza
 
