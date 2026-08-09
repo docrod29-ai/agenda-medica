@@ -37,28 +37,36 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | N-1 | ¿Se puede repetir la prueba de 14 días? | Una por cuenta, comprobada contra Stripe | Cerrar el hueco de pruebas repetidas | El resto del cobro |
 | N-2 | Verificación de correo al registrarse | Activarla: un correo mal tecleado deja la cuenta irrecuperable | Recuperación sin soporte humano | El alta funciona |
 
-## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8)
+## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8, y otra vez el 9 por la tarde)
 
 | # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |
 |---|---|---|---|---|
-| T-1 | **22 PRs abiertos. Catorce se titulan «REG-192 … (v1074)»** y son reparaciones DISTINTAS; dos se titulan «REG-194 … (v1076)» | Fusionar o cerrar por lotes, renumerando al fusionar | El número de regresión y la versión del service worker **dejan de acotar un lote de notas clínicas** — que es justo lo que REG-191 acababa de reparar para IEC 62304 | Cada reparación por separado es correcta y tiene sus compuertas en verde |
+| T-1 | **36 PRs abiertos, 92 ramas vivas.** `REG-306` reclamado de forma independiente en al menos cinco (#273, #274, #276, #280, #281/#282) sobre el mismo hallazgo | Fusionar la cadena #281→#282 primero (la más completa y con `mergeable_state: clean`), luego cerrar por lotes los duplicados que quedaron obsoletos, renumerando al fusionar | El número de regresión y la versión del service worker **dejan de acotar un lote de notas clínicas** — que es justo lo que REG-191 acababa de reparar para IEC 62304 | Cada reparación por separado es correcta y tiene sus compuertas en verde |
 
-**Medido el 8-ago-2026 con `node scripts/estado-de-las-ramas.mjs`:** 33 ramas
-vivas · REG en `main` **191**, en alguna rama **224** · service worker en `main`
-**v1073**, en alguna rama **v1106**. Son **33 números de regresión gastados** en
-trabajo sin fusionar, y seis ramas distintas llamándose «v1074».
+**Medido el 9-ago-2026 (tarde) con `node scripts/estado-de-las-ramas.mjs`:**
+**92 ramas vivas** (eran 33 el 8-ago — casi el triple en un día) · REG en
+`main` **305**, en alguna rama **309** · service worker en `main` **v1167**,
+en alguna rama **v1168**. Son **4 números de regresión** ya gastados en ramas
+sin fusionar, y el `docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`
+que toda ejecución de V7 debe leer primero **no existe fusionado en `main`** —
+sólo vive en PRs abiertos sin fusionar (#280, #281, #282), lo que significa que
+cada disparo de V7 hasta ahora ha estado reconstruyendo su propio criterio en
+vez de leer la directiva real (violación de §3: «Do not replace it with your
+own plan»), sin que nadie lo notara porque el archivo nunca llegó a `main`.
 
-**Por qué se repite.** Cada disparo del bucle arranca de `main`. Desde `main`, el
-ítem de mayor score y el siguiente REG libre son siempre los mismos mientras nada
-se fusione, así que cada disparo elige lo mismo y le pone el mismo número. No es
-que los agentes se equivoquen: ninguno veía el trabajo de los otros.
+**Por qué se repite, y por qué empeoró en vez de mejorar.** Cada disparo del
+bucle arranca de `main`. Desde `main`, el ítem de mayor score y el siguiente
+REG libre son siempre los mismos mientras nada se fusione, así que cada disparo
+elige lo mismo y le pone el mismo número. El script `estado-de-las-ramas.mjs`
+(añadido el 8-ago) evita que un disparo individual reabra el MISMO hallazgo,
+pero no resuelve el problema de fondo: **mientras el dueño no fusione nada, la
+cola sólo crece**, y ya creció de 33 a 92 ramas en 24 horas.
 
-**Lo que ya no hace falta decidir.** El disparo del 8-ago añade
-`scripts/estado-de-las-ramas.mjs`: dice el siguiente REG y la siguiente versión
-libres sobre **todas** las ramas, y qué ramas tocan un archivo dado. Ese mismo
-disparo lo usó y, al ver que su hallazgo ya estaba resuelto en el PR #237, **no
-abrió un PR duplicado**. Sigue haciendo falta la decisión de fusionar: mientras
-no se fusione nada, la cola sólo crece.
+**Esta ejecución (9-ago, tarde) decidió no abrir una rama #93.** Añadir otra
+reparación nueva sobre `main` sin fusionar nada habría repetido exactamente el
+patrón que este ítem describe. En su lugar: se actualizó este registro con la
+cifra real y se avisó al dueño por notificación — la cola ya no es un
+recordatorio pasivo, es el bloqueador de mayor prioridad del programa.
 
 ---
 

@@ -22,6 +22,30 @@ nada destructivo, **ninguna cifra clínica inventada**.
 
 ---
 
+## 9-ago-2026 (tarde) — esta ejecución no abrió PR nuevo, y es a propósito
+
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` —la
+directiva que §3 obliga a leer **completa antes de decidir qué trabajo
+hacer**— **no existe fusionado en `main`**. Sólo vive en PRs abiertos sin
+fusionar (#280, #281, #282), la última de ellas cargada byte a byte contra el
+adjunto del dueño (sha256 verificado). Reconstruirla de memoria en esta rama
+sería exactamente lo que §3 prohíbe: sustituir la directiva por un plan propio.
+
+Además: **92 ramas vivas, 36 PRs abiertos**, `REG-306` reclamado de forma
+independiente en cinco PRs distintos sobre el mismo hallazgo (detalle y cifras
+en `agent-state/OWNER_DECISIONS_REQUIRED.md`, ítem **T-1**). Abrir una rama
+nueva #93 con más trabajo sin fusionar habría empeorado exactamente el problema
+que T-1 describe, no lo habría avanzado.
+
+**Lo único seguro y útil esta ejecución**: refrescar T-1 con la cifra real (era
+33 ramas el 8-ago; son 92 hoy — casi el triple en 24 h) y avisar al dueño. El
+programa V7 no puede avanzar de forma sana mientras la cadena #281→#282 (la más
+completa, `mergeable_state: clean`) no se fusione a `main` — es un bloqueador
+genuino del dueño, no una tarea que un agente pueda resolver escribiendo más
+código.
+
+---
+
 ## El hilo de esta sesión, en una frase
 
 **Nada de lo que se desplegó fue una función nueva por capricho: fueron motores
