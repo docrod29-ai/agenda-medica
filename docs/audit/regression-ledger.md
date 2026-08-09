@@ -6379,3 +6379,56 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — un valor NORMAL marcado como crítico (v1165)
+
+Medido con `evaluarCriticoLab` de verdad:
+
+| Estudio | Valor | Decía |
+|---|---|---|
+| **Glucosa en orina (EGO)** | 500 mg/dL | **CRÍTICO** |
+| **Calcio iónico** | 4,8 mg/dL | **CRÍTICO** |
+
+La primera es una **glucosuria corriente** en un diabético descompensado, y
+disparaba la misma alerta —y el mismo WhatsApp— que una glucemia de 500, que sí
+lo es.
+
+La segunda es peor: **4,8 mg/dL es un valor NORMAL de calcio iónico** (~4,5-5,6).
+Se comparaba contra el umbral bajo del calcio **total**, que es 6. Y en terapia
+el iónico se mide a todas horas.
+
+### Por qué es de los que más daño hacen a largo plazo
+
+**Un valor normal marcado como crítico es peor que un umbral que falta.** El que
+falta se nota cuando se busca; éste enseña una alarma roja sobre un paciente que
+está bien — y eso es lo que enseña a ignorar las alarmas. Es la lección que este
+repositorio ya tiene escrita para los avisos clínicos y para sus propios
+medidores, aplicada al laboratorio.
+
+### Dónde se quedó corta la defensa
+
+El módulo **ya excluye** el pH urinario, la fosfatasa alcalina, la hemoglobina
+glucosilada y la creatinina en orina — cada una con su comentario y su caso real.
+
+**La clase estaba identificada y la lista se quedó corta.** El examen general de
+orina trae varios analitos con el mismo nombre que los de sangre; se cubrió el pH
+y no la glucosa ni la bilirrubina. Es la misma forma que REG-289: la lección
+escrita para un caso y no generalizada.
+
+### Lo que NO se hizo: inventar el umbral del iónico
+
+Excluirlo no es resolverlo. Mientras no tenga umbral propio, **un calcio iónico
+realmente crítico no se marca**, y eso queda declarado en
+`FALTA_CRITICO_CALCIO_IONICO`.
+
+**Y apareció sola en la lista de decisiones del dueño**, sin que nadie la
+añadiera: es la convención `FALTA_*` de REG-288 justificándose a las pocas horas
+de existir. El guardián del documento falló hasta que la decisión quedó pedida.
+
+### Archivos
+
+- `src/lib/hospital/lab-criticos.ts`
+- `docs/DECISIONES-DEL-DUENO.md`
+- `src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts` (nuevo, 14 casos, sellado)

@@ -2827,3 +2827,16 @@ un solo renglón.
 
 Los nueve motores quedaron verificados en vivo, uno a uno, cambiando el texto y
 viendo cambiar la respuesta en las dos direcciones.
+
+## v1165 — un valor normal marcado como crítico (REG-291)
+
+**«Glucosa en orina» = 500 → CRÍTICO** (una glucosuria corriente disparaba la
+alerta de glucemia) y **«Calcio iónico» = 4,8 → CRÍTICO**, que es un valor
+**normal**: se comparaba contra el umbral del calcio total.
+
+Un valor normal en rojo es peor que un umbral que falta: el que falta se nota;
+éste enseña a ignorar las alarmas. El módulo ya excluía el pH de orina, la
+fosfatasa y la HbA1c — la clase estaba identificada y la lista se quedó corta.
+
+No se inventa el umbral del iónico: queda declarado, y **apareció solo** en la
+lista de decisiones del dueño.

@@ -16,13 +16,18 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1164",
+  "ultimaVersionEnProduccion": "nexusmed-v1165",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
+    "M docs/DECISIONES-DEL-DUENO.md",
+    " M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/components/motores/QueDiceElMotor.tsx"
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/hospital/lab-criticos.ts",
+    "?? src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -58,10 +63,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 138,
-    "ultimaREG": "REG-290",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "regsEnElLedger": 139,
+    "ultimaREG": "REG-291",
+    "archivosDePrueba": 567,
+    "casosDePrueba": 7468,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
