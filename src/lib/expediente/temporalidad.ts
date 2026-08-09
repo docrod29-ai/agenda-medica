@@ -40,7 +40,7 @@
  *
  * Módulo PURO.
  */
-import { CRONICAS, frases, cronicasEn } from '@/lib/expediente/negaciones'
+import { CRONICAS, frases, cronicasEn, comoPalabra } from '@/lib/expediente/negaciones'
 import { primeraMencionSinEscudo } from '@/lib/expediente/mencion-en-la-nota'
 
 const sinAcentos = (s: string) =>
@@ -267,7 +267,11 @@ export function padecimientosEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out = [...cronicasEn(frase)]
   for (const c of AGUDAS_FRECUENTES) {
-    if (c.formas.some(f => t.includes(sinAcentos(f))) && !out.includes(c.canonica)) out.push(c.canonica)
+    /* Por PALABRA, no por subcadena: es el mismo comparador que usa
+       `cronicasEn`, y por el mismo motivo — «obesidad» contenía «sida»
+       (REG-285). Dos formas de comparar es cómo se arregla un módulo y se deja
+       el de al lado. */
+    if (c.formas.some(f => comoPalabra(f).test(t)) && !out.includes(c.canonica)) out.push(c.canonica)
   }
   return out
 }

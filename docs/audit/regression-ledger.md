@@ -6066,3 +6066,62 @@ Encontrado por la rutina `SAFE-003-ventana`. Las siete negaciones legítimas
 - `src/hooks/useGrabacionAudio.ts` (`rangoABorrar`, `borrarChunks`)
 - `src/lib/expediente/negaciones.ts` (`MULETILLA_INTERMEDIA`)
 - `src/__tests__/transcribir-no-borra-el-audio-de-otra.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-285 — «obe·SIDA·d» decía VIH, y con eso se descartaba un VIH (v1159)
+
+`cronicasEn` comparaba con `t.includes(forma)` — **subcadena, sin límite de
+palabra**. Y «obesidad» contiene «sida»:
+
+```
+condicionesNegadas('Niega obesidad')  →  [{ condicion: 'VIH' }]
+```
+
+### Por qué no se queda ahí
+
+De esa lista lee `corregirCertezaPorNegacion`, que reclasifica a **`descartado`**
+lo que la IA extrajo. Un paciente con **VIH real** cuyo expediente diga «niega
+obesidad» quedaba con el **VIH descartado**.
+
+En un consultorio de infectología eso no es una curiosidad de cadenas de texto.
+
+### El límite no es `\b`, y eso importa
+
+El texto ya viene sin tildes, así que `\b` funcionaría… hasta que alguien quite
+la normalización. Se mira hacia los lados por **carácter** —letra o dígito—, que
+es lo que de verdad se quiere decir.
+
+El **dígito** no sobra: «dm 2» y «tb pulmonar» llevan número, y sin esa condición
+«dm 2» casaría dentro de «dm 20 mg».
+
+### Y la misma comparación vivía en el módulo de al lado
+
+`temporalidad.ts` tenía el mismo `includes` sobre su propio vocabulario. Se
+arregla con **el mismo comparador exportado**, no con una copia: dos formas de
+comparar es exactamente cómo se arregla un módulo y se deja el de al lado — la
+forma de REG-267, otra vez.
+
+### El barrido, no el caso
+
+La prueba no comprueba «obesidad»: pasa **todo el vocabulario** contra palabras
+trampa (obesidad, sobrepeso, desidia, presidencia, residual, cancerbero). Una
+forma nueva que fuera subcadena de una palabra común falla ahí aunque nadie haya
+pensado en ella.
+
+### Lo que se midió de las seis ramas de temporalidad
+
+Sus afirmaciones —«el padecimiento de hoy se leía como antecedente», «el escudo
+cruzaba de apartado»— **ya estaban reparadas** en este árbol: medido caso a caso
+con `padecimientosEn`, `esFrasePasada` y `mencionesEnPasado`. Lo único que
+quedaba vivo de las seis era la comparación por subcadena, que ninguna de ellas
+nombraba como su hallazgo principal.
+
+**Seis ramas, un defecto real.** Fusionarlas habría traído seis versiones
+incompatibles de `temporalidad.ts` para arreglar lo que se arregla en una línea.
+
+### Archivos
+
+- `src/lib/expediente/negaciones.ts` (`comoPalabra`, exportado)
+- `src/lib/expediente/temporalidad.ts` (usa el mismo comparador)
+- `src/__tests__/obesidad-no-dice-vih.test.ts` (nuevo, 16 casos, sellado)

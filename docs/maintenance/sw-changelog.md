@@ -2736,3 +2736,18 @@ la auditoría de V9 había dejado abiertos.
 **REG-284** · «No pues sí» seguía leyéndose como una negación: el guardián de
 REG-271 exigía el «sí» pegado al «no», y en el habla real entre los dos cabe la
 muletilla.
+
+## v1159 — «obe·SIDA·d» decía VIH (REG-285)
+
+`cronicasEn` comparaba por **subcadena**, y «obesidad» contiene «sida». De ahí
+lee el motor que reclasifica a `descartado` lo que la IA extrae: **un paciente
+con VIH real cuyo expediente diga «niega obesidad» quedaba con el VIH
+descartado.** En infectología, que es esta consulta.
+
+El mismo `includes` vivía en `temporalidad.ts`. Se arregla con el **mismo
+comparador exportado**, no con una copia.
+
+De las **seis ramas de temporalidad**: sus afirmaciones ya estaban reparadas
+aquí, medidas caso a caso. Lo único vivo era esta comparación — que ninguna de
+ellas nombraba como su hallazgo principal. Seis ramas, un defecto real, una
+línea.

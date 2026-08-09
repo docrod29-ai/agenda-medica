@@ -224,12 +224,59 @@ export function frases(texto: string): string[] {
 
 const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
 
+/**
+ * ── «OBE-SIDA-D» DECÍA VIH, Y CON ESO SE DESCARTABA UN VIH — REG-285 ─────────
+ *
+ * `t.includes(forma)` casa **subcadenas**. Y «obesidad» contiene «sida»:
+ *
+ *     condicionesNegadas('Niega obesidad')  →  [{ condicion: 'VIH' }]
+ *
+ * De ahí lo lee `corregirCertezaPorNegacion`, que reclasifica a **`descartado`**
+ * lo que la IA extrajo. Un paciente con VIH real cuyo expediente diga «niega
+ * obesidad» quedaba con **el VIH descartado** — en un consultorio de
+ * infectología, que es donde más importa.
+ *
+ * ── POR QUÉ EL LÍMITE NO ES `\b` ────────────────────────────────────────────
+ *
+ * El texto ya viene sin tildes, así que `\b` funcionaría… hasta que alguien
+ * quite la normalización. Se mira hacia los lados por **carácter** —letra o
+ * dígito— que es lo que de verdad se quiere decir y no depende de qué considere
+ * `\w` una letra.
+ *
+ * El dígito importa: «dm 2» y «tb pulmonar» llevan número, y sin él «dm 2»
+ * casaría dentro de «dm 20».
+ */
+const SIN_LETRA_NI_DIGITO_ANTES = '(?<![a-z0-9])'
+const SIN_LETRA_NI_DIGITO_DESPUES = '(?![a-z0-9])'
+
+/** Escapa una forma para meterla en una expresión sin que sus signos manden. */
+const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * Se exporta porque `temporalidad.ts` tenía **la misma comparación por
+ * subcadena** sobre su propio vocabulario. Dos formas de comparar es cómo se
+ * arregla un módulo y se deja el de al lado — la forma de REG-267 otra vez.
+ *
+ * Se construye UNA vez por forma. Sin esto se compilaría una expresión por
+ * término y por frase, y `cronicasEn` corre sobre cada frase del dictado.
+ */
+const FORMA_COMO_PALABRA = new Map<string, RegExp>()
+export function comoPalabra(forma: string): RegExp {
+  const clave = sinAcentos(forma)
+  let re = FORMA_COMO_PALABRA.get(clave)
+  if (!re) {
+    re = new RegExp(SIN_LETRA_NI_DIGITO_ANTES + literal(clave) + SIN_LETRA_NI_DIGITO_DESPUES, 'i')
+    FORMA_COMO_PALABRA.set(clave, re)
+  }
+  return re
+}
+
 /** Qué enfermedades crónicas nombra esta frase. */
 export function cronicasEn(frase: string): string[] {
   const t = sinAcentos(frase)
   const out: string[] = []
   for (const c of CRONICAS) {
-    if (c.formas.some(f => t.includes(sinAcentos(f)))) out.push(c.canonica)
+    if (c.formas.some(f => comoPalabra(f).test(t))) out.push(c.canonica)
   }
   return out
 }
