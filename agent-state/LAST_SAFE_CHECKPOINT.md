@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-yrvovc` |
 | **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
-| **SHA de cierre** | *(el commit de esta unidad)* |
+| **SHA de cierre** | `fe58dde` |
 | **Unidad cerrada** | **`DESIGN-SYSTEM-001` · parte A — la compuerta de contraste** (REG-291) |
 | **Siguiente unidad** | `DESIGN-SYSTEM-001` · parte B (escalas + trinquete de adopción) |
 
