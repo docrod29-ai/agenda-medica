@@ -19,6 +19,22 @@ gentamicina «<500» declaraba HLAR y hacía abandonar la sinergia en endocardit
 cuando el operador deja la duda el motor lo dice y pide dilución. Ningún punto de
 corte nuevo, y nada se sube a R.
 
+## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
+
+Los dos motores que contrastan el dictado contra la nota —negaciones y
+temporalidad— miraban **la primera** aparición del término y sólo ésa. Si venía
+escudada («niega diabetes», «antecedente de neumonía»), la condición se
+descartaba entera.
+
+Que es la forma de una nota bien estructurada: el antecedente correcto arriba, la
+impresión diagnóstica equivocada abajo. Y la de abajo es la que cambia la
+conducta de hoy y viaja a la nota siguiente.
+
+Ahora se recorren todas las apariciones. La ventana de 60 caracteres no cambia:
+cada mención se juzga con el mismo criterio, así que esto sólo puede señalar más
+de lo que señalaba. El criterio vive en un módulo, no en dos copias.
+
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

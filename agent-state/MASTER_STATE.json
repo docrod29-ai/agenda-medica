@@ -10,18 +10,23 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-005 / REG-211 provisional (cerrada)",
+  "iteracionActual": "SAFE-005 / REG-211 (cerrada, PR #252)",
   "ramasActivas": [
     "agent/safety/SAFE-005-cmi-censurada"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "trabajoLocalSinSubir": [],
   "ultimaVersionEnRama": "nexusmed-v1093",
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó. En el CI de GitHub pasa.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
+    "9-ago-2026: la colisión de numeración se resolvió renumerando por número de PR ascendente (OPS-003, PR #251). Este trabajo pasó de REG-192/v1074 a REG-211/v1093; el REG-192 que hoy vive en main es otro defecto (la sección bien escrita compraba el silencio de la mal escrita). main fusionado en la rama el 9-ago."
+  ],
   "pendientesReales": [
     "EVAL-001 (58) — bloqueado B-01: los 429 MB de audio no están aquí.",
     "EVAL-002 (55) — corpus oro del motor de temporalidad; sigue pendiente.",
-    "190 hallazgos P1 sin triar en docs/audit/hallazgos-crudos-workflow.json: hay que verificarlos uno a uno antes de darlos por buenos.",
-    "COLISIÓN: ~15 ramas en vuelo toman REG-211 y nexusmed-v1093 sobre la misma base (main = REG-191 / v1073). El renumerado al fusionar es del dueño (T-1)."
+    "190 hallazgos P1 sin triar en docs/audit/hallazgos-crudos-workflow.json: hay que verificarlos uno a uno antes de darlos por buenos."
   ]
 }
