@@ -1623,3 +1623,82 @@ falla en sus tres casos (los dos de comportamiento y el estructural).
 
 **Golden** — `src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts` (14
 casos).
+
+---
+
+## REG-193 — el escudo cruzaba de apartado y anulaba a REG-192 (v1075)
+
+**Encontrado** — 9-ago-2026, probando el caso del titular de REG-192 contra los
+motores reales de `main` en vez de fiarse del golden que lo acompañaba. La
+reparación estaba **fusionada** (88a3832), su prueba en verde, y el hueco seguía
+abierto.
+
+**Cómo se reprodujo** — Sobre `main`, con REG-192 ya dentro:
+
+    dictado: «¿Usted es diabético?  No, nunca me lo han dicho.»
+    nota:    ANTECEDENTES PERSONALES PATOLÓGICOS: niega diabetes mellitus, niega hipertensión.
+             IMPRESIÓN DIAGNÓSTICA: 1. Diabetes mellitus tipo 2 descontrolada.
+
+    condicionesNegadas(...)  →  [{ condicion: 'diabetes', … }]   ✔ oyó la negación
+    contradicciones(...)     →  []                               ✘ no dijo nada
+
+Y el gemelo en temporalidad: «antecedente de neumonía» arriba y «neumonía
+adquirida en la comunidad» abajo → `desajustesTemporales()` → `[]`.
+
+**Por qué importa para un paciente** — Es el mismo daño que REG-192 dio por
+reparado, intacto: el paciente negó la diabetes, la nota se la puso como
+diagnóstico y la defensa que existe para eso se calló. Un antecedente crónico
+falso cambia el riesgo quirúrgico y la elección de fármacos, y se arrastra a
+todas las notas siguientes porque los antecedentes se copian.
+
+Lo grave no es sólo el hueco: es que quedaba **tapado por un golden en verde**,
+que es la forma cara de no enterarse.
+
+**La causa raíz** — `primeraMencionSinEscudo` juzgaba cada aparición con los 60
+caracteres previos **en crudo**. La segunda mención de «diabetes» —la del
+diagnóstico— tiene el «niega hipertensión» de la LÍNEA DE ARRIBA dentro de esos
+60. Se recorrían todas las apariciones y se escudaban todas.
+
+Es, palabra por palabra, lo que el comentario de `VENTANA_DEL_ESCUDO` ya temía:
+«un escudo ajeno taparía una afirmación real — que es el fallo caro». Acortar la
+ventana lo hacía menos probable; no salirse del apartado lo hace imposible.
+
+**Reparación** — El contexto previo se recorta en el último fin de apartado:
+punto, salto de línea, punto y coma o dos puntos — que es lo que separa
+«ANTECEDENTES:» de «1.» en una nota clínica. La coma **no** corta: «niega
+diabetes, hipertensión y asma» es una sola enumeración negada, y cortarla
+resucitaría de golpe el falso positivo que la ventana existe para evitar.
+
+**El recorte no podía estrenar fatiga de alerta** — Al recortar salen menciones
+que antes se callaban **por el motivo equivocado**: «Antecedentes: niega
+diabetes. Plan: glucosa para descartar diabetes» se salvaba por el «niega» de la
+frase anterior, y el escudo de negaciones no la reconoce por sí sola —su
+`descarta` no casa con «descartar»—. Sin `NO_AFIRMA`, esta reparación habría
+estrenado un falso positivo de alta frecuencia (el plan de estudios de casi
+cualquier nota) sobre un aviso que **no se puede plegar**. Va anclado al término:
+sin el ancla, ese «descartar» callaría también a la hipertensión que viene 40
+caracteres después y que la nota sí afirma.
+
+**Ningún cambio clínico** — No hay cifra, umbral ni criterio nuevo. El
+vocabulario no se toca, los avisos siguen siendo avisos y sigue decidiendo el
+médico.
+
+**Qué NO hace** — Una nota sin puntuación —un párrafo corrido— no tiene apartados
+que recortar y se comporta como antes. `NO_AFIRMA` es vocabulario: lo que falte
+se sigue contando como afirmación, que es señalar de más y no de menos.
+
+**Y lo que deliberadamente NO se mezcla aquí** — `primeraMencionSinEscudo` busca
+por subcadena, así que «plasma» contiene «asma» y «obesidad» contiene «sida».
+Está verificado y es un defecto real y distinto —falso positivo de alta
+frecuencia—, con reparación ya escrita en una rama sin fusionar. Se anota en el
+backlog como SAFE-008 en vez de colarlo en esta entrada: mezclar dos defectos en
+un REG es lo que hace que el segundo se olvide.
+
+**Qué queda para el médico** — Resolver el aviso, como hasta ahora. Lo que cambia
+es que ahora salta en la nota bien redactada arriba, que era donde no saltaba.
+
+**Comprobado que puede ponerse rojo** — Revertido `mencion-en-la-nota.ts` con el
+golden puesto: caen 7 de sus 16 casos, incluidos los tres del defecto que lo
+motiva.
+
+**Golden** — `src/__tests__/el-escudo-no-sale-de-su-apartado.test.ts` (16 casos).
