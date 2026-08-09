@@ -1,0 +1,87 @@
+{
+  "nota": "Calificación 0-10 según docs/evals/V10_VISUAL_RUBRIC.md. SOLO pantallas vistas en navegador real con evidencia. Metas del programa: promedio >=9.3 en pantallas críticas, ninguna crítica <9.0, generic-AI-look <=1.0.",
+  "fecha": "2026-08-09",
+  "viewportEscritorio": "1440x900",
+  "viewportMovil": "390x844",
+  "pantallas": [
+    {
+      "ruta": "/login",
+      "evidencia": "agent-state/v10-evidencia/login-desktop.png",
+      "visual": 8.0,
+      "genericAiLook": 3.0,
+      "razon": "Limpia, jerarquía clara, un propósito. Resta: tarjeta centrada genérica y botón de Google con el mismo peso que el ingreso propio."
+    },
+    {
+      "ruta": "/dashboard",
+      "evidencia": "agent-state/v10-evidencia/dashboard-desktop.png",
+      "visual": 6.5,
+      "genericAiLook": 6.0,
+      "razon": "«Siguiente acción» es una cola de atención genuina (+). Pero: 4 tarjetas KPI con círculo de icono, todo en tarjetas redondeadas, «NO ASISTIERON 0» es ruido, «Accesos rápidos» duplica la navegación, saludo con el prefijo del correo."
+    },
+    {
+      "ruta": "/citas",
+      "evidencia": "agent-state/v10-evidencia/citas-desktop.png",
+      "visual": 6.5,
+      "genericAiLook": 5.0,
+      "razon": "Densidad útil y estados visibles (+). Pero cada renglón carga hasta 6 acciones (3 botones + 3 iconos) con énfasis parejo, 10 chips de filtro + 3 píldoras resumen, insignia «Demo» como metadato ordinario."
+    },
+    {
+      "ruta": "/calendario",
+      "evidencia": "agent-state/v10-evidencia/calendario-desktop.png",
+      "visual": 7.0,
+      "genericAiLook": 3.0,
+      "razon": "Cuadrícula semanal serena, color con moderación (+). Resta: los bloques de cita apenas distinguen estado (todo verde), sin vista previa de contexto."
+    },
+    {
+      "ruta": "/pacientes",
+      "evidencia": "agent-state/v10-evidencia/pacientes-desktop.png",
+      "visual": 6.5,
+      "genericAiLook": 4.0,
+      "razon": "Lista sobria (+). Pero: en la lista no se ve NINGUNA señal clínica (ni alergia, ni crónico) — sólo no-shows/cancelaciones, que son señales administrativas; «Con alerta (3)» no dice de qué; el elemento de barra lateral que la abre se llama «Consulta»."
+    },
+    {
+      "ruta": "/consulta/[patientId]",
+      "evidencia": "agent-state/v10-evidencia/consulta-paciente-desktop.png",
+      "visual": 7.5,
+      "genericAiLook": 3.0,
+      "razon": "El grabador es LA acción primaria inequívoca; alergias arriba; herramientas con revelación progresiva; signos vitales con unidad pegada al campo (+). Resta: alergia pintada dos veces; héroe centrado con círculo azul es composición de app-de-IA."
+    },
+    {
+      "ruta": "/expediente/[patientId]",
+      "evidencia": "agent-state/v10-evidencia/expediente-paciente-desktop.png",
+      "visual": 7.0,
+      "genericAiLook": 4.0,
+      "razon": "Identidad + alergia + acciones en cabecera (+). Resta: 3 tarjetas-resumen con icono estilo plantilla; chip «Hospital» visible en Practice; «Nueva consulta con IA» anuncia la IA en vez del beneficio."
+    },
+    {
+      "ruta": "/pendientes",
+      "evidencia": "agent-state/v10-evidencia/pendientes-desktop.png",
+      "visual": 7.0,
+      "genericAiLook": 2.0,
+      "razon": "Estado vacío que explica qué es, por qué está vacío y qué lo llenará (+). Pantalla aún mínima."
+    },
+    {
+      "ruta": "/configuracion",
+      "evidencia": "agent-state/v10-evidencia/configuracion-desktop.png",
+      "visual": 7.0,
+      "genericAiLook": 3.0,
+      "razon": "Dos paneles con secciones agrupadas, etiquetas visibles, ayuda contextual honesta (+). Larga pero es configuración."
+    }
+  ],
+  "movil": [
+    {
+      "ruta": "/dashboard",
+      "evidencia": "agent-state/v10-evidencia/dashboard-mobile.png",
+      "visual": 5.5,
+      "razon": "El contenido es el de escritorio apilado; banner de correo consume un tercio de la pantalla; botones flotantes encima del contenido; encabezado dice «Agenda Médica», no NexusMED."
+    },
+    {
+      "ruta": "/citas",
+      "evidencia": "agent-state/v10-evidencia/citas-mobile.png",
+      "visual": 4.0,
+      "razon": "10 chips de filtro en 4 renglones ocupan media pantalla; el nombre del paciente se parte en columna de una palabra; tres flotantes tapan la lista. Escritorio estirado, no diseño móvil (§27)."
+    }
+  ],
+  "promedioEscritorio": 7.0,
+  "genericAiLookPromedio": 3.7
+}

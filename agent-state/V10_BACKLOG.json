@@ -1,0 +1,90 @@
+{
+  "nota": "Backlog visual V10. Prioridad = fórmula de §31 aplicada a ojo con la evidencia disponible; se recalcula cuando haya inventario completo. P0 = impide uso seguro; P1 = degrada el flujo dorado o la marca; P2 = deuda visible; P3 = pulido.",
+  "fecha": "2026-08-09",
+  "hallazgos": [
+    {
+      "id": "V10-NAV-001", "prioridad": "P1", "iteracion": "V10-SHELL-001",
+      "titulo": "Barra lateral con 22 destinos — almacén de funciones",
+      "evidencia": "v10-evidencia/dashboard-desktop.png",
+      "detalle": "22 enlaces del mismo peso (Dashboard…Migración) + buscador + rol + tema + salir. §12 pide navegación mínima (~6 primarios + contextual). Es el defecto estructural nº1 de escritorio; su arreglo define V10-SHELL-001."
+    },
+    {
+      "id": "V10-MOBILE-001", "prioridad": "P1", "iteracion": "V10-MOBILE-001",
+      "titulo": "Móvil = escritorio apilado en el flujo dorado",
+      "evidencia": "v10-evidencia/citas-mobile.png · dashboard-mobile.png",
+      "detalle": "Chips de filtro en 4 renglones (media pantalla), nombre del paciente en columna de una palabra, 3 botones flotantes tapando la lista, banner de correo consumiendo un tercio. §27 exige diseño móvil explícito para flujos críticos."
+    },
+    {
+      "id": "V10-BRAND-001", "prioridad": "P1", "iteracion": "V10-SHELL-001",
+      "titulo": "Dos marcas: «Agenda Médica» en móvil, «NexusMED» en escritorio",
+      "evidencia": "v10-evidencia/citas-mobile.png (header)",
+      "detalle": "El encabezado móvil dice «Agenda Médica». Un producto que quiere lenguaje visual reconocible no puede tener dos nombres según el ancho de pantalla. Arreglo pequeño y de alto valor de marca."
+    },
+    {
+      "id": "V10-FLAG-001", "prioridad": "P1", "iteracion": "V10-TRUTH-001",
+      "titulo": "Chip «Hospital» visible en la historia clínica de Practice",
+      "evidencia": "v10-evidencia/expediente-paciente-desktop.png",
+      "detalle": "§1: Hospital/UCI ocultos de la experiencia Practice. El filtro Todas/Consulta/Hospital lo exhibe. Verificar la bandera y su condición de render; puede ser fuga de bandera (revisar si el consultorio sintético tiene modulos=undefined=todo, y qué ve un consultorio Practice real)."
+    },
+    {
+      "id": "V10-ONBOARD-001", "prioridad": "P2", "iteracion": "V10-TODAY-001",
+      "titulo": "Primer arranque: modal de bienvenida + toast de notificaciones encimados",
+      "evidencia": "v10-evidencia (captura previa al descarte, citas/calendario con modal)",
+      "detalle": "Dos ventanas compitiendo en el primer minuto de uso (§17 modal overload). El toast de permisos debería esperar a que el tour cierre, o pedirse en contexto (al agendar la primera cita)."
+    },
+    {
+      "id": "V10-GREET-001", "prioridad": "P2", "iteracion": "V10-TODAY-001",
+      "titulo": "El saludo usa el prefijo del correo, no el nombre del médico",
+      "evidencia": "v10-evidencia/dashboard-desktop.png («Buenas noches, medico»)",
+      "detalle": "clinic_members.displayName y clinics.nombreMedico existen; el saludo lee otra cosa. Regla hermana de «el dato tiene que llegar»: el dato está escrito y no llega a la pantalla."
+    },
+    {
+      "id": "V10-ALLERGY-001", "prioridad": "P2", "iteracion": "V10-ENCOUNTER-001",
+      "titulo": "Alergias pintadas dos veces en la consulta",
+      "evidencia": "v10-evidencia/consulta-paciente-desktop.png",
+      "detalle": "Banda superior + píldora bajo el nombre con el mismo texto. Señal de seguridad duplicada = señal diluida (§37: ¿los avisos se sobreusan?). Una sola presencia canónica en el NexusPatientHeader."
+    },
+    {
+      "id": "V10-TODAY-KPI-001", "prioridad": "P2", "iteracion": "V10-TODAY-001",
+      "titulo": "Cuatro tarjetas KPI con círculo de icono en el inicio",
+      "evidencia": "v10-evidencia/dashboard-desktop.png",
+      "detalle": "«NO ASISTIERON 0» es inventario, no atención (§14: métricas administrativas van a Operaciones). La cola «Siguiente acción» ya hace el trabajo bueno; las tarjetas compiten con ella."
+    },
+    {
+      "id": "V10-NAVDUP-001", "prioridad": "P2", "iteracion": "V10-TODAY-001",
+      "titulo": "«Accesos rápidos» duplica la barra lateral",
+      "evidencia": "v10-evidencia/dashboard-desktop.png",
+      "detalle": "Ver calendario/Lista de espera/Pacientes/Configuración ya están a un clic en la misma pantalla (§9 navegación duplicada)."
+    },
+    {
+      "id": "V10-CITAS-ROW-001", "prioridad": "P2", "iteracion": "V10-AGENDA-001",
+      "titulo": "Cada renglón de cita carga hasta 6 acciones del mismo énfasis",
+      "evidencia": "v10-evidencia/citas-desktop.png",
+      "detalle": "Cobrar/Consulta/Recordar + 3 iconos por renglón (§8: una acción primaria por región). La primaria depende del estado (en-consulta→Consulta; atendida→Cobrar); el resto, al menú."
+    },
+    {
+      "id": "V10-PATLIST-001", "prioridad": "P2", "iteracion": "V10-PATIENT-001",
+      "titulo": "La lista de pacientes no muestra ninguna señal clínica",
+      "evidencia": "v10-evidencia/pacientes-desktop.png",
+      "detalle": "Renglones con teléfono, edad y contadores administrativos (no-show/cancel.), pero ni alergia ni condición crónica. «Con alerta (3)» no dice de qué. La jerarquía prioriza lo administrativo sobre lo clínico (§8.19)."
+    },
+    {
+      "id": "V10-CAL-STATE-001", "prioridad": "P3", "iteracion": "V10-AGENDA-001",
+      "titulo": "Los bloques del calendario no distinguen estado",
+      "evidencia": "v10-evidencia/calendario-desktop.png",
+      "detalle": "Atendida, en consulta y pendiente-confirmar se pintan casi igual (verde). §15: color con moderación PARA estado — aquí falta el estado, no sobra el color."
+    },
+    {
+      "id": "V10-404-001", "prioridad": "P3", "iteracion": "V10-POLISH-001",
+      "titulo": "La página 404 diagnostica «versión vieja» para URLs realmente inexistentes",
+      "evidencia": "v10-evidencia/consulta-desktop.png (captura de /consulta sin id)",
+      "detalle": "El fallback del service worker asume caché vieja; para una URL que nunca existió el mensaje engaña (§26: los errores explican la recuperación real)."
+    },
+    {
+      "id": "V10-DEMO-BADGE-001", "prioridad": "P3", "iteracion": "V10-AGENDA-001",
+      "titulo": "Insignia «Demo» en cada renglón de cita",
+      "evidencia": "v10-evidencia/citas-desktop.png",
+      "detalle": "Insignia para metadato ordinario (§9). Confirmar de dónde sale (¿tag implícito del origen de datos?) y si un consultorio real la ve."
+    }
+  ]
+}

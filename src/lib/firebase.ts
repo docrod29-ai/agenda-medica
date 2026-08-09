@@ -1,9 +1,9 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
-  terminate, clearIndexedDbPersistence,
+  terminate, clearIndexedDbPersistence, connectFirestoreEmulator,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -57,6 +57,21 @@ export const db = typeof window !== 'undefined'
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+// ── Emuladores locales (solo desarrollo) ────────────────────────────────
+// Con NEXT_PUBLIC_FIREBASE_EMULATORS=1 la app entera habla con los emuladores
+// de Auth y Firestore (mismos puertos que `firebase.json`), lo que permite
+// recorrer el producto en un navegador con datos SINTÉTICOS y sin credenciales
+// reales. La doble condición es el candado: la variable jamás se define en
+// Vercel y, aunque alguien la definiera, `NODE_ENV === 'production'` la anula.
+// Semilla: `node scripts/emulador/sembrar-consultorio-sintetico.mjs`.
+if (
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1' &&
+  process.env.NODE_ENV !== 'production'
+) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+}
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.

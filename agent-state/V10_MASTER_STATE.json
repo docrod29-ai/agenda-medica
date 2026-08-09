@@ -1,0 +1,47 @@
+{
+  "programa": "V10 — Visual Excellence + Clinical Interaction",
+  "especificacion": "docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md",
+  "ramaDeTrabajo": "claude/kind-brahmagupta-4tkrhu",
+  "notaSobreLaRama": "La espec sugiere claude/nexus-visual-excellence-v10; esta sesión tiene rama designada por el arnés y la orden del arnés manda. Si una sesión futura recibe otra rama designada, retoma desde el último push de ésta.",
+  "iteracionActual": "V10-TRUTH-001",
+  "iteracionesCerradas": [],
+  "corridas": [
+    {
+      "fecha": "2026-08-09",
+      "iteracion": "V10-TRUTH-001",
+      "resultado": "PARCIAL — entorno visual desbloqueado (emuladores + semilla sintética), 9 pantallas inspeccionadas en navegador real (escritorio) y 5 en móvil, calificaciones iniciales con evidencia, backlog inicial P1-P3",
+      "pendienteDeLaIteracion": [
+        "inventario COMPLETO de pantallas con captura (hoy: 9 de ~35 rutas Practice)",
+        "línea base de accesibilidad (axe / teclado / lector)",
+        "línea base de rendimiento",
+        "matriz competitiva con evidencia y fechas",
+        "mapa de interacción y de pérdida de estado en navegador",
+        "regresión visual con capturas deterministas"
+      ]
+    }
+  ],
+  "documentosNormalizados": {
+    "nota": "V9 ya produjo la base de estos documentos; V10 los adopta en lugar de duplicarlos.",
+    "docs/design/DESIGN_SYSTEM.md": "docs/design/NEXUS_DESIGN_SYSTEM.md",
+    "docs/design/SCREEN_INVENTORY.md": "docs/design/SCREEN_INVENTORY.md (generado por scripts/design/inventario-de-pantallas.mjs)",
+    "docs/design/ANTI_PATTERNS.md": "docs/design/GENERIC_AI_AESTHETIC_AUDIT.md (conteos sellados)",
+    "docs/design/VISUAL_DEBT.md": "scripts/design/techos-de-diseno.json (trinquete, sólo baja)",
+    "porCrear": [
+      "docs/design/NEXUSMED_DESIGN_CONSTITUTION.md",
+      "docs/design/VISUAL_LANGUAGE.md",
+      "docs/design/MOTION_SYSTEM.md",
+      "docs/design/CONTENT_DESIGN.md",
+      "docs/design/RESPONSIVE_SYSTEM.md",
+      "docs/design/ACCESSIBILITY.md",
+      "docs/design/COMPONENT_INVENTORY.md",
+      "docs/design/INTERACTION_PATTERNS.md",
+      "docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md"
+    ]
+  },
+  "entornoVisual": {
+    "estado": "DESBLOQUEADO en esta corrida (antes NAV-NAVEGADOR-001 lo declaraba imposible sin credenciales)",
+    "como": "docs/testing/entorno-visual-emulador.md",
+    "limite": "las rutas de API del servidor responden 401 (firebase-admin no apunta al emulador): los flujos que dependen de API (transcripción, nota IA, auditoría de servidor) no se pueden recorrer aún"
+  },
+  "proximaAccionExacta": "Completar V10-TRUTH-001: (1) cablear firebase-admin al emulador de Auth para que las rutas de API respondan y el flujo dorado sea recorrible; (2) inventario de capturas del resto de rutas Practice; (3) línea base de accesibilidad con teclado sobre las 9 pantallas ya capturadas; (4) enriquecer la semilla con notas/resultados/medicación para expediente con historia."
+}
