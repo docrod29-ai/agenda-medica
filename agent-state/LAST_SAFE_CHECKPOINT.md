@@ -10,6 +10,7 @@
 
 | | |
 |---|---|
+| **SHA de cierre** | `35fba2d` |
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
 | **Siguiente** | **`PATIENT-AI-001`** |
 
