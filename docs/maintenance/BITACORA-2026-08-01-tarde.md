@@ -54,6 +54,12 @@ curl -s "https://agenda-medica-one.vercel.app/sw.js?x=$RANDOM" | grep -oE "nexus
 - **v1071** — REG-189 (hallazgos D1+D2 de la auditoría). El botón de Firmar y la barra se CONTRADECÍAN: el botón se apagaba sólo con NOM-004 (así que con dosis incompleta se veía ENCENDIDO y fallaba al pulsarlo) y la barra contaba sólo la dosis (así que con una sección vacía decía «nada te impide firmar» junto a un botón gris). Nuevo `por-que-no-se-firma.ts`: una sola fuente para el botón, la barra y el texto. El motivo va en el `title` y en un renglón JUNTO A LOS BOTONES —el mensaje ya existía y era inalcanzable: el del toast sólo salía al pulsar y el de NOM-004 queda fuera de pantalla cuando el médico está abajo. NO cambia la política: lo que impedía firmar ayer impide hoy.
 - **v1072** — REG-190 (hallazgo G1). El motor de SOBREDOSIS y ERROR DE DECIMAL («500 mg donde iban 50») tenía UN solo llamador: la pantalla de la receta, que se abre desde una nota YA FIRMADA — cazaba el error cuando el paciente ya se había ido con la receta en la mano. La lógica que arma la entrada vivía dentro de un useMemo de esa pantalla, así que traerla no era llamar sino copiar: extraída a `dosis-de-la-lista.ts`. Ahora corre en la consulta sobre la lista entera con edad y peso. Nivel `revisa` (qué bloquea lo decidió él) pero CRÍTICA no se pliega. NINGÚN umbral nuevo: todos del catálogo que él ya revisó (REG-041).
 - **v1073** — REG-191 (hallazgo E3). `PROMPT_VERSION` llevaba SIETE cambios de prompt sin moverse: dos notas con la misma etiqueta podían venir de prompts distintos y el lote afectado por un fallo NO se podía acotar (IEC 62304). Y el candado estaba PUESTO AL REVÉS: el test la pineaba al literal, así que subirla rompía la suite — su intención era exigir que cambiara y su implementación lo impedía. Nuevo `prompt-version.ts` con huella del contenido de LAS DOS rutas (prompts.ts + confianza-audio.ts, por donde se coló REG-180); cuando falla trae la huella nueva en el mensaje. Formato `nota-AAAA-MM-DD-N`. VERIFICADO que puede ponerse rojo.
+## SIN DESPLEGAR — v1074, en rama `agent/expediente/TEMP-192`
+
+| v | Qué se reparó |
+|---|---|
+| **1074** | **REG-192 — la sección bien escrita compraba el silencio de la mal escrita.** Los dos motores que contrastan el dictado contra la nota, negaciones y temporalidad, miraban la PRIMERA aparición del término y sólo ésa. Si venía escudada («niega diabetes», «antecedente de neumonía»), la condición se descartaba entera. Que es la forma de una nota bien estructurada: el antecedente correcto arriba y la impresión diagnóstica equivocada abajo — y la de abajo es la que cambia la conducta de hoy y viaja a la nota siguiente. El paciente que negó la diabetes salía con diabetes escrita **porque** la nota había hecho bien la otra mitad. Ahora se recorren todas las apariciones; la ventana de 60 caracteres no cambia, así que sólo puede señalar de más. El criterio sale a `mencion-en-la-nota.ts`: era la misma línea copiada dos veces, y el caso oro de la v1035 ya lo decía. **Queda**: la ventana sigue cruzando el punto (TEMP-001 en el backlog) — acotarla rompería la nota con encabezado de sección, así que se mide antes de tocarla. |
+
 ## Desplegado esta sesión
 
 | Versión | Qué |
@@ -6841,11 +6847,32 @@ Por orden de daño. Todo con archivo:línea, verificable.
 Con esto queda cerrado el plan de la ronda 1: los cinco hallazgos priorizados
 (D1, D2, G1, E3, C2/C3) están reparados y en rama.
 
-**Nota de entorno** — En el contenedor de este ciclo `npm run build` no llega al
-final: falta la configuración de Firebase y la recolección de datos de página
-falla con `auth/invalid-api-key`. Se comprobó que falla **igual en `main` sin
-tocar nada**, así que no es del cambio. `npx tsc --noEmit` —que es lo que el
-build aporta sobre vitest— pasa limpio, y el build de verdad corre en CI. Lo
-mismo con `ops-timeout-y-punto-ciego.test.ts`, que espera que una conexión a
-10.255.255.1 se cuelgue: aquí el proxy la corta antes y el caso falla en `main`
-igual.
+**Nota de entorno, corregida** — En el primer intento de este ciclo `npm run
+build` no llegaba al final (`auth/invalid-api-key` al recolectar
+`/dr/[clinicId]`) y se declaró como limitación del contenedor. Era falta de un
+dato, no del contenedor: el CI le pasa unas `NEXT_PUBLIC_FIREBASE_*` de relleno
+(`.github/workflows/ci.yml`), y con ellas **el build termina aquí igual que
+allá**. Queda anotado en `MASTER_STATE` para no volver a declarar imposible lo
+que sólo estaba sin configurar. Lo que sí es del entorno es
+`ops-timeout-y-punto-ciego.test.ts`, que espera que una conexión a 10.255.255.1
+se cuelgue: aquí el proxy la corta antes, y falla en `main` sin tocar nada.
+
+## LA RAMA SE RENUMERÓ Y SE FUSIONÓ CON MAIN — v1098, REG-216
+
+El bucle autónomo corrió en paralelo y unas veinte ramas reclamaron el mismo
+REG-192 y la misma v1074. `main` fusionó otro REG-192 distinto —«la sección bien
+escrita compraba el silencio de la mal escrita»— así que ésta pasó a **REG-216 /
+v1098** (commit `a0424b7`, sólo números).
+
+Al traer `main`, el choque interesante no fue de numeración sino de código: los
+dos tocamos `contradicciones()`. `main` la reescribió para mirar **todas** las
+apariciones del término mediante `primeraMencionSinEscudo`, y de paso llegó por
+su cuenta al mismo arreglo de acentos que ésta. La fusión no elige: `main` pone
+el recorrido y esta rama pone la **segunda** marca de escudo, la de adyacencia,
+porque «no es diabético» no cabe en `NIEGA_EN_LINEA` sin dejar que un «no es»
+ajeno tape una afirmación real. El escudo pasó a poder ser una función además de
+un regex (`Escudo` en `mencion-en-la-nota.ts`); temporalidad sigue pasando el
+suyo sin enterarse.
+
+Esa costura tiene tres casos propios en el golden, comprobados al revés:
+devolviendo el escudo a una sola marca, los tres se ponen rojos.

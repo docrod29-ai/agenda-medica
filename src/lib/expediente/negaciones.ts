@@ -42,6 +42,7 @@
  *
  * Módulo PURO.
  */
+import { primeraMencionSinEscudo } from '@/lib/expediente/mencion-en-la-nota'
 
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
@@ -224,6 +225,21 @@ function niegaAlTermino(antesPlegado: string): boolean {
   return NIEGA_EL_TERMINO.test(s)
 }
 
+/**
+ * Qu\u00e9 hace que una menci\u00f3n de la nota est\u00e9 **bien escrita**, y por tanto no haya
+ * nada que avisar.
+ *
+ * Son dos marcas y no una. `NIEGA_EN_LINEA` cubre \u00abniega diabetes\u00bb; \u00abno es
+ * diab\u00e9tico\u00bb no cabe ah\u00ed sin dejar que un \u00abno es\u00bb ajeno \u2014el de \u00abno es fumador,
+ * tiene diabetes\u00bb\u2014 tape una afirmaci\u00f3n real. Por eso la segunda exige adyacencia
+ * y se pregunta aparte.
+ *
+ * `primeraMencionSinEscudo` lo llama con el texto previo **ya plegado**, que es
+ * lo que las dos esperan.
+ */
+const ESCUDO_DE_LA_NEGACION = (antesPlegado: string) =>
+  NIEGA_EN_LINEA.test(antesPlegado) || niegaAlTermino(antesPlegado)
+
 /** D\u00f3nde nombra esta frase cada cr\u00f3nica. El \u00edndice vale sobre el texto plegado. */
 function cronicasConIndice(frasePlegada: string): { canonica: string; idx: number }[] {
   const out: { canonica: string; idx: number }[] = []
@@ -330,27 +346,20 @@ export interface Contradiccion extends Negada {
  * Una mención no basta: la nota puede decir «niega diabetes», que es justo lo
  * correcto. Se busca el término y se mira hacia atrás por si ya viene negado; si
  * viene, no hay contradicción.
+ *
+ * Se miran **todas** las apariciones y no sólo la primera: una nota que niega la
+ * diabetes en el interrogatorio y la diagnostica en la impresión tenía las dos
+ * cosas, y la primera silenciaba a la segunda (REG-192). El criterio vive en
+ * `mencion-en-la-nota.ts` porque la temporalidad tenía esta misma línea copiada.
+ *
+ * El escudo son **dos** marcas, no una: ver `ESCUDO_DE_LA_NEGACION`.
  */
 export function contradicciones(negadas: readonly Negada[], textoNota: string): Contradiccion[] {
-  const t = sinAcentos(textoNota)
   const out: Contradiccion[] = []
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres.
-       *
-       * Es la distancia en la que cabe «niega …» o «sin antecedente de …» en la
-       * misma oración. Más larga empezaría a leer la oración anterior y una
-       * negación ajena taparía una afirmación real — que es el fallo caro.
-       */
-      const antes = t.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes) || niegaAlTermino(antes)) continue
-      out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    const m = primeraMencionSinEscudo(textoNota, formas, ESCUDO_DE_LA_NEGACION)
+    if (m) out.push({ ...n, enLaNota: m.cita })
   }
   return out
 }

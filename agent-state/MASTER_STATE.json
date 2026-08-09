@@ -10,28 +10,39 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "NEG-001 (cerrada)",
+  "iteracionActual": "NEG-001 (cerrada, PR #257 abierto)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
     "agent/safety/SAFE-002",
     "agent/ops/OPS-001",
-    "agent/safety/NEG-001"
+    "agent/safety/NEG-001",
+    "agent/expediente/TEMP-192"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "ultimaVersionEnRama": "nexusmed-v1098",
-  "trabajoLocalSinSubir": [
-    "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
-  ],
+  "trabajoLocalSinSubir": [],
   "planDeAuditoriaRonda1": {
     "estado": "cerrado",
-    "hallazgos": ["D1 (REG-189)", "D2 (REG-189)", "G1 (REG-190)", "E3 (REG-191)", "C2/C3 (REG-216)"]
+    "hallazgos": [
+      "D1 (REG-189)",
+      "D2 (REG-189)",
+      "G1 (REG-190)",
+      "E3 (REG-191)",
+      "C2/C3 (REG-216)"
+    ]
   },
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venia del 4-ago y sus dos items de mayor score ya estaban reparados en el arbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decia el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexion a 10.255.255.1 se cuelgue y aqui la red la rechaza al instante. Comprobado sobre el arbol limpio, sin mis cambios. No se toco.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de Collecting page data.",
+    "9-ago-2026: REG-192/v1074 de esta rama se renumeraron a REG-216/v1098 (commit a0424b7) porque main fusiono otro REG-192 distinto. Al fusionar main aqui, contradicciones() paso a usar primeraMencionSinEscudo de main y el escudo de la negacion se volvio doble: ver ESCUDO_DE_LA_NEGACION."
+  ],
   "compuertasDelUltimoCiclo": {
-    "vitest": "6946 en verde; 1 rojo AJENO (ops-timeout-y-punto-ciego: espera que 10.255.255.1 se cuelgue y el proxy del contenedor la corta antes; falla igual en main sin tocar nada)",
+    "vitest": "6962 en verde; 1 rojo AJENO (ops-timeout-y-punto-ciego: espera que 10.255.255.1 se cuelgue y el proxy del contenedor la corta antes; falla igual en main sin tocar nada)",
     "tsc": "limpio",
     "lintTrinquete": "96, igual que el techo",
-    "build": "no concluye en este contenedor por falta de configuración de Firebase (auth/invalid-api-key al recolectar /dr/[clinicId]); comprobado que falla igual en main. El build real corre en CI."
+    "build": "COMPLETO en local, usando las NEXT_PUBLIC_FIREBASE_* de relleno del CI. En el ciclo anterior se declaro que no se podia correr aqui; era falta del dato, no del contenedor."
   }
 }

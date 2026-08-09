@@ -210,6 +210,49 @@ describe('la contradicción con la nota, con el vocabulario nuevo', () => {
     ).toEqual([])
   })
 
+  it('el escudo doble sigue valiendo mirando TODAS las apariciones', () => {
+    /**
+     * La costura entre este arreglo y REG-192 de `main`: `contradicciones` ya no
+     * para en la primera mención, y el escudo ya no es un solo regex. Si alguien
+     * devolviera `ESCUDO_DE_LA_NEGACION` a `NIEGA_EN_LINEA` a secas, la defensa
+     * de adyacencia desaparecería de aquí en silencio y sólo quedaría en
+     * `condicionesNegadas`.
+     *
+     * Arriba la nota está bien escrita; abajo está el defecto, y es la de abajo
+     * la que cambia la conducta de hoy.
+     */
+    /**
+     * Las dos menciones van MUY separadas a propósito: la cita que se le enseña
+     * al médico es de 100 caracteres alrededor del hallazgo, y con las dos
+     * pegadas una cita cualquiera contendría las dos palabras — la prueba
+     * pasaría sin distinguir nada. Ya ocurrió al escribirla.
+     */
+    const nota =
+      'Antecedentes personales patológicos: no es diabético, no fuma, sin cirugías previas. ' +
+      'Refiere buen apego a medidas higiénico-dietéticas y actividad física regular. ' +
+      'Exploración física sin datos de descompensación aguda al momento de la valoración. ' +
+      'Impresión diagnóstica: diabetes mellitus tipo 2 de reciente diagnóstico.'
+    const c = contradicciones(condicionesNegadas('¿Padece diabetes? Pues no.'), nota)
+    expect(c).toHaveLength(1)
+    expect(c[0].enLaNota).toContain('Impresión')
+    expect(c[0].enLaNota).not.toContain('Antecedentes')
+  })
+
+  it('si TODAS las apariciones vienen escudadas —por una marca o por la otra— no avisa', () => {
+    /**
+     * Igual de separadas: si «niega» quedara a menos de 60 caracteres de la
+     * segunda mención, la escudaría ella y esta prueba no diría nada sobre la
+     * marca de adyacencia.
+     */
+    const nota =
+      'Interrogatorio por aparatos y sistemas: niega diabetes. ' +
+      'Refiere únicamente cefalea ocasional de predominio vespertino, sin otros síntomas. ' +
+      'Exploración física: no es diabético conocido ni tiene datos de neuropatía.'
+    expect(
+      contradicciones(condicionesNegadas('¿Padece diabetes? Pues no.'), nota),
+    ).toEqual([])
+  })
+
   it('un «no sé» no genera contradicción con la nota que lo afirma', () => {
     /**
      * No es que la nota tenga razón: es que el dictado no negó nada, así que

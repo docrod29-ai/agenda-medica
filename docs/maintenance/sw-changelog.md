@@ -18,6 +18,20 @@ paciente se volvía un «no la tiene» del expediente — la regla 4 al revés.
 Ahora la duda gana sobre la negativa, las marcas se leen sin acentos («negó» no
 encajaba en `nieg[ao]`) y las que niegan un término suelto exigen adyacencia: en
 «no es fumador, tiene diabetes» el «no es» habla del tabaco.
+## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
+
+Los dos motores que contrastan el dictado contra la nota —negaciones y
+temporalidad— miraban **la primera** aparición del término y sólo ésa. Si venía
+escudada («niega diabetes», «antecedente de neumonía»), la condición se
+descartaba entera.
+
+Que es la forma de una nota bien estructurada: el antecedente correcto arriba, la
+impresión diagnóstica equivocada abajo. Y la de abajo es la que cambia la
+conducta de hoy y viaja a la nota siguiente.
+
+Ahora se recorren todas las apariciones. La ventana de 60 caracteres no cambia:
+cada mención se juzga con el mismo criterio, así que esto sólo puede señalar más
+de lo que señalaba. El criterio vive en un módulo, no en dos copias.
 
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
