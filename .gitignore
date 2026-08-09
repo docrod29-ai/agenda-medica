@@ -51,6 +51,8 @@ next-env.d.ts
 # /ios
 # /android
 firestore-debug.log
+firebase-debug.log
+ui-debug.log
 
 # Corpus actuado de consulta: el GUION y el manifiesto SÍ van al repositorio
 # (son la verdad de terreno y pesan kilobytes); el audio generado no. Se

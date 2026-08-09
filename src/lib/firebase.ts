@@ -1,8 +1,9 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
+  connectFirestoreEmulator,
   terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
@@ -51,12 +52,36 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_S
 
 export const auth = getAuth(app)
 
+/**
+ * EMULADORES (sólo arnés de pruebas/capturas — jamás producción).
+ *
+ * Se activa únicamente con NEXT_PUBLIC_FIREBASE_EMULATORS='1' Y un projectId
+ * que empiece por `demo-` (el mismo candado que emulator/entorno.ts: un
+ * proyecto `demo-` no puede tocar datos reales). En producción la variable no
+ * existe y este bloque es código muerto.
+ */
+const USAR_EMULADORES =
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1' &&
+  (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? '').startsWith('demo-')
+
+if (USAR_EMULADORES) {
+  try {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+  } catch { /* ya conectado (HMR) */ }
+}
+
 // Persistencia offline habilitada (multi-pestaña para uso en varias ventanas)
 export const db = typeof window !== 'undefined'
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+if (USAR_EMULADORES) {
+  try {
+    connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  } catch { /* ya conectado (HMR) */ }
+}
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.

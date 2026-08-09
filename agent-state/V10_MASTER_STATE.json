@@ -32,5 +32,13 @@
     "auditoriaProducto": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
     "sistemaDeDiseno": "docs/DESIGN_SYSTEM.md (fuente de verdad visual hoy)",
     "matricesCompetitivas": "docs/competitive/UX_UI_MATRIX.md · docs/competitive/PATIENT_EXPERIENCE_MATRIX.md · docs/competitive/EL-FOSO.md"
+  },
+  "ultimaCorrida": {
+    "fecha": "2026-08-09",
+    "corrida": 2,
+    "rama": "claude/kind-brahmagupta-c51p2n (contiene la canónica por fast-forward)",
+    "hecho": "Arnés B-V10-2 completo: emuladores+siembra+capturas golden flow autenticado (9 pantallas x 2-4 viewports) + axe + scorecard (salidas 2, 10, 11, 14, 15, 16, 17 de TRUTH-001)",
+    "promedioVisual": 8.07,
+    "genericAiLook": 1.94
   }
 }

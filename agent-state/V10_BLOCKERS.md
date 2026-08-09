@@ -17,7 +17,31 @@ PATIENT-COMPANION-001 (REG-280/281). La rama está 48 commits detrás de main.
   toca esos archivos.
 - **Decisión**: del dueño — registrada en `V10_OWNER_DECISIONS_REQUIRED.md`.
 
-## B-V10-2 · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
+## B-V10-2 · Capturas de pantalla reales — ✅ RESUELTO el 9-ago-2026 (2.ª corrida)
+
+El arnés completo quedó construido y corrido en esta corrida:
+
+- **Siembra sintética**: `scripts/design/sembrar-emulador-v10.mjs` — médico,
+  clínica, 6 pacientes, 6 citas de hoy y una nota FIRMADA (para receta/nota),
+  contra emuladores Auth+Firestore (`demo-nexusmed-test`; el prefijo `demo-` es
+  el candado anti-producción). `firebase.json` ganó el bloque `auth` (9099) y
+  `src/lib/firebase.ts` la conexión a emuladores **doble-candado**
+  (`NEXT_PUBLIC_FIREBASE_EMULATORS='1'` **y** projectId `demo-`).
+- **Capturas**: `scripts/design/capturar-golden-flow-v10.mjs` — login real por
+  la interfaz, 9 pantallas del golden flow × 2–4 viewports (1440/1024/768/390),
+  axe-core WCAG 2.2 AA por pantalla y errores de consola, con `--solo=` para
+  recapturas puntuales. Evidencia: `docs/design/capturas/v10/2026-08-09/`.
+- **Trampas del entorno documentadas**: Next 16 bloquea los recursos de dev
+  desde `127.0.0.1` como cross-origin (usar `http://localhost:3000`); el
+  chromium del contenedor necesita `--no-proxy-server`; el tour de primer uso
+  se suprime vía localStorage (`nexus_tour_*`) y se capturó aparte
+  (`primer-uso--dashboard-desktop.png`).
+
+Salidas 2, 10, 11, 14 y 15 de TRUTH-001: **hechas** (ver
+`V10_VISUAL_SCORECARD.json`). Rendimiento (salida 12) sigue pendiente — el
+modo dev no da números honestos; medirla sobre `next build` + `next start`.
+
+## B-V10-2-bis · (histórico) Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
 
 Intento del 9-ago-2026, en esta corrida:
 

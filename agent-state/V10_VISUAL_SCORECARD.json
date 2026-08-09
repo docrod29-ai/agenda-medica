@@ -5,6 +5,94 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "_metodo": "Arnés B-V10-2: emuladores Auth+Firestore (demo-nexusmed-test) + siembra sintética (scripts/design/sembrar-emulador-v10.mjs) + capturas reales con chromium (scripts/design/capturar-golden-flow-v10.mjs) en 1440×900, 1024×768, 768×1024 y 390×844. axe-core WCAG 2.2 AA por pantalla (escritorio). Dimensiones sin evidencia (p. ej. rendimiento percibido medido) se dejan null — no se estiman.",
+  "capturadoEl": "2026-08-09",
+  "evidencia": "docs/design/capturas/v10/2026-08-09/ (+ resumen.json con axe y errores de consola)",
+  "pantallas": [
+    {
+      "id": "dashboard",
+      "ruta": "/dashboard",
+      "dimensiones": { "jerarquia": 8, "claridad": 8.5, "coherencia": 9, "tipografia": 8.5, "espaciado": 8, "densidad": 7.5, "interaccion": 8, "responsive": 7, "accesibilidad": 7, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidad": 7.5 },
+      "promedio": 7.95,
+      "genericAiLook": 3.0,
+      "justificacion": "Fuerte: «Siguiente acción» (cola de atención con urgentes), próxima cita con continuación directa, saludo Fraunces, identidad oscura coherente. Débil: fila de 4 tarjetas KPI con círculo de icono (patrón de dashboard genérico, V10 §14 la prohíbe para médicos; «Citas hoy 6» además duplica el contador del encabezado); barra lateral de 20+ destinos (almacén de funciones, V10 §12/16 — propiedad de V10-SHELL-001); en móvil las KPI se apilan (escritorio encogido). axe: botón sin nombre (toggle de tema), contraste ×7."
+    },
+    {
+      "id": "agenda-citas",
+      "ruta": "/citas",
+      "dimensiones": { "jerarquia": 6.5, "claridad": 7.5, "coherencia": 8, "tipografia": 8, "espaciado": 7.5, "densidad": 7, "interaccion": 6.5, "responsive": 4, "accesibilidad": 6, "rendimientoPercibido": null, "confianzaClinica": 8, "originalidad": 6.5 },
+      "promedio": 6.9,
+      "genericAiLook": 3.5,
+      "justificacion": "Escritorio: lista clara con estados, pero cada fila lleva 3–4 botones del MISMO peso (Cobrar/Consulta/Recordar/⋯ — «every action presented as a button», sin acción primaria por estado); granja de píldoras (9 filtros + 3 contadores + tag «Elena» redundante en consultorio de un médico); controles de fecha duplicados (‹› + Hoy + input + botón Hoy). MÓVIL ROTO: fila de escritorio embutida en 390px — nombre en columna de una palabra por línea, botones desbordan el borde, filtros comen media pantalla (captura agenda-citas--mobile). axe: input de fecha sin etiqueta, 3 botones sin nombre, contraste ×12."
+    },
+    {
+      "id": "consulta",
+      "ruta": "/consulta/pac-03",
+      "dimensiones": { "jerarquia": 9, "claridad": 8.5, "coherencia": 9, "tipografia": 8.5, "espaciado": 8.5, "densidad": 8.5, "interaccion": 8.5, "responsive": 8, "accesibilidad": 7, "rendimientoPercibido": null, "confianzaClinica": 9, "originalidad": 8.5 },
+      "promedio": 8.5,
+      "genericAiLook": 1.5,
+      "justificacion": "La mejor pantalla del flujo: grabación como héroe («Capta a los dos y separa las voces»), identidad del paciente + banda de alergias arriba, herramientas clínicas plegadas (revelación progresiva), signos vitales con unidad pegada al campo. Débil: la alergia aparece DOS veces (banda + píldora) — ruido; la barra lateral completa sigue presente en modo encuentro (V10 §18 pide diferenciarlo); placeholders con valores plausibles (120/80) en campos clínicos — riesgo de leerse como valor; axe: 4 textareas sin etiqueta."
+    },
+    {
+      "id": "expediente",
+      "ruta": "/expediente/pac-01",
+      "dimensiones": { "jerarquia": 8.5, "claridad": 8.5, "coherencia": 9, "tipografia": 8.5, "espaciado": 8.5, "densidad": 8, "interaccion": 8, "responsive": 8.5, "accesibilidad": 8, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidad": 7.5 },
+      "promedio": 8.32,
+      "genericAiLook": 2.0,
+      "justificacion": "Cabecera de paciente correcta (alergia, identidad, edad/sexo/teléfono), acción primaria diferenciada («Nueva consulta con IA»), estados vacíos que enseñan el siguiente paso, y el resumen (últimos signos, Dx activos, actividad) SE ALIMENTA de la nota firmada — el dato llega. Móvil apila bien. Débil: sin línea de tiempo longitudinal firmada (V10 §17, unidad futura); «← Atrás» sin contexto; 3 tarjetas-resumen aún con aire de tarjeta genérica; 3 acciones secundarias antes de la primaria en móvil."
+    },
+    {
+      "id": "nota",
+      "ruta": "/nota/pac-01/nota-01",
+      "dimensiones": { "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 9, "espaciado": 9, "densidad": 8.5, "interaccion": 8, "responsive": 8.5, "accesibilidad": 7.5, "rendimientoPercibido": null, "confianzaClinica": 9.5, "originalidad": 8.5 },
+      "promedio": 8.68,
+      "genericAiLook": 1.0,
+      "justificacion": "Vista de documento firmado excelente: fiel al impreso, alergias en caja roja, SOAP legible, diagnósticos con CIE-10, y el faltante de cédula se declara en rojo en el documento ([FALTA CÉDULA PROFESIONAL]) — señal honesta, no ocultada. Acciones claras (PDF primario). axe: contraste en cabecera dim + botón sin nombre global."
+    },
+    {
+      "id": "receta",
+      "ruta": "/receta/pac-01/nota-01",
+      "dimensiones": { "jerarquia": 8.5, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5, "espaciado": 8, "densidad": 8, "interaccion": 8.5, "responsive": 8, "accesibilidad": 7.5, "rendimientoPercibido": null, "confianzaClinica": 9, "originalidad": 8.5 },
+      "promedio": 8.32,
+      "genericAiLook": 1.5,
+      "justificacion": "Generador con vista previa VIVA del impreso (membrete, folio, QR, alergias en rojo en el documento), campos por medicamento con unidad/vía/frecuencia separados, función renal opcional para ajuste, y dos avisos honestos y visibles (falta cédula; saldrá sin firma). Débil: los dos avisos apilados empujan el contenido; placeholders numéricos plausibles (1.0 / 70) en campos clínicos; axe contraste ×3. Nota: /receta/{pid} sin notaId da 404 — la ruta canónica exige nota firmada (correcto clínicamente, pero el 404 crudo quedó como evidencia de estado de error)."
+    },
+    {
+      "id": "calendario",
+      "ruta": "/calendario",
+      "dimensiones": { "jerarquia": 8, "claridad": 8, "coherencia": 8.5, "tipografia": 8, "espaciado": 8.5, "densidad": 8, "interaccion": 7.5, "responsive": 7.5, "accesibilidad": 6.5, "rendimientoPercibido": null, "confianzaClinica": 8, "originalidad": 7.5 },
+      "promedio": 7.86,
+      "genericAiLook": 1.5,
+      "justificacion": "Rejilla semanal sobria, hoy resaltado, bloques de cita delgados con color contenido y estado pendiente con borde punteado (distinción sutil correcta). Débil: sin franja de horario laboral; un solo color para todos los estados confirmados; axe: interactivos anidados ×5 en los slots (div[role=button] con botones dentro), objetivo táctil < 24px, contraste ×6."
+    },
+    {
+      "id": "pacientes",
+      "ruta": "/pacientes",
+      "dimensiones": { "jerarquia": 8, "claridad": 8, "coherencia": 8.5, "tipografia": 8, "espaciado": 8, "densidad": 7.5, "interaccion": 7.5, "responsive": 8, "accesibilidad": 8.5, "rendimientoPercibido": null, "confianzaClinica": 8, "originalidad": 7 },
+      "promedio": 7.9,
+      "genericAiLook": 2.0,
+      "justificacion": "Búsqueda multivía (nombre/teléfono/CURP), pestañas con conteos («Con alerta (3)» funciona con las alergias sembradas), estado vacío que enseña el siguiente paso. DEFECTO REAL: con /pacientes activo la barra lateral resalta «Consulta» — resaltado de navegación equivocado (captura pacientes--desktop). axe: limpio salvo el botón global sin nombre."
+    },
+    {
+      "id": "login",
+      "ruta": "/login",
+      "dimensiones": { "jerarquia": 8.5, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5, "espaciado": 8.5, "densidad": 8.5, "interaccion": 8, "responsive": 8.5, "accesibilidad": 7, "rendimientoPercibido": null, "confianzaClinica": 8, "originalidad": 8 },
+      "promedio": 8.23,
+      "genericAiLook": 1.5,
+      "justificacion": "Página sobria y de marca (oscuro, cobalto en acción). axe: contraste ×7 (clases prox-hero-cta compartidas con la landing) y 1 botón sin nombre. Ya había sido capturada por la corrida anterior; se re-verificó con el arnés autenticado."
+    }
+  ],
+  "agregado": {
+    "promedioPantallasCriticas": 8.07,
+    "minimo": { "pantalla": "agenda-citas", "promedio": 6.9 },
+    "genericAiLookPromedio": 1.94,
+    "genericAiLookPeor": { "pantalla": "agenda-citas", "score": 3.5 },
+    "brechaVsMeta": "Meta ≥9.3 promedio / ≥9.0 mínimo: HOY 8.07 / 6.9. La brecha más grande es la agenda (móvil roto) y la accesibilidad transversal (botones sin nombre, etiquetas, contraste).",
+    "transversales": [
+      "Botón de icono sin nombre accesible presente en TODAS las pantallas (toggle de tema + ayuda flotante).",
+      "Error de hidratación de React en consola en todas las páginas del dashboard (aviso del dev overlay «1 Issue»); investigar causa raíz.",
+      "El título móvil dice «Agenda Médica» (marca vieja) mientras el escritorio dice NexusMED/nombre del consultorio.",
+      "Tres botones flotantes se apilan/solapan abajo-derecha en móvil (ayuda, tema, y en dev el badge del overlay)."
+    ]
+  }
 }

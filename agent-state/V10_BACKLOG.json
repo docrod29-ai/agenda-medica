@@ -26,6 +26,98 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
+      "estado": "CERRADO 9-ago-2026 — arnés B-V10-2 (emuladores + siembra + chromium), 9 pantallas × 2–4 viewports + axe-core; evidencia en docs/design/capturas/v10/2026-08-09/ y puntuación en V10_VISUAL_SCORECARD.json"
+    },
+    {
+      "id": "V10-DEF-001",
+      "titulo": "AGENDA MÓVIL ROTA: la fila de escritorio se embute en 390px — nombre en columna de una palabra por línea, botones Cobrar/Consulta desbordan el viewport, 9 filtros + búsqueda comen media pantalla antes de la primera cita",
+      "evidencia": "capturas/v10/2026-08-09/agenda-citas--mobile.png",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001",
+      "nota": "V10 §27: móvil no es escritorio apilado. La agenda es la pantalla de mayor frecuencia clínica.",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-002",
+      "titulo": "Accesibilidad transversal (axe WCAG 2.2 AA): botón de icono sin nombre en TODAS las pantallas (toggle de tema, ayuda flotante, 3 en citas); input de fecha sin etiqueta (citas); 4 textareas sin etiqueta (consulta); interactivos anidados ×5 + objetivo <24px (calendario)",
+      "evidencia": "capturas/v10/2026-08-09/resumen.json (axe por pantalla)",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001 (adelantable: son arreglos locales, reversibles y no tocan archivos de la rama V9)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-003",
+      "titulo": "Contraste bajo AA (axe serious): citas ×12, calendario ×6, receta ×3, login/dashboard ×7 (.prox-hero-cta)",
+      "evidencia": "capturas/v10/2026-08-09/resumen.json",
+      "prioridad": "P2",
+      "unidadV10": "V10-A11Y-001",
+      "nota": "globals.css documenta cocientes calculados a mano; estos nodos usan estilos en línea que los esquivan (misma causa raíz que V10-DEBT-001).",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-004",
+      "titulo": "Marca inconsistente en móvil: la barra superior dice «Agenda Médica» (nombre viejo) donde el escritorio dice NexusMED / nombre del consultorio",
+      "evidencia": "capturas/v10/2026-08-09/dashboard--mobile.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-005",
+      "titulo": "Apilamiento de botones flotantes abajo-derecha en móvil: ayuda + toggle de tema se solapan entre sí y tapan contenido (en consulta tapan la lista de herramientas)",
+      "evidencia": "capturas/v10/2026-08-09/consulta--mobile.png, dashboard--mobile.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-006",
+      "titulo": "Resaltado de navegación equivocado: en /pacientes la barra lateral marca activo «Consulta»",
+      "evidencia": "capturas/v10/2026-08-09/pacientes--desktop.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-007",
+      "titulo": "Duplicaciones que compiten: alergia dos veces en consulta (banda + píldora); controles de fecha por cuadruplicado en citas (‹› + Hoy + input + botón); «Citas hoy 6» dos veces en dashboard; tag «Elena» en cada fila de un consultorio de un solo médico",
+      "evidencia": "capturas/v10/2026-08-09/consulta--desktop.png, agenda-citas--desktop.png, dashboard--desktop.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001 / V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-008",
+      "titulo": "Error de hidratación de React en consola en todas las páginas del dashboard («A tree hydrated but some attributes…»); el dev overlay lo marca como 1 Issue",
+      "evidencia": "capturas/v10/2026-08-09/resumen.json (erroresConsola)",
+      "prioridad": "P2",
+      "unidadV10": "V10-PERF-001 (investigar causa raíz: puede ser tema/authDomain dependiente de window)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-009",
+      "titulo": "Barra lateral = almacén de 20+ funciones (V10 §12 pide ≤6 destinos primarios); fila de 4 tarjetas KPI con círculos de icono en el home (V10 §14 la excluye para médicos); en móvil las KPI se apilan como escritorio encogido",
+      "evidencia": "capturas/v10/2026-08-09/dashboard--desktop.png, dashboard--mobile.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001 / V10-TODAY-001",
+      "dependeDe": "fusión V9 (NAVIGATION-001 tocó navegación) — V10 §41",
+      "estado": "esperando-fusion-v9"
+    },
+    {
+      "id": "V10-DEF-010",
+      "titulo": "Cada fila de cita lleva 3–4 botones del mismo peso (Cobrar/Consulta/Recordar/⋯/💬/✏️): ninguna acción primaria por estado; una fila «atendida» debería promover Cobrar, una «en sala» Consulta",
+      "evidencia": "capturas/v10/2026-08-09/agenda-citas--desktop.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEF-011",
+      "titulo": "Placeholders con valores clínicos plausibles (TA «120/80», creatinina «1.0», peso «70») en campos numéricos de consulta y receta — riesgo de leerse como valor precargado (factores humanos §37)",
+      "evidencia": "capturas/v10/2026-08-09/consulta--desktop.png, receta--desktop.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-ENCOUNTER-001 / V10-MEDS-001",
+      "nota": "Revisar con patient-safety-officer: convención frecuente pero en contexto clínico la ambigüedad pesa más.",
       "estado": "abierto"
     }
   ]
