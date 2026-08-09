@@ -10,14 +10,21 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-198 (cerrada) — motor de temporalidad, corpus adversarial",
+  "iteracionActual": "REG-198 (cerrada, PR #239 abierto y fusionado con main)",
   "ramasActivas": [
     "agent/clinical/REG-198"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnMain": "nexusmed-v1074 (REG-192, fusionado)",
   "ultimaVersionEnRama": "nexusmed-v1080 (sin desplegar: el despliegue lo autoriza el dueño)",
-  "notaDeEstado": "Las entradas de este archivo y de BACKLOG.json venían del 4-ago y estaban atrasadas 43 versiones: VOICE-004, SAFE-001 y EVAL-003 llevaban cerradas desde la v1032 y seguían figurando como pendientes. Revisado contra el ledger y corregido el 7-ago-2026.",
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "7-ago-2026, misma conclusión por otro camino: el estado estaba atrasado 43 versiones y VOICE-004, SAFE-001 y EVAL-003 llevaban cerradas desde la v1032 (REG-141/144/145). Dos iteraciones en paralelo tropezaron con lo mismo — el estado se lee, no se cree.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin cambios encima, y el CI de GitHub lo pasa. No se tocó. Anotado como INFRA-002.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
+    "9-ago-2026: el bucle corrió en PARALELO y ~20 ramas reclamaron el mismo REG-192 y la misma v1074. main cerró el suyo (88a3832); esta rama se renumeró a REG-198/v1080 por PR ascendente. Ver OPS-003."
+  ],
   "siguientePorScore": "SAFE-003 (71) — las cabezas sueltas de CRONICAS, misma familia que REG-198"
 }

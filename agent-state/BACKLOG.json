@@ -22,7 +22,7 @@
       "score": 60,
       "estado": "cerrado",
       "reversible": true,
-      "cierre": "CERRADO v1032 (REG-141) — el signo entró en ES_CANTIDAD"
+      "cierre": "ES_CANTIDAD acepta los cuatro signos (dosis-sin-numero.ts:57). Verificado en el árbol el 8-ago. · CERRADO v1032 (REG-141) — el signo entró en ES_CANTIDAD"
     },
     {
       "id": "SAFE-001",
@@ -44,7 +44,7 @@
       "score": 73,
       "estado": "cerrado",
       "reversible": true,
-      "cierre": "CERRADO v1032 (REG-144) — alergenosDe y sus tres llamadores"
+      "cierre": "alergenosDe() es el único parser y los tres llamadores lo usan; golden un-solo-parser-de-alergias.test.ts. Verificado en el árbol el 8-ago: el backlog estaba atrasado. · CERRADO v1032 (REG-144) — alergenosDe y sus tres llamadores"
     },
     {
       "id": "EVAL-001",
@@ -110,6 +110,28 @@
       "estado": "cerrado",
       "reversible": true,
       "cierre": "CERRADO v1032 (REG-145) — trinquete-de-voz.test.ts en CI"
+    },
+    {
+      "id": "TEMP-001",
+      "titulo": "La ventana del escudo cruza el punto y presta la negación de la oración anterior",
+      "hallazgo": "primeraMencionSinEscudo mira 60 caracteres hacia atrás sin parar en el punto. «Niega diabetes.» al final de una oración escuda a la palabra que caiga en los primeros 60 caracteres de la siguiente — probado el 8-ago con los motores reales al reparar REG-192.",
+      "porQueImporta": "Es un escudo que no le corresponde: silencia una afirmación real de la nota. Del mismo orden que REG-192, sólo que en la dirección contraria.",
+      "porQueNoSeArreglaAOjo": "Acotar la ventana a la oración rompe la nota con encabezado de sección («Antecedentes:\\nNeumonía en 2019.»), que es igual de común, y ahí sí se convertiría en fatiga de alerta. Necesita corpus de notas sintéticas con las dos formas antes de tocar el número.",
+      "archivo": "src/lib/expediente/mencion-en-la-nota.ts:88",
+      "seguridad": 3,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "score": 56,
+      "estado": "pendiente",
+      "reversible": true
     },
     {
       "id": "SAFE-003",
@@ -180,5 +202,6 @@
       "confirmado": "sí — reproducido en HEAD limpio el 7-ago-2026"
     }
   ],
-  "actualizado": "2026-08-07"
+  "actualizado": "2026-08-09",
+  "nota": "Fusionado desde dos iteraciones que corrieron en paralelo (main y agent/clinical/REG-198). Los dos lados cerraron VOICE-004, SAFE-001 y EVAL-002 por separado y verificándolos en el árbol; se conservan las dos redacciones del cierre. TEMP-001 viene de main; SAFE-003, SAFE-004 e INFRA-002 de esta rama."
 }
