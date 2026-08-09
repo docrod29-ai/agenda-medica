@@ -25,7 +25,7 @@ export function SkeletonPage() {
         <Skeleton w={220} h={26} />
         <Skeleton w={320} h={14} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12 }}>
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Skeleton w={90} h={12} />

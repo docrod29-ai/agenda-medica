@@ -202,8 +202,28 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
 // Detección de negaciones
 // ─────────────────────────────────────────────────────────────────
 
-/** Frases negadoras antes de un término clínico. */
-const NEGADORES = /\b(?:niega|sin|no\s+(?:tiene|presenta|refiere|hay|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|descart[ao])\b/i
+/**
+ * Frases negadoras antes de un término clínico.
+ *
+ * ── DOS LISTAS PARA LO MISMO (6-ago-2026, REG-192) ──────────────────────────
+ *
+ * `negaciones.ts` tiene su propia `NIEGA_EN_LINEA`, y ésta se había quedado
+ * corta: le faltaban `no padece`, `no padezco`, `sin antecedentes de`,
+ * `ausencia de` y `se descarta`. La consecuencia concreta es que **«No padece
+ * diabetes» entraba al expediente como antecedente positivo**, y de ahí pasa a
+ * contaminar lo que se calcula encima (STOP-BANG en la valoración
+ * preoperatoria, por ejemplo).
+ *
+ * Es el mismo patrón que costó REG-177 con la lista de huecos: dos listas que
+ * tienen que decir lo mismo acaban diciendo cosas distintas, y la que se olvide
+ * de actualizar es la que deja pasar el error.
+ *
+ * No se fusionan en una sola constante porque no hacen lo mismo: aquí se mira
+ * hacia atrás en una ventana de texto y allí se decide sobre una frase entera.
+ * Lo que sí se hace es que ésta no vuelva a quedarse corta, y una prueba
+ * comprueba que todos los verbos de la otra están aquí.
+ */
+const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
 
 /**
  * Determina si un término aparece NEGADO en el texto.

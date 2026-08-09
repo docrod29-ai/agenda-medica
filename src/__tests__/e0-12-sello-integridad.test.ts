@@ -448,9 +448,34 @@ describe('E0-12 · trinquete de cobertura del sello v3', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('E0-12 · COBERTURA_SELLO dice la verdad de cada versión', () => {
-  it('v3 no deja nada firmable fuera', () => {
-    expect(COBERTURA_SELLO[3].noCubre).toEqual([])
+  it('v3 declara lo que NO cubre, en vez de decir que lo cubre todo', () => {
+    /**
+     * ── ESTA PRUEBA CERTIFICABA UNA AFIRMACIÓN FALSA (6-ago-2026, REG-199) ──
+     *
+     * Exigía `noCubre: []`, es decir: obligaba a que v3 declarara cubrirlo todo.
+     * Y el mismo módulo documenta, en `CAMPOS_NO_SELLADOS_V3`, que **no lo
+     * cubre**: `transcripcionMotor` —el material de origen del que se
+     * re-proyecta la nota— queda fuera a propósito, porque sellarlo cambiaría
+     * el hash de todo lo ya firmado y lo marcaría «alterada» (REG-060).
+     *
+     * La decisión de no sellarlo es correcta y se mantiene. Lo que no se
+     * sostiene es contarla hacia dentro y ocultarla hacia fuera: al médico se
+     * le decía «cubre todo». Una afirmación de integridad más ancha que su
+     * alcance real es peor que no afirmar nada, porque se confía en ella.
+     */
     expect(COBERTURA_SELLO[3].cubre).toBe(CAMPOS_SELLADOS_V3)
+    expect(COBERTURA_SELLO[3].noCubre).toContain('transcripcionMotor')
+  })
+
+  it('y la cobertura se DERIVA de la lista de exclusiones, no se escribe aparte', () => {
+    // Dos listas que deben decir lo mismo acaban diciendo cosas distintas: es
+    // lo que pasó aquí, y lo que costó REG-177 con los huecos.
+    expect(COBERTURA_SELLO[3].noCubre).toEqual(CAMPOS_NO_SELLADOS_V3.map(x => x.campo))
+  })
+
+  it('cada exclusión tiene una etiqueta legible para el médico', () => {
+    // El nombre técnico no le dice nada a quien lee el sello en pantalla.
+    expect(COBERTURA_SELLO[3].noCubreEtiquetas).toContain('transcripción de origen del dictado')
   })
 
   it('v2 declara los huecos que nombra el backlog', () => {
@@ -460,10 +485,19 @@ describe('E0-12 · COBERTURA_SELLO dice la verdad de cada versión', () => {
     expect(COBERTURA_SELLO[2].noCubreEtiquetas.length).toBeGreaterThan(0)
   })
 
-  it('detalle de una nota v3: cubreTodo = true y nada por declarar', async () => {
+  it('detalle de una nota v3: verificada, y con sus huecos dichos', async () => {
     const v3 = await sellar(notaV3Completa())
     const d = await verificarIntegridadDetalle(v3)
-    expect(d).toMatchObject({ estado: 'verificada', version: 3, cubreTodo: true, noCubre: [] })
+    expect(d.estado).toBe('verificada')
+    expect(d.version).toBe(3)
+    /**
+     * `cubreTodo` ya no significa «es la última versión» sino «no queda nada
+     * fuera». Cuando v4 selle también el origen, pasará a `true` porque la
+     * lista de exclusiones quedará vacía — no porque alguien se acuerde de
+     * cambiarlo a mano.
+     */
+    expect(d.cubreTodo).toBe(false)
+    expect(d.noCubre).toContain('transcripcionMotor')
   })
 
   it('detalle de una nota v2: verificada, pero cubreTodo = false y con huecos declarados', async () => {
