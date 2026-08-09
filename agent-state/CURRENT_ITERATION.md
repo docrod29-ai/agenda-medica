@@ -13,11 +13,11 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `DESIGN-SYSTEM-001` ✅ **cimiento cerrado** (9-ago) y
-`A11Y-GATE-001` ✅ **parcial** el mismo día: contraste medido por motor y nombre
-accesible en cero. `PATIENT-UX-TRUTH-001` ✅ CERRADA (8-ago) y los tres P0 de
-audio ✅ CERRADOS (v1158/v1161). Falta `axe` en navegador (`A11Y-AXE-001`, sin
-credenciales aquí). **Siguiente**: `NAVIGATION-001`.
+**Unidad actual**: tres cerradas el 9-ago — `DESIGN-SYSTEM-001` (cimiento),
+`A11Y-GATE-001` (parcial: falta `axe` en navegador) y **`NAVIGATION-001`**
+(el ciclo devuelve el contexto; queda el estado de IA del audit §2 nº 8).
+`PATIENT-UX-TRUTH-001` ✅ CERRADA (8-ago) y los tres P0 de audio ✅ CERRADOS
+(v1158/v1161). **Siguiente**: `PATIENT-COMPANION-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -48,6 +48,18 @@ así que era el mismo defecto de `--nexus`/`--nexus-solido` repetido en otro
 color. **REG-293**: doce botones de sólo icono que un lector de pantalla anuncia
 como «botón» — incluidas las cinco estrellas de la reseña del paciente, y dos que
 borran. Los doce reparados, techo en cero.
+
+Y `NAVIGATION-001` destapó el que más se parece a los P0 de audio: **REG-294**,
+la fecha de la próxima consulta se guardaba y **se borraba sola al salir**. El
+borrador se escribía por tres caminos con la lista de campos copiada a mano, y el
+volcado de despedida —que escribe la MISMA clave— la reescribía sin el campo. Ya
+había pasado con este mismo campo (REG-193) y aquel arreglo cubrió **uno de los
+tres caminos**: mientras la lista esté copiada tres veces, arreglar una copia se
+ve igual que arreglar el problema. Ahora hay una sola lista.
+
+Con él, **REG-295** (Agenda → Consulta → atrás nunca volvía a la Agenda:
+renavegar por cada paciente) y **REG-296** (el botón más grande de la pantalla
+era un enlace a sí mismo, y desde REG-287 eso termina el dictado).
 
 | P0 | Estado |
 |---|---|

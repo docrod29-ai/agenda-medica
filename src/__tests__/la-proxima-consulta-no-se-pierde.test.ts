@@ -22,10 +22,35 @@
  * error, no hay aviso, simplemente no vuelve.
  *
  * Y el médico dueño es especialmente sensible a la pérdida de datos.
+ *
+ * ── ACTUALIZADO EL 9-ago-2026 (REG-294) ──────────────────────────────────────
+ *
+ * Este guardián comprobaba la FORMA del código: que la cadena
+ * `proximoSeguimiento.trim()` apareciera junto a cada condición y que
+ * `proximoSeguimiento,` estuviera dentro del objeto del respaldo.
+ *
+ * Y aun así el campo se seguía perdiendo, porque el defecto real era otro:
+ * había **tres caminos de escritura** con su lista copiada a mano, y este
+ * guardián sólo miraba uno. REG-294 los unificó en
+ * `src/lib/expediente/borrador-de-consulta.ts`.
+ *
+ * Al unificarlos, las comprobaciones de forma se pusieron rojas **por el
+ * arreglo**: el `proximoSeguimiento.trim()` que buscaban ya no está en la
+ * pantalla, está en el módulo compartido. Es la misma trampa de REG-291 — un
+ * guardián acoplado a la sintaxis de ayer castiga la mejora de hoy.
+ *
+ * Así que ahora se comprueba el INVARIANTE donde vive: que el campo esté en la
+ * lista única y que la condición única lo cuente. Lo que se pierde en literalidad
+ * se gana en que ya no hay tres sitios donde equivocarse.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  CAMPOS_DEL_BORRADOR,
+  hayQueGuardar,
+  instantaneaDeBorrador,
+} from '@/lib/expediente/borrador-de-consulta'
 
 const page = readFileSync(
   join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8',
@@ -39,8 +64,12 @@ function bloqueDelRespaldo(): string {
 }
 
 describe('sobrevive a una recarga', () => {
-  it('viaja en el respaldo local', () => {
-    expect(bloqueDelRespaldo()).toContain('proximoSeguimiento,')
+  it('viaja en el respaldo local — y ahora por los TRES caminos', () => {
+    expect(CAMPOS_DEL_BORRADOR).toContain('proximoSeguimiento')
+    expect(instantaneaDeBorrador({ proximoSeguimiento: '2026-09-01' }, null).proximoSeguimiento)
+      .toBe('2026-09-01')
+    // Y el respaldo local sigue escribiéndose por esa única instantánea.
+    expect(bloqueDelRespaldo()).toContain('instantaneaDeBorrador')
   })
 
   it('y está en las dependencias, o el respaldo se queda en la versión anterior', () => {
@@ -58,22 +87,33 @@ describe('sobrevive a una recarga', () => {
 })
 
 describe('cuenta como «hay algo que guardar»', () => {
-  it('en el autoguardado al servidor', () => {
-    const i = page.indexOf('if (hayContenido) guardarBorrador(true)')
-    expect(i).toBeGreaterThan(0)
-    expect(page.slice(Math.max(0, i - 500), i)).toContain('proximoSeguimiento.trim()')
+  it('la fecha sola YA es contenido', () => {
+    // Una consulta de control puede resolverse tecleando sólo la fecha.
+    expect(hayQueGuardar({ proximoSeguimiento: '2026-09-01' }, () => false)).toBe(true)
   })
 
-  it('y en el respaldo local', () => {
-    const i = page.indexOf('localStorage.setItem(respaldoKey')
-    const antes = page.slice(Math.max(0, i - 900), i)
-    expect(antes).toContain('proximoSeguimiento.trim()')
+  it('el espejo en memoria —el camino que la perdía— también la lleva', () => {
+    /**
+     * Éste es el que rompía el ciclo: `BorradorContext` es lo que hace que
+     * volver de la agenda no parpadee, y su lista de campos no tenía la fecha.
+     * Al volver, la nota aparecía «exactamente como la dejaste» menos este campo.
+     */
+    const i = page.indexOf('borradorMem.escribir(respaldoKey')
+    expect(i, 'no se encontró el espejo en memoria').toBeGreaterThan(0)
+    expect(page.slice(i, i + 200)).toContain('instantaneaDeBorrador')
   })
 
-  it('las dos redes, no una', () => {
-    // Una consulta de control puede resolverse tecleando sólo la fecha. Si sólo
-    // una de las dos redes la reconoce, se pierde por el otro camino.
-    expect(page.split('proximoSeguimiento.trim()').length - 1).toBeGreaterThanOrEqual(2)
+  it('y esa condición es UNA, no una por camino', () => {
+    /**
+     * Eran cinco copias, y no coincidían: el autoguardado al servidor y el
+     * respaldo con rebote contaban la fecha; el espejo en memoria, el volcado de
+     * despedida y el guardado previo al cierre de sesión, no.
+     *
+     * La firma de una copia suelta es `.medicamentos?.length` escrito en la
+     * pantalla. Cero, y se queda en cero.
+     */
+    expect(page.split('.medicamentos?.length').length - 1).toBe(0)
+    expect(page.split('hayQueGuardar(').length - 1).toBeGreaterThanOrEqual(5)
   })
 })
 

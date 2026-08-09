@@ -4,6 +4,7 @@ import { useCerrarConEscape } from '@/lib/ui/activable'
 import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
+import { useEstadoRecordado } from '@/hooks/useEstadoRecordado'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -58,7 +59,16 @@ function nextDay(d: string) { return sumarDiasISO(d, 1) }
 export default function CitasPage() {
   const params = useSearchParams()
   const router = useRouter()
-  const [selectedDate, setSelectedDate] = useState(todayStr())
+  /**
+   * EL DÍA QUE ESTÁS VIENDO SOBREVIVE A ENTRAR Y SALIR DE UNA CONSULTA (REG-295).
+   *
+   * Era `useState(todayStr())`: volver de un paciente devolvía la agenda a hoy,
+   * así que quien trabaja el jueves desde el martes volvía a poner la fecha por
+   * cada paciente del día. `router.back()` no lo arreglaba —el App Router
+   * remonta la pantalla y el `useState` se reevalúa—; el navegador restaura el
+   * scroll, no el estado de React.
+   */
+  const [selectedDate, setSelectedDate] = useEstadoRecordado('nx.agenda.dia', todayStr())
   // Pide la ventana desde el día que estás viendo: retroceder de día en día
   // sigue trayendo las citas de esas fechas en vez de mostrar el día vacío.
   const { appointments, loading, error: errorCitas } = useAppointments(`${selectedDate} 00:00`)
@@ -83,7 +93,7 @@ export default function CitasPage() {
    * que acordarse de quién ya salió. Esta vista responde su única pregunta:
    * atendidos y todavía sin cobrar.
    */
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>('todas')
+  const [statusFilter, setStatusFilter] = useEstadoRecordado<AppointmentStatus | 'todas' | 'por-cobrar'>('nx.agenda.filtro', 'todas')
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)

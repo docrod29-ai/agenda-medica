@@ -460,7 +460,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (V9 · NAVIGATION-001, 9-ago-2026)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "NAV-AGENDA-001",
@@ -471,7 +471,8 @@
       "porQueImporta": "Renavegar tras CADA paciente. Y la agenda pierde fecha, vista, filtro y búsqueda al volver (citas:61,86,87; calendario:41,58): quien trabaja el jueves desde el martes vuelve a poner la fecha cada vez.",
       "archivo": "src/app/(dashboard)/citas/page.tsx:436,61,86,87,117,124 · consulta:265,3752 · calendario:41,58",
       "plan": "useSmartBack en la consulta (ya existe y lo usan 10 pantallas) + llevar el estado de la agenda a la URL o al layout, como ya se hizo con BorradorContext.",
-      "score": 40
+      "score": 40,
+      "cierre": "REG-295: la consulta usa `useVolverConNombre` —retrocede de verdad cuando hay a dónde, empuja al destino lógico sólo si se llegó por enlace directo, y el rótulo dice cuál de las dos cosas hará—. La agenda y el calendario recuerdan día, vista y filtro en sessionStorage (`useEstadoRecordado`). El BUSCADOR no se recuerda a propósito: su texto es el nombre de un paciente y ninguna clave `nx.agenda.*` está en PREFIJOS_PHI, así que no se purgaría al cerrar sesión. De paso, REG-296: la pestaña «Agenda» encendida en /citas ya no te saca a /calendario."
     },
     {
       "seguridad": 0,
@@ -618,6 +619,31 @@
       "prioridadV9": "P1",
       "unidad": "A11Y-GATE-001",
       "origen": "A11Y-GATE-001 (V9) — lo que las compuertas estáticas no pueden ver, 9-ago-2026",
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
+      "id": "NAV-ESTADO-IA-001",
+      "titulo": "Turnos diarizados, evidencia, NER y roles de hablante siguen muriendo al navegar",
+      "hallazgo": "NAVIGATION_STATE_AUDIT §2 nº 8: `consulta:769,779,797,1039` y `useGrabacionAudio.ts:1054` no entran al espejo en memoria ni al respaldo. REG-294 unificó los campos de la NOTA; esto es salida de IA que cuelga aparte.",
+      "porQueImporta": "Es salida de modelo YA PAGADA. Y «quién dijo qué» y «palabras a verificar» son procedencia: se pierden justo cuando el médico sale a mirar un resultado y vuelve.",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:769,779,797,1039 · src/hooks/useGrabacionAudio.ts:1054",
+      "plan": "Decidir si entran a CAMPOS_DEL_BORRADOR (viajarían a localStorage: son PHI, la clave ya está en PREFIJOS_PHI y se ofusca) o sólo al espejo en memoria. Lo segundo es más barato y cubre el caso de navegar; lo primero cubre además la recarga.",
+      "seguridad": 0,
+      "integridad": 3,
+      "ingreso": 1,
+      "frecuencia": 3,
+      "moat": 1,
+      "fiabilidad": 3,
+      "regulatorio": 1,
+      "aprendizaje": 0,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "score": 38,
+      "prioridadV9": "P1",
+      "unidad": "NAVIGATION-001",
+      "origen": "NAVIGATION-001 (V9) — lo que queda del audit §2 nº 8, 9-ago-2026",
       "estado": "pendiente",
       "reversible": true
     }

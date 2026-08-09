@@ -81,13 +81,43 @@ con 40 falsos, y su primera versión con AST señalaba los elementos que usan
 `activable()` —el ayudante que este repositorio escribió para hacerlo bien—. Otra
 vez el medidor castigando la mejora, horas después de REG-291.
 
+**7. `NAVIGATION-001` — el ciclo devuelve el contexto.**
+
+**REG-294 · la fecha de la próxima consulta se guardaba y se borraba sola al
+salir.** El borrador local se escribía por **tres caminos** con la lista de
+campos copiada a mano, y la condición «¿hay algo que guardar?» estaba copiada
+**cinco** veces con dos criterios distintos. El volcado de despedida escribe **la
+misma clave** que el respaldo con rebote, y corría justo al navegar: no es que no
+se guardara, es que se guardaba y luego se pisaba.
+
+Ya había pasado **con este mismo campo** (REG-193), y aquel arreglo cubrió uno de
+los tres caminos dejando el comentario de la reparación encima del único sitio
+corregido. Mientras la lista esté copiada tres veces, **arreglar una copia se ve
+exactamente igual que arreglar el problema**. Ahora hay una sola:
+`src/lib/expediente/borrador-de-consulta.ts`.
+
+**REG-295 · Agenda → Consulta → atrás nunca volvía a la Agenda.** El botón hacía
+`push` a un destino fijo, así que volver a la agenda era renavegar por cada
+paciente del día. `useSmartBack` ya existía y lo usaban diez pantallas; la
+consulta —la única a la que se entra desde la agenda— era de las que no. Y la
+agenda además se reiniciaba a hoy: ahora recuerda día, vista y filtro. **El
+buscador no, a propósito**: es el nombre de un paciente y ninguna clave
+`nx.agenda.*` está en `PREFIJOS_PHI`.
+
+**REG-296 · el botón más grande de la pantalla era un enlace a sí mismo.** Y
+desde REG-287, remontar la consulta con la grabación viva la cierra: un toque
+accidental terminaba el dictado. La auditoría lo había dejado como pregunta para
+el navegador («si remonta, sube a P0»); se contesta **por construcción**, porque
+ya no puede navegar. La prueba que lo protegía —afirmaba el defecto en verde—
+está reescrita con su razón.
+
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 8 472 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). Idéntico al checkpoint anterior |
-| `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
-| `trinquete-de-diseno` | **1 865**, igual que el techo |
+| `npx vitest run` | **8 550 casos, todos en verde.** `ops-timeout-y-punto-ciego` —el fallo de entorno de los checkpoints anteriores— pasó en la última corrida: depende de cuánto tarde el proxy en rechazar, así que es **intermitente por entorno**, no por código |
+| `lint-trinquete` | **95** — bajó de 96 al sustituir un `setState` dentro de un efecto por `useSyncExternalStore`. Techo apretado |
+| `trinquete-de-diseno` | **1 863** (bajó de 1 865) |
 | `npx tsc --noEmit` | **limpio** |
 | `npm run build` | **compila** («Compiled successfully in 39.8s» + «Finished TypeScript in 55s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
 | `trinquete-de-accesibilidad` | **0**, igual que el techo |
@@ -104,21 +134,30 @@ vez el medidor castigando la mejora, horas después de REG-291.
 **2. NO rehacer el cimiento del sistema de diseño.** Está cerrado. Lo que queda
 es adopción, y la adopción tiene dueño: `VISUAL-EXCELLENCE-001`.
 
-**3. `NAVIGATION-001`**, empezando por `NAV-AGENDA-001` (Agenda → Consulta →
-atrás nunca vuelve a la Agenda). Es la siguiente unidad del §1 de la directiva.
+**3. `PATIENT-COMPANION-001`** — la siguiente unidad del §1. Las cinco
+destinaciones (TODAY · ASK NEXUS · CARE · DOCUMENTS · PROFILE), móvil primero,
+con `PatientVisitPackage` en DRAFT/RELEASED. Antes de tocar nada, leer
+`.claude/rules/patient-facing-ai.md` entero: es la regla más estricta del
+repositorio y la superficie donde el lector **no puede detectar el error**.
 
 **4. `A11Y-AXE-001`** queda abierto y **bloqueado por el entorno**, no por el
 código: `axe` sobre las nueve pantallas del paciente exige levantar el producto,
 y este contenedor no tiene las variables de Firebase. `@playwright/test` ya es
 dependencia; falta `@axe-core/playwright`.
 
-**5. `DESIGN-COLOR-001`** (P2, nuevo en el backlog) tiene el trabajo medido y las
+**5. Lo que queda de navegación**: `NAV-ESTADO-IA-001` (P1) — turnos
+diarizados, evidencia, NER y roles de hablante siguen muriendo al navegar. Es
+salida de modelo ya pagada, y es procedencia. `NAV-NAVEGADOR-001` bajó de seis
+comprobaciones a cuatro: las dos que podían convertir un P2 en P0 ya están
+contestadas por construcción (REG-287 y REG-296).
+
+**6. `DESIGN-COLOR-001`** (P2) tiene el trabajo medido y las
 tres trampas escritas: `var()` **no funciona en atributos de presentación SVG**,
 satori no resuelve variables, y `global-error` se activa cuando ni el layout ha
 cargado.
 
-**6. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
-de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en P0.**
+**7. Cuando haya entorno con credenciales de Firebase**: lo que queda de
+`NAV-NAVEGADOR-001` y `A11Y-AXE-001`.
 
 ## Lo que este checkpoint NO garantiza
 
@@ -128,6 +167,11 @@ radios de esqueleto de carga, y sobre todo **los tres tokens de color que
 cambiaron en el tema claro** (`--text3`, `--amber`, el nuevo `--amber-solido`).
 Están medidos y son estrictamente más legibles, pero medido no es visto, y la
 directiva V9 §4 no aprueba interfaz leyendo código.
+
+Del trabajo de navegación **tampoco se ha visto nada**: que `router.back()`
+devuelva la agenda con su día y su filtro está comprobado sobre el código, no
+sobre la pantalla. El estado «aquí» del botón central —apagado, sin enlace— no lo
+ha mirado nadie.
 
 Y las compuertas nuevas **no son `axe`**: miden pares de tokens y parsean JSX. No
 ven el árbol de accesibilidad renderizado, ni el orden de foco real, ni el tamaño

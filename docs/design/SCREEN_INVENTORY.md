@@ -45,11 +45,11 @@
 | `/verificar/[token]` | paciente | — | 97 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 899 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 453 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 330 | 0 | — | ✅ | — |
-| `/citas` | medico | ✅ | 864 | 5 | — | ✅ | — |
+| `/citas` | medico | ✅ | 874 | 5 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 5803 | 5 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 5836 | 4 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 282 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |

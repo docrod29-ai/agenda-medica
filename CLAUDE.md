@@ -37,7 +37,7 @@ mire.
 
 ```bash
 npx vitest run                  # 6413 casos, 435 archivos
-node scripts/lint-trinquete.mjs # techo de deuda: 98 errores, sólo puede bajar
+node scripts/lint-trinquete.mjs # techo de deuda: 95 errores, sólo puede bajar
 npm run build                   # TS + Next; atrapa lo que vitest no ve
 npm run mantenimiento           # chequeo de 8 puntos, sólo lectura
 npm run simulacro:respaldo      # ida y vuelta del respaldo, con acta

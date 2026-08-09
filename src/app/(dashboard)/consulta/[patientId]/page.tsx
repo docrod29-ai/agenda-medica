@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
+import { hayQueGuardar, instantaneaDeBorrador } from '@/lib/expediente/borrador-de-consulta'
+import { useVolverConNombre } from '@/hooks/useSmartBack'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
@@ -280,6 +282,10 @@ export default function ConsultaActivaPage() {
   const internamientoActivo = internamientoParam || notaInternamientoId
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
+  const { volver, etiqueta: etiquetaVolver } = useVolverConNombre(
+    volverA,
+    esNotaHospital ? 'Volver al episodio' : 'Expediente',
+  )
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
   const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
@@ -2653,10 +2659,10 @@ export default function ConsultaActivaPage() {
   useEffect(() => {
     autoguardarRef.current = () => {
       if (firmada) return
-      const hayContenido =
-        !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
-           diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
-           signosConValor(signos) || estudiosOrden.length || preop || proximoSeguimiento.trim())
+      const hayContenido = hayQueGuardar(
+        { resumen, secciones, diagnosticos, medicamentos, transcripcion: voz.transcripcion, signos, estudiosOrden, preop, proximoSeguimiento },
+        signosConValor,
+      )
       if (hayContenido) guardarBorrador(true)
     }
   })
@@ -2671,32 +2677,32 @@ export default function ConsultaActivaPage() {
   //  en las deps de descartar(); es por paciente Y por episodio.)
   useEffect(() => {
     if (firmada) return
-    const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
-      diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
-      signosConValor(signos) || estudiosOrden.length > 0 || !!preop || proximoSeguimiento.trim()
+    const hayContenido = hayQueGuardar(
+      { resumen, secciones, diagnosticos, medicamentos, transcripcion: voz.transcripcion, signos, estudiosOrden, preop, proximoSeguimiento },
+      signosConValor,
+    )
     if (!hayContenido) return
     const id = setTimeout(() => {
       if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
       try {
+        /**
+         * ── LA LISTA DE CAMPOS VIVE EN UN SOLO SITIO (REG-294) ──
+         *
+         * Antes se escribía aquí a mano, y otra vez en el espejo en memoria, y
+         * otra vez en `flushRespaldo`. `proximoSeguimiento` estaba sólo en ésta
+         * —el arreglo de REG-193— y el volcado de despedida, que escribe LA
+         * MISMA CLAVE, lo borraba al salir de la pantalla.
+         *
+         * Ahora las tres llaman a `instantaneaDeBorrador`. Añadir un campo al
+         * borrador es añadirlo a `CAMPOS_DEL_BORRADOR`, y los tres caminos lo
+         * llevan.
+         */
         localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-          tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
-          /**
-           * ── LA FECHA DE PRÓXIMA CONSULTA SE PERDÍA (6-ago-2026, REG-193) ──
-           *
-           * No estaba en el respaldo, ni en sus deps, ni en la condición que
-           * decide si hay algo que guardar. Sólo se persistía **al firmar**:
-           * teclearla y recargar la borraba, y si era lo único escrito ni
-           * siquiera disparaba el autoguardado.
-           *
-           * Alimenta la tarea «agendar el seguimiento» del worklist y el
-           * contador de seguimientos vencidos del CRM — dos cosas que existían
-           * esperando este dato.
-           */
-          proximoSeguimiento,
-          // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
-          // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
-          notaId: notaIdRef.current,
-          transcripcion: voz.transcripcion, ts: Date.now(),
+          ...instantaneaDeBorrador(
+            { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion },
+            notaIdRef.current,
+          ),
+          ts: Date.now(),
         }), secretoLocal(auth.currentUser?.uid)))
       } catch { /* almacenamiento lleno: no es crítico */ }
     }, 1500)
@@ -2840,13 +2846,18 @@ export default function ConsultaActivaPage() {
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
-  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada })
+  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada })
   useEffect(() => {
-    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada }
+    /**
+     * `proximoSeguimiento` FALTABA en este ref, y de ahí salían los dos huecos:
+     * el espejo en memoria y `flushRespaldo` leen de aquí. Un campo que no entra
+     * al ref no puede salir por ninguno de los dos.
+     */
+    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada }
     // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
     // volver la nota está exactamente como la dejaste, al instante.
     const e = estadoVivoRef.current
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+    const hay = hayQueGuardar(e, signosConValor)
     /**
      * NUNCA se borra el respaldo por verse VACÍO — esa era la fuente del
      * "a veces se borra y tengo que empezar otra vez".
@@ -2863,7 +2874,7 @@ export default function ConsultaActivaPage() {
      * contenido se escribe; si está vacío y sin firmar, se deja como está.
      */
     if (e.firmada) borradorMem.borrar(respaldoKey)
-    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    else if (hay) borradorMem.escribir(respaldoKey, instantaneaDeBorrador(e, notaIdRef.current))
   })
   /**
    * RESTAURAR LA POSICIÓN al volver a la nota.
@@ -2899,13 +2910,18 @@ export default function ConsultaActivaPage() {
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
-    if (!hay) return
+    if (!hayQueGuardar(e, signosConValor)) return
     try {
+      /**
+       * ESTE VOLCADO ESCRIBE LA MISMA CLAVE QUE EL RESPALDO CON REBOTE.
+       *
+       * Con su propia lista de campos, lo que hacía al salir de la pantalla no
+       * era «guardar por si acaso»: era **pisar el respaldo bueno con uno
+       * incompleto**. Ahora comparte la instantánea (REG-294).
+       */
       localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
-        tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
-        diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, notaId: notaIdRef.current,
-        transcripcion: e.transcripcion, ts: Date.now(),
+        ...instantaneaDeBorrador(e, notaIdRef.current),
+        ts: Date.now(),
       }), secretoLocal(auth.currentUser?.uid)))
     } catch { /* almacenamiento lleno */ }
   }, [respaldoKey])
@@ -2927,10 +2943,14 @@ export default function ConsultaActivaPage() {
     const alGuardarTodo = (ev: Event) => {
       const e = estadoVivoRef.current
       if (e.firmada) return
-      const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
-        e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() ||
-        signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
-      if (!hay) return
+      /**
+       * LA QUINTA COPIA DE LA MISMA CONDICIÓN, Y LA DE PEOR CONSECUENCIA.
+       *
+       * Ésta decide si la nota se manda al SERVIDOR antes de purgar lo local al
+       * cerrar sesión. Con la fecha de seguimiento como único contenido decía
+       * «no hay nada», no guardaba, y la purga se llevaba lo único que existía.
+       */
+      if (!hayQueGuardar(e, signosConValor)) return
       /**
        * SE ENTREGA LA PROMESA, NO SÓLO SE DISPARA EL GUARDADO.
        *
@@ -3773,8 +3793,21 @@ export default function ConsultaActivaPage() {
 
   return (
     <div className="page-pad" style={{ maxWidth: 980, margin: '0 auto' }}>
-      <button onClick={() => router.push(volverA)} style={S.back}>
-        <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
+      {/**
+        * ── AGENDA → CONSULTA → ATRÁS NUNCA VOLVÍA A LA AGENDA (REG-295) ──
+        *
+        * Este botón hacía `push` a un destino FIJO. Entrando desde la agenda
+        * —que es como se entra a una consulta— el historial quedaba
+        * `/citas → /consulta → /expediente` y el médico oscilaba entre las dos
+        * últimas: renavegar a la agenda tras CADA paciente.
+        *
+        * `useVolverConNombre` retrocede de verdad cuando hay a dónde (y así el
+        * navegador restaura la posición y los filtros de la agenda), y sólo
+        * empuja al destino lógico cuando se llegó por enlace directo. El rótulo
+        * dice cuál de las dos cosas va a hacer.
+        */}
+      <button onClick={volver} style={S.back}>
+        <ArrowLeft size={15} /> {etiquetaVolver}
       </button>
 
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde

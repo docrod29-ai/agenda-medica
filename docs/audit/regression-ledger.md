@@ -6539,3 +6539,122 @@ Archivos:
 - `src/__tests__/el-contraste-esta-medido.test.ts` (nuevo, 9 casos declarados que se despliegan en 40 comprobaciones —cada token contra cada superficie, en los dos temas—, sellado)
 - `src/__tests__/todo-control-tiene-nombre.test.ts` (nuevo, 11 casos, sellado)
 - once pantallas con `aria-label`, y `src/lib/ui/activable.ts` sin tocar
+
+---
+
+## REG-294 — la fecha de la próxima consulta se guardaba y se borraba sola al salir (sin desplegar)
+
+Segundo asalto del mismo campo. **REG-193 lo dio por cerrado y no lo estaba.**
+
+El borrador local de la consulta se escribía en **tres sitios**, cada uno con su
+lista de campos copiada a mano:
+
+| # | Camino | Escribe en | ¿Llevaba `proximoSeguimiento`? |
+|---|---|---|---|
+| 1 | respaldo con rebote de 1 500 ms | `localStorage[respaldoKey]` | **sí** (lo puso REG-193) |
+| 2 | espejo en memoria (`BorradorContext`) | RAM del layout | no |
+| 3 | `flushRespaldo` — desmontar · ocultar · cerrar | **`localStorage[respaldoKey]`** | no |
+
+3 escribe **la misma clave que 1**, y corre justo al navegar. El orden real de
+los hechos era: se teclea la fecha → a los 1,5 s se guarda → el médico va a la
+agenda → el volcado de despedida reescribe la clave sin el campo. **No es que no
+se guardara: es que se guardaba y luego se pisaba.**
+
+Y la condición «¿hay algo que guardar?» estaba copiada **cinco** veces, con dos
+criterios distintos. La quinta —la de peor consecuencia— decide si la nota se
+manda al SERVIDOR antes de purgar lo local al cerrar sesión: con la fecha como
+único contenido decía «no hay nada», no guardaba, y la purga se llevaba lo único
+que existía.
+
+### Por qué REG-193 no bastó, y no fue descuido
+
+Aquel arreglo cubrió **uno de los tres caminos**, y dejó el comentario de la
+reparación escrito justo encima del único sitio corregido — lo que hace que el
+problema **parezca cerrado** al siguiente que lo lea.
+
+Mientras la lista esté copiada tres veces, **arreglar una copia se ve
+exactamente igual que arreglar el problema**.
+
+### El arreglo
+
+`src/lib/expediente/borrador-de-consulta.ts`: una lista
+(`CAMPOS_DEL_BORRADOR`), una instantánea (`instantaneaDeBorrador`) y una
+condición (`hayQueGuardar`). Los cinco sitios llaman a lo mismo. Añadir un campo
+al borrador es añadirlo a la lista.
+
+Y el guardián comprueba **las dos mitades del viaje**: que se escriba por los
+tres caminos y que **se lea de vuelta** al restaurar — un campo que se guarda y
+nadie repone está igual de perdido, y encima el respaldo en disco se ve completo.
+
+---
+
+## REG-295 — Agenda → Consulta → atrás nunca volvía a la Agenda (sin desplegar)
+
+El botón de volver de la consulta hacía `push` a un destino **fijo** (el
+expediente). Entrando desde la agenda —que es como se entra a una consulta— el
+historial quedaba `/citas → /consulta → /expediente` y el médico oscilaba entre
+las dos últimas: **volver a la agenda era renavegar, por cada paciente del día**.
+
+`useSmartBack` ya existía y lo usaban **diez** pantallas. La consulta, que es la
+única a la que se llega desde la agenda, era de las que no.
+
+Y aunque volviera, la agenda se reiniciaba: `useState(hoy)` y `useState('todas')`
+—el App Router **remonta** la pantalla—, así que quien trabaja el jueves desde el
+martes volvía a poner la fecha cada vez. El navegador restaura el scroll; el
+estado de React no lo restaura nadie.
+
+### El arreglo, y lo que se decidió NO hacer
+
+`useVolverConNombre` retrocede de verdad cuando hay a dónde —y así el navegador
+restaura la posición de la lista— y sólo empuja al destino lógico cuando se llegó
+por enlace directo. **El rótulo dice cuál de las dos cosas va a hacer**: «Atrás»
+o el nombre del destino. Un botón que dijera «Expediente» y fuera a la agenda
+sería cambiar un defecto por otro.
+
+La agenda y el calendario recuerdan día, vista y filtro en `sessionStorage` —la
+duración correcta es la pestaña: volver en la misma jornada devuelve el día que
+estabas viendo; abrir mañana empieza en hoy.
+
+**El buscador NO se recuerda, a propósito.** Su texto es el nombre de un paciente
+y `limpiarBorradoresLocales()` sólo purga las claves declaradas en
+`PREFIJOS_PHI`: guardarlo bajo una clave que nadie purga lo dejaría en el disco
+de un dispositivo compartido. Recordarlo exige declarar el prefijo primero, y eso
+es una decisión de la regla de privacidad, no de una pantalla.
+
+---
+
+## REG-296 — el botón más grande de la pantalla era un enlace a sí mismo (sin desplegar)
+
+Estando en `/consulta/pac_1`, la acción central de la barra inferior apuntaba a
+`/consulta/pac_1`.
+
+En el mejor de los casos no hacía nada visible. En el peor, el App Router lo
+trata como una navegación y `(dashboard)/template.tsx` **remonta la pantalla** —
+y desde REG-287, desmontar la consulta con la grabación viva la cierra y la manda
+a transcribir. Un toque accidental en el botón más grande y más central **termina
+el dictado**.
+
+La auditoría de navegación lo dejó abierto como pregunta para el navegador: «si
+remonta, sube a P0». **Se contesta por construcción**: si no puede navegar, da
+igual si habría remontado. Ahora se pinta un estado «aquí», apagado y anunciado
+como tal, sin enlace. Un enlace que no lleva a ningún sitio es un control roto
+para quien ve y una trampa para quien navega con teclado o con lector.
+
+De paso, la pestaña «Agenda» se encendía en `/citas` y su enlace era siempre
+`/calendario`: estando en la lista del día, tocar la pestaña **encendida** te
+sacaba a otra pantalla. Ahora la pestaña activa lleva a donde ya estás.
+
+### La prueba que afirmaba el defecto
+
+`bottomnav-accion.test.ts` decía, con todas las letras, «en la consulta mantiene
+la acción hacia esa consulta (no pierde el paciente)». Estaba en verde y
+protegía el defecto: el paciente no se pierde, **ya estás en su consulta**.
+
+Archivos:
+
+- `src/lib/expediente/borrador-de-consulta.ts` (nuevo) · `src/hooks/useEstadoRecordado.ts` (nuevo)
+- `src/hooks/useSmartBack.ts` · `src/components/BottomNav.tsx`
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx` · `citas/page.tsx` · `calendario/page.tsx`
+- `src/__tests__/el-borrador-no-pierde-campos.test.ts` (nuevo, 10 casos, sellado)
+- `src/__tests__/volver-devuelve-el-contexto.test.ts` (nuevo, 15 casos, sellado)
+- `src/__tests__/la-proxima-consulta-no-se-pierde.test.ts` · `bottomnav-accion.test.ts`

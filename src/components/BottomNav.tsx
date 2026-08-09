@@ -19,11 +19,24 @@ import { rutaPermitida } from '@/lib/modulos'
 type Item = {
   href: string; label: string; icon: typeof LayoutDashboard
   active: (path: string) => boolean
+  /**
+   * A dónde va la pestaña CUANDO YA ESTÁS en su sección.
+   *
+   * «Agenda» se ilumina en `/citas` y en `/calendario` —las dos son la agenda—
+   * pero su enlace era siempre `/calendario`: estando en la lista del día,
+   * tocar la pestaña encendida te sacaba a otra pantalla. Una pestaña activa que
+   * te mueve no es una pestaña: es un enlace disfrazado.
+   */
+  destinoSegunRuta?: (path: string) => string
 }
 
 const COMMON: Item[] = [
   { href: '/dashboard', label: 'Inicio',    icon: LayoutDashboard, active: p => p === '/dashboard' },
-  { href: '/calendario', label: 'Agenda',   icon: Calendar,        active: p => p.startsWith('/calendario') || p.startsWith('/citas') },
+  {
+    href: '/calendario', label: 'Agenda', icon: Calendar,
+    active: p => p.startsWith('/calendario') || p.startsWith('/citas'),
+    destinoSegunRuta: p => (p.startsWith('/citas') ? '/citas' : '/calendario'),
+  },
   { href: '/pacientes', label: 'Pacientes', icon: Users,           active: p => p.startsWith('/pacientes') || p.startsWith('/expediente') },
 ]
 
@@ -32,7 +45,25 @@ const COMMON: Item[] = [
  * en /expediente/[id] o /consulta/[id] → ir a la consulta de ESE paciente;
  * en cualquier otro lado → agendar (asistente). Puro y testeable.
  */
-export function accionContextual(pathname: string): { label: string; href: string; kind: 'consulta' | 'cita' } {
+export function accionContextual(pathname: string): { label: string; href: string | null; kind: 'consulta' | 'cita' | 'aqui' } {
+  /**
+   * ── EL BOTÓN GRANDE ERA UN ENLACE A SÍ MISMO (REG-296) ──
+   *
+   * Estando ya en `/consulta/pac_1`, la acción central apuntaba a
+   * `/consulta/pac_1`. En el mejor de los casos no hacía nada visible; en el
+   * peor, el App Router trata eso como una navegación y `(dashboard)/template.tsx`
+   * **remonta la pantalla**. Desde que desmontar la consulta con grabación viva
+   * cierra y transcribe (REG-287), eso significa que un toque accidental en el
+   * botón más grande y más central de la pantalla **termina el dictado**.
+   *
+   * La auditoría de navegación lo dejó como pregunta abierta para el navegador
+   * («si remonta, sube a P0»). Aquí se contesta por construcción: si no puede
+   * navegar, da igual si habría remontado.
+   *
+   * Se devuelve `href: null` y la barra pinta un estado «aquí», sin enlace.
+   */
+  const enConsulta = pathname.match(/^\/consulta\/([^/]+)/)
+  if (enConsulta) return { label: 'Aquí', href: null, kind: 'aqui' }
   const m = pathname.match(/^\/(?:expediente|consulta)\/([^/]+)/)
   if (m) return { label: 'Consulta', href: `/consulta/${m[1]}`, kind: 'consulta' }
   return { label: 'Nueva cita', href: '/asistente', kind: 'cita' }
@@ -70,40 +101,68 @@ export function BottomNav() {
       }}
       className="bottom-nav"
     >
-      {izq.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} />)}
+      {izq.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} pathname={pathname} />)}
 
-      {/* Acción central contextual — elevada, en la zona del pulgar */}
-      <Link
-        href={accion.href}
-        aria-label={accion.label}
-        style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'flex-start', textDecoration: 'none', minHeight: 52, paddingTop: 4,
-        }}
-      >
-        <span style={{
-          width: 46, height: 46, borderRadius: '50%', marginTop: -18,
-          background: 'var(--nexus-solido)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(20,184,166,0.45)', border: '3px solid var(--s1)',
-        }}>
-          <AccionIcon size={22} strokeWidth={2.2} />
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', lineHeight: 1, marginTop: 3 }}>
-          {accion.label}
-        </span>
-      </Link>
+      {/* Acción central contextual — elevada, en la zona del pulgar.
+          Sin `href` (ya estás en la consulta) NO se pinta un enlace: se pinta el
+          estado «aquí», apagado y anunciado como tal. Un enlace que no lleva a
+          ningún sitio es un control roto para quien ve y una trampa para quien
+          navega con teclado o con lector. */}
+      {accion.href ? (
+        <Link
+          href={accion.href}
+          aria-label={accion.label}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'flex-start', textDecoration: 'none', minHeight: 52, paddingTop: 4,
+          }}
+        >
+          <span style={{
+            width: 46, height: 46, borderRadius: 'var(--r-circulo)', marginTop: -18,
+            background: 'var(--nexus-solido)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: 'var(--sh-overlay)', border: '3px solid var(--s1)',
+          }}>
+            <AccionIcon size={22} strokeWidth={2.2} />
+          </span>
+          <span style={{ fontSize: 'var(--fs-micro)', fontWeight: 600, color: 'var(--teal)', lineHeight: 1, marginTop: 3 }}>
+            {accion.label}
+          </span>
+        </Link>
+      ) : (
+        <div
+          aria-current="page"
+          aria-label="Estás en la consulta"
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'flex-start', minHeight: 52, paddingTop: 4,
+          }}
+        >
+          <span style={{
+            width: 46, height: 46, borderRadius: 'var(--r-circulo)', marginTop: -18,
+            background: 'var(--s3)', color: 'var(--text3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '3px solid var(--s1)',
+          }}>
+            <AccionIcon size={22} strokeWidth={2.2} />
+          </span>
+          <span style={{ fontSize: 'var(--fs-micro)', fontWeight: 600, color: 'var(--text3)', lineHeight: 1, marginTop: 3 }}>
+            {accion.label}
+          </span>
+        </div>
+      )}
 
-      {der.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} />)}
+      {der.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} pathname={pathname} />)}
     </nav>
   )
 }
 
-function NavItem({ it, active }: { it: Item; active: boolean }) {
+function NavItem({ it, active, pathname }: { it: Item; active: boolean; pathname: string }) {
   const Icon = it.icon
+  const destino = it.destinoSegunRuta?.(pathname) ?? it.href
   return (
     <Link
-      href={it.href}
+      href={destino}
       style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',

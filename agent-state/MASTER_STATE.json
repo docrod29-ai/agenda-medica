@@ -18,26 +18,26 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
+    "M .claude/rules/testing-gates.md",
+    " M CLAUDE.md",
+    " M agent-state/BACKLOG.json",
     " M agent-state/CURRENT_ITERATION.md",
     " M agent-state/DESIGN_STATE.md",
     " M agent-state/LAST_SAFE_CHECKPOINT.md",
     " M agent-state/MASTER_STATE.json",
     " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    " M docs/audit/lint-techo.json",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/design/diseno-techo.json",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/color-trinquete.test.ts",
-    " M src/__tests__/el-camino-del-medico-llega-entero.test.ts",
-    " M src/__tests__/modulos-sin-conectar.test.ts",
+    " M src/__tests__/bottomnav-accion.test.ts",
+    " M src/__tests__/la-proxima-consulta-no-se-pierde.test.ts",
     " M src/app/(dashboard)/calendario/page.tsx",
     " M src/app/(dashboard)/citas/page.tsx",
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/pacientes/page.tsx",
-    " M src/app/globals.css"
+    " M src/components/BottomNav.tsx"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -73,10 +73,10 @@
   ],
   "ramaActual": "claude/relaxed-fermi-5njokt",
   "derivado": {
-    "regsEnElLedger": 141,
-    "ultimaREG": "REG-293",
-    "archivosDePrueba": 569,
-    "casosDePrueba": 7493,
+    "regsEnElLedger": 144,
+    "ultimaREG": "REG-296",
+    "archivosDePrueba": 571,
+    "casosDePrueba": 7519,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

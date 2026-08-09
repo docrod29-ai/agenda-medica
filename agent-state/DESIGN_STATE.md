@@ -7,7 +7,8 @@
 (tokens, escalas, trinquete) y **accesibilidad con dos compuertas** el mismo día
 (`A11Y-GATE-001`, parcial: falta `axe` en navegador).
 `PATIENT-UX-TRUTH-001` cerrada el 8-ago-2026.
-**Siguiente**: `NAVIGATION-001`, empezando por `NAV-AGENDA-001`.
+`NAVIGATION-001` cerrada el 9-ago (REG-294/295/296).
+**Siguiente**: `PATIENT-COMPANION-001`.
 
 ---
 

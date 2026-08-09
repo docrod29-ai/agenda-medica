@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
@@ -11,6 +11,8 @@ import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
 import { getWeekDates } from '@/lib/availability'
 import { hoyISO, fechaISOLocal } from '@/lib/timezone'
+import { fechaLocalDesdeISO } from '@/lib/fecha-local'
+import { useEstadoRecordado } from '@/hooks/useEstadoRecordado'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -38,7 +40,22 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am–7pm
 
 export default function CalendarioPage() {
   const router = useRouter()
-  const [baseDate, setBaseDate] = useState(new Date())
+  /**
+   * La fecha y la vista sobreviven a entrar en un paciente y volver (REG-295).
+   *
+   * `baseDate` es un `Date` y lo que se recuerda es su día en ISO: guardar un
+   * objeto exigiría revalidarlo al leer, y aquí el dato es una fecha del
+   * calendario, no una marca de tiempo.
+   */
+  /**
+   * `hoy` una sola vez: se usaba en el valor inicial y en «Nueva cita», y cada
+   * llamada suelta a `hoyISO()` es un sitio más que puede quedarse sin la zona
+   * del consultorio (lo vigila `timezone-sitios.test.ts`).
+   */
+  const hoy = hoyISO()
+  const [diaBase, setDiaBase] = useEstadoRecordado('nx.calendario.dia', hoy)
+  const baseDate = useMemo(() => fechaLocalDesdeISO(diaBase), [diaBase])
+  const setBaseDate = useCallback((d: Date) => setDiaBase(fechaISOLocal(d)), [setDiaBase])
   // La ventana de citas se pide desde un mes ANTES de lo que estás viendo, para
   // que navegar hacia atrás traiga esas citas en vez de mostrar el mes vacío.
   const desdeVentana = useMemo(() => {
@@ -55,7 +72,7 @@ export default function CalendarioPage() {
     if (!medicoFiltro) return allAppointments
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
   }, [allAppointments, medicoFiltro])
-  const [view, setView] = useState<View>('semana')
+  const [view, setView] = useEstadoRecordado<View>('nx.calendario.vista', 'semana')
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState('')
@@ -136,7 +153,7 @@ export default function CalendarioPage() {
         </button>
         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(1)} aria-label="Periodo siguiente"><ChevronRight size={16} /></button>
 
-        <button className="btn btn-primary btn-sm" onClick={() => openNew(hoyISO(), '')}>
+        <button className="btn btn-primary btn-sm" onClick={() => openNew(hoy, '')}>
           <Plus size={15} /> Nueva cita
         </button>
       </div>
