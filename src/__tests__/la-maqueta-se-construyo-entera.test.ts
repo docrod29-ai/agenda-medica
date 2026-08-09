@@ -51,7 +51,10 @@ describe('el botón de la maqueta existe', () => {
   })
 
   it('usa el azul SÓLIDO, que es el que pasa contraste con blanco', () => {
-    expect(comp).toMatch(/background: 'var\(--nexus-solido\)', color: '#fff'/)
+    // Sin distinguir mayúsculas: lo que se vigila es QUÉ color, no cómo se
+    // escribe. Un guardián que falla porque `#fff` pasó a `#FFF` está fijando
+    // la ortografía en vez del contraste (V9 · DESIGN-SYSTEM-001).
+    expect(comp).toMatch(/background: 'var\(--nexus-solido\)', color: '#fff'/i)
   })
 
   it('y --r-pill, no un valor nuevo en la escala', () => {

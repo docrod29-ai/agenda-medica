@@ -312,7 +312,7 @@ const btnList: React.CSSProperties = {
   padding: '12px 14px', marginBottom: 8, cursor: 'pointer',
 }
 const btnPrimary: React.CSSProperties = {
-  width: '100%', background: 'var(--teal)', color: '#040b12', border: 'none',
+  width: '100%', background: 'var(--teal)', color: '#040B12', border: 'none',
   borderRadius: 12, padding: '13px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
 }

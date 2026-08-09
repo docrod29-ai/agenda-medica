@@ -241,7 +241,7 @@ function RegistroInner() {
             className="btn"
             style={{
               width: '100%', justifyContent: 'center', gap: 10, padding: '11px 16px',
-              background: '#fff', color: '#1a1a1a', border: '1px solid var(--border2)', fontWeight: 600,
+              background: '#FFF', color: '#1A1A1A', border: '1px solid var(--border2)', fontWeight: 600,
             }}
           >
             <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">

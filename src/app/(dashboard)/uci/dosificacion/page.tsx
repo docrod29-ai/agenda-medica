@@ -134,7 +134,7 @@ export default function ValidacionDosisPage() {
               borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
               border: '1px solid var(--border2)',
               background: pestana === v ? 'var(--teal)' : 'transparent',
-              color: pestana === v ? '#fff' : 'var(--text2)',
+              color: pestana === v ? '#FFF' : 'var(--text2)',
             }}
           ><Icono size={14} /> {label}</button>
         ))}
@@ -165,7 +165,7 @@ export default function ValidacionDosisPage() {
               padding: '7px 12px', borderRadius: 7, fontSize: 12.5, cursor: 'pointer',
               border: '1px solid var(--border2)',
               background: filtro === v ? 'var(--teal)' : 'transparent',
-              color: filtro === v ? '#fff' : 'var(--text2)',
+              color: filtro === v ? '#FFF' : 'var(--text2)',
             }}
           >{label}</button>
         ))}
@@ -344,7 +344,7 @@ function Selector({ value, onChange, opciones }: {
 
 function Resultado({ rec }: { rec: Recomendacion }) {
   const como = COMO_SE_LEE[rec.estado]
-  const color = rec.estado === 'CLEAR' ? 'var(--teal)' : 'var(--amber, #b45309)'
+  const color = rec.estado === 'CLEAR' ? 'var(--teal)' : 'var(--amber, #B45309)'
   const Icono = rec.estado === 'CLEAR' ? CheckCircle2 : rec.estado === 'BLOCKED' ? Ban : HelpCircle
 
   return (
@@ -364,7 +364,7 @@ function Resultado({ rec }: { rec: Recomendacion }) {
 
         <p style={{
           padding: 9, borderRadius: 7, marginBottom: 12, fontSize: 12.5,
-          border: `1px solid ${rec.validacion === 'validado_por_medico' ? 'var(--teal)' : 'var(--amber, #b45309)'}`,
+          border: `1px solid ${rec.validacion === 'validado_por_medico' ? 'var(--teal)' : 'var(--amber, #B45309)'}`,
           color: 'var(--text)',
         }}>{rec.avisoValidacion}</p>
 
@@ -446,7 +446,7 @@ function Progreso({ total, validados, caducados, sinValidar, porcentaje }: Retur
       <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11.5, color: 'var(--text3)' }}>
         <span>{sinValidar} sin validar</span>
         {caducados > 0 && (
-          <span style={{ color: 'var(--amber, #b45309)' }}>
+          <span style={{ color: 'var(--amber, #B45309)' }}>
             {caducados} caducados (cambió el dataset)
           </span>
         )}
@@ -482,14 +482,14 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
         {est.estado === 'validado'
           ? <CheckCircle2 size={16} style={{ color: 'var(--teal)', flexShrink: 0 }} />
           : est.estado === 'caducada'
-            ? <AlertTriangle size={16} style={{ color: 'var(--amber, #b45309)', flexShrink: 0 }} />
+            ? <AlertTriangle size={16} style={{ color: 'var(--amber, #B45309)', flexShrink: 0 }} />
             : <ShieldQuestion size={16} style={{ color: 'var(--text3)', flexShrink: 0 }} />}
         <span style={{ fontWeight: 600 }}>{nombre}</span>
         <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{f.class}</span>
         {f.hard_stops && (
           <span style={{
             fontSize: 10, padding: '1px 6px', borderRadius: 4,
-            border: '1px solid var(--amber, #b45309)', color: 'var(--amber, #b45309)',
+            border: '1px solid var(--amber, #B45309)', color: 'var(--amber, #B45309)',
           }}>regla dura</span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text3)' }}>
@@ -502,7 +502,7 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
           {est.estado === 'caducada' && (
             <p style={{
               padding: 9, borderRadius: 7, marginBottom: 10, fontSize: 12.5,
-              border: '1px solid var(--amber, #b45309)', color: 'var(--text)',
+              border: '1px solid var(--amber, #B45309)', color: 'var(--text)',
             }}>{est.porQue}</p>
           )}
 
@@ -556,7 +556,7 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
                 onClick={onValidar}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-                  borderRadius: 7, border: 'none', background: 'var(--nexus-solido)', color: '#fff',
+                  borderRadius: 7, border: 'none', background: 'var(--nexus-solido)', color: '#FFF',
                   cursor: 'pointer', fontSize: 13, fontWeight: 600,
                 }}
               ><CheckCircle2 size={14} /> Validar esta regla</button>
@@ -575,7 +575,7 @@ function Bloque({ titulo, children, destacado }: {
     <div style={{ marginBottom: 9 }}>
       <div style={{
         fontSize: 11, marginBottom: 2,
-        color: destacado ? 'var(--amber, #b45309)' : 'var(--text3)',
+        color: destacado ? 'var(--amber, #B45309)' : 'var(--text3)',
         fontWeight: destacado ? 700 : 400,
       }}>{titulo.toUpperCase()}</div>
       <div style={{ color: 'var(--text)' }}>{children}</div>

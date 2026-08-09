@@ -128,7 +128,7 @@ function Resultado({ label, r, ocultar }: { label: string; r: { ok: boolean; val
     <div style={{ padding: '8px 10px', borderRadius: 9, background: 'var(--s2)', border: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
         <span style={{ color: 'var(--text3)' }}>{label}</span>
-        <strong style={{ color: r.ok ? 'var(--text)' : '#d97706' }}>{r.ok ? `${r.valor} ${r.unidad ?? ''}` : 'bloqueado'}</strong>
+        <strong style={{ color: r.ok ? 'var(--text)' : '#D97706' }}>{r.ok ? `${r.valor} ${r.unidad ?? ''}` : 'bloqueado'}</strong>
       </div>
       <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{r.ok ? r.interpretacion : r.motivoBloqueo}</div>
     </div>
@@ -910,8 +910,8 @@ export default function UciPanelPage() {
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '9px 14px',
                 fontSize: 13, fontWeight: pestana === k ? 700 : 500, minHeight: 40,
-                color: pestana === k ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
-                borderBottom: `2px solid ${pestana === k ? 'var(--nexus,#3d5afe)' : 'transparent'}`,
+                color: pestana === k ? 'var(--nexus,#3D5AFE)' : 'var(--text3)',
+                borderBottom: `2px solid ${pestana === k ? 'var(--nexus,#3D5AFE)' : 'transparent'}`,
                 marginBottom: -1,
               }}
             >
@@ -961,9 +961,9 @@ export default function UciPanelPage() {
                         style={{
                           fontSize: 11.5, fontWeight: 600, padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
                           minHeight: 30,
-                          border: `1px solid ${on ? 'var(--nexus,#3d5afe)' : 'var(--border)'}`,
+                          border: `1px solid ${on ? 'var(--nexus,#3D5AFE)' : 'var(--border)'}`,
                           background: on ? 'rgba(61,90,254,0.14)' : 'transparent',
-                          color: on ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+                          color: on ? 'var(--nexus,#3D5AFE)' : 'var(--text3)',
                         }}
                       >
                         {SOPORTE_LABEL[sp]}
@@ -1137,7 +1137,7 @@ export default function UciPanelPage() {
           {audio.soportado ? (
             <button onClick={() => (grabando ? audio.detener() : audio.iniciar(opcionesDictadoUci))}
               className={grabando ? 'btn' : 'btn btn-primary'}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : {}) }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(grabando ? { background: '#DC2626', color: '#FFF', border: 'none' } : {}) }}>
               {grabando ? <Square size={15} /> : <Mic size={15} />}{grabando ? 'Detener' : 'Dictar pase de visita'}
             </button>
           ) : <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Este dispositivo no soporta grabación.</span>}
@@ -1169,7 +1169,7 @@ export default function UciPanelPage() {
               {paseTexto.trim() && <button onClick={() => { setPaseTexto(''); setAvisoPase(''); procesadoRef.current = '' }} className="btn" style={{ fontSize: 12.5 }}>Limpiar</button>}
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>La nota y los cálculos aparecen abajo. Solo se reporta lo que dictaste/escribiste.</span>
             </div>
-            {avisoPase && <div style={{ marginTop: 8, fontSize: 12.5, color: avisoPase.startsWith('✓') ? 'var(--nexus)' : '#d97706' }}>{avisoPase}</div>}
+            {avisoPase && <div style={{ marginTop: 8, fontSize: 12.5, color: avisoPase.startsWith('✓') ? 'var(--nexus)' : '#D97706' }}>{avisoPase}</div>}
           </div>
         )}
         {ofreceRecovery && audio.estado !== 'grabando' && (
@@ -1324,7 +1324,7 @@ export default function UciPanelPage() {
                     padding: '3px 9px', borderRadius: 5, fontSize: 11.5, cursor: 'pointer',
                     border: '1px solid var(--border2)', fontWeight: 500,
                     background: formatoNota === f ? 'var(--teal)' : 'transparent',
-                    color: formatoNota === f ? '#fff' : 'var(--text2)',
+                    color: formatoNota === f ? '#FFF' : 'var(--text2)',
                   }}
                 >{f === 'narrativa' ? 'Narrativa' : 'Lista'}</button>
               ))}
@@ -1644,7 +1644,7 @@ export default function UciPanelPage() {
         {correlacion.asociaciones.length > 0 && (
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {correlacion.asociaciones.map((a, i) => (
-              <div key={i} style={{ fontSize: 12.5, color: 'var(--amber)', padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: '3px solid #d97706' }}>{a}</div>
+              <div key={i} style={{ fontSize: 12.5, color: 'var(--amber)', padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: '3px solid #D97706' }}>{a}</div>
             ))}
           </div>
         )}
@@ -1671,7 +1671,7 @@ export default function UciPanelPage() {
                   cursor: 'pointer', fontWeight: 600,
                   border: '1px solid ' + (yaEsta ? 'var(--teal)' : 'var(--border2)'),
                   background: yaEsta ? 'var(--teal)' : 'transparent',
-                  color: yaEsta ? '#fff' : 'var(--text2)',
+                  color: yaEsta ? '#FFF' : 'var(--text2)',
                 }}
               >
                 {yaEsta
@@ -1692,7 +1692,7 @@ export default function UciPanelPage() {
                     padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
                     border: '1px solid var(--border2)',
                     background: motorCopilot === k ? 'var(--teal)' : 'transparent',
-                    color: motorCopilot === k ? '#fff' : 'var(--text2)',
+                    color: motorCopilot === k ? '#FFF' : 'var(--text2)',
                   }}
                 >{m.emoji} {m.nombre} · {c.creditos}</button>
               )
@@ -1711,7 +1711,7 @@ export default function UciPanelPage() {
             {copilot.primario.resumen && <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>{copilot.primario.resumen}</div>}
             <div style={{ display: 'grid', gap: 8 }}>
               {copilot.primario.problemas.map((p, i) => {
-                const c = p.prioridad === 'alta' ? '#dc2626' : p.prioridad === 'media' ? '#d97706' : 'var(--text3)'
+                const c = p.prioridad === 'alta' ? '#DC2626' : p.prioridad === 'media' ? '#D97706' : 'var(--text3)'
                 return (
                   <div key={i} style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderLeft: `3px solid ${c}`, borderRadius: 9, padding: '10px 12px' }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -1751,7 +1751,7 @@ export default function UciPanelPage() {
               <span>Modelos: {[copilot.modelos.primario, copilot.modelos.segunda].filter(Boolean).join(' + ') || '—'}</span>
               <span style={{ marginLeft: 'auto' }}>¿Útil?</span>
               <button onClick={() => enviarFeedback('up')} disabled={!!feedbackDado} title="Marcar como útil (solo señal; no guarda datos del paciente)" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'up' ? 'var(--nexus)' : 'var(--text3)' }}><ThumbsUp size={15} /></button>
-              <button onClick={() => enviarFeedback('down')} disabled={!!feedbackDado} title="No útil" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'down' ? '#dc2626' : 'var(--text3)' }}><ThumbsDown size={15} /></button>
+              <button onClick={() => enviarFeedback('down')} disabled={!!feedbackDado} title="No útil" style={{ background: 'none', border: 'none', cursor: feedbackDado ? 'default' : 'pointer', color: feedbackDado === 'down' ? '#DC2626' : 'var(--text3)' }}><ThumbsDown size={15} /></button>
             </div>
           </div>
         )}
@@ -1824,7 +1824,7 @@ export default function UciPanelPage() {
               <Resultado label="Dosis (entregada/prescrita)" r={{ ok: ckrt.dosisPrescritaMlKgH != null, valor: ckrt.dosisEntregadaMlKgH ?? ckrt.dosisPrescritaMlKgH, unidad: 'mL/kg/h', motivoBloqueo: 'sin peso/tiempo', interpretacion: ckrt.dosisEntregadaMlKgH != null ? 'entregada' : 'prescrita' }} />
               <Resultado label="Fracción de filtración" r={{ ok: ckrt.fraccionFiltracionPct != null, valor: ckrt.fraccionFiltracionPct, unidad: '%', motivoBloqueo: 'requiere Qb + Hto (CVVH/CVVHDF)', interpretacion: 'meta < 25%' }} />
               {ckrt.advertencias.map((a, i) => <div key={i} style={{ fontSize: 12, color: 'var(--amber)' }}>⚠ {a}</div>)}
-              {citrato.ratioCaTotalIonico != null && <div style={{ fontSize: 12.5, color: citrato.patronAcumulacion ? '#dc2626' : 'var(--text3)' }}>Citrato · ratio Ca total/iónico {citrato.ratioCaTotalIonico}{citrato.patronAcumulacion ? ' — patrón de acumulación (verificar)' : ''}</div>}
+              {citrato.ratioCaTotalIonico != null && <div style={{ fontSize: 12.5, color: citrato.patronAcumulacion ? '#DC2626' : 'var(--text3)' }}>Citrato · ratio Ca total/iónico {citrato.ratioCaTotalIonico}{citrato.patronAcumulacion ? ' — patrón de acumulación (verificar)' : ''}</div>}
             </div>
             <Bloque icon={Droplets} titulo="Citrato (anticoagulación regional)">
               <Campo label="iCa sistémico" k="ciCaSis" v={v} set={set} sufijo="mmol/L" w={120} />

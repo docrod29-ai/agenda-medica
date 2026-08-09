@@ -37,15 +37,15 @@ const MOTIVOS = [
 const HUESPEDES = ['—', 'SOT — Renal', 'SOT — Hepático', 'SOT — Cardiaco', 'SOT — Pulmonar', 'TCMH — Autólogo', 'TCMH — Alogénico', 'VIH', 'No-VIH — Biológicos/Corticoides', 'Neutropenia/Quimioterapia', 'Asplenia']
 const IS_ESTADO = ['—', 'En curso', 'Va a iniciar (pre-protocolo)', 'Ninguna / suspendida']
 const RES_OPTS = ['—', 'Positivo', 'Negativo', 'Pendiente']
-const SEV_COLOR: Record<Sev, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
-const CARGA_COLOR: Record<string, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
+const SEV_COLOR: Record<Sev, string> = { alta: '#DC2626', media: '#D97706', baja: '#0D9488' }
+const CARGA_COLOR: Record<string, string> = { alta: '#DC2626', media: '#D97706', baja: '#0D9488' }
 const ALTA_CARGA = ['atg', 'alemtuzumab', 'anticd20', 'quimio', 'cicfos', 'purinas', 'anticd38', 'cart', 'fingolimod']
 
 const inputCls = 'w-full rounded-md border px-2.5 py-1.5 text-sm bg-transparent'
 const SHOWN = new Set(Object.keys(TX_CHIPS))
 
 /** Sección colapsable con contador de seleccionados. */
-function Grupo({ titulo, count, accent = '#0d9488', defaultOpen, children }: { titulo: string; count: number; accent?: string; defaultOpen?: boolean; children: ReactNode }) {
+function Grupo({ titulo, count, accent = '#0D9488', defaultOpen, children }: { titulo: string; count: number; accent?: string; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
   return (
     <div className="rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--s1)' }}>
@@ -64,7 +64,7 @@ function Grupo({ titulo, count, accent = '#0d9488', defaultOpen, children }: { t
 /** Píldora de estratificación (cabecera del copiloto). */
 function Pill({ label, color }: { label: string; color?: string }) {
   return (
-    <span className="text-[11px] font-semibold rounded-full px-2 py-1" style={{ background: (color ?? '#64748b') + '1f', color: color ?? 'var(--text2)', border: `1px solid ${(color ?? '#64748b')}44` }}>{label}</span>
+    <span className="text-[11px] font-semibold rounded-full px-2 py-1" style={{ background: (color ?? '#64748B') + '1f', color: color ?? 'var(--text2)', border: `1px solid ${(color ?? '#64748B')}44` }}>{label}</span>
   )
 }
 
@@ -231,12 +231,12 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
       : compose(v, SHOWN).map((r) => '<p><b>' + esc(r[0]) + ':</b> ' + esc(r[1]) + '</p>').join('') +
         (recs.length ? '<h3>Impresión y plan — Infectología</h3><ol>' + recs.map((r) => '<li><b>' + esc(r.titulo) + '.</b> ' + esc(r.detalle)
           + (r.fuente ? ' <i>(Fuente: ' + esc(r.fuente) + ')</i>' : ' <i>(sin fuente declarada)</i>') + '</li>').join('') + '</ol>' : '')
-    const html = '<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#15201d;">' +
-      '<div style="border-bottom:3px solid #1a6b52;padding-bottom:8px;margin-bottom:12px;"><div style="font-size:17px;font-weight:bold;color:#1a6b52;">' + esc(clinic?.nombreClinica || '') + '</div><div style="font-size:10px;color:#557;text-transform:uppercase;letter-spacing:1.5px;">Valoración por Infectología</div></div>' +
+    const html = '<html><head><meta charset="utf-8"></head><body style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#15201D;">' +
+      '<div style="border-bottom:3px solid #1A6B52;padding-bottom:8px;margin-bottom:12px;"><div style="font-size:17px;font-weight:bold;color:#1A6B52;">' + esc(clinic?.nombreClinica || '') + '</div><div style="font-size:10px;color:#557;text-transform:uppercase;letter-spacing:1.5px;">Valoración por Infectología</div></div>' +
       '<div style="font-family:Cambria,Georgia,serif;font-size:15px;font-weight:bold;">' + esc(titulo) + '</div>' +
       '<div style="font-size:11px;color:#667;margin-bottom:10px;">' + esc(patient.nombre || '') + (patient.edad ? ' · ' + patient.edad + ' a' : '') + (patient.sexo ? ' · ' + esc(patient.sexo) : '') + ' · ' + (modo === 'inicial' ? 'Valoración inicial' : 'Seguimiento') + ' · ' + fecha + '</div>' +
       cuerpo +
-      '<div style="margin-top:16px;font-size:10px;color:#778;border-top:1px solid #dde;padding-top:6px;">Documento de apoyo — Infectología. Las dosis y decisiones requieren validación del médico tratante.</div></body></html>'
+      '<div style="margin-top:16px;font-size:10px;color:#778;border-top:1px solid #DDE;padding-top:6px;">Documento de apoyo — Infectología. Las dosis y decisiones requieren validación del médico tratante.</div></body></html>'
     const blob = new Blob(['﻿' + html], { type: 'application/msword' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
@@ -266,11 +266,11 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
       {/* Estratificación */}
       <Card padding={14}>
         <div className="flex items-center gap-2 mb-2">
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
-          <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple,#7c3aed)' }}>Copiloto de Infectología · en vivo</span>
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#7C3AED', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
+          <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple,#7C3AED)' }}>Copiloto de Infectología · en vivo</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {huesped && huesped !== '—' && <Pill label={huesped} color="#0ea5e9" />}
+          {huesped && huesped !== '—' && <Pill label={huesped} color="#0EA5E9" />}
           {isEstado && <Pill label={'IS: ' + isEstado} color="var(--purple)" />}
           {diasTx != null && diasTx >= 0 && <Pill label={'Día +' + diasTx} color="var(--teal)" />}
           {farmSel.length > 0 && <Pill label={'Carga IS ' + cargaIS} color={CARGA_COLOR[cargaIS]} />}
@@ -397,7 +397,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
                     <div className="flex flex-wrap gap-1.5">
                       {Object.entries(grp.items).map(([ck, label]) => {
                         const on = v['hc_cb_' + gk + '_' + ck] === '1'
-                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0d9488', background: 'rgba(13,148,136,.12)', color: 'var(--teal)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0D9488', background: 'rgba(13,148,136,.12)', color: 'var(--teal)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
                       })}
                     </div>
                   </Grupo>
@@ -414,16 +414,16 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
             {/* Estudios (inicial) — colapsable por categoría */}
             {modo === 'inicial' && (
               <Card padding={14}>
-                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: 'var(--blue)' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: '#3b82f626', color: 'var(--blue)' }}>{estudiosSolicitados.length}</span>}</div>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: 'var(--blue)' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: '#3B82F626', color: 'var(--blue)' }}>{estudiosSolicitados.length}</span>}</div>
                 <div className="flex flex-col gap-2">
                   {TX_EST_CATS.filter((c) => c.g(flags)).map((c, ci) => {
                     const sel = Object.keys(c.items).filter((k) => v['hc_est_' + k] === '1').length
                     return (
-                      <Grupo key={c.cat} titulo={c.cat} count={sel} accent="#3b82f6" defaultOpen={false}>
+                      <Grupo key={c.cat} titulo={c.cat} count={sel} accent="#3B82F6" defaultOpen={false}>
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(c.items).map(([k, label]) => {
                             const on = v['hc_est_' + k] === '1'
-                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3b82f6', background: 'rgba(59,130,246,.12)', color: 'var(--blue)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,.12)', color: 'var(--blue)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
                           })}
                         </div>
                       </Grupo>
@@ -505,7 +505,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
         {/* Borrador IA */}
         {iaTexto && (
           <Card padding={14}>
-            <div className="text-xs font-semibold mb-1" style={{ color: 'var(--purple,#7c3aed)' }}>Borrador IA — valida y edita antes de usar</div>
+            <div className="text-xs font-semibold mb-1" style={{ color: 'var(--purple,#7C3AED)' }}>Borrador IA — valida y edita antes de usar</div>
             <textarea className={inputCls} rows={12} value={iaTexto} onChange={(e) => setIaTexto(e.target.value)} />
             <div className="flex gap-2 mt-2">
               <Button variant="secondary" size="sm" icon={<Download size={15} />} onClick={() => descargarWord(iaTexto)}>Descargar Word</Button>

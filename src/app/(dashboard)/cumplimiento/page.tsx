@@ -644,7 +644,7 @@ function Resumen({ ok, titulo, descripcion, accion }: { ok: boolean; titulo: str
       border: `1px solid ${ok ? 'rgba(16,185,129,0.25)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}`,
       borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 12,
     }}>
-      {ok ? <Check size={18} color="#10b981" style={{ marginTop: 2 }} /> : <AlertTriangle size={18} color="var(--amber)" style={{ marginTop: 2 }} />}
+      {ok ? <Check size={18} color="#10B981" style={{ marginTop: 2 }} /> : <AlertTriangle size={18} color="var(--amber)" style={{ marginTop: 2 }} />}
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 13.5 }}>{titulo}</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3, lineHeight: 1.5 }}>{descripcion}</div>
@@ -804,7 +804,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
               <span>
                 Recibida {new Date(r.fechaSolicitud).toLocaleDateString('es-MX')}
                 {pendiente && diasRestantes !== null && (
-                  <span style={{ marginLeft: 8, color: diasRestantes <= 5 ? '#f87171' : 'var(--text3)' }}>
+                  <span style={{ marginLeft: 8, color: diasRestantes <= 5 ? '#F87171' : 'var(--text3)' }}>
                     <Clock size={11} style={{ verticalAlign: 'middle' }} /> {diasRestantes > 0 ? `Faltan ${diasRestantes} días` : `Vencida hace ${Math.abs(diasRestantes)} días`}
                   </span>
                 )}
@@ -850,7 +850,7 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
               )}
             </div>
             {r.resolucion && (
-              <div style={{ marginTop: 8, padding: 8, background: 'rgba(16,185,129,0.06)', borderLeft: '2px solid #10b981', fontSize: 11.5, color: 'var(--text2)' }}>
+              <div style={{ marginTop: 8, padding: 8, background: 'rgba(16,185,129,0.06)', borderLeft: '2px solid #10B981', fontSize: 11.5, color: 'var(--text2)' }}>
                 <strong>Resolución:</strong> {r.resolucion}
               </div>
             )}
@@ -865,8 +865,8 @@ function EstadoBadge({ estado }: { estado: ArcoEstado }) {
   const map: Record<ArcoEstado, { label: string; color: string; bg: string }> = {
     recibida: { label: 'RECIBIDA', color: 'var(--blue)', bg: 'rgba(59,130,246,0.15)' },
     en_proceso: { label: 'EN PROCESO', color: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) 15%, transparent)' },
-    resuelta: { label: 'RESUELTA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-    rechazada: { label: 'RECHAZADA', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+    resuelta: { label: 'RESUELTA', color: '#10B981', bg: 'rgba(16,185,129,0.15)' },
+    rechazada: { label: 'RECHAZADA', color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)' },
   }
   const m = map[estado]
   return (

@@ -73,7 +73,16 @@ por el paciente.
 
 ## P0 abiertos en esta superficie
 
-- `PATIENT-TELE-002` — el enlace por WhatsApp sigue sin token.
+**Ninguno.** `PATIENT-TELE-002` quedó cerrado el 9-ago-2026 (**REG-288**): los
+tres llamadores de servidor —el cron de recordatorios y los dos mensajes de cita
+agendada del bot— acuñan el token en `lib/telesalud/token-de-sala.ts`, y la vida
+del enlace se **deriva de la hora de la cita** en vez de un número redondo (un
+token de «1 día» caducaba antes de la consulta que el recordatorio de 24 h
+anuncia).
+
+Quedaron declarados dos residuos, no escondidos: `TELE-ALCANCE-001` (P1 — el
+token es de alcance `agenda`, el mismo que el enlace del portal) y
+`TELE-REVOCA-001` (P2 — `/api/telesalud/sala` no comprueba `tokenVigente`).
 
 ## P1 abiertos
 

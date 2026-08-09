@@ -68,7 +68,7 @@ export default function ResenaPage() {
               onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
               onClick={() => setRating(n)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-              <Star size={36} fill={(hover || rating) >= n ? '#fbbf24' : 'none'} color={(hover || rating) >= n ? '#fbbf24' : 'var(--text3)'} />
+              <Star size={36} fill={(hover || rating) >= n ? '#FBBF24' : 'none'} color={(hover || rating) >= n ? '#FBBF24' : 'var(--text3)'} />
             </button>
           ))}
         </div>
@@ -84,7 +84,7 @@ export default function ResenaPage() {
         <button
           onClick={enviar}
           disabled={!rating || enviando}
-          style={{ marginTop: 14, width: '100%', background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 12, padding: '12px 18px', fontSize: 15, fontWeight: 700, cursor: rating && !enviando ? 'pointer' : 'default', opacity: rating && !enviando ? 1 : 0.5 }}
+          style={{ marginTop: 14, width: '100%', background: 'var(--teal)', color: '#040B12', border: 'none', borderRadius: 12, padding: '12px 18px', fontSize: 15, fontWeight: 700, cursor: rating && !enviando ? 'pointer' : 'default', opacity: rating && !enviando ? 1 : 0.5 }}
         >
           {enviando ? 'Enviando…' : 'Enviar reseña'}
         </button>

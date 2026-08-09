@@ -146,7 +146,7 @@ function TrialBanner() {
               cuanto actives tu plan: <strong>no se pierde nada</strong>.
             </div>
             <Link href="/configuracion?tab=suscripcion" style={{
-              display: 'inline-block', marginTop: 8, background: '#f59e0b', color: '#000',
+              display: 'inline-block', marginTop: 8, background: '#F59E0B', color: '#000',
               fontSize: 12, fontWeight: 700, padding: '6px 13px', borderRadius: 7, textDecoration: 'none',
             }}>
               Activar mi plan
@@ -163,8 +163,8 @@ function TrialBanner() {
       padding: '8px 20px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap',
     }}>
-      <AlertTriangle size={14} color={daysLeft <= 3 ? '#f87171' : '#f59e0b'} />
-      <span style={{ fontSize: 13, color: daysLeft <= 3 ? '#f87171' : '#f59e0b' }}>
+      <AlertTriangle size={14} color={daysLeft <= 3 ? '#F87171' : '#F59E0B'} />
+      <span style={{ fontSize: 13, color: daysLeft <= 3 ? '#F87171' : '#F59E0B' }}>
         {daysLeft > 0
           ? `Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}.`
           : 'Tu prueba gratuita ha terminado.'
@@ -172,7 +172,7 @@ function TrialBanner() {
       </span>
       <Link href="/configuracion?tab=suscripcion" style={{
         fontSize: 12, fontWeight: 700, color: '#000',
-        background: daysLeft <= 3 ? '#f87171' : '#f59e0b',
+        background: daysLeft <= 3 ? '#F87171' : '#F59E0B',
         padding: '3px 10px', borderRadius: 6, textDecoration: 'none',
       }}>
         Activar plan →
@@ -572,7 +572,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => window.location.reload()} className="lift" style={{
-              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
+              background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10,
               padding: '11px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}>
               Reintentar

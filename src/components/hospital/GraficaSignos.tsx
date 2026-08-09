@@ -5,7 +5,7 @@
 export interface PuntoSigno { fecha: string; valor: number }
 
 export function GraficaSignos({
-  titulo, unidad, puntos, normalMin, normalMax, color = '#3d5afe',
+  titulo, unidad, puntos, normalMin, normalMax, color = '#3D5AFE',
 }: {
   titulo: string
   unidad: string
@@ -36,7 +36,7 @@ export function GraficaSignos({
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
         {/* banda normal */}
         {normalMin != null && normalMax != null && (
-          <rect x={padL} y={y(normalMax)} width={W - padL - padR} height={Math.max(0, y(normalMin) - y(normalMax))} fill="#0d948818" />
+          <rect x={padL} y={y(normalMax)} width={W - padL - padR} height={Math.max(0, y(normalMin) - y(normalMax))} fill="#0D948818" />
         )}
         {/* ejes min/max */}
         <text x={2} y={y(hi) + 4} fontSize="9" fill="var(--text3)">{hi}</text>
@@ -47,7 +47,7 @@ export function GraficaSignos({
             referencia visual, NO los cortes de NEWS2 (decisión del Dr, L6). El
             score/color de NEWS2 se muestra aparte, calculado por news2.ts. */}
         {puntos.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(p.valor)} r={2.6} fill={fueraDeRango(p.valor) ? '#d97706' : color} />
+          <circle key={i} cx={x(i)} cy={y(p.valor)} r={2.6} fill={fueraDeRango(p.valor) ? '#D97706' : color} />
         ))}
       </svg>
     </div>

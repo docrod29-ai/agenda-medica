@@ -1,75 +1,74 @@
 # Estado del sistema de diseño — V9
 
 > Se escribe **a mano**, tras cada iteración. Las cifras derivables viven en
-> `MASTER_STATE.json` y en `docs/design/SCREEN_INVENTORY.md` (generado).
+> `MASTER_STATE.json`, en `docs/design/SCREEN_INVENTORY.md` (generado) y en
+> `docs/design/trinquete-de-diseno.json` (medido).
 
-**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
-**Siguiente**: `DESIGN-SYSTEM-001`.
+**Iteración en curso**: `DESIGN-SYSTEM-001` — **abierta el 9-ago-2026, no
+cerrada**. Hecho: tokens, escalas y compuerta. Falta: accesibilidad, regresión
+visual y adopción de primitivos.
+**Anterior**: `PATIENT-UX-TRUTH-001` cerrada el 8-ago-2026.
 
 ---
 
-## Lo que se sabe hoy, y no se sabía ayer
+## Lo que se sabe, y sigue siendo la frase que importa
 
 **La premisa de la directiva no se cumple aquí.** No hay «cara de producto
 generado por IA»: cero degradados, cero `from-purple`, una `rounded-2xl`, una
 `shadow-2xl`, un `backdrop-blur`. Hay una identidad declarada, oscura por
-defecto, con los cocientes de contraste WCAG calculados a mano y escritos en el
-propio CSS.
+defecto, con los cocientes de contraste WCAG calculados a mano.
 
-**El defecto real es otro: el sistema existe y la aplicación no le obedece.**
+**El defecto real es el simétrico: el sistema existe y la aplicación no le
+obedece.** Y la causa era mecánica, no cultural.
 
-| Medida | Valor |
-|---|---|
-| `style={{` | **6 065** en **177 de 200** archivos (88,5 %) |
-| `className` | 816 |
-| Hexadecimales a mano | **1 205** (151 distintos) |
-| `fontSize` en línea | ~3 000, ~**60 valores** — la escala declarada tiene 6 |
-| Radios en línea | ~19 valores — el sistema declara 3 |
-| Adopción de `components/ui/` | **48 de 200** archivos (~24 %) |
-| Tokens que Tailwind ve | **4** (`globals.css:126-131`) |
+## Lo que hizo esta iteración
 
-## La causa raíz, y por dónde se empieza
+| | 8-ago | 9-ago |
+|---|---|---|
+| Tokens que Tailwind ve | **4** | **41** |
+| Escala de radio | 2 (`--r-pill`, `--r-circulo`) | **8** |
+| Escala de espacio | **ninguna** | **10** peldaños |
+| Peldaños tipográficos | 6 | **8** (`.t-body-sm` 13 · `.t-micro` 11) |
+| El mismo color en dos mayúsculas | 7 valores · 175 sitios | **0** |
+| Hexadecimales distintos | 146 | **139** |
+| Compuerta de diseño | **ninguna** | trinquete de 6 cifras, sólo baja |
 
-`@theme inline` expone a Tailwind cuatro valores. Todo lo demás vive en
-variables CSS que Tailwind no ve, así que **no hay utilidades que usar** y el
-código no tiene alternativa al estilo en línea. No es dejadez: es mecánica.
+**La causa raíz, con nombre**: `@theme inline` exponía cuatro tokens, así que no
+había utilidades que usar y el código **no tenía alternativa** al estilo en
+línea. Ensancharla es lo único de esta unidad que no cambia un píxel.
 
-`DESIGN-SYSTEM-001` empieza ahí. **No por colores** — lo prohíbe §13 de la
-directiva y además el color no es el problema.
+**Las escalas se midieron, no se inventaron.** Radio 4·6·8·10·12·16 cubre 804 de
+1 092. Espacio base 2 hasta 12 y base 4 desde ahí, que es lo que el producto ya
+habla — se rechazó la rejilla de 4 porque el 6 y el 10 son 534 usos y
+redondearlos mueve medio producto sin que nadie lo mire.
 
-## La prueba de que el enfoque funciona
+Detalle y razones: `docs/design/NEXUS_DESIGN_SYSTEM.md`.
 
-`--r-pill`. La píldora estaba escrita de cinco formas (`100`, `999`, `9999`,
-`99`, `50`). Se creó **un** token con su razón escrita, y hoy tiene **131
-adopciones**. Un token bien puesto sí se adopta aquí. Falta repetirlo para
-espacio, radio, tipografía y color, **cada uno con su guardián**.
+## La deuda NO ha bajado, y eso es a propósito
 
-## Reparado en esta iteración
+1 161 colores a mano, 2 888 tamaños y 3 162 espacios siguen ahí. Lo único que
+bajó es la ortografía. Lo que cambió es que **existe la alternativa** y la
+puerta quedó cerrada por detrás: una pantalla nueva con estilo en línea sube una
+de las seis cifras y falla la compuerta.
 
-**REG-266 · `@keyframes spin`** no existía en ningún sitio global, y lo
-referencian 90 sitios incluidos `ui/Spinner` y `ui/Button loading`. Lo definían
-31 pantallas en `<style>` locales, así que el giro funcionaba «según en qué
-pantalla estuvieras». Reparado y sellado con
-`toda-animacion-tiene-su-fotograma.test.ts`.
+Colapsar los medios píxeles (865 sitios) o migrar los 127 usos de `#3D5AFE` a
+`var(--nexus-solido)` cambia píxeles en el tema claro, y eso **no se aprueba
+leyendo el código**. Es `VISUAL-EXCELLENCE-001`.
 
-## Compuertas nuevas: ninguna todavía
+## Lo que falta para cerrar `DESIGN-SYSTEM-001`
 
-Accesibilidad, regresión visual, móvil y flujo en navegador **siguen sin
-definirse**. Es lo que `DESIGN-SYSTEM-001` tiene que entregar. Hoy hay **1**
-prueba de accesibilidad entre 540, y es una expresión regular sobre `layout.tsx`.
-
-## Orden para `DESIGN-SYSTEM-001`
-
-1. Ensanchar `@theme inline`.
-2. Tokens de espacio, radio y sombra.
-3. Un guardián de trinquete por token. Empezar por `#3d5afe`/`#3D5AFE` (125 usos
-   en dos mayúsculas): es puro y no cambia un píxel.
-4. `axe` sobre las 9 pantallas del paciente. Objetivo WCAG 2.2 AA.
-5. Los literales *slate* que no siguen al tema, en 10 archivos.
-6. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
+1. **`A11Y-GATE-001`** — hoy hay **1** prueba de accesibilidad entre 566, y es
+   una expresión regular sobre `layout.tsx`. Objetivo WCAG 2.2 AA. Necesita
+   `axe` sobre el producto corriendo, y este contenedor no tiene credenciales de
+   Firebase.
+2. **Regresión visual** — no existe línea base.
+3. **Adopción de primitivos** (`components/ui/`, 24 %) — el trinquete no la
+   mide: se puede escribir una pantalla entera con tokens y sin un `<Button>`.
+4. **`DESIGN-TABLAS-001`** (P2) — nueve tablas con `minWidth` 520-720 y tres sin
+   envoltorio; `.table-wrap.rwd` ya existe.
 
 ## Lo que este estado NO afirma
 
-Nadie ha abierto una pantalla. Todo son recuentos sobre el código. **Ninguna
-pantalla está aprobada**, y la directiva V9 §4 dice que no se aprueba interfaz
-leyendo código.
+**Nadie ha abierto una pantalla.** Todo son recuentos sobre el código. Ninguna
+pantalla está aprobada, y la directiva V9 §4 dice que no se aprueba interfaz
+leyendo código. Móvil, teclado, consola y red: sin ejecutar.

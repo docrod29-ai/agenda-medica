@@ -292,7 +292,7 @@ export default function NotaImprimiblePage() {
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
-          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
             {descargando
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
@@ -316,7 +316,7 @@ export default function NotaImprimiblePage() {
               <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(20,184,166,0.12)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 <Pill size={16} /> Receta
               </button>
-              <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 <ClipboardList size={16} /> Orden
               </button>
               <button onClick={() => setModalAdenda(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }} title="Corregir o aclarar sin alterar la nota firmada">
@@ -338,7 +338,7 @@ export default function NotaImprimiblePage() {
           <>
         {/* Encabezado de texto — SOLO si NO hay hoja membretada (la membretada ya lo trae) */}
         {!membrete && (
-        <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: 12, marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', borderBottom: '2px solid #1A1A1A', paddingBottom: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{medico}</div>
           <div style={{ fontSize: 12 }}>{especialidad}{especialidad && cedula !== '—' ? ' · ' : ''}{cedula !== '—' ? `Cédula Prof. ${cedula}` : ''}</div>
           {establecimiento && <div style={{ fontSize: 12 }}>{establecimiento}</div>}
@@ -383,7 +383,7 @@ export default function NotaImprimiblePage() {
 
         {/* Alergias — destacadas */}
         <div style={{
-          border: '1.5px solid #b91c1c', color: '#b91c1c', borderRadius: 4,
+          border: '1.5px solid #B91C1C', color: '#B91C1C', borderRadius: 4,
           padding: '6px 10px', fontSize: 12.5, fontWeight: 700, marginBottom: 14,
         }}>
           {/* Tres estados, no dos: si el paciente NO se pudo leer, la nota NO puede
@@ -468,7 +468,7 @@ export default function NotaImprimiblePage() {
               }}
             />
           )}
-          <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
+          <div style={{ borderTop: '1px solid #1A1A1A', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
             {especialidad}{especialidad ? <br /> : null}
             {/* Auditoría papelería 2026-07 (P1 NOM): la cédula es dato obligatorio.
@@ -476,7 +476,7 @@ export default function NotaImprimiblePage() {
                 ahora se marca la ausencia en rojo para que no pase inadvertida. */}
             {cedula !== '—'
               ? <>Cédula Profesional {cedula}</>
-              : <span style={{ color: '#b91c1c', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
+              : <span style={{ color: '#B91C1C', fontWeight: 700 }}>[FALTA CÉDULA PROFESIONAL]</span>}
           </div>
           {nota.estado !== 'firmada' && (
             <div className="no-print" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', fontStyle: 'italic' }}>
@@ -490,8 +490,8 @@ export default function NotaImprimiblePage() {
         {integridad === 'alterada' && (
           <div className="no-print" style={{
             marginTop: 16, padding: '8px 12px', borderRadius: 6,
-            background: 'rgba(220,38,38,0.10)', border: '1.5px solid #b91c1c',
-            color: '#b91c1c', fontSize: 12, fontWeight: 700, textAlign: 'center',
+            background: 'rgba(220,38,38,0.10)', border: '1.5px solid #B91C1C',
+            color: '#B91C1C', fontSize: 12, fontWeight: 700, textAlign: 'center',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
             <AlertTriangle size={14} className="ds-icon" style={{ flexShrink: 0 }} />
@@ -559,7 +559,7 @@ export default function NotaImprimiblePage() {
         {/* Adendas: correcciones/aclaraciones posteriores a la firma (NOM-004).
             No alteran la nota original; se muestran e imprimen debajo. */}
         {adendas.length > 0 && (
-          <div style={{ marginTop: 24, paddingTop: 12, borderTop: '2px solid #1a1a1a' }}>
+          <div style={{ marginTop: 24, paddingTop: 12, borderTop: '2px solid #1A1A1A' }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.3 }}>
               Adendas (correcciones posteriores a la firma)
             </div>
@@ -582,7 +582,7 @@ export default function NotaImprimiblePage() {
         if (membrete) {
           // Nota membretada → paginar en hojas carta con el membrete en cada una.
           return (
-            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
+            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1A1A1A', fontFamily: '"Times New Roman", Georgia, serif' }}>
               <HojasNota anchoMm={hojaNota.widthMm} altoMm={hojaNota.heightMm} mMemb={mMemb} membrete={membrete} bloques={bloques}
                 firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined} />
             </div>
@@ -591,7 +591,7 @@ export default function NotaImprimiblePage() {
         // Sin membrete → hoja blanca continua (encabezado de texto incluido en los bloques).
         return (
           <div id="doc" style={{
-            maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
+            maxWidth: 800, margin: '0 auto', background: '#FFF', color: '#1A1A1A', position: 'relative',
             padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
             lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
           }}>
@@ -683,7 +683,7 @@ export default function NotaImprimiblePage() {
               style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
               <button onClick={() => setModalAdenda(false)} disabled={guardandoAdenda} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3} className="lift" style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3 ? 'default' : 'pointer', opacity: (!textoAdenda.trim() || motivoAdenda.trim().length < 3) ? 0.6 : 1 }}>
+              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3} className="lift" style={{ background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3 ? 'default' : 'pointer', opacity: (!textoAdenda.trim() || motivoAdenda.trim().length < 3) ? 0.6 : 1 }}>
                 {guardandoAdenda ? 'Guardando…' : 'Agregar adenda'}
               </button>
             </div>
@@ -806,7 +806,7 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
       {/* Hojas reales */}
       {paginas.map((idxs, p) => (
         <div key={p} className="nota-sheet" style={{
-          width: anchoPx, height: altoPx, position: 'relative', background: '#fff',
+          width: anchoPx, height: altoPx, position: 'relative', background: '#FFF',
           // margin VERTICAL 0: un margen entre hojas empujaba el contenido más allá
           // del borde de página al imprimir → salían HOJAS EN BLANCO extra. La
           // separación en pantalla se da con box-shadow (no ocupa layout, no imprime).

@@ -164,7 +164,7 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
             )}
             <button onClick={avanzar} className="lift" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
+              background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10,
               padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}>
               {ultimo ? 'Empezar' : 'Siguiente'}

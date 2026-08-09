@@ -230,7 +230,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       open
       onClose={onClose}
       title={modoCortesia
-        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="#a855f7" /> No cobrar (cortesía)</span>
+        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="#A855F7" /> No cobrar (cortesía)</span>
         : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
       footer={modoCortesia ? (
         <>
@@ -423,7 +423,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.35)',
-                color: '#a855f7', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
+                color: '#A855F7', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', marginTop: 2,
               }}
             >

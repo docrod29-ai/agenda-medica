@@ -29,7 +29,7 @@ export function AlertasDictado({ alertas }: Props) {
       role="alert"
       style={{
         marginTop: 8,
-        border: '1px solid var(--amber, #b45309)',
+        border: '1px solid var(--amber, #B45309)',
         borderRadius: 8,
         background: 'var(--s2)',
         overflow: 'hidden',
@@ -40,7 +40,7 @@ export function AlertasDictado({ alertas }: Props) {
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px', borderBottom: '1px solid var(--border)',
       }}>
-        <AlertTriangle size={14} style={{ color: 'var(--amber, #b45309)', flexShrink: 0 }} />
+        <AlertTriangle size={14} style={{ color: 'var(--amber, #B45309)', flexShrink: 0 }} />
         <span style={{ fontWeight: 600, color: 'var(--text)' }}>
           {alertas.length === 1
             ? 'Revise este punto antes de firmar'

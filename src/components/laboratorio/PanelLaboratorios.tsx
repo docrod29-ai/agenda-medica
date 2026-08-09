@@ -88,7 +88,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-          <FlaskConical size={18} style={{ color: 'var(--teal, #3d5afe)' }} /> Laboratorios
+          <FlaskConical size={18} style={{ color: 'var(--teal, #3D5AFE)' }} /> Laboratorios
         </div>
         <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) onArchivo(f) }} />

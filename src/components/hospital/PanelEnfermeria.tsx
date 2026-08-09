@@ -32,7 +32,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Balance hídrico */}
       <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Droplets size={15} style={{ color: '#0ea5e9' }} /> Balance hídrico</div>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Droplets size={15} style={{ color: '#0EA5E9' }} /> Balance hídrico</div>
         {puedeEditar && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 10 }}>
             <div><label style={{ fontSize: 11, color: 'var(--text3)' }}>Ingresos (mL)</label><input className={inputCls} type="number" inputMode="decimal" min="0" style={{ width: 110 }} value={ing} onChange={e => setIng(e.target.value)} /></div>
@@ -45,7 +45,7 @@ export function PanelEnfermeria({ clinicId, internamiento, por, puedeEditar, onS
             {[...balances].reverse().slice(0, 6).map((b, i) => { const neto = b.ingresos - b.egresos; return (
               <div key={i} style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', justifyContent: 'space-between' }}>
                 <span>{new Date(b.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                <span>+{b.ingresos} / −{b.egresos} · <strong style={{ color: neto >= 0 ? '#0d9488' : '#dc2626' }}>neto {neto >= 0 ? '+' : ''}{neto} mL</strong></span>
+                <span>+{b.ingresos} / −{b.egresos} · <strong style={{ color: neto >= 0 ? '#0D9488' : '#DC2626' }}>neto {neto >= 0 ? '+' : ''}{neto} mL</strong></span>
               </div>
             )})}
           </div>

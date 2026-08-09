@@ -89,7 +89,7 @@ export default function UnirsePage() {
           {/* Si el problema es que ya pertenece a otra clínica, ofrecer SALIDA clara. */}
           {user && /otra clínica/i.test(error) && (
             <button onClick={() => import('firebase/auth').then(({ getAuth, signOut }) => signOut(getAuth()))}
-              style={{ display: 'block', width: '100%', marginBottom: 12, padding: '10px', borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#040b12', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              style={{ display: 'block', width: '100%', marginBottom: 12, padding: '10px', borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#040B12', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               Cerrar sesión para aceptar con otra cuenta
             </button>
           )}
@@ -138,7 +138,7 @@ export default function UnirsePage() {
             href={`/registro?invite=${code}`}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: 'var(--nexus-solido)', color: '#fff', fontWeight: 600,
+              background: 'var(--nexus-solido)', color: '#FFF', fontWeight: 600,
               fontSize: 15, padding: '12px 22px', borderRadius: 12, textDecoration: 'none',
             }}
           >
@@ -180,7 +180,7 @@ export default function UnirsePage() {
           disabled={aceptando}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'var(--nexus-solido)', color: '#fff', fontWeight: 600,
+            background: 'var(--nexus-solido)', color: '#FFF', fontWeight: 600,
             fontSize: 15, padding: '12px 24px', borderRadius: 12, border: 'none',
             cursor: aceptando ? 'default' : 'pointer',
           }}

@@ -3,8 +3,8 @@ import { AppointmentStatus } from '@/types'
 /**
  * ESTADOS DE CITA — con color por TEMA, no fijo.
  *
- * Antes cada estado llevaba un color claro cableado (verde/azul pastel: #34d399,
- * #93c5fd, #4ade80…) pensado para texto claro sobre fondo oscuro. En MODO CLARO
+ * Antes cada estado llevaba un color claro cableado (verde/azul pastel: #34D399,
+ * #93C5FD, #4ADE80…) pensado para texto claro sobre fondo oscuro. En MODO CLARO
  * esos pasteles caían sobre un fondo translúcido casi blanco y desaparecían — el
  * médico no distinguía "Atendida" de "Pagada". Los badges no se adaptaban al tema.
  *

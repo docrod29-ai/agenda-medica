@@ -419,7 +419,7 @@ export default function GeneradorOrdenPage() {
     const base = config?.recetaConfig ?? {
       paperSize: 'media-carta' as const,
       estilo: 'minimalista' as const,
-      colorAccento: '#14b8a6',
+      colorAccento: '#14B8A6',
       mostrarQR: true,
       mostrarAlergias: false,
       mostrarDiagnostico: true,
@@ -536,7 +536,7 @@ export default function GeneradorOrdenPage() {
   if (!nota) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <AlertCircle size={28} color="#f59e0b" style={{ marginBottom: 12 }} />
+        <AlertCircle size={28} color="#F59E0B" style={{ marginBottom: 12 }} />
         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Nota no encontrada</h2>
         <button onClick={() => router.push('/pacientes')} className="btn btn-primary" style={{ marginTop: 16 }}>
           Volver a expedientes

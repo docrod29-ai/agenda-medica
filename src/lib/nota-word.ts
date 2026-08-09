@@ -44,9 +44,9 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
   // (evita duplicar). SIN membrete → encabezado de texto limpio de siempre.
   const fondo = fondoWord(membreteDataUri || '')
   const conMembrete = !!fondo.background
-  const encabezado = conMembrete ? '' : `<div style="text-align:center;border-bottom:1.5pt solid #1a1a1a;padding-bottom:6pt;margin-bottom:10pt;">
+  const encabezado = conMembrete ? '' : `<div style="text-align:center;border-bottom:1.5pt solid #1A1A1A;padding-bottom:6pt;margin-bottom:10pt;">
     <div style="font-size:15pt;font-weight:bold;">${esc(medico)}</div>
-    <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#b91c1c;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
+    <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#B91C1C;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
     ${establecimiento ? `<div style="font-size:10pt;">${esc(establecimiento)}</div>` : ''}
     ${config?.direccion ? `<div style="font-size:9.5pt;color:#555;">${esc(config.direccion)}</div>` : ''}
   </div>`
@@ -74,15 +74,15 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
     : ''
 
   const firma = `<div style="margin-top:34pt;text-align:center;">
-    <div style="border-top:1pt solid #1a1a1a;width:240pt;margin:0 auto;padding-top:3pt;font-size:10.5pt;">
-      <b>${esc(medico)}</b><br/>${esc(especialidad)}<br/>${cedula ? 'Cédula Profesional ' + esc(cedula) : '<span style="color:#b91c1c;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}
+    <div style="border-top:1pt solid #1A1A1A;width:240pt;margin:0 auto;padding-top:3pt;font-size:10.5pt;">
+      <b>${esc(medico)}</b><br/>${esc(especialidad)}<br/>${cedula ? 'Cédula Profesional ' + esc(cedula) : '<span style="color:#B91C1C;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}
     </div>
   </div>`
 
   // Auditoría flujo 2026-07 (P1): NO inventar "Negadas" — el llamador ya manda el
   // texto correcto de 3 estados (valor real / "Negadas" si se interrogó / "NO
   // DISPONIBLE" si no se pudo leer al paciente). Aquí solo se muestra tal cual.
-  const alergias = `<div style="border:1pt solid #b91c1c;color:#b91c1c;font-weight:bold;font-size:10.5pt;padding:4pt 8pt;margin-bottom:8pt;">ALERGIAS: ${esc(extra?.alergias || 'No disponible')}</div>`
+  const alergias = `<div style="border:1pt solid #B91C1C;color:#B91C1C;font-weight:bold;font-size:10.5pt;padding:4pt 8pt;margin-bottom:8pt;">ALERGIAS: ${esc(extra?.alergias || 'No disponible')}</div>`
 
   // Con membrete: márgenes AMPLIOS = zona segura del membrete (arriba deja pasar el
   // encabezado impreso, abajo el pie). Sin membrete: márgenes normales de carta.
@@ -90,7 +90,7 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
   return `<!DOCTYPE html><html ${WORD_HTML_NS}><head><meta charset="utf-8">
 ${fondo.head}
 <style>@page WordSection1 { size:216mm 279mm; margin:${pageMargin}; } div.WordSection1 { page:WordSection1; }
-body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1a1a; }</style></head>
+body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1A1A1A; }</style></head>
 <body>${fondo.background}<div class="WordSection1">
   ${encabezado}
   <div style="text-align:center;font-size:13pt;font-weight:bold;text-transform:uppercase;margin-bottom:8pt;">${esc(TIPO_NOTA_LABEL[nota.tipo])}</div>

@@ -110,7 +110,7 @@ function QrLocal({ contenido, tamMm }: { contenido: string; tamMm: number }) {
       // Fondo BLANCO SÓLIDO (antes 0.9: la marca de agua del membrete se colaba y el
       // escáner NO lo detectaba por falta de contraste). imageRendering:pixelated
       // conserva los bordes de los módulos al reescalar (crítico para que se lea).
-      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: '#fff', padding: 3, borderRadius: 2, imageRendering: 'pixelated' }}
+      style={{ width: `${tamMm}mm`, height: `${tamMm}mm`, background: '#FFF', padding: 3, borderRadius: 2, imageRendering: 'pixelated' }}
     />
   )
 }
@@ -424,7 +424,7 @@ function HostCarta({ paper, children }: { paper: { widthMm: number; heightMm: nu
       style={{
         width: `${CARTA.widthMm}mm`,
         height: `${CARTA.heightMm}mm`,
-        background: '#fff',
+        background: '#FFF',
         margin: '0 auto',
         boxSizing: 'border-box',
         display: 'flex',
@@ -478,7 +478,7 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
         <div key={i} style={{ display: 'flex', gap: 9, breakInside: 'avoid', alignItems: 'flex-start' }}>
           <div style={{
             flexShrink: 0, width: 18, height: 18, borderRadius: '50%',
-            background: accent, color: '#fff', fontSize: 10.5, fontWeight: 700,
+            background: accent, color: '#FFF', fontSize: 10.5, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
           }}>{startIndex + i}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -556,7 +556,7 @@ function IndicadorHoja({ pagina }: { pagina: PaginaReceta }) {
   return (
     <div style={{
       position: 'absolute', bottom: '2mm', right: '4mm',
-      fontSize: 8, color: '#6b7280', fontVariantNumeric: 'tabular-nums',
+      fontSize: 8, color: '#6B7280', fontVariantNumeric: 'tabular-nums',
     }}>
       Hoja {pagina.numero} de {pagina.total}
     </div>
@@ -628,10 +628,10 @@ function HojaCustom({
         width: `${paper.widthMm}mm`,
         height: `${paper.heightMm}mm`,
         position: 'relative',
-        background: '#fff',
+        background: '#FFF',
         margin: '0 auto',
         boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
-        color: '#1a1a1a',
+        color: '#1A1A1A',
         fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
         overflow: 'hidden',
       }}
@@ -665,7 +665,7 @@ function HojaCustom({
               <div key={k} style={{
                 position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`,
                 transform: 'translateY(-50%)', fontSize: `${fontSize}px`,
-                color: '#1a1a1a', whiteSpace: 'nowrap',
+                color: '#1A1A1A', whiteSpace: 'nowrap',
               }}>{valor}</div>
             )
           })}
@@ -717,7 +717,7 @@ function HojaCustom({
             */}
             {recetaConfig.mostrarAlergias !== false && alergiasParaImpreso(data.paciente) && (
               <div style={{
-                border: '1px solid #b91c1c', color: '#b91c1c',
+                border: '1px solid #B91C1C', color: '#B91C1C',
                 padding: '2px 6px', borderRadius: 3,
                 fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
               }}>
@@ -745,7 +745,7 @@ function HojaCustom({
             indicaciones={pagina.indicaciones}
             notaParaPaciente={pagina.notaParaPaciente}
             fontSize={fontSize}
-            accent="#f59e0b"
+            accent="#F59E0B"
           />
         )}
       </div>
@@ -805,7 +805,7 @@ function HojaGenerada({
   recetaConfig: RecetaConfig
   paper: { widthMm: number; heightMm: number }
 }) {
-  const accent = recetaConfig.colorAccento ?? '#14b8a6'
+  const accent = recetaConfig.colorAccento ?? '#14B8A6'
   const estilo = recetaConfig.estilo ?? 'minimalista'
   const medico = config?.nombreMedico ?? '—'
   const cedula = config?.cedulaProfesional ?? '—'
@@ -830,8 +830,8 @@ function HojaGenerada({
       style={{
         width: `${paper.widthMm}mm`,
         height: `${paper.heightMm}mm`,
-        background: '#ffffff',
-        color: '#1a1a1a',
+        background: '#FFFFFF',
+        color: '#1A1A1A',
         fontFamily,
         fontSize: 11,
         lineHeight: 1.35,
@@ -865,8 +865,8 @@ function HojaGenerada({
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '4px 0',
-            borderTop: estilo === 'clasico' ? '1.5px solid #1a1a1a' : `1.5px solid ${accent}`,
-            borderBottom: estilo === 'clasico' ? '1.5px solid #1a1a1a' : `1.5px solid ${accent}`,
+            borderTop: estilo === 'clasico' ? '1.5px solid #1A1A1A' : `1.5px solid ${accent}`,
+            borderBottom: estilo === 'clasico' ? '1.5px solid #1A1A1A' : `1.5px solid ${accent}`,
             margin: '6px 0',
             fontSize: 11,
             fontWeight: 700,
@@ -881,7 +881,7 @@ function HojaGenerada({
 
           {/* Datos del paciente — bloque con fondo sutil y etiquetas */}
           <div style={{
-            background: '#f7f8fa', borderRadius: 6, padding: '7px 11px', marginBottom: 7,
+            background: '#F7F8FA', borderRadius: 6, padding: '7px 11px', marginBottom: 7,
             display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
           }}>
             <div style={{ fontSize: 11.5 }}>
@@ -899,8 +899,8 @@ function HojaGenerada({
           {/* Alergias destacadas */}
           {recetaConfig.mostrarAlergias !== false && (
             <div style={{
-              border: '1.2px solid #b91c1c',
-              color: '#b91c1c',
+              border: '1.2px solid #B91C1C',
+              color: '#B91C1C',
               borderRadius: 4,
               padding: '3px 8px',
               fontSize: 10,
@@ -962,7 +962,7 @@ function HojaGenerada({
               />
             )}
             <div style={{
-              borderTop: '1px solid #1a1a1a',
+              borderTop: '1px solid #1A1A1A',
               width: 200,
               margin: '0 auto',
               paddingTop: 3,
@@ -975,7 +975,7 @@ function HojaGenerada({
                   de maquetación y no la ausencia de un dato obligatorio. */}
               {cedula !== '—'
                 ? <>Cédula Prof. {cedula}</>
-                : <span style={{ color: '#b91c1c' }}>[FALTA CÉDULA PROFESIONAL]</span>}
+                : <span style={{ color: '#B91C1C' }}>[FALTA CÉDULA PROFESIONAL]</span>}
               {recetaConfig.registroDGP && <><br />Reg. DGP/SSA {recetaConfig.registroDGP}</>}
             </div>
           </div>
@@ -995,7 +995,7 @@ function HojaGenerada({
                 color: '#666',
                 textAlign: 'center',
                 paddingTop: 4,
-                borderTop: '1px dashed #ccc',
+                borderTop: '1px dashed #CCC',
               }}>
                 {recetaConfig.avisoLegal}
                 {recetaConfig.vigenciaDias && (
@@ -1039,7 +1039,7 @@ function EncabezadoAuto({
     return (
       <div style={{
         background: accent,
-        color: '#fff',
+        color: '#FFF',
         padding: '6mm 8mm',
         margin: '-10mm -12mm 6mm -12mm',
         borderRadius: 0,
@@ -1061,7 +1061,7 @@ function EncabezadoAuto({
   // Clásico: centrado serif, doble filete (estilo receta tradicional)
   if (estilo === 'clasico') {
     return (
-      <div style={{ textAlign: 'center', paddingBottom: 7, borderBottom: '3px double #1a1a1a', marginBottom: 7 }}>
+      <div style={{ textAlign: 'center', paddingBottom: 7, borderBottom: '3px double #1A1A1A', marginBottom: 7 }}>
         <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 0.3 }}>{medico}</div>
         <div style={{ fontSize: 10, marginTop: 2, color: '#333' }}>
           {especialidad}{especialidad && cedula !== '—' ? ' · ' : ''}{cedula !== '—' ? `Cédula Prof. ${cedula}` : ''}

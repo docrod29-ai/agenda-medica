@@ -312,7 +312,7 @@ export default function FinanzasPage() {
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
                 {resumen.totalCobros} cobro{resumen.totalCobros !== 1 ? 's' : ''}
                 {resumenAnterior && resumenAnterior.totalIngresos > 0 && (
-                  <span style={{ marginLeft: 8, fontWeight: 700, color: cambio > 0 ? '#10b981' : cambio < 0 ? '#ef4444' : 'var(--text3)' }}>
+                  <span style={{ marginLeft: 8, fontWeight: 700, color: cambio > 0 ? '#10B981' : cambio < 0 ? '#EF4444' : 'var(--text3)' }}>
                     {cambio > 0 ? '↑' : cambio < 0 ? '↓' : ''} {Math.abs(cambio).toFixed(0)}% vs anterior
                   </span>
                 )}
@@ -324,7 +324,7 @@ export default function FinanzasPage() {
               monto={efectivo.monto}
               n={efectivo.n}
               total={resumen.totalIngresos}
-              tint="#10b981"
+              tint="#10B981"
               tintBg="rgba(16,185,129,0.10)"
             />
             <MetodoCard
@@ -480,7 +480,7 @@ export default function FinanzasPage() {
                         {c.medicoNombre && <> · {c.medicoNombre}</>}
                       </div>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? '#10b981' : '#ef4444', textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? '#10B981' : '#EF4444', textAlign: 'right' }}>
                       {fmtMXN(c.monto)}
                     </div>
                     <button
@@ -578,7 +578,7 @@ export default function FinanzasPage() {
                     toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
                   } finally { setAnulaGuardando(false) }
                 }}
-                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+                style={{ background: '#EF4444', color: '#FFF', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
               >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
             </div>
           </div>
@@ -625,7 +625,7 @@ function Kpi({ titulo, valor, icon, cambio, color }: { titulo: string; valor: st
       {cambio !== null && cambio !== undefined && (
         <div style={{
           fontSize: 11, fontWeight: 600, marginTop: 4,
-          color: cambio > 0 ? '#10b981' : cambio < 0 ? '#ef4444' : 'var(--text3)',
+          color: cambio > 0 ? '#10B981' : cambio < 0 ? '#EF4444' : 'var(--text3)',
         }}>
           {cambio > 0 ? '↑' : cambio < 0 ? '↓' : ''} {Math.abs(cambio).toFixed(1)}% vs periodo anterior
         </div>

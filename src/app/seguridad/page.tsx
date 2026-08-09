@@ -32,7 +32,7 @@ function Badge({ estado }: { estado: SecurityState }) {
     <span style={{
       fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)', whiteSpace: 'nowrap',
       background: activo ? 'color-mix(in srgb, var(--green) 14%, transparent)' : 'color-mix(in srgb, var(--amber) 14%, transparent)',
-      color: activo ? '#16a34a' : '#d97706',
+      color: activo ? '#16A34A' : '#D97706',
       border: `1px solid ${activo ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
     }}>
       {ESTADO_LABEL[estado]}

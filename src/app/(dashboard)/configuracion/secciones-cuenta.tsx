@@ -42,8 +42,8 @@ interface EstadoIA {
  */
 function etiquetaLlave(fuente: string | undefined, hint: string): { texto: string; color: string } {
   switch (fuente) {
-    case 'clinica':  return { texto: `● tu llave ${hint} — en uso`, color: '#10b981' }
-    case 'fundador': return { texto: '● llave de la plataforma — sin tope (dueño)', color: '#10b981' }
+    case 'clinica':  return { texto: `● tu llave ${hint} — en uso`, color: '#10B981' }
+    case 'fundador': return { texto: '● llave de la plataforma — sin tope (dueño)', color: '#10B981' }
     case 'prueba':   return { texto: '○ llave de la plataforma — prueba con tope', color: 'var(--text3)' }
     case 'ninguna':  return { texto: '⚠ sin llave: la IA no puede funcionar', color: 'var(--red)' }
     // Servidor viejo o respuesta a medias: NO se inventa un estado. Se dice que
@@ -163,7 +163,7 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text2)' }}>{p.nombre}</span>
                 {(() => {
                   const e = etiquetaLlave(estado?.fuenteEfectiva?.[p.id], st?.hint ?? '')
-                  return <span style={{ fontSize: 11, fontWeight: e.color === '#10b981' ? 700 : 400, color: e.color }}>{e.texto}</span>
+                  return <span style={{ fontSize: 11, fontWeight: e.color === '#10B981' ? 700 : 400, color: e.color }}>{e.texto}</span>
                 })()}
                 <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--nexus)', marginLeft: 'auto' }}>obtener llave ↗</a>
               </div>
@@ -356,7 +356,7 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
       })()}
 
       {firmaDataUrl ? (
-        <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 14, border: '1px solid var(--border)', textAlign: 'center' }}>
+        <div style={{ position: 'relative', background: '#FFF', borderRadius: 8, padding: 14, border: '1px solid var(--border)', textAlign: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={firmaDataUrl}
@@ -367,7 +367,7 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
             onClick={() => onChange(undefined)}
             style={{
               position: 'absolute', top: 8, right: 8,
-              background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none',
+              background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#FFF', border: 'none',
               borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
@@ -406,7 +406,7 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
         </label>
       )}
 
-      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #f59e0b', borderRadius: 3, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, padding: '6px 10px', background: 'rgba(255,200,0,0.05)', borderLeft: '2px solid #F59E0B', borderRadius: 3, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
         <Lightbulb size={12} className="ds-icon" style={{ marginTop: 1, flexShrink: 0 }} />
         <span>Tip: Escanea tu firma en una hoja blanca con tu sello al lado, recórtalo en blanco y súbelo como PNG con fondo transparente. Mide unos 6 × 3 cm en la vida real.</span>
       </div>
@@ -545,10 +545,10 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 14, alignItems: 'start' }}>
           {/* Vista previa con la ZONA de contenido marcada */}
-          <div style={{ position: 'relative', width: 160, aspectRatio: `${CW} / ${CH}`, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ position: 'relative', width: 160, aspectRatio: `${CW} / ${CH}`, background: '#FFF', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={membreteUrl} alt="Hoja membretada" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} />
-            <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed #14b8a6', background: 'rgba(20,184,166,0.10)' }} />
+            <div style={{ position: 'absolute', top: `${m.top / CH * 100}%`, bottom: `${m.bottom / CH * 100}%`, left: `${m.left / CW * 100}%`, right: `${m.right / CW * 100}%`, border: '1.5px dashed #14B8A6', background: 'rgba(20,184,166,0.10)' }} />
           </div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Zona de la nota (mm)</div>
@@ -562,7 +562,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
                 </label>
               ))}
             </div>
-            <button onClick={() => persistir(undefined, m)} style={{ marginTop: 10, background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button onClick={() => persistir(undefined, m)} style={{ marginTop: 10, background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#FFF', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <IconX size={12} /> Quitar hoja membretada
             </button>
           </div>
@@ -620,7 +620,7 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
   }
 
   const ROL_LABEL: Record<string, string> = { admin: 'Admin', medico: 'Médico', secretaria: 'Asistente', enfermeria: 'Enfermería', farmacia: 'Farmacia', laboratorio: 'Laboratorio' }
-  const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: '#3D5AFE', secretaria: '#a78bfa', enfermeria: '#0d9488', farmacia: '#db2777', laboratorio: '#7c3aed' }
+  const ROL_COLOR: Record<string, string> = { admin: '#F59E0B', medico: '#3D5AFE', secretaria: '#A78BFA', enfermeria: '#0D9488', farmacia: '#DB2777', laboratorio: '#7C3AED' }
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -649,7 +649,7 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
               {/* Avatar inicial */}
               <div style={{
                 width: 32, height: 32, borderRadius: '50%',
-                background: ROL_COLOR[m.role] ?? '#9ca3af', color: '#000',
+                background: ROL_COLOR[m.role] ?? '#9CA3AF', color: '#000',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontWeight: 700, fontSize: 12, flexShrink: 0,
               }}>

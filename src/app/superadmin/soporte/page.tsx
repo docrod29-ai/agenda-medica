@@ -50,7 +50,7 @@ export default function SoporteInbox() {
       </Link>
       <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
         <LifeBuoy size={20} style={{ color: 'var(--teal)' }} /> Soporte
-        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{nuevos} nuevo{nuevos === 1 ? '' : 's'}</span>}
+        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#FFF', background: 'var(--red)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{nuevos} nuevo{nuevos === 1 ? '' : 's'}</span>}
       </h1>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 18px' }}>Quejas, fallas, felicitaciones, dudas y sugerencias de tus usuarios.</p>
 
@@ -75,16 +75,16 @@ export default function SoporteInbox() {
           <div key={m.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14, marginBottom: 10, opacity: m.estado === 'resuelto' ? 0.6 : 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
               <span style={{ fontSize: 11.5, fontWeight: 700, color: meta.color, background: `color-mix(in srgb, ${meta.color} 12%, transparent)`, borderRadius: 6, padding: '2px 8px' }}>{meta.emoji} {meta.label}</span>
-              {m.estado === 'nuevo' && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 6, padding: '2px 7px' }}>NUEVO</span>}
+              {m.estado === 'nuevo' && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#FFF', background: 'var(--red)', borderRadius: 6, padding: '2px 7px' }}>NUEVO</span>}
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>{m.nombre || m.email || 'Anónimo'}{m.email && m.nombre ? ` · ${m.email}` : ''}</span>
               <span style={{ fontSize: 11.5, color: 'var(--text3)', marginLeft: 'auto' }}>{fechaTxt(m.fecha)}</span>
             </div>
             <div style={{ fontSize: 13.5, color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.mensaje}</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              {m.estado !== 'resuelto' && <button onClick={() => marcar(m.id, 'resuelto')} style={{ fontSize: 12, fontWeight: 600, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Marcar resuelto</button>}
+              {m.estado !== 'resuelto' && <button onClick={() => marcar(m.id, 'resuelto')} style={{ fontSize: 12, fontWeight: 600, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Marcar resuelto</button>}
               {m.estado === 'nuevo' && <button onClick={() => marcar(m.id, 'visto')} style={{ fontSize: 12, fontWeight: 600, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Marcar visto</button>}
               {m.estado === 'resuelto' && <button onClick={() => marcar(m.id, 'visto')} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reabrir</button>}
-              {m.email && <a href={`mailto:${m.email}`} style={{ fontSize: 12, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', alignSelf: 'center' }}>Responder por correo →</a>}
+              {m.email && <a href={`mailto:${m.email}`} style={{ fontSize: 12, color: 'var(--nexus, #3D5AFE)', textDecoration: 'none', alignSelf: 'center' }}>Responder por correo →</a>}
             </div>
           </div>
         )

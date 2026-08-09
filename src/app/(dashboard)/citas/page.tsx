@@ -338,7 +338,7 @@ export default function CitasPage() {
         <div className="nx-reveal" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <DiaChip color="var(--nexus)" value={daySummary.total} label={daySummary.total === 1 ? 'cita' : 'citas'} />
           <DiaChip color="var(--green)" value={daySummary.conf} label="confirmadas" />
-          <DiaChip color="#fb923c" value={daySummary.pend} label="pendientes" />
+          <DiaChip color="#FB923C" value={daySummary.pend} label="pendientes" />
         </div>
       )}
 
@@ -374,7 +374,7 @@ export default function CitasPage() {
             >
               <DollarSign size={13} className="ds-icon" /> Por cobrar
               <span style={{
-                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
+                background: 'var(--nexus-solido)', color: '#FFF', borderRadius: 'var(--r-pill)',
                 padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
               }}>{daySummary.porCobrar}</span>
             </button>
@@ -712,7 +712,7 @@ function AppointmentRowFull({
             onClick={() => onQuitarCortesia?.(appt)}
             title={`${appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'} · clic para quitar`}
             style={{
-              background: 'rgba(168,85,247,0.12)', color: '#a855f7',
+              background: 'rgba(168,85,247,0.12)', color: '#A855F7',
               border: '1px solid rgba(168,85,247,0.4)', borderRadius: 6,
               padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
@@ -737,7 +737,7 @@ function AppointmentRowFull({
             className="btn btn-sm"
             title="Abrir la consulta de este paciente"
             style={{
-              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 6,
+              background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 6,
               fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
@@ -751,7 +751,7 @@ function AppointmentRowFull({
             onClick={handleRecordar}
             title="Enviar recordatorio por WhatsApp"
             style={{
-              background: 'rgba(37,211,102,0.15)', color: '#1faa52',
+              background: 'rgba(37,211,102,0.15)', color: '#1FAA52',
               border: '1px solid rgba(37,211,102,0.4)', borderRadius: 6,
               padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 4,

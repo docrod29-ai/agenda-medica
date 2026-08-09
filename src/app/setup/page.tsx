@@ -254,7 +254,7 @@ export default function SetupPage() {
             style={{
               width: '100%', padding: '14px 24px', borderRadius: 12,
               background: canContinue ? 'var(--teal)' : 'var(--s3)',
-              color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
+              color: '#FFF', fontSize: 15, fontWeight: 600, border: 'none',
               cursor: canContinue && !saving ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               transition: 'all 0.2s', marginTop: 8,

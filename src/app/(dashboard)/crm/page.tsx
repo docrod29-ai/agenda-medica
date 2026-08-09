@@ -123,8 +123,8 @@ export default function CRMPage() {
           {/* KPIs principales */}
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14, marginBottom: 24 }}>
             <KPI icon={<CalendarCheck2 size={18} />} label="Tasa de confirmación" valor={`${tasaConfirm.toFixed(0)}%`} sub={`${confirmadas} de ${total} citas`} color="var(--green)" />
-            <KPI icon={<UserX size={18} />} label="Tasa de no-show" valor={`${tasaNoShow.toFixed(0)}%`} sub={`${noShows} ausencias`} color={tasaNoShow > 10 ? '#ef4444' : '#94a3b8'} trend={tasaNoShow > 15 ? 'down' : 'neutral'} />
-            <KPI icon={<TrendingDown size={18} />} label="Cancelaciones" valor={`${tasaCancel.toFixed(0)}%`} sub={`${canceladas} canceladas · ${reagendadas} reagendadas`} color="#f97316" />
+            <KPI icon={<UserX size={18} />} label="Tasa de no-show" valor={`${tasaNoShow.toFixed(0)}%`} sub={`${noShows} ausencias`} color={tasaNoShow > 10 ? '#EF4444' : '#94A3B8'} trend={tasaNoShow > 15 ? 'down' : 'neutral'} />
+            <KPI icon={<TrendingDown size={18} />} label="Cancelaciones" valor={`${tasaCancel.toFixed(0)}%`} sub={`${canceladas} canceladas · ${reagendadas} reagendadas`} color="#F97316" />
             <KPI icon={<TrendingUp size={18} />} label="Tasa de atención" valor={`${tasaAtencion.toFixed(0)}%`} sub={`${atendidas} consultas completadas`} color="var(--teal)" />
           </div>
 
@@ -134,7 +134,7 @@ export default function CRMPage() {
               <PipeStep label="Solicitadas"           count={pipeline.solicitada}             color="var(--amber)" />
               <PipeStep label="Pendientes confirmar"  count={pipeline['pendiente-confirmar']} color="var(--amber)" />
               <PipeStep label="Confirmadas"           count={pipeline.confirmada}             color="var(--green)" />
-              <PipeStep label="En sala / consulta"    count={pipeline['en-consulta']}         color="#a855f7" />
+              <PipeStep label="En sala / consulta"    count={pipeline['en-consulta']}         color="#A855F7" />
               <PipeStep label="Finalizadas"           count={pipeline.finalizada}             color="var(--teal)" />
             </div>
           </Section>
@@ -143,7 +143,7 @@ export default function CRMPage() {
           <Section title="Retención de pacientes">
             <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
               <Retencion label="Pacientes activos (≤90d)"      count={pacientesActivos}     color="var(--green)" icon={<Users size={16} />} />
-              <Retencion label="Pacientes inactivos"           count={pacientesInactivos}   color="#94a3b8" icon={<Users size={16} />} />
+              <Retencion label="Pacientes inactivos"           count={pacientesInactivos}   color="#94A3B8" icon={<Users size={16} />} />
               <Retencion label="Seguimientos vencidos"         count={requierenSeguimiento} color="var(--amber)" icon={<ArrowUpRight size={16} />} />
               <Retencion label="Riesgo de no-show (≥2 ausencias)" count={enRiesgoNoShow}    color="var(--red)" icon={<UserX size={16} />} />
             </div>

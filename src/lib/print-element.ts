@@ -121,7 +121,7 @@ export function imprimirElemento(
      * (margin:0) para que el membrete de fondo cubra la hoja completa.
      */
     ? `@page{size:letter;margin:0}
-       html,body{margin:0;padding:0;background:#fff}
+       html,body{margin:0;padding:0;background:#FFF}
        ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important;aspect-ratio:auto!important}
        .membrete-bg{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;z-index:-1!important}
        .print-frame{width:100%;border-collapse:collapse}
@@ -130,7 +130,7 @@ export function imprimirElemento(
        .print-frame .espaciador-bottom{height:${mm.bottom}mm}`
     : opts?.formato === 'carta'
     ? `@page{size:letter;margin:18mm}
-       html,body{margin:0;padding:0;background:#fff}
+       html,body{margin:0;padding:0;background:#FFF}
        ${sel}{max-width:none!important;width:auto!important;margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important}`
     /**
      * Modo "a sangre" (receta / orden médica): la hoja ES el documento.
@@ -149,7 +149,7 @@ export function imprimirElemento(
      * (el membrete es una imagen de fondo: sin esto puede salir en blanco).
      */
     : `@page{size:${tamano};margin:0}
-       html,body{margin:0;padding:0;background:#fff${hoja ? `;width:${hoja.w}mm;min-height:${hoja.h}mm` : ''}}
+       html,body{margin:0;padding:0;background:#FFF${hoja ? `;width:${hoja.w}mm;min-height:${hoja.h}mm` : ''}}
        ${hoja ? `*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}` : ''}
        ${sel}{margin:0 auto!important;box-shadow:none!important;border-radius:0!important}`
 

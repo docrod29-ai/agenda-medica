@@ -30,9 +30,9 @@ export function ProductWindow() {
     >
       {/* Barra de ventana */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--s2)' }}>
-        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#ff5f57' }} />
-        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#febc2e' }} />
-        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#28c840' }} />
+        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#FF5F57' }} />
+        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#FEBC2E' }} />
+        <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#28C840' }} />
         <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'var(--text3)', fontFamily: 'var(--font-mono, monospace)' }}>
           app.nexusmed · Agenda
         </div>
@@ -78,7 +78,7 @@ export function ProductWindow() {
             ))}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '9px 10px', borderRadius: 9, background: 'var(--s2)', border: '1px solid var(--border)', opacity: 0.65 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', width: 40 }}>12:00</span>
-              <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 3, background: '#d97706' }} />
+              <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 3, background: '#D97706' }} />
               <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>Paciente A. R.</span>
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>Control</span>
             </div>

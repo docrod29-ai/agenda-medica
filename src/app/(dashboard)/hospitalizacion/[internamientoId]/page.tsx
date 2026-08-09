@@ -484,14 +484,14 @@ export default function EpisodioPage() {
             {(['medico', 'enfermeria', 'farmacia', 'laboratorio', 'admin'] as RolHospital[]).map(r => (
               <button key={r} onClick={() => cambiarRol(r)} style={{
                 fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
-                border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
-                background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+                border: '1px solid ' + (rol === r ? 'var(--nexus,#3D5AFE)' : 'var(--border)'),
+                background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3D5AFE)' : 'var(--text3)',
               }}>{ROL_HOSPITAL_LABEL[r]}</button>
             ))}
           </div>
         ) : (
           <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus,#3d5afe)', border: '1px solid var(--nexus,#3d5afe)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus,#3D5AFE)', border: '1px solid var(--nexus,#3D5AFE)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
           </div>
         )}
       </div>
@@ -507,7 +507,7 @@ export default function EpisodioPage() {
             <button onClick={imprimirBrazalete} title="Imprimir brazalete con código de barras" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Printer size={13} /> Brazalete</button>
             <button onClick={exportarFHIR} title="Exportar el internamiento en HL7 FHIR R4 (interoperabilidad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}><Send size={13} /> FHIR</button>
             {news2 && <button onClick={() => setTab('signos')} title={encuadre.aviso || news2.recomendacion} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 'var(--r-pill)', border: `1px solid ${news2.color}`, background: `color-mix(in srgb, ${news2.color} 12%, transparent)`, color: news2.color, cursor: 'pointer' }}><HeartPulse size={13} /> {encuadre.etiqueta} {news2.total}{encuadre.encuadre !== 'actual' && <AlertTriangle size={12} className="ds-icon" />}</button>}
-            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0d9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: egresado ? 'var(--s2)' : 'rgba(13,148,136,.15)', color: egresado ? 'var(--text3)' : '#0D9488', border: `1px solid ${egresado ? 'var(--border)' : 'rgba(13,148,136,.4)'}` }}>{egresado ? 'Egresado' : 'Internado'}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 14, fontSize: 13, color: 'var(--text2)' }}>
@@ -593,7 +593,7 @@ export default function EpisodioPage() {
         {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['enfermeria', 'Enfermería'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             fontSize: 13, fontWeight: 600, padding: '8px 14px', cursor: 'pointer', background: 'none', border: 'none',
-            color: tab === t ? 'var(--nexus,#3d5afe)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus,#3d5afe)' : 'transparent'), marginBottom: -1,
+            color: tab === t ? 'var(--nexus,#3D5AFE)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus,#3D5AFE)' : 'transparent'), marginBottom: -1,
           }}>{label}</button>
         ))}
       </div>
@@ -685,7 +685,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'grid', gap: 8 }}>
             {notasEpisodio.map(n => (
               <button key={n.id} onClick={() => router.push(`/nota/${inter.pacienteId}/${n.id}`)} style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', cursor: 'pointer' }}>
-                <FileText size={16} style={{ color: 'var(--nexus,#3d5afe)', flexShrink: 0 }} />
+                <FileText size={16} style={{ color: 'var(--nexus,#3D5AFE)', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[n.tipo] ?? n.tipo}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)' }}>{new Date(n.fechaConsulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}{n.estado === 'firmada' ? ' · firmada' : ' · borrador'}</div>
@@ -713,7 +713,7 @@ export default function EpisodioPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(inter.medicamentosCasa ?? []).map((m, i) => {
                 const continuado = medsActivos.some(a => a.toLowerCase().includes(m.toLowerCase().split(' ')[0]))
-                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: continuado ? 'rgba(13,148,136,.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)', color: continuado ? '#0d9488' : '#d97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
+                return <span key={i} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: continuado ? 'rgba(13,148,136,.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)', color: continuado ? '#0D9488' : '#D97706', border: `1px solid ${continuado ? 'rgba(13,148,136,.35)' : 'color-mix(in srgb, var(--amber) 35%, transparent)'}` }}>{m}{continuado ? ' · continuado' : ' · revisar'}</span>
               })}
             </div>
           </div>
@@ -828,11 +828,11 @@ export default function EpisodioPage() {
           {/* Gráficas de tendencia */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 10, marginBottom: 14 }}>
             <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="var(--red)" />
-            <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3d5afe" />
+            <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3D5AFE" />
             <GraficaSignos titulo="Frecuencia respiratoria" unidad="rpm" puntos={serie('fr')} normalMin={12} normalMax={20} color="var(--purple)" />
             <GraficaSignos titulo="Temperatura" unidad="°C" puntos={serie('temp')} normalMin={36} normalMax={38} color="var(--amber)" />
             <GraficaSignos titulo="SpO₂" unidad="%" puntos={serie('spo2')} normalMin={92} normalMax={100} color="var(--teal)" />
-            <GraficaSignos titulo="Glucosa" unidad="mg/dL" puntos={serie('glucosa')} normalMin={70} normalMax={180} color="#0ea5e9" />
+            <GraficaSignos titulo="Glucosa" unidad="mg/dL" puntos={serie('glucosa')} normalMin={70} normalMax={180} color="#0EA5E9" />
           </div>
           {/* L6 (decisión del Dr): NEWS2 es la fuente de verdad del deterioro (arriba).
               Las bandas de las gráficas son SOLO rango de referencia visual, NO los
@@ -947,13 +947,13 @@ export default function EpisodioPage() {
               <div key={l.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{l.estudios.join(', ')}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: l.estado === 'resultado' ? '#0d9488' : l.prioridad === 'urgente' ? '#dc2626' : '#d97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: l.estado === 'resultado' ? 'rgba(13,148,136,.15)' : l.prioridad === 'urgente' ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: l.estado === 'resultado' ? '#0D9488' : l.prioridad === 'urgente' ? '#DC2626' : '#D97706' }}>{l.estado === 'resultado' ? 'Resultado listo' : l.prioridad === 'urgente' ? 'Urgente · pendiente' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {l.solicitadaPor || '—'} · {new Date(l.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                 {l.resultados && l.resultados.length > 0 && (
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {l.resultados.map((r, i) => (
-                      <div key={i} style={{ fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 8, color: r.critico ? '#dc2626' : 'var(--text2)', fontWeight: r.critico ? 700 : 400 }}>
+                      <div key={i} style={{ fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 8, color: r.critico ? '#DC2626' : 'var(--text2)', fontWeight: r.critico ? 700 : 400 }}>
                         <span>{r.critico && '⚠ '}{r.estudio}</span>
                         <span>{r.valor} {r.unidad ?? ''}{r.referencia ? ` (${r.referencia})` : ''}</span>
                       </div>
@@ -1028,7 +1028,7 @@ export default function EpisodioPage() {
               <div key={ic.id} style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>{ic.especialidad}{ic.medicoSolicitadoNombre ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}> · para {ic.medicoSolicitadoNombre}</span> : null}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: ic.estado === 'respondida' ? '#0d9488' : '#d97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: ic.estado === 'respondida' ? 'rgba(13,148,136,.15)' : 'color-mix(in srgb, var(--amber) 15%, transparent)', color: ic.estado === 'respondida' ? '#0D9488' : '#D97706' }}>{ic.estado === 'respondida' ? 'Respondida' : 'Pendiente'}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>{ic.motivo}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Solicitó: {ic.solicitanteNombre || '—'} · {new Date(ic.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</div>
@@ -1186,14 +1186,14 @@ export default function EpisodioPage() {
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Dosis / presentación</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
+                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: '#3D5AFE', background: 'rgba(61,90,254,.12)', color: '#3D5AFE' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
                     <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 100 }} placeholder="otra" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
                   </div>
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Vía</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
+                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: '#3D5AFE', background: 'rgba(61,90,254,.12)', color: '#3D5AFE' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
                   </div>
                 </div>
               </>
@@ -1254,7 +1254,7 @@ export default function EpisodioPage() {
         const faltan = [!pacienteOk && 'paciente', !correctos.medicamento && 'medicamento', !correctos.dosis && 'dosis', !correctos.via && 'vía', !correctos.hora && 'hora'].filter(Boolean) as string[]
         const chk = (on: boolean, toggle: () => void, label: string) => (
           <button type="button" onClick={toggle} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, border: '1px solid ' + (on ? 'rgba(13,148,136,.4)' : 'var(--border)'), background: on ? 'rgba(13,148,136,.1)' : 'var(--s1)', cursor: 'pointer', textAlign: 'left', width: '100%', color: 'var(--text)' }}>
-            <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${on ? '#0d9488' : 'var(--border)'}`, background: on ? '#0d9488' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on && <Check size={12} color="#fff" strokeWidth={3} />}</span>
+            <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${on ? '#0D9488' : 'var(--border)'}`, background: on ? '#0D9488' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on && <Check size={12} color="#FFF" strokeWidth={3} />}</span>
             <span style={{ fontSize: 13 }}>{label}</span>
           </button>
         )
@@ -1300,7 +1300,7 @@ export default function EpisodioPage() {
                 {chk(correctos.hora, () => setCorrectos(c => ({ ...c, hora: !c.hora })), 'Hora correcta')}
               </div>
               <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
-              <div style={{ fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8, color: todos ? '#0d9488' : '#d97706', background: todos ? 'rgba(13,148,136,.1)' : 'color-mix(in srgb, var(--amber) 10%, transparent)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8, color: todos ? '#0D9488' : '#D97706', background: todos ? 'rgba(13,148,136,.1)' : 'color-mix(in srgb, var(--amber) 10%, transparent)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {todos ? <><Check size={14} /> Listo para administrar</> : <><AlertTriangle size={14} /> Falta confirmar: {faltan.join(', ')}</>}
               </div>
             </div>
@@ -1498,13 +1498,13 @@ export default function EpisodioPage() {
             <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Estudios</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
               {ESTUDIOS_LAB_RAPIDOS.map(e => { const on = labSel.includes(e); return (
-                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
+                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3D5AFE', background: 'rgba(61,90,254,.12)', color: '#3D5AFE' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
               )})}
             </div>
           </div>
           <input className={inputCls} placeholder="Otros estudios (separa con coma)" value={labExtra} onChange={e => setLabExtra(e.target.value)} />
           <div style={{ display: 'flex', gap: 8 }}>
-            {(['rutina', 'urgente'] as const).map(p => <button key={p} type="button" onClick={() => setLabPrioridad(p)} className="rounded-full border px-3 py-1 text-xs" style={labPrioridad === p ? { borderColor: p === 'urgente' ? '#dc2626' : '#0d9488', background: (p === 'urgente' ? '#dc2626' : '#0d9488') + '18', color: p === 'urgente' ? '#dc2626' : '#0d9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p === 'urgente' ? 'Urgente' : 'Rutina'}</button>)}
+            {(['rutina', 'urgente'] as const).map(p => <button key={p} type="button" onClick={() => setLabPrioridad(p)} className="rounded-full border px-3 py-1 text-xs" style={labPrioridad === p ? { borderColor: p === 'urgente' ? '#DC2626' : '#0D9488', background: (p === 'urgente' ? '#DC2626' : '#0D9488') + '18', color: p === 'urgente' ? '#DC2626' : '#0D9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p === 'urgente' ? 'Urgente' : 'Rutina'}</button>)}
           </div>
         </div>
       </Modal>
@@ -1546,7 +1546,7 @@ export default function EpisodioPage() {
               <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{r.estudio}</span>
               <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="valor" value={r.valor} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))} />
               <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="unidad" value={r.unidad ?? ''} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, unidad: e.target.value } : x))} />
-              <button type="button" title="Marcar crítico" onClick={() => setResForm(f => f.map((x, j) => j === i ? { ...x, critico: !x.critico } : x))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid ' + (r.critico ? '#dc2626' : 'var(--border)'), background: r.critico ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'transparent', color: r.critico ? '#dc2626' : 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{r.critico ? '⚠ crítico' : 'crítico'}</button>
+              <button type="button" title="Marcar crítico" onClick={() => setResForm(f => f.map((x, j) => j === i ? { ...x, critico: !x.critico } : x))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid ' + (r.critico ? '#DC2626' : 'var(--border)'), background: r.critico ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'transparent', color: r.critico ? '#DC2626' : 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{r.critico ? '⚠ crítico' : 'crítico'}</button>
             </div>
           ))}
         </div>
@@ -1670,11 +1670,11 @@ export default function EpisodioPage() {
             )}
             <div style={{ display: 'flex', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
               {([
-                { c: 'A', label: 'A · Alerta', col: '#0d9488' },
-                { c: 'C', label: 'C · Confusión', col: '#d97706' },
-                { c: 'V', label: 'V · Voz', col: '#d97706' },
-                { c: 'P', label: 'P · Dolor', col: '#dc2626' },
-                { c: 'U', label: 'U · No responde', col: '#dc2626' },
+                { c: 'A', label: 'A · Alerta', col: '#0D9488' },
+                { c: 'C', label: 'C · Confusión', col: '#D97706' },
+                { c: 'V', label: 'V · Voz', col: '#D97706' },
+                { c: 'P', label: 'P · Dolor', col: '#DC2626' },
+                { c: 'U', label: 'U · No responde', col: '#DC2626' },
               ] as const).map(({ c, label, col }) => (
                 <button key={c} type="button" onClick={() => setSg(s => ({ ...s, conciencia: c }))}
                   title={label} className="rounded-full border px-2.5 py-1 text-xs"

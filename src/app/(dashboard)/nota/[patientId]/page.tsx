@@ -52,7 +52,7 @@ export default function NotaRescuePage() {
 
   return (
     <div style={{ padding: 40, maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
-      <AlertCircle size={32} color="#f59e0b" style={{ marginBottom: 12 }} />
+      <AlertCircle size={32} color="#F59E0B" style={{ marginBottom: 12 }} />
       <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
         Nota no encontrada
       </h2>

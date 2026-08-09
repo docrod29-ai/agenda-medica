@@ -87,7 +87,7 @@ function Mock({ tipo }: { tipo: string }) {
     return (
       <div style={base}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', marginBottom: 10 }}>Lunes 14 de julio</div>
-        {[['09:00', 'María López', 'Primera vez', 'var(--nexus)'], ['10:30', 'Juan Pérez', 'Seguimiento', '#16a34a'], ['12:00', 'Ana Ríos', 'Control', '#d97706']].map((c, i) => (
+        {[['09:00', 'María López', 'Primera vez', 'var(--nexus)'], ['10:30', 'Juan Pérez', 'Seguimiento', '#16A34A'], ['12:00', 'Ana Ríos', 'Control', '#D97706']].map((c, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '9px 10px', borderRadius: 9, background: 'var(--s2)', marginBottom: 7 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', width: 42 }}>{c[0]}</span>
             <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 3, background: c[3] }} />
@@ -102,7 +102,7 @@ function Mock({ tipo }: { tipo: string }) {
     return (
       <div style={base}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 'var(--r-pill)', marginBottom: 12 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#dc2626' }} /> Grabando · 01:24
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#DC2626' }} /> Grabando · 01:24
         </div>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Padecimiento actual</div>
         <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, margin: '4px 0 12px' }}>Masculino de 54 años con dolor torácico opresivo de 2 h de evolución, irradiado a brazo izquierdo…</div>
@@ -132,7 +132,7 @@ function Mock({ tipo }: { tipo: string }) {
     return (
       <div style={base}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', marginBottom: 10 }}>S. aureus · piel</div>
-        {[['Oxacilina', 'R', '#dc2626'], ['Cefoxitina', 'R', '#dc2626'], ['Vancomicina', 'S', '#16a34a'], ['TMP-SMX', 'S', '#16a34a']].map((r, i) => (
+        {[['Oxacilina', 'R', '#DC2626'], ['Cefoxitina', 'R', '#DC2626'], ['Vancomicina', 'S', '#16A34A'], ['TMP-SMX', 'S', '#16A34A']].map((r, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'var(--s2)', marginBottom: 6 }}>
             <span style={{ flex: 1, fontSize: 12.5, color: 'var(--text)' }}>{r[0]}</span>
             <span style={{ fontSize: 12, fontWeight: 800, color: r[2] }}>{r[1]}</span>
@@ -148,7 +148,7 @@ function Mock({ tipo }: { tipo: string }) {
     return (
       <div style={base}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <span style={{ maxWidth: '80%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--nexus-solido)', color: '#fff' }}>¿Dosis de cefepime con TFG 35?</span>
+          <span style={{ maxWidth: '80%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--nexus-solido)', color: '#FFF' }}>¿Dosis de cefepime con TFG 35?</span>
         </div>
         <div style={{ display: 'flex', marginBottom: 8 }}>
           <span style={{ maxWidth: '85%', fontSize: 12, padding: '8px 11px', borderRadius: 12, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', lineHeight: 1.5 }}>Con TFG 30–60 mL/min, ajusta el intervalo de cefepime. Dime indicación y peso y te doy la dosis exacta.</span>
@@ -171,10 +171,10 @@ function Mock({ tipo }: { tipo: string }) {
   }
   if (tipo === 'whatsapp') {
     return (
-      <div style={{ ...base, background: '#0b141a' }}>
+      <div style={{ ...base, background: '#0B141A' }}>
         {[['in', 'Hola, quiero una cita con el Dr.'], ['out', '¡Claro! Tengo martes 10:00 o jueves 12:30. ¿Cuál te acomoda?'], ['in', 'Martes 10:00'], ['out', '✅ Listo, María. Cita el martes 10:00. Te recuerdo un día antes.']].map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m[0] === 'out' ? 'flex-end' : 'flex-start', marginBottom: 7 }}>
-            <span style={{ maxWidth: '80%', fontSize: 12.5, lineHeight: 1.4, padding: '7px 10px', borderRadius: 10, color: '#e9edef', background: m[0] === 'out' ? '#005c4b' : '#1f2c34' }}>{m[1]}</span>
+            <span style={{ maxWidth: '80%', fontSize: 12.5, lineHeight: 1.4, padding: '7px 10px', borderRadius: 10, color: '#E9EDEF', background: m[0] === 'out' ? '#005C4B' : '#1F2C34' }}>{m[1]}</span>
           </div>
         ))}
       </div>

@@ -621,8 +621,8 @@ function AsistenteInner() {
             disabled={saving || success}
             style={{
               padding: '12px 28px', borderRadius: 12,
-              background: success ? '#10b981' : 'var(--teal)',
-              color: '#fff', fontSize: 14, fontWeight: 600, border: 'none',
+              background: success ? '#10B981' : 'var(--teal)',
+              color: '#FFF', fontSize: 14, fontWeight: 600, border: 'none',
               cursor: saving || success ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 8,
               transition: 'all 0.2s', flexShrink: 0,

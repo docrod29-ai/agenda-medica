@@ -65,7 +65,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.5, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
-        <Info size={15} style={{ color: 'var(--nexus, #3d5afe)', flexShrink: 0, marginTop: 1 }} />
+        <Info size={15} style={{ color: 'var(--nexus, #3D5AFE)', flexShrink: 0, marginTop: 1 }} />
         <span>
           El porcentaje arranca en <strong>0 %</strong> — tú lo fijas por médico. Este es un <strong>reporte</strong>: calcula el
           reparto sobre lo cobrado del periodo, <strong>no genera pagos ni mueve dinero</strong>. Los reembolsos (en negativo) ya
@@ -79,7 +79,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
       ) : (
         <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--s1)' }}>
-            <Percent size={15} style={{ color: 'var(--nexus, #3d5afe)' }} />
+            <Percent size={15} style={{ color: 'var(--nexus, #3D5AFE)' }} />
             <strong style={{ fontSize: 13.5 }}>Porcentaje por médico</strong>
             <label style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
               Default
@@ -114,9 +114,9 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
             return (
               <button key={k} onClick={() => toggleExcluido(k)} style={{
                 padding: '5px 11px', fontSize: 12, borderRadius: 'var(--r-pill)', cursor: 'pointer',
-                border: '1px solid ' + (on ? 'var(--nexus, #3d5afe)' : 'var(--border)'),
-                background: on ? 'color-mix(in srgb, var(--nexus, #3d5afe) 12%, transparent)' : 'var(--bg)',
-                color: on ? 'var(--nexus, #3d5afe)' : 'var(--text3)', fontWeight: on ? 700 : 500,
+                border: '1px solid ' + (on ? 'var(--nexus, #3D5AFE)' : 'var(--border)'),
+                background: on ? 'color-mix(in srgb, var(--nexus, #3D5AFE) 12%, transparent)' : 'var(--bg)',
+                color: on ? 'var(--nexus, #3D5AFE)' : 'var(--text3)', fontWeight: on ? 700 : 500,
               }}>{on ? '✕ ' : ''}{CONCEPTO_LABEL[k]}</button>
             )
           })}
@@ -133,7 +133,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
                 <th style={{ padding: '9px 10px', fontWeight: 600 }}>Cobros</th>
                 <th style={{ padding: '9px 10px', fontWeight: 600 }}>Base</th>
                 <th style={{ padding: '9px 10px', fontWeight: 600 }}>%</th>
-                <th style={{ padding: '9px 10px', fontWeight: 600, color: 'var(--nexus, #3d5afe)' }}>Comisión</th>
+                <th style={{ padding: '9px 10px', fontWeight: 600, color: 'var(--nexus, #3D5AFE)' }}>Comisión</th>
                 <th style={{ padding: '9px 14px', fontWeight: 600 }}>Queda al consultorio</th>
               </tr>
             </thead>
@@ -144,7 +144,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
                   <td style={{ padding: '9px 10px', color: 'var(--text3)' }}>{f.nCobros}</td>
                   <td style={{ padding: '9px 10px', color: 'var(--text2)' }}>{fmtMXN(f.baseComisionable)}</td>
                   <td style={{ padding: '9px 10px', color: 'var(--text3)' }}>{f.porcentaje}%</td>
-                  <td style={{ padding: '9px 10px', color: 'var(--nexus, #3d5afe)', fontWeight: 700 }}>{fmtMXN(f.comision)}</td>
+                  <td style={{ padding: '9px 10px', color: 'var(--nexus, #3D5AFE)', fontWeight: 700 }}>{fmtMXN(f.comision)}</td>
                   <td style={{ padding: '9px 14px', color: 'var(--text2)' }}>{fmtMXN(f.netoConsultorio)}</td>
                 </tr>
               ))}
@@ -159,7 +159,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
                   <td></td>
                   <td style={{ padding: '10px' }}>{fmtMXN(reporte.totalBase)}</td>
                   <td></td>
-                  <td style={{ padding: '10px', color: 'var(--nexus, #3d5afe)' }}>{fmtMXN(reporte.totalComision)}</td>
+                  <td style={{ padding: '10px', color: 'var(--nexus, #3D5AFE)' }}>{fmtMXN(reporte.totalComision)}</td>
                   <td style={{ padding: '10px 14px' }}>{fmtMXN(reporte.totalNeto)}</td>
                 </tr>
               </tfoot>
@@ -194,7 +194,7 @@ export function PanelComisiones({ clinicId, cobros }: { clinicId?: string | null
         <button onClick={guardar} disabled={guardando || !clinicId} className="btn btn-primary">
           <Save size={14} /> {guardando ? 'Guardando…' : 'Guardar porcentajes'}
         </button>
-        {guardado && <span style={{ fontSize: 12.5, color: 'var(--teal, #2dd4bf)' }}>Guardado ✓</span>}
+        {guardado && <span style={{ fontSize: 12.5, color: 'var(--teal, #2DD4BF)' }}>Guardado ✓</span>}
       </div>
     </div>
   )

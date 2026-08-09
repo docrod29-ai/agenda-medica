@@ -26,7 +26,7 @@ import type { SoporteActivo } from '@/types/hospital'
 const VENTANA_HORAS = 12
 
 const COLOR_VEREDICTO: Record<string, string> = {
-  mejoro: '#0d9488', empeoro: '#dc2626', sin_cambio: 'var(--text3)', sin_veredicto: '#d97706',
+  mejoro: '#0D9488', empeoro: '#DC2626', sin_cambio: 'var(--text3)', sin_veredicto: '#D97706',
 }
 
 function Bloque({ icon: Icon, titulo, sub, children }: {
@@ -35,7 +35,7 @@ function Bloque({ icon: Icon, titulo, sub, children }: {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <Icon size={16} style={{ color: 'var(--nexus,#3d5afe)' }} />
+        <Icon size={16} style={{ color: 'var(--nexus,#3D5AFE)' }} />
         <span style={{ fontWeight: 600, fontSize: 14 }}>{titulo}</span>
         {sub && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {sub}</span>}
       </div>
@@ -192,7 +192,7 @@ export default function ResumenPase({ clinicId, internamientoId, vista, zonaHora
                   {t.eventos.map((e, i) => (
                     <div key={i} style={{ fontSize: 12.5, display: 'flex', gap: 6, alignItems: 'center' }}>
                       <span style={{ color: 'var(--text2)' }}>{e.etiqueta}</span>
-                      <strong style={{ color: e.direccion === 'sube' ? '#d97706' : 'var(--text)' }}>
+                      <strong style={{ color: e.direccion === 'sube' ? '#D97706' : 'var(--text)' }}>
                         {e.direccion === 'sube' ? '↑' : '↓'} {String(e.valor)}
                       </strong>
                     </div>

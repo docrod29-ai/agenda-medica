@@ -3787,7 +3787,7 @@ export default function ConsultaActivaPage() {
         borderRadius: 10, padding: '9px 13px',
       }}>
         {/*
-          `#f87171` era el rosa PARA FONDO OSCURO, quemado aquí. En tema claro,
+          `#F87171` era el rosa PARA FONDO OSCURO, quemado aquí. En tema claro,
           sobre el fondo rojizo de esta misma línea, quedaba en 2.42:1 — la mitad
           del mínimo legible, y en el dato más letal de la aplicación. Va por
           token, que está medido en los dos temas. Y es el MISMO rojo que el chip
@@ -3942,7 +3942,7 @@ export default function ConsultaActivaPage() {
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--text2)' }}>
-          <BedDouble size={15} style={{ color: '#3d5afe', flexShrink: 0 }} />
+          <BedDouble size={15} style={{ color: '#3D5AFE', flexShrink: 0 }} />
           Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
       )}
@@ -4082,12 +4082,12 @@ export default function ConsultaActivaPage() {
                 onClick={() => voz.grabando ? voz.detener() : iniciarGrabacion()}
                 style={{
                   width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0,
-                  background: voz.grabando ? '#ef4444' : 'var(--teal)',
+                  background: voz.grabando ? '#EF4444' : 'var(--teal)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: voz.grabando ? 'pulse 1.5s infinite' : 'none',
                 }}
               >
-                {voz.grabando ? <Square size={24} color="#fff" fill="#fff" /> : <Mic size={26} color="#000" />}
+                {voz.grabando ? <Square size={24} color="#FFF" fill="#FFF" /> : <Mic size={26} color="#000" />}
               </button>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
@@ -4166,16 +4166,16 @@ export default function ConsultaActivaPage() {
                 disabled={audio.estado === 'subiendo'}
                 style={{
                   width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: audio.estado === 'subiendo' ? 'default' : 'pointer', flexShrink: 0,
-                  background: (audio.estado === 'grabando' || audio.estado === 'pausado') ? '#ef4444' : 'var(--teal)',
+                  background: (audio.estado === 'grabando' || audio.estado === 'pausado') ? '#EF4444' : 'var(--teal)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: audio.estado === 'grabando' ? 'pulse 1.5s infinite' : 'none',
                 }}
                 title={audio.estado === 'grabando' || audio.estado === 'pausado' ? 'Detener y transcribir' : 'Iniciar grabación'}
               >
                 {audio.estado === 'subiendo'
-                  ? <Loader2 size={24} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
+                  ? <Loader2 size={24} color="#FFF" style={{ animation: 'spin 1s linear infinite' }} />
                   : (audio.estado === 'grabando' || audio.estado === 'pausado')
-                    ? <Square size={24} color="#fff" fill="#fff" />
+                    ? <Square size={24} color="#FFF" fill="#FFF" />
                     : <Mic size={26} color="#000" />}
               </button>
               {(audio.estado === 'grabando' || audio.estado === 'pausado') && (
@@ -4362,10 +4362,10 @@ export default function ConsultaActivaPage() {
                 )}
                 {/* Manos libres: aviso de escucha activa + comandos */}
                 {manosLibres && (
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: comandoError ? '#ef4444' : 'var(--teal)' }}>
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: comandoError ? '#EF4444' : 'var(--teal)' }}>
                     <span style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: comandoError ? '#ef4444' : 'var(--teal)',
+                      background: comandoError ? '#EF4444' : 'var(--teal)',
                       animation: escuchaActiva && !comandoError ? 'pulse 1.5s infinite' : 'none',
                     }} />
                     {comandoError
@@ -4449,7 +4449,7 @@ export default function ConsultaActivaPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
                 {usoIA && (
-                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber, #d97706)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber, #D97706)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
                     {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
                   </span>
                 )}
@@ -4597,10 +4597,10 @@ export default function ConsultaActivaPage() {
             Para reactivarla, compra más consultas o sube de plan.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
-            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3D5AFE)', textDecoration: 'none', border: '1px solid var(--nexus, #3D5AFE)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
               Ver planes
             </a>
           </div>
@@ -4610,9 +4610,9 @@ export default function ConsultaActivaPage() {
       {modoEco && !sinCreditos && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
-          border: '1px solid var(--amber, #d97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+          border: '1px solid var(--amber, #D97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber, #b45309)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber, #B45309)' }}>
             <Sparkles size={16} /> Nota generada en modo económico
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
@@ -4621,10 +4621,10 @@ export default function ConsultaActivaPage() {
             recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
-            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3D5AFE)', textDecoration: 'none', border: '1px solid var(--nexus, #3D5AFE)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
               Ver planes
             </a>
           </div>
@@ -4657,7 +4657,7 @@ export default function ConsultaActivaPage() {
       {/* Botón de 2ª opinión a demanda (plan Pro): en Premium corre sola. */}
       {planActual === 'pro' && !verificacion && !verificando && (resumen || diagnosticos.length > 0 || medicamentos.length > 0) && (
         <button onClick={pedirSegundaOpinion}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(59,90,254,0.10)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(59,90,254,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(59,90,254,0.10)', color: 'var(--nexus, #3D5AFE)', border: '1px solid rgba(59,90,254,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <Sparkles size={14} /> Pedir segunda opinión (otra IA revisa la nota)
         </button>
       )}
@@ -4717,7 +4717,7 @@ export default function ConsultaActivaPage() {
         <button
           onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3D5AFE)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
@@ -4742,7 +4742,7 @@ export default function ConsultaActivaPage() {
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
         <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
           <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
-            <Brain size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
+            <Brain size={15} style={{ color: 'var(--nexus, #3D5AFE)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
           </summary>
           <div style={{ padding: '0 14px 14px' }}>
             <PanelRazonamiento entrada={entradaCopiloto} embebido />
@@ -4761,7 +4761,7 @@ export default function ConsultaActivaPage() {
           contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
         }] : []),
         ...(esGineco ? [{
-          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
+          id: 'gineco', nombre: 'Gineco-obstetricia', color: '#F472B6', icono: <Stethoscope size={14} />,
           para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
           contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
             onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
@@ -4791,7 +4791,7 @@ export default function ConsultaActivaPage() {
             onAgregarANota={agregarASeccion('cardiometabolico', 'Valoración cardiometabólica')} />,
         },
         {
-          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38bdf8', icono: <ShieldCheck size={14} />,
+          id: 'preventivo', nombre: 'Preventivo y tendencias', color: '#38BDF8', icono: <ShieldCheck size={14} />,
           para: 'Tamizajes por edad y sexo · tendencia de laboratorios',
           contenido: <PanelPreventivo embebido edad={patient?.edad} sexo={patient?.sexo}
             onAgregarANota={agregarASeccion('preventivo', 'Medicina preventiva')} />,
@@ -4873,7 +4873,7 @@ export default function ConsultaActivaPage() {
           <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
               <FlaskConical size={15} /> Análisis basado en evidencia
-              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--nexus-solido)', color: generandoAnalisis ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
+              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--nexus-solido)', color: generandoAnalisis ? 'var(--text3)' : '#FFF', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
                 {generandoAnalisis ? 'Agregando…' : '→ Agregar a la nota'}
               </button>
               <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
@@ -5237,7 +5237,7 @@ export default function ConsultaActivaPage() {
               <button
                 onClick={() => { setSecciones(prev => resolverSugerencias(prev, 'aceptar')); toast(`Aceptaste ${n} ${n === 1 ? 'sugerencia' : 'sugerencias'} como tuyas`, 'success') }}
                 className="lift"
-                style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 Las acepto
               </button>
               <button
@@ -5463,7 +5463,7 @@ export default function ConsultaActivaPage() {
           {!firmada && (
             <div style={{ marginTop: 18, border: '1px solid rgba(61,90,254,0.35)', borderRadius: 12, background: 'rgba(61,90,254,0.05)', padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                <Sparkles size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Corregir por chat
+                <Sparkles size={15} style={{ color: 'var(--nexus, #3D5AFE)' }} /> Corregir por chat
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
                 Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
@@ -5471,7 +5471,7 @@ export default function ConsultaActivaPage() {
               {chatCorr.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
                   {chatCorr.map((m, i) => (
-                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
+                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#FFF' : 'var(--text)' }}>
                       {m.texto}
                     </div>
                   ))}
@@ -5491,7 +5491,7 @@ export default function ConsultaActivaPage() {
                     ↩ Deshacer
                   </button>
                 )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
                 </button>
               </div>
@@ -5538,7 +5538,7 @@ export default function ConsultaActivaPage() {
                 <button
                   onClick={() => void guardarCedulaRapida()}
                   disabled={!cedulaRapida.trim() || guardandoCedula}
-                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   {guardandoCedula ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : 'Guardar y seguir'}
                 </button>
@@ -5775,7 +5775,7 @@ export default function ConsultaActivaPage() {
           background: 'var(--s1)', border: '1px solid var(--border2, var(--border))',
           borderRadius: 'var(--r-pill)', padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
         }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             Grabando · {modoVoz === 'vivo'
               ? mmss

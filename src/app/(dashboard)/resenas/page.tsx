@@ -68,7 +68,7 @@ export default function ResenasPage() {
   )
 }
 
-const btnPrim: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }
+const btnPrim: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--teal)', color: '#040B12', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }
 const btnSec: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '5px 12px', fontSize: 12.5, cursor: 'pointer' }
 
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
@@ -85,7 +85,7 @@ function Tarjeta({ review, children }: { review: Review; children?: React.ReactN
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <div style={{ display: 'flex', gap: 1 }}>
           {[1,2,3,4,5].map(n => (
-            <Star key={n} size={14} fill={review.rating >= n ? '#fbbf24' : 'none'} color={review.rating >= n ? '#fbbf24' : 'var(--text3)'} />
+            <Star key={n} size={14} fill={review.rating >= n ? '#FBBF24' : 'none'} color={review.rating >= n ? '#FBBF24' : 'var(--text3)'} />
           ))}
         </div>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>·</span>

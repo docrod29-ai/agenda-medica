@@ -89,7 +89,7 @@ export function construirRecetaHTML(
     : `
       <div style="text-align:center;border-bottom:2px solid ${accent};padding-bottom:6pt;margin-bottom:8pt;">
         <div style="font-size:16pt;font-weight:bold;color:${accent};">${esc(medico)}</div>
-        <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#b91c1c;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
+        <div style="font-size:10pt;">${esc(especialidad)}${especialidad && cedula ? ' · ' : ''}${cedula ? 'Cédula Prof. ' + esc(cedula) : '<span style="color:#B91C1C;">[FALTA CÉDULA PROFESIONAL]</span>'}</div>
         ${clinica ? `<div style="font-size:10pt;color:#444;">${esc(clinica)}</div>` : ''}
         ${direccion ? `<div style="font-size:9pt;color:#666;">${esc(direccion)}</div>` : ''}
         ${telefono ? `<div style="font-size:9pt;color:#666;">Tel. ${esc(telefono)}</div>` : ''}
@@ -123,7 +123,7 @@ export function construirRecetaHTML(
    */
   const alergiaTexto = (data.alergias ?? '').trim()
   const alergias = recetaConfig.mostrarAlergias !== false
-    ? `<div style="border:1pt solid #b91c1c;color:#b91c1c;padding:3pt 8pt;font-size:10pt;font-weight:bold;margin:6pt 0;">
+    ? `<div style="border:1pt solid #B91C1C;color:#B91C1C;padding:3pt 8pt;font-size:10pt;font-weight:bold;margin:6pt 0;">
         ALERGIAS: ${esc(alergiaTexto || 'Sin registro en el expediente')}</div>`
     : ''
 
@@ -133,7 +133,7 @@ export function construirRecetaHTML(
   const indicaciones = data.indicaciones
     ? `<div style="margin-top:8pt;"><b>Indicaciones generales:</b><br/>${esc(data.indicaciones).replace(/\n/g, '<br/>')}</div>` : ''
   const nota = data.notaParaPaciente
-    ? `<div style="margin-top:6pt;padding:4pt 8pt;border-left:3pt solid ${accent};background:#f5f5f5;font-size:10pt;">${esc(data.notaParaPaciente).replace(/\n/g, '<br/>')}</div>` : ''
+    ? `<div style="margin-top:6pt;padding:4pt 8pt;border-left:3pt solid ${accent};background:#F5F5F5;font-size:10pt;">${esc(data.notaParaPaciente).replace(/\n/g, '<br/>')}</div>` : ''
 
   const firma = `
     <div style="margin-top:36pt;text-align:center;">
@@ -146,7 +146,7 @@ export function construirRecetaHTML(
     </div>`
 
   const aviso = recetaConfig.avisoLegal
-    ? `<div style="margin-top:14pt;font-size:8.5pt;color:#666;text-align:center;border-top:1pt dashed #ccc;padding-top:4pt;">
+    ? `<div style="margin-top:14pt;font-size:8.5pt;color:#666;text-align:center;border-top:1pt dashed #CCC;padding-top:4pt;">
         ${esc(recetaConfig.avisoLegal)}${recetaConfig.vigenciaDias ? ' · Vigencia: ' + recetaConfig.vigenciaDias + ' días' : ''}</div>`
     : ''
 
@@ -156,7 +156,7 @@ export function construirRecetaHTML(
 <head><meta charset="utf-8"/>
 <style>
   @page { size: 21.6cm 27.9cm; margin: 2cm 2.2cm; }
-  body { font-family: 'Calibri', Arial, sans-serif; font-size: 11pt; color: #1a1a1a; }
+  body { font-family: 'Calibri', Arial, sans-serif; font-size: 11pt; color: #1A1A1A; }
 </style></head>
 <body>
   ${encabezado}
@@ -167,7 +167,7 @@ export function construirRecetaHTML(
   <div><b>Paciente:</b> ${esc(data.pacienteNombre)}${data.pacienteEdad ? ' · Edad: ' + esc(String(data.pacienteEdad)) : ''}${data.pacienteSexo ? ' · ' + esc(data.pacienteSexo) : ''}${data.pacienteFechaNac ? ' · F. nac.: ' + esc(fmtFechaNacWord(data.pacienteFechaNac)) : ''}</div>
   ${alergias}
   ${dx}
-  <hr style="border:none;border-top:0.5pt solid #ccc;margin:6pt 0;"/>
+  <hr style="border:none;border-top:0.5pt solid #CCC;margin:6pt 0;"/>
   ${cuerpo}
   ${indicaciones}
   ${nota}

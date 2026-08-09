@@ -29,14 +29,14 @@ import { PROPUESTAS, SIN_CIFRA, type PropuestaAsistente } from '@/lib/antimicrob
 import type { TipoMaximo } from '@/lib/antimicrobianos/v4/tipos'
 
 const ESTADO_COLOR: Record<string, string> = {
-  VALID_STANDARD: '#16a34a',
-  VALID_HIGH_DOSE: '#0ea5e9',
-  VALID_PKPD_OPTIMIZED: '#0ea5e9',
-  VALID_OFF_LABEL_SUPPORTED: '#0ea5e9',
-  WARN_ABOVE_USUAL: '#d97706',
-  BLOCK_CONTEXTUAL_MAX: '#dc2626',
-  UNKNOWN_INSUFFICIENT_DATA: '#64748b',
-  SPECIALIST_REVIEW: '#7c3aed',
+  VALID_STANDARD: '#16A34A',
+  VALID_HIGH_DOSE: '#0EA5E9',
+  VALID_PKPD_OPTIMIZED: '#0EA5E9',
+  VALID_OFF_LABEL_SUPPORTED: '#0EA5E9',
+  WARN_ABOVE_USUAL: '#D97706',
+  BLOCK_CONTEXTUAL_MAX: '#DC2626',
+  UNKNOWN_INSUFFICIENT_DATA: '#64748B',
+  SPECIALIST_REVIEW: '#7C3AED',
 }
 const ESTADO_TEXTO: Record<string, string> = {
   VALID_STANDARD: 'Dentro de lo habitual',
@@ -252,20 +252,20 @@ export default function AntimicrobianosPage() {
   }
 
   const S = {
-    input: { padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border, #e5e7eb)', fontSize: 13, width: '100%' } as const,
-    label: { fontSize: 12, color: 'var(--text3, #64748b)', display: 'block', marginBottom: 3 } as const,
-    card: { background: 'var(--s1, #fff)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: 16 } as const,
+    input: { padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border, #E5E7EB)', fontSize: 13, width: '100%' } as const,
+    label: { fontSize: 12, color: 'var(--text3, #64748B)', display: 'block', marginBottom: 3 } as const,
+    card: { background: 'var(--s1, #FFF)', border: '1px solid var(--border, #E5E7EB)', borderRadius: 12, padding: 16 } as const,
   }
 
   return (
     <div style={{ padding: '24px 20px 60px', maxWidth: 1000, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px', color: 'var(--text, #0f172a)' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px', color: 'var(--text, #0F172A)' }}>
         Antimicrobianos — motor V4
       </h1>
-      <p style={{ fontSize: 13.5, color: 'var(--text3, #64748b)', margin: '0 0 6px', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13.5, color: 'var(--text3, #64748B)', margin: '0 0 6px', lineHeight: 1.5 }}>
         {FARMACOS.length} fármacos verificados contra FDA/DailyMed, IDSA 2026, CLSI M100 Ed36 y EUCAST v16.1.
       </p>
-      <p style={{ fontSize: 12, color: 'var(--text3, #64748b)', margin: '0 0 18px' }}>
+      <p style={{ fontSize: 12, color: 'var(--text3, #64748B)', margin: '0 0 18px' }}>
         {METADATA.important_disclaimer}
       </p>
 
@@ -273,9 +273,9 @@ export default function AntimicrobianosPage() {
         {(['caso', 'propuestos', 'topes'] as const).map(p => (
           <button key={p} onClick={() => setPestana(p)} style={{
             padding: '7px 14px', borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-            border: '1px solid ' + (pestana === p ? 'var(--nexus, #3d5afe)' : 'var(--border, #e5e7eb)'),
-            background: pestana === p ? 'var(--nexus, #3d5afe)' : 'transparent',
-            color: pestana === p ? '#fff' : 'var(--text, #0f172a)',
+            border: '1px solid ' + (pestana === p ? 'var(--nexus, #3D5AFE)' : 'var(--border, #E5E7EB)'),
+            background: pestana === p ? 'var(--nexus, #3D5AFE)' : 'transparent',
+            color: pestana === p ? '#FFF' : 'var(--text, #0F172A)',
           }}>{p === 'caso' ? 'Probar un caso'
             : p === 'propuestos' ? `Confirmar de un clic (${sinConfirmar.length + propuestasPend.length})`
             : `Cargar a mano (${av.conLimite}/${av.total})`}</button>
@@ -329,18 +329,18 @@ export default function AntimicrobianosPage() {
 
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ ...S.card, borderLeft: `4px solid ${ESTADO_COLOR[veredicto.estado]}` }}>
-              <div style={{ fontSize: 12, color: 'var(--text3, #64748b)' }}>Veredicto</div>
+              <div style={{ fontSize: 12, color: 'var(--text3, #64748B)' }}>Veredicto</div>
               <div style={{ fontSize: 19, fontWeight: 800, color: ESTADO_COLOR[veredicto.estado], marginTop: 2 }}>
                 {ESTADO_TEXTO[veredicto.estado] ?? veredicto.estado}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text3, #64748b)', marginTop: 2 }}>{veredicto.estado}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3, #64748B)', marginTop: 2 }}>{veredicto.estado}</div>
               {veredicto.datosFaltantes.length > 0 && (
                 <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 10, lineHeight: 1.5 }}>
                   <strong>Falta:</strong> {veredicto.datosFaltantes.join(' · ')}
                 </div>
               )}
               {veredicto.alertas.map((a, i) => (
-                <div key={i} style={{ fontSize: 13, marginTop: 9, lineHeight: 1.5, color: a.nivel === 'BLOCK' ? '#dc2626' : a.nivel === 'WARN' ? '#b45309' : 'var(--text2, #334155)' }}>
+                <div key={i} style={{ fontSize: 13, marginTop: 9, lineHeight: 1.5, color: a.nivel === 'BLOCK' ? '#DC2626' : a.nivel === 'WARN' ? '#B45309' : 'var(--text2, #334155)' }}>
                   <strong>{a.nivel}</strong> · {a.mensaje}
                 </div>
               ))}
@@ -356,14 +356,14 @@ export default function AntimicrobianosPage() {
                 </div>
               )}
               {encontrado?.porComodin && !encontrado.caducado && (
-                <div style={{ fontSize: 12.5, marginTop: 10, color: 'var(--text3, #64748b)' }}>
+                <div style={{ fontSize: 12.5, marginTop: 10, color: 'var(--text3, #64748B)' }}>
                   Se está usando el tope general del fármaco, no uno de esta indicación.
                 </div>
               )}
             </div>
 
             <div style={S.card}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #0f172a)', marginBottom: 8 }}>Lo que dice la evidencia</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #0F172A)', marginBottom: 8 }}>Lo que dice la evidencia</div>
               {resolucion.noResuelve && <div style={{ fontSize: 13, color: 'var(--amber)' }}>{resolucion.noResuelve}</div>}
               {resolucion.reglaDosis.label && (
                 <Bloque titulo="Ficha" texto={resolucion.reglaDosis.label.texto} fuentes={resolucion.reglaDosis.label.fuentes} />
@@ -375,7 +375,7 @@ export default function AntimicrobianosPage() {
               {resolucion.ajustes.map((a, i) => <Bloque key={i} titulo={a.que} texto={a.texto} />)}
               {resolucion.avisos.map((a, i) => (
                 <div key={i} style={{ fontSize: 12.5, marginTop: 9, color: 'var(--text2, #334155)', lineHeight: 1.5 }}>
-                  <code style={{ fontSize: 11, color: 'var(--text3, #64748b)' }}>{a.regla}</code><br />{a.texto}
+                  <code style={{ fontSize: 11, color: 'var(--text3, #64748B)' }}>{a.regla}</code><br />{a.texto}
                 </div>
               ))}
             </div>
@@ -400,7 +400,7 @@ export default function AntimicrobianosPage() {
             <Aviso tono="neutro">{progreso}</Aviso>
           )}
           <div style={{ ...S.card, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0F172A)' }}>
               {/* «0 topes transcritos» se leía como si no hubiera ninguno, cuando
                   lo que pasa es lo contrario: ya están todos confirmados. */}
               {sinConfirmar.length > 0
@@ -412,7 +412,7 @@ export default function AntimicrobianosPage() {
               pasada a números. «2 g IV q8h» son 2 000 mg por dosis y 6 000 al día. Cada uno
               trae la frase de la que salió — confirmar es leer una línea, no teclear seis campos.
             </p>
-            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '8px 0 0', lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748B)', margin: '8px 0 0', lineHeight: 1.55 }}>
               Sólo salen {PROPUESTOS.length} de {FARMACOS.length} porque el resto del texto describe
               MÁS DE UNA pauta, y las lecturas que fallaron fallaban todas hacia un tope
               demasiado bajo — que es la peor dirección: una alerta que salta en lo que haces
@@ -421,10 +421,10 @@ export default function AntimicrobianosPage() {
           </div>
 
           {(sinConfirmar.length + propuestasPend.length) > 0 && (
-            <div style={{ ...S.card, marginBottom: 14, borderLeft: '4px solid var(--nexus, #3d5afe)' }}>
+            <div style={{ ...S.card, marginBottom: 14, borderLeft: '4px solid var(--nexus, #3D5AFE)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ flex: '1 1 320px' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0F172A)' }}>
                     Cargar los {sinConfirmar.length + propuestasPend.length} de una vez
                   </div>
                   <p style={{ fontSize: 12.5, color: 'var(--text2, #334155)', margin: '5px 0 0', lineHeight: 1.55 }}>
@@ -436,7 +436,7 @@ export default function AntimicrobianosPage() {
                 <button onClick={() => void cargarTodos()} disabled={cargandoTodo || ocupado !== null} style={{
                   padding: '11px 22px', borderRadius: 9, fontSize: 14, fontWeight: 700,
                   border: 'none', cursor: cargandoTodo ? 'wait' : 'pointer',
-                  background: 'var(--nexus-solido)', color: '#fff',
+                  background: 'var(--nexus-solido)', color: '#FFF',
                 }}>{cargandoTodo ? `Cargando… ${progreso}` : 'Cargar todos'}</button>
               </div>
             </div>
@@ -444,7 +444,7 @@ export default function AntimicrobianosPage() {
 
           <div style={{ display: 'grid', gap: 10 }}>
             {sinConfirmar.length === 0 && (
-              <div style={{ ...S.card, fontSize: 13, color: 'var(--text3, #64748b)' }}>
+              <div style={{ ...S.card, fontSize: 13, color: 'var(--text3, #64748B)' }}>
                 Ya los confirmaste todos. Los {SIN_PROPONER.length} restantes se cargan a mano
                 en la otra pestaña.
               </div>
@@ -453,30 +453,30 @@ export default function AntimicrobianosPage() {
               <div key={t.farmaco} style={S.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                   <div style={{ flex: '1 1 320px' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{t.farmaco}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0F172A)' }}>{t.farmaco}</div>
                     <div style={{ fontSize: 13.5, color: 'var(--text2, #334155)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
                       habitual <strong>{t.usualMaxPorDosis}</strong> {t.unidad}/dosis ·{' '}
                       <strong>{t.usualMaxPorDia}</strong> {t.unidad}/día
                       {t.absolutoMaxPorDia ? <> · tope <strong>{t.absolutoMaxPorDia}</strong> {t.unidad}/día</> : null}
                     </div>
-                    <div style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 6, lineHeight: 1.5, fontStyle: 'italic' }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--text3, #64748B)', marginTop: 6, lineHeight: 1.5, fontStyle: 'italic' }}>
                       «{t.textoFuente}»
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text3, #64748b)', marginTop: 3 }}>{t.fuenteIds.join(' · ')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3, #64748B)', marginTop: 3 }}>{t.fuenteIds.join(' · ')}</div>
                   </div>
                   <button onClick={() => void conAviso(t.farmaco, () => confirmar(t))}
                     disabled={ocupado !== null || cargandoTodo} style={{
                     padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
                     border: 'none', cursor: ocupado ? 'wait' : 'pointer',
-                    background: 'var(--nexus-solido)', color: '#fff', opacity: ocupado === t.farmaco ? 0.6 : 1,
+                    background: 'var(--nexus-solido)', color: '#FFF', opacity: ocupado === t.farmaco ? 0.6 : 1,
                   }}>{ocupado === t.farmaco ? 'Guardando…' : 'Confirmar'}</button>
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ ...S.card, margin: '22px 0 12px', borderLeft: '4px solid #d97706' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+          <div style={{ ...S.card, margin: '22px 0 12px', borderLeft: '4px solid #D97706' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0F172A)' }}>
               {propuestasPend.length} propuestos desde el etiquetado — revísalos con más calma
             </div>
             <p style={{ fontSize: 13, color: 'var(--text2, #334155)', margin: '6px 0 0', lineHeight: 1.55 }}>
@@ -490,22 +490,22 @@ export default function AntimicrobianosPage() {
 
           <div style={{ display: 'grid', gap: 10 }}>
             {propuestasPend.map(t => (
-              <div key={t.farmaco} style={{ ...S.card, borderLeft: '4px solid #d97706' }}>
+              <div key={t.farmaco} style={{ ...S.card, borderLeft: '4px solid #D97706' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                   <div style={{ flex: '1 1 320px' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{t.farmaco}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0F172A)' }}>{t.farmaco}</div>
                     <div style={{ fontSize: 13.5, color: 'var(--text2, #334155)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
                       habitual <strong>{t.usualMaxPorDosis ?? '—'}</strong>/<strong>{t.usualMaxPorDia ?? '—'}</strong>
                       {t.contextualMaxPorDia ? <> · contexto <strong>{t.contextualMaxPorDosis ?? '—'}</strong>/<strong>{t.contextualMaxPorDia}</strong></> : null}
                       {t.absolutoMaxPorDia ? <> · techo <strong>{t.absolutoMaxPorDia}</strong></> : null} {t.unidad}
                     </div>
                     <div style={{ fontSize: 12.5, color: 'var(--text2, #334155)', marginTop: 6, lineHeight: 1.5 }}>{t.razon}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)', marginTop: 3 }}>{t.fuente}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text3, #64748B)', marginTop: 3 }}>{t.fuente}</div>
                   </div>
                   <button onClick={() => void conAviso(t.farmaco, () => confirmarPropuesta(t))}
                     disabled={ocupado !== null || cargandoTodo} style={{
                     padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
-                    border: '1px solid #d97706', cursor: ocupado ? 'wait' : 'pointer',
+                    border: '1px solid #D97706', cursor: ocupado ? 'wait' : 'pointer',
                     background: 'transparent', color: 'var(--amber)', opacity: ocupado === t.farmaco ? 0.6 : 1,
                   }}>{ocupado === t.farmaco ? 'Guardando…' : 'Confirmar'}</button>
                 </div>
@@ -514,10 +514,10 @@ export default function AntimicrobianosPage() {
           </div>
 
           <div style={{ ...S.card, marginTop: 22 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0F172A)' }}>
               {SIN_CIFRA.length} en los que una cifra sería falsa
             </div>
-            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '6px 0 10px', lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748B)', margin: '6px 0 10px', lineHeight: 1.55 }}>
               No es cautela: la cifra depende de un dato del paciente que el motor no tiene, o de
               una unidad que primero hay que declarar. Poner un mg fijo a una amikacina es
               inventarle el peso al enfermo.
@@ -549,8 +549,8 @@ export default function AntimicrobianosPage() {
       {pestana === 'topes' && (
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(min(300px, 100%), 1fr) minmax(min(300px, 100%), 1fr)' }}>
           <div style={S.card}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: 'var(--text, #0f172a)' }}>Cargar un tope</div>
-            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: 'var(--text, #0F172A)' }}>Cargar un tope</div>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748B)', margin: '0 0 12px', lineHeight: 1.5 }}>
               Ninguna cifra viene sugerida: la escribes tú, con su fuente. Un tope sin
               procedencia no se puede rebatir, y una alerta que no se puede rebatir se
               acaba ignorando.
@@ -588,7 +588,7 @@ export default function AntimicrobianosPage() {
                     {TIPOS_MAXIMO.map(t => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
                   </select></div>
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)' }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text3, #64748B)' }}>
                 {TIPOS_MAXIMO.find(t => t.valor === tTipo)?.ayuda}
               </div>
               <div><label style={S.label}>Fuente (obligatoria)</label>
@@ -604,19 +604,19 @@ export default function AntimicrobianosPage() {
                 style={{
                   padding: '10px 0', borderRadius: 9, fontSize: 14, fontWeight: 700, border: 'none',
                   cursor: problemas.length > 0 ? 'not-allowed' : 'pointer',
-                  background: problemas.length > 0 ? 'var(--s2, #f1f5f9)' : 'var(--nexus, #3d5afe)',
-                  color: problemas.length > 0 ? 'var(--text3, #64748b)' : '#fff',
+                  background: problemas.length > 0 ? 'var(--s2, #F1F5F9)' : 'var(--nexus, #3D5AFE)',
+                  color: problemas.length > 0 ? 'var(--text3, #64748B)' : '#FFF',
                 }}>{guardando ? 'Guardando…' : 'Guardar tope'}</button>
-              {aviso && <div style={{ fontSize: 12.5, color: 'var(--text3, #64748b)' }}>{aviso}</div>}
+              {aviso && <div style={{ fontSize: 12.5, color: 'var(--text3, #64748B)' }}>{aviso}</div>}
             </div>
           </div>
 
           <div style={S.card}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: 'var(--text, #0f172a)' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: 'var(--text, #0F172A)' }}>
               Cargados · {av.conLimite} de {av.total} fármacos ({av.porcentaje} %)
             </div>
             {cargados.length === 0 && (
-              <p style={{ fontSize: 13, color: 'var(--text3, #64748b)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 13, color: 'var(--text3, #64748B)', lineHeight: 1.5 }}>
                 Todavía no hay ninguno. Mientras no los haya, el motor responde
                 «faltan datos» en vez de juzgar una cifra — que es lo correcto.
               </p>
@@ -624,16 +624,16 @@ export default function AntimicrobianosPage() {
             <div style={{ display: 'grid', gap: 8 }}>
               {cargados.map(l => (
                 <div key={`${l.farmaco}__${l.indicacion}`} style={{
-                  border: '1px solid var(--border, #e5e7eb)', borderRadius: 9, padding: '9px 11px', fontSize: 12.5,
+                  border: '1px solid var(--border, #E5E7EB)', borderRadius: 9, padding: '9px 11px', fontSize: 12.5,
                 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text, #0f172a)' }}>{l.farmaco}</div>
-                  <div style={{ color: 'var(--text3, #64748b)' }}>{l.indicacion} · {l.limites.tipoMaximo}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text, #0F172A)' }}>{l.farmaco}</div>
+                  <div style={{ color: 'var(--text3, #64748B)' }}>{l.indicacion} · {l.limites.tipoMaximo}</div>
                   <div style={{ color: 'var(--text2, #334155)', marginTop: 3 }}>
                     habitual {l.limites.usualMaxPorDosis ?? '—'}/{l.limites.usualMaxPorDia ?? '—'} ·
                     contexto {l.limites.contextualMaxPorDosis ?? '—'}/{l.limites.contextualMaxPorDia ?? '—'} ·
                     absoluto {l.limites.absolutoMaxPorDosis ?? '—'}/{l.limites.absolutoMaxPorDia ?? '—'} {l.limites.unidad}
                   </div>
-                  <div style={{ color: 'var(--text3, #64748b)', marginTop: 3 }}>{l.fuente}</div>
+                  <div style={{ color: 'var(--text3, #64748B)', marginTop: 3 }}>{l.fuente}</div>
                   {l.huellaDataset !== HUELLA_DATASET && (
                     <div style={{ color: 'var(--amber)', marginTop: 3 }}>Caducado: se cargó con otra versión del dataset.</div>
                   )}
@@ -661,9 +661,9 @@ function Aviso({ tono, children }: { tono: 'alerta' | 'neutro'; children: React.
   return (
     <div style={{
       marginBottom: 14, padding: '11px 14px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55,
-      background: alerta ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'var(--s2, #f1f5f9)',
-      border: '1px solid ' + (alerta ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border, #e5e7eb)'),
-      color: alerta ? '#b91c1c' : 'var(--text2, #334155)',
+      background: alerta ? 'color-mix(in srgb, var(--red) 8%, transparent)' : 'var(--s2, #F1F5F9)',
+      border: '1px solid ' + (alerta ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border, #E5E7EB)'),
+      color: alerta ? '#B91C1C' : 'var(--text2, #334155)',
     }}>{children}</div>
   )
 }
@@ -672,10 +672,10 @@ function Bloque({ titulo, texto, fuentes }: { titulo: string; texto: string; fue
   if (!texto?.trim()) return null
   return (
     <div style={{ marginTop: 9 }}>
-      <div style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text3, #64748b)' }}>{titulo}</div>
-      <div style={{ fontSize: 13, color: 'var(--text, #0f172a)', lineHeight: 1.5 }}>{texto}</div>
+      <div style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text3, #64748B)' }}>{titulo}</div>
+      <div style={{ fontSize: 13, color: 'var(--text, #0F172A)', lineHeight: 1.5 }}>{texto}</div>
       {fuentes && fuentes.length > 0 && (
-        <div style={{ fontSize: 11, color: 'var(--text3, #64748b)', marginTop: 2 }}>{fuentes.join(' · ')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text3, #64748B)', marginTop: 2 }}>{fuentes.join(' · ')}</div>
       )}
     </div>
   )

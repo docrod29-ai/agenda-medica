@@ -200,19 +200,19 @@ export type PatientTag =
   | 'inactivo'
 
 export const PATIENT_TAG_CONFIG: Record<PatientTag, { label: string; color: string }> = {
-  'nuevo':                    { label: 'Nuevo',                   color: '#60a5fa' },
-  'seguimiento':              { label: 'Seguimiento',             color: '#94a3b8' },
-  'frecuente':                { label: 'Frecuente',               color: '#22c55e' },
-  'alto-riesgo':              { label: 'Alto riesgo',             color: '#ef4444' },
-  'requiere-llamada':         { label: 'Requiere llamada',        color: '#f59e0b' },
-  'pendiente-estudios':       { label: 'Pendiente estudios',      color: '#a855f7' },
-  'pendiente-pago':           { label: 'Pendiente pago',          color: '#f97316' },
-  'requiere-factura':         { label: 'Requiere factura',        color: '#06b6d4' },
-  'requiere-consentimiento':  { label: 'Requiere consentimiento', color: '#eab308' },
-  'requiere-interprete':      { label: 'Requiere intérprete',     color: '#84cc16' },
-  'embarazo':                 { label: 'Embarazo',                color: '#ec4899' },
-  'cronico':                  { label: 'Crónico',                 color: '#8b5cf6' },
-  'inactivo':                 { label: 'Inactivo',                color: '#64748b' },
+  'nuevo':                    { label: 'Nuevo',                   color: '#60A5FA' },
+  'seguimiento':              { label: 'Seguimiento',             color: '#94A3B8' },
+  'frecuente':                { label: 'Frecuente',               color: '#22C55E' },
+  'alto-riesgo':              { label: 'Alto riesgo',             color: '#EF4444' },
+  'requiere-llamada':         { label: 'Requiere llamada',        color: '#F59E0B' },
+  'pendiente-estudios':       { label: 'Pendiente estudios',      color: '#A855F7' },
+  'pendiente-pago':           { label: 'Pendiente pago',          color: '#F97316' },
+  'requiere-factura':         { label: 'Requiere factura',        color: '#06B6D4' },
+  'requiere-consentimiento':  { label: 'Requiere consentimiento', color: '#EAB308' },
+  'requiere-interprete':      { label: 'Requiere intérprete',     color: '#84CC16' },
+  'embarazo':                 { label: 'Embarazo',                color: '#EC4899' },
+  'cronico':                  { label: 'Crónico',                 color: '#8B5CF6' },
+  'inactivo':                 { label: 'Inactivo',                color: '#64748B' },
 }
 
 /** Sucursal / sede / consultorio físico — opcional para clínicas multi-sede. */
@@ -748,7 +748,7 @@ export const DEFAULT_CONFIG: ClinicConfig = {
   recetaConfig: {
     paperSize: 'media-carta',
     estilo: 'minimalista',
-    colorAccento: '#14b8a6',
+    colorAccento: '#14B8A6',
     mostrarQR: true,
     copiasEnHoja: 1,
     vigenciaDias: 30,

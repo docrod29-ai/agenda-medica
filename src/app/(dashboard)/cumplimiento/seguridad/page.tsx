@@ -149,7 +149,7 @@ export default function SeguridadPage() {
             <li>Al iniciar sesión, además de tu contraseña, te pediré el código actual</li>
           </ol>
           <div style={{
-            padding: 10, background: 'color-mix(in srgb, var(--amber) 6%, transparent)', borderLeft: '2px solid #f59e0b',
+            padding: 10, background: 'color-mix(in srgb, var(--amber) 6%, transparent)', borderLeft: '2px solid #F59E0B',
             borderRadius: 4, fontSize: 12, color: 'var(--text2)', marginBottom: 14,
             display: 'flex', alignItems: 'flex-start', gap: 7,
           }}>
@@ -170,7 +170,7 @@ export default function SeguridadPage() {
       {paso === 'qr' && qrUrl && (
         <div style={cardStyle}>
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Escanea el código QR</h2>
-          <div style={{ textAlign: 'center', padding: 18, background: '#fff', borderRadius: 10, marginBottom: 12 }}>
+          <div style={{ textAlign: 'center', padding: 18, background: '#FFF', borderRadius: 10, marginBottom: 12 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=220x220&margin=8`}
@@ -242,7 +242,7 @@ export default function SeguridadPage() {
       {/* PASO: completado */}
       {paso === 'completado' && (
         <div style={{ ...cardStyle, textAlign: 'center' }}>
-          <ShieldCheck size={48} color="#10b981" style={{ marginBottom: 12 }} />
+          <ShieldCheck size={48} color="#10B981" style={{ marginBottom: 12 }} />
           <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>2FA activado</h2>
           <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 18, lineHeight: 1.6 }}>
             A partir de ahora, cada vez que inicies sesión te pediré además de tu contraseña
@@ -267,8 +267,8 @@ function Estado({ activo, email }: { activo: boolean; email: string }) {
       background: activo ? 'rgba(16,185,129,0.04)' : 'color-mix(in srgb, var(--amber) 4%, transparent)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        {activo ? <ShieldCheck size={20} color="#10b981" /> : <AlertTriangle size={20} color="var(--amber)" />}
-        <span style={{ fontSize: 15, fontWeight: 700, color: activo ? '#10b981' : '#f59e0b' }}>
+        {activo ? <ShieldCheck size={20} color="#10B981" /> : <AlertTriangle size={20} color="var(--amber)" />}
+        <span style={{ fontSize: 15, fontWeight: 700, color: activo ? '#10B981' : '#F59E0B' }}>
           {activo ? '2FA activo' : '2FA NO está activo'}
         </span>
       </div>

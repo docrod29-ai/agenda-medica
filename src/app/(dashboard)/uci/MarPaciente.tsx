@@ -16,13 +16,13 @@ import { graciaMar } from '@/lib/uci/gracia'
 import type { Indicacion } from '@/types/hospital'
 
 const COLOR: Record<EstadoMar, string> = {
-  atrasado: '#dc2626',
-  toca: '#d97706',
-  nunca_administrado: '#dc2626',
-  horario_no_interpretable: '#7c3aed',
-  infusion_continua: '#3d5afe',
+  atrasado: '#DC2626',
+  toca: '#D97706',
+  nunca_administrado: '#DC2626',
+  horario_no_interpretable: '#7C3AED',
+  infusion_continua: '#3D5AFE',
   prn: 'var(--text3)',
-  al_dia: '#0d9488',
+  al_dia: '#0D9488',
   completado: 'var(--text3)',
   suspendido: 'var(--text3)',
 }
@@ -63,7 +63,7 @@ export default function MarPaciente(
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Pill size={16} style={{ color: 'var(--nexus,#3d5afe)' }} />
+          <Pill size={16} style={{ color: 'var(--nexus,#3D5AFE)' }} />
           <span style={{ fontWeight: 600, fontSize: 14 }}>MAR</span>
           <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· charter §37</span>
         </div>

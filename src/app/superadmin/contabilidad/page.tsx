@@ -136,7 +136,7 @@ export default function ContabilidadPage() {
             {meses.map(m => <option key={m} value={m}>{nombreMes(m)}</option>)}
           </select>
           <button onClick={exportarCSV} disabled={!data}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             <Download size={14} /> Exportar CSV
           </button>
         </div>
@@ -186,10 +186,10 @@ export default function ContabilidadPage() {
                   : 'sin datos',
               },
             ].map((k, i) => (
-              <div key={i} style={{ background: k.hero ? 'linear-gradient(160deg,#0e1524,#182338)' : 'var(--s1)', border: '1px solid ' + (k.hero ? '#0e1524' : 'var(--border)'), borderRadius: 13, padding: '14px 15px' }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, color: k.hero ? '#8ea0c0' : 'var(--text3)' }}>{k.lab}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, color: k.hero ? '#fff' : 'var(--text)' }}>{k.val}</div>
-                <div style={{ fontSize: 11, marginTop: 3, color: k.hero ? '#aeb9cf' : 'var(--text3)' }}>{k.foot}</div>
+              <div key={i} style={{ background: k.hero ? 'linear-gradient(160deg,#0E1524,#182338)' : 'var(--s1)', border: '1px solid ' + (k.hero ? '#0E1524' : 'var(--border)'), borderRadius: 13, padding: '14px 15px' }}>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, color: k.hero ? '#8EA0C0' : 'var(--text3)' }}>{k.lab}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, color: k.hero ? '#FFF' : 'var(--text)' }}>{k.val}</div>
+                <div style={{ fontSize: 11, marginTop: 3, color: k.hero ? '#AEB9CF' : 'var(--text3)' }}>{k.foot}</div>
               </div>
             ))}
           </div>
@@ -264,9 +264,9 @@ export default function ContabilidadPage() {
               padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
               color: data.costoIAFuente.fuente === 'supuesto' ? 'var(--amber)' : 'var(--text2)',
               background: data.costoIAFuente.fuente === 'supuesto'
-                ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--panel, #f8fafc)',
+                ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--panel, #F8FAFC)',
               border: `1px solid ${data.costoIAFuente.fuente === 'supuesto'
-                ? 'color-mix(in srgb, var(--amber) 30%, transparent)' : 'var(--border, #e5e7eb)'}`,
+                ? 'color-mix(in srgb, var(--amber) 30%, transparent)' : 'var(--border, #E5E7EB)'}`,
             }}>
               <b>
                 {data.costoIAFuente.fuente === 'libro_de_costos'

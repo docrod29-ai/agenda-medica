@@ -6,82 +6,85 @@
 
 ---
 
-## Checkpoint · 8-ago-2026
+## Checkpoint · 9-ago-2026
 
 | | |
 |---|---|
-| **Rama** | `claude/nexus-patient-ux-v9` |
-| **SHA base de esta sesión** | `0abcba2` (`chore(deploy): v1146 — REG-264`) |
-| **SHA de cierre** | `639ca73` |
-| **Unidad cerrada** | **`PATIENT-UX-TRUTH-001`** (iteración 0 de V9) |
-| **Siguiente unidad** | ver «Qué hacer al reanudar» |
+| **Rama** | `claude/compassionate-galileo-sg8lel` |
+| **SHA base de esta sesión** | `210847a` (merge del PR #269) |
+| **SHA de `PATIENT-TELE-002`** | `f981d9c` |
+| **SHA de cierre de la sesión** | *(ver `git log -1`)* |
+| **Unidades tocadas** | `PATIENT-TELE-002` **cerrada** · `DESIGN-SYSTEM-001` **abierta, no cerrada** |
 
 ### Qué quedó hecho
 
-**Los siete documentos de la unidad**, todos con sección «qué NO cubre»:
+**1 · `PATIENT-TELE-002` — REG-288. El último P0 de V9.**
 
-- `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` — cabecera
-- `docs/design/SCREEN_INVENTORY.md` — **generado**, 78 pantallas
-- `docs/design/NAVIGATION_STATE_AUDIT.md`
-- `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md`
-- `docs/patient/PATIENT_COMPANION_BASELINE.md`
-- `docs/competitive/PATIENT_EXPERIENCE_MATRIX.md`
-- `docs/competitive/UX_UI_MATRIX.md`
+La videoconsulta se anunciaba por WhatsApp **sin enlace**: `dondeEsLaCita` exige
+token desde REG-265 y los tres llamadores de servidor no lo acuñaban, así que el
+paciente recibía «recibirás el enlace por este medio antes de tu cita» **en el
+mensaje que era ese medio**.
 
-**Backlog**: 14 elementos V9 en `agent-state/BACKLOG.json` con `prioridadV9` y
-`unidad` (4 P0 · 7 P1 · 3 P2).
+- `src/lib/telesalud/token-de-sala.ts` (nuevo) — la pieza que faltaba; firmar
+  exige un secreto de servidor y `lib/whatsapp.ts` se importa desde el navegador.
+- La vida del token se **deriva de la hora de la cita**: el plan escrito decía
+  «1 día», y el recordatorio de 24 h sale entre 23 y 26 h antes — habría caducado
+  antes de la consulta que anuncia. Probado al revés.
+- Residuos declarados, no escondidos: `TELE-ALCANCE-001` (P1), `TELE-REVOCA-001` (P2).
 
-**Dos defectos reparados y sellados**, con prueba que falla al revés:
+**2 · `DESIGN-SYSTEM-001`, primera mitad.**
 
-- **REG-265** — el enlace de la videoconsulta del paciente no llevaba token:
-  404 «Cita no encontrada» desde su propio portal.
-- **REG-266** — `@keyframes spin` no existía en ningún sitio global; 90
-  referencias, incluidos los dos primitivos compartidos.
-
-**Un instrumento**: `scripts/design/inventario-de-pantallas.mjs` +
-`el-inventario-de-pantallas-no-miente.test.ts`, para que el inventario no se
-pudra.
+- `@theme inline`: de **4** tokens a **41**. Era la causa raíz del monolito de
+  estilo en línea — sin utilidades, el código no tenía alternativa.
+- Escala de **radio** (8 peldaños) y de **espacio** (10), medidas sobre el
+  repositorio, no inventadas.
+- Dos peldaños tipográficos que faltaban: `.t-body-sm` (13 px, 536 usos sin
+  clase) y `.t-micro` (11 px, 292).
+- Ortografía del color normalizada: **0** valores escritos en dos mayúsculas
+  (eran 7, en 175 sitios). Distintos: 146 → 139. Cero píxeles cambiados.
+- **La compuerta**: `scripts/design/trinquete-de-diseno.mjs` congela seis cifras
+  y sólo las deja bajar. Una pantalla nueva con estilo en línea la falla.
+- `docs/design/NEXUS_DESIGN_SYSTEM.md`.
 
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 8 083 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). Comprobado en `HEAD` limpio con los cambios guardados aparte: falla igual |
-| `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
+| `npx vitest run` | 8 461 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). **Comprobado con `git stash`: falla igual en `HEAD` limpio** |
+| `lint-trinquete` | **96, igual que el techo** |
+| `trinquete-de-diseno` | techo fijado hoy: 1 161 · 139 · **0** · 2 888 · 1 092 · 3 162 |
 | `npx tsc --noEmit` | **limpio** |
-| `npm run build` | **compila** («Compiled successfully in 41s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
-| navegador / móvil / a11y | **no ejecutadas** |
+| `npm run build` | **compila** («Compiled successfully in 35s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
+| navegador / móvil / a11y | **no ejecutadas** — sin credenciales, el producto no arranca aquí |
 
 ---
 
 ## Qué hacer al reanudar
 
-**1. Comprobar** que `git log --oneline -3` incluye el commit de
-`PATIENT-UX-TRUTH-001` y correr `node scripts/agent-state/actualizar.mjs`.
+**1. NO rehacer** `PATIENT-UX-TRUTH-001`, los tres P0 de audio ni
+`PATIENT-TELE-002`. Están cerrados con SHA.
 
-**2. NO rehacer la auditoría.** Está cerrada. Su producto es el backlog.
+**2. Terminar `DESIGN-SYSTEM-001`.** Lo que falta, en orden:
 
-**3. Empezar por los tres P0 de audio**, aunque su ficha diga `NAVIGATION-001`.
-Son pérdida **irreversible** de una consulta ya grabada, y un P0 de integridad
-manda sobre el orden de las iteraciones:
+- **`A11Y-GATE-001`** — hoy hay **1** prueba de accesibilidad entre 566, y es una
+  expresión regular sobre `layout.tsx`. Objetivo WCAG 2.2 AA. Dos mitades: lo que
+  se puede hacer sin navegador (`eslint-plugin-jsx-a11y` con trinquete, sobre las
+  9 pantallas del paciente primero) y lo que no (`axe` sobre el producto
+  corriendo).
+- **Regresión visual** — no hay línea base.
+- **Adopción de primitivos** (`components/ui/`, 24 %) — el trinquete de hoy no la
+  mide.
 
-- `PATIENT-AUDIO-001` — volver a grabar borra el audio anterior. Es el más caro y
-  el arreglo es el más pequeño: limitar el borrado al rango de esta sesión.
-- `PATIENT-AUDIO-002` — navegar termina la grabación en silencio.
-- `PATIENT-AUDIO-003` — el cierre por inactividad no oye dictar y borra la
-  recuperación.
+**3. Luego `NAVIGATION-001`**, con `NAV-AGENDA-001` (Agenda → Consulta → atrás
+nunca vuelve a la Agenda) como cabeza.
 
-Los tres, con su plan de arreglo escrito, en `agent-state/BACKLOG.json`.
-
-**4. Luego `DESIGN-SYSTEM-001`**, empezando por `@theme inline`
-(`globals.css:126-131`) — **no por colores**, que lo prohíbe §13 de la directiva
-y además no es el problema.
-
-**5. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
+**4. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
 de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en
-P0.**
+P0.** Y ahí mismo, la comprobación en navegador que REG-265 y REG-288 no han
+tenido: abrir el enlace de la sala tal como le llega al paciente.
 
 ## Lo que este checkpoint NO garantiza
 
-Que la interfaz esté bien. **Nadie ha abierto una pantalla.** Ninguna pantalla
-está aprobada y la auditoría no aprueba ninguna: prioriza el barrido.
+Que la interfaz esté bien. **Nadie ha abierto una pantalla.** Hay sistema de
+diseño y hay compuerta; no hay ninguna pantalla aprobada. Y la deuda de estilo en
+línea **no ha bajado** — sólo dejó de poder crecer.

@@ -80,7 +80,7 @@ export function DoctorFilter({
 
   // Colores cíclicos para los avatares (consistentes por id)
   const colorFor = (id: string): string => {
-    const colores = ['#14b8a6', '#a78bfa', '#f59e0b', '#3b82f6', '#ec4899']
+    const colores = ['#14B8A6', '#A78BFA', '#F59E0B', '#3B82F6', '#EC4899']
     const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
     return colores[hash % colores.length]
   }
@@ -188,7 +188,7 @@ export function DoctorFilter({
 
 /** Helper: obtiene color del médico (consistente por id) */
 export function colorMedico(id: string): string {
-  const colores = ['#14b8a6', '#a78bfa', '#f59e0b', '#3b82f6', '#ec4899']
+  const colores = ['#14B8A6', '#A78BFA', '#F59E0B', '#3B82F6', '#EC4899']
   const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
   return colores[hash % colores.length]
 }

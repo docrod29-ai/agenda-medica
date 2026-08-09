@@ -48,7 +48,7 @@ export function RecetaPreviewWrapper({
       overflow: 'hidden',
       position: 'relative',
       margin: '0 auto',
-      background: '#1a2333',
+      background: '#1A2333',
       borderRadius: 6,
     }}>
       <div

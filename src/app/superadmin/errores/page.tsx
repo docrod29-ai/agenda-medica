@@ -41,7 +41,7 @@ export default function ErroresInbox() {
       </Link>
       <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
         <Bug size={20} style={{ color: 'var(--red)' }} /> Errores
-        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--red)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{nuevos}</span>}
+        {nuevos > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#FFF', background: 'var(--red)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{nuevos}</span>}
       </h1>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 18px' }}>Errores no atrapados que reportan los clientes en vivo. Sin datos de pacientes.</p>
 

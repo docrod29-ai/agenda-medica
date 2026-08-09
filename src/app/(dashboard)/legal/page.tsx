@@ -79,7 +79,7 @@ export default function LegalPage() {
             style={{
               border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '7px 16px', fontSize: 13, fontWeight: 700,
               background: doc === k ? 'var(--nexus)' : 'transparent',
-              color: doc === k ? '#fff' : 'var(--text3)',
+              color: doc === k ? '#FFF' : 'var(--text3)',
             }}>
             {label}
           </button>

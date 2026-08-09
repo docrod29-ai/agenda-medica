@@ -19,8 +19,8 @@ interface Props {
 }
 
 const CAT_COLOR: Record<CategoriaRec, string> = {
-  Medicamentos: '#3D5AFE', Biomarcadores: '#60a5fa', Tiempos: '#f59e0b',
-  Pruebas: '#a78bfa', Tromboprofilaxis: '#f87171', General: '#94a3b8',
+  Medicamentos: '#3D5AFE', Biomarcadores: '#60A5FA', Tiempos: '#F59E0B',
+  Pruebas: '#A78BFA', Tromboprofilaxis: '#F87171', General: '#94A3B8',
 }
 
 export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos, initialInputs }: Props) {
@@ -204,7 +204,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
         ))}
         <Resultado>
           <strong>{rcriRes.puntos} punto(s) · Clase {rcriRes.clase}</strong> — MACE 30 d {rcriRes.riesgoEstimadoLee} (Lee 1999).
-          <span style={{ color: rcriRes.elevado ? '#f87171' : '#4ade80' }}> {rcriRes.interpretacion}</span>
+          <span style={{ color: rcriRes.elevado ? '#F87171' : '#4ADE80' }}> {rcriRes.interpretacion}</span>
         </Resultado>
       </Card>
 
@@ -215,12 +215,12 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
         ))}
         <Resultado>
           <strong>DASI {dasiRes.score} · ≈ {dasiRes.mets} METs</strong> (VO₂ pico {dasiRes.vo2pico} mL/kg/min).
-          <span style={{ color: dasiRes.capacidadBaja ? '#f59e0b' : '#4ade80' }}> {dasiRes.interpretacion}</span>
+          <span style={{ color: dasiRes.capacidadBaja ? '#F59E0B' : '#4ADE80' }}> {dasiRes.interpretacion}</span>
         </Resultado>
       </Card>
 
       {/* ── Caprini ── */}
-      <Card icon={<Droplets size={15} />} titulo="Caprini — Riesgo de tromboembolia venosa (TEV)" color="#fb923c">
+      <Card icon={<Droplets size={15} />} titulo="Caprini — Riesgo de tromboembolia venosa (TEV)" color="#FB923C">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '0 20px' }}>
           {CAPRINI_ITEMS.map(it => chk(
             !!caprini[it.key], () => setCaprini(c => ({ ...c, [it.key]: !c[it.key] })), it.label, it.peso
@@ -232,7 +232,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       </Card>
 
       {/* ── ARISCAT ── */}
-      <Card icon={<Wind size={15} />} titulo="ARISCAT — Riesgo de complicaciones pulmonares posoperatorias" color="#38bdf8">
+      <Card icon={<Wind size={15} />} titulo="ARISCAT — Riesgo de complicaciones pulmonares posoperatorias" color="#38BDF8">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           <Num label="Edad" value={ariscat.edad} onChange={v => setAriscat(a => ({ ...a, edad: v }))} />
           <Num label="SpO₂ (% aire ambiente)" value={ariscat.spo2} onChange={v => setAriscat(a => ({ ...a, spo2: v }))} />
@@ -247,12 +247,12 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
           {chk(ariscat.emergencia, () => setAriscat(a => ({ ...a, emergencia: !a.emergencia })), 'Procedimiento de emergencia (+8)')}
         </div>
         <Resultado>
-          <strong>{ariscatRes.puntos} puntos · Riesgo {ariscatRes.nivel}</strong> — complicaciones pulmonares {ariscatRes.riesgoEstimado} (Canet 2010). <span style={{ color: ariscatRes.nivel === 'Bajo' ? '#4ade80' : '#f59e0b' }}>Conducta: {ariscatRes.conducta}</span>
+          <strong>{ariscatRes.puntos} puntos · Riesgo {ariscatRes.nivel}</strong> — complicaciones pulmonares {ariscatRes.riesgoEstimado} (Canet 2010). <span style={{ color: ariscatRes.nivel === 'Bajo' ? '#4ADE80' : '#F59E0B' }}>Conducta: {ariscatRes.conducta}</span>
         </Resultado>
       </Card>
 
       {/* ── STOP-BANG ── */}
-      <Card icon={<Moon size={15} />} titulo="STOP-BANG — Riesgo de apnea obstructiva del sueño" color="#818cf8">
+      <Card icon={<Moon size={15} />} titulo="STOP-BANG — Riesgo de apnea obstructiva del sueño" color="#818CF8">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '0 20px' }}>
           {STOPBANG_ITEMS.map(it => chk(!!stopbang[it.key], () => setStopbang(s => ({ ...s, [it.key]: !s[it.key] })), it.label))}
         </div>
@@ -262,7 +262,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       </Card>
 
       {/* ── CHA2DS2-VASc + HAS-BLED ── */}
-      <Card icon={<Brain size={15} />} titulo="CHA₂DS₂-VASc / HAS-BLED — Tromboembolia y sangrado (FA / anticoagulación)" color="#f472b6">
+      <Card icon={<Brain size={15} />} titulo="CHA₂DS₂-VASc / HAS-BLED — Tromboembolia y sangrado (FA / anticoagulación)" color="#F472B6">
         <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', marginBottom: 4 }}>CHA₂DS₂-VASc</div>
@@ -349,7 +349,7 @@ export function PreopAssessment({ edadPaciente, disabled, onAplicar, onSinDatos,
       {!disabled && (
         <button onClick={aplicar} style={{
           display: 'flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-          background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
+          background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10,
           padding: '11px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}>
           <Check size={16} /> Aplicar escalas y recomendaciones a la nota

@@ -104,7 +104,7 @@ export function DoctorOnboarding({ doctor, onComplete }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0d1f2d] border border-white/10 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
+      <div className="bg-[#0D1F2D] border border-white/10 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3 mb-4">

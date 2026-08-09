@@ -93,7 +93,7 @@ export function ServiceWorkerRegister() {
             if (v) {
               ;(window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION = v
               // eslint-disable-next-line no-console
-              console.info(`%cNexusMED ${v}`, 'color:#14b8a6;font-weight:700')
+              console.info(`%cNexusMED ${v}`, 'color:#14B8A6;font-weight:700')
             }
           }
           sw.postMessage({ type: 'GET_VERSION' }, [canal.port2])

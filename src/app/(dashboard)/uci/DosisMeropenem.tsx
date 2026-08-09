@@ -60,7 +60,7 @@ export function DosisMeropenem({ crClSugerido }: { crClSugerido?: number | null 
   return (
     <div style={card}>
       <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Syringe size={16} style={{ color: 'var(--nexus,#3d5afe)' }} /> Meropenem en el adulto crítico
+        <Syringe size={16} style={{ color: 'var(--nexus,#3D5AFE)' }} /> Meropenem en el adulto crítico
       </h2>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 0 14px', lineHeight: 1.6 }}>
         Algoritmo del Dr. (2026-07-30). El orden es foco y gravedad → CrCl → ARC →

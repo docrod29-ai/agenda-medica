@@ -105,7 +105,7 @@ export default function BenchmarkVozPage() {
         <ArrowLeft size={15} /> Pacientes y camas de UCI
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BarChart3 size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Benchmark de voz
+        <BarChart3 size={22} style={{ color: 'var(--nexus,#3D5AFE)' }} /> Benchmark de voz
       </h1>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 16px', lineHeight: 1.6 }}>
         Mide cuánto entiende de verdad el dictado de UCI. Grabas, el sistema transcribe,
@@ -126,8 +126,8 @@ export default function BenchmarkVozPage() {
         {([['guion', 'Leer el guion'], ['libre', 'Dictado libre']] as const).map(([k, txt]) => (
           <button key={k} onClick={() => setModo(k)} style={{
             background: modo === k ? 'rgba(61,90,254,0.14)' : 'none',
-            border: `1px solid ${modo === k ? 'var(--nexus,#3d5afe)' : 'var(--border)'}`,
-            color: modo === k ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+            border: `1px solid ${modo === k ? 'var(--nexus,#3D5AFE)' : 'var(--border)'}`,
+            color: modo === k ? 'var(--nexus,#3D5AFE)' : 'var(--text3)',
             borderRadius: 9, padding: '7px 13px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', minHeight: 36,
           }}>{txt}</button>
         ))}
@@ -165,7 +165,7 @@ export default function BenchmarkVozPage() {
             <Button
               onClick={() => (grabando ? audio.detener() : audio.iniciar({ recoveryKey: 'benchmark-voz', contexto: 'uci' }))}
               icon={grabando ? <Square size={15} /> : <Mic size={15} />}
-              style={grabando ? { background: '#dc2626', color: '#fff', border: 'none' } : undefined}
+              style={grabando ? { background: '#DC2626', color: '#FFF', border: 'none' } : undefined}
             >
               {grabando ? 'Detener' : 'Grabar'}
             </Button>
@@ -238,7 +238,7 @@ export default function BenchmarkVozPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
             {resultados.slice().reverse().slice(0, 6).map(r => (
-              <div key={r.id} style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text3)', borderLeft: `2px solid ${r.perdidos.length > 0 ? '#dc2626' : '#0d9488'}`, paddingLeft: 8 }}>
+              <div key={r.id} style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text3)', borderLeft: `2px solid ${r.perdidos.length > 0 ? '#DC2626' : '#0D9488'}`, paddingLeft: 8 }}>
                 <div><strong style={{ color: 'var(--text2)' }}>Dijiste:</strong> {r.gold}</div>
                 <div><strong style={{ color: 'var(--text2)' }}>Entendió:</strong> {r.transcripcion}</div>
                 {r.perdidos.length > 0 && <div style={{ color: 'var(--red)' }}>Perdió: {r.perdidos.join(', ')}</div>}

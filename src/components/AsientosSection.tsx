@@ -50,12 +50,12 @@ export default function AsientosSection({ clinicId }: { clinicId: string }) {
       </div>
 
       {st.requiereActualizar && (
-        <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, border: '1px solid var(--amber, #d97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)' }}>
+        <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, border: '1px solid var(--amber, #D97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)' }}>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 8 }}>
             Tienes <strong>{st.medicos}</strong> médicos pero tu cobro es por <strong>{st.contratados}</strong>. Actualiza para ajustar la suscripción (se prorratea).
           </div>
           <button onClick={actualizar} disabled={aplicando}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: aplicando ? 'wait' : 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: aplicando ? 'wait' : 'pointer' }}>
             {aplicando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Actualizando…</> : `Actualizar cobro a ${st.medicos} médicos`}
           </button>
         </div>

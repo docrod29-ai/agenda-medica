@@ -353,7 +353,7 @@ function HowItWorks() {
 
           {/* WhatsApp mockup */}
           <div style={{
-            background: '#0a0f1a', borderRadius: 20, border: '1px solid var(--border)',
+            background: '#0A0F1A', borderRadius: 20, border: '1px solid var(--border)',
             overflow: 'hidden', maxWidth: 360, margin: '0 auto', width: '100%',
           }}>
             {/* Header */}
@@ -366,10 +366,10 @@ function HowItWorks() {
                 background: 'rgba(255,255,255,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Stethoscope size={18} color="#fff" />
+                <Stethoscope size={18} color="#FFF" />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Dr. García</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#FFF' }}>Dr. García</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>en línea</div>
               </div>
             </div>
@@ -378,7 +378,7 @@ function HowItWorks() {
             <div style={{
               padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 10,
               maxHeight: 360, overflowY: 'auto',
-              background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3C/svg%3E") #0d1117',
+              background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3C/svg%3E") #0D1117',
             }}>
               {WHATSAPP_MESSAGES.map((m, i) => (
                 <div key={i} style={{
@@ -387,8 +387,8 @@ function HowItWorks() {
                 }}>
                   <div style={{
                     maxWidth: '82%', padding: '8px 12px', borderRadius: 12,
-                    background: m.role === 'user' ? '#005c4b' : '#1f2c34',
-                    color: '#e9edef', fontSize: 12.5, lineHeight: 1.5,
+                    background: m.role === 'user' ? '#005C4B' : '#1F2C34',
+                    color: '#E9EDEF', fontSize: 12.5, lineHeight: 1.5,
                     whiteSpace: 'pre-wrap',
                     borderTopRightRadius: m.role === 'user' ? 2 : 12,
                     borderTopLeftRadius: m.role === 'bot' ? 2 : 12,
@@ -403,7 +403,7 @@ function HowItWorks() {
       </div>
 
       <div style={{ maxWidth: 1100, margin: '48px auto 0', display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
+        <Link href="/demo/razonamiento" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 700 }}>
           Ver cómo razona la IA en vivo →
         </Link>
         <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '12px 20px', fontSize: 14.5, fontWeight: 600, border: '1px solid var(--border)' }}>
@@ -446,7 +446,7 @@ function Pricing() {
             {p.highlight && (
               <div style={{
                 position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-                background: 'var(--nexus-solido)', color: '#fff', fontSize: 12, fontWeight: 700,
+                background: 'var(--nexus-solido)', color: '#FFF', fontSize: 12, fontWeight: 700,
                 padding: '4px 16px', borderRadius: 'var(--r-pill)',
               }}>
                 MÁS POPULAR
@@ -596,7 +596,7 @@ function FinalCTA() {
       </p>
       <Link href="/registro" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'var(--nexus-solido)', color: '#fff', fontWeight: 700,
+        background: 'var(--nexus-solido)', color: '#FFF', fontWeight: 700,
         fontSize: 18, padding: '16px 36px', borderRadius: 14,
         textDecoration: 'none',
       }}>

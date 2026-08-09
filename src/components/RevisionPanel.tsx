@@ -52,7 +52,7 @@ interface Props {
   sinMarco?: boolean
 }
 
-const CONF_COLOR: Record<Confianza, string> = { alta: '#4ade80', media: '#f59e0b', baja: '#f87171' }
+const CONF_COLOR: Record<Confianza, string> = { alta: '#4ADE80', media: '#F59E0B', baja: '#F87171' }
 const HABLANTE_LABEL: Record<Hablante, string> = {
   medico: 'Médico', paciente: 'Paciente', acompanante: 'Acompañante', desconocido: '—',
 }
@@ -177,7 +177,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
             </button>
           ) : (
             <button onClick={() => onAprobar(id)} title="Volver a incluir en la nota"
-              style={{ background: 'var(--nexus-solido)', border: 'none', color: '#fff', borderRadius: 6, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
+              style={{ background: 'var(--nexus-solido)', border: 'none', color: '#FFF', borderRadius: 6, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
               <Check size={12} /> Regresar
             </button>
           )}

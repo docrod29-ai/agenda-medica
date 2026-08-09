@@ -157,21 +157,21 @@ export default function DashboardPage() {
           label="Confirmadas"
           value={loading ? '…' : String(stats.confirmadas)}
           sub={stats.total > 0 ? `${Math.round((stats.confirmadas / stats.total) * 100)}%` : '—'}
-          accentColor="#22c55e"
+          accentColor="#22C55E"
         />
         <KpiCard delay={160}
-          icon={<Clock size={20} color="#fb923c" />}
+          icon={<Clock size={20} color="#FB923C" />}
           label="Pendientes"
           value={loading ? '…' : String(stats.pendientes)}
           sub="por confirmar"
-          accentColor="#fb923c"
+          accentColor="#FB923C"
         />
         <KpiCard delay={220}
           icon={<UserX size={20} color="var(--red)" />}
           label="No asistieron"
           value={loading ? '…' : String(stats.noShow)}
           sub={stats.canceladas > 0 ? `+ ${stats.canceladas} canceladas` : ''}
-          accentColor="#ef4444"
+          accentColor="#EF4444"
         />
       </div>
 

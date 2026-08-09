@@ -354,7 +354,7 @@ export default function ConfiguracionPage() {
       {esSuperadminCliente(authUser?.email) && (
         <a href="/superadmin" style={{
           display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none',
-          background: 'linear-gradient(90deg, #7c3aed12, transparent)', border: '1px solid #7c3aed44',
+          background: 'linear-gradient(90deg, #7C3AED12, transparent)', border: '1px solid #7C3AED44',
           borderRadius: 12, padding: '12px 16px', marginBottom: 18,
         }}>
           <ShieldCheck size={18} style={{ color: 'var(--purple)' }} />
@@ -1111,7 +1111,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
               <div style={{ textAlign: 'center' }}>
                 <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }}>Código QR</label>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qr} alt="QR de auto-agenda" width={140} height={140} style={{ borderRadius: 8, background: '#fff', padding: 6 }} />
+                <img src={qr} alt="QR de auto-agenda" width={140} height={140} style={{ borderRadius: 8, background: '#FFF', padding: 6 }} />
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Imprímelo en tu consultorio</div>
               </div>
             )}
@@ -1270,7 +1270,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
             background: connected ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'rgba(61,90,254,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <MessageCircle size={20} color={connected ? '#4ade80' : 'var(--teal)'} />
+            <MessageCircle size={20} color={connected ? '#4ADE80' : 'var(--teal)'} />
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>WhatsApp Business</div>
@@ -1288,7 +1288,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
           display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600,
           padding: '4px 12px', borderRadius: 20,
           background: connected ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'var(--s2)',
-          color: connected ? '#4ade80' : 'var(--text3)',
+          color: connected ? '#4ADE80' : 'var(--text3)',
         }}>
           {connected ? <><CheckCircle2 size={13} /> Conectado</> : <><XCircle size={13} /> No conectado</>}
         </span>
@@ -1329,7 +1329,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
             disabled={connecting}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: connecting ? 'var(--s3)' : '#25D366', color: '#fff',
+              background: connecting ? 'var(--s3)' : '#25D366', color: '#FFF',
               border: 'none', borderRadius: 10, padding: '11px 20px',
               fontSize: 14, fontWeight: 700, cursor: connecting ? 'default' : 'pointer',
             }}
@@ -1376,7 +1376,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               <button
                 onClick={handleManualConnect}
                 disabled={manualSaving}
-                style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               >
                 {manualSaving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Conectando…</> : 'Conectar'}
               </button>
@@ -1668,7 +1668,7 @@ function MedicosTab() {
  * de una subida de tarifa — y quien lo descubre es él, comparando con su recibo.
  */
 const COLOR_PLAN: Record<string, string> = {
-  trial: 'var(--amber)', agenda: '#60a5fa', clinica: '#3D5AFE', premium: '#a78bfa', hospital: '#7c5cd6',
+  trial: 'var(--amber)', agenda: '#60A5FA', clinica: '#3D5AFE', premium: '#A78BFA', hospital: '#7C5CD6',
 }
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
   trial: { label: 'Prueba gratuita', color: COLOR_PLAN.trial, price: '$0 MXN/mes' },
@@ -1768,7 +1768,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             <span style={{
               fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)',
               background: status === 'active' ? 'rgba(61,90,254,0.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
-              color: status === 'active' ? 'var(--teal)' : '#f59e0b',
+              color: status === 'active' ? 'var(--teal)' : '#F59E0B',
               border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
             }}>
               {status === 'active' ? 'ACTIVO' : status === 'trial' ? 'PRUEBA' : status === 'suspended' ? 'SUSPENDIDO' : 'CANCELADO'}
@@ -1967,7 +1967,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
       {/* Aviso: aquí también se agrega al equipo hospitalario */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'rgba(61,90,254,.08)', border: '1px solid rgba(61,90,254,.3)' }}>
-        <BedDouble size={18} style={{ color: '#3d5afe', flexShrink: 0, marginTop: 1 }} />
+        <BedDouble size={18} style={{ color: '#3D5AFE', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
           Aquí agregas a <strong>todo tu equipo</strong> (asistentes, médicos, enfermería, farmacia, laboratorio) para que
           cada quien entre con su usuario. <strong>Cuando invitas a un Médico, su agenda se crea sola</strong> al aceptar —
@@ -2002,7 +2002,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             )}
           </div>
         </div>
-        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
+        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040B12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
           {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : <><Sparkles size={15} /> Generar enlace de invitación</>}
         </button>
 
@@ -2016,7 +2016,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
               <button onClick={() => copiar(linkDe(generada))} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Copy size={12} /> {copiado ? 'Copiado' : 'Copiar enlace'}
               </button>
-              <button onClick={() => compartirWhatsApp(generada)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <button onClick={() => compartirWhatsApp(generada)} style={{ background: '#25D366', border: 'none', color: '#FFF', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <MessageCircle size={12} /> Enviar por WhatsApp
               </button>
             </div>
@@ -2048,7 +2048,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                 <button onClick={() => copiar(linkDe(inv))} style={{ background: 'var(--s3)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Copiar enlace
                 </button>
-                <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#FFF', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                   WhatsApp
                 </button>
                 <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
@@ -2171,7 +2171,7 @@ function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaH
             <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Vacaciones de verano" />
           </div>
         </div>
-        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--teal)", color: "#040b12", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
+        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--teal)", color: "#040B12", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
           {saving ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "+ Crear bloqueo"}
         </button>
       </div>
@@ -2349,7 +2349,7 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrUrl} alt="QR del portal de reservas" style={{ background: '#fff', padding: 8, borderRadius: 8 }} width={240} height={240} />
+              <img src={qrUrl} alt="QR del portal de reservas" style={{ background: '#FFF', padding: 8, borderRadius: 8 }} width={240} height={240} />
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 10, textAlign: 'center' }}>
               Los pacientes escanean con la cámara del celular → abre el portal automáticamente
@@ -2420,13 +2420,13 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
   const safeName = clinicNombre.replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
   // 1) Botón inline (a tag con estilos inline → funciona en cualquier sitio sin clases CSS)
-  const snippetBoton = `<a href="${safeUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#14b8a6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:12px 22px;border-radius:10px;text-decoration:none;box-shadow:0 2px 8px rgba(20,184,166,.3)">📅 Agendar cita</a>`
+  const snippetBoton = `<a href="${safeUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#14B8A6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:12px 22px;border-radius:10px;text-decoration:none;box-shadow:0 2px 8px rgba(20,184,166,.3)">📅 Agendar cita</a>`
 
   // 2) Botón flotante (sticky bottom-right)
-  const snippetFlotante = `<a href="${safeUrl}" target="_blank" rel="noopener" style="position:fixed;bottom:20px;right:20px;display:inline-flex;align-items:center;gap:8px;background:#14b8a6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:14px 22px;border-radius:50px;text-decoration:none;box-shadow:0 4px 16px rgba(20,184,166,.4);z-index:9999">📅 Agendar cita</a>`
+  const snippetFlotante = `<a href="${safeUrl}" target="_blank" rel="noopener" style="position:fixed;bottom:20px;right:20px;display:inline-flex;align-items:center;gap:8px;background:#14B8A6;color:#000;font-family:system-ui,-apple-system,sans-serif;font-weight:700;font-size:15px;padding:14px 22px;border-radius:50px;text-decoration:none;box-shadow:0 4px 16px rgba(20,184,166,.4);z-index:9999">📅 Agendar cita</a>`
 
   // 3) Iframe (portal completo embebido). Requiere que el sitio host permita iframes.
-  const snippetIframe = `<iframe src="${safeUrl}" title="Agendar cita con ${safeName}" style="width:100%;max-width:540px;height:720px;border:1px solid #ddd;border-radius:12px;background:#fff" loading="lazy"></iframe>`
+  const snippetIframe = `<iframe src="${safeUrl}" title="Agendar cita con ${safeName}" style="width:100%;max-width:540px;height:720px;border:1px solid #DDD;border-radius:12px;background:#FFF" loading="lazy"></iframe>`
 
   const actual = tipo === 'boton' ? snippetBoton : tipo === 'flotante' ? snippetFlotante : snippetIframe
 
@@ -2480,21 +2480,21 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
 
       {/* Preview del botón (solo para 'boton' y 'flotante') */}
       {tipo === 'boton' && (
-        <div style={{ padding: 16, background: '#fafafa', borderRadius: 8, marginBottom: 10, border: '1px dashed var(--border)', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ padding: 16, background: '#FAFAFA', borderRadius: 8, marginBottom: 10, border: '1px dashed var(--border)', display: 'flex', justifyContent: 'center' }}>
           <a
             href={url} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14b8a6', color: '#000', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 10, textDecoration: 'none', boxShadow: '0 2px 8px rgba(20,184,166,.3)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14B8A6', color: '#000', fontWeight: 700, fontSize: 15, padding: '12px 22px', borderRadius: 10, textDecoration: 'none', boxShadow: '0 2px 8px rgba(20,184,166,.3)' }}
           >
             📅 Agendar cita
           </a>
         </div>
       )}
       {tipo === 'flotante' && (
-        <div style={{ padding: 16, background: '#fafafa', borderRadius: 8, marginBottom: 10, border: '1px dashed var(--border)', position: 'relative', height: 110, overflow: 'hidden' }}>
+        <div style={{ padding: 16, background: '#FAFAFA', borderRadius: 8, marginBottom: 10, border: '1px dashed var(--border)', position: 'relative', height: 110, overflow: 'hidden' }}>
           <div style={{ fontSize: 11, color: '#999', position: 'absolute', top: 8, left: 12 }}>↓ Simulación del botón flotante</div>
           <a
             href={url} target="_blank" rel="noopener noreferrer"
-            style={{ position: 'absolute', bottom: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14b8a6', color: '#000', fontWeight: 700, fontSize: 15, padding: '14px 22px', borderRadius: 'var(--r-pill)', textDecoration: 'none', boxShadow: '0 4px 16px rgba(20,184,166,.4)' }}
+            style={{ position: 'absolute', bottom: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#14B8A6', color: '#000', fontWeight: 700, fontSize: 15, padding: '14px 22px', borderRadius: 'var(--r-pill)', textDecoration: 'none', boxShadow: '0 4px 16px rgba(20,184,166,.4)' }}
           >
             📅 Agendar cita
           </a>
@@ -2504,7 +2504,7 @@ function EmbedSnippets({ url, clinicNombre }: { url: string; clinicNombre: strin
       {/* Código */}
       <div style={{ position: 'relative' }}>
         <pre style={{
-          margin: 0, padding: '12px 14px', background: '#0a0a0a', color: '#a3e635',
+          margin: 0, padding: '12px 14px', background: '#0A0A0A', color: '#A3E635',
           borderRadius: 8, fontSize: 11.5, fontFamily: 'ui-monospace, "SF Mono", monospace',
           overflow: 'auto', maxHeight: 200, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
           border: '1px solid var(--border)',

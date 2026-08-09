@@ -27,7 +27,7 @@ import { revisarInfusion, tieneErrores, type RegistroInfusion } from '@/lib/uci/
 import { dosisSinNumero, AVISO_DOSIS_ROTA } from '@/lib/uci/dosis-sin-numero'
 
 const COLOR_VEREDICTO: Record<Reconciliacion['veredicto'], string> = {
-  concuerdan: '#0d9488', discrepan: '#dc2626', incomparable: 'var(--text3)',
+  concuerdan: '#0D9488', discrepan: '#DC2626', incomparable: 'var(--text3)',
 }
 
 function Bloque({ icon: Icon, titulo, sub, children }: {
@@ -36,7 +36,7 @@ function Bloque({ icon: Icon, titulo, sub, children }: {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <Icon size={16} style={{ color: 'var(--nexus,#3d5afe)' }} />
+        <Icon size={16} style={{ color: 'var(--nexus,#3D5AFE)' }} />
         <span style={{ fontWeight: 600, fontSize: 14 }}>{titulo}</span>
         {sub && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {sub}</span>}
       </div>
@@ -226,7 +226,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
                 <div key={i} style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)' }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 13 }}>{a.campo}</strong>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: d.interrumpeAhora ? '#d97706' : 'var(--text3)' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: d.interrumpeAhora ? '#D97706' : 'var(--text3)' }}>
                       {d.nivel}
                     </span>
                   </div>
@@ -236,7 +236,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
                       {d.motivos.join(' · ')}
                     </div>
                   )}
-                  {pregunta && <div style={{ fontSize: 12.5, color: 'var(--nexus,#3d5afe)', marginTop: 4 }}>{pregunta}</div>}
+                  {pregunta && <div style={{ fontSize: 12.5, color: 'var(--nexus,#3D5AFE)', marginTop: 4 }}>{pregunta}</div>}
                 </div>
               )
             })}
@@ -259,13 +259,13 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
           <Bloque icon={Droplet} titulo="Revisión de la infusión" sub="charter §13/19/20">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {hallazgos.map((h, i) => (
-                <div key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: h.severidad === 'ERROR' ? '#dc2626' : 'var(--text2)' }}>
+                <div key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: h.severidad === 'ERROR' ? '#DC2626' : 'var(--text2)' }}>
                   · {h.mensaje}
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 10 }}>
-              <Nota color={tieneErrores(hallazgos) ? '#dc2626' : 'var(--text3)'}>
+              <Nota color={tieneErrores(hallazgos) ? '#DC2626' : 'var(--text3)'}>
                 Esto revisa la <strong>estructura</strong> del registro: que la concentración no
                 contradiga sus partes, que el peso conste, que la procedencia esté declarada.
                 <strong> No juzga si la dosis es alta o baja</strong> — eso son los umbrales de
@@ -288,7 +288,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
           ) : (
             <>
               <div style={{ fontSize: 13, color: 'var(--text2)' }}>
-                Contexto detectado: <strong style={{ color: 'var(--nexus,#3d5afe)' }}>{contexto}</strong>
+                Contexto detectado: <strong style={{ color: 'var(--nexus,#3D5AFE)' }}>{contexto}</strong>
               </div>
               <div style={{ marginTop: 8 }}>
                 <Nota color="var(--text3)">

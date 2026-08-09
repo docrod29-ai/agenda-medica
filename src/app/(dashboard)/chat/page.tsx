@@ -15,7 +15,7 @@ const ROL_LABEL: Record<string, string> = {
   admin: 'Médico', medico: 'Médico', secretaria: 'Asistente',
 }
 const ROL_COLOR: Record<string, string> = {
-  admin: 'var(--teal)', medico: 'var(--teal)', secretaria: '#a78bfa',
+  admin: 'var(--teal)', medico: 'var(--teal)', secretaria: '#A78BFA',
 }
 
 export default function ChatPage() {
@@ -150,7 +150,7 @@ export default function ChatPage() {
               maxLength={40}
               style={{ width: 160, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 12 }}
             />
-            <button onClick={guardarNombre} title="Guardar" style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
+            <button onClick={guardarNombre} title="Guardar" style={{ background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
               <Check size={11} />
             </button>
             <button onClick={() => setEditandoNombre(false)} title="Cancelar" style={{ background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
@@ -202,7 +202,7 @@ export default function ChatPage() {
               const prev = i > 0 ? g.msgs[i - 1] : null
               const mismoEmisor = prev && prev.senderId === m.senderId
               const noLeidoPorMi = !mio && (!lastReadAt || m.createdAt > lastReadAt)
-              const rolColor = ROL_COLOR[m.senderRol] ?? '#94a3b8'
+              const rolColor = ROL_COLOR[m.senderRol] ?? '#94A3B8'
               const rolLabel = ROL_LABEL[m.senderRol] ?? m.senderRol
               const inicial = (m.senderName ?? '?').replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').trim()[0]?.toUpperCase() ?? '?'
               return (
@@ -227,7 +227,7 @@ export default function ChatPage() {
                   <div style={{
                     maxWidth: '74%',
                     background: mio ? rolColor : 'var(--s1)',
-                    color: mio ? '#040b12' : 'var(--text)',
+                    color: mio ? '#040B12' : 'var(--text)',
                     border: mio
                       ? 'none'
                       : `1px solid ${noLeidoPorMi ? 'rgba(96,165,250,0.5)' : `color-mix(in srgb, ${rolColor} 20%, transparent)`}`,
@@ -312,7 +312,7 @@ export default function ChatPage() {
           aria-label="Enviar"
           style={{
             background: texto.trim() ? 'var(--teal)' : 'var(--s3)',
-            color: texto.trim() ? '#040b12' : 'var(--text3)',
+            color: texto.trim() ? '#040B12' : 'var(--text3)',
             border: 'none', borderRadius: 12, padding: '0 18px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: texto.trim() && !enviando ? 'pointer' : 'default',

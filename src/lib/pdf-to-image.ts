@@ -129,7 +129,7 @@ async function procesarPdf(
   if (!ctx) throw new Error('No se pudo crear el canvas')
 
   if (opts.type === 'image/jpeg') {
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }
 

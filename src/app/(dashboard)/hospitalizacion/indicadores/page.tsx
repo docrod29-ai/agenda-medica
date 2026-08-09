@@ -12,7 +12,7 @@ import { diasEstancia, TIPO_EGRESO_LABEL, type Internamiento } from '@/types/hos
 import { Spinner } from '@/components/ui'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 
-function Kpi({ valor, label, color = 'var(--nexus,#3d5afe)' }: { valor: string | number; label: string; color?: string }) {
+function Kpi({ valor, label, color = 'var(--nexus,#3D5AFE)' }: { valor: string | number; label: string; color?: string }) {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 16, textAlign: 'center' }}>
       <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{valor}</div>
@@ -60,7 +60,7 @@ export default function IndicadoresPage() {
         <ArrowLeft size={15} /> Atrás
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BarChart3 size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Indicadores hospitalarios
+        <BarChart3 size={22} style={{ color: 'var(--nexus,#3D5AFE)' }} /> Indicadores hospitalarios
       </h1>
 
       {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> : (<>
@@ -79,7 +79,7 @@ export default function IndicadoresPage() {
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 12.5, color: 'var(--text2)', width: 200, flexShrink: 0 }}>{s}</span>
                 <div style={{ flex: 1, height: 22, borderRadius: 6, background: 'var(--s2)', overflow: 'hidden' }}>
-                  <div style={{ width: `${(n / maxServ) * 100}%`, height: '100%', background: 'var(--nexus-solido)', display: 'flex', alignItems: 'center', paddingLeft: 8, color: '#fff', fontSize: 11, fontWeight: 700 }}>{n}</div>
+                  <div style={{ width: `${(n / maxServ) * 100}%`, height: '100%', background: 'var(--nexus-solido)', display: 'flex', alignItems: 'center', paddingLeft: 8, color: '#FFF', fontSize: 11, fontWeight: 700 }}>{n}</div>
                 </div>
               </div>
             ))}

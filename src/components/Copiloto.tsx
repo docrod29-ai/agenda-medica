@@ -27,8 +27,8 @@ interface Props {
 }
 
 const COLOR: Record<NivelSugerencia, { fg: string; bg: string; bd: string }> = {
-  critico: { fg: '#f87171', bg: 'color-mix(in srgb, var(--red) 8%, transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
-  accion:  { fg: '#f59e0b', bg: 'color-mix(in srgb, var(--amber) 7%, transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
+  critico: { fg: '#F87171', bg: 'color-mix(in srgb, var(--red) 8%, transparent)', bd: 'color-mix(in srgb, var(--red) 35%, transparent)' },
+  accion:  { fg: '#F59E0B', bg: 'color-mix(in srgb, var(--amber) 7%, transparent)', bd: 'color-mix(in srgb, var(--amber) 30%, transparent)' },
   info:    { fg: 'var(--text2)', bg: 'var(--s1)', bd: 'var(--border)' },
 }
 
@@ -81,7 +81,7 @@ export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
         {documentables.length > 0 && onAgregarANota && (
           <button type="button" onClick={ponerTodo} style={{
             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8,
+            background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 8,
             padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 36,
           }}>
             <Plus size={13} /> Todo a la nota

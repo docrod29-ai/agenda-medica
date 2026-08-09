@@ -693,3 +693,6 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | Fecha | Unidad | SHA | Qué quedó | REG |
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
+| 2026-08-08 | Los tres P0 de audio (`PATIENT-AUDIO-001/002/003`) | `7be23e9`, `2340e63` | Volver a grabar ya no borra el audio anterior · navegar avisa · grabar cuenta como actividad | **283, 287** |
+| 2026-08-09 | `PATIENT-TELE-002` — el último P0 de V9 | `f981d9c` | Los tres llamadores de servidor acuñan el token de la sala; la vida del enlace se deriva de la hora de la cita, no de un número redondo. Residuos declarados: `TELE-ALCANCE-001`, `TELE-REVOCA-001` | **288** |
+| 2026-08-09 | **DESIGN-SYSTEM-001** *(abierta, no cerrada)* | *(esta sesión)* | `@theme inline` de 4 a 41 tokens —la causa raíz del estilo en línea—; escalas de radio (8) y espacio (10) **medidas**, no inventadas; `.t-body-sm` y `.t-micro`; ortografía del color a **0** dobles; compuerta `trinquete-de-diseno` de 6 cifras que sólo bajan. **Falta**: accesibilidad, regresión visual, adopción de primitivos | — |

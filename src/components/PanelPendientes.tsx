@@ -40,7 +40,7 @@ export function PanelPendientes() {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--panel, var(--s1))', padding: '16px 18px', marginBottom: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <ListChecks size={16} style={{ color: 'var(--nexus, #3d5afe)' }} />
+        <ListChecks size={16} style={{ color: 'var(--nexus, #3D5AFE)' }} />
         <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Siguiente acción</h2>
         {r.alta > 0 && (
           <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', color: 'var(--red)' }}>

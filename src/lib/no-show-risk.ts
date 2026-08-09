@@ -99,5 +99,5 @@ export const NIVEL_LABEL: Record<NoShowRisk['nivel'], string> = {
   bajo: 'Bajo', medio: 'Medio', alto: 'Alto', muy_alto: 'Muy alto',
 }
 export const NIVEL_COLOR: Record<NoShowRisk['nivel'], string> = {
-  bajo: '#4ade80', medio: '#fbbf24', alto: '#fb923c', muy_alto: '#ef4444',
+  bajo: '#4ADE80', medio: '#FBBF24', alto: '#FB923C', muy_alto: '#EF4444',
 }

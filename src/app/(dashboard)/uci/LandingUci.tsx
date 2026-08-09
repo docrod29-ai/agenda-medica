@@ -36,7 +36,7 @@ const botonBase: React.CSSProperties = {
   padding: '9px 15px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
 }
 const botonPrimario: React.CSSProperties = {
-  ...botonBase, background: 'var(--nexus-solido)', border: '1px solid transparent', color: '#fff',
+  ...botonBase, background: 'var(--nexus-solido)', border: '1px solid transparent', color: '#FFF',
 }
 const botonSecundario: React.CSSProperties = {
   ...botonBase, background: 'none', border: '1px solid var(--border)', color: 'var(--text2)',
@@ -123,7 +123,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '8px 4px 40px' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Activity size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Terapia intensiva
+        <Activity size={22} style={{ color: 'var(--nexus,#3D5AFE)' }} /> Terapia intensiva
       </h1>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', margin: '0 0 20px' }}>
         <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0, flex: '1 1 320px' }}>
@@ -156,7 +156,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
           <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
             <strong>Servicios sin tipo de unidad: {sinTipo.join(' · ')}.</strong>{' '}
             {AVISO_SIN_TIPO}{' '}
-            <button onClick={() => router.push('/hospitalizacion/unidades')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--nexus,#3d5afe)', cursor: 'pointer', fontSize: 13, fontWeight: 600, textDecoration: 'underline' }}>
+            <button onClick={() => router.push('/hospitalizacion/unidades')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--nexus,#3D5AFE)', cursor: 'pointer', fontSize: 13, fontWeight: 600, textDecoration: 'underline' }}>
               Configurar unidades
             </button>
           </div>
@@ -213,13 +213,13 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                 {t.soportes.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
                     {t.soportes.map(sp => (
-                      <span key={sp} style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: 'rgba(61,90,254,0.12)', color: 'var(--nexus,#3d5afe)' }}>
+                      <span key={sp} style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: 'rgba(61,90,254,0.12)', color: 'var(--nexus,#3D5AFE)' }}>
                         {SOPORTE_LABEL[sp]}
                       </span>
                     ))}
                   </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, fontWeight: 600, color: alerta ? '#dc2626' : 'var(--text2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, fontWeight: 600, color: alerta ? '#DC2626' : 'var(--text2)' }}>
                   <Clock size={13} style={{ flexShrink: 0 }} />
                   Última toma {tiempo(t.horasDesdeUltimaToma)}
                 </div>

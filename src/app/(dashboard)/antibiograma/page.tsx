@@ -332,7 +332,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
         {SITIOS.map(s => (
           <button key={s.v} type="button" onClick={() => setSitio(s.v)}
-            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--nexus-solido)', color: '#fff', borderColor: 'var(--teal)' } : {}) }}>
+            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--nexus-solido)', color: '#FFF', borderColor: 'var(--teal)' } : {}) }}>
             {s.t}
           </button>
         ))}
@@ -435,7 +435,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
                 return (
                   <button key={v} type="button" onClick={() => setPrueba(p.k, on ? undefined : v)}
                     style={{ minWidth: 44, height: 30, borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-                      border: '1px solid ' + (on ? color : 'var(--border)'), background: on ? color : 'var(--s2)', color: on ? '#fff' : 'var(--text3)' }}>
+                      border: '1px solid ' + (on ? color : 'var(--border)'), background: on ? color : 'var(--s2)', color: on ? '#FFF' : 'var(--text3)' }}>
                     {v === 'pos' ? 'POS' : 'NEG'}
                   </button>
                 )
@@ -458,7 +458,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       {res && (res.fenotipos.length > 0 || res.categoriasCMI.length > 0 || organismo.trim()) && (
         <div style={{ marginTop: 18 }}>
           <button type="button" onClick={razonarIA} disabled={razonando}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
             {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
           </button>
           {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{errorRaz}</div>}
@@ -558,7 +558,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
           onClick={() => onAgregarANota(resumenParaNota(entradaActual, res))}
           className="lift"
           style={{
-            marginTop: 16, background: 'var(--nexus-solido)', color: '#fff', border: 'none',
+            marginTop: 16, background: 'var(--nexus-solido)', color: '#FFF', border: 'none',
             borderRadius: 10, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
           }}>
           → Agregar el antibiograma a la nota
@@ -573,8 +573,8 @@ export default function AntibiogramaPage() {
 }
 
 function Resultado({ res }: { res: InterpretacionAntibiograma }) {
-  const badge = (c: string) => c === 'confirmado' ? { bg: 'color-mix(in srgb, var(--red) 15%, transparent)', fg: '#f87171' }
-    : c === 'probable' ? { bg: 'color-mix(in srgb, var(--amber) 15%, transparent)', fg: '#f59e0b' }
+  const badge = (c: string) => c === 'confirmado' ? { bg: 'color-mix(in srgb, var(--red) 15%, transparent)', fg: '#F87171' }
+    : c === 'probable' ? { bg: 'color-mix(in srgb, var(--amber) 15%, transparent)', fg: '#F59E0B' }
     : { bg: 'rgba(148,163,184,.15)', fg: 'var(--text3)' }
 
   const conflictos = res.resistenciaIntrinseca.filter(n => n.tipo === 'conflicto')
@@ -673,7 +673,7 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
           <SecTitle icon={<Target size={15} />} t="Algoritmo de diagnóstico de resistencia" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {res.algoritmo.map(p => {
-              const c = p.estado === 'hecho' ? '#10b981' : p.estado === 'pendiente' ? '#f59e0b' : 'var(--text3)'
+              const c = p.estado === 'hecho' ? '#10B981' : p.estado === 'pendiente' ? '#F59E0B' : 'var(--text3)'
               const et = p.estado === 'hecho' ? '✓' : p.estado === 'pendiente' ? '→' : '·'
               return (
                 <div key={p.n} style={{ ...box, alignItems: 'flex-start', opacity: p.estado === 'na' ? 0.6 : 1 }}>
@@ -715,9 +715,9 @@ function Resultado({ res }: { res: InterpretacionAntibiograma }) {
                * leer: el mismo trato que `noAplicable`, por la misma razón.
                */
               const col = c.editadaPorReglaExperta ? 'var(--text3)'
-                : c.categoriaCLSI === 'S' ? '#10b981'
-                : c.categoriaCLSI === 'SDD' ? '#3b82f6'
-                : c.categoriaCLSI === 'I' ? '#f59e0b' : '#f87171'
+                : c.categoriaCLSI === 'S' ? '#10B981'
+                : c.categoriaCLSI === 'SDD' ? '#3B82F6'
+                : c.categoriaCLSI === 'I' ? '#F59E0B' : '#F87171'
               const etiqueta = c.categoriaCLSI === 'SDD' ? 'SDD (dependiente de dosis)' : c.categoriaCLSI
               const resaltar = c.concuerda === false || c.conflictoConEdicion
               return (
@@ -882,7 +882,7 @@ const delBtn: React.CSSProperties = { background: 'none', border: 'none', color:
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
 const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }
-const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
+const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
 const box: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 8, padding: '11px 13px', fontSize: 12.5, lineHeight: 1.5 }
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }
 
@@ -893,6 +893,6 @@ function sirBtn(activo: boolean, v: SIR): React.CSSProperties {
     width: 32, height: 34, borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer',
     border: '1px solid ' + (activo ? color : 'var(--border)'),
     background: activo ? color : 'var(--s2)',
-    color: activo ? '#fff' : 'var(--text3)',
+    color: activo ? '#FFF' : 'var(--text3)',
   }
 }

@@ -112,7 +112,7 @@ export async function descargarPaginasComoPDF(
    */
   const host = document.createElement('div')
   host.setAttribute('aria-hidden', 'true')
-  host.style.cssText = 'position:fixed;left:-100000px;top:0;margin:0;padding:0;background:#fff;transform:none;z-index:-1'
+  host.style.cssText = 'position:fixed;left:-100000px;top:0;margin:0;padding:0;background:#FFF;transform:none;z-index:-1'
   document.body.appendChild(host)
 
   const tieneAncestroEscalado = (el: HTMLElement): boolean => {
@@ -145,7 +145,7 @@ export async function descargarPaginasComoPDF(
         const canvas = await conTope(html2canvas(page, {
           scale: 3,                    // nitidez de texto e imagen
           useCORS: true,
-          backgroundColor: '#ffffff',
+          backgroundColor: '#FFFFFF',
           imageTimeout: 12000,         // espera al membrete/firma (no 30s: colgaba)
           logging: false,
         }), 25000)
@@ -200,7 +200,7 @@ export async function descargarComoPDF(elemento: HTMLElement, opts: PdfOptions):
       html2canvas: {
         scale: 3,                  // antes 2 — más nitidez en texto e imágenes
         useCORS: true,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FFFFFF',
         letterRendering: true,     // mejora kerning del texto
         imageTimeout: 30000,       // espera hasta 30s a que carguen imágenes (membrete, firma)
         /**

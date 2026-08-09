@@ -124,8 +124,8 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
   const { patient: p, estado, diasDesdeUltimoActo, notasFirmadas } = evaluacion
   const colores = {
     vigente: { bg: 'var(--s)', border: 'var(--border)', badge: 'var(--text3)', badgeBg: 'var(--s2)' },
-    cercano: { bg: 'color-mix(in srgb, var(--amber) 4%, transparent)', border: 'color-mix(in srgb, var(--amber) 25%, transparent)', badge: '#f59e0b', badgeBg: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
-    vencido: { bg: 'color-mix(in srgb, var(--red) 4%, transparent)', border: 'color-mix(in srgb, var(--red) 30%, transparent)', badge: '#ef4444', badgeBg: 'color-mix(in srgb, var(--red) 12%, transparent)' },
+    cercano: { bg: 'color-mix(in srgb, var(--amber) 4%, transparent)', border: 'color-mix(in srgb, var(--amber) 25%, transparent)', badge: '#F59E0B', badgeBg: 'color-mix(in srgb, var(--amber) 12%, transparent)' },
+    vencido: { bg: 'color-mix(in srgb, var(--red) 4%, transparent)', border: 'color-mix(in srgb, var(--red) 30%, transparent)', badge: '#EF4444', badgeBg: 'color-mix(in srgb, var(--red) 12%, transparent)' },
   }
   const c = colores[estado]
   const label = estado === 'vencido' ? '>5 años' : estado === 'cercano' ? '~4.5 años' : 'Vigente'

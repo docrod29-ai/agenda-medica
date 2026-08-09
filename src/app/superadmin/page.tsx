@@ -130,7 +130,7 @@ export default function SuperadminPage() {
           <a href="/superadmin/csp" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <ShieldCheck size={14} /> Seguridad web
           </a>
-          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <TrendingUp size={14} /> Contabilidad
           </a>
           <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={cargar}>Actualizar</Button>
@@ -143,7 +143,7 @@ export default function SuperadminPage() {
         {([['clientes', 'Clientes', <Boxes key="a" size={15} />], ['paquetes', 'Paquetes', <Package key="b" size={15} />]] as const).map(([k, label, icon]) => (
           <button key={k} onClick={() => setVista(k)} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
-            background: 'none', border: 'none', borderBottom: `2px solid ${vista === k ? '#7c3aed' : 'transparent'}`,
+            background: 'none', border: 'none', borderBottom: `2px solid ${vista === k ? '#7C3AED' : 'transparent'}`,
             color: vista === k ? 'var(--text)' : 'var(--text3)', marginBottom: -1,
           }}>{icon} {label}</button>
         ))}
@@ -161,7 +161,7 @@ export default function SuperadminPage() {
       */}
       {alcance?.consultorios.recortado && (
         <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, fontSize: 13,
-          border: '1px solid var(--amber, #b45309)', color: 'var(--text)' }}>
+          border: '1px solid var(--amber, #B45309)', color: 'var(--text)' }}>
           Sólo se están enseñando los {alcance.consultorios.etiqueta}. Hay más consultorios que no
           caben en esta lectura.
         </div>
@@ -176,7 +176,7 @@ export default function SuperadminPage() {
             color={alcance?.cobros.recortado ? 'var(--amber)' : undefined} />
           <Kpi label="Activas" valor={String(totales.activas)} color="var(--teal)" />
           <Kpi label="En prueba" valor={String(totales.enPrueba)} color="var(--amber)" />
-          <Kpi label="Deben" valor={String(totales.deben)} color={totales.deben ? '#dc2626' : 'var(--text)'} />
+          <Kpi label="Deben" valor={String(totales.deben)} color={totales.deben ? '#DC2626' : 'var(--text)'} />
           <Kpi label="Pase libre" valor={String(totales.cortesia)} color="var(--purple)" />
         </div>
       )}
@@ -191,8 +191,8 @@ export default function SuperadminPage() {
         {(['todos', 'debe', 'prueba', 'cortesia'] as const).map(f => (
           <button key={f} onClick={() => setFiltro(f)} style={{
             padding: '7px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-            border: `1px solid ${filtro === f ? '#7c3aed' : 'var(--border)'}`,
-            background: filtro === f ? '#7c3aed18' : 'transparent', color: filtro === f ? '#7c3aed' : 'var(--text3)',
+            border: `1px solid ${filtro === f ? '#7C3AED' : 'var(--border)'}`,
+            background: filtro === f ? '#7C3AED18' : 'transparent', color: filtro === f ? '#7C3AED' : 'var(--text3)',
           }}>{f === 'todos' ? 'Todos' : f === 'debe' ? 'Deben' : f === 'prueba' ? 'En prueba' : 'Pase libre'}</button>
         ))}
       </div>
@@ -320,7 +320,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
           <div style={{ fontSize: 13, fontWeight: 600, padding: '9px 12px', borderRadius: 8,
             background: msg.ok ? 'rgba(16,185,129,0.12)' : 'color-mix(in srgb, var(--red) 12%, transparent)',
             border: `1px solid ${msg.ok ? 'rgba(16,185,129,0.4)' : 'color-mix(in srgb, var(--red) 40%, transparent)'}`,
-            color: msg.ok ? '#10b981' : '#f87171' }}>
+            color: msg.ok ? '#10B981' : '#F87171' }}>
             {msg.texto}
           </div>
         )}
@@ -357,8 +357,8 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
               {paquetes.filter(p => p.activo !== false).map(p => (
                 <button key={p.id} onClick={() => aplicarPaquete(p)} style={{
                   padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  border: `1px solid ${paqId === p.id ? '#2563eb' : 'var(--border)'}`,
-                  background: paqId === p.id ? '#2563eb18' : 'transparent', color: paqId === p.id ? '#2563eb' : 'var(--text2)',
+                  border: `1px solid ${paqId === p.id ? '#2563EB' : 'var(--border)'}`,
+                  background: paqId === p.id ? '#2563EB18' : 'transparent', color: paqId === p.id ? '#2563EB' : 'var(--text2)',
                 }}>{p.nombre}{p.precio ? ` · ${mxn(p.precio)}` : ''}</button>
               ))}
             </div>
@@ -380,7 +380,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </Seccion>
 
         {/* Nivel de IA (Pro económico / Premium Opus+GPT-5) */}
-        <Seccion icono={<Sparkles size={16} color="#3d5afe" />} titulo="Nivel de IA">
+        <Seccion icono={<Sparkles size={16} color="#3D5AFE" />} titulo="Nivel de IA">
           <div style={{ display: 'flex', gap: 8 }}>
             {(['pro', 'premium'] as const).map(n => {
               const activo = nivelIA === n
@@ -394,9 +394,9 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
                   onClick={() => { setNivelIA(n); accion('set_nivel_ia', { nivelIA: n }) }}
                   style={{
                     flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
-                    border: '1px solid ' + (activo ? '#3d5afe' : 'var(--border)'),
+                    border: '1px solid ' + (activo ? '#3D5AFE' : 'var(--border)'),
                     background: activo ? 'rgba(61,90,254,0.12)' : 'transparent',
-                    color: activo ? '#3d5afe' : 'var(--text3)',
+                    color: activo ? '#3D5AFE' : 'var(--text3)',
                   }}>
                   {activo ? '✓ ' : ''}{label}
                 </button>
@@ -411,7 +411,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
             const usadas = cliente.consultasMes ?? 0
             const lim = cliente.limiteConsultas || 1
             const pct = Math.min(100, Math.round((usadas / lim) * 100))
-            const col = pct >= 100 ? '#dc2626' : pct >= 80 ? '#d97706' : '#16a34a'
+            const col = pct >= 100 ? '#DC2626' : pct >= 80 ? '#D97706' : '#16A34A'
             return (
               <div style={{ marginTop: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text2)', marginBottom: 4 }}>
@@ -586,13 +586,13 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.precio ? mxn(p.precio) : 'Gratis'}<span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>{(p.modeloPrecio ?? 'fijo') === 'por_medico' ? '/médico' : (p.modeloPrecio ?? 'fijo') === 'por_cama' ? ' base' : '/mes'}</span></div>
             </div>
             {(p.modeloPrecio ?? 'fijo') !== 'fijo' && (
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--purple)', background: '#7c3aed12', borderRadius: 6, padding: '2px 7px', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--purple)', background: '#7C3AED12', borderRadius: 6, padding: '2px 7px', alignSelf: 'flex-start' }}>
                 {p.modeloPrecio === 'por_medico' ? `Por médico · +${mxn(p.precioPorUnidad ?? 0)} c/u extra` : `Por cama · +${mxn(p.precioPorUnidad ?? 0)} c/cama`}
               </div>
             )}
             {p.descripcion && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{p.descripcion}</div>}
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {p.modulos.map(k => <span key={k} style={{ fontSize: 11, fontWeight: 600, color: 'var(--blue)', background: '#2563eb15', borderRadius: 6, padding: '2px 7px' }}>{MODULO_LABEL[k] ?? k}</span>)}
+              {p.modulos.map(k => <span key={k} style={{ fontSize: 11, fontWeight: 600, color: 'var(--blue)', background: '#2563EB15', borderRadius: 6, padding: '2px 7px' }}>{MODULO_LABEL[k] ?? k}</span>)}
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
               <Button size="sm" variant="secondary" onClick={() => setEditar({ id: p.id, nombre: p.nombre, precio: p.precio, modulos: [...p.modulos], descripcion: p.descripcion ?? '', modeloPrecio: p.modeloPrecio ?? 'fijo', precioBase: p.precioBase ?? p.precio, precioPorUnidad: p.precioPorUnidad ?? 0 })}>Editar</Button>
@@ -630,7 +630,7 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
                   return (
                     <button key={op.v} onClick={() => setEditar({ ...editar, modeloPrecio: op.v })}
                       style={{ padding: 10, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                        background: activo ? '#7c3aed15' : 'transparent', border: activo ? '1px solid #7c3aed' : '1px solid var(--border)', color: activo ? '#7c3aed' : 'var(--text2)' }}>
+                        background: activo ? '#7C3AED15' : 'transparent', border: activo ? '1px solid #7C3AED' : '1px solid var(--border)', color: activo ? '#7C3AED' : 'var(--text2)' }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700 }}>{op.t}</div>
                       <div style={{ fontSize: 10.5, marginTop: 2, lineHeight: 1.3 }}>{op.d}</div>
                     </button>

@@ -107,8 +107,8 @@ export default function FarmaciaPage() {
       {/* Tarjetas de resumen */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
         <ResumenTarjeta titulo="Total ítems" valor={items.length} color="var(--text)" icon={<Package size={14} />} />
-        <ResumenTarjeta titulo="Bajo stock" valor={bajoStock} color={bajoStock > 0 ? '#f59e0b' : 'var(--text3)'} icon={<AlertTriangle size={14} />} />
-        <ResumenTarjeta titulo="Caducados" valor={caducados} color={caducados > 0 ? '#ef4444' : 'var(--text3)'} icon={<Clock size={14} />} />
+        <ResumenTarjeta titulo="Bajo stock" valor={bajoStock} color={bajoStock > 0 ? '#F59E0B' : 'var(--text3)'} icon={<AlertTriangle size={14} />} />
+        <ResumenTarjeta titulo="Caducados" valor={caducados} color={caducados > 0 ? '#EF4444' : 'var(--text3)'} icon={<Clock size={14} />} />
       </div>
 
       {/* Buscador + filtros */}
@@ -326,17 +326,17 @@ function ItemRow({
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{
           fontSize: 18, fontWeight: 700,
-          color: item.cantidad === 0 ? '#ef4444' : bajo ? '#f59e0b' : 'var(--text)',
+          color: item.cantidad === 0 ? '#EF4444' : bajo ? '#F59E0B' : 'var(--text)',
         }}>
           {item.cantidad}
         </div>
         <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{item.unidadMedida ?? 'unidades'}</div>
       </div>
       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-        <button onClick={onEntrada} title="Entrada" style={btnIcon('#10b981')}>
+        <button onClick={onEntrada} title="Entrada" style={btnIcon('#10B981')}>
           <ArrowUpCircle size={14} />
         </button>
-        <button onClick={onSalida} title="Salida" style={btnIcon('#f59e0b')}>
+        <button onClick={onSalida} title="Salida" style={btnIcon('#F59E0B')}>
           <ArrowDownCircle size={14} />
         </button>
         {/* El libro de movimientos existía y no había forma de abrirlo: era una
@@ -347,7 +347,7 @@ function ItemRow({
         <button onClick={onEditar} title="Editar" style={btnIcon('var(--text3)')}>
           <Edit2 size={13} />
         </button>
-        <button onClick={onBorrar} title="Eliminar" style={btnIcon('#ef4444')}>
+        <button onClick={onBorrar} title="Eliminar" style={btnIcon('#EF4444')}>
           <Trash2 size={13} />
         </button>
       </div>

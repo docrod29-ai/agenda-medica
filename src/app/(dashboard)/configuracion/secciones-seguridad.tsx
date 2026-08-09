@@ -130,7 +130,7 @@ export function SeguridadTab() {
             {qrDataUrl && <img
               src={qrDataUrl}
               alt="QR TOTP"
-              style={{ width: 200, height: 200, background: '#fff', padding: 8, borderRadius: 6 }}
+              style={{ width: 200, height: 200, background: '#FFF', padding: 8, borderRadius: 6 }}
             />}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginBottom: 4 }}>O pega esta clave manualmente:</div>

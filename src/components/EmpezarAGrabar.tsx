@@ -83,7 +83,7 @@ export function EmpezarAGrabar(p: EmpezarAGrabarProps) {
             círculo sin añadir un valor más a la escala visual.
           */
           width: 96, height: 96, borderRadius: 'var(--r-pill)',
-          background: 'var(--nexus-solido)', color: '#fff',
+          background: 'var(--nexus-solido)', color: '#FFF',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}

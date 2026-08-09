@@ -53,7 +53,7 @@ decisión de configuración.
 | Dimensión | Lo que declara el sistema | Lo que hay de verdad |
 |---|---|---|
 | **Tipografía** | escala de 6 pasos (`.t-display` 28 → `.t-overline` 10,5) | **~3 000** `fontSize` en línea, **~60 valores** distintos, con medios píxeles. Los cuatro más usados —13 (474), 12,5 (436), 12 (388), 11 (279)— **no están en la escala** |
-| **Color** | tokens con contraste medido | **1 205** literales hexadecimales, **151 distintos**. `#3d5afe` aparece 98 veces y `#3D5AFE` otras 27: es `--nexus-solido` retecleado a mano, en dos mayúsculas distintas |
+| **Color** | tokens con contraste medido | **1 205** literales hexadecimales, **151 distintos**. `#3d5afe` aparece 98 veces y `#3D5AFE` otras 27: es `--nexus-solido` retecleado a mano, en dos mayúsculas distintas · **9-ago-2026**: la doble escritura queda en cero (7 valores, 175 sitios) y los distintos bajan a 139; los literales siguen ahí — ver `NEXUS_DESIGN_SYSTEM.md` |
 | **Radio** | «radios fijos: 6 / 10 / 14 px» (`globals.css:205`) | **~19 valores** en línea. 3, 5, 7, 9, 11 y 20 son pura deriva |
 | **Espacio** | *no hay tokens de espacio* | **23** valores de `gap`, **25** de `padding`. `gap: 6` (288) y `gap: 10` (241) juntos superan al `gap: 8` (452) |
 | **Sombra** | *no hay tokens de sombra* | 28 usos, **24 valores distintos** — casi cada sombra es única |
@@ -122,7 +122,7 @@ pruebas caen.
 | **P0** | **No hay red de seguridad automática.** De **540** archivos de prueba, **uno** es de accesibilidad (`a11y-zoom-guard.test.ts`) y es una expresión regular sobre `layout.tsx`. Ni `axe-core`, ni `jest-axe`, ni `@axe-core/playwright` en `package.json` | nada detecta hoy un `aria-label` que falta ni una regresión de contraste |
 | P1 | **41 botones sólo-icono, y sólo 4 con `aria-label`** (es un suelo, no un techo: la búsqueda sólo cazaba hijos autocerrados) | p. ej. `receta/[patientId]/[notaId]/page.tsx:924-929`, con `title="Quitar"` y un `<Trash2/>` pelado |
 | P1 | `aria-live` **1**, `aria-labelledby` **1**, `aria-busy` **1** en toda la aplicación | un lector de pantalla no se entera de casi ningún cambio dinámico |
-| P1 | **Nada obliga a nada.** `eslint.config.mjs` son 18 líneas: `next/core-web-vitals` + `next/typescript`. Sin `jsx-a11y`, sin regla contra hexadecimales ni estilo en línea | `docs/DESIGN_SYSTEM.md:7` dice «si el código contradice esto, el documento gana» — y no hay máquina que lo sostenga |
+| ~~P1~~ **cerrado 9-ago-2026** | **Nada obligaba a nada.** `eslint.config.mjs` son 18 líneas: `next/core-web-vitals` + `next/typescript`. Sin `jsx-a11y`, sin regla contra hexadecimales ni estilo en línea. Hoy la máquina existe: `scripts/design/trinquete-de-diseno.mjs`, seis cifras que sólo bajan. `jsx-a11y` sigue pendiente (`A11Y-GATE-001`) | `docs/DESIGN_SYSTEM.md:7` dice «si el código contradice esto, el documento gana» — y no hay máquina que lo sostenga |
 | P2 | ~4 de 31 `<img>` sin `alt`; **0** usos de `next/image` | |
 | P2 | Los 1 205 hexadecimales **nunca se midieron**. Los tokens sí | el riesgo de contraste residual vive ahí |
 

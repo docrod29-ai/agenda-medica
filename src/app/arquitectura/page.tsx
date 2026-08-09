@@ -48,18 +48,18 @@ const MOTORES: Motor[] = [
 ]
 
 const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
-  activo:  { t: 'Activo',       c: '#0d9488', bg: 'rgba(13,148,136,.14)' },
-  parcial: { t: 'En expansión', c: '#b45309', bg: 'color-mix(in srgb, var(--amber) 14%, transparent)' },
-  roadmap: { t: 'Roadmap',      c: '#4f5bd5', bg: 'rgba(79,91,213,.14)' },
+  activo:  { t: 'Activo',       c: '#0D9488', bg: 'rgba(13,148,136,.14)' },
+  parcial: { t: 'En expansión', c: '#B45309', bg: 'color-mix(in srgb, var(--amber) 14%, transparent)' },
+  roadmap: { t: 'Roadmap',      c: '#4F5BD5', bg: 'rgba(79,91,213,.14)' },
 }
 
 export default function ArquitecturaPage() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px' }}>
-      <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal, #0d9488)', fontWeight: 700 }}>
+      <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal, #0D9488)', fontWeight: 700 }}>
         Arquitectura
       </div>
-      <h1 style={{ fontSize: 'clamp(26px,4.5vw,40px)', lineHeight: 1.1, margin: '.35em 0 .3em', color: 'var(--text, #0f172a)', letterSpacing: '-.02em' }}>
+      <h1 style={{ fontSize: 'clamp(26px,4.5vw,40px)', lineHeight: 1.1, margin: '.35em 0 .3em', color: 'var(--text, #0F172A)', letterSpacing: '-.02em' }}>
         No es una app de agenda con IA encima. Son motores.
       </h1>
       <p style={{ fontSize: 16.5, color: 'var(--text2, #334155)', maxWidth: '68ch', lineHeight: 1.55 }}>
@@ -78,31 +78,31 @@ export default function ArquitecturaPage() {
 
       <div style={{ display: 'grid', gap: 12, marginTop: 22 }}>
         {MOTORES.map(m => (
-          <div key={m.nombre} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--panel, #fff)', padding: '18px 20px' }}>
+          <div key={m.nombre} style={{ border: '1px solid var(--border, #E5E7EB)', borderRadius: 14, background: 'var(--panel, #FFF)', padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text, #0f172a)', margin: 0 }}>{m.nombre}</h2>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text, #0F172A)', margin: 0 }}>{m.nombre}</h2>
               <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', color: CHIP[m.estado].c, background: CHIP[m.estado].bg }}>
                 {CHIP[m.estado].t}
               </span>
             </div>
             <p style={{ fontSize: 14, color: 'var(--text2, #334155)', lineHeight: 1.55, margin: '0 0 8px' }}>{m.desc}</p>
-            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748b)', margin: 0 }}>▸ {m.demo}</p>
+            <p style={{ fontSize: 12.5, color: 'var(--text3, #64748B)', margin: 0 }}>▸ {m.demo}</p>
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 34, padding: '18px 20px', border: '1px solid var(--border, #e5e7eb)', borderLeft: '3px solid var(--teal, #0d9488)', borderRadius: 12, background: 'var(--panel2, #f8fafc)' }}>
+      <div style={{ marginTop: 34, padding: '18px 20px', border: '1px solid var(--border, #E5E7EB)', borderLeft: '3px solid var(--teal, #0D9488)', borderRadius: 12, background: 'var(--panel2, #F8FAFC)' }}>
         <p style={{ fontSize: 14, color: 'var(--text2, #334155)', margin: 0, lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--text, #0f172a)' }}>Principio de honestidad.</strong> Nunca inventamos datos clínicos, dosis, breakpoints ni referencias.
+          <strong style={{ color: 'var(--text, #0F172A)' }}>Principio de honestidad.</strong> Nunca inventamos datos clínicos, dosis, breakpoints ni referencias.
           El Reasoning Engine expone <em>de dónde</em> viene cada afirmación precisamente para que la incertidumbre sea visible, no oculta.
         </p>
       </div>
 
       <div style={{ marginTop: 30, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
+        <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
           Ver planes y niveles de IA
         </Link>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2, #334155)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border, #e5e7eb)' }}>
+        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2, #334155)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border, #E5E7EB)' }}>
           Volver al inicio
         </Link>
       </div>

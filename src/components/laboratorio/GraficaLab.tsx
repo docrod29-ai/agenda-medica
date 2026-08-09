@@ -36,17 +36,17 @@ export function GraficaLab({
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2, gap: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{titulo} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>({unidad})</span></div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: ultimo.critico || fuera(ultimo.valor) ? '#dc2626' : 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{ultimo.valor}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: ultimo.critico || fuera(ultimo.valor) ? '#DC2626' : 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{ultimo.valor}</div>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
         {refMin != null && refMax != null && (
-          <rect x={padL} y={y(refMax)} width={W - padL - padR} height={Math.max(0, y(refMin) - y(refMax))} fill="#0d948815" />
+          <rect x={padL} y={y(refMax)} width={W - padL - padR} height={Math.max(0, y(refMin) - y(refMax))} fill="#0D948815" />
         )}
         <text x={2} y={y(hi) + 4} fontSize="9" fill="var(--text3)">{Math.round(hi)}</text>
         <text x={2} y={y(lo) + 4} fontSize="9" fill="var(--text3)">{Math.round(lo)}</text>
-        {puntos.length > 1 && <path d={path} fill="none" stroke="#3d5afe" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+        {puntos.length > 1 && <path d={path} fill="none" stroke="#3D5AFE" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
         {puntos.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(p.valor)} r={3} fill={p.critico || fuera(p.valor) ? '#dc2626' : '#3d5afe'} />
+          <circle key={i} cx={x(i)} cy={y(p.valor)} r={3} fill={p.critico || fuera(p.valor) ? '#DC2626' : '#3D5AFE'} />
         ))}
         <text x={x(0)} y={H - 4} fontSize="8.5" fill="var(--text3)" textAnchor="start">{fmtFecha(puntos[0].fecha)}</text>
         {puntos.length > 1 && <text x={x(puntos.length - 1)} y={H - 4} fontSize="8.5" fill="var(--text3)" textAnchor="end">{fmtFecha(ultimo.fecha)}</text>}

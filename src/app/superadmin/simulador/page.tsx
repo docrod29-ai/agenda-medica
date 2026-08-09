@@ -127,7 +127,7 @@ export default function SimuladorSuperadmin() {
                 </div>
               ))}
             </div>
-            <button onClick={guardar} disabled={guardando} style={{ marginTop: 12, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={guardar} disabled={guardando} style={{ marginTop: 12, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {guardando ? 'Guardando…' : 'Guardar y recalcular'}
             </button>
           </div>

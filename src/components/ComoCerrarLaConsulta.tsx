@@ -70,7 +70,7 @@ export function ComoCerrarLaConsulta(p: ComoCerrarLaConsultaProps) {
                 width: 22, height: 22, borderRadius: 'var(--r-pill)', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: hecho ? 'var(--green)' : 'var(--s3)',
-                color: hecho ? '#fff' : 'var(--text3)',
+                color: hecho ? '#FFF' : 'var(--text3)',
               }}>
                 {hecho ? <Check size={13} /> : null}
               </span>

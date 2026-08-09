@@ -147,7 +147,7 @@ export function AutoLogout() {
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button onClick={reiniciar} className="lift" style={{
-            background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
+            background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10,
             padding: '11px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
           }}>
             Seguir conectado

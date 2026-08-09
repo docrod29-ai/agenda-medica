@@ -23,7 +23,7 @@
   --border2:   rgba(242,239,233,0.14);
 
   /* Alias de superficie para páginas que usan var(--panel/--panel2):
-     sin esto caían al fallback CLARO (#fff/#f8fafc) y en modo oscuro las
+     sin esto caían al fallback CLARO (#FFF/#F8FAFC) y en modo oscuro las
      tarjetas de /arquitectura y /operacion salían blancas sobre el canvas
      oscuro. Mapeados a las superficies temáticas para que sigan al tema. */
   --panel:     var(--s1);
@@ -104,13 +104,64 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /* ─── LA ESCALA DE RADIO — V9 · DESIGN-SYSTEM-001 ───────────────────────────
+     `--r-pill` demostró que un token con su razón escrita SÍ se adopta aquí:
+     131 usos. Faltaba el resto de la escala, y por eso el radio se escribía a
+     mano en 1 092 sitios con VEINTE valores distintos.
+
+     Los seis peldaños no se inventan: son los que el producto ya usa. Medido
+     sobre el repositorio el 9-ago-2026, ordenado por frecuencia:
+
+       10 (245) · 8 (245) · 12 (162) · 6 (104) · 9 (78) · 14 (65) · 7 (32)
+       11 (27) · 16 (25) · 4 (23) · 3 (15) · 5 (11) · 20 (9) · …
+
+     La escala se queda con 4·6·8·10·12·16, que cubre 804 de los 1 092. Los
+     valores intermedios —9, 7, 11, 3, 5— son la deriva: 163 sitios que dicen
+     «como el de al lado, más o menos». No se tocan hoy; el trinquete impide que
+     crezcan y `VISUAL-EXCELLENCE-001` los recoge mirando la pantalla, no el
+     código.
+
+     Se declara en píxeles y no en `rem`: un radio no debe crecer con la
+     preferencia de tamaño de letra del sistema — una tarjeta con el radio al
+     doble no es más accesible, es otra tarjeta. El ESPACIO sí escala; ver abajo. */
+  --r-xs:  4px;
+  --r-sm:  6px;
+  --r-md:  8px;
+  --r-lg:  10px;
+  --r-xl:  12px;
+  --r-2xl: 16px;
+
+  /* ─── LA ESCALA DE ESPACIO — V9 · DESIGN-SYSTEM-001 ─────────────────────────
+     `gap` y `padding` numéricos en línea: 3 160 sitios, 34 valores distintos.
+     Medido el 9-ago-2026, los que mandan son 8 · 6 · 10 · 12 · 4 · 16 · 14.
+
+     La escala es de base 2 hasta 12 y de base 4 desde ahí, que es exactamente lo
+     que el producto ya habla. No se fuerza una rejilla de 4 «porque es lo que se
+     hace»: aquí el 6 y el 10 son 534 usos, y una rejilla que obliga a
+     redondearlos a 8 mueve medio producto sin que nadie lo haya mirado.
+
+     En píxeles, igual que el radio, y por la misma razón que el radio NO: aquí
+     la unidad importa poco porque estos tokens se consumen desde `style` y desde
+     utilidades de Tailwind, que ya resuelven el `rem` donde toca. Lo que importa
+     es que haya UN 8 y no tres formas de escribirlo. */
+  --e-1:  2px;
+  --e-2:  4px;
+  --e-3:  6px;
+  --e-4:  8px;
+  --e-5:  10px;
+  --e-6:  12px;
+  --e-7:  16px;
+  --e-8:  20px;
+  --e-9:  24px;
+  --e-10: 32px;
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
-  --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
-  --badge-blue-t:   #7aa2ff; --badge-blue-b:   rgba(61,90,254,0.18);
-  --badge-amber-t:  #fbbf24; --badge-amber-b:  rgba(251,191,36,0.16);
-  --badge-red-t:    #f87171; --badge-red-b:    rgba(239,68,68,0.16);
-  --badge-purple-t: #c084fc; --badge-purple-b: rgba(168,85,247,0.18);
+  --badge-green-t:  #4ADE80; --badge-green-b:  rgba(34,197,94,0.16);
+  --badge-blue-t:   #7AA2FF; --badge-blue-b:   rgba(61,90,254,0.18);
+  --badge-amber-t:  #FBBF24; --badge-amber-b:  rgba(251,191,36,0.16);
+  --badge-red-t:    #F87171; --badge-red-b:    rgba(239,68,68,0.16);
+  --badge-purple-t: #C084FC; --badge-purple-b: rgba(168,85,247,0.18);
   --badge-gris-t:   #A8ACAE; --badge-gris-b:   rgba(148,163,184,0.14);
 
   /* Texto bone — warm, sofisticado, no slate-frío */
@@ -123,11 +174,95 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * LO QUE TAILWIND VE — V9 · DESIGN-SYSTEM-001
+ *
+ * ── LA CAUSA RAÍZ DEL MONOLITO DE ESTILO EN LÍNEA ───────────────────────────
+ *
+ * Esta lista tenía CUATRO entradas. Todo lo demás —cada color del tema, cada
+ * radio, cada superficie— vivía en variables CSS de `:root`, que Tailwind no
+ * mira. Y una utilidad que no existe no se puede usar: para pintar un borde con
+ * `--border` no había `border-border`, había que escribir
+ * `style={{ border: '1px solid var(--border)' }}`.
+ *
+ * De ahí salen los 6 065 estilos en línea del 88,5 % de los archivos. No fue
+ * dejadez: **el código no tenía alternativa**. Por eso DESIGN-SYSTEM-001 empieza
+ * aquí y no por los colores —que además están bien, con el contraste AA medido a
+ * mano— y por eso ensanchar esta lista es lo único de esta unidad que no cambia
+ * un solo píxel: sólo AÑADE utilidades que antes no existían.
+ *
+ * ── POR QUÉ TODO APUNTA A `var(--…)` Y NO AL VALOR ──────────────────────────
+ *
+ * `@theme inline` con una referencia mantiene UNA fuente de verdad: el tema
+ * claro redefine `--nexus` en su bloque y `bg-nexus` le sigue solo. Copiar el
+ * hexadecimal aquí crearía un segundo sitio que hay que acordarse de cambiar —
+ * la familia `depende_de_recordar`, que ya costó REG-241.
+ *
+ * ── QUÉ NO ESTÁ AQUÍ, A PROPÓSITO ───────────────────────────────────────────
+ *
+ * Los tamaños de letra. La escala vive en las clases `.t-*` porque un peldaño
+ * tipográfico es tamaño + peso + interletraje + interlínea + color, y exponerlo
+ * como `text-body` suelto invita a coger sólo el tamaño y volver a inventar el
+ * resto. Se usa `.t-body`, no `text-[14px]`.
+ * ════════════════════════════════════════════════════════════════════════════ */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+
+  /* Lienzo y superficies: `bg-canvas`, `bg-s1`, `bg-s2`, `bg-s3` */
+  --color-canvas: var(--bg);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-s3: var(--s3);
+
+  /* Bordes: `border-linea`, `border-linea2` */
+  --color-linea: var(--border);
+  --color-linea2: var(--border2);
+
+  /* Texto: `text-principal`, `text-secundario`, `text-terciario` */
+  --color-principal: var(--text);
+  --color-secundario: var(--text2);
+  --color-terciario: var(--text3);
+
+  /* Marca. `nexus` es el de TEXTO sobre fondo oscuro; `nexus-solido` es el
+     RELLENO bajo texto blanco. Son dos requisitos opuestos y por eso son dos
+     tokens: ver el comentario de `--nexus-solido`. */
+  --color-nexus: var(--nexus);
+  --color-nexus-hover: var(--nexus-hover);
+  --color-nexus-soft: var(--nexus-soft);
+  --color-nexus-solido: var(--nexus-solido);
+
+  /* Semántica clínica, con el contraste AA ya medido en `:root`. */
+  --color-clinico-azul: var(--blue);
+  --color-clinico-ambar: var(--amber);
+  --color-clinico-rojo: var(--red);
+  --color-clinico-verde: var(--green);
+  --color-clinico-morado: var(--purple);
+
+  /* Radio: `rounded-xs` … `rounded-2xl`, `rounded-pill`, `rounded-circulo` */
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-pill: var(--r-pill);
+  --radius-circulo: var(--r-circulo);
+
+  /* Espacio: `p-e4`, `gap-e6`, `mt-e9`… */
+  --spacing-e1: var(--e-1);
+  --spacing-e2: var(--e-2);
+  --spacing-e3: var(--e-3);
+  --spacing-e4: var(--e-4);
+  --spacing-e5: var(--e-5);
+  --spacing-e6: var(--e-6);
+  --spacing-e7: var(--e-7);
+  --spacing-e8: var(--e-8);
+  --spacing-e9: var(--e-9);
+  --spacing-e10: var(--e-10);
 }
 
 * {
@@ -848,7 +983,7 @@ tbody tr:last-child { border-bottom: none; }
 /* ── Indicador offline ────────────────────────────────────── */
 .offline-banner {
   background: var(--amber);
-  color: #1a1a1a;
+  color: #1A1A1A;
   font-size: 13px;
   font-weight: 600;
   text-align: center;
@@ -1370,7 +1505,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
    plantilla pone body.print-solo-receta y así se imprime SOLO #zona-print-receta,
    no toda la pantalla de configuración. */
 @media print {
-  body.print-solo-receta { background: #fff !important; }
+  body.print-solo-receta { background: #FFF !important; }
   body.print-solo-receta * { visibility: hidden !important; }
   body.print-solo-receta #zona-print-receta,
   body.print-solo-receta #zona-print-receta * { visibility: visible !important; }
@@ -1417,6 +1552,33 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   font-weight: 400;
   line-height: 1.5;
   color: var(--text);
+}
+/*
+  LOS DOS PELDAÑOS QUE FALTABAN — V9 · DESIGN-SYSTEM-001.
+
+  La escala declaraba seis pasos (28·20·16·14·12·10,5) y el producto escribe
+  2 888 `fontSize` en línea con 39 valores. Los cuatro más usados —13 (536),
+  12,5 (466), 12 (422), 11 (292)— **no estaban todos en la escala**: el 12 sí,
+  el 13 y el 11 no. O sea que 828 sitios no tenían peldaño al que agarrarse, y
+  el que no tiene peldaño se inventa uno.
+
+  Se añaden los dos que el producto ya habla, en entero. No se añaden los medios
+  píxeles (12,5 · 11,5 · 13,5 · 10,5 fuera de `.t-overline`, 865 sitios juntos):
+  un medio píxel es la firma de una escala que no existía, y colapsarlos cambia
+  la altura de casi mil líneas de texto. Eso se hace mirando la pantalla —es
+  `VISUAL-EXCELLENCE-001`—, no con un reemplazo.
+*/
+.t-body-sm {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--text);
+}
+.t-micro {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text2);
 }
 .t-caption {
   font-size: 12px;
@@ -1547,7 +1709,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 .prox-hero-cta {
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
-  background: var(--nexus); color: #fff;
+  background: var(--nexus); color: #FFF;
   border: none; border-radius: 12px;
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;

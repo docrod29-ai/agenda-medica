@@ -115,7 +115,7 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
                       {onAgregarANota && (
                         <button type="button"
                           onClick={() => onAgregarANota(`${c.nombre}: ${res.puntaje} puntos — ${res.categoria}. ${res.interpretacion} (${c.referencia})`)}
-                          style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                          style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                           <Plus size={13} /> Agregar a la nota
                         </button>
                       )}
@@ -132,9 +132,9 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
 }
 
 const COLORES = {
-  bajo: { fg: '#10b981', bg: 'rgba(16,185,129,.12)', bd: 'rgba(16,185,129,.35)' },
-  medio: { fg: '#f59e0b', bg: 'color-mix(in srgb, var(--amber) 12%, transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
-  alto: { fg: '#f87171', bg: 'color-mix(in srgb, var(--red) 12%, transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
+  bajo: { fg: '#10B981', bg: 'rgba(16,185,129,.12)', bd: 'rgba(16,185,129,.35)' },
+  medio: { fg: '#F59E0B', bg: 'color-mix(in srgb, var(--amber) 12%, transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
+  alto: { fg: '#F87171', bg: 'color-mix(in srgb, var(--red) 12%, transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
 } as const
 
 const badge = (nivel: keyof typeof COLORES): React.CSSProperties => ({
@@ -146,8 +146,8 @@ const caja = (nivel: keyof typeof COLORES): React.CSSProperties => ({
 })
 const toggle = (on: boolean): React.CSSProperties => ({
   minWidth: 46, height: 28, borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-  border: '1px solid ' + (on ? '#f59e0b' : 'var(--border)'),
-  background: on ? '#f59e0b' : 'var(--s2)', color: on ? '#000' : 'var(--text3)',
+  border: '1px solid ' + (on ? '#F59E0B' : 'var(--border)'),
+  background: on ? '#F59E0B' : 'var(--s2)', color: on ? '#000' : 'var(--text3)',
 })
 const select: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,

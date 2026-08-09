@@ -287,7 +287,7 @@ export default function GeneradorRecetaPage() {
     const base = config?.recetaConfig ?? {
       paperSize: 'media-carta' as const,
       estilo: 'minimalista' as const,
-      colorAccento: '#14b8a6',
+      colorAccento: '#14B8A6',
       mostrarQR: true,
       vigenciaDias: 30,
       mostrarAlergias: true,
@@ -508,7 +508,7 @@ export default function GeneradorRecetaPage() {
   if (!nota) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <AlertCircle size={28} color="#f59e0b" style={{ marginBottom: 12 }} />
+        <AlertCircle size={28} color="#F59E0B" style={{ marginBottom: 12 }} />
         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Nota no encontrada</h2>
         <button onClick={() => router.push('/pacientes')} className="btn btn-primary" style={{ marginTop: 16 }}>
           Volver a expedientes
@@ -620,11 +620,11 @@ export default function GeneradorRecetaPage() {
           {alertasAlergia.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              // Tokens de badge rojo por tema: el título #b91c1c fijo era ilegible
+              // Tokens de badge rojo por tema: el título #B91C1C fijo era ilegible
               // sobre el canvas oscuro (rojo oscuro sobre fondo oscuro).
-              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t, #b91c1c)',
+              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t, #B91C1C)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t, #b91c1c)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t, #B91C1C)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Alerta de alergia — revisa antes de imprimir
               </div>
               {alertasAlergia.map((a, i) => (
@@ -640,9 +640,9 @@ export default function GeneradorRecetaPage() {
           {alertasDosis.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(220,38,38,0.10)', border: '2px solid #b91c1c',
+              background: 'rgba(220,38,38,0.10)', border: '2px solid #B91C1C',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Revisa la dosis antes de imprimir
               </div>
               {alertasDosis.map((d, i) => (
@@ -736,7 +736,7 @@ export default function GeneradorRecetaPage() {
                   <div key={i} style={{
                     fontSize: 12, lineHeight: 1.45, padding: '6px 10px', borderRadius: 6,
                     background: a.severidad === 'evitar' ? 'rgba(220,38,38,0.10)' : 'rgba(217,119,6,0.10)',
-                    borderLeft: `3px solid ${a.severidad === 'evitar' ? '#b91c1c' : 'var(--amber)'}`,
+                    borderLeft: `3px solid ${a.severidad === 'evitar' ? '#B91C1C' : 'var(--amber)'}`,
                     color: 'var(--text)',
                     display: 'flex', alignItems: 'center', gap: 6,
                   }}>
@@ -763,7 +763,7 @@ export default function GeneradorRecetaPage() {
             {frecuentes.length > 0 && medicamentos.length < MAX_MEDS && (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
-                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3d5afe)' }} /> Tus más recetados
+                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3D5AFE)' }} /> Tus más recetados
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {frecuentes.map((r, i) => (
@@ -774,7 +774,7 @@ export default function GeneradorRecetaPage() {
                       title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >
-                      <Plus size={11} style={{ color: 'var(--nexus, #3d5afe)' }} />
+                      <Plus size={11} style={{ color: 'var(--nexus, #3D5AFE)' }} />
                       {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}
                     </button>
                   ))}

@@ -26,7 +26,7 @@ import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ru
 const RX_DEFAULTS: RecetaConfig = {
   paperSize: 'media-carta',
   estilo: 'minimalista',
-  colorAccento: '#14b8a6',
+  colorAccento: '#14B8A6',
   mostrarQR: true,
   copiasEnHoja: 1,
   vigenciaDias: 30,
@@ -430,7 +430,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             {rx.disenoCompletoDataUrl && (
               <span style={{
                 fontSize: 10.5, fontWeight: 700, padding: '4px 10px',
-                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
+                background: 'var(--nexus-solido)', color: '#FFF', borderRadius: 'var(--r-pill)',
               }}>
                 ACTIVO
               </span>
@@ -438,7 +438,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           </div>
 
           {rx.disenoCompletoDataUrl ? (
-            <div style={{ position: 'relative', background: '#fff', borderRadius: 8, padding: 8, border: '1px solid var(--border)' }}>
+            <div style={{ position: 'relative', background: '#FFF', borderRadius: 8, padding: 8, border: '1px solid var(--border)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={rx.disenoCompletoDataUrl}
@@ -458,7 +458,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
                 }))}
                 style={{
                   position: 'absolute', top: 12, right: 12,
-                  background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#fff', border: 'none',
+                  background: 'color-mix(in srgb, var(--red) 90%, transparent)', color: '#FFF', border: 'none',
                   borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 600,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
                 }}
@@ -766,12 +766,12 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input
               type="color"
-              value={rx.colorAccento ?? '#14b8a6'}
+              value={rx.colorAccento ?? '#14B8A6'}
               onChange={(e) => setRx({ ...rx, colorAccento: e.target.value })}
               style={{ width: 50, height: 36, border: '1px solid var(--border)', borderRadius: 6, padding: 2, cursor: 'pointer', background: 'var(--s2)' }}
             />
             <input
-              value={rx.colorAccento ?? '#14b8a6'}
+              value={rx.colorAccento ?? '#14B8A6'}
               onChange={(e) => setRx({ ...rx, colorAccento: e.target.value })}
               style={{ ...cfgInput, width: 110, fontFamily: 'monospace' }}
             />
@@ -787,7 +787,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           {rx.membreteDataUrl ? (
             <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#fff' }} />
+              <img src={rx.membreteDataUrl} alt="Membrete" style={{ maxWidth: '100%', maxHeight: 120, display: 'block', margin: '0 auto', background: '#FFF' }} />
               <button
                 onClick={() => setRx({ ...rx, membreteDataUrl: '' })}
                 style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
@@ -819,7 +819,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
           {rx.pieDataUrl ? (
             <div style={{ position: 'relative', border: '1px dashed var(--border)', borderRadius: 8, padding: 10, background: 'var(--s2)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#fff' }} />
+              <img src={rx.pieDataUrl} alt="Pie" style={{ maxWidth: '100%', maxHeight: 60, display: 'block', margin: '0 auto', background: '#FFF' }} />
               <button
                 onClick={() => setRx({ ...rx, pieDataUrl: '' })}
                 style={{ position: 'absolute', top: 6, right: 6, background: 'color-mix(in srgb, var(--red) 15%, transparent)', color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)', borderRadius: 6, padding: '3px 6px', fontSize: 11, cursor: 'pointer' }}
@@ -1020,8 +1020,8 @@ function PreviewReceta({
           style={{
             padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             background: tipoPreview === 'orden' ? 'rgba(167,139,250,0.15)' : 'var(--s2)',
-            border: tipoPreview === 'orden' ? '1px solid #a78bfa' : '1px solid var(--border)',
-            color: tipoPreview === 'orden' ? '#a78bfa' : 'var(--text3)',
+            border: tipoPreview === 'orden' ? '1px solid #A78BFA' : '1px solid var(--border)',
+            color: tipoPreview === 'orden' ? '#A78BFA' : 'var(--text3)',
             display: 'inline-flex', alignItems: 'center', gap: 4,
           }}
         >
@@ -1048,7 +1048,7 @@ function PreviewReceta({
         margin: '0 auto',
         overflow: 'hidden',
         position: 'relative',
-        background: '#1a2333',
+        background: '#1A2333',
         borderRadius: 6,
       }}>
         <div style={{
@@ -1091,7 +1091,7 @@ function PreviewReceta({
       {/* Receta a TAMAÑO FÍSICO REAL — oculta en pantalla, visible SOLO al imprimir
           (el CSS de impresión con body.print-solo-receta muestra únicamente esto). */}
       <div id="zona-print-receta" style={{ display: 'none' }}>
-        <div id="zona-print-receta-inner" style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#fff' }}>
+        <div id="zona-print-receta-inner" style={{ width: paperWidthPx, height: paperHeightPx, position: 'relative', background: '#FFF' }}>
           <RecetaDocumento data={demoData} config={config ?? null} recetaConfig={rx} />
         </div>
       </div>
@@ -1221,7 +1221,7 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
   }
 
   const asa = (cursor: string, extra: React.CSSProperties): React.CSSProperties => ({
-    position: 'absolute', background: '#14b8a6', borderRadius: 3, touchAction: 'none',
+    position: 'absolute', background: '#14B8A6', borderRadius: 3, touchAction: 'none',
     cursor, zIndex: 2, ...extra,
   })
 
@@ -1231,11 +1231,11 @@ function ZonaContenidoEditable({ m, paperWmm, paperHmm, scale, onChange }: {
       style={{
         position: 'absolute',
         top: `${m.top}mm`, right: `${m.right}mm`, bottom: `${m.bottom}mm`, left: `${m.left}mm`,
-        border: '2px dashed #14b8a6', background: 'rgba(20,184,166,0.10)',
+        border: '2px dashed #14B8A6', background: 'rgba(20,184,166,0.10)',
         borderRadius: 2, cursor: 'move', touchAction: 'none',
       }}
     >
-      <div style={{ position: 'absolute', top: -22, left: 0, background: '#14b8a6', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: -22, left: 0, background: '#14B8A6', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
         ✥ arrastra · jala los bordes
       </div>
       {/* Asas de borde (centro de cada lado) */}
@@ -1379,7 +1379,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
           display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12,
           fontSize: 13, fontWeight: 700, padding: '8px 14px', borderRadius: 9,
           cursor: detectando ? 'wait' : 'pointer', border: 'none',
-          background: 'var(--nexus-solido)', color: '#fff',
+          background: 'var(--nexus-solido)', color: '#FFF',
         }}
       >
         {detectando
@@ -1401,7 +1401,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
         </div>
       )}
       <div ref={ref} onPointerMove={onMove} onPointerUp={() => setArrastrando(null)} onPointerLeave={() => setArrastrando(null)}
-        style={{ position: 'relative', width: '100%', userSelect: 'none', touchAction: 'none', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+        style={{ position: 'relative', width: '100%', userSelect: 'none', touchAction: 'none', borderRadius: 8, overflow: 'hidden', background: '#FFF' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={disenoUrl} alt="Formato de receta" style={{ width: '100%', display: 'block', pointerEvents: 'none' }} draggable={false} />
         {CAMPOS_RECETA.filter(c => val[c.k]).map(c => {
@@ -1410,7 +1410,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
             <div key={c.k} onPointerDown={(e) => { e.preventDefault(); setArrastrando(c.k) }}
               style={{
                 position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%,-50%)',
-                background: 'var(--nexus-solido)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                background: 'var(--nexus-solido)', color: '#FFF', fontSize: 11, fontWeight: 700, padding: '2px 8px',
                 borderRadius: 6, cursor: 'grab', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}>

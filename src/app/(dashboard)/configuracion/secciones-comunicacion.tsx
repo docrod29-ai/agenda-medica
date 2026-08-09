@@ -90,7 +90,7 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: 12 }}>
             <TarjetaMetrica etiqueta="Enviados" valor={data.total} />
             <TarjetaMetrica etiqueta="Entregados" valor={data.entregados} sub={pct(data.tasaEntrega)} color="var(--nexus)" />
-            <TarjetaMetrica etiqueta="Leídos" valor={data.leidos} sub={pct(data.tasaLectura) + ' de entregados'} color="var(--success, #16a34a)" />
+            <TarjetaMetrica etiqueta="Leídos" valor={data.leidos} sub={pct(data.tasaLectura) + ' de entregados'} color="var(--success, #16A34A)" />
             <TarjetaMetrica etiqueta="Fallidos" valor={data.fallidos} sub={data.fallosPermanentes ? `${data.fallosPermanentes} permanentes` : undefined} color={data.fallidos ? 'var(--danger)' : 'var(--text2)'} />
           </div>
 
@@ -347,7 +347,7 @@ export function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) 
           <span style={{
             marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)',
             background: registradas === 3 ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'var(--nexus-soft)',
-            color: registradas === 3 ? '#16a34a' : 'var(--nexus)',
+            color: registradas === 3 ? '#16A34A' : 'var(--nexus)',
           }}>{registradas}/3 registradas</span>
         </div>
         <p className="t-body" style={{ color: 'var(--text2)', margin: '8px 0 0' }}>

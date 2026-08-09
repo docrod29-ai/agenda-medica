@@ -105,7 +105,7 @@ function Pasos({ paso }: { paso: DemoPaso }) {
           <div key={it.k} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{
               fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)',
-              color: activo ? '#fff' : hecho ? 'var(--nexus)' : 'var(--text3)',
+              color: activo ? '#FFF' : hecho ? 'var(--nexus)' : 'var(--text3)',
               background: activo ? 'var(--nexus-solido)' : hecho ? 'var(--nexus-soft)' : 'var(--s2)',
               border: '1px solid ' + (activo || hecho ? 'var(--border2)' : 'var(--border)'),
             }}>{it.label}</span>
@@ -212,7 +212,7 @@ function Dictado({ escenario, onListo, onReiniciar }: { escenario: DemoEscenario
           )}
           {grabando && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'color-mix(in srgb, var(--red) 10%, transparent)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
-              <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#dc2626' }} className="nx-pulse" /> Grabando · {mmss}
+              <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#DC2626' }} className="nx-pulse" /> Grabando · {mmss}
             </span>
           )}
         </div>
@@ -279,16 +279,16 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
           <button key={k} onClick={() => setDoc(k)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
             padding: '6px 14px', borderRadius: 'var(--r-pill)', border: 'none',
-            background: doc === k ? 'var(--nexus-solido)' : 'transparent', color: doc === k ? '#fff' : 'var(--text2)',
+            background: doc === k ? 'var(--nexus-solido)' : 'transparent', color: doc === k ? '#FFF' : 'var(--text2)',
           }}><Icono size={14} /> {label}</button>
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, marginTop: 12 }} className="nx-demo-receta">
         {/* Documento (receta u orden) */}
-        <div style={{ ...card, background: '#fff', color: '#111' }}>
-          <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 10, marginBottom: 12 }}>
-            <div style={{ fontSize: 15, fontWeight: 800 }}>Dr. Nombre Apellido <span style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>(ficticio)</span></div>
-            <div style={{ fontSize: 11.5, color: '#6b7280' }}>Medicina General · Céd. Prof. 0000000</div>
+        <div style={{ ...card, background: '#FFF', color: '#111' }}>
+          <div style={{ borderBottom: '1px solid #E5E7EB', paddingBottom: 10, marginBottom: 12 }}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>Dr. Nombre Apellido <span style={{ fontSize: 11, fontWeight: 500, color: '#6B7280' }}>(ficticio)</span></div>
+            <div style={{ fontSize: 11.5, color: '#6B7280' }}>Medicina General · Céd. Prof. 0000000</div>
           </div>
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: '#3D5AFE', textTransform: 'uppercase', marginBottom: 8 }}>{esReceta ? 'Receta médica' : 'Orden de estudios'}</div>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}><strong>Paciente:</strong> {escenario.cita.iniciales} · {escenario.cita.sexo === 'F' ? 'F' : 'M'} {escenario.cita.edad} a · <strong>Folio:</strong> {escenario.folio}</div>
@@ -307,7 +307,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
                 </div>
               ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 8, background: '#f3f4f6', display: 'grid', placeItems: 'center', fontSize: 9, color: '#6b7280', textAlign: 'center', lineHeight: 1.15, border: '1px solid #e5e7eb' }}>QR<br/>verif.</div>
+            <div style={{ width: 52, height: 52, borderRadius: 8, background: '#F3F4F6', display: 'grid', placeItems: 'center', fontSize: 9, color: '#6B7280', textAlign: 'center', lineHeight: 1.15, border: '1px solid #E5E7EB' }}>QR<br/>verif.</div>
           </div>
         </div>
 
@@ -471,7 +471,7 @@ function ModUCI() {
         <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{esc.cama}</div>
         <div style={{ fontSize: 16, fontWeight: 600, margin: '4px 0 12px' }}>{esc.titulo}</div>
         <button onClick={dictar} disabled={estado === 'grabando'} className="btn btn-primary"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(estado === 'grabando' ? { background: '#dc2626', border: 'none', color: '#fff' } : {}) }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, ...(estado === 'grabando' ? { background: '#DC2626', border: 'none', color: '#FFF' } : {}) }}>
           {estado === 'grabando' ? <Square size={15} /> : <Mic size={15} />}
           {estado === 'grabando' ? 'Grabando…' : estado === 'listo' ? 'Volver a dictar' : 'Dictar pase de visita'}
         </button>
@@ -621,7 +621,7 @@ function ModConsultorIA() {
         {chat.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.de === 'yo' ? 'flex-end' : 'flex-start' }}>
             <span style={{ maxWidth: '85%', fontSize: 12.5, lineHeight: 1.5, padding: '9px 12px', borderRadius: 12,
-              background: m.de === 'yo' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.de === 'yo' ? '#fff' : 'var(--text)',
+              background: m.de === 'yo' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.de === 'yo' ? '#FFF' : 'var(--text)',
               border: m.de === 'yo' ? 'none' : '1px solid var(--border)' }}>{m.texto}</span>
           </div>
         ))}
@@ -677,12 +677,12 @@ function ModWhatsApp() {
   }
 
   return (
-    <div style={{ ...card, background: '#0b141a', maxWidth: 420 }}>
-      <div style={{ fontSize: 12, color: '#8aa', marginBottom: 10 }}>Asistente del Dr. · WhatsApp (demo)</div>
+    <div style={{ ...card, background: '#0B141A', maxWidth: 420 }}>
+      <div style={{ fontSize: 12, color: '#8AA', marginBottom: 10 }}>Asistente del Dr. · WhatsApp (demo)</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, minHeight: 120 }}>
         {turnos.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.de === 'yo' ? 'flex-end' : 'flex-start' }}>
-            <span style={{ maxWidth: '82%', fontSize: 12.5, lineHeight: 1.4, padding: '7px 10px', borderRadius: 10, color: '#e9edef', background: m.de === 'yo' ? '#005c4b' : '#1f2c34' }}>{m.texto}</span>
+            <span style={{ maxWidth: '82%', fontSize: 12.5, lineHeight: 1.4, padding: '7px 10px', borderRadius: 10, color: '#E9EDEF', background: m.de === 'yo' ? '#005C4B' : '#1F2C34' }}>{m.texto}</span>
           </div>
         ))}
       </div>
@@ -690,7 +690,7 @@ function ModWhatsApp() {
         {opciones.map(op => (
           <button key={op} onClick={() => elegir(op)} style={{
             fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '7px 12px', borderRadius: 'var(--r-pill)',
-            border: '1px solid #2a3942', background: '#111b21', color: '#8fd3c4',
+            border: '1px solid #2A3942', background: '#111B21', color: '#8FD3C4',
           }}>{op === 'Reiniciar' ? '↺ Reiniciar' : op}</button>
         ))}
       </div>

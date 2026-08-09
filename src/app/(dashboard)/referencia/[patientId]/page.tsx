@@ -120,7 +120,7 @@ export default function CartaReferenciaPage() {
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
-          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#FFF', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
             {descargando
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
@@ -184,12 +184,12 @@ export default function CartaReferenciaPage() {
 
       {/* Documento (hoja blanca) */}
       <div id="doc" style={{
-        maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a',
+        maxWidth: 800, margin: '0 auto', background: '#FFF', color: '#1A1A1A',
         padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
         lineHeight: 1.5, fontSize: 13,
       }}>
         {/* Membrete */}
-        <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: 12, marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', borderBottom: '2px solid #1A1A1A', paddingBottom: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{medico}</div>
           <div style={{ fontSize: 12 }}>{especialidad}{especialidad && cedula !== '—' ? ' · ' : ''}{cedula !== '—' ? `Cédula Prof. ${cedula}` : ''}</div>
           {establecimiento && <div style={{ fontSize: 12 }}>{establecimiento}</div>}
@@ -217,7 +217,7 @@ export default function CartaReferenciaPage() {
           <strong>Paciente:</strong> {patient?.nombre ?? ''}
           {patient?.edad ? ` · ${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
         </div>
-        <div style={{ border: '1.5px solid #b91c1c', color: 'var(--red)', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+        <div style={{ border: '1.5px solid #B91C1C', color: 'var(--red)', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
           {/* Misma fuente que la pantalla y que la receta: leer `patient.alergias`
               en crudo se salta el campo estructurado, y esta hoja viaja a OTRO
               médico. */}
@@ -241,7 +241,7 @@ export default function CartaReferenciaPage() {
 
         {/* Firma */}
         <div style={{ marginTop: 40, textAlign: 'center' }}>
-          <div style={{ borderTop: '1px solid #1a1a1a', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
+          <div style={{ borderTop: '1px solid #1A1A1A', width: 280, margin: '0 auto', paddingTop: 4, fontSize: 12.5 }}>
             <strong>{medico}</strong><br />
             {especialidad}{especialidad ? <br /> : null}
             {/* Cédula = dato obligatorio: marcar su ausencia, no imprimir un guion. */}

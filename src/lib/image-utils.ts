@@ -52,7 +52,7 @@ export async function resizeImageFile(
 
   // Fondo blanco si el destino es JPEG (no soporta transparencia)
   if (opts.type === 'image/jpeg') {
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, w, h)
   }
 
@@ -140,7 +140,7 @@ export async function reducirDataUrlSiPesa(
     if (!ctx) break
     if (tipo === 'image/jpeg') {
       // JPEG no tiene transparencia: sin esto el fondo sale negro.
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = '#FFFFFF'
       ctx.fillRect(0, 0, w, h)
     }
     ctx.drawImage(img, 0, 0, w, h)

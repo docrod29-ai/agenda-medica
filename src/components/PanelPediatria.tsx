@@ -92,7 +92,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
           <Baby size={15} color="var(--purple)" />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--purple)' }}>Pediatría</span>
           {atrasadas.length > 0 && (
-            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #B45309)' }}>
               verificar {atrasadas.length} vacuna{atrasadas.length > 1 ? 's' : ''}
             </span>
           )}
@@ -227,7 +227,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{r.indicador}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: r.nivel === 'normal' ? '#22c55e' : r.nivel === 'bajo' ? '#f87171' : '#f59e0b' }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: r.nivel === 'normal' ? '#22C55E' : r.nivel === 'bajo' ? '#F87171' : '#F59E0B' }}>
                       z {r.z > 0 ? '+' : ''}{r.z} · percentil {r.percentil}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--text3)' }}>
@@ -273,7 +273,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                       {v.vacuna.mes === 0 ? 'al nacer' : v.vacuna.mes < 24 ? `${v.vacuna.mes} meses` : `${v.vacuna.mes / 12} años`}
                     </span>
                     {v.estado === 'atrasada' && (
-                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #b45309)' }}>CORRESPONDE POR EDAD</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'color-mix(in srgb, var(--amber) 15%, transparent)', color: 'var(--amber, #B45309)' }}>CORRESPONDE POR EDAD</span>
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{v.vacuna.detalle}</div>
@@ -314,8 +314,8 @@ function Tab({ activo, onClick, icono, texto }: { activo: boolean; onClick: () =
     <button type="button" onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (activo ? '#8b5cf6' : 'var(--border)'),
-      background: activo ? '#8b5cf6' : 'var(--s2)', color: activo ? '#fff' : 'var(--text3)',
+      border: '1px solid ' + (activo ? '#8B5CF6' : 'var(--border)'),
+      background: activo ? '#8B5CF6' : 'var(--s2)', color: activo ? '#FFF' : 'var(--text3)',
     }}>{icono}{texto}</button>
   )
 }

@@ -20,9 +20,9 @@ import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 //   verde  = disponible · azul = con paciente · ámbar = transitorio ·
 //   rojo   = no utilizable · morado = precaución de contacto.
 const COLOR: Record<EstadoCama, string> = {
-  libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
-  reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
-  lista: '#0d9488', limpieza_aislamiento: '#a21caf',
+  libre: '#0D9488', ocupada: '#3D5AFE', bloqueada: '#DC2626', limpieza: '#D97706',
+  reservada: '#7C3AED', mantenimiento: '#DC2626', aislamiento: '#A21CAF',
+  lista: '#0D9488', limpieza_aislamiento: '#A21CAF',
 }
 // DECISIÓN DEL DR. (2026-07-30): el default de NexusMED es limpieza terminal
 // requerida tras alta o traslado — ocupada → limpieza → lista → libre, y nunca
@@ -118,7 +118,7 @@ export default function CamasPage() {
         {esAdmin && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setForm({ servicio: SERVICIOS_HOSPITAL[0], etiqueta: '', tipo: '' }); setModal(true) }}>Agregar cama</Button>}
       </div>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BedDouble size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Tablero de camas
+        <BedDouble size={22} style={{ color: 'var(--nexus,#3D5AFE)' }} /> Tablero de camas
       </h1>
       {sinCamaEnInventario.length > 0 && (
         <div style={{
@@ -162,7 +162,7 @@ export default function CamasPage() {
         </div>
       )}
 
-      {totalCamas > 0 && <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>Ocupación global: <strong style={{ color: pctGlobal >= 85 ? '#dc2626' : 'var(--text)' }}>{pctGlobal}%</strong> · {totalOcupadas}/{totalCamas} camas · <strong style={{ color: 'var(--text2)' }}>{conteo.disponibles} libres</strong>
+      {totalCamas > 0 && <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>Ocupación global: <strong style={{ color: pctGlobal >= 85 ? '#DC2626' : 'var(--text)' }}>{pctGlobal}%</strong> · {totalOcupadas}/{totalCamas} camas · <strong style={{ color: 'var(--text2)' }}>{conteo.disponibles} libres</strong>
         {conteo.reservadas > 0 && ` · ${conteo.reservadas} reservada${conteo.reservadas !== 1 ? 's' : ''}`}
         {conteo.condicionadas > 0 && ` · ${conteo.condicionadas} en aislamiento`}
         {conteo.noDisponibles > 0 && ` · ${conteo.noDisponibles} fuera de servicio`}</p>}
@@ -182,7 +182,7 @@ export default function CamasPage() {
                 <div key={servicio}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)' }}>{servicio}</span>
-                    <span style={{ fontSize: 12, color: pct >= 85 ? '#dc2626' : 'var(--text3)', fontWeight: 600 }}>{occ}/{lista.length} · {pct}%</span>
+                    <span style={{ fontSize: 12, color: pct >= 85 ? '#DC2626' : 'var(--text3)', fontWeight: 600 }}>{occ}/{lista.length} · {pct}%</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(150px, 100%), 1fr))', gap: 8 }}>
                     {lista.map(c => {

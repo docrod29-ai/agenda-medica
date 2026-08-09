@@ -55,7 +55,7 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
                 {vigentes.map(t => (
                   <div key={t.prueba} style={{ border: '1px solid var(--border)', borderRadius: 9, background: 'var(--s1)', padding: '8px 11px' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>{t.prueba}</div>
-                    <div style={{ fontSize: 11.5, color: '#38bdf8', marginTop: 2 }}>{t.frecuencia}</div>
+                    <div style={{ fontSize: 11.5, color: '#38BDF8', marginTop: 2 }}>{t.frecuencia}</div>
                     {t.condicion && <div style={{ fontSize: 11, color: 'var(--amber)', marginTop: 2 }}>Solo si: {t.condicion}</div>}
                     {t.nota && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, lineHeight: 1.45 }}>{t.nota}</div>}
                     <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, fontStyle: 'italic' }}>{t.organismo}</div>
@@ -123,7 +123,7 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
               border: `1px solid ${alerta ? 'color-mix(in srgb, var(--red) 40%, transparent)' : 'rgba(14,165,233,.35)'}`,
               background: alerta ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'rgba(14,165,233,.08)',
             }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: alerta ? '#f87171' : '#38bdf8' }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: alerta ? '#F87171' : '#38BDF8' }}>
                 {analito}: {tend.resumen}
               </div>
               {alerta && <p style={{ ...txt, fontWeight: 700, color: 'var(--red)' }}>{alerta}</p>}
@@ -148,8 +148,8 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
     <button type="button" onClick={on} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (a ? '#0ea5e9' : 'var(--border)'),
-      background: a ? '#0ea5e9' : 'var(--s2)', color: a ? '#fff' : 'var(--text3)',
+      border: '1px solid ' + (a ? '#0EA5E9' : 'var(--border)'),
+      background: a ? '#0EA5E9' : 'var(--s2)', color: a ? '#FFF' : 'var(--text3)',
     }}>{i}{t}</button>
   )
 }
@@ -158,6 +158,6 @@ const txt: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', margin: 
 const rot: React.CSSProperties = { fontSize: 10.5, color: 'var(--text3)', fontWeight: 600 }
 const campoWrap: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 3 }
 const campo: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7, padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none' }
-const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(14,165,233,.15)', color: '#38bdf8', border: '1px solid rgba(14,165,233,.35)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
+const btn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(14,165,233,.15)', color: '#38BDF8', border: '1px solid rgba(14,165,233,.35)', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }
 
 export { CalendarCheck }

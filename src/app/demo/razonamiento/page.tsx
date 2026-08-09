@@ -74,7 +74,7 @@ export default function DemoRazonamientoPage() {
   return (
     <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
       <div style={{ background: 'var(--nexus-soft, rgba(61,90,254,.08))', borderBottom: '1px solid var(--border)', padding: '8px 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--text2)', display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
-        <Info size={14} style={{ color: 'var(--nexus, #3d5afe)', flexShrink: 0 }} />
+        <Info size={14} style={{ color: 'var(--nexus, #3D5AFE)', flexShrink: 0 }} />
         <span><strong style={{ color: 'var(--text)' }}>Demostración</strong> · paciente ficticio · los 12 pasos corren con código (sin IA de caja negra); la evidencia se recupera de PubMed en vivo</span>
       </div>
 
@@ -132,7 +132,7 @@ export default function DemoRazonamientoPage() {
         </div>
 
         <div style={{ marginTop: 26, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Link href="/demo/interactivo" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
+          <Link href="/demo/interactivo" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#FFF', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
             Probar la demo interactiva
           </Link>
           <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>

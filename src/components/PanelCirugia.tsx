@@ -62,7 +62,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
           <Scissors size={15} color="var(--blue)" />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Valoración perioperatoria</span>
         </>}
-        <span style={pill('#60a5fa', 'rgba(59,130,246,.15)')}>{asaTexto(clase, urgencia)}</span>
+        <span style={pill('#60A5FA', 'rgba(59,130,246,.15)')}>{asaTexto(clase, urgencia)}</span>
         {rc.size > 0 && <span style={pill(col(rRcri.nivel), bg(rRcri.nivel))}>RCRI {rRcri.puntaje}</span>}
         {capPuntos > 0 && <span style={pill(col(rCap.nivel), bg(rCap.nivel))}>Caprini {capPuntos}</span>}
       </div>
@@ -143,7 +143,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
               <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</div>
               <ul style={{ margin: '7px 0 0', paddingLeft: 17, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
                 <li>{plan.inicio}</li>
-                <li><b style={{ color: plan.momentosRedosis.length ? '#f59e0b' : 'inherit' }}>{plan.redosis}</b></li>
+                <li><b style={{ color: plan.momentosRedosis.length ? '#F59E0B' : 'inherit' }}>{plan.redosis}</b></li>
                 <li>{plan.duracion}</li>
                 {plan.nota && <li style={{ color: 'var(--text3)' }}>{plan.nota}</li>}
               </ul>
@@ -165,7 +165,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
             const listos = f.puntos.filter(p => hechos.has(p)).length
             return (
               <Bloque key={f.fase} titulo={`${f.fase} · ${f.momento}`} extra={
-                <span style={pill(listos === total ? '#10b981' : 'var(--text3)', listos === total ? 'rgba(16,185,129,.15)' : 'var(--s2)')}>
+                <span style={pill(listos === total ? '#10B981' : 'var(--text3)', listos === total ? 'rgba(16,185,129,.15)' : 'var(--s2)')}>
                   {listos}/{total}
                 </span>
               }>
@@ -229,7 +229,7 @@ function Pesos({ sel, on }: { sel: Set<string>; on: (v: string) => void }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
       {grupos.map(([p, etq]) => (
         <div key={p}>
-          <div style={{ fontSize: 10.5, fontWeight: 800, color: p >= 3 ? '#f87171' : p === 2 ? '#f59e0b' : 'var(--text3)', marginBottom: 3 }}>{etq}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: p >= 3 ? '#F87171' : p === 2 ? '#F59E0B' : 'var(--text3)', marginBottom: 3 }}>{etq}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {CAPRINI_FACTORES.filter(f => f.puntos === p).map(f => (
               <label key={f.texto} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, cursor: 'pointer' }}>
@@ -262,13 +262,13 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
     <button type="button" onClick={on} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (a ? '#3b82f6' : 'var(--border)'),
-      background: a ? '#3b82f6' : 'var(--s2)', color: a ? '#fff' : 'var(--text3)',
+      border: '1px solid ' + (a ? '#3B82F6' : 'var(--border)'),
+      background: a ? '#3B82F6' : 'var(--s2)', color: a ? '#FFF' : 'var(--text3)',
     }}>{i}{t}</button>
   )
 }
 
-const col = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? '#10b981' : n === 'medio' ? '#f59e0b' : '#f87171'
+const col = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? '#10B981' : n === 'medio' ? '#F59E0B' : '#F87171'
 const bg = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.1)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'color-mix(in srgb, var(--red) 10%, transparent)'
 const bd = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.35)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'color-mix(in srgb, var(--red) 40%, transparent)'
 

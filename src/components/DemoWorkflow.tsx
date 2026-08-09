@@ -14,7 +14,7 @@ import type { Membresia } from '@/lib/membresias'
 import { accionesPendientes, resumenAcciones, type Prioridad } from '@/lib/workflow'
 import { AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react'
 
-const COLOR: Record<Prioridad, string> = { alta: 'var(--red, #dc2626)', media: 'var(--amber, #b45309)', baja: 'var(--text3)' }
+const COLOR: Record<Prioridad, string> = { alta: 'var(--red, #DC2626)', media: 'var(--amber, #B45309)', baja: 'var(--text3)' }
 const ETIQUETA: Record<Prioridad, string> = { alta: 'Alta', media: 'Media', baja: 'Baja' }
 
 function hoyISO(): string {
@@ -48,7 +48,7 @@ export function DemoWorkflow() {
     <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1, rgba(127,127,127,.03))', padding: '18px 20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
         <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Siguiente acción</h3>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red, #dc2626)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', padding: '3px 9px', borderRadius: 'var(--r-pill)' }}>{alta} urgentes</span>
+        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red, #DC2626)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', padding: '3px 9px', borderRadius: 'var(--r-pill)' }}>{alta} urgentes</span>
         <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {total} pendientes hoy</span>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '2px 0 12px', lineHeight: 1.5 }}>
