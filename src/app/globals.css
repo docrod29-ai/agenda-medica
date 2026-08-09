@@ -317,7 +317,7 @@ html, body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--border2);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   border: 2px solid var(--bg);
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
@@ -326,7 +326,7 @@ html, body {
 :focus-visible {
   outline: 2px solid var(--nexus);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
 }
 
 /* Selection — color de marca */
@@ -361,7 +361,7 @@ html, body {
 .card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 20px;
 }
 
@@ -382,7 +382,7 @@ html, body {
   gap: 8px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.005em;
@@ -472,7 +472,7 @@ html, body {
   width: 100%;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   height: 40px;
   padding: 0 12px;
   font-size: 14px;
@@ -543,13 +543,13 @@ input[type="number"].input,
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   font-size: 12px;
   font-weight: 500;
 }
 .badge-dot {
   width: 6px; height: 6px;
-  border-radius: 50%;
+  border-radius: var(--r-circulo);
   flex-shrink: 0;
 }
 
@@ -603,7 +603,7 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text2);
@@ -684,7 +684,7 @@ tbody tr:last-child { border-bottom: none; }
 .modal {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   width: 100%;
   max-width: 560px;
   max-height: 92vh;
@@ -692,7 +692,7 @@ tbody tr:last-child { border-bottom: none; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--elev-3);
   animation: nx-modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes nx-modal-in {
@@ -752,7 +752,7 @@ tbody tr:last-child { border-bottom: none; }
 .kpi-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -790,7 +790,7 @@ tbody tr:last-child { border-bottom: none; }
   grid-template-columns: 60px repeat(7, 1fr);
   gap: 0;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   overflow: hidden;
 }
 .cal-header {
@@ -824,7 +824,7 @@ tbody tr:last-child { border-bottom: none; }
 .appt-chip {
   position: absolute;
   inset: 2px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 500;
@@ -849,12 +849,12 @@ tbody tr:last-child { border-bottom: none; }
 .toast {
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 12px 16px;
   font-size: 14px;
   color: var(--text);
   max-width: 320px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elev-3);
   pointer-events: all;
   animation: slideUp 0.2s ease;
 }
@@ -922,7 +922,6 @@ tbody tr:last-child { border-bottom: none; }
 .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
 
 /* ── Teal glow effect ─────────────────────────────────────── */
-.glow-teal { box-shadow: 0 0 20px var(--teal-glow); }
 .text-teal { color: var(--teal); }
 .text-teal2 { color: var(--text2); }
 .text-teal3 { color: var(--text3); }
@@ -936,7 +935,7 @@ tbody tr:last-child { border-bottom: none; }
   background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 @keyframes shimmer {
   0%   { background-position: 200% 0; }
@@ -1034,7 +1033,7 @@ tbody tr:last-child { border-bottom: none; }
 .mobile-topbar-btn {
   width: 44px;
   height: 44px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: none;
   border: none;
   cursor: pointer;
@@ -1140,7 +1139,7 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   justify-content: center;
   padding: 6px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   transition: background 0.1s, color 0.1s;
 }
 .mobile-topbar-btn:hover { background: var(--s2); color: var(--text); }
@@ -1189,6 +1188,13 @@ tbody tr:last-child { border-bottom: none; }
   --border2:   rgba(11, 12, 14, 0.16);
 
   /* Cobalto ligeramente más oscuro para contraste AA sobre blanco */
+  /* Elevación en claro: la sombra no es negra, es el propio tinta del texto
+     con alpha. Una sombra negra sobre blanco se lee como suciedad; con el
+     tinta de la marca se lee como profundidad. */
+  --elev-1: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+  --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
+
   --nexus:        #2845EA;
   --nexus-hover:  #1A35C8;
   --nexus-soft:   rgba(40, 69, 234, 0.10);
@@ -1335,7 +1341,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: var(--elev-2);
 }
 
 /* KPI cards con misma personalidad */
@@ -1348,7 +1354,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .kpi-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: var(--elev-2);
 }
 
 /* Focus rings refinados — halo doble (color + bone) */
@@ -1402,7 +1408,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   right: 16px;
   width: 38px;
   height: 38px;
-  border-radius: 50%;
+  border-radius: var(--r-circulo);
   background: color-mix(in srgb, var(--s1) 80%, transparent);
   backdrop-filter: saturate(180%) blur(10px);
   -webkit-backdrop-filter: saturate(180%) blur(10px);
@@ -1413,7 +1419,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   justify-content: center;
   cursor: pointer;
   z-index: 199;
-  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--text) 10%, transparent);
+  box-shadow: var(--elev-2);
   transition:
     background 200ms cubic-bezier(0.16, 1, 0.3, 1),
     color 200ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -1619,7 +1625,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-size: 13px;
   line-height: 1.5;
   border: 1px solid var(--border);
@@ -1650,7 +1656,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .empty-state-icon {
   width: 44px; height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   display: flex; align-items: center; justify-content: center;
   background: var(--s2);
   border: 1px solid var(--border);
@@ -1691,11 +1697,11 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     linear-gradient(0deg, var(--nexus-soft), var(--nexus-soft)) border-box,
     var(--s1) padding-box;
   border: 1px solid color-mix(in srgb, var(--nexus) 32%, transparent);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 16px 18px;
 }
 .prox-hero-avatar {
-  width: 50px; height: 50px; border-radius: 14px; flex-shrink: 0;
+  width: 50px; height: 50px; border-radius: var(--r-lg); flex-shrink: 0;
   background: var(--nexus-soft);
   color: color-mix(in srgb, var(--nexus) 70%, white 30%);
   display: flex; align-items: center; justify-content: center;
@@ -1707,7 +1713,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
   background: var(--nexus); color: #fff;
-  border: none; border-radius: 12px;
+  border: none; border-radius: var(--r-md);
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;
   transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms;
@@ -1873,7 +1879,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   .table-wrap.rwd thead { position: absolute; left: -9999px; } /* oculta encabezados, sin romper lectores */
   .table-wrap.rwd tr {
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--r-md);
     margin-bottom: 10px;
     padding: 6px 12px;
     background: var(--s1);
