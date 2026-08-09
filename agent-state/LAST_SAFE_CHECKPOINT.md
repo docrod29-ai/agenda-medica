@@ -6,7 +6,55 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+**El bucle se cierra por primera vez.** El médico firma, pulsa «Entregar al
+paciente» y el paciente lo lee en su enlace, en «Cuidado». Ese camino no existía
+en ninguna dirección: la hoja tenía dos salidas —portapapeles e impresora— y la
+acción `paquetes` de `/api/portal` llevaba desde REG-304 contestando
+correctamente **a nadie**.
+
+Se cerraron los dos P1 de la unidad y los dos motores que
+`PATIENT-COMPANION-001` había diferido llegaron **con quien los llama**.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 595 casos · 575 archivos · 1 fallo preexistente y de entorno** (`ops-timeout`) |
+| `lint-trinquete` | **96, igual que el techo.** Subió a 97 con un `setState` en un efecto; se arregló el cambio, **no el techo** |
+| trinquete de diseño | **sin deuda nueva** en las cinco métricas |
+| `npm run build` | **compila y `tsc` limpio.** Necesitó variables de Firebase de relleno: este contenedor no las tiene, y sin ellas el build se para al recolectar `/dr/[clinicId]` — nada que ver con el cambio |
+| navegador | **no ejecutado** |
+
+> **Sobre `ops-timeout`, y con la medición hecha esta vez.** Se comprobó
+> `git stash` mediante: falla igual sobre el árbol **sin tocar**, así que es
+> preexistente y del entorno. En este contenedor la conexión a `10.255.255.1` se
+> rechaza al instante en vez de colgarse, y el caso necesita que algo **tarde**
+> para que su temporizador dispare. Una ejecución completa llegó a pasar de
+> refilón —la carga de la suite retrasó la petición lo justo—, así que el caso es
+> además intermitente aquí. No es verde: es un fallo declarado.
+
+### Lo que este checkpoint NO garantiza
+
+Que el médico pueda entregar de verdad **en un navegador**, ni que la tarjeta se
+lea bien en un teléfono. Los guardianes comprueban que las decisiones quedaron
+escritas donde tienen que estar —la compuerta de firma, el origen de
+`approvedBy`, la lista blanca al escribir, y que las dos puntas del dato nombren
+la misma colección— y muerden al revés. Pero Firestore no existe en Node.
+
+**Residual declarado**: `POSTVISIT-VERSION-001` (P2). Un paquete ya entregado no
+se puede corregir; la ruta contesta 409 en vez de reescribir lo que el paciente
+ya leyó. El versionado va con `DOCUMENTS-001`.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

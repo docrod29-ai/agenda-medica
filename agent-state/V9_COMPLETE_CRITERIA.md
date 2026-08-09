@@ -42,7 +42,7 @@ Sin SHA, una unidad no está cerrada.
 | 1 | `DESIGN-SYSTEM-001` | ✅ **cerrada** | `5bb1a2c` |
 | 2 | `NAVIGATION-001` | ✅ **cerrada** | `fed81cc` |
 | 3 | `PATIENT-COMPANION-001` | ✅ **cerrada** | `5d496cf` |
-| 4 | `POSTVISIT-001` | ⬜ pendiente | — |
+| 4 | `POSTVISIT-001` | ✅ **cerrada** | *(pendiente de SHA en el commit de cierre)* |
 | 5 | `PATIENT-AI-001` | ⬜ pendiente | — |
 | 6 | `DOCUMENTS-001` | ⬜ pendiente | — |
 | 7 | `CLOSED-LOOP-PATIENT-001` | ⬜ pendiente | — |
@@ -65,7 +65,13 @@ distinto de `CERRADO`.
 | Prioridad | Id |
 |---|---|
 | P0 | `PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp sigue sin token |
-| P1 | `PATIENT-PORTAL-001` · `POSTVISIT-GATE-001` · `POSTVISIT-ENTREGA-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
+| P1 | `PATIENT-PORTAL-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
+
+> `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001` se cerraron el 9-ago-2026 con
+> REG-306 y REG-307. Dejaron un residual **P2** declarado,
+> `POSTVISIT-VERSION-001`: un paquete ya entregado no se puede corregir (la ruta
+> contesta 409 en vez de reescribir lo que el paciente ya leyó), y el versionado
+> real va con `DOCUMENTS-001`.
 
 Un P1 sólo deja de bloquear si el **dueño** lo acepta por escrito en
 `OWNER_DECISIONS_REQUIRED.md` como riesgo residual: aceptar riesgo residual
@@ -80,7 +86,7 @@ Las de §QUALITY GATES, cada una con su evidencia y su fecha:
 |---|---|
 | types (`npx tsc --noEmit`) | ✅ limpio |
 | lint (`node scripts/lint-trinquete.mjs`) | ✅ 96, igual que el techo |
-| unit + integration (`npx vitest run`) | ✅ salvo 1 fallo de entorno declarado |
+| unit + integration (`npx vitest run`) | ✅ **8 595 casos, 575 archivos** (9-ago-2026), con **1 fallo preexistente y de entorno** (`ops-timeout`), comprobado `git stash` mediante sobre el árbol sin tocar |
 | E2E | ◐ limitado — falta cuenta de prueba (B-10) |
 | **accessibility** | ❌ sin definir — `A11Y-GATE-001` |
 | **visual regression** | ❌ sin definir |

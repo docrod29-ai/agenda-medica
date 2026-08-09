@@ -13,7 +13,7 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
-import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import { visibleParaElPaciente, COLECCION_PAQUETES, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -590,7 +590,8 @@ export async function POST(req: NextRequest) {
         const snapPaq = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('patients').doc(patientId)
-          .collection('paquetes_visita')
+          /* La MISMA constante que usa quien los escribe. REG-160 fue esto. */
+          .collection(COLECCION_PAQUETES)
           .get()
         const paquetes = snapPaq.docs
           .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })

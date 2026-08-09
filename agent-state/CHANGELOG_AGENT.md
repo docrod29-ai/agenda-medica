@@ -1,5 +1,31 @@
 # Bitácora del trabajo autónomo
 
+## 2026-08-09 — V9 · `POSTVISIT-001` · el bucle se cierra (REG-306, REG-307)
+
+El médico firma, pulsa **«Entregar al paciente»** y el paciente lo lee en su
+enlace. Ese camino **no existía en ninguna dirección**: la hoja tenía dos salidas
+—portapapeles e impresora— y la acción `paquetes` de `/api/portal` llevaba desde
+REG-304 contestando correctamente **a nadie**.
+
+- **REG-306** — La hoja del paciente se componía del borrador EN CURSO y no tenía
+  compuerta de firma. La cabecera del módulo afirmaba que salía de lo «ya
+  revisado y firmado»: intención de diseño, no precondición. Ahora
+  `componerPaquete` **lanza** sin firma (falla cerrado) y la hoja esconde copiar e
+  imprimir. La vista se queda; se cierra la **salida**.
+- **REG-307** — Y no llegaba nunca. Ruta que compone y libera con `approvedBy`
+  del token verificado, botón en la consulta, y la pantalla del paciente pidiendo
+  por fin los paquetes. De paso, `proximaCita={undefined}` estaba fijo: el cuarto
+  bloque de la hoja **no podía renderizarse jamás**.
+
+Dos cosas que el arreglo se niega a hacer: decirle al paciente «ya no lo tomes»
+de un fármaco que dejó de aparecer —eso sería suspender un medicamento por cuenta
+propia, y se escala— y afirmar «sin cambios» cuando no hubo con qué comparar.
+
+Y una lección para la regla de «escrito, probado y sin conectar»: los dos motores
+que la unidad anterior difirió llegaron **con quien los llama**. La regla no es
+«no escribas motores»; es que no lleguen antes que su llamador.
+
+
 ## 2026-08-04 — INFRA-001 · el sistema operativo del programa
 
 - `CLAUDE.md` reescrito: misión, invariantes, comandos, mapa, seguridad clínica,

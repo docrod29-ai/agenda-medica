@@ -33,11 +33,30 @@ import {
 export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
+  /**
+   * ¿SE PUEDE ENTREGAR YA? — la compuerta de `POSTVISIT-GATE-001`.
+   *
+   * Copiar e imprimir son los dos actos de ENTREGA que tiene esta hoja, y hasta
+   * hoy no tenían compuerta: la hoja se compone del estado vivo de la pantalla,
+   * así que el médico podía copiar una hoja hecha de un borrador a medio dictar
+   * y mandarla por WhatsApp. La cabecera del módulo afirmaba que el contenido
+   * salía de lo «ya revisado y firmado» — era intención de diseño, no
+   * precondición.
+   *
+   * La hoja **se sigue viendo** sin firmar, y eso es a propósito: el médico
+   * necesita ver qué se va a llevar el paciente mientras todavía puede
+   * cambiarlo. Lo que se cierra es la salida, no la vista.
+   *
+   * Por defecto `false`: una compuerta que hay que acordarse de activar no es una
+   * compuerta. Quien pueda entregar tiene que decirlo.
+   */
+  entregable?: boolean
 }
 
 export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
   const [copiado, setCopiado] = useState(false)
   const bloques = useMemo(() => comoSeLoExplico(p), [p])
+  const entregable = p.entregable === true
 
   /* Sin nada que decirle al paciente no se enseña una hoja vacía. */
   if (!bloques.length) return null
@@ -70,6 +89,12 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
         </span>
 
         <div className="no-print" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {!entregable && (
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+              Se entrega cuando firmes la nota
+            </span>
+          )}
+          {entregable && (<>
           <button
             onClick={copiar}
             style={{
@@ -94,6 +119,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
           >
             <Printer size={14} /> Imprimir
           </button>
+          </>)}
         </div>
       </header>
 
@@ -125,6 +151,11 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
     </section>
   )
 }
+
+export const POR_QUE_LA_HOJA_SE_VE_ANTES_DE_FIRMAR =
+  'El médico necesita ver qué se va a llevar el paciente mientras todavía puede ' +
+  'cambiarlo. Lo que la firma abre no es la vista: es la salida — copiar e ' +
+  'imprimir, que son los dos actos de entrega que tiene esta hoja.'
 
 export const POR_QUE_SE_PUEDE_COPIAR =
   'El paciente mexicano lleva WhatsApp, no siempre impresora. Copiar es la vía ' +

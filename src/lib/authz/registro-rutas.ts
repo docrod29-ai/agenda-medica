@@ -174,6 +174,14 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'expediente/evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/extraer-entidades': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/laboratorio-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
+  /**
+   * Liberar el paquete de la visita al paciente (V9 · POSTVISIT-001). Exige
+   * `firmar` y no `clinico.escribir`: hoy son el mismo conjunto de roles
+   * ({medico, admin}), así que no estrecha el acceso de nadie, pero el verbo
+   * correcto es el que lleva identidad detrás — `approvedBy` sale del token.
+   * No hay `activacionPendiente`: la ruta nace ya migrada.
+   */
+  'expediente/paquete-visita': { tipo: 'capacidad', capacidad: 'firmar' },
   'expediente/procesar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/transcribir': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/transcribir-chunk': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },

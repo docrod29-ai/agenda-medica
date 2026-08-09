@@ -57,7 +57,17 @@ export interface EntradaInstrucciones {
   estudios?: readonly unknown[]
   /** Lo que el médico escribió como indicaciones, si escribió algo. */
   indicacionesDelMedico?: unknown
-  /** Fecha o texto de la próxima cita, si la hay. */
+  /**
+   * CUÁNDO VOLVER — la fecha de seguimiento que el médico fijó.
+   *
+   * No es lo mismo que `proximaCita` y por eso son dos campos. «Vuelve el 1 de
+   * septiembre» es una **indicación del médico**; «su próxima cita es el 1 de
+   * septiembre a las 10:00» es una **cita agendada**. Meter la primera bajo el
+   * título de la segunda le dice al paciente que tiene una cita que nadie ha
+   * apartado — y se presentará ese día esperando que lo esperen.
+   */
+  cuandoVolver?: unknown
+  /** Fecha o texto de la próxima cita YA agendada, si la hay. */
   proximaCita?: unknown
 }
 
@@ -112,6 +122,32 @@ export function vecesAlDia(frecuencia: unknown): string | null {
   return n === 1 ? 'una vez al día' : `${n} veces al día`
 }
 
+const MESES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+] as const
+
+/**
+ * `2026-09-01` → «1 de septiembre de 2026». Lo que no sea una fecha ISO se
+ * devuelve TAL CUAL: si el médico escribió «en tres semanas», eso es lo que el
+ * paciente tiene que leer.
+ *
+ * ── POR QUÉ SE PARTE LA CADENA A MANO Y NO SE USA `new Date()` ──────────────
+ *
+ * `new Date('2026-09-01')` es medianoche **UTC**, y en México eso son las 18:00
+ * del 31 de agosto. Formatearlo con la zona local le adelanta un día a la fecha
+ * de seguimiento. Es el mismo defecto que REG-293 acabó de cerrar del lado de
+ * los cobros, y aquí sale impreso en la hoja del paciente.
+ */
+export function fechaEnLlano(v: unknown): string {
+  const s = txt(v)
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s)
+  if (!m) return s
+  const mes = MESES[Number(m[2]) - 1]
+  if (!mes) return s
+  return `${Number(m[3])} de ${mes} de ${m[1]}`
+}
+
 /** Una línea por medicamento, con lo que el médico puso y nada más. */
 export function comoTomarlo(m: MedicamentoParaExplicar): string {
   const partes: string[] = []
@@ -155,7 +191,10 @@ export function comoSeLoExplico(e: EntradaInstrucciones): BloqueInstrucciones[] 
   const ind = txt(e.indicacionesDelMedico)
   if (ind) out.push({ titulo: 'Indicaciones de su médico', lineas: ind.split('\n').map(l => l.trim()).filter(Boolean) })
 
-  const cita = txt(e.proximaCita)
+  const volver = fechaEnLlano(e.cuandoVolver)
+  if (volver) out.push({ titulo: 'Cuándo volver', lineas: [volver] })
+
+  const cita = fechaEnLlano(e.proximaCita)
   if (cita) out.push({ titulo: 'Su próxima cita', lineas: [cita] })
 
   return out

@@ -55,6 +55,37 @@ interface Sesion {
   zonaHoraria?: string
 }
 
+/**
+ * UN PAQUETE DE VISITA YA LIBERADO, tal como lo devuelve `/api/portal`.
+ *
+ * Sólo llegan los que pasaron `visibleParaElPaciente` en el servidor: estado
+ * `RELEASED`, con aprobador y con fecha. Esta pantalla **no vuelve a filtrar** a
+ * propósito — filtrar en dos sitios invita a que un día sólo filtre uno, y el
+ * que se olvidaría es el que no cierra la ruta HTTP.
+ */
+interface PaqueteLiberado {
+  id: string
+  notaId?: string
+  encounterSummary?: string
+  medicationInstructions?: { nombre: string; instruccion: string }[]
+  medicationChanges?: { nombre: string; tipo: string }[] | null
+  orders?: string[]
+  followUp?: string
+  warningSigns?: string[]
+  approvedAt?: number | null
+  version?: number
+}
+
+/** Cómo se le dice al paciente cada tipo de cambio. En su idioma, no en el del modelo. */
+const CAMBIO_ETIQUETA: Record<string, string> = {
+  nuevo: 'Nuevo',
+  cambiado: 'Cambió',
+  /* Aquí NO va una orden de suspender: suspender un medicamento no lo hace esta
+     superficie por su cuenta. Se dice lo que el documento dice y se escala. */
+  suspendido: 'Ya no aparece',
+  'sin-cambio': 'Sigue igual',
+}
+
 const API = '/api/portal'
 
 /**
@@ -114,6 +145,14 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /**
+   * LO QUE TU MÉDICO LIBERÓ — V9 · POSTVISIT-001.
+   *
+   * `null` mientras no se sabe, `[]` cuando de verdad no hay ninguno. La
+   * diferencia importa en pantalla: «todavía no se sabe» no puede pintar el mismo
+   * estado vacío que «tu médico no te ha liberado nada».
+   */
+  const [paquetes, setPaquetes] = useState<PaqueteLiberado[] | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +179,26 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+
+      /**
+       * LOS PAQUETES DE VISITA, QUE HASTA HOY NADIE PEDÍA.
+       *
+       * La acción `paquetes` existía en `/api/portal` desde REG-304, con su
+       * compuerta y su alcance clínico… y **sin un solo llamador**. Es la familia
+       * más grande de defectos del repositorio, esta vez del lado del paciente: la
+       * ruta contestaba correctamente a nadie.
+       *
+       * En paralelo con los documentos y a propósito: si esto tarda, las citas
+       * —que es para lo que la mayoría abre el enlace— ya están en pantalla.
+       *
+       * El 403 se trata como `[]`, no como error: significa que el enlace lo
+       * emitió el mostrador y no trae alcance clínico. El aviso de eso ya lo da
+       * `docsBloqueados`, y repetirlo dos veces en la misma pantalla no informa.
+       */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -246,6 +305,38 @@ export default function MiPortalPage() {
         </div>
 
         {destino === 'hoy' && (<>
+        {/*
+          LO PRIMERO QUE «HOY» TIENE QUE CONTESTAR ES «¿QUÉ TENGO QUE HACER?».
+          La especificación lo pide con esas palabras: *know exactly what to do
+          next*. Cuando su médico acaba de liberarle una consulta, eso es lo que
+          hay que hacer, y va **arriba de las citas** — no escondido detrás de una
+          pestaña que el paciente no sabe que tiene que abrir.
+
+          Es un puntero, no una copia: el contenido vive en «Cuidado» y una sola
+          pantalla lo pinta. Duplicarlo aquí sería tener dos sitios donde
+          corregir la misma frase.
+        */}
+        {(paquetes ?? []).length > 0 && (
+          <button
+            onClick={() => setDestino('cuidado')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+              marginBottom: 16, padding: '14px 16px', cursor: 'pointer',
+              background: 'var(--nexus-soft)', border: '1px solid var(--border)', borderRadius: 14,
+            }}
+          >
+            <HeartPulse size={18} style={{ color: 'var(--nexus)', flexShrink: 0 }} aria-hidden />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                Tu médico te dejó las indicaciones de tu consulta
+              </span>
+              <span style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                Tus medicamentos, los estudios y cuándo volver
+              </span>
+            </span>
+          </button>
+        )}
+
         {/* Próximas citas */}
         <h2 className="t-h2" style={{ marginBottom: 12 }}>Próximas citas</h2>
         {proximas.length === 0 ? (
@@ -427,13 +518,131 @@ export default function MiPortalPage() {
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {/*
+            `null` es «todavía no se sabe» y `[]` es «no hay ninguno». Pintar el
+            mismo cartel para los dos le diría al paciente que su médico no le ha
+            liberado nada mientras la petición sigue en vuelo.
+          */}
+          {paquetes !== null && paquetes.length === 0 && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+
+          {(paquetes ?? []).map(paq => {
+            const f = paq.approvedAt ? fmtFecha(new Date(paq.approvedAt).toISOString(), tzClinica) : null
+            const cambios = paq.medicationChanges ?? null
+            const hayRetirados = (cambios ?? []).some(c => c.tipo === 'suspendido')
+            return (
+              <article key={paq.id} style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+                {f && (
+                  <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 10px', textTransform: 'capitalize' }}>
+                    Consulta del {f.fecha}
+                  </p>
+                )}
+
+                {paq.encounterSummary && (
+                  <p style={{ fontSize: 16, color: 'var(--text)', margin: '0 0 16px', lineHeight: 1.55 }}>
+                    {paq.encounterSummary}
+                  </p>
+                )}
+
+                {/*
+                  LOS SIGNOS DE ALARMA VAN PRIMERO cuando existen. «Un aviso
+                  urgente que llega en el tercer párrafo no llegó» (§6 de la regla
+                  de IA de cara al paciente). Hoy sólo aparecen si su médico los
+                  escribió: no se componen nunca.
+                */}
+                {(paq.warningSigns ?? []).length > 0 && (
+                  <div style={{ padding: '12px 14px', borderRadius: 10, border: '1px solid var(--amber)', marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 6px' }}>
+                      Busca atención si te pasa esto
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {(paq.warningSigns ?? []).map((sg, i) => (
+                        <li key={i} style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>{sg}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {(paq.medicationInstructions ?? []).length > 0 && (
+                  <section style={{ marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 8px' }}>
+                      Tus medicamentos
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {(paq.medicationInstructions ?? []).map((m, i) => (
+                        <li key={i} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{m.instruccion}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {/*
+                  QUÉ CAMBIÓ — la casilla donde el paciente más se equivoca. Si
+                  `medicationChanges` viene `null`, el consultorio no tenía visita
+                  anterior con la que comparar: **no se dice «sin cambios»**, no se
+                  dice nada. Ausencia de dato no es dato de ausencia.
+                */}
+                {cambios && cambios.length > 0 && (
+                  <section style={{ marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 8px' }}>
+                      Qué cambió desde tu visita anterior
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {cambios.map((c, i) => (
+                        <li key={i} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
+                          <strong>{CAMBIO_ETIQUETA[c.tipo] ?? c.tipo}</strong>: {c.nombre}
+                        </li>
+                      ))}
+                    </ul>
+                    {hayRetirados && (
+                      /*
+                        NO se le da una orden de suspender. Que un fármaco no
+                        aparezca en la receta de hoy no significa que su médico lo
+                        haya suspendido: puede no haberlo vuelto a listar.
+                        Suspender un medicamento está en la lista de lo que la IA
+                        del paciente NUNCA hace por su cuenta, así que aquí se dice
+                        lo que el documento dice y la decisión **se escala**.
+                      */
+                      <p style={{ fontSize: 12, color: 'var(--text3)', margin: '8px 0 0', lineHeight: 1.6 }}>
+                        Lo que «ya no aparece» no está en la receta de esta consulta.
+                        Antes de dejar de tomarlo, pregúntale a tu médico.
+                      </p>
+                    )}
+                  </section>
+                )}
+
+                {(paq.orders ?? []).length > 0 && (
+                  <section style={{ marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 8px' }}>
+                      Estudios que te pidió
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {(paq.orders ?? []).map((o, i) => (
+                        <li key={i} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{o}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {paq.followUp && (
+                  <section>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 8px' }}>
+                      Cuándo volver
+                    </h3>
+                    <p style={{ fontSize: 14, color: 'var(--text)', margin: 0, lineHeight: 1.6 }}>{paq.followUp}</p>
+                  </section>
+                )}
+              </article>
+            )
+          })}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>

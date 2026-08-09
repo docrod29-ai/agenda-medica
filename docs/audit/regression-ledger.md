@@ -7013,3 +7013,125 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente no tenía compuerta de firma
+
+**Unidad** V9 `POSTVISIT-001`. Cierra `POSTVISIT-GATE-001`.
+
+**Encontrado** en la auditoría de `PATIENT-UX-TRUTH-001`, leyendo el producto
+real y no la intención del código.
+
+**Qué pasaba.** `HojaParaElPaciente` se montaba con el estado **vivo** de la
+pantalla —`medicamentos`, `estudiosOrden`— y su única guarda era
+`{!esNotaHospital}`. Veintitantas líneas más arriba, `ComoCerrarLaConsulta` sí
+exigía `{firmada && …}`. Así que el médico podía **copiar al portapapeles** —o
+imprimir— una hoja compuesta de un borrador a medio dictar, y mandarla por
+WhatsApp. Nada lo impedía.
+
+Y la cabecera del módulo afirmaba que el contenido salía de lo «ya revisado y
+firmado». Era **intención de diseño, no precondición**: la clase de comentario
+más peligrosa que existe, porque le dice al siguiente lector que la comprobación
+ya está hecha en otra parte.
+
+**Causa raíz.** La compuerta de la firma se pensó para lo que entra al
+expediente. La hoja del paciente no entra al expediente: **sale del
+consultorio**. Nadie volvió a preguntarse qué necesitaba una salida.
+
+**Familia.** `se_contradice`. Es su forma más barata de producir y la más cara de
+encontrar: el comentario **ya no describe lo que describe**, y nada lo obliga a
+volver a ser verdad. Ninguna de las dos partes está mal por su cuenta —el
+comentario lo fue, el código hace lo que hace— y el fallo vive en el hueco.
+
+**Arreglo.** Dos capas, y las dos hacen falta:
+
+- **En el motor.** `componerPaquete` **lanza** si `nota.estado !== 'firmada'`, y
+  falla cerrado: lo que no dice literalmente «firmada» no está firmado
+  (`undefined`, `''`, `'FIRMADA'`, un número — ninguno pasa). Lanza en vez de
+  devolver `null` porque un `null` se propaga y se confunde con «no había nada
+  que decirle»; esto no es un caso vacío, es un intento de entregar un borrador.
+- **En la pantalla.** `HojaParaElPaciente` gana `entregable`, **`false` por
+  defecto** —una compuerta que hay que acordarse de activar no es una compuerta—
+  y sin firma esconde copiar e imprimir. La hoja **se sigue viendo**: el médico
+  necesita ver qué se llevará el paciente mientras todavía puede cambiarlo. Lo
+  que se cierra es la salida, no la vista.
+
+**Guardián.** `src/__tests__/lo-que-firmo-llega-al-paciente.test.ts`, 36 casos.
+Probado al revés: con el código de antes, el caso «se niega a componer el paquete
+de un borrador» pasaba sin protestar.
+
+---
+
+## REG-307 — La hoja mejor pensada del paciente no llegaba nunca al paciente
+
+**Unidad** V9 `POSTVISIT-001`. Cierra `POSTVISIT-ENTREGA-001`.
+
+**Qué pasaba.** Tres piezas, cada una correcta, ninguna conectada con la
+siguiente:
+
+1. `HojaParaElPaciente` tenía **dos salidas**: copiar al portapapeles e
+   imprimir. No estaba en `/mi/[token]`, ni en ninguna plantilla de WhatsApp.
+2. `/api/portal` tenía desde REG-304 una acción `paquetes`, con su compuerta y su
+   alcance `clinico`… y **ningún llamador**. Contestaba correctamente a nadie.
+3. `proximaCita={undefined}` estaba **fijo** en la consulta, así que el cuarto
+   bloque de la hoja era código que **no podía renderizarse jamás**.
+
+**Por qué importa más de lo que parece.** El contenido era lo mejor de esta
+superficie: `como-se-lo-explico` es determinista, no lo escribe un modelo,
+traduce «vía oral» a «por la boca» y **se niega** a expandir «cada 5 horas»
+porque 24 ÷ 5 no es exacto. Todo eso moría en un botón de portapapeles.
+
+**Familia.** `escrito_probado_y_sin_conectar` — la más grande del repositorio,
+esta vez del lado del paciente, donde nadie de dentro la ve. Con un agravante:
+los dos extremos estaban escritos y **cada uno pasaba sus pruebas**.
+
+**Arreglo.**
+
+- `POST /api/expediente/paquete-visita` compone y libera. Exige la capacidad
+  `firmar`, y `approvedBy` sale del **token verificado**, nunca del cuerpo: si
+  viniera del cuerpo, cualquiera con la sesión abierta liberaría un paquete
+  «aprobado por» quien quisiera. Escribe con lista blanca de campos.
+- `EntregarAlPaciente` en la consulta, con la nota firmada. Pregunta al servidor
+  si ya se entregó, porque un médico que vuelve a abrir la nota y ve otra vez
+  «Entregar» creería que la primera vez falló.
+- `/mi/[token]` **pide** los paquetes y los pinta en «Cuidado», con un puntero
+  desde «Hoy» — que es donde la especificación quiere que el paciente sepa qué
+  hacer, no detrás de una pestaña que no sabe que tiene que abrir.
+- `cuandoVolver` sustituye al `proximaCita` muerto, y es un campo **distinto** a
+  propósito: «vuelve el 1 de septiembre» es una indicación del médico y «su
+  próxima cita es el 1 de septiembre» es una cita que alguien apartó. Con el
+  título equivocado, el paciente se presenta ese día esperando que lo esperen.
+- La fecha se formatea **partiendo la cadena ISO a mano**: `new Date('2026-09-01')`
+  es medianoche UTC, o sea las 18:00 del 31 de agosto en México, y formatearlo con
+  la zona local le adelanta un día al seguimiento. Es REG-293 otra vez, ahora
+  impreso en la hoja del paciente.
+
+**El dato tiene que LLEGAR.** Quien escribe y quien lee nombran la colección con
+la **misma constante** (`COLECCION_PAQUETES`), y un caso lo exige en los dos
+archivos a la vez. REG-160 fue exactamente lo contrario: validar la colección
+declarada y escribir en otra ruta porque el nombre estaba escrito dos veces —y
+una prueba de contrato sobre cada lado por separado habría pasado las dos veces.
+
+**Dos cosas que el arreglo se NIEGA a hacer.**
+
+- **No le dice al paciente «ya no lo tomes»** de un fármaco que dejó de aparecer.
+  Que no esté en la receta de hoy no significa que su médico lo suspendiera:
+  puede no haberlo vuelto a listar. Suspender un medicamento está en la lista de
+  lo que la IA del paciente **nunca** hace por su cuenta, así que se dice lo que
+  el documento dice y la decisión **se escala**.
+- **No afirma «sin cambios» cuando no hubo con qué comparar.** Sin nota firmada
+  anterior, `medicationChanges` es `null` y el bloque entero no se pinta. Y una
+  dosis distinta con el mismo nombre sale como `cambiado`, no como `sin-cambio`:
+  decirle que sigue igual junto a una dosis que no es la suya es peor que no
+  decirle nada.
+
+**Residual declarado.** Volver a liberar no se puede: si ya hay un paquete
+liberado para esa nota, la ruta contesta **409** y no lo toca. «Lo que se entregó
+se entregó», y corregirlo es liberar una **versión nueva** que el paciente pueda
+distinguir — eso es versionado de documentos y va con `DOCUMENTS-001`
+(`POSTVISIT-VERSION-001` en el backlog). Sobreescribir en silencio era la
+alternativa cómoda y falsa.
+
+**Guardián.** `src/__tests__/lo-que-firmo-llega-al-paciente.test.ts`, 36 casos
+(compartido con REG-306).

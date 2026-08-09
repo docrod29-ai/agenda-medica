@@ -3,9 +3,54 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306, REG-307.
+**Siguiente**: `PATIENT-AI-001` — Ask Nexus, con las doce preguntas del §0 de la
+especificación como fixture permanente en `evals/patient-ai/`.
+
+---
+
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El bucle se cierra por primera vez**: el médico firma, pulsa «Entregar al
+paciente», y el paciente lo lee en su enlace. Hasta hoy ese camino no existía en
+ninguna dirección.
+
+**La compuerta de firma, en dos capas.** `componerPaquete` lanza si la nota no
+está firmada —y falla cerrado: lo que no dice literalmente «firmada» no está
+firmado— y la hoja de la consulta esconde copiar e imprimir sin firma. La hoja
+**se sigue viendo**: el médico necesita ver qué se llevará el paciente mientras
+todavía puede cambiarlo. Lo que se cierra es la salida, no la vista.
+
+**El camino.** `POST /api/expediente/paquete-visita` bajo la capacidad `firmar`,
+con `approvedBy` sacado del token verificado y lista blanca de campos al escribir.
+`/mi/[token]` **pide** la acción `paquetes` —que existía desde REG-304 con su
+compuerta y **sin un solo llamador**— y la pinta en «Cuidado», con un puntero
+desde «Hoy».
+
+**Y los dos motores diferidos llegaron con quien los llama**: `componerPaquete` y
+`cambiosDeMedicacion`. Es la regla, dicha bien: no es «no escribas motores», es
+**que no lleguen antes que quien los llama**.
+
+## Las dos cosas que esta pantalla se NIEGA a decirle al paciente
+
+- **«Ya no lo tomes»**, de un fármaco que dejó de aparecer. Que no esté en la
+  receta de hoy no significa que su médico lo suspendiera: puede no haberlo
+  vuelto a listar. Se dice lo que el documento dice —«ya no aparece»— y la
+  decisión **se escala**.
+- **«Sin cambios»**, cuando no había visita anterior con la que comparar.
+  `medicationChanges` es `null` y el bloque no se pinta. Y una dosis distinta con
+  el mismo nombre sale como `cambiado`, nunca como `sin-cambio`.
+
+## Lo que NO se hizo, y queda declarado
+
+**Volver a liberar no se puede.** Si ya hay un paquete entregado para esa nota, la
+ruta contesta **409** y no lo toca: «lo que se entregó se entregó». Corregirlo
+exige una versión nueva que el paciente pueda distinguir, y eso es versionado de
+documentos — `POSTVISIT-VERSION-001`, con `DOCUMENTS-001`.
+
+**Y nada de esto se ha visto en un navegador.** Sigue pendiente
+`NAV-NAVEGADOR-001`, ahora con dos recorridos más que comprobar: entregar y leer
+lo entregado desde un teléfono.
 
 ---
 

@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { EntregarAlPaciente } from '@/components/EntregarAlPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5194,13 +5195,38 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {!esNotaHospital && (<>
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          /**
+           * CUÁNDO VOLVER, que hasta hoy no podía salir nunca.
+           *
+           * Aquí `proximaCita` iba fija en `undefined`: el cuarto bloque de la hoja
+           * era código que no podía renderizarse jamás. Y no se arregla pasándole
+           * `proximoSeguimiento` a `proximaCita`, porque no son lo mismo: «vuelve
+           * el 1 de septiembre» es una indicación del médico y «su próxima cita es
+           * el 1 de septiembre» es una cita que alguien apartó. Con el título
+           * equivocado, el paciente se presenta ese día esperando que lo esperen.
+           */
+          cuandoVolver={proximoSeguimiento || undefined}
+          /**
+           * LA COMPUERTA DE ENTREGA (`POSTVISIT-GATE-001`). Sin firma la hoja se
+           * ve pero no sale: copiar e imprimir son actos de entrega, y entregar un
+           * borrador a medio dictar es lo que no puede seguir siendo posible.
+           */
+          entregable={firmada}
         />
-      )}
+        {/*
+          Y EL CAMINO HASTA EL PACIENTE (`POSTVISIT-ENTREGA-001`). El contenido
+          estaba resuelto desde REG-242 y no llegaba a ninguna parte: copiar e
+          imprimir eran las dos únicas salidas. Esto lo escribe donde
+          `/api/portal` lo lee.
+        */}
+        {firmada && clinicId && notaId && (
+          <EntregarAlPaciente clinicId={clinicId} patientId={patientId} notaId={notaId} />
+        )}
+      </>)}
 
       {/*
         ¿DE DÓNDE SALIÓ ESTO? — cada frase de la nota junto al trozo de dictado

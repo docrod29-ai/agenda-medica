@@ -24,6 +24,15 @@ export type AuditEvento =
   | 'nota_borrador_guardado'     // guardó borrador
   | 'nota_firmada'               // firmó (queda inmutable)
   | 'nota_adenda'                // agregó una adenda a una nota firmada (NOM-004)
+  /**
+   * Liberó al paciente el paquete de su visita (V9 · POSTVISIT-001).
+   *
+   * Es un acto DISTINTO de firmar y se registra aparte: firmar es medicolegal,
+   * hacia el expediente; liberar es comunicación, hacia el paciente. La pregunta
+   * que este evento contesta —«¿qué se le entregó a este paciente, y quién lo
+   * aprobó?»— no la contesta `nota_firmada`.
+   */
+  | 'paquete_visita_liberado'
   | 'nota_borrada'               // borró un borrador
   /**
    * Contenido del expediente que se puede borrar desde el navegador.
@@ -126,6 +135,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   nota_borrador_guardado: 'Guardó borrador',
   nota_firmada: 'Firmó nota',
   nota_adenda: 'Agregó adenda',
+  paquete_visita_liberado: 'Entregó al paciente',
   nota_borrada: 'Borró borrador',
   laboratorio_borrado: 'Borró laboratorio',
   foto_clinica_borrada: 'Borró foto clínica',

@@ -201,7 +201,26 @@ describe('está CONECTADO', () => {
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    /**
+     * El `(<>)?` es de POSTVISIT-001: bajo el mismo guardia entró el botón de
+     * entregar al paciente, así que la guarda envuelve un fragmento en vez de un
+     * solo elemento. Lo que este caso vigila sigue siendo lo mismo — que
+     * `!esNotaHospital` esté INMEDIATAMENTE antes de la hoja, no en otra parte del
+     * archivo.
+     */
+    expect(page).toMatch(/\{!esNotaHospital && \((<>)?\s*\n\s*<HojaParaElPaciente/)
+  })
+
+  it('el botón de ENTREGAR vive bajo el mismo guardia de internamiento', () => {
+    /**
+     * Si el botón quedara fuera, a un paciente de UCI se le podría liberar un
+     * paquete de «cómo tomarlo» sobre fármacos intravenosos — el mismo defecto
+     * que el guardia de arriba evita para la hoja, un nivel más grave porque el
+     * paquete SÍ llega hasta él.
+     */
+    const bloque = /\{!esNotaHospital && \(<>([\s\S]*?)\n      <\/>\)\}/.exec(page)?.[1] ?? ''
+    expect(bloque).not.toBe('')
+    expect(bloque).toContain('<EntregarAlPaciente')
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {

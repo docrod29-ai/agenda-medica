@@ -50,8 +50,9 @@
  *
  * ── LO QUE ESTE MÓDULO NO HACE ──────────────────────────────────────────────
  *
- * - **No decide cuándo liberar.** Eso es una acción del médico, en su pantalla,
- *   y llega en `POSTVISIT-001`.
+ * - **No decide cuándo liberar.** Compone y sabe pasar a `RELEASED`, pero quien
+ *   decide es el médico en su pantalla y quien comprueba su identidad es el
+ *   servidor (`/api/expediente/paquete-visita`).
  * - **No escribe en Firestore.** Es un módulo puro. Quien persiste es el
  *   servidor, que es el único que puede comprobar quién aprueba.
  * - **No compone `warningSigns` ni `educationalMaterial`.** La especificación
@@ -62,28 +63,30 @@
  */
 
 /**
- * ── POR QUÉ AQUÍ NO ESTÁ LA COMPOSICIÓN ─────────────────────────────────────
+ * ── LA COMPOSICIÓN LLEGA AQUÍ CON SU LLAMADOR (V9 · `POSTVISIT-001`) ────────
  *
- * `componerPaquete` —la función que arma el contenido a partir de la nota
- * firmada— y su ayudante `cambiosDeMedicacion` **no viven todavía en este
- * archivo, a propósito.**
+ * `componerPaquete` y `cambiosDeMedicacion` se difirieron en
+ * `PATIENT-COMPANION-001` porque el guardián de conexión las cazó: motor con
+ * cuerpo real y **sin un solo llamador**. Ahora existe el llamador —
+ * `POST /api/expediente/paquete-visita`, la ruta que el médico usa para
+ * entregarle la consulta al paciente— y por eso entran.
  *
- * Se escribió, y su guardián de conexión la cazó al instante: era un motor con
- * cuerpo real y **sin un solo llamador**. Su llamador natural es la pantalla
- * donde el médico revisa y libera, y esa pantalla es `POSTVISIT-001`.
- *
- * «Escrito, probado y sin conectar» es la familia de defectos **más grande de
- * este proyecto** —32 de 127 regresiones—, y añadirle una más a sabiendas,
- * aunque fuera con una nota explicándolo, sería exactamente lo que este
- * repositorio lleva meses persiguiendo. Llegan con quien las llame.
- *
- * Se intentó dejar sólo el ayudante, y el guardián volvió a cazarlo al turno
- * siguiente: un motor sin llamador no deja de serlo porque su vecino se haya
- * ido. Se van los dos.
- *
- * Lo que SÍ vive aquí es lo que ya corre: el modelo, la máquina de estados y la
- * compuerta que usa `/api/portal`.
+ * «Escrito, probado y sin conectar» es la familia de defectos más grande de este
+ * proyecto. La regla que la evita no es «no escribas motores»: es **que no
+ * lleguen antes que quien los llama**.
  */
+import { comoTomarlo, fechaEnLlano, type MedicamentoParaExplicar } from './como-se-lo-explico'
+
+/**
+ * La colección donde viven los paquetes, en UN sitio.
+ *
+ * REG-160 fue exactamente esto: un importador que validaba la colección
+ * declarada y **escribía en otra ruta**, porque el nombre estaba escrito dos
+ * veces. Aquí quien escribe (`/api/expediente/paquete-visita`) y quien lee
+ * (`/api/portal`) tienen que nombrar la misma, y con una constante compartida no
+ * pueden separarse sin que se vea.
+ */
+export const COLECCION_PAQUETES = 'paquetes_visita'
 
 /** Los dos únicos estados. No hay un tercero, y `DRAFT` no se le enseña a nadie. */
 export type EstadoPaquete = 'DRAFT' | 'RELEASED'
@@ -107,7 +110,21 @@ export interface MedicacionDelPaquete {
  */
 export interface CambioDeMedicacion {
   nombre: string
-  tipo: 'nuevo' | 'suspendido' | 'sin-cambio'
+  /**
+   * `cambiado` existe por seguridad, no por completitud.
+   *
+   * Comparando sólo nombres, una amoxicilina que pasa de 500 mg a 875 mg sale
+   * como `sin-cambio` — y el paciente lee «sigue igual» junto a una dosis
+   * distinta. Decirle que no cambió nada cuando cambió la dosis es peor que no
+   * decirle nada.
+   *
+   * Se detecta comparando la **pauta compuesta** (dosis · vía · frecuencia ·
+   * duración), que sale entera de campos firmados: si una sola letra de esa línea
+   * difiere, es `cambiado`. El nombre se deja fuera de la comparación a propósito
+   * —si no, «losartan» y «Losartán» serían un cambio de pauta inventado—. No se
+   * dice QUÉ cambió: eso exigiría interpretar, y aquí no se interpreta.
+   */
+  tipo: 'nuevo' | 'cambiado' | 'suspendido' | 'sin-cambio'
 }
 
 export interface PaqueteDeVisita {
@@ -137,6 +154,179 @@ export interface PaqueteDeVisita {
 }
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+
+/** Comparación de nombres de fármaco: sin mayúsculas, sin acentos, sin espacios de más. */
+const claveDeFarmaco = (v: unknown): string =>
+  texto(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ')
+
+/**
+ * QUÉ CAMBIÓ RESPECTO DE LA VISITA ANTERIOR.
+ *
+ * ── LA REGLA QUE GOBIERNA ESTA FUNCIÓN ──────────────────────────────────────
+ *
+ * **Sin lista previa no se afirma nada.** `previa === undefined` devuelve `null`,
+ * no un arreglo de «sin-cambio»: «no aparecía antes» y «no sé qué había antes»
+ * son cosas distintas, y confundirlas es dato de ausencia (regla 4 de seguridad
+ * clínica). Un arreglo vacío SÍ es un dato: la visita anterior no llevaba
+ * medicación, así que todo lo de hoy es nuevo.
+ *
+ * ── EL ORDEN NO ES ALFABÉTICO ───────────────────────────────────────────────
+ *
+ * Nuevo → cambiado → suspendido → sin cambio. Lo que el paciente tiene que
+ * **hacer** distinto va primero; lo que sigue igual va al final, donde estorba
+ * menos. Un listado donde todo pesa lo mismo no tiene jerarquía: tiene
+ * inventario.
+ *
+ * ── QUÉ NO HACE ─────────────────────────────────────────────────────────────
+ *
+ * No dice POR QUÉ se suspendió algo (eso es `motivoEstado`, y sólo si el médico
+ * lo escribió), ni QUÉ cambió dentro de la línea, ni distingue un fármaco que
+ * cambió de nombre comercial. Compara lo que hay escrito.
+ */
+export function cambiosDeMedicacion(
+  actual: readonly MedicamentoParaExplicar[] | undefined,
+  previa: readonly MedicamentoParaExplicar[] | undefined,
+): CambioDeMedicacion[] | null {
+  if (!previa) return null
+
+  /**
+   * La pauta SIN el nombre dentro.
+   *
+   * `comoTomarlo` compone «Losartán 50 mg por la boca cada 24 horas», con el
+   * nombre incluido — y comparar esa línea entera hace que «losartan» y
+   * «Losartán» salgan como un cambio de pauta que no existió. Se compara con un
+   * nombre neutro y el MISMO composer, para que lo comparado sea exactamente lo
+   * que el paciente lee, menos el nombre.
+   */
+  const pauta = (m: MedicamentoParaExplicar) => comoTomarlo({ ...m, nombre: '·' })
+
+  const porClave = (lista: readonly MedicamentoParaExplicar[]) => {
+    const m = new Map<string, { nombre: string; pauta: string }>()
+    for (const med of lista) {
+      const k = claveDeFarmaco(med?.nombre)
+      if (k) m.set(k, { nombre: texto(med.nombre), pauta: pauta(med) })
+    }
+    return m
+  }
+
+  const hoy = porClave(actual ?? [])
+  const antes = porClave(previa)
+
+  const nuevos: CambioDeMedicacion[] = []
+  const cambiados: CambioDeMedicacion[] = []
+  const iguales: CambioDeMedicacion[] = []
+  for (const [k, med] of hoy) {
+    const previo = antes.get(k)
+    if (!previo) nuevos.push({ nombre: med.nombre, tipo: 'nuevo' })
+    else if (previo.pauta !== med.pauta) cambiados.push({ nombre: med.nombre, tipo: 'cambiado' })
+    else iguales.push({ nombre: med.nombre, tipo: 'sin-cambio' })
+  }
+
+  const suspendidos: CambioDeMedicacion[] = []
+  for (const [k, med] of antes) {
+    if (!hoy.has(k)) suspendidos.push({ nombre: med.nombre, tipo: 'suspendido' })
+  }
+
+  return [...nuevos, ...cambiados, ...suspendidos, ...iguales]
+}
+
+/** La nota firmada, con lo poco que la composición necesita de ella. */
+export interface NotaParaElPaquete {
+  id: string
+  /** Tiene que ser `'firmada'`. Cualquier otra cosa hace fallar la composición. */
+  estado?: unknown
+  resumenEjecutivo?: unknown
+  medicamentos?: readonly MedicamentoParaExplicar[]
+  estudiosOrden?: readonly unknown[]
+}
+
+export interface EntradaComposicion {
+  nota: NotaParaElPaquete
+  /**
+   * La medicación de la visita ANTERIOR. Omitirla no es lo mismo que pasar `[]`:
+   * omitida significa «no se sabe» y deja `medicationChanges` en `null`.
+   */
+  medicacionPrevia?: readonly MedicamentoParaExplicar[]
+  /** La fecha de seguimiento que fijó el médico, si la fijó. */
+  cuandoVolver?: unknown
+  idioma?: string
+}
+
+/**
+ * ── POR QUÉ NO HAY PARÁMETRO PARA LOS SIGNOS DE ALARMA NI PARA EL CONTACTO ──
+ *
+ * Los dos campos existen en el paquete y los dos se quedan vacíos, y no es un
+ * olvido:
+ *
+ * - **`warningSigns`** es indicación médica —«acuda a urgencias si…»— y hoy no
+ *   hay ningún campo firmado de donde salga. Un parámetro para rellenarlo
+ *   invitaría a que el primer llamador con prisa le metiera «lo habitual».
+ * - **`clinicianContactRules`** es del consultorio, vive en su configuración, y
+ *   la superficie del paciente ya la lee de ahí. Copiarla al paquete duplicaría
+ *   la fuente de verdad de un dato que cambia cuando el consultorio cambia de
+ *   teléfono, y dejaría paquetes viejos con un número que ya no contesta.
+ */
+
+export const NOTA_SIN_FIRMAR =
+  'No se puede componer el paquete de una nota que no está firmada'
+export const PAQUETE_SIN_NOTA =
+  'No se puede componer un paquete sin la nota de la que sale'
+
+/**
+ * COMPONE EL PAQUETE DE UNA NOTA FIRMADA. Nace `DRAFT`, siempre.
+ *
+ * ── LA COMPUERTA DE FIRMA (`POSTVISIT-GATE-001`) ────────────────────────────
+ *
+ * Lanza si la nota no está firmada, y eso es lo primero que hace. Hasta hoy la
+ * hoja del paciente se componía del **estado vivo de la pantalla**: el médico
+ * podía copiar y entregar una hoja hecha de un borrador a medio dictar, y nada
+ * lo impedía. La cabecera del módulo de composición afirmaba que el contenido
+ * salía de lo «ya revisado y firmado» — era intención de diseño, no
+ * precondición.
+ *
+ * Se lanza en vez de devolver `null` a propósito: un `null` se propaga y se
+ * confunde con «no había nada que decirle». Esto no es un caso vacío, es un
+ * intento de entregar un borrador.
+ *
+ * ── DETERMINISTA, SIN MODELO ────────────────────────────────────────────────
+ *
+ * Ni una línea la escribe un modelo de lenguaje. Cada campo sale de otro campo
+ * ya firmado, y lo que no tiene de dónde salir se queda vacío y declarado — no
+ * se rellena con «lo habitual» (regla 1 de seguridad clínica).
+ */
+export function componerPaquete(e: EntradaComposicion): PaqueteDeVisita {
+  const notaId = texto(e.nota?.id)
+  if (!notaId) throw new Error(PAQUETE_SIN_NOTA)
+  if (texto(e.nota.estado) !== 'firmada') throw new Error(NOTA_SIN_FIRMAR)
+
+  const medicamentos = e.nota.medicamentos ?? []
+
+  return {
+    notaId,
+    encounterSummary: texto(e.nota.resumenEjecutivo),
+    medicationInstructions: medicamentos
+      .map(m => ({ nombre: texto(m?.nombre), instruccion: comoTomarlo(m) }))
+      .filter(m => m.nombre && m.instruccion),
+    medicationChanges: cambiosDeMedicacion(medicamentos, e.medicacionPrevia),
+    orders: (e.nota.estudiosOrden ?? []).map(texto).filter(Boolean),
+    followUp: fechaEnLlano(e.cuandoVolver),
+    /* Indicación médica sin campo de origen. Vacío y declarado, nunca «lo habitual». */
+    warningSigns: [],
+    /* Evidencia curada: no existe todavía de dónde sacarla. Vacío y declarado. */
+    educationalMaterial: [],
+    /* Los llena `DOCUMENTS-001` y `PATIENT-AI-001`. */
+    documents: [],
+    unansweredQuestions: [],
+    /* El teléfono del consultorio vive en su configuración; el paquete no lo copia. */
+    clinicianContactRules: '',
+    language: texto(e.idioma) || 'es-MX',
+    /* DRAFT aunque la nota esté firmada: firmar y liberar son dos actos. */
+    estado: 'DRAFT',
+    approvedAt: null,
+    approvedBy: null,
+    version: 1,
+  }
+}
 
 /**
  * Pasa un paquete a `RELEASED`. Exige quién aprueba y cuándo.
