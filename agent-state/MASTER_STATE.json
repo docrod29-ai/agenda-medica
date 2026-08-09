@@ -16,24 +16,11 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1148",
+  "ultimaVersionEnProduccion": "nexusmed-v1149",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    "MM docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    "MM docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    " M scripts/data-room/actualizar-cifras.mjs",
-    " M src/__tests__/la-sala-de-datos-no-infla.test.ts",
-    "M  src/app/(dashboard)/expediente/[patientId]/page.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/los-cabos-sueltos-del-paciente.test.ts",
-    "?? src/__tests__/una-version-desplegada-no-miente.test.ts",
-    "?? src/components/CabosSueltosDelPaciente.tsx",
-    "?? src/lib/tareas-clinicas/cabos-del-paciente.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -71,8 +58,8 @@
   "derivado": {
     "regsEnElLedger": 115,
     "ultimaREG": "REG-267",
-    "archivosDePrueba": 544,
-    "casosDePrueba": 7213,
+    "archivosDePrueba": 545,
+    "casosDePrueba": 7227,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

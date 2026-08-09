@@ -2582,3 +2582,17 @@ aparatos. Llegaba como párrafo corrido y caía entero en el plan.
 **REG-266** · los pendientes de un paciente, en su expediente. `tareasDePaciente`
 decía «para su expediente» y no tenía llamador; el barrido no lo vio porque hay
 otra función con el mismo nombre en enfermería de UCI.
+
+## v1149 — REG-192 vuelve a la línea desplegada
+
+`origin/main` llevaba tres commits que la rama de V7 no tenía: el PR #260 con
+REG-192, *«la sección bien escrita compraba el silencio de la mal escrita»*.
+
+`contradicciones()` miraba **sólo la primera aparición** de cada enfermedad. Una
+nota que niega la diabetes en el interrogatorio y la diagnostica en la impresión
+tenía las dos cosas, y la primera silenciaba a la segunda. Ahora se miran todas,
+con el criterio en `mencion-en-la-nota.ts` — la temporalidad tenía esa misma
+línea copiada.
+
+No es código nuevo: es código que se había quedado fuera de la rama que se
+despliega. La misma familia que REG-267, con otro disfraz.
