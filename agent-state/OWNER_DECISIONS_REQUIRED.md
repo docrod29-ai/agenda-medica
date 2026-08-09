@@ -35,6 +35,29 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | N-1 | ¿Se puede repetir la prueba de 14 días? | Una por cuenta, comprobada contra Stripe | Cerrar el hueco de pruebas repetidas | El resto del cobro |
 | N-2 | Verificación de correo al registrarse | Activarla: un correo mal tecleado deja la cuenta irrecuperable | Recuperación sin soporte humano | El alta funciona |
 
+## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8)
+
+| # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |
+|---|---|---|---|---|
+| T-1 | **22 PRs abiertos. Catorce se titulan «REG-192 … (v1074)»** y son reparaciones DISTINTAS; dos se titulan «REG-194 … (v1076)» | Fusionar o cerrar por lotes, renumerando al fusionar | El número de regresión y la versión del service worker **dejan de acotar un lote de notas clínicas** — que es justo lo que REG-191 acababa de reparar para IEC 62304 | Cada reparación por separado es correcta y tiene sus compuertas en verde |
+
+**Medido el 8-ago-2026 con `node scripts/estado-de-las-ramas.mjs`:** 33 ramas
+vivas · REG en `main` **191**, en alguna rama **224** · service worker en `main`
+**v1073**, en alguna rama **v1106**. Son **33 números de regresión gastados** en
+trabajo sin fusionar, y seis ramas distintas llamándose «v1074».
+
+**Por qué se repite.** Cada disparo del bucle arranca de `main`. Desde `main`, el
+ítem de mayor score y el siguiente REG libre son siempre los mismos mientras nada
+se fusione, así que cada disparo elige lo mismo y le pone el mismo número. No es
+que los agentes se equivoquen: ninguno veía el trabajo de los otros.
+
+**Lo que ya no hace falta decidir.** El disparo del 8-ago añade
+`scripts/estado-de-las-ramas.mjs`: dice el siguiente REG y la siguiente versión
+libres sobre **todas** las ramas, y qué ramas tocan un archivo dado. Ese mismo
+disparo lo usó y, al ver que su hallazgo ya estaba resuelto en el PR #237, **no
+abrió un PR duplicado**. Sigue haciendo falta la decisión de fusionar: mientras
+no se fusione nada, la cola sólo crece.
+
 ---
 
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
