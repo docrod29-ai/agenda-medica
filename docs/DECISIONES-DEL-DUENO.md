@@ -50,6 +50,28 @@ o por turno, dígalo así y el motor lo admite como parámetro.
 
 ---
 
+## 1-bis · `FALTA_CRITICO_CALCIO_IONICO` — el umbral del calcio iónico
+
+**Dónde**: `src/lib/hospital/lab-criticos.ts`
+
+**De dónde sale**: el 9-ago-2026, midiendo el motor de valores críticos,
+apareció que **«Calcio iónico» = 4,8 mg/dL salía CRÍTICO**. Ese valor es
+**normal** para el iónico (~4,5-5,6): se estaba comparando contra el umbral bajo
+del calcio **total**, que es 6.
+
+**Qué se hizo**: excluirlo del rango del total, para no marcar como crítico un
+valor normal. Un valor normal en rojo es peor que un umbral que falta — el que
+falta se nota cuando se busca; éste enseña a ignorar las alarmas.
+
+**Qué pasa hoy, y por eso está aquí**: excluirlo **no es resolverlo**. Mientras
+no tenga umbral propio, **un calcio iónico realmente crítico no se marca**.
+
+**Qué hace falta de usted**: el par bajo/alto, en mg/dL o en mmol/L, con la
+unidad dicha. En terapia el iónico se mide a todas horas, así que esta decisión
+tiene uso inmediato.
+
+---
+
 ## 2 · `FALTA_POLITICA_Q2_Q4` — quién corrige un registro, y hasta cuándo
 
 **Dónde**: `src/lib/hospital/eventos.ts:351`
