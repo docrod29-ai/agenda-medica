@@ -7013,3 +7013,52 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — El medidor del teléfono decía 0 con la pantalla rota
+
+**Encontrado** el 9-ago-2026, con la aplicación abierta en la cuenta del dueño y
+la ventana a 390 px de ancho. La pantalla de inicio se salía de la pantalla: las
+cuatro tarjetas seguían de dos en dos, «Agenda de hoy» y «Accesos rápidos»
+seguían lado a lado en un teléfono, y la columna derecha quedaba cortada.
+
+**Qué pasaba.** `gridTemplateColumns: '1fr 300px'` —fija, en píxeles— y **ni una
+sola consulta de medios propia** en toda la pantalla. De los 328 px útiles de un
+teléfono de 360, la columna derecha se llevaba 300.
+
+**Y el instrumento existía.** `scripts/calidad/cabe-en-un-telefono.mjs` (REG-265)
+lleva desde el 2 de agosto midiendo exactamente esto, y **informaba de cero**.
+Sus tres clases eran: ancho fijo `width: Npx`, rejilla `minmax(Npx, …)` sin
+`min()`, e imagen sin tope. Una pista de rejilla clavada en píxeles **no es
+ninguna de las tres**: no es un `width:` y no está dentro de un `minmax(`. La
+clase estaba a un lado de las tres y nadie la escribió.
+
+**Familia.** `sin_medir` — no es un defecto del producto, es la ausencia del
+instrumento que lo habría delatado. Con el agravante de que aquí el instrumento
+**sí estaba**, y su silencio se leía como buena noticia.
+
+**Arreglo.** Dos cosas, y las dos hacían falta:
+
+1. **La pantalla** (V10 · HOME-001): una sola columna a cualquier ancho, con sus
+   consultas de medios propias a 640 y 560 px. Se fueron las cuatro tarjetas KPI
+   (§14 del charter V10: «no construyas un tablero de KPIs genérico para
+   médicos»), «Accesos rápidos» (§9, navegación duplicada: sus cuatro destinos
+   ya están en la barra lateral), el «Citas hoy» del encabezado (§9, encabezado
+   duplicado) y el sparkline de siete días. Los números siguen, en un renglón.
+
+2. **La cuarta clase del medidor**: pista de rejilla en píxeles secos por encima
+   de 160. La primera medición dio **cuatro**, y los cuatro eran falsos —
+   configuración, recetas, orden y receta llevan su `className` y su consulta de
+   medios en `1fr !important`, que es la forma correcta. Excluidos **por lo que
+   hacen**, no por su nombre: `seApilaEnMovil()` comprueba que exista esa regla.
+   Real, tras la segunda pasada: **cero**.
+
+**Guardianes.** `src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts`
+(19 casos) y la clase 4 de `lo-que-un-telefono-no-puede-encoger.test.ts`.
+Verificado que la clase 4 sí caza la forma original: un archivo de prueba con
+`gridTemplateColumns: '1fr 300px'` aparece, y desaparece al borrarlo.
+
+**Lo que sigue sin cubrir, dicho en vez de dejarlo creer.** Esto acota, no
+sustituye al navegador. El desborde por una tabla ancha, un `flex-basis` o un
+texto sin cortar sigue pasando por aquí sin despeinarse.
