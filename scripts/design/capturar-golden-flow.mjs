@@ -15,11 +15,16 @@
  * Sin datos reales: todo lo sembrado es sintético (ver sembrar-emulador.mjs).
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync, openSync } from 'node:fs'
+import { mkdirSync, openSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { chromium } from '@playwright/test'
 import { sembrar, MEDICO } from './sembrar-emulador.mjs'
+
+// axe-core viaja en node_modules (dependencia transitiva estable): el MISMO
+// recorrido que captura la evidencia visual levanta la línea base de
+// accesibilidad — dos salidas de V10 §47 (2 y 10) con un solo arnés.
+const AXE_RUTA = join(process.cwd(), 'node_modules/axe-core/axe.min.js')
 
 const PUERTO = 3100
 // `localhost`, NO `127.0.0.1`: Next 16 bloquea las peticiones cross-origin a
@@ -130,6 +135,8 @@ async function main() {
       args: ['--no-proxy-server'],
     })
     const erroresConsola = []
+    const avisosHidratacion = []
+    const auditoriaA11y = []
 
     for (const vista of VISTAS) {
       const contexto = await navegador.newContext({
@@ -149,6 +156,10 @@ async function main() {
       page.setDefaultTimeout(60000)
       page.on('console', (m) => {
         if (m.type() === 'error') erroresConsola.push(`[${vista.nombre}] ${page.url()}: ${m.text().slice(0, 200)}`)
+        // V10-BUG-001: el mismatch de hidratación se cuenta APARTE — es el
+        // defecto que este arnés descubrió y el contador es su verificación
+        // del lado del navegador (la prueba unitaria solo lee la fuente).
+        if (/hydrat/i.test(m.text())) avisosHidratacion.push(`[${vista.nombre}] ${page.url()}`)
       })
 
       // Sesión: la médica demo entra por la pantalla de login real.
@@ -176,7 +187,28 @@ async function main() {
         await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }).catch(() => {})
         const archivo = join(SALIDA, `${p.nombre}--${vista.nombre}.png`)
         await page.screenshot({ path: archivo, fullPage: false })
-        console.log(`  ✓ ${p.nombre} (${vista.nombre})`)
+
+        // Línea base de accesibilidad sobre la MISMA pantalla que la captura:
+        // sólo violaciones (WCAG 2.x A/AA + mejores prácticas de axe). El
+        // detalle se recorta a lo accionable — regla, impacto, cuántos nodos y
+        // una muestra del selector — para que el JSON sea legible en revisión.
+        try {
+          await page.addScriptTag({ path: AXE_RUTA })
+          const resultado = await page.evaluate(async () => {
+            const r = await window.axe.run(document, { resultTypes: ['violations'] })
+            return r.violations.map((v) => ({
+              regla: v.id, impacto: v.impact, ayuda: v.help,
+              nodos: v.nodes.length,
+              muestra: v.nodes.slice(0, 3).map((n) => n.target.join(' ')),
+            }))
+          })
+          auditoriaA11y.push({ ruta: p.ruta, vista: vista.nombre, violaciones: resultado })
+          const criticas = resultado.filter((v) => v.impacto === 'critical' || v.impacto === 'serious')
+          console.log(`  ✓ ${p.nombre} (${vista.nombre}) — a11y: ${resultado.length} violaciones (${criticas.length} serias/críticas)`)
+        } catch (e) {
+          auditoriaA11y.push({ ruta: p.ruta, vista: vista.nombre, error: String(e).slice(0, 200) })
+          console.log(`  ✓ ${p.nombre} (${vista.nombre}) — a11y NO corrió: ${String(e).slice(0, 120)}`)
+        }
       }
       await contexto.close()
     }
@@ -186,6 +218,14 @@ async function main() {
       console.log(`\n⚠ ${erroresConsola.length} errores de consola durante el recorrido:`)
       for (const e of erroresConsola.slice(0, 20)) console.log(`  ${e}`)
     }
+    console.log(avisosHidratacion.length
+      ? `\n✗ V10-BUG-001 SIGUE VIVO: ${avisosHidratacion.length} avisos de hidratación (${[...new Set(avisosHidratacion)].slice(0, 5).join(', ')})`
+      : '\n✓ Hidratación limpia: 0 avisos en todo el recorrido (V10-BUG-001)')
+    writeFileSync(
+      join(process.cwd(), 'docs/design/a11y-golden-flow.json'),
+      JSON.stringify({ corridoEl: new Date().toISOString().slice(0, 10), metodo: 'axe-core dentro de capturar-golden-flow.mjs, mismas pantallas y viewports que las capturas', avisosHidratacion: avisosHidratacion.length, pantallas: auditoriaA11y }, null, 2) + '\n',
+    )
+    console.log(`✓ Línea base a11y en docs/design/a11y-golden-flow.json`)
     console.log(`\n✓ Capturas en ${SALIDA}`)
   } finally {
     matar()

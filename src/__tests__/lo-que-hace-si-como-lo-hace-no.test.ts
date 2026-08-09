@@ -105,6 +105,32 @@ describe('y la portada habla de lo que hace, no de cómo', () => {
   })
 })
 
+describe('los CTA del producto tampoco nombran el mecanismo (hallazgo V10, captura 9-ago)', () => {
+  /**
+   * El expediente decía «Nueva consulta con IA» — el apellido es el mecanismo.
+   * Se vio en la captura real del golden flow (expediente--movil.png): el CTA
+   * primario de la pantalla nombraba CÓMO trabaja la consulta, no lo que hace.
+   * La misma regla del dueño que gobierna la portada gobierna cada botón.
+   *
+   * QUÉ NO CUBRE: sólo las pantallas del golden flow listadas — un CTA nuevo
+   * en otra pantalla con «con IA» no lo atrapa; se añade aquí cuando el
+   * barrido de capturas lo encuentre.
+   */
+  const PANTALLAS_GOLDEN = [
+    'src/app/(dashboard)/expediente/[patientId]/page.tsx',
+    'src/app/(dashboard)/pacientes/page.tsx',
+    'src/app/(dashboard)/citas/page.tsx',
+    'src/app/(dashboard)/dashboard/page.tsx',
+  ]
+  for (const archivo of PANTALLAS_GOLDEN) {
+    it(`${archivo} no rotula ningún botón con «con IA»`, () => {
+      // \s* — el JSX suele partir línea entre el rótulo y su cierre; sin él,
+      // esta prueba pasaba CON el defecto puesto (se comprobó al revés).
+      expect(leer(archivo)).not.toMatch(/con IA\s*</i)
+    })
+  }
+})
+
 describe('las páginas no se borran: se dejan de ofrecer', () => {
   it('`/motores` y `/arquitectura` siguen existiendo', () => {
     /**

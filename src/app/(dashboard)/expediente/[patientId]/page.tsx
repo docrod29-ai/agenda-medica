@@ -243,8 +243,10 @@ export default function ExpedientePage() {
           }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Upload size={15} /> FHIR
           </button>
+          {/* «Nueva consulta», sin apellido: el CTA dice lo que HACE, no el
+              mecanismo con que lo hace (REG-292 — regla del dueño). */}
           <button onClick={() => router.push(`/consulta/${patientId}`)} style={primaryBtn}>
-            <Mic size={16} /> Nueva consulta con IA
+            <Mic size={16} /> Nueva consulta
           </button>
         </div>
       </div>

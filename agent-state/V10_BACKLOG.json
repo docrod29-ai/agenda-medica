@@ -54,16 +54,17 @@
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
       "estado": "hecho-parcial",
-      "avance9ago": "Arnés construido y corriendo (npm run capturas:golden). 14 capturas del golden flow autenticado en docs/design/capturas/golden-flow/. 6 vistas puntuadas con evidencia (V10_VISUAL_SCORECARD.json); faltan 8 vistas por puntuar y los estados vacío/carga/error/larga."
+      "avance9ago": "Arnés construido y corriendo (npm run capturas:golden). 14 capturas del golden flow autenticado en docs/design/capturas/golden-flow/. Las 14 vistas puntuadas con evidencia (V10_VISUAL_SCORECARD.json). Faltan: estados vacío/carga/error/larga por pantalla, y las vistas 1024/768 (§39 pide 4 anchos; hoy hay 2)."
     },
     {
       "id": "V10-BUG-001",
       "titulo": "Hydration mismatch en TODAS las rutas (aviso de React en consola dev)",
       "fuente": "capturas 9-ago: el mismo aviso en /login, /dashboard, /citas, /calendario, /pacientes, /expediente, /consulta, /pendientes",
-      "hipotesis": "atributo que difiere entre SSR y cliente en el layout compartido (tema/fecha/saludo son los sospechosos de siempre); hay que reproducir y mirar el diff exacto",
+      "causaRaiz": "el script anti-flicker pone data-theme en <html> antes de hidratar; el HTML del servidor no lleva el atributo. Confirmado: ThemeToggle no es (rinde null hasta montar).",
+      "arreglo": "suppressHydrationWarning en <html> (alcanza sólo los atributos de ese elemento). Guardián: src/__tests__/el-tema-antes-de-pintar-no-rompe-la-hidratacion.test.ts (probado al revés). El arnés ahora cuenta avisos de hidratación aparte y falla el resumen si reaparecen.",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
-      "estado": "abierto"
+      "estado": "resuelto-9ago"
     },
     {
       "id": "V10-AGENDA-BOTONERA",
@@ -85,9 +86,10 @@
       "id": "V10-CONTENIDO-REG292",
       "titulo": "El CTA del expediente dice «Nueva consulta con IA» (nombra el mecanismo); «Capta a los dos y separa las voces» en consulta roza lo mismo",
       "fuente": "expediente--escritorio.png · consulta--escritorio.png. Regla del dueño REG-292: se dice lo que HACE, nunca cómo lo hace",
+      "arreglo9ago": "El CTA ya dice «Nueva consulta»; guardián extendido en lo-que-hace-si-como-lo-hace-no.test.ts (probado al revés — la primera versión del regex era tautológica y se corrigió). «Capta a los dos y separa las voces» queda ABIERTO: describe resultado más que mecanismo y cambiarlo es decisión de contenido de V10-ENCOUNTER-001, no un sed.",
       "prioridad": "P1",
       "unidadV10": "V10-PATIENT-001",
-      "estado": "abierto"
+      "estado": "resuelto-parcial-9ago"
     },
     {
       "id": "V10-EXPEDIENTE-TARJETAS-VACIAS",
@@ -103,6 +105,102 @@
       "fuente": "todas las capturas de escritorio 9-ago. Ya es la unidad 3 de la secuencia §32",
       "prioridad": "P1",
       "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CAMPOS-SIN-ETIQUETA",
+      "titulo": "Campos sin etiqueta: 4 textarea de la NOTA CLÍNICA en /consulta y el input de fecha de /citas",
+      "fuente": "docs/design/a11y-golden-flow.json (axe, 9-ago). Impacto critical. Mínimo declarado de la compuerta del repo",
+      "prioridad": "P1",
+      "unidadV10": "V10-NOTE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-BOTONES-SIN-NOMBRE",
+      "titulo": "Botones de sólo-icono sin nombre accesible en /citas, /calendario, /pacientes y /pendientes (incluye el flotante del shell)",
+      "fuente": "a11y-golden-flow.json (axe, 9-ago). Impacto critical",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CONTRASTE",
+      "titulo": "Contraste < 4.5:1 — 7 nodos en /dashboard (incluye .prox-hero-cta de HOME-001), «Registrar cobro» en cada fila de /citas, bloque 16:00 del calendario",
+      "fuente": "a11y-golden-flow.json (axe, 9-ago). Impacto serious. HOME-001 queda con corrección pendiente de contraste",
+      "prioridad": "P1",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CALENDARIO-ANIDADO",
+      "titulo": "role=button dentro de role=button en 7 celdas del calendario — un lector no separa la celda del bloque de cita",
+      "fuente": "a11y-golden-flow.json (axe, 9-ago). Impacto serious. Además ninguno es <button> real (mínimo de la compuerta)",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-LANDMARKS",
+      "titulo": "aside duplicado bajo .hidden y contenido fuera de landmarks — se arregla UNA vez en el shell",
+      "fuente": "a11y-golden-flow.json (axe, 9-ago). Impacto moderate, transversal a las 7 pantallas",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MOVIL-FLOTANTES",
+      "titulo": "Los botones flotantes circulares de ayuda/tema tapan contenido en TODAS las vistas móviles (rejilla del calendario, búsqueda de herramientas en consulta, tarjeta de actividad del expediente)",
+      "fuente": "agenda--movil.png · consulta--movil.png · expediente--movil.png · hoy--movil.png (9-ago). §9 arbitrary icon circles + oclusión de contenido",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MOVIL-PERMISO-NOTIF",
+      "titulo": "La hoja «Recordatorios de citas» pide permiso de notificaciones en la PRIMERA visita y tapa la navegación inferior en todas las pantallas",
+      "fuente": "pacientes--movil.png · pendientes--movil.png · citas--movil.png (9-ago). §8.18: popups para información de bajo riesgo; pedir permiso sin contexto de uso quema el único prompt del navegador",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CALENDARIO-MOVIL-DIA",
+      "titulo": "El calendario móvil abre en vista SEMANA: 7 columnas ilegibles a 390 px con horas truncadas — escritorio encogido, no móvil",
+      "fuente": "agenda--movil.png (9-ago). §39/§27: «responsive design is not desktop shrunk onto mobile». En teléfono el defecto es la vista por defecto, no el componente",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-BOTONERA-MOVIL",
+      "titulo": "Expediente móvil: 4 botones apilados a todo el ancho (referencia/exportar/FHIR/consulta) ANTES de cualquier hecho clínico; «FHIR» es jerga de integrador",
+      "fuente": "expediente--movil.png (9-ago). §8.19: los hechos clínicos mandan sobre los controles administrativos",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PACIENTES-VACIO-POR-DEFECTO",
+      "titulo": "Pacientes abre en «Recientes» y pinta un VACÍO teniendo 8 pacientes; la barra lateral resalta «Consulta» mientras el título dice «Pacientes»",
+      "fuente": "pacientes--escritorio.png · pacientes--movil.png (9-ago). §8.27 el vacío enseña, pero no debe ser la primera vista con datos; el estado activo del menú miente",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONSULTA-ALERGIA-DOBLE",
+      "titulo": "Consulta móvil: la alergia se dice dos veces en 100 px (banda + píldora) — duplicar lo crítico lo diluye",
+      "fuente": "consulta--movil.png (9-ago). Hermano del defecto que el expediente ya arregló (su comentario lo documenta: «antes había otro en la tarjeta de resumen»)",
+      "prioridad": "P3",
+      "unidadV10": "V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PENDIENTES-RECORTE",
+      "titulo": "El título «Pendientes» queda recortado contra el borde superior — falta el padding de cabecera que las demás pantallas sí tienen",
+      "fuente": "pendientes--escritorio.png · pendientes--movil.png (9-ago)",
+      "prioridad": "P3",
+      "unidadV10": "V10-FOLLOWUP-001",
       "estado": "abierto"
     }
   ]

@@ -1,0 +1,476 @@
+{
+  "corridoEl": "2026-08-09",
+  "metodo": "axe-core dentro de capturar-golden-flow.mjs, mismas pantallas y viewports que las capturas",
+  "avisosHidratacion": 0,
+  "pantallas": [
+    {
+      "ruta": "/dashboard",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "color-contrast",
+          "impacto": "serious",
+          "ayuda": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 7,
+          "muestra": [
+            ".prox-hero-cta",
+            "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
+            "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)"
+          ]
+        },
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/citas",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 3,
+          "muestra": [
+            "div:nth-child(2) > div:nth-child(4) > div:nth-child(2) > button",
+            ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
+            "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
+          ]
+        },
+        {
+          "regla": "color-contrast",
+          "impacto": "serious",
+          "ayuda": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 9,
+          "muestra": [
+            ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+            ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+            ".nx-reveal:nth-child(3) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+          ]
+        },
+        {
+          "regla": "label",
+          "impacto": "critical",
+          "ayuda": "Form elements must have labels",
+          "nodos": 1,
+          "muestra": [
+            "input[type=\"date\"]"
+          ]
+        },
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 2,
+          "muestra": [
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/calendario",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 3,
+          "muestra": [
+            "div:nth-child(4) > div:nth-child(2) > button",
+            ".btn-ghost.btn-icon.btn:nth-child(4)",
+            ".btn-ghost.btn-icon.btn:nth-child(6)"
+          ]
+        },
+        {
+          "regla": "color-contrast",
+          "impacto": "serious",
+          "ayuda": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 1,
+          "muestra": [
+            "div[aria-label=\"Agendar a las 16:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]"
+          ]
+        },
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        },
+        {
+          "regla": "nested-interactive",
+          "impacto": "serious",
+          "ayuda": "Interactive controls must not be nested",
+          "nodos": 7,
+          "muestra": [
+            "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)",
+            "div[aria-label=\"Agendar a las 10:00\"][role=\"button\"]:nth-child(8)",
+            "div[aria-label=\"Agendar a las 11:00\"][role=\"button\"]:nth-child(8)"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 2,
+          "muestra": [
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/pacientes",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 1,
+          "muestra": [
+            "div:nth-child(4) > div:nth-child(2) > button"
+          ]
+        },
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 2,
+          "muestra": [
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/expediente/pac-01",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/consulta/pac-03",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "label",
+          "impacto": "critical",
+          "ayuda": "Form elements must have labels",
+          "nodos": 4,
+          "muestra": [
+            "div:nth-child(8) > textarea[placeholder=\"\"]",
+            "div:nth-child(9) > textarea[placeholder=\"\"]",
+            "div:nth-child(10) > textarea[placeholder=\"\"]"
+          ]
+        },
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/pendientes",
+      "vista": "escritorio",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 1,
+          "muestra": [
+            "div:nth-child(4) > div:nth-child(2) > button"
+          ]
+        },
+        {
+          "regla": "landmark-unique",
+          "impacto": "moderate",
+          "ayuda": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+          "nodos": 2,
+          "muestra": [
+            ".hidden > aside",
+            ".hidden > aside > .sidebar-nav"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 2,
+          "muestra": [
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/dashboard",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "color-contrast",
+          "impacto": "serious",
+          "ayuda": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 7,
+          "muestra": [
+            ".prox-hero-cta",
+            "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
+            "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 1,
+          "muestra": [
+            ".mobile-topbar > span"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/citas",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 3,
+          "muestra": [
+            "div:nth-child(2) > div:nth-child(4) > div:nth-child(2) > button",
+            ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
+            "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
+          ]
+        },
+        {
+          "regla": "color-contrast",
+          "impacto": "serious",
+          "ayuda": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 6,
+          "muestra": [
+            ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+            ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+            ".nx-reveal:nth-child(3) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+          ]
+        },
+        {
+          "regla": "label",
+          "impacto": "critical",
+          "ayuda": "Form elements must have labels",
+          "nodos": 1,
+          "muestra": [
+            "input[type=\"date\"]"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 3,
+          "muestra": [
+            ".mobile-topbar > span",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/calendario",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 3,
+          "muestra": [
+            "div:nth-child(4) > div:nth-child(2) > button",
+            ".btn-ghost.btn-icon.btn:nth-child(4)",
+            ".btn-ghost.btn-icon.btn:nth-child(6)"
+          ]
+        },
+        {
+          "regla": "color-contrast",
+          "impacto": "serious",
+          "ayuda": "Elements must meet minimum color contrast ratio thresholds",
+          "nodos": 1,
+          "muestra": [
+            "div[aria-label=\"Agendar a las 16:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]"
+          ]
+        },
+        {
+          "regla": "nested-interactive",
+          "impacto": "serious",
+          "ayuda": "Interactive controls must not be nested",
+          "nodos": 7,
+          "muestra": [
+            "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)",
+            "div[aria-label=\"Agendar a las 10:00\"][role=\"button\"]:nth-child(8)",
+            "div[aria-label=\"Agendar a las 11:00\"][role=\"button\"]:nth-child(8)"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 3,
+          "muestra": [
+            ".mobile-topbar > span",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/pacientes",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 1,
+          "muestra": [
+            "div:nth-child(4) > div:nth-child(2) > button"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 3,
+          "muestra": [
+            ".mobile-topbar > span",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/expediente/pac-01",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 1,
+          "muestra": [
+            ".mobile-topbar > span"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/consulta/pac-03",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "label",
+          "impacto": "critical",
+          "ayuda": "Form elements must have labels",
+          "nodos": 4,
+          "muestra": [
+            "div:nth-child(8) > textarea[placeholder=\"\"]",
+            "div:nth-child(9) > textarea[placeholder=\"\"]",
+            "div:nth-child(10) > textarea[placeholder=\"\"]"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 1,
+          "muestra": [
+            ".mobile-topbar > span"
+          ]
+        }
+      ]
+    },
+    {
+      "ruta": "/pendientes",
+      "vista": "movil",
+      "violaciones": [
+        {
+          "regla": "button-name",
+          "impacto": "critical",
+          "ayuda": "Buttons must have discernible text",
+          "nodos": 1,
+          "muestra": [
+            "div:nth-child(4) > div:nth-child(2) > button"
+          ]
+        },
+        {
+          "regla": "region",
+          "impacto": "moderate",
+          "ayuda": "All page content should be contained by landmarks",
+          "nodos": 3,
+          "muestra": [
+            ".mobile-topbar > span",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+            "div:nth-child(2) > div:nth-child(2) > div:nth-child(2)"
+          ]
+        }
+      ]
+    }
+  ]
+}

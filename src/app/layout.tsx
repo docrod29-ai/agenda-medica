@@ -68,7 +68,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
+    // La supresión de hidratación en la etiqueta raíz es el par obligado del
+    // script anti-flicker de abajo: ese script pone data-theme ANTES de que
+    // React hidrate, así que el atributo nunca coincide con lo que rindió el
+    // servidor. La supresión alcanza SOLO los atributos de este elemento (un
+    // nivel), no a los hijos — un mismatch real en el árbol sigue avisando.
+    // Sin esto, React avisaba en TODAS las rutas (V10-BUG-001).
+    <html lang="es" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
       <head>
         {/*
           Kill-switch único por versión de deploy.

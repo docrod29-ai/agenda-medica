@@ -20,12 +20,12 @@ producto (V10 §47).
 | 7 | Mapa de interacción | ⏳ pendiente | `docs/design/INTERACTION_PATTERNS.md` |
 | 8 | Defectos de pérdida de estado | ✅ heredado + reparado | REG-276…279 (rama V9, sin fusionar) |
 | 9 | Inconsistencias visuales | ✅ heredado | `agent-state/DESIGN_STATE.md`: 6 065 `style={{`, 1 205 hex a mano |
-| 10 | Línea base de accesibilidad | ⏳ pendiente | `docs/design/ACCESSIBILITY.md` |
-| 11 | Línea base móvil | 🔄 parcial | 7 capturas a 390×844; puntuada la de inicio (8.2), el resto por revisar |
+| 10 | Línea base de accesibilidad | ✅ **axe en el arnés** | 38 violaciones/20 serias en 14 vistas → 5 patrones en `docs/design/ACCESSIBILITY.md` + `a11y-golden-flow.json` |
+| 11 | Línea base móvil | ✅ inicial | 7 vistas a 390×844 puntuadas; falta tableta/768 y estados no-felices |
 | 12 | Línea base de rendimiento | ⏳ pendiente | con navegador |
 | 13 | Matriz de principios de competidores | ✅ heredada, extender | `docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md` |
-| 14 | Puntuación visual por pantalla crítica | 🔄 6 vistas puntuadas CON evidencia | `V10_VISUAL_SCORECARD.json`: hoy 8.9/8.2, citas 7.6, calendario 8.6, expediente 8.3, consulta 8.9 — 8 vistas capturadas sin puntuar aún |
-| 15 | Puntuación «cara de IA» por pantalla | 🔄 6 vistas | citas 4.0 (botonera+chips) es la peor; calendario 1.0 la mejor |
+| 14 | Puntuación visual por pantalla crítica | ✅ **14/14 con evidencia** | `V10_VISUAL_SCORECARD.json`: promedio 7.9; peores citas-móvil 7.0 y calendario-móvil 6.8; mejores hoy/consulta 8.9 |
+| 15 | Puntuación «cara de IA» por pantalla | ✅ 14/14 | peores: citas 4.0/4.5 y expediente-móvil 3.0; mejores: pendientes y calendario-escritorio 1.0 |
 | 16 | Backlog visual P0–P3 | 🔄 en curso | `agent-state/V10_BACKLOG.json` |
 | 17 | Primera iteración de implementación | ✅ **HOME-001** | `/dashboard` rediseñada — ver abajo |
 
@@ -115,15 +115,50 @@ contenedor — el proxy contesta 403 a IPs no enrutables y el test de timeout
 espera un socket colgado; mismo diagnóstico que la corrida anterior);
 lint-trinquete 96 = techo; build en verificación al cierre de la corrida.
 
+## Corrida 9-ago-2026 (noche) — TRUTH-001 queda a dos salidas de cerrar
+
+**Dónde vive**: rama de sesión `claude/kind-brahmagupta-i2uo2j` (esta
+plataforma sólo permite empujar ahí), avanzada por fast-forward desde
+`claude/kind-brahmagupta-gu7h9g` — que a su vez venía de la punta de la rama
+canónica V10. Nada se rehízo; la cadena de corridas es lineal.
+
+**Qué se cerró** (los 4 puntos de la «próxima acción exacta» anterior):
+
+1. **Salidas 14/15 COMPLETAS para el golden flow**: las 14 vistas puntuadas
+   con su captura enfrente (`V10_VISUAL_SCORECARD.json`). Promedio de las 14:
+   **7.9** — lejos de la meta 9.3, que es exactamente lo que TRUTH-001 debía
+   medir. Peores: citas móvil 7.0, calendario móvil 6.8 (semana ilegible a
+   390 px), citas escritorio 7.6. Mejores: hoy 8.9 y consulta 8.9/8.5.
+   7 hallazgos nuevos al backlog (flotantes que tapan contenido en TODO el
+   móvil, permiso de notificaciones a la primera visita, calendario móvil en
+   vista semana, botonera del expediente móvil, «Recientes» vacío con datos,
+   alergia dicha dos veces en consulta, título de pendientes recortado).
+2. **V10-BUG-001 RESUELTO**: el mismatch era el script anti-flicker poniendo
+   `data-theme` en `<html>` antes de hidratar. `suppressHydrationWarning` en
+   el elemento (alcanza sólo sus atributos), guardián probado al revés
+   (`el-tema-antes-de-pintar-no-rompe-la-hidratacion.test.ts`) y verificación
+   del lado del navegador: **el arnés ahora cuenta avisos de hidratación y la
+   corrida salió con 0 en las 14 vistas**.
+3. **Salida 10 COMPLETA — línea base de accesibilidad**: axe-core corre dentro
+   del mismo arnés. **38 violaciones / 20 serias-críticas en 14 vistas**,
+   destiladas a 5 patrones en `docs/design/ACCESSIBILITY.md` (el peor: los
+   4 textarea de la NOTA CLÍNICA sin etiqueta). 5 items nuevos priorizados.
+4. **V10-CONTENIDO-REG292 (parcial)**: el CTA del expediente ya dice «Nueva
+   consulta» (captura regenerada lo confirma); guardián extendido — y la
+   primera versión del regex resultó tautológica al probarla al revés, se
+   corrigió (`con IA\s*<`). «Capta a los dos…» queda para V10-ENCOUNTER-001.
+
 ## Próxima acción exacta (siguiente corrida)
 
-1. **Puntuar las 8 vistas capturadas sin puntuar** (pacientes, pendientes y
-   los 6 móviles restantes) con su captura enfrente — §34 prohíbe rellenar.
-2. **V10-BUG-001**: reproducir el hydration mismatch (arnés ya lo enseña en
-   consola), encontrar el atributo exacto y arreglarlo con su prueba.
-3. Con el arnés vivo: **línea base de accesibilidad** (salida 10) sobre las
-   mismas pantallas — axe-core dentro del mismo recorrido.
-4. Después: la reparación más barata con mayor evidencia es
-   **V10-CONTENIDO-REG292** («Nueva consulta con IA» → «Nueva consulta»), y
-   la de mayor peso **V10-AGENDA-BOTONERA** (requiere decisión de jerarquía
-   de acciones: una primaria por renglón, el resto al kebab).
+1. Cerrar TRUTH-001: faltan **salida 4** (inventario de componentes, en
+   curso) y **salida 7** (mapa de interacción) — o declararlas herencia
+   suficiente y cerrar la iteración con su acta en `V10_MASTER_STATE.json`.
+2. **V10-A11Y-CAMPOS-SIN-ETIQUETA** (P1, riesgo clínico): etiquetar los 4
+   textarea de la nota en `/consulta` y el date de `/citas` — arreglo chico,
+   evidencia axe en mano, y el arnés lo verifica al re-correr.
+3. **V10-A11Y-CONTRASTE** en `.prox-hero-cta` (P1): HOME-001 debe quedar
+   limpio — es la pantalla insignia del rediseño.
+4. Después, la primera unidad grande de implementación por prioridad §31:
+   **V10-AGENDA-001** (botonera 4.0 de cara-de-IA + semana ilegible en móvil
+   + celdas anidadas) — pedir decisión de jerarquía de acciones NO hace
+   falta: una primaria por renglón y el resto plegado es la jerarquía de §5.

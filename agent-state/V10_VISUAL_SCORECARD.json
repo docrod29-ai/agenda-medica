@@ -88,13 +88,108 @@
       "notas": "La grabación domina sin gritar, las herramientas están plegadas (revelación progresiva ✓), y cada signo vital lleva su unidad atada al campo (§21 ✓). Hallazgos menores: la alergia se dice dos veces en 100 px (banda + píldora); «Capta a los dos y separa las voces» roza el mecanismo (candidata a revisión de contenido REG-292)."
     },
     {
-      "ruta": "/pacientes · /pendientes · resto móvil",
-      "nombre": "Capturadas SIN puntuar",
-      "evidencia": "pacientes--*.png, pendientes--*.png, citas--movil.png, agenda--movil.png, expediente--movil.png, consulta--movil.png",
-      "puntuacion": null,
-      "promedioPuntuado": null,
-      "genericAiLook": null,
-      "notas": "Una puntuación sin inspección sería la puntuación inflada que §34 prohíbe. La siguiente corrida las revisa una a una."
+      "ruta": "/pacientes",
+      "nombre": "Pacientes (escritorio)",
+      "evidencia": "pacientes--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 7.5, "claridad": 8, "coherencia": 8.5, "tipografia": 8.5,
+        "espaciado": 8.5, "densidad": 6.5, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8, "originalidadMarca": 7
+      },
+      "promedioPuntuado": 7.8,
+      "genericAiLook": 2.5,
+      "notas": "Tres hallazgos: (1) con 8 pacientes sembrados, la pestaña por defecto «Recientes» pinta un VACÍO — la pantalla abre enseñando nada teniendo datos; el vacío enseña la salida (§27 ✓) pero no debería ser la primera vista; (2) la barra lateral resalta «Consulta» mientras el título dice «Pacientes» — el estado activo miente; (3) «Respaldo» (operación administrativa) compite en el encabezado con «Nuevo paciente» (§8-19: hechos clínicos vs controles administrativos)."
+    },
+    {
+      "ruta": "/pacientes",
+      "nombre": "Pacientes (móvil 390px)",
+      "evidencia": "pacientes--movil.png",
+      "puntuacion": {
+        "jerarquia": 7, "claridad": 7.5, "coherencia": 8, "tipografia": 8,
+        "espaciado": 7.5, "densidad": 6.5, "interaccion": null, "responsividad": 8,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 7.5, "originalidadMarca": 7
+      },
+      "promedioPuntuado": 7.4,
+      "genericAiLook": 2.5,
+      "notas": "Tres botones apilados (Agendar/Respaldo/Nuevo paciente) ANTES de la búsqueda y del contenido (§9 «every action presented as a button»). La hoja de «Recordatorios de citas» tapa la barra de navegación inferior en la primera visita — pedir permiso de notificaciones antes de que la pantalla se haya usado una sola vez es interrupción, no servicio (§8-18)."
+    },
+    {
+      "ruta": "/pendientes",
+      "nombre": "Pendientes (escritorio)",
+      "evidencia": "pendientes--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8,
+        "espaciado": 7.5, "densidad": 8, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidadMarca": 7.5
+      },
+      "promedioPuntuado": 8.1,
+      "genericAiLook": 1,
+      "notas": "La más sobria del producto: controles como texto, vacío legítimo que explica qué es, por qué está vacío y qué lo llenará (§27 ✓ los tres). Un defecto medible: el título «Pendientes» queda RECORTADO contra el borde superior — falta el padding de cabecera que las demás pantallas sí tienen."
+    },
+    {
+      "ruta": "/pendientes",
+      "nombre": "Pendientes (móvil 390px)",
+      "evidencia": "pendientes--movil.png",
+      "puntuacion": {
+        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8,
+        "espaciado": 7.5, "densidad": 8, "interaccion": null, "responsividad": 8.5,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidadMarca": 7.5
+      },
+      "promedioPuntuado": 8.1,
+      "genericAiLook": 1,
+      "notas": "Misma sobriedad que escritorio; se apila bien. La hoja de notificaciones vuelve a tapar la navegación inferior (hallazgo transversal, no de esta pantalla)."
+    },
+    {
+      "ruta": "/citas",
+      "nombre": "Citas (móvil 390px)",
+      "evidencia": "citas--movil.png",
+      "puntuacion": {
+        "jerarquia": 6, "claridad": 7, "coherencia": 7.5, "tipografia": 8,
+        "espaciado": 7, "densidad": 6, "interaccion": null, "responsividad": 7.5,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 7.5, "originalidadMarca": 6.5
+      },
+      "promedioPuntuado": 7,
+      "genericAiLook": 4.5,
+      "notas": "La peor vista móvil, por lo mismo que su escritorio: ~500 px de controles (fecha, 3 píldoras de conteo, búsqueda, 8 chips de filtro) antes del PRIMER paciente — §15 pide una agenda inmediata y aquí el primer hecho clínico entra por debajo del pliegue. El conteo del día se dice dos veces (píldoras + «8 citas»). Va a V10-AGENDA-001 junto con la botonera."
+    },
+    {
+      "ruta": "/calendario",
+      "nombre": "Calendario semana (móvil 390px)",
+      "evidencia": "agenda--movil.png",
+      "puntuacion": {
+        "jerarquia": 6.5, "claridad": 6, "coherencia": 8, "tipografia": 7.5,
+        "espaciado": 7, "densidad": 6, "interaccion": null, "responsividad": 5.5,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 7.5, "originalidadMarca": 7
+      },
+      "promedioPuntuado": 6.8,
+      "genericAiLook": 1.5,
+      "notas": "El caso de libro de §27-39: «responsive design is not desktop shrunk onto mobile». La semana entera en 390 px deja 7 columnas ilegibles con las horas truncadas («09:0», «16:3») y 6 días vacíos ocupando el 85 % del ancho. En teléfono la vista por defecto debe ser el DÍA. Además los botones flotantes de ayuda/tema tapan la rejilla (14:00–15:00 del domingo)."
+    },
+    {
+      "ruta": "/consulta/[id]",
+      "nombre": "Consulta (móvil 390px)",
+      "evidencia": "consulta--movil.png",
+      "puntuacion": {
+        "jerarquia": 8.5, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
+        "espaciado": 8.5, "densidad": 8.5, "interaccion": null, "responsividad": 8.5,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 9, "originalidadMarca": 8
+      },
+      "promedioPuntuado": 8.5,
+      "genericAiLook": 1.5,
+      "notas": "La mejor vista móvil: alergia arriba, identidad grande, «Grabar la consulta» domina sin gritar, herramientas plegadas. Hallazgos: la alergia se dice DOS veces en 100 px (banda + píldora — duplicar lo crítico lo diluye); los botones flotantes tapan la búsqueda de herramientas; el encabezado sigue diciendo «Agenda Médica»."
+    },
+    {
+      "ruta": "/expediente/[id]",
+      "nombre": "Expediente (móvil 390px)",
+      "evidencia": "expediente--movil.png",
+      "puntuacion": {
+        "jerarquia": 6.5, "claridad": 7.5, "coherencia": 8, "tipografia": 8.5,
+        "espaciado": 8, "densidad": 6.5, "interaccion": null, "responsividad": 8,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidadMarca": 7
+      },
+      "promedioPuntuado": 7.6,
+      "genericAiLook": 3,
+      "notas": "La banda de alergias y la identidad abren bien — y luego CUATRO botones apilados a todo el ancho (Carta de referencia, Expediente completo, FHIR, Nueva consulta con IA) antes de cualquier hecho clínico: las exportaciones mandan más que la clínica (§8-19), «FHIR» es jerga de integrador en la pantalla de un médico, y el CTA primario nombra el mecanismo (REG-292). Después, las mismas tarjetas vacías del escritorio empujan «Datos del paciente» bajo el pliegue."
     }
   ]
 }
