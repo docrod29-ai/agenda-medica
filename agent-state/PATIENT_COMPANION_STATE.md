@@ -3,7 +3,8 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
+**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026; el P0
+que quedaba en esta superficie (`PATIENT-TELE-002`) **cerrado** el 9-ago-2026.
 **Siguiente que toca esta superficie**: `PATIENT-COMPANION-001` (tras
 `DESIGN-SYSTEM-001` y `NAVIGATION-001`).
 
@@ -73,7 +74,11 @@ por el paciente.
 
 ## P0 abiertos en esta superficie
 
-- `PATIENT-TELE-002` — el enlace por WhatsApp sigue sin token.
+**Ninguno.** `PATIENT-TELE-002` quedó cerrado el 9-ago-2026 con **REG-291**: el
+token de sala se acuña en el servidor (`lib/telesalud/token-de-sala.ts`) y lo
+pasan los tres mensajes que anuncian una videoconsulta —alta por el bot, cita
+ganada desde la lista de espera y los recordatorios del cron—. Alcance `agenda`,
+nacido con la versión del expediente, y sin enlace para citas a más de 7 días.
 
 ## P1 abiertos
 
