@@ -54,7 +54,11 @@ describe('ventanaDeSala', () => {
 
   it('el enlace del paciente NO lleva `dr=1`', () => {
     // `dr=1` abre el panel lateral con la nota y la receta: es la vista del médico.
-    const url = enlaceSalaPaciente('cita-1', 'clinica-1')
+    // El tercer argumento —el token— pasó a ser obligatorio en REG-265: sin él,
+    // el enlace contestaba 404 al propio dueño de la cita. Aquí se pasa vacío
+    // porque lo que se comprueba es OTRA cosa; que el token llegue lo vigila
+    // `enlace-de-videoconsulta-lleva-token.test.ts`.
+    const url = enlaceSalaPaciente('cita-1', 'clinica-1', '')
     expect(url).toBe('/teleconsulta/cita-1?c=clinica-1')
     expect(url).not.toContain('dr=1')
   })
