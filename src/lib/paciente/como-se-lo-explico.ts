@@ -112,12 +112,17 @@ export function vecesAlDia(frecuencia: unknown): string | null {
   return n === 1 ? 'una vez al día' : `${n} veces al día`
 }
 
-/** Una línea por medicamento, con lo que el médico puso y nada más. */
-export function comoTomarlo(m: MedicamentoParaExplicar): string {
+/**
+ * La PAUTA sola: cuánto, cómo, cada cuánto y hasta cuándo. Sin el nombre.
+ *
+ * Se separó del nombre al escribir la comparación entre visitas
+ * (`cambiosDeMedicacion`, V9 `POSTVISIT-001`): cotejando la línea entera,
+ * «Losartan» y «Losartán» salían como un cambio de tratamiento cuando lo único
+ * que cambió fue un acento. Decirle al paciente que su fármaco «cambia» cuando
+ * no cambió gasta exactamente la atención que hace falta el día que sí cambie.
+ */
+export function pautaEnLlano(m: MedicamentoParaExplicar): string {
   const partes: string[] = []
-  const nombre = txt(m.nombre)
-  if (!nombre) return ''
-  partes.push(nombre)
   if (txt(m.dosis)) partes.push(txt(m.dosis))
 
   const via = viaEnLlano(m.via)
@@ -133,6 +138,14 @@ export function comoTomarlo(m: MedicamentoParaExplicar): string {
   if (dur) partes.push(`durante ${dur}`)
 
   return partes.join(' · ')
+}
+
+/** Una línea por medicamento, con lo que el médico puso y nada más. */
+export function comoTomarlo(m: MedicamentoParaExplicar): string {
+  const nombre = txt(m.nombre)
+  if (!nombre) return ''
+  const pauta = pautaEnLlano(m)
+  return pauta ? `${nombre} · ${pauta}` : nombre
 }
 
 /**

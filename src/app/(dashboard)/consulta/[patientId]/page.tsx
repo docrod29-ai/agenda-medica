@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { LiberarAlPaciente } from '@/components/LiberarAlPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5194,12 +5195,39 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {/*
+        Y SÓLO CON LA NOTA FIRMADA (`POSTVISIT-GATE-001`, REG-306).
+
+        Hasta v1167 la única guarda era `!esNotaHospital`, así que la hoja se
+        componía del BORRADOR EN CURSO: el médico podía copiarla o imprimirla y
+        entregársela al paciente antes de firmar nada. La cabecera del módulo
+        afirmaba que el contenido sale de lo «ya revisado y firmado», y eso era
+        intención de diseño, no precondición.
+
+        Justo arriba, `ComoCerrarLaConsulta` ya exigía `firmada`. Ahora las dos
+        cosas que salen de la consulta hacia fuera comparten la misma compuerta.
+      */}
+      {firmada && !esNotaHospital && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          /*
+            El cuarto bloque de la hoja llevaba `undefined` fijo desde REG-242, y
+            por eso no podía renderizarse jamás. Lo que el médico escribió como
+            próximo seguimiento es exactamente lo que ese bloque pide, va
+            LITERAL, y ya viaja a las tareas clínicas por el mismo campo.
+          */
+          proximaCita={proximoSeguimiento || undefined}
         />
+      )}
+
+      {/*
+        LIBERAR AL PACIENTE (`POSTVISIT-ENTREGA-001`, REG-307) — el camino que
+        faltaba entre la hoja y el teléfono del paciente. Compone el servidor
+        desde la nota firmada; aquí sólo se revisa y se aprueba.
+      */}
+      {firmada && !esNotaHospital && clinicId && notaId && (
+        <LiberarAlPaciente clinicId={clinicId} patientId={patientId} notaId={notaId} />
       )}
 
       {/*

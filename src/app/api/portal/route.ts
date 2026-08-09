@@ -14,6 +14,7 @@ import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
 import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import { vigentesPorNota } from '@/lib/paciente/liberacion'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -592,10 +593,23 @@ export async function POST(req: NextRequest) {
           .collection('patients').doc(patientId)
           .collection('paquetes_visita')
           .get()
-        const paquetes = snapPaq.docs
-          .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
-          .filter(visibleParaElPaciente)
-          .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
+        /**
+         * Y de cada consulta, LA VERSIÓN VIGENTE (V9 `POSTVISIT-001`).
+         *
+         * Liberar una corrección crea un documento nuevo —un paquete liberado es
+         * inmutable, igual que una nota firmada—, así que la misma consulta
+         * puede tener varias versiones en la base. Todas se conservan: son el
+         * registro de qué se le dijo al paciente y cuándo.
+         *
+         * Lo que NO puede pasar es que el paciente vea las tres: serían tres
+         * hojas de instrucciones distintas de la misma consulta, y elegir entre
+         * ellas no es trabajo suyo. `vigentesPorNota` deja una por `notaId`.
+         */
+        const paquetes = vigentesPorNota(
+          snapPaq.docs
+            .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
+            .filter(visibleParaElPaciente),
+        ).sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
         return NextResponse.json({ paquetes })
       }
 

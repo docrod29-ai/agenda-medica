@@ -55,6 +55,15 @@ export type AuditEvento =
   | 'login_fallido'              // intento de login fallido
   | 'export_datos'               // se exportaron datos del paciente
   | 'cobro_exento'               // se marcó una cita como cortesía (no cobrar), con motivo
+  /**
+   * Se LIBERÓ al paciente el paquete de una consulta (V9 `POSTVISIT-001`).
+   *
+   * Firmar y liberar son dos actos: firmar va hacia el expediente, liberar va
+   * hacia el paciente. El segundo también deja rastro, porque la pregunta «¿quién
+   * autorizó que el paciente leyera esto, y cuándo?» tiene que poder contestarse
+   * sin abrir el documento del paquete.
+   */
+  | 'paquete_liberado'
   // === Agenda (trazabilidad NOM-024) ===
   // Cancelar, marcar "no asistió" y BORRAR una cita se hacían sin dejar rastro,
   // mientras el booking público sí registraba. Borrar además destruye el
@@ -127,6 +136,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   nota_firmada: 'Firmó nota',
   nota_adenda: 'Agregó adenda',
   nota_borrada: 'Borró borrador',
+  paquete_liberado: 'Liberó el paquete al paciente',
   laboratorio_borrado: 'Borró laboratorio',
   foto_clinica_borrada: 'Borró foto clínica',
   consentimiento_grabacion: 'Consintió grabar',

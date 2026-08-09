@@ -317,6 +317,15 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   },
 
   // ── portal del paciente ──────────────────────────────────────────────────
+  /**
+   * Liberar lo que el paciente leerá de su consulta (V9 `POSTVISIT-001`).
+   *
+   * `clinico.escribir` y no `agenda.gestionar`: la ruta lee la nota firmada
+   * —diagnóstico, medicación, estudios— y APRUEBA que eso salga del expediente
+   * hacia el paciente. Es un acto clínico de comunicación; el permiso de
+   * mostrador no alcanza ni para previsualizarlo.
+   */
+  'paciente/paquete': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'portal': {
     tipo: 'tokenPaciente',
     motivo: 'El paciente entra con su magic-link. Desde E0-06 el token lleva ALCANCE y la ruta exige `alcance === clinico` antes de devolver documentos.',

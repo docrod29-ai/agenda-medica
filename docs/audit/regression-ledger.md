@@ -7013,3 +7013,108 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente se componía del borrador EN CURSO
+
+**Unidad** V9 `POSTVISIT-001` · `POSTVISIT-GATE-001`.
+
+**Qué pasaba.** `HojaParaElPaciente` se montaba en la consulta con una sola
+guarda —`{!esNotaHospital}`— y se alimentaba del estado **vivo** de
+`medicamentos` y `estudiosOrden`. Sus dos botones, copiar e imprimir, entregaban
+esa hoja tal cual. O sea: el médico podía darle al paciente instrucciones
+compuestas de una nota **sin firmar**, con las dosis a medio dictar.
+
+**Cómo se descubrió.** Leyendo la consulta línea a línea en la auditoría
+`PATIENT-UX-TRUTH-001`: veintitantas líneas más arriba, `ComoCerrarLaConsulta`
+**sí** exigía `firmada`. Dos componentes vecinos que sacan cosas de la consulta
+hacia fuera, y sólo uno con compuerta.
+
+**Causa raíz.** La compuerta vivía en un **comentario**. La cabecera del módulo
+afirmaba que el contenido sale de lo «ya revisado y firmado» — intención de
+diseño, no precondición. Nada la comprobaba: ni una prueba, ni un tipo, ni el
+propio módulo, que aceptaba de buena fe los medicamentos que le pasaran.
+
+**Familia.** `invariante_solo_en_prosa` — la regla está escrita, es correcta, y
+no hay nada que la haga cumplirse. Hermana de «escrito y sin conectar»: allí
+falta el llamador, aquí falta el comprobador.
+
+**Arreglo.** `{firmada && !esNotaHospital}` en la pantalla, y —lo que de verdad
+lo cierra— la compuerta **dentro del motor**: `componerPaquete` lanza
+`PaqueteNoComponible('sin-firma')` aunque el llamador ya lo haya comprobado. Una
+compuerta que sólo vive en el llamador se pierde en el segundo llamador.
+
+De paso, `proximaCita={undefined}` estaba fijo desde REG-242: el cuarto bloque
+de la hoja **no podía renderizarse jamás**. Ahora recibe lo que el médico
+escribió como próximo seguimiento, literal — el mismo campo que ya viajaba a las
+tareas clínicas.
+
+**Guardián.** `src/__tests__/el-paquete-del-paciente-sale-de-lo-firmado.test.ts`
+(33 casos) y los dos casos nuevos de
+`src/__tests__/lo-que-se-lleva-el-paciente.test.ts`. Probado al revés: con la
+nota en borrador, el motor tiene que lanzar.
+
+---
+
+## REG-307 — Lo que se lleva el paciente no llegaba nunca al paciente
+
+**Unidad** V9 `POSTVISIT-001` · `POSTVISIT-ENTREGA-001`.
+
+**Qué pasaba.** El contenido estaba resuelto desde REG-242 —determinista, sin
+modelo, se niega a expandir «cada 5 horas»— y el producto **no lo entregaba**.
+Dos botones: portapapeles e impresora. Ni una ruta hacia `/mi/[token]`, ni hacia
+`/api/portal`, ni una plantilla de mensaje. El portal del paciente ya existía
+(REG-304) con su pestaña vacía y su compuerta puesta; entre las dos mitades no
+había nada.
+
+**Cómo se descubrió.** Buscando el símbolo `HojaParaElPaciente` en todo el
+repositorio: su único importador en producción era la consulta. Es el
+procedimiento de «antes de dar algo por entregado, buscar el símbolo en `app/`,
+`hooks/` y `components/`».
+
+**Causa raíz.** Faltaba **el acto de liberar**. Firmar manda la nota al
+expediente; nadie había escrito el segundo gesto —«esto es lo que quiero que el
+paciente lea»—, así que no había nada que enseñar aunque el portal estuviera.
+
+**Familia.** `escrito_probado_y_sin_conectar`, en su forma más cara: la función
+existe, es buena, y el paciente no la ve.
+
+**Arreglo.** `POST /api/paciente/paquete`, con dos acciones —`previsualizar` y
+`liberar`— bajo `clinico.escribir`, y la tarjeta **Liberar al paciente** en la
+consulta, que sólo se monta con la nota firmada.
+
+Tres decisiones que son el fondo de la unidad:
+
+- **El cliente no aporta contenido. Ni una línea.** El cuerpo son cuatro
+  identificadores; todo lo demás lo lee el servidor de la nota firmada, del
+  expediente y de la configuración. Un cuerpo con `estado` o `approvedBy` se
+  **rechaza** en vez de ignorarse: quien lo manda está intentando algo, y quiero
+  que quede en el log.
+- **Quién aprueba sale del token verificado; cuándo, del reloj del servidor.**
+  Es la lección que la bitácora aprendió a golpes: una aprobación que el aprobado
+  puede escribir a discreción no acredita nada.
+- **Cada liberación crea su documento**, con `create()` y un id que lleva la
+  versión dentro (`{notaId}__v{n}`). Un paquete liberado es inmutable, así que
+  corregirlo es liberar una versión nueva — y dos pestañas pulsando a la vez no
+  pueden escribir la misma versión ni por carrera. El paciente ve la **vigente**
+  de cada consulta (`vigentesPorNota`); las anteriores se conservan, que para eso
+  son el registro de lo que se le dijo.
+
+**Y un cuarto tipo de cambio de medicación que no existía.** `CambioDeMedicacion`
+tenía tres casos —`nuevo`, `suspendido`, `sin-cambio`— y con tres **hay que
+mentir**: el cotejo es por nombre, así que bajar la metformina de 850 a 425 mg
+salía como **«sin cambio»**. Un «sin cambio» falso es peor que no decir nada,
+porque el paciente que lo lee deja de comprobar la caja. Se añadió `modificado`,
+y la comparación pasó a ser sobre la **pauta** —dosis, vía, frecuencia,
+duración— y no sobre la línea entera, que llevaba el nombre dentro y hacía que
+«Losartan» y «Losartán» salieran como un cambio de tratamiento.
+
+**Lo que este arreglo NO hace.** No le avisa al paciente de que hay algo nuevo:
+el paquete aparece en su portal y ya. El aviso es de `CLOSED-LOOP-PATIENT-001`.
+Y **nada de esto se ha visto en un navegador** — no hay credenciales de Firebase
+en la máquina donde se escribió.
+
+**Guardián.** `src/__tests__/liberar-al-paciente-lo-decide-el-servidor.test.ts`
+(23 casos) y `src/__tests__/el-paquete-del-paciente-sale-de-lo-firmado.test.ts`
+(33 casos).

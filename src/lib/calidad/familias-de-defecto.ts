@@ -39,7 +39,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El módulo existe, tiene pruebas y está bien. Simplemente NO CORRE en el ' +
       'camino que el médico recorre — o corre con una entrada incompleta. Las ' +
       'pruebas del módulo pasan; el sistema falla.',
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 307],
   },
   {
     clave: 'se_contradice',
@@ -177,6 +177,30 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
     regs: [242, 243, 250, 304],
+  },
+  {
+    /**
+     * Familia NUEVA, abierta el 9-ago-2026 con REG-306.
+     *
+     * Se abre porque ninguna de las quince anteriores la describe. No es
+     * `no_conectado` —el módulo SÍ corre, y en el camino correcto— ni
+     * `se_contradice`, donde dos implementaciones afirman cosas incompatibles y
+     * el arreglo es reconciliarlas.
+     *
+     * Aquí hay UNA implementación y una regla escrita en prosa que nadie hace
+     * cumplir. Y la reparación es distinta de las dos: no se reconcilia nada, se
+     * AÑADE el comprobador, y se añade dentro del motor para que viaje con él
+     * hasta el segundo llamador.
+     */
+    clave: 'invariante_solo_en_prosa',
+    nombre: 'La regla estaba escrita y nada la hacía cumplirse',
+    patron:
+      'La cabecera del módulo declara una precondición —«esto sale de lo ya ' +
+      'firmado», «esto sólo se llama con el paciente cargado»— y el código la ' +
+      'acepta de buena fe: ni un tipo, ni una comprobación, ni una prueba. Se ' +
+      'reconoce leyendo la prosa del módulo y preguntando «¿quién falla si esto ' +
+      'no se cumple?». Si la respuesta es «nadie», el invariante no existe.',
+    regs: [306],
   },
   {
     clave: 'falta_un_eje',

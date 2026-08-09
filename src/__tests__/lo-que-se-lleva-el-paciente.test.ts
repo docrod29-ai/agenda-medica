@@ -201,7 +201,34 @@ describe('está CONECTADO', () => {
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toMatch(/\{firmada && !esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+  })
+
+  it('NI ANTES DE FIRMAR — `POSTVISIT-GATE-001`, REG-306', () => {
+    /**
+     * Hasta v1167 la única guarda era `!esNotaHospital`, así que la hoja se
+     * componía del BORRADOR EN CURSO y los dos botones —copiar e imprimir— la
+     * entregaban tal cual. La cabecera del módulo decía que su contenido sale
+     * de lo «ya revisado y firmado»: era intención de diseño, no precondición.
+     *
+     * Al revés: esta prueba falla si alguien vuelve a montar la hoja sin la
+     * compuerta de firma.
+     */
+    expect(page).not.toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    const iHoja = page.indexOf('<HojaParaElPaciente')
+    const guarda = page.slice(Math.max(0, iHoja - 120), iHoja)
+    expect(guarda).toContain('firmada')
+  })
+
+  it('y el bloque de la próxima cita ya PUEDE renderizarse', () => {
+    /**
+     * `proximaCita={undefined}` estaba fijo desde REG-242: el cuarto bloque de
+     * la hoja no podía aparecer jamás. Lo que el médico escribe como próximo
+     * seguimiento es exactamente lo que ese bloque pide, y ya viajaba a las
+     * tareas clínicas por el mismo campo.
+     */
+    expect(page).not.toMatch(/proximaCita=\{undefined\}/)
+    expect(page).toMatch(/proximaCita=\{proximoSeguimiento \|\| undefined\}/)
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {
