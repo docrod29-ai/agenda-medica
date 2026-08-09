@@ -10,28 +10,28 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-210 (cerrada) — el interrogatorio en pasado no es un antecedente",
+  "iteracionActual": "REG-210 (cerrada, PR #250) — el interrogatorio en pasado no es un antecedente",
   "ultimaIteracion": {
-    "fecha": "2026-08-07",
+    "fecha": "2026-08-08",
     "itemDelBacklog": "EVAL-002",
     "reg": "REG-210",
     "version": "nexusmed-v1092",
-    "rama": "agent/expediente/REG-210",
+    "rama": "agent/expediente/REG-203-interrogatorio",
+    "pr": 250,
     "golden": "src/__tests__/el-interrogatorio-en-pasado-no-es-un-antecedente.test.ts",
     "comprobadoAlReves": "17 de 21 casos fallan sin la reparación"
   },
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001",
-    "agent/expediente/REG-210"
+    "agent/expediente/REG-203-interrogatorio"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1092",
   "trabajoLocalSinSubir": [],
-  "notasDeLaCorrida": [
-    "El backlog venía del 4-ago y estaba desincronizado con el código: VOICE-004 y SAFE-001 ya estaban reparados en main. Verificado archivo por archivo antes de cerrarlos.",
-    "En este contenedor no hay credenciales de Firebase ni red saliente directa: `npm run build` exige variables NEXT_PUBLIC_FIREBASE_* (con valores de relleno compila entero) y un caso de ops-timeout falla por el proxy. Los dos fallan igual antes del cambio."
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó. En los runners de CI pasa.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
+    "El programa corrió en paralelo consigo mismo y ~20 ramas reclamaron REG-192/v1074. main ya fusionó el REG-192 verdadero; esta rama se renumeró a REG-210/v1092. Decisión pendiente del dueño: O-5."
   ]
 }

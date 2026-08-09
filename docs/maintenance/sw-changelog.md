@@ -5,9 +5,10 @@ del `const CACHE`.
 
 ## v1092 — REG-210: el interrogatorio en pasado se cosechaba como antecedente
 
-> El salto de v1073 a v1092 no es un hueco: v1074–v1083 están **reclamadas por
-> PRs abiertos** que todavía no se fusionan. Se numeró por encima de todas para
-> no chocar. Ver la nota de la tanda en la bitácora.
+> El salto no es un hueco. `v1074` es de REG-192, ya fusionada; de `v1075` a
+> `v1091` están **repartidas entre las ramas abiertas** del programa autónomo,
+> que corrió en paralelo y reclamó veinte veces el mismo número. Ver `O-5` en
+> `OWNER_DECISIONS_REQUIRED.md`.
 
 «¿Tuvo tuberculosis? No.» dejaba una mención pasada de tuberculosis, con la
 pregunta como cita. Y «no tuvo tuberculosis» también, porque la negación en línea
@@ -22,6 +23,20 @@ años» no devolvía nada — la pregunta dice qué y la respuesta dice cuándo.
 
 Ahora la pregunta sólo cuenta con su respuesta delante, el par se juzga entero y
 el emparejado vive en un solo sitio para que los dos motores lean el mismo turno.
+## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
+
+Los dos motores que contrastan el dictado contra la nota —negaciones y
+temporalidad— miraban **la primera** aparición del término y sólo ésa. Si venía
+escudada («niega diabetes», «antecedente de neumonía»), la condición se
+descartaba entera.
+
+Que es la forma de una nota bien estructurada: el antecedente correcto arriba, la
+impresión diagnóstica equivocada abajo. Y la de abajo es la que cambia la
+conducta de hoy y viaja a la nota siguiente.
+
+Ahora se recorren todas las apariciones. La ventana de 60 caracteres no cambia:
+cada mención se juzga con el mismo criterio, así que esto sólo puede señalar más
+de lo que señalaba. El criterio vive en un módulo, no en dos copias.
 
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 

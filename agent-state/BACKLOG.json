@@ -22,8 +22,7 @@
       "score": 60,
       "estado": "cerrado",
       "reversible": true,
-      "cerradoEn": "2026-08-07",
-      "comoSeVerifico": "El signo está en ES_CANTIDAD (src/lib/uci/dosis-sin-numero.ts) con su comentario del corpus. Ya en main."
+      "cierre": "ES_CANTIDAD acepta los cuatro signos (dosis-sin-numero.ts:57). Verificado en el árbol el 8-ago."
     },
     {
       "id": "SAFE-001",
@@ -45,8 +44,7 @@
       "score": 73,
       "estado": "cerrado",
       "reversible": true,
-      "cerradoEn": "2026-08-07",
-      "comoSeVerifico": "alergenosDe() es el único parser y lo usan consulta y UCI. Sellado en un-solo-parser-de-alergias.test.ts. Ya en main."
+      "cierre": "alergenosDe() es el único parser y los tres llamadores lo usan; golden un-solo-parser-de-alergias.test.ts. Verificado en el árbol el 8-ago: el backlog estaba atrasado."
     },
     {
       "id": "EVAL-001",
@@ -89,7 +87,7 @@
       "score": 55,
       "estado": "en curso",
       "reversible": true,
-      "nota": "7-ago: al escribir las frases del interrogatorio dirigido —el hueco del corpus— salieron tres defectos reales en la primera corrida. Reparados en REG-210 (v1092). El corpus en sí sigue pendiente: lo que hay es un golden de 21 casos, no una medición."
+      "nota": "8-ago: al escribir las frases del interrogatorio dirigido —el hueco del corpus— salieron tres defectos reales en la primera corrida. Reparados en REG-210 (v1092, PR #250). El corpus en sí sigue pendiente: lo que hay es un golden de 21 casos, no una medición."
     },
     {
       "id": "EVAL-003",
@@ -109,6 +107,28 @@
       "complejidad": 2,
       "dependenciaExterna": 1,
       "score": 48,
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
+      "id": "TEMP-001",
+      "titulo": "La ventana del escudo cruza el punto y presta la negación de la oración anterior",
+      "hallazgo": "primeraMencionSinEscudo mira 60 caracteres hacia atrás sin parar en el punto. «Niega diabetes.» al final de una oración escuda a la palabra que caiga en los primeros 60 caracteres de la siguiente — probado el 8-ago con los motores reales al reparar REG-192.",
+      "porQueImporta": "Es un escudo que no le corresponde: silencia una afirmación real de la nota. Del mismo orden que REG-192, sólo que en la dirección contraria.",
+      "porQueNoSeArreglaAOjo": "Acotar la ventana a la oración rompe la nota con encabezado de sección («Antecedentes:\\nNeumonía en 2019.»), que es igual de común, y ahí sí se convertiría en fatiga de alerta. Necesita corpus de notas sintéticas con las dos formas antes de tocar el número.",
+      "archivo": "src/lib/expediente/mencion-en-la-nota.ts:88",
+      "seguridad": 3,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "score": 56,
       "estado": "pendiente",
       "reversible": true
     },
@@ -137,7 +157,7 @@
     {
       "id": "OPS-002",
       "titulo": "El caso del timeout depende de que la red se trague la conexión",
-      "hallazgo": "ops-timeout-y-punto-ciego.test.ts apunta a 10.255.255.1 esperando que nadie conteste. En un contenedor con proxy la conexión se rechaza en el acto y el caso falla sin que haya defecto.",
+      "hallazgo": "ops-timeout-y-punto-ciego.test.ts apunta a 10.255.255.1 esperando que nadie conteste. En un contenedor con proxy la conexión se rechaza en el acto y el caso falla sin que haya defecto. En los runners de CI pasa, así que el rojo sólo lo ve quien trabaja en contenedor.",
       "porQueImporta": "Un rojo que no significa nada enseña a ignorar los rojos. Y si algún día el helper de timeout se rompe de verdad, este caso ya no lo dirá.",
       "archivo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:44",
       "seguridad": 0,
@@ -154,8 +174,8 @@
       "score": 20,
       "estado": "pendiente",
       "reversible": true,
-      "origen": "corrida del 7-ago en contenedor sin red saliente directa"
+      "origen": "corrida del 8-ago en contenedor sin red saliente directa"
     }
   ],
-  "ultimaRevision": "2026-08-07"
+  "actualizado": "2026-08-08"
 }
