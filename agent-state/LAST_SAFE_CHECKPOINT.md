@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-090gh5` |
 | **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
-| **SHA de cierre** | *(el commit de `DESIGN-SYSTEM-001` — ver `git log --oneline -3`)* |
+| **SHA de cierre** | `b470652` |
 | **Unidad cerrada** | **`DESIGN-SYSTEM-001`** (iteración 1 de V9) |
 | **Siguiente unidad** | **`NAVIGATION-001`** (iteración 2) |
 
