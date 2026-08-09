@@ -2817,3 +2817,13 @@ desconocida se convertía en miligramos en silencio («1000 UI» → 1000 mg).
 Y **`QID` apagaba el techo diario**: devolvía «no se entiende» y el llamador
 asume una toma al día. Paracetamol 1000 mg QID son 4 000 mg y se comprobaban
 1 000. El techo no fallaba: **no se ejecutaba**.
+
+## v1164 — las respuestas de varios renglones ya no se aplastan
+
+Defecto propio, encontrado **mirando la pantalla en producción** con la sesión
+del Dr.: varios motores contestan en varias líneas —qué tiene y qué niega, qué ve
+la consulta frente al hospital, el pase repartido por aparatos— y se pegaban en
+un solo renglón.
+
+Los nueve motores quedaron verificados en vivo, uno a uno, cambiando el texto y
+viendo cambiar la respuesta en las dos direcciones.
