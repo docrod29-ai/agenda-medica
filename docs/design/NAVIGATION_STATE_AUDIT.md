@@ -98,7 +98,7 @@ Y se suman dos huecos:
 | 4 | El *service worker* recarga la pestaña sin condiciones al cambiar de versión | `ServiceWorkerRegister.tsx:22-28` | Grabación cortada a media frase en cada despliegue |
 | 5 | Comprar créditos de IA **desde dentro de la consulta** hace `window.location.href` | `consulta:1981` | Lo mismo que P0-2, en el peor momento |
 | 6 | **Cero** `beforeunload` y cero guardas de cambio de ruta en todo el repositorio | única coincidencia: un comentario en `ofuscar-local.ts:7` | No hay última línea de defensa para 4, 5 y P0-2 |
-| 7 | Agenda → Consulta → atrás **nunca vuelve a la Agenda** | `citas:436`; `consulta:265,3752` (destino fijo, con `push`); `expediente:53` | Renavegar tras **cada** paciente |
+| ~~7~~ **cerrado 9-ago (REG-289)** | Agenda → Consulta → atrás **nunca vuelve a la Agenda**. La consulta ya usa `useSmartBack`, y la agenda guarda fecha, filtro y búsqueda en la URL | `citas:436`; `consulta:265,3752` (destino fijo, con `push`); `expediente:53` | Renavegar tras **cada** paciente |
 | 8 | Turnos diarizados, evidencia, verificación, NER y roles de hablante mueren al navegar | `consulta:769,779,797,1039`; `useGrabacionAudio.ts:1054`; ausentes de `consulta:2842` | Salida de IA ya pagada; «quién dijo qué» y «palabras a verificar» desaparecen |
 
 Sobre el nº 7, el detalle importa: la agenda entra directo a la consulta
@@ -112,8 +112,8 @@ pantallas; **la consulta no**.
 
 | # | Sev | Hallazgo | Evidencia |
 |---|---|---|---|
-| 9 | P2 | `proximoSeguimiento` se pierde al navegar — y el volcado de desmontaje **borra** la copia ya persistida | está en `:2671,2809`; **ausente** en `:2819`, `:2842`, `:2881-2884`, `:2838`, `:2876` |
-| 10 | P2 | Fecha, vista, filtro y búsqueda de la agenda se reinician en cada vuelta | `citas:61,86,87`; `calendario:41,58` |
+| ~~9~~ | **cerrado 9-ago (REG-289)** | `proximoSeguimiento` se pierde al navegar — y el volcado de desmontaje **borra** la copia ya persistida. Los tres caminos de escritura y las dos rutas de restauración lo llevan, y el golden compara los caminos entre sí para que el siguiente campo también falle | está en `:2671,2809`; **ausente** en `:2819`, `:2842`, `:2881-2884`, `:2838`, `:2876` |
+| ~~10~~ | **cerrado 9-ago (REG-289)** | Fecha, vista, filtro y búsqueda de la agenda se reinician en cada vuelta | `citas:61,86,87`; `calendario:41,58` |
 | 11 | P2 | El panel de laboratorio interpretado por IA y sin confirmar muere al navegar | `PanelLaboratorios.tsx:34,63-69,74-85` |
 | 12 | P2 | Scroll restaurado en **una sola** pantalla de toda la aplicación | sólo `consulta:2853-2870` |
 | 13 | P2 | `AppointmentModal` tiene ~20 campos sin guarda de suciedad | `AppointmentModal.tsx:58-119,436,455` |

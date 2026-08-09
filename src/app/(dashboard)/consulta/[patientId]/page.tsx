@@ -12,6 +12,7 @@ import { HistorialVersiones } from '@/components/HistorialVersiones'
 import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
@@ -280,6 +281,8 @@ export default function ConsultaActivaPage() {
   const internamientoActivo = internamientoParam || notaInternamientoId
   const esNotaHospital = !!internamientoActivo
   const volverA = esNotaHospital ? `/hospitalizacion/${internamientoActivo}` : `/expediente/${patientId}`
+  /** Atrás de verdad; `volverA` queda como destino de reserva. Ver el botón. */
+  const volverAtras = useSmartBack(volverA)
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
   const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
@@ -2840,13 +2843,32 @@ export default function ConsultaActivaPage() {
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
-  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada })
+  /**
+   * ── `proximoSeguimiento` SE PERDÍA OTRA VEZ, Y ADEMÁS BORRABA LO GUARDADO ──
+   *
+   * REG-193 lo metió en el respaldo con rebote de 1500 ms. Faltaba en los otros
+   * DOS caminos de escritura, y eso lo dejó peor que antes de aquel arreglo:
+   *
+   *  · El espejo EN MEMORIA no lo llevaba, así que al navegar y volver —lo que
+   *    hace el médico entre paciente y paciente— la fecha volvía en blanco.
+   *  · `flushRespaldo` reescribe `localStorage` al desmontar **sin el campo**:
+   *    o sea que salir de la pantalla BORRABA la copia que el rebote ya había
+   *    dejado bien. Un arreglo que sólo cubre uno de tres caminos se convierte
+   *    en un destructor cuando el camino que falta es el último en escribir.
+   *  · Y las dos condiciones de «¿hay algo que guardar?» tampoco lo miraban:
+   *    escribir sólo la fecha de la próxima consulta no guardaba nada en
+   *    absoluto.
+   *
+   * Alimenta la tarea «agendar el seguimiento» del worklist y el contador de
+   * seguimientos vencidos del CRM.
+   */
+  const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada })
   useEffect(() => {
-    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada }
+    estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, transcripcion: voz.transcripcion, firmada }
     // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
     // volver la nota está exactamente como la dejaste, al instante.
     const e = estadoVivoRef.current
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop || !!e.proximoSeguimiento?.trim()
     /**
      * NUNCA se borra el respaldo por verse VACÍO — esa era la fuente del
      * "a veces se borra y tengo que empezar otra vez".
@@ -2863,7 +2885,7 @@ export default function ConsultaActivaPage() {
      * contenido se escribe; si está vacío y sin firmar, se deja como está.
      */
     if (e.firmada) borradorMem.borrar(respaldoKey)
-    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, proximoSeguimiento: e.proximoSeguimiento, transcripcion: e.transcripcion, notaId: notaIdRef.current })
   })
   /**
    * RESTAURAR LA POSICIÓN al volver a la nota.
@@ -2899,12 +2921,15 @@ export default function ConsultaActivaPage() {
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
-    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+    const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) || e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() || signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop || !!e.proximoSeguimiento?.trim()
     if (!hay) return
     try {
       localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
         tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos,
         diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, notaId: notaIdRef.current,
+        // Sin esto, salir de la pantalla REESCRIBÍA la clave sin el campo y
+        // borraba lo que el rebote de 1500 ms ya había guardado.
+        proximoSeguimiento: e.proximoSeguimiento,
         transcripcion: e.transcripcion, ts: Date.now(),
       }), secretoLocal(auth.currentUser?.uid)))
     } catch { /* almacenamiento lleno */ }
@@ -2929,7 +2954,8 @@ export default function ConsultaActivaPage() {
       if (e.firmada) return
       const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||
         e.diagnosticos?.length || e.medicamentos?.length || e.transcripcion?.trim() ||
-        signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop
+        signosConValor(e.signos) || (e.estudiosOrden?.length ?? 0) > 0 || !!e.preop ||
+        !!e.proximoSeguimiento?.trim()
       if (!hay) return
       /**
        * SE ENTREGA LA PROMESA, NO SÓLO SE DISPARA EL GUARDADO.
@@ -2964,6 +2990,10 @@ export default function ConsultaActivaPage() {
       if (b.preop) setPreop(b.preop)
       if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
       if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
+      // La restauración AUTOMÁTICA sí lo reponía; el botón del banner —la ruta
+      // manual— no. Mismo defecto y misma familia que el `notaId` de aquí abajo:
+      // se arregló una de las dos rutas y la otra se quedó como estaba.
+      if (typeof b.proximoSeguimiento === 'string') setProximoSeguimiento(b.proximoSeguimiento)
       if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
       /**
        * REPONER EL `notaId`, que faltaba SÓLO en esta ruta.
@@ -3773,8 +3803,26 @@ export default function ConsultaActivaPage() {
 
   return (
     <div className="page-pad" style={{ maxWidth: 980, margin: '0 auto' }}>
-      <button onClick={() => router.push(volverA)} style={S.back}>
-        <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
+      {/*
+        V9 · NAVIGATION-001 — ATRÁS SIGNIFICA ATRÁS.
+
+        Este botón hacía `push(volverA)`, con destino FIJO al expediente. La
+        agenda entra directo a la consulta, así que el historial quedaba
+        `/citas → /consulta → /expediente` y el médico oscilaba entre las dos
+        últimas: para volver a la agenda —después de CADA paciente— tenía que
+        renavegar.
+
+        `useSmartBack` ya existía y lo usaban diez pantallas; la consulta era la
+        que no. Retrocede en el historial real cuando lo hay, y cae en el
+        expediente (o en el episodio, si la nota es de hospital) cuando se llegó
+        por enlace directo, recarga o notificación.
+
+        La etiqueta pasa a «Atrás» porque el destino ya no es fijo, y prometer
+        «Expediente» para acabar en la agenda es peor que no prometer nada. Es la
+        misma palabra que usan las otras diez.
+      */}
+      <button onClick={volverAtras} style={S.back} aria-label={esNotaHospital ? 'Volver al episodio' : 'Volver al expediente'}>
+        <ArrowLeft size={15} /> Atrás
       </button>
 
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde

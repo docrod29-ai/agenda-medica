@@ -2,7 +2,8 @@
 import { useState, useMemo, useEffect, useRef} from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
 import { actualizarContadoresPaciente } from '@/lib/agenda/contadores-paciente'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useParametroDeUrl, urlSinParametro } from '@/hooks/useParametroDeUrl'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
@@ -58,7 +59,19 @@ function nextDay(d: string) { return sumarDiasISO(d, 1) }
 export default function CitasPage() {
   const params = useSearchParams()
   const router = useRouter()
-  const [selectedDate, setSelectedDate] = useState(todayStr())
+  const pathname = usePathname()
+  /**
+   * V9 · NAVIGATION-001 — LA AGENDA YA NO SE OLVIDA DE QUÉ DÍA ESTABAS VIENDO.
+   *
+   * Fecha, filtro y búsqueda vivían en `useState`, y `(dashboard)/template.tsx`
+   * desmonta la página en CADA navegación. El ciclo real del consultorio —abrir
+   * el jueves el martes, entrar a un paciente, volver, entrar al siguiente—
+   * volvía a poner la fecha después de cada paciente. Y el que no se acuerda ve
+   * el día de hoy vacío y cree que no hay nadie citado.
+   *
+   * En la URL y con `replace`: ver `hooks/useParametroDeUrl.ts`.
+   */
+  const [selectedDate, setSelectedDate] = useParametroDeUrl('f', todayStr())
   // Pide la ventana desde el día que estás viendo: retroceder de día en día
   // sigue trayendo las citas de esas fechas en vez de mostrar el día vacío.
   const { appointments, loading, error: errorCitas } = useAppointments(`${selectedDate} 00:00`)
@@ -83,8 +96,11 @@ export default function CitasPage() {
    * que acordarse de quién ya salió. Esta vista responde su única pregunta:
    * atendidos y todavía sin cobrar.
    */
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>('todas')
-  const [search, setSearch] = useState('')
+  const [filtroEnUrl, setFiltroEnUrl] = useParametroDeUrl('v', 'todas')
+  const statusFilter = filtroEnUrl as AppointmentStatus | 'todas' | 'por-cobrar'
+  const setStatusFilter = setFiltroEnUrl as (v: AppointmentStatus | 'todas' | 'por-cobrar') => void
+  // Con rebote: un `replace` por tecla es una reescritura de historial por letra.
+  const [search, setSearch] = useParametroDeUrl('q', '', { reboteMs: 300 })
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
@@ -114,14 +130,14 @@ export default function CitasPage() {
       if (!loading) {
         idAbierto.current = id
         toast('No encontramos esa cita. Puede ser muy antigua: búscala por fecha.', 'error')
-        router.replace('/citas', { scroll: false })
+        router.replace(urlSinParametro(pathname, params, 'id'), { scroll: false })
       }
       return
     }
     idAbierto.current = id
     setEditAppt(found)
     setModalOpen(true)
-    router.replace('/citas', { scroll: false })
+    router.replace(urlSinParametro(pathname, params, 'id'), { scroll: false })
   }, [params, appointments, router, loading, toast])
 
   // Índice O(1) por id: antes cada fila hacía pacientes.find() lineal → O(filas ×

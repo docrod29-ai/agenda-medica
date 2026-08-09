@@ -6315,3 +6315,96 @@ mensaje dice que llegará antes de la cita, y el recordatorio de 24 h lo cumple.
 - `src/__tests__/el-enlace-de-la-sala-llega-por-whatsapp.test.ts` (nuevo, 15
   casos, sellado) — probado al revés: con `ttlDias = 1` fijo, el caso «el token
   sigue siendo válido A LA HORA de la cita» falla
+
+---
+
+## REG-289 — volver a la agenda costaba renavegar, y salir de la consulta borraba la fecha de seguimiento (NAVIGATION-001)
+
+Tres hallazgos de `docs/design/NAVIGATION_STATE_AUDIT.md` (nº 7, 9 y 10). Los
+tres se pagan **una vez por paciente**, que es lo que los hace caros.
+
+### 1 · El atrás de la consulta no era un atrás
+
+El botón hacía `push` a un destino **fijo** —el expediente— mientras la agenda
+entra directo a la consulta. El historial quedaba `/citas → /consulta →
+/expediente` y el médico oscilaba entre las dos últimas: para volver a la agenda,
+después de **cada** paciente, tenía que renavegar.
+
+`useSmartBack` existía desde antes y lo usaban **diez** pantallas. La consulta
+—la que más se entra y más se sale— era la que no. Familia «escrito y sin
+conectar», en su variante «conectado en todas partes menos donde más se usa».
+
+La etiqueta pasa de «Expediente» a «Atrás» porque el destino dejó de ser fijo:
+prometer un sitio y llevar a otro es peor que no prometer nada. El destino de
+reserva —expediente, o el episodio si la nota es de hospital— se conserva para
+quien llega por enlace directo, recarga o notificación, y se anuncia en
+`aria-label` para quien no ve el botón.
+
+### 2 · La agenda se olvidaba de qué día estabas viendo
+
+Fecha, filtro y búsqueda vivían en `useState`, y `(dashboard)/template.tsx`
+**garantiza** que la página se desmonta en cada navegación. Quien prepara el
+jueves desde el martes volvía al día de hoy después de cada paciente — y el día
+de hoy, vacío, se lee como «no hay nadie citado».
+
+Se llevan a la URL (`?f=`, `?v=`, `?q=`) con `hooks/useParametroDeUrl.ts`. La URL
+y no otro contexto en el layout, por tres cosas que el contexto no da: el botón
+atrás la restaura sola, sobrevive a la recarga —incluida la que hace el service
+worker al desplegar— y se puede compartir.
+
+Con `replace`, nunca `push`: con `push`, retroceder desde la consulta recorrería
+hacia atrás **cada día que el médico miró**. Y el buscador con rebote, porque un
+`replace` por tecla es una reescritura de historial por letra.
+
+De paso: `router.replace('/citas')` —lo que cerraba el `?id=` de una cita ya
+abierta— se llevaba **toda** la cadena de consulta por delante. No era un defecto
+mientras no hubiera nada más que borrar; lo habría sido desde el primer día de
+esta unidad.
+
+### 3 · `proximoSeguimiento` se perdía OTRA VEZ, y ahora además borraba
+
+Esto es lo caro y es lo que merece el número de regresión.
+
+**REG-193** (6-ago) metió el campo en el respaldo con rebote de 1500 ms. Faltaba
+en los otros **dos** caminos de escritura, y eso lo dejó **peor que antes** de
+aquel arreglo:
+
+- El **espejo en memoria** no lo llevaba, y es justo el camino que se usa al
+  volver de otra pantalla: la fecha regresaba en blanco.
+- **`flushRespaldo`** reescribe `localStorage` **al desmontar**, sin el campo. O
+  sea que salir de la consulta **borraba** la copia buena que el rebote ya había
+  dejado.
+
+> Un arreglo parcial se vuelve destructivo cuando el camino que falta es el
+> último en escribir.
+
+Y había dos huecos más de la misma forma: las condiciones de «¿hay algo que
+guardar?» no lo miraban —escribir sólo la fecha no guardaba nada—, y la ruta
+**manual** de restauración (el botón del banner) no lo reponía, mientras la
+automática sí. Ese error exacto ya se había cometido en este archivo con el
+`notaId`, y su propio comentario lo documenta.
+
+Alimenta la tarea «agendar el seguimiento» del worklist y el contador de
+seguimientos vencidos del CRM.
+
+### La prueba no busca un nombre: compara los caminos entre sí
+
+`proximoSeguimiento` estaría cubierto con un `toContain`, y el siguiente campo
+que alguien añada a un solo camino volvería a pasar. El golden extrae las claves
+de los **tres** literales de escritura y exige que coincidan, así que la próxima
+vez falla sola. Probado al revés: quitando el campo del flush, dos casos caen.
+
+### Lo que NO se cerró aquí
+
+`NAVIGATION-001` sigue abierta. Quedan el scroll (restaurado en **una** pantalla
+de toda la aplicación), el filtro del expediente, el panel de laboratorio sin
+confirmar, y las seis comprobaciones de `NAV-NAVEGADOR-001` — **dos de ellas
+pueden convertir un P2 en P0** y necesitan el producto corriendo.
+
+### Archivos
+
+- `src/hooks/useParametroDeUrl.ts` (nuevo) — con `urlConParametro` y
+  `urlSinParametro` puras, porque el hook no se puede montar en esta suite
+- `src/app/(dashboard)/citas/page.tsx`
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/volver-devuelve-el-contexto.test.ts` (nuevo, 18 casos, sellado)

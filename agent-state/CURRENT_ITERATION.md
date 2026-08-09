@@ -13,10 +13,13 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `DESIGN-SYSTEM-001` — **abierta el 9-ago, no cerrada**.
-Hecho: tokens, escalas y compuerta de trinquete. Falta: accesibilidad (`axe`),
-regresión visual y adopción de primitivos. Ver
-[`DESIGN_STATE.md`](./DESIGN_STATE.md).
+**Unidades en curso**, las dos **abiertas y ninguna cerrada**:
+· `DESIGN-SYSTEM-001` — hecho: tokens, escalas, trinquete de diseño y la mitad
+  estática de accesibilidad. Falta: `axe` sobre el producto, regresión visual,
+  adopción de primitivos. Ver [`DESIGN_STATE.md`](./DESIGN_STATE.md).
+· `NAVIGATION-001` — hecho: `NAV-AGENDA-001` (REG-289). Falta: scroll fuera de
+  la consulta, filtro del expediente, panel de laboratorio sin confirmar, y las
+  seis comprobaciones de `NAV-NAVEGADOR-001` que piden navegador.
 Cerradas: `PATIENT-UX-TRUTH-001` (8-ago) · los tres P0 de audio (v1158, v1161) ·
 `PATIENT-TELE-002` (REG-288, 9-ago) — **no queda ningún P0 de V9 abierto**.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
