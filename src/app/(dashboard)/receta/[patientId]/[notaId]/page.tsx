@@ -622,9 +622,9 @@ export default function GeneradorRecetaPage() {
               padding: '10px 14px', borderRadius: 8,
               // Tokens de badge rojo por tema: el título #b91c1c fijo era ilegible
               // sobre el canvas oscuro (rojo oscuro sobre fondo oscuro).
-              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t, #b91c1c)',
+              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t, #b91c1c)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--badge-red-t)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertTriangle size={15} className="ds-icon" /> Alerta de alergia — revisa antes de imprimir
               </div>
               {alertasAlergia.map((a, i) => (
@@ -759,7 +759,7 @@ export default function GeneradorRecetaPage() {
             {frecuentes.length > 0 && medicamentos.length < MAX_MEDS && (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
-                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3d5afe)' }} /> Tus más recetados
+                  <Lightbulb size={12} style={{ color: 'var(--nexus)' }} /> Tus más recetados
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {frecuentes.map((r, i) => (
@@ -770,7 +770,7 @@ export default function GeneradorRecetaPage() {
                       title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >
-                      <Plus size={11} style={{ color: 'var(--nexus, #3d5afe)' }} />
+                      <Plus size={11} style={{ color: 'var(--nexus)' }} />
                       {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}
                     </button>
                   ))}

@@ -3844,7 +3844,7 @@ export default function ConsultaActivaPage() {
       {previo && resumenPrevio(previo) && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
-          background: 'var(--s2)', border: '1px dashed var(--border2, var(--border))',
+          background: 'var(--s2)', border: '1px dashed var(--border2, var(--border)',
           borderRadius: 10, padding: '9px 13px',
         }}>
           <MessageSquare size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -4456,7 +4456,7 @@ export default function ConsultaActivaPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
                 {usoIA && (
-                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber, #d97706)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
                     {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
                   </span>
                 )}
@@ -4607,7 +4607,7 @@ export default function ConsultaActivaPage() {
             <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
-            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus)', textDecoration: 'none', border: '1px solid var(--nexus)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
               Ver planes
             </a>
           </div>
@@ -4617,9 +4617,9 @@ export default function ConsultaActivaPage() {
       {modoEco && !sinCreditos && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
-          border: '1px solid var(--amber, #d97706)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+          border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber, #b45309)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>
             <Sparkles size={16} /> Nota generada en modo económico
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
@@ -4631,7 +4631,7 @@ export default function ConsultaActivaPage() {
             <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
-            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+            <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus)', textDecoration: 'none', border: '1px solid var(--nexus)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
               Ver planes
             </a>
           </div>
@@ -4664,7 +4664,7 @@ export default function ConsultaActivaPage() {
       {/* Botón de 2ª opinión a demanda (plan Pro): en Premium corre sola. */}
       {planActual === 'pro' && !verificacion && !verificando && (resumen || diagnosticos.length > 0 || medicamentos.length > 0) && (
         <button onClick={pedirSegundaOpinion}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(59,90,254,0.10)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(59,90,254,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, background: 'rgba(59,90,254,0.10)', color: 'var(--nexus)', border: '1px solid rgba(59,90,254,0.35)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <Sparkles size={14} /> Pedir segunda opinión (otra IA revisa la nota)
         </button>
       )}
@@ -4724,7 +4724,7 @@ export default function ConsultaActivaPage() {
         <button
           onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus, #3d5afe)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'rgba(61,90,254,0.08)', color: 'var(--nexus)', border: '1px solid rgba(61,90,254,0.30)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
@@ -4749,7 +4749,7 @@ export default function ConsultaActivaPage() {
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
         <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
           <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
-            <Brain size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
+            <Brain size={15} style={{ color: 'var(--nexus)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
           </summary>
           <div style={{ padding: '0 14px 14px' }}>
             <PanelRazonamiento entrada={entradaCopiloto} embebido />
@@ -5470,7 +5470,7 @@ export default function ConsultaActivaPage() {
           {!firmada && (
             <div style={{ marginTop: 18, border: '1px solid rgba(61,90,254,0.35)', borderRadius: 12, background: 'rgba(61,90,254,0.05)', padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                <Sparkles size={15} style={{ color: 'var(--nexus, #3d5afe)' }} /> Corregir por chat
+                <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
                 Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
@@ -5779,7 +5779,7 @@ export default function ConsultaActivaPage() {
         <div style={{
           position: 'fixed', left: '50%', bottom: 'calc(84px + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 200,
           display: 'flex', alignItems: 'center', gap: 12, maxWidth: 'calc(100vw - 24px)',
-          background: 'var(--s1)', border: '1px solid var(--border2, var(--border))',
+          background: 'var(--s1)', border: '1px solid var(--border2, var(--border)',
           borderRadius: 'var(--r-pill)', padding: '8px 8px 8px 16px', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
         }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />

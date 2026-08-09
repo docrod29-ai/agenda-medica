@@ -5333,3 +5333,104 @@ archivo, que es lo que sí depende de nosotros.
 **Familia.** `perdida`.
 
 **Guardián.** el mismo archivo. Probado al revés: quitando la condición, falla.
+
+---
+
+## REG-274 — Un segundo sistema de color, obsoleto, escondido dentro del primero
+
+**Encontrado por** `DESIGN-SYSTEM-001` (V9), al ir a sustituir los literales de
+color que había contado la auditoría anterior.
+
+**Qué pasaba.** 280 referencias a token traían un respaldo escrito a mano —
+`var(--text, #0f172a)`. Parecen defensivas. No lo eran:
+
+- **253 estaban OBSOLETAS**: el respaldo no coincidía ni con el valor oscuro ni
+  con el claro de su propio token. Eran los colores de **antes** del rediseño,
+  congelados en el código.
+- **5 apuntaban a tokens que NO EXISTÍAN** — `--warn-bg`, `--warn-border`,
+  `--warn-text`, `--success` no estaban definidos en ningún tema. Ahí el
+  respaldo no era un respaldo: era **el único valor que se pintaba jamás**,
+  igual en claro que en oscuro.
+- Sólo 22 coincidían con la realidad.
+
+**Lo peor que podía pasar**: `var(--text, #0f172a)`, en 35 sitios. Si ese
+respaldo llegara a usarse, pintaría texto casi negro sobre el lienzo `#0B0C0E`.
+Contraste ≈ 1,05 : 1. **Texto invisible.**
+
+**Lo que ya pasaba**: la tarjeta de aviso de `/pacientes` se pintaba color crema
+(`#fff8e6`) sobre el lienzo oscuro, porque `--warn-bg` no existía. Es la
+**tercera** aparición de esta forma; las dos anteriores están contadas en el
+comentario de `--panel` en `globals.css`.
+
+**Y cuatro más, que el propio guardián encontró al escribirlo**: `--danger`,
+`--muted`, `--surface` y `--text1` se usaban **sin respaldo ninguno**. No
+pintaban un color equivocado — no pintaban **nada**. El mensaje de error de
+Configuración no salía en rojo, y una tarjeta se quedaba sin superficie.
+
+**Causa raíz.** Un respaldo es un **segundo valor para la misma decisión**. Nace
+igual que el primero y se queda quieto mientras el token evoluciona. Nadie lo
+actualiza porque nadie lo ve: sólo se pintaría si el token faltara, y el token
+nunca falta… hasta el día que sí.
+
+**Cómo se descubrió.** Empezando la unidad con una cifra de la auditoría
+anterior —«1 205 hexadecimales a mano, 125 el azul de marca retecleado»— que
+resultó estar **mal contada**: la mayoría no eran literales sueltos sino
+respaldos dentro de `var()`. Corregir la cuenta convirtió un hallazgo mediano en
+uno peor.
+
+**Familia.** `se_contradice` — el token es correcto, el respaldo lo fue, y
+ninguna revisión de una sola pieza encuentra el hueco entre los dos.
+
+**Arreglo.** Cero respaldos: los 286 retirados. Los cuatro tokens que faltaban,
+definidos en **los dos** temas con la semántica que ya existía (el ámbar y el
+verde medidos), sin inventar color nuevo; el tema claro conserva exactamente lo
+que se venía pintando. Los cuatro fantasmas sin respaldo, apuntados a su token
+real.
+
+**Y la causa raíz del monolito de estilo en línea, de paso**: `@theme inline`
+exponía **cuatro** cosas a Tailwind, así que no había ninguna utilidad de marca
+que usar y el código no tenía alternativa al estilo en línea (6 065 `style={{`
+en el 88,5 % de los archivos). Ahora expone ~35, con prefijo `nx-` para no
+reinterpretar la escala por omisión de Tailwind. Y nacen las escalas que
+faltaban: radio, espacio, elevación, movimiento y tipografía.
+
+**Guardián.** `src/__tests__/el-sistema-de-diseno-no-pierde-terreno.test.ts`,
+11 casos, más el trinquete `scripts/design/trinquete-de-diseno.mjs`. Probado al
+revés: reponiendo un solo respaldo, quitando un token de aviso o estrechando
+`@theme inline`, falla.
+
+---
+
+## REG-275 — Dos guardianes con cuerpo de línea de órdenes en el ámbito del módulo
+
+**Encontrado** al comprobar al revés el guardián de REG-274.
+
+**Qué pasaba.** Los dos scripts de `scripts/design/` ejecutaban su cuerpo de
+línea de órdenes **al importarlos**. Consecuencias distintas y las dos malas:
+
+1. `trinquete-de-diseno.mjs` llamaba a `process.exit(1)`, así que una regresión
+   de diseño **tumbaba la recolección** de la prueba en vez de fallar un caso.
+   El fallo se veía, pero decía otra cosa.
+
+2. `inventario-de-pantallas.mjs` **reescribía `SCREEN_INVENTORY.md`**. La prueba
+   comparaba el archivo contra `generar()` … después de que el propio `import` lo
+   hubiera puesto al día. **El guardián no podía fallar nunca.**
+
+**Lo que hace a éste peor que un defecto normal.** El segundo se «probó al
+revés» al crearlo, en REG de `PATIENT-UX-TRUTH-001`: se añadió una pantalla
+falsa y **se dio por bueno que pasara en verde**. Se ejecutó la comprobación
+correcta y no se miró el resultado. Estuvo dos commits fingiendo ser una prueba,
+y de paso explica por qué `SCREEN_INVENTORY.md` aparecía modificado sin que
+nadie corriera el generador.
+
+**La regla.** Probar al revés no es suficiente **si no se mira el resultado**.
+Una prueba que pasa cuando debería fallar es peor que ninguna: ocupa el sitio.
+
+**Arreglo.** El cuerpo de línea de órdenes de los dos scripts sólo corre si el
+módulo se invoca directamente (`import.meta.url` contra `process.argv[1]`).
+
+**Familia.** `sin_medir` — el instrumento existía y no medía.
+
+**Guardián.** Los dos guardianes de siempre, ahora fallando de verdad al revés:
+añadiendo una pantalla sin regenerar, el inventario cae; reponiendo un respaldo,
+el trinquete cae.

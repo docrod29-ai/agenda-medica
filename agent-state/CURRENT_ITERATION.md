@@ -29,7 +29,7 @@
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
 **Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ (8-ago) · **los tres P0 de audio**
-✅ (9-ago) → **`DESIGN-SYSTEM-001`**, empezando por `@theme inline`.
+✅ (9-ago) · **`DESIGN-SYSTEM-001`** ✅ (9-ago) → **`NAVIGATION-001`**.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -48,10 +48,10 @@ línea; primitivos compartidos al 24 %).
 
 | P0 | Estado |
 |---|---|
-| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | **REG-267 · cerrado** |
-| Navegar **termina la grabación** en silencio y tira el trozo final | **REG-268/269 · cerrado en parte** → residuo `PATIENT-AUDIO-004` |
-| El cierre por inactividad **no oye dictar** y borra la recuperación | **REG-269/270 · cerrado** |
-| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · cerrado** |
+| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | **REG-270 · cerrado** |
+| Navegar **termina la grabación** en silencio y tira el trozo final | **REG-271/272 · cerrado en parte** → residuo `PATIENT-AUDIO-004` |
+| El cierre por inactividad **no oye dictar** y borra la recuperación | **REG-272/273 · cerrado** |
+| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-268 · cerrado** |
 
 **Los cuatro compartían un sesgo, y por eso se arreglaron juntos**: toda la
 persistencia se había puesto donde YA había red —el texto de la nota tiene cuatro
@@ -70,7 +70,7 @@ donde ya había red** —el texto de la nota, con borrador en memoria, respaldo
 local, autoguardado y volcado— **y no donde no la hay**: el audio, que no tiene
 segunda copia en ninguna parte.
 
-También reparado: **REG-266**, `@keyframes spin` no existía en ningún sitio
+También reparado: **REG-269**, `@keyframes spin` no existía en ningún sitio
 global pese a 90 referencias, incluidos los dos primitivos compartidos. El giro
 funcionaba «según en qué pantalla estuvieras».
 

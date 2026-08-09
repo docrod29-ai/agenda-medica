@@ -408,7 +408,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -419,7 +419,8 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "cierre": "CERRADO (REG-274). @theme inline expone ~35 tokens con prefijo nx- (no pisa la escala de Tailwind, así que se puede migrar poco a poco). Nacen las escalas de radio, espacio, elevación, movimiento y tipografía. Y el hallazgo que no se buscaba: 280 respaldos var(--x,#hex), 253 obsoletos y 5 sobre tokens inexistentes — un segundo sistema de color entero escondido en el primero. Cero respaldos ahora, con techo 0. Trinquete de diseño en scripts/design/trinquete-de-diseno.mjs."
     },
     {
       "seguridad": 1,
@@ -593,6 +594,31 @@
       "reversible": true,
       "origen": "REG-268/269 — residuo declarado al cerrar PATIENT-AUDIO-002",
       "score": 38
+    },
+    {
+      "id": "DESIGN-MIGRAR-001",
+      "prioridadV9": "P2",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "Nadie usa todavía las utilidades nx- que ya expone Tailwind",
+      "hallazgo": "DESIGN-SYSTEM-001 puso el cimiento: ~35 tokens visibles para Tailwind y cinco escalas. Ninguna pantalla se ha migrado. El trinquete mide lo que falta: 565 hex en línea, 2029 tamaños fuera de escala, 638 radios, 24 sombras.",
+      "porQueImporta": "El cimiento sin migración no cambia lo que el médico ve. Pero migrar antes del cimiento era repintar dos veces, y por eso va en este orden.",
+      "archivo": "scripts/design/techos-de-diseno.json",
+      "plan": "Empezar por los cinco archivos que son el 24% del TSX. Bajar el techo con --actualizar en cada tanda; el guardián exige que el sello no lleve holgura.",
+      "seguridad": 0,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "DESIGN-SYSTEM-001 — residuo declarado",
+      "score": 30
     }
   ],
   "actualizado": "2026-08-09",

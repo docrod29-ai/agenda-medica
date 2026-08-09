@@ -169,7 +169,7 @@ export default function CensoPage() {
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '8px 4px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <BedDouble size={22} style={{ color: 'var(--nexus, #3d5afe)' }} /> Censo hospitalario
+          <BedDouble size={22} style={{ color: 'var(--nexus)' }} /> Censo hospitalario
         </h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Button variant="secondary" icon={<Bell size={15} />} onClick={abrirTelefono}>Mis alertas</Button>
@@ -226,7 +226,7 @@ export default function CensoPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--nexus,#3d5afe)' }}>{diasEstancia(i)}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--nexus)' }}>{diasEstancia(i)}</div>
                 <div style={{ fontSize: 10, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}><Clock size={10} /> días</div>
               </div>
             </button>
@@ -251,7 +251,7 @@ export default function CensoPage() {
           {pac ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, background: 'var(--s2)', border: '1px solid var(--border)' }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>{pac.nombre}{pac.edad ? ` · ${pac.edad} a` : ''}</span>
-              <button onClick={() => setPac(null)} style={{ background: 'none', border: 'none', color: 'var(--nexus,#3d5afe)', cursor: 'pointer', fontSize: 12 }}>Cambiar</button>
+              <button onClick={() => setPac(null)} style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 12 }}>Cambiar</button>
             </div>
           ) : (
             <div>
@@ -274,7 +274,7 @@ export default function CensoPage() {
               </div>
               <button
                 onClick={() => { setNuevoPac(true); setNp(n => ({ ...n, nombre: buscar.trim() })) }}
-                style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--nexus,#3d5afe)', cursor: 'pointer', minHeight: 38 }}
+                style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--nexus)', cursor: 'pointer', minHeight: 38 }}
               >
                 <Plus size={14} /> Registrar paciente nuevo
               </button>

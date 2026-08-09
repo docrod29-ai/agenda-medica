@@ -344,7 +344,7 @@ function Selector({ value, onChange, opciones }: {
 
 function Resultado({ rec }: { rec: Recomendacion }) {
   const como = COMO_SE_LEE[rec.estado]
-  const color = rec.estado === 'CLEAR' ? 'var(--teal)' : 'var(--amber, #b45309)'
+  const color = rec.estado === 'CLEAR' ? 'var(--teal)' : 'var(--amber)'
   const Icono = rec.estado === 'CLEAR' ? CheckCircle2 : rec.estado === 'BLOCKED' ? Ban : HelpCircle
 
   return (
@@ -364,7 +364,7 @@ function Resultado({ rec }: { rec: Recomendacion }) {
 
         <p style={{
           padding: 9, borderRadius: 7, marginBottom: 12, fontSize: 12.5,
-          border: `1px solid ${rec.validacion === 'validado_por_medico' ? 'var(--teal)' : 'var(--amber, #b45309)'}`,
+          border: `1px solid ${rec.validacion === 'validado_por_medico' ? 'var(--teal)' : 'var(--amber)'}`,
           color: 'var(--text)',
         }}>{rec.avisoValidacion}</p>
 
@@ -446,7 +446,7 @@ function Progreso({ total, validados, caducados, sinValidar, porcentaje }: Retur
       <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11.5, color: 'var(--text3)' }}>
         <span>{sinValidar} sin validar</span>
         {caducados > 0 && (
-          <span style={{ color: 'var(--amber, #b45309)' }}>
+          <span style={{ color: 'var(--amber)' }}>
             {caducados} caducados (cambió el dataset)
           </span>
         )}
@@ -482,14 +482,14 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
         {est.estado === 'validado'
           ? <CheckCircle2 size={16} style={{ color: 'var(--teal)', flexShrink: 0 }} />
           : est.estado === 'caducada'
-            ? <AlertTriangle size={16} style={{ color: 'var(--amber, #b45309)', flexShrink: 0 }} />
+            ? <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0 }} />
             : <ShieldQuestion size={16} style={{ color: 'var(--text3)', flexShrink: 0 }} />}
         <span style={{ fontWeight: 600 }}>{nombre}</span>
         <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{f.class}</span>
         {f.hard_stops && (
           <span style={{
             fontSize: 10, padding: '1px 6px', borderRadius: 4,
-            border: '1px solid var(--amber, #b45309)', color: 'var(--amber, #b45309)',
+            border: '1px solid var(--amber)', color: 'var(--amber)',
           }}>regla dura</span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text3)' }}>
@@ -502,7 +502,7 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
           {est.estado === 'caducada' && (
             <p style={{
               padding: 9, borderRadius: 7, marginBottom: 10, fontSize: 12.5,
-              border: '1px solid var(--amber, #b45309)', color: 'var(--text)',
+              border: '1px solid var(--amber)', color: 'var(--text)',
             }}>{est.porQue}</p>
           )}
 
@@ -575,7 +575,7 @@ function Bloque({ titulo, children, destacado }: {
     <div style={{ marginBottom: 9 }}>
       <div style={{
         fontSize: 11, marginBottom: 2,
-        color: destacado ? 'var(--amber, #b45309)' : 'var(--text3)',
+        color: destacado ? 'var(--amber)' : 'var(--text3)',
         fontWeight: destacado ? 700 : 400,
       }}>{titulo.toUpperCase()}</div>
       <div style={{ color: 'var(--text)' }}>{children}</div>

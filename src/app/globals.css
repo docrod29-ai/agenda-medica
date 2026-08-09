@@ -104,6 +104,60 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /*
+    ─── LAS TRES ESCALAS QUE FALTABAN ───────────────────────────────────────
+
+    Hasta hoy el sistema declaraba radios «6 / 10 / 14» en un comentario y no
+    tenía **ningún** token de espacio ni de elevación. El resultado, contado:
+    19 radios distintos en línea, 23 valores de `gap`, 25 de `padding` y 24
+    sombras de las que **ninguna se repetía**.
+
+    La prueba de que el token funciona aquí ya existe y está sobre la mesa:
+    `--r-pill` nació para acabar con una píldora escrita de cinco formas
+    (100/999/9999/99/50) y hoy tiene 131 adopciones. Lo que faltaba no era
+    disciplina: era el token al que acogerse.
+
+    Estas escalas **no inventan la estética**: recogen la que ya estaba
+    declarada (los tres radios del comentario) y ponen el espacio en la rejilla
+    de 4 px que la mayoría del código ya usaba. No cambian ni un píxel de lo
+    existente — nada las usa todavía. Existen para que lo próximo tenga dónde
+    apoyarse, y para que el trinquete pueda medir la distancia que falta.
+  */
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+
+  /* Elevación: TRES niveles y se acabó. Una sombra por componente es lo que
+     produce 24 sombras distintas y ninguna jerarquía. */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.32);
+  --elev-3: 0 16px 40px rgba(0, 0, 0, 0.40);
+
+  /* Movimiento. `--mov-nada` es el que se usa bajo `prefers-reduced-motion`:
+     tenerlo con nombre evita que cada componente decida por su cuenta qué
+     significa «sin animación». */
+  --mov-rapido: 120ms;
+  --mov-normal: 200ms;
+  --mov-lento:  320ms;
+  --mov-curva:  cubic-bezier(0.2, 0, 0, 1);
+  --mov-nada:   0ms;
+
+  /* Escala tipográfica — los mismos seis pasos que ya definen las clases
+     `.t-*` más abajo, ahora también como token para que Tailwind los vea. */
+  --t-overline: 10.5px;
+  --t-caption:  12px;
+  --t-body:     14px;
+  --t-h2:       16px;
+  --t-h1:       20px;
+  --t-display:  28px;
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
   --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
@@ -121,13 +175,110 @@
 
   /* Tipografía editorial — uso restringido a hero/citas */
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
+
+  /*
+    ─── AVISO Y ÉXITO — cuatro tokens que se USABAN SIN EXISTIR (REG-274) ───
+
+    `var(--warn-bg, #fff8e6)`, `var(--warn-border, #f0c36d)`,
+    `var(--warn-text, #8a6100)` y `var(--success, #16a34a)` aparecían en el
+    código con toda la pinta de usar el sistema de diseño. Ninguno de los cuatro
+    estaba definido en ningún tema, así que **el respaldo era el único valor que
+    se pintaba nunca** — el mismo en claro y en oscuro.
+
+    Consecuencia visible: la tarjeta de aviso de `/pacientes` se pintaba color
+    crema (#fff8e6) sobre el lienzo #0B0C0E. Es la TERCERA vez que aparece este
+    defecto; las dos anteriores están contadas en el comentario de `--panel`,
+    arriba. La forma se repite: un respaldo claro que se cuela en el tema oscuro
+    porque la variable que debía ganarle no existe.
+
+    Se definen aquí con la semántica que YA existe —el ámbar y el verde
+    medidos— en vez de inventar color nuevo. El tema claro conserva
+    exactamente los valores que se venían pintando, para no cambiar lo que hoy
+    se ve bien.
+  */
+  --warn-bg:     rgba(217, 119, 6, 0.12);
+  --warn-border: rgba(217, 119, 6, 0.38);
+  --warn-text:   var(--amber);
+  --success:     var(--green);
 }
 
+/*
+  ─── LO QUE TAILWIND VE — la causa raíz del monolito de estilo en línea ───────
+
+  Este bloque exponía CUATRO cosas. Todo el resto del sistema de diseño vivía en
+  variables CSS que Tailwind no conoce, así que **no había ninguna utilidad que
+  usar**: ni `bg-`, ni `text-`, ni `rounded-`, ni `p-` que hablaran el idioma de
+  la marca. El código no tenía alternativa y cayó al estilo en línea — 6 065
+  `style={{` en el 88,5 % de los archivos.
+
+  No fue dejadez: fue la consecuencia mecánica de una línea de configuración.
+  Repintar pantallas sin arreglar esto es repintarlas dos veces.
+
+  Los nombres van con prefijo `nx-` a propósito: así **no pisan** la escala por
+  omisión de Tailwind y ningún `p-4`, `rounded-lg` o `text-sm` que ya exista
+  cambia de significado. Esto sólo AÑADE vocabulario; no reinterpreta el que ya
+  se usa. Es la diferencia entre poder migrar poco a poco y tener que migrar
+  todo de golpe.
+*/
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+
+  /* Superficies y bordes */
+  --color-nx-bg:      var(--bg);
+  --color-nx-s1:      var(--s1);
+  --color-nx-s2:      var(--s2);
+  --color-nx-s3:      var(--s3);
+  --color-nx-border:  var(--border);
+  --color-nx-border2: var(--border2);
+
+  /* Texto */
+  --color-nx-text:  var(--text);
+  --color-nx-text2: var(--text2);
+  --color-nx-text3: var(--text3);
+
+  /* Marca. `nexus` es el azul de TEXTO; `nexus-solido` el de RELLENO bajo texto
+     blanco. Son dos tokens porque sus requisitos de contraste son OPUESTOS —
+     está explicado arriba, y confundirlos ya costó una regresión. */
+  --color-nx-nexus:        var(--nexus);
+  --color-nx-nexus-solido: var(--nexus-solido);
+  --color-nx-nexus-soft:   var(--nexus-soft);
+
+  /* Semántica clínica */
+  --color-nx-red:     var(--red);
+  --color-nx-green:   var(--green);
+  --color-nx-amber:   var(--amber);
+  --color-nx-blue:    var(--blue);
+  --color-nx-purple:  var(--purple);
+  --color-nx-success: var(--success);
+  --color-nx-warn:    var(--warn-text);
+
+  /* Radio, espacio, elevación y movimiento — ver sus escalas en `:root` */
+  --radius-nx-sm: var(--r-sm);
+  --radius-nx-md: var(--r-md);
+  --radius-nx-lg: var(--r-lg);
+  --radius-nx-pill: var(--r-pill);
+
+  --spacing-nx-1: var(--sp-1);
+  --spacing-nx-2: var(--sp-2);
+  --spacing-nx-3: var(--sp-3);
+  --spacing-nx-4: var(--sp-4);
+  --spacing-nx-5: var(--sp-5);
+  --spacing-nx-6: var(--sp-6);
+
+  --shadow-nx-1: var(--elev-1);
+  --shadow-nx-2: var(--elev-2);
+  --shadow-nx-3: var(--elev-3);
+
+  --text-nx-overline: var(--t-overline);
+  --text-nx-caption:  var(--t-caption);
+  --text-nx-body:     var(--t-body);
+  --text-nx-h2:       var(--t-h2);
+  --text-nx-h1:       var(--t-h1);
+  --text-nx-display:  var(--t-display);
 }
 
 * {
@@ -1077,6 +1228,14 @@ tbody tr:last-child { border-bottom: none; }
   --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
   --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
   --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+
+  /* Aviso y éxito — el tema claro conserva EXACTAMENTE lo que se venía
+     pintando con los respaldos, para no cambiar lo que hoy se ve bien.
+     Ver el bloque de `--warn-*` en `:root` y REG-274. */
+  --warn-bg:     #FFF8E6;
+  --warn-border: #F0C36D;
+  --warn-text:   #8A6100;
+  --success:     var(--green);
 }
 
 /* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los

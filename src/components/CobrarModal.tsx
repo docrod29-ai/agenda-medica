@@ -352,7 +352,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
                   <option key={d.id} value={d.id}>{d.nombre || d.id}</option>
                 ))}
               </select>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
                 Sin médico, este cobro no entra en el reparto de comisiones de nadie.
               </div>
             </div>

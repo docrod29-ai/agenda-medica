@@ -6,32 +6,52 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **los tres P0 de audio, cerrados**
+## Checkpoint · 9-ago-2026 — **`DESIGN-SYSTEM-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`DESIGN-SYSTEM-001`** — REG-274, REG-275 |
+| **Siguiente** | **`NAVIGATION-001`** |
+
+`@theme inline` pasó de exponer 4 tokens a ~35 (con prefijo `nx-`, para poder
+migrar poco a poco); nacen las escalas de radio, espacio, elevación, movimiento
+y tipografía; y se retiraron **286 respaldos de color** — 253 obsoletos y 5
+sobre tokens que no existían. Techo de respaldos: **0**, invariante.
+
+Y se corrigió un guardián que **no podía fallar**: `inventario-de-pantallas.mjs`
+reescribía el markdown al importarlo, así que la prueba se comparaba contra un
+archivo que ella misma acababa de poner al día. Llevaba dos commits así.
+
+Detalle: `agent-state/DESIGN_STATE.md` y `docs/design/NEXUS_DESIGN_SYSTEM.md`.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **los tres P0 de audio, cerrados**
 
 | | |
 |---|---|
 | **Rama** | `claude/nexus-patient-ux-v9` |
 | **SHA anterior** | `6a6501d` (cierre de `PATIENT-UX-TRUTH-001`) |
-| **Unidad cerrada** | **`PATIENT-AUDIO-001/002/003`** — REG-267, 268, 269, 270 |
+| **Unidad cerrada** | **`PATIENT-AUDIO-001/002/003`** — REG-270, 271, 272, 273 |
 | **Siguiente** | `DESIGN-SYSTEM-001`, empezando por `@theme inline` |
 
 ### Qué quedó hecho
 
-**REG-267 · Volver a grabar ya no borra el audio anterior.**
+**REG-270 · Volver a grabar ya no borra el audio anterior.**
 `borrarChunks(clave, desde)`; los tres caminos de éxito borran sólo desde
 `recoveryBase`. El huérfano sobrevive para el cartel de «Recuperar».
 
-**REG-268 · El trozo final ya no se tira al salir grabando.** El índice de disco
+**REG-271 · El trozo final ya no se tira al salir grabando.** El índice de disco
 sale de un contador monótono (`persistIdxRef`) en vez de la longitud de un array,
 así que la colisión que obligaba a desenganchar el handler ya no puede ocurrir.
 
-**REG-269 · Dictar cuenta como actividad.** El hook late cada minuto mientras
+**REG-272 · Dictar cuenta como actividad.** El hook late cada minuto mientras
 graba y `AutoLogout` reinicia el contador. **No desactiva** el cierre por
 inactividad: al parar la grabación, corre como siempre. Y se registra el primer
 `beforeunload` del repositorio mientras se graba — cubre también la recarga que
 hace el service worker al desplegar.
 
-**REG-270 · Cerrar sesión ya no se lleva el audio sin transcribir.** El acuse de
+**REG-273 · Cerrar sesión ya no se lleva el audio sin transcribir.** El acuse de
 `nx:guardar-todo` gana `marcarAudioSinTranscribir()`; la purga pasa a ser
 condicional, igual que ya lo era la del borrador de la nota.
 

@@ -1,75 +1,89 @@
 # Estado del sistema de diseño — V9
 
 > Se escribe **a mano**, tras cada iteración. Las cifras derivables viven en
-> `MASTER_STATE.json` y en `docs/design/SCREEN_INVENTORY.md` (generado).
+> `scripts/design/techos-de-diseno.json` (selladas) y en
+> `docs/design/SCREEN_INVENTORY.md` (generado).
 
-**Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
-**Siguiente**: `DESIGN-SYSTEM-001`.
+**Unidad**: `DESIGN-SYSTEM-001` **cerrada** el 9-ago-2026 · REG-274, REG-275.
+**Siguiente**: `NAVIGATION-001`.
+**El porqué completo**: [`docs/design/NEXUS_DESIGN_SYSTEM.md`](../docs/design/NEXUS_DESIGN_SYSTEM.md).
 
 ---
 
-## Lo que se sabe hoy, y no se sabía ayer
+## Lo que esta unidad encontró, y no buscaba
 
-**La premisa de la directiva no se cumple aquí.** No hay «cara de producto
-generado por IA»: cero degradados, cero `from-purple`, una `rounded-2xl`, una
-`shadow-2xl`, un `backdrop-blur`. Hay una identidad declarada, oscura por
-defecto, con los cocientes de contraste WCAG calculados a mano y escritos en el
-propio CSS.
+La auditoría anterior dijo «1 205 hexadecimales a mano, 125 el azul de marca
+retecleado». **Estaba mal contado**: la mayoría no eran literales sueltos sino
+respaldos dentro de `var()`. Y corregir la cuenta destapó algo peor:
 
-**El defecto real es otro: el sistema existe y la aplicación no le obedece.**
+> **Había un segundo sistema de color entero, obsoleto, escondido dentro del
+> primero. En cinco sitios era el que mandaba.**
 
-| Medida | Valor |
+280 respaldos. **253 obsoletos** (ni el valor oscuro ni el claro de su token),
+**5 sobre tokens que no existían** —`--warn-*`, `--success`—, 22 correctos.
+
+- El peor posible: `var(--text, #0f172a)` ×35 → texto casi negro sobre lienzo
+  `#0B0C0E`. Contraste ≈1,05:1. **Invisible.**
+- El que ya pasaba: tarjeta de aviso **color crema sobre lienzo oscuro** en
+  `/pacientes`. Tercera aparición de esta forma.
+- Y cuatro fantasmas **sin respaldo**: `--danger`, `--muted`, `--surface`,
+  `--text1`. No pintaban un color equivocado — no pintaban nada. El error de
+  Configuración no salía en rojo.
+
+## Lo que queda montado
+
+| | |
 |---|---|
-| `style={{` | **6 065** en **177 de 200** archivos (88,5 %) |
-| `className` | 816 |
-| Hexadecimales a mano | **1 205** (151 distintos) |
-| `fontSize` en línea | ~3 000, ~**60 valores** — la escala declarada tiene 6 |
-| Radios en línea | ~19 valores — el sistema declara 3 |
-| Adopción de `components/ui/` | **48 de 200** archivos (~24 %) |
-| Tokens que Tailwind ve | **4** (`globals.css:126-131`) |
+| **Respaldos de token** | **0**, y es invariante, no deuda |
+| **`@theme inline`** | de **4** valores a **~35**, con prefijo `nx-` |
+| **Escalas nuevas** | radio · espacio · elevación · movimiento · tipografía |
+| **Trinquete** | `scripts/design/trinquete-de-diseno.mjs`, 5 métricas, sólo baja |
+| **Guardián** | `el-sistema-de-diseno-no-pierde-terreno.test.ts`, 9 casos |
 
-## La causa raíz, y por dónde se empieza
+El prefijo `nx-` importa: `--spacing-4` sin prefijo redefiniría `p-4` en toda la
+aplicación de golpe. Con prefijo se **añade** vocabulario sin reinterpretar el
+que ya se usa — la diferencia entre migrar poco a poco y migrar de una vez.
 
-`@theme inline` expone a Tailwind cuatro valores. Todo lo demás vive en
-variables CSS que Tailwind no ve, así que **no hay utilidades que usar** y el
-código no tiene alternativa al estilo en línea. No es dejadez: es mecánica.
+## La deuda, medida y sellada
 
-`DESIGN-SYSTEM-001` empieza ahí. **No por colores** — lo prohíbe §13 de la
-directiva y además el color no es el problema.
+| Métrica | Hoy = techo |
+|---|---:|
+| `respaldosDeToken` | **0** |
+| `hexEnLinea` | 565 |
+| `tamanosFueraDeEscala` | 2 029 |
+| `radiosFueraDeEscala` | 638 |
+| `sombrasEnLinea` | 24 |
 
-## La prueba de que el enfoque funciona
+El sello **no lleva holgura**: el guardián exige que el techo sea exactamente lo
+que mide el script. Un techo con margen es un techo que no muerde.
 
-`--r-pill`. La píldora estaba escrita de cinco formas (`100`, `999`, `9999`,
-`99`, `50`). Se creó **un** token con su razón escrita, y hoy tiene **131
-adopciones**. Un token bien puesto sí se adopta aquí. Falta repetirlo para
-espacio, radio, tipografía y color, **cada uno con su guardián**.
+## Dos defectos que esta unidad introdujo, y uno que llevaba dos commits
 
-## Reparado en esta iteración
+`REG-275`. Los dos scripts de `scripts/design/` ejecutaban su cuerpo de línea de
+órdenes **al importarlos**. El del trinquete tumbaba la recolección de la prueba
+con `process.exit(1)`; el del inventario **reescribía el markdown antes de
+compararlo**, así que **ese guardián no podía fallar nunca**.
 
-**REG-266 · `@keyframes spin`** no existía en ningún sitio global, y lo
-referencian 90 sitios incluidos `ui/Spinner` y `ui/Button loading`. Lo definían
-31 pantallas en `<style>` locales, así que el giro funcionaba «según en qué
-pantalla estuvieras». Reparado y sellado con
-`toda-animacion-tiene-su-fotograma.test.ts`.
+Y estuvo dos commits fingiendo ser una prueba: se probó al revés al crearlo, pasó
+en verde, y **se dio por bueno**. Se ejecutó la comprobación correcta y no se
+miró el resultado.
 
-## Compuertas nuevas: ninguna todavía
-
-Accesibilidad, regresión visual, móvil y flujo en navegador **siguen sin
-definirse**. Es lo que `DESIGN-SYSTEM-001` tiene que entregar. Hoy hay **1**
-prueba de accesibilidad entre 540, y es una expresión regular sobre `layout.tsx`.
-
-## Orden para `DESIGN-SYSTEM-001`
-
-1. Ensanchar `@theme inline`.
-2. Tokens de espacio, radio y sombra.
-3. Un guardián de trinquete por token. Empezar por `#3d5afe`/`#3D5AFE` (125 usos
-   en dos mayúsculas): es puro y no cambia un píxel.
-4. `axe` sobre las 9 pantallas del paciente. Objetivo WCAG 2.2 AA.
-5. Los literales *slate* que no siguen al tema, en 10 archivos.
-6. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
+**La regla que deja**: probar al revés no sirve si no se mira el resultado. Una
+prueba que pasa cuando debería fallar es peor que ninguna — ocupa el sitio.
 
 ## Lo que este estado NO afirma
 
-Nadie ha abierto una pantalla. Todo son recuentos sobre el código. **Ninguna
-pantalla está aprobada**, y la directiva V9 §4 dice que no se aprueba interfaz
-leyendo código.
+- **Nadie ha abierto un navegador.** La tarjeta crema se dedujo de que el token
+  no existía; verla con los ojos sigue pendiente, igual que el resto de las
+  correcciones de esta unidad.
+- **No hay compuerta de accesibilidad** (`A11Y-GATE-001`) ni regresión visual.
+- **Ninguna pantalla se ha migrado** a las utilidades nuevas
+  (`DESIGN-MIGRAR-001`). Esta unidad pone el cimiento y la compuerta.
+- Los primitivos de `components/ui/` siguen al **~24 %** de adopción.
+
+## Capacidad nueva detectada
+
+Apareció la skill `agent-browser`. **No desbloquea todavía** la verificación
+visual: `npm run build` compila pero falla al recolectar datos de página por
+falta de credenciales de Firebase en este contenedor. El bloqueo es de entorno,
+no de herramienta — anotado en `NAV-NAVEGADOR-001`.
