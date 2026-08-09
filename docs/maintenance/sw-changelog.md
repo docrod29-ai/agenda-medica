@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el motor de temporalidad nunca se había medido
+## v1089 — REG-207: el motor de temporalidad nunca se había medido
 
 Avisa cuando el dictado pone un padecimiento en pasado y la nota lo afirma como
 actual. Se construyó en la v1027-v1030 y sus únicos casos eran los de quien lo

@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el motor de temporalidad nunca se había medido (v1074)
+## REG-207 — el motor de temporalidad nunca se había medido (v1089)
 
 **Encontrado** — 7-ago-2026, ítem EVAL-002 del backlog: escribir el corpus oro
 que el motor no tenía y correrlo **antes** de tocar una línea de código.

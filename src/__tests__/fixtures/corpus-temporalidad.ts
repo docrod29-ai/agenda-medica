@@ -11,7 +11,7 @@
  *
  * Este corpus se redactó **antes de volver a mirar las expresiones regulares**,
  * a partir de cómo se dicta de verdad en la consulta mexicana. Por eso encontró
- * lo que encontró (REG-192): seis formas de decir el pasado que el motor no
+ * lo que encontró (REG-207): seis formas de decir el pasado que el motor no
  * cazaba, y —lo que importa más— una forma de decir el PRESENTE que marcaba como
  * pasado.
  *
@@ -130,7 +130,7 @@ export const CORPUS_PRESENTE: readonly CasoTemporal[] = [
   /**
    * EL PADECIMIENTO ACTUAL, contado con su fecha de inicio.
    *
-   * Ésta es la familia que destapó el falso positivo de REG-192 y es, con
+   * Ésta es la familia que destapó el falso positivo de REG-207 y es, con
    * diferencia, la más frecuente de toda la consulta: el motivo de consulta
    * SIEMPRE se dicta con cuánto lleva. «Hace tres días» es la duración de lo que
    * el paciente tiene HOY, no la fecha de algo que ya pasó.

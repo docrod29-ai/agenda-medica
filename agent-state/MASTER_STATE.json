@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "EVAL-002 (cerrada — REG-192, v1074)",
+  "iteracionActual": "EVAL-002 (cerrada — REG-207, v1089)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -24,7 +24,7 @@
     "src/lib/seguridad/alergias.ts — alergenosDe(): un solo parser del campo de alergias (v1031, a medias)"
   ],
   "colisionDelPrograma": {
-    "que": "17 PR abiertos, ninguno fusionado, y DIECISÉIS de ellos se llaman «REG-192» y «v1074». Cada ejecución autónoma arranca de `main`, lee que el ledger acaba en REG-191/v1073 y toma el número siguiente — que ya está tomado por las anteriores.",
+    "que": "17 PR abiertos, ninguno fusionado, y DIECISÉIS de ellos se llaman «REG-207» y «v1089». Cada ejecución autónoma arranca de `main`, lee que el ledger acaba en REG-191/v1073 y toma el número siguiente — que ya está tomado por las anteriores.",
     "porQueImporta": "El número de REG y la versión del service worker son identificadores: si dos cambios distintos se llaman igual, deja de poder acotarse qué notas se generaron con qué código. Es el mismo requisito que REG-191 acaba de reparar para el prompt, roto ahora por el propio programa.",
     "quienLoDecide": "El dueño — ver OWNER_DECISIONS_REQUIRED, entrada O-5.",
     "loQueNoSePuedeHacerSolo": "Fusionar a main, que es lo único que rompe el ciclo."

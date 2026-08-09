@@ -58,7 +58,7 @@ const NUMERO =
 /**
  * Unidades de tiempo.
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-192) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-207) ─────────────────────────────────────
  *
  * Aquí decía `meses?`, que es «mese» con una ese opcional: casaba «meses» y
  * «mese», y **nunca «mes»**. Así que «hace un mes tuvo neumonía» —de las formas
@@ -101,7 +101,7 @@ const PASADO_VERBO = new RegExp([
  * LA MARCA DE CUÁNDO, sin verbo que la acompañe.
  *
  * Esta familia **cede** ante un verbo de estado en presente: ver
- * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-192.
+ * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-207.
  */
 const PASADO_MARCA = new RegExp([
   `\\bhace\\s+${NUMERO}\\s*${UNIDAD_TIEMPO}\\b`,
@@ -140,7 +140,7 @@ const PRESENTE = new RegExp([
 /**
  * EL VERBO DE ESTADO en presente — «tiene», «presenta», «cursa con».
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-192) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-207) ─────────────────────────────────────
  *
  * El corpus oro destapó el falso positivo más caro que podía tener este motor:
  *

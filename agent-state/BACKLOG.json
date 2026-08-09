@@ -51,7 +51,7 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 5,
       "irreversibilidad": 0, "complejidad": 2, "dependenciaExterna": 0,
       "score": 55,
-      "estado": "cerrado v1074 — REG-192",
+      "estado": "cerrado v1089 — REG-207",
       "resultado": "Corpus de 57 frases sintéticas en src/__tests__/fixtures/corpus-temporalidad.ts, etiquetadas a mano antes de mirar el código. El motor falló 15 veces (12 falsos negativos, 3 falsos positivos) con la suite entera en verde; tras la reparación, 0 y 0. El falso positivo era el padecimiento actual («hace tres días inició con fiebre y tiene neumonía»), la frase más frecuente de la consulta.",
       "loQueNoCubre": "Corpus de TEXTO, no de audio: no mide lo que el reconocedor oyó mal — eso sigue siendo EVAL-003. Y es de frase suelta: la oración con dos padecimientos en tiempos distintos queda fuera.",
       "reversible": true
