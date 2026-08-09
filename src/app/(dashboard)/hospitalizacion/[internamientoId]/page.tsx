@@ -43,6 +43,7 @@ import { GraficaSignos, type PuntoSigno } from '@/components/hospital/GraficaSig
 import { PanelEnfermeria } from '@/components/hospital/PanelEnfermeria'
 import { AlertasDelEpisodio } from '@/components/AlertasDelEpisodio'
 import { ESPECIALIDADES_INTERCONSULTA as ESPECIALIDADES_IC } from '@/lib/especialidades'
+import { alergiasDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
 import {
   diasEstancia, TIPO_EGRESO_LABEL, TIPO_INDICACION_LABEL, ROL_HOSPITAL_LABEL,
   type Internamiento, type TipoEgreso, type TipoIndicacion, type RegistroSignos, type RolHospital, type Indicacion,
@@ -523,12 +524,35 @@ export default function EpisodioPage() {
           resto del equipo (enfermería que administra, quien prescribe a mano) no
           las veía. Rojo si hay; ámbar si no hay registro (no asumir "sin alergias"). */}
       {(() => {
-        const raw = patient?.alergias
-        const lista = Array.isArray(raw)
-          ? raw.map(a => String(a).trim()).filter(Boolean)
-          : (raw ? String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : [])
-        const negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
-        if (lista.length && !negadas) {
+        /**
+         * ── LA FRANJA AFIRMABA LA AUSENCIA DE UNA ALERGIA QUE SÍ ESTABA ──────
+         *
+         * REG-279. Aquí vivía la **sexta** copia de la lógica de alergias:
+         * partía por `/[,;\n]+/` —sin el punto y sin la regla de la barra— y
+         * decidía «negadas» con su propia heurística de una línea.
+         *
+         * Reproducido: «Niega penicilina. **Alérgico a sulfas**» quedaba como
+         * UN fragmento, empezaba por «niega», y la franja anunciaba en gris
+         * **«Alergias negadas por el paciente»** sobre un paciente alérgico a
+         * sulfas.
+         *
+         * Eso no es un aviso que falte: es el sistema **afirmando la ausencia**
+         * de una alergia que el expediente sí registra, en la única señal que ve
+         * el equipo del piso — enfermería que administra, quien prescribe a
+         * mano. Y descartar primero lo frecuente y apuntar después lo que sí hay
+         * es la forma normal de escribir el campo: ya costó REG-171 y REG-201.
+         *
+         * Además ignoraba `alergiasEstructuradas` por completo.
+         *
+         * Ahora lee de la misma fuente que la consulta y que el hospital
+         * (REG-277). Y «negadas» se afirma **sólo** si el campo tiene una
+         * negación explícita Y no queda ningún alérgeno: sin esa segunda
+         * condición se vuelve a poder decir «negadas» habiendo alergia.
+         */
+        const lista = alergiasDe(patient ?? {}).map(a => a.alergeno)
+        const negadas = lista.length === 0 && negacionesEnTexto(
+          typeof patient?.alergias === 'string' ? patient.alergias : undefined).length > 0
+        if (lista.length) {
           return (
             <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--red) 45%, transparent)', background: 'color-mix(in srgb, var(--red) 12%, transparent)', color: 'var(--red)' }}>
               <AlertTriangle size={16} style={{ flexShrink: 0 }} />

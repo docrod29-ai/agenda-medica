@@ -5834,3 +5834,46 @@ aceptara `string`, alguien volvería a pasarle `patient?.alergias`.
 
 - `src/app/(dashboard)/consulta/[patientId]/page.tsx`
 - `src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts` (nuevo, 7 casos, sellado)
+
+---
+
+## REG-279 — la franja del piso afirmaba la ausencia de una alergia que sí estaba (v1155)
+
+La franja de alergias del internamiento —la que se ve en **todo momento** del
+ingreso, y que existe precisamente para quien **no** pasa por el punto de orden:
+enfermería que administra, quien prescribe a mano— tenía la **sexta** copia de la
+lógica de alergias:
+
+```ts
+split(/[,;\n]+/)                                        // sin el punto, sin la barra
+negadas = lista.length === 1 && /^(no|niega|ninguna|sin)\b/i.test(lista[0])
+```
+
+Reproducido: **«Niega penicilina. Alérgico a sulfas»** quedaba como UN fragmento,
+empezaba por «niega», y la franja anunciaba en gris **«Alergias negadas por el
+paciente»** sobre un paciente alérgico a sulfas.
+
+### Por qué es lo peor de la serie
+
+No es un aviso que falte. Es el sistema **afirmando la ausencia** de una alergia
+que el expediente sí registra, en la **única señal que ve el equipo del piso**.
+Un hueco calla; esto miente.
+
+Y descartar primero lo frecuente y apuntar después lo que sí hay es la forma
+**normal** de escribir el campo: ya costó REG-171 y REG-201. Además ignoraba
+`alergiasEstructuradas` por completo.
+
+### La segunda condición, que es la que arregla
+
+«Negadas» ahora exige **las dos cosas**: que el campo tenga una negación
+explícita **y** que no quede ningún alérgeno. Con sólo la primera se vuelve a
+poder decir «negadas» habiendo alergia — que es exactamente el defecto.
+
+Y los tres estados siguen distinguiéndose: **rojo** con alergia, **gris** con
+negación de verdad, **ámbar** sin registro. Confundir gris y ámbar haría que la
+franja gritara en todos los ingresos hasta que nadie la mirara.
+
+### Archivos
+
+- `src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx`
+- `src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts` (nuevo, 8 casos, sellado)

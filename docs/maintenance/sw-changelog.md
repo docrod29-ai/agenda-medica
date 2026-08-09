@@ -2678,3 +2678,14 @@ sellaba lista vacía — y el dato quedaba fuera de `camposSinEvidencia`.
 
 Sobrevivió a dos guardianes porque ninguno buscaba esto: buscaban quién parte el
 campo a mano, y este envoltorio no parte nada.
+
+## v1155 — la franja del piso ya no niega lo que hay (REG-279)
+
+La franja de alergias del internamiento —la única señal que ve enfermería y quien
+prescribe a mano— anunciaba **«Alergias negadas por el paciente»** con el campo
+«Niega penicilina. Alérgico a sulfas». Sexta copia de la lógica de alergias, con
+su propio partidor sin punto y su propia heurística de negación, e ignorando el
+campo estructurado.
+
+No es un aviso que falte: es el sistema afirmando la ausencia de una alergia que
+el expediente sí registra. Un hueco calla; esto miente.

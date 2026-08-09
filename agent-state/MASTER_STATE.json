@@ -16,7 +16,7 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1154",
+  "ultimaVersionEnProduccion": "nexusmed-v1155",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/design/SCREEN_INVENTORY.md",
@@ -24,10 +24,10 @@
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts"
+    "?? src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +63,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 126,
-    "ultimaREG": "REG-278",
-    "archivosDePrueba": 557,
-    "casosDePrueba": 7371,
+    "regsEnElLedger": 127,
+    "ultimaREG": "REG-279",
+    "archivosDePrueba": 558,
+    "casosDePrueba": 7379,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
