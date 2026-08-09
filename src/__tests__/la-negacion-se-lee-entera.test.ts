@@ -61,10 +61,19 @@
  *   nota. Eso es del médico (`POR_QUE_NO_SE_CORRIGE_SOLO`).
  * - **No mira quién habló**: si el reconocedor atribuyó mal el turno, este motor
  *   razona sobre esa atribución (ver `roles-hablante.ts`).
+ *
+ * ── QUÉ CUBRE EL GOLDEN HERMANO ──────────────────────────────────────────────
+ *
+ * `como-se-dice-que-no-en-una-consulta.test.ts` nació en paralelo, en `main`, y
+ * arregló **el otro sentido**: las negaciones que se perdían por el ruido de
+ * turno («Paciente:»), la negación pospuesta («Diabetes no.») y —lo más
+ * importante— que «no sé» NO es una negación. Los dos motores son ahora uno
+ * solo (`respuestaNiega`); este archivo vigila el sentido que aquel no cubría,
+ * y por eso hay que leer los dos juntos.
  */
 import { describe, it, expect } from 'vitest'
 import {
-  condicionesNegadas, contradicciones, esRespuestaNegativa,
+  condicionesNegadas, contradicciones, respuestaNiega,
   corregirCertezaPorNegacion,
 } from '@/lib/expediente/negaciones'
 
@@ -111,7 +120,7 @@ describe('LAS NEGACIONES QUE SE PERDÍAN — el habla real no dice «No.» a sec
 
   it('pero la muletilla en medio no convierte cualquier cosa en negación', () => {
     expect(niega('¿Tiene diabetes? No pues me acuerdo que sí, desde 2019.')).toEqual([])
-    expect(esRespuestaNegativa('No pues me acuerdo bien')).toBe(false)
+    expect(respuestaNiega('No pues me acuerdo bien')).toBe(false)
   })
 })
 
@@ -144,8 +153,8 @@ describe('LAS AFIRMACIONES QUE SE LEÍAN COMO NEGACIÓN — el sentido caro', ()
   })
 
   it('una afirmación en la respuesta deja la decisión al médico, no la resuelve', () => {
-    expect(esRespuestaNegativa('No, bueno sí')).toBe(false)
-    expect(esRespuestaNegativa('Sí, pero no me la checo')).toBe(false)
+    expect(respuestaNiega('No, bueno sí')).toBe(false)
+    expect(respuestaNiega('Sí, pero no me la checo')).toBe(false)
   })
 })
 
@@ -183,8 +192,8 @@ describe('LA NEGACIÓN PEGADA AL TÉRMINO', () => {
 describe('LO QUE NO CAMBIA', () => {
   it('el silencio sigue sin ser una negación', () => {
     expect(niega('¿Enfermedades crónicas como diabetes?')).toEqual([])
-    expect(esRespuestaNegativa('')).toBe(false)
-    expect(esRespuestaNegativa('   ')).toBe(false)
+    expect(respuestaNiega('')).toBe(false)
+    expect(respuestaNiega('   ')).toBe(false)
   })
 
   it('el caso del Dr. del 3-ago sigue cazado', () => {

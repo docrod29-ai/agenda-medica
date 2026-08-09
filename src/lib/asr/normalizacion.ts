@@ -81,6 +81,8 @@ function valor(p: string): number {
   return CENTENAS[w] ?? DECENAS[w] ?? UNIDADES[w] ?? 0
 }
 
+import { UNIDADES_CANONICAS } from './politica-critica'
+
 export interface CambioNormalizacion {
   antes: string
   despues: string
@@ -196,8 +198,24 @@ function leerNumero(partes: string[], desde: number): { fin: number; num: number
       break
     }
 
-    // «punto»: sólo si ya hay parte entera y detrás viene un número.
-    if (sinAcento(w) === 'punto' && acc !== null) {
+    /**
+     * «punto» — y «coma», que en México es EL separador decimal al dictar.
+     *
+     * ── LO QUE MEDÍ (6-ago-2026, sonda de pares críticos del §B5) ──────────
+     *
+     *     «dos coma cinco miligramos»  →  «2 coma 5 mg»
+     *
+     * El 2 se queda solo delante de la unidad, y el 5 cae fuera como texto. El
+     * motor de dosis que lee eso ve **2 mg donde el médico dijo 2,5 mg**. No
+     * salta ninguna alarma: 2 mg es una dosis plausible, igual que lo era el
+     * 7.30 del pH.
+     *
+     * Se trata igual que «punto» porque es la misma función gramatical. La
+     * guarda `acc !== null` + «detrás viene un número» es lo que impide que
+     * «el paciente está en coma» se convierta en nada: sin número delante y
+     * sin número detrás, no entra aquí.
+     */
+    if ((sinAcento(w) === 'punto' || sinAcento(w) === 'coma') && acc !== null) {
       const sig = siguientePalabra(i + 1)
       if (!sig || rango(sig.w) === null || rango(sig.w) === 'mil') break
       /**
@@ -408,13 +426,68 @@ export function normalizarUnidades(texto: string): ResultadoNormalizacion {
    ════════════════════════════════════════════════════════════════════════ */
 
 /**
+ * LAS MITADES HABLADAS — «medio gramo», «un gramo y medio».
+ *
+ * ── LO QUE MEDÍ (6-ago-2026, sonda de pares críticos del §B5) ────────────────
+ *
+ *     «medio gramo»        →  «medio gramo»   (ni una cifra: el dato se pierde)
+ *     «un gramo y medio»   →  «1 g y medio»   (el motor lee 1 g: UN TERCIO MENOS)
+ *
+ * El segundo es el peligroso. No pierde el dato: lo **reduce a un valor
+ * plausible**. Un gramo es una dosis creíble, así que ni el médico al releer ni
+ * ningún guardián de cifras desaparecidas lo nota. Es el mismo modo de fallo que
+ * el pH «7.30 y 5».
+ *
+ * ── POR QUÉ SÓLO CON UNIDADES DE DOSIS DETRÁS ────────────────────────────────
+ *
+ * «medio» y «media» significan otras cosas: «a medio camino», «la media de la
+ * serie», «media hora». La conversión sólo se hace cuando detrás viene una
+ * unidad de FÁRMACO — donde «medio» no puede significar otra cosa. «Media hora»
+ * se queda como está a propósito: convertirla a «0.5 horas» no gana nada y
+ * ensucia la nota.
+ */
+const UNIDAD_DE_DOSIS =
+  '(gramos?|miligramos?|microgramos?|litros?|mililitros?|tabletas?|comprimidos?|c[aá]psulas?|ampolletas?|ampollas?|cucharad(?:as?|itas?))'
+
+const MEDIO_DELANTE = new RegExp(`\\b(medi[oa])\\s+${UNIDAD_DE_DOSIS}\\b`, 'giu')
+const Y_MEDIO_DETRAS = new RegExp(`(\\d+)\\s+(\\S+)\\s+y\\s+medi[oa]\\b`, 'giu')
+
+/** «medio gramo» → «cero punto cinco gramo», para que el lector de cifras lo vea. */
+function mitadesHabladas(texto: string): { texto: string; cambios: CambioNormalizacion[] } {
+  const cambios: CambioNormalizacion[] = []
+  const out = texto.replace(MEDIO_DELANTE, (todo, _m, unidad) => {
+    cambios.push({ antes: todo, despues: `cero punto cinco ${unidad}`, tipo: 'cifra' })
+    return `cero punto cinco ${unidad}`
+  })
+  return { texto: out, cambios }
+}
+
+/**
+ * «1 g y medio» → «1.5 g». Va DESPUÉS de las unidades porque hasta entonces no
+ * hay un dígito y una abreviatura que reconocer.
+ */
+function yMedioDetras(texto: string): { texto: string; cambios: CambioNormalizacion[] } {
+  const cambios: CambioNormalizacion[] = []
+  const out = texto.replace(Y_MEDIO_DETRAS, (todo, n: string, unidad: string) => {
+    // Sólo si lo de en medio es una unidad canónica: «2 veces y media» no es 2.5.
+    if (!UNIDADES_CANONICAS.includes(unidad)) return todo
+    const nuevo = `${n}.5 ${unidad}`
+    cambios.push({ antes: todo, despues: nuevo, tipo: 'cifra' })
+    return nuevo
+  })
+  return { texto: out, cambios }
+}
+
+/**
  * Cifras y luego unidades. El orden importa: la unidad sólo se abrevia detrás de
  * un dígito, y el dígito lo produce la etapa anterior.
  */
 export function normalizar(texto: string): ResultadoNormalizacion {
-  const a = normalizarCifras(texto)
+  const m = mitadesHabladas(texto)
+  const a = normalizarCifras(m.texto)
   const b = normalizarUnidades(a.texto)
-  return { texto: b.texto, cambios: [...a.cambios, ...b.cambios] }
+  const y = yMedioDetras(b.texto)
+  return { texto: y.texto, cambios: [...m.cambios, ...a.cambios, ...b.cambios, ...y.cambios] }
 }
 
 export const POR_QUE_NO_INVENTA =

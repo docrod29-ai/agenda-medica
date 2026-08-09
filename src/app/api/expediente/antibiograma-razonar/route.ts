@@ -14,7 +14,7 @@ import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { esFundador } from '@/lib/authz/fundador'
-import { validarRazonamiento } from '@/lib/expediente/antibiograma/validar-razonamiento'
+import { validarRazonamiento, omiteAlertasCriticas } from '@/lib/expediente/antibiograma/validar-razonamiento'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
@@ -158,6 +158,25 @@ export async function POST(req: NextRequest) {
     const contradicciones = validarRazonamiento(rc.texto, interp, entrada)
     const contradiccionesGPT = gptTexto ? validarRazonamiento(gptTexto, interp, entrada) : []
 
+    /**
+     * ── LO QUE EL TEXTO SE CALLÓ (REG-259) ──────────────────────────────────
+     *
+     * `validarRazonamiento` caza lo que el modelo dice y CONTRADICE al motor.
+     * No cazaba lo que el modelo **omite**, que es el otro modo de fallo y el
+     * más silencioso: el motor detecta una carbapenemasa, el texto no la
+     * menciona, y el médico lee un razonamiento que se lee bien y no dice lo
+     * único que había que decir.
+     *
+     * `omiteAlertasCriticas` existía para esto exactamente, con su prueba, y
+     * no la llamaba nadie.
+     *
+     * No se reescribe el texto ni se le añade nada: se AVISA de que faltan, y
+     * las alertas del motor ya viajan aparte en la respuesta. Completar el
+     * razonamiento del modelo por mi cuenta sería inventar juicio clínico.
+     */
+    const omitidas = omiteAlertasCriticas(rc.texto, interp)
+    const omitidasGPT = gptTexto ? omiteAlertasCriticas(gptTexto, interp) : false
+
     void registrarCreditos(clinicId, COSTO_CREDITOS.antibiogramaRazonar)
     return NextResponse.json({
       ok: true,
@@ -166,6 +185,8 @@ export async function POST(req: NextRequest) {
       modelos: [rc.modelo, ...(gptTexto ? ['gpt'] : [])],
       ...(contradicciones.length ? { contradicciones } : {}),
       ...(contradiccionesGPT.length ? { contradiccionesSegundaOpinion: contradiccionesGPT } : {}),
+      ...(omitidas ? { omiteAlertasCriticas: true } : {}),
+      ...(omitidasGPT ? { omiteAlertasCriticasSegundaOpinion: true } : {}),
     })
   } catch (err) {
     safeLog.error('[antibiograma-razonar] Exception:', err)

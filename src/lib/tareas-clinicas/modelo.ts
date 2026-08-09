@@ -65,6 +65,15 @@ export type TipoTarea =
    * Esa decisión no la toma un archivo de software.
    */
   | 'indicacion_paciente'
+  /**
+   * §F3 — el paciente dijo algo que NO coincide con su lista de medicamentos.
+   *
+   * «El losartán ya lo dejé» y la lista lo tiene vigente. La tarea existe
+   * porque el sistema NO corrige la lista solo: el paciente puede equivocarse,
+   * el reconocedor puede transcribir mal el nombre, y suspender un
+   * anticoagulante es un acto médico (§C3: no elegir la verdad automáticamente).
+   */
+  | 'reconciliacion_medicamento'
   | 'otra'
 
 export type Prioridad = 'critica' | 'alta' | 'normal'

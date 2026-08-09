@@ -24,11 +24,71 @@ import type { AlergiaEstructurada } from '@/types'
  * Esto no decide nada clínico: lee lo que el campo dice. Si dice que el paciente
  * niega la alergia, no se registra la alergia.
  */
-const NEGADOR = /^(?:niega|niego|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|descartad[ao]s?|ningun[ao])\b/i
+const NEGADOR = /^(?:niega|niego|niegan|se\s+niegan|negad[ao]s?|sin|no\s+refiere|no\s+conocid[ao]s?|no\s+presenta|no\s+tiene|descartad[ao]s?|ningun[ao])\b/i
+
+/**
+ * ── EL ANCLA ERA EL FALLO (REG-248) ─────────────────────────────────────────
+ *
+ * `NEGADOR` está anclado al principio, y con razón: «Alérgico a penicilina,
+ * niega sulfas» tiene que conservar la penicilina. Pero el ancla significa que
+ * **cualquier palabra delante lo rompe**. Medido:
+ *
+ *     «negadas»            → negación reconocida ✓
+ *     «alergias negadas»   → NO reconocida ✗   ← la frase natural en español
+ *     «se niegan»          → NO reconocida ✗
+ *     «NKDA»               → NO reconocida ✗   ← el estándar hospitalario
+ *     «no» · «(-)»         → NO reconocidas ✗
+ *
+ * **La consecuencia.** Lo que no se reconoce como negación se registra como
+ * ALÉRGENO. Un paciente cuyo campo dice «alergias negadas» quedaba con un
+ * alérgeno llamado *«alergias negadas»* — y de aquí leen la receta impresa, la
+ * nota, el recurso FHIR y el sesgo del reconocedor. **La receta con su cédula y
+ * su firma salía diciendo que el paciente es alérgico a «alergias negadas».**
+ *
+ * ── LOS DOS ARREGLOS, Y POR QUÉ SON DOS ─────────────────────────────────────
+ *
+ * 1. **La cabecera se descuenta.** Si el fragmento empieza por «alergias» /
+ *    «alergia» / «antecedentes alérgicos» (con o sin dos puntos), se quita esa
+ *    cabecera y se vuelve a preguntar. Así «alergias negadas» se juzga por
+ *    «negadas», que es lo que de verdad dice.
+ *
+ * 2. **Las formas COMPLETAS.** «NKDA», «(-)», «no», «ninguna» no llevan
+ *    negador: son la negación entera. Se comparan con el fragmento **completo**,
+ *    nunca como prefijo — «no» de prefijo convertiría «nogal» en una negación.
+ */
+const CABECERA_DE_ALERGIAS = /^(?:antecedentes?\s+)?al[ée]rgi\w*\s*:?\s*/i
+
+/**
+ * Formas que SON la negación entera, sin negador delante.
+ *
+ * `NKDA` = *No Known Drug Allergies*, y `NKA` = *No Known Allergies*: se dictan
+ * en hospital y en UCI todos los días. `(-)` y `-` son como se marca en papel.
+ */
+const NEGACION_COMPLETA = new Set([
+  'nkda', 'nka', 'nkma', '(-)', '-', '--', 'no', 'ninguna', 'ninguno', 'negativo',
+  'negativa', 'negativas', 'negativos', 'niega', 'negadas', 'negados', 'negada',
+  'negado', 'se niegan', 'interrogadas y negadas', 'interrogados y negados',
+  'no conocidas', 'no conocidos', 'ninguna conocida', 'sd', 'n/a', 'na',
+])
 
 /** ¿Este fragmento afirma la ausencia de una alergia? */
 export function esAlergiaNegada(fragmento: string): boolean {
-  return NEGADOR.test(fragmento.trim())
+  const t = String(fragmento ?? '').trim()
+  if (!t) return false
+  if (NEGADOR.test(t)) return true
+
+  /* Comparación con el fragmento ENTERO: «no» de prefijo haría de «nogal» una
+     negación, y de «naproxeno» —que es un alérgeno real— también. */
+  const plano = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ')
+  if (NEGACION_COMPLETA.has(plano)) return true
+
+  /* «alergias negadas» → se descuenta la cabecera y se juzga «negadas». */
+  const sinCabecera = t.replace(CABECERA_DE_ALERGIAS, '').trim()
+  if (sinCabecera && sinCabecera !== t) {
+    const planoSin = sinCabecera.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ')
+    return NEGADOR.test(sinCabecera) || NEGACION_COMPLETA.has(planoSin)
+  }
+  return false
 }
 
 /**
