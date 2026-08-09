@@ -11,6 +11,7 @@
 | | |
 |---|---|
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, 307, 308, 309 |
+| **SHA de cierre** | `4eb71bf` |
 | **Rama** | `claude/relaxed-fermi-o6x2r4` (ver nota de rama abajo) |
 | **Siguiente** | **`PATIENT-AI-001`** — ASK NEXUS, con las doce del §0 como fixture |
 
