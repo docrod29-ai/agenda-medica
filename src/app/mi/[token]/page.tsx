@@ -11,6 +11,8 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
+import { bloquesDelPaquete } from '@/lib/paciente/como-se-ve-el-paquete'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -31,6 +33,9 @@ const RECETA_CONFIG_DEFAULT = {
   mostrarDiagnostico: true,
   avisoLegal: 'Esta receta es personal e intransferible.',
 }
+
+/** Un paquete liberado, tal como lo sirve `/api/portal` (el `id` lo pone la ruta). */
+type PaqueteLiberado = PaqueteDeVisita & { id: string }
 
 interface Cita {
   id: string
@@ -114,6 +119,9 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /** Lo que su médico liberó de cada consulta. `null` = todavía cargando. */
+  const [paquetes, setPaquetes] = useState<PaqueteLiberado[] | null>(null)
+  const [paquetesBloqueados, setPaquetesBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +148,27 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+
+      /*
+        LO QUE SU MÉDICO LIBERÓ — REG-308.
+
+        Esta llamada faltaba. `/api/portal` ya sabía servir los paquetes
+        RELEASED desde REG-304, y REG-307 puso el botón que los crea; entre las
+        dos mitades no había ningún `fetch`, así que la pestaña «Cuidado»
+        enseñaba para siempre un estado vacío que prometía «lo verás aquí».
+
+        Va en paralelo con las recetas y no bloquea las citas: un fallo aquí no
+        puede dejar al paciente sin ver a qué hora tiene que estar mañana.
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => {
+          /* Mismo 403 que las recetas: el enlace lo emitió el mostrador y no
+             tiene alcance clínico. Se dice, igual que ahí. */
+          if (res.status === 403) { setPaquetesBloqueados(true); return { paquetes: [] } }
+          return res.ok ? res.json() : { paquetes: [] }
+        })
+        .then(d => setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -420,20 +449,43 @@ export default function MiPortalPage() {
         </>)}
         {destino === 'cuidado' && (<>
           {/*
-            LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
-            RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
-            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
-            el estado vacío dice la verdad en vez de fingir que no hay nada.
+            LO QUE TU MÉDICO LIBERÓ de cada consulta — REG-304, REG-307, REG-308.
+
+            Sólo aparecen los paquetes RELEASED: el servidor filtra con
+            `visibleParaElPaciente` y un borrador no sale de ahí. De cada consulta
+            llega la versión vigente (`vigentesPorNota`), nunca las tres, porque
+            elegir entre tres hojas de instrucciones no es trabajo del paciente.
+
+            Los bloques y su orden salen de `como-se-ve-el-paquete`, el mismo
+            módulo que pinta la tarjeta del médico: él aprueba exactamente estas
+            líneas.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+          {paquetesBloqueados ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Este enlace sirve para tus citas. Pide a tu médico el acceso al
+                resumen de tus consultas.
+              </p>
+            </div>
+          ) : paquetes === null ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} aria-hidden />
+              <span style={{ fontSize: 14, color: 'var(--text3)' }}>Cargando tu plan…</span>
+            </div>
+          ) : paquetes.length === 0 ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 24 }}>
+              {paquetes.map(p => <PlanLiberado key={p.id} paquete={p} tz={tzClinica} />)}
+            </div>
+          )}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -605,6 +657,60 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * UN PLAN LIBERADO, tal como su médico lo aprobó.
+ *
+ * ── POR QUÉ SE ENSEÑA CUÁNDO Y QUIÉN LO LIBERÓ ──────────────────────────────
+ *
+ * Es PROCEDENCIA, el principio del sistema de diseño que este producto no
+ * negocia: el paciente tiene que poder distinguir «esto lo aprobó mi médico el
+ * martes» de «esto lo escribió una máquina». Sin la fecha, dos consultas
+ * seguidas se leen como una sola instrucción vigente, y la vieja gana por estar
+ * arriba.
+ *
+ * `approvedBy` **no** se pinta: es un identificador interno, no el nombre del
+ * médico. Enseñar un uid sería ruido, e inventar un nombre a partir de él sería
+ * peor.
+ */
+function PlanLiberado({ paquete, tz }: { paquete: PaqueteLiberado; tz: string }) {
+  const bloques = bloquesDelPaquete(paquete, 'paciente')
+  const cuando = paquete.approvedAt
+    ? new Date(paquete.approvedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: tz })
+    : ''
+
+  /* Un paquete sin un solo bloque no debería existir —`tieneAlgoQueDecir` lo
+     impide al liberar—, pero si llegara, una tarjeta con encabezado y nada
+     dentro es peor que ninguna tarjeta. */
+  if (bloques.length === 0) return null
+
+  return (
+    <article style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+      <header style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+          {cuando ? `Consulta del ${cuando}` : 'Resumen de tu consulta'}
+        </h3>
+        {paquete.version > 1 && (
+          /* Una corrección posterior. Se dice, porque el paciente pudo haber
+             leído la anterior y necesita saber que ésta la reemplaza. */
+          <span style={{ fontSize: 12, color: 'var(--text3)' }}>Actualizado por tu médico</span>
+        )}
+      </header>
+      {bloques.map(b => (
+        <div key={b.clave} style={{ marginTop: 14 }}>
+          <h4 style={{ margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            {b.titulo}
+          </h4>
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+            {b.lineas.map((l, i) => (
+              <li key={i} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{l}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </article>
   )
 }
 

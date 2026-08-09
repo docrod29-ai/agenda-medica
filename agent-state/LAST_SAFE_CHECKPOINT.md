@@ -6,7 +6,61 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+## Checkpoint · 9-ago-2026 — **REG-308: el residuo de `POSTVISIT-001`, cerrado**
+
+| | |
+|---|---|
+| **Rama** | `claude/relaxed-fermi-wu020j` (parte de `origin/claude/relaxed-fermi-kisu3p`, que ya traía `POSTVISIT-001`) |
+| **Unidad** | `POSTVISIT-001` — residuo de entrega · **REG-308** |
+| **Siguiente** | **`PATIENT-AI-001`** (sin cambios) |
+
+**Lo que se encontró al reanudar.** `POSTVISIT-001` se cerró comprobando sus dos
+mitades por separado —el botón escribe, la ruta filtra— y no la costura. La
+acción `paquetes` de `/api/portal` era la única de las ocho **sin un solo
+llamador**: el paciente veía para siempre el estado vacío de «Cuidado».
+
+Se descubrió aplicando `.claude/rules/el-dato-tiene-que-llegar.md` a la frase que
+la sesión anterior había escrito en el ledger («el paquete aparece en su portal y
+ya»). No hacía falta un navegador: bastaba un `grep`.
+
+**Dos cosas quedaron hechas:**
+
+1. La llamada que faltaba, con su 403 dicho —igual que las recetas— cuando el
+   enlace no tiene alcance clínico, y sin bloquear las citas si falla.
+2. **`src/lib/paciente/como-se-ve-el-paquete.ts`**: qué bloques se enseñan, en
+   qué orden y cuáles se callan vacíos, decidido **una vez**. La tarjeta del
+   médico promete «lo que va a leer el paciente»; con dos composiciones escritas
+   a mano esa promesa dependía de que nadie tocara una sin tocar la otra.
+
+**El guardián nuevo no vigila `paquetes`**: enumera todos los `case` de
+`/api/portal` y exige un llamador para cada uno. La acción número nueve entra
+sola.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 625 de 8 626 · 1 omitida · 1 fallo preexistente y de entorno** (`ops-timeout`) |
+| `lint-trinquete` | **96, igual que el techo** |
+| trinquete de diseño | **sin deuda nueva** |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **completo** (con variables de Firebase ficticias) |
+| navegador | **NO ejecutado** |
+
+### Antes de empezar `PATIENT-AI-001`, dos avisos
+
+- **La lección de este turno se aplica a esa unidad también.** «Preguntar» va a
+  tener ruta, clasificador y persistencia; el día que se dé por cerrada, la
+  pregunta es si la pantalla llama a la ruta y si lo que responde se lee. El
+  guardián de acciones huérfanas ya cubre `/api/portal`; si Ask Nexus vive en una
+  ruta nueva, hay que extenderlo o escribirle el suyo.
+- **Los 12 casos del §PATIENT AI RED TEAM son fixture permanente** en
+  `evals/patient-ai/` — no ejemplos. Y la clase de respuesta se guarda **con** la
+  respuesta: una respuesta sin clase es un defecto, no un caso raro.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`POSTVISIT-001` cerrada**
 
 | | |
 |---|---|

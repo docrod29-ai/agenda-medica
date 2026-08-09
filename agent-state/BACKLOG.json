@@ -398,7 +398,8 @@
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
       "score": 60,
       "cerradoEn": "2026-08-09 · POSTVISIT-001",
-      "reg": "REG-307"
+      "reg": "REG-307, REG-308",
+      "cierre": "CERRADO en dos mitades. REG-307 puso el acto de liberar y la ruta que sirve los paquetes; se dio por entregado ahí, y no lo estaba: la pantalla del paciente no llamaba a `action: 'paquetes'`, así que «Cuidado» enseñaba para siempre su estado vacío. REG-308 conecta el consumidor, unifica la composición de bloques entre la tarjeta del médico y el portal, y deja un guardián que exige un llamador para CADA acción de /api/portal."
     },
     {
       "seguridad": 0,

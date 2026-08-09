@@ -23,7 +23,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Check, Send, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { fetchAutenticado } from '@/lib/auth-client'
-import type { PaqueteDeVisita, CambioDeMedicacion } from '@/lib/paciente/paquete-de-visita'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import { bloquesDelPaquete } from '@/lib/paciente/como-se-ve-el-paquete'
 
 export interface LiberarAlPacienteProps {
   clinicId: string
@@ -33,13 +34,6 @@ export interface LiberarAlPacienteProps {
 }
 
 interface Liberado { version: number; approvedAt: number | null }
-
-const ETIQUETA_CAMBIO: Record<CambioDeMedicacion['tipo'], string> = {
-  nuevo: 'empieza',
-  modificado: 'cambia',
-  suspendido: 'se suspende',
-  'sin-cambio': 'sigue igual',
-}
 
 export function LiberarAlPaciente({ clinicId, patientId, notaId }: LiberarAlPacienteProps) {
   const [paquete, setPaquete] = useState<PaqueteDeVisita | null>(null)
@@ -148,29 +142,16 @@ export function LiberarAlPaciente({ clinicId, patientId, notaId }: LiberarAlPaci
 
       {paquete && (
         <div style={{ padding: '4px 14px 14px' }}>
-          {paquete.encounterSummary && (
-            <Bloque titulo="Resumen de la consulta" lineas={[paquete.encounterSummary]} />
-          )}
-          {paquete.medicationInstructions.length > 0 && (
-            <Bloque titulo="Sus medicamentos" lineas={paquete.medicationInstructions.map(m => m.instruccion)} />
-          )}
-          {paquete.medicationChanges === null ? (
-            /* «No lo sé» dicho en voz alta. Sin visita anterior firmada no se
-               puede afirmar qué cambió, y callarlo se leería como «nada cambió». */
-            <Bloque
-              titulo="Qué cambió"
-              lineas={['No hay una consulta firmada anterior con la que comparar: no se afirma qué cambió.']}
-            />
-          ) : paquete.medicationChanges.length > 0 && (
-            <Bloque
-              titulo="Qué cambió"
-              lineas={paquete.medicationChanges.map(c => `${c.nombre} — ${ETIQUETA_CAMBIO[c.tipo]}`)}
-            />
-          )}
-          {paquete.orders.length > 0 && (
-            <Bloque titulo="Estudios que le pidió" lineas={paquete.orders} />
-          )}
-          {paquete.followUp && <Bloque titulo="Su próxima cita" lineas={[paquete.followUp]} />}
+          {/*
+            Los bloques los decide `como-se-ve-el-paquete`, no esta pantalla
+            (REG-308). El portal del paciente pide EXACTAMENTE los mismos, con la
+            otra voz, y un guardián comprueba que las líneas coincidan: si cada
+            pantalla compusiera los suyos, el título de esta tarjeta —«lo que va a
+            leer el paciente»— dependería de que nadie tocara una sin la otra.
+          */}
+          {bloquesDelPaquete(paquete, 'medico').map(b => (
+            <Bloque key={b.clave} titulo={b.titulo} lineas={b.lineas} />
+          ))}
           {!hayContenido && (
             <p style={{ marginTop: 14, fontSize: 12, color: 'var(--text3)' }}>
               Esta consulta no dejó medicamentos, estudios ni seguimiento: no hay nada que liberar.

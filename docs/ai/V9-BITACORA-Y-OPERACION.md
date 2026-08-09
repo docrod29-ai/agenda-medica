@@ -166,3 +166,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-09 | **NAVIGATION-001** | `fed81cc` | El ciclo devuelve el contexto: seguimiento que sobrevive, atrás de verdad, agenda en la URL, aviso antes de cortar el dictado | **276-279** |
 | 2026-08-09 | **PATIENT-COMPANION-001** | `5d496cf` | Cinco destinos, PaqueteDeVisita DRAFT/RELEASED y la compuerta en el servidor. Composición diferida a POSTVISIT-001 por no tener llamador | **280, 281** |
 | 2026-08-09 | **POSTVISIT-001** | `75458b4` | La firma pasa de intención a precondición, y el paquete LLEGA: ruta de servidor que compone y libera, tarjeta en la consulta, versión vigente en el portal | **306, 307** |
+| 2026-08-09 | **POSTVISIT-001 · residuo** | *(este commit)* | La pantalla del paciente **pide** los paquetes; una sola composición de bloques para médico y paciente; guardián de acciones huérfanas en `/api/portal` | **308** |

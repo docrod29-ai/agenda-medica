@@ -3,9 +3,29 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306, REG-307 (`75458b4`).
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306, REG-307 (`75458b4`),
+**más su residuo de entrega, REG-308**.
 **Siguiente**: `PATIENT-AI-001` — ASK NEXUS con sus cinco clases de respuesta y
 las doce preguntas del §0 como fixture permanente.
+
+---
+
+## REG-308 — el paquete llegaba a la ruta, no a la pantalla
+
+`POSTVISIT-001` se dio por cerrada comprobando las dos mitades por separado. La
+costura no existía: **la pantalla del paciente no llamaba a `action: 'paquetes'`**,
+así que «Cuidado» pintaba para siempre su estado vacío. Corregido, con dos
+efectos que conviene no perder:
+
+- **Una sola composición de bloques** (`lib/paciente/como-se-ve-el-paquete.ts`)
+  para la tarjeta del médico y para el portal. El médico aprueba exactamente las
+  líneas que el paciente lee; lo único que cambia es el encabezado.
+- **Un guardián por acción huérfana**: todo `case` de `/api/portal` necesita un
+  llamador. La novena acción entra sola.
+
+Y la fecha de aprobación al frente de cada plan —PROCEDENCIA—, porque sin ella
+dos consultas seguidas se leen como una sola instrucción vigente y la vieja gana
+por estar arriba. `approvedBy` no se pinta: es un uid, no el nombre de nadie.
 
 ---
 
@@ -14,7 +34,8 @@ las doce preguntas del §0 como fixture permanente.
 **El paquete LLEGA.** `POST /api/paciente/paquete` compone desde la nota firmada
 y libera; la tarjeta «Lo que va a leer el paciente en su portal» vive en la
 consulta y sólo aparece con la nota firmada; el portal sirve la versión vigente
-de cada consulta. El primer paquete que puede existir en producción es de hoy.
+de cada consulta, **y desde REG-308 la pantalla la pide**. El primer paquete que
+puede existir en producción es de hoy.
 
 **La firma dejó de ser una intención.** La cabecera del módulo decía que el
 contenido sale de lo «ya revisado y firmado» y nada lo comprobaba: la hoja se

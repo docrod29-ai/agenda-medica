@@ -120,3 +120,39 @@ tratamiento.
 **Compuertas**: vitest 8 615/8 616 (1 fallo de entorno preexistente,
 `ops-timeout`), trinquete de lint 96 = techo, trinquete de diseño sin deuda
 nueva, `tsc` limpio, `npm run build` completo. **Navegador: no ejecutado.**
+
+---
+
+## 9-ago-2026 — `REG-308`: el paquete llegaba a la ruta, no al paciente
+
+La sesión anterior cerró `POSTVISIT-001` y escribió, en el ledger, que «el
+paquete aparece en su portal y ya». Al reanudar se aplicó a esa frase la regla
+`el-dato-tiene-que-llegar`, y la respuesta a su pregunta 1 —*¿dónde acaba este
+dato?*— era **«en la ruta que lo sirve»**.
+
+`action: 'paquetes'` era la única de las ocho acciones de `/api/portal` **sin un
+solo llamador**. El médico firmaba, revisaba, liberaba, el documento se escribía
+en Firestore — y la pestaña «Cuidado» del paciente seguía pintando su estado
+vacío escrito a mano: *«cuando tu médico libere el resumen de una consulta, lo
+verás aquí»*. Nunca lo iba a ver.
+
+Es `escrito_probado_y_sin_conectar` una capa más arriba de lo habitual: lo
+desconectado no era el motor, era **el consumidor**. La familia más grande del
+proyecto reapareciendo dentro de la unidad que la estaba arreglando.
+
+**Y una segunda copia que había que quitar antes de crear la tercera.** La
+tarjeta del médico se titula «Lo que va a leer el paciente en su portal», y
+decidía a mano qué bloques enseñar, en qué orden y cuáles callar. La pantalla del
+paciente iba a volver a decidirlo a mano. `como-se-ve-el-paquete.ts` lo decide
+una vez: las dos piden los mismos bloques, sólo cambia el encabezado —«Sus
+medicamentos» / «Tus medicamentos»— y las líneas son idénticas byte a byte, con
+un guardián que lo comprueba.
+
+**El guardián que importa no vigila `paquetes`**: enumera todos los `case` de
+`/api/portal` y exige un llamador para cada uno. La acción número nueve entra
+sola. Probado al revés: sin el `fetch`, falla nombrando la acción huérfana.
+
+**Compuertas**: vitest 8 625/8 626 · 1 skip · 1 fallo de entorno preexistente
+(`ops-timeout`, que intenta un TCP a 10.255.255.1), trinquete de lint 96 = techo, trinquete de diseño sin deuda
+nueva, `tsc` limpio. **Navegador: no ejecutado** — sigue sin haber credenciales
+de Firebase en esta máquina.

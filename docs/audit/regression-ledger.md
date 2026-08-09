@@ -7118,3 +7118,72 @@ en la máquina donde se escribió.
 **Guardián.** `src/__tests__/liberar-al-paciente-lo-decide-el-servidor.test.ts`
 (23 casos) y `src/__tests__/el-paquete-del-paciente-sale-de-lo-firmado.test.ts`
 (33 casos).
+
+---
+
+## REG-308 — El paquete liberado no llegaba a la pantalla del paciente
+
+**Unidad** V9 `POSTVISIT-001` (residuo detectado al reanudar) · `POSTVISIT-ENTREGA-001`.
+
+**Qué pasaba.** El médico firmaba, revisaba la tarjeta «Lo que va a leer el
+paciente en su portal», pulsaba **Liberar al paciente**, y el documento se
+escribía. El paciente abría su portal, entraba en **Cuidado**, y leía la misma
+frase de siempre: *«Cuando tu médico libere el resumen de una consulta, lo verás
+aquí.»*
+
+Nunca lo iba a ver. La pantalla **no tenía ni un `fetch`**: pintaba un estado
+vacío escrito a mano. La acción `paquetes` de `/api/portal` —con su compuerta de
+visibilidad, su alcance `clinico` y su `vigentesPorNota`— era la única de las
+ocho que la ruta atiende **sin un solo llamador**.
+
+**Cómo se descubrió.** Aplicando `.claude/rules/el-dato-tiene-que-llegar.md` a la
+unidad que la sesión anterior acababa de cerrar. La pregunta 1 de esa regla —
+*«¿dónde acaba este dato? Si la respuesta es «en la función que lo escribe»,
+todavía no ha llegado»*— tenía aquí una respuesta peor: acababa en la ruta que lo
+sirve. Un `grep` de `action: 'paquetes'` fuera del servidor devolvió cero.
+
+**Causa raíz.** La unidad se cerró comprobando las dos mitades por separado —el
+botón escribe, la ruta filtra— y no la costura. Su propia entrada del ledger
+(REG-307) escribió *«el paquete aparece en su portal y ya»*: era cierto del
+servidor y falso del producto.
+
+**Familia.** `escrito_probado_y_sin_conectar`, una capa más arriba de lo
+habitual: lo desconectado no era el motor, era **el consumidor**. La familia más
+grande del proyecto vuelve a aparecer en la unidad que la estaba arreglando.
+
+**Arreglo.** Tres piezas:
+
+1. **La llamada que faltaba**, en paralelo con las recetas y sin bloquear las
+   citas: un fallo cargando el plan no puede dejar al paciente sin saber a qué
+   hora tiene que estar mañana. El 403 por falta de alcance clínico se dice, con
+   las mismas palabras que ya usaban las recetas, en vez de fingir que no hay
+   nada.
+2. **`src/lib/paciente/como-se-ve-el-paquete.ts`** — qué bloques se enseñan, en
+   qué orden y cuáles se callan vacíos, decidido **una sola vez**. La tarjeta del
+   médico promete «lo que va a leer el paciente»: con dos composiciones escritas
+   a mano, esa promesa dependía de que nadie tocara una sin tocar la otra. Ahora
+   las dos piden los mismos bloques y sólo cambia el encabezado —«Sus
+   medicamentos» / «Tus medicamentos»—; las líneas son idénticas byte a byte y
+   hay un guardián que lo comprueba.
+3. **La tarjeta del paciente**, con la fecha de aprobación al frente. Es
+   PROCEDENCIA: sin ella, dos consultas seguidas se leen como una sola
+   instrucción vigente y la vieja gana por estar arriba. `approvedBy` **no** se
+   pinta — es un uid, no el nombre de nadie.
+
+**La excepción que se conserva.** `medicationChanges === null` sí pinta su bloque,
+diciendo que no hay con qué comparar. Callarlo se leería como «no cambió nada», y
+el paciente que lo lee deja de comprobar la caja: regla 4 de seguridad clínica,
+dicha en lenguaje de interfaz.
+
+**El guardián que importa.** No vigila `paquetes`: enumera **todos** los `case`
+de `/api/portal` y exige un llamador para cada uno. La acción número nueve entra
+sola. Probado al revés: sin el `fetch`, falla nombrando la acción huérfana.
+
+**Lo que este arreglo NO hace.** No avisa al paciente de que hay algo nuevo
+(`CLOSED-LOOP-PATIENT-001`). No responde preguntas (`PATIENT-AI-001`). Y **nada
+de esto se ha visto en un navegador**: no hay credenciales de Firebase en esta
+máquina, así que que React pinte lo que devuelve el servidor sigue sin
+comprobarse en vivo (`NAV-NAVEGADOR-001`).
+
+**Guardián.** `src/__tests__/el-plan-liberado-llega-a-la-pantalla-del-paciente.test.ts`
+(13 casos).

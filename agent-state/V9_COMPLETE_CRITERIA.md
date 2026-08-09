@@ -68,7 +68,11 @@ distinto de `CERRADO`.
 | P1 | `PATIENT-PORTAL-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
 
 > `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001` se cerraron el 9-ago-2026 con
-> REG-306 y REG-307.
+> REG-306 y REG-307. **`POSTVISIT-ENTREGA-001` se cerró antes de estarlo**: la
+> ruta servía los paquetes y la pantalla del paciente no los pedía. Lo cerró de
+> verdad REG-308, y de ahí sale el guardián de acciones huérfanas de
+> `/api/portal` — una unidad no está entregada porque sus dos mitades pasen sus
+> pruebas por separado.
 
 Un P1 sólo deja de bloquear si el **dueño** lo acepta por escrito en
 `OWNER_DECISIONS_REQUIRED.md` como riesgo residual: aceptar riesgo residual
