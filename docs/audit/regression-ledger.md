@@ -6238,3 +6238,60 @@ escrita donde se lee. El resto de eventos sigue respetando la guarda del aviso.
 - `src/hooks/useGrabacionAudio.ts`
 - `src/components/AutoLogout.tsx`
 - `src/__tests__/grabar-es-actividad.test.ts` (nuevo, 13 casos, sellado)
+
+---
+
+## REG-288 — las decisiones del dueño estaban escritas y nadie las leía (v1162)
+
+Este repositorio tiene una regla que ha funcionado: **cuando falta un criterio
+clínico u operativo, no se inventa un valor por defecto — se declara.** De ahí
+salen `FALTA_GRACIA`, `FALTA_POLITICA_Q2_Q4`, `FALTA_VENTANA_REINGRESO`,
+`FALTA_VENTANA_TEMPORAL` y `LO_QUE_HACE_FALTA_DEL_DR`.
+
+Cada una está escrita con cuidado, dice **qué** hace falta y **por qué** no puede
+decidirlo el software. Y **nadie las leía**: viven repartidas en cinco módulos.
+
+### Es la familia más grande, aplicada a las decisiones
+
+«Escrito y sin conectar», pero de **decisiones** en vez de código. La declaración
+existía; el camino hasta quien decide, no. El resultado se veía: llevaban meses
+citándose de memoria al final de cada informe, con el riesgo de que la lista
+dijera una cosa y el código esperase otra.
+
+### Derivado, no una lista
+
+`scripts/calidad/lo-que-espera-al-dueno.mjs` las recoge **del código**, buscando
+por forma —una constante exportada `FALTA_*` o `LO_QUE_HACE_FALTA_*`— y no por
+lista de ficheros: una declaración nueva en un módulo que todavía no existe
+aparece igual.
+
+Una lista escrita a mano se desfasa. Ya pasó dos veces con cifras de este mismo
+repositorio (REG-241 y la sala de datos). Aquí el daño sería peor: **seguir
+pidiendo algo ya resuelto hace que se dejen de leer todas.**
+
+### El guardián falla en las DOS direcciones
+
+Comprobado retirando y añadiendo entradas: falla cuando el código declara algo
+que el documento no pide, **y** cuando el documento pide algo que el código ya no
+espera. La segunda es la que envenena.
+
+### Lo que el documento deliberadamente no hace
+
+**No propone respuestas.** Ninguna sugerida, ningún valor «recomendado», ningún
+número de ejemplo copiable.
+
+Poner un valor razonable al lado de la pregunta es exactamente cómo el criterio
+del dueño se convierte en el default de un agente sin que nadie firme nada — y
+esas cinco constantes existen para impedirlo. Hay una prueba que lo comprueba.
+
+### El instrumento tampoco puede mirar al vacío
+
+Si el barrido no encuentra ninguna declaración, **falla** en vez de parecer decir
+«no queda nada pendiente». Es la misma regla del trinquete de lint: *un gate que
+no mide no protege*.
+
+### Archivos
+
+- `scripts/calidad/lo-que-espera-al-dueno.mjs` (nuevo)
+- `docs/DECISIONES-DEL-DUENO.md` (nuevo, derivado)
+- `src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts` (nuevo, 7 casos, sellado)
