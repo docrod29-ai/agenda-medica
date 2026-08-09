@@ -16,9 +16,28 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1150",
+  "ultimaVersionEnProduccion": "nexusmed-v1151",
   "trabajoLocalSinSubir": [
-    "M src/lib/calidad/familias-de-defecto.ts"
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "M  agent-state/DESIGN_STATE.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/MASTER_STATE.json",
+    "M  agent-state/PATIENT_COMPANION_STATE.md",
+    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "M  docs/audit/regression-ledger.md",
+    "A  docs/competitive/PATIENT_EXPERIENCE_MATRIX.md",
+    "A  docs/competitive/UX_UI_MATRIX.md",
+    "M  docs/data-room/INDICE.md",
+    "A  docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
+    "A  docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
+    "A  docs/design/NAVIGATION_STATE_AUDIT.md",
+    "A  docs/design/SCREEN_INVENTORY.md",
+    "M  docs/maintenance/BITACORA-2026-08-01-tarde.md",
+    "M  docs/maintenance/sw-changelog.md",
+    "A  docs/patient/PATIENT_COMPANION_BASELINE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  public/sw.js"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -54,22 +73,20 @@
   ],
   "ramaActual": "agent/voice/VOICE-007-numerales-13-29",
   "derivado": {
-    "regsEnElLedger": 116,
-    "ultimaREG": "REG-268",
-    "archivosDePrueba": 546,
-    "casosDePrueba": 7239,
+    "regsEnElLedger": 118,
+    "ultimaREG": "REG-270",
+    "archivosDePrueba": 549,
+    "casosDePrueba": 7255,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "ramasAbiertas": [],
   "prAbiertoDeEstaRama": {
     "pr": 253,
     "rama": "agent/voice/VOICE-007-numerales-13-29",
-    "reg": "REG-268",
-    "version": "nexusmed-v1150",
-    "que": "ES_CANTIDAD (dosis-sin-numero.ts) no reconocía el 13, 14, 16-19 ni el 21-29 en letra: «metoprolol veinticinco miligramos» salía marcado como dosis SIN cantidad y levantaba requiereConfirmacion. Verificado el 9-ago que el hueco SIGUE en main.",
+    "reg": "REG-270",
+    "version": "nexusmed-v1151",
+    "que": "ES_CANTIDAD (dosis-sin-numero.ts) no reconoce el 13, 14, 16-19 ni el 21-29 en letra: «metoprolol veinticinco miligramos» sale marcado como dosis SIN cantidad y levanta requiereConfirmacion. VERIFICADO el 9-ago sobre origin/main: el hueco SIGUE ahí.",
     "golden": "src/__tests__/los-numeros-en-letra-son-cantidad.test.ts (12 casos, sellado)",
-    "compuertas": "vitest, tsc, trinquete (96) y build en verde sobre el árbol ya fusionado con main",
-    "renumeracion": "Empezó como REG-204/v1085, pasó a REG-212/v1094 y acabó en REG-268/v1150: main cerró esos números mientras el PR esperaba. Es el coste del atasco, medido.",
-    "pendiente": "Fusionar y desplegar NO los hace esta rutina: se dejan al dueño."
+    "renumeracion": "CUARTA. REG-204/v1085 → REG-212/v1094 → REG-268/v1150 → REG-270/v1151. main cerró y desplegó cada uno de esos números mientras el PR esperaba. La reparación no ha cambiado una línea en las cuatro.",
+    "pendiente": "Fusionar y desplegar NO los hace esta rutina."
   }
 }

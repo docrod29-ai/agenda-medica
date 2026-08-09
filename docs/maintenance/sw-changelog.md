@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1150 — REG-268: «veinticinco miligramos» se leía como una dosis sin cantidad
+## v1151 — REG-270: «veinticinco miligramos» se leía como una dosis sin cantidad
 
 La lista de números en letra que valen como cantidad iba 1…12, saltaba a 15, a
 20 y de ahí a las decenas. Faltaban el 13, el 14, el 16-19 y todo el 21-29.
@@ -18,7 +18,7 @@ previa es «cinco»); por eso el hueco pasó dos revisiones sin verse.
 
 Ninguna cifra clínica cambia: lo que cambia es qué cuenta como número escrito en
 letra. El motor sigue detectando y sin completar ninguna dosis.
-## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
+
 ## v1084 — REG-203: las decisiones de arquitectura vivían en la cabeza de nadie
 
 `docs/decisions/` estaba vacía. Cuatro ADR escritos, todos de decisiones YA
@@ -2612,3 +2612,21 @@ línea copiada.
 
 No es código nuevo: es código que se había quedado fuera de la rama que se
 despliega. La misma familia que REG-267, con otro disfraz.
+
+## v1150 — el trabajo de V9: la superficie del paciente
+
+**REG-268** · el enlace de la videoconsulta del paciente no llevaba token, así
+que `/api/telesalud/sala` le contestaba **404 «Cita no encontrada» al dueño de la
+cita** —desde su propio portal, a la hora de su consulta—. Nadie lo vio porque el
+botón del médico sí lo lleva: sólo fallaba el camino que ningún empleado recorre.
+El token pasa a ser obligatorio en la firma.
+
+**REG-269** · `@keyframes spin` no existía en ningún sitio global pese a 90
+referencias, incluidos `ui/Spinner` y el estado «cargando» de `ui/Button`. Lo
+definían 31 pantallas en `<style>` locales, así que el giro funcionaba según en
+qué pantalla estuvieras. Un indicador parado no dice «esperando»: dice «se
+colgó», y se vuelve a pulsar sobre una petición que sí corría.
+
+Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
+reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
+programas compartieran directorio de trabajo, después de REG-267.
