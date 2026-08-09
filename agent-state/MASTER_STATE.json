@@ -10,26 +10,27 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-203 (cerrada) — el vocabulario clínico casaba dentro de otras palabras",
+  "iteracionActual": "REG-203 (cerrada, PR #242 abierto) — el vocabulario clínico casaba dentro de otras palabras",
+  "ramasActivas": [
+    "agent/expediente/TEMP-192",
+    "agent/expediente/vocabulario-clinico"
+  ],
+  "maxRamasConcurrentes": 3,
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1085",
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
+  ],
   "ultimaIteracion": {
-    "fecha": "2026-08-07",
+    "fecha": "2026-08-09",
     "itemDelBacklog": "EVAL-002 (auditoría del motor de temporalidad)",
     "reg": "REG-203",
     "version": "nexusmed-v1085",
     "rama": "agent/expediente/vocabulario-clinico",
     "golden": "src/__tests__/un-termino-clinico-es-una-palabra.test.ts (21 casos, sellado)",
-    "compuertas": "vitest 6959/6960 · tsc limpio · trinquete 96 (igual que el techo) · build verde",
-    "falloAjenoConocido": "src/__tests__/ops-timeout-y-punto-ciego.test.ts «el error dice cuánto esperó y a quién» falla en este entorno sin salida a 10.255.255.1 (la conexión se rechaza en vez de colgarse). Comprobado sobre el árbol limpio, con git stash: no es de este cambio.",
-    "concurrencia": "Diez corridas de esta misma rutina abrieron PR la misma noche, todas partiendo de main y todas numeradas REG-203/v1085. El «derrame pleural → EVC» que esta corrida también encontró ya lo repara el PR #239: se retiró de aquí para no arreglar lo mismo dos veces. El número final lo decide el orden de fusión."
-  },
-  "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001",
-    "agent/expediente/vocabulario-clinico"
-  ],
-  "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "trabajoLocalSinSubir": []
+    "fusionConMain": "main trajo REG-192 (mencion-en-la-nota.ts, todas las apariciones). No se eligió un lado: el buscador por palabra entró DENTRO de primeraMencionSinEscudo, que es donde se busca el término en la nota. Sin eso, la «sida» de «obesidad» seguía contando como aparición por ese camino."
+  }
 }

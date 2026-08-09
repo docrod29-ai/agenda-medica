@@ -71,9 +71,9 @@ function cierraPalabra(resto: string): boolean {
  * `sinAcentos` conserva la longitud (la tilde precompuesta se descompone y se
  * vuelve a quedar en un carácter).
  */
-export function indiceDeTermino(texto: string, forma: string): number {
+export function indiceDeTermino(texto: string, forma: string, desde = 0): number {
   if (!forma) return -1
-  let i = texto.indexOf(forma)
+  let i = texto.indexOf(forma, desde)
   while (i >= 0) {
     const antes = i > 0 ? texto[i - 1] : ''
     if (!LETRA.test(antes) && cierraPalabra(texto.slice(i + forma.length))) return i

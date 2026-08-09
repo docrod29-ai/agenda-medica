@@ -158,6 +158,29 @@ describe('lo que le llegaba al médico en pantalla', () => {
       .toEqual(['diabetes'])
   })
 
+  /**
+   * ── LA OTRA PUERTA: BUSCAR EL TÉRMINO EN LA NOTA ───────────────────────────
+   *
+   * `primeraMencionSinEscudo` (REG-192, de otra corrida de la misma noche)
+   * recorre TODAS las apariciones del término en la nota. Si la aparición se
+   * cuenta con `indexOf` a secas, la «sida» de «obesidad» es una aparición y el
+   * motor va a buscarla ahí — aunque el dictado sí hablara de VIH de verdad.
+   *
+   * Arreglar sólo `cronicasEn` habría dejado viva esta puerta, que es el patrón
+   * que este repositorio lleva el año persiguiendo (REG-138, REG-148).
+   */
+  it('con un VIH negado de verdad, la nota con «obesidad» no es la contradicción', () => {
+    const negadas = condicionesNegadas('¿Tiene VIH? No, nunca.')
+    expect(negadas.map(n => n.condicion)).toEqual(['VIH'])
+    expect(contradicciones(negadas, 'Paciente con obesidad grado 2, en dieta.')).toEqual([])
+  })
+
+  it('con una neumonía pasada de verdad, el urocultivo no es la nota que la afirma', () => {
+    const pasadas = mencionesEnPasado('Tuvo neumonía hace tres años.')
+    expect(pasadas.map(p => p.condicion)).toEqual(['neumonía'])
+    expect(desajustesTemporales(pasadas, 'Urocultivo: Klebsiella pneumoniae BLEE.')).toEqual([])
+  })
+
   it('el desajuste temporal de verdad sigue saliendo', () => {
     const pasadas = mencionesEnPasado('Tuvo neumonía hace tres años.')
     expect(pasadas.map(p => p.condicion)).toEqual(['neumonía'])
