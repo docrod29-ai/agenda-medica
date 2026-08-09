@@ -18,11 +18,22 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder, ipDe } from '@/lib/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
 export async function POST(req: NextRequest) {
   try {
+    /**
+     * FRENO POR IP (REG-292). Cada llamada crea una sesión de Checkout en
+     * Stripe y reescribe la cita a 'pendiente-pago': sin freno, un token
+     * filtrado permitía fabricar sesiones sin tope. Pagar de verdad requiere
+     * a lo sumo un par de intentos; 10/600 s cubre al que cierra la pestaña
+     * y vuelve a empezar, y corta al guion.
+     */
+    const lim = await limitarOResponder(`checkout:ip:${ipDe(req)}`, 10, 600)
+    if (lim) return lim
+
     const { token, citaId } = await req.json()
     // MONEDA FIJA EN EL SERVIDOR (auditoría P0): el monto se calcula en MXN, así que
     // la moneda DEBE ser 'mxn'. Antes se tomaba `currency` del body → con 'cop'/'ars'

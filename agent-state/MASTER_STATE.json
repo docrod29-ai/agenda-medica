@@ -11,7 +11,7 @@
     "cambiosDestructivos": false,
     "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "9-ago-2026: REG-291 cerrado (POSTVISIT-GATE-001, compuerta de firma de la hoja del paciente). Siguiente: PATIENT-PORTAL-001. Detalle: agent-state/V7-ITERACION.md",
+  "iteracionActual": "9-ago-2026: REG-291 (compuerta de firma de la hoja del paciente) y REG-292 (freno del portal + revocación fail-closed) cerrados. Siguiente: POSTVISIT-ENTREGA-001. Detalle: agent-state/V7-ITERACION.md",
   "ramasActivas": [
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
@@ -19,14 +19,23 @@
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
     "M agent-state/BACKLOG.json",
-    " M agent-state/BLOCKERS.md",
+    " M agent-state/DECISION_LOG.md",
+    " M agent-state/MASTER_STATE.json",
     " M agent-state/V7-ITERACION.md",
     " M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx"
+    " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/portal-alcance.test.ts",
+    " M src/app/api/errores/route.ts",
+    " M src/app/api/payment/create-checkout/route.ts",
+    " M src/app/api/portal/route.ts",
+    " M src/app/api/public/resena/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/rate-limit.ts",
+    "?? src/__tests__/el-portal-tiene-freno.test.ts"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -60,10 +69,10 @@
   ],
   "ramaActual": "claude/clever-lamport-c0vsq7",
   "derivado": {
-    "regsEnElLedger": 139,
-    "ultimaREG": "REG-291",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7461,
+    "regsEnElLedger": 140,
+    "ultimaREG": "REG-292",
+    "archivosDePrueba": 567,
+    "casosDePrueba": 7470,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -2,7 +2,7 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
+**Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
 **Fuente**: los 112 REG de `docs/audit/regression-ledger.md`.
 
 ---
@@ -39,8 +39,14 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 33 de 140, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+El caso 33 es REG-292 (9-ago): el limitador de tasa existía, probado, y las tres
+superficies del paciente que más lo necesitaban no lo corrían — y la
+comprobación de revocación del portal llevaba desde su nacimiento sin
+ejercitarse ni siquiera en los tests, porque el doble estaba incompleto y el
+fail-open se tragaba el `TypeError`.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el

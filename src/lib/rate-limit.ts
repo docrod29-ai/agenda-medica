@@ -13,7 +13,20 @@
  *  - doc con `exp` para poder purgar con TTL de Firestore si algún día se activa.
  */
 import { adminDb } from '@/lib/firebase-admin'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+
+/**
+ * La IP del que llama, para poder frenarlo sin tener su uid.
+ *
+ * Vivía como función privada de `api/errores` y el freno del portal la iba a
+ * copiar: dos copias de «cómo se lee la IP» es una compuerta que se abre sola
+ * el día que alguien corrige el parsing en una y no en la otra. Se comparte
+ * desde aquí, junto al limitador que la consume.
+ */
+export function ipDe(req: NextRequest): string {
+  const h = req.headers.get('x-forwarded-for') ?? ''
+  return h.split(',')[0].trim() || 'desconocida'
+}
 
 export interface LimiteResultado {
   ok: boolean

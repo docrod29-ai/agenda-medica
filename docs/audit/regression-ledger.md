@@ -6433,3 +6433,77 @@ estado es demasiado grande para una prueba unitaria). No cubre
 
 - `src/app/(dashboard)/consulta/[patientId]/page.tsx`
 - `src/__tests__/lo-que-se-lleva-el-paciente.test.ts` (2 casos nuevos, sellado)
+
+---
+
+## REG-292 — el portal sin freno, y una revocación que fallaba abierta (v1165)
+
+**Backlog `PATIENT-PORTAL-001` (score 62), de la auditoría del producto real
+V9.** Tres rutas y un modo de fallo:
+
+### 1. `/api/portal` era la única superficie del paciente sin `limitar*`
+
+Confirmar, cancelar, reagendar, el formulario previo y las recetas iban sin
+freno — mientras telesalud lleva 12/600 s y el booking público 8/h por IP. Un
+token filtrado permitía enumerar y mover la agenda del consultorio sin tope.
+
+Ahora: **dos frenos**. Por IP **antes** de verificar el HMAC (el costo que se
+acota incluye al que ni siquiera trae token válido) y por
+`clinicId:patientId` después (el cupo atado al sujeto no se reparte entre
+direcciones). `api/public/resena` (una transacción por intento de adivinar el
+ID) y `api/payment/create-checkout` (una sesión de Stripe por llamada) quedaron
+con freno por IP con los mismos patrones del repo.
+
+### 2. La comprobación de revocación fallaba ABIERTA
+
+Si la lectura de `portalTokenVersion` lanzaba, se dejaba pasar — con este
+argumento escrito: «dejar al paciente fuera de su propia agenda por un mal
+minuto de Firestore es peor que el riesgo que esto acota».
+
+**El argumento ignoraba que la agenda también vive en Firestore.** En el minuto
+en que esa lectura falla, la acción que venía después iba a fallar igual: el
+fail-open no le daba servicio a ningún paciente legítimo — sólo le devolvía la
+validez al enlace revocado, exactamente durante una incidencia. Y la misma ruta
+ya sentaba el precedente contrario: «SIN CONFIGURACIÓN NO SE REAGENDA»
+convierte un fallo de lectura en 503. Ahora la revocación hace lo mismo.
+Reversible: quitar el `return` del catch.
+
+### 3. Y lo que la reparación destapó: los tests nunca la habían ejercitado
+
+Los dobles de `portal-alcance.test.ts` no tenían `get` en el documento del
+paciente. La comprobación de revocación llevaba **desde su nacimiento** tirando
+`TypeError` en los tests, y el fail-open se lo tragaba: **los tests pasaban
+porque el defecto los dejaba pasar.** Ningún test del repositorio había visto
+nunca el 401 de un enlace revocado. Es «el dato tiene que LLEGAR» en su forma
+de prueba: el doble incompleto es el proveedor que rechaza en silencio.
+
+Con el fail-closed, un doble incompleto da 503 y el test ya no puede mentir.
+Los dobles quedaron completos y el 401 de revocación tiene su primer test.
+
+### ipDe se comparte, no se copia
+
+Vivía como función privada de `api/errores` y el freno del portal la iba a
+copiar. Dos copias de «cómo se lee la IP» es la familia `depende_de_recordar`:
+se movió a `lib/rate-limit.ts` y `api/errores` la importa.
+
+### Probada al revés
+
+Revirtiendo sólo `api/portal/route.ts`: 3 de los 9 casos nuevos fallan (429
+antes del token; los dos frenos; el 503 del fail-closed). Los números de los
+cupos no se fijan en el test: son calibración operativa, no contrato.
+
+### Lo que NO cubre
+
+La aritmética de ventanas de `limitar` (fail-open por diseño declarado, con su
+propio módulo). Los frenos de resena/checkout se comprueban en el fuente, no en
+ejecución (cargan Stripe). Y el freno por IP comparte el límite conocido de
+`x-forwarded-for` detrás de proxies compartidos: por eso el cupo por IP es
+holgado y el de paciente es el estrecho.
+
+### Archivos
+
+- `src/app/api/portal/route.ts` · `src/app/api/public/resena/route.ts` ·
+  `src/app/api/payment/create-checkout/route.ts`
+- `src/lib/rate-limit.ts` (`ipDe` compartida) · `src/app/api/errores/route.ts`
+- `src/__tests__/el-portal-tiene-freno.test.ts` (nuevo, 9 casos, sellado)
+- `src/__tests__/portal-alcance.test.ts` (dobles completados)

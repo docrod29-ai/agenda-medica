@@ -9,15 +9,9 @@ import { redactarString, redactarRuta } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { verificarSuperadmin } from '@/lib/superadmin'
-import { limitarOResponder } from '@/lib/rate-limit'
+import { limitarOResponder, ipDe } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
-
-/** La IP del que reporta, para poder frenarlo sin tener su uid. */
-function ipDe(req: NextRequest): string {
-  const h = req.headers.get('x-forwarded-for') ?? ''
-  return h.split(',')[0].trim() || 'desconocida'
-}
 
 export async function POST(req: NextRequest) {
   /**

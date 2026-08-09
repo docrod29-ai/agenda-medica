@@ -7,6 +7,7 @@ import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
+import { limitarOResponder, ipDe } from '@/lib/rate-limit'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -156,11 +157,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Petición inválida' }, { status: 400 })
   }
 
+  /**
+   * FRENO POR IP, ANTES de verificar el token (REG-292).
+   *
+   * Esta ruta era la única superficie del paciente sin `limitar*`: telesalud
+   * lleva 12/600 s y el booking público 8/h por IP, y aquí un token filtrado
+   * —o un script probando tokens— podía enumerar y mover la agenda del
+   * consultorio sin tope. El freno va ANTES del HMAC a propósito: el costo que
+   * acota incluye a quien ni siquiera trae un token válido.
+   *
+   * El cupo es holgado para una persona (la sesión real del portal son ~10-15
+   * llamadas: abrir, mirar huecos de varios días, mover la cita) y corto para
+   * un guion. Mismo `limitar` fail-open del resto del repo: el freno es malla,
+   * no compuerta — la compuerta es el token.
+   */
+  const limIp = await limitarOResponder(`portal:ip:${ipDe(req)}`, 60, 600)
+  if (limIp) return limIp
+
   const sesion = verificarTokenPaciente(body.token)
   if (!sesion) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
   const { clinicId, patientId, alcance } = sesion
+
+  /**
+   * Y FRENO POR PACIENTE, con el token ya verificado.
+   *
+   * El de IP no basta solo: quien tiene un token robado puede repartir las
+   * llamadas entre direcciones. Este segundo freno ata el cupo al sujeto del
+   * token, que no se puede repartir.
+   */
+  const limPaciente = await limitarOResponder(`portal:${clinicId}:${patientId}`, 30, 600)
+  if (limPaciente) return limPaciente
 
   /**
    * ¿SIGUE VIGENTE ESTE ENLACE?
@@ -170,9 +198,20 @@ export async function POST(req: NextRequest) {
    * única salida era esperar a que caducara. El expediente lleva ahora un
    * contador; subirlo tumba de golpe todos los enlaces anteriores.
    *
-   * Si la lectura falla se deja pasar: dejar al paciente fuera de su propia
-   * agenda por un mal minuto de Firestore es peor que el riesgo que esto acota,
-   * y la firma y la caducidad siguen protegiendo.
+   * ── SI LA LECTURA FALLA, SE CIERRA (REG-292) ──────────────────────────────
+   *
+   * Antes se dejaba pasar, con este argumento: «dejar al paciente fuera de su
+   * propia agenda por un mal minuto de Firestore es peor que el riesgo que
+   * esto acota». El argumento ignoraba que su agenda TAMBIÉN vive en
+   * Firestore: en el minuto malo en que esta lectura falla, la acción que
+   * venía después iba a fallar igual. El fail-open no le daba servicio al
+   * paciente legítimo — sólo le devolvía la validez al enlace revocado,
+   * exactamente durante una incidencia, que es cuando menos vigilancia hay.
+   *
+   * Esta misma ruta ya sienta el precedente: «SIN CONFIGURACIÓN NO SE
+   * REAGENDA» convierte un fallo de lectura en 503, no en «cualquier hora
+   * vale». El mismo criterio aplica a la revocación. Reversible: quitar el
+   * `return` del catch restaura el comportamiento anterior.
    */
   try {
     const pSnap = await adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId).get()
@@ -180,7 +219,12 @@ export async function POST(req: NextRequest) {
     if (!tokenVigente(sesion.version, vPaciente)) {
       return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
     }
-  } catch { /* ver arriba */ }
+  } catch {
+    return NextResponse.json(
+      { error: 'No se pudo comprobar tu enlace. Intenta de nuevo en un momento.' },
+      { status: 503 },
+    )
+  }
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {

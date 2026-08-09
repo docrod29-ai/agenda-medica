@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (v1165)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",
@@ -344,7 +344,8 @@
       "porQueImporta": "Un enlace revocado —teléfono perdido, número reciclado, mensaje reenviado— vuelve a valer durante una incidencia de Firestore. Y sin límite de tasa, un token filtrado permite enumerar y mover la agenda del consultorio.",
       "archivo": "src/app/api/portal/route.ts:183 · src/app/api/public/resena/route.ts · src/app/api/payment/create-checkout/route.ts",
       "plan": "Aplicar limitar* como ya lo hacen telesalud/sala (12/600 s) y public/booking (8/h por IP). Para la revocación, decidir si falla cerrado — es un cambio de política, no sólo de código.",
-      "score": 62
+      "score": 62,
+      "cierre": "REG-292, 9-ago: dos frenos en /api/portal (IP antes del HMAC, paciente después), freno por IP en resena y create-checkout, y la revocación falla CERRADA (503) — el fail-open sólo revalidaba el enlace revocado durante una incidencia, porque la agenda también vive en Firestore. Destapado de paso: los dobles de portal-alcance nunca habían ejercitado la revocación (TypeError tragado por el fail-open). 9 casos nuevos, probados al revés, sellados."
     },
     {
       "seguridad": 3,

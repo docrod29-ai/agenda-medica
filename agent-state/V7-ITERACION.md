@@ -62,13 +62,23 @@ la asignó el disparador de la sesión (`claude/clever-lamport-c0vsq7`), distint
 de `agent/v7/master-loop`; se deja en rama + commit, sin desplegar ni fusionar,
 para no mezclar dos ramas «autorizadas para desplegar» a la vez.
 
-**Siguiente iteración V7**: `PATIENT-PORTAL-001` (score 62) — falta de límite de
-tasa en `/api/portal`, `/api/public/resena`, `/api/payment/create-checkout`, y
-la comprobación de revocación de token de portal **falla ABIERTA** si la
-lectura del expediente lanza (route.ts:183). El límite de tasa es mecánico
-(mismo patrón que telesalud/booking); el modo de fallo de la revocación es
-decisión de política — declarar por qué se elige fallar cerrado antes de
-tocarlo.
+**Segunda iteración de la sesión — REG-292 (`PATIENT-PORTAL-001`, ordenada por
+el dueño: «sigue con PATIENT-PORTAL-001»)**: dos frenos en `/api/portal` (por
+IP antes del HMAC, por paciente después), freno por IP en `public/resena` y
+`payment/create-checkout`, `ipDe` compartida desde `lib/rate-limit.ts`, y la
+revocación del enlace ahora **falla cerrada** (503) — decisión documentada en
+`DECISION_LOG.md`, reversible. Lo que destapó: los dobles de
+`portal-alcance.test.ts` no tenían `get` en el documento del paciente, así que
+la comprobación de revocación llevaba desde su nacimiento tirando `TypeError`
+en los tests y el fail-open se lo tragaba — **los tests pasaban porque el
+defecto los dejaba pasar**. Probada al revés: revirtiendo sólo la ruta, 3 de
+los 9 casos nuevos fallan. Detalle: `regression-ledger.md` REG-292.
+
+**Siguiente iteración V7**: `POSTVISIT-ENTREGA-001` (score 60) — la hoja del
+paciente sigue sin llegar al portal (`/mi/[token]`); REG-291 ya le dio la
+compuerta de firma (DRAFT→RELEASED) de la que este ítem declaraba depender.
+Alternativa de menor riesgo si esa superficie exige decisión de producto:
+`DESIGN-THEME-001` (score 52).
 
 **Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
 8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio

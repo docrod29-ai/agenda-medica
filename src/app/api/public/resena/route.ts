@@ -11,8 +11,18 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { limitarOResponder, ipDe } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  /**
+   * FRENO POR IP (REG-292). El token aquí es el ID del documento: sin freno,
+   * un guion podía adivinar IDs a costa de una transacción de Firestore por
+   * intento. Una persona real envía UNA reseña; 8/h por IP —el mismo cupo que
+   * el booking público— le sobra incluso al que se equivoca y reintenta.
+   */
+  const lim = await limitarOResponder(`resena:ip:${ipDe(req)}`, 8, 3600)
+  if (lim) return lim
+
   let body: { token?: string; rating?: number; texto?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, motivo: 'Datos inválidos' }, { status: 400 }) }
   const { token } = body

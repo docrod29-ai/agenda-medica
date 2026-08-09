@@ -19,6 +19,15 @@ import { createHmac } from 'node:crypto'
 const getCitas = vi.fn()
 const getConfig = vi.fn()
 const getNotas = vi.fn()
+/**
+ * El documento del PACIENTE, que la ruta lee para comprobar la revocación
+ * (`portalTokenVersion`). Antes el doble no lo tenía y nadie lo notó: la
+ * comprobación fallaba ABIERTA, así que el `TypeError` del doble incompleto se
+ * tragaba en silencio y los tests pasaban sin ejercitarla jamás (REG-292).
+ * Con el fail-closed, un doble incompleto daría 503 — el test ya no puede
+ * mentir.
+ */
+const getPaciente = vi.fn()
 
 vi.mock('@/lib/firebase-admin', () => ({
   default: {},
@@ -29,7 +38,12 @@ vi.mock('@/lib/firebase-admin', () => ({
           if (sub === 'appointments') return { where: () => ({ get: getCitas }) }
           if (sub === 'config') return { doc: () => ({ get: getConfig }) }
           if (sub === 'patients') {
-            return { doc: () => ({ collection: () => ({ where: () => ({ get: getNotas }) }) }) }
+            return {
+              doc: () => ({
+                get: getPaciente,
+                collection: () => ({ where: () => ({ get: getNotas }) }),
+              }),
+            }
           }
           throw new Error(`subcolección inesperada en el test: ${sub}`)
         },
@@ -47,7 +61,8 @@ const CLINICA = 'clinica-ficticia'
 const PACIENTE = 'pac-ficticio-001'
 
 function req(body: unknown) {
-  return { json: async () => body } as unknown as Parameters<typeof POST>[0]
+  // `headers` hace falta desde REG-292: el freno por IP lee x-forwarded-for.
+  return { json: async () => body, headers: new Headers() } as unknown as Parameters<typeof POST>[0]
 }
 
 function snap(docs: Record<string, unknown>[]) {
@@ -58,8 +73,11 @@ beforeEach(() => {
   getCitas.mockReset()
   getConfig.mockReset()
   getNotas.mockReset()
+  getPaciente.mockReset()
   getCitas.mockResolvedValue(snap([]))
   getConfig.mockResolvedValue({ exists: false })
+  // Paciente sin revocación: versión ausente = 0, el token vigente pasa.
+  getPaciente.mockResolvedValue({ exists: true, data: () => ({}) })
   getNotas.mockResolvedValue(snap([
     {
       estado: 'firmada',
