@@ -169,7 +169,9 @@ por el paciente.
 
 ## P0 abiertos en esta superficie
 
-- `PATIENT-TELE-002` — el enlace por WhatsApp sigue sin token.
+**Ninguno.** `PATIENT-TELE-002` se cerró el 9-ago-2026 con REG-309: el token de
+la sala se acuña en el servidor y viaja en los cuatro mensajes de WhatsApp que
+anuncian una videoconsulta, con alcance `agenda` y dos días de vigencia.
 
 ## P1 abiertos
 

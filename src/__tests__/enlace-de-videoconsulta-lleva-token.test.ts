@@ -62,19 +62,18 @@
  *   lleva el token y que el portal lo pasa. Que `/api/telesalud/sala` acepte
  *   ese token concreto es otra prueba (`telesalud-sala-or.test.ts`) y sigue
  *   mockeada.
- * - **El camino de WhatsApp sigue sin enlace.** `api/cron/reminders` y el
- *   webhook llaman a `dondeEsLaCita` sin token porque hoy no lo emiten; desde
- *   este cambio mandan el texto «recibirás el enlace» en vez de un enlace roto.
- *   Emitirlo ahí exige acuñar el token en el servidor y está abierto en el
- *   backlog de V9 como `PATIENT-TELE-002`. **Esto NO cierra ese hueco: lo hace
- *   honesto.**
+ * - **El camino de WhatsApp ya lleva enlace desde REG-309** (bloque al final de
+ *   este archivo). Hasta entonces `api/cron/reminders` y el webhook llamaban a
+ *   `dondeEsLaCita` sin token y mandaban «recibirás el enlace»: honesto, y sin
+ *   enlace. Era `PATIENT-TELE-002`, el último P0 abierto de la superficie del
+ *   paciente.
  * - No comprueba la ventana horaria de la sala: eso es `ventanaDeSala`.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
-import { dondeEsLaCita, SIN_ENLACE, ES_TELECONSULTA } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, esTeleconsulta, SIN_ENLACE, ES_TELECONSULTA } from '@/lib/telesalud/donde-es'
 
 describe('el enlace del paciente lleva su token', () => {
   it('lo añade como `t=` cuando se le da uno', () => {
@@ -140,5 +139,167 @@ describe('el portal del paciente PASA su token al botón', () => {
      */
     const src = readFileSync(join(process.cwd(), 'src', 'app', 'mi', '[token]', 'page.tsx'), 'utf8')
     expect(src).toMatch(/enlaceSalaPaciente\(\s*c\.id\s*,[^)]*,\s*token\s*\)/)
+  })
+})
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REG-309 · EL ENLACE QUE VIAJA POR WHATSAPP — `PATIENT-TELE-002`
+   ═══════════════════════════════════════════════════════════════════════════
+
+   ── QUÉ FALLABA ────────────────────────────────────────────────────────────
+
+   REG-268 arregló el camino del portal y dejó dicho, con todas las letras, que
+   el de WhatsApp seguía abierto: «Esto NO cierra ese hueco: lo hace honesto».
+
+   El recordatorio de la víspera, el de la mañana, la confirmación de una cita
+   agendada por el bot y la de lista de espera son los CUATRO mensajes por los
+   que se anuncia una videoconsulta — y los cuatro decían «recibirás el enlace
+   de la videollamada por este medio antes de tu cita». Ese medio era éste. El
+   enlace no llegaba nunca.
+
+   El paciente acababa entrando por el portal, que también le llega por
+   WhatsApp: el camino existía, con un paso de más justo cuando va con prisa.
+
+   ── CAUSA RAÍZ ─────────────────────────────────────────────────────────────
+
+   Acuñar el token exige `PORTAL_PACIENTE_SECRET`, y quien componía el mensaje
+   era `lib/whatsapp.ts` — un módulo que **también se importa desde el
+   navegador**. Firmar ahí habría filtrado el secreto al cliente. Así que
+   `dondeEsLaCita` recibe el token como DATO y no lo calcula, y hasta hoy nadie
+   se lo daba.
+
+   ── LA REGLA QUE LO HACE SEGURO ────────────────────────────────────────────
+
+   Alcance `agenda`, dos días. Un enlace de WhatsApp se reenvía, se queda en la
+   copia de seguridad del teléfono y sobrevive a un cambio de número: con
+   alcance clínico sería una credencial al expediente circulando por una app de
+   mensajería, y con treinta días sería una llave de un mes.
+
+   ── PROBADO AL REVÉS ───────────────────────────────────────────────────────
+
+   Quitando `tokenPaciente` de cualquiera de los tres llamadores de servidor,
+   falla el bloque «los tres llamadores de servidor lo pasan». Cambiando el
+   alcance a `clinico`, falla el que lo verifica.
+
+   ── QUÉ **NO** CUBRE ───────────────────────────────────────────────────────
+
+   - **No manda un WhatsApp de verdad.** Que Meta entregue el mensaje y que el
+     paciente pueda pulsar el enlace en su teléfono no lo demuestra ninguna
+     prueba de este repositorio.
+   - **No prueba `/api/telesalud/sala` con este token concreto**: esa ruta sigue
+     con su propia prueba y con su mock.
+   - **No comprueba la ventana horaria**: si el paciente pulsa el enlace tres
+     días después, el token ya caducó y verá el mensaje de enlace inválido, no
+     la sala. Es lo buscado, y quien lo decide es `ventanaDeSala` más el TTL.
+*/
+describe('REG-309 · el token de la sala se acuña en el servidor', () => {
+  it('sin identificadores no acuña nada, y no lanza', async () => {
+    const { tokenParaLaSala } = await import('@/lib/telesalud/token-de-sala')
+    expect(await tokenParaLaSala('', 'pac_1')).toBe('')
+    expect(await tokenParaLaSala('clin_1', '')).toBe('')
+    expect(await tokenParaLaSala(null, undefined)).toBe('')
+  })
+
+  it('la ventana del token son DOS días: cubre el recordatorio de víspera', async () => {
+    const { DIAS_DEL_TOKEN_DE_SALA } = await import('@/lib/telesalud/token-de-sala')
+    /* Con uno, un recordatorio emitido a las 20:00 de la víspera para una cita
+       de las 21:00 caducaba una hora antes de que el paciente entrase. */
+    expect(DIAS_DEL_TOKEN_DE_SALA).toBe(2)
+  })
+
+  it('los tres llamadores de servidor le pasan el token a `dondeEsLaCita`', () => {
+    /**
+     * EL DATO TIENE QUE LLEGAR, otra vez y en el otro camino. Que exista quien
+     * acuñe no sirve de nada si el mensaje se compone sin llamarlo.
+     *
+     * Se cuentan las llamadas y se exige que TODAS traigan `tokenPaciente`: con
+     * «al menos una» el cuarto mensaje que alguien escriba mañana volvería a
+     * salir mudo sin que nadie se entere.
+     */
+    const fuentes = [
+      join(process.cwd(), 'src/app/api/cron/reminders/route.ts'),
+      join(process.cwd(), 'src/app/api/whatsapp/webhook/route.ts'),
+    ]
+    let llamadas = 0
+    for (const f of fuentes) {
+      const src = readFileSync(f, 'utf8')
+      for (const m of src.matchAll(/dondeEsLaCita\(\{[\s\S]*?\}\)/g)) {
+        llamadas++
+        expect(m[0], `una llamada a dondeEsLaCita sin tokenPaciente en ${f}`).toContain('tokenPaciente')
+      }
+    }
+    expect(llamadas, 'los llamadores de servidor de dondeEsLaCita').toBe(3)
+  })
+
+  it('sólo se paga la lectura de Firestore cuando la cita ES una videoconsulta', () => {
+    /* El cron recorre la agenda entera de cada consultorio: acuñar para cada
+       cita presencial serían cientos de lecturas para tirarlas. */
+    for (const f of ['src/app/api/cron/reminders/route.ts', 'src/app/api/whatsapp/webhook/route.ts']) {
+      const src = readFileSync(join(process.cwd(), f), 'utf8')
+      expect(src, f).toMatch(/esTeleconsulta\([^)]*\)\s*\n?\s*\?\s*await tokenParaLaSala/)
+    }
+  })
+
+  it('`esTeleconsulta` decide lo mismo que `dondeEsLaCita`, para que no puedan discrepar', () => {
+    /**
+     * El defecto que este bloque previene: el llamador comparando el tipo por su
+     * cuenta. Con `'Teleconsulta'` o con un espacio de más, uno diría que es
+     * video y el otro no acuñaría — mensaje de videoconsulta sin enlace, que es
+     * exactamente el estado del que venimos.
+     */
+    for (const tipo of [ES_TELECONSULTA, ' TELECONSULTA ', 'Teleconsulta', 'consulta', '', undefined, null, 42]) {
+      expect(esTeleconsulta(tipo), `tipo ${JSON.stringify(tipo)}`)
+        .toBe(dondeEsLaCita({ tipo: tipo as string }).esVideo)
+    }
+  })
+})
+
+describe('REG-309 · el token de la sala abre la sala y nada más', () => {
+  it('alcance `agenda`: un enlace reenviado por WhatsApp no abre el expediente', async () => {
+    /**
+     * Se acuña de verdad y se verifica de verdad — no se lee del código fuente,
+     * porque lo que importa aquí es lo que el token DICE, no cómo se escribió.
+     *
+     * `adminDb` va simulado: sin él, cada ejecución se queda ocho segundos
+     * esperando a un servidor de metadatos que en esta máquina no existe.
+     */
+    vi.resetModules()
+    vi.doMock('@/lib/firebase-admin', () => ({
+      adminDb: { collection: () => ({ doc: () => ({ collection: () => ({ doc: () => ({ get: async () => ({ data: () => ({ portalTokenVersion: 7 }) }) }) }) }) }) },
+    }))
+    const { tokenParaLaSala } = await import('@/lib/telesalud/token-de-sala')
+    const { verificarTokenPaciente } = await import('@/lib/patient-token')
+
+    const verificado = verificarTokenPaciente(await tokenParaLaSala('clin_1', 'pac_1'))
+    expect(verificado).not.toBeNull()
+    expect(verificado!.alcance).toBe('agenda')
+    expect(verificado!.clinicId).toBe('clin_1')
+    expect(verificado!.patientId).toBe('pac_1')
+    /* Nace con la versión vigente del paciente: una revocación posterior sube
+       ese contador y tumba también este enlace. */
+    expect(verificado!.version).toBe(7)
+    vi.doUnmock('@/lib/firebase-admin')
+    vi.resetModules()
+  })
+
+  it('si no se puede leer la versión, se emite igual con la 0 en vez de dejar al paciente sin enlace', async () => {
+    /**
+     * Falla ABIERTA hacia «el enlace sirve», y es deliberado: la versión existe
+     * para poder revocar, y quien no ha revocado nada tiene la 0. Dejar sin
+     * enlace a todos los pacientes porque una lectura falló sería castigar al
+     * paciente por una incidencia nuestra.
+     */
+    vi.resetModules()
+    vi.doMock('@/lib/firebase-admin', () => ({
+      adminDb: { collection: () => { throw new Error('firestore caído') } },
+    }))
+    const { tokenParaLaSala } = await import('@/lib/telesalud/token-de-sala')
+    const { verificarTokenPaciente } = await import('@/lib/patient-token')
+
+    const verificado = verificarTokenPaciente(await tokenParaLaSala('clin_1', 'pac_1'))
+    expect(verificado).not.toBeNull()
+    expect(verificado!.version).toBe(0)
+    vi.doUnmock('@/lib/firebase-admin')
+    vi.resetModules()
   })
 })

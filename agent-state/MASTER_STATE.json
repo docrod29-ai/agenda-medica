@@ -19,17 +19,17 @@
   "ultimaVersionEnProduccion": "nexusmed-v1167",
   "trabajoLocalSinSubir": [
     "M agent-state/BACKLOG.json",
-    " M agent-state/CHANGELOG_AGENT.md",
-    " M agent-state/LAST_SAFE_CHECKPOINT.md",
-    " M agent-state/PATIENT_COMPANION_STATE.md",
-    " M docs/ai/V9-BITACORA-Y-OPERACION.md",
+    " M agent-state/V9_COMPLETE_CRITERIA.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M src/app/mi/[token]/page.tsx",
-    " M src/components/LiberarAlPaciente.tsx",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/whatsapp/webhook/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-plan-liberado-llega-a-la-pantalla-del-paciente.test.ts",
-    "?? src/lib/paciente/como-se-ve-el-paquete.ts"
+    " M src/lib/telesalud/donde-es.ts",
+    "?? src/lib/telesalud/token-de-sala.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +65,10 @@
   ],
   "ramaActual": "claude/relaxed-fermi-wu020j",
   "derivado": {
-    "regsEnElLedger": 156,
-    "ultimaREG": "REG-308",
+    "regsEnElLedger": 157,
+    "ultimaREG": "REG-309",
     "archivosDePrueba": 577,
-    "casosDePrueba": 7617,
+    "casosDePrueba": 7624,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

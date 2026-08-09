@@ -152,7 +152,44 @@ un guardián que lo comprueba.
 `/api/portal` y exige un llamador para cada uno. La acción número nueve entra
 sola. Probado al revés: sin el `fetch`, falla nombrando la acción huérfana.
 
-**Compuertas**: vitest 8 625/8 626 · 1 skip · 1 fallo de entorno preexistente
-(`ops-timeout`, que intenta un TCP a 10.255.255.1), trinquete de lint 96 = techo, trinquete de diseño sin deuda
+**Compuertas**: vitest **8 632 pasan, 1 omitida, cero fallos** (`ops-timeout`,
+que intenta un TCP a 10.255.255.1, pasó esta vez: es intermitente por red), trinquete de lint 96 = techo, trinquete de diseño sin deuda
 nueva, `tsc` limpio. **Navegador: no ejecutado** — sigue sin haber credenciales
 de Firebase en esta máquina.
+
+---
+
+## 9-ago-2026 — `REG-309`: el último P0 del paciente, cerrado
+
+`PATIENT-TELE-002` llevaba abierto desde la auditoría de `PATIENT-UX-TRUTH-001`,
+y REG-268 lo había dejado escrito en su propio golden: *«El camino de WhatsApp
+sigue sin enlace… Esto NO cierra ese hueco: lo hace honesto.»*
+
+Los cuatro mensajes que anuncian una videoconsulta —los dos recordatorios, la
+cita agendada por el bot y la de lista de espera— decían «recibirás el enlace de
+la videollamada por este medio». Ese medio era ése.
+
+**Por qué no estaba hecho ya**: acuñar el token exige el secreto de firma, y
+quien componía el mensaje era `lib/whatsapp.ts`, que **también se importa desde
+el navegador**. Firmar ahí lo filtraba al cliente. Por eso el token es un dato de
+entrada de `dondeEsLaCita` y no un cálculo — sólo faltaba quien se lo diera.
+
+`lib/telesalud/token-de-sala.ts`, de servidor, con cuatro decisiones:
+
+- **Alcance `agenda`, nunca `clinico`.** Este enlace se reenvía y sobrevive a un
+  cambio de número: con alcance clínico sería una credencial al expediente
+  circulando por WhatsApp.
+- **Dos días.** Cubre el recordatorio de víspera y las 2 h de cierre de la sala,
+  y caduca solo. Con uno, un aviso de las 20:00 para una cita de las 21:00
+  caducaba antes de que el paciente entrase.
+- **Nace con la versión vigente del paciente**: una revocación posterior lo tumba.
+- **Falla hacia «recibirás el enlace»**, nunca hacia un enlace sin token — que
+  contesta 404 y hace creer al paciente que se quedó sin cita.
+
+Y `esTeleconsulta` sale de `dondeEsLaCita` exportado: el llamador necesita
+decidir **antes** si paga la lectura de Firestore, y si comparase el tipo por su
+cuenta, `'Teleconsulta'` con mayúscula se decidiría distinto aquí y allí. Hay un
+caso que compara las dos decisiones sobre ocho entradas.
+
+**Con esto V9 se queda sin ningún P0 abierto.** Quedan tres P1:
+`PATIENT-PORTAL-001`, `A11Y-GATE-001` y `NAV-NAVEGADOR-001`.

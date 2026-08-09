@@ -6,13 +6,23 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **REG-308: el residuo de `POSTVISIT-001`, cerrado**
+## Checkpoint · 9-ago-2026 — **REG-308 y REG-309: V9 se queda sin P0**
 
 | | |
 |---|---|
 | **Rama** | `claude/relaxed-fermi-wu020j` (parte de `origin/claude/relaxed-fermi-kisu3p`, que ya traía `POSTVISIT-001`) |
-| **Unidad** | `POSTVISIT-001` — residuo de entrega · **REG-308** |
+| **Cerrado** | `POSTVISIT-001` — residuo de entrega · **REG-308** · y **`PATIENT-TELE-002`**, el último P0 · **REG-309** |
 | **Siguiente** | **`PATIENT-AI-001`** (sin cambios) |
+
+**REG-309 · el último P0.** Los cuatro mensajes que anuncian una videoconsulta
+por WhatsApp decían «recibirás el enlace por este medio». Ese medio era ése.
+`lib/telesalud/token-de-sala.ts` lo acuña ahora en el servidor —no en
+`lib/whatsapp.ts`, que se importa desde el navegador y filtraría el secreto—,
+con alcance `agenda`, dos días, la versión vigente del paciente dentro, y fallo
+hacia «recibirás el enlace» en vez de hacia un enlace sin token.
+
+**Queda cero P0 y tres P1**: `PATIENT-PORTAL-001`, `A11Y-GATE-001`,
+`NAV-NAVEGADOR-001`.
 
 **Lo que se encontró al reanudar.** `POSTVISIT-001` se cerró comprobando sus dos
 mitades por separado —el botón escribe, la ruta filtra— y no la costura. La
@@ -40,7 +50,7 @@ sola.
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | **8 625 de 8 626 · 1 omitida · 1 fallo preexistente y de entorno** (`ops-timeout`) |
+| `npx vitest run` | **8 632 pasan · 1 omitida · CERO fallos.** `ops-timeout` —el fallo de entorno de los últimos checkpoints— pasó esta vez: depende de la red y es intermitente, no de un arreglo |
 | `lint-trinquete` | **96, igual que el techo** |
 | trinquete de diseño | **sin deuda nueva** |
 | `npx tsc --noEmit` | **limpio** |

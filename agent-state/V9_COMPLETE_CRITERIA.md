@@ -64,8 +64,12 @@ distinto de `CERRADO`.
 
 | Prioridad | Id |
 |---|---|
-| P0 | `PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp sigue sin token |
+| P0 | **ninguno** |
 | P1 | `PATIENT-PORTAL-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
+
+> `PATIENT-TELE-002` —el último P0— se cerró el 9-ago-2026 con **REG-309**: el
+> token de la sala se acuña en el servidor y viaja en los cuatro mensajes de
+> WhatsApp que anuncian una videoconsulta.
 
 > `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001` se cerraron el 9-ago-2026 con
 > REG-306 y REG-307. **`POSTVISIT-ENTREGA-001` se cerró antes de estarlo**: la

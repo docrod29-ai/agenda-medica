@@ -7187,3 +7187,77 @@ comprobarse en vivo (`NAV-NAVEGADOR-001`).
 
 **Guardián.** `src/__tests__/el-plan-liberado-llega-a-la-pantalla-del-paciente.test.ts`
 (13 casos).
+
+---
+
+## REG-309 — La videoconsulta se anunciaba por WhatsApp sin el enlace
+
+**Unidad** V9 · `PATIENT-TELE-002` — el último P0 abierto de la superficie del
+paciente, detectado en `PATIENT-UX-TRUTH-001`.
+
+**Qué pasaba.** Los **cuatro** mensajes por los que se anuncia una videoconsulta
+—recordatorio de víspera, recordatorio del mismo día, confirmación de cita
+agendada por el bot y confirmación de lista de espera— decían literalmente:
+
+> *Recibirás el enlace de la videollamada por este medio antes de tu cita.*
+
+Ese medio era ése. El enlace no llegaba nunca. El paciente acababa entrando por
+el portal —que también le llega por WhatsApp—, así que el camino existía: con un
+paso de más, justo cuando va con prisa y a la hora de su consulta.
+
+**Cómo se descubrió.** Lo dejó escrito REG-268 en su propio golden, en el
+apartado de «qué NO cubre»: *«El camino de WhatsApp sigue sin enlace… Esto NO
+cierra ese hueco: lo hace honesto»*. Un residuo declarado, con nombre en el
+backlog, esperando turno.
+
+**Causa raíz.** Acuñar el token exige `PORTAL_PACIENTE_SECRET`, y quien componía
+el mensaje era `lib/whatsapp.ts` — un módulo que **también se importa desde el
+navegador**. Firmar ahí habría filtrado el secreto al cliente. Por eso
+`dondeEsLaCita` recibe el token como dato de entrada y no lo calcula; lo que
+faltaba era alguien que se lo diera desde el servidor.
+
+**Familia.** `escrito_probado_y_sin_conectar`. El emisor de tokens existía
+(`crearTokenPaciente`), el consumidor existía (`/api/telesalud/sala`), el
+componedor del mensaje aceptaba el token — y entre los tres no había nadie que lo
+acuñara en el camino de WhatsApp.
+
+**Arreglo.** `src/lib/telesalud/token-de-sala.ts`, módulo **de servidor**, y sus
+tres llamadores. Cuatro decisiones que son el fondo del cambio:
+
+- **Alcance `agenda`, nunca `clinico`.** Este enlace se reenvía, se queda en la
+  copia de seguridad del teléfono y sobrevive a un cambio de número. Con alcance
+  clínico sería una credencial al expediente circulando por una app de
+  mensajería. Es la misma decisión de E0-06 en `/api/portal/link`.
+- **Dos días, y no treinta.** Cubre el recordatorio de víspera y el cierre de la
+  sala (2 h después de la hora) con margen, y caduca solo. Con uno, un
+  recordatorio emitido a las 20:00 de la víspera para una cita de las 21:00
+  caducaba una hora antes de que el paciente entrase.
+- **Nace con la versión vigente del paciente**, así que una revocación posterior
+  también tumba este enlace.
+- **Falla hacia «sin enlace», nunca hacia un enlace roto.** Si no se puede acuñar,
+  se devuelve cadena vacía y el mensaje vuelve a decir «recibirás el enlace». Lo
+  que no se hace jamás es mandar un enlace sin token: `/api/telesalud/sala`
+  contesta **404 «Cita no encontrada»**, y un paciente que lee eso media hora
+  antes de su consulta cree que se quedó sin cita.
+
+**Y un predicado exportado que no es cosmética.** `esTeleconsulta` sale de
+`dondeEsLaCita` para que el llamador pueda decidir **antes** si paga la lectura
+de Firestore —el cron recorre la agenda entera de cada consultorio—. Si cada
+llamador comparase el tipo por su cuenta, `'Teleconsulta'` con mayúscula se
+decidiría distinto aquí y allí: el mensaje diría que es por video y el token no
+se emitiría. Hay un caso que compara las dos decisiones sobre ocho entradas.
+
+**Lo que este arreglo NO hace.** No manda un WhatsApp de verdad: que Meta
+entregue el mensaje y que el enlace se pueda pulsar en un teléfono no lo demuestra
+ninguna prueba de este repositorio. Y **la ventana horaria sigue mandando**: un
+paciente que pulse el enlace tres días después verá enlace inválido, no la sala.
+
+**Un guardián que ya existía hizo su trabajo.** `authz-rutas-declaradas.test.ts`
+congela la lista de rutas que tocan la **identidad** del paciente, y se puso rojo
+solo: `cron/reminders` pasó a leer `patients` a través de este módulo. Entra a la
+lista declarado — lee `portalTokenVersion`, **un entero y nada más**, sin sesión y
+protegido por `CRON_SECRET`, que en producción falla cerrado.
+
+**Guardián.** `src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts`
+(14 casos; los 7 nuevos son los bloques REG-309). Probado al revés: quitando
+`tokenPaciente` de cualquiera de los tres llamadores, falla nombrando el archivo.

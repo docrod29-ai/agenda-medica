@@ -69,9 +69,25 @@ export const ES_TELECONSULTA = 'teleconsulta'
 export const SIN_ENLACE =
   'Recibirás el enlace de la videollamada por este medio antes de tu cita.'
 
+/**
+ * ¿Es una videoconsulta?
+ *
+ * Se exporta —y `dondeEsLaCita` la usa— porque quien compone el mensaje necesita
+ * saberlo ANTES de llamar: acuñar el token de la sala cuesta una lectura de
+ * Firestore, y no tiene sentido pagarla por cada cita presencial del día.
+ *
+ * La alternativa era que cada llamador comparase el tipo por su cuenta, y
+ * entonces «Teleconsulta» con mayúscula o con un espacio de más se decidiría
+ * distinto aquí y allí: el mensaje diría que es por video y el token no se
+ * emitiría, o al revés.
+ */
+export function esTeleconsulta(tipo: unknown): boolean {
+  return String(tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+}
+
 /** Qué decirle al paciente sobre dónde es su cita. */
 export function dondeEsLaCita(d: DatosDeLugar): Lugar {
-  const esVideo = String(d.tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA
+  const esVideo = esTeleconsulta(d.tipo)
 
   if (!esVideo) {
     const lineas: string[] = []

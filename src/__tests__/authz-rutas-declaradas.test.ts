@@ -640,6 +640,18 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 2026-08-09 (REG-309). El cron de recordatorios acuña el token con
+       * el que el paciente entra a la sala de SU videoconsulta, y para eso lee
+       * `portalTokenVersion` — **un entero, y nada más**: ni nombre, ni
+       * teléfono, ni una línea clínica.
+       *
+       * No lleva capacidad porque no tiene sesión: la protege `CRON_SECRET`, que
+       * en producción **falla cerrado** (sin secreto configurado, 503). Y sólo
+       * paga esa lectura cuando la cita es una teleconsulta, así que la agenda
+       * presencial de un consultorio no toca la colección.
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja

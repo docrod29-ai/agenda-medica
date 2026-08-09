@@ -37,7 +37,8 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
-import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala } from '@/lib/telesalud/token-de-sala'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1075,6 +1076,11 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
+      /* El token de la sala (REG-309). Sin expediente creado no hay a quién
+         atarlo, y entonces el mensaje cae solo en «recibirás el enlace». */
+      const tokenSalaNueva = esTeleconsulta(datos.tipo)
+        ? await tokenParaLaSala(clinicId, pacienteIdBot)
+        : undefined
       await send(from, [
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
@@ -1084,6 +1090,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenSalaNueva,
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1273,10 +1280,16 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       {
+        /* El token de la sala (REG-309), atado al paciente que se acaba de
+           resolver para esta cita de lista de espera. */
+        const tokenSalaLE = esTeleconsulta(datos.tipo)
+          ? await tokenParaLaSala(clinicId, pacienteIdLE)
+          : undefined
         const donde = dondeEsLaCita({
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenSalaLE,
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,
