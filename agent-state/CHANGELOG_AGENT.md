@@ -1,5 +1,27 @@
 # Bitácora del trabajo autónomo
 
+## 2026-08-09 — V9 · POSTVISIT-001 · el paquete de visita, compuesto y liberado
+
+- `puedeComponerse` — la compuerta de firma, con nombre y con motivo. Rechaza el
+  borrador, la nota sin estado y la de hospitalización.
+- `componerPaquete` y `cambiosDeMedicacion` **vuelven** al repositorio, con quien
+  las llama. Sin lista previa de medicación, `medicationChanges` es `null` y no
+  `[]` — «no aparecía antes» y «no sé qué había antes» son cosas distintas.
+- `POST /api/paciente/paquete` — la única puerta. El cuerpo dice a qué nota se
+  refiere, nunca qué dice. `approvedBy` sale de la sesión. Capacidad `firmar`.
+- `LiberarAlPaciente` — primero se ve, después se libera.
+- `/mi/[token]` → Cuidado ya **pide** los paquetes y los pinta.
+
+**Lo que de verdad importa de esta iteración**: el motor de composición era
+correcto —determinista, con un golden que impide que aparezca una cifra que no
+esté en la nota— y aun así el producto entregaba un documento inseguro, porque
+se alimentaba del borrador en curso. **Un motor seguro con la entrada equivocada
+falla en verde.** La pregunta que faltaba no era «¿compone bien?» sino «¿de qué
+compone?».
+
+REG-306. Guardián de 28 casos, probado al revés.
+
+
 ## 2026-08-04 — INFRA-001 · el sistema operativo del programa
 
 - `CLAUDE.md` reescrito: misión, invariantes, comandos, mapa, seguridad clínica,

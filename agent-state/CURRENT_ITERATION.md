@@ -13,9 +13,21 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `POSTVISIT-001` ✅ **CERRADA** (9-ago, SHA `7e1438e`).
+Cerradas hasta hoy: `PATIENT-UX-TRUTH-001`, los tres P0 de audio,
+`DESIGN-SYSTEM-001`, `NAVIGATION-001`, `PATIENT-COMPANION-001`, `POSTVISIT-001`.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
+
+> **`PATIENT-AI-001` es lo más peligroso de este programa.** Es la primera vez
+> que la IA le habla a alguien que **no puede detectar el error**. Antes de
+> escribir una línea: `.claude/rules/patient-facing-ai.md` entero, y las doce
+> preguntas del §0 de la especificación como **fixture permanente** en
+> `evals/patient-ai/` — son la puerta, no ejemplos.
+>
+> Y llega con una defensa ya montada: los niveles 1-8 del orden de fuentes
+> tienen por fin un artefacto real que citar, el `PaqueteDeVisita` liberado. El
+> nivel 9 —el modelo— sólo puede **explicar** lo que ya dijeron los otros.
 
 ---
 

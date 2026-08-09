@@ -165,3 +165,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-09 | **DESIGN-SYSTEM-001** | `fed81cc` | Tokens visibles para Tailwind (4 → ~35), cinco escalas nuevas, cero respaldos y trinquete de diseño | **274, 275** |
 | 2026-08-09 | **NAVIGATION-001** | `fed81cc` | El ciclo devuelve el contexto: seguimiento que sobrevive, atrás de verdad, agenda en la URL, aviso antes de cortar el dictado | **276-279** |
 | 2026-08-09 | **PATIENT-COMPANION-001** | `5d496cf` | Cinco destinos, PaqueteDeVisita DRAFT/RELEASED y la compuerta en el servidor. Composición diferida a POSTVISIT-001 por no tener llamador | **280, 281** |
+| 2026-08-09 | **POSTVISIT-001** | `7e1438e` | El paquete se compone de la nota **firmada** (compuerta con nombre), lo compone el **servidor**, se libera con aprobación de la sesión y **llega** al portal del paciente. Vuelven `componerPaquete` y `cambiosDeMedicacion`, con quien las llama | **306** |

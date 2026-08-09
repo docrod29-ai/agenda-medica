@@ -3,13 +3,51 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306 · SHA `7e1438e`.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS, con las cinco clases de respuesta y
+las doce preguntas del §0 como fixture permanente.
 
 ---
 
-## Lo que quedó montado en `PATIENT-COMPANION-001`
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El paquete existe de verdad.** Antes había modelo, compuerta y colección, y
+**cero paquetes**: faltaba quien los creara. Ahora los crea el médico, desde la
+consulta, con la nota firmada delante.
+
+**La compuerta de firma tiene nombre.** `puedeComponerse` rechaza el borrador, la
+nota sin estado y la de hospitalización, y **dice por qué**. Hasta hoy «Lo que se
+lleva el paciente» se componía del formulario **en curso**: el motor no inventaba
+ninguna cifra —eso lo vigila su golden desde REG-242— pero se alimentaba de algo
+que todavía no era una fuente.
+
+**El servidor compone; el navegador no.** El cuerpo de la petición dice *a qué
+nota* se refiere, nunca *qué dice*. Si la pantalla mandara el texto, lo que el
+médico aprueba y lo que se guarda podrían ser dos cosas distintas — y la segunda
+es la que lee el paciente. `approvedBy` sale de la sesión, jamás del cuerpo.
+
+**Primero se ve, después se libera.** Dos pasos y no un botón: el paciente no
+puede detectar el error, el médico sí, y sólo si se lo enseñan antes.
+
+**Los signos de alarma los escribe él.** O los escribe, o no existen. Componerlos
+sería inventar una indicación médica que sale con su membrete.
+
+**Y el dato llega**: `/mi/[token]` → Cuidado pide la acción `paquetes` y la pinta.
+La compuerta la sigue aplicando el servidor; la pantalla no vuelve a decidir qué
+es visible, porque una segunda regla de visibilidad es la que se olvida de
+actualizar.
+
+## Lo que sigue abierto en esta superficie
+
+- **`PATIENT-TELE-002` (P0)** — el enlace de videoconsulta por WhatsApp sigue sin
+  token.
+- **`PATIENT-PORTAL-001` (P1)** — `/api/portal` sin límite de tasa; la revocación
+  falla **abierta**.
+- **Nada se ha visto en un navegador** (`NAV-NAVEGADOR-001`).
+
+---
+
+## Lo que quedó montado en `PATIENT-COMPANION-001` (unidad anterior)
 
 **Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
 · Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la

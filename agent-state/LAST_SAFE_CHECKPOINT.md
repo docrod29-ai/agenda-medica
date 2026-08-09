@@ -6,7 +6,65 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306 · SHA `7e1438e` |
+| **Rama** | `claude/relaxed-fermi-nop6e2` (ver la nota de rama, abajo) |
+| **Siguiente** | **`PATIENT-AI-001`** — ASK NEXUS |
+
+El paquete ya **se genera del encuentro y sólo se libera con aprobación del
+médico**, que es la condición de terminado que fija la bitácora para esta unidad.
+
+- **La compuerta de firma tiene nombre.** `puedeComponerse` rechaza el borrador,
+  la nota sin estado y la de hospitalización, y devuelve **el motivo** — el
+  llamador es una pantalla del médico, y «no se puede» sin decir por qué es lo
+  que hace que alguien pulse tres veces y se rinda.
+- **El servidor compone; el navegador no.** `POST /api/paciente/paquete` recibe
+  *a qué nota* se refiere, nunca *qué dice*. Si la pantalla pudiera mandar el
+  texto, lo que el médico aprueba y lo que se guarda podrían ser dos cosas, y la
+  segunda es la que lee el paciente. `approvedBy` sale de la sesión.
+- **Y el dato LLEGA.** `/mi/[token]` → Cuidado pide la acción `paquetes` y la
+  pinta. Que existieran la colección, la ruta y la compuerta no servía de nada
+  mientras la pantalla no las pidiera.
+
+`componerPaquete` y `cambiosDeMedicacion` **vuelven** al repositorio: se habían
+quitado en REG-304 por no tener llamador y regresan con quien las llama, que era
+exactamente el trato.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 585 de 8 586 · 1 fallo preexistente y de entorno** (`ops-timeout`, necesita una IP que no rutee) |
+| `lint-trinquete` | **96, igual que el techo** |
+| trinquete de diseño | **sin deuda nueva** (los cinco contadores clavados en su techo) |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **compila** (con variables de Firebase de relleno: sin ellas la recolección de páginas falla en esta máquina, no por el código) |
+| navegador | **no ejecutado** |
+
+### Lo que este checkpoint NO garantiza
+
+Que se vea bien ni que funcione **en un navegador**: ni la pantalla del médico
+para liberar ni la del paciente se han abierto nunca. `NAV-NAVEGADOR-001` sigue
+siendo el P1 que más tapa.
+
+Tampoco hay ningún paquete real: hace falta una nota firmada de verdad, y eso
+pide entorno con credenciales.
+
+### Nota de rama — hay que leerla antes de seguir
+
+La especificación V9 nombra `claude/nexus-patient-ux-v9` como rama persistente.
+**Esa rama ya no existe en `origin`**: su trabajo se fusionó a `main` en el PR
+#279 (`56d9fc7`), que es de donde parte esta rama. Esta ejecución trabajó en
+`claude/relaxed-fermi-nop6e2`, que es la rama que el arnés asigna, y no se tocó
+`main`. Si el dueño quiere volver al nombre canónico, es un `git switch -c` desde
+aquí; no se pierde nada.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|
