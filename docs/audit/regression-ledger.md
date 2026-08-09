@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el paciente que NEGABA la alergia quedaba alérgico (v1074)
+## REG-209 — el paciente que NEGABA la alergia quedaba alérgico (v1091)
 
 **Encontrado** — 7-ago-2026, recorriendo por tercera vez el camino del alérgeno
 de punta a punta —el mismo recorrido de REG-144 y REG-171— pero probando el

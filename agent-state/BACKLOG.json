@@ -25,7 +25,7 @@
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 2,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 73,
-      "estado": "cerrado (REG-144, v1032). La QUINTA copia —hospital/cds.ts— la cerró REG-192",
+      "estado": "cerrado (REG-144, v1032). La QUINTA copia —hospital/cds.ts— la cerró REG-209",
       "reversible": true
     },
     {
@@ -38,14 +38,14 @@
       "fiabilidad": 3, "regulatorio": 2, "aprendizaje": 2,
       "irreversibilidad": 0, "complejidad": 1, "dependenciaExterna": 0,
       "score": 86,
-      "estado": "cerrado (REG-192, v1074)",
+      "estado": "cerrado (REG-209, v1091)",
       "reversible": true
     },
     {
       "id": "SAFE-003",
       "titulo": "Lo que la negación descarta no lo pinta nadie",
       "hallazgo": "`negacionesEnTexto` devuelve los fragmentos descartados del campo de alergias y NO tiene un solo llamador en la interfaz: sólo lo llaman los tests. Escrito y sin conectar.",
-      "porQueImporta": "Regla 3 de seguridad clínica: nada cambia en silencio. Con REG-192 se descarta MÁS texto que antes (toda la enumeración negada), y el médico no tiene dónde verlo. Lo descartado es consultable, no visible.",
+      "porQueImporta": "Regla 3 de seguridad clínica: nada cambia en silencio. Con REG-209 se descarta MÁS texto que antes (toda la enumeración negada), y el médico no tiene dónde verlo. Lo descartado es consultable, no visible.",
       "archivo": "src/lib/seguridad/alergias.ts:110",
       "seguridad": 2, "integridad": 2, "ingreso": 0, "frecuencia": 3, "moat": 1,
       "fiabilidad": 2, "regulatorio": 1, "aprendizaje": 1,

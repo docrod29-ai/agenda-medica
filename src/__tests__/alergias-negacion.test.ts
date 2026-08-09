@@ -48,7 +48,7 @@ describe('parsearAlergiasTexto', () => {
 
   it('lo negado se puede consultar, no se esconde', () => {
     /**
-     * «sulfas» ENTRA EN LA LISTA A PARTIR DE REG-192.
+     * «sulfas» ENTRA EN LA LISTA A PARTIR DE REG-209.
      *
      * Cuando esta prueba se escribió, «sulfas» no salía por aquí porque no se
      * descartaba: se registraba como una alergia que el campo estaba negando.

@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el paciente que NEGABA la alergia quedaba alérgico
+## v1091 — REG-209: el paciente que NEGABA la alergia quedaba alérgico
 
 «Niega alergias a penicilina **y sulfas**» dejaba una alergia a las sulfas. El
 negador está escrito una sola vez, en el primer fragmento, y el alcance de la

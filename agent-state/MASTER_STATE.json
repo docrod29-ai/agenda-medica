@@ -10,13 +10,13 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-002 (cerrada) — REG-192, v1074",
+  "iteracionActual": "SAFE-002 (cerrada) — REG-209, v1091",
   "ramasActivas": [
     "agent/safety/SAFE-002-alcance-negacion"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1074",
+  "ultimaVersionEnRama": "nexusmed-v1091",
   "trabajoLocalSinSubir": [],
   "notasDeEstado": [
     "El backlog venía del 4-ago y estaba atrasado: VOICE-004 lo cerró REG-141 y SAFE-001 REG-144. Se pusieron al día antes de elegir.",

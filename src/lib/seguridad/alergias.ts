@@ -88,7 +88,7 @@ const AFIRMADOR = /^(?:al[eé]rgic|alergi|hipersensib|reacci[oó]n|refiere|prese
 const SEPARADORES = /([,]+|[;\n]+|\s+\/\s*|\s*\/\s+|\.\s+|\sy\s)/
 
 /**
- * ── HASTA DÓNDE ALCANZA UNA NEGACIÓN (7-ago-2026, REG-192) ──────────────────
+ * ── HASTA DÓNDE ALCANZA UNA NEGACIÓN (7-ago-2026, REG-209) ──────────────────
  *
  * `esAlergiaNegada` mira **el principio del fragmento**, y el negador sólo está
  * escrito una vez, en el primero:
