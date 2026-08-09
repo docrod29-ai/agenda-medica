@@ -49,36 +49,36 @@ const CHIP: Record<Estado, { t: string; c: string; bg: string }> = {
 export default function OperacionPage() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px' }}>
-      <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal, #0d9488)', fontWeight: 700 }}>
+      <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal)', fontWeight: 700 }}>
         Operación y finanzas
       </div>
-      <h1 style={{ fontSize: 'clamp(26px,4.5vw,40px)', lineHeight: 1.1, margin: '.35em 0 .3em', color: 'var(--text, #0f172a)', letterSpacing: '-.02em' }}>
+      <h1 style={{ fontSize: 'clamp(26px,4.5vw,40px)', lineHeight: 1.1, margin: '.35em 0 .3em', color: 'var(--text)', letterSpacing: '-.02em' }}>
         No solo agenda. La operación completa del consultorio.
       </h1>
-      <p style={{ fontSize: 16.5, color: 'var(--text2, #334155)', maxWidth: '68ch', lineHeight: 1.55 }}>
+      <p style={{ fontSize: 16.5, color: 'var(--text2)', maxWidth: '68ch', lineHeight: 1.55 }}>
         Corte de caja, cuentas por cobrar, inventario de farmacia y paquetes ya funcionan hoy.
         Lo que falta lo decimos con claridad — sin vender humo: si algo dice «Roadmap», es que todavía no existe.
       </p>
 
       <div style={{ display: 'grid', gap: 12, marginTop: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))' }}>
         {FINANZAS.map(m => (
-          <div key={m.nombre} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--panel, #fff)', padding: '16px 18px' }}>
+          <div key={m.nombre} style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--panel)', padding: '16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-              <h2 style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--text, #0f172a)', margin: 0 }}>{m.nombre}</h2>
+              <h2 style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{m.nombre}</h2>
               <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 'var(--r-pill)', color: CHIP[m.estado].c, background: CHIP[m.estado].bg, whiteSpace: 'nowrap' }}>
                 {CHIP[m.estado].t}
               </span>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text2, #334155)', lineHeight: 1.5, margin: 0 }}>{m.desc}</p>
+            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, margin: 0 }}>{m.desc}</p>
           </div>
         ))}
       </div>
 
       <div style={{ marginTop: 34 }}>
-        <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal, #0d9488)', fontWeight: 700, marginBottom: 4 }}>
+        <div style={{ fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--teal)', fontWeight: 700, marginBottom: 4 }}>
           Workflow Orchestrator · en vivo
         </div>
-        <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '2px 0 12px', letterSpacing: '-.01em' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '2px 0 12px', letterSpacing: '-.01em' }}>
           El sistema te dice qué atender primero
         </h2>
         <DemoWorkflow />
@@ -88,7 +88,7 @@ export default function OperacionPage() {
         <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
           Ver los motores del sistema
         </Link>
-        <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2, #334155)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border, #e5e7eb)' }}>
+        <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>
           Planes
         </Link>
       </div>

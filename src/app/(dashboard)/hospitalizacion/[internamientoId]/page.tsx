@@ -484,14 +484,14 @@ export default function EpisodioPage() {
             {(['medico', 'enfermeria', 'farmacia', 'laboratorio', 'admin'] as RolHospital[]).map(r => (
               <button key={r} onClick={() => cambiarRol(r)} style={{
                 fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
-                border: '1px solid ' + (rol === r ? 'var(--nexus,#3d5afe)' : 'var(--border)'),
-                background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus,#3d5afe)' : 'var(--text3)',
+                border: '1px solid ' + (rol === r ? 'var(--nexus)' : 'var(--border)'),
+                background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus)' : 'var(--text3)',
               }}>{ROL_HOSPITAL_LABEL[r]}</button>
             ))}
           </div>
         ) : (
           <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus,#3d5afe)', border: '1px solid var(--nexus,#3d5afe)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus)', border: '1px solid var(--nexus)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
           </div>
         )}
       </div>
@@ -593,7 +593,7 @@ export default function EpisodioPage() {
         {([['resumen', 'Resumen / Notas'], ['indicaciones', `Indicaciones · MAR${indicaciones.filter(i => i.activa).length ? ' (' + indicaciones.filter(i => i.activa).length + ')' : ''}`], ['signos', 'Signos vitales'], ['laboratorio', `Laboratorio${labs.length ? ' (' + labs.length + ')' : ''}`], ['enfermeria', 'Enfermería'], ['interconsultas', `Interconsultas${interconsultas.length ? ' (' + interconsultas.length + ')' : ''}`]] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             fontSize: 13, fontWeight: 600, padding: '8px 14px', cursor: 'pointer', background: 'none', border: 'none',
-            color: tab === t ? 'var(--nexus,#3d5afe)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus,#3d5afe)' : 'transparent'), marginBottom: -1,
+            color: tab === t ? 'var(--nexus)' : 'var(--text3)', borderBottom: '2px solid ' + (tab === t ? 'var(--nexus)' : 'transparent'), marginBottom: -1,
           }}>{label}</button>
         ))}
       </div>
@@ -685,7 +685,7 @@ export default function EpisodioPage() {
           <div style={{ display: 'grid', gap: 8 }}>
             {notasEpisodio.map(n => (
               <button key={n.id} onClick={() => router.push(`/nota/${inter.pacienteId}/${n.id}`)} style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', cursor: 'pointer' }}>
-                <FileText size={16} style={{ color: 'var(--nexus,#3d5afe)', flexShrink: 0 }} />
+                <FileText size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{TIPO_NOTA_LABEL[n.tipo] ?? n.tipo}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)' }}>{new Date(n.fechaConsulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}{n.estado === 'firmada' ? ' · firmada' : ' · borrador'}</div>

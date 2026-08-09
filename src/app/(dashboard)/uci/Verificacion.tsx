@@ -36,7 +36,7 @@ function Bloque({ icon: Icon, titulo, sub, children }: {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <Icon size={16} style={{ color: 'var(--nexus,#3d5afe)' }} />
+        <Icon size={16} style={{ color: 'var(--nexus)' }} />
         <span style={{ fontWeight: 600, fontSize: 14 }}>{titulo}</span>
         {sub && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {sub}</span>}
       </div>
@@ -236,7 +236,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
                       {d.motivos.join(' · ')}
                     </div>
                   )}
-                  {pregunta && <div style={{ fontSize: 12.5, color: 'var(--nexus,#3d5afe)', marginTop: 4 }}>{pregunta}</div>}
+                  {pregunta && <div style={{ fontSize: 12.5, color: 'var(--nexus)', marginTop: 4 }}>{pregunta}</div>}
                 </div>
               )
             })}
@@ -288,7 +288,7 @@ export default function Verificacion({ campos, computados, lecturas, dictado, av
           ) : (
             <>
               <div style={{ fontSize: 13, color: 'var(--text2)' }}>
-                Contexto detectado: <strong style={{ color: 'var(--nexus,#3d5afe)' }}>{contexto}</strong>
+                Contexto detectado: <strong style={{ color: 'var(--nexus)' }}>{contexto}</strong>
               </div>
               <div style={{ marginTop: 8 }}>
                 <Nota color="var(--text3)">

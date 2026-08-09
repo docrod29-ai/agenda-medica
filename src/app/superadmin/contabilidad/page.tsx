@@ -212,7 +212,7 @@ export default function ContabilidadPage() {
             <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Suscripciones activas por plan</div>
               {data.porPlan.map(p => (
-                <div key={p.plan} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid var(--line2, var(--border))' }}>
+                <div key={p.plan} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                   <span>{p.label} <span style={{ color: 'var(--text3)' }}>× {p.cantidad}</span></span>
                   <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{mxn(p.mrr)}/mes</span>
                 </div>
@@ -229,7 +229,7 @@ export default function ContabilidadPage() {
               </tr></thead>
               <tbody>
                 {data.clientes.map(c => (
-                  <tr key={c.id} style={{ borderTop: '1px solid var(--line2, var(--border))', textAlign: 'right' }}>
+                  <tr key={c.id} style={{ borderTop: '1px solid var(--border)', textAlign: 'right' }}>
                     <td style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>{c.nombre}{!c.activa && <span style={{ color: 'var(--text3)', fontWeight: 400 }}> · inactivo</span>}</td>
                     <td>{c.planLabel}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -264,9 +264,9 @@ export default function ContabilidadPage() {
               padding: '10px 12px', borderRadius: 8, marginBottom: 10, fontSize: 12.5, lineHeight: 1.55,
               color: data.costoIAFuente.fuente === 'supuesto' ? 'var(--amber)' : 'var(--text2)',
               background: data.costoIAFuente.fuente === 'supuesto'
-                ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--panel, #f8fafc)',
+                ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'var(--panel)',
               border: `1px solid ${data.costoIAFuente.fuente === 'supuesto'
-                ? 'color-mix(in srgb, var(--amber) 30%, transparent)' : 'var(--border, #e5e7eb)'}`,
+                ? 'color-mix(in srgb, var(--amber) 30%, transparent)' : 'var(--border)'}`,
             }}>
               <b>
                 {data.costoIAFuente.fuente === 'libro_de_costos'

@@ -54,7 +54,7 @@ function Renglon({ color, children }: { color: string; children: ReactNode }) {
   return (
     <div style={{
       display: 'flex', gap: 10, alignItems: 'flex-start',
-      padding: '10px 12px', borderTop: '1px solid var(--panel-borde, rgba(128,128,128,.18))',
+      padding: '10px 12px', borderTop: '1px solid rgba(128,128,128,.18))',
       color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.5,
     }}>
       <span style={{ color, flexShrink: 0, marginTop: 1, display: 'flex' }}>{children}</span>
@@ -102,7 +102,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
       role={bloquean > 0 ? 'alert' : 'status'}
       style={{
         marginBottom: 12, borderRadius: 12, overflow: 'hidden',
-        border: `1px solid ${bloquean > 0 ? `color-mix(in srgb, ${R} 38%, transparent)` : 'var(--panel-borde, rgba(128,128,128,.22))'}`,
+        border: `1px solid ${bloquean > 0 ? `color-mix(in srgb, ${R} 38%, transparent)` : 'rgba(128,128,128,.22))'}`,
         background: 'var(--panel, transparent)',
       }}
     >
@@ -168,7 +168,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
 
       {/* ── 2b. REVISA plegables ── */}
       {dobles.length > 0 && !soloLectura && (
-        <div style={{ borderTop: '1px solid var(--panel-borde, rgba(128,128,128,.18))' }}>
+        <div style={{ borderTop: '1px solid rgba(128,128,128,.18))' }}>
           <button
             onClick={() => setAbierto(x => (x === 'revisa' ? null : 'revisa'))}
             aria-expanded={abierto === 'revisa'}
@@ -198,7 +198,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
 
       {/* ── 3. YA EN LA NOTA — siempre plegado: es contenido, no alerta ── */}
       {extraidos > 0 && !soloLectura && (
-        <div style={{ borderTop: '1px solid var(--panel-borde, rgba(128,128,128,.18))' }}>
+        <div style={{ borderTop: '1px solid rgba(128,128,128,.18))' }}>
           <button
             onClick={() => setAbierto(x => (x === 'nota' ? null : 'nota'))}
             aria-expanded={abierto === 'nota'}
@@ -209,7 +209,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
             }}
           >
             {abierto === 'nota' ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-            <Check size={15} style={{ color: 'var(--green, #0F6E56)' }} />
+            <Check size={15} style={{ color: 'var(--green)' }} />
             {extraidos} {extraidos === 1 ? 'dato' : 'datos'} de tu dictado ya {extraidos === 1 ? 'está escrito' : 'están escritos'} en la nota
           </button>
           {abierto === 'nota' && <div style={{ padding: '0 12px 10px' }}>{children}</div>}

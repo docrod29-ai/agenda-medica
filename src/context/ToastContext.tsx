@@ -124,15 +124,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              width: '100%', maxWidth: 400, background: 'var(--s1, #16181c)', color: 'var(--text, #e9edef)',
-              border: '1px solid var(--border, #2a2d33)', borderRadius: 16, padding: 22,
+              width: '100%', maxWidth: 400, background: 'var(--s1)', color: 'var(--text)',
+              border: '1px solid var(--border)', borderRadius: 16, padding: 22,
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}
           >
             {pending.opts.titulo && (
               <div id="nx-confirm-title" style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{pending.opts.titulo}</div>
             )}
-            <div id="nx-confirm-desc" style={{ fontSize: 14, color: 'var(--text2, #a8acae)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+            <div id="nx-confirm-desc" style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
               {pending.mensaje}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
@@ -140,7 +140,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 onClick={() => cerrar(false)}
                 style={{
                   padding: '9px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
-                  background: 'transparent', color: 'var(--text2, #a8acae)', border: '1px solid var(--border2, #2a2d33)',
+                  background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border2)',
                 }}
               >
                 {pending.opts.cancelar || 'Cancelar'}

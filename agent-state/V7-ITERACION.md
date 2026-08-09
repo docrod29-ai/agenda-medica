@@ -122,9 +122,17 @@ que cualquier otro pendiente — pero la reparación real cruza
 `useEffect` que copia `audio.transcripcion` a `voz.transcripcion`), la página de
 consulta y `salir-seguro.ts` a la vez. Meterle mano sin poder confirmar en un
 navegador real (este espacio no tiene uno) es el tipo de cambio que puede
-CREAR una pérdida de datos en vez de cerrarla. Se deja documentado con el
+CREAR una pérdida de datos en vez de cerrarla. Se dejó documentado con el
 `file:line` exacto en `BACKLOG.json` para el próximo disparo, en vez de forzar
 un arreglo a medias.
+
+**Actualización, misma sesión, tras fusionar `main` dos veces más.** Mientras
+esta rama esperaba revisión, V9/V10 cerraron de verdad **AUDIO-002 (parcial,
+REG-268/269 — sigue abierto el aviso de navegación interna, ver
+`PATIENT-AUDIO-004`) y AUDIO-003 (REG-269/294 — latido de actividad al dictar +
+purga condicional del audio sin transcribir)**. `BACKLOG.json` ya refleja el
+estado real tomado de `main`; el análisis de arriba describe lo que hacía falta
+en el momento en que se escribió, no el estado actual del código.
 
 **Lo que sí se cerró: REG-306 (`POSTVISIT-GATE-001`, score 63).**
 `HojaParaElPaciente` se montaba con el estado EN VIVO del borrador —sin mirar
@@ -145,11 +153,8 @@ HEAD sin tocar) — no es un defecto del cambio.
 
 ## Cola inmediata
 
-1. **PATIENT-AUDIO-002/003** (score 86/82) — el trabajo real que queda: un
-   guardia de cambio de ruta que detenga/transcriba antes de desmontar, y que
-   `EVENTO_GUARDAR_TODO`/`salirSeguro()` no purguen `nexusmed-recovery` mientras
-   haya audio sin transcribir. Necesita poder verse en un navegador antes de
-   tocar la temporización de `useGrabacionAudio.ts`.
+1. **PATIENT-AUDIO-002/003/004 — CERRADOS por V9/V10** mientras esta rama
+   esperaba revisión (REG-267/268/269/294/303). Ya no encabezan la cola.
 2. Los **cuatro** motores con cuerpo real que dependen de mí.
 3. **Hueco 2 de la investigación** — UCI: dictado por aparatos y sistemas, donde
    el mercado es más débil y su especialidad está peor servida (Kaiser, 2,5 M de

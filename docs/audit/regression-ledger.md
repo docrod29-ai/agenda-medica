@@ -6554,6 +6554,471 @@ defecto algo que no puede ocurrir es la otra forma de mentir con un informe.
 
 ---
 
+<!-- NOTA DE FUSIÓN V10-D1 (9-ago-2026): las 12 entradas siguientes nacieron
+     en la rama V9 como REG-270…281 y COLISIONABAN con los REG-270…293 que
+     main acuñó en paralelo. Se renumeraron a REG-294…302 conservando su
+     contenido; sus guardianes y sellos se renumeraron igual. -->
+
+## REG-294 — Volver a grabar borraba el audio de la grabación anterior
+
+**Encontrado por** la auditoría de navegación y estado de
+`PATIENT-UX-TRUTH-001` (V9).
+
+**Qué pasaba.** Al terminar bien una transcripción, `detener()` borraba el rango
+**completo** de la clave en IndexedDB. Pero el blob que acababa de transcribir se
+arma sólo con los trozos de **esta** sesión (`todosChunksRef`).
+
+El caso real: grabar 22 minutos → tocar «Agenda» → volver → grabar 90 segundos →
+detener. Los 90 segundos se transcriben, y **los 22 minutos se borran sin
+haberse transcrito nunca**. No hay segunda copia del audio en ninguna parte.
+
+**Causa raíz — media defensa.** `recoveryBaseRef` existe justo para esto: cuando
+hay audio huérfano bajo la misma clave, los trozos nuevos se guardan **después**
+para no pisarlo. Se protegía al huérfano al **escribir** y se le arrasaba al
+**borrar**. El comentario del autor demuestra que el escenario estaba pensado; lo
+que no se actualizó fue el borrado.
+
+**Arreglo.** `borrarChunks(clave, desde = 0)`. Los **tres** caminos de éxito
+—dictado, diarización y transcripción por partes— borran desde
+`recoveryBaseRef.current`. Descartar a mano y recuperar siguen borrándolo todo,
+que es lo correcto: ahí no queda nada que conservar.
+
+**Lo que NO se hizo, a propósito.** No se fusionan los dos audios para
+transcribirlos juntos. Son dos sesiones distintas de `MediaRecorder`, cada una
+con su cabecera de contenedor; concatenarlas produce un archivo que el proveedor
+no sabe leer. Perder el audio por «arreglarlo» sería el mismo defecto con otra
+cara.
+
+**Familia.** `perdida`.
+
+**Guardián.** `src/__tests__/el-audio-grabado-no-se-borra.test.ts`, 20 casos.
+Probado al revés: reponiendo el rango desde 0, falla.
+
+---
+
+## REG-295 — El trozo final del audio se tiraba al salir de la pantalla grabando
+
+**Encontrado por** la misma auditoría.
+
+**Qué pasaba.** `liberarRecursos()` desenganchaba `ondataavailable` antes de
+`rec.stop()`, así que el buffer final (~2 s) se perdía. Y `liberarRecursos` es lo
+que corre **en cada navegación**, porque `(dashboard)/template.tsx` desmonta la
+página siempre.
+
+Esos ~2 s son justo los últimos que dijo el médico antes de cambiar de pantalla:
+la parte más fácil de echar en falta y la única que no está en ninguna otra copia.
+
+**Causa raíz.** El desenganche era la defensa **correcta** para el índice que
+había. El índice de disco se derivaba de la longitud de un array
+—`recoveryBase + todosChunks.length - 1`— y ese array se vacía justo debajo; el
+`ondataavailable` final llega después del vaciado y calculaba `recoveryBase - 1`,
+pisando un trozo bueno o escribiendo en el índice -1. Entre perder 2 s y
+corromper el respaldo, se eligió bien.
+
+Lo que estaba mal no era la elección: era **atar un índice de disco a la longitud
+de una estructura en memoria**.
+
+**Arreglo.** `persistIdxRef`, un contador que sólo sube, sembrado en
+`recoveryBase` al iniciar. La colisión deja de ser posible, así que el
+desenganche deja de hacer falta y el trozo final se persiste en su sitio.
+
+**Familia.** `perdida`.
+
+**Guardián.** el mismo archivo. Probado al revés: reponiendo
+`rec.ondataavailable = null`, falla.
+
+---
+
+## REG-296 — El cierre por inactividad no oía dictar
+
+**Encontrado por** la misma auditoría.
+
+**Qué pasaba.** `AutoLogout` escucha `mousemove`, `mousedown`, `keydown`,
+`touchstart` y `scroll`. **Hablar no genera ninguno.** A los 30 minutos avisaba
+60 segundos y cerraba la sesión — encima de un médico que llevaba 30 minutos
+dictando.
+
+**Lo que hace especial a este defecto**: la cabecera de `AutoLogout.tsx` **ya lo
+describía**. El arreglo de entonces fue guardar la nota antes de cerrar, que era
+necesario y correcto, pero dejó la causa intacta. Escribir el diagnóstico
+correcto y arreglar sólo el síntoma deja constancia de que se sabía.
+
+**Arreglo.** `useGrabacionAudio` emite `nx:actividad-dictado` cada minuto
+mientras graba, y `AutoLogout` reinicia el contador al oírlo. El latido vive en
+el hook porque es quien sabe que se está grabando; el componente sólo escucha. Va
+**sin el estrangulador de 5 s** de los otros eventos: llega una vez por minuto, y
+perderlo sería justo lo que se intenta evitar.
+
+**Esto no desactiva el cierre por inactividad.** En cuanto la grabación para, el
+contador corre como siempre: el control de PHI en dispositivo compartido se
+mantiene entero.
+
+**Además**, mientras se graba se registra un `beforeunload` — no había **ni uno**
+en todo el repositorio. Para el texto de la nota es defendible, porque el volcado
+al desmontar lo salva; para una grabación no hay volcado posible. Cubre de paso
+la recarga que hace el service worker al desplegar una versión nueva.
+
+**Familia.** `no_conectado` — el dato (que hay alguien delante) existía y no
+llegaba a quien decidía.
+
+**Guardián.** el mismo archivo. **Y el guardián falló primero**: la primera
+versión comprobaba que el manejador EXISTIERA, así que al borrar el
+`addEventListener` en la comprobación al revés los 20 casos siguieron en verde.
+Un manejador declarado y no registrado es exactamente la familia que este
+archivo persigue. Ahora se exige el registro y su retirada.
+
+---
+
+## REG-297 — Al cerrar sesión se borraba el audio sin transcribir
+
+**Encontrado por** la misma auditoría.
+
+**Qué pasaba.** `salirSeguro()` llamaba a `limpiarAudioLocal()` en **las dos**
+ramas, sin condición, y esa función hace
+`indexedDB.deleteDatabase('nexusmed-recovery')`: se lleva el audio de
+recuperación entero.
+
+La purga de la **nota** ya era condicional, con su razonamiento escrito: cuando
+el servidor no la recibió, el borrador local es la única copia y borrarlo
+convierte un problema de red en una pérdida definitiva. **Ese mismo razonamiento
+no se aplicó al audio**, y el comentario que justificaba la purga —«el texto ya
+transcrito vive en el borrador que se está conservando»— es cierto sólo para una
+grabación **terminada**. A mitad de grabación, la cola sin transcribir no existe
+en ningún otro sitio.
+
+Y el disparador más frecuente era REG-296: como el cierre por inactividad no oía
+dictar, la sesión que se cerraba era, con diferencia, la que se estaba dictando.
+
+**Arreglo.** El acuse de `nx:guardar-todo` gana
+`marcarAudioSinTranscribir()`, y `ResultadoGuardado` gana `audioSinTranscribir`.
+Si alguien lo declara, el audio no se purga. La sesión se cierra igual —eso sí es
+seguridad—; lo que se conserva es un archivo que ya estaba en el disco y que el
+médico puede descartar desde el cartel de recuperación.
+
+**Tres detalles que decidían si el arreglo servía de algo:**
+
+1. **La declaración va ANTES del `return` por nota vacía.** Una grabación recién
+   empezada no tiene resumen, ni diagnósticos, ni transcripción: es exactamente
+   el caso que ese `return` descarta, y el que más audio irrecuperable tiene por
+   delante.
+2. **Se lee por ref, no por captura.** El oyente se registra con
+   `[guardarBorrador]`; leer `audio.estado` directamente habría capturado
+   «inactivo» y el arreglo habría quedado escrito y sin efecto.
+3. **Las tres salidas de `guardarTodoYEsperar` devuelven el campo.** Si una lo
+   olvidara, `audioSinTranscribir` sería `undefined`, la condición pasaría, y el
+   audio se borraría igual que antes — con el arreglo puesto. El guardián lo
+   comprueba.
+
+**Y lo que NO se hizo, a propósito.** No se intenta transcribir el audio durante
+el cierre. Estamos cerrando la sesión: pedirle a la red una transcripción larga
+en ese momento es apostar el audio a que la petición llegue. Se conserva el
+archivo, que es lo que sí depende de nosotros.
+
+**Familia.** `perdida`.
+
+**Guardián.** el mismo archivo. Probado al revés: quitando la condición, falla.
+
+---
+
+## REG-298 — Un segundo sistema de color, obsoleto, escondido dentro del primero
+
+**Encontrado por** `DESIGN-SYSTEM-001` (V9), al ir a sustituir los literales de
+color que había contado la auditoría anterior.
+
+**Qué pasaba.** 280 referencias a token traían un respaldo escrito a mano —
+`var(--text, #0f172a)`. Parecen defensivas. No lo eran:
+
+- **253 estaban OBSOLETAS**: el respaldo no coincidía ni con el valor oscuro ni
+  con el claro de su propio token. Eran los colores de **antes** del rediseño,
+  congelados en el código.
+- **5 apuntaban a tokens que NO EXISTÍAN** — `--warn-bg`, `--warn-border`,
+  `--warn-text`, `--success` no estaban definidos en ningún tema. Ahí el
+  respaldo no era un respaldo: era **el único valor que se pintaba jamás**,
+  igual en claro que en oscuro.
+- Sólo 22 coincidían con la realidad.
+
+**Lo peor que podía pasar**: `var(--text, #0f172a)`, en 35 sitios. Si ese
+respaldo llegara a usarse, pintaría texto casi negro sobre el lienzo `#0B0C0E`.
+Contraste ≈ 1,05 : 1. **Texto invisible.**
+
+**Lo que ya pasaba**: la tarjeta de aviso de `/pacientes` se pintaba color crema
+(`#fff8e6`) sobre el lienzo oscuro, porque `--warn-bg` no existía. Es la
+**tercera** aparición de esta forma; las dos anteriores están contadas en el
+comentario de `--panel` en `globals.css`.
+
+**Y cuatro más, que el propio guardián encontró al escribirlo**: `--danger`,
+`--muted`, `--surface` y `--text1` se usaban **sin respaldo ninguno**. No
+pintaban un color equivocado — no pintaban **nada**. El mensaje de error de
+Configuración no salía en rojo, y una tarjeta se quedaba sin superficie.
+
+**Causa raíz.** Un respaldo es un **segundo valor para la misma decisión**. Nace
+igual que el primero y se queda quieto mientras el token evoluciona. Nadie lo
+actualiza porque nadie lo ve: sólo se pintaría si el token faltara, y el token
+nunca falta… hasta el día que sí.
+
+**Cómo se descubrió.** Empezando la unidad con una cifra de la auditoría
+anterior —«1 205 hexadecimales a mano, 125 el azul de marca retecleado»— que
+resultó estar **mal contada**: la mayoría no eran literales sueltos sino
+respaldos dentro de `var()`. Corregir la cuenta convirtió un hallazgo mediano en
+uno peor.
+
+**Familia.** `se_contradice` — el token es correcto, el respaldo lo fue, y
+ninguna revisión de una sola pieza encuentra el hueco entre los dos.
+
+**Arreglo.** Cero respaldos: los 286 retirados. Los cuatro tokens que faltaban,
+definidos en **los dos** temas con la semántica que ya existía (el ámbar y el
+verde medidos), sin inventar color nuevo; el tema claro conserva exactamente lo
+que se venía pintando. Los cuatro fantasmas sin respaldo, apuntados a su token
+real.
+
+**Y la causa raíz del monolito de estilo en línea, de paso**: `@theme inline`
+exponía **cuatro** cosas a Tailwind, así que no había ninguna utilidad de marca
+que usar y el código no tenía alternativa al estilo en línea (6 065 `style={{`
+en el 88,5 % de los archivos). Ahora expone ~35, con prefijo `nx-` para no
+reinterpretar la escala por omisión de Tailwind. Y nacen las escalas que
+faltaban: radio, espacio, elevación, movimiento y tipografía.
+
+**Guardián.** `src/__tests__/el-sistema-de-diseno-no-pierde-terreno.test.ts`,
+11 casos, más el trinquete `scripts/design/trinquete-de-diseno.mjs`. Probado al
+revés: reponiendo un solo respaldo, quitando un token de aviso o estrechando
+`@theme inline`, falla.
+
+---
+
+## REG-299 — Dos guardianes con cuerpo de línea de órdenes en el ámbito del módulo
+
+**Encontrado** al comprobar al revés el guardián de REG-298.
+
+**Qué pasaba.** Los dos scripts de `scripts/design/` ejecutaban su cuerpo de
+línea de órdenes **al importarlos**. Consecuencias distintas y las dos malas:
+
+1. `trinquete-de-diseno.mjs` llamaba a `process.exit(1)`, así que una regresión
+   de diseño **tumbaba la recolección** de la prueba en vez de fallar un caso.
+   El fallo se veía, pero decía otra cosa.
+
+2. `inventario-de-pantallas.mjs` **reescribía `SCREEN_INVENTORY.md`**. La prueba
+   comparaba el archivo contra `generar()` … después de que el propio `import` lo
+   hubiera puesto al día. **El guardián no podía fallar nunca.**
+
+**Lo que hace a éste peor que un defecto normal.** El segundo se «probó al
+revés» al crearlo, en REG de `PATIENT-UX-TRUTH-001`: se añadió una pantalla
+falsa y **se dio por bueno que pasara en verde**. Se ejecutó la comprobación
+correcta y no se miró el resultado. Estuvo dos commits fingiendo ser una prueba,
+y de paso explica por qué `SCREEN_INVENTORY.md` aparecía modificado sin que
+nadie corriera el generador.
+
+**La regla.** Probar al revés no es suficiente **si no se mira el resultado**.
+Una prueba que pasa cuando debería fallar es peor que ninguna: ocupa el sitio.
+
+**Arreglo.** El cuerpo de línea de órdenes de los dos scripts sólo corre si el
+módulo se invoca directamente (`import.meta.url` contra `process.argv[1]`).
+
+**Familia.** `sin_medir` — el instrumento existía y no medía.
+
+**Guardián.** Los dos guardianes de siempre, ahora fallando de verdad al revés:
+añadiendo una pantalla sin regenerar, el inventario cae; reponiendo un respaldo,
+el trinquete cae.
+
+---
+
+## REG-300 — La fecha de seguimiento se perdía, y el volcado borraba la copia buena
+
+**Encontrado por** la auditoría de navegación de `PATIENT-UX-TRUTH-001`,
+reparado en `NAVIGATION-001`.
+
+**Qué pasaba.** `proximoSeguimiento` estaba en el respaldo con rebote y en la
+restauración, pero **ausente** del espejo vivo, del espejo en memoria y del
+volcado al desmontar. Como el espejo en memoria es el que manda al restaurar, el
+campo salía en blanco al volver de otra pantalla. Y peor: `flushRespaldo`
+**reescribía la clave de `localStorage` sin el campo**, borrando lo que el rebote
+de 1 500 ms ya había guardado bien.
+
+**Qué se pierde.** La fecha de seguimiento alimenta el contador de seguimientos
+vencidos del CRM y la tarea de la lista de trabajo. El comentario del propio
+código ya documentaba que **este mismo campo se había perdido una vez**
+(REG-193): aquel arreglo cubrió **uno** de los tres caminos de escritura.
+
+**Causa raíz — y es la que importa.** La regla «¿hay algo que valga la pena
+guardar?» estaba escrita **tres veces, palabra por palabra**: en el espejo en
+memoria, en el volcado y en el oyente de `nx:guardar-todo`. Familia
+`depende_de_recordar`. Basta añadir un campo en dos de los tres para que el
+tercero empiece a decir que la nota está vacía cuando no lo está.
+
+**Arreglo.** Una sola definición, `hayContenido(e)`, y las tres la llaman. El
+campo viaja ya en el espejo vivo y en los dos respaldos.
+
+**Guardián.** `src/__tests__/la-navegacion-devuelve-el-contexto.test.ts`. Probado
+al revés: quitando el campo del volcado, o devolviendo una de las tres copias de
+la regla, falla.
+
+---
+
+## REG-301 — El atrás de la consulta nunca volvía a la agenda
+
+**Qué pasaba.** El botón de atrás hacía `router.push(volverA)`: un destino
+**fijo** —el expediente— y además **apilando** una entrada nueva en el historial.
+
+La agenda abre la consulta directamente (`citas` → `/consulta/:id`), que es el
+camino normal del día. Así que el médico salía al expediente, no a su agenda; y
+desde el expediente, cuyo atrás **sí** es inteligente, volvía a la consulta.
+Quedaba oscilando entre dos pantallas **sin poder regresar a la lista del día**,
+salvo por la barra lateral — que monta `/citas` de cero y pierde el contexto
+(REG-302).
+
+**Lo que lo hace tonto de puro evitable**: `useSmartBack` existía desde hace
+tiempo y lo usaban **diez** pantallas. La consulta, que es la que más falta
+hacía, era de las pocas que no.
+
+**Arreglo.** `useSmartBack(volverA)`: si hay historial dentro de la aplicación,
+se vuelve por donde se vino; si se llegó por enlace directo, recarga o
+notificación, el destino fijo sigue de respaldo. El `push` que queda es el de
+**descartar** la consulta, que sí es un destino y no un regreso.
+
+**Familia.** `estorba`.
+
+---
+
+## REG-302 — La agenda olvidaba el día que se estaba mirando
+
+**Qué pasaba.** `selectedDate`, el filtro de estado y la búsqueda eran `useState`
+puro. Como `(dashboard)/template.tsx` desmonta la página en **cada** navegación,
+volver de una consulta devolvía la agenda a hoy, «todas» y sin búsqueda.
+
+En una jornada normal eso es **una vez por paciente**: quien trabaja el jueves
+desde el martes vuelve a poner la fecha después de cada uno.
+
+Y había un segundo mordisco: al abrir una cita por enlace (`?id=`), las dos
+limpiezas hacían `router.replace('/citas')` **pelado**, que quitaba el `id` **y
+de paso** el día, el filtro y la búsqueda.
+
+**Arreglo.** El estado vive en la URL (`?d=&f=&q=`), que es lo que la
+especificación pide con esas palabras («URL-addressable state») y además lo más
+barato: la URL ya sobrevive al desmontaje, al atrás del navegador y a compartir
+el enlace. Se escribe con `replace` y con rebote —cambiar de día no debe llenar
+el historial— y lo que viene de la URL **se valida**: `?d=borrame` dejaría la
+agenda pidiendo una ventana inexistente y la pantalla en blanco sin decir por
+qué.
+
+**Familia.** `perdida`.
+
+---
+
+## REG-303 — Navegar dentro de la aplicación cortaba el dictado sin avisar
+
+**Qué pasaba.** REG-295 y REG-296 cerraron la **pérdida**: el trozo final se
+persiste, el audio sobrevive en IndexedDB y hay `beforeunload` al recargar o
+cerrar la pestaña. Quedaba el **aviso** dentro de la aplicación:
+`beforeunload` **no se dispara en un `router.push`**, y `template.tsx` desmonta
+la página en cada navegación. Tocar «Agenda» seguía terminando la grabación sin
+que el médico se enterara.
+
+**Por qué se interceptan los clics y no la ruta.** El App Router **no expone
+eventos de ruta**. Las alternativas eran parchear `history.pushState` —global, y
+capaz de romper cualquier navegación— o mirar los clics. Se miran los clics, y
+**sólo mientras se graba**: es el ámbito más pequeño que cubre el caso real,
+porque todas las salidas de la consulta son `<Link>`.
+
+**Arreglo.** `useAvisoAlSalirGrabando`. Pregunta, **no impide**: el audio está a
+salvo y el médico tiene que poder irse. No se mete donde no desmonta nada —
+modificador, botón secundario, `target`, enlace externo, o enlace a la pantalla
+en la que ya se está, que es lo que hace el botón central de la barra inferior
+durante una consulta. Un aviso que salta donde no debe se acaba ignorando
+(REG-245).
+
+**Lo que NO cubre, declarado en el propio hook**: el botón «atrás» del navegador
+es un `popstate`, no un clic, y cancelarlo exigiría empujar una entrada falsa al
+historial — la clase de truco que rompe el atrás para todo lo demás. No se hace.
+
+**Familia.** `no_conectado`.
+
+---
+
+## REG-304 — El compañero del paciente, y la compuerta que impide enseñarle un borrador
+
+**Unidad** V9 `PATIENT-COMPANION-001`. No repara un defecto observado: **pone la
+defensa antes de que exista la superficie que la necesita**, y por eso merece
+entrada propia.
+
+**Por qué antes y no después.** Hasta hoy la IA y los datos de este producto le
+hablaban a un internista con cédula: un error se lo comía alguien entrenado para
+verlo. La primera vez que el producto le habla al **paciente**, el lector **no
+puede detectar el error**. No sabe que esa dosis todavía no estaba revisada, ni
+que ese diagnóstico era una hipótesis a medio dictar.
+
+**Lo que queda montado.**
+
+- `PaqueteDeVisita` con los trece campos de la especificación y **dos** estados:
+  `DRAFT` y `RELEASED`. Nace `DRAFT` **aunque la nota ya esté firmada** — firmar
+  es un acto hacia el expediente y liberar es un acto hacia el paciente; se
+  pueden hacer en el mismo gesto y se registran aparte (regla 4 de
+  `patient-facing-ai.md`).
+- `liberar()` **exige** quién aprueba y cuándo, y se niega si falta cualquiera de
+  los dos: un campo vacío en la base es indistinguible de un campo que nadie
+  llenó.
+- `visibleParaElPaciente()` exige las **tres** condiciones a la vez. Un
+  `RELEASED` sin `approvedBy` es un documento al que alguien le puso el estado a
+  mano — y eso pasa, en una migración o con la consola abierta.
+- **El servidor filtra, no la pantalla.** `/api/portal` acción `paquetes` aplica
+  la compuerta antes de responder, y exige alcance `clinico`. Esconder una
+  pestaña no cierra una ruta HTTP.
+- Los **cinco destinos** —Hoy · Preguntar · Cuidado · Documentos · Perfil— en
+  `/mi/[token]`, con barra fija abajo porque esa pantalla se usa con una mano,
+  de pie, en la sala de espera. Cinco es el techo de la especificación para
+  móvil, no el objetivo.
+- La colección declarada en los **tres** sitios que exige la regla de
+  aislamiento (`firestore.rules` con escritura cerrada, matriz de acceso,
+  manifiesto del respaldo) **y en un cuarto**: la exportación ARCO. El paquete es
+  dato del titular, incluidos los borradores.
+
+**Lo que NO se hizo, y es lo que más dice de esta unidad.**
+
+`componerPaquete` —la función que arma el contenido desde la nota firmada— se
+escribió, y **el guardián de conexión la cazó al instante**: motor con cuerpo
+real y sin un solo llamador. Su llamador natural es la pantalla donde el médico
+revisa y libera, que es `POSTVISIT-001`.
+
+«Escrito, probado y sin conectar» es la familia **más grande de este proyecto**
+—32 de 127—, y añadirle una más a sabiendas, aunque fuera con una nota
+explicándolo, sería exactamente lo que este repositorio lleva meses
+persiguiendo. Se difirió. Al quitarla, el guardián cazó a su ayudante
+`cambiosDeMedicacion` en la vuelta siguiente: **un motor sin llamador no deja de
+serlo porque su vecino se haya ido.** Se fueron los dos.
+
+**Y una honestidad de pantalla.** «Preguntar» **no responde**: la especificación
+pide inteligencia acotada al plan de cuidado, y eso llega en `PATIENT-AI-001`.
+Mientras tanto escala al consultorio, que es el producto y no el fallo (§3 de la
+regla). «Perfil» dice que el idioma es es-MX y que todavía no se puede autorizar
+a un cuidador, en vez de enseñar controles que no hacen nada: un selector con un
+solo idioma le miente al paciente sobre lo que puede esperar.
+
+**Familia.** `hueco_frente_al_mercado` — la casilla de aprobación explícita está
+vacía en todo el material público de Abridge, Nabla, Suki y Dragon Copilot.
+
+**Guardián.** `src/__tests__/un-borrador-no-llega-al-paciente.test.ts`, 13 casos.
+
+---
+
+## REG-305 — Dos guardianes de diseño que se contradecían
+
+**Encontrado** al montar la pantalla del paciente con los tokens nuevos.
+
+**Qué pasaba.** `escala-visual-trinquete` contaba «radios distintos» metiendo en
+el mismo saco `borderRadius: 7` y `borderRadius: 'var(--r-lg)'`. El primero es
+deriva; el segundo es exactamente lo que pide el sistema de diseño.
+
+Resultado: el trinquete de diseño de `DESIGN-SYSTEM-001` **premia** usar el
+token y éste lo **castigaba**. La primera pantalla que hizo lo correcto puso el
+CI en rojo, y el arreglo «natural» habría sido volver al número suelto.
+
+**Familia.** `se_contradice` — cada guardián correcto por su cuenta, el fallo en
+el hueco entre los dos. Es la misma forma que REG-223 (el azul que servía de
+texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
+
+**Arreglo.** El contador excluye los valores que son una variable CSS. La
+píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
 ## REG-306 — la hoja del paciente se componía del borrador sin firmar (POSTVISIT-GATE-001)
 
 **Cómo se descubrió.** Reconciliando `agent-state/BACKLOG.json` contra el código:
@@ -6602,7 +7067,7 @@ se copia o se imprime a mano en esta pantalla — `POSTVISIT-ENTREGA-001`
 paciente, y es trabajo aparte.
 
 **Guardián.** `src/__tests__/lo-que-se-lleva-el-paciente.test.ts`, sección «LA
-COMPUERTA DE LA FIRMA — REG-294», 3 casos nuevos (33 en total en el archivo) +
+COMPUERTA DE LA FIRMA — REG-306», 3 casos nuevos (33 en total en el archivo) +
 la prueba de conexión actualizada para exigir la nueva función en vez de la
 condición vieja.
 
