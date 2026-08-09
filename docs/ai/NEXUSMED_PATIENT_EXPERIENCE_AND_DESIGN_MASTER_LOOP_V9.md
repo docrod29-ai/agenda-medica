@@ -694,5 +694,5 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
 | 2026-08-08 | Los tres P0 de audio | `7be23e9`, `2340e63` | Volver a grabar ya no borra los 22 min anteriores · navegar no termina la grabación en silencio · el cierre por inactividad oye dictar | **283, 284, 287** |
-| 2026-08-09 | **DESIGN-SYSTEM-001 · `DESIGN-THEME-001`** | *(ver `LAST_SAFE_CHECKPOINT.md`)* | `@theme inline` de 4 a 47 tokens · nacen las escaleras `--sp-*` (no había ninguna), `--fs-*`, `--r-*`, `--elev-*` · trinquete de diseño congelado y corriendo en vitest · **cero píxeles repintados**, a propósito | — |
-| 2026-08-09 | Reconciliación del backlog | *(mismo commit)* | Tres P0 cerrados en dos tableros seguían abiertos en `BACKLOG.json`, que es el que §3 nombra como backlog del programa. Guardián que cruza los tres | **291** |
+| 2026-08-09 | **DESIGN-SYSTEM-001 · `DESIGN-THEME-001`** | `2784a05` | `@theme inline` de 4 a 47 tokens · nacen las escaleras `--sp-*` (no había ninguna), `--fs-*`, `--r-*`, `--elev-*` · trinquete de diseño congelado y corriendo en vitest · **cero píxeles repintados**, a propósito | — |
+| 2026-08-09 | Reconciliación del backlog | `2784a05` | Tres P0 cerrados en dos tableros seguían abiertos en `BACKLOG.json`, que es el que §3 nombra como backlog del programa. Guardián que cruza los tres | **291** |
