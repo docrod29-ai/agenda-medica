@@ -5067,7 +5067,111 @@ falta al menos una que compare lo declarado con lo que hay.
 - `src/__tests__/la-sala-de-datos-no-infla.test.ts` (misma corrección)
 - Recuperado a la rama de V7: `src/lib/uci/como-vino-el-pase.ts`,
   `src/lib/uci/reparto-sistemas.ts`, `src/__tests__/el-pase-dictado-se-reparte.test.ts`
-## REG-268 — el motor de temporalidad nunca se había medido (v1150)
+---
+
+> **Los dos que siguen venían numerados 265 y 266 por el programa V9.**
+> Esos números ya estaban tomados por reparaciones desplegadas en v1147 y
+> v1148, así que se renumeran a 268 y 269. Es la tercera consecuencia de que
+> dos programas compartieran un directorio de trabajo: la primera fue
+> REG-267 (un despliegue que anunció lo que no llevaba) y la segunda, esta
+> colisión. El texto va tal cual lo escribió V9, sólo con los números
+> corregidos.
+
+---
+
+## REG-268 — El enlace de la videoconsulta del paciente no llevaba con qué entrar
+
+**Encontrado por** la auditoría de superficie del paciente de
+`PATIENT-UX-TRUTH-001` (V9), siguiendo el enlace desde donde se construye hasta
+donde se valida.
+
+**Qué pasaba.** `enlaceSalaPaciente()` componía
+`/teleconsulta/<citaId>?c=<clinicId>` y nada más. Del otro lado,
+`/api/telesalud/sala` exige **una de dos** pruebas de titularidad: el token HMAC
+del paciente (`?t=`), o una sesión de miembro con `clinico.leer`. El paciente no
+tiene sesión, y el enlace no le daba token — así que caía en la rama de rechazo,
+que devuelve **404 «Cita no encontrada»** a propósito, para no confirmarle a un
+desconocido que ese `citaId` existe.
+
+El paciente pulsaba «Entrar a la videoconsulta» **dentro de su propio portal**
+—donde el token estaba en la barra de direcciones, a un `search.get('t')` de
+distancia— y la aplicación le decía que su cita no existe. En la hora de su
+consulta.
+
+**Causa raíz.** La defensa funcionaba perfectamente. Lo que estaba mal es que se
+le aplicaba **al dueño de la cita**, porque el enlace no transportaba la
+credencial que la propia aplicación ya tenía en la mano.
+
+**Por qué nadie lo vio.** El botón del médico en `(dashboard)/citas` **sí** añade
+`&t=`, con un token que emite `/api/telesalud/token`. Sólo fallaba el camino que
+**ningún empleado recorre**. Y las pruebas que había mockeaban
+`verificarTokenPaciente`, es decir, daban por bueno justo el dato que nunca
+llegaba.
+
+**Familia.** `el_dato_tiene_que_llegar` — igual que REG-167, REG-170 y REG-160.
+El enlace se construía, se enviaba y se abría; lo que no llegaba era la
+credencial que lo hace funcionar del otro lado.
+
+**Arreglo.** El token es un parámetro **obligatorio** de `enlaceSalaPaciente`:
+opcional, el defecto reaparecería en el siguiente llamador que lo olvide, en
+silencio. Obligatorio, el compilador obliga a cada llamador a decidir — y de
+hecho `tsc` cazó al instante el único otro llamador. El portal pasa su propio
+token. Y `dondeEsLaCita` **no emite enlace sin token**: un paciente sin enlace
+llama al consultorio; un paciente con un 404 cree que se quedó sin cita.
+
+**Lo que NO cierra.** El enlace que viaja por WhatsApp (`api/cron/reminders`,
+webhook) sigue sin token porque hoy no se acuña ahí. Desde este cambio manda
+«recibirás el enlace» en vez de un enlace roto: honesto, pero todavía sin enlace.
+Abierto como `PATIENT-TELE-002` (P0) en el backlog.
+
+**Guardián.** `src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts`,
+7 casos. Probado al revés: emitiendo el enlace sin token, falla.
+
+---
+
+## REG-269 — `@keyframes spin` no existía en ningún sitio global
+
+**Encontrado por** la auditoría del sistema de diseño de
+`PATIENT-UX-TRUTH-001` (V9), contando fotogramas definidos contra referenciados.
+
+**Qué pasaba.** `animation: 'spin 1s linear infinite'` se referencia **90 veces**,
+incluidas las dos piezas **compartidas** del sistema de diseño:
+`components/ui/Spinner.tsx` (27 usos) y el estado `loading` de
+`components/ui/Button.tsx` (58 usos). El fotograma no estaba en `globals.css` ni
+en ningún otro CSS global. Tailwind v4 tampoco lo emitía: sólo genera su `spin`
+si aparece la utilidad `animate-spin`, y aquí se usa **cero** veces.
+
+Lo definían —cada uno por su cuenta, en una etiqueta `<style>` local— **31
+archivos de pantalla**. Y una `<style>` renderizada es global al documento: el
+giro funcionaba mientras alguna de esas 31 estuviera montada, y se congelaba en
+cuanto el médico caía en otra.
+
+**Por qué no es cosmético.** Un indicador de carga parado no dice «esperando»:
+dice «se colgó». El médico vuelve a pulsar «Procesar con IA» sobre una petición
+que sí estaba corriendo. La señal de progreso es la única defensa contra el doble
+disparo.
+
+**Familia.** `el_sistema_se_contradice_a_si_mismo` — el componente compartido
+está bien, y las 31 pantallas están bien; lo que está mal es la relación entre
+ellos, y por eso ninguna revisión de una sola pieza lo encuentra. Misma familia
+que el azul que servía de texto y de relleno con requisitos opuestos.
+
+**Arreglo.** El fotograma vive en `globals.css`, una vez, con su explicación. Los
+31 `<style>` locales se quedan: son inofensivos y su barrido es de
+`DESIGN-SYSTEM-001`.
+
+**Guardián.** `src/__tests__/toda-animacion-tiene-su-fotograma.test.ts`, 3 casos.
+Un archivo que referencia una animación tiene que definirla él o encontrarla en
+`globals.css`; y `components/ui/` no puede definirla localmente, porque un
+primitivo compartido se monta donde sea. Probado al revés: quitando el bloque de
+`globals.css`, los tres casos caen.
+
+**Y el guardián se equivocó dos veces antes de acertar**, lo cual merece
+registrarse: leer el primer identificador tras `animation:` capturaba la
+condición de un ternario (`voz`), y leer toda cadena entrecomillada capturaba un
+valor comparado (`'grabando'`). Exigir que la cadena traiga duración distingue
+las tres cosas. **Un guardián que grita de más se acaba silenciando** — REG-245.
+## REG-270 — el motor de temporalidad nunca se había medido (v1151)
 
 **Encontrado** — 7-ago-2026, ítem EVAL-002 del backlog: escribir el corpus oro
 que el motor no tenía y correrlo **antes** de tocar una línea de código.

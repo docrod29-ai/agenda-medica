@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1150 — REG-268: el motor de temporalidad nunca se había medido
+## v1151 — REG-270: el motor de temporalidad nunca se había medido
 
 Avisa cuando el dictado pone un padecimiento en pasado y la nota lo afirma como
 actual. Se construyó en la v1027-v1030 y sus únicos casos eran los de quien lo
@@ -2614,3 +2614,21 @@ línea copiada.
 
 No es código nuevo: es código que se había quedado fuera de la rama que se
 despliega. La misma familia que REG-267, con otro disfraz.
+
+## v1151 — el trabajo de V9: la superficie del paciente
+
+**REG-270** · el enlace de la videoconsulta del paciente no llevaba token, así
+que `/api/telesalud/sala` le contestaba **404 «Cita no encontrada» al dueño de la
+cita** —desde su propio portal, a la hora de su consulta—. Nadie lo vio porque el
+botón del médico sí lo lleva: sólo fallaba el camino que ningún empleado recorre.
+El token pasa a ser obligatorio en la firma.
+
+**REG-269** · `@keyframes spin` no existía en ningún sitio global pese a 90
+referencias, incluidos `ui/Spinner` y el estado «cargando» de `ui/Button`. Lo
+definían 31 pantallas en `<style>` locales, así que el giro funcionaba según en
+qué pantalla estuvieras. Un indicador parado no dice «esperando»: dice «se
+colgó», y se vuelve a pulsar sobre una petición que sí corría.
+
+Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
+reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
+programas compartieran directorio de trabajo, después de REG-267.

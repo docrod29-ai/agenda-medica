@@ -21,13 +21,13 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | O-2 | Simulacro de restauración con `gcloud firestore databases restore` | Cronometrarlo una vez, en un proyecto de prueba | El acta de restauración real | La ida y vuelta del respaldo ya está medida |
 | O-3 | Pentest externo y PITR | Contratar cuando haya clientes de pago | El registro de riesgos lo declara pendiente | Todo lo demás |
 | O-4 | Cuenta de prueba en los secretos de CI | Una cuenta de juguete con datos sintéticos | El E2E sólo cubre lo público | El resto de CI |
-| O-5 | **17 PR abiertos y 16 se llaman «REG-268 / v1150»** | Fusionar o cerrar por lotes, empezando por los que tocan `temporalidad.ts` (#233, #234 y éste), y **después** renumerar el ledger de una vez | Que el número de REG y la versión del SW vuelvan a identificar algo | Cada rama pasa sus compuertas por separado; el trabajo no se pierde, sólo colisiona el nombre |
+| O-5 | **17 PR abiertos y 16 se llaman «REG-270 / v1151»** | Fusionar o cerrar por lotes, empezando por los que tocan `temporalidad.ts` (#233, #234 y éste), y **después** renumerar el ledger de una vez | Que el número de REG y la versión del SW vuelvan a identificar algo | Cada rama pasa sus compuertas por separado; el trabajo no se pierde, sólo colisiona el nombre |
 
 **Sobre O-5** — No es un descuido de una ejecución: es estructural. Cada ciclo
 autónomo arranca de `main`, lee que el ledger acaba en REG-191 y toma el
 siguiente número — que las ejecuciones anteriores ya tomaron, porque ninguna se
 fusionó. Fusionar es lo único que rompe el bucle, y fusionar es decisión del
-dueño. Mientras tanto seguirán naciendo REG-268.
+dueño. Mientras tanto seguirán naciendo REG-270.
 
 Tres PR tocan `src/lib/expediente/temporalidad.ts` con arreglos **distintos y
 parcialmente incompatibles** del mismo falso positivo. Lo que cada uno cubre, para

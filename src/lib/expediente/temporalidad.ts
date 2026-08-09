@@ -59,7 +59,7 @@ const NUMERO =
 /**
  * Unidades de tiempo.
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-268) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-270) ─────────────────────────────────────
  *
  * Aquí decía `meses?`, que es «mese» con una ese opcional: casaba «meses» y
  * «mese», y **nunca «mes»**. Así que «hace un mes tuvo neumonía» —de las formas
@@ -86,7 +86,7 @@ const PASADO_VERBO = new RegExp([
    * La pasiva es como se cuenta lo que le hicieron en un hospital —«fue operado
    * de apendicectomía»— y no tiene lectura en presente: «fue» ya es pretérito.
    *
-   * Va en UNA sola línea: REG-200 y REG-268 llegaron a ella por caminos
+   * Va en UNA sola línea: REG-200 y REG-270 llegaron a ella por caminos
    * distintos —«fue diagnosticada de asma» y «fue operado de apendicectomía»— y
    * al fusionarse quedaron dos alternativas que decían casi lo mismo. Dos listas
    * del mismo hecho se desincronizan; ésta es la unión de las dos.
@@ -146,7 +146,7 @@ const PASADO_VERBO = new RegExp([
  * LA MARCA DE CUÁNDO, sin verbo que la acompañe.
  *
  * Esta familia **cede** ante un verbo de estado en presente: ver
- * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-268.
+ * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-270.
  */
 const PASADO_MARCA = new RegExp([
   `\\bhace\\s+${NUMERO}\\s*${UNIDAD_TIEMPO}\\b`,
@@ -185,7 +185,7 @@ const PRESENTE = new RegExp([
 /**
  * EL VERBO DE ESTADO en presente — «tiene», «presenta», «cursa con».
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-268) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-270) ─────────────────────────────────────
  *
  * El corpus oro destapó el falso positivo más caro que podía tener este motor:
  *
