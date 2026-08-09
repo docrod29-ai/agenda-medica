@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 33 de 139, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -53,6 +53,14 @@ ese camino no es una impresión y nunca miró la marca.
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
 
+El 9-ago-2026 la familia apareció en la capa que nadie había mirado: **CSS**
+(REG-291). Catorce tokens del sistema de diseño se usaban sin estar declarados
+en ninguna parte. Aquí ni siquiera hace falta un camino que no se recorra: una
+declaración cuyo `var()` no resuelve es *inválida a la computación* y el
+navegador **la descarta sin decir nada**. El contador «Fallidos» de mensajes al
+paciente elegía el rojo y el rojo se tiraba: nunca se puso rojo. Es la versión
+más silenciosa del patrón, porque el lenguaje no tiene errores de símbolo.
+
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
 escribir «No referido» y la 1-bis lo PROHÍBE. **Ninguna de las dos estaba mal por
 su cuenta** — y por eso ninguna revisión de una sola pieza lo encuentra. El fallo
@@ -64,7 +72,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 138.**
+**«El sistema se contradice a sí mismo» — 23 de 139.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -104,7 +112,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 138**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 139**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

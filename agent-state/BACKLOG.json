@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,8 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cierre": "CERRADO v1158 · REG-283 — el borrado se limita al rango de esta sesión (recoveryBaseRef)"
     },
     {
       "seguridad": 3,
@@ -255,7 +256,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-002",
@@ -266,7 +267,8 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "cierre": "CERRADO v1161 · REG-287 — salir grabando avisa"
     },
     {
       "seguridad": 3,
@@ -280,7 +282,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-003",
@@ -291,7 +293,8 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "cierre": "CERRADO v1161 · REG-287 — grabar cuenta como actividad; la recuperación no se borra"
     },
     {
       "seguridad": 2,
@@ -405,7 +408,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -416,7 +419,8 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "cierre": "CERRADO · REG-291 — @theme inline ensanchado (20 colores, 5 radios, 7 espacios, 2 sombras, 6 tipos); tokens de espacio/radio/sombra/tipografía declarados; las .t-* leen de token; compuerta que COMPILA el CSS y exige var(--token). La adopción en las 200 pantallas es VISUAL-EXCELLENCE-001, no esto."
     },
     {
       "seguridad": 1,
@@ -565,6 +569,31 @@
       "archivo": "src/lib/portal/formulario-previo.ts:87",
       "plan": "Buscar el símbolo en app/, hooks/ y components/ — el instrumento de REG-255.",
       "score": 24
+    },
+    {
+      "seguridad": 1,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 2,
+      "moat": 0,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "origen": "REG-291 (V9 · DESIGN-SYSTEM-001) — medido al declarar los tokens, 9-ago-2026",
+      "id": "DESIGN-RESPALDOS-001",
+      "prioridadV9": "P2",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "281 respaldos var(--token, #hex) nombran colores que el token abandonó",
+      "hallazgo": "82 var(--nexus,#3d5afe) cuando --nexus es #6E84FE · 39 var(--text3,#64748b) cuando es #8A8F94 · 35 var(--text,#0f172a) cuando es #F2EFE9 · 33 var(--text2,#334155) · 25 var(--border,#e5e7eb). Total 281 respaldos, casi todos con la paleta slate de tema claro.",
+      "porQueImporta": "No se disparan nunca —los tokens están declarados— así que NO son un defecto de píxel. Lo que son es documentación falsa dentro del código: quien lea var(--text,#0f172a) creerá que el texto de esta aplicación es casi negro. Y son ~30 % de los ~900 hexadecimales que la auditoría contó, así que inflan la medida de la deriva y esconden los que sí importan.",
+      "archivo": "201 sitios en src/**/*.tsx — recuento en REG-291",
+      "plan": "Sustitución pura var(--x, #hex) → var(--x), sin cambio de píxel. Después, medir de nuevo los hexadecimales que QUEDAN: ésos sí son deriva real y ninguno tiene el contraste medido. Antes de tocar nada hay que comprobar que ningún contexto renderiza fuera de :root — la ventana de impresión copia los <link> globales y por tanto sí los ve (verificado en REG-291); los documentos en papel usan literales a propósito y no entran.",
+      "score": 30
     }
   ],
   "actualizado": "2026-08-08",

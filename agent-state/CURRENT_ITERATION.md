@@ -13,8 +13,10 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `DESIGN-SYSTEM-001` (abierta 9-ago).
+`PATIENT-UX-TRUTH-001` ✅ cerrada (8-ago) · los tres P0 de audio ✅ cerrados
+(v1158/v1161) · `DESIGN-THEME-001` ✅ cerrado (REG-291, 9-ago).
+Queda de esta iteración: `A11Y-GATE-001`, los literales *slate* y las tablas.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -37,6 +39,19 @@ línea; primitivos compartidos al 24 %).
 | Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
 | El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+
+### Y en `DESIGN-SYSTEM-001` (9-ago) apareció el mismo patrón en la capa visual
+
+**Lo que el sistema de diseño no declara no falla: se calla** (REG-291). Catorce
+tokens se usaban sin existir. CSS descarta la declaración y no avisa, así que el
+contador **«Fallidos»** de mensajes al paciente —`var(--danger)`, inexistente—
+**nunca se ponía rojo**, y el aviso de posible paciente duplicado se pintaba con
+su respaldo: crema de tema claro, en una aplicación oscura.
+
+Causa raíz común con toda la deriva visual: `@theme inline` exponía **cuatro**
+tokens, así que no había utilidad que usar y el código no tenía alternativa al
+estilo en línea. Ensanchado, con compuerta que **compila el CSS** y exige que la
+utilidad valga `var(--token)` y no el hexadecimal.
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

@@ -706,11 +706,11 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
           {posiblesDuplicados.length > 0 && (
             <div style={{
               marginBottom: 16, padding: '12px 14px', borderRadius: 10,
-              border: '1px solid var(--warn-border, #f0c36d)', background: 'var(--warn-bg, #fff8e6)',
+              border: '1px solid var(--warn-border)', background: 'var(--warn-bg)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <AlertCircle size={16} style={{ color: 'var(--warn-text, #8a6100)', flexShrink: 0 }} />
-                <strong style={{ fontSize: 13.5, color: 'var(--warn-text, #8a6100)' }}>
+                <AlertCircle size={16} style={{ color: 'var(--warn-text)', flexShrink: 0 }} />
+                <strong style={{ fontSize: 13.5, color: 'var(--warn-text)' }}>
                   {posiblesDuplicados.length === 1 ? 'Puede que ya esté registrado' : 'Puede que ya estén registrados'}
                 </strong>
               </div>

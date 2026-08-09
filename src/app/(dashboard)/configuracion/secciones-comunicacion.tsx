@@ -76,7 +76,7 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
           <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Cargando…
         </div>
       )}
-      {error && <div className="t-body" style={{ color: 'var(--danger)' }}>No se pudo cargar: {error}</div>}
+      {error && <div className="t-body" style={{ color: 'var(--red)' }}>No se pudo cargar: {error}</div>}
 
       {data && !loading && data.total === 0 && (
         <div style={{ padding: 20, border: '1px dashed var(--border)', borderRadius: 12, color: 'var(--text3)' }}>
@@ -90,13 +90,13 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: 12 }}>
             <TarjetaMetrica etiqueta="Enviados" valor={data.total} />
             <TarjetaMetrica etiqueta="Entregados" valor={data.entregados} sub={pct(data.tasaEntrega)} color="var(--nexus)" />
-            <TarjetaMetrica etiqueta="Leídos" valor={data.leidos} sub={pct(data.tasaLectura) + ' de entregados'} color="var(--success, #16a34a)" />
-            <TarjetaMetrica etiqueta="Fallidos" valor={data.fallidos} sub={data.fallosPermanentes ? `${data.fallosPermanentes} permanentes` : undefined} color={data.fallidos ? 'var(--danger)' : 'var(--text2)'} />
+            <TarjetaMetrica etiqueta="Leídos" valor={data.leidos} sub={pct(data.tasaLectura) + ' de entregados'} color="var(--green)" />
+            <TarjetaMetrica etiqueta="Fallidos" valor={data.fallidos} sub={data.fallosPermanentes ? `${data.fallosPermanentes} permanentes` : undefined} color={data.fallidos ? 'var(--red)' : 'var(--text2)'} />
           </div>
 
           {data.fallosPorCodigo.length > 0 && (
             <div>
-              <h3 className="t-h3" style={{ margin: '4px 0 8px' }}>Motivos de fallo</h3>
+              <h3 className="t-h2" style={{ margin: '4px 0 8px' }}>Motivos de fallo</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {data.fallosPorCodigo.map(f => (
                   <div key={f.codigo} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8 }}>
@@ -115,9 +115,9 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
 
 function TarjetaMetrica({ etiqueta, valor, sub, color }: { etiqueta: string; valor: number; sub?: string; color?: string }) {
   return (
-    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface, transparent)' }}>
+    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12, background: 'transparent' }}>
       <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>{etiqueta}</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: color || 'var(--text1)', lineHeight: 1 }}>{valor}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1 }}>{valor}</div>
       {sub && <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
@@ -343,7 +343,7 @@ export function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) 
       <div style={{ padding: '16px 18px', background: 'var(--s1)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <QrCode size={18} style={{ color: 'var(--nexus)' }} />
-          <h3 className="t-h3" style={{ margin: 0 }}>Recordatorios fuera de la ventana de 24 h (plantillas)</h3>
+          <h3 className="t-h2" style={{ margin: 0 }}>Recordatorios fuera de la ventana de 24 h (plantillas)</h3>
           <span style={{
             marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)',
             background: registradas === 3 ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'var(--nexus-soft)',

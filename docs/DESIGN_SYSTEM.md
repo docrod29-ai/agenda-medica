@@ -71,6 +71,24 @@ Una pantalla no debe tener cobalto en 5 lugares sin razón.
   sombras decorativas en cards.
 - **Bordes:** 1px `--border`. El borde define superficie, no la sombra.
 
+> **Desde REG-291 esto es token, no sólo prosa.** Durante dos meses esta sección
+> dijo «múltiplos de 4» y «radios 6/10/14» y **no existía ninguna variable CSS que
+> los llevara**, así que no había nada que usar y el código escribía el número a
+> mano: 23 valores distintos de `gap`, ~19 de radio, 24 sombras para 28 usos.
+>
+> | Concepto | Token | Utilidad |
+> |---|---|---|
+> | Espacio | `--sp-0-5 · --sp-1 · --sp-2 · --sp-3 · --sp-4 · --sp-6 · --sp-8` | `gap-sp3`, `p-sp4`… |
+> | Radio | `--r-control · --r-card · --r-modal` (+ `--r-pill`, `--r-circulo`) | `rounded-card`… |
+> | Elevación | `--sombra-menu · --sombra-modal` | `shadow-menu`, `shadow-modal` |
+> | Tipografía | `--fs-display … --fs-overline` | `text-h1`, `text-cuerpo`… |
+> | Aviso en línea | `--warn-bg · --warn-text · --warn-border` | `bg-aviso-fondo`… |
+>
+> Un token nuevo **no cuenta hasta que `@theme inline` lo expone**: si Tailwind no
+> lo ve, la utilidad no existe y el código vuelve al estilo en línea. Lo vigila
+> `src/__tests__/un-token-que-no-existe-no-se-calla.test.ts`, que compila este CSS
+> de verdad.
+
 ---
 
 ## 5. Iconografía (reemplazo de emojis)

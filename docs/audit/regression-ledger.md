@@ -6379,3 +6379,92 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — el token que no existe no falla: se calla (V9 · DESIGN-SYSTEM-001)
+
+Catorce variables del sistema de diseño se **usaban sin estar declaradas en
+ninguna parte**. CSS no tiene errores de símbolo: una declaración cuyo `var()`
+no resuelve y no lleva respaldo se vuelve *inválida a la computación* y el
+navegador la descarta. No falla nada. Simplemente el color que alguien eligió a
+propósito no está.
+
+| Dónde | Qué pasaba |
+|---|---|
+| `/configuracion` · entrega de mensajes | El contador **«Fallidos»** se pinta `data.fallidos ? 'var(--danger)' : 'var(--text2)'`. `--danger` no existe: el ternario elige el rojo y el rojo se descarta. **El contador de mensajes que no llegaron al paciente nunca se ponía rojo.** El mensaje de error del mismo panel, igual |
+| `/pacientes` · posible duplicado | `--warn-bg` / `--warn-text` / `--warn-border` tampoco existían, pero ahí **sí** había respaldo — con colores de tema **claro** (`#fff8e6` crema, `#8a6100` marrón). Se veía, y se veía mal: el único panel crema de una aplicación oscura, y justo el que defiende el invariante nº1 (UN PACIENTE · UNA IDENTIDAD) |
+| `.t-h3` | Clase que la escala no tiene, usada dos veces. Con el *preflight* de Tailwind los encabezados heredan tamaño y peso: el título de sección salía del tamaño del texto corrido |
+| `--muted`, `--text1`, `--surface`, `--success`, `--line2`, `--text4`, `--panel-borde`, `--gap-bg` | Ocho más, entre modal de cobro, antibiograma, contabilidad, membresías y el panel de «antes de firmar» |
+
+### Por qué no es cosmético
+
+Los dos primeros son **señales**. Un contador de fallos que no se pone rojo es un
+fallo que nadie mira; un aviso de paciente duplicado que parece un error de
+maquetación es un aviso que se aprende a ignorar. Es REG-245 por el otro lado:
+allí un guardián gritaba de más y enseñó a ignorarlo; aquí no grita nada.
+
+### La causa raíz, que es la misma de toda la deriva visual
+
+`@theme inline` exponía a Tailwind **cuatro** cosas. Todo lo demás —color,
+superficie, borde, radio, espacio, tipografía— vivía en variables CSS que
+Tailwind no ve, así que **no existía ninguna utilidad que usar** y el código no
+tenía alternativa al `style={{…}}`: 6 065 usos en 177 de 200 archivos (88,5 %).
+Sin utilidades no hay vocabulario compartido, y sin vocabulario cada pantalla se
+inventa el suyo — incluidos nombres de token que nunca se declararon.
+
+### Qué quedó
+
+- **`@theme inline` ensanchado** a 20 colores, 5 radios, 7 espacios, 2 sombras y
+  6 tamaños de tipo. Aditivo: no cambia un píxel de lo ya pintado, sólo hace que
+  la utilidad exista. Nombres en español, sin colisión con la paleta de fábrica.
+- **Tokens que el documento ya declaraba en prosa y no existían en CSS**: los
+  tres radios de `docs/DESIGN_SYSTEM.md` §4, la escala de espacio de múltiplos
+  de 4, dos sombras de overlay y los seis pasos de la escala tipográfica.
+- **Las clases `.t-*` leen de los tokens** en vez de repetir el número: un solo
+  sitio donde cambia un tamaño.
+- **`--warn-*` declarados en los dos temas**, derivados de las insignias ámbar
+  que ya estaban medidas.
+- **Las catorce referencias huérfanas, al token canónico.**
+
+### La compuerta
+
+`src/__tests__/un-token-que-no-existe-no-se-calla.test.ts`, seis pruebas.
+Las cuatro primeras cuentan sobre el código; la última **compila `globals.css`
+de verdad** con Tailwind y exige que la utilidad se emita y que su valor sea
+`var(--token)` y no el color literal — porque una utilidad con el valor congelado
+compila igual, pasa cualquier revisión de código y deja media aplicación clavada
+en oscuro. Es `el-dato-tiene-que-LLEGAR` aplicado a CSS.
+
+Probada al revés cuatro veces: devolviendo `var(--danger)`, quitando `--warn-bg`,
+devolviendo `.t-h3`, y congelando `--color-lienzo` a su hexadecimal. Las cuatro
+la hacen fallar nombrando el archivo.
+
+### La trampa que casi entra
+
+Declarar `--font-display` **dentro** de `@theme` lo haría referirse a sí mismo.
+Una variable CSS circular no da error: se vuelve inválida y se lleva por delante
+a `.t-display`, la única clase que la usa. La prueba lo prohíbe explícitamente.
+
+### Qué NO cubre
+
+- Que el token sea el **adecuado**: `var(--green)` donde tocaba `var(--red)`
+  resuelve igual de bien.
+- **Contraste**: que el token exista no dice que se lea. Los ~900 hexadecimales
+  sueltos del código siguen sin medirse.
+- **Los respaldos rancios**: `var(--nexus, #3d5afe)` aparece 82 veces y nombra un
+  color que `--nexus` abandonó (hoy `#6E84FE`). No se dispara nunca — por eso no
+  es un defecto — pero documenta en falso el sistema. Queda como
+  `DESIGN-RESPALDOS-001` en el backlog, con su recuento (281 respaldos en total).
+- **Nadie ha abierto una pantalla.** El cambio de `.t-h3` a `.t-h2` y el del
+  aviso de duplicados a los tokens ámbar **cambian píxeles** y están razonados,
+  no observados.
+
+### Archivos
+
+- `src/app/globals.css`
+- `src/app/(dashboard)/configuracion/secciones-comunicacion.tsx`
+- `src/app/(dashboard)/pacientes/page.tsx` · `src/app/(dashboard)/antibiograma/page.tsx`
+- `src/app/(dashboard)/membresias/page.tsx` · `src/app/superadmin/contabilidad/page.tsx`
+- `src/components/AntesDeFirmar.tsx` · `src/components/CobrarModal.tsx`
+- `src/__tests__/un-token-que-no-existe-no-se-calla.test.ts` (nuevo, 6 casos, sellado)

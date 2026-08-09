@@ -104,6 +104,43 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /* Los tres radios que `docs/DESIGN_SYSTEM.md` §4 ya declaraba en prosa —
+     «6 (controles), 10 (cards), 14 (modales)»— y que no existían como token.
+     El documento es la fuente de verdad; esto sólo lo hace ejecutable. */
+  --r-control: 6px;
+  --r-card:    10px;
+  --r-modal:   14px;
+
+  /* ─── ESPACIO ────────────────────────────────────────────────────────────
+     `docs/DESIGN_SYSTEM.md` §4 declara «múltiplos de 4 (4, 8, 12, 16, 24, 32)»
+     desde 2026-06 y **nunca existió el token**. Sin token no hay utilidad que
+     usar, y sin utilidad el código cae al número en línea: la auditoría de V9
+     contó 23 valores distintos de `gap` y 25 de `padding`.
+
+     Se declara la escala del documento y se le añade `--sp-0-5: 2px` para el
+     interlineado de las insignias, que ya se usaba. No se legitima el `gap: 6`
+     (288 usos) ni el `gap: 10` (241): son deriva, y su barrido pertenece a
+     VISUAL-EXCELLENCE-001 — pero se documenta aquí para que la próxima pantalla
+     no invente un valor nuevo. */
+  --sp-0-5: 2px;
+  --sp-1:   4px;
+  --sp-2:   8px;
+  --sp-3:   12px;
+  --sp-4:   16px;
+  --sp-6:   24px;
+  --sp-8:   32px;
+
+  /* ─── ELEVACIÓN ──────────────────────────────────────────────────────────
+     §4 del documento: «plana por defecto; sombra SÓLO en overlays (dropdown /
+     modal). Nada de sombras decorativas en cards». La auditoría contó 28 usos
+     con 24 valores distintos — casi cada sombra es única, que es lo mismo que
+     no tener ninguna.
+
+     Dos tokens, no seis: la única jerarquía que este producto necesita es
+     «flota un poco» y «flota sobre todo». */
+  --sombra-menu:  0 8px 24px rgba(0,0,0,0.34);
+  --sombra-modal: 0 24px 64px rgba(0,0,0,0.48);
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
   --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
@@ -113,6 +150,20 @@
   --badge-purple-t: #c084fc; --badge-purple-b: rgba(168,85,247,0.18);
   --badge-gris-t:   #A8ACAE; --badge-gris-b:   rgba(148,163,184,0.14);
 
+  /* ─── AVISO EN LÍNEA ─────────────────────────────────────────────────────
+     REG-291. `--warn-bg`, `--warn-border` y `--warn-text` se usaban en el banco
+     de posibles duplicados de /pacientes **sin estar declarados en ninguna
+     parte**: el respaldo del `var()` era el que pintaba, y el respaldo llevaba
+     colores de tema CLARO (`#fff8e6` crema, `#8a6100` marrón). Resultado: el
+     único panel crema de una aplicación oscura, y justo el que avisa de que un
+     paciente puede estar registrado dos veces — el invariante nº1.
+
+     Se derivan de las insignias ámbar, que ya están medidas en los dos temas,
+     para que el aviso siga al tema sin volver a medir nada. */
+  --warn-bg:     var(--badge-amber-b);
+  --warn-text:   var(--badge-amber-t);
+  --warn-border: rgba(251,191,36,0.34);
+
   /* Texto bone — warm, sofisticado, no slate-frío */
   --text:      #F2EFE9;
   --text2:     #A8ACAE;
@@ -121,13 +172,126 @@
 
   /* Tipografía editorial — uso restringido a hero/citas */
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
+
+  /* ─── ESCALA TIPOGRÁFICA ─────────────────────────────────────────────────
+     Los seis pasos de `docs/DESIGN_SYSTEM.md` §3, que hasta hoy sólo existían
+     dentro de las clases `.t-*` de más abajo. Sacarlos a token hace dos cosas:
+     las clases pasan a leer de un único sitio, y Tailwind puede emitir
+     utilidades (`text-cuerpo`, `text-h1`…) — que es lo que hoy no existe y por
+     lo que hay ~3 000 `fontSize` en línea con ~60 valores distintos.
+
+     Los cuatro tamaños más usados del código (13, 12.5, 12 y 11 px) NO están
+     en la escala y no se añaden: son deriva, no una decisión. Se dejan a la
+     vista para que el barrido de VISUAL-EXCELLENCE-001 los reduzca. */
+  --fs-display:  28px;
+  --fs-h1:       20px;
+  --fs-h2:       16px;
+  --fs-body:     14px;
+  --fs-caption:  12px;
+  --fs-overline: 10.5px;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * @theme — LA CAUSA RAÍZ DEL MONOLITO DE ESTILO EN LÍNEA (V9 · DESIGN-THEME-001)
+ *
+ * Este bloque exponía CUATRO cosas a Tailwind: fondo, texto y las dos familias
+ * tipográficas. Todo lo demás —color, superficie, borde, radio, espacio,
+ * tipografía— vivía en variables CSS que Tailwind **no ve**, así que no existía
+ * ninguna utilidad que usar y el código no tenía alternativa al `style={{…}}`.
+ *
+ * No era dejadez: era la consecuencia mecánica de una línea de configuración.
+ * La auditoría de V9 midió el resultado — 6 065 `style={{` en 177 de 200
+ * archivos (88,5 %), contra 816 `className`.
+ *
+ * Ensanchar esto no cambia un píxel de lo que ya está pintado: sólo hace que
+ * exista la utilidad. Que se adopte es el trabajo de VISUAL-EXCELLENCE-001, y
+ * la prueba de que aquí se adopta ya está dada: `--r-pill` tiene 131 usos.
+ *
+ * · `inline` es deliberado. Sin él Tailwind emitiría `var(--color-lienzo)` con
+ *   el valor congelado en `:root`, y el cambio de tema —que se hace
+ *   redefiniendo `--bg` bajo `[data-theme="light"]`— dejaría de propagarse.
+ *   Con `inline`, `bg-lienzo` compila a `var(--bg)` y sigue al tema.
+ * · Los nombres van en español y **no colisionan** con la paleta que Tailwind
+ *   trae de fábrica (`--color-red-500`…). Un token nuestro no puede
+ *   redefinir en silencio un color de la librería.
+ * ══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Lienzo y superficies */
+  --color-lienzo:       var(--bg);
+  --color-superficie:   var(--s1);
+  --color-superficie-2: var(--s2);
+  --color-superficie-3: var(--s3);
+
+  /* Bordes */
+  --color-borde:        var(--border);
+  --color-borde-fuerte: var(--border2);
+
+  /* Acento — dos tokens con requisitos OPUESTOS (ver el comentario de
+     `--nexus-solido` más arriba): uno se lee sobre fondo oscuro, el otro se
+     rellena bajo texto blanco. Se exponen los dos para que nadie tenga que
+     elegir mal por no tener el otro a mano. */
+  --color-nexus:        var(--nexus);
+  --color-nexus-hover:  var(--nexus-hover);
+  --color-nexus-solido: var(--nexus-solido);
+
+  /* Texto */
+  --color-texto:   var(--text);
+  --color-texto-2: var(--text2);
+  --color-texto-3: var(--text3);
+
+  /* Semántica clínica */
+  --color-rojo:   var(--red);
+  --color-ambar:  var(--amber);
+  --color-verde:  var(--green);
+  --color-azul:   var(--blue);
+  --color-morado: var(--purple);
+
+  /* Aviso en línea */
+  --color-aviso-fondo:  var(--warn-bg);
+  --color-aviso-texto:  var(--warn-text);
+  --color-aviso-borde:  var(--warn-border);
+
+  /* Radio */
+  --radius-control: var(--r-control);
+  --radius-card:    var(--r-card);
+  --radius-modal:   var(--r-modal);
+  --radius-pill:    var(--r-pill);
+  --radius-circulo: var(--r-circulo);
+
+  /* Espacio. Nombres explícitos y no numéricos: en Tailwind v4 la escala
+     numérica (`p-4`) sale de la variable `--spacing`, y redefinirla movería
+     TODA la aplicación. Esto añade, no sustituye. */
+  --spacing-sp0-5: var(--sp-0-5);
+  --spacing-sp1:   var(--sp-1);
+  --spacing-sp2:   var(--sp-2);
+  --spacing-sp3:   var(--sp-3);
+  --spacing-sp4:   var(--sp-4);
+  --spacing-sp6:   var(--sp-6);
+  --spacing-sp8:   var(--sp-8);
+
+  /* Elevación — sólo overlays */
+  --shadow-menu:  var(--sombra-menu);
+  --shadow-modal: var(--sombra-modal);
+
+  /* Escala tipográfica */
+  --text-display:  var(--fs-display);
+  --text-h1:       var(--fs-h1);
+  --text-h2:       var(--fs-h2);
+  --text-cuerpo:   var(--fs-body);
+  --text-caption:  var(--fs-caption);
+  --text-overline: var(--fs-overline);
+
+  /* La familia editorial NO se expone aquí a propósito: el token de `:root` ya
+     se llama `--font-display`, y declararlo dentro de `@theme` lo haría
+     referirse a sí mismo. Una variable CSS circular no es un error ruidoso: se
+     vuelve «inválida a la garantía» y arrastra consigo a `.t-display`, que es
+     justo la clase que la usa. Se queda como token de `:root` y se aplica con
+     la clase `.nx-display`, que ya existe. */
 }
 
 * {
@@ -1077,6 +1241,11 @@ tbody tr:last-child { border-bottom: none; }
   --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
   --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
   --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+
+  /* Aviso en línea — LIGHT. El fondo y el texto los heredan las insignias
+     ámbar de arriba; sólo el borde necesita su propio valor, porque en claro
+     un ámbar translúcido al 34 % sobre crema no se ve. */
+  --warn-border: #E7C89A;
 }
 
 /* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los
@@ -1119,6 +1288,8 @@ tbody tr:last-child { border-bottom: none; }
     --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
     --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
     --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+
+    --warn-border: #E7C89A;
   }
   /* Mismo placeholder oscuro para el auto-claro del OS. */
   :root:not([data-theme="dark"]):not([data-theme="light"]) .input::placeholder,
@@ -1392,40 +1563,40 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 
 .t-display {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: var(--fs-display);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--text);
 }
 .t-h1 {
-  font-size: 20px;
+  font-size: var(--fs-h1);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
   color: var(--text);
 }
 .t-h2 {
-  font-size: 16px;
+  font-size: var(--fs-h2);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.3;
   color: var(--text);
 }
 .t-body {
-  font-size: 14px;
+  font-size: var(--fs-body);
   font-weight: 400;
   line-height: 1.5;
   color: var(--text);
 }
 .t-caption {
-  font-size: 12px;
+  font-size: var(--fs-caption);
   font-weight: 500;
   line-height: 1.4;
   color: var(--text2);
 }
 .t-overline {
-  font-size: 10.5px;
+  font-size: var(--fs-overline);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;

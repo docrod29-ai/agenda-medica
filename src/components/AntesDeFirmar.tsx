@@ -54,7 +54,7 @@ function Renglon({ color, children }: { color: string; children: ReactNode }) {
   return (
     <div style={{
       display: 'flex', gap: 10, alignItems: 'flex-start',
-      padding: '10px 12px', borderTop: '1px solid var(--panel-borde, rgba(128,128,128,.18))',
+      padding: '10px 12px', borderTop: '1px solid var(--border)',
       color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.5,
     }}>
       <span style={{ color, flexShrink: 0, marginTop: 1, display: 'flex' }}>{children}</span>
@@ -102,7 +102,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
       role={bloquean > 0 ? 'alert' : 'status'}
       style={{
         marginBottom: 12, borderRadius: 12, overflow: 'hidden',
-        border: `1px solid ${bloquean > 0 ? `color-mix(in srgb, ${R} 38%, transparent)` : 'var(--panel-borde, rgba(128,128,128,.22))'}`,
+        border: `1px solid ${bloquean > 0 ? `color-mix(in srgb, ${R} 38%, transparent)` : 'var(--border2)'}`,
         background: 'var(--panel, transparent)',
       }}
     >
@@ -168,7 +168,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
 
       {/* ── 2b. REVISA plegables ── */}
       {dobles.length > 0 && !soloLectura && (
-        <div style={{ borderTop: '1px solid var(--panel-borde, rgba(128,128,128,.18))' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <button
             onClick={() => setAbierto(x => (x === 'revisa' ? null : 'revisa'))}
             aria-expanded={abierto === 'revisa'}
@@ -198,7 +198,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
 
       {/* ── 3. YA EN LA NOTA — siempre plegado: es contenido, no alerta ── */}
       {extraidos > 0 && !soloLectura && (
-        <div style={{ borderTop: '1px solid var(--panel-borde, rgba(128,128,128,.18))' }}>
+        <div style={{ borderTop: '1px solid var(--border)' }}>
           <button
             onClick={() => setAbierto(x => (x === 'nota' ? null : 'nota'))}
             aria-expanded={abierto === 'nota'}
