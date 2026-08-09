@@ -87,6 +87,56 @@
   --green:     #1BA34D;
   --purple:    #A375F2;
 
+  /* ─── ESTADO CLÍNICO: CADA COLOR CON SUS TRES CARAS ──────────────────────
+
+     EL DEFECTO MEDIDO (9-ago-2026, sobre los 208 archivos .tsx):
+
+         #dc2626  44 veces      #f87171  29 veces      #10b981  23 veces
+         #f59e0b  42 veces      #d97706  27 veces      #b91c1c  18 veces
+         #3d5afe  41 veces      #0d9488  27 veces      #ef4444  16 veces
+
+     644 hexadecimales escritos a mano, en 102 archivos. No son colores
+     caprichosos: son **el rojo de peligro, su relleno claro y su hover**,
+     retecleados uno por uno porque el sistema sólo daba `--red` y hacía falta
+     un relleno y un borde.
+
+     Cuando un token no cubre el caso, el caso no desaparece: se escribe a mano.
+
+     ── EL QUE MÁS DUELE ────────────────────────────────────────────────────
+
+     `#3d5afe`, 41 veces. Este mismo archivo documenta seis líneas más arriba
+     que ese azul **se retiró por no pasar contraste** (2,96 : 1). Se arregló
+     en el token y quedó vivo en 41 sitios. Es la forma de REG-267: reparado
+     en un lugar, vivo en el de al lado — y aquí lo que quedó vivo es un fallo
+     de accesibilidad que ya se había corregido.
+
+     ── POR QUÉ TRES CARAS Y NO UNA ─────────────────────────────────────────
+
+     Un color de estado se usa siempre de tres maneras: el trazo que se LEE
+     (texto, icono, borde), el relleno sobre el que se lee, y el estado
+     activo. Darlas juntas es lo que impide que la próxima alerta invente su
+     propio relleno.
+
+     Los `-suave` van con `color-mix` sobre el lienzo del tema para que el
+     mismo token sirva en claro y en oscuro sin una segunda tabla que se
+     desincronice. Esa segunda tabla ya costó REG-298: 253 respaldos de color
+     obsoletos escondidos dentro de `var()`.                                  */
+  --peligro:        var(--red);
+  --peligro-suave:  color-mix(in srgb, var(--red) 14%, var(--s1));
+  --peligro-borde:  color-mix(in srgb, var(--red) 38%, transparent);
+
+  --aviso:          var(--amber);
+  --aviso-suave:    color-mix(in srgb, var(--amber) 14%, var(--s1));
+  --aviso-borde:    color-mix(in srgb, var(--amber) 38%, transparent);
+
+  --bien:           var(--green);
+  --bien-suave:     color-mix(in srgb, var(--green) 14%, var(--s1));
+  --bien-borde:     color-mix(in srgb, var(--green) 38%, transparent);
+
+  --info:           var(--blue);
+  --info-suave:     color-mix(in srgb, var(--blue) 14%, var(--s1));
+  --info-borde:     color-mix(in srgb, var(--blue) 38%, transparent);
+
   /* ─── RADIO ──────────────────────────────────────────────────────────────
      LA PÍLDORA ESTABA ESCRITA DE CINCO FORMAS.
 
@@ -174,7 +224,7 @@
   --text3:     #8A8F94;
 
   /* Tipografía editorial — uso restringido a hero/citas */
-  --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
 
   /*
     ─── AVISO Y ÉXITO — cuatro tokens que se USABAN SIN EXISTIR (REG-298) ───
@@ -223,8 +273,8 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
   --font-display: var(--font-fraunces);
 
   /* Superficies y bordes */
@@ -521,7 +571,7 @@ textarea.input {
 input[type="number"].input,
 .input.input-numeric {
   font-variant-numeric: tabular-nums;
-  font-family: var(--font-geist-mono), 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono), 'SF Mono', Menlo, monospace;
   letter-spacing: -0.01em;
 }
 
