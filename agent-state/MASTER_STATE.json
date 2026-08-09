@@ -16,11 +16,28 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1149",
+  "ultimaVersionEnProduccion": "nexusmed-v1150",
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "M  agent-state/DESIGN_STATE.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/PATIENT_COMPANION_STATE.md",
+    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "M  docs/audit/regression-ledger.md",
+    "A  docs/competitive/PATIENT_EXPERIENCE_MATRIX.md",
+    "A  docs/competitive/UX_UI_MATRIX.md",
+    "M  docs/data-room/INDICE.md",
+    "A  docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
+    "A  docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
+    "A  docs/design/NAVIGATION_STATE_AUDIT.md",
+    "AM docs/design/SCREEN_INVENTORY.md",
+    " M docs/maintenance/sw-changelog.md",
+    "A  docs/patient/PATIENT_COMPANION_BASELINE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
-    " M public/version.txt"
+    " M public/version.txt",
+    "A  scripts/design/inventario-de-pantallas.mjs"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -56,10 +73,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 115,
-    "ultimaREG": "REG-267",
-    "archivosDePrueba": 545,
-    "casosDePrueba": 7227,
+    "regsEnElLedger": 117,
+    "ultimaREG": "REG-269",
+    "archivosDePrueba": 548,
+    "casosDePrueba": 7243,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
