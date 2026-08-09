@@ -83,6 +83,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "fake-indexeddb": "^6.2.5",
     "firebase-tools": "15.25.1",
     "tailwindcss": "^4",
     "typescript": "^5",
