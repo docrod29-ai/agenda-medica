@@ -2761,3 +2761,21 @@ motor— se quedaba muda: el escudo de la primera oración cruzaba el punto.
 El comentario ya nombraba este fallo y eligió 60 caracteres como defensa. Pero
 «Antecedente de asma. » mide 21. **Un número no puede expresar «la misma
 oración»**: la ventana se queda como tope y el corte lo hace el punto.
+
+## v1161 — grabar es actividad, y salir grabando avisa (REG-287)
+
+Los **dos últimos P0** de integridad de la auditoría de V9, y compartían causa:
+**nadie sabía que se estaba grabando**.
+
+`AutoLogout` cerraba la sesión a los 30 minutos sin ratón ni teclas — y su propio
+comentario ya decía que *«el médico DICTA, y dictar no genera mousemove ni
+teclas»*. Su defensa era guardar la nota antes de cerrar: eso salva el texto y
+**cierra igual a mitad de un pase de UCI**. Guardar la nota era el consuelo, no
+el arreglo.
+
+Y no había **ningún** `beforeunload` en toda la aplicación: cerrar la pestaña
+dictando paraba la grabación sin decir nada.
+
+El latido **cancela también el aviso de cierre** — una grabación en curso es
+prueba de que hay alguien delante, no un `mousemove` perdido. Es una decisión de
+seguridad y queda escrita para poder revertirla.

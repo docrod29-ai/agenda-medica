@@ -59,6 +59,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'fi
  *     vivo, unmount, reset. AudioContext.close() + RAF cancel + IDB clear.
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { EVENTO_GRABANDO, LATIDO_MS } from '@/lib/seguridad/estoy-grabando'
 
 type Estado = 'inactivo' | 'grabando' | 'pausado' | 'subiendo' | 'listo' | 'error'
 
@@ -1099,6 +1100,62 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   }, [liberarRecursos])
 
   useEffect(() => () => { liberarRecursos() }, [liberarRecursos])
+
+  /**
+   * ── GRABAR ES ACTIVIDAD, Y AVISAR ANTES DE SALIR — REG-287 ─────────────────
+   *
+   * Dos huecos que compartían causa: **nadie sabía que se estaba grabando.**
+   *
+   * ── 1. La sesión se cerraba en mitad del dictado ──────────────────────────
+   *
+   * `AutoLogout` escucha `mousemove`, `mousedown`, `keydown`, `touchstart` y
+   * `scroll`. Su propio comentario nombra el escenario: *«el médico DICTA, y
+   * dictar no genera mousemove ni teclas»*. Su defensa fue guardar la nota antes
+   * de cerrar — pero **seguía cerrando la sesión a mitad de frase**, en un pase
+   * de UCI de 30 minutos.
+   *
+   * Guardar la nota no era el arreglo: era el consuelo. El arreglo es que
+   * **grabar cuente como actividad**, porque lo es.
+   *
+   * Se emite un latido cada minuto. No se toca `AutoLogout` desde aquí: se le
+   * habla en su idioma —un evento— y él decide.
+   *
+   * ── 2. Salir no avisaba ───────────────────────────────────────────────────
+   *
+   * No había **ningún** `beforeunload` en toda la aplicación. Cerrar la pestaña
+   * o recargar durante el dictado paraba la grabación sin decir nada. Los trozos
+   * ya volcados sobreviven en IndexedDB y al volver aparece el ofrecimiento de
+   * recuperación — pero el médico no lo sabe en ese momento, que es cuando
+   * decide.
+   *
+   * El aviso del navegador es feo y no se puede redactar. Da igual: **el que
+   * decide es él, y para decidir hace falta saberlo.**
+   */
+  useEffect(() => {
+    if (estado !== 'grabando' && estado !== 'pausado') return
+    if (typeof window === 'undefined') return
+
+    /** El latido: grabando, la sesión está viva aunque nadie toque el ratón. */
+    const latido = window.setInterval(
+      () => window.dispatchEvent(new CustomEvent(EVENTO_GRABANDO)), LATIDO_MS)
+    /* Uno inmediato: si se empieza a grabar en el minuto 29, el primer
+       `setInterval` llegaría tarde. */
+    window.dispatchEvent(new CustomEvent(EVENTO_GRABANDO))
+
+    const alSalir = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      /* Los navegadores modernos ignoran el texto y enseñan el suyo. Se asigna
+         igualmente porque los viejos lo exigen para mostrar el diálogo. */
+      e.returnValue = ''
+      return ''
+    }
+    window.addEventListener('beforeunload', alSalir)
+
+    return () => {
+      window.clearInterval(latido)
+      window.removeEventListener('beforeunload', alSalir)
+    }
+  }, [estado])
 
   // Función: flushea chunks acumulados al endpoint de streaming
   const flushChunks = useCallback(async () => {

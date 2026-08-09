@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { salirSeguro } from '@/lib/salir-seguro'
+import { EVENTO_GRABANDO } from '@/lib/seguridad/estoy-grabando'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -90,9 +91,39 @@ export function AutoLogout() {
     }
     const eventos: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
     eventos.forEach(e => window.addEventListener(e, onActividad, { passive: true }))
+
+    /**
+     * ── GRABAR ES ACTIVIDAD — REG-287 ────────────────────────────────────────
+     *
+     * El comentario de este archivo ya nombraba el escenario: *«el médico DICTA,
+     * y dictar no genera mousemove ni teclas»*. Su defensa fue **guardar la nota
+     * antes de cerrar** — eso salva el texto, pero la sesión **se seguía
+     * cerrando a mitad de frase** en un pase de UCI de media hora.
+     *
+     * Guardar la nota no era el arreglo: era el consuelo.
+     *
+     * ── Y ESTE LATIDO SÍ CANCELA EL AVISO, QUE ES LA DECISIÓN ───────────────
+     *
+     * Durante la cuenta atrás sólo el botón reactiva, y con razón: un
+     * `mousemove` perdido no puede impedir un cierre legítimo en un equipo
+     * compartido.
+     *
+     * **Una grabación en curso no es un `mousemove` perdido.** Es prueba
+     * positiva de que hay alguien delante hablando: evidencia de presencia más
+     * fuerte que mover el ratón. Sin esta línea, el aviso saldría en el minuto
+     * 30 del dictado y cerraría igual — y el defecto seguiría abierto con un
+     * arreglo puesto.
+     *
+     * Es una decisión de seguridad y se deja escrita para que el dueño pueda
+     * revertirla: alarga la sesión mientras se graba.
+     */
+    const onGrabando = () => reiniciar()
+    window.addEventListener(EVENTO_GRABANDO, onGrabando)
+
     reiniciar()
     return () => {
       eventos.forEach(e => window.removeEventListener(e, onActividad))
+      window.removeEventListener(EVENTO_GRABANDO, onGrabando)
       limpiar()
     }
     // El efecto ya NO depende de `avisando` → no se re-monta al aparecer el aviso.
