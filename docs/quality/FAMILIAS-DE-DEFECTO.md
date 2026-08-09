@@ -2,7 +2,7 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
+**Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
 **Fuente**: los 112 REG de `docs/audit/regression-ledger.md`.
 
 ---
@@ -39,8 +39,8 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
-familia más grande.**
+**«Escrito, probado y sin conectar» — 34 de 140, y el 9-ago-2026 vuelve a
+crecer.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el
@@ -53,6 +53,21 @@ ese camino no es una impresión y nunca miró la marca.
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
 
+**9-ago-2026 · dos más, y la variante nueva.** REG-291: la regla «sin token no se
+manda enlace» estaba escrita, probada y era correcta — y los tres caminos que
+salen por WhatsApp nunca acuñaron el token, así que el paciente de una
+videoconsulta recibía «recibirás el enlace por este medio»… por este medio. Nadie
+lo veía porque **no falla nada**: el mensaje sale, se entrega y se lee bien.
+
+REG-292 es la variante que da más miedo, porque la pieza sin conectar era una
+**defensa**: `portalTokenVersion` permite revocar los enlaces de un paciente, y
+`/api/telesalud/sala` no la miraba. Revocar cerraba su agenda y sus recetas, y le
+dejaba abierta la sala de video.
+
+La lección que añaden: **cuando una defensa se implementa donde uno está mirando,
+hay que ir a buscar los otros sitios el mismo día.** La revocación se escribió en
+`/api/portal`; la sala había nacido antes y nadie volvió a pasar por ella.
+
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
 escribir «No referido» y la 1-bis lo PROHÍBE. **Ninguna de las dos estaba mal por
 su cuenta** — y por eso ninguna revisión de una sola pieza lo encuentra. El fallo
@@ -64,7 +79,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 138.**
+**«El sistema se contradice a sí mismo» — 23 de 140.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -104,7 +119,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 138**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 140**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

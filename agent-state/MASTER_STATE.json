@@ -18,20 +18,17 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/Sidebar.tsx",
+    "M agent-state/BACKLOG.json",
+    " M docs/audit/regression-ledger.md",
+    " M src/__tests__/authz-rutas-declaradas.test.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/telesalud/sala/route.ts",
+    " M src/app/api/whatsapp/webhook/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/rutas-privadas.ts",
-    " M src/lib/seguridad/dosis.ts",
-    "?? src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-    "?? src/app/(dashboard)/motores/",
-    "?? src/components/motores/"
+    " M src/lib/patient-token.ts",
+    "?? src/__tests__/el-enlace-de-la-videoconsulta-llega-vivo.test.ts",
+    "?? src/lib/telesalud/token-de-la-sala.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,12 +62,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/relaxed-fermi-qqrd66",
   "derivado": {
-    "regsEnElLedger": 138,
-    "ultimaREG": "REG-290",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "regsEnElLedger": 140,
+    "ultimaREG": "REG-292",
+    "archivosDePrueba": 567,
+    "casosDePrueba": 7469,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

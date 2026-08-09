@@ -637,6 +637,14 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 2026-08-09 (REG-291). Acuña el token de la sala para el
+       * recordatorio de una teleconsulta, y para eso lee `portalTokenVersion`
+       * del paciente — la misma lectura, y sólo esa, que ya hace `portal/link`.
+       * Ni nombre, ni teléfono, ni un solo dato clínico salen de ahí: el nombre
+       * y el teléfono que el recordatorio usa vienen de la CITA, como siempre.
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja
@@ -651,6 +659,14 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       // — ni nombre, ni teléfono, ni un solo dato clínico.
       'portal/link',
       'public/booking',
+      /**
+       * +1 el 2026-08-09 (REG-292). Lee `portalTokenVersion` para comprobar que
+       * el enlace del paciente NO ha sido revocado. Antes no lo leía, y por eso
+       * revocar cerraba la agenda y las recetas y dejaba abierta la sala de
+       * video. Entrar aquí es la lectura que CIERRA una puerta, no la que abre
+       * una: es la única de esta lista cuyo motivo es negar acceso.
+       */
+      'telesalud/sala',
       'telesalud/token',
       'whatsapp/webhook',
     ])

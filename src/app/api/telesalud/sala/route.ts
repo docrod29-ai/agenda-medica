@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { verificarTokenPaciente } from '@/lib/patient-token'
+import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
@@ -61,7 +61,38 @@ export async function POST(req: NextRequest) {
      * comprobación, y su fallo sigue devolviendo 404 para no confirmar que el
      * citaId existe.
      */
-    const autorizadoPorToken = !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
+    let autorizadoPorToken = !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
+
+    /**
+     * REVOCAR TENÍA QUE CORTAR TAMBIÉN LA SALA (REG-292).
+     *
+     * El expediente lleva `portalTokenVersion`: subirlo tumba de golpe todos los
+     * enlaces emitidos para ese paciente. `/api/portal` lo comprueba desde que
+     * existe — **esta ruta no lo comprobaba nunca**. O sea que revocar cerraba la
+     * agenda y las recetas, y dejaba abierta la **sala de video**: teléfono
+     * perdido, número reciclado o mensaje reenviado seguían pudiendo entrar a la
+     * consulta, que es la puerta más íntima de las tres.
+     *
+     * Se descubrió al cablear REG-291: antes de repartir este enlace por WhatsApp
+     * a todas las teleconsultas, había que poder retirarlo.
+     *
+     * Si la lectura falla se deja pasar, igual que en `/api/portal`: dejar al
+     * paciente fuera de su propia consulta por un mal minuto de Firestore es peor
+     * que el riesgo que esto acota, y la firma, la caducidad y la ventana horaria
+     * siguen protegiendo.
+     */
+    if (autorizadoPorToken && tk) {
+      try {
+        const pSnap = await adminDb.collection('clinics').doc(clinicId)
+          .collection('patients').doc(tk.patientId).get()
+        const vPaciente = (pSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion
+        if (!tokenVigente(tk.version, vPaciente)) {
+          safeLog.warn('[telesalud/sala] enlace revocado rechazado')
+          autorizadoPorToken = false
+        }
+      } catch { /* ver arriba */ }
+    }
+
     let autorizadoPorMiembro = false
     if (!autorizadoPorToken) {
       const acc = await verificarCapacidad(req, clinicId, 'clinico.leer')

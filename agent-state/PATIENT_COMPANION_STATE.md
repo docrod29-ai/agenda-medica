@@ -7,6 +7,20 @@
 **Siguiente que toca esta superficie**: `PATIENT-COMPANION-001` (tras
 `DESIGN-SYSTEM-001` y `NAVIGATION-001`).
 
+**9-ago-2026 — cerrado el último P0 de esta superficie** (`PATIENT-TELE-002`,
+v1164). El enlace de la videoconsulta ya sale **vivo** por los tres caminos de
+WhatsApp: los dos recordatorios del cron y las dos confirmaciones del bot
+(REG-291). Su TTL se calcula contra la ventana de la sala, no contra el reloj de
+quien lo manda — un token fijo de un día habría muerto seis horas antes de la
+consulta.
+
+Y al cablearlo apareció **REG-292**, que no estaba en ningún backlog: revocar los
+enlaces de un paciente le cerraba la agenda y las recetas y le dejaba **abierta
+la sala de video**. `/api/telesalud/sala` nunca miró `portalTokenVersion`. Se
+arregló antes de repartir el enlace, no después.
+
+**Con esto, V9 no tiene ningún P0 abierto.**
+
 ---
 
 ## Lo que existe hoy

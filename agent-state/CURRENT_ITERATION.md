@@ -13,8 +13,9 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) · los tres P0 de
+audio ✅ **CERRADOS** (v1158/v1161) · `PATIENT-TELE-002` ✅ **CERRADO** (9-ago,
+v1164, REG-291/292). **Cero P0 abiertos** → siguiente: `DESIGN-SYSTEM-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -37,6 +38,8 @@ línea; primitivos compartidos al 24 %).
 | Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
 | El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+| El enlace que viaja por **WhatsApp** no existía: el paciente nunca lo recibía | CERRADO v1164 (REG-291) — `PATIENT-TELE-002` |
+| Y al cablearlo: **revocar no cerraba la sala de video**, sólo la agenda | CERRADO v1164 (**REG-292**) — no estaba en el backlog |
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

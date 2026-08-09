@@ -693,3 +693,5 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | Fecha | Unidad | SHA | Qué quedó | REG |
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
+| 2026-08-08 | Los tres P0 de audio (`PATIENT-AUDIO-001/002/003`) | `7be23e9` · `2340e63` | 22 min de dictado que se borraban solos; navegar ya no mata la grabación; dictar cuenta como actividad | **283, 284, 287** |
+| 2026-08-09 | **`PATIENT-TELE-002`** — el último P0 | *(este commit)* | El enlace de la videoconsulta sale vivo por los tres caminos de WhatsApp, con TTL contra la ventana de la sala. Y revocar cierra por fin también la sala. **Cero P0 abiertos** | **291, 292** |

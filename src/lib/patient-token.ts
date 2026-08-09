@@ -26,6 +26,17 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 const DIAS_DEFECTO = 7
 
 /**
+ * TECHO de duración de un enlace de paciente, para quien necesite decidir si
+ * emitir uno o callarse.
+ *
+ * Se exporta —y no se copia— porque `telesalud/token-de-la-sala.ts` decide con
+ * él si una cita queda demasiado lejos para mandar enlace. Copiarlo sería la
+ * familia `depende_de_recordar`: el día que estos siete días cambien, el otro
+ * módulo seguiría creyendo lo de siempre.
+ */
+export const DIAS_MAXIMOS_ENLACE = DIAS_DEFECTO
+
+/**
  * E0-06 — ALCANCE del token. No todos los magic-links deben poder lo mismo.
  *
  * `/api/portal/link` lo emite CUALQUIER miembro (la asistente pulsa el botón y se

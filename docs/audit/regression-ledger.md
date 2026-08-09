@@ -6379,3 +6379,105 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — la videoconsulta se anunciaba por WhatsApp sin el enlace (v1164)
+
+Cierra `PATIENT-TELE-002`, **P0** del backlog de V9, levantado por la auditoría
+`PATIENT-UX-TRUTH-001`.
+
+REG-265 cerró el camino del portal y, para no mandar un enlace roto, dejó escrita
+la regla correcta: **sin token no se emite enlace**, porque `/api/telesalud/sala`
+exige prueba de titularidad y responde *«Cita no encontrada»* a quien no la trae.
+
+Lo que quedó a medias es que **los tres caminos que salen por WhatsApp nunca
+acuñaron ese token**: los dos recordatorios del cron y las dos confirmaciones del
+bot llamaban a `dondeEsLaCita` sin él. Así que al paciente de una videoconsulta
+le llegaba, en su recordatorio:
+
+> «Recibirás el enlace de la videollamada **por este medio** antes de tu cita.»
+
+Por este medio. Que era éste. El enlace no llegaba nunca, y el paciente acababa
+teniendo que entrar al portal justo cuando va con prisa.
+
+### Por qué nadie lo veía
+
+Porque no falla nada. La rama sin token es **honesta** y el mensaje sale, se
+entrega y se lee bien. Sólo que el paciente se queda sin enlace. Es la familia
+**`no_conectado`** en su forma más difícil de ver: el módulo existe, está
+probado, está bien — y el camino que el paciente recorre no lo cruza. La regla
+hermana es `el-dato-tiene-que-llegar`: el código dice lo acordado y el
+destinatario no recibe lo que necesita.
+
+### El TTL no es un día, y ésa es la parte que importa
+
+El plan original decía «token de un día». **Habría fallado en el caso más
+común**: el recordatorio de 24 h sale a las 09:00 del día anterior para una cita
+de las 15:00, así que un token de un día muere **seis horas antes** de la
+consulta. El paciente pulsa su enlace a su hora y recibe «Cita no encontrada» —
+el daño exacto que REG-265 documentó.
+
+El token se emite ahora contra **la ventana de la sala**, no contra el reloj de
+quien lo manda: hasta la hora de la cita + las 2 h en que la sala deja de
+aceptar + 1 h de holgura. `HORAS_DESPUES` se importa de `ventana-sala.ts` y el
+techo de duración se importa de `patient-token.ts`: ninguno de los dos se copia.
+
+### Y cuando la cita queda lejos, no se manda enlace
+
+Un paciente que agenda por el bot con tres semanas de antelación no puede recibir
+un token que dure tres semanas: el techo del enlace de portal son 7 días, y
+existe por escrito porque ese enlace viaja en un mensaje que se reenvía. Así que
+por encima del techo **se calla el enlace** y se deja la frase honesta — que
+ahora sí es verdad, porque el recordatorio de 24 h traerá uno vivo.
+
+**Sin enlace, el paciente llama al consultorio. Con un enlace roto, cree que se
+quedó sin cita.**
+
+### Archivos
+
+- `src/lib/telesalud/token-de-la-sala.ts` (nuevo)
+- `src/lib/patient-token.ts` — exporta `DIAS_MAXIMOS_ENLACE` en vez de dejar que
+  se copie
+- `src/app/api/cron/reminders/route.ts` · `src/app/api/whatsapp/webhook/route.ts`
+- `src/__tests__/el-enlace-de-la-videoconsulta-llega-vivo.test.ts` (nuevo, 9 casos, sellado)
+
+---
+
+## REG-292 — revocar cerraba la agenda y dejaba abierta la sala de video (v1164)
+
+**No se buscaba. Apareció al cablear REG-291**, y era la razón para no cablearlo
+todavía.
+
+El expediente lleva `portalTokenVersion`: subirlo invalida de golpe todos los
+enlaces emitidos para ese paciente —teléfono perdido, número reciclado, mensaje
+reenviado a un grupo—. Es la única forma de retirar un enlace ya mandado, y el
+botón existe en el expediente.
+
+`/api/portal` lo comprueba desde que existe. **`/api/telesalud/sala` no lo
+comprobó nunca.** Autorizaba con la firma y la titularidad y nada más.
+
+O sea: revocar los enlaces de un paciente le cerraba la agenda y sus documentos,
+y le dejaba abierta **la sala de video** — la puerta más íntima de las tres.
+
+### Por qué se descubrió justo ahora
+
+Porque REG-291 estaba a punto de repartir ese enlace por WhatsApp a **todas** las
+teleconsultas. Multiplicar un enlace que no se puede retirar es peor que no
+mandarlo, así que la revocación tenía que llegar antes que el reparto.
+
+La causa de fondo es de las que se repiten: la revocación se implementó **donde
+se estaba mirando** en ese momento, y la sala había nacido antes. Nadie volvió a
+pasar por ella.
+
+### Falla abierto ante un fallo de lectura, a propósito
+
+Si la lectura del expediente falla se deja pasar, igual que en `/api/portal`:
+dejar a un paciente fuera de su propia consulta por un mal minuto de Firestore es
+peor que el riesgo que esto acota, y la firma, la caducidad y la ventana horaria
+siguen protegiendo.
+
+### Archivos
+
+- `src/app/api/telesalud/sala/route.ts`
+- `src/__tests__/el-enlace-de-la-videoconsulta-llega-vivo.test.ts` (compartido con REG-291)

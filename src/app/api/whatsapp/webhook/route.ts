@@ -38,6 +38,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala } from '@/lib/telesalud/token-de-la-sala'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1074,16 +1075,27 @@ export async function handleMessage(from: string, body: string, clinicId: string
         } catch { /* la cita ya quedó; el sello no la tumba */ }
       }
 
+      // La cita ocurre donde está el consultorio, no donde corre la función.
+      const tzClinicaBot = config?.zonaHoraria || TZ_DEFAULT
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
       await send(from, [
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
         `📅 ${formatDate(datos.fecha)} a las ${datos.hora} hrs`,
-        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala.
+        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala —
+        // con su token (REG-291), sin el cual el enlace no se emite.
         ...dondeEsLaCita({
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: await tokenParaLaSala({
+            clinicId, patientId: pacienteIdBot, tipo: datos.tipo,
+            // La zona va en la MISMA línea que la llamada, a propósito: es la
+            // zona del consultorio la que decide cuándo es la cita, y el
+            // guardián de `timezone-sitios` lee línea a línea.
+            instanteCitaMs: instanteMX(String(datos.fecha), String(datos.hora).slice(0, 5), tzClinicaBot).getTime(),
+            ahoraMs: Date.now(),
+          }),
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1273,10 +1285,19 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       {
+        // La cita ocurre donde está el consultorio, no donde corre la función.
+        const tzClinicaListaEspera = config?.zonaHoraria || TZ_DEFAULT
         const donde = dondeEsLaCita({
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          // Con token (REG-291): el paciente de lista de espera recibe el mismo
+          // enlace vivo que cualquier otro.
+          tokenPaciente: await tokenParaLaSala({
+            clinicId, patientId: pacienteIdLE, tipo: datos.tipo,
+            instanteCitaMs: instanteMX(slotFecha, slotHora.slice(0, 5), tzClinicaListaEspera).getTime(),
+            ahoraMs: Date.now(),
+          }),
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

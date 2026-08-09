@@ -9,6 +9,7 @@ import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/wha
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala } from '@/lib/telesalud/token-de-la-sala'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -209,6 +210,16 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          /**
+           * EL ENLACE DE LA SALA, CON SU TOKEN (REG-291).
+           *
+           * Sin token, `dondeEsLaCita` cae en la rama honesta y el recordatorio
+           * de una videoconsulta dice «recibirás el enlace por este medio» —
+           * por este medio, que es éste. El paciente nunca recibía enlace.
+           *
+           * Sólo se acuña para teleconsultas: `tokenParaLaSala` devuelve
+           * `undefined` para todo lo demás y no toca Firestore.
+           */
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +227,13 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente: await tokenParaLaSala({
+              clinicId,
+              patientId: String(appt.pacienteId ?? ''),
+              tipo: appt.tipo,
+              instanteCitaMs: apptDateObj.getTime(),
+              ahoraMs: now.getTime(),
+            }),
           })
           const msgData = {
             paciente: appt.pacienteNombre,
