@@ -5248,3 +5248,54 @@ fallan**.
 
 **Golden** — `src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts`
 (20 casos).
+
+---
+
+## REG-271 — «No, sí tengo» quedaba registrado como que el paciente lo negó (v1151)
+
+**Encontrado** por la rutina `NEG-002` en su rama. **Reproducido aquí antes de
+absorber nada**, sobre el árbol que corre en producción, con `respuestaNiega` de
+verdad. Las cinco formas se leían como negación:
+
+| Respuesta | Lo que hacía |
+|---|---|
+| «No, sí tengo.» | NIEGA |
+| «No, sí padezco» | NIEGA |
+| «no, claro que sí» | NIEGA |
+| «No, así es» | NIEGA |
+| «No, efectivamente» | NIEGA |
+
+### Por qué es de los peores
+
+El daño va en la dirección mala. El paciente **afirma** que padece la
+enfermedad, el expediente registra que la **negó**, y después
+`corregirCertezaPorNegacion` la reclasifica a `descartado`. La pantalla de
+contradicciones no salta: para ella todo cuadra.
+
+Es el gemelo de «no sé» —que ya estaba resuelto— y el reverso de REG-251: allí
+el panel certificaba en verde lo contrario de lo dictado; aquí el motor
+convierte un sí en un no antes de que nadie lo mire.
+
+### La causa, en una línea
+
+`NEGATIVAS` sólo mira el **arranque** de la respuesta. Y el arranque no siempre
+es lo que se contestó.
+
+### El fin de palabra, que no es `\b`
+
+`\b` de JavaScript trabaja sobre `\w`, que es ASCII: entre «í» y el final de la
+cadena **no hay frontera de palabra**. Un `/s[ií]\b/` no casaría con «no, sí».
+Es la misma trampa que ya tuvo apagado el guardián de «No sé.» sin que su regla
+pareciera mal escrita leyéndola. Se mira hacia delante por letra:
+`(?![a-záéíóúüñ])`.
+
+### Las dos direcciones se sostienen
+
+Perder una negación deja un antecedente sin descartar; fabricarla descarta uno
+real. Las siete negaciones legítimas siguen contando, y «No, **sino** la de mi
+hermana» sigue negando — el guardián mira por letra, no por frontera.
+
+### Archivos
+
+- `src/lib/expediente/negaciones.ts` (`NO_CORRECTIVO`)
+- `src/__tests__/el-no-que-corrige-afirma.test.ts` (nuevo, 17 casos, sellado)

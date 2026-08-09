@@ -142,12 +142,48 @@ const NEGATIVAS_SIN_NO = /^\s*(?:tampoco|jam[aá]s|para\s+nada|en\s+absoluto|qu[
  */
 const NIEGA_POSPUESTO = /\b(?:no|nunca|jam[aá]s)\s*[.,;!]?\s*$/i
 
+/**
+ * EL «NO» QUE CORRIGE Y AFIRMA EN LA MISMA FRASE — REG-271.
+ *
+ * «¿Tiene diabetes? — **No, sí tengo**, desde hace años.»
+ *
+ * El paciente se desdice: empieza negando y acaba afirmando. Y este módulo se
+ * quedaba con la primera palabra. Medido con el motor real el 9-ago-2026, las
+ * **cinco** formas se leían como negación:
+ *
+ *     «No, sí tengo.»        → NIEGA
+ *     «No, sí padezco»       → NIEGA
+ *     «no, claro que sí»     → NIEGA
+ *     «No, así es»           → NIEGA
+ *     «No, efectivamente»    → NIEGA
+ *
+ * Es el gemelo exacto de «no sé», y el daño va en la dirección peor: el paciente
+ * **afirma** que la padece y el expediente registra que la **negó**. Después
+ * `corregirCertezaPorNegacion` la reclasifica a `descartado`, y la pantalla de
+ * contradicciones le dice al médico que todo cuadra.
+ *
+ * `NEGATIVAS` sólo mira el arranque de la respuesta, y **el arranque no siempre
+ * es lo que se contestó**. Encontrado por la rutina `NEG-002` y confirmado aquí
+ * reproduciéndolo.
+ *
+ * ── EL FIN DE PALABRA, QUE NO ES `\b` ───────────────────────────────────────
+ *
+ * `\b` de JavaScript no considera letra a la «í», así que `/s[ií]\b/` no casa
+ * con «sí» seguido de nada — la frontera exigiría un cambio letra→no-letra y
+ * para el motor la «í» ya es no-letra. Se mira hacia delante por letra en vez de
+ * por frontera. Es la misma trampa que apagó `NO_ES_NEGACION` con «No sé.».
+ */
+const NO_CORRECTIVO =
+  /^\s*no[,\s]+(?:s[ií]|claro|efectivamente|as[ií]\s+es)(?![a-záéíóúüñ])/i
+
 /** ¿Esta respuesta niega? Con el ruido de turno y de muletilla ya quitado. */
 export function respuestaNiega(respuesta: string): boolean {
   const limpia = String(respuesta ?? '').replace(RUIDO_ANTES_DE_LA_RESPUESTA, '')
   if (!limpia.trim()) return false
   /** Primero lo que NO es negación: «no sé» empieza por «no» y no niega nada. */
   if (NO_ES_NEGACION.test(limpia)) return false
+  /** Y el que niega para corregirse: «no, sí tengo» AFIRMA. */
+  if (NO_CORRECTIVO.test(limpia)) return false
   if (NEGATIVAS.test(limpia)) return true
   if (NEGATIVAS_SIN_NO.test(limpia)) return true
   /**
