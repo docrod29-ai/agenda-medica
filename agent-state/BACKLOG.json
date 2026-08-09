@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO PARCIAL (rama claude/clever-lamport-iysi5w, sin desplegar) — REG-306: rate-limit aplicado en las cinco acciones + resena + create-checkout. La revocación fail-open queda como decisión de política, no de código; ver OWNER_DECISIONS_REQUIRED.md.",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",

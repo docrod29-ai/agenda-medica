@@ -7,6 +7,7 @@ import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -182,6 +183,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
     }
   } catch { /* ver arriba */ }
+
+  /**
+   * RATE-LIMIT — REG pendiente, PATIENT-PORTAL-001.
+   *
+   * `confirmar`, `cancelar`, `reagendar`, `formulario` y `documentos` mutan datos
+   * o devuelven secreto médico (diagnósticos, medicamentos) y no tenían freno: un
+   * token filtrado permitía enumerar y mover la agenda del consultorio sin límite.
+   * `session`, `slots` y `paquetes` quedan fuera a propósito — son las que la
+   * pantalla del paciente dispara solas al abrir el enlace y al navegar entre
+   * fechas; limitarlas ahí habría sido limitar el uso normal, no el abuso.
+   *
+   * Misma clave que el resto del token: `clinicId+patientId`, no IP — el token ya
+   * ata la petición a un paciente concreto, e IP se comparte entre pacientes de la
+   * misma red (varios enfermos usando el wifi de la sala de espera).
+   */
+  const ACCIONES_CON_LIMITE = new Set(['confirmar', 'cancelar', 'reagendar', 'formulario', 'documentos'])
+  if (body.action && ACCIONES_CON_LIMITE.has(body.action)) {
+    const limite = await limitarOResponder(
+      `portal:${body.action}:${clinicId}:${patientId}`, 20, 300,
+      'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.',
+    )
+    if (limite) return limite
+  }
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {

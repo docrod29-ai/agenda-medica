@@ -18,6 +18,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -35,6 +36,14 @@ export async function POST(req: NextRequest) {
     const sesion = verificarTokenPaciente(token)
     if (!sesion) return NextResponse.json({ ok: false, error: 'Enlace inválido o vencido' }, { status: 401 })
     const { clinicId, patientId } = sesion
+
+    // RATE-LIMIT — PATIENT-PORTAL-001. Sin freno, un token filtrado podía crear
+    // sesiones de Checkout sin límite (llamadas a Stripe en bucle).
+    const limite = await limitarOResponder(
+      `checkout:${clinicId}:${patientId}`, 10, 600,
+      'Demasiadas solicitudes de pago. Espera un momento e inténtalo de nuevo.',
+    )
+    if (limite) return limite
 
     if (!citaId) return NextResponse.json({ ok: false, error: 'Falta la cita' }, { status: 400 })
 

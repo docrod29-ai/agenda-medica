@@ -7013,3 +7013,52 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — Cinco acciones del portal del paciente, y dos rutas hermanas, sin freno
+
+**Encontrado.** Backlog `PATIENT-PORTAL-001` (auditoría del producto real de V9,
+8-ago-2026): no había un solo `limitar*` en `src/app/api/portal/route.ts`, pese
+a que `telesalud/sala` (12/600s) y `public/booking` (8/h por IP) ya usan ese
+patrón. Tampoco lo tenían `api/public/resena` ni `api/payment/create-checkout`.
+
+**Qué pasaba.** El token del portal (HMAC, atado a `{clinicId, patientId}`)
+autoriza correctamente — el problema no es de autorización, es de **freno**.
+Con un token filtrado —enlace reenviado por WhatsApp, teléfono perdido, número
+reciclado antes de que caduque— nada impedía:
+
+- `confirmar` / `cancelar` / `reagendar`: mover la agenda del consultorio en
+  bucle.
+- `formulario`: reescribir el formulario previo del paciente sin límite.
+- `documentos`: leer diagnósticos y medicamentos de notas **firmadas** —
+  secreto médico— tantas veces como se quisiera.
+- `/api/public/resena`: barrer por fuerza bruta el espacio de `token` (un doc
+  ID) hasta acertar uno vigente y publicar una reseña falsa.
+- `/api/payment/create-checkout`: crear sesiones de Stripe Checkout sin tope.
+
+**Arreglo.** `limitarOResponder` de `src/lib/rate-limit.ts`, el mismo mecanismo
+que ya usan cinco rutas más: 20 peticiones / 300s por `clinicId+patientId+acción`
+en el portal (sólo las cinco acciones de arriba — `session`, `slots` y
+`paquetes` quedan fuera porque son las que la pantalla del paciente dispara
+sola, y limitarlas sería limitar el uso normal); 10/hora por IP en `resena`
+(no hay sesión que atar, es la ruta pública); 10/600s por
+`clinicId+patientId` en `create-checkout`.
+
+**Lo que NO se tocó, a propósito.** La comprobación de `portalTokenVersion`
+(revocación) en `route.ts:178-184` sigue fallando ABIERTA si la lectura de
+Firestore lanza. El código ya trae la razón escrita: dejar al paciente fuera
+de su propia agenda por un mal minuto de Firestore es peor que la ventana que
+esto acota, y la firma + caducidad del token siguen protegiendo mientras
+tanto. Voltear esa decisión es un cambio de **política**, no de código — queda
+en `agent-state/OWNER_DECISIONS_REQUIRED.md` para el Dr., con el riesgo y la
+recomendación por omisión, y no se adivinó.
+
+**Familia.** Ninguna de las ya nombradas encaja del todo — es una nueva:
+`ruta_sin_freno` — una ruta que autoriza bien y no limita nunca, distinta de
+`hueco_frente_al_mercado` (que es ausencia de función) porque aquí la función
+existe en cinco rutas hermanas y simplemente no se copió a las nuevas.
+
+**Guardián.** `src/__tests__/portal-rate-limit.test.ts`, 9 casos — probado al
+revés: con `limitarOResponder` devolviendo 429, la prueba comprueba que
+`documentos` responde el 429 **sin leer las notas** (`getNotas` no se llama).

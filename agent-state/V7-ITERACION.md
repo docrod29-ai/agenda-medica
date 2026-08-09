@@ -1,3 +1,27 @@
+## Nota · 9-ago-2026 tarde — el disparo de V7 y el archivo que no existe
+
+El disparo automático de V7 pide leer, como primera acción obligatoria,
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`. **Ese
+archivo no existe y nunca se commiteó** (`git log --all` sobre esa ruta no
+devuelve nada). La verdad del repositorio, no una carta que falta, es la que
+manda aquí (regla de coordinación del propio disparo): este mismo archivo
+(`V7-ITERACION.md`) es el tablero de V7 desde el 8-ago, V7 se fusionó a `main`
+(PR #278), y desde entonces V9 —con su propia especificación íntegra en
+`docs/ai/...MASTER_LOOP_V9.md`— es el programa que sigue corriendo sobre el
+mismo charter, ya fusionado a `main` también (PR #279). No se inventó una
+especificación V7 nueva para rellenar el hueco.
+
+Lo que este disparo SÍ hizo: tomó `agent-state/BACKLOG.json` —que sigue siendo
+de V7, con ítems propios no reclamados por la unidad activa de V9
+(`POSTVISIT-001`)— y cerró el de mayor score sin dueño:
+**`PATIENT-PORTAL-001`** (rate-limit ausente en `/api/portal`,
+`/api/public/resena` y `/api/payment/create-checkout`). Ver REG-306. Se evitó
+a propósito tocar cualquier ítem con prefijo `PATIENT-`/`POSTVISIT-`/`NAV-`/
+`DESIGN-` que perteneciera a la unidad V9 en curso, para no pisar trabajo
+concurrente.
+
+---
+
 # MASTER LOOP V7 — tablero propio
 
 > **Separado de V9 el 8-ago-2026.** Los dos programas compartían

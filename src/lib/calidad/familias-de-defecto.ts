@@ -187,6 +187,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    /**
+     * Familia abierta el 9-ago-2026 con REG-306.
+     *
+     * Distinta de `hueco_frente_al_mercado`: ahí la función no existe en
+     * ningún lado. Aquí SÍ existe —cinco rutas hermanas ya la usan— y
+     * simplemente no se copió a la ruta nueva. El defecto no es de diseño, es
+     * de que cada ruta se escribió en un momento distinto sin mirar a sus
+     * vecinas.
+     */
+    clave: 'ruta_sin_freno',
+    nombre: 'Autoriza bien y no limita nunca',
+    patron:
+      'Una ruta comprueba el token o la sesión correctamente —el problema no ' +
+      'es de autorización— y no tiene ningún `limitar*`, mientras rutas ' +
+      'hermanas con el mismo tipo de riesgo sí lo tienen. Se encuentra ' +
+      'comparando la ruta nueva contra el patrón ya establecido, no leyéndola ' +
+      'sola.',
+    regs: [306],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

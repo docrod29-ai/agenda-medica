@@ -145,3 +145,35 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+## SEGURIDAD · ¿La comprobación de revocación del portal falla cerrado?
+
+**Estado**: pendiente · abierto el 9-ago-2026 (V7, REG-306 / PATIENT-PORTAL-001)
+
+**El hecho** — `src/app/api/portal/route.ts:178-184` comprueba
+`portalTokenVersion` para saber si el enlace del paciente sigue vigente. Si la
+lectura de Firestore falla, la comprobación **deja pasar** (fail-open), con la
+razón ya escrita en el código: dejar al paciente fuera de su propia agenda por
+un mal minuto de Firestore es peor que la ventana que esto acota, y la firma +
+caducidad HMAC del token siguen protegiendo mientras tanto.
+
+Esta unidad **añadió rate-limit** a las cinco acciones sensibles del portal
+(REG-306) — eso sí era puramente técnico, mismo patrón que ya usan cinco rutas
+hermanas. **No tocó** esta decisión: voltearla a fail-closed cambia qué le pasa
+a un paciente legítimo cuando Firestore tiene un mal minuto, y eso es política,
+no código.
+
+**Las dos opciones**
+
+| Opción | Qué implica |
+|---|---|
+| **Quedarse en fail-open** (hoy) | Un enlace revocado —teléfono perdido, número reciclado, mensaje reenviado— puede seguir sirviendo durante una incidencia de Firestore. Cero fricción para el paciente normal. |
+| **Fail-closed** | Un enlace legítimo deja de servir durante cualquier incidencia de lectura de Firestore, aunque no esté revocado. Cierra la ventana de REG-306, a costa de disponibilidad. |
+
+**Recomendación por omisión**: quedarse en fail-open. La firma HMAC y la
+caducidad ya limitan el enlace; revocar es la defensa de un caso raro
+(teléfono perdido) contra una ventana rara (Firestore caído en ese instante
+exacto), y negarle a un paciente su propia agenda por eso es un costo real
+todos los días de incidente, no sólo el raro.
+
+**Qué cuesta responder**: una frase — fail-open o fail-closed.
