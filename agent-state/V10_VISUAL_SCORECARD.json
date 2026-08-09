@@ -1,0 +1,53 @@
+{
+  "rubrica": "docs/evals/V10_VISUAL_RUBRIC.md",
+  "regla": "Ninguna puntuación sin captura. Las pantallas CRÍTICAS de Practice (consulta, agenda real, receta, nota) siguen SIN puntuar: no se han visto en navegador (bloqueo de autenticación). Puntuar desde el código está prohibido por la especificación §33.",
+  "fecha": "2026-08-09",
+  "entorno": "next dev local · Chromium 141 headless · escritorio 1440×900 · móvil iPhone 14 (390×844)",
+  "pantallas": [
+    {
+      "ruta": "/",
+      "evidencia": ["agent-state/v10-screenshots/landing-desktop.png", "agent-state/v10-screenshots/landing-mobile.png"],
+      "visual": 8.5,
+      "genericAiLook": 2.0,
+      "notas": "Identidad fuerte: display serif (Fraunces) sobre lienzo oscuro, un solo CTA primario, mockup de producto real. Resta: píldora de badge y botón azul genérico conviven con la identidad serif; el fondo de constelación es un patrón común de la estética IA."
+    },
+    {
+      "ruta": "/precios",
+      "evidencia": ["agent-state/v10-screenshots/precios-desktop.png", "agent-state/v10-screenshots/precios-mobile.png"],
+      "visual": 8.0,
+      "genericAiLook": 3.0,
+      "notas": "Claro y honesto (precio, consultas/mes, anual). Resta: rejilla de 3 tarjetas + píldora «Más popular» es el patrón de precios más genérico que existe; la tarjeta Pro nombra modelos de IA de terceros (ver V10_OWNER_DECISIONS_REQUIRED)."
+    },
+    {
+      "ruta": "/registro",
+      "evidencia": ["agent-state/v10-screenshots/registro-desktop.png", "agent-state/v10-screenshots/registro-mobile.png"],
+      "visual": 8.5,
+      "genericAiLook": 2.0,
+      "notas": "Dos columnas con propuesta de valor + formulario limpio, etiquetas visibles, Google primero, jerarquía correcta. Móvil nativo, campos de 44px+."
+    },
+    {
+      "ruta": "/login",
+      "evidencia": ["agent-state/v10-screenshots/login-desktop.png", "agent-state/v10-screenshots/login-mobile.png"],
+      "visual": 8.5,
+      "genericAiLook": 2.0,
+      "notas": "Sobrio, marca centrada, un propósito. El foco visible del campo de correo se ve en la captura (borde azul)."
+    },
+    {
+      "ruta": "/demo",
+      "evidencia": ["agent-state/v10-screenshots/demo-desktop.png"],
+      "visual": 8.0,
+      "genericAiLook": 2.5,
+      "notas": "Narrativa clara («NexusMED en 2 minutos»), dos caminos. El icono de chispa IA en el botón primario es exactamente el sparkle que §35 penaliza."
+    },
+    {
+      "ruta": "/demo/interactivo",
+      "evidencia": ["agent-state/v10-screenshots/demo-interactivo-desktop.png", "agent-state/v10-screenshots/demo-dictado-desktop.png", "agent-state/v10-screenshots/demo-nota-desktop.png", "agent-state/v10-screenshots/demo-receta-desktop.png", "agent-state/v10-screenshots/demo-interactivo-mobile.png"],
+      "visual": 8.5,
+      "genericAiLook": 1.5,
+      "notas": "El mejor proxy del producto: stepper Agenda→Dictado→Nota→Receta, banner honesto de «datos ficticios», nota S/O/A/P con jerarquía tipográfica correcta. CALMA y REVELACIÓN PROGRESIVA se cumplen. El flujo completo funcionó de punta a punta en la inspección."
+    }
+  ],
+  "pantallasCriticasSinPuntuar": ["/citas", "/consulta/[patientId]", "/receta/[patientId]/[notaId]", "/nota/[patientId]/[notaId]", "/pacientes", "/expediente/[patientId]", "/dashboard", "/pendientes"],
+  "promedioPublico": 8.33,
+  "objetivo": "≥9.3 en críticas; genericAiLook ≤1.0 — TODAVÍA NO EVALUABLE en las críticas"
+}

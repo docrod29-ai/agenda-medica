@@ -1,0 +1,56 @@
+{
+  "nota": "Prioridad según la fórmula de §31. Los ítems heredan evidencia de las auditorías V9 (docs/design/*) — V10 no las repite, las ejecuta.",
+  "items": [
+    {
+      "id": "V10-INFRA-EMULADOR",
+      "prioridad": "P0-instrumental",
+      "titulo": "Cablear emuladores Auth+Firestore detrás de NEXT_PUBLIC_FIREBASE_EMULATOR para poder ver la superficie médico",
+      "porQue": "Sin esto, TODO el programa V10 queda ciego ante las pantallas críticas (§33 prohíbe aprobar desde el código). Ver V10_BLOCKERS.md B-1.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "V10-TRUTH-001-MEDICO",
+      "prioridad": "P0",
+      "titulo": "Completar la auditoría de verdad: capturar y puntuar las 8 pantallas críticas de Practice con datos sintéticos",
+      "dependeDe": "V10-INFRA-EMULADOR",
+      "estado": "pendiente"
+    },
+    {
+      "id": "V10-HIDRATACION-TEMA",
+      "prioridad": "P1",
+      "titulo": "Discrepancia de hidratación data-theme en TODAS las pantallas",
+      "estado": "CERRADO este turno",
+      "arreglo": "suppressHydrationWarning en <html> (layout.tsx); guardián el-tema-no-rompe-la-hidratacion.test.ts probado al revés"
+    },
+    {
+      "id": "V10-TOKENS-DERIVA",
+      "prioridad": "P1",
+      "titulo": "La deriva medida por V9 sigue siendo la deuda visual №1: ~6 065 style={{ en 177/200 archivos, ~60 tamaños tipográficos, ~19 radios, 24 sombras distintas",
+      "porQue": "Es la causa mecánica del «look inconsistente» (§9). V9 dejó el sistema y el trinquete (techos 2029/638); V10-CONSTITUTION-001 debe BAJAR esos techos pantalla por pantalla, empezando por el flujo dorado.",
+      "evidencia": "docs/design/GENERIC_AI_AESTHETIC_AUDIT.md · docs/design/NEXUS_DESIGN_SYSTEM.md",
+      "estado": "pendiente"
+    },
+    {
+      "id": "V10-SPARKLE-DEMO",
+      "prioridad": "P2",
+      "titulo": "Icono de chispa IA en el CTA primario de /demo",
+      "porQue": "§35 lo cuenta como estética IA genérica; §8.14 la prohíbe como identidad primaria.",
+      "evidencia": "agent-state/v10-screenshots/demo-desktop.png",
+      "estado": "pendiente"
+    },
+    {
+      "id": "V10-PRECIOS-GRID",
+      "prioridad": "P3",
+      "titulo": "/precios usa la rejilla de 3 tarjetas + píldora «Más popular» más genérica del sector",
+      "porQue": "genericAiLook 3.0. Rediseñar sin tocar la promesa comercial (precios y qué incluye cada plan quedan idénticos).",
+      "estado": "pendiente"
+    },
+    {
+      "id": "V10-OD-1",
+      "prioridad": "espera-dueño",
+      "titulo": "Nombres de modelos en planes-ia.ts vs regla REG-292",
+      "verDetalle": "V10_OWNER_DECISIONS_REQUIRED.md",
+      "estado": "bloqueado"
+    }
+  ]
+}
