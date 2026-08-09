@@ -130,7 +130,7 @@ export default function SuperadminPage() {
           <a href="/superadmin/csp" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <ShieldCheck size={14} /> Seguridad web
           </a>
-          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
+          <a href="/superadmin/contabilidad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 13, fontWeight: 700 }}>
             <TrendingUp size={14} /> Contabilidad
           </a>
           <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={cargar}>Actualizar</Button>
@@ -168,7 +168,7 @@ export default function SuperadminPage() {
       )}
       {/* KPIs */}
       {totales && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12, marginBottom: 24 }}>
           <Kpi label="Ingreso del mes" valor={mxn(totales.ingresoMes)} color="var(--teal)" />
           <Kpi label="MRR (estimado)" valor={mxn(totales.mrr)} sub="/mes recurrente" />
           <Kpi label="Ingreso cobrado" valor={mxn(totales.ingresoVentana)}
@@ -578,7 +578,7 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
         <Button size="sm" icon={<Plus size={14} />} onClick={() => setEditar({ ...NUEVO })}>Nuevo paquete</Button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 12 }}>
         {paquetes.map(p => (
           <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>

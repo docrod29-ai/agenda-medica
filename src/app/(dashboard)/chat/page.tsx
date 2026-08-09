@@ -150,7 +150,7 @@ export default function ChatPage() {
               maxLength={40}
               style={{ width: 160, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 12 }}
             />
-            <button onClick={guardarNombre} title="Guardar" style={{ background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
+            <button onClick={guardarNombre} title="Guardar" style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>
               <Check size={11} />
             </button>
             <button onClick={() => setEditandoNombre(false)} title="Cancelar" style={{ background: 'var(--s2)', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 7px', cursor: 'pointer' }}>

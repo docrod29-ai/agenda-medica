@@ -31,6 +31,7 @@ import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia
 import { getInternamiento } from '@/lib/hospital/firestore'
 import { getPatient } from '@/lib/firestore'
 import { construirSeccionesUCI } from '@/lib/uci/nota'
+import { comoVinoElPaseDeTexto, aparatosSinTexto } from '@/lib/uci/como-vino-el-pase'
 import { guardarToma, getTomas, serieTomas } from '@/lib/uci/observaciones'
 import { getEstanciaUci, guardarSoportesUci, fijarPesoDosificacion } from '@/lib/uci/estancia-cliente'
 import { validarPeso, pesoParaCalcular, avisoSinPeso, validarTalla, tallaParaCalcular, TIPOS_PESO, ETIQUETA_TIPO_PESO, type PesoFijado, type TipoPesoDosificacion } from '@/lib/uci/peso-dosificacion'
@@ -46,8 +47,8 @@ import { analizarVentilacion, esModoEspontaneo, esModoInvasivo } from '@/lib/uci
 import { analizarGasometria } from '@/lib/uci/gasometria'
 import { cantidad, cantidadDesde } from '@/types/clinical-quantity'
 import { presionArterialMedia } from '@/lib/uci/hemodinamia'
-import { calcularSOFA } from '@/lib/uci/scores'
-import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
+import { calcularSOFA, camIcu } from '@/lib/uci/scores'
+import { vexus, respuestaPLR, disfuncionVD_TAPSE, sobrecargaVD_VDVI, lineasB as lineasBPocus, signo6060, obstruccionTSVI, pulsatilidadPorta, type PatronVena, type ParametroPLR } from '@/lib/uci/pocus'
 import { analizarCKRT, analizarCitrato, type ModalidadCKRT } from '@/lib/uci/ckrt'
 import { analizarECMO, type ConfigECMO } from '@/lib/uci/ecmo'
 import { CATALOGO_INFUSIONES, farmacoPorKey, dosisARate, rateADosis } from '@/lib/uci/infusiones'
@@ -63,6 +64,7 @@ import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { MOTIVO_SIN_DIARIZACION } from '@/lib/expediente/motivo-sin-diarizacion'
+import { esMonologo } from '@/lib/asr/un-solo-hablante'
 import { DosisMeropenem } from './DosisMeropenem'
 
 type Campos = Record<string, string>
@@ -300,6 +302,12 @@ export default function UciPanelPage() {
   const opcionesDictadoUci = useMemo(() => ({
     recoveryKey: `uci-panel${internamientoId ? '.' + internamientoId : ''}`,
     contexto: 'uci' as const,
+    /**
+     * En UCI dicta SOLO, por aparatos y sistemas — lo contestó él. Pedir
+     * separación de voces aquí es trabajo y espera para nada, y puede partir su
+     * dictado en dos hablantes y atribuírselo a un paciente que no habló.
+     */
+    modoDeHabla: 'dictado' as const,
     medicamentos: (inter?.indicaciones ?? [])
       .map(i => String((i as { medicamento?: string; nombre?: string })?.medicamento
         ?? (i as { nombre?: string })?.nombre ?? '').trim())
@@ -416,7 +424,18 @@ export default function UciPanelPage() {
   const aplicarPase = (t: string, utterances?: Utterance[]) => {
     const txt = (t ?? '').trim()
     if (!txt) return
-    const turnos = (utterances && utterances.length)
+    /**
+     * UN PASE DICTADO POR UNA SOLA PERSONA NO ES UNA DISCUSIÓN.
+     *
+     * El médico contestó que en UCI **dicta solo, por aparatos**. El diarizador
+     * parte a una sola persona en dos hablantes cuando cambia el tono o hay una
+     * pausa larga, y entonces `atribuirRolesDiscusion` reparte roles —adscrito,
+     * residente, enfermería, paciente— entre trozos del MISMO dictado.
+     *
+     * Con un solo hablante hay un turno: el suyo. Igual que cuando no hay
+     * diarización, que es el caso que la rama de abajo ya trataba bien.
+     */
+    const turnos = (utterances && utterances.length && !esMonologo(utterances))
       ? utterances.map(u => ({ hablante: u.speaker, texto: u.text }))
       : [{ hablante: 'A', texto: txt }]
     setDiscusionTxt(formatearDiscusion(atribuirRolesDiscusion(turnos)))
@@ -505,6 +524,28 @@ export default function UciPanelPage() {
   const plr = useMemo(() => respuestaPLR(n('plrDelta'), (v.plrParam as ParametroPLR) || undefined), [v])
   const tapse = useMemo(() => disfuncionVD_TAPSE(n('tapse')), [v])
   const vdvi = useMemo(() => sobrecargaVD_VDVI(n('vdvi')), [v])
+  /**
+   * ── TRES MOTORES POCUS QUE NO CORRÍAN (REG-257) ──────────────────────────
+   *
+   * Estaban escritos, con su fuente y sus umbrales, y ninguna pantalla los
+   * llamaba. El instrumento de REG-255 los sacó de la lista.
+   *
+   * El que más pesa es `obstruccionTSVI`: un gradiente ≥ 30 mmHg significa
+   * **no escalar inotrópicos**, porque los empeora. Un motor que dice eso y
+   * no corre es exactamente el defecto que este loop persigue.
+   */
+  const tsvi = useMemo(() => obstruccionTSVI(n('tsviGrad')), [v])
+  const s6060 = useMemo(() => signo6060(n('pat'), n('itGrad')), [v])
+  /* La fracción de pulsatilidad portal se CALCULA de vmax/vmin, en vez de
+     pedirle al médico que la clasifique a ojo. Si no hay las dos, no se dice
+     nada: no se adivina un patrón. */
+  const porta = useMemo(() => pulsatilidadPorta(n('portaVmax'), n('portaVmin')), [v])
+  const cam = useMemo(() => camIcu({
+    inicioAgudoOFluctuante: v.camAgudo === 'si' ? true : v.camAgudo === 'no' ? false : undefined,
+    inatencion: v.camInatencion === 'si' ? true : v.camInatencion === 'no' ? false : undefined,
+    nivelConcienciaAlterado: n('rass') !== null ? Number(n('rass')) !== 0 : undefined,
+    pensamientoDesorganizado: v.camPensamiento === 'si' ? true : v.camPensamiento === 'no' ? false : undefined,
+  }), [v])
   const lb = useMemo(() => lineasBPocus(n('lineasB')), [v])
 
   // ── Soportes extracorpóreos: CKRT/PRISMA + ECMO ──
@@ -778,6 +819,20 @@ export default function UciPanelPage() {
   const notaCruda = useMemo(() => construirSeccionesUCI(v, { discusion: discusionTxt || undefined, labs: labs.linea || undefined, labsCapturados: labsDictados, planPropuesto: planCopilot || undefined }), [v, discusionTxt, labs.linea, labsDictados, planCopilot])
   const notaSecciones = useMemo(() => formatear(notaCruda, formatoNota), [notaCruda, formatoNota])
   const notaLlenas = notaSecciones.filter(s => s.value.trim() !== '')
+
+  /**
+   * ── ¿EL PASE VINO POR APARATOS? (REG-264) ─────────────────────────────────
+   *
+   * Un pase DICTADO llega como un párrafo corrido, sin saltos de línea. Hasta
+   * ahora eso hacía que el reparto por sistemas no encontrara ni un encabezado
+   * y el pase cayera ENTERO en el plan, con los aparatos vacíos y sin que nadie
+   * lo dijera.
+   *
+   * El reparto ya sabe partir el dictado; esto es la otra mitad: **decírselo
+   * cuando NO se pudo**. Calla cuando el pase vino bien — un aviso que sale
+   * siempre es ruido.
+   */
+  const formaDelPase = useMemo(() => comoVinoElPaseDeTexto(discusionTxt), [discusionTxt])
 
   // ── Pasar la nota YA generada al expediente para revisar y FIRMAR ──
   const pasarANota = () => {
@@ -1236,6 +1291,21 @@ export default function UciPanelPage() {
 
       {/* NOTA EN VIVO: se ARMA sola con lo que dictas/capturas. "Pasar a nota" solo
           la abre en el expediente para revisar y firmar (no es un segundo dictado). */}
+      {/* REG-264 — el pase vino de corrido y los aparatos quedaron vacíos. */}
+      {formaDelPase.mensaje && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 16,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--amber) 32%, transparent)',
+          borderRadius: 12, padding: '11px 13px',
+        }}>
+          <Waves size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text2)' }}>
+            {formaDelPase.mensaje}
+          </div>
+        </div>
+      )}
+
       {notaLlenas.length > 0 && (
         <details open style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '4px 16px 14px', marginBottom: 16 }}>
           <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', fontWeight: 600, fontSize: 14 }}>
@@ -1260,6 +1330,23 @@ export default function UciPanelPage() {
               ))}
             </span>
           </summary>
+
+          {/*
+            LOS APARATOS QUE NO SE MENCIONARON (REG-264).
+
+            En GRIS y sin icono de alarma: saltarse un aparato en un pase
+            focalizado es normal, no un error. Es un dato para que el
+            intensivista decida, no un aviso que haya que atender.
+
+            Sólo sale cuando el pase SÍ vino por aparatos: si vino de corrido,
+            arriba ya está el recuadro que lo explica, y decir además «faltan
+            siete» sería contarlo dos veces.
+          */}
+          {aparatosSinTexto(formaDelPase).length > 0 && (
+            <p style={{ margin: '0 0 10px', fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
+              Sin texto propio en este pase: {aparatosSinTexto(formaDelPase).join(' · ')}.
+            </p>
+          )}
           {inter && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 4 }}>Revísala y pulsa “Pasar a nota” para firmarla</div>}
           <div style={{ display: 'grid', gap: 10, marginTop: 6 }}>
             {notaLlenas.map(s => (
@@ -1369,6 +1456,20 @@ export default function UciPanelPage() {
               { val: '1', txt: '+1 Inquieto' }, { val: '0', txt: '0 Alerta y tranquilo' }, { val: '-1', txt: '−1 Somnoliento' },
               { val: '-2', txt: '−2 Sedación ligera' }, { val: '-3', txt: '−3 Sedación moderada' },
               { val: '-4', txt: '−4 Sedación profunda' }, { val: '-5', txt: '−5 Sin respuesta' }]} />
+            {/*
+              CAM-ICU (REG-257). El motor existía —Ely, JAMA 2001— y no lo
+              llamaba nadie: el cribado de delirium no corría nunca.
+
+              El Rasgo 3 (conciencia alterada) NO se pregunta: sale del RASS
+              que ya está arriba. Pedir dos veces el mismo dato es como se
+              consigue que no se llene ninguna.
+            */}
+            <Selector label="CAM-ICU 1 · inicio agudo/fluctuante" k="camAgudo" v={v} set={set} w={200}
+              opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
+            <Selector label="CAM-ICU 2 · inatención" k="camInatencion" v={v} set={set} w={170}
+              opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
+            <Selector label="CAM-ICU 4 · pensamiento desorganizado" k="camPensamiento" v={v} set={set} w={220}
+              opciones={[{ val: 'si', txt: 'Sí' }, { val: 'no', txt: 'No' }]} />
           </Bloque>
           <Bloque icon={Waves} titulo="POCUS · ultrasonido a pie de cama">
             <Campo label="VCI" k="vci" v={v} set={set} sufijo="cm" w={80} />
@@ -1380,6 +1481,12 @@ export default function UciPanelPage() {
             <Campo label="TAPSE" k="tapse" v={v} set={set} sufijo="mm" w={80} />
             <Campo label="VD/VI" k="vdvi" v={v} set={set} w={80} />
             <Campo label="Líneas B/esp." k="lineasB" v={v} set={set} w={100} />
+            {/* REG-257 — entradas de los tres motores que ya existían. */}
+            <Campo label="Gradiente TSVI" k="tsviGrad" v={v} set={set} sufijo="mmHg" w={100} />
+            <Campo label="PAT" k="pat" v={v} set={set} sufijo="ms" w={80} />
+            <Campo label="Gradiente IT" k="itGrad" v={v} set={set} sufijo="mmHg" w={100} />
+            <Campo label="Porta Vmáx" k="portaVmax" v={v} set={set} sufijo="cm/s" w={95} />
+            <Campo label="Porta Vmín" k="portaVmin" v={v} set={set} sufijo="cm/s" w={95} />
           </Bloque>
         </div>
         )}
@@ -1421,6 +1528,21 @@ export default function UciPanelPage() {
               <Resultado label="TAPSE (VD)" r={{ ...tapse, unidad: 'mm' }} ocultar={!modoAvanzado} />
               <Resultado label="VD/VI" r={vdvi} ocultar={!modoAvanzado} />
               <Resultado label="Líneas B" r={lb} ocultar={!modoAvanzado} />
+              {/*
+                REG-257. `obstruccionTSVI` va SIN `ocultar`: su hallazgo cambia
+                el tratamiento —no escalar inotrópicos— y esconderlo tras el
+                modo avanzado sería tenerlo y no enseñarlo, que es donde
+                empezó todo esto.
+              */}
+              <Resultado label="Obstrucción del TSVI" r={{ ...tsvi, unidad: 'mmHg' }} />
+              <Resultado label="Signo 60/60 (HTP aguda)" r={{ ...s6060, unidad: 'ms' }} ocultar={!modoAvanzado} />
+              {porta.pf !== null && (
+                <Resultado
+                  label="Pulsatilidad portal"
+                  r={{ ok: true, valor: porta.pf, motivoBloqueo: null, interpretacion: `FP ${porta.pf} % · patrón ${porta.patron} (VExUS-C, Beaubien-Souligny 2020)`, unidad: '%' }}
+                  ocultar={!modoAvanzado}
+                />
+              )}
             </div>
             {modoAvanzado && <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.4 }}>
               VExUS-C requiere VCI ≥ 2.0 cm + Doppler venoso. PLR: ≥10 % en gasto/VS/LVOT-VTI = respondedor (la presión de pulso no es criterio válido). Ninguna medida aislada decide conducta.
@@ -1438,6 +1560,27 @@ export default function UciPanelPage() {
                 {neuro.picEstado && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}>{neuro.picEstado}</div>}
                 {!neuro.gcsValorable && <div style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic' }}>Paciente intubado: GCS verbal no valorable (reportar “T”). Conciencia/sedación → RASS.</div>}
                 {neuro.rass.ok && <div style={{ fontSize: 12.5, color: 'var(--text2)' }}><b>RASS {neuro.rass.valor! > 0 ? '+' : ''}{neuro.rass.valor} · {neuro.rass.etiqueta}</b> — {neuro.rass.interpretacion}</div>}
+                {/*
+                  CAM-ICU (REG-257). Se enseña también cuando NO es evaluable,
+                  diciendo qué rasgo falta: «no se sabe» es información, y un
+                  cribado en blanco que desaparece de la pantalla no se llena
+                  nunca.
+
+                  Lo que NO se hace es dar por negativo lo que falta — el motor
+                  ya lo impide, y su comentario explica que tratarlo así era un
+                  falso negativo.
+                */}
+                {(cam.evaluable || cam.faltan.length > 0) && (
+                  <div style={{
+                    fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)',
+                    borderLeft: `3px solid ${cam.positivo ? 'var(--red)' : cam.evaluable ? 'var(--green)' : 'var(--text3)'}`,
+                    color: 'var(--text2)',
+                  }}>
+                    <b>{cam.evaluable ? cam.explicacion : 'CAM-ICU no evaluable'}</b>
+                    {!cam.evaluable && <> — falta {cam.faltan.join(', ')}</>}
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{cam.fuente}</span>
+                  </div>
+                )}
                 {neuro.banderas.map((b, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5, padding: '7px 9px', borderRadius: 8, background: 'var(--s2)', borderLeft: `3px solid ${colorNivel[b.nivel]}` }}>
                     <span style={{ fontSize: 10, fontWeight: 800, color: colorNivel[b.nivel], textTransform: 'uppercase', width: 58, flexShrink: 0 }}>{b.nivel}</span>

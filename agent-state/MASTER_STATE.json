@@ -1,29 +1,92 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "modo": "autonomo-sin-despliegue",
+  "modo": "autonomo-con-despliegue",
   "autorizaciones": {
     "abrirPR": true,
     "pushDeRama": true,
-    "desplegarAProduccion": false,
-    "fusionarAMain": false,
+    "desplegarAProduccion": true,
+    "fusionarAMain": true,
     "datosRealesDePacientes": false,
-    "cambiosDestructivos": false
+    "cambiosDestructivos": false,
+    "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "REG-193 (cerrada) — v1075, sobre main",
+  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
   "ramasActivas": [
-    "agent/safety/REG-193-ventana-apartado"
+    "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1074",
-  "trabajoLocalSinSubir": [],
-  "notasDeEstado": [
-    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
-    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
+  "ultimaVersionEnProduccion": "nexusmed-v1150",
+  "trabajoLocalSinSubir": [
+    "M  agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "M  agent-state/DESIGN_STATE.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/PATIENT_COMPANION_STATE.md",
+    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "M  docs/audit/regression-ledger.md",
+    "A  docs/competitive/PATIENT_EXPERIENCE_MATRIX.md",
+    "A  docs/competitive/UX_UI_MATRIX.md",
+    "M  docs/data-room/INDICE.md",
+    "A  docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
+    "A  docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
+    "A  docs/design/NAVIGATION_STATE_AUDIT.md",
+    "AM docs/design/SCREEN_INVENTORY.md",
+    " M docs/maintenance/sw-changelog.md",
+    "A  docs/patient/PATIENT_COMPANION_BASELINE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M public/sw.js",
+    " M public/version.txt",
+    "A  scripts/design/inventario-de-pantallas.mjs"
   ],
-  "actualizado": "2026-08-09",
-  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1075",
-  "leccionDeEstaIteracion": "REG-192 se fusionó a main y NO cerró su propio caso del titular. Se vio porque esta iteración probó el caso contra los motores reales en vez de leer el golden que lo acompañaba. Un golden en verde dice que el caso escrito pasa, no que el defecto esté cerrado. Además: la rama sobre la que trabajé primero (agent/safety/SAFE-003, PR #249) quedó obsoleta al fusionarse REG-192 en main y en conflicto por renumeraciones cruzadas; se rehízo el trabajo sobre main y se cerró el PR viejo en vez de forzar nada."
+  "actualizado": "2026-08-08",
+  "resumenDesdeElUltimoEstado": {
+    "versionesDesplegadas": "v1085 → v1096",
+    "regsCerradas": "REG-204 … REG-214",
+    "pruebas": 7383,
+    "lint": "96 (techo)",
+    "nota": "El tablero volvió a quedarse atrás: decía v1084 mientras producción iba en v1096. Es la segunda vez. La causa no es descuido: es que actualizarlo depende de que yo me acuerde. Mientras no lo derive un script, va a volver a pasar."
+  },
+  "ramasDeLaRutinaSinRevisar": [
+    "agent/expediente/REG-192 — negación",
+    "agent/voice/VOICE-005 — negación, muletilla en medio",
+    "agent/eval/EVAL-002-corpus-temporalidad — temporalidad"
+  ],
+  "seccionesDelCharterCerradas": [
+    "§4.1",
+    "§5.1",
+    "§18",
+    "§24",
+    "§B5",
+    "§B6",
+    "§B8",
+    "§B10",
+    "§H6",
+    "§H7",
+    "§N3"
+  ],
+  "loQueSigueBloqueadoEnElDueno": [
+    "Titularidad del código a nombre de una sociedad — bloqueo nº1 de la sala de datos",
+    "Requisitos legales de la receta impresa",
+    "STRIPE_WEBHOOK_SECRET en Vercel",
+    "OPS_ALERTA_WEBHOOK para las alertas de operación"
+  ],
+  "ramaActual": "agent/v7/master-loop",
+  "derivado": {
+    "regsEnElLedger": 117,
+    "ultimaREG": "REG-269",
+    "archivosDePrueba": 548,
+    "casosDePrueba": 7243,
+    "lint": "ver scripts/lint-trinquete.mjs"
+  },
+  "ultimaIteracionAutonoma": {
+    "fecha": "2026-08-09",
+    "item": "SAFE-007",
+    "reg": "REG-270",
+    "version": "nexusmed-v1151",
+    "rama": "agent/safety/REG-193-ventana-apartado",
+    "pr": 265,
+    "leccion": "REG-192 se fusionó a main y NO cerró su propio caso del titular. Se vio porque esta iteración PROBÓ el caso contra los motores reales en vez de leer el golden que lo acompañaba: un golden en verde dice que el caso escrito pasa, no que el defecto esté cerrado. Y mi primera versión del arreglo cortaba también en los dos puntos; la tumbó el golden de REG-192, con razón, porque el encabezado ES el escudo.",
+    "numeracion": "Nació REG-193/v1075 sobre el main de las 23:13; al subir, main iba por REG-269/v1150. Renumerado a REG-270/v1151 mirando main otra vez antes de empujar. Es el efecto de T-1."
+  }
 }

@@ -82,9 +82,42 @@ export function ventanaDeSala(
   return { estado: 'abierta', mensaje: '' }
 }
 
-/** El enlace del PACIENTE. Sin `dr=1`: eso abre el panel clínico del médico. */
-export function enlaceSalaPaciente(citaId: string, clinicId: string): string {
-  return `/teleconsulta/${encodeURIComponent(citaId)}?c=${encodeURIComponent(clinicId)}`
+/**
+ * El enlace del PACIENTE. Sin `dr=1`: eso abre el panel clínico del médico.
+ *
+ * ── EL ENLACE DEL PACIENTE NO LLEVABA CON QUÉ ENTRAR ─────────────────────────
+ *
+ * Esta función devolvía `?c=<clinicId>` y nada más. Pero `/api/telesalud/sala`
+ * exige **una de dos** pruebas de titularidad: el token HMAC del paciente, o una
+ * sesión de miembro del consultorio con `clinico.leer`. El paciente no tiene
+ * sesión, y aquí no se le daba token — así que caía en la rama de rechazo, que
+ * responde **404 «Cita no encontrada»** a propósito, para no confirmarle a un
+ * desconocido que ese `citaId` existe.
+ *
+ * Resultado: el paciente pulsaba «Entrar a la videoconsulta» **dentro de su
+ * propio portal** —donde estaba autenticado por token, en la barra de
+ * direcciones, a un `search.get('t')` de distancia— y la aplicación le decía que
+ * su cita no existe. En la hora de su consulta.
+ *
+ * El médico no lo veía nunca: su botón de `(dashboard)/citas` sí añade `&t=`,
+ * con un token emitido aparte por `/api/telesalud/token`. Sólo fallaba el
+ * camino del paciente, que es el único que nadie de dentro recorre.
+ *
+ * ── POR QUÉ EL TOKEN ES OBLIGATORIO EN LA FIRMA ──────────────────────────────
+ *
+ * Podría ser opcional, y entonces este defecto volvería en el siguiente sitio
+ * que llame a esta función sin él, en silencio. Siendo obligatorio, el
+ * compilador obliga a **cada** llamador a decidir qué token pone; y quien no
+ * tenga ninguno tiene que decirlo con `''`, que es una decisión escrita, no un
+ * olvido. `donde-es.ts` hace justo eso: sin token no emite enlace, porque un
+ * enlace que contesta «tu cita no existe» es peor que ninguno.
+ *
+ * Familia: «el dato tiene que LLEGAR» — el enlace se construía, se enviaba y se
+ * abría; lo que no llegaba era la credencial que lo hace funcionar del otro lado.
+ */
+export function enlaceSalaPaciente(citaId: string, clinicId: string, tokenPaciente: string): string {
+  const base = `/teleconsulta/${encodeURIComponent(citaId)}?c=${encodeURIComponent(clinicId)}`
+  return tokenPaciente ? `${base}&t=${encodeURIComponent(tokenPaciente)}` : base
 }
 
 export const POR_QUE_NO_LLEVA_DR =

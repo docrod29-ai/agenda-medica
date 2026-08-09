@@ -20,7 +20,7 @@ export function BotonAyuda() {
         className="boton-ayuda-fab"
         style={{
           position: 'fixed', right: 20, zIndex: 60, width: 52, height: 52, borderRadius: '50%',
-          border: 'none', cursor: 'pointer', background: 'var(--teal)', color: '#000',
+          border: 'none', cursor: 'pointer', background: 'var(--nexus-solido)', color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 6px 20px rgba(20,184,166,0.4)',
         }}

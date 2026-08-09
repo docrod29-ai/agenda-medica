@@ -398,7 +398,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
           </div>
         )}
         {esMedico && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, maxWidth: 660, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(190px, 100%), 1fr))', gap: 14, maxWidth: 660, margin: '0 auto' }}>
             {planesGate_.map(p => {
               const pr = precioMostrar(p.price)
               return (
@@ -572,7 +572,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => window.location.reload()} className="lift" style={{
-              background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10,
+              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10,
               padding: '11px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}>
               Reintentar

@@ -340,7 +340,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
 
       {/* Motivo + huésped + estado de IS */}
       <Card padding={14}>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px, 100%),1fr))' }}>
           <label className="text-sm">Motivo de la interconsulta
             <select className={inputCls} value={motivo} onChange={(e) => set('hc_motivo', e.target.value)}>
               <option value="">— elige el motivo —</option>
