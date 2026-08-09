@@ -30,7 +30,36 @@ PATIENT-COMPANION-001 (REG-280/281). La rama está 48 commits detrás de main.
   toca esos archivos.
 - **Decisión**: del dueño — registrada en `V10_OWNER_DECISIONS_REQUIRED.md`.
 
-## B-V10-2 · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
+## B-V10-2 · Capturas del golden flow autenticado — **RESUELTO (9-ago-2026)**
+
+El arnés existe y corre completo: `npm run capturas:golden` levanta Auth +
+Firestore emulados (`firebase emulators:exec`, nunca deja servidores vivos),
+siembra el consultorio sintético (`scripts/design/sembrar-emulador.mjs`),
+enciende la compuerta de emuladores del cliente
+(`src/lib/firebase-emuladores.ts`, doble cerrojo probado al derecho y al
+revés) y captura el golden flow con sesión iniciada: 7 pantallas × escritorio
+y móvil. Evidencia: `docs/design/capturas/golden-flow/*.png`; puntuaciones en
+`V10_VISUAL_SCORECARD.json`.
+
+Lecciones que costaron corridas, escritas para no reaprenderlas:
+
+- **Next 16 bloquea `/_next/*` como cross-origin**: navegar por `127.0.0.1`
+  cuando Next considera `localhost` el origen permitido aborta TODOS los
+  chunks (ERR_ABORTED) sin un solo error de JS — la página queda en el
+  spinner SSR para siempre. Se navega por `localhost`.
+- `networkidle` **nunca llega** con Firestore vivo (websocket permanente):
+  `domcontentloaded` + espera de contenido.
+- En dev la primera visita compila la ruta (>30 s): se calienta cada ruta
+  con `fetch` antes de abrir el navegador.
+- La salida del servidor va a archivo, spawn `detached`, y se mata el grupo
+  de proceso entero: un pipe huérfano bloquea a next dev en el write y deja
+  un zombi con el puerto tomado.
+- El chromium del entorno se lanza por `executablePath` fijo y
+  `--no-proxy-server`.
+
+<details><summary>Texto original del blocker (histórico)</summary>
+
+## B-V10-2 (histórico) · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
 
 Intento del 9-ago-2026, en esta corrida:
 
@@ -50,3 +79,9 @@ Intento del 9-ago-2026, en esta corrida:
   sesión) y captura las pantallas del golden flow.
 
 Nada de esto usa datos reales ni toca producción.
+</details>
+
+## Sin blockers abiertos
+
+Lo que requiere decisión del dueño vive en `V10_OWNER_DECISIONS_REQUIRED.md`;
+nada de ello detiene la siguiente unidad.

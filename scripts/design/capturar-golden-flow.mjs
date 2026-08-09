@@ -136,6 +136,12 @@ async function main() {
         viewport: vista.viewport, isMobile: vista.isMobile, hasTouch: vista.hasTouch,
         locale: 'es-MX', timezoneId: 'America/Mexico_City',
       })
+      // El tour de bienvenida se marca VISTO antes de navegar: las capturas del
+      // golden flow retratan la pantalla de trabajo, no el modal de primer uso
+      // (ese estado se captura aparte cuando toque revisar onboarding).
+      await contexto.addInitScript(
+        `try { localStorage.setItem('nexus_tour_v1_${MEDICO.uid}', '1') } catch {}`
+      )
       const page = await contexto.newPage()
       // networkidle NUNCA llega con Firestore vivo (websocket permanente):
       // se navega a domcontentloaded y se espera contenido concreto.
@@ -165,6 +171,9 @@ async function main() {
         await page.goto(`${BASE}${p.ruta}`, { waitUntil: 'domcontentloaded' })
         // Respiro fijo: deja pintar las suscripciones onSnapshot antes de capturar.
         await page.waitForTimeout(3500)
+        // El overlay de devtools de Next (dev-only) no es parte del producto:
+        // fuera de la evidencia. Los errores que señala se recogen por consola.
+        await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }).catch(() => {})
         const archivo = join(SALIDA, `${p.nombre}--${vista.nombre}.png`)
         await page.screenshot({ path: archivo, fullPage: false })
         console.log(`  ✓ ${p.nombre} (${vista.nombre})`)

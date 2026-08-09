@@ -5,6 +5,96 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "capturadoEl": "2026-08-09",
+  "metodo": "npm run capturas:golden — sesión real contra emuladores, datos sintéticos, chromium 1440×900 y 390×844. Evidencia en docs/design/capturas/golden-flow/.",
+  "advertenciaTransversal": "Aviso de hydration mismatch en TODAS las rutas (consola dev). No puntúa contra ninguna pantalla individual; abierto como V10-BUG-001.",
+  "pantallas": [
+    {
+      "ruta": "/dashboard",
+      "nombre": "Hoy (escritorio)",
+      "evidencia": "hoy--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 9,
+        "espaciado": 9, "densidad": 8.5, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 9, "originalidadMarca": 8.5
+      },
+      "promedioPuntuado": 8.9,
+      "genericAiLook": 1.5,
+      "notas": "HOME-001 verificado en producto real por primera vez: próxima cita arriba con cuenta regresiva, cola de acción, agenda a todo el ancho, color reservado a lo accionable. Lo que resta puntos NO es de esta pantalla: la barra lateral de 19 destinos (V10-SHELL-001) y dos botones flotantes circulares. interaccion/responsividad/accesibilidad/rendimiento sin puntuar: exigen recorrido interactivo, no captura estática."
+    },
+    {
+      "ruta": "/dashboard",
+      "nombre": "Hoy (móvil 390px)",
+      "evidencia": "hoy--movil.png",
+      "puntuacion": {
+        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
+        "espaciado": 8, "densidad": 8, "interaccion": null, "responsividad": 8,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidadMarca": 8
+      },
+      "promedioPuntuado": 8.2,
+      "genericAiLook": 1.5,
+      "notas": "Se apila en una columna correcta (el defecto que HOME-001 vino a matar no volvió). Tres hallazgos: (1) la tarjeta de próxima cita trunca el nombre del paciente («Nemesi…») mientras el botón domina — §16 exige que la identidad mande; (2) los botones flotantes de ayuda/tema tapan el resumen de la agenda; (3) el encabezado dice «Agenda Médica», no la identidad del producto."
+    },
+    {
+      "ruta": "/citas",
+      "nombre": "Citas (escritorio)",
+      "evidencia": "citas--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 6.5, "claridad": 7.5, "coherencia": 7.5, "tipografia": 8.5,
+        "espaciado": 8, "densidad": 8, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8, "originalidadMarca": 6.5
+      },
+      "promedioPuntuado": 7.6,
+      "genericAiLook": 4,
+      "notas": "El hallazgo fuerte de esta corrida. Cada renglón carga 6–7 controles en 4 colores de acento (Cobrar/Consulta/Recordar/Unirse + 3 iconos) — §9 «every action presented as a button» y «buttons with equal emphasis». El chip «Valeria» se repite en las 8 filas sin información (consultorio de una médica). El conteo del día se dice TRES veces (píldoras, texto, filtros). Va a V10-AGENDA-001."
+    },
+    {
+      "ruta": "/calendario",
+      "nombre": "Calendario semana (escritorio)",
+      "evidencia": "agenda--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 8.5, "claridad": 8.5, "coherencia": 9, "tipografia": 8.5,
+        "espaciado": 9, "densidad": 8.5, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 8.5, "originalidadMarca": 8
+      },
+      "promedioPuntuado": 8.6,
+      "genericAiLook": 1,
+      "notas": "Contenido y sobrio, como pide §15: color escaso, hoy resaltado, pendiente-por-confirmar con borde discontinuo (estado sin depender del color). Mejorable: los bloques enseñan solo nombre de pila y no distinguen más estados."
+    },
+    {
+      "ruta": "/expediente/[id]",
+      "nombre": "Expediente (escritorio)",
+      "evidencia": "expediente--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 8, "claridad": 8.5, "coherencia": 8.5, "tipografia": 8.5,
+        "espaciado": 8.5, "densidad": 8, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 9, "originalidadMarca": 7.5
+      },
+      "promedioPuntuado": 8.3,
+      "genericAiLook": 2.5,
+      "notas": "La banda de alergias arriba y la identidad clara sostienen la confianza clínica. Dos hallazgos: (1) dos de las tres tarjetas-resumen se pintan VACÍAS («Sin signos», «Sin diagnósticos») y empujan el contenido real — §9 tarjetas por costumbre; (2) el CTA primario dice «Nueva consulta con IA» — nombra el mecanismo, contra la regla del dueño (REG-292: se dice lo que HACE)."
+    },
+    {
+      "ruta": "/consulta/[id]",
+      "nombre": "Consulta (escritorio)",
+      "evidencia": "consulta--escritorio.png",
+      "puntuacion": {
+        "jerarquia": 9, "claridad": 9, "coherencia": 9, "tipografia": 9,
+        "espaciado": 9, "densidad": 8.5, "interaccion": null, "responsividad": null,
+        "accesibilidad": null, "rendimientoPercibido": null, "confianzaClinica": 9, "originalidadMarca": 8.5
+      },
+      "promedioPuntuado": 8.9,
+      "genericAiLook": 1.5,
+      "notas": "La grabación domina sin gritar, las herramientas están plegadas (revelación progresiva ✓), y cada signo vital lleva su unidad atada al campo (§21 ✓). Hallazgos menores: la alergia se dice dos veces en 100 px (banda + píldora); «Capta a los dos y separa las voces» roza el mecanismo (candidata a revisión de contenido REG-292)."
+    },
+    {
+      "ruta": "/pacientes · /pendientes · resto móvil",
+      "nombre": "Capturadas SIN puntuar",
+      "evidencia": "pacientes--*.png, pendientes--*.png, citas--movil.png, agenda--movil.png, expediente--movil.png, consulta--movil.png",
+      "puntuacion": null,
+      "promedioPuntuado": null,
+      "genericAiLook": null,
+      "notas": "Una puntuación sin inspección sería la puntuación inflada que §34 prohíbe. La siguiente corrida las revisa una a una."
+    }
+  ]
 }

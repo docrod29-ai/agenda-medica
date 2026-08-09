@@ -12,7 +12,7 @@ producto (V10 §47).
 | # | Salida | Estado | Dónde |
 |---|---|---|---|
 | 1 | Inventario de pantallas Practice | ✅ heredado, vivo | `docs/design/SCREEN_INVENTORY.md` (generado; guardián en CI) |
-| 2 | Inventario de capturas escritorio/móvil | 🔄 método probado | públicas capturadas (landing/login, 1440×900 y 390×844); golden flow autenticado requiere arnés de emulador — ver `V10_BLOCKERS.md` B-V10-2 |
+| 2 | Inventario de capturas escritorio/móvil | ✅ **golden flow autenticado** | `npm run capturas:golden` → 14 capturas (7 pantallas × 2 vistas) en `docs/design/capturas/golden-flow/`; B-V10-2 RESUELTO |
 | 3 | Inventario de tokens de diseño | ✅ inicial | `docs/design/DESIGN_SYSTEM.md` + `agent-state/DESIGN_STATE.md` (V9) |
 | 4 | Inventario de componentes | 🔄 en curso | `docs/design/COMPONENT_INVENTORY.md` |
 | 5 | Inventario de anti-patrones «cara de IA» | ✅ heredado | `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md` (conteos medidos) |
@@ -21,11 +21,11 @@ producto (V10 §47).
 | 8 | Defectos de pérdida de estado | ✅ heredado + reparado | REG-276…279 (rama V9, sin fusionar) |
 | 9 | Inconsistencias visuales | ✅ heredado | `agent-state/DESIGN_STATE.md`: 6 065 `style={{`, 1 205 hex a mano |
 | 10 | Línea base de accesibilidad | ⏳ pendiente | `docs/design/ACCESSIBILITY.md` |
-| 11 | Línea base móvil | ⏳ pendiente | con la salida 2 |
+| 11 | Línea base móvil | 🔄 parcial | 7 capturas a 390×844; puntuada la de inicio (8.2), el resto por revisar |
 | 12 | Línea base de rendimiento | ⏳ pendiente | con navegador |
 | 13 | Matriz de principios de competidores | ✅ heredada, extender | `docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md` |
-| 14 | Puntuación visual por pantalla crítica | ⏳ pendiente | `agent-state/V10_VISUAL_SCORECARD.json` (exige captura — V10 §34) |
-| 15 | Puntuación «cara de IA» por pantalla | ✅ parcial | conteos globales sí; por pantalla exige captura |
+| 14 | Puntuación visual por pantalla crítica | 🔄 6 vistas puntuadas CON evidencia | `V10_VISUAL_SCORECARD.json`: hoy 8.9/8.2, citas 7.6, calendario 8.6, expediente 8.3, consulta 8.9 — 8 vistas capturadas sin puntuar aún |
+| 15 | Puntuación «cara de IA» por pantalla | 🔄 6 vistas | citas 4.0 (botonera+chips) es la peor; calendario 1.0 la mejor |
 | 16 | Backlog visual P0–P3 | 🔄 en curso | `agent-state/V10_BACKLOG.json` |
 | 17 | Primera iteración de implementación | ✅ **HOME-001** | `/dashboard` rediseñada — ver abajo |
 
@@ -86,14 +86,44 @@ guardián. TRUTH-001 **reconcilia y completa**; no repite.
   proxy del contenedor falla rápido). Cambio de esta corrida: sólo docs/estado.
 - `lint-trinquete`: **96, igual que el techo.** Sin deuda nueva.
 
+## Corrida 9-ago-2026 (tarde) — el arnés existe y el golden flow ya se VE
+
+**Dónde vive**: rama de sesión `claude/kind-brahmagupta-gu7h9g` (la plataforma
+de esta corrida solo permite empujar ahí), basada en la punta de
+`claude/nexus-visual-excellence-v10` — no se pierde nada; la siguiente corrida
+parte de la más nueva de las dos.
+
+**Qué se cerró** (era la «próxima acción exacta» de la corrida anterior):
+
+- **B-V10-2 RESUELTO**: `npm run capturas:golden` — emuladores Auth+Firestore,
+  consultorio sintético sembrado, sesión real, 14 capturas (7 pantallas × 2
+  vistas). Las lecciones duras (Next 16 bloquea `/_next/*` desde `127.0.0.1`;
+  `networkidle` nunca llega con Firestore vivo; el zombi del pipe huérfano)
+  quedaron escritas en `V10_BLOCKERS.md`.
+- **B-V10-1 RESUELTO**: PR #279 fusionó la rama V9 a main (verificado por
+  ancestría, no por acta). `V10-CONSTITUTION-001` desbloqueada.
+- **Salidas 14/15 arrancadas con evidencia**: 6 vistas puntuadas
+  (`V10_VISUAL_SCORECARD.json`). HOME-001 verificado en producto real:
+  el orden de §14 se cumple y el defecto móvil no volvió.
+- **5 hallazgos nuevos con captura** en `V10_BACKLOG.json`: hydration
+  mismatch en todas las rutas (V10-BUG-001, P1), botonera de /citas
+  (cara-de-IA 4.0, la peor), tarjeta móvil que trunca al paciente,
+  «Nueva consulta con IA» contra REG-292, tarjetas vacías del expediente.
+
+**Compuertas**: vitest 8580/8581 en verde (el 1 que falla es ambiental de este
+contenedor — el proxy contesta 403 a IPs no enrutables y el test de timeout
+espera un socket colgado; mismo diagnóstico que la corrida anterior);
+lint-trinquete 96 = techo; build en verificación al cierre de la corrida.
+
 ## Próxima acción exacta (siguiente corrida)
 
-1. **Arnés de capturas del golden flow**: levantar emuladores Auth+Firestore
-   (`demo-nexusmed-test`), sembrar paciente/citas sintéticos, iniciar sesión y
-   capturar las pantallas del golden flow en 1440×900, 1024, 768 y 390×844
-   (V10 §39). Método base ya probado — ver `V10_BLOCKERS.md` B-V10-2.
-2. Con capturas: puntuar pantallas críticas con `V10_VISUAL_RUBRIC.md` →
-   `V10_VISUAL_SCORECARD.json` (salidas 14 y 15).
-3. Línea base de accesibilidad sobre esas mismas pantallas (salida 10).
-4. Revisar si el dueño ya decidió V10-D1 (fusión de la rama V9); si sí,
-   desbloquear V10-DEBT-001/002.
+1. **Puntuar las 8 vistas capturadas sin puntuar** (pacientes, pendientes y
+   los 6 móviles restantes) con su captura enfrente — §34 prohíbe rellenar.
+2. **V10-BUG-001**: reproducir el hydration mismatch (arnés ya lo enseña en
+   consola), encontrar el atributo exacto y arreglarlo con su prueba.
+3. Con el arnés vivo: **línea base de accesibilidad** (salida 10) sobre las
+   mismas pantallas — axe-core dentro del mismo recorrido.
+4. Después: la reparación más barata con mayor evidencia es
+   **V10-CONTENIDO-REG292** («Nueva consulta con IA» → «Nueva consulta»), y
+   la de mayor peso **V10-AGENDA-BOTONERA** (requiere decisión de jerarquía
+   de acciones: una primaria por renglón, el resto al kebab).

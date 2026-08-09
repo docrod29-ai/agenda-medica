@@ -22,8 +22,14 @@
       "NAVIGATION-001 (fed81cc, REG-276 a 279)",
       "PATIENT-COMPANION-001 (5d496cf, REG-280/281)"
     ],
-    "ramaV9": "origin/claude/nexus-patient-ux-v9 (6feaf5a; 8 adelante, 48 atrás de main)",
-    "regla": "V10 NO duplica ni revierte ese trabajo. Las unidades V10 que toquen sistema de diseño, navegación o compañero del paciente esperan la fusión de V9 o se rebasan sobre ella (V10 §41). La decisión de fusionar es del dueño — ver V10_OWNER_DECISIONS_REQUIRED.md."
+    "ramaV9": "FUSIONADA a main el 9-ago-2026 (PR #279, merge 56d9fc7) — verificado por ancestría de commits",
+    "regla": "V10 NO duplica ni revierte ese trabajo. Con la fusión hecha, V10-CONSTITUTION-001 queda desbloqueada y construye ENCIMA del sistema de diseño de main."
+  },
+  "arnesCapturas": {
+    "comando": "npm run capturas:golden",
+    "resuelto": "2026-08-09 (B-V10-2)",
+    "evidencia": "docs/design/capturas/golden-flow/ (14 PNG, sesión real, datos sintéticos)",
+    "notaRama": "La corrida del 9-ago (tarde) vive en claude/kind-brahmagupta-gu7h9g, basada en la punta de claude/nexus-visual-excellence-v10; la siguiente corrida parte de la más nueva de las dos"
   },
   "documentosValidadosPreexistentes": {
     "inventarioPantallas": "docs/design/SCREEN_INVENTORY.md (GENERADO por scripts/design/inventario-de-pantallas.mjs — no editar a mano)",

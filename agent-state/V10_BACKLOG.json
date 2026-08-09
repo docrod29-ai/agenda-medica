@@ -53,6 +53,56 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
+      "estado": "hecho-parcial",
+      "avance9ago": "Arnés construido y corriendo (npm run capturas:golden). 14 capturas del golden flow autenticado en docs/design/capturas/golden-flow/. 6 vistas puntuadas con evidencia (V10_VISUAL_SCORECARD.json); faltan 8 vistas por puntuar y los estados vacío/carga/error/larga."
+    },
+    {
+      "id": "V10-BUG-001",
+      "titulo": "Hydration mismatch en TODAS las rutas (aviso de React en consola dev)",
+      "fuente": "capturas 9-ago: el mismo aviso en /login, /dashboard, /citas, /calendario, /pacientes, /expediente, /consulta, /pendientes",
+      "hipotesis": "atributo que difiere entre SSR y cliente en el layout compartido (tema/fecha/saludo son los sospechosos de siempre); hay que reproducir y mirar el diff exacto",
+      "prioridad": "P1",
+      "unidadV10": "V10-TRUTH-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-AGENDA-BOTONERA",
+      "titulo": "Citas: 6–7 controles por renglón en 4 colores de acento; chip «Valeria» repetido sin información; el conteo del día dicho tres veces",
+      "fuente": "citas--escritorio.png (evidencia 9-ago). §9: every action as a button, equal emphasis, excessive pills",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-HOME-MOVIL-CARD",
+      "titulo": "Móvil: la tarjeta de próxima cita trunca el nombre del paciente («Nemesi…») mientras el botón domina; los flotantes de ayuda/tema tapan el resumen de agenda; el encabezado dice «Agenda Médica»",
+      "fuente": "hoy--movil.png (evidencia 9-ago). §16: la identidad del paciente manda",
+      "prioridad": "P1",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONTENIDO-REG292",
+      "titulo": "El CTA del expediente dice «Nueva consulta con IA» (nombra el mecanismo); «Capta a los dos y separa las voces» en consulta roza lo mismo",
+      "fuente": "expediente--escritorio.png · consulta--escritorio.png. Regla del dueño REG-292: se dice lo que HACE, nunca cómo lo hace",
+      "prioridad": "P1",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-TARJETAS-VACIAS",
+      "titulo": "Expediente: dos de tres tarjetas-resumen se pintan vacías («Sin signos», «Sin diagnósticos») y empujan el contenido real",
+      "fuente": "expediente--escritorio.png. §9: excessive Overview cards",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-SHELL-ALMACEN",
+      "titulo": "Barra lateral de 19 destinos — el almacén de funciones que §8.16 prohíbe; en móvil el menú hamburguesa hereda lo mismo",
+      "fuente": "todas las capturas de escritorio 9-ago. Ya es la unidad 3 de la secuencia §32",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
       "estado": "abierto"
     }
   ]
