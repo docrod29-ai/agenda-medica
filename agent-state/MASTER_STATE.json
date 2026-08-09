@@ -16,17 +16,19 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1160",
+  "ultimaVersionEnProduccion": "nexusmed-v1161",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
+    " M src/components/AutoLogout.tsx",
+    " M src/hooks/useGrabacionAudio.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/mencion-en-la-nota.ts",
-    "?? src/__tests__/el-escudo-no-cruza-el-punto.test.ts"
+    "?? src/__tests__/grabar-es-actividad.test.ts",
+    "?? src/lib/seguridad/estoy-grabando.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -62,10 +64,10 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 134,
-    "ultimaREG": "REG-286",
-    "archivosDePrueba": 563,
-    "casosDePrueba": 7430,
+    "regsEnElLedger": 135,
+    "ultimaREG": "REG-287",
+    "archivosDePrueba": 564,
+    "casosDePrueba": 7443,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

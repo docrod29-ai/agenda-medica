@@ -6170,3 +6170,71 @@ expresa lo suyo.
 
 - `src/lib/expediente/mencion-en-la-nota.ts`
 - `src/__tests__/el-escudo-no-cruza-el-punto.test.ts` (nuevo, 11 casos, sellado)
+
+---
+
+## REG-287 — grabar es actividad, y salir grabando avisa (v1161)
+
+**Los dos últimos P0 de integridad de la auditoría de V9, y compartían causa:
+nadie sabía que se estaba grabando.**
+
+### 1. La sesión se cerraba en mitad del dictado
+
+`AutoLogout` escucha `mousemove`, `mousedown`, `keydown`, `touchstart` y
+`scroll`. Su propio comentario nombra el escenario que lo rompe:
+
+> *«el médico DICTA, y dictar no genera mousemove ni teclas»*
+
+**Lo conocía.** Su defensa fue *guardar la nota antes de cerrar*. Eso salva el
+texto — y **sigue cerrando la sesión a mitad de frase** en un pase de UCI de
+media hora.
+
+**Guardar la nota no era el arreglo: era el consuelo.**
+
+### 2. Salir no avisaba
+
+No había **ningún** `beforeunload` en toda la aplicación. Cerrar la pestaña o
+recargar durante el dictado paraba la grabación sin decir nada. Los trozos ya
+volcados sobreviven y al volver aparece el ofrecimiento de recuperación — pero el
+médico no lo sabe **en el momento en que decide**, que es el único que importa.
+
+### Por qué un evento y no una referencia
+
+El grabador no debe saber que existe un cierre por inactividad, ni al revés. Si
+se conocieran, cada pantalla nueva que grabe tendría que **acordarse** de avisar
+— y «acordarse» es la familia `depende_de_recordar`. Con un evento, **cualquier**
+superficie que grabe queda cubierta el día que exista.
+
+El nombre vive en `lib/seguridad/estoy-grabando.ts`, una sola vez: una cadena
+literal repetida en dos archivos es una compuerta que se abre sola el día que
+alguien corrige una errata en uno de los dos.
+
+### La decisión que hace que sirva, y queda escrita para revertirla
+
+Durante la cuenta atrás **sólo el botón reactiva**, y con razón: un `mousemove`
+perdido no puede impedir un cierre legítimo en un equipo compartido.
+
+**Una grabación en curso no es un `mousemove` perdido.** Es prueba positiva de
+que hay alguien delante hablando — evidencia de presencia más fuerte que mover el
+ratón. Sin esa línea el aviso saldría en el minuto 30 del dictado y cerraría
+igual: **el defecto seguiría abierto con un arreglo puesto encima**.
+
+Es una decisión de seguridad —alarga la sesión mientras se graba— y por eso está
+escrita donde se lee. El resto de eventos sigue respetando la guarda del aviso.
+
+### Detalles que deciden si funciona
+
+- Un latido **inmediato** además del periódico: empezar a grabar en el minuto 29
+  de inactividad llegaría tarde con sólo el `setInterval`.
+- El latido **sólo** mientras se graba o está en pausa; latir siempre convertiría
+  el cierre por inactividad en decorativo.
+- El `beforeunload` **se quita al parar**: uno que sobrevive a la grabación
+  pregunta al salir de cualquier pantalla, se aprende a ignorar en dos días, y
+  entonces tampoco se lee el que importa.
+
+### Archivos
+
+- `src/lib/seguridad/estoy-grabando.ts` (nuevo)
+- `src/hooks/useGrabacionAudio.ts`
+- `src/components/AutoLogout.tsx`
+- `src/__tests__/grabar-es-actividad.test.ts` (nuevo, 13 casos, sellado)
