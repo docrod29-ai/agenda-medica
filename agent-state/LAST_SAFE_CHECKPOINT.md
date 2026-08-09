@@ -12,7 +12,17 @@
 |---|---|
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
 | **SHA de cierre** | `4bca5e3` |
+| **Rama** | `claude/relaxed-fermi-0cbnnh` — **no** la canónica de la directiva |
 | **Siguiente** | **`PATIENT-AI-001`** |
+
+> **Dónde está este trabajo, que la próxima ejecución tiene que saber.** La
+> directiva V9 nombra `claude/nexus-patient-ux-v9` como rama persistente, pero el
+> entorno de esta ejecución asignó `claude/relaxed-fermi-0cbnnh` y prohíbe
+> empujar a otra sin permiso explícito. Se trabajó sobre la asignada, que parte
+> del merge de la PR #279 (o sea, incluye todo lo de la rama canónica). **Al
+> reanudar: `git fetch origin claude/relaxed-fermi-0cbnnh` antes de decidir nada**
+> — este cierre no está en la rama canónica, y darlo por perdido sería rehacer
+> `POSTVISIT-001` entera.
 
 **El bucle se cierra por primera vez.** El médico firma, pulsa «Entregar al
 paciente» y el paciente lo lee en su enlace, en «Cuidado». Ese camino no existía
