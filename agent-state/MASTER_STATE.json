@@ -10,13 +10,18 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-004 / REG-208 (cerrada)",
+  "iteracionActual": "SAFE-004 / REG-208 (cerrada, PR #247 abierto)",
   "ramasActivas": [
     "agent/safety/SAFE-004"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1090",
   "trabajoLocalSinSubir": [],
-  "ultimaVersionPreparada": "nexusmed-v1090 (en PR, sin desplegar)",
-  "notaDeEstado": "El backlog del 4-ago está agotado: VOICE-004 y SAFE-001 se cerraron en el ledger (REG-144, dosis-sin-numero) y EVAL-001 sigue bloqueado por B-01. Las iteraciones siguientes salen de auditoría, no del backlog. La rama agent/safety/SAFE-003 (REG-192/193, negaciones de la nota y del dictado) sigue SIN FUSIONAR y ya reservaba v1074-v1075: esta iteración numera REG-208 y v1090 para no chocar. Al fusionar, el segundo en entrar resuelve ledger, sw.js, version.txt e invariantes-clinicos.json."
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. Y verificado que en CI pasa. No se tocó.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
+    "9-ago-2026: el bucle autónomo corrió en paralelo y ~20 ramas reclamaron el mismo REG-192 y la misma v1074. main ya fusionó REG-192/v1074 (88a3832), así que SAFE-004 se renumeró a REG-208/v1090 y se fusionó main dentro de la rama. La numeración se reparte por número de PR ascendente: OPS-003 en el PR #251."
+  ]
 }
