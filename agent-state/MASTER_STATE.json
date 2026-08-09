@@ -18,12 +18,9 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M package-lock.json",
-    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx"
+    "M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
