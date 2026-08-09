@@ -305,6 +305,10 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/el-audio-grabado-no-se-borra.test.ts",
+      "minCasos": 20
+    },
+    {
       "archivo": "src/__tests__/el-audio-sobrevive-a-la-consulta.test.ts",
       "minCasos": 11
     },

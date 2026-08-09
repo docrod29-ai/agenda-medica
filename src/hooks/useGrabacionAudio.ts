@@ -303,6 +303,18 @@ const INTERVALO_CHUNK_DEFAULT_MS = 20_000
  */
 const TROZO_MS = 2000
 
+/**
+ * Latido que emite el dictado para que `AutoLogout` sepa que hay alguien
+ * delante. Ver el efecto de `estado === 'grabando'` y REG-269.
+ *
+ * Vive aquí y no en `AutoLogout` porque quien sabe que se está grabando es el
+ * hook; el componente de cierre sólo escucha.
+ */
+export const EVENTO_ACTIVIDAD_DICTADO = 'nx:actividad-dictado'
+
+/** Cada cuánto late. Muy por debajo de los 30 min del cierre por inactividad. */
+const LATIDO_DICTADO_MS = 60_000
+
 // ─────────────────────────────────────────────────────────────────
 // IndexedDB — almacén minimalista para crash recovery
 // ─────────────────────────────────────────────────────────────────
@@ -356,12 +368,43 @@ async function leerChunks(recoveryKey: string): Promise<Blob[]> {
   }
 }
 
-async function borrarChunks(recoveryKey: string) {
+/**
+ * Borra el audio de recuperación **desde un índice**, no siempre todo.
+ *
+ * ── POR QUÉ EL PARÁMETRO `desde` — REG-267 ──────────────────────────────────
+ *
+ * Al terminar bien una transcripción se borraba el rango COMPLETO de la clave.
+ * Pero el blob que se acababa de transcribir se arma sólo con los trozos de
+ * ESTA sesión (`todosChunksRef`), no con los que ya hubiera guardados.
+ *
+ * Y sí puede haberlos: `recoveryBaseRef` existe precisamente para eso —cuando
+ * una grabación anterior quedó huérfana (falló su transcripción, o el médico
+ * navegó y la interrumpió), los trozos nuevos se guardan DESPUÉS, para no
+ * pisarla. Media defensa: se protegía al huérfano al escribir y se le arrasaba
+ * al borrar.
+ *
+ * El caso real: grabar 22 minutos → tocar «Agenda» → volver → grabar 90
+ * segundos → detener. Los 90 segundos se transcriben, y **los 22 minutos se
+ * borran de IndexedDB sin haberse transcrito nunca**. No hay segunda copia del
+ * audio en ninguna parte.
+ *
+ * Ahora el borrado de éxito se limita al tramo que de verdad se transcribió, y
+ * el huérfano sobrevive para que el cartel de «Recuperar» pueda ofrecerlo.
+ *
+ * **No se fusionan los dos audios para transcribirlos juntos**: son dos
+ * sesiones distintas de `MediaRecorder`, con su propia cabecera de contenedor.
+ * Concatenarlos produce un archivo que el proveedor no sabe leer, y perder el
+ * audio por «arreglarlo» sería el mismo defecto con otra cara.
+ *
+ * `desde = 0` sigue borrándolo todo, que es lo correcto cuando el usuario
+ * descarta a mano o cuando la recuperación ya transcribió el rango entero.
+ */
+async function borrarChunks(recoveryKey: string, desde = 0) {
   try {
     const db = await abrirDB()
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite')
-      const range = IDBKeyRange.bound([recoveryKey, 0], [recoveryKey, Number.MAX_SAFE_INTEGER])
+      const range = IDBKeyRange.bound([recoveryKey, desde], [recoveryKey, Number.MAX_SAFE_INTEGER])
       tx.objectStore(STORE).delete(range)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
@@ -1003,6 +1046,20 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   // transcripción que FALLÓ bajo la misma llave, los chunks nuevos se guardan
   // DESPUÉS (no encima), para no borrar el audio que se prometió a salvo.
   const recoveryBaseRef = useRef<number>(0)
+  /**
+   * Índice ABSOLUTO con el que se persiste el siguiente trozo — REG-268.
+   *
+   * Antes se derivaba de la longitud del array: `recoveryBase +
+   * todosChunks.length - 1`. Eso ataba el índice de disco a un array que se
+   * vacía, y por eso `stop()` —que dispara un `ondataavailable` final de forma
+   * asíncrona, después del vaciado— calculaba `recoveryBase - 1` y pisaba un
+   * trozo bueno, o escribía en el índice -1.
+   *
+   * La defensa de entonces fue desenganchar el handler antes de parar, a costa
+   * de tirar el último buffer (~2 s). Con un contador que sólo sube, la
+   * colisión no puede ocurrir, así que ya no hace falta tirar nada.
+   */
+  const persistIdxRef = useRef<number>(0)
   const streamingActivoRef = useRef<boolean>(true)
   const mimeRef = useRef<string>('')
 
@@ -1010,15 +1067,25 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
       /**
-       * DESENGANCHAR el handler ANTES de parar — auditoría 2026-07 (P0). `stop()`
-       * dispara un `ondataavailable` FINAL de forma asíncrona, y justo abajo se
-       * resetea `todosChunksRef = []`. Ese último evento calculaba
-       * `localIdx = recoveryBaseRef - 1` y PISABA un chunk válido del respaldo en
-       * IndexedDB (o escribía en idx -1), corrompiendo el audio de recuperación al
-       * salir de la consulta grabando. Los chunks ya persistidos quedan intactos;
-       * solo se descarta el buffer final (~2 s), que es el intercambio correcto.
+       * EL BUFFER FINAL YA NO SE TIRA — REG-268.
+       *
+       * Aquí se desenganchaba el handler antes de parar. La razón era buena:
+       * `stop()` dispara un `ondataavailable` FINAL de forma asíncrona, y justo
+       * abajo se vacía `todosChunksRef`; como el índice de disco se derivaba de
+       * la longitud de ese array, el último evento calculaba
+       * `recoveryBase - 1` y PISABA un trozo válido del respaldo (o escribía en
+       * el índice -1). Se prefirió perder ~2 s de audio a corromper el respaldo,
+       * y era el intercambio correcto **con aquel índice**.
+       *
+       * Con `persistIdxRef` —un contador que sólo sube y no depende de ningún
+       * array— la colisión ya no puede ocurrir, así que el intercambio deja de
+       * hacer falta: el trozo final se persiste en su sitio.
+       *
+       * Importa porque este camino es el de **salir de la consulta grabando**.
+       * Los ~2 s que se tiraban eran justo los últimos que dijo el médico antes
+       * de irse a otra pantalla — la parte más fácil de echar en falta y la
+       * única que no está en ninguna otra copia.
        */
-      try { rec.ondataavailable = null } catch { /* */ }
       try { rec.stop() } catch { /* */ }
     }
     mediaRef.current = null
@@ -1067,6 +1134,52 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   }, [liberarRecursos])
 
   useEffect(() => () => { liberarRecursos() }, [liberarRecursos])
+
+  /**
+   * MIENTRAS SE GRABA, DOS COSAS QUE ANTES NO PASABAN — REG-269.
+   *
+   * ── 1. DICTAR CUENTA COMO ACTIVIDAD ─────────────────────────────────────
+   *
+   * `AutoLogout` escucha `mousemove`, `mousedown`, `keydown`, `touchstart` y
+   * `scroll`. **Hablar no genera ninguno.** Su propio comentario lo reconocía y
+   * el arreglo de entonces fue guardar la nota antes de cerrar — correcto, pero
+   * dejaba en pie la causa: una consulta dictada de 45 minutos alcanza el minuto
+   * 30 de «inactividad» y cierra la sesión encima del médico.
+   *
+   * Grabar es la actividad más inequívoca que hay en esta aplicación: alguien
+   * está delante, hablando. Así que se emite un latido y el contador se
+   * reinicia. **No se desactiva el cierre por inactividad** —eso sería quitar un
+   * control de PHI en dispositivo compartido—: en cuanto la grabación para, el
+   * contador vuelve a correr como siempre.
+   *
+   * El latido va por debajo del umbral para que ninguna deriva de relojes lo
+   * deje pasar de largo.
+   *
+   * ── 2. AVISAR ANTES DE CERRAR LA PESTAÑA ────────────────────────────────
+   *
+   * No había **ni un** `beforeunload` en todo el repositorio. Para el texto de
+   * la nota es defendible —el volcado al desmontar ya lo salva— pero para una
+   * grabación no hay volcado posible: recargar es perder lo que aún no se ha
+   * persistido y, sobre todo, no disparar nunca la transcripción.
+   *
+   * Cubre además el camino que nadie provoca a mano: el service worker recarga
+   * la pestaña sola al desplegar una versión nueva.
+   */
+  useEffect(() => {
+    if (estado !== 'grabando') return
+
+    const latido = () => window.dispatchEvent(new CustomEvent(EVENTO_ACTIVIDAD_DICTADO))
+    latido()
+    const id = setInterval(latido, LATIDO_DICTADO_MS)
+
+    const alSalir = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', alSalir)
+
+    return () => {
+      clearInterval(id)
+      window.removeEventListener('beforeunload', alSalir)
+    }
+  }, [estado])
 
   // Función: flushea chunks acumulados al endpoint de streaming
   const flushChunks = useCallback(async () => {
@@ -1277,6 +1390,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (recoveryKeyRef.current) {
       try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
     }
+    // El contador de persistencia arranca donde acaba lo que ya había: a partir
+    // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-268).
+    persistIdxRef.current = recoveryBaseRef.current
     const intervaloMs = opts?.intervaloChunkMs ?? INTERVALO_CHUNK_DEFAULT_MS
 
     try {
@@ -1393,10 +1509,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
           chunksRef.current.push(e.data)
           todosChunksRef.current.push(e.data)
           setBytesGrabados(prev => prev + e.data.size)
-          // Persistir en IndexedDB para crash recovery
+          // Persistir en IndexedDB para crash recovery. El índice viene de un
+          // contador que sólo sube (REG-268): derivarlo de la longitud del
+          // array lo ataba a algo que se vacía, y el trozo final pisaba uno
+          // bueno. Ver `persistIdxRef`.
           if (recoveryKeyRef.current) {
-            const localIdx = recoveryBaseRef.current + todosChunksRef.current.length - 1
-            guardarChunk(recoveryKeyRef.current, localIdx, e.data)
+            guardarChunk(recoveryKeyRef.current, persistIdxRef.current++, e.data)
           }
         }
       }
@@ -1559,7 +1677,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (texto.trim()) {
         setUtterances([]); utterancesRef.current = []
         aplicar(texto)
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
         return
       }
       // Sin texto: cae al camino de siempre, que ya sabe usar el respaldo en vivo.
@@ -1575,7 +1693,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       aplicar(diar.text)
       setSinDiarizacion(null)
-      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
     /**
@@ -1624,7 +1742,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
       // audio es lo único que permite recuperarlo: se conserva.
-      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current)
+      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
 

@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 8-ago-2026.
-**Fuente**: los 113 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
+**Fuente**: los 117 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -21,7 +21,7 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **16** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **29** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **14** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 8 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
@@ -29,7 +29,7 @@ Eso cambia dónde conviene mirar mañana.
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
 | Estorba al médico | 5 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 6 | Trabajo del médico que desaparece o reaparece solo |
+| Pérdida de datos | 9 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
 | *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 28 de 113, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 29 de 117, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -65,6 +65,28 @@ recorre el camino**. El botón del médico sí llevaba token. Sólo fallaba el
 trayecto que ningún empleado hace nunca. Cuando el usuario del camino roto no
 trabaja aquí, ninguna cantidad de uso interno lo encuentra — y esa es la lección
 que V9 tiene que llevarse entera.
+
+## La que más creció de golpe
+
+**«Pérdida de datos» — de 6 a 9 en un solo día**, con REG-267, REG-268 y
+REG-270: los tres caminos por los que una consulta **ya grabada** desaparecía.
+
+Y los tres tenían la misma causa de fondo, que es lo que merece quedar escrito:
+
+> **Todo el esfuerzo de persistencia se puso donde YA había red.**
+
+El texto de la nota tiene borrador en memoria, respaldo en `localStorage`,
+autoguardado a Firestore cada 30 s y volcado al desmontar: **cuatro copias**. El
+audio, que no tiene ninguna otra copia en ningún sitio, se quedó fuera de todas
+esas defensas. Y cuando hubo que elegir entre proteger el texto y proteger el
+audio —en la purga del cierre de sesión— se protegió el texto, con un comentario
+que explicaba muy bien por qué.
+
+No fue descuido: fue que **cada arreglo se hizo mirando el activo que ya se
+sabía frágil**. Nadie preguntó cuál era el activo sin ninguna red.
+
+La pregunta que deja esta familia, para la próxima vez que se refuerce algo:
+**¿qué otra cosa se pierde en este mismo camino, y cuántas copias tiene?**
 
 Adelantó a «escrito y sin conectar» con REG-217: la regla 15 del prompt ORDENABA
 escribir «No referido» y la 1-bis lo PROHÍBE. **Ninguna de las dos estaba mal por

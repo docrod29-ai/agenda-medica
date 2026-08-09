@@ -20,24 +20,20 @@
   "trabajoLocalSinSubir": [
     "M agent-state/BACKLOG.json",
     " M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/LAST_SAFE_CHECKPOINT.md",
     " M agent-state/MASTER_STATE.json",
     " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/donde-es-la-cita.test.ts",
-    " M src/__tests__/ventana-sala.test.ts",
-    " M src/app/globals.css",
-    " M src/app/mi/[token]/page.tsx",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/components/AutoLogout.tsx",
+    " M src/hooks/useGrabacionAudio.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/telesalud/donde-es.ts",
-    " M src/lib/telesalud/ventana-sala.ts",
-    "?? agent-state/DESIGN_STATE.md",
-    "?? agent-state/LAST_SAFE_CHECKPOINT.md",
-    "?? agent-state/PATIENT_COMPANION_STATE.md",
-    "?? docs/competitive/PATIENT_EXPERIENCE_MATRIX.md",
-    "?? docs/competitive/UX_UI_MATRIX.md"
+    " M src/lib/salir-seguro.ts",
+    "?? src/__tests__/el-audio-grabado-no-se-borra.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -73,10 +69,10 @@
   ],
   "ramaActual": "claude/nexus-patient-ux-v9",
   "derivado": {
-    "regsEnElLedger": 113,
-    "ultimaREG": "REG-266",
-    "archivosDePrueba": 543,
-    "casosDePrueba": 7185,
+    "regsEnElLedger": 117,
+    "ultimaREG": "REG-270",
+    "archivosDePrueba": 544,
+    "casosDePrueba": 7205,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

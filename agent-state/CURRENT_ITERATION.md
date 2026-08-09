@@ -13,8 +13,8 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ (8-ago) · **los tres P0 de audio**
+✅ (9-ago) → **`DESIGN-SYSTEM-001`**, empezando por `@theme inline`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -33,10 +33,22 @@ línea; primitivos compartidos al 24 %).
 
 | P0 | Estado |
 |---|---|
-| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | ABIERTO `PATIENT-AUDIO-001` |
-| Navegar **termina la grabación** en silencio | ABIERTO `PATIENT-AUDIO-002` |
-| El cierre por inactividad **no oye dictar** y borra la recuperación | ABIERTO `PATIENT-AUDIO-003` |
-| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+| Volver a grabar **borra el audio anterior** — 22 min desaparecen sin transcribir | **REG-267 · cerrado** |
+| Navegar **termina la grabación** en silencio y tira el trozo final | **REG-268/269 · cerrado en parte** → residuo `PATIENT-AUDIO-004` |
+| El cierre por inactividad **no oye dictar** y borra la recuperación | **REG-269/270 · cerrado** |
+| El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · cerrado** |
+
+**Los cuatro compartían un sesgo, y por eso se arreglaron juntos**: toda la
+persistencia se había puesto donde YA había red —el texto de la nota tiene cuatro
+copias— y el audio, que no tiene ninguna otra, se quedó fuera de todas. Cuando
+hubo que elegir entre proteger el texto y proteger el audio, en la purga del
+cierre de sesión, se protegió el texto.
+
+**Residuo declarado**: navegar dentro de la aplicación sigue terminando la
+grabación **sin avisar**. Ya no se pierde audio —los trozos están en IndexedDB,
+el final incluido— pero el médico no se entera. `beforeunload` no se dispara en
+un `router.push` y App Router no expone eventos de ruta: se decide con la
+aplicación abierta (`PATIENT-AUDIO-004`, P1).
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

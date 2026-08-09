@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { salirSeguro } from '@/lib/salir-seguro'
+import { EVENTO_ACTIVIDAD_DICTADO } from '@/hooks/useGrabacionAudio'
 
 /**
  * Cierre automático de sesión por inactividad (control de seguridad LFPDPPP /
@@ -90,9 +91,31 @@ export function AutoLogout() {
     }
     const eventos: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
     eventos.forEach(e => window.addEventListener(e, onActividad, { passive: true }))
+
+    /**
+     * DICTAR TAMBIÉN ES ACTIVIDAD — REG-269.
+     *
+     * Los cinco eventos de arriba son de ratón, teclado y dedo. **Hablar no
+     * genera ninguno**, y esta pantalla es la de un médico que dicta: la
+     * cabecera de este archivo ya lo reconocía y el arreglo de entonces fue
+     * guardar la nota antes de cerrar. Correcto, pero dejaba la causa en pie —
+     * una consulta dictada de 45 minutos cerraba sesión en el minuto 30.
+     *
+     * El latido lo emite `useGrabacionAudio` mientras graba, porque es quien
+     * sabe que se está grabando. **Va sin el estrangulador**: llega una vez por
+     * minuto a propósito y perderlo sería justo lo que se intenta evitar.
+     *
+     * Esto NO desactiva el cierre por inactividad: en cuanto la grabación para,
+     * el contador corre como siempre. El control de PHI en dispositivo
+     * compartido se mantiene entero.
+     */
+    const onDictado = () => { if (!avisandoRef.current) reiniciar() }
+    window.addEventListener(EVENTO_ACTIVIDAD_DICTADO, onDictado)
+
     reiniciar()
     return () => {
       eventos.forEach(e => window.removeEventListener(e, onActividad))
+      window.removeEventListener(EVENTO_ACTIVIDAD_DICTADO, onDictado)
       limpiar()
     }
     // El efecto ya NO depende de `avisando` → no se re-monta al aparecer el aviso.

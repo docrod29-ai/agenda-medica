@@ -2817,6 +2817,17 @@ export default function ConsultaActivaPage() {
   // de guardar). Aquí guardamos SIN esperar: al desmontar (navegación dentro de
   // la app), al ocultar la pestaña y al cerrar. Usa un ref con el estado vivo.
   const estadoVivoRef = useRef({ tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada })
+  /**
+   * Espejo del estado del dictado, por el mismo motivo que el de arriba: el
+   * oyente de `nx:guardar-todo` se registra con `[guardarBorrador]` en las
+   * dependencias, así que leer `audio.estado` dentro de él capturaría el valor
+   * que hubiera al registrarse — «inactivo», casi siempre. Un ref se lee
+   * siempre vivo (REG-270).
+   */
+  const audioEstadoRef = useRef(audio.estado)
+  // Se actualiza en un efecto, no durante el render: tocar un ref mientras se
+  // renderiza es error del compilador de React y sube el trinquete de lint.
+  useEffect(() => { audioEstadoRef.current = audio.estado }, [audio.estado])
   useEffect(() => {
     estadoVivoRef.current = { tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, transcripcion: voz.transcripcion, firmada }
     // Espejo EN MEMORIA en cada cambio (barato, sin debounce): así al navegar y
@@ -2901,6 +2912,26 @@ export default function ConsultaActivaPage() {
   // sobrevive al cierre. Sin esto, una consulta dictada y no guardada se perdía.
   useEffect(() => {
     const alGuardarTodo = (ev: Event) => {
+      const detalleAudio = (ev as CustomEvent<{ marcarAudioSinTranscribir?: () => void }>).detail
+      /**
+       * SE DECLARA EL AUDIO **ANTES** DE MIRAR SI HAY TEXTO — REG-270.
+       *
+       * La declaración va la primera a propósito. Debajo hay un `return`
+       * temprano cuando la nota está vacía, y una grabación recién empezada es
+       * exactamente eso: sin resumen, sin diagnósticos y con la transcripción
+       * todavía en blanco. Colocarla después del `return` la haría inútil justo
+       * en el minuto en que más audio irrecuperable hay por delante.
+       *
+       * Tampoco se intenta transcribir aquí. Estamos cerrando la sesión: pedirle
+       * a la red una transcripción larga en ese momento es apostar el audio a
+       * que la petición llegue. Se conserva el archivo, que es lo que sí
+       * depende de nosotros, y el médico lo recupera al volver a entrar.
+       */
+      const enVuelo = audioEstadoRef.current
+      if (enVuelo === 'grabando' || enVuelo === 'pausado' || enVuelo === 'subiendo') {
+        detalleAudio?.marcarAudioSinTranscribir?.()
+      }
+
       const e = estadoVivoRef.current
       if (e.firmada) return
       const hay = e.resumen?.trim() || e.secciones?.some(s => s.value?.trim()) ||

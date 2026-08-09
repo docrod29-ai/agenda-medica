@@ -4929,3 +4929,164 @@ registrarse: leer el primer identificador tras `animation:` capturaba la
 condición de un ternario (`voz`), y leer toda cadena entrecomillada capturaba un
 valor comparado (`'grabando'`). Exigir que la cadena traiga duración distingue
 las tres cosas. **Un guardián que grita de más se acaba silenciando** — REG-245.
+
+---
+
+## REG-267 — Volver a grabar borraba el audio de la grabación anterior
+
+**Encontrado por** la auditoría de navegación y estado de
+`PATIENT-UX-TRUTH-001` (V9).
+
+**Qué pasaba.** Al terminar bien una transcripción, `detener()` borraba el rango
+**completo** de la clave en IndexedDB. Pero el blob que acababa de transcribir se
+arma sólo con los trozos de **esta** sesión (`todosChunksRef`).
+
+El caso real: grabar 22 minutos → tocar «Agenda» → volver → grabar 90 segundos →
+detener. Los 90 segundos se transcriben, y **los 22 minutos se borran sin
+haberse transcrito nunca**. No hay segunda copia del audio en ninguna parte.
+
+**Causa raíz — media defensa.** `recoveryBaseRef` existe justo para esto: cuando
+hay audio huérfano bajo la misma clave, los trozos nuevos se guardan **después**
+para no pisarlo. Se protegía al huérfano al **escribir** y se le arrasaba al
+**borrar**. El comentario del autor demuestra que el escenario estaba pensado; lo
+que no se actualizó fue el borrado.
+
+**Arreglo.** `borrarChunks(clave, desde = 0)`. Los **tres** caminos de éxito
+—dictado, diarización y transcripción por partes— borran desde
+`recoveryBaseRef.current`. Descartar a mano y recuperar siguen borrándolo todo,
+que es lo correcto: ahí no queda nada que conservar.
+
+**Lo que NO se hizo, a propósito.** No se fusionan los dos audios para
+transcribirlos juntos. Son dos sesiones distintas de `MediaRecorder`, cada una
+con su cabecera de contenedor; concatenarlas produce un archivo que el proveedor
+no sabe leer. Perder el audio por «arreglarlo» sería el mismo defecto con otra
+cara.
+
+**Familia.** `perdida`.
+
+**Guardián.** `src/__tests__/el-audio-grabado-no-se-borra.test.ts`, 20 casos.
+Probado al revés: reponiendo el rango desde 0, falla.
+
+---
+
+## REG-268 — El trozo final del audio se tiraba al salir de la pantalla grabando
+
+**Encontrado por** la misma auditoría.
+
+**Qué pasaba.** `liberarRecursos()` desenganchaba `ondataavailable` antes de
+`rec.stop()`, así que el buffer final (~2 s) se perdía. Y `liberarRecursos` es lo
+que corre **en cada navegación**, porque `(dashboard)/template.tsx` desmonta la
+página siempre.
+
+Esos ~2 s son justo los últimos que dijo el médico antes de cambiar de pantalla:
+la parte más fácil de echar en falta y la única que no está en ninguna otra copia.
+
+**Causa raíz.** El desenganche era la defensa **correcta** para el índice que
+había. El índice de disco se derivaba de la longitud de un array
+—`recoveryBase + todosChunks.length - 1`— y ese array se vacía justo debajo; el
+`ondataavailable` final llega después del vaciado y calculaba `recoveryBase - 1`,
+pisando un trozo bueno o escribiendo en el índice -1. Entre perder 2 s y
+corromper el respaldo, se eligió bien.
+
+Lo que estaba mal no era la elección: era **atar un índice de disco a la longitud
+de una estructura en memoria**.
+
+**Arreglo.** `persistIdxRef`, un contador que sólo sube, sembrado en
+`recoveryBase` al iniciar. La colisión deja de ser posible, así que el
+desenganche deja de hacer falta y el trozo final se persiste en su sitio.
+
+**Familia.** `perdida`.
+
+**Guardián.** el mismo archivo. Probado al revés: reponiendo
+`rec.ondataavailable = null`, falla.
+
+---
+
+## REG-269 — El cierre por inactividad no oía dictar
+
+**Encontrado por** la misma auditoría.
+
+**Qué pasaba.** `AutoLogout` escucha `mousemove`, `mousedown`, `keydown`,
+`touchstart` y `scroll`. **Hablar no genera ninguno.** A los 30 minutos avisaba
+60 segundos y cerraba la sesión — encima de un médico que llevaba 30 minutos
+dictando.
+
+**Lo que hace especial a este defecto**: la cabecera de `AutoLogout.tsx` **ya lo
+describía**. El arreglo de entonces fue guardar la nota antes de cerrar, que era
+necesario y correcto, pero dejó la causa intacta. Escribir el diagnóstico
+correcto y arreglar sólo el síntoma deja constancia de que se sabía.
+
+**Arreglo.** `useGrabacionAudio` emite `nx:actividad-dictado` cada minuto
+mientras graba, y `AutoLogout` reinicia el contador al oírlo. El latido vive en
+el hook porque es quien sabe que se está grabando; el componente sólo escucha. Va
+**sin el estrangulador de 5 s** de los otros eventos: llega una vez por minuto, y
+perderlo sería justo lo que se intenta evitar.
+
+**Esto no desactiva el cierre por inactividad.** En cuanto la grabación para, el
+contador corre como siempre: el control de PHI en dispositivo compartido se
+mantiene entero.
+
+**Además**, mientras se graba se registra un `beforeunload` — no había **ni uno**
+en todo el repositorio. Para el texto de la nota es defendible, porque el volcado
+al desmontar lo salva; para una grabación no hay volcado posible. Cubre de paso
+la recarga que hace el service worker al desplegar una versión nueva.
+
+**Familia.** `no_conectado` — el dato (que hay alguien delante) existía y no
+llegaba a quien decidía.
+
+**Guardián.** el mismo archivo. **Y el guardián falló primero**: la primera
+versión comprobaba que el manejador EXISTIERA, así que al borrar el
+`addEventListener` en la comprobación al revés los 20 casos siguieron en verde.
+Un manejador declarado y no registrado es exactamente la familia que este
+archivo persigue. Ahora se exige el registro y su retirada.
+
+---
+
+## REG-270 — Al cerrar sesión se borraba el audio sin transcribir
+
+**Encontrado por** la misma auditoría.
+
+**Qué pasaba.** `salirSeguro()` llamaba a `limpiarAudioLocal()` en **las dos**
+ramas, sin condición, y esa función hace
+`indexedDB.deleteDatabase('nexusmed-recovery')`: se lleva el audio de
+recuperación entero.
+
+La purga de la **nota** ya era condicional, con su razonamiento escrito: cuando
+el servidor no la recibió, el borrador local es la única copia y borrarlo
+convierte un problema de red en una pérdida definitiva. **Ese mismo razonamiento
+no se aplicó al audio**, y el comentario que justificaba la purga —«el texto ya
+transcrito vive en el borrador que se está conservando»— es cierto sólo para una
+grabación **terminada**. A mitad de grabación, la cola sin transcribir no existe
+en ningún otro sitio.
+
+Y el disparador más frecuente era REG-269: como el cierre por inactividad no oía
+dictar, la sesión que se cerraba era, con diferencia, la que se estaba dictando.
+
+**Arreglo.** El acuse de `nx:guardar-todo` gana
+`marcarAudioSinTranscribir()`, y `ResultadoGuardado` gana `audioSinTranscribir`.
+Si alguien lo declara, el audio no se purga. La sesión se cierra igual —eso sí es
+seguridad—; lo que se conserva es un archivo que ya estaba en el disco y que el
+médico puede descartar desde el cartel de recuperación.
+
+**Tres detalles que decidían si el arreglo servía de algo:**
+
+1. **La declaración va ANTES del `return` por nota vacía.** Una grabación recién
+   empezada no tiene resumen, ni diagnósticos, ni transcripción: es exactamente
+   el caso que ese `return` descarta, y el que más audio irrecuperable tiene por
+   delante.
+2. **Se lee por ref, no por captura.** El oyente se registra con
+   `[guardarBorrador]`; leer `audio.estado` directamente habría capturado
+   «inactivo» y el arreglo habría quedado escrito y sin efecto.
+3. **Las tres salidas de `guardarTodoYEsperar` devuelven el campo.** Si una lo
+   olvidara, `audioSinTranscribir` sería `undefined`, la condición pasaría, y el
+   audio se borraría igual que antes — con el arreglo puesto. El guardián lo
+   comprueba.
+
+**Y lo que NO se hizo, a propósito.** No se intenta transcribir el audio durante
+el cierre. Estamos cerrando la sesión: pedirle a la red una transcripción larga
+en ese momento es apostar el audio a que la petición llegue. Se conserva el
+archivo, que es lo que sí depende de nosotros.
+
+**Familia.** `perdida`.
+
+**Guardián.** el mismo archivo. Probado al revés: quitando la condición, falla.
