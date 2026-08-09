@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { LiberarParaElPaciente } from '@/components/LiberarParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -2379,6 +2380,16 @@ export default function ConsultaActivaPage() {
        */
       alergias: alergiasDe(patient ?? {}),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
+      /**
+       * EL SEGUIMIENTO SE SELLA CON LA NOTA (V9 · POSTVISIT-001).
+       *
+       * Se escribía sólo en `patients/{id}.proximoSeguimiento`, un campo del
+       * paciente que la siguiente consulta pisa. El paquete que lee el paciente
+       * necesita el de ESTA visita: presentarle el de hace tres meses como el de
+       * hoy es un error que él no puede detectar. Se sigue escribiendo también
+       * en el paciente (lo usa el CRM), pero la fuente del paquete es ésta.
+       */
+      proximoSeguimiento: proximoSeguimiento.trim() || undefined,
       internamientoId: internamientoActivo,
       // El bloque hospitalario, que hasta v941 se sellaba vacío. Lo que el
       // episodio no diga queda AUSENTE, no en blanco: un `servicio: ''` en un
@@ -2490,7 +2501,7 @@ export default function ConsultaActivaPage() {
       updatedAt: now,
       creadoPor: auth.currentUser?.uid ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
+  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, proximoSeguimiento, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -5194,11 +5205,43 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {/*
+        ── Y SÓLO SOBRE LO FIRMADO (V9 · POSTVISIT-GATE-001) ────────────────
+        La cabecera del módulo afirmaba que el contenido sale de lo «ya revisado
+        y firmado». Era intención de diseño, no precondición: esto se montaba
+        con el estado VIVO de `medicamentos` y `estudiosOrden`, así que el papel
+        que el paciente se lleva podía componerse de un borrador a medio dictar
+        —una dosis que la extracción todavía no había corregido, un estudio que
+        el médico acabaría quitando— y salía con su membrete.
+
+        Justo encima, `ComoCerrarLaConsulta` ya exigía `firmada`. Aquí faltaba.
+      */}
+      {!esNotaHospital && firmada && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          proximaCita={proximoSeguimiento || undefined}
+        />
+      )}
+
+      {/*
+        LIBERAR PARA EL PACIENTE (V9 · POSTVISIT-001) — el acto que faltaba.
+        La hoja de arriba es lo que se imprime o se copia; esto es lo que llega
+        a su portal, y son cosas distintas: liberar deja un documento fechado,
+        versionado y con quién lo aprobó. El servidor lo compone de la nota
+        GUARDADA, no del estado de esta pantalla.
+      */}
+      {/*
+        `notaId` de ESTADO, no el ref, por lo mismo que `ComoCerrarLaConsulta`:
+        leer un ref durante el render es lo que marca el compilador de React, y
+        con la nota firmada el estado ya tiene el mismo valor.
+      */}
+      {!esNotaHospital && firmada && clinicId && notaId && (
+        <LiberarParaElPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          notaId={notaId}
+          firmada={firmada}
         />
       )}
 

@@ -6,7 +6,109 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, 307, 308, 309 |
+| **Rama** | `claude/relaxed-fermi-o6x2r4` (ver nota de rama abajo) |
+| **Siguiente** | **`PATIENT-AI-001`** — ASK NEXUS, con las doce del §0 como fixture |
+
+**El acto que faltaba, existe.** `PATIENT-COMPANION-001` dejó la superficie del
+paciente montada y lo dijo por escrito: *hoy ningún paquete existe*. Ahora el
+médico libera desde su consulta, el servidor compone de la nota **guardada**, y
+el paquete llega al portal.
+
+El camino completo, de punta a punta:
+
+```
+nota firmada
+  → /api/expediente/paquete-visita (compone en el SERVIDOR, exige firma)
+  → liberar: sella quién y cuándo, escribe {notaId}-v{n} con .create()
+  → /api/portal filtra con visibleParaElPaciente
+  → /mi/[token] · Cuidado lo pinta
+```
+
+### Lo que se cerró, y por qué importa
+
+- **REG-306** La hoja del paciente se componía del **borrador en curso**. Su
+  única guarda era «no es hospital»; la cabecera prometía material firmado y eso
+  era intención, no precondición. Ahora hay **dos** compuertas: la pantalla exige
+  `firmada` y el motor **lanza**. Cierra `POSTVISIT-GATE-001`.
+- **REG-307** `cambiosDeMedicacion` **no deduce una suspensión de una ausencia**.
+  Que el médico no re-listara hoy la metformina no significa que la haya
+  quitado, y decírselo al paciente le hace dejar de tomarla. `suspendido` sólo
+  sale de que el médico lo marcara. Sin lista previa: `null`, no `[]`.
+- **REG-308** `proximoSeguimiento` se sella en la nota. Vivía sólo en el campo
+  del paciente, que cada consulta pisa: el paquete le habría enseñado el
+  seguimiento de hace tres meses como el de hoy.
+- **REG-309** Tres `{ id, ...data() }` donde el spread pisaba el id del
+  documento — uno de ellos el `notaId` del paquete, que es **el puntero a la
+  única fuente de verdad**. Lo cazó `tsc` con la suite entera en verde.
+
+Cierra además `POSTVISIT-ENTREGA-001`: `proximaCita` deja de estar fijo en
+`undefined` (llevaba desde REG-242 sin poder renderizar su cuarto bloque).
+
+### Decisiones de esta unidad, para no rediscutirlas
+
+- **Compone el servidor, no la pantalla.** Si la pantalla compusiera y mandara
+  el resultado, la lista blanca validaría la forma de algo que ya viene del
+  cliente. Del cuerpo sólo se aceptan **identificadores** — hay guardián.
+- **Liberar pide `firmar`**, previsualizar `clinico.leer`. El mapa vive en el
+  **registro de rutas**, no en la ruta: es un gateway `porAccion`, como
+  `hospital/mutar`.
+- **Un liberado no se reescribe**: `.create()` sobre `{notaId}-v{n}`. Corregir
+  es liberar una versión nueva, igual que una adenda no reescribe la nota.
+- **Lo que no se puede sostener, no se afirma**: `warningSigns` y
+  `educationalMaterial` van vacíos y declarados.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **573 archivos · 1 fallo preexistente y de entorno** (`ops-timeout`, verificado con el árbol sin mis cambios) |
+| `lint-trinquete` | **96, igual que el techo.** Subió a 97 con un `setState` síncrono en un efecto; se arregló **el cambio** |
+| trinquete de diseño | **sin deuda nueva.** Subió `tamanosFueraDeEscala` +12 y aparecieron dos tokens inexistentes (`--danger`, `--nx-radius-lg`); se arregló el cambio |
+| `npm run build` (TypeScript) | **limpio** — y cazó REG-309 |
+| `npm run build` (datos de página) | **falla por falta de credenciales de Firebase en este contenedor**. Sin `.env`, `NEXT_PUBLIC_FIREBASE_API_KEY` vacía, y la página que revienta (`/dr/[clinicId]`) no la toca esta unidad. Es `NAV-NAVEGADOR-001`, no una regresión |
+| navegador | **no ejecutado** |
+
+### Nota de rama — hay que decirlo
+
+La especificación fija `claude/nexus-patient-ux-v9` como rama persistente. Esa
+rama **se fusionó a `main`** en el PR #279, así que su historia ya está en
+`main`. Esta ejecución trabajó sobre la rama que le asignó el arnés,
+`claude/relaxed-fermi-o6x2r4`, partiendo de ese merge. No se perdió nada y no se
+forzó nada; si el dueño prefiere volver al nombre de la especificación, es un
+`git branch` y un PR nuevo.
+
+## Lo que este checkpoint NO garantiza
+
+- **Que funcione en un navegador.** Ni la pantalla del médico ni la del
+  paciente se han visto con los ojos. Los guardianes comprueban que las
+  decisiones quedaron escritas donde tienen que estar, y **los tres se probaron
+  al revés** (defecto inyectado → rojo). Pero Firestore no existe en la suite:
+  la ruta se vigila leyéndola, no ejecutándola.
+- **Que el paciente entienda lo que lee.** No hay medidor de legibilidad.
+- **Que dos pestañas liberando a la vez se comporten bien en producción.**
+  `.create()` lo hace fallar en vez de pisar, que es lo correcto, pero no se ha
+  provocado la carrera de verdad.
+
+## Qué hacer al reanudar
+
+1. `node scripts/agent-state/actualizar.mjs` y comprobar el `git log`.
+2. **No rehacer** `POSTVISIT-001`: cerrada, con sus cuatro REG.
+3. **`PATIENT-AI-001`** — ASK NEXUS. Es la unidad más peligrosa del programa:
+   la primera vez que un modelo le habla al paciente. Las **doce preguntas** del
+   §0 de la especificación son fixture permanente en `evals/patient-ai/`, y la
+   jerarquía de fuentes del §1 de `patient-facing-ai.md` es la defensa, no una
+   preferencia. `unansweredQuestions` del paquete ya existe y la espera.
+4. Cuando haya entorno con credenciales: las seis comprobaciones de navegador de
+   `NAV-NAVEGADOR-001` y la verificación en vivo del ciclo liberar → ver.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

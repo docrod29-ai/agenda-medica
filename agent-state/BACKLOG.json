@@ -358,7 +358,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-GATE-001",
@@ -369,7 +369,11 @@
       "porQueImporta": "Es el cimiento de DRAFT→RELEASED que pide V9. Hoy el médico puede copiar y entregar una hoja compuesta de un borrador a medio dictar. Nada lo impide.",
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
-      "score": 63
+      "score": 63,
+      "cerradoEn": "2026-08-09",
+      "cerradoPor": "V9 POSTVISIT-001",
+      "reg": "REG-306",
+      "comoSeCerro": "La hoja del paciente exige `firmada` en la consulta, y `componerPaquete` LANZA con una nota sin firmar, así que ningún llamador futuro puede componer de un borrador."
     },
     {
       "seguridad": 1,
@@ -383,7 +387,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-ENTREGA-001",
@@ -394,7 +398,11 @@
       "porQueImporta": "El contenido está resuelto y bien —determinista, sin modelo, se niega a inventar— y el producto no lo entrega. Es «escrito, probado y sin conectar» en su forma más cara: la pieza mejor pensada del lado del paciente.",
       "archivo": "src/components/HojaParaElPaciente.tsx:45-51,86 · consulta:5108",
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
-      "score": 60
+      "score": 60,
+      "cerradoEn": "2026-08-09",
+      "cerradoPor": "V9 POSTVISIT-001",
+      "reg": "REG-306/REG-308",
+      "comoSeCerro": "El paquete liberado llega al portal del paciente: `/api/expediente/paquete-visita` lo compone y lo libera, `/api/portal` lo sirve filtrado por `visibleParaElPaciente`, y `/mi/[token]` lo pide y lo pinta en Cuidado. `proximaCita` deja de estar fijo en undefined."
     },
     {
       "seguridad": 0,

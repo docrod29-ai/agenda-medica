@@ -7013,3 +7013,132 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente se componía del borrador EN CURSO
+
+**Unidad** V9 `POSTVISIT-001` · backlog `POSTVISIT-GATE-001`.
+
+**Cómo se descubrió.** No por una prueba en rojo: la auditoría
+`PATIENT-UX-TRUTH-001` lo dejó anotado con archivo y línea el 8-ago, y esta
+unidad fue a leerlo.
+
+**Qué pasaba.** `HojaParaElPaciente` —el papel que el paciente se lleva a casa,
+con el membrete del médico— se montaba en la consulta con el estado **vivo** de
+`medicamentos` y `estudiosOrden`. Su única guarda era `{!esNotaHospital}`.
+Justo encima, `ComoCerrarLaConsulta` sí exigía `{firmada && …}`.
+
+La cabecera del módulo afirmaba que el contenido salía de lo «ya revisado y
+firmado». **Era intención de diseño, no precondición.** Una dosis que la
+extracción todavía no había corregido, o un estudio que el médico acabaría
+quitando, podía imprimirse y salir del consultorio.
+
+**Por qué no lo cazó nada.** Porque el guardián que existía
+(`lo-que-se-lleva-el-paciente`) comprobaba que la hoja estuviera **conectada** y
+que no apareciera en un internado. Nadie había escrito la condición que faltaba,
+así que no había nada que ponerse rojo.
+
+**Familia.** `se_contradice`, en su forma más silenciosa: la cabecera del módulo
+y el sitio donde se monta afirmaban cosas incompatibles, y **ninguna de las dos
+estaba mal por su cuenta**. La cabecera describía la intención; el montaje
+funcionaba. El fallo vivía en el hueco. Hermana de la de siempre («escrito y sin
+conectar»), pero al revés: aquí está conectado y lo que falta es la guarda.
+
+**Arreglo.** Dos compuertas, y las dos se quedan:
+
+- La pantalla exige `firmada` para pintar la hoja.
+- `componerPaquete` **lanza** con una nota que no esté firmada, así que ningún
+  llamador futuro puede componer de un borrador aunque se olvide de mirar.
+
+Y de paso, `proximaCita` deja de estar fijo en `undefined` (llevaba desde
+REG-242 haciendo que el cuarto bloque no pudiera renderizarse jamás).
+
+**Prueba** `src/__tests__/el-paquete-sale-de-lo-firmado.test.ts`. Probada al
+revés: quitando la compuerta del motor caen tres casos; quitando el `firmada`
+de la pantalla, uno.
+
+---
+
+## REG-307 — Deducir que un fármaco se suspendió porque hoy no aparece
+
+**Unidad** V9 `POSTVISIT-001`.
+
+**Cómo se descubrió.** Escribiendo `cambiosDeMedicacion`. La firma que pedía el
+tipo —`'nuevo' | 'suspendido' | 'sin-cambio'`— invita a la implementación obvia:
+comparar dos listas y llamar «suspendido» a lo que falta en la segunda.
+
+**Por qué eso es el error más caro posible aquí.** Que el médico no re-listara
+hoy la metformina de un diabético **no significa que la haya suspendido**:
+significa que no la escribió otra vez. Decirle al paciente «suspendido:
+metformina» le hace **dejar de tomarla**, y el paciente no tiene forma de
+detectar el error. Es la regla 4 de seguridad clínica —ausencia de dato no es
+dato de ausencia— con un daño concreto al otro lado.
+
+**Arreglo.** `suspendido` sale **sólo** de que el medicamento traiga
+`estado: 'suspendida'` o `'cancelada'` en la nota firmada — una decisión que el
+médico tomó y que quedó escrita. `nuevo` sí se deduce por comparación de
+nombres, y es seguro en esa dirección: si aparece hoy y no estaba antes,
+empezarlo es lo que el médico acaba de indicar.
+
+Lo que queda **sin cubrir y declarado**: un fármaco de la lista previa que hoy no
+aparece no se le reporta al paciente de ninguna manera. Es un hueco a propósito;
+llenarlo pide un acto del médico, no una deducción.
+
+**Y el `null` que lo acompaña.** Sin lista previa, `medicationChanges` es `null`
+y **no `[]`**: «no sé qué había antes» y «no hubo cambios» son cosas distintas, y
+la pantalla del paciente se calla cuando es `null` en vez de afirmar que nada
+cambió.
+
+**Familia.** `hueco_como_dato` — «lo que nadie dijo se guarda como si alguien
+lo hubiera dicho». Aquí sería peor que guardarlo: se le **dice al paciente**.
+
+**Prueba** `src/__tests__/el-paquete-sale-de-lo-firmado.test.ts`. Probada al
+revés con la implementación obvia inyectada: caen cuatro casos.
+
+---
+
+## REG-308 — El seguimiento no estaba atado a la consulta que lo decidió
+
+**Unidad** V9 `POSTVISIT-001`.
+
+**Qué pasaba.** `proximoSeguimiento` se escribía **sólo** en
+`patients/{id}.proximoSeguimiento`, que es un campo del PACIENTE: cada consulta
+lo pisa y no dice de cuál salió. La nota firmada no lo llevaba.
+
+**Por qué importa ahora.** Un paquete que lo leyera de ahí le presentaría al
+paciente el seguimiento de hace tres meses como el de hoy. Es el mismo error de
+forma que REG-300 —el dato que se pierde porque vive en un solo sitio y ese
+sitio no es el del encuentro—, pero con el paciente leyéndolo.
+
+**Arreglo.** `NotaMedica.proximoSeguimiento`, sellado al firmar. Se sigue
+escribiendo también en el paciente porque el CRM lo usa para su lista de
+seguimientos vencidos; la diferencia es que ahora la fuente del paquete es la
+nota, y la nota es inmutable.
+
+**Prueba** `src/__tests__/el-paquete-sale-de-lo-firmado.test.ts`.
+
+---
+
+## REG-309 — Un `id` del contenido pisando el `id` del documento
+
+**Unidad** V9 `POSTVISIT-001`. **Lo cazó `tsc`, no `vitest`** — la suite entera
+estaba en verde.
+
+**Qué pasaba.** Tres sitios de la ruta nueva escritos como
+`{ id: d.id, ...(d.data()) }`. Una nota guardada lleva su propio campo `id`
+dentro del contenido, así que el spread **pisa** el del documento.
+
+El peor de los tres: `const nota = { id: notaId, ...(snap.data()) }`. De ese
+`id` sale el `notaId` del paquete, que es **el puntero a la única fuente de
+verdad**. Un campo `id` viejo dentro del contenido dejaba el paquete apuntando a
+otra nota — y el invariante nº1 del proyecto sostiene todo el diseño de este
+módulo precisamente sobre ese puntero.
+
+**Por qué vitest no podía verlo.** Porque no hay Firestore en la suite: los
+guardianes de la ruta leen el archivo, no lo ejecutan. Es la razón por la que
+`npm run build` no es opcional, escrita otra vez.
+
+**Arreglo.** El id del documento va **después** del spread, en los tres.
+
+**Familia.** `se_contradice` — dos versiones del mismo dato, y gana la de dentro.

@@ -3,11 +3,90 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306 a REG-309.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS, la unidad más peligrosa del programa.
 
 ---
+
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El bucle cierra.** Hasta hoy el compañero del paciente era una superficie
+esperando contenido que nadie producía. Ahora:
+
+```
+nota firmada → el médico revisa y libera → el paquete existe, fechado y firmado
+             → el portal lo sirve filtrado → el paciente lo lee
+```
+
+**La composición volvió, con quien la llama.** `componerPaquete` y
+`cambiosDeMedicacion` se habían **quitado** en la unidad anterior por ser motores
+sin llamador. Vuelven porque ya existe el llamador —el servidor— y no al revés.
+Ésa es la disciplina que este repositorio lleva meses persiguiendo.
+
+**Compone el SERVIDOR.** No la pantalla. Si la pantalla compusiera y mandara el
+resultado, la lista blanca de campos estaría validando la forma de algo que ya
+viene del cliente: quien controle ese navegador escribe lo que quiera en el
+documento que va a leer el paciente. Del cuerpo sólo se aceptan
+**identificadores**, y hay un guardián que enumera cuáles.
+
+**Dos actos, dos capacidades.** Previsualizar pide `clinico.leer`; liberar pide
+`firmar`, porque es una aprobación con identidad profesional detrás. El mapa vive
+en el registro de rutas, no en la ruta.
+
+**Un liberado no se reescribe.** `.create()` sobre `{notaId}-v{n}`. Si dentro de
+un año hay que responder «¿qué leyó este paciente el 9 de agosto?», la respuesta
+existe.
+
+## Lo que esta unidad se NEGÓ a hacer, y es lo importante
+
+**No deduce una suspensión de una ausencia** (REG-307). Comparar la lista de hoy
+con la de la visita anterior y llamar «suspendido» a lo que falta es la
+implementación obvia — y le diría a un diabético que su médico le quitó la
+metformina porque no la re-listó. El paciente **no puede detectar el error**.
+
+`suspendido` sale sólo de que el médico lo marcara. Y sin lista previa,
+`medicationChanges` es `null` y la pantalla del paciente **se calla**, en vez de
+afirmar que nada cambió.
+
+**Signos de alarma y material educativo van vacíos.** La especificación los pide
+y los campos existen. No hay de dónde sacarlos sin inventar: los signos de alarma
+son indicación médica y el material educativo es evidencia curada.
+
+## Las cinco destinaciones, hoy
+
+| Destino | Hoy |
+|---|---|
+| **TODAY** | citas, teleconsulta, anticipo, formulario previo |
+| **ASK NEXUS** | **escala al consultorio, no responde.** `PATIENT-AI-001` |
+| **CARE** | **plan liberado con medicación, cambios, estudios y seguimiento** ← nuevo |
+| **DOCUMENTS** | recetas derivadas de notas firmadas. Sin cartera todavía: `DOCUMENTS-001` |
+| **PROFILE** | dice que el idioma es es-MX y que no hay cuidador. `PATIENT-LANGUAGE-001` |
+
+## P0/P1 que siguen abiertos en esta superficie
+
+- **P0** `PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp sigue sin
+  token. Desde REG-265 manda «recibirás el enlace» en vez de un 404: honesto,
+  pero el paciente sigue sin enlace.
+- **P1** `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa, y la
+  comprobación de revocación falla **abierta**.
+
+Cerrados hoy: `POSTVISIT-GATE-001` y `POSTVISIT-ENTREGA-001`.
+
+## Lo que este estado NO afirma
+
+**Nada se ha visto en un navegador.** Ni la pantalla del médico ni la del
+paciente. Los tres guardianes nuevos se probaron al revés —defecto inyectado,
+rojo— pero Firestore no existe en la suite: la ruta se vigila leyéndola, no
+ejecutándola. Y `npm run build` sigue sin poder recolectar datos de página en
+este contenedor por falta de credenciales (`NAV-NAVEGADOR-001`).
+
+**Tampoco se ha provocado la carrera de dos pestañas liberando a la vez.**
+`.create()` la hace fallar en vez de pisar, que es lo correcto, pero es una
+decisión leída, no observada.
+
+---
+
+## Estado anterior (`PATIENT-COMPANION-001`, 9-ago)
 
 ## Lo que quedó montado en `PATIENT-COMPANION-001`
 

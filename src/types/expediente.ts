@@ -247,6 +247,20 @@ export interface NotaMedica {
   // Lo llena p. ej. la Valoración del inmunocomprometido (estudios elegidos).
   estudiosOrden?: string[]
 
+  /**
+   * Cuándo quiere volver a verlo — V9 · `POSTVISIT-001`.
+   *
+   * Existía en la pantalla y se escribía en `patients/{id}.proximoSeguimiento`,
+   * que es un campo del PACIENTE: se pisa en cada consulta y no dice de cuál
+   * salió. Para el paquete que lee el paciente eso no sirve — un seguimiento de
+   * hace tres meses se le presentaría como el de hoy, que es la clase de error
+   * que él no puede detectar.
+   *
+   * Aquí queda atado al encuentro que lo decidió, y queda dentro de lo que se
+   * firma. Ausente = el médico no puso ninguno; NO significa «no hace falta».
+   */
+  proximoSeguimiento?: string
+
   // Vínculo con un episodio de internamiento (módulo de hospitalización).
   // Las notas hospitalarias (ingreso/evolución/egreso) cuelgan de un internamiento.
   internamientoId?: string

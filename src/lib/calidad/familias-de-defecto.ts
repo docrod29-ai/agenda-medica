@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 306, 309],
   },
   {
     clave: 'habla_real',
@@ -74,7 +74,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    regs: [165, 172, 176, 177, 228, 307],
   },
   {
     clave: 'aislamiento',
@@ -185,7 +185,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El dato se guardaba entero y correcto, pero sin la distinción que lo hace ' +
       'utilizable. No se arregla con una validación: se arregla añadiendo la ' +
       'pregunta que faltaba.',
-    regs: [183, 227],
+    regs: [183, 227, 308],
   },
 ] as const
 

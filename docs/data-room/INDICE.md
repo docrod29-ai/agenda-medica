@@ -112,8 +112,8 @@ rotación de credenciales.
 | | |
 |---|---|
 | Registro de peligros (§18) | `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` — **10 peligros**, ninguno hipotético |
-| Registro de regresiones | `docs/audit/regression-ledger.md` — **153 REG** con causa raíz |
-| Invariantes sellados | **312 archivos, 4516 casos** que no pueden encoger |
+| Registro de regresiones | `docs/audit/regression-ledger.md` — **157 REG** con causa raíz |
+| Invariantes sellados | **313 archivos, 4550 casos** que no pueden encoger |
 | Suite completa | **7483 pruebas** en verde, en CI |
 
 ⬜ **Lo que NO hay**: estudio de validación clínica con pacientes reales,

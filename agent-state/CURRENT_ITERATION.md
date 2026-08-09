@@ -13,8 +13,10 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: **`POSTVISIT-001` ✅ CERRADA** (9-ago · REG-306 a REG-309).
+Cerradas antes: `PATIENT-UX-TRUTH-001`, los tres P0 de audio, `DESIGN-SYSTEM-001`,
+`NAVIGATION-001`, `PATIENT-COMPANION-001`.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -46,6 +48,26 @@ segunda copia en ninguna parte.
 También reparado: **REG-266**, `@keyframes spin` no existía en ningún sitio
 global pese a 90 referencias, incluidos los dos primitivos compartidos. El giro
 funcionaba «según en qué pantalla estuvieras».
+
+### `POSTVISIT-001` — el bucle del postconsulta ya cierra
+
+La auditoría dijo que el contenido de la hoja del paciente **estaba resuelto** y
+que faltaban «la compuerta y el camino». Eran exactamente esas dos cosas:
+
+- **La compuerta** (REG-306): la hoja se componía del borrador en curso. Ahora la
+  pantalla exige `firmada` y el motor **lanza** con una nota sin firmar — dos
+  defensas, porque la segunda protege a cualquier llamador futuro.
+- **El camino** (REG-308 y la entrega): el médico libera desde su consulta, el
+  servidor compone de la nota guardada y sella quién y cuándo, y el paquete llega
+  al portal del paciente. `proximaCita` deja de estar fijo en `undefined`.
+
+Y una que no se buscaba: **REG-307**, la suspensión que no se deduce de una
+ausencia. Es la implementación obvia de `cambiosDeMedicacion`, y le diría a un
+diabético que le quitaron la metformina porque el médico no la re-listó hoy.
+
+**REG-309 lo cazó `tsc`, no `vitest`**: tres `{ id, ...data() }` donde el spread
+pisaba el id del documento. Uno era el puntero del paquete a su nota. La suite
+entera estaba en verde. `npm run build` no es opcional, otra vez.
 
 Detalle: `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` y sus seis hermanos.
 Estado por dominio: `DESIGN_STATE.md` · `PATIENT_COMPANION_STATE.md`.

@@ -12,6 +12,7 @@ import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 interface DocReceta {
   id: string
@@ -114,6 +115,8 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /** Los paquetes que su médico liberó. `null` = todavía cargando. */
+  const [paquetes, setPaquetes] = useState<(PaqueteDeVisita & { id: string })[] | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +143,20 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+      /**
+       * LO QUE SU MÉDICO LIBERÓ — V9 · `POSTVISIT-001`.
+       *
+       * En paralelo y sin bloquear las citas, igual que las recetas. El
+       * servidor ya filtró con `visibleParaElPaciente`: aquí no llega un
+       * borrador, y esta pantalla NO vuelve a decidir quién puede verlo —
+       * decidirlo dos veces es tener dos políticas.
+       *
+       * Un 403 es lo mismo que en documentos: enlace sin alcance clínico.
+       */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -422,18 +439,84 @@ export default function MiPortalPage() {
           {/*
             LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
             RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
-            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
-            el estado vacío dice la verdad en vez de fingir que no hay nada.
+            borrador no sale de ahí (REG-304).
+
+            Desde `POSTVISIT-001` ya existe quien los cree — el médico los libera
+            desde su consulta— así que esta pantalla los pinta. El estado vacío
+            se queda para cuando todavía no ha liberado ninguno, y sigue diciendo
+            la verdad en vez de fingir.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {(!paquetes || paquetes.length === 0) && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                {paquetes === null
+                  ? 'Buscando lo que tu médico haya liberado…'
+                  : 'Cuando tu médico libere el resumen de una consulta, lo verás aquí: tus medicamentos con instrucciones en palabras sencillas, los estudios que te pidió y cuándo volver.'}
+              </p>
+            </div>
+          )}
+
+          {paquetes?.map(p => (
+            <article
+              key={p.id}
+              style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}
+            >
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 10px' }}>
+                Tu médico lo liberó el {p.approvedAt ? new Date(p.approvedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+              </p>
+
+              {p.encounterSummary && (
+                <p style={{ fontSize: 16, color: 'var(--text)', margin: '0 0 14px', lineHeight: 1.6 }}>
+                  {p.encounterSummary}
+                </p>
+              )}
+
+              {p.medicationInstructions?.length > 0 && (
+                <BloquePaciente titulo="Tus medicamentos">
+                  {p.medicationInstructions.map(m => (
+                    <li key={m.nombre} style={{ lineHeight: 1.7 }}>{m.instruccion}</li>
+                  ))}
+                </BloquePaciente>
+              )}
+
+              {/*
+                `medicationChanges === null` NO se pinta como «no hubo cambios».
+                Se calla. Decirle a un paciente que nada cambió cuando lo que
+                pasa es que no se pudo comparar es dato de ausencia, y él actúa
+                sobre eso: sigue tomando lo que ya no toca.
+              */}
+              {p.medicationChanges && p.medicationChanges.length > 0 && (
+                <BloquePaciente titulo="Qué cambió">
+                  {p.medicationChanges.map(c => (
+                    <li key={c.nombre} style={{ lineHeight: 1.7 }}>
+                      <strong>{c.nombre}</strong>{' — '}
+                      {c.tipo === 'nuevo' ? 'es nuevo' : c.tipo === 'suspendido' ? 'tu médico lo suspendió' : 'sigue igual'}
+                    </li>
+                  ))}
+                </BloquePaciente>
+              )}
+
+              {p.orders?.length > 0 && (
+                <BloquePaciente titulo="Estudios que te pidió">
+                  {p.orders.map(o => <li key={o} style={{ lineHeight: 1.7 }}>{o}</li>)}
+                </BloquePaciente>
+              )}
+
+              {p.followUp && (
+                <BloquePaciente titulo="Cuándo volver">
+                  <li style={{ lineHeight: 1.7 }}>{p.followUp}</li>
+                </BloquePaciente>
+              )}
+
+              {p.clinicianContactRules && (
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '16px 0 0', lineHeight: 1.6 }}>
+                  {p.clinicianContactRules}
+                </p>
+              )}
+            </article>
+          ))}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -705,5 +788,29 @@ function FormularioPrevio({ token }: { token: string }) {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * Un bloque del plan de cuidado, con su título y su lista.
+ *
+ * Título y lista de verdad (`h3` + `ul`) y no dos `div` con estilo: el paciente
+ * de 70 años que usa lector de pantalla necesita poder saltar entre secciones,
+ * y ésa es toda la diferencia entre una pantalla que se puede navegar y una que
+ * hay que oír entera.
+ */
+function BloquePaciente({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section style={{ marginTop: 14 }}>
+      <h3 style={{
+        margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '.04em',
+        textTransform: 'uppercase', color: 'var(--text3)',
+      }}>
+        {titulo}
+      </h3>
+      <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 14, color: 'var(--text)' }}>
+        {children}
+      </ul>
+    </section>
   )
 }

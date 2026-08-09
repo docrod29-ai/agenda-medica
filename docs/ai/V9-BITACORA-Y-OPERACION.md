@@ -27,7 +27,7 @@ pierda contexto es construir sobre arena.
 | 1 | **DESIGN-SYSTEM-001** | Existen tokens, escala tipográfica, escala de espacio, jerarquía y primitivas; hay compuerta que falla si una pantalla nueva no los usa | 0 |
 | 2 | **NAVIGATION-001** | El ciclo Agenda→Paciente→Consulta→Resultados→Consulta devuelve el contexto exacto; hay prueba que falla sin el arreglo | 1 |
 | 3 | **PATIENT-COMPANION-001** | Las cinco destinaciones existen, móvil primero, con `PatientVisitPackage` en DRAFT/RELEASED | 2 |
-| 4 | **POSTVISIT-001** | El paquete se genera del encuentro y **sólo se libera con aprobación del médico** | 3 |
+| 4 | **POSTVISIT-001** ✅ | El paquete se genera del encuentro y **sólo se libera con aprobación del médico** | 3 |
 | 5 | **PATIENT-AI-001** | ASK NEXUS con las cinco clases de respuesta, jerarquía de fuentes y las doce pruebas de equipo rojo en verde | 4 |
 | 6 | **DOCUMENTS-001** | Cartera con los ocho tipos y los cuatro estados, identificador seguro y bitácora | 4 |
 | 7 | **CLOSED-LOOP-PATIENT-001** | Los tres bucles (orden, seguimiento, mensaje) cierran y se puede ver dónde se atoró cada uno | 6 |
@@ -165,3 +165,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-09 | **DESIGN-SYSTEM-001** | `fed81cc` | Tokens visibles para Tailwind (4 → ~35), cinco escalas nuevas, cero respaldos y trinquete de diseño | **274, 275** |
 | 2026-08-09 | **NAVIGATION-001** | `fed81cc` | El ciclo devuelve el contexto: seguimiento que sobrevive, atrás de verdad, agenda en la URL, aviso antes de cortar el dictado | **276-279** |
 | 2026-08-09 | **PATIENT-COMPANION-001** | `5d496cf` | Cinco destinos, PaqueteDeVisita DRAFT/RELEASED y la compuerta en el servidor. Composición diferida a POSTVISIT-001 por no tener llamador | **280, 281** |
+| 2026-08-09 | **POSTVISIT-001** | `PENDIENTE_SHA` | El bucle cierra: el médico libera desde la consulta, el servidor compone de la nota GUARDADA y sella quién y cuándo, el paciente lo lee en su portal. La composición vuelve **con su llamador**. No deduce suspensiones. | **306-309** |

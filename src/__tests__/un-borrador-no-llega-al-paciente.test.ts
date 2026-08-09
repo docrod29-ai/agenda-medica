@@ -38,18 +38,13 @@
  * - **No prueba la ruta HTTP con una petición real.** Comprueba la función que
  *   la ruta usa, y que la ruta la use. Montar `/api/portal` con Firestore
  *   admin exige el emulador, y eso es otra suite (`vitest.emulator.config.ts`).
- * - **No hay pantalla del médico para liberar todavía.** Eso es `POSTVISIT-001`.
- *   Hoy nada crea paquetes en producción: esta unidad pone el modelo, la
- *   compuerta y los cinco destinos.
- * - **No valida el contenido clínico** del paquete, ni lo compone: `componerPaquete`
- *   se difirió a POSTVISIT-001 por no tener llamador, y llega con la pantalla que
- *   la llame. Que la composición no invente cifras lo vigila el golden de
- *   `como-se-lo-explico`.
+ * - **No valida el contenido clínico** del paquete, ni lo compone. La
+ *   composición, la compuerta de firma y el cálculo de cambios de medicación
+ *   llegaron en `POSTVISIT-001` y los vigila
+ *   `el-paquete-sale-de-lo-firmado.test.ts` (REG-306 a REG-308). Este archivo
+ *   se queda con la máquina de estados y la compuerta de visibilidad.
  * - **No cubre la cartera de documentos** (`DOCUMENTS-001`) ni las preguntas
  *   (`PATIENT-AI-001`): sus campos existen y van vacíos, declarados.
- * - **No prueba el cálculo de cambios de medicación.** Se difirió con la
- *   composición, y con él su regla —sin lista previa, `null` y no «sin
- *   cambios»—, que el tipo sigue exigiendo: `medicationChanges` admite `null`.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'

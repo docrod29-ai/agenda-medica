@@ -107,6 +107,25 @@ export const ACCIONES_HOSPITAL_MUTAR: Readonly<Record<string, Capacidad>> = {
   verificar_farmacia: 'farmacia.verificar',
 }
 
+/**
+ * Acciones de `POST /api/expediente/paquete-visita` → capacidad (V9 · POSTVISIT-001).
+ *
+ * Las dos no pesan lo mismo y por eso no comparten capacidad:
+ *
+ *  · `previsualizar` LEE la nota firmada y compone sin escribir nada.
+ *  · `liberar` es una **aprobación** hacia el paciente —«esto es lo que quiero
+ *    que leas»— con identidad profesional detrás. Pesa lo mismo que sellar, y
+ *    pide lo mismo.
+ *
+ * El mapa vive AQUÍ y no en la ruta por la misma razón que el de
+ * `hospital/mutar`: la política de acceso se audita en un sitio, y un ternario
+ * escondido dentro del archivo de la ruta es una sexta copia de la política.
+ */
+export const ACCIONES_PAQUETE_VISITA: Readonly<Record<string, Capacidad>> = {
+  previsualizar: 'clinico.leer',
+  liberar: 'firmar',
+}
+
 /** Motivo por el que las rutas de IA todavía no exigen rol (pregunta Q1 al dueño). */
 const PENDIENTE_Q1 =
   'Q1 — ¿la enfermería de UCI dicta y usa el copiloto, o solo el médico? Activar ' +
@@ -174,6 +193,19 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'expediente/evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/extraer-entidades': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/laboratorio-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
+  /**
+   * V9 · `POSTVISIT-001`. Compone y libera el paquete que va a leer el paciente.
+   *
+   * Las dos acciones no pesan lo mismo y por eso no comparten capacidad:
+   * previsualizar sólo LEE la nota firmada; liberar es una aprobación con
+   * identidad profesional detrás —«esto es lo que quiero que leas»— y pesa lo
+   * mismo que sellar, así que pide `firmar`.
+   */
+  'expediente/paquete-visita': {
+    tipo: 'porAccion',
+    acciones: ACCIONES_PAQUETE_VISITA,
+    motivo: 'Previsualizar lee la nota firmada; liberar la aprueba hacia el paciente y pesa como sellar.',
+  },
   'expediente/procesar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/transcribir': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/transcribir-chunk': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
