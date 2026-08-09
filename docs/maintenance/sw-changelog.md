@@ -2873,3 +2873,20 @@ arregló en la pantalla del corte de caja y quedó vivo en el lado que escribe.
 
 Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
+
+## v1168 — el portal del paciente mostraba la hora de CDMX, no la del consultorio (REG-294)
+
+El mismo archivo del portal ya calculaba bien `tzClinica` — la zona real del
+consultorio — y ya se la pasaba a `instanteMX` (para saber qué citas son
+«próximas») y al enlace de Google Calendar. Pero el texto que el paciente
+**lee** («Próximas citas», «Citas anteriores», «Mis recetas») lo armaba
+`fmtFecha`, llamada sin `tz`: caía en su propio valor por omisión,
+`America/Mexico_City`, escrito una segunda vez.
+
+Para un consultorio en Tijuana o Hermosillo, el paciente veía su propia cita
+con la hora —y cerca de medianoche, el día— equivocados, en su propio celular.
+El selector de fecha para reagendar tenía el mismo defecto: calculaba «hoy» a
+mano con la zona de CDMX en vez de usar `hoyISO()`, que ya existe para esto.
+
+Es la forma de REG-293, un commit antes: la pieza que lee la zona está bien;
+la que la usa, no siempre.

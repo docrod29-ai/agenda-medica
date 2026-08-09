@@ -6551,3 +6551,49 @@ defecto algo que no puede ocurrir es la otra forma de mentir con un informe.
 
 - `src/app/api/stripe/webhook/route.ts`
 - `src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts` (nuevo, 8 casos, sellado)
+
+---
+
+## REG-294 — el portal del paciente mostraba la hora de CDMX, no la del consultorio (v1168)
+
+`src/app/mi/[token]/page.tsx` calcula `tzClinica` — la zona real del
+consultorio, con respaldo a `TZ_DEFAULT` — y **ya** se la pasa a `instanteMX`
+(para decidir qué citas son «próximas») y a `gcalLink` (el evento que el
+paciente se guarda en su calendario). Pero `fmtFecha`, la función que arma el
+TEXTO que el paciente lee en «Próximas citas», «Citas anteriores» y «Mis
+recetas», se llamaba en los tres sitios **sin pasarle `tz`**, así que caía en
+su propio valor por omisión: `America/Mexico_City`, escrito una segunda vez en
+el mismo archivo que ya tenía la zona correcta a la mano.
+
+`PanelReagenda` —el selector de fecha para reagendar— tenía el mismo defecto,
+pero calculando «hoy» a mano con `new Date().toLocaleDateString('en-CA', {
+timeZone: 'America/Mexico_City' })` en vez de usar `hoyISO()`, el ayudante que
+ya existe para esto en `lib/timezone.ts`.
+
+### Medido
+
+A las 06:30 UTC, Ciudad de México dice **9 de agosto** y Tijuana dice **8**.
+Para cualquier consultorio en Tijuana (UTC-8) o Hermosillo (UTC-7), el
+paciente veía su propia cita —hora, y cerca de medianoche, el día— con la de
+CDMX, en su propio portal, sobre su propio celular. Al reagendar, el selector
+de fecha podía nacer bloqueando «hoy» o permitiendo un día que ya pasó para su
+zona real.
+
+### Por qué es el patrón de siempre
+
+El mismo archivo **ya hacía bien** exactamente esto, dos líneas más abajo:
+`gcalLink(c, tzClinica)` e `instanteMX(..., tzClinica)` sí reciben la zona. Es
+la forma de REG-293, un commit antes: la pieza que lee la zona está bien; la
+que la usa, no siempre — y esta vez las dos piezas viven en el mismo archivo,
+a centímetros una de otra.
+
+### Lo que NO se hace
+
+Nada de esto escribe una cita ni un cobro: es sólo el texto que ve el
+paciente. La ventana de «próximas vs. pasadas» ya usaba `tzClinica`
+correctamente — eso no era el defecto — y no se toca.
+
+### Archivos
+
+- `src/app/mi/[token]/page.tsx`
+- `src/__tests__/el-portal-del-paciente-muestra-la-hora-del-consultorio.test.ts` (nuevo, 7 casos, sellado)

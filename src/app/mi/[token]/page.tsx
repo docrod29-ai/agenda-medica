@@ -6,7 +6,7 @@ import {
   Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard, Video,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
-import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { instanteMX, TZ_DEFAULT, hoyISO } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
@@ -70,7 +70,7 @@ const TIPO_LABEL: Record<string, string> = {
  * ISO de una nota— porque la pantalla los mezcla. Lo que no se entiende se dice
  * («sin fecha»), en vez de imprimir «Invalid Date», que es lo que hacía.
  */
-function fmtFecha(fh: string, tz = 'America/Mexico_City'): { dia: string; fecha: string; hora: string } {
+function fmtFecha(fh: string, tz = TZ_DEFAULT): { dia: string; fecha: string; hora: string } {
   const d = fechaFlexible(fh, tz)
   if (!d) return { dia: '', fecha: 'Sin fecha', hora: '' }
   const dia = d.toLocaleDateString('es-MX', { weekday: 'long', timeZone: tz })
@@ -235,7 +235,7 @@ export default function MiPortalPage() {
             No tienes citas próximas.
           </div>
         ) : proximas.map(c => {
-          const f = fmtFecha(c.fechaHora)
+          const f = fmtFecha(c.fechaHora, tzClinica)
           const editable = !ESTADO_TERMINAL.has(c.estado)
           return (
             <div key={c.id} style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
@@ -304,7 +304,7 @@ export default function MiPortalPage() {
                       <CalendarPlus size={14} /> Agendar
                     </a>
                   </div>
-                  {reagendando === c.id && <PanelReagenda cita={c} token={token} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
+                  {reagendando === c.id && <PanelReagenda cita={c} token={token} tz={tzClinica} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
                 </>
               )}
             </div>
@@ -374,7 +374,7 @@ export default function MiPortalPage() {
             </summary>
             <div style={{ marginTop: 8 }}>
               {pasadas.map(c => {
-                const f = fmtFecha(c.fechaHora)
+                const f = fmtFecha(c.fechaHora, tzClinica)
                 return (
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                     <div style={{ color: 'var(--text3)', minWidth: 110 }} className="t-num">{f.fecha}</div>
@@ -399,7 +399,7 @@ export default function MiPortalPage() {
           <div style={{ marginTop: 28 }}>
             <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
             {docs.map(d => {
-              const f = fmtFecha(d.fecha)
+              const f = fmtFecha(d.fecha, tzClinica)
               return (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -439,8 +439,8 @@ export default function MiPortalPage() {
   )
 }
 
-function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; token: string; onReagendado: (fh: string) => void; ocupado: boolean }) {
-  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
+function PanelReagenda({ cita, token, tz, onReagendado, ocupado }: { cita: Cita; token: string; tz: string; onReagendado: (fh: string) => void; ocupado: boolean }) {
+  const hoy = hoyISO(tz)
   const [fecha, setFecha] = useState(hoy)
   const [slots, setSlots] = useState<string[] | null>(null)
   const [cargandoSlots, setCargandoSlots] = useState(false)
