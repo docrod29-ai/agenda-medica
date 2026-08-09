@@ -10,6 +10,55 @@
 > Las cifras se DERIVAN: `node scripts/agent-state/actualizar.mjs`. Lo de aquí es
 > **criterio**, y el criterio no sale de un `grep`.
 
+---
+
+## 9-ago-2026 (segunda pasada del día) — reconciliación, no sólo trabajo nuevo
+
+**Lo que este disparo encontró antes de tocar código, y por qué importa.**
+
+1. **La directiva V7 —
+   `docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`, que el
+   disparo exige leer PRIMERO— no existe en `main` ni en ninguna rama
+   fusionada.** Sólo vive en commits huérfanos de sesiones anteriores de este
+   mismo disparo (`22f54f37`, `3f8b70d2`, y restaurada de nuevo en `8365691f` de
+   la rama `claude/clever-lamport-fxhzba`, PR #281, abierto y sin fusionar). Cada
+   corrida nueva parte de `main`, no la encuentra, y no puede cumplir su propio
+   primer mandato hasta que alguien fusione uno de esos PRs.
+2. **Explosión de ramas/PR sin fusionar, agravada desde la medición del
+   7/8-ago (T-1 en `OWNER_DECISIONS_REQUIRED.md`, que hablaba de 22).** Hoy son
+   **33 PRs abiertos**, y `REG-306` está reclamado de forma independiente en
+   **al menos cinco** (`#273`, `#274`, `#276`, `#280`, `#281`), cada uno con su
+   propio arreglo, casi todos sobre el mismo hallazgo (`/api/portal` sin límite
+   de tasa · la hoja del paciente sin compuerta de firma). Ninguno decide esto
+   un agente: fusionar o cerrar por lotes sigue siendo decisión del dueño (T-1).
+3. **La «cola inmediata» que dejó la sesión de v1144 ya está resuelta**, sólo
+   que nadie lo escribió aquí:
+   - `invariantesProtegidos` — cableado al job `clinical-safety` de CI desde
+     E0-11; lo que falta es un ajuste de *branch protection* en GitHub (consola,
+     no repo), documentado como bloqueo del dueño en el propio
+     `docs/roadmap/nexus-os/unidades/E0-11/RESULTADO.parcial.json`. **No se
+     toca**: es de otro programa (Nexus OS) y está en su bloqueo correcto.
+   - `coherenteConElTipo` y `correrBenchmark` — SÍ tienen llamador: sus propios
+     goldens (`hospital-estados-cama.test.ts`, `uci-benchmark.test.ts`) los
+     ejecutan a propósito. La nota vieja los listaba mal.
+   - `obtenerVersion` — declarado **redundante a propósito**, con su propio
+     guardián (`el-barrido-de-motores-esta-explicado.test.ts`) explicando por
+     qué: `listarVersiones` ya trae la nota entera.
+
+**Lo que sí se hizo esta pasada — REG-309.** `SAFE-003` del backlog (score 41,
+pendiente desde la auditoría de nueve dimensiones): `sin_referencia` —la
+advertencia de que un fármaco no está en el catálogo y su dosis no se pudo
+verificar— se apagaba SIEMPRE, también en pacientes pediátricos, donde la dosis
+va por kilo y esa ausencia pesa distinto. Reparado en los DOS llamadores
+(`dosisPeligrosasDeLaLista`, antes de firmar, y la pantalla de receta), con un
+único punto de decisión nuevo (`filtrarAlertasParaMostrar` en `dosis.ts`).
+Detalle, guardián y qué NO cubre: `docs/audit/regression-ledger.md` REG-309.
+
+**Por qué no se tocó nada más de lo ya-en-vuelo.** Con 33 PRs abiertos y varios
+duplicando el mismo REG, la forma de NO sumar un sexto duplicado era medir
+primero. `PATIENT-PORTAL-001` y `POSTVISIT-GATE-001` del backlog ya están
+cubiertos (varias veces) en PRs existentes — no se reabrieron.
+
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
 **Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
 

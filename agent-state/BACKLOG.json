@@ -212,11 +212,12 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (REG-309)",
       "reversible": true,
       "necesitaMedico": true,
       "origen": "auditoría de nueve dimensiones, hallazgo G2",
-      "score": 41
+      "score": 41,
+      "notaDeCierre": "necesitaMedico se refería a si sin_referencia debe mostrarse TAMBIÉN en adultos — eso sigue abierto en OWNER_DECISIONS_REQUIRED.md. El recorte pediátrico en sí no necesitaba su palabra: es la regla 4 de clinical-safety.md ya aplicada. También se reparó el mismo descarte en dosisPeligrosasDeLaLista (la revisión ANTES de firmar), que el hallazgo original no mencionaba."
     },
     {
       "seguridad": 3,

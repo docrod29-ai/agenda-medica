@@ -187,6 +187,16 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    clave: 'silencio_que_se_lee_como_verificado',
+    nombre: 'El silencio se leía como verificado',
+    patron:
+      'Una señal explícita de «no sé» existe en el motor — el propio código la ' +
+      'genera a propósito — y una pantalla la apaga por regla general, sin ' +
+      'distinguir la población o el contexto en que ese silencio pesa distinto. ' +
+      'No es un dato inventado: es un dato real que se esconde.',
+    regs: [309],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

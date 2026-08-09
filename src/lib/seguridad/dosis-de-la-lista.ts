@@ -29,7 +29,7 @@
  */
 import {
   revisarDosis, extraerMg, extraerTomasDia, esDosisPorKg, peorSeveridad,
-  type AlertaDosis,
+  filtrarAlertasParaMostrar, type AlertaDosis,
 } from '@/lib/seguridad/dosis'
 import { cantidad, type ClinicalQuantity } from '@/types/clinical-quantity'
 
@@ -59,6 +59,11 @@ export interface DosisPeligrosa {
  * hallazgo sobre el paciente, y en una lista de ocho medicamentos llenaría la
  * pantalla de avisos que no dicen nada. El propio motor ya advierte que la
  * ausencia de alerta no significa dosis segura.
+ *
+ * EXCEPTO en pediatría (REG-309): la dosis va por kilo y el margen es estrecho,
+ * así que «no se pudo verificar este fármaco» es justo el dato que un médico de
+ * niños necesita ANTES de firmar — no después, en la receta. Ver
+ * `filtrarAlertasParaMostrar` en `dosis.ts`.
  */
 export function dosisPeligrosasDeLaLista(
   medicamentos: readonly MedicamentoRevisable[],
@@ -77,16 +82,19 @@ export function dosisPeligrosasDeLaLista(
     const dosis = esDosisPorKg(m.dosis)
       ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
       : cantidad(mg, 'mg', 'masa')
-    const alertas = revisarDosis({
-      farmaco: nombre,
-      dosis,
-      tomasDia: extraerTomasDia(m.frecuencia || '') ?? undefined,
-      peso: ctx.pesoKg != null && ctx.pesoKg > 0
-        ? (cantidad(ctx.pesoKg, 'kg', 'masa') as ClinicalQuantity<'masa'>)
-        : undefined,
-      via: m.via,
-      edadAnios: ctx.edadAnios,
-    }).filter(a => a.codigo !== 'sin_referencia')
+    const alertas = filtrarAlertasParaMostrar(
+      revisarDosis({
+        farmaco: nombre,
+        dosis,
+        tomasDia: extraerTomasDia(m.frecuencia || '') ?? undefined,
+        peso: ctx.pesoKg != null && ctx.pesoKg > 0
+          ? (cantidad(ctx.pesoKg, 'kg', 'masa') as ClinicalQuantity<'masa'>)
+          : undefined,
+        via: m.via,
+        edadAnios: ctx.edadAnios,
+      }),
+      ctx.edadAnios != null && ctx.edadAnios < 18,
+    )
     if (alertas.length) out.push({ med: nombre, alertas, severidad: peorSeveridad(alertas) })
   }
   return out
@@ -109,4 +117,6 @@ export const POR_QUE_NO_BLOQUEA =
 
 export const POR_QUE_SE_DESCARTA_SIN_REFERENCIA =
   '«Este fármaco no está en el catálogo» no es un hallazgo sobre el paciente, y ' +
-  'en una lista de ocho llenaría la pantalla de avisos que no dicen nada.'
+  'en una lista de ocho llenaría la pantalla de avisos que no dicen nada. Salvo ' +
+  'en pediatría (REG-309): ahí la dosis va por kilo y esa misma ausencia es el ' +
+  'dato que hace falta antes de firmar.'

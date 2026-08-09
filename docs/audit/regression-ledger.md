@@ -7013,3 +7013,46 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-309 — «Sin referencia de dosis» se descartaba también en niños
+
+**Encontrado** en la auditoría de nueve dimensiones (hallazgo G2, backlog
+`SAFE-003`), confirmado leyendo el código el 9-ago-2026.
+
+**Qué pasaba.** `revisarDosis` marca `sin_referencia` (severidad `info`) cuando
+el fármaco no está en `CATALOGO`: es la forma explícita del motor de decir «no
+pude verificar esta dosis» — la propia regla 4 de `clinical-safety.md`, ausencia
+de dato no es dato de ausencia. Tanto la pantalla de receta
+(`receta/[patientId]/[notaId]/page.tsx`) como la revisión previa a firmar
+(`dosisPeligrosasDeLaLista`, el llamador que REG-190 adelantó justo para cazar
+esto ANTES de que el paciente se fuera con la receta) descartaban ese código
+**siempre**, sin mirar la edad del paciente.
+
+**Por qué importa.** En un adulto, ocultar `sin_referencia` es ruido de
+pantalla: el resto del catálogo cubre el error más caro (el decimal). En
+pediatría la dosis se calcula por kilogramo y el margen entre la dosis útil y la
+tóxica es estrecho — que el fármaco recetado no tenga referencia es
+precisamente el caso en que el motor NO pudo hacer la comprobación mg/kg, y la
+pantalla lo callaba exactamente igual que si sí la hubiera hecho. Callar «no se
+pudo verificar» se lee como «la dosis está comprobada».
+
+**Arreglo.** `filtrarAlertasParaMostrar(alertas, esPediatrico)`, nueva en
+`dosis.ts`: conserva `sin_referencia` cuando el paciente es menor de 18 años: en
+adultos el comportamiento no cambia. Un único punto de decisión, reutilizado por
+los dos llamadores.
+
+**Lo que NO se hace.** No decide si `sin_referencia` debería mostrarse también
+en adultos — es una pregunta de ruido en pantalla, no de seguridad pediátrica, y
+sigue sin responder. No amplía `CATALOGO`: un fármaco que ya está en el
+catálogo no dispara `sin_referencia`, con o sin este cambio.
+
+**Familia.** `silencio_que_se_lee_como_verificado` (nueva) — una señal explícita
+de «no sé» existía en el motor y una pantalla la apagaba por regla general, sin
+distinguir la población en la que ese silencio pesa distinto.
+
+**Guardián.** `src/__tests__/sin-referencia-pesa-distinto-en-ninos.test.ts`, 7
+casos. Prueba al revés: reproduce el filtro incondicional tal como vivía antes
+del arreglo y comprueba que, con él, un fármaco sin referencia en un niño de 5
+años no genera ningún aviso.

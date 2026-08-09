@@ -519,3 +519,24 @@ export function revisarUnidadDosis(
   }
   return null
 }
+
+/**
+ * Qué hacer con `sin_referencia` antes de mostrar la receta (REG-309).
+ *
+ * `sin_referencia` es informativo — «este fármaco no está en el catálogo, no se
+ * pudo verificar la dosis» — y por eso la pantalla lo descarta siempre: mostrarlo
+ * en cada fármaco fuera del catálogo saturaría la receta de un adulto.
+ *
+ * En un paciente PEDIÁTRICO esa misma ausencia pesa distinto. La dosis va por
+ * kilo y el margen es estrecho (regla clinical-safety.md #4: ausencia de dato no
+ * es dato de ausencia); callar «no se pudo verificar» se lee como «la dosis está
+ * comprobada», que es justo lo contrario de lo que pasó. Se mantiene SOLO ahí.
+ *
+ * Lo que NO decide esta función: si `sin_referencia` debería mostrarse también en
+ * adultos es una pregunta de ruido en pantalla, no de seguridad pediátrica —
+ * queda en agent-state/OWNER_DECISIONS_REQUIRED.md, no se resuelve aquí.
+ */
+export function filtrarAlertasParaMostrar(alertas: AlertaDosis[], esPediatrico: boolean): AlertaDosis[] {
+  if (esPediatrico) return alertas
+  return alertas.filter(a => a.codigo !== 'sin_referencia')
+}

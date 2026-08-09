@@ -37,16 +37,25 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | N-1 | ¿Se puede repetir la prueba de 14 días? | Una por cuenta, comprobada contra Stripe | Cerrar el hueco de pruebas repetidas | El resto del cobro |
 | N-2 | Verificación de correo al registrarse | Activarla: un correo mal tecleado deja la cuenta irrecuperable | Recuperación sin soporte humano | El alta funciona |
 
-## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8)
+## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8, y de nuevo el 9)
 
 | # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |
 |---|---|---|---|---|
-| T-1 | **22 PRs abiertos. Catorce se titulan «REG-192 … (v1074)»** y son reparaciones DISTINTAS; dos se titulan «REG-194 … (v1076)» | Fusionar o cerrar por lotes, renumerando al fusionar | El número de regresión y la versión del service worker **dejan de acotar un lote de notas clínicas** — que es justo lo que REG-191 acababa de reparar para IEC 62304 | Cada reparación por separado es correcta y tiene sus compuertas en verde |
+| T-1 | **33 PRs abiertos (medido el 9-ago-2026 vía GitHub, no `estado-de-las-ramas.mjs`).** `REG-306` está reclamado de forma independiente en AL MENOS cinco (`#273`, `#274`, `#276`, `#280`, `#281`) — casi todos el mismo hallazgo (`/api/portal` sin límite de tasa · hoja del paciente sin compuerta de firma) resuelto por separado. `#281` (rama `claude/clever-lamport-fxhzba`) es el más completo de los cinco: cubre las TRES rutas (`portal`, `resena`, `checkout`) que `#280` deja explícitamente para «otra iteración», y de paso restaura la propia directiva V7 que el disparo autónomo no podía encontrar en ninguna rama fusionada | Fusionar `#281` primero (superset de `#280`/`#273`/`#274`/`#276` en esta área); cerrar los otros cuatro citando cuál los reemplaza; luego fusionar o cerrar el resto por lotes, renumerando al fusionar | El número de regresión y la versión del service worker **dejan de acotar un lote de notas clínicas** — lo mismo que REG-191 reparó para IEC 62304. Y la propia directiva V7 queda sin fuente de verdad fusionada, así que cada disparo autónomo repite este mismo hallazgo | Cada reparación por separado es correcta y tiene sus compuertas en verde — el costo es sólo de coordinación, no de calidad |
 
 **Medido el 8-ago-2026 con `node scripts/estado-de-las-ramas.mjs`:** 33 ramas
 vivas · REG en `main` **191**, en alguna rama **224** · service worker en `main`
 **v1073**, en alguna rama **v1106**. Son **33 números de regresión gastados** en
 trabajo sin fusionar, y seis ramas distintas llamándose «v1074».
+
+**Medido el 9-ago-2026 (segunda vez ese día) vía la API de GitHub, con `main` ya
+en v1167 (PR #279 fusionado):** el número de PRs abiertos no bajó — subió a
+**33**. El patrón que describe la sección de abajo («cada disparo arranca de
+`main`, elige lo mismo, le pone el mismo número») se repitió con la propia
+directiva V7: al menos tres sesiones distintas la reconstruyeron de forma
+independiente (`22f54f37`, `3f8b70d2`, `8365691f`), las tres con el MISMO hash
+sha256 del contenido — coincidencia que confirma que ninguna la inventó, sólo
+que ninguna la encontró ya fusionada.
 
 **Por qué se repite.** Cada disparo del bucle arranca de `main`. Desde `main`, el
 ítem de mayor score y el siguiente REG libre son siempre los mismos mientras nada
