@@ -2,7 +2,10 @@
 # ARNÉS DE CAPTURAS V10 — emuladores + siembra + next dev + playwright.
 #
 # Uso:  node_modules/.bin/firebase emulators:exec --only auth,firestore \
-#         --project demo-nexusmed-test "bash scripts/design/arnes-capturas-v10.sh"
+#         --project demo-nexusmed-test "bash scripts/design/arnes-capturas-v10.sh [capturas|axe]"
+#
+# El argumento elige el paso 3: `capturas` (default) fotografía el golden flow;
+# `axe` corre la línea base de accesibilidad (scripts/design/axe-v10.mjs).
 #
 # `emulators:exec` (nunca `emulators:start` — prohibido en este repo, ver
 # docs/testing/emulador-multitenant.md) levanta Auth+Firestore, corre esto y
@@ -30,5 +33,10 @@ done
 curl -sf -o /dev/null http://localhost:3000/login || { echo 'next dev nunca respondió'; tail -30 /tmp/next-dev-v10.log; exit 1; }
 echo 'next dev listo'
 
-echo '── 3/3 capturas ──'
-node scripts/design/capturas-v10.mjs
+MODO="${1:-capturas}"
+echo "── 3/3 ${MODO} ──"
+case "$MODO" in
+  capturas) node scripts/design/capturas-v10.mjs ;;
+  axe)      node scripts/design/axe-v10.mjs ;;
+  *) echo "modo desconocido: $MODO (usa capturas|axe)"; exit 1 ;;
+esac
