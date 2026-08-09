@@ -38,6 +38,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala } from '@/lib/telesalud/token-de-la-sala'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1084,6 +1085,13 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          // REG-292. `tokenParaLaSala` devuelve undefined si la cita queda
+          // lejos: entonces este mensaje dice que el enlace llega aparte, y lo
+          // trae el recordatorio de 24 h, que sí cae dentro del plazo.
+          tokenPaciente: await tokenParaLaSala(
+            { clinicId, patientId: pacienteIdBot, fechaHora: `${datos.fecha} ${datos.hora}`, ahora: new Date() },
+            versionDelPaciente,
+          ),
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1277,6 +1285,11 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          // REG-292 — ver la nota del otro llamador.
+          tokenPaciente: await tokenParaLaSala(
+            { clinicId, patientId: pacienteIdLE, fechaHora: `${slotFecha} ${slotHora}`, ahora: new Date() },
+            versionDelPaciente,
+          ),
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,
@@ -1429,6 +1442,18 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST: Incoming messages ───────────────────────────────────
+
+
+/**
+ * Lector de la versión de revocación para `tokenParaLaSala` (REG-292).
+ * Vive aquí y no en el módulo del token porque ese módulo debe poder probarse
+ * sin Firestore: la lectura se inyecta.
+ */
+async function versionDelPaciente(clinicId: string, patientId: string): Promise<number> {
+  const s = await adminDb.collection('clinics').doc(clinicId)
+    .collection('patients').doc(patientId).get()
+  return Number((s.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
+}
 
 export async function POST(req: NextRequest) {
   try {

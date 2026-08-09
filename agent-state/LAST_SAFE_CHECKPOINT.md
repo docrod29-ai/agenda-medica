@@ -13,8 +13,9 @@
 | **Rama** | `claude/relaxed-fermi-ykx2ql` |
 | **SHA base de esta sesión** | `0144257` (merge de #271, `v1163` · REG-289/290) |
 | **SHA de cierre** | *(ver el commit de REG-291 en esta rama)* |
-| **Unidad cerrada** | **`DESIGN-SYSTEM-001` · parte 1** (iteración 1 de V9) |
+| **Unidades cerradas** | **`DESIGN-SYSTEM-001` · parte 1** (REG-291) y **`PATIENT-TELE-002`**, el último P0 abierto (REG-292) |
 | **Siguiente unidad** | `DESIGN-TIPOGRAFIA-001`, luego `A11Y-GATE-001` |
+| **P0 abiertos** | **ninguno** |
 
 ### Qué quedó hecho en esta sesión
 
@@ -42,6 +43,20 @@ una progresión bonita): `--r-1…5` (19 valores de radio → 5) y `--sp-4…24`
 blanca con razón obligatoria por entrada, contraste **computado** desde
 `globals.css` (no afirmado), y comprobación al revés que exige que `#3D5AFE`
 siga reprobando.
+
+**REG-292 — el último P0.** El enlace de la videoconsulta que viaja por WhatsApp
+seguía sin token: REG-265 arregló el portal y dejó este camino diciendo
+«recibirás el enlace por este medio» — honesto, pero el paciente seguía sin
+enlace en el mensaje donde más falta le hace. El token se acuña ahora en el
+servidor, y **el plazo se deriva de la cita** (lo justo para llegar más un día,
+techo de 3 días) porque un plazo fijo se equivoca en los dos sentidos: corto
+caduca antes de la cita, largo deja una credencial viva en un chat que se
+reenvía. Alcance `agenda`, el mínimo.
+
+**Y una prueba que no probaba nada.** El primer guardián de REG-292 contaba
+apariciones de `tokenPaciente` en el archivo; **se comprobó al revés y pasó
+igual**. Se reescribió casando llaves para mirar dentro de cada llamada, y
+entonces sí falla. El extractor tiene su propio caso al revés.
 
 **Tablero reconciliado**: los tres P0 de audio seguían marcados `pendiente` en
 `BACKLOG.json` estando cerrados en v1158/v1161 (REG-283/287). Se cierran contra
@@ -82,8 +97,10 @@ sobre `layout.tsx`.
 de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en
 P0.** Y ahí mismo, mirar los dieciocho sitios que cambiaron de color en REG-291.
 
-**6. P0 que sigue abierto**: `PATIENT-TELE-002` — el enlace de videoconsulta que
-viaja por WhatsApp sigue sin token.
+**6. No quedan P0 abiertos.** Lo primero que hay que comprobar cuando haya
+teléfono y credenciales del dueño: **mandar un recordatorio de teleconsulta de
+verdad y abrir la sala desde el enlace** (REG-292). Se probó el token, no el
+mensaje.
 
 ## Lo que este checkpoint NO garantiza
 

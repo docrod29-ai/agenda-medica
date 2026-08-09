@@ -18,27 +18,18 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M agent-state/CURRENT_ITERATION.md",
-    " M agent-state/DESIGN_STATE.md",
-    " M agent-state/LAST_SAFE_CHECKPOINT.md",
-    " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
-    " M docs/audit/regression-ledger.md",
-    " M src/app/(dashboard)/configuracion/page.tsx",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
-    " M src/app/(dashboard)/hospitalizacion/camas/page.tsx",
-    " M src/app/(dashboard)/pacientes/page.tsx",
-    " M src/app/(dashboard)/uci/MarPaciente.tsx",
-    " M src/app/demo/interactivo/page.tsx",
-    " M src/app/globals.css",
-    " M src/app/not-found.tsx",
-    " M src/app/superadmin/page.tsx",
-    " M src/app/verificar/[token]/page.tsx",
+    "M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/authz-rutas-declaradas.test.ts",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/whatsapp/webhook/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-azul-de-marca-no-se-escribe-a-mano.test.ts"
+    "?? src/__tests__/el-enlace-de-la-videoconsulta-viaja-con-su-token.test.ts",
+    "?? src/lib/telesalud/token-de-la-sala.ts"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -72,10 +63,10 @@
   ],
   "ramaActual": "claude/relaxed-fermi-ykx2ql",
   "derivado": {
-    "regsEnElLedger": 139,
-    "ultimaREG": "REG-291",
-    "archivosDePrueba": 567,
-    "casosDePrueba": 7470,
+    "regsEnElLedger": 140,
+    "ultimaREG": "REG-292",
+    "archivosDePrueba": 568,
+    "casosDePrueba": 7488,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

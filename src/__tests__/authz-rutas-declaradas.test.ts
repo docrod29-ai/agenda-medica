@@ -637,6 +637,18 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 2026-08-09 (REG-292). El recordatorio de WhatsApp acuña el token
+       * del enlace de la videoconsulta, y ese token nace con la VERSIÓN de
+       * revocación del paciente para que revocar lo tumbe. Por eso lee bajo
+       * `patients` — y usa **un solo campo**, `portalTokenVersion`: ni nombre,
+       * ni teléfono, ni un dato clínico. Mismo caso que `portal/link`.
+       *
+       * No lleva capacidad porque no tiene sesión: es un cron, y su puerta es
+       * `CRON_SECRET` en Bearer, **fail-closed** — en producción sin secreto
+       * configurado la ruta no corre (503).
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja

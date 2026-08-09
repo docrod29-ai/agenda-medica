@@ -4,7 +4,9 @@
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
 **Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
-**Siguiente que toca esta superficie**: `PATIENT-COMPANION-001` (tras
+**9-ago**: se cerró `PATIENT-TELE-002` fuera de orden — era el último **P0** de
+esta superficie, y V9 §4 no admite candidato a liberación con un P0 abierto.
+**Siguiente que toca esta superficie**: `PATIENT-COMPANION-001` (tras el resto de
 `DESIGN-SYSTEM-001` y `NAVIGATION-001`).
 
 ---
@@ -73,7 +75,19 @@ por el paciente.
 
 ## P0 abiertos en esta superficie
 
-- `PATIENT-TELE-002` — el enlace por WhatsApp sigue sin token.
+**Ninguno.**
+
+`PATIENT-TELE-002` cerrado el 9-ago (**REG-292**). REG-265 había arreglado el
+portal y dejado el camino de WhatsApp a medias: `dondeEsLaCita` dejó de emitir
+enlaces rotos y pasó a decir «recibirás el enlace por este medio» — honesto, pero
+el paciente seguía sin enlace en el mensaje donde más falta le hace.
+
+El token se acuña ahora en el servidor (`lib/telesalud/token-de-la-sala.ts`,
+**nunca** en `lib/whatsapp.ts`, que se carga también en el navegador) y lo pasan
+los tres llamadores. **El plazo se deriva de la cita** —lo justo para llegar más
+un día, techo de 3— porque un plazo fijo se equivoca en los dos sentidos: corto
+caduca antes de la cita, largo deja una credencial viva en un chat que se
+reenvía. Alcance `agenda`, el mínimo.
 
 ## P1 abiertos
 
@@ -85,7 +99,8 @@ por el paciente.
 ## Lo que este estado NO afirma
 
 Nada se ejecutó. El 404 de la teleconsulta se confirmó siguiendo tres archivos,
-no abriendo la aplicación, y **la reparación necesita comprobación en
-navegador**. Tampoco se trazó dónde se pinta el formulario previo del paciente:
+no abriendo la aplicación, y **las dos reparaciones (REG-265 y REG-292) necesitan
+comprobación en navegador y en un teléfono real**: no se ha mandado un WhatsApp
+ni se ha abierto una sala desde el enlace. Eso exige credenciales del dueño. Tampoco se trazó dónde se pinta el formulario previo del paciente:
 si no se pinta en ninguna pantalla, el paciente rellena un formulario que nadie
 lee (`PATIENT-PREVIO-001`).

@@ -9,6 +9,7 @@ import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/wha
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala } from '@/lib/telesalud/token-de-la-sala'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -209,6 +210,28 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          /**
+           * EL ENLACE DE LA VIDEOCONSULTA, CON SU TOKEN (REG-292).
+           *
+           * REG-265 cerró el 404 del portal y dejó este camino diciendo
+           * «recibirás el enlace por este medio» — honesto, pero el paciente
+           * seguía sin enlace justo en el mensaje donde más falta le hace.
+           * El token se acuña aquí, en el servidor, porque el secreto de firma
+           * no puede bajar al navegador.
+           *
+           * Sólo para teleconsultas: una cita presencial no gasta una lectura.
+           */
+          const tokenPaciente = String(appt.tipo ?? '').trim().toLowerCase() === 'teleconsulta'
+            ? await tokenParaLaSala(
+                { clinicId, patientId: appt.pacienteId, fechaHora: appt.fechaHora, ahora: now },
+                async (c, pid) => {
+                  const s = await adminDb.collection('clinics').doc(c)
+                    .collection('patients').doc(pid).get()
+                  return Number((s.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
+                },
+              )
+            : undefined
+
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +239,7 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente,
           })
           const msgData = {
             paciente: appt.pacienteNombre,

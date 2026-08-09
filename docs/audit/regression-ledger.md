@@ -6464,3 +6464,63 @@ abierto). Y **nadie ha abierto una pantalla**: el cambio se calculó, no se mir�
   `demo/interactivo/page.tsx`
 - `src/__tests__/el-azul-de-marca-no-se-escribe-a-mano.test.ts` (nuevo, 17 casos en
   ejecución · 10 declarados en línea, que es lo que sella el trinquete)
+
+---
+
+## REG-292 — el enlace de la videoconsulta que viaja por WhatsApp seguía sin token (V9 · P0)
+
+REG-265 cerró **medio** problema. `/api/telesalud/sala` exige prueba de
+titularidad y responde **404 «Cita no encontrada»** a quien no la trae; el botón
+del portal no llevaba token, así que el paciente veía que su cita no existía, en
+su propio portal, a la hora de su consulta.
+
+Aquella reparación arregló el portal y dejó el camino de **WhatsApp** a medias, a
+propósito: `dondeEsLaCita` dejó de emitir enlace sin token y pasó a escribir
+«recibirás el enlace por este medio». Honesto —un 404 es peor que un aviso— pero
+**el paciente seguía sin enlace**, y el recordatorio de WhatsApp es justo donde
+le hace falta: es el mensaje que abre media hora antes de la consulta, con prisa,
+desde el teléfono.
+
+Los **tres llamadores de servidor** —el recordatorio del cron y las dos
+confirmaciones del bot— no pasaban `tokenPaciente` porque **nadie lo acuñaba**.
+
+### Dónde se firma, y por qué no en el otro sitio
+
+En `src/lib/telesalud/token-de-la-sala.ts`, que **sólo** importan rutas de
+servidor. No en `lib/whatsapp.ts`, que se carga **también en el navegador**:
+firmar ahí mandaría al cliente el secreto HMAC que abre el expediente de
+cualquier paciente.
+
+### El plazo se deriva de la cita
+
+Un plazo fijo se equivoca en los dos sentidos. Corto —el día que usa
+`/api/telesalud/token`— caduca antes de una cita agendada para la semana que
+viene, y devuelve el mismo 404 que veníamos a evitar. Largo deja una credencial
+del paciente viva en un chat que se reenvía a un grupo familiar.
+
+Así que el plazo es «lo justo para llegar a la cita, más un día de margen», con
+techo de 3 días. Más allá del techo **no se emite**: el mensaje dice que el
+enlace llega aparte, y lo trae el recordatorio de 24 h, que sí cae dentro.
+Alcance `agenda`, el mínimo — la sala no mira el alcance, así que pedir `clinico`
+sería mandar por WhatsApp una credencial que abre el expediente.
+
+### La prueba que primero no probaba nada
+
+El primer guardián contaba apariciones de `tokenPaciente` en el archivo y las
+comparaba con el número de llamadas. **Se comprobó al revés y pasó igual**: al
+quitar el paso del dato dejando la variable declarada, el recuento seguía
+cuadrando. Se reescribió casando llaves para mirar **dentro** de cada llamada, y
+entonces sí falla. El extractor tiene a su vez su propio caso al revés.
+
+### Qué NO cubre
+
+No se ha mandado un WhatsApp real ni se ha abierto la sala desde un teléfono:
+eso exige credenciales del dueño. El plazo ignora la zona horaria de la clínica a
+propósito — una hora de desfase la absorbe el margen.
+
+### Archivos
+
+- `src/lib/telesalud/token-de-la-sala.ts` (nuevo)
+- `src/app/api/cron/reminders/route.ts` · `src/app/api/whatsapp/webhook/route.ts`
+- `src/__tests__/el-enlace-de-la-videoconsulta-viaja-con-su-token.test.ts`
+  (nuevo, 18 casos, sellado)
