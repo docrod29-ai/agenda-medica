@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-5njokt` (nace de `main` = `0144257`) |
 | **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
-| **SHA de cierre** | *(el commit de esta sesión)* |
+| **SHA de cierre** | `cd238f4` |
 | **Unidad cerrada** | **`DESIGN-SYSTEM-001` — el cimiento.** Queda abierta la adopción y `A11Y-GATE-001` |
 | **Siguiente unidad** | ver «Qué hacer al reanudar» |
 
