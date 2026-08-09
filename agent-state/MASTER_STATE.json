@@ -10,21 +10,21 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-006 (cerrada) — REG-218, v1100",
+  "iteracionActual": "SAFE-003/REG-218 v1100 (cerrada, PR #259 con revision incorporada). Antes: REG-192 v1074, ya fusionado a main.",
   "ramasActivas": [
-    "agent/infra/INFRA-001",
-    "agent/voice/VOICE-004",
-    "agent/safety/SAFE-002",
-    "agent/ops/OPS-001"
+    "agent/expediente/TEMP-192",
+    "agent/safety/SAFE-006-stopbang-negacion"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1030",
+  "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1100",
   "trabajoLocalSinSubir": [],
-  "ultimaVersionPreparada": "nexusmed-v1100 (en rama, sin desplegar: no hay credenciales aqui)",
-  "notasDelEntorno": [
-    "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en este contenedor y NO por el cambio: comprobado sobre el arbol limpio. El caso espera que una conexion a 10.255.255.1 agote el tiempo, y aqui el proxy de salida la rechaza de inmediato. En CI pasa.",
-    "npm run build necesita los placeholders sinteticos de Firebase del ci.yml; sin ellos falla al recolectar /dr/[clinicId]. Con ellos compila entero.",
-    "El numero de REG y la version del sw NO se tomaron de main: se midieron sobre TODAS las ramas vivas con scripts/estado-de-las-ramas.mjs (de la rama agent/ops/OPS-003-arranque-del-bucle, PR #251, sin fusionar). main iba por REG-191/v1073 y alguna rama ya gastaba REG-263/v1145: tomar el siguiente de main habria repetido numero, que es el defecto T-1. Libre de verdad: REG-218 / v1100."
-  ],
-  "comprobadoAntesDeElegir": "Ninguna de las 7 ramas que tocan parser-clinico.ts habia reparado extraerStopBang: comprobado leyendo la funcion en cada una, no por confianza."
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
+    "REG-218/v1100: el numero NO se tomo de main. Otra sesion renumero la rama (7e60e57) repartiendo la secuencia por numero de PR desde el ultimo cerrado en main (REG-192/v1074); verificado que ese commit solo cambia identificadores y ni una linea de logica.",
+    "La revision independiente del PR #259 encontro una REGRESION de la propia reparacion: mirar una sola aparicion congelaba el flag y «Niega presion alta. Hipertension en tratamiento» dejaba de puntuar al hipertenso documentado. Reparado; el golden lo fija y se pone rojo contra la v1.",
+    "ops-timeout-y-punto-ciego OSCILA en este contenedor: una corrida entera paso 6950/6950 y la siguiente volvio a fallarlo. Es la red del sandbox; en CI pasa."
+  ]
 }
