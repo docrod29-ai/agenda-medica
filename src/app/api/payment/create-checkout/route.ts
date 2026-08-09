@@ -18,11 +18,19 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
 export async function POST(req: NextRequest) {
   try {
+    // RATE-LIMIT (PATIENT-PORTAL-001) — crea sesiones de Stripe Checkout; sin
+    // freno, un token filtrado o un script permitía abrir sesiones de cobro sin
+    // límite (costo en Stripe y ruido para el consultorio).
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+    const limIp = await limitarOResponder(`checkout:ip:${ip}`, 20, 600, 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.')
+    if (limIp) return limIp
+
     const { token, citaId } = await req.json()
     // MONEDA FIJA EN EL SERVIDOR (auditoría P0): el monto se calcula en MXN, así que
     // la moneda DEBE ser 'mxn'. Antes se tomaba `currency` del body → con 'cop'/'ars'

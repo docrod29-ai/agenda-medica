@@ -11,10 +11,18 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   let body: { token?: string; rating?: number; texto?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, motivo: 'Datos inválidos' }, { status: 400 }) }
+
+  // RATE-LIMIT (PATIENT-PORTAL-001) — endpoint público, sin auth de sesión: sin
+  // esto un script podía martillar tokens de reseña al azar sin freno.
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+  const limIp = await limitarOResponder(`resena:ip:${ip}`, 20, 600, 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.')
+  if (limIp) return limIp
+
   const { token } = body
   const rating = Number(body.rating)
   const texto = String(body.texto ?? '').trim().slice(0, 1000)

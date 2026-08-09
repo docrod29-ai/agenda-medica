@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",
@@ -344,7 +344,8 @@
       "porQueImporta": "Un enlace revocado —teléfono perdido, número reciclado, mensaje reenviado— vuelve a valer durante una incidencia de Firestore. Y sin límite de tasa, un token filtrado permite enumerar y mover la agenda del consultorio.",
       "archivo": "src/app/api/portal/route.ts:183 · src/app/api/public/resena/route.ts · src/app/api/payment/create-checkout/route.ts",
       "plan": "Aplicar limitar* como ya lo hacen telesalud/sala (12/600 s) y public/booking (8/h por IP). Para la revocación, decidir si falla cerrado — es un cambio de política, no sólo de código.",
-      "score": 62
+      "score": 62,
+      "cierre": "CERRADO (REG-306, V7). limitarOResponder por IP en las tres rutas (portal 40/10min, resena y create-checkout 20/10min cada una), antes de leer/verificar el token. La revocacion fail-open de portalTokenVersion queda igual: es decision de politica, sigue en OWNER_DECISIONS_REQUIRED.md."
     },
     {
       "seguridad": 3,

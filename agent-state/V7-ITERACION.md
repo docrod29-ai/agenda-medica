@@ -1,17 +1,50 @@
 # MASTER LOOP V7 — tablero propio
 
+## Checkpoint · 9-ago-2026 (tarde) — la directiva V7 no existía en ninguna rama viva
+
+**Hallazgo antes de trabajar nada**: el archivo que §MANDATORY del disparo
+autónomo exige leer completo,
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`, **no
+existía** en `main` ni en `agent/v7/master-loop` — sólo en dos commits
+huérfanos (`22f54f37`, `3f8b70d2`), nunca fusionados, con el mismo contenido
+byte a byte (sha256 `c576ceb1…`) y la misma nota: «convertido de
+`NexusMED Autonomous Medical Intelligence Master Loop.pdf`». Es el mismo
+patrón que ya pasó con V10 (`ea26120f`: «la directiva V10 de verdad SÍ
+existía… y NUNCA FUSIONADA A MAIN»). **Se restauró** desde ese contenido —no
+se inventó — y ahora vive en `main` vía esta rama. Repositorio: usar
+`git log --all -S<nombre-de-archivo>` antes de asumir que un documento del
+dueño no existe.
+
+`agent/v7/master-loop` está **enteramente fusionada a `main`** (sin commits
+propios pendientes): V7 lleva meses operando directo contra `main` con
+autorización de despliegue del dueño, y su frontera real es la de `main`, no
+la de esa rama. Este disparo trabajó en `claude/clever-lamport-fxhzba` (la
+rama que asigna el disparador) y **no desplegó** — la autorización de viva voz
+de despliegue no es verificable en una sesión sin usuario en vivo, y
+`CLAUDE.md` (autoridad de nivel superior a este tablero) exige autorización
+explícita del dueño para producción. Autonomía de esta sesión: rama + commit +
+push + PR, como fija `deployment-and-flags.md`.
+
+**Cerrado esta sesión**: `PATIENT-PORTAL-001` (REG-306) — límite de tasa por
+IP en `/api/portal`, `/api/public/resena` y `/api/payment/create-checkout`,
+ninguna de las tres lo tenía. Detalle en el ledger y en
+`agent-state/BACKLOG.json`.
+
+---
+
 > **Separado de V9 el 8-ago-2026.** Los dos programas compartían
 > `CURRENT_ITERATION.md` y se pisaban: V9 reescribió la cabecera mientras V7
 > trabajaba. Ahora cada uno tiene el suyo.
 >
-> · **V7** (éste) → rama `agent/v7/master-loop`
+> · **V7** (éste) → rama `agent/v7/master-loop` (fusionada a `main`; los
+>   disparos recientes trabajan directo sobre `main` vía ramas `claude/*`)
 > · **V9** → rama `claude/nexus-patient-ux-v9`, tablero en `CURRENT_ITERATION.md`
 >
 > Las cifras se DERIVAN: `node scripts/agent-state/actualizar.mjs`. Lo de aquí es
 > **criterio**, y el criterio no sale de un `grep`.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
+**Rama**: `agent/v7/master-loop` (histórica) · **Producción**: `nexusmed-v1167`
 
 **Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
 8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio

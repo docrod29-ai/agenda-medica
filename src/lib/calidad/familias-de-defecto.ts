@@ -187,6 +187,26 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    /**
+     * Familia NUEVA, abierta el 9-ago-2026 con REG-306.
+     *
+     * Distinta de `hueco_frente_al_mercado`: ahí el control nunca existió en
+     * este repositorio y sólo se ve comparando con productos de referencia.
+     * Aquí el control SÍ existe, probado y en uso — la lectura del propio
+     * código lo delata, no una comparación externa —, y aun así una ruta
+     * hermana nace sin él porque no hay un barrido ni una lista de
+     * verificación que lo aplique a «toda ruta pública nueva».
+     */
+    clave: 'patron_sin_barrer',
+    nombre: 'El patrón correcto existe y no barrió todos los sitios que lo necesitaban',
+    patron:
+      'El control ya está resuelto en otro lugar del código, probado y en uso. ' +
+      'Una ruta nueva del mismo tipo nace sin él porque nada obliga a ' +
+      'aplicarlo — no falta inventar el patrón, falta el barrido que lo lleve ' +
+      'a cada sitio que lo necesita.',
+    regs: [306],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

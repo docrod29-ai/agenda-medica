@@ -7013,3 +7013,49 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — Tres rutas del portal del paciente sin límite de tasa
+
+**Unidad** V7 `PATIENT-PORTAL-001` (backlog `agent-state/BACKLOG.json`, origen
+PATIENT-UX-TRUTH-001, 8-ago-2026).
+
+**Qué pasaba.** `/api/portal`, `/api/public/resena` y
+`/api/payment/create-checkout` son alcanzables sin sesión de médico —sólo con
+un token del paciente, o sin ningún token en el caso de la reseña— y ninguna
+de las tres tenía un solo `limitar*`, a diferencia de `telesalud/sala` (12/600
+s) y `public/booking` (8/h por IP). En `/api/portal`, el límite que faltaba
+importaba doblemente: `verificarTokenPaciente` corría ANTES de cualquier
+freno, así que un token filtrado —teléfono perdido, número reciclado, mensaje
+reenviado— o un script liso podían martillar la ruta sin límite alguno,
+incluidas las acciones que mueven la agenda (`cancelar`, `reagendar`) o abren
+una sesión de cobro de Stripe.
+
+**Por qué no se detectaba solo.** Las pruebas de estas tres rutas (alcance del
+token, sincronía con Google, fechas, formularios) mockean Firestore y llaman a
+`POST` directo: ninguna necesita —ni por tanto ejercita— un límite de tasa, así
+que la ausencia era invisible incluso con las 7 500+ pruebas en verde.
+
+**Arreglo.** `limitarOResponder` (el mismo helper, Firestore, fail-open) en
+las tres rutas, por IP (`x-forwarded-for`) y ANTES de leer o verificar el
+token — para que cubra también los intentos con un token inválido:
+`portal:ip:*` (40/10 min), `resena:ip:*` y `checkout:ip:*` (20/10 min cada
+una, más generoso que `portal` porque son de una sola acción).
+
+**Lo que NO cubre, a propósito.** No distingue un atacante de una IP
+compartida (NAT corporativo) — el mismo trade-off que ya acepta
+`public/booking`. No repara el fail-open de `portalTokenVersion` (revocación
+de enlaces): es una decisión de política, no de código, y queda donde ya
+estaba, en `agent-state/OWNER_DECISIONS_REQUIRED.md`. Tampoco repara
+`PATIENT-TELE-002` (el enlace de videoconsulta sin token en WhatsApp/cron):
+mismo backlog, hallazgo distinto.
+
+**Familia.** `patron_sin_barrer` (nueva) — `limitarOResponder` ya existe,
+probado y en uso en `telesalud/sala` y `public/booking`; estas tres rutas
+nacieron cada una en un momento distinto sin un barrido ni una lista de
+verificación compartida de "ruta pública nueva" que lo aplicara.
+
+**Guardián.** `src/__tests__/rate-limit-endpoints-publicos.test.ts`, 5 casos.
+Prueba al revés: sin el `limitar*` en cada ruta, la petición 41 (portal) o 21
+(reseña/checkout) seguiría respondiendo 200/401/etc. en vez de 429.

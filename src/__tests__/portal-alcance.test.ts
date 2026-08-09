@@ -38,6 +38,12 @@ vi.mock('@/lib/firebase-admin', () => ({
   },
 }))
 
+// PATIENT-PORTAL-001 añadió un límite de tasa por IP al inicio de POST. Este
+// archivo prueba el ALCANCE del token, no el límite (que tiene su propia
+// prueba en rate-limit-endpoints-publicos.test.ts) — se deja siempre abierto
+// para no acoplar dos guardianes distintos en el mismo archivo.
+vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: async () => null }))
+
 import { POST } from '@/app/api/portal/route'
 import { crearTokenPaciente, verificarTokenPaciente, linkPortalPaciente } from '@/lib/patient-token'
 
@@ -47,7 +53,10 @@ const CLINICA = 'clinica-ficticia'
 const PACIENTE = 'pac-ficticio-001'
 
 function req(body: unknown) {
-  return { json: async () => body } as unknown as Parameters<typeof POST>[0]
+  // PATIENT-PORTAL-001 añadió un límite de tasa por IP que lee `req.headers`
+  // antes de tocar el token: sin este campo, cada llamada de este archivo
+  // reventaría en `req.headers.get is not a function`.
+  return { json: async () => body, headers: new Headers() } as unknown as Parameters<typeof POST>[0]
 }
 
 function snap(docs: Record<string, unknown>[]) {

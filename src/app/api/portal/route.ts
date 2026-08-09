@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import admin, { adminDb } from '@/lib/firebase-admin'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
 import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincronizar-servidor'
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
@@ -156,6 +157,18 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Petición inválida' }, { status: 400 })
   }
+
+  /**
+   * RATE-LIMIT — PATIENT-PORTAL-001. Esta ruta no tenía ningún `limitar*`, a
+   * diferencia de telesalud/sala y public/booking: un token filtrado (teléfono
+   * perdido, mensaje reenviado) permitía enumerar acciones sin freno, y nada
+   * impedía martillar `verificarTokenPaciente` con tokens al azar. Por IP y
+   * ANTES de verificar el token, para que cubra también los intentos con un
+   * token inválido.
+   */
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+  const limIp = await limitarOResponder(`portal:ip:${ip}`, 40, 600, 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.')
+  if (limIp) return limIp
 
   const sesion = verificarTokenPaciente(body.token)
   if (!sesion) {
