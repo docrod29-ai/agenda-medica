@@ -187,6 +187,24 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    /**
+     * Familia abierta el 9-ago-2026 con REG-306 (Master Loop V7).
+     *
+     * No es `no_conectado`: el motor SÍ corría con la entrada completa y SÍ
+     * producía el aviso correcto. El defecto vive un paso después, en un
+     * filtro escrito pensando sólo en el caso mayoritario (el adulto), que
+     * nunca se revisó contra el caso minoritario y de más riesgo.
+     */
+    clave: 'escrito_para_un_solo_caso',
+    nombre: 'Escrito pensando en el caso mayoritario',
+    patron:
+      'La lógica es correcta para el caso que domina el volumen, y nadie la ' +
+      'revisó contra el caso minoritario donde el costo de equivocarse es más ' +
+      'alto. El dato para distinguirlos ya existía en el mismo ámbito; sólo ' +
+      'faltaba pasarlo.',
+    regs: [306],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

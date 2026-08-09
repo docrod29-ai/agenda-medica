@@ -37,7 +37,7 @@ import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
 import { alergiasDe } from '@/lib/seguridad/alergias'
-import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
+import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, filtrarParaReceta, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 // E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
 // local del bucle de dosis; el alias evita cualquier sombra accidental.
@@ -197,8 +197,10 @@ export default function GeneradorRecetaPage() {
       const dosisPrescrita = esDosisPorKg(m.dosis)
         ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
         : cantidad(mg, 'mg', 'masa')
-      const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente })
-        .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
+      const al = filtrarParaReceta(
+        revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente }),
+        esPediatrico,
+      )
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out

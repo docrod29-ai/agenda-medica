@@ -212,11 +212,12 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (v1168)",
       "reversible": true,
       "necesitaMedico": true,
       "origen": "auditoría de nueve dimensiones, hallazgo G2",
-      "score": 41
+      "score": 41,
+      "cierre": "REG-306. No hacía falta criterio nuevo del médico: el umbral pediátrico (<18) ya es el que usa el resto del expediente (renal, copiloto, dosis mg/kg), y `esPediatrico` ya se calculaba en la misma pantalla para la comprobación mg/kg. `filtrarParaReceta(alertas, esPediatrico)` en src/lib/seguridad/dosis.ts conserva `sin_referencia` sólo en pediatría. La bandera necesitaMedico quedó de una lectura anterior del hallazgo; el código no necesitaba una decisión de política, sólo conectar un dato que ya existía."
     },
     {
       "seguridad": 3,

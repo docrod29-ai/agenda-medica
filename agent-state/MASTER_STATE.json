@@ -18,26 +18,15 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1167",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M agent-state/DESIGN_STATE.md",
-    " M agent-state/LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/MASTER_STATE.json",
-    " M agent-state/PATIENT_COMPANION_STATE.md",
-    " M agent-state/V9_COMPLETE_CRITERIA.md",
-    "M  docs/DECISIONES-DEL-DUENO.md",
-    "A  docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md",
-    "M  docs/audit/regression-ledger.md",
-    "MM docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    " M src/__tests__/el-audio-grabado-no-se-borra.test.ts",
-    "A  src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
-    " M src/__tests__/el-sistema-de-diseno-no-pierde-terreno.test.ts",
-    "A  src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts",
-    " M src/__tests__/la-navegacion-devuelve-el-contexto.test.ts"
+    "M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M package-lock.json",
+    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/seguridad/dosis.ts",
+    "?? src/__tests__/la-receta-pediatrica-no-calla-la-falta-de-referencia.test.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -71,12 +60,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "fusion-v9",
+  "ramaActual": "claude/clever-lamport-xw8qwr",
   "derivado": {
-    "regsEnElLedger": 153,
-    "ultimaREG": "REG-305",
-    "archivosDePrueba": 574,
-    "casosDePrueba": 7546,
+    "regsEnElLedger": 154,
+    "ultimaREG": "REG-306",
+    "archivosDePrueba": 575,
+    "casosDePrueba": 7553,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -34,12 +34,13 @@ Eso cambia dónde conviene mirar mañana.
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
 | *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
 | Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
+| *Escrito pensando en el caso mayoritario* | *1* | *La lógica es correcta para el caso que domina el volumen; nadie la revisó contra el minoritario, donde el costo de equivocarse es más alto* |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 34 de 154, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -86,7 +87,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 27 de 153.**
+**«El sistema se contradice a sí mismo» — 27 de 154.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -126,12 +127,25 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 21 de 153**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 21 de 154**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.
+
+## La familia más nueva
+
+**«Escrito pensando en el caso mayoritario» — 1, abierta el 9-ago-2026 con
+REG-306.** La receta filtraba «sin referencia de dosis» para todo paciente por
+igual; en pediatría, donde la dosis va por kilo y el margen es estrecho, callar
+esa ausencia se lee como que la dosis está comprobada. El dato para distinguir
+el caso (`esPediatrico`) ya existía dos líneas más arriba, para otra
+comprobación — sólo faltaba pasarlo a ésta.
+
+No es `no_conectado`: el motor corría con la entrada completa y emitía el aviso
+correcto. El defecto vivía un paso después, en un filtro que nunca se revisó
+contra el caso de mayor riesgo.
 
 ---
 

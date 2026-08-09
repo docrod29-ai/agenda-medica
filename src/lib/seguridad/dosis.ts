@@ -395,6 +395,19 @@ export function peorSeveridad(alertas: AlertaDosis[]): Severidad | null {
   return null
 }
 
+/**
+ * Filtra las alertas que se muestran en la RECETA impresa (SAFE-003).
+ *
+ * `sin_referencia` es informativa, no un hallazgo: "el fármaco no está en el
+ * catálogo" en un adulto se calla para no saturar la receta de avisos sin
+ * acción. En pediatría la dosis va por kilo y el margen es estrecho — callar
+ * que no hay referencia se lee como que la dosis está comprobada, y no lo
+ * está. Ahí se conserva.
+ */
+export function filtrarParaReceta(alertas: AlertaDosis[], esPediatrico: boolean): AlertaDosis[] {
+  return esPediatrico ? alertas : alertas.filter(a => a.codigo !== 'sin_referencia')
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    LA UNIDAD QUE FALTA — un hecho del TEXTO, no un juicio clínico
    ════════════════════════════════════════════════════════════════════════════

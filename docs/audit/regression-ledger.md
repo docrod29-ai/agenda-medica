@@ -7013,3 +7013,37 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — «Sin referencia de dosis» se callaba también en niños (SAFE-003)
+
+**Encontrado** en `agent-state/BACKLOG.json`, ítem SAFE-003 de una auditoría de
+nueve dimensiones anterior (hallazgo G2), retomado por Master Loop V7.
+
+**Qué pasaba.** La pantalla de receta filtraba `codigo === 'sin_referencia'` de
+forma incondicional: si un fármaco no estaba en `CATALOGO`, el aviso «sin
+referencia, verifica manualmente» desaparecía de la receta impresa para
+cualquier paciente, niño incluido.
+
+**Por qué importa.** El filtro es correcto en un adulto (no saturar la receta
+con avisos sin acción), pero en pediatría la dosis va por kilo y el margen
+terapéutico es estrecho. Callar «no hay referencia» ahí se lee como «la dosis
+está comprobada», y no lo está — exactamente lo que la regla 4 de seguridad
+clínica pide no hacer: ausencia de dato no es dato de ausencia.
+
+**Arreglo.** `filtrarParaReceta(alertas, esPediatrico)` en
+`src/lib/seguridad/dosis.ts`: filtra `sin_referencia` sólo cuando el paciente
+NO es pediátrico. El umbral (`< 18`) es el mismo que usa el resto del
+expediente (renal, copiloto, dosis mg/kg) — no se inventó uno nuevo. La
+pantalla de receta (`receta/[patientId]/[notaId]/page.tsx`) ya calculaba
+`esPediatrico` para la comprobación mg/kg dos líneas arriba; sólo faltaba
+pasarlo al filtro.
+
+**Familia.** `escrito_para_un_solo_caso` — el filtro se escribió pensando en el
+adulto (que es la mayoría del volumen) y nunca se revisó contra el caso
+pediátrico, que es donde el margen es más estrecho y el costo de un error más
+alto.
+
+**Guardián.** `src/__tests__/la-receta-pediatrica-no-calla-la-falta-de-referencia.test.ts`,
+7 casos, con el defecto original reproducido y probado al revés.

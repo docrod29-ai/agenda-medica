@@ -1,5 +1,47 @@
 # MASTER LOOP V7 — tablero propio
 
+> **9-ago-2026 — disparo autónomo.** El archivo que el disparo pide leer primero
+> (`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`) no
+> existe en el repositorio y no hay rastro de que haya existido nunca con ese
+> nombre — verificado con `git log --all`. V7 gobierna desde este tablero y
+> desde `agent-state/BACKLOG.json` / `OWNER_DECISIONS_REQUIRED.md`, que sí son
+> reales. Por la regla de coordinación del propio disparo (repositorio →
+> pruebas validadas → historial → **el estado persistente**), se continuó
+> desde aquí en vez de detenerse.
+>
+> **Verificado antes de tocar nada**: la «cola inmediata» de abajo (los cuatro
+> motores sin conectar) ya estaba CERRADA en `main` — cada uno tiene su prueba
+> explicativa en `el-barrido-de-motores-esta-explicado.test.ts`. No se rehizo.
+>
+> `agent-state/LAST_SAFE_CHECKPOINT.md` es el tablero de **V9** (unidad
+> `POSTVISIT-001` en curso, rama `claude/nexus-patient-ux-v9`) — no se tocó,
+> por la misma regla de coordinación: no duplicar ni pisar trabajo de otro
+> programa. Este disparo trabajó SAFE-003 de `BACKLOG.json`, que no lleva
+> `prioridadV9` y estaba `pendiente`.
+>
+> **Cerrado esta sesión — REG-306.** «Sin referencia de dosis» se filtraba en
+> la receta para todo paciente por igual; en pediatría, donde el margen mg/kg
+> es estrecho, callar esa ausencia se leía como dosis comprobada.
+> `filtrarParaReceta(alertas, esPediatrico)` en `src/lib/seguridad/dosis.ts`
+> la conserva sólo ahí, con el mismo umbral (`<18`) que ya usa el resto del
+> expediente. Guardián:
+> `src/__tests__/la-receta-pediatrica-no-calla-la-falta-de-referencia.test.ts`
+> (7 casos, defecto original reproducido y probado al revés). Familia nueva en
+> `familias-de-defecto.ts`: `escrito_para_un_solo_caso`.
+>
+> Compuertas: `npx vitest run` 8 561/8 562 (1 skip intencional) · lint-trinquete
+> 96 = techo, sin deuda nueva · `tsc --noEmit` limpio · `npm run build` llega
+> hasta la recolección de datos de página y falla en `/dr/[clinicId]` por
+> `auth/invalid-api-key` — **limitación de entorno ya documentada** en
+> `BACKLOG.json` (NAV-NAVEGADOR-001: «este contenedor no tiene variables de
+> Firebase»), no causada por este cambio; TypeScript compiló limpio antes de
+> ese punto, por los dos caminos (`next build` y `tsc --noEmit` aparte).
+>
+> **Siguiente para V7**: `EVAL-003` — los tres scripts de corpus de voz no
+> corren en CI porque el corpus vive en el disco del dueño; un trinquete que no
+> encuentra sus datos pasa en verde sin medir nada (score 48, pendiente, sin
+> `prioridadV9`).
+
 > **Separado de V9 el 8-ago-2026.** Los dos programas compartían
 > `CURRENT_ITERATION.md` y se pisaban: V9 reescribió la cabecera mientras V7
 > trabajaba. Ahora cada uno tiene el suyo.
