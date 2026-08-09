@@ -11,6 +11,7 @@
 | | |
 |---|---|
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **SHA de cierre** | `4bca5e3` |
 | **Siguiente** | **`PATIENT-AI-001`** |
 
 **El bucle se cierra por primera vez.** El médico firma, pulsa «Entregar al
