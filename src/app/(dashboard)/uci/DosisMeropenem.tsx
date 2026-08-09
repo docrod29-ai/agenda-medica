@@ -68,7 +68,7 @@ export function DosisMeropenem({ crClSugerido }: { crClSugerido?: number | null 
         fármacos no están y no se infieren.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(150px, 100%),1fr))', gap: 10, marginBottom: 12 }}>
         <div>
           <label style={lbl} htmlFor="mero-crcl">CrCl (mL/min)</label>
           <input

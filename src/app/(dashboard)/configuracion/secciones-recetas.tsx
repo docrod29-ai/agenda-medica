@@ -430,7 +430,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
             {rx.disenoCompletoDataUrl && (
               <span style={{
                 fontSize: 10.5, fontWeight: 700, padding: '4px 10px',
-                background: 'var(--teal)', color: '#000', borderRadius: 'var(--r-pill)',
+                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
               }}>
                 ACTIVO
               </span>
@@ -1379,7 +1379,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
           display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12,
           fontSize: 13, fontWeight: 700, padding: '8px 14px', borderRadius: 9,
           cursor: detectando ? 'wait' : 'pointer', border: 'none',
-          background: 'var(--nexus)', color: '#fff',
+          background: 'var(--nexus-solido)', color: '#fff',
         }}
       >
         {detectando
@@ -1410,7 +1410,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
             <div key={c.k} onPointerDown={(e) => { e.preventDefault(); setArrastrando(c.k) }}
               style={{
                 position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%,-50%)',
-                background: 'var(--nexus)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                background: 'var(--nexus-solido)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px',
                 borderRadius: 6, cursor: 'grab', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}>

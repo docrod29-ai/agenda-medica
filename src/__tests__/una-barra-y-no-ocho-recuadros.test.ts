@@ -25,16 +25,29 @@ const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const barra = leer('src', 'components', 'AntesDeFirmar.tsx')
 const page = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 
-/** Los nueve orígenes, para que añadir uno obligue a declarar su nivel. */
+/**
+ * Los orígenes, para que añadir uno obligue a declarar su nivel.
+ *
+ * Ya funcionó: al conectar el experienciador (§B8, REG-210) esta prueba se puso
+ * roja hasta que `antecedente_del_familiar` quedó escrito aquí y en `NIVEL`. Un
+ * motor nuevo no puede colarse en la barra sin que alguien diga si bloquea.
+ */
 const ORIGENES: OrigenAviso[] = [
   'dosis_incompleta', 'alergia_medicamento', 'contradiccion_negacion',
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
-  'dosis_peligrosa',
+  'dosis_peligrosa', 'antecedente_del_familiar', 'dato_incierto',
+  'sin_respaldo_en_el_dictado',
+  /**
+   * REG-238 — «14 editas», «24 tras». Declarado aquí a mano y a propósito:
+   * esta lista es la que impide que un motor nuevo se cuele en la barra sin
+   * que alguien diga si bloquea. Este AVISA, no bloquea.
+   */
+  'pauta_deformada',
 ]
 
 describe('la tabla de niveles no se puede degradar en silencio', () => {
-  it('los nueve orígenes tienen nivel explícito', () => {
+  it('todos los orígenes tienen nivel explícito', () => {
     for (const o of ORIGENES) {
       expect(NIVEL[o], `${o} sin nivel declarado`).toBeDefined()
       expect(['bloquea', 'revisa', 'contexto']).toContain(NIVEL[o])
@@ -91,7 +104,7 @@ describe('lo que puede matar hoy nunca se pliega', () => {
 })
 
 describe('ningún aviso se perdió al reordenarlos', () => {
-  it('los nueve motores siguen llegando a la barra', () => {
+  it('todos los motores siguen llegando a la barra', () => {
     const avisos = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'sin cantidad' }],
       alergiaMedicamento: [{ mensaje: 'penicilina', severidad: 'critica' }],
@@ -105,6 +118,11 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       faltantesCriticos: ['confirmación bacteriológica'],
       yaLoBloqueaNOM004: ['Falta: Exploración física'],
       dosisPeligrosas: [{ med: 'paracetamol', mensaje: '10 g por toma', critica: true }],
+      antecedentesDeFamiliar: [{ frase: 'mi mamá tuvo cáncer de mama', parentesco: 'mamá' }],
+      datosInciertos: [{ frase: 'creo que tenía anemia', matiz: 'duda', marca: 'creo que' }],
+      sinRespaldo: [{ afirmacion: 'nefropatía diabética estadio 4', huerfanas: ['nefropatia'] }],
+      /** Su caso literal, de una nota ya firmada (REG-238). */
+      pautas: [{ nombre: 'Moxifloxacino', frecuencia: '24 tras', duracion: '14 editas' }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

@@ -126,7 +126,7 @@ export default function MembresiasPage() {
       {/* Planes */}
       <Section titulo={`Planes (${planes.length})`} icon={<CreditCard size={16} />}>
         {planes.length === 0 ? <Vacio texto="Crea tu primer plan de membresía." /> : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 10 }}>
             {planes.map(p => (
               <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 14, background: 'var(--s1, rgba(127,127,127,.04))' }}>
                 <div style={{ fontWeight: 700, color: 'var(--text)' }}>{p.nombre}</div>

@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-204 · un valor de pánico CENSURADO se archivaba como normal.
+ * GOLDEN — REG-270 · un valor de pánico CENSURADO se archivaba como normal.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *

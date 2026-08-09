@@ -35,7 +35,7 @@ export interface ResultadoValidado {
    * `valor` guarda el número pelado (las gráficas necesitan un número), así que
    * SIN esto el expediente afirmaría una glucosa de 400 donde el laboratorio
    * sólo dijo «más de 400». El prompt de visión ordena conservar el signo; aquí
-   * es donde tiene que llegar (REG-204).
+   * es donde tiene que llegar (REG-270).
    */
   censurada?: Censura
   unidad: string
@@ -150,7 +150,7 @@ export interface SerieAnalito {
   grupo: string
   refMin?: number
   refMax?: number
-  /** El comparador viaja con el punto: la franja de críticos lo imprime (REG-204). */
+  /** El comparador viaja con el punto: la franja de críticos lo imprime (REG-270). */
   puntos: { fecha: string; valor: number; critico: boolean; censurada?: Censura }[]
 }
 

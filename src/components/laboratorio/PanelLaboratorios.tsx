@@ -144,7 +144,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
         porGrupo.map(([grupo, ss]) => (
           <div key={grupo}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>{GRUPO_LABEL[grupo] ?? grupo}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))', gap: 10 }}>
               {ss.map(s => <GraficaLab key={s.clave} titulo={s.etiqueta} unidad={s.unidad} puntos={s.puntos} refMin={s.refMin} refMax={s.refMax} />)}
             </div>
           </div>

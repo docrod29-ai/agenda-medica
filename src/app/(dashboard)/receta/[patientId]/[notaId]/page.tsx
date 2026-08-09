@@ -25,6 +25,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { getNota } from '@/lib/expediente/firestore'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
 import { estaVigente } from '@/lib/expediente/ordenes-medicamento'
+import { loQueSeReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { etiquetaVia } from '@/lib/receta-paginacion'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica, Medicamento } from '@/types/expediente'
@@ -247,7 +248,21 @@ export default function GeneradorRecetaPage() {
          * registra una suspensión, en la nota de hoy—. Copiarlas tal cual a la
          * receta imprimiría en el papel justo el fármaco que se acaba de retirar.
          */
-        setMedicamentos((n.medicamentos ?? [])
+        /**
+         * LO QUE YA TOMABA NO SE RECETA.
+         *
+         * Petición del médico dueño, con sus palabras: «no me gusta que hagas
+         * la receta con lo que te digo de antecedentes, la receta es cuando ya
+         * te estén diciendo el plan».
+         *
+         * La NOTA conserva los dos —la medicación habitual forma parte del
+         * expediente y de ella cuelgan los cruces de alergia e interacciones—;
+         * lo que cambia es que al PAPEL sólo baja lo de hoy.
+         *
+         * Sin etiqueta se imprime: quitar de la receta un antibiótico que sí se
+         * prescribió es peor que dejar un renglón que se borra de un toque.
+         */
+        setMedicamentos(loQueSeReceta(n.medicamentos ?? [])
           .filter(m => estaVigente(m))
           .map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
         // Diagnóstico principal: primero activo de tipo definitivo, o el primero

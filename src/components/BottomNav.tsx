@@ -83,7 +83,7 @@ export function BottomNav() {
       >
         <span style={{
           width: 46, height: 46, borderRadius: '50%', marginTop: -18,
-          background: 'var(--teal)', color: '#000',
+          background: 'var(--nexus-solido)', color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 4px 14px rgba(20,184,166,0.45)', border: '3px solid var(--s1)',
         }}>

@@ -87,8 +87,10 @@ export interface Internamiento {
 // ══════════════════════════════════════════════════════════════
 // F2 — Interconsultas
 // ══════════════════════════════════════════════════════════════
-// Catálogo compartido con el alta de equipo (fuente única en @/lib/especialidades).
-export { ESPECIALIDADES_INTERCONSULTA as ESPECIALIDADES_IC } from '@/lib/especialidades'
+// Catálogo compartido con el alta de equipo. La fuente única es
+// `@/lib/especialidades` y se importa DE AHÍ: re-exportarlo desde aquí metía
+// código en tiempo de ejecución dentro de `types/`, que debe ser una hoja del
+// grafo de dependencias (v1087). Ver docs/architecture/DIRECCION-DE-DEPENDENCIAS.md.
 
 export interface Interconsulta {
   id: string

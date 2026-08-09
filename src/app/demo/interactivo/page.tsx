@@ -96,7 +96,9 @@ function Pasos({ paso }: { paso: DemoPaso }) {
   const orden = items.map(i => i.k)
   const actualI = orden.indexOf(paso)
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    // `flexWrap` porque en un teléfono de 390 px estas cinco pestañas piden 425 y
+    // la página entera se movía de lado. Medido con el navegador, no leído.
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
       {items.map((it, i) => {
         const hecho = i < actualI, activo = i === actualI
         return (
@@ -104,7 +106,7 @@ function Pasos({ paso }: { paso: DemoPaso }) {
             <span style={{
               fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)',
               color: activo ? '#fff' : hecho ? 'var(--nexus)' : 'var(--text3)',
-              background: activo ? 'var(--nexus)' : hecho ? 'var(--nexus-soft)' : 'var(--s2)',
+              background: activo ? 'var(--nexus-solido)' : hecho ? 'var(--nexus-soft)' : 'var(--s2)',
               border: '1px solid ' + (activo || hecho ? 'var(--border2)' : 'var(--border)'),
             }}>{it.label}</span>
             {i < items.length - 1 && <span style={{ width: 10, height: 1, background: 'var(--border2)' }} />}
@@ -277,7 +279,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
           <button key={k} onClick={() => setDoc(k)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
             padding: '6px 14px', borderRadius: 'var(--r-pill)', border: 'none',
-            background: doc === k ? 'var(--nexus)' : 'transparent', color: doc === k ? '#fff' : 'var(--text2)',
+            background: doc === k ? 'var(--nexus-solido)' : 'transparent', color: doc === k ? '#fff' : 'var(--text2)',
           }}><Icono size={14} /> {label}</button>
         ))}
       </div>
@@ -482,7 +484,7 @@ function ModUCI() {
       {estado === 'listo' && (<>
         <div style={{ ...card, marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}><CheckCircle2 size={15} style={{ color: 'var(--nexus)' }} /> El código calculó (no la IA)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(130px, 100%),1fr))', gap: 8 }}>
             {metricas.map(([l, n, t]) => (
               <div key={l} style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', opacity: n === '—' ? 0.5 : 1 }}>
                 <div style={{ fontSize: 11, color: 'var(--text3)' }}>{l}</div>
@@ -570,7 +572,7 @@ function ModAntibiograma() {
       <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12 }}>
         Organismo: <strong style={{ color: 'var(--text)' }}>Staphylococcus aureus</strong> · Sitio: <strong style={{ color: 'var(--text)' }}>piel y partes blandas</strong> · panel de sensibilidad de ejemplo.
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 8, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(150px, 100%),1fr))', gap: 8, marginBottom: 14 }}>
         {panel.map(([ab, v]) => (
           <div key={ab} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderRadius: 9, background: 'var(--s2)', border: '1px solid var(--border)' }}>
             <span style={{ fontSize: 12.5 }}>{ab}</span>
@@ -619,7 +621,7 @@ function ModConsultorIA() {
         {chat.map((m, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: m.de === 'yo' ? 'flex-end' : 'flex-start' }}>
             <span style={{ maxWidth: '85%', fontSize: 12.5, lineHeight: 1.5, padding: '9px 12px', borderRadius: 12,
-              background: m.de === 'yo' ? 'var(--nexus)' : 'var(--s2)', color: m.de === 'yo' ? '#fff' : 'var(--text)',
+              background: m.de === 'yo' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.de === 'yo' ? '#fff' : 'var(--text)',
               border: m.de === 'yo' ? 'none' : '1px solid var(--border)' }}>{m.texto}</span>
           </div>
         ))}
@@ -645,7 +647,7 @@ function ModHerramientas() {
     { t: 'NEWS2 / signos', d: 'Score de deterioro a partir de los signos vitales.', ej: 'Ej.: FR 24, SpO₂ 92%, TA 100 → NEWS2 elevado, vigilar.' },
   ]
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(240px, 100%),1fr))', gap: 10 }}>
       {items.map(it => (
         <div key={it.t} style={{ ...card, padding: 15 }}>
           <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 4 }}>{it.t}</div>

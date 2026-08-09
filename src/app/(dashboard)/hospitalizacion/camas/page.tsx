@@ -184,7 +184,7 @@ export default function CamasPage() {
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)' }}>{servicio}</span>
                     <span style={{ fontSize: 12, color: pct >= 85 ? '#dc2626' : 'var(--text3)', fontWeight: 600 }}>{occ}/{lista.length} · {pct}%</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(150px, 100%), 1fr))', gap: 8 }}>
                     {lista.map(c => {
                       const oc = ocupante(c)
                       const estado: EstadoCama = oc ? 'ocupada' : c.estado

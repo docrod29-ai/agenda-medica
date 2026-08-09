@@ -23,7 +23,7 @@ interface FhirObs {
   /**
    * `comparator` es FHIR estándar y es como el LIS dice «>400» o «<50». Se
    * ignoraba, así que el valor de pánico entraba como el número pelado y el
-   * motor lo daba por normal (REG-204, mismo defecto que en la ruta de visión).
+   * motor lo daba por normal (REG-270, mismo defecto que en la ruta de visión).
    */
   valueQuantity?: { value?: number; unit?: string; comparator?: string }
   valueString?: string
