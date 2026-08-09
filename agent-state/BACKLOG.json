@@ -114,7 +114,7 @@
       "titulo": "El motor de negaciones leía la frase como un saco de palabras",
       "score": 78,
       "estado": "cerrado",
-      "cerradoEn": "REG-192 · v1074",
+      "cerradoEn": "REG-205 · v1087",
       "origen": "Auditoría de nueve dimensiones, hallazgos C2/C3",
       "queEra": "Cinco defectos con una sola causa: el motor no miraba DÓNDE estaban el negador ni el término. 11 de 17 negaciones del habla real no se veían; «no sé» contaba como negación; un negador negaba toda la frase (y el panel de entidades reclasificaba a descartado un diagnóstico real); «plasma» disparaba «asma»; la contradicción sólo se buscaba en la primera mención.",
       "golden": "src/__tests__/asi-se-dice-que-no-en-mexico.test.ts"
@@ -124,7 +124,7 @@
       "titulo": "La negación con matiz («creo que no», «casi nunca», «hace mucho que no»)",
       "score": 41,
       "estado": "pendiente · necesita decisión clínica",
-      "origen": "Derivado de REG-192: se dejó fuera a propósito",
+      "origen": "Derivado de REG-205: se dejó fuera a propósito",
       "queEs": "Son negaciones hedgeadas. Detectarlas alimentaría un reclasificador que marca *descartado*, así que el coste de acertar de más es borrar un diagnóstico. La opción alternativa —detectarlas pero con nivel propio, que pregunte en vez de reclasificar— exige decidir qué hace la interfaz con ellas. Anotado en OWNER_DECISIONS_REQUIRED como C-6.",
       "bloqueadoPor": "C-6"
     }

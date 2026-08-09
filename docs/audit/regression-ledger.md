@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — el motor de negaciones leía la frase como un saco de palabras (v1074)
+## REG-205 — el motor de negaciones leía la frase como un saco de palabras (v1087)
 
 **Encontrado** — 7-ago-2026, hallazgos C2/C3 de la auditoría de nueve
 dimensiones («faltan negadores del habla real»). Al reproducirlo con el motor

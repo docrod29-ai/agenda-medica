@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el motor de negaciones leía la frase como un saco de palabras
+## v1087 — REG-205: el motor de negaciones leía la frase como un saco de palabras
 
 «¿Padece diabetes? **Pues** no» no se veía: `NEGATIVAS` exigía que el «no» fuera
 la primera palabra. Medido con el motor, once de diecisiete respuestas negativas

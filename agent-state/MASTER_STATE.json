@@ -10,18 +10,18 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "NEG-001 / REG-192 (cerrada)",
+  "iteracionActual": "NEG-001 / REG-205 (cerrada)",
   "ramasActivas": [
     "agent/clinico/NEG-001"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
-  "ultimaVersionPreparada": "nexusmed-v1074 (en PR, sin desplegar)",
+  "ultimaVersionPreparada": "nexusmed-v1087 (en PR, sin desplegar)",
   "ultimaIteracion": {
     "fecha": "2026-08-07",
     "item": "NEG-001",
-    "reg": "REG-192",
+    "reg": "REG-205",
     "compuertas": "vitest 6950 verdes (+36) · tsc limpio · lint 96 = techo · build limpio",
     "salvedad": "src/__tests__/ops-timeout-y-punto-ciego.test.ts falla en ESTE contenedor y también en árbol limpio: el sandbox contesta a 10.255.255.1 en vez de tragarse el paquete. No es regresión y no se tocó.",
     "siguiente": "C2/C3 cerrado. Del plan de la auditoría quedan las reparaciones sin priorizar; el siguiente ítem con score propio es NEG-002, bloqueado por la decisión C-6."
