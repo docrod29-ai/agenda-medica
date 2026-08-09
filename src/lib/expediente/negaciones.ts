@@ -42,6 +42,7 @@
  *
  * Módulo PURO.
  */
+import { primeraMencionSinEscudo } from '@/lib/expediente/mencion-en-la-nota'
 
 /**
  * Las enfermedades que se preguntan en el interrogatorio dirigido, con las
@@ -171,6 +172,15 @@ const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|no\s+(?:tiene|tengo|padece|padezco|r
  * tiene que estar justo delante del término.
  */
 const NIEGA_PEGADO = /\b(?:no\s+(?:es|era|fue|soy|son)|niega\s+ser)\s+(?:un[ao]?\s+)?$/i
+
+/**
+ * El escudo que `primeraMencionSinEscudo` busca delante de cada mención.
+ *
+ * Las dos formas juntas, porque el módulo compartido admite un solo patrón: la
+ * negación de ventana y la pegada. Cada una trae su propio anclaje, así que la
+ * alternancia no las mezcla — la pegada sigue exigiendo estar justo delante.
+ */
+const ESCUDO_DE_LA_NOTA = new RegExp(`${NIEGA_EN_LINEA.source}|${NIEGA_PEGADO.source}`, 'i')
 
 const sinAcentos = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -309,30 +319,18 @@ export interface Contradiccion extends Negada {
  * Una mención no basta: la nota puede decir «niega diabetes», que es justo lo
  * correcto. Se busca el término y se mira hacia atrás por si ya viene negado; si
  * viene, no hay contradicción.
+ *
+ * Se miran **todas** las apariciones y no sólo la primera: una nota que niega la
+ * diabetes en el interrogatorio y la diagnostica en la impresión tenía las dos
+ * cosas, y la primera silenciaba a la segunda (REG-192). El criterio vive en
+ * `mencion-en-la-nota.ts` porque la temporalidad tenía esta misma línea copiada.
  */
 export function contradicciones(negadas: readonly Negada[], textoNota: string): Contradiccion[] {
-  const t = sinAcentos(textoNota)
   const out: Contradiccion[] = []
   for (const n of negadas) {
     const formas = CRONICAS.find(c => c.canonica === n.condicion)?.formas ?? [n.condicion]
-    for (const forma of formas) {
-      const idx = t.indexOf(sinAcentos(forma))
-      if (idx < 0) continue
-      /**
-       * La ventana hacia atrás es de 60 caracteres.
-       *
-       * Es la distancia en la que cabe «niega …» o «sin antecedente de …» en la
-       * misma oración. Más larga empezaría a leer la oración anterior y una
-       * negación ajena taparía una afirmación real — que es el fallo caro.
-       */
-      const antes = textoNota.slice(Math.max(0, idx - 60), idx)
-      if (NIEGA_EN_LINEA.test(antes)) continue
-      // «No es diabético» en la nota también es una negación bien escrita, pero
-      // sólo si está pegada: ver `NIEGA_PEGADO`.
-      if (NIEGA_PEGADO.test(antes)) continue
-      out.push({ ...n, enLaNota: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() })
-      break
-    }
+    const m = primeraMencionSinEscudo(textoNota, formas, ESCUDO_DE_LA_NOTA)
+    if (m) out.push({ ...n, enLaNota: m.cita })
   }
   return out
 }

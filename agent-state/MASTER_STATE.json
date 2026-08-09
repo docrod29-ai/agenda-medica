@@ -10,8 +10,9 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "VOICE-005 (cerrada) — REG-197 / v1079",
+  "iteracionActual": "VOICE-005 (cerrada, PR #237 abierto) — REG-197 / v1079",
   "ramasActivas": [
+    "agent/expediente/TEMP-192",
     "agent/infra/INFRA-001",
     "agent/ops/OPS-001",
     "agent/safety/SAFE-002",
@@ -20,12 +21,12 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "trabajoLocalSinSubir": [],
   "ultimaVersionEnRama": "nexusmed-v1079",
-  "compuertas": {
-    "vitest": "6946 en verde de 6947; el único fallo es AJENO y preexistente: ops-timeout-y-punto-ciego (la IP agujero negro 10.255.255.1 responde a través del proxy de este contenedor en vez de colgarse). Comprobado en árbol limpio, sin mis cambios.",
-    "tsc": "limpio",
-    "lint": "96, igual que el techo",
-    "build": "limpio con las variables placeholder de CI"
-  }
+  "trabajoLocalSinSubir": [],
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "9-ago-2026: REG-197 (PR #237) se fusionó con main tras la renumeración OPS-003. El conflicto de fondo era real y no de números: main reemplazó el bucle de contradicciones() por primeraMencionSinEscudo (REG-192). Se toma la de main, que mira TODAS las apariciones, y la negación pegada viaja con ella en ESCUDO_DE_LA_NOTA.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó. CI sí lo pasa.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
+  ]
 }
