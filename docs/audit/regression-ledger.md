@@ -5172,3 +5172,76 @@ registrarse: leer el primer identificador tras `animation:` capturaba la
 condición de un ternario (`voz`), y leer toda cadena entrecomillada capturaba un
 valor comparado (`'grabando'`). Exigir que la cadena traiga duración distingue
 las tres cosas. **Un guardián que grita de más se acaba silenciando** — REG-245.
+
+## REG-271 — transcribir 90 segundos borraba los 22 minutos anteriores (v1151)
+
+**Encontrado** — 9-ago-2026, ítem `PATIENT-AUDIO-001` del backlog (score 88, el
+más alto), nacido de la auditoría del producto real `PATIENT-UX-TRUTH-001`.
+Verificado y reproducido antes de tocar nada: no se reparó por el reporte.
+
+**El defecto** — `detener()` arma el blob que se manda a transcribir con
+`todosChunksRef`, que son **los trozos de la sesión de grabación en curso**. Al
+terminar con éxito llamaba a `borrarChunks(recoveryKey)`, y ese borrado usaba el
+rango COMPLETO de la llave: `IDBKeyRange.bound([k, 0], [k, MAX_SAFE_INTEGER])`.
+
+La llave no es por sesión — es `consulta-{patientId}`, la misma cada vez que se
+abre a ese paciente. Y bajo ella puede haber audio de una grabación **anterior**
+que nadie transcribió: navegar fuera de la consulta desmonta el hook, que libera
+el micrófono sin llamar a `detener()` (eso es `PATIENT-AUDIO-002`, que sigue
+abierto). El hook ya sabía que ese huérfano existe — al empezar a grabar cuenta
+los trozos que ya hay y arranca su índice DESPUÉS (`recoveryBaseRef`) justamente
+para no pisarlo.
+
+La defensa estaba escrita **a medias**: protegía al escribir y no al borrar. Y el
+comentario de `iniciar()` afirmaba lo contrario de lo que pasaba —«en éxito,
+borrarChunks limpia todo y la próxima grabación arranca en 0»—, que es por lo que
+podía leerse el código entero sin ver el agujero.
+
+**Cómo se reprodujo** — El almacén era privado de `useGrabacionAudio.ts` y no se
+podía probar: ese archivo arrastra React, Firebase y el pipeline de ASR, y la
+suite corre en `node`. Se sacó **sin cambiarlo** a
+`src/lib/audio/recuperacion-chunks.ts` y, contra un IndexedDB real
+(`fake-indexeddb`), se ejecutó la secuencia: tres trozos huérfanos → una sesión
+nueva que arranca en el índice 3 → `borrarChunks` al terminar. La llave quedaba
+en `[]`. Con el arreglo revertido la prueba vuelve a ponerse roja; comprobado.
+
+**Por qué importa para un paciente** — Secuencia nada rebuscada: dictar 22
+minutos de consulta → tocar «Agenda» en la barra inferior para ver la hora del
+siguiente paciente → volver → dictar 90 segundos más → detener. Los 90 segundos
+se transcriben y salen en pantalla; los 22 minutos desaparecen de IndexedDB sin
+haber pasado por ningún transcriptor. **No hay error y no hay aviso** —al
+contrario: la pantalla acaba de dar una transcripción exitosa—, y el cartel de
+«Recuperar audio» ya no tiene nada que ofrecer. Se pierde la materia prima de la
+nota: lo que el paciente contó, que es justo lo que el producto promete no
+perder.
+
+**Reparación** — `borrarChunks(recoveryKey, desde = 0)`. Sólo se borra lo que se
+acaba de leer: las **tres** salidas exitosas de `detener()` —dictado sin
+diarización, diarización, y transcripción por partes— pasan
+`recoveryBaseRef.current`. Quien sí transcribe el rango entero (`recuperarAudio`)
+y quien descarta a propósito (`descartarRecovery`) siguen en `desde = 0`, que es
+el borrado de siempre. El cambio sólo puede conservar MÁS audio, nunca menos.
+
+**Qué NO hace, declarado** —
+
+- **No arregla `PATIENT-AUDIO-002`**: navegar sigue terminando la grabación sin
+  transcribirla, en silencio. Esto sólo garantiza que ese audio **sobreviva**
+  para poder recuperarse a mano.
+- **No arregla `PATIENT-AUDIO-003`**: el cierre por inactividad sigue llamando a
+  `deleteDatabase('nexusmed-recovery')`, que se lleva la base entera y ni siquiera
+  pasa por estas funciones.
+- **No toca el botón rojo «Cancelar y borrar esta grabación»**, que sigue
+  borrando el rango completo vía `descartarRecovery`. Es una decisión explícita
+  del médico, con confirmación; cambiar qué borra un botón destructivo que él
+  aprieta a sabiendas sería cambiarle la decisión, no repararla.
+- No cubre la carrera entre dos pestañas grabando al mismo paciente a la vez.
+
+**Qué queda para el médico** — Nada para que esto sirva. Sí queda decidir el
+orden en que se atacan `PATIENT-AUDIO-002` y `-003`: los dos cambian
+comportamiento visible —uno lanza una transcripción al navegar, el otro cambia
+cuándo se cierra la sesión por inactividad— y ninguno es corrección silenciosa.
+
+**Comprobado que puede ponerse rojo** — Revertido el rango a `[k, 0]`, la prueba
+falla con `expected [] to deeply equal ['huerfano-0', 'huerfano-1', 'huerfano-2']`.
+
+**Golden** — `src/__tests__/recuperacion-audio-no-borra-lo-que-no-transcribio.test.ts` (4 casos).

@@ -6,6 +6,7 @@ import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { quitarEcoDeCabecera, quitarSolapeConAnterior } from '@/lib/asr/eco-de-cabecera'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
 import { cambiosVisibles, type CambioVisible } from '@/lib/asr/cambios-visibles'
+import { guardarChunk, leerChunks, borrarChunks } from '@/lib/audio/recuperacion-chunks'
 /**
  * EL PIPELINE COMPLETO, no sólo el guardián.
  *
@@ -304,71 +305,10 @@ const INTERVALO_CHUNK_DEFAULT_MS = 20_000
 const TROZO_MS = 2000
 
 // ─────────────────────────────────────────────────────────────────
-// IndexedDB — almacén minimalista para crash recovery
+// IndexedDB — el almacén de trozos vive en `@/lib/audio/recuperacion-chunks`
+// (se sacó de aquí para poder probarlo: este archivo arrastra React, Firebase
+// y el pipeline de ASR, y la suite corre en `node`).
 // ─────────────────────────────────────────────────────────────────
-
-const DB_NAME = 'nexusmed-recovery'
-const STORE = 'audio_chunks'
-
-function abrirDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1)
-    req.onupgradeneeded = () => {
-      const db = req.result
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: ['recoveryKey', 'idx'] })
-      }
-    }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
-}
-
-async function guardarChunk(recoveryKey: string, idx: number, blob: Blob) {
-  try {
-    const db = await abrirDB()
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite')
-      tx.objectStore(STORE).put({ recoveryKey, idx, blob, ts: Date.now() })
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(tx.error)
-    })
-    db.close()
-  } catch {
-    // IndexedDB puede fallar en modo privado — no es bloqueante
-  }
-}
-
-async function leerChunks(recoveryKey: string): Promise<Blob[]> {
-  try {
-    const db = await abrirDB()
-    const chunks: { idx: number; blob: Blob }[] = await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readonly')
-      const range = IDBKeyRange.bound([recoveryKey, 0], [recoveryKey, Number.MAX_SAFE_INTEGER])
-      const req = tx.objectStore(STORE).getAll(range)
-      req.onsuccess = () => resolve(req.result ?? [])
-      req.onerror = () => reject(req.error)
-    })
-    db.close()
-    return chunks.sort((a, b) => a.idx - b.idx).map(c => c.blob)
-  } catch {
-    return []
-  }
-}
-
-async function borrarChunks(recoveryKey: string) {
-  try {
-    const db = await abrirDB()
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite')
-      const range = IDBKeyRange.bound([recoveryKey, 0], [recoveryKey, Number.MAX_SAFE_INTEGER])
-      tx.objectStore(STORE).delete(range)
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(tx.error)
-    })
-    db.close()
-  } catch { /* */ }
-}
 
 const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
 
@@ -1272,7 +1212,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
     // Si ya hay chunks bajo esta llave (p. ej. audio de una transcripción que
     // falló y NO se ha recuperado), NO los pises: continúa el índice DESPUÉS de
-    // ellos. En éxito, borrarChunks limpia todo y la próxima grabación arranca en 0.
+    // ellos. En éxito se borra SÓLO el rango de esta sesión (REG-271): lo que
+    // quedó huérfano no pasó por ningún transcriptor y no es nuestro para borrar.
     recoveryBaseRef.current = 0
     if (recoveryKeyRef.current) {
       try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
@@ -1559,7 +1500,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (texto.trim()) {
         setUtterances([]); utterancesRef.current = []
         aplicar(texto)
-        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+        // Se borra el rango de ESTA sesión, no el de la llave (REG-271): puede
+        // llevar encima audio huérfano que nadie transcribió. El porqué entero
+        // está en `recuperacion-chunks.ts`.
+        if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
         return
       }
       // Sin texto: cae al camino de siempre, que ya sabe usar el respaldo en vivo.
@@ -1575,7 +1519,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       aplicar(diar.text)
       setSinDiarizacion(null)
-      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current)
+      // Mismo motivo que arriba (REG-271): se borra el rango de esta sesión, no
+      // el de la llave, que puede llevar encima audio que nadie transcribió.
+      if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
     /**
@@ -1623,8 +1569,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (texto.trim() && !todoFalló) {
       aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
-      // audio es lo único que permite recuperarlo: se conserva.
-      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current)
+      // audio es lo único que permite recuperarlo: se conserva. Y aun sin tramos
+      // perdidos, se borra sólo el rango de esta sesión (REG-271): lo anterior a
+      // `recoveryBaseRef` no entró en `allChunks` y no pasó por aquí.
+      if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
     }
 

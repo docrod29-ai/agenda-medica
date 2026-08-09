@@ -11,33 +11,25 @@
     "cambiosDestructivos": false,
     "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
+  "iteracionActual": "REG-271 cerrado (PATIENT-AUDIO-001). Siguiente en el backlog: PATIENT-AUDIO-002, score 86.",
   "ramasActivas": [
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1150",
+  "ultimaVersionEnProduccion": "nexusmed-v1151",
   "trabajoLocalSinSubir": [
-    "M  agent-state/BACKLOG.json",
-    "M  agent-state/CURRENT_ITERATION.md",
-    "M  agent-state/DESIGN_STATE.md",
-    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/PATIENT_COMPANION_STATE.md",
-    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
-    "M  docs/audit/regression-ledger.md",
-    "A  docs/competitive/PATIENT_EXPERIENCE_MATRIX.md",
-    "A  docs/competitive/UX_UI_MATRIX.md",
-    "M  docs/data-room/INDICE.md",
-    "A  docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
-    "A  docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
-    "A  docs/design/NAVIGATION_STATE_AUDIT.md",
-    "AM docs/design/SCREEN_INVENTORY.md",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/maintenance/BITACORA-2026-08-01-tarde.md",
     " M docs/maintenance/sw-changelog.md",
-    "A  docs/patient/PATIENT_COMPANION_BASELINE.md",
-    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    "A  scripts/design/inventario-de-pantallas.mjs"
+    " M src/hooks/useGrabacionAudio.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "?? src/__tests__/recuperacion-audio-no-borra-lo-que-no-transcribio.test.ts",
+    "?? src/lib/audio/"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -73,10 +65,11 @@
   ],
   "ramaActual": "agent/v7/master-loop",
   "derivado": {
-    "regsEnElLedger": 117,
-    "ultimaREG": "REG-269",
-    "archivosDePrueba": 548,
-    "casosDePrueba": 7243,
+    "regsEnElLedger": 118,
+    "ultimaREG": "REG-271",
+    "archivosDePrueba": 549,
+    "casosDePrueba": 7247,
     "lint": "ver scripts/lint-trinquete.mjs"
-  }
+  },
+  "notaDeLaIteracion": "El clon traia el ref de origin/main obsoleto (v1073/REG-191) y se ramifico desde ahi; se rehizo sobre la punta real tras git fetch. Regla: git fetch ANTES de ramificar. REG-270 estaba cogido por origin/agent/expediente/REG-270-negacion-parser, de ahi el 271."
 }

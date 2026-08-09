@@ -2614,3 +2614,16 @@ colgó», y se vuelve a pulsar sobre una petición que sí corría.
 Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
 reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
 programas compartieran directorio de trabajo, después de REG-267.
+
+## v1151 — El audio de una consulta ya no se borra al transcribir OTRA
+
+Transcribir una grabación borraba de IndexedDB **todo** el audio guardado bajo la
+llave del paciente, incluido el de una grabación anterior que nadie había
+transcrito. Dictar 22 min → tocar «Agenda» → volver → dictar 90 s → detener
+perdía los 22 min: sin error, sin aviso y justo después de una transcripción
+exitosa. Ahora se borra sólo el rango que se acaba de transcribir. REG-271.
+
+El almacén de trozos sale de `useGrabacionAudio.ts` a
+`src/lib/audio/recuperacion-chunks.ts`. No es cosmética: dentro del hook no se
+podía probar —arrastra React, Firebase y el pipeline de ASR—, y la aritmética de
+rangos que decide qué audio se borra no puede quedarse sin red debajo.

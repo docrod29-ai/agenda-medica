@@ -29,7 +29,7 @@ Eso cambia dónde conviene mirar mañana.
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
 | Estorba al médico | 5 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 6 | Trabajo del médico que desaparece o reaparece solo |
+| Pérdida de datos | 7 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
 | El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
 | *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 30 de 117, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 30 de 118, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 15 de 117.**
+**«El sistema se contradice a sí mismo» — 15 de 118.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -104,7 +104,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 19 de 117**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 19 de 118**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

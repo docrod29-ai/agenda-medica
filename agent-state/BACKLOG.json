@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "cerrado",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,13 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cerrado": "2026-08-09",
+      "reg": "REG-271",
+      "version": "v1151",
+      "golden": "src/__tests__/recuperacion-audio-no-borra-lo-que-no-transcribio.test.ts",
+      "comoSeCerro": "borrarChunks(recoveryKey, desde). Las TRES salidas exitosas de detener() pasan recoveryBaseRef, asi que solo se borra el rango que acaba de transcribirse. Reproducido antes de reparar contra un IndexedDB real, tras sacar el almacen a src/lib/audio/recuperacion-chunks.ts para poder probarlo.",
+      "noCubre": "No arregla PATIENT-AUDIO-002 ni -003, que son los que fabrican el huerfano. El boton «Cancelar y borrar esta grabacion» sigue borrando todo: es decision explicita del medico, con confirmacion."
     },
     {
       "seguridad": 3,

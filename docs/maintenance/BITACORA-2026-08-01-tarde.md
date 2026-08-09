@@ -6857,3 +6857,39 @@ Por orden de daño. Todo con archivo:línea, verificable.
 22. ~~Cancelar/reagendar desde el portal no ofrece el hueco, no avisa y no deja
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
+
+## 9-ago-2026 · Iteración del Master Loop V7 — REG-271 (v1151)
+
+**Ítem** — `PATIENT-AUDIO-001`, score 88, el más alto del backlog.
+
+**Verificado antes de reparar.** El almacén de trozos era privado de
+`useGrabacionAudio.ts` y no se podía probar. Se movió tal cual a
+`src/lib/audio/recuperacion-chunks.ts` y se ejecutó la secuencia real contra un
+IndexedDB de verdad: la llave quedaba en `[]` y los tres trozos huérfanos
+desaparecían. Sólo después se tocó el código.
+
+**Lo reparado** — `borrarChunks` acepta desde qué índice borrar; las **tres**
+salidas exitosas de `detener()` pasan `recoveryBaseRef`. Sólo se borra lo que se
+acaba de transcribir. El cambio únicamente puede conservar más audio, nunca menos.
+
+**De camino apareció esto, y NO lo toqué** — por si el Dr. quiere fijar el orden:
+
+- `PATIENT-AUDIO-002` y `-003` siguen abiertos y son los que **fabrican** el
+  huérfano. Esto garantiza que el audio sobreviva; no que se transcriba solo.
+- El botón rojo «Cancelar y borrar esta grabación» borra el rango completo. Es
+  decisión suya, con confirmación, y no se cambia sin su palabra.
+
+**Un tropiezo mío, anotado para que no se repita.** El clon traía el ref de
+`origin/main` obsoleto (apuntaba a v1073 / REG-191) y ramifiqué desde ahí, así
+que trabajé un rato contra un backlog y un `sw.js` de hace 59 commits. Lo destapó
+que el backlog no contenía el ítem que yo mismo acababa de leer. Se rehízo entero
+sobre la punta real tras `git fetch`. **Regla para la próxima: `git fetch` antes
+de ramificar, siempre — el ref local de una rama remota no es la rama remota.**
+Por eso este REG es el **271** y no el 270: `origin/agent/expediente/
+REG-270-negacion-parser` ya lo tenía cogido.
+
+**Compuertas** — `vitest` en verde salvo un fallo **preexistente y del entorno**
+(`ops-timeout-y-punto-ciego`: el proxy de red de esta máquina rechaza
+`10.255.255.1` en vez de dejar que se agote el reloj; falla igual en árbol
+limpio, comprobado con `git stash`). `tsc --noEmit` limpio. Trinquete sin deuda
+nueva. `npm run build` en verde con las variables marcador del CI.

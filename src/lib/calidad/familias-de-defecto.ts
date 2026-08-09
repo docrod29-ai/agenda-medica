@@ -109,7 +109,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Trabajo del médico que desaparece o reaparece solo. Es la categoría de ' +
       'la que menos se perdona: quien lo sufre una vez deja de confiar en todo ' +
       'lo demás.',
-    regs: [157, 193, 195, 215, 216, 219],
+    regs: [157, 193, 195, 215, 216, 219, 271],
   },
   {
     clave: 'tarde',
