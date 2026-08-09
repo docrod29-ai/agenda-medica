@@ -80,3 +80,42 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+## 2026-08-09 — REG-306 · `componerPaquete` llega con su llamador (POSTVISIT-001)
+
+Cierra la deuda que dejó `PATIENT-COMPANION-001`: `componerPaquete` y
+`cambiosDeMedicacion` estaban escritas, probadas al revés y **sin llamador** —
+a propósito, para no sumar otra a «escrito, probado y sin conectar» (32 de 127
+regresiones, la familia más grande del proyecto).
+
+- `POST /api/expediente/paquete-visita` (acción `liberar`, capacidad
+  `clinico.escribir`) es el llamador: exige `nota.estado === 'firmada'`
+  (compuerta de firma, POSTVISIT-GATE-001), recompone del lado del servidor
+  —nunca acepta el paquete armado desde el cliente— y escribe `RELEASED`
+  directo en `paquetes_visita`.
+- El botón «Liberar al paciente» (`LiberarPaqueteAlPaciente.tsx`), junto a
+  `HojaParaElPaciente` en la consulta, es el camino desde `app/` que el
+  guardián de conexión exige. Llega en el mismo commit que la función — no en
+  una sesión aparte.
+- Hallazgo al escribir la ruta: «lo vigente» no es «lo que dice esta nota» — un
+  crónico que hoy no se tocó sigue vigente (`medicamentosVigentes`, REG-183).
+  `componerPaquete` recibe ambas listas ya resueltas por quien llama, en vez de
+  repetir esa lógica (invariante nº1).
+- Registrado en `src/lib/authz/registro-rutas.ts` bajo `clinico.escribir`, y en
+  las tres listas congeladas de `authz-rutas-declaradas.test.ts` que exigen
+  justificar por escrito toda ruta nueva que toque `notas` o `patients`.
+- Golden nuevo: `el-paquete-se-compone-de-lo-firmado.test.ts`, 15 casos,
+  sellado en `invariantes-clinicos.json`. Probado al revés: con
+  `cambiosDeMedicacion` devolviendo `[]` en vez de `null` sin lista previa, el
+  golden lo cazó en dos sitios antes de confirmar el arreglo.
+- El primer intento del botón subió el techo de `trinquete-de-diseno.mjs`
+  (`var(--ok, #hex)`/`var(--danger, #hex)`, tamaños y radios fuera de la
+  escala declarada) — corregido con los tokens reales (`--success`, `--red`,
+  10/12) antes de dar la unidad por terminada.
+- `npm run build`: el compilador TS y el bundler pasan; la recolección de
+  datos de página falla en `/dr/[clinicId]` por falta de credenciales de
+  Firebase — confirmado idéntico en la rama base (`git stash` + build), no es
+  una regresión de este cambio.
+- Sigue abierto en `POSTVISIT-001`: vista previa real del `PaqueteDeVisita`
+  antes de liberar, `proximaCita` (fija en `undefined`), y verificación en
+  navegador.

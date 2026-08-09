@@ -4,8 +4,11 @@
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
 **Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**En curso**: `POSTVISIT-001` — REG-306 cerró los deberes (`componerPaquete`,
+`cambiosDeMedicacion`, la ruta que las llama y el botón que las alcanza desde
+`app/`). Sigue abierto: vista previa real antes de liberar, `proximaCita`
+(fija en `undefined`) y verificación en navegador. Ver
+`agent-state/LAST_SAFE_CHECKPOINT.md`.
 
 ---
 
@@ -96,13 +99,17 @@ modelo**: compone desde campos ya firmados, traduce la vía a español llano y
 expande frecuencias sólo cuando 24÷n es exacto — **se niega** a «cada 5 horas».
 Eso es el principio de V9 §2 aplicado antes de que V9 existiera.
 
-Y tiene tres problemas: **no hay compuerta de firma** (se compone del borrador en
+Y tenía tres problemas: **no hay compuerta de firma** (se compone del borrador en
 curso), **el paciente no la recibe nunca** (sólo copiar e imprimir), y
 `proximaCita` está fijo en `undefined`, así que su cuarto bloque no puede
 renderizarse jamás.
 
-Ése es el núcleo de `POSTVISIT-001`: **el contenido está resuelto; faltan la
-compuerta y el camino.**
+Ése era el núcleo de `POSTVISIT-001`: «el contenido está resuelto; faltan la
+compuerta y el camino.» REG-306 puso las dos — pero por el camino del
+**`PaqueteDeVisita`**, no de `HojaParaElPaciente`: ésta sigue sin compuerta de
+firma ni entrega directa (sigue siendo copiar/imprimir), y `proximaCita` sigue
+fija en `undefined` en los dos. Ver `POSTVISIT-GATE-001`/`POSTVISIT-ENTREGA-001`
+más abajo.
 
 ## Con qué se construye el `PatientVisitPackage`
 
@@ -131,8 +138,15 @@ por el paciente.
 
 - `PATIENT-PORTAL-001` — `/api/portal` sin límite de tasa; revocación que falla
   **abierta**.
-- `POSTVISIT-GATE-001` — sin compuerta de firma.
-- `POSTVISIT-ENTREGA-001` — la hoja no llega al paciente.
+- `POSTVISIT-GATE-001` — **cerrado para el `PaqueteDeVisita`** (REG-306:
+  `/api/expediente/paquete-visita` exige `nota.estado === 'firmada'`). Sigue
+  abierto para `HojaParaElPaciente`, que se sigue componiendo del borrador en
+  curso — es un camino de copiar/imprimir, no de persistencia, y no comparte
+  código con la ruta nueva.
+- `POSTVISIT-ENTREGA-001` — **cerrado por el `PaqueteDeVisita`** (REG-306: el
+  botón «Liberar al paciente» lo escribe en `paquetes_visita` y `/api/portal`
+  ya lo sirve). La hoja de `HojaParaElPaciente` en sí sigue sin llegar al
+  paciente por su cuenta — sigue siendo copiar/imprimir.
 
 ## Lo que este estado NO afirma
 

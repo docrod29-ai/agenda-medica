@@ -6,7 +6,48 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` (primer corte) — REG-306**
+
+| | |
+|---|---|
+| **Unidad** | `POSTVISIT-001` — arrancó con dos deberes ya escritos y los cerró: `componerPaquete` y `cambiosDeMedicacion` |
+| **Siguiente** | Seguir `POSTVISIT-001`: vista previa real antes de liberar, `proximaCita` (hoy fijo en `undefined`), y verificación en navegador |
+
+**Qué quedó montado.** `POST /api/expediente/paquete-visita` (acción
+`liberar`, capacidad `clinico.escribir`) compone y libera el `PaqueteDeVisita`
+del lado del servidor: exige `nota.estado === 'firmada'` (compuerta de firma,
+POSTVISIT-GATE-001), recalcula «lo vigente» con `medicamentosVigentes` —no con
+`nota.medicamentos` a secas, para no perder un crónico que hoy no se tocó—, y
+nunca acepta el paquete armado desde el cliente. El botón «Liberar al
+paciente» (`LiberarPaqueteAlPaciente.tsx`), junto a `HojaParaElPaciente` en la
+consulta, es el camino desde `app/`. Los dos llegan en el mismo commit que
+`componerPaquete`/`cambiosDeMedicacion`, a propósito: dejarlos para sesiones
+distintas habría repetido, en dos pasos, el defecto «escrito, probado y sin
+conectar» que esta unidad cierra.
+
+**Lo que NO se hizo, y hay que decirlo.** No hay vista previa del paquete antes
+de liberar — `HojaParaElPaciente`, en la misma pantalla, enseña el mismo
+contenido de facto, pero no es una vista previa del `PaqueteDeVisita` real (no
+enseña `medicationChanges`). `proximaCita` sigue fija en `undefined` (deuda
+declarada desde `PATIENT-COMPANION-001`, sin tocar). **Nada de esto se ha
+visto en un navegador**: los guardianes prueban la máquina de estados, la
+compuerta de firma y la composición pura; no la ruta HTTP con Firestore real
+(exige el emulador) ni el botón en pantalla.
+
+**Compuertas en este checkpoint**
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 568 pasan · 1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`, ya documentado en el checkpoint anterior) |
+| `node scripts/lint-trinquete.mjs` | **96, igual que el techo** |
+| `node scripts/design/trinquete-de-diseno.mjs` | **sin deuda nueva** (el primer intento del botón SÍ subió el techo — `var(--ok, #hex)`/`var(--danger, #hex)` y tamaños/radios fuera de escala — corregido antes de commitear) |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **el compilador TS y el bundler pasan**; la recolección de datos de página falla en `/dr/[clinicId]` por falta de credenciales de Firebase en este contenedor — confirmado **idéntico en la rama base sin mis cambios** (`git stash` + build), así que no es una regresión |
+| navegador | **no ejecutado** |
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

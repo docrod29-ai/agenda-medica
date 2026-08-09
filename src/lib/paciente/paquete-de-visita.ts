@@ -62,28 +62,28 @@
  */
 
 /**
- * ── POR QUÉ AQUÍ NO ESTÁ LA COMPOSICIÓN ─────────────────────────────────────
+ * ── `componerPaquete` Y `cambiosDeMedicacion` — POSTVISIT-001 ──────────────
  *
- * `componerPaquete` —la función que arma el contenido a partir de la nota
- * firmada— y su ayudante `cambiosDeMedicacion` **no viven todavía en este
- * archivo, a propósito.**
+ * Se escribieron una vez en `PATIENT-COMPANION-001` y se retiraron de aquí: el
+ * guardián de conexión (`scripts/calidad/motores-conectados.mjs`, REG-255) las
+ * cazó al instante, motor con cuerpo real y sin un solo llamador. Su llamador
+ * natural es la pantalla donde el médico revisa y libera, y esa pantalla no
+ * existía todavía.
  *
- * Se escribió, y su guardián de conexión la cazó al instante: era un motor con
- * cuerpo real y **sin un solo llamador**. Su llamador natural es la pantalla
- * donde el médico revisa y libera, y esa pantalla es `POSTVISIT-001`.
+ * Ahora sí: `POST /api/expediente/paquete-visita` (acción `liberar`) es el
+ * llamador, y el botón de «Liberar al paciente» en la consulta
+ * (`src/components/LiberarPaqueteAlPaciente.tsx`) es el camino desde `app/`.
+ * Las dos llegan en el mismo commit que estas funciones — no antes, no en dos
+ * pasos — precisamente para no repetir el defecto que las mantuvo fuera.
  *
- * «Escrito, probado y sin conectar» es la familia de defectos **más grande de
- * este proyecto** —32 de 127 regresiones—, y añadirle una más a sabiendas,
- * aunque fuera con una nota explicándolo, sería exactamente lo que este
- * repositorio lleva meses persiguiendo. Llegan con quien las llame.
- *
- * Se intentó dejar sólo el ayudante, y el guardián volvió a cazarlo al turno
- * siguiente: un motor sin llamador no deja de serlo porque su vecino se haya
- * ido. Se van los dos.
- *
- * Lo que SÍ vive aquí es lo que ya corre: el modelo, la máquina de estados y la
- * compuerta que usa `/api/portal`.
+ * `componerPaquete` sigue sin hacer I/O: recibe ya resuelto —por quien la
+ * llama— **qué está vigente hoy** y **qué estaba vigente antes de esta nota**.
+ * No decide eso aquí porque ya existe quien lo decide bien:
+ * `medicamentosVigentes` (`src/lib/expediente/ordenes-medicamento.ts`), con su
+ * regla de que el silencio no suspende un crónico. Repetir esa lógica aquí
+ * sería la segunda fuente de verdad que el invariante nº1 prohíbe.
  */
+import { comoTomarlo, type MedicamentoParaExplicar } from './como-se-lo-explico'
 
 /** Los dos únicos estados. No hay un tercero, y `DRAFT` no se le enseña a nadie. */
 export type EstadoPaquete = 'DRAFT' | 'RELEASED'
@@ -137,6 +137,115 @@ export interface PaqueteDeVisita {
 }
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+
+/** Para comparar «el mismo fármaco» sin que un acento o una mayúscula cuenten como dos. */
+const claveFarmaco = (nombre: unknown): string =>
+  texto(nombre).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
+
+/**
+ * Qué cambió, comparando dos listas ya resueltas de «lo vigente».
+ *
+ * `previas === null` es «no se pudo determinar», y se propaga tal cual: no es
+ * lo mismo que «no había nada antes» (una primera consulta sí lo sabe con
+ * certeza — cero fármacos previos — y ahí `previas` es `[]`, no `null`).
+ * Confundir las dos cosas convertiría «no sé» en «no tomaba nada», que es
+ * exactamente el dato de ausencia que la regla 4 de seguridad clínica prohíbe.
+ *
+ * Módulo PURO: no decide qué es «vigente» — eso ya lo decide
+ * `medicamentosVigentes` (`ordenes-medicamento.ts`), con la regla de que el
+ * silencio no suspende un crónico. Aquí sólo se comparan dos listas por nombre.
+ */
+export function cambiosDeMedicacion(
+  actuales: readonly { nombre?: unknown }[],
+  previas: readonly { nombre?: unknown }[] | null,
+): CambioDeMedicacion[] | null {
+  if (previas === null) return null
+
+  const nombresPrevios = new Map(
+    previas.map(p => [claveFarmaco(p.nombre), texto(p.nombre)] as const).filter(([k]) => k),
+  )
+  const nombresActuales = new Map(
+    actuales.map(a => [claveFarmaco(a.nombre), texto(a.nombre)] as const).filter(([k]) => k),
+  )
+  const todasLasClaves = new Set([...nombresPrevios.keys(), ...nombresActuales.keys()])
+
+  const cambios: CambioDeMedicacion[] = []
+  for (const clave of todasLasClaves) {
+    const enActual = nombresActuales.has(clave)
+    const enPrevia = nombresPrevios.has(clave)
+    const nombre = (nombresActuales.get(clave) ?? nombresPrevios.get(clave))!
+    const tipo: CambioDeMedicacion['tipo'] = enActual && enPrevia ? 'sin-cambio' : enActual ? 'nuevo' : 'suspendido'
+    cambios.push({ nombre, tipo })
+  }
+  return cambios.sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
+
+/** Lo que hace falta para componer un paquete. Nada de esto se calcula aquí. */
+export interface EntradaComposicion {
+  notaId: string
+  /**
+   * Lo vigente HOY, ya resuelto por `medicamentosVigentes` sobre todas las
+   * notas firmadas del paciente hasta e incluyendo ésta. No es «lo que
+   * menciona esta nota»: un crónico que hoy no se tocó sigue vigente.
+   */
+  medicamentosVigentes: readonly MedicamentoParaExplicar[]
+  /** Lo vigente ANTES de esta nota. `null` = no se pudo determinar. */
+  medicamentosVigentesAntes: readonly { nombre?: unknown }[] | null
+  /** Estudios pedidos en esta nota, tal como quedaron en la orden. */
+  estudios?: readonly unknown[]
+  /** El resumen ejecutivo YA escrito y firmado. No se redacta aquí. */
+  resumenEncuentro?: unknown
+  /** Fecha o texto de la próxima cita, si la hay. */
+  proximaCita?: unknown
+  /** Ya resuelto por quien llama (teléfono del consultorio, p. ej.). Puede ir vacío. */
+  reglasDeContactoClinico?: string
+  /** BCP-47. Hoy sólo hay es-MX; el paquete lo declara igual. */
+  idioma?: string
+  /** Lo decide quien persiste, contando paquetes previos de esta misma nota. */
+  version: number
+}
+
+/**
+ * Arma un `PaqueteDeVisita` en estado `DRAFT` a partir de material YA firmado.
+ *
+ * Determinista, sin modelo de lenguaje. Reutiliza `comoTomarlo` —la misma
+ * función que ya usaba `HojaParaElPaciente`— para que la instrucción que ve el
+ * paciente sea idéntica se componga desde donde se componga: una sola fuente
+ * de «cómo se dice esto en español llano», no dos que puedan divergir.
+ *
+ * Nunca libera: eso es un acto aparte (`liberar`), y de quien decide cuándo —
+ * el médico, en su pantalla — no de esta función.
+ */
+export function componerPaquete(e: EntradaComposicion): PaqueteDeVisita {
+  const medicationInstructions: MedicacionDelPaquete[] = (e.medicamentosVigentes ?? [])
+    .map(m => ({ nombre: texto(m.nombre), instruccion: comoTomarlo(m) }))
+    .filter(m => m.nombre && m.instruccion)
+
+  const medicationChanges = cambiosDeMedicacion(e.medicamentosVigentes ?? [], e.medicamentosVigentesAntes)
+
+  const orders = (e.estudios ?? []).map(texto).filter(Boolean)
+
+  return {
+    notaId: e.notaId,
+    encounterSummary: texto(e.resumenEncuentro),
+    medicationInstructions,
+    medicationChanges,
+    orders,
+    followUp: texto(e.proximaCita),
+    /* Indicación médica: no hay de dónde sacarla sin interpretar texto libre
+       (regla 1). Ver el header del archivo. */
+    warningSigns: [],
+    educationalMaterial: [],
+    documents: [],
+    unansweredQuestions: [],
+    clinicianContactRules: texto(e.reglasDeContactoClinico),
+    language: texto(e.idioma) || 'es-MX',
+    estado: 'DRAFT',
+    approvedAt: null,
+    approvedBy: null,
+    version: e.version,
+  }
+}
 
 /**
  * Pasa un paquete a `RELEASED`. Exige quién aprueba y cuándo.

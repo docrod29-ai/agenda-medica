@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { LiberarPaqueteAlPaciente } from '@/components/LiberarPaqueteAlPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5199,6 +5200,21 @@ export default function ConsultaActivaPage() {
           medicamentos={medicamentos}
           estudios={estudiosOrden}
           proximaCita={undefined}
+        />
+      )}
+
+      {/*
+        LIBERAR AL PACIENTE (POSTVISIT-001) — el paso que le faltaba a la hoja
+        de arriba: hoy sólo se copiaba o imprimía a mano. Sólo con la nota YA
+        FIRMADA (compuerta de firma, POSTVISIT-GATE-001) y nunca en hospital:
+        los paquetes de visita son de consulta ambulatoria.
+      */}
+      {clinicId && (
+        <LiberarPaqueteAlPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          notaId={firmada ? notaId : null}
+          esNotaHospital={esNotaHospital}
         />
       )}
 

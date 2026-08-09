@@ -7013,3 +7013,44 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — `componerPaquete` llega con su llamador: POSTVISIT-001
+
+**Unidad** V9 `POSTVISIT-001`. Cierra la deuda explícita que dejó REG-304/305:
+`componerPaquete` y `cambiosDeMedicacion` existían escritas y probadas al
+revés, sin un solo llamador, deliberadamente fuera de
+`src/lib/paciente/paquete-de-visita.ts` para no sumar otra entrada a «escrito,
+probado y sin conectar».
+
+**El llamador y el camino, en el mismo commit.** `POST
+/api/expediente/paquete-visita` (acción `liberar`) es quien las llama; el botón
+«Liberar al paciente» en la consulta (`LiberarPaqueteAlPaciente.tsx`) es el
+camino desde `app/` que el guardián de conexión exige. Las dos llegan juntas a
+propósito: dejar la ruta para una sesión y el botón para otra habría repetido,
+en dos pasos, el mismo defecto que se está cerrando.
+
+**La compuerta de firma (POSTVISIT-GATE-001).** La ruta exige `nota.estado ===
+'firmada'` antes de componer nada — firmar y liberar siguen siendo dos actos
+(regla 4 de `patient-facing-ai.md`). Y **recompone del lado del servidor**, sin
+aceptar un `PaqueteDeVisita` que llegue en el body: «autorización en el
+servidor, no en la pantalla».
+
+**El hallazgo al escribir la ruta, no antes.** «Lo vigente» de un paciente no
+es «lo que dice esta nota»: un crónico que hoy no se tocó sigue vigente
+(`medicamentosVigentes`, REG-183). Componer desde `nota.medicamentos` a secas
+habría hecho desaparecer del paquete cualquier fármaco crónico que la consulta
+de hoy no mencionara — dato de ausencia, regla 4 de seguridad clínica. Por eso
+`componerPaquete` recibe «lo vigente antes» y «lo vigente después», ya resuelto
+por quien llama, y no repite esa lógica (invariante nº1).
+
+**Probado al revés.** Con `cambiosDeMedicacion` devolviendo `[]` en vez de
+`null` cuando no hay lista previa, el golden falla en dos sitios: la propia
+comparación y `componerPaquete` heredando ese `null`. Confirmado y revertido.
+
+**Familia.** `no_conectado` — la misma de REG-238/239/252, cerrada esta vez en
+el mismo commit que la creó, no en uno posterior.
+
+**Guardián.** `src/__tests__/el-paquete-se-compone-de-lo-firmado.test.ts`, 15
+casos.
