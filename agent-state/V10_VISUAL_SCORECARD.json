@@ -99,22 +99,23 @@
         "expediente--390.png"
       ],
       "dimensiones": {
-        "jerarquia": 9,
+        "jerarquia": 9.5,
         "claridad": 9,
         "coherencia": 9,
         "tipografia": 9,
         "espaciado": 9,
         "densidad": 8.5,
         "interaccion": 8.5,
-        "responsive": 8,
+        "responsive": 8.5,
         "accesibilidad": 8.5,
         "rendimientoPercibido": 8.5,
         "confianzaClinica": 9.5,
         "originalidad": 8
       },
-      "promedio": 8.7,
+      "promedio": 8.8,
       "genericAiLook": 2,
-      "justificacion": "La mejor pantalla capturada: banda de alergias SIEMPRE arriba, identidad inconfundible, CTA primario claro, estados vacíos que explican la siguiente acción (§26). En móvil los 4 botones de acción se vuelven columnas de igual peso y el primario (Nueva consulta con IA) queda CUARTO — jerarquía invertida (§8.3). Ilustración de estado vacío genérica. axe: 0 violaciones."
+      "justificacion": "RE-PUNTUADA tras V10-DEBT-006 (captura expediente--390.png nueva): en móvil el CTA primario «Nueva consulta con IA» va PRIMERO a fila completa y los 3 secundarios debajo (Carta a su fila, Expediente completo | FHIR compartiendo) — rejilla exp-actions, mismo patrón que nota-toolbar (§8.33), objetivos 44px. Escritorio intacto (primario a la derecha, orden de foco sin tocar). Banda de alergias SIEMPRE arriba, identidad inconfundible, estados vacíos que explican la siguiente acción (§26). Pendiente: ilustración de estado vacío genérica; el FAB de ayuda que tapa el conmutador de tema es del shell (DEBT-004). axe: 0 violaciones en 1440 y 390.",
+      "reScore": "2026-08-09 (V10-DEBT-006)"
     },
     {
       "pantalla": "consulta",
@@ -173,8 +174,8 @@
     }
   ],
   "resumen": {
-    "actualizadoEl": "2026-08-09 (noche)",
-    "promedioGlobal": 8.2,
+    "actualizadoEl": "2026-08-09 (madrugada-3, V10-DEBT-006)",
+    "promedioGlobal": 8.28,
     "pantallasPuntuadas": "6 de 6 críticas del flujo (login se captura pero no se puntúa como crítica)",
     "brechaContraMeta": "Meta 9.3; hoy 8.2. Ninguna pantalla llega a 9.0 todavía. El déficit se concentra en RESPONSIVE móvil (agenda 4.5, nota 5.5, pacientes 6.0, hoy 6.5) y en los 8 serious de axe restantes (contraste agenda/hoy/nota, nested-interactive pacientes). Los 4 CRITICAL de axe se repararon el 9-ago noche (12→8 hallazgos).",
     "hallazgosP1": [
@@ -187,9 +188,9 @@
     ]
   },
   "_promedioGlobal": {
-    "valor": 8.27,
+    "valor": 8.28,
     "pantallas": 6,
     "fecha": "2026-08-09",
-    "nota": "tras V10-NOTE-001"
+    "nota": "tras V10-DEBT-006 (expediente 8.7 → 8.8)"
   }
 }

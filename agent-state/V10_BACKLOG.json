@@ -59,7 +59,8 @@
       "fuente": "capturas expediente--390.png, hoy--1440.png",
       "prioridad": "P2",
       "unidadV10": "V10-PATIENT-001 / V10-TODAY-001",
-      "estado": "abierto"
+      "estado": "mitad-expediente-CERRADA 9-ago-2026 (madrugada-3)",
+      "cierre": "Mitad EXPEDIENTE cerrada: rejilla exp-actions bajo 480px — el primario (último hijo DOM, escritorio intacto) sube a la primera fila completa con order:-1 + grid-column, secundarios en 2 columnas sin celdas huérfanas, objetivos 44px. Mismo patrón que nota-toolbar (DEBT-009, §8.33). Captura expediente--390.png nueva, axe 0 en 1440/390, guardián probado al revés (4/5 fallan sin el arreglo): src/__tests__/expediente-cta-primero-movil.test.ts. La mitad HOY (círculos de icono de las 4 KPI de escritorio) sigue abierta → V10-TODAY-001."
     },
     {
       "id": "V10-DEBT-007",

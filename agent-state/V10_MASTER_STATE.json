@@ -27,10 +27,15 @@
         "fecha": "2026-08-09-madrugada-2",
         "rama": "claude/kind-brahmagupta-rms50y",
         "trabajo": "V10-NOTE-001 quick-strike: DEBT-008 (borrador inconfundible + contraste papel) y DEBT-009 (barra móvil) cerrados con guardián y verificación en navegador"
+      },
+      {
+        "fecha": "2026-08-09-madrugada-3",
+        "rama": "claude/kind-brahmagupta-ysxb6q",
+        "trabajo": "V10-DEBT-006 quick-strike (mitad expediente): CTA primario primero en móvil con rejilla exp-actions, guardián probado al revés, capturas + axe re-verificados. De paso: el trinquete de escala volvió a verde (fontSize: 25 suelto de /cumplimiento/motores → t-h1; lo introdujo v1163 en main)"
       }
     ]
   },
-  "iteracionActual": "V10-NOTE-001 — quick-strike CERRADO (DEBT-008/009); la unidad completa (§20: editor, rendimiento) queda abierta en la secuencia",
+  "iteracionActual": "V10-DEBT-006 mitad-expediente CERRADA; siguiente: V10-D1 sigue abierta → si se decide, V10-CONSTITUTION-001; si no, DEBT-010 espera fusión V9 (pacientes/page.tsx) — el siguiente quick-strike sin riesgo es la mitad HOY de DEBT-006 (V10-TODAY-001) o DEBT-007 (resaltado de barra lateral en /pacientes)",
   "iteracionesCerradas": [
     "V10-TRUTH-001 (2026-08-09 noche)"
   ],
