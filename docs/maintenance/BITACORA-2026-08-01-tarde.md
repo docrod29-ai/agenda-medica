@@ -6832,7 +6832,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
 
-## CUADRAGÉSIMA OCTAVA TANDA — v1074 (REG-192: «No sé» no es «No»)
+## CUADRAGÉSIMA OCTAVA TANDA — v1097 (REG-215: «No sé» no es «No»)
 
 | v | Qué se reparó |
 |---|---|

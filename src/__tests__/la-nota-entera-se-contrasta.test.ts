@@ -89,7 +89,7 @@ describe('LO QUE LA DEFENSA NO VEÍA', () => {
 describe('ESTÁ CABLEADO EN LA PANTALLA', () => {
   it('las dos defensas usan el mismo constructor de texto', () => {
     // Dos formas de armar «lo que la nota dice» acabarían divergiendo, y una de
-    // las dos se quedaría ciega otra vez. Son TRES defensas desde REG-192: lo
+    // las dos se quedaría ciega otra vez. Son TRES defensas desde REG-215: lo
     // negado, lo que iba en pasado y lo que el paciente dijo no saber.
     expect(page.split('textoDeLaNota(resumen, diagnosticos, secciones)').length - 1).toBe(3)
   })

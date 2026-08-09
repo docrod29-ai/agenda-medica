@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
     }
 
     /**
-     * Y LA TERCERA: LO QUE EL PACIENTE DIJO NO SABER (REG-192).
+     * Y LA TERCERA: LO QUE EL PACIENTE DIJO NO SABER (REG-215).
      *
      * `^no\b` leía «No sé, doctor» como una negación y esto reclasificaba a
      * `descartado` una condición que el paciente nunca negó — la del caso oro

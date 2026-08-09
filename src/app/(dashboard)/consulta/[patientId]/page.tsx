@@ -834,7 +834,7 @@ export default function ConsultaActivaPage() {
       .filter(c => !avisosRevisados.includes(`negacion:${c.condicion}`))
   }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   /**
-   * Y LO QUE EL PACIENTE DIJO NO SABER (REG-192).
+   * Y LO QUE EL PACIENTE DIJO NO SABER (REG-215).
    *
    * Hasta hoy esto viajaba disfrazado de contradicción: `^no\b` leía «No sé,
    * doctor» como una negación y el aviso afirmaba que el paciente lo había
@@ -936,7 +936,7 @@ export default function ConsultaActivaPage() {
   const [negacionesCorregidas, setNegacionesCorregidas] = useState<NegacionCorregida[]>([])
   /** Condiciones activas que el dictado situó en pasado. No se tocan: se enseñan. */
   const [avisosTemporales, setAvisosTemporales] = useState<AvisoTemporal[]>([])
-  /** Condiciones confirmadas que el paciente dijo no saber (REG-192). Tampoco se tocan. */
+  /** Condiciones confirmadas que el paciente dijo no saber (REG-215). Tampoco se tocan. */
   const [avisosDuda, setAvisosDuda] = useState<AvisoTemporal[]>([])
   const [nerCargando, setNerCargando] = useState(false)
   const [nerError, setNerError] = useState('')

@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — «No sé» se leía como «No» (v1074)
+## REG-215 — «No sé» se leía como «No» (v1097)
 
 **Encontrado** — 6-ago-2026, auditoría de nueve dimensiones (hallazgos C2 y C3).
 Reproducido con el motor real antes de tocar nada: de veinte respuestas de habla

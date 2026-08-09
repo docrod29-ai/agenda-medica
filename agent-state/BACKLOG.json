@@ -110,7 +110,7 @@
     {
       "id": "VOICE-005",
       "titulo": "El dictado con turnos etiquetados deja ciego al motor de negaciones",
-      "hallazgo": "condicionesNegadas() ancla la respuesta en ^. Con «Paciente: No sé» delante, ni la negación ni la duda se ven: el motor calla entero. Reproducido el 6-ago con el motor real mientras se cerraba REG-192.",
+      "hallazgo": "condicionesNegadas() ancla la respuesta en ^. Con «Paciente: No sé» delante, ni la negación ni la duda se ven: el motor calla entero. Reproducido el 6-ago con el motor real mientras se cerraba REG-215.",
       "porQueImporta": "Hoy no ocurre —a esta ruta llega el `text` corrido del reconocedor— pero el día que la diarización alimente la nota, la defensa contra el antecedente crónico inventado (REG-153/192) se apaga sin avisar. Una defensa que se apaga sola es peor que no tenerla.",
       "archivo": "src/lib/expediente/negaciones.ts:leerElInterrogatorio",
       "seguridad": 4,

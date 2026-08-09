@@ -43,7 +43,7 @@ interface NerPanelProps {
   /** Lo que salió como activo y en el dictado iba en pasado. Ver `AvisoTemporal`. */
   avisosTemporales?: AvisoTemporal[]
   /**
-   * Lo que salió como CONFIRMADO y el paciente había dicho no saber (REG-192).
+   * Lo que salió como CONFIRMADO y el paciente había dicho no saber (REG-215).
    *
    * Aquí no se corrigió nada, a diferencia de `negacionesCorregidas`: con un «no
    * sé» el paciente no dijo nada, y moverle la certeza en cualquier dirección

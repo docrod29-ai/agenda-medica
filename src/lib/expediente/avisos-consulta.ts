@@ -74,7 +74,7 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
   contradiccion_negacion: 'revisa',
   desajuste_temporal:     'revisa',
   /**
-   * «No sé» no es «no» (REG-192). No afirma que la nota se equivoque —el dato
+   * «No sé» no es «no» (REG-215). No afirma que la nota se equivoque —el dato
    * puede venir del acompañante— sino que pide que ese respaldo conste. Por eso
    * es `revisa` y SÍ se pliega: una contradicción es un hecho, una duda no.
    */
@@ -140,7 +140,7 @@ export interface EntradaAvisos {
   alergiaMedicamento?: readonly { mensaje: string; severidad: string }[]
   contradicciones?: readonly { condicion: string; mensaje: string }[]
   desajustes?: readonly { condicion: string; mensaje: string }[]
-  /** El paciente dijo no saberlo y la nota lo da por hecho (REG-192). */
+  /** El paciente dijo no saberlo y la nota lo da por hecho (REG-215). */
   dudas?: readonly { condicion: string; mensaje: string }[]
   viasAsumidas?: readonly string[]
   avisoDeVia?: string | null

@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: «No sé» se leía como «No»
+## v1097 — REG-215: «No sé» se leía como «No»
 
 El motor de negaciones fallaba en las dos direcciones. `^no\b` leía «No sé,
 doctor» como una negación —el caso oro `oro-rol-acompanante`, donde la paciente

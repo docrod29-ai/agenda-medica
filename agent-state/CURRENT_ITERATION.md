@@ -1,4 +1,4 @@
-# Iteración actual — REG-192 · «No sé» no es «No»
+# Iteración actual — REG-215 · «No sé» no es «No»
 
 **Modo**: reparación con golden. **Restricción del dueño**: PR sí, despliegue no.
 

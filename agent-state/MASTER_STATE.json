@@ -10,12 +10,12 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-192 (cerrada) — «No sé» no es «No»",
+  "iteracionActual": "REG-215 (cerrada) — «No sé» no es «No»",
   "ramasActivas": [
-    "agent/voz/REG-192"
+    "agent/voz/REG-215"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
   "trabajoLocalSinSubir": [],
-  "versionPreparadaSinDesplegar": "nexusmed-v1074"
+  "versionPreparadaSinDesplegar": "nexusmed-v1097"
 }

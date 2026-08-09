@@ -31,7 +31,7 @@ const ORIGENES: OrigenAviso[] = [
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
   'dosis_peligrosa',
-  /** «No sé» no es «no» (REG-192): la duda del paciente pide respaldo, no corrige. */
+  /** «No sé» no es «no» (REG-215): la duda del paciente pide respaldo, no corrige. */
   'duda_del_paciente',
 ]
 
