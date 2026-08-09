@@ -12,6 +12,7 @@ import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 interface DocReceta {
   id: string
@@ -97,6 +98,39 @@ function fmtFecha(fh: string, tz = 'America/Mexico_City'): { dia: string; fecha:
   return { dia: dia.charAt(0).toUpperCase() + dia.slice(1), fecha, hora }
 }
 
+/**
+ * Cómo se le nombra al paciente cada cambio de medicación.
+ *
+ * Sin adjetivos y sin consejo. «Ya no está en tu lista» dice exactamente lo que
+ * se sabe; «suspendido» diría además por qué, y eso no consta. Lo que el
+ * paciente haga con esa frase lo decide con su médico, que es a quien puede
+ * llamar con el teléfono que viene abajo.
+ */
+const CAMBIO_EN_LLANO: Record<string, string> = {
+  nuevo: 'Nuevo en esta consulta',
+  suspendido: 'Ya no está en tu lista',
+  'sin-cambio': 'Sigue igual',
+}
+
+/** Un bloque del plan de cuidado. Mismo esqueleto que la hoja del consultorio. */
+function BloquePaciente({ titulo, lineas }: { titulo: string; lineas: readonly string[] }) {
+  return (
+    <div style={{ marginTop: 14 }}>
+      <h3 style={{
+        margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '.04em',
+        textTransform: 'uppercase', color: 'var(--text3)',
+      }}>
+        {titulo}
+      </h3>
+      <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+        {lineas.map((l, i) => (
+          <li key={i} style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{l}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function gcalLink(c: Cita, tz: string): string {
   // El evento que el paciente se guarda en su calendario: con el offset fijo,
   // un consultorio fuera del centro se lo agendaba a la hora equivocada.
@@ -113,6 +147,8 @@ export default function MiPortalPage() {
   const token = params?.token ?? ''
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
+  /** Lo que el médico liberó de cada consulta. `null` = todavía no se sabe. */
+  const [paquetes, setPaquetes] = useState<(PaqueteDeVisita & { id: string })[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
@@ -140,6 +176,22 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+
+      /**
+       * LO QUE SU MÉDICO LIBERÓ (V9 · POSTVISIT-001, REG-306).
+       *
+       * En paralelo y sin bloquear las citas, igual que las recetas. El
+       * servidor ya filtró con `visibleParaElPaciente`: aquí no se vuelve a
+       * decidir qué es visible, sólo se pinta lo que llegó — una segunda regla
+       * de visibilidad en la pantalla es la que se olvida de actualizar.
+       *
+       * `null` mientras no se sabe; `[]` cuando de verdad no hay ninguno. La
+       * pantalla dice cosas distintas en cada caso.
+       */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -422,18 +474,55 @@ export default function MiPortalPage() {
           {/*
             LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
             RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
-            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
-            el estado vacío dice la verdad en vez de fingir que no hay nada.
+            borrador no sale de ahí (REG-304). Desde POSTVISIT-001 (REG-306) el
+            médico ya tiene cómo liberarlos, y esta pantalla ya los pide: el dato
+            tiene que LLEGAR, no basta con que exista la colección.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {(paquetes ?? []).length === 0 && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+
+          {(paquetes ?? []).map(p => (
+            <article key={p.id} style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 12px' }} className="t-num">
+                Liberado por tu médico el {fmtFecha(new Date(p.approvedAt ?? 0).toISOString(), sesion?.zonaHoraria ?? TZ_DEFAULT).fecha}
+              </p>
+
+              {p.encounterSummary && (
+                <BloquePaciente titulo="De qué se trató tu consulta" lineas={[p.encounterSummary]} />
+              )}
+              {p.medicationInstructions?.length > 0 && (
+                <BloquePaciente titulo="Tus medicamentos" lineas={p.medicationInstructions.map(m => m.instruccion)} />
+              )}
+              {/*
+                `null` significa que no se pudo saber qué cambió, y entonces NO
+                se dice nada: «no aparecía antes» y «no sé qué había antes» son
+                cosas distintas, y confundirlas es dato de ausencia.
+              */}
+              {Array.isArray(p.medicationChanges) && p.medicationChanges.length > 0 && (
+                <BloquePaciente
+                  titulo="Qué cambió"
+                  lineas={p.medicationChanges.map(c => `${c.nombre} — ${CAMBIO_EN_LLANO[c.tipo] ?? c.tipo}`)}
+                />
+              )}
+              {p.orders?.length > 0 && <BloquePaciente titulo="Estudios que te pidió" lineas={p.orders} />}
+              {p.warningSigns?.length > 0 && <BloquePaciente titulo="Señales de alarma" lineas={p.warningSigns} />}
+              {p.followUp && <BloquePaciente titulo="Cuándo volver" lineas={[p.followUp]} />}
+              {p.clinicianContactRules && (
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '16px 0 0', lineHeight: 1.6 }}>
+                  {p.clinicianContactRules}
+                </p>
+              )}
+            </article>
+          ))}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>

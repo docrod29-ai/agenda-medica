@@ -194,14 +194,20 @@ describe('está CONECTADO', () => {
     expect(page).toMatch(/estudios=\{estudiosOrden\}/)
   })
 
-  it('NO aparece en un paciente internado', () => {
+  it('NO aparece en un paciente internado, NI antes de firmar', () => {
     /**
      * La nota de hospital y la de UCI se escriben en esta MISMA pantalla
      * (`/consulta/[id]?internamiento=…`). Sin este guardia, a un paciente
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
+     *
+     * `firmada` se añadió el 2026-08-09 (V9 · POSTVISIT-GATE-001, REG-306).
+     * Hasta entonces la hoja se componía del borrador EN CURSO: la consulta
+     * iba por la mitad y el papel ya estaba montado, con botón de imprimir al
+     * lado. El motor nunca inventó una cifra —eso lo vigila el golden de
+     * arriba—; el defecto era **de qué** se componía.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toMatch(/\{!esNotaHospital && firmada && \(\s*\n\s*<HojaParaElPaciente/)
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {

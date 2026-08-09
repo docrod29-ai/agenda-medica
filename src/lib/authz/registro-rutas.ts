@@ -317,6 +317,17 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   },
 
   // ── portal del paciente ──────────────────────────────────────────────────
+  /**
+   * V9 · POSTVISIT-001. Compone y LIBERA el paquete de visita: lo que el
+   * paciente leerá de su consulta.
+   *
+   * Va bajo `firmar` y no bajo `clinico.escribir` a propósito. Liberar es el
+   * acto por el que el consultorio le dice al paciente «esto es lo que quiero
+   * que leas», y es aprobación clínica del mismo orden que firmar la nota. La
+   * enfermería puede escribir en el expediente y NO puede liberarle un plan a
+   * un paciente.
+   */
+  'paciente/paquete': { tipo: 'capacidad', capacidad: 'firmar' },
   'portal': {
     tipo: 'tokenPaciente',
     motivo: 'El paciente entra con su magic-link. Desde E0-06 el token lleva ALCANCE y la ruta exige `alcance === clinico` antes de devolver documentos.',

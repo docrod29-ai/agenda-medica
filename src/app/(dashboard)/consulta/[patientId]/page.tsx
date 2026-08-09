@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { LiberarAlPaciente } from '@/components/LiberarAlPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5194,12 +5195,28 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
-      {!esNotaHospital && (
+      {/*
+        Y **sólo con la nota firmada** (POSTVISIT-GATE-001, REG-306). Hasta hoy
+        esta hoja se componía del borrador EN CURSO: lo que el médico llevaba
+        dictado a medias ya salía con forma de indicación impresa, lista para
+        entregarse. Componer no era el problema —el motor es determinista y no
+        inventa cifras—; el problema era **de qué** se componía.
+      */}
+      {!esNotaHospital && firmada && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          proximaCita={proximoSeguimiento || undefined}
         />
+      )}
+
+      {/*
+        LIBERAR AL PACIENTE (POSTVISIT-001) — el camino que faltaba. Imprimir y
+        copiar eran las dos únicas salidas, y en una consulta de treinta minutos
+        eso no pasa: la hoja no llegaba nunca (POSTVISIT-ENTREGA-001).
+      */}
+      {!esNotaHospital && firmada && clinicId && notaId && (
+        <LiberarAlPaciente clinicId={clinicId} patientId={patientId} notaId={notaId} />
       )}
 
       {/*

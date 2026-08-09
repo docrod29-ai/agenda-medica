@@ -7013,3 +7013,70 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente se componía del borrador, y no llegaba nunca
+
+**Unidad** V9 `POSTVISIT-001`. Cierra los dos P1 hermanos que la auditoría
+`PATIENT-UX-TRUTH-001` dejó abiertos: `POSTVISIT-GATE-001` y
+`POSTVISIT-ENTREGA-001`.
+
+**Qué pasaba.** «Lo que se lleva el paciente» se montaba con el estado **vivo**
+del formulario de la consulta. La consulta iba por la mitad, el médico llevaba
+dictados tres fármacos de los cinco, y el papel ya estaba compuesto —con botón
+de imprimir al lado— sin que nada mirase si la nota estaba firmada.
+
+Y aun así **no llegaba a ningún paciente**: copiar e imprimir eran las dos
+únicas salidas. En una consulta de treinta minutos, eso no pasa.
+
+**Cómo se descubrió.** Inventariando la pantalla de la consulta:
+`HojaParaElPaciente` recibía `medicamentos` y `estudiosOrden` del estado del
+formulario y no consultaba `firmada` en ningún punto. La segunda pista estaba al
+lado: `proximaCita` iba fijo en `undefined`, así que su cuarto bloque **no podía
+renderizarse jamás** — señal de que nadie había recorrido la hoja entera con
+datos de verdad.
+
+**La causa raíz, y por qué es la interesante.** El motor de composición era
+correcto: determinista, sin modelo, y con un golden que impide que aparezca una
+cifra que no esté en la nota. **Nada estaba mal en lo que se componía.** Lo que
+faltaba era la pregunta anterior — **de qué** se compone. Un motor seguro
+alimentado con un borrador produce un documento inseguro, y lo produce en verde.
+
+Es la forma hermana de «el dato tiene que LLEGAR»: allí el dato salía y no
+llegaba; aquí llegaba bien compuesto de una fuente que todavía no era una fuente.
+
+**Lo que queda montado.**
+
+- `puedeComponerse(nota)` — la compuerta de firma, con nombre y con motivo.
+  Rechaza el borrador, la nota sin estado y la nota de hospitalización (por
+  `internamientoId`, que es la señal estructural, y por tipo, que es
+  vocabulario).
+- `componerPaquete` y `cambiosDeMedicacion` **vuelven al repositorio**: se
+  habían quitado en REG-304 por no tener llamador, y regresan con quien las
+  llama. Sin lista previa, `medicationChanges` es `null` y no `[]`.
+- `POST /api/paciente/paquete` — la **única** puerta por la que puede nacer un
+  paquete. El cuerpo dice *a qué nota* se refiere, nunca *qué dice*: el servidor
+  relee la nota firmada y compone él, en las dos acciones. `approvedBy` sale de
+  la sesión. Capacidad `firmar`, no `clinico.escribir`: la enfermería puede
+  escribir en el expediente y no puede liberarle un plan a un paciente.
+- `LiberarAlPaciente` — primero se ve, después se libera. El paciente no puede
+  detectar el error; el médico sí, y sólo si se lo enseñan antes.
+- Los **signos de alarma** los escribe el médico en ese momento, o van vacíos.
+  Componerlos sería inventar una indicación con su membrete (regla 1).
+- Y el paquete **llega**: `/mi/[token]` → Cuidado pide la acción `paquetes` y lo
+  pinta. La compuerta la sigue aplicando el servidor; la pantalla no vuelve a
+  decidir qué es visible.
+
+**Lo que este arreglo NO garantiza.** Que funcione en un navegador: ni la
+pantalla del médico ni la del paciente se han abierto. Sigue en pie
+`NAV-NAVEGADOR-001`.
+
+**Familia.** `no_conectado`, en su segunda forma: no «no corre», sino **corre
+enchufado a la fuente equivocada** —el borrador— y su salida no llega a nadie.
+Es la familia más grande del repositorio, y ésta es la variante que más cuesta
+ver, porque el módulo no está roto ni desconectado: está bien y mal alimentado.
+
+**Guardián.** `src/__tests__/el-paquete-se-libera-con-aprobacion.test.ts`,
+28 casos. Probado al revés: quitada la compuerta del motor y la de la pantalla,
+caen 4 casos.
