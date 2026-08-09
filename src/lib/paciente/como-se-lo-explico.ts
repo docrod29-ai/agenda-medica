@@ -169,7 +169,7 @@ export function comoTexto(bloques: readonly BloqueInstrucciones[]): string {
 }
 
 /**
- * ¿PUEDE ENSEÑARSE LA HOJA — REG-291.
+ * ¿PUEDE ENSEÑARSE LA HOJA — REG-294.
  *
  * La cabecera de este archivo prometía «cada línea sale de un campo que el
  * médico ya revisó y **firmó**». La pantalla nunca comprobó esa segunda
