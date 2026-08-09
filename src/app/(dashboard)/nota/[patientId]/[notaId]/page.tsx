@@ -26,6 +26,14 @@ import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 
+/**
+ * La tinta del documento-papel. UN solo literal: el color va INLINE en cada
+ * nodo porque el documento viaja por outerHTML a la ventana de impresión y al
+ * lienzo del PDF, donde las variables del tema de la app no deben mandar
+ * (DEBT-008: el tbody td gris del tema se colaba en el papel impreso).
+ */
+const TINTA = '#1a1a1a'
+
 export default function NotaImprimiblePage() {
   const { patientId, notaId } = useParams<{ patientId: string; notaId: string }>()
   const router = useRouter()
@@ -277,9 +285,9 @@ export default function NotaImprimiblePage() {
           frente, ARRIBA — no sólo en la línea de 9.5px del pie legal. La banda no
           se imprime; lo que sí viaja al papel es la marca de agua de abajo. */}
       {nota.estado !== 'firmada' && (
-        <div className="no-print" role="status" style={{ maxWidth: 800, margin: '0 auto 12px', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 12, padding: '11px 14px' }}>
+        <div className="no-print" role="status" style={{ maxWidth: 800, margin: '0 auto 12px', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 10, padding: '11px 14px' }}>
           <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text)' }}>
             <strong>BORRADOR — esta nota no está firmada.</strong> No tiene validez legal, y todo lo
             que imprimas o descargues (PDF, Word) saldrá marcado como borrador. Firma la nota desde
             la consulta para emitir el documento definitivo.
@@ -372,14 +380,14 @@ export default function NotaImprimiblePage() {
         <table style={{ width: '100%', fontSize: 12.5, marginBottom: 10, borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
-              <td style={{ padding: '2px 0', color: '#1a1a1a' }}><strong>Paciente:</strong> {nota.pacienteNombre}</td>
-              <td style={{ padding: '2px 0', color: '#1a1a1a', textAlign: 'right' }}><strong>Fecha:</strong> {fecha}</td>
+              <td style={{ padding: '2px 0', color: TINTA }}><strong>Paciente:</strong> {nota.pacienteNombre}</td>
+              <td style={{ padding: '2px 0', color: TINTA, textAlign: 'right' }}><strong>Fecha:</strong> {fecha}</td>
             </tr>
             <tr>
-              <td style={{ padding: '2px 0', color: '#1a1a1a' }}>
+              <td style={{ padding: '2px 0', color: TINTA }}>
                 {patient?.edad ? `Edad: ${patient.edad} años` : ''}{patient?.sexo ? ` · Sexo: ${patient.sexo}` : ''}
               </td>
-              <td style={{ padding: '2px 0', color: '#1a1a1a', textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
+              <td style={{ padding: '2px 0', color: TINTA, textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
             </tr>
             {/*
               DÓNDE ESTABA EL PACIENTE — servicio, cama y día de internamiento.
@@ -391,7 +399,7 @@ export default function NotaImprimiblePage() {
             */}
             {encabezadoHospital(nota.hospital) && (
               <tr>
-                <td colSpan={2} style={{ padding: '2px 0', color: '#1a1a1a' }}>{encabezadoHospital(nota.hospital)}</td>
+                <td colSpan={2} style={{ padding: '2px 0', color: TINTA }}>{encabezadoHospital(nota.hospital)}</td>
               </tr>
             )}
           </tbody>
@@ -598,7 +606,7 @@ export default function NotaImprimiblePage() {
         if (membrete) {
           // Nota membretada → paginar en hojas carta con el membrete en cada una.
           return (
-            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
+            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: TINTA, fontFamily: '"Times New Roman", Georgia, serif' }}>
               <HojasNota anchoMm={hojaNota.widthMm} altoMm={hojaNota.heightMm} mMemb={mMemb} membrete={membrete} bloques={bloques}
                 firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined}
                 borrador={nota.estado !== 'firmada'} />
@@ -608,7 +616,7 @@ export default function NotaImprimiblePage() {
         // Sin membrete → hoja blanca continua (encabezado de texto incluido en los bloques).
         return (
           <div id="doc" style={{
-            maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
+            maxWidth: 800, margin: '0 auto', background: '#fff', color: TINTA, position: 'relative',
             padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
             lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
           }}>
@@ -770,8 +778,10 @@ function MarcaBorrador({ porHoja }: { porHoja?: boolean }) {
       <svg viewBox="0 0 460 120" focusable="false" style={{
         width: '88%', maxWidth: 680, overflow: 'visible', transform: 'rotate(-28deg)',
       }}>
-        <text x="230" y="60" textAnchor="middle" dominantBaseline="central" style={{
-          fontSize: 72, fontWeight: 700, letterSpacing: 10,
+        {/* El 72 es geometría del viewBox del SVG (la marca ocupa el ancho del
+            papel), no un escalón tipográfico de la interfaz: va como atributo. */}
+        <text x="230" y="60" textAnchor="middle" dominantBaseline="central" fontSize={72} style={{
+          fontWeight: 700, letterSpacing: 10,
           fill: 'rgba(153, 27, 27, 0.10)', fontFamily: 'inherit',
         }}>
           BORRADOR

@@ -58,3 +58,25 @@ el término clínico sobreviva al pasar de hablado a escrito. Probado al revés.
 corrompida por el generador — «dosis guiada» quedó como «dosis gramosuiada»
 (alguien expandió «g» → «gramos» dentro de la palabra). Son del corpus, no del
 pipeline, y bajan su propia medición.
+
+## 2026-08-09 — La especificación de V9 pasa a ser la fuente de verdad
+
+El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guardara
+íntegro, sin resumir, como especificación autoritativa.
+
+- `docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md` es ahora
+  **exactamente** ese archivo (md5 `f4a6d421c2944ccc565a670037940419`, verificado
+  con `diff` contra el original).
+- Lo que antes vivía dentro de él —la lectura operativa y la bitácora de unidades
+  cerradas con su SHA— se movió a `docs/ai/V9-BITACORA-Y-OPERACION.md`, **sin
+  perder nada**, para que la especificación no se mezcle con su interpretación.
+- `CLAUDE.md`, `MASTER_STATE.json` y `CURRENT_ITERATION.md` obligan a leerla
+  completa antes de elegir trabajo.
+- Nace `agent-state/V9_COMPLETE_CRITERIA.md`: cuándo puede existir
+  `V9_COMPLETE.md`. **No existe todavía** y `v9-completo-no-se-declara-antes-de-
+  tiempo.test.ts` falla si aparece con unidades pendientes, con P0/P1 abiertos o
+  con una compuerta sin ejecutar.
+
+La razón de la compuerta, escrita antes de que hiciera falta: un programa
+autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
+criterio escrito al final se escribe para que dé aprobado.

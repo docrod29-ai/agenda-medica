@@ -141,6 +141,13 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     porQue: 'Corrección a una nota ya firmada sin alterar el original (NOM-004). Se agregan, nunca se editan ni se borran.',
   },
   {
+    ruta: 'clinics/{clinicId}/patients/{docId}/paquetes_visita/{docId}',
+    clase: 'clinico',
+    guardaLectura: 'isMedico',
+    guardaEscritura: 'servidor',
+    porQue: 'El paquete de la visita: lo que el paciente puede LEER de su consulta, compuesto de material ya firmado (V9 PATIENT-COMPANION-001). Lo escribe el servidor y nadie más: liberar un paquete es un acto de aprobación clínica, y si el navegador pudiera escribirlo, cualquiera con el token del portal podría poner `estado: RELEASED` sobre un borrador. El paciente NO lo lee directo de Firestore — lo sirve /api/portal tras comprobar `visibleParaElPaciente`, igual que el resto de su superficie.',
+  },
+  {
     ruta: 'clinics/{clinicId}/patients/{docId}/formularios_previos/{docId}',
     clase: 'clinico',
     guardaLectura: 'isMedico',

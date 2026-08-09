@@ -101,7 +101,11 @@ describe('DEBT-008 · los datos del paciente no heredan el gris del tema (contra
     // tbody td { color: var(--text2) } de globals.css se colaba en el documento
     // Y en el popup de impresión. El color va INLINE porque el documento viaja
     // por outerHTML: una clase de la página no llega a la ventana de imprimir.
-    const tds = pagina().match(/padding: '2px 0', color: '#1a1a1a'/g) ?? []
+    // El literal vive UNA vez (const TINTA): el trinquete de diseño cuenta hex
+    // en línea y siete copias del mismo color eran deuda sin ser decisión.
+    const src = pagina()
+    expect(src).toMatch(/const TINTA = '#1a1a1a'/)
+    const tds = src.match(/padding: '2px 0', color: TINTA/g) ?? []
     expect(tds.length).toBeGreaterThanOrEqual(5)
   })
 

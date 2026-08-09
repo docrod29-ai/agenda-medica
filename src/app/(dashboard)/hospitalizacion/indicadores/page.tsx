@@ -12,7 +12,7 @@ import { diasEstancia, TIPO_EGRESO_LABEL, type Internamiento } from '@/types/hos
 import { Spinner } from '@/components/ui'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 
-function Kpi({ valor, label, color = 'var(--nexus,#3d5afe)' }: { valor: string | number; label: string; color?: string }) {
+function Kpi({ valor, label, color = 'var(--nexus)' }: { valor: string | number; label: string; color?: string }) {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', padding: 16, textAlign: 'center' }}>
       <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{valor}</div>
@@ -60,7 +60,7 @@ export default function IndicadoresPage() {
         <ArrowLeft size={15} /> Atrás
       </button>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BarChart3 size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Indicadores hospitalarios
+        <BarChart3 size={22} style={{ color: 'var(--nexus)' }} /> Indicadores hospitalarios
       </h1>
 
       {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> : (<>

@@ -21,8 +21,8 @@ function Card({ plan }: { plan: PlanCreditos }) {
   const destacado = plan.destacado
   return (
     <div style={{
-      position: 'relative', flex: '1 1 300px', maxWidth: 380, background: 'var(--s1, #fff)',
-      border: '1px solid ' + (destacado ? 'var(--nexus, #3d5afe)' : 'var(--border, #e5e7eb)'),
+      position: 'relative', flex: '1 1 300px', maxWidth: 380, background: 'var(--s1)',
+      border: '1px solid ' + (destacado ? 'var(--nexus)' : 'var(--border)'),
       borderRadius: 18, padding: '26px 24px',
       boxShadow: destacado ? '0 12px 40px rgba(61,90,254,0.14)' : '0 1px 3px rgba(0,0,0,0.05)',
     }}>
@@ -33,10 +33,10 @@ function Card({ plan }: { plan: PlanCreditos }) {
           padding: '4px 14px', borderRadius: 'var(--r-pill)', letterSpacing: 0.3,
         }}>Más popular</div>
       )}
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{plan.nombre}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{plan.nombre}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14 }}>
-        <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text, #0f172a)', letterSpacing: -1 }}>${plan.precioMXN.toLocaleString('es-MX')}</span>
-        <span style={{ fontSize: 15, color: 'var(--text3, #64748b)' }}>MXN/mes</span>
+        <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', letterSpacing: -1 }}>${plan.precioMXN.toLocaleString('es-MX')}</span>
+        <span style={{ fontSize: 15, color: 'var(--text3)' }}>MXN/mes</span>
       </div>
       {/*
         LO QUE COMPRA UN MÉDICO SON CONSULTAS, NO CRÉDITOS.
@@ -46,11 +46,11 @@ function Card({ plan }: { plan: PlanCreditos }) {
         El crédito no desaparece —es la unidad interna, y la honesta, porque una
         nota Máxima cuesta diez veces una Rápida— pero baja al segundo renglón.
       */}
-      <div style={{ fontSize: 13, color: 'var(--text2, #475569)', fontWeight: 600, marginTop: 4, minHeight: 18 }}>
+      <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, marginTop: 4, minHeight: 18 }}>
         {consultasIncluidasTexto(plan)}
       </div>
       {plan.creditos > 0 && (
-        <div style={{ fontSize: 11.5, color: 'var(--text3, #64748b)', marginTop: 1 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 1 }}>
           {plan.creditos} créditos · por médico
         </div>
       )}
@@ -63,12 +63,12 @@ function Card({ plan }: { plan: PlanCreditos }) {
         /* Relleno con texto blanco encima → el azul SÓLIDO (5,13 : 1). Como
            texto sobre transparente se queda --nexus, que es el que se lee. */
         background: destacado ? 'var(--nexus-solido)' : 'transparent',
-        color: destacado ? '#fff' : 'var(--nexus, #3d5afe)',
-        border: '1px solid var(--nexus, #3d5afe)',
+        color: destacado ? '#fff' : 'var(--nexus)',
+        border: '1px solid var(--nexus)',
       }}>Prueba gratis 14 días</Link>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         {plan.incluye.map((b, i) => (
-          <div key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: 'var(--text2, #334155)', lineHeight: 1.45 }}>
+          <div key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.45 }}>
             <Check /> <span>{b}</span>
           </div>
         ))}
@@ -108,13 +108,13 @@ async function planesVigentes() {
 export default async function PreciosPage() {
   const planes = await planesVigentes()
   return (
-    <div style={{ background: 'var(--bg, #f8fafc)', minHeight: '100vh', padding: '56px 20px 80px' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '56px 20px 80px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus, #3d5afe)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Precios</div>
-        <h1 style={{ fontSize: 34, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '10px 0 0', letterSpacing: -0.5 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Precios</div>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: 'var(--text)', margin: '10px 0 0', letterSpacing: -0.5 }}>
           Paga por lo que usas, con IA de nivel mundial
         </h1>
-        <p style={{ fontSize: 16, color: 'var(--text3, #64748b)', maxWidth: 640, margin: '14px auto 0', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 16, color: 'var(--text3)', maxWidth: 640, margin: '14px auto 0', lineHeight: 1.5 }}>
           Cada plan incluye créditos de IA al mes. Documentas por voz, la nota se arma sola, con separación
           médico-paciente, evidencia con citas y revisión de consistencia y seguridad clínica. Si se acaban,
           compras más o subes de plan — nunca te cobran de sorpresa.
@@ -129,21 +129,21 @@ export default async function PreciosPage() {
 
       {/* ── Menú de IA: los 3 motores ── */}
       <div style={{ maxWidth: 780, margin: '40px auto 0' }}>
-        <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)', marginBottom: 4 }}>
+        <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
           Elige el motor de IA en cada nota
         </div>
-        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3, #64748b)', margin: '0 auto 16px', maxWidth: 560, lineHeight: 1.5 }}>
+        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text3)', margin: '0 auto 16px', maxWidth: 560, lineHeight: 1.5 }}>
           Cada nota gasta créditos según el motor que uses — paga poco por lo rutinario, mucho solo cuando lo necesitas.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
           {(['rapida', 'estandar', 'maxima'] as const).map(k => {
             const m = MOTORES[k]
             return (
-              <div key={k} style={{ flex: '1 1 210px', maxWidth: 250, background: 'var(--s1, #fff)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '16px 18px' }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{m.emoji} {m.nombre}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 3 }}>{m.modelos}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--nexus, #3d5afe)', marginTop: 10 }}>
-                  {m.creditos} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3, #64748b)' }}>{m.creditos === 1 ? 'crédito/nota' : 'créditos/nota'}</span>
+              <div key={k} style={{ flex: '1 1 210px', maxWidth: 250, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{m.emoji} {m.nombre}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{m.modelos}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--nexus)', marginTop: 10 }}>
+                  {m.creditos} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>{m.creditos === 1 ? 'crédito/nota' : 'créditos/nota'}</span>
                 </div>
               </div>
             )
@@ -151,27 +151,27 @@ export default async function PreciosPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 560, margin: '22px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'var(--s2, #f1f5f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 12, padding: '12px 16px' }}>
+      <div style={{ maxWidth: 560, margin: '22px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
         ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo
         hasta un tope mensual (<strong>{TOPE_ECONOMICO.pro} notas</strong> en Clínica, <strong>{TOPE_ECONOMICO.premium}</strong> en Pro). Pasado ese punto la IA se pausa y recargas o subes de plan.
       </div>
 
       {/* Tabla funcional de IA: qué CAMBIA CLÍNICAMENTE en cada nivel (no solo el precio). */}
       <div style={{ maxWidth: 860, margin: '48px auto 0' }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text, #0f172a)', textAlign: 'center', margin: '0 0 6px', letterSpacing: -0.3 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', textAlign: 'center', margin: '0 0 6px', letterSpacing: -0.3 }}>
           Qué cambia clínicamente en cada nivel de IA
         </h2>
-        <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--text2, #334155)', margin: '0 0 18px', maxWidth: 620, marginInline: 'auto' }}>
+        <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--text2)', margin: '0 0 18px', maxWidth: 620, marginInline: 'auto' }}>
           Mantenemos los nombres simples, pero te decimos exactamente qué hace la IA en cada uno — sin cajas negras.
         </p>
         <TablaNivelesIA />
       </div>
 
-      <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2, #334155)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
+      <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 12, padding: '12px 16px' }}>
         <strong>Precio fundador</strong> — los primeros 50 médicos congelan su tarifa de por vida. Aplica tu código <strong>FUNDADOR</strong> al pagar.
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3, #64748b)', marginTop: 24 }}>
+      <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3)', marginTop: 24 }}>
         Precios en pesos mexicanos, por médico. Paga <strong>anual y llévate 2 meses gratis</strong> (−17%). Cada nota gasta créditos
         según el motor de IA que elijas (⚡ 1 · ⭐ 3 · 💎 10). Al agotar tus créditos sigues con ⚡ Rápida sin costo hasta un tope mensual; pasado ese punto la IA se pausa
         y recargas o subes de plan. Nunca hay cobros de sorpresa. Cancela cuando quieras.

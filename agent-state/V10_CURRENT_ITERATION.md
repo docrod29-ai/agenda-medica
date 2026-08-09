@@ -47,20 +47,26 @@ del trinquete tocó `cumplimiento/motores/page.tsx`, archivo nuevo de main
 
 ## Próxima acción exacta (siguiente corrida)
 
-**V10-D1 QUEDÓ DECIDIDA Y EJECUTADA** (9-ago mediodía): el dueño aprobó la
-fusión V9; el merge está resuelto y empujado a `claude/nexus-patient-ux-v9`
-y el **PR #279** espera CI + fusión a main. OJO: en la fusión las REG de V9
-se renumeraron — REG-270…281 (V9) son ahora **REG-291…302**.
+**V10-D1 EJECUTADA HASTA EL FINAL** (9-ago tarde): PR #279 **FUSIONADO a
+main** (`56d9fc7a`) con CI en verde, y main ya está fusionado también en esta
+rama V10. OJO: las REG de V9 quedaron finalmente en **REG-294…305** — el loop
+V7 acuñó 291…293 en paralelo y obligó a una segunda renumeración (la historia
+completa está en la nota de fusión del ledger).
 
-1. Verificar el estado del PR #279. Si ya está fusionado: `git merge
-   origin/main` en la rama V10 de la sesión y correr las compuertas.
-2. Con main fusionado → **V10-CONSTITUTION-001** (DEBT-001/002): es lo que
-   desbloquea todo lo demás. El sistema de diseño de V9 ya está en main;
-   la unidad NO lo rehace — construye los tokens/utilidades que faltan.
-3. Ya sin candado V9: **DEBT-003** (agenda móvil, la pantalla más usada) y
+De paso en esta corrida: los techos del trinquete de diseño BAJARON a
+564 hex / 2026 tamaños / 638 radios (la tinta del papel de la nota vive en
+una constante `TINTA`, la banda BORRADOR quedó en 14/radio 10, y el 72 de la
+marca de agua es atributo del SVG, no escalón tipográfico). Pendiente de la
+siguiente corrida: re-capturar `nota--*.png` con el arnés (el cambio es
+mínimo: banda 13→14 y radio 12→10).
+
+1. **V10-CONSTITUTION-001** (DEBT-001/002): es lo que desbloquea todo lo
+   demás. El sistema de diseño de V9 ya está en main; la unidad NO lo
+   rehace — construye los tokens/utilidades que faltan sobre él.
+2. Ya sin candado V9: **DEBT-003** (agenda móvil, la pantalla más usada) y
    **DEBT-010** (pacientes móvil) entran en secuencia normal.
-4. Quick-strikes aún válidos si algo bloquea: DEBT-007a (resaltado de barra
-   lateral en /pacientes) y DEBT-006b (círculos de icono de hoy-escritorio).
+3. Quick-strikes aún válidos: DEBT-007a (resaltado de barra lateral en
+   /pacientes) y DEBT-006b (círculos de icono de hoy-escritorio).
 
 ### Cómo relanzar el arnés (resumen operativo)
 
