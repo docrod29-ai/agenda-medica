@@ -5,6 +5,31 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "capturadoEl": "2026-08-09",
+  "metodo": "Arnés scripts/design/arnes-capturas-v10.sh (emuladores demo + siembra sintética + next start + playwright, 1440/1024/768/390). Puntuación por revisor INDEPENDIENTE (subagente design-systems-lead) sobre los PNG de 1440 y 390 — el implementador no se aprueba a sí mismo (V10 §40). «Rendimiento percibido» queda vacía: no se puntúa desde un PNG; promedio sobre 11 dimensiones.",
+  "pantallas": [
+    { "pantalla": "login",      "visual": 7.1, "genericAiLook": 4, "capturas": ["login-1440.png", "login-390.png"],
+      "resumen": "Identidad real (wordmark serif, foco visible); resta: constelación de fondo con cara de producto-IA, contraste bajo en secundarios, luna <44px y encimada a 390." },
+    { "pantalla": "dashboard",  "visual": 6.0, "genericAiLook": 6, "capturas": ["dashboard-1440.png", "dashboard-390.png"],
+      "resumen": "«Siguiente acción» es la idea correcta y la mejor de las 5; la entierran 4 KPI con círculos de icono (NO ASISTIERON 0), 5 focos compitiendo, sidebar de 19 ítems y un móvil que es el escritorio apilado con el FAB tapando contenido." },
+    { "pantalla": "citas",      "visual": 5.4, "genericAiLook": 6, "capturas": ["citas-1440.png", "citas-390.png"],
+      "resumen": "La peor: hasta 7 acciones por fila en 4 colores; a 390 SE ROMPE (píldora encima del nombre envuelto, botones fuera de viewport). Fecha «08/09/2026» formato US en producto es-MX: riesgo real de lectura." },
+    { "pantalla": "calendario", "visual": 5.9, "genericAiLook": 3, "capturas": ["calendario-1440.png", "calendario-390.png"],
+      "resumen": "Sobrio en escritorio; a 390 la semana de 7 columnas (~40px c/u) es ilegible y sigue siendo default. Borde punteado sin leyenda; «De Agosto» en mayúscula." },
+    { "pantalla": "pacientes",  "visual": 5.9, "genericAiLook": 3, "capturas": ["pacientes-1440.png", "pacientes-390.png"],
+      "resumen": "Única pantalla con patrón móvil intencional (barra inferior de 5 destinos + FAB). Sidebar activo dice «Consulta» y la pantalla «Pacientes»; vacío pasivo; «Respaldo» compitiendo en cabecera." },
+    { "pantalla": "expediente", "visual": null, "genericAiLook": null, "capturas": ["expediente-1440.png", "expediente-390.png"],
+      "resumen": "SIN PUNTUAR: la primera captura llevaba siembra incompleta (alergias sólo en clinico/resumen → banner «no registradas» falso). Recapturada con siembra fiel; puntuar en la próxima corrida con contrarrevisión." },
+    { "pantalla": "consulta",   "visual": null, "genericAiLook": null, "capturas": ["consulta-1440.png", "consulta-390.png"],
+      "resumen": "SIN PUNTUAR: misma causa + el placeholder de alergias cambió en esta corrida (V10-SAFETY-ALERGIAS-WORDING). Puntuar sobre la captura nueva." }
+  ],
+  "promedioPuntuadas": 6.1,
+  "genericAiLookPromedio": 4.4,
+  "patronDominante": "La deuda no es de tema sino RESPONSIVE (4 de 5 móviles = escritorio apilado o roto) y de ÉNFASIS PLANO (19 ítems de nav, 7 botones/fila, 4 acentos por fila).",
+  "hallazgosTransversales": [
+    "Marca partida en tres: móvil dice «Agenda Médica», login «NexusMED», sidebar el nombre de la clínica (4/4 capturas móviles post-login)",
+    "Dos FABs (ayuda + luna) en las 5 pantallas; en móvil tapan contenido; el halo del de ayuda es lo más brillante de varias pantallas",
+    "Barra inferior móvil sólo aparece en pacientes-390 — verificar EN VIVO si es condicional (defecto grave de continuidad) o artefacto de captura",
+    "Sin verificar desde PNG: teclado, hover, carga/error, contraste exacto, supervivencia de estado"
+  ]
 }

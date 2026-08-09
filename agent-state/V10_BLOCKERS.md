@@ -17,7 +17,17 @@ PATIENT-COMPANION-001 (REG-280/281). La rama está 48 commits detrás de main.
   toca esos archivos.
 - **Decisión**: del dueño — registrada en `V10_OWNER_DECISIONS_REQUIRED.md`.
 
-## B-V10-2 · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
+## B-V10-2 · RESUELTO el 9-ago-2026 — arnés completo en el repo
+
+El arnés existe y corrió entero: `scripts/design/arnes-capturas-v10.sh`
+(emuladores Auth+Firestore `demo-nexusmed-test` → siembra sintética →
+`next start` con build real → playwright). 29 capturas del golden flow en
+1440/1024/768/390, sesión iniciada por la interfaz real. El candado
+demo-* en `src/lib/firebase.ts` tiene guardián
+(`emulador-solo-demo.test.ts`, probado al revés). Lo de abajo queda como
+historia del método.
+
+## B-V10-2 (histórico) · Capturas de pantalla reales — MÉTODO PROBADO, alcance parcial
 
 Intento del 9-ago-2026, en esta corrida:
 

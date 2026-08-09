@@ -126,13 +126,18 @@ async function main() {
   console.log('clínica OK')
 
   // ── 3. Pacientes sintéticos ───────────────────────────────────────────
+  // `edad` y `alergias` viven HOY en el doc admin del paciente (E0-06 a medias:
+  // la app dual-escribe y el expediente LEE el campo legado — medido el
+  // 9-ago-2026: la cabecera mostraba «Alergias: no registradas» cuando la
+  // siembra sólo escribía clinico/resumen). La siembra imita a la app real.
   const pacientes = [
-    { id: 'pac-demo-001', nombre: 'María Guadalupe Sandoval Ortiz', telefono: '6141112233', fechaNacimiento: '1958-04-17', sexo: 'Femenino', email: 'maria.sandoval@ejemplo.mx' },
-    { id: 'pac-demo-002', nombre: 'José Luis Carrillo Mendoza',      telefono: '6142223344', fechaNacimiento: '1971-11-02', sexo: 'Masculino' },
-    { id: 'pac-demo-003', nombre: 'Fernanda Ríos Aguilar',           telefono: '6143334455', fechaNacimiento: '1989-06-25', sexo: 'Femenino' },
-    { id: 'pac-demo-004', nombre: 'Ramón Villalobos Chacón',         telefono: '6144445566', fechaNacimiento: '1946-01-30', sexo: 'Masculino' },
-    { id: 'pac-demo-005', nombre: 'Alejandra Domínguez Prieto',      telefono: '6145556677', fechaNacimiento: '1995-09-08', sexo: 'Femenino' },
-    { id: 'pac-demo-006', nombre: 'Héctor Manuel Barraza Luna',      telefono: '6146667788', fechaNacimiento: '1963-07-19', sexo: 'Masculino' },
+    { id: 'pac-demo-001', nombre: 'María Guadalupe Sandoval Ortiz', telefono: '6141112233', fechaNacimiento: '1958-04-17', edad: 68, sexo: 'Femenino', email: 'maria.sandoval@ejemplo.mx',
+      alergias: 'Penicilina (rash generalizado, 2019) · AINE (broncoespasmo)' },
+    { id: 'pac-demo-002', nombre: 'José Luis Carrillo Mendoza',      telefono: '6142223344', fechaNacimiento: '1971-11-02', edad: 54, sexo: 'Masculino' },
+    { id: 'pac-demo-003', nombre: 'Fernanda Ríos Aguilar',           telefono: '6143334455', fechaNacimiento: '1989-06-25', edad: 37, sexo: 'Femenino' },
+    { id: 'pac-demo-004', nombre: 'Ramón Villalobos Chacón',         telefono: '6144445566', fechaNacimiento: '1946-01-30', edad: 80, sexo: 'Masculino' },
+    { id: 'pac-demo-005', nombre: 'Alejandra Domínguez Prieto',      telefono: '6145556677', fechaNacimiento: '1995-09-08', edad: 30, sexo: 'Femenino' },
+    { id: 'pac-demo-006', nombre: 'Héctor Manuel Barraza Luna',      telefono: '6146667788', fechaNacimiento: '1963-07-19', edad: 63, sexo: 'Masculino' },
   ]
   for (const p of pacientes) {
     const { id, ...campos } = p

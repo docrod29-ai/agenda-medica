@@ -26,6 +26,143 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
+      "estado": "hecho-2026-08-09",
+      "evidencia": "arnés scripts/design/arnes-capturas-v10.sh; 29 capturas en 4 anchos; puntuaciones en V10_VISUAL_SCORECARD.json"
+    },
+    {
+      "id": "V10-SAFETY-ALERGIAS-WORDING",
+      "titulo": "La consulta dice «Sin alergias conocidas» cuando NO HAY REGISTRO — afirma ausencia sin dato (regla clínica 4). El expediente dice «no registradas», que es lo correcto",
+      "fuente": "captura consulta-1440.png 9-ago-2026 vs expediente/[patientId]/page.tsx:137",
+      "prioridad": "P1",
+      "unidadV10": "V10-ENCOUNTER-001 (o arreglo inmediato de contenido: es una palabra, reversible)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MOBILE-CITAS-ROTO",
+      "titulo": "En 390px la fila de cita se rompe: el pill de estado SE ENCIMA al nombre envuelto y los botones de acción se salen de la pantalla",
+      "fuente": "captura citas-390.png 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001 / V10-MOBILE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MOBILE-DASHBOARD-APILADO",
+      "titulo": "El dashboard móvil es el escritorio apilado: 3 pantallas de tarjetas KPI antes de la agenda del día; el FAB de ayuda tapa contenido (V10 §27)",
+      "fuente": "captura dashboard-390.png 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "V10-TODAY-001 / V10-MOBILE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MOBILE-CALENDARIO-SEMANA",
+      "titulo": "El calendario móvil muestra la semana de 7 columnas en 390px: bloques ilegibles. Debe abrir en vista día en móvil (V10 §15)",
+      "fuente": "captura calendario-390.png 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001 / V10-MOBILE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-TODAY-KPI-GENERICO",
+      "titulo": "4 tarjetas KPI de peso igual con círculos de icono en el dashboard («NO ASISTIERON 0» gasta el mejor espacio en información nula) — §14 prohíbe el dashboard KPI genérico",
+      "fuente": "captura dashboard-1440.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-SHELL-ALMACEN",
+      "titulo": "Barra lateral con ~20 destinos de peso igual (almacén de funciones, §8.16); en móvil la marca dice «Agenda Médica», no NexusMED ni la clínica",
+      "fuente": "capturas dashboard-1440.png y dashboard-390.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CITAS-ARCOIRIS",
+      "titulo": "Cada fila de cita lleva 3-4 botones de color distinto (teal/azul/verde/morado) con énfasis igual — compite el color y no hay UNA acción primaria (§8.3, §9)",
+      "fuente": "captura citas-1440.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-EDAD",
+      "titulo": "Cabecera de expediente/consulta: separador «·» huérfano cuando falta edad; la edad sólo sale del campo almacenado `edad`, no se deriva de fechaNacimiento",
+      "fuente": "capturas expediente-1440.png y consulta-1440.png 9-ago-2026; page.tsx usa patient?.edad",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-E006-LECTURA-LEGADA",
+      "titulo": "El expediente lee alergias SOLO del campo legado patient.alergias; cuando E0-06 termine la migración, la página debe leer clinico/resumen o el banner mentirá",
+      "fuente": "medido 9-ago-2026: siembra sólo en clinico/resumen → banner «no registradas»",
+      "prioridad": "P2",
+      "unidadV10": "coordinar con E0-06 (no es unidad V10; registrar para no perderlo)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-FECHAS-INCONSISTENTES",
+      "titulo": "Fechas mezcladas en citas: «Hoy 2026-08-09» (ISO) junto a input nativo «08/09/2026» — formato US que en es-MX se lee 8 de septiembre. Riesgo real de lectura, no cosmética. Y «3 – 9 De Agosto» con «De» mayúscula",
+      "fuente": "capturas citas-1440.png y calendario-1440.png 9-ago-2026; elevada a P2 por el revisor independiente",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MARCA-PARTIDA",
+      "titulo": "La marca vive partida en tres: móvil post-login dice «Agenda Médica» (4/4 capturas), el login «NexusMED», el sidebar el nombre de la clínica. El nombre viejo domina la superficie móvil",
+      "fuente": "revisor independiente 9-ago-2026 (dashboard/citas/calendario/pacientes-390.png)",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-BARRA-INFERIOR-INCONSISTENTE",
+      "titulo": "La barra inferior móvil (5 destinos + FAB, el ÚNICO patrón móvil intencional hallado) sólo aparece en pacientes-390; ausente en dashboard/citas/calendario-390. Verificar EN VIVO si es condicional por pantalla (defecto grave de continuidad) o artefacto de captura",
+      "fuente": "revisor independiente 9-ago-2026",
+      "prioridad": "P1-verificar",
+      "unidadV10": "V10-SHELL-001 / V10-MOBILE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-FABS-DOBLES",
+      "titulo": "Dos FABs (ayuda «?» con halo + luna) en la esquina de las 5 pantallas; en móvil tapan contenido (icono de CONFIRMADAS en dashboard-390, acciones en citas-390). El halo hace de la ayuda lo más brillante de la pantalla: jerarquía invertida",
+      "fuente": "revisor independiente 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-NAV-CONSULTA-PACIENTES",
+      "titulo": "El sidebar marca activo «Consulta» cuando la pantalla se titula «Pacientes»: dos nombres para el mismo lugar. Decidir nomenclatura o corregir estado activo",
+      "fuente": "captura pacientes-1440.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-LOGIN-A11Y",
+      "titulo": "Login: contraste aparente <4.5:1 en secundarios («o con tu correo», footer); luna ~40px bajo el mínimo táctil y encimada a la tarjeta a 390; fondo constelación con cara de producto-IA (GENERIC 4)",
+      "fuente": "revisor independiente 9-ago-2026 (login-1440/390.png); contraste exige medición con pipeta en vivo",
+      "prioridad": "P2",
+      "unidadV10": "V10-A11Y-001 / V10-POLISH-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PACIENTES-VACIO-PASIVO",
+      "titulo": "El vacío de «Recientes» nombra «Todos A-Z» en negrita en vez de ofrecer el chip como acción tocable, y no ofrece «Nuevo paciente»; «Respaldo» (tarea mensual) compite en cabecera con tareas de cada hora",
+      "fuente": "revisor independiente 9-ago-2026 (pacientes-1440/390.png)",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PACIENTES-RECIENTES-VACIO",
+      "titulo": "Pestaña por defecto «Recientes» de pacientes sale vacía aunque hay 5 citas hoy (se alimenta de otra señal); el estado vacío sí enseña la salida",
+      "fuente": "captura pacientes-1440.png 9-ago-2026",
+      "prioridad": "P3",
+      "unidadV10": "V10-PATIENT-001",
       "estado": "abierto"
     }
   ]
