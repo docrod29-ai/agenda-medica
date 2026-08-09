@@ -177,7 +177,7 @@ export function RevisionPanel({ extraction, safety, aprobados, onAprobar, onRech
             </button>
           ) : (
             <button onClick={() => onAprobar(id)} title="Volver a incluir en la nota"
-              style={{ background: 'var(--teal)', border: 'none', color: '#000', borderRadius: 6, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
+              style={{ background: 'var(--nexus-solido)', border: 'none', color: '#fff', borderRadius: 6, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}>
               <Check size={12} /> Regresar
             </button>
           )}

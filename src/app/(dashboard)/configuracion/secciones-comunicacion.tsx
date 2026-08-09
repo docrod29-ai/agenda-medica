@@ -87,7 +87,7 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
 
       {data && !loading && data.total > 0 && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: 12 }}>
             <TarjetaMetrica etiqueta="Enviados" valor={data.total} />
             <TarjetaMetrica etiqueta="Entregados" valor={data.entregados} sub={pct(data.tasaEntrega)} color="var(--nexus)" />
             <TarjetaMetrica etiqueta="Leídos" valor={data.leidos} sub={pct(data.tasaLectura) + ' de entregados'} color="var(--success, #16a34a)" />

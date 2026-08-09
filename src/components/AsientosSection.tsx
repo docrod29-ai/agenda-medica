@@ -55,7 +55,7 @@ export default function AsientosSection({ clinicId }: { clinicId: string }) {
             Tienes <strong>{st.medicos}</strong> médicos pero tu cobro es por <strong>{st.contratados}</strong>. Actualiza para ajustar la suscripción (se prorratea).
           </div>
           <button onClick={actualizar} disabled={aplicando}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: aplicando ? 'wait' : 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: aplicando ? 'wait' : 'pointer' }}>
             {aplicando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Actualizando…</> : `Actualizar cobro a ${st.medicos} médicos`}
           </button>
         </div>

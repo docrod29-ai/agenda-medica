@@ -14,7 +14,33 @@ service firebase.storage {
         && request.resource.size < 80 * 1024 * 1024
         && (request.resource.contentType.matches('audio/.*') || request.resource.contentType.matches('video/webm.*'));
       allow delete: if request.auth != null && request.auth.uid == uid;
-      allow read: if false;
+      // LECTURA POR EL DUEÑO — es OBLIGATORIA, y su ausencia mataba el camino
+      // de las consultas largas.
+      //
+      // A partir de 3,6 MB (= 7 min 30 s a 64 kbps) el audio deja de mandarse
+      // en el cuerpo de la petición y se sube aquí, para diarizarlo por URL. Y
+      // para obtener esa URL el navegador llama a `getDownloadURL()`, que es un
+      // GET de metadatos gobernado por ESTA regla. Con `read: false` lanzaba
+      // `storage/unauthorized` en el primer segundo.
+      //
+      // Peor: el `catch` de useGrabacionAudio lo etiquetaba «tiempo_agotado».
+      // O sea que el médico veía «se agotó el tiempo» cuando lo que hubo fue un
+      // permiso denegado — y buscaba el problema en su internet.
+      //
+      // Consecuencia medida: TODA consulta de más de 7 min 30 s perdía la
+      // separación de voces y caía al troceado, que es donde aparece el aviso de
+      // recuperar el audio. Igual en iPhone que en computadora, porque es
+      // aritmética de bytes y no cosa del navegador.
+      //
+      // Es el MISMO fallo que ya se reparó en `receta-diseno` (v245), donde el
+      // comentario de abajo lo deja escrito. Aquí se olvidó porque el de arriba
+      // sólo pensó en AssemblyAI, que descarga por URL con token y no por
+      // reglas — y no en que el cliente tiene que LEER la URL antes de poder
+      // mandársela.
+      //
+      // Lo que NO abre: sólo el dueño del audio, comprobado por uid. Nadie más
+      // puede leerlo, ni siquiera otro médico del mismo consultorio.
+      allow read: if request.auth != null && request.auth.uid == uid;
     }
     // Formato de receta / hoja membretada / firma del médico (alta resolución).
     // Lo sube el dueño (mismo uid). LECTURA por el dueño: es OBLIGATORIA para que

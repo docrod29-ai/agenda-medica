@@ -60,7 +60,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
           </div>
         )}
         {turnos.map((t, i) => (
-          <div key={i} style={{ alignSelf: t.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', fontSize: 13, lineHeight: 1.5, padding: '9px 12px', borderRadius: 12, whiteSpace: 'pre-wrap', background: t.rol === 'user' ? 'var(--teal)' : 'var(--s2)', color: t.rol === 'user' ? '#000' : 'var(--text)', border: t.rol === 'bot' ? '1px solid var(--border)' : 'none' }}>
+          <div key={i} style={{ alignSelf: t.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%', fontSize: 13, lineHeight: 1.5, padding: '9px 12px', borderRadius: 12, whiteSpace: 'pre-wrap', background: t.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: t.rol === 'user' ? '#fff' : 'var(--text)', border: t.rol === 'bot' ? '1px solid var(--border)' : 'none' }}>
             {t.texto}
           </div>
         ))}
@@ -73,7 +73,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
           placeholder="Escribe tu pregunta…" disabled={cargando}
           style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none' }} />
         <button onClick={() => preguntar(q)} disabled={cargando || !q.trim()} aria-label="Enviar"
-          style={{ flexShrink: 0, width: 42, borderRadius: 10, border: 'none', cursor: cargando || !q.trim() ? 'default' : 'pointer', background: cargando || !q.trim() ? 'var(--s3)' : 'var(--teal)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ flexShrink: 0, width: 42, borderRadius: 10, border: 'none', cursor: cargando || !q.trim() ? 'default' : 'pointer', background: cargando || !q.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {cargando ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
         </button>
       </div>

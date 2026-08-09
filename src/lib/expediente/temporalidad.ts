@@ -59,7 +59,7 @@ const NUMERO =
 /**
  * Unidades de tiempo.
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-207) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-268) ─────────────────────────────────────
  *
  * Aquí decía `meses?`, que es «mese» con una ese opcional: casaba «meses» y
  * «mese», y **nunca «mes»**. Así que «hace un mes tuvo neumonía» —de las formas
@@ -85,8 +85,13 @@ const PASADO_VERBO = new RegExp([
   /**
    * La pasiva es como se cuenta lo que le hicieron en un hospital —«fue operado
    * de apendicectomía»— y no tiene lectura en presente: «fue» ya es pretérito.
+   *
+   * Va en UNA sola línea: REG-200 y REG-268 llegaron a ella por caminos
+   * distintos —«fue diagnosticada de asma» y «fue operado de apendicectomía»— y
+   * al fusionarse quedaron dos alternativas que decían casi lo mismo. Dos listas
+   * del mismo hecho se desincronizan; ésta es la unión de las dos.
    */
-  '\\bfue\\s+(?:operad|intervenid|hospitalizad|diagnosticad|tratad)[oa]\\b',
+  '\\bfue\\s+(?:operad|intervenid|hospitalizad|internad|diagnosticad|tratad)[oa]\\b',
   /**
    * El infinitivo compuesto llega por el interrogatorio dirigido: el médico
    * dicta «refiere haber tenido…», y el verbo que manda («refiere») está en
@@ -96,13 +101,52 @@ const PASADO_VERBO = new RegExp([
   '\\bhaber\\s+(?:tenido|padecido|sufrido|presentado|estado)\\b',
   '\\banteriormente\\b',
   '\\ben\\s+el\\s+pasado\\b',
+  /**
+   * ── LAS DIEZ FORMAS QUE SE ESCAPABAN (6-ago-2026, REG-200) ─────────────────
+   *
+   * Medido contra 26 frases de consulta mexicana: **10 no se detectaban**, y
+   * las diez eran del mismo tipo — pasado no reconocido. Cero falsos positivos,
+   * o sea que el motor erraba siempre del lado seguro, pero dejaba pasar las
+   * formas más corrientes de contar una enfermedad que ya pasó:
+   *
+   *     «le dio hepatitis cuando era joven»   «se curó de la anemia»
+   *     «dejó de tomar el medicamento»        «había tenido convulsiones»
+   *     «fue diagnosticada de asma»           «ya no toma metformina»
+   *     «salió del hospital en mayo»          «le hicieron una cesárea»
+   *     «antes fumaba»                        «solía tener migrañas»
+   *
+   * «Le dio» es la forma mexicana de «enfermó de», y no estaba. Tampoco el
+   * pluscuamperfecto («había tenido»), ni la pasiva del diagnóstico («fue
+   * diagnosticada»), ni el cese («ya no toma», «dejó de»), que es justo lo que
+   * distingue un fármaco vigente de uno suspendido.
+   */
+  // «Le dio hepatitis», «me dio covid» — la forma mexicana de enfermar.
+  '\\b(?:le|me|nos)\\s+dio\\b',
+  // Pluscuamperfecto: «había tenido», «había presentado».
+  '\\bhabia\\s+(?:tenido|presentado|padecido|sufrido|estado)\\b',
+  // El procedimiento contado por quien lo recibió. (La pasiva del diagnóstico
+  // —«fue diagnosticada»— vive arriba, en la línea única de la pasiva.)
+  '\\ble\\s+(?:hicieron|realizaron|practicaron|pusieron|colocaron)\\b',
+  // Resolución explícita.
+  '\\bse\\s+(?:curo|alivio|recupero|mejoro\\s+del?)\\b',
+  // Cese de un tratamiento o hábito: distingue lo vigente de lo suspendido.
+  '\\b(?:dejo|dejaron)\\s+de\\b',
+  '\\bya\\s+no\\s+(?:toma|tomo|usa|uso|recibe|recibia|fuma|fumo)\\b',
+  '\\bsuspendi(?:o|eron)\\b',
+  // Alta hospitalaria.
+  '\\bsali(?:o|eron)\\s+del\\s+(?:hospital|internamiento)\\b',
+  '\\ble\\s+dieron\\s+de\\s+alta\\b',
+  // Hábito o padecimiento previo.
+  '\\bantes\\s+(?:fumaba|tomaba|bebia|usaba|trabajaba)\\b',
+  '\\bsolia\\b',
+  '\\bex\\s*-?\\s*(?:fumador|alcoholico|usuario)\\b',
 ].join('|'), 'i')
 
 /**
  * LA MARCA DE CUÁNDO, sin verbo que la acompañe.
  *
  * Esta familia **cede** ante un verbo de estado en presente: ver
- * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-207.
+ * `PRESENTE_DE_ESTADO`, que es la reparación de fondo de REG-268.
  */
 const PASADO_MARCA = new RegExp([
   `\\bhace\\s+${NUMERO}\\s*${UNIDAD_TIEMPO}\\b`,
@@ -141,7 +185,7 @@ const PRESENTE = new RegExp([
 /**
  * EL VERBO DE ESTADO en presente — «tiene», «presenta», «cursa con».
  *
- * ── EL DEFECTO QUE ESTO REPARA (REG-207) ─────────────────────────────────────
+ * ── EL DEFECTO QUE ESTO REPARA (REG-268) ─────────────────────────────────────
  *
  * El corpus oro destapó el falso positivo más caro que podía tener este motor:
  *

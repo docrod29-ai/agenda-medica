@@ -346,7 +346,7 @@ export function FirmaUploadSection({ form, clinicId, onLocalChange }: {
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu firma · {medicoUnico.nombre}</div>
             ) : (<>
               <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Firma de:</label>
-              <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
+              <select aria-label="Médico al que aplica" value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
                 {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.firmaPorMedico?.[d.id] ? ' · tiene la suya' : ''}</option>)}
               </select>
@@ -522,7 +522,7 @@ export function MembreteNotaSection({ form, clinicId, onLocalChange }: {
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Tu hoja membretada · {medicoUnico.nombre}</div>
             ) : (<>
               <label style={{ fontSize: 11.5, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Hoja de:</label>
-              <select value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
+              <select aria-label="Médico al que aplica" value={medicoSel} onChange={(e) => setMedicoSel(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13 }}>
                 {doctores.map(d => <option key={d.id} value={d.id}>{d.nombre}{form.notaMembretePorMedico?.[d.id]?.url ? ' · tiene la suya' : ''}</option>)}
               </select>

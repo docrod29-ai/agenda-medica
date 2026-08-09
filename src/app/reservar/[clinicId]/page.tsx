@@ -198,7 +198,7 @@ export default function ReservarPage() {
 
         {step === 'fecha' && (
           <Card title="Elige el día" onBack={() => setStep('tipo')}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(110px, 100%), 1fr))', gap: 8 }}>
               {dias.map(d => {
                 const dt = new Date(d + 'T12:00:00')
                 const label = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -219,7 +219,7 @@ export default function ReservarPage() {
             ) : slots.length === 0 ? (
               <div style={{ color: 'var(--text3)', fontSize: 13 }}>No hay horarios disponibles este día. Elige otra fecha.</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(80px, 100%), 1fr))', gap: 6 }}>
                 {slots.map(s => (
                   <button key={s} onClick={() => { setHora(s); setStep('datos') }} style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 6px', fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
                     {s}

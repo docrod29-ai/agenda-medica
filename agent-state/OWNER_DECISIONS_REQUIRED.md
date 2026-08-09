@@ -21,13 +21,13 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | O-2 | Simulacro de restauración con `gcloud firestore databases restore` | Cronometrarlo una vez, en un proyecto de prueba | El acta de restauración real | La ida y vuelta del respaldo ya está medida |
 | O-3 | Pentest externo y PITR | Contratar cuando haya clientes de pago | El registro de riesgos lo declara pendiente | Todo lo demás |
 | O-4 | Cuenta de prueba en los secretos de CI | Una cuenta de juguete con datos sintéticos | El E2E sólo cubre lo público | El resto de CI |
-| O-5 | **17 PR abiertos y 16 se llaman «REG-207 / v1089»** | Fusionar o cerrar por lotes, empezando por los que tocan `temporalidad.ts` (#233, #234 y éste), y **después** renumerar el ledger de una vez | Que el número de REG y la versión del SW vuelvan a identificar algo | Cada rama pasa sus compuertas por separado; el trabajo no se pierde, sólo colisiona el nombre |
+| O-5 | **17 PR abiertos y 16 se llaman «REG-268 / v1150»** | Fusionar o cerrar por lotes, empezando por los que tocan `temporalidad.ts` (#233, #234 y éste), y **después** renumerar el ledger de una vez | Que el número de REG y la versión del SW vuelvan a identificar algo | Cada rama pasa sus compuertas por separado; el trabajo no se pierde, sólo colisiona el nombre |
 
 **Sobre O-5** — No es un descuido de una ejecución: es estructural. Cada ciclo
 autónomo arranca de `main`, lee que el ledger acaba en REG-191 y toma el
 siguiente número — que las ejecuciones anteriores ya tomaron, porque ninguna se
 fusionó. Fusionar es lo único que rompe el bucle, y fusionar es decisión del
-dueño. Mientras tanto seguirán naciendo REG-207.
+dueño. Mientras tanto seguirán naciendo REG-268.
 
 Tres PR tocan `src/lib/expediente/temporalidad.ts` con arreglos **distintos y
 parcialmente incompatibles** del mismo falso positivo. Lo que cada uno cubre, para
@@ -61,3 +61,84 @@ verbo de estado (conserva «hace un mes» vigilado) **y** con `ventanaAntes`.
 
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
+
+
+---
+
+## D-08 · ¿Se sube el sello a v4 para que cubra la transcripción de origen?
+
+**Estado**: pendiente · abierto el 6-ago-2026 (TRACE-001 / REG-199)
+
+**El hecho** — El sello v3 no cubre `transcripcionMotor`, que es el material de
+origen del que se re-proyecta la nota. La exclusión está documentada y tiene una
+razón sólida: añadirlo al canónico **cambiaría el hash de todas las notas ya
+firmadas** y las marcaría «alterada» de golpe — la falsa alarma que ya costó
+REG-060.
+
+**Lo que ya se hizo sin tocar nada** (v1080): la pantalla dejó de decir «cubre
+todo». Ahora declara qué queda fuera, con su nombre legible.
+
+**La decisión que es suya, no mía**
+
+| Opción | Qué implica |
+|---|---|
+| **Quedarse en v3** | El origen no va sellado. Se dice claramente. Cero riesgo. |
+| **Subir a v4** | El origen queda sellado en las notas NUEVAS. Las viejas conservan su sello v3 y se re-verifican con su propio algoritmo (ya está soportado). Coste: una migración y un periodo con dos versiones vivas. |
+
+**Lo que NO se hará sin su palabra** — Tocar el hash. Es irreversible sobre
+documentos firmados con su cédula, y ninguna mejora de trazabilidad justifica
+marcar como alteradas notas que están intactas.
+
+## CLÍNICA/LEGAL · Cuánto tiempo se conserva el audio de la consulta
+
+**Estado**: el Dr. autorizó **conservarlo** («conserva el audio», 8-ago-2026). Lo
+que falta es el **periodo**.
+
+**Por qué se pregunta y no se asume.** El audio de una consulta es dato de salud.
+El código no lleva ningún periodo escrito a mano justamente para que la respuesta
+sea suya y no un supuesto mío enterrado en una constante.
+
+**Lo que ya es cierto hoy**: el audio vive en `consultas-audio/{uid}/`, sólo lo
+lee su dueño (regla de Storage), y en el expediente se guarda **la ruta**, nunca
+la URL de descarga —que llevaría un token dentro—.
+
+**Recomendación por defecto** (si no decide otra cosa, no se implementa nada:
+el audio simplemente se queda): alinear la retención con la del expediente en
+NOM-004 y borrar automáticamente al vencer. Eso exige una tarea de limpieza y
+**su confirmación del plazo**.
+
+**Alternativas**: (a) conservarlo indefinidamente; (b) borrarlo al firmar la nota
+—se pierde el clic-a-audio, que es justo lo que él pidió—; (c) un plazo fijo.
+
+**Qué queda bloqueado sin la respuesta**: nada del clic-a-audio. Sólo la tarea de
+borrado automático.
+
+**Qué cuesta responder**: una frase.
+
+## CLÍNICA/OPERACIÓN · Política de correcciones a un registro ya hecho
+
+**Encontrado por el instrumento de REG-255** (`validarCorreccion`, 18 líneas de
+cuerpo real, sin llamador). **No es un defecto de software**: la función exige
+una política como parámetro **obligatorio**, y `POLITICA_CORRECCION` nace en
+`null` a propósito. Su propio comentario lo dice: *«la única forma de usar esta
+función es que alguien haya decidido Q2-Q4 y lo haya escrito»*.
+
+Sin su respuesta, **corregir una toma de signos o una administración ya
+registrada no está habilitado**. El motor está escrito y probado.
+
+Cuatro preguntas, y con las cuatro queda conectado:
+
+1. **¿Quién puede corregir?** (roles: médico, enfermería, farmacia,
+   laboratorio, administración)
+2. **¿Quién puede ANULAR una administración de medicamento?** Es aparte porque
+   anular una administración borra la constancia de que algo se dio.
+3. **¿Cuántas horas después del evento se admite corregir?** ¿Y se admite
+   corregir en un episodio ya egresado?
+4. **¿El motivo escrito es obligatorio?**
+
+**Por qué no lo decido yo.** Es política de registro clínico con peso
+NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
+«razonable» y enterrarlo en una constante sería exactamente lo que este proyecto
+no hace.
+
+**Qué cuesta responder**: cuatro frases.

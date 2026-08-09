@@ -144,7 +144,7 @@ export default function DashboardPage() {
       <PanelPendientes />
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 14, marginBottom: 28 }}>
         <KpiCard delay={40}
           icon={<CalendarDays size={20} color="var(--teal)" />}
           label="Citas hoy"
