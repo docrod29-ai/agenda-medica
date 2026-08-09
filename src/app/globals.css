@@ -1727,8 +1727,122 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 .prox-hero-cta:hover { background: var(--nexus-hover); }
 .prox-hero-cta:active { transform: scale(0.98); }
 
-/* Sparkline del hero */
-.nx-spark { display: block; }
+/* ══ V10 · HOY (pantalla de inicio) ═══════════════════════════════════════
+   Una sola columna a cualquier ancho.  La rejilla anterior era `1fr 300px`
+   FIJA: a 390 px la columna derecha se salía de la pantalla.  No se arregla
+   con un `minmax` — se arregla no teniendo dos columnas que defender.
+   Constitución V10, regla 39: responsive no es escritorio encogido.        */
+.hoy {
+  padding: 28px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.hoy-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hoy-saludo {
+  font-size: 32px;
+  color: var(--text);
+  margin: 7px 0 0;
+  font-weight: 500;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.hoy-accion { text-decoration: none; flex-shrink: 0; }
+
+/* Encabezado del bloque de agenda: título + recuento a la izquierda,
+   «Ver todas» a la derecha sin partirse nunca. */
+.hoy-bloque-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.hoy-bloque-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.hoy-vertodas {
+  font-size: 13px;
+  color: var(--teal);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 44px;      /* área táctil WCAG 2.2 AA */
+  align-self: center;
+}
+
+/* El recuento del día: un renglón de texto donde había cuatro tarjetas. */
+.hoy-resumen {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--text3);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.hoy-resumen-sep { margin: 0 7px; color: var(--border2); }
+/* Único color de la línea: lo que pide una acción HOY. */
+.hoy-resumen-alerta { color: var(--amber); font-weight: 600; }
+
+/* Fila de cita */
+.cita-fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cita-fila:hover { background: var(--s2); }
+.cita-principal {
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cita-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .hoy { padding: 20px 16px; gap: 18px; }
+  /* El saludo y la acción dejan de pelearse por el mismo renglón. */
+  .hoy-head { flex-direction: column; align-items: stretch; gap: 14px; }
+  .hoy-saludo { font-size: 26px; }
+  .hoy-accion, .hoy-accion .btn { width: 100%; justify-content: center; }
+  .hoy-bloque-head { padding: 14px 16px; }
+  .cita-fila { padding: 12px 16px; }
+}
+
+/* Por debajo de esto, el nombre del paciente y el botón de consulta no caben
+   en el mismo renglón: el nombre quedaba en dos letras y puntos suspensivos.
+   El estado y la acción bajan a su propia línea. */
+@media (max-width: 560px) {
+  .cita-fila { flex-wrap: wrap; }
+  .cita-acciones { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cita-fila { transition: none; }
+}
 
 /* Entrada suave de las ilustraciones de estado vacío (respeta reduce-motion) */
 .empty-illus { animation: nx-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
