@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "VOCAB-001 (cerrada) — REG-192, v1074",
+  "iteracionActual": "VOCAB-001 (cerrada) — REG-217, v1099",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",
@@ -20,7 +20,7 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1030",
-  "ultimaVersionEnRepositorio": "nexusmed-v1074",
+  "ultimaVersionEnRepositorio": "nexusmed-v1099",
   "trabajoLocalSinSubir": [],
   "notasDeLaIteracion": [
     "SAFE-001 y VOICE-004 estaban marcados 'a medias' / 'en curso' y ya estaban reparados en el repositorio. Verificados los dos con el motor real antes de cerrarlos, no leyendo el estado.",

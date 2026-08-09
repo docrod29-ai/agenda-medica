@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: «obesidad» decía VIH, y el VIH salía descartado
+## v1099 — REG-217: «obesidad» decía VIH, y el VIH salía descartado
 
 Los dos motores que leen vocabulario clínico —negaciones y temporalidad—
 buscaban cada forma con `includes`, que no sabe dónde acaba una palabra. `sida`

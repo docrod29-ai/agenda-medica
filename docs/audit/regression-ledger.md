@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — «obesidad» decía VIH, y el VIH salía descartado (v1074)
+## REG-217 — «obesidad» decía VIH, y el VIH salía descartado (v1099)
 
 **Encontrado** — 8-ago-2026, construyendo el corpus sintético del motor de
 temporalidad (EVAL-002 del backlog). El corpus no era de temporalidad: era una
