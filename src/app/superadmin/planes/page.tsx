@@ -188,8 +188,8 @@ export default function PreciosSuperadmin() {
               onClick={guardar}
               disabled={!hayCambios || guardando}
               style={{
-                background: hayCambios ? 'var(--teal)' : 'var(--s2)',
-                color: hayCambios ? '#000' : 'var(--text3)',
+                background: hayCambios ? 'var(--nexus-solido)' : 'var(--s2)',
+                color: hayCambios ? '#fff' : 'var(--text3)',
                 border: 'none', borderRadius: 8, padding: '9px 18px',
                 fontSize: 13.5, fontWeight: 700, cursor: hayCambios ? 'pointer' : 'default',
               }}

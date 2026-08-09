@@ -1323,7 +1323,7 @@ export default function UciPanelPage() {
                   style={{
                     padding: '3px 9px', borderRadius: 5, fontSize: 11.5, cursor: 'pointer',
                     border: '1px solid var(--border2)', fontWeight: 500,
-                    background: formatoNota === f ? 'var(--teal)' : 'transparent',
+                    background: formatoNota === f ? 'var(--nexus-solido)' : 'transparent',
                     color: formatoNota === f ? '#fff' : 'var(--text2)',
                   }}
                 >{f === 'narrativa' ? 'Narrativa' : 'Lista'}</button>
@@ -1669,8 +1669,8 @@ export default function UciPanelPage() {
                 style={{
                   marginRight: 8, padding: '6px 12px', borderRadius: 7, fontSize: 12.5,
                   cursor: 'pointer', fontWeight: 600,
-                  border: '1px solid ' + (yaEsta ? 'var(--teal)' : 'var(--border2)'),
-                  background: yaEsta ? 'var(--teal)' : 'transparent',
+                  border: '1px solid ' + (yaEsta ? 'var(--nexus-solido)' : 'var(--border2)'),
+                  background: yaEsta ? 'var(--nexus-solido)' : 'transparent',
                   color: yaEsta ? '#fff' : 'var(--text2)',
                 }}
               >
@@ -1691,7 +1691,7 @@ export default function UciPanelPage() {
                   style={{
                     padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
                     border: '1px solid var(--border2)',
-                    background: motorCopilot === k ? 'var(--teal)' : 'transparent',
+                    background: motorCopilot === k ? 'var(--nexus-solido)' : 'transparent',
                     color: motorCopilot === k ? '#fff' : 'var(--text2)',
                   }}
                 >{m.emoji} {m.nombre} · {c.creditos}</button>

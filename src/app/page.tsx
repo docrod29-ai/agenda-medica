@@ -465,8 +465,8 @@ function Pricing() {
             <Link href="/registro" style={{
               display: 'block', textAlign: 'center',
               padding: '13px 20px', borderRadius: 10,
-              background: p.highlight ? 'var(--teal)' : 'var(--s2)',
-              color: p.highlight ? '#000' : 'var(--text)',
+              background: p.highlight ? 'var(--nexus-solido)' : 'var(--s2)',
+              color: p.highlight ? '#fff' : 'var(--text)',
               fontWeight: 700, fontSize: 14, textDecoration: 'none',
               border: p.highlight ? 'none' : '1px solid var(--border)',
               marginBottom: 28,

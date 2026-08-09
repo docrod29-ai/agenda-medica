@@ -16,18 +16,28 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1162",
+  "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/DESIGN_STATE.md",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    " M docs/audit/regression-ledger.md",
     " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M public/sw.js",
     " M public/version.txt",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/DECISIONES-DEL-DUENO.md",
-    "?? scripts/calidad/lo-que-espera-al-dueno.mjs",
-    "?? src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts"
+    " M src/app/(dashboard)/asistente/page.tsx",
+    " M src/app/(dashboard)/chat/page.tsx",
+    " M src/app/(dashboard)/configuracion/page.tsx",
+    " M src/app/(dashboard)/layout.tsx",
+    " M src/app/(dashboard)/legal/page.tsx",
+    " M src/app/(dashboard)/pacientes/page.tsx",
+    " M src/app/(dashboard)/reactivacion/page.tsx",
+    " M src/app/(dashboard)/uci/antimicrobianos/page.tsx",
+    " M src/app/(dashboard)/uci/dosificacion/page.tsx",
+    " M src/app/(dashboard)/uci/page.tsx",
+    " M src/app/globals.css"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -61,12 +71,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/compassionate-galileo-lkq6yf",
   "derivado": {
-    "regsEnElLedger": 136,
-    "ultimaREG": "REG-288",
-    "archivosDePrueba": 565,
-    "casosDePrueba": 7450,
+    "regsEnElLedger": 137,
+    "ultimaREG": "REG-289",
+    "archivosDePrueba": 566,
+    "casosDePrueba": 7458,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

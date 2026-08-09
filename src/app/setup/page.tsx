@@ -253,7 +253,7 @@ export default function SetupPage() {
             disabled={!canContinue || saving}
             style={{
               width: '100%', padding: '14px 24px', borderRadius: 12,
-              background: canContinue ? 'var(--teal)' : 'var(--s3)',
+              background: canContinue ? 'var(--nexus-solido)' : 'var(--s3)',
               color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
               cursor: canContinue && !saving ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

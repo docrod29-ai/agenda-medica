@@ -13,8 +13,9 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `DESIGN-SYSTEM-001`, **en curso** (abierta 9-ago).
+`PATIENT-UX-TRUTH-001` ✅ CERRADA (8-ago) · los tres P0 de audio ✅ CERRADOS
+(v1158–v1161).
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -37,6 +38,18 @@ línea; primitivos compartidos al 24 %).
 | Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
 | El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+
+### Y lo primero que salió de `DESIGN-SYSTEM-001` (9-ago, v1163)
+
+**Catorce rellenos azules reprobaban WCAG AA** —once son botones primarios,
+entre ellos «Iniciar consulta» del tablero, «Crear mi consultorio» y «Crear
+cuenta»— **con el guardián que existe para eso en verde desde hacía dos
+versiones**.
+
+Falló el ámbito, no el color: comprobaba **una línea a la vez**, y `background` y
+`color` viven en líneas distintas del mismo objeto de estilo. Y sólo leía `.tsx`,
+así que `globals.css` no se miraba nunca. Tercera vez de la misma familia — «el
+guardián era tan estrecho como el barrido que lo escribió» (REG-289).
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

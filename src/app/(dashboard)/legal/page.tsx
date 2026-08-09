@@ -78,7 +78,7 @@ export default function LegalPage() {
           <button key={k} onClick={() => setDoc(k)}
             style={{
               border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '7px 16px', fontSize: 13, fontWeight: 700,
-              background: doc === k ? 'var(--nexus)' : 'transparent',
+              background: doc === k ? 'var(--nexus-solido)' : 'transparent',
               color: doc === k ? '#fff' : 'var(--text3)',
             }}>
             {label}

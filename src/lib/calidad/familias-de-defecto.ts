@@ -64,8 +64,10 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
     nombre: 'Nadie lo estaba midiendo',
     patron:
       'No es un defecto del producto: es la ausencia del instrumento que lo ' +
-      'habría delatado. Cada uno de éstos destapó otros al encenderse.',
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274],
+      'habría delatado. Cada uno de éstos destapó otros al encenderse. Cuenta ' +
+      'igual el instrumento que existe y mide la unidad equivocada: un ' +
+      'guardián con el ámbito mal puesto está en verde y no protege nada.',
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 289],
   },
   {
     clave: 'hueco_como_dato',

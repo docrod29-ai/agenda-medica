@@ -133,7 +133,7 @@ export default function ValidacionDosisPage() {
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px',
               borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
               border: '1px solid var(--border2)',
-              background: pestana === v ? 'var(--teal)' : 'transparent',
+              background: pestana === v ? 'var(--nexus-solido)' : 'transparent',
               color: pestana === v ? '#fff' : 'var(--text2)',
             }}
           ><Icono size={14} /> {label}</button>
@@ -164,7 +164,7 @@ export default function ValidacionDosisPage() {
             style={{
               padding: '7px 12px', borderRadius: 7, fontSize: 12.5, cursor: 'pointer',
               border: '1px solid var(--border2)',
-              background: filtro === v ? 'var(--teal)' : 'transparent',
+              background: filtro === v ? 'var(--nexus-solido)' : 'transparent',
               color: filtro === v ? '#fff' : 'var(--text2)',
             }}
           >{label}</button>

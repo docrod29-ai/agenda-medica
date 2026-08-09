@@ -389,8 +389,8 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
               <button key={c} onClick={() => setCiclo(c)}
                 style={{
                   border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '7px 16px', fontSize: 13, fontWeight: 700,
-                  background: ciclo === c ? 'var(--teal)' : 'transparent',
-                  color: ciclo === c ? '#000' : 'var(--text3)',
+                  background: ciclo === c ? 'var(--nexus-solido)' : 'transparent',
+                  color: ciclo === c ? '#fff' : 'var(--text3)',
                 }}>
                 {c === 'mensual' ? 'Mensual' : 'Anual · 2 meses gratis'}
               </button>
@@ -414,8 +414,8 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
                   style={{
                     marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 9,
                     cursor: cargando ? 'wait' : 'pointer', border: 'none', fontWeight: 700, fontSize: 14,
-                    background: p.destacado ? 'var(--teal)' : 'var(--s2)',
-                    color: p.destacado ? '#000' : 'var(--text)',
+                    background: p.destacado ? 'var(--nexus-solido)' : 'var(--s2)',
+                    color: p.destacado ? '#fff' : 'var(--text)',
                   }}>
                   {cargando === p.key ? 'Abriendo…' : nuevo ? 'Empezar' : 'Elegir'}
                 </button>

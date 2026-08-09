@@ -6295,3 +6295,111 @@ no mide no protege*.
 - `scripts/calidad/lo-que-espera-al-dueno.mjs` (nuevo)
 - `docs/DECISIONES-DEL-DUENO.md` (nuevo, derivado)
 - `src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts` (nuevo, 7 casos, sellado)
+
+---
+
+## REG-289 — catorce botones azules reprobaban AA, y el guardián que los cubría llevaba dos versiones en verde (v1163)
+
+`DESIGN-SYSTEM-001` de V9 empezó contando dónde se usa el azul de marca. El
+recuento sacó **catorce rellenos azules cuyo texto encima no llega al mínimo de
+WCAG AA**, y once de ellos son botones primarios:
+
+| Dónde | Qué es |
+|---|---|
+| `globals.css` · `.prox-hero-cta` | **«Iniciar consulta»** — la acción principal del tablero |
+| `/setup` | **«Crear mi consultorio»** — el botón que cierra el alta |
+| `/registro` | **«Crear cuenta»** |
+| `/chat` | el botón de enviar |
+| `/pacientes` | los filtros de la lista |
+| `Sidebar` | el globo de mensajes sin leer |
+| `/resena/[token]` · `/unirse/[code]` · `/asistente` | enviar reseña · aceptar invitación · agendar |
+| `/uci` (×3) · `/uci/dosificacion` (×2) · `/uci/antimicrobianos` (×2) · `/legal` · `/reactivacion` | pestañas y selectores |
+| portada · `layout` del tablero · `configuración` · `superadmin/planes` · aviso de privacidad | los CTA de precios y planes |
+
+Medido con la fórmula de luminancia relativa de WCAG 2.1, sobre los valores que
+el propio `globals.css` declara:
+
+```
+blanco sobre --nexus  oscuro (#6E84FE) = 3,28 : 1   ← reprueba (mínimo 4,5)
+negro  sobre --nexus  claro  (#2845EA) = 3,13 : 1   ← reprueba
+#040b12 sobre --nexus claro  (#2845EA) = 2,95 : 1   ← reprueba
+blanco sobre --nexus-solido            = 5,13 (oscuro) · 6,71 (claro)  ← pasa
+```
+
+### Lo que de verdad falló no fue el color
+
+Los catorce **ya estaban cubiertos por un guardián**: el de REG-233,
+`lo-que-el-navegador-vio.test.ts`, que existe exactamente para esto y llevaba dos
+versiones. Estaba en verde.
+
+Comprueba **una línea a la vez**. Y un objeto de estilo real reparte sus
+propiedades en varias líneas:
+
+```jsx
+style={{
+  background: canContinue ? 'var(--teal)' : 'var(--s3)',   // ← línea A
+  color: '#fff',                                            // ← línea B
+}}
+```
+
+Ninguna línea, por sí sola, contiene el defecto. El defecto es la **relación
+entre dos líneas**, y un guardián que lee renglones no puede verla. Además sólo
+leía `.tsx`, así que `globals.css` —el archivo donde vive el sistema de diseño—
+no se miraba nunca.
+
+### La familia, por tercera vez
+
+Está escrita en la cabecera de REG-233: «el guardián era tan estrecho como el
+barrido que lo escribió». Van tres:
+
+1. **v1104** — buscaba la cadena literal `background: 'var(--nexus)'`.
+2. **REG-233** — pasó a patrón, pero **una línea** y **sólo `.tsx`**.
+3. **REG-289** — el ámbito correcto no es la línea ni el archivo: es el **objeto
+   de estilo** (o la regla CSS), que es la unidad que el navegador compone.
+
+### El guardián nuevo mide, no compara cadenas
+
+`el-relleno-y-su-texto-se-miden-juntos.test.ts` calcula el cociente de contraste
+en los dos temas, y **lee los valores de los tokens del propio `globals.css`**.
+No hay ninguna cifra copiada a mano que se pueda desfasar (REG-241): si alguien
+aclara `--nexus-solido`, la prueba se entera sola.
+
+### Las dos veces que gritó de más, y por qué se cuentan
+
+Un guardián de accesibilidad que da falsos positivos se silencia, y silenciado es
+peor que ninguno (REG-245). Costó dos correcciones llegar a cero ruido:
+
+1. **33 hallazgos**, la mayoría falsos: cruzaba *todas* las ramas del fondo con
+   *todas* las del texto. En `background: activo ? A : B` / `color: activo ? C : D`
+   las ramas cuelgan de la **misma condición** y van emparejadas por posición —
+   `B` con `D` nunca se pinta junto a `A` con `C`.
+2. **24 hallazgos**, siete falsos: el valor de la declaración se cortaba en `;` y
+   salto de línea, así que `background: 'none', color: 'var(--text2)'` se leía
+   como un fondo llamado «none, color: var(--text2)». Siete pestañas que sólo
+   tenían el azul en el **borde** salieron como si lo tuvieran de relleno. El
+   corte correcto es la **coma de nivel cero**, contando paréntesis y comillas.
+
+### Probada al revés, de las dos formas
+
+- Sobre un ámbito sintético con el defecto multilínea: el detector lo ve, y deja
+  de verlo al cambiar el token.
+- Sobre el código real: devolviendo `.prox-hero-cta` a `var(--nexus)` y el filtro
+  de `/pacientes` a `var(--teal)`/`#000`, fallan la prueba de CSS y la de TSX
+  respectivamente. Comprobado, y restaurado.
+
+### Qué NO cubre
+
+- **Sólo la familia azul de marca.** El resto de la paleta no se vigila aquí:
+  declarado a propósito en la cabecera de la prueba.
+- **Sólo pares en el mismo ámbito.** Un texto que hereda el color de un ancestro
+  sigue invisible. Eso sólo lo ve un navegador — `A11Y-GATE-001` sigue abierto.
+- **No mide tamaño de fuente**, así que exige 4,5 también donde WCAG permitiría
+  3 : 1 por texto grande. Ninguno de los catorce era texto grande.
+- **No aprueba ninguna pantalla.** V9 §4 sigue vigente: la interfaz no se aprueba
+  leyendo el código.
+
+### Archivos
+
+- `src/__tests__/el-relleno-y-su-texto-se-miden-juntos.test.ts` (nuevo, 8 casos, sellado)
+- `src/app/globals.css` (`.prox-hero-cta`)
+- 17 pantallas y componentes: el relleno pasa a `var(--nexus-solido)` y su texto a `#fff`

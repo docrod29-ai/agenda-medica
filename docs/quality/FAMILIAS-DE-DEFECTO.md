@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 31 de 136, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 31 de 137, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 136.**
+**«El sistema se contradice a sí mismo» — 23 de 137.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -104,9 +104,16 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 136**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 21 de 137**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
+
+Y cuenta igual —REG-289 lo añadió el 9-ago-2026— el instrumento que **existe y
+mide la unidad equivocada**. El guardián de contraste comprobaba una línea a la
+vez; el defecto era la relación entre dos líneas del mismo objeto de estilo.
+Catorce botones reprobando WCAG AA, con la prueba en verde durante dos versiones.
+Un guardián con el ámbito mal puesto es peor que ninguno: el hueco se nota, el
+verde no.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.

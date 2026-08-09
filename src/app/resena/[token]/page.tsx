@@ -84,7 +84,7 @@ export default function ResenaPage() {
         <button
           onClick={enviar}
           disabled={!rating || enviando}
-          style={{ marginTop: 14, width: '100%', background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 12, padding: '12px 18px', fontSize: 15, fontWeight: 700, cursor: rating && !enviando ? 'pointer' : 'default', opacity: rating && !enviando ? 1 : 0.5 }}
+          style={{ marginTop: 14, width: '100%', background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 18px', fontSize: 15, fontWeight: 700, cursor: rating && !enviando ? 'pointer' : 'default', opacity: rating && !enviando ? 1 : 0.5 }}
         >
           {enviando ? 'Enviando…' : 'Enviar reseña'}
         </button>

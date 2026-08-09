@@ -2796,3 +2796,21 @@ resuelto es lo que hace que se dejen de leer todas.
 El documento **no propone respuestas**, y hay una prueba que lo comprueba: un
 valor «razonable» al lado de la pregunta es cómo el criterio del dueño se
 convierte en el default de un agente.
+
+## v1163 — catorce botones azules reprobaban AA, con el guardián en verde (REG-289)
+
+`DESIGN-SYSTEM-001` de V9 empezó contando dónde se usa el azul de marca, y sacó
+**catorce rellenos azules cuyo texto encima no llega al mínimo de WCAG AA**. Once
+son botones primarios: «Iniciar consulta» en el tablero, «Crear mi consultorio»,
+«Crear cuenta», el botón de enviar del chat, los filtros de pacientes, el globo
+de mensajes sin leer y los tres CTA de precios.
+
+Lo que falló no fue el color: los catorce **ya estaban cubiertos** por el
+guardián de REG-233, que llevaba dos versiones y estaba en verde. Comprueba una
+línea a la vez, y un objeto de estilo reparte `background` y `color` en líneas
+distintas — el defecto es la relación entre dos líneas. Además sólo leía `.tsx`,
+así que `globals.css` no se miraba nunca.
+
+El guardián nuevo **mide** el cociente de contraste por ámbito —objeto de estilo
+o regla CSS— y lee los valores de los tokens del propio `globals.css`, para que
+no haya ninguna cifra copiada que se pueda desfasar.

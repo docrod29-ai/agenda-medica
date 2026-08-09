@@ -352,8 +352,8 @@ function RegistroInner() {
               disabled={!valid || submitting}
               style={{
                 width: '100%', padding: '14px 24px', borderRadius: 10,
-                background: valid ? 'var(--teal)' : 'var(--s3)',
-                color: valid ? '#000' : 'var(--text3)',
+                background: valid ? 'var(--nexus-solido)' : 'var(--s3)',
+                color: valid ? '#fff' : 'var(--text3)',
                 fontSize: 15, fontWeight: 700, border: 'none',
                 cursor: valid && !submitting ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

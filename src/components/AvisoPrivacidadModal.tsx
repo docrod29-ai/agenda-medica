@@ -130,9 +130,9 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
                   style={{
                     padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 11.5, fontWeight: 600,
                     cursor: 'pointer', textTransform: 'capitalize',
-                    background: medio === m ? 'var(--teal)' : 'var(--s2)',
-                    color: medio === m ? '#000' : 'var(--text2)',
-                    border: medio === m ? '1px solid var(--teal)' : '1px solid var(--border)',
+                    background: medio === m ? 'var(--nexus-solido)' : 'var(--s2)',
+                    color: medio === m ? '#fff' : 'var(--text2)',
+                    border: medio === m ? '1px solid var(--nexus-solido)' : '1px solid var(--border)',
                   }}
                 >
                   {m === 'presencial' ? 'Firmado en papel' : m === 'whatsapp' ? 'Aceptado por WhatsApp' : 'Aceptado en el portal'}

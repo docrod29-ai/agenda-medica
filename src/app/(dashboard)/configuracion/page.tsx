@@ -1834,8 +1834,8 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
                       onClick={() => startCheckout(p)}
                       disabled={checkoutLoading === p}
                       style={{
-                        background: p === 'premium' ? 'var(--teal)' : 'var(--s2)',
-                        color: p === 'premium' ? '#000' : 'var(--text)',
+                        background: p === 'premium' ? 'var(--nexus-solido)' : 'var(--s2)',
+                        color: p === 'premium' ? '#fff' : 'var(--text)',
                         border: p === 'premium' ? 'none' : '1px solid var(--border)',
                         fontSize: 13, fontWeight: 700,
                         padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
@@ -2002,7 +2002,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             )}
           </div>
         </div>
-        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
+        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
           {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : <><Sparkles size={15} /> Generar enlace de invitación</>}
         </button>
 
@@ -2171,7 +2171,7 @@ function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaH
             <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Vacaciones de verano" />
           </div>
         </div>
-        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--teal)", color: "#040b12", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
+        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--nexus-solido)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
           {saving ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "+ Crear bloqueo"}
         </button>
       </div>
