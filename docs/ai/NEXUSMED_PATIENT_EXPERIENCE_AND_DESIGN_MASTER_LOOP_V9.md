@@ -694,4 +694,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
 | 2026-08-08 | Los tres P0 de audio | `7be23e9` · `2340e63` | Volver a grabar ya no borra los 22 min de antes; navegar grabando avisa; grabar cuenta como actividad | **283, 287** |
-| 2026-08-09 | **DESIGN-THEME-001** (1ª mitad de `DESIGN-SYSTEM-001`) | *(esta sesión)* | `@theme inline` de 4 a 40 tokens · radio, espacio, sombra y tipografía declarados · 14 tokens huérfanos reparados —incluido el contador «Fallidos» que nunca se ponía rojo— · compuerta que **compila el CSS** | **291** |
+| 2026-08-09 | **DESIGN-THEME-001** (1ª mitad de `DESIGN-SYSTEM-001`) | `e49bef8` | `@theme inline` de 4 a 40 tokens · radio, espacio, sombra y tipografía declarados · 14 tokens huérfanos reparados —incluido el contador «Fallidos» que nunca se ponía rojo— · compuerta que **compila el CSS** | **291** |
