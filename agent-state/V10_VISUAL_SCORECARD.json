@@ -1,0 +1,60 @@
+{
+  "regla": "Sólo se puntúa lo que tiene captura en docs/design/evidence/. Una pantalla sin evidencia no tiene puntuación — no se estima.",
+  "escala": "0-10 · visual = promedio de las 12 dimensiones del §34 · genericoIA = §35 (menor es mejor, objetivo <= 1.0 en pantallas críticas)",
+  "fecha": "2026-08-09",
+  "pantallas": {
+    "/": {
+      "superficie": "publica",
+      "evidencia": ["desktop-home.jpg", "mobile-home.jpg"],
+      "visual": 7.5,
+      "genericoIA": 3.0,
+      "razonamiento": "Identidad coherente (oscuro, azul, serif de marca) y jerarquía clara; pero conserva rasgos de SaaS genérico: rejilla de 6 tarjetas de función con círculos de icono, ilustración 3D decorativa que no comunica flujo, y píldoras de métrica. El mockup de producto y el mockup de WhatsApp sí comunican. Móvil renderiza bien sin desbordes."
+    },
+    "/registro": {
+      "superficie": "publica",
+      "evidencia": ["desktop-registro.jpg"],
+      "visual": 8.5,
+      "genericoIA": 1.5,
+      "razonamiento": "Partido 50/50 con serif editorial a la izquierda y formulario limpio a la derecha; etiquetas visibles, jerarquía correcta, aviso de prueba sin tarjeta bien puesto. Lo menos genérico de la superficie pública junto con la receta del demo."
+    },
+    "/login": {
+      "superficie": "publica",
+      "evidencia": ["desktop-login.jpg"],
+      "visual": 8.0,
+      "genericoIA": 2.0,
+      "razonamiento": "Tarjeta centrada estándar pero con identidad (logo, serif, ECG de fondo sutil); foco visible en el campo activo; jerarquía correcta."
+    },
+    "/precios": {
+      "superficie": "publica",
+      "evidencia": ["desktop-precios.jpg"],
+      "visual": 8.0,
+      "genericoIA": 2.0,
+      "razonamiento": "Tres niveles claros, anual visible, y la tabla «Qué cambia clínicamente en cada nivel de IA» es original y honesta. Hallazgo P1: nombra modelos internos (Haiku/Sonnet/Opus/GPT-5), posible tensión con REG-292 — ver backlog V10-P1-003 antes de tocar."
+    },
+    "/demo/interactivo·agenda": {
+      "superficie": "publica",
+      "evidencia": ["desktop-demo-agenda.jpg"],
+      "visual": 7.0,
+      "genericoIA": 2.0,
+      "razonamiento": "Lista de citas con hora y motivo, correcta; pero en escritorio usa ~40 % del alto y el resto queda muerto; stepper de 5 píldoras que en móvil rompe a dos filas."
+    },
+    "/demo/interactivo·nota": {
+      "superficie": "publica",
+      "evidencia": ["desktop-demo-nota.jpg"],
+      "visual": 8.0,
+      "genericoIA": 1.5,
+      "razonamiento": "S/O/A/P con rótulos smallcaps azules, tipografía legible, una sola acción primaria. En móvil excelente. Mismo espacio muerto de escritorio."
+    },
+    "/demo/interactivo·receta": {
+      "superficie": "publica",
+      "evidencia": ["desktop-demo-receta.jpg", "mobile-demo-receta.jpg"],
+      "visual": 8.5,
+      "genericoIA": 1.0,
+      "razonamiento": "El documento receta en blanco sobre lienzo oscuro comunica «documento real» con fuerza; panel de verificación por QR al lado es original de NexusMED y enseña confianza. Lo mejor inspeccionado hoy."
+    }
+  },
+  "sinPuntuar": {
+    "motivo": "Sin evidencia de navegador (bloqueo B-1). No se estima desde el código.",
+    "pantallas": "33 medico + 9 paciente con sesión + 9 interna — incluye TODAS las críticas del flujo dorado real (agenda, consulta, nota, recetas, resultados, seguimiento)"
+  }
+}

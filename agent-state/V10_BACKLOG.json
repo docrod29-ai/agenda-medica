@@ -1,0 +1,69 @@
+{
+  "nota": "Prioridad según la fórmula del §31 aplicada cualitativamente. P0 = habilitador o seguridad; P1 = deuda visual con evidencia; P2 = mejora medible; P3 = oportunidad.",
+  "fecha": "2026-08-09",
+  "tareas": [
+    {
+      "id": "V10-ENV-001",
+      "prioridad": "P0",
+      "titulo": "Emuladores Firebase opcionales + semilla sintética para inspección visual real",
+      "detalle": "connectAuthEmulator/connectFirestoreEmulator detrás de NEXT_PUBLIC_USE_EMULATORS=1 (nunca por defecto), guardián de que la bandera jamás actúe en producción, y semilla de consultorio+pacientes sintéticos. Habilita TODO el resto de V10: sin esto, las 33 pantallas medico no se pueden aprobar (§33: nunca aprobar desde el código).",
+      "origen": "V10-TRUTH-001; bloqueo B-1"
+    },
+    {
+      "id": "V10-TRUTH-001b",
+      "prioridad": "P0",
+      "titulo": "Terminar la auditoría de verdad sobre la superficie clínica",
+      "detalle": "Con V10-ENV-001: capturas escritorio+móvil de las pantallas medico del flujo dorado, puntuación, línea base axe y rendimiento, y backlog definitivo. Depende de V10-ENV-001.",
+      "origen": "Especificación §47"
+    },
+    {
+      "id": "V10-P1-003",
+      "prioridad": "P1",
+      "titulo": "/precios nombra modelos internos — verificar contra REG-292 y decidir",
+      "detalle": "REG-292 (regla del dueño, con sus palabras) exige decir QUÉ hace, no CÓMO. /precios muestra Haiku 4.5 / Sonnet 5 / Opus 4.8 + GPT-5. Dos lecturas: (a) omisión del barrido v1166 (que limpió /motores y /arquitectura) → retirar nombres describiendo capacidad; (b) transparencia deliberada del dueño en precios («sin cajas negras»). ANTES de tocar: mirar el diff de v1166 y las decisiones registradas; si sigue ambiguo, es pregunta barata al dueño en el siguiente reporte, no un bloqueo.",
+      "origen": "Captura desktop-precios.jpg"
+    },
+    {
+      "id": "V10-P1-004",
+      "prioridad": "P1",
+      "titulo": "Portada: rejilla de 6 tarjetas-función con círculos de icono",
+      "detalle": "Anti-patrón §9 (card grid + icon circles). Sustituir por un patrón propio: p. ej. recorrido del día del médico (agenda→dictado→nota→cobro) con capturas reales del producto en lugar de iconos abstractos. No re-colorear: rediseñar.",
+      "origen": "desktop-home.jpg"
+    },
+    {
+      "id": "V10-P1-005",
+      "prioridad": "P1",
+      "titulo": "Portada: ilustración 3D decorativa sin contenido de flujo",
+      "detalle": "Bloque isométrico brillante entre funciones y «Listo en 5 minutos»: decoración pura (§8.10, §9 gradientes/espectáculo). Reemplazar por evidencia de producto (captura, mini-demo) o retirar.",
+      "origen": "desktop-home.jpg"
+    },
+    {
+      "id": "V10-P2-006",
+      "prioridad": "P2",
+      "titulo": "Demo interactivo: espacio muerto en escritorio y stepper que rompe en móvil",
+      "detalle": "En 1440×900 el contenido usa ~40 % del alto; el stepper de 5 píldoras rompe a dos filas en 390 px. Composición de dos columnas en escritorio (contexto del paciente + paso actual) y stepper compacto en móvil.",
+      "origen": "desktop-demo-agenda.jpg, mobile-demo-nota"
+    },
+    {
+      "id": "V10-P2-007",
+      "prioridad": "P2",
+      "titulo": "Deuda de tokens medida por V9 — continuar la migración con techo",
+      "detalle": "565 hex en línea · 2 029 tamaños fuera de escala · 638 radios · 24 sombras · primitivos ui/ al ~24 % (techos sellados en scripts/design/). V10-CONSTITUTION-001 debe bajar estos techos pantalla por pantalla, no de golpe.",
+      "origen": "agent-state/DESIGN_STATE.md"
+    },
+    {
+      "id": "V10-P3-008",
+      "prioridad": "P3",
+      "titulo": "Matriz competitiva V10 con evidencia fechada",
+      "detalle": "docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md (§10): principios, no píxeles; sólo con evidencia pública accesible; sin fabricar resultados de competidores.",
+      "origen": "Especificación §10"
+    },
+    {
+      "id": "V10-P3-009",
+      "prioridad": "P3",
+      "titulo": "Rúbricas de usabilidad e interacción clínica",
+      "detalle": "docs/evals/V10_USABILITY_RUBRIC.md y V10_CLINICAL_INTERACTION_RUBRIC.md, con las tareas sintéticas del §36.",
+      "origen": "Especificación §4"
+    }
+  ]
+}

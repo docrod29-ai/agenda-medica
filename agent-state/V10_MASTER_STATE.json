@@ -1,0 +1,39 @@
+{
+  "programa": "V10 — Visual Excellence + Clinical Interaction",
+  "especificacion": "docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md",
+  "ramaDeTrabajo": "claude/kind-brahmagupta-ake878",
+  "notaDeRama": "El §3 de la especificación propone claude/nexus-visual-excellence-v10; esta sesión programada tiene rama designada por el arnés y el §3 permite usar la rama configurada. Si una sesión futura recibe otra rama designada, lee este estado y continúa allí.",
+  "actualizado": "2026-08-09",
+  "iteraciones": {
+    "V10-TRUTH-001": {
+      "estado": "parcial",
+      "hecho": [
+        "Especificación V10 leída completa; CLAUDE.md, reglas, estado V7/V9 y git leídos",
+        "Producto arrancado de verdad (next dev) en el contenedor: el bloqueo histórico era que sin NEXT_PUBLIC_FIREBASE_* getAuth() truena al evaluar el módulo y NINGUNA página renderiza; con un .env.local sintético (no versionado) la superficie pública renderiza entera",
+        "Inspección en navegador real (Chromium/CDP): 10 pantallas públicas en escritorio 1440×900 y móvil 390×844, más el flujo completo de /demo/interactivo (agenda → dictado → nota → receta → herramientas)",
+        "10 capturas de evidencia en docs/design/evidence/v10/2026-08-09/",
+        "Puntuación visual y de «cara de IA genérica» de lo inspeccionado: agent-state/V10_VISUAL_SCORECARD.json",
+        "Backlog V10 priorizado: agent-state/V10_BACKLOG.json"
+      ],
+      "reutilizadoDeV9": [
+        "docs/design/SCREEN_INVENTORY.md (generado, 79 pantallas) — inventario §47.1",
+        "docs/design/GENERIC_AI_AESTHETIC_AUDIT.md — recuentos anti-patrón §47.5, medidos 8-ago-2026",
+        "docs/design/NAVIGATION_STATE_AUDIT.md + REG-300…303 — §47.8",
+        "docs/design/NEXUS_DESIGN_SYSTEM.md + techos sellados de scripts/design/ — §47.3",
+        "agent-state/DESIGN_STATE.md — deuda medida: 565 hex en línea, 2029 tamaños fuera de escala, 638 radios, 24 sombras, primitivos ui/ al ~24 %"
+      ],
+      "pendiente": [
+        "Las 33 pantallas «medico» y 9 «paciente» con sesión: bloqueadas sin emulador/credenciales (V10_BLOCKERS.md B-1)",
+        "Línea base de accesibilidad automatizada (axe) y de rendimiento",
+        "docs/competitive/V10_COMPETITIVE_VISUAL_MATRIX.md",
+        "Rúbricas de usabilidad e interacción clínica (la visual ya existe)"
+      ]
+    }
+  },
+  "siguienteAccionExacta": "V10-ENV-001: cablear soporte OPCIONAL de emuladores Firebase (connectAuthEmulator/connectFirestoreEmulator detrás de NEXT_PUBLIC_USE_EMULATORS=1, jamás en producción) + semilla de datos sintéticos, para poder abrir las pantallas clínicas reales en navegador y terminar V10-TRUTH-001. Después: completar el inventario visual de la superficie medico.",
+  "entorno": {
+    "credencialesFirebase": false,
+    "navegador": "/opt/pw-browsers/chromium vía agent-browser (AGENT_BROWSER_EXECUTABLE_PATH)",
+    "envLocalSintetico": ".env.local con claves falsas NEXT_PUBLIC_FIREBASE_* — sólo para que los módulos evalúen; está en .gitignore y NO se versiona"
+  }
+}
