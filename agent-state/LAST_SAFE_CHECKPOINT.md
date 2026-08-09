@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/compassionate-galileo-lkq6yf` |
 | **SHA base de esta sesión** | `e32d582` (merge del PR #270) |
-| **SHA de cierre** | `7b53c9b` (`REG-289`, v1163) |
+| **SHA de cierre** | `7b53c9b` (`REG-289`, v1163) · +`91603ce` (B-12) · +el barrido de navegador |
 | **Unidad** | `DESIGN-SYSTEM-001` — **abierta**, primer paso cerrado |
 | **Siguiente** | ensanchar `@theme inline` (`DESIGN-THEME-001`) |
 
@@ -48,7 +48,8 @@ Ya dicen `cerrado`, con su versión y su REG.
 | `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** |
 | `npm run build` | **compila** (llega a «Collecting page data») y falla ahí con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
-| navegador / móvil / a11y en vivo | **no ejecutadas** |
+| **navegador** | **ejecutado.** `node scripts/design/contraste-en-el-navegador.mjs` sobre `next dev`: **24 rellenos azules opacos medidos en los dos temas, 0 reprueban** — 5,13 en oscuro y 6,71 en claro, exactamente la aritmética. Sólo pantallas públicas |
+| móvil / a11y completa | **no ejecutadas** |
 
 ---
 
@@ -80,8 +81,18 @@ tres archivos y no abriendo la aplicación.
 
 ## Lo que este checkpoint NO garantiza
 
-Que la interfaz esté bien. **Nadie ha abierto una pantalla en esta sesión
-tampoco.** Los catorce contrastes se midieron con la fórmula de WCAG sobre los
-tokens del repositorio, que es aritmética fiable — pero un botón puede reprobar
-por herencia, por un fondo de un ancestro o por un estado que sólo existe al
-pulsarlo, y nada de eso se ve desde el código. Ninguna pantalla está aprobada.
+Que la interfaz esté bien. **Se abrieron doce pantallas públicas y se midió el
+DOM pintado** —eso es nuevo, y confirma que el arreglo LLEGA al navegador— pero:
+
+- **Sólo lo público.** La consulta, la UCI y el hospital están detrás del login
+  (B-10). Ahí viven la mayoría de los catorce arreglos, y **no se han visto**.
+- **Sólo el estado en reposo.** Un botón que sólo existe al pasar el ratón, al
+  enfocarlo o cuando el formulario es válido no se pinta y no se mide. En
+  `/registro` el botón nace `var(--s3)`: por eso no aparece en la lista.
+- **Sólo rellenos opacos.** Un tinte translúcido se compone con el lienzo y
+  medirlo como opaco da una cifra que no existe — la primera versión del barrido
+  sacó cuatro falsos a 1,56 en la portada por eso.
+- **Sólo contraste.** El foco, el orden de tabulación y los nombres accesibles
+  siguen sin cubrirse (`A11Y-GATE-001`).
+
+Ninguna pantalla está **aprobada**: se comprobó un cociente, no un diseño.
