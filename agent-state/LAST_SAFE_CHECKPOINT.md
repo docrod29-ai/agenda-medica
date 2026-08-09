@@ -11,6 +11,7 @@
 | | |
 |---|---|
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306 |
+| **SHA** | `6be6ad38` |
 | **Siguiente** | **`PATIENT-AI-001`** |
 
 El paquete **se compone del encuentro y sólo sale con aprobación del médico**,
