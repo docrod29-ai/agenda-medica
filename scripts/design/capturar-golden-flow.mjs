@@ -22,7 +22,11 @@ import { chromium } from '@playwright/test'
 import { sembrar, MEDICO } from './sembrar-emulador.mjs'
 
 const PUERTO = 3100
-const BASE = `http://127.0.0.1:${PUERTO}`
+// `localhost`, NO `127.0.0.1`: Next 16 bloquea las peticiones cross-origin a
+// los recursos de dev (/_next/*) — y para su compuerta, 127.0.0.1 ≠ localhost.
+// Con la IP, cada chunk muere en ERR_ABORTED y la página queda en el spinner
+// sin hidratar, sin un solo error de JS. Costó cuatro corridas encontrarlo.
+const BASE = `http://localhost:${PUERTO}`
 const SALIDA = join(process.cwd(), 'docs/design/capturas/golden-flow')
 
 const PANTALLAS = [
