@@ -269,6 +269,27 @@ service cloud.firestore {
          * sobre el expediente de OTRO paciente de la misma clínica — el token es
          * lo único que ata la sesión a un `patientId`, y las reglas no lo ven.
          */
+        /**
+         * EL PAQUETE DE LA VISITA — lo que el paciente puede LEER de su consulta.
+         *
+         * V9 · PATIENT-COMPANION-001. Se compone de material ya firmado y nace
+         * DRAFT; sólo llega a RELEASED con la aprobación de alguien autorizado.
+         *
+         * `write: if false` no es prudencia genérica: **liberar un paquete es un
+         * acto de aprobación clínica**. Si el navegador pudiera escribir aquí,
+         * cualquiera con el token del portal —que no es una sesión de Firebase y
+         * estas reglas no lo ven— podría poner `estado: RELEASED` encima de un
+         * borrador y enseñárselo a sí mismo como si lo hubiera aprobado su
+         * médico. Lo escribe el servidor, que sí sabe quién aprueba.
+         *
+         * Y el paciente tampoco LEE de aquí: se lo sirve /api/portal después de
+         * comprobar `visibleParaElPaciente`. `isMedico` es para el consultorio.
+         */
+        match /paquetes_visita/{docId} {
+          allow read: if isMedico(clinicId);
+          allow write: if false;
+        }
+
         match /formularios_previos/{docId} {
           // `isMedico` y no `isMember`: aquí van motivo, medicamentos, alergias
           // y antecedentes — es secreto médico, igual que las notas. El guardián

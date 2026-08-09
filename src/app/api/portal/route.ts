@@ -13,6 +13,7 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
+import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 /**
  * API del Portal del Paciente (magic-link, sin contraseña).
@@ -559,6 +560,43 @@ export async function POST(req: NextRequest) {
         )
 
         return NextResponse.json({ ok: true, enviadoEn: ahora })
+      }
+
+      case 'paquetes': {
+        /**
+         * LOS PAQUETES DE VISITA QUE EL PACIENTE PUEDE VER — V9 REG-280.
+         *
+         * Alcance `clinico` por lo mismo que `documentos`: aquí hay diagnóstico
+         * y medicación. Un token de agenda —el que emite cualquier miembro para
+         * confirmar una cita— no abre esto.
+         *
+         * Y sobre eso, la compuerta que da nombre a la unidad: **sólo salen los
+         * paquetes que `visibleParaElPaciente` aprueba**. Se filtra AQUÍ, en el
+         * servidor, y no en la pantalla: esconder una pestaña no cierra una ruta
+         * HTTP, y un borrador clínico enseñado como definitivo es exactamente lo
+         * que la especificación prohíbe con todas las letras.
+         *
+         * El filtro se hace en memoria y no con un `where('estado','==','RELEASED')`
+         * a propósito: una consulta que se equivoque de campo devuelve de más en
+         * silencio, mientras que la función exige las TRES condiciones —estado,
+         * quién aprobó y cuándo— y está probada al revés.
+         */
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Pide a tu médico el acceso a la información de tus consultas.' },
+            { status: 403 },
+          )
+        }
+        const snapPaq = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('paquetes_visita')
+          .get()
+        const paquetes = snapPaq.docs
+          .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
+          .filter(visibleParaElPaciente)
+          .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
+        return NextResponse.json({ paquetes })
       }
 
       case 'documentos': {

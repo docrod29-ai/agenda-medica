@@ -29,8 +29,8 @@
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
 **Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ · **los tres P0 de audio** ✅ ·
-**`DESIGN-SYSTEM-001`** ✅ · **`NAVIGATION-001`** ✅ (9-ago) →
-**`PATIENT-COMPANION-001`**.
+**`DESIGN-SYSTEM-001`** ✅ · **`NAVIGATION-001`** ✅ ·
+**`PATIENT-COMPANION-001`** ✅ (9-ago) → **`POSTVISIT-001`**.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---

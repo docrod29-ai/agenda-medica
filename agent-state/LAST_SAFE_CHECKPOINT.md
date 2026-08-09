@@ -6,7 +6,27 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`NAVIGATION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`PATIENT-COMPANION-001`** — REG-280, REG-281 |
+| **Siguiente** | **`POSTVISIT-001`** |
+
+Los cinco destinos existen en `/mi/[token]`, el `PaqueteDeVisita` tiene sus dos
+estados y **la compuerta la aplica el servidor**: un borrador no sale de
+`/api/portal`. La colección está declarada en los tres sitios de la regla de
+aislamiento **y en la exportación ARCO**.
+
+**`POSTVISIT-001` empieza con deberes ya escritos**: `componerPaquete` y
+`cambiosDeMedicacion` se difirieron allí porque no tenían llamador, y su llamador
+es la pantalla donde el médico revisa y libera. Están descritas en REG-280 con
+sus reglas —sin lista previa de medicación, `null` y no «sin cambios»— para que
+no haya que redescubrirlas.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`NAVIGATION-001` cerrada**
 
 | | |
 |---|---|

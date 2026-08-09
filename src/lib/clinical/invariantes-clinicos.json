@@ -1105,6 +1105,10 @@
       "minCasos": 8
     },
     {
+      "archivo": "src/__tests__/un-borrador-no-llega-al-paciente.test.ts",
+      "minCasos": 13
+    },
+    {
       "archivo": "src/__tests__/un-hueco-se-escribe-no-se-reclama.test.ts",
       "minCasos": 20
     },

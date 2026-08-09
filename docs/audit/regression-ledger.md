@@ -5546,3 +5546,89 @@ es un `popstate`, no un clic, y cancelarlo exigiría empujar una entrada falsa a
 historial — la clase de truco que rompe el atrás para todo lo demás. No se hace.
 
 **Familia.** `no_conectado`.
+
+---
+
+## REG-280 — El compañero del paciente, y la compuerta que impide enseñarle un borrador
+
+**Unidad** V9 `PATIENT-COMPANION-001`. No repara un defecto observado: **pone la
+defensa antes de que exista la superficie que la necesita**, y por eso merece
+entrada propia.
+
+**Por qué antes y no después.** Hasta hoy la IA y los datos de este producto le
+hablaban a un internista con cédula: un error se lo comía alguien entrenado para
+verlo. La primera vez que el producto le habla al **paciente**, el lector **no
+puede detectar el error**. No sabe que esa dosis todavía no estaba revisada, ni
+que ese diagnóstico era una hipótesis a medio dictar.
+
+**Lo que queda montado.**
+
+- `PaqueteDeVisita` con los trece campos de la especificación y **dos** estados:
+  `DRAFT` y `RELEASED`. Nace `DRAFT` **aunque la nota ya esté firmada** — firmar
+  es un acto hacia el expediente y liberar es un acto hacia el paciente; se
+  pueden hacer en el mismo gesto y se registran aparte (regla 4 de
+  `patient-facing-ai.md`).
+- `liberar()` **exige** quién aprueba y cuándo, y se niega si falta cualquiera de
+  los dos: un campo vacío en la base es indistinguible de un campo que nadie
+  llenó.
+- `visibleParaElPaciente()` exige las **tres** condiciones a la vez. Un
+  `RELEASED` sin `approvedBy` es un documento al que alguien le puso el estado a
+  mano — y eso pasa, en una migración o con la consola abierta.
+- **El servidor filtra, no la pantalla.** `/api/portal` acción `paquetes` aplica
+  la compuerta antes de responder, y exige alcance `clinico`. Esconder una
+  pestaña no cierra una ruta HTTP.
+- Los **cinco destinos** —Hoy · Preguntar · Cuidado · Documentos · Perfil— en
+  `/mi/[token]`, con barra fija abajo porque esa pantalla se usa con una mano,
+  de pie, en la sala de espera. Cinco es el techo de la especificación para
+  móvil, no el objetivo.
+- La colección declarada en los **tres** sitios que exige la regla de
+  aislamiento (`firestore.rules` con escritura cerrada, matriz de acceso,
+  manifiesto del respaldo) **y en un cuarto**: la exportación ARCO. El paquete es
+  dato del titular, incluidos los borradores.
+
+**Lo que NO se hizo, y es lo que más dice de esta unidad.**
+
+`componerPaquete` —la función que arma el contenido desde la nota firmada— se
+escribió, y **el guardián de conexión la cazó al instante**: motor con cuerpo
+real y sin un solo llamador. Su llamador natural es la pantalla donde el médico
+revisa y libera, que es `POSTVISIT-001`.
+
+«Escrito, probado y sin conectar» es la familia **más grande de este proyecto**
+—32 de 127—, y añadirle una más a sabiendas, aunque fuera con una nota
+explicándolo, sería exactamente lo que este repositorio lleva meses
+persiguiendo. Se difirió. Al quitarla, el guardián cazó a su ayudante
+`cambiosDeMedicacion` en la vuelta siguiente: **un motor sin llamador no deja de
+serlo porque su vecino se haya ido.** Se fueron los dos.
+
+**Y una honestidad de pantalla.** «Preguntar» **no responde**: la especificación
+pide inteligencia acotada al plan de cuidado, y eso llega en `PATIENT-AI-001`.
+Mientras tanto escala al consultorio, que es el producto y no el fallo (§3 de la
+regla). «Perfil» dice que el idioma es es-MX y que todavía no se puede autorizar
+a un cuidador, en vez de enseñar controles que no hacen nada: un selector con un
+solo idioma le miente al paciente sobre lo que puede esperar.
+
+**Familia.** `hueco_frente_al_mercado` — la casilla de aprobación explícita está
+vacía en todo el material público de Abridge, Nabla, Suki y Dragon Copilot.
+
+**Guardián.** `src/__tests__/un-borrador-no-llega-al-paciente.test.ts`, 13 casos.
+
+---
+
+## REG-281 — Dos guardianes de diseño que se contradecían
+
+**Encontrado** al montar la pantalla del paciente con los tokens nuevos.
+
+**Qué pasaba.** `escala-visual-trinquete` contaba «radios distintos» metiendo en
+el mismo saco `borderRadius: 7` y `borderRadius: 'var(--r-lg)'`. El primero es
+deriva; el segundo es exactamente lo que pide el sistema de diseño.
+
+Resultado: el trinquete de diseño de `DESIGN-SYSTEM-001` **premia** usar el
+token y éste lo **castigaba**. La primera pantalla que hizo lo correcto puso el
+CI en rojo, y el arreglo «natural» habría sido volver al número suelto.
+
+**Familia.** `se_contradice` — cada guardián correcto por su cuenta, el fallo en
+el hueco entre los dos. Es la misma forma que REG-223 (el azul que servía de
+texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
+
+**Arreglo.** El contador excluye los valores que son una variable CSS. La
+píldora sigue vigilada aparte y a cero, que es donde tiene que estar.

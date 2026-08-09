@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
   Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard, Video,
+  Home, MessageCircle, HeartPulse, FileText, User,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -56,6 +57,21 @@ interface Sesion {
 
 const API = '/api/portal'
 
+/**
+ * LOS CINCO DESTINOS DEL COMPAÑERO — TODAY · ASK NEXUS · CARE · DOCUMENTS · PROFILE.
+ *
+ * Los ids vienen de `lib/paciente/paquete-de-visita`, que es donde los declara
+ * el modelo, para que la pantalla y el servidor no puedan discrepar sobre
+ * cuántos destinos hay ni cómo se llaman.
+ */
+const DESTINOS = [
+  { id: 'hoy' as const,        etiqueta: 'Hoy',        icono: Home },
+  { id: 'preguntar' as const,  etiqueta: 'Preguntar',  icono: MessageCircle },
+  { id: 'cuidado' as const,    etiqueta: 'Cuidado',    icono: HeartPulse },
+  { id: 'documentos' as const, etiqueta: 'Documentos', icono: FileText },
+  { id: 'perfil' as const,     etiqueta: 'Perfil',     icono: User },
+]
+
 const ESTADO_TERMINAL = new Set(['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada'])
 const TIPO_LABEL: Record<string, string> = {
   'primera-vez': 'Primera vez', 'seguimiento': 'Seguimiento', 'urgente': 'Urgente',
@@ -107,6 +123,7 @@ export default function MiPortalPage() {
   /** Pago del anticipo: se abre el Checkout de Stripe atado a la cita. */
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState('')
+  const [destino, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
 
   const cargar = useCallback(async () => {
     try {
@@ -219,7 +236,7 @@ export default function MiPortalPage() {
   const pasadas = sesion.citas.filter(c => !proximas.includes(c)).reverse()
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '24px 16px 48px' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '24px 16px 96px' }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         {/* Encabezado */}
         <div style={{ marginBottom: 24 }}>
@@ -228,6 +245,7 @@ export default function MiPortalPage() {
           <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 4 }}>Aquí puedes gestionar tus citas.</p>
         </div>
 
+        {destino === 'hoy' && (<>
         {/* Próximas citas */}
         <h2 className="t-h2" style={{ marginBottom: 12 }}>Próximas citas</h2>
         {proximas.length === 0 ? (
@@ -366,6 +384,56 @@ export default function MiPortalPage() {
           </div>
         )}
 
+        </>)}
+        {destino === 'preguntar' && (<>
+          {/*
+            ASK NEXUS TODAVÍA NO RESPONDE, Y ESO ES LO CORRECTO HOY.
+
+            La especificación es explícita en que esto NO es un chatbot médico
+            genérico, sino «inteligencia acotada al plan de cuidado»: cada
+            respuesta clasificada, y todo dato específico del paciente sostenido
+            en material que su médico aprobó. Eso llega en PATIENT-AI-001.
+
+            Mientras tanto **la escalación es el producto, no el fallo** (§3 de
+            la regla de IA de cara al paciente). Poner aquí un cuadro de texto
+            que conteste «lo que sea» sería justo lo que la regla prohíbe, y se
+            lo diría a alguien que no puede detectar el error.
+          */}
+          <h2 className="t-h2" style={{ marginBottom: 12 }}>Preguntar</h2>
+          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
+            <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+              Si tienes una duda sobre tu tratamiento, escríbele a tu consultorio.
+              Quien te responde es el equipo de tu médico.
+            </p>
+            {sesion.clinica?.telefono && (
+              <a href={`tel:${sesion.clinica.telefono}`} className="btn btn-primary btn-sm"
+                 style={{ display: 'inline-flex', marginTop: 14 }}>
+                Llamar al consultorio
+              </a>
+            )}
+            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 14, marginBottom: 0 }}>
+              Si es una urgencia —dolor en el pecho, dificultad para respirar,
+              síntomas neurológicos— no esperes respuesta por aquí: acude a
+              urgencias o llama al 911.
+            </p>
+          </div>
+        </>)}
+        {destino === 'cuidado' && (<>
+          {/*
+            LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
+            RELEASED: el servidor filtra con `visibleParaElPaciente` y un
+            borrador no sale de ahí (REG-280). Hoy nada los crea todavía — la
+            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
+            el estado vacío dice la verdad en vez de fingir que no hay nada.
+          */}
+          <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
+          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+              tus medicamentos con instrucciones en palabras sencillas, los
+              estudios que te pidió y cuándo volver.
+            </p>
+          </div>
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -386,6 +454,8 @@ export default function MiPortalPage() {
           </details>
         )}
 
+        </>)}
+        {destino === 'documentos' && (<>
         {/* Mis recetas — enlace sin alcance clínico (E0-06) */}
         {docsBloqueados && (
           <div style={{ marginTop: 28, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, fontSize: 13, color: 'var(--text3)' }}>
@@ -420,6 +490,33 @@ export default function MiPortalPage() {
           </div>
         )}
 
+        </>)}
+        {destino === 'perfil' && (<>
+          {/*
+            LO QUE TODAVÍA NO HAY, DICHO EN VOZ ALTA.
+
+            La especificación pide cambiar el idioma y gestionar el acceso de un
+            cuidador autorizado. Ninguna de las dos existe: el producto está fijo
+            en es-MX (`lib/i18n.ts` está escrito y no lo importa nadie) y el
+            token del portal ata a UN paciente, sin concepto de cuidador.
+
+            Se enseña el estado real en vez de un control que no hace nada. Un
+            selector de idioma con un solo idioma, o un botón de cuidador que no
+            autoriza a nadie, le mienten al paciente sobre lo que puede esperar —
+            y en una pantalla de salud eso se paga en confianza.
+          */}
+          <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu perfil</h2>
+          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 14 }}>
+              <span style={{ color: 'var(--text2)' }}>Idioma</span>
+              <span style={{ color: 'var(--text3)' }}>Español (México)</span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 12, marginBottom: 0, lineHeight: 1.6 }}>
+              Este enlace es personal y caduca en unos días. Si necesitas que otra
+              persona te ayude con tus citas, pídeselo al consultorio: todavía no
+              podemos darle acceso desde aquí.
+            </p>
+          </div>
         {/* Pie: consultorio */}
         {sesion.clinica && (
           <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--text3)' }}>
@@ -433,6 +530,38 @@ export default function MiPortalPage() {
         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)' }}>
           <ShieldCheck size={13} className="ds-icon" /> Acceso privado y seguro · NexusMED
         </div>
+        </>)}
+
+        {/*
+          LOS CINCO DESTINOS — móvil primero.
+
+          La especificación fija un máximo de 4-5 destinos primarios en móvil, y
+          cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
+          se usa con una mano, de pie, en la sala de espera.
+        */}
+        <nav aria-label="Secciones" style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
+          display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
+          background: 'var(--s1)', borderTop: '1px solid var(--border)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}>
+          {DESTINOS.map(d => {
+            const activo = destino === d.id
+            return (
+              <button key={d.id} onClick={() => setDestino(d.id)}
+                aria-current={activo ? 'page' : undefined}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  padding: '10px 4px', minHeight: 56,
+                  color: activo ? 'var(--nexus)' : 'var(--text3)',
+                }}>
+                <d.icono size={20} aria-hidden />
+                <span style={{ fontSize: 'var(--t-overline)' }}>{d.etiqueta}</span>
+              </button>
+            )
+          })}
+        </nav>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

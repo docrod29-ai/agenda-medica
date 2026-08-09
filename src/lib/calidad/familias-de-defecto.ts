@@ -48,7 +48,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Dos partes afirman cosas incompatibles y ninguna está mal por su cuenta: ' +
       'dos reglas del prompt, dos versiones del mismo dato, un metadato que ya ' +
       'no describe lo que describe. El fallo vive en el HUECO entre las dos.',
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 274],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 274, 281],
   },
   {
     clave: 'habla_real',
@@ -176,7 +176,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'estaba. Ninguna prueba interna puede delatarla: no hay nada roto que ' +
       'medir. Se encuentra comparando con casos idénticos, no leyendo el ' +
       'código.',
-    regs: [242, 243, 250],
+    regs: [242, 243, 250, 280],
   },
   {
     clave: 'falta_un_eje',
