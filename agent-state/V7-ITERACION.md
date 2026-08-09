@@ -101,13 +101,60 @@ código. Quedan cuatro que dependen de mí: `invariantesProtegidos`,
 
 ---
 
+## 9-ago-2026 — reconciliación + REG-291
+
+Disparo autónomo sobre `claude/clever-lamport-vpchnu` (ya tenía fusionado todo
+hasta v1163/REG-290). Antes de tocar código: reconciliar el backlog contra el
+repositorio, porque `CURRENT_ITERATION.md` decía **tres** P0 de audio cerrados
+(REG-283/284/287) y `BACKLOG.json` seguía diciendo `pendiente` en los tres.
+
+**Verificado contra el código, no contra el tablero:**
+
+| Ítem | Lo que decía el tablero | Lo que hay de verdad |
+|---|---|---|
+| PATIENT-AUDIO-001 | cerrado | **Cerrado de verdad.** `borrarChunks` acota por offset. Backlog corregido a CERRADO. |
+| PATIENT-AUDIO-002 | cerrado | **Abierto.** El desmonte sólo llama `liberarRecursos()`, nunca `detener()`. `beforeunload` (REG-287) no cubre navegación SPA. |
+| PATIENT-AUDIO-003 | cerrado | **Parcial.** El latido durante grabación sí evita el timeout de inactividad a mitad de dictado. Pero `EVENTO_GUARDAR_TODO` en la consulta sólo guarda texto, nunca detiene el audio, y `salirSeguro()` borra `nexusmed-recovery` **incondicionalmente** — con o sin grabación sin transcribir. |
+
+**Por qué no se tocó AUDIO-002/003 en este disparo.** Score 86 y 82 — más alto
+que cualquier otro pendiente — pero la reparación real cruza
+`useGrabacionAudio.ts` (temporización de efectos de React entre `detener()` y el
+`useEffect` que copia `audio.transcripcion` a `voz.transcripcion`), la página de
+consulta y `salir-seguro.ts` a la vez. Meterle mano sin poder confirmar en un
+navegador real (este espacio no tiene uno) es el tipo de cambio que puede
+CREAR una pérdida de datos en vez de cerrarla. Se deja documentado con el
+`file:line` exacto en `BACKLOG.json` para el próximo disparo, en vez de forzar
+un arreglo a medias.
+
+**Lo que sí se cerró: REG-291 (`POSTVISIT-GATE-001`, score 63).**
+`HojaParaElPaciente` se montaba con el estado EN VIVO del borrador —sin mirar
+`firmada`— cuando su propia cabecera prometía por escrito «cada línea sale de un
+campo que el médico ya revisó y **firmó**». `ComoCerrarLaConsulta` (REG-244), tres
+líneas más arriba en el mismo archivo, ya usaba el patrón correcto. Arreglado con
+`puedeMostrarseLaHojaDelPaciente({esNotaHospital, firmada})`, guardián probado al
+revés (3 casos nuevos), sellado en `invariantes-clinicos.json` y clasificado en
+`familias-de-defecto.ts` (`se_contradice`: el comentario prometía «firmó», el
+código no lo comprobaba).
+
+**Gates**: 8 462/8 463 pruebas en verde (1 fallo preexistente,
+`ops-timeout-y-punto-ciego.test.ts`, confirmado que falla igual en HEAD sin
+tocar — depende de un timeout de red real que este contenedor no reproduce).
+Lint-trinquete 96/96, sin deuda nueva. `tsc` limpio; `next build` no completa en
+este espacio por falta de credenciales Firebase de entorno (falla igual en
+HEAD sin tocar) — no es un defecto del cambio.
+
 ## Cola inmediata
 
-1. Los **cuatro** motores con cuerpo real que dependen de mí.
-2. **Hueco 2 de la investigación** — UCI: dictado por aparatos y sistemas, donde
+1. **PATIENT-AUDIO-002/003** (score 86/82) — el trabajo real que queda: un
+   guardia de cambio de ruta que detenga/transcriba antes de desmontar, y que
+   `EVENTO_GUARDAR_TODO`/`salirSeguro()` no purguen `nexusmed-recovery` mientras
+   haya audio sin transcribir. Necesita poder verse en un navegador antes de
+   tocar la temporización de `useGrabacionAudio.ts`.
+2. Los **cuatro** motores con cuerpo real que dependen de mí.
+3. **Hueco 2 de la investigación** — UCI: dictado por aparatos y sistemas, donde
    el mercado es más débil y su especialidad está peor servida (Kaiser, 2,5 M de
    usos).
-3. Barrido de pantalla estrecha en pantallas internas (sin instrumento aún).
+4. Barrido de pantalla estrecha en pantallas internas (sin instrumento aún).
 
 ---
 

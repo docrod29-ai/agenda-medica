@@ -20,18 +20,10 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/Sidebar.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/__tests__/lo-que-se-lleva-el-paciente.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/rutas-privadas.ts",
-    " M src/lib/seguridad/dosis.ts",
-    "?? src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-    "?? src/app/(dashboard)/motores/",
-    "?? src/components/motores/"
+    " M src/lib/paciente/como-se-lo-explico.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,12 +57,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/clever-lamport-vpchnu",
   "derivado": {
-    "regsEnElLedger": 138,
-    "ultimaREG": "REG-290",
+    "regsEnElLedger": 139,
+    "ultimaREG": "REG-291",
     "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "casosDePrueba": 7463,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

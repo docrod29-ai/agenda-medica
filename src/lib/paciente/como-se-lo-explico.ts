@@ -168,6 +168,35 @@ export function comoTexto(bloques: readonly BloqueInstrucciones[]): string {
     .join('\n\n')
 }
 
+/**
+ * ¿PUEDE ENSEÑARSE LA HOJA — REG-291.
+ *
+ * La cabecera de este archivo prometía «cada línea sale de un campo que el
+ * médico ya revisó y **firmó**». La pantalla nunca comprobó esa segunda
+ * palabra: `HojaParaElPaciente` se pintaba con `medicamentos` y
+ * `estudiosOrden` — el estado EN VIVO del borrador, el mismo que alimenta
+ * cada campo editable de la nota — sin mirar si la nota estaba firmada.
+ *
+ * Mientras el médico dicta, borra un fármaco por decir la dosis dos veces, o
+ * corrige un estudio, esos cambios a medio hacer pasaban por
+ * `comoSeLoExplico` y podían copiarse o imprimirse tal cual — antes de que él
+ * hubiera dado por buena la nota. Es la regla 3 de seguridad clínica
+ * («nada cambia en silencio») vista al revés: aquí lo que faltaba mostrarse
+ * era una copia que SÍ podía cambiar bajo los pies del médico.
+ *
+ * No se puede resolver leyendo `bloques.length`: un borrador a medio dictar
+ * también genera bloques no vacíos. La compuerta tiene que mirar `firmada`
+ * antes de que el motor componga nada.
+ */
+export function puedeMostrarseLaHojaDelPaciente(p: {
+  /** Nota de hospital o UCI: no se lleva nada a casa el mismo día. */
+  esNotaHospital: boolean
+  /** ¿La nota ya está firmada? Antes de firmar, todo es borrador editable. */
+  firmada: boolean
+}): boolean {
+  return !p.esNotaHospital && p.firmada
+}
+
 export const POR_QUE_SE_COMPONE_Y_NO_SE_GENERA =
   'Un modelo que redacta instrucciones puede añadir un consejo que el médico no ' +
   'dio. En un papel con su membrete, eso es una indicación médica que nadie ' +

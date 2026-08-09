@@ -27,6 +27,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
   comoSeLoExplico, comoTexto, viaEnLlano, vecesAlDia, comoTomarlo,
+  puedeMostrarseLaHojaDelPaciente,
   POR_QUE_SE_COMPONE_Y_NO_SE_GENERA, POR_QUE_24_ENTRE_N_ES_SEGURO,
 } from '@/lib/paciente/como-se-lo-explico'
 import { cifrasClinicas } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
@@ -194,18 +195,61 @@ describe('está CONECTADO', () => {
     expect(page).toMatch(/estudios=\{estudiosOrden\}/)
   })
 
-  it('NO aparece en un paciente internado', () => {
+  it('se monta detrás de la compuerta puedeMostrarseLaHojaDelPaciente (REG-291)', () => {
     /**
-     * La nota de hospital y la de UCI se escriben en esta MISMA pantalla
-     * (`/consulta/[id]?internamiento=…`). Sin este guardia, a un paciente
-     * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
-     * intravenosos.
+     * Antes decía `{!esNotaHospital && (`. Un `esNotaHospital` suelto vuelve a
+     * abrir el boquete de REG-291: la hoja se compondría del borrador en vivo
+     * otra vez, en cuanto alguien la toque sin pasar por la función que
+     * también mira `firmada`.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toContain("import { puedeMostrarseLaHojaDelPaciente } from '@/lib/paciente/como-se-lo-explico'")
+    expect(page).toMatch(/\{puedeMostrarseLaHojaDelPaciente\(\{ esNotaHospital, firmada \}\) && \(\s*\n\s*<HojaParaElPaciente/)
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {
     const comp = readFileSync(join(process.cwd(), 'src/components/HojaParaElPaciente.tsx'), 'utf8')
     expect(comp).toMatch(/className="no-print"/)
+  })
+})
+
+describe('LA COMPUERTA DE LA FIRMA — REG-291', () => {
+  /**
+   * ── EL DEFECTO ──────────────────────────────────────────────────────────
+   *
+   * `HojaParaElPaciente` se montaba con `medicamentos`/`estudiosOrden` — el
+   * estado EN VIVO del borrador, el mismo que cambia con cada tecla — sin
+   * mirar si la nota estaba firmada. La cabecera de `como-se-lo-explico.ts`
+   * prometía «cada línea sale de un campo que el médico ya revisó y
+   * **firmó**»; el código sólo comprobaba lo primero.
+   *
+   * Mientras el médico dictaba, borraba un fármaco por duplicado o corregía
+   * un estudio, esos cambios a medio hacer eran copiables e imprimibles antes
+   * de que él diera la nota por buena.
+   *
+   * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────
+   *
+   * Reconciliando el backlog de V7 (`POSTVISIT-GATE-001`, score 63) contra el
+   * código: el hueco entre lo que promete el comentario y lo que hace el
+   * `if`.
+   *
+   * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────
+   *
+   * No implementa el ciclo DRAFT/RELEASED completo de `patient-facing-ai.md`
+   * (`PatientVisitPackage` con `approvedAt`/`approvedBy`/`version`) — eso
+   * exige persistencia propia y es trabajo aparte (ver
+   * `agent-state/BACKLOG.json`, `POSTVISIT-ENTREGA-001`). Esto sólo cierra la
+   * fuga concreta: nada del borrador sin firmar llega a la hoja.
+   */
+  it('con la nota SIN firmar, la hoja no se muestra — probado AL REVÉS: false es el caso que antes fallaba', () => {
+    expect(puedeMostrarseLaHojaDelPaciente({ esNotaHospital: false, firmada: false })).toBe(false)
+  })
+
+  it('con la nota firmada y en consulta ambulatoria, sí se muestra', () => {
+    expect(puedeMostrarseLaHojaDelPaciente({ esNotaHospital: false, firmada: true })).toBe(true)
+  })
+
+  it('en un paciente internado, nunca — firmada o no', () => {
+    expect(puedeMostrarseLaHojaDelPaciente({ esNotaHospital: true, firmada: true })).toBe(false)
+    expect(puedeMostrarseLaHojaDelPaciente({ esNotaHospital: true, firmada: false })).toBe(false)
   })
 })

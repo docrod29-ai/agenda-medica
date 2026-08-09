@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 32 de 139, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.

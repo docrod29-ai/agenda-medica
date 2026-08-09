@@ -6379,3 +6379,61 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+## REG-291 — la hoja del paciente se componía del borrador sin firmar (POSTVISIT-GATE-001)
+
+**Cómo se descubrió.** Reconciliando `agent-state/BACKLOG.json` contra el código:
+`POSTVISIT-GATE-001` (score 63, «pendiente») decía que «la hoja del paciente se
+compone del borrador EN CURSO, sin compuerta de firma». La cabecera de
+`src/lib/paciente/como-se-lo-explico.ts` ya lo prometía por escrito —«cada línea
+sale de un campo que el médico ya revisó y **firmó**»— y el `if` que monta
+`HojaParaElPaciente` en la consulta sólo comprobaba `!esNotaHospital`. La segunda
+palabra de la promesa, «firmó», no se comprobaba en ningún sitio.
+
+**El defecto.** `<HojaParaElPaciente medicamentos={medicamentos}
+estudios={estudiosOrden} …>` recibe el estado EN VIVO del formulario — el mismo
+que cambia con cada tecla, cada `Quitar de la nota`, cada corrección de estudio
+— sin mirar si la nota ya estaba firmada. La hoja tiene botones de **Copiar** e
+**Imprimir**: mientras el médico dictaba, borraba un fármaco por decir la dosis
+dos veces, o corregía un estudio a medio escribir, esos cambios a medio hacer
+eran copiables/imprimibles con el membrete del médico, antes de que él diera la
+nota por buena. Es la regla 3 de seguridad clínica («nada cambia en silencio»)
+vista al revés: lo que faltaba mostrarse era justamente que la hoja SÍ podía
+cambiar bajo los pies del médico hasta el momento de firmar.
+
+**Por qué no bastaba `bloques.length`.** Un borrador a medio dictar también
+genera bloques no vacíos — no hay forma de detectar el defecto mirando si hay
+contenido; hay que mirar `firmada` antes de que el motor componga nada.
+
+**El arreglo.** `puedeMostrarseLaHojaDelPaciente({ esNotaHospital, firmada })` en
+`como-se-lo-explico.ts`, reutilizando el mismo patrón que ya usaba
+`ComoCerrarLaConsulta` (REG-244) tres líneas arriba en el mismo archivo — la
+compuerta de firma ya existía en la pantalla, sólo no se aplicaba aquí. La
+pantalla ahora la llama en vez de repetir la condición a mano.
+
+**Probado al revés.** El guardián comprueba
+`puedeMostrarseLaHojaDelPaciente({ esNotaHospital: false, firmada: false })` →
+`false`. Con la lógica vieja (`!esNotaHospital` a secas, sin `firmada`), ese
+mismo caso da `true` y la prueba falla — confirmado a mano antes de sellar.
+
+**Qué NO cubre.** No implementa el ciclo DRAFT/RELEASED completo que pide
+`.claude/rules/patient-facing-ai.md` (`PatientVisitPackage` con
+`approvedAt`/`approvedBy`/`version`, persistido) — ese modelo no existe todavía
+en ningún sitio del código (verificado: cero resultados para
+`PatientVisitPackage`/`RELEASED`/`approvedBy` en `src/`). Firmar la nota clínica
+y liberar la hoja hacia el paciente siguen siendo, en los hechos, el mismo acto;
+la regla los quiere separados. Y esto no entrega nada: `HojaParaElPaciente` sólo
+se copia o se imprime a mano en esta pantalla — `POSTVISIT-ENTREGA-001`
+(backlog, score 60) es la falta de un canal real hacia el portal/WhatsApp del
+paciente, y es trabajo aparte.
+
+**Guardián.** `src/__tests__/lo-que-se-lleva-el-paciente.test.ts`, sección «LA
+COMPUERTA DE LA FIRMA — REG-291», 3 casos nuevos (33 en total en el archivo) +
+la prueba de conexión actualizada para exigir la nueva función en vez de la
+condición vieja.
+
+### Archivos
+
+- `src/lib/paciente/como-se-lo-explico.ts` — nueva `puedeMostrarseLaHojaDelPaciente`
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx` — usa la compuerta
+- `src/__tests__/lo-que-se-lleva-el-paciente.test.ts` (+3 casos, prueba de conexión reescrita)

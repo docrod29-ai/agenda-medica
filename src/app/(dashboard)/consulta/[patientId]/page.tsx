@@ -51,6 +51,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { puedeMostrarseLaHojaDelPaciente } from '@/lib/paciente/como-se-lo-explico'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5124,8 +5125,13 @@ export default function ConsultaActivaPage() {
         ayudar. La nota de hospital y la de UCI se escriben en esta misma
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
+
+        Y NO antes de firmar (REG-291) — `medicamentos`/`estudiosOrden` es el
+        estado EN VIVO del borrador: lo mismo que cambia con cada tecla. Sin
+        esta compuerta, una hoja copiable/imprimible se componía de un borrador
+        a medio dictar, antes de que el médico diera la nota por buena.
       */}
-      {!esNotaHospital && (
+      {puedeMostrarseLaHojaDelPaciente({ esNotaHospital, firmada }) && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}

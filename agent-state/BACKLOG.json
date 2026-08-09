@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (v1158, REG-283/284)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,8 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cierre": "Reconciliado el 9-ago-2026: verificado en el código de HEAD que detener() en useGrabacionAudio.ts sólo borra los chunks desde el offset de recuperación (borrarChunks(recoveryKeyRef, recoveryBaseRef)) en vez del rango entero. El tablero de V7-ITERACION.md ya lo daba por cerrado; el backlog no se había actualizado — corregido aquí."
     },
     {
       "seguridad": 3,
@@ -266,7 +267,8 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "cierre": "Reconciliado el 9-ago-2026: NO está cerrado pese a lo que decía V7-ITERACION.md/CURRENT_ITERATION.md (corregido). Al desmontar, el hook sólo llama a liberarRecursos() (useGrabacionAudio.ts:1102), nunca a detener() — una grabación en curso nunca se transcribe al navegar (BottomNav, Sidebar). REG-287 sólo cubrió beforeunload (cierre de pestaña/recarga), que no dispara en navegación SPA de Next.js. Sigue pendiente: falta un guardia de cambio de ruta."
     },
     {
       "seguridad": 3,
@@ -291,7 +293,8 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "cierre": "Reconciliado el 9-ago-2026: PARCIALMENTE cerrado, no del todo como decía el tablero (corregido). Cerrado: el latido durante la grabación (AutoLogout.tsx + EVENTO_GRABANDO) evita que el cierre por inactividad dispare a mitad de dictado. Sigue abierto: el listener de EVENTO_GUARDAR_TODO en la consulta (page.tsx:2927) sólo guarda el texto del borrador — nunca detiene ni transcribe el audio en curso — y salirSeguro() llama a limpiarAudioLocal() de forma INCONDICIONAL (salir-seguro.ts:148,160), incluso cuando hay grabación sin transcribir. Si el médico cierra sesión (a mano o por inactividad tras el latido) con audio sin flush, ese audio se pierde igual."
     },
     {
       "seguridad": 2,
@@ -355,7 +358,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (v1164, REG-291)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-GATE-001",
@@ -366,7 +369,8 @@
       "porQueImporta": "Es el cimiento de DRAFT→RELEASED que pide V9. Hoy el médico puede copiar y entregar una hoja compuesta de un borrador a medio dictar. Nada lo impide.",
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
-      "score": 63
+      "score": 63,
+      "cierre": "HojaParaElPaciente se montaba con el estado EN VIVO del borrador (medicamentos/estudiosOrden) sin comprobar `firmada` — contradecía la propia cabecera de como-se-lo-explico.ts. Arreglado con puedeMostrarseLaHojaDelPaciente({esNotaHospital, firmada}), mismo patrón que ya usaba ComoCerrarLaConsulta (REG-244) tres líneas arriba. Guardián: 3 casos nuevos en lo-que-se-lleva-el-paciente.test.ts, probado al revés. NO implementa el ciclo DRAFT/RELEASED completo de patient-facing-ai.md (PatientVisitPackage no existe en el código) — sólo cierra la fuga de datos sin firmar."
     },
     {
       "seguridad": 1,
@@ -391,7 +395,8 @@
       "porQueImporta": "El contenido está resuelto y bien —determinista, sin modelo, se niega a inventar— y el producto no lo entrega. Es «escrito, probado y sin conectar» en su forma más cara: la pieza mejor pensada del lado del paciente.",
       "archivo": "src/components/HojaParaElPaciente.tsx:45-51,86 · consulta:5108",
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
-      "score": 60
+      "score": 60,
+      "cierre": "Sigue independiente de POSTVISIT-GATE-001 (cerrado v1164): HojaParaElPaciente sólo se copia/imprime a mano desde la pantalla de consulta — no está montado en /mi/[token] ni en api/portal. No hay canal de entrega (portal, WhatsApp, correo) todavía."
     },
     {
       "seguridad": 0,
