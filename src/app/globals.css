@@ -123,11 +123,111 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
+/* ─── ESCALA DE ESPACIO ───────────────────────────────────────────────────────
+   No existía. Y sin escala, cada pantalla se inventa la suya: la auditoría contó
+   23 valores distintos de `gap` en línea.
+
+   Es la misma historia de `--r-pill` escrita con cinco cifras, y se resuelve
+   igual: UN nombre por paso, con su razón. Base de 4 px porque es la que ya usa
+   de hecho la mayor parte del código (4, 8, 12, 16, 24).
+
+   No cambia un píxel de nada: hoy no la usa nadie. Existe para que la próxima
+   pantalla tenga a dónde ir. */
+:root {
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+  --sp-7:  48px;
+  --sp-8:  64px;
+
+  /* ─── RADIO — los pasos que faltaban ───────────────────────────────────────
+     `--r-pill` y `--r-circulo` cubren los extremos y nada cubría el medio, que
+     es el 90 % de los casos: la auditoría contó ~19 radios distintos en línea.
+     Tres pasos, que es lo que el sistema declara. */
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+
+  /* ─── SOMBRA ───────────────────────────────────────────────────────────────
+     Dos, y a propósito. «Exceso de sombras» está en la lista de lo que la
+     interfaz NO debe parecer (directiva V9), así que la escala se queda corta
+     por decisión, no por olvido: una para lo que flota poco y otra para lo que
+     flota de verdad. */
+  --sombra-1: 0 1px 2px rgba(0,0,0,0.16);
+  --sombra-2: 0 8px 24px rgba(0,0,0,0.28);
+}
+
+/* ─── LO QUE TAILWIND VE ──────────────────────────────────────────────────────
+   ESTA ERA LA CAUSA RAÍZ DEL MONOLITO DE ESTILO EN LÍNEA.
+
+   Aquí había CUATRO entradas. Todo el resto del sistema vivía en variables CSS
+   que Tailwind no conoce, así que no existían utilidades que usar: 6 065
+   `style={{` en 177 de 200 archivos no eran dejadez, eran **mecánica**. El
+   código no tenía alternativa.
+
+   `inline` no es un detalle: hace que la utilidad generada apunte a la variable
+   en vez de copiar su valor. Sin `inline`, `bg-surface-2` congelaría el color
+   del tema oscuro y el tema claro dejaría de funcionar.
+
+   Los nombres NO se traducen al inglés ni se «mejoran»: son los que ya usa el
+   código en 6 000 sitios. Renombrarlos aquí obligaría a reescribirlos allá, que
+   es justo el trabajo que este bloque existe para evitar. */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Superficies y bordes */
+  --color-surface:    var(--s1);
+  --color-surface-2:  var(--s2);
+  --color-surface-3:  var(--s3);
+  --color-borde:      var(--border);
+  --color-borde-2:    var(--border2);
+
+  /* Texto — tres pesos, no más */
+  --color-texto:      var(--text);
+  --color-texto-2:    var(--text2);
+  --color-texto-3:    var(--text3);
+
+  /* Marca. `nexus` es el de TEXTO y `nexus-solido` el de RELLENO: son
+     requisitos opuestos y por eso son dos tokens (ver el comentario largo de
+     --nexus-solido, y REG-223). */
+  --color-nexus:        var(--nexus);
+  --color-nexus-hover:  var(--nexus-hover);
+  --color-nexus-soft:   var(--nexus-soft);
+  --color-nexus-solido: var(--nexus-solido);
+
+  /* Semántica clínica — con el contraste ya medido en el bloque de arriba */
+  --color-clinico-rojo:   var(--red);
+  --color-clinico-verde:  var(--green);
+  --color-clinico-ambar:  var(--amber);
+  --color-clinico-azul:   var(--blue);
+  --color-clinico-morado: var(--purple);
+
+  /* Radio */
+  --radius-sm:      var(--r-sm);
+  --radius-md:      var(--r-md);
+  --radius-lg:      var(--r-lg);
+  --radius-pill:    var(--r-pill);
+  --radius-circulo: var(--r-circulo);
+
+  /* Espacio */
+  --spacing-1: var(--sp-1);
+  --spacing-2: var(--sp-2);
+  --spacing-3: var(--sp-3);
+  --spacing-4: var(--sp-4);
+  --spacing-5: var(--sp-5);
+  --spacing-6: var(--sp-6);
+  --spacing-7: var(--sp-7);
+  --spacing-8: var(--sp-8);
+
+  /* Sombra */
+  --shadow-1: var(--sombra-1);
+  --shadow-2: var(--sombra-2);
 }
 
 * {

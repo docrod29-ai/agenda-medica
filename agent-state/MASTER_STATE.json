@@ -19,18 +19,12 @@
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
     "M agent-state/BACKLOG.json",
-    " M docs/audit/regression-ledger.md",
-    " M src/__tests__/authz-rutas-declaradas.test.ts",
-    " M src/app/api/cron/reminders/route.ts",
-    " M src/app/api/telesalud/sala/route.ts",
-    " M src/app/api/whatsapp/webhook/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/patient-token.ts",
-    "?? src/__tests__/el-enlace-de-la-videoconsulta-llega-vivo.test.ts",
-    "?? src/lib/telesalud/token-de-la-sala.ts"
+    " M agent-state/DESIGN_STATE.md",
+    " M agent-state/LAST_SAFE_CHECKPOINT.md",
+    " M src/app/globals.css",
+    "?? src/__tests__/el-sistema-de-diseno-tiene-donde-ir.test.ts"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -66,8 +60,8 @@
   "derivado": {
     "regsEnElLedger": 140,
     "ultimaREG": "REG-292",
-    "archivosDePrueba": 567,
-    "casosDePrueba": 7469,
+    "archivosDePrueba": 568,
+    "casosDePrueba": 7476,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

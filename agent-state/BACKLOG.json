@@ -417,7 +417,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "en-curso",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -428,7 +428,9 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "avance": "9-ago-2026: pasos 1-3 de la auditoría §6 cerrados. @theme inline 4 → 36 entradas; escalas de espacio, radio intermedio y sombra creadas; trinquete de literales en 1161 con cuatro guardianes probados al revés (el-sistema-de-diseno-tiene-donde-ir.test.ts).",
+      "ojo": "La auditoría decía que convertir #3d5afe es puro. NO lo es: --nexus-solido vale #3D5AFE en oscuro y #2845EA en CLARO, así que la conversión CAMBIA el tema claro en 122 sitios de 54 archivos. Requiere sesión con navegador (V9 §4). Pendiente a propósito."
     },
     {
       "seguridad": 1,
