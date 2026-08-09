@@ -1,9 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence,
+  connectFirestoreEmulator,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -66,6 +67,22 @@ export const storage = (() => {
   if (typeof window === 'undefined') return null
   try { return getStorage(app) } catch { return null }
 })()
+
+// ── Emuladores locales (arnés de pruebas/capturas V10) ──────────────────
+// Doble candado: exige NEXT_PUBLIC_FIREBASE_EMULATORS=1 Y que el projectId
+// empiece con `demo-` (prefijo que Firebase reserva para proyectos que SOLO
+// existen en el emulador). Con un projectId real esto es inerte aunque la
+// variable se filtre a un despliegue: nunca puede apuntar la app de producción
+// a un emulador ni viceversa.
+// Síncrono a propósito: conectar DESPUÉS de la primera operación lanza; por
+// eso corre aquí, en el init del módulo, antes de que nadie use auth/db.
+if (
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1' &&
+  (firebaseConfig.projectId ?? '').startsWith('demo-')
+) {
+  try { connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true }) } catch { /* ya conectado */ }
+  try { connectFirestoreEmulator(db, '127.0.0.1', 8080) } catch { /* ya conectado */ }
+}
 
 /**
  * Limpia la caché OFFLINE de Firestore en IndexedDB (expedientes, Dx, medicamentos,
