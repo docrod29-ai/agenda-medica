@@ -2668,3 +2668,13 @@ mismo campo del mismo paciente.
 De camino apareció un hueco propio: «Interrogadas y negadas» dejaba
 «Interrogadas» como alérgeno. Ninguna prueba lo veía; lo enseñó comparar los dos
 módulos.
+
+## v1154 — el sello de procedencia contaba cero alergias (REG-278)
+
+La compuerta de firma ya leía las dos fuentes; el **sello de procedencia** no.
+Iba por un envoltorio de una línea que llamaba al partidor bueno sobre **una sola
+fuente**, así que un paciente con la alergia sólo en el campo estructurado
+sellaba lista vacía — y el dato quedaba fuera de `camposSinEvidencia`.
+
+Sobrevivió a dos guardianes porque ninguno buscaba esto: buscaban quién parte el
+campo a mano, y este envoltorio no parte nada.

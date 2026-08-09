@@ -5793,3 +5793,44 @@ haya pensado en ese caso.
 - `src/lib/hospital/cds.ts` (usa `alergiasDe`, sin partidor propio)
 - `src/lib/seguridad/alergias.ts` (negación por oración entera + prefijo en cualquier posición)
 - `src/__tests__/hospital-y-consulta-leen-la-misma-alergia.test.ts` (nuevo, 30 casos, sellado)
+
+---
+
+## REG-278 — el sello de procedencia contaba cero alergias (v1154)
+
+La compuerta que bloquea la firma **ya se había reparado**: sella
+`alergias: alergiasDe(patient ?? {})`, que lee las dos fuentes.
+
+Lo que quedó atrás fue el **sello de procedencia** —el que dice de dónde salió
+cada dato de la nota—, y llegaba por un envoltorio de una línea:
+
+```ts
+function alergiasArray(alergias?: string) {
+  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
+}
+```
+
+`parsearAlergiasTexto` mira **sólo el texto libre**. Un paciente cuya alergia
+vive en `alergiasEstructuradas` —que es donde la deja el registro estructurado—
+sellaba una lista vacía en sus **tres** llamadas, y con ella el dato se quedaba
+fuera de `camposSinEvidencia`: el registro medicolegal decía que ahí no había
+nada que respaldar.
+
+### Por qué sobrevivió a dos guardianes
+
+El guardián de copias busca **quién PARTE el campo a mano**. Este envoltorio no
+parte nada: llama al partidor bueno — sobre **una sola de las dos fuentes**.
+
+**Cuando un dato tiene dos orígenes, el guardián tiene que mirar qué función se
+llama, no cómo se corta el texto.** Un envoltorio de una línea es exactamente
+donde se esconde esa diferencia.
+
+### Lo que impide la recaída
+
+La firma de `alergiasArray` ya no acepta una cadena: recibe al paciente. Mientras
+aceptara `string`, alguien volvería a pasarle `patient?.alergias`.
+
+### Archivos
+
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts` (nuevo, 7 casos, sellado)
