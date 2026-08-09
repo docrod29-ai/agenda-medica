@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-ykx2ql` |
 | **SHA base de esta sesión** | `0144257` (merge de #271, `v1163` · REG-289/290) |
-| **SHA de cierre** | *(ver el commit de REG-291 en esta rama)* |
+| **SHA de cierre** | `9e48b04` (REG-291) · `828c338` (REG-292) |
 | **Unidades cerradas** | **`DESIGN-SYSTEM-001` · parte 1** (REG-291) y **`PATIENT-TELE-002`**, el último P0 abierto (REG-292) |
 | **Siguiente unidad** | `DESIGN-TIPOGRAFIA-001`, luego `A11Y-GATE-001` |
 | **P0 abiertos** | **ninguno** |
