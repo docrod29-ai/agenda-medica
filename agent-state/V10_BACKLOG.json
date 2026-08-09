@@ -158,6 +158,38 @@
       "estado": "abierto"
     },
     {
+      "id": "V10-A11Y-BOTONES-SIN-NOMBRE",
+      "titulo": "Botones sin nombre accesible (axe button-name, CRÍTICO): el FAB de luna/tema en TODAS las pantallas + iconos chat/lápiz/kebab en citas y calendario. Un lector anuncia «botón» y nada más",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026 (30 nodos críticos en total con V10-A11Y-CAMPOS)",
+      "prioridad": "P1",
+      "unidadV10": "arreglo directo (aria-label es reversible y no toca lógica) o V10-A11Y-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CAMPOS-SIN-ETIQUETA",
+      "titulo": "Campos sin etiqueta programática (axe label, CRÍTICO): 4 textareas CLÍNICAS de la consulta (placeholder vacío) y el input de fecha de citas — la nota médica es invisible para tecnologías de apoyo",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "arreglo directo o V10-NOTE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CONTRASTE-CTA",
+      "titulo": "Contraste <4.5:1 (axe color-contrast, serio) en el CTA PRIMARIO del dashboard (.prox-hero-cta «Iniciar consulta»), «Registrar cobro» de citas y ranuras del calendario",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026 — confirma la sospecha del revisor visual",
+      "prioridad": "P2",
+      "unidadV10": "V10-CONSTITUTION-001 (tokens de color con cocientes calculados, práctica ya existente en DESIGN_SYSTEM)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CALENDARIO-ANIDADO",
+      "titulo": "role=button dentro de role=button en las ranuras del calendario (axe nested-interactive, serio): el interno no es alcanzable por teclado; ranuras además bajo el mínimo táctil (target-size)",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
       "id": "V10-PACIENTES-RECIENTES-VACIO",
       "titulo": "Pestaña por defecto «Recientes» de pacientes sale vacía aunque hay 5 citas hoy (se alimenta de otra señal); el estado vacío sí enseña la salida",
       "fuente": "captura pacientes-1440.png 9-ago-2026",
