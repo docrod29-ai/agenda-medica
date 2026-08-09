@@ -1,0 +1,32 @@
+{
+  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Se llena durante V10-TRUTH-001; nada aquí duplica un REG ya reparado ni una unidad V9 cerrada.",
+  "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
+  "items": [
+    {
+      "id": "V10-DEBT-001",
+      "titulo": "La aplicación no obedece al sistema de diseño: 6 065 style={{ en 177/200 archivos, 1 205 hex a mano, ~60 tamaños de fuente contra 6 declarados",
+      "fuente": "agent-state/DESIGN_STATE.md (V9, medido)",
+      "prioridad": "P1",
+      "unidadV10": "V10-CONSTITUTION-001",
+      "dependeDe": "fusión de DESIGN-SYSTEM-001 (rama V9) — no rehacer ese trabajo",
+      "estado": "esperando-fusion-v9"
+    },
+    {
+      "id": "V10-DEBT-002",
+      "titulo": "Causa raíz mecánica: @theme inline expone 4 tokens a Tailwind; sin utilidades no hay alternativa al estilo en línea",
+      "fuente": "agent-state/DESIGN_STATE.md §causa-raíz",
+      "prioridad": "P1",
+      "unidadV10": "V10-CONSTITUTION-001",
+      "dependeDe": "fusión de DESIGN-SYSTEM-001",
+      "estado": "esperando-fusion-v9"
+    },
+    {
+      "id": "V10-TRUTH-CAPTURAS",
+      "titulo": "Inventario de capturas escritorio/móvil con datos sintéticos + puntuación visual por pantalla crítica",
+      "fuente": "V10 §47 salidas 2, 14, 15",
+      "prioridad": "P1",
+      "unidadV10": "V10-TRUTH-001",
+      "estado": "abierto"
+    }
+  ]
+}
