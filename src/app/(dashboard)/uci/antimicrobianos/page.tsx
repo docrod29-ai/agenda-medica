@@ -273,8 +273,8 @@ export default function AntimicrobianosPage() {
         {(['caso', 'propuestos', 'topes'] as const).map(p => (
           <button key={p} onClick={() => setPestana(p)} style={{
             padding: '7px 14px', borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-            border: '1px solid ' + (pestana === p ? 'var(--nexus, #3d5afe)' : 'var(--border, #e5e7eb)'),
-            background: pestana === p ? 'var(--nexus, #3d5afe)' : 'transparent',
+            border: '1px solid ' + (pestana === p ? 'var(--nexus, #3D5AFE)' : 'var(--border, #e5e7eb)'),
+            background: pestana === p ? 'var(--nexus, #3D5AFE)' : 'transparent',
             color: pestana === p ? '#fff' : 'var(--text, #0f172a)',
           }}>{p === 'caso' ? 'Probar un caso'
             : p === 'propuestos' ? `Confirmar de un clic (${sinConfirmar.length + propuestasPend.length})`
@@ -421,7 +421,7 @@ export default function AntimicrobianosPage() {
           </div>
 
           {(sinConfirmar.length + propuestasPend.length) > 0 && (
-            <div style={{ ...S.card, marginBottom: 14, borderLeft: '4px solid var(--nexus, #3d5afe)' }}>
+            <div style={{ ...S.card, marginBottom: 14, borderLeft: '4px solid var(--nexus, #3D5AFE)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ flex: '1 1 320px' }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text, #0f172a)' }}>
@@ -604,7 +604,7 @@ export default function AntimicrobianosPage() {
                 style={{
                   padding: '10px 0', borderRadius: 9, fontSize: 14, fontWeight: 700, border: 'none',
                   cursor: problemas.length > 0 ? 'not-allowed' : 'pointer',
-                  background: problemas.length > 0 ? 'var(--s2, #f1f5f9)' : 'var(--nexus, #3d5afe)',
+                  background: problemas.length > 0 ? 'var(--s2, #f1f5f9)' : 'var(--nexus, #3D5AFE)',
                   color: problemas.length > 0 ? 'var(--text3, #64748b)' : '#fff',
                 }}>{guardando ? 'Guardando…' : 'Guardar tope'}</button>
               {aviso && <div style={{ fontSize: 12.5, color: 'var(--text3, #64748b)' }}>{aviso}</div>}

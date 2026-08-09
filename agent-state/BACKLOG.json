@@ -409,7 +409,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (9-ago-2026)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -420,7 +420,8 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "cierre": "`@theme inline` pasa de 4 a 51 tokens: color por papel, espacio, radio, tipografía y sombra, cada escala con su razón escrita y pegada a lo que el código ya usa. La escala de espacio se llama `p-e8` y el radio se nombra por pieza (`rounded-tarjeta`) para NO cambiar en silencio los 57 usos que la aplicación ya tiene de la escala numérica de Tailwind. Verificado con el CLI real de Tailwind 4.3.3: las clases salen y las viejas siguen valiendo lo mismo. El techo de deuda queda sellado en docs/design/trinquete-de-diseno.json, con guardián en la suite. Queda ABIERTA la adopción — bajar el techo — y `A11Y-GATE-001`."
     },
     {
       "seguridad": 1,

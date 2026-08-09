@@ -22,7 +22,7 @@ function Card({ plan }: { plan: PlanCreditos }) {
   return (
     <div style={{
       position: 'relative', flex: '1 1 300px', maxWidth: 380, background: 'var(--s1, #fff)',
-      border: '1px solid ' + (destacado ? 'var(--nexus, #3d5afe)' : 'var(--border, #e5e7eb)'),
+      border: '1px solid ' + (destacado ? 'var(--nexus, #3D5AFE)' : 'var(--border, #e5e7eb)'),
       borderRadius: 18, padding: '26px 24px',
       boxShadow: destacado ? '0 12px 40px rgba(61,90,254,0.14)' : '0 1px 3px rgba(0,0,0,0.05)',
     }}>
@@ -63,8 +63,8 @@ function Card({ plan }: { plan: PlanCreditos }) {
         /* Relleno con texto blanco encima → el azul SÓLIDO (5,13 : 1). Como
            texto sobre transparente se queda --nexus, que es el que se lee. */
         background: destacado ? 'var(--nexus-solido)' : 'transparent',
-        color: destacado ? '#fff' : 'var(--nexus, #3d5afe)',
-        border: '1px solid var(--nexus, #3d5afe)',
+        color: destacado ? '#fff' : 'var(--nexus, #3D5AFE)',
+        border: '1px solid var(--nexus, #3D5AFE)',
       }}>Prueba gratis 14 días</Link>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         {plan.incluye.map((b, i) => (
@@ -110,7 +110,7 @@ export default async function PreciosPage() {
   return (
     <div style={{ background: 'var(--bg, #f8fafc)', minHeight: '100vh', padding: '56px 20px 80px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus, #3d5afe)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Precios</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nexus, #3D5AFE)', letterSpacing: 0.5, textTransform: 'uppercase' }}>Precios</div>
         <h1 style={{ fontSize: 34, fontWeight: 800, color: 'var(--text, #0f172a)', margin: '10px 0 0', letterSpacing: -0.5 }}>
           Paga por lo que usas, con IA de nivel mundial
         </h1>
@@ -142,7 +142,7 @@ export default async function PreciosPage() {
               <div key={k} style={{ flex: '1 1 210px', maxWidth: 250, background: 'var(--s1, #fff)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '16px 18px' }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #0f172a)' }}>{m.emoji} {m.nombre}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3, #64748b)', marginTop: 3 }}>{m.modelos}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--nexus, #3d5afe)', marginTop: 10 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--nexus, #3D5AFE)', marginTop: 10 }}>
                   {m.creditos} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3, #64748b)' }}>{m.creditos === 1 ? 'crédito/nota' : 'créditos/nota'}</span>
                 </div>
               </div>

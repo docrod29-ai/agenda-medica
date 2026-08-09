@@ -763,7 +763,7 @@ export default function GeneradorRecetaPage() {
             {frecuentes.length > 0 && medicamentos.length < MAX_MEDS && (
               <div style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginBottom: 6 }}>
-                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3d5afe)' }} /> Tus más recetados
+                  <Lightbulb size={12} style={{ color: 'var(--nexus, #3D5AFE)' }} /> Tus más recetados
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {frecuentes.map((r, i) => (
@@ -774,7 +774,7 @@ export default function GeneradorRecetaPage() {
                       title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >
-                      <Plus size={11} style={{ color: 'var(--nexus, #3d5afe)' }} />
+                      <Plus size={11} style={{ color: 'var(--nexus, #3D5AFE)' }} />
                       {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}
                     </button>
                   ))}

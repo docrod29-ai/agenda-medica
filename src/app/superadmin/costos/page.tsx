@@ -130,7 +130,7 @@ export default function CostosPage() {
 
   return (
     <div style={{ padding: '28px 20px 60px', maxWidth: 980, margin: '0 auto' }}>
-      <Link href="/superadmin" style={{ fontSize: 13, color: 'var(--nexus, #3d5afe)', textDecoration: 'none' }}>← Consola</Link>
+      <Link href="/superadmin" style={{ fontSize: 13, color: 'var(--nexus, #3D5AFE)', textDecoration: 'none' }}>← Consola</Link>
       <h1 style={{ fontSize: 26, fontWeight: 800, margin: '10px 0 4px', color: 'var(--text, #0f172a)' }}>Costo de la IA</h1>
       <p style={{ fontSize: 14, color: 'var(--text3, #64748b)', margin: '0 0 20px', lineHeight: 1.5 }}>
         Tokens, modelo y latencia de cada llamada. No guarda prompts, respuestas ni pacientes.
@@ -187,7 +187,7 @@ export default function CostosPage() {
               </div>
               <div style={{ fontSize: 13, color: 'var(--text2, #334155)', marginTop: 5, lineHeight: 1.55 }}>{datos.webhook.aviso}</div>
               <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer"
-                 style={{ display: 'inline-block', marginTop: 9, fontSize: 12.5, fontWeight: 600, color: 'var(--nexus, #3d5afe)' }}>
+                 style={{ display: 'inline-block', marginTop: 9, fontSize: 12.5, fontWeight: 600, color: 'var(--nexus, #3D5AFE)' }}>
                 Abrir el panel de Stripe ↗
               </a>
             </div>

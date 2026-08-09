@@ -104,6 +104,77 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /* ─── LA ESCALA DE RADIO ─────────────────────────────────────────────────
+     Cinco pasos, y la razón de que sean cinco: hoy conviven 25 valores
+     distintos de `borderRadius` en línea, con 3, 4, 6, 7, 8, 9, 10, 11, 12,
+     14 y 16 px usados a la vez. Nadie eligió once radios — se escribieron uno
+     a uno, cada uno «como el de al lado, pero un poco».
+
+     Los cinco cubren el 90 % de lo que ya existe: los dominantes son 8 (245
+     usos), 10 (245), 12 (163), 6 (103) y 16 (25). Lo que sobra —7, 9, 11, 13—
+     es ruido, y a ojo no se distingue de su vecino. */
+  --r-xs:      4px;
+  --r-s:       6px;
+  --r-m:       8px;
+  --r-l:       12px;
+  --r-xl:      16px;
+
+  /* ─── LA ESCALA DE ESPACIO ───────────────────────────────────────────────
+     El código usa HOY todos los enteros del 1 al 14 px para separar cosas:
+     10 (179 usos), 8 (168), 9 (99), 4 (92), 12 (92), 7 (85), 6 (83), 5 (65),
+     2 (64), 11 (63), 3 (37), 13 (32), 14 (31). Eso no es una escala: es un
+     continuo. Y un continuo no crea jerarquía, porque dos separaciones que
+     difieren en un píxel se leen como la misma.
+
+     La escala se elige PEGADA a lo que ya hay, no contra ello — de dos pasos
+     hasta 12 y de cuatro después. Así cada valor real cae en un token vecino
+     y la adopción no obliga a rediseñar nada; lo que desaparece es la
+     diferencia que nadie percibe. */
+  --esp-2:   2px;
+  --esp-4:   4px;
+  --esp-6:   6px;
+  --esp-8:   8px;
+  --esp-10: 10px;
+  --esp-12: 12px;
+  --esp-16: 16px;
+  --esp-20: 20px;
+  --esp-24: 24px;
+  --esp-32: 32px;
+  --esp-40: 40px;
+  --esp-48: 48px;
+
+  /* ─── LA ESCALA TIPOGRÁFICA — por PAPEL, no por tamaño ───────────────────
+     Aquí los nombres importan más que en las otras dos escalas. Hoy hay 39
+     tamaños distintos en línea, con medios píxeles: 13 (538 usos), 12.5 (466),
+     12 (424), 11 (295), 11.5 (273), 14 (259), 13.5 (127), 10.5 (115)…
+
+     Medio píxel de diferencia **no es jerarquía**: es indecisión escrita. Y
+     mientras el token se llame por su tamaño, la siguiente pantalla volverá a
+     inventarse un 12.75 porque «se veía mejor».
+
+     Por eso se nombran por su PAPEL. Elegir un tamaño es decidir qué manda en
+     la pantalla, que es el principio de JERARQUÍA de la directiva V9. Un
+     tamaño sin papel es una preferencia; un papel sin tamaño es una decisión
+     que se puede discutir. */
+  --t-micro:      11px;  /* sellos, unidades, marcas de tiempo */
+  --t-caption:    12px;  /* etiquetas de campo, pies de tabla */
+  --t-cuerpo:     13px;  /* el texto de trabajo: es el tamaño más usado hoy */
+  --t-cuerpo-lg:  14px;  /* texto que se lee seguido: notas, explicaciones */
+  --t-titulo-s:   16px;  /* título de tarjeta o de sección dentro de una vista */
+  --t-titulo:     18px;  /* título de la vista */
+  --t-titulo-l:   20px;  /* título de pantalla con una sola cosa que decir */
+  --t-display:    22px;  /* cifra clínica que domina su tarjeta */
+  --t-display-l:  28px;  /* portada y momentos: se usa poco a propósito */
+
+  /* ─── SOMBRAS ────────────────────────────────────────────────────────────
+     Tres, y la directiva V9 prohíbe expresamente el «exceso de sombras». La
+     sombra aquí NO decora: dice a qué altura está algo respecto de lo que hay
+     debajo, y sólo hay tres alturas que signifiquen algo — apoyado, levantado
+     y flotando sobre todo lo demás. Una cuarta ya no se distingue. */
+  --sombra-1: 0 1px 2px rgba(0,0,0,0.16);
+  --sombra-2: 0 4px 12px rgba(0,0,0,0.22);
+  --sombra-3: 0 12px 32px rgba(0,0,0,0.30);
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
   --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
@@ -123,11 +194,109 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   LO QUE TAILWIND VE — V9 · DESIGN-SYSTEM-001 · la causa raíz, no un síntoma.
+
+   Este bloque exponía CUATRO valores. Todo lo demás vivía en variables CSS que
+   Tailwind no mira, así que no existían utilidades que usar: el código no tenía
+   alternativa al estilo en línea. De ahí salen los 6 191 `style={{` repartidos
+   por 180 de 208 archivos de interfaz, los 1 096 hexadecimales escritos a mano
+   y los 39 tamaños de letra.
+
+   No era dejadez. Era MECÁNICA: nadie escribe `style={{ fontSize: 13 }}` por
+   gusto, lo escribe porque `text-cuerpo` no existía.
+
+   La prueba de que un token bien puesto sí se adopta aquí ya estaba: `--r-pill`
+   se creó con su razón escrita y hoy tiene 131 usos. Esto repite esa jugada
+   para color, espacio, radio y tipografía — cada una con su guardián en
+   `scripts/design/trinquete-de-diseno.mjs`.
+
+   Los valores NO se duplican: cada entrada apunta a la variable de tema, así
+   que el modo claro y el oscuro siguen mandando y ninguna utilidad se queda
+   congelada en un color.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Superficies y bordes: `bg-superficie`, `border-borde`… */
+  --color-superficie:   var(--s1);
+  --color-superficie-2: var(--s2);
+  --color-superficie-3: var(--s3);
+  --color-borde:        var(--border);
+  --color-borde-2:      var(--border2);
+
+  /* Texto por jerarquía, no por color: `text-texto-2` dice qué manda. */
+  --color-texto:   var(--text);
+  --color-texto-2: var(--text2);
+  --color-texto-3: var(--text3);
+
+  /* Marca. `nexus` es el de TEXTO y `nexus-solido` el de RELLENO: son dos
+     trabajos con requisitos opuestos, y confundirlos ya costó un fallo de
+     contraste (ver el comentario de --nexus-solido). */
+  --color-nexus:         var(--nexus);
+  --color-nexus-solido:  var(--nexus-solido);
+  --color-nexus-hover:   var(--nexus-hover);
+
+  /* Semántica clínica, con su contraste AA ya medido arriba. */
+  --color-rojo:   var(--red);
+  --color-verde:  var(--green);
+  --color-ambar:  var(--amber);
+  --color-azul:   var(--blue);
+  --color-morado: var(--purple);
+
+  /* Espacio: `p-e8`, `gap-e12`, `mt-e24`…
+
+     LA `e` NO ES DECORACIÓN. Tailwind trae su propia escala numérica en `rem`
+     (`p-4` = 1rem = 16px). Si estos tokens se llamaran `--spacing-4`, los 57
+     usos que la aplicación YA tiene de `px-2`, `p-6`, `w-10`… cambiarían de
+     tamaño en silencio: `px-2` pasaría de 8px a 2px. Un cambio de sistema de
+     diseño que mueve pantallas que nadie tocó es exactamente lo que este
+     programa existe para no hacer.
+
+     Con `e` de escala, las dos conviven y la nuestra se ve en el grep. */
+  --spacing-e2:  var(--esp-2);
+  --spacing-e4:  var(--esp-4);
+  --spacing-e6:  var(--esp-6);
+  --spacing-e8:  var(--esp-8);
+  --spacing-e10: var(--esp-10);
+  --spacing-e12: var(--esp-12);
+  --spacing-e16: var(--esp-16);
+  --spacing-e20: var(--esp-20);
+  --spacing-e24: var(--esp-24);
+  --spacing-e32: var(--esp-32);
+  --spacing-e40: var(--esp-40);
+  --spacing-e48: var(--esp-48);
+
+  /* Radio POR PIEZA, no por talla — y por la misma razón que el espacio:
+     `rounded-xs`, `rounded-lg` y `rounded-xl` ya existen en Tailwind y la
+     aplicación los usa. Nombrar la pieza además evita la pregunta «¿esto es
+     `m` o `l`?», que es como se acabó con veinticinco radios distintos. */
+  --radius-chip:    var(--r-xs);   /* píldoras y etiquetas pequeñas */
+  --radius-control: var(--r-s);    /* campos, botones */
+  --radius-tarjeta: var(--r-m);    /* la caja de contenido más común */
+  --radius-panel:   var(--r-l);    /* paneles y modales */
+  --radius-hoja:    var(--r-xl);   /* hojas grandes y cajones móviles */
+  --radius-pill:    var(--r-pill);
+  --radius-circulo: var(--r-circulo);
+
+  /* Tipografía POR PAPEL: `text-cuerpo`, `text-titulo`… */
+  --text-micro:      var(--t-micro);
+  --text-caption:    var(--t-caption);
+  --text-cuerpo:     var(--t-cuerpo);
+  --text-cuerpo-lg:  var(--t-cuerpo-lg);
+  --text-titulo-s:   var(--t-titulo-s);
+  --text-titulo:     var(--t-titulo);
+  --text-titulo-l:   var(--t-titulo-l);
+  --text-display:    var(--t-display);
+  --text-display-l:  var(--t-display-l);
+
+  /* Sombra por ALTURA, y sólo tres: la directiva V9 prohíbe el exceso. */
+  --shadow-1: var(--sombra-1);
+  --shadow-2: var(--sombra-2);
+  --shadow-3: var(--sombra-3);
 }
 
 * {
@@ -1077,6 +1246,14 @@ tbody tr:last-child { border-bottom: none; }
   --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
   --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
   --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+
+  /* Sombras en claro: la MISMA altura pide MENOS tinta. Sobre el crema, la
+     alpha del modo oscuro se ve como una mancha gris; sobre el lienzo oscuro
+     apenas se nota. Es el mismo error de aplicar una corrección a un solo tema
+     que ya costó el contraste del azul de relleno. */
+  --sombra-1: 0 1px 2px rgba(11,12,14,0.06);
+  --sombra-2: 0 4px 12px rgba(11,12,14,0.10);
+  --sombra-3: 0 12px 32px rgba(11,12,14,0.14);
 }
 
 /* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los
@@ -1119,6 +1296,13 @@ tbody tr:last-child { border-bottom: none; }
     --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
     --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
     --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+
+    /* Las mismas sombras suaves del tema claro por atributo: si sólo se
+       corrigiera allí, quien no ha tocado el selector de tema —o sea, la
+       mayoría— seguiría viendo las manchas grises del modo oscuro. */
+    --sombra-1: 0 1px 2px rgba(11,12,14,0.06);
+    --sombra-2: 0 4px 12px rgba(11,12,14,0.10);
+    --sombra-3: 0 12px 32px rgba(11,12,14,0.14);
   }
   /* Mismo placeholder oscuro para el auto-claro del OS. */
   :root:not([data-theme="dark"]):not([data-theme="light"]) .input::placeholder,

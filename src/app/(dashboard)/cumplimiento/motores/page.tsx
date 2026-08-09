@@ -65,7 +65,7 @@ export default function MotoresPage() {
 
   return (
     <div className="page-pad" style={{ maxWidth: 900, margin: '0 auto' }}>
-      <Link href="/cumplimiento" style={{ fontSize: 13, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <Link href="/cumplimiento" style={{ fontSize: 13, color: 'var(--nexus, #3D5AFE)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <ArrowLeft size={14} /> Cumplimiento
       </Link>
 

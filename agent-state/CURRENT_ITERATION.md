@@ -15,7 +15,9 @@
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
 **Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) · **los cuatro
 P0 del backlog de V9** ✅ **CERRADOS** (9-ago, el último con REG-291) →
-en curso: `DESIGN-SYSTEM-001`.
+en curso: `DESIGN-SYSTEM-001`, con los **cimientos cerrados** el 9-ago (tokens,
+escalas y trinquete de deuda). Falta `A11Y-GATE-001`, la regresión visual, el
+móvil y la adopción — que es bajar el techo.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---

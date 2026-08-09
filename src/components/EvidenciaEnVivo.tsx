@@ -46,9 +46,9 @@ export function EvidenciaEnVivo() {
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,.03))', padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-        <BookOpen size={16} style={{ color: 'var(--nexus, #3d5afe)' }} />
+        <BookOpen size={16} style={{ color: 'var(--nexus, #3D5AFE)' }} />
         <strong style={{ fontSize: 14.5 }}>Pasos 8-9 en vivo — recuperación y verificación de PMID</strong>
-        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus, #3d5afe)' }}>PubMed real</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus, #3D5AFE)' }}>PubMed real</span>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 12px', lineHeight: 1.5 }}>
         Consulta a PubMed <b>en este momento</b> para el caso de arriba (AINE + IECA + ERC). Cada PMID es
@@ -77,7 +77,7 @@ export function EvidenciaEnVivo() {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 5, fontSize: 11.5, color: 'var(--text3)' }}>
                       {a.tipo && <span style={{ fontWeight: 700, color: 'var(--teal)', background: 'rgba(13,148,136,.12)', padding: '1px 7px', borderRadius: 'var(--r-pill)' }}>{a.tipo}</span>}
                       <span>{a.revista} · {a.anio}</span>
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--nexus, #3d5afe)', textDecoration: 'none', fontWeight: 700 }}>
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--nexus, #3D5AFE)', textDecoration: 'none', fontWeight: 700 }}>
                         PMID {a.pmid} <ExternalLink size={11} />
                       </a>
                       {a.doi && <span style={{ color: 'var(--text3)' }}>doi:{a.doi}</span>}

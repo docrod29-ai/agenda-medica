@@ -5,7 +5,7 @@
 export interface PuntoSigno { fecha: string; valor: number }
 
 export function GraficaSignos({
-  titulo, unidad, puntos, normalMin, normalMax, color = '#3d5afe',
+  titulo, unidad, puntos, normalMin, normalMax, color = '#3D5AFE',
 }: {
   titulo: string
   unidad: string

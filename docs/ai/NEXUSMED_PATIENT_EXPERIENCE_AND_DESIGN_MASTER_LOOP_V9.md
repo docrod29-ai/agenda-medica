@@ -695,3 +695,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
 | 2026-08-08 | **Los tres P0 de audio** | `7be23e9`, `2340e63` | Volver a grabar ya no borra lo anterior · navegar avisa · dictar cuenta como actividad | **283, 284, 287** |
 | 2026-08-09 | **El cuarto P0: `PATIENT-TELE-002`** | `4a9eca4` | El enlace de la videoconsulta viaja por WhatsApp con su token, acuñado en el servidor. **Backlog de V9 sin ningún P0 abierto** | **291** |
+| 2026-08-09 | **`DESIGN-SYSTEM-001` · los cimientos** | *(este commit)* | `@theme inline` de 4 a 51 tokens · escalas de espacio, tipografía (por papel), radio (por pieza) y sombra · trinquete de deuda con techo sellado y guardián · azul de marca en una sola forma (98 → 0). **Falta**: `A11Y-GATE-001`, regresión visual, móvil y la adopción | — |

@@ -1,0 +1,26 @@
+{
+  "queEs": "Techo de deuda del sistema de diseño. Cada medida SÓLO puede bajar. Lo mide scripts/design/trinquete-de-diseno.mjs sobre los .tsx de src/ (sin pruebas).",
+  "porQue": "El sistema de diseño existía y la aplicación no le obedecía, porque @theme inline exponía cuatro valores y no había utilidades que usar. Ensanchado el tema (V9 · DESIGN-SYSTEM-001), este techo impide que la deuda vuelva a crecer mientras se paga.",
+  "regla": "Si un cambio sube una medida, se arregla el cambio — no se sube el techo. Bajarlo se sella con `node scripts/design/trinquete-de-diseno.mjs --sellar`.",
+  "loQueNoDice": "Que la interfaz esté bien. Son recuentos sobre el código: no miden jerarquía, ni contraste en pantalla, ni si una pantalla tiene un solo propósito. La directiva V9 §4 lo dice: no se aprueba interfaz leyendo código.",
+  "selladoEn": "2026-08-09",
+  "mejorSiSube": [
+    "tokensQueTailwindVe"
+  ],
+  "informativas": [
+    "archivosDeInterfaz"
+  ],
+  "techo": {
+    "estiloEnLinea": 6191,
+    "archivosConEstiloEnLinea": 180,
+    "archivosDeInterfaz": 208,
+    "hexEnLinea": 1096,
+    "hexDistintos": 131,
+    "fontSizeEnLinea": 2899,
+    "fontSizeDistintos": 39,
+    "radioEnLinea": 1238,
+    "radioDistintos": 25,
+    "azulDeMarcaEnMinuscula": 0,
+    "tokensQueTailwindVe": 51
+  }
+}

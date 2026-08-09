@@ -35,7 +35,7 @@ function Bloque({ icon: Icon, titulo, sub, children }: {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <Icon size={16} style={{ color: 'var(--nexus,#3d5afe)' }} />
+        <Icon size={16} style={{ color: 'var(--nexus,#3D5AFE)' }} />
         <span style={{ fontWeight: 600, fontSize: 14 }}>{titulo}</span>
         {sub && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {sub}</span>}
       </div>

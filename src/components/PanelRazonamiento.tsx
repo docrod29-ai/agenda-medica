@@ -15,7 +15,7 @@ const FUENTE_LABEL: Record<FuenteRazon, string> = {
   determinista: 'Regla con código', modelo: 'IA', evidencia: 'PubMed', meta: 'Sistema',
 }
 const FUENTE_COLOR: Record<FuenteRazon, string> = {
-  determinista: 'var(--teal)', modelo: 'var(--nexus,#3d5afe)', evidencia: '#a855f7', meta: 'var(--text3)',
+  determinista: 'var(--teal)', modelo: 'var(--nexus,#3D5AFE)', evidencia: '#a855f7', meta: 'var(--text3)',
 }
 const CONF_LABEL: Record<ConfianzaRazon, string> = { alta: 'Alta', media: 'Media', baja: 'Baja', na: '—' }
 
@@ -37,7 +37,7 @@ export function PanelRazonamiento({ entrada, embebido }: Props) {
     <div style={embebido ? {} : { border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1,rgba(127,127,127,.04))', padding: 14 }}>
       {!embebido && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <Brain size={15} style={{ color: 'var(--nexus,#3d5afe)' }} />
+          <Brain size={15} style={{ color: 'var(--nexus,#3D5AFE)' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Razonamiento clínico</span>
         </div>
       )}

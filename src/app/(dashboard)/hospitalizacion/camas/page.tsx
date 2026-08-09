@@ -20,7 +20,7 @@ import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 //   verde  = disponible · azul = con paciente · ámbar = transitorio ·
 //   rojo   = no utilizable · morado = precaución de contacto.
 const COLOR: Record<EstadoCama, string> = {
-  libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
+  libre: '#0d9488', ocupada: '#3D5AFE', bloqueada: '#dc2626', limpieza: '#d97706',
   reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
   lista: '#0d9488', limpieza_aislamiento: '#a21caf',
 }
@@ -118,7 +118,7 @@ export default function CamasPage() {
         {esAdmin && <Button size="sm" icon={<Plus size={14} />} onClick={() => { setForm({ servicio: SERVICIOS_HOSPITAL[0], etiqueta: '', tipo: '' }); setModal(true) }}>Agregar cama</Button>}
       </div>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BedDouble size={22} style={{ color: 'var(--nexus,#3d5afe)' }} /> Tablero de camas
+        <BedDouble size={22} style={{ color: 'var(--nexus,#3D5AFE)' }} /> Tablero de camas
       </h1>
       {sinCamaEnInventario.length > 0 && (
         <div style={{
