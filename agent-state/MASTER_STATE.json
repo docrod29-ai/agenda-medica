@@ -10,7 +10,7 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "SAFE-004 (cerrada, sin número REG ni versión: la numeración está en disputa)",
+  "iteracionActual": "SAFE-004 (cerrada — REG-213, v1095)",
   "ramasActivas": [
     "agent/infra/INFRA-001",
     "agent/voice/VOICE-004",

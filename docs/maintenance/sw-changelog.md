@@ -3,6 +3,16 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1095 — REG-213: así no se niega en la consulta
+
+Los tres motores que leen el dictado para decidir si un antecedente está negado
+usaban un vocabulario escrito mirando la nota redactada («niega diabetes»), no el
+habla del consultorio. Fallaba en las dos direcciones: «No padece diabetes.»
+salía como antecedente POSITIVO, y «¿Tiene diabetes? No sé, doctor.» contaba como
+negación y degradaba a `descartado` una diabetes confirmada.
+
+Reparado en las tres rutas, no en una — la lección de REG-180 y REG-187.
+
 ## v1073 — REG-191: la versión del prompt llevaba siete cambios sin moverse
 
 `_promptVersion` se sella en cada nota y es lo único que permite acotar el lote

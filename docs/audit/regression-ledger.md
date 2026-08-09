@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-1XX — así no se niega en la consulta (número y versión POR ASIGNAR)
+## REG-213 — así no se niega en la consulta (v1095)
 
 **El número está en disputa** — El 8-ago-2026 hay **14 PRs abiertos titulados
 «REG-192 · v1074»**: cada disparo del bucle autónomo parte de `main`, ve el mismo
