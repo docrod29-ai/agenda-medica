@@ -434,7 +434,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO PARCIAL (V9 · A11Y-GATE-001, 9-ago-2026) — dos compuertas, no axe",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "A11Y-GATE-001",
@@ -445,7 +445,8 @@
       "porQueImporta": "Objetivo declarado de V9: WCAG 2.2 AA. Hoy nada impide una regresión. Y el contraste de los 1205 hexadecimales nunca se midió — los tokens sí, y con la fórmula escrita en el CSS.",
       "archivo": "package.json · eslint.config.mjs · src/__tests__/a11y-zoom-guard.test.ts",
       "plan": "axe sobre la superficie del paciente primero (9 pantallas), que es lo que V9 gobierna. Luego trinquete.",
-      "score": 45
+      "score": 45,
+      "cierre": "Dos compuertas nuevas, las dos offline y en cada CI. (1) CONTRASTE: `src/lib/design/contraste.ts` ejecuta la aritmética WCAG que sólo estaba escrita a mano en los comentarios del CSS, sobre los dos temas y componiendo el alfa de las insignias. Destapó REG-292 —`--text3` 4,20 y `--amber` 4,17 sobre `--s3` en tema claro, con el comentario afirmando que cumplían— y el ámbar fallaba también de relleno (4,18), así que nace `--amber-solido`. (2) NOMBRE ACCESIBLE Y TECLADO: `scripts/a11y/trinquete-de-accesibilidad.mjs` parsea con el compilador de TypeScript (nada de expresiones regulares: el primer intento dio 65 con 40 falsos) y encontró REG-293 —doce botones de sólo icono sin nombre, incluidas las cinco estrellas de la reseña del paciente—. Los doce reparados: techo CERO. QUEDA ABIERTO: `axe` sobre el producto corriendo y las nueve pantallas del paciente en un navegador; sin credenciales de Firebase este entorno no lo levanta. También el objetivo táctil 44×44, que exige medir cajas."
     },
     {
       "seguridad": 0,
@@ -592,6 +593,31 @@
       "prioridadV9": "P2",
       "unidad": "VISUAL-EXCELLENCE-001",
       "origen": "DESIGN-SYSTEM-001 (V9) — medido por el trinquete de diseño, 9-ago-2026",
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
+      "id": "A11Y-AXE-001",
+      "titulo": "Falta `axe` sobre el producto corriendo — las compuertas de hoy son estáticas",
+      "hallazgo": "`el-contraste-esta-medido` mide pares de tokens y `todo-control-tiene-nombre` parsea el JSX. Ninguna ve el árbol de accesibilidad renderizado: ni el orden de foco real, ni un `aria-hidden` que tape media pantalla, ni una etiqueta que apunte a un `id` inexistente, ni el tamaño real del objetivo táctil.",
+      "porQueImporta": "El objetivo declarado de V9 es WCAG 2.2 AA, y lo estático llega hasta donde llega. Las nueve pantallas del paciente son la superficie que V9 gobierna y ninguna se ha abierto todavía.",
+      "archivo": "evals/ · playwright ya es dependencia (@playwright/test) · falta @axe-core/playwright",
+      "plan": "Levantar el producto con credenciales, recorrer las nueve pantallas del paciente con axe y convertir cada hallazgo en fixture permanente. BLOQUEADO en el entorno: este contenedor no tiene las variables de Firebase, así que el build falla al recolectar datos de página.",
+      "seguridad": 0,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 0,
+      "fiabilidad": 3,
+      "regulatorio": 2,
+      "aprendizaje": 0,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 3,
+      "score": 30,
+      "prioridadV9": "P1",
+      "unidad": "A11Y-GATE-001",
+      "origen": "A11Y-GATE-001 (V9) — lo que las compuertas estáticas no pueden ver, 9-ago-2026",
       "estado": "pendiente",
       "reversible": true
     }

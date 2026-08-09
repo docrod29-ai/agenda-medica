@@ -652,7 +652,7 @@ export default function GeneradorOrdenPage() {
                     padding: '6px 10px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 600,
                   }}>
                     {e}
-                    <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} aria-label={`Quitar ${e}`} style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', padding: 0 }}>
                       <Trash2 size={11} />
                     </button>
                   </span>

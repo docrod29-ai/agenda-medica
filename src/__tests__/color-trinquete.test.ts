@@ -146,6 +146,14 @@ const TECHO_CRUDOS = 265
  * deterioro —el que más falta hace que se lea— era invisible para el guardián
  * puesto justamente a vigilar eso.
  */
+/**
+ * La explicación no cuenta como código. Ya se usaba en línea en las dos últimas
+ * comprobaciones de este archivo; aquí se le pone nombre para poder usarlo
+ * también en la de `rgba`, que era la única que leía el texto crudo.
+ */
+const sinComentarios = (s: string) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '')
+
 function fuentes(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
@@ -176,7 +184,16 @@ describe('trinquete de color', () => {
     const pat = /rgba\(\s*(239\s*,\s*68\s*,\s*68|248\s*,\s*113\s*,\s*113|220\s*,\s*38\s*,\s*38|185\s*,\s*28\s*,\s*28|245\s*,\s*158\s*,\s*11|251\s*,\s*191\s*,\s*36|217\s*,\s*119\s*,\s*6|180\s*,\s*83\s*,\s*9|74\s*,\s*222\s*,\s*128|34\s*,\s*197\s*,\s*94|22\s*,\s*163\s*,\s*74)\s*,/g
     const culpables: string[] = []
     for (const p of archivos) {
-      for (const m of readFileSync(p, 'utf8').matchAll(pat)) culpables.push(`${p} → rgba(${m[1]}…`)
+      /**
+       * `sinComentarios` también aquí, y no por simetría.
+       *
+       * `src/lib/design/contraste.ts` explica en su cabecera por qué hay que
+       * COMPONER el alfa antes de medir, y para explicarlo cita
+       * `rgba(239,68,68,0.16)` — el fondo real de una insignia. Sin quitar los
+       * comentarios, documentar bien una decisión SUBE la deuda de color, y un
+       * guardián que castiga la documentación enseña a no documentar.
+       */
+      for (const m of sinComentarios(readFileSync(p, 'utf8')).matchAll(pat)) culpables.push(`${p} → rgba(${m[1]}…`)
     }
     expect(culpables, culpables.slice(0, 12).join('\n')).toHaveLength(TECHO_FONDO)
   })

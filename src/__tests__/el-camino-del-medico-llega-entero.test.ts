@@ -116,8 +116,21 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
  * Islas de dos. Ninguno es alarmante; los tres son lo que quedaba por ver.
  *
  * El número puede BAJAR. No puede subir sin que alguien lo escriba aquí.
+ *
+ * ── 30 desde el 9-ago-2026 (V9 · A11Y-GATE-001) ──────────────────────────────
+ *
+ * Sube uno, y se escribe aquí porque así lo exige el trinquete:
+ * `src/lib/design/contraste.ts`, el motor WCAG que ejecuta en cada CI la
+ * aritmética de contraste que hasta ahora sólo estaba escrita a mano en los
+ * comentarios de `globals.css`. Al ejecutarla destapó dos tokens del tema claro
+ * por debajo de AA (REG-292).
+ *
+ * **No corre en el camino del médico a propósito**: es instrumento, no producto.
+ * Igual que el resto de herramientas de CI ya declaradas, y con su motivo en
+ * `modulos-sin-conectar.test.ts`. Un motor de compuerta que se conectara a una
+ * pantalla «para que cuente» sería peor: código de producto que nadie pidió.
  */
-const FUERA_DEL_CAMINO_HOY = 29
+const FUERA_DEL_CAMINO_HOY = 30
 
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',

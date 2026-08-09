@@ -13,10 +13,11 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `DESIGN-SYSTEM-001` — **cimiento cerrado** (9-ago): tokens,
-escalas y trinquete de diseño. `PATIENT-UX-TRUTH-001` ✅ CERRADA (8-ago) y los
-tres P0 de audio ✅ CERRADOS (v1158/v1161). Sigue abierta la compuerta de
-accesibilidad (`A11Y-GATE-001`) y luego `NAVIGATION-001`.
+**Unidad actual**: `DESIGN-SYSTEM-001` ✅ **cimiento cerrado** (9-ago) y
+`A11Y-GATE-001` ✅ **parcial** el mismo día: contraste medido por motor y nombre
+accesible en cero. `PATIENT-UX-TRUTH-001` ✅ CERRADA (8-ago) y los tres P0 de
+audio ✅ CERRADOS (v1158/v1161). Falta `axe` en navegador (`A11Y-AXE-001`, sin
+credenciales aquí). **Siguiente**: `NAVIGATION-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -38,6 +39,15 @@ inline` exponía cuatro valores a Tailwind, así que no existía la utilidad que
 usar. Reparado el 9-ago — 30 tokens expuestos, escalas de espacio y tipografía
 convertidas en token, y la deuda restante congelada en **1 865** por un trinquete
 que además **falla si un archivo nuevo nace con deuda**.
+
+Y al encender la compuerta de accesibilidad —la que no existía: 1 prueba entre
+540— aparecieron dos defectos más. **REG-292**: en tema claro, `--text3` daba
+4,20 y `--amber` 4,17 sobre la superficie activa, por debajo de AA, con el CSS
+afirmando por escrito que cumplían; el ámbar además fallaba de relleno (4,18),
+así que era el mismo defecto de `--nexus`/`--nexus-solido` repetido en otro
+color. **REG-293**: doce botones de sólo icono que un lector de pantalla anuncia
+como «botón» — incluidas las cinco estrellas de la reseña del paciente, y dos que
+borran. Los doce reparados, techo en cero.
 
 | P0 | Estado |
 |---|---|

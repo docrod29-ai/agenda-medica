@@ -97,6 +97,17 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/evidencia/desde-pubmed.ts': 'Del mismo bloque de evidencia estructurada.',
   'src/lib/compliance/policy.ts': 'Capa de política por país: escrita para LATAM, sin país distinto de México activo.',
   'src/lib/i18n.ts': 'Internacionalización ligera: base para LATAM, sin segundo idioma en uso.',
+  /**
+   * NO es código de producto que se quedó sin conectar: es el MOTOR DE UNA
+   * COMPUERTA. Lo usa `el-contraste-esta-medido.test.ts` para ejecutar en cada CI
+   * la aritmética WCAG que hasta V9 sólo estaba escrita a mano en los
+   * comentarios de `globals.css` — y que, al ejecutarla, destapó dos tokens del
+   * tema claro por debajo de AA (REG-292).
+   *
+   * Que sólo lo importe una prueba es lo correcto aquí, y por eso se declara en
+   * vez de conectarse a la fuerza.
+   */
+  'src/lib/design/contraste.ts': 'Motor WCAG de la compuerta de contraste (REG-292). Lo consume el guardián, no una pantalla: es instrumento, no producto.',
   'src/lib/permissions.ts': 'Permisos por rol en aplicación. La autorización REAL está en Firestore rules.',
   'src/components/DoctorOnboarding.tsx': 'Alta guiada del médico: escrita, sin pantalla que la monte todavía.',
   'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz y el motor de agenda no. Desde v847 la API TAMPOCO acepta `branchId`: aceptar un campo que se ignora es prometer una función que no existe.',

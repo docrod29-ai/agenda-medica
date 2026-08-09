@@ -4,10 +4,10 @@
 > `MASTER_STATE.json` y en `docs/design/SCREEN_INVENTORY.md` (generado).
 
 **Iteración en curso**: `DESIGN-SYSTEM-001` — **cimiento cerrado** el 9-ago-2026
-(tokens, escalas, trinquete). Abierta la adopción y la compuerta de
-accesibilidad. `PATIENT-UX-TRUTH-001` cerrada el 8-ago-2026.
-**Siguiente**: `A11Y-GATE-001` dentro de esta misma iteración, y luego
-`NAVIGATION-001`.
+(tokens, escalas, trinquete) y **accesibilidad con dos compuertas** el mismo día
+(`A11Y-GATE-001`, parcial: falta `axe` en navegador).
+`PATIENT-UX-TRUTH-001` cerrada el 8-ago-2026.
+**Siguiente**: `NAVIGATION-001`, empezando por `NAV-AGENDA-001`.
 
 ---
 
@@ -71,9 +71,22 @@ La tercera no la necesita el trinquete de lint y aquí sí: 1 865 es un número
 grande, y un archivo nuevo con doce tamaños inventados cabría dentro del margen de
 cualquier limpieza en curso sin que nadie se enterara.
 
-Accesibilidad, regresión visual, móvil y flujo en navegador **siguen sin
-definirse** (`A11Y-GATE-001`). Hoy hay **1** prueba de accesibilidad entre 540, y
-es una expresión regular sobre `layout.tsx`.
+**Accesibilidad — dos compuertas, el 9-ago** (`A11Y-GATE-001`). Se partía de
+**1** prueba de accesibilidad entre 540, y era una expresión regular sobre
+`layout.tsx`.
+
+| Compuerta | Qué hace | Qué destapó |
+|---|---|---|
+| `el-contraste-esta-medido` | Ejecuta la aritmética WCAG sobre los tokens reales, en los **dos** temas, componiendo el alfa de las insignias | **REG-292** — `--text3` (4,20) y `--amber` (4,17) sobre `--s3` en tema claro, con el CSS afirmando por escrito que cumplían |
+| `todo-control-tiene-nombre` | Parsea el JSX con el compilador de TypeScript | **REG-293** — doce botones de sólo icono sin nombre. Techo **cero** |
+
+El motor de contraste vive en `src/lib/design/contraste.ts` y es determinista: la
+misma regla que gobierna lo clínico —el cálculo lo hace un motor con pruebas, no
+la memoria— aplicada al color.
+
+**Regresión visual, móvil y flujo en navegador siguen sin definirse**, y `axe`
+sobre el producto corriendo también (`A11Y-AXE-001`): este entorno no tiene
+credenciales de Firebase.
 
 ## `DESIGN-SYSTEM-001` — cerrado el cimiento, abierta la adopción
 
@@ -106,7 +119,8 @@ Pendiente, en el backlog y con su ficha:
 - `DESIGN-COLOR-001` (P2) — los 127 `#3D5AFE` ciegos al tema. Se midió y **no se
   barrió**: cambia píxeles en tema claro y hay tres contextos donde `var()` no
   vale (SVG por atributo, satori, `global-error`). Con lo aprendido escrito.
-- `A11Y-GATE-001` (P1) — `axe` sobre las 9 pantallas del paciente.
+- `A11Y-AXE-001` (P1) — `axe` sobre las 9 pantallas del paciente, con el producto
+  corriendo. Bloqueado por credenciales, no por código.
 - Los literales *slate* que no siguen al tema, en 10 archivos.
 - Las tablas, adoptando `.table-wrap.rwd` que ya existe (`DESIGN-TABLAS-001`).
 

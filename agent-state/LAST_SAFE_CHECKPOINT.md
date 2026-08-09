@@ -12,8 +12,8 @@
 |---|---|
 | **Rama** | `claude/relaxed-fermi-5njokt` (nace de `main` = `0144257`) |
 | **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
-| **SHA de cierre** | `cd238f4` |
-| **Unidad cerrada** | **`DESIGN-SYSTEM-001` — el cimiento.** Queda abierta la adopción y `A11Y-GATE-001` |
+| **SHA de cierre** | `cd238f4` (`DESIGN-SYSTEM-001`) · *(este commit)* (`A11Y-GATE-001`) |
+| **Unidad cerrada** | **`DESIGN-SYSTEM-001` — el cimiento** · **`A11Y-GATE-001` — parcial**: las dos compuertas que se pueden ejecutar sin navegador |
 | **Siguiente unidad** | ver «Qué hacer al reanudar» |
 
 ### Qué quedó hecho
@@ -56,6 +56,31 @@ el mensaje de error bajo un campo —el de la dosis incluido— de 11,5 px a
 `--fs-caption`; y `Skeleton` tenía `r` tipado como `number`, así que **el propio
 componente obligaba a escribir `999`** para pedir una píldora.
 
+**6. `A11Y-GATE-001` — de 1 prueba de accesibilidad entre 540, a dos compuertas.**
+
+**REG-292 · el tema claro reprobaba AA, y el CSS decía que no.** Sobre `--s3` —la
+superficie activa, que es la peor y no la que se suele medir— `--text3` daba
+**4,20** y `--amber` **4,17**, con el comentario del propio CSS afirmando que
+cumplían. Y `--amber` fallaba **por los dos lados**: también se usa de relleno
+bajo texto casi negro (la franja de «sin conexión», dos botones de la consulta) y
+ahí daba 4,18. Es el defecto de `--nexus`/`--nexus-solido` **repetido en otro
+color**: la lección se había aplicado al caso, no a la familia. Nace
+`--amber-solido`.
+
+La aritmética deja de estar escrita a mano: `src/lib/design/contraste.ts` la
+ejecuta en cada CI, en los dos temas, componiendo el alfa de las insignias —que
+sin componer se mediría como si el tinte fuera opaco— y comprobando que el tema
+claro manual y el automático no se separen.
+
+**REG-293 · doce botones de sólo icono sin nombre accesible**, entre ellos dos que
+borran y **las cinco estrellas de la reseña del paciente**. Los doce reparados:
+techo **CERO**, no un trinquete que baja.
+
+El medidor se rehízo dos veces, y las dos por la misma razón: con `grep` daba 65
+con 40 falsos, y su primera versión con AST señalaba los elementos que usan
+`activable()` —el ayudante que este repositorio escribió para hacerlo bien—. Otra
+vez el medidor castigando la mejora, horas después de REG-291.
+
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
@@ -65,7 +90,9 @@ componente obligaba a escribir `999`** para pedir una píldora.
 | `trinquete-de-diseno` | **1 865**, igual que el techo |
 | `npx tsc --noEmit` | **limpio** |
 | `npm run build` | **compila** («Compiled successfully in 39.8s» + «Finished TypeScript in 55s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
-| navegador / móvil / a11y | **no ejecutadas** |
+| `trinquete-de-accesibilidad` | **0**, igual que el techo |
+| contraste WCAG (motor) | **verde** en los dos temas, sobre la peor superficie |
+| navegador / móvil / `axe` | **no ejecutadas** — sin credenciales de Firebase |
 
 ---
 
@@ -77,14 +104,13 @@ componente obligaba a escribir `999`** para pedir una píldora.
 **2. NO rehacer el cimiento del sistema de diseño.** Está cerrado. Lo que queda
 es adopción, y la adopción tiene dueño: `VISUAL-EXCELLENCE-001`.
 
-**3. `A11Y-GATE-001`** (P1, dentro de esta misma iteración): `axe` sobre las 9
-pantallas del paciente, objetivo WCAG 2.2 AA. Hoy hay **1** prueba de
-accesibilidad entre 540 y es una expresión regular sobre `layout.tsx`. Ojo: sin
-credenciales de Firebase, `axe` contra la app corriendo puede no ser posible en
-este contenedor — mirar primero qué pantallas rinden sin sesión.
+**3. `NAVIGATION-001`**, empezando por `NAV-AGENDA-001` (Agenda → Consulta →
+atrás nunca vuelve a la Agenda). Es la siguiente unidad del §1 de la directiva.
 
-**4. Luego `NAVIGATION-001`**, empezando por `NAV-AGENDA-001` (Agenda → Consulta
-→ atrás nunca vuelve a la Agenda).
+**4. `A11Y-AXE-001`** queda abierto y **bloqueado por el entorno**, no por el
+código: `axe` sobre las nueve pantallas del paciente exige levantar el producto,
+y este contenedor no tiene las variables de Firebase. `@playwright/test` ya es
+dependencia; falta `@axe-core/playwright`.
 
 **5. `DESIGN-COLOR-001`** (P2, nuevo en el backlog) tiene el trabajo medido y las
 tres trampas escritas: `var()` **no funciona en atributos de presentación SVG**,
@@ -97,7 +123,13 @@ de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en P0
 ## Lo que este checkpoint NO garantiza
 
 Que la interfaz esté bien. **Nadie ha abierto una pantalla** — tampoco en esta
-sesión. Los dos cambios visibles (medio píxel en el texto de ayuda de un campo,
-dos radios de esqueleto de carga) **no se han mirado en un navegador**, y la
-directiva V9 §4 no aprueba interfaz leyendo código. El trinquete cuenta valores
-fuera del sistema; no dice que ninguna pantalla esté bien.
+sesión. Sin mirar quedan: medio píxel en el texto de ayuda de un campo, dos
+radios de esqueleto de carga, y sobre todo **los tres tokens de color que
+cambiaron en el tema claro** (`--text3`, `--amber`, el nuevo `--amber-solido`).
+Están medidos y son estrictamente más legibles, pero medido no es visto, y la
+directiva V9 §4 no aprueba interfaz leyendo código.
+
+Y las compuertas nuevas **no son `axe`**: miden pares de tokens y parsean JSX. No
+ven el árbol de accesibilidad renderizado, ni el orden de foco real, ni el tamaño
+del objetivo táctil. Un control cuyo nombre venga de una variable **no se
+vigila** — que significa eso exactamente, no que esté bien.

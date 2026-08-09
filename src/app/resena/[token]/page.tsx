@@ -67,6 +67,7 @@ export default function ResenaPage() {
             <button key={n} type="button"
               onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
               onClick={() => setRating(n)}
+              aria-label={n === 1 ? '1 estrella' : `${n} estrellas`}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
               <Star size={36} fill={(hover || rating) >= n ? '#fbbf24' : 'none'} color={(hover || rating) >= n ? '#fbbf24' : 'var(--text3)'} />
             </button>

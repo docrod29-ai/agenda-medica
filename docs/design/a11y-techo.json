@@ -1,0 +1,9 @@
+{
+  "queEs": "Techo del trinquete de accesibilidad (V9 · A11Y-GATE-001). Sólo puede BAJAR. Lo escribe scripts/a11y/trinquete-de-accesibilidad.mjs --actualizar.",
+  "queMide": {
+    "sinNombre": "Botón cuyo contenido es sólo un icono, sin aria-label / aria-labelledby / title.",
+    "noEsControl": "onClick sobre un elemento no interactivo sin role + tabIndex + manejador de teclado."
+  },
+  "total": 0,
+  "porArchivo": {}
+}

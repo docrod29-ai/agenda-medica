@@ -4128,7 +4128,7 @@ export default function ConsultaActivaPage() {
                   display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Mic size={14} className="ds-icon" /> Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
-                  <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
+                  <button className="btn btn-sm" style={{ background: 'var(--amber-solido)', color: '#000', border: 'none', fontWeight: 600 }}
                     onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`, opcionesWhisper); setOfreceRecovery(false) }}>
                     Recuperar
                   </button>
@@ -4425,7 +4425,7 @@ export default function ConsultaActivaPage() {
                     <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>
-                    <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
+                    <button className="btn btn-sm" style={{ background: 'var(--amber-solido)', color: '#000', border: 'none', fontWeight: 600 }}
                       title="Guarda el audio como archivo en tu dispositivo (nunca lo pierdes)"
                       onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                       Descargar audio
@@ -5378,7 +5378,7 @@ export default function ConsultaActivaPage() {
               onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
               style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
             />
-            {!firmada && <button onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
+            {!firmada && <button onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))} style={S.del} aria-label="Quitar diagnóstico"><Trash2 size={14} /></button>}
           </div>
         ))}
         {!firmada && (
@@ -5446,7 +5446,7 @@ export default function ConsultaActivaPage() {
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
-            {!firmada && <button onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
+            {!firmada && <button onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))} style={S.del} aria-label="Quitar medicamento"><Trash2 size={14} /></button>}
           </div>
         ))}
         {!firmada && (

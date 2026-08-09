@@ -171,7 +171,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', borderRadius: 16, padding: 20, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Revisa lo que leyó la IA</div>
-              <button onClick={() => setRevision(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><X size={18} /></button>
+              <button onClick={() => setRevision(null)} aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><X size={18} /></button>
             </div>
             <label style={{ fontSize: 12, color: 'var(--text2)' }}>Fecha del estudio</label>
             <input type="date" className="input" value={revision.fecha} onChange={e => setRevision({ ...revision, fecha: e.target.value })} style={{ marginBottom: 12 }} />

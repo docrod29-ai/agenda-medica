@@ -126,7 +126,7 @@ export default function CalendarioPage() {
         </div>
 
         {/* Navigation */}
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(-1)}><ChevronLeft size={16} /></button>
+        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(-1)} aria-label="Periodo anterior"><ChevronLeft size={16} /></button>
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => setBaseDate(new Date())}
@@ -134,7 +134,7 @@ export default function CalendarioPage() {
         >
           {rangeLabel}
         </button>
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(1)}><ChevronRight size={16} /></button>
+        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => navigate(1)} aria-label="Periodo siguiente"><ChevronRight size={16} /></button>
 
         <button className="btn btn-primary btn-sm" onClick={() => openNew(hoyISO(), '')}>
           <Plus size={15} /> Nueva cita

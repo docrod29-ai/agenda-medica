@@ -83,6 +83,24 @@
   --blue:      #648BE4;
   --blue-dim:  #3D62C4;
   --amber:     #D97706;
+  /*
+    EL ÁMBAR DE RELLENO — el que lleva texto casi negro encima.
+
+    Segundo caso de la misma familia que --nexus / --nexus-solido, y por eso se
+    nombra igual: **un token no puede servir para las dos cosas cuando los
+    requisitos son opuestos**. Como TEXTO sobre superficie hay que oscurecerlo
+    (en claro llegó a dar 4,17 : 1 sobre --s3, por debajo de AA); como RELLENO
+    bajo texto casi negro hay que ACLARARLO, y el mismo valor oscuro daba 4,18.
+
+    Fallaba por los dos lados a la vez, en el tema claro, en la franja de «sin
+    conexión» y en los dos botones de aviso de la consulta.
+
+    #D97706 medido con la fórmula WCAG 2.1: #1a1a1a encima = 5,46 : 1. En el tema
+    oscuro coincide con --amber, igual que pasaba con el cobalto: ahí el token de
+    texto ya era el correcto para rellenar. Lo mide
+    `el-contraste-esta-medido.test.ts` en los dos temas, y ya no a mano.
+  */
+  --amber-solido: #D97706;
   --red:       #E66464;
   --green:     #1BA34D;
   --purple:    #A375F2;
@@ -248,6 +266,7 @@
   /* Semántica clínica */
   --color-nx-red:    var(--red);
   --color-nx-amber:  var(--amber);
+  --color-nx-amber-solido: var(--amber-solido);
   --color-nx-green:  var(--green);
   --color-nx-blue:   var(--blue);
   --color-nx-purple: var(--purple);
@@ -990,7 +1009,7 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── Indicador offline ────────────────────────────────────── */
 .offline-banner {
-  background: var(--amber);
+  background: var(--amber-solido);
   color: #1a1a1a;
   font-size: 13px;
   font-weight: 600;
@@ -1200,12 +1219,14 @@ tbody tr:last-child { border-bottom: none; }
      este lado se quedó sin aplicar — y el claro es el que sale por defecto con
      luz de consultorio. --text3 lleva TODOS los placeholders, las pistas CIE-10 y
      el texto de ayuda. */
-  --text3:     #6B6F75;
+  --text3:     #63676D;
 
-  /* Semánticas — versiones light-mode (contraste AA) */
+  /* Semánticas — versiones light-mode, medidas sobre la PEOR superficie (--s3),
+     no sobre el lienzo. Ver `el-contraste-esta-medido.test.ts`: el ámbar estaba
+     medido contra --bg (4,80) y sobre --s3 daba 4,17. */
   --blue:      #2057C5;
   --blue-dim:  #1A4AA8;
-  --amber:     #B45309;
+  --amber:     #9A4408;
   --red:       #B91C1C;
   --green:     #14532D;
   --purple:    #6D28D9;
@@ -1249,10 +1270,10 @@ tbody tr:last-child { border-bottom: none; }
     --teal-glow:    var(--nexus-soft);
     --text:      #0B0C0E;
     --text2:     #565A60;
-    --text3:     #6B6F75;   /* AA — ver nota arriba */
+    --text3:     #63676D;   /* AA sobre --s3 — ver nota arriba */
     --blue:      #2057C5;
     --blue-dim:  #1A4AA8;
-    --amber:     #B45309;
+    --amber:     #9A4408;
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
@@ -1499,7 +1520,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
       puede corregir después.
     */
     --red:    #B91C1C;
-    --amber:  #B45309;
+    --amber:  #9A4408;
     --green:  #14532D;
     --blue:   #2057C5;
     /* Los que entraron con la segunda tanda de migración (v913): el trinquete

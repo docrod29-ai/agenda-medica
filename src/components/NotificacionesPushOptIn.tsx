@@ -121,6 +121,7 @@ export function NotificacionesPushOptIn() {
       </div>
       <button
         onClick={dismiss}
+        aria-label="Cerrar el aviso de notificaciones"
         style={{
           background: 'none', border: 'none', color: 'var(--text3)',
           cursor: 'pointer', padding: 2, flexShrink: 0,

@@ -663,7 +663,7 @@ export default function NotaImprimiblePage() {
             width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)',
             borderRadius: 16, padding: 24, position: 'relative',
           }}>
-            <button onClick={() => setModalAdenda(false)} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 4, lineHeight: 0 }}>
+            <button onClick={() => setModalAdenda(false)} aria-label="Cerrar" style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 4, lineHeight: 0 }}>
               <X size={18} />
             </button>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Agregar adenda</div>

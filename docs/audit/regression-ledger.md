@@ -6437,3 +6437,105 @@ Archivos:
 - `src/components/ui/Field.tsx` · `src/components/ui/Skeleton.tsx`
 - `src/__tests__/escala-visual-trinquete.test.ts` (9 casos, sellado)
 - `src/__tests__/el-diseno-tiene-trinquete.test.ts` (nuevo, 12 casos, sellado)
+
+---
+
+## REG-292 — el tema claro reprobaba AA en dos tokens, y el CSS decía que no (sin desplegar)
+
+Medido con el motor, no a mano (`src/lib/design/contraste.ts`), sobre los tokens
+reales de `globals.css` y sobre la **peor** de las cuatro superficies (`--s3`, la
+activa) en lugar del lienzo, que es la medida favorable:
+
+| Token (tema claro) | Sobre `--s3` | Umbral AA | Lo que decía el comentario |
+|---|---|---|---|
+| `--text3` `#6B6F75` | **4,20** | 4,5 | «AA sobre `--bg` y sobre `--s3`» |
+| `--amber` `#B45309` | **4,17** | 4,5 | «versiones light-mode (contraste AA)» |
+
+`--text3` lleva **todos** los placeholders, las pistas CIE-10 y el texto de
+ayuda. `--amber` es el color de aviso.
+
+### `--amber` fallaba por los DOS lados a la vez
+
+También se usa de **relleno** bajo texto casi negro —la franja de «sin conexión»
+y dos botones de aviso de la consulta— y ahí daba **4,18**.
+
+Es el mismo defecto que este repositorio ya había encontrado, entendido y
+documentado para `--nexus` / `--nexus-solido`: **un token no puede servir para
+dos trabajos cuyos requisitos son opuestos.** Como texto sobre superficie hay que
+oscurecerlo; como relleno bajo texto oscuro hay que aclararlo.
+
+**La lección se aplicó al caso, no a la familia.** Se arregló el cobalto y el
+ámbar siguió igual, con el mismo comentario correcto tres líneas más arriba.
+
+### La causa raíz no es un cálculo mal hecho
+
+Los cocientes escritos en el CSS están **bien calculados**. El problema es que
+calcularlos dependía de que alguien se acordara: cambiar un token es una línea,
+recalcular seis cocientes a mano es un rato. El tema oscuro se corrigió en su día
+y el claro se quedó a medias — exactamente lo que el propio CSS confiesa unas
+líneas más arriba («la corrección de contraste se había aplicado sólo a un tema»).
+
+### El arreglo
+
+- `--text3` (claro): `#6B6F75` → `#63676D` (4,73 sobre `--s3`).
+- `--amber` (claro): `#B45309` → `#9A4408` (5,44 sobre `--s3`).
+- **`--amber-solido`** nuevo, `#D97706` en los dos temas, para el relleno:
+  `#1a1a1a` encima da 5,46. Lo usan `.offline-banner` y los dos botones de la
+  consulta.
+
+Y la aritmética deja de estar escrita a mano: `el-contraste-esta-medido.test.ts`
+la ejecuta en cada CI, sobre los dos temas, componiendo el alfa de las insignias
+—que sin componer se mediría como si el tinte fuera opaco— y comprobando además
+que el tema claro manual y el automático (`prefers-color-scheme`) no se separen.
+
+Prueba que falla sin el arreglo: los dos valores viejos están escritos en el
+propio test y se comprueba que reprobaban.
+
+---
+
+## REG-293 — doce botones de sólo icono que un lector de pantalla anuncia como «botón» (sin desplegar)
+
+| Dónde | Qué botón |
+|---|---|
+| consulta | quitar diagnóstico · quitar medicamento (papelera) |
+| orden | quitar estudio |
+| calendario · citas | avanzar y retroceder el periodo |
+| pacientes | limpiar la búsqueda |
+| nota · laboratorios | cerrar el diálogo |
+| **reseña del paciente** | **las cinco estrellas de la valoración** |
+
+El último es de cara al paciente: cinco botones idénticos, sin nombre, en la
+única pantalla de esa lista donde no hay un profesional que pueda deducir el
+resto. Y dos de los otros **borran** algo.
+
+### Por qué no lo veía ninguna revisión
+
+Un icono **parece** que se explica solo a quien lo ve, y la pantalla se revisa
+mirándola. Mirándola, la papelera es obvia. Sólo deja de serlo cuando no se mira
+— y eso no aparece en ninguna revisión visual, por buena que sea. La línea base
+de V9 lo dijo en una cifra: **1 prueba de accesibilidad entre 540**.
+
+### El instrumento, y el que hubo que tirar
+
+El primer medidor se escribió con expresiones regulares y dio **65** botones «sin
+nombre». Cuarenta eran falsos: el texto vivía dentro de un
+`{cargando ? … : 'Guardar'}`, o dentro de un fragmento anidado. Se tiró y se
+rehízo **parseando con el compilador de TypeScript**, que ya es dependencia del
+proyecto.
+
+La segunda versión también empezó torcida: señalaba veinte `<div onClick>` y los
+veinte eran fondos de diálogo o fontanería `stopPropagation` — y, peor, señalaba
+los elementos que usan `activable()`, el ayudante que este mismo repositorio
+escribió para hacerlo bien. **Otra vez el medidor castigando la mejora**, cuatro
+horas después de REG-291.
+
+Techo **cero**, y se queda en cero: no quedaba ninguno, así que cualquier caso
+nuevo es deuda nueva y el arreglo cuesta un atributo.
+
+Archivos:
+
+- `src/lib/design/contraste.ts` (nuevo) · `src/app/globals.css`
+- `scripts/a11y/trinquete-de-accesibilidad.mjs` (nuevo)
+- `src/__tests__/el-contraste-esta-medido.test.ts` (nuevo, 9 casos declarados que se despliegan en 40 comprobaciones —cada token contra cada superficie, en los dos temas—, sellado)
+- `src/__tests__/todo-control-tiene-nombre.test.ts` (nuevo, 11 casos, sellado)
+- once pantallas con `aria-label`, y `src/lib/ui/activable.ts` sin tocar
