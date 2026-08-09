@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — un valor de pánico CENSURADO se archivaba como normal (v1074)
+## REG-204 — un valor de pánico CENSURADO se archivaba como normal (v1086)
 
 **Encontrado** — 7-ago-2026, revisando `docs/audit/hallazgos-crudos-workflow.json`
 (P1) contra el código de hoy. La mitad de aquellos hallazgos ya estaban cerrados

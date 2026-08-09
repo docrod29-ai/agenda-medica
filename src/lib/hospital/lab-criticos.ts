@@ -105,7 +105,7 @@ export function censuraDe(v: string | number | undefined | null): Censura | unde
 /**
  * Juzga un valor CENSURADO por intervalo, no por el número pelado.
  *
- * ── EL DEFECTO QUE CIERRA (REG-192) ──────────────────────────────────────────
+ * ── EL DEFECTO QUE CIERRA (REG-204) ──────────────────────────────────────────
  *
  * El prompt de visión ordena, literalmente, conservar el «<» o el «>» del
  * reporte. Y llegaba: la IA lo devolvía. Pero `aNumero` lo pelaba y aquí se

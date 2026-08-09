@@ -129,7 +129,7 @@
       "dependenciaExterna": 0,
       "score": 79,
       "estado": "cerrado",
-      "cierre": "REG-192 / v1074. Se razona por intervalo; ningún umbral cambia. Golden de 20 casos, probado al revés (13 caen sin el arreglo).",
+      "cierre": "REG-204 / v1086. Se razona por intervalo; ningún umbral cambia. Golden de 20 casos, probado al revés (13 caen sin el arreglo).",
       "reversible": true
     }
   ],

@@ -1604,7 +1604,7 @@ export const CLINICAL_ENGINE_REGISTRY: MotorClinico[] = [
     },
     file: 'src/lib/hospital/lab-criticos.ts',
     entryPoints: ['evaluarCriticoLab', 'esCriticoLab', 'censuraDe'],
-    missingData: 'sin unidad reconocida NO compara (antes comparaba a ciegas e invertía la dirección de la alerta). Un valor CENSURADO («>400», «<50») se juzga por intervalo: si cruza el umbral, se declara no evaluable en vez de darse por normal (REG-192).',
+    missingData: 'sin unidad reconocida NO compara (antes comparaba a ciegas e invertía la dirección de la alerta). Un valor CENSURADO («>400», «<50») se juzga por intervalo: si cruza el umbral, se declara no evaluable en vez de darse por normal (REG-204).',
     adr: ADR('lab-criticos'),
     goldenTests: ['lab-criticos.test.ts', 'el-valor-censurado-no-se-da-por-normal.test.ts'],
     estado: 'pendiente_validacion',

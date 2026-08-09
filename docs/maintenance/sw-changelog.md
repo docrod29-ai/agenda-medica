@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: el valor de pánico censurado se archivaba como normal
+## v1086 — REG-204: el valor de pánico censurado se archivaba como normal
 
 El laboratorio no siempre da el número: cuando el analizador se satura reporta
 un límite. «Glucosa >400». «Plaquetas <20». «<50» en una hipoglucemia severa.
