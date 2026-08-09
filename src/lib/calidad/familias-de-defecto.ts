@@ -187,6 +187,34 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    /**
+     * Familia NUEVA, abierta el 9-ago-2026 con REG-294 (V7, tras la reanudación
+     * del programa).
+     *
+     * No es `hueco_como_dato`: ahí el vacío clínico se guarda como si alguien
+     * lo hubiera dicho. Aquí el vacío es de APROBACIÓN, no de contenido — el
+     * dato es correcto, pero nadie decidió que estuviera listo para salir.
+     */
+    clave: 'precondicion_sin_compuerta',
+    nombre: 'La precondición vivía en un comentario, no en el código',
+    patron:
+      'El módulo declaraba en prosa qué tenía que ser cierto antes de actuar ' +
+      '—firmado, aprobado, revisado— pero nada lo comprobaba antes de actuar. ' +
+      'Un comentario describe la intención; no es una compuerta que la aplique.',
+    regs: [294],
+  },
+  {
+    /** Familia NUEVA, abierta el 9-ago-2026 con REG-295 (V7). */
+    clave: 'salvaguarda_a_medias',
+    nombre: 'La misma defensa, aplicada a unas rutas y no a sus hermanas',
+    patron:
+      'Un patrón de seguridad ya existía y ya se usaba en el repositorio — ' +
+      'límite de tasa, validación, aislamiento— pero una ruta que corre el ' +
+      'mismo riesgo que sus hermanas se quedó sin él. No falta inventar la ' +
+      'defensa: falta copiarla al sitio que la necesitaba igual.',
+    regs: [295],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

@@ -6612,3 +6612,50 @@ este componente — §3 de `patient-facing-ai.md`.
 - `src/components/HojaParaElPaciente.tsx`
 - `src/app/(dashboard)/consulta/[patientId]/page.tsx`
 - `src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts` (nuevo, 12 casos, sellado)
+
+---
+
+## REG-295 — `/api/portal` no tenía límite de tasa (sin desplegar)
+
+Ninguna acción de `/api/portal` (`session`, `confirmar`, `cancelar`, `slots`,
+`reagendar`, `formulario`, `documentos`) llevaba `limitarOResponder`, a
+diferencia de cada otra ruta alcanzable con un token filtrado
+(`telesalud/sala`, `expediente/procesar`, `inmuno/redactar`…).
+
+### Por qué importa
+
+El token del portal (HMAC, sin contraseña) viaja por WhatsApp. Un enlace
+reenviado, un teléfono perdido o un número reciclado —el mismo riesgo que ya
+motivó la revocación por versión (`tokenVigente`, `patient-token.ts`)— dejaba
+enumerar y mover la agenda del consultorio sin ningún freno: cancelar,
+reagendar y leer las citas de un paciente, todo sin límite.
+
+### Solución
+
+`limitarOResponder(\`portal:\${clinicId}:\${patientId}\`, 40, 60)`, ANTES de
+tocar Firestore para cualquier acción — no después de leer config o citas, que
+sería pagar el costo de la lectura antes de que algo frene. Clave por
+`clinicId:patientId`, no por IP: el atacante que reenvía o roba UN enlace ya
+trae identidad de paciente fija, y limitar por IP se evade rotando de red. Una
+sola clave para las siete acciones — si `confirmar` y `session` llevaran
+claves distintas, alternar de acción esquivaría el cupo. 40/60s replica
+`expediente/procesar` por analogía (no hay corpus de tráfico del portal contra
+qué calibrarlo).
+
+### Qué NO se hace
+
+**La otra mitad del mismo hallazgo** (`PATIENT-PORTAL-001`) — la comprobación
+de revocación en la misma ruta falla ABIERTA si la lectura del expediente
+lanza — es una decisión de diseño deliberada y documentada en el propio
+código, no un descuido de esta iteración. Cambiarla es un intercambio
+disponibilidad↔seguridad que le toca decidir al dueño: queda en
+`OWNER_DECISIONS_REQUIRED.md`, no se toca sin su palabra.
+
+Tampoco cubre `api/public/resena` ni `api/payment/create-checkout`, que el
+mismo hallazgo señala sin límite — quedan para otra iteración, para que este
+cambio siga siendo una unidad revisable.
+
+### Archivos
+
+- `src/app/api/portal/route.ts`
+- `src/__tests__/el-portal-del-paciente-tiene-limite-de-tasa.test.ts` (nuevo, 6 casos, sellado)

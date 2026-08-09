@@ -10,6 +10,7 @@ import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
+import { limitarOResponder } from '@/lib/rate-limit'
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
@@ -161,6 +162,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
   const { clinicId, patientId, alcance } = sesion
+
+  /**
+   * LÍMITE DE TASA — REG-295 (V7 · PATIENT-PORTAL-001).
+   *
+   * Cada otra ruta que un extraño puede alcanzar con un token filtrado
+   * (`telesalud/sala`, `expediente/procesar`…) ya lleva `limitarOResponder`.
+   * Esta era la única de escritura de agenda que no: un token de portal
+   * filtrado —enlace reenviado, teléfono perdido— permitía enumerar y mover
+   * la agenda del consultorio sin freno alguno.
+   *
+   * Clave por `clinicId:patientId`, no por IP: el atacante que reenvía o roba
+   * UN enlace ya trae identidad de paciente fija; limitar por IP se evade
+   * rotando de red y limitar por paciente es exactamente el radio del daño
+   * que este token puede hacer. 40/60s replica `expediente/procesar` — cubre
+   * a un paciente real hojeando varios días de horarios sin frenarlo.
+   */
+  const limite = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 60)
+  if (limite) return limite
 
   /**
    * ¿SIGUE VIGENTE ESTE ENLACE?

@@ -18,14 +18,16 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1167",
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/MASTER_STATE.json",
+    " M agent-state/OWNER_DECISIONS_REQUIRED.md",
     " M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/components/HojaParaElPaciente.tsx",
+    " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/app/api/portal/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/paciente/como-se-lo-explico.ts",
-    "?? src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts"
+    "?? src/__tests__/el-portal-del-paciente-tiene-limite-de-tasa.test.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -61,10 +63,10 @@
   ],
   "ramaActual": "claude/clever-lamport-a9htn3",
   "derivado": {
-    "regsEnElLedger": 142,
-    "ultimaREG": "REG-294",
-    "archivosDePrueba": 570,
-    "casosDePrueba": 7493,
+    "regsEnElLedger": 143,
+    "ultimaREG": "REG-295",
+    "archivosDePrueba": 571,
+    "casosDePrueba": 7499,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -145,3 +145,45 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+## SEGURIDAD · ¿La revocación del enlace del portal falla cerrada o abierta?
+
+**Estado**: pendiente · encontrado en `PATIENT-PORTAL-001` (V9, 8-ago-2026),
+código sin tocar en esta iteración (V7, 9-ago-2026 — REG-295 sólo puso límite
+de tasa, no esto).
+
+**El hecho** — `src/app/api/portal/route.ts:177-186` comprueba en cada
+petición si `portalTokenVersion` del expediente sigue siendo la del token
+(`tokenVigente`, `patient-token.ts`). Si la LECTURA de esa comprobación lanza
+—incidencia de Firestore—, el `catch` está vacío: se sigue como si el enlace
+siguiera vigente. Es **decisión de diseño escrita en el propio comentario**,
+no un descuido: «dejar al paciente fuera de su propia agenda por un mal
+minuto de Firestore es peor que el riesgo que esto acota».
+
+**Por qué no lo decido yo.** Es un cambio de política de seguridad, no un
+arreglo de software: cambiar a fallar cerrado significa que una incidencia de
+Firestore —minutos, típicamente— deja a TODOS los pacientes con enlace fuera
+de su portal, incluidos los que nunca tuvieron su enlace revocado. Es
+exactamente el tipo de intercambio disponibilidad↔seguridad que este
+proyecto no resuelve solo (mismo principio que ya bloqueó, sin resolverlo por
+mi cuenta, el «no bloquear la app entera por falta de tarjeta» de la prueba
+de 14 días).
+
+**Las dos opciones**
+
+| Opción | Qué implica |
+|---|---|
+| **Fallar abierto (hoy)** | Un enlace revocado —teléfono perdido, número reciclado, mensaje reenviado— sigue valiendo durante una incidencia de Firestore. La firma y la caducidad (30 días) lo siguen limitando. |
+| **Fallar cerrado** | Una incidencia de Firestore de minutos deja a todo paciente con enlace sin acceso a su portal, aunque su enlace nunca se haya revocado. Hay que decidir también el mensaje que ve («inténtalo en un momento» vs «enlace inválido», que son promesas distintas). |
+
+**Recomendación por omisión**: quedarse en fallar abierto — Firestore es el
+mismo motor del que depende toda la app, así que una incidencia ya degrada
+mucho más que el portal, y el radio de la ventana de exposición es corto
+(dura lo que dura la incidencia, no el TTL del enlace). Pero es SU
+intercambio a aceptar, no el mío.
+
+**Qué queda bloqueado sin la respuesta**: nada. El portal funciona igual hoy
+que ayer; sólo queda sin resolver que un enlace revocado podría, en teoría,
+seguir sirviendo durante una incidencia de Firestore.
+
+**Qué cuesta responder**: una frase — «fállalo cerrado» o «déjalo como está».
