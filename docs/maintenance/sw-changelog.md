@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1146 — REG-264: lo que el paciente NIEGA puntuaba en STOP-BANG
+## v1100 — REG-218: lo que el paciente NIEGA puntuaba en STOP-BANG
 
 Los cuatro ítems que se preguntan de viva voz —ronquido, somnolencia diurna,
 apneas presenciadas e hipertensión— se marcaban con sólo mencionar el término.

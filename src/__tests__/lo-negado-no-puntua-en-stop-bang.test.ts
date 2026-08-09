@@ -1,5 +1,5 @@
 /**
- * LO QUE EL PACIENTE NIEGA NO PUNTÚA EN STOP-BANG — REG-264.
+ * LO QUE EL PACIENTE NIEGA NO PUNTÚA EN STOP-BANG — REG-218.
  *
  * ── EL DEFECTO ───────────────────────────────────────────────────────────────
  *
@@ -242,7 +242,7 @@ describe('los ítems que no se interrogan no cambian', () => {
 describe('la escala completa — el defecto medido en puntos', () => {
   /**
    * El dictado real de un preoperatorio en el que el paciente niega las cuatro
-   * preguntas. Antes de REG-264 daba 5/8 (los cuatro fabricados + varón) y la
+   * preguntas. Antes de REG-218 daba 5/8 (los cuatro fabricados + varón) y la
    * nota proponía polisomnografía y neumología. Sintético; ningún paciente real.
    */
   const NIEGA_TODO = 'Paciente masculino de 58 años. No ronca. '

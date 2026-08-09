@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-264 — lo que el paciente NIEGA puntuaba en STOP-BANG (v1146)
+## REG-218 — lo que el paciente NIEGA puntuaba en STOP-BANG (v1100)
 
 **Encontrado** — 8-ago-2026, repasando los hallazgos crudos del barrido de
 auditoría (`docs/audit/hallazgos-crudos-workflow.json`) contra el código de hoy.

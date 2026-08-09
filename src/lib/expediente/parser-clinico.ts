@@ -224,7 +224,7 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
   if (corte !== -1) ventana = ventana.slice(corte + 1)
   /**
    * «pero» cierra la cláusula negativa igual que el punto. Levantado en la
-   * revisión de REG-264: «sin apneas observadas pero con somnolencia diurna»
+   * revisión de REG-218: «sin apneas observadas pero con somnolencia diurna»
    * daba la somnolencia por negada, porque la ventana llegaba hasta el «sin» de
    * la frase ANTERIOR.
    *
@@ -418,7 +418,7 @@ const NEGADOR_PEGADO = /\b(?:no|niega|nunca|jamas)\s+$/i
  *
  * ── MIRA TODAS LAS APARICIONES, Y GANA LA AFIRMACIÓN ─────────────────────────
  *
- * Levantado en la revisión de REG-264. Con `texto.match()` —una sola aparición,
+ * Levantado en la revisión de REG-218. Con `texto.match()` —una sola aparición,
  * que es lo que hace el resto del archivo— el flag se congelaba en la PRIMERA y
  * la segunda mención no se miraba nunca. El patrón es real: interrogatorio
  * negativo arriba, lista de problemas y medicación abajo.
@@ -426,7 +426,7 @@ const NEGADOR_PEGADO = /\b(?:no|niega|nunca|jamas)\s+$/i
  *     «Niega presión alta. Hipertensión arterial en tratamiento con losartán.»
  *
  * daba `pressure: false` y el hipertenso documentado y tratado dejaba de
- * puntuar — el mismo daño que REG-264, en la dirección contraria, y lo habría
+ * puntuar — el mismo daño que REG-218, en la dirección contraria, y lo habría
  * introducido la propia reparación.
  *
  * Gana la afirmación porque **ausencia de dato no es dato de ausencia**: que en

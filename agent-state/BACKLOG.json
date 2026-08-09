@@ -20,14 +20,14 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 64,
-      "estado": "cerrado — REG-264 (v1146), con la segunda vuelta de la revision independiente incorporada",
+      "estado": "cerrado — REG-218 (v1100), con la segunda vuelta de la revision independiente incorporada",
       "reversible": true
     },
     {
       "id": "SAFE-007",
       "titulo": "El interrogatorio en formato pregunta-respuesta fabrica puntos en STOP-BANG",
-      "hallazgo": "«¿Ronca fuerte? No. ¿Tiene somnolencia diurna? No. ¿Tiene presion alta? No.» → los cuatro items en true. estaNegado() busca negadores lexicos cerca del termino y no sabe que un «No.» suelto contesta a la pregunta anterior. Reproducido contra el motor real; falla IGUAL en main, asi que no es regresion de REG-264.",
-      "porQueImporta": "Es probablemente la forma mas comun de dictar ESTE interrogatorio: STOP-BANG se pregunta y se contesta. Mismo dano que REG-264 —puntos fabricados en una escala perioperatoria determinista— por otra puerta.",
+      "hallazgo": "«¿Ronca fuerte? No. ¿Tiene somnolencia diurna? No. ¿Tiene presion alta? No.» → los cuatro items en true. estaNegado() busca negadores lexicos cerca del termino y no sabe que un «No.» suelto contesta a la pregunta anterior. Reproducido contra el motor real; falla IGUAL en main, asi que no es regresion de REG-218.",
+      "porQueImporta": "Es probablemente la forma mas comun de dictar ESTE interrogatorio: STOP-BANG se pregunta y se contesta. Mismo dano que REG-218 —puntos fabricados en una escala perioperatoria determinista— por otra puerta.",
       "archivo": "src/lib/expediente/parser-clinico.ts — estaNegado()",
       "seguridad": 4,
       "integridad": 3,
