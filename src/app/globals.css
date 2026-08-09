@@ -104,6 +104,31 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /* ─── SOMBRA ─────────────────────────────────────────────────────────────
+     TRES SOMBRAS, PORQUE HAY TRES COSAS QUE FLOTAN.
+
+     Medido el 9-ago-2026 sobre `src/app` y `src/components`: **23 sombras en
+     línea con 21 valores distintos**. Casi cada sombra del producto es única.
+     No es una paleta: es ruido con la forma de una paleta.
+
+     La sombra aquí no decora — dice «esto está POR ENCIMA de lo demás». Si cada
+     capa flota con una desenfoque distinto, la altura deja de significar nada y
+     el usuario no puede leer qué está encima de qué. Por eso son tres, y son las
+     tres alturas que el producto tiene de verdad:
+
+       · `--sombra-realce`  el elemento se levanta un poco al pasar por encima
+       · `--sombra-menu`    un desplegable, sobre la pantalla pero dentro de ella
+       · `--sombra-modal`   una capa que se come la pantalla entera
+
+     Los valores NO son nuevos: son los que ya estaban en este archivo para el
+     hover de tarjeta (`:1179`), el desplegable (`:706`) y el modal (`:544`). Lo
+     único que cambia es que ahora tienen nombre, y que el tema claro puede
+     bajarles el peso — una sombra calibrada sobre lienzo #0B0C0E se ve como una
+     mancha sucia sobre crema. */
+  --sombra-realce: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  --sombra-menu:   0 8px 32px rgba(0, 0, 0, 0.40);
+  --sombra-modal:  0 20px 60px rgba(0, 0, 0, 0.55);
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
   --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
@@ -123,11 +148,195 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+ * V9 · DESIGN-SYSTEM-001 — LO QUE TAILWIND VE
+ *
+ * ── EL DEFECTO, EN UNA LÍNEA ──────────────────────────────────────────────
+ *
+ * Este bloque exponía CUATRO cosas. Todo lo demás —color, superficie, borde,
+ * radio, tipografía— vivía en variables CSS que Tailwind no mira, así que **no
+ * había ninguna utilidad que usar** y el código no tenía alternativa al estilo
+ * en línea.
+ *
+ * El recuento del 8-ago-2026 (`docs/design/GENERIC_AI_AESTHETIC_AUDIT.md`):
+ * 6 065 `style={{` en 177 de 200 archivos — el 88,5 % —, 1 086 hexadecimales a
+ * mano con 136 valores distintos, 2 895 `fontSize` en línea con 39 valores,
+ * 1 092 radios con 20, 1 613 `gap` con 24.
+ *
+ * **No es dejadez: es la consecuencia mecánica de esta configuración.** Un
+ * sistema de diseño que el compilador no conoce es un documento, no un sistema.
+ *
+ * ── POR QUÉ ESTO VA ANTES QUE EL REDISEÑO ─────────────────────────────────
+ *
+ * Repintar 78 pantallas sin sistema es repintarlas dos veces. `DESIGN-SYSTEM-001`
+ * precede a `VISUAL-EXCELLENCE-001` por eso.
+ *
+ * ── LA PRUEBA DE QUE AQUÍ UN TOKEN SÍ SE ADOPTA ───────────────────────────
+ *
+ * `--r-pill`. La píldora estaba escrita de cinco formas; se creó UN token con su
+ * razón escrita, y hoy tiene 131 adopciones. La receta está probada. Lo que
+ * faltaba era repetirla — y ponerle detrás un guardián, que es
+ * `scripts/design/trinquete-de-diseno.mjs`.
+ *
+ * ── LO QUE ESTE BLOQUE NO HACE ────────────────────────────────────────────
+ *
+ * **No cambia un píxel.** Añadir tokens no reescribe ningún estilo existente:
+ * crea utilidades que hoy no usa nadie. La adopción es trabajo de
+ * `VISUAL-EXCELLENCE-001` y exige mirar las pantallas en un navegador
+ * (directiva V9 §4). Aquí sólo se construye el vocabulario y el trinquete que
+ * impide que la deriva crezca.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/*
+  COLOR Y SOMBRA — `inline` porque el valor cambia con el tema.
+
+  `@theme inline` mete el `var(--bg)` DENTRO de la utilidad en vez de congelar
+  su valor. Es la diferencia entre `.bg-lienzo { background: var(--bg) }` —que
+  sigue al tema cuando `[data-theme="light"]` reescribe `--bg`— y
+  `.bg-lienzo { background: #0B0C0E }`, que se quedaría oscuro con el tema claro
+  puesto. Con 21 tokens que el tema claro redefine, equivocarse aquí pintaría
+  toda la aplicación de un tema mientras el usuario ve el otro.
+
+  Los nombres NO repiten los de la variable (`--s1` → `bg-s1`, y no `bg-bg` ni
+  `text-text`): un nombre doblado se lee mal y se teclea peor. Y ninguno de los
+  nombres de color coincide con uno de la escala tipográfica de abajo, porque el
+  espacio `text-*` de Tailwind sirve a las dos cosas: `text-fg2` es color y
+  `text-body` es tamaño. Si alguna vez coinciden, una de las dos utilidades
+  desaparece sin avisar. Lo vigila `el-sistema-de-diseno-se-cumple.test.ts`.
+*/
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Lienzo y superficies */
+  --color-lienzo: var(--bg);
+  --color-s1:     var(--s1);
+  --color-s2:     var(--s2);
+  --color-s3:     var(--s3);
+
+  /* Bordes */
+  --color-linea:  var(--border);
+  --color-linea2: var(--border2);
+
+  /* Texto — tres pesos, los tres con contraste medido en los dos temas */
+  --color-fg:  var(--text);
+  --color-fg2: var(--text2);
+  --color-fg3: var(--text3);
+
+  /* Marca. `nexus` es el azul que va COMO TEXTO; `nexus-solido` es el que va de
+     RELLENO bajo texto blanco. Son dos tokens porque los requisitos de contraste
+     son opuestos — la explicación completa está arriba, en `--nexus-solido`. */
+  --color-nexus:        var(--nexus);
+  --color-nexus-hover:  var(--nexus-hover);
+  --color-nexus-soft:   var(--nexus-soft);
+  --color-nexus-solido: var(--nexus-solido);
+
+  /* Semántica de INTERFAZ, no clínica. Se llaman error/aviso/exito/info a
+     propósito: nombrarlos «crítico» o «estable» los convertiría en criterio
+     clínico escrito en una hoja de estilos, y el criterio clínico vive en los
+     motores deterministas (regla de seguridad clínica nº 2), no aquí. */
+  --color-error:  var(--red);
+  --color-aviso:  var(--amber);
+  --color-exito:  var(--green);
+  --color-info:   var(--blue);
+  --color-morado: var(--purple);
+
+  /* Sombra — las tres alturas reales del producto */
+  --shadow-realce: var(--sombra-realce);
+  --shadow-menu:   var(--sombra-menu);
+  --shadow-modal:  var(--sombra-modal);
+}
+
+/*
+  ESCALAS GEOMÉTRICAS Y TIPOGRÁFICAS — `@theme` a secas: son constantes, no
+  cambian con el tema, y así quedan también publicadas como variables CSS para
+  el CSS escrito a mano de este mismo archivo.
+
+  ── POR QUÉ EL ESPACIO Y EL RADIO SE LLAMAN POR SUS PÍXELES ────────────────
+
+  `gap-8px`, no `gap-md`. Rompe la costumbre de los sistemas de diseño y hay una
+  razón concreta: quedan **1 613 `gap` y 1 092 `borderRadius` en línea** por
+  migrar, y la migración es mecánica. `gap: 8` → `gap-8px` es una sustitución que
+  se puede comprobar de un vistazo y automatizar sin miedo; `gap: 8` → `gap-sm`
+  obliga a consultar una tabla en cada sitio, y una tabla consultada 1 613 veces
+  se equivoca. La restricción —que sólo existan estos diez valores— la impone el
+  trinquete, no el nombre.
+
+  Tampoco se tocan las claves numéricas de Tailwind (`p-4`, `gap-2`): redefinir
+  `--spacing-4` como 4 px haría que `p-4` significara aquí 4 px y en toda la
+  documentación del mundo 16 px. Un nombre nuevo no puede mentirle a nadie.
+
+  ── LAS ESCALAS SALEN DE LO QUE EL PRODUCTO USA, NO DE UN LIBRO ────────────
+
+  Cada valor está donde está porque lo pedía el recuento del 9-ago-2026. Una
+  escala que describe el 25 % de lo que hay es una escala que nadie puede
+  obedecer, y un sistema que no se puede obedecer se ignora entero.
+*/
+@theme {
+  /* ESPACIO — rejilla de 2 px hasta 12, de 4 px a partir de ahí.
+     Cubre el 81 % de los `gap` de hoy (8:457 · 6:289 · 10:244 · 12:135 · 4:108
+     · 16:39 · 20:20 · 24:6 · 2:7). Fuera quedan 7, 5, 9, 3, 14, 18, 11 y un
+     puñado de sueltos: ésos son la deriva, y el trinquete los cuenta. */
+  --spacing-2px:  2px;
+  --spacing-4px:  4px;
+  --spacing-6px:  6px;
+  --spacing-8px:  8px;
+  --spacing-10px: 10px;
+  --spacing-12px: 12px;
+  --spacing-16px: 16px;
+  --spacing-20px: 20px;
+  --spacing-24px: 24px;
+  --spacing-32px: 32px;
+
+  /* RADIO — 4/6/8/10/12/14/16, más píldora y círculo.
+     El sistema declaraba «radios fijos: 6 / 10 / 14» (`:205`) y el producto
+     nunca lo cumplió: 8 se usa 245 veces —tanto como 10— y 12 otras 163, y
+     ambos están en este mismo archivo (`.input` 8px, `.modal` 12/16px). La
+     escala se corrige para admitir lo que el producto ya decidió; la deriva de
+     verdad es 9 (79), 7 (32), 11 (27), 3, 5, 20, 2… que no significan nada. */
+  --radius-4px:  4px;
+  --radius-6px:  6px;
+  --radius-8px:  8px;
+  --radius-10px: 10px;
+  --radius-12px: 12px;
+  --radius-14px: 14px;
+  --radius-16px: 16px;
+  --radius-pill:    var(--r-pill);
+  --radius-circulo: var(--r-circulo);
+
+  /* TIPOGRAFÍA — ocho pasos, con nombre, porque aquí SÍ hay semántica: las
+     clases `.t-display`/`.t-h1`/`.t-h2`/`.t-body`/`.t-caption`/`.t-overline` ya
+     la establecieron y estos tokens son las mismas medidas con utilidades
+     detrás.
+
+     Se añaden tres pasos que la escala declarada no tenía y el producto usa a
+     diario: **13 px (538 usos), 12 px (424) y 11 px (295)** — los tres más
+     frecuentes de toda la aplicación, y ninguno estaba en la escala. Declarar
+     una escala de seis pasos que no incluye los tres tamaños más usados es
+     declarar que el 45 % del producto está fuera del sistema.
+
+     Lo que NO entra son los medios píxeles —12,5 (466), 11,5 (273), 13,5 (125),
+     14,5, 9,5: 907 usos en total—. Un medio píxel no se renderiza a 1× ni a 2×
+     como una medida propia: se redondea, así que 12,5 y 13 acaban pintando lo
+     mismo mientras el código afirma que son distintos. Ésa es la mayor bolsa de
+     deriva tipográfica que hay, y el trinquete la mide para que sólo baje.
+
+     Con UNA excepción declarada, para no esconderla: `--text-overline` son
+     10,5 px. Es medio píxel y contradice el párrafo de arriba. Se conserva
+     porque `.t-overline` ya lo fija y lo usan 115 sitios, y cambiarlo a 10 u 11
+     repinta todas las etiquetas en versalita del producto — un cambio visible
+     que exige mirarlo en un navegador, y esto no es esa unidad. Queda anotado
+     como deuda de `VISUAL-EXCELLENCE-001`, no como criterio. */
+  --text-overline: 10.5px;
+  --text-micro:    11px;
+  --text-caption:  12px;
+  --text-meta:     13px;
+  --text-body:     14px;
+  --text-h2:       16px;
+  --text-h1:       20px;
+  --text-display:  28px;
 }
 
 * {
@@ -772,13 +981,27 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── Teal glow effect ─────────────────────────────────────── */
 .glow-teal { box-shadow: 0 0 20px var(--teal-glow); }
-.text-teal { color: var(--teal); }
-.text-teal2 { color: var(--text2); }
-.text-teal3 { color: var(--text3); }
-.bg-s1 { background: var(--s1); }
-.bg-s2 { background: var(--s2); }
-.bg-s3 { background: var(--s3); }
-.border-theme { border-color: var(--border); }
+
+/*
+  AQUÍ VIVÍAN SIETE CLASES A MANO: `.text-teal`, `.text-teal2`, `.text-teal3`,
+  `.bg-s1`, `.bg-s2`, `.bg-s3` y `.border-theme`.
+
+  **Cero usos en todo el repositorio** — comprobado sobre los 203 `.tsx` de
+  `src/app` y `src/components` el 9-ago-2026. Eran un intento anterior, y
+  correcto en la intención, de darle utilidades al producto; se escribió a mano
+  lo que Tailwind no generaba, y nadie llegó a usarlo.
+
+  Se borran al ensanchar `@theme` porque tres de ellas —`.bg-s1/2/3`— pasaban a
+  significar EXACTAMENTE lo mismo que la utilidad generada desde el token, con
+  el mismo nombre y en otro sitio del archivo. Dos definiciones de la misma
+  clase es la duplicación de fuente de verdad que este proyecto prohíbe; que
+  ahora mismo digan lo mismo sólo garantiza que el día que una cambie, nadie
+  sabrá cuál gana.
+
+  Lo que las sustituye: `bg-s1`, `bg-s2`, `bg-s3`, `text-fg2`, `text-fg3`,
+  `border-linea`, `text-nexus` — generadas desde los tokens, y por tanto
+  imposibles de desincronizar de ellos.
+*/
 
 /* ── Skeleton loader ──────────────────────────────────────── */
 .skeleton {
@@ -1077,6 +1300,13 @@ tbody tr:last-child { border-bottom: none; }
   --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
   --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
   --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+
+  /* Sombra — LIGHT. Los valores oscuros (40 % y 55 % de negro) están calibrados
+     contra un lienzo #0B0C0E; sobre el crema se ven como una mancha sucia, no
+     como altura. Mismo papel, mucho menos peso. */
+  --sombra-realce: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  --sombra-menu:   0 8px 24px -6px rgba(11, 12, 14, 0.14);
+  --sombra-modal:  0 20px 50px -12px rgba(11, 12, 14, 0.22);
 }
 
 /* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los
@@ -1119,6 +1349,10 @@ tbody tr:last-child { border-bottom: none; }
     --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
     --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
     --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
+    /* Sombra — ver la nota del bloque `[data-theme="light"]` de arriba. */
+    --sombra-realce: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+    --sombra-menu:   0 8px 24px -6px rgba(11, 12, 14, 0.14);
+    --sombra-modal:  0 20px 50px -12px rgba(11, 12, 14, 0.22);
   }
   /* Mismo placeholder oscuro para el auto-claro del OS. */
   :root:not([data-theme="dark"]):not([data-theme="light"]) .input::placeholder,

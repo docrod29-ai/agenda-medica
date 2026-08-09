@@ -41,6 +41,27 @@ inventario.
 Esto se **mide**, no se opina: hay conteos en
 `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md` y la compuerta compara contra ellos.
 
+## El sistema lo sostienen tres trinquetes, no la buena voluntad
+
+Desde `DESIGN-SYSTEM-001` (9-ago-2026), `@theme` expone los tokens a Tailwind y
+hay utilidad para cada uno: `bg-s1/s2/s3` · `text-fg/fg2/fg3` ·
+`border-linea/linea2` · `text-error/aviso/exito/info` · `rounded-10px` ·
+`gap-8px` · `text-meta` · `shadow-modal`.
+
+| Compuerta | Qué impide | Cómo se corre |
+|---|---|---|
+| deriva de diseño | que crezca el literal suelto | `npm run diseno:trinquete` |
+| accesibilidad | botón mudo · campo sin etiqueta · `<div onClick>` · `<img>` sin `alt` | `npm run a11y:trinquete` |
+| «la utilidad llega» | que un token declarado no produzca su clase | `scripts/design/verificar-utilidades.mjs` |
+
+**Los techos sólo bajan**, y **un archivo nuevo nace limpio**: el techo congela
+la deuda de lo que ya existía, y lo que no estaba en la foto no tiene nada que
+congelar. Escribir una pantalla nueva con hexadecimales y medios píxeles pone la
+suite en rojo.
+
+Lo que ninguna de las tres hace: **aprobar una pantalla**. Para eso hay que
+abrirla, y eso lo dice la sección de abajo.
+
 ## Escritorio y móvil no son la misma app estirada
 
 - **Escritorio**: navegación persistente + espacio de trabajo clínico + IA

@@ -13,8 +13,10 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidades cerradas de V9**: `PATIENT-UX-TRUTH-001` ✅ (8-ago) · los tres P0 de
+audio ✅ (v1158-v1161) · `DESIGN-SYSTEM-001` ✅ (9-ago).
+**Unidad actual**: `NAVIGATION-001` — el ciclo Agenda→Paciente→Consulta→
+Resultados→Consulta tiene que devolver el contexto exacto.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -37,6 +39,16 @@ línea; primitivos compartidos al 24 %).
 | Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
 | El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+
+### `DESIGN-SYSTEM-001` — cerrada el 9-ago-2026
+
+El sistema de diseño **dejó de ser un documento**: `@theme` expone ahora 43
+tokens en cinco espacios, hay una utilidad por token, y se comprueba compilando
+el CSS de verdad que las utilidades **llegan**. Tres compuertas nuevas, con
+techo que sólo baja y con la regla que muerde — **un archivo nuevo nace limpio**:
+deriva de diseño **2 600**, deuda de accesibilidad **312**.
+
+Detalle y lo que NO se afirma: [`DESIGN_STATE.md`](./DESIGN_STATE.md).
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

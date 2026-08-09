@@ -173,8 +173,18 @@ Practice. Los otros tres sí, y `consulta` es la pantalla donde el médico vive.
    que aquí un token bien puesto se adopta (`--r-pill`, 131 usos).
 3. **Un guardián por token**, con techo de trinquete que sólo baja — el patrón
    que ya funciona en `lint-trinquete.mjs`. Empezando por el hexadecimal
-   retecleado (`#3d5afe`, 125 usos en dos mayúsculas), que es puro y no cambia
-   ni un píxel.
+   retecleado (`#3d5afe`, 121 usos en dos mayúsculas).
+
+   > **Corregido el 9-ago-2026, al hacerlo.** Esta línea decía que migrar
+   > `#3d5afe` «es puro y no cambia ni un píxel». **Sólo es cierto en el tema
+   > oscuro.** En claro, `--nexus-solido` vale `#2845EA`, así que los 121
+   > literales pasarían de un azul a otro. No es un fallo de contraste —blanco
+   > sobre `#3D5AFE` da 5,13 : 1 y cumple AA— pero sí es un cambio visible, y
+   > por tanto **no se puede hacer a ciegas**: entra en `VISUAL-EXCELLENCE-001`
+   > con verificación en navegador, no en `DESIGN-SYSTEM-001`.
+   >
+   > Es un caso pequeño de la lección grande de este proyecto: «lo comprobé
+   > mirando el código» y «lo comprobé» no son la misma frase.
 4. **Compuerta de accesibilidad**: `axe` sobre las pantallas de la superficie del
    paciente primero, que es lo que V9 gobierna. Objetivo WCAG 2.2 AA.
 5. **Los literales *slate* que no siguen al tema** (`#0f172a`, `#64748b`,

@@ -13,6 +13,8 @@
     "e2e:seguridad:enforce": "PLAYWRIGHT_LOCAL=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 PLAYWRIGHT_ENFORCE=1 CSP_MODE=enforce playwright test e2e/seguridad.spec.ts --project=chromium",
     "e2e:seguridad:prod": "playwright test e2e/seguridad.spec.ts --project=chromium",
     "test:cobertura": "vitest run --coverage",
+    "diseno:trinquete": "node scripts/design/trinquete-de-diseno.mjs",
+    "a11y:trinquete": "node scripts/design/trinquete-de-accesibilidad.mjs",
     "test:emulador": "firebase emulators:exec --only firestore --project demo-nexusmed-test \"vitest run --config vitest.emulator.config.ts\"",
     "respaldos:verificar": "node scripts/respaldos-verificar.mjs",
     "simulacro:respaldo": "npx tsx scripts/simulacro-respaldo.mjs",

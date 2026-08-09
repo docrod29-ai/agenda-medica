@@ -693,3 +693,5 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | Fecha | Unidad | SHA | Qué quedó | REG |
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
+| 2026-08-08/09 | **Los tres P0 de audio** | `7be23e9`, `2340e63` | Volver a grabar ya no borra el audio anterior · navegar no termina la grabación · el cierre por inactividad oye dictar | **283, 284, 287** |
+| 2026-08-09 | **DESIGN-SYSTEM-001** | *(se sella al commitear)* | `@theme` pasa de 4 a **43 tokens** con utilidad cada uno · se comprueba compilando que **llegan** · tres compuertas con techo que sólo baja (deriva **2 600**, accesibilidad **312**) y la regla «un archivo nuevo nace limpio» · 7 clases muertas fuera · +33 casos | — |

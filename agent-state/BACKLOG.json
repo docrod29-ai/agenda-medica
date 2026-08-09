@@ -230,7 +230,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "hecho",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-001",
@@ -241,7 +241,8 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "cierre": "CERRADO v1158 (REG-283/284)"
     },
     {
       "seguridad": 3,
@@ -255,7 +256,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "hecho",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-002",
@@ -266,7 +267,8 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "cierre": "CERRADO v1161 (REG-287)"
     },
     {
       "seguridad": 3,
@@ -280,7 +282,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "hecho",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-AUDIO-003",
@@ -291,7 +293,8 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "cierre": "CERRADO v1161 (REG-287)"
     },
     {
       "seguridad": 2,
@@ -405,7 +408,7 @@
       "irreversibilidad": 0,
       "complejidad": 3,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "hecho",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "DESIGN-THEME-001",
@@ -416,7 +419,8 @@
       "porQueImporta": "Es la causa RAÍZ, no un síntoma. Sin utilidades que usar, el código no tiene alternativa al estilo en línea. Cualquier barrido visual antes de esto es cosmética sobre un cimiento que no sostiene. La prueba de que el enfoque funciona ya existe: --r-pill tiene 131 adopciones y resolvió la píldora escrita de cinco formas.",
       "archivo": "src/app/globals.css:126-131",
       "plan": "Ensanchar @theme inline; añadir los tokens que faltan (espacio, radio, sombra); un guardián de trinquete por token, empezando por #3d5afe/#3D5AFE (125 usos en dos mayúsculas) que es puro y no cambia un píxel.",
-      "score": 52
+      "score": 52,
+      "cierre": "CERRADO 9-ago-2026 (DESIGN-SYSTEM-001) — @theme expone 43 tokens en 5 espacios; trinquete de deriva con techo 2600"
     },
     {
       "seguridad": 1,
@@ -430,7 +434,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "hecho",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "A11Y-GATE-001",
@@ -441,7 +445,8 @@
       "porQueImporta": "Objetivo declarado de V9: WCAG 2.2 AA. Hoy nada impide una regresión. Y el contraste de los 1205 hexadecimales nunca se midió — los tokens sí, y con la fórmula escrita en el CSS.",
       "archivo": "package.json · eslint.config.mjs · src/__tests__/a11y-zoom-guard.test.ts",
       "plan": "axe sobre la superficie del paciente primero (9 pantallas), que es lo que V9 gobierna. Luego trinquete.",
-      "score": 45
+      "score": 45,
+      "cierre": "CERRADO 9-ago-2026 (DESIGN-SYSTEM-001) — trinquete estático con techo 312; axe sigue pendiente de entorno con credenciales"
     },
     {
       "seguridad": 0,
@@ -565,9 +570,85 @@
       "archivo": "src/lib/portal/formulario-previo.ts:87",
       "plan": "Buscar el símbolo en app/, hooks/ y components/ — el instrumento de REG-255.",
       "score": 24
+    },
+    {
+      "seguridad": 1,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 0,
+      "fiabilidad": 3,
+      "regulatorio": 3,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "id": "A11Y-AXE-001",
+      "prioridadV9": "P1",
+      "unidad": "DESIGN-SYSTEM-001",
+      "titulo": "El trinquete de accesibilidad es un suelo estático: falta axe sobre la aplicación corriendo",
+      "hallazgo": "El trinquete cuenta botón mudo, campo sin etiqueta, <div onClick> e <img> sin alt. NO ve contraste real, orden de foco, trampa de foco en modales, cierre con Escape, regiones vivas, ni si la etiqueta dice algo útil. Objetivo declarado de V9: WCAG 2.2 AA.",
+      "porQueImporta": "Lo que el suelo no ve es justo lo que rompe a un usuario de lector de pantalla. Y el contraste de los 1086 hexadecimales de las pantallas no se ha medido nunca — los tokens sí.",
+      "archivo": "scripts/design/trinquete-de-accesibilidad.mjs",
+      "plan": "axe sobre las 9 pantallas del paciente en cuanto haya entorno con credenciales de Firebase. Va junto con NAV-NAVEGADOR-001, que necesita lo mismo.",
+      "bloqueadoPor": "entorno con credenciales de Firebase",
+      "score": 45,
+      "origen": "DESIGN-SYSTEM-001 (V9) — 9-ago-2026, declarado al construir el suelo"
+    },
+    {
+      "seguridad": 1,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 0,
+      "fiabilidad": 2,
+      "regulatorio": 3,
+      "aprendizaje": 1,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "id": "A11Y-CAMPOS-001",
+      "prioridadV9": "P1",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "288 campos sin nada con lo que nombrarlos — el 92 % de la deuda de accesibilidad",
+      "hallazgo": "<input>/<select>/<textarea> sin aria-label, sin aria-labelledby y sin id al que atar una <label>. El patrón dominante es `<label style={lbl}>Notas</label>` seguido del campo: se ve bien y no está atado a nada.",
+      "porQueImporta": "Un campo de dosis sin nombre se rellena a ciegas con lector de pantalla. Y el arreglo es mecánico y de bajo riesgo visual: htmlFor + id, o aria-label. No cambia un píxel.",
+      "archivo": "docs/design/a11y-techo.json",
+      "plan": "Empezar por el primitivo `ui/Field`, que concentra el patrón, y luego por los archivos con más deuda. Bajar el techo tras cada tramo.",
+      "score": 40,
+      "origen": "DESIGN-SYSTEM-001 (V9) — 9-ago-2026, medido por el trinquete"
+    },
+    {
+      "seguridad": 0,
+      "integridad": 0,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 1,
+      "fiabilidad": 2,
+      "regulatorio": 0,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 5,
+      "dependenciaExterna": 0,
+      "estado": "pendiente",
+      "reversible": true,
+      "id": "DESIGN-ADOPCION-001",
+      "prioridadV9": "P2",
+      "unidad": "VISUAL-EXCELLENCE-001",
+      "titulo": "2 600 usos de deriva por migrar a los tokens — ahora hay a qué migrarlos",
+      "hallazgo": "1198 fontSize fuera de escala (907 son medios píxeles), 940 valores de espacio fuera de la rejilla, 251 hexadecimales que ya son un token, 184 radios, 27 sombras en línea.",
+      "porQueImporta": "Hasta hoy no había alternativa: el compilador no conocía los tokens. Ya la hay. Pero cada tramo cambia píxeles — incluidos los 121 #3d5afe, que en tema CLARO sí cambian de color — así que cada tramo exige verificación en navegador y ninguno se hace a ciegas.",
+      "archivo": "docs/design/diseno-techo.json",
+      "plan": "Por archivo, de mayor deuda a menor, apretando el techo tras cada tramo. Empezar por los medios píxeles, que son la bolsa mayor y la más segura de razonar.",
+      "score": 24,
+      "origen": "DESIGN-SYSTEM-001 (V9) — 9-ago-2026, medido por el trinquete"
     }
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"
