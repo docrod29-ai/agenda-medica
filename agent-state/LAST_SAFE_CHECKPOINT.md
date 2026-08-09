@@ -12,7 +12,7 @@
 |---|---|
 | **Rama** | `claude/compassionate-galileo-sw6sdc` |
 | **SHA base de esta sesión** | `0144257` (merge de la PR #271, v1163) |
-| **SHA de cierre** | *(el commit de REG-293/294/295 de esta sesión)* |
+| **SHA de cierre** | `85abdd8` |
 | **Unidad cerrada** | **`DESIGN-SLATE-001`** — tercera parte de `DESIGN-SYSTEM-001` |
 | **Siguiente unidad** | `DESIGN-TABLAS-001` (ver «Qué hacer al reanudar») |
 
