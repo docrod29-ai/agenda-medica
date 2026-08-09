@@ -2002,7 +2002,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             )}
           </div>
         </div>
-        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
+        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
           {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : <><Sparkles size={15} /> Generar enlace de invitación</>}
         </button>
 

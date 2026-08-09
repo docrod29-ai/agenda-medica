@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 140, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 143, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -52,6 +52,12 @@ ese camino no es una impresión y nunca miró la marca.
 
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
+
+También el 9-ago, una clase de CSS (REG-293): `.spin` se usaba en ocho sitios y
+sólo la definían dos `<style>` locales, así que el indicador de carga giraba
+**mientras otra pantalla estuviera montada**. El golden de REG-266 había escrito
+que esos `<style>` eran «inofensivos: redefinen lo mismo» — cierto para el
+fotograma, falso para una clase que puede ser la única definición.
 
 El mismo 9-ago, la etiqueta de un formulario: el `<label>` de las pantallas del
 paciente estaba escrito, se veía, y **no señalaba al campo** (REG-292). Escrito y
@@ -77,12 +83,23 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 140.**
+**«El sistema se contradice a sí mismo» — 25 de 143.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
 contrario y daba 3,28. Ninguna de las dos decisiones estaba mal por su cuenta. Y
 el tema CLARO nunca lo tuvo — la corrección existía, aplicada a un solo tema.
+
+Y **volvió a sumar el mismo defecto un año después** (REG-295): seis botones
+escritos a mano seguían rellenando con `--teal`. En tema claro daban **2,95 : 1**.
+REG-223 arregló `.btn-primary` y nadie fue a buscar a los que no usaban la clase:
+**arreglar el primitivo no arregla a quien no lo usa**, y eso no lo dice ninguna
+prueba del primitivo.
+
+REG-294 es la misma familia por el otro lado: `/privacidad` pintaba su fondo con
+un literal claro y su texto con un token que sigue al tema. Ninguna de las dos
+mitades estaba mal sola; el contraste vivía en el hueco, y en tema oscuro caía a
+2,86.
 
 ## El patrón que sostiene a las dos
 
@@ -117,7 +134,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 140**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 143**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

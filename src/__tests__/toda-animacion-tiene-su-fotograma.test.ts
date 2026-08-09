@@ -47,19 +47,37 @@
  * que define **otro** archivo es depender de que ese otro esté montado, que es
  * exactamente el defecto.
  *
+ * ── LO QUE ESTE GUARDIÁN NO VIO, Y COSTÓ REG-293 ────────────────────────────
+ *
+ * La versión de REG-266 sólo miraba `animation:` dentro de objetos de estilo, y
+ * dejaba escrito que los `<style>` locales eran «inofensivos: redefinen lo
+ * mismo». **Para el fotograma sí. Para una CLASE, no.**
+ *
+ * `className="spin"` se usaba en ocho sitios y `.spin` estaba definida
+ * únicamente en dos `<style>` locales (`antibiograma`, `cumplimiento/seguridad`).
+ * Giraba sólo mientras una de esas dos pantallas estuviera montada. Tres de los
+ * ocho no giraban nunca — subir una foto clínica, adjuntar un PDF de laboratorio
+ * y **enviar la solicitud ARCO**, que es una pantalla pública donde ningún panel
+ * del médico puede estar montado.
+ *
+ * Exactamente el mismo defecto que este archivo nació para cazar, un piso más
+ * arriba, y pasó por debajo porque la prueba miraba la propiedad y no la clase.
+ * Por eso el guardián ahora cubre las dos, y por eso la frase «son inofensivos»
+ * se queda escrita aquí: era la suposición que dejó pasar el segundo caso.
+ *
  * ── QUÉ **NO** CUBRE ────────────────────────────────────────────────────────
  *
- * - **Sólo mira `animation:` en objetos de estilo de TSX.** No cubre
- *   `animationName`, ni animaciones declaradas dentro de `<style>` en línea,
- *   ni las que vienen de una clase de `globals.css` (ésas ya viven donde toca).
+ * - **`animationName`** por separado, ni animaciones que lleguen de una
+ *   librería.
  * - **No comprueba que la animación se VEA.** Un fotograma definido pero con
  *   `prefers-reduced-motion` o un `display:none` encima no lo detecta nada de
  *   esto. Aprobar una animación exige mirarla.
- * - **No obliga a quitar los 31 `<style>` duplicados.** Son inofensivos —
- *   redefinen lo mismo— y su barrido pertenece a DESIGN-SYSTEM-001. Esta prueba
- *   los acepta como definición válida a propósito: exigir la limpieza aquí
- *   convertiría un guardián en una tarea de estilo, y los guardianes que piden
- *   trabajo ajeno se acaban silenciando.
+ * - **No obliga a quitar los `<style>` duplicados.** Su barrido pertenece a
+ *   DESIGN-SYSTEM-001. Esta prueba los acepta como definición válida a
+ *   propósito: exigir la limpieza aquí convertiría un guardián en una tarea de
+ *   estilo, y los guardianes que piden trabajo ajeno se acaban silenciando.
+ * - **Sólo mira clases de animación escritas como literal** en `className`. Una
+ *   clase compuesta en ejecución no se ve desde aquí.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
@@ -142,6 +160,51 @@ describe('ninguna animación depende de que otra pantalla esté montada', () => 
       }
     }
     expect(huerfanas).toEqual([])
+  })
+
+  it('una CLASE de animación tampoco depende de que otra pantalla esté montada', () => {
+    /**
+     * REG-293. La otra mitad del mismo defecto: no falta el fotograma, falta la
+     * clase que lo aplica.
+     *
+     * El conjunto de «clases de animación» **se deriva**, no se escribe a mano:
+     * es toda clase que algún `<style>` local defina con una propiedad
+     * `animation`. Una lista a mano se quedaría corta en cuanto alguien invente
+     * `.parpadea`, y se quedaría corta en silencio.
+     *
+     * Probada al revés: quitando `.spin` de `globals.css`, esta prueba nombra
+     * los tres archivos que la usan sin definirla.
+     */
+    const clasesConAnimacion = new Set<string>()
+    const archivos = fuentes(join(RAIZ, 'src'))
+    for (const archivo of archivos) {
+      const src = readFileSync(archivo, 'utf8')
+      for (const m of src.matchAll(/\.([a-z][\w-]*)\s*\{[^}]*animation\s*:/gi)) {
+        clasesConAnimacion.add(m[1])
+      }
+    }
+    expect(clasesConAnimacion.size, 'no se derivó ninguna clase de animación').toBeGreaterThan(0)
+
+    const enGlobals = new Set(
+      [...readFileSync(GLOBALS, 'utf8').matchAll(/\.([a-z][\w-]*)\s*[,{]/gi)].map((m) => m[1]),
+    )
+
+    const huerfanas: string[] = []
+    for (const archivo of archivos) {
+      const src = readFileSync(archivo, 'utf8')
+      /** Las que este archivo define él mismo en su `<style>`. */
+      const propias = new Set(
+        [...src.matchAll(/\.([a-z][\w-]*)\s*\{[^}]*animation\s*:/gi)].map((m) => m[1]),
+      )
+      for (const m of src.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\}|\{'([^']*)'\})/g)) {
+        for (const clase of (m[1] ?? m[2] ?? m[3] ?? '').split(/\s+/)) {
+          if (!clasesConAnimacion.has(clase)) continue
+          if (enGlobals.has(clase) || propias.has(clase)) continue
+          huerfanas.push(`${relative(RAIZ, archivo)} → .${clase}`)
+        }
+      }
+    }
+    expect([...new Set(huerfanas)].sort()).toEqual([])
   })
 
   it('el sistema de diseño compartido no depende de nadie', () => {

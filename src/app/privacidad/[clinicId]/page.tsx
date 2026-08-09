@@ -93,15 +93,15 @@ export default function PortalPrivacidadPage() {
     return (
       <div style={layoutStyle}>
         <div style={cardStyle}>
-          <Check size={48} color="#10b981" style={{ marginBottom: 16 }} />
+          <Check size={48} color="var(--green)" style={{ marginBottom: 16 }} />
           <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Solicitud recibida</h1>
-          <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 16, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.6 }}>
             Tu solicitud fue registrada con el folio:
           </p>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'monospace', color: 'var(--teal)', marginBottom: 18 }}>
             #{folioConfirmacion}
           </div>
-          <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6, marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 20 }}>
             Conforme al Art. 32 de la LFPDPPP, recibirás respuesta en un plazo
             máximo de <strong>20 días hábiles</strong>.
             {clinic?.nombre && <> El responsable es <strong>{clinic.nombre}</strong>.</>}
@@ -120,7 +120,7 @@ export default function PortalPrivacidadPage() {
       <div style={layoutStyle}>
         <div style={{ ...cardStyle, maxWidth: 720, textAlign: 'left' }}>
           <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Aviso de Privacidad</h1>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.65, color: '#374151' }}>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.65, color: 'var(--text2)' }}>
             {generarAvisoPrivacidad(config)}
           </pre>
           <button onClick={() => setPaso('info')} className="btn btn-secondary" style={{ marginTop: 16 }}>
@@ -137,19 +137,19 @@ export default function PortalPrivacidadPage() {
       <div style={{ ...cardStyle, maxWidth: 560, textAlign: 'left' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <Shield size={24} color="var(--teal)" />
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             Portal de Privacidad
           </h1>
         </div>
         {clinic && (
-          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
             {clinic.nombre} · {clinic.nombreMedico}
           </div>
         )}
 
         {paso === 'info' && (
           <>
-            <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 14 }}>
+            <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 14 }}>
               Aquí puedes ejercer tus <strong>derechos ARCO</strong> conforme a la Ley Federal de
               Protección de Datos Personales en Posesión de los Particulares.
             </p>
@@ -159,9 +159,9 @@ export default function PortalPrivacidadPage() {
                   key={t}
                   onClick={() => { setTipo(t); setPaso('formulario') }}
                   style={{
-                    padding: '12px 14px', textAlign: 'left', background: '#f9fafb',
-                    border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer',
-                    fontSize: 14, fontWeight: 500, color: '#111827',
+                    padding: '12px 14px', textAlign: 'left', background: 'var(--s2)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--r-card)', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 500, color: 'var(--text)',
                   }}
                 >
                   {ARCO_TIPO_LABEL[t]}
@@ -179,13 +179,13 @@ export default function PortalPrivacidadPage() {
 
         {paso === 'formulario' && (
           <>
-            <button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
+            <button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
               ← Volver
             </button>
             <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
               {ARCO_TIPO_LABEL[tipo]}
             </h2>
-            <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 14 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
               Llena tus datos para identificarte. Te responderemos en máximo 20 días hábiles.
             </p>
             <div style={{ display: 'grid', gap: 10 }}>
@@ -195,7 +195,7 @@ export default function PortalPrivacidadPage() {
               <Field label="CURP (opcional, ayuda a localizar tu expediente)" value={curp} onChange={(v) => setCurp(v.toUpperCase())} maxLength={18} />
               <Field label="Identificación oficial (ej. INE folio 1234)" value={identificacion} onChange={setIdentificacion} />
               <div>
-                <label htmlFor="arco-descripcion" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                <label htmlFor="arco-descripcion" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>
                   Describe tu solicitud *
                 </label>
                 <textarea
@@ -205,14 +205,15 @@ export default function PortalPrivacidadPage() {
                   rows={4}
                   placeholder={tipo === 'acceso' ? 'Solicito una copia de mi expediente médico completo.' : tipo === 'rectificacion' ? 'Mi nombre está mal escrito. Debería decir...' : tipo === 'cancelacion' ? 'Solicito que se elimine...' : 'Me opongo a que mis datos se usen para...'}
                   style={{
-                    width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db',
+                    width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border2)',
+                    background: 'var(--s2)', color: 'var(--text)',
                     fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
                   }}
                 />
-                <div style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{descripcion.length}/1000</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', textAlign: 'right', marginTop: 2 }}>{descripcion.length}/1000</div>
               </div>
               <div style={{
-                padding: 10, background: '#fef3c7', borderRadius: 6, fontSize: 12, color: 'var(--amber)',
+                padding: 10, background: 'var(--warn-bg)', borderRadius: 6, fontSize: 12, color: 'var(--warn-text)',
                 display: 'flex', alignItems: 'flex-start', gap: 6,
               }}>
                 <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -250,7 +251,7 @@ function Field({ label, value, onChange, type = 'text', placeholder, maxLength }
   const id = useId()
   return (
     <div>
-      <label htmlFor={id} style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={id} style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>{label}</label>
       <input
         id={id}
         type={type} value={value} maxLength={maxLength}
@@ -258,7 +259,8 @@ function Field({ label, value, onChange, type = 'text', placeholder, maxLength }
         placeholder={placeholder}
         style={{
           width: '100%', padding: '8px 10px', borderRadius: 6,
-          border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box',
+          border: '1px solid var(--border2)', background: 'var(--s2)', color: 'var(--text)',
+          fontSize: 13, boxSizing: 'border-box',
         }}
       />
     </div>
@@ -266,11 +268,11 @@ function Field({ label, value, onChange, type = 'text', placeholder, maxLength }
 }
 
 const layoutStyle: React.CSSProperties = {
-  minHeight: '100vh', background: '#f3f4f6', padding: 20,
+  minHeight: '100vh', background: 'var(--bg)', padding: 20,
   display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
 }
 const cardStyle: React.CSSProperties = {
-  background: '#fff', borderRadius: 12, padding: 24, maxWidth: 440, width: '100%',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center',
+  background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 'var(--r-modal)',
+  padding: 24, maxWidth: 440, width: '100%',
+  boxShadow: 'var(--sombra-menu)', textAlign: 'center',
 }

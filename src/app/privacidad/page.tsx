@@ -12,9 +12,9 @@ const ACTUALIZADO = 'julio de 2026'
 
 export default function PrivacidadGeneralPage() {
   return (
-    <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: '#1a1a1a', background: '#fff', lineHeight: 1.7, fontSize: 16 }}>
-      <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: '#0b1220' }}>Aviso de Privacidad</h1>
-      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma NexusMED · Última actualización: {ACTUALIZADO}</p>
+    <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: 'var(--text)', background: 'var(--bg)', lineHeight: 1.7, fontSize: 16 }}>
+      <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: 'var(--text)' }}>Aviso de Privacidad</h1>
+      <p style={{ color: 'var(--text3)', margin: '0 0 28px', fontSize: 14 }}>Plataforma NexusMED · Última actualización: {ACTUALIZADO}</p>
 
       <p>
         NexusMED es una plataforma de <strong>agenda médica y expediente clínico electrónico</strong> para consultorios y
@@ -116,7 +116,7 @@ export default function PrivacidadGeneralPage() {
         Dudas sobre este aviso o sobre el tratamiento de datos: <strong>privacidad@nexusmed.mx</strong>.
       </Section>
 
-      <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>
+      <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text3)' }}>
         NexusMED — Agenda médica y expediente clínico electrónico · México.
       </p>
     </main>
@@ -126,7 +126,7 @@ export default function PrivacidadGeneralPage() {
 function Section({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section style={{ marginTop: 26 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: '#0b1220' }}>{titulo}</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text)' }}>{titulo}</h2>
       <p style={{ margin: 0 }}>{children}</p>
     </section>
   )

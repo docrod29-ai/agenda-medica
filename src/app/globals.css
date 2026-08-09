@@ -925,6 +925,51 @@ tbody tr:last-child { border-bottom: none; }
   to { transform: rotate(360deg); }
 }
 
+/*
+  Y LA CLASE TAMPOCO EXISTÍA — REG-293.
+
+  REG-266 arregló el FOTOGRAMA y dejó escrito que los `<style>` locales eran
+  «inofensivos: redefinen lo mismo». Para el fotograma sí. Para `.spin`, no:
+  `className="spin"` se usa en **ocho** sitios y la clase estaba definida
+  únicamente en dos `<style>` locales —`antibiograma` y `cumplimiento/seguridad`—
+  así que giraba sólo mientras una de esas dos pantallas estuviera montada.
+
+  Tres de los ocho no giraban NUNCA: subir una foto clínica, adjuntar un PDF de
+  laboratorio y **enviar la solicitud ARCO** —una pantalla pública, donde ningún
+  panel del médico puede estar montado—. Un indicador parado dice «se colgó», y
+  quien lo mira vuelve a pulsar sobre una petición que sí estaba corriendo:
+  fotos duplicadas, y una solicitud de derechos enviada dos veces.
+
+  Misma lección que REG-266 un piso más arriba. Allí faltaba el fotograma; aquí
+  falta la clase que lo aplica, y el guardián de entonces no la veía porque sólo
+  miraba `animation:` dentro de objetos de estilo.
+*/
+.spin { animation: spin 1s linear infinite; }
+
+/*
+  EL PULSO DE «GRABANDO» Y EL CURSOR DEL DICTADO — REG-293, segundo caso.
+
+  `/uci` usa `.nx-pulse` en el indicador «● Grabando…» y `.nx-caret` en el
+  cursor que sigue a la transcripción en vivo. Las dos estaban definidas
+  **únicamente** en el `<style>` de `/demo/interactivo` — la página de
+  demostración comercial, que jamás está montada a la vez que la UCI.
+
+  Así que en la cama del paciente el punto de «grabando» no pulsaba y el cursor
+  no parpadeaba: los dos indicadores que dicen «el micrófono está vivo»,
+  quietos. No es lo mismo que el silencio —el texto y los segundos sí corren—
+  pero es la misma ambigüedad que costó los tres P0 de audio.
+
+  Se traen aquí con su respeto a `prefers-reduced-motion`, que también vivía
+  sólo en la demo.
+*/
+.nx-caret { animation: nxBlink 1s step-end infinite; color: var(--nexus); }
+.nx-pulse { animation: nxPulse 1.1s ease-in-out infinite; }
+@keyframes nxBlink { 50% { opacity: 0; } }
+@keyframes nxPulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) {
+  .nx-caret, .nx-pulse { animation: none !important; }
+}
+
 .animate-fade-in { animation: fadeIn 0.2s ease; }
 
 /* Transición de entrada al cambiar de pantalla (ver (dashboard)/template.tsx).

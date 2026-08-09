@@ -30,7 +30,25 @@ salen del token y nunca del cuerpo, y **revocación por contador de versión**.
 | **DOCUMENTS** | parcial y **derivado**: «Mis recetas» se recalcula en cada lectura desde notas firmadas. No hay colección, ni versiones, ni estados |
 | **PROFILE** | no existe. Sin idioma, sin cuidador, sin preferencias |
 
-## Reparado el 9-ago: el paciente que no ve tampoco podía escribir (REG-292)
+## Reparado el 9-ago (2): las pantallas del paciente obedecen al tema (REG-293/294/295)
+
+- **`/privacidad` y `/privacidad/[clinicId]`** estaban clavadas en tema claro
+  mientras su folio, su icono y sus botones sí seguían al tema. El contador de
+  caracteres de la solicitud **ARCO** daba **2,54:1** y el pie del aviso legal
+  **3,48:1** — los dos reprueban AA. Convertidas a tokens.
+- **«Confirmar cita» de `/reservar` y «Enviar» de `/resena`** rellenaban con el
+  token del TEXTO: **2,95:1 en tema claro**. Con `--nexus-solido` y blanco, 5,13
+  y 6,71.
+- **El botón de enviar la solicitud ARCO no giraba**: `.spin` sólo existía en dos
+  `<style>` de pantallas del médico, que en una página pública nunca están
+  montadas. Un indicador parado dice «se colgó» — y una solicitud de derechos
+  enviada dos veces.
+
+Compuerta: `la-pantalla-del-paciente-sigue-al-tema.test.ts`, con las excepciones
+declaradas una a una y su motivo (la receta impresa, el oro de la estrella, el
+escenario negro del vídeo).
+
+## Reparado el 9-ago (1): el paciente que no ve tampoco podía escribir (REG-292)
 
 Nueve controles de las cuatro pantallas donde el paciente **escribe** no tenían
 nombre accesible. El `<label>` estaba pintado y no señalaba al campo.

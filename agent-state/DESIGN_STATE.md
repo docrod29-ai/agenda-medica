@@ -5,9 +5,9 @@
 
 **Iteración en curso**: `DESIGN-SYSTEM-001`, abierta el 9-ago-2026.
 `PATIENT-UX-TRUTH-001` cerrada el 8-ago. Dentro de la iteración en curso,
-`DESIGN-THEME-001` **cerrado** (REG-291) y `A11Y-GATE-001` **cerrado**
-(REG-292); quedan los literales *slate*, las tablas y `A11Y-AXE-001` — lo que
-sólo se ve con la aplicación corriendo.
+`DESIGN-THEME-001` (REG-291), `A11Y-GATE-001` (REG-292) y `DESIGN-SLATE-001`
+(REG-293/294/295) **cerrados**; quedan las tablas y `A11Y-AXE-001` — lo que sólo
+se ve con la aplicación corriendo.
 
 ---
 
@@ -46,6 +46,38 @@ directiva y además el color no es el problema.
 `99`, `50`). Se creó **un** token con su razón escrita, y hoy tiene **131
 adopciones**. Un token bien puesto sí se adopta aquí. Falta repetirlo para
 espacio, radio, tipografía y color, **cada uno con su guardián**.
+
+## Cerrado el 9-ago (3): las pantallas del paciente obedecen al tema (REG-293/294/295)
+
+Tres defectos, una misma frase: **el sistema existe y la pantalla no le hacía
+caso.**
+
+**REG-293 · la clase que no existe tampoco gira.** REG-266 arregló el
+`@keyframes` y dejó escrito que los `<style>` locales eran «inofensivos:
+redefinen lo mismo». Cierto para un fotograma; falso para una **clase**, que
+puede ser la única definición. `.spin` se usaba en ocho sitios y sólo la definían
+dos `<style>` locales: tres de los ocho no giraban nunca —subir foto clínica,
+adjuntar PDF de laboratorio y **enviar la solicitud ARCO**—. Y `.nx-pulse` /
+`.nx-caret`, que en `/uci` son el punto de «● Grabando…» y el cursor del dictado,
+vivían **sólo en el `<style>` de la página comercial**.
+
+**REG-294 · dos pantallas clavadas en tema claro.** `/privacidad` y
+`/privacidad/[clinicId]`, con la mitad de la pantalla siguiendo al tema y la otra
+mitad no. Contador de caracteres ARCO **2,54:1**; pie del aviso legal **3,48:1**;
+y el aviso ámbar, con fondo literal y texto de token, **2,86:1** en oscuro.
+
+**REG-295 · el relleno con el token del TEXTO.** Seis botones a mano con
+`background: var(--teal)` y texto casi negro: **2,95:1 en tema claro**. Entre
+ellos «Confirmar cita» de `/reservar`, «Enviar» de `/resena` y la insignia de no
+leídos del `Sidebar`, que está en toda la aplicación. Es REG-223 otra vez:
+arreglar `.btn-primary` no arregló a quien no usa la clase.
+
+### El instrumento también tuvo que arreglarse
+
+El trinquete de escala contaba cada `var(--r-…)` como un radio distinto, así que
+**adoptar un token subía la cifra** y el guardián se ponía rojo por el arreglo.
+Ahora los tokens colapsan a una entrada: del sistema hay que recordar el sistema,
+no cada uno de sus nombres.
 
 ## Cerrado el 9-ago (2): la red de accesibilidad que no existía (REG-292)
 
@@ -131,10 +163,12 @@ pantalla estuvieras». Reparado y sellado con
 3. ~~Red de accesibilidad.~~ **Hecha** en su mitad estática (REG-292). La otra
    mitad —contraste, foco, `aria-live`— es `A11Y-AXE-001` y **necesita
    navegador**: mismo bloqueo que `NAV-NAVEGADOR-001`.
-4. **Siguiente sin bloqueo**: los literales *slate* que no siguen al tema, en 10
-   archivos. `/privacidad` es el caso de libro — pinta `#374151` y `#d1d5db` a
-   mano, y es una pantalla del paciente.
-5. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
+4. ~~Los literales *slate*.~~ **Hecho** (REG-294) en la superficie del paciente,
+   que es lo que V9 gobierna. Los ~21 que quedan son `DESIGN-SLATE-002` (P3) y
+   **no se barren a ciegas**: casi todos son paletas de categoría o documentos en
+   papel, que a propósito no siguen al tema.
+5. **Siguiente sin bloqueo**: las tablas, adoptando `.table-wrap.rwd` que ya
+   existe (`DESIGN-TABLAS-001`).
 6. Los 281 respaldos rancios (`DESIGN-RESPALDOS-001`): sustitución pura, sin
    cambio de píxel, que quita ~30 % de los hexadecimales y deja a la vista los
    que sí son deriva.

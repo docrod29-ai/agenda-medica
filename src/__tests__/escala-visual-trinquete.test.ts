@@ -122,7 +122,24 @@ describe('espaciado', () => {
 })
 
 describe('radio', () => {
-  const rad = contar(/borderRadius:\s*([\d.]+|'[^']+'|`[^`]+`)/g)
+  /**
+   * UN TOKEN NO ES UN NÚMERO QUE HAYA QUE RECORDAR — REG-294.
+   *
+   * Este trinquete cuenta VARIEDAD: «lo que importa no es cuántas veces se
+   * escribe 13 px, es cuántos números distintos hay que recordar». Pero contaba
+   * cada `var(--r-…)` como un valor más, así que **adoptar un token subía la
+   * cifra** y el guardián se ponía rojo por el arreglo. Pasó al convertir
+   * `/privacidad` a `--r-card` y `--r-modal`: 24 → 26.
+   *
+   * Un guardián que se pone rojo cuando haces lo correcto enseña a no hacerlo.
+   * Todos los tokens colapsan a una sola entrada: del sistema hay que recordar
+   * el sistema, no cada uno de sus nombres.
+   */
+  const rad = new Map<string, number>()
+  for (const [v, n] of contar(/borderRadius:\s*([\d.]+|'[^']+'|`[^`]+`)/g)) {
+    const clave = /var\(--/.test(v) ? '(token del sistema)' : v
+    rad.set(clave, (rad.get(clave) ?? 0) + n)
+  }
 
   it(`no hay más de ${TECHO_RADIOS} radios distintos`, () => {
     const lista = sueltos(rad).map(([v, n]) => `${v}(${n})`).join(' ')

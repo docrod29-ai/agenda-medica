@@ -38,7 +38,7 @@
 | `/mi/[token]` | paciente | ✅ | 587 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
-| `/privacidad/[clinicId]` | paciente | ✅ | 277 | 0 | — | ✅ | — |
+| `/privacidad/[clinicId]` | paciente | ✅ | 279 | 0 | — | ✅ | — |
 | `/resena/[token]` | paciente | ✅ | 110 | 0 | — | ✅ | — |
 | `/reservar/[clinicId]` | paciente | ✅ | 394 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 103 | 0 | — | ✅ | — |
@@ -98,7 +98,7 @@
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
 | `/precios` | publica | — | 182 | 1 | — | ✅ | — |
-| `/privacidad` | publica | — | 134 | 0 | — | — | — |
+| `/privacidad` | publica | — | 134 | 0 | — | ✅ | — |
 | `/registro` | publica | ✅ | 389 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 145 | 2 | — | ✅ | — |
 | `/setup` | publica | ✅ | 279 | 2 | — | ✅ | — |

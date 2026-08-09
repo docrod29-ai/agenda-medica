@@ -6572,3 +6572,148 @@ puntas, que es lo que manda `el-dato-tiene-que-LLEGAR`.
 - `src/app/reservar/[clinicId]/page.tsx` · `src/app/privacidad/[clinicId]/page.tsx`
 - `src/app/resena/[token]/page.tsx` · `src/app/mi/[token]/page.tsx`
 - `src/__tests__/un-campo-sin-nombre-no-existe.test.ts` (nuevo, 7 casos, sellado)
+
+---
+
+## REG-293 — la clase que no existe tampoco gira (V9 · DESIGN-SYSTEM-001)
+
+**REG-266 arregló el fotograma y dio por inofensivos los `<style>` locales.**
+Su golden lo dejó escrito: *«no obliga a quitar los 31 `<style>` duplicados: son
+inofensivos — redefinen lo mismo»*. Para el fotograma, cierto. **Para una clase,
+no**, porque puede ser la única definición que existe.
+
+| Clase | Se usa en | Estaba definida en |
+|---|---|---|
+| `.spin` | **8 sitios** | dos `<style>` locales: `antibiograma`, `cumplimiento/seguridad` |
+| `.nx-pulse` · `.nx-caret` | `/uci` | el `<style>` de `/demo/interactivo` — la página comercial |
+
+Una `<style>` renderizada es global al documento, así que la clase funcionaba
+**mientras esa otra pantalla estuviera montada**. Tres de los ocho usos de
+`.spin` no giraban nunca: subir una foto clínica, adjuntar un PDF de laboratorio
+y **enviar la solicitud ARCO** — una pantalla pública, donde ningún panel del
+médico puede estar montado a la vez.
+
+Y `/uci` es peor de nombre que de daño: `.nx-pulse` es el punto de **«● Grabando…»**
+y `.nx-caret` el cursor de la transcripción en vivo. Los dos indicadores que
+dicen «el micrófono está vivo», quietos, y definidos únicamente en la página de
+demostración comercial — que jamás se monta junto a la UCI.
+
+Un indicador de carga parado no dice «esperando»: dice «se colgó». Quien lo mira
+vuelve a pulsar sobre una petición que sí estaba corriendo — fotos duplicadas, y
+una solicitud de derechos ARCO enviada dos veces.
+
+**Reparado**: las tres clases viven en `globals.css`, con el respeto a
+`prefers-reduced-motion` que también vivía sólo en la demo.
+
+**Sellado**: `toda-animacion-tiene-su-fotograma.test.ts` gana una cuarta prueba
+que aplica la misma regla a las **clases**: un archivo que usa una clase de
+animación la define él o la encuentra en `globals.css`. El conjunto de «clases de
+animación» **se deriva** —toda clase que algún `<style>` defina con `animation`—
+en vez de escribirse a mano, que se quedaría corto en silencio. Probada al revés:
+quitando `.spin` de `globals.css` nombra los tres archivos que la usan sin
+definirla.
+
+La frase «son inofensivos» se queda escrita en el golden de REG-266: era la
+suposición que dejó pasar este caso.
+
+---
+
+## REG-294 — dos pantallas del paciente clavadas en el tema claro (V9 · DESIGN-SYSTEM-001)
+
+`/privacidad/[clinicId]` (portal de derechos ARCO) y `/privacidad` (aviso legal)
+pintaban lienzo, tarjetas, bordes y texto con hexadecimales de la paleta *slate*:
+`#f3f4f6` de fondo, `#fff` de tarjeta, `#111827` de título, `#374151` de cuerpo,
+`#6b7280` de secundario. Es la reaparición del defecto que `globals.css:25-30` ya
+documentaba.
+
+**Y no eran coherentes ni consigo mismas.** El folio, el icono y los botones
+`.btn` **sí** siguen al tema, así que media pantalla se movía con el tema y la
+otra media no — peor que cualquiera de las dos cosas enteras.
+
+Dos contrastes medidos con la fórmula WCAG 2.1 que reprobaban AA:
+
+| Dónde | Cociente | Mínimo |
+|---|---|---|
+| Contador de caracteres de la solicitud ARCO, `#9ca3af` sobre `#fff` | **2,54 : 1** | 4,5 |
+| Pie del aviso legal, `#889` sobre `#fff` | **3,48 : 1** | 4,5 |
+
+El aviso ámbar de la solicitud era el más fino: fondo **literal** (`#fef3c7`) con
+texto de **token** (`var(--amber)`). En claro daba 4,51; en oscuro, donde
+`--amber` se aclara a `#D97706`, **2,86**. El contraste dependía de un tema que
+el fondo ignoraba.
+
+**Reparado**: las dos pantallas al sistema de tokens, incluido el aviso, que pasa
+a `--warn-bg`/`--warn-text` — declarados en los dos temas en REG-291.
+
+### Y el instrumento tuvo que arreglarse también
+
+Al convertir `/privacidad` a `--r-card` y `--r-modal`, el trinquete de escala se
+puso **rojo**: cuenta radios distintos y contaba cada token como un valor más, así
+que **adoptar un token subía la cifra**. Un guardián que se pone rojo cuando haces
+lo correcto enseña a no hacerlo. Ahora todos los tokens colapsan a una entrada —
+del sistema hay que recordar el sistema, no cada uno de sus nombres— y el conteo
+queda en 24, igual que el techo.
+
+---
+
+## REG-295 — el relleno usaba el token del TEXTO (V9 · reaparición de REG-223)
+
+`--nexus` (y su alias `--teal`) es el azul **para leerse sobre fondo oscuro**.
+`--nexus-solido` es el azul **de relleno bajo texto blanco**. REG-223 explicó por
+qué los requisitos son opuestos y arregló `.btn-primary`.
+
+**Seis botones escritos a mano se quedaron fuera**, con `background: var(--teal)`
+y texto `#040b12`:
+
+| Dónde | Qué botón |
+|---|---|
+| `/reservar` | **«Confirmar cita»** — el CTA final del alta pública |
+| `/resena` | **«Enviar»** — la única acción de la pantalla |
+| `/unirse/[code]` | Entrar al consultorio por invitación |
+| `/configuracion` | Generar |
+| `/resenas` | El botón primario de la pantalla |
+| `Sidebar.tsx` | La insignia de no leídos, en **toda** la aplicación |
+
+| Tema | `#040b12` sobre `var(--teal)` |
+|---|---|
+| oscuro (`#6E84FE`) | 6,02 ✓ |
+| **claro** (`#2845EA`) | **2,95** ✗ |
+
+Con `--nexus-solido` y texto blanco: 5,13 en oscuro y 6,71 en claro. Los dos
+pasan.
+
+**Sellado**: `la-pantalla-del-paciente-sigue-al-tema.test.ts`. La condición es
+**relleno Y texto encima**, no relleno a secas: siete barras de progreso y puntos
+de 6 px se rellenan con `--nexus` y está bien, no llevan nada que leer. El objeto
+de estilo se delimita **contando llaves**, porque las dos formas fáciles fallan —
+exigir `\n}` se salta los objetos de una línea, y mirar una ventana de caracteres
+arrastraba el `color:` del elemento vecino y marcaba la barra de progreso de
+`/finanzas`.
+
+La misma prueba exige que la superficie del paciente saque su color de un token,
+con las excepciones declaradas **una a una y con su motivo** —la receta impresa,
+el oro de la estrella, el escenario negro del vídeo, el blanco sobre
+`--nexus-solido`— y comprueba que ninguna excepción se haya quedado muerta: una
+lista de excepciones que crece sola deja de ser una lista y pasa a ser una
+costumbre.
+
+### Qué NO cubren
+
+- **No miden el contraste que se ve.** Comprueban que el color venga de un token,
+  y los tokens sí están medidos en los dos temas. Un token bien elegido sobre una
+  superficie inesperada puede seguir sin leerse: eso lo dice `axe` sobre la
+  aplicación corriendo (`A11Y-AXE-001`).
+- **No cubren `rgba(...)` ni `color-mix(...)`.** Sólo hexadecimales.
+- **Quedan ~21 literales fuera de la superficie del paciente**, casi todos
+  paletas de categoría (`#94a3b8` para «inactivo») y documentos en papel, que a
+  propósito no siguen al tema. Su barrido es `VISUAL-EXCELLENCE-001`.
+- **Nadie ha abierto estas pantallas.** La conversión está razonada y medida, no
+  observada.
+
+### Archivos
+
+- `src/app/globals.css` · `src/app/privacidad/page.tsx` · `src/app/privacidad/[clinicId]/page.tsx`
+- `src/app/reservar/[clinicId]/page.tsx` · `src/app/resena/[token]/page.tsx` · `src/app/verificar/[token]/page.tsx`
+- `src/app/unirse/[code]/page.tsx` · `src/app/(dashboard)/configuracion/page.tsx` · `src/app/(dashboard)/resenas/page.tsx` · `src/components/Sidebar.tsx`
+- `src/__tests__/la-pantalla-del-paciente-sigue-al-tema.test.ts` (nuevo, 6 casos, sellado)
+- `src/__tests__/toda-animacion-tiene-su-fotograma.test.ts` · `src/__tests__/escala-visual-trinquete.test.ts`

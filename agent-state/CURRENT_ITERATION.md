@@ -15,11 +15,10 @@
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
 **Unidad actual**: `DESIGN-SYSTEM-001` (abierta 9-ago).
 `PATIENT-UX-TRUTH-001` ✅ cerrada (8-ago) · los tres P0 de audio ✅ cerrados
-(v1158/v1161) · `DESIGN-THEME-001` ✅ cerrado (REG-291) · `A11Y-GATE-001` ✅
-cerrado (REG-292).
-Queda de esta iteración: los literales *slate*, las tablas, y `A11Y-AXE-001`
-—contraste y foco— que **necesita navegador** y comparte bloqueo con
-`NAV-NAVEGADOR-001`.
+(v1158/v1161) · `DESIGN-THEME-001` ✅ (REG-291) · `A11Y-GATE-001` ✅ (REG-292) ·
+`DESIGN-SLATE-001` ✅ (REG-293/294/295).
+Queda de esta iteración: las tablas, y `A11Y-AXE-001` —contraste y foco— que
+**necesita navegador** y comparte bloqueo con `NAV-NAVEGADOR-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -64,6 +63,15 @@ del formulario **ARCO** —un derecho con plazo legal— y las cinco estrellas d
 
 De 568 archivos de prueba, **uno** era de accesibilidad. Ahora hay compuerta:
 **cero** en la superficie del paciente, trinquete de 312 en el resto.
+
+Y en el mismo barrido, tres defectos más de la misma frase —**el sistema existe y
+la pantalla no le hace caso**—: `.spin` giraba sólo si otra pantalla estaba
+montada, así que tres indicadores de carga no giraban nunca (REG-293); las dos
+pantallas de `/privacidad` estaban clavadas en tema claro con el contador de la
+solicitud ARCO a **2,54:1** (REG-294); y seis botones rellenaban con el token del
+TEXTO, dando **2,95:1 en tema claro** —entre ellos «Confirmar cita» y la insignia
+del `Sidebar`, que está en toda la aplicación— que es **REG-223 otra vez**:
+arreglar `.btn-primary` no arregla a quien no usa la clase (REG-295).
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo
