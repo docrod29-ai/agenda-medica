@@ -131,6 +131,51 @@ export function seccionesVacias(tipo: TipoNota): NotaSeccion[] {
   return SECCIONES_POR_TIPO[tipo].map(s => ({ ...s, value: '' }))
 }
 
+/**
+ * LAS SECCIONES DEL TIPO, CONSERVANDO LO ESCRITO — Y SIN CLAVES AJENAS.
+ *
+ * ── EL DEFECTO (6-ago-2026, REG-196) ─────────────────────────────────────────
+ *
+ * El Dr. mandó la captura de una **«Nota de Primera Vez»** con encabezados
+ * **SUBJETIVO (S) / OBJETIVO (O) / EVALUACIÓN (A) / PLAN (P)**: el título decía
+ * una cosa y el documento tenía el formato de otra.
+ *
+ * No era sólo que el modelo escribiera SOAP —que también, porque `primera_vez`
+ * no tenía instrucción de formato—: es que las **claves** guardadas eran las de
+ * seguimiento. Al reprocesar sin cambiar de tipo, la base eran las secciones que
+ * ya había en memoria (`prev`), así que una clave de otro tipo, una vez dentro,
+ * no salía nunca.
+ *
+ * ── LO QUE HACE ──────────────────────────────────────────────────────────────
+ *
+ * Devuelve **exactamente** las secciones del tipo pedido, con el texto que ya
+ * hubiera en las que coinciden por clave. Lo que no pertenece al tipo no viaja.
+ *
+ * ── Y LO QUE NO HACE: TIRAR TEXTO CLÍNICO ────────────────────────────────────
+ *
+ * Lo que no encaja se devuelve aparte (`huerfanas`), no se borra. Quien llame
+ * decide: enseñarlo, moverlo o avisar. Perder prosa que el médico dictó para
+ * arreglar un problema de formato sería cambiar un defecto por otro peor — y en
+ * este repositorio la pérdida de datos es el fallo que más caro se ha pagado.
+ *
+ * Función PURA.
+ */
+export function seccionesDelTipo<T extends { key: string; value?: string }>(
+  tipo: TipoNota,
+  actuales: readonly T[] = [],
+): { secciones: NotaSeccion[]; huerfanas: T[] } {
+  const plantilla = seccionesVacias(tipo)
+  const porClave = new Map(actuales.map(s => [s.key, s]))
+  const secciones = plantilla.map(s => {
+    const previa = porClave.get(s.key)
+    return previa?.value?.trim() ? { ...s, value: previa.value } : s
+  })
+  const claves = new Set(plantilla.map(s => s.key))
+  const huerfanas = actuales.filter(s => !claves.has(s.key) && s.value?.trim())
+  return { secciones, huerfanas }
+}
+
+
 /** ¿Esta nota usa signos vitales obligatorios? */
 export function requiereSignosVitales(tipo: TipoNota): boolean {
   return ['historia_clinica', 'primera_vez', 'seguimiento', 'ingreso', 'evolucion', 'evolucion_uci', 'valoracion_preoperatoria', 'valoracion_inmuno', 'nota_postoperatoria', 'nota_anestesia'].includes(tipo)

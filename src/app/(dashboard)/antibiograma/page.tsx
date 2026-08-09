@@ -143,7 +143,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
   // Razonamiento con IA sobre el motor determinista.
   const [razonando, setRazonando] = useState(false)
-  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[]; contradiccionesSegunda?: { agente: string; motivo: string }[] } | null>(null)
+  const [razonamiento, setRazonamiento] = useState<{ texto: string; segunda?: string; contradicciones?: { agente: string; motivo: string }[]; contradiccionesSegunda?: { agente: string; motivo: string }[]; omite?: boolean; omiteSegunda?: boolean } | null>(null)
   const [errorRaz, setErrorRaz] = useState('')
 
   const razonarIA = async () => {
@@ -175,6 +175,9 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         segunda: data.segundaOpinion,
         contradicciones: data.contradicciones,
         contradiccionesSegunda: data.contradiccionesSegundaOpinion,
+        /* REG-259 — lo que el texto se CALLÓ, no sólo lo que contradice. */
+        omite: data.omiteAlertasCriticas,
+        omiteSegunda: data.omiteAlertasCriticasSegundaOpinion,
       })
     } catch (e) {
       setErrorRaz('Error de red: ' + (e instanceof Error ? e.message : String(e)))
@@ -320,8 +323,8 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       </div>
 
       {/* Organismo + sitio */}
-      <label style={label}>Organismo</label>
-      <input value={organismo} onChange={e => setOrganismo(e.target.value)}
+      <label style={label} htmlFor="atb-organismo">Organismo</label>
+      <input id="atb-organismo" value={organismo} onChange={e => setOrganismo(e.target.value)}
         placeholder="p. ej. Escherichia coli, Klebsiella pneumoniae, Pseudomonas aeruginosa, S. aureus"
         style={{ ...input, marginBottom: 14 }} />
 
@@ -329,7 +332,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
         {SITIOS.map(s => (
           <button key={s.v} type="button" onClick={() => setSitio(s.v)}
-            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--teal)', color: '#fff', borderColor: 'var(--teal)' } : {}) }}>
+            style={{ ...chip, ...(sitio === s.v ? { background: 'var(--nexus-solido)', color: '#fff', borderColor: 'var(--teal)' } : {}) }}>
             {s.t}
           </button>
         ))}
@@ -377,7 +380,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
         Si la CMI y la categoría del laboratorio no coinciden, el motor sólo puede corregirla cuando
         sabe con qué estándar se interpretó. Sin esto NO corrige nada — lo señala y te dice qué falta.
       </div>
-      <div style={{ display: 'grid', gap: 8, marginTop: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 8, marginTop: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))' }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>Estándar</div>
           <select value={procedencia.estandar ?? ''} style={input}
@@ -455,7 +458,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       {res && (res.fenotipos.length > 0 || res.categoriasCMI.length > 0 || organismo.trim()) && (
         <div style={{ marginTop: 18 }}>
           <button type="button" onClick={razonarIA} disabled={razonando}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
             {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
           </button>
           {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{errorRaz}</div>}
@@ -486,6 +489,31 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
                     </ul>
                     <div style={{ color: 'var(--text3)', marginTop: 6, fontSize: 12 }}>
                       Los puntos de corte y el fenotipo los calcula el motor determinista; la IA solo razona sobre ellos.
+                    </div>
+                  </div>
+                )}
+                {/*
+                  LO QUE EL TEXTO SE CALLÓ (REG-259).
+
+                  La caja de arriba avisa de lo que el texto CONTRADICE. Ésta,
+                  de lo que OMITE — el otro modo de fallo, y el más silencioso:
+                  el motor detecta una carbapenemasa, el texto no la menciona,
+                  y se lee un razonamiento impecable que no dice lo único que
+                  había que decir.
+
+                  Se avisa, no se completa: las alertas del motor están arriba,
+                  enteras. Rellenar el razonamiento del modelo por su cuenta
+                  sería inventar juicio clínico.
+                */}
+                {razonamiento.omite && (
+                  <div style={{
+                    background: 'color-mix(in srgb, var(--amber) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+                    borderRadius: 10, padding: '11px 13px', marginBottom: 12,
+                    fontSize: 12.5, lineHeight: 1.55, color: 'var(--text)',
+                  }}>
+                    <strong>El texto de abajo no menciona las alertas críticas del motor.</strong>
+                    <div style={{ color: 'var(--text3)', marginTop: 6, fontSize: 12 }}>
+                      No las contradice: las omite. Léelas arriba antes de decidir.
                     </div>
                   </div>
                 )}
@@ -530,7 +558,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
           onClick={() => onAgregarANota(resumenParaNota(entradaActual, res))}
           className="lift"
           style={{
-            marginTop: 16, background: 'var(--nexus)', color: '#fff', border: 'none',
+            marginTop: 16, background: 'var(--nexus-solido)', color: '#fff', border: 'none',
             borderRadius: 10, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
           }}>
           → Agregar el antibiograma a la nota
@@ -854,7 +882,7 @@ const delBtn: React.CSSProperties = { background: 'none', border: 'none', color:
 const addBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px dashed var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
 const chip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 11.5, cursor: 'pointer' }
 const metaChip: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '4px 9px', fontSize: 11 }
-const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
+const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, marginTop: 20, width: '100%' }
 const box: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 8, padding: '11px 13px', fontSize: 12.5, lineHeight: 1.5 }
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }
 

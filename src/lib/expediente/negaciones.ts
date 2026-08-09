@@ -68,139 +68,154 @@ export const CRONICAS: { canonica: string; formas: readonly string[] }[] = [
   { canonica: 'EPOC', formas: ['epoc', 'enfisema', 'bronquitis crónica'] },
 ]
 
-const sinAcentos = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-
-/**
- * ── LAS MARCAS SE MIRAN SIN ACENTOS ──────────────────────────────────────────
- *
- * Todas las expresiones de abajo se prueban sobre el texto ya plegado con
- * `sinAcentos`. El plegado conserva la longitud —cada letra acentuada es una
- * base más una combinante que se cae— así que los índices siguen sirviendo para
- * recortar la cita del texto original, con sus acentos.
- *
- * Se hace porque el reconocedor acentúa como quiere y ya costó un caso: «negó
- * diabetes» no encajaba en `nieg[ao]` —la «ó» no es «o»— y la frase se leía como
- * una afirmación. Escribir cada marca dos veces, con acento y sin él, es la
- * clase de duplicado que se olvida a la mitad.
- */
-
-/**
- * Muletillas que preceden a la respuesta sin cambiarla.
- *
- * En la consulta casi nadie contesta empezando por la palabra que importa: es
- * «ay no», «mmm no», «eh, ninguna», «pues fíjese que no». Se consumen antes de
- * mirar el negador.
- */
-const MULETILLA = String.raw`(?:(?:ah?|ay|eh|este|mmm+|pues)[,\s]+)*`
-
 /**
  * Respuestas que cuentan como negación.
  *
  * «Ninguna» y «nada» se incluyen porque es como se contesta de verdad a «¿tiene
  * enfermedades crónicas?». Lo que NO se incluye es el silencio: no contestar no
  * es negar, y tratarlo como negación fabricaría un negativo que nadie dijo.
- *
- * ── POR QUÉ CRECIÓ (auditoría de las nueve dimensiones, hallazgo C3) ─────────
- *
- * La lista original entendía el español de un formulario, no el de la consulta.
- * Medida contra el habla real se le escapaban las formas más comunes de decir
- * que no: «pues no», «fíjese que no», «para nada», «qué va», «tampoco», «nel».
- * Cada una que se escapa devuelve el fallo entero del 3-ago: la enfermedad se
- * cosecha de la pregunta y sale impresa como antecedente.
- *
- * `nada` no cuenta cuando es «nada más», que en México quiere decir «sólo» y no
- * niega; y «qué va» no cuenta cuando es «que va a…», que es futuro y no
- * respuesta.
  */
-const NEGATIVAS = new RegExp(
-  `^\\s*${MULETILLA}(?:` +
-    [
-      String.raw`no`,
-      String.raw`nop`,
-      String.raw`nel`,
-      String.raw`ningun[ao]?`,
-      String.raw`nada(?!\s+mas)`,
-      String.raw`negativo`,
-      String.raw`nunca`,
-      String.raw`jamas`,
-      String.raw`tampoco`,
-      String.raw`para\s+nada`,
-      String.raw`que\s+va(?!\s+a\b)`,
-      String.raw`pues\s+(?:que\s+)?no`,
-      String.raw`(?:fijese|figurese)\s+que\s+no`,
-      String.raw`que\s+yo\s+sepa\s+no`,
-    ].join('|') +
-    String.raw`)\b`,
-)
+const NEGATIVAS = /^\s*(?:ah?,?\s*)?(?:no|nop|ninguna|ninguno|nada(?!\s+m[aá]s)|negativo|nunca|que\s+yo\s+sepa\s+no)\b/i
 
 /**
- * Respuestas que NO saben — y que por eso no niegan nada.
+ * ── LO QUE ESTORBA DELANTE DE LA RESPUESTA (6-ago-2026, REG-192) ─────────────
  *
- * ── EL DEFECTO (auditoría de las nueve dimensiones, hallazgo C2) ─────────────
+ * `NEGATIVAS` exige que la respuesta EMPIECE por la negación, y en una
+ * transcripción real casi nunca empieza ahí: delante viene la marca de turno
+ * («—», «-», «Paciente:») o una muletilla («pues», «fíjese que», «mmm»).
  *
- *     «¿Tiene diabetes?  No sé.»
+ * Medido con el motor real sobre respuestas de consulta mexicana: de siete
+ * formas de decir que no, **cazaba una**.
  *
- * Empieza por «no», así que la lista de arriba la leía como negación. Y no se
- * quedaba en un aviso: `corregirCertezaPorNegacion` bajaba a `descartado` la
- * diabetes que el extractor había marcado — el sistema convertía un «no lo sé»
- * del paciente en un «no la tiene» del expediente.
+ *     «¿Padece diabetes? — No padece diabetes.»  →  detectada (por otra vía)
+ *     «¿Tiene hipertensión? — Pues no.»          →  NO
+ *     «¿Ha tenido asma? — Fíjese que no.»        →  NO
+ *     «¿Y tuberculosis? — Tampoco.»              →  NO
+ *     «¿Tiene cáncer? — No.»                     →  NO  ← ni la más simple
  *
- * Es la regla 4 de seguridad clínica al revés: **ausencia de dato no es dato de
- * ausencia**. De las dos direcciones en que este motor puede equivocarse, ésta
- * es la cara: señalar de menos deja un aviso sin salir; fabricar un negativo
- * escribe en el expediente algo que nadie dijo.
- *
- * Se mira ANTES que `NEGATIVAS` y gana.
+ * Se quita lo que estorba antes de mirar. NO se toca `NEGATIVAS`: se le da la
+ * frase limpia.
  */
-const DUDA = new RegExp(
-  `^\\s*${MULETILLA}(?:(?:pues|no)[,\\s]+)*(?:` +
-    [
-      String.raw`no\s+(?:se|sabe|sabria|sabriamos|recuerdo|recuerda)\b`,
-      String.raw`no\s+me\s+(?:acuerdo|han\s+dicho|han\s+checado|han\s+revisado)\b`,
-      String.raw`no\s+(?:estoy|esta)\s+segur[oa]\b`,
-      String.raw`quien\s+sabe\b`,
-      String.raw`a\s+lo\s+mejor\b`,
-      String.raw`tal\s+vez\b`,
-      String.raw`puede\s+ser\b`,
-    ].join('|') +
-    ')',
-)
+const RUIDO_ANTES_DE_LA_RESPUESTA =
+  /^\s*(?:[-—–:>»"'`]+\s*)*(?:(?:paciente|acompa[ñn]ante|familiar|sr|sra|se[ñn]or[a]?)\s*:\s*)?(?:(?:pues|bueno|este|mmm+|eh+|ay|f[ií]jese\s+que|la\s+verdad(?:\s+es\s+que)?|mire|d[ée]jeme\s+ver|creo\s+que)\s*,?\s*)*/i
+
+/**
+ * «No sé» NO ES UNA NEGACIÓN — y al limpiar el ruido pasaría a serlo.
+ *
+ * Ésta es la trampa de la reparación: quitando el guion de turno, «— No sé» se
+ * convierte en «no sé», que empieza por «no» y `NEGATIVAS` lo daría por bueno.
+ * El sistema registraría que el paciente **negó** una enfermedad cuando lo que
+ * dijo es que **no lo sabe**.
+ *
+ * Es exactamente la regla que este archivo ya defiende del otro lado: ausencia
+ * de dato no es dato de ausencia. Aquí se defiende de la reparación misma.
+ */
+const NO_ES_NEGACION =
+  /^\s*no\s+(?:s[eé]|me\s+acuerdo|recuerdo|estoy\s+segur[oa]|sabr[ií]a\s+decirle|s[eé]\s+si|tengo\s+idea|le\s+puedo\s+decir)(?![a-záéíóúñ])/i
+/**
+ * ── OJO CON `\b` DESPUÉS DE UNA VOCAL ACENTUADA ──────────────────────────────
+ *
+ * Aquí había un `\b` al final y **no cazaba «No sé.»**: en JavaScript `\w` es
+ * ASCII, así que «é» no cuenta como carácter de palabra y entre «é» y «.» no hay
+ * límite de palabra que valga. `\bs[eé]\b` funcionaba con «se» y fallaba con
+ * «sé» — justo la forma que se escribe.
+ *
+ * El resultado era el peor posible: «¿Tiene epilepsia? — No sé» quedaba
+ * registrado como que el paciente **negó** la epilepsia.
+ *
+ * Se sustituye por una anticipación negativa que sí entiende acentos.
+ */
+
+/**
+ * Las formas de decir que no que NO empiezan por «no».
+ *
+ * `tampoco` es la más frecuente cuando se pregunta por varias cosas seguidas:
+ * «¿Diabetes? No. ¿Hipertensión? Tampoco.»
+ */
+const NEGATIVAS_SIN_NO = /^\s*(?:tampoco|jam[aá]s|para\s+nada|en\s+absoluto|qu[eé]\s+va|negativo|nel)\b/i
+
+/**
+ * La condición dicha y negada después: «Diabetes no.», «Asma no, gracias a Dios».
+ *
+ * En el habla se responde repitiendo lo preguntado. Sin esto, la respuesta más
+ * natural a «¿diabetes?» se perdía.
+ */
+const NIEGA_POSPUESTO = /\b(?:no|nunca|jam[aá]s)\s*[.,;!]?\s*$/i
+
+/** ¿Esta respuesta niega? Con el ruido de turno y de muletilla ya quitado. */
+export function respuestaNiega(respuesta: string): boolean {
+  const limpia = String(respuesta ?? '').replace(RUIDO_ANTES_DE_LA_RESPUESTA, '')
+  if (!limpia.trim()) return false
+  /** Primero lo que NO es negación: «no sé» empieza por «no» y no niega nada. */
+  if (NO_ES_NEGACION.test(limpia)) return false
+  if (NEGATIVAS.test(limpia)) return true
+  if (NEGATIVAS_SIN_NO.test(limpia)) return true
+  /**
+   * La pospuesta sólo cuenta en respuestas cortas. En una frase larga un «no»
+   * final puede pertenecer a otra cosa («…me dijeron que fuera pero no»), y
+   * fabricar una negación es peor que perderla.
+   */
+  if (limpia.length <= 40 && NIEGA_POSPUESTO.test(limpia)) return true
+  return false
+}
 
 /**
  * Marcas de que la frase entera viene negada: gobiernan todo lo que enumeran.
  *
  * «Niega diabetes, hipertensión y dislipidemia» niega las tres, estén donde
  * estén en la frase. Por eso éstas se buscan en cualquier posición.
+ *
+ * `neg[oó]` está aparte de `nieg[ao]` porque «negó» no encaja ahí: la «ó» no es
+ * «o», y la frase se leía como una afirmación.
+ *
+ * Y el cierre es `(?![a-záéíóúñ])` y no `\b` por lo que avisa `NO_ES_NEGACION`
+ * unas líneas más arriba, que aquí volvió a morder: `\w` es ASCII, así que
+ * entre la «ó» de «negó» y el espacio que sigue **no hay límite de palabra**.
+ * Con `\b` al final del grupo, «Negó diabetes» seguía sin cazar aunque la
+ * alternativa estuviera escrita. Se comprobó con el motor, no de memoria.
  */
-const NIEGA_EN_LINEA =
-  /\b(?:niega|nieg[ao]|nego|negaba|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|no\s+cuenta\s+con\s+antecedente[s]?\s+de|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)\b/
+const NIEGA_EN_LINEA = /\b(?:niega|nieg[ao]|neg[oó]|negaba|no\s+(?:tiene|tengo|padece|padezco|refiere|refiero|ha\s+tenido)|no\s+cuenta\s+con\s+antecedente[s]?\s+de|sin\s+antecedente[s]?\s+de|descarta|ausencia\s+de|se\s+descarta)(?![a-záéíóúñ])/i
 
 /**
  * Marcas que niegan UN término, no la frase.
  *
- * «No es diabético», «nunca ha tenido asma». Éstas **no** pueden buscarse en
- * cualquier posición: en «no es fumador, tiene diabetes de diez años» el «no es»
- * habla del tabaco y la diabetes es real. Leerlo como negación borraría un
- * antecedente que el paciente sí tiene.
+ * «No es diabético», «nunca ha tenido asma». `NIEGA_EN_LINEA` no las cubría, y
+ * no se pueden meter ahí: se buscan en cualquier posición de la frase, y en «no
+ * es fumador, tiene diabetes de diez años» el «no es» habla del tabaco. Leerlo
+ * como negación **borraría un antecedente que el paciente sí tiene** — el daño
+ * en la dirección cara, porque `corregirCertezaPorNegacion` lo bajaría a
+ * `descartado`.
  *
  * Por eso tienen que venir **pegadas** al término: entre la marca y la palabra
  * sólo se admite la enumeración que la propia marca niega («no es diabético ni
  * hipertenso»). De eso se encarga `niegaAlTermino`.
  */
 const NIEGA_EL_TERMINO =
-  /(?:no\s+(?:es|era|fue|ha\s+sido|presenta|tuvo|padecio|ha\s+padecido)|nunca\s+ha\s+(?:tenido|padecido)|jamas\s+ha\s+(?:tenido|padecido))\s*$/
+  /(?:no\s+(?:es|era|fue|ha\s+sido|presenta|tuvo|padeci[oó]|ha\s+padecido)|nunca\s+ha\s+(?:tenido|padecido)|jam[aá]s\s+ha\s+(?:tenido|padecido))\s*$/i
+
+const sinAcentos = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+/** Trocea por frases conservando el signo, que es lo que distingue pregunta de respuesta. */
+export function frases(texto: string): string[] {
+  return texto
+    .split(/(?<=[.?!¡¿\n])\s+/)
+    .map(f => f.trim())
+    .filter(Boolean)
+}
+
+const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
 
 /**
- * Lo que se admite entre la marca que niega un t\u00e9rmino y el t\u00e9rmino negado:
- * separadores, conectores de enumeraci\u00f3n y las propias formas de las cr\u00f3nicas.
+ * Lo que se admite entre la marca que niega un término y el término negado:
+ * separadores, conectores de enumeración y las propias formas de las crónicas.
  *
  * Se recorta desde el final, una pieza por vuelta. Se hace con un bucle y no con
- * un `(?:\u2026)*` anidado porque una alternaci\u00f3n repetida sobre texto que no encaja
+ * un `(?:…)*` anidado porque una alternación repetida sobre texto que no encaja
  * es justo la forma de escribir un regex que se cuelga.
  */
 const PIEZA_DE_ENUMERACION = new RegExp(
-  String.raw`(?:[\s,;]+|\b(?:ni|y|o|e|de|del|la|el|los|las|ning[u]n[ao]?|antecedentes?)\b|\b(?:` +
+  String.raw`(?:[\s,;]+|\b(?:ni|y|o|e|de|del|la|el|los|las|ningun[ao]?|antecedentes?)\b|\b(?:` +
     CRONICAS.flatMap(c => c.formas)
       .map(f => sinAcentos(f).replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`))
       .join('|') +
@@ -208,12 +223,12 @@ const PIEZA_DE_ENUMERACION = new RegExp(
 )
 
 /**
- * \u00bfEl texto que precede al t\u00e9rmino es una marca que lo niega a \u00e9l?
+ * ¿El texto que precede al término es una marca que lo niega **a él**?
  *
- * Recibe lo que va delante del t\u00e9rmino **ya plegado**. Consume hacia atr\u00e1s la
- * enumeraci\u00f3n y luego exige que lo que queda termine en la marca. As\u00ed \u00abno es
- * diab\u00e9tico ni hipertenso\u00bb niega las dos, y \u00abno es fumador, tiene diabetes\u00bb no
- * niega ninguna \u2014 que es el caso caro.
+ * Recibe lo que va delante del término ya plegado. Consume hacia atrás la
+ * enumeración y luego exige que lo que queda termine en la marca. Así «no es
+ * diabético ni hipertenso» niega las dos, y «no es fumador, tiene diabetes» no
+ * niega ninguna — que es el caso caro.
  */
 function niegaAlTermino(antesPlegado: string): boolean {
   let s = antesPlegado
@@ -225,22 +240,7 @@ function niegaAlTermino(antesPlegado: string): boolean {
   return NIEGA_EL_TERMINO.test(s)
 }
 
-/**
- * Qu\u00e9 hace que una menci\u00f3n de la nota est\u00e9 **bien escrita**, y por tanto no haya
- * nada que avisar.
- *
- * Son dos marcas y no una. `NIEGA_EN_LINEA` cubre \u00abniega diabetes\u00bb; \u00abno es
- * diab\u00e9tico\u00bb no cabe ah\u00ed sin dejar que un \u00abno es\u00bb ajeno \u2014el de \u00abno es fumador,
- * tiene diabetes\u00bb\u2014 tape una afirmaci\u00f3n real. Por eso la segunda exige adyacencia
- * y se pregunta aparte.
- *
- * `primeraMencionSinEscudo` lo llama con el texto previo **ya plegado**, que es
- * lo que las dos esperan.
- */
-const ESCUDO_DE_LA_NEGACION = (antesPlegado: string) =>
-  NIEGA_EN_LINEA.test(antesPlegado) || niegaAlTermino(antesPlegado)
-
-/** D\u00f3nde nombra esta frase cada cr\u00f3nica. El \u00edndice vale sobre el texto plegado. */
+/** Dónde nombra esta frase cada crónica. El índice vale sobre el texto plegado. */
 function cronicasConIndice(frasePlegada: string): { canonica: string; idx: number }[] {
   const out: { canonica: string; idx: number }[] = []
   for (const c of CRONICAS) {
@@ -254,15 +254,16 @@ function cronicasConIndice(frasePlegada: string): { canonica: string; idx: numbe
   return out
 }
 
-/** Trocea por frases conservando el signo, que es lo que distingue pregunta de respuesta. */
-export function frases(texto: string): string[] {
-  return texto
-    .split(/(?<=[.?!¡¿\n])\s+/)
-    .map(f => f.trim())
-    .filter(Boolean)
-}
-
-const esPregunta = (f: string) => f.includes('?') || f.trimStart().startsWith('¿')
+/**
+ * Qué hace que una mención de la nota esté **bien escrita**, y por tanto no haya
+ * nada que avisar.
+ *
+ * Son dos marcas y no una, por lo que explica `NIEGA_EL_TERMINO`.
+ * `primeraMencionSinEscudo` lo llama con el texto previo ya plegado, que es lo
+ * que las dos esperan.
+ */
+const ESCUDO_DE_LA_NEGACION = (antesPlegado: string) =>
+  NIEGA_EN_LINEA.test(antesPlegado) || niegaAlTermino(antesPlegado)
 
 /** Qué enfermedades crónicas nombra esta frase. */
 export function cronicasEn(frase: string): string[] {
@@ -289,11 +290,6 @@ export interface Negada {
  *    La respuesta puede venir en la frase siguiente o pegada en la misma —el
  *    dictado corrido no separa turnos— así que se miran las dos.
  * 2. **Negación en línea**: «niega diabetes», «no tiene hipertensión».
- * 3. **Negación pegada al término**: «no es diabético», «nunca ha tenido asma».
- *    Ésta exige adyacencia; el porqué está en `NIEGA_EL_TERMINO`.
- *
- * Lo que NO cuenta como negación, aunque empiece por «no», es no saberlo: ver
- * `DUDA`.
  */
 export function condicionesNegadas(transcripcion: string): Negada[] {
   const fs = frases(transcripcion)
@@ -304,17 +300,18 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
 
   for (let i = 0; i < fs.length; i++) {
     const f = fs[i]
-    const plegada = sinAcentos(f)
-    const ocurrencias = cronicasConIndice(plegada)
-    if (!ocurrencias.length) continue
+    const cs = cronicasEn(f)
+    if (!cs.length) continue
 
-    if (NIEGA_EN_LINEA.test(plegada)) {
-      for (const o of ocurrencias) anotar(o.canonica, f)
+    if (NIEGA_EN_LINEA.test(f)) {
+      for (const c of cs) anotar(c, f)
       continue
     }
 
     // Las marcas que niegan un término suelto se comprueban contra lo que hay
-    // justo delante de ÉL, no contra la frase entera.
+    // justo delante de ÉL, no contra la frase entera: ver `NIEGA_EL_TERMINO`.
+    const plegada = sinAcentos(f)
+    const ocurrencias = cronicasConIndice(plegada)
     const pegadas = ocurrencias.filter(o => niegaAlTermino(plegada.slice(0, o.idx)))
     for (const o of pegadas) anotar(o.canonica, f)
     if (pegadas.length === ocurrencias.length) continue
@@ -325,11 +322,8 @@ export function condicionesNegadas(transcripcion: string): Negada[] {
     // la frase siguiente si la pregunta terminó ahí.
     const resto = f.slice(f.indexOf('?') + 1).trim()
     const respuesta = resto || (fs[i + 1] ?? '')
-    const respuestaPlegada = sinAcentos(respuesta)
-    // No saberlo no es negarlo: la duda gana sobre la negativa.
-    if (DUDA.test(respuestaPlegada)) continue
-    if (NEGATIVAS.test(respuestaPlegada)) {
-      for (const o of ocurrencias) anotar(o.canonica, `${f} ${respuesta}`.trim())
+    if (respuestaNiega(respuesta)) {
+      for (const c of cs) anotar(c, `${f} ${respuesta}`.trim())
     }
   }
   return [...vistas.values()]

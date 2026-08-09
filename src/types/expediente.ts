@@ -73,7 +73,18 @@ export type EstadoOrdenMedicamento =
   | 'borrador'    // se está capturando; la nota no está firmada
   | 'activa'      // prescrita y vigente
   | 'suspendida'  // se detuvo, puede reanudarse
-  | 'terminada'   // completó su duración
+  /**
+   * La duración escrita ya pasó, pero NADIE lo ha confirmado (§D1).
+   *
+   * No es «terminada»: el sistema sabe que el calendario venció, no que el
+   * paciente lo terminara. Pudo suspenderlo por un efecto adverso, alargarlo por
+   * indicación de otro médico, o no surtirlo nunca.
+   *
+   * El charter lo dice literal: «cuando la duración expira, PROBABLY_COMPLETED;
+   * pide reconciliación; NO lo marques completado en silencio».
+   */
+  | 'probablemente_terminada'
+  | 'terminada'   // completó su duración, confirmado
   | 'cancelada'   // se retiró; no debió administrarse
 
 export interface Medicamento {

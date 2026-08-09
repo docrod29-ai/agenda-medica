@@ -1,74 +1,62 @@
 /**
- * GOLDEN — el «no» de la consulta no es el «no» de un formulario, y «no sé»
- * nunca fue un «no».
+ * GOLDEN — «no es diabético» no era una negación, y «negó» tampoco.
  *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
  * Auditoría de las nueve dimensiones (6-ago-2026), hallazgos C2 y C3, los dos
- * pendientes de reparar del plan. Se reprodujeron con el motor real antes de
- * tocar nada: se le pasaron a `condicionesNegadas` las formas en que se contesta
- * de verdad en una consulta mexicana y se miró qué devolvía.
+ * que quedaban del plan. Se reprodujeron con el motor real antes de tocar nada:
+ * se le pasaron a `condicionesNegadas` las formas en que se contesta de verdad
+ * en una consulta mexicana y se miró qué devolvía.
  *
- * De doce formas reales de decir que no, **siete no se reconocían**:
+ * ── QUÉ VIGILA ESTE ARCHIVO Y QUÉ NO ─────────────────────────────────────────
  *
- *     «¿Padece diabetes?  Pues no.»                    → []
- *     «¿Tiene hipertensión?  Fíjese que no.»           → []
- *     «¿Es asmático?  Para nada.»                      → []
- *     «¿Ha tenido cáncer?  Qué va.»                    → []
- *     «¿Tiene VIH?  Nel.»                              → []
- *     «¿Presión alta?  Tampoco.»                       → []
- *     «No es diabético.»                               → []
+ * Entre que esto se escribió y que se pudo fusionar, `main` cerró su propio
+ * REG-192 sobre el mismo módulo y resolvió **la mitad de la respuesta** mejor de
+ * lo que estaba aquí: marcas de turno («—», «Paciente:»), el «no sé», «tampoco»
+ * y «para nada», y la negación pospuesta («Diabetes no.»), que aquí ni se había
+ * visto. Esa implementación es la que quedó; la de esta rama se descartó en vez
+ * de imponerse.
  *
- * Y una que se reconocía y **no debía**:
+ * Así que los casos de respuesta que hay abajo **no prueban trabajo de esta
+ * rama**: prueban que el comportamiento sigue en pie, y valen igual el día que
+ * alguien toque `respuestaNiega`. Lo que sí es de aquí:
  *
- *     «¿Tiene diabetes?  No sé.»                       → ['diabetes'] ← negada
- *
- * ── QUÉ FALLABA, Y POR QUÉ LE IMPORTA A UN PACIENTE ─────────────────────────
- *
- * Las dos mitades son el mismo motor, y las dos terminan en el expediente.
- *
- * **La que se escapa (C3).** Este motor es la única defensa determinista contra
- * el fallo que el Dr. encontró en producción el 3-ago: el interrogatorio se
- * dicta NOMBRANDO las enfermedades en la pregunta, el extractor las cosecha, y
- * el paciente que contestó que no sale con dos crónicas que no tiene. Si el
- * motor no entiende la forma en que el paciente contestó, la defensa no existe
- * para ese paciente — y el antecedente se arrastra a todas las notas siguientes.
- *
- * **La que sobra (C2).** Peor, porque escribe. «No sé» empieza por «no», así que
- * se leía como negación, y `corregirCertezaPorNegacion` bajaba la condición a
- * `descartado`. El sistema convertía un «no lo sé» del paciente en un «no la
- * tiene» del expediente. Es la regla 4 de seguridad clínica al revés: ausencia
- * de dato no es dato de ausencia.
+ *   1. La negación **pegada al término** — «no es diabético», «nunca ha tenido
+ *      asma» — que `NIEGA_EN_LINEA` no cubría.
+ *   2. «negó» con acento.
+ *   3. El escudo **doble** de `contradicciones`.
+ *   4. «nada más» no es una negación; «nel» sí.
  *
  * ── LA REGLA QUE LO HACE SEGURO ──────────────────────────────────────────────
  *
  * Este motor puede equivocarse en dos direcciones y NO son simétricas:
  *
  * - Señalar de menos: un aviso que no sale. Malo.
- * - Fabricar un negativo: el expediente afirma que el paciente NO tiene algo
- *   que nadie descartó. Inaceptable.
+ * - Fabricar un negativo: el expediente afirma que el paciente NO tiene algo que
+ *   nadie descartó, y `corregirCertezaPorNegacion` lo baja a `descartado`.
+ *   Inaceptable.
  *
- * Por eso la duda gana siempre sobre la negativa, y por eso las marcas que
- * niegan un término suelto («no es diabético») exigen adyacencia: en «no es
- * fumador, tiene diabetes de diez años» el «no es» habla del tabaco.
+ * Por eso las marcas que niegan un término suelto exigen **adyacencia**: en «no
+ * es fumador, tiene diabetes de diez años» el «no es» habla del tabaco, y
+ * leerlo como negación borraría una diabetes real.
  *
  * ── QUÉ **NO** CUBRE ─────────────────────────────────────────────────────────
  *
  * 1. **No detecta la duda como tal.** «¿Tiene diabetes? No sé» deja de negar,
  *    pero nadie avisa de que quedó una pregunta abierta. Si la nota afirma la
  *    diabetes a partir de ese «no sé», este motor no lo ve. Hace falta un canal
- *    de «declarado incierto» que hoy no existe.
+ *    de «declarado incierto» que hoy no existe (NEG-002 en el backlog).
  * 2. **El vocabulario es vocabulario.** `CRONICAS` no es criterio clínico: lo
  *    que no está en la lista no se vigila. Fibrilación auricular, cirrosis o
  *    lupus no aparecen y por tanto no se contrastan.
  * 3. **Enumeraciones largas con marca de frase.** «Niega diabetes,
- *    hipertensión, dislipidemia, cardiopatía y asma» sigue funcionando porque
- *    `niega` gobierna la frase entera, pero eso significa que una marca de frase
- *    lejana también puede tapar una afirmación real dentro de la misma frase.
- *    Los separadores de `frases()` no incluyen el punto y coma.
+ *    hipertensión, dislipidemia, cardiopatía y asma» funciona porque `niega`
+ *    gobierna la frase entera — y eso significa que una marca de frase lejana
+ *    también puede tapar una afirmación real dentro de la misma frase. Los
+ *    separadores de `frases()` no incluyen el punto y coma.
  * 4. **Nada de esto decide clínica.** El motor sólo afirma que dictado y nota se
- *    contradicen. Un paciente puede negar una diabetes que sí tiene documentada;
- *    cuál de las dos vale lo decide el médico.
+ *    contradicen. Un paciente puede negar una diabetes que sí tiene
+ *    documentada; cuál de las dos vale lo decide el médico.
  * 5. **No mide el reconocedor.** Si el ASR no oyó el «no», aquí no llega nada
  *    que reparar: eso es sesgo de vocabulario, otra capa.
  */
@@ -81,7 +69,7 @@ import {
 
 const negadas = (t: string) => condicionesNegadas(t).map(x => x.condicion)
 
-describe('C3 — las formas en que un paciente mexicano dice que no', () => {
+describe('las formas en que un paciente mexicano dice que no (hoy, de `main`)', () => {
   const casos: [string, string][] = [
     ['¿Padece diabetes? Pues no.', 'diabetes'],
     ['¿Tiene usted hipertensión? Fíjese que no.', 'hipertensión arterial'],
@@ -111,7 +99,7 @@ describe('C3 — las formas en que un paciente mexicano dice que no', () => {
   })
 })
 
-describe('C2 — la negación pegada al término', () => {
+describe('C2 — la negación pegada al término (aportación de esta rama)', () => {
   it('«no es diabético» es una negación, aunque no diga «no tiene»', () => {
     expect(negadas('No es diabético.')).toContain('diabetes')
   })
