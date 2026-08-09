@@ -6858,7 +6858,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
     rastro~~ — HECHO (v863) **y el aviso al consultorio en v887**, por WhatsApp,
     con el fallo registrado si no sale.
 
-## TANDA v1150 — REG-268: la pregunta del interrogatorio no es un antecedente
+## TANDA v1151 — REG-270: la pregunta del interrogatorio no es un antecedente
 
 `mencionesEnPasado` leía frase a frase sin mirar si la frase era una **pregunta**
 ni si venía **negada**. El interrogatorio dirigido se dicta nombrando la
@@ -6910,7 +6910,7 @@ anticipación negativa y tiene su caso en el golden.
 ### El identificador no lo puede elegir quien abre la rama
 
 Esta rama se ha **renumerado dos veces** sin cambiar una línea de lógica:
-`REG-203` → `REG-210` → `REG-268`, y `v1084` → `v1092` → `v1150`. Cuando se abrió,
+`REG-203` → `REG-210` → `REG-270`, y `v1084` → `v1092` → `v1151`. Cuando se abrió,
 el remoto tenía **19 PRs** y todos decían `REG-192` y `v1074`; desde entonces
 `main` ha fusionado dos tandas grandes y ha llegado por su cuenta a `REG-267` y a
 `v1149`.

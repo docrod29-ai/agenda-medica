@@ -165,7 +165,7 @@ export function respuestaNiega(respuesta: string): boolean {
  * Hermana de `respuestaNiega` y por el mismo motivo: la enfermedad se nombra en
  * la pregunta y la respuesta es una palabra suelta en otra frase. Sin ella, «¿Ha
  * tenido neumonía alguna vez? Sí, hace tres años» no se puede leer — la pregunta
- * no dice cuándo y la respuesta no dice qué (REG-268).
+ * no dice cuándo y la respuesta no dice qué (REG-270).
  *
  * «No sé» no es ninguna de las dos: no niega —esta misma regla lo defiende más
  * arriba— y tampoco afirma. En la duda no se afirma; aquí no afirmar sólo cuesta
@@ -221,7 +221,7 @@ export function respuestaA(fs: readonly string[], i: number): string {
 /**
  * Marcas de que un término ya viene negado en la propia frase.
  *
- * ── EL PRETÉRITO FALTABA (REG-268) ───────────────────────────────────────────
+ * ── EL PRETÉRITO FALTABA (REG-270) ───────────────────────────────────────────
  *
  * Sólo miraba el presente («no tiene», «no padece»), así que «**no tuvo**
  * tuberculosis» y «**nunca ha tenido** neumonía» pasaban por afirmaciones. En el

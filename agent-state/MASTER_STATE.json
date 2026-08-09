@@ -16,28 +16,28 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1150",
+  "ultimaVersionEnProduccion": "nexusmed-v1151",
   "trabajoLocalSinSubir": [
-    "A  .claude/agents/design-systems-lead.md",
-    "A  .claude/agents/patient-experience-lead.md",
-    "A  .claude/rules/design-system.md",
-    "A  .claude/rules/patient-facing-ai.md",
-    "A  .claude/skills/v9/SKILL.md",
     "MM agent-state/BACKLOG.json",
     "M  agent-state/CURRENT_ITERATION.md",
-    "A  agent-state/DESIGN_STATE.md",
-    "A  agent-state/LAST_SAFE_CHECKPOINT.md",
-    "A  agent-state/LOOP-GRABACION-PERFECTA.md",
-    "A  agent-state/LOOP-SUPERARLOS.md",
+    "M  agent-state/DESIGN_STATE.md",
+    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
     "MM agent-state/MASTER_STATE.json",
-    "MM agent-state/OWNER_DECISIONS_REQUIRED.md",
-    "A  agent-state/PATIENT_COMPANION_STATE.md",
-    "A  agent-state/RECONCILIACION-V9-2026-08-08.md",
-    "A  agent-state/V7-ITERACION.md",
-    "M  docs/COMPETITIVE_ANALYSIS.md",
-    "A  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
-    "A  docs/architecture/DIRECCION-DE-DEPENDENCIAS.md",
-    "MM docs/audit/regression-ledger.md"
+    "M  agent-state/PATIENT_COMPANION_STATE.md",
+    "M  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "MM docs/audit/regression-ledger.md",
+    "A  docs/competitive/PATIENT_EXPERIENCE_MATRIX.md",
+    "A  docs/competitive/UX_UI_MATRIX.md",
+    "M  docs/data-room/INDICE.md",
+    "A  docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
+    "A  docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
+    "A  docs/design/NAVIGATION_STATE_AUDIT.md",
+    "A  docs/design/SCREEN_INVENTORY.md",
+    "MM docs/maintenance/BITACORA-2026-08-01-tarde.md",
+    "MM docs/maintenance/sw-changelog.md",
+    "A  docs/patient/PATIENT_COMPANION_BASELINE.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M public/sw.js"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -51,7 +51,7 @@
     "agent/expediente/REG-192 — negación",
     "agent/voice/VOICE-005 — negación, muletilla en medio",
     "agent/eval/EVAL-002-corpus-temporalidad — temporalidad",
-    "agent/expediente/REG-203-interrogatorio — REG-268/v1150, PR #250: la pregunta del interrogatorio se cosechaba como antecedente. CI verde antes de fusionar main."
+    "agent/expediente/REG-203-interrogatorio — REG-270/v1151, PR #250: la pregunta del interrogatorio se cosechaba como antecedente."
   ],
   "seccionesDelCharterCerradas": [
     "§4.1",
@@ -74,13 +74,13 @@
   ],
   "ramaActual": "agent/expediente/REG-203-interrogatorio",
   "derivado": {
-    "regsEnElLedger": 116,
-    "ultimaREG": "REG-268",
-    "archivosDePrueba": 546,
-    "casosDePrueba": 7249,
+    "regsEnElLedger": 118,
+    "ultimaREG": "REG-270",
+    "archivosDePrueba": 549,
+    "casosDePrueba": 7265,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "notasDeLaRutina": [
-    "8-ago-2026: esta rama se ha renumerado DOS veces (REG-203→REG-210→REG-268, v1084→v1092→v1150) porque main avanzó por debajo mientras estaba abierta. La reparación no ha cambiado ni una línea de lógica entre renumeraciones; lo que cambia es el identificador. Es el coste de O-5."
+    "8-ago-2026: esta rama se ha renumerado TRES veces (REG-203→210→268→270, v1084→1092→1150→1151) porque main avanzó por debajo mientras estaba abierta. Ni una línea de lógica ha cambiado entre renumeraciones. Es O-5."
   ]
 }

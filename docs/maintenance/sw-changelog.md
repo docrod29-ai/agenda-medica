@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1150 — REG-268: el interrogatorio en pasado se cosechaba como antecedente
+## v1151 — REG-270: el interrogatorio en pasado se cosechaba como antecedente
 
 «¿Tuvo tuberculosis? No.» dejaba una mención pasada de tuberculosis, con la
 pregunta como cita. Y «no tuvo tuberculosis» también, porque la negación en línea
@@ -18,20 +18,6 @@ años» no devolvía nada — la pregunta dice qué y la respuesta dice cuándo.
 
 Ahora la pregunta sólo cuenta con su respuesta delante, el par se juzga entero y
 el emparejado vive en un solo sitio para que los dos motores lean el mismo turno.
-## v1074 — REG-192: la sección bien escrita compraba el silencio de la mal escrita
-
-Los dos motores que contrastan el dictado contra la nota —negaciones y
-temporalidad— miraban **la primera** aparición del término y sólo ésa. Si venía
-escudada («niega diabetes», «antecedente de neumonía»), la condición se
-descartaba entera.
-
-Que es la forma de una nota bien estructurada: el antecedente correcto arriba, la
-impresión diagnóstica equivocada abajo. Y la de abajo es la que cambia la
-conducta de hoy y viaja a la nota siguiente.
-
-Ahora se recorren todas las apariciones. La ventana de 60 caracteres no cambia:
-cada mención se juzga con el mismo criterio, así que esto sólo puede señalar más
-de lo que señalaba. El criterio vive en un módulo, no en dos copias.
 
 ## v1084 — REG-203: las decisiones de arquitectura vivían en la cabeza de nadie
 
@@ -2626,3 +2612,21 @@ línea copiada.
 
 No es código nuevo: es código que se había quedado fuera de la rama que se
 despliega. La misma familia que REG-267, con otro disfraz.
+
+## v1150 — el trabajo de V9: la superficie del paciente
+
+**REG-268** · el enlace de la videoconsulta del paciente no llevaba token, así
+que `/api/telesalud/sala` le contestaba **404 «Cita no encontrada» al dueño de la
+cita** —desde su propio portal, a la hora de su consulta—. Nadie lo vio porque el
+botón del médico sí lo lleva: sólo fallaba el camino que ningún empleado recorre.
+El token pasa a ser obligatorio en la firma.
+
+**REG-269** · `@keyframes spin` no existía en ningún sitio global pese a 90
+referencias, incluidos `ui/Spinner` y el estado «cargando» de `ui/Button`. Lo
+definían 31 pantallas en `<style>` locales, así que el giro funcionaba según en
+qué pantalla estuvieras. Un indicador parado no dice «esperando»: dice «se
+colgó», y se vuelve a pulsar sobre una petición que sí corría.
+
+Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
+reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
+programas compartieran directorio de trabajo, después de REG-267.
