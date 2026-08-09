@@ -51,9 +51,39 @@
  * · No toca `negaciones.ts` — la decisión C-6 del dueño (7-ago) separó ese
  *   vocabulario del de aquí a propósito. Son preguntas distintas.
  * · No decide nada clínico: sólo si la frase niega el término.
+ *
+ * ── LA NEGACIÓN QUE CRUZA LA COMA: NO SE ADIVINA (queda abierto) ─────────────
+ *
+ * El primer caso de la revisión del dueño **sigue igual**, y a propósito:
+ *
+ *     extraerComorbilidades('No es cardiópata, diabetes mellitus tipo 2.')
+ *       → la diabetes sale NEGADA
+ *
+ * No es el hueco del afirmador gemelo —ahí no hay ningún verbo en la segunda
+ * cláusula que pudiera cerrar la negación—: es que **el negador cruza la coma**.
+ * Y ese mismo comportamiento es el que hace correcta la lista negada, que es
+ * como se dicta de verdad un interrogatorio:
+ *
+ *     'Niega diabetes, hipertensión y asma.'   → las TRES negadas ✔
+ *     'No tiene diabetes, hipertensión ni asma.' → las TRES negadas ✔
+ *
+ * Mismo camino de código, dos intenciones opuestas, y el español no las
+ * distingue: cortar en la coma arreglaría el primero y convertiría los otros dos
+ * en **cinco antecedentes inventados**. Elegir qué error se prefiere es una
+ * decisión clínica del dueño, así que aquí se **declara** en vez de adivinarse
+ * (regla 6 de `clinical-safety.md`). Va a su cola como C-10.
+ *
+ * ── OTRO HUECO DE VOCABULARIO, TAMBIÉN DECLARADO ────────────────────────────
+ *
+ * «No se queja de diabetes» sale POSITIVA: `queja` no está entre los verbos.
+ * Añadir verbos es vocabulario, y este módulo sólo puede señalar de menos.
  */
 import { describe, it, expect } from 'vitest'
-import { extraerComorbilidades, estaNegado } from '@/lib/expediente/parser-clinico'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import {
+  extraerComorbilidades, estaNegado, VOCABULARIO_DE_NEGACION,
+} from '@/lib/expediente/parser-clinico'
 
 describe('LAS OCHO FORMAS QUE SEGUÍAN VIVAS', () => {
   /** Las formas medidas contra el motor real el 8-ago. Todas salían positivas. */
@@ -139,6 +169,80 @@ describe('EL ERROR CONTRARIO — una enfermedad real que desaparece', () => {
   it('el punto sigue cerrando la negación de la cláusula anterior', () => {
     const t = 'niega tvp. presenta diabetes'
     expect(estaNegado(t, t.indexOf('diabetes'))).toBe(false)
+  })
+})
+
+describe('LA TERCERA VEZ DEL MISMO DEFECTO — lo cazó el dueño en revisión', () => {
+  /**
+   * La primera versión de este PR arregló el hueco de `padece` (REG-192) y lo
+   * volvió a abrir con los tres verbos que ella misma añadía. El dueño lo cazó
+   * **ejecutando el motor**, no leyendo el diff:
+   *
+   *     extraerComorbilidades('No cuenta con alergias, cuenta con diabetes…')
+   *       → la diabetes caía en NEGADAS
+   *
+   * Al medir el alcance completo salieron dos más que nadie había nombrado:
+   * `hay` y los tiempos compuestos.
+   */
+  const AFIRMA_LA_SEGUNDA: [string, string][] = [
+    ['No cuenta con alergias, cuenta con diabetes mellitus tipo 2.', 'Diabetes mellitus tipo 2'],
+    ['Niega tabaquismo, ha tenido diabetes mellitus.', 'Diabetes mellitus tipo 2'],
+    ['No hay datos de asma, hay diabetes mellitus.', 'Diabetes mellitus tipo 2'],
+    ['Niega tabaquismo, tiene diabetes mellitus.', 'Diabetes mellitus tipo 2'],
+    ['Niega tabaquismo, sufre diabetes mellitus.', 'Diabetes mellitus tipo 2'],
+  ]
+  it.each(AFIRMA_LA_SEGUNDA)('«%s» conserva «%s»', (frase, canonico) => {
+    const r = extraerComorbilidades(frase)
+    expect(r.positivas).toContain(canonico)
+    expect(r.negadas).not.toContain(canonico)
+  })
+
+  /**
+   * El pronombre intercalado rompía la guarda: `refiere` se leía como afirmador
+   * propio en vez de como parte de «no me refiere», así que la negación no valía.
+   */
+  it('«No me refiere diabetes» sigue siendo una negación', () => {
+    const r = extraerComorbilidades('No me refiere diabetes.')
+    expect(r.negadas).toContain('Diabetes mellitus tipo 2')
+    expect(r.positivas).not.toContain('Diabetes mellitus tipo 2')
+  })
+})
+
+describe('EL GUARDIÁN — ningún verbo puede quedarse de un solo lado', () => {
+  /**
+   * Tres veces seguidas se añadió un verbo a los negadores y no a los
+   * afirmadores (REG-192 con `padece`; este mismo PR con `es`/`era`/`cuenta
+   * con`; y al medir, `hay` y los compuestos). Un comentario pidiendo que se
+   * acuerden ya se probó y no bastó.
+   *
+   * Esto no comprueba una lista escrita a mano: **recorre la de verdad**. Si
+   * mañana alguien añade un verbo sólo a `NEGADORES`, este caso se pone rojo
+   * antes de que un antecedente desaparezca de una nota.
+   */
+  const { verbos, participios, negadores, afirmadores } = VOCABULARIO_DE_NEGACION
+
+  it.each(verbos)('el verbo «%s» niega Y afirma', verbo => {
+    // Se prueba con la forma que el regex genera, no con el literal del array.
+    const muestra = new RegExp(`^(?:${verbo})$`, 'i')
+    const ejemplo = ['tiene', 'tengo', 'tenia', 'tuvo', 'tuve', 'presenta', 'presento',
+      'refiere', 'refiero', 'padece', 'padezco', 'padecia', 'padecio', 'sufre', 'sufro',
+      'sufria', 'fuma', 'fumo', 'fumaba', 'cuenta con', 'hay', 'es', 'era']
+      .find(e => muestra.test(e))
+    expect(ejemplo, `sin ejemplo para «${verbo}» — añádelo a la lista de muestras`).toBeTruthy()
+    expect(negadores.test(`no ${ejemplo}`), `«no ${ejemplo}» debería negar`).toBe(true)
+    expect(afirmadores.test(String(ejemplo)), `«${ejemplo}» debería afirmar`).toBe(true)
+  })
+
+  it.each(participios)('el compuesto «ha %s» niega Y afirma', participio => {
+    expect(negadores.test(`no ha ${participio}`)).toBe(true)
+    expect(afirmadores.test(`ha ${participio}`)).toBe(true)
+  })
+
+  it('los afirmadores se DERIVAN de los negadores, no se copian', () => {
+    const src = readFileSync(join(process.cwd(), 'src/lib/expediente/parser-clinico.ts'), 'utf8')
+    // Si vuelve a escribirse a mano, esta prueba cae y con ella el patrón.
+    expect(src).toContain('const AFIRMADORES = new RegExp(')
+    expect(src).toMatch(/\$\{VERBOS_AFIRMATIVOS\}/)
   })
 })
 

@@ -5253,8 +5253,42 @@ enfermedades, no de la negación, y emparenta con la decisión **C-7**.
 **Qué queda para el médico** — Si los adjetivos (`diabético`, `hipertenso`) deben
 entrar al diccionario de comorbilidades (C-7).
 
+**SEGUNDA VUELTA — el dueño lo revisó ejecutando el motor y encontró que este
+mismo arreglo reabría el defecto.** La primera versión añadía `es`, `era` y
+`cuenta con` a los negadores **y no a los afirmadores**: exactamente el invariante
+que la entrada documenta. Su repro:
+
+```
+extraerComorbilidades('No cuenta con alergias, cuenta con diabetes mellitus tipo 2.')
+  → la diabetes caía en NEGADAS
+```
+
+Al medir el alcance completo aparecieron dos familias más que nadie había
+nombrado: **`hay`** («No hay datos de asma, hay diabetes mellitus») y **los
+tiempos compuestos** («Niega tabaquismo, ha tenido diabetes mellitus»). Y una
+tercera, del otro lado: el **pronombre intercalado** rompía la guarda, así que
+«No **me** refiere diabetes» daba la diabetes por POSITIVA.
+
+**Por eso `AFIRMADORES` ya no se escribe: se deriva.** Tres veces seguidas se
+añadió un verbo a un solo lado —REG-192 con `padece`, esta entrada con `es`, y el
+medidor con `hay` y los compuestos—. Un comentario pidiendo que se acuerden ya se
+probó y no bastó. Ahora sale de la misma constante que los negadores, y el golden
+**recorre la lista de verdad** comprobando que cada verbo niegue y afirme: un
+verbo nuevo entra en los dos lados o en ninguno.
+
+**Lo que NO se reparó, y por qué** — El primer repro del dueño («No es
+cardiópata, diabetes mellitus tipo 2») sigue dando la diabetes por negada, y es
+**otro defecto**: ahí no hay ningún verbo en la segunda cláusula, lo que pasa es
+que **el negador cruza la coma**. Ese mismo comportamiento es el que hace correcta
+la lista negada —«Niega diabetes, hipertensión y asma» → las tres— que es como se
+dicta un interrogatorio. Cortar en la coma arreglaría uno y convertiría los otros
+en antecedentes inventados. Es una decisión clínica: va a la cola del dueño como
+**C-10**, declarada en el golden con sus dos ejemplos.
+
 **Comprobado que puede ponerse rojo** — Con el `parser-clinico.ts` de `main`,
-**12 de los 26 casos** del golden fallan.
+**12 de los 26 casos** fallan. Y con la primera versión de este mismo arreglo —la
+que revisó el dueño— caen **más de 20**, incluido el guardián, que además dice
+qué verbo se quedó de un solo lado.
 
 **Golden** — `src/__tests__/la-nota-de-respaldo-lee-la-negacion.test.ts`
-(12 casos estáticos, 26 ejecutados).
+(17 casos estáticos, 63 ejecutados).

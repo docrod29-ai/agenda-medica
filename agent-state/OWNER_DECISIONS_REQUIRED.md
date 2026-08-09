@@ -12,6 +12,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-10 | **¿La negación debe cruzar la coma?** «No es cardiópata, diabetes mellitus tipo 2» da la diabetes por NEGADA — el negador alcanza la segunda cláusula. Pero ese MISMO camino es el que hace correcta la lista negada, que es como se dicta un interrogatorio: «Niega diabetes, hipertensión y asma» → las tres negadas. Cortar en la coma arregla el primero y convierte los otros en antecedentes INVENTADOS. El español no distingue las dos intenciones. Encontrado por el Dr. revisando REG-270, ejecutando el motor | **No adivinar.** Hoy la negación cruza la coma, que es lo que sostiene la lista negada — el caso frecuente. Si se prefiere lo contrario, hace falta medir sobre dictados reales cuál de los dos aparece más | Que el caso «primera cláusula negada, segunda afirmada sin verbo» se lea bien | Todo lo demás de REG-270; el hueco queda declarado en el golden con sus dos ejemplos |
 
 ## DESPLIEGUE Y OPERACIÓN
 

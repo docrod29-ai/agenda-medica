@@ -272,10 +272,25 @@ const PARTICIPIOS_NEGADOS = 'tenido|padecido|presentado|sufrido|sido|fumado|refe
 /** Las cuatro partículas que abren una negación en el dictado real. */
 const PARTICULAS_NEGATIVAS = 'no|nunca|jam[aá]s|tampoco'
 
+/** «no **se** queja», «no **me** refiere»: el pronombre del habla real. */
+const PRONOMBRE_INTERCALADO = '(?:se|me|le|lo|la)\\s+'
+
+/** «ha tenido», «he padecido»: el tiempo compuesto, como una pieza. */
+const COMPUESTO = `(?:ha|he|han|hab[ií]a)\\s+(?:${PARTICIPIOS_NEGADOS})`
+
+/**
+ * Todo lo que, delante de un término, AFIRMA que el paciente lo tiene.
+ *
+ * Es exactamente el mismo conjunto de verbos que `VERBOS_NEGADOS`, porque la
+ * relación es de ida y vuelta: si «no <V> diabetes» la niega, entonces «<V>
+ * diabetes» la afirma. Por eso no se escribe dos veces — **se deriva**.
+ */
+const VERBOS_AFIRMATIVOS = `${COMPUESTO}|${VERBOS_NEGADOS}`
+
 const NEGADORES = new RegExp(
   '\\b(?:niega|nieg[ao]|sin(?:\\s+antecedente[s]?\\s+de)?|ausente|ausencia\\s+de|(?:se\\s+)?descart[ao]|'
-  + `(?:${PARTICULAS_NEGATIVAS})\\s+(?:(?:se|me|le|lo|la)\\s+)?`
-  + `(?:(?:ha|he|han|hab[ií]a)\\s+(?:${PARTICIPIOS_NEGADOS})|${VERBOS_NEGADOS})`
+  + `(?:${PARTICULAS_NEGATIVAS})\\s+(?:${PRONOMBRE_INTERCALADO})?`
+  + `(?:${COMPUESTO}|${VERBOS_NEGADOS})`
   + ')\\b',
   'i',
 )
@@ -298,12 +313,52 @@ const PARTICULA_PEGADA_AL_TERMINO = new RegExp(`\\b(?:${PARTICULAS_NEGATIVAS})\\
 /**
  * Palabras afirmativas que CIERRAN una negación previa.
  *
- * `padece`, `sufre` y `fuma` entran el 9-ago (REG-270). Todo verbo que se añade
- * a `NEGADORES` tiene que entrar también aquí, o el `niega` de la cláusula
- * anterior se come el término de la siguiente — que es lo que pasó al añadir
- * `padece` sólo a un lado.
+ * ── SE DERIVA, NO SE COPIA — Y ÉSTA ES LA TERCERA VEZ ───────────────────────
+ *
+ * Esta lista se escribía **a mano** al lado de la de negadores, y el mismo
+ * defecto apareció tres veces seguidas:
+ *
+ *   1. REG-192 añadió `padece`/`padezco` a los negadores y no aquí.
+ *   2. La primera versión de REG-270 arregló eso… y volvió a hacerlo con los
+ *      tres verbos que ella misma añadía (`es`, `era`, `cuenta con`). Lo cazó el
+ *      dueño en revisión, ejecutando el motor: «No es cardiópata, diabetes
+ *      mellitus tipo 2» daba la diabetes por **negada**.
+ *   3. Al medirlo entero salieron además `hay` y los tiempos compuestos:
+ *      «Niega tabaquismo, **ha tenido** diabetes mellitus» también la borraba.
+ *
+ * Tres veces es un patrón, no un descuido. Un comentario que pide «acuérdate de
+ * añadirlo también aquí» ya se probó y no funcionó: **ahora se deriva de la
+ * misma constante**, así que un verbo nuevo entra en los dos lados o en ninguno.
+ * El golden lo comprueba recorriendo la lista, no de memoria.
+ *
+ * Lo que se añade aparte son las formas que sólo afirman y nunca aparecen
+ * negando un término (`cursa con`, `acude por`, `en tratamiento`…).
  */
-const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|padece|padeci[oó]|padezco|sufre|fuma|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
+const AFIRMADORES = new RegExp(
+  `\\b(?:${VERBOS_AFIRMATIVOS}|cursa\\s+con|acude\\s+por|en\\s+tratamiento|con\\s+diagnostico|diagnosticad[oa])\\b`,
+  'i',
+)
+
+/**
+ * La partícula negativa justo antes del afirmador — el afirmador es SUYO.
+ *
+ * Admite el pronombre intercalado desde el 9-ago: sin él, «No **me** refiere
+ * diabetes» daba la diabetes por **positiva**, porque el `refiere` se leía como
+ * afirmador propio en vez de como parte de «no me refiere».
+ */
+const PARTICULA_ANTES_DEL_AFIRMADOR = new RegExp(
+  `\\b(?:${PARTICULAS_NEGATIVAS}|sin)\\s+(?:${PRONOMBRE_INTERCALADO})?$`,
+  'i',
+)
+
+/** Lo que el golden recorre para comprobar que ningún verbo quede de un solo lado. */
+export const VOCABULARIO_DE_NEGACION = {
+  verbos: VERBOS_NEGADOS.split('|'),
+  participios: PARTICIPIOS_NEGADOS.split('|'),
+  particulas: PARTICULAS_NEGATIVAS.split('|'),
+  negadores: NEGADORES,
+  afirmadores: AFIRMADORES,
+} as const
 
 export function estaNegado(texto: string, indiceMatch: number): boolean {
   const ventanaInicio = Math.max(0, indiceMatch - 40)
@@ -322,8 +377,9 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
     // se leía como diabetes POSITIVA (el "tiene" cancelaba el "no"). Se ignora el
     // afirmador precedido inmediatamente por no/nunca/sin.
     // `tampoco` y `jamás` entran el 9-ago por lo mismo: «tampoco tiene diabetes».
-    const antes = ventana.slice(Math.max(0, m.index - 8), m.index)
-    if (/\b(?:no|nunca|jam[aá]s|tampoco|sin)\s+$/i.test(antes)) continue
+    // La ventana es de 12 para que quepa la más larga: «tampoco se ».
+    const antes = ventana.slice(Math.max(0, m.index - 12), m.index)
+    if (PARTICULA_ANTES_DEL_AFIRMADOR.test(antes)) continue
     ultimoAfirm = m.index; lenUltimo = m[0].length
   }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
