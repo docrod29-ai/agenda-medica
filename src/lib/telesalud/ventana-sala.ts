@@ -83,6 +83,64 @@ export function ventanaDeSala(
 }
 
 /**
+ * CUÁNTO TIENE QUE VIVIR EL TOKEN QUE VIAJA DENTRO DE UN MENSAJE.
+ *
+ * ── POR QUÉ NO VALE UNA CIFRA FIJA ───────────────────────────────────────────
+ *
+ * El enlace de la sala se manda desde tres sitios que están a distancias muy
+ * distintas de la consulta: el recordatorio de 24 h (que se emite entre 26 h y
+ * 23 h antes), el del mismo día (unas horas antes) y la confirmación del bot al
+ * agendar (que puede ser semanas antes).
+ *
+ * Un token de un día caduca ANTES de la consulta cuando el recordatorio salió a
+ * T-26 h. Un token largo, de los que sobreviven en un hilo de WhatsApp, es una
+ * credencial suelta más tiempo del necesario. Así que la vida del token se
+ * calcula desde la cita: **hasta que la sala cierre, y ni un día más.**
+ *
+ * ── EL TOPE, Y QUÉ PASA AL PASARLO ───────────────────────────────────────────
+ *
+ * Más allá de `MAX_DIAS_ENLACE_SALA` no se emite enlace: se devuelve `null` y
+ * quien llama manda «recibirás el enlace antes de tu cita». No es una pérdida —
+ * el recordatorio de 24 h llevará uno vivo—, y evita dejar en el teléfono del
+ * paciente una credencial de agenda durante semanas por una cita que todavía
+ * puede cambiar.
+ *
+ * Ocho días: cubre el recordatorio más temprano (2 días) y la cita que se
+ * agenda «para la semana que viene», que es el caso real del bot.
+ */
+export const MAX_DIAS_ENLACE_SALA = 8
+
+/**
+ * Días de vida que necesita el token para seguir sirviendo hasta que la sala
+ * cierre. `null` = no emitir enlace (cita sin fecha, sala ya cerrada, o
+ * demasiado lejos).
+ *
+ * @param fechaHora hora de PARED de la cita, como se guarda.
+ * @param ahoraMs instante de referencia.
+ * @param tz zona del consultorio.
+ */
+export function diasDeVidaDelEnlace(
+  fechaHora: string | undefined | null,
+  ahoraMs: number,
+  tz: string = TZ_DEFAULT,
+): number | null {
+  const [f, h] = String(fechaHora ?? '').split(/[ T]/)
+  if (!f) return null
+
+  const inicio = instanteMX(f, (h ?? '00:00').slice(0, 5), tz).getTime()
+  if (!Number.isFinite(inicio)) return null
+
+  const cierra = inicio + HORAS_DESPUES * 3_600_000
+  if (cierra <= ahoraMs) return null // la sala ya cerró: un enlace muerto no ayuda
+
+  // Se redondea hacia ARRIBA: un token que caduca media hora antes del final de
+  // la ventana es el defecto que esto viene a evitar.
+  const dias = Math.ceil((cierra - ahoraMs) / 86_400_000)
+  if (dias > MAX_DIAS_ENLACE_SALA) return null
+  return Math.max(1, dias)
+}
+
+/**
  * El enlace del PACIENTE. Sin `dr=1`: eso abre el panel clínico del médico.
  *
  * ── EL ENLACE DEL PACIENTE NO LLEVABA CON QUÉ ENTRAR ─────────────────────────

@@ -22,19 +22,36 @@ import { NextRequest } from 'next/server'
 
 // ── Dobles ────────────────────────────────────────────────────────────────────
 const getCita = vi.fn()
+const getPaciente = vi.fn()
 const verificarTokenPaciente = vi.fn()
 const verificarMiembro = vi.fn()
 
+/**
+ * El doble distingue por COLECCIÓN desde REG-291: la ruta lee también el
+ * expediente, para comprobar que el enlace no esté revocado. Un doble que
+ * devolviera la cita para las dos lecturas haría pasar la prueba de revocación
+ * sin que la revocación existiera.
+ */
 vi.mock('@/lib/firebase-admin', () => ({
   adminDb: {
     collection: () => ({
-      doc: () => ({ collection: () => ({ doc: () => ({ get: getCita, update: vi.fn() }) }) }),
+      doc: () => ({
+        collection: (nombre: string) => ({
+          doc: () => ({
+            get: nombre === 'patients' ? getPaciente : getCita,
+            update: vi.fn(),
+          }),
+        }),
+      }),
     }),
   },
 }))
 vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: vi.fn(async () => null) }))
-vi.mock('@/lib/patient-token', () => ({
+vi.mock('@/lib/patient-token', async () => ({
   verificarTokenPaciente: (...a: unknown[]) => verificarTokenPaciente(...a),
+  // La vigencia NO se mockea: es una comparación pura y mockearla sería dar por
+  // buena justo la comprobación que se quiere probar.
+  tokenVigente: (await vi.importActual<typeof import('@/lib/patient-token')>('@/lib/patient-token')).tokenVigente,
 }))
 vi.mock('@/lib/auth-server', () => ({
   verificarMiembro: (...a: unknown[]) => verificarMiembro(...a),
@@ -55,9 +72,11 @@ function peticion(body: Record<string, unknown>) {
 
 beforeEach(() => {
   getCita.mockReset()
+  getPaciente.mockReset()
   verificarTokenPaciente.mockReset()
   verificarMiembro.mockReset()
   getCita.mockResolvedValue({ exists: true, data: () => CITA })
+  getPaciente.mockResolvedValue({ exists: true, data: () => ({}) })
   verificarTokenPaciente.mockReturnValue(null)
   verificarMiembro.mockResolvedValue({ ok: false, response: new Response(null, { status: 403 }) })
   // Sin DAILY_API_KEY la ruta devuelve una sala ficticia: perfecto para probar
@@ -110,6 +129,39 @@ describe('E0-07 · telesalud/sala conserva el OR de autorización', () => {
     verificarTokenPaciente.mockReturnValue({ clinicId: 'c1' })
     const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1', token: 'tk' }))
     expect(r.status).toBe(404)
+  })
+
+  /**
+   * REVOCACIÓN (REG-291) — el botón «revocar enlaces» del expediente sube
+   * `portalTokenVersion`. `/api/portal` lo comprobaba desde el principio; esta
+   * ruta no, así que revocar dejaba abierta la puerta de la sala de video.
+   *
+   * Deja de ser un detalle desde que el token viaja dentro de un mensaje de
+   * WhatsApp: es el enlace que se queda en un teléfono perdido o reenviado.
+   */
+  it('token emitido ANTES de una revocación → 404 (aunque sea del paciente de la cita)', async () => {
+    verificarTokenPaciente.mockReturnValue({ clinicId: 'c1', patientId: 'pac-777', alcance: 'agenda', version: 1 })
+    getPaciente.mockResolvedValue({ exists: true, data: () => ({ portalTokenVersion: 3 }) })
+    const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1', token: 'tk' }))
+    expect(r.status).toBe(404)
+  })
+
+  it('token emitido DESPUÉS de la revocación sigue entrando', async () => {
+    verificarTokenPaciente.mockReturnValue({ clinicId: 'c1', patientId: 'pac-777', alcance: 'agenda', version: 3 })
+    getPaciente.mockResolvedValue({ exists: true, data: () => ({ portalTokenVersion: 3 }) })
+    const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1', token: 'tk' }))
+    expect(r.status).toBe(200)
+  })
+
+  it('si el expediente no se puede leer, el paciente NO se queda fuera de su consulta', async () => {
+    /** Falla ABIERTO a propósito, igual que `/api/portal`: la firma, la
+     *  caducidad y la pertenencia de la cita siguen protegiendo, y dejar fuera a
+     *  un paciente por un mal minuto de Firestore es peor que el riesgo que esto
+     *  acota. Está escrito para que se vea que es una decisión, no un olvido. */
+    verificarTokenPaciente.mockReturnValue({ clinicId: 'c1', patientId: 'pac-777', alcance: 'agenda', version: 0 })
+    getPaciente.mockRejectedValue(new Error('firestore caído'))
+    const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1', token: 'tk' }))
+    expect(r.status).toBe(200)
   })
 
   it('cita inexistente → 404 antes de autorizar nada', async () => {

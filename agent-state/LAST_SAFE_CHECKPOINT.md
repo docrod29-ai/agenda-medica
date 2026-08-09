@@ -6,82 +6,75 @@
 
 ---
 
-## Checkpoint · 8-ago-2026
+## Checkpoint · 9-ago-2026
 
 | | |
 |---|---|
-| **Rama** | `claude/nexus-patient-ux-v9` |
-| **SHA base de esta sesión** | `0abcba2` (`chore(deploy): v1146 — REG-264`) |
-| **SHA de cierre** | `639ca73` |
-| **Unidad cerrada** | **`PATIENT-UX-TRUTH-001`** (iteración 0 de V9) |
-| **Siguiente unidad** | ver «Qué hacer al reanudar» |
+| **Rama** | `claude/relaxed-fermi-gxalc8` |
+| **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
+| **SHA de cierre** | *(el commit de esta unidad; ver `git log -1`)* |
+| **Unidad cerrada** | **`PATIENT-TELE-002`** — el último P0 abierto de V9 |
+| **Siguiente unidad** | **`DESIGN-SYSTEM-001`** (iteración 1 de §1 de la directiva) |
 
 ### Qué quedó hecho
 
-**Los siete documentos de la unidad**, todos con sección «qué NO cubre»:
+**REG-291 — el enlace de la videoconsulta ya viaja por WhatsApp.** Los tres
+mensajes que anuncian una teleconsulta (bot al agendar, recordatorio de 24 h y
+recordatorio del mismo día) llevan ahora el token que hace funcionar el enlace
+del otro lado. Antes mandaban «recibirás el enlace por este medio» y no había
+ningún medio que lo mandara.
 
-- `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` — cabecera
-- `docs/design/SCREEN_INVENTORY.md` — **generado**, 78 pantallas
-- `docs/design/NAVIGATION_STATE_AUDIT.md`
-- `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md`
-- `docs/patient/PATIENT_COMPANION_BASELINE.md`
-- `docs/competitive/PATIENT_EXPERIENCE_MATRIX.md`
-- `docs/competitive/UX_UI_MATRIX.md`
+- `src/lib/telesalud/token-de-sala.ts` (nuevo) — acuña el token **en el
+  servidor**, alcance `agenda`, y falla cerrado sin `pacienteId`.
+- `diasDeVidaDelEnlace` (en `ventana-sala.ts`) — la vida del token se **calcula
+  desde la cita**. Un día fijo caducaba antes de la consulta cuando el
+  recordatorio salía a T-26 h; más de ocho días no se emite y lo trae el
+  recordatorio.
+- `/api/telesalud/sala` comprueba `portalTokenVersion`: **la revocación ya llega
+  a la sala de video**, que es lo que hace tolerable poner un token dentro de un
+  mensaje de WhatsApp.
 
-**Backlog**: 14 elementos V9 en `agent-state/BACKLOG.json` con `prioridadV9` y
-`unidad` (4 P0 · 7 P1 · 3 P2).
+**Reconciliación de tableros.** Los tres `PATIENT-AUDIO-00x` estaban cerrados en
+`CURRENT_ITERATION.md` y en el ledger desde el 8-ago y seguían `pendiente` en
+`BACKLOG.json` — la misma forma de REG-267 que el commit `d22fbfd` quiso evitar.
+Cerrados también ahí.
 
-**Dos defectos reparados y sellados**, con prueba que falla al revés:
+### Estado de V9 en este checkpoint
 
-- **REG-265** — el enlace de la videoconsulta del paciente no llevaba token:
-  404 «Cita no encontrada» desde su propio portal.
-- **REG-266** — `@keyframes spin` no existía en ningún sitio global; 90
-  referencias, incluidos los dos primitivos compartidos.
-
-**Un instrumento**: `scripts/design/inventario-de-pantallas.mjs` +
-`el-inventario-de-pantallas-no-miente.test.ts`, para que el inventario no se
-pudra.
+**Cero P0 abiertos.** Quedan 7 P1 y 3 P2, todos en `agent-state/BACKLOG.json`.
 
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 8 083 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). Comprobado en `HEAD` limpio con los cambios guardados aparte: falla igual |
+| `npx vitest run` | 8 481 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). **Comprobado con `git stash` sobre `HEAD` limpio: falla igual** |
 | `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** |
-| `npm run build` | **compila** («Compiled successfully in 41s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
+| `npm run build` | **compila** («Compiled successfully in 39.4s») y luego falla al recolectar datos de `/dr/[clinicId]` con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
+| `clinical-safety-gate` | verde, con los tres archivos citados por REG-291 sellados |
 | navegador / móvil / a11y | **no ejecutadas** |
 
 ---
 
 ## Qué hacer al reanudar
 
-**1. Comprobar** que `git log --oneline -3` incluye el commit de
-`PATIENT-UX-TRUTH-001` y correr `node scripts/agent-state/actualizar.mjs`.
+**1. Comprobar** que `git log --oneline -3` incluye el commit de REG-291 y correr
+`node scripts/agent-state/actualizar.mjs`.
 
-**2. NO rehacer la auditoría.** Está cerrada. Su producto es el backlog.
+**2. NO rehacer** `PATIENT-UX-TRUTH-001`, los tres P0 de audio ni
+`PATIENT-TELE-002`. Están cerrados con su REG y su guardián sellado.
 
-**3. Empezar por los tres P0 de audio**, aunque su ficha diga `NAVIGATION-001`.
-Son pérdida **irreversible** de una consulta ya grabada, y un P0 de integridad
-manda sobre el orden de las iteraciones:
+**3. Empezar `DESIGN-SYSTEM-001`**, por `@theme inline` (`globals.css:126-131`)
+— **no por colores**, que lo prohíbe §13 de la directiva y además no es el
+problema. El orden está escrito en `DESIGN_STATE.md`, sección «Orden para
+DESIGN-SYSTEM-001».
 
-- `PATIENT-AUDIO-001` — volver a grabar borra el audio anterior. Es el más caro y
-  el arreglo es el más pequeño: limitar el borrado al rango de esta sesión.
-- `PATIENT-AUDIO-002` — navegar termina la grabación en silencio.
-- `PATIENT-AUDIO-003` — el cierre por inactividad no oye dictar y borra la
-  recuperación.
-
-Los tres, con su plan de arreglo escrito, en `agent-state/BACKLOG.json`.
-
-**4. Luego `DESIGN-SYSTEM-001`**, empezando por `@theme inline`
-(`globals.css:126-131`) — **no por colores**, que lo prohíbe §13 de la directiva
-y además no es el problema.
-
-**5. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
-de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en
-P0.**
+**4. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
+de navegador de `NAV-NAVEGADOR-001` (**dos pueden convertir un P2 en P0**) y la
+verificación en vivo que le falta a REG-291 y a REG-265.
 
 ## Lo que este checkpoint NO garantiza
 
-Que la interfaz esté bien. **Nadie ha abierto una pantalla.** Ninguna pantalla
-está aprobada y la auditoría no aprueba ninguna: prioriza el barrido.
+Que la interfaz esté bien. **Nadie ha abierto una pantalla**, y REG-291 tampoco
+se comprobó mandando un WhatsApp de verdad: no hay número de pruebas en este
+espacio. Ninguna pantalla está aprobada.

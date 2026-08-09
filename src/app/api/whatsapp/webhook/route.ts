@@ -38,6 +38,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala, versionDeRevocacion } from '@/lib/telesalud/token-de-sala'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1079,11 +1080,24 @@ export async function handleMessage(from: string, body: string, clinicId: string
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
         `📅 ${formatDate(datos.fecha)} a las ${datos.hora} hrs`,
-        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala.
+        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala —
+        // y con el token que lo hace funcionar del otro lado (REG-291). Si la
+        // cita queda demasiado lejos, `tokenParaLaSala` devuelve '' y el mensaje
+        // dice que el enlace llega aparte: lo traerá el recordatorio de 24 h.
         ...dondeEsLaCita({
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenParaLaSala({
+            tipo: datos.tipo, clinicId, pacienteId: pacienteIdBot, fechaHora,
+            ahoraMs: Date.now(), tz: config?.zonaHoraria || TZ_DEFAULT,
+            portalTokenVersion: await versionDeRevocacion(async () => (
+              pacienteIdBot
+                ? (await adminDb.collection('clinics').doc(clinicId)
+                    .collection('patients').doc(pacienteIdBot).get()).data() as { portalTokenVersion?: number } | undefined
+                : undefined
+            )),
+          }),
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1277,6 +1291,19 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          // El hueco de lista de espera suele ser para hoy o mañana: es el caso
+          // en que el enlace con token más falta hace (REG-291).
+          tokenPaciente: tokenParaLaSala({
+            tipo: datos.tipo, clinicId, pacienteId: pacienteIdLE,
+            fechaHora: `${slotFecha} ${slotHora}`,
+            ahoraMs: Date.now(), tz: config?.zonaHoraria || TZ_DEFAULT,
+            portalTokenVersion: await versionDeRevocacion(async () => (
+              pacienteIdLE
+                ? (await adminDb.collection('clinics').doc(clinicId)
+                    .collection('patients').doc(pacienteIdLE).get()).data() as { portalTokenVersion?: number } | undefined
+                : undefined
+            )),
+          }),
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

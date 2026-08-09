@@ -8,7 +8,8 @@ import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
-import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, ES_TELECONSULTA } from '@/lib/telesalud/donde-es'
+import { tokenParaLaSala, versionDeRevocacion } from '@/lib/telesalud/token-de-sala'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -209,6 +210,33 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          /**
+           * EL ENLACE DE LA VIDEOCONSULTA, CON CON QUÉ ENTRAR (REG-291).
+           *
+           * Hasta aquí este mensaje decía «recibirás el enlace por este medio» y
+           * el enlace no llegaba por ningún medio: el único sitio que lo emitía
+           * era el portal. Ahora se acuña aquí, que es servidor, con la vida
+           * justa para llegar viva al final de la ventana de la sala.
+           *
+           * El expediente sólo se lee cuando la cita es una videoconsulta y
+           * tiene paciente vinculado: para la cita presencial no hay lectura de
+           * más en un cron que recorre todos los consultorios.
+           */
+          const tokenSala = String(appt.tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA && appt.pacienteId
+            ? tokenParaLaSala({
+                tipo: appt.tipo,
+                clinicId,
+                pacienteId: appt.pacienteId,
+                fechaHora: appt.fechaHora,
+                ahoraMs: now.getTime(),
+                tz: tzClinica,
+                portalTokenVersion: await versionDeRevocacion(async () => (
+                  (await adminDb.collection('clinics').doc(clinicId)
+                    .collection('patients').doc(appt.pacienteId).get()).data() as { portalTokenVersion?: number } | undefined
+                )),
+              })
+            : ''
+
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +244,7 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente: tokenSala,
           })
           const msgData = {
             paciente: appt.pacienteNombre,

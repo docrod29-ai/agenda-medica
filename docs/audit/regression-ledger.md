@@ -6379,3 +6379,100 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — la videoconsulta se anuncia por WhatsApp, y por WhatsApp no iba el enlace (V9 · `PATIENT-TELE-002`)
+
+**Encontrado por** la propia reparación anterior. REG-268 cerró el camino del
+portal y declaró en su sección «lo que NO cierra» que el enlace de WhatsApp
+seguía sin token. Quedó abierto como `PATIENT-TELE-002` (P0) en el backlog de V9.
+Esta unidad lo cierra.
+
+**Qué pasaba.** La videoconsulta se anuncia por WhatsApp: la confirma el bot al
+agendar y la recuerdan el aviso de 24 h y el del mismo día. En esos tres mensajes
+el paciente **no recibía enlace**.
+
+Antes de REG-268 recibía uno roto —sin token, y `/api/telesalud/sala` contesta
+**404 «Cita no encontrada»** a quien no acredita titularidad—. REG-268 lo dejó
+diciendo la verdad: «recibirás el enlace de la videollamada por este medio antes
+de tu cita». Honesto, y falso por omisión: **no había ningún otro medio que lo
+mandara**. El paciente que sólo usa WhatsApp seguía sin poder llegar a una
+consulta que ya está agendada y cobrada.
+
+**Causa raíz.** El token exige `PORTAL_PACIENTE_SECRET`, que sólo vive en el
+servidor. `donde-es.ts` y `lib/whatsapp.ts` se importan también desde el
+navegador, así que ahí no se puede firmar sin filtrar el secreto al paquete del
+cliente. Como nadie había puesto el acuñado del lado del servidor, los tres
+llamadores —que **sí** son servidor— llamaban sin token.
+
+**Familia.** `el_dato_tiene_que_llegar`, igual que REG-268, REG-167, REG-170 y
+REG-160. El mensaje se componía y se enviaba; lo que no llegaba era la credencial
+que abre la puerta del otro lado.
+
+### El arreglo, y la única cifra que hubo que decidir
+
+`src/lib/telesalud/token-de-sala.ts` acuña el token en el servidor, con alcance
+`agenda` —el mínimo con el que la sala deja entrar— y lo pasan los tres
+llamadores.
+
+La cifra a decidir era **cuánto vive**, y una fija no sirve: los tres mensajes
+salen a distancias muy distintas de la consulta. Un token de **un día** emitido
+en el recordatorio de 24 h —que el cron manda entre 26 h y 23 h antes— caduca a
+**T-2 h**: el paciente abre su enlace media hora antes de la consulta y le vuelven
+a decir que su cita no existe. Sería el mismo defecto con otra ropa.
+
+Así que la vida se calcula desde la cita: **hasta que la sala cierre, y ni un día
+más** (`diasDeVidaDelEnlace`). Más allá de **ocho días** no se emite enlace y el
+mensaje dice que llegará aparte — y llega: lo trae el recordatorio de 24 h. Una
+cita agendada para dentro de un mes todavía puede cambiar, y una credencial de
+agenda no tiene por qué quedarse un mes en un hilo de WhatsApp.
+
+**No es poder nuevo**: a ese mismo teléfono ya le llega el enlace del portal, que
+es un token de alcance `agenda` de siete días. Éste vive menos y casi siempre
+mucho menos.
+
+**Falla cerrado**: sin `pacienteId` no hay token, porque una cita sin expediente
+vinculado no puede demostrar titularidad del otro lado y su enlace sería un 404.
+
+### Lo que se encontró de camino: la revocación no llegaba a la sala
+
+El botón «revocar enlaces» del expediente sube `portalTokenVersion`.
+`/api/portal` lo comprueba desde que existe la revocación; **`/api/telesalud/sala`
+no lo miraba**, así que revocar los enlaces de un paciente no cerraba la puerta de
+su sala de video.
+
+Mientras el único enlace de sala nacía dentro del portal era un detalle. Desde que
+el token viaja **dentro de un mensaje de WhatsApp** —el que se queda en un
+teléfono perdido, en un número reciclado o en un grupo reenviado— deja de serlo.
+La comprobación se añade con el mismo criterio que en `/api/portal`: si la lectura
+del expediente falla, **se deja pasar** —dejar a un paciente fuera de su consulta
+por un mal minuto de Firestore es peor que el riesgo que esto acota— y la firma,
+la caducidad y la pertenencia de la cita siguen protegiendo.
+
+### Lo que NO cierra
+
+- **No manda un WhatsApp de verdad.** Se comprueba el token que se acuña y que
+  los tres llamadores lo pasan; que Meta entregue el mensaje es otra cosa.
+- **Nadie lo ha visto en un navegador.** Este espacio no tiene credenciales de
+  Firebase ni número de WhatsApp de pruebas. Sigue pendiente de la verificación en
+  vivo que la directiva V9 §4 exige para la interfaz.
+- **Las citas sin `pacienteId`** siguen sin enlace, a propósito. Cuántas hay es un
+  recuento sobre datos con PHI y por eso no puede vivir en CI.
+
+**Guardianes.**
+`src/__tests__/el-enlace-de-la-videoconsulta-viaja-por-whatsapp.test.ts`,
+18 casos. Probado al revés en tres sitios: fijando la vida del token en un día,
+quitando `tokenPaciente` de cualquiera de los tres llamadores, y anulando la
+comprobación de revocación. Y en `src/__tests__/telesalud-sala-or.test.ts`, tres
+casos nuevos para la revocación —incluido el de fallo de lectura, que declara por
+escrito que ahí se falla abierto a propósito.
+
+**Archivos.**
+
+- `src/lib/telesalud/token-de-sala.ts` (nuevo)
+- `src/lib/telesalud/ventana-sala.ts` · `src/app/api/telesalud/sala/route.ts`
+- `src/app/api/cron/reminders/route.ts` · `src/app/api/whatsapp/webhook/route.ts`
+- `src/__tests__/authz-rutas-declaradas.test.ts` — el congelado de rutas que tocan
+  la identidad del paciente cazó las dos rutas nuevas que leen
+  `portalTokenVersion`. Hizo su trabajo: se declaran, con su porqué.

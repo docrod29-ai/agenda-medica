@@ -4,6 +4,7 @@
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
 **Iteración en curso**: `PATIENT-UX-TRUTH-001` **cerrada** el 8-ago-2026.
+`PATIENT-TELE-002` (P0 suelto de esta superficie) **cerrado** el 9-ago-2026.
 **Siguiente que toca esta superficie**: `PATIENT-COMPANION-001` (tras
 `DESIGN-SYSTEM-001` y `NAVIGATION-001`).
 
@@ -73,7 +74,18 @@ por el paciente.
 
 ## P0 abiertos en esta superficie
 
-- `PATIENT-TELE-002` — el enlace por WhatsApp sigue sin token.
+**Ninguno.** `PATIENT-TELE-002` se cerró el 9-ago-2026 con **REG-291**: el token
+de la sala se acuña en el servidor y va en los tres mensajes que anuncian la
+videoconsulta (bot al agendar, recordatorio de 24 h y del mismo día).
+
+Dos cosas que dejó esa unidad y conviene no olvidar:
+
+- **La vida del token se calcula desde la cita**, no se fija a ojo: un día fijo
+  caducaba antes de la consulta cuando el recordatorio salía a T-26 h. Más allá
+  de ocho días no se emite enlace y lo trae el recordatorio.
+- **La revocación ya llega a la sala de video.** `/api/telesalud/sala` no miraba
+  `portalTokenVersion`, así que «revocar los enlaces de este paciente» no cerraba
+  esa puerta. Con el token viajando por WhatsApp eso dejaba de ser un detalle.
 
 ## P1 abiertos
 

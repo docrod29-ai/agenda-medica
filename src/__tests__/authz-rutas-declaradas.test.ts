@@ -637,6 +637,17 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 2026-08-09 (REG-291): para poner el enlace de la videoconsulta en
+       * el recordatorio hay que acuñar el token del paciente, y el token nace
+       * con la VERSIÓN del expediente para que una revocación posterior lo
+       * tumbe. Lee `portalTokenVersion` y nada más, y sólo de las citas que son
+       * teleconsulta.
+       *
+       * Es un cron con secreto propio, sin sesión: la identidad de la cita
+       * (`pacienteId`) ya la traía consigo.
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja
@@ -651,6 +662,17 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       // — ni nombre, ni teléfono, ni un solo dato clínico.
       'portal/link',
       'public/booking',
+      /**
+       * +1 el 2026-08-09 (REG-291): comprueba que el enlace de la sala no esté
+       * REVOCADO. Lee `portalTokenVersion` del expediente y nada más — ni
+       * nombre, ni teléfono, ni un solo dato clínico —, y sólo cuando el token
+       * ya demostró ser del paciente de esa cita.
+       *
+       * Entra a esta lista por lo mismo que `portal/link`: desde que el token de
+       * la sala viaja dentro de un mensaje de WhatsApp, «revocar los enlaces de
+       * este paciente» tiene que cerrar también esta puerta.
+       */
+      'telesalud/sala',
       'telesalud/token',
       'whatsapp/webhook',
     ])

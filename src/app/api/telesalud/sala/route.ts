@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { verificarTokenPaciente } from '@/lib/patient-token'
+import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
@@ -61,7 +61,31 @@ export async function POST(req: NextRequest) {
      * comprobación, y su fallo sigue devolviendo 404 para no confirmar que el
      * citaId existe.
      */
-    const autorizadoPorToken = !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
+    /**
+     * LA REVOCACIÓN TIENE QUE LLEGAR HASTA AQUÍ (REG-291).
+     *
+     * `/api/portal` comprueba `portalTokenVersion` desde que existe la
+     * revocación; esta ruta no la miraba, así que «revocar los enlaces de este
+     * paciente» —el botón del expediente— no tocaba la puerta de la sala de
+     * video. Mientras el único enlace de sala nacía en el portal daba casi
+     * igual; desde que el token viaja dentro de un mensaje de WhatsApp, no.
+     *
+     * Si la lectura del expediente falla se deja pasar, igual que en
+     * `/api/portal`: dejar al paciente fuera de su consulta por un mal minuto de
+     * Firestore es peor que el riesgo que esto acota, y la firma, la caducidad y
+     * la pertenencia de la cita siguen protegiendo.
+     */
+    let tokenRevocado = false
+    if (tk && tk.clinicId === clinicId && tk.patientId === cita.pacienteId) {
+      try {
+        const pSnap = await adminDb.collection('clinics').doc(clinicId)
+          .collection('patients').doc(String(cita.pacienteId)).get()
+        const vPaciente = (pSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion
+        tokenRevocado = !tokenVigente(tk.version, vPaciente)
+      } catch { /* ver arriba */ }
+    }
+
+    const autorizadoPorToken = !tokenRevocado && !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
     let autorizadoPorMiembro = false
     if (!autorizadoPorToken) {
       const acc = await verificarCapacidad(req, clinicId, 'clinico.leer')
