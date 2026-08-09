@@ -6834,7 +6834,7 @@ Por orden de daño. Todo con archivo:línea, verificable.
 
 ---
 
-## 7-ago-2026 — v1074 · el motor de temporalidad por fin tiene con qué medirse
+## 7-ago-2026 — v1077 · el motor de temporalidad por fin tiene con qué medirse
 
 Iteración del MASTER LOOP V7. Se tomó **EVAL-002** del backlog («el motor se
 construyó en v1027-v1030 y no tiene corpus: sus casos son los que yo escribí»),
@@ -6852,7 +6852,7 @@ antecedente y el padecimiento actual pegados por una coma o por una «y». El
 motor juzgaba el tiempo de la frase entera, así que la diabetes de «tuvo neumonía
 hace tres años y ahora tiene diabetes» salía como pasada — un aviso sobre un
 diagnóstico ACTIVO — y el dengue de «padeció dengue en 2019 y su asma sigue
-activa» dejaba de vigilarse. Queda como REG-192.
+activa» dejaba de vigilarse. Queda como REG-195.
 
 **Lo que vale la pena recordar de esta iteración**: el defecto llevaba cuatro
 versiones vivo con las pruebas en verde, y no lo encontró leer el código — lo

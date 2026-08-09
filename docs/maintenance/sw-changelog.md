@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1074 — REG-192: la frase compuesta tenía dos tiempos y el motor le daba uno
+## v1077 — REG-195: la frase compuesta tenía dos tiempos y el motor le daba uno
 
 El motor de temporalidad juzgaba el tiempo de la FRASE entera. En el dictado el
 antecedente y el padecimiento actual viajan pegados: «Tuvo neumonía hace tres

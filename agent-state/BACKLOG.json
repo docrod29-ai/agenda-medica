@@ -83,7 +83,7 @@
       "complejidad": 2,
       "dependenciaExterna": 0,
       "score": 55,
-      "estado": "cerrado (REG-192, v1074) — corpus de 34 frases sintéticas; destapó la frase compuesta",
+      "estado": "cerrado (REG-195, v1077) — corpus de 34 frases sintéticas; destapó la frase compuesta",
       "reversible": true,
       "resultado": "34 casos. El motor fallaba 6: 3 con falso positivo (degradaba a antecedente un diagnóstico dicho en presente) y 3 con falso negativo. Con el arreglo, 34 de 34."
     },

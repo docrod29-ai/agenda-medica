@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-192 — la frase compuesta tenía dos tiempos y el motor le daba uno (v1074)
+## REG-195 — la frase compuesta tenía dos tiempos y el motor le daba uno (v1077)
 
 **Encontrado** — 7-ago-2026, al escribir por primera vez el corpus oro del motor
 de temporalidad (EVAL-002 del backlog: «el motor se construyó en v1027-v1030 y no
