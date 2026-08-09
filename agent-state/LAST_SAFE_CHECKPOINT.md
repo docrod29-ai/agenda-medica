@@ -6,82 +6,77 @@
 
 ---
 
-## Checkpoint · 8-ago-2026
+## Checkpoint · 9-ago-2026
 
 | | |
 |---|---|
-| **Rama** | `claude/nexus-patient-ux-v9` |
-| **SHA base de esta sesión** | `0abcba2` (`chore(deploy): v1146 — REG-264`) |
-| **SHA de cierre** | `639ca73` |
-| **Unidad cerrada** | **`PATIENT-UX-TRUTH-001`** (iteración 0 de V9) |
-| **Siguiente unidad** | ver «Qué hacer al reanudar» |
+| **Rama** | `claude/relaxed-fermi-yrvovc` |
+| **SHA base de esta sesión** | `0144257` (merge del PR #271, v1163) |
+| **SHA de cierre** | *(el commit de esta unidad)* |
+| **Unidad cerrada** | **`DESIGN-SYSTEM-001` · parte A — la compuerta de contraste** (REG-291) |
+| **Siguiente unidad** | `DESIGN-SYSTEM-001` · parte B (escalas + trinquete de adopción) |
 
 ### Qué quedó hecho
 
-**Los siete documentos de la unidad**, todos con sección «qué NO cubre»:
+**Un defecto de verdad, medido y reparado**: 48 parejas fondo/texto por debajo de
+WCAG AA en 22 archivos, en los dos temas — el relleno de marca bajo texto blanco
+(3,28:1), los botones de WhatsApp (1,98:1) y seis botones desactivados cuyo texto
+blanco sobre superficie clara daba **1,20:1**, o sea, no se veía.
 
-- `docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md` — cabecera
-- `docs/design/SCREEN_INVENTORY.md` — **generado**, 78 pantallas
-- `docs/design/NAVIGATION_STATE_AUDIT.md`
-- `docs/design/GENERIC_AI_AESTHETIC_AUDIT.md`
-- `docs/patient/PATIENT_COMPANION_BASELINE.md`
-- `docs/competitive/PATIENT_EXPERIENCE_MATRIX.md`
-- `docs/competitive/UX_UI_MATRIX.md`
+La causa raíz no era el color: era que `--nexus` sirve de texto y de relleno, y
+la corrección que creó `--nexus-solido` **se aplicó sólo a `.btn-primary`**,
+mientras el 88 % de esta interfaz vive en `style={{ }}`.
 
-**Backlog**: 14 elementos V9 en `agent-state/BACKLOG.json` con `prioridadV9` y
-`unidad` (4 P0 · 7 P1 · 3 P2).
+**Un instrumento**: `scripts/design/contraste-en-linea.mjs`
+(`npm run gate:contraste`), que lee los tokens de los dos temas de `globals.css`
+y aplica la fórmula de luminancia relativa de WCAG 2.1.
 
-**Dos defectos reparados y sellados**, con prueba que falla al revés:
+**Una compuerta con techo CERO**: `docs/design/contraste-techo.json`. No hay
+deuda congelada; cualquier pareja nueva por debajo de 4,5:1 falla.
 
-- **REG-265** — el enlace de la videoconsulta del paciente no llevaba token:
-  404 «Cita no encontrada» desde su propio portal.
-- **REG-266** — `@keyframes spin` no existía en ningún sitio global; 90
-  referencias, incluidos los dos primitivos compartidos.
+**Cinco tokens de relleno** con su cociente medido y el mismo valor en los dos
+temas: `--red-solido`, `--green-solido`, `--amber-solido`, `--whatsapp`,
+`--whatsapp-t`. Y `--text3` del tema claro corregido (4,20 → 4,80 sobre `--s3`)
+en los **dos** bloques donde se declara el tema claro.
 
-**Un instrumento**: `scripts/design/inventario-de-pantallas.mjs` +
-`el-inventario-de-pantallas-no-miente.test.ts`, para que el inventario no se
-pudra.
+**Una prueba sellada** de 10 casos, probada al revés sobre el repositorio real.
 
 ### Compuertas en este checkpoint
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | 8 083 casos · **1 fallo preexistente y de entorno** (`ops-timeout-y-punto-ciego`: abre una conexión a una IP no enrutable esperando que expire; tras el proxy de este contenedor falla rápido). Comprobado en `HEAD` limpio con los cambios guardados aparte: falla igual |
+| `npx vitest run` | **8 468 pasan · 1 omitida · 0 fallos** (567 archivos). El fallo de entorno de la sesión anterior ya no aparece |
 | `lint-trinquete` | **96, igual que el techo.** Sin deuda nueva |
 | `npx tsc --noEmit` | **limpio** |
-| `npm run build` | **compila** («Compiled successfully in 41s») y luego falla al recolectar datos de página con `auth/invalid-api-key`: **este contenedor no tiene las variables de Firebase**. Entorno, no código |
-| navegador / móvil / a11y | **no ejecutadas** |
+| `npm run gate:contraste` | **0 parejas bajo 4,5:1**, igual que el techo |
+| `npm run build` | ver la bitácora del commit — este contenedor no tiene las variables de Firebase y falla al recolectar datos de página, como en el checkpoint anterior |
+| navegador / móvil / regresión visual | **no ejecutadas.** La aplicación no arranca aquí |
 
 ---
 
 ## Qué hacer al reanudar
 
-**1. Comprobar** que `git log --oneline -3` incluye el commit de
-`PATIENT-UX-TRUTH-001` y correr `node scripts/agent-state/actualizar.mjs`.
+**1. NO rehacer la parte A.** Está cerrada y sellada. Su producto es la compuerta
+con techo 0: si vuelve a haber parejas por debajo de AA, la prueba lo dice sola.
 
-**2. NO rehacer la auditoría.** Está cerrada. Su producto es el backlog.
+**2. `DESIGN-SYSTEM-001` · parte B**, en este orden:
 
-**3. Empezar por los tres P0 de audio**, aunque su ficha diga `NAVIGATION-001`.
-Son pérdida **irreversible** de una consulta ya grabada, y un P0 de integridad
-manda sobre el orden de las iteraciones:
+- Ensanchar `@theme inline` (`globals.css`) — hoy Tailwind ve **cuatro** tokens,
+  y de ahí sale el monolito de estilo en línea. Es la causa mecánica, no la
+  dejadez.
+- Escala tipográfica y de espacio **derivadas del uso real**, no inventadas: los
+  cuatro tamaños más usados (12, 13, 11, 14 px) concentran ~2 400 de ~2 900
+  `fontSize` en línea y **no están** en la escala declarada de seis pasos.
+- Un trinquete de adopción por token, con tolerancia cero para archivos nuevos,
+  igual que el de contraste.
 
-- `PATIENT-AUDIO-001` — volver a grabar borra el audio anterior. Es el más caro y
-  el arreglo es el más pequeño: limitar el borrado al rango de esta sesión.
-- `PATIENT-AUDIO-002` — navegar termina la grabación en silencio.
-- `PATIENT-AUDIO-003` — el cierre por inactividad no oye dictar y borra la
-  recuperación.
-
-Los tres, con su plan de arreglo escrito, en `agent-state/BACKLOG.json`.
-
-**4. Luego `DESIGN-SYSTEM-001`**, empezando por `@theme inline`
-(`globals.css:126-131`) — **no por colores**, que lo prohíbe §13 de la directiva
-y además no es el problema.
-
-**5. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
-de navegador de `NAV-NAVEGADOR-001`. **Dos de ellas pueden convertir un P2 en
-P0.**
+**3. Cuando haya entorno con credenciales de Firebase**: las seis comprobaciones
+de navegador de `NAV-NAVEGADOR-001`, y la parte de accesibilidad que el contraste
+no cubre (foco, etiquetas, orden de tabulación, objetivo táctil).
 
 ## Lo que este checkpoint NO garantiza
 
-Que la interfaz esté bien. **Nadie ha abierto una pantalla.** Ninguna pantalla
-está aprobada y la auditoría no aprueba ninguna: prioriza el barrido.
+Que la interfaz se vea bien. Se ha medido una razón matemática sobre 22 archivos
+tocados; **nadie ha abierto una pantalla**, y la directiva V9 §4 dice que no se
+aprueba interfaz leyendo código. Lo que queda garantizado es que ninguna pareja
+de estilo en línea es **ilegible**.

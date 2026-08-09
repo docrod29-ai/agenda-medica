@@ -1329,7 +1329,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
             disabled={connecting}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: connecting ? 'var(--s3)' : '#25D366', color: '#fff',
+              background: connecting ? 'var(--s3)' : 'var(--whatsapp)', color: connecting ? 'var(--text3)' : 'var(--whatsapp-t)',
               border: 'none', borderRadius: 10, padding: '11px 20px',
               fontSize: 14, fontWeight: 700, cursor: connecting ? 'default' : 'pointer',
             }}
@@ -2002,7 +2002,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             )}
           </div>
         </div>
-        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#040b12', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
+        <button onClick={generar} disabled={creando} style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: creando ? 'default' : 'pointer' }}>
           {creando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</> : <><Sparkles size={15} /> Generar enlace de invitación</>}
         </button>
 
@@ -2016,7 +2016,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
               <button onClick={() => copiar(linkDe(generada))} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Copy size={12} /> {copiado ? 'Copiado' : 'Copiar enlace'}
               </button>
-              <button onClick={() => compartirWhatsApp(generada)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <button onClick={() => compartirWhatsApp(generada)} style={{ background: 'var(--whatsapp)', border: 'none', color: 'var(--whatsapp-t)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <MessageCircle size={12} /> Enviar por WhatsApp
               </button>
             </div>
@@ -2048,7 +2048,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                 <button onClick={() => copiar(linkDe(inv))} style={{ background: 'var(--s3)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Copiar enlace
                 </button>
-                <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => compartirWhatsApp(inv)} style={{ background: 'var(--whatsapp)', border: 'none', color: 'var(--whatsapp-t)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                   WhatsApp
                 </button>
                 <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
@@ -2171,7 +2171,7 @@ function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaH
             <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Vacaciones de verano" />
           </div>
         </div>
-        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--teal)", color: "#040b12", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
+        <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--nexus-solido)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>
           {saving ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "+ Crear bloqueo"}
         </button>
       </div>

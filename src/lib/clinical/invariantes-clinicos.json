@@ -1223,6 +1223,10 @@
     {
       "archivo": "src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/el-contraste-no-se-aprueba-a-ojo.test.ts",
+      "minCasos": 10
     }
   ]
 }

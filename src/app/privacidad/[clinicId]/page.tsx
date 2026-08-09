@@ -211,7 +211,7 @@ export default function PortalPrivacidadPage() {
                 <div style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{descripcion.length}/1000</div>
               </div>
               <div style={{
-                padding: 10, background: '#fef3c7', borderRadius: 6, fontSize: 12, color: 'var(--amber)',
+                padding: 10, background: 'var(--s2)', borderRadius: 6, fontSize: 12, color: 'var(--amber)',
                 display: 'flex', alignItems: 'flex-start', gap: 6,
               }}>
                 <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />

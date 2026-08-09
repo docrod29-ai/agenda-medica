@@ -199,7 +199,7 @@ export default function ReactivacionPage() {
             <button key={u.dias} onClick={() => setUmbral(u.dias)}
               style={{
                 border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700,
-                background: umbral === u.dias ? 'var(--nexus)' : 'transparent',
+                background: umbral === u.dias ? 'var(--nexus-solido)' : 'transparent',
                 color: umbral === u.dias ? '#fff' : 'var(--text3)',
               }}>
               +{u.label}

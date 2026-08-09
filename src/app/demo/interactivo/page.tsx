@@ -307,7 +307,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
                 </div>
               ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 8, background: '#f3f4f6', display: 'grid', placeItems: 'center', fontSize: 9, color: '#6b7280', textAlign: 'center', lineHeight: 1.15, border: '1px solid #e5e7eb' }}>QR<br/>verif.</div>
+            <div style={{ width: 52, height: 52, borderRadius: 8, background: '#f3f4f6', display: 'grid', placeItems: 'center', fontSize: 9, color: '#565A60', textAlign: 'center', lineHeight: 1.15, border: '1px solid #e5e7eb' }}>QR<br/>verif.</div>
           </div>
         </div>
 

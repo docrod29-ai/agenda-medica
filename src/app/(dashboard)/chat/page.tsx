@@ -311,8 +311,8 @@ export default function ChatPage() {
           disabled={!texto.trim() || enviando}
           aria-label="Enviar"
           style={{
-            background: texto.trim() ? 'var(--teal)' : 'var(--s3)',
-            color: texto.trim() ? '#040b12' : 'var(--text3)',
+            background: texto.trim() ? 'var(--nexus-solido)' : 'var(--s3)',
+            color: texto.trim() ? '#fff' : 'var(--text3)',
             border: 'none', borderRadius: 12, padding: '0 18px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: texto.trim() && !enviando ? 'pointer' : 'default',

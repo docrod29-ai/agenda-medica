@@ -4128,7 +4128,7 @@ export default function ConsultaActivaPage() {
                   display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Mic size={14} className="ds-icon" /> Hay audio guardado de una sesión anterior. ¿Recuperar y transcribir?</span>
-                  <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
+                  <button className="btn btn-sm" style={{ background: 'var(--amber-solido)', color: '#fff', border: 'none', fontWeight: 600 }}
                     onClick={async () => { await audio.recuperarAudio(`consulta-${patientId}`, opcionesWhisper); setOfreceRecovery(false) }}>
                     Recuperar
                   </button>
@@ -4425,7 +4425,7 @@ export default function ConsultaActivaPage() {
                     <span style={{ fontSize: 11.5, color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <AlertTriangle size={12} className="ds-icon" /> {audio.error}
                     </span>
-                    <button className="btn btn-sm" style={{ background: 'var(--amber)', color: '#000', border: 'none', fontWeight: 600 }}
+                    <button className="btn btn-sm" style={{ background: 'var(--amber-solido)', color: '#fff', border: 'none', fontWeight: 600 }}
                       title="Guarda el audio como archivo en tu dispositivo (nunca lo pierdes)"
                       onClick={async () => { const ok = await audio.descargarAudioGuardado(`consulta-${patientId}`); if (!ok) toast('No se encontró audio guardado.', 'info') }}>
                       Descargar audio
@@ -5491,7 +5491,7 @@ export default function ConsultaActivaPage() {
                     ↩ Deshacer
                   </button>
                 )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: (corrigiendo || !instruccionCorr.trim()) ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
                 </button>
               </div>
@@ -5538,7 +5538,7 @@ export default function ConsultaActivaPage() {
                 <button
                   onClick={() => void guardarCedulaRapida()}
                   disabled={!cedulaRapida.trim() || guardandoCedula}
-                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus-solido)', color: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   {guardandoCedula ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : 'Guardar y seguir'}
                 </button>

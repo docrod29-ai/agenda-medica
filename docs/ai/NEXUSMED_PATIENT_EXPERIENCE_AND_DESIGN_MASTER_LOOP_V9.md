@@ -693,3 +693,5 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | Fecha | Unidad | SHA | Qué quedó | REG |
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
+| 2026-08-08 | Los tres P0 de audio (`PATIENT-AUDIO-001/002/003`) | `7be23e9`, `2340e63` | 22 min de dictado que se borraban solos; navegar ya no termina la grabación; grabar cuenta como actividad | **283, 284, 287** |
+| 2026-08-09 | **DESIGN-SYSTEM-001 · parte A** — contraste | *(este commit)* | 48 parejas bajo AA en 22 archivos, reparadas · 5 tokens de relleno con el cociente medido · compuerta `gate:contraste` con techo **0** · prueba sellada de 10 casos, probada al revés | **291** |

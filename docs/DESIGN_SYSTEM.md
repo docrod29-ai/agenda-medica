@@ -42,6 +42,33 @@ Light mode disponible vía `[data-theme="light"]`. No introducir colores fuera d
 **Regla de acento:** el cobalto se usa para *acción* y *estado activo*, no para decorar.
 Una pantalla no debe tener cobalto en 5 lugares sin razón.
 
+### Un color de TEXTO y un color de RELLENO no pueden ser el mismo token
+
+Los requisitos son opuestos, y por eso esto se repitió cinco veces (REG-291):
+
+- como **texto** sobre superficie oscura hay que **aclarar** el color para
+  separarlo del fondo;
+- como **relleno** bajo texto blanco hay que **oscurecerlo** para separarlo del
+  texto.
+
+`--nexus`, `--red`, `--green` y `--amber` están ajustados para lo primero. Para
+lo segundo existe la familia `-solido`, con el cociente WCAG medido y **el mismo
+valor en los dos temas**, para que el contraste no haya que comprobarlo dos
+veces:
+
+| Token de relleno | Valor | Blanco encima |
+|---|---|---|
+| `--nexus-solido` | `#3D5AFE` (claro: `#2845EA`) | 5,13 · 6,71 |
+| `--red-solido` | `#B91C1C` | 6,47 |
+| `--green-solido` | `#14532D` | 9,11 |
+| `--amber-solido` | `#92400E` | 7,09 |
+| `--whatsapp` + `--whatsapp-t` | `#25D366` + `#0B0C0E` | 9,87 (tinta oscura: la marca se conserva) |
+
+**Esto no se vigila a ojo.** `npm run gate:contraste` lee los tokens de los dos
+temas, empareja `background` con `color` dentro de cada `style={{ }}` y aplica la
+fórmula de luminancia relativa de WCAG 2.1. El techo está en **cero**: una
+pantalla nueva no puede nacer por debajo de 4,5:1.
+
 ---
 
 ## 3. Tipografía

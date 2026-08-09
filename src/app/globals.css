@@ -62,6 +62,46 @@
   --teal-glow:    var(--nexus-soft);
 
   /*
+    LOS DEMÁS RELLENOS, POR LA MISMA RAZÓN QUE --nexus-solido.
+
+    La familia entera se repitió: `--red`, `--green` y `--amber` también están
+    ajustados para leerse COMO TEXTO sobre superficie oscura, y también se
+    usaban de RELLENO bajo texto blanco. Medido con la fórmula de luminancia
+    relativa WCAG 2.1, blanco encima daba:
+
+        --red   #E66464 → 3,30      --green #1BA34D → 3,29
+        --amber #D97706 → 3,19 (y con texto negro, 4,18 en el tema claro)
+
+    Los tres reprueban AA. Estos tres tokens son el relleno, y sólo el relleno:
+    van con texto blanco y NO sirven de color de texto.
+
+        blanco sobre --red-solido   #B91C1C → 6,47
+        blanco sobre --green-solido #14532D → 9,11
+        blanco sobre --amber-solido #92400E → 7,09
+
+    No llevan variante clara: se eligieron para pasar por sí mismos con blanco
+    encima, así que el mismo valor sirve a los dos temas. Un token de relleno
+    que cambia con el tema obliga a comprobar el contraste dos veces; éstos no.
+  */
+  --red-solido:   #B91C1C;
+  --green-solido: #14532D;
+  --amber-solido: #92400E;
+
+  /*
+    WhatsApp — la marca manda el fondo, la lectura manda el texto.
+
+    #25D366 es el verde de WhatsApp y se reconoce a un metro; cambiarlo sería
+    quitarle al botón lo único que dice de qué es. Lo que estaba mal era el
+    texto: blanco encima da **1,98 : 1** — prácticamente ilegible, y no es un
+    tecnicismo, es un botón que se lee mal en el consultorio.
+
+    Con tinta oscura encima, el mismo verde da **9,87 : 1**. Se conserva la
+    marca y se gana la lectura. Vale para los dos temas.
+  */
+  --whatsapp:   #25D366;
+  --whatsapp-t: #0B0C0E;
+
+  /*
     Semántica clínica — DARK, con contraste AA medido.
 
     LA CORRECCIÓN DE CONTRASTE SE HABÍA APLICADO SÓLO A UN TEMA. El bloque
@@ -1052,12 +1092,18 @@ tbody tr:last-child { border-bottom: none; }
   /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
   --text:      #0B0C0E;
   --text2:     #565A60;
-  /* AA sobre --bg y sobre --s3. El valor anterior (#8A8E94) daba 3.15:1 sobre el
+  /* AA sobre --bg y sobre --s3. El valor original (#8A8E94) daba 3.15:1 sobre el
      fondo y 2.74:1 sobre --s3: NO cumplía. El modo oscuro ya se había corregido y
      este lado se quedó sin aplicar — y el claro es el que sale por defecto con
      luz de consultorio. --text3 lleva TODOS los placeholders, las pistas CIE-10 y
-     el texto de ayuda. */
-  --text3:     #6B6F75;
+     el texto de ayuda.
+
+     SEGUNDA CORRECCIÓN, y la primera la hizo un ojo. #6B6F75 arregló el fondo
+     (4,56 sobre --s2) pero sobre --s3 se quedaba en **4,20**, y el comentario
+     decía «AA sobre --s3» sin haberlo medido ahí. Lo cazó la compuerta de
+     contraste (`scripts/design/contraste-en-linea.mjs`) en cuatro pantallas.
+     #62666C da 4,80 sobre --s3 y sube todo lo demás con él. */
+  --text3:     #62666C;
 
   /* Semánticas — versiones light-mode (contraste AA) */
   --blue:      #2057C5;
@@ -1106,7 +1152,7 @@ tbody tr:last-child { border-bottom: none; }
     --teal-glow:    var(--nexus-soft);
     --text:      #0B0C0E;
     --text2:     #565A60;
-    --text3:     #6B6F75;   /* AA — ver nota arriba */
+    --text3:     #62666C;   /* AA — ver nota arriba */
     --blue:      #2057C5;
     --blue-dim:  #1A4AA8;
     --amber:     #B45309;

@@ -6379,3 +6379,103 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — el relleno de marca reprobaba AA en 22 pantallas, y el arreglo ya existía (V9 · DESIGN-SYSTEM-001)
+
+`globals.css` tenía la cuenta hecha y escrita a mano: `--nexus` se aclaró a
+`#6E84FE` para leerse **como texto** sobre fondo oscuro, y usado de **relleno**
+bajo texto blanco daba **3,28 : 1** — reprueba AA, que pide 4,5. Para eso nació
+`--nexus-solido` (`#3D5AFE`, blanco encima = 5,13), y se aplicó a `.btn-primary`.
+
+La misma pareja seguía viva en **21 sitios más**, en `style={{ }}`, donde ninguna
+hoja de estilo llega. Y con ella, cinco primas de la misma familia:
+
+| Pareja | Contraste | Dónde |
+|---|---|---|
+| blanco sobre `--nexus` / `--teal` | **3,28** | selector de plan, filtros de pacientes, pestañas de UCI, enviar del chat, alta de consultorio, legal, reactivación, antimicrobianos |
+| tinta oscura sobre `--teal` (tema claro) | **2,95 / 3,13** | los mismos selectores, del otro lado del interruptor |
+| blanco sobre `#25D366` (WhatsApp) | **1,98** | tres botones de «Enviar por WhatsApp» |
+| blanco sobre `--red` / `#ef4444` | **3,30 / 3,76** | insignias de superadmin, «Anular cobro» |
+| blanco sobre `#10b981` | **2,54** | confirmación del asistente |
+| blanco sobre `--s3` (tema claro) | **1,20** | seis botones desactivados: el texto simplemente no estaba |
+| `--text3` sobre `--s3` (tema claro) | **4,20** | cuatro pantallas — **con un comentario al lado que afirmaba «AA sobre --s3»** |
+
+**48 parejas en 22 archivos. Todas en verde, todas por debajo de AA.**
+
+### Cómo se descubrió
+
+No mirando pantallas: **calculándolas**. `scripts/design/contraste-en-linea.mjs`
+lee los tokens de los dos temas de `globals.css`, empareja `background` y `color`
+dentro del mismo objeto de estilo, y aplica la fórmula de luminancia relativa de
+WCAG 2.1. Un cociente de contraste no es una opinión: es una división.
+
+### La causa raíz
+
+**La corrección se aplicó donde miró la búsqueda.** Quien arregló el relleno de
+marca buscó `.btn-primary`, lo arregló bien y lo documentó mejor — y el mismo
+defecto siguió vivo en el estilo en línea, que es donde vive el 88 % de esta
+interfaz. Media defensa, la familia de siempre.
+
+Y una segunda, más fina: **un contraste escrito en un comentario no es un
+contraste medido**. `--text3` decía cumplir sobre `--s3` y daba 4,20.
+
+### El arreglo
+
+Los rellenos tienen ahora su token con la cuenta hecha, y **ninguno cambia con el
+tema**, para que el contraste no haya que comprobarlo dos veces:
+
+| Token | Blanco encima |
+|---|---|
+| `--nexus-solido` (ya existía) | 5,13 · 6,71 en claro |
+| `--red-solido` `#B91C1C` | 6,47 |
+| `--green-solido` `#14532D` | 9,11 |
+| `--amber-solido` `#92400E` | 7,09 |
+| `--whatsapp` `#25D366` + `--whatsapp-t` `#0B0C0E` | 9,87 — se conserva el verde de la marca y se cambia la tinta |
+
+`--text3` del tema claro pasa de `#6B6F75` a `#62666C` (4,80 sobre `--s3`), en
+los **dos** bloques donde se declara el tema claro.
+
+### La compuerta
+
+`docs/design/contraste-techo.json` con techo **CERO**: no hay deuda congelada que
+perdonar. Cualquier pareja nueva por debajo de 4,5:1, en cualquiera de los dos
+temas, hace fallar la prueba. Un archivo que no aparece en el techo —una pantalla
+nueva— tiene tolerancia cero.
+
+Probado al revés: se revirtió el arreglo de `legal/page.tsx` y la prueba falló
+nombrando el archivo, la línea, el tema y el cociente.
+
+### Un falso positivo, cazado antes de nacer
+
+La primera versión del medidor emparejaba «el único fondo literal» con todos los
+textos, y acusaba de **1,08 : 1** a una burbuja de chat que se ve perfectamente:
+las dos ramas que emparejaba **nunca se pintan juntas**. Una compuerta que acusa
+en falso se marca como ruido y deja de proteger, así que ahora sólo empareja lo
+que es cierto sin ejecutar el navegador, y lo que no, lo calla y lo declara.
+
+Y un segundo, en el lector de tokens: el comentario del tema claro contiene la
+frase «2.74:1 sobre `--s3`: NO cumplía», que casaba con la expresión de
+declaración y se tragaba la declaración real de `--text3`. Sin quitar
+comentarios, la compuerta acusaba a decenas de pantallas que sí cumplen. Los dos
+casos quedan como prueba.
+
+### Lo que esto NO garantiza
+
+Que la interfaz se vea bien. Esto mide una razón matemática; **nadie ha abierto
+un navegador** — este contenedor no tiene las variables de Firebase y la
+aplicación no arranca. La directiva V9 §4 dice que no se aprueba interfaz leyendo
+código: lo que queda garantizado es que no se aprueba interfaz **ilegible**.
+
+Fuera de alcance, y declarado en el propio instrumento: colores translúcidos
+(`rgba`, `color-mix`), color heredado de un ancestro, las clases de `globals.css`,
+y el umbral relajado que AA concede al texto grande (aquí se exige 4,5 a todo).
+
+### Archivos
+
+- `scripts/design/contraste-en-linea.mjs` · `.d.mts` (nuevos)
+- `docs/design/contraste-techo.json` (nuevo, techo 0)
+- `src/app/globals.css` — cinco tokens de relleno nuevos, `--text3` claro corregido
+- `src/__tests__/el-contraste-no-se-aprueba-a-ojo.test.ts` (nuevo, 10 casos, sellado)
+- 22 pantallas de `src/app/**`

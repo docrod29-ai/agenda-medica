@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 32 de 139, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,12 +64,24 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 138.**
+**«El sistema se contradice a sí mismo» — 24 de 139.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
 contrario y daba 3,28. Ninguna de las dos decisiones estaba mal por su cuenta. Y
 el tema CLARO nunca lo tuvo — la corrección existía, aplicada a un solo tema.
+
+Y **volvió**, en REG-291. La misma contradicción, sin tocar: REG-223 reparó
+`.btn-primary` y creó `--nexus-solido`, pero **el 88 % de esta interfaz vive en
+`style={{ }}`**, donde ninguna hoja de estilo llega. Quedaron 48 parejas por
+debajo de AA en 22 archivos, incluidas las tres primas de la misma forma —`--red`,
+`--green`, `--amber`— que nadie fue a buscar porque el caso encontrado ya estaba
+arreglado.
+
+La lección que separa a REG-223 de REG-291 no es «revisa mejor»: es que **una
+contradicción de este tipo no se cierra con una reparación, se cierra con una
+medición que corra sola**. Desde REG-291 la hay: `npm run gate:contraste`, techo
+cero.
 
 ## El patrón que sostiene a las dos
 
@@ -104,7 +116,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 138**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 139**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

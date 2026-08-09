@@ -578,7 +578,7 @@ export default function FinanzasPage() {
                     toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
                   } finally { setAnulaGuardando(false) }
                 }}
-                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+                style={{ background: 'var(--red-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
               >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
             </div>
           </div>
