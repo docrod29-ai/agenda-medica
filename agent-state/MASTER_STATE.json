@@ -18,20 +18,17 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/Sidebar.tsx",
-    " M src/lib/calidad/familias-de-defecto.ts",
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M src/app/api/payment/create-checkout/route.ts",
+    " M src/app/api/portal/route.ts",
+    " M src/app/api/public/resena/route.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/rutas-privadas.ts",
-    " M src/lib/seguridad/dosis.ts",
-    "?? src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-    "?? src/app/(dashboard)/motores/",
-    "?? src/components/motores/"
+    "?? docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md",
+    "?? src/__tests__/checkout-limite-de-tasa.test.ts",
+    "?? src/__tests__/portal-limite-de-tasa.test.ts",
+    "?? src/__tests__/resena-limite-de-tasa.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,12 +62,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/clever-lamport-3fkemu",
   "derivado": {
-    "regsEnElLedger": 138,
-    "ultimaREG": "REG-290",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "regsEnElLedger": 139,
+    "ultimaREG": "REG-291",
+    "archivosDePrueba": 569,
+    "casosDePrueba": 7471,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

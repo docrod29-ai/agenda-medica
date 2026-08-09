@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   let body: { token?: string; rating?: number; texto?: string }
@@ -20,6 +21,15 @@ export async function POST(req: NextRequest) {
   const texto = String(body.texto ?? '').trim().slice(0, 1000)
   if (!token) return NextResponse.json({ ok: false, motivo: 'Enlace inválido' }, { status: 400 })
   if (!(rating >= 1 && rating <= 5)) return NextResponse.json({ ok: false, motivo: 'Calificación inválida' }, { status: 400 })
+
+  // Límite de tasa por IP (PATIENT-PORTAL-001): ruta pública sin cuenta, sin
+  // ningún freno hasta ahora. Mismo patrón que `public/booking` (`ip`, no el
+  // token: el token de reseña ya es de un solo uso, pero nada frenaba los
+  // intentos fallidos contra el catálogo de tokens).
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
+  const limite = await limitarOResponder(`resena:ip:${ip}`, 10, 3600,
+    'Demasiados intentos desde esta conexión. Intenta más tarde.')
+  if (limite) return limite
 
   const reqRef = adminDb.collection('clinic_review_requests').doc(token)
 

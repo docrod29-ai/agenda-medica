@@ -18,6 +18,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { stripe } from '@/lib/stripe'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -35,6 +36,13 @@ export async function POST(req: NextRequest) {
     const sesion = verificarTokenPaciente(token)
     if (!sesion) return NextResponse.json({ ok: false, error: 'Enlace inválido o vencido' }, { status: 401 })
     const { clinicId, patientId } = sesion
+
+    // Límite de tasa por sesión (PATIENT-PORTAL-001): crear una sesión de Stripe
+    // Checkout cuesta —llamada externa y escritura en Firestore— y no tenía
+    // freno. Mismo patrón que `telesalud/sala`.
+    const limite = await limitarOResponder(`checkout:${clinicId}:${patientId}`, 10, 600,
+      'Demasiados intentos de pago. Espera un momento e inténtalo de nuevo.')
+    if (limite) return limite
 
     if (!citaId) return NextResponse.json({ ok: false, error: 'Falta la cita' }, { status: 400 })
 

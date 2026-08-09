@@ -7,6 +7,7 @@ import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -161,6 +162,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
   const { clinicId, patientId, alcance } = sesion
+
+  /**
+   * LÍMITE DE TASA POR SESIÓN (PATIENT-PORTAL-001).
+   *
+   * Ninguna acción de este endpoint tenía freno: confirmar, cancelar,
+   * reagendar, enviar el formulario previo y listar recetas iban sin límite.
+   * Un token filtrado —no robado, filtrado: reenviado, en un teléfono
+   * perdido— permitía enumerar y mover la agenda completa del consultorio.
+   * Mismo patrón que `telesalud/sala` (`limitarOResponder`, fail-open si
+   * Firestore falla: el límite es una malla, no el gate principal — la firma
+   * y la caducidad del token siguen siendo la autorización real).
+   */
+  const limiteSesion = await limitarOResponder(`portal:${clinicId}:${patientId}`, 60, 600,
+    'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
+  if (limiteSesion) return limiteSesion
 
   /**
    * ¿SIGUE VIGENTE ESTE ENLACE?

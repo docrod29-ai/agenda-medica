@@ -145,3 +145,36 @@ NOM-004: quién puede tocar un dato ya asentado y hasta cuándo. Elegir un valor
 no hace.
 
 **Qué cuesta responder**: cuatro frases.
+
+---
+
+## SEGURIDAD · ¿La revocación de un enlace del paciente falla ABIERTA o CERRADA?
+
+**Estado**: pendiente · abierto el 9-ago-2026 (V7 · PATIENT-PORTAL-001 / REG-291)
+
+**El hecho** — `/api/portal` comprueba `portalTokenVersion` para poder invalidar
+de golpe todos los enlaces ya emitidos de un paciente (teléfono perdido, número
+reciclado, mensaje reenviado). Si esa lectura de Firestore **lanza**, el código
+deja pasar a propósito (`route.ts`, el `catch` vacío).
+
+**Lo que YA se hizo en esta corrida, y no depende de usted**: las tres rutas sin
+freno de tasa —portal, reseña pública y create-checkout— ya lo tienen (REG-291).
+Eso acota el daño de un token filtrado: ya no se puede barrer la agenda a la
+velocidad de la red.
+
+**La decisión que es suya**
+
+| Opción | Qué implica |
+|---|---|
+| **Seguir fallando ABIERTA** (hoy) | Un enlace revocado vuelve a valer mientras dure una incidencia de Firestore. A cambio, ningún paciente se queda fuera de su propia agenda por un mal minuto de la base. La firma y la caducidad siguen protegiendo. |
+| **Fallar CERRADA** | Un enlace revocado nunca vuelve a valer. A cambio, una incidencia de Firestore deja a **todos** los pacientes fuera del portal —no sólo a los revocados—, justo cuando el consultorio menos puede atender llamadas. |
+
+**Recomendación por omisión**: **quedarse como está** y no tocarlo. La ventana es
+estrecha, ahora está limitada en tasa, y el modo de fallo de la opción cerrada es
+más ancho que el riesgo que evita. Pero es una aceptación de riesgo de seguridad,
+y §3.2 de la directiva V7 dice que eso lo firma el dueño, no el agente.
+
+**Qué queda bloqueado sin la respuesta**: nada. El límite de tasa ya está puesto
+y el resto del portal funciona.
+
+**Qué cuesta responder**: una frase.

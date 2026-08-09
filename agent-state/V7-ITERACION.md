@@ -11,7 +11,46 @@
 > **criterio**, y el criterio no sale de un `grep`.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
+**Rama de esta corrida**: `claude/clever-lamport-3fkemu` (la rutina en la nube
+asigna la rama; `agent/v7/master-loop` sigue siendo la rama larga de V7 y está
+fusionada en `main` hasta `0144257c`)
+
+---
+
+## Corrida del 9-ago-2026 — la directiva V7 ya vive en el repositorio
+
+**Lo primero, porque era la causa de que cada corrida empezara a ciegas**: el
+archivo que la rutina declara como autoridad —
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` —
+**no existía en el repositorio**. Nunca había existido: `git log --diff-filter=A`
+sobre esa ruta no devuelve nada en ninguna rama. V7 llevaba corridas
+reconstruyendo su propio criterio de `CLAUDE.md`, de `.claude/rules/` y del
+tablero, que es justo lo que la directiva prohíbe.
+
+Instalado desde el adjunto del dueño, **íntegro y verificado**: 2 290 líneas,
+`sha256 c576ceb18f15cad98a04a55f83bda565d22c3e0ccc60f05533a50d5dd3e732c0`,
+idéntico byte a byte al adjunto. No se resumió, no se reescribió, no se
+reinterpretó.
+
+**Iteración cerrada**: `PATIENT-PORTAL-001` → **REG-291**. Ver el ledger.
+
+**Siguiente por el algoritmo §7** (los tres P0 de audio ya están cerrados por V9
+en v1158/v1161 — **no se rehacen**):
+
+1. `POSTVISIT-GATE-001` (63) — la hoja del paciente se compone del borrador en
+   curso, sin compuerta de firma. Es el cimiento `DRAFT→RELEASED` de V9: **antes
+   de tocarlo hay que comprobar si V9 ya lo tiene abierto**, o los dos programas
+   se pisan.
+2. `POSTVISIT-ENTREGA-001` (60) — la hoja no llega nunca al paciente.
+3. `PATIENT-TELE-002` (55) — el enlace de videoconsulta que viaja por WhatsApp
+   sigue sin token (REG-265 sólo cerró el camino del portal).
+
+**Lo que quedó abierto de este mismo ítem y NO se cierra por mi cuenta**: la
+comprobación de revocación (`portalTokenVersion`) falla ABIERTA. Que un enlace
+revocado vuelva a valer durante una incidencia de Firestore es un riesgo que
+acepta el dueño, no yo. → `OWNER_DECISIONS_REQUIRED.md`.
+
+---
 
 **Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
 8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio

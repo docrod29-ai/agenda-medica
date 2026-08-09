@@ -6379,3 +6379,69 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+## REG-291 — el enlace del paciente movía la agenda sin ningún freno (V7 · PATIENT-PORTAL-001)
+
+**Cómo se descubrió**: la auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026) lo
+dejó anotado en `agent-state/BACKLOG.json` con score 62. Lo cierra V7.
+
+**El hecho**: `/api/portal` no llamaba a `limitarOResponder` en ninguna de sus
+acciones. `confirmar`, `cancelar`, `reagendar`, `formulario` y `documentos` iban
+sin freno. Lo mismo en `/api/public/resena` (pública, sin cuenta) y en
+`/api/payment/create-checkout` (crea sesiones de Stripe, que cuestan).
+
+**Por qué importa**: un enlace del portal no se roba, se **filtra** — se reenvía
+por WhatsApp, se queda en un teléfono perdido, el número se recicla. Con la firma
+y la caducidad intactas, ese token permitía enumerar y mover la agenda completa
+del consultorio a la velocidad que diera la red. `telesalud/sala` y
+`public/booking` ya se defendían así desde hace versiones; estas tres rutas se
+quedaron fuera.
+
+**Causa raíz**: no es un fallo de diseño del limitador — el limitador existe,
+está probado y funciona. Es la familia **«escrito, probado y sin conectar»** otra
+vez: tres rutas que nunca lo importaron. La misma que este proyecto ya nombró.
+
+**La regla que lo hace seguro**: toda petición pasa por `limitarOResponder`
+antes de tocar Firestore o Stripe, con la clave derivada de la identidad que el
+token YA verificó (`portal:${clinicId}:${patientId}`,
+`checkout:${clinicId}:${patientId}`) o de la IP en la ruta pública
+(`resena:ip:${ip}`). **Fail-open a propósito**, igual que el resto del
+repositorio: si Firestore falla, el limitador deja pasar. Es una malla de
+seguridad, no la autorización — la firma y la caducidad del token siguen siendo
+el gate real, y dejar a un paciente fuera de su propia agenda por un mal minuto
+de Firestore es peor que el riesgo que esto acota.
+
+### Qué NO cubre
+
+**No toca el fail-open de la comprobación de revocación** (`portalTokenVersion`,
+`route.ts`). Ése es el segundo hallazgo del mismo ítem del backlog y es una
+**decisión de política, no de código**: que un enlace revocado vuelva a valer
+durante una incidencia de Firestore es un riesgo que sólo el dueño puede aceptar
+o rechazar. Queda en `OWNER_DECISIONS_REQUIRED.md`; cerrarlo por mi cuenta sería
+fijar política clínica/de seguridad sin autorización.
+
+Las pruebas tampoco miden el umbral exacto (60/600 s en el portal, 10/600 s en
+checkout, 10/h en reseña): comprueban que el guardián **existe, está conectado
+con la clave correcta y corta antes de leer Firestore**. Probadas al revés — si
+se quita la llamada, los casos de 429 fallan porque el doble de Firestore sí se
+invoca.
+
+### Archivos
+
+- `src/app/api/portal/route.ts`
+- `src/app/api/public/resena/route.ts`
+- `src/app/api/payment/create-checkout/route.ts`
+- `src/__tests__/portal-limite-de-tasa.test.ts` (nuevo, 5 casos)
+- `src/__tests__/resena-limite-de-tasa.test.ts` (nuevo, 3 casos)
+- `src/__tests__/checkout-limite-de-tasa.test.ts` (nuevo, 3 casos)
+
+### Compuertas
+
+`npx vitest run` **8 470 pasan** (1 saltada) · `lint-trinquete` **96, el techo,
+sin deuda nueva** · `npx tsc --noEmit` **limpio**.
+
+### Rollback
+
+`git revert` del commit. Las tres rutas vuelven a su comportamiento anterior; no
+hay migración ni dato escrito que deshacer. La colección `rate_limits` ya existía
+y la comparten las rutas que ya limitaban.
