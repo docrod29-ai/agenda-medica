@@ -2796,3 +2796,24 @@ resuelto es lo que hace que se dejen de leer todas.
 El documento **no propone respuestas**, y hay una prueba que lo comprueba: un
 valor «razonable» al lado de la pregunta es cómo el criterio del dueño se
 convierte en el default de un agente.
+
+## v1163 — «Lo que te protege»: las defensas, corriendo en vivo (REG-289/290)
+
+**REG-290** · el dueño dijo *«no he visto ningún cambio en la aplicación»* y
+tenía razón. Verificado antes de contestar: el despliegue era real y el código
+estaba servido — pero de quince versiones, **doce eran defensas**, que hacen que
+NO pase algo malo. Lo más difícil de ver que existe.
+
+Nueva pantalla **`/motores` — «Lo que te protege»** en el menú del médico: nueve
+defensas, cada una con el caso real que falló y **el motor corriendo en vivo**
+sobre lo que se escriba. Los motores son puros y se ejecutan en el navegador: si
+uno se rompe mañana, la pantalla lo enseña roto. El «antes» se **cita** del
+registro y se dice que no se calcula.
+
+**REG-289** · **«500 microgramos» se leía como 500 mg** — mil veces la dosis. La
+abreviatura estaba en la lista; la palabra escrita, no. Y cualquier unidad
+desconocida se convertía en miligramos en silencio («1000 UI» → 1000 mg).
+
+Y **`QID` apagaba el techo diario**: devolvía «no se entiende» y el llamador
+asume una toma al día. Paracetamol 1000 mg QID son 4 000 mg y se comprobaban
+1 000. El techo no fallaba: **no se ejecutaba**.
