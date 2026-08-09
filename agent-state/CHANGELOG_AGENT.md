@@ -80,3 +80,44 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+## 2026-08-09 — Disparo de rutina «Master Loop V7»: sin especificación, se
+continuó V9 (PATIENT-TELE-002, REG-306)
+
+La rutina programada exigía leer
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` como
+primer paso obligatorio. **Ese archivo no existe y nunca existió** en este
+repositorio (`git log --all` no lo encuentra). `agent-state/V7-ITERACION.md` —el
+tablero propio que V7 se dio el 8-ago para no pisar a V9— quedó congelado en un
+solo commit y nunca se volvió a tocar; todo el trabajo real posterior es V9.
+Documentado en `agent-state/OWNER_DECISIONS_REQUIRED.md`, sección «PROGRAMA».
+
+Sin inventar trabajo de V7, se continuó el programa que el propio estado
+persistente señala como vivo: **V9, unidad `POSTVISIT-001`**, empezando por el
+P0 pendiente `PATIENT-TELE-002` (el enlace de videoconsulta por WhatsApp seguía
+sin token en los dos caminos automáticos — cron de recordatorios y confirmación
+del bot).
+
+**REG-306** — `crearTokenPaciente(clinicId, patientId, 1, 'agenda',
+portalTokenVersion)` en `api/cron/reminders` y en los dos caminos de
+confirmación de `api/whatsapp/webhook`. `lib/whatsapp.ts` (el módulo que se
+importa desde el navegador) queda sin tocar a propósito. Prueba al revés en
+`donde-es-la-cita.test.ts`: falla sin el arreglo (falta el import/llamada y
+falta `tokenPaciente:` en el mensaje), pasa con él.
+
+Efecto de cascada, cada uno con su propio guardián: `authz-rutas-declaradas`
+(nueva ruta que toca `patients`, declarada con su razón), `familias-de-defecto`
+(REG-306 clasificado en `no_conectado`), `la-sala-de-datos-no-infla` y
+`el-tablero-del-loop-no-miente` (cifras derivadas con
+`node scripts/data-room/actualizar-cifras.mjs` y
+`node scripts/agent-state/actualizar.mjs`).
+
+Compuertas: `npx vitest run` 8563 casos, **1 fallo preexistente y de entorno**
+(`ops-timeout`, ya declarado en el checkpoint anterior) · `lint-trinquete` 96,
+igual que el techo · `npm run build` limpio con las variables de relleno de CI.
+**No verificado en navegador**: sigue pendiente confirmar que el paciente real
+recibe un enlace que abre.
+
+Siguiente: `POSTVISIT-GATE-001` (compuerta de firma para `HojaParaElPaciente`)
+y `POSTVISIT-ENTREGA-001` (que la hoja llegue al portal), los dos P1 restantes
+de `POSTVISIT-001`.

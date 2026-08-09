@@ -43,13 +43,11 @@ describe('dondeEsLaCita', () => {
 
   it('SIN token no manda enlace: prefiere no darlo a darlo roto', () => {
     /**
-     * REG-265. Los dos llamadores de servidor —`api/cron/reminders` y el
-     * webhook— todavía no acuñan token, así que hoy caen aquí. Un paciente sin
-     * enlace llama al consultorio; un paciente con un enlace que contesta 404
-     * cree que se quedó sin cita.
-     *
-     * Este caso deja de valer el día que se cierre `PATIENT-TELE-002`: entonces
-     * habrá token siempre y lo que hay que vigilar es que no falte.
+     * REG-265. El módulo sigue degradando con gracia si algún día un llamador
+     * no trae token (p. ej. `lib/whatsapp.ts`, que se importa desde el
+     * navegador y no puede firmar — ver el bloque de abajo). Los dos
+     * llamadores de SERVIDOR ya no caen aquí desde REG-306: acuñan el token
+     * antes de llamar. Ver 'PATIENT-TELE-002' más abajo.
      */
     const texto = dondeEsLaCita(VIDEO).lineas.join('\n')
     expect(texto).not.toContain('/teleconsulta/')
@@ -102,5 +100,63 @@ describe('el bot de WhatsApp usa el mismo criterio', () => {
   it('el enlace se arma con el id REAL de la cita, no con uno inventado', () => {
     expect(bot).toContain('citaId: nuevoFolio')
     expect(bot).toContain('citaIdListaEspera = refLE.id')
+  })
+})
+
+/**
+ * GOLDEN — REG-306, PATIENT-TELE-002.
+ *
+ * REG-265 cerró el camino del portal (el botón del médico ya llevaba `&t=`),
+ * pero dejó sin token los DOS caminos que se disparan solos, sin que nadie del
+ * consultorio los revise: el cron de recordatorios y la confirmación del bot.
+ * `dondeEsLaCita` ya sabía qué hacer sin token —mandar "recibirás el enlace" en
+ * vez de un enlace roto—, así que el defecto no rompía ninguna prueba: era
+ * honesto y aun así incompleto. El paciente seguía sin enlace.
+ *
+ * Cómo se descubrió: auditoría PATIENT-UX-TRUTH-001 (8-ago-2026), siguiendo los
+ * tres archivos que llama `dondeEsLaCita` sin `tokenPaciente`.
+ *
+ * La regla: los dos llamadores de SERVIDOR acuñan el token con
+ * `crearTokenPaciente(clinicId, patientId, 1, 'agenda', portalTokenVersion)`
+ * antes de construir el mensaje. `lib/whatsapp.ts` NO — ese módulo se importa
+ * desde el navegador (`window.open` en `openWhatsApp`) y firmar ahí filtraría
+ * el secreto HMAC al bundle del cliente.
+ *
+ * Qué NO cubre: esto lee el TEXTO fuente de las tres rutas, no ejecuta
+ * Firestore ni Next.js — no prueba que `portalTokenVersion` viaje con el valor
+ * correcto en producción, sólo que el código lo pide antes de firmar. La
+ * prueba de extremo a extremo (¿el paciente recibe un enlace que abre?) sigue
+ * pendiente de verse en un navegador real.
+ */
+describe('PATIENT-TELE-002 — los dos caminos automáticos acuñan token (REG-306)', () => {
+  const cron = readFileSync(join(process.cwd(), 'src', 'app', 'api', 'cron', 'reminders', 'route.ts'), 'utf8')
+  const bot = readFileSync(join(process.cwd(), 'src', 'app', 'api', 'whatsapp', 'webhook', 'route.ts'), 'utf8')
+  const browserModule = readFileSync(join(process.cwd(), 'src', 'lib', 'whatsapp.ts'), 'utf8')
+
+  it('el cron de recordatorios importa y usa crearTokenPaciente', () => {
+    expect(cron).toContain("import { crearTokenPaciente } from '@/lib/patient-token'")
+    expect(cron).toContain('crearTokenPaciente(clinicId, appt.pacienteId, 1,')
+  })
+
+  it('el cron pasa tokenPaciente a dondeEsLaCita', () => {
+    expect(cron).toMatch(/dondeEsLaCita\(\{[\s\S]{0,400}tokenPaciente/)
+  })
+
+  it('el bot acuña token en LOS DOS caminos de confirmación (alta directa y lista de espera)', () => {
+    expect(bot).toContain("import { crearTokenPaciente } from '@/lib/patient-token'")
+    expect(bot.match(/crearTokenPaciente\(clinicId, pacienteId/g) ?? []).toHaveLength(2)
+  })
+
+  it('los dos mensajes de cita agendada del bot pasan tokenPaciente', () => {
+    expect(bot.match(/tokenPaciente: tokenPacienteTele/g) ?? []).toHaveLength(1)
+    expect(bot.match(/tokenPaciente: tokenPacienteLE/g) ?? []).toHaveLength(1)
+  })
+
+  it('lib/whatsapp.ts NO firma: es el módulo que abre WhatsApp en el navegador', () => {
+    // Prueba al revés: si alguien acuña el token aquí, el secreto de firma
+    // viaja al bundle del cliente. `window.open` es la prueba de que este
+    // módulo corre en el navegador, no en el servidor.
+    expect(browserModule).not.toContain('crearTokenPaciente')
+    expect(browserModule).toContain('window.open')
   })
 })

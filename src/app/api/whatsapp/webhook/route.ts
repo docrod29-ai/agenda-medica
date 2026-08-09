@@ -37,7 +37,8 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 // time-blocks-core.ts (el SDK del cliente se inicializa al importarse).
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
-import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, ES_TELECONSULTA } from '@/lib/telesalud/donde-es'
+import { crearTokenPaciente } from '@/lib/patient-token'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1061,17 +1062,26 @@ export async function handleMessage(from: string, body: string, clinicId: string
        * No se pisa uno anterior: el PRIMERO es el que vale, y machacarlo
        * borraría la fecha real en que aceptó.
        */
+      // PATIENT-TELE-002 — sin token no hay enlace de sala (ver `donde-es.ts`).
+      // Se reaprovecha la lectura del expediente que ya hacía el sello de aviso,
+      // en vez de una segunda lectura sólo para la versión del token.
+      let tokenPacienteTele: string | undefined
       if (pacienteIdBot) {
         try {
           const pacRef = adminDb.collection('clinics').doc(clinicId).collection('patients').doc(pacienteIdBot)
-          const yaTiene = !!(await pacRef.get()).data()?.avisoPrivacidad
+          const pacSnap = await pacRef.get()
+          const yaTiene = !!pacSnap.data()?.avisoPrivacidad
           if (!yaTiene) {
             await pacRef.set({
               avisoPrivacidad: selloExpediente(config, String(datos.avisoEn || now)),
               updatedAt: now,
             }, { merge: true })
           }
-        } catch { /* la cita ya quedó; el sello no la tumba */ }
+          if (datos.tipo === ES_TELECONSULTA) {
+            const version = Number((pacSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
+            tokenPacienteTele = crearTokenPaciente(clinicId, pacienteIdBot, 1, 'agenda', version)
+          }
+        } catch { /* sin token no se manda enlace; donde-es.ts avisa que llega aparte. La cita ya quedó: el sello no la tumba */ }
       }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
@@ -1084,6 +1094,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenPacienteTele,
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1273,10 +1284,22 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       {
+        // PATIENT-TELE-002 — mismo camino que la confirmación directa: sin
+        // token no hay enlace de sala.
+        let tokenPacienteLE: string | undefined
+        if (datos.tipo === ES_TELECONSULTA && pacienteIdLE) {
+          try {
+            const pacSnapLE = await adminDb.collection('clinics').doc(clinicId)
+              .collection('patients').doc(pacienteIdLE).get()
+            const version = Number((pacSnapLE.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
+            tokenPacienteLE = crearTokenPaciente(clinicId, pacienteIdLE, 1, 'agenda', version)
+          } catch { /* sin token no se manda enlace; donde-es.ts avisa que llega aparte */ }
+        }
         const donde = dondeEsLaCita({
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenPacienteLE,
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

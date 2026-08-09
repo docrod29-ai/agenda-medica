@@ -6,7 +6,32 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`PATIENT-TELE-002` cerrado (P0, REG-306)**
+
+| | |
+|---|---|
+| **Unidad** | `POSTVISIT-001`, en curso — este es un P0 suelto que colgaba de `PATIENT-COMPANION-001` |
+| **Siguiente** | `POSTVISIT-GATE-001` (compuerta de firma), luego `POSTVISIT-ENTREGA-001` |
+
+Disparo de la rutina «Master Loop V7»: su especificación no existe en el
+repositorio (ver `OWNER_DECISIONS_REQUIRED.md` § PROGRAMA); se continuó V9 por
+ser el programa que el estado persistente señala como vivo.
+
+El enlace de videoconsulta por WhatsApp llegaba sin token en los dos caminos
+**automáticos** (cron de recordatorios, confirmación del bot) — REG-265 sólo
+había cerrado el del portal. `dondeEsLaCita` ya degradaba con honestidad («
+recibirás el enlace»), así que el defecto no rompía ninguna prueba: el paciente
+sencillamente seguía sin enlace. Los dos llamadores de servidor ahora acuñan el
+token antes de construir el mensaje; `lib/whatsapp.ts` (navegador) se deja sin
+tocar por diseño. Prueba nueva en `donde-es-la-cita.test.ts`, probada al revés.
+
+Compuertas: vitest 8563 (1 fallo preexistente de entorno, `ops-timeout`) ·
+lint-trinquete 96 (techo) · build limpio. **No visto en navegador** — el
+enlace real, con Firestore de verdad, sigue sin confirmarse extremo a extremo.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

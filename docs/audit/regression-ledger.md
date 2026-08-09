@@ -7013,3 +7013,48 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — El enlace de videoconsulta por WhatsApp llegaba sin token (PATIENT-TELE-002)
+
+**Encontrado** en la auditoría `PATIENT-UX-TRUTH-001` (8-ago-2026), siguiendo
+los tres archivos que llaman `dondeEsLaCita`.
+
+**Qué pasaba.** REG-265 cerró el 404 del botón del portal (el médico ya manda
+`&t=`), pero dejó sin token los DOS caminos que se disparan **solos**, sin que
+nadie del consultorio los revise: `api/cron/reminders` (los recordatorios de
+24 h y del mismo día) y `api/whatsapp/webhook` (la confirmación del bot, en
+alta directa y desde lista de espera). `dondeEsLaCita` ya sabía degradar sin
+romper — mandaba «recibirás el enlace por este medio» en vez de un enlace que
+contesta 404 —, así que el defecto era honesto y aun así incompleto: el
+paciente de teleconsulta seguía sin su enlace media hora antes de la consulta,
+por el canal donde más se anuncia.
+
+**Arreglo.** Los dos llamadores de servidor acuñan el token antes de construir
+el mensaje: `crearTokenPaciente(clinicId, patientId, 1, 'agenda',
+portalTokenVersion)` — mismo alcance y mismo patrón de versión (para
+revocación) que ya usa `/api/portal/link`. `lib/whatsapp.ts` se deja **sin
+tocar** a propósito: ese módulo se importa desde el navegador (`openWhatsApp`
+usa `window.open`) y firmar ahí filtraría el secreto HMAC al bundle del
+cliente — es el camino manual que usa el mostrador para reenviar un mensaje ya
+armado, no uno de los dos automáticos.
+
+**Prueba.** `src/__tests__/donde-es-la-cita.test.ts`, bloque
+`PATIENT-TELE-002`: lee el código fuente de las tres rutas y comprueba que las
+dos de servidor acuñan y pasan `tokenPaciente`, y que la de navegador NO
+importa `crearTokenPaciente`. Probada al revés: sin el arreglo, dos de los
+cuatro casos fallan (falta el import/llamada y falta `tokenPaciente:` en el
+mensaje).
+
+**Qué NO cubre.** Es una prueba de texto fuente, no de extremo a extremo — no
+ejecuta Firestore ni compone el mensaje real. No prueba que
+`portalTokenVersion` viaje con el valor correcto en producción, sólo que el
+código lo pide antes de firmar. Verlo en un navegador real, con un enlace que
+de verdad abra la sala, sigue pendiente.
+
+**Guardián actualizado.** `authz-rutas-declaradas.test.ts` — `cron/reminders`
+entra al inventario congelado de rutas que tocan `patients` (segundo nivel de
+PHI): sólo lee `portalTokenVersion`, ni nombre ni teléfono ni dato clínico.
+
+**Sellado en** `src/lib/clinical/invariantes-clinicos.json`.

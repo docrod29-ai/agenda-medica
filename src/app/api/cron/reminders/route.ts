@@ -8,8 +8,9 @@ import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/whatsapp/outbox'
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
-import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { dondeEsLaCita, ES_TELECONSULTA } from '@/lib/telesalud/donde-es'
 import { registrarLatido } from '@/lib/ops/latido'
+import { crearTokenPaciente } from '@/lib/patient-token'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -209,6 +210,19 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          // PATIENT-TELE-002 — sin token no hay enlace de sala (ver `donde-es.ts`).
+          // Sólo se acuña para teleconsulta: las citas presenciales no lo usan y
+          // no vale gastar una lectura de Firestore por cada una.
+          let tokenPaciente: string | undefined
+          if (String(appt.tipo ?? '').trim().toLowerCase() === ES_TELECONSULTA && appt.pacienteId) {
+            try {
+              const pacSnap = await adminDb.collection('clinics').doc(clinicId)
+                .collection('patients').doc(appt.pacienteId).get()
+              const version = Number((pacSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
+              tokenPaciente = crearTokenPaciente(clinicId, appt.pacienteId, 1, 'agenda', version)
+            } catch { /* sin token no se manda enlace; donde-es.ts avisa que llega aparte */ }
+          }
+
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +230,7 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente,
           })
           const msgData = {
             paciente: appt.pacienteNombre,

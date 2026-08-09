@@ -65,6 +65,41 @@ no se fusione nada, la cola sólo crece.
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
 
+---
+
+## PROGRAMA · La rutina «Master Loop V7» dispara sin que exista su especificación
+
+**Estado**: descubierto el 9-ago-2026, en un disparo automático de la rutina V7.
+
+**El hecho** — La rutina programada exige, como primera acción obligatoria, leer
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`. Ese archivo
+**no existe** en el repositorio y **nunca existió** (`git log --all` para ese
+nombre no devuelve nada). `agent-state/MASTER_STATE.json` sigue etiquetando el
+programa como V7, pero `agent-state/V7-ITERACION.md` —su propio tablero, creado
+el 8-ago tras separarse de V9 para no pisarse— quedó congelado en un solo commit
+(v1147) y nunca se volvió a tocar. Todo el trabajo real posterior
+(`LAST_SAFE_CHECKPOINT.md`, `CURRENT_ITERATION.md`, REG-266…REG-305) se hizo y
+se sigue rastreando como **V9**, con V10 (`NEXUSMED_VISUAL_EXCELLENCE_...md`)
+detrás. `MASTER_STATE.json` ya lo confirma: `"ramaActual": "fusion-v9"`.
+
+**Qué no se hizo en este disparo** — Ningún «trabajo de V7» inventado: hacerlo
+sin la especificación que lo autoriza sería el mismo error que inventar una
+cifra clínica sin fuente. Siguiendo el propio orden de la rutina
+(verdad del repositorio → especificación autoritativa más nueva → estado
+persistente), este disparo continuó el trabajo real y vivo, que es V9.
+
+**Recomendación por omisión** — Repuntar esta rutina programada a V9 (usar el
+skill `v9` de reanudación), o retirarla si ya existe una rutina dedicada a V9/V10
+en paralelo, para que no vuelva a disparar sobre un programa sin documento. Si el
+V7 original existe fuera de este repositorio, adjuntarlo aquí antes del próximo
+disparo.
+
+**Qué queda bloqueado** — Sólo esta rutina en concreto, hasta que tenga una
+especificación real o se apague.
+
+**Qué sigue sin ella** — Todo lo demás: V9 y V10 siguen su curso por su propio
+estado persistente.
+
 
 ---
 

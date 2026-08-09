@@ -7,6 +7,13 @@
 **Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
 `cambiosDeMedicacion` se difirieron ahí por no tener llamador.
 
+## `PATIENT-TELE-002` cerrado (9-ago-2026, REG-306)
+
+Era P0 y colgaba suelto de `PATIENT-COMPANION-001`: el enlace de videoconsulta
+por WhatsApp llegaba sin token en los dos caminos automáticos (cron de
+recordatorios, confirmación del bot). Cerrado — ver `LAST_SAFE_CHECKPOINT.md`.
+Sigue pendiente verlo en un navegador con Firestore real.
+
 ---
 
 ## Lo que quedó montado en `PATIENT-COMPANION-001`

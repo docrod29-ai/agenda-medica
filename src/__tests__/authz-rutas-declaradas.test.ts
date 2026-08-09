@@ -637,6 +637,16 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 9-ago-2026 (PATIENT-TELE-002, REG-306): antes mandaba a un
+       * paciente de teleconsulta el enlace de su sala SIN token, y ese enlace
+       * contestaba «Cita no encontrada» — peor que no mandar nada, media hora
+       * antes de su consulta. Ahora lee `portalTokenVersion` para acuñar el
+       * token, mismo patrón que `portal/link`: ni nombre, ni teléfono, ni un
+       * solo dato clínico. Sin sesión por diseño (lo dispara el cron, no un
+       * usuario), así que no va bajo `verificarCapacidad`.
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja

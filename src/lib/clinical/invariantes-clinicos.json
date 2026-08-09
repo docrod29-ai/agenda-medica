@@ -1251,6 +1251,10 @@
     {
       "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/donde-es-la-cita.test.ts",
+      "minCasos": 16
     }
   ]
 }

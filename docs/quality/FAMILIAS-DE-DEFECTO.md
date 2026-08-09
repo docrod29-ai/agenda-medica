@@ -39,8 +39,13 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 154, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+REG-306 (9-ago-2026) se suma aquí: `dondeEsLaCita` estaba bien —lo probaba
+REG-265— y sus dos llamadores de servidor (`cron/reminders`, `whatsapp/webhook`)
+lo llamaban con una entrada incompleta, sin `tokenPaciente`. Mismo patrón, otra
+entrada.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el
