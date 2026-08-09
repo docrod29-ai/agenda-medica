@@ -5126,7 +5126,7 @@ export default function ConsultaActivaPage() {
         aparecería ahí también.
       */}
       {/*
-        Y NO SE ENTREGA HASTA QUE ESTÉ FIRMADA (REG-293).
+        Y NO SE ENTREGA HASTA QUE ESTÉ FIRMADA (REG-307).
 
         Se sigue ENSEÑANDO sin firmar —el médico necesita ver qué se está
         componiendo mientras dicta—, pero copiar e imprimir quedan cerrados y

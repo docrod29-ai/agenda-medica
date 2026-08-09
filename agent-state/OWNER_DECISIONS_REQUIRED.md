@@ -150,7 +150,7 @@ no hace.
 
 ## SEGURIDAD · ¿La revocación de un enlace del paciente falla ABIERTA o CERRADA?
 
-**Estado**: pendiente · abierto el 9-ago-2026 (V7 · PATIENT-PORTAL-001 / REG-291)
+**Estado**: pendiente · abierto el 9-ago-2026 (V7 · PATIENT-PORTAL-001 / REG-306)
 
 **El hecho** — `/api/portal` comprueba `portalTokenVersion` para poder invalidar
 de golpe todos los enlaces ya emitidos de un paciente (teléfono perdido, número
@@ -158,7 +158,7 @@ reciclado, mensaje reenviado). Si esa lectura de Firestore **lanza**, el código
 deja pasar a propósito (`route.ts`, el `catch` vacío).
 
 **Lo que YA se hizo en esta corrida, y no depende de usted**: las tres rutas sin
-freno de tasa —portal, reseña pública y create-checkout— ya lo tienen (REG-291).
+freno de tasa —portal, reseña pública y create-checkout— ya lo tienen (REG-306).
 Eso acota el daño de un token filtrado: ya no se puede barrer la agenda a la
 velocidad de la red.
 

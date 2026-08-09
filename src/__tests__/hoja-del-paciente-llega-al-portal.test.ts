@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
- * POSTVISIT-ENTREGA-001 (REG-296) — la hoja del paciente LLEGA al portal.
+ * POSTVISIT-ENTREGA-001 (REG-308) — la hoja del paciente LLEGA al portal.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────
  *
  * `comoSeLoExplico`/`HojaParaElPaciente` existen desde REG-242 y se componían
- * bien: cada línea sale de un campo que el médico ya revisó. REG-293 cerró
+ * bien: cada línea sale de un campo que el médico ya revisó. REG-307 cerró
  * CUÁNDO se puede entregar (`notaFirmada` obligatoria, DRAFT→RELEASED). Pero
  * los dos hallazgos coincidían en la misma frase: la hoja nunca se pintaba en
  * ninguna pantalla que el PACIENTE pudiera abrir. El único importador en
  * producción era la pantalla de consulta del médico.
  *
  * «Escrito, probado y sin conectar» en su forma más cara — la pieza mejor
- * pensada del lado del paciente. El propio REG-293 lo dejó escrito como lo
+ * pensada del lado del paciente. El propio REG-307 lo dejó escrito como lo
  * que NO cubría: "Cuando llegue, la compuerta tendrá que vivir en el
  * servidor — §3 de patient-facing-ai.md: la prohibición no puede vivir sólo
  * en la pantalla."

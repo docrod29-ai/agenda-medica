@@ -6380,7 +6380,7 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
 
-## REG-291 — el enlace del paciente movía la agenda sin ningún freno (V7 · PATIENT-PORTAL-001)
+## REG-306 — el enlace del paciente movía la agenda sin ningún freno (V7 · PATIENT-PORTAL-001)
 
 **Cómo se descubrió**: la auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026) lo
 dejó anotado en `agent-state/BACKLOG.json` con score 62. Lo cierra V7.
@@ -6446,7 +6446,7 @@ sin deuda nueva** · `npx tsc --noEmit` **limpio**.
 hay migración ni dato escrito que deshacer. La colección `rate_limits` ya existía
 y la comparten las rutas que ya limitaban.
 
-## REG-293 — la hoja del paciente se entregaba desde un borrador a medio dictar (V7 · POSTVISIT-GATE-001)
+## REG-307 — la hoja del paciente se entregaba desde un borrador a medio dictar (V7 · POSTVISIT-GATE-001)
 
 **Cómo se descubrió**: la auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026) lo
 dejó anotado en `agent-state/BACKLOG.json` con score 63. Lo cierra V7.
@@ -6547,18 +6547,18 @@ obligatoria · `npm run build` **compila**.
 `git revert` del commit. No hay migración ni dato escrito que deshacer: la
 compuerta es de presentación y el motor sigue siendo puro.
 
-## REG-296 — la hoja del paciente no llegaba a ninguna pantalla que el paciente pudiera abrir (V7 · POSTVISIT-ENTREGA-001)
+## REG-308 — la hoja del paciente no llegaba a ninguna pantalla que el paciente pudiera abrir (V7 · POSTVISIT-ENTREGA-001)
 
 **Cómo se descubrió**: la auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026) lo
 dejó anotado en `agent-state/BACKLOG.json` (score 60), condicionado a que
-`POSTVISIT-GATE-001` diera primero el estado RELEASED. REG-293 lo cerró y dejó
+`POSTVISIT-GATE-001` diera primero el estado RELEASED. REG-307 lo cerró y dejó
 escrito, en su propia sección «Qué NO cubre»: *«No cubre el portal del
 paciente: hoy la hoja no llega ahí por ningún camino. Cuando llegue, la
 compuerta tendrá que vivir en el servidor.»* Éste es ese REG.
 
 **El hecho**: `comoSeLoExplico`/`HojaParaElPaciente` existen desde REG-242 y se
 componían bien —cada línea sale de un campo que el médico ya revisó y
-firmó—, y desde REG-293 sólo se entregan con la nota firmada. Pero el único
+firmó—, y desde REG-307 sólo se entregan con la nota firmada. Pero el único
 importador en producción era `consulta/[patientId]/page.tsx`: la pantalla del
 MÉDICO. El paciente —a quien está dirigida, en sus palabras— no tenía ninguna
 puerta para abrirla. «Escrito, probado y sin conectar» en su forma más cara:
@@ -6610,7 +6610,7 @@ Sin nota firmada que cumpla los dos filtros, la acción responde
 ### Compuertas
 
 `npx vitest run` **8 496 pasan** (1 saltada) · 1 fallo **preexistente y de
-entorno** (`ops-timeout-y-punto-ciego`, el mismo de REG-293 y anteriores —
+entorno** (`ops-timeout-y-punto-ciego`, el mismo de REG-307 y anteriores —
 IP no enrutable, falla distinto tras el proxy de este contenedor) ·
 `lint-trinquete` **96, el techo, sin deuda nueva** · `npx tsc --noEmit`
 **limpio** · `npm run build` compila TypeScript sin errores (falla después

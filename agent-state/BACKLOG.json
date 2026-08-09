@@ -330,7 +330,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "CERRADO PARCIAL (REG-291)",
+      "estado": "CERRADO PARCIAL (REG-306)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",
@@ -342,7 +342,7 @@
       "archivo": "src/app/api/portal/route.ts:183 · src/app/api/public/resena/route.ts · src/app/api/payment/create-checkout/route.ts",
       "plan": "Aplicar limitar* como ya lo hacen telesalud/sala (12/600 s) y public/booking (8/h por IP). Para la revocación, decidir si falla cerrado — es un cambio de política, no sólo de código.",
       "score": 62,
-      "cierre": "REG-291. Límite de tasa en /api/portal, /api/public/resena y /api/payment/create-checkout. QUEDA ABIERTO el segundo hallazgo: la comprobación de revocación (portalTokenVersion) sigue fallando ABIERTA — es decisión de política del dueño, en OWNER_DECISIONS_REQUIRED.md."
+      "cierre": "REG-306. Límite de tasa en /api/portal, /api/public/resena y /api/payment/create-checkout. QUEDA ABIERTO el segundo hallazgo: la comprobación de revocación (portalTokenVersion) sigue fallando ABIERTA — es decisión de política del dueño, en OWNER_DECISIONS_REQUIRED.md."
     },
     {
       "seguridad": 3,
@@ -356,7 +356,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "CERRADO (REG-293)",
+      "estado": "CERRADO (REG-307)",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-GATE-001",
@@ -368,7 +368,7 @@
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
       "score": 63,
-      "cierre": "REG-293. `notaFirmada` es obligatoria y de ella sale el estado DRAFT/RELEASED (`estadoDeLaHoja`). La hoja se sigue ENSEÑANDO sin firmar —el médico necesita ver qué se compone mientras dicta— pero copiar e imprimir quedan cerrados en el manejador, no sólo en el `disabled`, y el aviso de borrador SE IMPRIME: la página esconde los `button` al imprimir, así que sin él el papel de un borrador saldría idéntico a uno entregable. NO cierra la entrega al portal (POSTVISIT-ENTREGA-001): ahí la compuerta tendrá que vivir en el servidor."
+      "cierre": "REG-307. `notaFirmada` es obligatoria y de ella sale el estado DRAFT/RELEASED (`estadoDeLaHoja`). La hoja se sigue ENSEÑANDO sin firmar —el médico necesita ver qué se compone mientras dicta— pero copiar e imprimir quedan cerrados en el manejador, no sólo en el `disabled`, y el aviso de borrador SE IMPRIME: la página esconde los `button` al imprimir, así que sin él el papel de un borrador saldría idéntico a uno entregable. NO cierra la entrega al portal (POSTVISIT-ENTREGA-001): ahí la compuerta tendrá que vivir en el servidor."
     },
     {
       "seguridad": 1,
@@ -394,8 +394,8 @@
       "archivo": "src/components/HojaParaElPaciente.tsx:45-51,86 · consulta:5108",
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
       "score": 60,
-      "estado": "CERRADO (REG-296)",
-      "cierre": "REG-296. Acción `instrucciones` en /api/portal, con el mismo gate de alcance clínico que `documentos`; sólo lee notas firmadas y excluye las de internamiento. `/mi/[token]` la pinta con `<HojaParaElPaciente notaFirmada />` fijo, porque el servidor sólo entrega lo ya firmado. NO arregla `proximaCita` (fuera de alcance, hallazgo previo sin REG propio). NO es el `PatientVisitPackage` completo de V9."
+      "estado": "CERRADO (REG-308)",
+      "cierre": "REG-308. Acción `instrucciones` en /api/portal, con el mismo gate de alcance clínico que `documentos`; sólo lee notas firmadas y excluye las de internamiento. `/mi/[token]` la pinta con `<HojaParaElPaciente notaFirmada />` fijo, porque el servidor sólo entrega lo ya firmado. NO arregla `proximaCita` (fuera de alcance, hallazgo previo sin REG propio). NO es el `PatientVisitPackage` completo de V9."
     },
     {
       "seguridad": 0,

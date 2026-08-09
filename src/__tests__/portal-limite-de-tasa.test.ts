@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
- * REG-291 — PATIENT-PORTAL-001: ninguna acción de `/api/portal` tenía freno
+ * REG-306 — PATIENT-PORTAL-001: ninguna acción de `/api/portal` tenía freno
  * de tasa. `confirmar`, `cancelar`, `reagendar`, `formulario` y `documentos`
  * iban sin límite.
  *

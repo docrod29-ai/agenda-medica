@@ -632,7 +632,7 @@ export async function POST(req: NextRequest) {
          * médico (medicamentos, estudios de una nota firmada).
          *
          * Sólo la nota FIRMADA más reciente, y nunca una de hospitalización
-         * — REG-293 exige `notaFirmada` como precondición, no como intención,
+         * — REG-307 exige `notaFirmada` como precondición, no como intención,
          * y la hoja de internamiento no aplica: nadie se lleva a casa un
          * fármaco intravenoso de UCI.
          */

@@ -40,8 +40,8 @@ Eso cambia dónde conviene mirar mañana.
 ## Lo que dice el número grande
 
 **«Escrito, probado y sin conectar» — 35 de 141.** Sigue siendo la familia más
-grande; el 9-ago-2026 sumó REG-296 (`POSTVISIT-ENTREGA-001`): la hoja del
-paciente estaba compuesta, probada y bien desde REG-242/293, y no llegaba a
+grande; el 9-ago-2026 sumó REG-308 (`POSTVISIT-ENTREGA-001`): la hoja del
+paciente estaba compuesta, probada y bien desde REG-242/307, y no llegaba a
 ninguna pantalla que el paciente pudiera abrir — el mismo patrón, otra vez.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.

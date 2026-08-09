@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 /**
- * REG-291 — PATIENT-PORTAL-001: `/api/public/resena` es pública (el paciente
+ * REG-306 — PATIENT-PORTAL-001: `/api/public/resena` es pública (el paciente
  * no tiene cuenta) y no tenía ningún freno de tasa, a diferencia de
  * `public/booking`, que sí limita por IP.
  *

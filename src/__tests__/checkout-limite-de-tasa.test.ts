@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
- * REG-291 — PATIENT-PORTAL-001: `/api/payment/create-checkout` no tenía
+ * REG-306 — PATIENT-PORTAL-001: `/api/payment/create-checkout` no tenía
  * freno de tasa. Crear una sesión de Stripe Checkout cuesta —llamada externa
  * y escritura en Firestore— y con un token filtrado se podía repetir sin
  * límite.

@@ -13,7 +13,7 @@
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
 **Rama de esta corrida**: `claude/clever-lamport-xv6ul4` — continúa
 `claude/clever-lamport-3fkemu` (mismo linaje, sin fusionar cuando esta corrida
-empezó: se recuperó por fast-forward en vez de reconstruir REG-291/293 desde
+empezó: se recuperó por fast-forward en vez de reconstruir REG-306/307 desde
 cero). `agent/v7/master-loop` sigue siendo la rama larga de V7 y está
 fusionada en `main` hasta `0144257c`.
 
@@ -36,9 +36,9 @@ reinterpretó.
 
 **Iteraciones cerradas en esta corrida**:
 
-1. `PATIENT-PORTAL-001` → **REG-291**. Límite de tasa en las tres rutas que no
+1. `PATIENT-PORTAL-001` → **REG-306**. Límite de tasa en las tres rutas que no
    lo tenían.
-2. `POSTVISIT-GATE-001` → **REG-293**. La hoja del paciente no se entrega sin
+2. `POSTVISIT-GATE-001` → **REG-307**. La hoja del paciente no se entrega sin
    firma. Comprobado antes de empezar que V9 **no** lo tenía abierto: sus
    unidades vivas son `PATIENT-COMPANION-001`, `NAVIGATION-001` y
    `DESIGN-SYSTEM-001`.
@@ -51,10 +51,10 @@ elegido 291.
 **Siguiente por el algoritmo §7** (los tres P0 de audio ya están cerrados por V9
 en v1158/v1161 — **no se rehacen**):
 
-1. ~~`POSTVISIT-ENTREGA-001` (60)~~ → **CERRADO, REG-296** (ver «Esta corrida»
+1. ~~`POSTVISIT-ENTREGA-001` (60)~~ → **CERRADO, REG-308** (ver «Esta corrida»
    arriba). La hoja no llegaba nunca al paciente: dos botones, portapapeles e
    impresora, y nada en `/mi/[token]` ni en `/api/portal`. Continuación
-   natural de REG-293; la compuerta vive en el servidor, no en el componente
+   natural de REG-307; la compuerta vive en el servidor, no en el componente
    (§3 de `patient-facing-ai.md`).
 2. `PATIENT-TELE-002` (55) — el enlace de videoconsulta que viaja por WhatsApp
    sigue sin token (REG-265 sólo cerró el camino del portal).
@@ -95,7 +95,7 @@ hasta el PR, no más allá». Rama + commit + PR, sin tocar `public/sw.js` ni
 
 | REG | Qué |
 |---|---|
-| REG-296 | **POSTVISIT-ENTREGA-001** — la hoja del paciente (REG-242/293) nunca llegaba a `/mi/[token]`: sólo se pintaba en la pantalla del médico. Acción `instrucciones` en `/api/portal` con el mismo gate de alcance clínico que `documentos`; sólo entrega notas FIRMADAS y excluye las de internamiento — los dos filtros viven en el servidor, no en la pantalla (`patient-facing-ai.md` §3) |
+| REG-308 | **POSTVISIT-ENTREGA-001** — la hoja del paciente (REG-242/307) nunca llegaba a `/mi/[token]`: sólo se pintaba en la pantalla del médico. Acción `instrucciones` en `/api/portal` con el mismo gate de alcance clínico que `documentos`; sólo entrega notas FIRMADAS y excluye las de internamiento — los dos filtros viven en el servidor, no en la pantalla (`patient-facing-ai.md` §3) |
 
 ## Desplegado y verificado en vivo (v1120 → v1144)
 
