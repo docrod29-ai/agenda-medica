@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1083 — REG-202: la alergia estructurada no llegaba a la compuerta de firma
+## v1078 — REG-196: la alergia estructurada no llegaba a la compuerta de firma
 
 `nota.alergias` se sellaba mirando **sólo el texto libre**. Un paciente cuya
 alergia vive en `alergiasEstructuradas` sellaba la lista vacía, y de esa lista

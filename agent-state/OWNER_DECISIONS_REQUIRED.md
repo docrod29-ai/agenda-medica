@@ -21,7 +21,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | O-2 | Simulacro de restauración con `gcloud firestore databases restore` | Cronometrarlo una vez, en un proyecto de prueba | El acta de restauración real | La ida y vuelta del respaldo ya está medida |
 | O-3 | Pentest externo y PITR | Contratar cuando haya clientes de pago | El registro de riesgos lo declara pendiente | Todo lo demás |
 | O-4 | Cuenta de prueba en los secretos de CI | Una cuenta de juguete con datos sintéticos | El E2E sólo cubre lo público | El resto de CI |
-| O-5 | Cómo se reparte el número de REG y de `vNNN` entre iteraciones en paralelo | Reservar al abrir la rama (un archivo de contador que se commitea primero), o renumerar al fusionar | Que dos PR abiertos puedan citarse sin ambigüedad | Cada iteración toma un número por encima de todo lo reclamado, como hizo REG-202 |
+| O-5 | Cómo se reparte el número de REG y de `vNNN` entre iteraciones en paralelo | Reservar al abrir la rama (un archivo de contador que se commitea primero), o renumerar al fusionar | Que dos PR abiertos puedan citarse sin ambigüedad | Cada iteración toma un número por encima de todo lo reclamado, como hizo REG-196 |
 
 **Sobre O-5 — qué se vio el 7-ago-2026.** Cada iteración rama desde `main` y
 elige el siguiente número mirando **sólo `main`**. Con varias en paralelo sin

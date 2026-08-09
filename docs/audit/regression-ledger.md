@@ -1556,7 +1556,7 @@ desincronizaba.
 
 ---
 
-## REG-202 — la alergia estructurada no llegaba a la compuerta que bloquea la firma (v1083)
+## REG-196 — la alergia estructurada no llegaba a la compuerta que bloquea la firma (v1078)
 
 **Encontrado** — 7-ago-2026, cerrando SAFE-001. Los tres parsers de fuera ya
 usaban `alergenosDe`, así que el ítem parecía hecho. Aplicando «el dato tiene que
