@@ -39,6 +39,21 @@ export interface DatosDeLugar {
   googleMapsUrl?: string
   /** Origen público de la aplicación (`NEXT_PUBLIC_APP_URL`). */
   baseUrl?: string
+  /**
+   * Token HMAC del paciente, si quien compone el mensaje puede emitirlo.
+   *
+   * SIN ÉL NO SE EMITE ENLACE. `/api/telesalud/sala` exige prueba de
+   * titularidad y responde **404 «Cita no encontrada»** a quien no la trae:
+   * mandarle al paciente un enlace sin token es mandarle un enlace que le dice
+   * que su cita no existe, media hora antes de su consulta. Es peor que no
+   * mandar enlace — el paciente que no recibe enlace llama al consultorio; el
+   * que recibe un 404 cree que se quedó sin cita.
+   *
+   * Emitirlo exige el secreto de firma, que sólo vive en el servidor. Por eso
+   * es un dato de entrada y no se calcula aquí: `lib/whatsapp.ts` se importa
+   * también desde el navegador.
+   */
+  tokenPaciente?: string
 }
 
 export interface Lugar {
@@ -66,8 +81,9 @@ export function dondeEsLaCita(d: DatosDeLugar): Lugar {
   }
 
   const base = String(d.baseUrl ?? '').replace(/\/+$/, '')
-  const url = d.citaId && d.clinicId && base
-    ? base + enlaceSalaPaciente(d.citaId, d.clinicId)
+  // Sin token no hay enlace: ver `tokenPaciente` en `DatosDeLugar`.
+  const url = d.citaId && d.clinicId && base && d.tokenPaciente
+    ? base + enlaceSalaPaciente(d.citaId, d.clinicId, d.tokenPaciente)
     : ''
 
   return {

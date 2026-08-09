@@ -46,6 +46,15 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/security/rutas-privadas.ts': 'Inventario de rutas privadas que consume su propio invariante.',
   // Lo cazó ESTE guardián en cuanto se escribió, que es exactamente su trabajo.
   'src/lib/guardia/campos-conectados.ts': 'Guardián hermano de éste: vigila CAMPOS de contrato que nadie lee, no archivos. Vive en el CI por definición — una pantalla que lo muestre sería una pantalla que alguien apaga.',
+  /**
+   * Este guardián cazó, en cuanto se escribió, el módulo que documenta que
+   * «escrito y sin conectar» es la familia de defecto MÁS GRANDE del ledger
+   * (9 de 53). No es una ironía: es la prueba de que sigue mirando.
+   */
+  'src/lib/arquitectura/grafo-de-dependencias.ts':
+    'Lee los imports del repo y mide la dirección de las dependencias y los ciclos. Herramienta de CI, no función de producto: su sitio es el PR que rompe la regla, no una pantalla.',
+  'src/lib/calidad/familias-de-defecto.ts':
+    'Taxonomía de causas raíz derivada del regression-ledger. Su consumidor es el guardián que compara la clasificación contra el ledger y falla si un REG se queda sin familia: vive en el CI por definición. Una pantalla que la muestre no protegería nada — lo que protege es que NO SE PUEDA cerrar un REG sin clasificarlo.',
 
   /**
    * ── LOS CUATRO QUE TAPABA UN `import type` (v1019) ────────────────────────

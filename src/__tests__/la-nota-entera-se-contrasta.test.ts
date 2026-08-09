@@ -87,10 +87,23 @@ describe('LO QUE LA DEFENSA NO VEÍA', () => {
 })
 
 describe('ESTÁ CABLEADO EN LA PANTALLA', () => {
-  it('las dos defensas usan el mismo constructor de texto', () => {
-    // Dos formas de armar «lo que la nota dice» acabarían divergiendo, y una de
-    // las dos se quedaría ciega otra vez.
-    expect(page.split('textoDeLaNota(resumen, diagnosticos, secciones)').length - 1).toBe(2)
+  it('todas las defensas usan el mismo constructor de texto', () => {
+    /**
+     * Dos formas de armar «lo que la nota dice» acabarían divergiendo, y una de
+     * ellas se quedaría ciega otra vez.
+     *
+     * Eran dos defensas —contradicción y temporalidad— y desde SUP-001 son
+     * TRES: la trazabilidad contrasta la nota entera contra el dictado para
+     * saber qué afirmación no salió de ahí. Que compartan constructor es
+     * justamente lo que impide que una vea una nota distinta de las otras.
+     *
+     * Desde REG-239 son CUATRO: el panel «¿de dónde salió esto?» enseña esa
+     * misma traza al médico. Trazar un texto distinto del que se firma sería
+     * comprobar algo que nadie va a leer.
+     */
+    const DEFENSAS_QUE_LEEN_LA_NOTA = 4
+    expect(page.split('textoDeLaNota(resumen, diagnosticos, secciones)').length - 1)
+      .toBe(DEFENSAS_QUE_LEEN_LA_NOTA)
   })
 
   it('y ya no queda ningún join sobre objetos en esa ruta', () => {

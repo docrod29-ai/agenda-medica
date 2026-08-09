@@ -44,7 +44,7 @@ export default function ContactoPage() {
           </div>
           <a
             href={`mailto:${CORREO}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, background: 'var(--nexus)', color: '#fff', fontWeight: 700, fontSize: 13.5, padding: '9px 16px', borderRadius: 10, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, background: 'var(--nexus-solido)', color: '#fff', fontWeight: 700, fontSize: 13.5, padding: '9px 16px', borderRadius: 10, textDecoration: 'none' }}
           >
             <Mail size={15} /> Escribir correo
           </a>
