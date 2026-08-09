@@ -29,6 +29,7 @@
  */
 import {
   revisarDosis, extraerMg, extraerTomasDia, esDosisPorKg, peorSeveridad,
+  filtrarSinReferencia,
   type AlertaDosis,
 } from '@/lib/seguridad/dosis'
 import { cantidad, type ClinicalQuantity } from '@/types/clinical-quantity'
@@ -55,16 +56,22 @@ export interface DosisPeligrosa {
 /**
  * Revisa toda la lista y devuelve sólo lo que tiene algo que decir.
  *
- * `sin_referencia` se descarta: «este fármaco no está en el catálogo» no es un
- * hallazgo sobre el paciente, y en una lista de ocho medicamentos llenaría la
- * pantalla de avisos que no dicen nada. El propio motor ya advierte que la
- * ausencia de alerta no significa dosis segura.
+ * `sin_referencia` se descarta en adulto: «este fármaco no está en el catálogo»
+ * no es un hallazgo sobre el paciente, y en una lista de ocho medicamentos
+ * llenaría la pantalla de avisos que no dicen nada. El propio motor ya advierte
+ * que la ausencia de alerta no significa dosis segura.
+ *
+ * En pediátrico SÍ se conserva (SAFE-003): la dosis va por kilo y el margen es
+ * estrecho, así que «sin referencia» es información distinta de «no hay
+ * alerta». La política vive en `filtrarSinReferencia`, no aquí — este módulo
+ * sólo dice si el paciente es pediátrico.
  */
 export function dosisPeligrosasDeLaLista(
   medicamentos: readonly MedicamentoRevisable[],
   ctx: ContextoPaciente = {},
 ): DosisPeligrosa[] {
   const out: DosisPeligrosa[] = []
+  const esPediatrico = ctx.edadAnios != null && ctx.edadAnios < 18
   for (const m of medicamentos) {
     const nombre = m.nombre?.trim()
     if (!nombre || !m.dosis?.trim()) continue
@@ -77,7 +84,7 @@ export function dosisPeligrosasDeLaLista(
     const dosis = esDosisPorKg(m.dosis)
       ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
       : cantidad(mg, 'mg', 'masa')
-    const alertas = revisarDosis({
+    const alertas = filtrarSinReferencia(revisarDosis({
       farmaco: nombre,
       dosis,
       tomasDia: extraerTomasDia(m.frecuencia || '') ?? undefined,
@@ -86,7 +93,7 @@ export function dosisPeligrosasDeLaLista(
         : undefined,
       via: m.via,
       edadAnios: ctx.edadAnios,
-    }).filter(a => a.codigo !== 'sin_referencia')
+    }), esPediatrico)
     if (alertas.length) out.push({ med: nombre, alertas, severidad: peorSeveridad(alertas) })
   }
   return out

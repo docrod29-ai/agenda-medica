@@ -111,6 +111,32 @@ código. Quedan cuatro que dependen de mí: `invariantesProtegidos`,
 
 ---
 
+## Sesión autónoma 9-ago-2026 (rama `claude/clever-lamport-n13kzj`)
+
+**No despliega** — esta sesión corre bajo prohibición explícita de tocar
+producción; llega hasta rama + commit + PR, como manda
+`.claude/rules/deployment-and-flags.md` cuando el dueño no ha reabierto el
+candado en ESTA conversación.
+
+Encontrado al fetchear la rama `agent/v7/master-loop` (que sigue con despliegue
+autorizado de una sesión previa): va **4 commits por delante de `main`**
+(REG-291, REG-292, REG-293, v1164-v1167) sin fusionar todavía. No se tocó esa
+rama ni se duplicó su trabajo — se partió de `main` y se eligió un ítem del
+backlog que esos commits no tocan, exactamente como pide la sección de
+coordinación entre programas del charter.
+
+**REG-297** — `SAFE-003` cerrado: «sin referencia de dosis» se callaba también
+en pediatría en dos llamadores duplicados (receta + aviso antes de firmar). Ver
+la entrada completa en `docs/audit/regression-ledger.md`. Ningún umbral clínico
+nuevo — sólo conectó un aviso `info` que ya existía a la edad que ya se conocía.
+
+**Siguiente iteración libre** (siguiendo `agent-state/BACKLOG.json`, evitando lo
+que ya cubrieron los cuatro commits de `agent/v7/master-loop`): `EVAL-003`
+(trinquete de voz en CI) o los ítems `P1` de V9 que no dependen de un
+navegador — `POSTVISIT-GATE-001` es el de mayor score sin bloqueo.
+
+---
+
 ## BLOQUEADO EN EL DR — no lo toco, va al final
 
 **De minutos, y desbloquean lo más grande:**

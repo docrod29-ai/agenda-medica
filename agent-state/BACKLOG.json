@@ -212,11 +212,12 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "necesitaMedico": true,
       "origen": "auditoría de nueve dimensiones, hallazgo G2",
-      "score": 41
+      "score": 41,
+      "cierre": "REG-297. Lo que hacía falta no era una cifra clínica —el propio motor ya decide `sin_referencia` como severidad `info`— sino conectar ese aviso, que ya existía, a la edad que ya se conocía. `filtrarSinReferencia(alertas, esPediatrico)` en dosis.ts es la política única; se usa en la receta y en el aviso antes de firmar (dosisPeligrosasDeLaLista), que la tenían duplicada."
     },
     {
       "seguridad": 3,

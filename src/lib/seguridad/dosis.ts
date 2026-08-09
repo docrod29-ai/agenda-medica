@@ -395,6 +395,24 @@ export function peorSeveridad(alertas: AlertaDosis[]): Severidad | null {
   return null
 }
 
+/**
+ * SAFE-003 — política única de cuándo se calla `sin_referencia`.
+ *
+ * En adulto es ruido: «este fármaco no está en el catálogo» no es un hallazgo
+ * sobre el paciente, y llenaría la pantalla de avisos que no dicen nada.
+ *
+ * En pediátrico NO es ruido: la dosis va por kilo y el margen es estrecho, y
+ * «sin referencia» es información distinta de «no hay alerta» (regla 5, señalar
+ * de menos nunca de más). Callarlo se lee como dosis comprobada.
+ *
+ * Vivía duplicado —y por tanto solo reparado a medias— en `dosis-de-la-lista.ts`
+ * y en la pantalla de receta. Un solo lugar decide la política; los dos
+ * llamadores sólo dicen si el paciente es pediátrico.
+ */
+export function filtrarSinReferencia(alertas: AlertaDosis[], esPediatrico: boolean): AlertaDosis[] {
+  return esPediatrico ? alertas : alertas.filter(a => a.codigo !== 'sin_referencia')
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    LA UNIDAD QUE FALTA — un hecho del TEXTO, no un juicio clínico
    ════════════════════════════════════════════════════════════════════════════

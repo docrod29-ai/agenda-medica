@@ -6379,3 +6379,69 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-297 — «sin referencia de dosis» se descartaba también en pediatría (SAFE-003)
+
+`revisarDosis()` marca `sin_referencia` (severidad `info`) cuando un fármaco no
+está en el catálogo — es la forma en que el motor dice «no sé» en vez de
+callarse: *«ausencia de alerta ≠ dosis segura»*, tal cual lo dice su propio
+mensaje.
+
+Dos llamadores independientes lo descartaban SIEMPRE, sin mirar la edad:
+
+- la pantalla de receta (`receta/[patientId]/[notaId]/page.tsx`), que es lo que
+  se imprime y se firma;
+- el aviso antes de firmar (`dosisPeligrosasDeLaLista`, llamado desde la
+  consulta), que es donde el médico todavía puede corregir.
+
+### Por qué importa distinto en pediatría
+
+En adulto, «este fármaco no está en el catálogo» no es un hallazgo sobre el
+paciente — es ruido, y callarlo en una lista de ocho medicamentos evita saturar
+la pantalla. Eso sigue igual.
+
+En pediátrico la dosis va por kilo y el margen es estrecho. Ahí «no tengo
+referencia de este fármaco» es información distinta de «no hay alerta» (regla
+5 de seguridad clínica: **señalar de menos, nunca de más**). Callarlo se lee
+como dosis comprobada, y no lo está.
+
+### Encontrado por la auditoría de nueve dimensiones (hallazgo G2), no reparado hasta ahora
+
+Quedó en `agent-state/BACKLOG.json` como `SAFE-003`, marcado `necesitaMedico`.
+Releído: el dato que hacía falta era una **decisión de política** (¿se
+avisa?), no una **cifra clínica** — y esa decisión ya la tomó el propio motor
+el día que escribió `sin_referencia` como severidad `info` en vez de crítica.
+Lo que faltaba era conectar el aviso que ya existe a la edad que ya se conoce,
+no inventar ningún umbral nuevo.
+
+### La reparación: una política, no dos
+
+El filtro vivía duplicado en los dos llamadores, cada uno con su propio
+comentario justificándolo — la misma decisión tomada dos veces es la misma
+decisión que se puede corregir a medias. `filtrarSinReferencia(alertas,
+esPediatrico)` en `src/lib/seguridad/dosis.ts` es ahora el ÚNICO lugar que
+decide; los dos llamadores sólo calculan `edad < 18` (el mismo corte que ya
+usan para la comprobación mg/kg) y se lo pasan.
+
+### Lo que NO cambia
+
+`sin_referencia` sigue siendo severidad `info`: nunca bloquea la firma. No se
+añadió ningún fármaco al catálogo ni ningún umbral nuevo. Si la edad del
+paciente no se conoce, se trata como NO pediátrico — el comportamiento previo,
+conservador: no se inventa el supuesto de que sí lo es.
+
+8 468 pruebas (8 465 en verde · 2 fallos preexistentes y ajenos a este cambio en
+`ops-timeout-y-punto-ciego.test.ts`, contra una IP no enrutable — reproducidos
+igual en `main` antes de tocar nada · 1 skip) · lint 96 (techo) · `tsc` limpio ·
+build: compila y falla recolectando datos de página por falta de credenciales
+de Firebase en este contenedor (entorno, no código — mismo hallazgo ya
+documentado en `agent-state/LAST_SAFE_CHECKPOINT.md`).
+
+### Archivos
+
+- `src/lib/seguridad/dosis.ts` (nueva función `filtrarSinReferencia`)
+- `src/lib/seguridad/dosis-de-la-lista.ts`
+- `src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx`
+- `src/__tests__/sin-referencia-en-pediatria-no-se-calla.test.ts` (nuevo, 8 casos, sellado)
