@@ -20,7 +20,7 @@ const COLOR: Record<EstadoMar, string> = {
   toca: '#d97706',
   nunca_administrado: '#dc2626',
   horario_no_interpretable: '#7c3aed',
-  infusion_continua: '#3d5afe',
+  infusion_continua: 'var(--nexus)',
   prn: 'var(--text3)',
   al_dia: '#0d9488',
   completado: 'var(--text3)',

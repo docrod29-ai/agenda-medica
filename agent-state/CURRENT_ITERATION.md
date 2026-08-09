@@ -13,8 +13,9 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `DESIGN-SYSTEM-001` · **parte 1 CERRADA** (9-ago, REG-291) →
+sigue `DESIGN-TIPOGRAFIA-001`, luego `A11Y-GATE-001`.
+Antes: `PATIENT-UX-TRUTH-001` ✅ (8-ago) y **los tres P0 de audio** ✅ (v1158, v1161).
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -37,6 +38,13 @@ línea; primitivos compartidos al 24 %).
 | Navegar **termina la grabación** en silencio | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-002` |
 | El cierre por inactividad **no oye dictar** y borra la recuperación | CERRADO v1161 (REG-287) — `PATIENT-AUDIO-003` |
 | El enlace de videoconsulta del paciente **daba 404** desde su propio portal | **REG-265 · reparado** |
+
+Y en `DESIGN-SYSTEM-001` se confirmó la mecánica de ese segundo hallazgo:
+`@theme inline` exponía **cuatro** valores, así que no había utilidades que usar
+y el estilo en línea no era una elección — era lo único que había. Ese bloque
+expone ya las familias del sistema, y con él se repararon **dieciocho sitios que
+pintaban el azul de marca a mano**, entre 2,96 y 4,25 : 1 cuando el mínimo AA es
+4,5 (REG-291).
 
 Los tres primeros comparten causa de fondo: **el esfuerzo de persistencia se puso
 donde ya había red** —el texto de la nota, con borrador en memoria, respaldo

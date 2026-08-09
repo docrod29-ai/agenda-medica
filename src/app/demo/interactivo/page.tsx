@@ -290,19 +290,19 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
             <div style={{ fontSize: 15, fontWeight: 800 }}>Dr. Nombre Apellido <span style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>(ficticio)</span></div>
             <div style={{ fontSize: 11.5, color: '#6b7280' }}>Medicina General · Céd. Prof. 0000000</div>
           </div>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: '#3D5AFE', textTransform: 'uppercase', marginBottom: 8 }}>{esReceta ? 'Receta médica' : 'Orden de estudios'}</div>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--nexus)', textTransform: 'uppercase', marginBottom: 8 }}>{esReceta ? 'Receta médica' : 'Orden de estudios'}</div>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}><strong>Paciente:</strong> {escenario.cita.iniciales} · {escenario.cita.sexo === 'F' ? 'F' : 'M'} {escenario.cita.edad} a · <strong>Folio:</strong> {escenario.folio}</div>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 12 }}><strong>Dx:</strong> {escenario.diagnostico}</div>
           {esReceta
             ? escenario.medicamentos.map((m, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <CheckCircle2 size={15} style={{ color: '#3D5AFE', flexShrink: 0, marginTop: 1 }} />
+                  <CheckCircle2 size={15} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
                   <span style={{ fontSize: 12.5 }}><strong>{m.nombre}</strong> — {m.indicacion}</span>
                 </div>
               ))
             : estudios.map((e, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <ClipboardList size={15} style={{ color: '#3D5AFE', flexShrink: 0, marginTop: 1 }} />
+                  <ClipboardList size={15} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
                   <span style={{ fontSize: 12.5 }}>{e}</span>
                 </div>
               ))}

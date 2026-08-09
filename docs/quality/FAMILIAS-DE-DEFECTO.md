@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 32 de 139, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,12 +64,22 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 138.**
+**«El sistema se contradice a sí mismo» — 24 de 139.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
 contrario y daba 3,28. Ninguna de las dos decisiones estaba mal por su cuenta. Y
 el tema CLARO nunca lo tuvo — la corrección existía, aplicada a un solo tema.
+
+Y sumó **REG-291**, que es el epílogo del mismo: resuelta la contradicción entre
+los dos tokens, **dieciocho sitios seguían escribiendo el hexadecimal a mano** y
+por tanto ninguna de las dos correcciones les llegaba. El token estaba bien y
+cada pantalla estaba bien; lo que estaba mal era la relación. Es la misma forma
+que REG-269 (`@keyframes spin` referenciado 90 veces y definido en ningún sitio
+global), y la razón de fondo es la misma en los dos: **el sistema no ofrecía la
+manera correcta de hacerlo** — `@theme inline` exponía cuatro valores, así que no
+había utilidad que usar. Cuando lo correcto no está disponible, la disciplina no
+alcanza.
 
 ## El patrón que sostiene a las dos
 
@@ -104,7 +114,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 138**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 139**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

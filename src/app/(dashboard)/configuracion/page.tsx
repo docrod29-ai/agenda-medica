@@ -1967,7 +1967,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
       {/* Aviso: aquí también se agrega al equipo hospitalario */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'rgba(61,90,254,.08)', border: '1px solid rgba(61,90,254,.3)' }}>
-        <BedDouble size={18} style={{ color: '#3d5afe', flexShrink: 0, marginTop: 1 }} />
+        <BedDouble size={18} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
           Aquí agregas a <strong>todo tu equipo</strong> (asistentes, médicos, enfermería, farmacia, laboratorio) para que
           cada quien entre con su usuario. <strong>Cuando invitas a un Médico, su agenda se crea sola</strong> al aceptar —

@@ -104,6 +104,41 @@
   --r-pill:    9999px;
   --r-circulo: 50%;
 
+  /* ─── RADIO, LOS OTROS ──────────────────────────────────────────────────
+     DIECINUEVE VALORES PARA UNA ESQUINA.
+
+     `borderRadius:` aparece con 19 cifras distintas. Los cinco picos —8 (245),
+     10 (245), 12 (163), 6 (103), 16 (25)— cubren la mayoría; el resto (9, 7,
+     11, 14, 4, 3, 5, 18, 20…) son la misma intención escrita con el número que
+     cada quien tenía en la cabeza ese día.
+
+     La escala NO se inventa: se saca de lo que el producto ya usa. Una escala
+     que no describe el producto no se adopta — se ignora, y entonces son 20
+     valores en vez de 19. Los que faltan (9, 11, 14) redondean al vecino. */
+  --r-1: 6px;
+  --r-2: 8px;
+  --r-3: 10px;
+  --r-4: 12px;
+  --r-5: 16px;
+
+  /* ─── ESPACIO ───────────────────────────────────────────────────────────
+     Igual que el radio, y por la misma razón: los picos reales de `gap:` son
+     8 (455), 6 (289), 10 (246), 12 (135), 4 (108), 16, 14, 20. No es una
+     escala de 4 px —el producto usa 6 y 10 constantemente— y fingir que sí lo
+     es sólo garantiza que nadie la use.
+
+     El nombre ES la medida. Un `--sp-3` obliga a recordar cuánto vale; un
+     `--sp-8` no. Lo que aporta la escala aquí no es la abstracción: es que sólo
+     haya OCHO donde había veintitrés. */
+  --sp-4:  4px;
+  --sp-6:  6px;
+  --sp-8:  8px;
+  --sp-10: 10px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-20: 20px;
+  --sp-24: 24px;
+
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
   --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
@@ -123,11 +158,80 @@
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   LO QUE TAILWIND VE.
+
+   Aquí estaba la causa raíz del monolito de estilo en línea, y no era dejadez.
+
+   Este bloque exponía CUATRO valores. Todo el sistema de diseño —superficies,
+   texto, marca, semántica clínica, radio, espacio— vivía en variables CSS que
+   Tailwind no mira, así que **no había utilidades que usar**. El resultado
+   medido en la auditoría de V9: 6 065 `style={{` en 177 de 200 archivos
+   (88,5 %), 1 205 hexadecimales a mano y ~3 000 `fontSize` en línea.
+
+   Quien escribía una pantalla nueva no elegía el estilo en línea: era lo único
+   que había. Ensanchar este bloque no repinta nada —`inline` resuelve la
+   referencia, así que la utilidad sigue leyendo la variable y sigue cambiando
+   con el tema— pero a partir de aquí hay alternativa.
+
+   NO CUBRE (y se dice para que no se dé por hecho): la escala tipográfica
+   —vive en clases `.t-*`, no en tokens, y sus cuatro tamaños más usados en el
+   producto (13 · 12,5 · 12 · 11) no están en ella— ni las sombras, que son
+   ~10 usos en línea y no justifican todavía una escala.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Superficies — el lienzo y sus tres elevaciones */
+  --color-canvas:      var(--bg);
+  --color-superficie:  var(--s1);
+  --color-superficie2: var(--s2);
+  --color-superficie3: var(--s3);
+  --color-linea:       var(--border);
+  --color-linea2:      var(--border2);
+
+  /* Texto — tres niveles de jerarquía, todos medidos contra AA */
+  --color-tinta:  var(--text);
+  --color-tinta2: var(--text2);
+  --color-tinta3: var(--text3);
+
+  /* Marca. Son DOS tokens porque los requisitos son opuestos: `nexus` es el
+     azul que se lee SOBRE fondo (texto, iconos, trazos); `nexus-solido` es el
+     que se lee POR DEBAJO de texto blanco (rellenos). Ver el bloque de
+     --nexus-solido más arriba, donde está la medición. */
+  --color-nexus:        var(--nexus);
+  --color-nexus-hover:  var(--nexus-hover);
+  --color-nexus-soft:   var(--nexus-soft);
+  --color-nexus-solido: var(--nexus-solido);
+
+  /* Semántica clínica */
+  --color-clinico-rojo:   var(--red);
+  --color-clinico-ambar:  var(--amber);
+  --color-clinico-verde:  var(--green);
+  --color-clinico-azul:   var(--blue);
+  --color-clinico-morado: var(--purple);
+
+  /* Radio */
+  --radius-1:       var(--r-1);
+  --radius-2:       var(--r-2);
+  --radius-3:       var(--r-3);
+  --radius-4:       var(--r-4);
+  --radius-5:       var(--r-5);
+  --radius-pill:    var(--r-pill);
+  --radius-circulo: var(--r-circulo);
+
+  /* ESPACIO NO VA AQUÍ, Y LA RAZÓN IMPORTA MÁS QUE LA REGLA.
+     En Tailwind v4 las utilidades de espacio se derivan de UN multiplicador
+     (`--spacing`, 0.25rem): `p-6` es `calc(var(--spacing) * 6)` = 24 px.
+     Declarar `--spacing-6: 6px` no AÑADE un token: SUSTITUYE ese cálculo, y
+     `p-6` pasa a valer 6 px. Hay 3 `p-6` y 2 `px-6` en el árbol; los cinco
+     habrían encogido de 24 px a 6 px sin que fallara ninguna prueba, porque
+     ninguna prueba mira píxeles.
+     Los `--sp-*` existen en `:root` y se usan como `padding: 'var(--sp-8)'`,
+     que además es la forma que este código ya escribe. */
 }
 
 * {

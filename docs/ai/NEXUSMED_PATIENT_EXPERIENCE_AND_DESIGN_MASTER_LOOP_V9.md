@@ -693,3 +693,5 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | Fecha | Unidad | SHA | Qué quedó | REG |
 |---|---|---|---|---|
 | 2026-08-08 | **PATIENT-UX-TRUTH-001** | `639ca73` | 7 documentos · backlog de 14 (4 P0) · inventario derivado con guardián · dos defectos reparados | **265, 266** |
+| 2026-08-08 | Los tres **P0 de audio** (fuera de orden, por integridad) | `7be23e9` · `2340e63` | 22 min de dictado que se borraban solos · navegar terminaba la grabación · el cierre por inactividad no oía dictar | **283, 284, 287** |
+| 2026-08-09 | **DESIGN-SYSTEM-001 · parte 1** | *(esta rama)* | `@theme inline` pasa de 4 valores a las familias del sistema · 18 sitios que pintaban el azul de marca a mano por debajo de AA · escalas de radio y espacio sacadas de los picos reales · guardián con contraste **computado** y comprobación al revés | **291** |

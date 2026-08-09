@@ -6379,3 +6379,88 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — el azul de marca escrito a mano no seguía al tema, y reprobaba AA (V9 · DESIGN-SYSTEM-001)
+
+El sistema de diseño ya había resuelto un problema fino: el azul de marca no
+puede ser **un** color, porque se le piden dos cosas opuestas.
+
+- Como **texto** sobre fondo oscuro hay que **aclararlo** → `--nexus` `#6E84FE`
+- Como **relleno** bajo texto blanco hay que **oscurecerlo** → `--nexus-solido`
+
+La separación estaba medida y escrita dentro de `globals.css`. Y **dieciocho
+sitios se la saltaban**, escribiendo `#3D5AFE` a mano justo en posición de color
+de texto o de icono — el uso para el que ese valor NO sirve.
+
+### Lo que se midió
+
+Fórmula de luminancia relativa WCAG 2.1, sobre las superficies que declara el
+propio CSS:
+
+| Fondo | `#3D5AFE` a mano | `var(--nexus)` |
+|---|---|---|
+| `--s3` | **2,96** | 4,63 |
+| `--s2` | **3,30** | 5,15 |
+| `--s1` | **3,56** | 5,57 |
+| `--bg` | **3,81** | 5,96 |
+| tinte del chip al 12 % (oscuro) | **2,98 – 3,24** | 4,66 – 5,06 |
+| tinte del chip al 12 % (**claro**) | **4,25** | 5,56 |
+
+**Ninguna llega a 4,5.** El token que corresponde pasa AA en las ocho
+combinaciones.
+
+Y hay un segundo defecto encima del primero: **un hexadecimal a mano no cambia
+con el tema.** `--nexus` vale `#6E84FE` en oscuro y `#2845EA` en claro; los
+dieciocho sitios se quedaban en `#3D5AFE` en los dos.
+
+Entre ellos: la etiqueta «Internado — ver Hospitalización» del listado de
+pacientes, los chips de dosis, vía y laboratorio del internamiento, el icono de
+cama de consulta y de configuración, el estado «En infusión» del MAR, y el icono
+de la pantalla pública de verificación de documento.
+
+### La causa raíz, que es otra y más grande
+
+`@theme inline` exponía a Tailwind **cuatro** valores. Todo el sistema —
+superficies, texto, marca, semántica clínica, radio — vivía en variables CSS que
+Tailwind no mira, así que **no había utilidades que usar**: 6 065 `style={{` en
+177 de 200 archivos. Quien escribía una pantalla nueva no *elegía* el estilo en
+línea; era lo único que había.
+
+El bloque pasa a exponer las familias del sistema. `inline` resuelve la
+referencia, así que la utilidad emitida sigue leyendo la variable y **sigue
+cambiando con el tema** — comprobado compilando Tailwind contra una sonda:
+`.text-nexus { color: var(--nexus) }`, no el hexadecimal congelado.
+
+### La trampa que casi entra con el arreglo
+
+El primer intento declaró también `--spacing-4 … --spacing-24` en `@theme`. En
+Tailwind v4 las utilidades de espacio **no son un mapa**: `p-6` es
+`calc(var(--spacing) * 6)` = 24 px. Declarar `--spacing-6: 6px` no añade un
+token — **sustituye ese cálculo**, y los 3 `p-6` y 2 `px-6` del árbol habrían
+encogido de 24 px a 6 px **sin que fallara ninguna prueba**, porque ninguna mira
+píxeles.
+
+Se detectó mirando del otro lado antes de dar el cambio por hecho, no razonando
+sobre él. Los `--sp-*` se quedan en `:root` y se usan en línea, que además es la
+forma que este código ya escribe. La prueba lo sella: `@theme` no puede volver a
+declarar `--spacing-N`.
+
+### Qué NO cubre
+
+Quedan ~1 200 hexadecimales a mano (151 distintos) sin medir; éste es el primero
+de la serie, no la serie. Cumplir el contraste de un token no es cumplir WCAG
+2.2 AA — faltan foco, tabulación, etiquetas y objetivo táctil (`A11Y-GATE-001`,
+abierto). Y **nadie ha abierto una pantalla**: el cambio se calculó, no se miró.
+
+### Archivos
+
+- `src/app/globals.css` — `@theme inline` ensanchado · escalas `--r-*` y `--sp-*`
+- `src/app/(dashboard)/pacientes/page.tsx` · `configuracion/page.tsx` ·
+  `consulta/[patientId]/page.tsx` · `hospitalizacion/[internamientoId]/page.tsx` ·
+  `hospitalizacion/camas/page.tsx` · `uci/MarPaciente.tsx`
+- `src/app/not-found.tsx` · `verificar/[token]/page.tsx` · `superadmin/page.tsx` ·
+  `demo/interactivo/page.tsx`
+- `src/__tests__/el-azul-de-marca-no-se-escribe-a-mano.test.ts` (nuevo, 17 casos en
+  ejecución · 10 declarados en línea, que es lo que sella el trinquete)

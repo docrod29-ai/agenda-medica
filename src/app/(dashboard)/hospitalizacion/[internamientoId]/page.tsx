@@ -1186,14 +1186,14 @@ export default function EpisodioPage() {
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Dosis / presentación</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
+                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
                     <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 100 }} placeholder="otra" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
                   </div>
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Vía</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
+                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
                   </div>
                 </div>
               </>
@@ -1498,7 +1498,7 @@ export default function EpisodioPage() {
             <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Estudios</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
               {ESTUDIOS_LAB_RAPIDOS.map(e => { const on = labSel.includes(e); return (
-                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
+                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
               )})}
             </div>
           </div>

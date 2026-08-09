@@ -20,7 +20,7 @@ import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 //   verde  = disponible · azul = con paciente · ámbar = transitorio ·
 //   rojo   = no utilizable · morado = precaución de contacto.
 const COLOR: Record<EstadoCama, string> = {
-  libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
+  libre: '#0d9488', ocupada: 'var(--nexus)', bloqueada: '#dc2626', limpieza: '#d97706',
   reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
   lista: '#0d9488', limpieza_aislamiento: '#a21caf',
 }
