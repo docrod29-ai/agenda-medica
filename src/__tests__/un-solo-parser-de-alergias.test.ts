@@ -87,7 +87,7 @@ describe('LOS TRES LLAMADORES USAN EL MISMO', () => {
     expect(uci).toContain('const lista = alergenosDe(paciente ?? {})')
   })
 
-  it('y el cruce alergia↔fármaco del copiloto (REG-208)', () => {
+  it('y el cruce alergia↔fármaco del copiloto (REG-270)', () => {
     /**
      * El cuarto llamador, que esta lista no tenía: no partía el campo a mano
      * —por eso el guardián de abajo no lo veía— sino que lo leía ENTERO y

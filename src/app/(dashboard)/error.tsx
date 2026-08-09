@@ -18,7 +18,7 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
       <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
         Ocurrió un error en esta pantalla. Tus datos están a salvo. Intenta de nuevo.
       </p>
-      <button onClick={() => reset()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>
+      <button onClick={() => reset()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>
         <RotateCcw size={16} /> Reintentar
       </button>
     </div>

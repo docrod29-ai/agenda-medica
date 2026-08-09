@@ -99,7 +99,7 @@ export default function ArquitecturaPage() {
       </div>
 
       <div style={{ marginTop: 30, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal, #0d9488)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
+        <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700 }}>
           Ver planes y niveles de IA
         </Link>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--text2, #334155)', textDecoration: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, border: '1px solid var(--border, #e5e7eb)' }}>

@@ -81,7 +81,7 @@ export function Copiloto({ entrada, onAgregarANota, prefs, onAceptar }: Props) {
         {documentables.length > 0 && onAgregarANota && (
           <button type="button" onClick={ponerTodo} style={{
             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 8,
+            background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 8,
             padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 36,
           }}>
             <Plus size={13} /> Todo a la nota

@@ -137,7 +137,7 @@ const FAMILIAS_ALERGIA: { familia: string; dispara: string[]; miembros: string[]
 
 function alergiaVsReceta(e: EntradaCopiloto): Sugerencia[] {
   /**
-   * ── EL CAMPO SE LEE ALÉRGENO POR ALÉRGENO (7-ago-2026, REG-208) ────────────
+   * ── EL CAMPO SE LEE ALÉRGENO POR ALÉRGENO (7-ago-2026, REG-270) ────────────
    *
    * Aquí se normalizaba el campo ENTERO y se buscaba el fármaco dentro con un
    * `includes`, con un limpiador propio de negaciones. Sobre una frase suelta eso

@@ -9,7 +9,7 @@ import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, partesDelNombre, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
 import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
-import { sugerenciasPendientes, resolverSugerencias } from '@/lib/expediente/sugerencias-ia'
+import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
@@ -36,7 +36,7 @@ import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineC
 import {
   createNota, updateNota, getNota, getNotas, deleteNota, getUltimasNotasResumen,
 } from '@/lib/expediente/firestore'
-import { seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
+import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
 import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
@@ -45,7 +45,16 @@ import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
 import { RevisionPanel } from '@/components/RevisionPanel'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
+import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
+import { frasesInciertas } from '@/lib/expediente/certeza'
+import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
+import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
+import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { PlanPorProblema } from '@/components/PlanPorProblema'
+import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
+import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
+import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
 /**
@@ -118,6 +127,8 @@ import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
 import { Copiloto } from '@/components/Copiloto'
 import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/lib/learning'
 import { Herramientas } from '@/components/Herramientas'
+import { QueNotaEs } from '@/components/QueNotaEs'
+import { MientrasHablas } from '@/components/MientrasHablas'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
@@ -136,12 +147,23 @@ import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
 import { CobrarModal } from '@/components/CobrarModal'
 import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
-import { tareasDeNota } from '@/lib/tareas-clinicas/derivar'
+import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
+import { comoSeDice, discrepanciasDeMedicacion } from '@/lib/tareas-clinicas/reconciliacion'
+import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expediente/duracion-cumplida'
 import { crearTareas } from '@/lib/tareas-clinicas/firestore'
 import { DialogoDiarizado, Section, S } from './consulta-ui'
 import { medicamentosVigentes, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
 import { problemasActivos, haceCuanto, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
+import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
+import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
+import { EmpezarAGrabar } from '@/components/EmpezarAGrabar'
+import { huellaRevisable, estadoDeRevision, COMO_SE_DICE, type ContenidoRevisable } from '@/lib/expediente/lo-que-se-reviso'
+import { mientrasReceta, alFirmar, comoSeDicenAlFirmar } from '@/lib/expediente/cuando-avisar'
+import { sinHuecoDeProsa } from '@/lib/expediente/hueco-textual'
+import { diagnosticosSanos, medicamentosSanos, seccionesSanas } from '@/lib/expediente/nota-restaurada'
+import { quitarDeLaNota, sePuedeQuitar } from '@/lib/expediente/quitar-de-la-nota'
 import { motivosParaNoFirmar, porQueNoSePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
 import { dosisPeligrosasDeLaLista } from '@/lib/seguridad/dosis-de-la-lista'
 import { CAMPOS_PREVIOS, AVISO_NO_ES_EXPEDIENTE, resumenPrevio, type FormularioPrevio } from '@/lib/portal/formulario-previo'
@@ -345,6 +367,37 @@ export default function ConsultaActivaPage() {
   // Cuando termina Whisper, copia el texto a voz.setTranscripcion para reutilizar el flujo de IA
   // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
   const autoProcRef = useRef(false)
+  /**
+   * LO QUE LA IA PUSO EN LA PASADA ANTERIOR.
+   *
+   * Es lo único que permite distinguir sus diagnósticos de los que escribió el
+   * médico — y por tanto lo único que hace seguro SUSTITUIR en vez de acumular.
+   *
+   * Sin esto, el pase en vivo (cada 15 s, ~40 por consulta) sumaba una tanda
+   * entera cada vez, con la IA redactando distinto en cada pasada. Así se
+   * llegaba a 19 diagnósticos con tres redacciones del mismo R59.1.
+   */
+  const dxDeLaIaRef = useRef<Diagnostico[]>([])
+
+  /**
+   * Y lo mismo para los MEDICAMENTOS, que es la lista que se imprime.
+   *
+   * Los diagnósticos recibieron este arreglo y los medicamentos no. El pase en
+   * vivo corre cada 15 s, y lo que se dictó al recabar antecedentes en el
+   * minuto dos («toma metformina y losartán») se quedaba en la lista para
+   * siempre — y de esa lista sale la receta.
+   */
+  const medDeLaIaRef = useRef<Medicamento[]>([])
+
+  /**
+   * Y lo mismo para las SECCIONES: qué texto dejó la IA en cada apartado.
+   *
+   * Es lo único que distingue «esto lo escribió un pase anterior mío, puedo
+   * mejorarlo» de «esto lo escribió el médico, no se toca». Sin esta anotación,
+   * la primera versión —la peor, del modelo rápido, con la consulta empezando—
+   * congelaba el apartado para el resto de la consulta.
+   */
+  const seccionesDeLaIaRef = useRef<Record<string, string>>({})
 
   /**
    * LO YA DICTADO NO SE PIERDE AL VOLVER A GRABAR.
@@ -673,7 +726,7 @@ export default function ConsultaActivaPage() {
     alergias: patient?.alergias,
     /**
      * Las capturadas en campo, para que el cruce las vea igual que el sesgo de
-     * voz y los impresos (REG-208). Hoy ninguna ruta de escritura las llena,
+     * voz y los impresos (REG-270). Hoy ninguna ruta de escritura las llena,
      * pero cualquier importación desde otro sistema las activa el mismo día, y
      * entonces el paciente MEJOR documentado sería el único sin cruce.
      */
@@ -723,7 +776,14 @@ export default function ConsultaActivaPage() {
   const [rolesHablante, setRolesHablante] = useState<Record<string, string>>({})
   // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 4.8.
   type Hallazgo = { severidad: string; tema: string; problema: string; sugerencia: string }
-  const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[] } | null>(null)
+  /**
+   * La segunda opinión, CON la huella de lo que revisó.
+   *
+   * Sin la huella, el resultado seguía diciendo «sin observaciones» después de
+   * que el médico editara la nota — un sello de una versión que ya no existe.
+   * Ver `lib/expediente/lo-que-se-reviso.ts`.
+   */
+  const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[]; huella: string } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
   // Menú de IA: motor elegido por el médico para esta nota. null = default del plan
@@ -781,7 +841,24 @@ export default function ConsultaActivaPage() {
     const dialogo = audio.utterances
       .map(u => `${rolesHablante[u.speaker] || `Hablante ${u.speaker}`}: ${marcarTurno(u)}`)
       .join('\n')
-    if (audio.utterances.length > 0 && !multiTramo) {
+    /**
+     * UN MONÓLOGO NO SE ARMA COMO DIÁLOGO.
+     *
+     * El médico contestó que en UCI y en hospital **dicta solo**. Y el
+     * diarizador parte a una sola persona en dos hablantes cuando cambia el
+     * tono o hay una pausa larga — con lo que su propio dictado salía así:
+     *
+     *     Médico adscrito: el paciente lleva tres días con fiebre
+     *     Paciente: y la creatinina en uno punto ocho
+     *
+     * A partir de ahí el motor de negaciones y el de procedencia razonan sobre
+     * una atribución falsa: la diferencia entre «el paciente lo afirmó» y «el
+     * médico lo dictó» es la que sostiene esas dos defensas.
+     *
+     * Con un solo hablante no hay nada que atribuir: va texto plano. Las marcas
+     * de duda no se pierden — se anexan abajo, como en multi-tramo.
+     */
+    if (audio.utterances.length > 0 && !multiTramo && !esMonologo(audio.utterances)) {
       return dudosas.length > 0 ? `${INSTRUCCION_MARCAS}\n\n${dialogo}` : dialogo
     }
     /**
@@ -840,6 +917,55 @@ export default function ConsultaActivaPage() {
     return contradicciones(negadas, textoNota)
       .filter(c => !avisosRevisados.includes(`negacion:${c.condicion}`))
   }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
+  /**
+   * ¿DE QUIÉN ES LA ENFERMEDAD? (§B8 del charter, REG-210)
+   *
+   * El tercer eje, junto a la negación (¿sí o no?) y la temporalidad (¿cuándo?).
+   * «Mi mamá tuvo cáncer de mama» metido como antecedente PERSONAL deja una
+   * historia clínica impecable afirmando un cáncer que el paciente nunca tuvo,
+   * firmada con cédula. No se ve raro: por eso hace falta señalarlo.
+   *
+   * Sólo se avisa cuando la nota YA dice algo — si el dictado aún está vacío no
+   * hay nada que atribuir mal.
+   */
+  const antecedentesDeFamiliar = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    return frasesDeFamiliar(dictado)
+      .filter(f => !avisosRevisados.includes(`familiar:${f.frase.slice(0, 40)}`))
+  }, [voz.transcripcion, avisosRevisados])
+  /**
+   * ¿DE DÓNDE SALIÓ ESTO? (§B10 del charter · SUP-001)
+   *
+   * La pregunta que hoy sólo se puede contestar reescuchando la consulta
+   * entera. Cada afirmación de la nota se busca en el dictado; las que ningún
+   * fragmento sostiene se señalan con las palabras que nadie dijo.
+   *
+   * No acusa: puede venir del expediente previo o de la exploración física. Por
+   * eso el aviso dice «si viene de ahí, déjalo».
+   */
+  const sinRespaldo = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    const textoNota = textoDeLaNota(resumen, diagnosticos, secciones)
+    if (!textoNota.trim()) return []
+    return afirmacionesSinRespaldo(textoNota, dictado)
+      .filter(r => !avisosRevisados.includes(`respaldo:${r.afirmacion.slice(0, 40)}`))
+      .map(r => ({ afirmacion: r.afirmacion, huerfanas: r.huerfanas }))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
+  /**
+   * ¿CON CUÁNTA SEGURIDAD LO DIJO? (§B6 del charter, REG-211)
+   *
+   * El cuarto eje. «Creo que me dijeron que tenía anemia» aplanado a «Anemia»
+   * convierte una duda del paciente en un diagnóstico del expediente — y a
+   * partir de la segunda consulta ya nadie sabe que era una duda.
+   */
+  const datosInciertos = useMemo(() => {
+    const dictado = voz.transcripcion
+    if (!dictado.trim()) return []
+    return frasesInciertas(dictado)
+      .filter(f => !avisosRevisados.includes(`incierto:${f.frase.slice(0, 40)}`))
+  }, [voz.transcripcion, avisosRevisados])
   /**
    * EL PASADO NO ES EL PRESENTE.
    *
@@ -1099,6 +1225,17 @@ export default function ConsultaActivaPage() {
      * un internamiento.
      */
     contexto: (internamientoActivo ? 'hospitalizacion' : 'consulta') as 'consulta' | 'hospitalizacion',
+    /**
+     * ¿HABLAN DOS, O DICTA UNO SOLO? — lo decide el TIPO de nota.
+     *
+     * El médico contestó que la evolución de hospital la **dicta solo**, y que
+     * la consulta la **conversa con el paciente**. Sale del tipo y no de una
+     * opción más en pantalla: menos que decidir es menos maneras de
+     * equivocarse, que es justo lo que pidió.
+     *
+     * Ante la duda, `conversacion`. Ver `lib/asr/un-solo-hablante.ts`.
+     */
+    modoDeHabla: (esDictado(tipo) ? 'dictado' : 'conversacion') as 'dictado' | 'conversacion',
     medicamentos: (medicamentos ?? []).map(m => m?.nombre).filter(Boolean) as string[],
     problemas: (diagnosticos ?? []).map(d => d?.descripcion).filter(Boolean) as string[],
     /**
@@ -1132,7 +1269,7 @@ export default function ConsultaActivaPage() {
      * mandaba CERO.
      */
     alergias: alergenosDe(patient ?? {}),
-  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido])
+  }), [patientId, medicamentos, diagnosticos, patient?.alergias, internamientoActivo, especialidadEfectiva, aprendido, tipo])
 
   // Arranca el grabador que corresponde al modo seleccionado (no siempre el de voz).
   const arrancarSegunModo = () => {
@@ -1140,12 +1277,40 @@ export default function ConsultaActivaPage() {
     else voz.iniciar()
   }
 
+  /**
+   * ¿ESTE PACIENTE YA CONSINTIÓ, EN ESTA U OTRA CONSULTA?
+   *
+   * El médico eligió «una vez por paciente, y ya». Antes el consentimiento
+   * vivía en un `useState` que moría con la pantalla, así que el modal salía en
+   * CADA consulta del mismo paciente — un paso repetido cien veces al mes.
+   *
+   * `consentimiento` (el estado) sigue existiendo para la consulta en curso; lo
+   * que se añade es mirar TAMBIÉN el expediente. Ausente = nunca se pidió: no
+   * se da por otorgado por omisión jamás.
+   */
+  const yaConsintio = consentimiento || !!patient?.consentimientoGrabacion?.fecha
+
+  /**
+   * ¿ESTAMOS AL PRINCIPIO — sin nada grabado todavía?
+   *
+   * Es lo que decide si se enseña sólo el botón grande o la fila entera de
+   * controles. Al principio, pausar, cancelar y «Procesar con IA» no significan
+   * nada: no hay nada que pausar ni que procesar.
+   *
+   * Se mira el estado del grabador Y la transcripción: si el médico vuelve a
+   * una consulta con algo ya dictado, tiene que ver los controles aunque el
+   * grabador esté parado.
+   */
+  const esElPrincipio = audio.estado === 'inactivo'
+    && !voz.grabando
+    && !voz.transcripcion.trim()
+
   const iniciarGrabacion = () => {
     // arrancarSegunModo, NO voz.iniciar directo: `modoVoz` está en 'whisper', así
     // que el grabador real es `audio`. Llamar voz.iniciar() arrancaba un SEGUNDO
     // grabador (Web Speech) en paralelo al de Whisper — dos motores escribiendo la
     // misma transcripción. El atajo de teclado disparaba justo este camino.
-    if (consentimiento) { arrancarSegunModo(); return }
+    if (yaConsintio) { arrancarSegunModo(); return }
     setModalConsentimiento(true)
   }
   /** Lo que decían las alergias al abrir, para poder asentar QUÉ cambió. */
@@ -1167,6 +1332,21 @@ export default function ConsultaActivaPage() {
      * bitácora.
      */
     void logAudit({ evento: 'consentimiento_grabacion', clinicId: clinicId ?? '', patientId })
+    /**
+     * Y QUEDA EN EL EXPEDIENTE, no sólo en la bitácora.
+     *
+     * La bitácora sirve para auditar; el expediente es donde un consentimiento
+     * tiene sentido y donde se puede consultar sin pedirle nada a nadie. Es
+     * además lo que permite no volver a preguntarlo.
+     *
+     * Con su propio `catch`: si Firestore falla, la grabación NO se cae — se
+     * volverá a pedir la próxima vez, que es el lado seguro del error.
+     */
+    if (clinicId) {
+      void updatePatient(clinicId, patientId, {
+        consentimientoGrabacion: { fecha: new Date().toISOString(), medicoId: auth.currentUser?.uid },
+      }).catch(() => { /* se volverá a pedir: es el lado seguro */ })
+    }
     arrancarSegunModo()
   }
 
@@ -1292,10 +1472,19 @@ export default function ConsultaActivaPage() {
       // aparezca distinto en Firestore a partir de aquí es de otra sesión.
       vistoEnRef.current = n.metadata?.fechaModificacion
       setTipo(n.tipo)
-      setSecciones(n.secciones)
+      /**
+       * ── LO QUE SE RESTAURA PUEDE VENIR DE OTRA ÉPOCA (REG-218) ────────────
+       *
+       * `signosVitales` llevaba guarda y estos tres NO. Una nota vieja, o
+       * escrita por otro módulo, que no traiga el campo dejaba el estado en
+       * `undefined` y el siguiente render reventaba en `.map` / `.filter`.
+       * El médico veía «Algo se atoró en esta pantalla», con el paciente
+       * delante.
+       */
+      setSecciones(seccionesSanas(n.secciones))
       setSignos(n.signosVitales ?? {})
-      setDiagnosticos(n.diagnosticos)
-      setMedicamentos(n.medicamentos)
+      setDiagnosticos(diagnosticosSanos(n.diagnosticos))
+      setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
       setFirmada(n.estado === 'firmada')
       if (n.preop) setPreop(n.preop)
@@ -1339,7 +1528,10 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [] })
+      // La huella es de lo que SE MANDÓ a revisar, no de lo que hay en pantalla
+      // ahora: entre que salió la petición y volvió, el médico pudo teclear.
+      const huella = huellaRevisable(nota as ContenidoRevisable)
+      if (data?.ok) setVerificacion({ modelo: data.modelo ?? 'IA', hallazgos: data.hallazgos ?? [], huella })
       // Auditoría 2026-07 (P1): NO mostrar «sin observaciones» si la revisión falló.
       // La segunda opinión queda nula (no verde) y se avisa que no se verificó.
       else if (data?.incompleto) {
@@ -1356,7 +1548,7 @@ export default function ConsultaActivaPage() {
          * lee como una revisión completa.
          */
         const parciales = Array.isArray(data.hallazgos) ? data.hallazgos : []
-        if (parciales.length > 0) setVerificacion({ modelo: `${data.modelo ?? 'IA'} · revisión parcial`, hallazgos: parciales })
+        if (parciales.length > 0) setVerificacion({ modelo: `${data.modelo ?? 'IA'} · revisión parcial`, hallazgos: parciales, huella })
       }
     } catch { /* silencioso: la segunda opinión es un extra, no bloquea */ }
     finally { setVerificando(false) }
@@ -1570,40 +1762,132 @@ export default function ConsultaActivaPage() {
        * En vivo la IA solo RELLENA huecos. En el "Procesar" normal (que el médico
        * pidió a propósito) sigue mandando la IA, como hasta ahora.
        */
+      /**
+       * ── LO QUE LA IA ESCRIBIÓ, ANTES DE TOCAR LA PANTALLA ────────────────────
+       *
+       * Se calcula aquí y no dentro del `setSecciones` porque React puede
+       * ejecutar un actualizador de estado dos veces; anotar la procedencia
+       * desde dentro dejaría el registro dependiendo de cuántas veces corrió.
+       */
+      const loQueEscribeLaIa: Record<string, string> = {}
+      for (const [clave, valor] of Object.entries(data.secciones ?? {})) {
+        if (typeof valor !== 'string' || !valor.trim()) continue
+        const limpio = sinHuecoDeProsa(valor)
+        if (limpio) loQueEscribeLaIa[clave] = sanitizarProsa(limpio)
+      }
+
       // La transcripción cruda NUNCA se vuelca dentro de la nota (es material de origen).
       setSecciones(prev => {
-        const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
+        /**
+       * ── LAS SECCIONES SON SIEMPRE LAS DEL TIPO ACTIVO (REG-196) ──────────────
+       *
+       * Antes, sin `tipoOverride`, la base era `prev`: las secciones que ya había en
+       * memoria. Si venían de otro tipo —porque la nota se creó como seguimiento y
+       * luego se marcó como primera vez— esas claves NO salían nunca, y la nota
+       * quedaba titulada «Primera Vez» con encabezados SUBJETIVO/OBJETIVO/PLAN.
+       *
+       * `seccionesDelTipo` devuelve exactamente las del tipo conservando lo escrito
+       * en las que coinciden; lo que no pertenece se queda fuera de la nota (y se
+       * devuelve aparte, no se borra).
+       */
+      const base = seccionesDelTipo(tipoActivo, tipoOverride ? [] : prev).secciones
         return base.map(s => {
           const valorIA = data.secciones?.[s.key]
           if (typeof valorIA !== 'string' || !valorIA.trim()) return s
-          if (enVivo && s.value?.trim()) return s      // ya escrito a mano: no se toca
-          return { ...s, value: sanitizarProsa(valorIA) }
+          /**
+           * ── UN HUECO ESCRITO NO ES UNA SECCIÓN ESCRITA (REG-217) ──────────
+           *
+           * «No referido.» se descarta ANTES de la guarda de abajo. Si no, la
+           * primera pasada en vivo —que ocurre cuando apenas se dictó la ficha
+           * de identificación— escribía el hueco, y `s.value?.trim()` lo daba
+           * por contenido: NINGUNA pasada posterior podía corregirlo. El médico
+           * dictaba la consulta entera y la nota se quedaba hueca.
+           *
+           * Distingue el hueco del negativo pertinente: «no refiere fiebre ni
+           * disnea» es un dato clínico y se conserva.
+           */
+          const limpio = sinHuecoDeProsa(valorIA)
+          if (!limpio) return s
+          /**
+           * ── LA PRIMERA VERSIÓN YA NO CONGELA EL APARTADO ────────────────────
+           *
+           * Antes decía: «si en vivo la sección ya tiene texto, no la toques».
+           * La intención era buena —no pisar lo que el médico teclea mientras la
+           * IA corre—, pero «ya tiene texto» **incluía lo que había escrito un
+           * pase anterior DE LA PROPIA IA**.
+           *
+           * Y el pase en vivo corre cada 15 segundos, con el modelo rápido, y el
+           * primero ocurre con la consulta apenas empezada. Resultado: la
+           * versión más pobre de cada apartado se quedaba fija para siempre.
+           *
+           * Le pega justo a este médico, que dicta SALTANDO: cuando regresa a
+           * antecedentes en el minuto diez, ningún pase posterior podía ya
+           * corregir lo que se escribió en el minuto uno. Es su queja literal —
+           * «no llenas los apartados como es».
+           *
+           * La distinción correcta no es «vacío o lleno»: es **quién lo
+           * escribió**. Si lo que hay coincide con lo que la IA puso en su pase
+           * anterior, es suyo y puede mejorarlo. Si NO coincide, lo cambió el
+           * médico y no se toca — que era lo que la guarda quería proteger.
+           *
+           * Mismo criterio que ya usan los diagnósticos y los medicamentos.
+           */
+          const loPusoLaIa = seccionesDeLaIaRef.current[s.key]
+          const loCambioElMedico = !!s.value?.trim()
+            && s.value.trim() !== (loPusoLaIa ?? '').trim()
+          if (enVivo && loCambioElMedico) return s
+          return { ...s, value: sanitizarProsa(limpio) }
         })
       })
+      // Queda anotado qué dejó la IA, para que el próximo pase sepa qué es suyo.
+      seccionesDeLaIaRef.current = { ...seccionesDeLaIaRef.current, ...loQueEscribeLaIa }
 
       const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
       if (tipoOverride) {
         // RE-PROYECCIÓN a otra modalidad de nota: se parte de plantilla limpia a propósito.
         setDiagnosticos(nuevosDx)
+        dxDeLaIaRef.current = nuevosDx
       } else if (nuevosDx.length > 0) {
-        // FUSIÓN: tanto el pase en vivo como "Procesar de nuevo" AÑADEN lo que la IA
-        // detectó pero NUNCA borran lo que el médico agregó a mano. Antes, reprocesar
-        // hacía setDiagnosticos(nuevosDx) y borraba en silencio el Dx con su CIE-10 que
-        // el médico había capturado (la IA nunca lo supo). Pérdida de datos clínicos.
-        setDiagnosticos(prev => {
-          const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
-          return [...prev, ...nuevosDx.filter((d: Diagnostico) => !vistos.has(d.descripcion.trim().toLowerCase()))]
-        })
+        /**
+         * FUSIÓN CON PROCEDENCIA — no acumula, y sigue sin borrar lo del médico.
+         *
+         * La versión anterior concatenaba y sólo descartaba el repetido si el
+         * texto era IDÉNTICO letra por letra. Con el pase en vivo disparando
+         * cada 15 s y la IA redactando distinto cada vez, una consulta acababa
+         * con 19 diagnósticos y tres redacciones del mismo código.
+         *
+         * Ahora se sustituye SÓLO lo que la IA puso en su pasada anterior, se
+         * conserva siempre lo que escribió el médico, y se deduplica por CIE-10
+         * cuando lo hay — que es para lo que existe el código.
+         */
+        setDiagnosticos(prev => fusionarDiagnosticos({
+          previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+        }))
+        dxDeLaIaRef.current = nuevosDx
       }
 
       const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
       if (tipoOverride) {
         setMedicamentos(nuevosMed)
+        medDeLaIaRef.current = nuevosMed
       } else if (nuevosMed.length > 0) {
-        setMedicamentos(prev => {
-          const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
-          return [...prev, ...nuevosMed.filter((m: Medicamento) => !vistos.has(m.nombre.trim().toLowerCase()))]
-        })
+        /**
+         * FUSIÓN CON PROCEDENCIA — la lista deja de acumular.
+         *
+         * Antes hacía `[...previos, ...nuevos]` y sólo descartaba el repetido si
+         * el nombre coincidía letra por letra. Con el pase en vivo corriendo
+         * cada 15 s, lo que se dictó al recabar ANTECEDENTES en el minuto dos
+         * («toma metformina y losartán») se quedaba en la lista para siempre —
+         * y esa lista es la que se imprime en la receta.
+         *
+         * Es el mismo arreglo que ya tenían los diagnósticos, y que a los
+         * medicamentos nunca se les aplicó: se sustituye SÓLO lo que la IA puso
+         * en su pasada anterior y se conserva siempre lo que escribió el médico.
+         */
+        setMedicamentos(prev => fusionarMedicamentos({
+          previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+        }))
+        medDeLaIaRef.current = nuevosMed
       }
 
       if (data.signosVitales) {
@@ -1747,25 +2031,33 @@ export default function ConsultaActivaPage() {
     if (data.resumenEjecutivo?.trim()) setResumen(sanitizarProsa(data.resumenEjecutivo))
     else if (tipoOverride) setResumen('')
     setSecciones(prev => {
-      const base = tipoOverride ? seccionesVacias(tipoActivo) : prev
+      /** Igual que arriba: nunca sobreviven claves de otro tipo (REG-196). */
+      const base = seccionesDelTipo(tipoActivo, tipoOverride ? [] : prev).secciones
       return base.map(s => {
-        const v = data.secciones?.[s.key]
-        return (typeof v === 'string' && v.trim()) ? { ...s, value: sanitizarProsa(v) } : s
+        // El mismo saneo que arriba: dos sitios con la misma regla, no dos reglas.
+        const v = sinHuecoDeProsa(data.secciones?.[s.key])
+        return v ? { ...s, value: sanitizarProsa(v) } : s
       })
     })
     const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
     if (tipoOverride) setDiagnosticos(nuevosDx)   // re-proyección: plantilla limpia
-    else if (nuevosDx.length > 0) setDiagnosticos(prev => {
-      // FUSIÓN anti-pérdida: no borra lo que el médico agregó a mano mientras la IA corría.
-      const vistos = new Set(prev.map(d => d.descripcion.trim().toLowerCase()))
-      return [...prev, ...nuevosDx.filter(d => !vistos.has(d.descripcion.trim().toLowerCase()))]
-    })
+    else if (nuevosDx.length > 0) {
+      // El mismo motor que arriba: dos sitios con la misma regla, no dos reglas.
+      setDiagnosticos(prev => fusionarDiagnosticos({
+        previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+      }))
+      dxDeLaIaRef.current = nuevosDx
+    }
     const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (tipoOverride) setMedicamentos(nuevosMed)
-    else if (nuevosMed.length > 0) setMedicamentos(prev => {
-      const vistos = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
-      return [...prev, ...nuevosMed.filter(m => !vistos.has(m.nombre.trim().toLowerCase()))]
-    })
+    if (tipoOverride) { setMedicamentos(nuevosMed); medDeLaIaRef.current = nuevosMed }
+    else if (nuevosMed.length > 0) {
+      // Mismo criterio que el camino de primer plano: se sustituye lo de la IA,
+      // se conserva lo del médico. Ver `fusionarMedicamentos`.
+      setMedicamentos(prev => fusionarMedicamentos({
+        previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+      }))
+      medDeLaIaRef.current = nuevosMed
+    }
     if (data.signosVitales) {
       const sv = data.signosVitales
       setSignos(prev => ({ fc: sv.fc || prev.fc, fr: sv.fr || prev.fr, ta: sv.ta || prev.ta, temperatura: sv.temperatura || prev.temperatura, spo2: sv.spo2 || prev.spo2, peso: sv.peso || prev.peso, talla: sv.talla || prev.talla }))
@@ -2023,10 +2315,32 @@ export default function ConsultaActivaPage() {
        * Se registra el alérgeno tal como está escrito y nada más. Los campos que
        * no se saben quedan ausentes, que es la única representación honesta.
        */
-      // Una entrada POR alérgeno, no el párrafo entero como un solo alérgeno —y
-      // sin lo que el propio campo niega («niega alergia a penicilina» no es una
-      // alergia a penicilina, y hacía saltar la alerta que bloquea la firma).
-      alergias: parsearAlergiasTexto(patient?.alergias),
+      /**
+       * ── LA ALERGIA ESTRUCTURADA NO LLEGABA A LA COMPUERTA (7-ago-2026) ──────
+       *
+       * `parsearAlergiasTexto(patient?.alergias)` sólo mira el TEXTO LIBRE. Un
+       * paciente cuya alergia vive en `alergiasEstructuradas` —que es donde la
+       * deja el registro estructurado— sellaba `alergias: []` en la nota.
+       *
+       * Y de `nota.alergias` cuelga la COMPUERTA que bloquea la firma
+       * (`nom004.ts`): el cruce por subcadena y el de reactividad cruzada por
+       * familias. Reproducido con el motor real:
+       *
+       *     paciente con «Penicilina» sólo en el campo estructurado
+       *     + prescripción de cefalexina
+       *     → la pantalla pinta la alergia en rojo (lee `alergiasDe`)
+       *     → la compuerta devuelve CERO errores
+       *     → el betalactámico se firma sobre un alérgico, con el aviso a la vista
+       *
+       * `alergiasDe` lee LAS DOS fuentes y devuelve el mismo tipo que la
+       * compuerta espera. Es el mismo defecto de siempre: **dos lecturas del
+       * mismo campo** (ADR-001, REG-034/035/171). La pantalla y lo que se sella
+       * tienen que leer de la misma fuente.
+       *
+       * Sigue quitando lo que el campo NIEGA: «niega alergia a penicilina» no es
+       * una alergia, y hacía saltar la alerta que bloquea la firma.
+       */
+      alergias: alergiasDe(patient ?? {}),
       estudiosOrden: estudiosOrden.length ? estudiosOrden : undefined,
       internamientoId: internamientoActivo,
       // El bloque hospitalario, que hasta v941 se sellaba vacío. Lo que el
@@ -2325,7 +2639,7 @@ export default function ConsultaActivaPage() {
       const hayContenido =
         !!(resumen.trim() || secciones.some(s => s.value?.trim()) ||
            diagnosticos.length || medicamentos.length || voz.transcripcion.trim() ||
-           signosConValor(signos) || estudiosOrden.length || preop)
+           signosConValor(signos) || estudiosOrden.length || preop || proximoSeguimiento.trim())
       if (hayContenido) guardarBorrador(true)
     }
   })
@@ -2342,13 +2656,26 @@ export default function ConsultaActivaPage() {
     if (firmada) return
     const hayContenido = resumen.trim() || secciones.some(s => s.value?.trim()) ||
       diagnosticos.length > 0 || medicamentos.length > 0 || voz.transcripcion.trim() ||
-      signosConValor(signos) || estudiosOrden.length > 0 || !!preop
+      signosConValor(signos) || estudiosOrden.length > 0 || !!preop || proximoSeguimiento.trim()
     if (!hayContenido) return
     const id = setTimeout(() => {
       if (borradoresBloqueados()) return   // sesión cerrada: no resucitar PHI
       try {
         localStorage.setItem(respaldoKey, ofuscar(JSON.stringify({
           tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop,
+          /**
+           * ── LA FECHA DE PRÓXIMA CONSULTA SE PERDÍA (6-ago-2026, REG-193) ──
+           *
+           * No estaba en el respaldo, ni en sus deps, ni en la condición que
+           * decide si hay algo que guardar. Sólo se persistía **al firmar**:
+           * teclearla y recargar la borraba, y si era lo único escrito ni
+           * siquiera disparaba el autoguardado.
+           *
+           * Alimenta la tarea «agendar el seguimiento» del worklist y el
+           * contador de seguimientos vencidos del CRM — dos cosas que existían
+           * esperando este dato.
+           */
+          proximoSeguimiento,
           // notaId: sin él, restaurar el respaldo dejaba notaIdRef en null y el
           // siguiente autoguardado CREABA una segunda nota con el mismo contenido.
           notaId: notaIdRef.current,
@@ -2361,7 +2688,7 @@ export default function ConsultaActivaPage() {
     // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
     // el debounce y el respaldo local se quedaba en la versión anterior. Con un
     // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, voz.transcripcion, respaldoKey])
+  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -2475,13 +2802,18 @@ export default function ConsultaActivaPage() {
       setNotaId(id)
     })()
     if (typeof b.tipo === 'string') setTipo(b.tipo as TipoNota)
-    if (Array.isArray(b.secciones)) setSecciones(b.secciones as NotaSeccion[])
+    /**
+     * `Array.isArray` valida el CONTENEDOR, no los elementos: un `null` dentro,
+     * o un elemento de un esquema anterior, pasaba entero y tronaba igual.
+     */
+    if (Array.isArray(b.secciones)) setSecciones(seccionesSanas(b.secciones))
     if (typeof b.resumen === 'string') setResumen(b.resumen)
     if (b.signos) setSignos(b.signos as SignosVitales)
-    if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos as Diagnostico[])
-    if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos as Medicamento[])
+    if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
+    if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
     if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden as string[])
     if (b.preop) setPreop(b.preop as typeof preop)
+    if (typeof b.proximoSeguimiento === 'string') setProximoSeguimiento(b.proximoSeguimiento)
     if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
     setRespaldoDisponible(false)
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
@@ -2607,13 +2939,14 @@ export default function ConsultaActivaPage() {
       if (!raw) { setRespaldoDisponible(false); return }
       const b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
       if (b.tipo) setTipo(b.tipo)
-      if (Array.isArray(b.secciones)) setSecciones(b.secciones)
+      // Mismo saneo que arriba: tres sitios con la misma regla, no tres reglas.
+      if (Array.isArray(b.secciones)) setSecciones(seccionesSanas(b.secciones))
       if (typeof b.resumen === 'string') setResumen(b.resumen)
       if (b.signos) setSignos(b.signos)
       if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden)
       if (b.preop) setPreop(b.preop)
-      if (Array.isArray(b.diagnosticos)) setDiagnosticos(b.diagnosticos)
-      if (Array.isArray(b.medicamentos)) setMedicamentos(b.medicamentos)
+      if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
+      if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
       if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
       /**
        * REPONER EL `notaId`, que faltaba SÓLO en esta ruta.
@@ -2666,6 +2999,49 @@ export default function ConsultaActivaPage() {
     window.speechSynthesis.speak(u)
   }, [diagnosticos, medicamentos, resumen, toast])
 
+  /**
+   * ¿La segunda opinión sigue valiendo para lo que hay en pantalla?
+   *
+   * Se recalcula con la nota, así que en cuanto el médico teclea, el sello deja
+   * de decir que está al día. Ver `lib/expediente/lo-que-se-reviso.ts`.
+   */
+  const revisionCaducada = useMemo(() => estadoDeRevision({
+    huellaRevisada: verificacion?.huella,
+    ahora: {
+      resumen,
+      secciones: secciones.map(x => ({ titulo: x.label, contenido: x.value })),
+      diagnosticos, medicamentos,
+    },
+  }) === 'caducada', [verificacion?.huella, resumen, secciones, diagnosticos, medicamentos])
+
+  /**
+   * `validacion` vive AQUÍ, antes de `firmar`, y no seiscientas líneas después.
+   *
+   * Funcionaba —es una clausura— pero el compilador de React lo marca como
+   * acceso antes de la declaración, y tiene razón: un arreglo de dependencias
+   * SÍ se evalúa durante el render. Subirla no cambia lo que hace; la pone
+   * donde se lee.
+   */
+  const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
+
+  /**
+   * Los avisos de REVISIÓN DEL TEXTO, para el momento de firmar.
+   *
+   * La barra de arriba ya no los lleva —estorbaban desde el minuto uno—, así
+   * que aparecen aquí, que es cuando sirven. Ver `lib/expediente/cuando-avisar.ts`.
+   */
+  const avisosParaFirmar = useMemo(() => alFirmar(construirAvisos({
+    dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
+    contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
+    desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
+    antecedentesDeFamiliar,
+    datosInciertos,
+    sinRespaldo,
+    conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
+    faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
+    yaLoBloqueaNOM004: validacion?.errores ?? [],
+  })), [dosisIncompletas, contradiccionesNota, desajustesNota, antecedentesDeFamiliar, datosInciertos, sinRespaldo, safety, validacion])
+
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
     if (!clinicId) return
@@ -2704,6 +3080,61 @@ export default function ConsultaActivaPage() {
      * No acusa: dice cuáles no se pudieron comprobar y deja aceptarlos de una
      * vez. «ia» aquí significa «no verificado», no «inventado».
      */
+    /**
+     * ── Y AQUÍ SÍ: LO QUE HABÍA QUE REVISAR DEL TEXTO (I-7) ────────────────
+     *
+     * Estos avisos estaban en la barra de arriba desde el minuto uno, tapando
+     * la nota. No cambian lo que se le da al paciente —para eso están los de
+     * prescripción, que siguen apareciendo mientras receta—: cambian lo que hay
+     * que leer antes de firmar. Éste es ese momento.
+     */
+    if (avisosParaFirmar.length > 0) {
+      const seguir = await confirm(
+        `${comoSeDicenAlFirmar(avisosParaFirmar)}\n\n` +
+        'Ninguno impide firmar por sí solo; son para que los mires una vez.',
+        { confirmar: 'Los revisé, firmar', cancelar: 'Volver a la nota' },
+      )
+      if (!seguir) return
+    }
+
+    /**
+     * ── LO QUE SE REVISÓ NO ERA LO QUE SE FIRMA (I-8) ─────────────────────
+     *
+     * El médico eligió «que un segundo modelo la revise» como lo que le haría
+     * confiar en la nota sin releerla entera. Y la revisión ya existía —corre
+     * sola al terminar el pase de IA—.
+     *
+     * Pero después de eso él edita: corrige un apartado, cambia una dosis,
+     * acepta las líneas propuestas, quita un diagnóstico. Y el panel seguía
+     * diciendo «sin observaciones de seguridad» de **una versión del texto que
+     * ya no existe**.
+     *
+     * Un sello de revisión sobre un texto que cambió no es una garantía: es una
+     * garantía caducada que se lee igual que una vigente. Peor que no tenerla,
+     * porque invita a no releer.
+     *
+     * NO bloquea. Bloquear por una revisión caducada convertiría cada coma
+     * corregida en un trámite, y él aprendería a esquivarlo. Lo que faltaba no
+     * era una compuerta más: era poder decir la verdad.
+     */
+    const revision = estadoDeRevision({
+      huellaRevisada: verificacion?.huella,
+      ahora: {
+        resumen,
+        secciones: secciones.map(x => ({ titulo: x.label, contenido: x.value })),
+        diagnosticos, medicamentos,
+      },
+    })
+    if (revision === 'caducada') {
+      const seguir = await confirm(
+        `${COMO_SE_DICE.caducada}\n\n` +
+        'Los hallazgos que ves son de antes de tus cambios. Puedes volver a pedirla, ' +
+        'o firmar sabiéndolo.',
+        { confirmar: 'Firmar así', cancelar: 'Volver y pedirla de nuevo' },
+      )
+      if (!seguir) return
+    }
+
     const sinEvidencia = camposSinEvidencia(construirManifiesto(
       { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
       extraction as never,
@@ -2730,15 +3161,41 @@ export default function ConsultaActivaPage() {
 
     const pendientes = sugerenciasPendientes(secciones)
     if (pendientes > 0) {
+      /**
+       * ── ESTE DIÁLOGO LE BORRÓ EL PLAN AL DR. (6-ago-2026, REG-195) ────────
+       *
+       * Fallaba en las tres mitades a la vez:
+       *
+       * 1. **No decía QUÉ se iba a quitar.** «3 líneas que no dictaste» no deja
+       *    ver que una de ellas ES EL PLAN DE ABORDAJE ENTERO — porque el plan
+       *    es justamente lo que la IA propone cuando el médico no lo dicta
+       *    palabra por palabra.
+       * 2. **No se podía deshacer.** El `snapshotUndo` existía desde hacía
+       *    versiones y este camino no lo usaba: una vez quitado, quitado.
+       * 3. **«Quitarlas y firmar» NO FIRMA** — hace `return`. El médico pulsa
+       *    creyendo que cierra la nota, se le borra el plan, y la nota sigue
+       *    abierta. Si vuelve a pulsar firmar, la firma **sin el plan**.
+       *
+       * Las tres juntas son cómo se pierde una nota entera sin un solo error en
+       * pantalla.
+       */
+      const muestra = lineasSugeridas(secciones).slice(0, 5).map((l: string) => `· ${l}`).join('\n')
+      const mas = pendientes > 5 ? `\n…y ${pendientes - 5} más.` : ''
       const quitar = await confirm(
-        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'} (dosis, duraciones, signos de alarma…). ` +
-        'Si firmas, saldrían con tu cédula como indicación tuya.\n\n' +
-        '“Quitarlas y firmar” las elimina de la nota. “Revisar” te devuelve para leerlas y aceptarlas.',
-        { peligro: true, confirmar: 'Quitarlas y firmar', cancelar: 'Revisar' },
+        `La IA añadió ${pendientes} ${pendientes === 1 ? 'línea que no dictaste' : 'líneas que no dictaste'}:\n\n${muestra}${mas}\n\n` +
+        'Si firmas, saldrían con tu cédula como indicación tuya. ' +
+        'Si las quitas, PUEDES DESHACERLO con el botón «Deshacer» de arriba.',
+        { peligro: true, confirmar: 'Quitarlas', cancelar: 'Volver a la nota' },
       )
       if (!quitar) return
+      /** Se puede deshacer: el plan del médico no se pierde por un clic. */
+      setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
       setSecciones(prev => resolverSugerencias(prev, 'quitar'))
-      toast(`Se quitaron ${pendientes} ${pendientes === 1 ? 'sugerencia' : 'sugerencias'}. Revisa y vuelve a firmar.`, 'info')
+      toast(
+        `Se quitaron ${pendientes} ${pendientes === 1 ? 'sugerencia' : 'sugerencias'}. ` +
+        'Revisa la nota y vuelve a firmar — si te faltó algo, usa «Deshacer».',
+        'info',
+      )
       return   // se re-renderiza sin ellas; el médico confirma la nota final
     }
 
@@ -2961,6 +3418,70 @@ export default function ConsultaActivaPage() {
           medicoUid: auth.currentUser?.uid,
           medicoNombre: config.nombreMedico,
         }, Date.now())).catch(() => { /* ver arriba: no puede tumbar la firma */ })
+
+        /**
+         * §F3 — RECONCILIACIÓN DE MEDICAMENTOS.
+         *
+         * El paciente dijo «el losartán ya lo dejé» y su lista lo tiene
+         * vigente. Sin esto, la lista sigue diciendo lo de antes PARA SIEMPRE —
+         * y de ella cuelgan el cruce de interacciones, el de alergias, el motor
+         * de dosis y la receta.
+         *
+         * Se compara contra la medicación VIGENTE del paciente, no contra la de
+         * hoy, y se descuenta lo que el médico receta en esta consulta: si lo
+         * tiene delante y lo prescribe, ya lo reconcilió con su criterio.
+         *
+         * No cambia la lista: abre una tarea. §C3, no elegir la verdad solo.
+         */
+        const disc = discrepanciasDeMedicacion({
+          dictado: voz.transcripcion,
+          /**
+           * Sólo los que YA tomaba, no los de hoy: `medsDelCuadro` marca el
+           * origen con `deHoy`, y una discrepancia contra algo que se acaba de
+           * escribir en esta consulta no es una discrepancia.
+           */
+          vigentes: medsDelCuadro
+            .filter(m => !m.deHoy)
+            .map(m => ({ nombre: m.nombre, dosis: m.dosis })),
+          recetadosHoy: medicamentos.map(m => ({ nombre: m.nombre })),
+        })
+        /**
+         * §D1 — LA DURACIÓN QUE YA VENCIÓ.
+         *
+         * Un antibiótico de «7 días» prescrito hace un mes seguía apareciendo
+         * como vigente. Para siempre, porque nadie comparaba la duración con el
+         * calendario. Y de esa lista cuelgan el cruce de interacciones, el de
+         * alergias y el motor de dosis.
+         *
+         * NO se marca terminado: el sistema sabe que el calendario venció, no
+         * que el paciente lo terminara. Pudo suspenderlo por un efecto adverso o
+         * alargarlo por indicación de otro médico. Se abre tarea (§D1: «no lo
+         * marques completado en silencio»).
+         */
+        const vencidos = vigentes
+          .filter(v => !medicamentos.some(m => m.nombre?.trim().toLowerCase() === v.medicamento.nombre?.trim().toLowerCase()))
+          .map(v => ({ v, r: yaDebioTerminar({ duracion: v.medicamento.duracion, prescritoEn: v.dichoEn, ahoraMs: Date.now() }) }))
+          .filter(x => x.r.yaDebioTerminar)
+          .map(x => ({ farmaco: x.v.medicamento.nombre, frase: comoSeDiceVencido({ farmaco: x.v.medicamento.nombre, v: x.r }) }))
+        if (vencidos.length) {
+          void crearTareas(clinicId, tareasDeReconciliacion({
+            clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
+            discrepancias: vencidos,
+            texto: d => d.frase,
+            medicoUid: auth.currentUser?.uid,
+            medicoNombre: config.nombreMedico,
+          }, Date.now())).catch(() => { /* igual que arriba */ })
+        }
+
+        if (disc.length) {
+          void crearTareas(clinicId, tareasDeReconciliacion({
+            clinicId, pacienteId: patientId, pacienteNombre: patient?.nombre, notaId: id,
+            discrepancias: disc,
+            texto: d => comoSeDice(disc.find(x => x.farmaco === d.farmaco) ?? disc[0]),
+            medicoUid: auth.currentUser?.uid,
+            medicoNombre: config.nombreMedico,
+          }, Date.now())).catch(() => { /* igual que arriba */ })
+        }
       }
       /**
        * LA FECHA DE SEGUIMIENTO TAMBIÉN VA AL EXPEDIENTE DEL PACIENTE.
@@ -3011,16 +3532,29 @@ export default function ConsultaActivaPage() {
       if (config?.pedirCobroAlCerrar === true) {
         setCobrar(true)
       } else {
-        const nid = notaIdRef.current
-        router.push(
-          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
-          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
-          // médica (antes solo ramificaba a receta y la orden se quedaba en el
-          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
-          // ni lo uno ni lo otro → expediente.
-          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
-          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
-          : `/expediente/${patientId}`)
+        /**
+         * ── LA ORDEN SE QUEDABA EN EL TINTERO (REG-244) ──────────────────
+         *
+         * Esto elegía UN destino. Con medicamentos **y** estudios —media
+         * consulta de medicina interna— iba a la receta y la orden no se
+         * imprimía nunca: el paciente salía sin su solicitud, y todo se veía
+         * correcto (nota firmada, cita atendida).
+         *
+         * El problema no era a cuál de los dos ir: era que son dos. Cualquier
+         * regla que elija uno deja el otro sin hacer.
+         *
+         * Con un solo destino se sigue yendo DIRECTO —ese caso nunca estuvo
+         * roto—; con dos o más se enseña qué falta y se hace en cualquier
+         * orden.
+         */
+        const destino = aDondeIrDirecto({
+          patientId,
+          notaId: notaIdRef.current,
+          hayMedicamentos: medicamentos.length > 0,
+          hayEstudios: estudiosOrden.length > 0,
+          internamientoActivo,
+        })
+        if (destino) router.push(destino)
       }
     } catch (e) {
       toast('Error al firmar', 'error')
@@ -3087,6 +3621,14 @@ export default function ConsultaActivaPage() {
     setInstruccionCorr('')
     setCorrigiendo(true)
     setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
+    /**
+     * ── UNA REESCRITURA NO PIERDE UNA CIFRA (REG-240) ─────────────────────
+     *
+     * Se guarda el texto ANTES para poder compararlo con el después. No hay
+     * otra forma: cuando el modelo devuelve, lo que había ya se perdió.
+     */
+    const cifrasAntes = [resumen, ...secciones.map(x => x.value),
+      ...medicamentos.map(m => `${m.nombre} ${m.dosis} ${m.frecuencia} ${m.duracion ?? ''}`)].join(' ')
     try {
       const nota = {
         resumenEjecutivo: resumen,
@@ -3118,7 +3660,31 @@ export default function ConsultaActivaPage() {
         )
         setSignos(prev => ({ ...prev, ...soloPresentes }))
       }
+      /**
+       * ── LO QUE SE LLEVÓ POR DELANTE (REG-240) ──────────────────────────
+       *
+       * Un modelo al que se le pide «más conciso» acorta, y acortar sobre un
+       * plan puede llevarse «cada 8 horas» o dejar «400 mg» en «400». El texto
+       * sigue leyéndose bien — ésa es la trampa.
+       *
+       * La instrucción es la llave: una cifra que el médico nombró está
+       * autorizada a entrar o salir. Lo demás, no.
+       *
+       * No se repara: se DICE. Volver a meter la cifra caída sería reescribir
+       * una nota clínica por cuenta propia.
+       */
+      const cifrasDespues = [
+        typeof data.resumenEjecutivo === 'string' ? data.resumenEjecutivo : resumen,
+        ...(data.secciones && typeof data.secciones === 'object'
+          ? Object.values(data.secciones as Record<string, unknown>).map(String) : []),
+        ...(Array.isArray(data.medicamentos)
+          ? (data.medicamentos as Medicamento[]).map(m => `${m.nombre} ${m.dosis} ${m.frecuencia} ${m.duracion ?? ''}`)
+          : []),
+      ].join(' ')
+      const aviso = loQueSeLlevoPorDelante(queCambioEnLasCifras(cifrasAntes, cifrasDespues, instr))
+
       setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
+      if (aviso) setChatCorr(c => [...c, { rol: 'ia', texto: `⚠ ${aviso}` }])
     } catch {
       setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)
     } finally { setCorrigiendo(false) }
@@ -3132,7 +3698,8 @@ export default function ConsultaActivaPage() {
   }
 
   // useMemo: construirNota no es barato y esto corría en CADA render.
-  const validacion = useMemo(() => validarNOM004(construirNota('borrador')), [construirNota])
+
+
 
   /**
    * ── UNA SOLA RESPUESTA A «¿POR QUÉ NO PUEDO FIRMAR?» (REG-189) ─────────────
@@ -3417,58 +3984,71 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* Selector tipo de nota — solo los que aplican al contexto (consultorio
-          vs internamiento), para no apilar filas de opciones que ahí no van. */}
+      {/*
+        ── QUÉ NOTA ES: UNA LÍNEA EN VEZ DE DOCE CONTROLES (7-ago-2026) ────────
+        Aquí había diez botones de tipo de nota en dos filas y un desplegable de
+        especialidad con su etiqueta y su explicación. El médico lo dijo con
+        estas palabras: «demasiadas cosas en pantalla antes de poder hablar».
+        Los diez tipos siguen estando —los usa todos— pero detrás del lápiz.
+      */}
       {!firmada && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {tiposVisibles(esNotaHospital, tipo).map(t => (
-            <button key={t} onClick={() => cambiarTipo(t)} style={S.chip(tipo === t)}>{TIPO_NOTA_LABEL[t]}</button>
-          ))}
-        </div>
+        <QueNotaEs
+          tipo={tipo}
+          etiquetaDe={t => TIPO_NOTA_LABEL[t]}
+          tiposDisponibles={tiposVisibles(esNotaHospital, tipo)}
+          alCambiarTipo={cambiarTipo}
+          especialidad={especialidadEfectiva}
+          especialidadesPorGrupo={ESPECIALIDADES_POR_GRUPO}
+          alCambiarEspecialidad={setEspecialidadNota}
+          estructurandoEnVivo={estructurandoVivo}
+        />
       )}
 
-      {/* Selector de ESPECIALIDAD — la IA estructura la nota a esa especialidad */}
-      {!firmada && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-          <Stethoscope size={14} style={{ color: 'var(--text3)' }} />
-          <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>Especialidad de la nota:</span>
-          <select
-            value={especialidadEfectiva}
-            onChange={e => setEspecialidadNota(e.target.value)}
-            style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
-          >
-            <option value="">General / Otra</option>
-            {ESPECIALIDADES_POR_GRUPO.map(g => (
-              <optgroup key={g.grupo} label={g.grupo}>
-                {g.items.map(e => <option key={e} value={e}>{e}</option>)}
-              </optgroup>
-            ))}
-          </select>
-          <span style={{ fontSize: 11, color: 'var(--text3)' }}>· la IA la redacta como esa especialidad</span>
+      {/*
+        ── LA BARRA QUE NO SE VA (7-ago-2026) ─────────────────────────────────
+        El médico lo pidió con estas palabras: «el micrófono es en el celular, EN
+        LA COMPUTADORA» y «así como cuando te dictan a ti, que se vaya
+        escribiendo».
 
-          {/* Nota en tiempo real: SIEMPRE activa (se arma sola mientras hablas). */}
-          <span
-            title="La nota se va armando sola mientras grabas y se finaliza al detener"
-            style={{
-              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 'var(--r-pill)',
-              border: '1px solid var(--nexus)', background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
-            }}
-          >
-            <Sparkles size={13} /> Nota en vivo
-            {estructurandoVivo && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
-          </span>
-        </div>
+        Grabar una consulta dura veinte minutos y en ese rato uno se desplaza por
+        la nota: el micrófono quedaba arriba del todo y para pausar había que
+        buscarlo. Y sobre todo, NO HABÍA FORMA DE SABER SI ESTABA OYENDO — un
+        micrófono encendido sin señal es indistinguible de uno apagado hasta que
+        terminas y no hay nada.
+
+        Sólo aparece MIENTRAS se graba: no es un segundo botón de iniciar, es el
+        control a la mano y la prueba en vivo de que capta.
+      */}
+      {!firmada && (audio.estado === 'grabando' || audio.estado === 'pausado' || audio.estado === 'subiendo') && (
+        <MientrasHablas
+          estado={audio.estado === 'subiendo' ? 'procesando' : audio.estado === 'pausado' ? 'pausado' : 'grabando'}
+          duracion={audio.duracion}
+          nivelAudio={audio.nivelAudio}
+          ultimasPalabras={audio.transcripcionParcial || voz.transcripcion}
+          escribiendo={estructurandoVivo}
+          alGrabar={() => { if (consentimiento) audio.iniciar(opcionesWhisper) }}
+          alPausar={() => audio.pausar()}
+          alReanudar={() => audio.reanudar()}
+          alDetener={() => { void audio.detener() }}
+        />
       )}
 
       {/* ── Grabación ── */}
       {!firmada && (
         <div style={S.grabCard}>
-          {/* Única opción: Conversación completa (médico + paciente). Sin toggle. */}
-          {audio.soportado && audio.estado !== 'grabando' && (
-            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--text3)' }}>
-              Modo: <b style={{ color: 'var(--text2)' }}>Conversación completa</b> (médico + paciente) — se graba y separa ambas voces
-            </div>
+          {/*
+            EL BOTÓN, Y NADA MÁS, HASTA QUE HAY ALGO GRABADO.
+            El rótulo de modo que vivía aquí —«Conversación completa (médico +
+            paciente) — se graba y separa ambas voces»— decía lo mismo que el
+            título y que la descripción de abajo. Ahora lo dice el propio botón,
+            una vez.
+          */}
+          {esElPrincipio && (
+            <EmpezarAGrabar
+              estado={audio.estado === 'subiendo' ? 'procesando' : 'listo'}
+              noSoportado={!audio.soportado && !voz.soportado}
+              alPulsar={iniciarGrabacion}
+            />
           )}
 
           {/* Mensaje útil cuando NO hay opción de voz */}
@@ -3513,6 +4093,16 @@ export default function ConsultaActivaPage() {
 
           {/* Modo WHISPER (MediaRecorder + servidor) */}
           {modoVoz === 'whisper' && audio.soportado && (
+            /*
+              ── AL PRINCIPIO, SÓLO EL BOTÓN ───────────────────────────────
+              Antes de dictar había SEIS cosas antes de poder hablar —el rótulo
+              de modo, «Manos libres», el micrófono, un título, una descripción
+              y un «Procesar con IA» apagado— y tres de ellas decían lo mismo
+              con distintas palabras.
+              Nada se quita: esta fila entera vuelve en cuanto hay algo grabado,
+              que es cuando pausar, cancelar y procesar significan algo.
+            */
+            !esElPrincipio && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               {ofreceRecovery && audio.estado === 'inactivo' && (
                 <div style={{
@@ -3833,6 +4423,7 @@ export default function ConsultaActivaPage() {
                 {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
+            )
           )}
 
           {/* ── MENÚ DE IA: motor por nota + medidor de créditos ── */}
@@ -3989,7 +4580,7 @@ export default function ConsultaActivaPage() {
             Para reactivarla, compra más consultas o sube de plan.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
@@ -4013,7 +4604,7 @@ export default function ConsultaActivaPage() {
             recuperar la IA máxima (Opus 4.8 + GPT-5 + separación médico-paciente) compra más créditos.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#000', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
+            <button onClick={comprarRecarga} disabled={comprandoRecarga} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', cursor: comprandoRecarga ? 'wait' : 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700 }}>
               {comprandoRecarga ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Abriendo…</> : 'Comprar más créditos'}
             </button>
             <a href="/precios" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', color: 'var(--nexus, #3d5afe)', textDecoration: 'none', border: '1px solid var(--nexus, #3d5afe)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
@@ -4060,10 +4651,28 @@ export default function ConsultaActivaPage() {
           <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Segunda opinión en curso — otro modelo de IA revisa la nota…
         </div>
       )}
+      {/*
+        ── EL SELLO CADUCA CUANDO LA NOTA CAMBIA (I-8) ─────────────────────────
+        «Sin observaciones» se quedaba en verde después de que el médico editara
+        la nota: un sello de una versión que ya no existe. Aquí se dice, y el
+        verde deja de ser verde en cuanto deja de ser cierto.
+      */}
+      {verificacion && !verificando && revisionCaducada && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: 'var(--amber)' }}>
+          <AlertTriangle size={14} /> {COMO_SE_DICE.caducada}{' '}
+          {planActual === 'pro' && (
+            <button onClick={pedirSegundaOpinion}
+              style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, padding: 0, textDecoration: 'underline' }}>
+              Pedirla otra vez
+            </button>
+          )}
+        </div>
+      )}
       {verificacion && !verificando && (
         verificacion.hallazgos.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: 'var(--teal)' }}>
-            <CheckCircle2 size={14} /> Segunda opinión ({verificacion.modelo}): sin observaciones de seguridad.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontSize: 12.5, color: revisionCaducada ? 'var(--text3)' : 'var(--teal)' }}>
+            <CheckCircle2 size={14} /> Segunda opinión ({verificacion.modelo}): sin observaciones de seguridad
+            {revisionCaducada ? ' — sobre la versión anterior.' : '.'}
           </div>
         ) : (
           <Alert tone="warning" icon={<AlertTriangle size={18} />} title={`Segunda opinión (${verificacion.modelo}) — ${verificacion.hallazgos.length} observación(es) a revisar`}>
@@ -4247,7 +4856,7 @@ export default function ConsultaActivaPage() {
           <div style={{ marginBottom: 12, border: '1px solid rgba(20,184,166,0.35)', borderRadius: 12, padding: 14, background: 'rgba(20,184,166,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: 'var(--teal)' }}>
               <FlaskConical size={15} /> Análisis basado en evidencia
-              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--teal)', color: generandoAnalisis ? 'var(--text3)' : '#000', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
+              <button onClick={agregarAnalisisANota} disabled={generandoAnalisis} style={{ marginLeft: 'auto', background: generandoAnalisis ? 'var(--s3)' : 'var(--nexus-solido)', color: generandoAnalisis ? 'var(--text3)' : '#fff', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: generandoAnalisis ? 'default' : 'pointer' }}>
                 {generandoAnalisis ? 'Agregando…' : '→ Agregar a la nota'}
               </button>
               <button onClick={analizarEvidencia} disabled={analizandoEv} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 11, cursor: 'pointer' }}>↻ actualizar</button>
@@ -4329,15 +4938,44 @@ export default function ConsultaActivaPage() {
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),
             critica: d.severidad === 'critica',
           })),
+          /**
+           * «14 editas» y «24 tras», de una nota YA FIRMADA suya (REG-238).
+           * Va aquí y NO en `avisosParaFirmar`: es de prescripción, se ve
+           * mientras receta.
+           */
+          pautas: medicamentos,
+          antecedentesDeFamiliar,
+          datosInciertos,
+          sinRespaldo,
           conflictos: (safety as { conflicts_detected?: string[] } | undefined)?.conflicts_detected ?? [],
           faltantesCriticos: (safety as { missing_critical_fields?: string[] } | undefined)?.missing_critical_fields ?? [],
           /** Lo que NOM-004 ya bloquea no necesita un tercer sitio donde decirse. */
           yaLoBloqueaNOM004: validacion?.errores ?? [],
         })
         const extraidos = firmada ? 0 : aprobados.size
+        /**
+         * ── LA BARRA SÓLO LLEVA LO QUE CAMBIA LA RECETA (I-7) ───────────────
+         *
+         * Su queja, repetida: «los avisos rojos me tapan la nota desde el
+         * principio». Y es literal: la barra se pinta por ENCIMA de los signos
+         * vitales, las secciones, los diagnósticos y los medicamentos. Lo
+         * primero que ve al abrir es la lista de lo que está mal en una nota
+         * que todavía no ha dictado.
+         *
+         * Pero no se mueve entera al final. Los cinco de PRESCRIPCIÓN —alergia
+         * ↔ fármaco, sobredosis, dosis incompleta, interacción, vía— tienen que
+         * llegar mientras receta: después de firmar, la receta ya se imprimió.
+         * Llevarlos al final es REG-173 y REG-190 otra vez.
+         *
+         * Los de REVISIÓN DEL TEXTO —contradicción, dato incierto, antecedente
+         * del familiar, requisito NOM— no cambian lo que se le da al paciente:
+         * cambian lo que se lee antes de firmar. Y ése es su momento.
+         *
+         * Se sigue montando UN solo panel, con menos dentro.
+         */
         return (
           <AntesDeFirmar
-            avisos={avisos}
+            avisos={mientrasReceta(avisos)}
             extraidos={extraidos}
             soloLectura={firmada}
             onIr={() => {
@@ -4358,7 +4996,28 @@ export default function ConsultaActivaPage() {
                 safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
                 aprobados={aprobados}
                 onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
-                onRechazar={id => setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })}
+                /**
+                 * ── «QUITAR» AHORA QUITA DE VERDAD (6-ago-2026, REG-198) ──────
+                 *
+                 * Antes esto sólo sacaba el id de `aprobados`, que se guarda
+                 * como metadato de auditoría y nada más: ni una línea de la nota
+                 * cambiaba. El médico veía un diagnóstico mal extraído, pulsaba
+                 * «Quitar de la nota», el renglón se tachaba en pantalla… y el
+                 * diagnóstico seguía en la nota que firmaba.
+                 *
+                 * Se guarda un punto de deshacer, como en REG-195: quitar un
+                 * dato clínico no puede ser irreversible por un clic.
+                 */
+                onRechazar={id => {
+                  setAprobados(prev => { const n = new Set(prev); n.delete(id); return n })
+                  if (!sePuedeQuitar(id)) return
+                  setSnapshotUndo({ resumen, secciones, diagnosticos, medicamentos, signos })
+                  const nuevo = quitarDeLaNota({ resumen, secciones, diagnosticos, medicamentos, signos }, id)
+                  setResumen(nuevo.resumen); setSecciones(nuevo.secciones)
+                  setDiagnosticos(nuevo.diagnosticos); setMedicamentos(nuevo.medicamentos)
+                  setSignos(nuevo.signos)
+                  toast('Quitado de la nota. Puedes deshacerlo con «Deshacer».', 'info')
+                }}
               />
             )}
           </AntesDeFirmar>
@@ -4400,6 +5059,88 @@ export default function ConsultaActivaPage() {
           transcripcion={voz.transcripcion}
         />
       )}
+
+      {/*
+        CÓMO CERRAR LA CONSULTA (REG-244) — sólo si quedó más de una cosa por
+        hacer. Con un solo destino se navegó directo y esto no aparece.
+      */}
+      {firmada && (
+        <ComoCerrarLaConsulta
+          pasos={queFaltaParaCerrar({
+            patientId,
+            /**
+             * `notaId` de ESTADO, no el ref: leer un ref durante el render es
+             * lo que marca el compilador de React, y aquí no hace falta —
+             * `setNotaId` acompaña a cada asignación del ref, así que el estado
+             * ya tiene el mismo valor cuando la nota está firmada.
+             */
+            notaId,
+            hayMedicamentos: medicamentos.length > 0,
+            hayEstudios: estudiosOrden.length > 0,
+            pideCobro: config?.pedirCobroAlCerrar === true,
+            internamientoActivo,
+          })}
+          alIr={r => router.push(r)}
+        />
+      )}
+
+      {/*
+        QUÉ ES DE QUÉ (REG-243) — el plan atado al problema que lo motivó, y
+        atado SÓLO donde él lo dijo. Lo que no consta se ve sin asignar: un
+        hueco visible es información, un vínculo inventado es un error que se
+        lee como un acierto.
+      */}
+      <PlanPorProblema
+        diagnosticos={diagnosticos.map(d => d.descripcion)}
+        medicamentos={medicamentos}
+        dictado={voz.transcripcion}
+      />
+
+      {/*
+        LO QUE SE LLEVA EL PACIENTE (REG-242) — Suki y Nabla lo tienen y aquí no
+        existía. Se COMPONE de lo que él ya revisó; no lo redacta un modelo, que
+        es donde se colaría un consejo que nadie firmó.
+      */}
+      {/*
+        NO en un paciente INTERNADO: no se lleva nada a casa hoy, y una hoja de
+        «cómo tomarlo» sobre fármacos intravenosos de UCI confunde en vez de
+        ayudar. La nota de hospital y la de UCI se escriben en esta misma
+        pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
+        aparecería ahí también.
+      */}
+      {!esNotaHospital && (
+        <HojaParaElPaciente
+          medicamentos={medicamentos}
+          estudios={estudiosOrden}
+          proximaCita={undefined}
+        />
+      )}
+
+      {/*
+        ¿DE DÓNDE SALIÓ ESTO? — cada frase de la nota junto al trozo de dictado
+        que la sostiene. El motor (`rastrearNota`) existía con corpus oro y la
+        pantalla sólo usaba su mitad negativa. Es el mecanismo que en el mercado
+        sólo tiene Abridge, y que Nabla no puede tener porque borra el audio.
+      */}
+      <DeDondeSalioEsto
+        nota={textoDeLaNota(resumen, diagnosticos, secciones)}
+        dictado={voz.transcripcion}
+        /*
+          ESCUCHAR EL MOMENTO (REG-250). Los turnos traen el `inicioMs` de cada
+          palabra; la ruta del audio la devuelve el grabador desde REG-249.
+
+          La URL se resuelve AL PULSAR, no aquí: es cuando las reglas de Storage
+          se evalúan otra vez con quien esté mirando. Y se importa `firebase/
+          storage` de forma perezosa para no cargarlo en las consultas que
+          nunca pulsan.
+        */
+        utterances={audio.utterances}
+        audioPath={audio.audioPath}
+        resolverUrlDeAudio={async (path: string) => {
+          const { getStorage, ref, getDownloadURL } = await import('firebase/storage')
+          return getDownloadURL(ref(getStorage(), path))
+        }}
+      />
 
       {/* Historial de versiones: la vía de rescate si dos pestañas se pisaron. */}
       {!firmada && clinicId && (
@@ -4479,7 +5220,7 @@ export default function ConsultaActivaPage() {
               <button
                 onClick={() => { setSecciones(prev => resolverSugerencias(prev, 'aceptar')); toast(`Aceptaste ${n} ${n === 1 ? 'sugerencia' : 'sugerencias'} como tuyas`, 'success') }}
                 className="lift"
-                style={{ background: 'var(--nexus)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 Las acepto
               </button>
               <button
@@ -4495,7 +5236,7 @@ export default function ConsultaActivaPage() {
       {/* ── Signos vitales ── */}
       {requiereSignosVitales(tipo) && (
         <Section title="Signos vitales" icon={<Stethoscope size={15} />}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(90px, 100%), 1fr))', gap: 10 }}>
             {([['ta', 'TA', '120/80'], ['fc', 'FC', 'lpm'], ['fr', 'FR', 'rpm'], ['temperatura', 'T°', '°C'], ['spo2', 'SpO₂', '%'], ['peso', 'Peso', 'kg'], ['talla', 'Talla', 'cm']] as const).map(([k, label, ph]) => (
               <div key={k}>
                 <label style={S.miniLabel}>{label}</label>
@@ -4713,7 +5454,7 @@ export default function ConsultaActivaPage() {
               {chatCorr.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
                   {chatCorr.map((m, i) => (
-                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus, #3d5afe)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
+                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
                       {m.texto}
                     </div>
                   ))}
@@ -4733,7 +5474,7 @@ export default function ConsultaActivaPage() {
                     ↩ Deshacer
                   </button>
                 )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus, #3d5afe)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} style={{ background: (corrigiendo || !instruccionCorr.trim()) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
                 </button>
               </div>
@@ -4780,7 +5521,7 @@ export default function ConsultaActivaPage() {
                 <button
                   onClick={() => void guardarCedulaRapida()}
                   disabled={!cedulaRapida.trim() || guardandoCedula}
-                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus, #3d5afe)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ background: (!cedulaRapida.trim() || guardandoCedula) ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, cursor: (!cedulaRapida.trim() || guardandoCedula) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   {guardandoCedula ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando…</> : 'Guardar y seguir'}
                 </button>
@@ -4988,18 +5729,23 @@ export default function ConsultaActivaPage() {
           }}
           onClose={() => {
             setCobrar(false)
-            // Fluidez: si la consulta dejó medicamentos, encadena directo a la
-            // RECETA (acabas de prescribir → imprímela); si no, al expediente.
-            const nid = notaId || notaIdRef.current
-            router.push(
-          internamientoActivo ? `/hospitalizacion/${internamientoActivo}`
-          // Con medicamentos → receta. Sin medicamentos pero CON estudios → orden
-          // médica (antes solo ramificaba a receta y la orden se quedaba en el
-          // tintero; el paciente salía sin su solicitud de estudios). Si no hay
-          // ni lo uno ni lo otro → expediente.
-          : (medicamentos.length > 0 && nid) ? `/receta/${patientId}/${nid}`
-          : (estudiosOrden.length > 0 && nid) ? `/orden/${patientId}/${nid}`
-          : `/expediente/${patientId}`)
+            /**
+             * La MISMA cadena de ifs estaba duplicada aquí (REG-244). El
+             * defecto también: con medicamentos y estudios, tras cobrar se iba
+             * a la receta y la orden no se imprimía nunca.
+             *
+             * Ya no se pasa `pideCobro`: el cobro acaba de hacerse. Si queda
+             * más de una cosa, no se navega y el panel de cierre —que sigue
+             * montado en la consulta— enseña qué falta.
+             */
+            const destino = aDondeIrDirecto({
+              patientId,
+              notaId: notaId || notaIdRef.current,
+              hayMedicamentos: medicamentos.length > 0,
+              hayEstudios: estudiosOrden.length > 0,
+              internamientoActivo,
+            })
+            if (destino) router.push(destino)
           }}
         />
       )}
