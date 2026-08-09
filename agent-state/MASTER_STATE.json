@@ -10,9 +10,9 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-192 (cerrada, PR abierto)",
+  "iteracionActual": "REG-192 (trabajo terminado; PR #238 CERRADO SIN FUSIONAR por el dueño)",
   "ramasActivas": [
-    "agent/expediente/REG-192"
+    "agent/expediente/REG-192 — subida, con los 5 jobs de CI en verde; el PR se cerró sin fusionar"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
@@ -21,6 +21,7 @@
   "notasDeEstado": [
     "7-ago-2026: este archivo iba atrasado 43 versiones (decía v1030 con la v1073 ya en main). Se corrigió leyendo public/sw.js, que es la fuente.",
     "VOICE-004 y SAFE-001 estaban marcados como pendientes y ya estaban en producción; verificado en el código y cerrados en el backlog.",
-    "El único rojo de `npx vitest run` en este entorno es ops-timeout-y-punto-ciego.test.ts, que falla también en main limpio (3 de 3) por el proxy saliente. Anotado como OPS-002; no lo causa este cambio."
+    "El único rojo de `npx vitest run` en este entorno es ops-timeout-y-punto-ciego.test.ts, que falla también en main limpio (3 de 3) por el proxy saliente. Anotado como OPS-002; no lo causa este cambio. El job `verificar` del CI pasó en verde, lo que confirma que el rojo es del entorno del agente, no del repositorio.",
+    "PR #238 (REG-192) se cerró sin fusionar y sin comentario. NO se reabre ni se abre otro por el mismo cambio: es decisión del dueño. El trabajo queda entero en la rama `agent/expediente/REG-192`, con REG-192 en el ledger y el golden sellado, por si se retoma. El defecto que describe SIGUE VIVO en main: los dos guardianes que cruzan dictado contra nota callan en la disposición normal de la nota."
   ]
 }

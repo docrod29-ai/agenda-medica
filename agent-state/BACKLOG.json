@@ -127,6 +127,27 @@
       "score": 25,
       "estado": "pendiente",
       "reversible": true
+    },
+    {
+      "id": "EXP-001",
+      "titulo": "REG-192 sigue vivo en main: el PR que lo reparaba se cerró sin fusionar",
+      "hallazgo": "`contradicciones` y `desajustesTemporales` miran sólo la PRIMERA aparición del término en la nota, y su ventana de 60 caracteres cruza el fin de frase. Reproducido con el motor real el 7-ago-2026 sobre el texto que arma `textoDeLaNota`: del «Diabetes» del diagnóstico al «Niega» del resumen hay 53 caracteres, así que los dos guardianes callan.",
+      "porQueImporta": "La nota se arma resumen → diagnósticos → secciones, y el resumen es donde se narra bien la negación o el antecedente. Los dos guardianes callan en la disposición NORMAL de una nota y sólo hablan cuando el error casualmente va primero. Lo que se firma queda en el expediente y se copia a la nota siguiente.",
+      "archivo": "src/lib/expediente/negaciones.ts:162 · src/lib/expediente/temporalidad.ts:208",
+      "seguridad": 4,
+      "integridad": 3,
+      "ingreso": 0,
+      "frecuencia": 4,
+      "moat": 2,
+      "fiabilidad": 3,
+      "regulatorio": 1,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 1,
+      "dependenciaExterna": 0,
+      "score": 73,
+      "estado": "reparación LISTA y sin fusionar — rama `agent/expediente/REG-192`, 5 jobs de CI en verde, golden de 15 casos probado al revés. El PR #238 se cerró sin fusionar y sin comentario. NO reabrir ni volver a abrir PR sin que lo pida el dueño: si hubo una objeción, no quedó escrita. Pendiente de él decir si se retoma la rama, si quiere otro enfoque, o si prefiere dejarlo así.",
+      "reversible": true
     }
   ]
 }
