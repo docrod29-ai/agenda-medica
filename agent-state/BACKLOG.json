@@ -242,6 +242,28 @@
       "score": 41
     },
     {
+      "id": "CAL-001",
+      "titulo": "La tabla de familias de defecto envejece en silencio: el guardián sólo vigila una fila",
+      "hallazgo": "docs/quality/FAMILIAS-DE-DEFECTO.md declara el tamaño de cada familia a mano. Medido el 9-ago contra src/lib/calidad/familias-de-defecto.ts: 5 filas desfasadas ('Escrito, probado y sin conectar' dice 16 y son 29; 'Nadie lo estaba midiendo' dice 8 y son 19; 'El mensaje mentía sobre la causa' dice 2 y son 3) y DOS familias que no aparecen en la tabla ('Depende de que alguien se acuerde', 'El mercado lo tiene y aquí nunca existió').",
+      "porQueImporta": "El propio módulo dice por qué es código y no una tabla: «una tabla escrita a mano envejece en silencio». El guardián existe, pero sólo comprueba el nombre y la cuenta de la familia MÁS GRANDE — las demás pueden derivar sin que nada falle. Es el documento con el que se explica de qué se enferma el sistema; si miente sobre sus propias cifras, la lección que enseña es falsa.",
+      "archivo": "docs/quality/FAMILIAS-DE-DEFECTO.md · src/__tests__/de-que-se-enferma-este-sistema.test.ts:79",
+      "seguridad": 0,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 1,
+      "moat": 1,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 1,
+      "dependenciaExterna": 0,
+      "score": 31,
+      "estado": "pendiente",
+      "nota": "NO se repara aquí a propósito: corregir las cinco cifras a mano vuelve a poner en hora un reloj que se va a desfasar igual. La reparación es que el guardián compare TODAS las familias, o que la tabla se derive del código como ya se hace con el tablero y la sala de datos. Encontrado al clasificar REG-268, que sí quedó bien contado.",
+      "reversible": true
+    },
+    {
       "id": "VOICE-006",
       "titulo": "La unidad de dosis en la primerísima palabra del dictado no se mira",
       "hallazgo": "El bucle de dosisSinNumero arranca en el índice 1 porque necesita una palabra previa. Si el dictado EMPIEZA por la unidad («Gramos cada ocho horas de meropenem»), no se evalúa. Encontrado leyendo el motor durante REG-212; NO reproducido sobre dictado real: no se sabe con qué frecuencia el reconocedor produce esa forma.",

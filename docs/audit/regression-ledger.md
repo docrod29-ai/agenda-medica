@@ -5067,8 +5067,9 @@ falta al menos una que compare lo declarado con lo que hay.
 - `src/__tests__/la-sala-de-datos-no-infla.test.ts` (misma corrección)
 - Recuperado a la rama de V7: `src/lib/uci/como-vino-el-pase.ts`,
   `src/lib/uci/reparto-sistemas.ts`, `src/__tests__/el-pase-dictado-se-reparte.test.ts`
-**Golden** — `src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts` (14
-casos).
+
+---
+
 ## REG-268 — «veinticinco miligramos» se leía como una dosis sin cantidad (v1150)
 
 **Encontrado** — 8-ago-2026, auditando `uci-dosis-sin-numero` con frases de

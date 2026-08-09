@@ -16,13 +16,11 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1149",
+  "ultimaVersionEnProduccion": "nexusmed-v1150",
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt"
+    "M src/lib/calidad/familias-de-defecto.ts"
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -54,12 +52,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "agent/voice/VOICE-007-numerales-13-29",
   "derivado": {
-    "regsEnElLedger": 115,
-    "ultimaREG": "REG-267",
-    "archivosDePrueba": 545,
-    "casosDePrueba": 7227,
+    "regsEnElLedger": 116,
+    "ultimaREG": "REG-268",
+    "archivosDePrueba": 546,
+    "casosDePrueba": 7239,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "ramasAbiertas": [],
