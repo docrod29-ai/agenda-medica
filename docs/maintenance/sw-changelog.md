@@ -2597,6 +2597,21 @@ línea copiada.
 No es código nuevo: es código que se había quedado fuera de la rama que se
 despliega. La misma familia que REG-267, con otro disfraz.
 
+## v1151 — REG-270: la negación a medias
+
+REG-192 añadió `padece` a los negadores del parser de respaldo y NO a los
+afirmadores. Cambió un falso positivo por un falso negativo: «Niega tabaquismo,
+padece diabetes mellitus» pasó a borrar la diabetes. Un negador sin su afirmador
+gemelo no arregla la mitad, la mueve al lado que no se ve.
+
+Y seguían vivas ocho formas: «no he tenido», «nunca he tenido», «jamás ha
+tenido», «tampoco tiene», «no sufre de», «no cuenta con», «no fuma» y «no es
+fumador». Las dos últimas porque ahí el término clínico ES el verbo.
+
+`tabaquismoActivo` entra en STOP-BANG y en Caprini.
+
+NO se toca `negaciones.ts`: C-6 separó ese vocabulario a propósito.
+
 ## v1150 — el trabajo de V9: la superficie del paciente
 
 **REG-268** · el enlace de la videoconsulta del paciente no llevaba token, así

@@ -223,7 +223,70 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
  * Lo que sí se hace es que ésta no vuelva a quedarse corta, y una prueba
  * comprueba que todos los verbos de la otra están aquí.
  */
-const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
+/**
+ * ── LA LISTA SEGUÍA CORTA, Y EL ARREGLO ABRIÓ EL HUECO CONTRARIO (REG-270) ───
+ *
+ * REG-192 añadió `padece` y `padezco` **a los negadores y no a los afirmadores**.
+ * Medido con este motor el 9-ago, eso convirtió un falso positivo en un falso
+ * negativo, que es peor porque no se ve:
+ *
+ *     «Niega tabaquismo, padece diabetes mellitus.»
+ *       antes de REG-192 → diabetes POSITIVA (correcto por casualidad)
+ *       después          → diabetes **NEGADA**  ← una enfermedad real desaparece
+ *
+ * El `niega` del principio sigue alcanzando al término de la segunda cláusula
+ * porque `padece` no cierra la negación. Un negador que no tiene su afirmador
+ * gemelo no arregla la mitad: la mueve de sitio.
+ *
+ * Y seguían fuera ocho formas normales de negar, todas medidas contra este
+ * motor el mismo día — cada una devolvía la enfermedad en `positivas`:
+ *
+ *     «No he tenido diabetes.»     «Nunca he tenido diabetes.»
+ *     «Jamás ha tenido diabetes.»  «Tampoco tiene diabetes.»
+ *     «No sufre de diabetes.»      «No cuenta con diabetes.»
+ *     «No fuma.»                   «No es fumador.»
+ *
+ * Las dos últimas son de otra clase: ahí el término clínico **es** el verbo
+ * (el patrón de tabaquismo es `tabaquismo|fuma(dor)?|fumar`), así que entre el
+ * negador y el término no queda nada que reconocer. Ver
+ * `PARTICULA_PEGADA_AL_TERMINO`.
+ *
+ * ── NO ES UN COMODÍN ─────────────────────────────────────────────────────────
+ *
+ * No se acepta «no» + cualquier verbo. Los participios van uno por uno porque
+ * «no ha mejorado su diabetes» **no** la niega: la afirma. Un negador de más
+ * hace desaparecer una enfermedad real, que es tan caro como inventar una.
+ */
+const VERBOS_NEGADOS = [
+  // `tuvo`/`tuve` sostienen «nunca tuvo cáncer», que ya tenía golden desde el P0.
+  'tiene', 'tengo', 'ten[ií]a', 'tuvo', 'tuve',
+  'presenta', 'presento', 'refiere', 'refiero',
+  'padece', 'padezco', 'padec[ií]a', 'padeci[oó]',
+  'sufre', 'sufro', 'sufr[ií]a',
+  'fuma', 'fumo', 'fumaba',
+  'cuenta\\s+con', 'hay', 'es', 'era',
+].join('|')
+
+const PARTICIPIOS_NEGADOS = 'tenido|padecido|presentado|sufrido|sido|fumado|referido'
+
+/** Las cuatro partículas que abren una negación en el dictado real. */
+const PARTICULAS_NEGATIVAS = 'no|nunca|jam[aá]s|tampoco'
+
+const NEGADORES = new RegExp(
+  '\\b(?:niega|nieg[ao]|sin(?:\\s+antecedente[s]?\\s+de)?|ausente|ausencia\\s+de|(?:se\\s+)?descart[ao]|'
+  + `(?:${PARTICULAS_NEGATIVAS})\\s+(?:(?:se|me|le|lo|la)\\s+)?`
+  + `(?:(?:ha|he|han|hab[ií]a)\\s+(?:${PARTICIPIOS_NEGADOS})|${VERBOS_NEGADOS})`
+  + ')\\b',
+  'i',
+)
+
+/**
+ * La partícula PEGADA al término, sin verbo en medio.
+ *
+ * «No fuma»: el negador y el término ocupan la misma palabra. La coma queda
+ * fuera a propósito — «hipertensión no, diabetes sí» no niega la diabetes.
+ */
+const PARTICULA_PEGADA_AL_TERMINO = new RegExp(`\\b(?:${PARTICULAS_NEGATIVAS})\\s+$`, 'i')
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -232,8 +295,15 @@ const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:t
  *   "niega TVP. Presenta diabetes" → diabetes NO está negada.
  *   "niega diabetes mellitus" → diabetes SÍ está negada.
  */
-/** Palabras afirmativas que CIERRAN una negación previa */
-const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
+/**
+ * Palabras afirmativas que CIERRAN una negación previa.
+ *
+ * `padece`, `sufre` y `fuma` entran el 9-ago (REG-270). Todo verbo que se añade
+ * a `NEGADORES` tiene que entrar también aquí, o el `niega` de la cláusula
+ * anterior se come el término de la siguiente — que es lo que pasó al añadir
+ * `padece` sólo a un lado.
+ */
+const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|padece|padeci[oó]|padezco|sufre|fuma|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
 
 export function estaNegado(texto: string, indiceMatch: number): boolean {
   const ventanaInicio = Math.max(0, indiceMatch - 40)
@@ -251,12 +321,15 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
     // refiere", "nunca tuvo") NO cierra la negación. Sin esto, "no tiene diabetes"
     // se leía como diabetes POSITIVA (el "tiene" cancelaba el "no"). Se ignora el
     // afirmador precedido inmediatamente por no/nunca/sin.
-    const antes = ventana.slice(Math.max(0, m.index - 7), m.index)
-    if (/\b(?:no|nunca|sin)\s+$/i.test(antes)) continue
+    // `tampoco` y `jamás` entran el 9-ago por lo mismo: «tampoco tiene diabetes».
+    const antes = ventana.slice(Math.max(0, m.index - 8), m.index)
+    if (/\b(?:no|nunca|jam[aá]s|tampoco|sin)\s+$/i.test(antes)) continue
     ultimoAfirm = m.index; lenUltimo = m[0].length
   }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
-  return NEGADORES.test(ventana)
+  // «No fuma»: cuando el término clínico ES el verbo, entre el negador y el
+  // término no queda nada que reconocer. Ver `PARTICULA_PEGADA_AL_TERMINO`.
+  return NEGADORES.test(ventana) || PARTICULA_PEGADA_AL_TERMINO.test(ventana)
 }
 
 // ─────────────────────────────────────────────────────────────────
