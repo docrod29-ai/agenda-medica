@@ -101,7 +101,7 @@ código. Quedan cuatro que dependen de mí: `invariantesProtegidos`,
 
 ---
 
-## 9-ago-2026 — reconciliación + REG-294
+## 9-ago-2026 — reconciliación + REG-306
 
 Disparo autónomo sobre `claude/clever-lamport-vpchnu` (ya tenía fusionado todo
 hasta v1163/REG-290). Antes de tocar código: reconciliar el backlog contra el
@@ -126,7 +126,7 @@ CREAR una pérdida de datos en vez de cerrarla. Se deja documentado con el
 `file:line` exacto en `BACKLOG.json` para el próximo disparo, en vez de forzar
 un arreglo a medias.
 
-**Lo que sí se cerró: REG-294 (`POSTVISIT-GATE-001`, score 63).**
+**Lo que sí se cerró: REG-306 (`POSTVISIT-GATE-001`, score 63).**
 `HojaParaElPaciente` se montaba con el estado EN VIVO del borrador —sin mirar
 `firmada`— cuando su propia cabecera prometía por escrito «cada línea sale de un
 campo que el médico ya revisó y **firmó**». `ComoCerrarLaConsulta` (REG-244), tres

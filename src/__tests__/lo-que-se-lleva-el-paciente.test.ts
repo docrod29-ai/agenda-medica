@@ -195,10 +195,10 @@ describe('está CONECTADO', () => {
     expect(page).toMatch(/estudios=\{estudiosOrden\}/)
   })
 
-  it('se monta detrás de la compuerta puedeMostrarseLaHojaDelPaciente (REG-294)', () => {
+  it('se monta detrás de la compuerta puedeMostrarseLaHojaDelPaciente (REG-306)', () => {
     /**
      * Antes decía `{!esNotaHospital && (`. Un `esNotaHospital` suelto vuelve a
-     * abrir el boquete de REG-294: la hoja se compondría del borrador en vivo
+     * abrir el boquete de REG-306: la hoja se compondría del borrador en vivo
      * otra vez, en cuanto alguien la toque sin pasar por la función que
      * también mira `firmada`.
      */
@@ -212,7 +212,7 @@ describe('está CONECTADO', () => {
   })
 })
 
-describe('LA COMPUERTA DE LA FIRMA — REG-294', () => {
+describe('LA COMPUERTA DE LA FIRMA — REG-306', () => {
   /**
    * ── EL DEFECTO ──────────────────────────────────────────────────────────
    *

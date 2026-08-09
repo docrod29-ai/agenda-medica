@@ -6554,7 +6554,7 @@ defecto algo que no puede ocurrir es la otra forma de mentir con un informe.
 
 ---
 
-## REG-294 — la hoja del paciente se componía del borrador sin firmar (POSTVISIT-GATE-001)
+## REG-306 — la hoja del paciente se componía del borrador sin firmar (POSTVISIT-GATE-001)
 
 **Cómo se descubrió.** Reconciliando `agent-state/BACKLOG.json` contra el código:
 `POSTVISIT-GATE-001` (score 63, «pendiente») decía que «la hoja del paciente se

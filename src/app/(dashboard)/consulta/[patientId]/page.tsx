@@ -5126,7 +5126,7 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
 
-        Y NO antes de firmar (REG-294) — `medicamentos`/`estudiosOrden` es el
+        Y NO antes de firmar (REG-306) — `medicamentos`/`estudiosOrden` es el
         estado EN VIVO del borrador: lo mismo que cambia con cada tecla. Sin
         esta compuerta, una hoja copiable/imprimible se componía de un borrador
         a medio dictar, antes de que el médico diera la nota por buena.
