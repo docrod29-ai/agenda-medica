@@ -133,11 +133,20 @@ async function main() {
       })
 
       // Sesión: la médica demo entra por la pantalla de login real.
-      await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
-      await page.fill('input[type="email"]', MEDICO.email)
-      await page.fill('input[type="password"]', MEDICO.password)
-      await page.click('button[type="submit"]')
-      await page.waitForURL('**/dashboard**', { timeout: 90000 })
+      try {
+        await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
+        await page.fill('input[type="email"]', MEDICO.email)
+        await page.fill('input[type="password"]', MEDICO.password)
+        await page.click('button[type="submit"]')
+        await page.waitForURL('**/dashboard**', { timeout: 90000 })
+      } catch (e) {
+        // Diagnóstico ANTES de morir: qué pantalla estaba viendo el navegador.
+        await page.screenshot({ path: join(SALIDA, `debug-login--${vista.nombre}.png`) }).catch(() => {})
+        const cuerpo = await page.evaluate(() => document.body?.innerText?.slice(0, 600)).catch(() => '(sin cuerpo)')
+        console.log(`✗ login atorado (${vista.nombre}) en ${page.url()}\n--- texto visible ---\n${cuerpo}\n--- errores de consola ---`)
+        for (const err of erroresConsola.slice(0, 10)) console.log(`  ${err}`)
+        throw e
+      }
 
       for (const p of PANTALLAS) {
         await page.goto(`${BASE}${p.ruta}`, { waitUntil: 'domcontentloaded' })
