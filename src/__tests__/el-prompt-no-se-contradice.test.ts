@@ -45,6 +45,18 @@ describe('REG-180 · la nota no habla del micrófono', () => {
     'no inteligible, confirmar',
     'no se transcribió',
     'no especificado en transcripción',
+    /**
+     * Añadidas el 7-ago-2026 (REG-217). La regla 15 ORDENABA escribirlas y la
+     * 1-bis las prohíbe: el guardián no las cazaba porque no estaban en esta
+     * lista, y la contradicción vivió meses.
+     *
+     * El daño: la nota se estructura sola cada 15 s, y la primera pasada ocurre
+     * cuando apenas se dictó la ficha. Con la regla vieja, esa pasada rellenaba
+     * todas las secciones obligatorias con huecos escritos — y una vez escritas,
+     * ninguna pasada posterior las tocaba.
+     */
+    'no referido',
+    'no explorado en esta consulta',
   ]
 
   it('la regla G sigue viva', () => {

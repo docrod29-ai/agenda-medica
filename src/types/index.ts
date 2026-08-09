@@ -247,6 +247,25 @@ export interface Patient {
   alergias?: string
   /** Alergias ESTRUCTURADAS (opcional) — cruce de seguridad más fiable + FHIR rico. */
   alergiasEstructuradas?: AlergiaEstructurada[]
+  /**
+   * CONSENTIMIENTO PARA GRABAR LA CONSULTA — se pide UNA VEZ por paciente.
+   *
+   * Lo eligió el médico dueño: «una vez por paciente, y ya». Antes vivía en un
+   * `useState` que moría con la pantalla, así que el modal salía en **cada**
+   * consulta del mismo paciente: un paso repetido cien veces al mes, y encima
+   * sin nada que exhibir ante una queja salvo el registro de auditoría.
+   *
+   * Aquí queda EN EL EXPEDIENTE, que es donde un consentimiento tiene sentido:
+   * quién lo otorgó, cuándo, y qué médico lo recabó.
+   *
+   * Ausente = nunca se pidió. No se asume otorgado por omisión jamás.
+   */
+  consentimientoGrabacion?: {
+    /** ISO. Cuándo lo otorgó el paciente. */
+    fecha: string
+    /** uid del médico que lo recabó. */
+    medicoId?: string
+  }
   notas?: string
   tags?: PatientTag[]
   ultimaCita?: string

@@ -266,7 +266,7 @@ export default function CostosPage() {
                 disabled={guardando || !abono.montoUsd}
                 style={{
                   padding: '10px 16px', borderRadius: 8, border: 'none', minHeight: 44,
-                  background: 'var(--nexus, #3d5afe)', color: '#fff', fontSize: 13, fontWeight: 700,
+                  background: 'var(--nexus-solido)', color: '#fff', fontSize: 13, fontWeight: 700,
                   cursor: guardando ? 'wait' : 'pointer', opacity: guardando || !abono.montoUsd ? .6 : 1,
                 }}
               >

@@ -150,7 +150,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 onClick={() => cerrar(true)}
                 style={{
                   padding: '9px 16px', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', border: 'none',
-                  background: pending.opts.peligro ? 'var(--red)' : 'var(--nexus, #3D5AFE)', color: '#fff',
+                  background: pending.opts.peligro ? 'var(--red)' : 'var(--nexus-solido)', color: '#fff',
                 }}
               >
                 {pending.opts.confirmar || 'Aceptar'}

@@ -115,7 +115,7 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
                       {onAgregarANota && (
                         <button type="button"
                           onClick={() => onAgregarANota(`${c.nombre}: ${res.puntaje} puntos — ${res.categoria}. ${res.interpretacion} (${c.referencia})`)}
-                          style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--teal)', color: '#000', border: 'none', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                          style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 7, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                           <Plus size={13} /> Agregar a la nota
                         </button>
                       )}

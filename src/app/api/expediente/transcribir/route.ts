@@ -110,6 +110,9 @@ export async function POST(req: NextRequest) {
       const lex = construirLexicon({
         modulo,
         aprendidas: leerLista('aprendidas'),
+        // Los alérgenos los mandaba el grabador desde hace tiempo y esta ruta
+        // no los leía: se tiraban en el último metro. Ver `ContextoDictado`.
+        alergias: leerLista('alergias'),
         especialidades: leerLista('especialidades'),
         medicamentos: leerLista('medicamentos'),
         problemas: leerLista('problemas'),
