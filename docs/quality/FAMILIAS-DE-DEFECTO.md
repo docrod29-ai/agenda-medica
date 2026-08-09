@@ -39,8 +39,13 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 33 de 139, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+Sumó REG-291: `limitarOResponder` existía, probado (`nucleo/rate-limit.test.ts`)
+y en uso en `telesalud/sala` y `public/booking` — y no corría en `/api/portal`,
+`/api/public/resena` ni `/api/payment/create-checkout`. Mismo patrón: la pieza
+estaba bien, y no corría donde tenía que correr.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el
