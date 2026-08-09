@@ -12,6 +12,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | C-3 | Clasificación de seguridad por fármaco (alto riesgo) | Empezar por insulina, anticoagulantes, opioides y vasopresores | Alertas específicas de alto riesgo | El cruce alergia↔fármaco y el motor de dosis ya corren |
 | C-4 | ¿Un flujo de O₂ registrado implica «recibe O₂ suplementario» para NEWS2? | **No deducirlo.** Hoy se declara con ⚠ | Cerrar el modificador de NEWS2 | NEWS2 corre y declara la duda |
 | C-5 | ¿El motivo de una corrección de signos es obligatorio? | Pedirlo y enseñarlo, sin bloquear | Que bloquee el guardado | Se pide y se declara en ámbar |
+| C-6 | ¿Un CrCl a menos de 1 mL/min del umbral merece aviso propio de «estás en la frontera»? | **No por omisión.** El umbral es «por debajo de», no «cerca de»; un aviso de cercanía en los 18 umbrales es fatiga de alerta | Nada — el umbral funciona | REG-214 ya devolvió las alertas del borde que el redondeo se comía; esto sería una capa NUEVA, no la reparación |
 
 ## DESPLIEGUE Y OPERACIÓN
 
@@ -27,6 +28,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | # | Decisión | Recomendación | Bloqueado | Sigue sin ella |
 |---|---|---|---|---|
 | E-1 | ¿Se pueden reinyectar transcripciones de producción **desidentificadas** al corpus? | **No, por omisión.** La voz es biométrica | El número «de verdad» de consulta real | El corpus actuado ya mide atribución de rol |
+| E-2 | Corpus **oro** del motor de temporalidad (EVAL-002): ¿quién etiqueta? | **Usted, sobre frases sintéticas.** Que el agente escriba más casos no arregla nada: la queja del ítem es justo que los casos los escribió el agente, y un oro etiquetado por quien escribió el motor mide su propia opinión | Saber si la defensa protege o estorba | El motor corre y declara la duda; sus casos actuales siguen sellados |
 
 ## COMERCIALES
 
@@ -34,6 +36,29 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 |---|---|---|---|---|
 | N-1 | ¿Se puede repetir la prueba de 14 días? | Una por cuenta, comprobada contra Stripe | Cerrar el hueco de pruebas repetidas | El resto del cobro |
 | N-2 | Verificación de correo al registrarse | Activarla: un correo mal tecleado deja la cuenta irrecuperable | Recuperación sin soporte humano | El alta funciona |
+
+## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8)
+
+| # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |
+|---|---|---|---|---|
+| T-1 | **22 PRs abiertos. Catorce se titulan «REG-192 … (v1074)»** y son reparaciones DISTINTAS; dos se titulan «REG-194 … (v1076)» | Fusionar o cerrar por lotes, renumerando al fusionar | El número de regresión y la versión del service worker **dejan de acotar un lote de notas clínicas** — que es justo lo que REG-191 acababa de reparar para IEC 62304 | Cada reparación por separado es correcta y tiene sus compuertas en verde |
+
+**Medido el 8-ago-2026 con `node scripts/estado-de-las-ramas.mjs`:** 33 ramas
+vivas · REG en `main` **191**, en alguna rama **224** · service worker en `main`
+**v1073**, en alguna rama **v1106**. Son **33 números de regresión gastados** en
+trabajo sin fusionar, y seis ramas distintas llamándose «v1074».
+
+**Por qué se repite.** Cada disparo del bucle arranca de `main`. Desde `main`, el
+ítem de mayor score y el siguiente REG libre son siempre los mismos mientras nada
+se fusione, así que cada disparo elige lo mismo y le pone el mismo número. No es
+que los agentes se equivoquen: ninguno veía el trabajo de los otros.
+
+**Lo que ya no hace falta decidir.** El disparo del 8-ago añade
+`scripts/estado-de-las-ramas.mjs`: dice el siguiente REG y la siguiente versión
+libres sobre **todas** las ramas, y qué ramas tocan un archivo dado. Ese mismo
+disparo lo usó y, al ver que su hallazgo ya estaba resuelto en el PR #237, **no
+abrió un PR duplicado**. Sigue haciendo falta la decisión de fusionar: mientras
+no se fusione nada, la cola sólo crece.
 
 ---
 

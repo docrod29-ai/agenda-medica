@@ -6,6 +6,7 @@
 // ══════════════════════════════════════════════════════════════
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
 import { detectarInteracciones, detectarControlados } from '@/lib/expediente/farmacovigilancia'
+import { alergiasDe } from '@/lib/seguridad/alergias'
 
 export interface AlertaCDS {
   nivel: 'critica' | 'alta' | 'info'
@@ -35,14 +36,30 @@ export function cdsMedicamento(opts: CdsInput): AlertaCDS[] {
   if (!nombre) return []
   const out: AlertaCDS[] = []
 
-  // 1) Alergias (crítico) — DESCARTAR los segmentos NEGADOS (auditoría P1): un campo
-  // "niega alergia a penicilina" / "sin alergias" NO debe disparar la alerta crítica
-  // que bloquea. Se separa también por punto para no perder una alergia real que
-  // venga después de una negada ("niega penicilina. alérgico a sulfas").
-  const NEG_SEG = /^\s*(?:niega|nieg[ao]|sin\b|no\s+(?:tiene|refiere|presenta|hay)|nunca|ausente|descart)/i
-  const alergias = (opts.alergias || '').split(/[,;.\n]/).map(s => s.trim()).filter(Boolean)
-    .filter(s => !NEG_SEG.test(s))
-    .map(a => ({ alergeno: a }))
+  /**
+   * ── LA QUINTA COPIA DEL PARTIDOR DE ALERGIAS — REG-277 ────────────────────
+   *
+   * Aquí vivía un partidor propio, con su propia idea de qué es una negación.
+   * Medida la divergencia el 9-ago-2026 sobre los mismos textos, **9 de 11
+   * discrepaban** con lo que ve la consulta:
+   *
+   *     «NKDA»                 → hospital: alérgeno «NKDA»   · consulta: ninguno
+   *     «(-)», «Ninguna»       → hospital: alérgeno          · consulta: ninguno
+   *     «Negadas», «n/a»       → hospital: alérgeno          · consulta: ninguno
+   *     «Paracetamol 2.5 mg»   → hospital: «Paracetamol 2» + «5 mg»
+   *     «Alérgico a penicilina»→ hospital: «Alérgico a penicilina»
+   *
+   * El punto sin espacio detrás partía las dosis; `NKDA`, `(-)`, `n/a` y
+   * `ninguna` —lo que se dicta en planta todos los días— pasaban por alérgenos.
+   * Ninguno casa con un fármaco del catálogo, así que **no disparan la alerta**
+   * y en cambio se imprimen: un recuadro rojo que dice «NKDA».
+   *
+   * Peor que cada caso: el hospital y la consulta **decidían distinto sobre el
+   * mismo campo del mismo paciente**. Una sola fuente, `seguridad/alergias.ts`,
+   * que es donde viven la negación por oración, el alcance de la enumeración
+   * (REG-276) y la barra que no parte TMP/SMX.
+   */
+  const alergias = alergiasDe({ alergias: opts.alergias })
   if (alergias.length) {
     for (const a of validarAlergiasVsMedicamentos(alergias, [{ nombre }])) {
       out.push({ nivel: 'critica', texto: a.mensaje })

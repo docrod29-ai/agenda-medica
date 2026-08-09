@@ -112,6 +112,20 @@ export function ckdEpi2021(
 /**
  * Cockcroft-Gault. Scr en mg/dL, peso en kg.
  * CrCl = (140-edad) × peso × (0.85 si mujer) / (72 × Scr)
+ *
+ * ── DEVUELVE PRECISIÓN COMPLETA: EL REDONDEO CRUZABA EL UMBRAL ───────────────
+ *
+ * Hasta el 8-ago-2026 este motor devolvía `Math.round(crcl)`, y el número
+ * redondeado era el que se comparaba contra los umbrales de `REGLAS_RENALES`.
+ * Caso real reproducido con el motor: hombre de 80 años, 64 kg, creatinina
+ * 1.8 mg/dL → CrCl **29.63** mL/min. Al redondear a 30, `29.63 < 30` (verdadero)
+ * se convertía en `30 < 30` (falso) y **desaparecían las dos alertas**:
+ * metformina contraindicada por acidosis láctica y nitrofurantoína a evitar.
+ * Todo el rango [umbral−0.5, umbral) queda ciego, en los 18 umbrales a la vez.
+ *
+ * Es la misma regla que `ckdEpi2021` ya seguía por decisión del Dr. (L6): el
+ * motor no redondea porque el redondeo cambia clasificaciones y comparaciones;
+ * redondea quien PINTA. Cockcroft se había quedado fuera de esa decisión.
  */
 export function cockcroftGault(
   creatinina: CreatininaSerica, edad: number, sexo: Sexo, peso: ClinicalQuantity<'masa'>,
@@ -122,7 +136,7 @@ export function cockcroftGault(
   const pesoKg = valorEn(peso, 'kg')
   const mujer = sexo === 'Femenino'
   const crcl = ((140 - edad) * pesoKg * (mujer ? 0.85 : 1)) / (72 * creat)
-  return cantidad(Math.round(crcl), 'mL/min', 'depuracion')
+  return cantidad(crcl, 'mL/min', 'depuracion')
 }
 
 /** Estadio KDIGO de enfermedad renal por TFG. */
@@ -256,13 +270,17 @@ export function ajusteRenalFarmacos(
   const crcl = dep.base === 'cockcroft-gault'
     ? valorEn(dep.q, 'mL/min')
     : valorEn(dep.q, 'mL/min/1.73m²')
+  // Se COMPARA con el valor completo y se ESCRIBE el redondeado. Separarlos es
+  // justo lo que faltaba: el motor redondeaba antes de comparar, así que un
+  // CrCl de 29.63 se leía como 30 y no cruzaba ningún umbral (ver cockcroftGault).
+  const crclTexto = Math.round(crcl)
   const alertas: AlertaRenal[] = []
   for (const m of medicamentos) {
     const n = norm(m.nombre ?? '')
     if (!n) continue
     for (const r of REGLAS_RENALES) {
       if (crcl < r.umbral && r.terminos.some(t => n.includes(t))) {
-        alertas.push({ farmaco: m.nombre ?? '', severidad: r.severidad, mensaje: r.mensaje(crcl) })
+        alertas.push({ farmaco: m.nombre ?? '', severidad: r.severidad, mensaje: r.mensaje(crclTexto) })
         break
       }
     }

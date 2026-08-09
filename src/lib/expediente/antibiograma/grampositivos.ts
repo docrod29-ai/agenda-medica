@@ -5,7 +5,8 @@
 import { type AporteModulo, aporteVacio, type ResultadoAntibiograma, type SitioInfeccion } from './tipos'
 import { REF } from './referencias'
 import {
-  organismoEs, estado, cmiDe, ES_R, ES_S,
+  organismoEs, estado, ES_R, ES_S,
+  cmiConCensuraDe, cmiAlcanza, cmiSupera, cmiNoPasaDe, cmiIndeterminadaEn, textoCmi, type CmiReportada,
   OXACILINA, CEFOXITINA, PENICILINA, VANCOMICINA, ERITROMICINA, CLINDAMICINA,
   GENTAMICINA, GENTAMICINA_ALTO_NIVEL, todosLosEstados, AMPICILINA, LINEZOLID, DAPTOMICINA, TIGECICLINA,
 } from './util'
@@ -67,11 +68,21 @@ function ultimaLineaGramPos(r: ResultadoAntibiograma[], out: AporteModulo, organ
    * por SARM) se reportaba como no-S y se descartaba. Se corrige a 2.
    */
   const umbralDapNoS = esFaecium ? 8 : esEnterococo ? 8 : 2
-  const dapCmi = cmiDe(r, DAPTOMICINA)
-  if (ES_R(estado(r, DAPTOMICINA)) || (dapCmi !== null && dapCmi >= umbralDapNoS)) {
-    out.fenotipos.push({ clave: 'daptomicina-R', nombre: 'Sensibilidad reducida / R a daptomicina', confianza: dapCmi !== null ? 'probable' : 'confirmado', base: `Daptomicina no-S${dapCmi !== null ? ` (CMI ${dapCmi})` : ''}: mutaciones en mprF (carga de la membrana) o el sistema LiaFSR (respuesta de envoltura). ${REF.GRAM_POS}` })
+  const dap = cmiConCensuraDe(r, DAPTOMICINA)
+  if (ES_R(estado(r, DAPTOMICINA)) || cmiAlcanza(dap, umbralDapNoS)) {
+    out.fenotipos.push({ clave: 'daptomicina-R', nombre: 'Sensibilidad reducida / R a daptomicina', confianza: dap !== null ? 'probable' : 'confirmado', base: `Daptomicina no-S${dap !== null ? ` (CMI ${textoCmi(dap)})` : ''}: mutaciones en mprF (carga de la membrana) o el sistema LiaFSR (respuesta de envoltura). ${REF.GRAM_POS}` })
     out.mecanismos.push({ categoria: 'diana', nombre: 'mprF / LiaFSR (remodelación de la membrana)', confianza: 'probable', explicacion: 'Aumento de la carga positiva de la membrana (mprF) o respuesta de estrés de envoltura (LiaFSR) → repele el complejo daptomicina-Ca²⁺. Frecuente tras exposición prolongada a daptomicina o vancomicina. No usar daptomicina; valorar dosis alta + combinación (β-lactámico) o cambio de clase.', referencia: REF.GRAM_POS })
     out.alertas.push({ nivel: 'alta', mensaje: 'Daptomicina no-S (mprF/LiaFSR): frecuente tras terapia previa. Considerar daptomicina dosis alta + β-lactámico (efecto "see-saw") o cambio de clase; infectología.' })
+  } else if (cmiIndeterminadaEn(dap, umbralDapNoS)) {
+    /**
+     * «>4» EN E. FAECIUM NO ES «4»: SE PREGUNTA, NO SE ADIVINA.
+     *
+     * El valor real está por encima del rango probado, así que la banda
+     * utilizable a dosis alta queda descartada — pero tampoco alcanza el corte
+     * de no-sensible de esta especie, y subirlo hasta ahí sería inventar en la
+     * otra dirección (REG-044). Se dice lo que se sabe y se pide la dilución.
+     */
+    out.advertencias.push(`Daptomicina reportada como CMI ${textoCmi(dap)}: el valor real está por encima de ${dap!.valor} y el corte de no-sensible de esta especie es ${umbralDapNoS}. Con este reporte NO se puede decidir si sirve — pedir CMI por dilución (microdilución/E-test).`)
   }
   if (ES_R(estado(r, TIGECICLINA))) {
     out.fenotipos.push({ clave: 'tigeciclina-R', nombre: 'Resistencia a tigeciclina', confianza: 'confirmado', base: `Tigeciclina R: bombas de expulsión (RND) o inactivación por tet(X)/monooxigenasa. ${REF.GRAM_POS}` })
@@ -176,55 +187,80 @@ function staph(organismo: string, r: ResultadoAntibiograma[], out: AporteModulo)
 
   // ── Glucopéptidos en S. aureus: VRSA (≥16/R) > VISA (4-8) > hVISA/MIC creep (>2 y en CMI 2 con MRSA) ──
   //    CLSI M100: S ≤2, I 4-8 (VISA), R ≥16 (VRSA).
-  const vancoCmi = cmiDe(r, VANCOMICINA)
+  const vanco = cmiConCensuraDe(r, VANCOMICINA)
   const vancoSir = estado(r, VANCOMICINA)
-  if (esAureus && (ES_R(vancoSir) || (vancoCmi !== null && vancoCmi >= 16))) {
+  if (esAureus && (ES_R(vancoSir) || cmiAlcanza(vanco, 16))) {
     // VRSA — excepcional y gravísimo (operón vanA transferido del enterococo).
-    out.fenotipos.push({ clave: 'VRSA', nombre: 'S. aureus RESISTENTE a vancomicina (VRSA)', confianza: 'confirmado', base: `Vancomicina R${vancoCmi !== null ? ` (CMI ${vancoCmi} ≥16)` : ''}: adquisición del operón vanA. EXCEPCIONAL y notificable. ${REF.GRAM_POS}` })
+    out.fenotipos.push({ clave: 'VRSA', nombre: 'S. aureus RESISTENTE a vancomicina (VRSA)', confianza: 'confirmado', base: `Vancomicina R${vanco !== null ? ` (CMI ${textoCmi(vanco)} ≥16)` : ''}: adquisición del operón vanA. EXCEPCIONAL y notificable. ${REF.GRAM_POS}` })
     out.mecanismos.push({ categoria: 'diana', nombre: 'Ligasa VanA (precursor D-Ala-D-Lac)', confianza: 'confirmado', explicacion: 'Reemplaza el D-Ala-D-Ala terminal del peptidoglicano por D-Ala-D-Lac → la vancomicina pierde su sitio de unión. Operón vanA transferido desde Enterococcus (Tn1546). La vancomicina y teicoplanina NO sirven.', referencia: REF.GRAM_POS })
     out.alertas.push({ nivel: 'critica', mensaje: 'VRSA: fenotipo EXCEPCIONAL y grave → confirmar ID/AST y NOTIFICAR de inmediato a laboratorio de referencia/epidemiología. NO usar vancomicina; linezolid, daptomicina (no en neumonía) o ceftarolina según el sitio.' })
     out.advertencias.push('VRSA: ignorar cualquier glucopéptido reportado S. Aislamiento de contacto estricto.')
     out.terapiaDirigida.push({ linea: 'dirigida', agente: 'Linezolid / daptomicina / ceftarolina', razon: 'VRSA — los glucopéptidos son inactivos.', referencia: REF.GRAM_POS })
     out.notificacion = true
     out.aislamiento = 'Precauciones de contacto estrictas (VRSA).'
-  } else if (esAureus && vancoCmi !== null && vancoCmi >= 4) {
+  } else if (esAureus && cmiAlcanza(vanco, 4)) {
     // VISA/GISA (CMI 4-8).
     out.advertencias.push('Vancomicina CMI >2 en S. aureus: preferir alternativa aunque el reporte diga «S» (aquí ya es intermedia, VISA).')
-    out.fenotipos.push({ clave: 'VISA', nombre: 'S. aureus con sensibilidad intermedia a glucopéptidos (VISA/GISA)', confianza: 'probable', base: `Vancomicina CMI ${vancoCmi} mg/L (4-8): engrosamiento de la pared celular que secuestra el glucopéptido. ${REF.GRAM_POS}` })
+    out.fenotipos.push({ clave: 'VISA', nombre: 'S. aureus con sensibilidad intermedia a glucopéptidos (VISA/GISA)', confianza: 'probable', base: `Vancomicina CMI ${textoCmi(vanco)} mg/L (4-8): engrosamiento de la pared celular que secuestra el glucopéptido. ${REF.GRAM_POS}` })
     out.mecanismos.push({ categoria: 'permeabilidad', nombre: 'Engrosamiento de pared celular (VISA)', confianza: 'probable', explicacion: 'Acúmulo de dianas señuelo (D-Ala-D-Ala) en una pared engrosada que atrapa la vancomicina antes de llegar a la membrana. NO es vanA. Reduce la eficacia de glucopéptidos.', referencia: REF.GRAM_POS })
-    out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (VISA/GISA): poco fiable. Considerar daptomicina (no en neumonía), linezolid o ceftarolina.` })
-  } else if (esAureus && vancoCmi !== null && vancoCmi > 2) {
+    out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${textoCmi(vanco)} (VISA/GISA): poco fiable. Considerar daptomicina (no en neumonía), linezolid o ceftarolina.` })
+  } else if (esAureus && cmiSupera(vanco, 2)) {
+    /**
+     * AQUÍ CAE EL «>2» DEL PANEL AUTOMATIZADO, Y ANTES CAÍA EN hVISA.
+     *
+     * Muchas tarjetas terminan su rango en 2, así que el SARM con la CMI alta se
+     * reporta como «>2». Leído como el 2 exacto se iba a la rama de abajo —
+     * «sospecha de hVISA, límite alto de S»—, que enseña un fármaco todavía
+     * utilizable. Lo que el laboratorio dijo es que la CMI está POR ENCIMA de 2.
+     */
     out.advertencias.push('Vancomicina CMI >2 en S. aureus: mayor probabilidad de falla clínica; preferir alternativa aunque el reporte diga «S».')
-    out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${vancoCmi} (>2) en S. aureus: eficacia reducida (MIC creep). Preferir alternativa.` })
-  } else if (esAureus && vancoCmi === 2 && meticilinaR) {
+    out.alertas.push({ nivel: 'alta', mensaje: `Vancomicina CMI ${textoCmi(vanco)} en S. aureus: por encima de 2 → eficacia reducida (MIC creep). Preferir alternativa.` })
+  } else if (esAureus && vanco?.valor === 2 && !vanco.censura && meticilinaR) {
     // CMI 2 = S, pero en MRSA con CMI en el límite alto: sospechar hVISA (heterorresistencia).
+    // El 2 tiene que ser EXACTO: un «>2» no es el límite alto de S, es lo de arriba.
     out.fenotipos.push({ clave: 'hVISA', nombre: 'Sospecha de hVISA (heterorresistencia a vancomicina)', confianza: 'sospecha', base: `MRSA con vancomicina CMI 2 (límite alto de S): posible subpoblación hVISA, sobre todo si hay falla clínica/bacteriemia persistente. Confirmar con PAP-AUC. ${REF.GRAM_POS}` })
     out.advertencias.push('hVISA: si hay falla clínica o bacteriemia persistente con CMI 2, sospechar heterorresistencia y considerar cambio a daptomicina/ceftarolina + confirmación (PAP-AUC).')
+  } else if (esAureus && cmiIndeterminadaEn(vanco, 4)) {
+    // «>1» deja la CMI real entre la banda de S y la de VISA: no se adivina, se pide.
+    out.advertencias.push(`Vancomicina reportada como CMI ${textoCmi(vanco)} en S. aureus: el valor real está por encima de ${vanco!.valor} y la banda intermedia (VISA) empieza en 4. Pedir CMI por dilución antes de fiarse del glucopéptido.`)
   }
   void LINEZOLID; void DAPTOMICINA
 }
 
 // ── Streptococcus pneumoniae ────────────────────────────────────────────────
 function neumococo(r: ResultadoAntibiograma[], out: AporteModulo, sitio?: SitioInfeccion) {
-  const penCmi = cmiDe(r, PENICILINA)
+  const pen = cmiConCensuraDe(r, PENICILINA)
   const penSir = estado(r, PENICILINA)
   const meningitis = sitio === 'snc'
   // Puntos de corte de penicilina parenteral (CLSI, citados en Torres 2010 Tabla 2b):
   //   No meníngea: S ≤2, I 4, R ≥8 ; Meníngea: S ≤0,06, R ≥0,12.
-  if (penCmi !== null) {
-    if (meningitis) {
-      if (penCmi <= 0.06) {
-        out.didactica.push({ titulo: 'Neumococo — penicilina (criterio meníngeo)', texto: `CMI ${penCmi} ≤0,06 → sensible por criterio meníngeo; sensible a todos los β-lactámicos.`, referencia: REF.GRAM_POS })
+  const techoS = meningitis ? 0.06 : 2
+  if (pen !== null) {
+    /**
+     * ── EL «>2» DEL LABORATORIO NO ES UN 2 ──────────────────────────────────
+     *
+     * La rama tranquilizadora exige SABER que la CMI no pasa del techo, y la de
+     * fenotipo exige SABER que lo pasa. Con un valor exacto las dos cubren todo
+     * el rango y nada cambia; con un operador puede no saberse ninguna de las
+     * dos, y entonces se dice — porque este bloque IMPRIME una frase que el
+     * médico lee como permiso («tratable con penicilina parenteral a dosis
+     * altas»), y callar aquí es afirmar.
+     */
+    if (cmiNoPasaDe(pen, techoS)) {
+      if (meningitis) {
+        out.didactica.push({ titulo: 'Neumococo — penicilina (criterio meníngeo)', texto: `CMI ${textoCmi(pen)} ≤0,06 → sensible por criterio meníngeo; sensible a todos los β-lactámicos.`, referencia: REF.GRAM_POS })
       } else {
-        out.fenotipos.push({ clave: 'neumococo-PNS', nombre: 'Neumococo no sensible a penicilina (criterio meníngeo)', confianza: 'confirmado', base: `CMI ${penCmi} ≥0,12 por criterio meníngeo (S ≤0,06). Alteración de PBP 1a/2x/2b + MurM. ${REF.GRAM_POS}` })
+        out.didactica.push({ titulo: 'Neumococo — penicilina (criterio no meníngeo)', texto: `CMI ${textoCmi(pen)} ≤2 → tratable con penicilina parenteral a dosis altas (12 MU/día); también sensible a ampicilina, amoxicilina, ceftriaxona, cefotaxima.`, referencia: REF.GRAM_POS })
+      }
+    } else if (cmiSupera(pen, techoS)) {
+      if (meningitis) {
+        out.fenotipos.push({ clave: 'neumococo-PNS', nombre: 'Neumococo no sensible a penicilina (criterio meníngeo)', confianza: 'confirmado', base: `CMI ${textoCmi(pen)} ≥0,12 por criterio meníngeo (S ≤0,06). Alteración de PBP 1a/2x/2b + MurM. ${REF.GRAM_POS}` })
         out.alertas.push({ nivel: 'alta', mensaje: 'Meningitis neumocócica no sensible a penicilina: cefotaxima/ceftriaxona a dosis meníngea ± vancomicina hasta CMI de cefalosporina.' })
+      } else {
+        out.fenotipos.push({ clave: 'neumococo-PNS', nombre: 'Neumococo con CMI de penicilina elevada (no meníngea)', confianza: 'confirmado', base: `CMI ${textoCmi(pen)} (>2 no meníngea): I 4 / R ≥8. Alteración de PBP. ${REF.GRAM_POS}` })
       }
     } else {
-      if (penCmi <= 2) {
-        out.didactica.push({ titulo: 'Neumococo — penicilina (criterio no meníngeo)', texto: `CMI ${penCmi} ≤2 → tratable con penicilina parenteral a dosis altas (12 MU/día); también sensible a ampicilina, amoxicilina, ceftriaxona, cefotaxima.`, referencia: REF.GRAM_POS })
-      } else {
-        out.fenotipos.push({ clave: 'neumococo-PNS', nombre: 'Neumococo con CMI de penicilina elevada (no meníngea)', confianza: 'confirmado', base: `CMI ${penCmi} (>2 no meníngea): I 4 / R ≥8. Alteración de PBP. ${REF.GRAM_POS}` })
-      }
+      out.advertencias.push(`Penicilina reportada como CMI ${textoCmi(pen)}: con ese operador no se puede saber si queda dentro del techo de sensibilidad (${meningitis ? '≤0,06 meníngeo' : '≤2 no meníngeo'}). No se clasifica — pedir la CMI por dilución antes de decidir el β-lactámico.`)
     }
   } else if (ES_R(penSir)) {
     out.fenotipos.push({ clave: 'neumococo-PNS', nombre: 'Neumococo no sensible a penicilina', confianza: 'probable', base: `Penicilina no-S: idealmente determinar CMI e interpretar según sitio (meníngeo vs no meníngeo). ${REF.GRAM_POS}` })
@@ -274,7 +310,7 @@ function enterococo(organismo: string, r: ResultadoAntibiograma[], out: AporteMo
   }
 
   // HLAR: resistencia de alto nivel a aminoglucósidos → se pierde la sinergia con β-lactámico.
-  const gentaCmi = cmiDe(r, GENTAMICINA)
+  const genta = cmiConCensuraDe(r, GENTAMICINA)
   const gentaSir = estado(r, GENTAMICINA)
   /**
    * EL HLAR EXIGE EL TAMIZ DE ALTO NIVEL. Una gentamicina R de rutina no basta.
@@ -289,12 +325,19 @@ function enterococo(organismo: string, r: ResultadoAntibiograma[], out: AporteMo
    * ser `>=` y considera la CMI censurada: un reporte de «>500» significa que el
    * valor real está por encima del rango probado, y antes se leía como 500 exacto
    * contra un `>` estricto — daba falso y apagaba el HLAR.
+   *
+   * El «<» faltaba, y aquí falla hacia el otro lado: un tamiz reportado «<500»
+   * significa que el valor real está POR DEBAJO, y se leía como 500 exacto →
+   * HLAR declarado y sinergia β-lactámico + aminoglucósido abandonada en una
+   * endocarditis sin motivo. `cmiAlcanza` cierra los dos sentidos con la misma
+   * regla de intervalo.
    */
   const filaAltoNivel = todosLosEstados(r, GENTAMICINA_ALTO_NIVEL)[0]
-  const cmiAltoNivel = filaAltoNivel?.cmi ?? (gentaCmi !== null && gentaCmi >= 500 ? gentaCmi : null)
-  const censurada = filaAltoNivel?.cmiCensurada
+  const cmiAltoNivel: CmiReportada | null = typeof filaAltoNivel?.cmi === 'number'
+    ? { valor: filaAltoNivel.cmi, ...(filaAltoNivel.cmiCensurada ? { censura: filaAltoNivel.cmiCensurada } : {}) }
+    : (cmiAlcanza(genta, 500) ? genta : null)
   const hlarPorTamiz = !!filaAltoNivel && ES_R(filaAltoNivel.interpretacion)
-  const hlarPorCmi = cmiAltoNivel !== null && (cmiAltoNivel >= 500 || (censurada === '>' && cmiAltoNivel >= 500))
+  const hlarPorCmi = cmiAlcanza(cmiAltoNivel, 500)
   const hlar = hlarPorTamiz || hlarPorCmi
 
   // Gentamicina R de rutina SIN tamiz de alto nivel: no es HLAR, y hay que pedirlo.
@@ -303,7 +346,7 @@ function enterococo(organismo: string, r: ResultadoAntibiograma[], out: AporteMo
   }
 
   if (hlar) {
-    out.fenotipos.push({ clave: 'HLAR', nombre: 'Resistencia de alto nivel a aminoglucósidos (HLAR)', confianza: gentaCmi !== null ? 'confirmado' : 'probable', base: `Gentamicina de alto nivel R (CMI >500 mg/L): se PIERDE el sinergismo β-lactámico + aminoglucósido. ${REF.GRAM_POS}` })
+    out.fenotipos.push({ clave: 'HLAR', nombre: 'Resistencia de alto nivel a aminoglucósidos (HLAR)', confianza: genta !== null ? 'confirmado' : 'probable', base: `Gentamicina de alto nivel R (CMI >500 mg/L): se PIERDE el sinergismo β-lactámico + aminoglucósido. ${REF.GRAM_POS}` })
     out.advertencias.push('HLAR: no esperar sinergia β-lactámico + aminoglucósido en endocarditis; el aminoglucósido NO aporta a bajas dosis. Estreptomicina de alto nivel es un mecanismo independiente (probar por separado).')
   } else {
     out.didactica.push({ titulo: 'Enterococo — aminoglucósidos', texto: 'El enterococo es intrínsecamente R de bajo nivel a aminoglucósidos (transporte deficiente): en monoterapia NO sirven. Sólo aportan por SINERGIA con un agente de pared (β-lactámico/glucopéptido) si NO hay HLAR.', referencia: REF.GRAM_POS })

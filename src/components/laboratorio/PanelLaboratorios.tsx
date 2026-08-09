@@ -82,7 +82,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
     } catch { toast('NO se pudo guardar el laboratorio. Reintenta.', 'error') }
   }
 
-  const criticos = series.flatMap(s => s.puntos.filter(p => p.critico).map(p => ({ etiqueta: s.etiqueta, valor: p.valor, unidad: s.unidad, fecha: p.fecha })))
+  const criticos = series.flatMap(s => s.puntos.filter(p => p.critico).map(p => ({ etiqueta: s.etiqueta, valor: p.valor, censurada: p.censurada, unidad: s.unidad, fecha: p.fecha })))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -100,7 +100,9 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
                 // Resumen del estudio MÁS RECIENTE para la nota. El médico decide
                 // agregarlo — es opt-in, como el resto de las herramientas.
                 const ult = paneles[0]
-                const linea = ult.resultados.map(r => `${r.etiqueta} ${r.valor} ${r.unidad}${r.critico ? ' ⚠' : ''}`).join(' · ')
+                // El comparador va PEGADO al número: «Glucosa >400 mg/dL». Sin él
+                // la nota afirmaría un valor exacto que el laboratorio no dio.
+                const linea = ult.resultados.map(r => `${r.etiqueta} ${r.censurada ?? ''}${r.valor} ${r.unidad}${r.critico ? ' ⚠' : ''}`).join(' · ')
                 const criticos = ult.resultados.filter(r => r.critico)
                 const texto = `Laboratorios (${ult.fecha || 'sin fecha'}): ${linea}.` +
                   (criticos.length ? ` Valores críticos: ${criticos.map(c => c.etiqueta).join(', ')}.` : '')
@@ -127,7 +129,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', borderRadius: 12, padding: '11px 14px' }}>
           <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5 }}>
-            <strong>Valores críticos en el historial:</strong> {criticos.map(c => `${c.etiqueta} ${c.valor} ${c.unidad}`).join(' · ')}
+            <strong>Valores críticos en el historial:</strong> {criticos.map(c => `${c.etiqueta} ${c.censurada ?? ''}${c.valor} ${c.unidad}`).join(' · ')}
           </div>
         </div>
       )}
@@ -177,7 +179,12 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {revision.resultados.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{r.noEvaluable && <span title={r.motivoNoEvaluable} style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar unidad</span>}</span>
+                  <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{r.noEvaluable && <span title={r.motivoNoEvaluable} style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar</span>}</span>
+                  {/* El comparador del reporte, fuera del input: un `type=number`
+                      no lo admite y sin él la revisión enseñaría 400 donde la
+                      hoja decía «>400». No es editable porque es del laboratorio,
+                      no una lectura dudosa de la IA. */}
+                  {r.censurada && <span title="El laboratorio reportó un límite, no un valor exacto" style={{ color: 'var(--text2)', fontWeight: 700 }}>{r.censurada}</span>}
                   <input className="input" value={r.valor} onChange={e => { const v = parseFloat(e.target.value); const rs = [...revision.resultados]; rs[i] = { ...r, valor: Number.isFinite(v) ? v : r.valor }; setRevision({ ...revision, resultados: rs }) }} style={{ width: 90, textAlign: 'right' }} type="number" step="any" />
                   <span style={{ width: 60, color: 'var(--text3)', fontSize: 12 }}>{r.unidad}</span>
                   <button title="Quitar" onClick={() => setRevision({ ...revision, resultados: revision.resultados.filter((_, j) => j !== i) })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}><Trash2 size={12} /></button>

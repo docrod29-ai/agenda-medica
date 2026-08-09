@@ -89,7 +89,30 @@ export function primeraMencionSinEscudo(
   }
 
   for (const idx of [...apariciones].sort((a, b) => a - b)) {
-    const antes = textoNota.slice(Math.max(0, idx - VENTANA_DEL_ESCUDO), idx)
+    /**
+     * ── EL ESCUDO NO CRUZA EL PUNTO — REG-286 ─────────────────────────────
+     *
+     * El comentario de `VENTANA_DEL_ESCUDO` ya nombraba este modo de fallo:
+     * *«más larga empezaría a leer la oración anterior y un escudo ajeno
+     * taparía una afirmación real — que es el fallo caro»*. Y eligió 60
+     * caracteres como defensa.
+     *
+     * **60 caracteres no son una oración.** «Antecedente de asma. » mide 21, así
+     * que el escudo cruzaba el punto sin esfuerzo. Medido:
+     *
+     *     «Antecedente de asma. Cursa con neumonía.»          → CALLABA
+     *     «Niega diabetes. Diagnóstico de diabetes tipo 2.»   → CALLABA
+     *
+     * El segundo es el que duele: la nota **afirma** una diabetes justo después
+     * de que el paciente la negara, y la alarma de contradicción —que es la
+     * razón de existir de este motor— se quedaba muda.
+     *
+     * Un número no puede expresar «la misma oración». El corte sí. La ventana
+     * de 60 se queda como **tope**, que es para lo que sirve un número.
+     */
+    const bruto = textoNota.slice(Math.max(0, idx - VENTANA_DEL_ESCUDO), idx)
+    const corte = Math.max(bruto.lastIndexOf('.'), bruto.lastIndexOf(';'), bruto.lastIndexOf('\n'))
+    const antes = corte === -1 ? bruto : bruto.slice(corte + 1)
     if (escudo.test(sinAcentos(antes))) continue
     return { idx, cita: textoNota.slice(Math.max(0, idx - 40), idx + 60).trim() }
   }

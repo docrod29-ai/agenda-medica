@@ -16,6 +16,7 @@
  */
 
 import type { TipoNota } from '@/types/expediente'
+import { respuestaNiega } from '@/lib/expediente/negaciones'
 
 // ─────────────────────────────────────────────────────────────────
 // Normalización
@@ -223,7 +224,80 @@ const MEDICAMENTOS_CARDIO_DIC: Array<{ patron: RegExp; preopKey: string }> = [
  * Lo que sí se hace es que ésta no vuelva a quedarse corta, y una prueba
  * comprueba que todos los verbos de la otra están aquí.
  */
-const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:tiene|tengo|presenta|refiere|refiero|hay|padece|padezco|ha\s+tenido)|nunca\s+(?:ha|tuvo)|ausente|ausencia\s+de|(?:se\s+)?descart[ao])\b/i
+/**
+ * ── «TAMPOCO» FALTABA, Y FABRICABA UN ANTECEDENTE — REG-280 ──────────────────
+ *
+ * Medido con el motor real el 9-ago-2026:
+ *
+ *     «Tampoco diabetes»  →  positivas: ['Diabetes mellitus tipo 2']
+ *
+ * En un interrogatorio dirigido —**«¿Diabetes? No. ¿Hipertensión? Tampoco.»**—
+ * la segunda enfermedad quedaba registrada como que **sí la tiene**. Y
+ * «tampoco» es exactamente como se contesta a la segunda pregunta de una serie:
+ * no es una forma rebuscada, es la normal.
+ *
+ * Es el mismo daño que ya costó un motor entero: **la nota afirmando lo que el
+ * paciente negó**. Aquí el negador simplemente no estaba en la lista.
+ *
+ * Se añaden con el mismo criterio que los que ya había — **sólo lo que no
+ * admite otra lectura**:
+ *
+ *   · `tampoco`, `jamás` — negativos puros, sin uso afirmativo;
+ *   · `niego` — la primera persona, que faltaba junto a `niega`/`niego`;
+ *   · `no es` / `no soy` / `no son` — la forma con adjetivo («no es diabético»).
+ *
+ * Y NO se añade `no` a secas: «no acude por diabetes» no niega la diabetes, y
+ * negar de más borra un antecedente real — el error caro, no el otro.
+ */
+/**
+ * ── LOS AFIRMADORES SE DERIVAN DE LOS NEGADORES — REG-282 ────────────────────
+ *
+ * **La regla que faltaba, y que costó dos veces el mismo daño.**
+ *
+ * Un verbo puede entrar en una negación («no **padece** diabetes») y también
+ * cerrar una anterior («niega tabaquismo, **padece** diabetes»). Si entra en
+ * `NEGADORES` y no en `AFIRMADORES`, el arreglo **no repara la mitad: la mueve
+ * al lado que no se ve** — porque nadie echa de menos un antecedente que no
+ * está.
+ *
+ * Pasó dos veces, medido:
+ *
+ *     REG-192 añadió `padece`/`padezco` sólo a NEGADORES:
+ *       «Niega tabaquismo, padece diabetes» → diabetes NEGADA
+ *
+ *     REG-280 (mío, hoy) añadió `es`/`soy`/`son` sólo a NEGADORES:
+ *       «Niega diabetes, es fumador»        → tabaquismo NEGADO
+ *
+ * Las dos borran un antecedente real, que es peor que inventarlo: el inventado
+ * estorba y se ve; el borrado no se echa de menos.
+ *
+ * Por eso los dos lados salen de **una sola lista**. Añadir un verbo aquí lo
+ * añade a las dos caras a la vez, y la desalineación deja de ser posible.
+ */
+const VERBOS_DE_TENENCIA = [
+  'tiene', 'tengo', 'tuvo', 'presenta', 'refiere', 'refiero', 'padece', 'padezco',
+  'sufre', 'sufro', 'cuenta\\s+con', 'ha\\s+tenido', 'he\\s+tenido', 'hay',
+  'es', 'soy', 'son', 'era',
+].join('|')
+
+/**
+ * Los que sólo niegan: no tienen cara afirmativa que pueda cerrar nada.
+ *
+ * `tampoco` y `jamás` se listan CON el verbo opcional detrás a propósito
+ * («tampoco diabetes» y «tampoco tiene diabetes» son la misma respuesta), y ahí
+ * está el segundo defecto que esto cierra: con `tampoco` suelto, el `tiene` de
+ * «tampoco tiene diabetes» cerraba la negación que el `tampoco` acababa de
+ * abrir.
+ */
+const NEGADORES = new RegExp(
+  '\\b(?:'
+  + 'niega|nieg[ao]|niego'
+  + `|(?:no|nunca|jam[aá]s|tampoco)\\s+(?:${VERBOS_DE_TENENCIA})`
+  + '|(?:tampoco|jam[aá]s)'
+  + '|nunca\\s+(?:ha|tuvo)'
+  + '|sin(?:\\s+antecedente[s]?\\s+de)?'
+  + '|ausente|ausencia\\s+de|(?:se\\s+)?descart[ao]'
+  + ')\\b', 'i')
 
 /**
  * Determina si un término aparece NEGADO en el texto.
@@ -233,15 +307,127 @@ const NEGADORES = /\b(?:niega|nieg[ao]|sin(?:\s+antecedente[s]?\s+de)?|no\s+(?:t
  *   "niega diabetes mellitus" → diabetes SÍ está negada.
  */
 /** Palabras afirmativas que CIERRAN una negación previa */
-const AFIRMADORES = /\b(?:presenta|refiere|tiene|tuvo|cursa\s+con|acude\s+por|en\s+tratamiento|con\s+diagnostico|diagnosticad[oa])\b/i
+/**
+ * Los afirmadores: los MISMOS verbos de tenencia, más las formas que sólo
+ * afirman. Derivados, no tecleados — ver REG-282 arriba.
+ */
+const AFIRMADORES = new RegExp(
+  `\\b(?:${VERBOS_DE_TENENCIA}`
+  + '|cursa\\s+con|acude\\s+por|en\\s+tratamiento|con\\s+diagnostico|diagnosticad[oa]'
+  + ')\\b', 'i')
+
+/**
+ * ── LA ENFERMEDAD NOMBRADA EN LA PREGUNTA NO ES UN ANTECEDENTE — REG-281 ─────
+ *
+ * **El fallo más repetido de este repositorio**, y seguía vivo en el motor
+ * local. Medido el 9-ago-2026:
+ *
+ *     «¿Diabetes? No. ¿Hipertensión? Tampoco.»
+ *       → positivas: ['Hipertensión arterial', 'Diabetes mellitus tipo 2']
+ *
+ * El interrogatorio dirigido **nombra la enfermedad en la PREGUNTA**, y
+ * `estaNegado` sólo mira hacia ATRÁS: delante de «¿Diabetes?» no hay ningún
+ * negador porque la negación viene **después**, en la respuesta.
+ *
+ * ── POR QUÉ SOBREVIVIÓ A SU PROPIA REPARACIÓN ───────────────────────────────
+ *
+ * Esto se arregló en v976 — pero **para la vía de la IA**:
+ * `corregirCertezaPorNegacion` reclasifica lo que el modelo extrae. El **motor
+ * determinista local**, que es el que entra cuando la IA falla (sin créditos,
+ * timeout, límite de peticiones), nunca pasó por ese guardián.
+ *
+ * Es la misma forma que REG-267: **reparado en un sitio, vivo en el de al
+ * lado**. Y el sitio que quedó vivo es justo el que corre cuando lo demás no.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * Si el término está dentro de una pregunta, **decide la respuesta**, no el
+ * texto de antes. La pregunta se reconoce por un `?` que llega antes que
+ * cualquier fin de oración; da igual que falte el `¿` de apertura, porque el
+ * dictado casi nunca lo pone.
+ *
+ * Si no hay respuesta legible detrás, **no se afirma nada**: se deja que el
+ * juicio hacia atrás decida, que es lo que hacía antes. Inventar una negación
+ * es tan malo como inventar un antecedente.
+ */
+const FIN_DE_ORACION_TRAS_LA_PREGUNTA = /[.;\n]/
+
+function respuestaDeLaPregunta(texto: string, indiceMatch: number): string | null {
+  const desde = texto.slice(indiceMatch)
+  const cierre = desde.indexOf('?')
+  if (cierre === -1) return null
+  /* Un fin de oración antes del «?» significa que ese «?» es de OTRA pregunta. */
+  if (FIN_DE_ORACION_TRAS_LA_PREGUNTA.test(desde.slice(0, cierre))) return null
+  /**
+   * La respuesta es lo que va del «?» al siguiente fin de oración o a la
+   * siguiente pregunta. Sin ese tope, «¿Diabetes? No. ¿Hipertensión? Sí» daría
+   * a la diabetes la respuesta de la hipertensión.
+   */
+  const resto = desde.slice(cierre + 1)
+  const hasta = resto.search(/[.;\n?¿]/)
+  const respuesta = (hasta === -1 ? resto : resto.slice(0, hasta)).trim()
+  return respuesta || null
+}
+
+/**
+ * Respuestas que AFIRMAN. Cortas y sin ambigüedad, a propósito: lo que no esté
+ * aquí ni en `respuestaNiega` se trata como «no se sabe», que es más honesto que
+ * elegir un lado.
+ */
+const RESPUESTA_AFIRMA =
+  /^\s*(?:s[ií]|as[ií]\s+es|correcto|exacto|efectivamente|claro|desde\s+hace|hace\s+\d|me\s+lo\s+(?:dijeron|diagnosticaron)|padezco|tengo)\b/i
+
+/**
+ * ── NI AFIRMADA NI NEGADA: SÓLO PREGUNTADA — REG-281 ────────────────────────
+ *
+ * «¿Padece asma? **No sé**» dejaba el asma como antecedente POSITIVO.
+ *
+ * «No sé» no niega —y hace bien en no negar: no saber no es negar—, pero
+ * tampoco afirma. El término aparece **únicamente porque el médico lo preguntó**,
+ * y una lista de comorbilidades que sólo tiene dos casillas lo empujaba a la
+ * equivocada.
+ *
+ * Se excluye de las dos. **Ausencia de dato no es dato de ausencia, y tampoco
+ * es dato de presencia.**
+ */
+export function esSoloLaPregunta(texto: string, indiceMatch: number): boolean {
+  const respuesta = respuestaDeLaPregunta(texto, indiceMatch)
+  if (respuesta === null) return false
+  if (respuestaNiega(respuesta) || RESPUESTA_AFIRMA.test(respuesta)) return false
+  /**
+   * Y sólo si el término NO aparece afirmado en otro sitio del texto: «¿Asma?
+   * No sé. En tratamiento con salbutamol por asma» sí es un antecedente, y
+   * callarlo por la primera mención sería perder el dato.
+   */
+  return !/\b(?:tiene|padece|en\s+tratamiento|diagnosticad[oa]|conocid[oa])\b/i
+    .test(texto.slice(indiceMatch + 1))
+}
 
 export function estaNegado(texto: string, indiceMatch: number): boolean {
+  /* Si el término vive dentro de una pregunta, manda la respuesta. */
+  const respuesta = respuestaDeLaPregunta(texto, indiceMatch)
+  if (respuesta !== null && respuestaNiega(respuesta)) return true
+
   const ventanaInicio = Math.max(0, indiceMatch - 40)
   let ventana = texto.slice(ventanaInicio, indiceMatch)
   // Corta en el último signo terminal (punto, punto-y-coma, salto de línea)
   // — la cláusula anterior no negaría a la siguiente
   const corte = Math.max(ventana.lastIndexOf('.'), ventana.lastIndexOf(';'), ventana.lastIndexOf('\n'))
   if (corte !== -1) ventana = ventana.slice(corte + 1)
+  /**
+   * «pero» cierra la cláusula negativa igual que el punto. Levantado en la
+   * revisión de REG-218: «sin apneas observadas pero con somnolencia diurna»
+   * daba la somnolencia por negada, porque la ventana llegaba hasta el «sin» de
+   * la frase ANTERIOR.
+   *
+   * Los afirmadores de abajo ya cerraban «pero REFIERE» y «pero TIENE» —lo que
+   * falla es el «pero con», sin verbo—, así que esto sólo añade el caso que
+   * quedaba suelto. No se añade la coma: una enumeración («niega diabetes,
+   * hipertensión, tabaquismo») niega TODOS sus elementos, y cortar en la coma
+   * dejaría vivos los que van después del primero.
+   */
+  const pero = ventana.lastIndexOf(' pero ')
+  if (pero !== -1) ventana = ventana.slice(pero + ' pero '.length)
   // Si hay un afirmador entre el negador y el término, busca el
   // ÚLTIMO afirmador y descarta todo lo previo (la negación quedó cerrada)
   const re = new RegExp(AFIRMADORES.source, 'gi')
@@ -251,11 +437,33 @@ export function estaNegado(texto: string, indiceMatch: number): boolean {
     // refiere", "nunca tuvo") NO cierra la negación. Sin esto, "no tiene diabetes"
     // se leía como diabetes POSITIVA (el "tiene" cancelaba el "no"). Se ignora el
     // afirmador precedido inmediatamente por no/nunca/sin.
-    const antes = ventana.slice(Math.max(0, m.index - 7), m.index)
-    if (/\b(?:no|nunca|sin)\s+$/i.test(antes)) continue
+    /**
+     * Diez caracteres, no siete: «tampoco » mide ocho y con la ventana corta se
+     * leía «ampoco », que no casa con `\btampoco\s+$`. El `tiene` de «tampoco
+     * tiene diabetes» cerraba entonces la negación que el `tampoco` abría.
+     */
+    const antes = ventana.slice(Math.max(0, m.index - 10), m.index)
+    /* REG-282: `tampoco` y `jamás` abren negación igual que `no`/`nunca`/`sin`.
+       Sin ellos, el `tiene` de «tampoco tiene diabetes» cerraba la negación que
+       el `tampoco` acababa de abrir. */
+    if (/\b(?:no|nunca|sin|tampoco|jam[aá]s)\s+$/i.test(antes)) continue
     ultimoAfirm = m.index; lenUltimo = m[0].length
   }
   if (ultimoAfirm !== -1) ventana = ventana.slice(ultimoAfirm + lenUltimo)
+
+  /**
+   * ── EL NEGADOR PEGADO, CUANDO EL TÉRMINO ES EL VERBO — REG-282 ────────────
+   *
+   * «**No fuma**», «**nunca fumó**». Aquí el término clínico ES el verbo, así
+   * que entre el negador y el término no queda nada que reconocer: `NEGADORES`
+   * busca «no + verbo de tenencia» y «fuma» no es uno de ellos.
+   *
+   * Se exige que el negador esté **inmediatamente antes**. Con eso, «no acude
+   * por diabetes» sigue sin negar la diabetes —la ventana acaba en «por »— y
+   * «no fuma» sí niega el tabaquismo.
+   */
+  if (/\b(?:no|nunca|tampoco|jam[aá]s|sin)\s+$/i.test(ventana)) return true
+
   return NEGADORES.test(ventana)
 }
 
@@ -276,6 +484,12 @@ export function extraerComorbilidades(texto: string): {
   for (const item of COMORBILIDADES_DIC) {
     const match = t.match(item.patron)
     if (!match || match.index === undefined) continue
+    /**
+     * Ni afirmada ni negada: el término está ahí sólo porque se preguntó y
+     * la respuesta no decide («no sé»). No entra en NINGUNA de las dos listas
+     * (REG-281). Ausencia de dato no es dato de ausencia — ni de presencia.
+     */
+    if (esSoloLaPregunta(t, match.index)) continue
     if (estaNegado(t, match.index)) {
       negadas.add(item.canonico)
       if (item.preopKey) preopFlags[item.preopKey] = false
@@ -353,24 +567,50 @@ export function extraerAlergias(texto: string): string[] {
 // Escalas preoperatorias (STOP-BANG, etc.)
 // ─────────────────────────────────────────────────────────────────
 
+/** Ronquido que puntúa en STOP-BANG: el ítem exige que sea FUERTE. */
+const RONQUIDO_FUERTE = /\bronc(?:a|ar)\s+(?:fuerte|muy\s+fuerte|tras\s+puertas\s+cerradas)\b/i
+
+/**
+ * NEGACIÓN EN STOP-BANG — los cuatro ítems que se preguntan de viva voz.
+ *
+ * Los cuatro se marcaban con SOLO MENCIONAR el término, mientras Caprini —dos
+ * funciones más abajo, en este mismo archivo— ya llamaba a `estaNegado()` por
+ * este mismo motivo. El único guardián que había aquí era el literal
+ * `!/niega (hipertension|hta)/`, que dejaba pasar «niega **presión alta**»,
+ * «**sin** hipertensión», «**no tiene** hipertensión» y «**descarta** HTA» — la
+ * misma idea escrita de otras cuatro maneras.
+ *
+ * Medido sobre el motor real: un paciente que NIEGA las cuatro preguntas se
+ * llevaba **cuatro puntos fabricados de los ocho** de la escala. Con «varón de
+ * 58 años» delante son **5/8 — riesgo Alto**, que imprime «considerar
+ * polisomnografía y valoración por neumología, minimizar opioides y sedantes».
+ * Y la casilla ya viene palomeada en la pantalla: al médico le toca notar que
+ * sobra, que es mucho más difícil que notar que falta.
+ *
+ * Se pasa al mismo motor de negación que el resto del archivo — una sola fuente
+ * de verdad para «lo negado no se documenta como presente».
+ */
 export function extraerStopBang(textoOriginal: string): Record<string, boolean> {
   const texto = normalizar(textoOriginal)
   const flags: Record<string, boolean> = {}
-  // Ronquido FUERTE — exige el adjetivo o expresión equivalente
-  if (/\bronc(?:a|ar)\s+(?:fuerte|muy\s+fuerte|tras\s+puertas\s+cerradas)\b/i.test(texto)) {
-    flags.snoring = true
-  } else if (/\bronc(?:a|ar)\b.*\b(?:poco|bajo|leve)\b/i.test(texto) || /\bniega\s+roncar\b/i.test(texto)) {
+  // Ronquido FUERTE — exige el adjetivo o expresión equivalente. El negador
+  // pegado («no ronca», «nunca ronca») lo resuelve `marcarSegunNegacion`: el
+  // ronquido es el único de los cuatro cuyo término ES un verbo.
+  marcarSegunNegacion(texto, RONQUIDO_FUERTE, flags, 'snoring')
+  /**
+   * El ronquido negado SIN el adjetivo. Sólo si arriba no hubo ninguna
+   * aparición de «ronca fuerte»: si la hubo, ella manda — «Niega roncar. Ronca
+   * fuerte tras puertas cerradas» es un ronquido documentado, y mirarlo con un
+   * `test()` sobre el texto entero lo daba por negado.
+   */
+  const NIEGA_RONCAR = /\b(?:no|niega|nunca|jamas)\s+ronc(?:a|ar)\b/i
+  if (!('snoring' in flags)
+      && (/\bronc(?:a|ar)\b.*\b(?:poco|bajo|leve)\b/i.test(texto) || NIEGA_RONCAR.test(texto))) {
     flags.snoring = false
   }
-  if (/\b(?:somnolencia\s+diurna|cansancio\s+diurno|fatiga\s+diurna|se\s+queda\s+dormido\s+(?:de\s+d[ií]a|en\s+el\s+d[ií]a))\b/i.test(texto)) {
-    flags.tiredness = true
-  }
-  if (/\b(?:observad[ao]\s+apnea|apneas?\s+observad[ao]s?|deja\s+de\s+respirar)\b/i.test(texto)) {
-    flags.observed = true
-  }
-  if (/\b(?:hipertension|hta|presi[oó]n\s+alta)\b/i.test(texto) && !/\bniega\s+(?:hipertension|hta)\b/i.test(texto)) {
-    flags.pressure = true
-  }
+  marcarSegunNegacion(texto, /\b(?:somnolencia\s+diurna|cansancio\s+diurno|fatiga\s+diurna|se\s+queda\s+dormido\s+(?:de\s+d[ií]a|en\s+el\s+d[ií]a))\b/i, flags, 'tiredness')
+  marcarSegunNegacion(texto, /\b(?:observad[ao]\s+apnea|apneas?\s+observad[ao]s?|deja\s+de\s+respirar)\b/i, flags, 'observed')
+  marcarSegunNegacion(texto, /\b(?:hipertension|hta|presi[oó]n\s+alta)\b/i, flags, 'pressure')
   if (/\bimc\s*(?:de\s*)?(\d{2}(?:\.\d)?)/i.test(texto)) {
     const imc = Number(RegExp.$1)
     if (imc > 35) flags.bmi35 = true
@@ -382,6 +622,54 @@ export function extraerStopBang(textoOriginal: string): Record<string, boolean> 
   if (/\b(?:hombre|masculino|var[oó]n)\b/i.test(texto)) flags.genderMale = true
   if (/\b(?:mujer|femenin[ao])\b/i.test(texto)) flags.genderMale = false
   return flags
+}
+
+/** Negador pegado al término: «no ronca», «nunca ronca». */
+const NEGADOR_PEGADO = /\b(?:no|niega|nunca|jamas)\s+$/i
+
+/**
+ * Marca el flag a `true` si el término aparece y a `false` si aparece NEGADO.
+ * Si no aparece, no toca nada: la casilla se queda sin contestar.
+ *
+ * Devuelve el negativo explícito —y no `undefined`— porque un antecedente que el
+ * médico negó es un dato, igual que ya hacía el ronquido. No enciende la escala
+ * en la nota: el `capturado()` de `PreopAssessment` descarta los `false`, así que
+ * una valoración donde el paciente lo negó todo sigue sin imprimir STOP-BANG.
+ *
+ * ── MIRA TODAS LAS APARICIONES, Y GANA LA AFIRMACIÓN ─────────────────────────
+ *
+ * Levantado en la revisión de REG-218. Con `texto.match()` —una sola aparición,
+ * que es lo que hace el resto del archivo— el flag se congelaba en la PRIMERA y
+ * la segunda mención no se miraba nunca. El patrón es real: interrogatorio
+ * negativo arriba, lista de problemas y medicación abajo.
+ *
+ *     «Niega presión alta. Hipertensión arterial en tratamiento con losartán.»
+ *
+ * daba `pressure: false` y el hipertenso documentado y tratado dejaba de
+ * puntuar — el mismo daño que REG-218, en la dirección contraria, y lo habría
+ * introducido la propia reparación.
+ *
+ * Gana la afirmación porque **ausencia de dato no es dato de ausencia**: que en
+ * un renglón se niegue no borra lo que está escrito en otro. Y con esa regla
+ * este módulo nunca marca `false` donde antes había `true`, salvo cuando TODAS
+ * las menciones están negadas — que es exactamente lo que vino a reparar.
+ */
+function marcarSegunNegacion(texto: string, re: RegExp, flags: Record<string, boolean>, clave: string): void {
+  const todas = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`)
+  let visto = false
+  for (const m of texto.matchAll(todas)) {
+    if (m.index === undefined) continue
+    visto = true
+    // El negador pegado va aparte de `estaNegado`: «nunca» y «no» a secas no
+    // están en NEGADORES —serían demasiado anchos para todo el expediente— pero
+    // pegados al término no tienen otra lectura.
+    const pegado = NEGADOR_PEGADO.test(texto.slice(Math.max(0, m.index - 8), m.index))
+    if (!pegado && !estaNegado(texto, m.index)) {
+      flags[clave] = true
+      return
+    }
+  }
+  if (visto) flags[clave] = false
 }
 
 /** Marca el flag solo si el término aparece Y no viene negado. */

@@ -18,7 +18,7 @@ import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
 import { usePatientAppointments } from '@/hooks/useAppointments'
 import { hoyISO } from '@/lib/timezone'
-import type { Appointment } from '@/types'
+import type { Appointment, AlergiaEstructurada } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
@@ -106,8 +106,25 @@ function textoDeLaNota(
   ].filter(Boolean).join('\n')
 }
 
-function alergiasArray(alergias?: string): string[] {
-  return parsearAlergiasTexto(alergias).map(a => a.alergeno)
+/**
+ * ── EL SELLO DE PROCEDENCIA CONTABA CERO ALERGIAS — REG-278 ──────────────────
+ *
+ * Recibía `alergias?: string` y llamaba a `parsearAlergiasTexto`, que mira
+ * **sólo el texto libre**. Un paciente cuya alergia vive en
+ * `alergiasEstructuradas` —que es donde la deja el registro estructurado—
+ * sellaba una lista vacía.
+ *
+ * La compuerta que bloquea la firma ya se había reparado (usa `alergiasDe`).
+ * Esto es el **sello de procedencia**, que dice de dónde salió cada dato de la
+ * nota: contando cero, dejaba la alergia fuera de `camposSinEvidencia`. El
+ * registro medicolegal quedaba diciendo que ahí no había nada que respaldar.
+ *
+ * Es el mismo defecto de siempre —**dos lecturas del mismo campo**— sobrevivido
+ * en un envoltorio de una línea, que es justo donde un guardián que busca
+ * `.split(` no mira.
+ */
+function alergiasArray(p?: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): string[] {
+  return alergiasDe(p ?? {}).map(a => a.alergeno)
 }
 import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
@@ -725,6 +742,13 @@ export default function ConsultaActivaPage() {
     sexo: patient?.sexo,
     alergias: patient?.alergias,
     /**
+     * Las capturadas en campo, para que el cruce las vea igual que el sesgo de
+     * voz y los impresos (REG-208). Hoy ninguna ruta de escritura las llena,
+     * pero cualquier importación desde otro sistema las activa el mismo día, y
+     * entonces el paciente MEJOR documentado sería el único sin cruce.
+     */
+    alergiasEstructuradas: patient?.alergiasEstructuradas,
+    /**
      * ── EL PACIENTE COMPLETO, NO SÓLO LO DE HOY (6-ago-2026, REG-188) ──────
      *
      * Aquí iban únicamente los renglones de esta consulta. En un seguimiento
@@ -761,7 +785,7 @@ export default function ConsultaActivaPage() {
     labs: labsDesdeEstudios(
       (extraction as { tests?: { texto: string; valor?: string; unidad?: string }[] } | undefined)?.tests,
     ),
-  }), [patient?.edad, patient?.sexo, patient?.alergias, diagnosticos, medicamentos, signosNum, extraction])
+  }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, extraction])
   const [resumen, setResumen] = useState('')
   const [procesando, setProcesando] = useState(false)
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
@@ -2348,7 +2372,7 @@ export default function ConsultaActivaPage() {
         // Aditivo y derivado (no inventa); queda en el registro medicolegal.
         procedencia: construirManifiesto(
           {
-            diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias),
+            diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}),
             signosVitales: signosNum as unknown as Record<string, unknown>,
             /**
              * Y LA PROSA, que era justo lo que faltaba.
@@ -3129,7 +3153,7 @@ export default function ConsultaActivaPage() {
     }
 
     const sinEvidencia = camposSinEvidencia(construirManifiesto(
-      { diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias) },
+      { diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}) },
       extraction as never,
       aprobados,
       {
@@ -5046,7 +5070,7 @@ export default function ConsultaActivaPage() {
           también en la nota firmada — es parte del registro. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0) && (
         <SelloProcedencia
-          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient?.alergias), signosVitales: signosNum as unknown as Record<string, unknown> }}
+          final={{ diagnosticos, medicamentos, alergias: alergiasArray(patient ?? {}), signosVitales: signosNum as unknown as Record<string, unknown> }}
           extraction={extraction}
           aprobados={aprobados}
           transcripcion={voz.transcripcion}

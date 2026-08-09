@@ -2614,3 +2614,150 @@ colgó», y se vuelve a pulsar sobre una petición que sí corría.
 Venían numerados 265 y 266 por V9. Esos números ya estaban tomados por
 reparaciones desplegadas en v1147 y v1148 — tercera consecuencia de que dos
 programas compartieran directorio de trabajo, después de REG-267.
+
+## v1151 — siete ramas de las rutinas autónomas, absorbidas una a una
+
+**REG-270** · una CMI censurada «>2» se leía como **2 exacto**: `cmiDe` devolvía
+el número pelado y tiraba el operador. Neumococo con penicilina «>2» imprimía
+«tratable con penicilina parenteral», SARM con vancomicina «>2» daba «límite alto
+de S», y daptomicina «>4» en *E. faecium* no generaba ni fenotipo ni alerta. El
+motor de puntos de corte ya respetaba el operador y el de fenotipos no, **sobre
+el mismo panel**.
+
+**REG-271** · «**No, sí tengo**» quedaba registrado como que el paciente lo
+**negó** — las cinco formas del «no» correctivo. Encontrado por una rutina y
+**reproducido aquí antes de absorberlo**, sobre el árbol de producción. Después
+`corregirCertezaPorNegacion` lo reclasificaba a `descartado` y la pantalla de
+contradicciones no saltaba, porque para ella todo cuadraba.
+
+**REG-272 · 273 · 274 · 275** · la sección bien escrita compraba el silencio de
+la mal escrita · una alergia negada contaba como alergia · el redondeo cruzaba
+un umbral renal · lo negado puntuaba en STOP-BANG. Cada una traía su golden, y
+**el golden pasa sobre este árbol**: ésa fue la condición para absorberla.
+
+### Lo que NO entró, y por qué
+
+Las ramas de **temporalidad** se pelean entre ellas: cada una trae su versión de
+`temporalidad.ts` y las pruebas de las otras dejan de pasar. Apilarlas dio 45
+fallos. Se revirtieron. No es una rama que falte fusionar: es un trabajo que hay
+que hacer una vez y bien.
+
+## v1152 — la negación cubre toda la enumeración de alergias (REG-276)
+
+«Niega alergias a penicilina **y sulfas**» registraba una alergia a **sulfas**
+que nadie afirmó. Con coma, dos. Esa alergia fabricada apaga el botón de Firmar,
+se imprime en rojo en la receta que va a la farmacia y se sella dentro de una
+nota firmada — y en infectología empuja a segunda línea.
+
+Se parte en dos niveles: la oración cierra el alcance de la negación, la lista lo
+hereda, y un fragmento que **afirma** lo rompe. La primera versión de mi
+reparación perdía la alergia real de «Niega penicilina, alérgico a sulfas»: lo
+cazaron las pruebas viejas. Un arreglo de seguridad que borra el dato que protege
+es peor que el defecto.
+
+## v1153 — el hospital y la consulta leen la misma alergia (REG-277)
+
+`hospital/cds.ts` tenía su propio partidor —la quinta copia— y **9 de 11 textos
+se leían distinto** en planta que en consulta. «NKDA», «(-)», «n/a» y «ninguna»
+—lo que se dicta en planta todos los días— pasaban por alérgenos: no disparan
+alerta porque no casan con ningún fármaco, pero se imprimen en el recuadro rojo.
+
+Lo grave no es cada caso: es que las dos superficies decidían distinto sobre el
+mismo campo del mismo paciente.
+
+De camino apareció un hueco propio: «Interrogadas y negadas» dejaba
+«Interrogadas» como alérgeno. Ninguna prueba lo veía; lo enseñó comparar los dos
+módulos.
+
+## v1154 — el sello de procedencia contaba cero alergias (REG-278)
+
+La compuerta de firma ya leía las dos fuentes; el **sello de procedencia** no.
+Iba por un envoltorio de una línea que llamaba al partidor bueno sobre **una sola
+fuente**, así que un paciente con la alergia sólo en el campo estructurado
+sellaba lista vacía — y el dato quedaba fuera de `camposSinEvidencia`.
+
+Sobrevivió a dos guardianes porque ninguno buscaba esto: buscaban quién parte el
+campo a mano, y este envoltorio no parte nada.
+
+## v1155 — la franja del piso ya no niega lo que hay (REG-279)
+
+La franja de alergias del internamiento —la única señal que ve enfermería y quien
+prescribe a mano— anunciaba **«Alergias negadas por el paciente»** con el campo
+«Niega penicilina. Alérgico a sulfas». Sexta copia de la lógica de alergias, con
+su propio partidor sin punto y su propia heurística de negación, e ignorando el
+campo estructurado.
+
+No es un aviso que falte: es el sistema afirmando la ausencia de una alergia que
+el expediente sí registra. Un hueco calla; esto miente.
+
+## v1156 — la pregunta del interrogatorio ya no es un antecedente (REG-280/281)
+
+**«¿Diabetes? No. ¿Hipertensión? Tampoco.»** dejaba las **dos** enfermedades como
+antecedentes POSITIVOS. Dos causas: «tampoco» no estaba entre los negadores, y
+`estaNegado` sólo miraba hacia atrás — pero el interrogatorio nombra la
+enfermedad en la **pregunta** y la niega en la **respuesta**.
+
+Se reparó en v976 para la vía de la IA. El motor determinista local —el que entra
+**cuando la IA falla**— nunca pasó por ese guardián.
+
+Y un tercer estado que faltaba: «¿Padece asma? No sé» dejaba el asma positiva.
+Ahora no entra en ninguna lista, salvo si consta afirmada en otro sitio.
+
+SAFE-007 se cierra: su prueba fijaba el defecto y decía «cuando alguien lo repare
+se pondrá roja». Se puso roja.
+
+## v1157 — un negador sin su afirmador gemelo BORRA un antecedente (REG-282)
+
+Un verbo puede entrar en una negación («no **padece** diabetes») y también
+cerrar una anterior («niega tabaquismo, **padece** diabetes»). Metido en un solo
+lado, el arreglo **no repara la mitad: la mueve al lado que no se ve**.
+
+Pasó dos veces el mismo día: REG-192 con `padece`, y **REG-280 con `es` — mío**.
+«Niega diabetes, es fumador» dejaba el tabaquismo NEGADO. Borrar un antecedente
+real es peor que inventarlo: el inventado estorba y se ve; el borrado no se echa
+de menos.
+
+Ocho formas más reparadas, incluidas «no fuma» y «no es fumador», donde el
+término clínico ES el verbo. Y los dos lados salen ya de **una sola lista**: la
+desalineación deja de ser posible, no sólo improbable.
+
+## v1158 — 22 minutos de dictado que se borraban solos (REG-283/284)
+
+**REG-283** · dictar 22 min → tocar «Agenda» → volver → dictar 90 s → detener
+**perdía los 22 minutos**. Sin error y justo tras una transcripción exitosa.
+`detener()` armaba el blob con los trozos de la sesión en curso y borraba el
+rango **completo** de una llave que es la misma para ese paciente siempre.
+
+El hook YA sabía que el huérfano existe —arranca su índice después para no
+pisarlo—: **la defensa protegía al escribir y no al borrar**, y el comentario
+afirmaba lo contrario de lo que ocurría. Es uno de los tres P0 de integridad que
+la auditoría de V9 había dejado abiertos.
+
+**REG-284** · «No pues sí» seguía leyéndose como una negación: el guardián de
+REG-271 exigía el «sí» pegado al «no», y en el habla real entre los dos cabe la
+muletilla.
+
+## v1159 — «obe·SIDA·d» decía VIH (REG-285)
+
+`cronicasEn` comparaba por **subcadena**, y «obesidad» contiene «sida». De ahí
+lee el motor que reclasifica a `descartado` lo que la IA extrae: **un paciente
+con VIH real cuyo expediente diga «niega obesidad» quedaba con el VIH
+descartado.** En infectología, que es esta consulta.
+
+El mismo `includes` vivía en `temporalidad.ts`. Se arregla con el **mismo
+comparador exportado**, no con una copia.
+
+De las **seis ramas de temporalidad**: sus afirmaciones ya estaban reparadas
+aquí, medidas caso a caso. Lo único vivo era esta comparación — que ninguna de
+ellas nombraba como su hallazgo principal. Seis ramas, un defecto real, una
+línea.
+
+## v1160 — el escudo de una oración se prestaba a la siguiente (REG-286)
+
+**«Niega diabetes. Diagnóstico de diabetes tipo 2.» no avisaba.** La nota afirma
+lo que el paciente negó y la alarma de contradicción —la razón de existir de ese
+motor— se quedaba muda: el escudo de la primera oración cruzaba el punto.
+
+El comentario ya nombraba este fallo y eligió 60 caracteres como defensa. Pero
+«Antecedente de asma. » mide 21. **Un número no puede expresar «la misma
+oración»**: la ventana se queda como tope y el corte lo hace el punto.

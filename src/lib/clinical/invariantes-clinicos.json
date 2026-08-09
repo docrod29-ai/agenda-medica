@@ -2,7 +2,7 @@
   "sellado": "2026-07-30",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4215,
+  "totalCasos": 4409,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -343,6 +343,10 @@
     {
       "archivo": "src/__tests__/el-sesgo-manda-palabras-no-cajones.test.ts",
       "minCasos": 11
+    },
+    {
+      "archivo": "src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts",
+      "minCasos": 20
     },
     {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
@@ -1147,6 +1151,66 @@
     {
       "archivo": "src/__tests__/toda-animacion-tiene-su-fotograma.test.ts",
       "minCasos": 3
+    },
+    {
+      "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
+      "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/el-no-que-corrige-afirma.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/la-alergia-negada-no-es-una-alergia.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts",
+      "minCasos": 31
+    },
+    {
+      "archivo": "src/__tests__/la-negacion-cubre-toda-la-lista.test.ts",
+      "minCasos": 15
+    },
+    {
+      "archivo": "src/__tests__/hospital-y-consulta-leen-la-misma-alergia.test.ts",
+      "minCasos": 3
+    },
+    {
+      "archivo": "src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/la-pregunta-no-es-un-antecedente.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/transcribir-no-borra-el-audio-de-otra.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/obesidad-no-dice-vih.test.ts",
+      "minCasos": 12
+    },
+    {
+      "archivo": "src/__tests__/el-escudo-no-cruza-el-punto.test.ts",
+      "minCasos": 8
     }
   ]
 }
