@@ -232,17 +232,17 @@ export default function ReservarPage() {
 
         {step === 'datos' && (
           <Card title="Tus datos" onBack={() => setStep('hora')}>
-            <FormField label="Nombre completo *">
-              <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan García López" autoFocus />
+            <FormField id="reserva-nombre" label="Nombre completo *">
+              <input id="reserva-nombre" className="input" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan García López" autoFocus />
             </FormField>
-            <FormField label="Teléfono / WhatsApp *">
-              <input className="input" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="614-123-4567" type="tel" />
+            <FormField id="reserva-telefono" label="Teléfono / WhatsApp *">
+              <input id="reserva-telefono" className="input" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="614-123-4567" type="tel" />
             </FormField>
-            <FormField label="Correo (opcional)">
-              <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" type="email" />
+            <FormField id="reserva-email" label="Correo (opcional)">
+              <input id="reserva-email" className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" type="email" />
             </FormField>
-            <FormField label="Motivo (opcional)">
-              <textarea className="input" rows={2} value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Describe brevemente el motivo de tu visita" style={{ resize: 'vertical' }} />
+            <FormField id="reserva-motivo" label="Motivo (opcional)">
+              <textarea id="reserva-motivo" className="input" rows={2} value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Describe brevemente el motivo de tu visita" style={{ resize: 'vertical' }} />
             </FormField>
             <button
               disabled={!nombre.trim() || telefono.replace(/\D/g, '').length < 7}
@@ -295,7 +295,9 @@ export default function ReservarPage() {
 
         {step === 'error' && (
           <Card title="No se pudo agendar">
-            <p style={{ fontSize: 14, color: 'var(--red)', margin: '0 0 12px' }}>{errorMsg}</p>
+            {/* Región viva: el fallo llega después de pulsar «Confirmar», y sin
+                esto el paso cambia sin que nadie lo anuncie. */}
+            <p role="alert" aria-live="assertive" style={{ fontSize: 14, color: 'var(--red)', margin: '0 0 12px' }}>{errorMsg}</p>
             <button onClick={() => setStep('hora')} style={btnPrimary}>← Intentar otro horario</button>
           </Card>
         )}
@@ -330,10 +332,26 @@ function Card({ title, children, onBack }: { title: string; children: React.Reac
     </div>
   )
 }
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * LA ETIQUETA ESTABA AL LADO DEL CAMPO, PERO NO ATADA A ÉL.
+ *
+ * `<label>` y `<input>` eran hermanos dentro de un `<div>`: se ven juntos, y
+ * para un lector de pantalla no lo están. Quien reserva su cita a ciegas oía
+ * «cuadro de edición, en blanco» cuatro veces seguidas y tenía que adivinar
+ * cuál era el teléfono.
+ *
+ * Se ata con `htmlFor` + `id`, y el `id` lo pone quien llama. La otra forma
+ * —envolver el control con la etiqueta— también vale en HTML, pero la
+ * asociación queda dentro de un componente y **ningún guardián de código fuente
+ * puede verla**: el campo y su etiqueta acaban en archivos distintos. Atarlos
+ * por nombre deja la relación escrita en el mismo sitio donde se lee.
+ *
+ * No cambia un píxel.
+ */
+function FormField({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={id} style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>{label}</label>
       {children}
     </div>
   )

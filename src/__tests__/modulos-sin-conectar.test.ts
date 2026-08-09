@@ -53,6 +53,10 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
    */
   'src/lib/arquitectura/grafo-de-dependencias.ts':
     'Lee los imports del repo y mide la dirección de las dependencias y los ciclos. Herramienta de CI, no función de producto: su sitio es el PR que rompe la regla, no una pantalla.',
+  'src/lib/paciente/accesibilidad.ts':
+    'Detector de controles sin nombre accesible en la superficie del paciente (V9 · A11Y-GATE-001). Vive en el CI por definición: lo que protege es que NO SE PUEDA añadir un campo sin etiqueta, y una pantalla que lo muestre sería una pantalla que alguien apaga. Cuando llegue `axe` sobre la aplicación corriendo, este módulo será su suelo, no su sustituto.',
+  'src/lib/paciente/superficie.ts':
+    'Las nueve pantallas del paciente, declaradas UNA vez. Estaban en tres documentos y en ninguna parte del código: la décima habría entrado sin que ningún guardián la auditara. Su consumidor es el guardián de accesibilidad, y en cuanto haya una segunda auditoría de esta superficie (idioma, contraste) será la misma lista.',
   'src/lib/calidad/familias-de-defecto.ts':
     'Taxonomía de causas raíz derivada del regression-ledger. Su consumidor es el guardián que compara la clasificación contra el ledger y falla si un REG se queda sin familia: vive en el CI por definición. Una pantalla que la muestre no protegería nada — lo que protege es que NO SE PUEDA cerrar un REG sin clasificarlo.',
 

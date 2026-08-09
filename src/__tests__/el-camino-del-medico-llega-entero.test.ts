@@ -116,8 +116,23 @@ const EL_CAMINO: ReadonlyArray<{ paso: string; hace: string; modulos: readonly s
  * Islas de dos. Ninguno es alarmante; los tres son lo que quedaba por ver.
  *
  * El número puede BAJAR. No puede subir sin que alguien lo escriba aquí.
+ *
+ * ── 29 → 31 el 9-ago-2026 (V9 · A11Y-GATE-001) ─────────────────────────────
+ *
+ * Dos módulos nuevos que **no llegan al médico a propósito**, y los dos están
+ * declarados con su razón en `modulos-sin-conectar.test.ts`:
+ *
+ *  · `src/lib/paciente/accesibilidad.ts` — detector de controles sin nombre
+ *    accesible. Lo que protege es que no se pueda añadir un campo sin etiqueta;
+ *    una pantalla que lo mostrara sería una pantalla que alguien apaga.
+ *  · `src/lib/paciente/superficie.ts` — las nueve pantallas del paciente,
+ *    declaradas una vez para que la décima no entre sin auditarse.
+ *
+ * Subir este número es una decisión, no un trámite: se escribe cuál es el
+ * módulo y por qué su sitio es el CI. Si alguna vez sube sin este párrafo, el
+ * que lo subió se saltó el paso.
  */
-const FUERA_DEL_CAMINO_HOY = 29
+const FUERA_DEL_CAMINO_HOY = 31
 
 const ISLAS_DE_DOS: Readonly<Record<string, string>> = {
   'src/lib/clinica/simulacro.ts': 'simulacro de restauración; lo usa material que tampoco corre en producción',

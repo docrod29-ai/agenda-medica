@@ -112,7 +112,8 @@ pantalla estuvieras». Reparado y sellado con
 | Compuerta | Estado |
 |---|---|
 | **Deuda de estilo (trinquete)** | ✅ 9-ago-2026 · script + techo + guardián en la suite |
-| accesibilidad | ❌ `A11Y-GATE-001`. Sigue habiendo **1** prueba entre 540, y es una expresión regular sobre `layout.tsx` |
+| **accesibilidad — nombre de los controles** | ✅ 9-ago-2026 · **cero** en la superficie del paciente, y el detector probado al revés |
+| accesibilidad — el resto | ❌ axe sobre la app corriendo, contraste en pantalla, foco y objetivo táctil. Y el panel del médico, con sus 41 botones sólo-icono, sigue sin tocar |
 | regresión visual | ❌ sin definir |
 | móvil / flujo en navegador | ❌ sin definir · exige credenciales de Firebase que este contenedor no tiene |
 
@@ -122,9 +123,25 @@ pantalla estuvieras». Reparado y sellado con
 2. ✅ Tokens de espacio, radio, tipografía y sombra, con su razón escrita.
 3. ✅ Trinquete con techo sellado. Primer pago: el azul de marca en dos
    mayúsculas, 98 → 0 (puro, no cambia un píxel).
-4. `axe` sobre las 9 pantallas del paciente. Objetivo WCAG 2.2 AA.
+4. ✅ Las 9 pantallas del paciente, sin controles anónimos — y declaradas en un
+   solo sitio (`lib/paciente/superficie.ts`) para que la décima no entre sin
+   auditarse. **`axe` de verdad sigue pendiente**: exige la aplicación corriendo.
 5. Los literales *slate* que no siguen al tema, en 10 archivos.
 6. Las tablas, adoptando `.table-wrap.rwd` que ya existe.
+7. Los 41 botones sólo-icono del panel del médico (4 con `aria-label`).
+
+## Lo que se reparó en la superficie del paciente
+
+Ninguna de estas era una opinión de diseño: las cuatro son fallos de WCAG 2.2 AA
+que un lector de pantalla convierte en «cuadro de edición, en blanco».
+
+| Dónde | Qué |
+|---|---|
+| `/reservar` | Los 4 campos —nombre, teléfono, correo, motivo— tenían la etiqueta al lado y no atada |
+| `/privacidad` (ARCO) | Los 5 campos de identificación y la descripción de la solicitud, igual. **Es el formulario que por ley tiene que poder usar cualquiera** |
+| `/resena` | El comentario no tenía etiqueta de ninguna clase, sólo marcador de posición; y las 5 estrellas eran 5 «botón» |
+| `/mi` | La fecha de reagenda: «Elige un nuevo horario» era un `<div>` |
+| `/mi` y `/reservar` | Dos regiones vivas (`role="alert"`): el error aparecía después de pulsar y nadie lo anunciaba |
 
 ## Lo que este estado NO afirma
 

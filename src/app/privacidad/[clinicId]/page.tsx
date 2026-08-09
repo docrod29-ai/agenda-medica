@@ -189,16 +189,17 @@ export default function PortalPrivacidadPage() {
               Llena tus datos para identificarte. Te responderemos en máximo 20 días hábiles.
             </p>
             <div style={{ display: 'grid', gap: 10 }}>
-              <Field label="Nombre completo *" value={nombre} onChange={setNombre} placeholder="Como aparece en tu INE" />
-              <Field label="Teléfono *" value={telefono} onChange={setTelefono} placeholder="10 dígitos" type="tel" />
-              <Field label="Correo electrónico" value={email} onChange={setEmail} type="email" />
-              <Field label="CURP (opcional, ayuda a localizar tu expediente)" value={curp} onChange={(v) => setCurp(v.toUpperCase())} maxLength={18} />
-              <Field label="Identificación oficial (ej. INE folio 1234)" value={identificacion} onChange={setIdentificacion} />
+              <Field id="arco-nombre" label="Nombre completo *" value={nombre} onChange={setNombre} placeholder="Como aparece en tu INE" />
+              <Field id="arco-telefono" label="Teléfono *" value={telefono} onChange={setTelefono} placeholder="10 dígitos" type="tel" />
+              <Field id="arco-email" label="Correo electrónico" value={email} onChange={setEmail} type="email" />
+              <Field id="arco-curp" label="CURP (opcional, ayuda a localizar tu expediente)" value={curp} onChange={(v) => setCurp(v.toUpperCase())} maxLength={18} />
+              <Field id="arco-identificacion" label="Identificación oficial (ej. INE folio 1234)" value={identificacion} onChange={setIdentificacion} />
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                <label htmlFor="arco-descripcion" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
                   Describe tu solicitud *
                 </label>
                 <textarea
+                  id="arco-descripcion"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value.slice(0, 1000))}
                   rows={4}
@@ -236,11 +237,22 @@ export default function PortalPrivacidadPage() {
   )
 }
 
-function Field({ label, value, onChange, type = 'text', placeholder, maxLength }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number }) {
+function Field({ id, label, value, onChange, type = 'text', placeholder, maxLength }: { id: string; label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number }) {
+  /**
+   * Misma reparación que en `/reservar`: la etiqueta estaba AL LADO del campo,
+   * no atada a él. Aquí se piden nombre, teléfono, correo, CURP e
+   * identificación oficial para ejercer un derecho ARCO — el formulario que por
+   * ley tiene que poder usar cualquiera, incluida la persona que lo rellena con
+   * un lector de pantalla.
+   *
+   * Se ata con `htmlFor` + `id`, y el `id` lo pone quien llama. No cambia un
+   * píxel ni añade un solo estilo en línea.
+   */
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
+      <label htmlFor={id} style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>
       <input
+        id={id}
         type={type} value={value} maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

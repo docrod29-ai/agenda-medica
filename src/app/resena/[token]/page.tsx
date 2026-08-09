@@ -64,7 +64,18 @@ export default function ResenaPage() {
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, margin: '16px 0' }}>
           {[1,2,3,4,5].map(n => (
+            /**
+             * LA ESTRELLA NO SE LLAMABA DE NINGUNA MANERA.
+             *
+             * Cinco botones cuyo único contenido es un icono: para un lector de
+             * pantalla eran cinco «botón, botón, botón, botón, botón», sin
+             * forma de saber cuál es «muy bueno». `aria-label` les da nombre y
+             * `aria-pressed` dice cuál está elegida — que es la mitad que falta:
+             * un nombre sin estado no deja comprobar qué se marcó.
+             */
             <button key={n} type="button"
+              aria-label={n === 1 ? '1 estrella' : `${n} estrellas`}
+              aria-pressed={rating === n}
               onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
               onClick={() => setRating(n)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
@@ -73,7 +84,13 @@ export default function ResenaPage() {
           ))}
         </div>
 
+        {/**
+          * El marcador de posición NO es una etiqueta: desaparece en cuanto se
+          * escribe, y muchos lectores de pantalla no lo anuncian. Este campo se
+          * quedaba sin nombre de ninguna clase.
+          */}
         <textarea
+          aria-label="Tu comentario (opcional)"
           value={texto} onChange={e => setTexto(e.target.value.slice(0, 1000))}
           placeholder="¿Qué te gustaría compartir? (opcional)"
           rows={4}

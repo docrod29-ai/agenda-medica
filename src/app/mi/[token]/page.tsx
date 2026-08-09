@@ -460,8 +460,14 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
 
   return (
     <div style={{ marginTop: 14, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" /> Elige un nuevo horario</div>
-      <input type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
+      {/**
+        * «Elige un nuevo horario» se veía encima del campo de fecha y no estaba
+        * atado a él: era un `<div>`. Ahora es la etiqueta del campo — mismo
+        * texto, mismos estilos, mismo icono— y además pulsarlo abre el
+        * calendario.
+        */}
+      <label htmlFor="reagenda-fecha" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarClock size={14} className="ds-icon" /> Elige un nuevo horario</label>
+      <input id="reagenda-fecha" type="date" value={fecha} min={hoy} onChange={e => setFecha(e.target.value)} className="input" style={{ marginBottom: 12 }} />
       {cargandoSlots ? (
         <div style={{ color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Buscando horarios…</div>
       ) : slots && slots.length === 0 ? (
@@ -563,7 +569,15 @@ function FormularioPrevio({ token }: { token: string }) {
               />
             </div>
           ))}
-          {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+          {/**
+            * `role="alert"` porque el error aparece DESPUÉS de pulsar «Enviar a
+            * mi médico»: sin él, quien usa lector de pantalla se queda oyendo
+            * el mismo formulario y sin saber que su envío falló. Es una región
+            * viva, no un párrafo más.
+            */}
+          <div role="alert" aria-live="assertive">
+            {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+          </div>
           <button
             type="button"
             onClick={enviar}

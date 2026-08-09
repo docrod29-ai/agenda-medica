@@ -435,7 +435,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO PARCIAL (9-ago-2026) — falta axe sobre la app corriendo",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "A11Y-GATE-001",
@@ -446,7 +446,8 @@
       "porQueImporta": "Objetivo declarado de V9: WCAG 2.2 AA. Hoy nada impide una regresión. Y el contraste de los 1205 hexadecimales nunca se midió — los tokens sí, y con la fórmula escrita en el CSS.",
       "archivo": "package.json · eslint.config.mjs · src/__tests__/a11y-zoom-guard.test.ts",
       "plan": "axe sobre la superficie del paciente primero (9 pantallas), que es lo que V9 gobierna. Luego trinquete.",
-      "score": 45
+      "score": 45,
+      "cierre": "Hay red donde no había ninguna: `lib/paciente/accesibilidad.ts` detecta controles sin nombre accesible y botones sólo-icono sin nombre, sobre la superficie del paciente declarada en `lib/paciente/superficie.ts`. La compuerta exige CERO, no un techo que baja, porque ya está en cero. Reparado de paso: los 4 campos de la autoagenda, los 5 del formulario ARCO y su descripción, el comentario y las 5 estrellas de la reseña, y la fecha de reagenda del portal; más dos regiones vivas (role=alert) donde el error aparecía sin que nadie lo anunciara. Probado al revés contra el código real. QUEDA ABIERTO: axe sobre la aplicación corriendo (exige credenciales de Firebase, ver BLOCKERS), contraste medido en pantalla, orden y trampa de foco, objetivo táctil 44x44, y los 41 botones sólo-icono del panel del médico."
     },
     {
       "seguridad": 0,
