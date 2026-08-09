@@ -3,13 +3,36 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 9-ago-2026 · REG-306, REG-307 (`75458b4`).
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS con sus cinco clases de respuesta y
+las doce preguntas del §0 como fixture permanente.
 
 ---
 
-## Lo que quedó montado en `PATIENT-COMPANION-001`
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El paquete LLEGA.** `POST /api/paciente/paquete` compone desde la nota firmada
+y libera; la tarjeta «Lo que va a leer el paciente en su portal» vive en la
+consulta y sólo aparece con la nota firmada; el portal sirve la versión vigente
+de cada consulta. El primer paquete que puede existir en producción es de hoy.
+
+**La firma dejó de ser una intención.** La cabecera del módulo decía que el
+contenido sale de lo «ya revisado y firmado» y nada lo comprobaba: la hoja se
+componía del borrador en curso y los dos botones —copiar, imprimir— la
+entregaban. Ahora la compuerta está en la pantalla **y dentro del motor**.
+
+**Los deberes pendientes, hechos.** `componerPaquete` y `cambiosDeMedicacion`
+vuelven, con su llamador. Y con un cuarto tipo de cambio, `modificado`: con los
+tres declarados, bajar una dosis a la mitad salía como «sin cambio».
+
+**Lo que sigue sin existir**, y se dice: el paciente **no recibe aviso** de que
+hay algo nuevo en su portal — eso es `CLOSED-LOOP-PATIENT-001`—, y nada de esto
+se ha visto en un navegador.
+
+---
+
+## Lo que quedó montado en `PATIENT-COMPANION-001` (anterior)
+
 
 **Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
 · Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la

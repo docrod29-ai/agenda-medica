@@ -6,7 +6,65 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 9-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Rama** | `claude/relaxed-fermi-kisu3p` (la rama `claude/nexus-patient-ux-v9` se fusionó a `main` en el PR #279; el trabajo sigue desde `main`) |
+| **SHA de cierre** | `75458b4` |
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+**El paquete llega.** El médico firma, revisa en la tarjeta «Lo que va a leer el
+paciente en su portal» exactamente el objeto que se va a guardar, y lo libera.
+El portal le sirve la versión vigente de cada consulta.
+
+Y la compuerta que faltaba: **la firma pasó de intención a precondición**. Vivía
+en un comentario de cabecera —«el contenido sale de lo ya revisado y firmado»— y
+nada la comprobaba, así que la hoja se componía del borrador en curso y los dos
+botones la entregaban. Ahora está en la pantalla **y dentro del motor**, para
+que viaje con él hasta el segundo llamador.
+
+### Tres decisiones que conviene no redescubrir
+
+1. **El cliente no aporta contenido.** El cuerpo son cuatro identificadores. Un
+   cuerpo con `estado` o `approvedBy` se **rechaza** en vez de ignorarse: quien
+   lo manda está intentando algo y tiene que quedar en el log.
+2. **Cada liberación crea su documento** (`{notaId}__v{n}`, con `create()`). Un
+   paquete liberado es inmutable; corregirlo es liberar una versión nueva. Dos
+   pestañas a la vez no pueden escribir la misma versión ni por carrera.
+3. **`modificado` es el cuarto tipo de cambio de medicación**, y no es un
+   capricho: con tres, bajar la metformina de 850 a 425 mg salía como «sin
+   cambio». La comparación es sobre la **pauta**, no sobre la línea entera —que
+   lleva el nombre dentro y hacía que «Losartan» y «Losartán» salieran como un
+   cambio de tratamiento.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 615 de 8 616 · 1 fallo preexistente y de entorno** (`ops-timeout`, intenta un TCP a 10.255.255.1) |
+| `lint-trinquete` | **96, igual que el techo** |
+| trinquete de diseño | **sin deuda nueva** (usa el primitivo `Button` compartido) |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **completo** (con variables de Firebase ficticias: la máquina no tiene las reales) |
+| navegador | **NO ejecutado** |
+
+### Lo que este checkpoint NO garantiza
+
+Que la liberación funcione **contra Firestore**. No hay credenciales aquí, así
+que la escritura real, la carrera entre dos pestañas y lo que el paciente ve en
+su portal siguen sin ejecutarse. Los guardianes comprueban que las decisiones
+estén escritas donde tienen que estar —la capacidad, la lista blanca, el origen
+de `approvedBy`, el `create()` con la versión en el id— y las piezas puras se
+prueban de verdad.
+
+Y **el paciente no recibe aviso** de que hay algo nuevo: el paquete aparece en
+su portal y ya. Eso es `CLOSED-LOOP-PATIENT-001`.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

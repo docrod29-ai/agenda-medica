@@ -80,3 +80,43 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+
+---
+
+## 9-ago-2026 — `POSTVISIT-001`: el paquete llega al paciente
+
+**REG-306.** La hoja del paciente se componía del **borrador en curso**. Su
+única guarda era `!esNotaHospital`, y sus dos botones —copiar e imprimir— la
+entregaban tal cual. La cabecera del módulo afirmaba que el contenido sale de lo
+«ya revisado y firmado»: era intención de diseño, no precondición. Veintitantas
+líneas más arriba, `ComoCerrarLaConsulta` **sí** exigía `firmada`.
+
+Familia nueva, la decimosexta: **`invariante_solo_en_prosa`** — la regla está
+escrita, es correcta, y no hay nada que la haga cumplirse. No es
+`no_conectado` (el módulo sí corre) ni `se_contradice` (no hay dos
+implementaciones que reconciliar): la reparación es **añadir el comprobador**, y
+añadirlo dentro del motor para que viaje con él hasta el segundo llamador.
+
+**REG-307.** Y aunque se firmara, la hoja **no llegaba a ninguna parte**. El
+portal del paciente ya existía con su pestaña vacía y su compuerta puesta
+(REG-304); entre las dos mitades no había nada. Faltaba el **acto de liberar**.
+
+Ahora: `POST /api/paciente/paquete` bajo `clinico.escribir`, con
+`previsualizar` y `liberar`. El cliente manda **cuatro identificadores**; todo
+el contenido lo lee el servidor de la nota firmada, del expediente y de la
+configuración. Un cuerpo con `estado` o `approvedBy` se **rechaza** en vez de
+ignorarse. Cada liberación **crea** su documento con un id que lleva la versión
+dentro, así que corregir es liberar una versión nueva y dos pestañas a la vez no
+pueden pisarse.
+
+**Un cuarto tipo de cambio de medicación.** `CambioDeMedicacion` tenía tres, y
+con tres hay que mentir: el cotejo es por nombre, así que bajar la metformina de
+850 a 425 mg salía como **«sin cambio»**. Se añadió `modificado`, y la
+comparación pasó a ser sobre la **pauta** y no sobre la línea entera —que lleva
+el nombre dentro y hacía que «Losartan» y «Losartán» salieran como un cambio de
+tratamiento.
+
+**Compuertas**: vitest 8 615/8 616 (1 fallo de entorno preexistente,
+`ops-timeout`), trinquete de lint 96 = techo, trinquete de diseño sin deuda
+nueva, `tsc` limpio, `npm run build` completo. **Navegador: no ejecutado.**
