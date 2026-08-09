@@ -15,7 +15,8 @@
  * Sin datos reales: todo lo sembrado es sintético (ver sembrar-emulador.mjs).
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, openSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { chromium } from '@playwright/test'
 import { sembrar, MEDICO } from './sembrar-emulador.mjs'
@@ -54,11 +55,31 @@ function esperarServidor(url, timeoutMs = 180000) {
   })
 }
 
+/** Un puerto ocupado aquí es SIEMPRE un servidor zombi de una corrida rota:
+ *  mejor morir con un mensaje claro que esperar 180 s a un servidor que no
+ *  va a poder levantar. */
+function exigirPuertoLibre(puerto) {
+  return new Promise((resolve, reject) => {
+    const s = createServer()
+    s.once('error', () => reject(new Error(
+      `El puerto ${puerto} está ocupado (¿next dev zombi de una corrida anterior? ` +
+      `pgrep -af "next dev" y mátalo).`)))
+    s.once('listening', () => s.close(resolve))
+    s.listen(puerto, '127.0.0.1')
+  })
+}
+
 async function main() {
+  await exigirPuertoLibre(PUERTO)
   await sembrar()
   mkdirSync(SALIDA, { recursive: true })
 
+  // La salida del servidor va a UN ARCHIVO, no a pipes de este proceso: si esta
+  // corrida muere, un pipe huérfano se llena y BLOQUEA a next dev en el write —
+  // queda un zombi que retiene el puerto sin servir nada (pasó en la corrida 2).
+  const logServidor = openSync(join(process.cwd(), '.next-dev-capturas.log'), 'w')
   const servidor = spawn('npx', ['next', 'dev', '-p', String(PUERTO)], {
+    detached: true,
     env: {
       ...process.env,
       NEXT_PUBLIC_FIREBASE_EMULATORS: '1',
@@ -70,12 +91,14 @@ async function main() {
       NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:demo',
       FIREBASE_ADMIN_PROJECT_ID: 'demo-nexusmed-test',
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', logServidor, logServidor],
   })
-  servidor.stdout.on('data', () => {})
-  servidor.stderr.on('data', () => {})
-  const matar = () => { try { servidor.kill('SIGTERM') } catch { /* ya murió */ } }
+  // Grupo de proceso completo (npx → next → workers): matar solo al padre
+  // dejaba vivo al hijo con el puerto tomado.
+  const matar = () => { try { process.kill(-servidor.pid, 'SIGKILL') } catch { /* ya murió */ } }
   process.on('exit', matar)
+  process.on('SIGTERM', () => { matar(); process.exit(1) })
+  process.on('SIGINT', () => { matar(); process.exit(1) })
 
   try {
     await esperarServidor(`${BASE}/login`)

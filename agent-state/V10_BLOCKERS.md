@@ -3,11 +3,24 @@
 > Un blocker no detiene el programa: se documenta, se recomienda el mejor
 > default y se sigue con otra tarea (V10 §5, §42).
 
-## B-V10-1 · Trabajo V9 validado sin fusionar (afecta la secuencia V10)
+## B-V10-1 · Trabajo V9 sin fusionar — **RESUELTO (9-ago-2026, PR #279)**
+
+El dueño fusionó `claude/nexus-patient-ux-v9` a main (merge `56d9fc7`,
+«decisión V10-D1»). Verificado por **ancestría de commits**, no por el acta:
+`5bb1a2c` (DESIGN-SYSTEM-001), `fed81cc` (NAVIGATION-001) y `5d496cf`
+(PATIENT-COMPANION-001) son ancestros de `origin/main`, y la rama V10 ya
+absorbió ese main (merge `2290b71`).
+
+**Consecuencia**: `V10-CONSTITUTION-001` (V10-DEBT-001/002 del backlog) queda
+**desbloqueada** — el sistema de diseño canónico vive en main y V10 construye
+encima, no en paralelo.
+
+<details><summary>Texto original del blocker (histórico)</summary>
 
 `origin/claude/nexus-patient-ux-v9` (6feaf5a) lleva **8 commits que main no
 tiene**: DESIGN-SYSTEM-001 (REG-274/275), NAVIGATION-001 (REG-276…279) y
 PATIENT-COMPANION-001 (REG-280/281). La rama está 48 commits detrás de main.
+</details>
 
 - **Riesgo**: si V10 rediseña sobre main sin ese trabajo, lo duplica o lo
   pisa — prohibido por V10 §41 y por la orden del dueño de preservar V7/V9.
