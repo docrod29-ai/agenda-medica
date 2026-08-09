@@ -1,5 +1,5 @@
 {
-  "generadoEn": "2026-08-07",
+  "generadoEn": "2026-08-09",
   "formulaDePrioridad": "5*SEGURIDAD + 5*INTEGRIDAD + 4*INGRESO + 4*FRECUENCIA + 4*MOAT + 3*FIABILIDAD + 3*REGULATORIO + 2*APRENDIZAJE - 3*IRREVERSIBILIDAD - 2*COMPLEJIDAD - 2*DEPENDENCIA_EXTERNA",
   "items": [
     {
@@ -20,8 +20,9 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 60,
-      "estado": "cerrado (REG-141, v1031) — verificado el 7-ago: ES_CANTIDAD acepta los cuatro signos",
-      "reversible": true
+      "estado": "cerrado",
+      "reversible": true,
+      "cierre": "ES_CANTIDAD acepta los cuatro signos (dosis-sin-numero.ts:57). Verificado en el árbol el 8-ago."
     },
     {
       "id": "SAFE-001",
@@ -41,8 +42,9 @@
       "complejidad": 1,
       "dependenciaExterna": 0,
       "score": 73,
-      "estado": "cerrado (REG-144, v1032) — verificado el 7-ago: los tres llamadores usan alergenosDe y el golden lo vigila",
-      "reversible": true
+      "estado": "cerrado",
+      "reversible": true,
+      "cierre": "alergenosDe() es el único parser y los tres llamadores lo usan; golden un-solo-parser-de-alergias.test.ts. Verificado en el árbol el 8-ago: el backlog estaba atrasado."
     },
     {
       "id": "EVAL-001",
@@ -83,9 +85,9 @@
       "complejidad": 2,
       "dependenciaExterna": 0,
       "score": 55,
-      "estado": "cerrado (REG-195, v1077) — corpus de 34 frases sintéticas; destapó la frase compuesta",
+      "estado": "cerrado (REG-195, v1077)",
       "reversible": true,
-      "resultado": "34 casos. El motor fallaba 6: 3 con falso positivo (degradaba a antecedente un diagnóstico dicho en presente) y 3 con falso negativo. Con el arreglo, 34 de 34."
+      "cierre": "34 casos. El motor fallaba 6: 3 con falso positivo (degradaba a antecedente un diagnóstico dicho en presente) y 3 con falso negativo. Con el arreglo, 34 de 34."
     },
     {
       "id": "EVAL-003",
@@ -109,10 +111,32 @@
       "reversible": true
     },
     {
+      "id": "TEMP-001",
+      "titulo": "La ventana del escudo cruza el punto y presta la negación de la oración anterior",
+      "hallazgo": "primeraMencionSinEscudo mira 60 caracteres hacia atrás sin parar en el punto. «Niega diabetes.» al final de una oración escuda a la palabra que caiga en los primeros 60 caracteres de la siguiente — probado el 8-ago con los motores reales al reparar REG-192.",
+      "porQueImporta": "Es un escudo que no le corresponde: silencia una afirmación real de la nota. Del mismo orden que REG-192, sólo que en la dirección contraria.",
+      "porQueNoSeArreglaAOjo": "Acotar la ventana a la oración rompe la nota con encabezado de sección («Antecedentes:\\nNeumonía en 2019.»), que es igual de común, y ahí sí se convertiría en fatiga de alerta. Necesita corpus de notas sintéticas con las dos formas antes de tocar el número.",
+      "archivo": "src/lib/expediente/mencion-en-la-nota.ts:88",
+      "seguridad": 3,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 3,
+      "regulatorio": 0,
+      "aprendizaje": 3,
+      "irreversibilidad": 0,
+      "complejidad": 2,
+      "dependenciaExterna": 0,
+      "score": 56,
+      "estado": "pendiente",
+      "reversible": true
+    },
+    {
       "id": "OPS-002",
       "titulo": "El test del timeout depende de la red de quien lo corra",
-      "hallazgo": "ops-timeout-y-punto-ciego.test.ts espera que http://10.255.255.1 sea un pozo sin fondo. En un contenedor con proxy de salida la conexión se rechaza ANTES del plazo de 30 ms y el test falla. Reproducido sobre el árbol limpio el 7-ago-2026, antes de tocar nada.",
-      "porQueImporta": "Un test que falla por dónde se corre enseña a ignorar el rojo. Y el que se acaba ignorando es el vecino, que sí mide algo. Es fragilidad de la prueba, no del producto: el helper de timeout funciona.",
+      "hallazgo": "ops-timeout-y-punto-ciego.test.ts espera que http://10.255.255.1 sea un pozo sin fondo. Es una CARRERA entre el rechazo de la conexión y el temporizador de 30 ms: en un contenedor con proxy de salida el rechazo suele llegar primero y el test falla. Medido el 9-ago-2026 — falla las dos veces que se corre en solitario y PASA cuando corre dentro de la suite entera, porque la máquina va más cargada y el temporizador gana. Reproducido también sobre el árbol limpio, sin cambios míos.",
+      "porQueImporta": "Un test que cambia de resultado según la carga de la máquina enseña a ignorar el rojo, y el que se acaba ignorando es el vecino, que sí mide algo. Es fragilidad de la prueba, no del producto: el helper de timeout funciona. El arreglo natural es un servidor local que acepte y no conteste, en vez de una IP que se confía en que cuelgue.",
       "archivo": "src/__tests__/ops-timeout-y-punto-ciego.test.ts:43",
       "seguridad": 0,
       "integridad": 0,
@@ -128,7 +152,7 @@
       "score": 20,
       "estado": "pendiente",
       "reversible": true,
-      "confirmado": "sí — reproducido sobre el árbol limpio"
+      "confirmado": "sí — reproducido sobre el árbol limpio, y caracterizado como intermitente según carga"
     },
     {
       "id": "EVAL-004",
@@ -151,5 +175,6 @@
       "estado": "pendiente",
       "reversible": true
     }
-  ]
+  ],
+  "actualizado": "2026-08-08"
 }

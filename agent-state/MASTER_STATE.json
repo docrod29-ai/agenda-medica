@@ -10,18 +10,19 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "EVAL-002 (cerrada) — REG-195, v1077",
+  "iteracionActual": "EVAL-002 (cerrada, PR #234 abierto) — REG-195, v1077",
   "ramasActivas": [
-    "agent/eval/EVAL-002"
+    "agent/eval/EVAL-002-corpus-temporalidad"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
+  "ultimaVersionEnRama": "nexusmed-v1077",
   "trabajoLocalSinSubir": [],
-  "compuertasEnLaUltimaIteracion": {
-    "vitest": "6927 de 6929 · 1 fallo AJENO y previo (ops-timeout-y-punto-ciego: depende de la red del contenedor, reproducido sobre el árbol limpio)",
-    "tsc": "limpio",
-    "lintTrinquete": "96, techo 98 — no sube",
-    "build": "no termina en este contenedor por falta de .env (Firebase auth/invalid-api-key), igual sobre el árbol limpio"
-  },
-  "notaParaLaSiguienteIteracion": "El backlog venía atrasado: SAFE-001 y VOICE-004 figuraban abiertos y llevaban cerrados desde REG-144 y REG-141. Antes de elegir, comprobar el estado real contra el ledger — cuesta cinco minutos y evita reparar lo reparado."
+  "notasDeEstado": [
+    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
+    "9-ago-2026: el bucle corrió en paralelo y ~20 ramas reclamaron el mismo REG-192 y la misma v1074, que main ya tiene fusionados. Esta rama se renumeró a REG-195/v1077 y se fusionó main dentro. El identificador se reparte por número de PR ascendente; ver OPS-003 en el PR #251.",
+    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó. Anotado como OPS-002.",
+    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data»."
+  ],
+  "notaParaLaSiguienteIteracion": "Antes de elegir, comprobar el estado real contra el ledger y contra main — dos veces seguidas el backlog señalaba a trabajo ya hecho, y esta vez además el número de REG ya estaba tomado."
 }
