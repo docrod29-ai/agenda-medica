@@ -24,7 +24,7 @@
       "estado": "cerrado",
       "cerradoEn": "2026-08-07",
       "reversible": true,
-      "reg": "REG-195",
+      "reg": "REG-202",
       "golden": "src/__tests__/el-apartado-de-arriba-no-tapa-el-de-abajo.test.ts"
     },
     {
@@ -47,7 +47,7 @@
       "dependenciaExterna": 0,
       "score": 86,
       "estado": "cerrado",
-      "cierre": "REG-193 (v1075). Golden: src/__tests__/la-negacion-se-oye-como-se-habla.test.ts (18 it(, 35 casos; verificado en rojo: 29 de 35 fallan sin el arreglo).",
+      "cierre": "REG-199 (v1081). Golden: src/__tests__/la-negacion-se-oye-como-se-habla.test.ts (18 it(, 35 casos; verificado en rojo: 29 de 35 fallan sin el arreglo).",
       "reversible": true
     },
     {

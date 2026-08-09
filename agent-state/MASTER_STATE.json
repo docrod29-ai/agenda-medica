@@ -11,13 +11,13 @@
     "datosRealesDePacientes": false,
     "cambiosDestructivos": false
   },
-  "iteracionActual": "REG-195 (cerrada) — v1077, sobre agent/safety/SAFE-003",
+  "iteracionActual": "REG-202 (cerrada) — v1084, sobre agent/safety/SAFE-003",
   "ramasActivas": [
     "agent/safety/SAFE-003"
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1075",
+  "ultimaVersionEnRama": "nexusmed-v1081",
   "trabajoLocalSinSubir": [],
   "notaSobreEsteArchivo": "Estaba congelado en v1030 mientras el ledger iba por REG-191/v1073: VOICE-004 y SAFE-001 figuraban abiertos y llevaban versiones reparados. Se reconciliaron contra el repositorio en esta iteración. Si vuelve a desfasarse, la fuente de verdad es docs/audit/regression-ledger.md, no este archivo.",
   "compuertas": {
@@ -32,7 +32,7 @@
     "C-7 compuestos del vocabulario (miocardiopatía, esteatohepatitis)"
   ],
   "alertaParaElDueno": "SUBE A 19+ PRs ABIERTOS SIN FUSIONAR (T-1). El firing del 7-ago por la tarde volvió a empezar REG-192 desde cero por enésima vez y sólo se enteró al fallar el push. Mientras no se fusione nada, cada firing repite el mismo ítem, toma el mismo REG y la misma versión de service worker: el número de regresión ya no acota un lote de notas, que es justo lo que REG-191 acababa de reparar para IEC 62304. Decidir orden de fusión y renumerar.",
-  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1077",
+  "ultimaVersionPreparadaSinDesplegar": "nexusmed-v1084",
   "leccionesVivas": [
     "Antes de tocar un regex, buscar TODOS sus llamadores (lección de REG-192).",
     "Antes de abrir rama, mirar si origin ya tiene una con ese nombre: el 7-ago se reimplementó REG-192 entero en paralelo contra una rama que ya lo tenía resuelto y mejor. El trabajo duplicado se descartó, no se empujó.",

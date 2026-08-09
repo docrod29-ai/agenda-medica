@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1077 — REG-195: mirar todas las apariciones no bastaba
+## v1084 — REG-202: mirar todas las apariciones no bastaba
 
 REG-192 hizo que los dos guardianes recorrieran TODAS las menciones de la nota
 y no sólo la primera. Con ese arreglo puesto y su golden en verde, el caso que
@@ -23,7 +23,7 @@ Y con el recorte llega `NO_AFIRMA`: al dejar sola a la segunda mención, «gluco
 para descartar diabetes» habría empezado a avisar en casi cualquier nota, sobre
 un aviso que no se puede plegar.
 
-## v1076 — REG-194: «No pues sí» se leía como un no
+## v1082 — REG-200: «No pues sí» se leía como un no
 
 En el habla mexicana el «no» de arranque es una muletilla y lo que sigue es un sí
 rotundo: «¿Padece diabetes?» — «No pues sí, desde hace años». `NEGATIVAS` ancla
@@ -41,7 +41,7 @@ Lo que cuesta, declarado: sin acentos «sí» y «si» se confunden, así que «
 yo nunca he tenido nada» deja de contar como negación. Se pierde un aviso, que es
 el sesgo del módulo; al revés se fabricaría el negativo.
 
-## v1075 — REG-193: el lado del dictado leía la negación como se escribe
+## v1081 — REG-199: el lado del dictado leía la negación como se escribe
 
 v1074 reparó la NOTA. El DICTADO se quedó como estaba, y ahí «pues no», «fíjese
 que no» y «que yo sepa, no» no contaban como negación — hasta la coma rompía la
