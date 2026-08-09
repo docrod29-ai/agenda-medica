@@ -61,3 +61,8 @@ synthetic-data/dialogos-consulta/salida/TURNOS/
 synthetic-data/dialogos-consulta/salida/DIARIZACION/
 synthetic-data/dialogos-consulta/salida/*.txt
 synthetic-data/dialogos-consulta/salida/silencio.mp3
+
+# Logs de los emuladores de Firebase (artefacto de ejecución del arnés V10)
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
