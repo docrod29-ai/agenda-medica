@@ -27,6 +27,7 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | # | Decisión | Recomendación | Bloqueado | Sigue sin ella |
 |---|---|---|---|---|
 | E-1 | ¿Se pueden reinyectar transcripciones de producción **desidentificadas** al corpus? | **No, por omisión.** La voz es biométrica | El número «de verdad» de consulta real | El corpus actuado ya mide atribución de rol |
+| E-2 | Corpus **oro** del motor de temporalidad (EVAL-002): ¿quién etiqueta? | **Usted, sobre frases sintéticas.** Que el agente escriba más casos no arregla nada: la queja del ítem es justo que los casos los escribió el agente, y un oro etiquetado por quien escribió el motor mide su propia opinión | Saber si la defensa protege o estorba | El motor corre y declara la duda; sus casos actuales siguen sellados |
 
 ## COMERCIALES
 
