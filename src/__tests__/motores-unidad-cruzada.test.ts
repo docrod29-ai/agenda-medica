@@ -111,7 +111,7 @@ describe('E0-05 · equivalencia numérica congelada (motor pre-migración)', () 
   ]
 
   /**
-   * REG-214: la columna de CrCl son ENTEROS porque el motor pre-migración
+   * REG-268: la columna de CrCl son ENTEROS porque el motor pre-migración
    * redondeaba dentro. Ese redondeo se movió a la capa de presentación —comparar
    * contra los umbrales con el valor ya redondeado borraba las alertas del borde—
    * así que aquí se redondea AL LEER. Ni uno de los 18 valores congelados cambió.

@@ -7,7 +7,7 @@ import {
 import { mgPorDl, kg, cantidad, valorEn } from '@/types/clinical-quantity'
 
 /**
- * REG-214 — EL REDONDEO DEL MOTOR SE COMÍA LAS ALERTAS RENALES DEL BORDE
+ * REG-268 — EL REDONDEO DEL MOTOR SE COMÍA LAS ALERTAS RENALES DEL BORDE
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -66,7 +66,7 @@ const ANCIANO_EN_EL_BORDE = { creatinina: 1.8, edad: 80, sexo: 'Masculino' as co
 const depDe = (p: typeof ANCIANO_EN_EL_BORDE) =>
   evaluarFuncionRenal(mgPorDl(p.creatinina), p.edad, p.sexo, kg(p.peso))
 
-describe('REG-214 · el caso que lo destapó', () => {
+describe('REG-268 · el caso que lo destapó', () => {
   it('CrCl 29.63 (no 30): el motor ya no redondea', () => {
     const crcl = valorEn(cockcroftGault(mgPorDl(1.8), 80, 'Masculino', kg(64)), 'mL/min')
     expect(crcl).toBeCloseTo(29.63, 2)
@@ -93,7 +93,7 @@ describe('REG-214 · el caso que lo destapó', () => {
   })
 })
 
-describe('REG-214 · la ventana ciega, umbral por umbral', () => {
+describe('REG-268 · la ventana ciega, umbral por umbral', () => {
   /**
    * Un fármaco por cada umbral distinto de REGLAS_RENALES. El valor de prueba es
    * `umbral − 0.4`: por debajo del umbral de verdad, pero redondeaba hacia arriba
@@ -135,7 +135,7 @@ describe('REG-214 · la ventana ciega, umbral por umbral', () => {
   })
 })
 
-describe('REG-214 · el redondeo llega a la pantalla', () => {
+describe('REG-268 · el redondeo llega a la pantalla', () => {
   /**
    * «El dato tiene que LLEGAR»: quitar el Math.round del motor sin ponerlo donde
    * se pinta dejaría al médico leyendo «CrCl 29.629629629629626 mL/min» en la

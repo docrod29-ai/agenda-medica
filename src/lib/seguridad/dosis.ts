@@ -377,8 +377,21 @@ const RE_VOLUMEN = /\d\s*(ml|mililitros?|l|litros?|c\.?\s?c\.?|cc|gotas?|gts)\b/
  * Formas farmacéuticas y unidades biológicas: «1 tableta» no es ambiguo — la
  * presentación lleva la dosis y quien dispensa sabe cuál es.
  */
-const RE_FORMA = /\d\s*(tabletas?|tabs?|comprimidos?|caps?|c[áa]psulas?|grageas?|[áa]mpulas?|ampolletas?|frascos?|sobres?|sachets?|supositorios?|[óo]vulos?|parches?|puffs?|disparos?|inhalaci[óo]n(?:es)?|aplicaci[óo]n(?:es)?|nebulizaci[óo]n(?:es)?|u\.?i\.?|ui|unidades?|meq|mmol)\b/i
+const RE_FORMA = /\d\s*(tabletas?|tabs?|comprimidos?|caps?|c[áa]psulas?|grageas?|[áa]mpulas?|ampolletas?|frascos?|sobres?|sachets?|supositorios?|[óo]vulos?|parches?|puffs?|disparos?|inhalaci[óo]n(?:es)?|aplicaci[óo]n(?:es)?|nebulizaci[óo]n(?:es)?|u\.?i\.?|ui|unidades?|u|meq|mmol)\b/i
 /**
+ * ── LA «U» SUELTA: INSULINA Y HEPARINA (REG-247) ────────────────────────────
+ *
+ * La lista tenía `ui` y `u.i.` pero NO la `u` sola. Medido: «2 U/h» —una
+ * infusión de insulina, exactamente como se dicta en terapia intensiva— salía
+ * como **«dosis sin unidad»**.
+ *
+ * Un aviso falso sobre una insulina es de los peores que puede dar este sistema:
+ * es un fármaco de alto riesgo, y enseñar a ignorar su aviso es enseñar a
+ * ignorarlo el día que el aviso sea verdadero.
+ *
+ * `u` va DESPUÉS de `ui` y `unidades` a propósito: en una alternancia gana la
+ * primera que casa, y si `u` fuera antes se comería la «u» de «ui».
+ *
  * El porcentaje va aparte y SIN `\b`.
  *
  * `%` no es un carácter de palabra, así que un límite de palabra detrás de él

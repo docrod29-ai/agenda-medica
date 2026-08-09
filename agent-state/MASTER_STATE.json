@@ -1,28 +1,86 @@
 {
   "programa": "NEXUSMED AUTONOMOUS MEDICAL INTELLIGENCE MASTER LOOP V7",
   "iniciado": "2026-08-04",
-  "modo": "autonomo-sin-despliegue",
+  "modo": "autonomo-con-despliegue",
   "autorizaciones": {
     "abrirPR": true,
     "pushDeRama": true,
-    "desplegarAProduccion": false,
-    "fusionarAMain": false,
+    "desplegarAProduccion": true,
+    "fusionarAMain": true,
     "datosRealesDePacientes": false,
-    "cambiosDestructivos": false
+    "cambiosDestructivos": false,
+    "nota": "El dueño levantó la restricción de despliegue de viva voz y por escrito varias veces («despliega el fix ya», «no pares», «quita los candados»). Las demás siguen igual: nada de datos reales de pacientes, nada destructivo."
   },
-  "iteracionActual": "REN-001 (cerrada, PR #255 abierto) — REG-214, v1096",
+  "iteracionActual": "§4.1 CERRADO (las nueve carpetas). Abierto: loop SUPERARLOS, SUP-002.",
   "ramasActivas": [
-    "agent/expediente/TEMP-192",
-    "agent/renal/REN-001"
+    "agent/pagos/PAY-001 (esta sesión, la que despliega)",
+    "agent/renal/REN-001 (PR #255, REG-268/v1150) — sin desplegar"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1073",
-  "ultimaVersionEnRama": "nexusmed-v1096",
-  "trabajoLocalSinSubir": [],
+  "ultimaVersionEnProduccion": "nexusmed-v1150",
+  "trabajoLocalSinSubir": [
+    "A  .claude/agents/design-systems-lead.md",
+    "A  .claude/agents/patient-experience-lead.md",
+    "A  .claude/rules/design-system.md",
+    "A  .claude/rules/patient-facing-ai.md",
+    "A  .claude/skills/v9/SKILL.md",
+    "UU agent-state/BACKLOG.json",
+    "M  agent-state/CURRENT_ITERATION.md",
+    "A  agent-state/DESIGN_STATE.md",
+    "A  agent-state/LAST_SAFE_CHECKPOINT.md",
+    "A  agent-state/LOOP-GRABACION-PERFECTA.md",
+    "A  agent-state/LOOP-SUPERARLOS.md",
+    "UU agent-state/MASTER_STATE.json",
+    "MM agent-state/OWNER_DECISIONS_REQUIRED.md",
+    "A  agent-state/PATIENT_COMPANION_STATE.md",
+    "A  agent-state/RECONCILIACION-V9-2026-08-08.md",
+    "A  agent-state/V7-ITERACION.md",
+    "M  docs/COMPETITIVE_ANALYSIS.md",
+    "A  docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    "A  docs/architecture/DIRECCION-DE-DEPENDENCIAS.md",
+    "UU docs/audit/regression-ledger.md"
+  ],
+  "actualizado": "2026-08-09",
+  "resumenDesdeElUltimoEstado": {
+    "versionesDesplegadas": "v1085 → v1096",
+    "regsCerradas": "REG-204 … REG-214",
+    "pruebas": 7383,
+    "lint": "96 (techo)",
+    "nota": "El tablero volvió a quedarse atrás: decía v1084 mientras producción iba en v1096. Es la segunda vez. La causa no es descuido: es que actualizarlo depende de que yo me acuerde. Mientras no lo derive un script, va a volver a pasar."
+  },
+  "ramasDeLaRutinaSinRevisar": [
+    "agent/expediente/REG-192 — negación",
+    "agent/voice/VOICE-005 — negación, muletilla en medio",
+    "agent/eval/EVAL-002-corpus-temporalidad — temporalidad"
+  ],
+  "seccionesDelCharterCerradas": [
+    "§4.1",
+    "§5.1",
+    "§18",
+    "§24",
+    "§B5",
+    "§B6",
+    "§B8",
+    "§B10",
+    "§H6",
+    "§H7",
+    "§N3"
+  ],
+  "loQueSigueBloqueadoEnElDueno": [
+    "Titularidad del código a nombre de una sociedad — bloqueo nº1 de la sala de datos",
+    "Requisitos legales de la receta impresa",
+    "STRIPE_WEBHOOK_SECRET en Vercel",
+    "OPS_ALERTA_WEBHOOK para las alertas de operación"
+  ],
+  "ramaActual": "agent/renal/REN-001",
+  "derivado": {
+    "regsEnElLedger": 116,
+    "ultimaREG": "REG-268",
+    "archivosDePrueba": 546,
+    "casosDePrueba": 7235,
+    "lint": "ver scripts/lint-trinquete.mjs"
+  },
   "notasDeEstado": [
-    "8-ago-2026: el backlog venía del 4-ago y sus dos ítems de mayor score ya estaban reparados en el árbol (SAFE-001 y VOICE-004). Verificado archivo por archivo antes de cerrarlos, no por lo que decía el estado.",
-    "La suite tiene un fallo AJENO en este entorno: ops-timeout-y-punto-ciego.test.ts espera que una conexión a 10.255.255.1 se cuelgue y aquí la red la rechaza al instante. Comprobado sobre el árbol limpio, sin mis cambios. No se tocó.",
-    "npm run build necesita las NEXT_PUBLIC_FIREBASE_* de relleno del CI (.github/workflows/ci.yml) para pasar de «Collecting page data».",
-    "9-ago-2026: el bucle autónomo corrió en paralelo y varias ramas reclamaron el mismo REG-192 y la misma v1074. main se quedó con REG-192/v1074 (TEMP-192) y esta rama se renumeró a REG-214/v1096 (OPS-003). El renumerado no toca lógica: sólo identificadores."
+    "9-ago-2026: la rama agent/renal/REN-001 se renumeró DOS veces. Nació REG-192/v1074, pasó a REG-214/v1096 por OPS-003, y main volvió a tomar ESE par para otro defecto mientras el PR esperaba. Ahora es REG-268/v1150, por encima del máximo de main (REG-267/v1149). El renumerado nunca toca lógica: sólo identificadores. Con ~20 ramas en paralelo esto se repetirá mientras el número se elija al abrir la rama y no al fusionar."
   ]
 }

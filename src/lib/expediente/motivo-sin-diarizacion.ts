@@ -15,4 +15,12 @@ export const MOTIVO_SIN_DIARIZACION: Record<string, string> = {
   tiempo_agotado: 'El servicio tardó más de lo previsto para este audio; puedes volver a procesar.',
   red: 'Se perdió la conexión mientras se transcribía.',
   sin_texto: 'El servicio no devolvió texto (¿audio en silencio?).',
+  /**
+   * Los dos de abajo nacieron de REG-225: el `catch` decía «tiempo agotado»
+   * pasara lo que pasara, y lo que pasaba era un permiso denegado de Storage
+   * en el primer segundo. El médico leía «se agotó el tiempo» y buscaba el
+   * problema en su internet.
+   */
+  sin_permiso_de_lectura: 'El audio se guardó pero no se pudo leer para separarlo por voces (permiso del almacenamiento). Avisa a soporte: no es tu conexión.',
+  no_se_pudo_subir: 'No se pudo subir el audio para separarlo por voces; se transcribió por partes.',
 }
