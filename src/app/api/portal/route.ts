@@ -20,7 +20,7 @@ import type { NotaMedica } from '@/types/expediente'
  * POST con { action, token, ... }. El token (HMAC) ata la sesión a UN paciente
  * de UNA clínica; toda lectura/escritura se filtra por ese patientId.
  *
- * Acciones: session | confirmar | cancelar | slots | reagendar | formulario | documentos
+ * Acciones: session | confirmar | cancelar | slots | reagendar | formulario | documentos | instrucciones
  */
 
 const MIN_HORAS_DEFECTO = 24
@@ -616,6 +616,50 @@ export async function POST(req: NextRequest) {
           }))
           .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
         return NextResponse.json({ documentos: docs })
+      }
+
+      case 'instrucciones': {
+        /**
+         * LO QUE SE LLEVA EL PACIENTE, ENTREGADO (POSTVISIT-ENTREGA-001).
+         *
+         * `HojaParaElPaciente`/`comoSeLoExplico` existían desde REG-242, se
+         * componían bien y no llegaban a ninguna parte que el paciente
+         * pudiera abrir: sólo se pintaban en la pantalla del médico. «Escrito,
+         * probado y sin conectar» en su forma más cara — la pieza mejor
+         * pensada del lado del paciente.
+         *
+         * Mismo gate que `documentos` y por la misma razón: esto es secreto
+         * médico (medicamentos, estudios de una nota firmada).
+         *
+         * Sólo la nota FIRMADA más reciente, y nunca una de hospitalización
+         * — REG-293 exige `notaFirmada` como precondición, no como intención,
+         * y la hoja de internamiento no aplica: nadie se lleva a casa un
+         * fármaco intravenoso de UCI.
+         */
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Pide a tu médico el acceso a tus instrucciones.' },
+            { status: 403 },
+          )
+        }
+        const snap = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('notas')
+          .where('estado', '==', 'firmada')
+          .get()
+        const nota = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as Omit<NotaMedica, 'id'>) }))
+          .filter(n => !n.internamientoId)
+          .sort((a, b) => String(b.fechaConsulta).localeCompare(String(a.fechaConsulta)))[0]
+        if (!nota) return NextResponse.json({ instrucciones: null })
+        return NextResponse.json({
+          instrucciones: {
+            medicamentos: nota.medicamentos ?? [],
+            estudios: nota.estudiosOrden ?? [],
+            fecha: nota.fechaConsulta,
+          },
+        })
       }
 
       default:

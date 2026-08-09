@@ -393,7 +393,9 @@
       "porQueImporta": "El contenido está resuelto y bien —determinista, sin modelo, se niega a inventar— y el producto no lo entrega. Es «escrito, probado y sin conectar» en su forma más cara: la pieza mejor pensada del lado del paciente.",
       "archivo": "src/components/HojaParaElPaciente.tsx:45-51,86 · consulta:5108",
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
-      "score": 60
+      "score": 60,
+      "estado": "CERRADO (REG-296)",
+      "cierre": "REG-296. Acción `instrucciones` en /api/portal, con el mismo gate de alcance clínico que `documentos`; sólo lee notas firmadas y excluye las de internamiento. `/mi/[token]` la pinta con `<HojaParaElPaciente notaFirmada />` fijo, porque el servidor sólo entrega lo ya firmado. NO arregla `proximaCita` (fuera de alcance, hallazgo previo sin REG propio). NO es el `PatientVisitPackage` completo de V9."
     },
     {
       "seguridad": 0,
@@ -569,7 +571,7 @@
       "score": 24
     }
   ],
-  "actualizado": "2026-08-08",
+  "actualizado": "2026-08-09",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"

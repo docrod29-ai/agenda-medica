@@ -11,9 +11,11 @@
 > **criterio**, y el criterio no sale de un `grep`.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Rama de esta corrida**: `claude/clever-lamport-3fkemu` (la rutina en la nube
-asigna la rama; `agent/v7/master-loop` sigue siendo la rama larga de V7 y está
-fusionada en `main` hasta `0144257c`)
+**Rama de esta corrida**: `claude/clever-lamport-xv6ul4` — continúa
+`claude/clever-lamport-3fkemu` (mismo linaje, sin fusionar cuando esta corrida
+empezó: se recuperó por fast-forward en vez de reconstruir REG-291/293 desde
+cero). `agent/v7/master-loop` sigue siendo la rama larga de V7 y está
+fusionada en `main` hasta `0144257c`.
 
 ---
 
@@ -49,11 +51,11 @@ elegido 291.
 **Siguiente por el algoritmo §7** (los tres P0 de audio ya están cerrados por V9
 en v1158/v1161 — **no se rehacen**):
 
-1. `POSTVISIT-ENTREGA-001` (60) — la hoja no llega nunca al paciente: dos
-   botones, portapapeles e impresora, y nada en `/mi/[token]` ni en
-   `/api/portal`. Es la continuación natural de REG-293, y **ahí la compuerta
-   tendrá que vivir en el servidor**, no en el componente (§3 de
-   `patient-facing-ai.md`).
+1. ~~`POSTVISIT-ENTREGA-001` (60)~~ → **CERRADO, REG-296** (ver «Esta corrida»
+   arriba). La hoja no llegaba nunca al paciente: dos botones, portapapeles e
+   impresora, y nada en `/mi/[token]` ni en `/api/portal`. Continuación
+   natural de REG-293; la compuerta vive en el servidor, no en el componente
+   (§3 de `patient-facing-ai.md`).
 2. `PATIENT-TELE-002` (55) — el enlace de videoconsulta que viaja por WhatsApp
    sigue sin token (REG-265 sólo cerró el camino del portal).
 3. `DESIGN-THEME-001` (52) — **de V9**: comprobar antes de tocarlo.
@@ -81,6 +83,19 @@ que ya existían y no corrían, defectos que certificaban falsedades en verde, y
 medidores que mentían por agregación.** Incluidos cuatro medidores míos.
 
 ---
+
+## Esta corrida (9-ago-2026, tras recuperar 3fkemu)
+
+**Sin desplegar** — CLAUDE.md prohíbe explícitamente `desplegar a producción`
+sin autorización explícita del dueño, y esta corrida no tiene forma de
+verificar en vivo la autorización que `MASTER_STATE.json`/esta misma nota
+afirman de sesiones previas. Se sigue `deployment-and-flags.md`: «autonomía
+hasta el PR, no más allá». Rama + commit + PR, sin tocar `public/sw.js` ni
+`version.txt` (bumped sólo tiene sentido junto a un despliegue real).
+
+| REG | Qué |
+|---|---|
+| REG-296 | **POSTVISIT-ENTREGA-001** — la hoja del paciente (REG-242/293) nunca llegaba a `/mi/[token]`: sólo se pintaba en la pantalla del médico. Acción `instrucciones` en `/api/portal` con el mismo gate de alcance clínico que `documentos`; sólo entrega notas FIRMADAS y excluye las de internamiento — los dos filtros viven en el servidor, no en la pantalla (`patient-facing-ai.md` §3) |
 
 ## Desplegado y verificado en vivo (v1120 → v1144)
 

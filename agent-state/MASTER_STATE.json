@@ -18,16 +18,18 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/MASTER_STATE.json",
+    " M agent-state/V7-ITERACION.md",
+    " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
     " M docs/design/SCREEN_INVENTORY.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/components/HojaParaElPaciente.tsx",
+    " M src/app/api/portal/route.ts",
+    " M src/app/mi/[token]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/paciente/como-se-lo-explico.ts",
-    "?? src/__tests__/la-hoja-del-paciente-no-sale-sin-firma.test.ts"
+    "?? src/__tests__/hoja-del-paciente-llega-al-portal.test.ts"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -61,12 +63,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/clever-lamport-3fkemu",
+  "ramaActual": "claude/clever-lamport-xv6ul4",
   "derivado": {
-    "regsEnElLedger": 140,
-    "ultimaREG": "REG-293",
-    "archivosDePrueba": 570,
-    "casosDePrueba": 7483,
+    "regsEnElLedger": 141,
+    "ultimaREG": "REG-296",
+    "archivosDePrueba": 571,
+    "casosDePrueba": 7490,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

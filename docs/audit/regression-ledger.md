@@ -6546,3 +6546,81 @@ obligatoria · `npm run build` **compila**.
 
 `git revert` del commit. No hay migración ni dato escrito que deshacer: la
 compuerta es de presentación y el motor sigue siendo puro.
+
+## REG-296 — la hoja del paciente no llegaba a ninguna pantalla que el paciente pudiera abrir (V7 · POSTVISIT-ENTREGA-001)
+
+**Cómo se descubrió**: la auditoría `PATIENT-UX-TRUTH-001` de V9 (8-ago-2026) lo
+dejó anotado en `agent-state/BACKLOG.json` (score 60), condicionado a que
+`POSTVISIT-GATE-001` diera primero el estado RELEASED. REG-293 lo cerró y dejó
+escrito, en su propia sección «Qué NO cubre»: *«No cubre el portal del
+paciente: hoy la hoja no llega ahí por ningún camino. Cuando llegue, la
+compuerta tendrá que vivir en el servidor.»* Éste es ese REG.
+
+**El hecho**: `comoSeLoExplico`/`HojaParaElPaciente` existen desde REG-242 y se
+componían bien —cada línea sale de un campo que el médico ya revisó y
+firmó—, y desde REG-293 sólo se entregan con la nota firmada. Pero el único
+importador en producción era `consulta/[patientId]/page.tsx`: la pantalla del
+MÉDICO. El paciente —a quien está dirigida, en sus palabras— no tenía ninguna
+puerta para abrirla. «Escrito, probado y sin conectar» en su forma más cara:
+la pieza mejor pensada del lado del paciente.
+
+**Causa raíz**: la misma familia de siempre. El motor y el componente estaban
+completos; nadie los llamó desde `/mi/[token]`, que es la única pantalla que
+el paciente de verdad abre.
+
+**La regla que lo hace seguro**: `/api/portal` gana una acción `instrucciones`
+con el MISMO gate que `documentos` (`alcance !== 'clinico'` → 403, sin tocar
+Firestore) — es la misma clase de secreto médico. Y dos filtros que sólo viven
+en el servidor, porque `patient-facing-ai.md` §3 es explícita: la prohibición
+no puede vivir sólo en la pantalla.
+
+1. **Sólo notas `estado === 'firmada'`.** El cliente ya no manda ni recibe un
+   booleano `notaFirmada` que decidir: si el servidor la entrega, es porque
+   está firmada. `<HojaParaElPaciente notaFirmada />` en el portal es un
+   valor fijo, no una prop que alguien pueda desconectar.
+2. **Ninguna nota con `internamientoId`.** Es la misma regla que ya aplicaba
+   la pantalla de consulta (`!esNotaHospital`), reescrita en el servidor
+   porque el cliente no manda ese booleano: nadie se lleva a casa un fármaco
+   intravenoso de UCI compuesto para el portal de un paciente ambulatorio.
+
+Sin nota firmada que cumpla los dos filtros, la acción responde
+`instrucciones: null` — nunca una hoja vacía ni un borrador.
+
+### Qué NO cubre
+
+- **No arregla `proximaCita`.** La pantalla de consulta ya la pasaba fija en
+  `undefined` (hallazgo previo, sin REG propio): esta unidad no inventa ese
+  dato porque no estaba en su alcance, y el portal ya conoce las citas
+  próximas del paciente por otra vía (la lista de arriba en la misma
+  pantalla).
+- **No se ha abierto un navegador.** Sigue pendiente `NAV-NAVEGADOR-001`,
+  bloqueado por credenciales de Firebase en este contenedor (`npm run build`
+  compila TypeScript limpio y falla después, en la recolección de datos de
+  `/dr/[clinicId]` — una ruta sin relación, por `auth/invalid-api-key`; es la
+  misma limitación de entorno que ya declaraba ese ítem del backlog).
+- **No es el `PatientVisitPackage` completo de V9**: sigue sin `approvedAt`,
+  `approvedBy` ni `version`. Es la entrega de su cimiento, no el paquete.
+
+### Archivos
+
+- `src/app/api/portal/route.ts` — acción `instrucciones`
+- `src/app/mi/[token]/page.tsx` — la pinta con `<HojaParaElPaciente>`
+- `src/__tests__/hoja-del-paciente-llega-al-portal.test.ts` (nuevo, 7 casos)
+
+### Compuertas
+
+`npx vitest run` **8 496 pasan** (1 saltada) · 1 fallo **preexistente y de
+entorno** (`ops-timeout-y-punto-ciego`, el mismo de REG-293 y anteriores —
+IP no enrutable, falla distinto tras el proxy de este contenedor) ·
+`lint-trinquete` **96, el techo, sin deuda nueva** · `npx tsc --noEmit`
+**limpio** · `npm run build` compila TypeScript sin errores (falla después
+por falta de credenciales de Firebase en este contenedor — ver «Qué NO
+cubre»). Probado al revés: quitar el filtro `!n.internamientoId` hace que
+«una nota de INTERNAMIENTO nunca sale, aunque sea la más reciente» falle,
+devolviendo la nota de UCI en vez de la ambulatoria — confirmado antes de
+restaurar el filtro.
+
+### Rollback
+
+`git revert` del commit. No hay migración ni dato escrito que deshacer: la
+acción nueva sólo LEE notas ya firmadas: no crea, no muta, no borra.

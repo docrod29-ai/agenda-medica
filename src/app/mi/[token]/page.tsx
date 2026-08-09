@@ -10,6 +10,7 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
+import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -18,6 +19,13 @@ interface DocReceta {
   medico: string
   diagnostico: string
   medicamentos: Medicamento[]
+}
+
+/** Lo que devuelve la acción `instrucciones` — sólo de la nota FIRMADA más reciente. */
+interface Instrucciones {
+  medicamentos: Medicamento[]
+  estudios: string[]
+  fecha: string
 }
 
 const RECETA_CONFIG_DEFAULT = {
@@ -98,6 +106,7 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  const [instrucciones, setInstrucciones] = useState<Instrucciones | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -123,6 +132,12 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+      // Instrucciones (POSTVISIT-ENTREGA-001): mismo gate de alcance que documentos,
+      // así que un 403 aquí no es un error nuevo — es el mismo enlace sin alcance clínico.
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'instrucciones', token }) })
+        .then(res => (res.ok ? res.json() : { instrucciones: null }))
+        .then(d => setInstrucciones(d.instrucciones || null))
+        .catch(() => setInstrucciones(null))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -364,6 +379,21 @@ export default function MiPortalPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/*
+          LO QUE SE LLEVA EL PACIENTE (POSTVISIT-ENTREGA-001) — la hoja ya se
+          componía bien (REG-242/293) y no llegaba a ninguna pantalla que el
+          paciente pudiera abrir. `notaFirmada` va fijo en `true`: el servidor
+          sólo entrega instrucciones de una nota que YA está firmada — nunca
+          hay aquí una versión de borrador que mostrar.
+        */}
+        {instrucciones && (
+          <HojaParaElPaciente
+            medicamentos={instrucciones.medicamentos}
+            estudios={instrucciones.estudios}
+            notaFirmada
+          />
         )}
 
         {/* Pasadas */}

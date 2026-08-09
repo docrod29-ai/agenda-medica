@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 7-ago-2026.
-**Fuente**: los 112 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
+**Fuente**: los 141 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -39,8 +39,10 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 140, y el 7-ago-2026 volvió a ser la
-familia más grande.**
+**«Escrito, probado y sin conectar» — 35 de 141.** Sigue siendo la familia más
+grande; el 9-ago-2026 sumó REG-296 (`POSTVISIT-ENTREGA-001`): la hoja del
+paciente estaba compuesta, probada y bien desde REG-242/293, y no llegaba a
+ninguna pantalla que el paciente pudiera abrir — el mismo patrón, otra vez.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el

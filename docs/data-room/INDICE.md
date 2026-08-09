@@ -112,9 +112,9 @@ rotación de credenciales.
 | | |
 |---|---|
 | Registro de peligros (§18) | `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` — **10 peligros**, ninguno hipotético |
-| Registro de regresiones | `docs/audit/regression-ledger.md` — **140 REG** con causa raíz |
-| Invariantes sellados | **309 archivos, 4462 casos** que no pueden encoger |
-| Suite completa | **8489 pruebas** en verde, en CI |
+| Registro de regresiones | `docs/audit/regression-ledger.md` — **141 REG** con causa raíz |
+| Invariantes sellados | **310 archivos, 4469 casos** que no pueden encoger |
+| Suite completa | **8496 pruebas** en verde, en CI |
 
 ⬜ **Lo que NO hay**: estudio de validación clínica con pacientes reales,
 comité de ética, ni aprobación regulatoria. **Ninguna de las diez casillas de
@@ -164,10 +164,10 @@ producto.
 
 ## 8 · Historial de incidentes
 
-✅ El `regression-ledger` **es** el historial: 140 defectos con su causa raíz, su
+✅ El `regression-ledger` **es** el historial: 141 defectos con su causa raíz, su
 reparación y su prueba de regresión permanente.
 
-**Es un activo, no un pasivo.** Un comprador que ve 140 defectos documentados con
+**Es un activo, no un pasivo.** Un comprador que ve 141 defectos documentados con
 su causa raíz aprende más del rigor del equipo que uno que ve una lista vacía —
 que sólo significa que nadie los estaba buscando.
 
@@ -175,7 +175,7 @@ que sólo significa que nadie los estaba buscando.
 
 ## Resumen honesto para una diligencia debida
 
-**Fuerte**: seguridad documentada, aislamiento probado en CI, 8489 pruebas,
+**Fuerte**: seguridad documentada, aislamiento probado en CI, 8496 pruebas,
 métricas de IA reales y reproducibles, historial de defectos con causa raíz,
 licencias limpias.
 
