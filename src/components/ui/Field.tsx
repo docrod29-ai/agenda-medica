@@ -23,10 +23,21 @@ export function Field({ label, hint, error, required, htmlFor, children }: Field
         </label>
       )}
       {children}
+      {/**
+        * 11,5px ERA EL TEXTO MÁS PEQUEÑO DE LA APLICACIÓN, Y DICE «la dosis está mal».
+        *
+        * Este es el mensaje de error bajo un campo — el de la dosis incluida— y el
+        * texto de ayuda que explica qué se espera. Estaba medio píxel por debajo
+        * del paso más pequeño que el sistema nombra para texto corrido, y medio
+        * píxel no lo decidió nadie: es lo que queda al ajustar a ojo.
+        *
+        * Sube a `--fs-caption` (12px), que es el paso declarado para etiquetas y
+        * metadatos. Cambio de medio píxel hacia arriba: sólo puede leerse mejor.
+        */}
       {error ? (
-        <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 4 }}>{error}</div>
+        <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--red)', marginTop: 4 }}>{error}</div>
       ) : hint ? (
-        <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>{hint}</div>
+        <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text3)', marginTop: 4 }}>{hint}</div>
       ) : null}
     </div>
   )

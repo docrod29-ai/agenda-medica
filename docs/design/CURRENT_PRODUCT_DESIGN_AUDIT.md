@@ -90,6 +90,13 @@ El orden de la directiva se respeta, con dos ajustes que salen de la evidencia:
    (`globals.css:126-131`), así que no hay utilidades que usar y el 88,5 % de los
    archivos cae al estilo en línea. Ensanchar esa exposición es la causa raíz.
 
+   **Hecho el 9-ago-2026**: `@theme inline` expone 30 tokens (color, radio,
+   tipografía, elevación) con prefijo `nx-`; espacio, radio y escala tipográfica
+   pasan de prosa a token; y la deuda queda congelada en **1 865** por
+   `scripts/design/trinquete-de-diseno.mjs`, que además **falla si un archivo
+   nuevo nace con deuda**. La adopción sigue abierta — es
+   `VISUAL-EXCELLENCE-001`, no esta unidad.
+
 Y una confirmación que ahorra trabajo: **«Resultados» no es una navegación.**
 `PanelLaboratorios` se monta dentro de la consulta y del expediente, así que esa
 pata del ciclo de la directiva ya no cuesta nada. La que cuesta es la de la

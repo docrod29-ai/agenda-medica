@@ -50,26 +50,70 @@ Una pantalla no debe tener cobalto en 5 lugares sin razón.
 - **Display / editorial:** Fraunces — SOLO para momentos (hero, citas), nunca en chrome de app.
 - **Números clínicos:** `font-variant-numeric: tabular-nums` siempre (dosis, signos, métricas).
 
-**Escala (utilidades en globals.css):**
+**Escala — ocho pasos** (V9 · `DESIGN-SYSTEM-001`, 9-ago-2026):
 
-| Clase | Tamaño / peso / tracking | Uso |
-|---|---|---|
-| `.t-display` | 28px / 600 / -0.03em | Hero, momentos |
-| `.t-h1` | 20px / 600 / -0.02em | Título de página |
-| `.t-h2` | 16px / 600 / -0.01em | Sección |
-| `.t-body` | 14px / 400 | Texto base |
-| `.t-caption` | 12px / 500 | Etiquetas, metadatos |
-| `.t-overline` | 10.5px / 600 / 0.06em / uppercase | Encabezado de grupo |
+| Token | Clase | Tamaño / peso / tracking | Uso |
+|---|---|---|---|
+| `--fs-display` | `.t-display` | 28px / 600 / -0.03em | Hero, momentos |
+| `--fs-h1` | `.t-h1` | 20px / 600 / -0.02em | Título de página |
+| `--fs-h2` | `.t-h2` | 16px / 600 / -0.01em | Sección |
+| `--fs-body` | `.t-body` | 14px / 400 | Texto base |
+| `--fs-dense` | — | 13px | Fila de tabla, chrome denso |
+| `--fs-caption` | `.t-caption` | 12px / 500 | Etiquetas, metadatos |
+| `--fs-micro` | — | 11px | Sellos, contadores |
+| `--fs-overline` | `.t-overline` | 10.5px / 600 / 0.06em / uppercase | Encabezado de grupo |
+
+**Por qué ocho y no seis.** La escala declaraba seis y la aplicación usaba otra cosa: la
+auditoría de V9 midió ~3 000 `fontSize` en línea con ~60 valores distintos, y de los cuatro
+más frecuentes —13 (538 usos), 12,5 (466), 12 (424), 11 (295)— **dos no estaban en la
+escala**. Una escala que la aplicación no usa no es una escala: es un deseo. Se absorben los
+dos pasos enteros que faltaban (13 y 11) y se rechazan los medios píxeles.
+
+**Los medios píxeles (12,5 · 13,5 · 11,5 · 14,5) están prohibidos.** No los decidió nadie:
+son lo que queda al copiar un bloque y ajustarlo a ojo. Y no sobreviven al redondeo del
+navegador con el zoom del sistema al 110 % — la configuración del médico cansado.
 
 ---
 
 ## 4. Espacio, radio, elevación
 
-- **Espacio:** múltiplos de 4 (4, 8, 12, 16, 24, 32). Densidad: paddings de fila 12-13px.
-- **Radio:** `6` (controles), `10` (cards), `14` (modales). Nada de radios aleatorios.
-- **Elevación:** plana por defecto. Sombra SOLO en overlays (dropdown/modal). Nada de
-  sombras decorativas en cards.
+Desde V9 · `DESIGN-SYSTEM-001` todo esto es **token**, no prosa. Un valor que sólo vive en
+un documento no lo puede usar nadie: hay que acordarse de él.
+
+- **Espacio:** `--sp-1`…`--sp-7` = 4 · 8 · 12 · 16 · 24 · 32 · 48. Densidad de fila: `--sp-3`.
+- **Radio:** `--r-control` 6 · `--r-card` 10 · `--r-modal` 14 · `--r-pill` · `--r-circulo`.
+  Nada de radios aleatorios, y **nunca `9999` crudo**: para eso está `--r-pill`.
+- **Elevación:** plana por defecto. `--sh-overlay` (desplegables) y `--sh-modal` (lo que
+  bloquea la página). No hay una tercera. Nada de sombras decorativas en cards.
 - **Bordes:** 1px `--border`. El borde define superficie, no la sombra.
+
+---
+
+## 4b. Lo que Tailwind ve — y por qué importa
+
+Hasta V9, `@theme inline` exponía **cuatro** valores. Todo el sistema vivía en variables CSS
+que Tailwind no mira, así que no existía `bg-nx-s2` ni `text-nx-caption` y **el código no
+tenía alternativa al `style={{ … }}`**: 6 065 estilos en línea en 177 de 200 archivos. No era
+dejadez, era mecánica.
+
+Hoy el bloque `@theme inline` de `globals.css` expone el sistema con prefijo `nx-`:
+
+| Familia | Utilidades | Ejemplo |
+|---|---|---|
+| Color | `bg-nx-*` `text-nx-*` `border-nx-*` | `bg-nx-s2`, `text-nx-text3`, `border-nx-border` |
+| Radio | `rounded-nx-*` | `rounded-nx-card` |
+| Tipo | `text-nx-*` | `text-nx-caption` |
+| Sombra | `shadow-nx-*` | `shadow-nx-modal` |
+
+El prefijo separa lo nuestro de la paleta de Tailwind y deja ver en el `className` que el
+valor sigue al tema: `bg-nx-s2` cambia en modo claro, `bg-[#131518]` no.
+
+**Compuerta:** `node scripts/design/trinquete-de-diseno.mjs` cuenta los valores fuera del
+sistema (hexadecimales a mano, tamaños fuera de la escala, radios fuera de la escala) en
+`src/app/` y `src/components/`. La deuda **sólo baja**, y **un archivo nuevo con deuda falla
+siempre** — lo nuevo nace con el sistema; lo viejo se limpia por barrido, no por sorpresa.
+Techo en `docs/design/diseno-techo.json`. Lo sella
+`src/__tests__/el-diseno-tiene-trinquete.test.ts`.
 
 ---
 

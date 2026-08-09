@@ -42,7 +42,30 @@ import { join } from 'node:path'
 /** Techos actuales. BAJARLOS al migrar; subirlos es introducir deuda. */
 const TECHO_TAMANOS = 38
 const TECHO_ESPACIADOS = 37
-const TECHO_RADIOS = 24
+/**
+ * 23, y bajó de 24 SIN migrar una sola pantalla — porque este guardián estaba
+ * contando mal.
+ *
+ * ── ESTE TRINQUETE PENALIZABA LA ADOPCIÓN DEL SISTEMA ────────────────────────
+ *
+ * `contar()` mete en el mismo saco los literales y las referencias a token, así
+ * que `var(--r-card)` sumaba variedad exactamente igual que un `borderRadius:
+ * 17` inventado. El día que `DESIGN-SYSTEM-001` declaró `--r-control` y
+ * `--r-card` y los adoptó en los primitivos compartidos, **la cifra subió a 26 y
+ * la prueba se puso roja por hacer lo correcto**.
+ *
+ * Se descubrió así, y no antes, porque hasta ese día sólo existía un token de
+ * radio (`--r-pill`): con uno, el error costaba +1 y pasaba por debajo del techo.
+ *
+ * Un guardián que se pone rojo cuando el código mejora enseña a no mejorarlo — y
+ * lo enseña rápido, porque la salida más barata siempre es subir el techo. Es la
+ * misma familia que el guardián de pautas que gritaba en toda la UCI (REG-245):
+ * un medidor que grita de más acaba ignorado.
+ *
+ * Ahora la variedad cuenta **valores literales**: un token no es un número que
+ * haya que recordar, es la forma de no tener que recordarlo.
+ */
+const TECHO_RADIOS = 23
 
 /**
  * Las cinco formas de escribir «píldora». Ya no debe quedar ninguna: existe
@@ -74,10 +97,18 @@ const sinComentarios = (s: string) =>
 
 const ARCHIVOS = fuentes('src')
 
+/**
+ * Cuenta VARIEDAD de valores literales.
+ *
+ * `var(--…)` no entra: usar un token es lo contrario de inventar un número, y
+ * contarlo como variedad convertía la adopción del sistema en deuda. Ver la
+ * nota de `TECHO_RADIOS`.
+ */
 function contar(patron: RegExp): Map<string, number> {
   const m = new Map<string, number>()
   for (const p of ARCHIVOS) {
     for (const x of sinComentarios(readFileSync(p, 'utf8')).matchAll(patron)) {
+      if (x[1].includes('var(')) continue
       m.set(x[1], (m.get(x[1]) ?? 0) + 1)
     }
   }
@@ -127,6 +158,15 @@ describe('radio', () => {
   it(`no hay más de ${TECHO_RADIOS} radios distintos`, () => {
     const lista = sueltos(rad).map(([v, n]) => `${v}(${n})`).join(' ')
     expect(rad.size, `sueltos: ${lista}`).toBeLessThanOrEqual(TECHO_RADIOS)
+  })
+
+  it('un token NO cuenta como variedad (probado al revés)', () => {
+    /**
+     * Con el conteo anterior esta lista traía `var(--r-pill)`, `var(--r-card)` y
+     * `var(--r-control)`: adoptar el sistema subía la cifra que el trinquete
+     * existe para bajar. Es la prueba que falla sin el arreglo.
+     */
+    expect([...rad.keys()].filter(v => v.includes('var('))).toEqual([])
   })
 
   it('LA PÍLDORA SE ESCRIBE DE UNA SOLA FORMA', () => {

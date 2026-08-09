@@ -18,20 +18,26 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1163",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
+    "M agent-state/BACKLOG.json",
+    " M agent-state/CURRENT_ITERATION.md",
+    " M agent-state/DESIGN_STATE.md",
+    " M agent-state/LAST_SAFE_CHECKPOINT.md",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/DESIGN_SYSTEM.md",
+    " M docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/components/Sidebar.tsx",
+    " M src/__tests__/escala-visual-trinquete.test.ts",
+    " M src/app/globals.css",
+    " M src/components/ui/Field.tsx",
+    " M src/components/ui/Skeleton.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/security/rutas-privadas.ts",
-    " M src/lib/seguridad/dosis.ts",
-    "?? src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-    "?? src/app/(dashboard)/motores/",
-    "?? src/components/motores/"
+    "?? docs/design/diseno-techo.json",
+    "?? scripts/design/trinquete-de-diseno.mjs",
+    "?? src/__tests__/el-diseno-tiene-trinquete.test.ts"
   ],
   "actualizado": "2026-08-08",
   "resumenDesdeElUltimoEstado": {
@@ -65,12 +71,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "agent/v7/master-loop",
+  "ramaActual": "claude/relaxed-fermi-5njokt",
   "derivado": {
-    "regsEnElLedger": 138,
-    "ultimaREG": "REG-290",
-    "archivosDePrueba": 566,
-    "casosDePrueba": 7460,
+    "regsEnElLedger": 139,
+    "ultimaREG": "REG-291",
+    "archivosDePrueba": 567,
+    "casosDePrueba": 7473,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

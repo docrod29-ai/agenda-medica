@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 32 de 138, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 32 de 139, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -64,7 +64,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 23 de 138.**
+**«El sistema se contradice a sí mismo» — 23 de 139.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -104,12 +104,33 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 20 de 138**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 20 de 139**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.
+
+## La familia que se abrió el 9-ago-2026
+
+**«El medidor castiga la mejora» — 1** (REG-291), y merece su nombre propio
+aunque hoy tenga un solo caso.
+
+No es «nadie lo estaba midiendo»: el instrumento **existe y corre en cada CI**.
+Es peor. `escala-visual-trinquete` cuenta cuántos valores distintos hay que
+recordar, y metía en el mismo saco `borderRadius: 17` —un número inventado— y
+`borderRadius: 'var(--r-card)'` —un token del sistema—. El día que
+`DESIGN-SYSTEM-001` declaró dos tokens de radio nuevos y los adoptó, **la prueba
+se puso roja por hacer exactamente lo que ella misma pide**.
+
+Se reconoce por dos señales: la prueba falla en el commit que hace lo correcto, y
+el arreglo aparente —subir el techo— deja el incentivo invertido para siempre.
+Hasta que alguien mira el criterio, la lección que aprende el equipo es «no
+adoptes el sistema».
+
+No se había visto antes porque sólo existía un token de radio: con uno, el error
+costaba +1 y cabía bajo el techo. **Hacía falta que el sistema creciera para que
+su propio guardián se delatara.**
 
 ---
 

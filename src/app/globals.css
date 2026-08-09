@@ -121,13 +121,156 @@
 
   /* Tipografía editorial — uso restringido a hero/citas */
   --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
+
+  /* ─── RADIO, CONTINUACIÓN: los tres que ya estaban decididos ──────────────
+     `docs/DESIGN_SYSTEM.md` §4 los declara desde junio —6 controles, 10
+     tarjetas, 14 modales— y hasta hoy vivían sólo en prosa. Un valor que sólo
+     existe en un documento no lo puede usar nadie: hay que acordarse de él. */
+  --r-control: 6px;
+  --r-card:    10px;
+  --r-modal:   14px;
+
+  /* ─── ESPACIO ─────────────────────────────────────────────────────────────
+     Múltiplos de 4, como ya declaraba el documento. Se nombran para que el
+     estilo en línea tenga qué escribir: `padding: 'var(--sp-3)'` es una
+     decisión; `padding: 13` es una copia de una copia.
+
+     `--sp-3` (12px) es la densidad de fila de este producto: el médico escanea
+     listas largas y 16 las alarga sin añadir información. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* ─── TIPOGRAFÍA: OCHO PASOS, NO SEIS ─────────────────────────────────────
+     LA ESCALA DECLARADA NO ERA LA ESCALA USADA.
+
+     `docs/DESIGN_SYSTEM.md` declaraba seis pasos (28·20·16·14·12·10,5) y la
+     auditoría de V9 midió ~3 000 `fontSize` en línea con ~60 valores distintos.
+     Los cuatro más frecuentes son 13 (538 usos), 12,5 (466), 12 (424) y 11
+     (295): **dos de ellos ni siquiera estaban en la escala**.
+
+     Una escala que la aplicación no usa no es una escala: es un deseo. Así que
+     la escala absorbe los dos pasos enteros que faltaban —13 y 11, que existen
+     porque este producto es denso— y **rechaza los medios píxeles**.
+
+     Los medios píxeles (12,5 · 13,5 · 11,5 · 14,5) no los decidió nadie: son lo
+     que queda al copiar un bloque y ajustarlo a ojo. Y no sobreviven al
+     redondeo del navegador cuando el sistema tiene el zoom al 110 %, que es
+     exactamente la configuración del médico cansado a las nueve de la noche.
+
+     Ningún píxel se mueve hoy por declarar esto. Lo que cambia es que el
+     siguiente tamaño no inventa el valor número 61. Lo vigila
+     `scripts/design/trinquete-de-diseno.mjs`. */
+  --fs-display:  28px;   /* hero, momentos          — .t-display */
+  --fs-h1:       20px;   /* título de pantalla      — .t-h1 */
+  --fs-h2:       16px;   /* sección                 — .t-h2 */
+  --fs-body:     14px;   /* texto base              — .t-body */
+  --fs-dense:    13px;   /* fila de tabla, chrome denso */
+  --fs-caption:  12px;   /* etiquetas, metadatos    — .t-caption */
+  --fs-micro:    11px;   /* sellos, contadores */
+  --fs-overline: 10.5px; /* encabezado de grupo     — .t-overline */
+
+  /* ─── ELEVACIÓN ───────────────────────────────────────────────────────────
+     Plana por defecto: el borde define la superficie, no la sombra. Sólo hay
+     dos sombras porque sólo hay dos cosas que floten de verdad — lo que se
+     despliega sobre la página, y lo que la bloquea.
+
+     Los valores NO son nuevos: son los que la aplicación ya pinta hoy en el
+     modal (`.modal`) y en la barra flotante del móvil. Nombrarlos no mueve un
+     píxel; lo que evita es la tercera sombra inventada. */
+  --sh-overlay: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --sh-modal:   0 20px 60px rgba(0, 0, 0, 0.55);
 }
 
+/*
+  LOS TOKENS QUE TAILWIND VE — V9 · DESIGN-SYSTEM-001 (DESIGN-THEME-001).
+
+  Aquí estaba la causa raíz del monolito de estilo en línea, y no era dejadez.
+
+  `@theme inline` exponía CUATRO valores. Todo lo demás vivía en variables CSS
+  que Tailwind no mira, así que no existía la utilidad `bg-nx-s2` ni
+  `text-nx-caption`: el código no tenía alternativa al `style={{ … }}`. 6 065
+  estilos en línea en 177 de 200 archivos no son un vicio del equipo — son la
+  única forma que había de escribir un color.
+
+  Ensanchar esto no cambia un píxel de lo que ya está pintado: es aditivo, sólo
+  crea utilidades que antes no existían. Lo que cambia es que a partir de ahora
+  **hay a qué migrar**, y que la próxima pantalla no nace con hexadecimales.
+
+  El prefijo `nx-` es a propósito: separa lo nuestro de la paleta que trae
+  Tailwind, y hace visible en el `className` que el valor lo gobierna el sistema
+  (`bg-nx-s2` sigue al tema claro/oscuro; `bg-[#131518]` no).
+
+  `inline` importa: sin él Tailwind congelaría el valor del token en tiempo de
+  compilación y las utilidades se quedarían en modo oscuro para siempre. Con él,
+  la utilidad emite `var(--…)` y el cambio de tema la sigue.
+
+  ESPACIO: no se declara aquí a propósito. La escala por defecto de Tailwind ya
+  son múltiplos de 4 (`p-3` = 12px = `--sp-3`), así que duplicarla sólo crearía
+  dos nombres para lo mismo — que es justo el defecto que este programa persigue.
+  `--sp-*` existe para el estilo en línea, que no tiene utilidades.
+*/
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* `--font-display` NO se expone aquí: el token de :root se llama igual, y en
+     `@theme inline` eso sería `--font-display: var(--font-display)` — una
+     variable definida en términos de sí misma. Para el tipo editorial está la
+     clase `.nx-display`, que es donde ya vivía la decisión. */
+
+  /* Canvas y superficies */
+  --color-nx-bg:      var(--bg);
+  --color-nx-s1:      var(--s1);
+  --color-nx-s2:      var(--s2);
+  --color-nx-s3:      var(--s3);
+  --color-nx-border:  var(--border);
+  --color-nx-border2: var(--border2);
+
+  /* Texto */
+  --color-nx-text:  var(--text);
+  --color-nx-text2: var(--text2);
+  --color-nx-text3: var(--text3);
+
+  /* Acento. `nexus` es el azul de TEXTO sobre fondo oscuro; `nexus-solido` es
+     el de RELLENO bajo texto blanco. Son dos tokens porque los requisitos de
+     contraste son opuestos — está explicado arriba, donde se decidió. */
+  --color-nx-nexus:        var(--nexus);
+  --color-nx-nexus-hover:  var(--nexus-hover);
+  --color-nx-nexus-soft:   var(--nexus-soft);
+  --color-nx-nexus-solido: var(--nexus-solido);
+
+  /* Semántica clínica */
+  --color-nx-red:    var(--red);
+  --color-nx-amber:  var(--amber);
+  --color-nx-green:  var(--green);
+  --color-nx-blue:   var(--blue);
+  --color-nx-purple: var(--purple);
+
+  /* Radio */
+  --radius-nx-control: var(--r-control);
+  --radius-nx-card:    var(--r-card);
+  --radius-nx-modal:   var(--r-modal);
+  --radius-nx-pill:    var(--r-pill);
+
+  /* Tipografía */
+  --text-nx-display:  var(--fs-display);
+  --text-nx-h1:       var(--fs-h1);
+  --text-nx-h2:       var(--fs-h2);
+  --text-nx-body:     var(--fs-body);
+  --text-nx-dense:    var(--fs-dense);
+  --text-nx-caption:  var(--fs-caption);
+  --text-nx-micro:    var(--fs-micro);
+  --text-nx-overline: var(--fs-overline);
+
+  /* Elevación */
+  --shadow-nx-overlay: var(--sh-overlay);
+  --shadow-nx-modal:   var(--sh-modal);
 }
 
 * {

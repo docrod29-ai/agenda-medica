@@ -13,8 +13,10 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `DESIGN-SYSTEM-001` — **cimiento cerrado** (9-ago): tokens,
+escalas y trinquete de diseño. `PATIENT-UX-TRUTH-001` ✅ CERRADA (8-ago) y los
+tres P0 de audio ✅ CERRADOS (v1158/v1161). Sigue abierta la compuerta de
+accesibilidad (`A11Y-GATE-001`) y luego `NAVIGATION-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
@@ -30,6 +32,12 @@ Y una que no se esperaba: **la premisa de la directiva no se cumple.** No hay
 contraste medido a mano. El defecto es el contrario: **el sistema de diseño
 existe y la aplicación no le obedece** (88,5 % de los archivos con estilo en
 línea; primitivos compartidos al 24 %).
+
+Y la causa de esa desobediencia no era dejadez, sino **mecánica**: `@theme
+inline` exponía cuatro valores a Tailwind, así que no existía la utilidad que
+usar. Reparado el 9-ago — 30 tokens expuestos, escalas de espacio y tipografía
+convertidas en token, y la deuda restante congelada en **1 865** por un trinquete
+que además **falla si un archivo nuevo nace con deuda**.
 
 | P0 | Estado |
 |---|---|

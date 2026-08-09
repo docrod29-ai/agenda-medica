@@ -187,6 +187,31 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'pregunta que faltaba.',
     regs: [183, 227],
   },
+  {
+    /**
+     * Familia NUEVA, abierta el 9-ago-2026 con REG-291.
+     *
+     * No cabía en `sin_medir`: ahí el instrumento **falta**. Aquí el instrumento
+     * existe, corre en cada CI y mide — pero con un criterio que se pone rojo
+     * cuando el código MEJORA. `escala-visual-trinquete` contaba
+     * `var(--r-card)` como un valor más de variedad, igual que un
+     * `borderRadius: 17` inventado: adoptar el sistema de diseño rompía la
+     * prueba puesta a vigilar que el sistema se adoptara.
+     *
+     * Se cuenta aparte porque la reparación es de otra naturaleza. Un
+     * instrumento que falta se enciende; uno que grita de más se afina
+     * (REG-245); éste hay que **darle la vuelta al criterio**, y hasta que se
+     * hace, la salida más barata siempre es subir el techo y seguir.
+     */
+    clave: 'el_medidor_castiga_la_mejora',
+    nombre: 'El medidor castiga la mejora',
+    patron:
+      'Un guardián que existe y corre, pero cuyo criterio se pone rojo cuando el ' +
+      'código se acerca a lo que ese mismo guardián pide. Se reconoce porque la ' +
+      'prueba falla en el commit que hace lo correcto, y porque el arreglo ' +
+      'aparente —subir el techo— deja el incentivo invertido para siempre.',
+    regs: [291],
+  },
 ] as const
 
 /** Todos los REG clasificados, sin repetir. */

@@ -6379,3 +6379,61 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — el trinquete de diseño se ponía rojo por adoptar su propio token (sin desplegar)
+
+`DESIGN-SYSTEM-001` declaró `--r-control` y `--r-card` y los adoptó en dos
+primitivos compartidos. La suite se puso **roja**:
+
+```
+sueltos: … 'var(--r-control)'(1) 'var(--r-card)'(2) … : expected 26 to be less than or equal to 24
+```
+
+**El guardián contaba la adopción del sistema como deuda.** `escala-visual-trinquete`
+mide *variedad* —cuántos números distintos hay que recordar— y su contador metía
+en el mismo saco `borderRadius: 17` y `borderRadius: 'var(--r-card)'`.
+
+### Por qué no se había visto antes
+
+Porque hasta ese día **sólo existía un token de radio**. Con `var(--r-pill)`
+solo, el error costaba +1 y cabía de sobra bajo el techo. El defecto llevaba ahí
+desde que el trinquete nació; hacía falta un segundo token para que se notara —
+y el segundo token no llegó hasta que alguien decidió ampliar el sistema.
+
+### Por qué importa más de lo que parece
+
+Un guardián que se pone rojo cuando el código mejora **enseña a no mejorarlo**, y
+lo enseña rápido: la salida más barata siempre es subir el techo. Misma familia
+que REG-245 (el guardián de pautas gritando en toda la UCI) y que la lección de
+REG-260: *un medidor que grita de más acaba ignorado*.
+
+Aquí el incentivo era peor que ruidoso: era **exactamente el contrario** del que
+el trinquete existe para crear.
+
+### El arreglo
+
+`contar()` ignora las referencias `var(--…)`: un token no es un número que haya
+que recordar, es la forma de no tener que recordarlo. El techo de radios baja de
+**24 a 23** sin migrar una sola pantalla — la cifra vieja incluía un token.
+
+Prueba que falla sin el arreglo: `un token NO cuenta como variedad`, que exige
+que la lista de valores no contenga ninguna `var(`.
+
+### Y de paso, el cimiento que lo destapó
+
+`@theme inline` pasó de **4 tokens a 30** (color, radio, tipografía, elevación,
+con prefijo `nx-` e inlineados con `var(--…)` para que sigan al tema), la escala
+tipográfica pasó de 6 pasos declarados a **8 medidos** —de los cuatro tamaños más
+usados de la aplicación, dos no estaban en la escala— y la deuda restante quedó
+congelada en **1 865** por un trinquete que, además del techo, **falla si un
+archivo nuevo nace con deuda**.
+
+Archivos:
+
+- `src/app/globals.css` · `docs/DESIGN_SYSTEM.md`
+- `scripts/design/trinquete-de-diseno.mjs` (nuevo)
+- `src/components/ui/Field.tsx` · `src/components/ui/Skeleton.tsx`
+- `src/__tests__/escala-visual-trinquete.test.ts` (9 casos, sellado)
+- `src/__tests__/el-diseno-tiene-trinquete.test.ts` (nuevo, 12 casos, sellado)
