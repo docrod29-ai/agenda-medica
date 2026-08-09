@@ -7,6 +7,7 @@ import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
 import { verificarTokenPaciente, tokenVigente } from '@/lib/patient-token'
+import { limitarOResponder } from '@/lib/rate-limit'
 import { getAvailableSlots } from '@/lib/availability'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
@@ -182,6 +183,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Este enlace ya no es válido. Pídele uno nuevo al consultorio.' }, { status: 401 })
     }
   } catch { /* ver arriba */ }
+
+  /**
+   * LÍMITE DE TASA — PATIENT-PORTAL-001.
+   *
+   * Esta ruta no tenía ningún `limitar*`, a diferencia de sus hermanas
+   * (`telesalud/sala`, `public/booking`): un token filtrado —reenviado por
+   * WhatsApp, capturado de una URL compartida— podía usarse para enumerar
+   * citas o mover la agenda del consultorio sin ningún freno.
+   *
+   * Dos ventanas, igual que en `public/booking`: una general por sesión de
+   * paciente (cubre lecturas repetidas: session, slots, documentos), y otra
+   * más estrecha sólo para las acciones que MUEVEN la agenda (confirmar,
+   * cancelar, reagendar), que es justo el riesgo que describe el hallazgo.
+   * Fail-open si Firestore falla: la firma y la caducidad del token siguen
+   * protegiendo, y el límite es una malla adicional, no la puerta principal.
+   */
+  const limiteGeneral = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 600,
+    'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
+  if (limiteGeneral) return limiteGeneral
+  if (body.action === 'confirmar' || body.action === 'cancelar' || body.action === 'reagendar') {
+    const limiteMutacion = await limitarOResponder(`portal:mutacion:${clinicId}:${patientId}`, 10, 600,
+      'Demasiados cambios a tu cita en poco tiempo. Espera un momento e inténtalo de nuevo.')
+    if (limiteMutacion) return limiteMutacion
+  }
 
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {

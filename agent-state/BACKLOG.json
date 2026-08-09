@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO PARCIAL (REG-306) — falla-abierta de revocación es decisión ya documentada, no defecto",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",
@@ -344,7 +344,8 @@
       "porQueImporta": "Un enlace revocado —teléfono perdido, número reciclado, mensaje reenviado— vuelve a valer durante una incidencia de Firestore. Y sin límite de tasa, un token filtrado permite enumerar y mover la agenda del consultorio.",
       "archivo": "src/app/api/portal/route.ts:183 · src/app/api/public/resena/route.ts · src/app/api/payment/create-checkout/route.ts",
       "plan": "Aplicar limitar* como ya lo hacen telesalud/sala (12/600 s) y public/booking (8/h por IP). Para la revocación, decidir si falla cerrado — es un cambio de política, no sólo de código.",
-      "score": 62
+      "score": 62,
+      "cierre": "Las tres rutas del hallazgo (portal, resena, payment/create-checkout) ya llaman a limitarOResponder antes de tocar Firestore/Stripe: portal:{clinicId}:{patientId} 40/600s + portal:mutacion:... 10/600s para confirmar/cancelar/reagendar, resena:ip:{ip} 10/3600s, pago:{clinicId}:{patientId} 8/600s. Guardián: src/__tests__/portal-limite-de-tasa.test.ts. La parte de \"la revocación falla ABIERTA\" no se tocó: route.ts:166-184 ya documenta la decisión y el porqué (dejar fuera al paciente por un fallo transitorio de Firestore se consideró peor que el riesgo que acota). Cambiarla a fail-closed es política del Dr., no un defecto de software."
     },
     {
       "seguridad": 3,

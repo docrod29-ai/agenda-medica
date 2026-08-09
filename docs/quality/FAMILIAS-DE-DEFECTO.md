@@ -21,7 +21,7 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **32** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **Escrito, probado y sin conectar** | **35** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
 | El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
 | Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 154, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -52,6 +52,11 @@ ese camino no es una impresión y nunca miró la marca.
 
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
+
+REG-306 (9-ago-2026) es el mismo patrón en un sitio nuevo: `limitarOResponder`
+llevaba semanas probado y corriendo en `telesalud/sala` y `public/booking`, y
+nunca se cableó en `/api/portal`, `/api/public/resena` ni
+`/api/payment/create-checkout` — las tres rutas del portal del paciente.
 
 ## La que más creció de golpe
 

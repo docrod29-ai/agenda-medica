@@ -145,3 +145,44 @@ Tres familias nuevas esta sesión:
   aquí nunca existió. Ninguna prueba interna puede delatarla.
 - Y la lección transversal: **un medidor que grita de más enseña a ignorarlo**,
   igual que un aviso clínico.
+
+---
+
+## 9-ago-2026 — reanudación: la cola de este archivo ya estaba resuelta
+
+Al reanudar se comprobó primero la «cola inmediata» de arriba contra el
+repositorio, como manda la coordinación entre programas (repo → tests →
+git log → especificación → estado). **Los cuatro motores sin conectar
+(`invariantesProtegidos`, `obtenerVersion`, `coherenteConElTipo`,
+`correrBenchmark`) ya estaban cerrados** desde v1145 (REG-263,
+`el-barrido-de-motores-esta-explicado.test.ts`): no se rehizo. Los otros dos
+puntos de la cola (hueco 2 UCI, barrido de pantalla estrecha) siguen abiertos
+y sin instrumento — quedan para la próxima sesión.
+
+Se tomó en su lugar **`PATIENT-PORTAL-001`** de `agent-state/BACKLOG.json`
+(score 62, seguridad+regulatorio), sin conflicto con el trabajo activo de V9
+(que sigue en `POSTVISIT-001`, pantalla distinta): `/api/portal`,
+`/api/public/resena` y `/api/payment/create-checkout` no tenían **ningún**
+`limitar*`, a diferencia de sus hermanas (`telesalud/sala`, `public/booking`).
+**REG-306.** Las tres rutas del hallazgo quedan con `limitarOResponder`
+—portal 40/600s + 10/600s en confirmar/cancelar/reagendar, reseña 10/3600s por
+IP, pago 8/600s—, guardián probado al revés
+(`src/__tests__/portal-limite-de-tasa.test.ts`, 10 casos), y el sello de
+invariantes (`src/lib/clinical/invariantes-clinicos.json`) actualizado porque
+el guardián está citado en el ledger. La segunda mitad del hallazgo —la
+revocación del token que falla abierta— **no se tocó**: ya está documentada y
+razonada en el propio código (`route.ts:166-184`); es política del Dr., no un
+defecto.
+
+**Compuertas**: `npx vitest run` 8 563 casos · 1 fallo preexistente de entorno
+(`ops-timeout`, red no disponible en este contenedor) · `lint-trinquete` 96,
+igual que el techo · `npx tsc --noEmit` limpio. `npm run build` falla en este
+contenedor por falta de credenciales de Firebase (`auth/invalid-api-key` en
+`/dr/[clinicId]`) — se verificó que falla **igual sin este cambio** (revertido
+temporalmente y reproducido), así que es del entorno, no del cambio.
+
+**Siguiente**: el hueco 2 de la investigación (UCI, dictado por aparatos y
+sistemas) o el barrido de pantalla estrecha, ninguno de los dos tiene
+instrumento todavía y los dos necesitan definirse antes de ejecutarse. Si
+ninguno se puede acotar en la siguiente sesión, revisar `BACKLOG.json` por
+otro ítem `pendiente` de score alto que no pise el trabajo activo de V9/V10.

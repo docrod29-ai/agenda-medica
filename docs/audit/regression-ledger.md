@@ -7013,3 +7013,52 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — `/api/portal`, `/api/public/resena` y `/api/payment/create-checkout` sin límite de tasa
+
+**Encontrado** en `agent-state/BACKLOG.json` (`PATIENT-PORTAL-001`, origen:
+auditoría `PATIENT-UX-TRUTH-001` del 8-ago-2026), seguía `pendiente`.
+
+**Qué pasaba.** `telesalud/sala` (12 peticiones/600s) y `public/booking` (8/h
+por IP) ya usan `limitarOResponder`. `grep -n "limitar" src/app/api/portal/route.ts`
+no devolvía nada: la ruta del portal del paciente —sesión, confirmar, cancelar,
+reagendar, formulario, documentos, paquetes— no tenía ningún freno, ni tampoco
+`public/resena` (pública, sin sesión) ni `payment/create-checkout` (crea
+sesiones de Stripe). Un enlace filtrado —reenviado por WhatsApp, capturado de
+una URL compartida— o un token de reseña adivinado por fuerza bruta podían
+usarse sin límite: enumerar citas, mover la agenda del consultorio, generar
+sesiones de Checkout sin tope, o probar tokens de reseña al azar.
+
+Aparte, la misma auditoría señalaba que la comprobación de revocación
+(`portalTokenVersion`) **falla abierta** si Firestore falla. Se revisó el
+código: es una decisión ya escrita y razonada en el propio archivo
+(`route.ts:166-184`, añadida en `PATIENT-COMPANION-001`) — dejar fuera al
+paciente de su propia agenda por un fallo transitorio de Firestore se
+consideró peor que el riesgo que acota, y la firma y la caducidad del token
+siguen protegiendo. No se toca sin que el Dr. decida lo contrario: cambiarlo
+es política, no un defecto de software.
+
+**Arreglo.** `limitarOResponder` en las tres rutas, antes de tocar Firestore o
+Stripe:
+
+- `/api/portal` — general por paciente (`portal:{clinicId}:{patientId}`,
+  40/600s, cubre lecturas) y una ventana más estrecha sólo para
+  confirmar/cancelar/reagendar (`portal:mutacion:...`, 10/600s, que es donde
+  vive el riesgo de mover la agenda).
+- `/api/public/resena` — por IP (`resena:ip:{ip}`, 10/3600s): es el único dato
+  que existe antes de resolver el token.
+- `/api/payment/create-checkout` — por paciente (`pago:{clinicId}:{patientId}`,
+  8/600s).
+
+Fail-open en los tres, igual que el resto del repositorio: el limitador es una
+malla adicional, no la puerta principal.
+
+**Familia.** `no_conectado` — `limitarOResponder` existe, tiene pruebas y está
+bien (`nucleo/rate-limit.test.ts`); simplemente no corría en el camino de
+estas tres rutas, aunque sí en sus hermanas.
+
+**Guardián.** `src/__tests__/portal-limite-de-tasa.test.ts`, 10 casos. Prueba
+al revés: con el fijador revertido, 9 de los 10 casos fallan (el décimo sólo
+afirma una ausencia, y esa ausencia es cierta con o sin el arreglo).
