@@ -241,7 +241,9 @@
       "porQueImporta": "Grabar 22 min → navegar → volver → grabar 90 s → detener: los 90 s se transcriben y los 22 min se borran de IndexedDB SIN transcribir. Pérdida permanente de una consulta entera. El autor ya protegía al huérfano al grabar (recoveryBaseRef, :1276-1278) — lo que no se actualizó fue el borrado. Media defensa.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1508-1509,1562,1578,1627,359-366",
       "plan": "Limitar el borrado al rango de esta sesión ([clave, recoveryBase] → fin) en vez del rango completo. Cambio mínimo y sólo puede conservar MÁS datos. Prueba al revés: dejar un huérfano, grabar, detener, y comprobar que el huérfano sigue en IndexedDB.",
-      "score": 88
+      "score": 88,
+      "estado": "CERRADO (v1158)",
+      "cierre": "REG-283/284, reconciliado el 9-ago-2026 al encontrar el backlog desfasado frente a MASTER_STATE.json y el regression-ledger."
     },
     {
       "seguridad": 3,
@@ -266,7 +268,9 @@
       "porQueImporta": "Tocar «Agenda» en la barra inferior durante una consulta acaba la grabación. Sin confirmación, sin aviso, sin diferencia visible. Hay recuperación por IndexedDB (cartel en consulta:4100-4118) pero es opcional, silenciosa y fácil de no ver.",
       "archivo": "src/hooks/useGrabacionAudio.ts:1069,1009-1056 · src/app/(dashboard)/template.tsx:19",
       "plan": "Al desmontar con grabación activa: llamar a detener() (volcado + transcripción) en vez de sólo liberar. Y una guarda de cambio de ruta que avise — es el único caso donde beforeunload se justifica, porque para el texto el volcado ya lo hace innecesario.",
-      "score": 86
+      "score": 86,
+      "estado": "CERRADO (v1161)",
+      "cierre": "REG-287, reconciliado el 9-ago-2026 al encontrar el backlog desfasado frente a MASTER_STATE.json y el regression-ledger."
     },
     {
       "seguridad": 3,
@@ -291,7 +295,9 @@
       "porQueImporta": "Una consulta dictada de 45 min alcanza el minuto 30 de «inactividad», cierra sesión y se lleva su propia recuperación. El comentario que justifica la purga (salir-seguro.ts:157-158) es cierto sólo para una grabación TERMINADA; a mitad de grabación la cola sin transcribir no existe en ningún otro sitio.",
       "archivo": "src/components/AutoLogout.tsx:88,30-31 · src/lib/salir-seguro.ts:145,159,157-158 · src/lib/mobile/local-drafts.ts:78-80 · consulta:2900-2940",
       "plan": "Tres cambios: (a) que grabar cuente como actividad; (b) que el oyente de guardar-todo llame a audio.detener() y espere; (c) que limpiarAudioLocal sea condicional como ya lo es la purga de la nota.",
-      "score": 82
+      "score": 82,
+      "estado": "CERRADO (v1161)",
+      "cierre": "REG-287, reconciliado el 9-ago-2026 al encontrar el backlog desfasado frente a MASTER_STATE.json y el regression-ledger."
     },
     {
       "seguridad": 2,
@@ -366,7 +372,9 @@
       "porQueImporta": "Es el cimiento de DRAFT→RELEASED que pide V9. Hoy el médico puede copiar y entregar una hoja compuesta de un borrador a medio dictar. Nada lo impide.",
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
-      "score": 63
+      "score": 63,
+      "estado": "CERRADO (sin desplegar)",
+      "cierre": "REG-291. El guardia pasó a {!esNotaHospital && firmada && (...)}, mismo patrón que ComoCerrarLaConsulta. No cierra POSTVISIT-ENTREGA-001 (la hoja sigue sin llegar al portal del paciente), que queda pendiente y depende de éste."
     },
     {
       "seguridad": 1,

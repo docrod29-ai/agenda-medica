@@ -5124,8 +5124,14 @@ export default function ConsultaActivaPage() {
         ayudar. La nota de hospital y la de UCI se escriben en esta misma
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
+
+        SÓLO CON `firmada` (REG-291, POSTVISIT-GATE-001) — antes se componía del
+        borrador EN CURSO: medicamentos y estudios a medio dictar, sin firmar,
+        ya eran «lo que se lleva el paciente» y se podían copiar o imprimir. El
+        cabezal del módulo afirma que sale de lo «ya revisado y firmado»: era
+        intención de diseño, no una condición que el código exigiera.
       */}
-      {!esNotaHospital && (
+      {!esNotaHospital && firmada && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}

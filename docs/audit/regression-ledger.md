@@ -6379,3 +6379,49 @@ su sesión. Se dice en vez de darlo por hecho.
 - `src/components/Sidebar.tsx` · `src/lib/security/rutas-privadas.ts`
 - `src/lib/seguridad/dosis.ts`
 - `src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts` (nuevo, 20 casos, sellado)
+
+---
+
+## REG-291 — la hoja del paciente se componía del borrador a medio dictar, sin firmar (sin desplegar)
+
+`POSTVISIT-GATE-001`, encontrada por la auditoría `PATIENT-UX-TRUTH-001` (V9,
+8-ago-2026) y todavía sin reparar en `agent-state/BACKLOG.json`.
+
+`HojaParaElPaciente` — «lo que se lleva el paciente» (REG-242), compuesto de
+`medicamentos` y `estudiosOrden` en vez de redactado por un modelo, justo para
+que nadie firmara con su cédula un consejo que no dio — se montaba con el
+estado **vivo** de la nota. La única guarda era `{!esNotaHospital}`. Justo
+encima, `ComoCerrarLaConsulta` sí exige `{firmada && …}` (REG-244); el cabezal
+del propio componente afirma que sale de lo «ya revisado y firmado» — era
+intención de diseño, nunca una condición que el código exigiera.
+
+**Qué se podía hacer**: a media consulta, con medicamentos a medio teclear o
+ya borrados por el médico, copiar o imprimir esa hoja y dársela al paciente.
+Es la regla §4 de `patient-facing-ai.md` en su forma más simple — un paquete
+para el paciente nace `DRAFT` y no se enseña hasta que alguien autorizado lo
+aprueba — aplicada al primer lugar del producto donde el paciente se lleva
+algo compuesto por la IA.
+
+### La reparación
+
+Una condición: `{!esNotaHospital && firmada && (`. Mismo patrón que
+`ComoCerrarLaConsulta`, mismo símbolo de estado, sin motor nuevo.
+
+### Prueba al revés
+
+`src/__tests__/lo-que-se-lleva-el-paciente.test.ts` gana un bloque que lee el
+código fuente de la pantalla y falla si el guardia deja de exigir `firmada`.
+Confirmado quitando el cambio y corriendo la prueba: falla exactamente ahí.
+
+### Qué NO cubre
+
+No cubre el estado `DRAFT`/`RELEASED` de un `PatientVisitPackage` en el
+portal del paciente (`/mi/[token]`): esta hoja vive sólo en la pantalla de
+consulta del médico, para copiar o imprimir — no en la superficie que ve el
+paciente. Eso es `POSTVISIT-ENTREGA-001`, que depende de éste y sigue
+pendiente.
+
+### Archivos
+
+- `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+- `src/__tests__/lo-que-se-lleva-el-paciente.test.ts` (bloque nuevo, 2 casos, sellado)

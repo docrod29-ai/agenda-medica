@@ -3,6 +3,30 @@
 El programa las **junta**; no las pregunta una por una. Cada entrada dice qué se
 puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
+## OPERACIÓN DEL PROGRAMA · el archivo maestro de V7 no está en el repositorio
+
+**Estado**: encontrado el 9-ago-2026, al arrancar una rutina programada.
+
+La instrucción de esta rutina exige leer, como primera acción y de forma
+obligatoria, `docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`
+como «especificación autoritativa». Ese archivo **no existe** en el árbol de
+`main` ni en ningún commit del historial (`git log --all -- '*MASTER_LOOP_V7*'`
+no devuelve nada). Sí existe su equivalente de V9:
+`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`.
+
+**Qué se hizo sin él**: se siguió el resto de la instrucción de la rutina
+—reconciliar `agent-state/`, priorizar por score, Definición de Terminado—
+usando `BACKLOG.json`, `MASTER_STATE.json` y `docs/audit/regression-ledger.md`
+como fuente, que sí están completos y al día.
+
+**Qué falta decidir**: si el archivo se movió, se renombró, o si el programa
+V7 se dio por absorbido en V9/`agent-state/V7-ITERACION.md` y la referencia en
+la instrucción de la rutina quedó desactualizada. Sin esa respuesta, cada
+disparo de esta rutina va a repetir el mismo hallazgo.
+
+**Qué sigue sin ella**: todo — el resto de agent-state es suficiente para
+priorizar trabajo real, como demuestra este mismo disparo (REG-291).
+
 ## CLÍNICAS
 
 | # | Decisión | Recomendación por omisión | Qué queda bloqueado | Qué sigue sin ella |

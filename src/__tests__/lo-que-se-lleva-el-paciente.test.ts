@@ -201,11 +201,61 @@ describe('está CONECTADO', () => {
      * intubado se le generaría una hoja de «cómo tomarlo» sobre fármacos
      * intravenosos.
      */
-    expect(page).toMatch(/\{!esNotaHospital && \(\s*\n\s*<HojaParaElPaciente/)
+    expect(page).toMatch(/\{!esNotaHospital && firmada && \(\s*\n\s*<HojaParaElPaciente/)
   })
 
   it('los botones no salen impresos en la hoja del paciente', () => {
     const comp = readFileSync(join(process.cwd(), 'src/components/HojaParaElPaciente.tsx'), 'utf8')
     expect(comp).toMatch(/className="no-print"/)
+  })
+})
+
+describe('POSTVISIT-GATE-001 (REG-291) — no se entrega sin firmar', () => {
+  /**
+   * ── EL HUECO ──────────────────────────────────────────────────────────────
+   *
+   * `HojaParaElPaciente` se montaba con el estado VIVO de `medicamentos` y
+   * `estudiosOrden` — el borrador en curso, no la nota firmada. La única
+   * guarda era `{!esNotaHospital}`. Justo encima, `ComoCerrarLaConsulta` sí
+   * exige `{firmada && …}`. El cabezal del módulo afirmaba que el contenido
+   * sale de lo «ya revisado y firmado»: era intención de diseño, no una
+   * condición que el código exigiera — regla `patient-facing-ai.md` §4:
+   * un paquete para el paciente nace DRAFT y sólo se enseña tras aprobarse.
+   *
+   * ── CÓMO SE DESCUBRIÓ ─────────────────────────────────────────────────────
+   *
+   * Auditoría PATIENT-UX-TRUTH-001 (V9), 8-ago-2026, registrada como
+   * POSTVISIT-GATE-001 en `agent-state/BACKLOG.json`.
+   *
+   * ── LA REGLA QUE LO HACE SEGURO ───────────────────────────────────────────
+   *
+   * `<HojaParaElPaciente ...>` sólo se monta cuando `firmada` es verdadero,
+   * igual que `ComoCerrarLaConsulta`. Antes de firmar, el médico puede seguir
+   * dictando, corrigiendo y borrando medicamentos: nada de eso debe poder
+   * copiarse ni imprimirse como instrucción para el paciente.
+   *
+   * ── QUÉ NO CUBRE ──────────────────────────────────────────────────────────
+   *
+   * No cubre el estado DRAFT/RELEASED de un `PatientVisitPackage` en el
+   * portal (`/mi/[token]`): esta hoja vive sólo en la pantalla de consulta del
+   * médico (copiar/imprimir), no en la superficie del paciente. Ver
+   * POSTVISIT-ENTREGA-001, que sigue pendiente.
+   */
+  const page = readFileSync(
+    join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
+
+  it('el guardia exige `firmada`, no sólo `!esNotaHospital`', () => {
+    /**
+     * Prueba al revés: si alguien vuelve a escribir el guardia como
+     * `{!esNotaHospital && (` — sin `firmada` — esta prueba falla. Es
+     * justo el defecto que REG-291 reparó.
+     */
+    const bloque = page.slice(page.indexOf('LO QUE SE LLEVA EL PACIENTE (REG-242)'))
+    const guardia = bloque.match(/\{[^{}]*&&[^{}]*\(\s*\n\s*<HojaParaElPaciente/)?.[0] ?? ''
+    expect(guardia).toContain('firmada')
+  })
+
+  it('el guardia sigue excluyendo al paciente internado', () => {
+    expect(page).toMatch(/\{!esNotaHospital && firmada && \(\s*\n\s*<HojaParaElPaciente/)
   })
 })

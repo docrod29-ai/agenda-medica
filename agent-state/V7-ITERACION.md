@@ -11,14 +11,61 @@
 > **criterio**, y el criterio no sale de un `grep`.
 
 **Cifras**: → `agent-state/MASTER_STATE.json` (derivadas)
-**Rama**: `agent/v7/master-loop` · **Producción**: `nexusmed-v1146`
+**Rama**: `claude/clever-lamport-qjzk73` (`agent/v7/master-loop` se fusionó en
+`main` como PR #271 y ya no existe; rama reiniciada desde `main` el 9-ago-2026)
+**Producción**: `nexusmed-v1163`
 
-**Modo V7**: autónomo CON despliegue. El dueño lo levantó de viva voz el
-8-ago-2026 («despliega y sigue en V7») después de que V9 pusiera su propio
-candado. **El candado de V9 sigue en pie para V9**: son dos programas.
+**Modo V7 en este disparo**: autónomo **SIN desplegar**. La instrucción de esta
+sesión (rutina programada) trae una prohibición explícita de tocar producción,
+que manda sobre la autorización de viva voz registrada arriba — el trabajo llega
+a rama + commit + PR, no más allá, igual que dicta
+`.claude/rules/deployment-and-flags.md` por defecto. `public/version.txt` no se
+tocó: sigue en `nexusmed-v1163`, la misma que ya está en producción.
 
-Lo que no se relaja en ninguno de los dos: nada de datos reales de pacientes,
-nada destructivo, **ninguna cifra clínica inventada**.
+Lo que no se relaja en ningún disparo: nada de datos reales de pacientes, nada
+destructivo, **ninguna cifra clínica inventada**.
+
+---
+
+## Disparo del 9-ago-2026
+
+**Reconciliación primero** (spec V7 pide comparar estado contra verdad del
+repo antes de trabajar): `docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`,
+citado como lectura obligatoria de esta rutina, **no existe en el repositorio**
+(`git log --all` tampoco lo tiene). Se sigue el resto de la instrucción —
+prioridad por score, backlog, Definición de Terminado— con las fuentes que sí
+existen: `agent-state/BACKLOG.json`, `MASTER_STATE.json`,
+`docs/audit/regression-ledger.md`. Vale la pena que el dueño lo sepa: si el
+archivo se movió o se le cambió el nombre, la próxima rutina debería apuntar a
+la ruta correcta.
+
+`BACKLOG.json` tenía tres ítems P0 (`PATIENT-AUDIO-001/002/003`) marcados
+`pendiente` que el propio `MASTER_STATE.json` y el ledger (REG-283/284, REG-287)
+ya daban por cerrados desde v1158/v1161. Reconciliados sin tocar código.
+
+**REG-291 — `POSTVISIT-GATE-001` cerrado**: `HojaParaElPaciente` se montaba con
+el estado VIVO del borrador (medicamentos, estudios), sin exigir `firmada`,
+a diferencia de `ComoCerrarLaConsulta` que sí la exige. Un médico podía copiar
+o imprimir «lo que se lleva el paciente» a medio dictar. Guardia añadida:
+`{!esNotaHospital && firmada && (`. Prueba al revés confirmada: sin el cambio,
+las dos pruebas nuevas de `lo-que-se-lleva-el-paciente.test.ts` fallan.
+
+**Compuertas**: `npx vitest run` → 8460/8462 (1 fallo preexistente de entorno,
+`ops-timeout-y-punto-ciego`, documentado desde el checkpoint de V9 del 8-ago —
+abre una conexión a IP no enrutable y este contenedor la corta por el proxy).
+`node scripts/lint-trinquete.mjs` → 96, igual que el techo. `npx tsc --noEmit`
+→ limpio. `npm run build` → compila y falla recolectando datos de página con
+`auth/invalid-api-key`: este contenedor no tiene variables de Firebase — mismo
+límite de entorno que documentó el checkpoint anterior, no del código.
+
+**Siguiente ítem por score** (`agent-state/BACKLOG.json`, sin bloqueo del
+dueño): `PATIENT-PORTAL-001` (62) — `/api/portal`, `/api/public/resena` y
+`/api/payment/create-checkout` no tienen `limitar*`, y la comprobación de
+revocación de `portalTokenVersion` falla ABIERTA si la lectura del expediente
+lanza. La parte de límite de tasa es directa (mismo patrón que
+`telesalud/sala` y `public/booking`); la política de fail-open/fail-closed en
+la revocación es un cambio de política y probablemente merece
+`OWNER_DECISIONS_REQUIRED.md` en vez de decidirse sola.
 
 ---
 
