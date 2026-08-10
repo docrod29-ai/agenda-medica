@@ -165,3 +165,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-09 | **DESIGN-SYSTEM-001** | `fed81cc` | Tokens visibles para Tailwind (4 → ~35), cinco escalas nuevas, cero respaldos y trinquete de diseño | **274, 275** |
 | 2026-08-09 | **NAVIGATION-001** | `fed81cc` | El ciclo devuelve el contexto: seguimiento que sobrevive, atrás de verdad, agenda en la URL, aviso antes de cortar el dictado | **276-279** |
 | 2026-08-09 | **PATIENT-COMPANION-001** | `5d496cf` | Cinco destinos, PaqueteDeVisita DRAFT/RELEASED y la compuerta en el servidor. Composición diferida a POSTVISIT-001 por no tener llamador | **280, 281** |
+| 2026-08-10 | **POSTVISIT-001** | `0e25831` | La compuerta de firma y el camino entero: consulta → firma → liberación → portal. `componerPaquete` vuelve con llamador; `approvedBy` sale de la sesión. Diferido y declarado: versionar un paquete liberado, y el cambio de dosis | **306, 307** |

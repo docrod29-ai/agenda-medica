@@ -80,3 +80,30 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+## 2026-08-10 — `POSTVISIT-001`: lo firmado es lo que se entrega (REG-306, REG-307)
+
+Quinta unidad de V9, cerrada en `0e25831`. El producto sabía componer lo que el
+paciente se lleva a casa y **no tenía forma de dárselo**; la pestaña «Cuidado»
+del portal enseñaba un estado vacío honesto que iba a seguir vacío para siempre.
+
+- **REG-306 · la compuerta de firma.** `HojaParaElPaciente` se compone en vivo
+  mientras el médico dicta y desde el primer minuto tenía «Copiar» e «Imprimir»
+  sin comprobar nada: lo que iba al WhatsApp del paciente podía ser una dosis a
+  medio corregir. Ahora mirar es libre y salir no, con el valor por omisión
+  **cerrado** (`=== true`, no `!== false`).
+- **REG-307 · el camino.** `componerPaquete` vuelve **con llamador**;
+  `POST /api/paciente/paquete` lee el contenido de la nota firmada **en el
+  servidor**, el cuerpo sólo trae identificadores, y `approvedBy` sale de la
+  sesión verificada bajo capacidad `firmar`. La pantalla del médico pide la
+  vista previa al servidor en vez de recomponerla, y el portal del paciente pide
+  los paquetes y los pinta.
+
+Tres guardianes ajenos dijeron la verdad y se les hizo caso en vez de subirles el
+techo: el trinquete de lint (la ref leída en render y el `setState` síncrono en
+un efecto), el trinquete de diseño (ocho tamaños fuera de escala) y el registro
+de rutas (una ruta nueva sin declarar, con sus inventarios congelados de PHI).
+
+**Declarado y no hecho**: `POSTVISIT-VERSION-002` (corregir un paquete liberado
+responde 409) y `POSTVISIT-DOSIS-003` (los cambios se comparan por nombre, no por
+dosis). **Y nada de esto se ha visto en un navegador.**

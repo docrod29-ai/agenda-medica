@@ -6,7 +6,74 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 10-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Rama** | `claude/relaxed-fermi-rn9ecx` |
+| **SHA** | `0e25831` |
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El camino existe de punta a punta: **consulta → firma → liberación → portal del
+paciente**. Antes de hoy el producto sabía componer lo que el paciente se lleva
+y no tenía forma de dárselo; la pestaña «Cuidado» enseñaba un estado vacío
+honesto que iba a seguir vacío para siempre.
+
+**Los dos actos, separados de verdad.** Firmar va hacia el expediente; liberar
+va hacia una persona que no puede detectar el error. `POST /api/paciente/paquete`
+lee el contenido **de la nota firmada, en el servidor** —el cuerpo sólo trae
+identificadores— y `approvedBy` sale de la sesión verificada bajo capacidad
+`firmar`, nunca del cuerpo.
+
+**La compuerta de firma** (`POSTVISIT-GATE-001`, cerrada): con la nota en
+borrador la hoja del paciente se ve marcada como borrador y **no se puede copiar
+ni imprimir**. El valor por omisión es cerrado; probado al revés.
+
+**Y `componerPaquete` volvió con llamador.** Es la razón por la que se había
+retirado en `PATIENT-COMPANION-001`, y ahora hay una prueba que impide que se
+quede sola otra vez.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 584 casos · 1 fallo preexistente y de entorno** (`ops-timeout`) |
+| `lint-trinquete` | **96, igual que el techo.** Subió a 102 con la ref leída en render y el `setState` en efecto; se arregló el cambio, **no el techo** |
+| trinquete de diseño | **sin deuda nueva.** Subió 8 tamaños fuera de escala y se ajustaron a la escala |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | compila y **TypeScript pasa**; falla al recolectar páginas por falta de credenciales de Firebase — **comprobado contra el árbol limpio: preexistente del entorno** |
+| navegador | **no ejecutado** |
+
+## Lo que NO cerró, y hay que decirlo
+
+- **`POSTVISIT-VERSION-002` (P2).** Recomponer sobre un paquete `RELEASED`
+  responde 409. Corregir lo entregado es liberar una versión nueva —la misma
+  forma que una adenda— y exige decidir qué ve el paciente entre una versión y
+  la siguiente y cómo se le avisa. El campo `version` ya está en el modelo.
+- **`POSTVISIT-DOSIS-003` (P2).** `cambiosDeMedicacion` compara por **nombre**:
+  el mismo fármaco con otra dosis sale `sin-cambio`. No es un olvido — una
+  comparación de cifras que se equivoque le diría al paciente que su dosis
+  cambió cuando no cambió.
+- **Nada se ha visto en un navegador.** Ni la pantalla del médico, ni la del
+  paciente, ni el recorrido completo. Sigue siendo `NAV-NAVEGADOR-001`.
+
+## Qué hacer al reanudar
+
+1. `node scripts/agent-state/actualizar.mjs` y comprobar el `git log`.
+2. **No rehacer** `POSTVISIT-001`: cerrada, con REG-306 y REG-307.
+3. **`PATIENT-AI-001`** — ASK NEXUS con las cinco clases de respuesta, la
+   jerarquía de fuentes de `.claude/rules/patient-facing-ai.md` y **las doce
+   preguntas del §PATIENT AI RED TEAM como fixture permanente** en
+   `evals/patient-ai/`. Es lo más peligroso que ha construido este proyecto: la
+   primera vez que un modelo le habla a alguien que no puede detectar el error.
+   Empieza por el equipo rojo, no por la pantalla.
+4. Lo que ya tiene dónde apoyarse: `unansweredQuestions` está en el paquete y va
+   vacío, esperando exactamente a esa unidad.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

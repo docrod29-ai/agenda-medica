@@ -3,13 +3,71 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 10-ago-2026 · REG-306, REG-307 · `0e25831`.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS, con las doce preguntas del equipo
+rojo como fixture permanente **antes** que la pantalla.
 
 ---
 
-## Lo que quedó montado en `PATIENT-COMPANION-001`
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El camino existe.** Consulta → firma → liberación → portal del paciente. Antes
+de hoy la pestaña «Cuidado» enseñaba un estado vacío honesto **que iba a seguir
+vacío para siempre**: nadie podía crear un paquete.
+
+**Los dos actos, con dos gestos.** Firmar va hacia el expediente; liberar va
+hacia una persona que no puede detectar el error. Se podría disparar liberar al
+firmar, y no se hace: la separación sólo significa algo si el segundo acto tiene
+su propio botón. El médico ve **todo lo compuesto** antes de pulsar —aprobar algo
+que no se ve es firmar en blanco— y el botón advierte en su propio texto que lo
+liberado no se reescribe, en vez de abrir un modal que se aprende a despachar sin
+leer (REG-245).
+
+**El contenido lo lee el servidor.** El cuerpo de la petición trae
+identificadores, no clínica. `approvedBy` sale de la sesión verificada bajo
+capacidad `firmar` —no `clinico.escribir`: quien registra un pase de visita no
+decide qué lee el paciente en su casa—. Un `approvedBy` que viaja por la red es
+un campo que se puede escribir, y entonces «lo aprobó su médico» no significa
+nada.
+
+**La compuerta de firma, por fin.** `HojaParaElPaciente` se compone en vivo
+mientras el médico dicta, y desde el primer minuto tenía «Copiar» e «Imprimir»
+sin comprobar nada: lo que iba al WhatsApp del paciente podía ser una dosis a
+medio corregir. Ahora **mirar es libre y salir no**, con el valor por omisión
+cerrado.
+
+**Y `proximaCita` ya no es `undefined` fijo.** Su cuarto bloque llevaba desde que
+se escribió sin poder renderizarse jamás; el servidor lo resuelve de la primera
+cita futura no cancelada, y si no hay, calla — no inventa un «acuda en un mes».
+
+## Lo que NO se hizo, y por qué importa
+
+- **Corregir un paquete liberado** responde 409 (`POSTVISIT-VERSION-002`, P2). Es
+  la forma de una adenda sobre una nota firmada y exige decidir qué ve el
+  paciente entre versiones. El campo `version` está en el modelo esperándolo.
+- **Un cambio de dosis del mismo fármaco sale `sin-cambio`**
+  (`POSTVISIT-DOSIS-003`, P2): se compara por nombre. Detectarlo exige comparar
+  cifras, y equivocarse ahí le diría al paciente que su dosis cambió cuando no
+  cambió.
+- **`warningSigns` los escribe el médico o van vacíos.** No hay desplegable de
+  «signos de alarma frecuentes»: sería el producto poniéndole indicaciones
+  médicas en la boca a alguien que las firma con su cédula.
+- **`educationalMaterial`, `documents` y `unansweredQuestions` siguen vacíos y
+  declarados.** Llegan con `DOCUMENTS-001` y `PATIENT-AI-001`.
+
+## Lo que este estado NO afirma
+
+**Nada se ha visto en un navegador.** Ni la pantalla del médico, ni la del
+paciente, ni el recorrido completo. La ruta tampoco se ha ejercitado contra
+Firestore: lo que hay son el motor puro probado y guardianes que leen el código
+de la ruta y de las dos pantallas. `NAV-NAVEGADOR-001` sigue abierto y es lo que
+convertiría esto en «entregado» de verdad.
+
+---
+
+## Estado anterior (`PATIENT-COMPANION-001`, 9-ago)
+
+
 
 **Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
 · Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la

@@ -13,8 +13,11 @@
 **Loop en curso**: **V9 — Patient Companion + World-Class Product Experience**
 · directiva íntegra en
 [`docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`](../docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md)
-**Unidad actual**: `PATIENT-UX-TRUTH-001` ✅ **CERRADA** (8-ago) →
-**los tres P0 de audio**, y luego `DESIGN-SYSTEM-001`.
+**Unidad actual**: `POSTVISIT-001` ✅ **CERRADA** (10-ago, `0e25831`) →
+**`PATIENT-AI-001`**, y ahí se empieza por el equipo rojo, no por la pantalla:
+es la primera vez que un modelo de este producto le habla a alguien que **no
+puede detectar el error**. Cerradas ya: `PATIENT-UX-TRUTH-001`, los tres P0 de
+audio, `DESIGN-SYSTEM-001`, `NAVIGATION-001`, `PATIENT-COMPANION-001`.
 Punto de reanudación: [`LAST_SAFE_CHECKPOINT.md`](./LAST_SAFE_CHECKPOINT.md)
 
 ---
