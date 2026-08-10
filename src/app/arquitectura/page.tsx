@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Arquitectura · NexusMED',
-  description: 'Los motores internos de NexusMED: razonamiento clínico, seguridad de dosis, evidencia con PMID, interoperabilidad HL7/FHIR, paquetes por especialidad. Qué existe hoy y cómo se demuestra.',
+  title: 'Arquitectura · Ausculta',
+  description: 'Los motores internos de Ausculta: razonamiento clínico, seguridad de dosis, evidencia con PMID, interoperabilidad HL7/FHIR, paquetes por especialidad. Qué existe hoy y cómo se demuestra.',
 }
 
 type Estado = 'activo' | 'parcial' | 'roadmap'
@@ -34,7 +34,7 @@ const MOTORES: Motor[] = [
     desc: 'Importación/exportación HL7 v2 y FHIR (laboratorios, pacientes), con verificación de sujeto e idempotencia.',
     demo: 'Módulo hospitalario (import de labs).' },
   { nombre: 'Finance & Operations Engine', estado: 'activo',
-    desc: 'Corte de caja, cuentas por cobrar, cobros con anti-doble-cobro, inventario de farmacia, paquetes y recibo de cobro no fiscal. (El CFDI que se timbra es el de TU suscripción a NexusMED, no el de tu paciente.)',
+    desc: 'Corte de caja, cuentas por cobrar, cobros con anti-doble-cobro, inventario de farmacia, paquetes y recibo de cobro no fiscal. (El CFDI que se timbra es el de TU suscripción a Ausculta, no el de tu paciente.)',
     demo: 'Módulos Finanzas y Farmacia.' },
   { nombre: 'Messaging Engine (WhatsApp)', estado: 'activo',
     desc: 'Recordatorios y confirmaciones por WhatsApp con opt-out, ventana de 24 h, plantillas HSM, outbox y horas de silencio.',
@@ -63,7 +63,7 @@ export default function ArquitecturaPage() {
         No es una app de agenda con IA encima. Son motores.
       </h1>
       <p style={{ fontSize: 16.5, color: 'var(--text2)', maxWidth: '68ch', lineHeight: 1.55 }}>
-        NexusMED es un sistema operativo clínico: cada capacidad es un motor con una responsabilidad clara.
+        Ausculta es un sistema operativo clínico: cada capacidad es un motor con una responsabilidad clara.
         Aquí está el estado <strong>real</strong> de cada uno — sin humo. Lo que dice “Activo” lo puedes usar hoy;
         lo que dice “Roadmap” lo estamos construyendo y lo decimos.
       </p>

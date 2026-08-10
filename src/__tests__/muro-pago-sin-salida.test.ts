@@ -53,8 +53,10 @@ describe('y hay una salida', () => {
   it('se ofrece a quién escribirle', () => {
     // Un muro sin puerta ni timbre es peor que un muro: esta pantalla bloquea
     // la aplicación entera.
-    expect(layout).toContain('soporte@nexusmed.mx')
+    expect(layout).toContain('CORREO_SOPORTE')
     expect(layout).toContain('con tu correo de acceso')
+    /* Y el timbre no puede sonar en casa ajena: `nexusmed.mx` es de otro. */
+    expect(layout).not.toContain('@nexusmed.mx')
   })
 
   it('el aviso es accesible y se lee como alerta', () => {

@@ -35,6 +35,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { rutaPermitida, moduloDeRuta } from '@/lib/modulos'
 import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
+import { CORREO_SOPORTE } from '@/lib/contacto'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -378,7 +379,7 @@ function AccesoGate({ estado, clinicId, esMedico, email }: { estado: 'sin_tarjet
               <div className="alert-title">No se pudo abrir el pago</div>
               {error}
               <div style={{ marginTop: 6, color: 'var(--text3)' }}>
-                Si vuelve a pasar, escríbenos a <strong>soporte@nexusmed.mx</strong> con tu correo de acceso y lo resolvemos.
+                Si vuelve a pasar, escríbenos a <strong>{CORREO_SOPORTE}</strong> con tu correo de acceso y lo resolvemos.
               </div>
             </div>
           </div>

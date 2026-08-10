@@ -44,9 +44,9 @@ export function GraficaLab({
         )}
         <text x={2} y={y(hi) + 4} fontSize="9" fill="var(--text3)">{Math.round(hi)}</text>
         <text x={2} y={y(lo) + 4} fontSize="9" fill="var(--text3)">{Math.round(lo)}</text>
-        {puntos.length > 1 && <path d={path} fill="none" stroke="#3d5afe" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+        {puntos.length > 1 && <path d={path} fill="none" stroke="var(--nexus)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
         {puntos.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={y(p.valor)} r={3} fill={p.critico || fuera(p.valor) ? '#dc2626' : '#3d5afe'} />
+          <circle key={i} cx={x(i)} cy={y(p.valor)} r={3} fill={p.critico || fuera(p.valor) ? '#dc2626' : 'var(--nexus)'} />
         ))}
         <text x={x(0)} y={H - 4} fontSize="8.5" fill="var(--text3)" textAnchor="start">{fmtFecha(puntos[0].fecha)}</text>
         {puntos.length > 1 && <text x={x(puntos.length - 1)} y={H - 4} fontSize="8.5" fill="var(--text3)" textAnchor="end">{fmtFecha(ultimo.fecha)}</text>}

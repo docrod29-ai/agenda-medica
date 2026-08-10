@@ -1,0 +1,387 @@
+{
+  "_que": "Línea base axe-core del golden flow — V10-TRUTH-001 salida 10. Auditoría, no compuerta.",
+  "_capturadoEl": "2026-08-09",
+  "_reglas": "wcag2a wcag2aa wcag21a wcag21aa wcag22aa",
+  "_noMide": "tab-order real, foco visible, trampas de foco, lector de pantalla — V10-A11Y-001 a mano",
+  "axeVersion": "4.11.4",
+  "pantallas": {
+    "login-1440": [
+      {
+        "regla": "target-size",
+        "impacto": "serious",
+        "wcag": [
+          "wcag22aa",
+          "wcag258"
+        ],
+        "descripcion": "All touch targets must be 24px large, or leave sufficient space",
+        "nodos": 1,
+        "primerNodo": "button[aria-label=\"Mostrar la contraseña\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Target has insufficient size (16px by 16px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 16px instead of at least 24px."
+      }
+    ],
+    "dashboard-1440": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "color-contrast",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2aa",
+          "wcag143"
+        ],
+        "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 4,
+        "primerNodo": ".prox-hero-cta",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has insufficient color contrast of 3.28 (foreground color: #ffffff, background color: #6e84fe, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+      }
+    ],
+    "citas-1440": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 3,
+        "primerNodo": "div:nth-child(2) > div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "color-contrast",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2aa",
+          "wcag143"
+        ],
+        "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 6,
+        "primerNodo": ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has insufficient color contrast of 4.43 (foreground color: #6e84fe, background color: #132d2d, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "regla": "label",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Form elements must have labels",
+        "nodos": 1,
+        "primerNodo": "input[type=\"date\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem"
+      }
+    ],
+    "calendario-1440": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 3,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "color-contrast",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2aa",
+          "wcag143"
+        ],
+        "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 5,
+        "primerNodo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has insufficient color contrast of 3.04 (foreground color: #3d5afe, background color: #1d223a, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "regla": "nested-interactive",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Interactive controls must not be nested",
+        "nodos": 5,
+        "primerNodo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has focusable descendants"
+      },
+      {
+        "regla": "target-size",
+        "impacto": "serious",
+        "wcag": [
+          "wcag22aa",
+          "wcag258"
+        ],
+        "descripcion": "All touch targets must be 24px large, or leave sufficient space",
+        "nodos": 1,
+        "primerNodo": "div[aria-label=\"Agendar a las 10:00\"][role=\"button\"]:nth-child(8)",
+        "resumenPrimerNodo": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 3px by 48px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 2px instead of at least 24px."
+      }
+    ],
+    "pacientes-1440": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      }
+    ],
+    "expediente-1440": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      }
+    ],
+    "consulta-1440": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "label",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Form elements must have labels",
+        "nodos": 4,
+        "primerNodo": "div:nth-child(8) > textarea[placeholder=\"\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem"
+      }
+    ],
+    "login-390": [
+      {
+        "regla": "target-size",
+        "impacto": "serious",
+        "wcag": [
+          "wcag22aa",
+          "wcag258"
+        ],
+        "descripcion": "All touch targets must be 24px large, or leave sufficient space",
+        "nodos": 1,
+        "primerNodo": "button[aria-label=\"Mostrar la contraseña\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Target has insufficient size (16px by 16px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 16px instead of at least 24px."
+      }
+    ],
+    "dashboard-390": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "color-contrast",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2aa",
+          "wcag143"
+        ],
+        "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 4,
+        "primerNodo": ".prox-hero-cta",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has insufficient color contrast of 3.28 (foreground color: #ffffff, background color: #6e84fe, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+      }
+    ],
+    "citas-390": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 3,
+        "primerNodo": "div:nth-child(2) > div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "color-contrast",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2aa",
+          "wcag143"
+        ],
+        "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 3,
+        "primerNodo": ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has insufficient color contrast of 4.43 (foreground color: #6e84fe, background color: #132d2d, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "regla": "label",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Form elements must have labels",
+        "nodos": 1,
+        "primerNodo": "input[type=\"date\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem"
+      }
+    ],
+    "calendario-390": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 3,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "color-contrast",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2aa",
+          "wcag143"
+        ],
+        "descripcion": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 5,
+        "primerNodo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has insufficient color contrast of 3.04 (foreground color: #3d5afe, background color: #1d223a, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "regla": "nested-interactive",
+        "impacto": "serious",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Interactive controls must not be nested",
+        "nodos": 5,
+        "primerNodo": "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element has focusable descendants"
+      },
+      {
+        "regla": "target-size",
+        "impacto": "serious",
+        "wcag": [
+          "wcag22aa",
+          "wcag258"
+        ],
+        "descripcion": "All touch targets must be 24px large, or leave sufficient space",
+        "nodos": 1,
+        "primerNodo": "div[aria-label=\"Agendar a las 10:00\"][role=\"button\"]:nth-child(8)",
+        "resumenPrimerNodo": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 3px by 48px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 2px instead of at least 24px."
+      }
+    ],
+    "pacientes-390": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      }
+    ],
+    "expediente-390": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      }
+    ],
+    "consulta-390": [
+      {
+        "regla": "button-name",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Buttons must have discernible text",
+        "nodos": 1,
+        "primerNodo": "div:nth-child(4) > div:nth-child(2) > button",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  "
+      },
+      {
+        "regla": "label",
+        "impacto": "critical",
+        "wcag": [
+          "wcag2a",
+          "wcag412"
+        ],
+        "descripcion": "Form elements must have labels",
+        "nodos": 4,
+        "primerNodo": "div:nth-child(8) > textarea[placeholder=\"\"]",
+        "resumenPrimerNodo": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Elem"
+      }
+    ]
+  },
+  "resumen": {
+    "pantallasAuditadas": 14,
+    "reglasDistintas": [
+      "button-name",
+      "color-contrast",
+      "label",
+      "nested-interactive",
+      "target-size"
+    ],
+    "nodosPorImpacto": {
+      "serious": 41,
+      "critical": 30
+    }
+  }
+}

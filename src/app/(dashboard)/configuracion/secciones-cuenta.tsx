@@ -620,7 +620,7 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
   }
 
   const ROL_LABEL: Record<string, string> = { admin: 'Admin', medico: 'Médico', secretaria: 'Asistente', enfermeria: 'Enfermería', farmacia: 'Farmacia', laboratorio: 'Laboratorio' }
-  const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: '#3D5AFE', secretaria: '#a78bfa', enfermeria: '#0d9488', farmacia: '#db2777', laboratorio: '#7c3aed' }
+  const ROL_COLOR: Record<string, string> = { admin: '#f59e0b', medico: 'var(--nexus)', secretaria: '#a78bfa', enfermeria: '#0d9488', farmacia: '#db2777', laboratorio: '#7c3aed' }
 
   return (
     <div className="card" style={{ padding: 16 }}>

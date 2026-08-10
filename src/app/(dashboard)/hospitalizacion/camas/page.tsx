@@ -20,11 +20,11 @@ import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
 //   verde  = disponible · azul = con paciente · ámbar = transitorio ·
 //   rojo   = no utilizable · morado = precaución de contacto.
 const COLOR: Record<EstadoCama, string> = {
-  libre: '#0d9488', ocupada: '#3d5afe', bloqueada: '#dc2626', limpieza: '#d97706',
+  libre: '#0d9488', ocupada: 'var(--nexus)', bloqueada: '#dc2626', limpieza: '#d97706',
   reservada: '#7c3aed', mantenimiento: '#dc2626', aislamiento: '#a21caf',
   lista: '#0d9488', limpieza_aislamiento: '#a21caf',
 }
-// DECISIÓN DEL DR. (2026-07-30): el default de NexusMED es limpieza terminal
+// DECISIÓN DEL DR. (2026-07-30): el default de Ausculta es limpieza terminal
 // requerida tras alta o traslado — ocupada → limpieza → lista → libre, y nunca
 // ocupada → libre por omisión. Cada hospital puede configurarlo; mientras no
 // haya pantalla de configuración, se usa el default seguro.

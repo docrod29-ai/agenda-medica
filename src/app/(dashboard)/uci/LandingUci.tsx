@@ -213,7 +213,7 @@ export default function LandingUci({ alPanelLibre }: { alPanelLibre: () => void 
                 {t.soportes.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
                     {t.soportes.map(sp => (
-                      <span key={sp} style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)' }}>
+                      <span key={sp} style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: 'var(--nexus-soft)', color: 'var(--nexus)' }}>
                         {SOPORTE_LABEL[sp]}
                       </span>
                     ))}

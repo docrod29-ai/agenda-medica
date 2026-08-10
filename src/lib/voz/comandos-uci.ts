@@ -1,5 +1,5 @@
 /**
- * COMANDOS DE VOZ MANOS-LIBRES PARA UCI — ICU (iteración nexusmed-icu-003).
+ * COMANDOS DE VOZ MANOS-LIBRES PARA UCI — ICU (iteración ausculta-icu-003).
  *
  * El intensivista dicta con las manos ocupadas: navega por aparatos y sistemas,
  * corrige un valor, marca pendientes y finaliza — todo por voz. PURO (string →

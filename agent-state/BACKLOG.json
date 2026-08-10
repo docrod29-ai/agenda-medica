@@ -333,7 +333,7 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "CERRADO PARCIAL (REG-306) — falla-abierta de revocación es decisión ya documentada, no defecto",
+      "estado": "CERRADO PARCIAL (REG-309) — falla-abierta de revocación es decisión ya documentada, no defecto",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-PORTAL-001",

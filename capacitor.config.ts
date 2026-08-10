@@ -1,9 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 /**
- * Configuración de la app nativa (iOS + Android) que envuelve NexusMED.
+ * Configuración de la app nativa (iOS + Android) que envuelve Ausculta.
  *
- * POR QUÉ `server.url` y no un bundle estático: NexusMED es Next.js con servidor
+ * POR QUÉ `server.url` y no un bundle estático: Ausculta es Next.js con servidor
  * (App Router + rutas API + Firestore + auth). NO se puede exportar a HTML
  * estático, así que la app nativa carga la versión desplegada en Vercel. Aun así
  * es una app NATIVA de verdad: usa cámara nativa (fotos de antibiograma),
@@ -13,8 +13,8 @@ import type { CapacitorConfig } from '@capacitor/cli'
  * http://192.168.1.10:3000) o coméntalo para usar el bundle de `webDir`.
  */
 const config: CapacitorConfig = {
-  appId: 'mx.nexusmed.app',
-  appName: 'NexusMED',
+  appId: 'mx.ausculta.app',
+  appName: 'Ausculta',
   // No se usa con server.url, pero Capacitor lo exige. `public/` sirve de respaldo.
   webDir: 'public',
   server: {

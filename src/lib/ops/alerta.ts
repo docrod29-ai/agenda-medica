@@ -78,7 +78,7 @@ export async function enviarAlertaOps(a: AlertaOps): Promise<ResultadoAlerta> {
       // `text` es lo que casi todos los receptores (Slack, ntfy…) pintan sin
       // configurar nada; los campos sueltos van al lado para quien los quiera.
       body: JSON.stringify({
-        text: `[${a.gravedad.toUpperCase()}] NexusMED · ${a.titulo}\n${a.detalle}`,
+        text: `[${a.gravedad.toUpperCase()}] Ausculta · ${a.titulo}\n${a.detalle}`,
         titulo: a.titulo, detalle: a.detalle, gravedad: a.gravedad, origen: a.origen,
         ts: new Date().toISOString(),
       }),

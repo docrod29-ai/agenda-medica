@@ -6,7 +6,7 @@
  *
  * ── POR QUÉ EXISTE ───────────────────────────────────────────────────────────
  *
- * La integración con Google era de una sola dirección: NexusMED empujaba sus
+ * La integración con Google era de una sola dirección: Ausculta empujaba sus
  * citas y nada volvía. El médico se ponía una cirugía el jueves de 8 a 12 en
  * Google y la agenda seguía ofreciendo esas horas; el choque se descubría el
  * jueves.

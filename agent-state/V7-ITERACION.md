@@ -164,7 +164,9 @@ Se tomó en su lugar **`PATIENT-PORTAL-001`** de `agent-state/BACKLOG.json`
 (que sigue en `POSTVISIT-001`, pantalla distinta): `/api/portal`,
 `/api/public/resena` y `/api/payment/create-checkout` no tenían **ningún**
 `limitar*`, a diferencia de sus hermanas (`telesalud/sala`, `public/booking`).
-**REG-306.** Las tres rutas del hallazgo quedan con `limitarOResponder`
+**REG-309** (renumerado de REG-306 al fusionar con `main`: V10 ya había usado
+ese número para un hallazgo distinto, el problema T-1 de
+`OWNER_DECISIONS_REQUIRED.md`). Las tres rutas del hallazgo quedan con `limitarOResponder`
 —portal 40/600s + 10/600s en confirmar/cancelar/reagendar, reseña 10/3600s por
 IP, pago 8/600s—, guardián probado al revés
 (`src/__tests__/portal-limite-de-tasa.test.ts`, 10 casos), y el sello de

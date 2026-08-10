@@ -88,7 +88,7 @@ export function QueNotaEs(p: QueNotaEsProps) {
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: 12, fontWeight: 600, padding: '5px 12px',
               borderRadius: 'var(--r-pill)', border: '1px solid var(--nexus)',
-              background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
+              background: 'var(--nexus-soft)', color: 'var(--nexus)',
             }}
           >
             <Sparkles size={13} />

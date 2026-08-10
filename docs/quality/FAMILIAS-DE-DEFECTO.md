@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 35 de 154, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 157, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -53,10 +53,11 @@ ese camino no es una impresión y nunca miró la marca.
 Los dos tienen la misma forma: **la pieza estaba bien, y no corría donde tenía
 que correr**.
 
-REG-306 (9-ago-2026) es el mismo patrón en un sitio nuevo: `limitarOResponder`
-llevaba semanas probado y corriendo en `telesalud/sala` y `public/booking`, y
-nunca se cableó en `/api/portal`, `/api/public/resena` ni
-`/api/payment/create-checkout` — las tres rutas del portal del paciente.
+REG-309 (9-ago-2026, renumerado de REG-306 al fusionar) es el mismo patrón en
+un sitio nuevo: `limitarOResponder` llevaba semanas probado y corriendo en
+`telesalud/sala` y `public/booking`, y nunca se cableó en `/api/portal`,
+`/api/public/resena` ni `/api/payment/create-checkout` — las tres rutas del
+portal del paciente.
 
 ## La que más creció de golpe
 
@@ -91,7 +92,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 27 de 153.**
+**«El sistema se contradice a sí mismo» — 28 de 157.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -131,7 +132,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 21 de 153**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 23 de 157**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

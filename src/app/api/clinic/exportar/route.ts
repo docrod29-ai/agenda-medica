@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
   return new Response(flujo, {
     headers: {
       'Content-Type': 'application/x-ndjson; charset=utf-8',
-      'Content-Disposition': `attachment; filename="respaldo_nexusmed_${new Date().toISOString().slice(0, 10)}.ndjson"`,
+      'Content-Disposition': `attachment; filename="respaldo_ausculta_${new Date().toISOString().slice(0, 10)}.ndjson"`,
       'Cache-Control': 'no-store',
     },
   })

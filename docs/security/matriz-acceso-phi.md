@@ -1,4 +1,4 @@
-# Matriz de acceso a PHI — NexusMED
+# Matriz de acceso a PHI — Ausculta
 
 > **ARCHIVO GENERADO — no editar a mano.** Sale de `matrizComoMarkdown()` en
 > `src/lib/authz/matriz-acceso.ts`. `src/__tests__/matriz-acceso.test.ts` falla
