@@ -1,7 +1,79 @@
 {
-  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Se llena durante V10-TRUTH-001; nada aquí duplica un REG ya reparado ni una unidad V9 cerrada.",
+  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Nada aquí duplica un REG ya reparado ni una unidad V9 cerrada. Los ítems con evidencia citan su captura en docs/design/capturas/v10-truth/.",
   "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
   "items": [
+    {
+      "id": "V10-DEBT-003",
+      "titulo": "AGENDA MÓVIL (390) rota: nombre del paciente palabra por palabra, botones de acción pintados ENCIMA del texto y fuera del viewport, filtros en 3 filas, barra de fecha envuelta",
+      "fuente": "captura agenda--390.png (9-ago-2026, arnés V10) + citas--mobile.png (corrida nocturna)",
+      "prioridad": "P0",
+      "unidadV10": "V10-AGENDA-001 (o arreglo puntual previo: es la pantalla más usada en móvil)",
+      "estado": "CERRADO 10-ago-2026 (AGENDA-IDENTITY-001)",
+      "confirmado-por-corrida-paralela": "TRES corridas ciegas vieron la misma rotura. La nocturna la registró como V10-CITAS-001 con prioridad P0 — se adopta ese P0. Incluye además el muro de escritorio: 4 CTA × 3 colores por fila, filtro duplicado (chips + segmentos), etiqueta del propio médico repetida en cada fila.",
+      "cierre": "El riel del día: P0 móvil muerto (nombre en una línea, una acción apilada, cero solapes, cero desborde), muro de botones → una acción primaria por estado + menú, filtros 12→4, es-MX, sin píldora del médico, sin avatar. axe agenda: de 2 critical + 9 serious de línea base a CERO en 1440 y 390. Guardián: la-agenda-es-un-riel.test.ts (12 casos, 6 probados al revés contra e797b49e). Capturas nuevas en tests/visual/capturas/."
+    },
+    {
+      "id": "V10-DEBT-004",
+      "titulo": "El shell móvil dice «Agenda Médica» en la cabecera — no es la marca; y el FAB de ayuda tapa el conmutador de tema en TODAS las pantallas móviles",
+      "fuente": "capturas hoy/agenda/expediente/consulta--390.png",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto",
+      "confirmado-por-corrida-paralela": "La corrida paralela midió la marca partida en TRES (móvil «Agenda Médica», login «NexusMED», sidebar nombre de clínica) en 4/4 capturas móviles."
+    },
+    {
+      "id": "V10-DEBT-005",
+      "titulo": "Accesibilidad critical en el flujo central: botones de icono sin nombre y fecha sin etiqueta (agenda), 4 textareas sin etiqueta (consulta)",
+      "fuente": "tests/visual/capturas/reporte-a11y.json (9-ago-2026)",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001 (adelantado)",
+      "estado": "CERRADO 9-ago-2026 (noche)",
+      "cierre": "Los 4 critical reparados y verificados con axe en navegador real (12→8 hallazgos, 0 critical): chevrones y fecha de agenda con nombre, textareas de consulta con aria-label, y de paso .prox-hero-cta al azul sólido (mismo 3.28:1 de v1104 en CSS global) y el toggle de contraseña a 44×44. Guardián probado al revés: src/__tests__/a11y-flujo-central-etiquetas.test.ts. Los 8 serious restantes quedan repartidos: contraste agenda/hoy → V10-AGENDA-001/V10-TODAY-001; nested-interactive pacientes → V10-DEBT-010; contraste nota → V10-DEBT-008."
+    },
+    {
+      "id": "V10-DEBT-008",
+      "titulo": "FACTORES HUMANOS (§8.30, §37): la nota BORRADOR es indistinguible de una firmada a golpe de vista — el único marcador es una línea gris de 9.5px al final, DESPUÉS de la línea de firma con el nombre del médico, bajo el pliegue; y Descargar PDF / Imprimir / Word se ofrecen igual que en una firmada. Además: contraste serious ×7 en la tabla de datos del paciente",
+      "fuente": "captura nota--1440.png / nota--390.png (9-ago noche, nota borrador sembrada) + nota/[patientId]/[notaId]/page.tsx:542",
+      "prioridad": "P1",
+      "unidadV10": "V10-NOTE-001 (adelantable como quick-strike: banda BORRADOR no-print arriba + marca de agua en impreso; la nota NO fue tocada por la rama V9)",
+      "estado": "CERRADO 9-ago-2026 (V10-NOTE-001 quick-strike)",
+      "cierre": "Banda BORRADOR ámbar (role=status, no-print) arriba; marca de agua SVG diagonal dentro de #doc (viaja por outerHTML a impresión y PDF; @media print en globals.css la vuelve fixed → se repite por hoja; la vía membretada la estampa en cada .nota-sheet); Word con banda roja BORRADOR. Contraste serious ×7 reparado de raíz: los <td> del papel declaran color #1a1a1a inline (tbody td de globals se colaba en pantalla Y en el popup de impresión) y el hover de tabla de la app ya no pinta bandas sobre el papel. axe 0 critical/serious en nota@1440 y @390. Guardián probado al revés (9/9 fallan sin el arreglo): src/__tests__/nota-borrador-inconfundible.test.ts"
+    },
+    {
+      "id": "V10-DEBT-009",
+      "titulo": "NOTA MÓVIL (390) rota: las 3 acciones de exportar se apilan a ancho completo SOBRE el documento y «Atrás» queda recortado y tapado detrás de Imprimir",
+      "fuente": "captura nota--390.png (9-ago noche)",
+      "prioridad": "P2",
+      "unidadV10": "V10-NOTE-001",
+      "estado": "CERRADO 9-ago-2026 (V10-NOTE-001 quick-strike)",
+      "cierre": "Bajo 480px la barra envuelve (flex-wrap): «Atrás» visible en su propia fila, Descargar PDF (primario) a fila completa, resto en rejilla 2 columnas con min-height 44px y sin celdas huérfanas (última acción impar ocupa la fila). Verificado con captura nota--390.png nueva. Mismo guardián."
+    },
+    {
+      "id": "V10-DEBT-010",
+      "titulo": "PACIENTES MÓVIL: los nombres se truncan («María Fernanda…») mientras el botón secundario Editar conserva su ancho — la identidad es el dato de seguridad primario; 3 acciones de cabecera apiladas en 3 filas; y nested-interactive serious ×3 (fila div[role=button] con botones dentro)",
+      "fuente": "captura pacientes--390.png + reporte-a11y.json (9-ago noche, lista poblada)",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001 (OJO: pacientes/page.tsx SÍ fue tocado por la rama V9 — esperar V10-D1 o rebasar)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-DEBT-006",
+      "titulo": "Jerarquía de acción invertida: expediente móvil pone el CTA primario (Nueva consulta con IA) en CUARTO lugar tras tres secundarios de igual peso; hoy-escritorio reparte 4 KPI con círculos de icono (§9)",
+      "fuente": "capturas expediente--390.png, hoy--1440.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001 / V10-TODAY-001",
+      "estado": "mitad-expediente-CERRADA 9-ago-2026 (madrugada-3)",
+      "cierre": "Mitad EXPEDIENTE cerrada: rejilla exp-actions bajo 480px — el primario (último hijo DOM, escritorio intacto) sube a la primera fila completa con order:-1 + grid-column, secundarios en 2 columnas sin celdas huérfanas, objetivos 44px. Mismo patrón que nota-toolbar (DEBT-009, §8.33). Captura expediente--390.png nueva, axe 0 en 1440/390, guardián probado al revés (4/5 fallan sin el arreglo): src/__tests__/expediente-cta-primero-movil.test.ts. La mitad HOY (círculos de icono de las 4 KPI de escritorio) sigue abierta → V10-TODAY-001."
+    },
+    {
+      "id": "V10-DEBT-007",
+      "titulo": "Navegación: la barra lateral resalta «Consulta» estando en /pacientes; sobredosis de píldoras en agenda (4 familias de pill en una pantalla)",
+      "fuente": "capturas pacientes--1440.png, agenda--1440.png",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001 / V10-AGENDA-001",
+      "estado": "abierto",
+      "confirmado-por-corrida-paralela": "Confirmado por el revisor independiente de la corrida paralela. La nocturna volvió a verlo (calendario--mobile.png)."
+    },
     {
       "id": "V10-DEBT-001",
       "titulo": "La aplicación no obedece al sistema de diseño: 6 065 style={{ en 177/200 archivos, 1 205 hex a mano, ~60 tamaños de fuente contra 6 declarados",
@@ -9,7 +81,7 @@
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
       "dependeDe": "fusión de DESIGN-SYSTEM-001 (rama V9) — no rehacer ese trabajo",
-      "estado": "esperando-fusion-v9"
+      "estado": "desbloqueado — V9 fusionada a main (V10-D1, PR #279, 56d9fc7a); entra como V10-CONSTITUTION-001"
     },
     {
       "id": "V10-DEBT-002",
@@ -18,7 +90,39 @@
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
       "dependeDe": "fusión de DESIGN-SYSTEM-001",
-      "estado": "esperando-fusion-v9"
+      "estado": "desbloqueado — V9 fusionada a main (V10-D1, 56d9fc7a); entra como V10-CONSTITUTION-001"
+    },
+    {
+      "id": "V10-DASHBOARD-002",
+      "titulo": "P2 móvil del héroe de HOME-001: overline en 3 renglones, nombre truncado con espacio de sobra, «2 por confirmar» partido a media frase, botones flotantes tapando la agenda",
+      "evidencia": "dashboard--mobile.png (9-ago-2026, corrida nocturna — única lectura post-HOME-001)",
+      "prioridad": "P2",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONSULTA-001",
+      "titulo": "P2: la alergia sale dos veces a 40 px (franja + píldora) en /consulta; en móvil la franja trunca sin envolver. Consolidar en UNA señal — la más visible, nunca las dos a medias (señal de seguridad: revisar con clinical-safety antes de tocar)",
+      "evidencia": "consulta--desktop.png, consulta--mobile.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CALENDARIO-002",
+      "titulo": "P2: todos los eventos del calendario van del mismo naranja sin distinguir estado; confirmada vs pendiente sólo por borde punteado sutil",
+      "evidencia": "calendario--desktop.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-001",
+      "titulo": "P3: con expediente vacío, tres tarjetas «sin dato» ocupan el espacio más caro; un solo estado vacío que enseñe el siguiente paso comunica más",
+      "evidencia": "expediente--desktop.png (9-ago-2026)",
+      "prioridad": "P3",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
     },
     {
       "id": "V10-HOME-002",
@@ -39,13 +143,14 @@
       "estado": "abierto"
     },
     {
-      "id": "V10-DEBT-003",
+      "id": "V10-HOME-004",
       "titulo": "`.kpi-card` y sus derivadas quedan en `globals.css` sin ningún consumidor",
       "fuente": "HOME-001: la última pantalla que las usaba dejó de hacerlo",
       "porQueNoSeBorroYa": "§14 sitúa las métricas administrativas en Operaciones/Analítica, donde la tarjeta KPI sí es legítima; borrarla ahora obligaría a reescribirla allí",
       "prioridad": "P3",
       "unidadV10": "V10-OPERATIONS-001",
-      "estado": "abierto"
+      "estado": "abierto",
+      "nota-reconciliacion": "Renombrado en la fusión del 9-ago: V10-DEBT-003 ya era la agenda móvil. Este es el barrido de .kpi-card muerto en globals.css tras HOME-001."
     },
     {
       "id": "V10-TRUTH-CAPTURAS",
@@ -53,7 +158,185 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
+      "estado": "CERRADO 9-ago-2026 (noche)",
+      "cierre": "Cerrado DOS veces por corridas ciegas entre sí: la reconciliada (siembra extendida, 7/7 pantallas puntuadas, rendimiento @1440 en reporte-rendimiento.json) y la nocturna (21 capturas 7×3 anchos, axe, scorecard con evidencia en docs/design/capturas/v10-truth/). Receta/orden quedan para sus unidades (V10-MEDS-001/V10-ORDERS-001)."
+    },
+    {
+      "id": "V10-SAFETY-ALERGIAS-WORDING",
+      "titulo": "La consulta dice «Sin alergias conocidas» cuando NO HAY REGISTRO — afirma ausencia sin dato (regla clínica 4). El expediente dice «no registradas», que es lo correcto",
+      "fuente": "captura consulta-1440.png 9-ago-2026 vs expediente/[patientId]/page.tsx:137",
+      "prioridad": "P1",
+      "unidadV10": "V10-ENCOUNTER-001 (o arreglo inmediato de contenido: es una palabra, reversible)",
+      "estado": "CERRADO 9-ago-2026",
+      "nota-reconciliacion": "Reparado en la misma corrida que lo encontró: placeholder «No registradas — escribe aquí si hay…» + guardián alergias-placeholder-no-afirma.test.ts. En la fusión el arreglo está dentro."
+    },
+    {
+      "id": "V10-MOBILE-DASHBOARD-APILADO",
+      "titulo": "El dashboard móvil es el escritorio apilado: 3 pantallas de tarjetas KPI antes de la agenda del día; el FAB de ayuda tapa contenido (V10 §27)",
+      "fuente": "captura dashboard-390.png 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "V10-TODAY-001 / V10-MOBILE-001",
+      "estado": "CERRADO 9-ago-2026 (HOME-001)",
+      "nota-reconciliacion": "El rediseño HOME-001 (dee76d35) eliminó la rejilla fija 1fr/300px y las KPI; re-captura pendiente para cerrar con evidencia."
+    },
+    {
+      "id": "V10-MOBILE-CALENDARIO-SEMANA",
+      "titulo": "El calendario móvil muestra la semana de 7 columnas en 390px: bloques ilegibles. Debe abrir en vista día en móvil (V10 §15)",
+      "fuente": "captura calendario-390.png 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001 / V10-MOBILE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-TODAY-KPI-GENERICO",
+      "titulo": "4 tarjetas KPI de peso igual con círculos de icono en el dashboard («NO ASISTIERON 0» gasta el mejor espacio en información nula) — §14 prohíbe el dashboard KPI genérico",
+      "fuente": "captura dashboard-1440.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "CERRADO 9-ago-2026 (HOME-001)",
+      "nota-reconciliacion": "Las 4 tarjetas KPI con círculos de icono ya no existen: el resumen es un renglón de texto. Re-captura pendiente."
+    },
+    {
+      "id": "V10-SHELL-ALMACEN",
+      "titulo": "Barra lateral con ~20 destinos de peso igual (almacén de funciones, §8.16); en móvil la marca dice «Agenda Médica», no NexusMED ni la clínica",
+      "fuente": "capturas dashboard-1440.png y dashboard-390.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CITAS-ARCOIRIS",
+      "titulo": "Cada fila de cita lleva 3-4 botones de color distinto (teal/azul/verde/morado) con énfasis igual — compite el color y no hay UNA acción primaria (§8.3, §9)",
+      "fuente": "captura citas-1440.png 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-EDAD",
+      "titulo": "Cabecera de expediente/consulta: separador «·» huérfano cuando falta edad; la edad sólo sale del campo almacenado `edad`, no se deriva de fechaNacimiento",
+      "fuente": "capturas expediente-1440.png y consulta-1440.png 9-ago-2026; page.tsx usa patient?.edad",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-E006-LECTURA-LEGADA",
+      "titulo": "El expediente lee alergias SOLO del campo legado patient.alergias; cuando E0-06 termine la migración, la página debe leer clinico/resumen o el banner mentirá",
+      "fuente": "medido 9-ago-2026: siembra sólo en clinico/resumen → banner «no registradas»",
+      "prioridad": "P2",
+      "unidadV10": "coordinar con E0-06 (no es unidad V10; registrar para no perderlo)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-FECHAS-INCONSISTENTES",
+      "titulo": "Fechas mezcladas en citas: «Hoy 2026-08-09» (ISO) junto a input nativo «08/09/2026» — formato US que en es-MX se lee 8 de septiembre. Riesgo real de lectura, no cosmética. Y «3 – 9 De Agosto» con «De» mayúscula",
+      "fuente": "capturas citas-1440.png y calendario-1440.png 9-ago-2026; elevada a P2 por el revisor independiente",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-BARRA-INFERIOR-INCONSISTENTE",
+      "titulo": "La barra inferior móvil (5 destinos + FAB, el ÚNICO patrón móvil intencional hallado) sólo aparece en pacientes-390; ausente en dashboard/citas/calendario-390. Verificar EN VIVO si es condicional por pantalla (defecto grave de continuidad) o artefacto de captura",
+      "fuente": "revisor independiente 9-ago-2026",
+      "prioridad": "P1-verificar",
+      "unidadV10": "V10-SHELL-001 / V10-MOBILE-001",
+      "estado": "RESUELTO 10-ago-2026 — era artefacto de captura",
+      "cierre": "BottomNav se monta INCONDICIONAL en el layout y .bottom-nav-wrap es display:block bajo 768px sin condición por ruta. En capturas fullPage los elementos fixed se pintan una sola vez a la altura del viewport: por eso «desaparecía» en páginas altas (390) y se veía en las cortas. Verificado leyendo layout.tsx:694 y globals.css:1095-1097."
+    },
+    {
+      "id": "V10-FABS-DOBLES",
+      "titulo": "Dos FABs (ayuda «?» con halo + luna) en la esquina de las 5 pantallas; en móvil tapan contenido (icono de CONFIRMADAS en dashboard-390, acciones en citas-390). El halo hace de la ayuda lo más brillante de la pantalla: jerarquía invertida",
+      "fuente": "revisor independiente 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-LOGIN-A11Y",
+      "titulo": "Login: contraste aparente <4.5:1 en secundarios («o con tu correo», footer); luna ~40px bajo el mínimo táctil y encimada a la tarjeta a 390; fondo constelación con cara de producto-IA (GENERIC 4)",
+      "fuente": "revisor independiente 9-ago-2026 (login-1440/390.png); contraste exige medición con pipeta en vivo",
+      "prioridad": "P2",
+      "unidadV10": "V10-A11Y-001 / V10-POLISH-001",
+      "estado": "parcialmente-cerrado",
+      "nota-reconciliacion": "El target-size del ojo de contraseña ya es 44×44 (corrida noche); el contraste de secundarios sigue abierto."
+    },
+    {
+      "id": "V10-PACIENTES-VACIO-PASIVO",
+      "titulo": "El vacío de «Recientes» nombra «Todos A-Z» en negrita en vez de ofrecer el chip como acción tocable, y no ofrece «Nuevo paciente»; «Respaldo» (tarea mensual) compite en cabecera con tareas de cada hora",
+      "fuente": "revisor independiente 9-ago-2026 (pacientes-1440/390.png)",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-BOTONES-SIN-NOMBRE",
+      "titulo": "Botones sin nombre accesible (axe button-name, CRÍTICO): el FAB de luna/tema en TODAS las pantallas + iconos chat/lápiz/kebab en citas y calendario. Un lector anuncia «botón» y nada más",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026 (30 nodos críticos en total con V10-A11Y-CAMPOS)",
+      "prioridad": "P1",
+      "unidadV10": "arreglo directo (aria-label es reversible y no toca lógica) o V10-A11Y-001",
+      "estado": "parcialmente-cerrado",
+      "nota-reconciliacion": "Los iconos de agenda (chat/editar) ya tienen nombre (DEBT-005). Siguen sin nombre: el FAB de luna/tema en TODAS las pantallas y kebab/lápiz de citas y calendario."
+    },
+    {
+      "id": "V10-A11Y-CAMPOS-SIN-ETIQUETA",
+      "titulo": "Campos sin etiqueta programática (axe label, CRÍTICO): 4 textareas CLÍNICAS de la consulta (placeholder vacío) y el input de fecha de citas — la nota médica es invisible para tecnologías de apoyo",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026",
+      "prioridad": "P1",
+      "unidadV10": "arreglo directo o V10-NOTE-001",
+      "estado": "CERRADO 9-ago-2026 (DEBT-005)",
+      "nota-reconciliacion": "Las 4 textareas de la nota y el input de fecha llevan aria-label con guardián probado al revés (a11y-flujo-central-etiquetas.test.ts)."
+    },
+    {
+      "id": "V10-A11Y-CONTRASTE-CTA",
+      "titulo": "Contraste <4.5:1 (axe color-contrast, serio) en el CTA PRIMARIO del dashboard (.prox-hero-cta «Iniciar consulta»), «Registrar cobro» de citas y ranuras del calendario",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026 — confirma la sospecha del revisor visual",
+      "prioridad": "P2",
+      "unidadV10": "V10-CONSTITUTION-001 (tokens de color con cocientes calculados, práctica ya existente en DESIGN_SYSTEM)",
+      "estado": "parcialmente-cerrado",
+      "nota-reconciliacion": "El .prox-hero-cta se reparó (corrida noche) y HOME-001 rediseñó el héroe; «Registrar cobro» y ranuras del calendario siguen abiertos → V10-AGENDA-001."
+    },
+    {
+      "id": "V10-A11Y-CALENDARIO-ANIDADO",
+      "titulo": "role=button dentro de role=button en las ranuras del calendario (axe nested-interactive, serio): el interno no es alcanzable por teclado; ranuras además bajo el mínimo táctil (target-size)",
+      "fuente": "tests/accessibility/axe-baseline-v10.json 9-ago-2026",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PACIENTES-RECIENTES-VACIO",
+      "titulo": "Pestaña por defecto «Recientes» de pacientes sale vacía aunque hay 5 citas hoy (se alimenta de otra señal); el estado vacío sí enseña la salida",
+      "fuente": "captura pacientes-1440.png 9-ago-2026",
+      "prioridad": "P3",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-HARNESS-CONSOLIDAR",
+      "titulo": "P2: TRES arneses de captura para lo mismo (tests/visual/*, scripts/design/arnes-capturas-v10.sh, scripts/design/capturar-golden-flow.mjs) — cada corrida paralela del 9-ago construyó el suyo. Consolidar en UNO al abrir V10-VISUAL-REGRESSION-001, conservando lo mejor de cada uno (build de producción, revisor independiente, receta documentada)",
+      "fuente": "reconciliación del 10-ago-2026; V10 §3 (una sola verdad) y regla del repo (nunca duplicar la fuente de verdad)",
+      "prioridad": "P2",
+      "unidadV10": "V10-VISUAL-REGRESSION-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-HARNESS-OBS-001",
+      "titulo": "P3 observación del arnés: aviso de hidratación en dev en /dashboard (saludo por hora local del servidor vs cliente) y un intento de conexión Firestore antes del login que loguea «unavailable» con emulador",
+      "evidencia": "consola del arnés, corrida dev del 9-ago-2026 (en producción no se reproduce el error de consola)",
+      "prioridad": "P3",
+      "unidadV10": "V10-PERF-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "AGENDA-IDENTITY-002",
+      "titulo": "P1: segunda pasada de identidad del riel — punch list del revisor independiente (IDENTITY 7.5→≥9): (a) forma propia de CTA (las píldoras 100% redondeadas delatan librería), (b) fusionar tabs+selector en UN control de filtro, (c) FAB de ayuda ocluye motivo clínico a 390 (con V10-SHELL-001), (d) «Nueva cita» duplicada a 768 (header+barra), (e) capturas con next start (sin badge dev), (f) evidencia visual de cortesía/descuadre/no-show",
+      "fuente": "revisión independiente design-systems-lead 10-ago-2026 (veredicto: gramática correcta, controles aún genéricos)",
+      "prioridad": "P1",
+      "unidadV10": "AGENDA-IDENTITY-002",
       "estado": "abierto"
     }
-  ]
+  ],
+  "_reconciliado": "10-ago-2026: unión de los backlogs de TRES corridas paralelas del 9-ago (la reconciliada de la tarde, que ya unía dos, más la nocturna) + estado cruzado contra la línea fusionada (HOME-001 y los quick-strikes cierran hallazgos que las otras corridas encontraron por separado)."
 }

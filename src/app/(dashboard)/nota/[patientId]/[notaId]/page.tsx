@@ -26,6 +26,14 @@ import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 
+/**
+ * La tinta del documento-papel. UN solo literal: el color va INLINE en cada
+ * nodo porque el documento viaja por outerHTML a la ventana de impresión y al
+ * lienzo del PDF, donde las variables del tema de la app no deben mandar
+ * (DEBT-008: el tbody td gris del tema se colaba en el papel impreso).
+ */
+const TINTA = '#1a1a1a'
+
 export default function NotaImprimiblePage() {
   const { patientId, notaId } = useParams<{ patientId: string; notaId: string }>()
   const router = useRouter()
@@ -273,6 +281,20 @@ export default function NotaImprimiblePage() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}><AvisoConfigNoCargada error={configError} /></div>
 
+      {/* V10-NOTE-001 (DEBT-008, §8.30/§37): una nota SIN FIRMAR se declara de
+          frente, ARRIBA — no sólo en la línea de 9.5px del pie legal. La banda no
+          se imprime; lo que sí viaja al papel es la marca de agua de abajo. */}
+      {nota.estado !== 'firmada' && (
+        <div className="no-print" role="status" style={{ maxWidth: 800, margin: '0 auto 12px', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 10, padding: '11px 14px' }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text)' }}>
+            <strong>BORRADOR — esta nota no está firmada.</strong> No tiene validez legal, y todo lo
+            que imprimas o descargues (PDF, Word) saldrá marcado como borrador. Firma la nota desde
+            la consulta para emitir el documento definitivo.
+          </div>
+        </div>
+      )}
+
       {/* Auditoría papelería 2026-07 (P2 NOM-004): avisos de datos obligatorios que
           podrían salir vacíos en el papel. Solo cuando NO hay hoja membretada (esa
           ya trae el encabezado con el establecimiento). No se imprimen. */}
@@ -286,8 +308,10 @@ export default function NotaImprimiblePage() {
         </div>
       )}
 
-      {/* Barra de acciones (no se imprime) */}
-      <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Barra de acciones (no se imprime). `nota-toolbar`: bajo 480px envuelve y
+          las acciones pasan a rejilla — sin ella, .actions-row global apila cada
+          botón a lo ancho SOBRE el documento y «Atrás» queda recortado (DEBT-009). */}
+      <div className="no-print nota-toolbar" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
           <ArrowLeft size={15} /> Atrás
         </button>
@@ -356,14 +380,14 @@ export default function NotaImprimiblePage() {
         <table style={{ width: '100%', fontSize: 12.5, marginBottom: 10, borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
-              <td style={{ padding: '2px 0' }}><strong>Paciente:</strong> {nota.pacienteNombre}</td>
-              <td style={{ padding: '2px 0', textAlign: 'right' }}><strong>Fecha:</strong> {fecha}</td>
+              <td style={{ padding: '2px 0', color: TINTA }}><strong>Paciente:</strong> {nota.pacienteNombre}</td>
+              <td style={{ padding: '2px 0', color: TINTA, textAlign: 'right' }}><strong>Fecha:</strong> {fecha}</td>
             </tr>
             <tr>
-              <td style={{ padding: '2px 0' }}>
+              <td style={{ padding: '2px 0', color: TINTA }}>
                 {patient?.edad ? `Edad: ${patient.edad} años` : ''}{patient?.sexo ? ` · Sexo: ${patient.sexo}` : ''}
               </td>
-              <td style={{ padding: '2px 0', textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
+              <td style={{ padding: '2px 0', color: TINTA, textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
             </tr>
             {/*
               DÓNDE ESTABA EL PACIENTE — servicio, cama y día de internamiento.
@@ -375,7 +399,7 @@ export default function NotaImprimiblePage() {
             */}
             {encabezadoHospital(nota.hospital) && (
               <tr>
-                <td colSpan={2} style={{ padding: '2px 0' }}>{encabezadoHospital(nota.hospital)}</td>
+                <td colSpan={2} style={{ padding: '2px 0', color: TINTA }}>{encabezadoHospital(nota.hospital)}</td>
               </tr>
             )}
           </tbody>
@@ -582,20 +606,25 @@ export default function NotaImprimiblePage() {
         if (membrete) {
           // Nota membretada → paginar en hojas carta con el membrete en cada una.
           return (
-            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: '#1a1a1a', fontFamily: '"Times New Roman", Georgia, serif' }}>
+            <div id="doc" style={{ width: 'fit-content', maxWidth: '100%', margin: '0 auto', color: TINTA, fontFamily: '"Times New Roman", Georgia, serif' }}>
               <HojasNota anchoMm={hojaNota.widthMm} altoMm={hojaNota.heightMm} mMemb={mMemb} membrete={membrete} bloques={bloques}
-                firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined} />
+                firma={nota.estado === 'firmada' && firmaMostrar ? { src: firmaMostrar, x: firmaPos.x, y: firmaPos.y } : undefined}
+                borrador={nota.estado !== 'firmada'} />
             </div>
           )
         }
         // Sin membrete → hoja blanca continua (encabezado de texto incluido en los bloques).
         return (
           <div id="doc" style={{
-            maxWidth: 800, margin: '0 auto', background: '#fff', color: '#1a1a1a', position: 'relative',
+            maxWidth: 800, margin: '0 auto', background: '#fff', color: TINTA, position: 'relative',
             padding: '40px 48px', borderRadius: 4, fontFamily: '"Times New Roman", Georgia, serif',
             lineHeight: 1.4, fontSize: 13, orphans: 3, widows: 3,
           }}>
             {printables}
+            {/* DEBT-008: la marca vive DENTRO de #doc porque el documento viaja por
+                outerHTML a la ventana de impresión y al lienzo del PDF. En impresión,
+                globals.css la vuelve position:fixed → se repite en CADA hoja. */}
+            {nota.estado !== 'firmada' && <MarcaBorrador />}
           </div>
         )
       })()}
@@ -691,8 +720,17 @@ export default function NotaImprimiblePage() {
         </div>
       )}
 
-      {/* Estilos de impresión: solo el documento, en blanco y negro legible */}
+      {/* Estilos de impresión: solo el documento, en blanco y negro legible.
+          Y DEBT-009: bajo 480px la barra envuelve («Atrás» ya no queda recortado
+          detrás de Imprimir) y las acciones pasan a rejilla de 2 columnas con
+          objetivos de 44px — sin esto, .actions-row global apila cada botón a lo
+          ancho de la pantalla encima del documento. */}
       <style>{`
+        /* El documento-papel NO hereda la tabla de la app: globals.css pinta
+           tbody tr:hover con --s2 (gris del tema oscuro) y una línea --border por
+           fila — sobre el papel blanco, pasar el mouse dibujaba una BANDA oscura
+           encima de los datos del paciente (captura nota--390, 9-ago). */
+        #doc tbody tr, #doc tbody tr:hover { background: transparent; border-bottom: none; transition: none; }
         @media print {
           body * { visibility: hidden !important; }
           #doc, #doc * { visibility: visible !important; }
@@ -700,7 +738,55 @@ export default function NotaImprimiblePage() {
           .no-print { display: none !important; }
           @page { margin: 1.5cm; }
         }
+        @media (max-width: 480px) {
+          .nota-toolbar { flex-wrap: wrap; gap: 10px; }
+          .nota-toolbar > button { min-height: 44px; }
+          .nota-toolbar .actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+          .nota-toolbar .actions-row > button { width: 100%; min-height: 44px; justify-content: center; }
+          /* El primario (Descargar PDF) ocupa la fila completa; si la última acción
+             queda impar, también — sin celdas huérfanas. */
+          .nota-toolbar .actions-row > button:first-child { grid-column: 1 / -1; }
+          .nota-toolbar .actions-row > button:last-child:nth-child(even) { grid-column: 1 / -1; }
+        }
       `}</style>
+    </div>
+  )
+}
+
+/**
+ * Marca de agua BORRADOR — V10-NOTE-001 (DEBT-008).
+ *
+ * Estilos EN LÍNEA a propósito: el documento viaja por `outerHTML` a la ventana
+ * de impresión (que sólo copia los <link> globales) y al lienzo de html2canvas;
+ * una clase definida en el <style> de esta página no llegaría a ninguno de los
+ * dos. La clase `nota-marca-borrador` existe sólo para que globals.css la vuelva
+ * `position:fixed` al imprimir (se repite en cada hoja del diálogo de impresión).
+ */
+function MarcaBorrador({ porHoja }: { porHoja?: boolean }) {
+  return (
+    <div aria-hidden className={porHoja ? undefined : 'nota-marca-borrador'} style={{
+      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      pointerEvents: 'none', userSelect: 'none', overflow: 'hidden', zIndex: 3,
+    }}>
+      {/* SVG y no texto: la marca es DECORACIÓN REDUNDANTE (el estado ya lo dicen
+          la banda role=status de arriba y la línea del pie legal), así que el 10%
+          de opacidad es intencional — WCAG 1.4.3 lo exceptúa como decorativo, pero
+          axe no puede saberlo y lo contaba como serious. Como imagen-de-texto la
+          intención queda explícita. Inline (no background): viaja por outerHTML a
+          la ventana de impresión y al lienzo del PDF sin depender de que el
+          navegador imprima fondos. */}
+      <svg viewBox="0 0 460 120" focusable="false" style={{
+        width: '88%', maxWidth: 680, overflow: 'visible', transform: 'rotate(-28deg)',
+      }}>
+        {/* El 72 es geometría del viewBox del SVG (la marca ocupa el ancho del
+            papel), no un escalón tipográfico de la interfaz: va como atributo. */}
+        <text x="230" y="60" textAnchor="middle" dominantBaseline="central" fontSize={72} style={{
+          fontWeight: 700, letterSpacing: 10,
+          fill: 'rgba(153, 27, 27, 0.10)', fontFamily: 'inherit',
+        }}>
+          BORRADOR
+        </text>
+      </svg>
     </div>
   )
 }
@@ -726,13 +812,16 @@ function SecTitle({ children }: { children: React.ReactNode }) {
  * Como el DOM queda paginado, PANTALLA, PDF (html2canvas) e IMPRIMIR (page-break
  * inline) coinciden — congruente en las tres salidas.
  */
-function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
+function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma, borrador }: {
   membrete: string
   mMemb: { top: number; right: number; bottom: number; left: number }
   anchoMm: number; altoMm: number
   bloques: React.ReactNode[]
   /** Firma a colocar (calibrada) sobre la ÚLTIMA hoja. x/y en % de la hoja. */
   firma?: { src: string; x: number; y: number }
+  /** DEBT-008: nota sin firmar → marca de agua BORRADOR en CADA hoja (pantalla,
+   *  PDF hoja-por-hoja e impresión heredan el mismo DOM paginado). */
+  borrador?: boolean
 }) {
   const PXMM = 96 / 25.4
   const anchoPx = anchoMm * PXMM
@@ -824,6 +913,8 @@ function HojasNota({ membrete, mMemb, anchoMm, altoMm, bloques, firma }: {
           <div style={{ position: 'absolute', top: topPx, left: leftPx, width: contentW, zIndex: 1 }}>
             {idxs.map(i => <div key={i}>{bloques[i]}</div>)}
           </div>
+          {/* DEBT-008: hoja de una nota sin firmar → BORRADOR estampado en la hoja. */}
+          {borrador && <MarcaBorrador porHoja />}
           {/* Firma CALIBRADA en CADA hoja (el Dr la quiere en todas), centro en x/y %. */}
           {firma && (
             // eslint-disable-next-line @next/next/no-img-element

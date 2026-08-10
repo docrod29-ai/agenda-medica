@@ -108,8 +108,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // La supresión de aviso de hidratación en la etiqueta raíz es el par del
+  // script anti-flicker de más abajo: ese script pone `data-theme` ANTES de que
+  // React hidrate, así que el atributo nunca coincide con lo que rindió el
+  // servidor. Alcanza SOLO los atributos de este elemento (un nivel), no a los
+  // hijos — un mismatch real en el árbol sigue avisando. Sin esto, React
+  // avisaba en TODAS las rutas (V10-BUG-001).
   return (
-    <html lang="es" className={`${plexSans.variable} ${plexMono.variable} ${fraunces.variable} h-full`}>
+    <html lang="es" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable} ${fraunces.variable} h-full`}>
       <head>
         {/*
           Kill-switch único por versión de deploy.

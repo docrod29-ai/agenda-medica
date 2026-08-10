@@ -64,3 +64,22 @@ synthetic-data/dialogos-consulta/salida/silencio.mp3
 
 # Arnés visual V10 — la sesión sintética del emulador (uid + clave de demo)
 scripts/design/arnes-sesion.json
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Logs de los emuladores de Firebase (artefacto de ejecución del arnés V10)
+firebase-debug.log
+ui-debug.log
+
+# Capturas de trabajo del arnés visual — se curan a mano tras revisión
+tests/visual/capturas/

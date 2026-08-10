@@ -16,15 +16,29 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1168",
+  "ultimaVersionEnProduccion": "nexusmed-v1170",
+  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M scripts/calidad/cabe-en-un-telefono.mjs",
-    " M src/__tests__/lo-que-un-telefono-no-puede-encoger.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    "M  .gitignore",
+    "M  agent-state/MASTER_STATE.json",
+    "M  agent-state/V10_BACKLOG.json",
+    "M  agent-state/V10_BLOCKERS.md",
+    "M  agent-state/V10_CURRENT_ITERATION.md",
+    "M  agent-state/V10_DECISION_LOG.md",
+    "M  agent-state/V10_MASTER_STATE.json",
+    "M  agent-state/V10_OWNER_DECISIONS_REQUIRED.md",
+    "M  agent-state/V10_VISUAL_SCORECARD.json",
+    "A  docs/ai/NEXUSMED_ORIGINAL_PRODUCT_IDENTITY_DIRECTIVE.md",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/ACCESSIBILITY.md",
+    "M  docs/design/COMPONENT_INVENTORY.md",
+    "M  docs/design/INTERACTION_PATTERNS.md",
+    "A  docs/design/NEXUSMED_VISUAL_DNA.md",
+    "MM docs/design/SCREEN_INVENTORY.md",
+    "A  docs/design/capturas/ahora-ausculta/01-hoy@1024.png",
+    "A  docs/design/capturas/ahora-ausculta/01-hoy@1440.png",
+    "A  docs/design/capturas/ahora-ausculta/01-hoy@390.png"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -58,12 +72,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/nexus-visual-excellence-v10",
+  "ramaActual": "consolidacion/2026-08-10",
   "derivado": {
-    "regsEnElLedger": 154,
-    "ultimaREG": "REG-306",
-    "archivosDePrueba": 575,
-    "casosDePrueba": 7567,
+    "regsEnElLedger": 156,
+    "ultimaREG": "REG-308",
+    "archivosDePrueba": 584,
+    "casosDePrueba": 7626,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

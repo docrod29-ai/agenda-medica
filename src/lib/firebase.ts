@@ -1,9 +1,8 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
-  getFirestore, initializeFirestore,
+  getFirestore, initializeFirestore, connectFirestoreEmulator,
   persistentLocalCache, persistentMultipleTabManager,
-  connectFirestoreEmulator,
   terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore'
 import { getStorage, connectStorageEmulator } from 'firebase/storage'
@@ -31,10 +30,6 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage'
  * configuración. Sin él, una variable mal puesta en Vercel mandaría la app
  * pública a un `localhost` que no responde.
  */
-const USAR_EMULADOR =
-  process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === '1' &&
-  process.env.NODE_ENV !== 'production'
-
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   // authDomain = el MISMO dominio de la app (no firebaseapp.com). Así el handler
@@ -51,6 +46,17 @@ const firebaseConfig = {
 }
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+
+// ── Emuladores (SOLO arnés de capturas/pruebas locales) ─────────────────
+// Se activa únicamente con NEXT_PUBLIC_FIREBASE_EMULATORS=1 en .env.local
+// (gitignorado). En Vercel esa variable no existe, así que producción nunca
+// entra aquí. El candado extra: sólo conecta si el projectId empieza por
+// `demo-`, la convención que hace que el SDK se niegue a tocar un proyecto
+// real (misma regla que emulator/entorno.ts).
+const USAR_EMULADORES =
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === '1' &&
+  typeof window !== 'undefined' &&
+  String(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID).startsWith('demo-')
 
 // ── App Check (anti-abuso) ──────────────────────────────────────────────
 // Verifica que las llamadas a Firestore/Storage vengan de TU app real y no de
@@ -82,16 +88,31 @@ export const auth = getAuth(app)
 /**
  * Persistencia offline habilitada (multi-pestaña para uso en varias ventanas).
  *
- * Bajo emulador se usa `getFirestore` pelado: la caché persistente guarda los
- * datos en IndexedDB por `projectId`, y entre corrida y corrida del arnés eso
- * deja documentos de la siembra anterior mezclados con la nueva. Una captura
- * tiene que enseñar exactamente lo que se sembró.
+ * Con emuladores NO se usa caché persistente: la caché guarda por `projectId`
+ * en IndexedDB, y entre corrida y corrida del arnés de capturas eso deja
+ * documentos de la siembra anterior mezclados con la nueva. Una captura tiene
+ * que enseñar exactamente lo que se sembró.
+ *
+ * Se usa `USAR_EMULADORES` y no el `USAR_EMULADOR` anterior: el nuevo exige
+ * además que el `projectId` empiece por `demo-`, la convención que hace que el
+ * SDK se niegue a tocar un proyecto real. Es el cerrojo más estricto de los
+ * dos, y en una consolidación se conserva el más estricto.
  */
-export const db = typeof window !== 'undefined' && !USAR_EMULADOR
+export const db = typeof window !== 'undefined' && !USAR_EMULADORES
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+if (USAR_EMULADORES) {
+  // EL ÚNICO bloque de conexión a emulador del proyecto — así lo exige
+  // `emulador-solo-demo`, y por eso la consolidación fundió los dos que había:
+  // el de la línea V10 (cerrojo `demo-`) y el anterior (que además conectaba
+  // Storage). Se conserva el cerrojo MÁS ESTRICTO y la conexión MÁS COMPLETA.
+  // Los `try` son por reconexión: el arnés recarga la página entre capturas.
+  try { connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true }) } catch { /* ya conectado */ }
+  try { connectFirestoreEmulator(db, '127.0.0.1', 8080) } catch { /* ya conectado */ }
+}
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.
@@ -113,11 +134,6 @@ export const storage = (() => {
  * vería — el arnés se quedaría sin datos y la captura saldría vacía, que es
  * justo la clase de fallo que no puede pasar desapercibido.
  */
-if (typeof window !== 'undefined' && USAR_EMULADOR) {
-  try { connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true }) } catch { /* ya conectado */ }
-  try { connectFirestoreEmulator(db, '127.0.0.1', 8080) } catch { /* ya conectado */ }
-  if (storage) { try { connectStorageEmulator(storage, '127.0.0.1', 9199) } catch { /* ya conectado */ } }
-}
 
 /**
  * Limpia la caché OFFLINE de Firestore en IndexedDB (expedientes, Dx, medicamentos,

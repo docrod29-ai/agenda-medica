@@ -69,7 +69,7 @@ export default function MotoresPage() {
         <ArrowLeft size={14} /> Cumplimiento
       </Link>
 
-      <h1 style={{ fontSize: 25, fontWeight: 800, margin: '12px 0 6px', color: 'var(--text)' }}>
+      <h1 className="t-h1" style={{ margin: '12px 0 6px' }}>
         Motores clínicos
       </h1>
       <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 18px', lineHeight: 1.6 }}>

@@ -305,8 +305,11 @@ function LoginInner() {
                   onClick={() => setShowPwd(v => !v)}
                   /* Sin esto el lector de pantalla sólo dice «botón». */
                   aria-label={showPwd ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
+                  /* Área táctil 44×44 (axe: target-size; regla propia de diseño).
+                     El icono queda donde estaba: 44 de caja, centrado, right 0 ≈ right 12 + icono. */
                   style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                    width: 44, height: 44, justifyContent: 'center',
                     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',
                     display: 'flex', alignItems: 'center',
                   }}

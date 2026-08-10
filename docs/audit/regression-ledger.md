@@ -7062,3 +7062,67 @@ Verificado que la clase 4 sí caza la forma original: un archivo de prueba con
 **Lo que sigue sin cubrir, dicho en vez de dejarlo creer.** Esto acota, no
 sustituye al navegador. El desborde por una tabla ancha, un `flex-basis` o un
 texto sin cortar sigue pasando por aquí sin despeinarse.
+
+## REG-307 — El saludo decía «Buenas tardes, Dra.» — el título sin el nombre
+
+**Encontrado por** la primera pasada del arnés de capturas de V10-TRUTH-001
+(9-ago-2026): golden flow autenticado en Chromium real, emuladores de Auth +
+Firestore, cuenta sintética con `displayName: 'Dra. Elena Sandoval Rivas'`.
+
+**Qué pasaba.** La pantalla de inicio saludaba con el título a secas. La cuenta
+aún no tenía `config.nombreMedico`, así que `nombreSaludo` cayó a la rama del
+`displayName` — que tomaba `split(' ')[0]` **sin quitar el título**. «Dra.
+Elena Sandoval Rivas» → «Dra.».
+
+**Causa raíz — media defensa.** `quitarPrefijoDr` existía exactamente para esto
+y la rama del médico (`nombreMedico`) sí lo aplicaba. La rama del asistente y la
+del arranque (config sin cargar) no. La misma regla escrita en un camino y
+ausente en el de al lado: familia `se_contradice`.
+
+**Arreglo.** La función se extrajo a `src/lib/hoy/saludo.ts` (mismo criterio
+que `resumen-del-dia.ts`: poder probarla sin montar la pantalla) y la rama del
+`displayName` aplica `quitarPrefijoDr` con salvaguarda: si el displayName es
+SÓLO el título («Dra.»), se saluda con él antes que con un vacío.
+
+**Guardián.** `src/__tests__/lo-que-la-captura-real-midio.test.ts` (8 casos).
+Probado al revés: reponiendo `displayName.split(' ')[0]` fallan los dos casos
+del título.
+
+**Qué NO cubre.** El render real del saludo (eso lo mide la captura del arnés);
+otros usos de `displayName` fuera del saludo.
+
+**Familia.** `se_contradice`.
+
+## REG-308 — El botón «Iniciar consulta» del héroe fallaba AA: 2.9:1
+
+**Encontrado por** axe-core 4.11 corriendo sobre la página SERVIDA en la misma
+pasada del arnés (V10-TRUTH-001). Con 8 500 casos en verde y `tsc` limpio: el
+defecto sólo existe en el render.
+
+**Qué pasaba.** `.prox-hero-cta` — el CTA principal de la pantalla de inicio
+rediseñada en HOME-001 — pintaba blanco sobre `var(--nexus)` (#6E84FE):
+**2.9:1**, por debajo del 4.5:1 de AA.
+
+**Causa raíz.** El propio sistema de tokens lo tenía escrito: `--nexus` se
+aclaró para ser **texto** legible sobre superficies (su comentario: «AA sobre
+--s3 (4.63); antes #3D5AFE = 2.96») y para **rellenos** con texto blanco está
+`--nexus-solido` (#3D5AFE, 5.1:1 con blanco) — la regla que `.btn-primary` ya
+sigue con su comentario «Relleno, no texto: va el azul sólido». El héroe nuevo
+usó el token de texto como relleno. La regla existía; el instrumento (axe sobre
+la app servida) no corría: familia `sin_medir`, la misma de REG-306 y con la
+misma moraleja — el defecto nació EN la unidad que presumía haber medido.
+
+**Arreglo.** `background: var(--nexus-solido)` en `.prox-hero-cta`, con el
+porqué medido en el comentario. Verificado re-capturando: `/dashboard` pasó de
+1 violación axe a **0**.
+
+**Guardián.** `src/__tests__/lo-que-la-captura-real-midio.test.ts` — cerrojo
+estático sobre el bloque CSS. Probado al revés: reponiendo `var(--nexus)` como
+fondo, falla.
+
+**Qué NO cubre.** La medición de verdad es axe sobre la captura
+(`docs/design/capturas/v10-truth/axe-baseline.json`); el cerrojo sólo impide
+que el par ilegible vuelva a ese selector. Los demás usos de `--nexus` como
+relleno van saliendo pantalla por pantalla con el arnés — señalar de menos.
+
+**Familia.** `sin_medir`.
