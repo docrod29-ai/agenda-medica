@@ -3,7 +3,7 @@ import { ArrowLeft, Check, ShieldCheck, Layers } from 'lucide-react'
 import { PAQUETES, incluyeDe } from '@/lib/specialty-packages'
 
 export const metadata = {
-  title: 'Paquetes por especialidad — NexusMED',
+  title: 'Paquetes por especialidad — Ausculta',
   description:
     'Cada especialidad ve las herramientas de su especialidad, no las de todas. Los paquetes filtran la consulta por tronco y las subespecialidades heredan del suyo.',
 }

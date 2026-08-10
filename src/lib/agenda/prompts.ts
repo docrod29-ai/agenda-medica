@@ -1,5 +1,5 @@
 /**
- * Prompts operativos de la AGENDA — NexusMED
+ * Prompts operativos de la AGENDA — Ausculta
  *
  * Mientras `src/lib/expediente/prompts.ts` cubre el lado clínico
  * (transcripción → nota estructurada), este módulo cubre el lado
@@ -31,7 +31,7 @@ RESPONDE EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO Y NADA MÁS.
 Primer carácter "{", último carácter "}". Sin markdown, sin comentarios.
 
 ═══════════════════════════════════════════════════════════════════
-ROL: asistente operativo de agenda médica de NexusMED.
+ROL: asistente operativo de agenda médica de Ausculta.
 Parseas lenguaje natural (paciente o secretaria) en operaciones
 auditables. NUNCA agendas tú mismo — solo emites el JSON que el
 backend valida contra availability.ts (determinista, hard-coded).

@@ -380,7 +380,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
         </Seccion>
 
         {/* Nivel de IA (Pro económico / Premium Opus+GPT-5) */}
-        <Seccion icono={<Sparkles size={16} color="#3d5afe" />} titulo="Nivel de IA">
+        <Seccion icono={<Sparkles size={16} color="var(--nexus)" />} titulo="Nivel de IA">
           <div style={{ display: 'flex', gap: 8 }}>
             {(['pro', 'premium'] as const).map(n => {
               const activo = nivelIA === n
@@ -394,9 +394,9 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
                   onClick={() => { setNivelIA(n); accion('set_nivel_ia', { nivelIA: n }) }}
                   style={{
                     flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
-                    border: '1px solid ' + (activo ? '#3d5afe' : 'var(--border)'),
-                    background: activo ? 'rgba(61,90,254,0.12)' : 'transparent',
-                    color: activo ? '#3d5afe' : 'var(--text3)',
+                    border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
+                    background: activo ? 'var(--nexus-soft)' : 'transparent',
+                    color: activo ? 'var(--nexus)' : 'var(--text3)',
                   }}>
                   {activo ? '✓ ' : ''}{label}
                 </button>

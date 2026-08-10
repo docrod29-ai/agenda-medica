@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     const monto = Number(pago.monto ?? 0)
     if (!(monto > 0)) return NextResponse.json({ ok: false, error: 'El pago no tiene monto válido' }, { status: 400 })
-    const descripcion = String(pago.descripcion || 'Suscripción NexusMED')
+    const descripcion = String(pago.descripcion || 'Suscripción Ausculta')
 
     /**
      * RESERVA ATÓMICA DEL TIMBRADO (anti-doble-CFDI).

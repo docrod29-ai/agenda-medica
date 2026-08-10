@@ -1,7 +1,7 @@
 /**
  * POST /api/ayuda-bot  — Asistente de soporte de la app.
  *
- * Responde dudas de USO de NexusMED con base EXCLUSIVA en la guía (conocimiento.ts).
+ * Responde dudas de USO de Ausculta con base EXCLUSIVA en la guía (conocimiento.ts).
  * Usa Haiku (barato) porque es soporte. Si la pregunta no está en la guía, lo dice
  * y sugiere escribir a soporte. NO da consejo médico (para eso está el Consultor).
  *
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   const contexto = (body.historial ?? []).slice(-6).map(h => `${h.rol === 'user' ? 'Usuario' : 'Asistente'}: ${h.texto}`).join('\n')
 
-  const system = `Eres el asistente de soporte de NexusMED, una app médica (agenda, expediente, notas con IA, recetas, hospitalización). Ayudas a los usuarios a USAR la app. Responde SIEMPRE en español, claro y breve (como a alguien que no es técnico), con pasos numerados cuando aplique.
+  const system = `Eres el asistente de soporte de Ausculta, una app médica (agenda, expediente, notas con IA, recetas, hospitalización). Ayudas a los usuarios a USAR la app. Responde SIEMPRE en español, claro y breve (como a alguien que no es técnico), con pasos numerados cuando aplique.
 
 REGLAS:
 - Responde SOLO con base en la GUÍA de abajo. Si la respuesta no está en la guía, dilo con honestidad y sugiere: "escríbelo en Configuración → Soporte y sugerencias y el equipo te ayuda".

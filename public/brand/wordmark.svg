@@ -1,26 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 96" width="480" height="96">
-  <!-- NexusMED wordmark horizontal — mark + texto.
-       Para header de login, sidebar, materiales marketing. -->
-  <defs>
-    <linearGradient id="wm-grad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#3D5AFE"/>
-      <stop offset="100%" stop-color="#2845EA"/>
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" width="420" height="96" role="img" aria-label="Ausculta">
+  <!--
+    LOGOTIPO HORIZONTAL DE AUSCULTA — marca + nombre.
+    Para el encabezado de acceso, la barra lateral y materiales.
 
-  <!-- Mark (60px, escalado a 48 con padding) -->
-  <g transform="translate(8, 24)">
-    <g stroke="url(#wm-grad)" stroke-width="6.6" stroke-linecap="round" fill="none">
-      <line x1="6" y1="6" x2="6" y2="42"/>
-      <line x1="42" y1="6" x2="42" y2="42"/>
-      <line x1="6" y1="6" x2="42" y2="42"/>
+    El nombre va en IBM Plex Sans, la misma que usa toda la aplicación desde
+    que se retiró Geist (la fuente de fábrica de Vercel). Un logotipo escrito
+    en una fuente que el producto no usa se delata al ponerlo al lado de
+    cualquier pantalla.
+
+    `currentColor` en todo: hereda el color del tema. La versión anterior
+    llevaba clavado el azul que no pasaba contraste.
+  -->
+  <g transform="translate(14, 24)" color="currentColor">
+    <g fill="none" stroke="currentColor" stroke-linecap="round">
+      <circle cx="17" cy="24" r="8.5" stroke-width="3.2"/>
+      <circle cx="17" cy="24" r="2.6" fill="currentColor" stroke="none"/>
+      <path d="M31 17.5a9 9 0 0 1 0 13" stroke-width="3.2"/>
+      <path d="M37.5 12a17 17 0 0 1 0 24" stroke-width="3.2" opacity="0.45"/>
     </g>
-    <circle cx="24" cy="24" r="3.4" fill="#F2EFE9"/>
-    <circle cx="24" cy="24" r="1.4" fill="#0B0C0E"/>
   </g>
 
-  <!-- Wordmark "NexusMED" en Geist semibold equivalent -->
-  <text x="72" y="60" font-family="'Geist', system-ui, sans-serif" font-weight="600" font-size="38" fill="currentColor" letter-spacing="-1.2">
-    <tspan fill="currentColor">Nexus</tspan><tspan font-weight="500" opacity="0.7">MED</tspan>
-  </text>
+  <text x="86" y="61" font-family="'IBM Plex Sans', system-ui, sans-serif"
+        font-weight="600" font-size="38" fill="currentColor" letter-spacing="-0.8">Ausculta</text>
 </svg>

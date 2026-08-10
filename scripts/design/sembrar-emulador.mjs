@@ -1,0 +1,376 @@
+#!/usr/bin/env node
+/**
+ * ARNÉS VISUAL V10 — siembra el emulador con un consultorio SINTÉTICO.
+ *
+ * ── POR QUÉ EXISTE ───────────────────────────────────────────────────────────
+ *
+ * V10 §33 es literal: «Never approve a screen only by reading JSX/CSS». Hay que
+ * abrir la pantalla en un navegador. Pero todas las pantallas del flujo dorado
+ * —agenda, paciente, consulta, nota, receta— exigen sesión, y la única sesión
+ * que existe en esta máquina es la de PRODUCCIÓN, con pacientes reales dentro.
+ *
+ * Capturarla estaría prohibido dos veces: `data-privacy.md` dice «cero
+ * pacientes reales, ni en pruebas, ni en fixtures, ni en ejemplos», y una
+ * captura de pantalla es PHI guardada en un PNG. Y V10 §6 prohíbe usar datos
+ * identificables.
+ *
+ * Así que la sesión se fabrica. Todo lo que hay aquí es inventado: los nombres
+ * salen de un pueblo que no existe, los teléfonos son del rango 555 reservado
+ * para ficción, y el proyecto (`demo-*`) no está dado de alta en Firebase.
+ *
+ * ── LOS DATOS NO SON DECORADO ────────────────────────────────────────────────
+ *
+ * Una siembra bonita produce una auditoría visual mentirosa. Los casos duros de
+ * V10 §39 —nombre larguísimo, muchas alergias, cero medicamentos, un valor
+ * crítico, una cita sin confirmar— tienen que ESTAR sembrados, porque son
+ * exactamente los que rompen la maquetación, y son los que nunca aparecen si
+ * uno siembra tres pacientes llamados «Juan Pérez».
+ *
+ * ── DETERMINISTA ─────────────────────────────────────────────────────────────
+ *
+ * Los ids están escritos a mano y las fechas se derivan del día en curso a las
+ * horas fijas del consultorio. Dos corridas seguidas producen la misma pantalla,
+ * que es la condición para que una regresión visual signifique algo (V10 §39).
+ *
+ * Uso:
+ *   npm run arnes:emuladores      (en otra terminal — los deja levantados)
+ *   npm run arnes:sembrar
+ *   npm run arnes:dev             → http://localhost:3200
+ *   Entrar con  demo@nexusmed.test  /  demo1234
+ */
+
+import { writeFile } from 'node:fs/promises'
+
+const PROYECTO = process.env.ARNES_PROYECTO || 'demo-nexusmed-v10'
+const AUTH = process.env.ARNES_AUTH || '127.0.0.1:9099'
+const FIRESTORE = process.env.ARNES_FIRESTORE || '127.0.0.1:8080'
+
+const CORREO = 'demo@nexusmed.test'
+const CLAVE = 'demo1234'
+const CLINICA = 'consultorio-demo-v10'
+
+// ── Fechas: hoy, a las horas del consultorio ────────────────────────────────
+const hoy = new Date()
+const iso = (d) => d.toISOString()
+const dia = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+const enDias = (n) => {
+  const d = new Date(hoy)
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Los pacientes. Cada uno existe para forzar un caso, no para rellenar.
+ *
+ * El paciente 4 lleva el nombre compuesto más largo que un registro civil
+ * mexicano admite de verdad (dos nombres + dos apellidos, uno de ellos
+ * compuesto). Si el encabezado de paciente lo trunca sin avisar, o lo desborda,
+ * se ve aquí y no en la consulta de un médico.
+ */
+const PACIENTES = [
+  {
+    id: 'pac-001',
+    nombre: 'Rosalía Mendieta Cuevas',
+    telefono: '5555010101',
+    fechaNacimiento: '1958-03-14',
+    sexo: 'Femenino',
+    alergias: 'Penicilina (anafilaxia), sulfas, AINEs',
+    seguroMedico: 'GNP Salud',
+    notas: 'Diabetes tipo 2 desde 2011. Nefropatía incipiente.',
+  },
+  {
+    id: 'pac-002',
+    nombre: 'Aurelio Barquín Salcedo',
+    telefono: '5555010202',
+    fechaNacimiento: '1971-11-02',
+    sexo: 'Masculino',
+    alergias: '',
+    seguroMedico: '',
+    notas: 'Sin antecedentes de importancia.',
+  },
+  {
+    id: 'pac-003',
+    nombre: 'Nadia Ferreiro Ocampo',
+    telefono: '5555010303',
+    fechaNacimiento: '1994-07-26',
+    sexo: 'Femenino',
+    alergias: 'Ninguna conocida',
+    seguroMedico: 'AXA',
+    notas: 'Embarazo de 26 semanas.',
+  },
+  {
+    id: 'pac-004',
+    nombre: 'María Guadalupe de la Concepción Villaseñor Etchegaray',
+    telefono: '5555010404',
+    fechaNacimiento: '1943-01-09',
+    sexo: 'Femenino',
+    alergias: 'Yodo, mariscos, látex, penicilina, metamizol, tramadol',
+    seguroMedico: 'IMSS',
+    notas: 'EPOC. Oxígeno domiciliario 2 L/min.',
+  },
+  {
+    id: 'pac-005',
+    nombre: 'Tadeo Iparraguirre Nolasco',
+    telefono: '5555010505',
+    fechaNacimiento: '2019-05-30',
+    sexo: 'Masculino',
+    alergias: '',
+    seguroMedico: '',
+    notas: 'Pediátrico. Peso 18.4 kg.',
+  },
+]
+
+/**
+ * La agenda del día. Mezcla deliberada de estados porque el color de estado es
+ * justo lo que V10 §15 pide moderar: si todas las citas están confirmadas, la
+ * pantalla se ve tranquila por accidente y no por diseño.
+ */
+const CITAS = [
+  { id: 'cita-001', pac: 'pac-001', hora: '09:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control de glucosa y revisión de función renal' },
+  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
+  { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
+  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Fiebre de tres días' },
+  { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
+  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
+  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+]
+
+// ── Traductor a la representación tipada de Firestore ───────────────────────
+/**
+ * El REST de Firestore no acepta JSON pelado: cada valor va etiquetado con su
+ * tipo. Se hace a mano y no con `firebase-admin` a propósito — el SDK de admin
+ * busca credenciales de aplicación, y este arnés tiene que poder correr en una
+ * máquina donde ésas son las de PRODUCCIÓN. Sin SDK no hay forma de que un
+ * despiste escriba en el proyecto equivocado.
+ */
+function valor(v) {
+  if (v === null || v === undefined) return { nullValue: null }
+  if (typeof v === 'boolean') return { booleanValue: v }
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }
+  if (typeof v === 'string') return { stringValue: v }
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(valor) } }
+  if (typeof v === 'object') return { mapValue: { fields: campos(v) } }
+  throw new Error(`Tipo sin traducir: ${typeof v}`)
+}
+function campos(obj) {
+  const out = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined) continue
+    out[k] = valor(v)
+  }
+  return out
+}
+
+/**
+ * `Bearer owner` es la credencial que el emulador reconoce como administrador.
+ *
+ * Hace falta porque el emulador carga `firestore.rules` de verdad, y esas reglas
+ * prohíben —correctamente— que un cliente cree un consultorio o una membresía:
+ * en producción eso lo escribe el servidor con el SDK de admin. La siembra
+ * ocupa ese mismo papel.
+ *
+ * Que las reglas reales estén cargadas es una ventaja, no un estorbo: significa
+ * que todo lo que la APLICACIÓN lea o escriba durante una captura pasa por la
+ * misma autorización que en producción. Si una pantalla funciona aquí sólo
+ * porque las reglas estaban apagadas, el arnés estaría mintiendo.
+ */
+const ADMIN = { 'Content-Type': 'application/json', Authorization: 'Bearer owner' }
+
+async function escribir(ruta, datos) {
+  const partes = ruta.split('/')
+  const docId = partes.pop()
+  const padre = partes.join('/')
+  const url = `http://${FIRESTORE}/v1/projects/${PROYECTO}/databases/(default)/documents/${padre}?documentId=${encodeURIComponent(docId)}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: ADMIN,
+    body: JSON.stringify({ fields: campos(datos) }),
+  })
+  if (!res.ok) {
+    const cuerpo = await res.text()
+    // Ya existe: se sobrescribe con PATCH. La siembra tiene que ser repetible.
+    if (res.status === 409 || cuerpo.includes('ALREADY_EXISTS')) {
+      const patch = `http://${FIRESTORE}/v1/projects/${PROYECTO}/databases/(default)/documents/${ruta}`
+      const r2 = await fetch(patch, {
+        method: 'PATCH',
+        headers: ADMIN,
+        body: JSON.stringify({ fields: campos(datos) }),
+      })
+      if (!r2.ok) throw new Error(`PATCH ${ruta}: ${r2.status} ${await r2.text()}`)
+      return
+    }
+    throw new Error(`POST ${ruta}: ${res.status} ${cuerpo}`)
+  }
+}
+
+async function limpiar() {
+  // Borrado en bloque del proyecto entero: sin esto, una siembra vieja se mezcla
+  // con la nueva y la captura deja de ser reproducible.
+  const url = `http://${FIRESTORE}/emulator/v1/projects/${PROYECTO}/databases/(default)/documents`
+  const res = await fetch(url, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`No se pudo limpiar Firestore: ${res.status}`)
+}
+
+async function crearUsuario() {
+  const base = `http://${AUTH}/identitytoolkit.googleapis.com/v1`
+  // El emulador acepta cualquier apiKey; la real nunca sale de esta máquina.
+  const registrar = await fetch(`${base}/accounts:signUp?key=arnes-visual-v10`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: CORREO, password: CLAVE, returnSecureToken: true }),
+  })
+  const cuerpo = await registrar.json()
+  if (cuerpo.idToken) return cuerpo.localId
+  // Ya existía de una corrida anterior: se entra con él.
+  const entrar = await fetch(`${base}/accounts:signInWithPassword?key=arnes-visual-v10`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: CORREO, password: CLAVE, returnSecureToken: true }),
+  })
+  const c2 = await entrar.json()
+  if (!c2.idToken) throw new Error(`No se pudo crear ni abrir la cuenta: ${JSON.stringify(cuerpo)} / ${JSON.stringify(c2)}`)
+  return c2.localId
+}
+
+/**
+ * El correo se marca como verificado.
+ *
+ * No es maquillaje: el aviso «confirma tu correo» ocupa la primera franja de
+ * TODAS las pantallas, y una cuenta de médico en uso normal no lo tiene. Dejarlo
+ * puesto desplazaría cada captura 44 px hacia abajo y metería en la auditoría un
+ * elemento que no forma parte de lo que se juzga.
+ *
+ * El aviso se audita aparte, en su propio caso, no de polizón en las otras siete
+ * pantallas.
+ */
+async function verificarCorreo(uid) {
+  const res = await fetch(`http://${AUTH}/identitytoolkit.googleapis.com/v1/projects/${PROYECTO}/accounts:update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+    body: JSON.stringify({ localId: uid, emailVerified: true }),
+  })
+  if (!res.ok) throw new Error(`No se pudo marcar el correo como verificado: ${res.status} ${await res.text()}`)
+}
+
+async function vivo(hostPuerto, nombre) {
+  try {
+    await fetch(`http://${hostPuerto}/`, { signal: AbortSignal.timeout(1500) })
+    return true
+  } catch {
+    console.error(`\n  ✗ El emulador de ${nombre} no responde en ${hostPuerto}.`)
+    console.error(`    Levántalos primero en otra terminal:  npm run arnes:emuladores\n`)
+    return false
+  }
+}
+
+async function main() {
+  if (!(await vivo(FIRESTORE, 'Firestore'))) process.exit(1)
+  if (!(await vivo(AUTH, 'Auth'))) process.exit(1)
+
+  await limpiar()
+  const uid = await crearUsuario()
+  await verificarCorreo(uid)
+
+  // ── Consultorio ───────────────────────────────────────────────────────────
+  await escribir(`clinics/${CLINICA}`, {
+    nombreClinica: 'Consultorio de Medicina Interna',
+    nombreMedico: 'Dra. Ximena Alcántara Robledo',
+    plan: 'premium',
+    status: 'active',
+    paseLibre: true,          // el arnés no debe chocar contra el muro de pago
+    ownerId: uid,
+    createdAt: iso(hoy),
+    updatedAt: iso(hoy),
+  })
+
+  await escribir(`clinic_members/${uid}`, {
+    clinicId: CLINICA,
+    role: 'medico',
+    displayName: 'Dra. Ximena Alcántara Robledo',
+    email: CORREO,
+    createdAt: iso(hoy),
+  })
+
+  await escribir(`clinics/${CLINICA}/config/main`, {
+    nombreClinica: 'Consultorio de Medicina Interna',
+    nombreMedico: 'Ximena Alcántara Robledo',
+    especialidad: 'Medicina Interna e Infectología',
+    cedulaProfesional: '0000000',        // sintética: siete ceros no es una cédula
+    telefonoConsultorio: '5555000000',
+    direccionConsultorio: 'Calle Inventada 100, Colonia Ficticia, Ciudad Demo',
+    zonaHoraria: 'America/Mexico_City',
+    duracionCitaDefault: 30,
+    horaInicio: '09:00',
+    horaFin: '19:00',
+  })
+
+  // ── Pacientes ─────────────────────────────────────────────────────────────
+  for (const p of PACIENTES) {
+    await escribir(`clinics/${CLINICA}/patients/${p.id}`, {
+      nombre: p.nombre,
+      telefono: p.telefono,
+      fechaNacimiento: p.fechaNacimiento,
+      sexo: p.sexo,
+      alergias: p.alergias,
+      seguroMedico: p.seguroMedico,
+      notas: p.notas,
+      createdAt: iso(hoy),
+      updatedAt: iso(hoy),
+    })
+  }
+
+  // ── Agenda ────────────────────────────────────────────────────────────────
+  for (const c of CITAS) {
+    const p = PACIENTES.find(x => x.id === c.pac)
+    await escribir(`clinics/${CLINICA}/appointments/${c.id}`, {
+      pacienteId: c.pac,
+      pacienteNombre: p.nombre,
+      pacienteTelefono: p.telefono,
+      fechaHora: `${c.dia || dia} ${c.hora}`,
+      duracion: c.dur,
+      tipo: c.tipo,
+      motivo: c.motivo,
+      estado: c.estado,
+      origen: 'manual',
+      medicoNombre: 'Dra. Ximena Alcántara Robledo',
+      medicoId: uid,
+      confirmadoPaciente: c.conf,
+      recordatorio24hEnviado: false,
+      recordatorioMismoDiaEnviado: false,
+      consentimientoMensajes: true,
+      createdAt: iso(hoy),
+      updatedAt: iso(hoy),
+    })
+  }
+
+  /**
+   * El uid se deja escrito para el script de capturas.
+   *
+   * Lo necesita para marcar el paseo de bienvenida como visto, y su clave lleva
+   * el uid dentro (`nexus_tour_v1_<uid>`). Leerlo del navegador no sirve:
+   * Firebase v9 guarda la sesión en IndexedDB, no en localStorage, así que
+   * hurgar en `localStorage` desde la página devuelve `undefined` — y la clave
+   * queda escrita con esa palabra dentro, que es exactamente el fallo mudo que
+   * hizo que las siete primeras capturas fueran siete fotos del mismo modal.
+   */
+  await writeFile(
+    new URL('./arnes-sesion.json', import.meta.url),
+    JSON.stringify({ uid, correo: CORREO, clave: CLAVE, clinica: CLINICA, proyecto: PROYECTO }, null, 2) + '\n',
+  )
+
+  console.log(`
+  ✓ Emulador sembrado — proyecto ${PROYECTO}
+
+    consultorio  ${CLINICA}
+    médica       Dra. Ximena Alcántara Robledo (sintética)
+    pacientes    ${PACIENTES.length}
+    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
+
+    entrar con   ${CORREO} / ${CLAVE}
+    la app       npm run arnes:dev   →  http://localhost:3200
+
+  Cero pacientes reales. Cero contacto con producción.
+`)
+}
+
+main().catch(e => { console.error('\n  ✗', e.message, '\n'); process.exit(1) })

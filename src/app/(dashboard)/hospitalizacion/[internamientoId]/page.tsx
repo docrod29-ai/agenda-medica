@@ -485,13 +485,13 @@ export default function EpisodioPage() {
               <button key={r} onClick={() => cambiarRol(r)} style={{
                 fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
                 border: '1px solid ' + (rol === r ? 'var(--nexus)' : 'var(--border)'),
-                background: rol === r ? 'rgba(61,90,254,.12)' : 'var(--s2)', color: rol === r ? 'var(--nexus)' : 'var(--text3)',
+                background: rol === r ? 'var(--nexus-soft)' : 'var(--s2)', color: rol === r ? 'var(--nexus)' : 'var(--text3)',
               }}>{ROL_HOSPITAL_LABEL[r]}</button>
             ))}
           </div>
         ) : (
           <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus)', border: '1px solid var(--nexus)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'var(--nexus-soft)', color: 'var(--nexus)', border: '1px solid var(--nexus)' }}>{ROL_HOSPITAL_LABEL[rol]}</span>
           </div>
         )}
       </div>
@@ -828,7 +828,7 @@ export default function EpisodioPage() {
           {/* Gráficas de tendencia */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 10, marginBottom: 14 }}>
             <GraficaSignos titulo="Frecuencia cardiaca" unidad="lpm" puntos={serie('fc')} normalMin={60} normalMax={100} color="var(--red)" />
-            <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="#3d5afe" />
+            <GraficaSignos titulo="TA sistólica" unidad="mmHg" puntos={serieSistolica} normalMin={90} normalMax={140} color="var(--nexus)" />
             <GraficaSignos titulo="Frecuencia respiratoria" unidad="rpm" puntos={serie('fr')} normalMin={12} normalMax={20} color="var(--purple)" />
             <GraficaSignos titulo="Temperatura" unidad="°C" puntos={serie('temp')} normalMin={36} normalMax={38} color="var(--amber)" />
             <GraficaSignos titulo="SpO₂" unidad="%" puntos={serie('spo2')} normalMin={92} normalMax={100} color="var(--teal)" />
@@ -1186,14 +1186,14 @@ export default function EpisodioPage() {
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Dosis / presentación</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
+                    {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
                     <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 100 }} placeholder="otra" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
                   </div>
                 </div>
                 <div>
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Vía</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
+                    {sel.vias.map(v2 => <button key={v2} type="button" onClick={() => setIndForm(f => ({ ...f, via: v2 }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.via === v2 ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{v2}</button>)}
                   </div>
                 </div>
               </>
@@ -1498,7 +1498,7 @@ export default function EpisodioPage() {
             <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Estudios</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
               {ESTUDIOS_LAB_RAPIDOS.map(e => { const on = labSel.includes(e); return (
-                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3d5afe', background: 'rgba(61,90,254,.12)', color: '#3d5afe' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
+                <button key={e} type="button" onClick={() => setLabSel(s => on ? s.filter(x => x !== e) : [...s, e])} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{e}</button>
               )})}
             </div>
           </div>

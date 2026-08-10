@@ -11,7 +11,7 @@ import { Sparkles } from 'lucide-react'
 
 // ── Subcomponentes ─────────────────────────────────────────────
 // Paleta estable por hablante (A, B, C…) para diferenciar voces visualmente.
-const COLOR_HABLANTE = ['#3D5AFE', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4']
+const COLOR_HABLANTE = ['var(--nexus)', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4']
 function colorHablante(speaker: string): string {
   const idx = speaker.charCodeAt(0) - 65 // 'A' → 0
   return COLOR_HABLANTE[((idx % COLOR_HABLANTE.length) + COLOR_HABLANTE.length) % COLOR_HABLANTE.length]
@@ -126,7 +126,7 @@ export function Section({ id, title, icon, obligatorio, children }: { id?: strin
 export const S = {
   back: { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 14, padding: 0 } as React.CSSProperties,
   alergia: { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 } as React.CSSProperties,
-  firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(61,90,254,0.12)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r-pill)' } as React.CSSProperties,
+  firmadaBadge: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--nexus-soft)', color: 'var(--teal)', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r-pill)' } as React.CSSProperties,
   grabCard: { background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 20 } as React.CSSProperties,
   transcripcion: { width: '100%', marginTop: 14, minHeight: 100, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, resize: 'vertical', outline: 'none' } as React.CSSProperties,
   resumen: { display: 'flex', gap: 8, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 8, padding: '12px 14px', marginBottom: 18 } as React.CSSProperties,

@@ -57,7 +57,7 @@ export type ModuloDictado = 'consulta' | 'hospitalizacion' | 'uci' | 'urgencias'
  * Contextos que aporta cada módulo de la app.
  *
  * Esta tabla **la escribo yo**: el paquete del Dr. define las especialidades y su
- * vocabulario, pero no dice qué pantalla de NexusMED corresponde a cuál. Son
+ * vocabulario, pero no dice qué pantalla de Ausculta corresponde a cuál. Son
  * nombres exactos de su mapa — un test comprueba que ninguno se haya escrito mal.
  */
 export const CONTEXTOS_POR_MODULO: Readonly<Record<ModuloDictado, readonly string[]>> = {

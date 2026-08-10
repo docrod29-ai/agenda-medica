@@ -1,6 +1,6 @@
 'use client'
 /**
- * TABLERO DE COSTOS DE IA — lo que de verdad cuesta servir NexusMED.
+ * TABLERO DE COSTOS DE IA — lo que de verdad cuesta servir Ausculta.
  *
  * Master Loop V3 §CE. Sin esta pantalla, el libro de costos es una colección de
  * Firestore que nadie mira.

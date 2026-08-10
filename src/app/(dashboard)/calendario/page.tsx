@@ -244,7 +244,7 @@ function WeekView({ weekDates, appointments, onCellClick, onApptClick, loading }
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
                   // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
-                  const color = a.medicoId ? colorMedico(a.medicoId) : '#3D5AFE'
+                  const color = a.medicoId ? colorMedico(a.medicoId) : 'var(--nexus)'
                   const est = estiloEstadoCita(a.estado)
                   return (
                     <div
@@ -415,7 +415,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
                     fontSize: 10, padding: '2px 5px', borderRadius: 3,
-                    background: 'rgba(61,90,254,0.12)', color: 'var(--teal)',
+                    background: 'var(--nexus-soft)', color: 'var(--teal)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     marginBottom: 2, cursor: 'pointer',
                   }}

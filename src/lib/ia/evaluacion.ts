@@ -1,7 +1,7 @@
 /**
  * Arnés de VALIDACIÓN de la IA clínica — métricas deterministas.
  *
- * "La única cosa" que más acerca a NexusMED a clase mundial (hallazgo del panel:
+ * "La única cosa" que más acerca a Ausculta a clase mundial (hallazgo del panel:
  * IA con ingeniería fuerte pero SIN ciencia/medición). Este módulo NO llama al
  * modelo: dado un conjunto ORO (casos de referencia validados por un médico) y las
  * salidas generadas, calcula exactitud por campo, tasa de error y una proxy de

@@ -20,6 +20,7 @@ import { PLANES } from '@/lib/planes-ia'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import Link from 'next/link'
 import { MetaPixel, trackConversion } from '@/components/MetaPixel'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 const BENEFICIOS = [
   'Agenda y calendario inteligente',
@@ -162,17 +163,10 @@ function RegistroInner() {
               background: 'var(--s1)', border: '1px solid var(--border2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
-                <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
-                  <line x1="8" y1="8" x2="8" y2="40"/>
-                  <line x1="40" y1="8" x2="40" y2="40"/>
-                  <line x1="8" y1="8" x2="40" y2="40"/>
-                </g>
-                <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-              </svg>
+              <MarcaAusculta size={24} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</div>
               <div style={{ fontSize: 12, color: 'var(--text3)' }}>El consultorio, conectado.</div>
             </div>
           </div>
@@ -327,8 +321,10 @@ function RegistroInner() {
                   onClick={() => setShowPwd(s => !s)}
                   /* Sin esto el lector de pantalla sólo dice «botón». */
                   aria-label={showPwd ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
+                  /* Área táctil 44×44 (axe: target-size; regla propia de diseño). */
                   style={{
-                    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                    width: 44, height: 44, justifyContent: 'center', alignItems: 'center',
                     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',
                     display: 'flex', padding: 0,
                   }}

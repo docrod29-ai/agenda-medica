@@ -4,8 +4,8 @@ import { ArrowLeft, ExternalLink, BookOpen, ShieldCheck } from 'lucide-react'
 import { EVIDENCIA_RECORDATORIOS, doiUrl, pubmedUrl } from '@/lib/landing-evidencia'
 
 export const metadata: Metadata = {
-  title: 'Evidencia y transparencia · NexusMED',
-  description: 'Las fuentes publicadas detrás de las cifras de NexusMED, con PMID y DOI verificables. No inflamos métricas ni inventamos testimonios.',
+  title: 'Evidencia y transparencia · Ausculta',
+  description: 'Las fuentes publicadas detrás de las cifras de Ausculta, con PMID y DOI verificables. No inflamos métricas ni inventamos testimonios.',
 }
 
 /**
@@ -64,7 +64,7 @@ export default function EvidenciaPage() {
             <li>Cifras de resultados propias que aún no podemos medir con rigor.</li>
           </ul>
           <p style={{ fontSize: 13, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.6 }}>
-            NexusMED es un producto nuevo. Cuando tengamos métricas propias verificables, las publicaremos aquí — con su método,
+            Ausculta es un producto nuevo. Cuando tengamos métricas propias verificables, las publicaremos aquí — con su método,
             no como eslogan. Mientras tanto, las cifras que mostramos provienen de literatura publicada o son ofertas reales
             (como los 14 días de prueba).
           </p>

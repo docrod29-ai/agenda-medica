@@ -82,7 +82,7 @@ export default function ContabilidadPage() {
     if (!data) return
     const r = data.resumen
     const lineas: string[] = []
-    lineas.push(`Contabilidad NexusMED,${data.mes}`)
+    lineas.push(`Contabilidad Ausculta,${data.mes}`)
     lineas.push('')
     lineas.push('RESUMEN DEL MES,MXN')
     lineas.push(`Ingresos (con IVA),${r.ingresoMes}`)
@@ -115,7 +115,7 @@ export default function ContabilidadPage() {
     ))
     const blob = new Blob(['﻿' + lineas.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `contabilidad-nexusmed-${data.mes}.csv`; a.click()
+    const a = document.createElement('a'); a.href = url; a.download = `contabilidad-ausculta-${data.mes}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 

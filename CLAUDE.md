@@ -58,6 +58,13 @@ npm run simulacro:respaldo      # ida y vuelta del respaldo, con acta
 | `docs/maintenance/` | Bitácoras de sesión y changelog del service worker |
 | `agent-state/` | Estado persistente del trabajo autónomo |
 
+## Master Loop V10 — obligatorio para trabajo visual/UX
+
+Todo trabajo V10 **lee COMPLETO**
+`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`
+antes de tocar nada. Rama persistente: `claude/nexus-visual-excellence-v10`.
+Estado: `agent-state/V10_*`. La ley de diseño detallada vive en `docs/design/`.
+
 ## V9 — antes de tocar nada del programa V9
 
 **Fuente de verdad única**:

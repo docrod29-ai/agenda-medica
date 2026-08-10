@@ -119,7 +119,7 @@ export function evaluarWebhook(suscritos: readonly string[] | null, modo: ModoSt
       configurado: false,
       faltantes: [...EVENTOS_QUE_ATENDEMOS],
       faltanCriticos: [...EVENTOS_CRITICOS],
-      aviso: 'No se encontró ningún webhook de Stripe apuntando a esta aplicación. Sin él, NADA de lo que pasa en Stripe llega a NexusMED: ni altas, ni pagos, ni reembolsos.',
+      aviso: 'No se encontró ningún webhook de Stripe apuntando a esta aplicación. Sin él, NADA de lo que pasa en Stripe llega a Ausculta: ni altas, ni pagos, ni reembolsos.',
       modo, avisoModo,
     }
   }

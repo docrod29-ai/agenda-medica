@@ -7016,6 +7016,119 @@ píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
 
 ---
 
+## REG-306 — El medidor del teléfono decía 0 con la pantalla rota
+
+**Encontrado** el 9-ago-2026, con la aplicación abierta en la cuenta del dueño y
+la ventana a 390 px de ancho. La pantalla de inicio se salía de la pantalla: las
+cuatro tarjetas seguían de dos en dos, «Agenda de hoy» y «Accesos rápidos»
+seguían lado a lado en un teléfono, y la columna derecha quedaba cortada.
+
+**Qué pasaba.** `gridTemplateColumns: '1fr 300px'` —fija, en píxeles— y **ni una
+sola consulta de medios propia** en toda la pantalla. De los 328 px útiles de un
+teléfono de 360, la columna derecha se llevaba 300.
+
+**Y el instrumento existía.** `scripts/calidad/cabe-en-un-telefono.mjs` (REG-265)
+lleva desde el 2 de agosto midiendo exactamente esto, y **informaba de cero**.
+Sus tres clases eran: ancho fijo `width: Npx`, rejilla `minmax(Npx, …)` sin
+`min()`, e imagen sin tope. Una pista de rejilla clavada en píxeles **no es
+ninguna de las tres**: no es un `width:` y no está dentro de un `minmax(`. La
+clase estaba a un lado de las tres y nadie la escribió.
+
+**Familia.** `sin_medir` — no es un defecto del producto, es la ausencia del
+instrumento que lo habría delatado. Con el agravante de que aquí el instrumento
+**sí estaba**, y su silencio se leía como buena noticia.
+
+**Arreglo.** Dos cosas, y las dos hacían falta:
+
+1. **La pantalla** (V10 · HOME-001): una sola columna a cualquier ancho, con sus
+   consultas de medios propias a 640 y 560 px. Se fueron las cuatro tarjetas KPI
+   (§14 del charter V10: «no construyas un tablero de KPIs genérico para
+   médicos»), «Accesos rápidos» (§9, navegación duplicada: sus cuatro destinos
+   ya están en la barra lateral), el «Citas hoy» del encabezado (§9, encabezado
+   duplicado) y el sparkline de siete días. Los números siguen, en un renglón.
+
+2. **La cuarta clase del medidor**: pista de rejilla en píxeles secos por encima
+   de 160. La primera medición dio **cuatro**, y los cuatro eran falsos —
+   configuración, recetas, orden y receta llevan su `className` y su consulta de
+   medios en `1fr !important`, que es la forma correcta. Excluidos **por lo que
+   hacen**, no por su nombre: `seApilaEnMovil()` comprueba que exista esa regla.
+   Real, tras la segunda pasada: **cero**.
+
+**Guardianes.** `src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts`
+(19 casos) y la clase 4 de `lo-que-un-telefono-no-puede-encoger.test.ts`.
+Verificado que la clase 4 sí caza la forma original: un archivo de prueba con
+`gridTemplateColumns: '1fr 300px'` aparece, y desaparece al borrarlo.
+
+**Lo que sigue sin cubrir, dicho en vez de dejarlo creer.** Esto acota, no
+sustituye al navegador. El desborde por una tabla ancha, un `flex-basis` o un
+texto sin cortar sigue pasando por aquí sin despeinarse.
+
+## REG-307 — El saludo decía «Buenas tardes, Dra.» — el título sin el nombre
+
+**Encontrado por** la primera pasada del arnés de capturas de V10-TRUTH-001
+(9-ago-2026): golden flow autenticado en Chromium real, emuladores de Auth +
+Firestore, cuenta sintética con `displayName: 'Dra. Elena Sandoval Rivas'`.
+
+**Qué pasaba.** La pantalla de inicio saludaba con el título a secas. La cuenta
+aún no tenía `config.nombreMedico`, así que `nombreSaludo` cayó a la rama del
+`displayName` — que tomaba `split(' ')[0]` **sin quitar el título**. «Dra.
+Elena Sandoval Rivas» → «Dra.».
+
+**Causa raíz — media defensa.** `quitarPrefijoDr` existía exactamente para esto
+y la rama del médico (`nombreMedico`) sí lo aplicaba. La rama del asistente y la
+del arranque (config sin cargar) no. La misma regla escrita en un camino y
+ausente en el de al lado: familia `se_contradice`.
+
+**Arreglo.** La función se extrajo a `src/lib/hoy/saludo.ts` (mismo criterio
+que `resumen-del-dia.ts`: poder probarla sin montar la pantalla) y la rama del
+`displayName` aplica `quitarPrefijoDr` con salvaguarda: si el displayName es
+SÓLO el título («Dra.»), se saluda con él antes que con un vacío.
+
+**Guardián.** `src/__tests__/lo-que-la-captura-real-midio.test.ts` (8 casos).
+Probado al revés: reponiendo `displayName.split(' ')[0]` fallan los dos casos
+del título.
+
+**Qué NO cubre.** El render real del saludo (eso lo mide la captura del arnés);
+otros usos de `displayName` fuera del saludo.
+
+**Familia.** `se_contradice`.
+
+## REG-308 — El botón «Iniciar consulta» del héroe fallaba AA: 2.9:1
+
+**Encontrado por** axe-core 4.11 corriendo sobre la página SERVIDA en la misma
+pasada del arnés (V10-TRUTH-001). Con 8 500 casos en verde y `tsc` limpio: el
+defecto sólo existe en el render.
+
+**Qué pasaba.** `.prox-hero-cta` — el CTA principal de la pantalla de inicio
+rediseñada en HOME-001 — pintaba blanco sobre `var(--nexus)` (#6E84FE):
+**2.9:1**, por debajo del 4.5:1 de AA.
+
+**Causa raíz.** El propio sistema de tokens lo tenía escrito: `--nexus` se
+aclaró para ser **texto** legible sobre superficies (su comentario: «AA sobre
+--s3 (4.63); antes #3D5AFE = 2.96») y para **rellenos** con texto blanco está
+`--nexus-solido` (#3D5AFE, 5.1:1 con blanco) — la regla que `.btn-primary` ya
+sigue con su comentario «Relleno, no texto: va el azul sólido». El héroe nuevo
+usó el token de texto como relleno. La regla existía; el instrumento (axe sobre
+la app servida) no corría: familia `sin_medir`, la misma de REG-306 y con la
+misma moraleja — el defecto nació EN la unidad que presumía haber medido.
+
+**Arreglo.** `background: var(--nexus-solido)` en `.prox-hero-cta`, con el
+porqué medido en el comentario. Verificado re-capturando: `/dashboard` pasó de
+1 violación axe a **0**.
+
+**Guardián.** `src/__tests__/lo-que-la-captura-real-midio.test.ts` — cerrojo
+estático sobre el bloque CSS. Probado al revés: reponiendo `var(--nexus)` como
+fondo, falla.
+
+**Qué NO cubre.** La medición de verdad es axe sobre la captura
+(`docs/design/capturas/v10-truth/axe-baseline.json`); el cerrojo sólo impide
+que el par ilegible vuelva a ese selector. Los demás usos de `--nexus` como
+relleno van saliendo pantalla por pantalla con el arnés — señalar de menos.
+
+**Familia.** `sin_medir`.
+
+---
+
 ## REG-309 — «Sin referencia de dosis» se descartaba también en niños
 
 **Encontrado** en la auditoría de nueve dimensiones (hallazgo G2, backlog

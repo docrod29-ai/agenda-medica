@@ -9,7 +9,7 @@ describe('ProductWindow (hero shot del producto)', () => {
 
   it('renderiza sin lanzar y produce HTML', () => {
     expect(html.length).toBeGreaterThan(200)
-    expect(html).toContain('NexusMED')
+    expect(html).toContain('Ausculta')
   })
 
   it('muestra la navegación real del producto', () => {

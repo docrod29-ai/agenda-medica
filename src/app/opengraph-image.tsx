@@ -2,18 +2,18 @@
  * Imagen OG/Twitter (1200×630) generada on-brand con next/og.
  * Antes NO existía → al compartir el link salía un cuadro negro. Ahora Next la
  * sirve automáticamente como og:image y twitter:image. Usa los colores de marca
- * (cobalto #3D5AFE sobre ink #0B0C0E); no depende de ninguna imagen externa.
+ * (cobalto var(--nexus) sobre ink #0B0C0E); no depende de ninguna imagen externa.
  */
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'NexusMED — El consultorio, conectado.'
+export const alt = 'Ausculta — El consultorio, conectado.'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 export default function OG() {
   const INK = '#0B0C0E'
-  const COBALT = '#3D5AFE'
+  const COBALT = 'var(--nexus)'
   const TEXT = '#F2EFE9'
   const MUTED = '#9BA3AE'
 
@@ -34,7 +34,7 @@ export default function OG() {
           <div style={{ width: 46, height: 46, borderRadius: 12, background: COBALT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: 16, height: 16, borderRadius: 16, border: '3px solid #0B0C0E', display: 'flex' }} />
           </div>
-          <div style={{ fontSize: 30, fontWeight: 600, color: TEXT, letterSpacing: -0.5 }}>NexusMED</div>
+          <div style={{ fontSize: 30, fontWeight: 600, color: TEXT, letterSpacing: -0.5 }}>Ausculta</div>
         </div>
 
         {/* Titular */}
