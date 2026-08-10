@@ -78,7 +78,7 @@ describe('LOS LÍMITES VIAJAN CON EL NÚMERO', () => {
 
   it('y se declara que es un PISO, no lo que se verá en consulta', () => {
     /**
-     * Es la línea que impide que esto se cite como «precisión de NexusMED».
+     * Es la línea que impide que esto se cite como «precisión de Ausculta».
      */
     expect(md).toMatch(/piso de laboratorio/i)
     expect(md).toMatch(/en consulta real será peor/i)

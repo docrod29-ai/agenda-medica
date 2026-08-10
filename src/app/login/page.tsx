@@ -164,7 +164,7 @@ function LoginInner() {
       <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
         {/* Hero brand block */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          {/* Mark NexusMED — N geométrica */}
+          {/* Mark Ausculta — N geométrica */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: 'var(--s1)',
@@ -186,7 +186,7 @@ function LoginInner() {
             fontSize: 36, color: 'var(--text)', margin: 0,
             fontWeight: 500,
           }}>
-            NexusMED
+            Ausculta
           </h1>
           <p style={{
             fontSize: 14, color: 'var(--text2)', marginTop: 8,
@@ -381,7 +381,7 @@ function LoginInner() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text3)', marginTop: 20 }}>
-          NexusMED © {new Date().getFullYear()}
+          Ausculta © {new Date().getFullYear()}
         </p>
       </div>
 

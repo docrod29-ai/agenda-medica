@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { emitirCFDI, facturamaConfigurada, type DatosReceptor } from '@/lib/facturama'
+import { MARCA } from '@/lib/marca'
 
 type Any = Record<string, unknown>
 
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     const monto = Number(pago.monto ?? 0)
     if (!(monto > 0)) return NextResponse.json({ ok: false, error: 'El pago no tiene monto válido' }, { status: 400 })
-    const descripcion = String(pago.descripcion || 'Suscripción NexusMED')
+    const descripcion = String(pago.descripcion || `Suscripción ${MARCA}`)
 
     /**
      * RESERVA ATÓMICA DEL TIMBRADO (anti-doble-CFDI).

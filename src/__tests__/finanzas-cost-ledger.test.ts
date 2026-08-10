@@ -2,7 +2,7 @@
  * GOLDEN — libro de costos (P0-1 de la auditoría de monetización).
  *
  * Hasta hoy `registrarUso()` contaba LLAMADAS, no tokens, así que el costo real
- * de NexusMED era desconocido y ninguna de las catorce cifras que pide §BG del
+ * de Ausculta era desconocido y ninguna de las catorce cifras que pide §BG del
  * Master Loop V3 se podía calcular.
  *
  * Lo que se protege aquí es, sobre todo, **que no se invente un número**:

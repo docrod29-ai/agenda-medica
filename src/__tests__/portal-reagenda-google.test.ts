@@ -7,7 +7,7 @@
  * Cuatro caminos escriben sobre la misma agenda: el panel del consultorio, el
  * booking público, el bot de WhatsApp y el **reagendado del paciente desde su
  * enlace**. Los tres primeros ya descontaban el calendario personal del médico
- * (v875-v876); el cuarto miraba sólo las citas de NexusMED y los bloqueos
+ * (v875-v876); el cuarto miraba sólo las citas de Ausculta y los bloqueos
  * capturados a mano.
  *
  * Así que el paciente que movía su cita del martes al jueves podía caer justo

@@ -37,6 +37,21 @@ puede seguir haciendo sin ella, para que nada se detenga por esperar.
 | N-1 | ¿Se puede repetir la prueba de 14 días? | Una por cuenta, comprobada contra Stripe | Cerrar el hueco de pruebas repetidas | El resto del cobro |
 | N-2 | Verificación de correo al registrarse | Activarla: un correo mal tecleado deja la cuenta irrecuperable | Recuperación sin soporte humano | El alta funciona |
 
+## MARCA — nace el 10-ago-2026 con el cambio de nombre
+
+El dueño renombró el producto: **NexusMED → Ausculta**. El texto ya está
+cambiado en toda la aplicación (`src/lib/marca.ts` + guardián). Lo que queda es
+suyo, y **nada de esto bloquea el desarrollo**.
+
+| # | Decisión | Recomendación | Bloqueado | Sigue sin ella |
+|---|---|---|---|---|
+| M-1 | **El logotipo es una «N» geométrica** y el producto ya no empieza por N. El wordmark ya dice «Ausculta»; el mark, no | Rediseñar el mark. Es decisión de diseño, no un barrido de texto: no la tomo yo | La coherencia visual de la marca | Todo. El wordmark ya es correcto y el mark sigue siendo legible |
+| M-2 | **El dominio sigue siendo `nexusmed.mx`** — es el que recibe los correos de soporte que la app enseña al médico | Comprar el dominio nuevo, montar el correo, y sólo entonces cambiarlo en la app **de una vez**. Cambiarlo antes deja al médico escribiendo a un buzón que no existe | Que la marca sea coherente de punta a punta | Todo. El soporte funciona |
+| M-3 | **Proyecto de Firebase `nexomed-agenda`** | **No migrar.** Un id de proyecto no se renombra: se migra el proyecto entero, con los datos dentro. El coste no se parece al beneficio | Nada visible para nadie | Todo |
+| M-4 | **`appId` de Capacitor `nexusmed.app`** | **No tocar.** Cambiarlo convierte la actualización en una app distinta para quien ya la tenga instalada | Nada | Todo. El `appName` visible ya dice Ausculta |
+| M-5 | **El aviso de privacidad subió a la versión `2026-08`** porque su texto nombra al producto. ¿Hay que **reaceptarlo**? | **No por omisión.** Un cambio de nombre comercial no altera qué datos se tratan ni para qué. Pero es una determinación legal, y ésas son suyas | Nada: hoy nadie compara la versión para forzar una reaceptación | Todo. Los consentimientos anteriores quedan atribuidos a `2026-06`, que es el texto que de verdad leyeron |
+| M-6 | **Nombre legal y facturación** — el CFDI de la suscripción y los términos siguen operados por la persona física | Sólo usted puede decir si la marca comercial cambia algo en lo fiscal o registral | La sala de datos, que ya arrastra el bloqueo de titularidad | Todo lo demás |
+
 ## URGENTE — TRAZABILIDAD (nace el 7-ago-2026, medido otra vez el 8)
 
 | # | Decisión | Recomendación | Qué queda bloqueado | Qué sigue sin ella |

@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next'
 
+import { MARCA } from '@/lib/marca'
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'NexusMED',
-    short_name: 'NexusMED',
+    name: MARCA,
+    short_name: MARCA,
     description: 'El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.',
     start_url: '/dashboard',
     scope: '/',

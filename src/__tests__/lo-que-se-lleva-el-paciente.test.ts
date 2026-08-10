@@ -8,7 +8,7 @@
  * y son lo ÚNICO que traduce al idioma del paciente, porque la nota clínica la
  * deja en inglés «per U.S. regulations».
  *
- * NexusMED no las tenía. El paciente salía con una receta y con lo que hubiera
+ * Ausculta no las tenía. El paciente salía con una receta y con lo que hubiera
  * retenido de la conversación.
  *
  * ── LA DECISIÓN QUE SEPARA ESTO DE LO SUYO ──────────────────────────────────

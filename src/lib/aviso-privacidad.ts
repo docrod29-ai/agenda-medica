@@ -8,9 +8,25 @@
  */
 
 import type { ClinicConfig } from '@/types'
+import { MARCA } from '@/lib/marca'
 import { listaEnTexto } from '@/lib/legal/subencargados'
 
-export const VERSION_AVISO = '2026-06'
+/**
+ * VERSIÓN DEL AVISO — sube cuando cambia EL TEXTO, no cuando cambia el código.
+ *
+ * `2026-08`: el producto pasó de llamarse NexusMED a **Ausculta**, y el nombre
+ * aparece dentro del aviso. Cambiar el texto sin cambiar la versión rompería la
+ * trazabilidad: cada paciente tiene guardado el **hash** del aviso que aceptó,
+ * y con la misma etiqueta de versión existirían dos textos distintos. Los
+ * consentimientos anteriores quedan atribuidos a `2026-06`, que es el texto que
+ * de verdad leyeron.
+ *
+ * Subir la versión **no** vuelve a pedir el consentimiento: nadie compara este
+ * valor para forzar una reaceptación. Si el dueño decide que un cambio de marca
+ * exige reaceptar, eso es una decisión legal suya
+ * (`agent-state/OWNER_DECISIONS_REQUIRED.md`), no de quien ejecuta.
+ */
+export const VERSION_AVISO = '2026-08'
 
 export interface AvisoPrivacidadData {
   responsable: string                  // Nombre del médico o clínica
@@ -35,9 +51,9 @@ Versión: ${VERSION_AVISO}
 
 1. IDENTIDAD Y DOMICILIO DEL RESPONSABLE
 ${responsable}, con domicilio en ${domicilio}, es el responsable del tratamiento de sus datos personales.${respPriv ? `\nResponsable de privacidad: ${respPriv}.` : ''}
-El responsable se apoya en NexusMED como encargado del tratamiento (proveedor de software) y en los siguientes subencargados tecnológicos, cada uno bajo su propio acuerdo de tratamiento de datos:
+El responsable se apoya en ${MARCA} como encargado del tratamiento (proveedor de software) y en los siguientes subencargados tecnológicos, cada uno bajo su propio acuerdo de tratamiento de datos:
 ${listaEnTexto()}
-La lista vigente y actualizada se publica en la página de seguridad de NexusMED.
+La lista vigente y actualizada se publica en la página de seguridad de ${MARCA}.
 
 2. DATOS PERSONALES QUE SE RECABAN
 Recabamos los siguientes datos personales:

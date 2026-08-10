@@ -129,7 +129,7 @@ export async function GET(
     /**
      * 4.5. LO QUE EL MÉDICO YA TIENE EN SU GOOGLE CALENDAR.
      *
-     * Hasta aquí el portal sólo miraba las citas de NexusMED y los bloqueos
+     * Hasta aquí el portal sólo miraba las citas de Ausculta y los bloqueos
      * capturados a mano: una cirugía, una junta o un vuelo apuntados en el
      * calendario personal del médico no existían para el paciente, que reservaba
      * encima. El panel del consultorio sí lo consultaba desde v8xx

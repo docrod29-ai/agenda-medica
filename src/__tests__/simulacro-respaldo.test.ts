@@ -6,7 +6,7 @@
  * `docs/SIMULACRO_RESTAURACION.md` tiene el procedimiento entero, y su historial
  * decía literalmente **«todavía ninguno»**. La frase del auditor es la correcta:
  * sin un tiempo medido no hay respuesta para un hospital que pregunte cuánto
- * tarda NexusMED en volver.
+ * tarda Ausculta en volver.
  *
  * ── LO QUE SE PUEDE ENSAYAR SIN CONSOLA, Y LO QUE NO ─────────────────────────
  *

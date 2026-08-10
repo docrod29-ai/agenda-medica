@@ -22,7 +22,14 @@ import { analizarECMO, type ConfigECMO } from './ecmo'
 import { analizarNeuro, type Pupilas } from './neuro'
 import { analizarSeguridadUCI } from './seguridad'
 
-export const COPILOT_VERSION = '1.0.0'
+/**
+ * v1.1.0 (10-ago-2026): cambia el NOMBRE DEL PRODUCTO dentro de
+ * `COPILOT_SYSTEM` — NexusMED → Ausculta. No cambia ni una regla clínica, pero
+ * el prompt es la entrada del modelo: dos textos distintos pueden dar dos
+ * salidas distintas, así que sube la versión igual. Una nota vieja firmada con
+ * v1.0.0 se explica con el prompt de v1.0.0.
+ */
+export const COPILOT_VERSION = '1.1.0'
 
 type Campos = Record<string, string>
 const val = (v: Campos, k: string): string | undefined => (v[k] === undefined || v[k] === '' ? undefined : v[k])
@@ -92,7 +99,7 @@ export function snapshotUCI(v: Campos) {
   return { version: COPILOT_VERSION, ventilacion: vent, gasometria: gaso, pam, sofa, alertas, pocus, ckrt, citrato, ecmo, neuro }
 }
 
-export const COPILOT_SYSTEM = `Eres el COPILOT de una Unidad de Cuidados Intensivos dentro de NexusMED. Trabajas para un médico intensivista.
+export const COPILOT_SYSTEM = `Eres el COPILOT de una Unidad de Cuidados Intensivos dentro de Ausculta. Trabajas para un médico intensivista.
 
 REGLAS ABSOLUTAS (no negociables):
 1. NO calculas NADA. Los valores (SOFA, P/F, driving pressure, PAM, VExUS, dosis CKRT, ΔP de ECMO, etc.) YA los calcularon motores deterministas y te llegan en el JSON. Úsalos tal cual; jamás recalcules ni "corrijas" un número.

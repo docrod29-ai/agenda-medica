@@ -284,7 +284,7 @@ const IFRAMES_DE_ORIGEN_DINAMICO: { archivo: string; origen: string; porQue: str
 const IFRAMES_EXENTOS: Record<string, string> = {
   'src/app/(dashboard)/configuracion/page.tsx':
     'snippetIframe es una CADENA que el consultorio pega en SU web y apunta a /reservar de este ' +
-    'mismo origen: no es un iframe que renderice NexusMED, y /reservar es embebible a propósito.',
+    'mismo origen: no es un iframe que renderice Ausculta, y /reservar es embebible a propósito.',
 }
 
 /** Apertura de cada `<iframe …>` del archivo (hasta el `>` de cierre de la etiqueta). */

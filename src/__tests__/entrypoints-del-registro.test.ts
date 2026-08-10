@@ -4,7 +4,7 @@
  * ── QUÉ ES EL REGISTRO, Y POR QUÉ IMPORTA QUE NO MIENTA ──────────────────────
  *
  * `CLINICAL_ENGINE_REGISTRY` es el documento que dice **qué motores clínicos
- * tiene NexusMED y cómo se llega a ellos**: por cada motor, sus archivos, sus
+ * tiene Ausculta y cómo se llega a ellos**: por cada motor, sus archivos, sus
  * `entryPoints`, su ADR y sus golden. Es lo que lee un auditor, y lo que se
  * enseña cuando alguien pregunta «¿esto qué calcula y dónde?».
  *

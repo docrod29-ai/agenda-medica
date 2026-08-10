@@ -1,5 +1,25 @@
 # Bitácora del trabajo autónomo
 
+## 2026-08-10 — MARCA · NexusMED → **Ausculta**
+
+Instrucción del dueño, a mitad de la ejecución de V9. Renombrado el producto en
+toda la aplicación: metadatos, manifiesto, PWA, portada, precios, demo, términos,
+aviso de privacidad, contrato de encargo, prompts, correos y `aria-label`s.
+
+- `src/lib/marca.ts` — el nombre vive en un sitio; `MARCA` alimenta metadatos,
+  manifiesto, la barra lateral, el canal de alertas, la descripción del CFDI y
+  el aviso de privacidad.
+- `la-marca-es-una-sola.test.ts` — el nombre viejo no puede reaparecer en `src/`
+  fuera de la lista blanca (citas, artefactos del dueño), y los identificadores
+  **no** se renombran: hay un caso que lo comprueba al revés.
+- `VERSION_AVISO` → `2026-08` y `COPILOT_VERSION` → `1.1.0`, los dos porque el
+  texto que se firma o se manda al modelo cambió.
+
+Lo que **no** se tocó, y está en `OWNER_DECISIONS_REQUIRED` (M-1…M-6): el
+logotipo sigue siendo una «N», el dominio sigue siendo `nexusmed.mx`, y el
+proyecto de Firebase y el `appId` no se migran.
+
+
 ## 2026-08-10 — V9 · `PATIENT-TELE-002` (P0) · REG-306
 
 **El recordatorio de una videoconsulta ya lleva por dónde entrar.** Los tres

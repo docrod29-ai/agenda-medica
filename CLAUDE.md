@@ -1,9 +1,17 @@
 @AGENTS.md
 
-# NexusMED — carta operativa
+# Ausculta — carta operativa
 
 Plataforma clínica del **Dr. David Alonso Rodríguez Luna** (internista e
 infectólogo). Next.js 16 · React 19 · TypeScript · Firestore · Vercel · PWA.
+
+> **El producto se llamaba NexusMED hasta el 10-ago-2026.** El nombre vive en
+> `src/lib/marca.ts` y `la-marca-es-una-sola.test.ts` impide que el viejo
+> reaparezca en `src/`. Los **identificadores** siguen con el nombre anterior a
+> propósito —dominio `nexusmed.mx`, proyecto `nexomed-agenda`, `appId`
+> `nexusmed.app`, caché `nexusmed-vNNN`, llave `nexusmed.theme`—: son llaves, no
+> texto, y cambiarlas rompe cosas que ya están en manos de la gente. La
+> documentación histórica conserva el nombre con el que se escribió.
 
 ## Misión
 

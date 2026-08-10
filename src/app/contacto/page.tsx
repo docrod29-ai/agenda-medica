@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { ArrowLeft, Mail, MessageCircle, LifeBuoy } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Contacto y soporte · NexusMED',
-  description: 'Ponte en contacto con el equipo de NexusMED. Correo de soporte y canales de ayuda.',
+  title: 'Contacto y soporte · Ausculta',
+  description: 'Ponte en contacto con el equipo de Ausculta. Correo de soporte y canales de ayuda.',
 }
 
 const CORREO = 'soporte@nexusmed.mx'

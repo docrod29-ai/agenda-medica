@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * Antes, `/api/receta/verificacion-url` firmaba con HMAC lo que el cliente le
  * dictara. Un POST a mano con una cédula ajena y un notaId inventado devolvía
  * una URL que la página pública `/verificar` presenta como "Integridad
- * verificada": NexusMED certificaba un documento que nunca existió.
+ * verificada": Ausculta certificaba un documento que nunca existió.
  *
  * Este archivo prueba la ruta REAL (no un mock de ella) con dobles del Admin SDK
  * y de la frontera de autenticación. Datos 100% ficticios.

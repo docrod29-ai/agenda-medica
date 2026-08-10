@@ -17,7 +17,7 @@
  *
  * Los valores críticos sí disparaban una alerta. Pero una alerta se lee, se
  * cierra, y nadie vuelve a saber si alguien actuó. El charter lo dice con estas
- * palabras: **«NexusMED debe CERRAR el trabajo, no sólo mostrar alertas»**.
+ * palabras: **«Ausculta debe CERRAR el trabajo, no sólo mostrar alertas»**.
  *
  * Y los NO críticos no tenían ni eso.
  *

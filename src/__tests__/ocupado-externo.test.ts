@@ -1,7 +1,7 @@
 /**
  * GOLDEN — el calendario del médico también ocupa.
  *
- * La integración con Google era de UNA dirección: NexusMED empujaba sus citas y
+ * La integración con Google era de UNA dirección: Ausculta empujaba sus citas y
  * nada volvía. El médico se ponía una cirugía el jueves de 8 a 12 en Google y la
  * agenda seguía ofreciendo esas horas; el choque se descubría el jueves.
  *
@@ -21,7 +21,7 @@ describe('comoBloqueos', () => {
     expect(b.tipo).toBe('evento')
     expect(b.medicoId).toBe('med-1')
     expect(esDeGoogle(b)).toBe(true)
-    // El motivo tiene que decir de dónde salió: el médico no lo creó en NexusMED
+    // El motivo tiene que decir de dónde salió: el médico no lo creó en Ausculta
     // y, si no lo dice, en la pantalla de bloqueos parece un fantasma.
     expect(b.motivo).toMatch(/Google/i)
   })

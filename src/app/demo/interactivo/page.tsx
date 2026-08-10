@@ -2,7 +2,7 @@
 /**
  * SANDBOX INTERACTIVO — /demo/interactivo
  *
- * El visitante conduce una sesión simulada de NexusMED: elige una cita, "dicta"
+ * El visitante conduce una sesión simulada de Ausculta: elige una cita, "dicta"
  * la consulta (la transcripción se revela por pasos), ve armarse la nota S/O/A/P
  * y genera una receta con QR verificable. TODO es ficticio y determinista:
  * cero red, cero IA real, cero Firestore, cero PHI. Página pública standalone
@@ -317,7 +317,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
           {!verificado ? (
             <>
               <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, marginTop: 0 }}>
-                Al escanear el QR, cualquiera puede comprobar que la receta se generó en NexusMED y no fue alterada.
+                Al escanear el QR, cualquiera puede comprobar que la receta se generó en Ausculta y no fue alterada.
               </p>
               <button onClick={() => setVerificado(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <ShieldCheck size={15} /> Simular escaneo del QR
@@ -328,7 +328,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 10 }}>
                 <ShieldCheck size={20} /> <strong>Integridad verificada</strong>
               </div>
-              {[['Documento', 'Generado por NexusMED'], ['Folio', escenario.folio], ['Estado', 'Vigente']].map(([k, v]) => (
+              {[['Documento', 'Generado por Ausculta'], ['Folio', escenario.folio], ['Estado', 'Vigente']].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ color: 'var(--text3)' }}>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
                 </div>

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- NexusMED app icon — N entrelazada formando un nodo (nexus)
-       Sobre canvas ink-neutro, mark en cobalto NexusMED.
+  <!-- Ausculta app icon — N entrelazada formando un nodo (nexus)
+       Sobre canvas ink-neutro, mark en cobalto Ausculta.
        Safe area iOS respetada: contenido dentro de inset 88px (17%). -->
   <defs>
     <linearGradient id="nx-grad" x1="0" y1="0" x2="0" y2="1">

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 96" width="480" height="96">
-  <!-- NexusMED wordmark horizontal — mark + texto.
+  <!-- Ausculta wordmark horizontal — mark + texto.
        Para header de login, sidebar, materiales marketing. -->
   <defs>
     <linearGradient id="wm-grad" x1="0" y1="0" x2="0" y2="1">
@@ -19,8 +19,8 @@
     <circle cx="24" cy="24" r="1.4" fill="#0B0C0E"/>
   </g>
 
-  <!-- Wordmark "NexusMED" en Geist semibold equivalent -->
+  <!-- Wordmark "Ausculta" en Geist semibold equivalent -->
   <text x="72" y="60" font-family="'Geist', system-ui, sans-serif" font-weight="600" font-size="38" fill="currentColor" letter-spacing="-1.2">
-    <tspan fill="currentColor">Nexus</tspan><tspan font-weight="500" opacity="0.7">MED</tspan>
+    <tspan fill="currentColor">Ausculta</tspan>
   </text>
 </svg>

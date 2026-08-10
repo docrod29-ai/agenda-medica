@@ -102,7 +102,7 @@ body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1
   ${dx}
   ${meds}
   ${firma}
-  <div style="margin-top:14pt;font-size:8.5pt;color:#666;text-align:center;">Documento EDITABLE exportado de NexusMED. La versión con validez legal es la nota firmada (con sello SHA-256) impresa o en PDF. Conforme a NOM-004-SSA3-2012.</div>
+  <div style="margin-top:14pt;font-size:8.5pt;color:#666;text-align:center;">Documento EDITABLE exportado de Ausculta. La versión con validez legal es la nota firmada (con sello SHA-256) impresa o en PDF. Conforme a NOM-004-SSA3-2012.</div>
 </div></body></html>`
 }
 

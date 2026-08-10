@@ -120,7 +120,7 @@ export default function SetupPage() {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</div>
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>Configura tu consultorio</div>
           </div>
         </div>

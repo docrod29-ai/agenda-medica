@@ -30,6 +30,7 @@
  * exactamente el fallo que este módulo existe para reparar.
  */
 import { safeLog } from '@/lib/security/sanitize'
+import { MARCA } from '@/lib/marca'
 
 export interface AlertaOps {
   /** Qué pasó, en una línea. Va como título. */
@@ -78,7 +79,7 @@ export async function enviarAlertaOps(a: AlertaOps): Promise<ResultadoAlerta> {
       // `text` es lo que casi todos los receptores (Slack, ntfy…) pintan sin
       // configurar nada; los campos sueltos van al lado para quien los quiera.
       body: JSON.stringify({
-        text: `[${a.gravedad.toUpperCase()}] NexusMED · ${a.titulo}\n${a.detalle}`,
+        text: `[${a.gravedad.toUpperCase()}] ${MARCA} · ${a.titulo}\n${a.detalle}`,
         titulo: a.titulo, detalle: a.detalle, gravedad: a.gravedad, origen: a.origen,
         ts: new Date().toISOString(),
       }),

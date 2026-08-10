@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
 /**
- * Tokens firmados para VERIFICAR una receta dentro de NexusMED (QR).
+ * Tokens firmados para VERIFICAR una receta dentro de Ausculta (QR).
  *
  * Formato: base64url(payload).base64url(hmacSHA256("receta:"+payload))
  * payload = { v, c, n, f, dn, dc, h, hn, i, e }

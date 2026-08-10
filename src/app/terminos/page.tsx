@@ -1,14 +1,14 @@
-// Términos y Condiciones de Uso de la plataforma NexusMED.
+// Términos y Condiciones de Uso de la plataforma Ausculta.
 // URL fija /terminos — enlazada desde el registro y el pie de la landing.
-// Redactado para un SaaS médico en México: NexusMED provee el software
+// Redactado para un SaaS médico en México: Ausculta provee el software
 // (encargado del tratamiento); el médico/consultorio es el responsable clínico
 // y del expediente. Texto base sólido; conviene revisión por abogado antes de
 // escalar la venta.
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Términos y Condiciones — NexusMED',
-  description: 'Términos y condiciones de uso de la plataforma NexusMED (agenda médica y expediente clínico electrónico).',
+  title: 'Términos y Condiciones — Ausculta',
+  description: 'Términos y condiciones de uso de la plataforma Ausculta (agenda médica y expediente clínico electrónico).',
 }
 
 const ACTUALIZADO = 'julio de 2026'
@@ -17,10 +17,10 @@ export default function TerminosPage() {
   return (
     <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: '#1a1a1a', background: '#fff', lineHeight: 1.7, fontSize: 16 }}>
       <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: '#0b1220' }}>Términos y Condiciones de Uso</h1>
-      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma NexusMED · Última actualización: {ACTUALIZADO}</p>
+      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma Ausculta · Última actualización: {ACTUALIZADO}</p>
 
       <p>
-        Estos Términos y Condiciones (los <strong>“Términos”</strong>) regulan el acceso y uso de <strong>NexusMED</strong>,
+        Estos Términos y Condiciones (los <strong>“Términos”</strong>) regulan el acceso y uso de <strong>Ausculta</strong>,
         una plataforma de <strong>agenda médica y expediente clínico electrónico</strong> para profesionales de la salud,
         consultorios y clínicas (el <strong>“Servicio”</strong>). Al registrarte o usar el Servicio, aceptas estos Términos.
         Si no estás de acuerdo, no utilices el Servicio.
@@ -33,11 +33,11 @@ export default function TerminosPage() {
         confidencialidad de tu contraseña y de toda actividad realizada bajo tu cuenta.
       </Section>
 
-      <Section titulo="2. Rol de NexusMED y responsabilidad clínica">
-        NexusMED es <strong>una herramienta de software</strong>. NexusMED <strong>no practica la medicina</strong>, no emite
+      <Section titulo="2. Rol de Ausculta y responsabilidad clínica">
+        Ausculta es <strong>una herramienta de software</strong>. Ausculta <strong>no practica la medicina</strong>, no emite
         diagnósticos ni prescribe tratamientos. Todas las decisiones clínicas —diagnóstico, medicación, dosis, órdenes y el
         contenido del expediente— son <strong>responsabilidad exclusiva del médico tratante</strong>, con base en su juicio
-        profesional. El médico es el <strong>responsable</strong> del expediente clínico y de los datos de sus pacientes; NexusMED
+        profesional. El médico es el <strong>responsable</strong> del expediente clínico y de los datos de sus pacientes; Ausculta
         actúa como <strong>encargado</strong> del tratamiento, conforme al Aviso de Privacidad.
       </Section>
 
@@ -53,7 +53,7 @@ export default function TerminosPage() {
         El Servicio ofrece plantillas y elementos documentales <strong>alineados con los requisitos aplicables de la
         NOM-004-SSA3-2012</strong> (expediente clínico) y considera los principios de la <strong>NOM-024-SSA3-2012</strong>
         (sistemas de información de registro electrónico) en lo que resulta aplicable. El uso correcto y el cumplimiento
-        normativo en cada consultorio son responsabilidad del profesional de la salud. NexusMED provee las herramientas;
+        normativo en cada consultorio son responsabilidad del profesional de la salud. Ausculta provee las herramientas;
         no garantiza por sí solo el cumplimiento, que depende del uso que le dé cada usuario.
       </Section>
 
@@ -62,7 +62,7 @@ export default function TerminosPage() {
         momento de contratar. Las suscripciones se renuevan de forma automática al periodo elegido (mensual o anual) salvo
         cancelación previa. Las <strong>recargas de créditos</strong> son cargos únicos y no reembolsables una vez consumidos.
         Puedes cambiar o cancelar tu plan desde tu cuenta; la cancelación surte efecto al final del periodo ya pagado. Los
-        pagos se procesan a través de proveedores externos (por ejemplo, Stripe); NexusMED no almacena los datos completos de
+        pagos se procesan a través de proveedores externos (por ejemplo, Stripe); Ausculta no almacena los datos completos de
         tu tarjeta. La <strong>factura (CFDI)</strong> se emite a solicitud del cliente con sus datos fiscales.
       </Section>
 
@@ -75,15 +75,15 @@ export default function TerminosPage() {
       </Section>
 
       <Section titulo="7. Propiedad intelectual">
-        El software, el diseño, la marca <strong>NexusMED</strong>, el código y todos los elementos del Servicio son propiedad de
+        El software, el diseño, la marca <strong>Ausculta</strong>, el código y todos los elementos del Servicio son propiedad de
         sus titulares y están protegidos por las leyes de propiedad intelectual. Estos Términos <strong>no transfieren</strong>
         ningún derecho de propiedad sobre el Servicio; solo otorgan una licencia limitada, personal, revocable e intransferible
-        para usarlo. Los <strong>datos de tus pacientes y tu expediente clínico son tuyos</strong> (de tu consultorio); NexusMED
+        para usarlo. Los <strong>datos de tus pacientes y tu expediente clínico son tuyos</strong> (de tu consultorio); Ausculta
         no reclama propiedad sobre ellos.
       </Section>
 
       <Section titulo="8. Disponibilidad y respaldos">
-        NexusMED procura una alta disponibilidad, pero el Servicio se presta <strong>“tal cual”</strong> y puede tener
+        Ausculta procura una alta disponibilidad, pero el Servicio se presta <strong>“tal cual”</strong> y puede tener
         interrupciones por mantenimiento, fallas de terceros o causas de fuerza mayor. Las funciones de IA dependen de
         proveedores externos y pueden degradarse o no estar disponibles temporalmente; en ese caso el Servicio procura una
         <strong> alternativa</strong> o continúa operando sin la función afectada. Se realizan respaldos de la información, sin que
@@ -91,22 +91,22 @@ export default function TerminosPage() {
       </Section>
 
       <Section titulo="9. Limitación de responsabilidad">
-        En la máxima medida permitida por la ley, NexusMED no será responsable por daños indirectos, incidentales o
-        consecuentes, ni por lucro cesante, derivados del uso o imposibilidad de uso del Servicio. En particular, NexusMED no es
+        En la máxima medida permitida por la ley, Ausculta no será responsable por daños indirectos, incidentales o
+        consecuentes, ni por lucro cesante, derivados del uso o imposibilidad de uso del Servicio. En particular, Ausculta no es
         responsable por <strong>decisiones clínicas</strong>, por el contenido del expediente, ni por el uso que el profesional
-        haga de las funciones de IA. La responsabilidad total de NexusMED, en cualquier caso, se limita al monto pagado por el
+        haga de las funciones de IA. La responsabilidad total de Ausculta, en cualquier caso, se limita al monto pagado por el
         usuario en los <strong>tres meses</strong> previos al evento que originó la reclamación.
       </Section>
 
       <Section titulo="10. Suspensión y terminación">
-        Puedes cancelar tu cuenta en cualquier momento. NexusMED puede suspender o terminar el acceso ante incumplimiento de
+        Puedes cancelar tu cuenta en cualquier momento. Ausculta puede suspender o terminar el acceso ante incumplimiento de
         estos Términos, falta de pago o uso que ponga en riesgo la seguridad del Servicio o de otros usuarios. Ante la
         terminación, podrás solicitar la <strong>exportación de tus datos</strong> dentro de un plazo razonable antes de su
         eliminación, conforme al Aviso de Privacidad y a la normativa aplicable.
       </Section>
 
       <Section titulo="11. Cambios a estos Términos">
-        NexusMED puede actualizar estos Términos. La versión vigente estará siempre disponible en esta página. Si los cambios
+        Ausculta puede actualizar estos Términos. La versión vigente estará siempre disponible en esta página. Si los cambios
         son sustanciales, se procurará notificarlos con antelación razonable. El uso continuado del Servicio tras la
         actualización implica su aceptación.
       </Section>
@@ -123,7 +123,7 @@ export default function TerminosPage() {
       </Section>
 
       <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>
-        NexusMED — Agenda médica y expediente clínico electrónico · México.
+        Ausculta — Agenda médica y expediente clínico electrónico · México.
       </p>
     </main>
   )

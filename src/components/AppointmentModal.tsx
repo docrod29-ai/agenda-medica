@@ -106,7 +106,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   /**
    * LO QUE EL MÉDICO YA TIENE EN SU GOOGLE CALENDAR.
    *
-   * La integración era de UNA dirección: NexusMED empujaba sus citas a Google y
+   * La integración era de UNA dirección: Ausculta empujaba sus citas a Google y
    * nada volvía. El médico se ponía una cirugía el jueves de 8 a 12 en su
    * calendario y esta pantalla seguía ofreciendo esas horas; el choque se
    * descubría el jueves.
