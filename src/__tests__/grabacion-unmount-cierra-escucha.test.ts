@@ -15,8 +15,12 @@
  * observable de mount activo -> recording -> unmount.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { cerrarEscuchaAlDesmontar } from '@/hooks/useGrabacionAudio'
 import { avisarEscucha, EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
+
+const HOOK = readFileSync(join(process.cwd(), 'src', 'hooks', 'useGrabacionAudio.ts'), 'utf8')
 
 class VentanaDePrueba extends EventTarget {
   setInterval = vi.fn(() => 17)
@@ -35,6 +39,17 @@ afterEach(() => {
 })
 
 describe('lifecycle de una grabación activa', () => {
+  it('el cierre probado está conectado al cleanup del efecto activo', () => {
+    /**
+     * Probar el helper aislado no basta: la prueba anterior seguía verde si
+     * alguien quitaba su llamada del cleanup y dejaba la función huérfana. El
+     * defecto REG-309 vivía precisamente en esa conexión, no en la capacidad
+     * del helper de emitir `false` cuando se lo invoca a mano.
+     */
+    expect(HOOK, 'el cierre existe, pero el unmount ya no lo ejecuta')
+      .toMatch(/return \(\) => \{[\s\S]{0,300}?cerrarEscuchaAlDesmontar\(\)[\s\S]{0,40}?\}/)
+  })
+
   it('mount -> recording -> unmount emite el cierre y apaga la UI global', () => {
     const ventana = new VentanaDePrueba()
     Object.defineProperty(globalThis, 'window', { configurable: true, value: ventana })
