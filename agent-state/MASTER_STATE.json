@@ -16,10 +16,10 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1168",
+  "ultimaVersionEnProduccion": "nexusmed-v1169",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [],
-  "actualizado": "2026-08-09",
+  "actualizado": "2026-08-10",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -51,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/kind-brahmagupta-ajtolc (reconciliación V10 del 10-ago: línea 40oom1 [canónica+iurzog+main] + corrida nocturna 9r4m7a fusionadas)",
+  "ramaActual": "claude/kind-brahmagupta-ajtolc",
   "derivado": {
     "regsEnElLedger": 156,
     "ultimaREG": "REG-308",
-    "archivosDePrueba": 576,
-    "casosDePrueba": 7575,
+    "archivosDePrueba": 582,
+    "casosDePrueba": 7604,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

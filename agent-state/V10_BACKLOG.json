@@ -312,6 +312,14 @@
       "estado": "abierto"
     },
     {
+      "id": "V10-HARNESS-CONSOLIDAR",
+      "titulo": "P2: TRES arneses de captura para lo mismo (tests/visual/*, scripts/design/arnes-capturas-v10.sh, scripts/design/capturar-golden-flow.mjs) — cada corrida paralela del 9-ago construyó el suyo. Consolidar en UNO al abrir V10-VISUAL-REGRESSION-001, conservando lo mejor de cada uno (build de producción, revisor independiente, receta documentada)",
+      "fuente": "reconciliación del 10-ago-2026; V10 §3 (una sola verdad) y regla del repo (nunca duplicar la fuente de verdad)",
+      "prioridad": "P2",
+      "unidadV10": "V10-VISUAL-REGRESSION-001",
+      "estado": "abierto"
+    },
+    {
       "id": "V10-HARNESS-OBS-001",
       "titulo": "P3 observación del arnés: aviso de hidratación en dev en /dashboard (saludo por hora local del servidor vs cliente) y un intento de conexión Firestore antes del login que loguea «unavailable» con emulador",
       "evidencia": "consola del arnés, corrida dev del 9-ago-2026 (en producción no se reproduce el error de consola)",
