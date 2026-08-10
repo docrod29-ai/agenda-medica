@@ -17,6 +17,7 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1168",
+  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -50,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/kind-brahmagupta-40oom1 (reconciliación V10 del 9-ago: cadena + iurzog + canónica fusionadas)",
+  "ramaActual": "claude/kind-brahmagupta-ajtolc (reconciliación V10 del 10-ago: línea 40oom1 [canónica+iurzog+main] + corrida nocturna 9r4m7a fusionadas)",
   "derivado": {
-    "regsEnElLedger": 154,
-    "ultimaREG": "REG-306",
-    "archivosDePrueba": 575,
-    "casosDePrueba": 7567,
+    "regsEnElLedger": 156,
+    "ultimaREG": "REG-308",
+    "archivosDePrueba": 576,
+    "casosDePrueba": 7575,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

@@ -1717,7 +1717,8 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
   /* --nexus (#6E84FE) con blanco da 3.28:1 y reprueba AA; el sólido pasa en los
-     dos temas (5.13 / 6.71) — misma doctrina que el guardián de estilos en línea. */
+     dos temas (5.13 / 6.71) — misma doctrina que el guardián de estilos en línea.
+     Lo midieron axe y la captura real por separado (REG-308). */
   background: var(--nexus-solido); color: #fff;
   border: none; border-radius: 12px;
   font-size: 14px; font-weight: 600; cursor: pointer;

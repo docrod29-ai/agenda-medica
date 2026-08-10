@@ -64,13 +64,9 @@
       "PATIENT-UX-TRUTH-001 (639ca73, sellado 6a6501d)",
       "los tres P0 de audio (d22fbfd, REG-287)"
     ],
-    "cerradoEnRamaV9SinFusionar": [
-      "DESIGN-SYSTEM-001 (5bb1a2c, REG-274/275)",
-      "NAVIGATION-001 (fed81cc, REG-276 a 279)",
-      "PATIENT-COMPANION-001 (5d496cf, REG-280/281)"
-    ],
-    "ramaV9": "origin/claude/nexus-patient-ux-v9 (6feaf5a; 8 adelante, 48 atrás de main)",
-    "regla": "V10 NO duplica ni revierte ese trabajo. Las unidades V10 que toquen sistema de diseño, navegación o compañero del paciente esperan la fusión de V9 o se rebasan sobre ella (V10 §41). La decisión de fusionar es del dueño — ver V10_OWNER_DECISIONS_REQUIRED.md."
+    "cerradoEnRamaV9SinFusionar": [],
+    "ramaV9": "FUSIONADA a main el 9-ago-2026 (PR #279, 56d9fc7); REG de V9 renumeradas a 294…305",
+    "regla": "V10-D1 ejecutada: todo el trabajo V9 está en main. Las unidades V10 de sistema de diseño/navegación/compañero construyen SOBRE lo fusionado, sin rehacerlo."
   },
   "documentosValidadosPreexistentes": {
     "inventarioPantallas": "docs/design/SCREEN_INVENTORY.md (GENERADO por scripts/design/inventario-de-pantallas.mjs — no editar a mano)",
@@ -80,9 +76,22 @@
     "sistemaDeDiseno": "docs/DESIGN_SYSTEM.md (fuente de verdad visual hoy)",
     "matricesCompetitivas": "docs/competitive/UX_UI_MATRIX.md · docs/competitive/PATIENT_EXPERIENCE_MATRIX.md · docs/competitive/EL-FOSO.md"
   },
-  "puntaReconciliada": "claude/kind-brahmagupta-40oom1 (9-ago-2026): fusión de la cadena ysxb6q + iurzog + HOME-001 (dee76d35). LA SIGUIENTE CORRIDA ARRANCA DE AQUÍ.",
+  "puntaReconciliada": "claude/kind-brahmagupta-ajtolc (10-ago-2026): fusión de 40oom1 (que ya unía ysxb6q + iurzog + HOME-001) + la corrida nocturna 9r4m7a (REG-307/308, v1169). LA SIGUIENTE CORRIDA ARRANCA DE AQUÍ — y ANTES de trabajar, escanea las ramas hermanas claude/kind-brahmagupta-* por si otra corrida avanzó después.",
   "ramasSuperadas": {
     "claude/kind-brahmagupta-c51p2n": "duplicado paralelo de TRUTH-001 (capturas+scorecard sobre base vieja) — su sustancia está cubierta por la cadena e iurzog",
-    "claude/kind-brahmagupta-9xajvg": "acta de bloqueo errónea (la directiva sí existía)"
+    "claude/kind-brahmagupta-9xajvg": "acta de bloqueo errónea (la directiva sí existía)",
+    "claude/kind-brahmagupta-gu7h9g": "arnés duplicado; su continuación es i2uo2j",
+    "claude/kind-brahmagupta-i2uo2j": "arnés duplicado + 14/14 vistas puntuadas; su arreglo de hidratación se portó a la línea reconciliada, sus puntuaciones quedaron absorbidas en el scorecard",
+    "claude/kind-brahmagupta-397pqw": "reinicio de TRUTH desde main sin ver la canónica",
+    "claude/kind-brahmagupta-4tkrhu": "reinicio de TRUTH desde main sin ver la canónica",
+    "claude/kind-brahmagupta-dwmunz": "cuarto arnés duplicado",
+    "claude/kind-brahmagupta-ake878": "auditoría de superficie pública desde main — cubierta por el golden flow autenticado",
+    "claude/kind-brahmagupta-bttia7": "auditoría pública + mismo arreglo de hidratación (portado)"
+  },
+  "arnesDeCapturas": {
+    "estado": "operativo (9-ago-2026) — TRES arneses en el repo, consolidar en V10-VISUAL-REGRESSION-001",
+    "canonico": "scripts/design/arnes-capturas-v10.sh (build de producción + revisor independiente)",
+    "recetaNocturna": "docs/design/capturas/v10-truth/README.md",
+    "primerosHallazgos": "REG-307, REG-308 (v1169) — reparados y verificados re-capturando"
   }
 }

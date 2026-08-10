@@ -69,6 +69,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { resumenDelDia, type ConteoDelDia } from '@/lib/hoy/resumen-del-dia'
+import { nombreSaludo } from '@/lib/hoy/saludo'
 
 function todayStr() {
   return hoyISO()  // zona MX, no UTC
@@ -85,31 +86,12 @@ function greet() {
   return 'Buenas noches'
 }
 
-/** Quita "Dr.", "Dra.", "Dr ", "Dra " del inicio del nombre — evita el "Dr. Dr." duplicado */
-function quitarPrefijoDr(nombre: string): string {
-  return nombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').trim()
-}
-
 /**
  * Devuelve el PRIMER NOMBRE para saludar según quién está logueado.
  * - Médico/admin: usa config.nombreMedico (nombre del consultorio)
  * - Asistente: usa su displayName de Firebase Auth (lo capturó al registrarse)
  * - Si no hay nada: usa email prefix
  */
-function nombreSaludo(
-  role: string | null,
-  nombreMedico?: string,
-  displayName?: string | null,
-  email?: string | null,
-): string {
-  const esMedico = role === 'medico' || role === 'admin'
-  if (esMedico && nombreMedico) {
-    return quitarPrefijoDr(nombreMedico).split(' ')[0]
-  }
-  if (displayName) return displayName.split(' ')[0]
-  if (email) return email.split('@')[0]
-  return ''
-}
 
 export default function DashboardPage() {
   const { appointments, loading, error: errorCitas } = useAppointments()

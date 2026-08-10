@@ -4,67 +4,79 @@
 [`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`](../docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md)
 antes de tocar nada.
 
-**Rama**: la historia V10 quedó **RECONCILIADA** el 9-ago-2026 (tarde) en
-`claude/kind-brahmagupta-40oom1`. OJO para la siguiente corrida: **la punta es
-40oom1** — contiene la cadena completa (instalación → exbp9m → 2yxowl →
-rms50y → ysxb6q), la corrida paralela iurzog y HOME-001 de la rama canónica.
-`c51p2n` y `9xajvg` están superadas: no arrancar de ellas ni fusionarlas.
+**Rama**: la historia V10 quedó **RECONCILIADA POR SEGUNDA VEZ** el
+10-ago-2026 en `claude/kind-brahmagupta-ajtolc`. Esa punta contiene:
+la cadena completa (instalación → exbp9m → 2yxowl → rms50y → ysxb6q),
+iurzog, HOME-001 de la rama canónica, la reconciliación 40oom1 **y** la
+corrida nocturna 9r4m7a (REG-307/308, v1169) — más el arreglo de hidratación
+que i2uo2j y bttia7 encontraron por separado (portado, con guardián).
+Superadas (NO arrancar de ellas ni fusionarlas): c51p2n, 9xajvg, dwmunz,
+gu7h9g, i2uo2j, 397pqw, 4tkrhu, ake878, bttia7 — la lista con motivos vive en
+`V10_MASTER_STATE.json → ramasSuperadas`.
 
-## Por qué hizo falta reconciliar (que no se repita)
+## Protocolo de arranque (que la fragmentación no se repita)
 
-El 9-ago corrieron **en paralelo** varias sesiones V10 sin verse entre sí:
-la cadena (que sí se encadenaba corrida a corrida), iurzog (arrancó de la rama
-canónica vieja) y la sesión local del dueño (HOME-001 en la rama canónica).
-Resultado: dos arneses de captura para lo mismo, dos scorecards de las mismas
-pantallas, dos líneas base de accesibilidad, y hallazgos re-encontrados que la
-otra línea ya había reparado. **Protocolo desde ahora**: antes de trabajar,
-`git fetch` y comparar TODAS las ramas `claude/*` y la canónica por fecha de
-commit; si hay una corrida viva (push < 10 min), no tocar sus archivos y
-reconciliar sólo cuando quede quieta (V10 §41).
+El 9-ago corrieron **ocho** sesiones V10 en paralelo sin verse: cuatro
+construyeron un arnés de capturas cada una, dos repararon el MISMO bug de
+hidratación, tres re-auditaron la superficie pública ya auditada. Causa raíz:
+cada corrida programada nace en SU rama de sesión (`claude/kind-brahmagupta-*`)
+y no puede empujar a la canónica, así que ninguna veía a las demás.
 
-## Estado tras la reconciliación
+**Protocolo desde ahora, ANTES de trabajar**:
+
+1. `git fetch origin` y comparar por fecha TODAS las ramas
+   `claude/kind-brahmagupta-*`, la canónica V10 y main.
+2. Arrancar desde la punta más avanzada que contenga `puntaReconciliada`
+   (hoy: la fusión del 10-ago); si otra corrida avanzó después, fusionarla
+   ANTES de trabajar — nunca rehacer su trabajo.
+3. Si hay una corrida viva (push < 10 min), no tocar sus archivos y
+   reconciliar sólo cuando quede quieta (V10 §41).
+4. Al empujar, dejar en `V10_MASTER_STATE.json → puntaReconciliada` el nombre
+   de la rama propia para que la siguiente corrida la encuentre.
+
+**Recomendación al dueño (pendiente)**: fusionar la punta reconciliada a la
+rama canónica o a main por PR — mientras la verdad viva en ramas de sesión,
+cada reconciliación cuesta una corrida entera.
+
+## Estado tras la fusión del 10-ago
 
 | Qué | Estado |
 |---|---|
-| **V10-TRUTH-001** | ✅ CERRADA (cadena, 9-ago noche) y ENRIQUECIDA por iurzog: scorecard con revisor independiente (§40), 2.ª línea base axe, backlog +24 hallazgos con evidencia |
+| **V10-TRUTH-001** | ✅ CERRADA — cerrada dos veces por corridas ciegas entre sí y reconciliada: capturas de dos arneses, scorecard con revisor independiente + lectura nocturna, dos líneas base axe unidas + una tercera confirmatoria, backlog con evidencia |
 | **V10-D1 (fusión V9)** | ✅ EJECUTADA: PR #279 en main (`56d9fc7a`); REG de V9 = 294…305 |
-| **HOME-001** (/dashboard) | ✅ implementado y fusionado; **re-captura pendiente** para puntuar con revisor independiente (las dos puntuaciones existentes son de la pantalla ANTERIOR) |
-| **NOTE-001 quick** (DEBT-008/009) | ✅ cerrado; re-captura `nota--*.png` pendiente (banda 13→14, radio 12→10) |
-| **DEBT-006a** (expediente móvil) | ✅ cerrado con guardián |
-| **V10-SAFETY-ALERGIAS-WORDING** | ✅ cerrado (iurzog): «No registradas», con guardián |
-| **Alineación a11y** | unión de las dos líneas en `docs/design/ACCESSIBILITY.md`; abiertos: FAB de tema sin nombre (todas), iconos citas/calendario, contrastes hoy/agenda/nota, nested-interactive pacientes/calendario |
-| **Trinquete de diseño** | BAJÓ a **560 hex / 2020 tamaños / 637 radios** medido sobre la fusión |
-| **Backlog** | 32 items reconciliados en `V10_BACKLOG.json` (estado cruzado: lo que una línea encontró y otra reparó, marcado) |
+| **HOME-001** (/dashboard) | ✅ implementado; la corrida nocturna lo verificó en navegador (8.6/1.0, cero axe tras REG-308); falta contrarrevisión independiente sobre la línea fusionada |
+| **REG-307/308** | ✅ reparados con guardián (`lo-que-la-captura-real-midio.test.ts`), sellados, sw v1169 (SIN desplegar) |
+| **NOTE-001 quick** (DEBT-008/009) | ✅ cerrado; re-captura `nota--*.png` pendiente |
+| **DEBT-005 / DEBT-006a** | ✅ cerrados con guardián (etiquetas del flujo central; CTA primero en expediente móvil) |
+| **Hidratación (V10-BUG-001)** | ✅ portado de i2uo2j/bttia7: `suppressHydrationWarning` en `<html>` (el script anti-flicker pone `data-theme` antes de hidratar), con guardián |
+| **Trinquete de diseño** | 560 hex / 2020 tamaños / 637 radios (bajó en la fusión anterior; verificar tras esta) |
+| **Backlog** | unión de TRES corridas en `V10_BACKLOG.json`; P0 vigente: agenda/citas móvil (DEBT-003) |
+| **Arneses de captura** | TRES en el repo (deuda declarada): consolidar en V10-VISUAL-REGRESSION-001 |
 
-## Compuertas de esta corrida (reconciliación)
+## Compuertas de esta corrida (10-ago, reconciliación 2)
 
-- `npx vitest run`: **8 592 pasan · 1 falla** — `ops-timeout-y-punto-ciego`,
-  la MISMA falla de entorno documentada por las tres corridas anteriores (el
-  proxy del sandbox contesta donde el test espera un cuelgue; en CI pasa).
-- `lint-trinquete`: **96 = techo**.
-- trinquete de diseño: **verde, techos bajados** (560/2020/637).
-- `npm run build`: **compila** (161 páginas). OJO contenedor nuevo: el build
-  necesita el `.env.local` demo ANTES de arrancar — sin ninguna config de
-  Firebase, `collecting page data` revienta en `/dr/[clinicId]` con
-  `auth/invalid-api-key`. No es defecto del código: es el paso 0 del arnés.
-- Resolución de `firebase.ts`: gana la versión iurzog (doble candado
-  `NEXT_PUBLIC_FIREBASE_EMULATORS=1` **y** projectId `demo-*`, conexión también
-  en servidor) — su guardián `emulador-solo-demo.test.ts` la exige y hace
-  posible fotografiar el build de producción.
+Ver mensaje del commit de fusión: vitest + lint-trinquete + build corridos
+sobre la línea fusionada ANTES de empujar.
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. **Re-captura y puntuación independiente** de `/dashboard` (HOME-001) y
-   `nota--*` con cualquiera de los dos arneses — cierra la evidencia de las
-   dos unidades ya implementadas. De paso: primera puntuación de expediente y
-   consulta con siembra fiel (quedaron SIN PUNTUAR).
-2. **V10-CONSTITUTION-001** (DEBT-001/002, ya sin candado V9): construir los
-   tokens/utilidades que faltan SOBRE el sistema de diseño de V9 que ya está
-   en main — no rehacerlo.
-3. Después, por prioridad del backlog: DEBT-003 (agenda móvil rota, P1) y
-   DEBT-010 + nested-interactive (pacientes móvil).
-4. Consolidar los DOS arneses de captura en uno (registrado en backlog) al
-   abrir V10-VISUAL-REGRESSION-001.
+1. **`V10-DEBT-003` (P0, adoptado de V10-CITAS-001)**: la fila de `/citas` a
+   390 px — botones pintados ENCIMA del texto (evidencia `citas--mobile.png` y
+   `agenda--390.png`). Misma cirugía que HOME-001: decidir qué sobra de la
+   fila (muro de 4 CTA × 3 colores, filtro duplicado, badge del propio médico,
+   teléfono en cada fila) y hacerla apilable. Re-capturar y re-puntuar al
+   cerrar.
+2. **`V10-A11Y-001` segunda tanda** (la primera cerró en DEBT-005): nombre del
+   FAB de luna/tema (todas las pantallas), kebab/lápiz de citas y calendario,
+   `nested-interactive` de pacientes/calendario, contrastes «Registrar cobro»
+   y ranuras.
+3. **Re-captura y puntuación independiente** de `/dashboard` (HOME-001) y
+   `nota--*` sobre la línea fusionada — cierra la evidencia de las unidades ya
+   implementadas y estrena el promedio vigente del scorecard.
+4. **`V10-CONSTITUTION-001`** (DEBT-001/002, sin candado): tokens/utilidades
+   SOBRE el sistema de diseño V9 ya en main — no rehacerlo.
+5. Si queda espacio: `/calendario` móvil abre en Día (V10-MOBILE-CALENDARIO-SEMANA).
+6. Al abrir V10-VISUAL-REGRESSION-001: consolidar los tres arneses en UNO.
 
 ### Cómo relanzar el arnés (resumen operativo — contenedor nuevo)
 
@@ -84,6 +96,8 @@ reconciliar sólo cuando quede quieta (V10 §41).
 # 4a. capturas             ARNES_CHROMIUM=/opt/pw-browsers/chromium node tests/visual/arnes-capturas.mjs
 # 5a. accesibilidad        npm i --no-save axe-core && ARNES_CHROMIUM=... node tests/visual/arnes-a11y.mjs
 # 3b. ALTERNATIVA prod:    bash scripts/design/arnes-capturas-v10.sh   (build real + siembra propia + axe propio)
+# 3c. ALTERNATIVA nocturna: scripts/design/sembrar-capturas.mjs + capturar-golden-flow.mjs
+#                           (receta: docs/design/capturas/v10-truth/README.md)
 # Trampas: localhost (no 127.0.0.1), --no-proxy-server, waitUntil:'load',
 # esperar a que el emulador ESCUCHE antes de sembrar, pre-marcar tour y push
 # en localStorage (los arneses ya lo hacen).

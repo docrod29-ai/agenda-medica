@@ -1,15 +1,15 @@
 {
-  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Se llena durante V10-TRUTH-001; nada aquí duplica un REG ya reparado ni una unidad V9 cerrada.",
+  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Nada aquí duplica un REG ya reparado ni una unidad V9 cerrada. Los ítems con evidencia citan su captura en docs/design/capturas/v10-truth/.",
   "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
   "items": [
     {
       "id": "V10-DEBT-003",
-      "titulo": "AGENDA MÓVIL (390) rota: nombre del paciente palabra por palabra, botones de acción fuera del viewport, filtros en 3 filas, barra de fecha envuelta",
-      "fuente": "captura agenda--390.png (9-ago-2026, arnés V10)",
-      "prioridad": "P1",
+      "titulo": "AGENDA MÓVIL (390) rota: nombre del paciente palabra por palabra, botones de acción pintados ENCIMA del texto y fuera del viewport, filtros en 3 filas, barra de fecha envuelta",
+      "fuente": "captura agenda--390.png (9-ago-2026, arnés V10) + citas--mobile.png (corrida nocturna)",
+      "prioridad": "P0",
       "unidadV10": "V10-AGENDA-001 (o arreglo puntual previo: es la pantalla más usada en móvil)",
       "estado": "abierto",
-      "confirmado-por-corrida-paralela": "Misma rotura vista por la corrida paralela (pill encima del nombre, botones fuera de viewport, fecha en formato US)."
+      "confirmado-por-corrida-paralela": "TRES corridas ciegas vieron la misma rotura. La nocturna la registró como V10-CITAS-001 con prioridad P0 — se adopta ese P0. Incluye además el muro de escritorio: 4 CTA × 3 colores por fila, filtro duplicado (chips + segmentos), etiqueta del propio médico repetida en cada fila."
     },
     {
       "id": "V10-DEBT-004",
@@ -71,7 +71,7 @@
       "prioridad": "P2",
       "unidadV10": "V10-SHELL-001 / V10-AGENDA-001",
       "estado": "abierto",
-      "confirmado-por-corrida-paralela": "Confirmado por el revisor independiente de la corrida paralela."
+      "confirmado-por-corrida-paralela": "Confirmado por el revisor independiente de la corrida paralela. La nocturna volvió a verlo (calendario--mobile.png)."
     },
     {
       "id": "V10-DEBT-001",
@@ -80,7 +80,7 @@
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
       "dependeDe": "fusión de DESIGN-SYSTEM-001 (rama V9) — no rehacer ese trabajo",
-      "estado": "desbloqueado — V9 fusionada a main (V10-D1, 56d9fc7a); entra como V10-CONSTITUTION-001"
+      "estado": "desbloqueado — V9 fusionada a main (V10-D1, PR #279, 56d9fc7a); entra como V10-CONSTITUTION-001"
     },
     {
       "id": "V10-DEBT-002",
@@ -90,6 +90,38 @@
       "unidadV10": "V10-CONSTITUTION-001",
       "dependeDe": "fusión de DESIGN-SYSTEM-001",
       "estado": "desbloqueado — V9 fusionada a main (V10-D1, 56d9fc7a); entra como V10-CONSTITUTION-001"
+    },
+    {
+      "id": "V10-DASHBOARD-002",
+      "titulo": "P2 móvil del héroe de HOME-001: overline en 3 renglones, nombre truncado con espacio de sobra, «2 por confirmar» partido a media frase, botones flotantes tapando la agenda",
+      "evidencia": "dashboard--mobile.png (9-ago-2026, corrida nocturna — única lectura post-HOME-001)",
+      "prioridad": "P2",
+      "unidadV10": "V10-TODAY-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONSULTA-001",
+      "titulo": "P2: la alergia sale dos veces a 40 px (franja + píldora) en /consulta; en móvil la franja trunca sin envolver. Consolidar en UNA señal — la más visible, nunca las dos a medias (señal de seguridad: revisar con clinical-safety antes de tocar)",
+      "evidencia": "consulta--desktop.png, consulta--mobile.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CALENDARIO-002",
+      "titulo": "P2: todos los eventos del calendario van del mismo naranja sin distinguir estado; confirmada vs pendiente sólo por borde punteado sutil",
+      "evidencia": "calendario--desktop.png (9-ago-2026)",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-EXPEDIENTE-001",
+      "titulo": "P3: con expediente vacío, tres tarjetas «sin dato» ocupan el espacio más caro; un solo estado vacío que enseñe el siguiente paso comunica más",
+      "evidencia": "expediente--desktop.png (9-ago-2026)",
+      "prioridad": "P3",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
     },
     {
       "id": "V10-HOME-002",
@@ -126,7 +158,7 @@
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
       "estado": "CERRADO 9-ago-2026 (noche)",
-      "cierre": "Siembra extendida (ultimaCita + nota borrador nota-sint-01), 7 de 7 pantallas del flujo puntuadas con captura, rendimiento @1440 en reporte-rendimiento.json. Receta/orden quedan para sus unidades (V10-MEDS-001/V10-ORDERS-001): no son parte del flujo capturado y puntuar sin rediseñar duplica trabajo."
+      "cierre": "Cerrado DOS veces por corridas ciegas entre sí: la reconciliada (siembra extendida, 7/7 pantallas puntuadas, rendimiento @1440 en reporte-rendimiento.json) y la nocturna (21 capturas 7×3 anchos, axe, scorecard con evidencia en docs/design/capturas/v10-truth/). Receta/orden quedan para sus unidades (V10-MEDS-001/V10-ORDERS-001)."
     },
     {
       "id": "V10-SAFETY-ALERGIAS-WORDING",
@@ -278,7 +310,15 @@
       "prioridad": "P3",
       "unidadV10": "V10-PATIENT-001",
       "estado": "abierto"
+    },
+    {
+      "id": "V10-HARNESS-OBS-001",
+      "titulo": "P3 observación del arnés: aviso de hidratación en dev en /dashboard (saludo por hora local del servidor vs cliente) y un intento de conexión Firestore antes del login que loguea «unavailable» con emulador",
+      "evidencia": "consola del arnés, corrida dev del 9-ago-2026 (en producción no se reproduce el error de consola)",
+      "prioridad": "P3",
+      "unidadV10": "V10-PERF-001",
+      "estado": "abierto"
     }
   ],
-  "_reconciliado": "9-ago-2026: unión de los backlogs de las dos corridas paralelas + estado cruzado contra la línea fusionada (HOME-001 y los quick-strikes cierran hallazgos que la otra corrida encontró por separado)."
+  "_reconciliado": "10-ago-2026: unión de los backlogs de TRES corridas paralelas del 9-ago (la reconciliada de la tarde, que ya unía dos, más la nocturna) + estado cruzado contra la línea fusionada (HOME-001 y los quick-strikes cierran hallazgos que las otras corridas encontraron por separado)."
 }
