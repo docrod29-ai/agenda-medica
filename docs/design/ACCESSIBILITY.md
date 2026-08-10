@@ -28,7 +28,7 @@ datos sintéticos, en 4 viewports (1440/1024/768/390). Evidencia cruda:
 
 | # | Pantalla | Regla axe | Impacto | Qué es |
 |---|---|---|---|---|
-| A1 | consulta | `label` ×4 | **critical** | Los campos de signos vitales (TA/FC/FR/T°…) tienen rótulo visual pero **no asociado**: el lector de pantalla anuncia un textarea sin nombre en plena captura de vitales. Es el hallazgo con relevancia clínica directa. |
+| A1 | consulta | `label` ×4 | **critical** | Las **secciones narrativas de la nota** (los 4 `<textarea>` donde se redacta) no tenían nombre accesible: el título vive en `<Section>` como texto visual y el lector de pantalla anunciaba «cuadro de texto» cuatro veces idénticas en plena redacción. *(Primera lectura del hallazgo lo atribuyó a los signos vitales; el DOM vivo lo desmintió — los inputs de vitales sí pasan axe.)* **REPARADO 10-ago-2026**: `aria-label={s.label}` + cerrojo `la-nota-se-puede-dictar-a-un-lector.test.ts`. |
 | A2 | calendario | `nested-interactive` ×5 | serious | `div[role=button]` (cita) anidado dentro de `div[role=button]` (celda «Agendar a las…»): foco y activación ambiguos con teclado/AT. |
 | A3 | calendario, citas, expediente, consulta (390px) | `button-name` ×2-3 | **critical** | Botones de icono sin nombre accesible (navegación del calendario, acciones por fila, cabecera móvil). |
 | A4 | citas | `label` ×1 | **critical** | El `input[type=date]` no tiene etiqueta — y además pinta formato 08/09/2026 (EU) junto a «2026-08-09» ISO en el mismo renglón (§28). |

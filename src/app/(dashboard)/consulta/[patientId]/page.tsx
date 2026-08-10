@@ -5417,6 +5417,13 @@ export default function ConsultaActivaPage() {
             placeholder={s.placeholder ?? ''}
             disabled={firmada}
             style={S.textarea}
+            /**
+             * El título de la sección vive en <Section> como texto VISUAL: el
+             * lector de pantalla anunciaba «cuadro de texto» cuatro veces
+             * idénticas en plena redacción de la nota (axe: label, critical —
+             * línea base V10 del 10-ago-2026, hallazgo A1).
+             */
+            aria-label={s.label}
           />
         </Section>
       ))}

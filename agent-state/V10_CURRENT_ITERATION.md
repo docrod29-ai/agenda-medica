@@ -52,12 +52,31 @@ producto (V10 §47). **15 de 17 salidas cerradas.**
   arnés (`scripts/design/`), evidencia (`tests/visual/capturas/`) y estado.
 - `npx tsc --noEmit` y `lint-trinquete` — ver bitácora del commit.
 
+## Cerrado también en esta corrida: `V10-A11Y-NOTA` (antes «VITALES»)
+
+El hallazgo A1 se reparó el mismo día: las 4 secciones narrativas de la nota
+llevan `aria-label={s.label}` (el DOM vivo desmintió la primera atribución a
+los vitales — esos inputs pasan axe) y el botón de cerrar del aviso de
+recordatorios dejó de ser mudo. **axe en vivo sobre /consulta: 0 violaciones
+(antes 5).** Cerrojo probado al revés:
+`src/__tests__/la-nota-se-puede-dictar-a-un-lector.test.ts`.
+
+## DECISIÓN DEL DUEÑO — 10-ago-2026, EN VIVO
+
+> «la app ahora se va llamar **ausculta**»
+
+Registrada en `V10_DECISION_LOG.md` (V10-D2). El renombre de cara al usuario
+es trabajo V10 legítimo (marca visible); el renombre profundo (dominios,
+repositorio, legales, Stripe) es del dueño. Ver el plan en el log de decisión.
+
 ## Próxima acción exacta (siguiente corrida)
 
-1. **`V10-A11Y-VITALES`** (P1, adelantado de V10-A11Y-001 por tocar captura de
-   datos clínicos): asociar rótulo↔campo en los signos vitales de la consulta
-   (`aria-label`/`htmlFor`), con prueba que falle al revés, y re-correr axe
-   sobre la pantalla para cerrar con evidencia.
+1. **`V10-BRAND-AUSCULTA-001`**: renombre visible de NexusMED → Ausculta en
+   las superficies que el usuario VE (login, sidebar, cabecera móvil —que hoy
+   dice «Agenda Médica»—, tour, manifest PWA, títulos de página), con
+   inventario medido de apariciones y guardián. NO tocar: dominios, legales,
+   Stripe, nombres de componentes Nexus* (API interna), ni el prefijo de
+   tokens `nx-` — eso lo decide el dueño con calma.
 2. Salidas 4 y 7 de TRUTH-001 (inventario de componentes + mapa de
    interacción) — con eso TRUTH-001 se cierra del todo.
 3. Después, por prioridad del backlog: `V10-CONSTITUTION-001` (deuda

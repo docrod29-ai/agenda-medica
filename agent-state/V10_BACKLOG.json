@@ -3,12 +3,12 @@
   "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
   "items": [
     {
-      "id": "V10-A11Y-VITALES",
-      "titulo": "Signos vitales de la consulta sin etiqueta programática (axe critical ×4): rótulo visual TA/FC/FR/T° no asociado al campo",
-      "fuente": "línea base a11y 10-ago-2026, hallazgo A1 — docs/design/ACCESSIBILITY.md",
+      "id": "V10-A11Y-NOTA",
+      "titulo": "Secciones narrativas de la nota sin nombre accesible (axe critical ×4) + botón mudo del aviso de recordatorios",
+      "fuente": "línea base a11y 10-ago-2026, hallazgo A1 — docs/design/ACCESSIBILITY.md. (Nació como V10-A11Y-VITALES; el DOM vivo corrigió la atribución: los inputs de vitales pasan axe)",
       "prioridad": "P1",
-      "unidadV10": "V10-A11Y-001 (adelantable: toca captura de datos clínicos)",
-      "estado": "abierto"
+      "unidadV10": "V10-A11Y-001 (adelantada por tocar la redacción de la nota clínica)",
+      "estado": "CERRADO 10-ago-2026 — aria-label={s.label} + aria-label del botón; axe en vivo sobre /consulta: 0 violaciones (antes 5). Cerrojo: la-nota-se-puede-dictar-a-un-lector.test.ts (probado al revés)"
     },
     {
       "id": "V10-AGENDA-MOVIL",
