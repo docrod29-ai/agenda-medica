@@ -115,7 +115,14 @@ describe('la hoja del paciente entra en el cierre', () => {
   })
 
   it('sin nada que entregar, no aparece', () => {
-    expect(queFaltaParaCerrar(BASE).map(p => p.que)).toEqual(['expediente'])
+    /**
+     * `paquete_visita` (POSTVISIT-001) SÍ aparece aunque no haya medicamentos
+     * ni estudios: libera el resumen del encuentro y el seguimiento al
+     * portal, que no dependen de traer receta. Es `hoja_del_paciente` —las
+     * instrucciones de CÓMO TOMAR lo prescrito— la que no tiene nada que
+     * mostrar sin medicamentos ni estudios.
+     */
+    expect(queFaltaParaCerrar(BASE).map(p => p.que)).toEqual(['paquete_visita', 'expediente'])
   })
 })
 

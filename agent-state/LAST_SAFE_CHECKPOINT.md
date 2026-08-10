@@ -6,6 +6,28 @@
 
 ---
 
+## En progreso · 10-ago-2026 — **`POSTVISIT-001`, NO cerrada**
+
+> Esto NO es un checkpoint de unidad cerrada (no hay SHA de cierre). Se
+> escribe igual porque hay avance real que la siguiente sesión no debería
+> repetir. Detalle completo, con lo que falta y por qué, en
+> `agent-state/PATIENT_COMPANION_STATE.md` § `POSTVISIT-001`.
+
+`componerPaquete` y `cambiosDeMedicacion` ya tienen llamador:
+`POST /api/expediente/paquete-visita` + la pantalla `RevisarYLiberarPaquete`
+en la consulta, gatillada sólo con la nota firmada. REG-306, 17 casos
+sellados. `npx vitest run` en verde (salvo el fallo de entorno de red ya
+declarado), lint y trinquete de diseño sin deuda nueva.
+
+**Falta, y por eso sigue abierta**: la pestaña «Cuidado» del portal
+(`/mi/[token]`) todavía no llama a la acción `paquetes` de `/api/portal` —un
+paquete liberado hoy no lo ve el paciente todavía (`POSTVISIT-ENTREGA-001`).
+`HojaParaElPaciente` no se tocó (`POSTVISIT-GATE-001` sigue con su hallazgo
+literal). Y nada de esto se vio en un navegador: esta sesión no tuvo
+credenciales de Firebase para levantar la app.
+
+---
+
 ## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |

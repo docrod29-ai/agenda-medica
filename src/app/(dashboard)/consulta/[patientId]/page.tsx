@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { RevisarYLiberarPaquete } from '@/components/RevisarYLiberarPaquete'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5165,6 +5166,7 @@ export default function ConsultaActivaPage() {
             hayEstudios: estudiosOrden.length > 0,
             pideCobro: config?.pedirCobroAlCerrar === true,
             internamientoActivo,
+            esNotaHospital,
           })}
           alIr={r => router.push(r)}
         />
@@ -5200,6 +5202,16 @@ export default function ConsultaActivaPage() {
           estudios={estudiosOrden}
           proximaCita={undefined}
         />
+      )}
+
+      {/*
+        REVISAR Y LIBERAR AL PACIENTE (POSTVISIT-001) — sólo con la nota YA
+        firmada, y sólo entonces: componer desde un borrador es lo que
+        `patient-facing-ai.md` regla 4 prohíbe. Mismo guardia que la hoja de
+        arriba: nada de UCI/hospital hoy.
+      */}
+      {firmada && !esNotaHospital && notaId && clinicId && (
+        <RevisarYLiberarPaquete clinicId={clinicId} patientId={patientId} notaId={notaId} />
       )}
 
       {/*

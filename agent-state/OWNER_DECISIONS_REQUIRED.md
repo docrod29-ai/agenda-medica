@@ -62,6 +62,50 @@ no se fusione nada, la cola sólo crece.
 
 ---
 
+## URGENTE — LA RUTINA PROGRAMADA DE V7 APUNTA A UN ARCHIVO QUE NO EXISTE (10-ago-2026)
+
+**El hecho.** La rutina programada de este disparo ordena, como primera acción
+obligatoria, leer por completo
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` como
+«especificación autoritativa de NexusMED Master Loop V7». **Ese archivo no
+existe en el repositorio** — ni bajo ese nombre ni con contenido equivalente
+en `docs/ai/`. Sólo existen `NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md`
+y `NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`.
+
+**Por qué no se inventó el archivo ni se paró el programa.** La misma rutina
+programada trae su propia jerarquía de resolución cuando los programas se
+pisan: *repositorio real → pruebas validadas → historial de Git → la
+especificación autoritativa compatible MÁS NUEVA → estado persistente*. Con
+eso: `agent-state/V7-ITERACION.md` (el tablero propio de V7, separado el
+8-ago) está fechado sobre producción v1144, mientras que
+`agent-state/CURRENT_ITERATION.md` y `LAST_SAFE_CHECKPOINT.md` muestran un
+programa V9 activo y al día (checkpoint del 9-ago, producción v1167 antes de
+este disparo). V7, como programa con especificación propia, parece haberse
+disuelto en V9 (y ahora V10) en algún punto no documentado — probablemente al
+fusionarse ambas ramas de trabajo — sin que nadie actualizara ni retirara el
+disparador programado que sigue mencionándolo por nombre.
+
+**Lo que se hizo en este disparo.** Se trató este hallazgo como el bloqueador
+que es, y se continuó con la unidad de mayor prioridad segura y sin cerrar
+que la jerarquía de resolución señala: `POSTVISIT-001` de V9 (ver
+`agent-state/PATIENT_COMPANION_STATE.md`), NO una tarea inventada de V7.
+
+**Qué se necesita del dueño.** Una de dos:
+
+1. Confirmar que V7 como programa independiente terminó/se fusionó, y **borrar
+   o reescribir el disparador programado** para que apunte a V9/V10 (o a lo que
+   corresponda) en vez de a un archivo inexistente.
+2. Si V7 debía seguir viva por separado, **restaurar o volver a escribir**
+   `NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` con el
+   contenido que se pretendía.
+
+**Qué queda bloqueado sin la respuesta.** Nada de lo productivo — cada disparo
+seguirá cayendo en la misma jerarquía de resolución y avanzando V9/V10. Lo
+bloqueado es la propia rutina programada: seguirá reportando confusamente
+«V7» en cada resumen mientras trabaja, de hecho, en otro programa.
+
+---
+
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
 

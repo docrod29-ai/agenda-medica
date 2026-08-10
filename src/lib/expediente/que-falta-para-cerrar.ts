@@ -33,7 +33,7 @@
  * Módulo PURO.
  */
 
-export type QueFalta = 'receta' | 'orden' | 'hoja_del_paciente' | 'cobro' | 'expediente'
+export type QueFalta = 'receta' | 'orden' | 'hoja_del_paciente' | 'paquete_visita' | 'cobro' | 'expediente'
 
 export interface PasoDeCierre {
   que: QueFalta
@@ -54,6 +54,13 @@ export interface EstadoAlCerrar {
   pideCobro?: boolean
   /** Si está internado, el cierre es otro: vuelve al episodio. */
   internamientoActivo?: string | null
+  /**
+   * Nota de hospital/UCI: no se lleva nada a casa hoy, y un paquete «lo que
+   * te llevas de esta consulta» sobre fármacos intravenosos de UCI confunde
+   * en vez de ayudar — el mismo motivo por el que `HojaParaElPaciente` no se
+   * enseña ahí.
+   */
+  esNotaHospital?: boolean
 }
 
 /**
@@ -89,6 +96,18 @@ export function queFaltaParaCerrar(e: EstadoAlCerrar): PasoDeCierre[] {
     ruta: null,
   })
 
+  /**
+   * POSTVISIT-001 — el paquete que el paciente puede ver en su portal. Nace
+   * DRAFT y sólo llega a él si el médico lo libera aquí mismo: firmar y
+   * liberar son dos actos (regla 4 de `patient-facing-ai.md`).
+   */
+  if (nid && !e.esNotaHospital) out.push({
+    que: 'paquete_visita',
+    titulo: 'Revisar y liberar al paciente',
+    siNoSeHace: 'Esta consulta no aparece en el portal del paciente.',
+    ruta: null,
+  })
+
   if (e.pideCobro) out.push({
     que: 'cobro',
     titulo: 'Registrar el cobro',
@@ -117,7 +136,7 @@ export function aDondeIrDirecto(e: EstadoAlCerrar): string | null {
   /* Internado: el cierre es volver al episodio, y eso no admite alternativa. */
   if (e.internamientoActivo) return `/hospitalizacion/${e.internamientoActivo}`
 
-  const pasos = queFaltaParaCerrar(e).filter(p => p.que !== 'expediente' && p.que !== 'hoja_del_paciente')
+  const pasos = queFaltaParaCerrar(e).filter(p => p.que !== 'expediente' && p.que !== 'hoja_del_paciente' && p.que !== 'paquete_visita')
   if (pasos.length === 0) return `/expediente/${e.patientId}`
   if (pasos.length === 1 && !e.pideCobro) return pasos[0].ruta
   return null

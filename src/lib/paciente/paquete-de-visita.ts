@@ -62,28 +62,23 @@
  */
 
 /**
- * ── POR QUÉ AQUÍ NO ESTÁ LA COMPOSICIÓN ─────────────────────────────────────
+ * ── LA COMPOSICIÓN, Y QUIÉN LA LLAMA ─────────────────────────────────────────
  *
- * `componerPaquete` —la función que arma el contenido a partir de la nota
- * firmada— y su ayudante `cambiosDeMedicacion` **no viven todavía en este
- * archivo, a propósito.**
+ * `componerPaquete` y su ayudante `cambiosDeMedicacion` vivieron fuera de este
+ * archivo hasta `POSTVISIT-001`, a propósito: se habían escrito una vez y el
+ * guardián de conexión las cazó al instante — motor con cuerpo real, sin un
+ * solo llamador. «Escrito, probado y sin conectar» es la familia de defectos
+ * más grande de este proyecto, y añadir una más a sabiendas era exactamente lo
+ * que el repositorio lleva meses persiguiendo. Se quitaron las dos.
  *
- * Se escribió, y su guardián de conexión la cazó al instante: era un motor con
- * cuerpo real y **sin un solo llamador**. Su llamador natural es la pantalla
- * donde el médico revisa y libera, y esa pantalla es `POSTVISIT-001`.
- *
- * «Escrito, probado y sin conectar» es la familia de defectos **más grande de
- * este proyecto** —32 de 127 regresiones—, y añadirle una más a sabiendas,
- * aunque fuera con una nota explicándolo, sería exactamente lo que este
- * repositorio lleva meses persiguiendo. Llegan con quien las llame.
- *
- * Se intentó dejar sólo el ayudante, y el guardián volvió a cazarlo al turno
- * siguiente: un motor sin llamador no deja de serlo porque su vecino se haya
- * ido. Se van los dos.
- *
- * Lo que SÍ vive aquí es lo que ya corre: el modelo, la máquina de estados y la
- * compuerta que usa `/api/portal`.
+ * Su llamador es `POST /api/expediente/paquete-visita`, que sólo compone desde
+ * una nota con `estado === 'firmada'` — este módulo lo exige y no confía en que
+ * el llamador ya lo haya comprobado. Ver `.claude/rules/patient-facing-ai.md`
+ * regla 4: firmar y liberar son dos actos, y componer un `DRAFT` no libera
+ * nada — `liberar()`, abajo, sigue siendo el único camino a `RELEASED`.
  */
+
+import { comoTomarlo } from './como-se-lo-explico'
 
 /** Los dos únicos estados. No hay un tercero, y `DRAFT` no se le enseña a nadie. */
 export type EstadoPaquete = 'DRAFT' | 'RELEASED'
@@ -171,3 +166,122 @@ export function visibleParaElPaciente(p: Pick<PaqueteDeVisita, 'estado' | 'appro
 /** Los cinco destinos del compañero. El orden es el de la especificación. */
 export const DESTINOS_PACIENTE = ['hoy', 'preguntar', 'cuidado', 'documentos', 'perfil'] as const
 export type DestinoPaciente = (typeof DESTINOS_PACIENTE)[number]
+
+/** Lo mínimo de una nota que hace falta para componer un paquete. */
+export interface NotaParaComponerPaquete {
+  id: string
+  estado: string
+  diagnosticos?: readonly { descripcion: string; tipo?: string }[]
+  medicamentos?: readonly MedicamentoParaComponer[]
+  estudiosOrden?: readonly unknown[]
+  secciones?: readonly { key: string; value: string }[]
+  resumenEjecutivo?: unknown
+}
+
+export interface MedicamentoParaComponer {
+  nombre?: unknown
+  dosis?: unknown
+  via?: unknown
+  frecuencia?: unknown
+  duracion?: unknown
+  estado?: string
+}
+
+/** Un fármaco reducido a su nombre, para comparar dos listas vigentes. */
+export interface FarmacoPorNombre {
+  nombre: string
+}
+
+/**
+ * ¿Qué cambió respecto de la visita anterior?
+ *
+ * Compara dos listas YA VIGENTES (el resultado de `medicamentosVigentes` de
+ * `ordenes-medicamento.ts`, antes y después de esta nota) — nunca la lista
+ * cruda de la nota contra la lista previa. Esa es la trampa: un fármaco
+ * crónico que hoy no se mencionó sigue vigente por el propio algoritmo de
+ * `medicamentosVigentes` («el silencio no es dato de ausencia»), así que sólo
+ * cae de la lista DESPUÉS cuando esta nota lo cambió de estado de verdad —
+ * comparar contra la nota cruda lo habría marcado «suspendido» por no
+ * repetirlo, que es justo el dato de ausencia que la regla 4 prohíbe.
+ *
+ * `null` cuando no hay lista previa: «no sé qué había antes» no es lo mismo
+ * que «no había nada», y de ahí no se afirma un cambio.
+ */
+export function cambiosDeMedicacion(
+  vigentesDespues: readonly FarmacoPorNombre[],
+  vigentesAntes: readonly FarmacoPorNombre[] | null,
+): CambioDeMedicacion[] | null {
+  if (vigentesAntes === null) return null
+  const clave = (s: string) => s.trim().toLowerCase()
+  const despues = new Map<string, string>()
+  for (const m of vigentesDespues) {
+    const k = clave(texto(m.nombre))
+    if (k) despues.set(k, texto(m.nombre))
+  }
+  const antes = new Map<string, string>()
+  for (const m of vigentesAntes) {
+    const k = clave(texto(m.nombre))
+    if (k) antes.set(k, texto(m.nombre))
+  }
+  const out: CambioDeMedicacion[] = []
+  for (const [k, nombre] of despues) out.push({ nombre, tipo: antes.has(k) ? 'sin-cambio' : 'nuevo' })
+  for (const [k, nombre] of antes) if (!despues.has(k)) out.push({ nombre, tipo: 'suspendido' })
+  return out
+}
+
+export interface ComponerPaqueteOpts {
+  /** `medicamentosVigentes` sobre las notas ANTERIORES a ésta. `null` = no se pudo determinar. */
+  medicacionVigenteAntes: readonly FarmacoPorNombre[] | null
+  /** `medicamentosVigentes` incluyendo ya esta nota. Lo calcula el llamador: este módulo no lee Firestore. */
+  medicacionVigenteDespues: readonly FarmacoPorNombre[]
+  /** De dónde sale el consultorio si el paciente tiene dudas. Nunca inventado: lo trae la config de la clínica. */
+  clinicianContactRules: string
+  language?: string
+}
+
+/**
+ * Arma un `PaqueteDeVisita` en `DRAFT` a partir de una nota firmada.
+ *
+ * Exige `estado === 'firmada'` y no confía en que el llamador ya lo haya
+ * comprobado: componer desde un borrador es exactamente lo que el §1 de
+ * `patient-facing-ai.md` prohíbe (nivel 6 de las fuentes es «nota firmada»,
+ * no «nota en curso»).
+ *
+ * Nace `DRAFT` siempre. Liberar es un acto aparte — `liberar()`, arriba.
+ */
+export function componerPaquete(nota: NotaParaComponerPaquete, opts: ComponerPaqueteOpts): PaqueteDeVisita {
+  if (nota.estado !== 'firmada') {
+    throw new Error('Sólo se compone un paquete de la visita a partir de una nota firmada')
+  }
+
+  const diagnosticosRelevantes = (nota.diagnosticos ?? []).filter(d => d.tipo !== 'descartado')
+  const encounterSummary =
+    diagnosticosRelevantes.map(d => texto(d.descripcion)).filter(Boolean).join('; ') ||
+    texto(nota.resumenEjecutivo)
+
+  const medicamentosVigentesDeLaNota = (nota.medicamentos ?? []).filter(m => (m.estado ?? 'activa') === 'activa')
+  const medicationInstructions: MedicacionDelPaquete[] = medicamentosVigentesDeLaNota
+    .map(m => ({ nombre: texto(m.nombre), instruccion: comoTomarlo(m) }))
+    .filter(m => m.nombre && m.instruccion)
+
+  const seccionPlan = (nota.secciones ?? []).find(s => s.key === 'plan')
+
+  return {
+    notaId: nota.id,
+    encounterSummary,
+    medicationInstructions,
+    medicationChanges: cambiosDeMedicacion(opts.medicacionVigenteDespues, opts.medicacionVigenteAntes),
+    orders: (nota.estudiosOrden ?? []).map(texto).filter(Boolean),
+    followUp: texto(seccionPlan?.value),
+    warningSigns: [],
+    educationalMaterial: [],
+    documents: [],
+    unansweredQuestions: [],
+    clinicianContactRules: texto(opts.clinicianContactRules),
+    language: opts.language ?? 'es-MX',
+    estado: 'DRAFT',
+    approvedAt: null,
+    approvedBy: null,
+    version: 1,
+  }
+}

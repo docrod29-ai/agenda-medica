@@ -4,8 +4,63 @@
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
 **Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad actual**: `POSTVISIT-001` — **en progreso, NO cerrada** · REG-306
+(10-ago-2026). Ver la sección propia más abajo para qué quedó hecho y qué
+falta antes de poder cerrarla.
+
+---
+
+## `POSTVISIT-001` — en progreso (10-ago-2026)
+
+**Lo que llegó con deberes, resuelto.** `componerPaquete` y
+`cambiosDeMedicacion` ya viven en `paquete-de-visita.ts`, con llamador real:
+`POST /api/expediente/paquete-visita` (acciones `componer`/`liberar`, bajo
+`clinico.escribir`) y una pantalla nueva en la consulta,
+`RevisarYLiberarPaquete`, gatillada **sólo con la nota ya firmada**. REG-306.
+
+- `componerPaquete` exige `estado === 'firmada'` y no confía en que el
+  llamador ya lo haya comprobado.
+- `cambiosDeMedicacion` compara **vigentes antes/después** (no la nota cruda)
+  para no marcar «suspendido» un fármaco crónico que hoy simplemente no se
+  repitió — la trampa que `ordenes-medicamento.ts` ya había resuelto y que
+  aquí había que respetar, no reinventar.
+- `liberar()` pone quién y cuándo **el servidor** (`acceso.email` +
+  `Date.now()`), nunca el body.
+- 17 casos nuevos en `el-paquete-se-compone-de-la-nota-firmada.test.ts`,
+  sellados en `invariantes-clinicos.json`.
+
+**Lo que NO quedó resuelto, y por qué la unidad sigue abierta:**
+
+1. **`POSTVISIT-GATE-001` sigue abierta tal como está escrita.** Es sobre
+   `HojaParaElPaciente` —la hoja imprimible/copiable que ya existía—, que
+   sigue componiéndose del estado **vivo** (`medicamentos`, `estudiosOrden`)
+   con la misma guarda de siempre (`!esNotaHospital`, sin `firmada`). No se
+   tocó: es una herramienta de mostrador del médico, no la vía al paciente, y
+   mezclar los dos habría sido tocar más de lo que esta unidad pedía. El
+   cimiento DRAFT→RELEASED que esa ficha reclamaba **sí existe ahora**, pero
+   vive en `PaqueteDeVisita`/`RevisarYLiberarPaquete`, un camino aparte.
+2. **`POSTVISIT-ENTREGA-001` sigue abierta.** `/api/portal` acción `paquetes`
+   ya filtraba por `visibleParaElPaciente` desde `PATIENT-COMPANION-001`, así
+   que un paquete liberado hoy **ya es legible por la API** — pero la pestaña
+   «Cuidado» de `/mi/[token]` (`src/app/mi/[token]/page.tsx`, en torno a la
+   línea 423) sigue siendo el texto estático de estado vacío: nunca llama a
+   la acción `paquetes`. Un paciente no verá su paquete liberado hasta que
+   esa pestaña se conecte.
+3. **Nada de esto se ha visto en un navegador.** Esta sesión no tuvo
+   `.env`/credenciales de Firebase disponibles (`npm run build` falla en
+   `/dr/[clinicId]` por `auth/invalid-api-key`, confirmado que ocurre igual
+   sin estos cambios) — no se pudo levantar la app y probar el flujo real.
+   `design-system.md` es explícito: «no se aprueba una interfaz leyendo el
+   código». Queda pendiente antes de declarar la unidad cerrada.
+4. `proximaCita` sigue fijo en `undefined` en `HojaParaElPaciente` — no se
+   tocó, mismo alcance que el punto 1.
+
+**Siguiente sesión**: cerrar `POSTVISIT-ENTREGA-001` conectando «Cuidado» a
+la acción `paquetes`, verificar el flujo completo en navegador (móvil y
+escritorio), y sólo entonces decidir si `POSTVISIT-GATE-001` se cierra
+retirando `HojaParaElPaciente` en favor de `RevisarYLiberarPaquete`, o si se
+quedan las dos con propósitos distintos — es una decisión de producto, no
+de código, y no se tomó aquí.
 
 ---
 

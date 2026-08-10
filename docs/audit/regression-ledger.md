@@ -7013,3 +7013,54 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — El paquete de la visita tiene quien lo componga: `POSTVISIT-001`
+
+**Unidad** V9 `POSTVISIT-001`. Cierra lo que REG-304 dejó declarado a propósito:
+`componerPaquete` y `cambiosDeMedicacion` se habían escrito una vez, el guardián
+de conexión las cazó al instante —motor con cuerpo real, sin un solo
+llamador— y se quitaron las dos. `PaqueteDeVisita` nacía `DRAFT`, la compuerta
+de tres condiciones ya corría, y **nada componía nunca un paquete**: el portal
+mostraba un estado vacío que decía la verdad, pero la verdad era que faltaba
+esta unidad.
+
+**Lo que queda montado.**
+
+- `componerPaquete(nota, opts)`, en `lib/paciente/paquete-de-visita.ts`, con su
+  guardián propio: **exige `estado === 'firmada'`** y no confía en que el
+  llamador ya lo haya comprobado — componer desde un borrador es justo lo que
+  la regla 4 de `patient-facing-ai.md` prohíbe (nivel 6 de las fuentes es «nota
+  firmada», no «nota en curso»).
+- `cambiosDeMedicacion` compara dos listas **ya vigentes**
+  (`medicamentosVigentes()` de `ordenes-medicamento.ts`, antes y después de la
+  nota) y no la nota cruda. Es la trampa que este módulo existe para evitar: un
+  fármaco crónico no repetido hoy sigue vigente por el propio algoritmo de
+  `medicamentosVigentes` («el silencio no es dato de ausencia»); comparar
+  contra la nota de hoy lo habría marcado «suspendido» por no repetirlo — el
+  mismo dato de ausencia que la regla 4 de seguridad clínica prohíbe.
+- `POST /api/expediente/paquete-visita` — dos acciones, `componer` y `liberar`,
+  bajo `clinico.escribir` (lee diagnósticos y medicación, NOM-004). `liberar`
+  pone quién y cuándo **el servidor**, nunca el body: `acceso.email` y
+  `Date.now()`, no lo que mande el cliente.
+- La pantalla del médico, dentro de la misma consulta, gatillada sólo con la
+  nota **ya firmada**: revisa lo compuesto y libera con un botón aparte —
+  firmar y liberar siguen siendo dos actos.
+
+**Lo que NO se hizo, y por qué.** `warningSigns` y `educationalMaterial` se
+quedan vacíos: no hay de dónde sacarlos sin inventar (indicación médica y
+evidencia curada, respectivamente — regla 1 de seguridad clínica). El paciente
+todavía no VE el paquete liberado en su portal: la pestaña «Cuidado» de
+`/mi/[token]` sigue siendo el estado vacío de `PATIENT-COMPANION-001`. Eso es
+entrega, no composición, y queda declarado para la siguiente unidad en vez de
+mezclado en ésta.
+
+**Familia.** `escrito_probado_y_sin_conectar`, cerrada — la misma que
+REG-304/305 dejaron abierta a propósito. Es la familia más grande del proyecto
+(32 de 129 en la medición de `PATIENT-COMPANION-001`), y ésta es una menos.
+
+**Guardián.** `src/__tests__/el-paquete-se-compone-de-la-nota-firmada.test.ts`,
+17 casos. Prueba al revés el guardián de firma (compone desde un borrador y
+espera que lance) y fija con un caso explícito la trampa del fármaco crónico no
+repetido.
