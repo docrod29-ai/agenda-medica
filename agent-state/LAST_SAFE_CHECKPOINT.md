@@ -6,7 +6,79 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 10-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Rama** | `claude/relaxed-fermi-7eaw5a` (la persistente de la especificación, `claude/nexus-patient-ux-v9`, se fusionó a `main` en el PR #279; el trabajo nuevo no se apila sobre historia ya fusionada) |
+| **SHA de cierre** | `77ab367` |
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El bucle se cierra por primera vez de punta a punta: el médico firma, libera, y
+**el paciente lo ve**. Cierra los dos P1 que la auditoría dejó declarados con
+número de línea (`POSTVISIT-GATE-001`, `POSTVISIT-ENTREGA-001`) y trae de vuelta
+`componerPaquete` y `cambiosDeMedicacion` **con su llamador delante**, que era la
+condición con la que se difirieron.
+
+### Lo que más vale de este turno, y no estaba en el plan
+
+**REG-306.** El fármaco que el médico acaba de suspender salía impreso bajo «SUS
+MEDICAMENTOS». No es un hueco de V9: llevaba meses en producción, con 8 000
+pruebas en verde, porque ninguna dependía del comportamiento roto. Apareció
+siguiendo el dato —al decidir qué hacer con `estado` hubo que buscar quién lo
+escribe— y no leyendo la pantalla.
+
+### Las tres decisiones que no se tocan
+
+1. **El contenido no viaja en el cuerpo.** La ruta recibe tres identificadores;
+   lo demás lo lee el servidor de la nota firmada. Si viajara, la compuerta de
+   firma sería una comprobación del navegador.
+2. **`firmar`, no `clinico.escribir`.** Enfermería escribe en el expediente y no
+   puede aprobar lo que el paciente lee como palabra de su médico.
+3. **El silencio no suspende.** Un fármaco que estaba antes y hoy no se menciona
+   no se declara suspendido. Sin lista previa, `null` — «no se pudo comparar» no
+   es «sin cambios».
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 596 casos · 1 fallo preexistente y de entorno** (`ops-timeout`; comprobado: falla igual con el árbol limpio) |
+| `lint-trinquete` | **96, igual que el techo.** Subió a 97 con un `useCallback` cuya lista de dependencias el compilador de React no podía preservar; se arregló el cambio |
+| `trinquete-de-diseno` | **sin deuda nueva** (subió +6 tamaños y +1 radio; se rehizo con `t-body`/`t-caption`/`t-overline` y los primitivos `btn`) |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **compila y pasa TypeScript**; no termina de recolectar páginas en este contenedor por falta de credenciales de Firebase — ya declarado en `NAV-NAVEGADOR-001` |
+| navegador | **no ejecutado** |
+
+### Lo que este checkpoint NO garantiza
+
+Que el flujo funcione **en un navegador**. Los tres tramos —el médico libera, el
+servidor compone, el paciente lo recibe— se sellan leyendo el código, no pulsando
+el botón. Y **la ruta HTTP no se probó con Firestore**: montar `adminDb` exige el
+emulador, que es otra suite.
+
+### Qué hacer al reanudar
+
+1. **No rehacer** `POSTVISIT-001`: cerrada, con SHA y sus dos REG.
+2. **`PATIENT-AI-001`** — ASK NEXUS con las cinco clases de respuesta, la
+   jerarquía de fuentes del §1 de `patient-facing-ai.md` y **las doce preguntas
+   del equipo rojo como fixture permanente** en `evals/patient-ai/`. Hoy
+   «Preguntar» escala al consultorio a propósito, y eso sigue siendo lo correcto
+   hasta que exista la compuerta.
+3. Lo que `POSTVISIT-001` deja apuntado para quien siga:
+   - **`warningSigns` no tiene de dónde salir.** El campo existe y va vacío. Los
+     signos de alarma son indicación médica: o los escribe el médico —y hoy no
+     tiene dónde— o no los pone nadie. Es una casilla de producto, no un defecto.
+   - **El paquete no se puede revocar.** Se liberan versiones nuevas y la
+     anterior sigue visible. `DOCUMENTS-001` trae `REVOKED` en sus cuatro
+     estados; el paquete debería heredarlo.
+   - **El paciente no se entera de que hay algo nuevo.** No hay aviso por
+     WhatsApp ni marca en el portal. Va con `CLOSED-LOOP-PATIENT-001`.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

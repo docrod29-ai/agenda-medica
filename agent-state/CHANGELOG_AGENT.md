@@ -80,3 +80,21 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+## 2026-08-10 · V9 `POSTVISIT-001` — REG-306, REG-307
+
+Cuarta unidad de V9 cerrada. El bucle se cierra de punta a punta por primera vez:
+el médico firma, libera, y el paciente lo ve.
+
+- **REG-306** El fármaco recién suspendido salía impreso bajo «SUS MEDICAMENTOS».
+  Meses en producción con las pruebas en verde; se encontró siguiendo el dato.
+- **REG-307** La hoja se componía del borrador en curso, no llegaba nunca al
+  paciente, y su cuarto bloque no podía renderizarse (`proximaCita={undefined}`).
+
+Nuevo: `POST/GET /api/expediente/paquete-visita` (capacidad `firmar` / `clinico.leer`),
+`componerPaquete`, `cambiosDeMedicacion`, `fechaDeSeguimientoEnLlano`, el destino
+«Cuidado» alimentado de verdad, y el evento de bitácora `paquete_liberado`.
+
+Guardián: `el-paquete-sale-de-una-nota-firmada.test.ts`, 43 casos, sellado.
+Compuertas: vitest 8 596 verdes (1 fallo de entorno preexistente) · lint 96 ·
+diseño sin deuda nueva · tsc limpio. **Navegador: no ejecutado.**

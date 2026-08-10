@@ -3,13 +3,63 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 10-ago-2026 · REG-306, REG-307.
+**Siguiente**: `PATIENT-AI-001` — ASK NEXUS, las cinco clases de respuesta y las
+doce preguntas del equipo rojo como fixture permanente.
 
 ---
 
-## Lo que quedó montado en `PATIENT-COMPANION-001`
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El bucle se cierra de punta a punta por primera vez**: el médico firma, libera,
+y el paciente lo ve en «Cuidado». Hasta hoy la superficie del paciente estaba
+lista para recibir paquetes y **nada en producción creaba uno**.
+
+**La compuerta de firma, en el servidor.** `componerPaquete` lanza si la nota no
+está firmada; la ruta lo traduce a 409 y le dice al médico exactamente qué le
+falta. En la pantalla, copiar/imprimir/liberar **no se renderizan** sin firma, y
+se dice por qué en vez de dejar tres botones apagados.
+
+**El contenido no viaja en el cuerpo.** La ruta recibe `clinicId`, `patientId` y
+`notaId`. Lo demás lo lee el servidor de la nota firmada. Con el contenido en el
+cuerpo, cualquiera con sesión del consultorio podría publicarle al paciente el
+texto que quisiera bajo el membrete de su médico — y la compuerta sería una
+comprobación del navegador, o sea ninguna.
+
+**Capacidad `firmar`, no `clinico.escribir`.** Enfermería escribe en el
+expediente y no puede aprobar lo que el paciente lee como palabra de su médico.
+
+**Inmutable.** `.create()` en `{notaId}-v{n}`. Una versión entregada no se
+sobrescribe: «¿qué se le dijo exactamente el 9 de agosto?» no puede contestarse
+con «lo que compondría hoy el código».
+
+## El defecto que no se buscaba — REG-306
+
+El fármaco que el médico acaba de suspender salía impreso bajo **«SUS
+MEDICAMENTOS»**, junto a lo que sí hay que tomar. Meses en producción, 8 000
+pruebas en verde, ninguna dependía del comportamiento roto. Apareció **siguiendo
+el dato**: al decidir qué hacer con `estado` hubo que buscar quién lo escribe.
+
+## Lo que este estado NO afirma
+
+**Nada se ha visto en un navegador.** Los tres tramos se sellan leyendo el
+código. Y la ruta HTTP no se probó con Firestore: eso exige el emulador.
+
+## Lo que queda apuntado, y no es defecto
+
+- **`warningSigns` no tiene de dónde salir.** El campo existe y va vacío: los
+  signos de alarma son indicación médica, y hoy el médico no tiene dónde
+  escribirlos. Casilla de producto, no defecto.
+- **El paquete no se puede revocar.** `DOCUMENTS-001` trae `REVOKED`; debería
+  heredarlo.
+- **El paciente no se entera de que hay algo nuevo.** Va con
+  `CLOSED-LOOP-PATIENT-001`.
+
+---
+
+## Lo anterior (`PATIENT-COMPANION-001`, 9-ago)
+
+### Lo que quedó montado en `PATIENT-COMPANION-001`
 
 **Los cinco destinos** en `/mi/[token]`: Hoy · Preguntar · Cuidado · Documentos
 · Perfil. Barra fija abajo — esa pantalla se usa con una mano, de pie, en la
