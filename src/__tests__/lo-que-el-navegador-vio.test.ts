@@ -115,7 +115,21 @@ describe('ningún relleno azul lleva texto blanco, se escriba como se escriba', 
 
   it('y el token sólido sigue existiendo para que haya a dónde ir', () => {
     const css = leer('src', 'app', 'globals.css')
-    expect(css).toMatch(/--nexus-solido: #3D5AFE/)
+    /**
+     * Se comprueba que el token EXISTA y declare su medida — no un
+     * hexadecimal concreto.
+     *
+     * Esta prueba fijaba `#3D5AFE` a mano, y por eso se puso roja el día que
+     * el acento pasó de índigo a cian-petróleo, cuando lo que protege —que
+     * haya un token de relleno con contraste comprobado— seguía intacto.
+     *
+     * Es la tercera vez hoy que un guardián que fija el VALOR en vez de la
+     * REGLA defiende lo que debería vigilar (el buzón del canal ARCO, el
+     * bloque de emuladores, y esto).
+     */
+    expect(css).toMatch(/--nexus-solido:\s*#[0-9A-Fa-f]{6}/)
+    expect(css, 'el token sólido no declara su contraste medido')
+      .toMatch(/--nexus-solido:[^\n]*blanco encima = \d+[.,]\d+/)
   })
 })
 
