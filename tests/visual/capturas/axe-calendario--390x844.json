@@ -1,0 +1,33 @@
+[
+  {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "nodes": 3,
+    "ejemplos": [
+      "div:nth-child(4) > div:nth-child(4) > button",
+      ".btn-ghost.btn-icon.btn:nth-child(4)",
+      ".btn-ghost.btn-icon.btn:nth-child(6)"
+    ]
+  },
+  {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 1,
+    "ejemplos": [
+      "div[aria-label=\"Agendar a las 13:00\"][role=\"button\"]:nth-child(8) > div[role=\"button\"]"
+    ]
+  },
+  {
+    "id": "nested-interactive",
+    "impact": "serious",
+    "help": "Interactive controls must not be nested",
+    "nodes": 5,
+    "ejemplos": [
+      "div[aria-label=\"Agendar a las 09:00\"][role=\"button\"]:nth-child(8)",
+      "div[aria-label=\"Agendar a las 10:00\"][role=\"button\"]:nth-child(8)",
+      "div[aria-label=\"Agendar a las 11:00\"][role=\"button\"]:nth-child(8)"
+    ]
+  }
+]

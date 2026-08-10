@@ -1,0 +1,32 @@
+[
+  {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "nodes": 2,
+    "ejemplos": [
+      ".btn-ghost.btn-icon.btn-sm:nth-child(1)",
+      "div:nth-child(2) > .btn-ghost.btn-icon.btn-sm:nth-child(4)"
+    ]
+  },
+  {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "nodes": 4,
+    "ejemplos": [
+      ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+      ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
+      ".nx-reveal:nth-child(3) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
+    ]
+  },
+  {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "nodes": 1,
+    "ejemplos": [
+      "input[type=\"date\"]"
+    ]
+  }
+]

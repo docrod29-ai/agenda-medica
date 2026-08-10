@@ -1,0 +1,11 @@
+[
+  {
+    "id": "target-size",
+    "impact": "serious",
+    "help": "All touch targets must be 24px large, or leave sufficient space",
+    "nodes": 1,
+    "ejemplos": [
+      "button[aria-label=\"Mostrar la contraseña\"]"
+    ]
+  }
+]

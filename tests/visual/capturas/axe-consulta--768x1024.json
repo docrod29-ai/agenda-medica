@@ -1,0 +1,13 @@
+[
+  {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "nodes": 4,
+    "ejemplos": [
+      "div:nth-child(8) > textarea[placeholder=\"\"]",
+      "div:nth-child(9) > textarea[placeholder=\"\"]",
+      "div:nth-child(10) > textarea[placeholder=\"\"]"
+    ]
+  }
+]

@@ -5,6 +5,111 @@
     "minimoPantallaCritica": ">= 9.0",
     "genericAiLookCriticas": "<= 1.0"
   },
-  "capturadoEl": null,
-  "pantallas": []
+  "capturadoEl": "2026-08-10",
+  "metodo": "Golden flow autenticado contra emuladores Auth+Firestore con 4 pacientes y 6 citas sintéticas (scripts/design/sembrar-emulador-v10.mjs). Chromium real vía scripts/design/capturar-golden-flow.mjs en 1440×900, 1024×768, 768×1024 y 390×844, con axe-core (WCAG 2.x A/AA) sobre el DOM vivo. Evidencia: tests/visual/capturas/*.jpg + axe-*.json + resumen.json. Servidor dev — los tiempos de carga NO son línea base de producción.",
+  "pantallas": [
+    {
+      "ruta": "/login",
+      "escritorio": 8.8,
+      "movil": 8.5,
+      "genericAiLook": 1.5,
+      "evidencia": ["login--1440x900.jpg", "login--390x844.jpg"],
+      "razonamiento": "Identidad clara (marca, Fraunces display, cobalto solo en acción), jerarquía impecable, un propósito. El fondo de constelación es decorativo pero contenido. Defecto axe: target-size del botón de mostrar contraseña (<24px).",
+      "defectos": ["target-size botón mostrar-contraseña (axe serious, 4/4 viewports)"]
+    },
+    {
+      "ruta": "/dashboard",
+      "escritorio": 8.7,
+      "movil": 7.8,
+      "genericAiLook": 2.0,
+      "evidencia": ["dashboard--1440x900.jpg", "dashboard--390x844.jpg"],
+      "razonamiento": "HOME-001 verificado por primera vez en navegador real: «Siguiente acción» arriba, agenda a todo lo ancho con resumen en renglón, cero tarjetas KPI, cero accesos duplicados. En móvil la doble banda (confirmar correo + prueba) come ~33% de la primera pantalla, el FAB de ayuda tapa «Ver todas» y la cabecera dice «Agenda Médica» en vez de NexusMED.",
+      "defectos": [
+        "banda confirmar-correo + banda prueba = ~33% del viewport móvil antes del contenido",
+        "FAB de ayuda ocluye «Ver todas» de la agenda en 390px",
+        "marca de cabecera móvil: «Agenda Médica» ≠ NexusMED",
+        "contraste de texto secundario en filas de agenda (axe serious ×3, 4/4 viewports)",
+        "aviso de hidratación SSR≠cliente en consola (toda la app)"
+      ]
+    },
+    {
+      "ruta": "/calendario",
+      "escritorio": 8.4,
+      "movil": 4.5,
+      "genericAiLook": 1.5,
+      "evidencia": ["calendario--1440x900.jpg", "calendario--390x844.jpg"],
+      "razonamiento": "Escritorio: semana serena, color solo para estado (pendiente-confirmar con borde discontinuo), hoy señalado, sin bloques de colores gritones. Móvil: es la MISMA rejilla de 7 columnas encogida a 390px — bloques truncados a «09:0», celdas de ~45px, FAB tapando el área de 10:00-11:00. Violación directa de V10 §27 («not desktop shrunk onto mobile») y de la regla de agenda móvil nativa (§15).",
+      "defectos": [
+        "P1 móvil: rejilla semanal de escritorio a 390px — ilegible e in-operable con el dedo",
+        "axe critical: button-name ×2-3 (botones de icono sin nombre)",
+        "axe serious: nested-interactive ×5 (role=button anidado en role=button en las celdas) — riesgo real de teclado/lector",
+        "axe serious: contraste del bloque 13:00 (pendiente-confirmar)"
+      ]
+    },
+    {
+      "ruta": "/citas",
+      "escritorio": 7.2,
+      "movil": 5.5,
+      "genericAiLook": 3.5,
+      "evidencia": ["citas--1440x900.jpg", "citas--390x844.jpg"],
+      "razonamiento": "La pantalla con más «cara de componente»: 3 botones de color por fila (Cobrar/Consulta/Recordar) con énfasis igual + 3 botones de icono, insignia «Aurora» repetida en cada fila (metadato ordinario — consultorio de una sola doctora), 9 chips de filtro + 3 chips de resumen, y el input de fecha en formato 08/09/2026 (EU) junto a «2026-08-09» (ISO) en el MISMO renglón. En móvil los chips llenan el viewport entero: la primera cita aparece tras ~85% de scroll y las filas colapsan centradas.",
+      "defectos": [
+        "P1 móvil: muro de chips — primera cita fuera de la primera pantalla",
+        "3 acciones-botón por fila con el mismo peso (anti-patrón §9: every action as a button)",
+        "insignia de médico repetida N veces (anti-patrón: badge para metadato ordinario)",
+        "formato de fecha inconsistente y no-mexicano en el picker (i18n §28)",
+        "axe critical: label del input de fecha; button-name ×2-3; contraste de «Registrar cobro» ×4"
+      ]
+    },
+    {
+      "ruta": "/pacientes",
+      "escritorio": 7.8,
+      "movil": 7.5,
+      "genericAiLook": 1.5,
+      "evidencia": ["pacientes--1440x900.jpg", "pacientes--390x844.jpg"],
+      "razonamiento": "Limpia y sobria, buscador claro con campos reales (CURP). Pero la pestaña por defecto «Recientes» dice «Aún no hay pacientes con citas recientes» con 4 pacientes citados HOY — el estado por defecto miente sobre el día del médico. El vacío sí enseña el siguiente paso (Todos A-Z / buscar).",
+      "defectos": ["P2: «Recientes» vacío mientras la agenda de hoy tiene 4 pacientes — o la lógica o el rótulo están mal"]
+    },
+    {
+      "ruta": "/expediente/[patientId]",
+      "escritorio": 8.6,
+      "movil": 8.0,
+      "genericAiLook": 1.8,
+      "evidencia": ["expediente--1440x900.jpg", "expediente--390x844.jpg"],
+      "razonamiento": "La banda de alergias en rojo con icono (Penicilina — anafilaxia) arriba de todo es exactamente la prioridad correcta; identidad del paciente inconfundible; acción primaria única en cobalto («Nueva consulta con IA»). Tres paneles de resumen algo tarjetosos pero con contenido clínico. En móvil el texto-guía de la banda de alergias se trunca a media palabra.",
+      "defectos": [
+        "truncado del hint de alergias en 390px",
+        "axe critical (390px): button-name ×1 (botón de icono de la cabecera)"
+      ]
+    },
+    {
+      "ruta": "/consulta/[patientId]",
+      "escritorio": 8.9,
+      "movil": 8.3,
+      "genericAiLook": 1.2,
+      "evidencia": ["consulta--1440x900.jpg", "consulta--390x844.jpg"],
+      "razonamiento": "La mejor pantalla del flujo: alergias arriba (con «Sin alergias conocidas» explícito — ausencia ≠ negación), identidad del encuentro clara, CTA de grabación central y en calma («Capta a los dos y separa las voces»), herramientas clínicas como LISTA y no tarjetas, signos vitales con unidad pegada al campo. El micrófono como acción única domina sin gritar.",
+      "defectos": [
+        "axe critical: label ×4 — los campos de signos vitales tienen rótulo visual (TA/FC/FR/T°) pero NO asociado programáticamente: un lector de pantalla dicta un textarea sin nombre en la captura de vitales. Relevancia clínica directa.",
+        "banda de alergias truncada en 390px (mismo patrón que expediente)"
+      ]
+    },
+    {
+      "ruta": "/pendientes",
+      "escritorio": 8.2,
+      "movil": 8.0,
+      "genericAiLook": 1.0,
+      "evidencia": ["pendientes--1440x900.jpg", "pendientes--390x844.jpg"],
+      "razonamiento": "Vacío ejemplar: dice qué es, por qué está vacío y cómo se llena («Cuando firmes una consulta con estudios o receta…»). Sobrio, sin tarjetas. La cabecera queda pegada a la banda superior (respiración distinta al resto del flujo).",
+      "defectos": ["espaciado superior del título inconsistente con las demás pantallas"]
+    }
+  ],
+  "resumen": {
+    "promedioEscritorio": 8.33,
+    "promedioMovil": 7.26,
+    "peorPantalla": "calendario móvil (4.5)",
+    "genericAiLookPromedio": 1.75,
+    "genericAiLookPeor": "citas (3.5)",
+    "contraMeta": "Lejos de la meta 9.3/9.0/≤1.0 — y ésa es la lectura honesta que TRUTH-001 debía producir. Los déficits están concentrados: móvil de agenda/citas, accesibilidad de controles, y sobrecarga de chips/botones en citas."
+  }
 }

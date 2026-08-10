@@ -15,15 +15,16 @@
   "herenciaV9": {
     "cerradoEnMain": [
       "PATIENT-UX-TRUTH-001 (639ca73, sellado 6a6501d)",
-      "los tres P0 de audio (d22fbfd, REG-287)"
+      "los tres P0 de audio (d22fbfd, REG-287)",
+      "DESIGN-SYSTEM-001, NAVIGATION-001, PATIENT-COMPANION-001 — fusionados vía PR #279 (56d9fc7), decisión V10-D1 del dueño; sus REG quedaron renumeradas a 294…305"
     ],
-    "cerradoEnRamaV9SinFusionar": [
-      "DESIGN-SYSTEM-001 (5bb1a2c, REG-274/275)",
-      "NAVIGATION-001 (fed81cc, REG-276 a 279)",
-      "PATIENT-COMPANION-001 (5d496cf, REG-280/281)"
-    ],
-    "ramaV9": "origin/claude/nexus-patient-ux-v9 (6feaf5a; 8 adelante, 48 atrás de main)",
-    "regla": "V10 NO duplica ni revierte ese trabajo. Las unidades V10 que toquen sistema de diseño, navegación o compañero del paciente esperan la fusión de V9 o se rebasan sobre ella (V10 §41). La decisión de fusionar es del dueño — ver V10_OWNER_DECISIONS_REQUIRED.md."
+    "regla": "V10 NO duplica ni revierte ese trabajo: se construye encima de main, que ya lo contiene todo."
+  },
+  "lineaBase10Ago2026": {
+    "capturas": "tests/visual/capturas/ — 8 pantallas golden flow × 4 viewports, autenticado, datos sintéticos",
+    "scorecard": "agent-state/V10_VISUAL_SCORECARD.json — escritorio 8.33 · móvil 7.26 · generic-AI 1.75",
+    "accesibilidad": "docs/design/ACCESSIBILITY.md — hallazgos A1-A8; el crítico clínico es A1 (vitales sin nombre programático)",
+    "arnes": "V10_BLOCKERS.md §B-V10-2 documenta cómo levantarlo entero"
   },
   "documentosValidadosPreexistentes": {
     "inventarioPantallas": "docs/design/SCREEN_INVENTORY.md (GENERADO por scripts/design/inventario-de-pantallas.mjs — no editar a mano)",

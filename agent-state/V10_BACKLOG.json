@@ -1,24 +1,128 @@
 {
-  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Se llena durante V10-TRUTH-001; nada aquí duplica un REG ya reparado ni una unidad V9 cerrada.",
+  "_nota": "Backlog V10. Prioridad según la fórmula de V10 §31. Se llena durante V10-TRUTH-001; nada aquí duplica un REG ya reparado ni una unidad V9 cerrada. Los items A-* nacen de la línea base medida el 10-ago-2026 (evidencia en tests/visual/capturas/).",
   "_formula": "5×frecuencia_clinica + 5×seguridad_paciente + 5×criticidad_flujo + 4×deuda_visual + 4×friccion_navegacion + 4×activacion_ingreso + 3×importancia_movil + 3×brecha_competitiva + 3×visibilidad_marca - 3×irreversibilidad - 2×complejidad",
   "items": [
+    {
+      "id": "V10-A11Y-VITALES",
+      "titulo": "Signos vitales de la consulta sin etiqueta programática (axe critical ×4): rótulo visual TA/FC/FR/T° no asociado al campo",
+      "fuente": "línea base a11y 10-ago-2026, hallazgo A1 — docs/design/ACCESSIBILITY.md",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001 (adelantable: toca captura de datos clínicos)",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-AGENDA-MOVIL",
+      "titulo": "Calendario móvil = rejilla semanal de escritorio encogida a 390px: bloques truncados, celdas in-tocables, FAB tapando celdas (visual móvil 4.5/10)",
+      "fuente": "calendario--390x844.jpg; V10 §15 + §27",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001 / V10-MOBILE-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CITAS-SOBRECARGA",
+      "titulo": "Citas: 3 botones de color por fila con el mismo peso + insignia de médico repetida + 12 chips; en móvil la primera cita queda tras ~85% de scroll",
+      "fuente": "citas--1440x900.jpg, citas--390x844.jpg; anti-patrones §9; generic-AI-look 3.5 (el peor del flujo)",
+      "prioridad": "P1",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-A11Y-CALENDARIO",
+      "titulo": "Calendario: controles interactivos anidados (×5) y botones de icono sin nombre (×2-3) — agenda no operable con teclado/AT",
+      "fuente": "línea base a11y, hallazgos A2+A3",
+      "prioridad": "P1",
+      "unidadV10": "V10-A11Y-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-BANDAS-MOVIL",
+      "titulo": "Doble banda (confirmar correo + prueba) consume ~33% del viewport móvil en TODAS las pantallas del flujo",
+      "fuente": "dashboard--390x844.jpg (y todas las móviles)",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-FAB-OCLUSION",
+      "titulo": "FAB de ayuda + conmutador de tema ocluyen contenido en móvil («Ver todas» del inicio, celdas 10:00-11:00 del calendario)",
+      "fuente": "dashboard--390x844.jpg, calendario--390x844.jpg",
+      "prioridad": "P1",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-MARCA-MOVIL",
+      "titulo": "Cabecera móvil dice «Agenda Médica»; el escritorio dice NexusMED — dos marcas en el mismo producto",
+      "fuente": "dashboard--390x844.jpg vs dashboard--1440x900.jpg; V10 §8.33",
+      "prioridad": "P2",
+      "unidadV10": "V10-SHELL-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-FECHA-I18N",
+      "titulo": "Citas: input de fecha sin etiqueta y en formato 08/09/2026 junto a «2026-08-09» ISO en el mismo renglón — ninguno es es-MX",
+      "fuente": "citas--1440x900.jpg; hallazgo A4; V10 §28",
+      "prioridad": "P2",
+      "unidadV10": "V10-AGENDA-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-PACIENTES-RECIENTES",
+      "titulo": "Pestaña por defecto «Recientes» dice que no hay pacientes recientes con 4 pacientes citados HOY — el estado por defecto miente",
+      "fuente": "pacientes--1440x900.jpg",
+      "prioridad": "P2",
+      "unidadV10": "V10-PATIENT-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-CONTRASTES",
+      "titulo": "Contrastes bajo 4.5:1 medidos: «Registrar cobro» (citas ×4), texto secundario de agenda (dashboard ×3), bloque pendiente-confirmar (calendario ×1)",
+      "fuente": "hallazgos A5-A7",
+      "prioridad": "P2",
+      "unidadV10": "V10-A11Y-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-HIDRATACION",
+      "titulo": "Aviso de hidratación SSR≠cliente en consola en todas las pantallas — causa por investigar (tema/fecha)",
+      "fuente": "resumen.json erroresConsola ×36",
+      "prioridad": "P2",
+      "unidadV10": "V10-PERF-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-ALERGIAS-TRUNCADO",
+      "titulo": "Banda de alergias trunca su texto a media palabra en 390px (expediente y consulta)",
+      "fuente": "consulta--390x844.jpg, expediente--390x844.jpg",
+      "prioridad": "P2",
+      "unidadV10": "V10-ENCOUNTER-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "V10-LOGIN-TARGET",
+      "titulo": "Login: botón de mostrar contraseña bajo 24px de objetivo táctil",
+      "fuente": "hallazgo A8",
+      "prioridad": "P3",
+      "unidadV10": "V10-A11Y-001",
+      "estado": "abierto"
+    },
     {
       "id": "V10-DEBT-001",
       "titulo": "La aplicación no obedece al sistema de diseño: 6 065 style={{ en 177/200 archivos, 1 205 hex a mano, ~60 tamaños de fuente contra 6 declarados",
       "fuente": "agent-state/DESIGN_STATE.md (V9, medido)",
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
-      "dependeDe": "fusión de DESIGN-SYSTEM-001 (rama V9) — no rehacer ese trabajo",
-      "estado": "esperando-fusion-v9"
+      "dependeDe": null,
+      "estado": "desbloqueado — la rama V9 se fusionó a main (PR #279, decisión V10-D1)"
     },
     {
       "id": "V10-DEBT-002",
-      "titulo": "Causa raíz mecánica: @theme inline expone 4 tokens a Tailwind; sin utilidades no hay alternativa al estilo en línea",
+      "titulo": "Causa raíz mecánica: @theme inline expone pocos tokens a Tailwind; sin utilidades no hay alternativa al estilo en línea",
       "fuente": "agent-state/DESIGN_STATE.md §causa-raíz",
       "prioridad": "P1",
       "unidadV10": "V10-CONSTITUTION-001",
-      "dependeDe": "fusión de DESIGN-SYSTEM-001",
-      "estado": "esperando-fusion-v9"
+      "dependeDe": null,
+      "estado": "desbloqueado — DESIGN-SYSTEM-001 (V9) ya está en main; verificar cuánto amplió @theme antes de tocar"
     },
     {
       "id": "V10-HOME-002",
@@ -53,7 +157,7 @@
       "fuente": "V10 §47 salidas 2, 14, 15",
       "prioridad": "P1",
       "unidadV10": "V10-TRUTH-001",
-      "estado": "abierto"
+      "estado": "CERRADO 10-ago-2026 — 32 capturas + 32 axe + scorecard con evidencia"
     }
   ]
 }

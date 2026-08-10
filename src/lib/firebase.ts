@@ -1,9 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence,
+  connectFirestoreEmulator,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -57,6 +58,19 @@ export const db = typeof window !== 'undefined'
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
   : getFirestore(app)
+
+// ── Emuladores (SOLO arnés local de V10; jamás producción) ──────────────
+// El arnés de capturas del golden flow (scripts/design/) necesita una sesión
+// real contra Auth+Firestore de emulador con datos sintéticos. La bandera es
+// opt-in explícito: sin NEXT_PUBLIC_FIREBASE_EMULATOR=1 este bloque no existe
+// para el bundle. `connect*Emulator` debe correr antes de la primera operación,
+// por eso vive aquí, pegado a la creación de `auth` y `db`.
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === '1') {
+  try {
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
+    connectFirestoreEmulator(db, 'localhost', 8080)
+  } catch { /* HMR re-ejecuta el módulo; la reconexión repetida no debe tronar */ }
+}
 
 // Storage — para subir audio largo de consulta y diarizarlo sin chocar con el
 // límite de 4.5MB de las funciones de Vercel. Solo cliente.
