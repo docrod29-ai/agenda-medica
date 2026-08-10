@@ -7126,3 +7126,33 @@ que el par ilegible vuelva a ese selector. Los demás usos de `--nexus` como
 relleno van saliendo pantalla por pantalla con el arnés — señalar de menos.
 
 **Familia.** `sin_medir`.
+
+## REG-309 — Desmontar el grabador dejaba la pantalla diciendo «escuchando»
+
+**Encontrado por** la auditoría de sólo lectura del modo escuchando (10-ago-2026).
+
+**Qué pasaba.** Al entrar en `grabando` o `pausado`, `useGrabacionAudio` emitía
+`activo: true` para el marco global. Al detener normalmente, el siguiente render
+emitía `activo: false`; al navegar con el micrófono abierto, en cambio, el hook
+se desmontaba y ya no existía ese render. El cleanup retiraba el latido y el
+aviso de salida, pero no cerraba la señal. La UI podía seguir afirmando que el
+micrófono estaba activo después de haberlo cerrado.
+
+**Causa raíz.** El cierre de una señal global se confió a una transición de
+estado local. Un unmount ejecuta efectos de limpieza, no produce una transición
+final a `inactivo`.
+
+**Arreglo.** El mismo montaje que abre la señal devuelve ahora un cleanup que
+retira sus recursos y emite `activo: false`. No cambia el grabador, el evento ni
+el consumidor existentes.
+
+**Guardián.** `src/__tests__/grabacion-unmount-cierra-escucha.test.ts` (1 caso)
+ejecuta el ciclo observable mount activo → recording → unmount y exige la
+secuencia `[true, false]`. Probado al revés: sin el aviso del cleanup termina en
+`[true]` y falla.
+
+**Qué NO cubre.** La transcripción, IndexedDB y el buffer final de
+`MediaRecorder`; conservan sus guardianes propios.
+
+**Familia.** `no_conectado` — el cierre existía para la transición de estado,
+pero no estaba conectado al camino de unmount.

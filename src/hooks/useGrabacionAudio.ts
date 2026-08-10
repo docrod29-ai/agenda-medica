@@ -63,6 +63,11 @@ import { EVENTO_GRABANDO, LATIDO_MS, avisarEscucha } from '@/lib/seguridad/estoy
 
 type Estado = 'inactivo' | 'grabando' | 'pausado' | 'subiendo' | 'listo' | 'error'
 
+/** Cierra la señal global que abrió una instancia activa al desmontarse. */
+export function cerrarEscuchaAlDesmontar() {
+  avisarEscucha(false)
+}
+
 export interface OpcionesGrabacion {
   noiseSuppression?: boolean
   echoCancellation?: boolean
@@ -1165,7 +1170,6 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       avisarEscucha(false)
       return
     }
-
     /** El latido: grabando, la sesión está viva aunque nadie toque el ratón. */
     const latido = window.setInterval(
       () => window.dispatchEvent(new CustomEvent(EVENTO_GRABANDO)), LATIDO_MS)
@@ -1186,6 +1190,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     return () => {
       window.clearInterval(latido)
       window.removeEventListener('beforeunload', alSalir)
+      cerrarEscuchaAlDesmontar()
     }
   }, [estado])
 

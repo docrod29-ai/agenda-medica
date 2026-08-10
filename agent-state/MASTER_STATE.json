@@ -59,8 +59,8 @@
   ],
   "ramaActual": "v10/identidad-acento",
   "derivado": {
-    "regsEnElLedger": 156,
-    "ultimaREG": "REG-308",
+    "regsEnElLedger": 157,
+    "ultimaREG": "REG-309",
     "archivosDePrueba": 584,
     "casosDePrueba": 7626,
     "lint": "ver scripts/lint-trinquete.mjs"
