@@ -6,7 +6,67 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 10-ago-2026 — **`POSTVISIT-001` cerrada**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
+| **Rama** | `claude/relaxed-fermi-ozi40y` (ver nota de rama abajo) |
+| **Siguiente** | **`PATIENT-AI-001`** |
+
+El camino entre la consulta y el paciente **existe entero por primera vez**:
+nota firmada → `POST /api/paciente/paquete` → paquete `RELEASED` → `/mi/[token]
+→ Cuidado`. Con las dos compuertas donde tienen que estar.
+
+- **REG-306** — la hoja del paciente se componía del borrador en curso y se
+  podía copiar, imprimir y entregar a mitad del dictado. Su única guarda era
+  `{!esNotaHospital}`; la compuerta de firma estaba escrita **en un comentario**.
+  Ahora: sin firmar es vista previa declarada (se ve, no se entrega); firmada se
+  copia, se imprime y se entrega. Y `firmada` por defecto `false`: **la compuerta
+  falla cerrada** si un llamador nuevo se olvida.
+- **REG-307** — la pieza mejor pensada del lado del paciente no le llegaba
+  nunca. La ruta compone **en el servidor** desde la nota firmada: el cuerpo de
+  la petición sólo lleva identificadores, porque si trajera el contenido la
+  compuerta la decidiría el navegador. Cada entrega es un documento nuevo
+  (`{notaId}__v{n}`, con `create`): un paquete liberado es inmutable.
+  `proximaCita` deja de estar fija en `undefined` desde REG-242.
+
+**Y una regla clínica que costaba callar**: `cambiosDeMedicacion` **no marca
+como suspendido lo que hoy no se mencionó**. El silencio no suspende — y aquí
+pesa más que en la lista del médico, porque quien lee es el paciente y él sí
+dejaría de tomarlo. Sin nota firmada anterior, `medicationChanges` va `null`.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 641 casos en verde** (1 fallo de entorno intermitente: `ops-timeout`) |
+| `node scripts/lint-trinquete.mjs` | **96, igual que el techo** |
+| `npx tsc --noEmit` | **limpio** |
+| trinquete de diseño | **bajó**: tamaños 2027 → 2026, radios 638 → 637 |
+| navegador | **no ejecutado** |
+
+### Lo que este checkpoint NO garantiza
+
+Que esto funcione **en un navegador**. Nada de POSTVISIT-001 se ha visto correr:
+ni el botón de entregar, ni la pantalla del paciente, ni el documento en
+Firestore. La ruta no se ejecuta en la suite —montar Firestore admin exige el
+emulador— así que lo que hay son guardianes sobre el motor puro (probados al
+revés) y sobre lo que la ruta hace con él, leyendo su fuente.
+
+**`NAV-NAVEGADOR-001` sigue abierto, y ahora tiene una comprobación más.**
+
+### Nota de rama
+
+La rama canónica de la especificación, `claude/nexus-patient-ux-v9`, está
+**fusionada entera en `main`** (PR #279). Esta ejecución arranca de `main` en la
+rama que le asignó el arnés, `claude/relaxed-fermi-ozi40y`: no se apila trabajo
+nuevo sobre historia ya fusionada. El trabajo de V9 sigue siendo el mismo
+programa; sólo cambió el nombre de la rama que lo lleva.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

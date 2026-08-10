@@ -21,6 +21,29 @@ interface DocReceta {
   medicamentos: Medicamento[]
 }
 
+/**
+ * EL RESUMEN DE UNA CONSULTA, TAL COMO SU MÉDICO LO LIBERÓ (V9 · POSTVISIT-001).
+ *
+ * Los nombres de los campos son los de `lib/paciente/paquete-de-visita` — los
+ * de la especificación, en inglés — y **eso es a propósito**: si esta pantalla
+ * los renombrara a su gusto, el día que el modelo cambie un campo aquí se
+ * leería `undefined` sin que nada fallara. Es REG-170 otra vez: el dato tiene
+ * que LLEGAR, y llega sólo si los dos lados dicen el mismo nombre.
+ */
+interface PaqueteLiberado {
+  id: string
+  encounterSummary?: string
+  medicationInstructions?: { nombre: string; instruccion: string }[]
+  medicationChanges?: { nombre: string; tipo: 'nuevo' | 'suspendido' | 'sin-cambio' }[] | null
+  orders?: string[]
+  followUp?: string
+  warningSigns?: string[]
+  clinicianContactRules?: string
+  approvedAt?: number | null
+  approvedByName?: string | null
+  version?: number
+}
+
 const RECETA_CONFIG_DEFAULT = {
   paperSize: 'media-carta' as const,
   estilo: 'minimalista' as const,
@@ -114,6 +137,8 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /** Los resúmenes que su médico ya liberó. `null` = todavía cargando. */
+  const [paquetes, setPaquetes] = useState<PaqueteLiberado[] | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +165,22 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+      /*
+        Los resúmenes liberados, en paralelo y sin bloquear las citas. El
+        servidor sólo devuelve los que pasan `visibleParaElPaciente`: un
+        borrador no llega hasta aquí ni aunque esta pantalla lo pidiera.
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => {
+          // 403 = el enlace lo emitió el mostrador y no tiene alcance clínico.
+          // Se DICE, igual que con las recetas: «no hay nada» y «este enlace no
+          // abre esto» son cosas distintas, y confundirlas le hace creer que su
+          // médico no le dejó nada.
+          if (res.status === 403) { setDocsBloqueados(true); return { paquetes: [] } }
+          return res.ok ? res.json() : { paquetes: [] }
+        })
+        .then(d => setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -422,18 +463,24 @@ export default function MiPortalPage() {
           {/*
             LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
             RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
-            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
-            el estado vacío dice la verdad en vez de fingir que no hay nada.
+            borrador no sale de ahí (REG-304). Desde POSTVISIT-001 el médico ya
+            los crea, desde su consulta y con la nota firmada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+          {paquetes === null ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} aria-hidden />
+              <span style={{ fontSize: 14, color: 'var(--text3)' }}>Buscando lo que te dejó tu médico…</span>
+            </div>
+          ) : paquetes.length === 0 ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                {docsBloqueados
+                  ? 'Este enlace sirve para tus citas. Pide a tu médico el acceso a la información de tus consultas.'
+                  : 'Cuando tu médico libere el resumen de una consulta, lo verás aquí: tus medicamentos con instrucciones en palabras sencillas, los estudios que te pidió y cuándo volver.'}
+              </p>
+            </div>
+          ) : paquetes.map(p => <ResumenDeConsulta key={p.id} p={p} tz={tzClinica} />)}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -605,6 +652,118 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * EL RESUMEN DE UNA CONSULTA, PARA EL PACIENTE (V9 · POSTVISIT-001).
+ *
+ * ── TRES DECISIONES QUE NO SON DE ESTILO ────────────────────────────────────
+ *
+ * **1 · Lo primero es qué tiene que hacer, no qué le pasó.** El paciente abre
+ * esto en la sala de espera o en el camión. Sus medicamentos van arriba; el
+ * resumen de lo que se hizo, debajo.
+ *
+ * **2 · Un cambio de medicación no se dice sólo con color.** «Nuevo» y «ya no
+ * lo tomes» van escritos con palabras. Es la regla de accesibilidad de la
+ * especificación —«never represent clinical risk only with color»— y aquí es
+ * literal: quien no distingue el rojo del verde se toma lo que no debe.
+ *
+ * **3 · Lo que no vino, no se pinta.** Sin signos de alarma no hay bloque de
+ * signos de alarma. Un apartado vacío le hace leer una línea que no le dice
+ * nada, y peor: le sugiere que sí los hay y no los ve.
+ */
+function ResumenDeConsulta({ p, tz }: { p: PaqueteLiberado; tz: string }) {
+  const f = p.approvedAt ? new Date(p.approvedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: tz }) : ''
+  const cambios = (p.medicationChanges ?? []).filter(c => c.tipo !== 'sin-cambio')
+
+  return (
+    <article style={{ background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 14 }}>
+      <header style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 'var(--t-h2)', fontWeight: 700, color: 'var(--text)' }}>
+          {f ? `Tu consulta del ${f}` : 'Tu consulta'}
+        </div>
+        {p.approvedByName && (
+          <div style={{ fontSize: 'var(--t-caption)', color: 'var(--text3)', marginTop: 2 }}>
+            Lo revisó y te lo entregó {p.approvedByName}
+          </div>
+        )}
+      </header>
+
+      {(p.medicationInstructions?.length ?? 0) > 0 && (
+        <section style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            Tus medicamentos
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {p.medicationInstructions?.map((m, i) => (
+              <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{m.instruccion}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {cambios.length > 0 && (
+        <section style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            Qué cambió
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {cambios.map((c, i) => (
+              <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>
+                <strong>{c.nombre}</strong> — {c.tipo === 'nuevo' ? 'es nuevo, empiézalo' : 'ya no lo tomes'}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {(p.orders?.length ?? 0) > 0 && (
+        <section style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            Estudios que te pidió
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {p.orders?.map((o, i) => <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{o}</li>)}
+          </ul>
+        </section>
+      )}
+
+      {p.followUp && (
+        <section style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            Cuándo volver
+          </h3>
+          <p style={{ margin: 0, fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{p.followUp}</p>
+        </section>
+      )}
+
+      {(p.warningSigns?.length ?? 0) > 0 && (
+        <section style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--amber)' }}>
+            Si te pasa esto, avisa
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {p.warningSigns?.map((s, i) => <li key={i} style={{ fontSize: 'var(--t-body)', color: 'var(--text)', lineHeight: 1.6 }}>{s}</li>)}
+          </ul>
+        </section>
+      )}
+
+      {p.encounterSummary && (
+        <section style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-caption)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            De qué se trató
+          </h3>
+          <p style={{ margin: 0, fontSize: 'var(--t-body)', color: 'var(--text2)', lineHeight: 1.6 }}>{p.encounterSummary}</p>
+        </section>
+      )}
+
+      {p.clinicianContactRules && (
+        <p style={{ margin: 0, paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 'var(--t-caption)', color: 'var(--text3)', lineHeight: 1.6 }}>
+          {p.clinicianContactRules}
+        </p>
+      )}
+    </article>
   )
 }
 

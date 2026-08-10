@@ -3,11 +3,61 @@
 > Se escribe **a mano**, tras cada iteración.
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
-**Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
-**Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
-`cambiosDeMedicacion` se difirieron ahí por no tener llamador.
+**Unidad**: `POSTVISIT-001` **cerrada** el 10-ago-2026 · REG-306, REG-307.
+**Siguiente**: `PATIENT-AI-001` — «Preguntar» sigue escalando al consultorio, y
+eso seguirá siendo lo correcto hasta que exista la clasificación de las cinco
+respuestas y las doce pruebas de equipo rojo.
 
 ---
+
+## Lo que quedó montado en `POSTVISIT-001`
+
+**El camino existe entero por primera vez.** Nota firmada → el médico pulsa
+«Entregar al paciente» → `POST /api/paciente/paquete` compone y libera → el
+resumen aparece en `/mi/[token] → Cuidado`. Hasta hoy la superficie del paciente
+estaba lista para recibir paquetes **y nadie los creaba**.
+
+**La compuerta de firma, en tres sitios y no en uno.** En el motor puro
+(`componerPaquete` lanza), en la frontera HTTP (409 con un texto que el médico
+entiende) y en la pantalla (vista previa declarada, copiar e imprimir cerrados).
+El defecto original era justo el contrario: la compuerta vivía en un comentario.
+
+**El contenido no viene del navegador.** El cuerpo de la petición lleva
+`clinicId`, `patientId`, `notaId` y el seguimiento. Nada más. El servidor lee la
+nota firmada y compone él — con el contenido en el cuerpo, la compuerta de firma
+la decidiría quien llame a la ruta.
+
+**Una entrega no se edita: se entrega otra vez.** `{notaId}__v{n}` con `create`,
+nunca `set`. Dentro de un año la pregunta será «¿qué se le dijo exactamente a
+este paciente?», y la respuesta no puede ser «lo que compondría hoy el código».
+
+**El silencio no suspende.** `cambiosDeMedicacion` sólo dice «suspendido» cuando
+la orden lo dice. Un fármaco que hoy no se mencionó no aparece — el paciente lo
+dejaría. Y sin nota firmada anterior no hay línea base: `null`, que no es «no
+hubo cambios».
+
+## Lo que NO se hizo, y por qué
+
+- **`warningSigns` sigue vacío.** Los signos de alarma son indicación médica: o
+  los escribe el médico, o no existen. Hoy no hay campo donde escribirlos, y
+  componerlos de «lo habitual» es la regla 1 de seguridad clínica. El campo está
+  y se pinta si algún día llega lleno.
+- **No hay aviso por WhatsApp** de que hay algo nuevo en el portal. El paciente
+  lo ve cuando entra por el enlace que ya recibe. Mandar un mensaje real está
+  fuera de lo autorizado.
+- **`documents` sigue vacío** (`DOCUMENTS-001`) y `unansweredQuestions` también
+  (`PATIENT-AI-001`).
+
+## Lo que este estado NO afirma
+
+**Nada de esto se ha visto en un navegador.** Ni el botón, ni la pantalla del
+paciente, ni un documento real en Firestore. La ruta no corre en la suite: lo
+que hay son guardianes sobre el motor puro —probados al revés— y sobre lo que la
+ruta hace con él.
+
+---
+
+## Iteración anterior (`PATIENT-COMPANION-001`, 9-ago)
 
 ## Lo que quedó montado en `PATIENT-COMPANION-001`
 

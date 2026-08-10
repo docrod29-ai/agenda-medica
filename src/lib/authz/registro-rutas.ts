@@ -180,6 +180,17 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'expediente/transcribir-diarizado': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/verificar-nota': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'inmuno/redactar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
+  /**
+   * Entrega al paciente el resumen de su consulta (V9 · POSTVISIT-001).
+   *
+   * `firmar` y no `clinico.escribir`: liberar es un acto de aprobación con
+   * identidad profesional detrás —el `approvedBy` del paquete es quien lo hizo—,
+   * de la misma clase que sellar una nota o una receta. Hoy los dos conjuntos de
+   * roles coinciden ({medico, admin}), así que no estrecha el acceso de nadie:
+   * lo que cambia es el nombre del permiso, y el nombre es lo que se lee cuando
+   * alguien pregunta quién puede decidir qué lee un paciente.
+   */
+  'paciente/paquete': { tipo: 'capacidad', capacidad: 'firmar' },
   'receta/detectar-campos': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'uci/copilot': { tipo: 'entitlementIA', modulo: 'uci', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
 

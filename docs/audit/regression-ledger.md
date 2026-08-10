@@ -7013,3 +7013,103 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente se componía del borrador en curso
+
+**Unidad** V9 `POSTVISIT-001` · cierra `POSTVISIT-GATE-001`.
+
+**Encontrado** por la auditoría del producto real (`PATIENT-UX-TRUTH-001`),
+leyendo qué guardas tenía cada bloque de la consulta.
+
+**Qué pasaba.** `HojaParaElPaciente` se montaba con el estado **vivo** de
+medicamentos y estudios, y su única guarda era `{!esNotaHospital}`. Diez líneas
+más arriba, `ComoCerrarLaConsulta` sí exigía `{firmada && …}`. El médico podía
+copiar e imprimir —y entregarle al paciente— una hoja compuesta de una nota a
+medio dictar.
+
+**La causa raíz.** La compuerta estaba escrita en un **comentario**. La cabecera
+de `como-se-lo-explico.ts` decía que cada línea sale de un campo «que el médico
+ya revisó y firmó», y era cierto sobre DE DÓNDE salen los campos y falso sobre
+CUÁNDO. Nada en el código miraba el estado de la nota. Es la misma forma que
+REG-251: un módulo que afirma en prosa una garantía que no ejecuta.
+
+**Arreglo.** Dos estados visibles, y se cierra la **entrega**, no la vista:
+
+- **sin firmar** → vista previa declarada («esto todavía puede cambiar»).
+  Copiar e imprimir quedan cerrados —y no sólo con `disabled`: la comprobación
+  está dentro del manejador, porque un `disabled` es una pantalla—.
+- **firmada** → se copia, se imprime y aparece «Entregar al paciente».
+
+Esconder la hoja hasta firmar habría quitado el único repaso que el médico tiene
+de lo que se lleva el paciente **mientras todavía puede cambiarlo**, que es justo
+lo que evita la corrección posterior.
+
+`firmada` es opcional en el componente y por defecto `false`: un llamador nuevo
+que se olvide de pasarlo deja la hoja en vista previa. **La compuerta falla
+cerrada.**
+
+**Familia.** `se_contradice` — la promesa del módulo y su código decían cosas
+distintas, y ninguna de las dos estaba mal por su cuenta.
+
+**Guardián.** `src/__tests__/el-resumen-de-la-consulta-llega-al-paciente.test.ts`.
+Probado al revés: quitando el `throw` de `componerPaquete`, dos casos caen.
+
+---
+
+## REG-307 — Lo mejor del lado del paciente no le llegaba nunca al paciente
+
+**Unidad** V9 `POSTVISIT-001` · cierra `POSTVISIT-ENTREGA-001`.
+
+**Encontrado** listando los importadores de `HojaParaElPaciente`: **uno solo en
+producción**, la consulta. Ni `/mi/[token]`, ni `/api/portal`, ni ninguna
+plantilla de WhatsApp.
+
+**Qué pasaba.** La pieza mejor pensada de esta superficie —instrucciones
+**compuestas** de campos firmados, no generadas por un modelo, que se niegan a
+expandir «cada 5 horas» porque 24÷5 no es exacto— tenía dos salidas: el
+portapapeles y la impresora. El paciente se iba con un papel, o con nada. Y
+`proximaCita` estaba escrita `{undefined}` desde REG-242, así que su cuarto
+bloque —cuándo volver— **no podía renderizarse jamás**, con el dato a diez
+líneas de distancia en `proximoSeguimiento`.
+
+**Arreglo — el camino entero, con la compuerta en el servidor.**
+
+`POST /api/paciente/paquete` compone desde la nota firmada y libera. Y la
+decisión que sostiene todo lo demás: **el cuerpo de la petición sólo lleva
+identificadores**. Ni un medicamento, ni una dosis, ni una línea de texto. Si el
+contenido viniera del navegador, la compuerta de firma sería decorativa —
+bastaría con llamar a la ruta con lo que hubiera en pantalla.
+
+- Capacidad `firmar`, no `clinico.escribir`: liberar es un acto de aprobación
+  con identidad profesional detrás. Hoy los dos conjuntos de roles coinciden, así
+  que no estrecha el acceso de nadie; lo que cambia es el nombre del permiso, y
+  el nombre es lo que se lee cuando alguien pregunta quién decide qué lee un
+  paciente.
+- Cada entrega escribe un documento **nuevo** (`{notaId}__v{n}`, con `create` y
+  no `set`): un paquete liberado es inmutable, igual que una nota firmada.
+  Corregirlo es entregar una versión nueva.
+- `approvedBy` guarda el **uid**, no el correo: este documento acaba en el
+  navegador del paciente y un enlace de portal se reenvía por WhatsApp. El
+  nombre que el paciente lee sale de la firma de la nota.
+- En `/mi/[token] → Cuidado`, el resumen: qué tomar primero, qué cambió, qué
+  estudios, cuándo volver, de qué se trató. **Los cambios se dicen con palabras**
+  —«es nuevo, empiézalo», «ya no lo tomes»— y no con un color: quien no
+  distingue rojo de verde se toma lo que no debe.
+
+**Y una regla clínica que costaba callar.** `cambiosDeMedicacion` **no marca
+como suspendido lo que hoy no se mencionó**. Es la misma regla que ya gobierna
+`medicamentosVigentes` —«si hoy escribo una nota sin mencionar la metformina,
+eso no significa que la haya dejado»— y aquí pesa más, porque quien lee es el
+paciente y él **sí la dejaría**. Sólo se dice «suspendido» cuando la orden lo
+dice. Y sin nota firmada anterior no hay línea base: `medicationChanges` va
+`null`, que no es lo mismo que «no hubo cambios».
+
+**Familia.** `no_conectado` — escrito, probado y sin conectar, en su forma más
+cara: la pieza mejor pensada del lado del paciente.
+
+**Guardián.** `src/__tests__/el-resumen-de-la-consulta-llega-al-paciente.test.ts`,
+43 casos, con el contrato de campos entre lo que el servidor escribe y lo que la
+pantalla del paciente lee — la regla «el dato tiene que LLEGAR», que nació de
+REG-170 justamente por un campo que nadie leía.

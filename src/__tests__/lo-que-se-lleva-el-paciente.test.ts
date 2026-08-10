@@ -185,7 +185,9 @@ describe('está CONECTADO', () => {
     join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 
   it('la consulta lo importa y lo monta', () => {
-    expect(page).toContain("import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'")
+    /* El import trae además el tipo del estado de entrega desde V9 ·
+       POSTVISIT-001, así que se comprueba el símbolo, no la línea entera. */
+    expect(page).toMatch(/import \{ HojaParaElPaciente[^}]*\} from '@\/components\/HojaParaElPaciente'/)
     expect(page).toContain('<HojaParaElPaciente')
   })
 

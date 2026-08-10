@@ -42,8 +42,17 @@ export function estaVigente(m: Pick<Medicamento, 'estado'>): boolean {
   return estadoDeOrden(m) === 'activa'
 }
 
-/** Clave para reconocer «el mismo fármaco» entre notas distintas. */
-function claveFarmaco(m: Pick<Medicamento, 'nombre'>): string {
+/**
+ * Clave para reconocer «el mismo fármaco» entre notas distintas.
+ *
+ * Se EXPORTA desde V9 · POSTVISIT-001: el paquete de la visita compara la
+ * medicación de hoy contra la de antes, y hacerlo con una segunda
+ * normalización propia era la familia `depende_de_recordar` — dos sitios
+ * decidiendo qué es «el mismo fármaco» y separándose el día que uno se
+ * arregla. «Amoxicilina» y «amoxicilina» tienen que ser el mismo fármaco en
+ * los dos lados o el paciente lee «nuevo» sobre algo que ya tomaba.
+ */
+export function claveFarmaco(m: Pick<Medicamento, 'nombre'>): string {
   return String(m.nombre ?? '')
     .toLowerCase()
     .normalize('NFD')

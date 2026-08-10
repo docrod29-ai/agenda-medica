@@ -165,3 +165,4 @@ Una línea por unidad cerrada. Sin número de versión y SHA, no está cerrada.
 | 2026-08-09 | **DESIGN-SYSTEM-001** | `fed81cc` | Tokens visibles para Tailwind (4 → ~35), cinco escalas nuevas, cero respaldos y trinquete de diseño | **274, 275** |
 | 2026-08-09 | **NAVIGATION-001** | `fed81cc` | El ciclo devuelve el contexto: seguimiento que sobrevive, atrás de verdad, agenda en la URL, aviso antes de cortar el dictado | **276-279** |
 | 2026-08-09 | **PATIENT-COMPANION-001** | `5d496cf` | Cinco destinos, PaqueteDeVisita DRAFT/RELEASED y la compuerta en el servidor. Composición diferida a POSTVISIT-001 por no tener llamador | **280, 281** |
+| 2026-08-10 | **POSTVISIT-001** | `PENDIENTE-SHA` | La composición vuelve con su llamador: `POST /api/paciente/paquete` compone desde la nota FIRMADA, libera con `approvedBy`, y el resumen aparece en `/mi/[token] → Cuidado`. La hoja del médico gana compuerta de firma | **306, 307** |

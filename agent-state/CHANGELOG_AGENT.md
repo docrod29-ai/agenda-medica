@@ -80,3 +80,29 @@ El dueño entregó el Master Loop V9 completo (907 líneas) y pidió que se guar
 La razón de la compuerta, escrita antes de que hiciera falta: un programa
 autónomo sin condición de terminado no termina, **se le ocurren tareas**. Y un
 criterio escrito al final se escribe para que dé aprobado.
+
+## 2026-08-10 · V9 `POSTVISIT-001` — el resumen de la consulta llega al paciente
+
+**REG-306** · La hoja del paciente se componía del borrador en curso, y su única
+guarda era «no es una nota de hospital». La compuerta de firma estaba escrita en
+un comentario. Ahora: sin firmar es vista previa declarada (se ve, no se
+entrega); firmada se copia, se imprime y se entrega. Por defecto, **cerrada**.
+
+**REG-307** · La pieza mejor pensada del lado del paciente no le llegaba nunca.
+`POST /api/paciente/paquete` compone **en el servidor** desde la nota firmada y
+libera; el resumen aparece en `/mi/[token] → Cuidado`. El cuerpo de la petición
+lleva sólo identificadores. Cada entrega es un documento nuevo e inmutable.
+
+**Regla clínica que se sella con esto**: el silencio no suspende. Un fármaco que
+hoy no se mencionó **no** sale como «ya no lo tomes» — el paciente lo dejaría.
+
+**Archivos**: `src/lib/paciente/paquete-de-visita.ts` (composición) ·
+`src/app/api/paciente/paquete/route.ts` (nueva) · `src/components/HojaParaElPaciente.tsx` ·
+`src/app/(dashboard)/consulta/[patientId]/page.tsx` · `src/app/mi/[token]/page.tsx` ·
+`src/lib/expediente/ordenes-medicamento.ts` (exporta `claveFarmaco`) ·
+`src/lib/authz/registro-rutas.ts` · `src/lib/expediente/audit-eventos.ts`.
+
+**Guardián**: `src/__tests__/el-resumen-de-la-consulta-llega-al-paciente.test.ts`
+(43 casos; tres caen al reintroducir el defecto).
+
+**No verificado**: nada de esto se ha visto en un navegador.

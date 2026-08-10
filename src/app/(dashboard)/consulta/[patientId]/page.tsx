@@ -52,7 +52,7 @@ import { frasesInciertas } from '@/lib/expediente/certeza'
 import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
-import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { HojaParaElPaciente, type EstadoEntrega } from '@/components/HojaParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -1190,6 +1190,14 @@ export default function ConsultaActivaPage() {
    * el seguimiento» del worklist y el contador de seguimientos vencidos del CRM.
    */
   const [proximoSeguimiento, setProximoSeguimiento] = useState('')
+  /**
+   * ENTREGA DEL RESUMEN AL PACIENTE (V9 · POSTVISIT-001).
+   *
+   * Lo que viaja a `/api/paciente/paquete` son TRES identificadores y nada más.
+   * El servidor lee la nota firmada y compone él: si el contenido saliera de
+   * este navegador, la compuerta de firma sería decorativa.
+   */
+  const [entrega, setEntrega] = useState<EstadoEntrega>({ fase: 'ninguna' })
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
@@ -3783,6 +3791,37 @@ export default function ConsultaActivaPage() {
     setChatCorr(c => [...c, { rol: 'ia', texto: '↩ Deshecho, volví la nota a como estaba.' }])
   }
 
+  /**
+   * ENTREGAR AL PACIENTE EL RESUMEN DE SU CONSULTA (V9 · POSTVISIT-001).
+   *
+   * Hasta hoy la mejor pieza del lado del paciente —la hoja compuesta, no
+   * generada— no llegaba nunca: dos botones, portapapeles e impresora. Esto la
+   * pone en su portal.
+   *
+   * Sólo se mandan identificadores. El servidor comprueba la firma y compone
+   * desde la nota: si el contenido saliera de aquí, la compuerta de firma la
+   * decidiría el navegador.
+   */
+  const entregarAlPaciente = async () => {
+    if (!clinicId || !notaId || !firmada) return
+    setEntrega({ fase: 'enviando' })
+    try {
+      const res = await fetchAutenticado('/api/paciente/paquete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, patientId, notaId, accion: 'liberar', seguimiento: proximoSeguimiento }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.ok) {
+        setEntrega({ fase: 'error', mensaje: data?.error || 'No se pudo entregar el resumen. Intenta de nuevo.' })
+        return
+      }
+      setEntrega({ fase: 'entregada', version: Number(data.paquete?.version ?? 1) })
+      toast('Entregado. Tu paciente ya puede verlo en su portal.', 'success')
+    } catch {
+      setEntrega({ fase: 'error', mensaje: 'Sin conexión. El resumen no se entregó.' })
+    }
+  }
+
   // useMemo: construirNota no es barato y esto corría en CADA render.
 
 
@@ -5194,11 +5233,25 @@ export default function ConsultaActivaPage() {
         pantalla (`/consulta/[id]?internamiento=…`), así que sin este guardia
         aparecería ahí también.
       */}
+      {/*
+        LA COMPUERTA DE FIRMA (POSTVISIT-GATE-001) — se pasa `firmada`, y sin
+        ella la hoja queda en vista previa: se ve, no se entrega. Antes se podía
+        copiar e imprimir una hoja compuesta de un borrador a medio dictar, y la
+        única guarda era la de hospital.
+
+        Y `proximaCita` deja de estar fija en `undefined`: estaba escrita así
+        desde REG-242, así que el cuarto bloque de la hoja —el que dice cuándo
+        volver— no podía renderizarse jamás. El dato existía a diez líneas de
+        distancia, en `proximoSeguimiento`.
+      */}
       {!esNotaHospital && (
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          proximaCita={proximoSeguimiento || undefined}
+          firmada={firmada}
+          alEntregar={notaId ? entregarAlPaciente : undefined}
+          entrega={entrega}
         />
       )}
 
