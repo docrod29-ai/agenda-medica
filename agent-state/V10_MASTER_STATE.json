@@ -7,7 +7,7 @@
   "iteracionesCompletas": [],
   "ultimoRun": {
     "fecha": "2026-08-10",
-    "sha": "se registra en el commit de este run",
+    "sha": "bd9eb74",
     "queHizo": "Primer run real de V10. Bootstrap de estado + auditoría de verdad en navegador (16+4 capturas, 5 pantallas puntuadas) + reparación verificada del desajuste de hidratación data-theme (D-1).",
     "siguienteAccionExacta": "Ver agent-state/V10_CURRENT_ITERATION.md — por omisión: V10-CONSTITUTION-001 sobre el peor archivo del trinquete no en vuelo, + puntuar /demo y /demo/razonamiento, + línea base axe."
   },
