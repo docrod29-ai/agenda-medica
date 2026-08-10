@@ -16,6 +16,47 @@ recién rediseñada, invisibles para las 8 500 pruebas:
 
 Verificado re-capturando: `/dashboard` quedó en cero violaciones axe.
 
+## v1171 — El acento sale del índigo de IA: cian-petróleo, elegido por eliminación
+
+`#6E84FE` —índigo-violeta, 375 usos en 97 archivos— es EL tono de «producto de
+inteligencia artificial». Medido contra las hojas de estilo reales de los cinco
+productos clínicos que importan: Suki usa **amarillo**, Abridge **rojo cadmio**,
+Nabla **verde**, y Heidi sí tiene morado pero lo reserva al plan de pago.
+
+NO SE ELIGIÓ POR GUSTO. En una aplicación clínica hay tres tonos que YA
+significan algo y quedan prohibidos como marca:
+
+    --red    #E66464   tono   0°   peligro
+    --amber  #D97706   tono  32°   aviso
+    --green  #1BA34D   tono 142°   normalidad
+
+Suki puede permitirse el amarillo porque no tiene MAR, ni valores críticos de
+laboratorio, ni NEWS2. Nosotros sí: un acento a 35° compite con el aviso en cada
+pantalla de la UCI.
+
+Distancia al semáforo más cercano, por región de tono:
+
+    rojo/coral      0°  →   0°   inutilizable
+    ámbar/oro      35°  →   3°   inutilizable
+    verde         140°  →   2°   inutilizable
+    CIAN-PETRÓLEO 190°  →  48°   ← libre, y lejos del índigo de IA
+    azul          215°  →  73°   libre
+    índigo        250°  → 108°   libre, pero ES el tono que se quiere abandonar
+
+Contraste comprobado, no supuesto:
+
+    oscuro   trazo    #2AA5B5 sobre --s3        5,18 : 1  ✓ AA
+             relleno  #177886 con blanco encima 5,16 : 1  ✓ AA
+    claro    trazo    #12626E sobre --s3        5,82 : 1  ✓ AA
+             relleno  #12626E con blanco encima 7,00 : 1  ✓ AA
+
+Y un guardián menos que miente: `lo-que-el-navegador-vio` fijaba `#3D5AFE` a
+mano y se puso rojo al cambiar el acento, aunque lo que protege —que exista un
+token de relleno con contraste medido— seguía intacto. Ahora comprueba la REGLA
+y no el valor. Es la tercera vez en el día que un guardián defiende el número en
+vez de la norma: el buzón del canal ARCO y el bloque de emuladores fueron las
+otras dos.
+
 ## v1170 — Consolidación: dos líneas paralelas vuelven a ser una
 
 Dos días de rutinas autónomas produjeron **342 commits en 114 ramas** y **41 PR

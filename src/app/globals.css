@@ -31,9 +31,49 @@
 
   /* Acento de marca: cobalto Ausculta
      (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
-  --nexus:        #6E84FE;   /* AA sobre --s3 (4.63); antes #3D5AFE = 2.96 */
-  --nexus-hover:  #2845EA;
-  --nexus-soft:   rgba(61, 90, 254, 0.12);
+  /* ─── EL ACENTO: POR QUÉ CIAN-PETRÓLEO Y NO OTRO ─────────────────────────
+
+     Se elige por ELIMINACIÓN MEDIDA, no por gusto.
+
+     En una aplicación clínica hay tres tonos que YA significan algo y no se
+     pueden usar de marca:
+
+         --red    #E66464   tono   0°   peligro
+         --amber  #D97706   tono  32°   aviso
+         --green  #1BA34D   tono 142°   normalidad
+
+     Suki puede permitirse el amarillo de marca porque no tiene MAR, ni valores
+     críticos de laboratorio, ni NEWS2. Nosotros sí. Un acento a 35° compite con
+     el aviso en cada pantalla de la UCI.
+
+     Distancia al semáforo más cercano, por región:
+
+         rojo/coral      0°  →   0°     inutilizable
+         ámbar/oro      35°  →   3°     inutilizable
+         verde         140°  →   2°     inutilizable
+         CIAN-PETRÓLEO 190°  →  48°     ← libre
+         azul          215°  →  73°     libre
+         índigo        250°  → 108°     libre, pero ES el tono de «producto de IA»
+
+     Queda el cian-petróleo: el único territorio a la vez libre de significado
+     clínico y lejos del índigo-violeta que comparten media docena de productos
+     de IA. Y lee como instrumento, que es lo que este producto es.
+
+     ── LO QUE SE VA ─────────────────────────────────────────────────────────
+
+     `#6E84FE`, índigo-violeta, 375 usos en 97 archivos. Medido el 9-ago-2026
+     contra las hojas de estilo reales de Suki (amarillo), Abridge (rojo
+     cadmio), Nabla (verde) y Heidi (morado, y reservado al plan de pago).
+
+     ── CONTRASTE, COMPROBADO Y NO SUPUESTO ──────────────────────────────────
+
+     Oscuro:  #2AA5B5 sobre --s3  = 5.18 : 1   ✓ AA
+              #177886 con blanco encima = 5.16 : 1   ✓ AA  (relleno)
+     Claro:   #12626E sobre --s3  = 5.82 : 1   ✓ AA
+              #12626E con blanco encima = 7.00 : 1   ✓ AA  (relleno)             */
+  --nexus:        #2AA5B5;
+  --nexus-hover:  #38B6C4;
+  --nexus-soft:   rgba(42, 165, 181, 0.14);
   /*
     EL AZUL DE RELLENO — el que lleva texto blanco encima.
 
@@ -41,22 +81,19 @@
     · Como TEXTO sobre fondo oscuro hay que ACLARARLO para separarlo del fondo.
     · Como RELLENO bajo texto blanco hay que OSCURECERLO para separarlo del texto.
 
-    --nexus se aclaró a #6E84FE para lo primero (5,96 sobre el lienzo, y así lo
-    dice el comentario de arriba). Pero se seguía usando también de relleno, y
-    ahí el blanco encima daba **3,28 : 1** — reprueba AA, que pide 4,5. Afectaba
-    a los 68 usos de .btn-primary y a 26 rellenos en línea: «Procesar con IA»,
-    «Guardar adenda», el CTA del antibiograma, el botón de registro de la
-    portada. El tema CLARO no lo tenía: usa #2845EA, que sí pasa.
+    La REGLA sobrevive al cambio de acento; los valores no. Con el índigo
+    (#6E84FE) el blanco encima daba 3,28 : 1 y reprobaba AA en los 68 usos de
+    .btn-primary y en 26 rellenos en línea. Con el cian-petróleo los dos papeles
+    tienen su propio valor desde el principio:
+
+        trazo   --nexus         #2AA5B5  →  5,18 : 1 sobre --s3
+        relleno --nexus-solido  #177886  →  5,16 : 1 con blanco encima
 
     Es la familia «el sistema se contradice a sí mismo»: ninguna de las dos
     decisiones está mal por su cuenta, y por eso ninguna revisión de una sola
-    pieza lo encuentra.
-
-    #3D5AFE no es un color inventado: es el azul de marca original, el mismo del
-    logotipo y el que ya vive dentro de --nexus-soft. Medido con la fórmula de
-    luminancia relativa WCAG 2.1: blanco sobre #3D5AFE = 5,13 : 1.
+    pieza lo encuentra. Lo que la cierra no es el color: es tener DOS tokens.
   */
-  --nexus-solido: #3D5AFE;
+  --nexus-solido: #177886;   /* relleno: blanco encima = 5.16 : 1 ✓ AA */
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -1245,13 +1282,13 @@ tbody tr:last-child { border-bottom: none; }
   --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
   --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
 
-  --nexus:        #2845EA;
-  --nexus-hover:  #1A35C8;
-  --nexus-soft:   rgba(40, 69, 234, 0.10);
+  --nexus:        #12626E;   /* 5.82 : 1 sobre --s3 claro ✓ AA */
+  --nexus-hover:  #0E5058;
+  --nexus-soft:   rgba(18, 98, 110, 0.10);
   /* En claro el relleno ya era #2845EA (blanco encima = 6,71) y por eso este
      tema nunca tuvo el fallo. Se nombra igual para que .btn-primary sirva a
      los dos temas con una sola regla. */
-  --nexus-solido: #2845EA;
+  --nexus-solido: #12626E;   /* blanco encima = 7.00 : 1 ✓ AA */
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -1312,10 +1349,10 @@ tbody tr:last-child { border-bottom: none; }
     --s3:        #ECEAE3;
     --border:    rgba(11, 12, 14, 0.08);
     --border2:   rgba(11, 12, 14, 0.16);
-    --nexus:        #2845EA;
-    --nexus-hover:  #1A35C8;
-    --nexus-soft:   rgba(40, 69, 234, 0.10);
-    --nexus-solido: #2845EA;
+    --nexus:        #12626E;
+    --nexus-hover:  #0E5058;
+    --nexus-soft:   rgba(18, 98, 110, 0.10);
+    --nexus-solido: #12626E;   /* blanco encima = 7.00 : 1 ✓ AA */
     --teal:         var(--nexus);
     --teal-dim:     var(--nexus-hover);
     --teal-glow:    var(--nexus-soft);
