@@ -108,7 +108,7 @@ emuladores Auth+Firestore con siembra sintética, login por la interfaz real y
   el login conservaba el N cobalto literal + el motivo red/nexo con línea de
   pulso (`MarcaAuth`) — DOS identidades prohibidas por el Lock en la primera
   pantalla pública. Marca → tokens; `MarcaAuth` retirado de login/registro y
-  borrado. Re-captura en curso al cierre.
+  borrado. **Re-capturado y visto**: login limpio — marca jamaica, sin red/nexo, sin pulso.
 - **Deuda visible que queda para IDENTITY-002**: la cabecera móvil dice
   «Agenda Médica» (marca partida); la franja de alergias aparece dos veces en
   consulta (banner + badge); portada/páginas públicas restantes con darks
@@ -118,7 +118,7 @@ emuladores Auth+Firestore con siembra sintética, login por la interfaz real y
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | **verde salvo 1 fallo ambiental** (cifra exacta al cierre de la corrida; no se estima) (`ops-timeout`, preexistente). La corrida completa cazó 5 fallos reales de la migración (guardianes de la era de dos temas + un relleno con el token equivocado) — **reparados y re-verificados** (commit `add32220`) |
+| `npx vitest run` | **583 de 584 archivos en verde** (8 664 casos totales al inicio de la corrida); el ÚNICO fallo es `ops-timeout` (ambiental, preexistente: este sandbox no cuelga ante host inalcanzable) (`ops-timeout`, preexistente). La corrida completa cazó 5 fallos reales de la migración (guardianes de la era de dos temas + un relleno con el token equivocado) — **reparados y re-verificados** (commit `add32220`) |
 | `npx tsc --noEmit` | limpio |
 | `lint-trinquete` | **96 = techo**, sin deuda nueva |
 | trinquete de diseño | BAJÓ y resellado exacto: hex 557→554, radios 637→635 |
