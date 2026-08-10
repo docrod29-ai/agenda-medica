@@ -23,6 +23,7 @@ export type AuditEvento =
   | 'ia_campo_rechazado'         // médico rechazó un campo
   | 'nota_borrador_guardado'     // guardó borrador
   | 'nota_firmada'               // firmó (queda inmutable)
+  | 'paquete_liberado'           // liberó al PORTAL DEL PACIENTE lo que se lleva de la consulta (V9 POSTVISIT-001)
   | 'nota_adenda'                // agregó una adenda a una nota firmada (NOM-004)
   | 'nota_borrada'               // borró un borrador
   /**
@@ -125,6 +126,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   ia_campo_rechazado: 'Rechazó campo IA',
   nota_borrador_guardado: 'Guardó borrador',
   nota_firmada: 'Firmó nota',
+  paquete_liberado: 'Liberó la hoja al paciente',
   nota_adenda: 'Agregó adenda',
   nota_borrada: 'Borró borrador',
   laboratorio_borrado: 'Borró laboratorio',

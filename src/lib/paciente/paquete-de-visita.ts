@@ -62,28 +62,23 @@
  */
 
 /**
- * ── POR QUÉ AQUÍ NO ESTÁ LA COMPOSICIÓN ─────────────────────────────────────
+ * ── LA COMPOSICIÓN LLEGÓ CON QUIEN LA LLAMA (`POSTVISIT-001`) ───────────────
  *
- * `componerPaquete` —la función que arma el contenido a partir de la nota
- * firmada— y su ayudante `cambiosDeMedicacion` **no viven todavía en este
- * archivo, a propósito.**
+ * `componerPaquete` y `cambiosDeMedicacion` se escribieron en
+ * `PATIENT-COMPANION-001` y se **retiraron el mismo día**: el guardián de
+ * conexión las cazó como motores con cuerpo real y sin un solo llamador.
+ * «Escrito, probado y sin conectar» es la familia de defectos más grande de este
+ * proyecto, y añadirle una más a sabiendas era exactamente lo que no tocaba.
  *
- * Se escribió, y su guardián de conexión la cazó al instante: era un motor con
- * cuerpo real y **sin un solo llamador**. Su llamador natural es la pantalla
- * donde el médico revisa y libera, y esa pantalla es `POSTVISIT-001`.
- *
- * «Escrito, probado y sin conectar» es la familia de defectos **más grande de
- * este proyecto** —32 de 127 regresiones—, y añadirle una más a sabiendas,
- * aunque fuera con una nota explicándolo, sería exactamente lo que este
- * repositorio lleva meses persiguiendo. Llegan con quien las llame.
- *
- * Se intentó dejar sólo el ayudante, y el guardián volvió a cazarlo al turno
- * siguiente: un motor sin llamador no deja de serlo porque su vecino se haya
- * ido. Se van los dos.
- *
- * Lo que SÍ vive aquí es lo que ya corre: el modelo, la máquina de estados y la
- * compuerta que usa `/api/portal`.
+ * Vuelven ahora **con su llamador delante**: `POST /api/expediente/paquete-visita`,
+ * la ruta por la que el médico revisa y libera. Nada de este archivo existe
+ * «para cuando haga falta».
  */
+
+import {
+  comoTomarlo, yaNoSeToma,
+  type MedicamentoParaExplicar,
+} from './como-se-lo-explico'
 
 /** Los dos únicos estados. No hay un tercero, y `DRAFT` no se le enseña a nadie. */
 export type EstadoPaquete = 'DRAFT' | 'RELEASED'
@@ -137,6 +132,161 @@ export interface PaqueteDeVisita {
 }
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+
+/** Mismo criterio de «el mismo fármaco» que `ordenes-medicamento`. */
+const claveFarmaco = (nombre: unknown): string =>
+  String(nombre ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
+
+/**
+ * La nota firmada, reducida a lo que este módulo necesita. Se declara aquí y no
+ * se importa `NotaMedica` para que el módulo siga siendo puro y probable sin
+ * arrastrar el expediente entero.
+ */
+export interface NotaParaElPaquete {
+  id: string
+  /** `'firmada'` o cualquier otra cosa. Aquí se comprueba, no se supone. */
+  estado?: unknown
+  resumenEjecutivo?: unknown
+  medicamentos?: readonly MedicamentoParaExplicar[]
+  estudiosOrden?: readonly unknown[]
+}
+
+export interface EntradaComposicion {
+  nota: NotaParaElPaquete
+  /**
+   * Lo que el paciente tomaba ANTES de esta consulta, por nombre.
+   *
+   * `null` = no se pudo saber. `[]` = se supo, y no había nada. **No son lo
+   * mismo**, y de esa diferencia depende que `medicationChanges` sea una lista o
+   * un `null` honesto.
+   */
+  medicacionPrevia: readonly string[] | null
+  /** Lo que el médico escribió como indicaciones. Va literal o no va. */
+  indicacionesDelMedico?: unknown
+  /** Texto de la próxima cita, ya legible. Este módulo no formatea fechas. */
+  proximaCita?: unknown
+  /** Cómo contactar al consultorio. **Administrativo**, nunca clínico. */
+  contactoDelConsultorio?: unknown
+  /** Signos de alarma que escribió el médico. Si no escribió, van vacíos. */
+  signosDeAlarma?: readonly unknown[]
+  idioma?: string
+}
+
+/** La nota no estaba firmada. Se distingue por tipo para que la ruta responda 409. */
+export class NotaSinFirmar extends Error {
+  constructor() { super('No se puede componer el paquete de una nota sin firmar') }
+}
+
+/**
+ * QUÉ CAMBIÓ RESPECTO DE LA VISITA ANTERIOR.
+ *
+ * ── LA DECISIÓN QUE GOBIERNA ESTA FUNCIÓN ───────────────────────────────────
+ *
+ * **El silencio no suspende.** Un fármaco que estaba en la lista previa y no
+ * aparece en la nota de hoy **no se declara suspendido**: significa que hoy no
+ * se habló de él. Es la misma regla que ya sostiene `medicamentosVigentes`
+ * (`POR_QUE_EL_SILENCIO_NO_SUSPENDE`) y la regla 4 de seguridad clínica —
+ * ausencia de dato no es dato de ausencia.
+ *
+ * Aquí pesa el doble, porque el lector es el paciente: decirle «suspendido»
+ * sobre su antihipertensivo crónico porque la nota de una faringitis no lo
+ * mencionó es hacer que deje un tratamiento que nadie retiró. La regla de IA de
+ * cara al paciente lo tiene en su lista de lo que el código **no debe poder
+ * hacer**: suspender un medicamento.
+ *
+ * `suspendido` sale **sólo** del estado que el médico escribió en la nota
+ * (`suspendida`/`cancelada`), que llega de un modal con motivo obligatorio.
+ *
+ * ── SIN LISTA PREVIA, `null` ────────────────────────────────────────────────
+ *
+ * «No aparecía antes» y «no sé qué había antes» son cosas distintas. Con
+ * `medicacionPrevia === null` se devuelve `null` y el paciente no ve la sección,
+ * en vez de leer «sin cambios» sobre algo que nadie comparó.
+ */
+export function cambiosDeMedicacion(
+  medicamentos: readonly MedicamentoParaExplicar[] | undefined,
+  medicacionPrevia: readonly string[] | null,
+): CambioDeMedicacion[] | null {
+  if (medicacionPrevia === null || medicacionPrevia === undefined) return null
+
+  const antes = new Set(medicacionPrevia.map(claveFarmaco).filter(Boolean))
+  const cambios: CambioDeMedicacion[] = []
+
+  for (const m of medicamentos ?? []) {
+    const nombre = texto(m.nombre)
+    const clave = claveFarmaco(nombre)
+    if (!clave) continue
+    if (yaNoSeToma(m)) { cambios.push({ nombre, tipo: 'suspendido' }); continue }
+    cambios.push({ nombre, tipo: antes.has(clave) ? 'sin-cambio' : 'nuevo' })
+  }
+
+  /* Lo que estaba antes y hoy no se mencionó NO entra. Ver la cabecera. */
+  return cambios
+}
+
+/**
+ * ARMA EL PAQUETE DESDE LA NOTA FIRMADA. Determinista, sin modelo, y `DRAFT`.
+ *
+ * ── LA COMPUERTA DE FIRMA (`POSTVISIT-GATE-001`) ────────────────────────────
+ *
+ * Lanza `NotaSinFirmar` si la nota no está firmada. Es la corrección del defecto
+ * que abrió esta unidad: la hoja del paciente se componía del **borrador en
+ * curso** y la única guarda era «no es nota de hospital». El médico podía copiar
+ * y entregar una hoja hecha de una nota a medio dictar.
+ *
+ * Se lanza en vez de devolver `null` a propósito: un `null` se ignora en
+ * silencio en el primer llamador que se olvide de mirarlo, y esto es la puerta
+ * entre un borrador clínico y los ojos de un paciente.
+ *
+ * ── NACE `DRAFT`, SIEMPRE ───────────────────────────────────────────────────
+ *
+ * Aunque la nota esté firmada. Firmar va hacia el expediente; liberar va hacia
+ * el paciente. Esta función no puede liberar nada: para eso está `liberar()`,
+ * que exige saber quién aprueba, y sólo la llama el servidor.
+ *
+ * ── LO QUE NO COMPONE ───────────────────────────────────────────────────────
+ *
+ * `warningSigns` sale de lo que el médico escribió, o va vacío;
+ * `educationalMaterial`, `documents` y `unansweredQuestions` van vacíos hasta que
+ * existan sus unidades. Rellenarlos con «lo habitual» es la regla 1.
+ */
+export function componerPaquete(e: EntradaComposicion, version = 1): PaqueteDeVisita {
+  if (texto(e.nota.estado) !== 'firmada') throw new NotaSinFirmar()
+
+  const meds = e.nota.medicamentos ?? []
+
+  return {
+    notaId: e.nota.id,
+    /* El resumen del médico, LITERAL. Reescribirlo «para que se entienda» es
+       donde se colaría una frase que él no dijo. */
+    encounterSummary: texto(e.nota.resumenEjecutivo),
+    /* Sólo lo que sí tiene que tomar: lo retirado va en `medicationChanges`, no
+       en la lista de «tómese esto» (REG-306). */
+    medicationInstructions: meds
+      .filter(m => !yaNoSeToma(m))
+      .map(m => ({ nombre: texto(m.nombre), instruccion: comoTomarlo(m) }))
+      .filter(m => m.nombre && m.instruccion),
+    medicationChanges: cambiosDeMedicacion(meds, e.medicacionPrevia),
+    orders: (e.nota.estudiosOrden ?? []).map(texto).filter(Boolean),
+    followUp: texto(e.proximaCita),
+    warningSigns: (e.signosDeAlarma ?? []).map(texto).filter(Boolean),
+    educationalMaterial: [],
+    documents: [],
+    unansweredQuestions: [],
+    clinicianContactRules: texto(e.contactoDelConsultorio),
+    language: texto(e.idioma) || 'es-MX',
+    estado: 'DRAFT',
+    approvedAt: null,
+    approvedBy: null,
+    version,
+  }
+}
+
+export const POR_QUE_EL_SILENCIO_NO_SUSPENDE_TAMPOCO_AQUI =
+  'Un fármaco que estaba antes y no aparece en la nota de hoy no está ' +
+  'suspendido: hoy no se habló de él. Decírselo al paciente como «suspendido» ' +
+  'es hacerle dejar un tratamiento que nadie retiró, y él no tiene cómo ' +
+  'detectar el error.'
 
 /**
  * Pasa un paquete a `RELEASED`. Exige quién aprueba y cuándo.

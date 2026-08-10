@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { fechaDeSeguimientoEnLlano } from '@/lib/paciente/como-se-lo-explico'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -1190,6 +1191,14 @@ export default function ConsultaActivaPage() {
    * el seguimiento» del worklist y el contador de seguimientos vencidos del CRM.
    */
   const [proximoSeguimiento, setProximoSeguimiento] = useState('')
+  /**
+   * ENTREGAR LA HOJA AL PACIENTE — V9 `POSTVISIT-001`.
+   *
+   * La hoja tenía dos salidas —copiar e imprimir— y ninguna llegaba al portal
+   * del paciente. `liberar` es el tercer acto, y es el que cierra el bucle:
+   * firmar va hacia el expediente, liberar va hacia el paciente.
+   */
+  const [entregaPaquete, setEntregaPaquete] = useState<'inactiva' | 'enviando' | 'liberada'>('inactiva')
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
@@ -3838,6 +3847,57 @@ export default function ConsultaActivaPage() {
     }
   }, [cedulaRapida, clinicId])
 
+  /**
+   * LIBERAR LA HOJA HACIA EL PORTAL DEL PACIENTE — V9 `POSTVISIT-001`.
+   *
+   * ── LO QUE NO SE MANDA ────────────────────────────────────────────────────
+   *
+   * Ni el resumen, ni los medicamentos, ni las instrucciones. **Sólo tres
+   * identificadores.** El contenido lo lee el servidor de la nota firmada que
+   * está en la base: si viajara en el cuerpo, esta pantalla podría publicarle al
+   * paciente cualquier texto bajo el membrete de su médico, y la compuerta de
+   * firma sería una comprobación del navegador — o sea, ninguna.
+   *
+   * `proximaCita` sí viaja porque **no vive en la nota**: la fecha de seguimiento
+   * se escribe en el expediente del paciente, no en el documento firmado (va
+   * aparte a propósito, ver el comentario de `proximoSeguimiento`). Es texto de
+   * calendario, no un dato clínico, y el servidor lo recorta.
+   */
+  /* Se saca del callback para que la dependencia sea la CADENA y no el objeto
+     `config` entero: con `config?.x` en la lista, el compilador de React infiere
+     `config` y no puede preservar la memoización (el error que caza el trinquete). */
+  const contactoDelConsultorio = config?.whatsappConsultorio || config?.telefonoAdmin || ''
+
+  const liberarAlPaciente = useCallback(async () => {
+    if (!clinicId || !notaId) { toast('Guarda la nota antes de liberarla.', 'info'); return }
+    if (!firmada) { toast('Primero firma la nota.', 'info'); return }
+    setEntregaPaquete('enviando')
+    try {
+      const res = await fetchAutenticado('/api/expediente/paquete-visita', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinicId, patientId, notaId,
+          proximaCita: fechaDeSeguimientoEnLlano(proximoSeguimiento),
+          contacto: contactoDelConsultorio,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        /* El texto del servidor se enseña tal cual: dice QUÉ falta (firmar),
+           que es lo único accionable. Un «error» a secas no lo dice. */
+        setEntregaPaquete('inactiva')
+        toast(data?.error || 'No se pudo liberar la hoja.', 'error')
+        return
+      }
+      setEntregaPaquete('liberada')
+      toast('Liberada. Ya la ve en su portal.', 'success')
+    } catch {
+      setEntregaPaquete('inactiva')
+      toast('No se pudo liberar la hoja. Revisa la conexión.', 'error')
+    }
+  }, [clinicId, patientId, notaId, firmada, proximoSeguimiento, contactoDelConsultorio, toast])
+
   const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
 
   return (
@@ -5198,7 +5258,16 @@ export default function ConsultaActivaPage() {
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          /*
+            `proximaCita` estaba fijo en `undefined`, así que el cuarto bloque de
+            la hoja NO PODÍA renderizarse jamás — el dato existía en la pantalla
+            y no llegaba (REG-307). Se formatea aquí porque el motor es puro y no
+            sabe de locales; `proximoSeguimiento` es un `<input type="date">`.
+          */
+          proximaCita={fechaDeSeguimientoEnLlano(proximoSeguimiento)}
+          notaFirmada={firmada}
+          onLiberar={liberarAlPaciente}
+          entrega={entregaPaquete}
         />
       )}
 

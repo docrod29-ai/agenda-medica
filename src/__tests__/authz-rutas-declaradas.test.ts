@@ -174,7 +174,7 @@ describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(98)   // +1 el 2026-08-04: `arco/oponerse` (la «O» de ARCO, que se «resolvía» con un prompt() y no apagaba el contacto); +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage)
+    expect(CLAVES_DISCO.length).toBe(99)   // +1 el 2026-08-04: `arco/oponerse` (la «O» de ARCO, que se «resolvía» con un prompt() y no apagaba el contacto); +1 el 2026-08-04: `superadmin/incidentes` (la franja que le avisa al dueño de una caída de IA donde esté, sin tener que abrir su tablero); +1 el 2026-08-03: `cron/asientos` (concilia el cobro por médico, que dependía de un botón); +1 `clinic/exportar-excel` (el libro con una pestaña por dominio); +1 el 2026-08-02: `calendar/ocupado` (freebusy de Google); +1 `seguridad/csp-estado` (¿se puede pasar la CSP a bloquear?); +1 el 2026-08-03: `cron/limpiar-audio` (el audio de consulta que quedaba en Storage); +1 el 2026-08-10: `expediente/paquete-visita` (V9 POSTVISIT-001: compone y libera hacia el paciente lo que se lleva de la consulta)
   })
 })
 
@@ -445,12 +445,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // correcto es exactamente éste. Si hubiera subido la ruta y no la llamada,
     // o hubiera entrado el POST sin llamada, el POST que mueve dinero estaría
     // abierto.
-    expect(llamadas.length).toBe(96)   // +1 el 2026-08-04: `arco/oponerse`   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(79)   // +1 el 2026-08-04: `arco/oponerse`   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(98)   // +1 el 2026-08-04: `arco/oponerse`   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +2 el 2026-08-10: `expediente/paquete-visita` llama a `verificarCapacidad` en SUS DOS métodos (GET `clinico.leer`, POST `firmar`) — nace activa por los dos lados, sin cola de activación
+    expect(rutasConGuardia).toBe(80)   // +1 el 2026-08-04: `arco/oponerse`   // +1 el 2026-08-04: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +2 el 2026-08-10: `expediente/paquete-visita` llama a `verificarCapacidad` en SUS DOS métodos (GET `clinico.leer`, POST `firmar`) — nace activa por los dos lados, sin cola de activación
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(53)   // +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(conVocabulario).toBe(55)   // +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +2 el 2026-08-10: `expediente/paquete-visita` llama a `verificarCapacidad` en SUS DOS métodos (GET `clinico.leer`, POST `firmar`) — nace activa por los dos lados, sin cola de activación
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -461,7 +461,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 62, activos: 35, pendientes: 27,   // +1 el 2026-08-04 `arco/oponerse`: nace ACTIVA (verificarCapacidad 'administrar', sin pendiente). +1 el 2026-08-03 `clinic/exportar-excel`: nace ACTIVA (verificarCapacidad, sin pendiente). +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
+      declarados: 64, activos: 37, pendientes: 27,   // +1 el 2026-08-04 `arco/oponerse`: nace ACTIVA (verificarCapacidad 'administrar', sin pendiente). +1 el 2026-08-03 `clinic/exportar-excel`: nace ACTIVA (verificarCapacidad, sin pendiente). +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS (verificarCapacidad, sin pendiente)
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -590,7 +590,11 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     // `arco/cancelar` entra a la lista: para decidir si un expediente se suprime
     // o sólo se bloquea tiene que CONTAR las notas firmadas. Es lectura de PHI
     // clínico, y está bajo `administrar`.
-    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar', 'expediente/exportar/[patientId]', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
+    // `expediente/paquete-visita` es la décima (V9 POSTVISIT-001): lee las notas
+    // FIRMADAS para componer lo que se le entrega al paciente, así que lee PHI
+    // clínico por definición. Va con `firmar` para escribir y `clinico.leer`
+    // para leer — las dos excluyen a los roles no clínicos.
+    expect(conPHI).toEqual(['arco/acceso', 'arco/cancelar', 'clinic/exportar', 'clinic/importar', 'expediente/exportar/[patientId]', 'expediente/paquete-visita', 'fhir/paciente/[patientId]', 'hospital/mutar', 'portal', 'uci/estancia'])
   })
 
   it('las rutas que tocan la IDENTIDAD del paciente están congeladas (segundo nivel de PHI)', () => {
@@ -643,6 +647,13 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
        * diagnósticos, medicamentos y alergias, que NOM-004 reserva al médico.
        */
       'expediente/exportar/[patientId]',
+      /**
+       * Compone y libera hacia el portal del paciente lo que se lleva de su
+       * consulta (V9 POSTVISIT-001). Baja por `patients` para llegar a sus notas
+       * firmadas y para escribir el paquete. Escribir va con `firmar`: liberar es
+       * un acto de aprobación clínica, no una escritura más del expediente.
+       */
+      'expediente/paquete-visita',
       'fhir/paciente/[patientId]',
       'mantenimiento/backfill-contadores',
       'portal',

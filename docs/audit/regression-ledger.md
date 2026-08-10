@@ -7013,3 +7013,132 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — El fármaco recién suspendido salía en «SUS MEDICAMENTOS»
+
+**Unidad** V9 `POSTVISIT-001`. **Severidad: seguridad del paciente**, y llevaba
+meses en producción.
+
+**Qué pasaba.** Cuando el médico usa «ya no lo toma» en la consulta, el fármaco
+**no sale de la nota**: entra en `medicamentos` con `estado: 'suspendida'`, su
+motivo obligatorio, y sin vía ni frecuencia — porque no se está prescribiendo
+nada, se está declarando que deja de tomarse (`consulta:5713-5726`).
+
+`comoTomarlo` nunca miró el estado. Así que la hoja *Lo que se lleva el paciente*
+imprimía ese fármaco bajo **«SUS MEDICAMENTOS»**, en la misma lista que lo que sí
+tenía que tomar, con el texto «Ibuprofeno · 400 mg · **otra**» — la vía `otra` que
+el modal escribe justamente para no inventar una.
+
+El médico se lo acababa de quitar delante, y el papel que el paciente se llevaba
+a casa le decía que siguiera.
+
+**Cómo se descubrió.** Siguiendo el dato, no leyendo la hoja. Al escribir
+`componerPaquete` había que decidir qué hacer con `estado`; al buscar quién lo
+escribe apareció el modal de la consulta, que mete el fármaco retirado **en el
+mismo array** que lee la hoja. Ninguna prueba podía delatarlo: las 8 000 de
+entonces pasaban, porque ninguna dependía del comportamiento roto.
+
+**Causa raíz.** La hoja del paciente se alimenta del **estado vivo de la
+pantalla**, y ese estado incluye lo que ya se retiró. `medicamentos` responde a
+«qué se dijo hoy de cada fármaco», no a «qué tiene que tomar». Se leyó como lo
+segundo.
+
+**Arreglo.** `comoSeLoExplico` separa por estado: lo activo va a «Sus
+medicamentos» y lo que el médico declaró retirado va a un bloque propio, **«Lo
+que ya no toma»**, con su motivo literal. Decir «deje de tomarlo» no es una
+indicación inventada: es la del médico, traducida, y con motivo obligatorio
+detrás.
+
+**Lo que NO se movió, y es la mitad importante del arreglo.**
+`probablemente_terminada` **se queda arriba**. Ese estado no lo decidió nadie: lo
+dedujo el sistema al ver que la duración escrita venció (§D1). Sacarlo de la
+lista sería decirle al paciente que deje una medicación que su médico no retiró
+— la regla 4, ausencia de dato no es dato de ausencia, en la dirección contraria.
+
+**Familia.** `el_dato_significa_otra_cosa` — el campo existía, se leyó entero, y
+se interpretó como una pregunta distinta de la que contesta. Hermana de REG-260
+(«el número decía 42 y significaba otra cosa»).
+
+**Guardián.** `src/__tests__/el-paquete-sale-de-una-nota-firmada.test.ts`,
+bloque «el fármaco que se acaba de suspender NO va con los que sí toma». Probado
+al revés: al quitar el filtro, 3 casos caen.
+
+---
+
+## REG-307 — La hoja del paciente se componía de un borrador, y nunca llegaba al paciente
+
+**Unidad** V9 `POSTVISIT-001`. Cierra `POSTVISIT-GATE-001` y
+`POSTVISIT-ENTREGA-001`, los dos P1 que la auditoría `PATIENT-UX-TRUTH-001` dejó
+declarados con número de línea el 8-ago-2026.
+
+**Tres defectos con una sola causa**, y por eso van juntos:
+
+**1 · Sin compuerta de firma.** `HojaParaElPaciente` se montaba con el estado
+vivo de `medicamentos` y `estudiosOrden`, y su única guarda era
+`{!esNotaHospital}`. Justo encima, `ComoCerrarLaConsulta` sí exigía `{firmada}`.
+La cabecera del módulo afirmaba que el contenido salía de lo «ya revisado y
+firmado»: era intención de diseño, no precondición. El médico podía copiar y
+entregar una hoja hecha de una nota a medio dictar.
+
+**2 · La hoja no llegaba nunca.** Dos botones —copiar e imprimir— y ni una ruta.
+No estaba en `/mi/[token]`, ni en `/api/portal`, ni en ninguna plantilla. La
+pieza mejor pensada del lado del paciente —determinista, sin modelo, que se
+niega a expandir «cada 5 horas»— existía y el producto no la entregaba.
+
+**3 · El cuarto bloque no podía renderizarse jamás.** `proximaCita={undefined}`
+estaba **fijo** en la consulta. El dato existía en la pantalla
+(`proximoSeguimiento`, que desde REG-300 sobrevive a la navegación) y no llegaba.
+
+**Causa raíz común.** El contenido estaba resuelto y **faltaban la compuerta y el
+camino**. Es la forma más cara de «escrito, probado y sin conectar»: no un motor
+olvidado, sino la pieza que más se pensó, sin puerta de salida.
+
+**Arreglo — las tres compuertas, en el servidor.**
+
+- `componerPaquete` **lanza** `NotaSinFirmar` si la nota no está firmada. Lanza y
+  no devuelve `null`: un `null` se ignora en silencio en el primer llamador que
+  se olvide de mirarlo, y esto es la puerta entre un borrador clínico y los ojos
+  de alguien que no puede detectar el error.
+- `POST /api/expediente/paquete-visita` recibe **tres identificadores y nada
+  más**. El contenido lo lee el servidor de la nota firmada. Si viajara en el
+  cuerpo, cualquiera con sesión del consultorio podría publicarle al paciente el
+  texto que quisiera bajo el membrete de su médico, y la compuerta de firma sería
+  una comprobación del navegador — o sea, ninguna.
+- Capacidad **`firmar`**, no `clinico.escribir`: liberar es un acto de aprobación
+  clínica. Enfermería escribe en el expediente y no puede aprobar lo que el
+  paciente leerá como palabra de su médico.
+- El aprobador sale del **token verificado**. Un `approvedBy` que manda el
+  navegador es un campo que el navegador elige — el mismo defecto que ya se cerró
+  en la bitácora de auditoría.
+- `.create()` y no `.set()`: **una versión entregada no se sobrescribe nunca**.
+  Cada liberación escribe `{notaId}-v{n}`. «¿Qué se le dijo exactamente a este
+  paciente el 9 de agosto?» no puede contestarse con «lo que compondría hoy el
+  código».
+- `medicationChanges` sale de comparar contra la medicación vigente de las **otras**
+  notas firmadas, y **el silencio no suspende**: un fármaco que estaba antes y hoy
+  no se menciona **no se declara suspendido**. Decírselo al paciente sería hacerle
+  dejar un tratamiento que nadie retiró, y `suspender un medicamento` está en la
+  lista de lo que el código **no debe poder hacer**. Si la lectura de las notas
+  previas falla, el campo va `null` —«no se pudo comparar»— y el paciente no ve la
+  sección, en vez de leer «sin cambios» sobre algo que nadie comparó.
+
+**Y la fecha, sin husos.** `fechaDeSeguimientoEnLlano` lee las tres partes de
+`YYYY-MM-DD` en vez de pasar por `Date`: `new Date('2026-09-01')` es medianoche
+**UTC**, y formateada en la zona del consultorio le habría dado al paciente el 31
+de agosto. Lo que no tiene forma de fecha se devuelve tal cual — el campo admite
+«en 3 meses», y reescribirlo sería inventar una cita.
+
+**Familia.** `escrito_probado_y_sin_conectar` (la más grande del proyecto) +
+`media_defensa` — la compuerta existía tres líneas más arriba, en el componente
+vecino, y no se extendió a éste.
+
+**Guardián.** `src/__tests__/el-paquete-sale-de-una-nota-firmada.test.ts`,
+43 casos, con un bloque «EL DATO TIENE QUE LLEGAR» que recorre los tres tramos:
+el médico tiene por dónde liberar, el servidor compone y comprueba, el paciente
+lo recibe. Probado al revés: al quitar la comprobación de firma caen 2 casos.
+
+**Lo que este arreglo NO garantiza.** Nada se ha visto en un navegador. Los tres
+tramos se sellan leyendo el código, no pulsando el botón: `NAV-NAVEGADOR-001`
+sigue abierto y este flujo se le suma.

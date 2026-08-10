@@ -358,7 +358,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-GATE-001",
@@ -369,7 +369,8 @@
       "porQueImporta": "Es el cimiento de DRAFT→RELEASED que pide V9. Hoy el médico puede copiar y entregar una hoja compuesta de un borrador a medio dictar. Nada lo impide.",
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
-      "score": 63
+      "score": 63,
+      "cierre": "CERRADO (REG-307). `componerPaquete` LANZA `NotaSinFirmar` si la nota no está firmada —lanza y no devuelve null: un null se ignora en silencio en el primer llamador que se olvide de mirarlo—, y la ruta lo traduce a 409 con el motivo. En la pantalla, copiar/imprimir/liberar no se renderizan sin firma: se dice por qué en vez de dejar tres botones apagados. `notaFirmada` es obligatoria y SIN valor por defecto, que es como se pierden estas compuertas."
     },
     {
       "seguridad": 1,
@@ -383,7 +384,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-ENTREGA-001",
@@ -394,7 +395,8 @@
       "porQueImporta": "El contenido está resuelto y bien —determinista, sin modelo, se niega a inventar— y el producto no lo entrega. Es «escrito, probado y sin conectar» en su forma más cara: la pieza mejor pensada del lado del paciente.",
       "archivo": "src/components/HojaParaElPaciente.tsx:45-51,86 · consulta:5108",
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
-      "score": 60
+      "score": 60,
+      "cierre": "CERRADO (REG-307). POST /api/expediente/paquete-visita con capacidad `firmar` compone desde la nota firmada, libera con el aprobador del TOKEN (nunca del cuerpo) y escribe con `create` en {notaId}-v{n}: una versión entregada no se sobrescribe. El destino «Cuidado» de /mi/[token] pide action:paquetes y los pinta, distinguiendo «cargando» de «tu médico no ha liberado nada». Y `proximaCita` deja de ir fija en undefined: el cuarto bloque ya puede renderizarse."
     },
     {
       "seguridad": 0,

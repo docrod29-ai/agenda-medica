@@ -49,6 +49,13 @@ export interface MedicamentoParaExplicar {
   via?: unknown
   frecuencia?: unknown
   duracion?: unknown
+  /**
+   * `EstadoOrdenMedicamento`. Se lee como `unknown` a propósito: este módulo es
+   * puro y no importa el tipo del expediente, igual que el resto de campos.
+   */
+  estado?: unknown
+  /** Por qué se suspendió. Palabras del médico, y van literales. */
+  motivoEstado?: unknown
 }
 
 export interface EntradaInstrucciones {
@@ -136,6 +143,49 @@ export function comoTomarlo(m: MedicamentoParaExplicar): string {
 }
 
 /**
+ * ── EL FÁRMACO QUE EL MÉDICO ACABA DE SUSPENDER (REG-306) ───────────────────
+ *
+ * Cuando el médico usa «ya no lo toma» en la consulta, el fármaco **no sale de
+ * la nota**: entra en `medicamentos` con `estado: 'suspendida'`, su motivo, y
+ * sin vía ni frecuencia — no se está prescribiendo nada, se está declarando que
+ * deja de tomarse.
+ *
+ * `comoTomarlo` no miraba el estado. Resultado: la hoja que se lleva el paciente
+ * imprimía ese fármaco bajo **«SUS MEDICAMENTOS»**, en la misma lista que lo que
+ * sí tiene que tomar, con el texto «Ibuprofeno · 400 mg · otra» (la vía `otra`
+ * que el modal escribe para no inventar una). El médico acababa de suspenderlo
+ * delante del paciente y el papel que se llevaba a casa le decía que siguiera.
+ *
+ * El estado lo escribió el médico, con motivo obligatorio: decir «deje de
+ * tomarlo» no es una indicación inventada, es la suya traducida.
+ *
+ * `probablemente_terminada` se queda ARRIBA a propósito. Ese estado no lo decidió
+ * nadie: lo dedujo el sistema al ver que la duración escrita ya venció (§D1). La
+ * regla 4 —ausencia de dato no es dato de ausencia— vale igual aquí: que el
+ * calendario haya pasado no significa que el paciente lo dejara.
+ */
+const YA_NO_LO_TOMA: Readonly<Record<string, string>> = {
+  suspendida: 'deje de tomarlo',
+  cancelada: 'deje de tomarlo',
+  terminada: 'ya terminó el tratamiento',
+}
+
+/** `true` si el médico declaró EN ESTA NOTA que ya no se toma. */
+export function yaNoSeToma(m: MedicamentoParaExplicar): boolean {
+  return txt(m.estado) in YA_NO_LO_TOMA
+}
+
+/** «Ibuprofeno — deje de tomarlo (gastritis)». El motivo va literal. */
+export function comoSeDejaDeTomar(m: MedicamentoParaExplicar): string {
+  const nombre = txt(m.nombre)
+  if (!nombre) return ''
+  const que = YA_NO_LO_TOMA[txt(m.estado)]
+  if (!que) return ''
+  const motivo = txt(m.motivoEstado)
+  return motivo ? `${nombre} — ${que} (${motivo})` : `${nombre} — ${que}`
+}
+
+/**
  * La hoja completa.
  *
  * Un bloque vacío NO se incluye: una hoja que dice «Estudios: —» le hace leer
@@ -144,8 +194,12 @@ export function comoTomarlo(m: MedicamentoParaExplicar): string {
 export function comoSeLoExplico(e: EntradaInstrucciones): BloqueInstrucciones[] {
   const out: BloqueInstrucciones[] = []
 
-  const meds = (e.medicamentos ?? []).map(comoTomarlo).filter(Boolean)
+  const todos = e.medicamentos ?? []
+  const meds = todos.filter(m => !yaNoSeToma(m)).map(comoTomarlo).filter(Boolean)
   if (meds.length) out.push({ titulo: 'Sus medicamentos', lineas: meds })
+
+  const retirados = todos.filter(yaNoSeToma).map(comoSeDejaDeTomar).filter(Boolean)
+  if (retirados.length) out.push({ titulo: 'Lo que ya no toma', lineas: retirados })
 
   const estudios = (e.estudios ?? []).map(txt).filter(Boolean)
   if (estudios.length) out.push({ titulo: 'Estudios que le pidió el médico', lineas: estudios })
@@ -159,6 +213,33 @@ export function comoSeLoExplico(e: EntradaInstrucciones): BloqueInstrucciones[] 
   if (cita) out.push({ titulo: 'Su próxima cita', lineas: [cita] })
 
   return out
+}
+
+const MESES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
+
+/**
+ * `2026-09-01` → «1 de septiembre de 2026».
+ *
+ * ── POR QUÉ NO PASA POR `Date` ──────────────────────────────────────────────
+ *
+ * `new Date('2026-09-01')` es medianoche **UTC**. Formateado en la zona del
+ * consultorio se convierte en el 31 de agosto, y la fecha que el paciente lee
+ * para volver a consulta sale un día antes. Se leen las tres partes de la cadena
+ * y se compone el texto: sin husos, sin sorpresas.
+ *
+ * Lo que no tenga forma de fecha se devuelve **tal cual** — el campo admite texto
+ * libre («en 3 meses»), y reescribirlo sería inventar una cita.
+ */
+export function fechaDeSeguimientoEnLlano(valor: unknown): string {
+  const v = txt(valor)
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
+  if (!m) return v
+  const mes = MESES[Number(m[2]) - 1]
+  if (!mes) return v
+  return `${Number(m[3])} de ${mes} de ${m[1]}`
 }
 
 /** La hoja como texto plano — para imprimir, copiar o mandar por WhatsApp. */
@@ -177,6 +258,12 @@ export const POR_QUE_24_ENTRE_N_ES_SEGURO =
   '24 ÷ 8 = 3 es aritmética exacta sobre lo que el médico dictó, no una ' +
   'decisión. Por eso sólo se hace cuando el resultado es exacto: «cada 5 horas» ' +
   'no son «4,8 veces al día», y redondearlo sí sería inventar una pauta.'
+
+export const POR_QUE_EL_SUSPENDIDO_NO_VA_CON_LOS_DEMAS =
+  'Porque el fármaco que el médico acaba de suspender sigue dentro de la nota, ' +
+  'con su estado y su motivo, y la hoja lo imprimía en la misma lista que lo ' +
+  'que sí tiene que tomar. El paciente se llevaba a casa un papel que le decía ' +
+  'que siguiera con lo que le acababan de quitar.'
 
 export const LO_QUE_HACEN_ELLOS =
   'Suki y Nabla las generan con un modelo. Nabla, además, es lo único que ' +

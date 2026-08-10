@@ -12,6 +12,7 @@ import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 interface DocReceta {
   id: string
@@ -113,6 +114,8 @@ export default function MiPortalPage() {
   const token = params?.token ?? ''
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
+  /** `null` = todavía no se sabe. `[]` = se sabe, y su médico no ha liberado nada. */
+  const [paquetes, setPaquetes] = useState<(PaqueteDeVisita & { id: string })[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
@@ -140,6 +143,19 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+
+      /**
+       * LO QUE SU MÉDICO LIBERÓ — V9 `POSTVISIT-001`.
+       *
+       * En paralelo, como los documentos: si esto tarda, las citas ya están en
+       * pantalla. Y `null` mientras no se sepa: la pantalla distingue «todavía no
+       * llegó» de «tu médico no ha liberado nada», que no son lo mismo y que
+       * dichos al revés le hacen creer al paciente que no hay plan.
+       */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(Array.isArray(d.paquetes) ? d.paquetes : []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -427,13 +443,57 @@ export default function MiPortalPage() {
             el estado vacío dice la verdad en vez de fingir que no hay nada.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+          {paquetes === null ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p className="t-body" style={{ color: 'var(--text3)', margin: 0 }}>Cargando tu plan…</p>
+            </div>
+          ) : paquetes.length === 0 ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          ) : paquetes.map(pq => (
+            <article
+              key={pq.id}
+              style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}
+            >
+              <p className="t-caption t-num" style={{ color: 'var(--text3)', margin: '0 0 12px' }}>
+                {pq.approvedAt ? fmtFecha(new Date(pq.approvedAt).toISOString(), sesion.zonaHoraria).fecha : ''}
+              </p>
+              {pq.encounterSummary && (
+                <p className="t-body" style={{ margin: '0 0 16px', lineHeight: 1.6 }}>{pq.encounterSummary}</p>
+              )}
+
+              <BloquePaciente titulo="Tus medicamentos" lineas={(pq.medicationInstructions ?? []).map(m => m.instruccion)} />
+
+              {/*
+                CAMBIOS — sólo si el servidor pudo determinarlos. `null` significa
+                «no se pudo comparar con lo que tomabas antes», y eso NO es «sin
+                cambios»: enseñar una sección vacía diría que nada cambió.
+              */}
+              {pq.medicationChanges && (
+                <BloquePaciente
+                  titulo="Qué cambió"
+                  lineas={pq.medicationChanges
+                    .filter(c => c.tipo !== 'sin-cambio')
+                    .map(c => `${c.nombre} — ${c.tipo === 'nuevo' ? 'es nuevo' : 'ya no lo tomes'}`)}
+                />
+              )}
+
+              <BloquePaciente titulo="Estudios que te pidió" lineas={pq.orders ?? []} />
+              <BloquePaciente titulo="Signos de alarma" lineas={pq.warningSigns ?? []} />
+              <BloquePaciente titulo="Tu próxima cita" lineas={pq.followUp ? [pq.followUp] : []} />
+              <BloquePaciente titulo="Si tienes dudas" lineas={pq.clinicianContactRules ? [pq.clinicianContactRules] : []} />
+
+              <p className="t-caption" style={{ color: 'var(--text3)', marginTop: 18, marginBottom: 0, lineHeight: 1.5 }}>
+                Lo aprobó tu médico el {pq.approvedAt ? new Date(pq.approvedAt).toLocaleDateString('es-MX') : '—'}.
+                Si algo no coincide con lo que recuerdas de la consulta, pregúntale antes de cambiar nada.
+              </p>
+            </article>
+          ))}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -605,6 +665,29 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * UN BLOQUE DEL PLAN DE CUIDADO.
+ *
+ * Un bloque sin líneas **no se pinta**. Es la misma regla que la hoja del
+ * consultorio (`POR_QUE_NO_SE_ENSENA_VACIA`): «Signos de alarma: —» le hace leer
+ * al paciente un encabezado que no le dice nada, y peor, le sugiere que se le
+ * contestó a algo que nadie contestó.
+ */
+function BloquePaciente({ titulo, lineas }: { titulo: string; lineas: readonly string[] }) {
+  const utiles = lineas.filter(l => typeof l === 'string' && l.trim())
+  if (!utiles.length) return null
+  return (
+    <section style={{ marginTop: 14 }}>
+      <h3 className="t-overline" style={{ margin: 0 }}>{titulo}</h3>
+      <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+        {utiles.map((l, i) => (
+          <li key={i} className="t-body" style={{ lineHeight: 1.6 }}>{l}</li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

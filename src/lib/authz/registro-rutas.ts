@@ -167,6 +167,18 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── expediente e IA clínica (entitlement de plan + rol) ───────────────────
   'consultor-evidencia': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/exportar/[patientId]': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
+  /**
+   * Compone y LIBERA el paquete de la visita hacia el paciente (V9 POSTVISIT-001).
+   *
+   * `POST → firmar` y no `clinico.escribir`: liberar es un acto de aprobación
+   * clínica del mismo peso que firmar la nota. Enfermería escribe en el
+   * expediente y NO puede aprobar lo que el paciente leerá como palabra de su
+   * médico. `GET → clinico.leer`: ver qué se le entregó es secreto médico.
+   */
+  'expediente/paquete-visita': {
+    tipo: 'porMetodo',
+    metodos: { GET: 'clinico.leer', POST: 'firmar' },
+  },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
