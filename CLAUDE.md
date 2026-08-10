@@ -58,12 +58,21 @@ npm run simulacro:respaldo      # ida y vuelta del respaldo, con acta
 | `docs/maintenance/` | Bitácoras de sesión y changelog del service worker |
 | `agent-state/` | Estado persistente del trabajo autónomo |
 
-## Master Loop V10 — obligatorio para trabajo visual/UX
+## Master Loop V14 — diferenciación de categoría (SUPERSEDE a V10 en diseño/flujo/evidencia)
 
-Todo trabajo V10 **lee COMPLETO**
-`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`
-antes de tocar nada. Rama persistente: `claude/nexus-visual-excellence-v10`.
-Estado: `agent-state/V10_*`. La ley de diseño detallada vive en `docs/design/`.
+Toda corrida V14 **lee COMPLETO**
+`docs/ai/NEXUSMED_MASTER_LOOP_V14_UNIFIED_CATEGORY_DIFFERENTIATION.md`
+antes de decidir trabajo. No se resume, no se sustituye por un plan propio.
+Rama canónica: `claude/nexus-master-loop-v14`. Estado: `agent-state/V14_*`.
+El **Identity Lock** (`docs/design/NEXUS_IDENTITY_LOCK_V1.md`) es autoritativo
+para todo trabajo visual hasta que el dueño lo cambie.
+
+## Master Loop V10 — absorbido por V14
+
+V10 (`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`)
+queda unificado dentro de V14 para diferenciación, diseño, flujo y evidencia.
+Su trabajo validado (TRUTH-001, HOME-001, AGENDA-IDENTITY-001, arneses,
+líneas base axe) se conserva; el estado histórico vive en `agent-state/V10_*`.
 
 ## V9 — antes de tocar nada del programa V9
 

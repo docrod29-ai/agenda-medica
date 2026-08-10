@@ -1,0 +1,5 @@
+{
+  "nota": "Scores por golden workflow (WF-001…WF-022, docs/workflows/GOLDEN_WORKFLOWS.md). Un workflow sin recorrer en navegador no tiene score.",
+  "gates": { "workflowScoreMinPromedio": 9.3, "workflowScoreMinCritico": 9.0 },
+  "workflows": {}
+}

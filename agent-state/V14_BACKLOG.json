@@ -1,0 +1,25 @@
+{
+  "nota": "Backlog V14. Hereda los hallazgos con evidencia de V10_BACKLOG.json (no se duplican aquí; siguen vivos y puntuados allí). Orden por V14 §40; P0 de seguridad/datos lo salta.",
+  "secuencia": [
+    { "id": "V14-INSTALL-001", "estado": "en_curso", "nota": "esta corrida" },
+    { "id": "V14-TRUTH-001", "estado": "parcial_heredado", "nota": "V10-TRUTH-001 cerrada cubre capturas/axe/scorecard; delta pendiente: Logo-Off formal, Three-Second, re-score bajo identidad Cantera+Instrumento, estado de los 22 golden workflows" },
+    { "id": "V14-IDENTITY-001", "estado": "pendiente", "nota": "tokens Identity Lock en globals.css + tipografías + retirar deriva cobalto; el conflicto está declarado en V14_DECISION_LOG.md D-2" },
+    { "id": "V14-SHELL-001", "estado": "pendiente", "nota": "P0 convergencia confirmado: sidebar-almacén ~22 destinos; ver V14_MASTER_STATE.json→convergenciaMenuDeFunciones" },
+    { "id": "V14-TODAY-001", "estado": "parcial_heredado", "nota": "HOME-001 ya quitó el tablero KPI; falta arquitectura NOW/ATTENTION/CONTINUITY completa de §15" },
+    { "id": "V14-ENCOUNTER-001", "estado": "pendiente", "nota": "Banda de Instrumentos §8.6" },
+    { "id": "V14-TIMELINE-001", "estado": "pendiente" },
+    { "id": "V14-INSIGHT-001", "estado": "pendiente", "nota": "primitivo WHAT/WHY/SOURCE/LIMITATION/ACTION; la procedencia por frase (REG-250) es insumo validado" },
+    { "id": "V14-CLOSURE-001", "estado": "pendiente", "nota": "REG-252 (tarea por resultado) es insumo validado" },
+    { "id": "V14-WORKFLOWS-001", "estado": "pendiente", "nota": "22 golden workflows en docs/workflows/GOLDEN_WORKFLOWS.md, todos sin puntuar" },
+    { "id": "V14-MOBILE-001", "estado": "pendiente" },
+    { "id": "V14-COMMAND-001", "estado": "pendiente", "nota": "⌘K §24" },
+    { "id": "V14-CONVERSATION-EVAL-001", "estado": "pendiente", "nota": "existe corpus actuado con verdad de terreno por turno (commit 86b4bbe) como insumo" },
+    { "id": "V14-SCRIBE-BRONZE-001", "estado": "pendiente", "nota": "≥20 casos sintéticos con trampas de alucinación" },
+    { "id": "V14-STYLE-001", "estado": "pendiente", "nota": "el aprendizaje de sustituciones ASR existe; el de estilo de nota NO" },
+    { "id": "V14-PARITY-001", "estado": "pendiente", "nota": "matriz creada con vocabulario §32; TODAS las filas UNKNOWN hasta verificar fuentes" },
+    { "id": "V14-DEMO-001", "estado": "pendiente" },
+    { "id": "V14-DDROOM-001", "estado": "parcial", "nota": "docs/dd-room/ creado con lo demostrable hoy; faltan resultados de evals" },
+    { "id": "V14-SILVER-PLAN-001", "estado": "pendiente" },
+    { "id": "V14-RELEASE-GATE-001", "estado": "pendiente" }
+  ]
+}

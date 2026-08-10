@@ -1,0 +1,9 @@
+{
+  "nota": "Estado de la evidencia V14. Todo nace NOT_RUN; sólo una corrida ejecutada con registro puede cambiarlo.",
+  "conversationEval": { "estado": "NOT_RUN", "harness": "evals/conversation/ no existe aún", "insumoValidado": "corpus actuado con verdad de terreno por turno (commit 86b4bbe)" },
+  "scribeEval": { "estado": "NOT_RUN", "nivel": null, "casos": 0, "registro": "docs/evals/BENCHMARK_REGISTRY.md" },
+  "parityPlus": { "estado": "SIN_FILAS_VERIFICADAS", "matriz": "docs/competitive/PARITY_PLUS_MATRIX.md" },
+  "demoGate": { "estado": "NOT_RUN" },
+  "performanceBudgets": { "estado": "NOT_MEASURED" },
+  "blindedReview": { "estado": "NO_PROTOCOL_RUN", "protocolo": "docs/evals/HUMAN_VALIDATION_PROTOCOL.md" }
+}

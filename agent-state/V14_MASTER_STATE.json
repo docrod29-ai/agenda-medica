@@ -1,0 +1,38 @@
+{
+  "programa": "V14 — Unified Category Differentiation + Product Design + Evidence Engine",
+  "directiva": "docs/ai/NEXUSMED_MASTER_LOOP_V14_UNIFIED_CATEGORY_DIFFERENTIATION.md",
+  "lineasDirectiva": 1885,
+  "instaladoEl": "2026-08-10",
+  "ramaCanonica": "claude/nexus-master-loop-v14",
+  "baseDeLaRama": "origin/claude/kind-brahmagupta-ajtolc (línea V10 reconciliada: main 56d9fc7a + V10 canónica + corridas absorbidas)",
+  "supersede": ["V10 Visual Excellence loop", "V13.4 Category Supremacy (no existe en el repo)", "Nexus Identity Lock V1 standalone (no existía como archivo; V14 §8 lo instala)"],
+  "trabajoPrevioPreservado": {
+    "V7": "cerrado en agent/v7/master-loop; REG y motores en main",
+    "V9": "fusionado a main vía PR #279 (56d9fc7a); REG-294…305",
+    "V10": "V10-TRUTH-001 cerrada (navegador real, axe, scorecard independiente); HOME-001; AGENDA-IDENTITY-001; arneses de captura; REG-306/307/308",
+    "V12": "no existe en el repositorio",
+    "V13": "no existe en el repositorio"
+  },
+  "iteracionActual": "V14-INSTALL-001",
+  "iteracionesCerradas": [],
+  "estadoV14Complete": false,
+  "identityLock": {
+    "archivo": "docs/design/NEXUS_IDENTITY_LOCK_V1.md",
+    "tesis": "Cantera + Instrumento — warm alabaster, wine brand, instrument strip",
+    "conflictoDetectado": "NEXUSMED_VISUAL_DNA.md (lienzo oscuro #0B0C0E + cobalto) y AGENDA-IDENTITY-001 se construyeron bajo la identidad anterior; V14 §8 gana. Migración = V14-IDENTITY-001."
+  },
+  "convergenciaMenuDeFunciones": {
+    "estado": "P0 CONFIRMADO por evidencia previa (revisor independiente V10 §40, en esta rama)",
+    "hallazgo": "Sidebar-almacén de ~22 destinos organizado por módulos (Agenda/Pacientes/Recetas/Labs/Pagos/Portal…), FABs que tapan contenido clínico, marca partida en tres, «Nueva cita» duplicada a 768px",
+    "evidenciaEnCodigo": "src/components/Sidebar.tsx:23-49 — NAV con 20+ destinos por módulo (Dashboard, Citas, Calendario, Consulta, Pendientes, Hospitalización, UCI, Consultor IA, Antibiograma, Lista de espera, CRM, Reseñas, Reactivación, Chat, Farmacia, Finanzas, Membresías, Cumplimiento, Legal, Migración) + Guía + Configuración",
+    "unidad": "V14-SHELL-001 (precedida por V14-IDENTITY-001 según §40)"
+  },
+  "ramasNoAbsorbidas": {
+    "nota": "Declaradas superadas en V10_MASTER_STATE.json→ramasSuperadas; su contenido fue portado o rehecho en la línea reconciliada. NO fusionar.",
+    "lista": ["bttia7", "ake878", "dwmunz", "4tkrhu", "397pqw", "i2uo2j", "gu7h9g"]
+  },
+  "compuertasUltimaCorrida": {
+    "nota": "Ver V14_CURRENT_ITERATION.md; se rellenan con cada corrida"
+  },
+  "actualizado": "2026-08-10"
+}
