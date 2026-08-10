@@ -95,8 +95,12 @@ function tokensDe(selector: string): Record<string, string> {
   return out
 }
 
-const oscuro = tokensDe(':root')
-const claro = tokensDe(':root[data-theme="light"]')
+/**
+ * IDENTIDAD ÚNICA (V14 · D-5, OD-2 resuelta por el dueño): Cantera+Instrumento.
+ * Ya no hay bloque `:root[data-theme="light"]` — los dos temas de la era
+ * cobalto se retiraron con ella. Todos los tokens viven en `:root`.
+ */
+const identidad = tokensDe(':root')
 
 describe('un token, un valor por tema, cero respaldos', () => {
   it('no queda NINGÚN respaldo de color dentro de `var()`', () => {
@@ -132,11 +136,11 @@ describe('los tokens que el código usa existen de verdad', () => {
      * se declaran aquí para que el guardián no las persiga — y para que se note
      * el día que alguien quite una fuente y deje su variable colgando.
      */
-    const DE_NEXT_FONT = ['--font-geist-sans', '--font-geist-mono', '--font-fraunces']
+    const DE_NEXT_FONT = ['--font-instrument', '--font-spline-mono', '--font-bricolage']
     const layout = readFileSync(join(RAIZ, 'src', 'app', 'layout.tsx'), 'utf8')
     for (const v of DE_NEXT_FONT) expect(layout, `${v} ya no lo inyecta next/font`).toContain(v)
 
-    const definidos = new Set([...Object.keys(oscuro), ...Object.keys(claro), ...DE_NEXT_FONT])
+    const definidos = new Set([...Object.keys(identidad), ...DE_NEXT_FONT])
     const fuentes = (dir: string, acc: string[] = []): string[] => {
       for (const e of readdirSync(dir)) {
         const p = join(dir, e)
@@ -154,11 +158,10 @@ describe('los tokens que el código usa existen de verdad', () => {
     expect([...huerfanos].sort()).toEqual([])
   })
 
-  it('los cuatro que faltaban están definidos en LOS DOS temas', () => {
-    /** Definirlos sólo en oscuro repetiría el defecto en el otro tema. */
+  it('los cuatro que faltaban están definidos en la identidad única', () => {
+    /** Con identidad única basta un valor — pero tiene que EXISTIR. */
     for (const t of ['--warn-bg', '--warn-border', '--warn-text', '--success']) {
-      expect(oscuro[t], `${t} falta en el tema oscuro`).toBeTruthy()
-      expect(claro[t], `${t} falta en el tema claro`).toBeTruthy()
+      expect(identidad[t], `${t} falta en la identidad`).toBeTruthy()
     }
   })
 })
@@ -166,7 +169,7 @@ describe('los tokens que el código usa existen de verdad', () => {
 describe('las escalas del sistema existen y Tailwind las ve', () => {
   it('hay escala de radio, espacio, elevación, movimiento y tipografía', () => {
     for (const t of ['--r-sm', '--r-md', '--r-lg', '--sp-1', '--sp-6', '--elev-1', '--elev-3', '--mov-normal', '--mov-nada', '--t-body', '--t-display']) {
-      expect(oscuro[t], `falta ${t}`).toBeTruthy()
+      expect(identidad[t], `falta ${t}`).toBeTruthy()
     }
   })
 

@@ -121,6 +121,14 @@ cabecera.
 
 ---
 
-**Estado de implementación**: NO implementado aún en `globals.css` — la app
-sigue con la piel anterior. La migración es `V14-IDENTITY-001` y toda
-verificación es en navegador, nunca desde el código solo.
+**Estado de implementación** (10-ago-2026, V14-IDENTITY-001): implementado en
+`globals.css` a nivel de TOKEN — canvas/superficies/tinta/marca/semántica/
+radios/elevación/movimiento/fuentes (Bricolage Grotesque, Instrument Sans,
+Spline Sans Mono vía next/font). Identidad ÚNICA: los temas claro/oscuro de la
+era cobalto se retiraron (D-5); OD-4 decidirá si existe una paleta nocturna.
+Nota AA: `ink-tertiary` #A79B8D mide 2.4:1 sobre canvas — NO sirve como texto;
+quedó como `--ink-terciario` decorativo y el texto terciario usa ink-secondary.
+PENDIENTE (V14-IDENTITY-002): ~554 hex en línea en componentes siguen siendo
+de la era anterior (cobalto en marcas de logo, superficies oscuras en pantallas
+públicas); se migran pantalla a pantalla CON navegador. La Banda de
+Instrumentos y el Sello aún no existen como componentes.

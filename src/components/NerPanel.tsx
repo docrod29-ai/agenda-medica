@@ -364,7 +364,7 @@ const codeStyle: React.CSSProperties = {
   padding: '1px 5px',
   background: 'var(--s3)',
   borderRadius: 4,
-  fontFamily: 'var(--font-geist-mono), monospace',
+  fontFamily: 'var(--font-spline-mono), monospace',
   fontSize: 11,
   color: 'var(--text2)',
 }

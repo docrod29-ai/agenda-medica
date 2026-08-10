@@ -11,7 +11,7 @@
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Calendar, Users, MessageCircle, TrendingUp, Stethoscope, CalendarPlus } from 'lucide-react'
+import { LayoutDashboard, Calendar, Users, MessageCircle, ClipboardList, Stethoscope, CalendarPlus } from 'lucide-react'
 import { useMode } from '@/context/ModeContext'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
@@ -43,8 +43,11 @@ export function BottomNav() {
   const { mode } = useMode()
   const { clinic } = useClinic()
 
+  // V14-SHELL-001: el cuarto destino del médico era CRM (marketing). En la
+  // gramática clínica el cierre pesa más: Pendientes es lo que sigue abierto
+  // de consultas firmadas. CRM sigue accesible en Consultorio (sidebar).
   const lastItem: Item = mode === 'medico'
-    ? { href: '/crm', label: 'CRM', icon: TrendingUp, active: p => p.startsWith('/crm') }
+    ? { href: '/pendientes', label: 'Pendientes', icon: ClipboardList, active: p => p.startsWith('/pendientes') }
     : { href: '/chat', label: 'Chat', icon: MessageCircle, active: p => p.startsWith('/chat') }
 
   // Oculta accesos a módulos que la clínica no contrató (su paquete).

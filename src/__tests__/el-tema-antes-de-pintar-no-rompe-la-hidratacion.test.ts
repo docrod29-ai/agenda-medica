@@ -35,8 +35,17 @@ import { join } from 'node:path'
 const fuente = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8')
 
 describe('V10-BUG-001 — tema pre-pintada e hidratación', () => {
-  it('el script anti-flicker sigue existiendo (sin él, destello claro en tema oscuro)', () => {
-    expect(fuente).toMatch(/document\.documentElement\.setAttribute\('data-theme'/)
+  it('el mutador pre-pintada sigue existiendo (hoy: LIMPIA el data-theme heredado)', () => {
+    /**
+     * V14 · D-5 (identidad única Cantera+Instrumento): el anti-flicker de la
+     * era de dos temas PONÍA data-theme; hoy el mutador lo RETIRA, para que el
+     * atributo que quedó persistido en clientes viejos no encuentre ninguna
+     * regla. La pareja mutador+supresión sigue siendo la misma regla.
+     */
+    expect(fuente).toMatch(/document\.documentElement\.removeAttribute\('data-theme'\)/)
+    // Probada al revés: si alguien repone un setAttribute de tema sin traer
+    // una paleta del dueño, esto lo delata.
+    expect(fuente).not.toMatch(/setAttribute\('data-theme'/)
   })
 
   it('el <html> declara suppressHydrationWarning — el par obligado del mutador pre-pintada', () => {

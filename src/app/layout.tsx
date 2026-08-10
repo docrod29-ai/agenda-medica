@@ -1,24 +1,27 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono, Fraunces } from "next/font/google"
+import { Bricolage_Grotesque, Instrument_Sans, Spline_Sans_Mono } from "next/font/google"
 import "./globals.css"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
-import { ThemeToggle } from "@/components/ThemeToggle"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/* Tipografía Cantera + Instrumento (Identity Lock V1, OD-2 resuelta):
+   Instrument Sans = cuerpo/UI · Spline Sans Mono = numéricos clínicos ·
+   Bricolage Grotesque = identidad/display, con freno (sólo títulos de
+   identidad y encuentro). Las tres son OFL vía next/font (self-hosted). */
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument",
   subsets: ["latin"],
+  display: "swap",
 })
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const splineSansMono = Spline_Sans_Mono({
+  variable: "--font-spline-mono",
   subsets: ["latin"],
+  display: "swap",
 })
 
-// Fraunces — serif editorial, uso restringido a hero/citas/momentos editoriales
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 })
 
@@ -31,7 +34,9 @@ export const metadata: Metadata = {
   applicationName: "NexusMED",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    // Barra de estado por defecto (texto oscuro): sobre alabastro claro el
+    // black-translucent de la era oscura dejaba la hora ilegible.
+    statusBarStyle: "default",
     title: "NexusMED",
   },
   icons: {
@@ -55,7 +60,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0B0C0E",
+  themeColor: "#FAF7F2",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -68,13 +73,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    // La supresión de hidratación en la etiqueta raíz es el par obligado del
-    // script anti-flicker de abajo: ese script pone data-theme ANTES de que
-    // React hidrate, así que el atributo nunca coincide con lo que rindió el
-    // servidor. La supresión alcanza SOLO los atributos de este elemento (un
-    // nivel), no a los hijos — un mismatch real en el árbol sigue avisando.
-    // Sin esto, React avisaba en TODAS las rutas (V10-BUG-001).
-    <html lang="es" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
+    // La supresión de hidratación en la etiqueta raíz se conserva como par del
+    // ÚNICO mutador pre-hidratación que queda: la LIMPIEZA de `data-theme`
+    // (abajo). Identidad única V14 (D-5): la app ya no tiene temas claro y
+    // oscuro — el atributo que el anti-flicker de la era cobalto dejó
+    // persistido en la etiqueta raíz se retira antes de pintar para que ninguna regla
+    // vieja lo encuentre. La supresión alcanza SOLO los atributos de este
+    // elemento (un nivel); un mismatch real en el árbol sigue avisando
+    // (V10-BUG-001).
+    <html lang="es" suppressHydrationWarning className={`${instrumentSans.variable} ${splineSansMono.variable} ${bricolage.variable} h-full`}>
 
       <head>
         {/*
@@ -86,19 +93,13 @@ export default function RootLayout({
           de routing (rutas nuevas, layouts movidos, etc.).
         */}
         {/*
-          Anti-flicker tema: aplica data-theme ANTES de la primera pintada.
-          Default = OSCURO (identidad de marca NexusMED). Solo si el usuario
-          eligió 'light' explícitamente se respeta el claro.
+          Identidad única Cantera+Instrumento: se limpia el data-theme que la
+          era de dos temas dejó guardado, ANTES de la primera pintada.
         */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
-              try{
-                var t = localStorage.getItem('nexusmed.theme');
-                document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
-              } catch(e){
-                document.documentElement.setAttribute('data-theme', 'dark');
-              }
+              try{ document.documentElement.removeAttribute('data-theme'); }catch(e){}
             })();`,
           }}
         />
@@ -127,7 +128,6 @@ export default function RootLayout({
       <body className="min-h-full">
         {children}
         <ServiceWorkerRegister />
-        <ThemeToggle />
       </body>
     </html>
   )

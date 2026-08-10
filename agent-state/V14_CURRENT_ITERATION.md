@@ -10,7 +10,34 @@ cadena V10). Las corridas programadas que nazcan en rama de sesión siguen el
 protocolo anti-fragmentación de `V10_CURRENT_ITERATION.md` (fetch → punta más
 avanzada → fusionar antes de trabajar → dejar puntero).
 
-## Iteración: `V14-INSTALL-001` — en curso (10-ago-2026)
+## Iteración: `V14-IDENTITY-001` + `V14-SHELL-001` — en curso (10-ago-2026, 2ª corrida)
+
+El dueño resolvió **OD-2 por escrito**: Cantera+Instrumento gana, el cobalto
+V10 no se conserva. Orden ejecutiva: IDENTITY-001 → SHELL-001 con el P0 del
+sidebar-almacén. Hecho en esta corrida:
+
+- **IDENTITY-001 (nivel token, completo)**: `:root` migrado entero al Identity
+  Lock (canvas alabastro, marca jamaica, tinta café, radios 4/10/14, elevación
+  plano/elevado, movimiento ≤300ms, banda de instrumentos como tokens).
+  Identidad ÚNICA: los bloques claro/oscuro y el ThemeToggle de la era cobalto
+  se retiraron (D-5); el mutador pre-pintada ahora LIMPIA `data-theme`.
+  Fuentes: Instrument Sans (cuerpo), Spline Sans Mono (numéricos), Bricolage
+  Grotesque (display) vía next/font. OG image en identidad nueva.
+  Hallazgo AA honesto: `ink-tertiary` #A79B8D = 2.4:1 → NO es texto; quedó
+  decorativo (`--ink-terciario`) y el texto terciario usa ink-secondary.
+- **SHELL-001 (P0 §11)**: el sidebar deja de ser una lista plana de 22
+  módulos. Primaria clínica: AHORA (Hoy/Agenda/Agendar/Lista de espera) ·
+  PACIENTE (Consulta/Pendientes/Hospitalización/UCI/Continuidad) · CLÍNICA
+  (Consultor IA/Antibiograma). Infraestructura (CRM, Finanzas, Reseñas,
+  Cumplimiento, Legal, Migración, Calendario, Chat, Farmacia, Membresías) en
+  grupo plegado «Consultorio» con aria-expanded, badge de chat que sube al
+  encabezado si el grupo está cerrado, y auto-apertura si la ruta activa vive
+  dentro. Móvil: el 4º destino del médico pasa de CRM a Pendientes (cierre
+  clínico). Guardián nuevo: `el-menu-no-es-un-almacen-de-modulos.test.ts`
+  (probado al revés). Nada se volvió inalcanzable.
+- Trinquete de diseño BAJÓ y se reselló exacto: hex 557→554, radios 637→635.
+
+## Iteración anterior: `V14-INSTALL-001` — CERRADA (10-ago-2026)
 
 Hecho en esta corrida:
 
@@ -49,15 +76,14 @@ duplicada a 768px. Es literalmente la falla que §11 declara P0.
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. **`V14-IDENTITY-001`** — implementar los tokens del Identity Lock en
-   `globals.css` (@theme `nx-*` ya existe como mecanismo; migrar valores a la
-   paleta Cantera+Instrumento), tipografías (Bricolage Grotesque / Instrument
-   Sans / Spline Sans Mono), radios 4/10/14, y retirar la deriva cobalto.
-   Verificar EN NAVEGADOR (arnés existente), re-puntuar contra Logo-Off.
-2. **`V14-SHELL-001`** — matar el sidebar-almacén: arquitectura
-   NOW/PATIENT/ENCOUNTER/ATTENTION/CONTINUITY (§1, §15). No renombrar menús:
-   cambiar la arquitectura de información.
-3. Re-captura de /dashboard y nota--* (deuda de evidencia heredada de V10).
+1. **`V14-IDENTITY-002`** — barrer los ~554 hex de la era anterior pantalla a
+   pantalla CON navegador (empezar por login, portada y /mi/[token]: son las
+   superficies públicas que siguen oscuras-cobalto sobre el shell alabastro).
+2. **Banda de Instrumentos y Sello** como componentes (elementos de firma del
+   Lock) — la banda entra con Modo Encuentro.
+3. Re-puntuar Logo-Off / Generic-AI-Look bajo la identidad nueva (los scores
+   V10 quedaron obsoletos) y re-capturar el golden flow como líneas base.
+4. OD-4 (paleta nocturna: hoy identidad única) espera decisión del dueño.
 
 ## Compuertas de esta corrida (10-ago-2026)
 

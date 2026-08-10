@@ -1,26 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  /* ── NexusMED design tokens ──────────────────────────────────
-     Sistema de color rediseñado:
-     - Canvas: ink neutro (no navy) — más refinado, menos "Bootstrap"
-     - Superficies: shades del ink, contraste preciso
-     - Acento: cobalto mexicano (no teal) — distintivo a nivel global
-     - Texto: bone (warm white) en vez de slate frío
-     Los nombres de variables se mantienen para back-compat: ningún
-     componente necesita cambiar — todo se recolorea automáticamente.
+  /* ── NexusMED design tokens — Cantera + Instrumento ──────────
+     Identidad V14 (Identity Lock V1, OD-2 RESUELTA por el dueño el
+     10-ago-2026): lienzo alabastro cálido, acento jamaica profundo,
+     tinta café. Autoritativo: docs/design/NEXUS_IDENTITY_LOCK_V1.md.
+     Los NOMBRES de variables se conservan para back-compat: ningún
+     componente necesita cambiar — todo se recolorea por el token.
+     La identidad cobalto oscura anterior queda retirada (D-5).
      ────────────────────────────────────────────────────────────── */
 
-  /* Canvas + superficies (dark mode primario, ink-neutral) */
-  --bg:        #0B0C0E;
-  --s:         #131518;
-  --s1:        #131518;
-  --s2:        #1A1D21;
-  --s3:        #232629;
+  /* Canvas + superficies — claro primario, alabastro cálido */
+  --bg:        #FAF7F2;   /* canvas */
+  --s:         #FFFFFF;   /* surface */
+  --s1:        #FFFFFF;
+  --s2:        #F3EFE8;   /* surface-sunken */
+  --s3:        #EAE3D8;   /* pozo más hondo — reutiliza `line` del Lock; no se inventa tono */
 
-  /* Bordes — alpha sobre canvas para integración */
-  --border:    rgba(242,239,233,0.08);
-  --border2:   rgba(242,239,233,0.14);
+  /* Bordes — hairlines cálidos del Lock */
+  --border:    #EAE3D8;   /* line */
+  --border2:   #D8CFC0;   /* line-strong */
 
   /* Alias de superficie para páginas que usan var(--panel/--panel2):
      sin esto caían al fallback CLARO (#fff/#f8fafc) y en modo oscuro las
@@ -29,11 +28,11 @@
   --panel:     var(--s1);
   --panel2:    var(--s2);
 
-  /* Acento de marca: cobalto NexusMED
-     (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
-  --nexus:        #6E84FE;   /* AA sobre --s3 (4.63); antes #3D5AFE = 2.96 */
-  --nexus-hover:  #2845EA;
-  --nexus-soft:   rgba(61, 90, 254, 0.12);
+  /* Acento de marca: jamaica profundo (brand del Identity Lock)
+     (los nombres --teal/--nexus se mantienen por back-compat) */
+  --nexus:        #8E2A47;   /* brand — 7.4:1 sobre canvas, AA holgado como texto */
+  --nexus-hover:  #7A2540;   /* brand-hover */
+  --nexus-soft:   #F5E7EC;   /* brand-soft — rellenos seleccionados / superficies de insight */
   /*
     EL AZUL DE RELLENO — el que lleva texto blanco encima.
 
@@ -52,40 +51,31 @@
     decisiones está mal por su cuenta, y por eso ninguna revisión de una sola
     pieza lo encuentra.
 
-    #3D5AFE no es un color inventado: es el azul de marca original, el mismo del
-    logotipo y el que ya vive dentro de --nexus-soft. Medido con la fórmula de
-    luminancia relativa WCAG 2.1: blanco sobre #3D5AFE = 5,13 : 1.
+    Con Cantera+Instrumento el conflicto desaparece: #8E2A47 es lo bastante
+    oscuro para servir de TEXTO sobre alabastro (7,4:1) y de RELLENO bajo texto
+    blanco (blanco sobre #8E2A47 = 7,4:1 — la luminancia del jamaica queda
+    equidistante). Un solo valor sirve a los dos usos; --nexus-solido se
+    conserva como nombre para no tocar los 68 .btn-primary.
   */
-  --nexus-solido: #3D5AFE;
+  --nexus-solido: #8E2A47;
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
 
-  /*
-    Semántica clínica — DARK, con contraste AA medido.
-
-    LA CORRECCIÓN DE CONTRASTE SE HABÍA APLICADO SÓLO A UN TEMA. El bloque
-    light-mode de más abajo está medido y documentado; este lado conservaba los
-    valores crudos, y cuatro de ellos reprobaban AA sobre TODAS las superficies
-    oscuras (medido sobre --s3, la peor: rojo 3.15, verde 3.03, morado 2.67,
-    nexus 2.96 — el mínimo es 4.5).
-
-    No es cosmética: --red es el color del mensaje de error bajo un campo de
-    dosis, del asterisco de campo obligatorio y de las alertas clínicas. Y dejaba
-    la jerarquía invertida — en las alertas de UCI, «crítica» se veía MÁS
-    apagada que «informativa».
-
-    Mismo tono, más luminosidad, hasta pasar 4.5:1 sobre --s3 (y por tanto sobre
-    --s2, --s1 y --bg). Verificado con la fórmula de luminancia relativa WCAG 2.1:
-      red #E66464 → 4.61 · green #1BA34D → 4.63 · purple #A375F2 → 4.62
-      blue #648BE4 → 4.60 · amber #D97706 → 4.77 (ya pasaba, se deja)
-  */
-  --blue:      #648BE4;
-  --blue-dim:  #3D62C4;
-  --amber:     #D97706;
-  --red:       #E66464;
-  --green:     #1BA34D;
-  --purple:    #A375F2;
+  /* Semántica clínica — Identity Lock. Sobre alabastro TODOS pasan AA como
+     texto (medido WCAG 2.1 sobre --bg #FAF7F2 y sobre --s3 #EAE3D8):
+     danger 5.9/5.0 · success 5.5/4.7 · warning 4.7/4.5 · info 7.0/6.0.
+     `danger` queda RESERVADO a riesgo clínico (regla dura del Lock).
+     No hay morado en la identidad: lo que antes vestía de morado
+     (IA/asistente) pasa a `info` — la IA es inteligencia contextual,
+     no una marca aparte. Azul/teal genérico: eliminado; `info` es el
+     único azulado permitido. */
+  --blue:      #3D5A5C;   /* info */
+  --blue-dim:  #2F4648;   /* info hover — oscurecido del mismo tono */
+  --amber:     #9A6317;   /* warning */
+  --red:       #B42318;   /* danger — sólo riesgo clínico */
+  --green:     #3E6B4F;   /* success — cierre/consumado */
+  --purple:    var(--blue);  /* retirado: alias a info (ver nota) */
 
   /* ─── RADIO ──────────────────────────────────────────────────────────────
      LA PÍLDORA ESTABA ESCRITA DE CINCO FORMAS.
@@ -123,7 +113,7 @@
     existente — nada las usa todavía. Existen para que lo próximo tenga dónde
     apoyarse, y para que el trinquete pueda medir la distancia que falta.
   */
-  --r-sm:  6px;
+  --r-sm:  4px;   /* Lock: radios 4/10/14 solamente */
   --r-md:  10px;
   --r-lg:  14px;
 
@@ -136,16 +126,18 @@
 
   /* Elevación: TRES niveles y se acabó. Una sombra por componente es lo que
      produce 24 sombras distintas y ninguna jerarquía. */
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.28);
-  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.32);
-  --elev-3: 0 16px 40px rgba(0, 0, 0, 0.40);
+  /* Lock: plano o elevado, nada más. Los tres nombres se conservan por
+     back-compat; elev-1 es plano (sin sombra) y 2/3 son EL elevado único. */
+  --elev-1: none;
+  --elev-2: 0 4px 16px rgba(42, 36, 32, 0.08);
+  --elev-3: 0 4px 16px rgba(42, 36, 32, 0.08);
 
   /* Movimiento. `--mov-nada` es el que se usa bajo `prefers-reduced-motion`:
      tenerlo con nombre evita que cada componente decida por su cuenta qué
      significa «sin animación». */
   --mov-rapido: 120ms;
   --mov-normal: 200ms;
-  --mov-lento:  320ms;
+  --mov-lento:  300ms;  /* Lock: 300ms espacial, nada >400ms */
   --mov-curva:  cubic-bezier(0.2, 0, 0, 1);
   --mov-nada:   0ms;
 
@@ -160,21 +152,24 @@
 
   /* Badges de estado (texto sobre fondo) — DARK. Texto claro sobre tinte oscuro
      translúcido; verificado con buen contraste en modo oscuro. */
-  --badge-green-t:  #4ade80; --badge-green-b:  rgba(34,197,94,0.16);
-  --badge-blue-t:   #7aa2ff; --badge-blue-b:   rgba(61,90,254,0.18);
-  --badge-amber-t:  #fbbf24; --badge-amber-b:  rgba(251,191,36,0.16);
-  --badge-red-t:    #f87171; --badge-red-b:    rgba(239,68,68,0.16);
-  --badge-purple-t: #c084fc; --badge-purple-b: rgba(168,85,247,0.18);
-  --badge-gris-t:   #A8ACAE; --badge-gris-b:   rgba(148,163,184,0.14);
+  --badge-green-t:  #3E6B4F; --badge-green-b:  rgba(62,107,79,0.10);
+  --badge-blue-t:   #3D5A5C; --badge-blue-b:   rgba(61,90,92,0.10);
+  --badge-amber-t:  #9A6317; --badge-amber-b:  rgba(154,99,23,0.10);
+  --badge-red-t:    #B42318; --badge-red-b:    rgba(180,35,24,0.08);
+  --badge-purple-t: #3D5A5C; --badge-purple-b: rgba(61,90,92,0.10);
+  --badge-gris-t:   #6E645A; --badge-gris-b:   rgba(110,100,90,0.10);
 
-  /* Texto bone — warm, sofisticado, no slate-frío */
-  --text:      #F2EFE9;
-  --text2:     #A8ACAE;
-  /* --text3 elevado de #6C7075 (≈3.8:1) a #8A8F94 (≈5:1) para cumplir WCAG AA en captions */
-  --text3:     #8A8F94;
+  /* Texto café-tinta (Identity Lock) */
+  --text:      #2A2420;   /* ink */
+  --text2:     #6E645A;   /* ink-secondary — 5.6:1 sobre canvas */
+  /* ink-tertiary del Lock (#A79B8D) da 2.4:1: NO sirve como texto AA. Se usa
+     el propio ink-secondary para metadatos legibles; #A79B8D queda para
+     decoración no textual (ver --ink-terciario). */
+  --text3:     #6E645A;
+  --ink-terciario: #A79B8D;  /* SOLO decorativo/placeholders grandes, nunca texto AA */
 
   /* Tipografía editorial — uso restringido a hero/citas */
-  --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
+  --font-display: var(--font-bricolage), 'Instrument Sans', system-ui, sans-serif;
 
   /*
     ─── AVISO Y ÉXITO — cuatro tokens que se USABAN SIN EXISTIR (REG-298) ───
@@ -196,10 +191,15 @@
     exactamente los valores que se venían pintando, para no cambiar lo que hoy
     se ve bien.
   */
-  --warn-bg:     rgba(217, 119, 6, 0.12);
-  --warn-border: rgba(217, 119, 6, 0.38);
+  --warn-bg:     rgba(154, 99, 23, 0.08);
+  --warn-border: rgba(154, 99, 23, 0.35);
   --warn-text:   var(--amber);
   --success:     var(--green);
+
+  /* Banda de Instrumentos (elemento de firma del Lock) */
+  --strip-bg:  #2A2420;
+  --strip-ink: #E8E2D9;
+  --strip-ok:  #7FBFA0;
 }
 
 /*
@@ -223,9 +223,9 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-instrument);
+  --font-mono: var(--font-spline-mono);
+  --font-display: var(--font-bricolage);
 
   /* Superficies y bordes */
   --color-nx-bg:      var(--bg);
@@ -305,11 +305,12 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Display/editorial type (Fraunces) — para hero/citas/momentos */
+/* Display/identidad (Bricolage Grotesque) — con freno: sólo títulos de
+   identidad de paciente/encuentro y encabezados de sección (Lock). */
 .nx-display {
   font-family: var(--font-display);
-  letter-spacing: -0.025em;
-  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 /* Scrollbar minimalista */
@@ -521,7 +522,7 @@ textarea.input {
 input[type="number"].input,
 .input.input-numeric {
   font-variant-numeric: tabular-nums;
-  font-family: var(--font-geist-mono), 'SF Mono', Menlo, monospace;
+  font-family: var(--font-spline-mono), 'SF Mono', Menlo, monospace;
   letter-spacing: -0.01em;
 }
 
@@ -1168,127 +1169,17 @@ tbody tr:last-child { border-bottom: none; }
 }
 
 /* ═════════════════════════════════════════════════════════════════
-   NEXUSMED · SPRINT 7 — FASE 2 UI/UX PREMIUM
-   No reescribe reglas anteriores: las EXTIENDE y SOBREESCRIBE
-   solo cuando aporta valor visible (light mode, glass, microinteracciones).
-   Toggle por atributo: <html data-theme="light"> o data-theme="dark".
-   Default sigue siendo dark (sin atributo).
+   IDENTIDAD ÚNICA — Cantera + Instrumento (V14 Identity Lock, D-5)
+   El producto tiene UNA identidad visual: alabastro cálido, definida
+   entera en :root. Los bloques de tema claro/oscuro anteriores se
+   retiraron con la identidad cobalto: data-theme="light"/"dark" ya no
+   cambian la piel (el toggle queda inerte; OD-4 decide si se diseña
+   una paleta nocturna con tokens propios del dueño). Ningún color de
+   producto puede vivir fuera de :root sin decisión del dueño.
    ═════════════════════════════════════════════════════════════════ */
 
-/* ── Light mode — paleta bone-soft anti-fatiga ocular ─────────── */
-:root[data-theme="light"] {
-  /* Bone-soft (no blanco puro — reduce fatiga ocular en consulta larga) */
-  --bg:        #FAFAF7;
-  --s:         #FFFFFF;
-  --s1:        #FFFFFF;
-  --s2:        #F5F3EE;
-  --s3:        #ECEAE3;
-
-  /* Bordes ink con alpha sobre canvas claro */
-  --border:    rgba(11, 12, 14, 0.08);
-  --border2:   rgba(11, 12, 14, 0.16);
-
-  /* Cobalto ligeramente más oscuro para contraste AA sobre blanco */
-  --nexus:        #2845EA;
-  --nexus-hover:  #1A35C8;
-  --nexus-soft:   rgba(40, 69, 234, 0.10);
-  /* En claro el relleno ya era #2845EA (blanco encima = 6,71) y por eso este
-     tema nunca tuvo el fallo. Se nombra igual para que .btn-primary sirva a
-     los dos temas con una sola regla. */
-  --nexus-solido: #2845EA;
-  --teal:         var(--nexus);
-  --teal-dim:     var(--nexus-hover);
-  --teal-glow:    var(--nexus-soft);
-
-  /* Texto ink (alto contraste pero sin negro puro — más sofisticado) */
-  --text:      #0B0C0E;
-  --text2:     #565A60;
-  /* AA sobre --bg y sobre --s3. El valor anterior (#8A8E94) daba 3.15:1 sobre el
-     fondo y 2.74:1 sobre --s3: NO cumplía. El modo oscuro ya se había corregido y
-     este lado se quedó sin aplicar — y el claro es el que sale por defecto con
-     luz de consultorio. --text3 lleva TODOS los placeholders, las pistas CIE-10 y
-     el texto de ayuda. */
-  --text3:     #6B6F75;
-
-  /* Semánticas — versiones light-mode (contraste AA) */
-  --blue:      #2057C5;
-  --blue-dim:  #1A4AA8;
-  --amber:     #B45309;
-  --red:       #B91C1C;
-  --green:     #14532D;
-  --purple:    #6D28D9;
-
-  /* Badges de estado — LIGHT. Texto OSCURO sobre fondo MUY claro del mismo tono;
-     medido ≥4.6:1. Tintar el fondo con el mismo tono del texto (lo que se hacía
-     antes con color-mix) hundía el contraste a ~2.3:1: los pasteles de modo
-     oscuro desaparecían sobre el crema. */
-  --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
-  --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
-  --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
-  --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
-  --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
-  --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
-
-  /* Aviso y éxito — el tema claro conserva EXACTAMENTE lo que se venía
-     pintando con los respaldos, para no cambiar lo que hoy se ve bien.
-     Ver el bloque de `--warn-*` en `:root` y REG-298. */
-  --warn-bg:     #FFF8E6;
-  --warn-border: #F0C36D;
-  --warn-text:   #8A6100;
-  --success:     var(--green);
-}
-
-/* Placeholder más oscuro en claro: #5A5F66 da ~5.3:1 sobre el crema de los
-   campos (--s2 #F5F3EE), claramente legible. #6B6F75 quedaba en el filo de AA. */
-:root[data-theme="light"] .input::placeholder,
-:root[data-theme="light"] input::placeholder,
-:root[data-theme="light"] textarea::placeholder {
-  color: #5A5F66;
-}
-
-/* ── Auto-light si el OS prefiere claro y no hay override manual ── */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="light"]) {
-    --bg:        #FAFAF7;
-    --s:         #FFFFFF;
-    --s1:        #FFFFFF;
-    --s2:        #F5F3EE;
-    --s3:        #ECEAE3;
-    --border:    rgba(11, 12, 14, 0.08);
-    --border2:   rgba(11, 12, 14, 0.16);
-    --nexus:        #2845EA;
-    --nexus-hover:  #1A35C8;
-    --nexus-soft:   rgba(40, 69, 234, 0.10);
-    --nexus-solido: #2845EA;
-    --teal:         var(--nexus);
-    --teal-dim:     var(--nexus-hover);
-    --teal-glow:    var(--nexus-soft);
-    --text:      #0B0C0E;
-    --text2:     #565A60;
-    --text3:     #6B6F75;   /* AA — ver nota arriba */
-    --blue:      #2057C5;
-    --blue-dim:  #1A4AA8;
-    --amber:     #B45309;
-    --red:       #B91C1C;
-    --green:     #14532D;
-    --purple:    #6D28D9;
-    --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
-    --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
-    --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
-    --badge-red-t:    #991B1B; --badge-red-b:    #FBE6E6;
-    --badge-purple-t: #5B21B6; --badge-purple-b: #EEE6FB;
-    --badge-gris-t:   #565A60; --badge-gris-b:   #ECEAE3;
-  }
-  /* Mismo placeholder oscuro para el auto-claro del OS. */
-  :root:not([data-theme="dark"]):not([data-theme="light"]) .input::placeholder,
-  :root:not([data-theme="dark"]):not([data-theme="light"]) input::placeholder,
-  :root:not([data-theme="dark"]):not([data-theme="light"]) textarea::placeholder {
-    color: #5A5F66;
-  }
-}
-
 /* ── Transición global suave al cambiar de tema ─────────────────── */
-html { color-scheme: dark light; }
+html { color-scheme: light; }
 html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item, .tab {
   transition:
     background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -1395,7 +1286,8 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   to   { transform: scaleY(1); opacity: 1; }
 }
 
-/* ── ThemeToggle component (botón flotante) ─────────────────────── */
+/* ── .theme-toggle: reglas conservadas por el guardián de «nada tapa un
+   campo» (la clase quedó sin componente al retirar el toggle — D-5). ── */
 .theme-toggle {
   position: fixed;
   bottom: 16px;
@@ -1483,17 +1375,6 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   letter-spacing: -0.005em;
 }
 
-/* ── Skeleton refinado para light mode ─────────────────────────── */
-:root[data-theme="light"] .skeleton {
-  background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
-  background-size: 200% 100%;
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .skeleton {
-    background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
-    background-size: 200% 100%;
-  }
-}
 
 /* ── Print: forzar light mode para impresión clínica ──────────── */
 @media print {
@@ -1514,13 +1395,12 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
       los tokens vinieron a resolver, sólo que en la hoja, que es donde no se
       puede corregir después.
     */
-    --red:    #B91C1C;
-    --amber:  #B45309;
-    --green:  #14532D;
-    --blue:   #2057C5;
-    /* Los que entraron con la segunda tanda de migración (v913): el trinquete
-       vigilaba el color del error y dejaba pasar el del acierto. */
-    --purple: #6D28D9;
+    --red:    #B42318;
+    --amber:  #9A6317;
+    --green:  #3E6B4F;
+    --blue:   #3D5A5C;
+    /* Sin morado en la identidad (Lock): en papel también va a info. */
+    --purple: #3D5A5C;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
 
