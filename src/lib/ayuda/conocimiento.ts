@@ -1,5 +1,5 @@
 /**
- * BASE DE CONOCIMIENTO de la app (NexusMED). Fuente ÚNICA que alimenta:
+ * BASE DE CONOCIMIENTO de la app (Ausculta). Fuente ÚNICA que alimenta:
  *  1) la Guía de uso (/guia)  y  2) el bot de soporte (/api/ayuda-bot).
  *
  * Es texto puro (sin JSX) para poder pasarlo como contexto al bot. Al agregar

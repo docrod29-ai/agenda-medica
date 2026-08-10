@@ -48,7 +48,7 @@ export function EvidenciaEnVivo() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
         <BookOpen size={16} style={{ color: 'var(--nexus)' }} />
         <strong style={{ fontSize: 14.5 }}>Pasos 8-9 en vivo — recuperación y verificación de PMID</strong>
-        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,.12)', color: 'var(--nexus)' }}>PubMed real</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 8px', borderRadius: 'var(--r-pill)', background: 'var(--nexus-soft)', color: 'var(--nexus)' }}>PubMed real</span>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 12px', lineHeight: 1.5 }}>
         Consulta a PubMed <b>en este momento</b> para el caso de arriba (AINE + IECA + ERC). Cada PMID es

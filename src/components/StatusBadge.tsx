@@ -33,6 +33,16 @@ const STATUS: Record<AppointmentStatus, { label: string; tono: Tono }> = {
   'pagada':               { label: 'Pagada',               tono: 'green' },
 }
 
+/**
+ * Fuente única del par label+tono por estado, exportada para las vistas que
+ * dicen el estado con TIPOGRAFÍA (el riel de la agenda) en vez de píldora.
+ * La regla clínica no cambia: mismo texto, mismo tono semántico — cambia sólo
+ * cómo se pinta (Visual DNA R2: estado como texto, píldora sólo para riesgo).
+ */
+export function estadoCita(status: AppointmentStatus): { label: string; tono: Tono } | null {
+  return STATUS[status] ?? null
+}
+
 interface Props {
   status: AppointmentStatus
   size?: 'sm' | 'md'

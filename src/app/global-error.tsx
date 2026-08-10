@@ -35,7 +35,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           <p style={{ fontSize: 14, color: '#B9BEC7', margin: '0 0 20px', lineHeight: 1.6 }}>
             Tus datos están a salvo. Vuelve a intentarlo o recarga la página.
           </p>
-          <button onClick={() => reset()} style={{ background: '#3D5AFE', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => reset()} style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Reintentar
           </button>
         </div>

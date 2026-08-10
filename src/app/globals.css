@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* ── NexusMED design tokens ──────────────────────────────────
+  /* ── Ausculta design tokens ──────────────────────────────────
      Sistema de color rediseñado:
      - Canvas: ink neutro (no navy) — más refinado, menos "Bootstrap"
      - Superficies: shades del ink, contraste preciso
@@ -29,7 +29,7 @@
   --panel:     var(--s1);
   --panel2:    var(--s2);
 
-  /* Acento de marca: cobalto NexusMED
+  /* Acento de marca: cobalto Ausculta
      (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
   --nexus:        #6E84FE;   /* AA sobre --s3 (4.63); antes #3D5AFE = 2.96 */
   --nexus-hover:  #2845EA;
@@ -86,6 +86,56 @@
   --red:       #E66464;
   --green:     #1BA34D;
   --purple:    #A375F2;
+
+  /* ─── ESTADO CLÍNICO: CADA COLOR CON SUS TRES CARAS ──────────────────────
+
+     EL DEFECTO MEDIDO (9-ago-2026, sobre los 208 archivos .tsx):
+
+         #dc2626  44 veces      #f87171  29 veces      #10b981  23 veces
+         #f59e0b  42 veces      #d97706  27 veces      #b91c1c  18 veces
+         #3d5afe  41 veces      #0d9488  27 veces      #ef4444  16 veces
+
+     644 hexadecimales escritos a mano, en 102 archivos. No son colores
+     caprichosos: son **el rojo de peligro, su relleno claro y su hover**,
+     retecleados uno por uno porque el sistema sólo daba `--red` y hacía falta
+     un relleno y un borde.
+
+     Cuando un token no cubre el caso, el caso no desaparece: se escribe a mano.
+
+     ── EL QUE MÁS DUELE ────────────────────────────────────────────────────
+
+     `#3d5afe`, 41 veces. Este mismo archivo documenta seis líneas más arriba
+     que ese azul **se retiró por no pasar contraste** (2,96 : 1). Se arregló
+     en el token y quedó vivo en 41 sitios. Es la forma de REG-267: reparado
+     en un lugar, vivo en el de al lado — y aquí lo que quedó vivo es un fallo
+     de accesibilidad que ya se había corregido.
+
+     ── POR QUÉ TRES CARAS Y NO UNA ─────────────────────────────────────────
+
+     Un color de estado se usa siempre de tres maneras: el trazo que se LEE
+     (texto, icono, borde), el relleno sobre el que se lee, y el estado
+     activo. Darlas juntas es lo que impide que la próxima alerta invente su
+     propio relleno.
+
+     Los `-suave` van con `color-mix` sobre el lienzo del tema para que el
+     mismo token sirva en claro y en oscuro sin una segunda tabla que se
+     desincronice. Esa segunda tabla ya costó REG-298: 253 respaldos de color
+     obsoletos escondidos dentro de `var()`.                                  */
+  --peligro:        var(--red);
+  --peligro-suave:  color-mix(in srgb, var(--red) 14%, var(--s1));
+  --peligro-borde:  color-mix(in srgb, var(--red) 38%, transparent);
+
+  --aviso:          var(--amber);
+  --aviso-suave:    color-mix(in srgb, var(--amber) 14%, var(--s1));
+  --aviso-borde:    color-mix(in srgb, var(--amber) 38%, transparent);
+
+  --bien:           var(--green);
+  --bien-suave:     color-mix(in srgb, var(--green) 14%, var(--s1));
+  --bien-borde:     color-mix(in srgb, var(--green) 38%, transparent);
+
+  --info:           var(--blue);
+  --info-suave:     color-mix(in srgb, var(--blue) 14%, var(--s1));
+  --info-borde:     color-mix(in srgb, var(--blue) 38%, transparent);
 
   /* ─── RADIO ──────────────────────────────────────────────────────────────
      LA PÍLDORA ESTABA ESCRITA DE CINCO FORMAS.
@@ -174,7 +224,7 @@
   --text3:     #8A8F94;
 
   /* Tipografía editorial — uso restringido a hero/citas */
-  --font-display: var(--font-fraunces), 'Söhne', 'Geist', system-ui, serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
 
   /*
     ─── AVISO Y ÉXITO — cuatro tokens que se USABAN SIN EXISTIR (REG-298) ───
@@ -223,8 +273,8 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
   --font-display: var(--font-fraunces);
 
   /* Superficies y bordes */
@@ -317,7 +367,7 @@ html, body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--border2);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   border: 2px solid var(--bg);
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
@@ -326,7 +376,7 @@ html, body {
 :focus-visible {
   outline: 2px solid var(--nexus);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
 }
 
 /* Selection — color de marca */
@@ -349,7 +399,7 @@ html, body {
 
 /* ── Card ─────────────────────────────────────────────────── */
 /* ─────────────────────────────────────────────────────────────
-   NEXUSMED · COMPONENTES CORE (Sprint 2)
+   AUSCULTA · COMPONENTES CORE (Sprint 2)
    Specs:
    - Curva única microinteracciones: cubic-bezier(0.16, 1, 0.3, 1)
    - Sin sombras decorativas (solo en dropdowns/modals)
@@ -361,7 +411,7 @@ html, body {
 .card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 20px;
 }
 
@@ -382,7 +432,7 @@ html, body {
   gap: 8px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.005em;
@@ -421,7 +471,7 @@ html, body {
 
    No se esconde ningún control: se estrecha lo que sobra, que es el relleno y
    el ancho de los botones. Por debajo de 380 px se retira además el nombre
-   escrito «NexusMED» — el logotipo se queda, así que la marca sigue ahí.
+   escrito «Ausculta» — el logotipo se queda, así que la marca sigue ahí.
 
    Medido de nuevo tras el cambio: 390 → 390 y 320 → 312. Sin desborde. */
 @media (max-width: 460px) {
@@ -472,7 +522,7 @@ html, body {
   width: 100%;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   height: 40px;
   padding: 0 12px;
   font-size: 14px;
@@ -521,7 +571,7 @@ textarea.input {
 input[type="number"].input,
 .input.input-numeric {
   font-variant-numeric: tabular-nums;
-  font-family: var(--font-geist-mono), 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono), 'SF Mono', Menlo, monospace;
   letter-spacing: -0.01em;
 }
 
@@ -543,13 +593,13 @@ input[type="number"].input,
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   font-size: 12px;
   font-weight: 500;
 }
 .badge-dot {
   width: 6px; height: 6px;
-  border-radius: 50%;
+  border-radius: var(--r-circulo);
   flex-shrink: 0;
 }
 
@@ -574,7 +624,7 @@ tbody tr:hover { background: var(--s2); }
 tbody td { padding: 12px; color: var(--text2); }
 tbody tr:last-child { border-bottom: none; }
 
-/* ── Sidebar (NexusMED) ───────────────────────────────────── */
+/* ── Sidebar (Ausculta) ───────────────────────────────────── */
 .sidebar {
   background: var(--bg);
   border-right: 1px solid var(--border);
@@ -603,7 +653,7 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text2);
@@ -684,7 +734,7 @@ tbody tr:last-child { border-bottom: none; }
 .modal {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   width: 100%;
   max-width: 560px;
   max-height: 92vh;
@@ -692,7 +742,7 @@ tbody tr:last-child { border-bottom: none; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--elev-3);
   animation: nx-modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes nx-modal-in {
@@ -719,7 +769,7 @@ tbody tr:last-child { border-bottom: none; }
 .modal-wide { max-width: 760px; }
 .modal-xl { max-width: 1000px; }
 
-/* ── Tabs (estilo borde inferior, NexusMED) ───────────────── */
+/* ── Tabs (estilo borde inferior, Ausculta) ───────────────── */
 .tabs {
   display: flex;
   gap: 0;
@@ -752,7 +802,7 @@ tbody tr:last-child { border-bottom: none; }
 .kpi-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -790,7 +840,7 @@ tbody tr:last-child { border-bottom: none; }
   grid-template-columns: 60px repeat(7, 1fr);
   gap: 0;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   overflow: hidden;
 }
 .cal-header {
@@ -824,7 +874,7 @@ tbody tr:last-child { border-bottom: none; }
 .appt-chip {
   position: absolute;
   inset: 2px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 500;
@@ -849,12 +899,12 @@ tbody tr:last-child { border-bottom: none; }
 .toast {
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 12px 16px;
   font-size: 14px;
   color: var(--text);
   max-width: 320px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elev-3);
   pointer-events: all;
   animation: slideUp 0.2s ease;
 }
@@ -922,7 +972,6 @@ tbody tr:last-child { border-bottom: none; }
 .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
 
 /* ── Teal glow effect ─────────────────────────────────────── */
-.glow-teal { box-shadow: 0 0 20px var(--teal-glow); }
 .text-teal { color: var(--teal); }
 .text-teal2 { color: var(--text2); }
 .text-teal3 { color: var(--text3); }
@@ -936,7 +985,7 @@ tbody tr:last-child { border-bottom: none; }
   background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 @keyframes shimmer {
   0%   { background-position: 200% 0; }
@@ -1034,7 +1083,7 @@ tbody tr:last-child { border-bottom: none; }
 .mobile-topbar-btn {
   width: 44px;
   height: 44px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: none;
   border: none;
   cursor: pointer;
@@ -1140,7 +1189,7 @@ tbody tr:last-child { border-bottom: none; }
   align-items: center;
   justify-content: center;
   padding: 6px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   transition: background 0.1s, color 0.1s;
 }
 .mobile-topbar-btn:hover { background: var(--s2); color: var(--text); }
@@ -1168,7 +1217,7 @@ tbody tr:last-child { border-bottom: none; }
 }
 
 /* ═════════════════════════════════════════════════════════════════
-   NEXUSMED · SPRINT 7 — FASE 2 UI/UX PREMIUM
+   AUSCULTA · SPRINT 7 — FASE 2 UI/UX PREMIUM
    No reescribe reglas anteriores: las EXTIENDE y SOBREESCRIBE
    solo cuando aporta valor visible (light mode, glass, microinteracciones).
    Toggle por atributo: <html data-theme="light"> o data-theme="dark".
@@ -1189,6 +1238,13 @@ tbody tr:last-child { border-bottom: none; }
   --border2:   rgba(11, 12, 14, 0.16);
 
   /* Cobalto ligeramente más oscuro para contraste AA sobre blanco */
+  /* Elevación en claro: la sombra no es negra, es el propio tinta del texto
+     con alpha. Una sombra negra sobre blanco se lee como suciedad; con el
+     tinta de la marca se lee como profundidad. */
+  --elev-1: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+  --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
+
   --nexus:        #2845EA;
   --nexus-hover:  #1A35C8;
   --nexus-soft:   rgba(40, 69, 234, 0.10);
@@ -1335,7 +1391,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: var(--elev-2);
 }
 
 /* KPI cards con misma personalidad */
@@ -1348,7 +1404,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .kpi-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: var(--elev-2);
 }
 
 /* Focus rings refinados — halo doble (color + bone) */
@@ -1402,7 +1458,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   right: 16px;
   width: 38px;
   height: 38px;
-  border-radius: 50%;
+  border-radius: var(--r-circulo);
   background: color-mix(in srgb, var(--s1) 80%, transparent);
   backdrop-filter: saturate(180%) blur(10px);
   -webkit-backdrop-filter: saturate(180%) blur(10px);
@@ -1413,7 +1469,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   justify-content: center;
   cursor: pointer;
   z-index: 199;
-  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--text) 10%, transparent);
+  box-shadow: var(--elev-2);
   transition:
     background 200ms cubic-bezier(0.16, 1, 0.3, 1),
     color 200ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -1523,6 +1579,16 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     --purple: #6D28D9;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
+
+  /* V10-NOTE-001 (DEBT-008): la marca de agua BORRADOR de la nota sin firmar se
+     REPITE en cada hoja impresa. Vive aquí y no en el <style> de la página
+     porque la ventana de impresión (print-element.ts) sólo copia los <link>
+     globales; en pantalla el elemento es absolute (inline) y esta regla no
+     aplica. Sólo la vía continua la usa: la membretada estampa por hoja. */
+  .nota-marca-borrador {
+    position: fixed !important;
+    inset: 0 !important;
+  }
 }
 
 /* Impresión aislada de UNA receta: el botón "Imprimir prueba" del editor de
@@ -1619,7 +1685,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-size: 13px;
   line-height: 1.5;
   border: 1px solid var(--border);
@@ -1650,7 +1716,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .empty-state-icon {
   width: 44px; height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   display: flex; align-items: center; justify-content: center;
   background: var(--s2);
   border: 1px solid var(--border);
@@ -1691,11 +1757,11 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     linear-gradient(0deg, var(--nexus-soft), var(--nexus-soft)) border-box,
     var(--s1) padding-box;
   border: 1px solid color-mix(in srgb, var(--nexus) 32%, transparent);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 16px 18px;
 }
 .prox-hero-avatar {
-  width: 50px; height: 50px; border-radius: 14px; flex-shrink: 0;
+  width: 50px; height: 50px; border-radius: var(--r-lg); flex-shrink: 0;
   background: var(--nexus-soft);
   color: color-mix(in srgb, var(--nexus) 70%, white 30%);
   display: flex; align-items: center; justify-content: center;
@@ -1706,8 +1772,12 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 .prox-hero-cta {
   display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 18px;
-  background: var(--nexus); color: #fff;
-  border: none; border-radius: 12px;
+  /* --nexus (#6E84FE) con blanco da 3.28:1 y REPRUEBA AA; el sólido pasa en
+     los dos temas (5.13 / 6.71). Lo midieron axe y la captura real por separado
+     (REG-308). El radio va por la escala (--r-md), no por un 12 suelto: las dos
+     correcciones son de tandas distintas y ninguna anula a la otra. */
+  background: var(--nexus-solido); color: #fff;
+  border: none; border-radius: var(--r-md);
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;
   transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms;
@@ -1715,8 +1785,122 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 .prox-hero-cta:hover { background: var(--nexus-hover); }
 .prox-hero-cta:active { transform: scale(0.98); }
 
-/* Sparkline del hero */
-.nx-spark { display: block; }
+/* ══ V10 · HOY (pantalla de inicio) ═══════════════════════════════════════
+   Una sola columna a cualquier ancho.  La rejilla anterior era `1fr 300px`
+   FIJA: a 390 px la columna derecha se salía de la pantalla.  No se arregla
+   con un `minmax` — se arregla no teniendo dos columnas que defender.
+   Constitución V10, regla 39: responsive no es escritorio encogido.        */
+.hoy {
+  padding: 28px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.hoy-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hoy-saludo {
+  font-size: 32px;
+  color: var(--text);
+  margin: 7px 0 0;
+  font-weight: 500;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.hoy-accion { text-decoration: none; flex-shrink: 0; }
+
+/* Encabezado del bloque de agenda: título + recuento a la izquierda,
+   «Ver todas» a la derecha sin partirse nunca. */
+.hoy-bloque-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.hoy-bloque-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.hoy-vertodas {
+  font-size: 13px;
+  color: var(--teal);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 44px;      /* área táctil WCAG 2.2 AA */
+  align-self: center;
+}
+
+/* El recuento del día: un renglón de texto donde había cuatro tarjetas. */
+.hoy-resumen {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--text3);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.hoy-resumen-sep { margin: 0 7px; color: var(--border2); }
+/* Único color de la línea: lo que pide una acción HOY. */
+.hoy-resumen-alerta { color: var(--amber); font-weight: 600; }
+
+/* Fila de cita */
+.cita-fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cita-fila:hover { background: var(--s2); }
+.cita-principal {
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cita-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .hoy { padding: 20px 16px; gap: 18px; }
+  /* El saludo y la acción dejan de pelearse por el mismo renglón. */
+  .hoy-head { flex-direction: column; align-items: stretch; gap: 14px; }
+  .hoy-saludo { font-size: 26px; }
+  .hoy-accion, .hoy-accion .btn { width: 100%; justify-content: center; }
+  .hoy-bloque-head { padding: 14px 16px; }
+  .cita-fila { padding: 12px 16px; }
+}
+
+/* Por debajo de esto, el nombre del paciente y el botón de consulta no caben
+   en el mismo renglón: el nombre quedaba en dos letras y puntos suspensivos.
+   El estado y la acción bajan a su propia línea. */
+@media (max-width: 560px) {
+  .cita-fila { flex-wrap: wrap; }
+  .cita-acciones { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cita-fila { transition: none; }
+}
 
 /* Entrada suave de las ilustraciones de estado vacío (respeta reduce-motion) */
 .empty-illus { animation: nx-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -1759,7 +1943,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   .table-wrap.rwd thead { position: absolute; left: -9999px; } /* oculta encabezados, sin romper lectores */
   .table-wrap.rwd tr {
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--r-md);
     margin-bottom: 10px;
     padding: 6px 12px;
     background: var(--s1);
@@ -1798,3 +1982,251 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   .btn, .btn-icon { min-height: 44px !important; }
   .btn-icon { min-width: 44px !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EL RIEL DEL DÍA — firma NexusMED nº1 (Visual DNA R1, AGENDA-IDENTITY-001).
+
+   La agenda no es una tabla con botones: es una LÍNEA DE TIEMPO vertical de
+   la que cuelgan los encuentros, con el MOMENTO ACTUAL siempre visible como
+   una línea cobalto. El nodo sobre el riel (○ por venir · ● en curso con
+   anillo · ● tenue hecho) es el motivo simbólico del producto: el momento
+   presente sobre la continuidad del cuidado.
+
+   Reglas que este bloque implementa y el guardián vigila:
+   R1 riel + marcador de AHORA · R2 UNA acción primaria por entrada, estado
+   como tipografía (.nx-estado), no píldora · R3 identidad tipográfica sin
+   avatar-círculo ni tarjeta por entrada.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.riel { position: relative; }
+/* La línea continua del día. Cruza TODAS las entradas: es una sola, no un
+   borde por fila — por eso vive en el contenedor. */
+.riel::before {
+  content: '';
+  position: absolute; top: 6px; bottom: 6px;
+  /* centro de la columna del nodo: ancho de tiempo + gap + mitad de 24px */
+  left: calc(var(--riel-tiempo, 64px) + 10px + 11px);
+  width: 2px; border-radius: 1px;
+  background: var(--border);
+}
+
+.riel-entrada {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--riel-tiempo, 64px) 24px minmax(0, 1fr) auto;
+  grid-template-areas: 'tiempo nodo cuerpo accion';
+  align-items: start;
+  column-gap: 10px;
+  padding: 14px 0;
+}
+.riel-entrada + .riel-entrada { border-top: none; } /* el riel separa; no hay cajas */
+
+.riel-tiempo { grid-area: tiempo; text-align: right; padding-top: 1px; }
+.riel-hora {
+  display: block;
+  font-size: 14px; font-weight: 600; color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+.riel-dur { display: block; font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+
+/* El nodo: un círculo centrado sobre la línea. Su estado ES el dibujo. */
+.riel-nodo { grid-area: nodo; position: relative; height: 100%; }
+.riel-nodo::before {
+  content: '';
+  position: absolute; left: 50%; top: 5px; transform: translateX(-50%);
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--text3);
+}
+.riel-entrada[data-momento='hecho'] .riel-nodo::before {
+  background: var(--text3); border-color: var(--text3);
+}
+.riel-entrada[data-momento='ahora'] .riel-nodo::before {
+  background: var(--nexus-solido); border-color: var(--nexus-solido);
+  /* El anillo del momento presente: visible, no decorativo (P3.11). */
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px color-mix(in srgb, var(--nexus-solido) 55%, transparent);
+}
+/* En sala de espera: el paciente YA está aquí pero el encuentro no empezó —
+   hueco cobalto, a medio camino entre «por venir» y «en curso». */
+.riel-entrada[data-momento='espera'] .riel-nodo::before {
+  background: var(--bg); border-color: var(--nexus-solido);
+}
+.riel-entrada[data-momento='cerrado'] .riel-nodo::before {
+  background: var(--bg); border-color: var(--border);
+}
+/* Lo pasado y lo cerrado se ATENÚAN POR TOKEN, no por opacity: bajar la
+   opacidad del texto ya atenuado (--text3, 12.5px) lo tiraba bajo 4.5:1 —
+   lo midió axe en la primera captura del riel. La jerarquía la dan el peso
+   y el tono del nombre; la letra pequeña nunca baja de su token AA. */
+.riel-entrada[data-momento='hecho'] .riel-nombre,
+.riel-entrada[data-momento='hecho'] .riel-hora { color: var(--text2); font-weight: 500; }
+.riel-entrada[data-momento='cerrado'] .riel-nombre,
+.riel-entrada[data-momento='cerrado'] .riel-hora { color: var(--text2); font-weight: 500; }
+.riel-entrada[data-momento='cerrado'] .riel-nombre { text-decoration: line-through; text-decoration-color: var(--text3); }
+
+.riel-cuerpo { grid-area: cuerpo; min-width: 0; }
+/* R3: la identidad del paciente es tipográfica. Sin avatar, sin caja. */
+.riel-nombre {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  line-height: 1.35; overflow-wrap: anywhere;
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.riel-meta {
+  font-size: 12.5px; color: var(--text3); margin-top: 2px;
+  overflow-wrap: anywhere; line-height: 1.5;
+}
+/* El icono del tipo fluye CON el texto: en flex, un motivo largo que envuelve
+   dejaba al icono huérfano en su propia línea (visto en la captura 390). */
+.riel-meta > svg { display: inline-block; vertical-align: -2px; margin-right: 5px; }
+.riel-estado-linea {
+  margin-top: 5px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+
+/* Estado como tipografía: punto del tono semántico + versalitas. La píldora
+   queda RESERVADA a riesgo clínico/operativo (no-show alto, descuadre). */
+.nx-estado {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text2);
+}
+.nx-estado::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--estado-tono, var(--text3));
+}
+
+.riel-accion {
+  grid-area: accion;
+  display: flex; align-items: center; gap: 4px;
+  padding-top: 2px;
+}
+
+/* EL MARCADOR DE AHORA — la línea del momento actual, de riel a borde. */
+.riel-ahora {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--riel-tiempo, 64px) 24px minmax(0, 1fr);
+  align-items: center; column-gap: 10px;
+  padding: 2px 0;
+}
+.riel-ahora-hora {
+  text-align: right;
+  font-size: 11.5px; font-weight: 700; color: var(--nexus);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.05em;
+}
+.riel-ahora-punto { position: relative; height: 10px; }
+.riel-ahora-punto::before {
+  content: '';
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--nexus-solido);
+}
+.riel-ahora-linea { height: 2px; border-radius: 1px; background: var(--nexus-solido); opacity: 0.75; }
+
+/* Filtro como renglón de texto, no sopa de chips (Visual DNA §6 defecto 3). */
+.riel-filtros {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  font-size: 13px; color: var(--text3);
+}
+.riel-filtro {
+  background: none; border: none; padding: 4px 0; cursor: pointer;
+  font-size: 13px; color: var(--text2); font-family: inherit;
+  border-bottom: 2px solid transparent;
+  min-height: 30px;
+}
+.riel-filtro[aria-pressed='true'] {
+  color: var(--nexus); border-bottom-color: var(--nexus-solido); font-weight: 600;
+}
+.riel-filtro:hover { color: var(--text); }
+.riel-filtro .riel-filtro-n { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* El cierre del riel: continuidad hacia mañana, en el mismo tono callado. */
+.riel-cierre {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 0 0 calc(var(--riel-tiempo, 64px) + 34px);
+  font-size: 12.5px; color: var(--text3);
+}
+
+/* El selector de estados habla el idioma del renglón de filtros, no el del
+   sistema operativo: sin caja, subrayado al activarse (P2.6). */
+select.riel-filtro-select {
+  appearance: none; -webkit-appearance: none;
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text2); font-size: 13px; font-family: inherit;
+  padding: 4px 16px 4px 0; min-height: 30px; cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888da0' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 2px center;
+}
+select.riel-filtro-select[data-activo='true'] {
+  color: var(--nexus); border-bottom-color: var(--nexus-solido); font-weight: 600;
+}
+select.riel-filtro-select:hover { color: var(--text); }
+select.riel-filtro-select option { background: var(--s1); color: var(--text); }
+
+/* El selector de fecha nativo se opera desde un botón con nombre; el input
+   vive oculto pero enfocable (es-MX no debe ver «08/09/2026»). */
+.riel-fecha-input {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Móvil: la MISMA gramática, apilada. El riel no desaparece — es la firma. */
+@media (max-width: 640px) {
+  .riel::before { left: calc(var(--riel-tiempo-m, 44px) + 10px + 11px); }
+  .riel-entrada {
+    grid-template-columns: var(--riel-tiempo-m, 44px) 24px minmax(0, 1fr);
+    grid-template-areas:
+      'tiempo nodo cuerpo'
+      '.      .    accion';
+    row-gap: 8px;
+  }
+  .riel-ahora { grid-template-columns: var(--riel-tiempo-m, 44px) 24px minmax(0, 1fr); }
+  .riel-hora { font-size: 13px; }
+  .riel-accion { justify-content: flex-start; flex-wrap: wrap; padding-top: 0; }
+  .riel-cierre { padding-left: calc(var(--riel-tiempo-m, 44px) + 34px); }
+  /* La búsqueda a todo el ancho: el hueco asimétrico del renglón de filtros
+     a 390 lo cazó la revisión independiente (P2.4). */
+  .riel-buscar { flex: 1 1 100% !important; max-width: none !important; margin-left: 0 !important; }
+}
+
+/* Nombre del médico junto al paciente — SOLO cuando hay más de un médico.
+   Texto, no píldora: el color del médico ya distingue (tono del filtro). */
+.riel-medico { font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; }
+
+/* Aviso operativo compacto (calendario descuadrado, riesgo de no-show).
+   Es la ÚNICA forma-píldora permitida en el riel: señal que pide acción. */
+.riel-aviso {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700;
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber);
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  padding: 2px 7px; border-radius: var(--r-pill);
+  cursor: pointer; font-family: inherit;
+}
+.riel-aviso:disabled { cursor: wait; }
+span.riel-aviso { cursor: default; }
+
+/* El menú de la entrada: todas las acciones secundarias + estados. */
+.riel-menu {
+  position: absolute; right: 0; top: calc(100% - 8px); z-index: 20;
+  background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+  padding: 6px; min-width: 220px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.riel-menu-titulo {
+  font-size: 11px; color: var(--text3); padding: 6px 10px 4px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.riel-menu-item {
+  display: flex; align-items: center; gap: 7px;
+  width: 100%; text-align: left;
+  padding: 7px 10px; border-radius: 6px; border: none; cursor: pointer;
+  font-size: 13px; color: var(--text2); background: transparent;
+  font-family: inherit; transition: background 0.1s;
+}
+.riel-menu-item:hover { background: var(--s2); }
+.riel-menu-peligro { color: var(--red); }
+.riel-menu-sep { height: 1px; background: var(--border); margin: 6px 0; }
+.riel-menu-nota { padding: 7px 10px; font-size: 11.5px; color: var(--text3); line-height: 1.5; }

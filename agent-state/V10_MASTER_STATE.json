@@ -1,0 +1,97 @@
+{
+  "programa": "V10 — Visual Excellence + Clinical Interaction Master Loop",
+  "directiva": "docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md",
+  "sha256Directiva": "885ea176a789b31a910bbc6b62b997579bf4b5011470ee7e27e0c5a82e78121f",
+  "lineasDirectiva": 828,
+  "instaladoEl": "2026-08-09",
+  "ramaCanonica": "claude/nexus-visual-excellence-v10",
+  "ramasDeSesion": {
+    "nota": "Cada sesión cloud sólo puede empujar a su rama configurada (V10 §3). La historia V10 se encadena: cada corrida arranca de la punta más adelantada.",
+    "corridas": [
+      {
+        "fecha": "2026-08-09",
+        "rama": "claude/nexus-visual-excellence-v10",
+        "trabajo": "instalación V10 + arranque TRUTH-001"
+      },
+      {
+        "fecha": "2026-08-09-tarde",
+        "rama": "claude/kind-brahmagupta-exbp9m",
+        "trabajo": "arnés de capturas completo + scorecard + línea base a11y"
+      },
+      {
+        "fecha": "2026-08-09-noche",
+        "rama": "claude/kind-brahmagupta-2yxowl",
+        "trabajo": "cierre de TRUTH-001 (salidas 4, 7, 12, 14, 15 completas) + reparación de los 4 axe critical del flujo con guardián"
+      },
+      {
+        "fecha": "2026-08-09-madrugada-2",
+        "rama": "claude/kind-brahmagupta-rms50y",
+        "trabajo": "V10-NOTE-001 quick-strike: DEBT-008 (borrador inconfundible + contraste papel) y DEBT-009 (barra móvil) cerrados con guardián y verificación en navegador"
+      },
+      {
+        "fecha": "2026-08-09-madrugada-3",
+        "rama": "claude/kind-brahmagupta-ysxb6q",
+        "trabajo": "V10-DEBT-006 quick-strike (mitad expediente): CTA primario primero en móvil con rejilla exp-actions, guardián probado al revés, capturas + axe re-verificados. De paso: el trinquete de escala volvió a verde (fontSize: 25 suelto de /cumplimiento/motores → t-h1; lo introdujo v1163 en main)"
+      },
+      {
+        "fecha": "2026-08-09-tarde-2",
+        "rama": "claude/kind-brahmagupta-iurzog",
+        "trabajo": "paralela a la cadena (no la vio): arnés propio scripts/design/arnes-capturas-v10.sh sobre build de producción, scorecard con revisor INDEPENDIENTE (§40), backlog con 24 hallazgos, arreglo V10-SAFETY-ALERGIAS-WORDING con guardián, candado demo-* en firebase.ts con guardián, línea base axe propia (71 nodos)"
+      },
+      {
+        "fecha": "2026-08-09",
+        "rama": "claude/nexus-visual-excellence-v10",
+        "trabajo": "HOME-001 (sesión local del dueño): /dashboard deja de ser tablero — orden §14, sin KPI, sin accesos rápidos, móvil primero"
+      },
+      {
+        "fecha": "2026-08-09-tarde-3",
+        "rama": "claude/kind-brahmagupta-40oom1",
+        "trabajo": "RECONCILIACIÓN: las tres líneas fusionadas en una; estado cruzado (HOME-001 cierra 2 hallazgos de iurzog, DEBT-005 cierra 1, alergias cerrado); trinquete de diseño BAJA a 560/2020/637 medido sobre la fusión; c51p2n y 9xajvg superadas"
+      }
+    ]
+  },
+  "iteracionActual": "V10-CONSTITUTION-001 (DEBT-001/002, desbloqueada por V10-D1) — con re-captura pendiente de /dashboard (HOME-001) y nota--* para cerrar evidencia",
+  "iteracionesCerradas": [
+    "V10-TRUTH-001 (2026-08-09 noche)"
+  ],
+  "estadoV10Complete": false,
+  "baseDeVerdad": {
+    "shaMainAlInstalar": "0144257",
+    "nota": "Si los estados discrepan, gana: implementación → pruebas → evidencia visual → historia Git → estado validado más nuevo → planes viejos (V10 §3)."
+  },
+  "herenciaV9": {
+    "cerradoEnMain": [
+      "PATIENT-UX-TRUTH-001 (639ca73, sellado 6a6501d)",
+      "los tres P0 de audio (d22fbfd, REG-287)"
+    ],
+    "cerradoEnRamaV9SinFusionar": [],
+    "ramaV9": "FUSIONADA a main el 9-ago-2026 (PR #279, 56d9fc7); REG de V9 renumeradas a 294…305",
+    "regla": "V10-D1 ejecutada: todo el trabajo V9 está en main. Las unidades V10 de sistema de diseño/navegación/compañero construyen SOBRE lo fusionado, sin rehacerlo."
+  },
+  "documentosValidadosPreexistentes": {
+    "inventarioPantallas": "docs/design/SCREEN_INVENTORY.md (GENERADO por scripts/design/inventario-de-pantallas.mjs — no editar a mano)",
+    "auditoriaCaraIA": "docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
+    "auditoriaNavegacion": "docs/design/NAVIGATION_STATE_AUDIT.md",
+    "auditoriaProducto": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md",
+    "sistemaDeDiseno": "docs/DESIGN_SYSTEM.md (fuente de verdad visual hoy)",
+    "matricesCompetitivas": "docs/competitive/UX_UI_MATRIX.md · docs/competitive/PATIENT_EXPERIENCE_MATRIX.md · docs/competitive/EL-FOSO.md"
+  },
+  "puntaReconciliada": "claude/kind-brahmagupta-ajtolc (10-ago-2026): fusión de 40oom1 (que ya unía ysxb6q + iurzog + HOME-001) + la corrida nocturna 9r4m7a (REG-307/308, v1169). LA SIGUIENTE CORRIDA ARRANCA DE AQUÍ — y ANTES de trabajar, escanea las ramas hermanas claude/kind-brahmagupta-* por si otra corrida avanzó después.",
+  "ramasSuperadas": {
+    "claude/kind-brahmagupta-c51p2n": "duplicado paralelo de TRUTH-001 (capturas+scorecard sobre base vieja) — su sustancia está cubierta por la cadena e iurzog",
+    "claude/kind-brahmagupta-9xajvg": "acta de bloqueo errónea (la directiva sí existía)",
+    "claude/kind-brahmagupta-gu7h9g": "arnés duplicado; su continuación es i2uo2j",
+    "claude/kind-brahmagupta-i2uo2j": "arnés duplicado + 14/14 vistas puntuadas; su arreglo de hidratación se portó a la línea reconciliada, sus puntuaciones quedaron absorbidas en el scorecard",
+    "claude/kind-brahmagupta-397pqw": "reinicio de TRUTH desde main sin ver la canónica",
+    "claude/kind-brahmagupta-4tkrhu": "reinicio de TRUTH desde main sin ver la canónica",
+    "claude/kind-brahmagupta-dwmunz": "cuarto arnés duplicado",
+    "claude/kind-brahmagupta-ake878": "auditoría de superficie pública desde main — cubierta por el golden flow autenticado",
+    "claude/kind-brahmagupta-bttia7": "auditoría pública + mismo arreglo de hidratación (portado)"
+  },
+  "arnesDeCapturas": {
+    "estado": "operativo (9-ago-2026) — TRES arneses en el repo, consolidar en V10-VISUAL-REGRESSION-001",
+    "canonico": "scripts/design/arnes-capturas-v10.sh (build de producción + revisor independiente)",
+    "recetaNocturna": "docs/design/capturas/v10-truth/README.md",
+    "primerosHallazgos": "REG-307, REG-308 (v1169) — reparados y verificados re-capturando"
+  }
+}

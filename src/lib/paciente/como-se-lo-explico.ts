@@ -7,7 +7,7 @@
  * 80 idiomas»). Nabla las tiene —de hecho es lo ÚNICO que traduce al idioma del
  * paciente, porque la nota clínica la deja en inglés «per U.S. regulations»—.
  *
- * NexusMED no las tenía. El paciente salía del consultorio con una receta y con
+ * Ausculta no las tenía. El paciente salía del consultorio con una receta y con
  * lo que hubiera retenido de la conversación.
  *
  * ── LA DIFERENCIA DE FONDO CON ELLOS ────────────────────────────────────────
@@ -169,7 +169,7 @@ export function comoTexto(bloques: readonly BloqueInstrucciones[]): string {
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
- * LA COMPUERTA DE FIRMA — REG-306.
+ * LA COMPUERTA DE FIRMA — REG-309.
  *
  * La cabecera de este módulo lleva desde REG-242 afirmando que cada línea sale
  * de un campo que el médico «ya revisó y firmó». Era **intención de diseño, no

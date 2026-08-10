@@ -5,8 +5,8 @@ import { catalogoEfectivo, type CatalogoGuardado } from '@/lib/finanzas/catalogo
 import { TablaNivelesIA } from '@/components/TablaNivelesIA'
 
 export const metadata = {
-  title: 'Precios · NexusMED',
-  description: 'Planes de NexusMED por créditos: agenda, notas clínicas con IA, evidencia con citas y revisión de seguridad clínica. Precios en pesos.',
+  title: 'Precios · Ausculta',
+  description: 'Planes de Ausculta por créditos: agenda, notas clínicas con IA, evidencia con citas y revisión de seguridad clínica. Precios en pesos.',
 }
 
 function Check() {

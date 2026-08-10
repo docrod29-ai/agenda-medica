@@ -1,5 +1,5 @@
 /**
- * EL PORTAL DEL PACIENTE TIENE LÍMITE DE TASA — REG-307 (V7 · PATIENT-PORTAL-001).
+ * EL PORTAL DEL PACIENTE TIENE LÍMITE DE TASA — REG-310 (V7 · PATIENT-PORTAL-001).
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *

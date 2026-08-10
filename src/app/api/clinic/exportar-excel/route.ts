@@ -178,7 +178,7 @@ export async function GET(req: NextRequest) {
   return new Response(new Uint8Array(libro), {
     headers: {
       'Content-Type': TIPO_MIME_XLSX,
-      'Content-Disposition': `attachment; filename="nexusmed_${new Date().toISOString().slice(0, 10)}.xlsx"`,
+      'Content-Disposition': `attachment; filename="ausculta_${new Date().toISOString().slice(0, 10)}.xlsx"`,
       'Cache-Control': 'no-store',
     },
   })

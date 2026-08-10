@@ -87,7 +87,7 @@ export default function PacientesPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `respaldo_nexusmed_${new Date().toISOString().slice(0, 10)}.ndjson`
+      a.download = `respaldo_ausculta_${new Date().toISOString().slice(0, 10)}.ndjson`
       a.click()
       URL.revokeObjectURL(url)
       toast('Respaldo descargado. La última línea del archivo dice si quedó completo y qué faltó.', 'success')
@@ -441,7 +441,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
         <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
           {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
-          {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3d5afe', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}
+          {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--nexus)', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}
         </div>
       </div>
       {(p.noShowCount > 0 || p.cancelacionCount > 0) && (

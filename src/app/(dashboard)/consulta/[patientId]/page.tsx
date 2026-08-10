@@ -3885,7 +3885,14 @@ export default function ConsultaActivaPage() {
             void logAudit({ evento: 'paciente_modificado', clinicId, patientId, meta: { campo: 'alergias', antes, despues, vaciado: !despues.trim() && !!antes.trim() } })
             alergiasAlAbrir.current = despues
           }}
-          placeholder="Sin alergias conocidas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
+          // «No registradas», nunca «Sin alergias conocidas»: el campo vacío
+          // significa que NADIE preguntó todavía, no que el paciente niegue.
+          // «Sin alergias conocidas» es además una frase de NEGACIÓN del
+          // vocabulario clínico (alergias-negacion.test.ts): sólo puede
+          // escribirla el médico como dato, no el placeholder como adorno.
+          // Regla 4 de clinical-safety: ausencia de dato no es dato de ausencia.
+          // Guardián: alergias-placeholder-no-afirma.test.ts
+          placeholder="No registradas — escribe aquí si hay (penicilina, AINEs, sulfas…)"
           disabled={firmada}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />
@@ -4011,7 +4018,7 @@ export default function ConsultaActivaPage() {
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--text2)' }}>
-          <BedDouble size={15} style={{ color: '#3d5afe', flexShrink: 0 }} />
+          <BedDouble size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
       )}
@@ -5195,7 +5202,7 @@ export default function ConsultaActivaPage() {
         aparecería ahí también.
       */}
       {/*
-        Y NO SE ENTREGA HASTA QUE ESTÉ FIRMADA (REG-306).
+        Y NO SE ENTREGA HASTA QUE ESTÉ FIRMADA (REG-309).
 
         Se sigue ENSEÑANDO sin firmar —el médico necesita ver qué se está
         componiendo mientras dicta—, pero copiar e imprimir quedan cerrados y
@@ -5415,7 +5422,10 @@ export default function ConsultaActivaPage() {
       {/* ── Secciones narrativas ── */}
       {secciones.map((s, i) => (
         <Section key={s.key} title={s.label} obligatorio={s.obligatorio}>
+          {/* El título del Section es visual, no está asociado: sin aria-label el
+              lector de pantalla dice «edición de texto» a secas (axe: label, critical). */}
           <textarea
+            aria-label={s.label}
             value={s.value}
             onChange={e => {
               // Se anota que el médico ESCRIBIÓ. Lo usa la re-proyección con voces

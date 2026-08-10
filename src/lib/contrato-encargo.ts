@@ -1,7 +1,7 @@
 /**
  * Generador del Contrato de Encargo de Tratamiento de Datos Personales
  * (Art. 49-55 del Reglamento de la LFPDPPP): entre el CONSULTORIO (Responsable)
- * y NexusMED (Encargado). Plantilla parametrizada con los datos del consultorio.
+ * y Ausculta (Encargado). Plantilla parametrizada con los datos del consultorio.
  *
  * IMPORTANTE: es un BORRADOR base. Debe revisarse por un abogado antes de firmarse.
  */
@@ -21,7 +21,7 @@ export function generarContratoEncargo(config: ClinicConfig | null): string {
 Versión: ${VERSION_CONTRATO}
 
 Entre "${responsable}" (RFC ${rfc}), con domicilio en ${domicilio}, en adelante el
-"RESPONSABLE", y NexusMED, en adelante el "ENCARGADO", se celebra el presente contrato
+"RESPONSABLE", y Ausculta, en adelante el "ENCARGADO", se celebra el presente contrato
 de prestación de servicios de tratamiento de datos personales, conforme a los artículos
 49 a 55 del Reglamento de la Ley Federal de Protección de Datos Personales en Posesión de
 los Particulares (LFPDPPP).
@@ -89,7 +89,7 @@ Este contrato tiene vigencia mientras subsista la relación de servicio. Se rige
 legislación mexicana aplicable en materia de protección de datos personales.
 
 ___________________________________        ___________________________________
-Por el RESPONSABLE                          Por el ENCARGADO (NexusMED)
+Por el RESPONSABLE                          Por el ENCARGADO (Ausculta)
 ${responsable}
 Fecha: ____________________                 Fecha: ____________________
 

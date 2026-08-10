@@ -4,7 +4,7 @@
  *
  * ── EL HUECO, DE LA INVESTIGACIÓN DEL MERCADO ───────────────────────────────
  *
- * Suki y Nabla tienen instrucciones para el paciente. NexusMED no. El paciente
+ * Suki y Nabla tienen instrucciones para el paciente. Ausculta no. El paciente
  * salía con una receta y con lo que hubiera retenido de la conversación.
  *
  * ── LA DIFERENCIA CON ELLOS ─────────────────────────────────────────────────
@@ -13,7 +13,7 @@
  * ya revisó y firmó — el motor está en `lib/paciente/como-se-lo-explico.ts` y
  * es determinista.
  *
- * ── Y «FIRMÓ» ES AHORA UNA PRECONDICIÓN, NO UNA INTENCIÓN (REG-306) ─────────
+ * ── Y «FIRMÓ» ES AHORA UNA PRECONDICIÓN, NO UNA INTENCIÓN (REG-309) ─────────
  *
  * Esa frase de arriba llevaba desde REG-242 siendo una declaración de propósito
  * que nada comprobaba: la hoja se componía del borrador EN CURSO y se podía
@@ -41,7 +41,7 @@ export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
   /**
-   * ¿Está firmada la nota de la que sale esta hoja? — REG-306.
+   * ¿Está firmada la nota de la que sale esta hoja? — REG-309.
    *
    * OBLIGATORIA a propósito. Si fuera opcional, un sitio de llamada nuevo la
    * olvidaría y la hoja volvería a ser entregable desde un borrador sin que

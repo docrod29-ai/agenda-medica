@@ -1668,7 +1668,7 @@ function MedicosTab() {
  * de una subida de tarifa — y quien lo descubre es él, comparando con su recibo.
  */
 const COLOR_PLAN: Record<string, string> = {
-  trial: 'var(--amber)', agenda: '#60a5fa', clinica: '#3D5AFE', premium: '#a78bfa', hospital: '#7c5cd6',
+  trial: 'var(--amber)', agenda: '#60a5fa', clinica: 'var(--nexus)', premium: '#a78bfa', hospital: '#7c5cd6',
 }
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
   trial: { label: 'Prueba gratuita', color: COLOR_PLAN.trial, price: '$0 MXN/mes' },
@@ -1767,7 +1767,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{planInfo.label}</span>
             <span style={{
               fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)',
-              background: status === 'active' ? 'rgba(61,90,254,0.12)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
+              background: status === 'active' ? 'var(--nexus-soft)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
               color: status === 'active' ? 'var(--teal)' : '#f59e0b',
               border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
             }}>
@@ -1967,7 +1967,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
       {/* Aviso: aquí también se agrega al equipo hospitalario */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'rgba(61,90,254,.08)', border: '1px solid rgba(61,90,254,.3)' }}>
-        <BedDouble size={18} style={{ color: '#3d5afe', flexShrink: 0, marginTop: 1 }} />
+        <BedDouble size={18} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
           Aquí agregas a <strong>todo tu equipo</strong> (asistentes, médicos, enfermería, farmacia, laboratorio) para que
           cada quien entre con su usuario. <strong>Cuando invitas a un Médico, su agenda se crea sola</strong> al aceptar —
