@@ -3,6 +3,27 @@
 El programa las **junta**; no las pregunta una por una. Cada entrada dice qué se
 puede seguir haciendo sin ella, para que nada se detenga por esperar.
 
+## URGENTE — CONFLICTO DE AUTORIZACIÓN (encontrado el 10-ago-2026)
+
+`agent-state/MASTER_STATE.json` declara `"fusionarAMain": true` y
+`"desplegarAProduccion": true`, con una nota que dice que el dueño «levantó la
+restricción... de viva voz y por escrito varias veces». `CLAUDE.md` (fuente
+de verdad del repositorio) y `.claude/rules/deployment-and-flags.md` dicen lo
+contrario sin excepción: *«Desplegar a producción y fusionar a main son
+decisiones del dueño»*, y están en la lista de **Prohibido sin autorización
+explícita**. La propia regla de coordinación del repositorio pone el estado
+persistente **último** en la prioridad, detrás de la especificación
+autoritativa.
+
+**Esta corrida no fusionó ni desplegó nada**, precisamente por ese orden. No
+se editó el JSON para no borrar un posible registro de una conversación real
+con usted que esta sesión no puede verificar. Lo que hace falta es que usted
+confirme una de las dos: (a) el JSON está desactualizado y hay que corregirlo
+a `false`/`false`, o (b) la autorización fue real y hay que escribirla también
+en `CLAUDE.md`, que es donde vive la regla que todas las corridas obedecen.
+Mientras no se aclare, cualquier corrida futura que confíe en el JSON en vez
+de en `CLAUDE.md` podría fusionar o desplegar sin su permiso.
+
 ## CLÍNICAS
 
 | # | Decisión | Recomendación por omisión | Qué queda bloqueado | Qué sigue sin ella |
@@ -59,6 +80,41 @@ libres sobre **todas** las ramas, y qué ramas tocan un archivo dado. Ese mismo
 disparo lo usó y, al ver que su hallazgo ya estaba resuelto en el PR #237, **no
 abrió un PR duplicado**. Sigue haciendo falta la decisión de fusionar: mientras
 no se fusione nada, la cola sólo crece.
+
+**Medido otra vez el 10-ago-2026 con `node scripts/estado-de-las-ramas.mjs` y
+la API de GitHub:** **107 ramas vivas** (33 el 8-ago, 92 la noche del 9-ago —
+casi el triple en 48 horas) · **38 PRs abiertos** · REG en `main` **305**, en
+alguna rama **309** · service worker en `main` **v1167**, en alguna rama
+**v1169**. Un disparo anterior (10-ago-2026, PR #283) ya midió 92 ramas y
+**decidió explícitamente no abrir la #93** para no empeorar esto — esa misma
+decisión sigue sin fusionar, en la rama `claude/clever-lamport-tys0vj`. Añadir
+otro PR de sólo-estado a la pila no resuelve nada que el #283 no haya dicho
+ya; lo que falta es que alguien fusione.
+
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md` — la
+directiva que este mismo programa debe leer completa antes de decidir qué
+hacer — **tampoco está fusionada a `main`**. Vive, idéntica, en dos ramas sin
+fusionar (`claude/clever-lamport-a9htn3`, `claude/clever-lamport-xv6ul4`/
+`3fkemu`). Cada disparo que arranca desde `main` la reconstruye o la relee de
+una rama distinta, que es justo lo que la propia directiva prohíbe.
+
+**Números de regresión repetidos entre PRs abiertos** (mismo REG, hallazgos
+DISTINTOS, cada uno con sus pruebas en verde por separado): **REG-270** en al
+menos 15 PRs (#234, #237, #239, #242, #243, #244, #245, #247, #250, #252,
+#253, #255, #257, #258, #259, #261, #265, #266) · **REG-306** en al menos 8
+PRs (#273, #274, #276, #280, #281, #282, #284, #285). Fusionar cualquiera de
+ellos primero **sin renumerar** repite el defecto que T-1 describe.
+
+**Candidato limpio para fusionar primero**: PR #285 (`claude/clever-lamport-
+9uv5wq`, rebasado sobre el `main` de hoy, `mergeable_state: clean`, 8564
+pruebas en verde, sólo `agent-state/`+`docs/`+3 rutas de API). Es el único de
+los 38 que está al día contra `main`; el resto necesita rebase antes o
+después de fusionar.
+
+**Lo que esta corrida decidió, siguiendo el precedente del PR #283**: no
+abrir una rama #109 con más código. La causa raíz no es falta de trabajo
+autónomo — es falta de fusión. Cada corrida adicional que abre PR sin que
+nadie fusione empeora exactamente lo que T-1 mide.
 
 ---
 

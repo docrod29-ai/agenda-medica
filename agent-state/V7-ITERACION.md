@@ -1,5 +1,12 @@
 # MASTER LOOP V7 — tablero propio
 
+> **10-ago-2026 — esta corrida no abrió PR de código.** 107 ramas vivas / 38
+> PRs abiertos (script `scripts/estado-de-las-ramas.mjs`); el bloqueador real
+> ya no es trabajo pendiente sino fusión pendiente. Detalle completo, con el
+> candidato limpio para fusionar primero, en `OWNER_DECISIONS_REQUIRED.md`
+> (T-1) y el conflicto de autorización encontrado en `MASTER_STATE.json` en
+> la sección «URGENTE — CONFLICTO DE AUTORIZACIÓN» del mismo archivo.
+
 > **Separado de V9 el 8-ago-2026.** Los dos programas compartían
 > `CURRENT_ITERATION.md` y se pisaban: V9 reescribió la cabecera mientras V7
 > trabajaba. Ahora cada uno tiene el suyo.
