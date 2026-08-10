@@ -1925,3 +1925,251 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   .btn, .btn-icon { min-height: 44px !important; }
   .btn-icon { min-width: 44px !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EL RIEL DEL DÍA — firma NexusMED nº1 (Visual DNA R1, AGENDA-IDENTITY-001).
+
+   La agenda no es una tabla con botones: es una LÍNEA DE TIEMPO vertical de
+   la que cuelgan los encuentros, con el MOMENTO ACTUAL siempre visible como
+   una línea cobalto. El nodo sobre el riel (○ por venir · ● en curso con
+   anillo · ● tenue hecho) es el motivo simbólico del producto: el momento
+   presente sobre la continuidad del cuidado.
+
+   Reglas que este bloque implementa y el guardián vigila:
+   R1 riel + marcador de AHORA · R2 UNA acción primaria por entrada, estado
+   como tipografía (.nx-estado), no píldora · R3 identidad tipográfica sin
+   avatar-círculo ni tarjeta por entrada.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.riel { position: relative; }
+/* La línea continua del día. Cruza TODAS las entradas: es una sola, no un
+   borde por fila — por eso vive en el contenedor. */
+.riel::before {
+  content: '';
+  position: absolute; top: 6px; bottom: 6px;
+  /* centro de la columna del nodo: ancho de tiempo + gap + mitad de 24px */
+  left: calc(var(--riel-tiempo, 64px) + 10px + 11px);
+  width: 2px; border-radius: 1px;
+  background: var(--border);
+}
+
+.riel-entrada {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--riel-tiempo, 64px) 24px minmax(0, 1fr) auto;
+  grid-template-areas: 'tiempo nodo cuerpo accion';
+  align-items: start;
+  column-gap: 10px;
+  padding: 14px 0;
+}
+.riel-entrada + .riel-entrada { border-top: none; } /* el riel separa; no hay cajas */
+
+.riel-tiempo { grid-area: tiempo; text-align: right; padding-top: 1px; }
+.riel-hora {
+  display: block;
+  font-size: 14px; font-weight: 600; color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+.riel-dur { display: block; font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+
+/* El nodo: un círculo centrado sobre la línea. Su estado ES el dibujo. */
+.riel-nodo { grid-area: nodo; position: relative; height: 100%; }
+.riel-nodo::before {
+  content: '';
+  position: absolute; left: 50%; top: 5px; transform: translateX(-50%);
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--text3);
+}
+.riel-entrada[data-momento='hecho'] .riel-nodo::before {
+  background: var(--text3); border-color: var(--text3);
+}
+.riel-entrada[data-momento='ahora'] .riel-nodo::before {
+  background: var(--nexus-solido); border-color: var(--nexus-solido);
+  /* El anillo del momento presente: visible, no decorativo (P3.11). */
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px color-mix(in srgb, var(--nexus-solido) 55%, transparent);
+}
+/* En sala de espera: el paciente YA está aquí pero el encuentro no empezó —
+   hueco cobalto, a medio camino entre «por venir» y «en curso». */
+.riel-entrada[data-momento='espera'] .riel-nodo::before {
+  background: var(--bg); border-color: var(--nexus-solido);
+}
+.riel-entrada[data-momento='cerrado'] .riel-nodo::before {
+  background: var(--bg); border-color: var(--border);
+}
+/* Lo pasado y lo cerrado se ATENÚAN POR TOKEN, no por opacity: bajar la
+   opacidad del texto ya atenuado (--text3, 12.5px) lo tiraba bajo 4.5:1 —
+   lo midió axe en la primera captura del riel. La jerarquía la dan el peso
+   y el tono del nombre; la letra pequeña nunca baja de su token AA. */
+.riel-entrada[data-momento='hecho'] .riel-nombre,
+.riel-entrada[data-momento='hecho'] .riel-hora { color: var(--text2); font-weight: 500; }
+.riel-entrada[data-momento='cerrado'] .riel-nombre,
+.riel-entrada[data-momento='cerrado'] .riel-hora { color: var(--text2); font-weight: 500; }
+.riel-entrada[data-momento='cerrado'] .riel-nombre { text-decoration: line-through; text-decoration-color: var(--text3); }
+
+.riel-cuerpo { grid-area: cuerpo; min-width: 0; }
+/* R3: la identidad del paciente es tipográfica. Sin avatar, sin caja. */
+.riel-nombre {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  line-height: 1.35; overflow-wrap: anywhere;
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.riel-meta {
+  font-size: 12.5px; color: var(--text3); margin-top: 2px;
+  overflow-wrap: anywhere; line-height: 1.5;
+}
+/* El icono del tipo fluye CON el texto: en flex, un motivo largo que envuelve
+   dejaba al icono huérfano en su propia línea (visto en la captura 390). */
+.riel-meta > svg { display: inline-block; vertical-align: -2px; margin-right: 5px; }
+.riel-estado-linea {
+  margin-top: 5px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+
+/* Estado como tipografía: punto del tono semántico + versalitas. La píldora
+   queda RESERVADA a riesgo clínico/operativo (no-show alto, descuadre). */
+.nx-estado {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text2);
+}
+.nx-estado::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--estado-tono, var(--text3));
+}
+
+.riel-accion {
+  grid-area: accion;
+  display: flex; align-items: center; gap: 4px;
+  padding-top: 2px;
+}
+
+/* EL MARCADOR DE AHORA — la línea del momento actual, de riel a borde. */
+.riel-ahora {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--riel-tiempo, 64px) 24px minmax(0, 1fr);
+  align-items: center; column-gap: 10px;
+  padding: 2px 0;
+}
+.riel-ahora-hora {
+  text-align: right;
+  font-size: 11.5px; font-weight: 700; color: var(--nexus);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.05em;
+}
+.riel-ahora-punto { position: relative; height: 10px; }
+.riel-ahora-punto::before {
+  content: '';
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--nexus-solido);
+}
+.riel-ahora-linea { height: 2px; border-radius: 1px; background: var(--nexus-solido); opacity: 0.75; }
+
+/* Filtro como renglón de texto, no sopa de chips (Visual DNA §6 defecto 3). */
+.riel-filtros {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  font-size: 13px; color: var(--text3);
+}
+.riel-filtro {
+  background: none; border: none; padding: 4px 0; cursor: pointer;
+  font-size: 13px; color: var(--text2); font-family: inherit;
+  border-bottom: 2px solid transparent;
+  min-height: 30px;
+}
+.riel-filtro[aria-pressed='true'] {
+  color: var(--nexus); border-bottom-color: var(--nexus-solido); font-weight: 600;
+}
+.riel-filtro:hover { color: var(--text); }
+.riel-filtro .riel-filtro-n { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* El cierre del riel: continuidad hacia mañana, en el mismo tono callado. */
+.riel-cierre {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 0 0 calc(var(--riel-tiempo, 64px) + 34px);
+  font-size: 12.5px; color: var(--text3);
+}
+
+/* El selector de estados habla el idioma del renglón de filtros, no el del
+   sistema operativo: sin caja, subrayado al activarse (P2.6). */
+select.riel-filtro-select {
+  appearance: none; -webkit-appearance: none;
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text2); font-size: 13px; font-family: inherit;
+  padding: 4px 16px 4px 0; min-height: 30px; cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888da0' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 2px center;
+}
+select.riel-filtro-select[data-activo='true'] {
+  color: var(--nexus); border-bottom-color: var(--nexus-solido); font-weight: 600;
+}
+select.riel-filtro-select:hover { color: var(--text); }
+select.riel-filtro-select option { background: var(--s1); color: var(--text); }
+
+/* El selector de fecha nativo se opera desde un botón con nombre; el input
+   vive oculto pero enfocable (es-MX no debe ver «08/09/2026»). */
+.riel-fecha-input {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Móvil: la MISMA gramática, apilada. El riel no desaparece — es la firma. */
+@media (max-width: 640px) {
+  .riel::before { left: calc(var(--riel-tiempo-m, 44px) + 10px + 11px); }
+  .riel-entrada {
+    grid-template-columns: var(--riel-tiempo-m, 44px) 24px minmax(0, 1fr);
+    grid-template-areas:
+      'tiempo nodo cuerpo'
+      '.      .    accion';
+    row-gap: 8px;
+  }
+  .riel-ahora { grid-template-columns: var(--riel-tiempo-m, 44px) 24px minmax(0, 1fr); }
+  .riel-hora { font-size: 13px; }
+  .riel-accion { justify-content: flex-start; flex-wrap: wrap; padding-top: 0; }
+  .riel-cierre { padding-left: calc(var(--riel-tiempo-m, 44px) + 34px); }
+  /* La búsqueda a todo el ancho: el hueco asimétrico del renglón de filtros
+     a 390 lo cazó la revisión independiente (P2.4). */
+  .riel-buscar { flex: 1 1 100% !important; max-width: none !important; margin-left: 0 !important; }
+}
+
+/* Nombre del médico junto al paciente — SOLO cuando hay más de un médico.
+   Texto, no píldora: el color del médico ya distingue (tono del filtro). */
+.riel-medico { font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; }
+
+/* Aviso operativo compacto (calendario descuadrado, riesgo de no-show).
+   Es la ÚNICA forma-píldora permitida en el riel: señal que pide acción. */
+.riel-aviso {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700;
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber);
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  padding: 2px 7px; border-radius: var(--r-pill);
+  cursor: pointer; font-family: inherit;
+}
+.riel-aviso:disabled { cursor: wait; }
+span.riel-aviso { cursor: default; }
+
+/* El menú de la entrada: todas las acciones secundarias + estados. */
+.riel-menu {
+  position: absolute; right: 0; top: calc(100% - 8px); z-index: 20;
+  background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+  padding: 6px; min-width: 220px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.riel-menu-titulo {
+  font-size: 11px; color: var(--text3); padding: 6px 10px 4px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.riel-menu-item {
+  display: flex; align-items: center; gap: 7px;
+  width: 100%; text-align: left;
+  padding: 7px 10px; border-radius: 6px; border: none; cursor: pointer;
+  font-size: 13px; color: var(--text2); background: transparent;
+  font-family: inherit; transition: background 0.1s;
+}
+.riel-menu-item:hover { background: var(--s2); }
+.riel-menu-peligro { color: var(--red); }
+.riel-menu-sep { height: 1px; background: var(--border); margin: 6px 0; }
+.riel-menu-nota { padding: 7px 10px; font-size: 11.5px; color: var(--text3); line-height: 1.5; }

@@ -60,45 +60,22 @@ sobre la línea fusionada ANTES de empujar.
 
 ## Próxima acción exacta (siguiente corrida)
 
-1. **`V10-DEBT-003` (P0, adoptado de V10-CITAS-001)**: la fila de `/citas` a
-   390 px — botones pintados ENCIMA del texto (evidencia `citas--mobile.png` y
-   `agenda--390.png`). Misma cirugía que HOME-001: decidir qué sobra de la
-   fila (muro de 4 CTA × 3 colores, filtro duplicado, badge del propio médico,
-   teléfono en cada fila) y hacerla apilable. Re-capturar y re-puntuar al
-   cerrar.
-2. **`V10-A11Y-001` segunda tanda** (la primera cerró en DEBT-005): nombre del
-   FAB de luna/tema (todas las pantallas), kebab/lápiz de citas y calendario,
-   `nested-interactive` de pacientes/calendario, contrastes «Registrar cobro»
-   y ranuras.
-3. **Re-captura y puntuación independiente** de `/dashboard` (HOME-001) y
-   `nota--*` sobre la línea fusionada — cierra la evidencia de las unidades ya
-   implementadas y estrena el promedio vigente del scorecard.
-4. **`V10-CONSTITUTION-001`** (DEBT-001/002, sin candado): tokens/utilidades
-   SOBRE el sistema de diseño V9 ya en main — no rehacerlo.
-5. Si queda espacio: `/calendario` móvil abre en Día (V10-MOBILE-CALENDARIO-SEMANA).
-6. Al abrir V10-VISUAL-REGRESSION-001: consolidar los tres arneses en UNO.
+**Hecho en la corrida del 10-ago (después de la reconciliación)**: la
+directiva de IDENTIDAD del dueño quedó instalada
+(`docs/ai/NEXUSMED_ORIGINAL_PRODUCT_IDENTITY_DIRECTIVE.md`), el Visual DNA
+existe (`docs/design/NEXUSMED_VISUAL_DNA.md`, con los 20 defectos de
+identidad), y **AGENDA-IDENTITY-001 cerró el P0**: /citas es ahora el RIEL
+DEL DÍA (marcador de AHORA, una acción por entrada, estado tipográfico,
+es-MX, móvil apilado, axe 0 en 1440/390, trinquete de diseño BAJÓ y quedó
+sellado en 557/2008/637/23). Revisión independiente (V10 §40): gramática
+correcta, IDENTITY 7.5 — los CONTROLES aún delatan librería.
 
-### Cómo relanzar el arnés (resumen operativo — contenedor nuevo)
-
-```bash
-# 0. .env.local demo (OBLIGATORIO antes de npm run build; valores NO reales):
-#    NEXT_PUBLIC_FIREBASE_API_KEY=demo-nexusmed-api-key
-#    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-nexusmed-test.firebaseapp.com
-#    NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-nexusmed-test
-#    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=demo-nexusmed-test.appspot.com
-#    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000
-#    NEXT_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:demo
-#    NEXT_PUBLIC_FIREBASE_EMULATORS=1
-# 1. emuladores            npx firebase-tools emulators:start --only firestore,auth --project demo-nexusmed-test
-# 2. siembra               FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
-#                            GCLOUD_PROJECT=demo-nexusmed-test node tests/visual/sembrar-sinteticos.mjs
-# 3a. app (arnés dev)      npm run dev
-# 4a. capturas             ARNES_CHROMIUM=/opt/pw-browsers/chromium node tests/visual/arnes-capturas.mjs
-# 5a. accesibilidad        npm i --no-save axe-core && ARNES_CHROMIUM=... node tests/visual/arnes-a11y.mjs
-# 3b. ALTERNATIVA prod:    bash scripts/design/arnes-capturas-v10.sh   (build real + siembra propia + axe propio)
-# 3c. ALTERNATIVA nocturna: scripts/design/sembrar-capturas.mjs + capturar-golden-flow.mjs
-#                           (receta: docs/design/capturas/v10-truth/README.md)
-# Trampas: localhost (no 127.0.0.1), --no-proxy-server, waitUntil:'load',
-# esperar a que el emulador ESCUCHE antes de sembrar, pre-marcar tour y push
-# en localStorage (los arneses ya lo hacen).
-```
+1. **AGENDA-IDENTITY-002 (P1)** — punch list del revisor independiente
+   (en `V10_BACKLOG.json`): forma propia de CTA, fusionar tabs+selector,
+   capturas con `next start`, evidencia de cortesía/descuadre/no-show.
+2. **V10-SHELL-001** — es el siguiente techo de identidad: sidebar-almacén
+   de ~22 destinos, FABs que tapan contenido clínico (P1.3 del revisor),
+   marca partida en tres, «Nueva cita» duplicada a 768.
+3. Re-captura y puntuación independiente de /dashboard y nota (pendiente
+   desde la fusión).
+4. V10-CONSTITUTION-001 (tokens/utilidades sobre el sistema V9).

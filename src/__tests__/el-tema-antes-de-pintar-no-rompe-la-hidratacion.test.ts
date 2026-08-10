@@ -40,7 +40,9 @@ describe('V10-BUG-001 — tema pre-pintada e hidratación', () => {
   })
 
   it('el <html> declara suppressHydrationWarning — el par obligado del mutador pre-pintada', () => {
-    const etiquetaHtml = fuente.match(/<html\b[^>]*>/s)?.[0]
+    // Sin bandera /s: el target del proyecto es ES2017 y la etiqueta puede
+    // abarcar varias líneas — [\s\S] cubre lo mismo sin exigir es2018.
+    const etiquetaHtml = fuente.match(/<html\b[\s\S]*?>/)?.[0]
     expect(etiquetaHtml, 'no se encontró la etiqueta <html> en el layout raíz').toBeTruthy()
     expect(etiquetaHtml).toContain('suppressHydrationWarning')
   })

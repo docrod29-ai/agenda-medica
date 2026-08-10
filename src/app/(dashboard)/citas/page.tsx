@@ -6,8 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
-import { StatusBadge } from '@/components/StatusBadge'
-import { calcularRiesgoNoShow, NIVEL_LABEL, NIVEL_COLOR } from '@/lib/no-show-risk'
+import { estadoCita } from '@/components/StatusBadge'
+import { calcularRiesgoNoShow, NIVEL_LABEL } from '@/lib/no-show-risk'
 import { getPatients } from '@/lib/firestore'
 import type { Patient } from '@/types'
 import { AppointmentModal } from '@/components/AppointmentModal'
@@ -20,16 +20,16 @@ import { useAuth } from '@/hooks/useAuth'
 import { Appointment, AppointmentStatus, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { updateAppointment, deleteAppointment } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
-import { openWhatsApp, msgConfirmacion, msgCancelacion, msgRecordatorio24h } from '@/lib/whatsapp'
+import { openWhatsApp, msgConfirmacion, msgRecordatorio24h } from '@/lib/whatsapp'
 import {
-  Plus, Search, Filter, Trash2, Edit2, MessageSquare,
+  Plus, Search, Trash2, Edit2, MessageSquare,
   ChevronLeft, ChevronRight, CalendarDays, MoreVertical,
   Phone, AlertTriangle, DollarSign, Video, BellRing,
   Stethoscope,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { hoyISO, sumarDiasISO, ahoraMinutosDelDia } from '@/lib/timezone'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { necesitaReparacion, accionDeReparacion, avisoDesincronizada } from '@/lib/calendario/reparar-sync'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -62,10 +62,18 @@ function paramFecha(v: string | null): string {
 }
 
 /** Igual con el filtro: sólo se aceptan los valores que la pantalla sabe pintar. */
-const FILTROS_VALIDOS = ['todas', 'por-cobrar', 'pendiente', 'confirmada', 'atendida', 'cancelada', 'no-asistio'] as const
-function paramFiltro(v: string | null): AppointmentStatus | 'todas' | 'por-cobrar' {
+const FILTROS_VALIDOS = ['todas', 'por-cobrar', 'pendientes', 'pendiente', 'confirmada', 'atendida', 'cancelada', 'no-asistio'] as const
+/**
+ * «pendientes» es una VISTA, como «por-cobrar»: agrupa los cuatro estados que
+ * significan «falta confirmar» (solicitada, pendiente-confirmar,
+ * pendiente-datos, recordatorio-enviado). Sin la vista, el renglón de resumen
+ * diría «1 por confirmar» y el filtro de un solo estado mostraría cero filas.
+ */
+const ESTADOS_PENDIENTES: AppointmentStatus[] = ['solicitada', 'pendiente-confirmar', 'pendiente-datos', 'recordatorio-enviado']
+type FiltroCitas = AppointmentStatus | 'todas' | 'por-cobrar' | 'pendientes'
+function paramFiltro(v: string | null): FiltroCitas {
   return (FILTROS_VALIDOS as readonly string[]).includes(v ?? '')
-    ? (v as AppointmentStatus | 'todas' | 'por-cobrar')
+    ? (v as FiltroCitas)
     : 'todas'
 }
 
@@ -114,7 +122,7 @@ export default function CitasPage() {
    * que acordarse de quién ya salió. Esta vista responde su única pregunta:
    * atendidos y todavía sin cobrar.
    */
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'todas' | 'por-cobrar'>(() => paramFiltro(params.get('f')))
+  const [statusFilter, setStatusFilter] = useState<FiltroCitas>(() => paramFiltro(params.get('f')))
   const [search, setSearch] = useState(() => params.get('q') ?? '')
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
@@ -199,6 +207,8 @@ export default function CitasPage() {
       if (a.fechaHora.slice(0, 10) !== selectedDate) return false
       if (statusFilter === 'por-cobrar') {
         if (!['atendida', 'finalizada'].includes(a.estado) || a.cobroId || a.cobroExento) return false
+      } else if (statusFilter === 'pendientes') {
+        if (!ESTADOS_PENDIENTES.includes(a.estado)) return false
       } else if (statusFilter !== 'todas' && a.estado !== statusFilter) return false
       if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false
       // Filtro multi-doctor: si hay médico seleccionado, solo sus citas
@@ -211,7 +221,7 @@ export default function CitasPage() {
   const daySummary = useMemo(() => {
     const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
     const conf = day.filter(a => ['confirmada', 'en-sala', 'en-consulta', 'atendida', 'finalizada'].includes(a.estado)).length
-    const pend = day.filter(a => ['solicitada', 'pendiente-confirmar', 'pendiente-datos', 'recordatorio-enviado'].includes(a.estado)).length
+    const pend = day.filter(a => ESTADOS_PENDIENTES.includes(a.estado)).length
     const porCobrar = day.filter(a => ['atendida', 'finalizada'].includes(a.estado) && !a.cobroId && !a.cobroExento).length
     return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
@@ -231,6 +241,61 @@ export default function CitasPage() {
     if (selectedDate === tomorrow) return 'Mañana'
     return format(d, "EEEE d 'de' MMMM", { locale: es })
   }, [selectedDate])
+
+  // La fecha completa SIEMPRE en es-MX. Antes el subtítulo repetía el ISO
+  // («2026-08-09») y el input nativo enseñaba «08/09/2026» — formato US que
+  // aquí se lee 8 de septiembre (defecto nº8 del Visual DNA §6).
+  // Mayúscula SÓLO la primera letra — `text-transform: capitalize` produce
+  // «Domingo 9 De Agosto De 2026», el mismo defecto ya fichado en calendario
+  // («De Agosto», Visual DNA §6 nº18).
+  const fechaLarga = useMemo(() => {
+    const f = format(new Date(selectedDate + 'T12:00'), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
+    return f.charAt(0).toUpperCase() + f.slice(1)
+  }, [selectedDate])
+
+  // ¿Trabaja aquí más de un médico? Si no, el nombre del médico en cada
+  // entrada es ruido (la píldora «Ana» en consultorio de una sola médica —
+  // defecto nº4 del Visual DNA §6). Se decide por los datos, no por config.
+  const multiMedico = useMemo(
+    () => new Set(appointments.map(a => a.medicoId).filter(Boolean)).size > 1,
+    [appointments],
+  )
+
+  /**
+   * EL MOMENTO ACTUAL — la hora del consultorio para el marcador de AHORA.
+   * Nace tras montar (null en el primer render) para no fabricar un mismatch
+   * de hidratación por hora servidor≠cliente (la familia de
+   * V10-HARNESS-OBS-001), y se refresca cada minuto.
+   */
+  const [ahoraHHMM, setAhoraHHMM] = useState<string | null>(null)
+  useEffect(() => {
+    const tick = () => {
+      const min = ahoraMinutosDelDia()
+      setAhoraHHMM(`${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`)
+    }
+    tick()
+    const id = setInterval(tick, 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const esHoy = selectedDate === todayStr()
+
+  // Dónde se inserta el marcador de AHORA: antes de la primera cita cuya hora
+  // aún no llega. Sólo aplica viendo HOY.
+  const indiceAhora = useMemo(() => {
+    if (!esHoy || !ahoraHHMM) return -1
+    const i = filtered.findIndex(a => a.fechaHora.slice(11, 16) > ahoraHHMM)
+    return i === -1 ? filtered.length : i
+  }, [esHoy, ahoraHHMM, filtered])
+
+  // Selector de fecha nativo, operado desde un botón con nombre accesible.
+  const fechaInputRef = useRef<HTMLInputElement>(null)
+
+  // El cierre del riel: cuántas citas trae mañana (CONTINUIDAD — el día no
+  // termina en un vacío, apunta al siguiente). La ventana ya las tiene.
+  const citasManana = useMemo(() => {
+    const m = nextDay(selectedDate)
+    return appointments.filter(a => a.fechaHora.slice(0, 10) === m && !['cancelada', 'reagendada'].includes(a.estado)).length
+  }, [appointments, selectedDate])
 
   const handleStatusChange = async (appt: Appointment, newStatus: AppointmentStatus) => {
     try {
@@ -368,51 +433,93 @@ export default function CitasPage() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1100, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <h1 className="t-h1" style={{ margin: 0 }}>Citas</h1>
+      {/*
+        CABECERA — el DÍA es el título, no el nombre del módulo (Visual DNA
+        §6 defecto 20). «Citas» ya lo dice la navegación; lo que el médico
+        necesita saber en dos segundos es QUÉ día mira y cómo viene.
+      */}
+      <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día anterior" onClick={() => setSelectedDate(prevDay(selectedDate))}>
+              <ChevronLeft size={16} />
+            </button>
+            <h1 className="nx-display" style={{ margin: 0 }}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</h1>
+            <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día siguiente" onClick={() => setSelectedDate(nextDay(selectedDate))}>
+              <ChevronRight size={16} />
+            </button>
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              aria-label="Elegir una fecha en el calendario"
+              onClick={() => {
+                const el = fechaInputRef.current
+                if (!el) return
+                if ('showPicker' in el && typeof el.showPicker === 'function') el.showPicker()
+                else el.click()
+              }}
+            >
+              <CalendarDays size={16} />
+            </button>
+            {/* El input nativo enseñaría «08/09/2026» (formato US). Vive oculto
+                pero enfocable; el botón de arriba lo abre. */}
+            <input
+              ref={fechaInputRef}
+              className="riel-fecha-input"
+              type="date" value={selectedDate}
+              aria-label="Ir a una fecha"
+              onChange={e => setSelectedDate(paramFecha(e.target.value))}
+            />
+            {!esHoy && (
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDate(todayStr())}>
+                Hoy
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>
+            {fechaLarga}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <DoctorFilter medicoId={medicoFiltro} onChange={setMedicoFiltro} />
+          <Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>
         </div>
-        <Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>
-      </div>
+      </header>
 
-      {/* Date navigator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
-        {/* Sin nombre accesible el lector de pantalla sólo dice «botón» (axe: button-name, critical). */}
-        <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día anterior" onClick={() => setSelectedDate(prevDay(selectedDate))}>
-          <ChevronLeft size={16} />
-        </button>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{dateLabel}</span>
-          <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 8 }}>{selectedDate}</span>
+      {/*
+        UN solo renglón de filtro-resumen (mata la sopa de 12 chips: Visual
+        DNA §6 defecto 3). Los segmentos son las preguntas reales del día;
+        el resto de estados vive en un selector con nombre. «Por cobrar» sólo
+        existe si hay a quién cobrar: un cero permanente enseña a ignorarlo.
+      */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div className="riel-filtros" role="group" aria-label="Filtrar las citas del día">
+          <button className="riel-filtro" aria-pressed={statusFilter === 'todas'} onClick={() => setStatusFilter('todas')}>
+            <span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}
+          </button>
+          {daySummary.pend > 0 && (
+            <button className="riel-filtro" aria-pressed={statusFilter === 'pendientes'} onClick={() => setStatusFilter(statusFilter === 'pendientes' ? 'todas' : 'pendientes')}>
+              <span className="riel-filtro-n">{daySummary.pend}</span> por confirmar
+            </button>
+          )}
+          {daySummary.porCobrar > 0 && (
+            <button className="riel-filtro" aria-pressed={statusFilter === 'por-cobrar'} onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}>
+              <span className="riel-filtro-n">{daySummary.porCobrar}</span> por cobrar
+            </button>
+          )}
+          <select
+            className="riel-filtro-select"
+            aria-label="Filtrar por estado de la cita"
+            data-activo={!['todas', 'pendientes', 'por-cobrar'].includes(statusFilter)}
+            value={['todas', 'pendientes', 'por-cobrar'].includes(statusFilter) ? '' : statusFilter}
+            onChange={e => setStatusFilter(e.target.value === '' ? 'todas' : (e.target.value as FiltroCitas))}
+          >
+            <option value="">Estado…</option>
+            {STATUS_FILTERS.filter(f => f.value !== 'todas').map(f => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
         </div>
-        <input
-          type="date" value={selectedDate}
-          aria-label="Ir a una fecha"
-          onChange={e => setSelectedDate(e.target.value)}
-          style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}
-        />
-        <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día siguiente" onClick={() => setSelectedDate(nextDay(selectedDate))}>
-          <ChevronRight size={16} />
-        </button>
-        <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDate(todayStr())}>
-          Hoy
-        </button>
-      </div>
-
-      {/* Resumen del día */}
-      {!loading && daySummary.total > 0 && (
-        <div className="nx-reveal" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <DiaChip color="var(--nexus)" value={daySummary.total} label={daySummary.total === 1 ? 'cita' : 'citas'} />
-          <DiaChip color="var(--green)" value={daySummary.conf} label="confirmadas" />
-          <DiaChip color="#fb923c" value={daySummary.pend} label="pendientes" />
-        </div>
-      )}
-
-      {/* Filters */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 300 }}>
+        <div className="riel-buscar" style={{ position: 'relative', flex: '1 1 180px', maxWidth: 280, marginLeft: 'auto' }}>
           <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
           <input
             className="input"
@@ -423,54 +530,10 @@ export default function CitasPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {/*
-            Va PRIMERO y con su propio contador porque es la única pregunta que la
-            asistente se hace todo el día. Si no hay nadie pendiente de cobro no se
-            muestra: un cero permanente enseña a ignorar el aviso.
-          */}
-          {daySummary.porCobrar > 0 && (
-            <button
-              onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}
-              className="btn btn-sm"
-              style={{
-                background: statusFilter === 'por-cobrar' ? 'var(--teal-glow)' : 'var(--s2)',
-                color: statusFilter === 'por-cobrar' ? 'var(--teal)' : 'var(--text2)',
-                border: `1px solid ${statusFilter === 'por-cobrar' ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              <DollarSign size={13} className="ds-icon" /> Por cobrar
-              <span style={{
-                background: 'var(--nexus-solido)', color: '#fff', borderRadius: 'var(--r-pill)',
-                padding: '1px 6px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
-              }}>{daySummary.porCobrar}</span>
-            </button>
-          )}
-          {STATUS_FILTERS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value as AppointmentStatus | 'todas')}
-              className="btn btn-sm"
-              style={{
-                background: statusFilter === f.value ? 'var(--teal-glow)' : 'var(--s2)',
-                color: statusFilter === f.value ? 'var(--teal)' : 'var(--text2)',
-                border: `1px solid ${statusFilter === f.value ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Count */}
-      <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 10 }}>
-        {filtered.length} cita{filtered.length !== 1 ? 's' : ''}
-      </div>
-
-      {/* Table */}
-      <div className="card" style={{ padding: 0 }}>
+      {/* EL RIEL DEL DÍA (Visual DNA R1) */}
+      <div>
         {loading ? (
           <Spinner center label="Cargando citas…" />
         ) : errorCitas ? (
@@ -497,32 +560,66 @@ export default function CitasPage() {
             action={<Button icon={<Plus size={16} />} onClick={() => router.push('/asistente')}>Nueva cita</Button>}
           />
         ) : (
-          <div>
+          <div className="riel">
             {filtered.map((appt, i) => (
-              <div key={appt.id} className="nx-reveal" style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}>
-              <AppointmentRowFull
-                onConsulta={pid => router.push(`/consulta/${pid}`)}
-                appt={appt}
-                paciente={patientById.get(appt.pacienteId) ?? null}
-                config={config}
-                isLast={i === filtered.length - 1}
-                menuOpen={menuId === appt.id}
-                onMenuToggle={() => setMenuId(menuId === appt.id ? null : appt.id)}
-                onEdit={() => { setEditAppt(appt); setModalOpen(true); setMenuId(null) }}
-                onDelete={() => { handleDelete(appt.id); setMenuId(null) }}
-                onStatusChange={s => handleStatusChange(appt, s)}
-                onCobrar={(a) => setCobrarAppt(a)}
-                onQuitarCortesia={async (a) => {
-                  if (!clinicId) return
-                  const ok = await confirm(`¿Quitar la cortesía de ${a.pacienteNombre}? Volverá a aparecer para cobro.`, { confirmar: 'Quitar cortesía' })
-                  if (!ok) return
-                  try { await quitarExencion(clinicId, a.id); toast('Cortesía quitada; la cita vuelve a cobro', 'info') }
-                  catch { toast('No se pudo quitar la cortesía', 'error') }
-                }}
-                deleting={deletingId === appt.id}
-              />
+              <div key={appt.id}>
+                {/* EL MARCADOR DE AHORA — el momento actual, siempre visible
+                    viendo hoy. Nace tras montar (sin mismatch de hidratación). */}
+                {i === indiceAhora && (
+                  <div className="riel-ahora" role="separator" aria-label={`Ahora son las ${ahoraHHMM}`}>
+                    <span className="riel-ahora-hora">{ahoraHHMM}</span>
+                    <span className="riel-ahora-punto" />
+                    <span className="riel-ahora-linea" />
+                  </div>
+                )}
+                <div className="nx-reveal" style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}>
+                <RielEntrada
+                  onConsulta={pid => router.push(`/consulta/${pid}`)}
+                  appt={appt}
+                  paciente={patientById.get(appt.pacienteId) ?? null}
+                  config={config}
+                  esHoy={esHoy}
+                  ahoraHHMM={ahoraHHMM}
+                  multiMedico={multiMedico}
+                  menuOpen={menuId === appt.id}
+                  onMenuToggle={() => setMenuId(menuId === appt.id ? null : appt.id)}
+                  onEdit={() => { setEditAppt(appt); setModalOpen(true); setMenuId(null) }}
+                  onDelete={() => { handleDelete(appt.id); setMenuId(null) }}
+                  onStatusChange={s => handleStatusChange(appt, s)}
+                  onCobrar={(a) => setCobrarAppt(a)}
+                  onQuitarCortesia={async (a) => {
+                    if (!clinicId) return
+                    const ok = await confirm(`¿Quitar la cortesía de ${a.pacienteNombre}? Volverá a aparecer para cobro.`, { confirmar: 'Quitar cortesía' })
+                    if (!ok) return
+                    try { await quitarExencion(clinicId, a.id); toast('Cortesía quitada; la cita vuelve a cobro', 'info') }
+                    catch { toast('No se pudo quitar la cortesía', 'error') }
+                  }}
+                  deleting={deletingId === appt.id}
+                />
+                </div>
               </div>
             ))}
+            {/* Todas las citas del día ya pasaron: el marcador cierra el riel */}
+            {indiceAhora === filtered.length && filtered.length > 0 && (
+              <div className="riel-ahora" role="separator" aria-label={`Ahora son las ${ahoraHHMM}`}>
+                <span className="riel-ahora-hora">{ahoraHHMM}</span>
+                <span className="riel-ahora-punto" />
+                <span className="riel-ahora-linea" />
+              </div>
+            )}
+            {/* El riel no muere en el vacío: apunta al día siguiente. */}
+            {filtered.length > 0 && (
+              <div className="riel-cierre">
+                Fin del día ·{' '}
+                {citasManana > 0 ? (
+                  <button className="riel-filtro" onClick={() => setSelectedDate(nextDay(selectedDate))}>
+                    mañana: <span className="riel-filtro-n">{citasManana}</span> {citasManana === 1 ? 'cita' : 'citas'}
+                  </button>
+                ) : (
+                  'mañana sin citas agendadas'
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -572,28 +669,85 @@ export default function CitasPage() {
   )
 }
 
-function DiaChip({ color, value, label }: { color: string; value: number; label: string }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 7,
-      background: 'var(--s1)', border: '1px solid var(--border)',
-      borderRadius: 'var(--r-pill)', padding: '7px 13px', fontSize: 13, color: 'var(--text2)',
-    }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <strong className="t-num" style={{ color: 'var(--text)', fontWeight: 600 }}>{value}</strong> {label}
-    </span>
-  )
+/**
+ * LA SIGUIENTE ACCIÓN SEGURA de una cita (Visual DNA R2): cada entrada del
+ * riel enseña UNA acción primaria derivada del estado; todo lo demás vive en
+ * el menú. El ORDEN es la política, no estilo:
+ *
+ *   1. cobrar lo atendido — la pregunta de la asistente todo el día;
+ *   2. una consulta en curso o en sala — el paciente está AQUÍ;
+ *   3. unirse a la teleconsulta de hoy;
+ *   4. confirmar lo pendiente (WhatsApp);
+ *   5. recordar la cita confirmada de otro día;
+ *   6. iniciar la consulta confirmada de hoy.
+ *
+ * Cancelada / no asistió / reagendada / cobrada: sin acción — no hay
+ * siguiente paso seguro que ofrecer.
+ */
+type AccionPrimaria =
+  | { tipo: 'cobrar'; label: string }
+  | { tipo: 'consulta'; label: string }
+  | { tipo: 'unirse'; label: string }
+  | { tipo: 'confirmar'; label: string }
+  | { tipo: 'recordar'; label: string }
+
+export function accionPrimaria(appt: Appointment, esHoy: boolean): AccionPrimaria | null {
+  const e = appt.estado
+  if (['cancelada', 'no-asistio', 'reagendada'].includes(e)) return null
+  if (['atendida', 'finalizada'].includes(e) && !appt.cobroId && !appt.cobroExento) {
+    return { tipo: 'cobrar', label: 'Cobrar' }
+  }
+  if (['atendida', 'finalizada', 'pagada'].includes(e)) return null
+  if (e === 'en-consulta' && appt.pacienteId) return { tipo: 'consulta', label: 'Continuar consulta' }
+  if (e === 'en-sala' && appt.pacienteId) return { tipo: 'consulta', label: 'Iniciar consulta' }
+  if (appt.tipo === 'teleconsulta' && esHoy) return { tipo: 'unirse', label: 'Unirse' }
+  if (ESTADOS_PENDIENTES.includes(e) && appt.pacienteTelefono) {
+    return { tipo: 'confirmar', label: 'Confirmar' }
+  }
+  if (e === 'confirmada' || e === 'recordatorio-enviado') {
+    if (esHoy && appt.pacienteId) return { tipo: 'consulta', label: 'Iniciar consulta' }
+    if (appt.pacienteTelefono) return { tipo: 'recordar', label: 'Recordar' }
+  }
+  return null
 }
 
-function AppointmentRowFull({
-  appt, paciente, config, isLast, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, onQuitarCortesia, deleting, onConsulta,
+/** El dibujo del nodo sobre el riel: el estado como MOMENTO, no como color.
+ *  «espera» (en sala) y «ahora» (en consulta) se dibujan distinto: hueco
+ *  cobalto vs lleno con anillo — lo pidió la revisión independiente (P3.11). */
+function momentoDeCita(appt: Appointment): 'proximo' | 'espera' | 'ahora' | 'hecho' | 'cerrado' {
+  const e = appt.estado
+  if (['cancelada', 'no-asistio', 'reagendada'].includes(e)) return 'cerrado'
+  if (['atendida', 'finalizada', 'pagada'].includes(e)) return 'hecho'
+  if (e === 'en-consulta') return 'ahora'
+  if (e === 'en-sala') return 'espera'
+  return 'proximo'
+}
+
+/**
+ * El tono semántico del punto de estado, EN la paleta del riel (Visual DNA
+ * §3: neutro · cobalto · ámbar · rojo · verde). El morado de la paleta de
+ * badges no pertenece aquí — la revisión independiente lo cazó (P3.9).
+ */
+const TONO_RIEL: Record<string, string> = {
+  blue: 'var(--nexus)',
+  purple: 'var(--nexus)',
+  amber: 'var(--amber)',
+  red: 'var(--red)',
+  green: 'var(--green)',
+  gris: 'var(--text3)',
+}
+
+function RielEntrada({
+  appt, paciente, config, esHoy, multiMedico, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, onQuitarCortesia, deleting, onConsulta,
 }: {
   /** Abre la consulta del paciente. Se recibe del padre para no montar otro router. */
   onConsulta: (pacienteId: string) => void
   appt: Appointment
   paciente: Patient | null
   config: ReturnType<typeof useConfig>['config']
-  isLast: boolean
+  esHoy: boolean
+  ahoraHHMM: string | null
+  multiMedico: boolean
   menuOpen: boolean
   onMenuToggle: () => void
   onEdit: () => void
@@ -663,263 +817,194 @@ function AppointmentRowFull({
 
   const QUICK_STATUSES: AppointmentStatus[] = ['en-sala', 'en-consulta', 'atendida', 'finalizada', 'cancelada', 'no-asistio']
 
+  const momento = momentoDeCita(appt)
+  const accion = accionPrimaria(appt, esHoy)
+  const estado = estadoCita(appt.estado)
+
+  // Unirse a la videollamada de una teleconsulta. Enlace con token HMAC (el
+  // camino seguro de la sala); si el token falla, abre igual — el endpoint
+  // mantiene el respaldo endurecido.
+  const abrirTeleconsulta = async () => {
+    let t = ''
+    try {
+      const r = await fetchAutenticado('/api/telesalud/token', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId: rowClinicId, patientId: appt.pacienteId }),
+      })
+      if (r.ok) t = (await r.json()).token || ''
+    } catch { /* sin token → respaldo endurecido */ }
+    const tq = t ? `&t=${encodeURIComponent(t)}` : ''
+    window.open(`/teleconsulta/${appt.id}?c=${rowClinicId ?? ''}&p=${appt.pacienteId}&dr=1${tq}`, '_blank', 'noopener')
+  }
+
+  const ejecutar = (a: AccionPrimaria) => {
+    switch (a.tipo) {
+      case 'cobrar': onCobrar?.(appt); break
+      case 'consulta': onConsulta(appt.pacienteId); break
+      case 'unirse': void abrirTeleconsulta(); break
+      case 'confirmar': handleWA(); break
+      case 'recordar': handleRecordar(); break
+    }
+  }
+
+  const ICONO_ACCION = {
+    cobrar: <DollarSign size={13} className="ds-icon" />,
+    consulta: <Stethoscope size={13} className="ds-icon" />,
+    unirse: <Video size={13} className="ds-icon" />,
+    confirmar: <MessageSquare size={13} className="ds-icon" />,
+    recordar: <BellRing size={13} className="ds-icon" />,
+  } as const
+
+  // ¿La acción sigue disponible aunque no sea LA primaria? Va al menú.
+  const puedeCobrar = !['cancelada', 'no-asistio', 'reagendada'].includes(appt.estado) && !appt.cobroId && !appt.cobroExento && !!onCobrar
+  const puedeConsulta = !!appt.pacienteId && !['cancelada', 'no-asistio'].includes(appt.estado)
+
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
-      borderBottom: isLast ? 'none' : '1px solid var(--border)',
-      opacity: deleting ? 0.4 : 1, position: 'relative',
-    }}>
-      {/* Time */}
-      <div style={{ width: 48, textAlign: 'center', flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{hora}</div>
-        <div style={{ fontSize: 10, color: 'var(--text3)' }}>{appt.duracion}min</div>
+    <div className="riel-entrada" data-momento={momento} style={{ opacity: deleting ? 0.4 : undefined }}>
+      <div className="riel-tiempo">
+        <span className="riel-hora">{hora}</span>
+        <span className="riel-dur">{appt.duracion} min</span>
       </div>
+      <div className="riel-nodo" aria-hidden="true" />
 
-      {/* Avatar */}
-      <div style={{
-        width: 38, height: 38, borderRadius: '50%', background: 'var(--s2)', border: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 600,
-        color: 'var(--text2)', flexShrink: 0,
-      }}>
-        {appt.pacienteNombre.charAt(0).toUpperCase()}
-      </div>
-
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{appt.pacienteNombre}</div>
-          {/* Badge del médico — visible cuando hay multi-doctor */}
-          {appt.medicoId && appt.medicoNombre && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '1px 7px', borderRadius: 'var(--r-pill)', fontSize: 10.5, fontWeight: 600,
-              background: `${colorMedico(appt.medicoId)}22`,
-              color: colorMedico(appt.medicoId),
-              border: `1px solid ${colorMedico(appt.medicoId)}40`,
-            }}>
+      <div className="riel-cuerpo">
+        {/* R3: identidad tipográfica — sin avatar-círculo, sin píldora del
+            propio médico (sólo aparece el médico cuando hay más de uno). */}
+        <div className="riel-nombre">
+          {appt.pacienteNombre}
+          {multiMedico && appt.medicoId && appt.medicoNombre && (
+            <span className="riel-medico" style={{ color: colorMedico(appt.medicoId) }}>
               {appt.medicoNombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').split(' ')[0]}
             </span>
           )}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        <div className="riel-meta">
           <TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}
           {appt.motivo ? ` · ${appt.motivo}` : ''}
         </div>
-        {appt.pacienteTelefono && (
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {appt.pacienteTelefono}</div>
-        )}
+        <div className="riel-estado-linea">
+          {estado && (
+            <span className="nx-estado" style={{ ['--estado-tono' as string]: TONO_RIEL[estado.tono] ?? 'var(--text3)' }}>
+              {estado.label}
+            </span>
+          )}
+          {appt.cobroExento && (
+            <span
+              className="nx-estado"
+              title={appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'}
+            >
+              cortesía
+            </span>
+          )}
+          {/*
+            LA CITA DESCUADRADA CON GOOGLE. `googleCalendarSyncStatus` se
+            escribía en cinco sitios y no lo leía ninguna pantalla; éste es el
+            panel prometido. Es señal que PIDE acción: por eso sí lleva color
+            de aviso y es botón, no texto.
+          */}
+          {necesitaReparacion(appt) && (
+            <button
+              onClick={repararSync}
+              disabled={reparando}
+              title={avisoDesincronizada(appt.estado)}
+              className="riel-aviso"
+            >
+              <AlertTriangle size={10} className="ds-icon" />
+              {reparando ? 'Reparando…' : 'Calendario descuadrado'}
+            </button>
+          )}
+          {/* Riesgo de no-show alto: señal operativa real — conserva su aviso */}
+          {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
+            <span className="riel-aviso" title={`Riesgo: ${riesgo.score}/100. ${riesgo.recomendacion}`}>
+              <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Status */}
-      <StatusBadge status={appt.estado} size="sm" />
-
-      {/*
-        LA CITA DESCUADRADA CON GOOGLE, QUE HASTA AHORA NADIE VEÍA.
-
-        `googleCalendarSyncStatus` se escribía en cinco sitios y no lo leía
-        ninguna pantalla. El comentario del portal prometía que la marca existía
-        «para que el panel pueda mostrarlo y el médico lo arregle con un clic» —
-        y ese panel no existía. Aquí está.
-      */}
-      {necesitaReparacion(appt) && (
+      {/* R2: UNA acción primaria por entrada + el menú. Nada más. */}
+      <div className="riel-accion">
+        {accion && (
+          <button className="btn btn-primary btn-sm" onClick={() => ejecutar(accion)}>
+            {ICONO_ACCION[accion.tipo]} {accion.label}
+          </button>
+        )}
         <button
-          onClick={repararSync}
-          disabled={reparando}
-          title={avisoDesincronizada(appt.estado)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            fontSize: 10, fontWeight: 700,
-            background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
-            color: 'var(--amber)',
-            border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)',
-            padding: '2px 7px', borderRadius: 'var(--r-pill)', flexShrink: 0,
-            cursor: reparando ? 'wait' : 'pointer',
-          }}
+          className="btn btn-ghost btn-icon btn-sm"
+          onClick={onMenuToggle}
+          aria-label={`Más acciones para ${appt.pacienteNombre}`}
+          aria-expanded={menuOpen}
         >
-          <AlertTriangle size={10} className="ds-icon" />
-          {reparando ? 'Reparando…' : 'Calendario descuadrado'}
-        </button>
-      )}
-
-      {/* Riesgo de no-show (solo niveles alto/muy_alto) */}
-      {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
-        <span
-          title={`Riesgo: ${riesgo.score}/100. ${riesgo.recomendacion}`}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            fontSize: 10, fontWeight: 700,
-            background: `color-mix(in srgb, ${NIVEL_COLOR[riesgo.nivel]} 10%, transparent)`, color: NIVEL_COLOR[riesgo.nivel],
-            border: `1px solid color-mix(in srgb, ${NIVEL_COLOR[riesgo.nivel]} 33%, transparent)`,
-            padding: '2px 7px', borderRadius: 'var(--r-pill)', flexShrink: 0,
-          }}>
-          <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
-        </span>
-      )}
-
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-        {/* Botón Cobrar — no cancelada/no-asistió/reagendada Y sin cobro previo (anti doble cobro) */}
-        {appt.estado !== 'cancelada' && appt.estado !== 'no-asistio' && appt.estado !== 'reagendada' && !appt.cobroId && !appt.cobroExento && onCobrar && (
-          <button
-            onClick={() => onCobrar(appt)}
-            title="Registrar cobro"
-            style={{
-              background: 'rgba(20,184,166,0.15)', color: 'var(--teal)',
-              border: '1px solid rgba(20,184,166,0.4)', borderRadius: 6,
-              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <DollarSign size={13} className="ds-icon" /> Cobrar
-          </button>
-        )}
-        {/* Distintivo de cortesía: el médico decidió no cobrar esta cita. Clic para
-            quitarla (vuelve a cobro). Reversible, como promete el modal. */}
-        {appt.cobroExento && (
-          <button
-            onClick={() => onQuitarCortesia?.(appt)}
-            title={`${appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'} · clic para quitar`}
-            style={{
-              background: 'rgba(168,85,247,0.12)', color: '#a855f7',
-              border: '1px solid rgba(168,85,247,0.4)', borderRadius: 6,
-              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
-            }}
-          >
-            Cortesía ✕
-          </button>
-        )}
-        {/*
-          INICIAR CONSULTA desde la fila de la agenda.
-          
-          /citas es la pantalla donde el médico ve quién llegó, y NINGUNO de sus
-          botones abría el expediente ni la consulta. Para el segundo paciente del
-          día y los siguientes había que ir a Pacientes, teclear el nombre, abrir
-          el expediente y pulsar "Nueva consulta": 3 clics, 4 pantallas y tecleo,
-          por paciente. El atajo de 1 clic solo existía en el dashboard y solo para
-          la PRÓXIMA cita.
-        */}
-        {appt.pacienteId && !['cancelada', 'no-asistio'].includes(appt.estado) && (
-          <button
-            onClick={e => { e.stopPropagation(); onConsulta(appt.pacienteId) }}
-            className="btn btn-sm"
-            title="Abrir la consulta de este paciente"
-            style={{
-              background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 6,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <Stethoscope size={13} className="ds-icon" /> Consulta
-          </button>
-        )}
-        {/* Botón Recordar — manda por WhatsApp "mañana tiene su cita" (1 clic) */}
-        {recordable && appt.pacienteTelefono && (
-          <button
-            onClick={handleRecordar}
-            title="Enviar recordatorio por WhatsApp"
-            style={{
-              background: 'rgba(37,211,102,0.15)', color: '#1faa52',
-              border: '1px solid rgba(37,211,102,0.4)', borderRadius: 6,
-              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <BellRing size={13} className="ds-icon" /> Recordar
-          </button>
-        )}
-        {/* Botón Unirse a videollamada para teleconsulta */}
-        {appt.tipo === 'teleconsulta' && (
-          <button
-            onClick={async () => {
-              // Enlace con token HMAC (camino seguro de la sala). Si el token falla,
-              // abre igual (el endpoint mantiene el respaldo endurecido).
-              let t = ''
-              try {
-                const r = await fetchAutenticado('/api/telesalud/token', {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ clinicId: rowClinicId, patientId: appt.pacienteId }),
-                })
-                if (r.ok) t = (await r.json()).token || ''
-              } catch { /* sin token → respaldo endurecido */ }
-              const tq = t ? `&t=${encodeURIComponent(t)}` : ''
-              window.open(`/teleconsulta/${appt.id}?c=${rowClinicId ?? ''}&p=${appt.pacienteId}&dr=1${tq}`, '_blank', 'noopener')
-            }}
-            title="Unirse a videollamada"
-            style={{
-              background: 'rgba(167,139,250,0.15)', color: 'var(--purple)',
-              border: '1px solid rgba(167,139,250,0.4)', borderRadius: 6,
-              padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}
-          >
-            <Video size={13} className="ds-icon" /> Unirse
-          </button>
-        )}
-        {appt.pacienteTelefono && (
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={handleWA} title="WhatsApp">
-            <MessageSquare size={15} />
-          </button>
-        )}
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={onEdit} title="Editar">
-          <Edit2 size={15} />
-        </button>
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={onMenuToggle} title="Más opciones">
           <MoreVertical size={15} />
         </button>
       </div>
 
-      {/* Dropdown menu */}
       {menuOpen && (
-        <div style={{
-          position: 'absolute', right: 8, top: '100%', zIndex: 20,
-          background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10,
-          padding: 6, minWidth: 200, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        }}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', padding: '4px 10px 6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Cambiar estado
-          </div>
+        <div className="riel-menu" role="menu" aria-label={`Acciones para ${appt.pacienteNombre}`}>
+          <div className="riel-menu-titulo">Acciones</div>
+          {puedeCobrar && accion?.tipo !== 'cobrar' && (
+            <button className="riel-menu-item" role="menuitem" onClick={() => { onCobrar?.(appt); onMenuToggle() }}>
+              <DollarSign size={13} className="ds-icon" /> Registrar cobro
+            </button>
+          )}
+          {puedeConsulta && accion?.tipo !== 'consulta' && (
+            <button className="riel-menu-item" role="menuitem" onClick={() => onConsulta(appt.pacienteId)}>
+              <Stethoscope size={13} className="ds-icon" /> Abrir consulta
+            </button>
+          )}
+          {appt.tipo === 'teleconsulta' && accion?.tipo !== 'unirse' && (
+            <button className="riel-menu-item" role="menuitem" onClick={() => void abrirTeleconsulta()}>
+              <Video size={13} className="ds-icon" /> Unirse a videollamada
+            </button>
+          )}
+          {/*
+            EL TELÉFONO NO SE PIERDE (revisión independiente, P1.2): la fila
+            vieja lo enseñaba siempre; el riel lo saca de la vista pero lo deja
+            A UN CLIC, con el número VISIBLE y marcable — antes ni siquiera se
+            podía llamar desde aquí.
+          */}
+          {appt.pacienteTelefono && (
+            <a className="riel-menu-item" role="menuitem" href={`tel:${appt.pacienteTelefono}`}>
+              <Phone size={13} className="ds-icon" /> Llamar · {appt.pacienteTelefono}
+            </a>
+          )}
+          {appt.pacienteTelefono && accion?.tipo !== 'confirmar' && (
+            <button className="riel-menu-item" role="menuitem" onClick={() => { handleWA(); onMenuToggle() }}>
+              <MessageSquare size={13} className="ds-icon" /> WhatsApp: confirmar cita
+            </button>
+          )}
+          {recordable && appt.pacienteTelefono && accion?.tipo !== 'recordar' && (
+            <button className="riel-menu-item" role="menuitem" onClick={() => { handleRecordar(); onMenuToggle() }}>
+              <BellRing size={13} className="ds-icon" /> WhatsApp: recordatorio
+            </button>
+          )}
+          {appt.cobroExento && onQuitarCortesia && (
+            <button className="riel-menu-item" role="menuitem" onClick={() => { onQuitarCortesia(appt); onMenuToggle() }}>
+              <DollarSign size={13} className="ds-icon" /> Quitar cortesía
+            </button>
+          )}
+          <button className="riel-menu-item" role="menuitem" onClick={onEdit}>
+            <Edit2 size={13} className="ds-icon" /> Editar cita
+          </button>
+
+          <div className="riel-menu-titulo">Cambiar estado</div>
           {QUICK_STATUSES.map(s => (
-            <button
-              key={s}
-              onClick={() => onStatusChange(s)}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '7px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                fontSize: 13, color: 'var(--text2)', background: 'transparent', transition: 'background 0.1s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              {s}
+            <button key={s} className="riel-menu-item" role="menuitem" onClick={() => onStatusChange(s)}>
+              {estadoCita(s)?.label ?? s}
             </button>
           ))}
           {/*
-            ELIMINAR ES DEL MÉDICO (decisión del dueño, 2026-08-01).
-
-            Cancelar conserva el registro; eliminar lo destruye, y el mostrador
-            no necesita destruir nada para trabajar: una cita que ya no va se
-            cancela, con su motivo y su rastro. Las reglas de Firestore son el
-            borde real (`allow delete: if isMedico`); esto sólo evita ofrecer un
-            botón que va a fallar.
-
-            A la asistente se le dice qué hacer en su lugar, en vez de dejar un
-            hueco en el menú sin explicación.
+            ELIMINAR ES DEL MÉDICO (decisión del dueño, 2026-08-01). Cancelar
+            conserva el registro; eliminar lo destruye. Las reglas de Firestore
+            son el borde real; esto sólo evita ofrecer un botón que va a fallar.
           */}
-          <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+          <div className="riel-menu-sep" />
           {esMedicoReal ? (
-            <button
-              onClick={onDelete}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
-                padding: '7px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                fontSize: 13, color: 'var(--red)', background: 'transparent',
-              }}
-            >
-              <Trash2 size={13} /> Eliminar cita
+            <button className="riel-menu-item riel-menu-peligro" role="menuitem" onClick={onDelete}>
+              <Trash2 size={13} className="ds-icon" /> Eliminar cita
             </button>
           ) : (
-            <div style={{ padding: '7px 10px', fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
+            <div className="riel-menu-nota">
               Para quitarla de la agenda, <strong>cancélala</strong>: así queda el registro.
               Eliminarla del todo lo hace el médico.
             </div>

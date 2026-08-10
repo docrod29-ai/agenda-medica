@@ -143,6 +143,10 @@ async function sembrarCitas() {
     { id: 'cita-03', p: PACIENTES[2], hora: '11:00', tipo: 'primera-vez', motivo: 'Fiebre intermitente de 2 semanas', estado: 'en-sala', confirmado: true },
     { id: 'cita-04', p: PACIENTES[3], hora: '12:30', tipo: 'seguimiento', motivo: 'Resultados de laboratorio', estado: 'confirmada', confirmado: true },
     { id: 'cita-05', p: PACIENTES[0], hora: '17:00', tipo: 'teleconsulta', motivo: 'Ajuste de tratamiento', estado: 'pendiente-confirmar', confirmado: false },
+    // Una CANCELADA: sin ella, el estado «cerrado» del riel (tachado, nodo
+    // apagado, sin acción) no aparecía en NINGUNA captura y quedaba sin
+    // evidencia visual (revisión independiente, P2.7).
+    { id: 'cita-06', p: PACIENTES[1], hora: '13:30', tipo: 'seguimiento', motivo: 'Renovación de receta', estado: 'cancelada', confirmado: false },
   ]
   for (const c of CITAS) {
     await db.doc(`clinics/${CLINIC_ID}/appointments/${c.id}`).set({

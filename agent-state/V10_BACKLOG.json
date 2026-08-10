@@ -8,8 +8,9 @@
       "fuente": "captura agenda--390.png (9-ago-2026, arnés V10) + citas--mobile.png (corrida nocturna)",
       "prioridad": "P0",
       "unidadV10": "V10-AGENDA-001 (o arreglo puntual previo: es la pantalla más usada en móvil)",
-      "estado": "abierto",
-      "confirmado-por-corrida-paralela": "TRES corridas ciegas vieron la misma rotura. La nocturna la registró como V10-CITAS-001 con prioridad P0 — se adopta ese P0. Incluye además el muro de escritorio: 4 CTA × 3 colores por fila, filtro duplicado (chips + segmentos), etiqueta del propio médico repetida en cada fila."
+      "estado": "CERRADO 10-ago-2026 (AGENDA-IDENTITY-001)",
+      "confirmado-por-corrida-paralela": "TRES corridas ciegas vieron la misma rotura. La nocturna la registró como V10-CITAS-001 con prioridad P0 — se adopta ese P0. Incluye además el muro de escritorio: 4 CTA × 3 colores por fila, filtro duplicado (chips + segmentos), etiqueta del propio médico repetida en cada fila.",
+      "cierre": "El riel del día: P0 móvil muerto (nombre en una línea, una acción apilada, cero solapes, cero desborde), muro de botones → una acción primaria por estado + menú, filtros 12→4, es-MX, sin píldora del médico, sin avatar. axe agenda: de 2 critical + 9 serious de línea base a CERO en 1440 y 390. Guardián: la-agenda-es-un-riel.test.ts (12 casos, 6 probados al revés contra e797b49e). Capturas nuevas en tests/visual/capturas/."
     },
     {
       "id": "V10-DEBT-004",
@@ -241,7 +242,8 @@
       "fuente": "revisor independiente 9-ago-2026",
       "prioridad": "P1-verificar",
       "unidadV10": "V10-SHELL-001 / V10-MOBILE-001",
-      "estado": "abierto"
+      "estado": "RESUELTO 10-ago-2026 — era artefacto de captura",
+      "cierre": "BottomNav se monta INCONDICIONAL en el layout y .bottom-nav-wrap es display:block bajo 768px sin condición por ruta. En capturas fullPage los elementos fixed se pintan una sola vez a la altura del viewport: por eso «desaparecía» en páginas altas (390) y se veía en las cortas. Verificado leyendo layout.tsx:694 y globals.css:1095-1097."
     },
     {
       "id": "V10-FABS-DOBLES",
@@ -325,6 +327,14 @@
       "evidencia": "consola del arnés, corrida dev del 9-ago-2026 (en producción no se reproduce el error de consola)",
       "prioridad": "P3",
       "unidadV10": "V10-PERF-001",
+      "estado": "abierto"
+    },
+    {
+      "id": "AGENDA-IDENTITY-002",
+      "titulo": "P1: segunda pasada de identidad del riel — punch list del revisor independiente (IDENTITY 7.5→≥9): (a) forma propia de CTA (las píldoras 100% redondeadas delatan librería), (b) fusionar tabs+selector en UN control de filtro, (c) FAB de ayuda ocluye motivo clínico a 390 (con V10-SHELL-001), (d) «Nueva cita» duplicada a 768 (header+barra), (e) capturas con next start (sin badge dev), (f) evidencia visual de cortesía/descuadre/no-show",
+      "fuente": "revisión independiente design-systems-lead 10-ago-2026 (veredicto: gramática correcta, controles aún genéricos)",
+      "prioridad": "P1",
+      "unidadV10": "AGENDA-IDENTITY-002",
       "estado": "abierto"
     }
   ],

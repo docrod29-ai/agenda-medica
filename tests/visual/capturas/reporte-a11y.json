@@ -12,7 +12,7 @@
         "id": "color-contrast",
         "impact": "serious",
         "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 3,
+        "nodos": 6,
         "ejemplos": [
           "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
           "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)",
@@ -24,19 +24,7 @@
   {
     "pantalla": "agenda",
     "viewport": "1440",
-    "violaciones": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 6,
-        "ejemplos": [
-          ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
-          ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
-          ".nx-reveal:nth-child(3) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
-        ]
-      }
-    ]
+    "violaciones": []
   },
   {
     "pantalla": "pacientes",
@@ -83,7 +71,7 @@
         "id": "color-contrast",
         "impact": "serious",
         "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 3,
+        "nodos": 6,
         "ejemplos": [
           "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
           "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)",
@@ -95,19 +83,7 @@
   {
     "pantalla": "agenda",
     "viewport": "390",
-    "violaciones": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "nodos": 3,
-        "ejemplos": [
-          ".nx-reveal:nth-child(1) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
-          ".nx-reveal:nth-child(2) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]",
-          ".nx-reveal:nth-child(4) > div > div:nth-child(5) > button[title=\"Registrar cobro\"]"
-        ]
-      }
-    ]
+    "violaciones": []
   },
   {
     "pantalla": "pacientes",

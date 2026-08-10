@@ -130,7 +130,10 @@ describe('REG-301 · el atrás de la consulta vuelve por donde se vino', () => {
 describe('REG-302 · la agenda recuerda el día que se estaba mirando', () => {
   it('el estado inicial sale de la URL', () => {
     expect(CITAS).toContain("useState(() => paramFecha(params.get('d')))")
-    expect(CITAS).toContain("useState<AppointmentStatus | 'todas' | 'por-cobrar'>(() => paramFiltro(params.get('f')))")
+    // El tipo se llama FiltroCitas desde AGENDA-IDENTITY-001 (añadió la vista
+    // «pendientes»); lo que este guardián protege es QUE EL ESTADO NAZCA DE LA
+    // URL, no el nombre del tipo.
+    expect(CITAS).toContain("useState<FiltroCitas>(() => paramFiltro(params.get('f')))")
     expect(CITAS).toContain("useState(() => params.get('q') ?? '')")
   })
 
