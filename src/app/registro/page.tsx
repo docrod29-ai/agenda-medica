@@ -17,7 +17,6 @@ import { Stethoscope, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
  * alta. Leerlo de `PLANES` hace imposible que vuelva a desincronizarse.
  */
 import { PLANES } from '@/lib/planes-ia'
-import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import Link from 'next/link'
 import { MetaPixel, trackConversion } from '@/components/MetaPixel'
 
@@ -152,8 +151,6 @@ function RegistroInner() {
           background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
           pointerEvents: 'none', opacity: 0.6,
         }} />
-        {/* Motivo de red/nexo de marca — muy tenue, detrás del panel de beneficios */}
-        <MarcaAuth style={{ bottom: '-4%', left: '50%', transform: 'translateX(-50%)', width: 'min(640px, 110%)', opacity: 0.13 }} />
 
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
@@ -163,12 +160,12 @@ function RegistroInner() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
-                <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+                <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
                   <line x1="8" y1="8" x2="8" y2="40"/>
                   <line x1="40" y1="8" x2="40" y2="40"/>
                   <line x1="8" y1="8" x2="40" y2="40"/>
                 </g>
-                <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
+                <circle cx="24" cy="24" r="3" fill="var(--text)"/>
               </svg>
             </div>
             <div>

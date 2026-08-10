@@ -7,7 +7,6 @@ import { obtenerResolverMfa, resolverLoginTotp, type MultiFactorResolver } from 
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { Stethoscope, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
-import { MarcaAuth } from '@/components/brand/MarcaAuth'
 
 export default function LoginPage() {
   return (
@@ -151,15 +150,13 @@ function LoginInner() {
       overflow: 'hidden',
     }}>
       {/* Background glow */}
-      {/* Halo de marca discreto — cobalto soft */}
+      {/* Halo de marca discreto — jamaica soft (brand-soft del Lock) */}
       <div style={{
         position: 'absolute', top: '15%', left: '50%', transform: 'translate(-50%, -50%)',
         width: 720, height: 720, borderRadius: '50%',
         background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
         pointerEvents: 'none', opacity: 0.6,
       }} />
-      {/* Motivo de red/nexo de marca — muy tenue, detrás del formulario */}
-      <MarcaAuth style={{ top: '4%', left: '50%', transform: 'translateX(-50%)', width: 'min(760px, 120vw)', opacity: 0.14 }} />
 
       <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
         {/* Hero brand block */}
@@ -173,13 +170,13 @@ function LoginInner() {
             margin: '0 auto 20px',
           }}>
             <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
-              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+              <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
                 <line x1="8" y1="8" x2="8" y2="40"/>
                 <line x1="40" y1="8" x2="40" y2="40"/>
                 <line x1="8" y1="8" x2="40" y2="40"/>
               </g>
-              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-              <circle cx="24" cy="24" r="1.2" fill="#0B0C0E"/>
+              <circle cx="24" cy="24" r="3" fill="var(--text)"/>
+              <circle cx="24" cy="24" r="1.2" fill="var(--bg)"/>
             </svg>
           </div>
           <h1 className="nx-display" style={{

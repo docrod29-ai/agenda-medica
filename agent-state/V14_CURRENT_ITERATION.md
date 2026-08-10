@@ -85,11 +85,42 @@ duplicada a 768px. Es literalmente la falla que §11 declara P0.
    V10 quedaron obsoletos) y re-capturar el golden flow como líneas base.
 4. OD-4 (paleta nocturna: hoy identidad única) espera decisión del dueño.
 
+## Evidencia de navegador de esta corrida (10-ago-2026) — arnés REAL
+
+El arnés corrió COMPLETO en este entorno por primera vez: `.env.local` de
+emulador (`demo-nexusmed-test`, candado demo-*), build de producción,
+emuladores Auth+Firestore con siembra sintética, login por la interfaz real y
+28 capturas (7 pantallas × 4 anchos) en `tests/visual/capturas/`.
+
+**Visto con los ojos (no deducido del código):**
+
+- La identidad Cantera+Instrumento ES REAL en dashboard, agenda, pacientes,
+  expediente y consulta: lienzo alabastro, acciones jamaica, tinta café,
+  banner de alergias en danger sobre tinte cálido, botón de grabación jamaica.
+- El shell nuevo rinde con su gramática: AHORA sin rótulo → PACIENTE →
+  CLÍNICA → Consultorio (plegado, chevron) → SISTEMA. En 390px el BottomNav
+  enseña Inicio·Agenda·Nueva cita·Pacientes·**Pendientes** (ya no CRM).
+- **Logo-Off informal**: tapando la marca, dashboard/agenda/consulta NO
+  parecen SaaS azul genérico ni producto-IA (cero morados, cero degradados
+  fríos, cero rejilla de tarjetas). El puntaje formal queda para la corrida
+  de scorecard con revisor independiente.
+- **Hallazgos que la captura delató** (y ya reparados en esta corrida):
+  el login conservaba el N cobalto literal + el motivo red/nexo con línea de
+  pulso (`MarcaAuth`) — DOS identidades prohibidas por el Lock en la primera
+  pantalla pública. Marca → tokens; `MarcaAuth` retirado de login/registro y
+  borrado. Re-captura en curso al cierre.
+- **Deuda visible que queda para IDENTITY-002**: la cabecera móvil dice
+  «Agenda Médica» (marca partida); la franja de alergias aparece dos veces en
+  consulta (banner + badge); portada/páginas públicas restantes con darks
+  literales de la era anterior.
+
 ## Compuertas de esta corrida (10-ago-2026)
 
 | Compuerta | Resultado |
 |---|---|
-| `npx vitest run` | **8 636 pasan · 1 fallo de entorno** (`ops-timeout`, host inalcanzable simulado que en este sandbox no cuelga — preexistente y documentado en el checkpoint V9). Dos guardianes que fallaban **en la base** quedaron reparados en esta corrida: inventario de pantallas regenerado (`/citas` 970→1017 tras AGENDA-IDENTITY-001) y techo de diseño sellado sin holgura (2008→2007, el trinquete BAJA) |
+| `npx vitest run` | **verde salvo 1 fallo ambiental** (cifra exacta al cierre de la corrida; no se estima) (`ops-timeout`, preexistente). La corrida completa cazó 5 fallos reales de la migración (guardianes de la era de dos temas + un relleno con el token equivocado) — **reparados y re-verificados** (commit `add32220`) |
+| `npx tsc --noEmit` | limpio |
 | `lint-trinquete` | **96 = techo**, sin deuda nueva |
-| `npm run build` | **Compilación y TypeScript limpios**; falla la recolección de page-data de `/dr/[clinicId]` por `auth/invalid-api-key` — este entorno cloud no tiene `.env.local`. Ambiental, no del cambio (el cambio es docs+estado) |
-| navegador | **NO ejecutado** — no se tocó UI; la evidencia vigente es la heredada (a63fefe7, b6a8c343). El arnés requiere build con `.env.local`, ausente aquí |
+| trinquete de diseño | BAJÓ y resellado exacto: hex 557→554, radios 637→635 |
+| `npm run build` | **completo y en verde** con `.env.local` de emulador (page-data incluida) |
+| navegador | **28 capturas reales** (4 anchos × 7 pantallas), arriba el detalle |

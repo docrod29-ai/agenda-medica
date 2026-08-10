@@ -1,10 +1,33 @@
 {
   "nota": "Scores V14 por pantalla crítica. NO se heredan los scores de V10: se midieron contra la identidad cobalto, superada por el Identity Lock (D-2). Cada entrada exige evidencia: captura desktop + móvil, veredicto de revisor ciego, lista de defectos. Sin evidencia no hay número.",
-  "gates": { "visualScoreMinPromedio": 9.3, "visualScoreMinPantalla": 9.0, "identityScoreMin": 9.0, "genericAiLookMax": 1.0 },
+  "gates": {
+    "visualScoreMinPromedio": 9.3,
+    "visualScoreMinPantalla": 9.0,
+    "identityScoreMin": 9.0,
+    "genericAiLookMax": 1.0
+  },
   "referenciaHistoricaV10": {
     "nota": "últimos medidos bajo identidad cobalto, commit a63fefe7/b6a8c343 — sólo contexto, no cuentan para gates V14",
-    "dashboard": { "visual": 8.6, "generic": 1.0 },
-    "citas": { "identity": 7.5, "hallazgo": "los controles delatan librería" }
+    "dashboard": {
+      "visual": 8.6,
+      "generic": 1.0
+    },
+    "citas": {
+      "identity": 7.5,
+      "hallazgo": "los controles delatan librería"
+    }
   },
-  "pantallas": {}
+  "pantallas": {},
+  "capturasV14": {
+    "fecha": "2026-08-10",
+    "arnes": "arnes-capturas-v10.sh sobre build de producción + emuladores demo-*",
+    "salida": "tests/visual/capturas/ — 7 pantallas × 4 anchos (1440/1024/768/390)",
+    "identidad": "Cantera+Instrumento renderizando de verdad (dashboard, citas, calendario, pacientes, expediente, consulta, login)",
+    "pendiente": "scorecard formal con revisor independiente (Logo-Off, Three-Second, GENERIC) — las capturas son la materia prima; los NÚMEROS siguen sin fabricarse",
+    "defectosVistos": [
+      "login: N cobalto + MarcaAuth (red/nexo+pulso) — REPARADO esta corrida",
+      "cabecera móvil dice «Agenda Médica» — marca partida (IDENTITY-002)",
+      "consulta: franja de alergias duplicada (banner + badge)"
+    ]
+  }
 }
