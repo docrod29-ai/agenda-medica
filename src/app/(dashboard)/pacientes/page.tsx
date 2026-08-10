@@ -87,7 +87,7 @@ export default function PacientesPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `respaldo_nexusmed_${new Date().toISOString().slice(0, 10)}.ndjson`
+      a.download = `respaldo_ausculta_${new Date().toISOString().slice(0, 10)}.ndjson`
       a.click()
       URL.revokeObjectURL(url)
       toast('Respaldo descargado. La última línea del archivo dice si quedó completo y qué faltó.', 'success')

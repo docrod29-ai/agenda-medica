@@ -6,7 +6,7 @@ import { SUBENCARGADOS } from '@/lib/legal/subencargados'
 import { CORREO_PRIVACIDAD } from '@/lib/contacto'
 
 export const metadata: Metadata = {
-  title: 'Seguridad y confianza · NexusMED',
+  title: 'Seguridad y confianza · Ausculta',
   description: 'Cómo protegemos la información clínica: cifrado, control de acceso, respaldos, proveedores y manejo de datos por la IA.',
 }
 

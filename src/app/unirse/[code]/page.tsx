@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { obtenerInvitacion, esValida, aceptarInvitacion, type Invitacion, type RolInvitacion } from '@/lib/invitations'
 import { Stethoscope, Loader2, CheckCircle2, AlertTriangle, UserPlus } from 'lucide-react'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 const ROL_LABEL: Record<RolInvitacion, string> = {
   secretaria: 'asistente',
@@ -117,14 +118,7 @@ export default function UnirsePage() {
       <div style={containerStyle}>
         <div style={cardStyle}>
           <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-              <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
-                <line x1="8" y1="8" x2="8" y2="40"/>
-                <line x1="40" y1="8" x2="40" y2="40"/>
-                <line x1="8" y1="8" x2="40" y2="40"/>
-              </g>
-              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-            </svg>
+            <MarcaAusculta size={28} />
           </div>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '0 0 8px' }}>
             {inv?.nombreInvitado ? `¡Hola, ${inv.nombreInvitado.split(' ')[0]}!` : '¡Te invitaron a una clínica!'}
@@ -158,14 +152,7 @@ export default function UnirsePage() {
     <div style={containerStyle}>
       <div style={cardStyle}>
         <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-            <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
-              <line x1="8" y1="8" x2="8" y2="40"/>
-              <line x1="40" y1="8" x2="40" y2="40"/>
-              <line x1="8" y1="8" x2="40" y2="40"/>
-            </g>
-            <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-          </svg>
+          <MarcaAusculta size={28} />
         </div>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.015em' }}>Unirte a la clínica</h1>
         <p style={{ fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 6px' }}>

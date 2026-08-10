@@ -1,5 +1,5 @@
 /**
- * ProductWindow — mockup FIEL de la interfaz de NexusMED para la landing/tiendas.
+ * ProductWindow — mockup FIEL de la interfaz de Ausculta para la landing/tiendas.
  *
  * No es una captura (real ni falsa): se construye con los MISMOS tokens del
  * design system y datos FICTICIOS (pacientes por iniciales, reutilizados del
@@ -9,6 +9,7 @@
  */
 import { Calendar, Users, Stethoscope, FileText, CreditCard, Mic, CheckCircle2 } from 'lucide-react'
 import { DEMO_ESCENARIOS } from '@/lib/demo-sandbox'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 const NAV = [
   { icon: Calendar, label: 'Agenda', activo: true },
@@ -22,7 +23,7 @@ export function ProductWindow() {
   return (
     <div
       role="img"
-      aria-label="Vista del producto NexusMED: agenda del día y nota de consulta (interfaz de ejemplo con datos ficticios)"
+      aria-label="Vista del producto Ausculta: agenda del día y nota de consulta (interfaz de ejemplo con datos ficticios)"
       style={{
         background: 'var(--s1)', border: '1px solid var(--border2)', borderRadius: 16,
         overflow: 'hidden', boxShadow: '0 30px 80px rgba(0,0,0,0.45)', width: '100%',
@@ -34,7 +35,7 @@ export function ProductWindow() {
         <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#febc2e' }} />
         <span style={{ width: 11, height: 11, borderRadius: 'var(--r-pill)', background: '#28c840' }} />
         <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'var(--text3)', fontFamily: 'var(--font-mono, monospace)' }}>
-          app.nexusmed · Agenda
+          app.ausculta · Agenda
         </div>
       </div>
 
@@ -42,10 +43,13 @@ export function ProductWindow() {
         {/* Sidebar */}
         <div style={{ borderRight: '1px solid var(--border)', padding: '14px 10px', background: 'var(--bg)' }} className="nx-pw-side">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 14px' }}>
-            <span style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--nexus)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ width: 8, height: 8, borderRadius: 8, border: '2px solid #0B0C0E' }} />
+            {/* La marca de verdad, no un cuadrado con un punto: este escaparate
+                dice ser FIEL a la interfaz, y la barra lateral real lleva la
+                campana del estetoscopio. */}
+            <span style={{ width: 22, height: 22, borderRadius: 'var(--r-sm)', background: 'var(--nexus-soft)', color: 'var(--nexus)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MarcaAusculta size={14} />
             </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>NexusMED</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Ausculta</span>
           </div>
           {NAV.map(n => (
             <div key={n.label} style={{

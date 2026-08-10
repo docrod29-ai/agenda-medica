@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* ── NexusMED design tokens ──────────────────────────────────
+  /* ── Ausculta design tokens ──────────────────────────────────
      Sistema de color rediseñado:
      - Canvas: ink neutro (no navy) — más refinado, menos "Bootstrap"
      - Superficies: shades del ink, contraste preciso
@@ -29,7 +29,7 @@
   --panel:     var(--s1);
   --panel2:    var(--s2);
 
-  /* Acento de marca: cobalto NexusMED
+  /* Acento de marca: cobalto Ausculta
      (los nombres --teal se mantienen por back-compat — son ahora cobalto) */
   --nexus:        #6E84FE;   /* AA sobre --s3 (4.63); antes #3D5AFE = 2.96 */
   --nexus-hover:  #2845EA;
@@ -399,7 +399,7 @@ html, body {
 
 /* ── Card ─────────────────────────────────────────────────── */
 /* ─────────────────────────────────────────────────────────────
-   NEXUSMED · COMPONENTES CORE (Sprint 2)
+   AUSCULTA · COMPONENTES CORE (Sprint 2)
    Specs:
    - Curva única microinteracciones: cubic-bezier(0.16, 1, 0.3, 1)
    - Sin sombras decorativas (solo en dropdowns/modals)
@@ -471,7 +471,7 @@ html, body {
 
    No se esconde ningún control: se estrecha lo que sobra, que es el relleno y
    el ancho de los botones. Por debajo de 380 px se retira además el nombre
-   escrito «NexusMED» — el logotipo se queda, así que la marca sigue ahí.
+   escrito «Ausculta» — el logotipo se queda, así que la marca sigue ahí.
 
    Medido de nuevo tras el cambio: 390 → 390 y 320 → 312. Sin desborde. */
 @media (max-width: 460px) {
@@ -624,7 +624,7 @@ tbody tr:hover { background: var(--s2); }
 tbody td { padding: 12px; color: var(--text2); }
 tbody tr:last-child { border-bottom: none; }
 
-/* ── Sidebar (NexusMED) ───────────────────────────────────── */
+/* ── Sidebar (Ausculta) ───────────────────────────────────── */
 .sidebar {
   background: var(--bg);
   border-right: 1px solid var(--border);
@@ -769,7 +769,7 @@ tbody tr:last-child { border-bottom: none; }
 .modal-wide { max-width: 760px; }
 .modal-xl { max-width: 1000px; }
 
-/* ── Tabs (estilo borde inferior, NexusMED) ───────────────── */
+/* ── Tabs (estilo borde inferior, Ausculta) ───────────────── */
 .tabs {
   display: flex;
   gap: 0;
@@ -1217,7 +1217,7 @@ tbody tr:last-child { border-bottom: none; }
 }
 
 /* ═════════════════════════════════════════════════════════════════
-   NEXUSMED · SPRINT 7 — FASE 2 UI/UX PREMIUM
+   AUSCULTA · SPRINT 7 — FASE 2 UI/UX PREMIUM
    No reescribe reglas anteriores: las EXTIENDE y SOBREESCRIBE
    solo cuando aporta valor visible (light mode, glass, microinteracciones).
    Toggle por atributo: <html data-theme="light"> o data-theme="dark".

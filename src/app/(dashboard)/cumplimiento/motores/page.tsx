@@ -73,7 +73,7 @@ export default function MotoresPage() {
         Motores clínicos
       </h1>
       <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 18px', lineHeight: 1.6 }}>
-        Cada cálculo clínico de NexusMED es un motor determinista con su referencia y sus casos de prueba.
+        Cada cálculo clínico de Ausculta es un motor determinista con su referencia y sus casos de prueba.
         Aquí está cuáles ha revisado un médico responsable y cuáles no.
       </p>
 
@@ -90,7 +90,7 @@ export default function MotoresPage() {
         <strong style={{ color: 'var(--text)' }}>Qué significa «sin validar».</strong> El motor funciona y tiene
         pruebas: lo que falta es que un médico responsable confirme que sus reglas son las correctas para tu
         práctica. Mientras tanto, sus resultados salen en pantalla con una etiqueta ámbar junto al dato —
-        nunca se ocultan ni se bloquean. <strong style={{ color: 'var(--text)' }}>NexusMED no propone aquí ningún
+        nunca se ocultan ni se bloquean. <strong style={{ color: 'var(--text)' }}>Ausculta no propone aquí ningún
         umbral ni dosis</strong>: sólo muestra lo que hay que decidir.
       </div>
 

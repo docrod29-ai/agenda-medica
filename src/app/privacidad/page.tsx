@@ -1,12 +1,12 @@
-// Aviso de privacidad GENERAL de la plataforma NexusMED.
+// Aviso de privacidad GENERAL de la plataforma Ausculta.
 // URL fija /privacidad — la que pide Meta para la revisión de la app de WhatsApp
 // (además de los avisos por consultorio en /privacidad/[clinicId]).
 import type { Metadata } from 'next'
 import { CORREO_PRIVACIDAD } from '@/lib/contacto'
 
 export const metadata: Metadata = {
-  title: 'Aviso de Privacidad — NexusMED',
-  description: 'Aviso de privacidad de la plataforma NexusMED (agenda médica y expediente clínico electrónico).',
+  title: 'Aviso de Privacidad — Ausculta',
+  description: 'Aviso de privacidad de la plataforma Ausculta (agenda médica y expediente clínico electrónico).',
 }
 
 const ACTUALIZADO = 'julio de 2026'
@@ -15,36 +15,36 @@ export default function PrivacidadGeneralPage() {
   return (
     <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: '#1a1a1a', background: '#fff', lineHeight: 1.7, fontSize: 16 }}>
       <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: '#0b1220' }}>Aviso de Privacidad</h1>
-      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma NexusMED · Última actualización: {ACTUALIZADO}</p>
+      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma Ausculta · Última actualización: {ACTUALIZADO}</p>
 
       <p>
-        NexusMED es una plataforma de <strong>agenda médica y expediente clínico electrónico</strong> para consultorios y
+        Ausculta es una plataforma de <strong>agenda médica y expediente clínico electrónico</strong> para consultorios y
         clínicas. Este aviso explica cómo se tratan los datos personales conforme a la <strong>Ley Federal de Protección de
         Datos Personales en Posesión de los Particulares (LFPDPPP)</strong> de México.
       </p>
 
       <Section titulo="1. Identidad del operador">
-        NexusMED es una plataforma operada por <strong>David Alonso Rodríguez Luna</strong> (persona física con actividad
+        Ausculta es una plataforma operada por <strong>David Alonso Rodríguez Luna</strong> (persona física con actividad
         empresarial), con domicilio en México. Contacto para asuntos de privacidad: <strong>{CORREO_PRIVACIDAD}</strong>.
         Los datos de identificación fiscal y el domicilio completo del operador están disponibles para las autoridades
         competentes y para los titulares que lo soliciten; no se publican en este aviso por seguridad.
       </Section>
 
       <Section titulo="2. Responsable y encargado">
-        Cada consultorio o clínica que usa NexusMED es el <strong>responsable</strong> de los datos de sus pacientes.
-        NexusMED (operado por la persona señalada arriba) actúa como <strong>encargado</strong> del tratamiento: provee el
+        Cada consultorio o clínica que usa Ausculta es el <strong>responsable</strong> de los datos de sus pacientes.
+        Ausculta (operado por la persona señalada arriba) actúa como <strong>encargado</strong> del tratamiento: provee el
         software y resguarda la información por cuenta del consultorio, siguiendo sus instrucciones.
       </Section>
 
       <Section titulo="3. Datos de los médicos y personal suscriptor">
-        Respecto de los datos de sus <strong>suscriptores</strong> (médicos y su personal), NexusMED actúa como
+        Respecto de los datos de sus <strong>suscriptores</strong> (médicos y su personal), Ausculta actúa como
         <strong> responsable</strong>. Se tratan: <strong>datos de la cuenta</strong> (nombre, correo, teléfono, cédula
         profesional, especialidad y datos del consultorio), <strong>datos de suscripción y facturación</strong> (plan,
         pagos y datos fiscales para el CFDI, procesados por el proveedor de pagos y el emisor de facturas) y
         <strong> datos de soporte</strong> (los mensajes y adjuntos que envías al pedir ayuda). Finalidades: crear y operar
         tu cuenta, cobrar la suscripción, emitir comprobantes fiscales, brindar soporte y cumplir obligaciones legales y
         fiscales. La base del tratamiento es la <strong>relación contractual</strong> contigo. Los datos de pago los procesan
-        el proveedor de pagos y el PAC de facturación como encargados; NexusMED no almacena los datos completos de la tarjeta.
+        el proveedor de pagos y el PAC de facturación como encargados; Ausculta no almacena los datos completos de la tarjeta.
         Puedes ejercer tus derechos ARCO escribiendo a <strong>{CORREO_PRIVACIDAD}</strong>.
       </Section>
 
@@ -62,7 +62,7 @@ export default function PrivacidadGeneralPage() {
       </Section>
 
       <Section titulo="6. WhatsApp Business y Meta">
-        Para el envío de mensajes, NexusMED utiliza la <strong>API de WhatsApp Business de Meta Platforms, Inc.</strong> El
+        Para el envío de mensajes, Ausculta utiliza la <strong>API de WhatsApp Business de Meta Platforms, Inc.</strong> El
         número de teléfono y el contenido del mensaje se procesan a través de la infraestructura de Meta con el único fin de
         entregar la comunicación al paciente. El tratamiento por parte de Meta se rige por sus propias políticas. No se
         comparten datos con Meta para publicidad ni para fines distintos al envío del mensaje solicitado.
@@ -106,7 +106,7 @@ export default function PrivacidadGeneralPage() {
       <Section titulo="9. Derechos ARCO">
         Todo paciente puede <strong>Acceder, Rectificar, Cancelar u Oponerse</strong> al tratamiento de sus datos, así como
         revocar su consentimiento. Para ejercerlos, contacte directamente a su consultorio, o utilice el portal de solicitudes
-        que su consultorio pone a disposición en NexusMED.
+        que su consultorio pone a disposición en Ausculta.
       </Section>
 
       <Section titulo="10. Cambios a este aviso">
@@ -118,7 +118,7 @@ export default function PrivacidadGeneralPage() {
       </Section>
 
       <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>
-        NexusMED — Agenda médica y expediente clínico electrónico · México.
+        Ausculta — Agenda médica y expediente clínico electrónico · México.
       </p>
     </main>
   )

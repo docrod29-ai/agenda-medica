@@ -28,7 +28,7 @@
  *
  * ── POR QUÉ UNA CONSTANTE Y NO OCHO CADENAS ─────────────────────────────────
  *
- * Porque el nombre del producto va a cambiar —`nexusmed.mx` está tomado— y la
+ * Porque el nombre del producto va a cambiar —`nexusmed.mx` es de otro— y la
  * lección de este mismo repositorio, contada 34 veces, es que lo que se
  * escribe en ocho sitios se arregla en siete.
  *

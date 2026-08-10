@@ -110,7 +110,7 @@ export default function MigracionPage() {
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = `nexusmed_${new Date().toISOString().slice(0, 10)}.xlsx`
+      a.href = url; a.download = `ausculta_${new Date().toISOString().slice(0, 10)}.xlsx`
       document.body.appendChild(a); a.click(); a.remove()
       URL.revokeObjectURL(url)
       toast('Descargado. La primera pestaña dice qué trae y si falta algo.', 'success')

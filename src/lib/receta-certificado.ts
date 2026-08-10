@@ -10,7 +10,7 @@ import { folioDeNota } from '@/lib/receta-folio'
  * firmaba `folio`, `doctorNombre` y `cedula` tal como llegaban en el body. Un
  * miembro con rol médico podía POSTear cualquier cédula y cualquier folio y
  * obtener una URL que la página pública `/verificar` presenta como
- * "Integridad verificada". NexusMED certificaba un documento inexistente con la
+ * "Integridad verificada". Ausculta certificaba un documento inexistente con la
  * cédula de un tercero.
  *
  * Además había un caso NO malicioso que ya producía el dato incorrecto: el

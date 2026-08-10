@@ -5,6 +5,7 @@ import { Stethoscope, CheckCircle2, MessageCircle, Bell, Calendar, Users, Clock,
 import { MetaPixel } from '@/components/MetaPixel'
 import { ProductWindow } from '@/components/ProductWindow'
 import { PLANES } from '@/lib/planes-ia'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 /* ─── Data ─────────────────────────────────────────────── */
 const FEATURES = [
@@ -132,16 +133,9 @@ function Nav() {
           background: 'var(--s1)', border: '1px solid var(--border2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-            <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
-              <line x1="8" y1="8" x2="8" y2="40"/>
-              <line x1="40" y1="8" x2="40" y2="40"/>
-              <line x1="8" y1="8" x2="40" y2="40"/>
-            </g>
-            <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-          </svg>
+          <MarcaAusculta size={18} />
         </div>
-        <span className="nav-portada-marca" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
+        <span className="nav-portada-marca" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -316,7 +310,7 @@ function HowItWorks() {
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/workspace.jpg" alt="Espacio de trabajo clínico conectado de NexusMED"
+          <img src="/brand/workspace.jpg" alt="Espacio de trabajo clínico conectado de Ausculta"
             style={{ width: '100%', maxWidth: 720, height: 'auto', margin: '0 auto 40px', display: 'block', borderRadius: 16, border: '1px solid var(--border)' }} />
           <h2 style={{ fontSize: 40, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
             Listo en 5 minutos
@@ -524,7 +518,7 @@ function Trust() {
         </Link>
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', maxWidth: 520, textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
-        NexusMED es nuevo: no inflamos cifras de usuarios ni inventamos testimonios. Lo que mostramos está respaldado por
+        Ausculta es nuevo: no inflamos cifras de usuarios ni inventamos testimonios. Lo que mostramos está respaldado por
         evidencia publicada o es una oferta real.
       </p>
     </section>
@@ -614,7 +608,7 @@ function Footer() {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Stethoscope size={16} color="var(--teal)" />
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</span>
         <span style={{ fontSize: 14, color: 'var(--text3)' }}>· Hecho en México 🇲🇽</span>
       </div>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -627,7 +621,7 @@ function Footer() {
         <a href="/contacto" style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none' }}>Soporte</a>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-        © {new Date().getFullYear()} NexusMED. Todos los derechos reservados.
+        © {new Date().getFullYear()} Ausculta. Todos los derechos reservados.
       </div>
     </footer>
   )

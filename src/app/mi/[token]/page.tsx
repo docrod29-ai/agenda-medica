@@ -528,7 +528,7 @@ export default function MiPortalPage() {
 
         {/* Confianza */}
         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)' }}>
-          <ShieldCheck size={13} className="ds-icon" /> Acceso privado y seguro · NexusMED
+          <ShieldCheck size={13} className="ds-icon" /> Acceso privado y seguro · Ausculta
         </div>
         </>)}
 

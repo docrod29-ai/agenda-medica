@@ -105,7 +105,7 @@ export default function NotFound() {
           }}>
             <div style={{ color: '#6C7075', marginBottom: 4 }}>URL fallida:</div>
             <div style={{ color: '#F2EFE9' }}>{urlFallido}</div>
-            <div style={{ color: '#6C7075', marginTop: 8 }}>Build: 2026-06-03-nexusmed</div>
+            <div style={{ color: '#6C7075', marginTop: 8 }}>Build: 2026-06-03-ausculta</div>
           </div>
         )}
       </div>

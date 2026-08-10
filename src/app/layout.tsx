@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { IBM_Plex_Sans, IBM_Plex_Mono, Fraunces } from "next/font/google"
 import "./globals.css"
+import { MARCA, LEMA } from "@/lib/marca"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
@@ -64,15 +65,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "NexusMED",
-    template: "%s · NexusMED",
+    default: MARCA,
+    template: `%s · ${MARCA}`,
   },
   description: "El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.",
-  applicationName: "NexusMED",
+  applicationName: MARCA,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "NexusMED",
+    title: MARCA,
   },
   icons: {
     // SVG para navegadores que lo soportan + PNG de respaldo (Safari/Android no
@@ -87,8 +88,8 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "NexusMED",
-    description: "El consultorio, conectado.",
+    title: MARCA,
+    description: LEMA,
     type: "website",
     locale: "es_MX",
   },
@@ -120,7 +121,7 @@ export default function RootLayout({
         */}
         {/*
           Anti-flicker tema: aplica data-theme ANTES de la primera pintada.
-          Default = OSCURO (identidad de marca NexusMED). Solo si el usuario
+          Default = OSCURO (identidad de marca Ausculta). Solo si el usuario
           eligió 'light' explícitamente se respeta el claro.
         */}
         <script

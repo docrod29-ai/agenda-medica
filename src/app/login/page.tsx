@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { Stethoscope, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 export default function LoginPage() {
   return (
@@ -164,7 +165,7 @@ function LoginInner() {
       <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
         {/* Hero brand block */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          {/* Mark NexusMED — N geométrica */}
+          {/* Mark Ausculta — N geométrica */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: 'var(--s1)',
@@ -172,21 +173,13 @@ function LoginInner() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 20px',
           }}>
-            <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true">
-              <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
-                <line x1="8" y1="8" x2="8" y2="40"/>
-                <line x1="40" y1="8" x2="40" y2="40"/>
-                <line x1="8" y1="8" x2="40" y2="40"/>
-              </g>
-              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-              <circle cx="24" cy="24" r="1.2" fill="#0B0C0E"/>
-            </svg>
+            <MarcaAusculta size={30} />
           </div>
           <h1 className="nx-display" style={{
             fontSize: 36, color: 'var(--text)', margin: 0,
             fontWeight: 500,
           }}>
-            NexusMED
+            Ausculta
           </h1>
           <p style={{
             fontSize: 14, color: 'var(--text2)', marginTop: 8,
@@ -381,7 +374,7 @@ function LoginInner() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text3)', marginTop: 20 }}>
-          NexusMED © {new Date().getFullYear()}
+          Ausculta © {new Date().getFullYear()}
         </p>
       </div>
 

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { DemoWorkflow } from '@/components/DemoWorkflow'
 
 export const metadata = {
-  title: 'Operación y finanzas · NexusMED',
+  title: 'Operación y finanzas · Ausculta',
   description: 'Corte de caja, cuentas por cobrar, inventario de farmacia, paquetes, comisiones y control financiero. La operación de tu consultorio, no solo la agenda.',
 }
 
@@ -22,7 +22,7 @@ const FINANZAS: Item[] = [
    * una lista de capacidades DEL CONSULTORIO. Un comprador lo lee como «puedo
    * facturar a mis pacientes», y no puede.
    *
-   * Lo que SÍ existe es lo contrario: NexusMED te timbra a TI el CFDI de tu
+   * Lo que SÍ existe es lo contrario: Ausculta te timbra a TI el CFDI de tu
    * suscripción (emisor = la plataforma, receptor = el consultorio). Eso
    * funciona, es real, y ahora se dice tal cual.
    *
@@ -31,7 +31,7 @@ const FINANZAS: Item[] = [
    * sustitución, XML/PDF y conciliación. Es un proyecto aparte.
    */
   { nombre: 'Recibo de cobro (no fiscal)', estado: 'activo', desc: 'Comprobante del pago para el paciente, claramente identificado como NO fiscal. Con folio, concepto, método y quién cobró.' },
-  { nombre: 'Tu factura de NexusMED (CFDI 4.0)', estado: 'activo', desc: 'Nosotros te timbramos a TI el CFDI de tu suscripción: pides la factura desde la app, con tus datos fiscales, y descargas PDF y XML. No requiere tus CSD.' },
+  { nombre: 'Tu factura de Ausculta (CFDI 4.0)', estado: 'activo', desc: 'Nosotros te timbramos a TI el CFDI de tu suscripción: pides la factura desde la app, con tus datos fiscales, y descargas PDF y XML. No requiere tus CSD.' },
   { nombre: 'Facturar a tus pacientes (CFDI)', estado: 'roadmap', desc: 'Que el consultorio timbre a su paciente NO existe todavía: exige PAC, tus CSD y llave, catálogo fiscal, timbrado, cancelación y conciliación. Cuando esté en producción lo diremos aquí, no antes.' },
   { nombre: 'Reportes financieros', estado: 'parcial', desc: 'Ingresos, IVA contenido, costos y margen. Se están ampliando por médico, servicio y tendencia.' },
   { nombre: 'Comisiones', estado: 'parcial', desc: 'Cálculo por médico/servicio en construcción.' },
