@@ -12,6 +12,7 @@ import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import type { Medicamento } from '@/types/expediente'
+import type { PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
 
 interface DocReceta {
   id: string
@@ -114,6 +115,8 @@ export default function MiPortalPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [docs, setDocs] = useState<DocReceta[] | null>(null)
   const [docsBloqueados, setDocsBloqueados] = useState(false)
+  /** `null` = todavía cargando. `[]` = el médico no ha liberado ninguno. */
+  const [paquetes, setPaquetes] = useState<PaqueteDeVisita[] | null>(null)
   const [cargando, setCargando] = useState(true)
   /** La frontera entre «próximas» y «pasadas», congelada al abrir. Ver abajo. */
   const [ahora] = useState(() => Date.now())
@@ -140,6 +143,18 @@ export default function MiPortalPage() {
         })
         .then(d => setDocs(d.documentos || []))
         .catch(() => setDocs([]))
+
+      /*
+        LOS PAQUETES QUE SU MÉDICO LIBERÓ (V9 · POSTVISIT-001). En paralelo, como
+        los documentos: que el plan tarde no puede retrasar las citas. El 403 es
+        el mismo caso de E0-06 —enlace sin alcance clínico— y se trata igual que
+        allí: lista vacía, y el aviso de «pide el acceso a tu médico» ya está en
+        la pestaña de documentos.
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
+        .then(res => (res.ok ? res.json() : { paquetes: [] }))
+        .then(d => setPaquetes(d.paquetes || []))
+        .catch(() => setPaquetes([]))
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -422,18 +437,83 @@ export default function MiPortalPage() {
           {/*
             LO QUE TU MÉDICO LIBERÓ de cada consulta. Sólo aparecen los paquetes
             RELEASED: el servidor filtra con `visibleParaElPaciente` y un
-            borrador no sale de ahí (REG-304). Hoy nada los crea todavía — la
-            pantalla del médico para liberarlos llega en POSTVISIT-001 — así que
-            el estado vacío dice la verdad en vez de fingir que no hay nada.
+            borrador no sale de ahí (REG-304).
+
+            V9 · POSTVISIT-001 — desde esta unidad **sí hay quien los cree**: la
+            pantalla del médico compone el paquete de la nota firmada y lo
+            libera con su nombre y su hora. El camino queda cerrado de punta a
+            punta: consulta → firma → liberación → aquí.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu plan de cuidado</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
-              Cuando tu médico libere el resumen de una consulta, lo verás aquí:
-              tus medicamentos con instrucciones en palabras sencillas, los
-              estudios que te pidió y cuándo volver.
-            </p>
-          </div>
+
+          {paquetes === null && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} />
+              <span style={{ fontSize: 14, color: 'var(--text3)' }}>Cargando tu plan…</span>
+            </div>
+          )}
+
+          {paquetes?.length === 0 && (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Cuando tu médico libere el resumen de una consulta, lo verás aquí:
+                tus medicamentos con instrucciones en palabras sencillas, los
+                estudios que te pidió y cuándo volver.
+              </p>
+            </div>
+          )}
+
+          {paquetes?.map(p => (
+            <article key={p.notaId} style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }} className="t-num">
+                {p.approvedAt ? new Date(p.approvedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+              </div>
+              {p.encounterSummary && (
+                <p style={{ fontSize: 16, color: 'var(--text)', margin: '6px 0 0', lineHeight: 1.6 }}>{p.encounterSummary}</p>
+              )}
+
+              {p.medicationInstructions.length > 0 && (
+                <BloquePlan titulo="Tus medicamentos">
+                  {p.medicationInstructions.map(m => <li key={m.nombre}>{m.instruccion}</li>)}
+                </BloquePlan>
+              )}
+
+              {/*
+                QUÉ CAMBIÓ. Sólo se enseña cuando se pudo determinar: `null` es
+                «no lo sé», y decirle «sin cambios» a quien acaba de cambiar de
+                tratamiento es peor que no decir nada.
+              */}
+              {p.medicationChanges && p.medicationChanges.some(c => c.tipo !== 'sin-cambio') && (
+                <BloquePlan titulo="Qué cambió">
+                  {p.medicationChanges.filter(c => c.tipo !== 'sin-cambio').map(c => (
+                    <li key={c.nombre}>{c.nombre} — {c.tipo === 'nuevo' ? 'nuevo' : 'ya no lo tomes'}</li>
+                  ))}
+                </BloquePlan>
+              )}
+
+              {p.warningSigns.length > 0 && (
+                <BloquePlan titulo="Cuándo buscar ayuda">
+                  {p.warningSigns.map(s => <li key={s}>{s}</li>)}
+                </BloquePlan>
+              )}
+
+              {p.orders.length > 0 && (
+                <BloquePlan titulo="Estudios que te pidió">
+                  {p.orders.map(o => <li key={o}>{o}</li>)}
+                </BloquePlan>
+              )}
+
+              {p.followUp && (
+                <BloquePlan titulo="Tu próxima cita">
+                  <li>{p.followUp}</li>
+                </BloquePlan>
+              )}
+
+              {p.clinicianContactRules && (
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>{p.clinicianContactRules}</p>
+              )}
+            </article>
+          ))}
         {/* Pasadas */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
@@ -604,6 +684,27 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Un bloque del plan liberado: rótulo y lista.
+ *
+ * Se escribe una vez y se reutiliza en los cinco bloques por lo mismo que
+ * `comoSeLoExplico` no incluye bloques vacíos: la jerarquía tiene que ser la
+ * misma en todos, o el paciente lee «medicamentos» y «estudios» con dos pesos
+ * visuales distintos sin que nadie lo haya decidido.
+ */
+function BloquePlan({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <h3 style={{ margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+        {titulo}
+      </h3>
+      <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+        {children}
+      </ul>
     </div>
   )
 }

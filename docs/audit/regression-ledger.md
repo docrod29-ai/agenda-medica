@@ -7013,3 +7013,101 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La hoja del paciente salía del borrador en curso, sin compuerta de firma
+
+**Encontrado** al abrir `POSTVISIT-001`, que llegaba con este defecto ya
+declarado por la auditoría de `PATIENT-UX-TRUTH-001` como `POSTVISIT-GATE-001`.
+
+**Qué pasaba.** `HojaParaElPaciente` se compone **en vivo** mientras el médico
+dicta: eso es justo lo que la hace útil durante la consulta. Y desde el primer
+minuto tenía botón de «Copiar» y de «Imprimir», sin una sola comprobación de
+firma.
+
+Lo que acababa en el WhatsApp del paciente podía ser una dosis a medio corregir,
+un fármaco que el médico estaba a punto de quitar, o una frecuencia mal oída que
+todavía no había revisado. Con el membrete del consultorio detrás.
+
+**Por qué no se veía.** La hoja no mentía: enseñaba exactamente lo que había en
+pantalla, y el médico lo estaba mirando. Lo que faltaba no era exactitud, era
+**estado**: nada decía que lo que había todavía no estaba firmado. Un defecto de
+lo que la interfaz *no* dice no lo encuentra ninguna prueba de lo que dice.
+
+**Arreglo.** `firmada?: boolean`, y **el valor por omisión es cerrado**
+(`p.firmada === true`, no `!== false`): una compuerta cuyo estado seguro depende
+de que alguien se acuerde de pasar la prop es una convención, no una compuerta.
+
+Mirar sigue siendo libre y **salir no**: con la nota en borrador la hoja se ve,
+marcada como borrador y con la razón escrita, y las dos salidas al mundo
+—copiar e imprimir— no existen. `copiar()` además se defiende sola, porque un
+botón que no se pinta no cierra nada.
+
+**Familia.** `escrito_y_sin_conectar`, variante «conectado a medias»: la mitad
+que compone estaba probada; la mitad que decide si eso puede salir no existía.
+
+**Guardián.** `src/__tests__/lo-firmado-es-lo-que-se-entrega.test.ts`, 31 casos.
+Probado al revés: cambiando el valor por omisión a `!== false`, dos casos caen.
+
+---
+
+## REG-307 — Lo firmado no llegaba al paciente: el paquete no tenía quien lo creara
+
+**Encontrado** ejecutando `POSTVISIT-001`. Estaba declarado desde
+`PATIENT-COMPANION-001` con esta frase en `PATIENT_COMPANION_STATE.md`: «el
+contenido está resuelto; faltan la compuerta y el camino».
+
+**Qué pasaba.** `PATIENT-COMPANION-001` dejó montada la superficie del paciente,
+el modelo `PaqueteDeVisita` con sus dos estados y la compuerta del servidor que
+impide que un borrador la cruce. Faltaba **el acto**: nadie podía crear un
+paquete. `componerPaquete` se había retirado del repositorio precisamente por no
+tener llamador, así que la pestaña «Cuidado» del portal enseñaba un estado vacío
+honesto **que iba a seguir vacío para siempre**.
+
+**Por qué es la forma más cara de fallar.** Las dos mitades eran correctas por su
+cuenta. El motor componía bien y la pantalla del paciente pintaba bien. Ninguna
+prueba de ninguna de las dos podía ver que entre ellas no había nada. Es la regla
+«el dato tiene que LLEGAR» en su forma más pura: la pregunta no es si el código
+lo dice, es si el destinatario lo recibe.
+
+**Arreglo.** El camino entero, con sus dos actos separados:
+
+- **`componerPaquete` vuelve, con llamador.** Determinista de principio a fin —
+  ni un modelo de lenguaje toca esto—, reutilizando `como-se-lo-explico`, que ya
+  garantiza que no puede aparecer una cifra que no esté en la nota.
+- **`cambiosDeMedicacion`**, la casilla que ningún competidor documenta en
+  público y donde el paciente más se equivoca. **Sin lista previa devuelve
+  `null`, no `[]`**: «no aparecía antes» y «no sé qué había antes» son cosas
+  distintas, y decirle «sin cambios» a quien acaba de cambiar de tratamiento es
+  inventarle una tranquilidad.
+- **`POST /api/paciente/paquete`**, con el contenido leído **por el servidor** de
+  la nota firmada. El cuerpo trae identificadores, no clínica: la lista blanca de
+  campos es casi vacía a propósito, y el único texto que aporta el cliente son
+  los signos de alarma **que escribió el médico**, recortados.
+- **`approvedBy` sale de la sesión verificada, nunca del cuerpo.** Un
+  `approvedBy` que viaja por la red es un campo que se puede escribir, y entonces
+  «lo aprobó su médico» deja de significar nada. Capacidad `firmar` y no
+  `clinico.escribir`: quien registra un pase de visita no decide qué lee el
+  paciente en su casa.
+- **La compuerta de firma se comprueba en las DOS acciones**, no sólo al
+  componer. Entre componer y liberar puede pasar cualquier cosa.
+- **La pantalla del médico** (`LiberarParaElPaciente`) pide la vista previa **al
+  servidor** en vez de recomponerla: dos composiciones distintas pueden
+  discrepar, y aprobar algo que no se ve es firmar en blanco.
+- **El portal del paciente pide los paquetes y los pinta**, distinguiendo
+  «cargando» de «tu médico no ha liberado nada».
+
+**Lo que NO se hizo, declarado.** Corregir un paquete ya liberado responde 409.
+Es la misma forma que una adenda sobre una nota firmada y exige decidir qué ve el
+paciente mientras tanto; queda abierto como `POSTVISIT-VERSION-002`, con el campo
+`version` ya en el modelo esperándolo. Y `cambiosDeMedicacion` compara por
+**nombre**: el mismo fármaco con otra dosis sale `sin-cambio`, porque una
+comparación de cifras que se equivoque le diría al paciente que su dosis cambió
+cuando no cambió.
+
+**Familia.** `escrito_y_sin_conectar`, en las dos direcciones a la vez —el motor
+sin salida y la pantalla sin entrada—, que es la variante que ninguna revisión de
+una sola pieza encuentra.
+
+**Guardián.** `src/__tests__/lo-firmado-es-lo-que-se-entrega.test.ts`, 31 casos.

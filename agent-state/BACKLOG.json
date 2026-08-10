@@ -358,7 +358,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-GATE-001",
@@ -369,7 +369,8 @@
       "porQueImporta": "Es el cimiento de DRAFT→RELEASED que pide V9. Hoy el médico puede copiar y entregar una hoja compuesta de un borrador a medio dictar. Nada lo impide.",
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx:5098-5110 · src/components/HojaParaElPaciente.tsx",
       "plan": "Compuerta de firma, y de ahí sale el estado DRAFT/RELEASED del PatientVisitPackage. Prueba al revés: con nota sin firmar, la hoja no se entrega.",
-      "score": 63
+      "score": 63,
+      "cierre": "CERRADO — V9 POSTVISIT-001, REG-306. `HojaParaElPaciente` recibe `firmada` con valor por omisión CERRADO (`=== true`, no `!== false`). Con la nota en borrador la hoja se ve marcada como tal y no hay copiar ni imprimir; `copiar()` además se defiende sola. Probado al revés: cambiar el valor por omisión tira dos casos."
     },
     {
       "seguridad": 1,
@@ -383,7 +384,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "POSTVISIT-ENTREGA-001",
@@ -394,7 +395,8 @@
       "porQueImporta": "El contenido está resuelto y bien —determinista, sin modelo, se niega a inventar— y el producto no lo entrega. Es «escrito, probado y sin conectar» en su forma más cara: la pieza mejor pensada del lado del paciente.",
       "archivo": "src/components/HojaParaElPaciente.tsx:45-51,86 · consulta:5108",
       "plan": "Superficie en /mi/[token] alimentada por /api/portal, una vez POSTVISIT-GATE-001 dé el estado RELEASED.",
-      "score": 60
+      "score": 60,
+      "cierre": "CERRADO — V9 POSTVISIT-001, REG-307. Camino completo: `componerPaquete` vuelve con llamador, `POST /api/paciente/paquete` compone desde la nota firmada leída POR EL SERVIDOR y libera con `approvedBy` de la sesión (nunca del cuerpo, capacidad `firmar`), la pantalla del médico pide la vista previa al servidor, y el portal del paciente pide los paquetes y los pinta. Queda abierto POSTVISIT-VERSION-002 (corregir un paquete ya liberado)."
     },
     {
       "seguridad": 0,
@@ -621,9 +623,55 @@
       "reversible": true,
       "origen": "DESIGN-SYSTEM-001 — residuo declarado",
       "score": 30
+    },
+    {
+      "id": "POSTVISIT-VERSION-002",
+      "titulo": "Corregir un paquete ya liberado exige una versión nueva, y no existe",
+      "hallazgo": "`POST /api/paciente/paquete` responde 409 al recomponer sobre un paquete RELEASED. El campo `version` existe en el modelo desde PATIENT-COMPANION-001 y hoy siempre vale 1.",
+      "porQueImporta": "Un paquete liberado es inmutable a propósito —lo que se entregó se entregó— pero el médico que se da cuenta de un error hoy no tiene salida dentro del producto. Es la misma forma que una adenda sobre una nota firmada, y exige decidir qué ve el paciente entre una versión y la siguiente y cómo se le avisa de que cambió.",
+      "archivo": "src/app/api/paciente/paquete/route.ts · src/lib/paciente/paquete-de-visita.ts",
+      "seguridad": 2,
+      "integridad": 3,
+      "ingreso": 0,
+      "frecuencia": 2,
+      "moat": 1,
+      "fiabilidad": 2,
+      "regulatorio": 2,
+      "aprendizaje": 1,
+      "irreversibilidad": 1,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "score": 40,
+      "estado": "pendiente",
+      "reversible": true,
+      "prioridadV9": "P2",
+      "origen": "declarado al cerrar POSTVISIT-001 (REG-307): no se improvisa en la misma vuelta"
+    },
+    {
+      "id": "POSTVISIT-DOSIS-003",
+      "titulo": "`cambiosDeMedicacion` no detecta un cambio de dosis del mismo fármaco",
+      "hallazgo": "Compara por NOMBRE. El mismo fármaco con otra dosis sale `sin-cambio`.",
+      "porQueImporta": "Es donde el paciente se equivoca: sigue con la dosis vieja porque nada le dijo que cambió. Y a la vez, una comparación de cifras que se equivoque le diría que su dosis cambió cuando no cambió — o al revés. Por eso hoy va declarado en el módulo y la instrucción completa se entrega al lado; no se resuelve hasta que haya con qué compararlo con garantía.",
+      "archivo": "src/lib/paciente/paquete-de-visita.ts",
+      "seguridad": 3,
+      "integridad": 2,
+      "ingreso": 0,
+      "frecuencia": 3,
+      "moat": 2,
+      "fiabilidad": 2,
+      "regulatorio": 1,
+      "aprendizaje": 2,
+      "irreversibilidad": 0,
+      "complejidad": 3,
+      "dependenciaExterna": 0,
+      "score": 45,
+      "estado": "pendiente",
+      "reversible": true,
+      "prioridadV9": "P2",
+      "origen": "declarado al cerrar POSTVISIT-001 (REG-307)"
     }
   ],
-  "actualizado": "2026-08-09",
+  "actualizado": "2026-08-10",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"

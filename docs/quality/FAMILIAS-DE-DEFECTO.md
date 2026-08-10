@@ -39,8 +39,13 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 36 de 155, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+El 10-ago-2026 sumó dos más, y el segundo es la variante que ninguna revisión de
+una sola pieza encuentra: **REG-307**, el motor que compone lo que el paciente se
+lleva existía **sin salida** y la pantalla que se lo entrega existía **sin
+entrada**. Las dos mitades correctas, y nada entre ellas.
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
 REG-221: el eje que distingue «ya lo toma» de «se lo receto hoy» existía en el

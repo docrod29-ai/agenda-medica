@@ -317,6 +317,18 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   },
 
   // ── portal del paciente ──────────────────────────────────────────────────
+  /**
+   * V9 · POSTVISIT-001 — compone y libera el paquete de la visita.
+   *
+   * GET lee (`clinico.leer`, el mismo conjunto que ya puede abrir el expediente).
+   * POST **libera hacia el paciente**, y eso es un acto de aprobación clínica del
+   * mismo peso que firmar: `firmar`, no `clinico.escribir`. Quien registra un
+   * pase de visita no decide qué lee el paciente en su casa.
+   */
+  'paciente/paquete': {
+    tipo: 'porMetodo',
+    metodos: { GET: 'clinico.leer', POST: 'firmar' },
+  },
   'portal': {
     tipo: 'tokenPaciente',
     motivo: 'El paciente entra con su magic-link. Desde E0-06 el token lleva ALCANCE y la ruta exige `alcance === clinico` antes de devolver documentos.',

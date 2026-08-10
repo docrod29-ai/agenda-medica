@@ -53,6 +53,7 @@ import { afirmacionesSinRespaldo } from '@/lib/expediente/trazabilidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
+import { LiberarParaElPaciente } from '@/components/LiberarParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -5199,6 +5200,36 @@ export default function ConsultaActivaPage() {
           medicamentos={medicamentos}
           estudios={estudiosOrden}
           proximaCita={undefined}
+          /*
+            LA COMPUERTA DE FIRMA (V9 · POSTVISIT-GATE-001). Mientras la nota es
+            borrador la hoja se ve pero no sale: ni copiar ni imprimir. Lo que
+            iba al WhatsApp del paciente podía ser una dosis a medio corregir.
+          */
+          firmada={firmada}
+        />
+      )}
+
+      {/*
+        REVISAR Y LIBERAR (V9 · POSTVISIT-001) — el acto que le faltaba al
+        programa: hasta hoy el producto sabía componer lo que el paciente se
+        lleva y no tenía forma de dárselo. Firmar va hacia el expediente;
+        liberar va hacia el paciente, y son dos actos con dos gestos.
+
+        Sólo con la nota firmada, sólo fuera del internamiento y sólo cuando se
+        sabe de qué nota se habla.
+      */}
+      {/*
+        Se usa el ESTADO `notaId` y no la ref síncrona: firmar siempre pasa por
+        `setNotaId` antes de poner `firmada` en true, así que para cuando esto se
+        pinta el estado ya está puesto — y leer una ref durante el render es lo
+        que el propio linter de React prohíbe.
+      */}
+      {!esNotaHospital && firmada && clinicId && notaId && (
+        <LiberarParaElPaciente
+          clinicId={clinicId}
+          patientId={patientId}
+          notaId={notaId}
+          firmada={firmada}
         />
       )}
 

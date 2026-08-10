@@ -105,6 +105,14 @@ export type AuditEvento =
   | 'cita_reagendada_portal'     // el paciente movió su cita desde su enlace
   | 'cita_cancelada_whatsapp'    // el paciente canceló hablando con el bot
   | 'formulario_previo_enviado'  // el paciente llenó su información antes de la consulta
+  /**
+   * V9 · POSTVISIT-001 — el médico LIBERÓ hacia el paciente el resumen de una
+   * consulta. Se registra aparte de la firma a propósito: firmar es un acto
+   * hacia el expediente y liberar es un acto de comunicación hacia una persona.
+   * Un auditor que pregunte «¿qué se le dijo a este paciente, y quién lo
+   * autorizó?» tiene que poder responderlo sin abrir la nota.
+   */
+  | 'paquete_visita_liberado'
 
 /**
  * CÓMO SE LEE CADA EVENTO — en la pantalla de cumplimiento y en cualquier otra.
@@ -164,6 +172,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   cita_reagendada_portal: 'El paciente reagendó (portal)',
   cita_cancelada_whatsapp: 'El paciente canceló (WhatsApp)',
   formulario_previo_enviado: 'El paciente envió su información previa',
+  paquete_visita_liberado: 'Liberó el resumen de la consulta al paciente',
 }
 
 /** Cómo enseñar un evento, incluido uno que todavía no tenga etiqueta. */
