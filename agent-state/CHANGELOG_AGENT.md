@@ -1,5 +1,23 @@
 # Bitácora del trabajo autónomo
 
+## 2026-08-10 — V9 · `PATIENT-TELE-002` (P0) · REG-306
+
+**El recordatorio de una videoconsulta ya lleva por dónde entrar.** Los tres
+emisores de servidor —recordatorio de 24 h, de mismo día y los dos mensajes de
+cita agendada del bot— llamaban a `dondeEsLaCita` sin token, así que todos
+mandaban «recibirás el enlace por este medio» y no había ningún otro medio.
+
+- `src/lib/telesalud/enlace-de-sala.ts` — decide cuántos días vale el enlace, o
+  si no procede emitirlo. Puro.
+- `src/lib/telesalud/token-de-sala-servidor.ts` — lo acuña con la
+  `portalTokenVersion` del expediente. Una sola copia de la regla.
+- Guardián de 13 casos; dos muerden.
+
+**Lo que se descartó del plan escrito**: `ttlDias = 1`. Habría caducado el token
+a la hora exacta de la consulta, con la sala abierta dos horas más — el 404 de
+REG-268 por otra puerta.
+
+
 ## 2026-08-04 — INFRA-001 · el sistema operativo del programa
 
 - `CLAUDE.md` reescrito: misión, invariantes, comandos, mapa, seguridad clínica,

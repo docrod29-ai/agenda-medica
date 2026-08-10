@@ -637,6 +637,19 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
       'clinic/exportar-excel',
       'clinic/importar',
       /**
+       * +1 el 10-ago-2026 (REG-306, `PATIENT-TELE-002`): para meter en el
+       * recordatorio de una videoconsulta el enlace con el que el paciente
+       * entra, hay que acuñarle un token — y el token nace con la VERSIÓN de su
+       * expediente para que una revocación posterior lo tumbe.
+       *
+       * Lee exactamente lo mismo que `portal/link` y por lo mismo:
+       * `portalTokenVersion` y nada más. Ni nombre, ni teléfono, ni un solo
+       * dato clínico. La ruta es de cron —sin sesión, con `CRON_SECRET`— así
+       * que aquí no hay capacidad que exigir; lo que impide este congelado es
+       * que mañana empiece a leer del expediente algo que sí importa.
+       */
+      'cron/reminders',
+      /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
        * `clinico.escribir` —no con el permiso de mostrador— porque baja

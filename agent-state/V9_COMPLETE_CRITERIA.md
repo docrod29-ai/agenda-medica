@@ -64,7 +64,7 @@ distinto de `CERRADO`.
 
 | Prioridad | Id |
 |---|---|
-| P0 | `PATIENT-TELE-002` — el enlace de videoconsulta por WhatsApp sigue sin token |
+| P0 | **ninguno** — `PATIENT-TELE-002` cerrado el 10-ago-2026 (REG-306) |
 | P1 | `PATIENT-PORTAL-001` · `POSTVISIT-GATE-001` · `POSTVISIT-ENTREGA-001` · `A11Y-GATE-001` · `NAV-NAVEGADOR-001` |
 
 Un P1 sólo deja de bloquear si el **dueño** lo acepta por escrito en

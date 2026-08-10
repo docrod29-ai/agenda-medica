@@ -38,6 +38,7 @@ import { hoyISO, sumarDiasISO, TZ_DEFAULT, instanteMX } from '@/lib/timezone'
 import { estaBloqueado, type TimeBlock } from '@/lib/time-blocks-core'
 import { ocupadoEnGoogle } from '@/lib/calendario/ocupado-servidor'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenDeSalaDesdeElServidor } from '@/lib/telesalud/token-de-sala-servidor'
 import { intencionDelMensaje } from '@/lib/whatsapp/intencion'
 import { clasificarCitas, mensajeBloqueada, type CitaMinima } from '@/lib/whatsapp/citas-cancelables'
 import { horarioLegible, type DiaHorario } from '@/lib/whatsapp/horario-legible'
@@ -1075,15 +1076,28 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       const tipoLabel = TIPO_OPTIONS.find(t => t.key === datos.tipo)?.label || datos.tipo
+      /**
+       * PATIENT-TELE-002 — y aquí también hace falta el token, no sólo el id.
+       *
+       * Ya existe la cita, así que hay `citaId`; lo que faltaba era la
+       * credencial. Si la cita cae más allá del techo de vigencia el ayudante
+       * devuelve `undefined` y el mensaje dice «recibirás el enlace antes de tu
+       * cita» — que lo cumple el recordatorio de 24 horas.
+       */
+      const tokenSalaBot = await tokenDeSalaDesdeElServidor({
+        tipo: datos.tipo, clinicId, patientId: pacienteIdBot || undefined,
+        inicioCitaMs: instanteMX(datos.fecha, datos.hora, config?.zonaHoraria || TZ_DEFAULT).getTime(),
+        ahoraMs: Date.parse(now),
+      })
       await send(from, [
         `🎉 *¡Su cita ha sido registrada!*`,
         ``,
         `📅 ${formatDate(datos.fecha)} a las ${datos.hora} hrs`,
-        // Ya existe la cita, así que aquí SÍ se puede dar el enlace de la sala.
         ...dondeEsLaCita({
           tipo: datos.tipo, citaId: nuevoFolio, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenSalaBot,
         }).lineas.map(l => l),
         ``,
         `Recibirá un recordatorio el día anterior. Para cambios, comuníquese al ${adminPhone}.`,
@@ -1273,10 +1287,18 @@ export async function handleMessage(from: string, body: string, clinicId: string
       }
 
       {
+        // PATIENT-TELE-002 — mismo camino que el de arriba: la cita ya existe,
+        // así que se puede acuñar el token con el que el paciente entra.
+        const tokenSalaLE = await tokenDeSalaDesdeElServidor({
+          tipo: datos.tipo, clinicId, patientId: pacienteIdLE || undefined,
+          inicioCitaMs: instanteMX(slotFecha, slotHora, config?.zonaHoraria || TZ_DEFAULT).getTime(),
+          ahoraMs: Date.parse(now),
+        })
         const donde = dondeEsLaCita({
           tipo: datos.tipo, citaId: citaIdListaEspera, clinicId,
           direccion: config?.direccion, googleMapsUrl: config?.googleMapsUrl,
           baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+          tokenPaciente: tokenSalaLE,
         })
         await send(from, [
           `✅ ¡Cita agendada!`, ``,

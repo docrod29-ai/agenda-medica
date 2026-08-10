@@ -7013,3 +7013,60 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — La videoconsulta se anunciaba por WhatsApp sin decir por dónde entrar
+
+**Encontrado** por herencia: lo dejó escrito el «qué NO cubre» de REG-268 y
+anotado como `PATIENT-TELE-002` (P0) en el backlog de V9. Es la forma barata de
+encontrar un defecto — que el arreglo anterior declare el trozo que no arregló.
+
+**Qué pasaba.** REG-268 cerró el camino del portal: `/mi/<token>` ya le pasa el
+token al botón de la sala. Pero la videoconsulta **se anuncia por WhatsApp**, y
+los emisores de ese camino —el recordatorio de 24 h, el de mismo día y los dos
+mensajes de cita agendada del bot— llamaban a `dondeEsLaCita` **sin
+`tokenPaciente`**, porque ninguno lo acuñaba. Así que todos caían en la rama
+honesta del módulo:
+
+> «Recibirás el enlace de la videollamada por este medio antes de tu cita.»
+
+Honesto y falso a la vez: **no había ningún otro medio**. Ningún emisor mandaba
+nunca ese enlace. El paciente que hacía caso al mensaje esperaba algo que no
+llegaba; el que no, entraba por el portal — que también le llega por WhatsApp,
+así que el camino existía, con un paso de más justo a la hora de su consulta.
+
+**Causa raíz.** Firmar exige `PORTAL_PACIENTE_SECRET`, y `dondeEsLaCita` vive en
+un módulo que también importa el navegador. Por eso el token es un dato de
+entrada suyo — y por eso nadie lo rellenaba: no había quien lo acuñara del lado
+del servidor.
+
+**Familia.** `no_conectado`, en su forma «el dato tiene que LLEGAR» — la misma
+que REG-268, REG-167 y REG-160. El mensaje se componía, se enviaba y se
+leía. Lo que no llegaba era la credencial que lo hace funcionar del otro lado.
+
+**La trampa del plan.** El backlog proponía `ttlDias = 1`. Rompe el caso
+principal: el recordatorio de 24 h sale un día antes, así que el token caducaría
+justo a la hora de la consulta — y la sala sigue abierta dos horas más
+(`HORAS_DESPUES`). El paciente puntual habría leído «Cita no encontrada»: el
+mismo 404 de REG-268 reintroducido por la vía de la caducidad. La vigencia se
+**deriva** del cierre real de la sala, con un día de margen, y tiene techo de 7
+días — una credencial que viaja por WhatsApp no puede durar dos meses. Más allá
+del techo no se acuña nada y el mensaje vuelve a decir «recibirás el enlace»,
+que ahora sí se cumple.
+
+**Arreglo.** `src/lib/telesalud/enlace-de-sala.ts` (decisión pura: cuántos días,
+o ninguno) y `src/lib/telesalud/token-de-sala-servidor.ts` (la lectura de
+`portalTokenVersion`). Los tres emisores llaman al mismo ayudante: escribir la
+regla tres veces es la causa raíz de REG-300. Alcance `agenda`, nunca `clinico`
+— la sala sólo mira que el token sea del paciente de esa cita.
+
+**Residual declarado.** `/api/telesalud/sala` **no** compara hoy
+`portalTokenVersion`: el token se emite con la versión correcta para el día que
+la compare, pero la revocación no corta este enlace. Y no se ha visto en un
+teléfono: ningún WhatsApp real se envió.
+
+**Guardián.** `src/__tests__/el-recordatorio-de-videoconsulta-lleva-token.test.ts`,
+13 casos. Dos muerden: el token tiene que **sobrevivir** al cierre de la sala
+(con `ttlDias` fijo falla), y **toda** llamada a `dondeEsLaCita` de los dos
+emisores tiene que llevar `tokenPaciente` (quitándoselo a uno, falla).

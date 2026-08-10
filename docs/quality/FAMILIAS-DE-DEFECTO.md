@@ -23,23 +23,25 @@ Eso cambia dónde conviene mirar mañana.
 |---|---:|---|
 | **Escrito, probado y sin conectar** | **32** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
 | **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
-| El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
-| Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
+| El habla real no cabía en el motor | 18 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
+| Nadie lo estaba midiendo | 21 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
 | El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
 | Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
 | El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
 | Estorba al médico | 6 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
+| Pérdida de datos | 13 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
-| El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
-| *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
+| El mensaje mentía sobre la causa | 3 | Falla algo y el sistema culpa a otra cosa |
+| *Decisión del médico dueño, no defecto* | 3 | Cambiaron el comportamiento, pero nada estaba roto |
+| Depende de que alguien se acuerde | 2 | El dato existe y un segundo sitio lo repite a mano. Se **deriva**, o se desfasa |
+| Hueco frente al mercado | 4 | Función que el mercado da por supuesta y que aquí nunca existió. Ninguna prueba interna puede delatarla |
 | Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 34 de 153, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 154, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -86,7 +88,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 27 de 153.**
+**«El sistema se contradice a sí mismo» — 27 de 154.**
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
@@ -126,7 +128,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 21 de 153**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 21 de 154**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

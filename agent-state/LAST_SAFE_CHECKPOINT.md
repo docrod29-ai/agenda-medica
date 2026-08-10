@@ -6,7 +6,49 @@
 
 ---
 
-## Checkpoint · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
+## Checkpoint · 10-ago-2026 — **`PATIENT-TELE-002` (P0) cerrado**
+
+| | |
+|---|---|
+| **Unidad cerrada** | **`PATIENT-TELE-002`** — REG-306 |
+| **Siguiente** | **`POSTVISIT-001`** (sigue siendo la unidad en turno) |
+
+Se cerró **fuera de orden** por la regla de prioridad autónoma de la
+especificación: era el único P0 abierto del criterio de terminación, y es el
+paciente quien se queda mirando la pantalla a la hora de su consulta.
+
+**Qué quedó hecho.** El recordatorio de una videoconsulta ya lleva el enlace, y
+el enlace lleva con qué entrar. Dos módulos nuevos —`enlace-de-sala.ts` decide,
+`token-de-sala-servidor.ts` acuña— y los tres emisores de servidor llaman al
+mismo ayudante.
+
+**Lo que el plan del backlog tenía mal**, y por eso no se siguió al pie de la
+letra: proponía `ttlDias = 1`. El recordatorio de 24 h sale un día antes, así que
+ese token caducaba **justo a la hora de la consulta** mientras la sala sigue
+abierta dos horas más. Habría reintroducido el 404 de REG-268 por la vía de la
+caducidad. La vigencia se deriva del cierre real de la sala, con techo de 7 días.
+
+### Compuertas en este checkpoint
+
+| Compuerta | Resultado |
+|---|---|
+| `npx vitest run` | **8 569 casos, todo verde** (575 archivos, 1 saltado) |
+| `lint-trinquete` | **96, igual que el techo** |
+| `npx tsc --noEmit` | **limpio** |
+| `npm run build` | **compila** (con variables de Firebase de relleno: este contenedor no tiene credenciales) |
+| navegador | **no ejecutado** |
+
+### Lo que este checkpoint NO garantiza
+
+- **`/api/telesalud/sala` no compara `portalTokenVersion`.** El token se emite
+  con la versión correcta para el día que la compare, pero **hoy la revocación
+  no corta este enlace**. Queda declarado en el ledger, no reparado.
+- **Ningún WhatsApp real se envió.** El camino se comprobó leyendo los dos
+  extremos, no viéndolo llegar a un teléfono.
+
+---
+
+## Checkpoint anterior · 9-ago-2026 — **`PATIENT-COMPANION-001` cerrada**
 
 | | |
 |---|---|

@@ -9,6 +9,7 @@ import { entradasVencidas, resolverEntrada, reprogramarEntrada } from '@/lib/wha
 import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita } from '@/lib/telesalud/donde-es'
+import { tokenDeSalaDesdeElServidor } from '@/lib/telesalud/token-de-sala-servidor'
 import { registrarLatido } from '@/lib/ops/latido'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -209,6 +210,26 @@ export async function GET(req: NextRequest) {
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          /**
+           * PATIENT-TELE-002 — el recordatorio de una videoconsulta lleva el
+           * enlace, y el enlace lleva con qué entrar.
+           *
+           * Hasta aquí el mensaje decía «recibirás el enlace por este medio» y
+           * nunca llegaba: ningún emisor de servidor acuñaba el token, así que
+           * `dondeEsLaCita` caía siempre en su rama honesta. Éste es el emisor
+           * que sí puede — tiene el secreto, el paciente y la hora.
+           *
+           * La lectura extra del expediente sólo ocurre si la cita es de video:
+           * el ayudante corta por `tipo` antes de tocar Firestore.
+           */
+          const tokenPaciente = await tokenDeSalaDesdeElServidor({
+            tipo: appt.tipo,
+            clinicId,
+            patientId: appt.pacienteId ? String(appt.pacienteId) : undefined,
+            inicioCitaMs: apptDateObj.getTime(),
+            ahoraMs: now.getTime(),
+          })
+
           const lugar = dondeEsLaCita({
             tipo: appt.tipo,
             citaId: appt.id,
@@ -216,6 +237,7 @@ export async function GET(req: NextRequest) {
             direccion: config.direccion,
             googleMapsUrl: config.googleMapsUrl,
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
+            tokenPaciente,
           })
           const msgData = {
             paciente: appt.pacienteNombre,

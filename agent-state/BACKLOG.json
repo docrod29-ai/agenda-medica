@@ -308,7 +308,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-TELE-002",
@@ -319,7 +319,8 @@
       "porQueImporta": "La videoconsulta se anuncia por WhatsApp. Sin enlace en el mensaje, el paciente depende de entrar al portal — que también le llega por WhatsApp, así que el camino existe, pero es un paso más justo cuando va con prisa.",
       "archivo": "src/lib/telesalud/donde-es.ts:70 · src/app/api/cron/reminders/route.ts:212 · src/app/api/whatsapp/webhook/route.ts:1083,1276",
       "plan": "Acuñar el token en el servidor con crearTokenPaciente(clinicId, patientId, 1, alcance agenda, portalTokenVersion) en los dos llamadores de servidor y pasarlo por DatosDeLugar.tokenPaciente. NO en src/lib/whatsapp.ts: ese módulo se importa desde el navegador y firmar ahí filtraría el secreto.",
-      "score": 55
+      "score": 55,
+      "cierre": "REG-306 (10-ago-2026). `enlace-de-sala.ts` decide y `token-de-sala-servidor.ts` acuña; los tres emisores de servidor lo pasan. La vigencia NO es fija: se deriva del cierre de la sala, porque un ttl de 1 día caducaba a la hora de la consulta. Techo de 7 días; más allá, el mensaje dice que el enlace llega con el recordatorio — y lo cumple. Residual: /api/telesalud/sala no compara portalTokenVersion, así que la revocación no corta este enlace; y no se ha visto en un teléfono."
     },
     {
       "seguridad": 4,

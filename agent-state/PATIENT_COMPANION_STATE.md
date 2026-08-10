@@ -4,6 +4,8 @@
 > Línea base completa con evidencia: `docs/patient/PATIENT_COMPANION_BASELINE.md`.
 
 **Unidad**: `PATIENT-COMPANION-001` **cerrada** el 9-ago-2026 · REG-304, REG-305.
+**Fuera de turno**: `PATIENT-TELE-002` (P0) cerrado el 10-ago-2026 · REG-306 —
+era el último P0 del criterio de terminación de V9.
 **Siguiente**: `POSTVISIT-001` — y llega con deberes: `componerPaquete` y
 `cambiosDeMedicacion` se difirieron ahí por no tener llamador.
 
@@ -125,7 +127,11 @@ por el paciente.
 
 ## P0 abiertos en esta superficie
 
-- `PATIENT-TELE-002` — el enlace por WhatsApp sigue sin token.
+- **Ninguno.** `PATIENT-TELE-002` cerrado el 10-ago-2026 (REG-306): los tres
+  emisores de servidor acuñan el token, y la vigencia se deriva del cierre de la
+  sala en vez de fijarse en un día —que habría caducado a la hora de la
+  consulta—. Residual: `/api/telesalud/sala` no compara `portalTokenVersion`,
+  así que la revocación todavía no corta este enlace.
 
 ## P1 abiertos
 
