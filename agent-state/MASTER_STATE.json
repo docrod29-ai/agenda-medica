@@ -18,14 +18,8 @@
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
-  "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/__tests__/lo-que-el-navegador-vio.test.ts",
-    " M src/app/globals.css"
-  ],
-  "actualizado": "2026-08-09",
+  "trabajoLocalSinSubir": [],
+  "actualizado": "2026-08-10",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -57,12 +51,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "v10/identidad-acento",
+  "ramaActual": "claude/clever-lamport-fxhzba",
   "derivado": {
-    "regsEnElLedger": 156,
-    "ultimaREG": "REG-308",
-    "archivosDePrueba": 584,
-    "casosDePrueba": 7626,
+    "regsEnElLedger": 157,
+    "ultimaREG": "REG-309",
+    "archivosDePrueba": 585,
+    "casosDePrueba": 7631,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
