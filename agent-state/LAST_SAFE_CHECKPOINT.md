@@ -10,8 +10,23 @@
 
 | | |
 |---|---|
+| **Rama** | `claude/relaxed-fermi-uljfau` |
+| **SHA** | `72e18ce` |
 | **Unidad cerrada** | **`PATIENT-TELE-002`** — REG-306 |
 | **Siguiente** | **`POSTVISIT-001`** (sigue siendo la unidad en turno) |
+
+> **La rama cambió, y conviene saber por qué.** `claude/nexus-patient-ux-v9` —la
+> rama canónica que nombra la especificación— **se fusionó a `main`** en el PR
+> #279, así que ya no puede seguir recibiendo trabajo: un PR fusionado está
+> terminado. Este turno arranca desde `origin/main` en
+> `claude/relaxed-fermi-uljfau`, que es la rama que la rutina designa hoy. No se
+> perdió nada: `main` contiene V9 entero hasta `PATIENT-COMPANION-001`.
+
+> **Y el producto cambió de nombre a mitad del turno**: NexusMED → **Ausculta**,
+> por instrucción del dueño (SHA `9f187a0`). El nombre vive en
+> `src/lib/marca.ts`; los identificadores —dominio, proyecto de Firebase,
+> `appId`, caché del SW, llave del tema— **no** se renombraron, y el porqué de
+> cada uno está en `OWNER_DECISIONS_REQUIRED` M-1…M-6.
 
 Se cerró **fuera de orden** por la regla de prioridad autónoma de la
 especificación: era el único P0 abierto del criterio de terminación, y es el
