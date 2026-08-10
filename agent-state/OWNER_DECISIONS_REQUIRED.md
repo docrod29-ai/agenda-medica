@@ -65,6 +65,40 @@ no se fusione nada, la cola sólo crece.
 **Regla del programa**: esta cola se presenta al final del ciclo autónomo o
 cuando toda tarea productiva esté bloqueada — nunca a mitad del trabajo.
 
+---
+
+## PROGRAMA · ¿Sigue vivo el Master Loop V7?
+
+**Estado**: pendiente · encontrado el 10-ago-2026, disparo automático de V7
+
+**El hecho** — El disparo programado de V7 pide leer, como primera acción
+obligatoria,
+`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`. **Ese
+archivo no existe en el repositorio.** `agent-state/V7-ITERACION.md` (el
+tablero propio de V7) muestra que su cola quedó resuelta hace más de veinte
+versiones (REG-263, v1145) y que desde entonces el trabajo activo vive en V9
+(`claude/nexus-patient-ux-v9`, checkpoint en `LAST_SAFE_CHECKPOINT.md`) y V10
+(`docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md`).
+
+**Por qué se pregunta y no se decide solo.** El propio disparo de V7 prohíbe
+sustituir la directiva por un plan propio o declarar el programa completo sin
+poder verificarlo contra su especificación — y sin el archivo, esa
+verificación no se puede hacer.
+
+**Recomendación por omisión**: retirar formalmente el disparo automático de
+V7 (o repuntarlo a V9/V10, que son los programas con cola viva), dejando su
+tablero como archivo histórico. Si el archivo de la directiva V7 existe fuera
+del repositorio, añadirlo a `docs/ai/` para que la siguiente ejecución
+automática pueda leerlo de verdad.
+
+**Qué se hizo mientras tanto, sin esperar la respuesta**: se buscó trabajo
+seguro y no bloqueado en `agent-state/BACKLOG.json` que no duplicara el
+trabajo activo de V9 — `SAFE-003` (REG-306, «sin_referencia» no se calla en
+pediatría). Ver `docs/audit/regression-ledger.md`.
+
+**Qué cuesta responder**: una frase — retirar el disparo, repuntarlo, o
+adjuntar el archivo de la directiva.
+
 
 ---
 

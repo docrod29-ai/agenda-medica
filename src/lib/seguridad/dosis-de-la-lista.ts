@@ -55,15 +55,22 @@ export interface DosisPeligrosa {
 /**
  * Revisa toda la lista y devuelve sólo lo que tiene algo que decir.
  *
- * `sin_referencia` se descarta: «este fármaco no está en el catálogo» no es un
- * hallazgo sobre el paciente, y en una lista de ocho medicamentos llenaría la
- * pantalla de avisos que no dicen nada. El propio motor ya advierte que la
- * ausencia de alerta no significa dosis segura.
+ * `sin_referencia` se descarta EN ADULTOS: «este fármaco no está en el
+ * catálogo» no es un hallazgo sobre el paciente, y en una lista de ocho
+ * medicamentos llenaría la pantalla de avisos que no dicen nada. El propio
+ * motor ya advierte que la ausencia de alerta no significa dosis segura.
+ *
+ * EN PEDIATRÍA (SAFE-003) no se descarta. La dosis pediátrica va por
+ * kilogramo y el margen entre dosis terapéutica y tóxica es estrecho: que el
+ * catálogo no tenga referencia para ese fármaco no es lo mismo que «sin
+ * hallazgos», y callarlo se lee como «la dosis está comprobada» cuando nadie
+ * la comprobó.
  */
 export function dosisPeligrosasDeLaLista(
   medicamentos: readonly MedicamentoRevisable[],
   ctx: ContextoPaciente = {},
 ): DosisPeligrosa[] {
+  const esPediatrico = ctx.edadAnios != null && ctx.edadAnios < 18
   const out: DosisPeligrosa[] = []
   for (const m of medicamentos) {
     const nombre = m.nombre?.trim()
@@ -86,7 +93,7 @@ export function dosisPeligrosasDeLaLista(
         : undefined,
       via: m.via,
       edadAnios: ctx.edadAnios,
-    }).filter(a => a.codigo !== 'sin_referencia')
+    }).filter(a => a.codigo !== 'sin_referencia' || esPediatrico)
     if (alertas.length) out.push({ med: nombre, alertas, severidad: peorSeveridad(alertas) })
   }
   return out
@@ -109,4 +116,7 @@ export const POR_QUE_NO_BLOQUEA =
 
 export const POR_QUE_SE_DESCARTA_SIN_REFERENCIA =
   '«Este fármaco no está en el catálogo» no es un hallazgo sobre el paciente, y ' +
-  'en una lista de ocho llenaría la pantalla de avisos que no dicen nada.'
+  'en una lista de ocho llenaría la pantalla de avisos que no dicen nada. ' +
+  'EXCEPTO en pediatría (SAFE-003): ahí la dosis va por kilo, el margen es ' +
+  'estrecho, y callar que no hay referencia se lee como que la dosis está ' +
+  'comprobada.'

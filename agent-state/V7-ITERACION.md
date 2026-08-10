@@ -1,5 +1,37 @@
 # MASTER LOOP V7 — tablero propio
 
+## Reconciliación · 10-ago-2026
+
+**La directiva de V7** (`docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md`,
+la que el disparo automático pide leer PRIMERO) **no existe en el repositorio.**
+No se sustituyó por criterio propio ni se inventó una — se dejó constancia aquí,
+como pide la regla de coordinación de programas, y se buscó trabajo seguro y no
+bloqueado antes de detenerse.
+
+**Cola inmediata, revisada contra el repositorio real** (este archivo llevaba
+desde antes de v1144 sin tocarse; hoy vamos en v1167+):
+
+1. ~~Los cuatro motores con cuerpo real.~~ **Ya cerrado — REG-263, v1145** (el
+   propio golden `el-barrido-de-motores-esta-explicado.test.ts` lo sella: los
+   cinco quedaron explicados, no son defecto). Este ítem estaba obsoleto.
+2. Hueco 2 (UCI, dictado por aparatos y sistemas) y 3 (barrido de pantalla
+   estrecha): siguen sin tocar. No bloqueados, pero requieren su propia sesión.
+
+**Lo que sí se hizo esta sesión**, al ver la cola de V7 exhausta y sin
+duplicar el trabajo activo de V9/V10 (checkpoint en `LAST_SAFE_CHECKPOINT.md`,
+unidad `POSTVISIT-001`): se tomó `SAFE-003` de `BACKLOG.json` — pendiente desde
+la auditoría original, seguridad clínica pura, sin dependencia de V9/V10 —
+**REG-306**: `sin_referencia` ya no se calla en pacientes pediátricos. Detalle
+abajo, en el cuerpo del documento.
+
+**No se declara V7 completo.** No se puede verificar objetivamente contra una
+especificación que no está en el repositorio. Queda en
+`OWNER_DECISIONS_REQUIRED.md` que el dueño diga si V7 se retira formalmente
+(su cola visible ya vive dentro de V9/V10) o si hace falta recuperar el
+archivo de la directiva.
+
+---
+
 > **Separado de V9 el 8-ago-2026.** Los dos programas compartían
 > `CURRENT_ITERATION.md` y se pisaban: V9 reescribió la cabecera mientras V7
 > trabajaba. Ahora cada uno tiene el suyo.

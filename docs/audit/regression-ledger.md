@@ -7013,3 +7013,34 @@ texto y de relleno con requisitos opuestos), ahora entre dos pruebas.
 
 **Arreglo.** El contador excluye los valores que son una variable CSS. La
 píldora sigue vigilada aparte y a cero, que es donde tiene que estar.
+
+---
+
+## REG-306 — «Sin referencia de dosis» se callaba también en niños
+
+**Encontrado** en `agent-state/BACKLOG.json` (`SAFE-003`, hallazgo G2 de la
+auditoría de nueve dimensiones), sin cerrar desde que se registró.
+
+**Qué pasaba.** `revisarDosis()` marca `sin_referencia` cuando el fármaco no
+está en el catálogo — «verifica manualmente, ausencia de alerta ≠ dosis
+segura». Los dos sitios que revisan una lista completa de medicamentos
+—`dosisPeligrosasDeLaLista` (consulta) y el filtro propio de la pantalla de
+receta— descartaban ese código sin mirar la edad, para «no saturar de avisos
+que no dicen nada».
+
+Es la decisión correcta en un adulto. En un paciente **pediátrico** la dosis
+va por kilogramo y el margen entre dosis terapéutica y tóxica es estrecho:
+que el catálogo no tenga referencia para ese fármaco no es «sin hallazgos»,
+es «nadie comprobó esta dosis» — y callarlo se lee, en la pantalla, como que
+sí se comprobó.
+
+**Arreglo.** `sin_referencia` se conserva cuando `edadAnios < 18`, en los dos
+sitios (consulta y receta), con la misma condición `esPediatrico`. Edad
+**desconocida** se sigue tratando como adulto a propósito: no hay forma de
+ganar seguridad inventando una edad que nadie escribió.
+
+**Familia.** `hueco_como_dato` — que nadie haya comprobado la dosis se leía,
+por su silencio, igual que si alguien la hubiera comprobado y estuviera bien.
+
+**Guardián.** `src/__tests__/sin-referencia-no-se-calla-en-pediatria.test.ts`,
+8 casos. Probado al revés: sin el arreglo, tres casos pediátricos fallan.

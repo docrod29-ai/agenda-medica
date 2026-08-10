@@ -74,7 +74,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'Lo que nadie dijo se guarda como si alguien lo hubiera dicho. Es el más ' +
       'peligroso de todos porque el resultado se LEE bien: una vía, una dosis, ' +
       'una negativa, indistinguibles de un dato real.',
-    regs: [165, 172, 176, 177, 228],
+    regs: [165, 172, 176, 177, 228, 306],
   },
   {
     clave: 'aislamiento',

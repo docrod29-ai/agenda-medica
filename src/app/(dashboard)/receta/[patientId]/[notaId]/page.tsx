@@ -198,7 +198,10 @@ export default function GeneradorRecetaPage() {
         ? cantidad(mg, 'mg/kg/dosis', 'dosis_por_peso')
         : cantidad(mg, 'mg', 'masa')
       const al = revisarDosis({ farmaco: m.nombre, dosis: dosisPrescrita, tomasDia: tomas, peso: pesoParaDosis != null ? kgMasa(pesoParaDosis) : undefined, via: m.via, edadAnios: edadPaciente })
-        .filter(a => a.codigo !== 'sin_referencia') // no saturar la receta con avisos informativos
+        // No saturar la receta con avisos informativos — SALVO en pediatría
+        // (SAFE-003): ahí «sin referencia» no es ruido, es que nadie comprobó
+        // una dosis que va por kilo y con margen estrecho.
+        .filter(a => a.codigo !== 'sin_referencia' || esPediatrico)
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     return out

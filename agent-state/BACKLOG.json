@@ -212,11 +212,12 @@
       "irreversibilidad": 0,
       "complejidad": 1,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO (commit, sin desplegar — despliegue es decisión del dueño)",
       "reversible": true,
       "necesitaMedico": true,
       "origen": "auditoría de nueve dimensiones, hallazgo G2",
-      "score": 41
+      "score": 41,
+      "cierre": "REG-306. `sin_referencia` se conserva en pediatría (edadAnios < 18) en los dos sitios que revisan la lista completa: `dosisPeligrosasDeLaLista` (consulta) y el filtro propio de la pantalla de receta. Edad desconocida sigue tratándose como adulto. No cambia qué bloquea la firma ni inventa ningún umbral: sólo deja de callar un aviso que el motor ya calculaba. Guardián probado al revés: src/__tests__/sin-referencia-no-se-calla-en-pediatria.test.ts."
     },
     {
       "seguridad": 3,
