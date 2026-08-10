@@ -12,6 +12,7 @@
 |---|---|
 | **Unidad cerrada** | **`POSTVISIT-001`** — REG-306, REG-307 |
 | **Rama** | `claude/relaxed-fermi-ozi40y` (ver nota de rama abajo) |
+| **SHA** | `83c1fbc` |
 | **Siguiente** | **`PATIENT-AI-001`** |
 
 El camino entre la consulta y el paciente **existe entero por primera vez**:
