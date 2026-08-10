@@ -1,0 +1,35 @@
+{
+  "queEsEsto": "Backlog V10 ordenado por la fórmula de prioridad de la spec §31. Las 24 iteraciones de la spec §32 son la columna vertebral; los ítems concretos nacen de la auditoría de verdad y de la deuda ya medida por V9.",
+  "iteraciones": [
+    { "id": "V10-TRUTH-001", "estado": "en_curso", "nota": "Parte 1 (este run): bootstrap + navegador sobre superficie pública. Parte 2 pendiente: pantallas medico en navegador (bloqueada por credenciales — ver V10_BLOCKERS.md B-1); lo estático ya lo cubrió V9." },
+    { "id": "V10-CONSTITUTION-001", "estado": "pendiente", "nota": "NO partir de cero: la constitución vive en globals.css + NEXUS_DESIGN_SYSTEM.md + trinquete. Trabajo real: bajar techos del trinquete (hexEnLinea 565, tamanosFueraDeEscala 2027, radiosFueraDeEscala 638) y documentar tokens semánticos de tipografía/espaciado que hoy son implícitos." },
+    { "id": "V10-SHELL-001", "estado": "pendiente" },
+    { "id": "V10-TODAY-001", "estado": "pendiente", "nota": "/dashboard hoy tiene 7 salidas de navegación y 378 líneas; medir contra §14 (no KPI genérico)." },
+    { "id": "V10-AGENDA-001", "estado": "pendiente", "nota": "/citas 930 líneas, 6 navegaciones." },
+    { "id": "V10-PATIENT-001", "estado": "pendiente", "nota": "NexusPatientHeader canónico; hoy /expediente/[patientId] 669 líneas, 12 navegaciones." },
+    { "id": "V10-ENCOUNTER-001", "estado": "pendiente", "nota": "/consulta/[patientId] = 5872 líneas en un page.tsx — la pantalla más crítica y la más endeudada. Coordinar con V7/V9 antes de tocar." },
+    { "id": "V10-RECORDER-001", "estado": "pendiente", "nota": "Los P0 de pérdida de audio ya están cerrados por V9 (REG-294, REG-287). Esto es UX del estado de grabación, no persistencia." },
+    { "id": "V10-NOTE-001", "estado": "pendiente" },
+    { "id": "V10-NEXUS-001", "estado": "pendiente" },
+    { "id": "V10-TIMELINE-001", "estado": "pendiente" },
+    { "id": "V10-RESULTS-001", "estado": "pendiente" },
+    { "id": "V10-MEDS-001", "estado": "pendiente" },
+    { "id": "V10-ORDERS-001", "estado": "pendiente" },
+    { "id": "V10-FOLLOWUP-001", "estado": "pendiente" },
+    { "id": "V10-PATIENT-COMPANION-001", "estado": "pendiente", "nota": "V9 es dueño activo de /mi/**. V10 no entra hasta que V9 cierre POSTVISIT-001, y entonces sólo coherencia visual." },
+    { "id": "V10-MOBILE-001", "estado": "pendiente" },
+    { "id": "V10-A11Y-001", "estado": "pendiente" },
+    { "id": "V10-MOTION-001", "estado": "pendiente" },
+    { "id": "V10-PERF-001", "estado": "pendiente" },
+    { "id": "V10-VISUAL-REGRESSION-001", "estado": "pendiente", "nota": "tests/visual/ no existe aún. Playwright ya está en devDeps." },
+    { "id": "V10-COMPETITIVE-001", "estado": "pendiente", "nota": "Ya existe docs/competitive/UX_UI_MATRIX.md de V9 — absorber, no duplicar." },
+    { "id": "V10-POLISH-001", "estado": "pendiente" },
+    { "id": "V10-RELEASE-GATE-001", "estado": "pendiente" }
+  ],
+  "deudaConcreta": [
+    { "id": "VD-1", "que": "6065 usos de style={{ en 177/200 archivos — el sistema existe y la app lo esquiva", "fuente": "GENERIC_AI_AESTHETIC_AUDIT.md §1", "iteracion": "V10-CONSTITUTION-001" },
+    { "id": "VD-2", "que": "techos del trinquete: hexEnLinea 565 · tamanosFueraDeEscala 2027 · radiosFueraDeEscala 638 · sombrasEnLinea 24", "fuente": "scripts/design/techos-de-diseno.json", "iteracion": "V10-CONSTITUTION-001" },
+    { "id": "VD-3", "que": "consulta/[patientId]/page.tsx = 5872 líneas; configuracion = 2606; citas = 930 — pantallas monolito", "fuente": "SCREEN_INVENTORY.md", "iteracion": "V10-ENCOUNTER-001 / V10-SHELL-001" },
+    { "id": "VD-4", "que": "columna Resp del inventario: casi ninguna pantalla declara puntos de corte en el page.tsx (medir en navegador antes de concluir)", "fuente": "SCREEN_INVENTORY.md", "iteracion": "V10-MOBILE-001" }
+  ]
+}

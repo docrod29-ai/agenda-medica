@@ -68,7 +68,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
+    // suppressHydrationWarning: el script anti-flicker del <head> pone data-theme
+    // en <html> ANTES de que React hidrate y el HTML del servidor no lo trae.
+    // Sin él, React 19 trata el atributo como error de hidratación en CADA carga.
+    // Sólo silencia atributos de este elemento, no de los hijos.
+    <html lang="es" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
       <head>
         {/*
           Kill-switch único por versión de deploy.

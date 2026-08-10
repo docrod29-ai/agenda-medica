@@ -1,0 +1,33 @@
+{
+  "programa": "V10 — Visual Excellence + Clinical Interaction Master Loop",
+  "especificacion": "docs/ai/NEXUSMED_VISUAL_EXCELLENCE_AND_CLINICAL_INTERACTION_MASTER_LOOP_V10.md",
+  "ramaConfigurada": "claude/kind-brahmagupta-bttia7",
+  "notaSobreRama": "La spec §3 propone claude/nexus-visual-excellence-v10; la sesión programada tiene rama explícitamente configurada y la spec dice «If an explicitly configured V10 branch already exists, use it».",
+  "iteracionActual": "V10-TRUTH-001",
+  "iteracionesCompletas": [],
+  "ultimoRun": {
+    "fecha": "2026-08-10",
+    "sha": "se registra en el commit de este run",
+    "queHizo": "Primer run real de V10. Bootstrap de estado + auditoría de verdad en navegador (16+4 capturas, 5 pantallas puntuadas) + reparación verificada del desajuste de hidratación data-theme (D-1).",
+    "siguienteAccionExacta": "Ver agent-state/V10_CURRENT_ITERATION.md — por omisión: V10-CONSTITUTION-001 sobre el peor archivo del trinquete no en vuelo, + puntuar /demo y /demo/razonamiento, + línea base axe."
+  },
+  "verdadHeredadaDeV9": {
+    "advertencia": "V9 (PATIENT-UX-TRUTH-001, DESIGN-SYSTEM-001) ya auditó gran parte de lo que pide V10-TRUTH-001. NO se repite: se absorbe y se referencia.",
+    "inventarioDePantallas": "docs/design/SCREEN_INVENTORY.md — 79 pantallas, GENERADO por scripts/design/inventario-de-pantallas.mjs",
+    "auditoriaGenericAI": "docs/design/GENERIC_AI_AESTHETIC_AUDIT.md — señales de 'cara de IA' medidas: casi todas a 0. La identidad existe; el problema es adopción (6065 style={{ en 177/200 archivos)",
+    "auditoriaNavegacion": "docs/design/NAVIGATION_STATE_AUDIT.md — estática; los P0 de pérdida de audio ya cerrados (REG-283, REG-287/294...)",
+    "sistemaDeDiseno": "docs/design/NEXUS_DESIGN_SYSTEM.md + src/app/globals.css (fuente de verdad) + trinquete scripts/design/trinquete-de-diseno.mjs con techos en techos-de-diseno.json",
+    "auditoriaCabecera": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"
+  },
+  "mapaDeArchivosRequeridosPorSpec": {
+    "docs/design/DESIGN_SYSTEM.md": "ya existe como docs/design/NEXUS_DESIGN_SYSTEM.md — no se duplica",
+    "docs/design/SCREEN_INVENTORY.md": "existe, generado",
+    "docs/design/ANTI_PATTERNS.md": "cubierto por GENERIC_AI_AESTHETIC_AUDIT.md + trinquete",
+    "docs/evals/V10_VISUAL_RUBRIC.md": "creado en este run",
+    "agent-state/V10_*": "creados en este run"
+  },
+  "coordinacion": {
+    "v9": "Activo en portal del paciente (src/app/mi/**, src/app/api/portal/**). Último checkpoint: PATIENT-COMPANION-001 cerrada; siguiente POSTVISIT-001. V10 NO toca esas rutas sin mirar git log primero.",
+    "v7": "Rama agent/v7/master-loop se fusiona periódicamente a main. Evitar ediciones concurrentes en pantallas que V7 esté tocando."
+  }
+}

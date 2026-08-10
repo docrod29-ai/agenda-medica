@@ -1,0 +1,18 @@
+{
+  "queEsEsto": "Puntuaciones V10 con evidencia. Sólo se puntúa lo VISTO corriendo en navegador (spec §33-§35). Rúbrica: docs/evals/V10_VISUAL_RUBRIC.md.",
+  "fecha": "2026-08-10",
+  "entorno": "next dev · Chromium · 1440x900 y 390x844 · datos ficticios del demo",
+  "pantallas": [
+    { "ruta": "/", "superficie": "publica", "visual": 8.7, "genericAiLook": 1.5, "evidencia": ["docs/design/screenshots/v10/landing__desktop-1440.jpg", "docs/design/screenshots/v10/landing__mobile-390.jpg"], "nota": "Marca fuerte; resplandor de hero decorativo pero contenido; rejilla de 6 tarjetas es lo más genérico" },
+    { "ruta": "/precios", "superficie": "publica", "visual": 8.5, "genericAiLook": 2.0, "evidencia": ["docs/design/screenshots/v10/precios__desktop-1440.jpg"], "nota": "Denso y transparente; emojis como iconos de motor; tabla clínica por nivel bien resuelta" },
+    { "ruta": "/registro", "superficie": "publica", "visual": 8.8, "genericAiLook": 1.0, "evidencia": ["docs/design/screenshots/v10/registro__desktop-1440.jpg", "docs/design/screenshots/v10/registro__mobile-390.jpg"], "nota": "Móvil de una columna, revelación progresiva correcta" },
+    { "ruta": "/login", "superficie": "publica", "visual": 8.8, "genericAiLook": 1.0, "evidencia": ["docs/design/screenshots/v10/login__desktop-1440.jpg"], "nota": "Calmado; jerarquía clara" },
+    { "ruta": "/demo/interactivo", "superficie": "publica", "visual": 8.3, "genericAiLook": 1.2, "evidencia": ["docs/design/screenshots/v10/demo-interactivo__desktop-1440.jpg", "docs/design/screenshots/v10/demo-flujo-2-dictado__desktop-1440.jpg", "docs/design/screenshots/v10/demo-flujo-4__desktop-1440.jpg", "docs/design/screenshots/v10/demo-flujo-5__desktop-1440.jpg"], "nota": "Stepper con cara de pestañas (no pulsable); 'Generar nota' habilitado sin transcripción; lienzo vacío en escritorio" }
+  ],
+  "sinPuntuar": {
+    "motivo": "no vistas con calma o bloqueadas por B-1 (sin credenciales para pantallas medico)",
+    "capturadasSinPuntuar": ["/demo", "/demo/razonamiento"],
+    "bloqueadas": "33 pantallas medico + 10 alpha + portal paciente"
+  },
+  "usabilidad": { "estado": "pendiente — los 13 escenarios de la rúbrica requieren las pantallas medico corriendo" }
+}
