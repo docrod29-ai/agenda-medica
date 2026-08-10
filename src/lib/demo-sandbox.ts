@@ -37,7 +37,7 @@ export interface DemoEscenario {
 
 export const DEMO_ESCENARIOS: DemoEscenario[] = [
   {
-    cita: { hora: '09:00', iniciales: 'M. F.', edad: 54, sexo: 'F', motivo: 'Control de hipertensión', color: '#3D5AFE' },
+    cita: { hora: '09:00', iniciales: 'M. F.', edad: 54, sexo: 'F', motivo: 'Control de hipertensión', color: 'var(--nexus)' },
     dictado: [
       'Paciente femenino de 54 años que acude a control de hipertensión arterial.',
       'Refiere buen apego al tratamiento, sin cefalea ni mareo.',

@@ -1,8 +1,8 @@
 {
-  "sellado": "2026-07-30",
+  "sellado": "2026-08-09",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 4516,
+  "totalCasos": 4543,
   "archivos": [
     {
       "archivo": "src/__tests__/alergia-combinada-no-se-parte.test.ts",
@@ -325,6 +325,14 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/el-escudo-no-cruza-el-punto.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/el-expediente-ensena-los-ingresos.test.ts",
       "minCasos": 10
     },
@@ -347,6 +355,10 @@
     {
       "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/el-no-que-corrige-afirma.test.ts",
+      "minCasos": 5
     },
     {
       "archivo": "src/__tests__/el-oxigeno-sin-declarar-se-ve.test.ts",
@@ -377,11 +389,19 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts",
+      "minCasos": 7
+    },
+    {
       "archivo": "src/__tests__/el-registro-de-peligros-esta-vivo.test.ts",
       "minCasos": 9
     },
     {
       "archivo": "src/__tests__/el-reloj-de-la-nota.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts",
       "minCasos": 7
     },
     {
@@ -397,12 +417,12 @@
       "minCasos": 10
     },
     {
-      "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
-      "minCasos": 7
-    },
-    {
       "archivo": "src/__tests__/el-valor-censurado-no-se-da-por-normal.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/enlace-de-videoconsulta-lleva-token.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/entrypoints-del-registro.test.ts",
@@ -469,6 +489,10 @@
       "minCasos": 37
     },
     {
+      "archivo": "src/__tests__/grabar-es-actividad.test.ts",
+      "minCasos": 13
+    },
+    {
       "archivo": "src/__tests__/grupo-e-guardas.test.ts",
       "minCasos": 8
     },
@@ -507,6 +531,10 @@
     {
       "archivo": "src/__tests__/hospital-unidades.test.ts",
       "minCasos": 20
+    },
+    {
+      "archivo": "src/__tests__/hospital-y-consulta-leen-la-misma-alergia.test.ts",
+      "minCasos": 3
     },
     {
       "archivo": "src/__tests__/hueco-escrito-no-es-dato.test.ts",
@@ -557,6 +585,10 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/la-alergia-negada-no-es-una-alergia.test.ts",
+      "minCasos": 14
+    },
+    {
       "archivo": "src/__tests__/la-alerta-tiene-quien-la-lea.test.ts",
       "minCasos": 12
     },
@@ -573,6 +605,10 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
+      "minCasos": 20
+    },
+    {
       "archivo": "src/__tests__/la-consola-del-dueno-tiene-puerta.test.ts",
       "minCasos": 4
     },
@@ -585,6 +621,14 @@
       "minCasos": 9
     },
     {
+      "archivo": "src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/la-grabacion-larga-no-muere.test.ts",
       "minCasos": 11
     },
@@ -595,6 +639,10 @@
     {
       "archivo": "src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
       "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/la-negacion-cubre-toda-la-lista.test.ts",
+      "minCasos": 15
     },
     {
       "archivo": "src/__tests__/la-nota-entera-se-contrasta.test.ts",
@@ -617,6 +665,14 @@
       "minCasos": 7
     },
     {
+      "archivo": "src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts",
+      "minCasos": 19
+    },
+    {
+      "archivo": "src/__tests__/la-pregunta-no-es-un-antecedente.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/la-proxima-consulta-no-se-pierde.test.ts",
       "minCasos": 8
     },
@@ -630,6 +686,10 @@
     },
     {
       "archivo": "src/__tests__/la-sala-de-datos-no-infla.test.ts",
+      "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts",
       "minCasos": 14
     },
     {
@@ -653,6 +713,10 @@
       "minCasos": 12
     },
     {
+      "archivo": "src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts",
+      "minCasos": 31
+    },
+    {
       "archivo": "src/__tests__/lo-que-cita-la-auditoria-existe.test.ts",
       "minCasos": 4
     },
@@ -663,6 +727,18 @@
     {
       "archivo": "src/__tests__/lo-que-el-texto-se-callo.test.ts",
       "minCasos": 9
+    },
+    {
+      "archivo": "src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts",
+      "minCasos": 7
+    },
+    {
+      "archivo": "src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts",
+      "minCasos": 5
+    },
+    {
+      "archivo": "src/__tests__/lo-que-la-captura-real-midio.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/lo-que-no-se-imprime-tampoco-se-descarga.test.ts",
@@ -761,6 +837,10 @@
       "minCasos": 5
     },
     {
+      "archivo": "src/__tests__/obesidad-no-dice-vih.test.ts",
+      "minCasos": 12
+    },
+    {
       "archivo": "src/__tests__/observacion-version.test.ts",
       "minCasos": 31
     },
@@ -818,6 +898,10 @@
     },
     {
       "archivo": "src/__tests__/quien-vigila-al-vigilante.test.ts",
+      "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
       "minCasos": 10
     },
     {
@@ -927,6 +1011,10 @@
     {
       "archivo": "src/__tests__/toda-animacion-tiene-su-fotograma.test.ts",
       "minCasos": 3
+    },
+    {
+      "archivo": "src/__tests__/transcribir-no-borra-el-audio-de-otra.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/trinquete-de-voz.test.ts",
@@ -1121,6 +1209,10 @@
       "minCasos": 16
     },
     {
+      "archivo": "src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts",
+      "minCasos": 10
+    },
+    {
       "archivo": "src/__tests__/un-resultado-genera-tarea.test.ts",
       "minCasos": 13
     },
@@ -1167,90 +1259,6 @@
     {
       "archivo": "src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
       "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/la-cmi-censurada-no-se-lee-como-exacta.test.ts",
-      "minCasos": 20
-    },
-    {
-      "archivo": "src/__tests__/la-seccion-buena-no-compra-el-silencio.test.ts",
-      "minCasos": 14
-    },
-    {
-      "archivo": "src/__tests__/el-no-que-corrige-afirma.test.ts",
-      "minCasos": 5
-    },
-    {
-      "archivo": "src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/la-alergia-negada-no-es-una-alergia.test.ts",
-      "minCasos": 14
-    },
-    {
-      "archivo": "src/__tests__/lo-negado-no-puntua-en-stop-bang.test.ts",
-      "minCasos": 31
-    },
-    {
-      "archivo": "src/__tests__/la-negacion-cubre-toda-la-lista.test.ts",
-      "minCasos": 15
-    },
-    {
-      "archivo": "src/__tests__/hospital-y-consulta-leen-la-misma-alergia.test.ts",
-      "minCasos": 3
-    },
-    {
-      "archivo": "src/__tests__/el-sello-cuenta-la-alergia-estructurada.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/la-franja-del-piso-no-niega-lo-que-hay.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/la-pregunta-no-es-un-antecedente.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/un-negador-sin-su-gemelo-borra-el-dato.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/transcribir-no-borra-el-audio-de-otra.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/obesidad-no-dice-vih.test.ts",
-      "minCasos": 12
-    },
-    {
-      "archivo": "src/__tests__/el-escudo-no-cruza-el-punto.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/grabar-es-actividad.test.ts",
-      "minCasos": 13
-    },
-    {
-      "archivo": "src/__tests__/lo-que-espera-al-dueno-no-se-pudre.test.ts",
-      "minCasos": 7
-    },
-    {
-      "archivo": "src/__tests__/quinientos-microgramos-no-son-quinientos-miligramos.test.ts",
-      "minCasos": 10
-    },
-    {
-      "archivo": "src/__tests__/la-glucosa-de-la-orina-no-es-la-de-la-sangre.test.ts",
-      "minCasos": 8
-    },
-    {
-      "archivo": "src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts",
-      "minCasos": 5
-    },
-    {
-      "archivo": "src/__tests__/el-dia-del-cobro-es-el-del-consultorio.test.ts",
-      "minCasos": 8
     }
   ]
 }

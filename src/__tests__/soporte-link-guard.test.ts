@@ -18,6 +18,14 @@ describe('soporte-link-guard', () => {
 
   it('existe la página pública /contacto y muestra el correo a la vista', () => {
     const contacto = readFileSync(resolve(process.cwd(), 'src/app/contacto/page.tsx'), 'utf8')
-    expect(contacto).toContain('soporte@nexusmed.mx')
+    /**
+     * Se comprueba el BUZÓN, no el literal.
+     *
+     * Esta prueba afirmaba `soporte@nexusmed.mx` a mano, y por eso no dijo
+     * nada el día que se descubrió que ese dominio es de un competidor. Un
+     * guardián que fija el valor equivocado no protege: lo defiende.
+     */
+    expect(contacto).toContain('CORREO_SOPORTE')
+    expect(contacto).not.toContain('@nexusmed.mx')
   })
 })

@@ -359,7 +359,7 @@ export async function borrarSolicitudLab(clinicId: string, ordenId: string): Pro
  *
  * Había una alerta para los valores críticos, sí — pero **una alerta no cierra
  * un bucle**. Se lee, se cierra, y nadie vuelve a saber si alguien actuó. El
- * charter lo dice con estas palabras: «NexusMED debe CERRAR el trabajo, no sólo
+ * charter lo dice con estas palabras: «Ausculta debe CERRAR el trabajo, no sólo
  * mostrar alertas».
  *
  * ── POR QUÉ SE CONECTA AQUÍ Y NO EN LAS PANTALLAS ───────────────────────────

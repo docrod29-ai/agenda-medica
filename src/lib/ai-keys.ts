@@ -361,7 +361,7 @@ export async function resolverClaveIA(
    * la segunda es la que rompió una consulta real:
    *
    *  1. Un consultorio sin llave propia se quedaba SIN separación de voces —o
-   *     sea, sin la función que distingue a NexusMED— sin saberlo.
+   *     sea, sin la función que distingue a Ausculta— sin saberlo.
    *  2. Peor: la llave del consultorio GANABA a la de la plataforma. Un médico
    *     que pegara una llave vencida o mal copiada recibía PEOR transcripción
    *     que uno que no puso ninguna, y en silencio.

@@ -2,7 +2,7 @@
  * Evidencia publicada que respalda las afirmaciones cuantitativas de la landing.
  *
  * Regla dura de PUBLIC_METRICS: en público solo van cifras REALES y VERIFICABLES.
- * NexusMED es nuevo y NO tiene métricas de adopción propias que publicar, así que
+ * Ausculta es nuevo y NO tiene métricas de adopción propias que publicar, así que
  * la única cifra numérica de la landing (reducción de inasistencias con
  * recordatorios) se ancla a revisiones sistemáticas reales, con su PMID y DOI para
  * que cualquiera pueda comprobarlas. Fuente de las referencias: PubMed.

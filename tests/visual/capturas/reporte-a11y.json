@@ -1,0 +1,120 @@
+[
+  {
+    "pantalla": "login",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "hoy",
+    "viewport": "1440",
+    "violaciones": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 6,
+        "ejemplos": [
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)",
+          ".cita-fila:nth-child(1) > .cita-acciones > span"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "agenda",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "pacientes",
+    "viewport": "1440",
+    "violaciones": [
+      {
+        "id": "nested-interactive",
+        "impact": "serious",
+        "help": "Interactive controls must not be nested",
+        "nodos": 3,
+        "ejemplos": [
+          "div[role=\"button\"]:nth-child(2)",
+          "div[role=\"button\"]:nth-child(3)",
+          "div[role=\"button\"]:nth-child(4)"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "expediente",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "consulta",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "nota",
+    "viewport": "1440",
+    "violaciones": []
+  },
+  {
+    "pantalla": "login",
+    "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "hoy",
+    "viewport": "390",
+    "violaciones": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodos": 6,
+        "ejemplos": [
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(1) > div:nth-child(2)",
+          "a[href=\"/citas?id=cita-01\"] > div:nth-child(3) > div:nth-child(2)",
+          ".cita-fila:nth-child(1) > .cita-acciones > span"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "agenda",
+    "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "pacientes",
+    "viewport": "390",
+    "violaciones": [
+      {
+        "id": "nested-interactive",
+        "impact": "serious",
+        "help": "Interactive controls must not be nested",
+        "nodos": 3,
+        "ejemplos": [
+          "div[role=\"button\"]:nth-child(2)",
+          "div[role=\"button\"]:nth-child(3)",
+          "div[role=\"button\"]:nth-child(4)"
+        ]
+      }
+    ]
+  },
+  {
+    "pantalla": "expediente",
+    "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "consulta",
+    "viewport": "390",
+    "violaciones": []
+  },
+  {
+    "pantalla": "nota",
+    "viewport": "390",
+    "violaciones": []
+  }
+]

@@ -105,7 +105,7 @@ export async function emitirCFDI(
     },
     Items: [{
       ProductCode: PRODUCT_CODE,
-      IdentificationNumber: 'NEXUSMED',
+      IdentificationNumber: 'AUSCULTA',
       Description: descripcion,
       Unit: 'Unidad de servicio',
       UnitCode: 'E48',

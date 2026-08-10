@@ -5,7 +5,7 @@ import { useEffect } from 'react'
  * Registra el service worker y AUTO-ACTUALIZA en silencio cuando hay un despliegue
  * nuevo (sin banner que moleste). Cuando el SW nuevo toma control, recarga UNA vez
  * para que el usuario nunca se quede atorado en el JS viejo (causa de "los botones
- * no cambian / no sirve"). Además expone la versión viva en window.__NEXUSMED_VERSION
+ * no cambian / no sirve"). Además expone la versión viva en window.__AUSCULTA_VERSION
  * y en consola, para poder confirmar en qué versión estás realmente.
  */
 export function ServiceWorkerRegister() {
@@ -64,15 +64,15 @@ export function ServiceWorkerRegister() {
              */
             const res = await fetch('/version.txt', { cache: 'no-store' })
             const texto = await res.text()
-            const m = texto.match(/nexusmed-v(\d+)/)
+            const m = texto.match(/ausculta-v(\d+)/)
             const servidor = m ? m[1] : null
-            const vivo = (window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION
-            const local = vivo ? (vivo.match(/nexusmed-v(\d+)/)?.[1] ?? null) : null
+            const vivo = (window as unknown as { __AUSCULTA_VERSION?: string }).__AUSCULTA_VERSION
+            const local = vivo ? (vivo.match(/ausculta-v(\d+)/)?.[1] ?? null) : null
             if (!servidor || !local || servidor === local) return
 
             sessionStorage.setItem('nx-purgado', '1')
             // eslint-disable-next-line no-console
-            console.warn(`[NexusMED] versión desfasada (local v${local} vs servidor v${servidor}). Limpiando y recargando.`)
+            console.warn(`[Ausculta] versión desfasada (local v${local} vs servidor v${servidor}). Limpiando y recargando.`)
             const claves = await caches.keys()
             await Promise.all(claves.map(k => caches.delete(k)))
             const regs = await navigator.serviceWorker.getRegistrations()
@@ -91,9 +91,9 @@ export function ServiceWorkerRegister() {
           canal.port1.onmessage = (e) => {
             const v = e.data?.version
             if (v) {
-              ;(window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION = v
+              ;(window as unknown as { __AUSCULTA_VERSION?: string }).__AUSCULTA_VERSION = v
               // eslint-disable-next-line no-console
-              console.info(`%cNexusMED ${v}`, 'color:#14b8a6;font-weight:700')
+              console.info(`%cAusculta ${v}`, 'color:#14b8a6;font-weight:700')
             }
           }
           sw.postMessage({ type: 'GET_VERSION' }, [canal.port2])

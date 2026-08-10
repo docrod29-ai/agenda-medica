@@ -132,7 +132,7 @@ describe('los tokens que el código usa existen de verdad', () => {
      * se declaran aquí para que el guardián no las persiga — y para que se note
      * el día que alguien quite una fuente y deje su variable colgando.
      */
-    const DE_NEXT_FONT = ['--font-geist-sans', '--font-geist-mono', '--font-fraunces']
+    const DE_NEXT_FONT = ['--font-plex-sans', '--font-plex-mono', '--font-fraunces']
     const layout = readFileSync(join(RAIZ, 'src', 'app', 'layout.tsx'), 'utf8')
     for (const v of DE_NEXT_FONT) expect(layout, `${v} ya no lo inyecta next/font`).toContain(v)
 

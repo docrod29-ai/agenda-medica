@@ -2,7 +2,7 @@
  * Extrae el `usage` de la respuesta de cada proveedor.
  *
  * Los dos ya lo devuelven en cada llamada y hasta hoy se TIRABA — ése era el
- * P0-1 de la auditoría: el costo real de NexusMED era desconocido porque nadie
+ * P0-1 de la auditoría: el costo real de Ausculta era desconocido porque nadie
  * leía tres números que venían en el mismo JSON de la respuesta.
  *
  * Formatos distintos, misma información:

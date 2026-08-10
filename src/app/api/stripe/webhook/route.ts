@@ -544,7 +544,7 @@ export async function POST(req: NextRequest) {
          * facturación de Stripe. Como aquí se prefería el metadato al precio
          * real, un cliente que baja de Pro a Agenda desde el portal de Stripe
          * seguía siendo «premium» para la aplicación: Stripe le cobra $349 y
-         * NexusMED le deja los módulos de Consultorio y la IA premium. Paga el
+         * Ausculta le deja los módulos de Consultorio y la IA premium. Paga el
          * plan barato y consume la llave cara del dueño.
          *
          * Lo que se cobra es un hecho; el metadato es una nota escrita hace
@@ -663,7 +663,7 @@ export async function POST(req: NextRequest) {
        *
        * Ninguno de estos tres eventos se manejaba (P0-3 de la auditoría). Si un
        * cliente pedía el dinero de vuelta, o lo reclamaba a su banco, Stripe se
-       * lo devolvía y en NexusMED no pasaba NADA: el ingreso seguía contado y la
+       * lo devolvía y en Ausculta no pasaba NADA: el ingreso seguía contado y la
        * suscripción seguía activa. Le devuelves el dinero y se queda con el
        * producto.
        *

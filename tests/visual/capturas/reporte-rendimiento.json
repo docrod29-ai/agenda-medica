@@ -1,0 +1,60 @@
+{
+  "_nota": "Dev server, no producción: comparar entre pantallas y entre corridas, no como cifra absoluta.",
+  "capturadoEl": "2026-08-10",
+  "pantallas": [
+    {
+      "pantalla": "hoy",
+      "ruta": "/dashboard",
+      "ttfbMs": 85,
+      "domContentLoadedMs": 140,
+      "loadMs": 409,
+      "fcpMs": 156,
+      "transferKB": 29
+    },
+    {
+      "pantalla": "agenda",
+      "ruta": "/citas",
+      "ttfbMs": 62,
+      "domContentLoadedMs": 100,
+      "loadMs": 364,
+      "fcpMs": 104,
+      "transferKB": 45
+    },
+    {
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "ttfbMs": 54,
+      "domContentLoadedMs": 88,
+      "loadMs": 342,
+      "fcpMs": 108,
+      "transferKB": 44
+    },
+    {
+      "pantalla": "expediente",
+      "ruta": "/expediente/pac-sint-01",
+      "ttfbMs": 133,
+      "domContentLoadedMs": 170,
+      "loadMs": 505,
+      "fcpMs": 184,
+      "transferKB": 29
+    },
+    {
+      "pantalla": "consulta",
+      "ruta": "/consulta/pac-sint-03",
+      "ttfbMs": 127,
+      "domContentLoadedMs": 188,
+      "loadMs": 695,
+      "fcpMs": 200,
+      "transferKB": 32
+    },
+    {
+      "pantalla": "nota",
+      "ruta": "/nota/pac-sint-01/nota-sint-01",
+      "ttfbMs": 129,
+      "domContentLoadedMs": 171,
+      "loadMs": 514,
+      "fcpMs": 184,
+      "transferKB": 30
+    }
+  ]
+}

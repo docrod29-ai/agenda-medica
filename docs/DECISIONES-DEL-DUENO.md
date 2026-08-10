@@ -142,6 +142,42 @@ madrugada, se sabrá cuando alguien mire.
 
 ---
 
+## 6 · `FALTA_BUZON_PROPIO` — el buzón del canal ARCO
+
+**Dónde**: `src/lib/contacto.ts`
+
+**De dónde sale**: el 9-ago-2026, buscando nombre nuevo para el producto,
+apareció que la aplicación publicaba **ocho direcciones en `@nexusmed.mx`** —un
+dominio registrado el 5-feb-2026 por otro médico, con un producto del mismo
+mercado y **con registros MX activos**, es decir, que recibe correo.
+
+Entre ellas, `privacidad@nexusmed.mx`: la dirección que el aviso de privacidad
+ofrece para ejercer los derechos **ARCO**. La LFPDPPP obliga a tener ese canal
+y a que funcione. Un canal ARCO que apunta al dominio de un tercero no es un
+error de redacción — es un aviso de privacidad que no se puede cumplir.
+
+Y `soporte@nexusmed.mx` se ofrecía en la pantalla de migración de expedientes.
+Un médico que respondiera a esa invitación mandaría nombres de pacientes y de
+su consultorio a un buzón ajeno.
+
+**Qué se hizo hoy**: las ocho apuntan ahora a `docrod29@gmail.com`, desde una
+sola constante. Es reversible con un `git revert`.
+
+**Qué pasa hoy, y por eso está aquí**: un correo personal **funciona**, pero no
+es un buzón institucional. Para un canal ARCO publicado en un aviso de
+privacidad, eso es lo mínimo, no lo correcto.
+
+**Qué hace falta de usted**: cuando exista el dominio propio del producto,
+definir `NEXT_PUBLIC_CORREO_PRIVACIDAD` y `NEXT_PUBLIC_CORREO_SOPORTE` en
+Vercel. Hasta entonces **no se toca**: lo que había antes era peor.
+
+**Lo que NO se comprobó, a propósito**: si `nexusmed.mx` tiene catch-all y
+entrega de verdad los correos que se le mandaron todo este tiempo.
+Comprobarlo exigía enviar un mensaje al dominio de un competidor, y eso no se
+hace para confirmar una hipótesis.
+
+---
+
 ## Fuera de esta lista, porque no las declara el código
 
 Estas tres no tienen constante porque no bloquean ningún motor: son

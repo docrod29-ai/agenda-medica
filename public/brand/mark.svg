@@ -1,16 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- Mark solo de NexusMED — versión compacta para sidebar, favicon, avatares -->
-  <defs>
-    <linearGradient id="mk-grad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#3D5AFE"/>
-      <stop offset="100%" stop-color="#2845EA"/>
-    </linearGradient>
-  </defs>
-  <g stroke="url(#mk-grad)" stroke-width="5" stroke-linecap="round" fill="none">
-    <line x1="8" y1="8" x2="8" y2="40"/>
-    <line x1="40" y1="8" x2="40" y2="40"/>
-    <line x1="8" y1="8" x2="40" y2="40"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Ausculta">
+  <!--
+    MARCA DE AUSCULTA — la campana del estetoscopio, de frente.
+
+    El nombre dice lo que hace: auscultar es escuchar al paciente. La marca
+    dice lo mismo sin explicarlo — el disco de la campana con sus dos arcos,
+    que a la vez es el símbolo universal de sonido.
+
+    TRES DECISIONES, Y SU MOTIVO:
+
+    · `currentColor` y NO un degradado fijo. La anterior llevaba clavado
+      #3D5AFE → #2845EA: el azul que se retiró por no pasar contraste, y que
+      quedó vivo en 41 sitios más (REG-307). Un logotipo que hereda el color
+      del tema cambia cuando cambie el acento, sin tocar el archivo.
+
+    · Sin degradado, punto. Un degradado en una marca de 16 px se convierte
+      en un borrón. Suki y Abridge no lo llevan.
+
+    · Los arcos abren a la DERECHA y crecen: se lee como escucha, no como
+      emisión. Un wifi al revés.
+  -->
+  <g fill="none" stroke="currentColor" stroke-linecap="round">
+    <!-- El disco de la campana -->
+    <circle cx="17" cy="24" r="8.5" stroke-width="3.2"/>
+    <circle cx="17" cy="24" r="2.6" fill="currentColor" stroke="none"/>
+    <!-- Lo que se oye: dos arcos, el segundo más abierto y más tenue -->
+    <path d="M31 17.5a9 9 0 0 1 0 13" stroke-width="3.2"/>
+    <path d="M37.5 12a17 17 0 0 1 0 24" stroke-width="3.2" opacity="0.45"/>
   </g>
-  <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-  <circle cx="24" cy="24" r="1.2" fill="#0B0C0E"/>
 </svg>
