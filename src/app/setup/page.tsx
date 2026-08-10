@@ -111,7 +111,7 @@ export default function SetupPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+              <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
                 <line x1="8" y1="8" x2="8" y2="40"/>
                 <line x1="40" y1="8" x2="40" y2="40"/>
                 <line x1="8" y1="8" x2="40" y2="40"/>

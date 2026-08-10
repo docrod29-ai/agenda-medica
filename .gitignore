@@ -61,3 +61,6 @@ synthetic-data/dialogos-consulta/salida/TURNOS/
 synthetic-data/dialogos-consulta/salida/DIARIZACION/
 synthetic-data/dialogos-consulta/salida/*.txt
 synthetic-data/dialogos-consulta/salida/silencio.mp3
+
+# Arnés visual V10 — la sesión sintética del emulador (uid + clave de demo)
+scripts/design/arnes-sesion.json

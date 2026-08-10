@@ -2,7 +2,7 @@
  * Imagen OG/Twitter (1200×630) generada on-brand con next/og.
  * Antes NO existía → al compartir el link salía un cuadro negro. Ahora Next la
  * sirve automáticamente como og:image y twitter:image. Usa los colores de marca
- * (cobalto #3D5AFE sobre ink #0B0C0E); no depende de ninguna imagen externa.
+ * (cobalto var(--nexus) sobre ink #0B0C0E); no depende de ninguna imagen externa.
  */
 import { ImageResponse } from 'next/og'
 
@@ -13,7 +13,7 @@ export const contentType = 'image/png'
 
 export default function OG() {
   const INK = '#0B0C0E'
-  const COBALT = '#3D5AFE'
+  const COBALT = 'var(--nexus)'
   const TEXT = '#F2EFE9'
   const MUTED = '#9BA3AE'
 

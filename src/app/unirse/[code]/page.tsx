@@ -118,7 +118,7 @@ export default function UnirsePage() {
         <div style={cardStyle}>
           <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+              <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
                 <line x1="8" y1="8" x2="8" y2="40"/>
                 <line x1="40" y1="8" x2="40" y2="40"/>
                 <line x1="8" y1="8" x2="40" y2="40"/>
@@ -159,7 +159,7 @@ export default function UnirsePage() {
       <div style={cardStyle}>
         <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true">
-            <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
+            <g stroke="var(--nexus)" strokeWidth="5" strokeLinecap="round" fill="none">
               <line x1="8" y1="8" x2="8" y2="40"/>
               <line x1="40" y1="8" x2="40" y2="40"/>
               <line x1="8" y1="8" x2="40" y2="40"/>

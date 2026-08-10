@@ -2,7 +2,7 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 561,
+    "hexEnLinea": 520,
     "tamanosFueraDeEscala": 2021,
     "radiosFueraDeEscala": 637,
     "sombrasEnLinea": 24
@@ -11,20 +11,20 @@
     {
       "archivo": "src/app/(dashboard)/configuracion/page.tsx",
       "respaldos": 0,
-      "hex": 22,
+      "hex": 20,
       "tam": 99,
       "rad": 45,
       "sombras": 2,
-      "total": 168
+      "total": 166
     },
     {
       "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
       "respaldos": 0,
-      "hex": 34,
+      "hex": 27,
       "tam": 89,
       "rad": 22,
       "sombras": 1,
-      "total": 146
+      "total": 139
     },
     {
       "archivo": "src/app/(dashboard)/uci/page.tsx",
@@ -38,29 +38,29 @@
     {
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
       "respaldos": 0,
-      "hex": 14,
+      "hex": 13,
       "tam": 86,
       "rad": 29,
       "sombras": 1,
-      "total": 130
+      "total": 129
     },
     {
       "archivo": "src/app/demo/interactivo/page.tsx",
       "respaldos": 0,
-      "hex": 20,
+      "hex": 17,
       "tam": 67,
       "rad": 15,
       "sombras": 0,
-      "total": 102
+      "total": 99
     },
     {
       "archivo": "src/app/superadmin/page.tsx",
       "respaldos": 0,
-      "hex": 16,
+      "hex": 13,
       "tam": 53,
       "rad": 29,
       "sombras": 0,
-      "total": 98
+      "total": 95
     },
     {
       "archivo": "src/app/(dashboard)/uci/antimicrobianos/page.tsx",

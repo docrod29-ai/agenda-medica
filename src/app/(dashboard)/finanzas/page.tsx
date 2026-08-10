@@ -254,7 +254,7 @@ export default function FinanzasPage() {
               style={{
                 padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
-                background: activo ? 'rgba(61,90,254,0.12)' : 'var(--s)',
+                background: activo ? 'var(--nexus-soft)' : 'var(--s)',
                 color: activo ? 'var(--nexus)' : 'var(--text2)',
                 transition: 'all 120ms',
               }}
@@ -467,7 +467,7 @@ export default function FinanzasPage() {
                         </span>
                         <span style={{
                           fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-pill)',
-                          background: 'rgba(61,90,254,0.12)', color: 'var(--nexus)',
+                          background: 'var(--nexus-soft)', color: 'var(--nexus)',
                         }}>
                           {CONCEPTO_LABEL[c.concepto]}
                         </span>

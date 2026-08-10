@@ -1,11 +1,39 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import {
   getFirestore, initializeFirestore,
   persistentLocalCache, persistentMultipleTabManager,
+  connectFirestoreEmulator,
   terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore'
-import { getStorage } from 'firebase/storage'
+import { getStorage, connectStorageEmulator } from 'firebase/storage'
+
+/**
+ * MODO EMULADOR — el arnés de capturas, y por qué existe.
+ *
+ * V10 §33 prohíbe aprobar una pantalla leyendo el JSX: hay que abrirla en un
+ * navegador de verdad. Pero las pantallas del flujo dorado exigen sesión, y la
+ * única sesión disponible en esta máquina es la de PRODUCCIÓN — con pacientes
+ * reales dentro. Capturarla estaría prohibido dos veces: por `data-privacy.md`
+ * («cero pacientes reales», y una captura es PHI en un PNG) y por V10 §6.
+ *
+ * Así que la sesión se fabrica contra los emuladores de Firebase, con pacientes
+ * sintéticos sembrados por `scripts/design/sembrar-emulador.mjs`.
+ *
+ * Tres cerrojos para que esto no pueda tocar producción jamás:
+ *   1. sólo si `NEXT_PUBLIC_FIREBASE_EMULATOR === '1'` — ausente por defecto;
+ *   2. sólo si `NODE_ENV !== 'production'` — un build de producción lo ignora
+ *      aunque la variable se cuele en el entorno de Vercel;
+ *   3. `demo-*` como projectId en `.env.emulador`, que ni siquiera existe en
+ *      la consola de Firebase.
+ *
+ * El cerrojo 2 es el que importa: es el que sobrevive a un despiste de
+ * configuración. Sin él, una variable mal puesta en Vercel mandaría la app
+ * pública a un `localhost` que no responde.
+ */
+const USAR_EMULADOR =
+  process.env.NEXT_PUBLIC_FIREBASE_EMULATOR === '1' &&
+  process.env.NODE_ENV !== 'production'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -51,8 +79,15 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_S
 
 export const auth = getAuth(app)
 
-// Persistencia offline habilitada (multi-pestaña para uso en varias ventanas)
-export const db = typeof window !== 'undefined'
+/**
+ * Persistencia offline habilitada (multi-pestaña para uso en varias ventanas).
+ *
+ * Bajo emulador se usa `getFirestore` pelado: la caché persistente guarda los
+ * datos en IndexedDB por `projectId`, y entre corrida y corrida del arnés eso
+ * deja documentos de la siembra anterior mezclados con la nueva. Una captura
+ * tiene que enseñar exactamente lo que se sembró.
+ */
+export const db = typeof window !== 'undefined' && !USAR_EMULADOR
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
@@ -66,6 +101,23 @@ export const storage = (() => {
   if (typeof window === 'undefined') return null
   try { return getStorage(app) } catch { return null }
 })()
+
+/**
+ * El enchufe a los emuladores va DESPUÉS de crear los tres servicios porque
+ * `connect*Emulator` exige una instancia ya construida, y ANTES de que ninguna
+ * pantalla haga su primera lectura porque el SDK prohíbe redirigir un cliente
+ * que ya habló con la red.
+ *
+ * Los `catch` vacíos no esconden un fallo real: en desarrollo React monta dos
+ * veces y el segundo `connect*` lanza «already started». Un error aquí sí se
+ * vería — el arnés se quedaría sin datos y la captura saldría vacía, que es
+ * justo la clase de fallo que no puede pasar desapercibido.
+ */
+if (typeof window !== 'undefined' && USAR_EMULADOR) {
+  try { connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true }) } catch { /* ya conectado */ }
+  try { connectFirestoreEmulator(db, '127.0.0.1', 8080) } catch { /* ya conectado */ }
+  if (storage) { try { connectStorageEmulator(storage, '127.0.0.1', 9199) } catch { /* ya conectado */ } }
+}
 
 /**
  * Limpia la caché OFFLINE de Firestore en IndexedDB (expedientes, Dx, medicamentos,

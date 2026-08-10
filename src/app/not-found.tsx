@@ -61,7 +61,7 @@ export default function NotFound() {
       background: '#0B0C0E', color: '#F2EFE9', fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
       <div style={{ maxWidth: 480, textAlign: 'center' }}>
-        <div style={{ fontSize: 64, fontWeight: 600, color: '#3D5AFE', marginBottom: 12, letterSpacing: '-0.04em' }}>404</div>
+        <div style={{ fontSize: 64, fontWeight: 600, color: 'var(--nexus)', marginBottom: 12, letterSpacing: '-0.04em' }}>404</div>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Página no encontrada</h1>
         <p style={{ fontSize: 14, color: '#8b949e', lineHeight: 1.6, marginBottom: 24 }}>
           Es posible que tu navegador esté usando una versión vieja de la app.
@@ -73,7 +73,7 @@ export default function NotFound() {
             onClick={reintentarLimpio}
             disabled={intentando}
             style={{
-              background: '#3D5AFE', color: '#fff', border: 'none',
+              background: 'var(--nexus-solido)', color: '#fff', border: 'none',
               padding: '12px 22px', borderRadius: 10, fontWeight: 600, fontSize: 14,
               cursor: 'pointer', minWidth: 140, letterSpacing: '-0.005em',
             }}

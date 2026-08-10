@@ -24,7 +24,7 @@ interface DocReceta {
 const RECETA_CONFIG_DEFAULT = {
   paperSize: 'media-carta' as const,
   estilo: 'minimalista' as const,
-  colorAccento: '#3D5AFE',
+  colorAccento: 'var(--nexus)',
   mostrarQR: false,
   vigenciaDias: 30,
   mostrarAlergias: false,
