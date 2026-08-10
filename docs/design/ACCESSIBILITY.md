@@ -118,6 +118,28 @@ La próxima medición axe corre sobre la línea FUSIONADA (las dos ramas ya son
 una), con siembra poblada en todas las pantallas — las cifras de referencia a
 partir de ahí son las de esa corrida, no las de estas dos.
 
+## ★ REFERENCIA VIGENTE — línea fusionada, medida el 10-ago-2026
+
+`tests/visual/arnes-a11y.mjs` sobre la fusión de las tres corridas (siembra
+poblada, 7 pantallas, 1440 y 390). Resultado: **CERO critical; 6 hallazgos
+serious en las 3 familias ya abiertas** — exactamente lo que la reconciliación
+predijo, ninguna regresión de la fusión:
+
+| Pantalla | Hallazgo (serious) | Dueño |
+|---|---|---|
+| hoy 1440+390 | `color-contrast` ×3 (subtítulos de la agenda del día) | V10-TODAY-001 |
+| agenda 1440+390 | `color-contrast` ×6 («Registrar cobro») | V10-AGENDA-001 |
+| pacientes 1440+390 | `nested-interactive` ×3 (fila poblada) | V10-DEBT-010 |
+
+login, expediente, consulta y nota: **0 violaciones** en ambos anchos.
+
+La misma corrida verificó en consola de navegador real que el arreglo de
+hidratación portado funciona: **28 avisos de hydration → 0**; los errores de
+consola totales bajaron 124 → 97 (los 96 restantes son la familia conocida
+del arnés dev: la bitácora de auditoría contesta 401 porque el admin SDK del
+servidor no está cableado al emulador — no es defecto del producto, está en
+V10-HARNESS-OBS-001).
+
 ## Tercera línea independiente — corrida paralela de la noche (fusionada el 10-ago)
 
 Una tercera corrida (22:49 del 9-ago, rama paralela) midió con SU propio arnés

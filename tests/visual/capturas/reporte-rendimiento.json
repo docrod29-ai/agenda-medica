@@ -1,59 +1,59 @@
 {
   "_nota": "Dev server, no producción: comparar entre pantallas y entre corridas, no como cifra absoluta.",
-  "capturadoEl": "2026-08-09",
+  "capturadoEl": "2026-08-10",
   "pantallas": [
     {
       "pantalla": "hoy",
       "ruta": "/dashboard",
-      "ttfbMs": 144,
-      "domContentLoadedMs": 280,
-      "loadMs": 738,
-      "fcpMs": 292,
+      "ttfbMs": 223,
+      "domContentLoadedMs": 299,
+      "loadMs": 808,
+      "fcpMs": 312,
       "transferKB": 29
     },
     {
       "pantalla": "agenda",
       "ruta": "/citas",
-      "ttfbMs": 1814,
-      "domContentLoadedMs": 1853,
-      "loadMs": 2290,
-      "fcpMs": 1864,
+      "ttfbMs": 2170,
+      "domContentLoadedMs": 2205,
+      "loadMs": 2583,
+      "fcpMs": 2220,
       "transferKB": 45
     },
     {
       "pantalla": "pacientes",
       "ruta": "/pacientes",
-      "ttfbMs": 1013,
-      "domContentLoadedMs": 1078,
-      "loadMs": 1459,
-      "fcpMs": 1100,
+      "ttfbMs": 816,
+      "domContentLoadedMs": 851,
+      "loadMs": 1139,
+      "fcpMs": 860,
       "transferKB": 44
     },
     {
       "pantalla": "expediente",
       "ruta": "/expediente/pac-sint-01",
-      "ttfbMs": 2667,
-      "domContentLoadedMs": 2734,
-      "loadMs": 3492,
-      "fcpMs": 2740,
+      "ttfbMs": 1636,
+      "domContentLoadedMs": 1659,
+      "loadMs": 2025,
+      "fcpMs": 1684,
       "transferKB": 29
     },
     {
       "pantalla": "consulta",
       "ruta": "/consulta/pac-sint-03",
-      "ttfbMs": 4143,
-      "domContentLoadedMs": 4173,
-      "loadMs": 4617,
-      "fcpMs": 4184,
+      "ttfbMs": 4317,
+      "domContentLoadedMs": 4376,
+      "loadMs": 4996,
+      "fcpMs": 4388,
       "transferKB": 32
     },
     {
       "pantalla": "nota",
       "ruta": "/nota/pac-sint-01/nota-sint-01",
-      "ttfbMs": 4225,
-      "domContentLoadedMs": 4264,
-      "loadMs": 4624,
-      "fcpMs": 4280,
+      "ttfbMs": 4665,
+      "domContentLoadedMs": 4710,
+      "loadMs": 4983,
+      "fcpMs": 4728,
       "transferKB": 30
     }
   ]
