@@ -1,7 +1,7 @@
 /**
  * DATASET DE DOSIFICACIÓN V2 — la fuente de verdad, sin retipear una cifra.
  *
- * Entregado por el Dr. el 30-jul-2026: `NexusMED_UCI_Drug_Dosing_V2_REAL_DOSING.json`,
+ * Entregado por el Dr. el 30-jul-2026: `Ausculta_UCI_Drug_Dosing_V2_REAL_DOSING.json`,
  * 54 fármacos de adulto hospital/UCI con sus ramas renal, de reemplazo renal y de
  * paciente crítico, más 12 reglas duras globales y 8 fuentes citadas.
  *

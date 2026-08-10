@@ -5,7 +5,7 @@ import { SECURITY_CONTROLS, ESTADO_LABEL, esActivo, type SecurityState } from '@
 import { SUBENCARGADOS } from '@/lib/legal/subencargados'
 
 export const metadata: Metadata = {
-  title: 'Seguridad y confianza · NexusMED',
+  title: 'Seguridad y confianza · Ausculta',
   description: 'Cómo protegemos la información clínica: cifrado, control de acceso, respaldos, proveedores y manejo de datos por la IA.',
 }
 

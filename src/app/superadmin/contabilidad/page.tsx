@@ -82,7 +82,7 @@ export default function ContabilidadPage() {
     if (!data) return
     const r = data.resumen
     const lineas: string[] = []
-    lineas.push(`Contabilidad NexusMED,${data.mes}`)
+    lineas.push(`Contabilidad Ausculta,${data.mes}`)
     lineas.push('')
     lineas.push('RESUMEN DEL MES,MXN')
     lineas.push(`Ingresos (con IVA),${r.ingresoMes}`)

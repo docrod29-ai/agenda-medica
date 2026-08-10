@@ -95,7 +95,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.32)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {/* Mark NexusMED en miniatura */}
+          {/* Mark Ausculta en miniatura */}
           <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
             <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
               <line x1="8" y1="8" x2="8" y2="40"/>
@@ -107,7 +107,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-            {config.nombreClinica || 'NexusMED'}
+            {config.nombreClinica || 'Ausculta'}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>
             {(() => {

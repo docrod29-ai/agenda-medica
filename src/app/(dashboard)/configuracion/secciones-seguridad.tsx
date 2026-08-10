@@ -35,7 +35,7 @@ export function SeguridadTab() {
   const iniciar = async () => {
     setPaso('enrolando')
     try {
-      const r = await iniciarEnrolamientoTotp('Agenda Médica')
+      const r = await iniciarEnrolamientoTotp('Ausculta')
       setSecret(r.secret)
       setQrUrl(r.qrCodeUrl)
       setManualKey(r.manualKey)

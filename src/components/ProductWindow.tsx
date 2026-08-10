@@ -1,5 +1,5 @@
 /**
- * ProductWindow — mockup FIEL de la interfaz de NexusMED para la landing/tiendas.
+ * ProductWindow — mockup FIEL de la interfaz de Ausculta para la landing/tiendas.
  *
  * No es una captura (real ni falsa): se construye con los MISMOS tokens del
  * design system y datos FICTICIOS (pacientes por iniciales, reutilizados del
@@ -22,7 +22,7 @@ export function ProductWindow() {
   return (
     <div
       role="img"
-      aria-label="Vista del producto NexusMED: agenda del día y nota de consulta (interfaz de ejemplo con datos ficticios)"
+      aria-label="Vista del producto Ausculta: agenda del día y nota de consulta (interfaz de ejemplo con datos ficticios)"
       style={{
         background: 'var(--s1)', border: '1px solid var(--border2)', borderRadius: 16,
         overflow: 'hidden', boxShadow: '0 30px 80px rgba(0,0,0,0.45)', width: '100%',
@@ -45,7 +45,7 @@ export function ProductWindow() {
             <span style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--nexus)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ width: 8, height: 8, borderRadius: 8, border: '2px solid #0B0C0E' }} />
             </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>NexusMED</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Ausculta</span>
           </div>
           {NAV.map(n => (
             <div key={n.label} style={{

@@ -668,7 +668,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
             <Menu size={22} />
           </button>
           <MobileBackButton />
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Ausculta</span>
         </div>
 
         <OfflineBanner />

@@ -172,7 +172,7 @@ function RegistroInner() {
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</div>
               <div style={{ fontSize: 12, color: 'var(--text3)' }}>El consultorio, conectado.</div>
             </div>
           </div>

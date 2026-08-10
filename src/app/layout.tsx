@@ -24,15 +24,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "NexusMED",
-    template: "%s · NexusMED",
+    default: "Ausculta",
+    template: "%s · Ausculta",
   },
   description: "El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.",
-  applicationName: "NexusMED",
+  applicationName: "Ausculta",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "NexusMED",
+    title: "Ausculta",
   },
   icons: {
     // SVG para navegadores que lo soportan + PNG de respaldo (Safari/Android no
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "NexusMED",
+    title: "Ausculta",
     description: "El consultorio, conectado.",
     type: "website",
     locale: "es_MX",
@@ -80,7 +80,7 @@ export default function RootLayout({
         */}
         {/*
           Anti-flicker tema: aplica data-theme ANTES de la primera pintada.
-          Default = OSCURO (identidad de marca NexusMED). Solo si el usuario
+          Default = OSCURO (identidad de marca Ausculta). Solo si el usuario
           eligió 'light' explícitamente se respeta el claro.
         */}
         <script

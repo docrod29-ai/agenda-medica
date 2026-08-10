@@ -2,7 +2,7 @@
  * POLÍTICA DE ERROR CRÍTICO — pipeline clínico de dictado.
  *
  * Portada de `config/critical-error-policy.json` y `config/units-and-numbers.json`
- * del paquete que entregó el Dr. (NexusMED_CLINICAL_ASR_PIPELINE_V1). Aquí no se
+ * del paquete que entregó el Dr. (Ausculta_CLINICAL_ASR_PIPELINE_V1). Aquí no se
  * añade ninguna clase de error que él no haya declarado.
  *
  * ── POR QUÉ ESTO ES UNA LISTA Y NO UNA HEURÍSTICA ────────────────────────────

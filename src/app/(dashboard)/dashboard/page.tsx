@@ -29,7 +29,7 @@
  * KPIs genérico para médicos**, y que la pantalla de inicio conteste:
  *
  *     ¿qué pasa hoy? · ¿quién sigue? · ¿qué necesita atención? ·
- *     ¿qué puedo continuar? · ¿qué preparó NexusMED?
+ *     ¿qué puedo continuar? · ¿qué preparó Ausculta?
  *
  * El orden de la pantalla es ahora ese, por urgencia:
  *
@@ -47,7 +47,7 @@
  * ── LO QUE ESTA PANTALLA TODAVÍA NO CONTESTA ────────────────────────────────
  *
  * De las cinco preguntas de §14 quedan dos sin fuente de datos: «qué puedo
- * continuar» (notas en borrador sin firmar) y «qué preparó NexusMED».  No hay
+ * continuar» (notas en borrador sin firmar) y «qué preparó Ausculta».  No hay
  * hook que las lea.  Quedan declaradas en `agent-state/V10_BACKLOG.json` en vez
  * de rellenarse con algo que parezca la respuesta sin serlo.
  */

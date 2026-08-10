@@ -69,18 +69,35 @@ Registrada en `V10_DECISION_LOG.md` (V10-D2). El renombre de cara al usuario
 es trabajo V10 legítimo (marca visible); el renombre profundo (dominios,
 repositorio, legales, Stripe) es del dueño. Ver el plan en el log de decisión.
 
+## Cerrado también en esta corrida: `V10-BRAND-AUSCULTA-001`
+
+El renombre visible se ejecutó el mismo día de la orden: 66 archivos, toda
+superficie que el usuario ve (login, sidebar, cabecera móvil —adiós «Agenda
+Médica»—, tour, manifest, títulos, landing, portal del paciente, documentos
+exportados, descripción de eventos de Google Calendar, bot de ayuda, emisor
+TOTP). Verificado en navegador (login--1440x900.jpg dice Ausculta).
+
+**Lo que NO se renombró, con razón**: 4 textos legales (el nombre LEGAL lo
+decide el dueño — `V10_OWNER_DECISIONS_REQUIRED.md`); identificadores de
+contrato (`__NEXUSMED_VERSION`, HL7, Facturama, caché `nexusmed-v*`); y dos
+motores UCI sellados cuyo guardián de versión (A6) cazó el cambio de huella
+por un comentario — se revirtieron: **la huella de un motor sellado manda
+sobre la marca**. Cerrojo de todo esto:
+`src/__tests__/la-app-se-llama-ausculta.test.ts` (9 casos).
+
+Pendiente de marca (no de esta unidad): el LOGO sigue siendo la «N» —
+rediseñarlo es una decisión de identidad que merece propuesta propia.
+
 ## Próxima acción exacta (siguiente corrida)
 
-1. **`V10-BRAND-AUSCULTA-001`**: renombre visible de NexusMED → Ausculta en
-   las superficies que el usuario VE (login, sidebar, cabecera móvil —que hoy
-   dice «Agenda Médica»—, tour, manifest PWA, títulos de página), con
-   inventario medido de apariciones y guardián. NO tocar: dominios, legales,
-   Stripe, nombres de componentes Nexus* (API interna), ni el prefijo de
-   tokens `nx-` — eso lo decide el dueño con calma.
-2. Salidas 4 y 7 de TRUTH-001 (inventario de componentes + mapa de
+1. Salidas 4 y 7 de TRUTH-001 (inventario de componentes + mapa de
    interacción) — con eso TRUTH-001 se cierra del todo.
+2. Re-correr el arnés de capturas completo para refrescar las 32 evidencias
+   con la marca Ausculta (hoy solo login--1440x900 está actualizada).
 3. Después, por prioridad del backlog: `V10-CONSTITUTION-001` (deuda
    desbloqueada) y `V10-AGENDA-MOVIL` bajo `V10-AGENDA-001`.
+4. Propuesta de logo/wordmark Ausculta (sustituir la «N») — llevarla al dueño
+   como opciones, no como hecho consumado.
 
 Para levantar el arnés otra vez: bloque «B-V10-2 · RESUELTO» de
 `V10_BLOCKERS.md` (emuladores → siembra → dev con env de emulador → captura).

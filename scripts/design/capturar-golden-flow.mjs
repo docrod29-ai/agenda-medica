@@ -57,9 +57,9 @@ async function login(page) {
   // modo estricto de Playwright truena con el selector por nombre; Escape llama
   // al mismo cierre y no depende del markup.
   try {
-    await page.getByRole('dialog', { name: 'Bienvenida a NexusMED' }).waitFor({ timeout: 6000 })
+    await page.getByRole('dialog', { name: 'Bienvenida a Ausculta' }).waitFor({ timeout: 6000 })
     await page.keyboard.press('Escape')
-    await page.getByRole('dialog', { name: 'Bienvenida a NexusMED' }).waitFor({ state: 'hidden', timeout: 4000 })
+    await page.getByRole('dialog', { name: 'Bienvenida a Ausculta' }).waitFor({ state: 'hidden', timeout: 4000 })
   } catch { /* ya visto */ }
 }
 

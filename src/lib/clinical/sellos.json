@@ -53,7 +53,7 @@
     "nombre": "Guardian de sustituciones del dictado",
     "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
     "estado": "validado",
-    "referencia": "critical-error-policy.json y units-and-numbers.json del paquete NexusMED_CLINICAL_ASR_PIPELINE_V1 entregado por el Dr. (2026-07-30). Las 14 clases de error critico, los pares never_autocorrect/dangerous_confusions y los seis motivos de confirmacion son suyos; no se anade ninguna clase que el no haya declarado. Sin fuente clinica: es politica de seguridad de software sobre la salida del reconocedor."
+    "referencia": "critical-error-policy.json y units-and-numbers.json del paquete Ausculta_CLINICAL_ASR_PIPELINE_V1 entregado por el Dr. (2026-07-30). Las 14 clases de error critico, los pares never_autocorrect/dangerous_confusions y los seis motivos de confirmacion son suyos; no se anade ninguna clase que el no haya declarado. Sin fuente clinica: es politica de seguridad de software sobre la salida del reconocedor."
   },
   {
     "id": "asr-lexicon",
@@ -67,7 +67,7 @@
     "nombre": "Normalizacion de cifras y unidades del dictado",
     "especialidad": "Seguridad del dictado clinico (todas las especialidades)",
     "estado": "validado",
-    "referencia": "units-and-numbers.json del paquete NexusMED_CLINICAL_ASR_PIPELINE_V1 del Dr. (2026-07-30) y el caso 1 de sus critical-test-cases.json («cero punto quince microgramos por kilo por minuto» -> 0.15 mcg/kg/min). Los nombres hablados salen de ese archivo y del corpus de 498 audios. Sin fuente clinica: es ortografia de cantidades."
+    "referencia": "units-and-numbers.json del paquete Ausculta_CLINICAL_ASR_PIPELINE_V1 del Dr. (2026-07-30) y el caso 1 de sus critical-test-cases.json («cero punto quince microgramos por kilo por minuto» -> 0.15 mcg/kg/min). Los nombres hablados salen de ese archivo y del corpus de 498 audios. Sin fuente clinica: es ortografia de cantidades."
   },
   {
     "id": "asr-pipeline",
@@ -179,7 +179,7 @@
     "nombre": "Motor de dosificacion adulto hospital/UCI (54 farmacos)",
     "especialidad": "Cuidados criticos / infectologia / farmacia clinica",
     "estado": "validado",
-    "referencia": "NexusMED_UCI_Drug_Dosing_V2_REAL_DOSING.json entregado por el Dr. el 30-jul-2026: 54 farmacos de adulto hospital/UCI, 12 reglas duras globales y 22 fuentes (UCSF IDMP no-dialisis/RRT/meropenem, consenso de vancomicina ASHP-IDSA-PIDS-SIDP 2020, consenso internacional de betalactamicos en infusion prolongada 2023, Surviving Sepsis 2026, PADIS 2025 y fichas de producto). El Excel Drug_Master_v1 NO se usa para dosificar: cada fila declara «Seed catalog only. Numeric dosing NEEDS_VALIDATION»."
+    "referencia": "Ausculta_UCI_Drug_Dosing_V2_REAL_DOSING.json entregado por el Dr. el 30-jul-2026: 54 farmacos de adulto hospital/UCI, 12 reglas duras globales y 22 fuentes (UCSF IDMP no-dialisis/RRT/meropenem, consenso de vancomicina ASHP-IDSA-PIDS-SIDP 2020, consenso internacional de betalactamicos en infusion prolongada 2023, Surviving Sepsis 2026, PADIS 2025 y fichas de producto). El Excel Drug_Master_v1 NO se usa para dosificar: cada fila declara «Seed catalog only. Numeric dosing NEEDS_VALIDATION»."
   },
   {
     "id": "dosing-validacion",

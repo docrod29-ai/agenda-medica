@@ -45,7 +45,7 @@ export default function SeguridadPage() {
       const session = await mfaUser.getSession()
       const newSecret = await TotpMultiFactorGenerator.generateSecret(session)
       setSecret(newSecret)
-      const url = newSecret.generateQrCodeUrl(user.email ?? 'medico', 'Agenda Médica')
+      const url = newSecret.generateQrCodeUrl(user.email ?? 'medico', 'Ausculta')
       setQrUrl(url)
       setPaso('qr')
     } catch (e) {
@@ -196,7 +196,7 @@ export default function SeguridadPage() {
         <div style={cardStyle}>
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Confirma el código</h2>
           <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>
-            Abre la app autenticadora y escribe el código de 6 dígitos que está mostrando para Agenda Médica.
+            Abre la app autenticadora y escribe el código de 6 dígitos que está mostrando para Ausculta.
           </p>
 
           <label style={{ fontSize: 12, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>

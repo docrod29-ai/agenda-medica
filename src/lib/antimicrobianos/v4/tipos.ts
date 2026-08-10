@@ -22,7 +22,7 @@
  *
  * ── DE DÓNDE SALEN LOS DATOS ─────────────────────────────────────────────────
  *
- * De `NexusMED_Antibacterial_Dosing_V3_EVIDENCE_VERIFIED.json` (49 fármacos, 39
+ * De `Ausculta_Antibacterial_Dosing_V3_EVIDENCE_VERIFIED.json` (49 fármacos, 39
  * fuentes, verificado contra FDA/DailyMed, IDSA 2026, CLSI M100 Ed36 y EUCAST
  * v16.1). **Este archivo no inventa ni una cifra**: define la forma, no el
  * contenido. Lo que el dataset no diga sale como `UNKNOWN_INSUFFICIENT_DATA`.

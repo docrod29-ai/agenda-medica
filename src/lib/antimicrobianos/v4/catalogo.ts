@@ -1,7 +1,7 @@
 /**
  * CATÁLOGO V4 — carga el dataset verificado y lo sella.
  *
- * Fuente: `NexusMED_Antibacterial_Dosing_V3_EVIDENCE_VERIFIED.json`, 49
+ * Fuente: `Ausculta_Antibacterial_Dosing_V3_EVIDENCE_VERIFIED.json`, 49
  * fármacos, 39 fuentes, 12 reglas de motor. Verificado contra FDA/DailyMed,
  * IDSA 2026, CLSI M100 Ed36 y EUCAST v16.1.
  *

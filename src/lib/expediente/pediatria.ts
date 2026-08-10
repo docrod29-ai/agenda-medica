@@ -111,7 +111,7 @@ export interface DosisCalculada {
  * escribe con la dosis POR TOMA, así que el tope no servía de nada.
  */
 /**
- * SEGURIDAD DE UNIDAD DEL PESO PEDIÁTRICO (decisión del Dr, L6). NexusMED guarda
+ * SEGURIDAD DE UNIDAD DEL PESO PEDIÁTRICO (decisión del Dr, L6). Ausculta guarda
  * SIEMPRE kg; si se captura en lb se convierte ANTES de dosificar. NO se asume que
  * un peso alto sean libras (un adolescente puede pesar >100 kg; y meter 70 lb como
  * 70 kg pasaría un filtro de tope alto). Por eso: (1) conversión explícita lb→kg;

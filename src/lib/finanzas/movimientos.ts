@@ -5,7 +5,7 @@
  *
  * El webhook de Stripe manejaba diez eventos y **ninguno era un reembolso ni un
  * contracargo**. Si un cliente pedía el dinero de vuelta, o lo reclamaba a su
- * banco, Stripe se lo devolvía y en NexusMED no pasaba nada: la suscripción
+ * banco, Stripe se lo devolvía y en Ausculta no pasaba nada: la suscripción
  * seguía activa y el ingreso seguía contado. Le devuelves el dinero y se queda
  * con el producto.
  *
