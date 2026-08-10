@@ -2267,3 +2267,35 @@ span.riel-aviso { cursor: default; }
 .riel-menu-peligro { color: var(--red); }
 .riel-menu-sep { height: 1px; background: var(--border); margin: 6px 0; }
 .riel-menu-nota { padding: 7px 10px; font-size: 11.5px; color: var(--text3); line-height: 1.5; }
+
+/* ── EL MARCO DE ESCUCHA ───────────────────────────────────────────────────
+   `pointer-events: none` no es un detalle: cubre la pantalla entera, y sin eso
+   se traga cada clic y la aplicación queda muerta mientras graba —veinte
+   minutos—. El grosor va por DENTRO (`inset`) para no desplazar ni un píxel al
+   encenderse: un salto de layout a mitad de consulta es peor que no tener
+   marco. */
+.nx-marco-escuchando {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 3px var(--nexus);
+  animation: nx-escuchando 2.4s ease-in-out infinite;
+}
+
+/* ── EL LATIDO DEL MARCO DE ESCUCHA ────────────────────────────────────────
+   Late despacio (2,4 s) y con poco recorrido: tiene que verse desde el otro
+   lado del consultorio sin ser un estroboscopio delante de un paciente que
+   lleva veinte minutos mirándolo. */
+@keyframes nx-escuchando {
+  0%, 100% { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--nexus) 55%, transparent); }
+  50%      { box-shadow: inset 0 0 0 3px var(--nexus); }
+}
+
+/* Quien pide menos movimiento recibe un marco FIJO, no ninguno: apagar la
+   animación no puede apagar la información de que el micrófono está abierto. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes nx-escuchando {
+    0%, 100% { box-shadow: inset 0 0 0 3px var(--nexus); }
+  }
+}

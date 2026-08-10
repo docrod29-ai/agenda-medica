@@ -59,7 +59,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'fi
  *     vivo, unmount, reset. AudioContext.close() + RAF cancel + IDB clear.
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { EVENTO_GRABANDO, LATIDO_MS } from '@/lib/seguridad/estoy-grabando'
+import { EVENTO_GRABANDO, LATIDO_MS, avisarEscucha } from '@/lib/seguridad/estoy-grabando'
 
 type Estado = 'inactivo' | 'grabando' | 'pausado' | 'subiendo' | 'listo' | 'error'
 
@@ -1156,8 +1156,15 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    * decide es él, y para decidir hace falta saberlo.**
    */
   useEffect(() => {
-    if (estado !== 'grabando' && estado !== 'pausado') return
     if (typeof window === 'undefined') return
+    const abierto = estado === 'grabando' || estado === 'pausado'
+    if (!abierto) {
+      /* Al CERRARSE también se avisa: sin esto el marco de escucha se quedaría
+         pintado para siempre, diciendo que el micrófono sigue abierto cuando ya
+         no lo está. Una señal que sólo sabe encender es peor que ninguna. */
+      avisarEscucha(false)
+      return
+    }
 
     /** El latido: grabando, la sesión está viva aunque nadie toque el ratón. */
     const latido = window.setInterval(
@@ -1165,6 +1172,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     /* Uno inmediato: si se empieza a grabar en el minuto 29, el primer
        `setInterval` llegaría tarde. */
     window.dispatchEvent(new CustomEvent(EVENTO_GRABANDO))
+    avisarEscucha(true)
 
     const alSalir = (e: BeforeUnloadEvent) => {
       e.preventDefault()

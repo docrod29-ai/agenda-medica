@@ -36,6 +36,7 @@ import { rutaPermitida, moduloDeRuta } from '@/lib/modulos'
 import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { CORREO_SOPORTE } from '@/lib/contacto'
+import { MarcoEscuchando } from '@/components/MarcoEscuchando'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -716,6 +717,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <BorradorProvider>
             <TareasProvider>
               <DashboardInner>{children}</DashboardInner>
+              {/*
+                El marco de escucha: grabar es un MODO y se ve desde el otro
+                lado del consultorio. Se monta AQUÍ, una sola vez, para que
+                cualquier superficie que grabe —consulta, pase de UCI, nota de
+                hospital— quede cubierta sin acordarse de montar nada.
+                Va DENTRO del árbol y por encima, no envolviéndolo: no toca el
+                layout ni se traga los clics.
+              */}
+              <MarcoEscuchando />
             </TareasProvider>
           </BorradorProvider>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
