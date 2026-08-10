@@ -142,7 +142,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         <span style={{ flex: 1 }}>{label}</span>
         {mostrarBadge && (
           <span style={{
-            background: 'var(--nexus)', color: '#FFFFFF',
+            background: 'var(--nexus-solido)', color: '#FFFFFF',
             fontSize: 10, fontWeight: 800, borderRadius: 'var(--r-pill)',
             padding: '1px 7px', minWidth: 18, textAlign: 'center',
           }}>
@@ -232,7 +232,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               <span style={{ flex: 1 }}>Consultorio</span>
               {!consultorioAbierto && noLeidos > 0 && pathname !== '/chat' && (
                 <span aria-label={`${noLeidos} mensajes sin leer`} style={{
-                  background: 'var(--nexus)', borderRadius: 'var(--r-circulo)',
+                  background: 'var(--nexus-solido)', borderRadius: 'var(--r-circulo)',
                   width: 8, height: 8, display: 'inline-block',
                 }} />
               )}

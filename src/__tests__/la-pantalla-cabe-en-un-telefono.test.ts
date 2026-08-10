@@ -87,17 +87,18 @@ describe('el texto blanco se lee sobre el azul de relleno', () => {
     expect(+contraste('#FFFFFF', '#2845EA').toFixed(2)).toBe(6.71)
   })
 
-  it('--nexus-solido existe en los tres bloques de tema', () => {
-    // Oscuro (:root), claro por atributo y claro por preferencia del sistema.
-    // Si un tema se queda sin él, `var()` cae al valor heredado y el fallo
-    // vuelve SÓLO en ese tema — que es exactamente como nació este defecto.
+  it('--nexus-solido existe en la identidad única', () => {
+    // V14 · D-5/D-6: identidad única Cantera+Instrumento — ya no hay tres
+    // bloques de tema. El token debe existir en :root; si volviera a haber
+    // más de un bloque de tema, CADA uno tendría que declararlo (así nació
+    // este defecto en la era de dos temas).
     const veces = css.match(/--nexus-solido:/g) ?? []
-    expect(veces.length).toBeGreaterThanOrEqual(3)
+    expect(veces.length).toBeGreaterThanOrEqual(1)
   })
 
   it('cada valor declarado de --nexus-solido pasa AA con texto blanco', () => {
     const valores = [...css.matchAll(/--nexus-solido:\s*(#[0-9A-Fa-f]{6})/g)].map(m => m[1])
-    expect(valores.length).toBeGreaterThanOrEqual(3)
+    expect(valores.length).toBeGreaterThanOrEqual(1)
     for (const v of valores) {
       expect(contraste('#FFFFFF', v), `${v} contra blanco`).toBeGreaterThanOrEqual(AA)
     }

@@ -114,8 +114,10 @@ describe('ningún relleno azul lleva texto blanco, se escriba como se escriba', 
   })
 
   it('y el token sólido sigue existiendo para que haya a dónde ir', () => {
+    // V14 Identity Lock: el sólido es el jamaica #8E2A47 (blanco encima
+    // = 8.2:1). Si alguien lo cambia, que la cifra AA se recalcule aquí.
     const css = leer('src', 'app', 'globals.css')
-    expect(css).toMatch(/--nexus-solido: #3D5AFE/)
+    expect(css).toMatch(/--nexus-solido: #8E2A47/)
   })
 })
 
