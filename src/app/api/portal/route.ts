@@ -107,7 +107,7 @@ async function leerBloques(clinicId: string): Promise<TimeBlock[]> {
  *
  * El panel del consultorio, el booking público y el bot de WhatsApp ya
  * descontaban el calendario personal del médico. El **reagendado del paciente
- * desde su enlace** no: miraba sólo las citas de NexusMED y los bloqueos
+ * desde su enlace** no: miraba sólo las citas de Ausculta y los bloqueos
  * capturados a mano.
  *
  * Así que el paciente que movía su cita del martes al jueves podía caer justo

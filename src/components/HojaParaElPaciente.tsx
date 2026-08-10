@@ -4,7 +4,7 @@
  *
  * ── EL HUECO, DE LA INVESTIGACIÓN DEL MERCADO ───────────────────────────────
  *
- * Suki y Nabla tienen instrucciones para el paciente. NexusMED no. El paciente
+ * Suki y Nabla tienen instrucciones para el paciente. Ausculta no. El paciente
  * salía con una receta y con lo que hubiera retenido de la conversación.
  *
  * ── LA DIFERENCIA CON ELLOS ─────────────────────────────────────────────────

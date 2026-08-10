@@ -16,22 +16,14 @@
     "agent/pagos/PAY-001 (esta sesión, la que despliega)"
   ],
   "maxRamasConcurrentes": 3,
-  "ultimaVersionEnProduccion": "nexusmed-v1167",
+  "ultimaVersionEnProduccion": "nexusmed-v1171",
+  "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/BACKLOG.json",
-    " M agent-state/MASTER_STATE.json",
-    " M agent-state/V7-ITERACION.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/portal-alcance.test.ts",
-    " M src/app/api/payment/create-checkout/route.ts",
-    " M src/app/api/portal/route.ts",
-    " M src/app/api/public/resena/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/ai/NEXUSMED_AUTONOMOUS_MEDICAL_INTELLIGENCE_MASTER_LOOP_V7.md",
-    "?? src/__tests__/rate-limit-endpoints-publicos.test.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt",
+    " M src/__tests__/lo-que-el-navegador-vio.test.ts",
+    " M src/app/globals.css"
   ],
   "actualizado": "2026-08-09",
   "resumenDesdeElUltimoEstado": {
@@ -65,12 +57,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/clever-lamport-fxhzba",
+  "ramaActual": "v10/identidad-acento",
   "derivado": {
-    "regsEnElLedger": 154,
-    "ultimaREG": "REG-306",
-    "archivosDePrueba": 575,
-    "casosDePrueba": 7551,
+    "regsEnElLedger": 156,
+    "ultimaREG": "REG-308",
+    "archivosDePrueba": 584,
+    "casosDePrueba": 7626,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

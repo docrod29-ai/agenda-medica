@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'NexusMED',
-    short_name: 'NexusMED',
+    name: 'Ausculta',
+    short_name: 'Ausculta',
     description: 'El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.',
     start_url: '/dashboard',
     scope: '/',

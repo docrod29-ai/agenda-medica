@@ -565,7 +565,7 @@ const ETIQUETA_CLASE: Record<ClasePHI, string> = {
  */
 export function matrizComoMarkdown(): string {
   const L: string[] = []
-  L.push('# Matriz de acceso a PHI — NexusMED')
+  L.push('# Matriz de acceso a PHI — Ausculta')
   L.push('')
   L.push('> **ARCHIVO GENERADO — no editar a mano.** Sale de `matrizComoMarkdown()` en')
   L.push('> `src/lib/authz/matriz-acceso.ts`. `src/__tests__/matriz-acceso.test.ts` falla')

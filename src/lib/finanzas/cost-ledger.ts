@@ -3,7 +3,7 @@
  *
  * Master Loop V3 §W. Y el P0-1 de la auditoría de fase 0: hasta hoy
  * `registrarUso()` contaba LLAMADAS, no tokens, así que el costo real de
- * NexusMED era literalmente desconocido y ninguna de las catorce cifras de §BG
+ * Ausculta era literalmente desconocido y ninguna de las catorce cifras de §BG
  * se podía calcular.
  *
  * ── LO QUE ESTE MÓDULO NO GUARDA ─────────────────────────────────────────────

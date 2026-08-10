@@ -14,7 +14,7 @@
  * decisión y su fundamento están en `docs/clinical-decisions/estados-cama.md`.
  *
  * Cada hospital **puede** configurarlo (`PoliticaCamas`), pero el default de
- * NexusMED es la limpieza terminal requerida. Un default permisivo se vuelve la
+ * Ausculta es la limpieza terminal requerida. Un default permisivo se vuelve la
  * práctica real del 90 % de las unidades porque nadie cambia lo que ya funciona.
  *
  * ── EL OVERRIDE EXISTE, PERO DEJA HUELLA ─────────────────────────────────────
@@ -60,7 +60,7 @@ export interface PoliticaCamas {
 }
 
 /**
- * Default de NexusMED. **Todo en `true`.**
+ * Default de Ausculta. **Todo en `true`.**
  *
  * Decisión del Dr. (2026-07-30): un hospital puede desactivarlo, pero el default
  * del producto es el seguro.

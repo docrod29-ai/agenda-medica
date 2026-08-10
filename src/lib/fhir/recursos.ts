@@ -1,9 +1,9 @@
 /**
- * Mapeo del modelo de NexusMED a recursos FHIR R4 (interoperabilidad).
+ * Mapeo del modelo de Ausculta a recursos FHIR R4 (interoperabilidad).
  *
  * Convierte Paciente + Notas en recursos FHIR estándar (Patient, AllergyIntolerance,
  * Condition, MedicationRequest, Observation) y arma un Bundle. Es la base de una API
- * FHIR REST viva — el paso que saca a NexusMED de ser "una isla".
+ * FHIR REST viva — el paso que saca a Ausculta de ser "una isla".
  *
  * PURO (sin red/DB) → testeable. No inventa datos: solo mapea lo que existe.
  */

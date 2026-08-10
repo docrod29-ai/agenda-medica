@@ -1,0 +1,20 @@
+[1440] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client bran
+[1440] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[1440] [auditoria] asiento RECHAZADO y descartado login_exitoso 401
+[1024] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client bran
+[1024] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[1024] [auditoria] asiento RECHAZADO y descartado login_exitoso 401
+[768] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client bran
+[768] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[768] [auditoria] asiento RECHAZADO y descartado login_exitoso 401
+[390] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client bran
+[390] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[390] [auditoria] asiento RECHAZADO y descartado login_exitoso 401

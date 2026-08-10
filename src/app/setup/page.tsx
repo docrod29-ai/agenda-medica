@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Stethoscope, Loader2, ArrowRight } from 'lucide-react'
 import { zonaDelNavegador } from '@/lib/zona-horaria-mx'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 export default function SetupPage() {
   const { user, loading: authLoading } = useAuth()
@@ -110,17 +111,10 @@ export default function SetupPage() {
             background: 'var(--s1)', border: '1px solid var(--border2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-              <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
-                <line x1="8" y1="8" x2="8" y2="40"/>
-                <line x1="40" y1="8" x2="40" y2="40"/>
-                <line x1="8" y1="8" x2="40" y2="40"/>
-              </g>
-              <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-            </svg>
+            <MarcaAusculta size={22} />
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>NexusMED</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>Ausculta</div>
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>Configura tu consultorio</div>
           </div>
         </div>

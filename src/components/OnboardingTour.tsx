@@ -91,7 +91,7 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Bienvenida a NexusMED"
+      aria-label="Bienvenida a Ausculta"
       onClick={cerrar}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
@@ -132,7 +132,7 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
 
         {paso === 0 && (
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--nexus)', marginBottom: 8 }}>
-            Bienvenido a NexusMED
+            Bienvenido a Ausculta
           </div>
         )}
         <h2 className="nx-display" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', margin: '0 0 8px', textWrap: 'balance' }}>

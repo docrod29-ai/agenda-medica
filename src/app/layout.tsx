@@ -1,17 +1,58 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono, Fraunces } from "next/font/google"
+import { IBM_Plex_Sans, IBM_Plex_Mono, Fraunces } from "next/font/google"
 import "./globals.css"
+import { MARCA, LEMA } from "@/lib/marca"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+/**
+ * ── POR QUÉ SE FUE GEIST ────────────────────────────────────────────────────
+ *
+ * Geist es la fuente **de fábrica de Vercel**. Venía puesta desde el primer
+ * `create-next-app` y nadie la eligió: se quedó.
+ *
+ * Medido el 9-ago-2026 sobre las hojas de estilo reales de Suki, Abridge,
+ * Nabla, Heidi y Freed: **ninguno de los cuatro buenos usa una fuente por
+ * defecto**. El único que usa Inter puro es Freed, y es el más genérico de los
+ * cinco. La tipografía por defecto es la señal más barata y más fiable de que
+ * un producto no tuvo dirección de diseño.
+ *
+ * ── POR QUÉ IBM PLEX SANS, Y NO OTRA CON CARÁCTER ───────────────────────────
+ *
+ * No se elige por gusto. Esta pantalla es **datos clínicos densos**, y eso pone
+ * cuatro requisitos que descartan casi todo:
+ *
+ * 1. **Cifras tabulares de verdad.** Una dosis, una hora y un resultado de
+ *    laboratorio se leen en columna. Plex trae `tnum` real, no simulado.
+ * 2. **Formas inconfundibles entre sí.** En una receta, confundir un `1` con
+ *    una `l` o un `0` con una `O` no es un problema estético. Plex separa las
+ *    cuatro; las grotescas geométricas de moda (Outfit, Figtree) no.
+ * 3. **Diseñada para producto técnico**, no para portada. Nació para
+ *    documentación e instrumentación: aguanta 12 px sin deshacerse.
+ * 4. **Español completo.** Acentos, eñes y aperturas de interrogación con el
+ *    mismo cuidado que el inglés — no como añadido.
+ *
+ * Y no es la fuente por defecto de nadie.
+ *
+ * ── LA SERIF YA ESTABA COMPRADA Y SIN GASTAR ────────────────────────────────
+ *
+ * Fraunces se carga desde junio y `var(--font-display)` aparecía **4 veces en
+ * toda la aplicación**. Heidi —la mejor medida de las cinco— gana justamente
+ * por emparejar una serif con la sans. El diferenciador estaba pagado y sin
+ * usar.
+ */
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 })
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 })
 
 // Fraunces — serif editorial, uso restringido a hero/citas/momentos editoriales
@@ -24,15 +65,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "NexusMED",
-    template: "%s · NexusMED",
+    default: MARCA,
+    template: `%s · ${MARCA}`,
   },
   description: "El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.",
-  applicationName: "NexusMED",
+  applicationName: MARCA,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "NexusMED",
+    title: MARCA,
   },
   icons: {
     // SVG para navegadores que lo soportan + PNG de respaldo (Safari/Android no
@@ -47,8 +88,8 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "NexusMED",
-    description: "El consultorio, conectado.",
+    title: MARCA,
+    description: LEMA,
     type: "website",
     locale: "es_MX",
   },
@@ -67,8 +108,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // La supresión de aviso de hidratación en la etiqueta raíz es el par del
+  // script anti-flicker de más abajo: ese script pone `data-theme` ANTES de que
+  // React hidrate, así que el atributo nunca coincide con lo que rindió el
+  // servidor. Alcanza SOLO los atributos de este elemento (un nivel), no a los
+  // hijos — un mismatch real en el árbol sigue avisando. Sin esto, React
+  // avisaba en TODAS las rutas (V10-BUG-001).
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full`}>
+    <html lang="es" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable} ${fraunces.variable} h-full`}>
       <head>
         {/*
           Kill-switch único por versión de deploy.
@@ -80,7 +127,7 @@ export default function RootLayout({
         */}
         {/*
           Anti-flicker tema: aplica data-theme ANTES de la primera pintada.
-          Default = OSCURO (identidad de marca NexusMED). Solo si el usuario
+          Default = OSCURO (identidad de marca Ausculta). Solo si el usuario
           eligió 'light' explícitamente se respeta el claro.
         */}
         <script

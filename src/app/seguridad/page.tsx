@@ -3,9 +3,10 @@ import type { Metadata } from 'next'
 import { Shield, Lock, Users, FileClock, DatabaseBackup, Server, Bug, Bell, Brain, ArrowLeft } from 'lucide-react'
 import { SECURITY_CONTROLS, ESTADO_LABEL, esActivo, type SecurityState } from '@/config/security-controls'
 import { SUBENCARGADOS } from '@/lib/legal/subencargados'
+import { CORREO_PRIVACIDAD } from '@/lib/contacto'
 
 export const metadata: Metadata = {
-  title: 'Seguridad y confianza · NexusMED',
+  title: 'Seguridad y confianza · Ausculta',
   description: 'Cómo protegemos la información clínica: cifrado, control de acceso, respaldos, proveedores y manejo de datos por la IA.',
 }
 
@@ -132,7 +133,7 @@ export default function SeguridadPage() {
           <p style={{ margin: '0 0 8px' }}>
             Para ejercer tus derechos ARCO (acceso, rectificación, cancelación, oposición) o reportar un
             incidente de seguridad, escríbenos a{' '}
-            <a href="mailto:privacidad@nexusmed.mx" style={{ color: 'var(--nexus)' }}>privacidad@nexusmed.mx</a>.
+            <a href={`mailto:${CORREO_PRIVACIDAD}`} style={{ color: 'var(--nexus)' }}>{CORREO_PRIVACIDAD}</a>.
           </p>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>
             Consulta también nuestro <Link href="/terminos" style={{ color: 'var(--nexus)' }}>aviso de privacidad y términos</Link>.

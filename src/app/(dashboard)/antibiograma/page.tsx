@@ -97,9 +97,9 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
   // Versión viva (la expone el service worker) para confirmar el despliegue.
   useEffect(() => {
-    const v = (window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION
+    const v = (window as unknown as { __AUSCULTA_VERSION?: string }).__AUSCULTA_VERSION
     if (v) setVersion(v)
-    else { const t = setTimeout(() => setVersion((window as unknown as { __NEXUSMED_VERSION?: string }).__NEXUSMED_VERSION || ''), 1500); return () => clearTimeout(t) }
+    else { const t = setTimeout(() => setVersion((window as unknown as { __AUSCULTA_VERSION?: string }).__AUSCULTA_VERSION || ''), 1500); return () => clearTimeout(t) }
   }, [])
 
   // REACTIVO: se recalcula SOLO al cambiar organismo, panel, sitio o pruebas.
@@ -279,7 +279,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <FlaskConical size={22} color="var(--teal)" />
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Antibiograma inteligente — PROA</h1>
-        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('nexusmed-', '')}</span>}
+        {version && <span title="Versión desplegada" style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'rgba(20,184,166,.12)', border: '1px solid rgba(20,184,166,.3)', borderRadius: 'var(--r-pill)', padding: '2px 9px' }}>{version.replace('ausculta-', '')}</span>}
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
         Captura organismo, sitio y panel S/I/R (con CMI si la tienes). El motor infiere fenotipos,

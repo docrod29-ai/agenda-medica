@@ -3,6 +3,116 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1169 — el arnés de capturas encuentra sus dos primeros defectos (REG-307, REG-308)
+
+Primera pasada del golden flow AUTENTICADO en navegador real (emuladores +
+datos sintéticos + build de producción). Dos defectos en la pantalla de inicio
+recién rediseñada, invisibles para las 8 500 pruebas:
+
+- El saludo decía «Buenas tardes, Dra.» — la rama del `displayName` no quitaba
+  el título antes de tomar el primer nombre (la del médico sí: media defensa).
+- «Iniciar consulta», el CTA principal, pintaba blanco sobre el azul de TEXTO
+  (2.9:1, falla AA). El azul de RELLENO existía y `.btn-primary` ya lo usaba.
+
+Verificado re-capturando: `/dashboard` quedó en cero violaciones axe.
+
+## v1171 — El acento sale del índigo de IA: cian-petróleo, elegido por eliminación
+
+`#6E84FE` —índigo-violeta, 375 usos en 97 archivos— es EL tono de «producto de
+inteligencia artificial». Medido contra las hojas de estilo reales de los cinco
+productos clínicos que importan: Suki usa **amarillo**, Abridge **rojo cadmio**,
+Nabla **verde**, y Heidi sí tiene morado pero lo reserva al plan de pago.
+
+NO SE ELIGIÓ POR GUSTO. En una aplicación clínica hay tres tonos que YA
+significan algo y quedan prohibidos como marca:
+
+    --red    #E66464   tono   0°   peligro
+    --amber  #D97706   tono  32°   aviso
+    --green  #1BA34D   tono 142°   normalidad
+
+Suki puede permitirse el amarillo porque no tiene MAR, ni valores críticos de
+laboratorio, ni NEWS2. Nosotros sí: un acento a 35° compite con el aviso en cada
+pantalla de la UCI.
+
+Distancia al semáforo más cercano, por región de tono:
+
+    rojo/coral      0°  →   0°   inutilizable
+    ámbar/oro      35°  →   3°   inutilizable
+    verde         140°  →   2°   inutilizable
+    CIAN-PETRÓLEO 190°  →  48°   ← libre, y lejos del índigo de IA
+    azul          215°  →  73°   libre
+    índigo        250°  → 108°   libre, pero ES el tono que se quiere abandonar
+
+Contraste comprobado, no supuesto:
+
+    oscuro   trazo    #2AA5B5 sobre --s3        5,18 : 1  ✓ AA
+             relleno  #177886 con blanco encima 5,16 : 1  ✓ AA
+    claro    trazo    #12626E sobre --s3        5,82 : 1  ✓ AA
+             relleno  #12626E con blanco encima 7,00 : 1  ✓ AA
+
+Y un guardián menos que miente: `lo-que-el-navegador-vio` fijaba `#3D5AFE` a
+mano y se puso rojo al cambiar el acento, aunque lo que protege —que exista un
+token de relleno con contraste medido— seguía intacto. Ahora comprueba la REGLA
+y no el valor. Es la tercera vez en el día que un guardián defiende el número en
+vez de la norma: el buzón del canal ARCO y el bloque de emuladores fueron las
+otras dos.
+
+## v1170 — Consolidación: dos líneas paralelas vuelven a ser una
+
+Dos días de rutinas autónomas produjeron **342 commits en 114 ramas** y **41 PR
+abiertos**, y main llevaba 11 horas parada. Producción corría un commit que NO
+estaba en main.
+
+Medido antes de tocar nada: de los 215 asuntos distintos, la mayoría eran **el
+mismo defecto encontrado en paralelo con números distintos**. El enlace de
+videoconsulta por WhatsApp aparecía como REG-288, 291, 292, 306 y 309 — cinco
+números, un defecto. El límite de tasa del portal, cuatro veces. La hoja del
+paciente sin firmar, cuatro.
+
+Se eligió como base la línea que las propias rutinas ya habían reconciliado
+(`kind-brahmagupta-ajtolc`: main + V9 + la rama canónica V10 + la corrida
+nocturna) y se fusionó encima la línea de identidad. Siete conflictos, todos
+resueltos por UNIÓN y no por descarte:
+
+· `layout.tsx` — su corrección de hidratación (V10-BUG-001) **y** la tipografía
+  nueva. Las dos eran correctas y ninguna anulaba a la otra.
+· `globals.css` — su arreglo de contraste (`--nexus` con blanco daba 3.28:1 y
+  reprobaba AA) **y** la escala de radios.
+· `firebase.ts` — DOS bloques de conexión a emulador convivían. Se dejó uno,
+  con el cerrojo más estricto (exige `projectId` que empiece por `demo-`) y la
+  conexión más completa (incluye Storage). Lo cazó su propio guardián
+  `emulador-solo-demo`, que exige que el bloque sea único.
+· `techos-de-diseno.json` — el MENOR de cada par: el trinquete sólo baja.
+
+Y dos guardianes suyos cazaron mi resolución mientras la escribía: el de
+hidratación contó dos apariciones del literal porque mi comentario lo repetía,
+y el de emuladores contó dos bloques. Hicieron exactamente su trabajo.
+
+8 639 pruebas, tsc limpio, lint 96 (el techo), trinquete de diseño: hex
+520 → 508, tamaños 2021 → 2007, radios 637 → 636, sombras 24 → 23.
+
+## v1168 — REG-306: el medidor del teléfono decía 0 con la pantalla rota
+
+La pantalla de inicio se salía de un iPhone: `gridTemplateColumns: '1fr 300px'`,
+fija en píxeles, sin una sola consulta de medios propia. De los 328 px útiles de
+un teléfono de 360, la columna derecha se llevaba 300.
+
+Y el instrumento existía. `cabe-en-un-telefono.mjs` (REG-265) llevaba una semana
+midiendo esto y decía **cero**: sus tres clases eran `width: Npx`, `minmax(Npx,…)`
+sin `min()` e imagen sin tope, y una pista de rejilla clavada **no es ninguna de
+las tres**. La clase estaba al lado de las tres y nadie la escribió.
+
+Se arregló la pantalla (V10 · HOME-001) y se escribió la cuarta clase. La primera
+medición de la clase nueva dio cuatro, y los cuatro eran falsos: configuración,
+recetas, orden y receta llevan su consulta de medios en `1fr !important`, que es
+la forma correcta. Excluidos por lo que hacen, no por su nombre.
+
+De la pantalla se fueron las cuatro tarjetas KPI (§14 del charter V10: «no
+construyas un tablero de KPIs genérico para médicos»), «Accesos rápidos» (§9,
+navegación duplicada), el «Citas hoy» del encabezado (§9, encabezado duplicado)
+y el sparkline. Los números siguen, en un renglón. La próxima cita sube al primer
+lugar: antes salía en cuarto, debajo de cuatro tarjetas de estadística.
+
 ## v1084 — REG-203: las decisiones de arquitectura vivían en la cabeza de nadie
 
 `docs/decisions/` estaba vacía. Cuatro ADR escritos, todos de decisiones YA

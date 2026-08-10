@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { Calendar, Mic, FileText, MessageCircle, Headset, Smartphone, ArrowRight, ArrowLeft, CheckCircle2, MousePointerClick, FlaskConical, Sparkles, Stethoscope } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Ver demo · NexusMED',
-  description: 'Recorrido por NexusMED: agenda, nota por voz e IA, receta y orden con QR, antibiograma inteligente (PROA), Consultor IA, herramientas clínicas, WhatsApp y portal del paciente.',
+  title: 'Ver demo · Ausculta',
+  description: 'Recorrido por Ausculta: agenda, nota por voz e IA, receta y orden con QR, antibiograma inteligente (PROA), Consultor IA, herramientas clínicas, WhatsApp y portal del paciente.',
 }
 
 /**
@@ -223,7 +223,7 @@ export default function DemoPage() {
 
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 className="nx-display" style={{ fontSize: 'clamp(30px, 5vw, 48px)', fontWeight: 600, margin: '0 0 12px', letterSpacing: '-0.03em' }}>
-            NexusMED en 2 minutos
+            Ausculta en 2 minutos
           </h1>
           <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 560, margin: '0 auto 20px', lineHeight: 1.6 }}>
             Todo lo que tu consultorio necesita, en un solo lugar. Mira cómo se ve cada parte antes de crear tu cuenta.

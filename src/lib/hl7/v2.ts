@@ -136,7 +136,7 @@ export function oruAFHIR(oru: OruParseado, patientRef = 'Patient/desconocido'): 
 export function construirACK(mensajeControlId: string, codigo: 'AA' | 'AE' | 'AR' = 'AA'): string {
   const cid = mensajeControlId || 'MSGID'
   return [
-    `MSH|^~\\&|NEXUSMED|CLINICA|LIS|LAB|||ACK|${cid}|P|2.5`,
+    `MSH|^~\\&|AUSCULTA|CLINICA|LIS|LAB|||ACK|${cid}|P|2.5`,
     `MSA|${codigo}|${cid}`,
   ].join('\r')
 }

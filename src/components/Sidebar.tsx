@@ -15,6 +15,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 import { salirSeguro } from '@/lib/salir-seguro'
+import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 // Cada item declara en qué modos aparece:
 //   medico       → solo cuando el usuario está en modo Médico
@@ -95,19 +96,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.32)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {/* Mark NexusMED en miniatura */}
-          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-            <g stroke="#3D5AFE" strokeWidth="5" strokeLinecap="round" fill="none">
-              <line x1="8" y1="8" x2="8" y2="40"/>
-              <line x1="40" y1="8" x2="40" y2="40"/>
-              <line x1="8" y1="8" x2="40" y2="40"/>
-            </g>
-            <circle cx="24" cy="24" r="3" fill="#F2EFE9"/>
-          </svg>
+          {/* Mark Ausculta en miniatura */}
+          <MarcaAusculta size={20} />
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-            {config.nombreClinica || 'NexusMED'}
+            {config.nombreClinica || 'Ausculta'}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>
             {(() => {

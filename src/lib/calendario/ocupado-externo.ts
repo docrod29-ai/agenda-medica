@@ -3,7 +3,7 @@
  *
  * ── EL AGUJERO ───────────────────────────────────────────────────────────────
  *
- * La integración con Google era de UNA sola dirección: NexusMED empujaba sus
+ * La integración con Google era de UNA sola dirección: Ausculta empujaba sus
  * citas al calendario del médico, y nada volvía. El médico se ponía una cirugía
  * el jueves de 8 a 12 en Google, y la agenda —y el portal público, y el bot—
  * seguían ofreciendo esas horas a los pacientes. Descubría el choque el jueves.

@@ -161,7 +161,11 @@ export default function ExpedientePage() {
             </div>
           </div>
         </div>
-        <div className="actions-row">
+        {/* `exp-actions`: bajo 480px la rejilla pone el CTA primario (Nueva
+            consulta con IA) ARRIBA a fila completa — sin ella, .actions-row
+            global apila los 4 botones a lo ancho en orden DOM y el primario
+            queda CUARTO, bajo tres secundarios de igual peso (V10-DEBT-006). */}
+        <div className="actions-row exp-actions">
           <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
@@ -476,7 +480,20 @@ export default function ExpedientePage() {
           ))}
         </div>
       )}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 480px) {
+          /* V10-DEBT-006: el CTA primario va PRIMERO en el teléfono. El orden
+             DOM se queda como en escritorio (primario a la derecha, foco al
+             final de la fila); aquí sólo cambia el orden VISUAL táctil. */
+          .exp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+          .exp-actions > button { width: 100%; min-height: 44px; justify-content: center; }
+          .exp-actions > button:last-child { order: -1; grid-column: 1 / -1; }
+          /* 3 secundarios en 2 columnas dejarían una celda huérfana: el primero
+             (Carta de referencia) toma su fila y los otros dos comparten. */
+          .exp-actions > button:first-child { grid-column: 1 / -1; }
+        }
+      `}</style>
     </div>
   )
 }

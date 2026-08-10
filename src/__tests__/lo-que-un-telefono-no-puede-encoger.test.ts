@@ -48,7 +48,10 @@ const RAIZ = process.cwd()
 const medir = () => JSON.parse(execSync(
   'node scripts/calidad/cabe-en-un-telefono.mjs --json',
   { cwd: RAIZ, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
-)) as { total: number; anchosFijos: string[]; rejillasRigidas: string[]; imagenesSinTope: string[] }
+)) as {
+  total: number; anchosFijos: string[]; rejillasRigidas: string[]
+  imagenesSinTope: string[]; columnasClavadas: string[]
+}
 
 describe('nada que no quepa en un teléfono de 360 px', () => {
   const m = medir()
@@ -68,6 +71,24 @@ describe('nada que no quepa en un teléfono de 360 px', () => {
 
   it('ninguna imagen sin restricción de ancho', () => {
     expect(m.imagenesSinTope, m.imagenesSinTope.join('\n  ')).toEqual([])
+  })
+
+  it('ninguna columna de rejilla clavada en píxeles', () => {
+    /**
+     * CLASE 4 — la que faltaba, y por eso este medidor decía **0** el día que
+     * la pantalla de inicio se salía visiblemente de un iPhone. REG-306.
+     *
+     * `gridTemplateColumns: '1fr 300px'` no es un `width:` ni un `minmax(`:
+     * las tres clases anteriores pasaban por encima sin verlo. De los 328 px
+     * útiles de un teléfono de 360, la columna derecha se llevaba 300.
+     *
+     * No cuenta la que **ya sabe apilarse**: una rejilla de dos columnas con
+     * su consulta de medios en `1fr !important` es la forma correcta, y en
+     * este repositorio hay cuatro —configuración, recetas, orden, receta— que
+     * la usan bien. Ésas fueron los cuatro falsos positivos de la primera
+     * medición, y están excluidas por lo que hacen, no por su nombre.
+     */
+    expect(m.columnasClavadas, m.columnasClavadas.join('\n  ')).toEqual([])
   })
 }, 120_000)
 
@@ -99,6 +120,16 @@ describe('el medidor no confunde impresión con pantalla', () => {
      * captura el membrete en el PDF. Un ejemplo escrito no desborda nada.
      */
     expect(s).toMatch(/Los comentarios se QUITAN antes de mirar/)
+  })
+
+  it('excluye la rejilla que YA se apila en el teléfono', () => {
+    /**
+     * Cuatro falsos positivos en la primera medición de la clase 4, todos con
+     * su consulta de medios correcta. El `!important` no es descuido: un
+     * estilo en línea gana a una clase, y sin él la consulta no haría nada.
+     */
+    expect(s).toMatch(/function seApilaEnMovil/)
+    expect(s).toMatch(/grid-template-columns:\[\^;\]\*!important/)
   })
 
   it('y deja escrito que esto NO sustituye al navegador', () => {

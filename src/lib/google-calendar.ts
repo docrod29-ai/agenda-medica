@@ -77,7 +77,7 @@ export function buildCalendarEvent(appt: Appointment, config: ClinicConfig) {
    * ── LO QUE SALE AHORA ────────────────────────────────────────────────────
    *
    *   summary:     «Seguimiento — J.P.G.»
-   *   description: «Abrir en NexusMED: https://…/citas?cita=abc123»
+   *   description: «Abrir en Ausculta: https://…/citas?cita=abc123»
    *
    * Las iniciales bastan para reconocer la cita de un vistazo entre las demás
    * del día —que es para lo que sirve el calendario— y no identifican a nadie
@@ -91,7 +91,7 @@ export function buildCalendarEvent(appt: Appointment, config: ClinicConfig) {
   return {
     summary: `${tipoLabel[appt.tipo] ?? appt.tipo} — ${iniciales(appt.pacienteNombre)}`,
     description: [
-      appt.id ? `Abrir en NexusMED: ${APP_URL}/citas?cita=${appt.id}` : null,
+      appt.id ? `Abrir en Ausculta: ${APP_URL}/citas?cita=${appt.id}` : null,
       appt.lugar ? `Lugar: ${appt.lugar}` : null,
       `Estado: ${appt.estado}`,
       '',

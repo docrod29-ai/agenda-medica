@@ -2,7 +2,7 @@
  * Modelo de CONEXIÓN de WhatsApp por tenant (Iteración 2 · META_ONBOARDING).
  *
  * Contrato tipado que pide el programa: cada consultorio conecta SUS activos
- * (WABA, número) y NexusMED opera la integración con permiso revocable. Este
+ * (WABA, número) y Ausculta opera la integración con permiso revocable. Este
  * módulo es PURO (sin red/DB): tipos + máquina de estados + reglas. La UI de
  * Embedded Signup y las llamadas a Meta/360dialog viven en las rutas API.
  */
