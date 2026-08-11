@@ -4,10 +4,11 @@
 
 ## Iteración en curso
 
-`V15-PATIENT-WORKSPACE-001` (Fase 4) — EN CURSO, 11-ago-2026 (segunda
-rebanada): Clinical Spine entregado y verificado en navegador real; Active
-Patient Canvas queda para la corrida siguiente. Ver sección propia y
-verificación de navegador abajo.
+`V15-PATIENT-WORKSPACE-001` (Fase 4) — EN CURSO, 11-ago-2026 (tercera
+rebanada): decisión de Active Patient Canvas tomada (ver «V15-PATIENT-WORKSPACE-001
+— Active Patient Canvas, decisión» abajo) + `InstrumentStrip` ya pinta
+«paciente actual». Falta cerrar el hallazgo de PREPARED BY NEXUS antes de
+dar la fase por completa. Ver sección propia abajo.
 `V15-TODAY-001` (Fase 3) — cerrada 11-ago-2026. `V15-IA-001` +
 `V15-SHELL-GREYBOX-001` cerradas antes, misma fecha.
 
@@ -375,29 +376,106 @@ ad-hoc, no forma parte del repo). Capturas en
 - `npm run build`: compila con `.env.local` demo (emuladores) igual que las
   corridas anteriores.
 
+### V15-PATIENT-WORKSPACE-001 — Active Patient Canvas, DECISIÓN (11-ago-2026, tercera rebanada)
+
+La pregunta que dejó la corrida anterior: de los botones de `NotaCard`
+(`onEditar`/`onImprimir`/`onGenerarReceta`/`onGenerarOrden`) y de
+`CabosSueltosDelPaciente.alAbrirPendientes`, ¿cuáles navegan a un modo
+DISTINTO legítimo (§8, Encounter Mode) y cuáles deberían abrir sin perder el
+ancla/riel? Se investigó cada uno antes de tocar código — la respuesta no
+era la misma para los cinco:
+
+- **`onEditar`** (`/consulta/[patientId]?nota=...`, continuar un encuentro sin
+  cerrar) — modo distinto legítimo. Es exactamente la entrada a Encounter
+  Mode (§8, Fase 5, todavía sin construir); forzarlo a abrir inline
+  adelantaría trabajo de una fase que aún no arrancó. **Sin cambio.**
+- **`onImprimir`** (`/nota/[pid]/[id]`) — genera un documento para imprimir:
+  necesita su propia página con hoja de estilo de impresión, no un panel
+  dentro del expediente. **Sin cambio.**
+- **`onGenerarReceta`/`onGenerarOrden`** (`/receta/...`, `/orden/...`) — el
+  propio master loop los nombra explícitamente en la Fase 8 («Integrate
+  Note → Rx → Orders → Instructions → Follow-up», §33, DESPUÉS de Encounter
+  Mode/Results-Closure/Follow-up). Adelantarlos aquí sería invertir el orden
+  obligatorio de fases (§18). **Sin cambio, diferido a Fase 8 a propósito —
+  no es un olvido.**
+- **`CabosSueltosDelPaciente.alAbrirPendientes`** (`/pendientes`, worklist
+  global) — se investigó si esto es el defecto real de «reseteo mental» y
+  NO lo es: `src/__tests__/los-cabos-sueltos-del-paciente.test.ts` (caso «el
+  componente no cierra tareas») ya prueba, con su razón escrita en el propio
+  componente, que CERRAR una tarea exige la validación de `cambiarEstado`
+  (transiciones legales del modelo) y que repetirla aquí la desalinearía en
+  la primera prisa. Además el componente YA enseña el detalle completo
+  in-line (título, grupo, días vencido, dueño) — **leer** un pendiente de
+  este paciente no pierde el ancla; sólo **cerrarlo** navega, y eso es
+  correcto por diseño ya probado. Revertir esa decisión sin motivo nuevo
+  contradiría un guardián existente. **Sin cambio.**
+
+Con los cinco candidatos resueltos como modos legítimos o fases diferidas a
+propósito, lo que SÍ quedaba genuinamente pendiente de §7 no era ninguno de
+ellos: era `InstrumentStrip` sin pintar «paciente actual» — anotado desde
+`V15-SHELL-GREYBOX-001` y otra vez al cierre de la corrida anterior («ahora
+que el Patient Anchor existe, esa corrida puede decidir qué significa
+"paciente actual" fuera del expediente»). Ver entrega abajo.
+
+### `InstrumentStrip` pinta «paciente actual» (11-ago-2026, tercera rebanada)
+
+- **`src/lib/nav/paciente-de-la-ruta.ts`** (módulo puro, nuevo) —
+  `patientIdDeLaRuta(pathname)` deriva el `patientId` de la URL para las seis
+  rutas que lo llevan como primer segmento dinámico (`expediente`,
+  `consulta`, `nota`, `receta`, `orden`, `referencia`). No toca Firestore: es
+  URL, no una consulta.
+- **`src/components/InstrumentStrip.tsx`** — añade `usePacienteActual()`,
+  que llama `getPatient()` de `@/lib/firestore` — LA MISMA función, con el
+  mismo alcance de clínica, que ya usan expediente/consulta/receta/orden/
+  nota/referencia — no una lectura nueva con su propio criterio de permisos
+  (la razón por la que esto quedó pendiente desde V15-SHELL-GREYBOX-001).
+  El nombre se muestra como enlace de vuelta a `/expediente/[patientId]`
+  (continuidad, §20). Así el médico no pierde de vista EN QUIÉN ESTÁ al
+  pasar del expediente a `/receta`/`/orden`, aunque esas pantallas sigan
+  sin tocarse (Fase 8, diferida a propósito — ver decisión arriba).
+- **Nunca enseña el paciente ANTERIOR mientras carga el siguiente**: el
+  hook guarda el último `{id, nombre}` resuelto y sólo lo devuelve si ese
+  `id` coincide con el `patientId` de la URL actual — filtrado derivado en
+  el valor de retorno, no un `setState(null)` a ciegas al principio del
+  efecto (la primera versión SÍ lo hacía así; `node scripts/lint-trinquete.mjs`
+  lo cazó como `react-hooks/set-state-in-effect` antes de sellarse — ver
+  compuertas abajo).
+- Guardianes nuevos, probados al revés (mismo patrón que sus hermanos de
+  fase): `src/__tests__/paciente-de-la-ruta.test.ts` (la función pura — qué
+  rutas SÍ llevan paciente y cuáles no, con `/hospitalizacion/[id]` como
+  caso trampa porque su segundo segmento es un internamiento, no un
+  paciente) y `src/__tests__/v15-instrument-strip-paciente-actual.test.ts`
+  (que reutiliza `getPatient` en vez de una consulta propia, que filtra por
+  id antes de enseñar, y que no volvió al patrón de `setState` síncrono que
+  cazó el trinquete de lint).
+
+**Pendiente, no bloqueante:** PREPARED BY NEXUS (quinta zona de Hoy) sigue
+sin construirse — depende de la MISMA pregunta de «paciente actual» fuera
+del expediente, pero para el caso «próximo paciente de la agenda», que es
+distinto al caso que esta corrida resolvió («paciente cuya pantalla estoy
+viendo ahora»). Candidata para una corrida futura de `V15-TODAY-001` o de
+esta misma fase si vuelve a abrirse.
+
+Con la decisión de Active Patient Canvas tomada y `InstrumentStrip`
+entregado, **`V15-PATIENT-WORKSPACE-001` (Fase 4) puede darse por
+CERRADA** — sigue `V15-ENCOUNTER-MODE-001` (Fase 5) como siguiente tarea
+exacta para la corrida que retome este routine.
+
 ## Siguiente tarea exacta
 
-`V15-PATIENT-WORKSPACE-001`: **Active Patient Canvas** (§7, última pieza de
-la fase) — "the clinician can open an event/task/note without losing
-patient context... no route should mentally reset the physician". Patient
-Anchor y Clinical Spine ya están cerrados y verificados; falta que abrir un
-evento/nota/tarea desde el expediente no navegue a una pantalla que resetea
-el contexto. Punto de partida real para la próxima corrida: los botones
-`onEditar`/`onImprimir`/`onGenerarReceta`/`onGenerarOrden` de `NotaCard` en
-`expediente/[patientId]/page.tsx` hoy navegan con `router.push` a rutas
-completas (`/consulta/[patientId]?nota=...`, `/nota/[pid]/[id]`,
-`/receta/...`, `/orden/...`) — decidir cuáles de esos son legítimamente modos
-distintos (Encounter Mode es la Fase 5 aparte) y cuáles deberían abrir sin
-perder el ancla/riel de este paciente. `CabosSueltosDelPaciente.alAbrirPendientes`
-(lleva a `/pendientes`, worklist global) es otro candidato a revisar bajo la
-misma pregunta. Una vez cerrado esto, `V15-PATIENT-WORKSPACE-001` completo
-puede darse por cerrado y sigue `V15-ENCOUNTER-MODE-001` (Fase 5).
-
-También queda pendiente, sin bloquear lo anterior: `InstrumentStrip` sigue
-sin pintar «paciente actual» (anotado desde `V15-SHELL-GREYBOX-001`) — ahora
-que el Patient Anchor existe, esa corrida puede decidir qué significa
-«paciente actual» fuera del expediente. PREPARED BY NEXUS (quinta zona de
-Hoy) sigue bloqueada por lo mismo.
+`V15-ENCOUNTER-MODE-001` (Fase 5, §8 del master loop): "Starting a
+consultation transforms the interface... It should NOT look like ordinary
+chart browsing with a recorder bolted on." Punto de partida real: leer
+`src/app/(dashboard)/consulta/[patientId]/page.tsx` completo (es la pantalla
+que hoy recibe el `onEditar` de `NotaCard` y el botón "Nueva consulta con
+IA") y compararla contra el ciclo de vida de §8 (PREPARE → START → LISTEN/
+CAPTURE → REVIEW FACTS → BUILD PLAN → REVIEW NOTE → PRESCRIPTION/ORDERS →
+VISIT PACKAGE → FOLLOW-UP → CLOSE) para medir qué tan lejos está hoy de ser
+un MODO distinto (navegación que se aquieta, identidad del paciente
+inconfundible, grabación inconfundible, admin no esencial desaparece, una
+acción primaria domina) contra ser "chart browsing con un grabador pegado".
+Documentar esa medición ANTES de tocar código — es la misma disciplina que
+`V15-BASELINE-001` aplicó a la navegación (medir antes de rediseñar).
 
 **Deuda anotada, no bloqueante:** dos familias de violaciones axe moderadas
 preexistentes — `landmark-unique` (cajón móvil de `FlowRail`, mismo
