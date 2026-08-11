@@ -5657,47 +5657,65 @@ export default function ConsultaActivaPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/*
-              ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──────
-              Se apagaba sólo con NOM-004, así que con una dosis incompleta se
-              veía ENCENDIDO: el médico lo pulsaba, salía un toast y no pasaba
-              nada. Ahora la fuente es una sola —la misma que cuenta la barra— y
-              el motivo viaja en el `title` y en el renglón de al lado.
-              NO cambia la política: lo que impedía firmar ayer impide hoy.
-            */}
-            <button
-              onClick={firmar}
-              disabled={bloqueosDeFirma.length > 0 || guardando}
-              title={motivoNoFirma || 'Firmar y cerrar la nota'}
-              style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
-            >
-              <FileSignature size={17} /> Firmar y cerrar nota
-            </button>
-            <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
-              {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
-            </button>
-            {/*
-              El motivo, DONDE ESTÁ EL DEDO. El mensaje ya existía y era
-              inalcanzable: el del toast sólo salía al pulsar, y el de NOM-004
-              vive en un recuadro que queda fuera de pantalla cuando el médico
-              está abajo, junto a los botones.
-            */}
-            {bloqueosDeFirma.length > 0 && !guardando && (
-              <span role="status" style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.45, flexBasis: '100%' }}>
-                {motivoNoFirma}
-                {bloqueosDeFirma.length > 1 && (
-                  <span style={{ opacity: 0.85 }}> · y {bloqueosDeFirma.length - 1} más arriba</span>
-                )}
-              </span>
-            )}
-            <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
-              <Volume2 size={14} /> Leer resumen
-            </button>
-            <button onClick={descartar} disabled={guardando} style={S.descartar}>
-              <Trash2 size={14} /> Descartar
-            </button>
-            <span style={{ fontSize: 12, color: 'var(--text3)' }}>Completitud: {validacion.puntajeCompletitud}%</span>
+          {/*
+            UNA ACCIÓN DOMINA AL CERRAR (V15-ENCOUNTER-MODE-001, §8.6).
+            ────────────────────────────────────────────────────────────────
+            Antes las cuatro acciones vivían en una sola fila del mismo alto;
+            sólo el color las distinguía. Ahora Firmar tiene su propia fila,
+            más grande y con sombra — y Guardar/Leer resumen/Descartar bajan a
+            una segunda fila de acciones de apoyo, sin caja ni borde (regla de
+            jerarquía: posición → tipografía → espacio → agrupación → énfasis,
+            antes que cajas). Ningún onClick, disabled ni motivo cambió: es
+            reordenar el peso visual de lo que ya existía, no lógica nueva.
+          */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/*
+                ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──
+                Se apagaba sólo con NOM-004, así que con una dosis incompleta
+                se veía ENCENDIDO: el médico lo pulsaba, salía un toast y no
+                pasaba nada. Ahora la fuente es una sola —la misma que cuenta
+                la barra— y el motivo viaja en el `title` y en el renglón de
+                al lado. NO cambia la política: lo que impedía firmar ayer
+                impide hoy.
+              */}
+              <button
+                onClick={firmar}
+                disabled={bloqueosDeFirma.length > 0 || guardando}
+                title={motivoNoFirma || 'Firmar y cerrar la nota'}
+                style={S.firmar(bloqueosDeFirma.length > 0 || guardando)}
+              >
+                <FileSignature size={17} /> Firmar y cerrar nota
+              </button>
+              {/*
+                El motivo, DONDE ESTÁ EL DEDO. El mensaje ya existía y era
+                inalcanzable: el del toast sólo salía al pulsar, y el de
+                NOM-004 vive en un recuadro que queda fuera de pantalla cuando
+                el médico está abajo, junto a los botones.
+              */}
+              {bloqueosDeFirma.length > 0 && !guardando && (
+                <span role="status" style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.45, flexBasis: '100%' }}>
+                  {motivoNoFirma}
+                  {bloqueosDeFirma.length > 1 && (
+                    <span style={{ opacity: 0.85 }}> · y {bloqueosDeFirma.length - 1} más arriba</span>
+                  )}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => guardarBorrador()} disabled={guardando} style={S.guardar}>
+                {guardando ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : 'Guardar borrador'}
+              </button>
+              <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
+              <button onClick={leerResumen} disabled={guardando} style={S.guardar} title="La IA te lee Dx, tratamiento y plan para confirmar antes de firmar">
+                <Volume2 size={14} /> Leer resumen
+              </button>
+              <span aria-hidden="true" style={{ color: 'var(--border)', fontSize: 12 }}>·</span>
+              <button onClick={descartar} disabled={guardando} style={S.descartar}>
+                <Trash2 size={14} /> Descartar
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>Completitud: {validacion.puntajeCompletitud}%</span>
+            </div>
           </div>
         </>
       )}

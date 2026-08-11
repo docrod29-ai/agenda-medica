@@ -4,9 +4,10 @@
 
 ## Iteración en curso
 
-`V15-ENCOUNTER-MODE-001` (Fase 5) — EN CURSO, 11-ago-2026 (primera
-rebanada: FlowRail se aquieta al grabar, §8.1). Ver sección propia abajo.
-`V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADA 11-ago-2026 (ver sección
+`V15-ENCOUNTER-MODE-001` (Fase 5) — EN CURSO, 11-ago-2026 (segunda
+rebanada: Firmar y cerrar nota domina el cierre, §8.6). Ver sección propia
+abajo. Primera rebanada (FlowRail se aquieta al grabar, §8.1) y
+`V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADAS 11-ago-2026 (ver secciones
 abajo). `V15-TODAY-001` (Fase 3), `V15-IA-001` y `V15-SHELL-GREYBOX-001` —
 cerradas antes, misma fecha.
 
@@ -626,27 +627,119 @@ Capturas y medición en
   visual con "Guardar borrador"/"Leer resumen"/"Descartar" (líneas 5660-5699
   del baseline medido). Candidato alternativo para la siguiente rebanada.
 
+### "Firmar y cerrar nota" domina el cierre (§8.6) — segunda rebanada de Encounter Mode (11-ago-2026)
+
+- **`consulta-ui.tsx` (`S.firmar`/`S.guardar`/`S.descartar`)** — `S.firmar`
+  creció de verdad (relleno 13px→15/28px, tamaño 15→16, y ganó una sombra que
+  ninguna otra acción del cierre lleva). `S.guardar` y `S.descartar`
+  PERDIERON su caja: sin `border`, sin fondo, tamaño 14→12 — pasan de ser
+  botones del mismo peso que Firmar a texto de apoyo. Aplica la regla del
+  sistema de diseño (posición → tipografía → espacio → agrupación → énfasis,
+  antes que cajas con borde) al hallazgo #6 que dejó anotado la rebanada
+  anterior (baseline: las cuatro acciones vivían en una sola fila del mismo
+  alto, líneas 5660-5699).
+- **`page.tsx`** — el `<div>` que contenía las cuatro acciones en una sola
+  fila con wrap se partió en DOS filas: Firmar (con el motivo de bloqueo
+  justo debajo, donde está el dedo) en su propio contenedor; Guardar
+  borrador/Leer resumen/Descartar/Completitud en un segundo contenedor,
+  visualmente subordinado. Ningún `onClick`, `disabled`, `title` ni el texto
+  de `motivoNoFirma`/`bloqueosDeFirma` cambió — es reordenar JSX/CSS de lo
+  que ya existía, no lógica nueva (`firmar`, `bloqueosDeFirma`,
+  `motivoNoFirma`, `guardarBorrador`, `leerResumen`, `descartar` — ninguna
+  de esas seis definiciones se tocó).
+- **Hallazgo y arreglo de la misma corrida, encontrado por su propio
+  arnés**: el primer intento atenuaba `S.descartar` con `opacity: 0.8` sobre
+  `var(--red)` para bajarle peso visual. `scripts/design/capturar-firmar-domina-v15.mjs`
+  (axe real, no lectura de JSX) lo cazó como una violación `color-contrast`
+  NUEVA: `#ba5253` sobre `#0b0c0e` mide 4.11:1, bajo el mínimo AA de 4.5:1
+  para texto normal (12px). Se quitó la opacidad — el color `var(--red)` a
+  plena intensidad ya tenía margen de sobra sin necesitar atenuado — y la
+  violación desapareció en la recaptura, en desktop y en móvil.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-firmar-domina-al-cerrar.test.ts` — 4 de sus 8 casos
+  fallan contra el árbol previo a este cambio (verificado con `git stash`):
+  padding/tamaño de `S.firmar`, `border`/`background` de
+  `S.guardar`/`S.descartar`, y que Firmar viva en un contenedor separado del
+  de las acciones de apoyo. Los otros 4 casos protegen el freeze funcional
+  (mismo `onClick`/`disabled`/texto de motivo que antes).
+- `node scripts/design/inventario-de-pantallas.mjs` regenerado
+  (`/consulta/[patientId]` bajó de 5900 a 5882 líneas de fuente por la
+  extracción de la estructura de dos filas) y
+  `node scripts/design/trinquete-de-diseno.mjs --actualizar` (bajó de
+  verdad: `tamanosFueraDeEscala` 2004→2003 — el `fontSize: 15` viejo de
+  `S.firmar`, fuera de escala, pasó a 16, que sí está en la escala oficial;
+  `radiosFueraDeEscala` se quedó igual, no subió).
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore reales +
+siembra sintética `sembrar-capturas.mjs` + build de producción + `npm start`).
+Arnés nuevo: `scripts/design/capturar-firmar-domina-v15.mjs`. Capturas en
+`docs/design/capturas/v15-firmar-domina/` (desktop 1440 + mobile 390, más una
+captura de cada uno desplazada hasta el pie de cierre):
+
+- **Medido con `getComputedStyle`, no leído en JSX**: `Firmar` renderiza
+  `fontSize: 16px`/`padding: 15px 28px`/con sombra; `Guardar`/`Descartar`
+  renderizan `fontSize: 12px`/`padding: 6px 8px`/sin borde/sin fondo. Las dos
+  filas están realmente separadas (`filasSeparadas: true`,
+  `altoFirmarMayorQueGuardar: true`).
+- **Nota operativa para quien retome el arnés de capturas**: `.env.local`
+  necesita `NEXT_PUBLIC_FIREBASE_EMULATORS=1` (con **S** al final) — la
+  variable que de verdad lee `src/lib/firebase.ts`. El nombre sin `S` que
+  sugiere `arnes:dev` en `package.json` deja el login colgado en «Entrando…»
+  sin ningún error visible, porque el cliente nunca intenta conectar contra
+  el emulador. Costó un ciclo de build completo diagnosticarlo — las
+  `NEXT_PUBLIC_*` se hornean en el build, no se leen en caliente.
+- **Axe, 0 violaciones nuevas** tras el arreglo de contraste: quedan sólo las
+  dos familias ya conocidas y preexistentes — `landmark-unique` (cajón móvil
+  de `FlowRail`) y `region` (banner de prueba gratuita) — mismo fingerprint
+  que las corridas anteriores de esta fase.
+- **Consola**: 0 errores en desktop; el único mensaje en móvil es el warning
+  ya familiar de reconexión de Firestore del emulador.
+- Capturas visuales (`consulta--desktop-cierre.png`,
+  `consulta--mobile-cierre.png`) confirman la jerarquía a simple vista:
+  Firmar es el bloque más grande y oscuro de la fila, con el motivo de
+  bloqueo justo debajo en rojo; Guardar borrador/Leer resumen/Descartar
+  quedan como texto plano sin caja, con Completitud alineada a la derecha.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8745 pasan, 1 fallo PRE-EXISTENTE y ambiental
+  (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por el proxy de
+  red del contenedor — no relacionado).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: bajó de verdad
+  (`tamanosFueraDeEscala` 2004→2003), resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores).
+- `docs/design/SCREEN_INVENTORY.md` regenerado.
+
 ## Siguiente tarea exacta
 
-`V15-ENCOUNTER-MODE-001` (Fase 5) continúa: de los dos hallazgos anotados
-arriba (#5 admin no esencial DENTRO de la página de consulta, y #6 acción
-primaria dominante en el cierre), la siguiente corrida debe elegir uno,
-medirlo con el mismo rigor que esta corrida aplicó a #1 (línea/bloque
-concreto, qué es seguro de tocar vs. qué es lógica clínica congelada), y
-entregarlo como rebanada verificable — no intentar los 9 comportamientos de
-§8 de una sola vez. El botón "Firmar y cerrar nota" (§8.6) es probablemente
-la rebanada más pequeña: es JSX/CSS puro (reordenar énfasis visual de 4
-botones que ya existen), no toca `bloqueosDeFirma` ni `motivoNoFirma`
-(lógica de firma, congelada).
+`V15-ENCOUNTER-MODE-001` (Fase 5) continúa con el hallazgo #5 que queda de
+los dos anotados por la medición de baseline: admin no esencial DENTRO de la
+propia página de consulta (menú de motor de IA, banner de créditos/plan,
+enlaces a `/precios`) sigue con su peso completo durante la grabación —
+`EVENTO_GRABANDO` sólo se aplicó al shell persistente (FlowRail/
+InstrumentStrip) en la primera rebanada. Con los hallazgos #1 y #6 ya
+cerrados, la siguiente corrida debe medir #5 con el mismo rigor (línea/bloque
+concreto de la página, qué depende de `EVENTO_GRABANDO` ya existente vs. qué
+sería lógica nueva) antes de tocar código. Cuando #5 cierre, revisar si algo
+de los 9 comportamientos de §8 sigue sin cubrirse antes de dar la fase por
+completa.
 
-**Deuda anotada, no bloqueante:** dos familias de violaciones axe moderadas
-preexistentes — `landmark-unique` (cajón móvil de `FlowRail`, mismo
-`aria-label` que la versión de escritorio) y `region` (banner de prueba
-gratuita / banner de recordatorios de push, contenido fuera de landmark) —
-vistas en `/dashboard`, `/expediente/[patientId]` y donde sea que esos
-componentes se monten. Candidata para `V15-A11Y-001` cuando llegue esa fase.
-El tercer hallazgo de esta familia (`button-name` en el botón de cerrar de
-`NotificacionesPushOptIn.tsx`) SÍ se arregló esta corrida — ver arriba.
+**Deuda anotada, no bloqueante:**
+- `BottomNav.tsx` (navegación persistente en móvil) tampoco se suscribe a
+  `EVENTO_GRABANDO` — mismo hallazgo que tenía `FlowRail`, pero fuera de
+  alcance de esta fase (la recomposición de móvil es `V15-MOBILE-001`, Fase
+  9, deliberadamente diferida).
+- Dos familias de violaciones axe moderadas preexistentes —
+  `landmark-unique` (cajón móvil de `FlowRail`, mismo `aria-label` que la
+  versión de escritorio) y `region` (banner de prueba gratuita / banner de
+  recordatorios de push, contenido fuera de landmark) — vistas en
+  `/dashboard`, `/expediente/[patientId]`, `/consulta/[patientId]` y donde
+  sea que esos componentes se monten. Candidata para `V15-A11Y-001` cuando
+  llegue esa fase.
 
 ## Reglas de la corrida (recordatorio)
 
