@@ -4,11 +4,14 @@
 
 ## Iteración en curso
 
-`V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **EN CURSO**, primera rebanada
-cerrada 11-ago-2026: `/pendientes` agrupa lo no urgente por `estadoDeAccion`
+`V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **CERRADA 11-ago-2026** tras dos
+rebanadas: primera, `/pendientes` agrupa lo no urgente por `estadoDeAccion`
 (necesita revisión · esperando resultado · necesita agendar · esperando al
-paciente · otros) en vez de una sola sección «Abiertos». Ver sección propia
-abajo. `V15-RESULTS-CLOSURE-001` (Fase 6, §9) — **CERRADA 11-ago-2026** tras
+paciente · otros); segunda, «closed recently» bajo demanda
+(`tareasCerradasRecientes()` + botón «Ver cerrados recientemente»,
+sólo lectura). Ver secciones propias abajo. Siguiente:
+`V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33). `V15-RESULTS-CLOSURE-001`
+(Fase 6, §9) — **CERRADA 11-ago-2026** tras
 medir los 8 comportamientos de §9 contra el código actual (tabla en su
 propia sección) y decidir diferir la extensión de modelo (campo de cierre
 decisión/acción/aviso al paciente) a fase futura, con razón escrita — mismo
@@ -1270,19 +1273,134 @@ Mismo método que las corridas anteriores (emuladores Auth/Firestore reales +
 - `docs/design/SCREEN_INVENTORY.md` regenerado (`/pendientes` subió de 271
   a 297 líneas de fuente por la agrupación nueva).
 
+## `V15-FOLLOWUP-WORK-001` (Fase 7, §10) — segunda rebanada: «closed recently» (11-ago-2026)
+
+**Decisión tomada esta corrida, con razón escrita:** SÍ se construye la
+lectura, pero BAJO DEMANDA — no en el `useEffect` que carga `tareasVivas()`
+al montar `/pendientes`. Es la pantalla más visitada del médico; pagarle una
+lectura más a Firestore en cada visita, para un dato que la mayoría de las
+veces nadie va a mirar, es el costo que la tarea anterior dejó anotado sin
+resolver. Cargarla sólo cuando el médico pulsa «Ver cerrados recientemente»
+resuelve el §10 (la categoría existe y es real) sin ese costo por defecto.
+
+- **`src/lib/tareas-clinicas/firestore.ts`** — `tareasCerradasRecientes()`,
+  módulo nuevo junto a `tareasVivas()`: `where('estado', '==', 'cerrada')`,
+  sin `orderBy` (mismo motivo que `tareasVivas()` — evitar el índice
+  compuesto; el orden por fecha lo pone quien llama, en cliente). Sólo
+  `cerrada`, nunca `cancelada`: son dos cierres semánticamente distintos
+  («alguien revisó y decidió» contra «ya no aplica», que ya tiene su propio
+  motivo visible en la bitácora) — mezclarlos habría sido inventar una
+  categoría que §10 no pide.
+- **`pendientes/page.tsx`** — botón «Ver cerrados recientemente» al pie de
+  la pantalla, colapsado por defecto (`cerradas: TareaClinica[] | null`,
+  `null` = no cargado todavía). Al pulsarlo, `verCerradas()` llama
+  `tareasCerradasRecientes()` UNA vez y guarda el resultado; pulsarlo de
+  nuevo sólo colapsa (`setCerradas(null)`), sin volver a leer. Las tareas
+  cerradas se pintan con `TarjetaCerrada` — un componente NUEVO de sólo
+  lectura, no `Tarjeta`: una tarea `cerrada` no tiene transición legal a
+  ningún otro estado (`TRANSICIONES.cerrada = []` en `modelo.ts`), así que
+  ofrecerle los mismos botones («Tomarla»/«Ya no aplica») sería una acción
+  que `cambiarEstado` va a rechazar — la UI prometería algo que el modelo ya
+  niega.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-cerrados-recientes-conectado.test.ts` — 4 de sus 5
+  casos fallan contra el árbol previo a este cambio (verificado con
+  `git stash` de los dos archivos de código, dejando sólo la prueba nueva):
+  que `tareasCerradasRecientes` exista y filtre por `cerrada` sin tocar
+  `cancelada`, que la página la importe, que NO se llame dentro del
+  `useEffect` de montaje, que se llame dentro de un callback aparte, y que
+  las tareas cerradas usen `TarjetaCerrada` (sin el botón «Ya no aplica»).
+- Trinquete de diseño: el primer borrador de `TarjetaCerrada` copió los
+  mismos `fontSize` fuera de escala que ya tenía `Tarjeta` (11/15/13,
+  ninguno en la escala oficial `{10.5,12,14,16,20,28}`) — como el nuevo
+  componente los REPITE en vez de sólo heredarlos, cada aparición cuenta
+  aparte y el trinquete subió de 2003 a 2007. Corregido a 10.5/14/12 (los
+  valores de la escala oficial más cercanos) antes de sellar — no se subió
+  el techo, y de paso `TarjetaCerrada` no repite la deuda ya conocida de
+  `Tarjeta`.
+- `scripts/design/sembrar-capturas.mjs` ganó una tarea más en `estado:
+  'cerrada'` (`tarea-cerrada-luzmaria`, radiografía sin hallazgos) — sin
+  ella, `tareasCerradasRecientes()` no tenía nada real que devolver en el
+  arnés de capturas (las ocho tareas sembradas hasta ahora paraban en
+  `completada`, nunca llegaban a `cerrada`).
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore reales +
+siembra sintética + build de producción + `npm start`). Arnés nuevo:
+`scripts/design/capturar-cerrados-recientes-v15.mjs` — mide la interacción
+completa, no sólo una captura. Resultado en
+`docs/design/capturas/v15-cerrados-recientes/resultado.json` (desktop 1440 +
+mobile 390):
+
+- **Antes de pulsar nada, la carga es de verdad bajo demanda**: con la
+  pantalla ya cargada y el botón diciendo «Ver cerrados recientemente», la
+  tarea cerrada («Radiografía de tórax») NO está en el DOM
+  (`radiografiaEnDOM: false`) — no es un placeholder oculto con CSS, no está
+  ahí.
+- **Al pulsar, la lectura trae el dato real**: `radiografiaEnDOM: true`,
+  `textoCerrada: true` («Cerrada 09-ago» en la tarjeta), y el botón cambia a
+  «Ocultar cerrados recientemente» — medido con `document.evaluate`/
+  `querySelectorAll`, no supuesto por el código.
+- **La tarjeta cerrada es de sólo lectura, confirmado en el DOM real**:
+  `tarjetaTieneYaNoAplica: false` — ningún botón «Ya no aplica» en la
+  tarjeta de la tarea cerrada, a diferencia de cualquier `Tarjeta` normal.
+- **Colapsar no deja rastro**: al pulsar «Ocultar», `radiografiaEnDOM`
+  vuelve a `false` y el botón vuelve a decir «Ver cerrados recientemente» —
+  el estado es realmente `null`, no `display: none` sobre datos que se
+  quedaron en memoria (aunque tampoco importaría clínicamente si lo
+  estuviera; se verificó igual).
+- **Axe, 0 violaciones nuevas**: `landmark-unique` (2, desktop) y `region`
+  (2-3) — mismo fingerprint preexistente que TODAS las capturas V15
+  anteriores (cajón móvil de `FlowRail`, banners fuera de landmark).
+  Ninguna violación de contraste en `TarjetaCerrada`.
+- **Consola**: el único hallazgo es el `401` de auditoría del emulador
+  (`login_exitoso` rechazado) ya documentado en `v15-instrument-strip-paciente`
+  y corridas posteriores — artefacto conocido del arnés de emuladores, no de
+  este cambio.
+- **Hallazgo operativo de esta corrida**: el tour de bienvenida
+  (`OnboardingTour.tsx`, primera vez del uid en ese navegador) tapa la
+  pantalla con un modal («Bienvenida a Ausculta») que ningún arnés previo de
+  esta fase había necesitado descartar (sus interacciones no requerían
+  pulsar nada bajo el modal). Se descarta con su botón
+  `aria-label="Saltar"` antes de interactuar — anotado en el arnés nuevo
+  para que scripts futuros que SÍ necesiten hacer clic en la pantalla lo
+  reutilicen.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8799 pasan (5 nuevos), 1 fallo PRE-EXISTENTE y ambiental
+  (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por el proxy de
+  red del contenedor — mismo fallo documentado en todas las corridas
+  previas de esta rama).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva tras la
+  corrección de `fontSize` (ver arriba) — resellado, el techo no subió.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores) — `/pendientes`
+  sigue como ruta estática (`○`).
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`el-inventario-de-pantallas-no-miente`
+  lo exigía porque `pendientes/page.tsx` cambió de tamaño).
+
+Con las cinco categorías de la primera rebanada más «closed recently» de
+ésta (seis de ocho con señal real), y «needs communication»/«needs
+signature» declaradas sin campo propio (razón ya escrita en la cabecera de
+`estado-de-accion.ts`, regla 5 de seguridad clínica), **los 8 elementos de
+§10 quedan resueltos o legítimamente declarados sin dato —
+`V15-FOLLOWUP-WORK-001` (Fase 7) puede darse por CERRADA.**
+
 ## Siguiente tarea exacta
 
-Segunda rebanada de `V15-FOLLOWUP-WORK-001` (Fase 7): construir
-`cerrada_reciente` (closed recently) — una lectura nueva a Firestore
-(`where('estado', '==', 'cerrada')`, filtrado por `cerradaEn` reciente en
-cliente, mismo patrón sin-`orderBy` que ya usa `tareasVivas()` para evitar
-depender de un índice compuesto) y su sección al final de `/pendientes`,
-colapsada o con "ver más" para no competir visualmente con lo abierto. O,
-si se decide que "closed recently" no aporta suficiente valor frente a su
-costo (una lectura más en cada carga de una pantalla que ya es
-la más visitada del médico), medir si los 8 elementos de §10 se pueden dar
-por resueltos/diferidos con lo ya construido (mismo criterio de cierre que
-ya usaron Fases 5 y 6) y pasar a `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8).
+`V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33): «Integrate Note → Rx → Orders
+→ Instructions → Follow-up» — la fase que `V15-PATIENT-WORKSPACE-001`
+(tercera rebanada, sección "Active Patient Canvas, DECISIÓN" arriba) y
+`V15-ENCOUNTER-MODE-001` (comportamiento #9 de §8) ya identificaron y
+diferieron a propósito hacia aquí: `onGenerarReceta`/`onGenerarOrden`
+navegando a `/receta`/`/orden` en vez de vivir inline. Empezar releyendo
+§8 (comportamiento #9), §33 (Fase 8) y las dos decisiones ya tomadas antes
+de tocar código — la pregunta de qué significa "integrar sin salirse de
+fase" para esas dos rutas ya tiene contexto escrito, no hay que
+redescubrirlo.
 
 **Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
 resolverse, candidata a fases futuras — no se repite su detalle si ya está

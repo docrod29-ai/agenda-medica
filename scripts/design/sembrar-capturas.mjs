@@ -402,6 +402,30 @@ async function main() {
       venceEn: diaISO(5),
       origen: 'manual',
     },
+    /**
+     * V15-FOLLOWUP-WORK-001 (Fase 7, §10), segunda rebanada — «closed
+     * recently» necesita una tarea de verdad EN `cerrada` para que
+     * `tareasCerradasRecientes()` tenga algo que devolver: `tareasVivas()`
+     * la excluye a propósito, así que ninguna de las de arriba sirve.
+     */
+    {
+      id: 'tarea-cerrada-luzmaria',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-luzmaria-cervantes',
+      patientNombre: 'Luz María Cervantes Ochoa',
+      tipo: 'resultado_por_revisar',
+      titulo: 'Radiografía de tórax — sin hallazgos',
+      detalle: 'Revisada en la consulta previa; no hay hallazgo que requiera seguimiento.',
+      prioridad: 'normal',
+      estado: 'cerrada',
+      ownerUid: uid,
+      ownerNombre: CUENTA.displayName,
+      creadaEn: diaISO(-5),
+      completadaEn: diaISO(-3),
+      cerradaEn: diaISO(-2),
+      cerradaPor: uid,
+      origen: 'laboratorio',
+    },
   ]
   for (const t of tareas) {
     const { id, ...datos } = t

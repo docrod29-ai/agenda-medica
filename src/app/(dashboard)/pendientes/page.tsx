@@ -22,12 +22,12 @@ import { PageHeader, Button, EmptyState, Spinner, Modal, Textarea } from '@/comp
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
-import { tareasVivas, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
+import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
 import { ordenWorklist, debeEscalar, estaVencida, type TareaClinica, type EstadoTarea } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
-import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
 const ETIQUETA_TIPO: Record<string, string> = {
   estudio_pendiente: 'Estudio',
@@ -63,6 +63,14 @@ export default function PendientesPage() {
   const [motivo, setMotivo] = useState('')
   const [soloMias, setSoloMias] = useState(false)
   const [recarga, setRecarga] = useState(0)
+  /**
+   * «Closed recently» (§10) — a propósito NO se carga con el resto: es una
+   * lectura APARTE a Firestore (`tareasCerradasRecientes`, `tareasVivas()`
+   * excluye `cerrada`), y esta es la pantalla que el médico más visita. Se
+   * paga esa lectura sólo si el médico la pide, no en cada carga.
+   */
+  const [cerradas, setCerradas] = useState<TareaClinica[] | null>(null)
+  const [cargandoCerradas, setCargandoCerradas] = useState(false)
   /**
    * El «ahora» con el que se decide qué está vencido se fija AL CARGAR, no en
    * cada render. Leer el reloj mientras se pinta hace que dos renders del mismo
@@ -129,6 +137,21 @@ export default function PendientesPage() {
     toast(nuevo === 'cerrada' ? 'Cerrada' : 'Actualizada', 'success')
     setRecarga(n => n + 1)
   }, [clinicId, toast])
+
+  const verCerradas = useCallback(async () => {
+    if (cerradas !== null) { setCerradas(null); return } // ya visibles: colapsar
+    if (!clinicId) return
+    setCargandoCerradas(true)
+    try {
+      const t = await tareasCerradasRecientes(clinicId)
+      setCerradas([...t].sort((a, b) => (b.cerradaEn ?? '').localeCompare(a.cerradaEn ?? '')))
+    } catch (e) {
+      console.error('[pendientes] no se pudieron leer los cerrados recientes', e)
+      toast('No se pudieron cargar los cerrados recientes.', 'error')
+    } finally {
+      setCargandoCerradas(false)
+    }
+  }, [clinicId, cerradas, toast])
 
   /*
     LOS TOKENS SON LOS DE ESTA APP, NO LOS GENÉRICOS.
@@ -212,6 +235,37 @@ export default function PendientesPage() {
     )
   }
 
+  /**
+   * Sólo lectura, a propósito: una tarea `cerrada` no tiene transición legal
+   * hacia ningún otro estado (`TRANSICIONES.cerrada = []`) — pintarle los
+   * mismos botones que `Tarjeta` (Tomarla / Ya se hizo / Ya no aplica) le
+   * ofrecería al médico una acción que `cambiarEstado` va a rechazar. La
+   * constancia de quién y cuándo la cerró es el contenido que importa aquí.
+   */
+  const TarjetaCerrada = ({ t }: { t: TareaClinica }) => (
+    <div style={{
+      border: '1px solid var(--border)', borderRadius: 10, padding: 14,
+      background: 'var(--panel)', display: 'grid', gap: 6, opacity: 0.85,
+    }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>
+          {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
+        </span>
+        <strong style={{ color: 'var(--text)', fontSize: 14 }}>{t.titulo}</strong>
+      </div>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text3)' }}>
+        {t.patientNombre && (
+          <Link href={`/expediente/${t.patientId}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+            {t.patientNombre}
+          </Link>
+        )}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <CheckCircle2 size={13} /> Cerrada {fechaCorta(t.cerradaEn)}
+        </span>
+      </div>
+    </div>
+  )
+
   return (
     <div>
       <PageHeader
@@ -258,6 +312,37 @@ export default function PendientesPage() {
               </section>
             )
           })}
+        </div>
+      )}
+
+      {/*
+        «Closed recently» (§10). Colapsada por defecto y con lectura propia
+        a demanda: no compite visualmente con lo abierto (regla del sistema
+        de diseño — position/jerarquía antes que cajas) y no le cuesta una
+        lectura de Firestore a nadie que no la pida.
+      */}
+      {!cargando && !errorCarga && (
+        <div style={{ marginTop: 28, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          <Button size="sm" variant="ghost" onClick={verCerradas} disabled={cargandoCerradas}>
+            {cargandoCerradas ? (
+              'Cargando…'
+            ) : cerradas !== null ? (
+              <><ChevronUp size={14} /> Ocultar cerrados recientemente</>
+            ) : (
+              <><ChevronDown size={14} /> Ver cerrados recientemente</>
+            )}
+          </Button>
+          {cerradas !== null && (
+            cerradas.length === 0 ? (
+              <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text3)' }}>
+                Nada cerrado todavía.
+              </p>
+            ) : (
+              <section style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                {cerradas.map(t => <TarjetaCerrada key={t.id} t={t} />)}
+              </section>
+            )
+          )}
         </div>
       )}
 
