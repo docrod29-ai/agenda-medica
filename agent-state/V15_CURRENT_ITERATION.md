@@ -4,13 +4,18 @@
 
 ## Iteración en curso
 
-`V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **CERRADA 11-ago-2026** tras dos
-rebanadas: primera, `/pendientes` agrupa lo no urgente por `estadoDeAccion`
-(necesita revisión · esperando resultado · necesita agendar · esperando al
-paciente · otros); segunda, «closed recently» bajo demanda
-(`tareasCerradasRecientes()` + botón «Ver cerrados recientemente»,
-sólo lectura). Ver secciones propias abajo. Siguiente:
-`V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33). `V15-RESULTS-CLOSURE-001`
+`V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33/§20) — **EN CURSO**, tercera
+rebanada cerrada 11-ago-2026: `firmar()` ahora refleja el `notaId` en la
+URL (`router.replace`) y `estudiosOrden` se restaura al recargar una nota.
+Ver su propia sección abajo — incluye un hallazgo separado e importante
+(`useSmartBack` nunca hace back de verdad en esta versión de Next) que
+queda anotado como la tarea exacta siguiente, no arreglado en esta
+rebanada. `V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **CERRADA 11-ago-2026**
+tras dos rebanadas: primera, `/pendientes` agrupa lo no urgente por
+`estadoDeAccion` (necesita revisión · esperando resultado · necesita
+agendar · esperando al paciente · otros); segunda, «closed recently» bajo
+demanda (`tareasCerradasRecientes()` + botón «Ver cerrados recientemente»,
+sólo lectura). Ver secciones propias abajo. `V15-RESULTS-CLOSURE-001`
 (Fase 6, §9) — **CERRADA 11-ago-2026** tras
 medir los 8 comportamientos de §9 contra el código actual (tabla en su
 propia sección) y decidir diferir la extensión de modelo (campo de cierre
@@ -1593,19 +1598,145 @@ para la siguiente rebanada de `V15-NOTE-PLAN-CONTINUITY-001`.
   `/consulta/[patientId]` cambió dos veces: al insertar el código y al
   corregir el lint).
 
+## `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8) — tercera rebanada: `firmar()` refleja el notaId en la URL (11-ago-2026)
+
+Empezó exactamente donde la corrida anterior lo dejó escrito: de los dos
+huecos («la URL sin `?nota=`» y «`estudiosOrden` no se restaura»), el
+primero es la causa raíz y el segundo es su síntoma más visible en el
+checklist. Se arreglaron los dos, en el mismo archivo, en el mismo efecto.
+
+- **`firmar()` (`/consulta/[patientId]/page.tsx`)** — justo después de
+  `setFirmada(true)`, con el `id` ya definitivo (creado o reusado),
+  `router.replace(`/consulta/${patientId}?nota=${id}`)`. **`replace`, no
+  `push`**: no es una navegación nueva, es la misma pantalla diciendo la
+  verdad sobre qué nota tiene abierta — un `push` habría ensuciado el
+  historial con una entrada extra. Corre ANTES de cualquier
+  `router.push(destino)` hacia `/receta`/`/orden`, así que la entrada de
+  historial que queda atrás YA lleva `?nota=`.
+- **El efecto "Cargar nota existente" (mismo archivo)** — ganó
+  `if (Array.isArray(n.estudiosOrden)) setEstudiosOrden(n.estudiosOrden)`,
+  al lado de `setFirmada(n.estado === 'firmada')`. A diferencia de
+  `secciones`/`diagnosticos`/`medicamentos`, este campo nunca se leía de
+  vuelta desde Firestore — con la URL ahora llevando `?nota=`, remontar la
+  pantalla (volver de `/orden`, o F5 sobre una nota firmada) SÍ dispara este
+  efecto, y sin esta línea el paso «Imprimir la orden de estudios»
+  desaparecía de `ComoCerrarLaConsulta` en vez de pintarse marcado.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-firmar-refleja-la-url.test.ts` — sus 6 casos fallan
+  contra el árbol previo a este cambio (verificado con `git stash` de
+  `page.tsx`, dejando sólo la prueba nueva).
+
+### HALLAZGO SEPARADO, IMPORTANTE, NO ARREGLADO AQUÍ: `useSmartBack` nunca hace back de verdad en esta versión de Next
+
+Verificando el arreglo de arriba con el botón "Atrás" REAL de `/orden`
+(no `page.goBack()`) apareció un defecto distinto y más grande:
+`useSmartBack` decide entre `router.back()` y su `fallback` mirando
+`window.history.state.idx` — y en Next.js 16.2.12 (App Router) **ese campo
+no existe nunca**. Confirmado con dos scripts de diagnóstico aparte
+(`node -e`, no el arnés): con navegación por `page.goto` Y con click SPA
+real sobre un `<a>` del `FlowRail`, `window.history.state` sólo trae
+`{ __NA, __PRIVATE_NEXTJS_INTERNALS_TREE }` — nunca `idx`. `idx ?? 0 > 0`
+es SIEMPRE falso, así que el botón "Atrás" de **las diez pantallas** que
+usan `useSmartBack` (`/receta`, `/orden`, `/nota`, `/expediente`,
+`/referencia`, `/hospitalizacion/[id]`, `/hospitalizacion/camas`,
+`/hospitalizacion/unidades`, `/hospitalizacion/indicadores`, `/uci/*`)
+**nunca hace `router.back()` — siempre navega a su `fallback` fijo**,
+aunque el usuario sí venga de una navegación real dentro de la app.
+
+Medido en el arnés nuevo (`urlTrasBotonApp`): pulsar "Atrás" en `/orden`
+lleva a `/expediente/[patientId]` (el `fallback` de esa pantalla), NO a
+`/consulta/[patientId]?nota=...` — aunque la URL de `/consulta` YA es
+correcta desde este cambio. Es decir: el arreglo de esta corrida sí
+funciona con el atrás NATIVO del navegador (Alt+Izquierda, gesto, botón
+del propio navegador — verificado, ver abajo) pero el botón "Atrás" QUE
+PINTA LA APP en esas diez pantallas sigue sin beneficiarse, porque el
+defecto está en cómo decide entre back y fallback, no en qué URL dejó
+`/consulta` atrás.
+
+**No se arregla en esta rebanada** — es un defecto de una pieza compartida
+por diez pantallas, con su propia causa (una API de Next que cambió de
+forma entre versiones, coherente con el aviso de `AGENTS.md`: "This is NOT
+the Next.js you know"), y merece su propia investigación de cuál señal SÍ
+existe en `window.history.state` en esta versión para reemplazar `idx` —
+no una decisión apurada al cierre de esta corrida. Candidato fuerte y de
+alto impacto para la siguiente rebanada de `V15-NOTE-PLAN-CONTINUITY-001`
+o su propia unidad: mientras siga así, "el checklist recuerda lo hecho"
+(rebanada anterior) sólo se experimenta con back nativo del navegador, no
+con el botón que la propia app pinta.
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore reales
++ siembra sintética + build de producción + `npm start`; `node_modules`
+volvió a faltar al arrancar el contenedor — `npm ci` de nuevo, sin tocar el
+repo). Arnés nuevo: `scripts/design/capturar-firmar-refleja-url-v15.mjs`
+— repite el mismo camino de la corrida anterior (Valoración Inmuno,
+medicamentos Y estudios a la vez) pero mide el atrás NATIVO por separado
+del botón de la app. Resultado completo en
+`docs/design/capturas/v15-firmar-refleja-url/resultado.json`:
+
+- **La URL lleva `?nota=` INMEDIATAMENTE al firmar**, antes de navegar a
+  ningún lado: `urlTrasFirmar` = `.../consulta/pac-aurelio-dominguez?nota=Gdp8OdahhFtynBkRgZw1`.
+- **Atrás NATIVO del navegador (`page.goBack()`) SÍ conserva el contexto,
+  medido de verdad**: `urlTrasVolver` conserva el mismo `nota=`
+  (`conservaNotaId: true`), `panelTrasVolver: true`, `firmadaBadgeTrasVolver:
+  true` — el checklist de cierre YA NO desaparece, que es exactamente el
+  defecto que esta rebanada corrige.
+- **El checklist recuerda lo hecho, confirmado en el DOM real**: tras
+  volver, "Imprimir la orden de estudios" está en opacidad `0.55` (marcado
+  — el mismo patrón que ya probó la rebanada anterior), y sigue en la lista
+  en absoluto — **prueba indirecta pero real de que `estudiosOrden` se
+  restauró**: si `estudiosOrden.length` hubiera vuelto a 0, ese paso ni
+  aparecería (`hayEstudios: estudiosOrden.length > 0` lo condiciona).
+- **F5 sobre la URL con `?nota=` sobrevive**: `panelTrasRecargar: true` tras
+  una recarga dura, no sólo una navegación SPA.
+- **El hallazgo separado, medido, no supuesto**: el botón "Atrás" de la
+  app en `/orden` navegó a `/expediente/pac-aurelio-dominguez`
+  (`fueAlFallbackFijoEnVezDeConsulta: true`).
+- **Axe, 0 violaciones nuevas**: las cuatro familias ya conocidas y
+  preexistentes de toda esta rama (`color-contrast` del encabezado teal de
+  evidencia, `heading-order`, `landmark-unique` del cajón móvil de
+  `FlowRail`, `region` de banners fuera de landmark) — ninguna nueva.
+- **Consola**: sólo los artefactos ya documentados del arnés de emuladores
+  (401 de auditoría) — sin errores nuevos.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8825 pasan (6 nuevos), 1 fallo PRE-EXISTENTE y
+  ambiental (`ops-timeout-y-punto-ciego`, confirmado con `git stash` que
+  falla igual en el árbol limpio — proxy de red del contenedor, no
+  relacionado; documentado en todas las corridas previas de esta rama).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (`.env.local` demo recreado esta
+  corrida — emuladores, proyecto `demo-nexusmed-test`).
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/consulta/[patientId]`
+  cambió de tamaño por las dos líneas + comentarios nuevos).
+
 ## Siguiente tarea exacta
 
-Segunda rebanada de `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8): de los dos
-huecos que esta corrida encontró y dejó escritos, el de la URL sin
-`?nota=` es el más barato y el que más golpea — condiciona CUALQUIER
-continuidad futura entre `/consulta` y `/receta`/`/orden`, no sólo el
-checklist de cierre. Empezar ahí: decidir cuándo `firmar()` (y quizá el
-autoguardado) deben reflejar el `notaId` en la URL con `router.replace`
-(sin ensuciar el historial — `replace`, no `push`), y sólo después evaluar
-si `estudiosOrden` necesita persistirse en la nota o si basta con derivarlo
-de otra fuente al recargar. Releer la sección «Hallazgo de esta corrida»
-de arriba antes de decidir — el porqué de cada hueco ya está investigado,
-no hay que redescubrirlo.
+`useSmartBack` no distingue "vine de dentro de la app" de "llegué por
+enlace directo" en esta versión de Next — investigar qué SÍ vive en
+`window.history.state` (o qué otra señal ofrece Next 16 App Router: un
+hook de navegación, `usePathname` combinado con una pila propia en
+`sessionStorage`, etc.) para reemplazar el chequeo de `idx` roto, y
+arreglarlo UNA vez en `useSmartBack.ts` en vez de en las diez pantallas que
+lo usan (misma fuente de verdad, un solo arreglo). Empezar leyendo la
+sección "HALLAZGO SEPARADO" de arriba — la investigación de causa raíz ya
+está hecha, incluidos los dos scripts de diagnóstico que la confirmaron.
+Verificar con el mismo método (arnés de navegador real, botón "Atrás" DE
+LA APP, no `page.goBack()`) en al menos dos de las diez pantallas antes de
+darlo por cerrado.
+
+Si esa investigación no rinde una solución segura y barata en una
+rebanada, la alternativa de respaldo (documentarla, no aplicarla sin
+evaluar primero) es que las pantallas que MÁS lo necesitan
+(`/receta`, `/orden`) reciban un `fallback` calculado —
+`/consulta/${patientId}?nota=${notaId}` en vez de `/expediente/${patientId}`
+— para al menos no perder el `notaId` aunque el back siga sin ser "real".
+Eso no arregla `useSmartBack`, sólo mitiga su síntoma más caro; se anota
+como opción B, no como plan.
 
 **Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
 resolverse, candidata a fases futuras — no se repite su detalle si ya está

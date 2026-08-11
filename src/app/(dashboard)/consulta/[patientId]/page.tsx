@@ -1544,6 +1544,19 @@ export default function ConsultaActivaPage() {
       setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
       setFirmada(n.estado === 'firmada')
+      /**
+       * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, segunda rebanada) — ESTUDIOS
+       * TAMBIÉN SE RESTAURAN.
+       *
+       * A diferencia de `secciones`/`diagnosticos`/`medicamentos`, este campo
+       * nunca se leía de vuelta desde Firestore. Con la URL ahora llevando
+       * `?nota=<id>` tras firmar (ver `router.replace` en `firmar()`), volver
+       * de `/orden` o reabrir una nota firmada remonta esta pantalla y corre
+       * este efecto — y sin esta línea el paso "Imprimir la orden de
+       * estudios" desaparecía de `ComoCerrarLaConsulta` (no se pintaba
+       * apagado: no existía), porque `estudiosOrden` volvía a `[]`.
+       */
+      if (Array.isArray(n.estudiosOrden)) setEstudiosOrden(n.estudiosOrden)
       if (n.preop) setPreop(n.preop)
       if (n.iaAuditoria) {
         if (n.iaAuditoria.extraction) setExtraction(n.iaAuditoria.extraction)
@@ -3470,6 +3483,27 @@ export default function ConsultaActivaPage() {
         await updateNota(clinicId, patientId, nuevo, notaFirmada)
       }
       setFirmada(true)
+      /**
+       * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, segunda rebanada) — LA URL TIENE
+       * QUE LLEVAR EL notaId DESDE AQUÍ.
+       *
+       * `firmar()` nunca escribía `?nota=<id>` en la barra de direcciones: el
+       * id vivía sólo en `notaIdRef`/`notaId` (estado de React). Cuando abajo
+       * se hace `router.push(destino)` hacia `/receta` u `/orden`, la entrada
+       * de historial que queda ATRÁS es la URL que estaba en pantalla en ese
+       * instante — `/consulta/[patientId]` SIN `?nota=`. `useSmartBack` (que
+       * usan `/receta` y `/orden` para volver) hace `router.back()` sobre esa
+       * misma entrada: el médico "regresaba" a una consulta que, al remontar,
+       * no sabía qué nota traía — `firmada` volvía a `false` y el checklist de
+       * cierre (`ComoCerrarLaConsulta`) desaparecía entero, con o sin lo que
+       * ya se marcó en `sessionStorage` (ver `cierre-hechos.ts`).
+       *
+       * `router.replace` (nunca `push`): esto no es una navegación nueva, es
+       * la MISMA pantalla diciendo la verdad sobre qué nota tiene abierta. Un
+       * `push` aquí ensuciaría el historial con una entrada extra y `atrás`
+       * tendría que pulsarse dos veces para salir de la consulta.
+       */
+      router.replace(`/consulta/${patientId}?nota=${id}`)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')
       /**
