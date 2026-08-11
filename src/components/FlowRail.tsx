@@ -43,6 +43,7 @@
  * de hoy, con IA explícita en vez de una sola entrada ambigua llamada
  * «Consulta» que en realidad abría la lista de pacientes.
  */
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -52,6 +53,63 @@ import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 import { salirSeguro } from '@/lib/salir-seguro'
+import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
+
+/**
+ * V15-ENCOUNTER-MODE-001, §8.1 «navigation visually quiets»: medido en la
+ * corrida de baseline de esta fase, el marco perimetral de `MarcoEscuchando`
+ * se encendía durante la grabación pero este riel seguía con su peso visual
+ * íntegro al lado — la navegación no reaccionaba en absoluto. Se suscribe al
+ * MISMO `EVENTO_GRABANDO` que ya escuchan `MarcoEscuchando` e
+ * `InstrumentStrip` (no es una fuente de verdad nueva).
+ *
+ * ── POR QUÉ NO ES UN `opacity` PLANO SOBRE EL TEXTO ─────────────────────────
+ *
+ * El primer intento atenuaba con `opacity` TODO lo no esencial, texto de
+ * etiqueta incluido. `node scripts/design/probar-opacidad-quieta-v15.mjs`
+ * (axe real contra el riel real) lo cazó: `--text3` sobre `--s1` en modo oscuro
+ * ya mide ~5.6:1 — apenas por encima del mínimo AA de 4.5:1 — así que
+ * CUALQUIER opacidad perceptible sobre esa combinación cae por debajo del
+ * umbral. Bajar la opacidad hasta un valor que pasara AA (~0.95) dejaba el
+ * atenuado invisible a simple vista: ni cumplía §8.1 ni pasaba la compuerta
+ * de accesibilidad — las dos cosas a la vez, no una a costa de la otra.
+ *
+ * La forma que sí funciona separa qué se atenúa de qué desaparece:
+ *
+ *   - `.nx-flow-rail-quiet-icon` — SVG decorativos (ícono de marca, lupa,
+ *     cerrar sesión, y los `.nav-icon` de los ítems NO activos). El texto
+ *     alternativo vive en la etiqueta de al lado, no en el ícono, así que
+ *     WCAG 1.4.11 (contraste no-textual, 3:1) aplica en vez de 1.4.3 (4.5:1)
+ *     — hay margen real para atenuar sin violar nada. Verificado con el
+ *     mismo arnés: 0 violaciones en 0.3–0.5 de opacidad.
+ *   - `.nx-flow-rail-quiet-hide` — texto puramente secundario y NO
+ *     interactivo (nombre del médico bajo el de la clínica, el correo bajo
+ *     "Cerrar sesión", el atajo "⌘K", el rótulo "Operaciones"): se OCULTA
+ *     de verdad (`display:none`) mientras se graba, no se atenúa. Es seguro
+ *     porque ninguno es un control enfocable — no hay tabulación que
+ *     "pierda" un elemento que nunca recibía el foco. Es además la lectura
+ *     correcta de §8.5 («nonessential admin disappears»): esta información
+ *     no es indispensable durante el encuentro.
+ *   - Las ETIQUETAS de los ítems de navegación (Hoy, Paciente, Encuentro,
+ *     Seguimiento, Operaciones) y el nombre del consultorio NO se tocan:
+ *     siguen con su color y opacidad de siempre. Bajarles el contraste
+ *     sería vulnerar exactamente lo que §24 del master loop llama defecto
+ *     bloqueante en una acción clínica — no hay "modo distinto" que valga
+ *     ese precio.
+ */
+function useGrabando(): boolean {
+  const [grabando, setGrabando] = useState(false)
+  useEffect(() => {
+    const alSonar = (ev: Event) => {
+      const d = (ev as CustomEvent<DetalleDeEscucha>).detail
+      if (!d || typeof d.activo !== 'boolean') return
+      setGrabando(d.activo)
+    }
+    window.addEventListener(EVENTO_GRABANDO, alSonar)
+    return () => window.removeEventListener(EVENTO_GRABANDO, alSonar)
+  }, [])
+  return grabando
+}
 
 const ES_CONTEXTO_PACIENTE = (p: string) =>
   p.startsWith('/pacientes') || p.startsWith('/expedientes') || p.startsWith('/expediente/')
@@ -64,6 +122,7 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? ''
   const { config } = useConfig()
   const { user } = useAuth()
+  const grabando = useGrabando()
 
   const enEncuentro = ES_CONTEXTO_ENCUENTRO(pathname)
   const encounterHref = enEncuentro ? pathname : '/pacientes'
@@ -75,10 +134,13 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
   const handleLogout = async () => { await salirSeguro('/login') }
 
   return (
-    <aside className="sidebar nx-flow-rail" aria-label="Navegación clínica principal">
+    <aside
+      className={`sidebar nx-flow-rail${grabando ? ' nx-flow-rail--quieto' : ''}`}
+      aria-label="Navegación clínica principal"
+    >
       {/* Identidad — mínima, sin acento de marca */}
       <div className="sidebar-logo">
-        <div style={{
+        <div className="nx-flow-rail-quiet-icon" style={{
           width: 36, height: 36, borderRadius: 10,
           background: 'var(--s2)', border: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -89,7 +151,7 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             {config.nombreClinica || 'Ausculta'}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+          <div className="nx-flow-rail-quiet-hide" style={{ fontSize: 12, color: 'var(--text3)' }}>
             {config.nombreMedico
               ? (/^Dr\.?\s+|^Dra\.?\s+/i.test(config.nombreMedico) ? config.nombreMedico : `Dr. ${config.nombreMedico}`)
               : 'Consultorio'}
@@ -106,9 +168,9 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
           padding: '8px 12px', margin: '4px 0 10px', cursor: 'pointer', color: 'var(--text3)',
         }}
       >
-        <Search size={15} />
+        <Search size={15} className="nx-flow-rail-quiet-icon" />
         <span style={{ fontSize: 12, flex: 1, textAlign: 'left' }}>Buscar…</span>
-        <span style={{ fontSize: 10.5, border: '1px solid var(--border)', borderRadius: 6, padding: '1px 5px' }}>⌘K</span>
+        <span className="nx-flow-rail-quiet-hide" style={{ fontSize: 10.5, border: '1px solid var(--border)', borderRadius: 6, padding: '1px 5px' }}>⌘K</span>
       </button>
 
       {/* Los cuatro contextos que SÍ son ruta */}
@@ -122,7 +184,7 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
         <RailLink href="/pendientes" label="Seguimiento" icon={ListChecks}
           activo={pathname.startsWith('/pendientes')} onNavigate={onNavigate} />
 
-        <div className="nav-section-title" style={{ marginTop: 14 }}>Operaciones</div>
+        <div className="nav-section-title nx-flow-rail-quiet-hide" style={{ marginTop: 14 }}>Operaciones</div>
         <RailLink href="/operaciones" label="Operaciones" icon={Settings2}
           activo={pathname.startsWith('/operaciones') || pathname.startsWith('/configuracion') || pathname.startsWith('/guia')}
           onNavigate={onNavigate} subordinado />
@@ -130,11 +192,11 @@ export function FlowRail({ onNavigate }: { onNavigate?: () => void }) {
 
       <div style={{ padding: '12px 8px 16px', borderTop: '1px solid var(--border)' }}>
         <button onClick={handleLogout} className="nav-item" style={{ color: 'var(--text3)', width: '100%' }}>
-          <LogOut size={16} />
+          <LogOut size={16} className="nx-flow-rail-quiet-icon" />
           Cerrar sesión
         </button>
         {user?.email && (
-          <div style={{ fontSize: 10.5, color: 'var(--text3)', padding: '6px 8px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div className="nx-flow-rail-quiet-hide" style={{ fontSize: 10.5, color: 'var(--text3)', padding: '6px 8px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user.email}
           </div>
         )}

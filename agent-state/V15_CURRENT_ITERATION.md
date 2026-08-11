@@ -4,13 +4,11 @@
 
 ## Iteración en curso
 
-`V15-PATIENT-WORKSPACE-001` (Fase 4) — EN CURSO, 11-ago-2026 (tercera
-rebanada): decisión de Active Patient Canvas tomada (ver «V15-PATIENT-WORKSPACE-001
-— Active Patient Canvas, decisión» abajo) + `InstrumentStrip` ya pinta
-«paciente actual». Falta cerrar el hallazgo de PREPARED BY NEXUS antes de
-dar la fase por completa. Ver sección propia abajo.
-`V15-TODAY-001` (Fase 3) — cerrada 11-ago-2026. `V15-IA-001` +
-`V15-SHELL-GREYBOX-001` cerradas antes, misma fecha.
+`V15-ENCOUNTER-MODE-001` (Fase 5) — EN CURSO, 11-ago-2026 (primera
+rebanada: FlowRail se aquieta al grabar, §8.1). Ver sección propia abajo.
+`V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADA 11-ago-2026 (ver sección
+abajo). `V15-TODAY-001` (Fase 3), `V15-IA-001` y `V15-SHELL-GREYBOX-001` —
+cerradas antes, misma fecha.
 
 ### V15-IA-001 — CERRADA
 
@@ -499,21 +497,147 @@ entregado, **`V15-PATIENT-WORKSPACE-001` (Fase 4) puede darse por
 CERRADA** — sigue `V15-ENCOUNTER-MODE-001` (Fase 5) como siguiente tarea
 exacta para la corrida que retome este routine.
 
+### V15-ENCOUNTER-MODE-001 — medición de baseline (11-ago-2026)
+
+Antes de tocar código se leyó completo `src/app/(dashboard)/consulta/
+[patientId]/page.tsx` (5881 líneas) y se comparó contra el ciclo de vida y
+los 9 comportamientos de §8 (misma disciplina que `V15-BASELINE-001` aplicó
+a la navegación). Resumen:
+
+- **No existe una máquina de estados de "encounter"** — confirmado por grep
+  (`encounterPhase`/`estadoEncuentro`/`EncounterMode`: 0 resultados). Las 10
+  fases de §8 existen como FUNCIONALIDAD (nada clínico falta) pero ninguna
+  existe como fase visual o de navegación: todo vive en una sola columna de
+  ~2000 líneas de JSX gobernada sólo por `audio.estado` y `firmada`.
+- **De los 9 comportamientos de §8**: 3 cumplen (grabación inconfundible,
+  contexto clínico siempre disponible, transcripción opcional), 1 cumple
+  sólo al inicio (acción primaria dominante — `EmpezarAGrabar`, ejemplar),
+  2 parciales, **2 NO cumplen**: #1 «navigation visually quiets» y #5
+  «nonessential admin disappears».
+- **#1 medido como el más lejano y el más seguro/barato de arreglar**: la
+  infraestructura de señal (`EVENTO_GRABANDO`) ya existe y ya la consumen
+  `MarcoEscuchando` e `InstrumentStrip` — pero `FlowRail.tsx` no tenía
+  NINGUNA referencia a ella. Con el marco perimetral encendido durante la
+  grabación, la navegación de al lado no reaccionaba en absoluto. Rebanada
+  elegida para esta corrida.
+- Riesgo de lógica clínica evaluado y documentado: todo lo que se tocó en
+  esta corrida es JSX/CSS del shell (`FlowRail.tsx`, `globals.css`) — cero
+  archivos de `src/lib/asr/`, `src/lib/expediente/`, `src/lib/seguridad/`,
+  ni hooks de grabación.
+
+### FlowRail se aquieta al grabar (§8.1) — primera rebanada de Encounter Mode
+
+- **`src/components/FlowRail.tsx`** — nuevo hook `useGrabando()`, suscrito al
+  MISMO `EVENTO_GRABANDO` que ya escuchan `MarcoEscuchando` e
+  `InstrumentStrip` (no es una fuente de verdad nueva). El `<aside>` añade
+  `nx-flow-rail--quieto` mientras `activo === true`.
+- **Hallazgo de esta misma corrida, encontrado por su propio arnés**: el
+  primer intento atenuaba con `opacity` plano TODO lo no esencial, ETIQUETAS
+  de texto incluidas. `scripts/design/probar-opacidad-quieta-v15.mjs` (axe
+  real contra el riel real, no lectura de JSX) lo cazó como una violación
+  `color-contrast` NUEVA — `--text3` sobre `--s1` en modo oscuro mide apenas
+  ~5.6:1, sin margen para atenuar sin caer bajo el mínimo AA de 4.5:1. Subir
+  la opacidad hasta un valor que pasara AA (~0.95) dejaba el atenuado
+  invisible: ni cumplía §8.1 ni pasaba la compuerta de accesibilidad. Se
+  midió el margen real con el mismo arnés (0.42→11 nodos, 0.85→2 nodos,
+  0.95→0) antes de decidir la forma final — no se adivinó un valor.
+- **Forma final, sin ese conflicto**: separa qué se atenúa de qué
+  desaparece. `.nx-flow-rail-quiet-icon` (SVG decorativos: marca, lupa,
+  cerrar sesión, e íconos de ítems NO activos vía
+  `.nav-item:not(.active) .nav-icon`) usa `opacity` — sujeto al umbral
+  WCAG 1.4.11 no-textual (3:1, no 4.5:1), verificado en 0 violaciones entre
+  0.3–0.5. `.nx-flow-rail-quiet-hide` (texto puramente secundario y NO
+  interactivo: nombre del médico, correo bajo "Cerrar sesión", atajo "⌘K",
+  rótulo "Operaciones") usa `display:none` de verdad — seguro porque ninguno
+  de esos nodos recibía el foco de teclado, así que no hay tabulación que
+  perder; es además la lectura correcta de §8.5 («nonessential admin
+  disappears»). **Las etiquetas de navegación (Hoy/Paciente/Encuentro/
+  Seguimiento/Operaciones) y el nombre del consultorio no se tocan** — se
+  quedan con su contraste de siempre; regla 6 de seguridad clínica en
+  lenguaje de interfaz: bajar contraste en la navegación por estética no
+  vale el precio de un defecto de accesibilidad bloqueante (§24).
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-flow-rail-se-aquieta-al-grabar.test.ts` — 9 de sus 20
+  casos fallan contra el árbol previo a este cambio (verificado con
+  `git stash`), incluido el caso que habría dejado pasar la PRIMERA versión
+  con opacidad plana sobre texto si no se hubiera corregido.
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore +
+siembra sintética + build de producción + `npm start`). El evento se simuló
+con el mismo `CustomEvent('nx:grabando', {detail:{activo}})` que dispara
+`avisarEscucha()` — no se activó el micrófono real, que no es lo que este
+cambio toca. Arnés nuevo: `scripts/design/capturar-flow-rail-quieto-v15.mjs`.
+Capturas y medición en
+`docs/design/capturas/v15-encounter-mode-flow-rail-quieto/` (desktop 1440):
+
+- **Antes de grabar**: `claseQuieto=false`, íconos y etiquetas en opacidad 1,
+  las 8 piezas de texto secundario visibles.
+- **Grabando, en `/expediente/[patientId]` (activo="Paciente") y en
+  `/consulta/[patientId]` (activo="Encuentro")**: `claseQuieto=true`, los 14
+  íconos no-activos bajan a 0.4, las 8 piezas de texto secundario se ocultan
+  — Y las 10 etiquetas de navegación + el nombre del consultorio + el ícono y
+  la etiqueta del contexto activo se quedan en opacidad 1, sin tocar.
+  Confirmado con datos reales, no leído en JSX.
+- **Después de grabar**: los tres grupos vuelven exactamente a su estado
+  inicial.
+- **Foco de teclado**: el ícono dentro del botón enfocado (`Buscar…`) vuelve
+  a opacidad 1 mientras el resto del riel sigue atenuado.
+- **Axe, 0 violaciones nuevas** en `/consulta/[patientId]` con la grabación
+  activa (0 violaciones en total en esa corrida — ni siquiera las dos
+  familias preexistentes ya conocidas aparecieron en esta página/estado).
+- **Consola**: 0 errores.
+- Capturas visuales (`expediente--antes.png` vs `expediente--grabando.png`)
+  confirman la diferencia a simple vista: el marco perimetral se enciende, el
+  subtítulo "Consultorio", el atajo "⌘K" y el rótulo "Operaciones"
+  desaparecen, y los íconos de Hoy/Encuentro/Seguimiento/Operaciones se ven
+  visiblemente más tenues — mientras "Paciente" (el contexto activo en esa
+  pantalla) se mantiene con su peso completo.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8737 pasan, 1 fallo PRE-EXISTENTE y ambiental
+  (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por el proxy de
+  red del contenedor — no relacionado).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores).
+
+**Deuda anotada, no bloqueante:**
+- `BottomNav.tsx` (navegación persistente en móvil) tampoco se suscribe a
+  `EVENTO_GRABANDO` — mismo hallazgo que tenía `FlowRail`, pero fuera de
+  alcance de esta rebanada (la recomposición de móvil es
+  `V15-MOBILE-001`, Fase 9, deliberadamente diferida). Verificado (no
+  supuesto): `grep EVENTO_GRABANDO src/components/BottomNav.tsx` → sin
+  coincidencias.
+- Dos familias de violaciones axe moderadas preexistentes —
+  `landmark-unique` (cajón móvil de `FlowRail`) y `region` (banners fuera de
+  landmark) — siguen sin tocarse, candidatas a `V15-A11Y-001`.
+- §8.5 «nonessential admin disappears» sigue sólo PARCIALMENTE resuelto: esta
+  corrida lo resolvió para la navegación persistente (FlowRail/
+  InstrumentStrip); el admin DENTRO de la propia página de consulta (menú de
+  motor de IA, banner de créditos/plan, enlaces a `/precios`) sigue con su
+  peso completo durante la grabación — es el hallazgo #5 del mapeo de
+  baseline, candidato real para la siguiente rebanada de esta misma fase.
+- §8.6 «one primary action dominates» sigue sin resolverse fuera del inicio
+  (`EmpezarAGrabar`): en el cierre, "Firmar y cerrar nota" comparte peso
+  visual con "Guardar borrador"/"Leer resumen"/"Descartar" (líneas 5660-5699
+  del baseline medido). Candidato alternativo para la siguiente rebanada.
+
 ## Siguiente tarea exacta
 
-`V15-ENCOUNTER-MODE-001` (Fase 5, §8 del master loop): "Starting a
-consultation transforms the interface... It should NOT look like ordinary
-chart browsing with a recorder bolted on." Punto de partida real: leer
-`src/app/(dashboard)/consulta/[patientId]/page.tsx` completo (es la pantalla
-que hoy recibe el `onEditar` de `NotaCard` y el botón "Nueva consulta con
-IA") y compararla contra el ciclo de vida de §8 (PREPARE → START → LISTEN/
-CAPTURE → REVIEW FACTS → BUILD PLAN → REVIEW NOTE → PRESCRIPTION/ORDERS →
-VISIT PACKAGE → FOLLOW-UP → CLOSE) para medir qué tan lejos está hoy de ser
-un MODO distinto (navegación que se aquieta, identidad del paciente
-inconfundible, grabación inconfundible, admin no esencial desaparece, una
-acción primaria domina) contra ser "chart browsing con un grabador pegado".
-Documentar esa medición ANTES de tocar código — es la misma disciplina que
-`V15-BASELINE-001` aplicó a la navegación (medir antes de rediseñar).
+`V15-ENCOUNTER-MODE-001` (Fase 5) continúa: de los dos hallazgos anotados
+arriba (#5 admin no esencial DENTRO de la página de consulta, y #6 acción
+primaria dominante en el cierre), la siguiente corrida debe elegir uno,
+medirlo con el mismo rigor que esta corrida aplicó a #1 (línea/bloque
+concreto, qué es seguro de tocar vs. qué es lógica clínica congelada), y
+entregarlo como rebanada verificable — no intentar los 9 comportamientos de
+§8 de una sola vez. El botón "Firmar y cerrar nota" (§8.6) es probablemente
+la rebanada más pequeña: es JSX/CSS puro (reordenar énfasis visual de 4
+botones que ya existen), no toca `bloqueosDeFirma` ni `motivoNoFirma`
+(lógica de firma, congelada).
 
 **Deuda anotada, no bloqueante:** dos familias de violaciones axe moderadas
 preexistentes — `landmark-unique` (cajón móvil de `FlowRail`, mismo

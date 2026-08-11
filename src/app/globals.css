@@ -746,6 +746,44 @@ tbody tr:last-child { border-bottom: none; }
 .nx-flow-rail .nav-item.active::before { background: var(--text); }
 .nx-flow-rail .nav-item.active .nav-icon { color: var(--text); }
 
+/*
+  V15-ENCOUNTER-MODE-001 (§8.1, «navigation visually quiets») — mientras el
+  médico graba, lo que no es el contexto activo baja de peso visual. Ver el
+  comentario largo en `FlowRail.tsx` (`useGrabando`) para el porqué de esta
+  forma exacta: un `opacity` plano sobre las ETIQUETAS de texto viola
+  contraste AA en este tema (`--text3` sobre `--s1` mide ~5.6:1 en oscuro,
+  sin margen para atenuar) — medido con
+  `scripts/design/_probar-opacidad-quieta.mjs` contra el riel real. Por eso
+  se separa en dos:
+
+  - `.nx-flow-rail-quiet-icon` — SVG decorativos, sujetos al umbral no-textual
+    de WCAG 1.4.11 (3:1, no 4.5:1): sí hay margen para atenuar. `opacity`, no
+    `display:none` — son parte de controles enfocables (búsqueda, cerrar
+    sesión, marca), y el ícono no debe desaparecer del control que lo
+    contiene. El foco/hover del control padre restaura el peso normal.
+  - `.nx-flow-rail-quiet-hide` — texto puramente secundario y NO interactivo
+    (nunca recibe el foco): se oculta de verdad, no se atenúa. No hay orden
+    de tabulación que perder porque nada de esto era alcanzable por teclado.
+
+  Las etiquetas de navegación (Hoy/Paciente/Encuentro/Seguimiento/
+  Operaciones) y el nombre del consultorio no llevan ninguna de las dos
+  clases — se quedan con su contraste de siempre.
+*/
+.nx-flow-rail--quieto .nx-flow-rail-quiet-icon,
+.nx-flow-rail--quieto .nav-item:not(.active) .nav-icon {
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+.nx-flow-rail--quieto button:focus .nx-flow-rail-quiet-icon,
+.nx-flow-rail--quieto button:hover .nx-flow-rail-quiet-icon,
+.nx-flow-rail--quieto .nav-item:hover .nav-icon,
+.nx-flow-rail--quieto .nav-item:focus .nav-icon {
+  opacity: 1;
+}
+.nx-flow-rail--quieto .nx-flow-rail-quiet-hide {
+  display: none;
+}
+
 /* ── Topbar ───────────────────────────────────────────────── */
 .topbar {
   background: var(--s1);
