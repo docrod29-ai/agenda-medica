@@ -1714,29 +1714,123 @@ del botón de la app. Resultado completo en
 - `docs/design/SCREEN_INVENTORY.md` regenerado (`/consulta/[patientId]`
   cambió de tamaño por las dos líneas + comentarios nuevos).
 
+## `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8) — cuarta rebanada: `useSmartBack` ahora sí regresa de verdad (11-ago-2026)
+
+Empezó exactamente donde la corrida anterior lo dejó escrito: releyendo la
+sección "HALLAZGO SEPARADO" con la causa raíz ya diagnosticada
+(`window.history.state.idx` no existe en Next 16.2.12) y las dos vías
+propuestas (investigar una señal real de Next, o el `fallback` calculado
+como respaldo). Antes de tocar código se confirmó la causa raíz en el
+propio paquete instalado: `grep -n "idx" node_modules/next/dist/client/components/app-router.js`
+no encuentra nada — `HistoryUpdater` reescribe `window.history.state` con
+`useInsertionEffect` en CADA render (`__NA` + `__PRIVATE_NEXTJS_INTERNALS_TREE`),
+incluida la primerísima entrada de la pestaña — y el propio archivo deja el
+comentario `// TODO: Use Navigation API if available`, que es exactamente
+la señal que faltaba.
+
+- **`src/hooks/useSmartBack.ts`** — se quitó `window.history.state.idx` y se
+  reemplazó por `window.navigation.currentEntry.index` (la Navigation API
+  del NAVEGADOR, mantenida fuera del control de Next: sube con cada `push`
+  real, se queda igual con un `replace` —como el que usa `firmar()` desde
+  la rebanada anterior—, baja con un retroceso real). Se extrajeron dos
+  funciones puras y exportadas para poder probarlas sin `renderHook` ni
+  jsdom (el proyecto corre en `environment: 'node'`): `profundidadDeNavegacion()`
+  (lee `window.navigation?.currentEntry?.index`, `undefined` si no existe la
+  API o si `window` no existe) y `sePuedeRegresarDeVerdad(profundidad)`
+  (`true` sólo si es un número mayor que 0).
+- **Decisión de alcance, con razón escrita**: en navegadores SIN Navigation
+  API (Firefox, Safari antiguos) NO se reimplementó el historial a mano con
+  un contador propio en `sessionStorage` — contar `push`/`replace`/`back`
+  por fuera del navegador se desincroniza de su historial real, con su
+  propio riesgo de error, y el `fallback` YA es un destino lógico válido.
+  El comportamiento en esos navegadores queda IDÉNTICO al de antes de esta
+  corrida (siempre `fallback`, cero regresión); la mejora aplica donde la
+  API existe (Chromium: Chrome, Edge, el navegador de este mismo arnés).
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-smart-back-navigation-api.test.ts` — 10 casos, los 10
+  fallan contra el árbol previo a este cambio (verificado con `git stash`
+  de `useSmartBack.ts`): unos porque el import de `profundidadDeNavegacion`/
+  `sePuedeRegresarDeVerdad` no existía, otros porque el código viejo seguía
+  mencionando `history.state`/`idx`.
+
+### Verificado en navegador real (11-ago-2026), DOS de las diez pantallas, con el botón "Atrás" DE LA APP
+
+Primero se verificó el mecanismo suelto (Chromium real, páginas públicas
+`/login` → `/registro` → atrás nativo, sin emuladores): `index=0` al cargar
+directo, `index=1` tras un clic SPA real en un `<a>`, `index=0` de vuelta
+tras el atrás — exactamente la semántica que `idx` pretendía tener y nunca
+tuvo.
+
+Después, el camino completo con emuladores Auth/Firestore + siembra
+sintética + build de producción + `npm start` (mismo método que todas las
+corridas de esta fase), arnés nuevo:
+`scripts/design/capturar-atras-de-la-app-v15.mjs`. A diferencia de la
+corrida anterior (que probó `page.goBack()`, el atrás NATIVO del
+navegador), esta pulsa el botón **"Atrás" que pinta la propia app** — el
+`onClick={volver}` real de `useSmartBack` — en `/orden` y en `/receta`.
+Resultado completo en
+`docs/design/capturas/v15-atras-de-la-app/resultado.json`:
+
+- **`/orden`**: `indiceNavAlLlegarOrden: 3` (Navigation API real, no
+  supuesta). Botón "Atrás" pulsado → `urlTrasBotonOrden` es
+  `/consulta/pac-aurelio-dominguez?nota=VUmCrc1X966zgluDyfSC` —
+  `volvioAConsultaConNota: true`, `fueAlFallbackFijoDeExpediente: false`
+  (el defecto que corrige esta rebanada, medido en cero). El checklist de
+  cierre («Ya está firmada. Falta esto») sigue visible tras volver:
+  `panelTrasVolverDeOrden: true`.
+- **`/receta`**: mismo resultado — `indiceNavAlLlegarReceta: 3`,
+  `urlTrasBotonReceta` de vuelta en `/consulta/...?nota=...`,
+  `volvioAConsultaConNota: true`, `fueAlFallbackFijoDeExpediente: false`.
+- **Axe, 0 violaciones nuevas**: las mismas familias preexistentes ya
+  documentadas en corridas anteriores de esta fase (`color-contrast`,
+  `heading-order`, `landmark-unique`, `region`) — este cambio no tocó JSX
+  de ninguna pantalla, sólo la función de decisión del hook.
+- **Consola**: sólo los artefactos ya conocidos del arnés de emuladores
+  (401 de auditoría, Firestore offline) — sin errores nuevos.
+
+Con esto, el hallazgo que la corrida anterior dejó anotado como "el más
+lejano y el más caro" queda cerrado: el botón "Atrás" de las diez pantallas
+que usan `useSmartBack` ahora sí regresa a la pantalla anterior real cuando
+el médico navegó dentro de la app — verificado con dos de las diez, no
+supuesto por extensión al resto (las otras ocho comparten exactamente el
+mismo hook sin ninguna lógica por pantalla, así que el riesgo de que se
+comporten distinto es bajo, pero no se afirma "diez de diez verificadas").
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8839 pasan (10 nuevos), 1 fallo PRE-EXISTENTE y
+  ambiental (`ops-timeout-y-punto-ciego`, confirmado en aislamiento que
+  también falla contra el árbol limpio — proxy de red del contenedor, no
+  relacionado; documentado en todas las corridas previas de esta rama).
+  `la-agenda-es-un-riel` se vio fallar por timeout una vez en la corrida
+  completa en paralelo y pasar en aislamiento y con `testTimeout` más
+  alto — contención de recursos, mismo patrón ya documentado en
+  `V15-PATIENT-WORKSPACE-001`, no relacionado con este cambio (confirmado
+  con `git stash` de `useSmartBack.ts`: falla igual sin el cambio).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (este
+  cambio no tocó CSS ni JSX).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (`.env.local` demo recreado esta
+  corrida — `npm ci` primero porque `node_modules` no venía en el
+  contenedor, mismo hallazgo operativo de todas las corridas previas).
+
 ## Siguiente tarea exacta
 
-`useSmartBack` no distingue "vine de dentro de la app" de "llegué por
-enlace directo" en esta versión de Next — investigar qué SÍ vive en
-`window.history.state` (o qué otra señal ofrece Next 16 App Router: un
-hook de navegación, `usePathname` combinado con una pila propia en
-`sessionStorage`, etc.) para reemplazar el chequeo de `idx` roto, y
-arreglarlo UNA vez en `useSmartBack.ts` en vez de en las diez pantallas que
-lo usan (misma fuente de verdad, un solo arreglo). Empezar leyendo la
-sección "HALLAZGO SEPARADO" de arriba — la investigación de causa raíz ya
-está hecha, incluidos los dos scripts de diagnóstico que la confirmaron.
-Verificar con el mismo método (arnés de navegador real, botón "Atrás" DE
-LA APP, no `page.goBack()`) en al menos dos de las diez pantallas antes de
-darlo por cerrado.
-
-Si esa investigación no rinde una solución segura y barata en una
-rebanada, la alternativa de respaldo (documentarla, no aplicarla sin
-evaluar primero) es que las pantallas que MÁS lo necesitan
-(`/receta`, `/orden`) reciban un `fallback` calculado —
-`/consulta/${patientId}?nota=${notaId}` en vez de `/expediente/${patientId}`
-— para al menos no perder el `notaId` aunque el back siga sin ser "real".
-Eso no arregla `useSmartBack`, sólo mitiga su síntoma más caro; se anota
-como opción B, no como plan.
+Con las dos rebanadas de `V15-NOTE-PLAN-CONTINUITY-001` que esta fase tenía
+pendientes (checklist que recuerda lo hecho, URL que refleja el `notaId`,
+`useSmartBack` que regresa de verdad) cerradas, lo que queda explícitamente
+diferido a esta misma fase por decisiones YA tomadas y escritas (ver
+"Active Patient Canvas, DECISIÓN" arriba) es volver `/receta`/`/orden`
+inline dentro de `/consulta` — el trabajo grande de integración que nombra
+§33 Fase 8 («Integrate Note → Rx → Orders → Instructions → Follow-up»).
+Es candidato fuerte para la siguiente rebanada, pero es una decisión de
+alcance grande (mover generadores de receta/orden con motores de
+seguridad completos — dosis, interacciones, alergias, ajuste renal — a un
+panel dentro de la consulta) que merece su propia corrida, no una decisión
+apurada aquí. Si no se toma esa rebanada, la Fase 9 (`V15-MOBILE-001`,
+recomponer `BottomNav`/móvil) es la siguiente fase completa del plan
+(`§33`) que sigue sin empezar.
 
 **Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
 resolverse, candidata a fases futuras — no se repite su detalle si ya está
@@ -1751,6 +1845,9 @@ arriba):**
 - El campo de cierre (decisión/acción/aviso al paciente) de §9 sigue sin
   construirse — decisión de modelo pendiente del dueño, no bloqueante para
   cerrar Fase 6.
+- `useSmartBack` sigue sin mejora en navegadores sin Navigation API
+  (Firefox, Safari antiguos) — comportamiento idéntico al de antes de esta
+  corrida ahí, decisión de alcance escrita arriba, no un olvido.
 
 ## Reglas de la corrida (recordatorio)
 
