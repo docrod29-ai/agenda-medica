@@ -4519,8 +4519,16 @@ export default function ConsultaActivaPage() {
             )
           )}
 
-          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ── */}
-          {voz.transcripcion.trim() && !voz.grabando && (
+          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ──
+              §8.5 «nonessential admin disappears»: `!voz.grabando` sólo
+              cubría la ruta de Web Speech. Con el grabador de audio
+              (diarización/Whisper), `voz.transcripcion` se llena en vivo
+              desde `audio.transcripcionParcial` (línea ~531) mientras
+              `voz.grabando` sigue en false, así que este menú SÍ aparecía
+              con el mismo peso durante la grabación real. `grabandoAhora()`
+              (ya definido más arriba, mismo criterio que usa el resto de la
+              página para "activo" — incluye pausado) cubre las dos rutas. */}
+          {voz.transcripcion.trim() && !grabandoAhora() && (
             <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Motor de IA para esta nota</span>
@@ -4659,8 +4667,11 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* ── Créditos AGOTADOS (tope duro): la IA se pausó este mes ── */}
-      {sinCreditos && (
+      {/* ── Créditos AGOTADOS (tope duro): la IA se pausó este mes ──
+          §8.5: admin no clínico — se calla mientras graba/pausa (mismo
+          criterio `grabandoAhora()` que el menú de motor de IA), reaparece
+          en cuanto se detiene. */}
+      {sinCreditos && !grabandoAhora() && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
           border: '1px solid var(--red)', background: 'color-mix(in srgb, var(--red) 7%, transparent)',
@@ -4683,7 +4694,7 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {modoEco && !sinCreditos && (
+      {modoEco && !sinCreditos && !grabandoAhora() && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
           border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
@@ -4707,8 +4718,9 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
-      {/* ── Candado de gasto (soft): aviso de límite de consultas del plan ── */}
-      {usoIA && usoIA.alerta !== 'ok' && (
+      {/* ── Candado de gasto (soft): aviso de límite de consultas del plan ──
+          §8.5: mismo apagado que los dos anteriores. */}
+      {usoIA && usoIA.alerta !== 'ok' && !grabandoAhora() && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '9px 13px', borderRadius: 10, fontSize: 12.5,
           border: '1px solid ' + (usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--border)'),

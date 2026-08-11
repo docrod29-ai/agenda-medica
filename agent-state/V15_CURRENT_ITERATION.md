@@ -4,9 +4,11 @@
 
 ## Iteración en curso
 
-`V15-ENCOUNTER-MODE-001` (Fase 5) — EN CURSO, 11-ago-2026 (segunda
-rebanada: Firmar y cerrar nota domina el cierre, §8.6). Ver sección propia
-abajo. Primera rebanada (FlowRail se aquieta al grabar, §8.1) y
+`V15-ENCOUNTER-MODE-001` (Fase 5) — EN CURSO, 11-ago-2026 (tercera
+rebanada: admin no esencial DENTRO de `/consulta/[patientId]` se calla al
+grabar, §8.5, hallazgo #5). Ver sección propia abajo. Segunda rebanada
+(Firmar y cerrar nota domina el cierre, §8.6), primera rebanada (FlowRail
+se aquieta al grabar, §8.1) y
 `V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADAS 11-ago-2026 (ver secciones
 abajo). `V15-TODAY-001` (Fase 3), `V15-IA-001` y `V15-SHELL-GREYBOX-001` —
 cerradas antes, misma fecha.
@@ -714,19 +716,133 @@ captura de cada uno desplazada hasta el pie de cierre):
 - `npm run build`: compila con `.env.local` demo (emuladores).
 - `docs/design/SCREEN_INVENTORY.md` regenerado.
 
+### Admin no esencial DENTRO de `/consulta/[patientId]` se calla al grabar (§8.5, hallazgo #5) — tercera rebanada de Encounter Mode (11-ago-2026)
+
+- **Medición antes de tocar código**: el hallazgo #5 del baseline decía
+  «menú de motor de IA, banner de créditos/plan, enlaces a `/precios` siguen
+  con su peso completo durante la grabación». Al medir con precisión (grep +
+  lectura de `page.tsx`) resultó ser DOS defectos, no uno:
+  1. El «Menú de IA: motor por nota + medidor de créditos» usaba
+     `!voz.grabando` como compuerta — que sólo cubre la ruta de Web Speech.
+     `modoVoz` está fijo en `'whisper'` (la ruta REAL, diarización/Whisper
+     por `voice-asr.md`), y con esa ruta `voz.transcripcion` se llena EN VIVO
+     desde `audio.transcripcionParcial` (efecto ya existente en `page.tsx`,
+     línea ~530) mientras `voz.grabando` se queda en `false` — así que este
+     menú SÍ se mostraba con su peso íntegro durante una grabación de audio
+     real, no sólo durante la (inexistente en la práctica) grabación por voz
+     del navegador. Es el más severo de los dos: no es sólo peso visual, es
+     una compuerta que nunca se cerraba en el camino que de verdad se usa.
+  2. Los tres avisos de créditos/plan (tope duro agotado, modo económico,
+     candado de gasto suave) no tenían NINGUNA compuerta de grabación —
+     visibles sin condición siempre que su estado de negocio fuera cierto,
+     grabando o no.
+- **`page.tsx`** — los cuatro sitios ahora comparten `grabandoAhora()`, el
+  MISMO helper que ya existía en el archivo (línea ~1394,
+  `audio.estado === 'grabando' || audio.estado === 'pausado' ||
+  voz.grabando` — pausado cuenta como activo, mismo criterio que
+  `estoy-grabando.ts`) y que ya usaban `iniciarPorVoz`/`cerrarPorVoz`: no es
+  un criterio nuevo, es cerrar el mismo criterio en cuatro sitios que no lo
+  usaban. El menú de IA cambió su compuerta de `!voz.grabando` a
+  `!grabandoAhora()`; los tres avisos de créditos ganaron `&&
+  !grabandoAhora()` al final de su condición existente. Ningún `onClick`,
+  texto, ni lógica de negocio de estos bloques se tocó.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-admin-no-esencial-se-calla-al-grabar.test.ts` — 4 de
+  sus 8 casos fallan contra el árbol previo a este cambio (verificado con
+  `git show HEAD:` del archivo antes de editar): el menú de IA seguía en
+  `!voz.grabando` y los tres avisos no llevaban ninguna compuerta.
+
+### Verificado en navegador real (11-ago-2026) — grabación DE VERDAD, no simulada
+
+A diferencia de las dos rebanadas anteriores de esta fase (que simulan
+`EVENTO_GRABANDO` con un `CustomEvent` porque el shell vive en otro árbol de
+componentes), aquí `audio.estado` es estado interno de
+`useGrabacionAudio()` dentro de la propia página — no hay evento externo que
+simular sin dejar de probar lo que de verdad importa. Se usó micrófono FALSO
+de Chromium (`--use-fake-device-for-media-stream` +
+`--use-fake-ui-for-media-stream`) para que `getUserMedia`/`MediaRecorder`
+corrieran de verdad, e interceptando (`page.route`) SÓLO la frontera de red
+hacia el proveedor de ASR/IA (no hay llave real de AssemblyAI/Whisper/
+Anthropic en este entorno) — todo lo demás (React, efectos, DOM) corrió sin
+tocar. Arnés: `scripts/design/capturar-admin-se-calla-v15.mjs`. Capturas y
+medición en `docs/design/capturas/v15-admin-se-calla/` (desktop 1440):
+
+- **Login real + `/consulta/[patientId]` real + consentimiento real +
+  grabación real** con audio sintético. El primer trozo EN VIVO (flush cada
+  20 s, `INTERVALO_CHUNK_DEFAULT_MS`) llegó por la ruta real
+  (`/api/expediente/transcribir-chunk`, mockeada sólo en la respuesta del
+  proveedor) y pobló `voz.transcripcion` de verdad, con
+  `audio.estado === 'grabando'` todavía activo: `chunkVisto: true`,
+  `grabandoConTranscripcionParcial: {"grabando":true,"menuDeIA":false,...}`
+  — el defecto más severo (#1), confirmado y confirmado corregido con datos
+  reales, no leído en JSX.
+- **El aviso de créditos, disparado MIENTRAS SIGUE GRABANDO** (pulsando
+  «Procesar con IA» directamente — visible y habilitado con transcripción no
+  vacía sin importar `audio.estado` — contra `/api/expediente/procesar`
+  mockeada para devolver `sinCreditos: true`): el estado de negocio se puso
+  cierto y el aviso se quedó AUSENTE —
+  `creditosAgotadosMientrasGraba: {"grabando":true,"avisoSinCreditos":false}`
+  — la prueba directa de que `!grabandoAhora()` gobierna el aviso, no una
+  coincidencia de que nunca se disparó.
+- **Al detener** (`despuesDeDetenerAvisoAparece`): con `grabando:false`, TANTO
+  el menú de IA COMO el aviso de créditos reaparecen en el mismo instante —
+  `{"grabando":false,"menuDeIA":true,"avisoSinCreditos":true}` — confirmado
+  con capturas (`04-detenido-aviso-aparece.png`): «Motor de IA para esta
+  nota» y «Se acabaron tus consultas con IA del mes (30/30)» los dos
+  visibles con su peso completo, tal como antes de esta fase.
+- **Ojo con el toast**: `sinCreditos` también dispara un TOAST transitorio
+  con el MISMO título que el aviso persistente («Se acabaron tus consultas
+  con IA del mes») — buscar sólo ese título en el DOM habría dado un falso
+  positivo mientras el toast estaba en pantalla (pasó en el primer intento
+  de este mismo arnés). Se corrigió buscando una frase que sólo lleva el
+  cuerpo del aviso persistente («La IA se pausó para no generarte cargos
+  extra»), que el toast no tiene.
+- **No se ejercitó la diarización completa al detener** (`aplicar()` nunca
+  llegó a `setEstado('listo')` en los primeros intentos de este arnés —
+  quedó `audio.estado` fijo en `'subiendo'` incluso con
+  `/api/expediente/transcribir-diarizado` mockeada devolviendo `completed`
+  en la primera consulta). Diagnosticado como algo del propio sandbox
+  (probablemente el intento de `guardarAudioDeLaConsulta` de subir a
+  Firebase Storage, sin emulador de Storage levantado aquí, o similar), NO
+  del cambio de esta corrida — los cuatro sitios tocados son JSX puro y el
+  fallo persistía igual con y sin la compuerta nueva. Se evitó por completo
+  disparando el aviso de créditos con «Procesar con IA» directo en vez de
+  depender de la vuelta completa detener→diarizar→procesar automático — el
+  MISMO botón y la MISMA ruta que el flujo real usa, sin la diarización de
+  por medio.
+- **Axe, 0 violaciones** en los cuatro estados medidos (antes, grabando,
+  grabando-con-aviso-agotado, detenido-con-aviso-visible).
+- **Consola**: el único error nuevo son dos `503` esperados de la ruta de
+  diarización REAL (sin mockear en el paso 4, sin llave de proveedor en este
+  entorno) — degradación conocida y ya manejada por
+  `intentarDiarizar`/`falla('error_proveedor')`, no una regresión de esta
+  corrida. El aviso de reconexión de Firestore del emulador es el mismo
+  transitorio ya visto en corridas anteriores de esta fase.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8750 pasan (8 nuevos), 1 fallo PRE-EXISTENTE y ambiental
+  (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por el proxy de
+  red del contenedor — no relacionado).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores) — todas las
+  rutas generadas, incluida `/consulta/[patientId]`.
+- `docs/design/SCREEN_INVENTORY.md` regenerado (consulta subió de 5882 a
+  5901 líneas por el comentario que explica el porqué del cambio de
+  compuerta).
+
 ## Siguiente tarea exacta
 
-`V15-ENCOUNTER-MODE-001` (Fase 5) continúa con el hallazgo #5 que queda de
-los dos anotados por la medición de baseline: admin no esencial DENTRO de la
-propia página de consulta (menú de motor de IA, banner de créditos/plan,
-enlaces a `/precios`) sigue con su peso completo durante la grabación —
-`EVENTO_GRABANDO` sólo se aplicó al shell persistente (FlowRail/
-InstrumentStrip) en la primera rebanada. Con los hallazgos #1 y #6 ya
-cerrados, la siguiente corrida debe medir #5 con el mismo rigor (línea/bloque
-concreto de la página, qué depende de `EVENTO_GRABANDO` ya existente vs. qué
-sería lógica nueva) antes de tocar código. Cuando #5 cierre, revisar si algo
-de los 9 comportamientos de §8 sigue sin cubrirse antes de dar la fase por
-completa.
+Con los hallazgos #1, #5 y #6 del baseline de `V15-ENCOUNTER-MODE-001`
+cerrados, la siguiente corrida debe revisar si queda algo de los 9
+comportamientos de §8 sin cubrir antes de dar la fase por completa (medición
+de baseline: 3 cumplían de entrada, 1 sólo al inicio, 2 parciales, 2 NO
+cumplían — #1 y #5 ya cerrados de los 2 que no cumplían). Si §8 queda
+completo, `V15-ENCOUNTER-MODE-001` (Fase 5) pasa a CERRADA y la siguiente
+fase en la secuencia de §43 es `V15-RESULTS-CLOSURE-001` (Fase 6, work queue
+de resultados).
 
 **Deuda anotada, no bloqueante:**
 - `BottomNav.tsx` (navegación persistente en móvil) tampoco se suscribe a
@@ -740,6 +856,13 @@ completa.
   `/dashboard`, `/expediente/[patientId]`, `/consulta/[patientId]` y donde
   sea que esos componentes se monten. Candidata para `V15-A11Y-001` cuando
   llegue esa fase.
+- La diarización completa (`/api/expediente/transcribir-diarizado`) cuelga
+  en `audio.estado === 'subiendo'` en este sandbox concreto incluso con la
+  respuesta del proveedor mockeada — causa no confirmada (sospecha: el
+  intento de subida a Firebase Storage sin emulador de Storage levantado).
+  No bloqueó esta corrida (se evitó el camino), pero cualquier arnés futuro
+  que SÍ necesite llegar a `audio.estado === 'listo'` debe investigarlo
+  primero o levantar también el emulador de Storage.
 
 ## Reglas de la corrida (recordatorio)
 

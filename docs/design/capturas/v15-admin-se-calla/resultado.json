@@ -1,0 +1,27 @@
+{
+  "antesDeGrabar": {
+    "grabando": false,
+    "menuDeIA": false,
+    "avisoSinCreditos": false
+  },
+  "justEmpezo": {
+    "grabando": true,
+    "menuDeIA": false,
+    "avisoSinCreditos": false
+  },
+  "grabandoConTranscripcionParcial": {
+    "grabando": true,
+    "menuDeIA": false,
+    "avisoSinCreditos": false
+  },
+  "creditosAgotadosMientrasGraba": {
+    "grabando": true,
+    "menuDeIA": false,
+    "avisoSinCreditos": false
+  },
+  "despuesDeDetenerAvisoAparece": {
+    "grabando": false,
+    "menuDeIA": true,
+    "avisoSinCreditos": true
+  }
+}
