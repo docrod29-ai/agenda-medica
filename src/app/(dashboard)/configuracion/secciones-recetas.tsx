@@ -739,7 +739,7 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
         {/* Estilo visual */}
         <Grupo n={2} t="Cómo se ve" d="Estilo, color y tu membrete. Es la parte que el paciente reconoce como tuya." />
         <Section title="Estilo visual">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <div className="nx-stat-grid" style={{ gap: 8 }}>
             {(Object.keys(ESTILOS_RECETA) as EstiloT[]).map(k => {
               const activo = rx.estilo === k
               return (

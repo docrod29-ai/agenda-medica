@@ -105,7 +105,7 @@ export default function FarmaciaPage() {
       </div>
 
       {/* Tarjetas de resumen */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div className="nx-stat-grid" style={{ marginBottom: 16 }}>
         <ResumenTarjeta titulo="Total ítems" valor={items.length} color="var(--text)" icon={<Package size={14} />} />
         <ResumenTarjeta titulo="Bajo stock" valor={bajoStock} color={bajoStock > 0 ? '#f59e0b' : 'var(--text3)'} icon={<AlertTriangle size={14} />} />
         <ResumenTarjeta titulo="Caducados" valor={caducados} color={caducados > 0 ? '#ef4444' : 'var(--text3)'} icon={<Clock size={14} />} />

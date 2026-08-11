@@ -66,7 +66,7 @@ export default function RetencionPage() {
       </p>
 
       {/* Resumen rápido */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+      <div className="nx-stat-grid" style={{ gap: 12, marginBottom: 18 }}>
         <Tarjeta titulo="Total" valor={evaluaciones.length} color="var(--text)" />
         <Tarjeta titulo="Cerca del límite (4½ años)" valor={cercanos.length} color="var(--amber)" icon={<Clock size={14} />} />
         <Tarjeta titulo="Superan 5 años" valor={vencidos.length} color="var(--red)" icon={<AlertTriangle size={14} />} />

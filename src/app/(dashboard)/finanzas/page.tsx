@@ -355,7 +355,7 @@ export default function FinanzasPage() {
           )}
 
           {/* KPIs secundarios */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
+          <div className="nx-stat-grid" style={{ marginBottom: 18 }}>
             <Kpi titulo="Cobros" valor={String(resumen.totalCobros)} icon={<Receipt size={14} />} />
             <Kpi titulo="Ticket promedio" valor={fmtMXN(resumen.ticketPromedio)} icon={<Activity size={14} />} />
             <Kpi titulo="Pacientes únicos" valor={String(resumen.pacientesUnicos)} icon={<Users size={14} />} />
