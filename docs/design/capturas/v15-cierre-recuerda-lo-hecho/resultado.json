@@ -1,0 +1,188 @@
+{
+  "pasos": [
+    {
+      "nombre": "cédula profesional configurada"
+    },
+    {
+      "nombre": "login + consulta abierta"
+    },
+    {
+      "nombre": "tipo = Valoración Inmunocomprometido"
+    },
+    {
+      "nombre": "motivo=profilaxis, huésped=VIH"
+    },
+    {
+      "nombre": "estudio marcado: VIH Ag/Ab 4ª gen",
+      "estudiosBadge": null
+    },
+    {
+      "nombre": "sin fármaco candidato para esta combinación",
+      "hayFarmaco": false
+    },
+    {
+      "nombre": "valoración aplicada a la nota"
+    },
+    {
+      "nombre": "dosis completa asegurada en al menos un medicamento"
+    },
+    {
+      "nombre": "impresión y plan completada"
+    },
+    {
+      "nombre": "nota firmada"
+    },
+    {
+      "nombre": "checklist de cierre visible tras firmar (dos destinos → no navega solo)",
+      "urlTrasFirmar": "http://localhost:3000/consulta/pac-aurelio-dominguez",
+      "panelVisible": true
+    },
+    {
+      "nombre": "checklist ANTES de ir a la orden",
+      "chequesIniciales": [
+        {
+          "texto": "Imprimir la recetaEl paciente se va sin sus medicamentos por",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Imprimir la orden de estudiosEl laboratorio no le va a tomar",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Darle sus instruccionesSe lleva la receta, pero no cómo toma",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Volver al expediente",
+          "opacidad": "1"
+        }
+      ]
+    },
+    {
+      "nombre": "navegó a /orden",
+      "url": "http://localhost:3000/orden/pac-aurelio-dominguez/kRBH0Pgn4gpfRogsSH5l"
+    },
+    {
+      "nombre": "volvió con router.back()",
+      "urlTrasBack": "http://localhost:3000/consulta/pac-aurelio-dominguez",
+      "panelTrasBack": false
+    },
+    {
+      "nombre": "checklist TRAS volver de la orden (con ?nota= si router.back() no bastó)",
+      "url": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=kRBH0Pgn4gpfRogsSH5l",
+      "notaFirmadaBadge": true,
+      "panelTrasVolver": true,
+      "chequesTrasOrden": [
+        {
+          "texto": "Imprimir la recetaEl paciente se va sin sus medicamentos por",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Darle sus instruccionesSe lleva la receta, pero no cómo toma",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Volver al expediente",
+          "opacidad": "1"
+        }
+      ]
+    },
+    {
+      "nombre": "ancla a \"hoja del paciente\"",
+      "hayBotonInstrucciones": true,
+      "urlAntesDeAncla": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=kRBH0Pgn4gpfRogsSH5l",
+      "urlDespuesDeAncla": "http://localhost:3000/consulta/pac-aurelio-dominguez?nota=kRBH0Pgn4gpfRogsSH5l",
+      "sinNavegar": true,
+      "scrollAntes": 703,
+      "scrollDespues": 1305,
+      "hojaEnViewport": {
+        "existe": true,
+        "top": 2,
+        "enViewport": true
+      }
+    },
+    {
+      "nombre": "checklist TRAS copiar la hoja del paciente",
+      "hayBotonCopiar": true,
+      "chequesTrasCopiar": [
+        {
+          "texto": "Imprimir la recetaEl paciente se va sin sus medicamentos por",
+          "opacidad": "1"
+        },
+        {
+          "texto": "Darle sus instrucciones",
+          "opacidad": "0.55"
+        },
+        {
+          "texto": "Volver al expediente",
+          "opacidad": "1"
+        }
+      ]
+    },
+    {
+      "nombre": "sessionStorage real de esta nota",
+      "notaIdDeLaUrl": "kRBH0Pgn4gpfRogsSH5l",
+      "sessionStorageCrudo": "[\"orden\",\"hoja_del_paciente\"]"
+    }
+  ],
+  "axe": {
+    "antes": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": 1
+      },
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 4
+      }
+    ],
+    "despues": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": 1
+      },
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ]
+  },
+  "consola": [
+    "[2026-08-11T21:05:09.637Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado nota_firmada 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

@@ -33,6 +33,13 @@ import {
 export interface HojaParaElPacienteProps extends EntradaInstrucciones {
   /** Se imprime en la hoja; no se usa para nada más. */
   nombreDelPaciente?: string
+  /**
+   * Avisa que el médico REALMENTE usó la hoja (copió o imprimió) — no que
+   * sólo la vio. `ComoCerrarLaConsulta` (V15-NOTE-PLAN-CONTINUITY-001) la
+   * usa para marcar «Darle sus instrucciones» como hecho; sin este aviso
+   * ese paso del cierre nunca se podía completar.
+   */
+  onInteraccion?: () => void
 }
 
 export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
@@ -46,12 +53,19 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
     try {
       await navigator.clipboard.writeText(comoTexto(bloques))
       setCopiado(true)
+      p.onInteraccion?.()
       setTimeout(() => setCopiado(false), 2000)
     } catch { /* Sin portapapeles, el botón de imprimir sigue ahí. */ }
   }
 
+  const imprimir = () => {
+    p.onInteraccion?.()
+    window.print()
+  }
+
   return (
     <section
+      id="hoja-para-el-paciente"
       className="hoja-paciente"
       style={{
         border: '1px solid var(--border)', borderRadius: 11,
@@ -83,7 +97,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
             {copiado ? 'Copiado' : 'Copiar'}
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={imprimir}
             aria-label="Imprimir la hoja del paciente"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,

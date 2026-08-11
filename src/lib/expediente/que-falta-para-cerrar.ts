@@ -41,7 +41,13 @@ export interface PasoDeCierre {
   titulo: string
   /** Qué pasa si no se hace. Es lo que decide si vale la pena el clic. */
   siNoSeHace: string
-  /** A dónde lleva. `null` = se resuelve sin salir de aquí. */
+  /**
+   * A dónde lleva. `null` = se resuelve sin salir de aquí y sin nada que
+   * enseñar en pantalla (p. ej. el cobro, que abre su propio modal). Un
+   * valor que empieza con `#` también «se resuelve sin salir de aquí», pero
+   * SÍ hay algo que enseñar: es el id del elemento al que hay que
+   * desplazarse en la propia consulta, no una ruta de Next.js.
+   */
   ruta: string | null
 }
 
@@ -85,8 +91,17 @@ export function queFaltaParaCerrar(e: EstadoAlCerrar): PasoDeCierre[] {
     que: 'hoja_del_paciente',
     titulo: 'Darle sus instrucciones',
     siNoSeHace: 'Se lleva la receta, pero no cómo tomarla en sus palabras.',
-    /* Vive en la propia consulta: no hay a dónde ir. */
-    ruta: null,
+    /**
+     * Vive en la propia consulta — no navega a OTRA pantalla — pero antes
+     * de V15-NOTE-PLAN-CONTINUITY-001 esto era `null` y el botón salía
+     * apagado: el médico veía «Darle sus instrucciones» en la lista y no
+     * podía pulsarlo. Un `#` es la señal para quien pinta el panel
+     * (`ComoCerrarLaConsulta` en `/consulta/[patientId]`) de que hay que
+     * desplazarse al elemento con ese id EN VEZ de navegar — mismo patrón
+     * de «sin salir de aquí» (§21, Source Reveal), pero ahora con destino
+     * real en vez de un botón muerto.
+     */
+    ruta: '#hoja-para-el-paciente',
   })
 
   if (e.pideCobro) out.push({

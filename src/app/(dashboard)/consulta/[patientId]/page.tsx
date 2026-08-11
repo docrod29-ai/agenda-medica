@@ -56,6 +56,7 @@ import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
+import { leerHechosDeCierre, marcarHechoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -1113,6 +1114,25 @@ export default function ConsultaActivaPage() {
    */
   const vistoEnRef = useRef<string | undefined>(undefined)
   useEffect(() => { notaIdRef.current = notaId }, [notaId])
+  /**
+   * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, §33 / §20) — lo que ya se hizo del
+   * checklist de cierre (`ComoCerrarLaConsulta`), para la nota con la que
+   * arrancó esta pantalla (`notaIdParam`, de `?nota=` en la URL). Es
+   * exactamente el caso que importa: volver de `/receta` o `/orden` con
+   * `useSmartBack` trae de vuelta esa misma URL, y esta lectura perezosa la
+   * recupera aunque Next remonte la pantalla.
+   *
+   * NO se resincroniza en un `useEffect` cuando `notaId` cambia DESPUÉS del
+   * montaje (p. ej. al firmar una nota nueva, que pasa de `null` a un id
+   * recién creado): ese id nunca tuvo entrada en `sessionStorage`, así que
+   * `leerHechosDeCierre` daría `[]` de todos modos — igual al estado inicial.
+   * Añadir ese efecto sólo repetiría, en el otro sentido, el mismo defecto
+   * que ya tiene `uuidRespaldoRef` un poco más arriba (`react-hooks/refs`):
+   * estado derivado que se puede leer una vez, no sincronizar en cada render.
+   * Ver `cierre-hechos.ts` para el porqué de `sessionStorage` en vez de
+   * Firestore.
+   */
+  const [hechosCierre, setHechosCierre] = useState<string[]>(() => leerHechosDeCierre(notaIdParam))
   const fallosGuardadoRef = useRef(0)
   const cadenaGuardadoRef = useRef<Promise<unknown>>(Promise.resolve())
   const [preop, setPreop] = useState<{ inputs: Record<string, unknown>; resultados: Record<string, unknown> } | undefined>(undefined)
@@ -5140,6 +5160,16 @@ export default function ConsultaActivaPage() {
       {/*
         CÓMO CERRAR LA CONSULTA (REG-244) — sólo si quedó más de una cosa por
         hacer. Con un solo destino se navegó directo y esto no aparece.
+
+        V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, §33 / §20): `alIr` ya no hace
+        SIEMPRE `router.push`. Un paso con `ruta` que empieza con `#` vive
+        en esta misma pantalla (hoy, sólo «hoja_del_paciente») y se resuelve
+        desplazándose hasta él — sin eso el botón navegaba a una URL con un
+        `#` pegado, que Next.js no sabe interpretar como ancla dentro de la
+        misma ruta cliente. Los pasos que SÍ navegan (receta/orden) se
+        marcan `hecho` ANTES de salir: al volver — con `router.back()` de
+        `useSmartBack`, que reusa la entrada de historial — el checklist ya
+        no repite lo que el médico acaba de hacer.
       */}
       {firmada && (
         <ComoCerrarLaConsulta
@@ -5157,7 +5187,16 @@ export default function ConsultaActivaPage() {
             pideCobro: config?.pedirCobroAlCerrar === true,
             internamientoActivo,
           })}
-          alIr={r => router.push(r)}
+          hechos={hechosCierre}
+          alIr={r => {
+            if (r.startsWith('#')) {
+              document.getElementById(r.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              return
+            }
+            if (r.startsWith('/receta')) setHechosCierre(marcarHechoDeCierre(notaId, 'receta'))
+            else if (r.startsWith('/orden')) setHechosCierre(marcarHechoDeCierre(notaId, 'orden'))
+            router.push(r)
+          }}
         />
       )}
 
@@ -5190,6 +5229,7 @@ export default function ConsultaActivaPage() {
           medicamentos={medicamentos}
           estudios={estudiosOrden}
           proximaCita={undefined}
+          onInteraccion={() => setHechosCierre(marcarHechoDeCierre(notaId, 'hoja_del_paciente'))}
         />
       )}
 

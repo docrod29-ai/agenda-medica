@@ -1447,3 +1447,185 @@ todavía no está desplegada ahí. Mismo patrón que REG-054/REG-062 en
 DESPLIEGUE». Verificado local (`next build && next start`) que la cabecera
 sale correcta. No tocar el workflow para «arreglarlo» — se resuelve solo al
 fusionar y desplegar. Detalle en el comentario del PR.
+
+## `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33 / §20) — primera rebanada: el checklist de cierre recuerda lo hecho (11-ago-2026)
+
+Empezó releyendo exactamente lo que dejó escrito la corrida anterior: §8
+(comportamiento #9), §33 (Fase 8) y las dos decisiones ya tomadas
+(`onGenerarReceta`/`onGenerarOrden` diferidos a propósito a esta fase). Antes
+de tocar código se releyó `ComoCerrarLaConsulta.tsx` (REG-244) completo —
+y ahí apareció el hueco real de esta fase, no en `/receta` ni `/orden`:
+
+**El componente sabía DECIR lo que ya se hizo (`hechos?: readonly
+string[]`) y nadie se lo decía.** `grep hechos=` en
+`/consulta/[patientId]/page.tsx`, su único punto de montaje, no daba nada —
+la prop nunca se pasaba. Es el patrón de `.claude/rules/el-dato-tiene-que-llegar.md`
+(«escrito y sin conectar»), encontrado dentro de la propia pieza que la Fase 8
+pide continuar. Segundo hueco emparentado, mismo archivo: el paso
+`hoja_del_paciente` llevaba `ruta: null` desde REG-244 («vive en la propia
+consulta: no hay a dónde ir»), pero `ComoCerrarLaConsulta` deshabilita
+cualquier botón sin `ruta` — el paso aparecía en la lista y NUNCA se podía
+pulsar ni marcar hecho. Un botón muerto disfrazado de tarea.
+
+**Decisión de alcance, con razón escrita:** NO se intentó volver
+`/receta`/`/orden` inline dentro de `/consulta` esta corrida. Son
+generadores de receta/orden con motores de seguridad completos (dosis,
+interacciones, alergias, ajuste renal) — moverlos adentro es el trabajo
+grande de Fase 8 y merece su propia corrida, no una decisión apurada al
+final de ésta. Lo que SÍ se arregló es más chico, real, y ya estaba
+DECLARADO por el propio componente REG-244 sin construirse: que el
+checklist de cierre recuerde de una vuelta a otra qué ya se hizo, y que
+«Darle sus instrucciones» deje de ser un botón que no hace nada.
+
+- **`src/lib/expediente/cierre-hechos.ts`** (nuevo, casi-puro) —
+  `leerHechosDeCierre`/`marcarHechoDeCierre`, sobre `sessionStorage`
+  (clave `nx-cierre-hechos:<notaId>`), no Firestore: es estado de esta
+  pestaña sobre esta nota — «ya se hizo»—, no un hecho clínico. Nada que
+  auditar, nada que respaldar, nada que otro consultorio necesite leer.
+- **`src/lib/expediente/que-falta-para-cerrar.ts`** — el paso
+  `hoja_del_paciente` pasa de `ruta: null` a `ruta: '#hoja-para-el-paciente'`.
+  `aDondeIrDirecto` lo sigue excluyendo del conteo de «un solo destino → se
+  va directo» (ya lo excluía por `que`, no por `ruta`), así que el caso
+  simple (un solo destino real) sigue sin tocarse — verificado con la
+  batería `la-orden-no-se-queda-en-el-tintero.test.ts` completa en verde.
+- **`src/components/HojaParaElPaciente.tsx`** — `id="hoja-para-el-paciente"`
+  para que el ancla tenga a dónde ir de verdad, y una prop nueva
+  `onInteraccion?: () => void` que dispara al copiar O al imprimir (las dos
+  cuentan como «se usó», no sólo «se vio» — a propósito, ninguna de las dos
+  es más válida que la otra).
+- **`/consulta/[patientId]/page.tsx`** — `hechosCierre` (estado, inicializado
+  perezosamente desde `leerHechosDeCierre(notaIdParam)` — el caso que
+  importa: volver de `/receta`/`/orden` con `useSmartBack` trae la MISMA
+  URL con `?nota=...`, y esto la recupera aunque Next remonte la pantalla).
+  `alIr` ya no hace SIEMPRE `router.push`: si la ruta empieza con `#`, hace
+  `scrollIntoView` en vez de navegar; si es `/receta` o `/orden`, marca el
+  paso hecho ANTES de salir. **A propósito NO se sincroniza con un
+  `useEffect` cuando `notaId` cambia DESPUÉS del montaje** — ese id nuevo
+  nunca tuvo entrada en `sessionStorage` (nota recién creada), así que
+  `leerHechosDeCierre` daría `[]` de todos modos, igual al estado inicial;
+  añadir el efecto sólo habría repetido, al revés, el mismo defecto que ya
+  tiene `uuidRespaldoRef` un poco más arriba (`react-hooks/refs`) — y el
+  trinquete de lint (techo 96, sin margen) lo habría cazado igual. Motivo
+  completo en el comentario del código, no sólo aquí.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-cierre-recuerda-lo-hecho.test.ts` — el módulo puro
+  (con una ventana `sessionStorage` fake, patrón ya usado en
+  `salir-seguro.test.ts`) y una batería «está CONECTADO» que falla si se
+  deshace cualquiera de los cinco cables (import, `hechos=`, marcar antes de
+  navegar, el `#` que no navega, el ancla real, el aviso desde
+  `HojaParaElPaciente`). Verificado con `git stash` del código (dejando sólo
+  la prueba): el archivo entero falla al cargar (`Cannot find package
+  '@/lib/expediente/cierre-hechos'`) — no hay ambigüedad de que sin el
+  cambio, la prueba no pasa.
+
+### Verificado en navegador real (11-ago-2026)
+
+Emuladores Auth/Firestore reales + siembra sintética + build de producción +
+`npm start` (arnés nuevo: `scripts/design/capturar-cierre-recuerda-lo-hecho-v15.mjs`).
+A diferencia de otras capturas de esta rama, aquí hacía falta un encuentro
+REAL con dos destinos a la vez (medicamentos Y estudios) para que
+`ComoCerrarLaConsulta` se quedara en pantalla — se llegó por Valoración
+Inmunocomprometido (motivo «Profilaxis antiinfecciosa», huésped «VIH»), no
+mockeando IA. Resultado completo en
+`docs/design/capturas/v15-cierre-recuerda-lo-hecho/resultado.json`:
+
+- **El checklist recuerda de verdad, medido en el DOM, no supuesto**: tras
+  firmar, «Imprimir la orden de estudios» se pulsa (marca `'orden'` en
+  `sessionStorage`, confirmado leyendo la clave real:
+  `nx-cierre-hechos:<notaId>` → `["orden","hoja_del_paciente"]`); al volver
+  a la nota, «Darle sus instrucciones» pasa de opacidad `1` a `0.55` en
+  cuanto se pulsa «Copiar» en la hoja del paciente — captura
+  `03-hoja-marcada.png` lo enseña con el círculo verde ✓ real.
+- **El ancla funciona sin navegar**: pulsar «Darle sus instrucciones»
+  mantiene la URL EXACTA (`sinNavegar: true`) y desplaza
+  `#hoja-para-el-paciente` hasta 2px del borde superior del viewport
+  (`hojaEnViewport.enViewport: true`) — medido con
+  `getBoundingClientRect()`, no leído del JSX.
+- **Axe, sin violaciones nuevas**: mismas cuatro familias preexistentes ya
+  documentadas en capturas V15 anteriores (`color-contrast` del encabezado
+  teal de evidencia, `heading-order`, `landmark-unique` del cajón móvil de
+  `FlowRail`, `region` de banners fuera de landmark) — ninguna en el
+  checklist ni en la hoja del paciente.
+- **Consola**: sólo los artefactos ya documentados del arnés de emuladores
+  (401 de auditoría, Firestore offline) — sin errores nuevos.
+
+**Hallazgo de esta corrida, anotado y NO arreglado — condiciona el alcance
+real de esta pieza:** `router.back()` (el que usa `useSmartBack` en
+`/receta` y `/orden`) NO conserva el contexto de `/consulta` en el caso más
+común. `firmar()` nunca escribe el `notaId` en la URL — vive sólo en estado
+de React — así que la URL tras firmar sigue siendo `/consulta/[patientId]`
+SIN `?nota=...`. Volver desde `/orden` con el botón real de esa pantalla no
+encuentra ningún id que releer y el panel entero desaparece (`firmada`
+vuelve a `false`), sin que el `sessionStorage` de esta corrida tenga
+oportunidad de mostrarse. Verificado también: recargar la nota firmada
+explícitamente con `?nota=<id>` (lo que hace un médico que reabre una nota
+ya firmada desde el expediente) SÍ conserva `firmada=true` y SÍ deja ver el
+checklist con las marcas — pero ahí aparece un SEGUNDO hueco, hermano del
+primero: el paso «orden» desaparece de la lista entera (no se pinta
+apagado, se pinta INEXISTENTE) porque `estudiosOrden` — a diferencia de
+`secciones`/`diagnosticos`/`medicamentos` — nunca se restaura desde
+Firestore en el efecto de carga de la nota (`setFirmada(n.estado ===
+'firmada')` y sus vecinas no incluyen `setEstudiosOrden(n.estudiosOrden)`).
+Los dos son huecos de continuidad PREVIOS a esta corrida («el dato tiene que
+LLEGAR», hermana) — no se tocaron aquí porque arreglarlos de verdad exige
+decidir CUÁNDO escribir el `notaId` en la URL (¿en cada autoguardado? ¿sólo
+al firmar?) y si `estudiosOrden` debe persistirse como campo propio de la
+nota o derivarse de otra fuente — ninguna de las dos es una decisión de
+presentación pura, y las dos merecen su propia corrida. Candidatos fuertes
+para la siguiente rebanada de `V15-NOTE-PLAN-CONTINUITY-001`.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8813 pasan (14 nuevos), 1 fallo PRE-EXISTENTE y
+  ambiental (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por
+  el proxy de red del contenedor — no relacionado, mismo fallo documentado
+  en todas las corridas previas de esta rama).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva (el primer
+  borrador SÍ subió el techo a 97 con un `react-hooks/set-state-in-effect`
+  nuevo — corregido quitando el `useEffect` en vez de subir el techo, ver
+  el comentario en el código).
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (con `.env.local` demo de emuladores,
+  recreado esta corrida — `npm ci` primero porque `node_modules` no venía
+  en el contenedor).
+- `docs/design/SCREEN_INVENTORY.md` regenerado dos veces (el tamaño de
+  `/consulta/[patientId]` cambió dos veces: al insertar el código y al
+  corregir el lint).
+
+## Siguiente tarea exacta
+
+Segunda rebanada de `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8): de los dos
+huecos que esta corrida encontró y dejó escritos, el de la URL sin
+`?nota=` es el más barato y el que más golpea — condiciona CUALQUIER
+continuidad futura entre `/consulta` y `/receta`/`/orden`, no sólo el
+checklist de cierre. Empezar ahí: decidir cuándo `firmar()` (y quizá el
+autoguardado) deben reflejar el `notaId` en la URL con `router.replace`
+(sin ensuciar el historial — `replace`, no `push`), y sólo después evaluar
+si `estudiosOrden` necesita persistirse en la nota o si basta con derivarlo
+de otra fuente al recargar. Releer la sección «Hallazgo de esta corrida»
+de arriba antes de decidir — el porqué de cada hueco ya está investigado,
+no hay que redescubrirlo.
+
+**Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
+resolverse, candidata a fases futuras — no se repite su detalle si ya está
+arriba):**
+- `BottomNav.tsx` no se suscribe a `EVENTO_GRABANDO` → `V15-MOBILE-001`
+  (Fase 9).
+- `landmark-unique` (cajón móvil `FlowRail`) y `region` (banners fuera de
+  landmark) → `V15-A11Y-001` (Fase 13).
+- `color-contrast` (encabezado teal de "Análisis basado en evidencia",
+  3.03:1) y `heading-order` (`<h4>Sus medicamentos</h4>` de la hoja para el
+  paciente) → también `V15-A11Y-001`.
+- El campo de cierre (decisión/acción/aviso al paciente) de §9 sigue sin
+  construirse — decisión de modelo pendiente del dueño, no bloqueante para
+  cerrar Fase 6.
+
+## Reglas de la corrida (recordatorio)
+
+- Una sola rama V15; sin PR nuevo por corrida; nunca force-push.
+- Estructura antes que piel; greybox antes de estilo — ya aplicado al código,
+  no sólo a una revisión puntual.
+- Lógica clínica/negocio congelada: ningún cambio de esta corrida tocó una
+  ruta de API, una regla de Firestore ni un cálculo clínico.
+- Móvil: `V15-MOBILE-001` (Fase 9) sigue pendiente; `BottomNav` no se tocó.
