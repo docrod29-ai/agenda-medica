@@ -1,0 +1,75 @@
+{
+  "grupos": [
+    {
+      "encabezado": "Requiere atención (2)",
+      "tarjetas": [
+        "Confirmar si la metformina sigue vigente",
+        "Urocultivo — resultado disponible"
+      ]
+    },
+    {
+      "encabezado": "Necesita revisión (1)",
+      "tarjetas": [
+        "Perfil lipídico — resultado listo"
+      ]
+    },
+    {
+      "encabezado": "Esperando resultado (1)",
+      "tarjetas": [
+        "Espirometría de control — en proceso"
+      ]
+    },
+    {
+      "encabezado": "Necesita agendar (1)",
+      "tarjetas": [
+        "Seguimiento de EPOC — revisar espirometría"
+      ]
+    },
+    {
+      "encabezado": "Esperando al paciente (1)",
+      "tarjetas": [
+        "Entregar receta (2 medicamentos)"
+      ]
+    },
+    {
+      "encabezado": "Otros pendientes (1)",
+      "tarjetas": [
+        "Llamar a laboratorio externo por resultado extraviado"
+      ]
+    }
+  ],
+  "requiereAtencion": null,
+  "axe": {
+    "desktop": [
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ],
+    "mobile": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 3
+      }
+    ]
+  },
+  "consola": {
+    "desktop": [
+      "[2026-08-11T18:36:55.148Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+    ],
+    "mobile": [
+      "[2026-08-11T18:36:58.788Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
+    ]
+  }
+}

@@ -363,6 +363,45 @@ async function main() {
       completadaEn: diaISO(-1),
       origen: 'laboratorio',
     },
+    /**
+     * V15-FOLLOWUP-WORK-001 (Fase 7, §10) — dos tareas MÁS, para que los
+     * grupos "esperando al paciente" y "otros" de `estadoDeAccion` tengan
+     * algo real que enseñar. Sin ellas, las cinco tareas de arriba sólo
+     * cubren tres de los cinco grupos no-vencidos (las otras dos
+     * escalan por crítica-sin-dueño o vencida, así que nunca llegan a
+     * `resto`). Ninguna de las dos escala: prioridad no-crítica y sin
+     * vencer.
+     */
+    {
+      id: 'tarea-receta-luzmaria',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-luzmaria-cervantes',
+      patientNombre: 'Luz María Cervantes Ochoa',
+      tipo: 'receta_por_entregar',
+      titulo: 'Entregar receta (2 medicamentos)',
+      detalle: 'La receta se generó en la consulta. Se cierra cuando el paciente la tiene.',
+      prioridad: 'alta',
+      estado: 'solicitada',
+      creadaEn: diaISO(-1),
+      venceEn: diaISO(4),
+      origen: 'nota',
+    },
+    {
+      id: 'tarea-otra-catalina',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-catalina-ibarra',
+      patientNombre: 'Catalina Ibarra Fuentes',
+      tipo: 'otra',
+      titulo: 'Llamar a laboratorio externo por resultado extraviado',
+      detalle: 'El laboratorio reportó el estudio como perdido; hay que reprogramarlo.',
+      prioridad: 'normal',
+      estado: 'solicitada',
+      ownerUid: uid,
+      ownerNombre: CUENTA.displayName,
+      creadaEn: diaISO(-1),
+      venceEn: diaISO(5),
+      origen: 'manual',
+    },
   ]
   for (const t of tareas) {
     const { id, ...datos } = t

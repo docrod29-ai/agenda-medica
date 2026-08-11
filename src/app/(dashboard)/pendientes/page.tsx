@@ -25,6 +25,7 @@ import { auth } from '@/lib/firebase'
 import { tareasVivas, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
 import { ordenWorklist, debeEscalar, estaVencida, type TareaClinica, type EstadoTarea } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
+import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList } from 'lucide-react'
 
@@ -101,6 +102,25 @@ export default function PendientesPage() {
 
   const urgentes = visibles.filter(t => debeEscalar(t, ahora).escalar)
   const resto = visibles.filter(t => !debeEscalar(t, ahora).escalar)
+
+  /**
+   * V15-FOLLOWUP-WORK-001 (Fase 7, §10): «group by action state, not by
+   * arbitrary module». `resto` ya no se pinta como una sola lista «Abiertos»:
+   * se reparte por lo que cada tarea está ESPERANDO — mismo criterio que ya
+   * usa `debeEscalar` para «urgentes», sólo que aquí no hay urgencia, hay
+   * un porqué distinto. Ninguna tarea vencida llega aquí (`debeEscalar` ya
+   * las captura arriba), así que el grupo `vencida` de `estadoDeAccion`
+   * nunca aparece en `gruposResto` — comprobado en el guardián de esta
+   * pantalla, no sólo supuesto.
+   */
+  const gruposResto = useMemo(() => {
+    const acc = {} as Record<EstadoDeAccion, TareaClinica[]>
+    for (const t of resto) {
+      const cat = estadoDeAccion(t, ahora)
+      ;(acc[cat] ??= []).push(t)
+    }
+    return acc
+  }, [resto, ahora])
 
   const mover = useCallback(async (t: TareaClinica, nuevo: EstadoTarea, motivoCancelacion?: string) => {
     if (!clinicId) return
@@ -226,12 +246,18 @@ export default function PendientesPage() {
               {urgentes.map(t => <Tarjeta key={t.id} t={t} />)}
             </section>
           )}
-          {resto.length > 0 && (
-            <section style={{ display: 'grid', gap: 10 }}>
-              <h2 style={{ fontSize: 14, margin: 0, color: 'var(--text3)' }}>Abiertos ({resto.length})</h2>
-              {resto.map(t => <Tarjeta key={t.id} t={t} />)}
-            </section>
-          )}
+          {ORDEN_ESTADO_DE_ACCION.filter(cat => cat !== 'vencida').map(cat => {
+            const items = gruposResto[cat]
+            if (!items?.length) return null
+            return (
+              <section key={cat} style={{ display: 'grid', gap: 10 }}>
+                <h2 style={{ fontSize: 14, margin: 0, color: 'var(--text3)' }}>
+                  {ETIQUETA_ESTADO_DE_ACCION[cat]} ({items.length})
+                </h2>
+                {items.map(t => <Tarjeta key={t.id} t={t} />)}
+              </section>
+            )
+          })}
         </div>
       )}
 

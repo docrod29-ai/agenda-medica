@@ -4,20 +4,21 @@
 
 ## Iteración en curso
 
-`V15-RESULTS-CLOSURE-001` (Fase 6, §9) — **EN CURSO**, primera rebanada
-cerrada 11-ago-2026: `ProgresoResultado` (la pista de las ocho etapas de §9)
-conectada en `/pendientes` para tareas de tipo resultado. Ver sección propia
-abajo. `V15-ENCOUNTER-MODE-001` (Fase 5) — **CERRADA 11-ago-2026** (cuarta y última
-rebanada: el Copiloto se pinta junto a los hechos que interpreta, §8
-comportamiento #8). Los 9 comportamientos de §8 quedan re-medidos contra el
-código actual y resueltos o legítimamente diferidos — ver sección propia
-abajo. Sigue `V15-RESULTS-CLOSURE-001` (Fase 6) como siguiente tarea, con un
-primer barrido (no baseline completo) hecho esta misma corrida.
-Rebanadas previas de esta fase: admin no esencial se calla al grabar (§8.5,
-hallazgo #5), Firmar y cerrar nota domina el cierre (§8.6), FlowRail se
-aquieta al grabar (§8.1). `V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADA
-11-ago-2026 (ver secciones abajo). `V15-TODAY-001` (Fase 3), `V15-IA-001` y
-`V15-SHELL-GREYBOX-001` — cerradas antes, misma fecha.
+`V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **EN CURSO**, primera rebanada
+cerrada 11-ago-2026: `/pendientes` agrupa lo no urgente por `estadoDeAccion`
+(necesita revisión · esperando resultado · necesita agendar · esperando al
+paciente · otros) en vez de una sola sección «Abiertos». Ver sección propia
+abajo. `V15-RESULTS-CLOSURE-001` (Fase 6, §9) — **CERRADA 11-ago-2026** tras
+medir los 8 comportamientos de §9 contra el código actual (tabla en su
+propia sección) y decidir diferir la extensión de modelo (campo de cierre
+decisión/acción/aviso al paciente) a fase futura, con razón escrita — mismo
+criterio de cierre que ya usó `V15-ENCOUNTER-MODE-001` con sus 9
+comportamientos de §8. `V15-ENCOUNTER-MODE-001` (Fase 5) — CERRADA
+11-ago-2026 (cuarta y última rebanada: el Copiloto se pinta junto a los
+hechos que interpreta, §8 comportamiento #8). `V15-PATIENT-WORKSPACE-001`
+(Fase 4) — CERRADA 11-ago-2026 (ver secciones abajo). `V15-TODAY-001`
+(Fase 3), `V15-IA-001` y `V15-SHELL-GREYBOX-001` — cerradas antes, misma
+fecha.
 
 ### V15-IA-001 — CERRADA
 
@@ -1144,33 +1145,169 @@ vieran en sus tres puntos distintos, no siempre en el mismo. Arnés nuevo:
   `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8), que ya trata la integración
   Note→Rx→Orders→Instructions→Follow-up.
 
+## V15-RESULTS-CLOSURE-001 (Fase 6) — decisión de cierre y medición de §9 (11-ago-2026)
+
+**Decisión, con razón escrita:** NO se implementa el campo de cierre
+(decisión/acción/aviso al paciente) esta corrida. Es una extensión de
+MODELO (`TareaClinica` ganaría campos nuevos, con su propio formulario al
+cerrar) — cruza exactamente la línea que `§1` marca como "record the
+dependency; do not silently modify logic; escalate only if truly
+blocking": no es una decisión que un archivo de presentación deba tomar
+sin el dueño (¿un formulario obligatorio? ¿opcional? ¿qué pasa con las
+~8700 tareas que YA se cerraron sin ese dato?). Queda registrado como
+dependencia pendiente de decisión del dueño, no como olvido.
+
+**Medición de los 8 elementos de §9 contra el código actual** (mismo
+método que la tabla de 9 comportamientos de §8 en `V15-ENCOUNTER-MODE-001`):
+
+| Etapa (§9) | Estado | Evidencia |
+|---|---|---|
+| RESULT | **PASS** | La tarea existe — `progresoResultado()` la marca `hecha` siempre. |
+| SIGNIFICANCE | **PASS** | `prioridad`, obligatoria desde que la tarea nace. |
+| OWNER | **PASS** | `ownerUid`/`ownerNombre`, con su propia etapa `actual` cuando falta. |
+| REVIEW | **PASS** | La progresión de `estado` (aceptada→en_curso→completada) enseña revisión real. |
+| DECISION | **`sin_dato`, declarado** | No hay campo — ver decisión arriba. |
+| ACTION | **`sin_dato`, declarado** | Ídem. |
+| PATIENT COMMUNICATION | **`sin_dato`, declarado** | Ídem. |
+| CLOSED | **PASS** | `estado === 'cerrada'`. |
+| «status progression and next action, no tabla estática» | **PASS** | `ProgresoResultado` pinta las 8 etapas como pista, no un semáforo de 3; `siguientePaso()` ya daba «next action» desde antes de V15. |
+
+5 de 8 etapas con dato real, 3 declaradas `sin_dato` con razón visible en
+pantalla (itálica, no confundible con "hecha") — regla 5 de seguridad
+clínica aplicada, no un hueco sin explicar. Con la pista conectada
+(primera rebanada) y esta medición explícita, **`V15-RESULTS-CLOSURE-001`
+(Fase 6) queda CERRADA** — sigue `V15-FOLLOWUP-WORK-001` (Fase 7, §10).
+
+## V15-FOLLOWUP-WORK-001 (Fase 7, §10) — primera rebanada: agrupar `/pendientes` por estado de acción (11-ago-2026)
+
+**Lo que pide §10:** «Group by action state, not by arbitrary module: needs
+review · waiting on patient · waiting on result · needs scheduling · needs
+communication · needs signature · overdue · closed recently.» Antes de esta
+corrida, todo lo que no escalaba (crítico sin dueño / vencido, ya cubierto
+por `debeEscalar`) caía en una sola sección plana «Abiertos (n)» — el
+médico tenía que leerla entera para saber QUÉ está esperando cada tarea.
+
+- **`src/lib/tareas-clinicas/estado-de-accion.ts`** (módulo puro, nuevo) —
+  `estadoDeAccion()` deriva, de `tipo`/`estado`/`venceEn` (sin campo nuevo),
+  CINCO de las ocho categorías de §10 con señal real e inequívoca:
+  `vencida` (overdue, `estaVencida()`), `necesita_revision` (needs review:
+  `tipo === 'resultado_por_revisar'` O `estado === 'completada'`),
+  `esperando_resultado` (waiting on result: `tipo === 'estudio_pendiente'`),
+  `necesita_agendar` (needs scheduling: `tipo === 'seguimiento'`),
+  `esperando_paciente` (waiting on patient: `tipo === 'receta_por_entregar'`,
+  cuyo propio texto de creación en `derivar.ts` dice «se cierra cuando el
+  paciente la tiene»). **`cerrada_reciente` (closed recently) queda
+  deliberadamente sin construir esta rebanada**: `tareasVivas()` EXCLUYE a
+  propósito las tareas cerradas (comentario en `firestore.ts`: «Las tareas
+  VIVAS»), así que mostrarlo exige una lectura nueva a Firestore, no sólo
+  clasificar lo que ya está en memoria — candidata real para la siguiente
+  rebanada, no un olvido. **`needs communication` y `needs signature` no
+  tienen campo ni tipo que las distinga hoy** — inventar esa distinción
+  habría sido la regla 5 de seguridad clínica rota en código; caen en
+  `otros`, declarado, igual criterio que ya usó `progreso-resultado.ts` con
+  `sin_dato`.
+- **`pendientes/page.tsx`** — `resto` (lo que NO escala) ya no se pinta como
+  una sección «Abiertos» única: se reparte con `ORDEN_ESTADO_DE_ACCION`
+  (filtrando `vencida`, que ya vive en «Requiere atención» arriba) en hasta
+  cinco secciones reales. `urgentes`/`debeEscalar` NO se tocaron — la
+  escalación sigue exactamente igual que antes de esta corrida.
+- Guardianes nuevos, probados al revés (mismo patrón que sus hermanos de
+  fase): `src/__tests__/estado-de-accion.test.ts` (el módulo puro, 12
+  casos, incluido que vencida gana sobre cualquier otra señal y que
+  `reconciliacion_medicamento`/`indicacion_paciente`/`otra` caen en `otros`
+  en vez de forzarse a una de las cinco) y
+  `src/__tests__/v15-pendientes-agrupa-por-estado-de-accion.test.ts` (que
+  la página importa y delega en el módulo puro, y que «Abiertos (» ya no
+  existe). Verificado contra `git stash` del cambio en `page.tsx`: 4 de
+  los 5 casos de este último fallan contra el árbol previo (el quinto,
+  `debeEscalar` sin tocar, pasa igual porque protege algo que no se tocó).
+- `scripts/design/sembrar-capturas.mjs` ganó dos tareas más (`receta_por_entregar`
+  y `otra`, ninguna escalando) para que los grupos «Esperando al paciente»
+  y «Otros pendientes» tuvieran algo real que enseñar — sin ellas, de las
+  cinco tareas ya sembradas dos escalan (vencida / crítica-sin-dueño) y las
+  otras tres sólo cubren tres de los cinco grupos no-vencidos.
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore reales +
+`sembrar-capturas.mjs` + build de producción + `npm start`). Arnés nuevo:
+`scripts/design/capturar-estado-de-accion-v15.mjs`. Capturas y medición en
+`docs/design/capturas/v15-estado-de-accion/` (desktop 1440 + mobile 390):
+
+- **Los seis encabezados reales, con las tareas exactas que les
+  corresponden — medido en el DOM, no supuesto**: «Requiere atención (2)»
+  → Confirmar metformina + Urocultivo; «Necesita revisión (1)» → Perfil
+  lipídico; «Esperando resultado (1)» → Espirometría; «Necesita agendar
+  (1)» → Seguimiento de EPOC; «Esperando al paciente (1)» → Entregar
+  receta; «Otros pendientes (1)» → Llamar a laboratorio externo. Coincide
+  exactamente con lo que predice `estadoDeAccion()` para cada fixture
+  sembrado.
+- **Axe, 0 violaciones nuevas**: `landmark-unique` (2, desktop) y `region`
+  (2-3) — mismo fingerprint preexistente que TODAS las capturas V15
+  anteriores (cajón móvil de `FlowRail`, banners fuera de landmark).
+  Ninguna violación de contraste en los encabezados nuevos.
+- **Consola**: el warning ya familiar de reconexión de Firestore del
+  emulador y el `401` de auditoría ya documentado en
+  `v15-instrument-strip-paciente` (artefacto del arnés de emuladores, no de
+  este cambio) — sin errores nuevos.
+- **Móvil**: los seis grupos se apilan sin desbordar ni requerir CSS nuevo
+  — la agrupación es puramente semántica (secciones/encabezados que ya
+  existían como patrón), confirmado con la captura visual.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8798 pasan (17 nuevos), 1 fallo PRE-EXISTENTE y
+  ambiental (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por
+  el proxy de red del contenedor — no relacionado, mismo fallo documentado
+  en todas las corridas previas de esta rama).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila (con `.env.local` demo de emuladores, recreado
+  esta corrida porque `node_modules`/`.env.local` no venían en el
+  contenedor — `npm ci` corrido primero) — las 96 rutas del build salen
+  limpias, ninguna nueva por este cambio.
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/pendientes` subió de 271
+  a 297 líneas de fuente por la agrupación nueva).
+
 ## Siguiente tarea exacta
 
-Segunda rebanada de `V15-RESULTS-CLOSURE-001` (Fase 6): decidir y, si aplica,
-implementar el campo de cierre (decisión/acción/aviso al paciente) para
-tareas de resultado — ver "Pendiente de esta misma fase" arriba — O, si se
-decide diferir esa extensión de modelo, medir si con la pista de progreso ya
-construida los 8 comportamientos de §9 se pueden dar por resueltos o
-legítimamente diferidos (mismo criterio de cierre que usó
-`V15-ENCOUNTER-MODE-001` con sus 9 comportamientos de §8) y pasar a
-`V15-FOLLOWUP-WORK-001` (Fase 7, §10).
+Segunda rebanada de `V15-FOLLOWUP-WORK-001` (Fase 7): construir
+`cerrada_reciente` (closed recently) — una lectura nueva a Firestore
+(`where('estado', '==', 'cerrada')`, filtrado por `cerradaEn` reciente en
+cliente, mismo patrón sin-`orderBy` que ya usa `tareasVivas()` para evitar
+depender de un índice compuesto) y su sección al final de `/pendientes`,
+colapsada o con "ver más" para no competir visualmente con lo abierto. O,
+si se decide que "closed recently" no aporta suficiente valor frente a su
+costo (una lectura más en cada carga de una pantalla que ya es
+la más visitada del médico), medir si los 8 elementos de §10 se pueden dar
+por resueltos/diferidos con lo ya construido (mismo criterio de cierre que
+ya usaron Fases 5 y 6) y pasar a `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8).
 
-**Deuda anotada, no bloqueante (heredada de Fase 5, sigue sin resolverse,
-candidata a fases futuras — no se repite su detalle si ya está arriba):**
+**Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
+resolverse, candidata a fases futuras — no se repite su detalle si ya está
+arriba):**
 - `BottomNav.tsx` no se suscribe a `EVENTO_GRABANDO` → `V15-MOBILE-001`
   (Fase 9).
 - `landmark-unique` (cajón móvil `FlowRail`) y `region` (banners fuera de
   landmark) → `V15-A11Y-001` (Fase 13).
 - `color-contrast` (encabezado teal de "Análisis basado en evidencia",
   3.03:1) y `heading-order` (`<h4>Sus medicamentos</h4>` de la hoja para el
-  paciente) — hallazgos NUEVOS de esta corrida, en componentes que
-  `V15-ENCOUNTER-MODE-001` no tocó → también `V15-A11Y-001`.
+  paciente) → también `V15-A11Y-001`.
 - La diarización completa (`/api/expediente/transcribir-diarizado`) cuelga
   en `audio.estado === 'subiendo'` en este sandbox concreto incluso con la
-  respuesta del proveedor mockeada — causa no confirmada (sospecha: intento
-  de subida a Firebase Storage sin emulador de Storage levantado). Cualquier
-  arnés futuro que necesite llegar a `audio.estado === 'listo'` debe
-  investigarlo primero o levantar también el emulador de Storage.
+  respuesta del proveedor mockeada — causa no confirmada. Cualquier arnés
+  futuro que necesite llegar a `audio.estado === 'listo'` debe investigarlo
+  primero o levantar también el emulador de Storage.
+- El campo de cierre (decisión/acción/aviso al paciente) de §9 sigue sin
+  construirse — decisión de modelo pendiente del dueño, ver arriba, no
+  bloqueante para cerrar Fase 6.
+- Esta corrida encontró `node_modules` y `.env.local` ausentes del
+  contenedor al arrancar — `npm ci` (45s) y un `.env.local` demo
+  (`NEXT_PUBLIC_FIREBASE_EMULATORS=1`, proyecto `demo-nexusmed-test`)
+  resolvieron ambos sin tocar nada del repositorio (`.env.local` está en
+  `.gitignore`). Anotado por si la próxima corrida ve el mismo estado
+  limpio del contenedor y quiere ir directo al mismo arreglo.
 
 ## Reglas de la corrida (recordatorio)
 
