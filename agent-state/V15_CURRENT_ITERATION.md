@@ -95,3 +95,15 @@ nuevo fuera de fase.
 - Lógica clínica/negocio congelada: ningún cambio de esta corrida tocó una
   ruta de API, una regla de Firestore ni un cálculo clínico.
 - Móvil: `V15-MOBILE-001` (Fase 9) sigue pendiente; `BottomNav` no se tocó.
+
+
+## Nota de CI — PR #292 (11-ago-2026)
+
+`e2e-publico` (A3 · /operaciones anti-clickjacking) sale rojo en el PR y es
+**esperado**, no un defecto: `e2e/seguridad.spec.ts` corre contra
+PRODUCCIÓN a propósito (sin `PLAYWRIGHT_BASE_URL` en el job), y `/operaciones`
+todavía no está desplegada ahí. Mismo patrón que REG-054/REG-062 en
+`docs/audit/regression-ledger.md`: «CLOSED en código, PENDIENTE DE
+DESPLIEGUE». Verificado local (`next build && next start`) que la cabecera
+sale correcta. No tocar el workflow para «arreglarlo» — se resuelve solo al
+fusionar y desplegar. Detalle en el comentario del PR.
