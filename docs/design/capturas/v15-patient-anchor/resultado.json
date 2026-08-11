@@ -1,0 +1,53 @@
+{
+  "ancla": {
+    "texto": "A Aurelio Domínguez Peña 72 años · Masculino · +52 55 5555 0101 Consulta sin cerrar — continuar Alergias: Penicilina (rash generalizado, 2019) Último cambio: Nota de Seguimiento · hace 10 días",
+    "hayContinuar": true
+  },
+  "sticky": {
+    "topAntesDeScroll": 106.5,
+    "topDespuesDeScroll600px": 106.5,
+    "siguePegado": true
+  },
+  "axe": {
+    "desktop": [
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ],
+    "mobile": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 3
+      }
+    ]
+  },
+  "consola": {
+    "desktop": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+    ],
+    "mobile": [
+      "[2026-08-11T10:54:57.301Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "[auditoria] asiento RECHAZADO y descartado expediente_lectura 401"
+    ]
+  }
+}

@@ -60,6 +60,10 @@ async function main() {
     await page.goto(`${BASE}/expediente/${PATIENT_ID}`, { waitUntil: 'load' })
     await page.waitForSelector('.nx-patient-anchor', { timeout: 15000 }).catch(() => null)
     await page.waitForTimeout(1500)
+    // Primer login del contexto: el tour de bienvenida (OnboardingTour) tapa
+    // la pantalla. Se descarta para que la captura muestre el ancla, no el tour.
+    await page.getByText('Saltar', { exact: true }).click({ timeout: 2000 }).catch(() => null)
+    await page.waitForTimeout(300)
 
     if (vp.nombre === 'desktop') {
       resultado.ancla = await page.evaluate(() => {
@@ -70,16 +74,20 @@ async function main() {
           hayContinuar: /Consulta sin cerrar/.test(ancla.innerText),
         }
       })
-      // Verificación real de "SIEMPRE visible": se hace scroll y se comprueba
-      // que el ancla sigue dentro del viewport (no que el CSS lo DIGA).
+      // Verificación real de "SIEMPRE visible": se compara la posición del
+      // ancla ANTES y DESPUÉS de hacer scroll dentro de <main> (el contenedor
+      // de scroll real, `overflowY: auto`). Si no fuera sticky, el ancla se
+      // movería hacia arriba junto con el contenido al hacer scroll — aquí se
+      // comprueba que NO se mueve (no que el CSS lo DIGA).
+      const antes = await page.evaluate(() => document.querySelector('.nx-patient-anchor')?.getBoundingClientRect().top ?? null)
       await page.evaluate(() => { document.querySelector('main')?.scrollBy(0, 600) })
       await page.waitForTimeout(300)
-      resultado.sticky = await page.evaluate(() => {
-        const el = document.querySelector('.nx-patient-anchor')
-        if (!el) return null
-        const r = el.getBoundingClientRect()
-        return { top: r.top, dentroDelViewport: r.top >= 0 && r.top < 100 }
-      })
+      const despues = await page.evaluate(() => document.querySelector('.nx-patient-anchor')?.getBoundingClientRect().top ?? null)
+      resultado.sticky = {
+        topAntesDeScroll: antes,
+        topDespuesDeScroll600px: despues,
+        siguePegado: antes !== null && despues !== null && Math.abs(antes - despues) < 2,
+      }
     }
 
     await page.screenshot({ path: path.join(DESTINO, `expediente--${vp.nombre}.png`), fullPage: false })

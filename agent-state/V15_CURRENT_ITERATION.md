@@ -207,32 +207,77 @@ labs/etc., §7) y Active Patient Canvas (abrir un evento/tarea/nota sin
 perder el contexto del paciente). Esta corrida sólo entregó el Patient
 Anchor — es una rebanada real y verificable, no la fase completa.
 
-### Verificación en navegador real — EN CURSO al momento de este commit
+### Verificación en navegador real — CERRADA (11-ago-2026)
 
 Mismo método que las corridas anteriores (emuladores Auth/Firestore +
 siembra sintética + build de producción + `npm start`). Arnés nuevo:
 `scripts/design/capturar-patient-anchor-v15.mjs` (navega a
-`/expediente/pac-aurelio-dominguez`, comprueba `.nx-patient-anchor` en el
-DOM, hace scroll y confirma que el ancla sigue en el viewport — la parte
-de "SIEMPRE visible" verificada como comportamiento, no sólo como CSS
-declarado — y corre axe + captura desktop/móvil). El build de producción
-(`next build`, requerido para que `npm start` sirva la app con las mismas
-condiciones que las corridas previas) estaba en curso cuando se hizo este
-commit; **si esta entrada no trae un bloque de resultados de captura
-debajo, la verificación de navegador quedó `VISUAL_VERIFICATION: BLOCKED`
-para esta corrida** — la corrida siguiente debe completarla ANTES de tocar
-la Clinical Spine, no proceder a más UI sin cerrar esto primero.
+`/expediente/pac-aurelio-dominguez`, un paciente sintético con una nota
+firmada y una en borrador sembradas para esta verificación — ver siembra
+ad-hoc, no forma parte del repo). Capturas en
+`docs/design/capturas/v15-patient-anchor/` (desktop 1440 + mobile 390):
+
+- **El ancla real, con datos reales**: `Aurelio Domínguez Peña · 72 años ·
+  Masculino · +52 55 5555 0101 · Consulta sin cerrar — continuar · Alergias:
+  Penicilina (rash generalizado, 2019) · Último cambio: Nota de Seguimiento
+  · hace 10 días`. Las cinco piezas de §7 (identidad, edad/sexo, alergia,
+  encuentro actual, último cambio) están en el DOM real, no sólo en el JSX.
+- **"SIEMPRE visible" verificado como COMPORTAMIENTO**: se leyó
+  `getBoundingClientRect().top` del ancla antes y después de hacer scroll
+  600px dentro de `<main>` — 106.5px en los dos casos (`siguePegado: true`).
+  Si no fuera `sticky` de verdad, el segundo valor habría sido muy negativo.
+- **`page-has-heading-one` — DEFECTO ENCONTRADO Y ARREGLADO por este mismo
+  arnés**: la primera captura (antes de este hallazgo) mostró una violación
+  axe nueva que NO estaba en la línea base: al mover la identidad del
+  paciente de un `<h1 className="t-h1">` a un `<div>` dentro del ancla, la
+  página se quedó sin su único encabezado de nivel 1. Arreglado devolviendo
+  el nombre del paciente a un `<h1>` (ahora dentro de `PatientAnchor.tsx`).
+  Recapturado: la violación desaparece, quedan sólo las dos preexistentes.
+- **Axe, 0 violaciones nuevas**: `landmark-unique` (2 nodos, el `<aside>`
+  del cajón móvil de `FlowRail`) y `region` (2-3 nodos, el banner de prueba
+  gratuita) — **mismo fingerprint exacto** que
+  `docs/design/capturas/v15-today-continuidad/resultado.json`: ninguna de
+  las dos vive en `.nx-patient-anchor` (confirmado inspeccionando los
+  `target` de axe), y esta corrida no tocó ni `FlowRail.tsx` ni el banner.
+- **Móvil**: hallazgo de pulido encontrado por la propia captura — el CTA
+  "Consulta sin cerrar — continuar" compartía fila con el nombre partido en
+  varias líneas y quedaba apretado a media altura. Arreglado con una regla
+  `@media (max-width: 480px) { flex-basis: 100% }` sobre el botón (mismo
+  patrón que `exp-actions` en la página, DEBT-006): pasa a su propia fila
+  completa sin tocar el DOM ni el layout de escritorio.
+- **Consola**: el único hallazgo nuevo (no visto en capturas V15 previas) es
+  un `401 Unauthorized` en la escritura de bitácora (`logAudit` de
+  `login_exitoso`/`expediente_lectura`) contra los emuladores — código que
+  esta corrida NO tocó (vive en `layout.tsx` y en el `useEffect` de
+  `expediente/[patientId]/page.tsx` desde antes de V15). Es un artefacto del
+  arnés de emuladores (el token del emulador no valida igual contra la ruta
+  de auditoría que un ID token real), no una regresión de este cambio — se
+  deja anotado para quien retome el arnés de capturas en general, no se
+  investiga más aquí por no salirse de fase.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8677 pasan, 1 skip, 0 fallos (dos fallos vistos en un
+  corrida intermedia — `ops-timeout-y-punto-ciego` y `la-agenda-es-un-riel`
+  — resultaron ser contención de recursos al correr la suite completa en
+  paralelo: ambos pasan en aislamiento y en la corrida completa final).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: bajó de verdad
+  (`tamanosFueraDeEscala` 2007→2004, `radiosFueraDeEscala` 636→635),
+  resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores) igual que las
+  corridas anteriores.
 
 ## Siguiente tarea exacta
 
-Completar la verificación en navegador real del Patient Anchor (arriba) si
-no quedó cerrada en esta corrida. Después, seguir con `V15-PATIENT-WORKSPACE-001`:
-Clinical Spine + Active Patient Canvas (§7). Es lo que permite que
-`InstrumentStrip` pinte «paciente actual» sin inventar un selector nuevo
-fuera de fase, y lo que `ContinuidadPanel` necesitaría si algún día
-quisiera enlazar directo a un evento en vez de sólo al expediente.
-PREPARED BY NEXUS (quinta zona de Hoy) sigue bloqueada hasta que exista un
-hook real de «contexto preparado para el próximo paciente» — no antes.
+`V15-PATIENT-WORKSPACE-001`: Clinical Spine + Active Patient Canvas (§7).
+Es lo que permite que `InstrumentStrip` pinte «paciente actual» sin
+inventar un selector nuevo fuera de fase, y lo que `ContinuidadPanel`
+necesitaría si algún día quisiera enlazar directo a un evento en vez de
+sólo al expediente. PREPARED BY NEXUS (quinta zona de Hoy) sigue bloqueada
+hasta que exista un hook real de «contexto preparado para el próximo
+paciente» — no antes.
 
 **Deuda anotada, no bloqueante:** dos violaciones axe moderadas
 preexistentes en `/dashboard` (landmark duplicado del cajón móvil de

@@ -62,9 +62,11 @@ export function PatientAnchor({
           {(patient?.nombre ?? 'P').charAt(0).toUpperCase()}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+          {/* La página no tiene otro <h1>: el nombre del paciente es el
+              encabezado de nivel 1 de todo el expediente (page-has-heading-one). */}
+          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
             {patient?.nombre ?? 'Paciente'}
-          </div>
+          </h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
             {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
             {patient?.telefono ? ` · ${patient.telefono}` : ''}
@@ -72,9 +74,10 @@ export function PatientAnchor({
         </div>
         {encuentroActivo && (
           <button
+            className="nx-anchor-continuar"
             onClick={() => onContinuarEncuentro(encuentroActivo.id)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
+              display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
               background: 'color-mix(in srgb, var(--amber) 12%, transparent)',
               border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)',
               color: 'var(--amber)', borderRadius: 'var(--r-pill)', padding: '6px 12px',
@@ -85,6 +88,15 @@ export function PatientAnchor({
           </button>
         )}
       </div>
+      {/* Bajo 480px el nombre puede partirse en varias líneas: el CTA de
+          "continuar" comparte fila con un bloque de ancho variable y queda
+          apretado a media altura. Su propia fila completa evita eso sin
+          tocar el orden DOM ni el layout de escritorio. */}
+      <style>{`
+        @media (max-width: 480px) {
+          .nx-anchor-continuar { flex-basis: 100%; }
+        }
+      `}</style>
 
       {/* Ausencia de lectura ≠ ausencia de alergia (regla de seguridad clínica
           §4): si el paciente no se pudo LEER, se dice aquí en vez de pintar el
