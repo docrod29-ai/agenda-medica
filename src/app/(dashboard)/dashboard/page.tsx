@@ -1,58 +1,45 @@
 'use client'
 /**
- * HOY — la pantalla de inicio del médico.  V10 · HOME-001.
+ * HOY — la pantalla de inicio del médico.  V10 · HOME-001 → V15 · TODAY-001.
  *
- * ── LO QUE ERA, Y POR QUÉ NO PODÍA QUEDARSE ─────────────────────────────────
+ * ── LO QUE ERA EN V10, PARA NO REPETIRLO ────────────────────────────────────
  *
- * Era un tablero de KPIs: cuatro tarjetas en fila, cada una con su circulito de
- * icono y su color propio (verde, naranja, rojo, azul), sobre una rejilla
- * `1fr 300px` sin una sola consulta de medios.
+ * Un tablero de KPIs (cuatro tarjetas con circulito de icono sobre una rejilla
+ * `1fr 300px` fija) que no se apilaba en teléfono, repetía «Citas hoy» dos
+ * veces y duplicaba la barra lateral con «Accesos rápidos». El detalle de esa
+ * medición vive en `src/__tests__/la-pantalla-de-hoy-no-es-un-tablero.test.ts`,
+ * que sigue vigente: esta pantalla NO vuelve a ser eso.
  *
- * Tres cosas medidas, no opinadas:
+ * ── EL MODELO DE ZONAS DE V15 (§6 del master loop) ──────────────────────────
  *
- * 1. **En un teléfono no se apilaba.** `1fr 300px` es fijo: a 390 px de ancho
- *    la columna derecha se salía de la pantalla y quedaba cortada, y el título
- *    «Agenda de hoy» se partía en tres renglones con «Ver todas» metido dentro.
- *    Eso es escritorio encogido, que es exactamente lo que la constitución V10
- *    prohíbe en su regla 39.
+ * `docs/ai/NEXUSMED_MASTER_LOOP_V15_STRUCTURAL_UIUX_REARCHITECTURE.md` pide
+ * que Hoy sea un lienzo operativo, no un dashboard, con cinco zonas. Por orden
+ * de urgencia real —lo que hace falta a las nueve de la mañana antes que lo
+ * que puede esperar a media tarde—, quedan así en esta pantalla:
  *
- * 2. **El mismo número salía dos veces**: «Citas hoy» en el encabezado y otra
- *    vez en la primera tarjeta. Encabezado duplicado, del detector §9.
+ *   1. **NOW** (`ProxHero`) — quién sigue: la próxima/actual cita, con su
+ *      botón de iniciar consulta.
+ *   2. **NEEDS ATTENTION** (`PanelPendientes`) — cobros, membresías y citas
+ *      por confirmar de HOY. Fuente: `src/lib/workflow.ts`.
+ *   3. **TODAY** (sección «Agenda de hoy») — el horario del día, de arriba
+ *      abajo, con el recuento en una línea de texto.
+ *   4. **CONTINUITY** (`ContinuidadPanel`) — lo que cruzó de una consulta
+ *      anterior y sigue sin cerrarse: resultado por revisar, seguimiento,
+ *      reconciliación de medicamento. Fuente: `tareasVivas()` de
+ *      `src/lib/tareas-clinicas/firestore.ts` — la MISMA que usa `/pendientes`,
+ *      no una copia. Nuevo en V15-TODAY-001.
  *
- * 3. **«Accesos rápidos» repetía la barra lateral**: calendario, lista de
- *    espera, pacientes y configuración ya están, los cuatro, a un clic en el
- *    menú de la izquierda. Navegación duplicada, del detector §9.
- *
- * ── LO QUE ES AHORA ─────────────────────────────────────────────────────────
- *
- * §14 del charter dice, con estas palabras, que **no se construya un tablero de
- * KPIs genérico para médicos**, y que la pantalla de inicio conteste:
- *
- *     ¿qué pasa hoy? · ¿quién sigue? · ¿qué necesita atención? ·
- *     ¿qué puedo continuar? · ¿qué preparó Ausculta?
- *
- * El orden de la pantalla es ahora ese, por urgencia:
- *
- *   1. **Quién sigue** — la próxima cita, arriba del todo, con su botón de
- *      iniciar consulta.  Es lo único que el médico necesita a las 9:00.
- *   2. **Qué necesita atención** — la cola de pendientes que ya existía.
- *   3. **Qué pasa hoy** — la agenda, a todo el ancho, y el recuento del día
- *      convertido en **una línea de texto** dentro de su encabezado.
- *
- * Las cuatro tarjetas se van.  El recuento sigue estando —no se pierde dato—
- * pero ocupa un renglón en vez de una banda de 130 px, y sólo lleva color lo
- * que **pide una acción hoy**: las citas por confirmar.  Los que no asistieron
- * son un hecho del pasado, y van en gris.
- *
- * ── LO QUE ESTA PANTALLA TODAVÍA NO CONTESTA ────────────────────────────────
- *
- * De las cinco preguntas de §14 quedan dos sin fuente de datos: «qué puedo
- * continuar» (notas en borrador sin firmar) y «qué preparó Ausculta».  No hay
- * hook que las lea.  Quedan declaradas en `agent-state/V10_BACKLOG.json` en vez
- * de rellenarse con algo que parezca la respuesta sin serlo.
+ * **PREPARED BY NEXUS queda deliberadamente sin construir esta corrida.** No
+ * existe todavía un hook que lea «contexto preparado para el próximo
+ * paciente» — ni en `src/lib` ni en `src/hooks`. Inventar uno para llenar la
+ * quinta zona sería fabricar una fuente de verdad nueva fuera de la fase que
+ * le corresponde (V15-PATIENT-WORKSPACE-001, Fase 4, es dueña de qué significa
+ * «paciente actual»). Se declara aquí, no se rellena con un placeholder — el
+ * mismo criterio que ya usó `InstrumentStrip` para «paciente actual».
  */
 import { useMemo, useEffect } from 'react'
 import { PanelPendientes } from '@/components/PanelPendientes'
+import { ContinuidadPanel } from '@/components/ContinuidadPanel'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
@@ -205,6 +192,11 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* 4 · CONTINUIDAD — lo que cruzó de una consulta anterior. Se pinta
+          sola y desaparece sola cuando no hay nada abierto: no es un bloque
+          fijo con un estado vacío que ocupe espacio a diario. */}
+      <ContinuidadPanel />
     </div>
   )
 }

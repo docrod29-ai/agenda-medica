@@ -4,8 +4,8 @@
 
 ## Iteración en curso
 
-`V15-IA-001` + `V15-SHELL-GREYBOX-001` (arrancado en la misma corrida, per
-`agent-state/V15_CURRENT_ITERATION.md` anterior) — cerrados 11-ago-2026.
+`V15-TODAY-001` (Fase 3) — cerrada 11-ago-2026. `V15-IA-001` +
+`V15-SHELL-GREYBOX-001` cerradas antes, misma fecha.
 
 ### V15-IA-001 — CERRADA
 
@@ -77,15 +77,100 @@ Arnés nuevo: `scripts/design/capturar-flow-rail-v15.mjs`. Capturas en
   añadida a `src/lib/security/rutas-privadas.ts`: zona autenticada, hereda
   cabecera anti-clickjacking igual que cualquier pantalla del dashboard).
 
+### V15-TODAY-001 — CERRADA (zona CONTINUITY añadida a `/dashboard`)
+
+- `/dashboard` ya tenía NOW (`ProxHero`) · NEEDS ATTENTION (`PanelPendientes`)
+  · TODAY (sección «Agenda de hoy») desde V10-HOME-001. Esta corrida añadió la
+  cuarta zona que faltaba de las cinco de §6:
+  **`src/components/ContinuidadPanel.tsx`** — CONTINUITY: lo que cruzó de una
+  consulta anterior y sigue sin cerrarse (resultado por revisar, seguimiento,
+  reconciliación de medicamento). Lee `tareasVivas()` de
+  `src/lib/tareas-clinicas/firestore.ts` — la MISMA fuente que ya usa
+  `/pendientes`, no una copia (invariante «una entidad, una fuente de
+  verdad» de la carta operativa). Vista previa de 5, ordenada por
+  `ordenWorklist`, con «Ver todo» hacia `/pendientes`. Se pinta sola y
+  desaparece sola cuando no hay nada abierto — no es un bloque fijo con
+  estado vacío.
+- **PREPARED BY NEXUS queda deliberadamente sin construir.** No existe hook
+  que lea «contexto preparado para el próximo paciente» (mismo hallazgo que
+  ya declaró `InstrumentStrip` para «paciente actual»). Se documenta en la
+  cabecera de `dashboard/page.tsx` en vez de rellenarse con un placeholder —
+  le corresponde a `V15-PATIENT-WORKSPACE-001` decidir qué significa
+  «paciente actual» antes de que Nexus pueda preparar algo sobre él.
+- Guardián nuevo, probado al revés (igual patrón que
+  `v15-flow-rail-cableado.test.ts`):
+  `src/__tests__/v15-continuidad-en-hoy.test.ts` — falla si
+  `ContinuidadPanel` se escribe y no se importa/renderiza en
+  `dashboard/page.tsx`, y falla si el panel abriera su propia consulta a
+  `tareas_clinicas` en vez de reusar `tareasVivas()` (duplicaría la fuente de
+  verdad). `la-pantalla-de-hoy-no-es-un-tablero.test.ts` (V10) sigue vigente
+  sin tocarse: el orden que ya probaba (`ProxHero` → `PanelPendientes` →
+  «Agenda de hoy») no cambió, sólo se añadió una zona después.
+- `scripts/design/sembrar-capturas.mjs` ahora siembra 3 `tareas_clinicas`
+  sintéticas (urocultivo vencido sin dueño, seguimiento de EPOC, reconciliación
+  crítica de metformina) — sin esto el arnés de capturas no tenía nada que
+  mostrar en la zona nueva.
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que V15-SHELL-GREYBOX-001: emuladores Auth/Firestore + build de
+producción + `npm start` contra los emuladores + siembra sintética. Arnés
+nuevo: `scripts/design/capturar-today-continuidad-v15.mjs`. Capturas en
+`docs/design/capturas/v15-today-continuidad/` (desktop 1440 + mobile 390):
+
+- Las 4 zonas presentes hoy se confirman en el DOM real: NOW (`Próxima cita`
+  — condicional, no apareció en esta corrida porque no había cita futura a la
+  hora real de la captura, comportamiento existente sin cambio), NEEDS
+  ATTENTION (`Siguiente acción`), TODAY (`Agenda de hoy`), CONTINUITY (`Sigue
+  abierto de antes`) con sus 3 filas sembradas, en el orden correcto y con el
+  escalamiento real de `debeEscalar()` visible («Prioridad crítica sin nadie
+  asignado.», «Venció y nadie la tomó.»).
+- Móvil: la zona nueva se apila debajo de la agenda sin desbordar, mismo
+  patrón de fila que `.cita-fila` ya prueba a 560px.
+- `axe.json` (`resultado.json` en la carpeta de capturas): 2 violaciones
+  moderadas — **ninguna en `ContinuidadPanel`**. `landmark-unique` en el
+  `<aside>` del cajón móvil de `FlowRail` (mismo `aria-label` que la versión
+  de escritorio) y `region` en el banner de prueba gratuita (contenido fuera
+  de un landmark). Las dos son de componentes que esta corrida no tocó
+  (`FlowRail.tsx`, banner de suscripción) — **hallazgo nuevo, no regresión de
+  esta corrida**, y queda anotado para que una corrida futura de
+  accesibilidad lo tome; no se repara aquí para no salirse de fase.
+- Consola: un único warning de reconexión de Firestore del emulador
+  («Could not reach Cloud Firestore backend… offline mode»), igual familia
+  que el ya visto en V15-SHELL-GREYBOX-001 — no es una regresión de esta
+  corrida.
+
+### Compuertas
+
+- `npx vitest run`: 8669 pasan, 0 fallos (la falla ambiental
+  `ops-timeout-y-punto-ciego` de la corrida anterior no se repitió en ésta).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva — los dos
+  `fontSize` fuera de escala que introdujo el primer borrador de
+  `ContinuidadPanel.tsx` (11 y 11.5) se corrigieron a 10.5/12 de la escala
+  oficial antes de sellar, no se subió el techo.
+- `npm run build`: TypeScript compila limpio; con `.env.local` demo
+  (emuladores) el build completo también compila, `/dashboard` sigue
+  saliendo como ruta estática (`○`).
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/dashboard` cambió de
+  313 a 321 líneas de fuente) — el guardián `el-inventario-de-pantallas-no-miente`
+  lo exigía.
+
 ## Siguiente tarea exacta
 
-`V15-TODAY-001` (Fase 3): reconstruir `/dashboard` como lienzo operativo
-(NOW · TODAY · NEEDS ATTENTION · CONTINUITY · PREPARED BY NEXUS — §6), no
-dashboard de tarjetas KPI. Es la pantalla que hoy sigue siendo la misma de
-antes de V15 (el FlowRail la enruta, pero su contenido no cambió esta
-corrida). Después: `V15-PATIENT-WORKSPACE-001` (Fase 4), que es lo que
-permite que `InstrumentStrip` pinte paciente actual sin inventar un selector
-nuevo fuera de fase.
+`V15-PATIENT-WORKSPACE-001` (Fase 4): Patient Anchor + Clinical Spine +
+Active Patient Canvas (§7). Es lo que permite que `InstrumentStrip` pinte
+«paciente actual» sin inventar un selector nuevo fuera de fase, y lo que
+`ContinuidadPanel` necesitaría si algún día quisiera enlazar directo a un
+evento en vez de sólo al expediente. PREPARED BY NEXUS (quinta zona de Hoy)
+sigue bloqueada hasta que exista un hook real de «contexto preparado para el
+próximo paciente» — no antes.
+
+**Deuda anotada, no bloqueante:** dos violaciones axe moderadas
+preexistentes en `/dashboard` (landmark duplicado del cajón móvil de
+`FlowRail`, banner de suscripción fuera de landmark) — ver arriba. Candidata
+para `V15-A11Y-001` cuando llegue esa fase, o para una corrida que pase por
+`FlowRail.tsx`/el banner de todos modos.
 
 ## Reglas de la corrida (recordatorio)
 

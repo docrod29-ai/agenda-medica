@@ -272,7 +272,61 @@ async function main() {
     await db.doc(`clinics/${CLINIC_ID}/appointments/${id}`).set({ ...base, ...datos })
   }
 
-  console.log(`Sembrado: clínica ${CLINIC_ID}, médico ${CUENTA.email} (uid ${uid}), ${pacientes.length} pacientes, ${citas.length} citas (${HOY}).`)
+  // ── Tareas clínicas (cabos sueltos de consultas anteriores) ──────────
+  // Fuente de la zona CONTINUITY de V15-TODAY-001 (ContinuidadPanel, la
+  // misma tareasVivas() que ya lee /pendientes). Sin esto la zona no tiene
+  // nada que pintar en el arnés de capturas: se comporta como si no hubiera
+  // pendientes, y eso es exactamente lo que NO se quiere verificar.
+  const diaISO = (n) => new Date(hoy.getTime() + n * 86400000).toISOString()
+  const tareas = [
+    {
+      id: 'tarea-urocultivo-luzmaria',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-luzmaria-cervantes',
+      patientNombre: 'Luz María Cervantes Ochoa',
+      tipo: 'resultado_por_revisar',
+      titulo: 'Urocultivo — resultado disponible',
+      detalle: 'ITU de repetición; revisar sensibilidad antes de renovar esquema.',
+      prioridad: 'alta',
+      estado: 'solicitada',
+      creadaEn: diaISO(-2),
+      venceEn: diaISO(-1), // ya venció: se ve el escalamiento real, no sólo la lista
+      origen: 'laboratorio',
+    },
+    {
+      id: 'tarea-seguimiento-catalina',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-catalina-ibarra',
+      patientNombre: 'Catalina Ibarra Fuentes',
+      tipo: 'seguimiento',
+      titulo: 'Seguimiento de EPOC — revisar espirometría',
+      detalle: 'Control programado tras ajuste de esquema inhalado.',
+      prioridad: 'normal',
+      estado: 'solicitada',
+      creadaEn: diaISO(-14),
+      venceEn: diaISO(3),
+      origen: 'nota',
+    },
+    {
+      id: 'tarea-reconciliacion-aurelio',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-aurelio-dominguez',
+      patientNombre: 'Aurelio Domínguez Peña',
+      tipo: 'reconciliacion_medicamento',
+      titulo: 'Confirmar si la metformina sigue vigente',
+      detalle: 'El paciente mencionó suspenderla; no coincide con la lista activa.',
+      prioridad: 'critica',
+      estado: 'solicitada',
+      creadaEn: diaISO(-1),
+      origen: 'nota',
+    },
+  ]
+  for (const t of tareas) {
+    const { id, ...datos } = t
+    await db.doc(`clinics/${CLINIC_ID}/tareas_clinicas/${id}`).set(datos)
+  }
+
+  console.log(`Sembrado: clínica ${CLINIC_ID}, médico ${CUENTA.email} (uid ${uid}), ${pacientes.length} pacientes, ${citas.length} citas, ${tareas.length} tareas clínicas (${HOY}).`)
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1) })

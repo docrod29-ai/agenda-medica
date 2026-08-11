@@ -1,0 +1,40 @@
+{
+  "zonas": {
+    "NOW": false,
+    "NEEDS_ATTENTION": true,
+    "TODAY": true,
+    "CONTINUITY": true,
+    "continuidadFilas": [
+      "Confirmar si la metformina sigue vigente Reconciliar · Aurelio Domínguez Peña Prioridad crítica sin nadie asignado.",
+      "Urocultivo — resultado disponible Resultado · Luz María Cervantes Ochoa Venció y nadie la tomó.",
+      "Seguimiento de EPOC — revisar espirometría Seguimiento · Catalina Ibarra Fuentes"
+    ]
+  },
+  "axe": {
+    "desktop": [
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ],
+    "mobile": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 3
+      }
+    ]
+  },
+  "consola": {
+    "desktop": [
+      "[2026-08-11T09:45:10.019Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+    ],
+    "mobile": []
+  }
+}
