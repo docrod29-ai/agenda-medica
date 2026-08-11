@@ -4,7 +4,10 @@
 
 ## Iteración en curso
 
-`V15-ENCOUNTER-MODE-001` (Fase 5) — **CERRADA 11-ago-2026** (cuarta y última
+`V15-RESULTS-CLOSURE-001` (Fase 6, §9) — **EN CURSO**, primera rebanada
+cerrada 11-ago-2026: `ProgresoResultado` (la pista de las ocho etapas de §9)
+conectada en `/pendientes` para tareas de tipo resultado. Ver sección propia
+abajo. `V15-ENCOUNTER-MODE-001` (Fase 5) — **CERRADA 11-ago-2026** (cuarta y última
 rebanada: el Copiloto se pinta junto a los hechos que interpreta, §8
 comportamiento #8). Los 9 comportamientos de §8 quedan re-medidos contra el
 código actual y resueltos o legítimamente diferidos — ver sección propia
@@ -1012,40 +1015,145 @@ hechos que interpreta (§8.8). Ningún cambio de esta fase tocó
 una ruta de API ni una regla de Firestore — presentación/estructura
 únicamente, lógica clínica congelada.
 
+## V15-RESULTS-CLOSURE-001 (Fase 6, §9) — EN CURSO, primera rebanada: `ProgresoResultado` en `/pendientes`
+
+**Decisión tomada esta corrida, con razón escrita (no era obvia):** §9 pide
+un "work queue" — no exige por sí solo una ruta nueva. Añadir un sexto
+destino al `FlowRail` para "Resultados" habría violado `§14` (≤5 destinos
+primarios, ya cerrado por `V15-SHELL-GREYBOX-001`). `/pendientes`
+(WORK/FOLLOW-UP) YA es una cola de trabajo real (agrupa por escalamiento,
+no una tabla) y YA trata `estudio_pendiente`/`resultado_por_revisar` como
+tipos de primera clase (`ETIQUETA_TIPO`). El gap real medido contra §9 no
+era "falta una pantalla": cada tarjeta de resultado sólo mostraba UN botón
+de "siguiente paso" (3 estados visibles) sin exponer las ocho etapas de §9
+ni decir cuáles de ellas el sistema ni siquiera registra. Se construyó AHÍ,
+no en una ruta nueva. `V15-FOLLOWUP-WORK-001` (Fase 7, siguiente en la
+secuencia tras cerrar esta) es quien reorganiza TODO `/pendientes` por
+estado de acción (§10); esta rebanada no invade esa fase, sólo hace visible
+la progresión de resultado sobre la estructura de tarjeta que ya existe.
+
+- **`src/lib/tareas-clinicas/progreso-resultado.ts`** (módulo puro, nuevo)
+  — `progresoResultado()` mapea una `TareaClinica` a las ocho etapas de §9.
+  **Hallazgo estructural, no un detalle de implementación**: sólo CINCO de
+  las ocho tienen dato real hoy (RESULT, SIGNIFICANCE vía `prioridad`,
+  OWNER vía `ownerUid`, REVIEW vía la progresión de `estado`, CLOSED vía
+  `estado === 'cerrada'`). DECISION, ACTION y PATIENT COMMUNICATION **no
+  tienen campo propio** — el propio modelo (`POR_QUE_COMPLETADA_NO_ES_CERRADA`
+  en `modelo.ts`) dice que "cerrar" es hoy el único acto y abarca las tres
+  de golpe, sin registrar cada una por separado. La función las marca
+  `sin_dato` SIEMPRE, cerrada o no la tarea — inventarlas como "hecha" en
+  cuanto se cierra habría sido la regla 5 de seguridad clínica rota en
+  código ("señalar de menos, nunca de más"). Es exactamente el mismo
+  criterio que ya usó `InstrumentStrip` con "paciente actual" y `dashboard`
+  con "PREPARED BY NEXUS": declarar la ausencia, no rellenarla.
+- **`src/components/tareas/ProgresoResultado.tsx`** — pinta las ocho
+  etiquetas como píldoras (`var(--r-pill)`, escala de fuente oficial
+  10.5px): hecha/actual con color de texto normal/`--teal`, pendiente y
+  sin_dato en `--text3`, sin_dato ADEMÁS en itálica para que no se confunda
+  con "pendiente" a simple vista. `role="group"` con `aria-label` que lee
+  la progresión completa para lector de pantalla (no sólo color).
+- **`pendientes/page.tsx`** — la pista se pinta SÓLO cuando
+  `esTareaDeResultado(t.tipo)` — nunca para seguimiento, receta,
+  reconciliación u "otra": no son "un resultado" en el sentido de §9 y
+  pintarles la pista sugeriría una progresión que no aplica (regla 5 otra
+  vez). Recibe `estado`/`ownerUid`/`prioridad` de la MISMA `TareaClinica`
+  que la página ya carga con `tareasVivas()` — no una lectura nueva.
+- Guardianes nuevos, probados al revés (mismo patrón que sus hermanos de
+  fase): `src/__tests__/progreso-resultado.test.ts` (el módulo puro — 19
+  casos, entre ellos uno parametrizado que prueba, para los SEIS estados
+  posibles, que DECISION/ACTION/PATIENT COMMUNICATION siguen en `sin_dato`
+  — el caso que atraparía a alguien "arreglando" la función para que
+  cerrada marcara las tres como hechas) y
+  `src/__tests__/v15-progreso-resultado-conectado.test.ts` (que está
+  conectado en `/pendientes` y que `ProgresoResultado.tsx` delega en el
+  módulo puro en vez de reimplementar transiciones o abrir su propia
+  consulta a Firestore). Verificado contra `git stash` del árbol previo:
+  las 4 aserciones de conexión fallan (0 import, 0 compuerta), las 19 del
+  módulo puro pasan igual porque no dependen del cableado.
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore reales +
+build de producción + `npm start` + siembra sintética). `sembrar-capturas.mjs`
+ganó dos tareas de resultado más (`tarea-estudio-catalina` en `en_curso` con
+dueño, `tarea-resultado-completado-aurelio` en `completada` con dueño) para
+que las tres etapas alcanzables con dato real (Dueño/Revisión/Cerrado) se
+vieran en sus tres puntos distintos, no siempre en el mismo. Arnés nuevo:
+`scripts/design/capturar-progreso-resultado-v15.mjs`. Capturas y medición en
+`docs/design/capturas/v15-progreso-resultado/` (desktop 1440 + mobile 390):
+
+- **Las tres tarjetas, medidas con `getComputedStyle`, no leídas en JSX**:
+  Urocultivo (solicitada, sin dueño) → Dueño en `--teal` (actual), Revisión y
+  Cerrado en `--text3` (pendientes). Perfil lipídico y Espirometría
+  (completada/en_curso, con dueño) → Dueño y Revisión en color de texto
+  normal (hechas), Cerrado en `--teal` (actual). Las tres, sin excepción:
+  Decisión/Acción/Aviso al paciente en `--text3` e itálica — confirmado
+  `fontStyle: "italic"` en las nueve celdas (3 tarjetas × 3 etapas), nunca
+  "hecha".
+- **La compuerta de tipo, confirmada con datos reales**: "Seguimiento de
+  EPOC" y "Confirmar si la metformina" (ninguno es tipo resultado) —
+  `tienePista: false` en las dos, medido buscando `.nx-progreso-resultado`
+  dentro de su tarjeta, no supuesto por el código fuente.
+- **Axe, 0 violaciones nuevas**: `landmark-unique` (2, desktop) y `region`
+  (2-3) — mismo fingerprint preexistente que todas las capturas V15
+  anteriores (cajón móvil de `FlowRail`, banners fuera de landmark).
+  Ninguna violación `color-contrast` en las píldoras nuevas.
+- **Consola**: sólo el warning ya familiar de reconexión de Firestore del
+  emulador, en desktop y en móvil.
+- **Móvil**: las ocho píldoras envuelven en dos líneas sin desbordar,
+  legibles a 390px (captura visual confirmada).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8781 pasan (26 nuevos), 1 fallo PRE-EXISTENTE y
+  ambiental (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por
+  el proxy de red del contenedor — no relacionado, mismo fallo documentado
+  en corridas previas).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (la
+  píldora nueva usa `var(--r-pill)` y `fontSize: 10.5`, ambos ya en la
+  escala oficial — el primer borrador usaba `borderRadius: 9999` literal y
+  `escala-visual-trinquete.test.ts` lo cazó como violación de "la píldora
+  se escribe de una sola forma"; corregido antes de sellar).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores) — `/pendientes`
+  sigue como ruta estática (`○`).
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/pendientes` bajó de 271 a
+  259 líneas de fuente — el guardián `el-inventario-de-pantallas-no-miente`
+  lo exigía; la baja es real: se reemplazó JSX inline repetido por el
+  componente extraído).
+
+**Pendiente de esta misma fase, para una corrida siguiente:**
+- `PanelLaboratorios.tsx` sigue siendo la "tabla estática" literal que §9
+  nombra como el patrón a evitar (upload + gráfica, cero enlace con
+  `tareas_clinicas`). Conectarlo — por ejemplo, que subir un panel de
+  laboratorio genere una `resultado_por_revisar` — es una decisión de
+  FLUJO DE NEGOCIO (¿siempre? ¿sólo si hay valor crítico? ¿el médico ya
+  está revisando en el momento de subir, así que sería una tarea nacida ya
+  cerrada?), no sólo de presentación — cruzaría el congelamiento funcional
+  de `§1` si se decide sin el dueño. Investigado y diferido a propósito,
+  no un olvido.
+- Las tres etapas `sin_dato` (DECISION/ACTION/PATIENT COMMUNICATION) son el
+  hallazgo real de esta fase: hoy "cerrar" una tarea de resultado no deja
+  constancia de QUÉ se decidió, QUÉ acción se tomó ni SI se avisó al
+  paciente. Resolverlo de verdad (no fingiendo con la función de
+  presentación) exigiría un campo nuevo opcional en `TareaClinica` y un
+  pequeño formulario al cerrar — cambio de modelo, con su propia revisión,
+  fuera de alcance de una rebanada de presentación. Candidato explícito
+  para la siguiente rebanada de esta misma fase o para
+  `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8), que ya trata la integración
+  Note→Rx→Orders→Instructions→Follow-up.
+
 ## Siguiente tarea exacta
 
-`V15-RESULTS-CLOSURE-001` (Fase 6, §43) — work queue de resultados, §9 del
-master loop: `RESULT → SIGNIFICANCE → OWNER → REVIEW → DECISION → ACTION →
-PATIENT COMMUNICATION → CLOSED`, no una tabla estática.
-
-**Primer barrido de esta corrida (NO es el baseline completo — la
-siguiente corrida debe hacer la lectura completa con el mismo rigor que
-`V15-ENCOUNTER-MODE-001 — medición de baseline` arriba, antes de decidir qué
-construir):**
-
-- No existe una ruta `/resultados` ni ningún workspace dedicado a
-  resultados (confirmado: `find src/app -iname "*resultado*"` → 0
-  archivos).
-- Lo más cercano hoy es `src/components/laboratorio/PanelLaboratorios.tsx`
-  (211 líneas): historial de paneles de laboratorio con gráficas de
-  tendencia, embebido dentro de "Herramientas" en `/consulta/[patientId]` —
-  es upload + extracción + gráfica, **sin ninguna de las 8 etapas de §9**
-  (ni `estado`, ni "quién es dueño", ni "qué falta decidir"). Es
-  exactamente el "static table alone" que §9 dice que no basta.
-- El otro candidato es el sistema genérico de `tareas_clinicas`
-  (`src/lib/tareas-clinicas/firestore.ts`, ya usado por `/pendientes` y por
-  `ContinuidadPanel` en `/dashboard`) — tiene un campo `estado` plano, no la
-  progresión específica de 8 pasos de §9, y no está especializado para
-  resultados (mezcla seguimientos, reconciliaciones, etc.).
-- **No se tocó código de producto esta corrida para Fase 6** — sólo esta
-  exploración de 15 minutos para dejar el punto de partida anotado. La
-  siguiente corrida debe: (1) leer completo el §9 del master loop (ya
-  transcrito arriba, es corto) y el estado real de labs/resultados en la
-  UI actual navegando la app real, no sólo grep; (2) decidir qué pantalla(s)
-  concretas caen bajo "Results/Closure workspace" (¿`PanelLaboratorios`
-  rediseñado? ¿una ruta nueva? ¿parte de `/pendientes`?); (3) medir contra
-  las 8 etapas de §9 con el mismo rigor que las mediciones de baseline
-  anteriores antes de tocar código.
+Segunda rebanada de `V15-RESULTS-CLOSURE-001` (Fase 6): decidir y, si aplica,
+implementar el campo de cierre (decisión/acción/aviso al paciente) para
+tareas de resultado — ver "Pendiente de esta misma fase" arriba — O, si se
+decide diferir esa extensión de modelo, medir si con la pista de progreso ya
+construida los 8 comportamientos de §9 se pueden dar por resueltos o
+legítimamente diferidos (mismo criterio de cierre que usó
+`V15-ENCOUNTER-MODE-001` con sus 9 comportamientos de §8) y pasar a
+`V15-FOLLOWUP-WORK-001` (Fase 7, §10).
 
 **Deuda anotada, no bloqueante (heredada de Fase 5, sigue sin resolverse,
 candidata a fases futuras — no se repite su detalle si ya está arriba):**

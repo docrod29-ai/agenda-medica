@@ -320,6 +320,49 @@ async function main() {
       creadaEn: diaISO(-1),
       origen: 'nota',
     },
+    /**
+     * V15-RESULTS-CLOSURE-001 — dos tareas de resultado MÁS, con dueño y
+     * estado distintos, para que `ProgresoResultado` (§9) tenga algo real que
+     * enseñar en cada una de sus etapas alcanzables: sin la de aquí abajo,
+     * 'tarea-urocultivo-luzmaria' es la única de tipo resultado y siempre se
+     * ve en el mismo punto (sin dueño, recién solicitada).
+     */
+    {
+      id: 'tarea-estudio-catalina',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-catalina-ibarra',
+      patientNombre: 'Catalina Ibarra Fuentes',
+      tipo: 'estudio_pendiente',
+      titulo: 'Espirometría de control — en proceso',
+      detalle: 'Pedida para valorar respuesta al ajuste de esquema inhalado.',
+      prioridad: 'normal',
+      estado: 'en_curso',
+      ownerUid: uid,
+      ownerNombre: CUENTA.displayName,
+      creadaEn: diaISO(-3),
+      venceEn: diaISO(2),
+      origen: 'nota',
+    },
+    {
+      // 'cerrada' NO aparece en `tareasVivas()` (a propósito: es el worklist
+      // de lo VIVO) — 'completada' sí, y es la única forma de ver en el
+      // navegador real la etapa "Cerrado" como LA ACTUAL, con Revisión ya
+      // hecha: el estudio se hizo, falta que alguien lo mire y decida.
+      id: 'tarea-resultado-completado-aurelio',
+      clinicId: CLINIC_ID,
+      patientId: 'pac-aurelio-dominguez',
+      patientNombre: 'Aurelio Domínguez Peña',
+      tipo: 'resultado_por_revisar',
+      titulo: 'Perfil lipídico — resultado listo',
+      detalle: 'Llegó del laboratorio; falta que alguien lo revise y decida.',
+      prioridad: 'normal',
+      estado: 'completada',
+      ownerUid: uid,
+      ownerNombre: CUENTA.displayName,
+      creadaEn: diaISO(-7),
+      completadaEn: diaISO(-1),
+      origen: 'laboratorio',
+    },
   ]
   for (const t of tareas) {
     const { id, ...datos } = t

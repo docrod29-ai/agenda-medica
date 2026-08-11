@@ -24,6 +24,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { auth } from '@/lib/firebase'
 import { tareasVivas, cambiarEstado } from '@/lib/tareas-clinicas/firestore'
 import { ordenWorklist, debeEscalar, estaVencida, type TareaClinica, type EstadoTarea } from '@/lib/tareas-clinicas/modelo'
+import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
+import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList } from 'lucide-react'
 
 const ETIQUETA_TIPO: Record<string, string> = {
@@ -132,6 +134,16 @@ export default function PendientesPage() {
           </span>
           <strong style={{ color: 'var(--text)', fontSize: 15 }}>{t.titulo}</strong>
         </div>
+
+        {/*
+          §9 del master loop V15: un resultado es una cola de trabajo de ocho
+          etapas, no una tabla estática. Sólo se pinta para los DOS tipos que
+          de verdad son "un resultado" (estudio pedido / resultado por
+          revisar) — un seguimiento o una receta no tienen esas etapas.
+        */}
+        {esTareaDeResultado(t.tipo) && (
+          <ProgresoResultado estado={t.estado} ownerUid={t.ownerUid} prioridad={t.prioridad} />
+        )}
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13, color: 'var(--text3)' }}>
           {t.patientNombre && (

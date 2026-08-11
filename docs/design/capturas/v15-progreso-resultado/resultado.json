@@ -1,0 +1,178 @@
+{
+  "pistas": [
+    {
+      "titulo": "Urocultivo — resultado disponible",
+      "etapas": [
+        {
+          "texto": "Resultado",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Significado",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Dueño",
+          "estilo": "normal",
+          "color": "rgb(42, 165, 181)"
+        },
+        {
+          "texto": "Revisión",
+          "estilo": "normal",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Decisión",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Acción",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Aviso al paciente",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Cerrado",
+          "estilo": "normal",
+          "color": "rgb(138, 143, 148)"
+        }
+      ]
+    },
+    {
+      "titulo": "Perfil lipídico — resultado listo",
+      "etapas": [
+        {
+          "texto": "Resultado",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Significado",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Dueño",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Revisión",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Decisión",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Acción",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Aviso al paciente",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Cerrado",
+          "estilo": "normal",
+          "color": "rgb(42, 165, 181)"
+        }
+      ]
+    },
+    {
+      "titulo": "Espirometría de control — en proceso",
+      "etapas": [
+        {
+          "texto": "Resultado",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Significado",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Dueño",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Revisión",
+          "estilo": "normal",
+          "color": "rgb(242, 239, 233)"
+        },
+        {
+          "texto": "Decisión",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Acción",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Aviso al paciente",
+          "estilo": "italic",
+          "color": "rgb(138, 143, 148)"
+        },
+        {
+          "texto": "Cerrado",
+          "estilo": "normal",
+          "color": "rgb(42, 165, 181)"
+        }
+      ]
+    }
+  ],
+  "sinPistaEnNoResultado": {
+    "seguimiento": {
+      "encontrado": true,
+      "tienePista": false
+    },
+    "reconciliacion": {
+      "encontrado": true,
+      "tienePista": false
+    }
+  },
+  "axe": {
+    "desktop": [
+      {
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "nodes": 2
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 2
+      }
+    ],
+    "mobile": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 3
+      }
+    ]
+  },
+  "consola": {
+    "desktop": [
+      "[2026-08-11T17:35:06.767Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+    ],
+    "mobile": [
+      "[2026-08-11T17:35:10.868Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+    ]
+  }
+}
