@@ -13,7 +13,7 @@ import type { Patient } from '@/types'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica, TipoNota } from '@/types/expediente'
 import {
-  ArrowLeft, Mic, FileText, Loader2, AlertTriangle, CheckCircle2,
+  ArrowLeft, Mic, FileText, Loader2, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
   Camera, FlaskConical, Link2Off,
@@ -22,9 +22,9 @@ import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
+import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
-import { avatarColor } from '@/lib/avatar-color'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
@@ -110,61 +110,23 @@ export default function ExpedientePage() {
         <ArrowLeft size={15} /> Atrás
       </button>
 
-      {/* Alergias banner — SIEMPRE rojo y visible */}
-      {/* Si la lectura falló, decirlo AQUÍ: donde iría el banner de alergias. */}
-      {errorPaciente && (
-        <div style={{ background: 'color-mix(in srgb, var(--amber) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--amber) 40%, transparent)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span>⚠ {errorPaciente}</span>
-          <button className="btn btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
-        </div>
-      )}
-      {/* Banner de alergias — ÚNICO en el expediente (antes había otro en la
-          tarjeta de resumen: dos avisos para lo mismo). Se muestra siempre; rojo
-          solo cuando hay alergias REALES, neutro si están negadas (rojo cuando
-          no hay alergias es "gritar lobo" y desgasta la señal). */}
-      {(() => {
-        const a = (patient?.alergias ?? '').trim()
-        const sin = !a || /^(ninguna|niega|no|sin|nkda|negad)/i.test(a)
-        return (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8,
-            padding: '10px 14px', fontSize: 13, marginBottom: 16,
-            background: sin ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 12%, transparent)',
-            border: `1px solid ${sin ? 'var(--border)' : 'color-mix(in srgb, var(--red) 35%, transparent)'}`,
-            color: sin ? 'var(--text2)' : 'var(--red)',
-          }}>
-            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-            <span><strong>Alergias:</strong> {a || 'no registradas'}</span>
-          </div>
-        )
-      })()}
+      {/* PATIENT ANCHOR (§7, V15-PATIENT-WORKSPACE-001) — identidad, alergia
+          y encuentro en curso, SIEMPRE visible mientras se recorre el
+          expediente. Sustituye los dos bloques sueltos que había aquí
+          (banner de alergias + encabezado de identidad, cada uno con su
+          propio layout): un paciente, un ancla. */}
+      <PatientAnchor
+        patient={patient}
+        notas={notas}
+        errorPaciente={errorPaciente}
+        onContinuarEncuentro={(notaId) => router.push(`/consulta/${patientId}?nota=${notaId}`)}
+      />
 
-      {/* Patient header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 16, flexShrink: 0,
-            background: avatarColor(patient?.nombre ?? 'Paciente').bg,
-            color: avatarColor(patient?.nombre ?? 'Paciente').fg,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, fontWeight: 600, fontFamily: 'var(--font-display)',
-          }}>
-            {(patient?.nombre ?? 'P').charAt(0).toUpperCase()}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <h1 className="t-h1" style={{ margin: 0 }}>
-              {patient?.nombre ?? 'Paciente'}
-            </h1>
-            <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
-              {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
-              {patient?.telefono ? ` · ${patient.telefono}` : ''}
-            </div>
-          </div>
-        </div>
-        {/* `exp-actions`: bajo 480px la rejilla pone el CTA primario (Nueva
-            consulta con IA) ARRIBA a fila completa — sin ella, .actions-row
-            global apila los 4 botones a lo ancho en orden DOM y el primario
-            queda CUARTO, bajo tres secundarios de igual peso (V10-DEBT-006). */}
+      {/* `exp-actions`: bajo 480px la rejilla pone el CTA primario (Nueva
+          consulta con IA) ARRIBA a fila completa — sin ella, .actions-row
+          global apila los 4 botones a lo ancho en orden DOM y el primario
+          queda CUARTO, bajo tres secundarios de igual peso (V10-DEBT-006). */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
         <div className="actions-row exp-actions">
           <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia

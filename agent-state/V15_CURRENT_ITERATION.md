@@ -4,6 +4,9 @@
 
 ## Iteración en curso
 
+`V15-PATIENT-WORKSPACE-001` (Fase 4) — EN CURSO, 11-ago-2026: Patient Anchor
+entregado y verificado por prueba/fuente; Clinical Spine y Active Patient
+Canvas quedan para la corrida siguiente. Ver verificación de navegador abajo.
 `V15-TODAY-001` (Fase 3) — cerrada 11-ago-2026. `V15-IA-001` +
 `V15-SHELL-GREYBOX-001` cerradas antes, misma fecha.
 
@@ -156,15 +159,80 @@ nuevo: `scripts/design/capturar-today-continuidad-v15.mjs`. Capturas en
   313 a 321 líneas de fuente) — el guardián `el-inventario-de-pantallas-no-miente`
   lo exigía.
 
+### V15-PATIENT-WORKSPACE-001 — EN CURSO (primera rebanada: Patient Anchor)
+
+- **`src/components/expediente/PatientAnchor.tsx`** — el ancla de §7:
+  identidad, edad/sexo/teléfono, alergia/seguridad, encuentro actual y
+  último cambio, en UN bloque `position: sticky` dentro de `<main>`
+  (`overflowY: auto` del layout del dashboard — el contenedor de scroll
+  real). Reemplaza los DOS bloques sueltos e independientes que tenía
+  `expediente/[patientId]/page.tsx` al inicio (banner de alergias +
+  encabezado `<h1>` de identidad, cada uno con su propio layout): el médico
+  ya no concilia dos avisos para "¿en qué paciente estoy y qué necesito
+  saber ya?". La página bajó de 686 a 648 líneas de fuente por la
+  extracción (regenerado en `SCREEN_INVENTORY.md`).
+- **"Encuentro actual"** se deriva de `notas` (la MISMA lista que ya carga
+  `useExpediente` en la página, no una consulta nueva a Firestore): la nota
+  más reciente sin firmar es un encuentro que empezó y no cerró — misma
+  noción que ya usa `CabosSueltosDelPaciente`. Con CTA "Consulta sin
+  cerrar — continuar" que lleva a `/consulta/[patientId]?nota=...`.
+- **"Último cambio"** se deriva igual: la nota firmada más reciente, con su
+  tipo y una fecha relativa ("hace 3 días"), al lado del banner de
+  alergias — no un bloque nuevo.
+- El banner de alergias conserva exactamente su regla de antes (regla 4 de
+  seguridad clínica): SIEMPRE visible, "no registradas" cuando el campo
+  está vacío (nunca "sin alergias"), rojo sólo con alergias reales. El caso
+  del error de lectura del paciente (antes un `<div>` aparte) también se
+  mudó al ancla, en el mismo lugar donde iría el banner.
+- Guardián nuevo, probado al revés (mismo patrón que
+  `v15-flow-rail-cableado.test.ts`):
+  `src/__tests__/v15-patient-anchor-cableado.test.ts` — falla si la página
+  deja de importar/renderizar `PatientAnchor`, si los dos bloques viejos
+  reaparecen, si el ancla abre su propia consulta a Firestore para
+  encuentro/último cambio, si el banner de alergias se vuelve condicional,
+  o si pierde el `position: sticky`. Verificado manualmente contra el árbol
+  sin el cambio (stash): los 3 casos de "bloques viejos ya no están"
+  fallan como se espera.
+- `src/__tests__/alergias-placeholder-no-afirma.test.ts` actualizado: el
+  caso 3 ahora lee `PatientAnchor.tsx` (donde vive el banner ahora) en vez
+  de `page.tsx` — el texto y la regla que prueba no cambiaron, sólo dónde
+  vive el JSX.
+- Trinquete de diseño: la extracción bajó `tamanosFueraDeEscala` (2007→2004)
+  y `radiosFueraDeEscala` (636→635) — resellado a la baja con
+  `--actualizar` (nunca se sube, y aquí bajó de verdad).
+
+**Pendiente de esta misma fase, para una corrida siguiente:** Clinical
+Spine (recorrido longitudinal por encuentros/diagnósticos/medicamentos/
+labs/etc., §7) y Active Patient Canvas (abrir un evento/tarea/nota sin
+perder el contexto del paciente). Esta corrida sólo entregó el Patient
+Anchor — es una rebanada real y verificable, no la fase completa.
+
+### Verificación en navegador real — EN CURSO al momento de este commit
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore +
+siembra sintética + build de producción + `npm start`). Arnés nuevo:
+`scripts/design/capturar-patient-anchor-v15.mjs` (navega a
+`/expediente/pac-aurelio-dominguez`, comprueba `.nx-patient-anchor` en el
+DOM, hace scroll y confirma que el ancla sigue en el viewport — la parte
+de "SIEMPRE visible" verificada como comportamiento, no sólo como CSS
+declarado — y corre axe + captura desktop/móvil). El build de producción
+(`next build`, requerido para que `npm start` sirva la app con las mismas
+condiciones que las corridas previas) estaba en curso cuando se hizo este
+commit; **si esta entrada no trae un bloque de resultados de captura
+debajo, la verificación de navegador quedó `VISUAL_VERIFICATION: BLOCKED`
+para esta corrida** — la corrida siguiente debe completarla ANTES de tocar
+la Clinical Spine, no proceder a más UI sin cerrar esto primero.
+
 ## Siguiente tarea exacta
 
-`V15-PATIENT-WORKSPACE-001` (Fase 4): Patient Anchor + Clinical Spine +
-Active Patient Canvas (§7). Es lo que permite que `InstrumentStrip` pinte
-«paciente actual» sin inventar un selector nuevo fuera de fase, y lo que
-`ContinuidadPanel` necesitaría si algún día quisiera enlazar directo a un
-evento en vez de sólo al expediente. PREPARED BY NEXUS (quinta zona de Hoy)
-sigue bloqueada hasta que exista un hook real de «contexto preparado para el
-próximo paciente» — no antes.
+Completar la verificación en navegador real del Patient Anchor (arriba) si
+no quedó cerrada en esta corrida. Después, seguir con `V15-PATIENT-WORKSPACE-001`:
+Clinical Spine + Active Patient Canvas (§7). Es lo que permite que
+`InstrumentStrip` pinte «paciente actual» sin inventar un selector nuevo
+fuera de fase, y lo que `ContinuidadPanel` necesitaría si algún día
+quisiera enlazar directo a un evento en vez de sólo al expediente.
+PREPARED BY NEXUS (quinta zona de Hoy) sigue bloqueada hasta que exista un
+hook real de «contexto preparado para el próximo paciente» — no antes.
 
 **Deuda anotada, no bloqueante:** dos violaciones axe moderadas
 preexistentes en `/dashboard` (landmark duplicado del cajón móvil de
