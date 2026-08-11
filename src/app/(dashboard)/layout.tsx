@@ -10,6 +10,8 @@ import { limpiarZonaConsultorio, fijarZonaConsultorio } from '@/lib/timezone'
 import { getConfig } from '@/lib/firestore'
 import { useClinic } from '@/context/ClinicContext'
 import { Sidebar } from '@/components/Sidebar'
+import { FlowRail } from '@/components/FlowRail'
+import { InstrumentStrip } from '@/components/InstrumentStrip'
 import { ToastProvider } from '@/context/ToastContext'
 import { AvisoModuloBloqueado, EVENTO_MODULO_BLOQUEADO } from '@/components/AvisoModuloBloqueado'
 import { AvisoCorreoSinVerificar } from '@/components/AvisoCorreoSinVerificar'
@@ -615,11 +617,19 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     return <AccesoGate estado={acceso} clinicId={clinicId} esMedico={esMedicoReal} email={user?.email ?? ''} />
   }
 
+  /**
+   * FlowRail (≤5 contextos, V15-SHELL-GREYBOX-001) reemplaza el Sidebar de
+   * 23 destinos SÓLO en modo médico — la navegación de la asistente es otra
+   * superficie y no es sujeto de esta fase (ver
+   * `docs/design/v15/IA-001-sitemap.md`, plan de compatibilidad).
+   */
+  const navPrimaria = esMedicoReal && mode === 'medico'
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:flex" style={{ flexShrink: 0 }}>
-        <Sidebar />
+        {navPrimaria ? <FlowRail /> : <Sidebar />}
       </div>
 
       {/* Mobile sidebar — siempre en DOM, se desliza con transform (más confiable que conditional render) */}
@@ -654,7 +664,9 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       >
         {/* Sidebar con display forzado inline para evitar cualquier CSS que lo oculte */}
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%' }}>
-          <Sidebar onClose={() => setSidebarOpen(false)} />
+          {navPrimaria
+            ? <FlowRail onNavigate={() => setSidebarOpen(false)} />
+            : <Sidebar onClose={() => setSidebarOpen(false)} />}
         </div>
       </div>
 
@@ -670,9 +682,10 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
             <Menu size={22} />
           </button>
           <MobileBackButton />
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Agenda Médica</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Ausculta</span>
         </div>
 
+        {navPrimaria && <InstrumentStrip />}
         <OfflineBanner />
         {/*
           LA IA CAÍDA SE AVISA DONDE EL DUEÑO ESTÉ, no sólo en su tablero.

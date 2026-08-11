@@ -10,12 +10,12 @@
 > `Resp: —` y eso **no** significa que no sea adaptable. Sirve para ordenar el
 > barrido; aprobar una pantalla exige abrirla en un navegador.
 
-**Total: 79 pantallas.**
+**Total: 80 pantallas.**
 
 | Superficie | Pantallas |
 |---|---|
 | paciente | 9 |
-| medico | 33 |
+| medico | 34 |
 | alpha | 10 |
 | publica | 18 |
 | interna | 9 |
@@ -69,6 +69,7 @@
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 74 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 932 | 2 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 135 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 793 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 836 | 9 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 259 | 1 | — | ✅ | — |

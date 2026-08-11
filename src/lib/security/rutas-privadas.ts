@@ -62,6 +62,10 @@ export const RUTAS_PRIVADAS = [
   'membresias',
   'migracion',
   'nota',
+  // Índice de navegación secundaria (V15-SHELL-GREYBOX-001): sólo enlaces, sin
+  // PHI propia, pero vive DENTRO de la zona autenticada y hereda su protección
+  // igual que cualquier otra pantalla del dashboard.
+  'operaciones',
   'orden',
   'pacientes',
   // El worklist enseña nombre de paciente y qué se le pidió: es PHI en pantalla.

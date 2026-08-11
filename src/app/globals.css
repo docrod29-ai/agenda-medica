@@ -735,6 +735,17 @@ tbody tr:last-child { border-bottom: none; }
   padding: 14px 12px 6px;
 }
 
+/*
+  GREYBOX GATE (V15 §12) — el FlowRail se revisa SIN color de marca antes de
+  cualquier estilo. `.nav-item.active` normal marca el estado activo con
+  `var(--nexus)` (el acento teal); aquí se sustituye por `var(--text)`, que ya
+  es neutro en los dos temas. La forma (barra + negrita + icono más oscuro) es
+  la misma — sólo cambia de qué variable toma el color, que es exactamente lo
+  que exige la compuerta: probar que la jerarquía sobrevive sin acento.
+*/
+.nx-flow-rail .nav-item.active::before { background: var(--text); }
+.nx-flow-rail .nav-item.active .nav-icon { color: var(--text); }
+
 /* ── Topbar ───────────────────────────────────────────────── */
 .topbar {
   background: var(--s1);

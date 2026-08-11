@@ -1,0 +1,46 @@
+[
+  {
+    "pantalla": "today-dashboard",
+    "viewport": "desktop",
+    "destinosFlowRail": [
+      "Hoy",
+      "Paciente",
+      "Encuentro",
+      "Seguimiento",
+      "Operaciones"
+    ]
+  },
+  {
+    "pantalla": "patient-pacientes",
+    "viewport": "desktop",
+    "destinosFlowRail": [
+      "Hoy",
+      "Paciente",
+      "Encuentro",
+      "Seguimiento",
+      "Operaciones"
+    ]
+  },
+  {
+    "pantalla": "work-pendientes",
+    "viewport": "desktop",
+    "destinosFlowRail": [
+      "Hoy",
+      "Paciente",
+      "Encuentro",
+      "Seguimiento",
+      "Operaciones"
+    ]
+  },
+  {
+    "pantalla": "operaciones",
+    "viewport": "desktop",
+    "destinosFlowRail": [
+      "Hoy",
+      "Paciente",
+      "Encuentro",
+      "Seguimiento",
+      "Operaciones"
+    ]
+  }
+]
