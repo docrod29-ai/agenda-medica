@@ -95,7 +95,15 @@ describe('CORREN en el expediente', () => {
   })
 
   it('sin nada registrado no se enseña un recuadro vacío', () => {
-    expect(exp).toMatch(/if \(!problemas\.length && !vigentes\.length\) return null/)
+    /**
+     * V15-PATIENT-WORKSPACE-001 (Clinical Spine): `problemas`/`vigentes` se
+     * levantaron de la IIFE local a un `useMemo` de la página, para que el
+     * riel lea el MISMO cálculo (ver `v15-clinical-spine-cableado.test.ts`).
+     * El guardián de "no se enseña vacío" pasa de un `if (...) return null`
+     * dentro de la IIFE a una condición sobre el render — el comportamiento
+     * (nada visible sin datos) es el mismo, sólo cambió la forma del código.
+     */
+    expect(exp).toMatch(/\(problemas\.length > 0 \|\| vigentes\.length > 0\) &&/)
   })
 
   it('dice de dónde sale, para que no parezca un diagnóstico nuevo', () => {

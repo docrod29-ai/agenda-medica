@@ -4,9 +4,10 @@
 
 ## Iteración en curso
 
-`V15-PATIENT-WORKSPACE-001` (Fase 4) — EN CURSO, 11-ago-2026: Patient Anchor
-entregado y verificado por prueba/fuente; Clinical Spine y Active Patient
-Canvas quedan para la corrida siguiente. Ver verificación de navegador abajo.
+`V15-PATIENT-WORKSPACE-001` (Fase 4) — EN CURSO, 11-ago-2026 (segunda
+rebanada): Clinical Spine entregado y verificado en navegador real; Active
+Patient Canvas queda para la corrida siguiente. Ver sección propia y
+verificación de navegador abajo.
 `V15-TODAY-001` (Fase 3) — cerrada 11-ago-2026. `V15-IA-001` +
 `V15-SHELL-GREYBOX-001` cerradas antes, misma fecha.
 
@@ -207,6 +208,111 @@ labs/etc., §7) y Active Patient Canvas (abrir un evento/tarea/nota sin
 perder el contexto del paciente). Esta corrida sólo entregó el Patient
 Anchor — es una rebanada real y verificable, no la fase completa.
 
+### V15-PATIENT-WORKSPACE-001 — CERRADA (segunda rebanada: Clinical Spine)
+
+- **`src/components/expediente/ClinicalSpine.tsx`** — el riel de §7: "a
+  longitudinal structural element... should allow movement through
+  encounters, diagnoses, medications, labs...". Antes de esta corrida el
+  expediente era una pila lineal sin forma de moverse entre categorías
+  salvo la rueda del ratón. El riel sólo enseña las categorías que
+  **de verdad tienen algo para ESE paciente** ("señalar de menos, nunca de
+  más" — regla 5 de seguridad clínica aplicada a navegación, no sólo a
+  vocabulario clínico): Encuentros siempre (incluso en 0, es el corazón del
+  expediente), Diagnósticos y medicamentos / Pendientes / Ingresos sólo
+  cuando ya cargaron y hay algo. Microbiología, imágenes, procedimientos,
+  órdenes y comunicaciones **no tienen todavía sección propia** en esta
+  pantalla — no se inventan entradas para secciones que no existen; quedan
+  para cuando esas pantallas se construyan.
+- **Ningún conteo se inventa ni se recalcula dos veces.** `problemas`/
+  `vigentes` se levantaron de la IIFE local (que ya existía, REG-262) a un
+  `useMemo` de la página: el bloque "Problemas/Toma" y el riel leen el
+  MISMO cálculo. Para Pendientes/Ingresos —cuyos datos vive dentro de
+  `CabosSueltosDelPaciente`/`InternamientosDelPaciente`— se añadió un
+  callback opcional (`onResumen`/`onCargado`) que reporta hacia arriba lo
+  que esos componentes YA leyeron, con un `ref` para que el callback no
+  entre al array de dependencias del efecto de carga (si entrara, una
+  función inline nueva en cada render releería Firestore sin que
+  `clinicId`/`patientId` hubieran cambiado). Ninguna de las tres fuentes se
+  duplicó.
+- **Interacción real, no sólo un índice de atajos**: `IntersectionObserver`
+  resalta (`aria-current`) la categoría que el médico está leyendo mientras
+  baja con la rueda — no sólo tras pulsar un botón. Verificado con scroll
+  real (ver abajo), no sólo leído en el código.
+- **Greybox real**: estado activo en `var(--text)`/`var(--bg)`, no
+  `var(--nexus)` — mismo patrón que ya fijó `FlowRail.tsx` en
+  `V15-SHELL-GREYBOX-001`; el acento de marca espera a
+  `V15-VISUAL-SYSTEM-001` (Fase 10).
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-clinical-spine-cableado.test.ts` — falla si la página
+  deja de importar/renderizar `ClinicalSpine`, si un item del riel apunta a
+  un ancla que no existe en el DOM, si `ClinicalSpine.tsx` ganara su propia
+  consulta a Firestore, o si `onResumen`/`onCargado` entraran al array de
+  dependencias del efecto de carga (11 de 15 casos fallan contra el árbol
+  sin el cambio — verificado con `git stash`).
+- Dos pruebas existentes se actualizaron para reflejar la MISMA conducta con
+  forma de código distinta (el `if (...) return null` de la IIFE pasó a
+  condición de render; el `.catch` de `InternamientosDelPaciente` ahora
+  también reporta `null` hacia arriba): `el-expediente-resume-el-estado.test.ts`
+  y `el-expediente-ensena-los-ingresos.test.ts`. Ninguna prueba se debilitó
+  — se comprobó que las dos siguen fallando si se revierte la conducta real
+  que protegen.
+- **Hallazgo y arreglo de paso, encontrado por este mismo arnés**: axe marcó
+  `button-name` (crítico) en `NotificacionesPushOptIn.tsx` — el botón de
+  cerrar el banner de recordatorios de citas (`<X size={14} />` sin texto ni
+  `aria-label`) no tenía nombre accesible. Preexistente, no causado por esta
+  corrida (el componente vive fuera del expediente y no se tocó su lógica),
+  pero se arregló aquí por ser un cambio de una línea, seguro, y porque el
+  propio arnés de esta corrida lo encontró — mismo criterio que ya usó
+  `V15-PATIENT-WORKSPACE-001` (primera rebanada) con el `<h1>` perdido.
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores (emuladores Auth/Firestore + build
+de producción + `npm start` + siembra sintética). Arnés nuevo:
+`scripts/design/capturar-clinical-spine-v15.mjs` — no sólo screenshot: prueba
+comportamiento real. Capturas en `docs/design/capturas/v15-clinical-spine/`
+(desktop 1440 + mobile 390):
+
+- **El riel real, con datos reales**: `Encuentros 0 · Laboratorios y
+  fotografía · Pendientes 1` — exactamente las 3 categorías que este
+  paciente sintético tiene (0 encuentros, 0 diagnósticos/medicamentos
+  firmados, 1 pendiente en plazo, 0 ingresos) — ninguna categoría vacía se
+  enseña.
+- **Clic navega, medido de verdad**: se pulsó el botón "Pendientes" y se
+  midió `getBoundingClientRect().top` de su ancla (`#spine-pendientes`)
+  antes (694.5px) y después (312.5px) del `scrollIntoView` suave. Se movió
+  382px hacia arriba — el máximo físicamente posible en esta página
+  (documento de 1282px de alto, viewport de 900px) — y quedó visible en
+  pantalla.
+- **Scroll resalta, medido de verdad**: tras volver a `scrollTop=0` y bajar
+  900px con la rueda, `aria-current` pasó de "Pendientes" a "Laboratorios y
+  fotografía" — el `IntersectionObserver` responde a scroll real, no sólo
+  a clics.
+- **Axe, 0 violaciones nuevas** tras el arreglo de `button-name`: quedan las
+  dos familias ya conocidas y preexistentes — `landmark-unique` (cajón móvil
+  de `FlowRail`) y `region` (banner de prueba gratuita / banner de push,
+  ninguno dentro de `.nx-clinical-spine`, confirmado inspeccionando los
+  `target` de axe).
+- **Consola**: sin errores nuevos en desktop; el único mensaje en móvil es
+  el warning ya familiar de reconexión de Firestore del emulador.
+- **Móvil**: el riel se desplaza horizontalmente sin desbordar la pantalla
+  (mismo patrón `overflowX: auto` que ya usan los filtros Todas/Consulta/
+  Hospital de esta misma pantalla).
+
+### Compuertas de esta corrida (Clinical Spine)
+
+- `npx vitest run`: 8696 pasan, 0 fallos propios (la falla ambiental
+  `ops-timeout-y-punto-ciego` es intermitente por el proxy de red del
+  contenedor — reproduce igual en el árbol limpio, no relacionada).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores); `/expediente/[patientId]`
+  sigue en la lista de rutas dinámicas del build.
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/expediente/[patientId]`
+  pasó de 648 a 701 líneas de fuente por la extracción del riel y el
+  `useMemo` compartido).
+
 ### Verificación en navegador real — CERRADA (11-ago-2026)
 
 Mismo método que las corridas anteriores (emuladores Auth/Firestore +
@@ -271,19 +377,36 @@ ad-hoc, no forma parte del repo). Capturas en
 
 ## Siguiente tarea exacta
 
-`V15-PATIENT-WORKSPACE-001`: Clinical Spine + Active Patient Canvas (§7).
-Es lo que permite que `InstrumentStrip` pinte «paciente actual» sin
-inventar un selector nuevo fuera de fase, y lo que `ContinuidadPanel`
-necesitaría si algún día quisiera enlazar directo a un evento en vez de
-sólo al expediente. PREPARED BY NEXUS (quinta zona de Hoy) sigue bloqueada
-hasta que exista un hook real de «contexto preparado para el próximo
-paciente» — no antes.
+`V15-PATIENT-WORKSPACE-001`: **Active Patient Canvas** (§7, última pieza de
+la fase) — "the clinician can open an event/task/note without losing
+patient context... no route should mentally reset the physician". Patient
+Anchor y Clinical Spine ya están cerrados y verificados; falta que abrir un
+evento/nota/tarea desde el expediente no navegue a una pantalla que resetea
+el contexto. Punto de partida real para la próxima corrida: los botones
+`onEditar`/`onImprimir`/`onGenerarReceta`/`onGenerarOrden` de `NotaCard` en
+`expediente/[patientId]/page.tsx` hoy navegan con `router.push` a rutas
+completas (`/consulta/[patientId]?nota=...`, `/nota/[pid]/[id]`,
+`/receta/...`, `/orden/...`) — decidir cuáles de esos son legítimamente modos
+distintos (Encounter Mode es la Fase 5 aparte) y cuáles deberían abrir sin
+perder el ancla/riel de este paciente. `CabosSueltosDelPaciente.alAbrirPendientes`
+(lleva a `/pendientes`, worklist global) es otro candidato a revisar bajo la
+misma pregunta. Una vez cerrado esto, `V15-PATIENT-WORKSPACE-001` completo
+puede darse por cerrado y sigue `V15-ENCOUNTER-MODE-001` (Fase 5).
 
-**Deuda anotada, no bloqueante:** dos violaciones axe moderadas
-preexistentes en `/dashboard` (landmark duplicado del cajón móvil de
-`FlowRail`, banner de suscripción fuera de landmark) — ver arriba. Candidata
-para `V15-A11Y-001` cuando llegue esa fase, o para una corrida que pase por
-`FlowRail.tsx`/el banner de todos modos.
+También queda pendiente, sin bloquear lo anterior: `InstrumentStrip` sigue
+sin pintar «paciente actual» (anotado desde `V15-SHELL-GREYBOX-001`) — ahora
+que el Patient Anchor existe, esa corrida puede decidir qué significa
+«paciente actual» fuera del expediente. PREPARED BY NEXUS (quinta zona de
+Hoy) sigue bloqueada por lo mismo.
+
+**Deuda anotada, no bloqueante:** dos familias de violaciones axe moderadas
+preexistentes — `landmark-unique` (cajón móvil de `FlowRail`, mismo
+`aria-label` que la versión de escritorio) y `region` (banner de prueba
+gratuita / banner de recordatorios de push, contenido fuera de landmark) —
+vistas en `/dashboard`, `/expediente/[patientId]` y donde sea que esos
+componentes se monten. Candidata para `V15-A11Y-001` cuando llegue esa fase.
+El tercer hallazgo de esta familia (`button-name` en el botón de cerrar de
+`NotificacionesPushOptIn.tsx`) SÍ se arregló esta corrida — ver arriba.
 
 ## Reglas de la corrida (recordatorio)
 

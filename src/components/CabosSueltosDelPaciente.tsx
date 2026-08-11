@@ -23,7 +23,7 @@
  * ocupa el mismo sitio que una que dice algo, y enseñar ceros entrena a no
  * mirar. Es el mismo motivo por el que un aviso que grita de más se ignora.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, ChevronRight, ClipboardList } from 'lucide-react'
 import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
 import {
@@ -38,6 +38,13 @@ export interface CabosSueltosDelPacienteProps {
   cargar: (clinicId: string, patientId: string) => Promise<TareaClinica[]>
   /** Llevar al worklist, que es donde se cierran. */
   alAbrirPendientes: () => void
+  /**
+   * Reporta lo ya cargado hacia arriba (V15-PATIENT-WORKSPACE-001, Clinical
+   * Spine) — NO abre una segunda consulta a Firestore, sólo entrega lo mismo
+   * que este componente ya leyó, para que el Clinical Spine pueda mostrar un
+   * conteo real sin duplicar la fuente de verdad.
+   */
+  onResumen?: (c: CabosDelPaciente | null) => void
 }
 
 const ETIQUETA: Record<Grupo, string> = {
@@ -70,17 +77,30 @@ export function CabosSueltosDelPaciente(p: CabosSueltosDelPacienteProps) {
   const [cabos, setCabos] = useState<CabosDelPaciente | null>(null)
   const { clinicId, patientId, cargar } = p
 
+  /* Ref, no dependencia del efecto: `onResumen` puede llegar como una función
+     nueva en cada render (arrow function inline) y si estuviera en el array
+     de dependencias el efecto releería Firestore sin que clinicId/patientId
+     hubieran cambiado — el mismo bug que ya evita usar `[p]` en vez de las
+     dependencias por valor de abajo. */
+  const onResumenRef = useRef(p.onResumen)
+  useEffect(() => { onResumenRef.current = p.onResumen })
+
   /* Dependencias por VALOR, no el objeto de props: con `[p]` el efecto se
      redispara en cada render y relee Firestore sin que nada haya cambiado. */
   useEffect(() => {
     if (!clinicId || !patientId) return
     let vivo = true
     cargar(clinicId, patientId)
-      .then(r => { if (vivo) setCabos(cabosDelPaciente(r, Date.now())) })
+      .then(r => {
+        if (!vivo) return
+        const c = cabosDelPaciente(r, Date.now())
+        setCabos(c)
+        onResumenRef.current?.(c)
+      })
       /* `null` es «no se pudo leer», que NO es «no hay pendientes». Enseñar
          una tarjeta vacía ante un fallo de red afirmaría que este paciente no
          tiene nada suelto, que es exactamente lo contrario de lo que se sabe. */
-      .catch(() => { if (vivo) setCabos(null) })
+      .catch(() => { if (vivo) { setCabos(null); onResumenRef.current?.(null) } })
     return () => { vivo = false }
   }, [clinicId, patientId, cargar])
 

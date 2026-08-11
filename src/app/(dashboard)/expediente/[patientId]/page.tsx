@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -12,6 +12,8 @@ import { useAuth } from '@/hooks/useAuth'
 import type { Patient } from '@/types'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica, TipoNota } from '@/types/expediente'
+import type { Internamiento } from '@/types/hospital'
+import type { CabosDelPaciente } from '@/lib/tareas-clinicas/cabos-del-paciente'
 import {
   ArrowLeft, Mic, FileText, Loader2, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
@@ -23,6 +25,7 @@ import { FotosClinicas } from '@/components/FotosClinicas'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { PatientAnchor } from '@/components/expediente/PatientAnchor'
+import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
@@ -64,6 +67,12 @@ export default function ExpedientePage() {
   // notas de hospital viven en su episodio; aquí quedan bajo la pestaña "Hospital".
   const [filtro, setFiltro] = useState<'todas' | 'consulta' | 'hospital'>('consulta')
   const [expandida, setExpandida] = useState<string | null>(null)
+  // Los dos de abajo NO abren su propia consulta a Firestore: son lo que
+  // CabosSueltosDelPaciente/InternamientosDelPaciente YA leyeron, reportado
+  // hacia arriba para que el Clinical Spine (§7) pueda mostrar un conteo real
+  // sin duplicar la fuente de verdad (Clinical Spine, V15-PATIENT-WORKSPACE-001).
+  const [pendientesPaciente, setPendientesPaciente] = useState<CabosDelPaciente | null>(null)
+  const [internamientosPaciente, setInternamientosPaciente] = useState<Internamiento[] | null>(null)
 
   const borrarNota = async (notaId: string) => {
     if (!clinicId) return
@@ -103,6 +112,46 @@ export default function ExpedientePage() {
     return filtro === 'hospital' ? hosp : !hosp
   })
 
+  /*
+    EL ESTADO ACTUAL, EN UNA LÍNEA (REG-262) — levantado a `useMemo` para que
+    el bloque de abajo Y el Clinical Spine lean el MISMO cálculo: si cada uno
+    lo recalculara por su cuenta, un mismo paciente podría mostrar "3
+    problemas" en el riel y "4" en el resumen según el momento del render.
+    Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
+  */
+  const { problemas, vigentes } = useMemo(() => {
+    const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
+      fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+      medicamentos: n.medicamentos,
+      diagnosticos: n.diagnosticos,
+    }))
+    return { problemas: problemasActivos(firmadas), vigentes: medicamentosVigentes(firmadas) }
+  }, [notas])
+
+  /*
+    CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — sólo enseña las
+    categorías que de verdad tienen algo para ESTE paciente ("señalar de
+    menos, nunca de más"): Encuentros siempre (es el corazón del expediente,
+    incluso en 0), el resto sólo cuando ya cargó y hay algo que mostrar.
+    Microbiología, imágenes, procedimientos, órdenes y comunicaciones NO
+    tienen todavía una sección propia en esta pantalla — no se inventan
+    entradas del riel para secciones que no existen; quedan para cuando esas
+    pantallas se construyan.
+  */
+  const spineItems: ClinicalSpineItem[] = [
+    { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
+    ...(problemas.length > 0 || vigentes.length > 0
+      ? [{ id: 'problemas', label: 'Diagnósticos y medicamentos', detail: `${problemas.length} dx · ${vigentes.length} fármaco${vigentes.length === 1 ? '' : 's'}` }]
+      : []),
+    ...(clinicId && patientId ? [{ id: 'herramientas', label: 'Laboratorios y fotografía' }] : []),
+    ...(pendientesPaciente && pendientesPaciente.lista.length > 0
+      ? [{ id: 'pendientes', label: 'Pendientes', count: pendientesPaciente.lista.length }]
+      : []),
+    ...(internamientosPaciente && internamientosPaciente.length > 0
+      ? [{ id: 'internamientos', label: 'Ingresos', count: internamientosPaciente.length }]
+      : []),
+  ]
+
   return (
     <div className="page-pad" style={{ maxWidth: 880, margin: '0 auto' }}>
       {/* Back */}
@@ -121,6 +170,12 @@ export default function ExpedientePage() {
         errorPaciente={errorPaciente}
         onContinuarEncuentro={(notaId) => router.push(`/consulta/${patientId}?nota=${notaId}`)}
       />
+
+      {/* CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — recorrido
+          longitudinal por el expediente de ESTE paciente. Reemplaza el
+          desplazamiento a ciegas por categorías reales con posición
+          resaltada mientras se recorre la página. */}
+      <ClinicalSpine items={spineItems} />
 
       {/* `exp-actions`: bajo 480px la rejilla pone el CTA primario (Nueva
           consulta con IA) ARRIBA a fila completa — sin ella, .actions-row
@@ -243,25 +298,27 @@ export default function ExpedientePage() {
           separadas, cada una con su encabezado "Herramientas clínicas" — se veían
           duplicadas). Laboratorios y la fotografía seriada, ambas plegadas. */}
       {clinicId && patientId && (
-        <Herramientas items={[
-          {
-            id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
-            para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
-            contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
-          },
-          {
-            id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
-            para: 'Serie por región · comparación antes/después con días de evolución',
-            contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
-          },
-        ]} />
+        <div id="spine-herramientas">
+          <Herramientas items={[
+            {
+              id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
+              para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
+              contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
+            },
+            {
+              id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
+              para: 'Serie por región · comparación antes/después con días de evolución',
+              contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
+            },
+          ]} />
+        </div>
       )}
 
       {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
           consulta ("Valoración Inmunocomprometido"), no como sección aquí. */}
 
-      {/* Historia clínica */}
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
+      {/* Historia clínica — ancla del Clinical Spine ("Encuentros"). */}
+      <div id="spine-encuentros" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
         Historia clínica
       </div>
 
@@ -277,36 +334,27 @@ export default function ExpedientePage() {
         lectura más— y no había ningún resumen: para saber qué tiene y qué toma
         había que leerse la lista de notas.
 
-        Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
+        `problemas`/`vigentes` viven en el `useMemo` de arriba — el MISMO
+        cálculo que ya lee el Clinical Spine para su conteo "N dx · M
+        fármacos"; si cada uno lo recalculara aparte, un mismo paciente
+        podría mostrar números distintos según dónde se mire.
       */}
-      {(() => {
-        /* La MISMA proyección que usa la consulta: si aquí se armara distinto,
-           el mismo paciente tendría dos «problemas activos» según la pantalla. */
-        const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
-          fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
-          medicamentos: n.medicamentos,
-          diagnosticos: n.diagnosticos,
-        }))
-        const problemas = problemasActivos(firmadas)
-        const vigentes = medicamentosVigentes(firmadas)
-        if (!problemas.length && !vigentes.length) return null
-        return (
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
-            background: 'var(--s2)', border: '1px solid var(--border)',
-            borderRadius: 11, padding: '10px 13px',
-          }}>
-            <Stethoscope size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
-            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
-              <div><strong style={{ color: 'var(--text)' }}>Problemas:</strong> {resumenProblemas(problemas)}</div>
-              <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
-              </div>
+      {(problemas.length > 0 || vigentes.length > 0) && (
+        <div id="spine-problemas" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 11, padding: '10px 13px',
+        }}>
+          <Stethoscope size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
+            <div><strong style={{ color: 'var(--text)' }}>Problemas:</strong> {resumenProblemas(problemas)}</div>
+            <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+              De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
             </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       {/*
         LO QUE QUEDÓ PENDIENTE DE ESTE PACIENTE (REG-266).
@@ -319,12 +367,15 @@ export default function ExpedientePage() {
         historia, y la historia espera.
       */}
       {clinicId && (
-        <CabosSueltosDelPaciente
-          clinicId={clinicId}
-          patientId={patientId}
-          cargar={tareasDePaciente}
-          alAbrirPendientes={() => router.push('/pendientes')}
-        />
+        <div id="spine-pendientes">
+          <CabosSueltosDelPaciente
+            clinicId={clinicId}
+            patientId={patientId}
+            cargar={tareasDePaciente}
+            alAbrirPendientes={() => router.push('/pendientes')}
+            onResumen={setPendientesPaciente}
+          />
+        </div>
       )}
 
       {/*
@@ -340,12 +391,15 @@ export default function ExpedientePage() {
         una pestaña más.
       */}
       {clinicId && (
-        <InternamientosDelPaciente
-          clinicId={clinicId}
-          patientId={patientId}
-          cargar={getInternamientosDePaciente}
-          alAbrir={id => router.push(`/hospitalizacion/${id}`)}
-        />
+        <div id="spine-internamientos">
+          <InternamientosDelPaciente
+            clinicId={clinicId}
+            patientId={patientId}
+            cargar={getInternamientosDePaciente}
+            alAbrir={id => router.push(`/hospitalizacion/${id}`)}
+            onCargado={setInternamientosPaciente}
+          />
+        </div>
       )}
 
       {/* Filters */}

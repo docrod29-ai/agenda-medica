@@ -28,7 +28,7 @@
  * cifra derivada: esos motores existen aparte, con sus reglas, y duplicarlos
  * aquí sería crear una segunda verdad para el mismo dato.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BedDouble, ChevronRight } from 'lucide-react'
 import type { Internamiento } from '@/types/hospital'
 
@@ -38,6 +38,12 @@ export interface InternamientosDelPacienteProps {
   /** Se inyecta para poder probarlo sin Firestore. */
   cargar: (clinicId: string, pacienteId: string) => Promise<Internamiento[]>
   alAbrir: (internamientoId: string) => void
+  /**
+   * Reporta lo ya cargado hacia arriba (V15-PATIENT-WORKSPACE-001, Clinical
+   * Spine) — NO abre una segunda consulta a Firestore, sólo entrega lo mismo
+   * que este componente ya leyó.
+   */
+  onCargado?: (lista: Internamiento[] | null) => void
 }
 
 const fecha = (iso?: string) =>
@@ -47,17 +53,22 @@ export function InternamientosDelPaciente(p: InternamientosDelPacienteProps) {
   const [lista, setLista] = useState<Internamiento[] | null>(null)
   const { clinicId, patientId, cargar } = p
 
+  /* Ref, no dependencia del efecto: ver la misma razón en
+     CabosSueltosDelPaciente.tsx — `onCargado` no debe redisparar la lectura. */
+  const onCargadoRef = useRef(p.onCargado)
+  useEffect(() => { onCargadoRef.current = p.onCargado })
+
   /* Dependencias por VALOR, no el objeto de props: con `[p]` el efecto se
      redispara en cada render y relee Firestore sin que nada haya cambiado. */
   useEffect(() => {
     if (!clinicId || !patientId) return
     let vivo = true
     cargar(clinicId, patientId)
-      .then(r => { if (vivo) setLista(r) })
+      .then(r => { if (vivo) { setLista(r); onCargadoRef.current?.(r) } })
       /* `null` es «no se pudo leer», que NO es «nunca estuvo ingresado».
          Enseñar una lista vacía ante un fallo de red afirmaría algo falso
          sobre la historia del paciente. */
-      .catch(() => { if (vivo) setLista(null) })
+      .catch(() => { if (vivo) { setLista(null); onCargadoRef.current?.(null) } })
     return () => { vivo = false }
   }, [clinicId, patientId, cargar])
 
