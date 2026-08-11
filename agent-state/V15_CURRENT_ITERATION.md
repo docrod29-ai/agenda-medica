@@ -4,14 +4,17 @@
 
 ## Iteración en curso
 
-`V15-ENCOUNTER-MODE-001` (Fase 5) — EN CURSO, 11-ago-2026 (tercera
-rebanada: admin no esencial DENTRO de `/consulta/[patientId]` se calla al
-grabar, §8.5, hallazgo #5). Ver sección propia abajo. Segunda rebanada
-(Firmar y cerrar nota domina el cierre, §8.6), primera rebanada (FlowRail
-se aquieta al grabar, §8.1) y
-`V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADAS 11-ago-2026 (ver secciones
-abajo). `V15-TODAY-001` (Fase 3), `V15-IA-001` y `V15-SHELL-GREYBOX-001` —
-cerradas antes, misma fecha.
+`V15-ENCOUNTER-MODE-001` (Fase 5) — **CERRADA 11-ago-2026** (cuarta y última
+rebanada: el Copiloto se pinta junto a los hechos que interpreta, §8
+comportamiento #8). Los 9 comportamientos de §8 quedan re-medidos contra el
+código actual y resueltos o legítimamente diferidos — ver sección propia
+abajo. Sigue `V15-RESULTS-CLOSURE-001` (Fase 6) como siguiente tarea, con un
+primer barrido (no baseline completo) hecho esta misma corrida.
+Rebanadas previas de esta fase: admin no esencial se calla al grabar (§8.5,
+hallazgo #5), Firmar y cerrar nota domina el cierre (§8.6), FlowRail se
+aquieta al grabar (§8.1). `V15-PATIENT-WORKSPACE-001` (Fase 4) — CERRADA
+11-ago-2026 (ver secciones abajo). `V15-TODAY-001` (Fase 3), `V15-IA-001` y
+`V15-SHELL-GREYBOX-001` — cerradas antes, misma fecha.
 
 ### V15-IA-001 — CERRADA
 
@@ -833,36 +836,233 @@ medición en `docs/design/capturas/v15-admin-se-calla/` (desktop 1440):
   5901 líneas por el comentario que explica el porqué del cambio de
   compuerta).
 
+### V15-ENCOUNTER-MODE-001 — re-medición de los 9 comportamientos de §8 (11-ago-2026, cuarta rebanada)
+
+Con #1 y #5 ya cerrados por rebanadas previas, esta corrida releyó
+`/consulta/[patientId]` completa (5924 líneas, tras las tres rebanadas
+anteriores) y re-midió los 9 comportamientos de §8 UNO POR UNO contra el
+código actual — no contra la medición de baseline, que es de antes de esas
+tres rebanadas:
+
+| # | Comportamiento (§8) | Estado | Evidencia |
+|---|---|---|---|
+| 1 | navigation visually quiets | **PASS** | `FlowRail.tsx` (§8.1, ya cerrado). `BottomNav.tsx` (móvil) sigue sin suscribirse a `EVENTO_GRABANDO` — deuda ya anotada, diferida a `V15-MOBILE-001` (Fase 9), no bloquea Fase 5. |
+| 2 | patient identity remains unmistakable | **PASS** | Header de `page.tsx` (`<h1>{patient?.nombre}</h1>` + edad/sexo + banner de alergias, líneas ~4029-4054 de antes de esta corrida) **nunca** está detrás de `grabandoAhora()` — confirmado con `grep grabandoAhora` (sólo 4 sitios: menú IA + 3 avisos de crédito, ninguno es el header). El CSS de "quieto" de §8.1/§8.5 (`.nx-flow-rail-quiet-*`, `globals.css` líneas 772-783) está encapsulado bajo `.nx-flow-rail--quieto`, que sólo existe dentro del `<aside>` de `FlowRail` — no puede alcanzar nada de `/consulta/[patientId]` (confirmado: `grep nx-flow-rail-quiet` en `page.tsx` → 0 resultados). Además `InstrumentStrip` (§ tercera rebanada de `V15-PATIENT-WORKSPACE-001`) también pinta "paciente actual" en `/consulta`, doble refuerzo. |
+| 3 | recording state becomes unmistakable | **PASS** | Sin cambio desde el baseline: `MientrasHablas` + `InstrumentStrip` + `MarcoEscuchando`. |
+| 4 | clinically important current context remains available | **PASS** | Sin cambio desde el baseline: alergias, "Está tomando", "Visitas anteriores" siguen sin gate de grabación. |
+| 5 | nonessential admin disappears | **PASS** | Cerrado por la rebanada anterior (§8.5): menú de IA + 3 avisos de crédito ahora gatean con `grabandoAhora()`, verificado con grabación real. |
+| 6 | one primary action dominates | **PASS** | `EmpezarAGrabar` al inicio (ya lo tenía el baseline) y "Firmar y cerrar nota" al cierre (§8.6, ya cerrado). |
+| 7 | live transcript is optional, not the default wall | **PASS** | Sin cambio desde el baseline. |
+| 8 | contextual intelligence appears beside relevant facts | **Era PARCIAL → PASS esta corrida** | Ver rebanada de abajo. Este era uno de los "2 parciales" que el baseline nunca nombró por número — el otro era el propio #6, que ya se resolvió con §8.6 al pasar de "sólo al inicio" a "también al cierre". |
+| 9 | note/plan emerge from the encounter without switching to unrelated modules | **Deliberadamente diferido a Fase 8, no bloquea Fase 5** | Ver razonamiento abajo. |
+
+**Sobre #9** (para que quede explícito y no se re-litigue sin motivo): el
+propio master loop ubica "Integrate Note → Rx → Orders → Instructions →
+Follow-up" en la Fase 8 (§33), DESPUÉS de Encounter Mode. La corrida de
+`V15-PATIENT-WORKSPACE-001` (tercera rebanada, sección "Active Patient
+Canvas, DECISIÓN" arriba) ya investigó `onGenerarReceta`/`onGenerarOrden` y
+decidió, con razón escrita, que navegar a `/receta`/`/orden` es un diferido
+A PROPÓSITO, no un olvido. Esta corrida confirma que esa decisión sigue
+vigente (no se tocó `onGenerarReceta`/`onGenerarOrden` ni la navegación de
+`NotaCard`) y la adopta para #9: forzar Rx/Orders a vivir inline dentro de
+`/consulta/[patientId]` ahora invertiría el orden de fases obligatorio de
+§18. Documentado, no bloqueante — no se cuenta como comportamiento
+incumplido de esta fase.
+
+Con #1-8 en PASS real y #9 diferido con razón documentada y ya tomada por
+una corrida anterior, **los 9 comportamientos de §8 quedan resueltos o
+legítimamente diferidos** — condición para cerrar `V15-ENCOUNTER-MODE-001`.
+
+### El Copiloto se pinta junto a los hechos (§8 #8) — cuarta y última rebanada de Encounter Mode
+
+- **Medición antes de tocar código**: `/consulta/[patientId]` es una sola
+  columna sin pestañas (confirmado: `grep gridTemplateColumns` sólo
+  encuentra la cuadrícula de Signos vitales — ninguna estructura de dos
+  columnas en toda la página). El orden real de JSX (no supuesto: medido con
+  `grep -n` de cada marcador de sección) era: Grabación → extracción NER →
+  avisos de crédito → Resumen ejecutivo → Segunda opinión → **Copiloto +
+  PanelRazonamiento** → Herramientas → Evidencia (PubMed) → PROA →
+  reproyección de voces → sugerencias de IA pendientes → Signos vitales →
+  Preop → Inmuno → Secciones narrativas → **Diagnósticos** → **Medicamentos**
+  → Validación + Acciones (cierre). El Copiloto —que calcula alertas de
+  dosis/alergia/renal/prevención LEYENDO `diagnosticos`/`medicamentos`/
+  `signosNum` vía el `useMemo` `entradaCopiloto`— se pintaba casi 700 líneas
+  ANTES de que esos mismos diagnósticos y medicamentos existieran siquiera
+  como lista editable en la pantalla. Un médico que lee de arriba abajo veía
+  "para este paciente…" y alertas de seguridad antes de haber llegado a
+  escribir el diagnóstico o el medicamento que las dispara: la inteligencia
+  contextual estaba desconectada de los hechos que interpretaba, no "al
+  lado" de ellos — el comportamiento #8 de §8, PARCIAL en la medición.
+- **Corrección**: se reubicó el bloque `<Copiloto>` + `<PanelRazonamiento>`
+  (sin tocar una sola prop, sin tocar `entradaCopiloto`) a que se pinte
+  DESPUÉS de Secciones narrativas + Diagnósticos + Medicamentos, y justo
+  ANTES de "Validación + Acciones" (el cierre/firma). El dato que consume
+  (`entradaCopiloto`) no cambió — es el mismo `useMemo` de siempre, calculado
+  arriba de la función, independiente de dónde se pinte su consumidor. Sólo
+  cambió DÓNDE se pinta: ahora el Copiloto reacciona a lo que el médico YA
+  fijó, justo antes de firmar, en vez de adelantar una opinión sobre datos
+  que todavía no existen en pantalla.
+- **No se tocó** `Herramientas`, `Evidencia (PubMed)` ni `PROA` — son
+  herramientas bajo demanda (el médico las abre si las necesita), no el
+  motor de sugerencias reactivo que dispara #8. Reordenarlas también habría
+  sido un cambio mucho más grande y con más riesgo (~1200 líneas de JSX) por
+  un beneficio marginal; se dejó fuera de esta rebanada a propósito.
+- **Hallazgo de paso, encontrado por el mismo arnés de verificación**: al
+  disparar una sugerencia real del Copiloto (agregar un medicamento que
+  choca con la alergia del paciente) aparecieron dos violaciones axe
+  `critical`/`serious` NUEVAS para esta fase — no en el bloque que se movió,
+  sino en las filas de Diagnósticos/Medicamentos que ninguna captura previa
+  de esta fase había llegado a poblar: el botón de basurero (`Trash2`, sin
+  texto ni `aria-label`, 2 nodos: uno en Diagnósticos y otro en Medicamentos)
+  y el `<select>` de vía de administración (sin `<label>` ni `aria-label`, 1
+  nodo). Arreglados aquí por ser un cambio de una línea cada uno, seguro
+  (sólo agrega `aria-label`, ningún `onClick`/`disabled`/comportamiento
+  cambia) y porque el propio arnés de esta corrida los encontró — mismo
+  criterio que ya usaron las rebanadas de `V15-PATIENT-WORKSPACE-001` con el
+  `<h1>` perdido y el botón de `NotificacionesPushOptIn.tsx`.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-copiloto-junto-a-los-hechos.test.ts` — análisis estático
+  de fuente (índice de texto = orden de render, mismo patrón que el resto de
+  guardianes `v15-*`). Verificado contra `git stash` del cambio en
+  `page.tsx`: el caso "Secciones narrativas → Diagnósticos → Medicamentos →
+  Copiloto, en ese orden" falla contra el árbol previo (`<Copiloto` aparecía
+  ANTES de "Diagnósticos" en el texto fuente, `299226 < 262140` fallando la
+  aserción `toBeLessThan`); los otros 5 casos (freeze funcional + bloque
+  contiguo) pasan sin el cambio porque protegen algo que no se tocó.
+
+### Verificado en navegador real (11-ago-2026) — sugerencia crítica real, no simulada
+
+Mismo método que las corridas anteriores de esta fase: emuladores
+Auth/Firestore reales (`--project demo-nexusmed-test`) + siembra sintética
+(`sembrar-capturas.mjs`) + build de producción + `npm start`. Esta
+verificación además EJERCITA una sugerencia real del Copiloto en vez de sólo
+medir posición con datos vacíos: sobre `pac-aurelio-dominguez` (alergia
+registrada: Penicilina), se agregó un diagnóstico y el medicamento
+"Amoxicilina" desde la UI real — `alergiaVsReceta()`
+(`src/lib/expediente/copiloto.ts`) clasifica la amoxicilina dentro de la
+familia "betalactámicos" que dispara la alergia a penicilina, así que es un
+disparador determinista, no supuesto. Arnés nuevo:
+`scripts/design/capturar-copiloto-junto-a-hechos-v15.mjs`. Capturas y
+medición en `docs/design/capturas/v15-copiloto-junto-a-hechos/` (desktop
+1440 + mobile 390):
+
+- **La sugerencia crítica real apareció en el DOM**: `hayCriticaEnDOM: true`,
+  `textoCritica: "Amoxicilina choca con una alergia registrada"` — medido
+  con `document.querySelectorAll('span')`, no leído en el código fuente.
+- **Orden real, medido con `getBoundingClientRect().top`, no supuesto**:
+  `topMedicamentos: 1178.66` < `topCopiloto: 1363.41` < `topFirmar:
+  2317.16` → `medicamentosAntesDeCopiloto: true`,
+  `copilotoAntesDeFirmar: true`. El Copiloto (con la alerta crítica real
+  visible) queda entre Medicamentos y el cierre, exactamente donde lo puso
+  la corrección.
+- **Antes de agregar datos, el Copiloto calla**: `copilotoAntesDeAgregarDatos_desktop: false`,
+  `_mobile: false` — sin diagnóstico ni medicamento en la nota nueva, ningún
+  texto "Para este paciente"/"cosa que revisar" aparece (silencio como
+  condición normal, regla ya documentada en la cabecera de `Copiloto.tsx`).
+- **Axe, ANTES del arreglo de aria-label**: `button-name` (crítico, 2 nodos:
+  el basurero de Diagnósticos y el de Medicamentos) y `select-name`
+  (crítico, 1 nodo: el `<select>` de vía) — NUEVOS para esta fase porque
+  ninguna captura previa de `V15-ENCOUNTER-MODE-001` había llegado a poblar
+  esas filas. **DESPUÉS del arreglo** (rebuild + recaptura): los dos
+  desaparecen — 0 nodos en ambos.
+- **Axe, violaciones que quedan tras el arreglo**: `landmark-unique` (2
+  nodos, desktop) y `region` (2-3 nodos) son el mismo fingerprint
+  preexistente ya documentado en TODAS las capturas anteriores de esta fase
+  (cajón móvil de `FlowRail`, banners fuera de landmark) — no se tocan aquí,
+  candidatas a `V15-A11Y-001`. `color-contrast` (1 nodo, serio, texto teal
+  del encabezado "Análisis basado en evidencia" — `#0f6e56` sobre fondo
+  oscuro, 3.03:1) y `heading-order` (1 nodo, `<h4>Sus medicamentos</h4>` de
+  `src/lib/paciente/como-se-lo-explico.ts`, la hoja para el paciente) son
+  **hallazgos nuevos para esta fase, pero en componentes que esta rebanada
+  NO tocó** (el panel de Evidencia/PubMed y la hoja para el paciente no
+  forman parte del bloque `Copiloto`/`PanelRazonamiento` que se movió, y su
+  estilo/markup no cambió una línea) — aparecen recién ahora porque es la
+  primera captura de la fase que puebla Diagnósticos/Medicamentos lo
+  suficiente para que esos paneles se activen. Anotados para
+  `V15-A11Y-001`, no arreglados aquí para no salirse de una rebanada ya de
+  por sí concentrada en #8.
+- **Consola**: 0 errores en desktop; en móvil, sólo el warning ya familiar de
+  reconexión de Firestore del emulador.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8754 pasan, 1 skip, 1 fallo PRE-EXISTENTE y ambiental
+  (`ops-timeout-y-punto-ciego`, falla igual en árbol limpio por el proxy de
+  red del contenedor — no relacionado, mismo fallo documentado en todas las
+  corridas previas de esta fase).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila con `.env.local` demo (emuladores) — todas las
+  rutas generadas, incluida `/consulta/[patientId]`, sin error de tipos ni
+  de compilación.
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/consulta/[patientId]`
+  subió de 5912 a 5925 líneas de fuente por el comentario que explica el
+  reordenamiento y los dos `aria-label` nuevos).
+
+## V15-ENCOUNTER-MODE-001 (Fase 5) — CERRADA
+
+Los 9 comportamientos de §8 quedan en PASS real (1-8) o diferidos con razón
+documentada y ya decidida por una corrida anterior (#9, Fase 8 por diseño
+del propio master loop, §18/§33). Tres rebanadas reales cerraron gaps de
+verdad (§8.1 navegación, §8.5 admin no esencial, §8.6 acción dominante al
+cierre) y una cuarta reposicionó la inteligencia contextual junto a los
+hechos que interpreta (§8.8). Ningún cambio de esta fase tocó
+`src/lib/asr/`, `src/lib/expediente/` (motor clínico), `src/lib/seguridad/`,
+una ruta de API ni una regla de Firestore — presentación/estructura
+únicamente, lógica clínica congelada.
+
 ## Siguiente tarea exacta
 
-Con los hallazgos #1, #5 y #6 del baseline de `V15-ENCOUNTER-MODE-001`
-cerrados, la siguiente corrida debe revisar si queda algo de los 9
-comportamientos de §8 sin cubrir antes de dar la fase por completa (medición
-de baseline: 3 cumplían de entrada, 1 sólo al inicio, 2 parciales, 2 NO
-cumplían — #1 y #5 ya cerrados de los 2 que no cumplían). Si §8 queda
-completo, `V15-ENCOUNTER-MODE-001` (Fase 5) pasa a CERRADA y la siguiente
-fase en la secuencia de §43 es `V15-RESULTS-CLOSURE-001` (Fase 6, work queue
-de resultados).
+`V15-RESULTS-CLOSURE-001` (Fase 6, §43) — work queue de resultados, §9 del
+master loop: `RESULT → SIGNIFICANCE → OWNER → REVIEW → DECISION → ACTION →
+PATIENT COMMUNICATION → CLOSED`, no una tabla estática.
 
-**Deuda anotada, no bloqueante:**
-- `BottomNav.tsx` (navegación persistente en móvil) tampoco se suscribe a
-  `EVENTO_GRABANDO` — mismo hallazgo que tenía `FlowRail`, pero fuera de
-  alcance de esta fase (la recomposición de móvil es `V15-MOBILE-001`, Fase
-  9, deliberadamente diferida).
-- Dos familias de violaciones axe moderadas preexistentes —
-  `landmark-unique` (cajón móvil de `FlowRail`, mismo `aria-label` que la
-  versión de escritorio) y `region` (banner de prueba gratuita / banner de
-  recordatorios de push, contenido fuera de landmark) — vistas en
-  `/dashboard`, `/expediente/[patientId]`, `/consulta/[patientId]` y donde
-  sea que esos componentes se monten. Candidata para `V15-A11Y-001` cuando
-  llegue esa fase.
+**Primer barrido de esta corrida (NO es el baseline completo — la
+siguiente corrida debe hacer la lectura completa con el mismo rigor que
+`V15-ENCOUNTER-MODE-001 — medición de baseline` arriba, antes de decidir qué
+construir):**
+
+- No existe una ruta `/resultados` ni ningún workspace dedicado a
+  resultados (confirmado: `find src/app -iname "*resultado*"` → 0
+  archivos).
+- Lo más cercano hoy es `src/components/laboratorio/PanelLaboratorios.tsx`
+  (211 líneas): historial de paneles de laboratorio con gráficas de
+  tendencia, embebido dentro de "Herramientas" en `/consulta/[patientId]` —
+  es upload + extracción + gráfica, **sin ninguna de las 8 etapas de §9**
+  (ni `estado`, ni "quién es dueño", ni "qué falta decidir"). Es
+  exactamente el "static table alone" que §9 dice que no basta.
+- El otro candidato es el sistema genérico de `tareas_clinicas`
+  (`src/lib/tareas-clinicas/firestore.ts`, ya usado por `/pendientes` y por
+  `ContinuidadPanel` en `/dashboard`) — tiene un campo `estado` plano, no la
+  progresión específica de 8 pasos de §9, y no está especializado para
+  resultados (mezcla seguimientos, reconciliaciones, etc.).
+- **No se tocó código de producto esta corrida para Fase 6** — sólo esta
+  exploración de 15 minutos para dejar el punto de partida anotado. La
+  siguiente corrida debe: (1) leer completo el §9 del master loop (ya
+  transcrito arriba, es corto) y el estado real de labs/resultados en la
+  UI actual navegando la app real, no sólo grep; (2) decidir qué pantalla(s)
+  concretas caen bajo "Results/Closure workspace" (¿`PanelLaboratorios`
+  rediseñado? ¿una ruta nueva? ¿parte de `/pendientes`?); (3) medir contra
+  las 8 etapas de §9 con el mismo rigor que las mediciones de baseline
+  anteriores antes de tocar código.
+
+**Deuda anotada, no bloqueante (heredada de Fase 5, sigue sin resolverse,
+candidata a fases futuras — no se repite su detalle si ya está arriba):**
+- `BottomNav.tsx` no se suscribe a `EVENTO_GRABANDO` → `V15-MOBILE-001`
+  (Fase 9).
+- `landmark-unique` (cajón móvil `FlowRail`) y `region` (banners fuera de
+  landmark) → `V15-A11Y-001` (Fase 13).
+- `color-contrast` (encabezado teal de "Análisis basado en evidencia",
+  3.03:1) y `heading-order` (`<h4>Sus medicamentos</h4>` de la hoja para el
+  paciente) — hallazgos NUEVOS de esta corrida, en componentes que
+  `V15-ENCOUNTER-MODE-001` no tocó → también `V15-A11Y-001`.
 - La diarización completa (`/api/expediente/transcribir-diarizado`) cuelga
   en `audio.estado === 'subiendo'` en este sandbox concreto incluso con la
-  respuesta del proveedor mockeada — causa no confirmada (sospecha: el
-  intento de subida a Firebase Storage sin emulador de Storage levantado).
-  No bloqueó esta corrida (se evitó el camino), pero cualquier arnés futuro
-  que SÍ necesite llegar a `audio.estado === 'listo'` debe investigarlo
-  primero o levantar también el emulador de Storage.
+  respuesta del proveedor mockeada — causa no confirmada (sospecha: intento
+  de subida a Firebase Storage sin emulador de Storage levantado). Cualquier
+  arnés futuro que necesite llegar a `audio.estado === 'listo'` debe
+  investigarlo primero o levantar también el emulador de Storage.
 
 ## Reglas de la corrida (recordatorio)
 

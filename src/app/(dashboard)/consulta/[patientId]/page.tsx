@@ -4810,34 +4810,6 @@ export default function ConsultaActivaPage() {
         </button>
       )}
 
-      {/* ── Copiloto: lo que aplica a ESTE paciente, calculado con lo ya capturado.
-             Si no hay nada que decir, no se pinta. ── */}
-      <Copiloto
-        entrada={entradaCopiloto}
-        onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
-        prefs={prefsIA}
-        onAceptar={(cat) => {
-          const uid = auth.currentUser?.uid
-          if (clinicId && uid) registrarAceptacion(clinicId, uid, cat)
-          // eco optimista: reordena en caliente sin re-leer Firestore
-          setPrefsIA(p => ({ ...p, [cat]: (p[cat] ?? 0) + 1 }))
-        }}
-      />
-
-      {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
-          — los 12 pasos, cada uno con su ORIGEN (regla/IA/PubMed) y su CONFIANZA.
-          Es el diferenciador: el razonamiento deja de ser una caja negra. */}
-      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
-        <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
-          <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
-            <Brain size={15} style={{ color: 'var(--nexus)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
-          </summary>
-          <div style={{ padding: '0 14px 14px' }}>
-            <PanelRazonamiento entrada={entradaCopiloto} embebido />
-          </div>
-        </details>
-      )}
-
       {/* ── Herramientas clínicas: un solo bloque plegado. Antes eran cinco cajas
              siempre abiertas apiladas aquí; la mayoría de las consultas no usa
              ninguna, así que ahora se abren solo cuando se necesitan. ── */}
@@ -5469,7 +5441,13 @@ export default function ConsultaActivaPage() {
               onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
               style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
             />
-            {!firmada && <button onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
+            {!firmada && (
+              <button
+                onClick={() => setDiagnosticos(prev => prev.filter((_, j) => j !== i))}
+                style={S.del}
+                aria-label={`Quitar diagnóstico${d.descripcion ? `: ${d.descripcion}` : ''}`}
+              ><Trash2 size={14} /></button>
+            )}
           </div>
         ))}
         {!firmada && (
@@ -5518,7 +5496,7 @@ export default function ConsultaActivaPage() {
               "fármaco · dosis · VÍA · intervalo · duración": el sistema sabía que
               importa, pero no dejaba capturarla.
             */}
-            <select value={m.via ?? 'oral'} disabled={firmada}
+            <select value={m.via ?? 'oral'} disabled={firmada} aria-label={`Vía de administración${m.nombre ? ` de ${m.nombre}` : ''}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, via: e.target.value as Medicamento['via'] } : x))}
               style={{ ...S.input, flex: 1, minWidth: 92 }}>
               <option value="oral">Oral</option>
@@ -5537,7 +5515,13 @@ export default function ConsultaActivaPage() {
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
-            {!firmada && <button onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))} style={S.del}><Trash2 size={14} /></button>}
+            {!firmada && (
+              <button
+                onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))}
+                style={S.del}
+                aria-label={`Quitar medicamento${m.nombre ? `: ${m.nombre}` : ''}`}
+              ><Trash2 size={14} /></button>
+            )}
           </div>
         ))}
         {!firmada && (
@@ -5546,6 +5530,47 @@ export default function ConsultaActivaPage() {
           </button>
         )}
       </Section>
+
+      {/*
+        ── COPILOTO, JUNTO A LO QUE YA SE CAPTURÓ (§8.8, 11-ago-2026) ─────────
+        Vivía arriba, antes de Secciones narrativas/Diagnósticos/Medicamentos:
+        el médico leía «para este paciente…» y las alertas de dosis/alergia/
+        renal ANTES de que los diagnósticos y medicamentos que las disparan
+        existieran siquiera en la pantalla — la inteligencia contextual del
+        §8.8 quedaba desconectada de los hechos que interpretaba, no "al lado".
+        `entradaCopiloto` (el useMemo de arriba) no cambió: sigue leyendo el
+        MISMO diagnosticos/medicamentos/signos que ya lee Diagnósticos/
+        Medicamentos abajo — sólo se movió DÓNDE se pinta, no lo que calcula.
+        Aquí, justo después de que el médico terminó de capturar Secciones
+        narrativas + Diagnósticos + Medicamentos y justo antes de firmar, el
+        Copiloto reacciona a lo que quedó fijado — no a un adelanto de lo que
+        todavía no se ha escrito.
+      */}
+      <Copiloto
+        entrada={entradaCopiloto}
+        onAgregarANota={agregarASeccion('copiloto', 'Valoración asistida')}
+        prefs={prefsIA}
+        onAceptar={(cat) => {
+          const uid = auth.currentUser?.uid
+          if (clinicId && uid) registrarAceptacion(clinicId, uid, cat)
+          // eco optimista: reordena en caliente sin re-leer Firestore
+          setPrefsIA(p => ({ ...p, [cat]: (p[cat] ?? 0) + 1 }))
+        }}
+      />
+
+      {/* Clinical Reasoning Engine VISIBLE: cómo llegó el copiloto a sus sugerencias
+          — los 12 pasos, cada uno con su ORIGEN (regla/IA/PubMed) y su CONFIANZA.
+          Es el diferenciador: el razonamiento deja de ser una caja negra. */}
+      {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen || Object.keys(signosNum).length > 0) && (
+        <details style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))' }}>
+          <summary style={{ cursor: 'pointer', padding: '11px 14px', fontSize: 13, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, listStyle: 'none' }}>
+            <Brain size={15} style={{ color: 'var(--nexus)' }} /> Cómo razoné este caso · 12 pasos con fuente y confianza
+          </summary>
+          <div style={{ padding: '0 14px 14px' }}>
+            <PanelRazonamiento entrada={entradaCopiloto} embebido />
+          </div>
+        </details>
+      )}
 
       {/* ── Validación + Acciones ── */}
       {!firmada && (
