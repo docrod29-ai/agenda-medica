@@ -44,20 +44,24 @@ En móvil el encabezado dice «Agenda Médica» mientras el escritorio ya dice
 «Ausculta» — marca inconsistente tras el renombre (commit 2ee0ba9). No se toca
 en esta corrida (fuera de alcance de la prioridad 1); queda anotado.
 
-### Pendiente de esta iteración (V15-BASELINE-001)
+### V15-BASELINE-001 — CERRADA (11-ago-2026)
 
-- Inventario de pantallas + conteo de destinos de navegación primaria.
-- Capturas "before" del golden flow (el arnés V10 ya existe:
-  `docs/design/capturas/v10-truth/README.md`).
-- Mapa de IA actual + métricas de flujos golden (base para V15-IA-001).
-- Crítica estructural (no de color) por escrito.
+- Capturas "before" del golden flow: 7 pantallas × 3 anchos + axe + consola en
+  `docs/design/capturas/v15-baseline-before/` (arnés existente
+  `capturar-golden-flow.mjs`, build de producción, datos sintéticos).
+- IA medida en fuente: **23 destinos primarios** de médico
+  (21 `NAV` + 2 Sistema) vs objetivo ≤5. Crítica estructural y métricas en
+  `docs/design/capturas/v15-baseline-before/BASELINE.md`.
+- Axe base: calendario 4 violaciones (button-name crítico), pacientes 1,
+  resto 0.
 
 ## Siguiente tarea exacta
 
-Completar V15-BASELINE-001: correr el arnés de capturas para la línea base
-"before", contar los destinos del sidebar actual y producir el mapa de IA
-existente. Después: `V15-IA-001` (sitemap nuevo, ≤5 destinos de médico,
-separación Operations).
+`V15-IA-001`: sitemap nuevo con ≤5 contextos de médico (TODAY · PATIENT ·
+ENCOUNTER · WORK/FOLLOW-UP · SEARCH/COMMAND), separación Operations, mapa de
+capacidades contextuales y plan de compatibilidad de rutas — y arrancar
+`V15-SHELL-GREYBOX-001` (Instrument Strip + Flow Rail + Canvas + Lens en
+greybox) en la misma corrida si el tiempo alcanza.
 
 ## Reglas de la corrida (recordatorio)
 
