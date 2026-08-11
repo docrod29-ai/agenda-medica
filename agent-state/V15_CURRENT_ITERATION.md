@@ -1,6 +1,6 @@
 # V15 — estado vivo
 
-**Rama canónica:** `v15/structural-uiux` · **PRs V15 abiertos:** 0
+**Rama canónica:** `v15/structural-uiux` · **PRs V15 abiertos:** 1 (#292)
 
 ## Iteración en curso
 
