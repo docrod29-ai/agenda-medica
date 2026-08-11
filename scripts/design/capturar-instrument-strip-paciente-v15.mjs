@@ -71,13 +71,16 @@ async function main() {
     // Primer login del contexto: el tour de bienvenida tapa la pantalla.
     await page.getByText('Saltar', { exact: true }).click({ timeout: 2000 }).catch(() => null)
 
+    await page.goto(`${BASE}/expediente/${PATIENT_ID}`, { waitUntil: 'load' })
     const enExpediente = await franjaTexto(page)
+    await page.waitForTimeout(500)
+    await page.screenshot({ path: path.join(DESTINO, `expediente--${vp.nombre}.png`), fullPage: false })
 
-    await page.goto(`${BASE}/receta/${PATIENT_ID}`, { waitUntil: 'load' }).catch(() => null)
-    // /receta exige un notaId real; si la ruta base no resuelve, se prueba
-    // igual desde /referencia, que sí acepta sólo el patientId.
+    // /referencia acepta sólo el patientId (no exige un notaId real como /receta u /orden) —
+    // basta para probar que la franja SIGUE pintando el nombre FUERA del expediente.
     await page.goto(`${BASE}/referencia/${PATIENT_ID}`, { waitUntil: 'load' })
     const fueraDelExpediente = await franjaTexto(page)
+    await page.screenshot({ path: path.join(DESTINO, `referencia--${vp.nombre}.png`), fullPage: false })
 
     await page.goto(`${BASE}/dashboard`, { waitUntil: 'load' })
     const sinPaciente = await franjaTexto(page)
@@ -85,10 +88,6 @@ async function main() {
     if (vp.nombre === 'desktop') {
       resultado.franja = { enExpediente, fueraDelExpediente_referencia: fueraDelExpediente, sinPaciente_dashboard: sinPaciente }
     }
-
-    await page.goto(`${BASE}/expediente/${PATIENT_ID}`, { waitUntil: 'load' })
-    await page.waitForTimeout(500)
-    await page.screenshot({ path: path.join(DESTINO, `expediente--${vp.nombre}.png`), fullPage: false })
 
     await page.addScriptTag({ content: axeSource })
     const axeResult = await page.evaluate(async () => await window.axe.run(document, { resultTypes: ['violations'] }))

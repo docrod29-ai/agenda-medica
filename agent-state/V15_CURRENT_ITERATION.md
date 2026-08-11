@@ -456,6 +456,44 @@ distinto al caso que esta corrida resolvió («paciente cuya pantalla estoy
 viendo ahora»). Candidata para una corrida futura de `V15-TODAY-001` o de
 esta misma fase si vuelve a abrirse.
 
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método que las corridas anteriores: emuladores Auth/Firestore reales
++ siembra sintética (`scripts/design/sembrar-capturas.mjs`) + build de
+producción + `npm start`. Arnés nuevo: `scripts/design/capturar-instrument-strip-paciente-v15.mjs`.
+Capturas en `docs/design/capturas/v15-instrument-strip-paciente/` (desktop
+1440 + mobile 390):
+
+- **Persiste al salir del expediente, medido de verdad, no leído en JSX**:
+  la franja dice `Ausculta · Aurelio Domínguez Peña` en `/expediente/
+  pac-aurelio-dominguez` Y en `/referencia/pac-aurelio-dominguez` (Carta de
+  referencia — pantalla sin ningún otro rastro del paciente en su UI salvo
+  el formulario) — la razón de ser de este cambio, confirmada con el
+  paciente real.
+- **Se limpia al salir a una pantalla sin paciente**: en `/dashboard` la
+  franja vuelve a decir sólo `Ausculta`, sin arrastrar el nombre del
+  paciente anterior.
+- **Axe, 0 violaciones nuevas**: `landmark-unique` (2 nodos) y `region`
+  (2-3 nodos) — mismas dos familias preexistentes ya documentadas en
+  `v15-today-continuidad` y `v15-patient-anchor` (cajón móvil de `FlowRail`
+  y banner de prueba gratuita), ninguna en `.nx-instrument-strip`.
+- **Consola**: sin errores, en desktop ni en móvil.
+- **Móvil**: el nombre cabe en la segunda fila de la franja sin desbordar
+  ni truncarse con este paciente; queda anotado como algo a vigilar con
+  nombres más largos cuando `V15-MOBILE-001` (Fase 9) recomponga el shell
+  completo, no se resuelve aquí por no salirse de fase.
+- Nota operativa para quien retome el arnés de capturas en general: la
+  siembra de `sembrar-capturas.mjs` vive bajo el proyecto de emulador
+  `demo-nexusmed-test` (hardcoded en el script), NO `demo-nexusmed-v10` que
+  usa la familia `arnes:*` de V10 — arrancar los emuladores con
+  `--project demo-nexusmed-v10` (como sugiere `package.json`) siembra y
+  sirve la app en proyectos distintos y el login falla en silencio con
+  `EMAIL_NOT_FOUND` sin que nada lo señale como error de proyecto. Costó
+  tres reconstrucciones de `npm run build` en esta corrida diagnosticarlo
+  (las variables `NEXT_PUBLIC_FIREBASE_*` se hornean en el build, no se
+  leen en caliente) — se deja escrito aquí para que la próxima corrida no
+  lo repita.
+
 Con la decisión de Active Patient Canvas tomada y `InstrumentStrip`
 entregado, **`V15-PATIENT-WORKSPACE-001` (Fase 4) puede darse por
 CERRADA** — sigue `V15-ENCOUNTER-MODE-001` (Fase 5) como siguiente tarea
