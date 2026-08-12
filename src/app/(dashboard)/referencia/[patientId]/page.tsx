@@ -8,7 +8,7 @@ import { getNotas } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Send, Download } from 'lucide-react'
+import { ArrowLeft, Printer, Loader2, Download } from 'lucide-react'
 import { descargarComoPDF } from '@/lib/pdf-download'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
@@ -105,9 +105,6 @@ export default function CartaReferenciaPage() {
   const fecha = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
   const titulo = tipo === 'referencia' ? 'CARTA DE REFERENCIA' : 'CARTA DE CONTRARREFERENCIA'
 
-  const input: React.CSSProperties = { width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none' }
-  const label: React.CSSProperties = { fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }
-
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: 24 }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -116,7 +113,9 @@ export default function CartaReferenciaPage() {
       </div>
       {/* Acciones */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+        {/* minHeight 44: §24 táctil — mismo trato que ganaron los enlaces de
+            texto de /login y /registro en su rebanada. */}
+        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', minHeight: 44 }}>
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
@@ -131,54 +130,59 @@ export default function CartaReferenciaPage() {
         </div>
       </div>
 
-      {/* Formulario (no se imprime) */}
+      {/* Formulario (no se imprime). Habla las clases del sistema
+          (.label/.input, como /login y /registro) y cada control lleva su
+          htmlFor/id: la primera medición axe de esta pantalla encontró el
+          formulario entero sin nombres accesibles (`label` crítico +
+          `select-name`) — la única deuda CRÍTICA del inventario de
+          V15-A11Y-001, pagada en su 2ª rebanada. */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 20px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 160 }}>
-            <label style={label}>Tipo de carta</label>
-            <select value={tipo} onChange={e => setTipo(e.target.value as Tipo)} style={input}>
+            <label className="label" htmlFor="ref-tipo">Tipo de carta</label>
+            <select id="ref-tipo" className="input" value={tipo} onChange={e => setTipo(e.target.value as Tipo)}>
               <option value="referencia">Referencia (envío a otro médico)</option>
               <option value="contrarreferencia">Contrarreferencia (respuesta al referente)</option>
             </select>
           </div>
           <div style={{ flex: 1, minWidth: 160 }}>
-            <label style={label}>Urgencia</label>
-            <select value={urgencia} onChange={e => setUrgencia(e.target.value as Urgencia)} style={input}>
+            <label className="label" htmlFor="ref-urgencia">Urgencia</label>
+            <select id="ref-urgencia" className="input" value={urgencia} onChange={e => setUrgencia(e.target.value as Urgencia)}>
               <option>Rutina</option><option>Prioritario</option><option>Urgente</option>
             </select>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={label}>Dirigido a (médico / especialidad)</label>
-            <input value={destino} onChange={e => setDestino(e.target.value)} placeholder="Dr(a). ___ / Cardiología" style={input} />
+            <label className="label" htmlFor="ref-destino">Dirigido a (médico / especialidad)</label>
+            <input id="ref-destino" className="input" value={destino} onChange={e => setDestino(e.target.value)} placeholder="Dr(a). ___ / Cardiología" />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={label}>Institución / hospital</label>
-            <input value={institucion} onChange={e => setInstitucion(e.target.value)} placeholder="Hospital ___" style={input} />
+            <label className="label" htmlFor="ref-institucion">Institución / hospital</label>
+            <input id="ref-institucion" className="input" value={institucion} onChange={e => setInstitucion(e.target.value)} placeholder="Hospital ___" />
           </div>
         </div>
         <div>
-          <label style={label}>Motivo de la {tipo === 'referencia' ? 'referencia' : 'contrarreferencia'}</label>
-          <textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Ej. Valoración y manejo de…" style={{ ...input, resize: 'vertical' }} />
+          <label className="label" htmlFor="ref-motivo">Motivo de la {tipo === 'referencia' ? 'referencia' : 'contrarreferencia'}</label>
+          <textarea id="ref-motivo" className="input" value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Ej. Valoración y manejo de…" />
         </div>
         <div>
-          <label style={label}>Resumen clínico (prellenado de la última nota — editable)</label>
-          <textarea value={resumen} onChange={e => setResumen(e.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />
+          <label className="label" htmlFor="ref-resumen">Resumen clínico (prellenado de la última nota — editable)</label>
+          <textarea id="ref-resumen" className="input" value={resumen} onChange={e => setResumen(e.target.value)} rows={4} />
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <label style={label}>Diagnóstico(s)</label>
-            <textarea value={diagnosticos} onChange={e => setDiagnosticos(e.target.value)} rows={3} style={{ ...input, resize: 'vertical' }} />
+            <label className="label" htmlFor="ref-diagnosticos">Diagnóstico(s)</label>
+            <textarea id="ref-diagnosticos" className="input" value={diagnosticos} onChange={e => setDiagnosticos(e.target.value)} rows={3} />
           </div>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <label style={label}>Tratamiento actual</label>
-            <textarea value={tratamiento} onChange={e => setTratamiento(e.target.value)} rows={3} style={{ ...input, resize: 'vertical' }} />
+            <label className="label" htmlFor="ref-tratamiento">Tratamiento actual</label>
+            <textarea id="ref-tratamiento" className="input" value={tratamiento} onChange={e => setTratamiento(e.target.value)} rows={3} />
           </div>
         </div>
         <div>
-          <label style={label}>Estudios adjuntos / realizados</label>
-          <textarea value={estudios} onChange={e => setEstudios(e.target.value)} rows={2} placeholder="Laboratorios, imagen…" style={{ ...input, resize: 'vertical' }} />
+          <label className="label" htmlFor="ref-estudios">Estudios adjuntos / realizados</label>
+          <textarea id="ref-estudios" className="input" value={estudios} onChange={e => setEstudios(e.target.value)} rows={2} placeholder="Laboratorios, imagen…" />
         </div>
       </div>
 
@@ -201,10 +205,13 @@ export default function CartaReferenciaPage() {
             una ciudad fija (antes decía "Chihuahua, Chih." para cualquier clínica). */}
         <div style={{ textAlign: 'right', fontSize: 12.5, marginBottom: 14 }}>{(() => { const lugar = config?.direccion?.split(',').pop()?.trim(); return lugar ? `${lugar}, a ${fecha}` : `A ${fecha}` })()}</div>
 
-        <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
+        {/* <h1>: el único encabezado real de la pantalla (axe
+            page-has-heading-one, encontrado por el primer arnés propio de esta
+            página). Los estilos en línea conservan el papel IDÉNTICO. */}
+        <h1 style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, margin: '0 0 14px' }}>
           {titulo}
           {urgencia !== 'Rutina' && <span style={{ color: 'var(--red)' }}> · {urgencia.toUpperCase()}</span>}
-        </div>
+        </h1>
 
         {(destino || institucion) && (
           <div style={{ marginBottom: 12, fontSize: 12.5 }}>

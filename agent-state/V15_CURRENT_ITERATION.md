@@ -4654,3 +4654,73 @@ casa: leer la pantalla entera, arreglar con las clases del sistema
 al revés, y arnés en navegador real con axe en los dos temas y móvil.
 Después: rebanada 3 = familia `color-contrast` del botón «Editar»; luego
 `nested-interactive` de /pacientes y los contrastes de /chat.
+
+## `V15-A11Y-001` — segunda rebanada: el formulario de /referencia tiene nombre — la única deuda CRÍTICA muere (12-ago-2026)
+
+La misma corrida que abrió la iteración pagó también la candidata crítica del
+inventario. Leída entera antes de rebanar (275 líneas). La carta de
+referencia/contrarreferencia — una hoja que viaja a OTRO médico — se componía
+en un formulario donde NINGUNO de los nueve controles (2 selects, 2 inputs,
+5 textareas) tenía nombre accesible: `<label>` visuales sin `htmlFor`,
+controles sin `id`, y un dialecto local de formulario (dos
+`React.CSSProperties` a mano, anteriores al sistema).
+
+- **Los nueve controles hablan `.label`/`.input` con su pareja htmlFor/id**
+  (`ref-tipo` … `ref-estudios`) — las mismas clases que /login y /registro
+  pagaron en su rebanada. El dialecto local murió (y el trinquete de diseño
+  BAJÓ de verdad: tamaños 1971→1970, radios 629→628, resellado).
+- **`page-has-heading-one` se pagó en la misma corrida** (precedente 4ª
+  rebanada: lo que el primer axe propio de la pantalla encuentra, se paga):
+  el título de la carta (`CARTA DE REFERENCIA` / `CONTRARREFERENCIA`) es
+  ahora el `<h1>` de la pantalla, con los estilos en línea que dejan el
+  papel IDÉNTICO.
+- **§24**: «Atrás» gana minHeight 44 (medido: 44). El import muerto `Send`
+  murió.
+- **Freeze funcional intacto**: mismo prellenado desde la última nota
+  (preferir firmada, `?nota=` manda), alergias SIEMPRE de
+  `alergiasParaImpreso` (campo estructurado), cédula ausente se DECLARA,
+  mismas dos salidas (PDF + imprimir del mismo `#doc`), guarda de
+  `configError` en las dos.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-a11y-referencia-formulario-con-nombre.test.ts` (5 casos):
+htmlFor/id ×9, clases del sistema + muerte del dialecto, h1, §24, y el
+freeze funcional completo. **3 de 4 fallaban contra el árbol previo**
+(verificado con `git stash`, antes del caso del h1); el que pasa protege
+invariantes funcionales preexistentes.
+
+### Verificado en navegador real (12-ago-2026)
+
+Arnés nuevo: `scripts/design/capturar-referencia-formulario-v15.mjs` —
+siembra su nota firmada sintética y mide la asociación label↔control DE
+VERDAD (`el.labels.length`), no el JSX. Resultado y 3 capturas en
+`docs/design/capturas/v15-referencia-formulario/`:
+
+- **`sinNombre: []` en escritorio Y móvil** — los nueve controles con
+  exactamente 1 etiqueta asociada cada uno.
+- **Axe: 0 violaciones en las TRES mediciones** (oscuro, claro, móvil 390)
+  tras pagar el h1 — la tercera superficie de la rama que mide limpio del
+  todo (tras /login y /registro), y la primera CON el shell del dashboard
+  (la 1ª rebanada de esta corrida mató el `region` que lo impedía).
+- **Equivalencia funcional medida**: el prellenado de la nota firmada LLEGA
+  (resumen, diagnóstico con CIE-10, tratamiento con dosis/vía/frecuencia);
+  teclear «Motivo» aparece en la hoja `#doc`; móvil 390 sin desborde.
+- **Consola**: sólo el aviso ambiental de reconexión del emulador ×2.
+
+### Compuertas de esta corrida (rebanada 2)
+
+- `npx vitest run`: ver reporte de la corrida (guardián nuevo 5/5).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: BAJÓ (1970/628), resellado
+  con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio ×2 (builds de producción para el arnés).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/referencia cambió).
+
+**Siguiente tarea exacta:** `V15-A11Y-001`, tercera rebanada: la familia
+`color-contrast` del botón «Editar» (~5 nodos, anotada en Fase 10). Después:
+`nested-interactive` de /pacientes, contrastes de /chat + colisiones de
+widgets flotantes, `heading-order`, y DEBT-008 (`.receta-sheet`). El método
+queda demostrado por las dos rebanadas de hoy: inventario → pantalla entera
+→ clases del sistema → guardián al revés → arnés real con axe hasta 0.

@@ -1,0 +1,175 @@
+{
+  "oscuro": {
+    "controles": [
+      {
+        "id": "ref-tipo",
+        "enDOM": true,
+        "tag": "select",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Tipo de carta"
+      },
+      {
+        "id": "ref-urgencia",
+        "enDOM": true,
+        "tag": "select",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Urgencia"
+      },
+      {
+        "id": "ref-destino",
+        "enDOM": true,
+        "tag": "input",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Dirigido a (médico / especialidad)"
+      },
+      {
+        "id": "ref-institucion",
+        "enDOM": true,
+        "tag": "input",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Institución / hospital"
+      },
+      {
+        "id": "ref-motivo",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Motivo de la referencia"
+      },
+      {
+        "id": "ref-resumen",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Resumen clínico (prellenado de la última nota — ed"
+      },
+      {
+        "id": "ref-diagnosticos",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Diagnóstico(s)"
+      },
+      {
+        "id": "ref-tratamiento",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Tratamiento actual"
+      },
+      {
+        "id": "ref-estudios",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Estudios adjuntos / realizados"
+      }
+    ],
+    "sinNombre": [],
+    "atrasAlto": 44,
+    "anchoDocumento": 1440,
+    "url": "/referencia/pac-aurelio-dominguez"
+  },
+  "prellenado": {
+    "resumen": "Seguimiento de DM2; ajuste de metformina.",
+    "diagnosticos": "Diabetes mellitus tipo 2 (CIE-10: E11.9)",
+    "tratamiento": "Metformina 850 mg · oral · cada 12 h · 90 días"
+  },
+  "motivoEnHoja": true,
+  "axeOscuro": [],
+  "axeClaro": [],
+  "movil": {
+    "controles": [
+      {
+        "id": "ref-tipo",
+        "enDOM": true,
+        "tag": "select",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Tipo de carta"
+      },
+      {
+        "id": "ref-urgencia",
+        "enDOM": true,
+        "tag": "select",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Urgencia"
+      },
+      {
+        "id": "ref-destino",
+        "enDOM": true,
+        "tag": "input",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Dirigido a (médico / especialidad)"
+      },
+      {
+        "id": "ref-institucion",
+        "enDOM": true,
+        "tag": "input",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Institución / hospital"
+      },
+      {
+        "id": "ref-motivo",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Motivo de la referencia"
+      },
+      {
+        "id": "ref-resumen",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Resumen clínico (prellenado de la última nota — ed"
+      },
+      {
+        "id": "ref-diagnosticos",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Diagnóstico(s)"
+      },
+      {
+        "id": "ref-tratamiento",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Tratamiento actual"
+      },
+      {
+        "id": "ref-estudios",
+        "enDOM": true,
+        "tag": "textarea",
+        "clase": "input",
+        "etiquetas": 1,
+        "texto": "Estudios adjuntos / realizados"
+      }
+    ],
+    "sinNombre": [],
+    "atrasAlto": 44,
+    "anchoDocumento": 390,
+    "url": "/referencia/pac-aurelio-dominguez"
+  },
+  "axeMovil": [],
+  "erroresConsola": [
+    "[2026-08-12T20:44:37.284Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "[2026-08-12T20:44:41.160Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+  ]
+}
