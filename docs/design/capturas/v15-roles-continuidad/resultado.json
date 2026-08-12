@@ -1,0 +1,92 @@
+{
+  "oscuro": {
+    "temaActual": "dark",
+    "filas": 5,
+    "interactivosAnidados": 0,
+    "identEsEnlace": false,
+    "ident": {
+      "texto": "Aurelio Domínguez Peña",
+      "fontSize": "15.5px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "textDecorationLine": "none",
+      "textTransform": "none"
+    },
+    "estado": {
+      "texto": "Reconciliar",
+      "fontSize": "11.5px",
+      "fontWeight": "600",
+      "color": "rgb(168, 172, 174)",
+      "textDecorationLine": "none",
+      "textTransform": "uppercase",
+      "punto": "rgb(138, 143, 148)"
+    },
+    "critico": {
+      "texto": "Prioridad crítica sin nadie asignado.",
+      "conIcono": true,
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "color": "rgb(230, 100, 100)",
+      "textDecorationLine": "none",
+      "textTransform": "none"
+    }
+  },
+  "axeOscuro": [],
+  "navegacion": {
+    "hrefDeclarado": "/expediente/pac-aurelio-dominguez",
+    "urlAterrizada": "/expediente/pac-aurelio-dominguez",
+    "llega": true
+  },
+  "claro": {
+    "temaActual": "light",
+    "filas": 5,
+    "interactivosAnidados": 0,
+    "identEsEnlace": false,
+    "ident": {
+      "texto": "Aurelio Domínguez Peña",
+      "fontSize": "15.5px",
+      "fontWeight": "600",
+      "color": "rgb(11, 12, 14)",
+      "textDecorationLine": "none",
+      "textTransform": "none"
+    },
+    "estado": {
+      "texto": "Reconciliar",
+      "fontSize": "11.5px",
+      "fontWeight": "600",
+      "color": "rgb(86, 90, 96)",
+      "textDecorationLine": "none",
+      "textTransform": "uppercase",
+      "punto": "rgb(107, 111, 117)"
+    },
+    "critico": {
+      "texto": "Prioridad crítica sin nadie asignado.",
+      "conIcono": true,
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "color": "rgb(185, 28, 28)",
+      "textDecorationLine": "none",
+      "textTransform": "none"
+    }
+  },
+  "axeClaro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodos": 1,
+      "targets": [
+        ".nx-app-shell > div:nth-child(2) > div:nth-child(3) > span"
+      ]
+    }
+  ],
+  "movil": {
+    "desbordeHorizontal": false,
+    "anchoDocumento": 390,
+    "ident": {
+      "fontSize": "15.5px",
+      "texto": "Aurelio Domínguez Peña"
+    }
+  },
+  "axeMovil": []
+}

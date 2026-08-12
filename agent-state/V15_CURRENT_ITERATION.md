@@ -4,8 +4,17 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, segunda rebanada
-entregada 12-ago-2026: «los roles tipográficos de §2 existen como clases y
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, tercera rebanada
+entregada 12-ago-2026: «ContinuidadPanel habla los mismos roles» — la zona
+CONTINUITY de /dashboard («Sigue abierto de antes») muestra la MISMA entidad
+que /pendientes (TareaClinica) y ahora habla el mismo idioma tipográfico: la
+identidad del paciente encabeza cada fila como `span.nx-ident` (span, NO
+enlace anidado: la fila entera ya navega al expediente — nested-interactive),
+el tipo es `.nx-estado`, el escalamiento es `.nx-critico` CON icono, y el pie
+«+N más» es `.nx-meta`. Medido con `getComputedStyle` + clic real que
+aterriza en el expediente + axe en los dos temas y en móvil (ver sección al
+FINAL). Segunda rebanada previa
+12-ago-2026: «los roles tipográficos de §2 existen como clases y
 /pendientes los habla» — `.nx-ident`/`.nx-meta`/`.nx-critico` nacen en
 `globals.css` (los otros dos roles ya existían) y la cola de cierre de Fase 7
 los usa: la identidad del paciente ENCABEZA cada entrada (R3) en vez de vivir
@@ -3009,3 +3018,102 @@ SIN clase) es la candidata natural porque comparte entidad (TareaClinica) y
 debería compartir idioma con /pendientes; o (b) si una medición nueva enseña
 un defecto visual más barato/valioso del shell ya entregado, esa rebanada.
 La deuda de tema claro del TrialBanner sigue en la lista de `V15-A11Y-001`.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — tercera rebanada: ContinuidadPanel habla los mismos roles (12-ago-2026)
+
+La tarea que dejó nombrada la segunda rebanada — candidata (a):
+«ContinuidadPanel … comparte entidad (TareaClinica) y debería compartir
+idioma con /pendientes» — se pagó completa. El defecto: una entidad, dos
+jerarquías. En /pendientes el paciente ya encabezaba la entrada como
+`.nx-ident`; en la zona CONTINUITY de /dashboard el MISMO paciente seguía
+enterrado en la fila de metadatos a 12px («Tipo · Nombre»), y el motivo de
+escalamiento era un fontSize 10.5/700 rojo SIN clase y SIN icono pegado al
+texto.
+
+### El cambio (`src/components/ContinuidadPanel.tsx`, sólo JSX)
+
+- **La identidad encabeza la fila como `span.nx-ident`** — span, NO `<a>`,
+  y esta diferencia con /pendientes es deliberada y quedó escrita en el
+  JSX: la FILA ENTERA de este panel ya es un `<Link>` al expediente; un
+  enlace dentro de un enlace sería nested-interactive (axe) y dos destinos
+  para el mismo gesto. El subrayado de `a.nx-ident` queda para superficies
+  donde la identidad es lo único que navega.
+- **El tipo es `.nx-estado`** (versalitas + punto) en la cabecera de la
+  fila; la fila vieja «Tipo · Nombre» a 12px murió. El título baja a
+  segunda línea (14/500, el mismo valor que /pendientes conserva): el
+  paciente dice QUIÉN, el título dice QUÉ, y quién manda.
+- **El escalamiento es `.nx-critico` CON su `AlertTriangle`** en el mismo
+  elemento (nunca sólo color, §24); el icono del carril izquierdo conserva
+  su semántica de vistazo (triángulo al escalar, reloj si no).
+- **El pie «+N más en el worklist» es `.nx-meta`** en vez de fontSize 12
+  inline.
+- **Freeze funcional**: mismo href por fila (expediente o /pendientes),
+  misma vista previa de 5, mismo «Ver todo», misma fuente `tareasVivas()`
+  (el guardián `v15-continuidad-en-hoy.test.ts` siguió en verde sin
+  tocarse).
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-roles-tipograficos-en-continuidad.test.ts` (11 casos) —
+identidad como span que encabeza (y ANTES que el título en el fuente), veto
+al enlace anidado con la razón escrita, tipo en `.nx-estado` y la fila vieja
+muerta, `.nx-critico` con icono en el mismo elemento, pie en `.nx-meta`,
+deriva vetada (fontSize 10.5/12 inline no vuelven), y freeze funcional
+(href, TOPE_VISIBLE=5, icono del carril, tareasVivas). **7 de 11 fallan
+contra el árbol previo** (verificado con `git stash`); los 4 que pasan
+protegen el invariante funcional, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start`; `node_modules` volvió a faltar — `npm ci`; el arnés se corrió
+vía `arnes-breakpoints-v15.sh` reutilizado, que ya empaqueta siembra +
+next start). Arnés nuevo: `scripts/design/capturar-roles-continuidad-v15.mjs`
+— `getComputedStyle` DENTRO del panel, navegación real y axe, en los DOS
+temas y en móvil. Resultado y 3 capturas en
+`docs/design/capturas/v15-roles-continuidad/` (1440 + 390):
+
+- **Oscuro, medido**: 5 filas; ident `15.5px/600 rgb(242,239,233)` SIN
+  subrayado (`identEsEnlace: false`, `interactivosAnidados: 0`); estado
+  `11.5 uppercase` con punto; crítico `13/700 rgb(230,100,100)` con
+  `conIcono: true` («Prioridad crítica sin nadie asignado.»).
+- **Claro, medido**: los mismos roles con los hex del tema claro (ident
+  `rgb(11,12,14)`, crítico `rgb(185,28,28)`) — tokens por tema, no hex
+  pegado.
+- **Equivalencia funcional, medida**: clic real en la PRIMERA fila → la URL
+  aterriza en `/expediente/pac-aurelio-dominguez` = el href declarado
+  (`llega: true`), y `goBack()` vuelve a Hoy con el panel vivo.
+- **Móvil 390**: sin desborde horizontal (`anchoDocumento: 390`), la
+  identidad envuelve sin truncarse.
+- **Axe: 0 violaciones en oscuro y en móvil.** En claro, 1 `color-contrast`
+  (serious, 1 nodo) — **fingerprint IDÉNTICO byte a byte** al de las dos
+  rebanadas anteriores (el `<span>` del TrialBanner con `#f59e0b` hardcoded,
+  comparado JSON contra JSON): preexistente, sigue anotado para
+  `V15-A11Y-001`, no lo causó esta rebanada.
+- **Consola**: 0 errores, en desktop y en móvil.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8964 pasan + 11 casos nuevos; único fallo el
+  PRE-EXISTENTE ambiental de siempre (`ops-timeout-y-punto-ciego`, proxy del
+  contenedor, mismo fingerprint). `nx-stat-grid-cableada` y toda la familia
+  de guardianes V15 en verde.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (los
+  tamaños retirados, 10.5 y 12, ya eran de la escala oficial — el conteo no
+  baja, tampoco sube).
+- `npm run build`: compila limpio con `.env.local` demo (el build que sirvió
+  la verificación).
+- `docs/design/SCREEN_INVENTORY.md`: sin regenerar — `ContinuidadPanel.tsx`
+  es componente, `dashboard/page.tsx` no cambió de líneas (el guardián
+  `el-inventario-de-pantallas-no-miente` pasó en la suite).
+
+**Siguiente tarea exacta:** cuarta rebanada de `V15-VISUAL-SYSTEM-001` —
+candidatos medidos, no adivinados: (a) inventariar con grep qué OTRAS
+superficies del shell V15 ya estructurado siguen hablando tamaños inline
+para los papeles de §2 (candidata natural: el riel de «Agenda de hoy» en
+/dashboard ya habla `.riel-nombre`/`.nx-estado` — verificar si PatientAnchor
+y las filas de /pacientes hablan los roles o tamaños a mano) y migrar UNA
+con su arnés; o (b) si una medición nueva enseña un defecto visual más
+barato/valioso del shell ya entregado, esa rebanada. La deuda de tema claro
+del TrialBanner sigue en la lista de `V15-A11Y-001`.

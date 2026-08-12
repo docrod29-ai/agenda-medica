@@ -82,7 +82,7 @@ export function ContinuidadPanel() {
         ))}
       </div>
       {ordenadas.length > TOPE_VISIBLE && (
-        <div style={{ padding: '8px 20px 14px', fontSize: 12, color: 'var(--text3)' }}>
+        <div className="nx-meta" style={{ padding: '8px 20px 14px' }}>
           +{ordenadas.length - TOPE_VISIBLE} más en el worklist
         </div>
       )}
@@ -103,18 +103,26 @@ function ContinuidadFila({ tarea, ahora, isLast }: { tarea: TareaClinica; ahora:
           {esc.escalar ? <AlertTriangle size={16} /> : <FileClock size={16} />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
+          {/*
+            R3 (VISUAL_DNA §2): la identidad del paciente encabeza la entrada —
+            misma entidad (TareaClinica) y mismo idioma que /pendientes. Aquí es
+            <span>, NO <a>: la FILA ENTERA ya navega al expediente; un enlace
+            dentro de un enlace sería nested-interactive (axe) y dos destinos
+            para el mismo gesto. El subrayado de a.nx-ident queda para las
+            superficies donde la identidad es lo único que navega.
+          */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+            {tarea.patientNombre && <span className="nx-ident">{tarea.patientNombre}</span>}
+            <span className="nx-estado">{ETIQUETA_TIPO[tarea.tipo] ?? 'Pendiente'}</span>
+          </div>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {tarea.titulo}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-            {ETIQUETA_TIPO[tarea.tipo] ?? 'Pendiente'}
-            {tarea.patientNombre ? ` · ${tarea.patientNombre}` : ''}
           </div>
         </div>
       </div>
       {esc.escalar && (
         <div className="cita-acciones">
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--red)' }}>{esc.motivo}</span>
+          <span className="nx-critico"><AlertTriangle size={13} /> {esc.motivo}</span>
         </div>
       )}
     </Link>
