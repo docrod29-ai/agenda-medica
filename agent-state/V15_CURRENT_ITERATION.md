@@ -4,9 +4,13 @@
 
 ## Iteración en curso
 
-`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, primera rebanada
-12-ago-2026: `BottomNav` recompuesto a la IA de V15 en modo médico +
-suscrito a `EVENTO_GRABANDO`. Ver su sección abajo.
+`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, segunda rebanada
+12-ago-2026: el cajón lateral móvil retirado en modo médico (era el árbol
+de escritorio clonado en un dialog — raíz del `landmark-unique` de toda la
+rama, ahora en cero) + topbar con Buscar al pulgar + Cerrar sesión en
+/operaciones. Ver su sección al FINAL de este archivo. Primera rebanada
+(12-ago-2026): `BottomNav` recompuesto a la IA de V15 en modo médico +
+suscrito a `EVENTO_GRABANDO`.
 `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8) — **CERRADA 12-ago-2026** por
 decisión de alcance: la integración por continuidad ES la forma final de
 Fase 8 (ver «Fase 8 — decisión de cierre» abajo). Quinta rebanada previa
@@ -2075,3 +2079,98 @@ para la siguiente rebanada de `V15-MOBILE-001`.
   ruta de API, una regla de Firestore ni un cálculo clínico.
 - Móvil: `V15-MOBILE-001` (Fase 9) EN CURSO — primera rebanada entregada
   (`BottomNav` con la IA de V15 + aquietado al grabar).
+
+## `V15-MOBILE-001` (Fase 9, §22/§23) — segunda rebanada: el cajón se retira y Buscar llega al pulgar (12-ago-2026)
+
+La deuda que la primera rebanada dejó nombrada («el cajón lateral móvil —
+origen del `landmark-unique` preexistente — y la topbar móvil tampoco se
+han recompuesto») se pagó completa, y la corrida arrancó verificando la
+prioridad 1 del routine: el asunto de CSS de `.nx-stat-grid` ya estaba
+resuelto y sellado desde `c98525d` (guardián `nx-stat-grid-cableada.test.ts`
++ arnés propio) — verificado, no re-hecho.
+
+- **`layout.tsx`** — el cajón móvil (backdrop + `role="dialog"` + clon de
+  `FlowRail`) se renderiza SÓLO cuando `!navPrimaria`. Para el médico era
+  exactamente lo que §22 prohíbe («Do not expose the complete desktop
+  navigation tree on mobile»): el mismo territorio dos veces (BottomNav con
+  los 5 contextos Y una hamburguesa con los mismos 5 en cajón), y el clon
+  duplicaba `<aside aria-label="Navegación clínica principal">` — la RAÍZ
+  del `landmark-unique` que axe marcó en TODAS las capturas de esta rama
+  (13 corridas, verificado contra sus `resultado.json`). No se renombró el
+  aria-label (eso callaría a axe dejando el defecto de IA intacto): se
+  quitó la segunda navegación. La asistente conserva su cajón con `Sidebar`
+  sin cambio.
+- **Topbar de médico**: sin hamburguesa (no hay cajón que abrir) y con un
+  botón Buscar (44×44, borde derecho — pulgar, §22) que dispara
+  `nexus:open-palette`. SEARCH/COMMAND — quinto contexto de la IA V15 — no
+  tenía NINGUNA entrada móvil: ⌘K no existe en un teléfono y el único
+  botón visible vivía dentro del cajón retirado.
+- **`operaciones/page.tsx`** — sección «Sesión» con «Cerrar sesión»
+  (`salirSeguro`, el MISMO de FlowRail/Sidebar — espera acuse y purga
+  IndexedDB, no una salida propia): era lo único del cajón sin otra casa
+  móvil. Operaciones es el área de sistema (§11).
+- Guardián nuevo, probado al revés (6 de 7 casos fallan contra el árbol
+  previo, verificado con `git stash`):
+  `src/__tests__/v15-topbar-y-cajon-movil.test.ts` — compuerta
+  `!navPrimaria` del cajón, `FlowRail` renderizado UNA sola vez, hamburguesa
+  sólo en rama de asistente, Buscar cableado al evento real con los dos
+  lados del enlace (la paleta lo escucha y está habilitada para el médico),
+  y el logout de /operaciones con `salirSeguro` (no `firebase/auth`
+  directo). `v15-flow-rail-cableado.test.ts` caso 3 actualizado a la
+  conducta nueva (el cajón ya no clona FlowRail) — la MISMA conducta
+  gruesa, forma nueva.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores Auth/Firestore + siembra +
+build de producción + `npm start`; `node_modules` volvió a faltar —
+`npm ci` de nuevo). Arnés nuevo: `scripts/design/capturar-topbar-movil-v15.mjs`.
+Resultado y 5 capturas en `docs/design/capturas/v15-topbar-movil/`
+(móvil 390×844 + escritorio 1440):
+
+- **Móvil, medido en DOM real**: `hamburguesaEnDOM: false`,
+  `buscarEnDOM: true`, `buscarTactil: 44×44`, `buscarPegadoADerecha: true`,
+  `asidesNavPrincipal: 1`, `dialogMenuEnDOM: false` — en `/dashboard` y en
+  `/expediente/[patientId]`.
+- **El enlace llega, de punta a punta**: tap en Buscar → la paleta ABRE →
+  se tecleó «Aurelio» → tap en el resultado → aterrizó en
+  `/expediente/pac-aurelio-dominguez`. Los dos lados medidos, no supuestos.
+- **`landmark-unique`: CERO por primera vez en la rama.** Las 13 carpetas
+  de capturas V15 previas lo traían; esta corrida no (axe con
+  `best-practice` incluido, mismo alcance que cuando se detectó). Queda
+  sólo la familia `region` preexistente (banners/topbar fuera de landmark,
+  3-5 nodos) → sigue anotada para `V15-A11Y-001`.
+- **Cerrar sesión desde /operaciones SALE de verdad**: tap → `/login`
+  (`cerrarSesionAterrizaEnLogin: true`). El locator necesitó scope a
+  `<main>` porque el botón de FlowRail (oculto por CSS en móvil) también
+  dice «Cerrar sesión» — anotado en el propio arnés.
+- **Escritorio 1440 sin cambio**: topbar móvil `display:none`, FlowRail
+  con su propio Cerrar sesión (`railLogout: true`), un solo aside.
+- **Consola**: sólo los 401 de auditoría ya documentados como artefacto
+  del arnés de emuladores (mismo fingerprint que v15-patient-anchor).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: en verde (ver commit); guardianes nuevos incluidos.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (`.env.local` demo, emuladores,
+  proyecto `demo-nexusmed-test`).
+- `docs/design/SCREEN_INVENTORY.md` regenerado (`/operaciones` creció por
+  la sección «Sesión»).
+
+**Hallazgos de pulido de esta corrida (anotados, no bloqueantes):**
+- En móvil la palabra «Ausculta» aparece DOS veces apiladas (topbar +
+  `InstrumentStrip` justo debajo) — redundancia visual que la captura
+  `dashboard--movil.png` enseña a simple vista. Candidato a fusionar
+  topbar e InstrumentStrip en móvil en una rebanada futura de esta fase.
+- El pie de la paleta dice «⌘K abrir/cerrar» también en el teléfono, donde
+  ⌘K no existe — desktop-ism de contenido (§25), candidato al mismo lote.
+
+**Siguiente tarea exacta de esta fase:** el modelo responsivo §23 por
+breakpoint (qué persiste, qué colapsa, qué se vuelve hoja/cajón) y los
+trabajos móviles restantes de §22 (revisar nota generada, revisar
+resultado, firmar/cerrar desde el teléfono, borrador de comunicación al
+paciente) — medirlos primero contra las pantallas reales en 390px antes
+de decidir la rebanada.

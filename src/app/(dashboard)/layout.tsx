@@ -19,7 +19,7 @@ import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
 import { TareasProvider } from '@/context/TareasContext'
-import { Menu, Loader2, AlertTriangle, Headset } from 'lucide-react'
+import { Menu, Search, Loader2, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { AvisoIncidenteIA } from '@/components/AvisoIncidenteIA'
@@ -632,7 +632,14 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         {navPrimaria ? <FlowRail /> : <Sidebar />}
       </div>
 
-      {/* Mobile sidebar — siempre en DOM, se desliza con transform (más confiable que conditional render) */}
+      {/* Mobile sidebar — SÓLO asistente (V15-MOBILE-001, §22): para el médico el
+          cajón era el árbol de navegación de escritorio clonado dentro de un
+          dialog — «shrunk desktop», lo que §22 prohíbe — y además duplicaba el
+          <aside> del FlowRail fijo (origen del landmark-unique que axe marcó en
+          todas las corridas de esta fase). El médico ya navega los 5 contextos
+          con el pulgar (BottomNav) y busca desde la topbar; Cerrar sesión vive
+          en /operaciones. La asistente conserva su cajón sin cambio. */}
+      {!navPrimaria && (<>
       <div
         onClick={() => setSidebarOpen(false)}
         aria-hidden={!sidebarOpen}
@@ -664,25 +671,39 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       >
         {/* Sidebar con display forzado inline para evitar cualquier CSS que lo oculte */}
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%' }}>
-          {navPrimaria
-            ? <FlowRail onNavigate={() => setSidebarOpen(false)} />
-            : <Sidebar onClose={() => setSidebarOpen(false)} />}
+          <Sidebar onClose={() => setSidebarOpen(false)} />
         </div>
       </div>
+      </>)}
 
       {/* Main area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Mobile topbar */}
+        {/* Mobile topbar. Médico: sin hamburguesa (no hay cajón que abrir) y con
+            Buscar al alcance del pulgar en el borde derecho — SEARCH/COMMAND
+            (§22) no tenía NINGUNA entrada en móvil: ⌘K no existe en un teléfono
+            y el único botón visible vivía en el cajón que este cambio retira. */}
         <div className="mobile-topbar">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="mobile-topbar-btn"
-            aria-label="Abrir menú"
-          >
-            <Menu size={22} />
-          </button>
+          {!navPrimaria && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="mobile-topbar-btn"
+              aria-label="Abrir menú"
+            >
+              <Menu size={22} />
+            </button>
+          )}
           <MobileBackButton />
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Ausculta</span>
+          {navPrimaria && (
+            <button
+              onClick={() => window.dispatchEvent(new Event('nexus:open-palette'))}
+              className="mobile-topbar-btn"
+              aria-label="Buscar paciente o acción"
+              style={{ marginLeft: 'auto' }}
+            >
+              <Search size={22} />
+            </button>
+          )}
         </div>
 
         {navPrimaria && <InstrumentStrip />}

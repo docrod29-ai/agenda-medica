@@ -61,9 +61,14 @@ describe('V15 — FlowRail conectado en layout.tsx (medico), no huérfano', () =
     expect(LAYOUT).toContain('{navPrimaria ? <FlowRail /> : <Sidebar />}')
   })
 
-  it('el cajón móvil decide igual — el mismo componente en los dos lugares donde vivía Sidebar', () => {
-    expect(LAYOUT).toContain('? <FlowRail onNavigate={() => setSidebarOpen(false)} />')
-    expect(LAYOUT).toContain(': <Sidebar onClose={() => setSidebarOpen(false)} />')
+  it('el cajón móvil es SÓLO de asistente desde V15-MOBILE-001 — el médico no lleva el árbol de escritorio en un dialog', () => {
+    // Conducta nueva (§22): el cajón se renderiza sólo cuando !navPrimaria, y
+    // dentro va Sidebar (asistente). FlowRail ya NO se clona dentro del dialog —
+    // eso duplicaba el <aside> y era «shrunk desktop». El detalle fino vive en
+    // v15-topbar-y-cajon-movil.test.ts; aquí sólo el cableado grueso.
+    expect(LAYOUT).toContain('{!navPrimaria && (<>')
+    expect(LAYOUT).toContain('<Sidebar onClose={() => setSidebarOpen(false)} />')
+    expect(LAYOUT).not.toContain('<FlowRail onNavigate=')
   })
 })
 

@@ -1,0 +1,61 @@
+{
+  "dashboard": {
+    "topbarVisible": true,
+    "hamburguesaEnDOM": false,
+    "buscarEnDOM": true,
+    "buscarTactil": {
+      "w": 44,
+      "h": 44
+    },
+    "buscarPegadoADerecha": true,
+    "asidesNavPrincipal": 1,
+    "dialogMenuEnDOM": false
+  },
+  "axeDashboard": [
+    {
+      "id": "region",
+      "impact": "moderate",
+      "help": "All page content should be contained by landmarks",
+      "nodos": 3,
+      "ejemplo": ".mobile-topbar > span"
+    }
+  ],
+  "paletaAbre": true,
+  "urlTrasBuscar": "/expediente/pac-aurelio-dominguez",
+  "expediente": {
+    "topbarVisible": true,
+    "hamburguesaEnDOM": false,
+    "buscarEnDOM": true,
+    "buscarTactil": {
+      "w": 44,
+      "h": 44
+    },
+    "buscarPegadoADerecha": true,
+    "asidesNavPrincipal": 1,
+    "dialogMenuEnDOM": false
+  },
+  "axeExpediente": [
+    {
+      "id": "region",
+      "impact": "moderate",
+      "help": "All page content should be contained by landmarks",
+      "nodos": 5,
+      "ejemplo": ".mobile-topbar > span"
+    }
+  ],
+  "operacionesTieneCerrarSesion": true,
+  "cerrarSesionAterrizaEnLogin": true,
+  "escritorio": {
+    "topbarVisible": false,
+    "hamburguesaEnDOM": false,
+    "buscarEnDOM": true,
+    "buscarTactil": {
+      "w": 0,
+      "h": 0
+    },
+    "buscarPegadoADerecha": false,
+    "asidesNavPrincipal": 1,
+    "dialogMenuEnDOM": false
+  },
+  "escritorioFlowRailCerrarSesion": true
+}

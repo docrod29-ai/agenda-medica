@@ -16,11 +16,12 @@ import Link from 'next/link'
 import {
   CalendarPlus, CalendarDays, Calendar, Clock, BedDouble, Activity, FlaskConical, Bug,
   TrendingUp, Star, HeartHandshake, Pill, ShieldCheck, FileText, ArrowLeftRight,
-  MessageCircle, BookOpen, Settings, CreditCard, type LucideIcon,
+  MessageCircle, BookOpen, Settings, CreditCard, LogOut, type LucideIcon,
 } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
 import { rutaPermitida } from '@/lib/modulos'
+import { salirSeguro } from '@/lib/salir-seguro'
 
 type Item = { href: string; label: string; icon: LucideIcon; modos: 'ambos' | 'medico' }
 type Grupo = { titulo: string; items: Item[] }
@@ -128,6 +129,32 @@ export default function OperacionesPage() {
             </div>
           </section>
         ))}
+
+        {/* V15-MOBILE-001 (§22): en móvil de médico el cajón lateral se retiró
+            (era el árbol de escritorio clonado) y con él su botón «Cerrar
+            sesión». La salida vive aquí — Operaciones ES el área de sistema
+            (§11) — con el MISMO salirSeguro que usan FlowRail y Sidebar (espera
+            el acuse y purga IndexedDB; no una salida propia con otro criterio). */}
+        <section>
+          <h2 style={{
+            fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
+            color: 'var(--text3)', margin: '0 0 10px',
+          }}>
+            Sesión
+          </h2>
+          <button
+            onClick={() => { void salirSeguro('/login') }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
+              background: 'var(--s1)', border: '1px solid var(--border)',
+              color: 'var(--text)', fontSize: 14, fontWeight: 500,
+            }}
+          >
+            <LogOut size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} />
+            Cerrar sesión
+          </button>
+        </section>
       </div>
     </div>
   )
