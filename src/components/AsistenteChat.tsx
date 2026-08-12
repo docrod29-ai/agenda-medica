@@ -6,6 +6,7 @@
  */
 import { useState, useRef, useEffect } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 import { Send, Loader2 } from 'lucide-react'
 
 export type Turno = { rol: 'user' | 'bot'; texto: string }
@@ -23,7 +24,7 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
   const [cargando, setCargando] = useState(false)
   const finRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [turnos, cargando])
+  useEffect(() => { finRef.current?.scrollIntoView({ behavior: comportamientoScroll() }) }, [turnos, cargando])
 
   const preguntar = async (texto: string) => {
     const t = texto.trim()

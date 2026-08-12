@@ -1,0 +1,34 @@
+{
+  "fecha": "2026-08-12T14:47:29.266Z",
+  "base": "http://localhost:3000",
+  "apagadorCss": {
+    "animationDuration": "1e-05s"
+  },
+  "conReduce": {
+    "etiqueta": "Laboratorios y fotografía",
+    "antes": 0,
+    "a80": 200,
+    "a680": 200,
+    "recorrido": 200,
+    "saltoInstantaneo": true
+  },
+  "marcoFijo": {
+    "presente": true,
+    "fijo": true,
+    "m1": "rgb(42, 165, 181) 0px 0px 0px 3px inset",
+    "m2": "rgb(42, 165, 181) 0px 0px 0px 3px inset"
+  },
+  "sinPreferencia": {
+    "etiqueta": "Laboratorios y fotografía",
+    "antes": 0,
+    "a80": 18,
+    "a680": 200,
+    "recorrido": 200,
+    "concluyente": true,
+    "enVueloA80": true,
+    "llega": true
+  },
+  "erroresConsola": [
+    "[2026-08-12T14:47:30.316Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+  ]
+}

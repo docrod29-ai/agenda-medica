@@ -115,8 +115,15 @@ describe('V15 — CierreAlPulgar: la barra NO es una segunda vía de firma', () 
     expect(BARRA).not.toMatch(/fetch\(|setDoc|updateDoc|addDoc/)
   })
 
-  it('respeta prefers-reduced-motion (§24)', () => {
-    expect(BARRA).toContain('prefers-reduced-motion')
+  it('respeta prefers-reduced-motion (§24) — vía la voz única del producto', () => {
+    // La novena rebanada de Fase 10 retiró la copia local de matchMedia:
+    // ahora TODO scroll programático pregunta a `comportamientoScroll()`
+    // (src/lib/ui/movimiento.ts), que es quien consulta la preferencia.
+    // El guardián sigue al mecanismo, no a la forma vieja.
+    expect(BARRA).toContain("from '@/lib/ui/movimiento'")
+    expect(BARRA).toContain('behavior: comportamientoScroll()')
+    const MOVIMIENTO = readFileSync(join(process.cwd(), 'src/lib/ui/movimiento.ts'), 'utf8')
+    expect(MOVIMIENTO).toContain('prefers-reduced-motion')
   })
 
   it('se esconde cuando el cierre ya está en pantalla (IntersectionObserver)', () => {

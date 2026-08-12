@@ -28,6 +28,7 @@
  */
 import { useEffect, useState } from 'react'
 import { ChevronsDown } from 'lucide-react'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 
 /**
  * ¿La barra tiene derecho a existir en este estado del encuentro?
@@ -87,9 +88,8 @@ export function CierreAlPulgar({ visible, bloqueos, motivo, completitud, idDesti
     if (!destino) return
     // El foco viaja con el scroll (teclado/lector de pantalla aterrizan donde
     // aterrizó la vista); reduced-motion respeta la preferencia (§24).
-    const suave = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' as const : 'smooth' as const
     destino.focus({ preventScroll: true })
-    destino.scrollIntoView({ behavior: suave, block: 'center' })
+    destino.scrollIntoView({ behavior: comportamientoScroll(), block: 'center' })
   }
 
   const lista = bloqueos === 0

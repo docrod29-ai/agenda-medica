@@ -4,7 +4,16 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, octava rebanada
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **CERRADA 12-ago-2026** tras
+nueve rebanadas. La novena declaró el paso 7 de §18 COMPLETO (el inventario
+de §2 quedó vacío en la octava y ninguna superficie nueva apareció), midió
+los pasos 8-9 (motion/polish) contra el código real Y el navegador real,
+pagó el único defecto de conducta encontrado — el scroll programático de
+JavaScript ignoraba `prefers-reduced-motion` en 5 de 6 sitios, porque
+`scrollIntoView({behavior})` no lee el apagador CSS de §24 — y dejó POR
+ESCRITO qué se difiere a `V15-MOTION-001` y por qué (tabla en la sección al
+FINAL). Siguiente iteración: `V15-REMAINING-SCREENS-001` (§43 orden 12).
+Octava rebanada previa
 entregada 12-ago-2026: «la identidad de la franja tiene una voz, y el
 inventario de §2 queda VACÍO» — las candidatas (a) y (b) que dejó nombradas
 la séptima, pagadas juntas porque el arnés (emuladores + build + navegador)
@@ -3811,4 +3820,120 @@ fase con la tabla escrita — o declarar con razón escrita qué se difiere a
 REMAINING-SCREENS y A11Y). La deuda de `V15-A11Y-001` suma ahora el
 formulario de /referencia (`label` ×3, `select-name` ×2) a las familias ya
 anotadas: `nested-interactive` (Editar en filas de /pacientes),
+`landmark-unique`/`region`, táctiles chicos y contrastes de /chat (Fase 9).
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 pasos 7-9) — novena rebanada: paso 7 COMPLETO, motion medido (no leído), y el cierre de la fase (12-ago-2026)
+
+### Paso 7 de §18 — COMPLETO, declarado con la vara de la séptima
+
+El inventario por grep de la séptima rebanada quedó VACÍO en la octava y esta
+corrida lo re-verificó: ninguna superficie estructurada del shell V15 habla
+papeles de §2 en dialecto propio. Los roles (`.nx-ident`, `.nx-ident-franja`,
+`.nx-meta`, `.nx-critico`, `.nx-estado`, `.nx-num`, `nx-display`) existen como
+clases con su decisión escrita, y ocho rebanadas los cablearon superficie por
+superficie con guardián propio cada una. **Paso 7: COMPLETO.**
+
+### Pasos 8-9 (motion, polish) — la tabla medida, misma vara que Fases 5 y 6
+
+Se enumeraron los comportamientos de motion que el master loop exige (§19
+transiciones interrumpibles, §20 coreografía sin animación decorativa, §24
+reduced motion) y se midió cada uno contra el código real y el navegador real:
+
+| Comportamiento exigido | Estado medido | Veredicto |
+|---|---|---|
+| §24 reduced motion — CSS | Apagador global en `globals.css` (`animation/transition-duration: 0.01ms !important` para todo el árbol) + opt-outs por regla (`.page-transition`, `.empty-illus`, `.nx-reveal`, `.cita-fila`) + el marco de escucha queda FIJO (la información de micrófono abierto no se apaga con la animación). Medido en navegador: `animation-duration: 1e-05s` computado bajo reduce; box-shadow del marco idéntico en dos muestras a 1.3s. | CUMPLE |
+| §24 reduced motion — JavaScript | **NO CUMPLÍA.** `scrollIntoView({behavior:'smooth'})` no lee el apagador CSS: cuando el comportamiento llega como opción de JS, se aplica tal cual. 5 de 6 sitios (ClinicalSpine, AsistenteChat, 2 saltos de /consulta, /consultor) animaban bajo la preferencia; el único correcto era CierreAlPulgar, con copia local. | **PAGADO esta rebanada** |
+| §19/§20 transiciones interrumpibles | Todo el motion del producto es CSS (interrumpible por naturaleza). Cero `animationend`/`transitionend`/`element.animate()` que bloqueen interacción (grep = 0). El scroll suave del navegador es interrumpible por el usuario. | CUMPLE |
+| §20 sin animación decorativa | Inventario de los 12 `@keyframes`: entradas de orientación cortas (180-520ms: modal, overlay, indicator, reveal), bucles FUNCIONALES (spin=carga, pulse/nx-escuchando=grabación —señal de seguridad—, shimmer=skeleton), crossfade de navegación (documentado en `template.tsx` con su razón). Ningún parallax, ningún bucle decorativo. | CUMPLE |
+| §20 coreografía de continuidad («same object becoming more detailed» Hoy→Paciente→Encuentro) | NO existe: el crossfade comunica cambio, no continuidad de objeto. Exige diseño de movimiento entre rutas (shared element / View Transitions) — trabajo de diseño real, no una rebanada segura de cierre de fase. | **DIFERIDO a `V15-MOTION-001`** (§43 la lista como iteración propia, orden 14, DESPUÉS de REMAINING-SCREENS y A11Y) |
+| Paso 8 como sistema (tokens de movimiento) | `--mov-rapido/normal/lento/curva/nada` definidos en `globals.css`… y usados CERO veces: las 22 transiciones escriben su duración a mano y conviven dos curvas. Unificarlo es mecánico y cosmético, sin impacto de conducta ni a11y. | **DIFERIDO a `V15-MOTION-001`** con el conteo escrito para que no se pierda |
+| Paso 9 (polish) | Lo entregado por las rebanadas 1-8 (acento, roles, tokens por tema) ES el polish estructuralmente ganado de esta fase; el pulido restante pantalla por pantalla pertenece a `V15-REMAINING-SCREENS-001` (§43 orden 12), que barre §32. | CUMPLE para el alcance de Fase 10 |
+
+Con el único defecto de conducta pagado y los dos diferimientos declarados
+con razón, **Fase 10 (`V15-VISUAL-SYSTEM-001`) queda CERRADA** — mismo
+criterio de cierre por comportamientos medidos que usaron las Fases 5 y 6.
+
+### Lo pagado: `comportamientoScroll()` — una sola voz para el scroll
+
+- **`src/lib/ui/movimiento.ts`** (nuevo, con el fallo/regla/no-cubre escritos
+  en cabecera): `comportamientoScroll()` consulta matchMedia y devuelve
+  `'auto'` bajo la preferencia (o en SSR), `'smooth'` si no. Una sola
+  implementación por la misma razón que `activable.ts`.
+- Los 6 sitios la preguntan ahora (ClinicalSpine, AsistenteChat,
+  CierreAlPulgar —su copia local se retiró—, los 2 saltos de /consulta,
+  /consultor), cada uno con su `block` original intacto (freeze funcional).
+- Barrido verificado: cero `behavior: 'smooth'` a mano en src/ fuera de la
+  propia implementación.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-motion-scroll-respeta-reduced-motion.test.ts` (11 casos):
+la función (auto bajo preferencia / smooth sin ella / auto en SSR), el
+barrido recursivo de src/ que caza `behavior:'smooth'` escrito a mano (para
+el séptimo sitio que aún no se escribió), los 6 sitios con su block original,
+CierreAlPulgar sin copia local (y su focus a11y intacto), y el veto de deriva
+del apagador CSS de §24. **10 de 11 fallan contra el árbol previo**
+(verificado con `git stash` de los 7 archivos); el que pasa protege el
+apagador CSS preexistente, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/medir-motion-reduced-v15.mjs` — `emulateMedia` de Playwright,
+midiendo `scrollTop` del contenedor real (no el rect del destino: las
+secciones asíncronas del expediente empujan el layout y la primera corrida
+midió la carga en vez del movimiento — el arnés espera a que el documento sea
+DESPLAZABLE antes de medir, y esa lección quedó escrita en su cabecera).
+Resultado y captura en `docs/design/capturas/v15-motion-reduced/`:
+
+- **Con reduce, el salto es instantáneo**: clic en el spine → scrollTop
+  0→200px ya a los 80ms, sin moverse más a los 680ms
+  (`saltoInstantaneo: true`). Antes del arreglo esto animaba.
+- **Sin preferencia, el suave sigue vivo y LLEGA**: 0→18px a los 80ms (en
+  vuelo) →200px a los 680ms (`enVueloA80: true`, `llega: true`) — quitar el
+  defecto no quitó el desplazamiento suave de quien no pidió menos
+  movimiento, y el destino es el MISMO por los dos caminos (equivalencia
+  funcional, 200px de recorrido idéntico).
+- **El apagador CSS medido vivo**: `.page-transition` computa
+  `animation-duration: 1e-05s` (0.01ms) bajo reduce.
+- **El marco de escucha queda FIJO, no apagado**: box-shadow sólido idéntico
+  en dos muestras separadas 1.3s (`fijo: true`) — la información de que el
+  micrófono está abierto sobrevive a la preferencia (§24 non-color state).
+- **Consola**: sólo el aviso ambiental familiar de reconexión de Firestore
+  del emulador.
+- **Honestidad del arnés**: no corre axe — el cambio no añade ni quita un
+  solo nodo del DOM (cambia el CÓMO del desplazamiento), y la octava rebanada
+  ya midió axe de estas pantallas sin cambios de DOM desde entonces. La
+  nota operativa de esta corrida: `page.goto` con `networkidle` NUNCA
+  resuelve en pantallas con listeners de Firestore — usar `load` +
+  `waitForSelector`, y el Chromium preinstalado del contenedor vive en
+  `/opt/pw-browsers/chromium` (el arnés lo usa como `executablePath` si la
+  versión de Playwright pide otra carpeta).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver reporte de la corrida (suite completa lanzada tras
+  las compuertas dirigidas; el guardián nuevo 11/11 en corrida dirigida).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva (los 9
+  `no-explicit-any` del primer borrador del guardián se pagaron con
+  `vi.stubGlobal`, no subiendo el techo).
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (el cambio
+  no toca un solo estilo).
+- `npm run build`: compila limpio con `.env.local` demo (las 7 variables +
+  `NEXT_PUBLIC_FIREBASE_EMULATORS=1`).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/consulta y /consultor
+  cambiaron de líneas por el import).
+
+**Siguiente tarea exacta:** `V15-REMAINING-SCREENS-001` (§43 orden 12, §32):
+inventariar las superficies Practice que las fases estructurales NO tocaron
+(login, signup/onboarding, /citas, nota, receta/orden, documentos,
+comunicación, pagos, configuración, operaciones por dentro, estados
+vacío/error/carga) contra la vara V15 (§34: IA/layout/jerarquía/interacción
++ roles de §2 donde aplique), priorizar por uso clínico real, y pagar la
+primera pantalla del inventario como rebanada — con el MISMO método de
+inventario-por-grep + navegador real que usó la Fase 10. La deuda anotada de
+`V15-A11Y-001` (§43 orden 13) sigue creciendo y NO se toca en REMAINING salvo
+hallazgo de paso barato: formulario de /referencia (`label` ×3,
+`select-name` ×2), `nested-interactive` (Editar en filas de /pacientes),
 `landmark-unique`/`region`, táctiles chicos y contrastes de /chat (Fase 9).

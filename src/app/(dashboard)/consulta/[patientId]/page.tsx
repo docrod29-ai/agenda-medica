@@ -199,6 +199,7 @@ import { textosDeMotivos } from '@/lib/expediente/motivos-confirmacion-texto'
 import { condicionesNegadas, contradicciones, avisoDeContradiccion } from '@/lib/expediente/negaciones'
 import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib/expediente/temporalidad'
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -5170,7 +5171,7 @@ export default function ConsultaActivaPage() {
             soloLectura={firmada}
             onIr={() => {
               /* El ancla es el NOMBRE, nunca el índice: la lista se reordena. */
-              document.getElementById('seccion-medicamentos')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              document.getElementById('seccion-medicamentos')?.scrollIntoView({ behavior: comportamientoScroll(), block: 'center' })
             }}
             onRevisado={id => {
               const [tipo, ...resto] = id.split(':')
@@ -5291,7 +5292,7 @@ export default function ConsultaActivaPage() {
           hechos={hechosCierre}
           alIr={r => {
             if (r.startsWith('#')) {
-              document.getElementById(r.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              document.getElementById(r.slice(1))?.scrollIntoView({ behavior: comportamientoScroll(), block: 'start' })
               return
             }
             if (r.startsWith('/receta')) setHechosCierre(marcarHechoDeCierre(notaId, 'receta'))

@@ -6,6 +6,7 @@ import { getPatients } from '@/lib/firestore'
 import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTriangle } from 'lucide-react'
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 
 interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
 interface Turno { pregunta: string; respuesta: string; articulos: Articulo[]; cenetecUrl?: string; modelos?: string[]; fechaBusqueda?: string; cargando?: boolean; sinCitas?: boolean }
@@ -48,7 +49,7 @@ export default function ConsultorPage() {
   const [pacienteNombre, setPacienteNombre] = useState('')
   const [pacienteCtx, setPacienteCtx] = useState('')
   const finRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [estado])
+  useEffect(() => { finRef.current?.scrollIntoView({ behavior: comportamientoScroll() }) }, [estado])
 
   // Al entrar, si la URL trae ?paciente=ID, carga sus datos como contexto.
   useEffect(() => {

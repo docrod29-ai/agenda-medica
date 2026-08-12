@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { comportamientoScroll } from '@/lib/ui/movimiento'
 
 /**
  * CLINICAL SPINE — V15-PATIENT-WORKSPACE-001 (§7: "a longitudinal structural
@@ -72,7 +73,7 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
 
   const irA = (id: string) => {
     setActivo(id)
-    document.getElementById(`spine-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById(`spine-${id}`)?.scrollIntoView({ behavior: comportamientoScroll(), block: 'start' })
   }
 
   return (

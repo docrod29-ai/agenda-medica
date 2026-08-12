@@ -49,8 +49,8 @@
 | `/chat` | medico | ✅ | 338 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1017 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 6120 | 7 | — | ✅ | ✅ |
-| `/consultor` | medico | ✅ | 282 | 0 | — | ✅ | — |
+| `/consulta/[patientId]` | medico | ✅ | 6121 | 7 | — | ✅ | ✅ |
+| `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
 | `/cumplimiento` | medico | ✅ | 945 | 0 | — | ✅ | — |
