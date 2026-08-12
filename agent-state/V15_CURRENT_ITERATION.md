@@ -4,8 +4,22 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, cuarta rebanada
-entregada 12-ago-2026: «las filas de /pacientes hablan los mismos roles» — el
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, quinta rebanada
+entregada 12-ago-2026: «el Patient Anchor habla los roles de §2 y su
+identidad es nivel display» — la superficie que el inventario de la cuarta
+rebanada dejó nombrada. El `<h1>` del ancla era `fontSize: 16/700` grotesca
+(tamaño de fila) en la ÚNICA pantalla donde VISUAL_DNA §1 R3 reserva la
+serif display («nombre del paciente en su espacio clínico»): ahora es
+`nx-display nx-ancla-nombre` (Fraunces 20/600, envuelve, clase nueva en
+`globals.css` con la razón escrita); edad·sexo·teléfono y «Último cambio»
+son `.nx-meta`; y la alergia REGISTRADA es `span.nx-critico` — peso + icono
+al lado, nunca sólo color — mientras «no registradas» se queda neutra (dato
+del registro, no valor crítico). `.nx-critico` gana `flex-wrap: wrap`: una
+alergia larga ENVUELVE en vez de truncarse (§24). Guardián
+`v15-roles-tipograficos-en-patient-anchor.test.ts` (13 casos, 11 fallan al
+revés). Medido con `getComputedStyle` + scroll real (sticky sobrevive) + axe
+en los dos temas y en móvil (ver sección al FINAL). Cuarta rebanada previa
+12-ago-2026: «las filas de /pacientes hablan los mismos roles» — el
 directorio de pacientes era la única superficie estructurada donde la
 identidad seguía siendo un fontSize 14 inline CON ellipsis (la identidad se
 truncaba, §24): ahora `span.nx-ident` encabeza cada fila (span, NO enlace:
@@ -3228,7 +3242,8 @@ Resultado y 3 capturas en `docs/design/capturas/v15-roles-pacientes/`
 - `docs/design/SCREEN_INVENTORY.md`: regenerado (/pacientes cambió de
   líneas).
 
-**Siguiente tarea exacta:** quinta rebanada de `V15-VISUAL-SYSTEM-001` —
+**Siguiente tarea exacta (histórico — ejecutada por la quinta rebanada):**
+quinta rebanada de `V15-VISUAL-SYSTEM-001` —
 candidatos medidos, no adivinados: (a) el inventario de la cuarta rebanada
 dejó UNA superficie estructurada con tamaños a mano sin pagar:
 `PatientAnchor` (6 fontSize inline — cabecera del Patient Workspace; decidir
@@ -3238,3 +3253,114 @@ si su `<h1>` de identidad merece un rol de cabecera propio en vez de
 shell ya entregado, esa rebanada. La deuda anotada de `V15-A11Y-001` creció:
 TrialBanner claro (2 nodos en /pacientes) + `nested-interactive` del botón
 Editar en las filas de /pacientes (preexistente, 5 nodos).
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — quinta rebanada: el Patient Anchor habla los roles de §2, y su identidad es nivel display (12-ago-2026)
+
+Se ejecutó la candidata (a) que dejó nombrada la cuarta rebanada:
+`PatientAnchor.tsx`, la última superficie estructurada del shell V15 con
+papeles de §2 hablados en dialecto propio (6 fontSize inline). La decisión
+de diseño que la tarea pedía tomar — ¿la identidad del ancla es `.nx-ident`
+de fila o un rol de cabecera propio? — la responde VISUAL_DNA §1 R3
+literalmente: «Serif Fraunces SOLO en el nivel display (saludo, **nombre del
+paciente en su espacio clínico**)». El Patient Workspace ES ese espacio: la
+identidad del ancla es nivel display, no fila.
+
+### El cambio
+
+- **`src/app/globals.css`** — `.nx-ancla-nombre` nace junto a los otros
+  roles de §2, con la razón escrita en el comentario: Fraunces la pone
+  `.nx-display` (se usan juntas), la clase pone 20px de la escala oficial
+  (el ancla es pegajosa y compacta — no el saludo de 32px de /dashboard),
+  peso 600, `overflow-wrap: anywhere` y `color: var(--text)`. Además
+  `.nx-critico` gana `flex-wrap: wrap`: era `inline-flex` sin wrap y un
+  valor crítico largo (una alergia con su reacción entre paréntesis)
+  DESBORDABA en 390px — recortar justo el texto crítico es la truncación
+  que §24 prohíbe.
+- **`src/components/expediente/PatientAnchor.tsx`** —
+  1. El `<h1>` es `className="nx-display nx-ancla-nombre"`, sin style: su
+     tipografía vive en la clase (era `fontSize: 16, fontWeight: 700`
+     grotesca — tamaño de fila de lista para el título del workspace).
+  2. Edad · sexo · teléfono es `.nx-meta` (era fontSize 12 inline).
+  3. «Último cambio» es `.nx-meta` y conserva sólo su `marginLeft: 'auto'`
+     (layout, no tipografía).
+  4. La alergia REGISTRADA es `span.nx-critico` — 13/700 en `--red` CON el
+     icono AlertTriangle al lado en la misma fila (nunca sólo color). «No
+     registradas» NO lleva la clase: es un dato del registro, no un valor
+     crítico — la distinción quedó escrita en el JSX.
+  5. Lo que NO se tocó, a propósito: la inicial del avatar (16), el botón
+     «continuar» (12) y el cuerpo del aviso (`alertaEstilo`, 12) no son
+     papeles de §2 — cada rol se paga en su rebanada.
+- **Freeze funcional**: el aviso sigue SIEMPRE visible (nunca condicional a
+  que existan alergias), el vacío sigue diciendo «no registradas», el ancla
+  sigue sticky, la derivación de `notas` no se tocó.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-roles-tipograficos-en-patient-anchor.test.ts` (13 casos)
+— display en el h1, deriva vetada (ni `<h1 style=` ni un cuarto fontSize
+inline), `.nx-ancla-nombre` en la hoja con 20px + overflow-wrap, metadatos
+en `.nx-meta`, alergia condicional a `.nx-critico` con icono real al lado,
+`.nx-critico` envuelve, y freeze funcional. **11 de 13 fallan contra el
+árbol previo** (verificado con `git stash`); los 2 que pasan protegen el
+invariante funcional (aviso siempre visible, sticky), no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-roles-patient-anchor-v15.mjs` — `getComputedStyle`
+DENTRO del ancla, scroll real, axe, en los DOS temas y en móvil. Resultado y
+4 capturas en `docs/design/capturas/v15-roles-patient-anchor/` (1440 + 390):
+
+- **Oscuro, medido** (`/expediente/pac-aurelio-dominguez`): h1 `Fraunces
+  20px/600 rgb(242,239,233)` con `overflow-wrap: anywhere`; meta `12.5px
+  rgb(138,143,148)`; crítico `13px/700 rgb(230,100,100)` con `flex-wrap:
+  wrap` e `iconoJuntoAlCritico: true`.
+- **Claro, medido**: los mismos roles con los hex del tema claro (h1
+  `rgb(11,12,14)`, crítico `rgb(185,28,28)`) — tokens por tema.
+- **La distinción crítico/neutro es real**: en
+  `/expediente/pac-refugio-alcantara` (sin alergias) el aviso dice
+  «Alergias: no registradas» y `elAvisoNeutroLlevaCritico: false`.
+- **Sticky medido de verdad** (§7): `main.scrollTop = 446` y el nombre
+  sigue dentro del viewport (`visibleTrasScroll: true`).
+- **Móvil 390**: el nombre largo sembrado cabe sin recorte ni desborde
+  (`recortado: false`, documento a 390 exactos); la alergia con reacción
+  larga tampoco desborda (`criticoRecortado: false`, `flexWrap: wrap`).
+- **Axe**: oscuro 0 · móvil 0 · claro 1 (`color-contrast`, 1 nodo: el span
+  del TrialBanner del shell — la familia PREEXISTENTE ya anotada en
+  `V15-A11Y-001` desde las rebanadas 2-4; el ancla no aporta nodos).
+- **Consola**: sólo el aviso familiar de reconexión de Firestore del
+  emulador (desktop y móvil) — ambiental; los datos SÍ llegaron (ancla
+  pintada con paciente, alergia y navegación real).
+- **Nota de honestidad del arnés**: la siembra no crea documentos
+  `NotaMedica`, así que «Último cambio» y «Consulta sin cerrar» no se
+  pintan en el emulador — su tipografía la vigila el guardián estático;
+  el arnés lo declara en su cabecera en vez de fingir que lo midió.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **8988 pasan (619 archivos), CERO fallos** — incluso el
+  ambiental `ops-timeout-y-punto-ciego` pasó en este contenedor.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (los
+  fontSize retirados eran de la escala, el conteo no se movió: 1997).
+- `npm run build`: compila limpio con `.env.local` demo. **Dos lecciones
+  operativas del contenedor**: (1) la variable es
+  `NEXT_PUBLIC_FIREBASE_EMULATORS=1` — «EMULATORS=1» a secas no conecta
+  los emuladores y el login del arnés se cae por timeout; (2) si un arnés
+  anterior murió sin limpiar, su `next start` huérfano sigue sirviendo el
+  build VIEJO en el 3000 (chunks 500/MIME text-plain) — matar el proceso
+  antes de diagnosticar el build.
+
+**Siguiente tarea exacta:** sexta rebanada de `V15-VISUAL-SYSTEM-001` —
+candidatos medidos, no adivinados: (a) el defecto visual MÁS medido de la
+rama es el TrialBanner en tema claro (`color-contrast`, span `#f59e0b` +
+botón CTA — apareció en las mediciones de las rebanadas 2, 3, 4 y 5;
+técnicamente vive en la lista de `V15-A11Y-001` pero es trabajo de sistema
+visual puro: tokens de color por tema para el banner); pagarlo cerraría la
+única violación axe recurrente de las superficies V15. O (b) inventariar
+con grep si queda ALGUNA superficie del shell V15 estructurado con papeles
+de §2 en dialecto propio — si el inventario sale vacío, declarar el paso 7
+de §18 (tokens/roles) COMPLETO en esta fase y decidir el cierre de Fase 10
+contra los pasos 8-9 (motion, polish) con la misma vara de comportamientos
+medidos que usaron las fases 5 y 6.

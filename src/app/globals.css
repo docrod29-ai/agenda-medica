@@ -439,6 +439,22 @@ a.nx-ident:focus-visible { text-decoration-color: var(--text); }
 .nx-critico {
   font-size: 13px; font-weight: 700; color: var(--red);
   display: inline-flex; align-items: center; gap: 6px;
+  /* Un valor crítico largo (una alergia con su reacción entre paréntesis)
+     ENVUELVE: recortar justo el texto crítico sería la truncación que §24
+     prohíbe. inline-flex sin wrap lo desbordaba en 390px. */
+  flex-wrap: wrap;
+}
+
+/* Identidad del paciente en SU espacio clínico (el Patient Anchor del
+   expediente): nivel display por VISUAL_DNA §1 R3 — «Serif Fraunces SOLO en
+   el nivel display (saludo, nombre del paciente en su espacio clínico)».
+   No es el papel R3 de fila (.nx-ident, 15.5 grotesca): el workspace del
+   paciente es el único sitio donde su nombre ES el título del espacio.
+   20px de la escala oficial — el ancla es pegajosa y compacta, no el saludo
+   de 32px de /dashboard. Se usa junto a .nx-display (que pone la familia). */
+.nx-ancla-nombre {
+  font-size: 20px; line-height: 1.2; font-weight: 600;
+  color: var(--text); overflow-wrap: anywhere; margin: 0;
 }
 
 /* Scrollbar minimalista */

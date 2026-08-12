@@ -63,11 +63,14 @@ export function PatientAnchor({
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           {/* La página no tiene otro <h1>: el nombre del paciente es el
-              encabezado de nivel 1 de todo el expediente (page-has-heading-one). */}
-          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+              encabezado de nivel 1 de todo el expediente (page-has-heading-one).
+              Nivel DISPLAY, no .nx-ident de fila: VISUAL_DNA §1 R3 reserva la
+              serif Fraunces para «el nombre del paciente en su espacio
+              clínico» — y este ancla es exactamente ese espacio. */}
+          <h1 className="nx-display nx-ancla-nombre">
             {patient?.nombre ?? 'Paciente'}
           </h1>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+          <div className="nx-meta" style={{ marginTop: 2 }}>
             {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
             {patient?.telefono ? ` · ${patient.telefono}` : ''}
           </div>
@@ -117,9 +120,15 @@ export function PatientAnchor({
           borderColor: sinAlergias ? 'var(--border)' : 'color-mix(in srgb, var(--red) 35%, transparent)',
         }}>
           <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-          <span><strong>Alergias:</strong> {alergiaTexto || 'no registradas'}</span>
+          {/* Una alergia REGISTRADA es valor crítico (§2: peso + icono, nunca
+              sólo color — el icono va al lado, en esta misma fila). «No
+              registradas» NO lo es: es un dato del registro, se queda en el
+              cuerpo neutro del aviso. */}
+          <span className={sinAlergias ? undefined : 'nx-critico'}>
+            <strong>Alergias:</strong> {alergiaTexto || 'no registradas'}
+          </span>
           {ultimoCambio && (
-            <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontWeight: 500, fontSize: 12 }}>
+            <span className="nx-meta" style={{ marginLeft: 'auto' }}>
               Último cambio: {TIPO_NOTA_LABEL[ultimoCambio.tipo]} · {formatoRelativo(ultimoCambio.fechaConsulta || ultimoCambio.createdAt)}
             </span>
           )}
