@@ -19,8 +19,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import type { NotaMedica, Adenda } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, X, Mic, ChevronDown } from 'lucide-react'
-import { Spinner, EmptyState } from '@/components/ui'
+import { ArrowLeft, Printer, Loader2, Download, Pill, ClipboardList, AlertTriangle, Check, FileText, FilePlus2, Mic, ChevronDown } from 'lucide-react'
+import { Spinner, EmptyState, Modal } from '@/components/ui'
 import { descargarComoPDF, descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
@@ -310,13 +310,17 @@ export default function NotaImprimiblePage() {
 
       {/* Barra de acciones (no se imprime). `nota-toolbar`: bajo 480px envuelve y
           las acciones pasan a rejilla — sin ella, .actions-row global apila cada
-          botón a lo ancho SOBRE el documento y «Atrás» queda recortado (DEBT-009). */}
+          botón a lo ancho SOBRE el documento y «Atrás» queda recortado (DEBT-009).
+          V15-REMAINING-SCREENS-001: los siete botones dejaron su dialecto inline
+          (siete rellenos y pesos a mano, teal/violeta crudos) y hablan el sistema
+          — UNA primaria (Descargar PDF, el trabajo dominante de esta pantalla) y
+          el resto secundarias (§16: jerarquía por énfasis, no siete voces). */}
       <div className="no-print nota-toolbar" style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={volver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={volver} className="btn btn-ghost btn-sm">
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
-          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
@@ -326,24 +330,24 @@ export default function NotaImprimiblePage() {
             // page-break y el membrete de fondo en cada una). Se imprime a sangre en
             // carta (@page letter margin 0) para que cada hoja llene la página.
             ? { anchoMm: hojaNota.widthMm, altoMm: hojaNota.heightMm, onError: (m) => toast(m, 'error') }
-            : { formato: 'carta', onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+            : { formato: 'carta', onError: (m) => toast(m, 'error') }) }} disabled={!!configError} title={configError ? 'Espera a que cargue la configuración del consultorio' : undefined} className="btn btn-secondary">
             <Printer size={16} /> Imprimir
           </button>
           {/* Word editable — para ajustar la nota al membrete/formato propio (igual
               que receta y orden; capacidad consistente entre documentos). */}
-          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient ? (alergiasParaImpreso(patient) || 'Negadas / no referidas') : 'NO DISPONIBLE — verificar con el paciente', membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: configError ? 'default' : 'pointer', opacity: configError ? 0.5 : 1 }}>
+          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient ? (alergiasParaImpreso(patient) || 'Negadas / no referidas') : 'NO DISPONIBLE — verificar con el paciente', membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} className="btn btn-secondary">
             <FileText size={16} /> Word
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}
           {nota.estado === 'firmada' && (
             <>
-              <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(20,184,166,0.12)', color: 'var(--teal)', border: '1px solid rgba(20,184,166,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)} className="btn btn-secondary">
                 <Pill size={16} /> Receta
               </button>
-              <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} className="btn btn-secondary">
                 <ClipboardList size={16} /> Orden
               </button>
-              <button onClick={() => setModalAdenda(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }} title="Corregir o aclarar sin alterar la nota firmada">
+              <button onClick={() => setModalAdenda(true)} className="btn btn-secondary" title="Corregir o aclarar sin alterar la nota firmada">
                 <FilePlus2 size={16} /> Adenda
               </button>
             </>
@@ -643,7 +647,8 @@ export default function NotaImprimiblePage() {
           >
             <Mic size={15} style={{ color: 'var(--nexus)' }} />
             Lo que se dijo (transcripción original)
-            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', fontWeight: 500 }}>
+            {/* V15 §2: metadato en su rol, no en dialecto inline. */}
+            <span className="nx-meta" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
               compara con la nota
               <ChevronDown size={15} style={{ transform: verTranscripcion ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
             </span>
@@ -664,7 +669,7 @@ export default function NotaImprimiblePage() {
               ) : (
                 <div style={{ whiteSpace: 'pre-wrap' }}>{nota.transcripcionCruda}</div>
               )}
-              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)', fontSize: 11, color: 'var(--text3)', fontStyle: 'italic' }}>
+              <div className="nx-meta" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)', fontStyle: 'italic' }}>
                 Material de apoyo — no forma parte del documento legal impreso. Sirve para verificar que la nota redactada por IA refleja lo dictado.
               </div>
             </div>
@@ -682,43 +687,39 @@ export default function NotaImprimiblePage() {
         <HistorialVersiones clinicId={clinicId} patientId={patientId} notaId={notaId} />
       )}
 
-      {/* Modal de adenda */}
-      {modalAdenda && (
-        <div className="no-print" onClick={() => !guardandoAdenda && setModalAdenda(false)} style={{
-          position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width: '100%', maxWidth: 460, background: 'var(--s1)', border: '1px solid var(--border)',
-            borderRadius: 16, padding: 24, position: 'relative',
-          }}>
-            <button onClick={() => setModalAdenda(false)} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 4, lineHeight: 0 }}>
-              <X size={18} />
-            </button>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Agregar adenda</div>
-            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, margin: '0 0 16px' }}>
-              Corrige o aclara esta nota <strong>sin alterar el documento firmado</strong>. La adenda queda fechada,
-              con tu nombre, y no se puede editar ni borrar (NOM-004).
-            </p>
-            {/* El motivo dejó de ser opcional: es lo que explica POR QUÉ se
-                corrigió un documento que no se puede tocar. Sin eso, la enmienda
-                no es oponible a nadie. */}
-            <label className="label" style={{ fontSize: 12.5 }}>Motivo de la corrección</label>
-            <input className="input" value={motivoAdenda} onChange={e => setMotivoAdenda(e.target.value)}
-              placeholder="Ej. Corrección de dosis, dato omitido" style={{ marginBottom: 12 }} />
-            <label className="label" style={{ fontSize: 12.5 }}>Corrección o aclaración</label>
-            <textarea value={textoAdenda} onChange={e => setTextoAdenda(e.target.value)} rows={5}
-              placeholder="Describe la corrección o aclaración…"
-              style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button onClick={() => setModalAdenda(false)} disabled={guardandoAdenda} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3} className="lift" style={{ background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3 ? 'default' : 'pointer', opacity: (!textoAdenda.trim() || motivoAdenda.trim().length < 3) ? 0.6 : 1 }}>
-                {guardandoAdenda ? 'Guardando…' : 'Agregar adenda'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de adenda — la corrección de un documento medicolegal firmado.
+          V15-REMAINING-SCREENS-001: era un overlay a mano SIN trampa de foco,
+          sin Escape, sin role="dialog" y con la X sin nombre accesible — en una
+          acción que la regla de diseño lista como falla de compuerta. Ahora usa
+          la primitiva `Modal` (foco atrapado, Escape, foco devuelto, aria).
+          El cierre sigue bloqueado mientras guarda — y ahora TAMBIÉN en la X
+          del encabezado (antes la X cerraba sin guardar a media escritura). */}
+      <Modal
+        open={modalAdenda}
+        onClose={() => { if (!guardandoAdenda) setModalAdenda(false) }}
+        title="Agregar adenda"
+        footer={<>
+          <button className="btn btn-secondary" onClick={() => setModalAdenda(false)} disabled={guardandoAdenda}>Cancelar</button>
+          <button className="btn btn-primary" onClick={guardarAdenda} disabled={guardandoAdenda || !textoAdenda.trim() || motivoAdenda.trim().length < 3}>
+            {guardandoAdenda ? 'Guardando…' : 'Agregar adenda'}
+          </button>
+        </>}
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, margin: '0 0 16px' }}>
+          Corrige o aclara esta nota <strong>sin alterar el documento firmado</strong>. La adenda queda fechada,
+          con tu nombre, y no se puede editar ni borrar (NOM-004).
+        </p>
+        {/* El motivo dejó de ser opcional: es lo que explica POR QUÉ se
+            corrigió un documento que no se puede tocar. Sin eso, la enmienda
+            no es oponible a nadie. */}
+        <label className="label" style={{ fontSize: 12.5 }}>Motivo de la corrección</label>
+        <input className="input" value={motivoAdenda} onChange={e => setMotivoAdenda(e.target.value)}
+          placeholder="Ej. Corrección de dosis, dato omitido" style={{ marginBottom: 12 }} />
+        <label className="label" style={{ fontSize: 12.5 }}>Corrección o aclaración</label>
+        <textarea value={textoAdenda} onChange={e => setTextoAdenda(e.target.value)} rows={5}
+          placeholder="Describe la corrección o aclaración…"
+          style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }} />
+      </Modal>
 
       {/* Estilos de impresión: solo el documento, en blanco y negro legible.
           Y DEBT-009: bajo 480px la barra envuelve («Atrás» ya no queda recortado

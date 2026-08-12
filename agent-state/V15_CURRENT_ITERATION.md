@@ -4,6 +4,17 @@
 
 ## Iteración en curso
 
+`V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **EN CURSO** desde
+12-ago-2026. El inventario de superficies Practice no tocadas por las fases
+estructurales quedó medido por grep (tabla en la sección al FINAL) y la
+primera rebanada está pagada: **/nota — el cromo habla el sistema** (una
+primaria §16, modal de adenda accesible con la primitiva `Modal`, roles §2
+en los metadatos) **con el papel intacto** (DEBT-008: los estilos inline del
+documento son deliberados y ahora tienen guardián que lo dice). Siguiente
+rebanada: /receta — misma familia documental, mismo método. Ver sección al
+FINAL de este archivo.
+
+Iteración anterior:
 `V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **CERRADA 12-ago-2026** tras
 nueve rebanadas. La novena declaró el paso 7 de §18 COMPLETO (el inventario
 de §2 quedó vacío en la octava y ninguna superficie nueva apareció), midió
@@ -3937,3 +3948,141 @@ inventario-por-grep + navegador real que usó la Fase 10. La deuda anotada de
 hallazgo de paso barato: formulario de /referencia (`label` ×3,
 `select-name` ×2), `nested-interactive` (Editar en filas de /pacientes),
 `landmark-unique`/`region`, táctiles chicos y contrastes de /chat (Fase 9).
+
+**Siguiente tarea exacta:** (superada — ver la sección siguiente:
+`V15-REMAINING-SCREENS-001` arrancó en la corrida del 12-ago-2026.)
+
+## `V15-REMAINING-SCREENS-001` (§43 orden 12, §32/§34) — primera rebanada: el inventario, y /nota habla el sistema (12-ago-2026)
+
+### El inventario de §32 — medido por grep, no supuesto
+
+Método de la Fase 10: conteo de roles §2 (`nx-ident|nx-meta|nx-critico|
+nx-num|nx-display|nx-estado`) contra `fontSize:` inline por pantalla, sobre
+las superficies que las fases estructurales NO tocaron:
+
+| Superficie | Roles §2 | fontSize inline | Veredicto |
+|---|---|---|---|
+| `/citas` | 3 (nx-display, riel-hora, nx-estado) | 1 | **PASA en lo esencial** — riel con R2/R3, una primaria por fila, estados con rol. No es rebanada. |
+| `/nota/[pid]/[nid]` | 0 | 47 | **PRIMERA rebanada (esta corrida)** — el documento de TODA consulta. |
+| `/receta/[pid]/[nid]` | 0 | 31 | **Siguiente rebanada** — misma familia documental (toolbar + papel). |
+| `/orden/[pid]/[nid]` | 0 | 11 | Tercera — misma familia. |
+| `/login` | 1 | 14 | Cuarta — puerta de entrada, estructura simple. |
+| `/registro` | 1 | 19 | Con login. |
+| `/configuracion` | 0 | 172 | Operaciones (§11): subordinada al trabajo clínico; al final del barrido. |
+| `/operaciones` | 0 | 6 | Chica; con configuración. |
+
+Matiz importante de la familia documental: en /nota, /receta y /orden la
+mayor parte de los `fontSize` inline es **papel, no deuda** — el documento
+viaja por `outerHTML` a la ventana de impresión y al lienzo del PDF, donde
+las variables del tema NO deben mandar (DEBT-008; los tres archivos están en
+la lista PAPEL del trinquete de color por esa razón). La vara V15 aplica al
+**cromo** (toolbar, modales, estados) — y justamente porque el archivo entero
+está excluido del trinquete de color, el cromo llevaba teal/violeta CRUDOS
+sin que ningún guardián los viera.
+
+### Lo pagado: /nota — «el cromo habla el sistema, el papel intacto»
+
+- **Jerarquía §16**: la barra de acciones pintaba SIETE botones a mano
+  (siete rellenos/pesos propios, `rgba(20,184,166,…)` y `#a78bfa` crudos que
+  no cambian de tema). Ahora habla el sistema de botones que ya existía:
+  **UNA primaria** (`btn-primary` = Descargar PDF, el trabajo dominante de
+  la pantalla), Imprimir/Word/Receta/Orden/Adenda secundarias
+  (`btn-secondary`), Atrás fantasma (`btn-ghost btn-sm`). Los onClick,
+  disabled y rutas NO cambiaron (freeze funcional, guardián abajo).
+- **Interacción (la razón de ser de la rebanada)**: el modal de adenda — la
+  corrección de un documento medicolegal FIRMADO — era un overlay a mano SIN
+  trampa de foco, sin Escape, sin `role="dialog"` y con la X sin nombre
+  accesible: exactamente lo que la regla de diseño lista como falla de
+  compuerta. Ahora usa la primitiva `Modal` de `components/ui` (foco
+  atrapado, Escape, foco devuelto, scroll bloqueado, aria) que existía desde
+  antes. El cierre sigue bloqueado mientras guarda — y ahora TAMBIÉN por la
+  X del encabezado (antes la X cerraba a media escritura sin guardar:
+  equivalente o MÁS seguro, no menos).
+- **Roles §2 en el cromo**: los metadatos de la vista de transcripción
+  («compara con la nota», «Material de apoyo…») hablan `.nx-meta`. NINGÚN
+  rol se metió al papel — y el guardián lo veta expresamente (un `nx-*`
+  dentro de `printables` haría que el documento impreso dependiera de la
+  hoja del tema).
+- Trinquete de diseño BAJADO de verdad y resellado: `hexEnLinea` 501→500,
+  `tamanosFueraDeEscala` 1988→1984, `radiosFueraDeEscala` 634→633.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-nota-cromo-habla-el-sistema.test.ts` (16 casos): una sola
+primaria por capa (2 `btn-primary` en el archivo: toolbar + pie del modal),
+secundarias del sistema, veto del dialecto (ni `--nexus-solido` inline ni
+teal/violeta crudos — el trinquete de color NO puede verlos aquí porque el
+archivo es PAPEL; este guardián sí), Modal primitiva con cierre guardado
+mientras guarda, freeze funcional (validación de adenda ≥3, guardas de
+config, rutas de Receta/Orden sólo con nota firmada), papel intacto (TINTA,
+Times New Roman, `#doc`, reglas de impresión) y roles §2 sólo en el cromo.
+**9 de 16 fallan contra el árbol previo** (verificado con `git stash`); los
+7 que pasan protegen invariantes funcionales preexistentes, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-nota-cromo-v15.mjs` — la siembra estándar NO crea
+documentos `NotaMedica`, así que el arnés siembra la suya: una nota FIRMADA
+sintética (con transcripción — la primera corrida devolvió `nxMeta: null`
+porque sin transcripción el bloque no se pinta; se sembró el dato y se
+re-midió: medir de verdad, no declarar). Resultado y 4 capturas en
+`docs/design/capturas/v15-nota-cromo/` (1440 oscuro/claro + modal + 390):
+
+- **Jerarquía medida en los DOS temas**: la toolbar tiene EXACTAMENTE una
+  primaria («Descargar PDF», relleno sólido `rgb(23,120,134)` oscuro /
+  `rgb(18,98,110)` claro — el token cambia por tema, cosa que los hex crudos
+  de antes no hacían), 5 secundarias transparentes, y **cero botones a mano**
+  (`botonesAManoQueQuedan: []`).
+- **El modal de adenda, interacción REAL medida**: al abrir, el foco ENTRA
+  al diálogo; tras 8 Tab el foco SIGUE dentro (trampa verificada); `aria-modal`
+  + etiquetado; **Escape lo cierra** y el foco **VUELVE** al botón Adenda.
+  Las cuatro conductas que el overlay viejo no tenía.
+- **Equivalencia funcional, clic real**: «Receta» aterriza en
+  `/receta/pac-aurelio-dominguez/nota-cromo-v15-firmada` (`llega: true`).
+- **El papel sigue siendo papel**: `#doc` computa
+  `"Times New Roman", Georgia, serif`.
+- **Rol §2 medido**: «compara con la nota» computa 12.5px (`.nx-meta`).
+- **Móvil 390**: sin desborde (`anchoDocumento: 390`), la primaria ocupa la
+  fila completa (rejilla DEBT-009 viva), **cero táctiles chicos** en la
+  toolbar.
+- **Axe (primera medición de /nota en V15)**: 0 violaciones NUEVAS. Las dos
+  familias presentes en oscuro, claro y móvil son PREEXISTENTES:
+  `page-has-heading-one` (la página nunca tuvo `<h1>` — el título del
+  documento es papel, no un heading del cromo; anotada a `V15-A11Y-001`) y
+  `region` ×2 (la familia conocida del banner de prueba). Ninguna vive en la
+  toolbar ni en el modal.
+- **Consola**: sólo el aviso ambiental familiar de reconexión de Firestore
+  del emulador (×2, desktop y móvil).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9045 pasan (621 archivos), 1 skip** — el guardián
+  nuevo 16/16. Los 2 fallos de la corrida completa: el inventario de
+  pantallas (estaba DESACTUALIZADO en medio de la corrida — regenerado, 5/5
+  al re-correr) y el AMBIENTAL conocido `ops-timeout-y-punto-ciego` (el
+  proxy del contenedor responde en vez de agotar — mismo fingerprint
+  documentado por rebanadas anteriores).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: BAJÓ de verdad
+  (`hexEnLinea` 501→500, `tamanosFueraDeEscala` 1988→1984,
+  `radiosFueraDeEscala` 634→633), resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio con `.env.local` demo. Lección operativa
+  de este contenedor: `✓ Compiled successfully` sale a MEDIO build (falta
+  TypeScript + generación estática) — esperar `BUILD_ID` en `.next/` antes
+  de arrancar el arnés, o `next start` muere con «Could not find a
+  production build».
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/nota cambió de líneas).
+
+**Siguiente tarea exacta:** segunda rebanada de `V15-REMAINING-SCREENS-001`
+— **/receta** (§32, la siguiente del inventario por uso clínico): mismo
+patrón que /nota — separar cromo de papel, jerarquía §16 en la barra de
+acciones (una primaria), modales/overlays a la primitiva accesible si los
+hay, roles §2 en el cromo, y guardián + arnés propios. OJO: /receta es un
+EDITOR además de un impreso (más interacción que /nota); leer entera antes
+de rebanar. La deuda de `V15-A11Y-001` suma ahora `page-has-heading-one` de
+/nota a las familias anotadas (formulario de /referencia, nested-interactive
+de /pacientes, landmark-unique/region, táctiles chicos y contrastes de
+/chat).
