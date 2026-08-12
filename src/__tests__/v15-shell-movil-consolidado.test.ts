@@ -29,8 +29,9 @@
  * 1. En modo médico la topbar renderiza `<InstrumentStrip enTopbar />` como
  *    centro — NO el `<span>Ausculta</span>` estático (ese queda para la rama
  *    de asistente, que conserva su shell anterior).
- * 2. La franja de fila propia queda SÓLO en escritorio (`hidden md:block`):
- *    sin ese gate se pintaría dos veces.
+ * 2. La franja de fila propia queda SÓLO en escritorio (gate
+ *    `nx-franja-escritorio`, ≥769px desde la 7ª rebanada): sin ese gate se
+ *    pintaría dos veces.
  * 3. En la variante compacta el paciente GANA a la clínica (ternario
  *    `paciente ?`): con 390px no caben los dos, y a media consulta lo que
  *    importa es en quién estás — el nombre del consultorio es admin (§8.5).
@@ -74,8 +75,13 @@ describe('V15-MOBILE-001 — la franja ES el centro de la topbar en móvil', () 
     expect(wordmark).toBeGreaterThan(ternario)
   })
 
-  it('la franja de fila propia queda sólo en escritorio (hidden md:block)', () => {
-    expect(LAYOUT).toContain('{navPrimaria && <div className="hidden md:block"><InstrumentStrip /></div>}')
+  it('la franja de fila propia queda sólo en escritorio (nx-franja-escritorio)', () => {
+    // El gate era Tailwind `hidden md:block`; la 7ª rebanada lo movió a la
+    // clase de hoja `nx-franja-escritorio` (≥769px) porque `md:` enciende en
+    // 768 y en ese ancho exacto la franja convivía con la topbar móvil (ver
+    // v15-frontera-768-un-solo-shell.test.ts). El invariante de ESTE caso no
+    // cambia: la franja de fila propia jamás se renderiza sin gate.
+    expect(LAYOUT).toContain('{navPrimaria && <div className="nx-franja-escritorio"><InstrumentStrip /></div>}')
     // Y no queda ningún render de franja de fila propia SIN el gate.
     expect(LAYOUT).not.toMatch(/\{navPrimaria && <InstrumentStrip \/>\}/)
   })

@@ -632,8 +632,12 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     // (ancla del paciente, encabezados de tabla/calendario, CierreAlPulgar)
     // y mantiene el BottomNav a la vista en páginas largas (§22/§23).
     <div className="nx-app-shell" style={{ display: 'flex', background: 'var(--bg)' }}>
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex" style={{ flexShrink: 0 }}>
+      {/* Desktop sidebar. `nx-lado-escritorio` (globals.css), no una utilidad
+          Tailwind de breakpoint: su corte enciende en min-width 768 y el shell
+          móvil vive bajo max-width 768 — en 768 exacto (iPad vertical)
+          convivían los dos shells. La clase enciende en ≥769: un solo shell
+          por ancho. */}
+      <div className="nx-lado-escritorio" style={{ flexShrink: 0 }}>
         {navPrimaria ? <FlowRail /> : <Sidebar />}
       </div>
 
@@ -720,8 +724,9 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
         {/* La franja de fila propia queda SÓLO en escritorio: en móvil su
             contenido ya vive dentro de la topbar (arriba). Sin este gate se
-            pintaría dos veces. */}
-        {navPrimaria && <div className="hidden md:block"><InstrumentStrip /></div>}
+            pintaría dos veces — y con el gate en Tailwind `md:` se pintaba
+            dos veces JUSTO en 768px (ver nx-franja-escritorio en globals). */}
+        {navPrimaria && <div className="nx-franja-escritorio"><InstrumentStrip /></div>}
         <OfflineBanner />
         {/*
           LA IA CAÍDA SE AVISA DONDE EL DUEÑO ESTÉ, no sólo en su tablero.

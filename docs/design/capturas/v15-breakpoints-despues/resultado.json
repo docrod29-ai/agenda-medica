@@ -1,0 +1,90 @@
+{
+  "phone-390": {
+    "vw": 390,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": true,
+    "flowRailVisible": false,
+    "franjaEscritorioVisible": false,
+    "bottomNavVisible": true,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 0,
+    "mainPaddingBottom": "72px"
+  },
+  "frontera-767": {
+    "vw": 767,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": true,
+    "flowRailVisible": false,
+    "franjaEscritorioVisible": false,
+    "bottomNavVisible": true,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 0,
+    "mainPaddingBottom": "72px"
+  },
+  "frontera-768-ipad-vertical": {
+    "vw": 768,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": true,
+    "flowRailVisible": false,
+    "franjaEscritorioVisible": false,
+    "bottomNavVisible": true,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 0,
+    "mainPaddingBottom": "72px"
+  },
+  "frontera-769": {
+    "vw": 769,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": false,
+    "flowRailVisible": true,
+    "franjaEscritorioVisible": true,
+    "bottomNavVisible": false,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 1,
+    "mainPaddingBottom": "0px"
+  },
+  "tablet-834": {
+    "vw": 834,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": false,
+    "flowRailVisible": true,
+    "franjaEscritorioVisible": true,
+    "bottomNavVisible": false,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 1,
+    "mainPaddingBottom": "0px"
+  },
+  "tablet-h-1024": {
+    "vw": 1024,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": false,
+    "flowRailVisible": true,
+    "franjaEscritorioVisible": true,
+    "bottomNavVisible": false,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 1,
+    "mainPaddingBottom": "0px"
+  },
+  "laptop-1280": {
+    "vw": 1280,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": false,
+    "flowRailVisible": true,
+    "franjaEscritorioVisible": true,
+    "bottomNavVisible": false,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 1,
+    "mainPaddingBottom": "0px"
+  },
+  "desktop-1440": {
+    "vw": 1440,
+    "desbordaHorizontal": false,
+    "mobileTopbarVisible": false,
+    "flowRailVisible": true,
+    "franjaEscritorioVisible": true,
+    "bottomNavVisible": false,
+    "navsPrimariasSimultaneas": 1,
+    "franjasInstrumentos": 1,
+    "mainPaddingBottom": "0px"
+  }
+}

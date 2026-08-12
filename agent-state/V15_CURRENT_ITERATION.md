@@ -4,7 +4,23 @@
 
 ## Iteración en curso
 
-`V15-MOBILE-001` (Fase 9, §22/§23/§24) — **EN CURSO**, sexta rebanada
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **SIGUIENTE**: el orden de §43
+la nombra tras el cierre de Fase 9. Antes de tocar nada: releer §12 (el
+greybox gate ya pasado no se deshace), §16, §18 (los tokens van DESPUÉS de la
+estructura — la estructura ya está) y `docs/design/` (ley de diseño,
+Cantera + Instrument).
+`V15-MOBILE-001` (Fase 9, §22/§23/§24) — **CERRADA 12-ago-2026** tras siete
+rebanadas: los trabajos §22 quedaron medidos contra pantallas reales en dos
+radiografías (390×844) y sus defectos pagados (rebanadas 1–6); la séptima
+midió el modelo responsivo §23 en OCHO anchos (390/767/768/769/834/1024/
+1280/1440), encontró el único defecto estructural del rango intermedio —
+**en 768px exacto convivían los dos shells** — lo arregló, y dejó §23
+documentado por breakpoint en
+`docs/design/v15/MOBILE-001-modelo-responsivo.md` (ver sección al FINAL).
+Los pendientes anotados de la fase (táctiles chicos preexistentes, familia
+`region`, contrastes de /chat, colisiones de widgets flotantes) viven en la
+lista de `V15-A11Y-001` — no bloquean el cierre: son deuda de accesibilidad
+declarada, no estructura móvil. Sexta rebanada previa
 12-ago-2026: «el chat cabe en el shell» — la radiografía 2
 (`medir-trabajos-moviles-2-v15.mjs`) midió los tres trabajos §22 restantes:
 /nota sana en 390px, /pendientes con acciones ≥44px al pulgar, y /chat con el
@@ -2654,3 +2670,114 @@ ya tomadas (shell con fondo, franja en topbar, hoja del aviso, pantalla-
 lienzo) — o, si una medición nueva enseña algo más barato/valioso, esa
 rebanada. Después de §23 documentado, `V15-MOBILE-001` es candidata a
 CERRARSE y sigue `V15-VISUAL-SYSTEM-001` (Fase 10) según el orden de §43.
+
+## `V15-MOBILE-001` (Fase 9, §23) — séptima rebanada: un solo shell por ancho, y Fase 9 CERRADA (12-ago-2026)
+
+La tarea que dejó nombrada la sexta rebanada («documentar el modelo
+responsivo §23 por breakpoint con las decisiones ya tomadas — o, si una
+medición nueva enseña algo más barato/valioso, esa rebanada») se pagó con
+las dos cosas: la medición ENSEÑÓ el defecto, el defecto se arregló, y el
+modelo quedó documentado con evidencia en vez de desde el checkpoint.
+
+### La medición primero (`scripts/design/medir-breakpoints-v15.mjs`)
+
+Radiografía del shell en OCHO anchos (390 · 767 · 768 · 769 · 834 · 1024 ·
+1280 · 1440) — las seis rebanadas anteriores sólo habían medido 390 y 1440.
+Arnés hermano: `scripts/design/arnes-breakpoints-v15.sh` (emulators:exec +
+siembra + build de producción, el método de toda la rama). Resultado ANTES
+en `docs/design/capturas/v15-breakpoints/`:
+
+- 767 y menos: shell móvil limpio. 769 en adelante: shell de escritorio
+  limpio. Sin desborde horizontal en ningún ancho.
+- **768 EXACTO — el ancho CSS de un iPad Mini/9.7/10.2 en vertical, no un
+  ancho teórico — era el único ancho con shell HÍBRIDO**: topbar móvil +
+  franja de instrumentos de escritorio (instrumentos dos veces apilados, la
+  duplicación que la 3ª rebanada mató en <768 renacía justo ahí) + BottomNav
+  + colchones móviles de main, y el FlowRail AHOGADO (su wrapper Tailwind
+  `md:flex` encendía, pero la regla móvil `.sidebar { display:none }` ≤768
+  lo apagaba por dentro).
+
+### La causa raíz
+
+Dos familias de media queries con fronteras que se PISAN en un ancho: todo
+el lado móvil del shell vive bajo `max-width: 768px` (inclusive) y las dos
+piezas exclusivas de escritorio (barra lateral, franja de fila propia)
+vivían bajo Tailwind `md:` = `min-width: 768px` (inclusive). En 768.0–768.9
+aplicaban las dos a la vez. Eran los ÚNICOS dos usos reales de `md:` en toda
+la app (grep: los otros dos hits son claves de objeto).
+
+### El arreglo
+
+**El ancho 768 le pertenece al MÓVIL** — coherente con todas las reglas
+`max-width: 768px` ya selladas por los guardianes de las rebanadas 1–6 (que
+no se reescriben), y un iPad vertical es un dispositivo de pulgar.
+
+- `src/app/globals.css` — clases de hoja `nx-lado-escritorio` (flex) y
+  `nx-franja-escritorio` (block): base `display:none`, encienden en
+  `@media (min-width: 769px)` — la misma frontera que ya usaba
+  `.mobile-sidebar-wrap`. Y la regla `min-width: 768px` de `.mobile-topbar`
+  (que sólo no rompía porque una regla posterior la pisaba) se corrió a 769:
+  ya no queda NINGÚN `min-width: 768px` en la hoja.
+- `src/app/(dashboard)/layout.tsx` — los dos wrappers dejan Tailwind
+  (`hidden md:flex` / `hidden md:block`) por las clases de hoja. Nada más
+  cambió: mismo árbol, mismos gates `navPrimaria`.
+- Guardián actualizado: `v15-shell-movil-consolidado.test.ts` caso 2 pinneaba
+  el literal `hidden md:block`; su INVARIANTE (la franja jamás sin gate) no
+  cambió — ahora pinnea el gate nuevo y remite al guardián de la frontera.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-frontera-768-un-solo-shell.test.ts` (6 casos) — clases en
+el layout sin utilidades `md:*`, clases en la hoja con base apagada y
+encendido en ≥769, gate jamás inline, CERO `min-width: 768px` en globals.css,
+y el lado móvil SIGUE en `max-width: 768px` (el arreglo fue mover el lado
+escritorio, no reescribir el móvil). 4 de 6 fallan contra el árbol previo
+(verificado con `git stash`).
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama. Resultado DESPUÉS y 8 capturas en
+`docs/design/capturas/v15-breakpoints-despues/`:
+
+- **768×1024**: `mobileTopbarVisible: true, franjaEscritorioVisible: false,
+  bottomNavVisible: true, navsPrimariasSimultaneas: 1, franjasInstrumentos:
+  1 (la de la topbar), mainPaddingBottom: 72px` — shell móvil puro, mirado
+  además en la captura (una sola marca, una sola navegación).
+- **769×1024**: FlowRail + franja de fila propia, sin topbar móvil, sin
+  BottomNav, sin colchones móviles — shell de escritorio puro desde el
+  primer píxel del lado suyo de la frontera.
+- Los otros seis anchos: sin cambio contra el ANTES (el arreglo sólo toca
+  768.0–768.9). Cero errores de consola en los 8 anchos.
+- Artefacto del arnés cazado en el camino: la primera recaptura midió TODO
+  en null — un `next-server` HUÉRFANO de la corrida anterior seguía dueño
+  del puerto 3000 sirviendo chunks borrados (el trap del arnés mata al
+  wrapper de npx, no al servidor; ChunkLoadError + MIME text/plain, la misma
+  familia que documenta el README de v10-truth). Se mató el proceso y la
+  recaptura salió limpia — anotado aquí porque le va a pasar al siguiente
+  arnés que corra dos veces en el mismo contenedor.
+
+### El modelo §23, documentado
+
+`docs/design/v15/MOBILE-001-modelo-responsivo.md` — por breakpoint: qué
+persiste, qué es contextual, qué colapsa, dónde vive la acción primaria; la
+frontera única (móvil ≤768 · escritorio ≥769); táctil por CAPACIDAD
+(`pointer: coarse`), no por ancho; y la regla de no inventar cortes que
+ningún trabajo pide (1280 vs 1440 medidos sin diferencia estructural).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8924 pasan, 6 casos nuevos; el único fallo es el
+  PRE-EXISTENTE ambiental de siempre (`ops-timeout-y-punto-ciego`, proxy del
+  contenedor, verificado en aislamiento con el mismo fingerprint).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (el build que sirvió la verificación).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado, sin cambios (layout y
+  globals no son pantallas).
+
+**Siguiente tarea exacta:** `V15-VISUAL-SYSTEM-001` (Fase 10, §18): releer
+§12/§16/§18 y la ley de diseño en `docs/design/` (Cantera + Instrument), y
+decidir la primera rebanada de sistema visual SOBRE la estructura ya
+aprobada en greybox — sin deshacer ningún gate estructural. Los pendientes
+anotados de accesibilidad de la Fase 9 quedan en la lista de `V15-A11Y-001`.

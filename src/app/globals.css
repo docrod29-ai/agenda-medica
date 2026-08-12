@@ -1320,8 +1320,13 @@ main:has(.nx-lienzo-completo) > .page-transition {
   top: 0;
   z-index: 45;
 }
-/* En tablet/escritorio se oculta (la barra lateral toma su lugar) */
-@media (min-width: 768px) {
+/* En tablet/escritorio se oculta (la barra lateral toma su lugar).
+   769, no 768: el lado móvil del shell vive bajo `max-width: 768px`, así que
+   768 EXACTO (el ancho CSS de un iPad vertical) le pertenece al móvil. Con
+   min-width: 768px las dos familias aplicaban a la vez en ese ancho — la
+   radiografía de breakpoints (v15-breakpoints) midió topbar móvil + franja de
+   escritorio + BottomNav pintados juntos. Un solo shell por ancho. */
+@media (min-width: 769px) {
   .mobile-topbar { display: none; }
 }
 .mobile-topbar-btn {
@@ -1338,6 +1343,21 @@ main:has(.nx-lienzo-completo) > .page-transition {
   flex-shrink: 0;
 }
 .mobile-topbar-btn:active { background: var(--s2); }
+
+/* ── Las dos piezas de shell EXCLUSIVAS de escritorio ───────
+   La barra lateral (FlowRail/Sidebar) y la franja de instrumentos de fila
+   propia. Vivían bajo Tailwind `md:` (`min-width: 768px`) mientras TODO el
+   lado móvil del shell vive bajo `max-width: 768px`: en 768 exacto —el ancho
+   CSS de un iPad vertical, no un ancho teórico— las dos familias aplicaban a
+   la vez y la radiografía de breakpoints midió el shell híbrido (topbar
+   móvil + franja de escritorio + BottomNav + colchones móviles, y el rail
+   ahogado por la regla `.sidebar` móvil). La frontera es UNA: móvil ≤768,
+   escritorio ≥769 — la misma que ya usa `.mobile-sidebar-wrap`. */
+.nx-lado-escritorio, .nx-franja-escritorio { display: none; }
+@media (min-width: 769px) {
+  .nx-lado-escritorio { display: flex; }
+  .nx-franja-escritorio { display: block; }
+}
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
