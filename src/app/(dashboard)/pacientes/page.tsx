@@ -244,15 +244,18 @@ export default function PacientesPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {duplicados.map(par => (
               <div key={`${par.a.id}|${par.b.id}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>
+                <div className="nx-meta" style={{ marginBottom: 8 }}>
                   {par.motivo}
                   {par.certeza === 'seguro' && <strong style={{ color: 'var(--amber)' }}> · muy probable</strong>}
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {[par.a, par.b].map(p => (
                     <div key={p.id} style={{ flex: '1 1 220px', minWidth: 200, padding: '8px 10px', borderRadius: 8, background: 'var(--s1)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{p.nombre}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text3)', margin: '2px 0 7px' }}>
+                      {/* nx-ident (8ª rebanada): identidad estructurada de §2
+                          también en la tarjeta de duplicados — no un 13/600
+                          en dialecto propio. Envuelve, no se trunca (§24). */}
+                      <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
+                      <div className="nx-meta" style={{ margin: '2px 0 7px' }}>
                         {p.edad ? `${p.edad} años` : 'sin edad'}
                         {p.telefono ? ` · ${p.telefono}` : ''}
                         {p.ultimaCita ? ` · última cita ${p.ultimaCita.slice(0, 10)}` : ' · sin citas'}
@@ -728,8 +731,11 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
                     padding: '8px 10px', borderRadius: 8, background: 'var(--s1)', border: '1px solid var(--border)',
                   }}>
                     <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.paciente.nombre}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                      {/* nx-ident (8ª rebanada): el candidato a duplicado del
+                          formulario habla el mismo rol de identidad que la
+                          fila del directorio y que la tarjeta del modal. */}
+                      <span className="nx-ident" style={{ display: 'block' }}>{c.paciente.nombre}</span>
+                      <div className="nx-meta">
                         {c.motivo}
                         {c.paciente.edad ? ` · ${c.paciente.edad} años` : ''}
                         {c.paciente.ultimaCita ? ` · última cita ${c.paciente.ultimaCita.slice(0, 10)}` : ''}

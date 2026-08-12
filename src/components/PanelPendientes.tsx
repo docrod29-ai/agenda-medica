@@ -54,13 +54,15 @@ export function PanelPendientes() {
             <CircleAlert size={14} style={{ color: COLOR[a.prioridad], flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.titulo}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{a.detalle}</div>
+              {/* nx-meta (8ª rebanada): el detalle es metadato de §2 — en
+                  /pendientes la misma pieza ya habla este rol. */}
+              <div className="nx-meta">{a.detalle}</div>
             </div>
             <ArrowRight size={14} style={{ color: 'var(--text3)', flexShrink: 0 }} />
           </Link>
         ))}
       </div>
-      {acciones.length > 8 && <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>+{acciones.length - 8} más</div>}
+      {acciones.length > 8 && <div className="nx-meta" style={{ marginTop: 8 }}>+{acciones.length - 8} más</div>}
     </div>
   )
 }

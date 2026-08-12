@@ -105,10 +105,13 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
             }}
           >
             {it.label}
+            {/* nx-num (V15-VISUAL-SYSTEM-001, 8ª rebanada): los conteos del
+                riel son cifras clínicas — tabular-nums, como todo dato
+                numérico del sistema (§2). */}
             {it.detail ? (
-              <span style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.85 }}>{it.detail}</span>
+              <span className="nx-num" style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.85 }}>{it.detail}</span>
             ) : typeof it.count === 'number' ? (
-              <span style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.85 }}>{it.count}</span>
+              <span className="nx-num" style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.85 }}>{it.count}</span>
             ) : null}
           </button>
         )

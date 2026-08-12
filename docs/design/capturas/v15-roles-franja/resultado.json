@@ -1,0 +1,251 @@
+{
+  "duplicadosDeclarados": "las tarjetas de duplicados de /pacientes NO se miden aquí (la siembra no crea pares) — las vigila el guardián estático",
+  "oscuro": {
+    "enlace": {
+      "texto": "María del Refugio Alcántara Solís",
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "underline",
+      "webkitLineClamp": "none",
+      "overflowWrap": "anywhere",
+      "textOverflow": "clip"
+    },
+    "clinica": {
+      "texto": "Ausculta",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "color": "rgb(168, 172, 174)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "none",
+      "webkitLineClamp": "none",
+      "overflowWrap": "normal",
+      "textOverflow": "clip"
+    },
+    "timer": null,
+    "identidadDominaCromo": true
+  },
+  "oscuroGrabando": {
+    "enlace": {
+      "texto": "María del Refugio Alcántara Solís",
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "underline",
+      "webkitLineClamp": "none",
+      "overflowWrap": "anywhere",
+      "textOverflow": "clip"
+    },
+    "clinica": {
+      "texto": "Ausculta",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "color": "rgb(168, 172, 174)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "none",
+      "webkitLineClamp": "none",
+      "overflowWrap": "normal",
+      "textOverflow": "clip"
+    },
+    "timer": {
+      "texto": "Grabando · 0:00",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "color": "rgb(42, 165, 181)",
+      "fontVariantNumeric": "tabular-nums",
+      "textDecorationLine": "none",
+      "webkitLineClamp": "none",
+      "overflowWrap": "normal",
+      "textOverflow": "clip"
+    },
+    "identidadDominaCromo": true
+  },
+  "axeOscuro": [
+    {
+      "id": "label",
+      "impact": "critical",
+      "help": "Form elements must have labels",
+      "nodos": 3,
+      "targets": [
+        "textarea[rows=\"4\"]",
+        "div:nth-child(1) > textarea[rows=\"3\"]",
+        "div:nth-child(2) > textarea[rows=\"3\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "help": "Select element must have an accessible name",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(1) > select",
+        "div:nth-child(2) > select"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+      ]
+    }
+  ],
+  "navegacionFranja": {
+    "urlAterrizada": "/expediente/pac-refugio-alcantara",
+    "llega": true
+  },
+  "spineNum": [
+    {
+      "texto": "0",
+      "fontSize": "10.5px",
+      "fontWeight": "800",
+      "color": "rgb(168, 172, 174)",
+      "fontVariantNumeric": "tabular-nums",
+      "textDecorationLine": "none",
+      "webkitLineClamp": "none",
+      "overflowWrap": "normal",
+      "textOverflow": "clip"
+    }
+  ],
+  "panelPendientesMeta": {
+    "metasEnPagina": 10,
+    "metasEnPanel": [
+      {
+        "texto": "Cita de hoy 13:00 sin confirmar.",
+        "fontSize": "12.5px",
+        "fontWeight": "400",
+        "color": "rgb(138, 143, 148)",
+        "fontVariantNumeric": "normal",
+        "textDecorationLine": "none",
+        "webkitLineClamp": "none",
+        "overflowWrap": "normal",
+        "textOverflow": "clip"
+      },
+      {
+        "texto": "Cita de hoy 17:00 sin confirmar.",
+        "fontSize": "12.5px",
+        "fontWeight": "400",
+        "color": "rgb(138, 143, 148)",
+        "fontVariantNumeric": "normal",
+        "textDecorationLine": "none",
+        "webkitLineClamp": "none",
+        "overflowWrap": "normal",
+        "textOverflow": "clip"
+      }
+    ]
+  },
+  "claro": {
+    "enlace": {
+      "texto": "María del Refugio Alcántara Solís",
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "color": "rgb(11, 12, 14)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "underline",
+      "webkitLineClamp": "none",
+      "overflowWrap": "anywhere",
+      "textOverflow": "clip"
+    },
+    "clinica": {
+      "texto": "Ausculta",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "color": "rgb(86, 90, 96)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "none",
+      "webkitLineClamp": "none",
+      "overflowWrap": "normal",
+      "textOverflow": "clip"
+    },
+    "timer": null,
+    "identidadDominaCromo": true
+  },
+  "axeClaro": [
+    {
+      "id": "label",
+      "impact": "critical",
+      "help": "Form elements must have labels",
+      "nodos": 3,
+      "targets": [
+        "textarea[rows=\"4\"]",
+        "div:nth-child(1) > textarea[rows=\"3\"]",
+        "div:nth-child(2) > textarea[rows=\"3\"]"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "help": "Select element must have an accessible name",
+      "nodos": 2,
+      "targets": [
+        "div:nth-child(1) > select",
+        "div:nth-child(2) > select"
+      ],
+      "resumen": [
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\"",
+        "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+      ]
+    }
+  ],
+  "movilRespaldo": {
+    "texto": "Ausculta",
+    "fontSize": "14px",
+    "fontWeight": "600",
+    "color": "rgb(242, 239, 233)",
+    "fontVariantNumeric": "normal",
+    "textDecorationLine": "none",
+    "webkitLineClamp": "none",
+    "overflowWrap": "anywhere",
+    "textOverflow": "ellipsis"
+  },
+  "movil": {
+    "desbordeHorizontal": false,
+    "anchoDocumento": 390,
+    "enlace": {
+      "texto": "María del Refugio Alcántara Solís",
+      "altoTactil": 44,
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "underline",
+      "webkitLineClamp": "none",
+      "overflowWrap": "anywhere",
+      "textOverflow": "clip"
+    },
+    "span": {
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "fontVariantNumeric": "normal",
+      "textDecorationLine": "none",
+      "webkitLineClamp": "2",
+      "overflowWrap": "anywhere",
+      "textOverflow": "clip",
+      "lineas": 1
+    },
+    "nombreCompleto": true,
+    "objetivoTactilOk": true
+  },
+  "movilTimer": {
+    "texto": "0:00",
+    "fontSize": "12px",
+    "fontWeight": "600",
+    "color": "rgb(42, 165, 181)",
+    "fontVariantNumeric": "tabular-nums",
+    "textDecorationLine": "none",
+    "webkitLineClamp": "none",
+    "overflowWrap": "normal",
+    "textOverflow": "clip"
+  },
+  "axeMovil": []
+}

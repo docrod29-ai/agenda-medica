@@ -4,8 +4,35 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, séptima rebanada
-entregada 12-ago-2026: «el inventario de §2 se corrió — NO salió vacío — y
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, octava rebanada
+entregada 12-ago-2026: «la identidad de la franja tiene una voz, y el
+inventario de §2 queda VACÍO» — las candidatas (a) y (b) que dejó nombradas
+la séptima, pagadas juntas porque el arnés (emuladores + build + navegador)
+se paga una vez por corrida. (a) La decisión de diseño de InstrumentStrip:
+`.nx-ident-franja` nace en `globals.css` — la identidad de la franja tiene
+UNA voz (14/600/`var(--text)`, escala oficial) y la porta el paciente cuando
+hay paciente en la ruta (§5: «current patient» es el PRIMER estado
+periférico), el consultorio cuando no; antes el paciente era cromo de
+12/`--text2` CON ellipsis mientras el respaldo pintaba 16 — la franja
+hablaba más fuerte enseñando lo menos importante. En la topbar móvil el
+nombre envuelve hasta 2 líneas (`--clamp`, excepción a §24 DECLARADA con su
+razón en la hoja) dentro de un objetivo táctil de 44px medidos; el timer de
+grabación lleva `nx-num` (tabular) en las dos variantes. (b) El barrido
+final: conteos de ClinicalSpine a `nx-num`, tarjetas de duplicados de
+/pacientes a `.nx-ident`/`.nx-meta`, detalle y «+N más» de PanelPendientes a
+`.nx-meta`. Guardián `v15-roles-tipograficos-en-franja-y-barrido.test.ts`
+(15 casos, 13 fallan al revés — verificado con `git stash`). Medido en
+navegador real (`capturar-roles-franja-v15.mjs`): enlace 14/600 por tema con
+subrayado, `identidadDominaCromo: true`, clic real desde /referencia (la
+pantalla sin otro rastro del paciente) aterriza en el expediente, timer y
+conteos `tabular-nums`, móvil sin desborde con táctil de 44px exactos, axe
+móvil 0. Trinquete de diseño BAJADO: `tamanosFueraDeEscala` 1995→1988.
+Hallazgo preexistente anotado a `V15-A11Y-001`: /referencia trae su
+formulario sin etiquetas (`label` ×3 crítico, `select-name` ×2 — primera
+medición axe de esa pantalla; el cambio de la franja no aporta nodos). Con
+(a) y (b) pagadas, **el inventario de §2 está VACÍO**: la siguiente corrida
+declara el paso 7 de §18 COMPLETO (ver siguiente tarea al FINAL). Séptima
+rebanada previa 12-ago-2026: «el inventario de §2 se corrió — NO salió vacío — y
 Hoy (NOW + TODAY) habla los roles» — la candidata (b) que dejó nombrada la
 quinta rebanada y confirmó la sexta. El inventario por grep de TODAS las
 superficies del shell V15 encontró que la pantalla MÁS usada del producto
@@ -3630,7 +3657,8 @@ NOW se pintó de verdad (con el nombre largo sembrado, además):
 - `docs/design/SCREEN_INVENTORY.md`: regenerado (/dashboard cambió de
   líneas).
 
-**Siguiente tarea exacta:** octava rebanada de `V15-VISUAL-SYSTEM-001` — el
+**Siguiente tarea exacta (histórico — ejecutada por la octava rebanada):**
+octava rebanada de `V15-VISUAL-SYSTEM-001` — el
 inventario de la séptima dejó CUATRO superficies de §2 nombradas y ninguna
 nueva por descubrir: (a) **InstrumentStrip** — la de más peso clínico: la
 identidad del paciente como cromo de 12px con ellipsis, MÁS CHICA que el
@@ -3644,3 +3672,143 @@ ClinicalSpine a .nx-num, tarjetas de duplicados de /pacientes a
 y (b) estén pagadas, el inventario queda vacío: declarar el paso 7 de §18
 COMPLETO y decidir el cierre de Fase 10 contra los pasos 8-9 (motion,
 polish) con la vara de comportamientos medidos de las fases 5 y 6.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — octava rebanada: la identidad de la franja tiene una voz, y el inventario de §2 queda VACÍO (12-ago-2026)
+
+Se ejecutaron JUNTAS las candidatas (a) y (b) que dejó nombradas la séptima
+rebanada — el costo del arnés (emuladores + siembra + build de producción +
+navegador real) se paga una vez por corrida, y las dos candidatas comparten
+exactamente ese arnés. Con las dos pagadas, el inventario por grep de la
+séptima queda VACÍO: ninguna superficie estructurada del shell V15 habla
+papeles de §2 en dialecto propio.
+
+### (a) InstrumentStrip — la decisión de diseño, escrita donde vive la regla
+
+La pregunta que la séptima dejó planteada: ¿qué significa `.nx-ident` (15.5)
+dentro de una franja periférica de 30px? Respuesta — NO es .nx-ident:
+
+- **`.nx-ident-franja`** (nueva en `globals.css`, con la decisión escrita en
+  el comentario): la identidad de la franja tiene UNA voz — 14px de la
+  escala oficial, 600, `var(--text)` — y la porta el paciente cuando hay
+  paciente en la ruta («current patient» es el PRIMER estado periférico de
+  §5 Capa 1), el consultorio cuando no. Más fuerte que el cromo de la franja
+  (12/`--text3`), por debajo de la identidad de lienzo (15.5) y del ancla
+  (20): periférica, no protagonista. Antes el paciente era cromo de
+  12/`--text2` CON ellipsis de una línea mientras el respaldo del
+  consultorio pintaba 16 inline: la franja hablaba más fuerte cuando
+  enseñaba lo MENOS importante.
+- **`.nx-ident-franja--clamp`**: en la topbar de una fila (móvil) el nombre
+  ENVUELVE hasta 2 líneas y sólo más allá se recorta — excepción DECLARADA a
+  «la identidad no se trunca» (§24), con la razón en la hoja: la franja es
+  eco periférico, este mismo enlace lleva al ancla donde el nombre vive
+  completo a nivel display, y crecer sin tope empujaría el indicador de
+  grabación (señal de seguridad) fuera de la fila. El enlace centra un
+  objetivo táctil de `minHeight: 44`.
+- **`a.nx-ident-franja`** conserva el subrayado atenuado de `a.nx-ident`
+  (WCAG 1.4.1: junto al nombre del consultorio en texto plano, un enlace que
+  sólo se distingue por color no se distingue).
+- El separador «·» del escritorio salió DEL enlace (`<span aria-hidden>`):
+  subrayar el punto diría que también navega.
+- El timer de grabación lleva `nx-num` en las dos variantes: los dígitos son
+  tabulares, el ancho ya no tiembla a cada segundo.
+- **Freeze funcional**: mismo `getPatient()` reutilizado, mismo filtro por
+  id contra la ruta, mismos href `/expediente/[pid]`, mismo cobalto de
+  grabación.
+
+### (b) El barrido final
+
+- **`ClinicalSpine`**: los dos conteos (10.5/800) llevan `nx-num` — cifras
+  clínicas tabulares (§2).
+- **`/pacientes`**: la tarjeta del modal «Posibles expedientes repetidos»
+  (`p.nombre` 13/600 → `span.nx-ident` block; metadatos 11.5 → `.nx-meta`,
+  incluido el motivo del par) y el aviso del formulario
+  (`c.paciente.nombre` 13.5/600 → `.nx-ident`; su metadato → `.nx-meta`).
+  Los onClick/href de las tarjetas no cambiaron.
+- **`PanelPendientes`**: `detalle` y «+N más» (11.5 inline) → `.nx-meta` —
+  la misma pieza que /pendientes ya hablaba con ese rol. Los títulos de
+  acción NO se tocan (contenido, no rol de §2 — misma vara que la séptima).
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-roles-tipograficos-en-franja-y-barrido.test.ts` (15
+casos) — la clase existe con la decisión y la excepción DECLARADAS, el
+enlace del paciente la habla en las dos variantes, el clamp vive en un span
+interior (no ellipsis en el Link), veto de deriva (ni 16 inline ni cromo
+--text2 vuelven), táctil de 44 escrito, timer y conteos `nx-num`, duplicados
+y PanelPendientes en sus roles, y freeze funcional de franja y barrido.
+**13 de 15 fallan contra el árbol previo** (verificado con `git stash` de
+los cinco archivos tocados); los 2 que pasan protegen el invariante
+funcional (getPatient + onClick de duplicados), no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`capturar-roles-franja-v15.mjs` — `getComputedStyle` de enlace/respaldo/
+timer/conteos, grabación simulada con el MISMO `CustomEvent('nx:grabando')`
+que dispara `avisarEscucha()` (el micrófono real no es lo que este cambio
+toca), clic real, axe con failureSummary, dos temas y móvil. Resultado y 3
+capturas en `docs/design/capturas/v15-roles-franja/` (1440 + 390):
+
+- **Oscuro, medido** (`/referencia/pac-refugio-alcantara` — la pantalla sin
+  ningún otro rastro del paciente, la razón de ser de la franja): enlace
+  `14px/600 rgb(242,239,233)` con `underline`; cromo del consultorio
+  `12px/600 rgb(168,172,174)`; `identidadDominaCromo: true`; timer
+  `tabular-nums` en cobalto.
+- **Claro, medido**: enlace `14px/600 rgb(11,12,14)` — tokens por tema.
+- **Equivalencia funcional, clic real**: el enlace de la franja aterriza en
+  `/expediente/pac-refugio-alcantara` (`llega: true`).
+- **Barrido medido**: conteo del ClinicalSpine `tabular-nums` en el
+  expediente real; detalle de PanelPendientes en /dashboard pinta `.nx-meta`
+  12.5/`--text3`.
+- **Móvil 390**: enlace de topbar `14px` con clamp 2, objetivo táctil de
+  **44px exactos** medidos, nombre completo en el DOM
+  (`nombreCompleto: true` — con la fuente real cupo en 1 línea; el clamp
+  queda para nombres más largos), sin desborde (`anchoDocumento: 390`); el
+  respaldo «Ausculta» habla la MISMA voz (14px). Timer móvil `tabular-nums`.
+- **Axe: móvil 0.** Escritorio 2 familias en oscuro Y claro — **ninguna de
+  la franja** (confirmado por targets: `textarea`/`select` del formulario):
+  `/referencia` trae su formulario sin etiquetas (`label` ×3 crítico,
+  `select-name` ×2). Es la PRIMERA medición axe de esa pantalla en V15 —
+  hallazgo preexistente nuevo, anotado a la lista de `V15-A11Y-001`.
+- **Consola**: sólo el aviso familiar de reconexión de Firestore del
+  emulador (1) — ambiental; los datos SÍ llegaron.
+- **Honestidad del arnés**: las tarjetas de duplicados NO se midieron (la
+  siembra no crea pares duplicados — el modal nunca se abre en el emulador);
+  su rol lo vigila el guardián estático y el arnés lo declara en cabecera.
+  La primera corrida midió `spineNums: []` y `movilRespaldo: null` por leer
+  el DOM antes de que cargara — se añadieron los `waitForSelector` y se
+  re-midió completo; las cifras de arriba son de la re-medición.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9023 pasan (621 archivos), 1 fallo AMBIENTAL** — el
+  conocido `ops-timeout-y-punto-ciego` («el error dice cuánto esperó y a
+  quién»): el proxy de red del contenedor responde en vez de agotar.
+  Verificado que falla IGUAL en el árbol limpio (`git stash` con todo,
+  incluida la prueba nueva) — no lo causa esta corrida, mismo fingerprint
+  documentado por rebanadas anteriores.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: `tamanosFueraDeEscala`
+  BAJÓ 1995→1988 (los 7 inline retirados: 11.5×5, 13, 13.5), resellado con
+  `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio con `.env.local` demo (las 7 variables +
+  `NEXT_PUBLIC_FIREBASE_EMULATORS=1`, receta de la quinta rebanada).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/pacientes cambió de
+  líneas).
+
+**Siguiente tarea exacta:** novena rebanada de `V15-VISUAL-SYSTEM-001` — con
+el inventario de §2 VACÍO, declarar el paso 7 de §18 (visual hierarchy /
+design tokens como roles) COMPLETO y decidir el cierre de Fase 10 contra los
+pasos 8-9 de §18 (motion, polish) con la MISMA vara de comportamientos
+medidos que usaron las fases 5 y 6: enumerar qué comportamientos de motion/
+polish exige el master loop (§19 transiciones interrumpibles, §20
+choreography sin animación decorativa, §24 reduced motion), medir cuáles ya
+existen en el código real, pagar los que falten si son seguros, y cerrar la
+fase con la tabla escrita — o declarar con razón escrita qué se difiere a
+`V15-MOTION-001` (§43 lo lista como iteración propia, DESPUÉS de
+REMAINING-SCREENS y A11Y). La deuda de `V15-A11Y-001` suma ahora el
+formulario de /referencia (`label` ×3, `select-name` ×2) a las familias ya
+anotadas: `nested-interactive` (Editar en filas de /pacientes),
+`landmark-unique`/`region`, táctiles chicos y contrastes de /chat (Fase 9).

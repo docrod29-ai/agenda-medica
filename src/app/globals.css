@@ -437,6 +437,44 @@ a.nx-ident {
 a.nx-ident:hover,
 a.nx-ident:focus-visible { text-decoration-color: var(--text); }
 
+/* Identidad en la FRANJA (Instrument Strip, §5 Capa 1) — V15-VISUAL-SYSTEM-001
+   (8ª rebanada). La decisión de diseño que la 7ª dejó nombrada: ¿qué significa
+   la identidad dentro de una franja periférica de 30px?
+   Respuesta: la identidad de la franja tiene UNA voz — la porta el paciente
+   cuando hay paciente en la ruta («current patient» es el PRIMER estado
+   periférico de §5) y el consultorio cuando no. 14px de la escala oficial,
+   600, var(--text): más fuerte que el cromo de la franja (12/--text3), por
+   debajo de la identidad de lienzo (.nx-ident, 15.5) y del ancla (20) —
+   periférica, no protagonista. Antes el paciente era cromo de 12/--text2 CON
+   ellipsis mientras el respaldo del consultorio pintaba 16: la franja hablaba
+   más fuerte cuando enseñaba lo MENOS importante. */
+.nx-ident-franja {
+  font-size: 14px; line-height: 1.2; font-weight: 600; color: var(--text);
+  overflow-wrap: anywhere; min-width: 0;
+}
+/* En la topbar de una fila (móvil), la identidad ENVUELVE hasta 2 líneas
+   (caben dentro del objetivo táctil de 44px de la fila de 52) y sólo más allá
+   se recorta — excepción DECLARADA a «la identidad no se trunca» (§24): la
+   franja es un eco periférico y este mismo enlace lleva al ancla del
+   expediente, donde el nombre vive completo a nivel display; dejarla crecer
+   sin tope empujaría el indicador de grabación (señal de seguridad) fuera de
+   la fila. El nombre accesible del enlace conserva el texto completo. */
+.nx-ident-franja--clamp {
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+/* Cuando la identidad de la franja navega (al expediente), mismo subrayado
+   atenuado que a.nx-ident y por la misma razón (WCAG 1.4.1): junto al nombre
+   del consultorio en texto plano, un enlace que sólo se distingue por color
+   no se distingue. */
+a.nx-ident-franja {
+  text-decoration: underline;
+  text-decoration-color: var(--text3);
+  text-underline-offset: 3px;
+}
+a.nx-ident-franja:hover,
+a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
+
 /* Metadato clínico: dueño, vencimiento, detalle. Se lee después de la
    identidad y del título, nunca compite con ellos. */
 .nx-meta { font-size: 12.5px; color: var(--text3); line-height: 1.5; }

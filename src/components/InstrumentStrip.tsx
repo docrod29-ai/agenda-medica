@@ -128,20 +128,30 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
         className="nx-instrument-strip-topbar"
       >
         {paciente ? (
+          /* V15-VISUAL-SYSTEM-001 (8ª rebanada): la identidad de la franja es
+             `.nx-ident-franja` — 14/600/var(--text), la voz más fuerte DE LA
+             FRANJA (antes: 12/--text2 con ellipsis, más chica que el respaldo
+             del consultorio). El enlace centra un objetivo táctil de 44px y el
+             span interior envuelve hasta 2 líneas (--clamp, excepción
+             declarada a §24 en globals.css) — ellipsis de una línea era la
+             truncación de identidad que las rebanadas 4-7 retiraron del resto
+             del shell. */
           <Link
             href={`/expediente/${paciente.id}`}
+            className="nx-ident-franja"
             style={{
-              color: 'var(--text2)', textDecoration: 'none', fontWeight: 600,
-              /* 44px de alto real dentro de la fila de 52 (§24): 13+18+13 */
-              padding: '13px 8px 13px 0', minWidth: 0,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              display: 'flex', alignItems: 'center', minHeight: 44,
+              paddingRight: 8, minWidth: 0,
             }}
           >
-            {paciente.nombre}
+            <span className="nx-ident-franja--clamp">{paciente.nombre}</span>
           </Link>
         ) : (
-          <span style={{
-            fontWeight: 600, color: 'var(--text)', fontSize: 16,
+          /* Sin paciente en la ruta, el consultorio porta la MISMA voz de
+             identidad de la franja — antes pintaba 16px mientras el paciente
+             pintaba 12: la franja hablaba más fuerte enseñando lo menos
+             importante (§5: «current patient» es el primer estado periférico). */
+          <span className="nx-ident-franja" style={{
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {config.nombreClinica || 'Ausculta'}
@@ -153,7 +163,7 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
              cobalto, nunca rojo — rojo aquí significa riesgo clínico, y el
              cobalto es el territorio libre de significado clínico (ver el
              comentario «POR QUÉ NO ES ROJO» en MarcoEscuchando.tsx). */
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600, flexShrink: 0 }}>
+          <span className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600, flexShrink: 0 }}>
             <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
             {formatearDuracion(segundos)}
           </span>
@@ -177,18 +187,26 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
         {config.nombreClinica || 'Ausculta'}
       </span>
       {paciente && (
-        <Link
-          href={`/expediente/${paciente.id}`}
-          style={{ color: 'var(--text2)', textDecoration: 'none', fontWeight: 600 }}
-        >
-          · {paciente.nombre}
-        </Link>
+        <>
+          {/* El separador vive FUERA del enlace: subrayar «·» diría que el
+              punto también navega. */}
+          <span aria-hidden="true">·</span>
+          {/* 8ª rebanada: el paciente es la voz de identidad de la franja
+              (.nx-ident-franja, 14/600/var(--text)) — antes era cromo 12/
+              --text2, indistinguible del nombre del consultorio de al lado.
+              En escritorio hay sitio: envuelve libre (minHeight 30 crece),
+              sin clamp. */}
+          <Link href={`/expediente/${paciente.id}`} className="nx-ident-franja">
+            {paciente.nombre}
+          </Link>
+        </>
       )}
       {segundos != null && (
         /* Fase 10: cobalto = grabando, igual que la variante de topbar y que
            el marco perimetral — un solo idioma para «el micrófono está
-           abierto» en todo el shell. */
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600 }}>
+           abierto» en todo el shell. 8ª rebanada: nx-num — los dígitos del
+           timer son tabulares, el ancho no tiembla a cada segundo. */
+        <span className="nx-num" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600 }}>
           <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
           Grabando · {formatearDuracion(segundos)}
         </span>
