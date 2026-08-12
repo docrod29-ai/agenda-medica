@@ -4,7 +4,24 @@
 
 ## Iteración en curso
 
-`V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **EN CURSO** desde
+`V15-A11Y-001` (§43 orden 13, §24) — **EN CURSO** desde 12-ago-2026, con su
+inventario de deuda medido y TRES rebanadas pagadas: **avisos del shell en
+landmark** (`role="status"` para TrialBanner/ModeBanner/OfflineBanner — el
+hallazgo `region` más repetido de la rama muere; /dashboard mide 0 por
+primera vez), **el formulario de /referencia tiene nombre** (la única deuda
+CRÍTICA: `label` ×3 + `select-name` ×2 → 9/9 controles con su pareja
+htmlFor/id; /referencia mide 0) y **las filas de /pacientes ya no anidan
+controles** (`nested-interactive` ×5, la familia del botón Editar, muere con
+el patrón de acción extendida `.nx-fila-abrir`; /pacientes mide 0 en oscuro,
+claro y móvil — y la etiqueta «color-contrast Editar» del inventario quedó
+cerrada como conflación, con cifras). Restan: contrastes de /chat +
+colisiones de widgets flotantes, `heading-order`, DEBT-008
+(`.receta-sheet`). Ver secciones al FINAL.
+
+Iteración anterior:
+`V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **CERRADA** (barrido de
+CROMO §32 completo en cinco rebanadas; el CONTENIDO de las 16 pestañas de
+/configuracion queda como deuda declarada). — Empezó así:
 12-ago-2026. El inventario de superficies Practice no tocadas por las fases
 estructurales quedó medido por grep (tabla en su sección) y van cinco
 rebanadas pagadas: **/nota** (una primaria §16, modal de adenda accesible,
@@ -4574,9 +4591,15 @@ deuda a11y (grep completo de este archivo), DESPUÉS la rebanada.
 3. **/referencia: formulario sin etiquetas** — `label` ×3 (CRÍTICO) +
    `select-name` ×2. La única deuda de severidad crítica del backlog.
    **Candidata a segunda rebanada.**
-4. `color-contrast` — familia del botón «Editar» (~5 nodos, anotada en la
-   Fase 10; el nodo del TrialBanner ya se pagó en VISUAL-SYSTEM 6ª).
-5. `nested-interactive` — línea base de /pacientes (anotada desde Fase 4).
+4. ~~`color-contrast` — familia del botón «Editar»~~ — **RESUELTA en la 3ª
+   rebanada como CONFLACIÓN**: los ~5 nodos del Editar siempre fueron
+   `nested-interactive`; los nodos de contraste de aquella medición eran del
+   TrialBanner (pagados en VISUAL-SYSTEM 6ª). El Editar mide ≈7.6:1 oscuro /
+   ≈6.1:1 claro (medido con getComputedStyle en la 3ª rebanada) y axe da 0
+   `color-contrast` en /pacientes.
+5. ~~`nested-interactive` — línea base de /pacientes~~ — **PAGADA en la 3ª
+   rebanada** (patrón de acción extendida `.nx-fila-abrir`; sección al
+   FINAL). /pacientes mide **0 violaciones axe** en oscuro, claro y móvil.
 6. Contrastes de /chat + colisiones de widgets flotantes (anotadas Fase 9).
 7. DEBT-008 — el acento del papel del template del médico (`.receta-sheet`).
 8. `heading-order` — familia moderada anotada en varias superficies.
@@ -4724,3 +4747,106 @@ VERDAD (`el.labels.length`), no el JSX. Resultado y 3 capturas en
 widgets flotantes, `heading-order`, y DEBT-008 (`.receta-sheet`). El método
 queda demostrado por las dos rebanadas de hoy: inventario → pantalla entera
 → clases del sistema → guardián al revés → arnés real con axe hasta 0.
+
+## `V15-A11Y-001` — tercera rebanada: las filas de /pacientes ya no anidan un control dentro de otro (12-ago-2026)
+
+La tarea exacta que dejó la segunda rebanada decía «familia `color-contrast`
+del botón Editar». La primera medición de esta corrida cerró esa etiqueta
+como **conflación del inventario**: los ~5 nodos del Editar siempre fueron
+`nested-interactive` (así lo midió la Fase 10, 4ª y 6ª rebanadas); los nodos
+de contraste de aquellas corridas eran del TrialBanner, pagados en
+VISUAL-SYSTEM 6ª. El Editar mide ≈7.6:1 oscuro / ≈6.1:1 claro — computado
+en vivo: `rgb(168,172,174)` sobre `rgb(26,29,33)` y `rgb(86,90,96)` sobre
+`rgb(245,243,238)`. Lo que sí había — en TODAS las mediciones de /pacientes
+de la rama — era el defecto estructural: cada fila del directorio era
+`role="button"` (activable) con el `<button>` Editar DENTRO. Un control
+dentro de otro control: árbol ilegible para el lector de pantalla, y el
+interior colgando de un stopPropagation.
+
+### La rebanada: patrón de acción extendida (`.nx-fila-abrir`)
+
+La salida NO fue quitarle el clic a la fila, fue quitarle el ROL a la caja:
+
+- **La identidad del paciente es ahora un `<button>` nativo** con la misma
+  etiqueta de siempre («Abrir el expediente de X») y su área de golpe se
+  ESTIRA sobre la fila entera con un `::after` (inset 0) — el gesto del
+  ratón no cambia: clic en cualquier punto de la fila abre el expediente.
+- **Editar es su HERMANO por encima del velo** (`position:relative` +
+  `zIndex:1`) — el DOM queda plano: dos botones hermanos, cero anidamiento.
+- **El teclado gana un orden honesto**: identidad → Editar, foco nativo,
+  Enter navega sin `onKeyDown` sintético; el anillo de foco se pinta sobre
+  la fila completa (`:focus-visible::after`).
+- El patrón vive en `globals.css` con su porqué (incluida la decisión de NO
+  subrayar: el control percibido sigue siendo la fila — velo + hover —, no
+  una palabra dentro de prosa; WCAG 1.4.1 no pide subrayar lo que no vive
+  en prosa). `activable` salió de la página (era su único uso ahí); las
+  otras superficies con `activable` (calendario, camas, UCI, Table.tsx) no
+  tienen controles dentro — no son este defecto.
+- **Freeze funcional intacto**: mismo `onAbrir` (médico → expediente,
+  secretaria → modal), mismo Editar con stopPropagation sólo-médico, mismas
+  píldoras, mismo marcador de internado, mismo hover de fondo.
+
+### Guardianes, probados al revés
+
+`src/__tests__/v15-a11y-pacientes-sin-nested-interactive.test.ts` (8 casos):
+activable fuera de la fila, botón de identidad estirado, Editar hermano
+sobre el velo, patrón en globals.css, y el freeze funcional. **5 de 8
+fallan contra el árbol previo** (verificado con `git stash`); los 3 que
+pasan protegen invariantes preexistentes. El guardián de la Fase 10
+(`v15-roles-tipograficos-en-pacientes.test.ts`) SIGUIÓ al mecanismo nuevo
+(precedente: el guardián del alto táctil de la franja): sus casos de
+etiqueta accesible y de «span, no enlace» ahora nombran al botón de la
+identidad, con la nota histórica escrita en su cabecera. 18/18 en verde.
+
+### Verificado en navegador real (12-ago-2026)
+
+Arnés nuevo: `scripts/design/capturar-fila-sin-anidado-v15.mjs` (emuladores
++ siembra + build de producción + `npm start` vía
+`arnes-breakpoints-v15.sh`). Resultado y 3 capturas en
+`docs/design/capturas/v15-fila-sin-anidado/`:
+
+- **Axe: CERO violaciones — en las tres mediciones** (oscuro, claro, móvil
+  390). `nested-interactive` pasó de ×5 en cada medición histórica de
+  /pacientes a 0; /pacientes es la cuarta superficie de la rama que mide
+  limpio del todo (tras /dashboard, /login+/registro y /referencia).
+- **Estructura viva medida**: `interactivosAnidados: 0`,
+  `filasConRoleButton: 0`, `esBotonNativo: true`, velo
+  `absolute/inset 0px`, Editar `zIndex 1` — en los dos temas.
+- **El velo navega**: clic POSICIONAL en el metadato (page.mouse, lejos del
+  texto de la identidad) aterriza en `/expediente/pac-luzmaria-cervantes`
+  (`llega: true`). Nota de método: `locator.click()` de Playwright se NIEGA
+  a ese clic — reporta que `.nx-fila-abrir` «intercepts pointer events» —
+  que es exactamente el velo funcionando; el arnés documenta por qué usa
+  coordenadas.
+- **Editar sigue siendo Editar**: su clic abre el modal «Editar paciente» y
+  la URL no cambia (`noNavego: true`).
+- **Teclado**: `focoEnBoton: true`, `tag: BUTTON`, Enter navega al
+  expediente.
+- **Móvil 390**: sin desborde (`anchoDocumento: 390`), tap posicional en el
+  metadato navega (`veloNavega: true`).
+- **Consola**: sólo el aviso ambiental de reconexión del emulador ×2 (los
+  datos llegaron: 5 filas pintadas y navegación real).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver reporte de la corrida (guardián nuevo 8/8; el de la
+  Fase 10 actualizado 10/10).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (496/1970/
+  628/22 se mantienen — la rebanada es de estructura, no de estilos).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (build de producción para el arnés) con
+  `.env.local` demo (recreado en este contenedor: 7 variables + emuladores
+  + `PORTAL_PACIENTE_SECRET` demo).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/pacientes cambió de
+  líneas).
+
+**Siguiente tarea exacta:** `V15-A11Y-001`, cuarta rebanada: **contrastes
+de /chat + colisiones de widgets flotantes** (anotadas en Fase 9 — la
+familia más antigua que queda en el inventario). Método de la casa:
+inventariar los hallazgos exactos anotados (grep de este archivo +
+re-medición axe de /chat en vivo), pantalla entera leída antes de rebanar,
+tokens medidos con la fórmula WCAG (no adivinados), guardián probado al
+revés, arnés real con axe hasta donde la deuda preexistente lo permita.
+Después: `heading-order` (familia moderada multi-superficie) y DEBT-008
+(`.receta-sheet`, decisión de diseño de plantilla pendiente).

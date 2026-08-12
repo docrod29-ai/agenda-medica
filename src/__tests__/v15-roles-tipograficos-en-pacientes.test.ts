@@ -26,13 +26,15 @@
  * cada superficie se migra con su propia rebanada.
  *
  * LA REGLA QUE LO HACE SEGURO: la identidad encabeza la fila como
- * `span.nx-ident` — span, NO enlace: la fila entera ya es `role="button"`
- * (activable) y abre el expediente; un enlace dentro sería nested-interactive
- * (axe) y dos destinos para el mismo gesto (la misma decisión deliberada que
- * ContinuidadPanel, por la misma razón). El metadato (teléfono · edad ·
- * internado) es `.nx-meta`. El nombre ENVUELVE en vez de truncarse. Y la
- * conducta no cambia: misma etiqueta accesible, mismo botón Editar con
- * stopPropagation, mismas píldoras de no-show/cancelación.
+ * `span.nx-ident` — span, NO enlace suelto. (Nota histórica: esta rebanada
+ * nació con la fila entera como `role="button"` (activable) y el botón
+ * Editar DENTRO — eso era nested-interactive, 5 nodos de axe, y
+ * V15-A11Y-001 3ª rebanada lo pagó: ahora el control que abre es el botón
+ * `.nx-fila-abrir` que envuelve la identidad y estira su área sobre la fila;
+ * Editar es su HERMANO por encima del velo. La etiqueta accesible es la
+ * misma.) El metadato (teléfono · edad · internado) es `.nx-meta`. El nombre
+ * ENVUELVE en vez de truncarse. Mismo botón Editar con stopPropagation,
+ * mismas píldoras de no-show/cancelación.
  *
  * QUÉ NO CUBRE: el resultado pintado (tamaño efectivo, color por tema, que la
  * fila navegue de verdad al expediente, que el nombre largo no desborde en
@@ -68,9 +70,11 @@ describe('PacienteRow habla los roles de VISUAL_DNA §2', () => {
     expect(FILA).toMatch(/<span className="nx-ident"[^>]*>\{p\.nombre\}<\/span>/)
   })
 
-  it('la identidad es <span>, NO un enlace anidado: la fila entera ya es role="button"', () => {
+  it('la identidad es <span> dentro del botón que abre, NO un enlace suelto', () => {
+    // Desde V15-A11Y-001 (3ª rebanada) el control que abre es el botón
+    // .nx-fila-abrir que envuelve la identidad — no la fila, no un <a>.
     expect(FILA).not.toMatch(/<(Link|a)[^>]*className="nx-ident"/)
-    // Y la razón queda escrita donde vive la decisión.
+    // Y la razón (nested-interactive) queda escrita donde vive la decisión.
     expect(FILA).toContain('nested-interactive')
   })
 
@@ -94,8 +98,12 @@ describe('PacienteRow habla los roles de VISUAL_DNA §2', () => {
 })
 
 describe('freeze funcional — la rebanada es tipográfica, no de conducta', () => {
-  it('la fila sigue siendo activable con su etiqueta accesible', () => {
-    expect(FILA).toMatch(/activable\(onAbrir, \{ etiqueta: `Abrir el expediente de \$\{p\.nombre\}` \}\)/)
+  it('abrir el expediente conserva su etiqueta accesible (ahora en el botón de la identidad)', () => {
+    // El mecanismo cambió con V15-A11Y-001 (3ª rebanada): de fila
+    // role="button" (activable) a botón nativo estirado sobre la fila —
+    // pero la etiqueta que oye el lector de pantalla es LA MISMA.
+    expect(FILA).toMatch(/aria-label=\{`Abrir el expediente de \$\{p\.nombre\}`\}/)
+    expect(FILA).toMatch(/className="nx-fila-abrir"/)
   })
 
   it('el botón Editar sigue frenando la propagación para no abrir el expediente', () => {

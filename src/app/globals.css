@@ -437,6 +437,35 @@ a.nx-ident {
 a.nx-ident:hover,
 a.nx-ident:focus-visible { text-decoration-color: var(--text); }
 
+/* Identidad que ABRE su fila — patrón de acción extendida (V15-A11Y-001,
+   3ª rebanada). El problema que resuelve: una fila-lista con acción
+   secundaria dentro. Hacer la fila entera role="button" y meterle un
+   <button> Editar es nested-interactive (axe, WCAG 4.1.2): un control dentro
+   de otro control, ilegible para lector de pantalla y ambiguo para teclado.
+   La salida NO es quitarle el clic a la fila: la identidad es un <button>
+   real y su área de golpe se ESTIRA sobre la fila con un ::after; la acción
+   secundaria es un HERMANO por encima del velo (position:relative + z-index).
+   La fila contenedora deja de ser control — el DOM queda plano: dos botones
+   hermanos, cero anidamiento — y el ratón conserva exactamente el gesto de
+   antes (clic en cualquier punto de la fila abre).
+   Sin subrayado, a diferencia de a.nx-ident: aquí el control percibido sigue
+   siendo la FILA (velo + hover de fondo), no una palabra dentro de un texto —
+   WCAG 1.4.1 pide distinguir el enlace de su prosa, y esta identidad no vive
+   en prosa. El foco de teclado pinta el anillo sobre la fila completa (el
+   ::after), que es el área que de verdad se activa. */
+.nx-fila-abrir {
+  display: block; width: 100%; text-align: left;
+  background: none; border: 0; padding: 0; margin: 0;
+  color: inherit; font: inherit; cursor: pointer;
+}
+.nx-fila-abrir::after { content: ''; position: absolute; inset: 0; cursor: pointer; }
+.nx-fila-abrir:focus-visible { outline: none; }
+.nx-fila-abrir:focus-visible::after {
+  outline: 2px solid var(--nexus);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
+}
+
 /* Identidad en la FRANJA (Instrument Strip, §5 Capa 1) — V15-VISUAL-SYSTEM-001
    (8ª rebanada). La decisión de diseño que la 7ª dejó nombrada: ¿qué significa
    la identidad dentro de una franja periférica de 30px?

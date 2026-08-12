@@ -1,0 +1,62 @@
+{
+  "oscuro": {
+    "temaActual": "dark",
+    "botonesAbrir": 5,
+    "interactivosAnidados": 0,
+    "filasConRoleButton": 0,
+    "etiqueta": "Abrir el expediente de Luz María Cervantes Ochoa",
+    "esBotonNativo": true,
+    "velo": {
+      "position": "absolute",
+      "inset": "0px"
+    },
+    "editar": {
+      "zIndex": "1",
+      "position": "relative",
+      "color": "rgb(168, 172, 174)",
+      "background": "rgb(26, 29, 33)"
+    }
+  },
+  "axeOscuro": [],
+  "veloNavega": {
+    "urlAterrizada": "/expediente/pac-luzmaria-cervantes",
+    "llega": true
+  },
+  "editar": {
+    "modalAbierto": true,
+    "urlSigueSiendo": "/pacientes",
+    "noNavego": true
+  },
+  "teclado": {
+    "focoEnBoton": true,
+    "tag": "BUTTON",
+    "etiqueta": "Abrir el expediente de Luz María Cervantes Ochoa",
+    "enterNavega": true
+  },
+  "claro": {
+    "temaActual": "light",
+    "botonesAbrir": 5,
+    "interactivosAnidados": 0,
+    "filasConRoleButton": 0,
+    "etiqueta": "Abrir el expediente de Luz María Cervantes Ochoa",
+    "esBotonNativo": true,
+    "velo": {
+      "position": "absolute",
+      "inset": "0px"
+    },
+    "editar": {
+      "zIndex": "1",
+      "position": "relative",
+      "color": "rgb(86, 90, 96)",
+      "background": "rgb(245, 243, 238)"
+    }
+  },
+  "axeClaro": [],
+  "movil": {
+    "desbordeHorizontal": false,
+    "anchoDocumento": 390,
+    "botonesAbrir": 5,
+    "veloNavega": true
+  },
+  "axeMovil": []
+}

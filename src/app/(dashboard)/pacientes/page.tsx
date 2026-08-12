@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { activable } from '@/lib/ui/activable'
 import { Patient, type ClinicConfig } from '@/types'
 import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -427,10 +426,10 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
 }) {
   return (
     <div
-      {...activable(onAbrir, { etiqueta: `Abrir el expediente de ${p.nombre}` })}
       style={{
+        position: 'relative',
         display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-        borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s',
+        borderBottom: '1px solid var(--border)', transition: 'background 0.1s',
       }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -443,11 +442,23 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
         {p.nombre.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* span, NO enlace: la fila entera ya es role="button" (activable) y
-            abre el expediente — un enlace dentro sería nested-interactive
-            (axe) y dos destinos para el mismo gesto. Y sin ellipsis: la
-            identidad del paciente no se trunca (§24) — .nx-ident envuelve. */}
-        <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
+        {/* La identidad es el <button> que abre el expediente y su área de
+            golpe se estira sobre la fila entera (.nx-fila-abrir::after). La
+            fila contenedora NO es control: hacerla role="button" con el botón
+            Editar dentro era nested-interactive (axe, 5 nodos) — un control
+            dentro de otro control. Ahora son dos botones HERMANOS: Editar
+            vive por encima del velo con su propio z-index. El gesto del ratón
+            no cambia: clic en cualquier punto de la fila sigue abriendo.
+            Y sin ellipsis: la identidad del paciente no se trunca (§24) —
+            .nx-ident envuelve. */}
+        <button
+          type="button"
+          className="nx-fila-abrir"
+          onClick={onAbrir}
+          aria-label={`Abrir el expediente de ${p.nombre}`}
+        >
+          <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
+        </button>
         <div className="nx-meta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
           {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
@@ -472,6 +483,9 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
             display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
             background: 'var(--s2)', border: '1px solid var(--border)',
             color: 'var(--text2)', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            /* Por encima del velo de .nx-fila-abrir::after: hermano, no hijo,
+               del control que abre — el clic en Editar cae aquí y no navega. */
+            position: 'relative', zIndex: 1,
           }}
         >
           <Pencil size={12} /> Editar
