@@ -135,7 +135,7 @@ const TECHO_FONDO = 0
  * real. Igual que el trinquete de lint: **la cifra sólo baja**. Lo que este
  * número impide desde hoy es que entre uno más.
  */
-const TECHO_CRUDOS = 265
+const TECHO_CRUDOS = 256
 
 /**
  * `.tsx` **y** `.ts`.

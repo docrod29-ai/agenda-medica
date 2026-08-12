@@ -4,8 +4,37 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, quinta rebanada
-entregada 12-ago-2026: «el Patient Anchor habla los roles de §2 y su
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, sexta rebanada
+entregada 12-ago-2026: «el TrialBanner habla tokens por tema, y el hallazgo
+axe recurrente de la fase muere» — la candidata (a) que dejó nombrada la
+quinta rebanada. El defecto visual MÁS medido de la rama (la violación
+`color-contrast` que apareció con fingerprint idéntico en las rebanadas 2,
+3, 4 y 5) se pagó completo: el banner de prueba pintaba `#f59e0b`/`#f87171`
+/`#000` a mano — colores de fondo oscuro, 2.2:1 sobre el crema del claro.
+Arreglo en tres partes medidas con la fórmula de luminancia WCAG (no
+adivinadas): mensaje en `var(--text)` (el ámbar COMO TEXTO falla en claro
+incluso con token: #B45309 sobre el tinte ≈4.3:1), icono en
+`var(--red)`/`var(--amber)` (no-textual, 3:1, pasa en los dos temas), y CTA
+de relleno sólido con token NUEVO `--sobre-aviso` (tinta #0B0C0E sobre el
+ámbar oscuro, blanco sobre el ámbar profundo del claro; definido en los
+cuatro bloques de tema de `globals.css`, papel incluido). Y el arnés de esta
+misma rebanada — que guarda el failureSummary COMPLETO de axe, a diferencia
+del recorte que dejó un nodo sin identificar en la cuarta — descubrió que el
+«segundo nodo» de /pacientes NUNCA fue el CTA del banner: era el chip activo
+del directorio («Recientes (5)») con `#000` sobre `var(--teal)` (2.99:1 en
+claro — el token de TRAZO usado como fondo). Pagado en la misma corrida con
+el par que ya existía medido: `--nexus-solido` + blanco (el de
+`.btn-primary`). Trinquete de COLOR bajado de verdad: `TECHO_CRUDOS`
+265→256 (los 7 hex del banner), `hexEnLinea` del trinquete de diseño
+508→501, resellados a la baja. Guardián
+`v15-trial-banner-tokens-por-tema.test.ts` (8 casos, 6+1 fallan al revés —
+verificado con `git stash` por separado para el banner y para el chip).
+Axe medido en navegador real tras el arreglo: **0 `color-contrast` en
+claro, oscuro y móvil** — la única violación restante es `nested-interactive`
+×5, la familia PREEXISTENTE del botón Editar ya anotada a `V15-A11Y-001`
+(su presencia además confirma que las filas SÍ se pintaron: no se midió una
+página rota). Ver sección al FINAL. Quinta rebanada previa
+12-ago-2026: «el Patient Anchor habla los roles de §2 y su
 identidad es nivel display» — la superficie que el inventario de la cuarta
 rebanada dejó nombrada. El `<h1>` del ancla era `fontSize: 16/700` grotesca
 (tamaño de fila) en la ÚNICA pantalla donde VISUAL_DNA §1 R3 reserva la
@@ -3364,3 +3393,118 @@ de §2 en dialecto propio — si el inventario sale vacío, declarar el paso 7
 de §18 (tokens/roles) COMPLETO en esta fase y decidir el cierre de Fase 10
 contra los pasos 8-9 (motion, polish) con la misma vara de comportamientos
 medidos que usaron las fases 5 y 6.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — sexta rebanada: el TrialBanner habla tokens por tema, y el hallazgo axe recurrente muere (12-ago-2026)
+
+Se ejecutó la candidata (a) que dejó nombrada la quinta rebanada: pagar el
+defecto visual más medido de la rama — el `color-contrast` del TrialBanner
+en tema claro, presente con fingerprint idéntico en las mediciones de las
+rebanadas 2, 3, 4 y 5.
+
+### El cambio
+
+- **`src/app/(dashboard)/layout.tsx` (`TrialBanner`, las dos variantes)** —
+  fuera `#f59e0b`/`#f87171`/`#000` (7 hex de la lista CRUDOS). El arreglo se
+  midió con la fórmula de luminancia WCAG 2.1 ANTES de escribirse, porque la
+  respuesta obvia («usa var(--amber)») está MAL para el texto: #B45309 sobre
+  el tinte del banner en claro mide ≈4.3:1 < 4.5. Forma final:
+  1. el MENSAJE va en `var(--text)` — como ya hacía la variante de prueba
+     VENCIDA del mismo banner desde que existe; la urgencia la dicen icono +
+     tinte + CTA (nunca sólo color, §24);
+  2. el ICONO va en `var(--red)`/`var(--amber)` — no-textual (WCAG 1.4.11,
+     3:1): pasa en los dos temas (4.2/4.3/3.9/5.7);
+  3. los DOS CTA de relleno sólido usan `--sobre-aviso`, token nuevo en
+     `globals.css`: tinta #0B0C0E en oscuro (5.9:1 amber / 5.8:1 red),
+     blanco en claro (4.8:1 / 6.5:1), definido en `:root`,
+     `[data-theme="light"]`, `prefers-color-scheme: light` y `@media print`.
+- **`src/app/(dashboard)/pacientes/page.tsx` (chip activo del directorio)** —
+  el «segundo nodo» que la cuarta rebanada atribuyó al CTA del banner (su
+  arnés recortaba los datos de axe) resultó ser OTRA superficie, identificada
+  porque el arnés de ESTA rebanada guarda el failureSummary completo:
+  `Recientes (5)` activo pintaba `#000` sobre `var(--teal)` — 2.99:1 en
+  claro, el token de TRAZO usado como fondo. Ahora: `var(--nexus-solido)` +
+  `#fff`, el par YA medido del sistema (5.16:1 oscuro / 7.0:1 claro, el
+  mismo de `.btn-primary`). De paso el chip activo quedó visualmente
+  consistente con «Nuevo paciente» en la misma pantalla.
+- **Freeze funcional**: mismos href (`/configuracion?tab=suscripcion` ×2),
+  mismos textos, misma compuerta `clinic.plan !== 'trial'`, mismo
+  `estadoPaywall`, mismo cómputo de días; el chip conserva su onClick y sus
+  tres filtros.
+
+### Trinquetes BAJADOS de verdad (no sólo «sin deuda nueva»)
+
+- `color-trinquete.test.ts`: `TECHO_CRUDOS` 265→256 — los 7 hex del banner.
+- `trinquete-de-diseno.mjs`: `hexEnLinea` 508→501, resellado con
+  `--actualizar` (el guardián `el-sistema-de-diseno-no-pierde-terreno` exige
+  el sello exacto, sin holgura — se puso rojo él solo en la suite completa y
+  eso ES el guardián funcionando).
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-trial-banner-tokens-por-tema.test.ts` (8 casos) — los hex
+de fondo oscuro no vuelven al banner, el `#000` tampoco, icono con tokens
+por urgencia, mensaje en `var(--text)` con la razón medida escrita, los dos
+CTA con `--sobre-aviso`, el token definido en los cuatro bloques de tema, el
+chip de /pacientes en relleno sólido, y freeze funcional. **6 de 8 fallan
+contra el árbol previo** (git stash del banner) y el caso del chip falla por
+separado (git stash de /pacientes); los que pasan protegen el invariante
+funcional, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-trial-banner-v15.mjs` — `getComputedStyle` del span
+/icono/CTA, navegación real del CTA, axe con failureSummary COMPLETO, en los
+DOS temas y en móvil. Resultado y 3 capturas en
+`docs/design/capturas/v15-trial-banner/` (1440 + 390):
+
+- **Oscuro, medido**: span `rgb(242,239,233)` = `--text`; CTA fondo
+  `rgb(217,119,6)` = `--amber` oscuro.
+- **Claro, medido**: span `rgb(11,12,14)` = tinta; CTA fondo `rgb(180,83,9)`
+  = `--amber` claro con texto `rgb(255,255,255)` = `--sobre-aviso`.
+- **Axe: 0 `color-contrast` en claro, oscuro Y móvil** — la violación
+  recurrente de las rebanadas 2-5 muere. Única restante:
+  `nested-interactive` ×5 (botón Editar dentro de la fila role="button",
+  PREEXISTENTE, ya anotada a `V15-A11Y-001`) — y su presencia confirma que
+  las filas se pintaron de verdad.
+- **Equivalencia funcional, medida**: clic real en «Activar plan →» aterriza
+  en `/configuracion?tab=suscripcion` (`llega: true`).
+- **Móvil 390**: sin desborde (`anchoDocumento: 390`).
+- **Consola**: sólo el aviso familiar de reconexión del emulador (1).
+- **Honestidad del arnés**: una corrida intermedia dio «0 violaciones en
+  TODO» con 10 errores de consola — era el `next start` HUÉRFANO de un arnés
+  anterior sirviendo un build viejo (ChunkLoadError + error boundary: se
+  estaba midiendo una página rota). Se detectó por la DESAPARICIÓN de la
+  violación preexistente conocida (una medición demasiado buena es
+  sospechosa), se mató el proceso (la lección de la quinta rebanada dice
+  `next start` pero el proceso se llama `next-server`) y se re-midió contra
+  el build real. La cifra buena de arriba es la de la re-medición.
+
+### Compuertas de esta corrida
+
+- `npx vitest run` (suite completa final): ver resultado en el reporte de la
+  corrida; los guardianes tocados (color-trinquete, diseño-no-pierde-terreno,
+  inventario, roles-en-pacientes, trial-banner) todos en verde en corrida
+  dirigida.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: hexEnLinea BAJÓ 508→501.
+- `npx tsc --noEmit`: limpio (y cazó de verdad: el primer intento de
+  comentario JSX dentro de `return (` era un error de sintaxis — el build lo
+  detuvo antes de llegar a ninguna medición).
+- `npm run build`: compila limpio (un intento falló transitorio en Google
+  Fonts por el proxy del contenedor — reintentar antes de diagnosticar, como
+  ya documentó la cuarta rebanada).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/pacientes cambió de
+  líneas).
+
+**Siguiente tarea exacta:** séptima rebanada de `V15-VISUAL-SYSTEM-001` —
+la candidata (b) que la quinta rebanada dejó pendiente: inventariar con grep
+si queda ALGUNA superficie del shell V15 estructurado con papeles de §2 en
+dialecto propio — si el inventario sale vacío, declarar el paso 7 de §18
+(tokens/roles) COMPLETO en esta fase y decidir el cierre de Fase 10 contra
+los pasos 8-9 (motion, polish) con la misma vara de comportamientos medidos
+que usaron las fases 5 y 6. La deuda de `V15-A11Y-001` queda ahora SIN la
+familia TrialBanner (pagada aquí): restan `nested-interactive` (Editar en
+filas de /pacientes), `landmark-unique`/`region`, táctiles chicos y
+contrastes de /chat anotados por Fase 9.

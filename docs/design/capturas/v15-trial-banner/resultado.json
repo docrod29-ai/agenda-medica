@@ -1,0 +1,178 @@
+{
+ "oscuro": {
+  "temaActual": "dark",
+  "texto": "Tu prueba gratuita termina en 9 días.",
+  "span": {
+   "fontSize": "13px",
+   "color": "rgb(242, 239, 233)"
+  },
+  "icono": {
+   "color": "rgb(242, 239, 233)",
+   "stroke": "var(--amber)"
+  },
+  "cta": {
+   "texto": "Activar plan →",
+   "href": "/configuracion?tab=suscripcion",
+   "color": "rgb(11, 12, 14)",
+   "backgroundColor": "rgb(217, 119, 6)",
+   "fontSize": "12px",
+   "fontWeight": "700"
+  },
+  "anchoDocumento": 1440
+ },
+ "axeOscuro": [
+  {
+   "id": "nested-interactive",
+   "impact": "serious",
+   "help": "Interactive controls must not be nested",
+   "nodos": 5,
+   "detalles": [
+    {
+     "target": "div[role=\"button\"]:nth-child(2)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Luz María Cervantes Ochoa\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--b"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(3)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Joaquín Esparza Villarreal\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(4)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Catalina Ibarra Fuentes\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--bor"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(5)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Aurelio Domínguez Peña\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--bord"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(6)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de María del Refugio Alcántara Solís\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid"
+    }
+   ]
+  }
+ ],
+ "claro": {
+  "temaActual": "light",
+  "texto": "Tu prueba gratuita termina en 9 días.",
+  "span": {
+   "fontSize": "13px",
+   "color": "rgb(11, 12, 14)"
+  },
+  "icono": {
+   "color": "rgb(11, 12, 14)",
+   "stroke": "var(--amber)"
+  },
+  "cta": {
+   "texto": "Activar plan →",
+   "href": "/configuracion?tab=suscripcion",
+   "color": "rgb(255, 255, 255)",
+   "backgroundColor": "rgb(180, 83, 9)",
+   "fontSize": "12px",
+   "fontWeight": "700"
+  },
+  "anchoDocumento": 1440
+ },
+ "axeClaro": [
+  {
+   "id": "nested-interactive",
+   "impact": "serious",
+   "help": "Interactive controls must not be nested",
+   "nodos": 5,
+   "detalles": [
+    {
+     "target": "div[role=\"button\"]:nth-child(2)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Luz María Cervantes Ochoa\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--b"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(3)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Joaquín Esparza Villarreal\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(4)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Catalina Ibarra Fuentes\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--bor"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(5)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Aurelio Domínguez Peña\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--bord"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(6)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de María del Refugio Alcántara Solís\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid"
+    }
+   ]
+  }
+ ],
+ "bannerLimpioEnClaro": true,
+ "navegacion": {
+  "urlAterrizada": "/configuracion?tab=suscripcion",
+  "llega": true
+ },
+ "movil": {
+  "temaActual": "dark",
+  "texto": "Tu prueba gratuita termina en 9 días.",
+  "span": {
+   "fontSize": "13px",
+   "color": "rgb(242, 239, 233)"
+  },
+  "icono": {
+   "color": "rgb(242, 239, 233)",
+   "stroke": "var(--amber)"
+  },
+  "cta": {
+   "texto": "Activar plan →",
+   "href": "/configuracion?tab=suscripcion",
+   "color": "rgb(11, 12, 14)",
+   "backgroundColor": "rgb(217, 119, 6)",
+   "fontSize": "12px",
+   "fontWeight": "700"
+  },
+  "anchoDocumento": 390
+ },
+ "axeMovil": [
+  {
+   "id": "nested-interactive",
+   "impact": "serious",
+   "help": "Interactive controls must not be nested",
+   "nodos": 5,
+   "detalles": [
+    {
+     "target": "div[role=\"button\"]:nth-child(2)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Luz María Cervantes Ochoa\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--b"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(3)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Joaquín Esparza Villarreal\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(4)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Catalina Ibarra Fuentes\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--bor"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(5)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de Aurelio Domínguez Peña\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--bord"
+    },
+    {
+     "target": "div[role=\"button\"]:nth-child(6)",
+     "resumen": "Fix any of the following:\n  Element has focusable descendants",
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir el expediente de María del Refugio Alcántara Solís\" style=\"display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid"
+    }
+   ]
+  }
+ ],
+ "erroresConsola": [
+  "[2026-08-12T11:50:23.918Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+ ]
+}

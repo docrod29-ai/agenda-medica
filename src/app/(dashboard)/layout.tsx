@@ -150,7 +150,7 @@ function TrialBanner() {
               cuanto actives tu plan: <strong>no se pierde nada</strong>.
             </div>
             <Link href="/configuracion?tab=suscripcion" style={{
-              display: 'inline-block', marginTop: 8, background: '#f59e0b', color: '#000',
+              display: 'inline-block', marginTop: 8, background: 'var(--amber)', color: 'var(--sobre-aviso)',
               fontSize: 12, fontWeight: 700, padding: '6px 13px', borderRadius: 7, textDecoration: 'none',
             }}>
               Activar mi plan
@@ -167,16 +167,20 @@ function TrialBanner() {
       padding: '8px 20px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap',
     }}>
-      <AlertTriangle size={14} color={daysLeft <= 3 ? '#f87171' : '#f59e0b'} />
-      <span style={{ fontSize: 13, color: daysLeft <= 3 ? '#f87171' : '#f59e0b' }}>
+      <AlertTriangle size={14} color={daysLeft <= 3 ? 'var(--red)' : 'var(--amber)'} />
+      {/* El mensaje va en --text, no en ámbar: sobre el tinte del banner, el
+          ámbar del tema claro mide ~4.3:1 — debajo de AA. La urgencia ya la
+          dicen el icono, el tinte y el CTA (nunca sólo color, §24), igual que
+          hace la variante de prueba VENCIDA de arriba desde que existe. */}
+      <span style={{ fontSize: 13, color: 'var(--text)' }}>
         {daysLeft > 0
           ? `Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}.`
           : 'Tu prueba gratuita ha terminado.'
         }
       </span>
       <Link href="/configuracion?tab=suscripcion" style={{
-        fontSize: 12, fontWeight: 700, color: '#000',
-        background: daysLeft <= 3 ? '#f87171' : '#f59e0b',
+        fontSize: 12, fontWeight: 700, color: 'var(--sobre-aviso)',
+        background: daysLeft <= 3 ? 'var(--red)' : 'var(--amber)',
         padding: '3px 10px', borderRadius: 6, textDecoration: 'none',
       }}>
         Activar plan →

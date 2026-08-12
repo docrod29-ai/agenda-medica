@@ -165,6 +165,14 @@
   --aviso:          var(--amber);
   --aviso-suave:    color-mix(in srgb, var(--amber) 14%, var(--s1));
   --aviso-borde:    color-mix(in srgb, var(--amber) 38%, transparent);
+  /* Texto ENCIMA de un relleno sólido --amber o --red (el CTA del banner de
+     prueba). Un literal no sirve: sobre el ámbar OSCURO (#D97706) el texto
+     tiene que ser tinta (#0B0C0E → 5.9:1 en amber, 5.8:1 en red), pero sobre
+     el ámbar del tema claro (#B45309, más profundo para pasar AA como TEXTO)
+     la tinta se hunde a ~3.5:1 y lo que pasa es el blanco (4.8:1 en amber,
+     6.5:1 en red). Medido con la fórmula de luminancia WCAG 2.1 en los dos
+     temas — ver la redefinición en cada bloque claro. */
+  --sobre-aviso:    #0B0C0E;
 
   --bien:           var(--green);
   --bien-suave:     color-mix(in srgb, var(--green) 14%, var(--s1));
@@ -1599,6 +1607,8 @@ main:has(.nx-lienzo-completo) > .page-transition {
   --red:       #B91C1C;
   --green:     #14532D;
   --purple:    #6D28D9;
+  /* Sobre el ámbar/rojo profundos del claro gana el blanco (ver :root). */
+  --sobre-aviso: #FFFFFF;
 
   /* Badges de estado — LIGHT. Texto OSCURO sobre fondo MUY claro del mismo tono;
      medido ≥4.6:1. Tintar el fondo con el mismo tono del texto (lo que se hacía
@@ -1654,6 +1664,7 @@ main:has(.nx-lienzo-completo) > .page-transition {
     --red:       #B91C1C;
     --green:     #14532D;
     --purple:    #6D28D9;
+    --sobre-aviso: #FFFFFF;   /* ver :root — blanco sobre los rellenos claros */
     --badge-green-t:  #0F5C2E; --badge-green-b:  #E1F0E7;
     --badge-blue-t:   #1B3FA8; --badge-blue-b:   #E4EAFB;
     --badge-amber-t:  #92400E; --badge-amber-b:  #FBEEDD;
@@ -1903,6 +1914,8 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     /* Los que entraron con la segunda tanda de migración (v913): el trinquete
        vigilaba el color del error y dejaba pasar el del acierto. */
     --purple: #6D28D9;
+    /* En papel rigen los rellenos del claro → texto blanco encima (ver :root). */
+    --sobre-aviso: #FFFFFF;
   }
   .theme-toggle, .sidebar, .topbar, .bottom-nav-wrap { display: none !important; }
 

@@ -291,12 +291,15 @@ export default function PacientesPage() {
             ['alerta', `Con alerta${conAlerta.length ? ` (${conAlerta.length})` : ''}`],
           ] as const).map(([k, label]) => {
             const activo = filtro === k
+            // Relleno, no trazo: va --nexus-solido con blanco encima (5.16:1
+            // oscuro, 7.0:1 claro — ver globals.css). --teal + negro medía
+            // 2.99:1 en claro: el trazo no está pensado para ser fondo.
             return (
               <button key={k} onClick={() => setFiltro(k)} style={{
                 padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: activo ? 'var(--teal)' : 'var(--s2)',
-                color: activo ? '#000' : 'var(--text2)',
-                border: `1px solid ${activo ? 'var(--teal)' : 'var(--border)'}`,
+                background: activo ? 'var(--nexus-solido)' : 'var(--s2)',
+                color: activo ? '#fff' : 'var(--text2)',
+                border: `1px solid ${activo ? 'var(--nexus-solido)' : 'var(--border)'}`,
               }}>{label}</button>
             )
           })}
