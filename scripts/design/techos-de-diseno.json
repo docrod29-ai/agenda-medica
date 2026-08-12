@@ -2,7 +2,7 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 496,
+    "hexEnLinea": 493,
     "tamanosFueraDeEscala": 1970,
     "radiosFueraDeEscala": 628,
     "sombrasEnLinea": 22

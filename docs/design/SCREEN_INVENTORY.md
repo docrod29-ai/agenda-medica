@@ -46,7 +46,7 @@
 | `/antibiograma` | medico | ✅ | 899 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
-| `/chat` | medico | ✅ | 338 | 0 | — | ✅ | — |
+| `/chat` | medico | ✅ | 356 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1017 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
 | `/consulta/[patientId]` | medico | ✅ | 6121 | 7 | — | ✅ | ✅ |

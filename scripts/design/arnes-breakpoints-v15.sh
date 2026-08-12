@@ -14,9 +14,17 @@ echo '── 1/3 siembra sintética ──'
 node scripts/design/sembrar-capturas.mjs
 
 echo '── 2/3 next start (build de producción previo) ──'
+# Si una corrida anterior murió sin limpiar, su next-server huérfano sigue
+# dueño del :3000 sirviendo el build VIEJO — chunks con hash desconocido:
+# 500 + text/plain (medido en v15-chat-contraste; misma familia que el
+# fantasma de entrega de CSS de nx-stat-grid). Se limpia ANTES de arrancar.
+pkill -f 'next-server' 2>/dev/null || true
+sleep 1
 npx next start --port 3000 >/tmp/next-v15-breakpoints.log 2>&1 &
 NEXT_PID=$!
-trap 'kill $NEXT_PID 2>/dev/null || true' EXIT
+# `kill $NEXT_PID` sólo mata al envoltorio de npx; el next-server hijo queda
+# huérfano y vivo. Se matan los dos.
+trap 'kill $NEXT_PID 2>/dev/null || true; pkill -f "next-server" 2>/dev/null || true' EXIT
 
 for i in $(seq 1 120); do
   if curl -sf -o /dev/null http://localhost:3000/login; then break; fi

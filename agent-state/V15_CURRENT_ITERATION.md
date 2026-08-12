@@ -4850,3 +4850,113 @@ tokens medidos con la fórmula WCAG (no adivinados), guardián probado al
 revés, arnés real con axe hasta donde la deuda preexistente lo permita.
 Después: `heading-order` (familia moderada multi-superficie) y DEBT-008
 (`.receta-sheet`, decisión de diseño de plantilla pendiente).
+
+## `V15-A11Y-001` — cuarta rebanada: los contrastes de /chat hablan tokens por tema, y los widgets flotantes dejan de tapar controles (12-ago-2026)
+
+La tarea exacta que dejó la tercera rebanada. El método de la casa se cumplió
+al pie: re-medición ANTES de tocar nada — y la re-medición encontró más de lo
+anotado.
+
+### La medición primero, y lo que enseñó
+
+El arnés de diagnóstico (axe con fg/bg/ratio en oscuro/claro × 1440/390) **no
+pudo ni terminar**: al intentar pulsar Enviar, Playwright reportó
+«`.theme-toggle` subtree intercepts pointer events» — **en 1440 Y en 390**.
+La colisión anotada por Fase 9 (toggle sobre el borde de la hoja del aviso
+push) tenía una hermana peor que ningún arnés había visto: el composer del
+lienzo ancla su acción primaria EXACTAMENTE en la esquina del widget
+flotante. Los arneses anteriores no la vieron porque pulsaban Enviar con el
+textarea aún ENFOCADO — y con foco el toggle ya se ocultaba (regla ≤900px).
+El gesto real del médico (escribir, revisar la lista —blur—, pulsar Enviar)
+se lo comía el toggle.
+
+Además, el primer intento de re-medición cazó un fantasma de infraestructura
+de la MISMA familia que nx-stat-grid: un `next-server` huérfano de una
+corrida anterior seguía dueño del :3000 sirviendo el build VIEJO (chunks con
+hash desconocido → 500 + `text/plain`). El `trap` del arnés mataba al
+envoltorio de npx, no al hijo. Arreglado en `arnes-breakpoints-v15.sh`
+(pkill preventivo + trap que mata a los dos), con su porqué en el script.
+
+### Los contrastes: color fijo sobre relleno temático
+
+Los 3 nodos anotados eran síntoma de una sola causa: /chat escribía COLOR
+FIJO sobre RELLENO POR TEMA. `#a78bfa` (secretaria) sólo legible en oscuro
+(2.7:1 sobre blanco); `#040b12` sobre `var(--teal)` que en claro es un
+relleno PROFUNDO (#12626E → 2.8:1); alfas de negro (0.7/0.55/0.15) que
+sobre el teal oscuro medían 3.4–4.7:1; `'#000'` en los avatares (3.0:1 en
+claro). La salida NO inventó tokens: la pareja medida que ya existía —
+`--sobre-aviso`, el token «texto encima de un relleno semántico» que
+invierte su polaridad por tema — más `--purple` y `--badge-gris-t` para los
+roles. La jerarquía interna de la burbuja propia la dan tamaño y peso, no
+alfas que hunden el contraste. En oscuro la identidad visual queda IGUAL
+(teal brillante + tinta); en claro por fin es legible (teal profundo +
+blanco).
+
+### Los widgets flotantes
+
+- **El toggle cede al aviso push** — sumado al MISMO bloque `:has` del FAB
+  (la colisión anotada por Fase 9).
+- **En pantallas-lienzo el toggle sube** y libra el composer: 92px
+  escritorio, 136px móvil (53 nav + ~70 composer + aire; el primer intento
+  de 123px quedó ROZANDO — `tocaComposer:true` por ~2px — y lo cazó el
+  arnés, no el ojo). Flota sobre la cola de la lista: contenido
+  desplazable, ningún control.
+- **§24**: el toggle sube a 44×44 en las dos hojas (era 38, y 34 en móvil —
+  el «táctil chico» anotado por la radiografía de trabajos móviles).
+
+### Guardianes, probados al revés
+
+`src/__tests__/v15-a11y-chat-contraste-y-widgets.test.ts` (7 casos): tokens
+de rol, --sobre-aviso sobre relleno, 44×44 en las dos hojas, cesión al
+aviso, subida en lienzo, y freeze funcional (contrato de enviarMensaje,
+burbuja por senderId, etiquetas de rol). **5 de 7 fallan contra el árbol
+previo** (verificado con `git stash`); los 2 de freeze pasan antes y
+después. El guardián del aviso push
+(`v15-push-optin-no-tapa-el-pulgar.test.ts`) SIGUIÓ al mecanismo nuevo (el
+FAB ya no cede solo: ceden los widgets), con la nota histórica en el caso —
+tercer precedente de esta disciplina.
+
+### Verificado en navegador real (12-ago-2026)
+
+Arnés nuevo: `scripts/design/capturar-chat-contraste-v15.mjs` — axe CON
+detalle en CUATRO mediciones (oscuro/claro × 1440/390), geometría del
+toggle, click en Enviar SIN foco, y cesión al aviso. Resultado y 5 capturas
+en `docs/design/capturas/v15-chat-contraste/`:
+
+- **Axe: CERO violaciones en las CUATRO mediciones** — /chat es la quinta
+  superficie de la rama que mide limpio del todo, y la primera medida
+  también en tema claro a 390. (La familia `color-contrast` de 3 nodos
+  anotada por Fase 9 muere; en claro habrían sido más nodos — nadie había
+  medido claro.)
+- **El gesto que antes se comía el toggle, medido de punta a punta**: en
+  las cuatro combinaciones se escribió, se le QUITÓ el foco al textarea y
+  se pulsó Enviar con click real → `enviarClickeableSinFoco: true` y el
+  mensaje LLEGA a la lista (ida y vuelta por el emulador).
+- **Geometría**: toggle 44×44 en las cuatro; `tocaComposer/tocaEnviar/
+  tocaNav: false` en las cuatro.
+- **Cesión al aviso**: con `.nx-push-optin` abierto, toggle
+  `opacity: 0` + `pointer-events: none`; tras «Después», `opacity: 1`.
+- **Consola**: 1 error ambiental en una sola medición (reconexión del
+  emulador, fingerprint conocido); 0 en las otras tres.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 9175/9176 en verde — el único fallo es el PRE-EXISTENTE
+  ambiental de siempre (`ops-timeout-y-punto-ciego`, el proxy del contenedor
+  responde en vez de agotar, mismo fingerprint documentado).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: **BAJÓ** — hexEnLinea
+  496 → 493 (los hex fijos del chat murieron), resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio ×3 (builds de producción para el arnés).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/chat cambió de líneas).
+
+**Siguiente tarea exacta:** `V15-A11Y-001`, quinta rebanada:
+**`heading-order`** (la familia moderada multi-superficie anotada en el
+inventario de la 1ª rebanada) — inventariar los hallazgos exactos con grep
+de este archivo + re-medición axe en vivo de las superficies anotadas,
+pantalla entera leída antes de rebanar, guardián probado al revés, arnés
+real hasta donde la deuda preexistente lo permita. Después: DEBT-008
+(`.receta-sheet`, decisión de diseño de plantilla pendiente) y el enlace del
+TrialBanner + enlace de paciente de /pendientes (táctiles chicos anotados
+que esta rebanada no cubrió).

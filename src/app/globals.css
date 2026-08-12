@@ -1008,13 +1008,16 @@ tbody tr:last-child { border-bottom: none; }
     margin: -10px -10px 0 0;
   }
 }
-/* Mientras el aviso pregunta, el FAB de ayuda le cede el paso (mismo patrón
-   que ya usa el FAB al enfocar un input): comparten la esquina inferior
-   derecha en TODOS los tamaños, y con el aviso ahora por debajo de z-60 el
-   FAB taparía su X. Vuelve solo, al decidir o descartar. Si el navegador no
-   soporta :has, la regla se ignora y el FAB queda como antes — degradación
-   segura. */
-body:has(.nx-push-optin) .boton-ayuda-fab {
+/* Mientras el aviso pregunta, los widgets flotantes de la esquina le ceden
+   el paso (mismo patrón que ya usan al enfocar un input): comparten la
+   esquina inferior derecha en TODOS los tamaños. El FAB (z-60) taparía la X
+   del aviso; el toggle de tema (z-199) pintaba SOBRE el borde derecho de la
+   hoja en 390px (medido en capturar-push-optin-v15 — colisión anotada por
+   Fase 9 y pagada por V15-A11Y-001, 4ª rebanada). Vuelven solos, al decidir
+   o descartar. Si el navegador no soporta :has, la regla se ignora y quedan
+   como antes — degradación segura. */
+body:has(.nx-push-optin) .boton-ayuda-fab,
+body:has(.nx-push-optin) .theme-toggle {
   opacity: 0;
   pointer-events: none;
 }
@@ -1860,8 +1863,10 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   position: fixed;
   bottom: 16px;
   right: 16px;
-  width: 38px;
-  height: 38px;
+  /* §24: 44×44 mínimo táctil — estaba en 38 (y 34 en móvil), anotado como
+     «táctil chico» por la radiografía de trabajos móviles de Fase 9. */
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-circulo);
   background: color-mix(in srgb, var(--s1) 80%, transparent);
   backdrop-filter: saturate(180%) blur(10px);
@@ -1917,15 +1922,36 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 }
 .theme-toggle:hover svg { transform: rotate(20deg); }
 
-/* En móvil con bottom-nav, sube el toggle para no chocar */
+/* En móvil con bottom-nav, sube el toggle para no chocar.
+   §24: también aquí 44×44 — los 34px eran el táctil chico anotado. */
 @media (max-width: 768px) {
   .theme-toggle {
     bottom: 78px;
     right: 12px;
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
   }
   .theme-toggle svg { width: 16px; height: 16px; }
+}
+
+/* Una pantalla-LIENZO (hoy: /chat) ancla su composer al borde inferior del
+   shell — la esquina del toggle cae ENCIMA del botón Enviar. No es teoría:
+   el arnés de diagnóstico de la 4ª rebanada de V15-A11Y-001 no pudo pulsar
+   Enviar en 1440 NI en 390 («.theme-toggle subtree intercepts pointer
+   events», ver v15-chat-contraste). El toggle sube hasta librar el composer:
+   16 + ~68 del composer (44 táctil + 12+12 de colchón) + aire en
+   escritorio; en móvil además los 53px medidos del BottomNav. Flota sobre
+   la COLA de la lista de mensajes — contenido desplazable, ningún control. */
+body:has(.nx-lienzo-completo) .theme-toggle {
+  bottom: 92px;
+}
+@media (max-width: 768px) {
+  body:has(.nx-lienzo-completo) .theme-toggle {
+    /* 53 del BottomNav + ~70 del composer (12+46+12 medidos) + aire. El
+       primer intento (123px) dejó el borde del toggle ROZANDO el composer
+       (tocaComposer:true por ~2px, medido en v15-chat-contraste). */
+    bottom: 136px;
+  }
 }
 
 /* ── Tipografía premium para headers de página ──────────────────── */

@@ -1,0 +1,65 @@
+{
+  "oscuro-1440": {
+    "geo": {
+      "encontrado": true,
+      "toggle": "44×44 @ (1380,764)",
+      "toggleTactilOk": true,
+      "tocaComposer": false,
+      "tocaEnviar": false,
+      "tocaNav": false
+    },
+    "enviarClickeableSinFoco": true,
+    "mensajeLlega": true,
+    "axe": [],
+    "erroresConsola": 1
+  },
+  "claro-1440": {
+    "geo": {
+      "encontrado": true,
+      "toggle": "44×44 @ (1380,764)",
+      "toggleTactilOk": true,
+      "tocaComposer": false,
+      "tocaEnviar": false,
+      "tocaNav": false
+    },
+    "enviarClickeableSinFoco": true,
+    "mensajeLlega": true,
+    "axe": [],
+    "erroresConsola": 0
+  },
+  "oscuro-390": {
+    "geo": {
+      "encontrado": true,
+      "toggle": "44×44 @ (334,664)",
+      "toggleTactilOk": true,
+      "tocaComposer": false,
+      "tocaEnviar": false,
+      "tocaNav": false
+    },
+    "enviarClickeableSinFoco": true,
+    "mensajeLlega": true,
+    "axe": [],
+    "erroresConsola": 0
+  },
+  "claro-390": {
+    "geo": {
+      "encontrado": true,
+      "toggle": "44×44 @ (334,664)",
+      "toggleTactilOk": true,
+      "tocaComposer": false,
+      "tocaEnviar": false,
+      "tocaNav": false
+    },
+    "enviarClickeableSinFoco": true,
+    "mensajeLlega": true,
+    "axe": [],
+    "erroresConsola": 0
+  },
+  "cesionAlAviso": {
+    "encontrado": true,
+    "avisoAbierto": true,
+    "toggleOpacity": "0",
+    "togglePointerEvents": "none",
+    "toggleOpacityTrasDescartar": "1"
+  }
+}
