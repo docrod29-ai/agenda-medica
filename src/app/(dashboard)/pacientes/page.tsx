@@ -437,8 +437,12 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
         {p.nombre.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* span, NO enlace: la fila entera ya es role="button" (activable) y
+            abre el expediente — un enlace dentro sería nested-interactive
+            (axe) y dos destinos para el mismo gesto. Y sin ellipsis: la
+            identidad del paciente no se trunca (§24) — .nx-ident envuelve. */}
+        <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>
+        <div className="nx-meta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
           {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
           {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--nexus)', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}

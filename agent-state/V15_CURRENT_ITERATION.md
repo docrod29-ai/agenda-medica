@@ -4,8 +4,20 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, tercera rebanada
-entregada 12-ago-2026: «ContinuidadPanel habla los mismos roles» — la zona
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, cuarta rebanada
+entregada 12-ago-2026: «las filas de /pacientes hablan los mismos roles» — el
+directorio de pacientes era la única superficie estructurada donde la
+identidad seguía siendo un fontSize 14 inline CON ellipsis (la identidad se
+truncaba, §24): ahora `span.nx-ident` encabeza cada fila (span, NO enlace:
+la fila entera es `role="button"` vía activable — nested-interactive), el
+metadato es `.nx-meta`, y el nombre largo sembrado ENVUELVE (3 líneas en
+390px, sin desborde). Medido con `getComputedStyle` + clic real que aterriza
+en el expediente + axe en los dos temas y en móvil (ver sección al FINAL).
+Dos hallazgos preexistentes anotados a `V15-A11Y-001`: `nested-interactive`
+(el botón Editar DENTRO de la fila role="button", 5 nodos, primera medición
+axe de /pacientes) y `color-contrast` claro (TrialBanner: span #f59e0b + su
+botón — la familia ya conocida, aquí 2 nodos). Tercera rebanada previa
+12-ago-2026: «ContinuidadPanel habla los mismos roles» — la zona
 CONTINUITY de /dashboard («Sigue abierto de antes») muestra la MISMA entidad
 que /pendientes (TareaClinica) y ahora habla el mismo idioma tipográfico: la
 identidad del paciente encabeza cada fila como `span.nx-ident` (span, NO
@@ -3117,3 +3129,112 @@ y las filas de /pacientes hablan los roles o tamaños a mano) y migrar UNA
 con su arnés; o (b) si una medición nueva enseña un defecto visual más
 barato/valioso del shell ya entregado, esa rebanada. La deuda de tema claro
 del TrialBanner sigue en la lista de `V15-A11Y-001`.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — cuarta rebanada: las filas de /pacientes hablan los mismos roles (12-ago-2026)
+
+La tarea que dejó nombrada la tercera rebanada — candidata (a): inventariar
+con grep qué superficies estructuradas siguen hablando tamaños inline para
+los papeles de §2 — se ejecutó y se pagó UNA superficie. El inventario: el
+riel de «Agenda de hoy» ya habla `.riel-nombre`/`.nx-estado` (en regla);
+`PatientAnchor` tiene 6 fontSize inline pero su identidad es un `<h1>` de
+cabecera de workspace, no el papel R3 de fila; las filas de `/pacientes`
+tenían el defecto exacto de la familia: la identidad — EL contenido del
+directorio — era `fontSize: 14` inline con `whiteSpace: nowrap` +
+`textOverflow: ellipsis`. Dos defectos en uno: idioma distinto al de
+/pendientes y Hoy, y la identidad del paciente TRUNCADA con puntos
+suspensivos justo donde más nombres compuestos largos se ven (§24: no
+critical truncation).
+
+### El cambio (`src/app/(dashboard)/pacientes/page.tsx`, sólo el JSX de `PacienteRow`)
+
+- **La identidad encabeza la fila como `span.nx-ident`** (`display: block`)
+  — span, NO enlace, y la razón quedó escrita en el JSX: la fila entera ya
+  es `role="button"` (activable) y abre el expediente; un enlace dentro
+  sería nested-interactive y dos destinos para el mismo gesto. Misma
+  decisión deliberada que ContinuidadPanel.
+- **El nombre ENVUELVE**: nowrap/hidden/ellipsis retirados — `.nx-ident`
+  trae `overflow-wrap: anywhere`.
+- **El metadato (teléfono · edad · internado) es `.nx-meta`** en vez de
+  fontSize 12 inline; conserva su flex/gap/wrap inline (no son tipografía).
+- **Lo que NO se tocó, a propósito**: el avatar (15), las píldoras de
+  no-show/cancelación (11), el botón Editar (12/600), los encabezados de
+  sección (11.5 uppercase) — no son papeles de §2; cada rol se paga en su
+  rebanada.
+- **Freeze funcional**: misma etiqueta accesible («Abrir el expediente de
+  X»), mismo stopPropagation del botón Editar, mismas píldoras, mismo
+  marcador de internado.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-roles-tipograficos-en-pacientes.test.ts` (10 casos) —
+identidad como span.nx-ident, veto al enlace anidado con la razón escrita,
+veto al ellipsis sobre la identidad, metadato en .nx-meta, deriva vetada
+(fontSize 14 no vuelve a la fila), y freeze funcional (activable+etiqueta,
+stopPropagation, internado, píldoras). Los vetos se recortan al segmento
+`function PacienteRow` → `function PatientModal` para no vetar los fontSize
+legítimos del resto de la página. **5 de 10 fallan contra el árbol previo**
+(verificado con `git stash`); los 5 que pasan protegen el invariante
+funcional, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-roles-pacientes-v15.mjs` — `getComputedStyle`
+DENTRO de las filas, navegación real y axe, en los DOS temas y en móvil.
+Resultado y 3 capturas en `docs/design/capturas/v15-roles-pacientes/`
+(1440 + 390):
+
+- **Oscuro, medido**: 5 filas (Recientes); ident `15.5px/600
+  rgb(242,239,233)` sin subrayado, `whiteSpace: normal`, `textOverflow:
+  clip`; meta `12.5px rgb(138,143,148)`; `enlacesAnidados: 0`,
+  `identEsEnlace: false`.
+- **Claro, medido**: los mismos roles con los hex del tema claro (ident
+  `rgb(11,12,14)`, meta `rgb(107,111,117)`) — tokens por tema.
+- **La identidad envuelve**: «María del Refugio Alcántara Solís» —
+  `recortado: false` en 1440 (1 línea) y en 390 (3 líneas), documento a 390
+  exactos, sin desborde horizontal.
+- **Equivalencia funcional, medida**: clic real en la primera fila → la URL
+  aterriza en `/expediente/pac-luzmaria-cervantes` (`llega: true`).
+- **Axe**: cero violaciones CAUSADAS por la rebanada. Dos hallazgos
+  PREEXISTENTES quedan anotados a `V15-A11Y-001`: (1) `nested-interactive`,
+  5 nodos, en los dos temas y en móvil — el botón Editar vive DENTRO de la
+  fila `role="button"` desde antes de V15 (primera medición axe de
+  /pacientes en la rama; la rebanada no añadió interactivos: la identidad es
+  span); (2) `color-contrast` claro, 2 nodos — el TrialBanner de
+  `(dashboard)/layout.tsx` (span `#f59e0b` + su botón CTA), la familia ya
+  conocida de las rebanadas 2-3 (allí 1 nodo porque /dashboard pinta otra
+  variante del banner).
+- **Consola**: sólo el aviso familiar de reconexión de Firestore del
+  emulador (desktop y móvil) — ambiental; los datos SÍ llegaron (5 filas
+  pintadas y navegación real).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8974 pasan (618 archivos) + los 10 casos nuevos; único
+  fallo el PRE-EXISTENTE ambiental de siempre (`ops-timeout-y-punto-ciego`,
+  el proxy del contenedor responde en vez de agotar, mismo fingerprint).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (14 y 12
+  eran de la escala oficial — el conteo no baja, tampoco sube).
+- `npm run build`: compila limpio (162 páginas) con `.env.local` demo.
+  **Nota operativa**: el `.env.local` mínimo de 2 variables NO basta para
+  el build — `/dr/[clinicId]` evalúa `src/lib/firebase.ts` al recolectar
+  datos de página y `getAuth` revienta con `auth/invalid-api-key`; hacen
+  falta las 7 (`NEXT_PUBLIC_FIREBASE_API_KEY=demo-api-key`, AUTH_DOMAIN,
+  PROJECT_ID, STORAGE_BUCKET, SENDER_ID, APP_ID y EMULATORS=1). También:
+  un build puede fallar transitorio en las fuentes de Google (proxy del
+  contenedor) — reintentar antes de diagnosticar.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/pacientes cambió de
+  líneas).
+
+**Siguiente tarea exacta:** quinta rebanada de `V15-VISUAL-SYSTEM-001` —
+candidatos medidos, no adivinados: (a) el inventario de la cuarta rebanada
+dejó UNA superficie estructurada con tamaños a mano sin pagar:
+`PatientAnchor` (6 fontSize inline — cabecera del Patient Workspace; decidir
+si su `<h1>` de identidad merece un rol de cabecera propio en vez de
+.nx-ident de fila, y si sus 12px de metadatos/alergias son .nx-meta); o
+(b) si una medición nueva enseña un defecto visual más barato/valioso del
+shell ya entregado, esa rebanada. La deuda anotada de `V15-A11Y-001` creció:
+TrialBanner claro (2 nodos en /pacientes) + `nested-interactive` del botón
+Editar en las filas de /pacientes (preexistente, 5 nodos).
