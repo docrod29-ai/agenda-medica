@@ -1,0 +1,47 @@
+{
+  "oscuro": {
+    "rolesStatusEnPagina": 3,
+    "bannerPruebaEnDOM": true,
+    "bannerPruebaRole": "status",
+    "offlineEnDOM": false,
+    "offlineRole": null,
+    "url": "/dashboard"
+  },
+  "axeOscuro": [],
+  "claro": {
+    "rolesStatusEnPagina": 3,
+    "bannerPruebaEnDOM": true,
+    "bannerPruebaRole": "status",
+    "offlineEnDOM": false,
+    "offlineRole": null,
+    "url": "/dashboard"
+  },
+  "axeClaro": [],
+  "sinRed": {
+    "rolesStatusEnPagina": 4,
+    "bannerPruebaEnDOM": true,
+    "bannerPruebaRole": "status",
+    "offlineEnDOM": true,
+    "offlineRole": "status",
+    "url": "/dashboard"
+  },
+  "axeSinRed": [],
+  "ctaLlega": "/configuracion?tab=suscripcion",
+  "movil": {
+    "rolesStatusEnPagina": 3,
+    "bannerPruebaEnDOM": true,
+    "bannerPruebaRole": "status",
+    "offlineEnDOM": false,
+    "offlineRole": null,
+    "url": "/dashboard"
+  },
+  "axeMovil": [],
+  "erroresConsola": [
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ]
+}

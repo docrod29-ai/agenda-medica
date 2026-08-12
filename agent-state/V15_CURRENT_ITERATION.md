@@ -4556,3 +4556,101 @@ superficies — el hallazgo axe más repetido de la rama, candidato natural a
 primera rebanada). Antes de abrirla, correr el inventario de deuda a11y
 completo (grep de los hallazgos anotados en este archivo) para dimensionar
 las rebanadas.
+
+## `V15-A11Y-001` — abierta, con su inventario; primera rebanada: los avisos del shell viven en un landmark (12-ago-2026)
+
+El barrido de CROMO de §32 quedó cerrado la corrida anterior; ésta abre la
+iteración 13 del orden de §43 como pidió el estado: PRIMERO el inventario de
+deuda a11y (grep completo de este archivo), DESPUÉS la rebanada.
+
+### Inventario de deuda a11y acumulada (de las anotaciones de toda la rama)
+
+1. ~~`region` (moderate) — banners del shell fuera de todo landmark~~ —
+   **PAGADA en esta rebanada** (abajo). Era el hallazgo MÁS repetido: presente
+   en TODAS las mediciones de superficie de las fases 3-11.
+2. ~~`landmark-unique` (cajón móvil de FlowRail)~~ — ya había muerto en
+   `V15-MOBILE-001` (el cajón del médico se retiró); la medición de hoy lo
+   confirma: axe 0 en /dashboard.
+3. **/referencia: formulario sin etiquetas** — `label` ×3 (CRÍTICO) +
+   `select-name` ×2. La única deuda de severidad crítica del backlog.
+   **Candidata a segunda rebanada.**
+4. `color-contrast` — familia del botón «Editar» (~5 nodos, anotada en la
+   Fase 10; el nodo del TrialBanner ya se pagó en VISUAL-SYSTEM 6ª).
+5. `nested-interactive` — línea base de /pacientes (anotada desde Fase 4).
+6. Contrastes de /chat + colisiones de widgets flotantes (anotadas Fase 9).
+7. DEBT-008 — el acento del papel del template del médico (`.receta-sheet`).
+8. `heading-order` — familia moderada anotada en varias superficies.
+
+### La rebanada: `role="status"` para los tres listones sin voz
+
+La causa raíz, verificada en el FUENTE de axe-core instalado (no en docs):
+`isRegion()` acepta `role="alert"|"log"|"status"` y `aria-live` además de los
+landmarks. La mitad de los avisos del shell ya hablaba así
+(`AvisoCobroPendiente`, `AvisoCorreoSinVerificar`, `AvisoIncidenteIA`,
+`InstrumentStrip` → `role="status"`; `NotificacionesPushOptIn` →
+`role="region"` con nombre); los tres mudos eran:
+
+- **`TrialBanner`** — las DOS variantes (cuenta regresiva y vencida): el
+  origen del fingerprint «banner de prueba gratuita» de 15 corridas.
+- **`ModeBanner`** — el listón del modo asistente (nunca medido: los arneses
+  entran como médico).
+- **`OfflineBanner`** — sólo aparece sin red (nunca medido); además GANA
+  semántica de verdad: al caerse la red el lector de pantalla ahora anuncia
+  el cambio sin robar el foco, y su icono queda `aria-hidden`.
+
+Freeze funcional intacto: mismos gates (`plan !== 'trial'`, `mode !==
+'secretaria'`, `!offline`), mismos textos, mismos destinos.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-a11y-avisos-en-landmark.test.ts` (5 casos): las dos
+variantes de TrialBanner con voz, ModeBanner, OfflineBanner + icono
+decorativo, la familia que ya hablaba no retrocede, y el freeze funcional.
+**3 de 5 fallan contra el árbol previo** (verificado con `git stash`); los 2
+que pasan protegen invariantes preexistentes.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método (emuladores + siembra + build de producción + `npm start` vía
+`arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-avisos-landmark-v15.mjs` — incluye la variante que
+NINGUNA corrida había medido: la red se corta DE VERDAD
+(`context.setOffline(true)`) para ver `OfflineBanner` en vivo. Resultado y 4
+capturas en `docs/design/capturas/v15-avisos-landmark/`:
+
+- **Axe: CERO violaciones — no sólo `region`: NINGUNA** — en las cuatro
+  mediciones (escritorio oscuro, claro, sin red, móvil 390). Es la primera
+  vez que /dashboard mide limpio del todo en la rama: la línea base traía
+  `region` ×2-3 + `landmark-unique` ×2 en cada corrida desde la Fase 3.
+- Banner de prueba en DOM con `role="status"` en los dos temas y en móvil;
+  `OfflineBanner` aparece al cortar la red con `role="status"`.
+- **Equivalencia funcional con clic real**: «Activar plan →» aterriza en
+  `/configuracion?tab=suscripcion` (`llega: true`).
+- **Consola**: los únicos 6 errores son `ERR_INTERNET_DISCONNECTED` — del
+  corte de red DELIBERADO del paso 3. Cero errores propios.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9155 pasan (629 archivos), 1 fallo AMBIENTAL** —
+  `la-agenda-es-un-riel` agotó los 5s de import bajo la carga de la suite
+  completa (el import total de esta corrida tardó 334s en el contenedor);
+  re-corrido en aislamiento: **12/12 pasa**. No toca este diff (citas vs
+  layout/OfflineBanner). El guardián nuevo 5/5.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (1971/629
+  se mantienen — esta rebanada es de semántica, no de estilos).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (build de producción para el arnés) con
+  `.env.local` demo (recreado en este contenedor: 7 variables + emuladores +
+  `PORTAL_PACIENTE_SECRET` demo).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado, sin cambios (layout no es
+  pantalla del inventario).
+
+**Siguiente tarea exacta:** `V15-A11Y-001`, segunda rebanada: **el
+formulario de /referencia paga sus etiquetas** (`label` ×3 CRÍTICO +
+`select-name` ×2 — la única deuda crítica del inventario). Método de la
+casa: leer la pantalla entera, arreglar con las clases del sistema
+(`.label`/`.input` + htmlFor/id, como /login y /registro), guardián probado
+al revés, y arnés en navegador real con axe en los dos temas y móvil.
+Después: rebanada 3 = familia `color-contrast` del botón «Editar»; luego
+`nested-interactive` de /pacientes y los contrastes de /chat.

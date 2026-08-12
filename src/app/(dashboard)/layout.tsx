@@ -44,7 +44,9 @@ function ModeBanner() {
   const { mode } = useMode()
   if (mode !== 'secretaria') return null
   return (
-    <div style={{
+    /* `role="status"` — sin él este listón vivía fuera de todo landmark y axe lo
+       marcaba `region` en el shell de la asistente (V15-A11Y-001, 1ª rebanada). */
+    <div role="status" style={{
       background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.25)',
       color: 'var(--blue)', fontSize: 12, fontWeight: 600, textAlign: 'center',
       padding: '5px 12px',
@@ -134,7 +136,11 @@ function TrialBanner() {
   )
   if (paywall.vencida) {
     return (
-      <div style={{
+      /* `role="status"` — el mismo landmark vivo que ya hablan AvisoCobroPendiente
+         y AvisoCorreoSinVerificar. Sin él, axe marcaba `region` (contenido fuera
+         de todo landmark) en TODAS las superficies del dashboard: el hallazgo
+         más repetido de la rama V15 (V15-A11Y-001, 1ª rebanada). */
+      <div role="status" style={{
         background: 'color-mix(in srgb, var(--amber) 8%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--amber) 25%, transparent)',
         padding: '11px 20px',
       }}>
@@ -161,7 +167,7 @@ function TrialBanner() {
     )
   }
   return (
-    <div style={{
+    <div role="status" style={{
       background: daysLeft <= 3 ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'color-mix(in srgb, var(--amber) 8%, transparent)',
       borderBottom: `1px solid ${daysLeft <= 3 ? 'color-mix(in srgb, var(--red) 25%, transparent)' : 'color-mix(in srgb, var(--amber) 20%, transparent)'}`,
       padding: '8px 20px',
