@@ -93,10 +93,21 @@ describe('V15-MOBILE-001 — la variante compacta prioriza y mide bien', () => {
     expect(FRANJA).toMatch(/\{paciente \? \(/)
   })
 
-  it('el enlace del paciente alcanza 44px de alto táctil (13+18+13) — el 141×18 medido era ilegal por §24', () => {
+  it('el enlace del paciente alcanza 44px de alto táctil — el 141×18 medido era ilegal por §24', () => {
+    /**
+     * El MECANISMO cambió en V15-VISUAL-SYSTEM-001 (8ª rebanada): el alto
+     * táctil ya no lo da un padding fijo (13+18+13) sino `minHeight: 44` en el
+     * enlace, y la identidad envuelve hasta 2 líneas con
+     * `.nx-ident-franja--clamp` (excepción declarada a §24 en globals.css) en
+     * vez del ellipsis de una línea. El INVARIANTE de este caso no cambia:
+     * objetivo táctil ≥44px y desborde controlado del nombre.
+     */
     const variante = FRANJA.slice(FRANJA.indexOf('if (enTopbar)'), FRANJA.indexOf('\n  return ('))
-    expect(variante).toContain("padding: '13px 8px 13px 0'")
-    expect(variante).toContain('textOverflow')
+    expect(variante).toContain('minHeight: 44')
+    expect(variante).toContain('nx-ident-franja--clamp')
+    // Y la clase de clamp existe de verdad en la hoja — no es un nombre suelto
+    // (la familia «escrito y sin conectar», misma lección que nx-stat-grid).
+    expect(CSS).toContain('.nx-ident-franja--clamp')
   })
 
   it('la variante compacta reutiliza los MISMOS hooks — no abre una segunda fuente de verdad', () => {
