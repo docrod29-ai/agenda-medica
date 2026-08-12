@@ -72,7 +72,7 @@
 | `/operaciones` | medico | ✅ | 162 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 793 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 836 | 9 | — | ✅ | — |
-| `/pendientes` | medico | ✅ | 382 | 2 | — | ✅ | — |
+| `/pendientes` | medico | ✅ | 404 | 2 | — | ✅ | — |
 | `/reactivacion` | medico | ✅ | 250 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 977 | 2 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 276 | 0 | — | ✅ | — |

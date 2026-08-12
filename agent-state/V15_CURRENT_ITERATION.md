@@ -4,8 +4,15 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, primera rebanada
-entregada 12-ago-2026: «el acento entra al shell» — los tres puntos de acento
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, segunda rebanada
+entregada 12-ago-2026: «los roles tipográficos de §2 existen como clases y
+/pendientes los habla» — `.nx-ident`/`.nx-meta`/`.nx-critico` nacen en
+`globals.css` (los otros dos roles ya existían) y la cola de cierre de Fase 7
+los usa: la identidad del paciente ENCABEZA cada entrada (R3) en vez de vivir
+enterrada como enlace teal de 13px en el metadato, medido con
+`getComputedStyle` + navegación real + axe en los dos temas y en móvil (ver
+sección al FINAL). Primera rebanada previa
+12-ago-2026: «el acento entra al shell» — los tres puntos de acento
 que las fases estructurales dejaron explícitamente diferidos a Fase 10
 (FlowRail activo, ClinicalSpine seleccionado, indicador «Grabando» del
 InstrumentStrip) pasaron del neutro greybox al cobalto semántico de
@@ -2889,3 +2896,116 @@ las filas de ContinuidadPanel o /pendientes) con su arnés; o (b) si una
 medición nueva enseña un defecto visual más barato/valioso del shell ya
 entregado, esa rebanada. La deuda de tema claro del TrialBanner queda en la
 lista de `V15-A11Y-001`.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — segunda rebanada: los roles tipográficos de §2, y /pendientes los habla (12-ago-2026)
+
+La tarea que dejó nombrada la primera rebanada («los roles tipográficos de
+VISUAL_DNA §2 que aún no existen como clases, aplicados a UNA superficie del
+shell V15 ya estructurada») se pagó con el inventario primero: de los cuatro
+roles nombrados, DOS ya existían (`.nx-num` línea 389 de `globals.css`,
+`.nx-estado` junto al riel del día) — el checkpoint anterior los daba por
+inexistentes; verificado por grep antes de escribir nada. Los que faltaban:
+`.nx-ident`, `.nx-meta`, `.nx-critico`.
+
+### Las clases (globals.css, junto a .nx-display)
+
+- **`.nx-ident`** — identidad del paciente (R3): 15.5px/1.3, **peso 600, no
+  550**: IBM Plex Sans se carga en cortes estáticos 400/500/600/700
+  (`layout.tsx`) y un 550 declarado resolvería a 600 por font-matching de
+  todos modos — se declara lo que se pinta, con la razón escrita en la hoja
+  (mismo peso que `.riel-nombre`, la primera implementación de R3).
+- **`a.nx-ident`** subraya (decoración atenuada `--text3`, `--text` al
+  hover/focus): dentro de una fila donde todo lo demás es texto plano, un
+  enlace que sólo se distingue por color no se distingue (WCAG 1.4.1).
+- **`.nx-meta`** — 12.5/`--text3`/1.5. **`.nx-critico`** — 13/700/`--red`,
+  con el ICONO exigido en el JSX por el guardián, nunca sólo color.
+
+### La superficie: /pendientes (la cola de cierre de Fase 7)
+
+- **La identidad del paciente ENCABEZA cada entrada** — R3 nombra «tarea» en
+  su lista literal, y el modelo de producto V15 §4 lo dice en clínico: «el
+  resultado de ESTE paciente necesita mi decisión». Antes el paciente era un
+  enlace teal de 13px enterrado en la fila de metadatos; ahora es `a.nx-ident`
+  en la primera línea y SIGUE navegando al expediente (mismo destino).
+  El título de la tarea baja a segunda línea (14/500): dice QUÉ, el paciente
+  dice QUIÉN, y quién manda. Si una tarea trae nombre sin `patientId`, la
+  identidad se pinta como `<span>` — no un href a `/expediente/undefined`
+  (defecto latente del código anterior, cerrado de paso).
+- **El tipo de tarea es `.nx-estado`** (versalitas + punto) en vez de su
+  fontSize 11 inline; en `TarjetaCerrada` el punto va en **verde**
+  (`--estado-tono: var(--green)`) — §3: cerrado/completo, atenuado, nunca
+  celebratorio. Metadatos (dueño/vencimiento/detalle/aviso del modal) en
+  `.nx-meta`; fechas en `.nx-num` (tabulares); el motivo de escalamiento en
+  `.nx-critico` con su `AlertTriangle` en el mismo elemento.
+- **Freeze funcional**: ningún `onClick`/`disabled`/texto de acción cambió
+  (Tomarla · Ya se hizo · Lo revisé — cerrar · Ya no aplica), cancelar sigue
+  exigiendo motivo, y el borde izquierdo de prioridad no se tocó (señal de
+  seguridad, no tipografía).
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-roles-tipograficos-en-pendientes.test.ts` (15 casos) —
+clases con los valores de §2 (incluida la razón escrita del 550→600),
+identidad como enlace que navega, sin enlace roto sin patientId, el teal del
+metadato muerto, tipo en `.nx-estado`, verde en la cerrada, `.nx-critico` CON
+icono, deriva vetada (los fontSize 11/13/15 inline retirados no vuelven), y
+freeze funcional. **12 de 15 fallan contra el árbol previo** (verificado con
+`git stash`); los 3 que pasan protegen el invariante funcional, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start`; `node_modules` volvió a faltar — `npm ci`). Arnés nuevo:
+`scripts/design/capturar-roles-tipograficos-v15.mjs` — `getComputedStyle`,
+navegación real y axe, en los DOS temas y en móvil. Resultado y 4 capturas en
+`docs/design/capturas/v15-roles-tipograficos/` (1440 + 390):
+
+- **Oscuro, medido**: ident `15.5px/600 underline rgb(242,239,233)`; estado
+  `11.5 uppercase` con punto `--text3`; meta `12.5 rgb(138,143,148)`; crítico
+  `13/700 rgb(230,100,100)` con `conIcono: true`; num `tabular-nums`.
+- **Claro, medido**: los mismos cinco roles con los hex del tema claro — los
+  tokens respetan el tema, no hay hex pegado.
+- **La cerrada**: punto `rgb(27,163,77)` = `--green`, tono declarado
+  `var(--green)` — visible además en la captura (tarjeta subordinada por
+  opacidad, «Cerrada 10-ago» tabular).
+- **Equivalencia funcional, medida**: clic real en `a.nx-ident` → la URL
+  aterriza en `/expediente/pac-aurelio-dominguez` = el href declarado
+  (`llega: true`), y `goBack()` vuelve al worklist.
+- **Móvil 390**: sin desborde horizontal (`anchoDocumento: 390`), la
+  identidad envuelve en su propia línea sin truncarse.
+- **Axe: 0 violaciones en oscuro y en móvil.** En claro, 1 `color-contrast`
+  (serious, 1 nodo) — **fingerprint IDÉNTICO** al de la primera rebanada (el
+  `<span>` del TrialBanner con `#f59e0b` hardcoded, comparado JSON contra
+  JSON): preexistente, sigue anotado para `V15-A11Y-001`, no lo causó esta
+  rebanada.
+- **Consola**: sólo la familia conocida de reconexión del emulador (2).
+- Artefacto del arnés cazado y arreglado en la misma corrida: `fullPage`
+  captura la VENTANA, no el scroll interno de `<main>` bajo `nx-app-shell` —
+  la tarjeta cerrada quedaba medida pero fuera de la foto; el arnés ahora
+  hace `scrollIntoView` antes de capturar.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8948 pasan + 15 casos nuevos; fallos: el PRE-EXISTENTE
+  ambiental de siempre (`ops-timeout-y-punto-ciego`, proxy del contenedor,
+  mismo fingerprint línea 54) y `el-inventario-de-pantallas-no-miente`, que
+  exigía regenerar el inventario por el cambio de líneas de `/pendientes` —
+  regenerado (80 pantallas) y en verde.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: **bajó de verdad**
+  (`tamanosFueraDeEscala` 2003→1997 — los fontSize 11/13/15 inline que los
+  roles reemplazaron), resellado a la baja con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio con `.env.local` demo.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/pendientes cambió de
+  líneas).
+
+**Siguiente tarea exacta:** tercera rebanada de `V15-VISUAL-SYSTEM-001` —
+candidatos medidos, no adivinados: (a) los mismos roles aplicados a la
+SIGUIENTE superficie ya estructurada que aún habla tamaños inline para los
+mismos papeles — `ContinuidadPanel` (filas de «Sigue abierto de antes» en
+/dashboard: título 14/500 inline, meta 12, escalamiento 10.5/700 en rojo
+SIN clase) es la candidata natural porque comparte entidad (TareaClinica) y
+debería compartir idioma con /pendientes; o (b) si una medición nueva enseña
+un defecto visual más barato/valioso del shell ya entregado, esa rebanada.
+La deuda de tema claro del TrialBanner sigue en la lista de `V15-A11Y-001`.

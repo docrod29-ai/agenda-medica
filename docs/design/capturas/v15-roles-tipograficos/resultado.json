@@ -1,0 +1,131 @@
+{
+  "oscuro": {
+    "temaActual": "dark",
+    "ident": {
+      "texto": "Aurelio Domínguez Peña",
+      "href": "/expediente/pac-aurelio-dominguez",
+      "fontSize": "15.5px",
+      "fontWeight": "600",
+      "color": "rgb(242, 239, 233)",
+      "textDecorationLine": "underline",
+      "textTransform": "none",
+      "fontVariantNumeric": "normal"
+    },
+    "estado": {
+      "texto": "Reconciliar",
+      "fontSize": "11.5px",
+      "fontWeight": "600",
+      "color": "rgb(168, 172, 174)",
+      "textDecorationLine": "none",
+      "textTransform": "uppercase",
+      "fontVariantNumeric": "normal",
+      "punto": "rgb(138, 143, 148)"
+    },
+    "meta": {
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(138, 143, 148)",
+      "textDecorationLine": "none",
+      "textTransform": "none",
+      "fontVariantNumeric": "normal"
+    },
+    "critico": {
+      "texto": "Prioridad crítica sin nadie asignado.",
+      "conIcono": true,
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "color": "rgb(230, 100, 100)",
+      "textDecorationLine": "none",
+      "textTransform": "none",
+      "fontVariantNumeric": "normal"
+    },
+    "num": {
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(230, 100, 100)",
+      "textDecorationLine": "none",
+      "textTransform": "none",
+      "fontVariantNumeric": "tabular-nums"
+    }
+  },
+  "axeOscuro": [],
+  "cerrada": {
+    "texto": "Resultado",
+    "punto": "rgb(27, 163, 77)",
+    "tonoDeclarado": "var(--green)"
+  },
+  "navegacion": {
+    "hrefDeclarado": "/expediente/pac-aurelio-dominguez",
+    "urlAterrizada": "/expediente/pac-aurelio-dominguez",
+    "llega": true
+  },
+  "claro": {
+    "temaActual": "light",
+    "ident": {
+      "texto": "Aurelio Domínguez Peña",
+      "href": "/expediente/pac-aurelio-dominguez",
+      "fontSize": "15.5px",
+      "fontWeight": "600",
+      "color": "rgb(11, 12, 14)",
+      "textDecorationLine": "underline",
+      "textTransform": "none",
+      "fontVariantNumeric": "normal"
+    },
+    "estado": {
+      "texto": "Reconciliar",
+      "fontSize": "11.5px",
+      "fontWeight": "600",
+      "color": "rgb(86, 90, 96)",
+      "textDecorationLine": "none",
+      "textTransform": "uppercase",
+      "fontVariantNumeric": "normal",
+      "punto": "rgb(107, 111, 117)"
+    },
+    "meta": {
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(107, 111, 117)",
+      "textDecorationLine": "none",
+      "textTransform": "none",
+      "fontVariantNumeric": "normal"
+    },
+    "critico": {
+      "texto": "Prioridad crítica sin nadie asignado.",
+      "conIcono": true,
+      "fontSize": "13px",
+      "fontWeight": "700",
+      "color": "rgb(185, 28, 28)",
+      "textDecorationLine": "none",
+      "textTransform": "none",
+      "fontVariantNumeric": "normal"
+    },
+    "num": {
+      "fontSize": "12.5px",
+      "fontWeight": "400",
+      "color": "rgb(185, 28, 28)",
+      "textDecorationLine": "none",
+      "textTransform": "none",
+      "fontVariantNumeric": "tabular-nums"
+    }
+  },
+  "axeClaro": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodos": 1,
+      "targets": [
+        ".nx-app-shell > div:nth-child(2) > div:nth-child(3) > span"
+      ]
+    }
+  ],
+  "movil": {
+    "desbordeHorizontal": false,
+    "anchoDocumento": 390,
+    "ident": {
+      "fontSize": "15.5px",
+      "texto": "Aurelio Domínguez Peña"
+    }
+  },
+  "axeMovil": []
+}

@@ -399,6 +399,48 @@ html, body {
   font-weight: 500;
 }
 
+/* ── Roles tipográficos — VISUAL_DNA §2: «mapear a clases, no inventar
+   tamaños» (V15-VISUAL-SYSTEM-001, 2ª rebanada). `.nx-num` vive arriba y
+   `.nx-estado` junto al riel del día; aquí los tres roles que faltaban como
+   clase. Un texto que cumple uno de estos papeles usa SU clase: un fontSize
+   inline nuevo para el mismo papel es deriva, y el trinquete de diseño la
+   cuenta. */
+
+/* Identidad del paciente (R3): el elemento tipográfico dominante de su
+   entrada — cita, resultado, tarea, medicamento. Sin avatar, sin caja.
+   El peso: la especificación dice 550, pero IBM Plex Sans se carga en cortes
+   estáticos 400/500/600/700 (src/app/layout.tsx) — 550 resolvería a 600 por
+   el algoritmo de font-matching de todos modos; se declara 600 para que lo
+   escrito sea lo que se pinta (mismo peso que .riel-nombre, la primera
+   implementación de R3). */
+.nx-ident {
+  font-size: 15.5px; line-height: 1.3; font-weight: 600;
+  color: var(--text); overflow-wrap: anywhere;
+}
+/* Cuando la identidad además navega (al expediente), el subrayado atenuado
+   dice «esto se abre» sin ceder el color de identidad al teal de los enlaces
+   de metadato: dentro de una fila donde todo lo demás es texto plano, un
+   enlace que sólo se distingue por color no se distingue (WCAG 1.4.1). */
+a.nx-ident {
+  text-decoration: underline;
+  text-decoration-color: var(--text3);
+  text-underline-offset: 3px;
+}
+a.nx-ident:hover,
+a.nx-ident:focus-visible { text-decoration-color: var(--text); }
+
+/* Metadato clínico: dueño, vencimiento, detalle. Se lee después de la
+   identidad y del título, nunca compite con ellos. */
+.nx-meta { font-size: 12.5px; color: var(--text3); line-height: 1.5; }
+
+/* Valor crítico: peso e ICONO al lado en el JSX — nunca sólo color (§2 y
+   regla «no-color state» de §24 del master loop V15). El guardián de cada
+   superficie que lo use vigila que el icono exista de verdad. */
+.nx-critico {
+  font-size: 13px; font-weight: 700; color: var(--red);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+
 /* Scrollbar minimalista */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

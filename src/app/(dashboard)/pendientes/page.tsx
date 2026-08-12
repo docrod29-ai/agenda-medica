@@ -171,11 +171,28 @@ export default function PendientesPage() {
         borderLeft: `4px solid ${t.prioridad === 'critica' ? 'var(--red)' : t.prioridad === 'alta' ? 'var(--amber)' : 'var(--border)'}`,
         borderRadius: 10, padding: 14, background: 'var(--panel)', display: 'grid', gap: 8,
       }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>
-            {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
-          </span>
-          <strong style={{ color: 'var(--text)', fontSize: 15 }}>{t.titulo}</strong>
+        {/*
+          Roles tipográficos de VISUAL_DNA §2 (V15-VISUAL-SYSTEM-001, 2ª
+          rebanada). R3: la identidad del paciente es el elemento tipográfico
+          DOMINANTE de su entrada — «tarea» está en la lista literal de R3, y
+          el modelo de producto V15 (§4) lo dice en clínico: el médico no
+          piensa «abro el módulo de labs», piensa «el resultado de ESTE
+          paciente necesita mi decisión». Antes el paciente era un enlace de
+          13px enterrado en la fila de metadatos; ahora encabeza la entrada y
+          sigue navegando al expediente. El título de la tarea baja a segunda
+          línea: dice QUÉ, el paciente dice QUIÉN, y quién manda.
+        */}
+        <div style={{ display: 'grid', gap: 2 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+            {t.patientNombre && t.patientId && (
+              <Link href={`/expediente/${t.patientId}`} className="nx-ident">
+                {t.patientNombre}
+              </Link>
+            )}
+            {t.patientNombre && !t.patientId && <span className="nx-ident">{t.patientNombre}</span>}
+            <span className="nx-estado">{ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}</span>
+          </div>
+          <strong style={{ color: 'var(--text)', fontSize: 14, fontWeight: 500 }}>{t.titulo}</strong>
         </div>
 
         {/*
@@ -188,26 +205,24 @@ export default function PendientesPage() {
           <ProgresoResultado estado={t.estado} ownerUid={t.ownerUid} prioridad={t.prioridad} />
         )}
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13, color: 'var(--text3)' }}>
-          {t.patientNombre && (
-            <Link href={`/expediente/${t.patientId}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
-              {t.patientNombre}
-            </Link>
-          )}
+        {/* El paciente ya no vive aquí: subió a la cabecera como identidad.
+            El metadato queda para dueño y vencimiento — .nx-meta, fechas en
+            .nx-num (tabulares). */}
+        <div className="nx-meta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <User size={13} /> {t.ownerNombre || 'sin dueño'}
           </span>
           {t.venceEn && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: vencida ? 'var(--red)' : undefined }}>
+            <span className="nx-num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: vencida ? 'var(--red)' : undefined }}>
               <Clock size={13} /> {vencida ? 'venció' : 'vence'} {fechaCorta(t.venceEn)}
             </span>
           )}
         </div>
 
-        {t.detalle && <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>{t.detalle}</p>}
+        {t.detalle && <p className="nx-meta" style={{ margin: 0 }}>{t.detalle}</p>}
 
         {esc.escalar && (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p className="nx-critico" style={{ margin: 0 }}>
             <AlertTriangle size={14} /> {esc.motivo}
           </p>
         )}
@@ -223,7 +238,7 @@ export default function PendientesPage() {
             </Button>
           )}
           {t.estado === 'completada' && (
-            <span style={{ fontSize: 12, color: 'var(--text3)', alignSelf: 'center' }}>
+            <span className="nx-meta" style={{ alignSelf: 'center' }}>
               Hecha, pero nadie la ha revisado todavía.
             </span>
           )}
@@ -247,19 +262,26 @@ export default function PendientesPage() {
       border: '1px solid var(--border)', borderRadius: 10, padding: 14,
       background: 'var(--panel)', display: 'grid', gap: 6, opacity: 0.85,
     }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text3)' }}>
-          {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
-        </span>
-        <strong style={{ color: 'var(--text)', fontSize: 14 }}>{t.titulo}</strong>
+      {/* Misma estructura de cabecera que Tarjeta (identidad → tipo → título):
+          una tarjeta cerrada es la misma entidad, subordinada por opacidad,
+          no un diseño aparte. El punto del tipo va en verde: «cerrado/
+          completo (atenuado, nunca celebratorio)» — VISUAL_DNA §3. */}
+      <div style={{ display: 'grid', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+          {t.patientNombre && t.patientId && (
+            <Link href={`/expediente/${t.patientId}`} className="nx-ident">
+              {t.patientNombre}
+            </Link>
+          )}
+          {t.patientNombre && !t.patientId && <span className="nx-ident">{t.patientNombre}</span>}
+          <span className="nx-estado" style={{ ['--estado-tono' as string]: 'var(--green)' }}>
+            {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
+          </span>
+        </div>
+        <strong style={{ color: 'var(--text)', fontSize: 14, fontWeight: 500 }}>{t.titulo}</strong>
       </div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text3)' }}>
-        {t.patientNombre && (
-          <Link href={`/expediente/${t.patientId}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
-            {t.patientNombre}
-          </Link>
-        )}
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <div className="nx-meta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <span className="nx-num" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <CheckCircle2 size={13} /> Cerrada {fechaCorta(t.cerradaEn)}
         </span>
       </div>
@@ -334,7 +356,7 @@ export default function PendientesPage() {
           </Button>
           {cerradas !== null && (
             cerradas.length === 0 ? (
-              <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text3)' }}>
+              <p className="nx-meta" style={{ margin: '10px 0 0' }}>
                 Nada cerrado todavía.
               </p>
             ) : (
@@ -352,7 +374,7 @@ export default function PendientesPage() {
       */}
       <Modal open={!!cancelando} onClose={() => setCancelando(null)} title="¿Por qué ya no aplica?">
         <div style={{ display: 'grid', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>
+          <p className="nx-meta" style={{ margin: 0 }}>
             Queda constancia de quién lo canceló y por qué. Un pendiente cancelado no revive.
           </p>
           <Textarea
