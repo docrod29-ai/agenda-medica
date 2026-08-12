@@ -325,8 +325,8 @@ export default function ConfiguracionPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando configuración…
+      <div role="status" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
+        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
@@ -354,50 +354,46 @@ export default function ConfiguracionPage() {
       {esSuperadminCliente(authUser?.email) && (
         <a href="/superadmin" style={{
           display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none',
-          background: 'linear-gradient(90deg, #7c3aed12, transparent)', border: '1px solid #7c3aed44',
-          borderRadius: 12, padding: '12px 16px', marginBottom: 18,
+          background: 'linear-gradient(90deg, color-mix(in srgb, var(--purple) 7%, transparent), transparent)',
+          border: '1px solid color-mix(in srgb, var(--purple) 27%, transparent)',
+          borderRadius: 10, padding: '12px 16px', marginBottom: 18, minHeight: 44, boxSizing: 'border-box',
         }}>
-          <ShieldCheck size={18} style={{ color: 'var(--purple)' }} />
+          <ShieldCheck size={18} style={{ color: 'var(--purple)' }} aria-hidden="true" />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>Consola de suscripciones (dueño)</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>Todos los consultorios, cobranza, ingresos y pases libres</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Consola de suscripciones (dueño)</div>
+            <div className="nx-meta">Todos los consultorios, cobranza, ingresos y pases libres</div>
           </div>
-          <ExternalLink size={15} style={{ color: 'var(--text3)' }} />
+          <ExternalLink size={15} style={{ color: 'var(--text3)' }} aria-hidden="true" />
         </a>
       )}
 
       {/* Layout: sidebar agrupado (desktop) / select (móvil) + contenido */}
       <div className="config-layout" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, alignItems: 'start' }}>
         {/* Sidebar agrupado — solo desktop */}
-        <nav className="config-sidebar" style={{
-          background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12,
-          padding: 12, position: 'sticky', top: 16,
+        {/* El riel de secciones habla el idioma del shell (.nav-item + .active:
+            barra de acento + texto var(--text)), no un dialecto propio. El borde
+            rgba(61,90,254,…) que traía era el ÍNDIGO VIEJO — un acento que ya no
+            existe como token — y el activo pintaba teal-como-texto (la lección
+            TrialBanner). V15-REMAINING-SCREENS-001, 5ª rebanada. */}
+        <nav className="config-sidebar" aria-label="Secciones de configuración" style={{
+          background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 10,
+          padding: '2px 8px 10px', position: 'sticky', top: 16,
         }}>
           {TAB_GROUPS.map(grupo => {
             const visibles = grupo.tabs.filter(t => !t.modoMin || mode === t.modoMin)
             if (visibles.length === 0) return null
             return (
-              <div key={grupo.titulo} style={{ marginBottom: 12 }}>
-                <div style={{
-                  fontSize: 10.5, fontWeight: 700, color: 'var(--text3)',
-                  textTransform: 'uppercase', letterSpacing: 0.5,
-                  padding: '6px 10px', marginBottom: 2,
-                }}>
+              <div key={grupo.titulo}>
+                <div className="nav-section-title">
                   {grupo.titulo}
                 </div>
                 {visibles.map(t => (
                   <button
                     key={t.key}
                     onClick={() => setTab(t.key)}
-                    style={{
-                      display: 'block', width: '100%', textAlign: 'left',
-                      padding: '8px 10px', borderRadius: 8, fontSize: 13,
-                      background: tab === t.key ? 'var(--nexus-soft)' : 'transparent',
-                      color: tab === t.key ? 'var(--nexus)' : 'var(--text2)',
-                      border: tab === t.key ? '1px solid rgba(61,90,254,0.3)' : '1px solid transparent',
-                      cursor: 'pointer', marginBottom: 2,
-                      fontWeight: tab === t.key ? 600 : 500,
-                    }}
+                    className={`nav-item${tab === t.key ? ' active' : ''}`}
+                    aria-current={tab === t.key ? 'true' : undefined}
+                    style={{ marginBottom: 2 }}
                   >
                     {t.label}
                   </button>
@@ -412,10 +408,11 @@ export default function ConfiguracionPage() {
           <select
             value={tab}
             onChange={(e) => setTab(e.target.value as Tab)}
+            aria-label="Sección de configuración"
             style={{
-              width: '100%', padding: '12px 14px', borderRadius: 10,
+              width: '100%', padding: '12px 14px', borderRadius: 10, minHeight: 44,
               border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
-              fontSize: 14, fontWeight: 600,
+              fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
             }}
           >
             {TAB_GROUPS.map(grupo => {
@@ -436,7 +433,7 @@ export default function ConfiguracionPage() {
         <div style={{ minWidth: 0 }}>
           {tabActual && (
             <div className="config-tab-header" style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{tabActual.label}</h2>
+              <h2 className="t-h2" style={{ margin: 0 }}>{tabActual.label}</h2>
             </div>
           )}
 
@@ -602,6 +599,7 @@ export default function ConfiguracionPage() {
                   type="checkbox"
                   checked={h.activo}
                   onChange={e => updHorario(dia, 'activo', e.target.checked)}
+                  aria-label={`Atender los ${DIAS_LABELS[dia].toLowerCase()}`}
                   style={{ accentColor: 'var(--teal)', width: 16, height: 16 }}
                 />
                 <div style={{ width: 80, fontSize: 14, fontWeight: 500, color: h.activo ? 'var(--text)' : 'var(--text3)' }}>
@@ -612,12 +610,14 @@ export default function ConfiguracionPage() {
                     <input
                       type="time" className="input" value={h.inicio}
                       onChange={e => updHorario(dia, 'inicio', e.target.value)}
+                      aria-label={`Hora de inicio del ${DIAS_LABELS[dia].toLowerCase()}`}
                       style={{ width: 110 }}
                     />
-                    <span style={{ color: 'var(--text3)', fontSize: 14 }}>—</span>
+                    <span style={{ color: 'var(--text3)', fontSize: 14 }} aria-hidden="true">—</span>
                     <input
                       type="time" className="input" value={h.fin}
                       onChange={e => updHorario(dia, 'fin', e.target.value)}
+                      aria-label={`Hora de fin del ${DIAS_LABELS[dia].toLowerCase()}`}
                       style={{ width: 110 }}
                     />
                     {/* Preview en vivo de cuántos espacios resultan */}
@@ -836,7 +836,7 @@ export default function ConfiguracionPage() {
           <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(61,90,254,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb, var(--nexus) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Calendar size={20} style={{ color: 'var(--teal)' }} />
                 </div>
                 <div>
@@ -935,7 +935,7 @@ export default function ConfiguracionPage() {
               </div>
             )}
 
-            <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 15%, transparent)', borderRadius: 8 }}>
               <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
                 Al conectar Google Calendar, todas las citas nuevas y cambios se sincronizarán automáticamente.
                 Las citas canceladas se marcarán en rojo en tu calendario.
@@ -1068,7 +1068,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
   return (
     <div style={{ padding: 20, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(61,90,254,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Smartphone size={20} color="var(--teal)" />
         </div>
         <div>
@@ -1100,7 +1100,7 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
                   <MessageCircle size={13} /> Probar
                 </a>
               </div>
-              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 15%, transparent)', borderRadius: 8 }}>
                 <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
                   En tu página de Facebook: <strong style={{ color: 'var(--text2)' }}>Editar página → Botón → WhatsApp</strong> y pega este número. O usa el enlace directo en cualquier botón/web.
                 </p>
@@ -1267,7 +1267,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: connected ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'rgba(61,90,254,0.08)',
+            background: connected ? 'color-mix(in srgb, var(--green) 12%, transparent)' : 'color-mix(in srgb, var(--nexus) 8%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <MessageCircle size={20} color={connected ? '#4ade80' : 'var(--teal)'} />
@@ -1345,7 +1345,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
       {/* Info box + conexión manual */}
       {!connected && (
         <>
-          <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.15)', borderRadius: 8 }}>
+          <div style={{ marginTop: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 15%, transparent)', borderRadius: 8 }}>
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
               {(META_APP_ID && META_CONFIG_ID)
                 ? 'Al hacer clic se abrirá una ventana de Meta. Solo necesitas iniciar sesión con Facebook y verificar tu número de WhatsApp.'
@@ -1445,7 +1445,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ background: 'rgba(61,90,254,0.05)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 12, padding: 16 }}>
+      <div style={{ background: 'color-mix(in srgb, var(--nexus) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 20%, transparent)', borderRadius: 12, padding: 16 }}>
         <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
           <Bot size={16} className="ds-icon" style={{ marginTop: 2, flexShrink: 0, color: 'var(--teal)' }} />
           <span><strong style={{ color: 'var(--teal)' }}>Bot de WhatsApp</strong> — estas respuestas se usan cuando los pacientes pregunten por WhatsApp sobre horarios, costos, ubicación, etc.</span>
@@ -1622,10 +1622,10 @@ function MedicosTab() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{
-              fontSize: 11, padding: '3px 8px', borderRadius: 20,
-              background: doc.activo ? 'rgba(61,90,254,0.1)' : 'rgba(255,255,255,0.05)',
-              color: doc.activo ? 'var(--teal)' : 'var(--text3)',
-              border: doc.activo ? '1px solid rgba(61,90,254,0.3)' : '1px solid var(--border)',
+              fontSize: 12, padding: '3px 8px', borderRadius: 'var(--r-pill)', fontWeight: 600,
+              background: doc.activo ? 'color-mix(in srgb, var(--nexus) 10%, transparent)' : 'var(--s2)',
+              color: 'var(--text)',
+              border: doc.activo ? '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)' : '1px solid var(--border)',
             }}>
               {doc.activo ? 'Activo' : 'Inactivo'}
             </span>
@@ -1769,7 +1769,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
               fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-pill)',
               background: status === 'active' ? 'var(--nexus-soft)' : 'color-mix(in srgb, var(--amber) 12%, transparent)',
               color: status === 'active' ? 'var(--teal)' : '#f59e0b',
-              border: `1px solid ${status === 'active' ? 'rgba(61,90,254,0.3)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
+              border: `1px solid ${status === 'active' ? 'color-mix(in srgb, var(--nexus) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
             }}>
               {status === 'active' ? 'ACTIVO' : status === 'trial' ? 'PRUEBA' : status === 'suspended' ? 'SUSPENDIDO' : 'CANCELADO'}
             </span>
@@ -1822,7 +1822,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
                 const info = PLAN_DISPLAY[p]
                 return (
                   <div key={p} style={{
-                    background: 'var(--s1)', border: p === 'premium' ? '1px solid rgba(61,90,254,0.4)' : '1px solid var(--border)',
+                    background: 'var(--s1)', border: p === 'premium' ? '1px solid color-mix(in srgb, var(--nexus) 40%, transparent)' : '1px solid var(--border)',
                     borderRadius: 10, padding: '16px 20px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                   }}>
@@ -1966,7 +1966,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
       </div>
 
       {/* Aviso: aquí también se agrega al equipo hospitalario */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'rgba(61,90,254,.08)', border: '1px solid rgba(61,90,254,.3)' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)' }}>
         <BedDouble size={18} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
           Aquí agregas a <strong>todo tu equipo</strong> (asistentes, médicos, enfermería, farmacia, laboratorio) para que
@@ -2007,7 +2007,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         </button>
 
         {generada && (
-          <div style={{ marginTop: 14, padding: 12, background: 'rgba(61,90,254,0.06)', border: '1px solid rgba(61,90,254,0.25)', borderRadius: 10 }}>
+          <div style={{ marginTop: 14, padding: 12, background: 'color-mix(in srgb, var(--nexus) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 25%, transparent)', borderRadius: 10 }}>
             <div style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={14} className="ds-icon" /> Enlace listo</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', wordBreak: 'break-all', marginBottom: 10 }}>
               {linkDe(generada)}
@@ -2383,7 +2383,7 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
       <EmbedSnippets url={url} clinicNombre={clinicNombre} />
 
       {/* Cómo funciona */}
-      <div style={{ padding: 16, background: 'var(--nexus-soft)', border: '1px solid rgba(61,90,254,0.2)', borderRadius: 12 }}>
+      <div style={{ padding: 16, background: 'var(--nexus-soft)', border: '1px solid color-mix(in srgb, var(--nexus) 20%, transparent)', borderRadius: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', marginBottom: 10 }}>
           ¿Cómo funciona?
         </div>

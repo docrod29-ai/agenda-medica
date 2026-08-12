@@ -112,7 +112,7 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
 
   const u = estado?.uso
   return (
-    <div style={{ background: 'linear-gradient(135deg, rgba(61,90,254,0.06), rgba(61,90,254,0.02))', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 16 }}>
+    <div style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--nexus) 6%, transparent), color-mix(in srgb, var(--nexus) 2%, transparent))', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <KeyRound size={18} style={{ color: 'var(--nexus)' }} />
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Llaves de IA (tu propio saldo)</div>

@@ -69,7 +69,7 @@
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 74 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 933 | 2 | — | ✅ | — |
-| `/operaciones` | medico | ✅ | 162 | 1 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 157 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 836 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 849 | 9 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 404 | 2 | — | ✅ | — |

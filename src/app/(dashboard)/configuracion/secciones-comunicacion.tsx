@@ -65,7 +65,7 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
                 padding: '4px 12px', fontSize: 13,
                 background: dias === d ? 'var(--nexus-soft)' : 'transparent',
                 color: dias === d ? 'var(--nexus)' : 'var(--text2)',
-                border: `1px solid ${dias === d ? 'rgba(61,90,254,0.3)' : 'var(--border)'}`,
+                border: `1px solid ${dias === d ? 'color-mix(in srgb, var(--nexus) 30%, transparent)' : 'var(--border)'}`,
               }}>{d} días</button>
           ))}
         </div>

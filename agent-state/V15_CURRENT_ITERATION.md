@@ -6,22 +6,30 @@
 
 `V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **EN CURSO** desde
 12-ago-2026. El inventario de superficies Practice no tocadas por las fases
-estructurales quedó medido por grep (tabla en su sección) y van cuatro
+estructurales quedó medido por grep (tabla en su sección) y van cinco
 rebanadas pagadas: **/nota** (una primaria §16, modal de adenda accesible,
 papel intacto), **/receta** (17/17 campos con nombre accesible; el `#b91c1c`
 fijo de la alerta de DOSIS murió; primaria PRIMERO), **/orden — la familia
 documental queda completa** (una sola primaria en la página, campos y chips
 con nombre accesible, el Check `#000` sobre teal pagado con `--nexus-solido`
-+ blanco) y **/login + /registro — la puerta de entrada habla el sistema**
++ blanco), **/login + /registro — la puerta de entrada habla el sistema**
 (la CTA de /registro pintaba `#000` sobre `var(--teal)` — 2.99:1 en claro,
 el MISMO defecto por tercera vez — ahora es `btn-primary` medida por tema;
 el formulario de /registro dejó su dialecto inline por
 `.form-group/.label/.input` y GANÓ anillo de foco real; el aviso de
 restablecer de /login cambia de tema de verdad; táctiles 44/48; `<main>`
 landmark en las dos; alta REAL → /setup y login REAL → /dashboard con clic,
-contra emulador). Siguiente rebanada: **/configuracion + /operaciones** —
-la familia de Operaciones (§11), el final del barrido de §32. Ver sección
-al FINAL de este archivo.
+contra emulador) y **/configuracion + /operaciones — la familia de
+Operaciones habla el sistema** (el riel de secciones deja su dialecto por
+`.nav-item`/`.active` + `aria-current`; el ÍNDIGO VIEJO `rgba(61,90,254,…)`
+murió en los 20 sitios de la familia con `color-mix` sobre `var(--nexus)`;
+el `<select>` móvil y el `<nav>` ganaron nombre accesible; el horario
+semanal pagó sus 17 campos sin nombre — axe `label` ×17 → 0; roles §2 en
+/operaciones con `t-h1`/`t-overline`/`t-body` y táctiles 44). El barrido
+§32 del CROMO queda cerrado; el CONTENIDO de las 16 pestañas de
+/configuracion (≈150 `fontSize` inline restantes) queda anotado como deuda
+de rebanadas futuras si el programa lo prioriza. Ver sección al FINAL de
+este archivo.
 
 Iteración anterior:
 `V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **CERRADA 12-ago-2026** tras
@@ -4412,12 +4420,139 @@ emulador. Resultado y 6 capturas en
 - `docs/design/SCREEN_INVENTORY.md`: regenerado (/login y /registro
   cambiaron de líneas).
 
-**Siguiente tarea exacta:** quinta rebanada de `V15-REMAINING-SCREENS-001`
-— **/configuracion + /operaciones** (§32, la familia de Operaciones §11, el
-final del barrido): /configuracion es la superficie MÁS endeudada del
-inventario (172 `fontSize` inline, 0 roles §2) — probablemente necesite más
-de una rebanada (por pestañas); /operaciones es chica (6) y va con ella.
-Mismo método — leer entero, jerarquía §16, campos con nombre accesible,
-tokens por tema, roles §2, guardián probado al revés + arnés en navegador
-real (desktop oscuro/claro + móvil 390 + axe). La deuda de `V15-A11Y-001`
-no cambia con esta rebanada; la puerta de entrada NO le añadió nada (axe 0).
+**Siguiente tarea exacta:** (superada — ver la sección siguiente: la quinta
+rebanada /configuracion + /operaciones se pagó en la corrida del
+12-ago-2026.)
+
+## `V15-REMAINING-SCREENS-001` — quinta rebanada: /configuracion + /operaciones, la familia de Operaciones habla el sistema (12-ago-2026)
+
+La familia de §11 (Operations), el final del barrido de CROMO de §32.
+/configuracion era la superficie MÁS endeudada del inventario (172
+`fontSize` inline, 0 roles §2); /operaciones — el índice que V15-IA-001
+creó — hablaba su propio dialecto. Leídas enteras antes de rebanar. La
+rebanada pagó el CROMO de /configuracion + /operaciones entero y el índigo
+muerto de TODA la familia; el contenido de las 16 pestañas queda como deuda
+declarada (abajo).
+
+- **El riel de secciones habla el idioma del shell**: los 16 botones dejan
+  su dialecto (activo con teal-COMO-TEXTO — lección TrialBanner — sobre
+  `var(--nexus-soft)` con borde `rgba(61,90,254,0.3)`, el ÍNDIGO VIEJO que
+  ya ni existe como token) por `.nav-item` + `.active` — la MISMA palabra
+  que habla el FlowRail: fondo `var(--s2)`, texto `var(--text)`, barra de
+  acento `::before` de 3px en `var(--nexus)`. `aria-current` en el activo,
+  `aria-label` en el `<nav>`, títulos de grupo en `.nav-section-title`.
+- **El índigo muerto murió en toda la familia**: 20 sitios entre page.tsx,
+  secciones-comunicacion.tsx y secciones-cuenta.tsx (tintes y bordes de
+  tarjetas informativas, badges de plan, cajas de aviso) →
+  `color-mix(in srgb, var(--nexus) N%, transparent)`. Ninguno cambiaba de
+  tema; ahora todos. El morado fijo del enlace superadmin
+  (`#7c3aed12`/`#7c3aed44` — 8 dígitos que el trinquete de color NI VE) →
+  `color-mix` sobre `var(--purple)`. El badge Activo/Inactivo de médicos
+  dejó el teal-como-texto y el lavado blanco `rgba(255,255,255,0.05)` (que
+  en claro no existe) por `var(--text)` + tinte/borde de estado y
+  `var(--s2)`.
+- **§24 en el cromo**: el `<select>` móvil de secciones NO tenía nombre
+  accesible → `aria-label="Sección de configuración"` + minHeight 44
+  (medido: 48). El estado de carga anuncia (`role="status"`). El encabezado
+  del tab habla `t-h2`.
+- **El horario semanal pagó sus 17 campos sin nombre** (hallazgo del PRIMER
+  axe de esta pantalla, en esta misma corrida — precedente de la 4ª
+  rebanada: lo que el primer axe encuentra en la pantalla de la rebanada se
+  paga en la corrida): checkbox de cada día + inicio/fin →
+  `aria-label` por día («Atender los lunes», «Hora de inicio del lunes»…).
+  Los descansos YA los tenían.
+- **Roles §2 en /operaciones**: título `t-h1` (antes 20/700 inline), grupos
+  `t-overline` (antes 12/700), introducción `t-body`, tiles y Cerrar sesión
+  con minHeight 44, iconos decorativos `aria-hidden`, y CERO `btn-primary`
+  (es un índice, no un lienzo de acción — medido:
+  `primarias: []`).
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-operaciones-configuracion-cromo-habla-el-sistema.test.ts`
+(29 casos): riel en `.nav-item` + `aria-current`, veto del teal-como-texto
+y del fondo de acento a mano, veto del índigo muerto en los 4 archivos de
+la familia, `color-mix` sobre `--nexus` y `--purple`, nombres accesibles
+(select móvil, nav, horario semanal ×3), roles §2 de /operaciones, y el
+freeze funcional completo (guardado por DIFF + `saveConfigPartial` merge,
+guarda P1 de configError, tab por query param, catálogo de 16 pestañas,
+lista de pestañas auto-persistidas sin Guardar global, los 20 destinos de
+/operaciones con filtro por modo + `rutaPermitida`, `salirSeguro('/login')`).
+**19 de 28 fallan contra el árbol previo** (verificado con `git stash`,
+antes del caso 29 del horario); los 9 que pasan protegen invariantes
+funcionales preexistentes.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método (emuladores + siembra + build de producción + `npm start` vía
+`arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-operaciones-configuracion-v15.mjs` — login real,
+tour de bienvenida descartado con «Saltar» (lección de los hermanos).
+Resultado y 6 capturas en
+`docs/design/capturas/v15-operaciones-configuracion/`:
+
+- **El riel en los DOS temas**: 16/16 botones `.nav-item`
+  (`todosNavItem: true`), activo con texto `rgb(242,239,233)` oscuro /
+  `rgb(11,12,14)` claro (var(--text), NO teal), barra de 3px
+  `rgb(42,165,181)` oscuro / `rgb(18,98,110)` claro
+  (`barraCambiaDeTema: true`), `botonesConIndigoMuerto: []`,
+  `aria-current: "true"`, 5 títulos de grupo.
+- **Cambio de sección con clic real**: pulsar «Horario de atención» pinta
+  ese encabezado en el `t-h2` del lienzo (16px medidos) y mueve el activo
+  y su `aria-current` (equivalencia funcional del riel).
+- **Clic real desde /operaciones**: el tile «Configuración» aterriza en
+  /configuracion (`llega: true`).
+- **/operaciones habla los roles medidos**: h1 `20px/600`, grupos
+  `10.5px/600` uppercase, 18 tiles TODOS ≥44 de alto, `primarias: []`.
+- **Móvil 390**: riel oculto, select visible de 48px con su nombre
+  accesible, sin desborde en ninguna de las dos
+  (`anchoDocumento: 390`).
+- **Axe (primera medición de /configuracion y /operaciones en V15)**: el
+  hallazgo `label` ×17 del horario semanal se encontró en la primera pasada
+  y SE PAGÓ en la misma corrida — segunda pasada: **sólo `region` ×2**
+  (banner de prueba, PREEXISTENTE y ya anotado) en las SEIS mediciones
+  (2 pantallas × oscuro/claro/móvil).
+- **Consola**: sólo el aviso ambiental de reconexión de Firestore del
+  emulador.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9150 pasan (627 archivos), 1 fallo** — el AMBIENTAL
+  conocido `ops-timeout-y-punto-ciego` (el proxy del contenedor responde en
+  vez de agotar — mismo fingerprint documentado). El guardián nuevo 29/29.
+  Lección pagada a medio camino: el badge Activo/Inactivo salió primero con
+  `borderRadius: 9999` crudo y `escala-visual-trinquete` («LA PÍLDORA SE
+  ESCRIBE DE UNA SOLA FORMA») lo cazó → `var(--r-pill)`. El guardián de la
+  casa funciona.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: BAJÓ de verdad
+  (`tamanosFueraDeEscala` 1975→1971, `radiosFueraDeEscala` 633→629),
+  resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio ×2 (build de producción para el arnés)
+  con `.env.local` demo (recreado en este contenedor: 7 variables +
+  emuladores + `PORTAL_PACIENTE_SECRET` demo).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/configuracion cambió de
+  líneas).
+
+### Deuda declarada de la rebanada (no silenciosa — §35/§5 clinical-safety)
+
+El CONTENIDO de las 16 pestañas de /configuracion conserva ≈150 `fontSize`
+inline y `cfgInput`/`cfgLabel` (un dialecto de formulario propio en
+`estilos.ts` que las secciones extraídas comparten). NO se tocó en esta
+rebanada: es tab-por-tab y el cromo era la deuda estructural. Si el barrido
+§32 se re-prioriza, las pestañas grandes (recetas 1428 líneas, cuenta 707)
+son rebanadas naturales. La deuda de `V15-A11Y-001` NO cambia con esta
+rebanada: el horario se pagó aquí mismo y el resto de las seis mediciones
+axe salió `region` ×2 (preexistente, ya anotado).
+
+**Siguiente tarea exacta:** el barrido de CROMO de §32 quedó cerrado con
+esta rebanada. Toca decidir contra §43: la siguiente iteración del orden es
+`V15-A11Y-001` (orden 13) — su backlog ya tiene anotados los hallazgos
+acumulados (formulario de /referencia sin etiquetas: `label` ×3 crítico +
+`select-name` ×2; el acento del papel del template del médico
+DEBT-008/`.receta-sheet`; `region` ×2 del banner de prueba en TODAS las
+superficies — el hallazgo axe más repetido de la rama, candidato natural a
+primera rebanada). Antes de abrirla, correr el inventario de deuda a11y
+completo (grep de los hallazgos anotados en este archivo) para dimensionar
+las rebanadas.

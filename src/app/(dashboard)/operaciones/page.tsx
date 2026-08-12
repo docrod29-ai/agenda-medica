@@ -9,8 +9,9 @@
  * nada se movió, nada se borró — sólo cambió desde dónde se llega.
  *
  * No es un dashboard nuevo: es un índice. La jerarquía visual es plana a
- * propósito — greybox — hasta que V15-VISUAL-SYSTEM-001 decida si necesita
- * más que agrupar y listar.
+ * propósito: agrupar y listar, sin promover ninguna capacidad administrativa
+ * a «destino que pesa». El cromo habla las clases del sistema (t-h1,
+ * t-overline, t-body) — V15-REMAINING-SCREENS-001, 5ª rebanada.
  */
 import Link from 'next/link'
 import {
@@ -93,10 +94,10 @@ export default function OperacionesPage() {
 
   return (
     <div style={{ maxWidth: 880, margin: '0 auto', padding: '28px 20px 60px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
+      <h1 className="t-h1" style={{ margin: '0 0 4px' }}>
         Operaciones
       </h1>
-      <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 28px', maxWidth: 560 }}>
+      <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 28px', maxWidth: 560 }}>
         Todo lo administrativo del consultorio, aparte del trabajo clínico del día.
         Nada de esto cambió de sitio — sólo se llega desde aquí en vez del menú principal.
       </p>
@@ -104,10 +105,7 @@ export default function OperacionesPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
         {grupos.map(g => (
           <section key={g.titulo}>
-            <h2 style={{
-              fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
-              color: 'var(--text3)', margin: '0 0 10px',
-            }}>
+            <h2 className="t-overline" style={{ margin: '0 0 10px' }}>
               {g.titulo}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: 10 }}>
@@ -117,12 +115,12 @@ export default function OperacionesPage() {
                   href={it.href}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '12px 14px', borderRadius: 10,
+                    padding: '12px 14px', borderRadius: 10, minHeight: 44, boxSizing: 'border-box',
                     background: 'var(--s1)', border: '1px solid var(--border)',
                     color: 'var(--text)', textDecoration: 'none', fontSize: 14, fontWeight: 500,
                   }}
                 >
-                  <it.icon size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} />
+                  <it.icon size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
                   {it.label}
                 </Link>
               ))}
@@ -136,22 +134,19 @@ export default function OperacionesPage() {
             (§11) — con el MISMO salirSeguro que usan FlowRail y Sidebar (espera
             el acuse y purga IndexedDB; no una salida propia con otro criterio). */}
         <section>
-          <h2 style={{
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
-            color: 'var(--text3)', margin: '0 0 10px',
-          }}>
+          <h2 className="t-overline" style={{ margin: '0 0 10px' }}>
             Sesión
           </h2>
           <button
             onClick={() => { void salirSeguro('/login') }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
+              padding: '12px 14px', borderRadius: 10, minHeight: 44, boxSizing: 'border-box', cursor: 'pointer',
               background: 'var(--s1)', border: '1px solid var(--border)',
-              color: 'var(--text)', fontSize: 14, fontWeight: 500,
+              color: 'var(--text)', fontSize: 14, fontWeight: 500, fontFamily: 'inherit',
             }}
           >
-            <LogOut size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} />
+            <LogOut size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
             Cerrar sesión
           </button>
         </section>
