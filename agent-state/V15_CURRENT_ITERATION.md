@@ -6,13 +6,16 @@
 
 `V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **EN CURSO** desde
 12-ago-2026. El inventario de superficies Practice no tocadas por las fases
-estructurales quedó medido por grep (tabla en su sección) y van dos rebanadas
-pagadas: **/nota** (una primaria §16, modal de adenda accesible, papel
-intacto) y **/receta — el EDITOR tiene nombre y el cromo habla tokens por
-tema** (17/17 campos con nombre accesible medidos en navegador; el `#b91c1c`
-fijo de la alerta de DOSIS — ilegible en oscuro — murió; primaria PRIMERO
-como /nota; rejilla móvil heredada). Siguiente rebanada: /orden — tercera de
-la familia documental, mismo método. Ver sección al FINAL de este archivo.
+estructurales quedó medido por grep (tabla en su sección) y van tres
+rebanadas pagadas: **/nota** (una primaria §16, modal de adenda accesible,
+papel intacto), **/receta** (17/17 campos con nombre accesible; el `#b91c1c`
+fijo de la alerta de DOSIS murió; primaria PRIMERO) y **/orden — la familia
+documental queda completa** (una sola primaria en la página — «Agregar» dejó
+de ser la segunda —, campos y chips con nombre accesible, el Check `#000`
+sobre teal (2.99:1 en claro) pagado con `--nexus-solido` + blanco medido por
+stroke, chips sin teal-como-texto, `aria-expanded`/`aria-pressed` en el
+catálogo). Siguiente rebanada: **/login + /registro** — la puerta de
+entrada. Ver sección al FINAL de este archivo.
 
 Iteración anterior:
 `V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **CERRADA 12-ago-2026** tras
@@ -4188,14 +4191,118 @@ por tema. Resultado y 3 capturas en `docs/design/capturas/v15-receta-cromo/`:
   `PORTAL_PACIENTE_SECRET` demo).
 - `docs/design/SCREEN_INVENTORY.md`: regenerado (/receta cambió de líneas).
 
-**Siguiente tarea exacta:** tercera rebanada de `V15-REMAINING-SCREENS-001`
-— **/orden** (§32, tercera de la familia documental, 11 `fontSize` inline):
-mismo patrón — separar cromo de papel, jerarquía §16 (una primaria, mismo
-orden que /nota y /receta), campos con nombre si es editor, tokens por tema
-en el cromo que el trinquete de color no ve, roles §2, guardián + arnés
-propios. Después: /login + /registro (cuarta, puerta de entrada). La deuda
-de `V15-A11Y-001` suma ahora el contraste del acento teal DENTRO del papel
-de la receta (decisión de plantilla, no de tema) a las familias anotadas
-(`page-has-heading-one` de /nota, formulario de /referencia,
-nested-interactive de /pacientes, landmark-unique/region, táctiles chicos y
-contrastes de /chat).
+**Siguiente tarea exacta:** (superada — ver la sección siguiente: la tercera
+rebanada /orden se pagó en la corrida del 12-ago-2026.)
+
+## `V15-REMAINING-SCREENS-001` — tercera rebanada: /orden, la familia documental queda completa (12-ago-2026)
+
+/orden es la tercera de la familia documental (§32, 11 `fontSize` inline, 0
+roles §2) y compartía TODOS los defectos que /nota y /receta ya pagaron,
+más uno propio. Leída entera antes de rebanar. El papel (`RecetaDocumento`)
+intacto — el archivo es PAPEL para el trinquete de color, así que ningún
+guardián veía sus crudos; el de esta rebanada sí:
+
+- **Jerarquía §16**: «Atrás» texto suelto de 13px → `btn-ghost btn-sm`; la
+  primaria (Descargar PDF) va PRIMERO como en /nota y /receta (la familia
+  habla un solo orden); y el defecto propio: el «Agregar» del estudio
+  personalizado era una SEGUNDA `btn-primary` en la misma capa — dos voces
+  primarias en un lienzo. Ahora es secundaria: la página tiene UNA primaria
+  (medido: `primariasEnPagina: ["Descargar PDF"]`). Los onClick/disabled no
+  cambiaron (freeze funcional, guardián abajo). Rejilla móvil DEBT-009
+  heredada con `.orden-toolbar`.
+- **Interacción/§24 (la razón de ser)**: el editor del documento medicolegal
+  tenía campos sin nombre accesible — Diagnóstico e Indicaciones sin asociar
+  (`htmlFor`/`id` ahora), el estudio personalizado sólo con placeholder
+  (`aria-label`), y el quitar de cada CHIP (icono solo, repetido N veces)
+  mudo: ahora dice QUÉ estudio quita (`aria-label={`Quitar ${e}`}`).
+  «Estudios solicitados» dejó de ser `<label>` huérfano. El catálogo declara
+  estado: `aria-expanded` en categorías, `aria-pressed` en estudios.
+- **Tema**: banners de cédula/firma en `--badge-red/amber-*` (los rgba
+  crudos murieron), `#f59e0b` del estado de error → `var(--amber)`, y la
+  lección YA MEDIDA del chip del directorio de /pacientes que aquí seguía
+  viva: el Check `#000` sobre `var(--teal)` (2.99:1 en claro) → casilla
+  `--nexus-solido` + check blanco (el par medido 5.16:1/7:1). El teal COMO
+  TEXTO murió en chips y estudios seleccionados (lección TrialBanner): el
+  texto habla `var(--text)` + peso y el estado lo llevan tinte/borde/casilla
+  (no-textuales, `color-mix` sobre el token).
+- **Roles §2 en el cromo**: «Vista previa…» habla `.nx-meta` (12.5px
+  medidos).
+- Trinquete de diseño BAJADO de verdad y resellado: `hexEnLinea` 497→496,
+  `tamanosFueraDeEscala` 1980→1978.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-orden-cromo-habla-el-sistema.test.ts` (25 casos): una
+primaria y PRIMERA («Agregar» vetado como segunda), Atrás del sistema,
+rejilla móvil, htmlFor/aria-label/aria-expanded/aria-pressed, veto del
+dialecto (rgba crudos, teal-como-texto, `#000` sobre teal, `#f59e0b` — el
+trinquete de color NO ve este archivo; este guardián sí), freeze funcional
+(guardas de la primaria, `orden_generada` ×3 con `crearPendientesDeLaOrden`
+en los TRES caminos de emisión — la promesa de /pendientes —, orden-en-
+blanco bloqueada, folio `OM-` derivado de la nota, estudios de la nota
+pre-poblando, rutas), papel intacto (impresión sólo `#receta-doc`, cero
+roles §2 en RecetaDocumento, `colorAccento` config del médico) y roles §2
+sólo en el cromo. **15 de 25 fallan contra el árbol previo** (verificado
+con `git stash`); los 10 que pasan protegen invariantes funcionales
+preexistentes.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método (emuladores + siembra + build de producción + `npm start` vía
+`arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-orden-cromo-v15.mjs` — siembra su propia nota
+FIRMADA sintética con `estudiosOrden` pre-poblado (dos estudios, el primero
+de «Laboratorio general» que abre por defecto) para que chips y casilla
+marcada se PINTEN y se puedan medir por tema. Lección de medición pagada en
+la misma corrida: lucide pinta con STROKE (el prop `color` va a `stroke=`),
+así que medir la propiedad CSS `color` del svg devuelve el texto heredado,
+no lo que se ve — la primera corrida midió eso, se corrigió el arnés y se
+re-midió. Resultado y 3 capturas en `docs/design/capturas/v15-orden-cromo/`:
+
+- **Toolbar en los DOS temas**: exactamente una primaria, PRIMERA
+  (`primariaEsLaPrimera: true`), relleno `rgb(23,120,134)` oscuro /
+  `rgb(18,98,110)` claro, 3 secundarias, `botonesAManoQueQuedan: []`, Atrás
+  del sistema, y `primariasEnPagina: ["Descargar PDF"]` — la página entera
+  tiene UNA voz primaria.
+- **El chip cambia de tema de verdad**: texto `rgb(242,239,233)` oscuro /
+  `rgb(11,12,14)` claro (`chipCambiaDeTema: true`), tinte y borde en
+  `color-mix` sobre el token; quitar con nombre («Quitar Biometría hemática
+  completa»).
+- **La casilla marcada**: fondo `--nexus-solido` por tema y **check
+  `stroke: rgb(255,255,255)`** en los dos temas — el par medido; antes era
+  `#000` sobre teal. `aria-pressed: "true"`, categoría `aria-expanded`.
+- **Campos con nombre**: `sinNombre: []` (los 2 visibles al cargar; el
+  personalizado lleva `aria-label` — guardián).
+- **Equivalencia funcional, clic real**: «Template» aterriza en
+  `/configuracion?tab=recetas` (`llega: true`).
+- **Rol §2 medido**: «Vista previa…» computa 12.5px (`.nx-meta`).
+- **Móvil 390**: sin desborde (`anchoDocumento: 390`), primaria a fila
+  completa, **cero táctiles chicos** en la toolbar.
+- **Axe (primera medición de /orden en V15)**: 0 violaciones nuevas del
+  cromo. Restantes, PREEXISTENTES y ya anotadas: `color-contrast` DENTRO
+  del papel (`.receta-sheet`: el acento `#14b8a6` del template del médico —
+  territorio DEBT-008/`V15-A11Y-001`, misma familia que /receta) y `region`
+  ×2 (banner de prueba). En móvil sólo `region` ×2.
+- **Consola**: sólo el aviso ambiental de reconexión de Firestore del
+  emulador (×2, desktop y móvil).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver el reporte de la corrida (guardián nuevo 25/25).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: BAJÓ de verdad
+  (`hexEnLinea` 497→496, `tamanosFueraDeEscala` 1980→1978), resellado con
+  `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio con `.env.local` demo (recreado en este
+  contenedor: 7 variables + emuladores + `PORTAL_PACIENTE_SECRET` demo).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/orden cambió de líneas).
+
+**Siguiente tarea exacta:** cuarta rebanada de `V15-REMAINING-SCREENS-001`
+— **/login + /registro** (§32, la puerta de entrada): mismo método — leer
+las pantallas enteras, jerarquía §16, campos con nombre accesible, tokens
+por tema, roles §2, guardián probado al revés + arnés en navegador real
+(desktop oscuro/claro + móvil 390 + axe). Después: siguiente superficie del
+inventario de §32 por uso clínico. La deuda de `V15-A11Y-001` no cambia con
+esta rebanada (el contraste del acento del papel ya estaba anotado por
+/receta; /orden confirma la misma familia).
