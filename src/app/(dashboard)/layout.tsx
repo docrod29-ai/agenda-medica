@@ -678,10 +678,15 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
       {/* Main area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Mobile topbar. Médico: sin hamburguesa (no hay cajón que abrir) y con
+        {/* Mobile topbar. Médico: sin hamburguesa (no hay cajón que abrir), con
             Buscar al alcance del pulgar en el borde derecho — SEARCH/COMMAND
             (§22) no tenía NINGUNA entrada en móvil: ⌘K no existe en un teléfono
-            y el único botón visible vivía en el cajón que este cambio retira. */}
+            y el único botón visible vivía en el cajón que la rebanada anterior
+            retiró — y con la franja de instrumentos COMO CENTRO en vez de un
+            wordmark estático: la medición de baseline de la tercera rebanada
+            encontró «Ausculta» dos veces apiladas (topbar + franja) y 30px de
+            shell extra en cada pantalla (§23: por breakpoint se decide qué
+            persiste, no se apila todo). */}
         <div className="mobile-topbar">
           {!navPrimaria && (
             <button
@@ -693,7 +698,9 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
             </button>
           )}
           <MobileBackButton />
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Ausculta</span>
+          {navPrimaria
+            ? <InstrumentStrip enTopbar />
+            : <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Ausculta</span>}
           {navPrimaria && (
             <button
               onClick={() => window.dispatchEvent(new Event('nexus:open-palette'))}
@@ -706,7 +713,10 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {navPrimaria && <InstrumentStrip />}
+        {/* La franja de fila propia queda SÓLO en escritorio: en móvil su
+            contenido ya vive dentro de la topbar (arriba). Sin este gate se
+            pintaría dos veces. */}
+        {navPrimaria && <div className="hidden md:block"><InstrumentStrip /></div>}
         <OfflineBanner />
         {/*
           LA IA CAÍDA SE AVISA DONDE EL DUEÑO ESTÉ, no sólo en su tablero.

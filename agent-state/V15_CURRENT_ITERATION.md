@@ -4,13 +4,14 @@
 
 ## Iteración en curso
 
-`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, segunda rebanada
-12-ago-2026: el cajón lateral móvil retirado en modo médico (era el árbol
-de escritorio clonado en un dialog — raíz del `landmark-unique` de toda la
-rama, ahora en cero) + topbar con Buscar al pulgar + Cerrar sesión en
-/operaciones. Ver su sección al FINAL de este archivo. Primera rebanada
-(12-ago-2026): `BottomNav` recompuesto a la IA de V15 en modo médico +
-suscrito a `EVENTO_GRABANDO`.
+`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, tercera rebanada
+12-ago-2026: shell móvil consolidado — la franja de instrumentos ES el
+centro de la topbar en móvil (una fila, «Ausculta» una vez, enlace de
+paciente 44px táctiles, shell fijo 135→105px) + pistas de teclado de la
+paleta ocultas en el teléfono. Segunda rebanada (12-ago-2026): cajón
+lateral retirado en modo médico + topbar con Buscar + Cerrar sesión en
+/operaciones. Primera rebanada (12-ago-2026): `BottomNav` recompuesto a
+la IA de V15. Ver secciones al FINAL de este archivo.
 `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8) — **CERRADA 12-ago-2026** por
 decisión de alcance: la integración por continuidad ES la forma final de
 Fase 8 (ver «Fase 8 — decisión de cierre» abajo). Quinta rebanada previa
@@ -2174,3 +2175,101 @@ trabajos móviles restantes de §22 (revisar nota generada, revisar
 resultado, firmar/cerrar desde el teléfono, borrador de comunicación al
 paciente) — medirlos primero contra las pantallas reales en 390px antes
 de decidir la rebanada.
+
+## `V15-MOBILE-001` (Fase 9, §22/§23/§24/§25) — tercera rebanada: el shell móvil se consolida (12-ago-2026)
+
+Se cumplió el «medir primero» que dejó escrito la rebanada anterior:
+`scripts/design/medir-trabajos-moviles-v15.mjs` radiografió a 390×844
+dashboard / consulta (inicio y pie) / pendientes / expediente — desborde
+horizontal, objetivos táctiles <44px, acción primaria visible y tamaño,
+alturas del shell fijo, y cuántas veces se lee «Ausculta» en el shell.
+Resultado de la línea base en
+`docs/design/capturas/v15-trabajos-moviles-baseline/`:
+
+- sin desborde-X en ninguna pantalla; acciones primarias dominantes
+  (EmpezarAGrabar 320×228 visible; «Nueva consulta» 358×44 visible);
+- **«Ausculta» ×2 apiladas** en el shell de TODAS las pantallas (topbar +
+  franja) y **135px de shell fijo** (52+30+53) — 16% del viewport;
+- **el enlace del paciente en la franja: 141×18px** — menos de la mitad
+  del mínimo táctil de §24, en el elemento de continuidad más importante;
+- «Firmar» a ~2,900px de scroll en /consulta — hallazgo ANOTADO para una
+  rebanada futura de composición de esa página (no es del shell);
+- pistas «⌘K / ↑↓ / ↵» visibles en el pie de la paleta en el teléfono.
+
+La rebanada consolidó el shell (los 3 defectos del shell + el §25):
+
+- **`InstrumentStrip.tsx`** — variante `enTopbar`: en móvil la franja no es
+  una segunda fila, es el CENTRO de la topbar. El paciente GANA a la
+  clínica (con 390px no caben los dos; a media consulta lo periférico que
+  importa es EN QUIÉN estás y si grabas — la clínica es admin, §8.5). Sin
+  paciente, la identidad de siempre una sola vez. El enlace del paciente
+  lleva `padding: 13px` vertical → 44px táctiles reales. MISMOS hooks
+  (`usePacienteActual`/`useSegundosGrabando`) para las dos variantes — el
+  mismo estado pintado distinto, no una segunda fuente de verdad.
+- **`layout.tsx`** — la topbar de médico renderiza
+  `<InstrumentStrip enTopbar />` en vez del wordmark estático (que queda
+  para la asistente); la franja de fila propia queda SÓLO en escritorio
+  (`hidden md:block`).
+- **`PaletteBusqueda.tsx` + `globals.css`** — pie de pistas de teclado con
+  clase `nx-pista-teclado`, display en la HOJA (flex) y `display:none`
+  bajo 768px. **El primer intento dejó `display:'flex'` inline y el
+  media query nunca pudo ocultarlo** — lo cazó el arnés en navegador real
+  (`pistasTecladoMovil: true`), no una lectura de código: misma trampa
+  que documenta `nx-stat-grid-cableada` (un estilo inline vence a la
+  hoja en silencio). El guardián ganó un caso específico para esto.
+- El `fontSize: 15` del primer borrador de la variante compacta lo cazó
+  el trinquete de diseño (2004 > techo 2003) — corregido a 16 (escala
+  oficial), el techo no se tocó.
+- Guardián nuevo, probado al revés (5 de 7 casos fallan contra el árbol
+  previo, verificado con `git stash` de los 4 archivos):
+  `src/__tests__/v15-shell-movil-consolidado.test.ts`.
+  `v15-instrument-strip-paciente-actual.test.ts` actualizado en un caso:
+  protege que `InstrumentStrip` siga exportada, no la forma de la firma.
+
+### Verificado en navegador real (12-ago-2026)
+
+Arnés nuevo: `scripts/design/capturar-shell-consolidado-v15.mjs`.
+Resultado y 5 capturas en `docs/design/capturas/v15-shell-consolidado/`
+(390×844 + 1440):
+
+- **Shell 135→105px** (`franjaFilaVisible: false`, contenido dentro de la
+  topbar); **«Ausculta» ×1** en dashboard, **×0** en consulta (ahí manda
+  el paciente).
+- **Enlace del paciente: 142×44** (antes 141×18) y el tap ATERRIZA en
+  `/expediente/pac-aurelio-dominguez` — los dos lados del enlace.
+- **Grabando**: contador `0:01` visible en la topbar junto al nombre del
+  paciente (captura `expediente--grabando-movil.png`, revisada a simple
+  vista: marco perimetral encendido, una sola fila de shell).
+- **Pistas de teclado**: ocultas en móvil (`false`), visibles en
+  escritorio (`true`) — verificado DESPUÉS del arreglo del display inline.
+- **Axe**: sólo la familia `region` preexistente (4 nodos), sin
+  `landmark-unique`, nada nuevo.
+- **Escritorio 1440 sin cambio**: franja de fila propia visible (30px),
+  topbar oculta, «Ausculta» ×1.
+- **Consola**: sólo los 401 de auditoría conocidos del arnés de
+  emuladores.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: en verde (ver commit); guardianes nuevos incluidos.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: 2003 = techo tras
+  corregir el 15→16 — sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (2 veces: base y tras el arreglo del
+  display inline).
+- `docs/design/SCREEN_INVENTORY.md` regenerado sin cambios (los archivos
+  tocados no son pantallas).
+
+**Deuda anotada de la radiografía, no bloqueante, para rebanadas futuras:**
+- «Firmar» a ~2,900px de scroll en /consulta móvil — composición de esa
+  página, candidata a la siguiente rebanada de esta fase o a una unidad
+  propia de Encounter Mode móvil.
+- Objetivos táctiles <44px FUERA del shell de esta fase: «Activar plan →»
+  (100×24, TrialBanner), botón de tema (34×44), un input de 244×24 en
+  /consulta, enlaces de paciente en /pendientes (156×20) → `V15-A11Y-001`.
+
+**Siguiente tarea exacta:** el trabajo móvil «firmar/cerrar desde el
+teléfono» (§22) — el hallazgo de los 2,900px — o el modelo responsivo §23
+por breakpoint documentado como decisión, lo que la corrida siguiente
+mida como más valioso.

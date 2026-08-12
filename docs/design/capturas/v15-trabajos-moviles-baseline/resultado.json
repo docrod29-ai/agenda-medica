@@ -1,0 +1,130 @@
+{
+  "dashboard": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 3,
+    "tactilesChicosEjemplos": [
+      "a\"Activar plan →\" 100×24",
+      "a\"Agendar cita\" 122×20",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Nueva cita",
+      "visibleSinScroll": true,
+      "tam": "358×44",
+      "top": 217
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 30,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 135,
+    "mainTop": 123,
+    "auscultaVecesEnShell": 2
+  },
+  "consultaInicio": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 4,
+    "tactilesChicosEjemplos": [
+      "a\"· Aurelio Domínguez Peña\" 141×18",
+      "a\"Activar plan →\" 100×24",
+      "input\"\" 244×24",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Grabar",
+      "visibleSinScroll": true,
+      "tam": "320×228",
+      "top": 448
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 30,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 135,
+    "mainTop": 123,
+    "auscultaVecesEnShell": 2
+  },
+  "consultaPie": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 4,
+    "tactilesChicosEjemplos": [
+      "a\"· Aurelio Domínguez Peña\" 141×18",
+      "a\"Activar plan →\" 100×24",
+      "input\"\" 244×24",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Firmar",
+      "visibleSinScroll": false,
+      "tam": "229×54",
+      "top": 2887
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 30,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 135,
+    "mainTop": 123,
+    "auscultaVecesEnShell": 2
+  },
+  "pendientes": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 4,
+    "tactilesChicosEjemplos": [
+      "a\"Activar plan →\" 100×24",
+      "a\"Aurelio Domínguez Peña\" 140×20",
+      "a\"Luz María Cervantes Ochoa\" 156×20",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": null,
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 30,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 135,
+    "mainTop": 123,
+    "auscultaVecesEnShell": 2
+  },
+  "expediente": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 3,
+    "tactilesChicosEjemplos": [
+      "a\"· Aurelio Domínguez Peña\" 141×18",
+      "a\"Activar plan →\" 100×24",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Nueva consulta",
+      "visibleSinScroll": true,
+      "tam": "358×44",
+      "top": 410
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 30,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 135,
+    "mainTop": 123,
+    "auscultaVecesEnShell": 2
+  }
+}

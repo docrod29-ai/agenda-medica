@@ -1,0 +1,77 @@
+{
+  "dashboard": {
+    "alturas": {
+      "topbar": 52,
+      "franjaFila": 0,
+      "bottomNav": 53
+    },
+    "shellPxTotal": 105,
+    "franjaFilaVisible": false,
+    "franjaTopbarVisible": true,
+    "auscultaVecesEnShell": 1,
+    "linkPaciente": null,
+    "contadorGrabando": null
+  },
+  "consulta": {
+    "alturas": {
+      "topbar": 52,
+      "franjaFila": 0,
+      "bottomNav": 53
+    },
+    "shellPxTotal": 105,
+    "franjaFilaVisible": false,
+    "franjaTopbarVisible": true,
+    "auscultaVecesEnShell": 0,
+    "linkPaciente": {
+      "texto": "Aurelio Domínguez Peña",
+      "alto": 44,
+      "ancho": 142
+    },
+    "contadorGrabando": null
+  },
+  "tapPacienteAterriza": true,
+  "grabando": {
+    "alturas": {
+      "topbar": 52,
+      "franjaFila": 0,
+      "bottomNav": 53
+    },
+    "shellPxTotal": 105,
+    "franjaFilaVisible": false,
+    "franjaTopbarVisible": true,
+    "auscultaVecesEnShell": 0,
+    "linkPaciente": {
+      "texto": "Aurelio Domínguez Peña",
+      "alto": 44,
+      "ancho": 142
+    },
+    "contadorGrabando": "0:01"
+  },
+  "pistasTecladoMovil": false,
+  "axeExpediente": [
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodos": 4,
+      "ejemplo": "div:nth-child(2) > div:nth-child(2) > div:nth-child(3) > span"
+    }
+  ],
+  "escritorio": {
+    "alturas": {
+      "topbar": 0,
+      "franjaFila": 30,
+      "bottomNav": 0
+    },
+    "shellPxTotal": 30,
+    "franjaFilaVisible": true,
+    "franjaTopbarVisible": false,
+    "auscultaVecesEnShell": 1,
+    "linkPaciente": {
+      "texto": "Aurelio Domínguez Peña",
+      "alto": 0,
+      "ancho": 0
+    },
+    "contadorGrabando": null
+  },
+  "pistasTecladoEscritorio": true
+}

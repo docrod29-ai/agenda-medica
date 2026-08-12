@@ -77,7 +77,9 @@ describe('V15 — InstrumentStrip nunca enseña el paciente ANTERIOR mientras ca
 
 describe('V15 — InstrumentStrip se conecta en el shell', () => {
   it('exporta InstrumentStrip (ya cableado en layout.tsx por v15-flow-rail-cableado.test.ts)', () => {
-    expect(FRANJA).toContain('export function InstrumentStrip()')
+    // Desde V15-MOBILE-001 (3ª rebanada) la firma acepta `enTopbar` — lo que se
+    // protege es que siga exportada, no la forma exacta de la firma.
+    expect(FRANJA).toMatch(/export function InstrumentStrip\(/)
   })
 
   it('el nombre del paciente enlaza de vuelta al expediente — continuidad, no un texto muerto', () => {

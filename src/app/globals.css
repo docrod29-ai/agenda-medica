@@ -1146,6 +1146,15 @@ tbody tr:last-child { border-bottom: none; }
   flex-shrink: 0;
 }
 
+/* Pistas de teclado (⌘K, flechas, ↵): no existen en un teléfono — se ocultan
+   bajo el mismo corte de 768px que gobierna topbar/bottom-nav (V15-MOBILE-001,
+   §25: nada de desktop-isms de contenido en móvil). El display base vive AQUÍ
+   y no inline en el componente: un display inline vencería al media query. */
+.nx-pista-teclado { display: flex; gap: 14px; }
+@media (max-width: 768px) {
+  .nx-pista-teclado { display: none; }
+}
+
 /* ── Barra superior móvil (con área segura para notch) ─────── */
 .mobile-topbar {
   display: flex;

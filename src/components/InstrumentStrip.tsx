@@ -98,10 +98,64 @@ function formatearDuracion(s: number): string {
   return `${m}:${String(r).padStart(2, '0')}`
 }
 
-export function InstrumentStrip() {
+/**
+ * `enTopbar` (V15-MOBILE-001, tercera rebanada, §22/§23): en móvil la franja
+ * NO es una segunda fila bajo la topbar — es el CENTRO de la topbar. La
+ * medición de baseline (`medir-trabajos-moviles-v15.mjs`) encontró «Ausculta»
+ * dos veces apiladas en el shell de todas las pantallas, 30px extra de shell
+ * fijo, y el enlace del paciente con un objetivo táctil de 141×18 (menos de
+ * la mitad del mínimo de 44px de §24).
+ *
+ * En la variante compacta el paciente GANA a la clínica: con 390px no caben
+ * los dos, y a media consulta lo periférico que importa es EN QUIÉN estás y
+ * si estás grabando — el nombre del consultorio es admin no esencial (§8.5).
+ * Sin paciente en la ruta, la fila enseña la identidad de siempre (una vez).
+ */
+export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
   const { config } = useConfig()
   const segundos = useSegundosGrabando()
   const paciente = usePacienteActual()
+
+  if (enTopbar) {
+    return (
+      <div
+        role="status"
+        aria-label="Estado clínico y de sistema"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0,
+          fontSize: 12, color: 'var(--text3)', overflow: 'hidden',
+        }}
+        className="nx-instrument-strip-topbar"
+      >
+        {paciente ? (
+          <Link
+            href={`/expediente/${paciente.id}`}
+            style={{
+              color: 'var(--text2)', textDecoration: 'none', fontWeight: 600,
+              /* 44px de alto real dentro de la fila de 52 (§24): 13+18+13 */
+              padding: '13px 8px 13px 0', minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+          >
+            {paciente.nombre}
+          </Link>
+        ) : (
+          <span style={{
+            fontWeight: 600, color: 'var(--text)', fontSize: 16,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {config.nombreClinica || 'Ausculta'}
+          </span>
+        )}
+        {segundos != null && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text)', fontWeight: 600, flexShrink: 0 }}>
+            <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
+            {formatearDuracion(segundos)}
+          </span>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
