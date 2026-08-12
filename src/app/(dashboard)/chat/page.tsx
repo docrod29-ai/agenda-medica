@@ -127,7 +127,15 @@ export default function ChatPage() {
   }, [mensajes])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)', maxHeight: '100vh' }}>
+    // `nx-lienzo-completo` (globals.css): el alto real lo dicta <main> — dentro
+    // del nx-app-shell su alto ya descuenta topbar, banners y BottomNav, y la
+    // cadena main → .page-transition se lo transmite a esta pantalla-lienzo.
+    // Antes la página restaba 52px al viewport (la topbar de escritorio) por su
+    // cuenta: en 390px el composer quedaba a 889px en un viewport de 844,
+    // ENTERRADO bajo el BottomNav (medido en medir-trabajos-moviles-2-v15). Un
+    // height de viewport aquí re-adivinaría el shell; la clase deja que el
+    // shell mande (la lección de nx-stat-grid: la geometría vive en la HOJA).
+    <div className="nx-lienzo-completo" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -302,7 +310,7 @@ export default function ChatPage() {
           style={{
             flex: 1, background: 'var(--s2)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text)',
-            outline: 'none', resize: 'none', minHeight: 42, maxHeight: 120,
+            outline: 'none', resize: 'none', minHeight: 44, maxHeight: 120,
             fontFamily: 'inherit',
           }}
         />
@@ -316,7 +324,7 @@ export default function ChatPage() {
             border: 'none', borderRadius: 12, padding: '0 18px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: texto.trim() && !enviando ? 'pointer' : 'default',
-            flexShrink: 0,
+            flexShrink: 0, minWidth: 44, minHeight: 44,
           }}
         >
           {enviando ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}

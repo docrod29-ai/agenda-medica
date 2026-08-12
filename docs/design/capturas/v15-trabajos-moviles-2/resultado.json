@@ -1,0 +1,115 @@
+{
+  "notaArriba": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 2,
+    "tactilesChicosEjemplos": [
+      "a\"Activar plan →\" 100×24",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Imprimir",
+      "visibleSinScroll": true,
+      "tam": "167×44",
+      "top": 239
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 0,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 105,
+    "mainTop": 93
+  },
+  "notaDocumento": {
+    "encontrado": true,
+    "anchoDoc": 342,
+    "ventana": 390,
+    "fontSizeMuestra": "18px",
+    "transform": null,
+    "scrollWidthBody": 390
+  },
+  "notaPie": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 2,
+    "tactilesChicosEjemplos": [
+      "a\"Activar plan →\" 100×24",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Agregar adenda",
+      "encontrada": false
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 0,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 105,
+    "mainTop": 93
+  },
+  "pendientes": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 4,
+    "tactilesChicosEjemplos": [
+      "a\"Activar plan →\" 100×24",
+      "a\"Aurelio Domínguez Peña\" 140×20",
+      "a\"Luz María Cervantes Ochoa\" 156×20",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": null,
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 0,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 105,
+    "mainTop": 93
+  },
+  "pendientesFila": {
+    "encontrada": true,
+    "alto": 231,
+    "acciones": [
+      "a\"Aurelio Domínguez Peña\" 140×20",
+      "button\"Tomarla\" 75×44",
+      "button\"Ya no aplica\" 118×44"
+    ]
+  },
+  "chat": {
+    "vw": 390,
+    "vh": 844,
+    "desborda": false,
+    "culpableDesborde": null,
+    "tactilesChicos": 2,
+    "tactilesChicosEjemplos": [
+      "a\"Activar plan →\" 100×24",
+      "button\"Tema: oscuro (clic: claro)\" 34×44"
+    ],
+    "primaria": {
+      "texto": "Enviar",
+      "encontrada": false
+    },
+    "shellAlturas": {
+      ".mobile-topbar": 52,
+      ".nx-instrument-strip": 0,
+      ".bottom-nav-wrap": 53
+    },
+    "shellPxTotal": 105,
+    "mainTop": 93
+  },
+  "chatComposer": {
+    "encontrado": true,
+    "composerBottom": 889,
+    "viewport": 844,
+    "navTop": 791,
+    "composerTapadoPorNav": true
+  }
+}

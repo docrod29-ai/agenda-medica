@@ -4,7 +4,18 @@
 
 ## Iteración en curso
 
-`V15-MOBILE-001` (Fase 9, §22/§24) — **EN CURSO**, quinta rebanada
+`V15-MOBILE-001` (Fase 9, §22/§23/§24) — **EN CURSO**, sexta rebanada
+12-ago-2026: «el chat cabe en el shell» — la radiografía 2
+(`medir-trabajos-moviles-2-v15.mjs`) midió los tres trabajos §22 restantes:
+/nota sana en 390px, /pendientes con acciones ≥44px al pulgar, y /chat con el
+composer ENTERRADO bajo el BottomNav (bottom 889 en viewport de 844 — la
+página restaba 52px a 100vh por su cuenta, suposición anterior al shell).
+Arreglo: pantalla-LIENZO (`nx-lienzo-completo` + cadena
+main → .page-transition en la HOJA con `:has`) + §24 en el composer + los
+104px de aire muerto del claro legacy neutralizados bajo el lienzo. Medido de
+punta a punta en navegador real: composer pegado a la barra, tap en Enviar y
+el mensaje LLEGA a la lista (ida y vuelta por el emulador). Ver sección al
+FINAL de este archivo. Quinta rebanada previa
 12-ago-2026: «el aviso push ya no tapa el pulgar» — `NotificacionesPushOptIn`
 deja de ser `fixed bottom:16 z-1000` SOBRE el BottomNav (se comió el tap de
 dos arneses) y pasa a hoja anclada ENCIMA de la barra en ≤768px, con su
@@ -2517,3 +2528,129 @@ resultado, borrador de comunicación al paciente) — decidir la rebanada con
 la medición, no desde el checkpoint; o si la medición no da una rebanada
 clara, documentar el modelo responsivo §23 por breakpoint con las
 decisiones ya tomadas (shell con fondo, franja en topbar, hoja del aviso).
+
+## `V15-MOBILE-001` (Fase 9, §22/§23/§24) — sexta rebanada: el chat cabe en el shell (12-ago-2026)
+
+La tarea que dejó nombrada la quinta rebanada («los trabajos móviles
+restantes de §22 medidos contra las pantallas reales en 390px — decidir la
+rebanada con la medición, no desde el checkpoint») se pagó con una segunda
+radiografía y su rebanada.
+
+### La medición primero (`scripts/design/medir-trabajos-moviles-2-v15.mjs`)
+
+Radiografía a 390×844 de los tres trabajos §22 que la primera medición no
+cubrió (resultado en `docs/design/capturas/v15-trabajos-moviles-2/`):
+
+- **«review generated note» → `/nota/[pid]/[notaId]`** (nota FIRMADA
+  sintética sembrada ad-hoc en el emulador, misma técnica que
+  v15-patient-anchor): SANA en 390px — sin desborde horizontal, el
+  documento-carta cabe (342px), «Imprimir» 167×44 visible sin scroll. Sólo
+  aparecen los táctiles chicos ya anotados para `V15-A11Y-001` (enlace del
+  TrialBanner, toggle de tema). Sin rebanada que hacer.
+- **«review result» a nivel de ITEM → `/pendientes`**: la fila real ofrece
+  «Tomarla» 75×44 y «Ya no aplica» 118×44 — al mínimo táctil. El enlace del
+  paciente (140×20) ya estaba anotado para `V15-A11Y-001`. Sin rebanada.
+- **«patient communication draft» → `/chat`**: DEFECTO REAL — composer con
+  bottom a 889px en un viewport de 844, BottomNav en top 791:
+  `composerTapadoPorNav: true`. Escribir un mensaje ocurría en una franja
+  parcialmente enterrada bajo la navegación.
+
+**Honestidad de alcance**: /chat es mensajería INTERNA (médico↔asistente).
+El trabajo §22 «patient communication draft/review» hacia el PACIENTE no
+tiene superficie propia hoy — el paquete de visita es POSTVISIT/Fase 8 de
+otro programa. Esa ausencia queda declarada aquí; la rebanada arregla la
+única superficie de mensajería que el producto sí tiene.
+
+### La causa raíz y el arreglo (pantalla-LIENZO)
+
+- La página fijaba `height: calc(100vh - 52px)` — la suposición de que entre
+  ella y el viewport sólo existe la topbar de escritorio. Es anterior al
+  `nx-app-shell` (4ª rebanada): hoy el alto real lo dicta `<main>`. MISMA
+  familia de defecto que «el shell no tenía fondo».
+- **Primer intento fallido, cazado por el propio arnés**: `height: '100%'`
+  inline colapsó al alto del contenido (composer a 514px de un main de 844)
+  porque entre `<main>` y la página vive `.page-transition` (template.tsx,
+  alto auto) — el 100% no tenía contra qué resolverse. No se adivinó la
+  causa: se sondearon los `getComputedStyle` de la cadena completa en los
+  dos viewports.
+- **Forma final**: `src/app/(dashboard)/chat/page.tsx` declara
+  `className="nx-lienzo-completo"` (sin ningún alto inline — la lección de
+  nx-stat-grid, cuarta vez en esta fase) y `globals.css` transmite el alto
+  por la cadena `main:has(.nx-lienzo-completo) → .page-transition → lienzo`
+  (flex + min-height:0; `:has` con el mismo patrón que ya usa el FAB con
+  `.nx-push-optin`). En ≤768px el lienzo además neutraliza los colchones de
+  las páginas-documento (72px de claro para un BottomNav que ya no flota
+  sobre el documento + 16+16 de `main > div`): eran 104px de aire muerto
+  entre el composer y la barra.
+- **§24 en el composer**: textarea minHeight 42→44; botón Enviar gana
+  minWidth/minHeight 44.
+- **Freeze funcional**: `enviarMensaje` conserva su contrato exacto
+  (clinicId, texto, sender uid/email/nombre/rol) y Enter-sin-Shift sigue
+  enviando — protegido por el guardián, no sólo afirmado.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-chat-cabe-en-el-shell.test.ts` (9 casos) — clase-lienzo
+sin alto inline, cadena completa en la hoja (incluido el `min-height: 0` sin
+el cual el contenido largo desbordaría el shell), neutralización móvil del
+claro legacy, §24, contrato del shell y freeze funcional. 5 de 9 fallan
+contra el árbol previo (verificado con `git stash`); los de contrato/freeze
+pasan antes y después — protegen el invariante, no el cambio.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start`). Arnés nuevo: `scripts/design/capturar-chat-al-pulgar-v15.mjs` —
+mide punta a punta, no sólo pantalla. Resultado y 3 capturas en
+`docs/design/capturas/v15-chat-al-pulgar/` (390×844 + 1440):
+
+- **Composer pegado a la barra, medido**: textarea bottom 779 + 12px de
+  padding de su fila = 791 = exactamente el top del BottomNav
+  (`composerEncimaDelNav: true`; antes 889 > 791). Enviar visible y
+  54×46 ≥ 44 táctil (`tactilOk: true`).
+- **«El dato tiene que LLEGAR», medido**: se escribió un mensaje único con
+  el teclado real y se pulsó Enviar — el texto aparece en la lista (ida y
+  vuelta por el Firestore del emulador, no un setState local).
+  Anotado como artefacto del arnés: `composerVacioTrasEnviar: false` — el
+  `await` de la escritura tarda en resolver contra el canal inestable del
+  emulador (misma familia que el warning de reconexión documentado desde
+  v15-shell-greybox), así que el `setTexto('')` del `finally` aún no había
+  corrido al medir; el mensaje SÍ llegó y el código de limpieza no cambió
+  (congelado por el guardián 4a).
+- **Escritorio 1440**: el lienzo llena main EXACTO (composer bottom 900 =
+  main bottom 900, `llenaElAlto: true`) — antes también estaba mal en
+  escritorio (779 de 900 utilizados, resto vacío bajo el composer).
+- **Axe**: 1 familia `color-contrast` (serious, 3 nodos: subtítulo del
+  encabezado, hora dentro de la burbuja propia, píldora de rol) — PRIMERA
+  vez que un arnés V15 escanea /chat, así que no hay línea base previa;
+  los tres nodos son COLORES DE CONTENIDO que esta rebanada (sólo layout)
+  no tocó → anotados para `V15-A11Y-001` junto con sus hermanos, con la
+  misma disciplina de fase que v15-today-continuidad. Ninguna violación en
+  el composer ni en la cadena del lienzo.
+- **Consola**: sólo los artefactos conocidos del arnés (reconexión del
+  emulador + 401 de auditoría, mismo fingerprint desde v15-patient-anchor).
+- **Hallazgo del arnés sobre el propio arnés**: la clave de descarte del
+  aviso push que usaban los scripts nuevos era inventada
+  (`nx_push_optin_dismissed`); la real es `agenda-medica:push-dismissed`
+  (línea 17 de `NotificacionesPushOptIn.tsx`). Corregida en los dos
+  scripts de esta corrida — la captura intermedia con el aviso abierto
+  confirmó de paso que la hoja de la 5ª rebanada tapa el composer del chat
+  mientras pregunta (aceptable por diseño: transitoria, descartable y la
+  navegación gana; anotado por si `V15-A11Y-001` decide otra cosa).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: en verde (ver commit) — 9 casos nuevos.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (3 veces: fix inicial, lienzo, lienzo+claro).
+- `docs/design/SCREEN_INVENTORY.md` regenerado (/chat cambió de líneas).
+
+**Siguiente tarea exacta:** con los tres trabajos §22 restantes medidos y el
+único defecto real arreglado, la fase puede cerrar la parte de trabajos §22 y
+pasar a documentar el modelo responsivo §23 por breakpoint con las decisiones
+ya tomadas (shell con fondo, franja en topbar, hoja del aviso, pantalla-
+lienzo) — o, si una medición nueva enseña algo más barato/valioso, esa
+rebanada. Después de §23 documentado, `V15-MOBILE-001` es candidata a
+CERRARSE y sigue `V15-VISUAL-SYSTEM-001` (Fase 10) según el orden de §43.
