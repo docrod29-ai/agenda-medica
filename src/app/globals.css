@@ -784,6 +784,65 @@ tbody tr:last-child { border-bottom: none; }
   display: none;
 }
 
+/*
+  V15-MOBILE-001 (Fase 9, §22, «sign/close desde el teléfono») — la barra que
+  acerca el cierre de /consulta al pulgar. SÓLO existe en móvil: en escritorio
+  el cierre está a un scroll corto y la barra sería ruido (por eso el default
+  es display:none y el media query la enciende, no al revés). `position:
+  sticky; bottom: 0` DENTRO de <main> (el contenedor de scroll real del
+  dashboard): queda pegada al borde inferior del área de trabajo, justo
+  encima del BottomNav, sin taparlo — el porqué del sticky-en-main y no un
+  fixed está en `CierreAlPulgar.tsx`. Greybox: superficies neutras (§12).
+*/
+.nx-cierre-al-pulgar {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  margin: 16px 0 0;
+}
+@media (max-width: 768px) {
+  .nx-cierre-al-pulgar { display: block; }
+}
+.nx-cierre-al-pulgar-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+/*
+  V15-MOBILE-001 (Fase 9, §23 «what remains persistent») — el shell del
+  dashboard tiene FONDO: alto exacto del viewport y overflow oculto, para que
+  el scroll viva en <main> (que SIEMPRE tuvo `overflowY: auto` con esa
+  intención) y no en el documento. Sin este tope, `min-height` dejaba crecer
+  la columna entera y TODO el sistema sticky del producto quedaba mudo sin
+  que nadie lo viera: el ancla del paciente, el encabezado del calendario, el
+  encabezado de la tabla de pacientes, los paneles laterales de receta/orden
+  y el BottomNav apuntaban a un scrollport que jamás se desplazaba — medido
+  en navegador real con `scripts/design/capturar-cierre-al-pulgar-v15.mjs`
+  (main.clientHeight === main.scrollHeight en /consulta, con el BottomNav a
+  2,321px del borde en un viewport de 844). Las dos declaraciones de height
+  son fallback: dvh donde existe (altura real del viewport móvil), vh donde no.
+*/
+.nx-app-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+/* Dentro del shell con tope, el riel/menú lateral necesita su propio scroll
+   cuando el contenido exceda el viewport (antes crecía con el documento). */
+.sidebar { overflow-y: auto; }
+
 /* ── Topbar ───────────────────────────────────────────────── */
 .topbar {
   background: var(--s1);

@@ -626,7 +626,12 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const navPrimaria = esMedicoReal && mode === 'medico'
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+    // `nx-app-shell` (globals.css): alto EXACTO del viewport + overflow
+    // oculto — el scroll vive en <main>, no en el documento. Es lo que hace
+    // funcionar de verdad cada `position: sticky` del área de trabajo
+    // (ancla del paciente, encabezados de tabla/calendario, CierreAlPulgar)
+    // y mantiene el BottomNav a la vista en páginas largas (§22/§23).
+    <div className="nx-app-shell" style={{ display: 'flex', background: 'var(--bg)' }}>
       {/* Desktop sidebar */}
       <div className="hidden md:flex" style={{ flexShrink: 0 }}>
         {navPrimaria ? <FlowRail /> : <Sidebar />}

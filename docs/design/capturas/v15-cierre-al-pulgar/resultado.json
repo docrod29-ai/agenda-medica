@@ -1,0 +1,113 @@
+{
+  "notaVacia": {
+    "barraEnDOM": false,
+    "barraVisible": false,
+    "barraRect": null,
+    "barraTexto": null,
+    "bottomNavTop": 791,
+    "vh": 844,
+    "anclaEnDOM": true,
+    "focoEnAncla": false,
+    "firmarRect": {
+      "top": 2857,
+      "bottom": 2911,
+      "w": 229,
+      "h": 54
+    },
+    "firmarVisible": false,
+    "motivoJuntoAFirmar": "No se puede firmar todavía — 7 cosas por resolver: Falta cédula profesional del médico · y 6 más arriba",
+    "scrollMain": 0
+  },
+  "conContenido": {
+    "barraEnDOM": true,
+    "barraVisible": true,
+    "barraRect": {
+      "top": 654,
+      "bottom": 719,
+      "w": 358,
+      "h": 65
+    },
+    "barraTexto": "Aún no se puede firmarNo se puede firmar todavía — 6 cosas por resolver: Falta cédula profesional del médicoIr al cierre",
+    "bottomNavTop": 791,
+    "vh": 844,
+    "anclaEnDOM": true,
+    "focoEnAncla": false,
+    "firmarRect": {
+      "top": 2935,
+      "bottom": 2989,
+      "w": 229,
+      "h": 54
+    },
+    "firmarVisible": false,
+    "motivoJuntoAFirmar": "No se puede firmar todavía — 6 cosas por resolver: Falta cédula profesional del médico · y 5 más arriba",
+    "scrollMain": 0
+  },
+  "trasScroll": {
+    "barraEnDOM": true,
+    "barraVisible": true,
+    "barraRect": {
+      "top": 654,
+      "bottom": 719,
+      "w": 358,
+      "h": 65
+    },
+    "barraTexto": "Aún no se puede firmarNo se puede firmar todavía — 6 cosas por resolver: Falta cédula profesional del médicoIr al cierre",
+    "bottomNavTop": 791,
+    "vh": 844,
+    "anclaEnDOM": true,
+    "focoEnAncla": false,
+    "firmarRect": {
+      "top": 2135,
+      "bottom": 2189,
+      "w": 229,
+      "h": 54
+    },
+    "firmarVisible": false,
+    "motivoJuntoAFirmar": "No se puede firmar todavía — 6 cosas por resolver: Falta cédula profesional del médico · y 5 más arriba",
+    "scrollMain": 800
+  },
+  "axeMovil": [
+    {
+      "id": "region",
+      "impact": "moderate",
+      "nodes": 2,
+      "targets": [
+        "div:nth-child(2) > div:nth-child(3) > span",
+        "a[href=\"/configuracion?tab=suscripcion\"]"
+      ]
+    }
+  ],
+  "trasTap": {
+    "barraEnDOM": false,
+    "barraVisible": false,
+    "barraRect": null,
+    "barraTexto": null,
+    "bottomNavTop": 791,
+    "vh": 844,
+    "anclaEnDOM": true,
+    "focoEnAncla": true,
+    "firmarRect": {
+      "top": 512,
+      "bottom": 566,
+      "w": 229,
+      "h": 54
+    },
+    "firmarVisible": true,
+    "motivoJuntoAFirmar": "No se puede firmar todavía — 6 cosas por resolver: Falta cédula profesional del médico · y 5 más arriba",
+    "scrollMain": 2423
+  },
+  "escritorio": {
+    "barraEnDOM": true,
+    "barraVisible": false
+  },
+  "erroresConsola": [
+    "[2026-08-12T02:48:03.133Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[2026-08-12T02:48:10.787Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

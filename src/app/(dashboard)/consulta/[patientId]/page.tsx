@@ -56,6 +56,7 @@ import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
+import { CierreAlPulgar, cierreAlPulgarVisible } from '@/components/CierreAlPulgar'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
 import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, leerSeguimientoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
@@ -2967,18 +2968,36 @@ export default function ConsultaActivaPage() {
    */
   const scrollKey = `nx.consulta.scroll.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
   useEffect(() => {
+    /**
+     * El scroll del dashboard vive en <main> desde que el shell tiene tope
+     * (`nx-app-shell`, V15-MOBILE-001 §23); antes vivía en el documento
+     * porque `min-height` dejaba crecer la columna. Se lee y escribe en LOS
+     * DOS lados: mover el contenedor que no desplaza es un no-op inofensivo,
+     * y así esta restauración no depende de cuál de los dos esté activo (la
+     * clase podría no aplicar en un embed o en una prueba sin el layout).
+     */
+    const scroller = () => document.querySelector('main')
     // Restaurar: dos frames para que el contenido restaurado ya esté pintado.
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         const y = Number(sessionStorage.getItem(scrollKey) || 0)
-        if (y > 0) window.scrollTo(0, y)
+        if (y > 0) {
+          const m = scroller()
+          if (m) m.scrollTop = y
+          window.scrollTo(0, y)
+        }
       })
     })
-    const guardarScroll = () => { try { sessionStorage.setItem(scrollKey, String(window.scrollY)) } catch { /* */ } }
+    const guardarScroll = () => {
+      try { sessionStorage.setItem(scrollKey, String(scroller()?.scrollTop || window.scrollY)) } catch { /* */ }
+    }
+    const m = scroller()
+    m?.addEventListener('scroll', guardarScroll, { passive: true })
     window.addEventListener('scroll', guardarScroll, { passive: true })
     return () => {
       cancelAnimationFrame(raf1); cancelAnimationFrame(raf2)
+      m?.removeEventListener('scroll', guardarScroll)
       window.removeEventListener('scroll', guardarScroll)
       guardarScroll()  // al desmontar (irte): recuerda dónde ibas
     }
@@ -3887,6 +3906,18 @@ export default function ConsultaActivaPage() {
     erroresNOM004: validacion?.errores,
     dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
   })
+
+  /**
+   * ¿Hay ya algo de nota que cerrar? (V15-MOBILE-001, §22 — `CierreAlPulgar`.)
+   * Cualquier señal real de contenido cuenta: una sección escrita, un
+   * diagnóstico o medicamento capturado, o un dictado en curso
+   * (`!esElPrincipio`). Sin ninguna, la acción primaria del encuentro sigue
+   * siendo EmpezarAGrabar y la barra de cierre no tiene derecho a existir.
+   */
+  const hayContenidoDeNota = !esElPrincipio
+    || secciones.some(s => s.value.trim() !== '')
+    || diagnosticos.length > 0
+    || medicamentos.length > 0
 
 
   /**
@@ -5824,7 +5855,18 @@ export default function ConsultaActivaPage() {
             antes que cajas). Ningún onClick, disabled ni motivo cambió: es
             reordenar el peso visual de lo que ya existía, no lógica nueva.
           */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+          <div
+            /**
+             * `id` + `tabIndex={-1}`: el ancla a la que viaja `CierreAlPulgar`
+             * (V15-MOBILE-001, §22). El tabIndex negativo permite mover el
+             * FOCO aquí al aterrizar — teclado y lector de pantalla llegan a
+             * donde llegó la vista — sin meter el contenedor al orden de
+             * tabulación normal.
+             */
+            id="cierre-de-la-consulta"
+            tabIndex={-1}
+            style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, outline: 'none' }}
+          >
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               {/*
                 ── EL BOTÓN DICE POR QUÉ ESTÁ APAGADO (6-ago-2026, REG-189) ──
@@ -5875,6 +5917,28 @@ export default function ConsultaActivaPage() {
           </div>
         </>
       )}
+
+      {/*
+        V15-MOBILE-001 (Fase 9, §22): el cierre, al alcance del pulgar. La
+        radiografía móvil midió «Firmar» a ~2,900px de scroll a 390×844 — el
+        trabajo «sign/close» existía pero el pulgar no llegaba. Esta barra NO
+        firma (§19, acto consecuente con revisión explícita): sólo enseña el
+        estado del cierre con las MISMAS fuentes que el botón real
+        (`bloqueosDeFirma`/`motivoNoFirma`) y acerca el viaje. Va como última
+        pieza en flujo a propósito: `position: sticky; bottom: 0` la pega al
+        borde inferior de <main> durante todo el scroll del cuerpo de la nota.
+      */}
+      <CierreAlPulgar
+        visible={cierreAlPulgarVisible({
+          firmada,
+          grabando: audio.estado === 'grabando' || audio.estado === 'pausado' || audio.estado === 'subiendo',
+          hayContenido: hayContenidoDeNota,
+        })}
+        bloqueos={bloqueosDeFirma.length}
+        motivo={motivoNoFirma}
+        completitud={validacion.puntajeCompletitud}
+        idDestino="cierre-de-la-consulta"
+      />
 
       {/*
         DEJAR DE TOMAR ALGO TAMBIÉN SE ESCRIBE.

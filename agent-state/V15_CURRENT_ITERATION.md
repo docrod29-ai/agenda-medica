@@ -4,14 +4,21 @@
 
 ## Iteración en curso
 
-`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, tercera rebanada
-12-ago-2026: shell móvil consolidado — la franja de instrumentos ES el
-centro de la topbar en móvil (una fila, «Ausculta» una vez, enlace de
-paciente 44px táctiles, shell fijo 135→105px) + pistas de teclado de la
-paleta ocultas en el teléfono. Segunda rebanada (12-ago-2026): cajón
-lateral retirado en modo médico + topbar con Buscar + Cerrar sesión en
-/operaciones. Primera rebanada (12-ago-2026): `BottomNav` recompuesto a
-la IA de V15. Ver secciones al FINAL de este archivo.
+`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, cuarta rebanada
+12-ago-2026: «firmar/cerrar desde el teléfono» — `CierreAlPulgar` (barra
+pegada al borde inferior de /consulta que acerca el cierre al pulgar SIN
+firmar por su cuenta) + **el arreglo estructural que destapó su arnés**:
+el shell del dashboard no tenía tope de altura, `<main>` nunca desplazaba
+y TODO el sistema sticky del producto estaba mudo (BottomNav a 2,321px
+del borde en /consulta) — `nx-app-shell` lo arregla de raíz. Tercera
+rebanada (12-ago-2026): shell móvil consolidado — la franja de
+instrumentos ES el centro de la topbar en móvil (una fila, «Ausculta» una
+vez, enlace de paciente 44px táctiles, shell fijo 135→105px) + pistas de
+teclado de la paleta ocultas en el teléfono. Segunda rebanada
+(12-ago-2026): cajón lateral retirado en modo médico + topbar con Buscar
++ Cerrar sesión en /operaciones. Primera rebanada (12-ago-2026):
+`BottomNav` recompuesto a la IA de V15. Ver secciones al FINAL de este
+archivo.
 `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8) — **CERRADA 12-ago-2026** por
 decisión de alcance: la integración por continuidad ES la forma final de
 Fase 8 (ver «Fase 8 — decisión de cierre» abajo). Quinta rebanada previa
@@ -2273,3 +2280,141 @@ Resultado y 5 capturas en `docs/design/capturas/v15-shell-consolidado/`
 teléfono» (§22) — el hallazgo de los 2,900px — o el modelo responsivo §23
 por breakpoint documentado como decisión, lo que la corrida siguiente
 mida como más valioso.
+
+## `V15-MOBILE-001` (Fase 9, §22/§23) — cuarta rebanada: firmar/cerrar desde el teléfono, y el shell gana fondo (12-ago-2026)
+
+La tarea que dejó nombrada la rebanada anterior («el trabajo móvil
+"firmar/cerrar desde el teléfono" — el hallazgo de los 2,900px») se pagó, y
+en el camino su propio arnés destapó un defecto estructural mucho más viejo
+que la barra.
+
+### `CierreAlPulgar` — el cierre al alcance del pulgar (§22)
+
+- **`src/components/CierreAlPulgar.tsx`** — barra `position: sticky;
+  bottom: 0` al FINAL del flujo de /consulta, sólo móvil (≤768px, display
+  en la HOJA — la lección de `nx-stat-grid`: el default es `display:none` y
+  el media query la enciende, no al revés). Enseña el ESTADO del cierre con
+  las MISMAS fuentes que el botón real (`bloqueosDeFirma.length`,
+  `motivoNoFirma`, `validacion.puntajeCompletitud` — ni un recálculo) y un
+  toque hace scroll+foco hasta `#cierre-de-la-consulta` (ancla nueva con
+  `tabIndex={-1}`: teclado y lector aterrizan donde aterriza la vista;
+  `prefers-reduced-motion` respetado).
+- **LO QUE NO HACE, A PROPÓSITO: firmar.** Firmar es acto consecuente
+  (§19, regla 6 de seguridad clínica) — el botón real vive junto a la
+  validación NOM-004 y ahí se queda. La barra es navegación; el guardián
+  caza cualquier `firmar(` que alguien le cablee.
+- **Cuándo existe** (`cierreAlPulgarVisible`, función pura): nota sin
+  firmar + sin grabación en curso (grabando/pausado/subiendo — §8.5/§8.6:
+  a media escucha no se ofrece el cierre) + hay contenido real
+  (`hayContenidoDeNota`: sección escrita, diagnóstico, medicamento o
+  dictado — señales que ya existían, no estado nuevo). Se esconde sola
+  cuando la zona de cierre ya está en pantalla (IntersectionObserver,
+  rootMargin que descuenta su propia altura): dos accesos a «Firmar» a la
+  vez confundirían cuál es el de verdad.
+
+### El hallazgo estructural: el shell no tenía fondo y TODO sticky estaba mudo
+
+El primer intento de tap del arnés falló con `<html> intercepts pointer
+events` y la sonda de geometría enseñó por qué — y no era la barra:
+
+- el layout del dashboard usaba `minHeight: 100vh` SIN tope, la columna
+  entera crecía con el contenido, `<main>` (con `overflowY: auto` desde
+  siempre, con la intención de ser EL contenedor de scroll) tenía
+  `clientHeight === scrollHeight` — **jamás desplazó nada**; quien
+  desplazaba era el documento;
+- consecuencia silenciosa: **todo `position: sticky` cuyo scrollport era
+  `<main>` no pegaba** — `PatientAnchor`, encabezado del calendario,
+  encabezado de la tabla de pacientes, paneles laterales de receta/orden…
+  y el propio `BottomNav` en páginas largas: medido a **2,321px del borde
+  en un viewport de 844** en /consulta — la navegación del pulgar
+  simplemente NO ESTABA en la página más larga del producto;
+- ninguna prueba lo veía porque los arneses hacían `main.scrollTop = N`
+  (un no-op sobre un main que no desplaza) y las aserciones «sigue pegado»
+  pasaban trivialmente: el elemento no se movía porque nada se movía. La
+  medición de PatientAnchor («106.5px antes y después») era un falso
+  verde por esta misma vía.
+
+**Arreglo de raíz, no parche por elemento**: clase `nx-app-shell`
+(`height: 100vh` + fallback `100dvh` + `overflow: hidden`) en el div raíz
+del layout del dashboard; `.sidebar` gana `overflow-y: auto` (dentro de un
+shell con tope el riel desplaza su propio contenido); la restauración de
+scroll de /consulta (única dependencia de `window.scrollY` en el
+dashboard, verificada por grep) ahora lee/escribe EN LOS DOS lados (main y
+window — mover el que no desplaza es un no-op, funciona sea cual sea el
+contenedor activo). Sólo el área clínica: login/portal/marketing siguen
+desplazando el documento, y está bien.
+
+### Guardianes nuevos, probados al revés
+
+- `src/__tests__/v15-cierre-al-pulgar.test.ts` (18 casos) — no-firma,
+  misma-fuente, ancla con foco, estados del encuentro como función pura,
+  display en la hoja, botón real ≥44px. 7 de 18 fallan con page/CSS
+  revertidos; el archivo entero falla si el componente no existe
+  (verificado con `git stash`).
+- `src/__tests__/v15-el-scroll-vive-en-main.test.ts` (7 casos) — el tope
+  del shell (height, no min-height: min-height FUE el defecto), la clase
+  en el layout, main con overflowY auto, sidebar con scroll propio, y la
+  restauración de scroll a dos lados. 6 de 7 fallan contra el árbol
+  previo (verificado con `git stash`).
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start`; `node_modules` volvió a faltar — `npm ci`). Arnés nuevo:
+`scripts/design/capturar-cierre-al-pulgar-v15.mjs`. Resultado y 5 capturas
+en `docs/design/capturas/v15-cierre-al-pulgar/` (390×844 + 1440):
+
+- **Nota vacía → sin barra** (al principio manda EmpezarAGrabar). **Con
+  contenido escrito por la UI real** (textarea de Motivo, sin siembra
+  ad-hoc) → barra visible 358×65, pegada; **misma posición tras
+  `main.scrollTop = 800`** — y ahora ese scroll ES real (el shell con
+  tope): `scrollMain: 800` medido.
+- **La barra dice la verdad**: «Aún no se puede firmar · No se puede
+  firmar todavía — 6 cosas por resolver: Falta cédula profesional del
+  médico» — byte-idéntico al `role="status"` junto al botón real (misma
+  fuente, probada en DOM).
+- **Tap → aterriza**: Firmar (a 2,935px) visible en viewport, foco en el
+  ancla (`focoEnAncla: true`), barra oculta (IntersectionObserver). Los
+  dos lados del viaje, medidos.
+- **BottomNav POR FIN pegado en /consulta**: top 791 = 844−53 (antes
+  2,321) — el arreglo del shell, visible en la misma captura.
+- **Escritorio 1440**: barra no visible (CSS), pantalla sin cambio.
+- **Axe**: sólo la familia `region` preexistente (2 nodos, banner de
+  prueba/`suscripcion`), nada nuevo, nada en la barra.
+- **Consola**: sólo los artefactos conocidos del arnés (reconexión de
+  Firestore del emulador + 401 de auditoría, mismo fingerprint documentado
+  desde v15-patient-anchor).
+
+### Hallazgos de esta corrida (anotados, no bloqueantes)
+
+- **`NotificacionesPushOptIn` tapa el borde inferior completo en 390px**
+  (fixed bottom 16, z-1000, aparece a los 3s): se comió el tap del arnés
+  dos veces. Preexistente — en móvil compite con TODA la zona del pulgar
+  (BottomNav incluido), no sólo con la barra nueva. El arnés lo esquiva
+  sembrando su flag de descarte (lo que haría un médico que ya pulsó
+  «Después»). Candidato: en móvil, ese banner debería ser una fila del
+  flujo o una hoja, no un fixed sobre la navegación → rebanada futura de
+  esta fase o `V15-A11Y-001`.
+- El gap de ~72px entre la barra y el borde de main (padding inferior de
+  la página) se ve bien a simple vista — no se tocó.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: en verde (ver commit) — 25 casos nuevos; el único
+  fallo es el PRE-EXISTENTE ambiental de siempre (`ops-timeout-y-punto-
+  ciego`, proxy de red del contenedor, verificado en aislamiento con el
+  mismo fingerprint de todas las corridas).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (12 y
+  10.5 de la barra están en la escala oficial).
+- `npx tsc --noEmit`: limpio (cazó de paso un comentario JSX ilegal antes
+  del raíz del layout — corregido a comentario de línea).
+- `npm run build`: compila limpio (2 veces: barra, y barra+shell).
+- `docs/design/SCREEN_INVENTORY.md` regenerado.
+
+**Siguiente tarea exacta:** los trabajos móviles restantes de §22 medidos
+contra pantallas reales (revisar nota generada, revisar resultado,
+borrador de comunicación al paciente) y/o el banner push como fila/hoja en
+móvil (hallazgo de arriba); el modelo responsivo §23 por breakpoint ya
+tiene su primera decisión escrita (el shell con fondo) — documentar el
+resto cuando las rebanadas lo midan.
