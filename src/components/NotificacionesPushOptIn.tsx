@@ -70,16 +70,16 @@ export function NotificacionesPushOptIn() {
   // el banner solo aparece cuando corresponde pedirlo.
   if (!visible) return concedido ? <ProgramadorNotificaciones /> : null
 
+  // La posición vive en la HOJA (.nx-push-optin), no inline: en móvil el media
+  // query lo ancla ENCIMA del BottomNav, y un `position/bottom` inline lo
+  // pisaría en silencio (la lección de nx-stat-grid). V15-MOBILE-001.
   return (
     <>
     {concedido && <ProgramadorNotificaciones />}
-    <div style={{
-      position: 'fixed', bottom: 16, right: 16, zIndex: 1000,
-      maxWidth: 360, background: 'var(--s1)',
-      border: '1px solid var(--border)', borderRadius: 12,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-      padding: 14, display: 'flex', gap: 12, alignItems: 'flex-start',
-    }}>
+    {/* Landmark con nombre: el arnés de esta rebanada fue el PRIMERO en pasar
+        axe con el aviso abierto (los anteriores lo descartaban para que no les
+        tapara los taps) y cazó a sus hijos fuera de todo landmark (`region`). */}
+    <div className="nx-push-optin" role="region" aria-label="Aviso de recordatorios de citas">
       <div style={{
         width: 36, height: 36, borderRadius: '50%',
         background: 'rgba(20,184,166,0.15)',
@@ -100,6 +100,7 @@ export function NotificacionesPushOptIn() {
           <button
             onClick={aceptar}
             disabled={solicitando}
+            className="nx-push-optin-accion"
             style={{
               background: 'var(--nexus-solido)', color: '#fff', border: 'none',
               borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700,
@@ -110,6 +111,7 @@ export function NotificacionesPushOptIn() {
           </button>
           <button
             onClick={dismiss}
+            className="nx-push-optin-accion"
             style={{
               background: 'transparent', color: 'var(--text3)', border: 'none',
               borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer',
@@ -122,6 +124,7 @@ export function NotificacionesPushOptIn() {
       <button
         onClick={dismiss}
         aria-label="Cerrar aviso de notificaciones"
+        className="nx-push-optin-cerrar"
         style={{
           background: 'none', border: 'none', color: 'var(--text3)',
           cursor: 'pointer', padding: 2, flexShrink: 0,

@@ -4,7 +4,15 @@
 
 ## Iteración en curso
 
-`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, cuarta rebanada
+`V15-MOBILE-001` (Fase 9, §22/§24) — **EN CURSO**, quinta rebanada
+12-ago-2026: «el aviso push ya no tapa el pulgar» — `NotificacionesPushOptIn`
+deja de ser `fixed bottom:16 z-1000` SOBRE el BottomNav (se comió el tap de
+dos arneses) y pasa a hoja anclada ENCIMA de la barra en ≤768px, con su
+posición en la HOJA (lección nx-stat-grid), z-index 44 < 45 (si vuelven a
+solaparse gana la navegación), objetivos táctiles de 44px, landmark con
+nombre y el FAB de ayuda cediendo el paso mientras pregunta. Medido en
+navegador real: tap en «Seguimiento» LLEGA a /pendientes con el aviso
+abierto. Ver sección al FINAL de este archivo. Cuarta rebanada previa
 12-ago-2026: «firmar/cerrar desde el teléfono» — `CierreAlPulgar` (barra
 pegada al borde inferior de /consulta que acerca el cierre al pulgar SIN
 firmar por su cuenta) + **el arreglo estructural que destapó su arnés**:
@@ -2414,7 +2422,98 @@ en `docs/design/capturas/v15-cierre-al-pulgar/` (390×844 + 1440):
 
 **Siguiente tarea exacta:** los trabajos móviles restantes de §22 medidos
 contra pantallas reales (revisar nota generada, revisar resultado,
-borrador de comunicación al paciente) y/o el banner push como fila/hoja en
-móvil (hallazgo de arriba); el modelo responsivo §23 por breakpoint ya
-tiene su primera decisión escrita (el shell con fondo) — documentar el
-resto cuando las rebanadas lo midan.
+borrador de comunicación al paciente); el modelo responsivo §23 por
+breakpoint ya tiene su primera decisión escrita (el shell con fondo) —
+documentar el resto cuando las rebanadas lo midan. El banner push como
+hoja quedó ENTREGADO en la quinta rebanada (ver abajo).
+
+## `V15-MOBILE-001` (Fase 9, §22/§24) — quinta rebanada: el aviso push ya no tapa el pulgar (12-ago-2026)
+
+El hallazgo que la cuarta rebanada dejó nombrado («`NotificacionesPushOptIn`
+tapa el borde inferior completo en 390px… candidato: fila del flujo o una
+hoja, no un fixed sobre la navegación») se pagó completo. El banner era
+`position:fixed; bottom:16; right:16; z-index:1000` INLINE — en 390px eso es
+el ancho completo de la pantalla montado sobre el BottomNav (z-45) y toda la
+zona del pulgar, durante los segundos en los que el médico más navega (recién
+entrado a la app). No lo encontró una prueba: se comió el TAP de dos arneses
+de captura distintos, que lo esquivaban sembrando su flag de descarte.
+
+- **`src/components/NotificacionesPushOptIn.tsx`** — el contenedor pierde
+  TODOS sus estilos inline de posición y gana `className="nx-push-optin"`
+  (la lección de nx-stat-grid, tercera vez que se aplica en esta fase: un
+  `position:'fixed'` inline vencería al media query en silencio). Gana
+  además `role="region"` + `aria-label` (ver hallazgo axe abajo) y clases en
+  sus tres controles. NADA de su conducta cambió: mismo `DISMISS_KEY`, mismo
+  retraso de 3s, mismo gate `concedido` del programador de avisos, mismo
+  `solicitarPermisoPush()` — congelado por el guardián.
+- **`src/app/globals.css`** — `.nx-push-optin`: en escritorio la tarjeta
+  abajo-derecha de siempre (máx 360px). En ≤768px: hoja de borde a borde
+  anclada ENCIMA del BottomNav (`bottom: calc(53px + 8px + safe-area)` —
+  53px es el alto real medido en v15-cierre-al-pulgar) con `z-index: 44`,
+  DEBAJO del 45 del BottomNav: si la geometría volviera a fallar algún día,
+  gana la NAVEGACIÓN, nunca el aviso. §24: `Activar`/`Después` suben a
+  min-height 44 y la X gana área táctil de 44×44 con margen compensado.
+  El FAB de ayuda (z-60, misma esquina en todos los tamaños) cede el paso
+  mientras el aviso pregunta (`body:has(.nx-push-optin) .boton-ayuda-fab`,
+  mismo patrón que ya usa el FAB al enfocar un input) y vuelve solo al
+  decidir o descartar.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos de fase):
+  `src/__tests__/v15-push-optin-no-tapa-el-pulgar.test.ts` — 6 de sus 10
+  casos fallan contra el árbol previo (verificado con `git stash`): clase en
+  el contenedor, hoja con la clase, media query con safe-area, z-index por
+  debajo del BottomNav, clases táctiles y regla del FAB. Los otros 4
+  protegen el freeze funcional del aviso.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores Auth/Firestore + siembra
+`sembrar-capturas.mjs` + build de producción + `npm start`; `node_modules`
+volvió a faltar — `npm ci`). Arnés nuevo:
+`scripts/design/capturar-push-optin-v15.mjs` — el PRIMERO de la rama que NO
+siembra el flag de descarte: quiere el aviso ABIERTO, porque lo que mide es
+que la navegación sobreviva con él en pantalla. Resultado y 4 capturas en
+`docs/design/capturas/v15-push-optin/` (390×844 + 1440):
+
+- **Hoja encima del BottomNav, medido**: aviso `bottom: 783`, BottomNav
+  `top: 791` — 8px de separación, `seIntersecan: false`; z 44 < 45.
+- **La razón de ser del cambio, medida de punta a punta**: CON el aviso
+  abierto, tap real en «Seguimiento» del BottomNav → la URL aterriza en
+  `/pendientes`. Antes ese tap se lo comía el aviso (documentado en el
+  arnés de la cuarta rebanada).
+- **§24**: `Activar 64×44 · Después 66×44 · X 44×44` — los tres al mínimo
+  táctil o encima.
+- **El FAB cede y vuelve**: `opacity 0 / pointer-events none` con el aviso
+  abierto; `opacity 1` tras «Después». Tras descartar y RECARGAR, el aviso
+  no vuelve (flag persistido — conducta de siempre, ahora medida).
+- **Hallazgo axe de este mismo arnés, arreglado en la misma corrida**: al
+  ser el primero que escanea con el aviso abierto, axe cazó a sus hijos
+  fuera de todo landmark (`region`, 2 nodos en `.nx-push-optin`). Arreglado
+  con `role="region"` + `aria-label` en el contenedor; en la recaptura
+  quedan SOLO los 2 nodos preexistentes de la familia `region` ya
+  documentada (span del InstrumentStrip + enlace del TrialBanner), ninguno
+  del aviso → siguen anotados para `V15-A11Y-001`.
+- **Escritorio 1440 sin cambio**: tarjeta 360px abajo-derecha.
+- **Consola**: sólo los 401 de auditoría documentados como artefacto del
+  arnés de emuladores (mismo fingerprint desde v15-patient-anchor).
+- Anotado, no bloqueante: el toggle de tema (z-199, flotante) pinta sobre
+  el espacio vacío del borde derecho del aviso en 390px sin tapar ningún
+  control (el tap en «Después» llegó a través del arnés) — colisión
+  preexistente de la familia de widgets flotantes, candidata a
+  `V15-A11Y-001` junto con sus hermanos ya anotados.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: en verde (ver commit) — 10 casos nuevos.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (2 veces: hoja, y hoja+landmark).
+- `docs/design/SCREEN_INVENTORY.md`: sin cambios (los archivos tocados no
+  son pantallas) — regenerado para comprobarlo.
+
+**Siguiente tarea exacta:** los trabajos móviles restantes de §22 medidos
+contra las pantallas reales en 390px (revisar nota generada, revisar
+resultado, borrador de comunicación al paciente) — decidir la rebanada con
+la medición, no desde el checkpoint; o si la medición no da una rebanada
+clara, documentar el modelo responsivo §23 por breakpoint con las
+decisiones ya tomadas (shell con fondo, franja en topbar, hoja del aviso).

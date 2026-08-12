@@ -821,6 +821,68 @@ tbody tr:last-child { border-bottom: none; }
 }
 
 /*
+  V15-MOBILE-001 (Fase 9, §22/§24) — el aviso de recordatorios push
+  (`NotificacionesPushOptIn`). En escritorio: tarjeta flotante abajo-derecha,
+  como siempre. En móvil era `position:fixed; bottom:16; z-index:1000` SOBRE
+  el BottomNav (z-45): tapaba la navegación completa de la zona del pulgar y
+  se comió el tap de los arneses dos veces (documentado en
+  capturar-cierre-al-pulgar-v15.mjs, que lo esquivaba sembrando el flag de
+  descarte). Ahora en ≤768px es una hoja anclada ENCIMA del BottomNav
+  (53px medidos en v15-cierre-al-pulgar, + separación + safe-area), y su
+  z-index (44) queda DEBAJO del BottomNav (45): si algún día vuelven a
+  solaparse, gana la navegación — nunca al revés. La posición vive en la
+  HOJA y no inline por la lección de nx-stat-grid: un estilo inline
+  vencería al media query en silencio.
+*/
+.nx-push-optin {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 44;
+  max-width: 360px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+@media (max-width: 768px) {
+  .nx-push-optin {
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    /* 53px = alto real del BottomNav medido en v15-cierre-al-pulgar. */
+    bottom: calc(53px + 8px + env(safe-area-inset-bottom, 0px));
+  }
+  /* §24: en pantalla táctil, Activar/Después suben al mínimo de 44px. */
+  .nx-push-optin-accion {
+    min-height: 44px;
+  }
+  .nx-push-optin-cerrar {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Compensa el área táctil para que la X siga viéndose en la esquina. */
+    margin: -10px -10px 0 0;
+  }
+}
+/* Mientras el aviso pregunta, el FAB de ayuda le cede el paso (mismo patrón
+   que ya usa el FAB al enfocar un input): comparten la esquina inferior
+   derecha en TODOS los tamaños, y con el aviso ahora por debajo de z-60 el
+   FAB taparía su X. Vuelve solo, al decidir o descartar. Si el navegador no
+   soporta :has, la regla se ignora y el FAB queda como antes — degradación
+   segura. */
+body:has(.nx-push-optin) .boton-ayuda-fab {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
   V15-MOBILE-001 (Fase 9, §23 «what remains persistent») — el shell del
   dashboard tiene FONDO: alto exacto del viewport y overflow oculto, para que
   el scroll viva en <main> (que SIEMPRE tuvo `overflowY: auto` con esa
