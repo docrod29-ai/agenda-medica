@@ -33,7 +33,7 @@
  * Módulo PURO.
  */
 
-export type QueFalta = 'receta' | 'orden' | 'hoja_del_paciente' | 'cobro' | 'expediente'
+export type QueFalta = 'receta' | 'orden' | 'hoja_del_paciente' | 'seguimiento' | 'cobro' | 'expediente'
 
 export interface PasoDeCierre {
   que: QueFalta
@@ -58,6 +58,14 @@ export interface EstadoAlCerrar {
   hayEstudios?: boolean
   /** La clínica pide el cobro al médico al cerrar. */
   pideCobro?: boolean
+  /**
+   * Fecha ISO (AAAA-MM-DD) que el médico puso en «Próxima consulta», o vacío.
+   * Sólo llega recién firmada la nota: el documento de la nota no guarda este
+   * campo (va al expediente del paciente y a la tarea del worklist), así que al
+   * REABRIR una nota firmada este dato ya no está y el paso no aparece — la
+   * tarea «Agendar el seguimiento» del worklist es quien lo recuerda entonces.
+   */
+  proximoSeguimiento?: string | null
   /** Si está internado, el cierre es otro: vuelve al episodio. */
   internamientoActivo?: string | null
 }
@@ -104,6 +112,26 @@ export function queFaltaParaCerrar(e: EstadoAlCerrar): PasoDeCierre[] {
     ruta: '#hoja-para-el-paciente',
   })
 
+  /**
+   * NOTE → … → FOLLOW-UP (V15-NOTE-PLAN-CONTINUITY-001, §33 Fase 8).
+   *
+   * El eslabón que faltaba de la cadena de cierre. El médico puso fecha de
+   * control, la firma derivó la tarea «Agendar el seguimiento»… y el cierre no
+   * decía nada: la cita se agendaba después, desde /pendientes, con el
+   * paciente ya ido. El momento natural de agendar es AHORA, que sigue aquí.
+   *
+   * Sólo con forma ISO exacta: es lo único que /citas?d= sabe interpretar
+   * (`paramFecha`); cualquier otra cosa aterrizaría en «hoy» sin avisar — un
+   * botón que promete llevar al día del control y lleva a otro.
+   */
+  const seg = String(e.proximoSeguimiento ?? '').trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(seg)) out.push({
+    que: 'seguimiento',
+    titulo: 'Agendar el seguimiento',
+    siNoSeHace: 'El paciente se va sin cita; la tarea queda esperando en Pendientes.',
+    ruta: `/citas?d=${seg}`,
+  })
+
   if (e.pideCobro) out.push({
     que: 'cobro',
     titulo: 'Registrar el cobro',
@@ -132,7 +160,15 @@ export function aDondeIrDirecto(e: EstadoAlCerrar): string | null {
   /* Internado: el cierre es volver al episodio, y eso no admite alternativa. */
   if (e.internamientoActivo) return `/hospitalizacion/${e.internamientoActivo}`
 
-  const pasos = queFaltaParaCerrar(e).filter(p => p.que !== 'expediente' && p.que !== 'hoja_del_paciente')
+  /**
+   * El seguimiento tampoco cuenta para forzar el panel — pero por OTRA razón
+   * que la hoja: a diferencia de la orden de REG-244 (que sin panel se perdía
+   * sin dejar rastro), el seguimiento ya tiene red — la firma derivó su tarea
+   * en el worklist. Forzar el panel añadiría un clic a la consulta más común
+   * para proteger algo que ya está protegido. Cuando el panel sale de todos
+   * modos, el paso está ahí para cerrar el ciclo con el paciente presente.
+   */
+  const pasos = queFaltaParaCerrar(e).filter(p => p.que !== 'expediente' && p.que !== 'hoja_del_paciente' && p.que !== 'seguimiento')
   if (pasos.length === 0) return `/expediente/${e.patientId}`
   if (pasos.length === 1 && !e.pideCobro) return pasos[0].ruta
   return null
@@ -152,3 +188,9 @@ export const POR_QUE_EL_CASO_SIMPLE_NO_CAMBIA =
   'Con un solo destino nunca estuvo roto. Meterle una pantalla de por medio ' +
   'sería añadir un clic a la consulta más común para arreglar un problema que ' +
   'esa consulta no tiene.'
+
+export const POR_QUE_EL_SEGUIMIENTO_NO_FUERZA_EL_PANEL =
+  'La orden de REG-244 se perdía sin dejar rastro; el seguimiento no: la firma ' +
+  'ya derivó su tarea en el worklist. Forzar el panel añadiría un clic para ' +
+  'proteger algo que ya está protegido — el paso aparece cuando el panel sale ' +
+  'de todos modos, para agendar con el paciente todavía presente.'

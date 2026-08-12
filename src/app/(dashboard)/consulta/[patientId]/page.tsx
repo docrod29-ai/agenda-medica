@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
+import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
@@ -56,7 +57,7 @@ import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
-import { leerHechosDeCierre, marcarHechoDeCierre } from '@/lib/expediente/cierre-hechos'
+import { leerHechosDeCierre, marcarHechoDeCierre, guardarSeguimientoDeCierre, leerSeguimientoDeCierre } from '@/lib/expediente/cierre-hechos'
 import { queCambioEnLasCifras, loQueSeLlevoPorDelante } from '@/lib/seguridad/la-reescritura-no-pierde-cifras'
 import { construirManifiesto, camposSinEvidencia } from '@/lib/expediente/procedencia'
 
@@ -1209,7 +1210,14 @@ export default function ConsultaActivaPage() {
    * Alimenta dos cosas que YA existían esperando este dato: la tarea «agendar
    * el seguimiento» del worklist y el contador de seguimientos vencidos del CRM.
    */
-  const [proximoSeguimiento, setProximoSeguimiento] = useState('')
+  /**
+   * Inicialización perezosa desde `sessionStorage` (quinta rebanada, Fase 8):
+   * la nota no guarda este campo, así que al remontar con `?nota=` (volver
+   * de /citas, F5) el valor que el médico puso se recupera de donde lo dejó
+   * `firmar()` — mismo patrón que `hechosCierre` arriba. Sin entrada guardada
+   * devuelve `''`, idéntico al estado inicial de siempre.
+   */
+  const [proximoSeguimiento, setProximoSeguimiento] = useState(() => leerSeguimientoDeCierre(notaIdParam))
   // Fase B: bloque auditable de la IA + aprobaciones por campo
   const [safety, setSafety] = useState<Record<string, unknown> | undefined>(undefined)
   const [aprobados, setAprobados] = useState<Set<string>>(new Set())
@@ -3504,6 +3512,15 @@ export default function ConsultaActivaPage() {
        * tendría que pulsarse dos veces para salir de la consulta.
        */
       router.replace(`/consulta/${patientId}?nota=${id}`)
+      /**
+       * La fecha de control sobrevive al remonte (quinta rebanada, Fase 8):
+       * la nota NO guarda `proximoSeguimiento` (esquema congelado — va al
+       * paciente y a la tarea del worklist), así que volver de `/citas` a
+       * esta URL dejaba el paso «Agendar el seguimiento» INEXISTENTE en el
+       * checklist, ni marcado ni pendiente. Lo encontró el arnés de la
+       * propia rebanada. Mismo criterio de `sessionStorage` que las marcas.
+       */
+      guardarSeguimientoDeCierre(id, proximoSeguimiento)
       try { localStorage.removeItem(respaldoKey) } catch { /* */ }  // ya firmada: respaldo local ya no hace falta
       toast('Nota firmada y sellada (NOM-024)', 'success')
       /**
@@ -3701,7 +3718,18 @@ export default function ConsultaActivaPage() {
     } finally {
       setGuardando(false)
     }
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente])
+    /**
+     * `proximoSeguimiento` en las dependencias — REG-310. Faltaba, y como
+     * TAMPOCO está en las de `construirNota`, teclear la fecha como ÚLTIMO
+     * gesto antes de firmar (el orden natural: se decide el control al
+     * cerrar) dejaba este callback memorizado con la fecha VIEJA — `''`.
+     * Resultado, medido contra el emulador con el arnés de la Fase 8: cuatro
+     * notas firmadas con fecha y CERO tareas «Agendar el seguimiento»
+     * derivadas, y `patient.proximoSeguimiento` sin actualizar. El tercer
+     * arreglo del mismo dato (REG-193, REG-300, éste): cada uno cubrió un
+     * camino distinto por el que se perdía.
+     */
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
@@ -5220,6 +5248,14 @@ export default function ConsultaActivaPage() {
             hayEstudios: estudiosOrden.length > 0,
             pideCobro: config?.pedirCobroAlCerrar === true,
             internamientoActivo,
+            /**
+             * NOTE → FOLLOW-UP (V15, Fase 8): la fecha que el médico puso en
+             * «Próxima consulta». Sólo vive en estado de React — la nota no
+             * guarda este campo (va al paciente y a la tarea del worklist),
+             * así que al REABRIR una nota firmada el paso no reaparece; ahí
+             * quien lo recuerda es la tarea derivada al firmar.
+             */
+            proximoSeguimiento,
           })}
           hechos={hechosCierre}
           alIr={r => {
@@ -5229,6 +5265,7 @@ export default function ConsultaActivaPage() {
             }
             if (r.startsWith('/receta')) setHechosCierre(marcarHechoDeCierre(notaId, 'receta'))
             else if (r.startsWith('/orden')) setHechosCierre(marcarHechoDeCierre(notaId, 'orden'))
+            else if (r.startsWith('/citas')) setHechosCierre(marcarHechoDeCierre(notaId, 'seguimiento'))
             router.push(r)
           }}
         />
@@ -5262,7 +5299,15 @@ export default function ConsultaActivaPage() {
         <HojaParaElPaciente
           medicamentos={medicamentos}
           estudios={estudiosOrden}
-          proximaCita={undefined}
+          /**
+           * El motor (`comoSeLoExplico`) tiene el bloque «Su próxima cita»
+           * desde REG-242 y esta pantalla siempre le pasó `undefined` — el
+           * dato existía dos pantallas más arriba, en «Próxima consulta»
+           * (`proximoSeguimiento`), y nunca llegaba («escrito y sin
+           * conectar»). En la hoja va en palabras, no en ISO: el paciente lee
+           * «lunes, 8 de septiembre», no «2026-09-08».
+           */
+          proximaCita={proximoSeguimiento.trim() ? formatDateMX(proximoSeguimiento) : undefined}
           onInteraccion={() => setHechosCierre(marcarHechoDeCierre(notaId, 'hoja_del_paciente'))}
         />
       )}

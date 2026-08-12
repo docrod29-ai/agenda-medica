@@ -1815,22 +1815,126 @@ comporten distinto es bajo, pero no se afirma "diez de diez verificadas").
   corrida — `npm ci` primero porque `node_modules` no venía en el
   contenedor, mismo hallazgo operativo de todas las corridas previas).
 
+## `V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33) — quinta rebanada: el cierre agenda el seguimiento (11-ago-2026)
+
+La cadena de §33 Fase 8 es «Note → Rx → Orders → Instructions → Follow-up»
+y el último eslabón no existía en el cierre: el médico ponía fecha en
+«Próxima consulta», la firma derivaba la tarea del worklist… y el checklist
+de cierre no decía nada — la cita se agendaba después, desde `/pendientes`,
+con el paciente ya ido. Tres cables conectados, todos del patrón «escrito y
+sin conectar»:
+
+- **`que-falta-para-cerrar.ts`** — paso nuevo `seguimiento` («Agendar el
+  seguimiento» → `/citas?d=<fecha>`), SÓLO si el médico puso fecha con
+  forma ISO exacta (lo único que `paramFecha` de /citas sabe leer — otra
+  cosa aterrizaría en «hoy» sin avisar). **No fuerza el panel**
+  (`aDondeIrDirecto` lo excluye, razón exportada
+  `POR_QUE_EL_SEGUIMIENTO_NO_FUERZA_EL_PANEL`): a diferencia de la orden de
+  REG-244, el seguimiento ya tiene red — la tarea del worklist — y forzar el
+  panel añadiría un clic a la consulta más común para proteger algo ya
+  protegido. El caso común (sólo receta) sigue yendo directo, verificado
+  por la batería vieja `la-orden-no-se-queda-en-el-tintero.test.ts` en verde
+  sin tocarse.
+- **`page.tsx`** — pasa `proximoSeguimiento` al motor de cierre; `alIr`
+  marca `seguimiento` hecho ANTES de salir a `/citas` (mismo patrón que
+  receta/orden); y `HojaParaElPaciente` deja de recibir
+  `proximaCita={undefined}` — el motor (`comoSeLoExplico`, REG-242) tenía el
+  bloque «Su próxima cita» desde su primer día y esta pantalla nunca se lo
+  alimentó. En la hoja va en palabras (`formatDateMX`): el paciente lee
+  «martes, 8 de septiembre de 2026», no «2026-09-08».
+- **`cierre-hechos.ts`** — pareja nueva `guardarSeguimientoDeCierre`/
+  `leerSeguimientoDeCierre` (`sessionStorage`, mismo criterio escrito del
+  módulo): la nota NO guarda `proximoSeguimiento` (va al paciente y a la
+  tarea; añadirle el campo sería cambio de esquema congelado por §1), así
+  que al volver de `/citas` el remonte dejaba el paso INEXISTENTE — ni
+  marcado ni pendiente. Lo encontró el propio arnés de esta rebanada
+  (`marcado: null` en la primera pasada), no una lectura del código.
+  `firmar()` guarda la fecha; el estado la recupera con inicialización
+  perezosa al remontar.
+
+### REG-310 — hallazgo de esta corrida, ARREGLADO y sellado
+
+Verificando lo anterior contra el emulador apareció un defecto PREVIO y más
+serio: `firmar` es un `useCallback` sin `proximoSeguimiento` en sus
+dependencias (ni en las de `construirNota`), así que teclear la fecha como
+ÚLTIMO gesto antes de firmar — el orden natural — dejaba el callback con la
+fecha memorizada `''`: **la tarea «Agendar el seguimiento» de REG-300 nunca
+nacía y `patient.proximoSeguimiento` (contador del CRM) nunca se
+actualizaba**, mientras la pantalla pintaba todo correcto. Medido, no
+supuesto: 5 firmas con fecha → `estudio_pendiente`/`receta_por_entregar` SÍ
+nacieron y CERO tareas `seguimiento`; tras añadir la dependencia, 2 firmas
+→ 2 tareas `seguimiento` y el campo del paciente en `2026-09-08`. Es el
+tercer camino de pérdida del MISMO dato (REG-193, REG-300, éste). Entrada
+completa en `docs/audit/regression-ledger.md` (REG-310) y
+`v15-cierre-agenda-el-seguimiento.test.ts` sellado en
+`invariantes-clinicos.json` (16 casos; `clinical-safety-gate` en verde).
+
+- Guardián nuevo, probado al revés (6 de sus casos fallan contra el árbol
+  sin el cambio, verificado con `git stash`):
+  `src/__tests__/v15-cierre-agenda-el-seguimiento.test.ts` — el paso y su
+  ruta, la ausencia sin fecha/con fecha malformada, el orden (hoja →
+  seguimiento → expediente), que NO fuerza el panel, la pareja de
+  `sessionStorage` con ventana fake, el array de dependencias REAL de
+  `firmar` leído de la fuente (REG-310), y los dos lados del enlace («el
+  dato tiene que llegar»: `/citas` lee `?d=`).
+
+### Verificado en navegador real (11-ago-2026)
+
+Mismo método (emuladores + siembra + build de producción + `npm start`).
+Arnés nuevo: `scripts/design/capturar-cierre-agenda-seguimiento-v15.mjs`.
+Resultado y 5 capturas en `docs/design/capturas/v15-cierre-agenda-seguimiento/`
+(desktop 1440 + móvil 390, flujo COMPLETO en los dos — el móvil no reabre la
+nota del escritorio, firma la suya):
+
+- **La hoja del paciente dice «Su próxima cita · martes, 8 de septiembre de
+  2026»** — en palabras, no ISO (`enPalabrasNoISO: true`), desktop y móvil.
+- **El checklist trae «Agendar el seguimiento»** tras firmar
+  (`seguimientoEnChecklist: true`).
+- **Pulsarlo aterriza en la agenda del día exacto del control**:
+  `urlCitas=/citas?d=2026-09-08` y el `input[type=date]` de la pantalla
+  real dice `2026-09-08` (`agendaAterrizoEnElDia: true`) — el otro lado del
+  enlace, medido.
+- **Al volver, el paso está MARCADO** (opacidad 0.55 con ✓ verde, captura
+  `03-tras-volver-seguimiento-marcado.png`) — en la primera pasada del
+  arnés esto daba `marcado: null`; la pareja de `sessionStorage` y REG-310
+  salieron de ahí.
+- **Emulador como testigo del dato**: tareas `seguimiento` derivadas y
+  `patient.proximoSeguimiento` actualizado (ver REG-310 arriba).
+- **Axe**: las mismas cuatro familias preexistentes de toda la rama
+  (`color-contrast` teal de evidencia, `heading-order`, `landmark-unique`,
+  `region`) — ninguna nueva, ninguna en el paso nuevo ni en la hoja.
+- **Consola**: sólo los artefactos conocidos del arnés de emuladores (401
+  de auditoría, warning de reconexión de Firestore).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: en verde salvo el fallo PRE-EXISTENTE y ambiental de
+  siempre (`ops-timeout-y-punto-ciego`, proxy de red del contenedor,
+  verificado en aislamiento) — 16 casos nuevos.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (3 veces esta corrida: base, +sessionStorage,
+  +REG-310).
+- `clinical-safety-gate.test.ts`: en verde con el sello nuevo (totalCasos
+  4544→4560).
+- `docs/design/SCREEN_INVENTORY.md` regenerado.
+
 ## Siguiente tarea exacta
 
-Con las dos rebanadas de `V15-NOTE-PLAN-CONTINUITY-001` que esta fase tenía
-pendientes (checklist que recuerda lo hecho, URL que refleja el `notaId`,
-`useSmartBack` que regresa de verdad) cerradas, lo que queda explícitamente
-diferido a esta misma fase por decisiones YA tomadas y escritas (ver
-"Active Patient Canvas, DECISIÓN" arriba) es volver `/receta`/`/orden`
-inline dentro de `/consulta` — el trabajo grande de integración que nombra
-§33 Fase 8 («Integrate Note → Rx → Orders → Instructions → Follow-up»).
-Es candidato fuerte para la siguiente rebanada, pero es una decisión de
-alcance grande (mover generadores de receta/orden con motores de
-seguridad completos — dosis, interacciones, alergias, ajuste renal — a un
-panel dentro de la consulta) que merece su propia corrida, no una decisión
-apurada aquí. Si no se toma esa rebanada, la Fase 9 (`V15-MOBILE-001`,
-recomponer `BottomNav`/móvil) es la siguiente fase completa del plan
-(`§33`) que sigue sin empezar.
+Con la quinta rebanada cerrada, la cadena «Note → Rx → Orders →
+Instructions → Follow-up» de §33 Fase 8 tiene TODOS sus eslabones en el
+cierre. Lo que queda explícitamente diferido a esta misma fase por
+decisiones YA tomadas y escritas (ver "Active Patient Canvas, DECISIÓN"
+arriba) es volver `/receta`/`/orden` inline dentro de `/consulta` — el
+trabajo grande de integración. Es candidato para una rebanada futura, pero
+es una decisión de alcance grande (mover generadores con motores de
+seguridad completos a un panel dentro de la consulta) y podría también
+resolverse declarando la integración por continuidad (URL + atrás real +
+checklist + marcas) como la forma final de Fase 8 — decisión que merece
+abrirse al inicio de una corrida fresca, no al cierre de ésta. Si no se
+toma, la Fase 9 (`V15-MOBILE-001`, recomponer `BottomNav`/móvil) es la
+siguiente fase completa del plan (§33) que sigue sin empezar.
 
 **Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
 resolverse, candidata a fases futuras — no se repite su detalle si ya está

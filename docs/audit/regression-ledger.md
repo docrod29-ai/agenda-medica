@@ -7156,3 +7156,54 @@ secuencia `[true, false]`. Probado al revés: sin el aviso del cleanup termina e
 
 **Familia.** `no_conectado` — el cierre existía para la transición de estado,
 pero no estaba conectado al camino de unmount.
+
+---
+
+## REG-310 — La fecha de control tecleada al final nunca llegaba: firmar la ignoraba
+
+**Encontrado por** el arnés de navegador de `V15-NOTE-PLAN-CONTINUITY-001`
+(quinta rebanada, 11-ago-2026), verificando OTRA cosa: que el paso «Agendar el
+seguimiento» del checklist de cierre sobreviviera a volver de `/citas`.
+
+**Qué pasaba.** `firmar` es un `useCallback` y `proximoSeguimiento` no estaba
+en sus dependencias — ni en las de `construirNota`, su único camino indirecto.
+Teclear la fecha de «Próxima consulta» como ÚLTIMO gesto antes de firmar (el
+orden natural: el control se decide al cerrar) no recreaba el callback, así que
+firmar corría con la fecha memorizada de un render anterior: `''`. Las dos
+salidas de REG-300 —la tarea «Agendar el seguimiento» del worklist y
+`patient.proximoSeguimiento` del CRM— recibían vacío y no escribían nada.
+
+**Medido, no supuesto.** Contra el emulador de Firestore, con el arnés de la
+Fase 8: cinco notas firmadas con fecha `2026-09-08` → sus `estudio_pendiente`
+y `receta_por_entregar` SÍ nacieron (estudios y medicamentos son dependencias
+de `construirNota`, que sí recrea el callback) y cero tareas
+`tipo: 'seguimiento'`, con `patient.proximoSeguimiento` intacto en su valor
+sembrado — el recorte quirúrgico exacto que predice la clausura obsoleta, no
+un fallo general de escritura. Tras el arreglo, dos firmas → dos tareas
+`seguimiento` y el campo del paciente actualizado. La pantalla mientras tanto
+SÍ pintaba el paso en el checklist (el render usa el estado vivo), así que
+todo se veía correcto.
+
+**Causa raíz.** El tercer camino de pérdida del MISMO dato (REG-193 el respaldo,
+REG-300 los espejos, éste el cierre): una lista de dependencias escrita a mano
+que no se actualizó cuando REG-300 conectó el dato al firmar. Familia
+`depende_de_recordar` — y hermana directa de «el dato tiene que LLEGAR»: la
+prueba de contrato del motor (`derivar.ts`) estaba en verde porque el motor sí
+sabe derivar; lo que nunca se miró fue si el dato le llegaba desde la pantalla.
+
+**Arreglo.** `proximoSeguimiento` en el array de dependencias de `firmar`
+(`src/app/(dashboard)/consulta/[patientId]/page.tsx`).
+
+**Guardián.** `src/__tests__/v15-cierre-agenda-el-seguimiento.test.ts` — el caso
+REG-310 lee el array de dependencias REAL de la fuente y falla si el campo sale
+de la lista. Probado al revés contra el árbol sin el arreglo. Los demás casos
+del archivo protegen la rebanada que lo descubrió (paso de cierre + hoja del
+paciente + persistencia en `sessionStorage`).
+
+**Qué NO cubre.** Que React ejecute el callback recreado (eso es React, no este
+código); los otros consumidores de `proximoSeguimiento` (respaldo local,
+espejos) conservan sus guardianes de REG-193/REG-300. Tampoco cubre las demás
+dependencias de `firmar`: una lista a mano puede volver a desactualizarse por
+otro campo — el caso sólo vigila éste.
+
+**Familia.** `depende_de_recordar`.

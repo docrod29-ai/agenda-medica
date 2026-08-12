@@ -64,6 +64,45 @@ export function marcarHechoDeCierre(notaId: string | null | undefined, clave: st
   return siguiente
 }
 
+function claveSeguimiento(notaId: string): string {
+  return `nx-cierre-seguimiento:${notaId}`
+}
+
+/**
+ * LA FECHA DE CONTROL SOBREVIVE AL REMONTE — quinta rebanada de la Fase 8.
+ *
+ * El documento de la nota NO guarda `proximoSeguimiento` (va al expediente
+ * del paciente y a la tarea del worklist; añadirle el campo a la nota es un
+ * cambio de esquema congelado por V15 §1 — `firestore.rules` sella la forma
+ * con `hasOnly` y lo rechazaría). Así que al volver de `/citas` a la nota
+ * recién firmada, el remonte dejaba `proximoSeguimiento` vacío y el paso
+ * «Agendar el seguimiento» DESAPARECÍA del checklist — ni marcado ni
+ * pendiente: inexistente, mientras sus hermanos (receta/orden) sí volvían.
+ * Lo encontró el propio arnés de esta rebanada (`marcado: null`), no una
+ * lectura del código.
+ *
+ * Mismo criterio que las marcas de arriba: estado de ESTA pestaña sobre ESTA
+ * nota, no un hecho clínico — el hecho clínico (la tarea, el campo del
+ * paciente) ya quedó escrito al firmar por los caminos de siempre.
+ */
+export function guardarSeguimientoDeCierre(notaId: string | null | undefined, fechaISO: string): void {
+  if (!notaId || typeof window === 'undefined' || !/^\d{4}-\d{2}-\d{2}$/.test(fechaISO)) return
+  try {
+    window.sessionStorage.setItem(claveSeguimiento(notaId), fechaISO)
+  } catch { /* igual que arriba: se pierde el recordatorio, nunca la nota */ }
+}
+
+/** La fecha guardada para `notaId`, o `''` si no hay (nunca inventa una). */
+export function leerSeguimientoDeCierre(notaId: string | null | undefined): string {
+  if (!notaId || typeof window === 'undefined') return ''
+  try {
+    const crudo = window.sessionStorage.getItem(claveSeguimiento(notaId)) ?? ''
+    return /^\d{4}-\d{2}-\d{2}$/.test(crudo) ? crudo : ''
+  } catch {
+    return ''
+  }
+}
+
 export const POR_QUE_SESSION_STORAGE =
   'Es estado de esta pestaña sobre esta nota, no un hecho clínico: nada que ' +
   'auditar, nada que respaldar, nada que otro consultorio necesite leer.'

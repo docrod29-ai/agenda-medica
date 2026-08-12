@@ -19,13 +19,19 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    " M src/__tests__/lo-que-el-navegador-vio.test.ts",
-    " M src/app/globals.css"
+    "M agent-state/V15_CURRENT_ITERATION.md",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/cierre-hechos.ts",
+    " M src/lib/expediente/que-falta-para-cerrar.ts",
+    "?? docs/design/capturas/v15-cierre-agenda-seguimiento/",
+    "?? scripts/design/capturar-cierre-agenda-seguimiento-v15.mjs",
+    "?? src/__tests__/v15-cierre-agenda-el-seguimiento.test.ts"
   ],
-  "actualizado": "2026-08-09",
+  "actualizado": "2026-08-11",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -57,12 +63,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "v10/identidad-acento",
+  "ramaActual": "v15/structural-uiux",
   "derivado": {
-    "regsEnElLedger": 157,
-    "ultimaREG": "REG-309",
-    "archivosDePrueba": 584,
-    "casosDePrueba": 7626,
+    "regsEnElLedger": 158,
+    "ultimaREG": "REG-310",
+    "archivosDePrueba": 606,
+    "casosDePrueba": 7803,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
