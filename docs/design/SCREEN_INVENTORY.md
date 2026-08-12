@@ -74,7 +74,7 @@
 | `/pacientes` | medico | ✅ | 849 | 9 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 404 | 2 | — | ✅ | — |
 | `/reactivacion` | medico | ✅ | 250 | 0 | — | ✅ | — |
-| `/receta/[patientId]/[notaId]` | medico | ✅ | 977 | 2 | — | ✅ | — |
+| `/receta/[patientId]/[notaId]` | medico | ✅ | 1016 | 2 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 276 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 425 | 5 | — | ✅ | — |
