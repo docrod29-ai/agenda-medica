@@ -704,9 +704,11 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
-        {/* Barra inferior — solo móvil (gestionada por CSS) */}
+        {/* Barra inferior — solo móvil (gestionada por CSS). V15-MOBILE-001:
+            recibe el MISMO criterio que elige FlowRail vs Sidebar, para que el
+            médico tenga la misma IA en el pulgar que en el escritorio. */}
         <div className="bottom-nav-wrap">
-          <BottomNav />
+          <BottomNav navPrimaria={navPrimaria} />
         </div>
       </div>
 

@@ -4,13 +4,13 @@
 
 ## Iteración en curso
 
-`V15-NOTE-PLAN-CONTINUITY-001` (Fase 8, §33/§20) — **EN CURSO**, tercera
-rebanada cerrada 11-ago-2026: `firmar()` ahora refleja el `notaId` en la
-URL (`router.replace`) y `estudiosOrden` se restaura al recargar una nota.
-Ver su propia sección abajo — incluye un hallazgo separado e importante
-(`useSmartBack` nunca hace back de verdad en esta versión de Next) que
-queda anotado como la tarea exacta siguiente, no arreglado en esta
-rebanada. `V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **CERRADA 11-ago-2026**
+`V15-MOBILE-001` (Fase 9, §22/§33) — **EN CURSO**, primera rebanada
+12-ago-2026: `BottomNav` recompuesto a la IA de V15 en modo médico +
+suscrito a `EVENTO_GRABANDO`. Ver su sección abajo.
+`V15-NOTE-PLAN-CONTINUITY-001` (Fase 8) — **CERRADA 12-ago-2026** por
+decisión de alcance: la integración por continuidad ES la forma final de
+Fase 8 (ver «Fase 8 — decisión de cierre» abajo). Quinta rebanada previa
+(11-ago-2026): el cierre agenda el seguimiento y REG-310 sellado. `V15-FOLLOWUP-WORK-001` (Fase 7, §10) — **CERRADA 11-ago-2026**
 tras dos rebanadas: primera, `/pendientes` agrupa lo no urgente por
 `estadoDeAccion` (necesita revisión · esperando resultado · necesita
 agendar · esperando al paciente · otros); segunda, «closed recently» bajo
@@ -1920,21 +1920,44 @@ nota del escritorio, firma la suya):
   4544→4560).
 - `docs/design/SCREEN_INVENTORY.md` regenerado.
 
-## Siguiente tarea exacta
+## Fase 8 — decisión de cierre (12-ago-2026): la integración por continuidad ES la forma final
+
+La pregunta que la corrida anterior dejó abierta a propósito («¿volver
+`/receta`/`/orden` inline dentro de `/consulta`, o declarar la integración
+por continuidad como la forma final de Fase 8?») se decidió al inicio de
+una corrida fresca, como estaba escrito. **Decisión: la integración por
+continuidad es la forma final de Fase 8. La fase se cierra.** Razones:
+
+1. **Lo que §33 Fase 8 pide** es «Make note/prescription/order transition
+   part of encounter, not module hopping». El module hopping era la
+   PÉRDIDA DE CONTEXTO, y esa ya no existe — verificado en navegador real
+   por las cinco rebanadas: la URL dice la verdad (`?nota=`), el atrás de
+   la app regresa de verdad a la consulta con su checklist vivo
+   (Navigation API), el checklist recuerda receta/orden/seguimiento
+   hechos, `InstrumentStrip` mantiene EN QUIÉN ESTÁ el médico dentro de
+   `/receta`/`/orden`, y el cierre agenda el seguimiento. §21 («return
+   exactly where you were») se cumple medido, no supuesto.
+2. **Inlinear los generadores sería el cambio más caro y más riesgoso de
+   todo V15**: `/receta` y `/orden` cargan motores de seguridad completos
+   (dosis, alergias, interacciones — regla medication-safety) y
+   `/consulta` ya es una página de ~5900 líneas. Moverlos a un panel roza
+   la lógica congelada de §1 y multiplica el riesgo de regresión clínica
+   por un beneficio que la continuidad ya entrega por otra vía.
+3. **Es reversible**: si el dueño quiere el inline, es una unidad nueva
+   con su propio análisis de riesgo — nada de lo entregado lo estorba.
+4. La decisión de la tercera rebanada («Active Patient Canvas, DECISIÓN»)
+   ya había clasificado `/receta`/`/orden`/`/nota` como modos distintos
+   legítimos (documento imprimible, motores propios) — esta decisión es su
+   consecuencia natural, no un giro.
+
+Con esto, la siguiente fase del plan (§33) es `V15-MOBILE-001` (Fase 9).
+
+## Siguiente tarea exacta (histórico pre-decisión)
 
 Con la quinta rebanada cerrada, la cadena «Note → Rx → Orders →
 Instructions → Follow-up» de §33 Fase 8 tiene TODOS sus eslabones en el
-cierre. Lo que queda explícitamente diferido a esta misma fase por
-decisiones YA tomadas y escritas (ver "Active Patient Canvas, DECISIÓN"
-arriba) es volver `/receta`/`/orden` inline dentro de `/consulta` — el
-trabajo grande de integración. Es candidato para una rebanada futura, pero
-es una decisión de alcance grande (mover generadores con motores de
-seguridad completos a un panel dentro de la consulta) y podría también
-resolverse declarando la integración por continuidad (URL + atrás real +
-checklist + marcas) como la forma final de Fase 8 — decisión que merece
-abrirse al inicio de una corrida fresca, no al cierre de ésta. Si no se
-toma, la Fase 9 (`V15-MOBILE-001`, recomponer `BottomNav`/móvil) es la
-siguiente fase completa del plan (§33) que sigue sin empezar.
+cierre. La decisión de alcance quedaba abierta para una corrida fresca —
+resuelta arriba el 12-ago-2026.
 
 **Deuda anotada, no bloqueante (heredada de fases previas, sigue sin
 resolverse, candidata a fases futuras — no se repite su detalle si ya está
@@ -1953,6 +1976,96 @@ arriba):**
   (Firefox, Safari antiguos) — comportamiento idéntico al de antes de esta
   corrida ahí, decisión de alcance escrita arriba, no un olvido.
 
+## `V15-MOBILE-001` (Fase 9, §22/§33) — primera rebanada: el pulgar navega la misma IA que el escritorio (12-ago-2026)
+
+Medición de baseline de la fase, antes de tocar código: `BottomNav` (médico,
+móvil) seguía con la IA VIEJA — Inicio · Agenda · [acción central] ·
+Pacientes · CRM — mientras el escritorio ya navegaba por los cinco contextos
+de V15 desde `V15-SHELL-GREYBOX-001`. El mismo médico tenía DOS mapas
+mentales según el tamaño de su pantalla; en móvil no existía NINGUNA entrada
+a `/pendientes` (la cola de cierre de Fase 7) ni a `/operaciones`, y
+`BottomNav` ignoraba `EVENTO_GRABANDO` (deuda anotada desde
+`V15-ENCOUNTER-MODE-001`). Las dos deudas se pagaron en una rebanada porque
+viven en el mismo archivo y el mismo arnés las verifica juntas:
+
+- **`src/components/BottomNav.tsx`** — nuevo bloque `CONTEXTOS_V15` (Hoy ·
+  Paciente · Seguimiento · Operaciones — los MISMOS hrefs que pinta
+  `FlowRail`, comparados archivo contra archivo por el guardián, no copiados
+  a mano) que se usa cuando `navPrimaria` es verdadero. ENCUENTRO no es una
+  quinta pestaña: sigue siendo la ACCIÓN CENTRAL contextual que este
+  componente ya tenía (`accionContextual`, sin tocar — su prueba vieja sigue
+  en verde sin cambios), que es exactamente lo que §22 pide («start
+  encounter» como trabajo primario del pulgar). Sin filtro `rutaPermitida`
+  en el bloque V15: FlowRail decidió que los contextos núcleo no se recortan
+  por paquete y el móvil no diverge del escritorio. Agenda y CRM viven en
+  `/operaciones` (§11), igual que en escritorio.
+- **`navPrimaria` viene del layout** (`<BottomNav navPrimaria={navPrimaria} />`)
+  — el MISMO criterio, calculado UNA vez, que elige FlowRail vs Sidebar
+  (`esMedicoReal && mode === 'medico'`): no se recalcula el rol en el
+  componente. Secretaria / rol no-médico conservan la barra anterior
+  byte-idéntica (COMMON + CRM/Chat + filtro de paquete) — mismo alcance
+  escrito que fijó FlowRail.
+- **§8.1 también en móvil**: `useGrabando()` local suscrito al MISMO
+  `EVENTO_GRABANDO` (patrón FlowRail: el evento es la única fuente de
+  verdad; cada pieza del shell se suscribe por su cuenta). Sólo se atenúan
+  ÍCONOS de destinos no activos (0.4 — WCAG 1.4.11, no-textual, 3:1);
+  ETIQUETAS y acción central jamás (la lección de contraste de FlowRail:
+  `--text3` sobre `--s1` no tiene margen AA para atenuarse). Gate
+  `navPrimaria && grabando`: la barra heredada no cambia de conducta ni
+  durante una grabación. `iconoAtenuado()` exportada pura para probarse
+  sin jsdom.
+- Guardián nuevo, probado al revés (mismo patrón que sus hermanos):
+  `src/__tests__/v15-bottom-nav-cinco-contextos.test.ts` — 6 de sus 10
+  casos fallan contra el árbol previo (verificado con `git stash`):
+  paridad de hrefs con FlowRail, prop del layout, suscripción al evento,
+  `iconoAtenuado`, gate del aquietado y «sólo el ícono se atenúa».
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método que todas las corridas de la rama (emuladores Auth/Firestore
++ siembra `sembrar-capturas.mjs` + build de producción + `npm start`;
+`node_modules` volvió a faltar al arrancar el contenedor — `npm ci` de
+nuevo). Arnés nuevo: `scripts/design/capturar-bottom-nav-v15.mjs`
+(viewport móvil 390×844 con touch real + control de escritorio 1440).
+Resultado y 3 capturas en `docs/design/capturas/v15-bottom-nav/`:
+
+- **La IA nueva, en el DOM real**: `Hoy→/dashboard · Paciente→/pacientes ·
+  Nueva cita→/asistente (central) · Seguimiento→/pendientes ·
+  Operaciones→/operaciones`.
+- **El enlace llega («el dato tiene que llegar» aplicado a navegación)**:
+  se PULSÓ «Seguimiento» con tap real y la URL aterrizó en `/pendientes` —
+  la cola de cierre por fin es alcanzable con el pulgar.
+- **En el expediente la acción central ofrece la consulta de ESE
+  paciente**: `Consulta→/consulta/pac-aurelio-dominguez`.
+- **Grabando, medido con `getComputedStyle`**: íconos no activos
+  (Hoy/Seguimiento/Operaciones) en 0.4; el contexto activo (Paciente) en 1;
+  la acción central en 1; las CINCO etiquetas de texto en 1. Al apagar el
+  evento, todo vuelve a 1.
+- **Escritorio 1440**: la barra NO se pinta (`display:none` por CSS, sin
+  cambio).
+- **Axe (móvil, dashboard): 0 violaciones. Consola: 0 errores.**
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8855 pasan (10 nuevos), 1 fallo PRE-EXISTENTE y
+  ambiental (`ops-timeout-y-punto-ciego` — mismo caso «el error dice cuánto
+  esperó y a quién», mismo fingerprint del proxy de red del contenedor
+  documentado en todas las corridas previas; reproducido en aislamiento).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (`.env.local` demo, emuladores,
+  proyecto `demo-nexusmed-test`).
+
+**Siguiente tarea exacta de esta fase:** §22/§23 son más que la barra —
+quedan por revisar los trabajos móviles restantes (revisar nota generada,
+revisar resultado, firmar/cerrar desde el teléfono, borrador de
+comunicación al paciente) y el modelo responsivo §23 por breakpoint (qué
+persiste, qué colapsa, qué se vuelve hoja/cajón). El cajón lateral móvil
+(`FlowRail` dentro del `role="dialog"` — origen del `landmark-unique`
+preexistente) y la topbar móvil tampoco se han recompuesto — candidatos
+para la siguiente rebanada de `V15-MOBILE-001`.
+
 ## Reglas de la corrida (recordatorio)
 
 - Una sola rama V15; sin PR nuevo por corrida; nunca force-push.
@@ -1960,4 +2073,5 @@ arriba):**
   no sólo a una revisión puntual.
 - Lógica clínica/negocio congelada: ningún cambio de esta corrida tocó una
   ruta de API, una regla de Firestore ni un cálculo clínico.
-- Móvil: `V15-MOBILE-001` (Fase 9) sigue pendiente; `BottomNav` no se tocó.
+- Móvil: `V15-MOBILE-001` (Fase 9) EN CURSO — primera rebanada entregada
+  (`BottomNav` con la IA de V15 + aquietado al grabar).

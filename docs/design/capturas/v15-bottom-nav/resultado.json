@@ -1,0 +1,250 @@
+{
+  "dashboard": {
+    "presente": true,
+    "visible": true,
+    "destinos": [
+      {
+        "etiqueta": "Hoy",
+        "href": "/dashboard",
+        "esActual": true,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Paciente",
+        "href": "/pacientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Nueva cita",
+        "href": "/asistente",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Seguimiento",
+        "href": "/pendientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Operaciones",
+        "href": "/operaciones",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      }
+    ]
+  },
+  "urlTrasSeguimiento": "/pendientes",
+  "pendientes": {
+    "presente": true,
+    "visible": true,
+    "destinos": [
+      {
+        "etiqueta": "Hoy",
+        "href": "/dashboard",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Paciente",
+        "href": "/pacientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Nueva cita",
+        "href": "/asistente",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Seguimiento",
+        "href": "/pendientes",
+        "esActual": true,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Operaciones",
+        "href": "/operaciones",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      }
+    ]
+  },
+  "expediente": {
+    "presente": true,
+    "visible": true,
+    "destinos": [
+      {
+        "etiqueta": "Hoy",
+        "href": "/dashboard",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Paciente",
+        "href": "/pacientes",
+        "esActual": true,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Consulta",
+        "href": "/consulta/pac-aurelio-dominguez",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Seguimiento",
+        "href": "/pendientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Operaciones",
+        "href": "/operaciones",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      }
+    ]
+  },
+  "expedienteGrabando": {
+    "presente": true,
+    "visible": true,
+    "destinos": [
+      {
+        "etiqueta": "Hoy",
+        "href": "/dashboard",
+        "esActual": false,
+        "opacidadIcono": "0.4",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Paciente",
+        "href": "/pacientes",
+        "esActual": true,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Consulta",
+        "href": "/consulta/pac-aurelio-dominguez",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Seguimiento",
+        "href": "/pendientes",
+        "esActual": false,
+        "opacidadIcono": "0.4",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Operaciones",
+        "href": "/operaciones",
+        "esActual": false,
+        "opacidadIcono": "0.4",
+        "opacidadEtiqueta": "1"
+      }
+    ]
+  },
+  "expedienteDespues": {
+    "presente": true,
+    "visible": true,
+    "destinos": [
+      {
+        "etiqueta": "Hoy",
+        "href": "/dashboard",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Paciente",
+        "href": "/pacientes",
+        "esActual": true,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Consulta",
+        "href": "/consulta/pac-aurelio-dominguez",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Seguimiento",
+        "href": "/pendientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Operaciones",
+        "href": "/operaciones",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      }
+    ]
+  },
+  "axe": [],
+  "escritorio": {
+    "presente": true,
+    "visible": false,
+    "destinos": [
+      {
+        "etiqueta": "Hoy",
+        "href": "/dashboard",
+        "esActual": true,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Paciente",
+        "href": "/pacientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Nueva cita",
+        "href": "/asistente",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Seguimiento",
+        "href": "/pendientes",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      },
+      {
+        "etiqueta": "Operaciones",
+        "href": "/operaciones",
+        "esActual": false,
+        "opacidadIcono": "1",
+        "opacidadEtiqueta": "1"
+      }
+    ]
+  }
+}
