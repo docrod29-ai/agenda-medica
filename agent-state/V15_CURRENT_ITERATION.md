@@ -4,8 +4,29 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, sexta rebanada
-entregada 12-ago-2026: «el TrialBanner habla tokens por tema, y el hallazgo
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, séptima rebanada
+entregada 12-ago-2026: «el inventario de §2 se corrió — NO salió vacío — y
+Hoy (NOW + TODAY) habla los roles» — la candidata (b) que dejó nombrada la
+quinta rebanada y confirmó la sexta. El inventario por grep de TODAS las
+superficies del shell V15 encontró que la pantalla MÁS usada del producto
+seguía en dialecto propio con los dos defectos de la familia a la vez:
+`ProxHero` (NOW) truncaba el nombre del paciente con ellipsis a 16px inline,
+y en `AppointmentRow` (TODAY) la HORA pesaba 700 contra el nombre a 500 —
+R3 invertida en la entrada más leída de la mañana. Pagado: identidad
+`span.nx-ident` que ENVUELVE en las dos zonas (§24), hora en
+`.riel-hora`/`.riel-dur` (el idioma del riel de /citas — 14/600 tabular),
+metadato en `.nx-meta`. Guardián
+`v15-roles-tipograficos-en-hoy.test.ts` (13 casos, 9 fallan al revés —
+verificado con `git stash`). Medido en navegador real
+(`capturar-roles-hoy-v15.mjs`): identidad 15.5/600 por tema en héroe y fila,
+`nombreDominaSobreHora: true`, el nombre largo sembrado envuelve a 2 líneas
+en 390px sin desborde (`anchoDocumento: 390`), clic real de fila aterriza en
+`/citas?id=cita-hoy-0900` y del CTA del héroe en `/consulta/...` — y **axe:
+0 violaciones en oscuro, claro Y móvil** (0 errores de consola). El
+inventario deja nombradas las superficies restantes de §2 (ver siguiente
+tarea al FINAL). Trinquete de diseño BAJADO de verdad:
+`tamanosFueraDeEscala` 1997→1995, resellado a la baja. Sexta rebanada previa
+12-ago-2026: «el TrialBanner habla tokens por tema, y el hallazgo
 axe recurrente de la fase muere» — la candidata (a) que dejó nombrada la
 quinta rebanada. El defecto visual MÁS medido de la rama (la violación
 `color-contrast` que apareció con fingerprint idéntico en las rebanadas 2,
@@ -3498,7 +3519,8 @@ DOS temas y en móvil. Resultado y 3 capturas en
 - `docs/design/SCREEN_INVENTORY.md`: regenerado (/pacientes cambió de
   líneas).
 
-**Siguiente tarea exacta:** séptima rebanada de `V15-VISUAL-SYSTEM-001` —
+**Siguiente tarea exacta (histórico — ejecutada por la séptima rebanada):**
+séptima rebanada de `V15-VISUAL-SYSTEM-001` —
 la candidata (b) que la quinta rebanada dejó pendiente: inventariar con grep
 si queda ALGUNA superficie del shell V15 estructurado con papeles de §2 en
 dialecto propio — si el inventario sale vacío, declarar el paso 7 de §18
@@ -3508,3 +3530,117 @@ que usaron las fases 5 y 6. La deuda de `V15-A11Y-001` queda ahora SIN la
 familia TrialBanner (pagada aquí): restan `nested-interactive` (Editar en
 filas de /pacientes), `landmark-unique`/`region`, táctiles chicos y
 contrastes de /chat anotados por Fase 9.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — séptima rebanada: el inventario de §2 NO salió vacío, y Hoy habla los roles (12-ago-2026)
+
+Se ejecutó la candidata (b): el inventario por grep de `fontSize` inline en
+TODAS las superficies estructuradas del shell V15 (FlowRail, InstrumentStrip,
+ContinuidadPanel, PatientAnchor, ClinicalSpine, BottomNav, CierreAlPulgar,
+NotificacionesPushOptIn, /operaciones, /pendientes, /pacientes, /dashboard).
+**No salió vacío** — el paso 7 de §18 NO puede declararse completo todavía.
+Lo encontrado, clasificado papel por papel contra la tabla de §2:
+
+- **`/dashboard` — ProxHero (NOW) y AppointmentRow (TODAY)**: identidad del
+  paciente en dialecto propio (16/600 y 14/500 inline) CON ellipsis — la
+  truncación de identidad que §24 prohíbe — y en la fila la HORA a 700
+  pesaba más que el nombre a 500 (R3 invertida). **Pagado en esta rebanada**
+  (la superficie más usada del producto; ver abajo).
+- **`InstrumentStrip`**: la identidad del paciente vive como cromo de 12px/
+  `--text2` con ellipsis (más CHICA que el nombre del consultorio de
+  respaldo, 16px), y los dígitos del timer de grabación no son tabulares
+  (tiemblan cada segundo). Queda nombrada — exige una decisión de diseño
+  propia: .nx-ident de 15.5 en una franja de 30px es una pregunta de §5
+  Capa 1, no un reemplazo mecánico de clase.
+- **`ClinicalSpine`**: los conteos (10.5/800) sin `tabular-nums` (.nx-num).
+- **`/pacientes`**: las tarjetas de duplicados (modal «Posibles expedientes
+  repetidos» y el aviso «¿Puede que ya esté registrado?» del formulario)
+  pintan `p.nombre`/`c.paciente.nombre` a 13/600 y 13.5/600 inline —
+  identidad estructurada de §2 fuera de la fila del directorio ya migrada.
+- **`PanelPendientes`**: `detalle` a 11.5/text3 inline (en /pendientes la
+  misma pieza ya es `.nx-meta`) y el «+N más» del pie, ídem.
+- **NO son papeles de §2** (misma vara que las rebanadas 4–6, no se tocan):
+  las etiquetas de navegación de FlowRail/BottomNav/ClinicalSpine (cromo),
+  los títulos de tarea (contenido, como decidió /pendientes con `titulo` a
+  14/500), los avatares-inicial, los CTA, y los textos del banner de push.
+
+### El cambio (dashboard/page.tsx — las dos zonas con identidad)
+
+- **`AppointmentRow`**: hora `700` inline + `fontVariantNumeric` a mano →
+  `span.riel-hora` + `span.riel-dur` (el idioma que ya habla el riel de
+  /citas: 14/600 tabular — y el nombre a 15.5 vuelve a dominar su entrada,
+  R3); nombre `div` 14/500 con ellipsis → `span.nx-ident` display:block que
+  ENVUELVE; metadato (tipo · motivo) 12/text3 inline → `.nx-meta`.
+- **`ProxHero`**: nombre `div` 16/600 con ellipsis → `span.nx-ident` — la
+  dominancia del héroe la dan su posición, el avatar y el CTA (§16), no un
+  tamaño inventado; hora `t-num` 13 inline → `.riel-hora` (inline);
+  metadato 13/text2 → `.nx-meta`.
+- **Freeze funcional**: mismos href (`/citas?id=...`, `/consulta/[pid]`),
+  misma compuerta `puedeIniciar`, mismo StatusBadge, mismo atenuado 0.6 de
+  lo pasado, misma selección de `prox`.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-roles-tipograficos-en-hoy.test.ts` (13 casos) — identidad
+como .nx-ident en las dos zonas, cero ellipsis/nowrap en los segmentos, hora
+en .riel-hora/.riel-dur sin 700 ni fontVariantNumeric a mano, metadato en
+.nx-meta, veto de deriva (los tamaños retirados no vuelven) y freeze
+funcional. **9 de 13 fallan contra el árbol previo** (verificado con
+`git stash`); los 4 que pasan protegen el invariante funcional y la
+existencia de los segmentos.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start` vía `arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-roles-hoy-v15.mjs` — `getComputedStyle` dentro del
+héroe Y de la fila, clic real en los dos caminos, axe con failureSummary,
+en los DOS temas y en móvil. Resultado y 3 capturas en
+`docs/design/capturas/v15-roles-hoy/` (1440 + 390). La corrida cayó a las
+06:43 de America/Mexico_City, ANTES de la primera cita sembrada — el héroe
+NOW se pintó de verdad (con el nombre largo sembrado, además):
+
+- **Oscuro, medido**: héroe y fila `15.5px/600 rgb(242,239,233)` con
+  `overflow-wrap: anywhere` y SIN ellipsis computado; hora `14px/600
+  tabular-nums`; dur `11px tabular-nums`; meta `12.5px rgb(138,143,148)`.
+  `nombreDominaSobreHora: true`.
+- **Claro, medido**: los mismos roles con la tinta del claro
+  (`rgb(11,12,14)`) — tokens por tema.
+- **Equivalencia funcional, medida con clic real**: la fila aterriza en
+  `/citas?id=cita-hoy-0900` (`llega: true`) y el CTA del héroe en
+  `/consulta/pac-refugio-alcantara` (`llega: true`).
+- **Móvil 390**: sin desborde (`anchoDocumento: 390`); el nombre largo
+  («María del Refugio Alcántara Solís») envuelve a 2 líneas en la fila y
+  completo en el héroe — antes se truncaba con puntos suspensivos.
+- **Axe: 0 violaciones en oscuro, claro Y móvil** — /dashboard queda sin
+  ninguna violación medible con la siembra del arnés.
+- **Consola: 0 errores** (desktop y móvil).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver reporte de la corrida (suite completa lanzada tras
+  las compuertas dirigidas; guardianes tocados — roles-en-hoy,
+  no-es-un-tablero, continuidad-en-hoy, inventario, diseño-no-pierde-terreno
+  — todos en verde en corrida dirigida).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: `tamanosFueraDeEscala`
+  BAJÓ 1997→1995, resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio con `.env.local` demo (las 7 variables +
+  `NEXT_PUBLIC_FIREBASE_EMULATORS=1`, receta de la quinta rebanada).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/dashboard cambió de
+  líneas).
+
+**Siguiente tarea exacta:** octava rebanada de `V15-VISUAL-SYSTEM-001` — el
+inventario de la séptima dejó CUATRO superficies de §2 nombradas y ninguna
+nueva por descubrir: (a) **InstrumentStrip** — la de más peso clínico: la
+identidad del paciente como cromo de 12px con ellipsis, MÁS CHICA que el
+nombre del consultorio de respaldo (16px), y el timer de grabación sin
+tabular-nums; exige decidir qué significa .nx-ident dentro de una franja
+periférica de 30px (§5 Capa 1: «current patient» es el PRIMER estado
+periférico) — la decisión de diseño es de esa rebanada, no mecánica. O
+(b) las tres mecánicas juntas como una sola rebanada de barrido: conteos de
+ClinicalSpine a .nx-num, tarjetas de duplicados de /pacientes a
+.nx-ident/.nx-meta, y detalle/pie de PanelPendientes a .nx-meta. Cuando (a)
+y (b) estén pagadas, el inventario queda vacío: declarar el paso 7 de §18
+COMPLETO y decidir el cierre de Fase 10 contra los pasos 8-9 (motion,
+polish) con la vara de comportamientos medidos de las fases 5 y 6.

@@ -240,8 +240,12 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
       {/* Área principal: abre la cita */}
       <Link href={`/citas?id=${appt.id}`} className="cita-principal">
         <div style={{ width: 44, textAlign: 'center', flexShrink: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{hora}</div>
-          <div style={{ fontSize: 10, color: 'var(--text3)' }}>{appt.duracion}min</div>
+          {/* VISUAL_DNA §2: la hora habla el rol del riel (.riel-hora, 14/600
+              tabular) — el 700 inline de antes pesaba MÁS que el nombre del
+              paciente de al lado (14/500), invirtiendo R3: la identidad es el
+              elemento dominante de su entrada, no la hora. */}
+          <span className="riel-hora">{hora}</span>
+          <span className="riel-dur">{appt.duracion}min</span>
         </div>
         <div style={{
           width: 36, height: 36, borderRadius: '50%',
@@ -252,10 +256,14 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
           {appt.pacienteNombre.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {/* R3 (VISUAL_DNA §2): la identidad encabeza la entrada como
+              .nx-ident y ENVUELVE — el ellipsis de antes truncaba justo el
+              nombre del paciente (§24), la misma familia que ya murió en las
+              filas de /pacientes y en el Patient Anchor. */}
+          <span className="nx-ident" style={{ display: 'block' }}>
             {appt.pacienteNombre}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          </span>
+          <div className="nx-meta" style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
             <TipoCitaIcon tipo={appt.tipo} size={12} /> {typeCfg?.label}
             {appt.motivo ? ` · ${appt.motivo}` : ''}
           </div>
@@ -294,14 +302,18 @@ function ProxHero({ appt }: { appt: Appointment }) {
       <div className="prox-hero-avatar">{appt.pacienteNombre.charAt(0).toUpperCase()}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="t-overline" style={{ color: 'var(--nexus)' }}>Próxima cita · {cuando}</div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {/* R3 (VISUAL_DNA §2): la identidad del héroe NOW es .nx-ident y
+            ENVUELVE — el ellipsis truncaba el nombre del paciente (§24). La
+            dominancia del héroe la dan su posición, el avatar y el CTA (§16:
+            posición antes que contenedor), no un tamaño inventado. */}
+        <span className="nx-ident" style={{ display: 'block', marginTop: 3 }}>
           {appt.pacienteNombre}
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span className="t-num" style={{ fontWeight: 600, color: 'var(--text)' }}>{hora}</span>
-          <span style={{ color: 'var(--text3)' }}>·</span>
+        </span>
+        <div className="nx-meta" style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span className="riel-hora" style={{ display: 'inline' }}>{hora}</span>
+          <span>·</span>
           <TipoCitaIcon tipo={appt.tipo} size={13} /> {typeCfg?.label}
-          {appt.lugar ? <span style={{ color: 'var(--text3)' }}>· {appt.lugar}</span> : null}
+          {appt.lugar ? <span>· {appt.lugar}</span> : null}
         </div>
       </div>
       <Link href={`/consulta/${appt.pacienteId}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
