@@ -1,0 +1,92 @@
+{
+  "oscuro-1440": {
+    "hojaVisible": true,
+    "encabezados": [
+      {
+        "tag": "h1",
+        "texto": "Aurelio Domínguez Peña"
+      },
+      {
+        "tag": "h2",
+        "texto": "Lo que se lleva el paciente"
+      },
+      {
+        "tag": "h3",
+        "texto": "Sus medicamentos"
+      }
+    ],
+    "saltos": [],
+    "sinSaltos": true,
+    "evidencia": {
+      "color": "rgb(42, 165, 181)",
+      "fondoCompuesto": "rgb(12, 29, 29)",
+      "ratio": 5.9,
+      "aaOk": true
+    },
+    "axe": [],
+    "headingOrder": 0,
+    "consola": [
+      "[2026-08-12T23:37:35.219Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+    ]
+  },
+  "claro-1440": {
+    "hojaVisible": true,
+    "encabezados": [
+      {
+        "tag": "h1",
+        "texto": "Aurelio Domínguez Peña"
+      },
+      {
+        "tag": "h2",
+        "texto": "Lo que se lleva el paciente"
+      },
+      {
+        "tag": "h3",
+        "texto": "Sus medicamentos"
+      }
+    ],
+    "saltos": [],
+    "sinSaltos": true,
+    "evidencia": {
+      "color": "rgb(18, 98, 110)",
+      "fondoCompuesto": "rgb(227, 243, 239)",
+      "ratio": 6.13,
+      "aaOk": true
+    },
+    "axe": [],
+    "headingOrder": 0,
+    "consola": [
+      "[2026-08-12T23:37:40.310Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+    ]
+  },
+  "oscuro-390": {
+    "hojaVisible": true,
+    "encabezados": [
+      {
+        "tag": "h1",
+        "texto": "Aurelio Domínguez Peña"
+      },
+      {
+        "tag": "h2",
+        "texto": "Lo que se lleva el paciente"
+      },
+      {
+        "tag": "h3",
+        "texto": "Sus medicamentos"
+      }
+    ],
+    "saltos": [],
+    "sinSaltos": true,
+    "evidencia": {
+      "color": "rgb(42, 165, 181)",
+      "fondoCompuesto": "rgb(12, 29, 29)",
+      "ratio": 5.9,
+      "aaOk": true
+    },
+    "axe": [],
+    "headingOrder": 0,
+    "consola": [
+      "[2026-08-12T23:37:44.831Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+    ]
+  }
+}

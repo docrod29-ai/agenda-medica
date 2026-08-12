@@ -5,18 +5,25 @@
 ## Iteración en curso
 
 `V15-A11Y-001` (§43 orden 13, §24) — **EN CURSO** desde 12-ago-2026, con su
-inventario de deuda medido y TRES rebanadas pagadas: **avisos del shell en
+inventario de deuda medido y CINCO rebanadas pagadas: **avisos del shell en
 landmark** (`role="status"` para TrialBanner/ModeBanner/OfflineBanner — el
 hallazgo `region` más repetido de la rama muere; /dashboard mide 0 por
 primera vez), **el formulario de /referencia tiene nombre** (la única deuda
 CRÍTICA: `label` ×3 + `select-name` ×2 → 9/9 controles con su pareja
-htmlFor/id; /referencia mide 0) y **las filas de /pacientes ya no anidan
+htmlFor/id; /referencia mide 0), **las filas de /pacientes ya no anidan
 controles** (`nested-interactive` ×5, la familia del botón Editar, muere con
 el patrón de acción extendida `.nx-fila-abrir`; /pacientes mide 0 en oscuro,
 claro y móvil — y la etiqueta «color-contrast Editar» del inventario quedó
-cerrada como conflación, con cifras). Restan: contrastes de /chat +
-colisiones de widgets flotantes, `heading-order`, DEBT-008
-(`.receta-sheet`). Ver secciones al FINAL.
+cerrada como conflación, con cifras), **los contrastes de /chat hablan
+tokens por tema y los widgets flotantes ceden** (axe 0 en las cuatro
+mediciones; el gesto Enviar-sin-foco medido de punta a punta) y **el lienzo
+de /consulta tiene un esquema de encabezados honesto** (h1 → h2 → h3 en
+cualquier combinación de render; `heading-order` 0 y **axe 0 TOTAL** en la
+consulta poblada — oscuro, claro y móvil —, y el contraste teal de evidencia
+anotado a 3.03:1 quedó confirmado MUERTO por la Fase 10: computa 5.9/6.13).
+Restan: táctiles chicos anotados (enlace del TrialBanner + enlace de
+paciente de /pendientes) y DEBT-008 (`.receta-sheet`, decisión de diseño de
+plantilla pendiente). Ver secciones al FINAL.
 
 Iteración anterior:
 `V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **CERRADA** (barrido de
@@ -4960,3 +4967,99 @@ real hasta donde la deuda preexistente lo permita. Después: DEBT-008
 (`.receta-sheet`, decisión de diseño de plantilla pendiente) y el enlace del
 TrialBanner + enlace de paciente de /pendientes (táctiles chicos anotados
 que esta rebanada no cubrió).
+
+## `V15-A11Y-001` — quinta rebanada: el lienzo de /consulta tiene un esquema de encabezados honesto (12-ago-2026)
+
+La tarea exacta que dejó la cuarta rebanada: la familia `heading-order`.
+Método de la casa cumplido: inventario por grep de este archivo + grep del
+código ANTES de tocar nada.
+
+### El inventario primero, y lo que dimensionó
+
+Las anotaciones de toda la rama señalan UN nodo axe (`<h4>Sus
+medicamentos</h4>` de la hoja del paciente, presente en cada captura POBLADA
+de `V15-ENCOUNTER-MODE-001`), y el grep de h4/h5/h6 sobre `src/app` +
+`src/components` encontró la familia completa: **sólo dos componentes en
+todo el producto** tenían h4+ (`HojaParaElPaciente`, `PlanPorProblema`), más
+el defecto simétrico en `NerPanel` (h3 directo tras el h1 — sólo visible con
+el panel de entidades abierto). La causa raíz compartida: los títulos de
+sección eran `<span>` con peso (cromo visual) y los internos `<h4>` elegidos
+por tamaño, no por posición — el esquema real era h1 → h4, con las secciones
+mayores invisibles para quien navega por encabezados.
+
+### La rebanada: toda sección mayor porta su h2
+
+- `HojaParaElPaciente`: «Lo que se lleva el paciente» `<span>` → `<h2>`;
+  bloques `<h4>` → `<h3>`.
+- `PlanPorProblema`: «Qué es de qué» `<span>` → `<h2>`; problemas `<h4>` →
+  `<h3>`.
+- `NerPanel`: «Entidades clínicas» `<h3>` → `<h2>`.
+
+Así CUALQUIER combinación de render (la hoja sola, el plan solo, entidades
+abiertas o no) produce h1 → h2 → h3 sin saltos. El estilo viaja en línea en
+los tres componentes, de modo que el cambio de etiqueta no mueve un píxel
+(`margin: 0` explícito donde el user-agent metería margen). Freeze funcional
+intacto: cero cambios de lógica, sólo etiquetas.
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-a11y-consulta-esquema-de-encabezados.test.ts` (6 casos):
+h2+h3 en los tres componentes, sin h4, margin: 0 en los h2 nuevos, y el
+freeze (la consulta sigue montando las tres secciones; un solo h1). **4 de 6
+fallan contra el árbol previo** (verificado con `git stash`); los 2 que
+pasan protegen invariantes preexistentes.
+
+### Verificado en navegador real (12-ago-2026)
+
+Arnés nuevo: `scripts/design/capturar-esquema-encabezados-v15.mjs` — puebla
+la consulta (dx + Metformina; la hoja del paciente no se pinta vacía, y el
+hallazgo sólo existía poblado), lee el esquema REAL del DOM (todos los
+h1..h6 en orden, con detección de saltos), corre axe con detalle y COMPUTA
+el contraste vivo del botón de evidencia (color sobre fondo compuesto por
+alfa). Resultado y 3 capturas en
+`docs/design/capturas/v15-esquema-encabezados/`:
+
+- **Esquema medido: h1 (paciente) → h2 (Lo que se lleva el paciente) → h3
+  (Sus medicamentos), cero saltos** — en oscuro 1440, claro 1440 y
+  oscuro 390.
+- **Axe: CERO violaciones TOTALES en las tres mediciones** — /consulta
+  POBLADA es la sexta superficie de la rama que mide limpio del todo, y es
+  el lienzo del encuentro, la pantalla donde el médico vive. `heading-order`
+  pasó de 1 nodo (cada captura poblada histórica) a 0.
+- **El hallazgo hermano, cerrado con cifras y no por fe**: el
+  `color-contrast` anotado del encabezado teal de evidencia (`#0f6e56`,
+  3.03:1) era del ACENTO VIEJO. El botón vivo computa `rgb(42,165,181)`
+  sobre `rgb(12,29,29)` = **5.9:1** en oscuro y `rgb(18,98,110)` sobre
+  `rgb(227,243,239)` = **6.13:1** en claro — la Fase 10 (migración cobalto)
+  lo había matado; esta rebanada lo CONFIRMA en vivo con la fórmula WCAG
+  sobre el fondo compuesto. (El panel desplegado de evidencia requiere el
+  API real de PubMed y no se puede poblar en este arnés; usa los mismos
+  tokens `var(--teal)` que el botón medido.)
+- **Consola**: sólo el aviso ambiental de reconexión del emulador ×1 por
+  medición.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver reporte de la corrida (guardián nuevo 6/6).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (493/1970/
+  628/22 se mantienen — la rebanada cambia etiquetas, no estilos).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (build de producción para el arnés) con
+  `.env.local` demo (recreado en este contenedor: 8 variables + emuladores +
+  `PORTAL_PACIENTE_SECRET` demo; `npm ci` también hizo falta — contenedor
+  fresco).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (sin cambios de líneas — la
+  rebanada vive en componentes, no en páginas).
+
+**Siguiente tarea exacta:** `V15-A11Y-001`, sexta rebanada: **los táctiles
+chicos anotados** — el enlace del TrialBanner y el enlace de paciente de
+/pendientes (§24: objetivo táctil ≥44×44; anotados por la radiografía de
+trabajos móviles de Fase 9 y re-anotados por la 4ª rebanada, que no los
+cubrió). Método de la casa: grep de este archivo por los hallazgos exactos +
+re-medición en vivo ANTES de tocar, pantalla entera leída, guardián al
+revés, arnés real con axe. Después queda sólo DEBT-008 (`.receta-sheet`) —
+que carga una decisión de diseño de plantilla del médico aún pendiente: si
+al abrirla la decisión sigue sin dueño, documentar la opción segura y
+consultar al dueño en vez de adivinar (regla 6 de seguridad clínica, dicha
+en interfaz).

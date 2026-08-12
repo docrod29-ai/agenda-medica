@@ -76,9 +76,14 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
         display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
         borderBottom: '1px solid var(--border)',
       }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
+        {/* h2, no span: la hoja es una sección mayor del lienzo de consulta y
+            su título entra al esquema de encabezados (h1 paciente → h2 sección
+            → h3 bloque). Con el título en <span>, los bloques de abajo eran
+            h4 huérfanos tras el h1 — el `heading-order` de axe que apareció
+            en cada captura poblada de V15-ENCOUNTER-MODE-001. */}
+        <h2 style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
           Lo que se lleva el paciente
-        </span>
+        </h2>
         <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>
           en sus palabras, sin nada que usted no haya escrito
         </span>
@@ -120,12 +125,12 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
 
         {bloques.map(b => (
           <div key={b.titulo} style={{ marginTop: 14 }}>
-            <h4 style={{
+            <h3 style={{
               margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '.04em',
               textTransform: 'uppercase', color: 'var(--text3)',
             }}>
               {b.titulo}
-            </h4>
+            </h3>
             <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
               {b.lineas.map((l, i) => (
                 <li key={i} style={{ fontSize: 14.5, color: 'var(--text)', lineHeight: 1.6 }}>

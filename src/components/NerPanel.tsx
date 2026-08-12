@@ -98,9 +98,12 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* h2, no h3: en /consulta el único encabezado previo es el h1 del
+            paciente — un h3 aquí saltaba un nivel (`heading-order`). Todas las
+            secciones mayores del lienzo hablan h2. */}
+        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <FlaskConical size={15} className="ds-icon" /> Entidades clínicas <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>· {totalEntidades} elementos</span>
-        </h3>
+        </h2>
         {onCerrar && (
           <button onClick={onCerrar} className="btn btn-ghost btn-sm">
             <X size={14} /> Cerrar
