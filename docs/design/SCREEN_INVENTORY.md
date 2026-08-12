@@ -95,12 +95,12 @@
 | `/demo/razonamiento` | publica | ✅ | 146 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 81 | 1 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |
-| `/login` | publica | ✅ | 388 | 4 | — | ✅ | — |
+| `/login` | publica | ✅ | 405 | 4 | — | ✅ | — |
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
 | `/precios` | publica | — | 182 | 1 | — | ✅ | — |
 | `/privacidad` | publica | — | 135 | 0 | — | — | — |
-| `/registro` | publica | ✅ | 385 | 3 | — | ✅ | — |
+| `/registro` | publica | ✅ | 384 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 146 | 2 | — | ✅ | — |
 | `/setup` | publica | ✅ | 273 | 2 | — | ✅ | — |
 | `/terminos` | publica | — | 141 | 0 | — | ✅ | — |

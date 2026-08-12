@@ -6,16 +6,22 @@
 
 `V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **EN CURSO** desde
 12-ago-2026. El inventario de superficies Practice no tocadas por las fases
-estructurales quedó medido por grep (tabla en su sección) y van tres
+estructurales quedó medido por grep (tabla en su sección) y van cuatro
 rebanadas pagadas: **/nota** (una primaria §16, modal de adenda accesible,
 papel intacto), **/receta** (17/17 campos con nombre accesible; el `#b91c1c`
-fijo de la alerta de DOSIS murió; primaria PRIMERO) y **/orden — la familia
-documental queda completa** (una sola primaria en la página — «Agregar» dejó
-de ser la segunda —, campos y chips con nombre accesible, el Check `#000`
-sobre teal (2.99:1 en claro) pagado con `--nexus-solido` + blanco medido por
-stroke, chips sin teal-como-texto, `aria-expanded`/`aria-pressed` en el
-catálogo). Siguiente rebanada: **/login + /registro** — la puerta de
-entrada. Ver sección al FINAL de este archivo.
+fijo de la alerta de DOSIS murió; primaria PRIMERO), **/orden — la familia
+documental queda completa** (una sola primaria en la página, campos y chips
+con nombre accesible, el Check `#000` sobre teal pagado con `--nexus-solido`
++ blanco) y **/login + /registro — la puerta de entrada habla el sistema**
+(la CTA de /registro pintaba `#000` sobre `var(--teal)` — 2.99:1 en claro,
+el MISMO defecto por tercera vez — ahora es `btn-primary` medida por tema;
+el formulario de /registro dejó su dialecto inline por
+`.form-group/.label/.input` y GANÓ anillo de foco real; el aviso de
+restablecer de /login cambia de tema de verdad; táctiles 44/48; `<main>`
+landmark en las dos; alta REAL → /setup y login REAL → /dashboard con clic,
+contra emulador). Siguiente rebanada: **/configuracion + /operaciones** —
+la familia de Operaciones (§11), el final del barrido de §32. Ver sección
+al FINAL de este archivo.
 
 Iteración anterior:
 `V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **CERRADA 12-ago-2026** tras
@@ -4298,11 +4304,120 @@ re-midió. Resultado y 3 capturas en `docs/design/capturas/v15-orden-cromo/`:
   contenedor: 7 variables + emuladores + `PORTAL_PACIENTE_SECRET` demo).
 - `docs/design/SCREEN_INVENTORY.md`: regenerado (/orden cambió de líneas).
 
-**Siguiente tarea exacta:** cuarta rebanada de `V15-REMAINING-SCREENS-001`
-— **/login + /registro** (§32, la puerta de entrada): mismo método — leer
-las pantallas enteras, jerarquía §16, campos con nombre accesible, tokens
-por tema, roles §2, guardián probado al revés + arnés en navegador real
-(desktop oscuro/claro + móvil 390 + axe). Después: siguiente superficie del
-inventario de §32 por uso clínico. La deuda de `V15-A11Y-001` no cambia con
-esta rebanada (el contraste del acento del papel ya estaba anotado por
-/receta; /orden confirma la misma familia).
+**Siguiente tarea exacta:** (superada — ver la sección siguiente: la cuarta
+rebanada /login + /registro se pagó en la corrida del 12-ago-2026.)
+
+## `V15-REMAINING-SCREENS-001` — cuarta rebanada: /login + /registro, la puerta de entrada habla el sistema (12-ago-2026)
+
+La puerta de entrada: las dos pantallas que TODO médico cruza antes de tocar
+nada clínico, y /registro es además la primera impresión del producto en la
+prueba de 14 días. Leídas enteras antes de rebanar. Compartían la familia de
+las rebanadas 1-3, más dos defectos propios:
+
+- **La CTA de /registro pintaba `#000` sobre `var(--teal)`** — 2.99:1 en
+  claro, EXACTAMENTE el defecto ya medido y pagado en el chip del directorio
+  de /pacientes (VISUAL-SYSTEM 6ª) y en la casilla de /orden (3ª rebanada).
+  La TERCERA aparición de la misma familia — y en el botón que convierte al
+  visitante en cliente. Ahora es `btn btn-primary` (el par medido:
+  `--nexus-solido` + blanco, 5.16:1 oscuro / 7:1 claro), y su estado
+  deshabilitado lo pone `.btn:disabled` (opacity), no el gris a mano
+  `--s3/--text3` que traía.
+- **Dos idiomas de formulario en la misma puerta**: /login hablaba
+  `.form-group/.label/.input` y /registro lo re-dibujaba TODO a mano, con un
+  hack onFocus/onBlur que mutaba `borderColor` por JavaScript y NO daba
+  anillo de foco visible con teclado. Ahora habla las clases del sistema y
+  el anillo lo pone `.input:focus` — medido: `hayAnillo: true`.
+- **Tema**: el aviso de restablecer de /login pintaba `rgba(20,184,166,…)`
+  (el teal CRUDO del oscuro) con teal-como-texto → `color-mix` sobre
+  `var(--teal)` + texto `var(--text)` (lección TrialBanner). El borde de la
+  caja de prueba de /registro era `rgba(61,90,254,0.22)` — el ÍNDIGO VIEJO,
+  un acento que ya ni existe como token → `color-mix` sobre `var(--nexus)`.
+- **§24 táctil**: «¿Olvidaste tu contraseña?» y «← Volver» eran texto de
+  ~18px de alto; las CTA (submit, Google, MFA) quedaban en los 36 fijos de
+  `.btn`. Ahora: enlaces `minHeight 44`, CTA `minHeight 48` (min-height gana
+  al height fijo de la clase).
+- **WCAG 1.4.1**: los enlaces DENTRO de frase («Inicia sesión», términos,
+  privacidad, «Crea una gratis →») llevaban `textDecoration: 'none'` — sólo
+  color los distinguía. Subrayados los cuatro.
+- **`<main>` landmark en las dos páginas** — la primera medición axe de la
+  puerta encontró `landmark-one-main` + `region` (moderate) y se pagó en la
+  misma rebanada en vez de anotarse: el contenido entero vive en `<main>`.
+- **Roles §2**: pies de página en `.nx-meta` (12.5px medidos). Código
+  muerto: el estado `<'form' | 'verifying'>` que nunca se leía y los import
+  de `Stethoscope` murieron.
+- **Freeze funcional intacto**: mismos flujos de Firebase Auth (password,
+  MFA/TOTP, Google por redirección con selector de cuenta, reset que no
+  revela si el correo existe), misma redirección por invite, mismo
+  `sendEmailVerification` + `trackConversion` ×2, precio desde `PLANES`
+  (nunca un número a mano). El botón blanco de Google conserva sus hex de
+  marca A PROPÓSITO (lineamientos de Google).
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-login-registro-cromo-habla-el-sistema.test.ts` (23
+casos): CTA btn-primary sin `#000`, deshabilitado del sistema, una primaria
+por página, `.input/.label` ×3 con htmlFor/id, muerte del hack de foco JS,
+tokens por tema (teal crudo e índigo viejo vetados), táctiles 44/48,
+subrayados 1.4.1, `<main>`, roles §2, y el freeze funcional completo (auth,
+invite, reset privado, alta + verificación + conversión, precio del
+catálogo, ojos con aria-label, layout móvil). **14 de 22 fallan contra el
+árbol previo** (verificado con `git stash` antes del caso 23 de `<main>`);
+los 8 que pasan protegen invariantes funcionales preexistentes.
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método (emuladores + siembra + build de producción + `npm start` vía
+`arnes-breakpoints-v15.sh`). Arnés nuevo:
+`scripts/design/capturar-login-registro-v15.mjs` — no siembra nada propio
+(páginas públicas); el alta de prueba crea SU cuenta sintética en el
+emulador. Resultado y 6 capturas en
+`docs/design/capturas/v15-login-registro/`:
+
+- **La CTA cambia de tema de verdad**: `rgb(23,120,134)` oscuro /
+  `rgb(18,98,110)` claro con texto BLANCO en los dos
+  (`ctaCambiaDeTema: true`), 48px de alto, deshabilitada = opacity 0.45.
+- **Foco real**: enfocar el correo pinta el anillo de `.input:focus`
+  (box-shadow del token, `hayAnillo: true`) — el hack JS no pintaba ninguno.
+- **El aviso de restablecer cambia de tema** (clic real contra el emulador
+  de auth): texto `rgb(242,239,233)` oscuro / `rgb(11,12,14)` claro
+  (`avisoCambiaDeTema: true`).
+- **Táctiles medidos**: olvidaste 44, Google 48, submit 48, ojo 44×44.
+- **Campos con nombre**: `sinNombre: []` en las DOS páginas.
+- **Equivalencia funcional con clic real**: login REAL → `/dashboard`
+  (`llega: true`), **alta REAL → `/setup`** (`llega: true` — cuenta
+  sintética nueva contra el emulador; el CTA convertido a btn-primary sigue
+  dando de alta de verdad), cruce login↔registro navega.
+- **Móvil 390**: sin desborde en ninguna (`anchoDocumento: 390`), CTA a
+  fila completa, 44px de alto.
+- **Axe: 0 violaciones en las SEIS mediciones** (registro y login × oscuro,
+  claro y móvil) — las primeras superficies de V15 que miden limpio del
+  todo; `landmark-one-main`/`region` de la primera pasada se pagaron con
+  `<main>` en la misma corrida.
+- **Consola**: limpia (0 errores, desktop y móvil — página pública, sin el
+  aviso del emulador de Firestore).
+- Nota operativa del contenedor: `pkill -f "next-server"` desde la shell
+  que lanza el arnés SE MATA A SÍ MISMA (el patrón matchea su propia línea
+  de comando). Usar `pkill -f 'next[-]server'`.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver el reporte de la corrida (guardián nuevo 23/23).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: BAJÓ de verdad
+  (`tamanosFueraDeEscala` 1978→1975), resellado con `--actualizar`.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio ×2 (build de producción para el arnés)
+  con `.env.local` demo (recreado en este contenedor: 7 variables +
+  emuladores + `PORTAL_PACIENTE_SECRET` demo).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/login y /registro
+  cambiaron de líneas).
+
+**Siguiente tarea exacta:** quinta rebanada de `V15-REMAINING-SCREENS-001`
+— **/configuracion + /operaciones** (§32, la familia de Operaciones §11, el
+final del barrido): /configuracion es la superficie MÁS endeudada del
+inventario (172 `fontSize` inline, 0 roles §2) — probablemente necesite más
+de una rebanada (por pestañas); /operaciones es chica (6) y va con ella.
+Mismo método — leer entero, jerarquía §16, campos con nombre accesible,
+tokens por tema, roles §2, guardián probado al revés + arnés en navegador
+real (desktop oscuro/claro + móvil 390 + axe). La deuda de `V15-A11Y-001`
+no cambia con esta rebanada; la puerta de entrada NO le añadió nada (axe 0).

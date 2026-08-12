@@ -1,0 +1,111 @@
+{
+  "registroCtaDeshabilitadaOscuro": {
+    "encontrada": true,
+    "texto": "Comenzar prueba gratis →",
+    "esBtnPrimary": true,
+    "fondo": "rgb(23, 120, 134)",
+    "color": "rgb(255, 255, 255)",
+    "opacidad": "0.45",
+    "alto": 48,
+    "deshabilitada": true
+  },
+  "focoRealEnCorreo": {
+    "boxShadow": "rgba(42, 165, 181, 0.14) 0px 0px 0px 3px, rgb(42, 165, 181) 0px 0px 0px 1px inset",
+    "borde": "rgba(242, 239, 233, 0.08)",
+    "hayAnillo": true
+  },
+  "registroCtaOscuro": {
+    "encontrada": true,
+    "texto": "Comenzar prueba gratis →",
+    "esBtnPrimary": true,
+    "fondo": "rgb(23, 120, 134)",
+    "color": "rgb(255, 255, 255)",
+    "opacidad": "1",
+    "alto": 48,
+    "deshabilitada": false
+  },
+  "registroCampos": {
+    "total": 3,
+    "sinNombre": []
+  },
+  "enlacesSubrayados": [
+    {
+      "texto": "Inicia sesión",
+      "subrayado": "underline"
+    },
+    {
+      "texto": "términos de servicio",
+      "subrayado": "underline"
+    },
+    {
+      "texto": "política de privacidad",
+      "subrayado": "underline"
+    }
+  ],
+  "axeRegistroOscuro": [],
+  "registroCtaClaro": {
+    "encontrada": true,
+    "texto": "Comenzar prueba gratis →",
+    "esBtnPrimary": true,
+    "fondo": "rgb(18, 98, 110)",
+    "color": "rgb(255, 255, 255)",
+    "opacidad": "1",
+    "alto": 48,
+    "deshabilitada": false
+  },
+  "axeRegistroClaro": [],
+  "ctaCambiaDeTema": true,
+  "avisoOscuro": {
+    "fondo": "color(srgb 0.164706 0.647059 0.709804 / 0.1)",
+    "color": "rgb(242, 239, 233)",
+    "texto": "Te enviamos un correo para restablecer t"
+  },
+  "loginTactiles": {
+    "olvidaste": 44,
+    "google": 48,
+    "submit": 48,
+    "ojo": "44×44"
+  },
+  "loginCampos": {
+    "total": 2,
+    "sinNombre": []
+  },
+  "pieNxMeta": {
+    "fs": "12.5px",
+    "texto": "Ausculta © 2026"
+  },
+  "axeLoginOscuro": [],
+  "avisoClaro": {
+    "fondo": "color(srgb 0.0705882 0.384314 0.431373 / 0.1)",
+    "color": "rgb(11, 12, 14)"
+  },
+  "axeLoginClaro": [],
+  "avisoCambiaDeTema": true,
+  "cruceLoginRegistro": {
+    "llega": true,
+    "url": "http://localhost:3000/registro"
+  },
+  "loginReal": {
+    "llega": true,
+    "url": "http://localhost:3000/dashboard"
+  },
+  "altaReal": {
+    "llega": true,
+    "url": "http://localhost:3000/setup"
+  },
+  "movilLogin": {
+    "anchoDocumento": 390,
+    "desborda": false,
+    "ctaFilaCompleta": true,
+    "ctaAlto": 44
+  },
+  "axeMovilLogin": [],
+  "movilRegistro": {
+    "anchoDocumento": 390,
+    "desborda": false,
+    "ctaFilaCompleta": true,
+    "ctaAlto": 44
+  },
+  "axeMovilRegistro": [],
+  "erroresConsola": []
+}
