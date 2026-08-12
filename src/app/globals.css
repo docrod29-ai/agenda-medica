@@ -736,15 +736,19 @@ tbody tr:last-child { border-bottom: none; }
 }
 
 /*
-  GREYBOX GATE (V15 §12) — el FlowRail se revisa SIN color de marca antes de
-  cualquier estilo. `.nav-item.active` normal marca el estado activo con
-  `var(--nexus)` (el acento teal); aquí se sustituye por `var(--text)`, que ya
-  es neutro en los dos temas. La forma (barra + negrita + icono más oscuro) es
-  la misma — sólo cambia de qué variable toma el color, que es exactamente lo
-  que exige la compuerta: probar que la jerarquía sobrevive sin acento.
+  V15-VISUAL-SYSTEM-001 (Fase 10, §18 paso 7) — EL ACENTO ENTRA AL SHELL.
+
+  Aquí vivió el override greybox de V15-SHELL-GREYBOX-001 (`var(--text)` en
+  barra e icono del contexto activo): la compuerta §12 exigía probar que la
+  jerarquía sobrevive sin acento, y sobrevivió — el gate pasó con capturas el
+  11-ago-2026 (`docs/design/capturas/v15-shell-greybox/`). Fase 10 tomó la
+  decisión que el greybox dejó pendiente: el estado activo vuelve a las reglas
+  base de `.nav-item.active` (barra + icono en `var(--nexus)`), porque el
+  cobalto significa acción/selección/AHORA (VISUAL_DNA §3) y porque el móvil
+  (`BottomNav`) nunca dejó de marcarlo así — el shell hablaba dos idiomas.
+  No se re-declara nada: quitar el override ES el cambio, y el guardián
+  `v15-el-acento-entra-al-shell.test.ts` falla si el override regresa.
 */
-.nx-flow-rail .nav-item.active::before { background: var(--text); }
-.nx-flow-rail .nav-item.active .nav-icon { color: var(--text); }
 
 /*
   V15-ENCOUNTER-MODE-001 (§8.1, «navigation visually quiets») — mientras el

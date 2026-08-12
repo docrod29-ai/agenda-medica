@@ -94,9 +94,14 @@ export function ClinicalSpine({ items }: { items: ClinicalSpineItem[] }) {
               display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
               minHeight: 32, padding: '7px 13px', borderRadius: 'var(--r-pill)',
               fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-              border: `1px solid ${seleccionado ? 'var(--text)' : 'var(--border)'}`,
-              background: seleccionado ? 'var(--text)' : 'var(--s2)',
-              color: seleccionado ? 'var(--bg)' : 'var(--text2)',
+              /* V15-VISUAL-SYSTEM-001 (Fase 10): la categoría seleccionada
+                 pasa del neutro greybox (var(--text)/var(--bg)) al relleno
+                 cobalto — selección = cobalto (VISUAL_DNA §3), el mismo
+                 idioma que el FlowRail activo. `--nexus-solido` documenta
+                 blanco encima ≥ 5.16:1 AA en los dos temas (globals.css). */
+              border: `1px solid ${seleccionado ? 'var(--nexus-solido)' : 'var(--border)'}`,
+              background: seleccionado ? 'var(--nexus-solido)' : 'var(--s2)',
+              color: seleccionado ? '#fff' : 'var(--text2)',
             }}
           >
             {it.label}

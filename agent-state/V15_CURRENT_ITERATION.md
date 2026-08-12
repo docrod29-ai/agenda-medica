@@ -4,11 +4,19 @@
 
 ## Iteración en curso
 
-`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **SIGUIENTE**: el orden de §43
-la nombra tras el cierre de Fase 9. Antes de tocar nada: releer §12 (el
-greybox gate ya pasado no se deshace), §16, §18 (los tokens van DESPUÉS de la
-estructura — la estructura ya está) y `docs/design/` (ley de diseño,
-Cantera + Instrument).
+`V15-VISUAL-SYSTEM-001` (Fase 10, §18/§33) — **EN CURSO**, primera rebanada
+entregada 12-ago-2026: «el acento entra al shell» — los tres puntos de acento
+que las fases estructurales dejaron explícitamente diferidos a Fase 10
+(FlowRail activo, ClinicalSpine seleccionado, indicador «Grabando» del
+InstrumentStrip) pasaron del neutro greybox al cobalto semántico de
+VISUAL_DNA §3, medidos con `getComputedStyle` en navegador real en los DOS
+temas (ver sección al FINAL de este archivo). Nota de lectura previa: la
+«ley Cantera + Instrument» que nombra §33 del master loop NO está definida
+en ningún documento del repo (verificado por grep en `docs/` y `src/`) — la
+ley operativa escrita es `docs/design/NEXUSMED_VISUAL_DNA.md` (los tokens se
+quedan, la gramática de composición es la firma) y esta fase se ejecuta
+contra ELLA; si el dueño tiene una especificación Cantera/Instrument aparte,
+falta instalarla en el repo.
 `V15-MOBILE-001` (Fase 9, §22/§23/§24) — **CERRADA 12-ago-2026** tras siete
 rebanadas: los trabajos §22 quedaron medidos contra pantallas reales en dos
 radiografías (390×844) y sus defectos pagados (rebanadas 1–6); la séptima
@@ -2781,3 +2789,103 @@ ningún trabajo pide (1280 vs 1440 medidos sin diferencia estructural).
 decidir la primera rebanada de sistema visual SOBRE la estructura ya
 aprobada en greybox — sin deshacer ningún gate estructural. Los pendientes
 anotados de accesibilidad de la Fase 9 quedan en la lista de `V15-A11Y-001`.
+
+## `V15-VISUAL-SYSTEM-001` (Fase 10, §18 paso 7) — primera rebanada: el acento entra al shell (12-ago-2026)
+
+La tarea que dejó nombrada la séptima rebanada de Fase 9 («decidir la primera
+rebanada de sistema visual SOBRE la estructura ya aprobada en greybox — sin
+deshacer ningún gate estructural») se pagó con el inventario de los deferrals
+explícitos que las fases estructurales dejaron ESCRITOS para Fase 10:
+
+1. **FlowRail activo** — `globals.css` re-declaraba barra e icono del contexto
+   activo en `var(--text)` (el override greybox de V15-SHELL-GREYBOX-001, con
+   su comentario «la fase de estilo decide si el acento entra aquí»). El shell
+   hablaba DOS idiomas: `BottomNav` móvil marcaba el contexto activo en
+   cobalto desde su primera rebanada; el escritorio en neutro.
+2. **ClinicalSpine seleccionado** — `var(--text)`/`var(--bg)` con la nota «el
+   acento de marca espera a V15-VISUAL-SYSTEM-001».
+3. **Indicador «Grabando» del InstrumentStrip** — `var(--text)`, mientras el
+   marco perimetral (`MarcoEscuchando`) decía LO MISMO en cobalto.
+
+### El arreglo (semántica escrita, no gusto)
+
+- **`globals.css`** — el override greybox se RETIRÓ (quitar el override ES el
+  cambio: el activo vuelve a las reglas base de `.nav-item.active`, barra +
+  icono en `var(--nexus)`); la decisión quedó escrita donde vivió el override.
+- **`ClinicalSpine.tsx`** — seleccionado en `var(--nexus-solido)` + texto
+  `#fff` (el par AA documentado del token: 5.16:1 oscuro / 7.0:1 claro).
+  `var(--bg)` encima de cobalto habría sido una cifra de contraste inventada.
+- **`InstrumentStrip.tsx`** — las dos variantes (topbar móvil y fila propia)
+  en `var(--nexus)`: un solo idioma para «el micrófono está abierto», y NUNCA
+  rojo (la regla de MarcoEscuchando: rojo = riesgo clínico).
+- **`FlowRail.tsx`** — cabecera actualizada («GREYBOX PRIMERO, ACENTO
+  DESPUÉS»): el gate §12 pasó el 11-ago con capturas; la jerarquía aprobada
+  no se tocó — misma barra, mismo peso, sólo el color.
+- **Hallazgo de lectura previa**: la «ley Cantera + Instrument» de §33 no
+  existe como documento en el repo — la fase se ejecuta contra
+  `NEXUSMED_VISUAL_DNA.md` (§3: cobalto = acción/selección/ahora). Anotado en
+  la cabecera de este archivo.
+
+### Guardián nuevo, probado al revés
+
+`src/__tests__/v15-el-acento-entra-al-shell.test.ts` (14 casos) — override
+greybox ausente Y reglas base en cobalto (si alguien «limpiara» las bases,
+quitar el override no dejaría acento), spine en sólido+blanco (no el par
+inventado), 2 indicadores en cobalto y ninguno en rojo, freeze del latido y
+del estado no seleccionado, el aquietado §8.1 intacto, y FlowRail sin estilos
+inline de `--nexus` (dos fuentes del acento = la lección nx-stat-grid). 8 de
+14 fallan contra el árbol previo (verificado con `git stash`).
+
+### Verificado en navegador real (12-ago-2026)
+
+Mismo método de toda la rama (emuladores + siembra + build de producción +
+`npm start`). Arnés nuevo: `scripts/design/capturar-acento-en-el-shell-v15.mjs`
+— mide `getComputedStyle`, no JSX, y es el PRIMERO de la rama que escanea
+también el TEMA CLARO (el token cambia de hex por tema). Resultado y 3
+capturas en `docs/design/capturas/v15-acento-en-el-shell/` (1440 + 390):
+
+- **Oscuro, medido**: barra activa `rgb(42,165,181)` = `--nexus`; icono igual;
+  chip del spine `rgb(23,120,134)` = `--nexus-solido` con texto blanco;
+  «Grabando» `rgb(42,165,181)`.
+- **Claro, medido**: los tres puntos en `rgb(18,98,110)` = `#12626E` (el hex
+  del token claro), chip con texto blanco — el acento respeta el tema, no es
+  un hex pegado.
+- **Al apagar la grabación**: el indicador desaparece (freeze de conducta).
+- **Móvil 390**: BottomNav activo `rgb(42,165,181)` — escritorio y pulgar
+  hablan por fin el MISMO acento — e indicador de topbar igual. (La primera
+  corrida del arnés midió `var(--text)` en el BottomNav: era un defecto del
+  ARNÉS — `nav a[aria-current]` sin scope devolvía el FlowRail oculto de
+  escritorio, primero en el DOM. Corregido con scope a `.bottom-nav-wrap` y
+  re-medido: cobalto.)
+- **Axe oscuro: CERO violaciones** en la página completa con la grabación
+  activa y el chip seleccionado.
+- **Axe claro: 1 violación `color-contrast`** (serious, 1 nodo) — el `<span>`
+  del TrialBanner con `#f59e0b` HARDCODED sobre fondo ámbar claro. Es
+  contenido PREEXISTENTE que esta rebanada no tocó (mismo componente de las
+  familias `region` ya anotadas); no había línea base previa del tema claro
+  porque ningún arnés V15 lo había escaneado. Anotado para `V15-A11Y-001`
+  (candidato: `var(--amber)` por tema en vez del hex) — no se repara aquí
+  por no salirse de rebanada: los colores del banner de suscripción son UX
+  de negocio con decisión del dueño (v972).
+- **Consola**: sólo la familia conocida de reconexión del emulador.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 8934 pasan + 14 casos nuevos; único fallo el
+  PRE-EXISTENTE ambiental de siempre (`ops-timeout-y-punto-ciego`, proxy del
+  contenedor, verificado en aislamiento con el mismo fingerprint).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio con `.env.local` demo.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado, sin cambios (componentes y
+  hoja, no pantallas).
+
+**Siguiente tarea exacta:** segunda rebanada de `V15-VISUAL-SYSTEM-001` —
+candidatos medidos, no adivinados: (a) los roles tipográficos de VISUAL_DNA
+§2 que aún no existen como clases (`.nx-ident`, `.nx-estado`, `.nx-meta`,
+`.nx-num`) aplicados a UNA superficie del shell V15 ya estructurada (p.ej.
+las filas de ContinuidadPanel o /pendientes) con su arnés; o (b) si una
+medición nueva enseña un defecto visual más barato/valioso del shell ya
+entregado, esa rebanada. La deuda de tema claro del TrialBanner queda en la
+lista de `V15-A11Y-001`.

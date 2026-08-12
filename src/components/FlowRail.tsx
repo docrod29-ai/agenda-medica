@@ -23,15 +23,18 @@
  * cuando V15 llegue a esa superficie (ver plan de compatibilidad en
  * `docs/design/v15/IA-001-sitemap.md`).
  *
- * ── POR QUÉ GREYBOX (SIN --teal) ─────────────────────────────────────────────
+ * ── GREYBOX PRIMERO, ACENTO DESPUÉS (§12 → §18) ──────────────────────────────
  *
  * §12 exige revisar la nueva IA/jerarquía SIN color de marca antes de aplicar
- * estilo. Este componente usa sólo `--s1/--s2/--s3/--text/--text2/--text3/
- * --border` — que en este repo YA son neutros/grises (`globals.css`), no
- * inventa una paleta gris aparte — y ninguna variable de acento. El estado
- * activo se marca con peso tipográfico + fondo neutro, no con --teal. La
- * fase de estilo (V15-VISUAL-SYSTEM-001, Fase 10) decide si el acento entra
- * aquí después de pasar la Greybox Gate.
+ * estilo. Este componente nació greybox (sólo `--s1/--s2/--s3/--text/--text2/
+ * --text3/--border`, estado activo con `var(--text)`) y ASÍ pasó la compuerta
+ * el 11-ago-2026 (capturas en `docs/design/capturas/v15-shell-greybox/`).
+ * V15-VISUAL-SYSTEM-001 (Fase 10) tomó después la decisión que quedaba: el
+ * estado activo volvió a las reglas base de `.nav-item.active` (barra + icono
+ * en `var(--nexus)`) quitando el override greybox de `globals.css` — cobalto
+ * = acción/selección/AHORA (VISUAL_DNA §3), el mismo idioma que `BottomNav`
+ * ya hablaba en móvil. La jerarquía que aprobó el gate no se tocó: misma
+ * barra, mismo peso, sólo el color del acento.
  *
  * ── ENCOUNTER: por qué apunta a /pacientes cuando no hay encuentro activo ────
  *

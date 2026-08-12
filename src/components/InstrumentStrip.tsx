@@ -148,7 +148,12 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
           </span>
         )}
         {segundos != null && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text)', fontWeight: 600, flexShrink: 0 }}>
+          /* V15-VISUAL-SYSTEM-001 (Fase 10): el indicador de grabación habla
+             el MISMO idioma que el marco perimetral (`MarcoEscuchando`):
+             cobalto, nunca rojo — rojo aquí significa riesgo clínico, y el
+             cobalto es el territorio libre de significado clínico (ver el
+             comentario «POR QUÉ NO ES ROJO» en MarcoEscuchando.tsx). */
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600, flexShrink: 0 }}>
             <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
             {formatearDuracion(segundos)}
           </span>
@@ -180,7 +185,10 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
         </Link>
       )}
       {segundos != null && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text)', fontWeight: 600 }}>
+        /* Fase 10: cobalto = grabando, igual que la variante de topbar y que
+           el marco perimetral — un solo idioma para «el micrófono está
+           abierto» en todo el shell. */
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--nexus)', fontWeight: 600 }}>
           <Circle size={8} fill="currentColor" style={{ animation: 'pulse 1.6s ease-in-out infinite' }} />
           Grabando · {formatearDuracion(segundos)}
         </span>
