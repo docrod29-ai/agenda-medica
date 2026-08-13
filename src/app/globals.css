@@ -237,11 +237,21 @@
 
   /* Movimiento. `--mov-nada` es el que se usa bajo `prefers-reduced-motion`:
      tenerlo con nombre evita que cada componente decida por su cuenta qué
-     significa «sin animación». */
+     significa «sin animación».
+     V15-MOTION-001: la curva del token era cubic-bezier(0.2,0,0,1) y se usaba
+     CERO veces; la curva de facto del producto —39 usos medidos, validada en
+     todas las capturas de la rama— era (0.16,1,0.3,1). El token adopta la
+     curva real: nada cambia visualmente donde ya se usaba, y desde aquí toda
+     transición de esta hoja habla var(--mov-*) — el guardián lo vigila.
+     Papeles: rapido = feedback de color/fondo/opacidad; normal = énfasis,
+     lift y cross-fade de tema; lento = movimiento espacial (rotaciones,
+     desplazamientos largos); presion = estados :active, que deben responder
+     por debajo de 100ms para sentirse táctiles. */
+  --mov-presion: 80ms;
   --mov-rapido: 120ms;
   --mov-normal: 200ms;
   --mov-lento:  320ms;
-  --mov-curva:  cubic-bezier(0.2, 0, 0, 1);
+  --mov-curva:  cubic-bezier(0.16, 1, 0.3, 1);
   --mov-nada:   0ms;
 
   /* Escala tipográfica — los mismos seis pasos que ya definen las clases
@@ -585,10 +595,9 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
   padding: 20px;
 }
 
-.card-hover {
-  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* La transición de .card-hover vive en el bloque de micro-interacciones
+   (más abajo): esta declaración temprana quedaba MUERTA — el shorthand
+   posterior la reemplazaba entera. Una clase, una voz de transición. */
 .card-hover:hover {
   border-color: var(--border2);
   background: var(--s2);
@@ -607,10 +616,10 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
   font-weight: 500;
   letter-spacing: -0.005em;
   cursor: pointer;
-  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              color 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--mov-rapido) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva),
+              border-color var(--mov-rapido) var(--mov-curva),
+              opacity var(--mov-rapido) var(--mov-curva);
   border: 1px solid transparent;
   white-space: nowrap;
   font-family: inherit;
@@ -698,9 +707,9 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
   font-size: 14px;
   color: var(--text);
   font-family: inherit;
-  transition: border-color 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color var(--mov-rapido) var(--mov-curva),
+              box-shadow var(--mov-rapido) var(--mov-curva),
+              background var(--mov-rapido) var(--mov-curva);
   outline: none;
 }
 /* PLACEHOLDERS LEGIBLES EN TODAS PARTES.
@@ -788,7 +797,7 @@ thead th {
 }
 tbody tr {
   border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
+  transition: background var(--mov-rapido) var(--mov-curva);
 }
 tbody tr:hover { background: var(--s2); }
 tbody td { padding: 12px; color: var(--text2); }
@@ -828,8 +837,8 @@ tbody tr:last-child { border-bottom: none; }
   font-weight: 500;
   color: var(--text2);
   cursor: pointer;
-  transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1),
-              color 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--mov-rapido) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva);
   text-decoration: none;
   border: none;
   background: none;
@@ -909,7 +918,7 @@ tbody tr:last-child { border-bottom: none; }
 .nx-flow-rail--quieto .nx-flow-rail-quiet-icon,
 .nx-flow-rail--quieto .nav-item:not(.active) .nav-icon {
   opacity: 0.4;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--mov-normal) var(--mov-curva);
 }
 .nx-flow-rail--quieto button:focus .nx-flow-rail-quiet-icon,
 .nx-flow-rail--quieto button:hover .nx-flow-rail-quiet-icon,
@@ -1158,8 +1167,8 @@ main:has(.nx-lienzo-completo) > .page-transition {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color 140ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color var(--mov-rapido) var(--mov-curva),
+              border-color var(--mov-rapido) var(--mov-curva);
   white-space: nowrap;
   border-top: none; border-left: none; border-right: none;
   background: none;
@@ -1182,8 +1191,9 @@ main:has(.nx-lienzo-completo) > .page-transition {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-              background 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* La transición de .kpi-card vive en el bloque de micro-interacciones
+     (más abajo): la declaración temprana quedaba MUERTA — el shorthand
+     posterior la reemplazaba entera. Una clase, una voz de transición. */
 }
 .kpi-card:hover {
   border-color: var(--border2);
@@ -1240,7 +1250,7 @@ main:has(.nx-lienzo-completo) > .page-transition {
   min-height: 48px;
   position: relative;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--mov-rapido) var(--mov-curva);
 }
 .cal-cell:hover { background: var(--s2); }
 .cal-cell:last-child { border-right: none; }
@@ -1256,7 +1266,7 @@ main:has(.nx-lienzo-completo) > .page-transition {
   overflow: hidden;
   cursor: pointer;
   border-left: 3px solid;
-  transition: opacity 0.15s;
+  transition: opacity var(--mov-rapido) var(--mov-curva);
 }
 .appt-chip:hover { opacity: 0.85; }
 
@@ -1625,7 +1635,8 @@ main:has(.nx-lienzo-completo) > .page-transition {
   justify-content: center;
   padding: 6px;
   border-radius: var(--r-sm);
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--mov-rapido) var(--mov-curva),
+              color var(--mov-rapido) var(--mov-curva);
 }
 .mobile-topbar-btn:hover { background: var(--s2); color: var(--text); }
 .mobile-topbar-btn:active { background: var(--s3); }
@@ -1785,9 +1796,9 @@ main:has(.nx-lienzo-completo) > .page-transition {
 html { color-scheme: dark light; }
 html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item, .tab {
   transition:
-    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    background-color var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
+    border-color var(--mov-normal) var(--mov-curva);
 }
 
 /* ── Glassmorphism — solo donde aporta jerarquía ────────────────── */
@@ -1816,16 +1827,16 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 /* Active scale en botones — feedback táctil sutil */
 .btn:active:not(:disabled) {
   transform: scale(0.97);
-  transition-duration: 80ms;
+  transition-duration: var(--mov-presion);
 }
 
 /* Hover lift en cards interactivas */
 .card-hover {
   transition:
-    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-color var(--mov-normal) var(--mov-curva),
+    background var(--mov-normal) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    box-shadow var(--mov-normal) var(--mov-curva);
 }
 .card-hover:hover {
   transform: translateY(-1px);
@@ -1835,10 +1846,10 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
 /* KPI cards con misma personalidad */
 .kpi-card {
   transition:
-    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-color var(--mov-normal) var(--mov-curva),
+    background var(--mov-normal) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    box-shadow var(--mov-normal) var(--mov-curva);
 }
 .kpi-card:hover {
   transform: translateY(-1px);
@@ -1874,7 +1885,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   border-radius: 2px 2px 0 0;
   transform: scaleX(0);
   transform-origin: center;
-  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--mov-normal) var(--mov-curva);
 }
 .tab.active::after { transform: scaleX(1); }
 .tab.active { border-bottom-color: transparent; }
@@ -1911,9 +1922,9 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   z-index: 199;
   box-shadow: var(--elev-2);
   transition:
-    background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    background var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva);
 }
 .theme-toggle:hover {
   color: var(--text);
@@ -1945,11 +1956,11 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     pointer-events: none;
   }
 }
-.theme-toggle, .boton-ayuda-fab { transition: opacity 140ms ease; }
+.theme-toggle, .boton-ayuda-fab { transition: opacity var(--mov-rapido) var(--mov-curva); }
 .theme-toggle svg {
   width: 18px;
   height: 18px;
-  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--mov-lento) var(--mov-curva);
 }
 .theme-toggle:hover svg { transform: rotate(20deg); }
 
@@ -2243,7 +2254,8 @@ body:has(.nx-lienzo-completo) .theme-toggle {
   border: none; border-radius: var(--r-md);
   font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: inherit; white-space: nowrap;
-  transition: background 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms;
+  transition: background var(--mov-rapido) var(--mov-curva),
+              transform var(--mov-rapido) var(--mov-curva);
 }
 .prox-hero-cta:hover { background: var(--nexus-hover); }
 .prox-hero-cta:active { transform: scale(0.98); }
@@ -2325,7 +2337,7 @@ body:has(.nx-lienzo-completo) .theme-toggle {
   align-items: center;
   gap: 14px;
   padding: 12px 20px;
-  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--mov-rapido) var(--mov-curva);
 }
 .cita-fila:hover { background: var(--s2); }
 .cita-principal {
@@ -2687,7 +2699,7 @@ span.riel-aviso { cursor: default; }
   width: 100%; text-align: left;
   padding: 7px 10px; border-radius: 6px; border: none; cursor: pointer;
   font-size: 13px; color: var(--text2); background: transparent;
-  font-family: inherit; transition: background 0.1s;
+  font-family: inherit; transition: background var(--mov-rapido) var(--mov-curva);
 }
 .riel-menu-item:hover { background: var(--s2); }
 .riel-menu-peligro { color: var(--red); }

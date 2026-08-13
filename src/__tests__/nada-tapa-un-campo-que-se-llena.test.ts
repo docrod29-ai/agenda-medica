@@ -75,7 +75,11 @@ describe('los botones flotantes se apartan mientras se escribe', () => {
   })
 
   it('la transición existe, para que no sea un parpadeo', () => {
-    expect(css).toMatch(/\.theme-toggle, \.boton-ayuda-fab \{ transition: opacity 140ms ease; \}/)
+    // V15-MOTION-001 (1ª rebanada): la duración dejó de escribirse a mano
+    // (140ms ease) y habla los tokens de movimiento. Lo que este caso protege
+    // no es la cifra: es que el fade EXISTA — el guardián sigue al mecanismo,
+    // como el del alto táctil de la franja y el del aviso push antes que él.
+    expect(css).toMatch(/\.theme-toggle, \.boton-ayuda-fab \{ transition: opacity var\(--mov-rapido\) var\(--mov-curva\); \}/)
   })
 
   it('queda escrito POR QUÉ ningún barrido lo cazó', () => {

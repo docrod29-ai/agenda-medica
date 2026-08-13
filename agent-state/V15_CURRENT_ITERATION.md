@@ -4,7 +4,29 @@
 
 ## Iteración en curso
 
-`V15-A11Y-001` (§43 orden 13, §24) — **EN CURSO** desde 12-ago-2026, con su
+`V15-MOTION-001` (§43 orden 14, §18 paso 8 / §20) — **EN CURSO** desde
+13-ago-2026, con la primera rebanada pagada: **las transiciones de
+globals.css hablan los tokens de movimiento** — la curva del token adopta la
+curva de facto del producto (39 usos medidos vs 0 del valor teórico), las 22
+transiciones de la hoja dejan sus 9 duraciones a mano por
+`var(--mov-rapido/normal/lento/presion)` (+`--mov-presion: 80ms` nuevo para
+estados :active), y las declaraciones MUERTAS duplicadas de
+`.card-hover`/`.kpi-card` se retiraron. Guardián barre la hoja entera;
+computado verificado en navegador real. Quedan: las ~30 transiciones INLINE
+de componentes TSX (inventario por grep anotado en la sección al FINAL) y la
+coreografía de continuidad de §20 (shared element entre Hoy→Paciente→
+Encuentro — el diferimiento grande de Fase 10). Ver sección al FINAL.
+
+Iteración anterior:
+`V15-A11Y-001` (§43 orden 13, §24) — **CERRADA 13-ago-2026** tras SEIS
+rebanadas de código y una séptima entrega de cierre: DEBT-008
+(`.receta-sheet`) quedó **documentado con cifras y CONSULTADO al dueño**
+(el default `#14b8a6` del acento del papel mide 2.49:1; la opción segura
+—default `#0f766e`/`#12626e` + unificar el default de Word `#2845EA`— está
+escrita en la sección al FINAL; un color guardado por un médico nunca se
+toca). Única deuda restante de la iteración, bloqueada en decisión de
+plantilla del dueño, no en código. Seis superficies miden axe 0 TOTAL.
+— Empezó así: **EN CURSO** desde 12-ago-2026, con su
 inventario de deuda medido y SEIS rebanadas pagadas: **avisos del shell en
 landmark** (`role="status"` para TrialBanner/ModeBanner/OfflineBanner — el
 hallazgo `region` más repetido de la rama muere; /dashboard mide 0 por
@@ -5164,3 +5186,177 @@ aún pendiente: si al abrirla la decisión sigue sin dueño, **documentar la
 opción segura y dejarla consultada al dueño en vez de adivinar** (regla 6 de
 seguridad clínica, dicha en interfaz), y cerrar la iteración `V15-A11Y-001`
 con su resumen de deuda restante. Después, por §43: `V15-MOTION-001`.
+
+## `V15-A11Y-001` — séptima entrega: DEBT-008 abierto, documentado y CONSULTADO al dueño; la iteración CIERRA (13-ago-2026)
+
+La tarea exacta que dejó la sexta rebanada. DEBT-008 se abrió con la regla
+6 de seguridad clínica en la mano: **la decisión seguía sin dueño, así que
+no se adivinó** — se dimensionó, se escribió la opción segura y se dejó
+consultada. Esto NO es una rebanada de código: es el cierre honesto de la
+única deuda a11y que no puede pagarse de forma autónoma.
+
+### DEBT-008, dimensionado con cifras
+
+`.receta-sheet` es el PAPEL de la receta/orden — el documento que se imprime
+con cédula profesional. Su acento (`recetaConfig.colorAccento`) es una
+**decisión de plantilla del médico**: se elige con un `<input type="color">`
+en `/configuracion?tab=recetas` («Color de acento — líneas, encabezado»).
+El hallazgo axe `color-contrast` de las capturas de /receta y /orden vive
+DENTRO del papel y nace del **valor por omisión del producto**, no de una
+elección del médico:
+
+- Default actual: `#14b8a6` → **2.49:1 sobre el blanco del papel**. Falla
+  AA para texto normal (4.5:1) y hasta para texto grande (3:1). Se pinta
+  como TEXTO en: el título «Receta Médica»/«Orden Médica», la especialidad
+  del encabezado minimalista y el símbolo ℞; y como fondo de los chips
+  numerados con texto blanco encima (blanco sobre `#14b8a6` = el mismo
+  2.49:1). Las líneas/bordes de acento son decorativas y no cargan texto.
+- Incoherencia hermana descubierta al dimensionar: la exportación a WORD
+  (`src/lib/receta-word.ts`) tiene OTRO default — `#2845EA` (6.71:1, azul).
+  El mismo médico sin configurar imprime un papel teal y exporta un Word
+  azul. Dos voces para el mismo documento.
+
+### La opción segura, documentada (pendiente de decisión del dueño)
+
+1. **Cambiar sólo el DEFAULT** a un teal oscuro de la misma familia:
+   `#0f766e` (5.47:1, AA) conserva la identidad teal; `#12626e` (7.0:1,
+   AAA, el tono nexus del tema claro) es la opción más legible. Un color
+   guardado explícitamente por un médico NUNCA se toca.
+2. **Unificar el default de Word al mismo valor** — muere la incoherencia
+   `#14b8a6`/`#2845EA`.
+3. Opcional: aviso de legibilidad NO bloqueante junto al picker (computar
+   el contraste en vivo y avisar por debajo de 4.5:1). Visible, no
+   silencioso; el médico conserva libertad total.
+
+**Por qué no se hizo de una vez**: el papel es el artefacto de identidad
+profesional del médico (territorio del membrete). Cambiar el default cambia
+lo que imprime todo consultorio que nunca configuró su acento — eso es una
+decisión de plantilla del dueño, y la regla es preguntarle, no adivinar.
+La consulta viaja en el reporte de esta corrida.
+
+### `V15-A11Y-001` — CERRADA, con su resumen de deuda
+
+Las ocho familias del inventario de apertura: 1 (`region`/landmark) PAGADA;
+2 (`landmark-unique`) muerta antes; 3 (/referencia sin etiquetas, la única
+CRÍTICA) PAGADA; 4 (`color-contrast` Editar) cerrada como conflación con
+cifras; 5 (`nested-interactive`) PAGADA; 6 (contrastes de /chat + widgets)
+PAGADA; 7 (DEBT-008) **documentada y consultada al dueño — única deuda
+restante, bloqueada en decisión de plantilla, no en código**; 8
+(`heading-order`) PAGADA. Seis superficies miden axe 0 TOTAL (dashboard,
+referencia, pacientes, chat, consulta poblada, pendientes móvil).
+
+## `V15-MOTION-001` — abierta; primera rebanada: las transiciones de globals.css hablan los tokens (13-ago-2026)
+
+Por §43 orden 14, la iteración que la novena rebanada de Fase 10 dejó armada
+con sus dos diferimientos escritos: (a) el sistema de tokens de movimiento
+(«definidos… y usados CERO veces: las 22 transiciones escriben su duración a
+mano y conviven dos curvas») y (b) la coreografía de continuidad de §20.
+Esta rebanada paga (a) para la hoja global — la deuda mecánica primero, para
+que (b), el trabajo de diseño real, se haga sobre un sistema con una voz.
+
+### La rebanada: el token adopta la curva REAL, y la hoja entera la habla
+
+- **La curva**: `--mov-curva` era `cubic-bezier(0.2,0,0,1)` con CERO usos;
+  la de facto, `cubic-bezier(0.16,1,0.3,1)`, tenía 39. El token adopta la
+  curva real — nada cambia visualmente donde ya se usaba — y la teórica
+  muere.
+- **`--mov-presion: 80ms` nuevo**: el estado `:active` del botón usaba 80ms
+  a mano con razón (el feedback de presión debe responder <100ms). Con
+  nombre, la excepción es sistema y el barrido puede exigir CERO duraciones
+  a mano.
+- **Las 22 transiciones** de `globals.css` dejan sus NUEVE duraciones
+  distintas (80/100/120/140/150/180/200/240/280ms) por los papeles:
+  rapido=feedback de color/fondo/opacidad (100→120, 140→120, 150→120),
+  normal=énfasis/lift/cross-fade (180→200, 240→200), lento=movimiento
+  espacial (280→320), presion=:active. Los `ease` sueltos adoptan la curva.
+- **Dos declaraciones MUERTAS retiradas**: `.card-hover` y `.kpi-card`
+  declaraban transition DOS veces (la temprana quedaba reemplazada entera
+  por el shorthand del bloque de micro-interacciones). Una clase, una voz.
+
+### Hallazgo de cascada, anotado para la siguiente rebanada (PREEXISTENTE)
+
+El arnés midió la verdad que el texto no enseña: la regla agrupada del
+cross-fade de tema (`html, body, .card, …, .btn, .nav-item, .tab, .input`)
+viene DESPUÉS de las reglas base y las **reemplaza** — .btn/.nav-item/.tab/
+.input computan normal ×3 (background-color/color/border-color) y pierden su
+papel rapido y su transición de opacity; el fade del `.theme-toggle` sombrea
+su propio shorthand. Ya era así con las duraciones a mano (200ms literal en
+la regla agrupada): esta rebanada NO lo cambió — equivalencia funcional — y
+decidir la política de una-voz-por-propiedad es trabajo de diseño de la
+siguiente rebanada, no un arreglo silencioso de ésta.
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-motion-tokens-una-sola-voz.test.ts` (11 casos): curva de
+facto en el token, curva teórica muerta, escala completa con presion,
+barrido por PARTES de toda declaración transition (cero duraciones/curvas a
+mano — para la transición que aún no se escribió), transition-duration a
+mano sólo en el apagador de §24, :active habla presion, una voz por clase
+(.card-hover/.kpi-card), y el freeze (apagador §24 intacto, opt-out de
+.cita-fila intacto, los :hover que la transición pinta siguen existiendo).
+**8 de 11 fallan contra el árbol previo** (verificado con `git stash`); los
+3 que pasan protegen invariantes preexistentes.
+
+### Verificado en navegador real (13-ago-2026)
+
+Arnés nuevo: `scripts/design/medir-motion-tokens-v15.mjs` — y trae una
+lección de MÉTODO escrita en su cabecera: el CSS de producción minifica
+(`120ms`→`.12s`, `0.16`→`.16`) y el apagador computa `1e-05s`, así que la
+comparación es NUMÉRICA, no de cadenas; y las listas se parten por comas de
+primer nivel (partir «cubic-bezier(0.16, 1, 0.3, 1)» por toda coma dio
+falsos fallos en la primera corrida). Resultado y captura en
+`docs/design/capturas/v15-motion-tokens/`:
+
+- **Los tokens LLEGAN**: los cinco computan su valor en :root (80/120/200/
+  320/0ms) y la curva computa `cubic-bezier(.16, 1, .3, 1)` — un `var()`
+  roto habría computado 0s y el guardián de texto jamás lo habría visto.
+- **Cada representante computa el papel que la cascada REAL le deja**:
+  .theme-toggle svg 0.32s (lento), .cita-fila 0.12s (rapido), .theme-toggle
+  0.12s (fade), .btn/.nav-item 0.2s ×3 (cross-fade de tema — el hallazgo de
+  arriba), todos con la curva de facto.
+- **Bajo `reducedMotion: 'reduce'` el apagador de §24 GANA a la escala
+  entera**: .btn computa `1e-05s` (0.01ms).
+- **Consola: cero errores.**
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver reporte de la corrida (guardián nuevo 11/11).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (493/1970/
+  628/22 se mantienen — la rebanada unifica tiempos, no pinta).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (build de producción para el arnés) con
+  `.env.local` demo (recreado en este contenedor: 8 variables + emuladores +
+  `PORTAL_PACIENTE_SECRET` demo; `npm ci` también hizo falta — contenedor
+  fresco; el Chromium del sistema vive en `/opt/pw-browsers/chromium` y el
+  arnés lo lanza por `executablePath`, patrón de
+  `capturar-acento-en-el-shell-v15`).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado, sin cambios (la rebanada
+  vive en la hoja global).
+
+### Inventario para la segunda rebanada — las transiciones INLINE (28 sitios, 21 archivos)
+
+Medido por grep (`transition:` en TSX, excluyendo `'none'`): asistente/page
+×5, Sidebar ×2, BottomNav ×2, app/page ×2, (dashboard)/layout ×2,
+calendario ×2, y ×1 en ValoracionInmuno, SelloProcedencia, PanelRazonamiento,
+OnboardingTour, MientrasHablas, GuiaConfigurarReceta, superadmin, setup,
+pacientes, orden, nota, guia, finanzas, consulta y secciones-cuenta. Los
+`style` inline SÍ resuelven `var(--mov-*)` (custom properties se computan en
+el elemento), así que la migración es mecánica; ojo con `MientrasHablas`
+(«width 90ms linear» — medidor de nivel de micrófono: es INFORMACIÓN de
+seguridad en tiempo real, decidir si es transición de interfaz o
+instrumento antes de tocarla). No hay styled-jsx ni CSS modules en src/ —
+`globals.css` era la única hoja.
+
+**Siguiente tarea exacta:** `V15-MOTION-001`, segunda rebanada — dos
+candidatas en orden: (1) la política de una-voz-por-propiedad para la
+cascada del cross-fade de tema (el hallazgo medido de esta corrida: decidir
+si .btn/.nav-item/.tab/.input recuperan su papel rapido en hover/focus sin
+perder el fade de tema — p. ej. transicionando sólo las propiedades de tema
+en la regla agrupada o moviéndola ANTES de las bases), con navegador antes/
+después; (2) las 28 transiciones inline del inventario de arriba. Después
+queda (b): la coreografía de continuidad de §20 (shared element
+Hoy→Paciente→Encuentro), el diferimiento grande. DEBT-008 sigue CONSULTADO
+al dueño (sección de cierre de A11Y-001) — si la decisión llega, pagarla es
+una rebanada corta: default nuevo + default de Word unificado + aviso no
+bloqueante en el picker.
