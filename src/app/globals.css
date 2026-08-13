@@ -1400,6 +1400,37 @@ main:has(.nx-lienzo-completo) > .page-transition {
      La mayoría de los paneles clínicos y calculadoras usan <button style={...}>
      inline (22-30px) y no recibían el mínimo. */
   button:not(.mobile-topbar-btn) { min-height: 44px !important; }
+
+  /* Los ENLACES quedaban fuera de este bloque — por eso los dos táctiles
+     chicos que la radiografía de trabajos móviles (Fase 9) anotó eran <a>:
+     la identidad de paciente en /pendientes (a.nx-ident, 156×20) y el CTA
+     del TrialBanner (.nx-cta-aviso, 100×24). Un min-height aquí NO sirve:
+     engordaría lo visible (la píldora del banner pinta su fondo sobre el
+     padding) y movería la línea de base de la fila. El área de GOLPE se
+     estira con un pseudo invisible centrado — el mismo mecanismo que
+     .nx-fila-abrir::after (V15-A11Y-001, 3ª rebanada) — y lo visible no se
+     mueve un píxel. El pseudo puede pisar TEXTO vecino (el título de la
+     tarea, el borde del aviso), nunca otro control: los controles vecinos
+     más cercanos (botones de la tarjeta, franja) quedan a más de lo que el
+     pseudo alcanza. Sólo puntero grueso: en escritorio el clic de ratón no
+     necesita 44px y estirarlo robaría clics de selección de texto.
+     Dos ajustes que el arnés midió, no que se supusieron
+     (capturar-tactiles-de-enlace-v15): el CTA del banner vive en un corredor
+     de 41px — la topbar pegajosa (z-45) le come todo lo que asome por
+     arriba, y ELLA debe ganar: tiene sus propios controles. Por eso el
+     estirón se sesga 2px hacia ABAJO (hacia el pulgar, que llega desde
+     abajo) y el enlace lleva z-index 1 para que la capa de transición de
+     página no se coma el borde inferior del golpe. Sin los dos, el área
+     efectiva medía 40, no 44. */
+  a.nx-ident, .nx-cta-aviso { position: relative; z-index: 1; }
+  a.nx-ident::before, .nx-cta-aviso::before {
+    content: '';
+    position: absolute;
+    top: calc(50% + 2px); left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+  }
 }
 
 /* Áreas seguras (notch / home indicator de iPhone) */

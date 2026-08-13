@@ -5,7 +5,7 @@
 ## Iteración en curso
 
 `V15-A11Y-001` (§43 orden 13, §24) — **EN CURSO** desde 12-ago-2026, con su
-inventario de deuda medido y CINCO rebanadas pagadas: **avisos del shell en
+inventario de deuda medido y SEIS rebanadas pagadas: **avisos del shell en
 landmark** (`role="status"` para TrialBanner/ModeBanner/OfflineBanner — el
 hallazgo `region` más repetido de la rama muere; /dashboard mide 0 por
 primera vez), **el formulario de /referencia tiene nombre** (la única deuda
@@ -16,14 +16,18 @@ el patrón de acción extendida `.nx-fila-abrir`; /pacientes mide 0 en oscuro,
 claro y móvil — y la etiqueta «color-contrast Editar» del inventario quedó
 cerrada como conflación, con cifras), **los contrastes de /chat hablan
 tokens por tema y los widgets flotantes ceden** (axe 0 en las cuatro
-mediciones; el gesto Enviar-sin-foco medido de punta a punta) y **el lienzo
+mediciones; el gesto Enviar-sin-foco medido de punta a punta), **el lienzo
 de /consulta tiene un esquema de encabezados honesto** (h1 → h2 → h3 en
 cualquier combinación de render; `heading-order` 0 y **axe 0 TOTAL** en la
 consulta poblada — oscuro, claro y móvil —, y el contraste teal de evidencia
-anotado a 3.03:1 quedó confirmado MUERTO por la Fase 10: computa 5.9/6.13).
-Restan: táctiles chicos anotados (enlace del TrialBanner + enlace de
-paciente de /pendientes) y DEBT-008 (`.receta-sheet`, decisión de diseño de
-plantilla pendiente). Ver secciones al FINAL.
+anotado a 3.03:1 quedó confirmado MUERTO por la Fase 10: computa 5.9/6.13) y
+**los dos táctiles chicos que eran ENLACES** (el bloque
+`pointer: coarse` nunca cubrió `<a>`: el enlace de paciente de /pendientes
+—156×20— y el CTA del TrialBanner —100×24— ganan área de golpe ≥44px con un
+pseudo estirado, MEDIDA por hit-testing y ENTREGADA con tap real; el
+escritorio no se estira ni un píxel).
+Resta sólo: DEBT-008 (`.receta-sheet`, decisión de diseño de
+plantilla pendiente — carga una decisión del dueño). Ver secciones al FINAL.
 
 Iteración anterior:
 `V15-REMAINING-SCREENS-001` (§43 orden 12, §32) — **CERRADA** (barrido de
@@ -5063,3 +5067,100 @@ que carga una decisión de diseño de plantilla del médico aún pendiente: si
 al abrirla la decisión sigue sin dueño, documentar la opción segura y
 consultar al dueño en vez de adivinar (regla 6 de seguridad clínica, dicha
 en interfaz).
+
+## `V15-A11Y-001` — sexta rebanada: los dos táctiles chicos que eran ENLACES ganan su golpe de 44 (13-ago-2026)
+
+La tarea exacta que dejó la quinta rebanada. Método de la casa cumplido:
+grep de este archivo por los hallazgos exactos + re-medición en vivo ANTES
+de tocar, pantalla entera leída, guardián al revés, arnés real con axe.
+
+### La causa raíz, dimensionada primero
+
+Los dos hallazgos de la radiografía de Fase 9 («Activar plan →» del
+TrialBanner a 100×24; el enlace de paciente de /pendientes, `a.nx-ident`, a
+156×20) son UNA causa: el bloque `@media (pointer: coarse)` de globals.css
+cubre `.btn`, `button`, `select`, `input` y `textarea` — pero **nunca cubrió
+`<a>`**. Todo control que fuera un enlace quedaba sin mínimo táctil por
+construcción.
+
+### La rebanada: el golpe se estira, lo visible no se mueve
+
+Un `min-height: 44px` NO servía: la píldora del banner pinta su fondo sobre
+el padding (engordaría lo visible y el alto del shell) y la identidad vive
+en una fila alineada por línea de base. La salida es el mecanismo que la 3ª
+rebanada ya bendijo (`.nx-fila-abrir::after`): un pseudo `::before`
+invisible centrado, `max(100%, 44px)` en los dos ejes, SÓLO en puntero
+grueso — el hit-testing del navegador atribuye el pseudo a su elemento y el
+tap de 44px llega al enlace sin mover un píxel del layout.
+
+- `a.nx-ident` (globals.css): la regla cubre TODA identidad-enlace presente
+  y futura — /pendientes (Tarjeta y TarjetaCerrada) sin tocar su JSX.
+- `.nx-cta-aviso` (clase nueva): las DOS variantes del CTA del TrialBanner
+  (cuenta regresiva y prueba vencida) en `layout.tsx`.
+- Dos ajustes que el arnés MIDIÓ, no que se supusieron: el CTA del banner
+  vive en un corredor de 41px — la topbar pegajosa (z-45) le come todo lo
+  que asome por arriba, y ella DEBE ganar (tiene sus propios controles); la
+  capa `page-transition` se comía el borde inferior. Por eso el estirón se
+  sesga 2px hacia ABAJO (hacia el pulgar) y el enlace lleva `z-index: 1`.
+  Sin los dos, el área efectiva medía 40, no 44 — lo cazó el arnés con el
+  diagnóstico de elementFromPoint píxel a píxel, no el ojo.
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-a11y-tactiles-de-enlace.test.ts` (6 casos): pseudo con
+44/44 sesgado al pulgar + z-index, la regla VIVE dentro del bloque coarse
+(el escritorio no se estira — guardia de alcance), las dos variantes del
+banner llevan la clase, y el freeze (los Link de /pendientes siguen siendo
+`a.nx-ident` al expediente; los mínimos de botones/inputs del bloque coarse
+intactos). **Los casos 1, 2 y 4 fallan contra el árbol previo** (verificado
+con `git stash`); el 3 y los de freeze pasan antes y después.
+
+### Verificado en navegador real (13-ago-2026)
+
+Arnés nuevo: `scripts/design/capturar-tactiles-de-enlace-v15.mjs` — y trae
+una lección de MÉTODO: el pseudo NO aparece en `getBoundingClientRect`, así
+que una radiografía futura que sólo lea rects volverá a ver 156×20 y DEBE
+hit-testear. El arnés mide el área que el navegador de verdad atribuye al
+enlace (búsqueda binaria del borde con elementFromPoint, precisión 0.25px —
+el primer intento barría a 2px y perdía hasta 4px en los bordes) y luego
+ENTREGA el tap (`touchscreen.tap` FUERA de lo visible). Resultado y 2
+capturas en `docs/design/capturas/v15-tactiles-de-enlace/`:
+
+- **Móvil 390 (hasTouch → `pointer: coarse` comprobado con matchMedia)**:
+  enlace de paciente 174×20 visible → **45px de golpe**; CTA del banner
+  100×24 visible → **44px de golpe** (pseudo computado 44px en los dos).
+- **El tap LLEGA** («el dato tiene que llegar», dicho en táctil): tap 6px
+  ENCIMA del texto del paciente → `/expediente/pac-aurelio-dominguez`
+  (`llega: true`); tap 6px DEBAJO de la píldora → 
+  `/configuracion?tab=suscripcion` (`llega: true`).
+- **Escritorio 1440 (puntero fino)**: golpe 21.5/25px — la densidad NO se
+  estiró; el alto del banner queda en 41px, idéntico.
+- **Axe: CERO violaciones** en /pendientes móvil con el banner presente.
+- **Consola**: sólo el aviso ambiental de reconexión del emulador ×1.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 9187/9188 en verde ×2 corridas completas (guardián
+  nuevo 6/6 en las dos). Primera corrida: el único fallo fue
+  `la-agenda-es-un-riel` por carga del pool (import 332s en paralelo) y
+  **pasa 12/12 en aislamiento**. Re-corrida completa: ese no se repitió y el
+  único fallo fue el PRE-EXISTENTE ambiental de siempre
+  (`ops-timeout-y-punto-ciego`, el proxy del contenedor responde en vez de
+  agotar, mismo fingerprint documentado). Ninguno toca esta rebanada.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva (493/1970/
+  628/22 se mantienen — la rebanada estira golpes, no pinta).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio ×2 (builds de producción para el arnés)
+  con `.env.local` demo (recreado en este contenedor: 8 variables +
+  emuladores + `PORTAL_PACIENTE_SECRET` demo; `npm ci` también hizo falta —
+  contenedor fresco).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (sin cambios de líneas — la
+  rebanada vive en CSS global y el shell, no en páginas).
+
+**Siguiente tarea exacta:** `V15-A11Y-001`, última rebanada: **DEBT-008**
+(`.receta-sheet`) — que carga una decisión de diseño de plantilla del médico
+aún pendiente: si al abrirla la decisión sigue sin dueño, **documentar la
+opción segura y dejarla consultada al dueño en vez de adivinar** (regla 6 de
+seguridad clínica, dicha en interfaz), y cerrar la iteración `V15-A11Y-001`
+con su resumen de deuda restante. Después, por §43: `V15-MOTION-001`.

@@ -1,0 +1,75 @@
+{
+ "movilEsCoarse": true,
+ "movilPaciente": {
+  "rect": {
+   "alto": 20,
+   "ancho": 174,
+   "top": 300
+  },
+  "golpe": {
+   "top": 288.9,
+   "bottom": 333.8,
+   "alto": 45
+  },
+  "pseudoComputado": "44px",
+  "x": 105
+ },
+ "movilBanner": {
+  "rect": {
+   "alto": 24,
+   "ancho": 100,
+   "top": 60
+  },
+  "golpe": {
+   "top": 52,
+   "bottom": 96,
+   "alto": 44
+  },
+  "pseudoComputado": "44px",
+  "x": 318
+ },
+ "axeMovil": [],
+ "tapPacienteNavega": {
+  "punto": "105,294 (6px encima del texto)",
+  "urlAterrizada": "/expediente/pac-aurelio-dominguez",
+  "llega": true
+ },
+ "tapBannerNavega": {
+  "punto": "318,90 (6px debajo de la píldora)",
+  "urlAterrizada": "/configuracion?tab=suscripcion",
+  "llega": true
+ },
+ "escritorioEsCoarse": false,
+ "escritorioPaciente": {
+  "rect": {
+   "alto": 20,
+   "ancho": 174,
+   "top": 230
+  },
+  "golpe": {
+   "top": 228.5,
+   "bottom": 250,
+   "alto": 21.5
+  },
+  "pseudoComputado": "auto",
+  "x": 329
+ },
+ "escritorioBanner": {
+  "rect": {
+   "alto": 24,
+   "ancho": 100,
+   "top": 38
+  },
+  "golpe": {
+   "top": 37,
+   "bottom": 62,
+   "alto": 25
+  },
+  "pseudoComputado": "auto",
+  "x": 955
+ },
+ "escritorioBannerAlto": 41,
+ "erroresConsola": [
+  "[movil] [2026-08-13T00:44:00.859Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend."
+ ]
+}

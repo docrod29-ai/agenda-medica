@@ -155,7 +155,9 @@ function TrialBanner() {
               documentos. Lo que se detuvo es escribir cosas nuevas y usar la IA. Se reactiva en
               cuanto actives tu plan: <strong>no se pierde nada</strong>.
             </div>
-            <Link href="/configuracion?tab=suscripcion" style={{
+            {/* .nx-cta-aviso: en puntero grueso el área de golpe crece a 44px
+                sin engordar la píldora visible (§24, V15-A11Y-001 6ª rebanada). */}
+            <Link href="/configuracion?tab=suscripcion" className="nx-cta-aviso" style={{
               display: 'inline-block', marginTop: 8, background: 'var(--amber)', color: 'var(--sobre-aviso)',
               fontSize: 12, fontWeight: 700, padding: '6px 13px', borderRadius: 7, textDecoration: 'none',
             }}>
@@ -184,7 +186,10 @@ function TrialBanner() {
           : 'Tu prueba gratuita ha terminado.'
         }
       </span>
-      <Link href="/configuracion?tab=suscripcion" style={{
+      {/* El táctil chico anotado por la radiografía de Fase 9 (100×24):
+          .nx-cta-aviso estira el golpe a 44px en puntero grueso, la píldora
+          visible y el alto del banner quedan idénticos (§24). */}
+      <Link href="/configuracion?tab=suscripcion" className="nx-cta-aviso" style={{
         fontSize: 12, fontWeight: 700, color: 'var(--sobre-aviso)',
         background: daysLeft <= 3 ? 'var(--red)' : 'var(--amber)',
         padding: '3px 10px', borderRadius: 6, textDecoration: 'none',
