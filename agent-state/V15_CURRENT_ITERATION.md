@@ -4,8 +4,36 @@
 
 ## Iteración en curso
 
-`V15-PERF-001` (§43 orden 15, §30) — **EN CURSO** desde 13-ago-2026, con
-CUATRO rebanadas pagadas. La 4ª (13-ago-2026): el veredicto de varianza que
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **POR EMPEZAR**. La
+siguiente corrida la abre: equipo rojo de originalidad independiente sobre
+las superficies V15 ya estructuradas (shell, Hoy, Patient Workspace,
+Encounter, Cierre, Pendientes) buscando genérico-SaaS, almacén-sidebar,
+tarjetas-por-defecto, apariencia shadcn-demo, IA-template, imitación de
+competidor, IA feature-first, motion inútil y diferenciación sólo-color
+(§41); cada hallazgo válido se convierte en defecto rastreado. El
+GENERIC_AI_LOOK_SCORE se documenta con razones ESTRUCTURALES (§29), no de
+paleta.
+
+Iteración anterior:
+`V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO
+rebanadas: (1ª) arnés del presupuesto de percepción; (2ª) el opt-in de push
+fuera de la cadena clínica — el LCP pasó a ser la IDENTIDAD del paciente en
+toda la cadena; (3ª) seis paneles condicionales a dynamic() (734→691 KB);
+(4ª) el pipeline de dictado carga al DICTAR (691→686 KB), verificado con
+micrófono sintético; (5ª) **el excedente restante quedó NOMBRADO con
+marcadores de runtime y declarado ESTRUCTURAL del monolito** — la hipótesis
+«103 KB de maquinaria de grabación eager» quedó REFUTADA (el hook real pesa
+19 KB; los 103 KB son medical-vocabulary + medical-dictionary, el corpus que
+las validaciones de seguridad EN RENDER —alergia×medicamento, PROA—
+necesitan y que no se difiere sin arriesgar el CUÁNDO de un aviso clínico).
+Serie de long tasks móviles de /consulta: 591→867 con los cortes pagados; lo
+restante es la hidratación del monolito de 6147 líneas (deuda dimensionada
+del refactor del monolito / V15-NOTE-PLAN-CONTINUITY, no de PERF). Acta:
+`docs/design/capturas/v15-perf/atribucion-consulta-final.json` + guardián
+`v15-perf-atribucion-marcadores-runtime.test.ts` (9 casos, probado al revés
+×3). Ver sección al FINAL.
+
+La 4ª rebanada había sido (13-ago-2026): el veredicto de varianza que
 pidió la 3ª — dos muestras más del baseline vivo (951 y 964 ms de long tasks
 móviles en /consulta; serie completa 591/766/940/964/951 — SOSTENIDAS sobre
 el umbral de 500) — y el corte pactado para ese caso: **la maquinaria de
@@ -6133,3 +6161,116 @@ pipeline de dictado diferidos; serie de long tasks 591→867 con el corte
 descrito y el resto anotado como deuda dimensionada de
 `V15-NOTE-PLAN-CONTINUITY`/refactor del monolito). DEBT-008 sigue
 CONSULTADO al dueño (cierre de A11Y-001).
+
+## `V15-PERF-001` — 5ª rebanada: el excedente NOMBRADO, la hipótesis refutada, y el cierre con números (13-ago-2026)
+
+La tarea exacta de la 4ª, pagada en su orden: (a) nombrar qué vive dentro
+del chunk de página (219 KB) y del de «la maquinaria de grabación eager»
+(103 KB); (b) decidir el cierre con esos nombres.
+
+### (a) Marcadores de RUNTIME — el fingerprinting que sobrevive a la minificación
+
+Los marcadores de path ("[project]/…") no sobreviven en esos dos chunks.
+Lo que sí sobrevive son los LITERALES de cadena. La atribución ganó una
+segunda pasada (`scripts/design/lib/marcadores-runtime.mjs`, importada por
+`atribuir-js-consulta-v15.mjs`): cada candidato (62: la página + todos sus
+imports de runtime) se fingerprintea con sus 12 literales más distintivos
+leídos de su PROPIA fuente al correr, y un chunk lo acusa con ≥2 golpes
+(≥1 si el candidato sólo tiene 1-2). Dos hoyos tapados con lección medida:
+
+- **los comentarios no fingerprintean** — el top-12 de medical-vocabulary
+  eran ejemplos de JSDoc que no viajan al build y el módulo salía «ausente»
+  estando presente; los comentarios se quitan ANTES de extraer;
+- **los pseudo-literales de JSX fuera** — fragmentos entre dos comillas con
+  {}, =>, fontSize… jamás sobreviven y sólo queman presupuesto; y lo
+  no-ASCII se busca crudo Y en su forma \uXXXX.
+
+Caveat documentado en el módulo: Turbopack sacude exports no usados — un
+MISS de marcador nombra lo que NO viaja, no exonera al módulo (los prompts
+de sesgo de medical-vocabulary viajan con el pipeline diferido, no en el
+chunk eager; la presencia del módulo se confirmó con 3 literales del corpus
+grepeados en las dos direcciones).
+
+### El excedente de /consulta, chunk por chunk (590 KB de cuerpo, TODO nombrado)
+
+- **219 KB** — la PÁGINA misma (12/12) + sus compañeros siempre-necesarios:
+  proa, nom004, HistorialVersiones, CierreAlPulgar, CorreccionesPanel,
+  herramientas-por-especialidad, templates, duracion-cumplida,
+  AntesDeFirmar, experienciador, reconciliación, useComandoVoz,
+  usePorcupineComando, EmpezarAGrabar, MientrasHablas…
+- **140 KB** — pediatria + calculadoras + integrity (12/12 cada uno) +
+  CambiosCifrasPanel + Cie10Autocomplete + politica-critica +
+  especialidad-del-medico + tareas-clinicas.
+- **103 KB** — medical-dictionary (10/12) + medical-vocabulary
+  (subconjunto vivo: catálogos, corrector conservador, expansiones de
+  siglas — confirmado por grep bidireccional de su corpus). Es el cerebro
+  de las validaciones EN RENDER: alergia×medicamento y PROA.
+- **56 KB** — copiloto + razonamiento (12/12 cada uno) + Copiloto +
+  PanelRazonamiento — estáticos A PROPÓSITO desde la 3ª rebanada.
+- **32 KB** — cardiometabólico (masld/obesidad/dislipidemia — texto de guía
+  confirmado por grep) + dosis.
+- **19 KB** — farmacovigilancia (12/12) + alergias. **19 KB** —
+  useGrabacionAudio (10/12). **3 KB** — misceláneo.
+
+### (b) La hipótesis REFUTADA, y la decisión
+
+La 4ª rebanada dejó escrito «103 KB del resto de la maquinaria de grabación
+eager». **Falso**: el hook de grabación entero pesa 19 KB — el pipeline ya
+se difirió y lo que queda es el cascarón. Los 103 KB son el DICCIONARIO.
+Sin este nombramiento, la siguiente rebanada habría recortado el módulo
+equivocado.
+
+Con los nombres en la mano, el corte que queda no existe como rebanada PERF:
+
+- el diccionario alimenta validaciones de seguridad que corren AL RENDER
+  (alergia×medicamento, PROA, interacciones) — diferirlo cambia el CUÁNDO
+  de un aviso clínico y un fallo de red lo dejaría sin correr (la regla es
+  diferir el cuándo, JAMÁS el si — y aquí el cuándo ES clínico);
+- pediatria/calculadoras/integrity corren al render (vacunas atrasadas,
+  calculadoras sugeridas, huella de revisión);
+- el copiloto es estático por decisión sellada de la 3ª.
+
+**PERF-001 queda CERRADA** con la opción (c) del plan de la 4ª: opt-in
+fuera de la cadena clínica (LCP = identidad del paciente en toda la
+cadena), 6 paneles + pipeline de dictado diferidos (734→686 KB), arnés de
+atribución permanente con dos pasadas (path + runtime), y el excedente
+restante declarado ESTRUCTURAL del monolito de 6147 líneas — su partición
+es deuda dimensionada del refactor del monolito (V15-NOTE-PLAN-CONTINUITY
+o iteración propia), no una rebanada de PERF.
+
+### Guardián, probado al revés ×3
+
+`v15-perf-atribucion-marcadores-runtime.test.ts` (9 casos): comentarios no
+fingerprintean, pseudo-literales fuera, variante \uXXXX encontrada, umbral
+de 2 golpes, marcador compartido no acusa a nadie, candidato ilegible no
+tumba la tabla, y el acta congelada certifica la refutación (diccionario en
+chunk >80 KB, grabación en chunk <40 KB, la página nombrada en el mayor).
+**Probado al revés tres veces**: sin quitar comentarios FALLA, sin variante
+escapada FALLA, con umbral 1 FALLA (verificado con sabotajes temporales).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: ver cifra final del reporte de la corrida (guardián
+  nuevo 9/9; suite completa lanzada tras las compuertas dirigidas).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compiló limpio ESTA corrida (mismo árbol de src/ — los
+  cambios de la rebanada viven en scripts/, tests y docs).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (7 variables +
+  emuladores).
+
+**Siguiente tarea exacta:** `V15-ORIGINALITY-REDTEAM-001` (§43 orden 16,
+§41) — equipo rojo de originalidad INDEPENDIENTE sobre las superficies V15
+estructuradas: shell (franja + FlowRail), Hoy, Patient Workspace, Encounter
+Mode, Resultados/Cierre, Pendientes, más móvil. Busca: genérico-SaaS,
+almacén-sidebar, tarjetas-por-defecto, shadcn-demo, IA-template, imitación
+de competidor (Abridge/Suki/Nabla/Huli — principios sí, trade dress no), IA
+feature-first, motion inútil, novedad sin usabilidad, diferenciación
+sólo-color. Cada hallazgo válido → defecto rastreado con severidad; el
+GENERIC_AI_LOOK_SCORE por pantalla se documenta con razones ESTRUCTURALES
+(§29). Método sugerido: capturas reales (los arneses ya existen) + panel de
+agentes con roles de §26 + veredicto consolidado en
+`docs/design/` y defectos en el estado V15. DEBT-008 sigue CONSULTADO al
+dueño (cierre de A11Y-001).

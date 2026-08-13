@@ -29,6 +29,7 @@
 import { chromium } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { tablaDeMarcadores, acusarPorRuntime } from './lib/marcadores-runtime.mjs'
 
 const BASE = process.env.CAPTURA_BASE_URL || 'http://localhost:3000'
 const DESTINO = process.argv[2] || 'docs/design/capturas/v15-perf'
@@ -92,6 +93,112 @@ function acusarModulos(texto) {
   return pesos
 }
 
+/**
+ * ── Marcadores de RUNTIME (5ª rebanada) ──
+ *
+ * Los marcadores de path ("[project]/…") NO sobreviven en los chunks más
+ * minificados: el chunk de página (~219 KB) y el de la maquinaria de
+ * grabación (~103 KB) salen de `acusarModulos` casi sin nombres. Lo que SÍ
+ * sobrevive a la minificación son los LITERALES de cadena — la lección del
+ * verificador del dictado diferido («dicen cosas opuestas del paciente» se
+ * encuentra en el chunk construido tal cual).
+ *
+ * Cada candidato se fingerprintea con sus literales más distintivos, leídos
+ * de su PROPIA fuente al momento de correr — no hay tabla a mano que se
+ * pudra cuando alguien reescriba un texto. Un candidato está PRESENTE en un
+ * chunk si ≥2 de sus marcadores aparecen (≥1 si sólo tiene 1-2 marcadores):
+ * un literal suelto puede ser coincidencia; dos del mismo archivo, no.
+ */
+const CANDIDATOS = [
+  // la página misma y su UI local
+  'src/app/(dashboard)/consulta/[patientId]/page.tsx',
+  'src/app/(dashboard)/consulta/[patientId]/consulta-ui.tsx',
+  // maquinaria de grabación eager (el pipeline ya va diferido)
+  'src/hooks/useGrabacionAudio.ts',
+  'src/hooks/useGrabacionVoz.ts',
+  'src/hooks/useComandoVoz.ts',
+  'src/hooks/usePorcupineComando.ts',
+  'src/lib/expediente/confianza-audio.ts',
+  'src/lib/asr/eco-de-cabecera.ts',
+  'src/lib/asr/cambios-visibles.ts',
+  'src/components/MientrasHablas.tsx',
+  'src/components/EmpezarAGrabar.tsx',
+  'src/components/AlertasDictado.tsx',
+  // siempre-montados a propósito (3ª rebanada)
+  'src/components/Copiloto.tsx',
+  'src/components/AntesDeFirmar.tsx',
+  'src/components/HojaParaElPaciente.tsx',
+  'src/components/HistorialVersiones.tsx',
+  // sospechosos del chunk de página
+  'src/components/PanelRazonamiento.tsx',
+  'src/lib/expediente/razonamiento.ts',
+  'src/lib/expediente/copiloto.ts',
+  'src/lib/expediente/medical-vocabulary.ts',
+  'src/lib/expediente/medical-dictionary.ts',
+  'src/lib/expediente/farmacovigilancia.ts',
+  'src/lib/expediente/proa.ts',
+  'src/lib/expediente/nom004.ts',
+  'src/lib/expediente/pediatria.ts',
+  'src/lib/expediente/calculadoras.ts',
+  'src/lib/expediente/avisos-consulta.ts',
+  'src/lib/expediente/temporalidad.ts',
+  'src/lib/expediente/procedencia.ts',
+  'src/lib/seguridad/dosis.ts',
+  'src/lib/seguridad/dosis-de-la-lista.ts',
+  'src/components/Herramientas.tsx',
+  'src/components/Cie10Autocomplete.tsx',
+  'src/components/PlanPorProblema.tsx',
+  'src/components/DeDondeSalioEsto.tsx',
+  'src/components/SelloProcedencia.tsx',
+  // el resto de los imports de runtime de la página — para que ningún
+  // chunk del excedente quede a medio nombrar (5ª rebanada)
+  'src/lib/expediente/sugerencias-ia.ts',
+  'src/lib/expediente/templates.ts',
+  'src/lib/expediente/cuadro-completo.ts',
+  'src/lib/expediente/ordenes-medicamento.ts',
+  'src/lib/expediente/problemas-activos.ts',
+  'src/lib/expediente/duracion-cumplida.ts',
+  'src/lib/expediente/lo-que-se-reviso.ts',
+  'src/lib/expediente/cuando-avisar.ts',
+  'src/lib/expediente/que-falta-para-cerrar.ts',
+  'src/lib/expediente/cierre-hechos.ts',
+  'src/lib/expediente/la-reescritura-no-pierde-cifras.ts',
+  'src/lib/expediente/integrity.ts',
+  'src/lib/expediente/negaciones.ts',
+  'src/lib/expediente/experienciador.ts',
+  'src/lib/expediente/certeza.ts',
+  'src/lib/expediente/trazabilidad.ts',
+  'src/lib/expediente/via-asumida.ts',
+  'src/lib/expediente/via-parenteral.ts',
+  'src/lib/expediente/labs-desde-texto.ts',
+  'src/lib/expediente/fusionar-diagnosticos.ts',
+  'src/lib/expediente/que-va-en-la-receta.ts',
+  'src/lib/expediente/audit-log.ts',
+  'src/lib/learning.ts',
+  'src/lib/planes-ia.ts',
+  'src/lib/herramientas-por-especialidad.ts',
+  'src/lib/asr/especialidad-del-medico.ts',
+  'src/lib/asr/aprendizaje.ts',
+  'src/lib/asr/aprendizaje-firestore.ts',
+  'src/lib/asr/un-solo-hablante.ts',
+  'src/lib/asr/politica-critica.ts',
+  'src/lib/seguridad/alergias.ts',
+  'src/lib/seguridad/dosis-desconocida.ts',
+  'src/lib/seguridad/ofuscar-local.ts',
+  'src/lib/seguridad/estoy-grabando.ts',
+  'src/lib/finanzas/precio-consulta.ts',
+  'src/lib/tareas-clinicas/derivar.ts',
+  'src/lib/tareas-clinicas/reconciliacion.ts',
+  'src/lib/tareas-clinicas/firestore.ts',
+  'src/lib/mobile/local-drafts.ts',
+  'src/components/QueNotaEs.tsx',
+  'src/components/CambiosCifrasPanel.tsx',
+  'src/components/CorreccionesPanel.tsx',
+  'src/components/SelloMotor.tsx',
+  'src/components/ComoCerrarLaConsulta.tsx',
+  'src/components/CierreAlPulgar.tsx',
+]
+
 const navegador = await chromium.launch(
   fs.existsSync('/opt/pw-browsers/chromium')
     ? { executablePath: '/opt/pw-browsers/chromium' }
@@ -119,8 +226,10 @@ const soloConsulta = [...consulta.entries()].filter(([url]) => !expediente.has(u
 const excedente = soloConsulta.reduce((a, [, b]) => a + b, 0)
 console.log(`\nexcedente (sólo-consulta): ${soloConsulta.length} chunks, ${kb(excedente)} KB\n`)
 
-// Descargar cada chunk del excedente y acusar módulos.
+// Descargar cada chunk del excedente y acusar módulos — por path Y por runtime.
+const tabla = tablaDeMarcadores(CANDIDATOS)
 const acusados = new Map()
+const runtimePorChunk = []
 for (const [url, bytes] of soloConsulta.sort((a, b) => b[1] - a[1])) {
   const resp = await page.request.get(url)
   const texto = await resp.text()
@@ -129,6 +238,15 @@ for (const [url, bytes] of soloConsulta.sort((a, b) => b[1] - a[1])) {
   console.log(`── ${kb(bytes)} KB  ${url.split('/').pop().slice(0, 60)}`)
   for (const [ruta, peso] of top) console.log(`     ${String(kb(peso)).padStart(5)} KB  ${ruta}`)
   for (const [ruta, peso] of pesos) acusados.set(ruta, (acusados.get(ruta) || 0) + peso)
+  const presentes = acusarPorRuntime(texto, tabla)
+  if (presentes.length > 0) {
+    console.log('     · runtime:')
+    for (const p of presentes) console.log(`       ${p.golpes}/${p.de}  ${p.modulo}`)
+  }
+  runtimePorChunk.push({
+    url: url.split('/').pop(), kb: kb(bytes),
+    modulos: presentes.map(p => ({ modulo: p.modulo, golpes: p.golpes, de: p.de })),
+  })
 }
 
 console.log('\n══ ACUSADOS DEL EXCEDENTE (agregado, top 30) ══')
@@ -145,6 +263,7 @@ fs.writeFileSync(
     excedenteKB: kb(excedente),
     chunksSoloConsulta: soloConsulta.map(([url, b]) => ({ url: url.split('/').pop(), kb: kb(b) })),
     acusados: ranking.map(([ruta, b]) => ({ ruta, kb: kb(b) })),
+    runtimePorChunk,
   }, null, 2),
 )
 console.log(`\nEscrito ${path.join(DESTINO, 'atribucion-consulta.json')}`)
