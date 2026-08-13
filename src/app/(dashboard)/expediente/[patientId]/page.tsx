@@ -269,7 +269,7 @@ export default function ExpedientePage() {
             <Upload size={15} /> FHIR
           </button>
           <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
-            <Mic size={16} /> Nueva consulta con IA
+            <Mic size={16} /> Nueva consulta
           </button>
         </div>
       </div>

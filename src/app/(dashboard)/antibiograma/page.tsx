@@ -454,12 +454,14 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
 
       {res && <Resultado res={res} />}
 
-      {/* Razonamiento con IA sobre el motor (infectólogo IA — Claude + GPT) */}
+      {/* Razonamiento del modelo SOBRE el motor determinista; la atribución
+          de qué modelo razonó vive en el panel de resultados, no en el botón
+          (§25: la acción es un verbo, la procedencia va con el contenido). */}
       {res && (res.fenotipos.length > 0 || res.categoriasCMI.length > 0 || organismo.trim()) && (
         <div style={{ marginTop: 18 }}>
           <button type="button" onClick={razonarIA} disabled={razonando}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: razonando ? 'wait' : 'pointer', opacity: razonando ? 0.7 : 1 }}>
-            {razonando ? <><Loader2 size={16} className="spin" /> Razonando el caso…</> : <><Brain size={16} /> Razonar con IA (infectólogo — Claude + GPT)</>}
+            {razonando ? <><Loader2 size={16} className="spin" /> Interpretando el cultivo…</> : <><Brain size={16} /> Interpretar el cultivo</>}
           </button>
           {errorRaz && <div style={{ ...box, marginTop: 8, borderColor: 'color-mix(in srgb, var(--red) 40%, transparent)', background: 'color-mix(in srgb, var(--red) 8%, transparent)', color: 'var(--red)' }}>{errorRaz}</div>}
           {razonamiento && (

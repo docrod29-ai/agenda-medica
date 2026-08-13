@@ -72,10 +72,11 @@ describe('V10-DEBT-006 · el CTA primario del expediente va primero en móvil', 
     expect(src).toMatch(/\.exp-actions > button:first-child\s*\{[^}]*grid-column: 1 \/ -1/)
   })
 
-  it('el último hijo del DOM sigue siendo «Nueva consulta con IA» (si esto falla, la regla last-child apunta a otro botón)', () => {
+  it('el último hijo del DOM sigue siendo «Nueva consulta» (si esto falla, la regla last-child apunta a otro botón)', () => {
     const src = pagina()
     // Dentro del div exp-actions, el botón con primaryBtn es el último antes
-    // del cierre de la fila, y es el de Nueva consulta con IA.
-    expect(src).toMatch(/primaryBtn\}>\s*<Mic size=\{16\} \/> Nueva consulta con IA\s*<\/button>\s*<\/div>/)
+    // del cierre de la fila, y es el de Nueva consulta. (El sufijo «con IA»
+    // murió con el equipo rojo V15: §25 — la IA se experimenta, no se rotula.)
+    expect(src).toMatch(/primaryBtn\}>\s*<Mic size=\{16\} \/> Nueva consulta\s*<\/button>\s*<\/div>/)
   })
 })

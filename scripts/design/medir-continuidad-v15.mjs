@@ -188,12 +188,12 @@ async function main() {
   caso('el destino lleva .nx-vt-paciente (el objeto ATERRIZA)', h1Destino === 1, `nodos=${h1Destino}`)
   await page.screenshot({ path: path.join(DESTINO, 'despues-salto-1440.png') })
 
-  // Paciente → Encuentro: desde el expediente, «Nueva consulta con IA».
+  // Paciente → Encuentro: desde el expediente, «Nueva consulta».
   await page.goto(`${BASE}/expediente/${PACIENTE_SEMBRADO}`, { waitUntil: 'load' })
   await page.waitForSelector('h1.nx-vt-paciente', { timeout: 15000 })
   await instrumentar(page)
   await page.screenshot({ path: path.join(DESTINO, 'antes-expediente-1440.png') })
-  await page.locator('button:has-text("Nueva consulta con IA")').click()
+  await page.locator('button:has-text("Nueva consulta")').click()
   await page.waitForURL('**/consulta/**', { timeout: 15000 })
   vt = await leerVt(page)
   caso('Paciente→Encuentro invoca la view transition (el ancla es el origen)', vt.llamadas === 1, `llamadas=${vt.llamadas}`)

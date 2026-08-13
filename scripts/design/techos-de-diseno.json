@@ -4,7 +4,7 @@
     "respaldosDeToken": 0,
     "hexEnLinea": 493,
     "tamanosFueraDeEscala": 1970,
-    "radiosFueraDeEscala": 628,
+    "radiosFueraDeEscala": 627,
     "sombrasEnLinea": 22
   },
   "peores": [
@@ -76,9 +76,9 @@
       "respaldos": 0,
       "hex": 9,
       "tam": 36,
-      "rad": 17,
+      "rad": 16,
       "sombras": 1,
-      "total": 63
+      "total": 62
     },
     {
       "archivo": "src/app/(dashboard)/antibiograma/page.tsx",

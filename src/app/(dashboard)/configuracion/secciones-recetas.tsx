@@ -414,8 +414,9 @@ export function RecetasTab({ clinicId }: { clinicId: string | null }) {
 
         {/* MODO TU PROPIO DISEÑO — primera sección, destacada */}
         <div style={{
-          background: 'linear-gradient(135deg, var(--nexus-soft), rgba(124,58,237,0.10))',
-          border: '1px solid rgba(20,184,166,0.4)', borderRadius: 12, padding: 16,
+          background: 'var(--nexus-soft)',
+          border: '1px solid color-mix(in srgb, var(--nexus) 40%, transparent)',
+          borderRadius: 10, padding: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
             <div>

@@ -4313,7 +4313,7 @@ export default function ConsultaActivaPage() {
               </div>
               {/* Respaldo manual: normalmente NO hace falta (se procesa solo al detener). */}
               {procesando
-                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</span>
+                ? <span style={{ ...S.iaBtn(true), pointerEvents: 'none' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</span>
                 : (!voz.grabando && voz.transcripcion.trim()
                     ? <button onClick={() => procesarIA()} style={S.iaBtn(false)}><Sparkles size={16} /> Procesar de nuevo</button>
                     : null)}
@@ -4654,7 +4654,7 @@ export default function ConsultaActivaPage() {
                 )}
               </div>
               <button onClick={() => procesarIA()} disabled={procesando || tareaProc?.ejecutando || !voz.transcripcion.trim()} style={S.iaBtn(procesando || tareaProc?.ejecutando || !voz.transcripcion.trim())}>
-                {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Claude estructurando…</> : <><Sparkles size={16} /> Procesar con IA</>}
+                {(procesando || tareaProc?.ejecutando) ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Estructurando la nota…</> : <><Sparkles size={16} /> Procesar con IA</>}
               </button>
             </div>
             )

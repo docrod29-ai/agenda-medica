@@ -4,15 +4,27 @@
 
 ## Iteración en curso
 
-`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **POR EMPEZAR**. La
-siguiente corrida la abre: equipo rojo de originalidad independiente sobre
-las superficies V15 ya estructuradas (shell, Hoy, Patient Workspace,
-Encounter, Cierre, Pendientes) buscando genérico-SaaS, almacén-sidebar,
-tarjetas-por-defecto, apariencia shadcn-demo, IA-template, imitación de
-competidor, IA feature-first, motion inútil y diferenciación sólo-color
-(§41); cada hallazgo válido se convierte en defecto rastreado. El
-GENERIC_AI_LOOK_SCORE se documenta con razones ESTRUCTURALES (§29), no de
-paleta.
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO, panel
+CERRADO 13-ago-2026**. El equipo rojo YA CORRIÓ: 4 revisores independientes
+(genérico-SaaS · jerarquía/silueta/logo-off · imitación/IA-first/motion ·
+móvil) sobre las 27 capturas reales + código, con cada afirmación verificada
+por el orquestador. Veredicto consolidado y registro de 22 defectos
+(RT-01…RT-22) en `docs/design/V15_ORIGINALITY_REDTEAM_VEREDICTO.md`.
+Resumen: imitación de competidor REFUTADA, motion decorativo REFUTADO en lo
+principal, prueba del menú §14 PASS, diferenciación entre superficies en
+gris PASS — pero **ningún score §29 cumple ≤1** (consolidados: hoy 5,
+pacientes 7, expediente 6, consulta 4, pendientes 3, operaciones 7) y la
+vara de medir estaba rota (RT-01: el audit doc contaba clases Tailwind en
+código 88.5% inline — sus ceros eran artefactos; re-medido: 14 gradientes,
+56 sombras, 15 backdrop-filter). Primera tanda PAGADA en esta corrida:
+RT-03 (héroe móvil de Hoy con breakpoint, verificado en navegador), RT-05
+parcial (4 etiquetas de IA-feature muertas: «Nueva consulta con IA»,
+«Razonar con IA (infectólogo — Claude + GPT)», «Claude estructurando…» ×2),
+el degradado morado literal de RT-01 y un radio 12 de RT-19.
+**Siguiente rebanada exacta:** RT-08 — la ventana de clic ciego de
+`continuidad.ts` (riesgo de PACIENTE EQUIVOCADO: prioridad de seguridad
+sobre el orden §43) — y después RT-01 (contadores de genericidad en el
+trinquete de diseño). Ver sección al FINAL.
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO
@@ -6274,3 +6286,85 @@ GENERIC_AI_LOOK_SCORE por pantalla se documenta con razones ESTRUCTURALES
 agentes con roles de §26 + veredicto consolidado en
 `docs/design/` y defectos en el estado V15. DEBT-008 sigue CONSULTADO al
 dueño (cierre de A11Y-001).
+
+## `V15-ORIGINALITY-REDTEAM-001` — el panel corrió, el veredicto existe, y la primera tanda está pagada (13-ago-2026)
+
+La tarea exacta que dejó la corrida anterior, ejecutada en su orden: equipo
+rojo INDEPENDIENTE sobre la evidencia ya capturada (27 PNGs reales), con
+panel §26 y lentes §41.
+
+### Método
+
+Cuatro revisores en paralelo, cada uno con una lente y prohibido aprobarse
+solo (§26): (1) rojo genérico-SaaS/shadcn/plantilla-admin; (2) panel de
+jerarquía — silueta §13, logo-off §28, menú §14, diferenciación en gris;
+(3) rojo de imitación de competidor + IA feature-first §25 + motion §20;
+(4) revisor móvil §22-§23. El orquestador re-verificó cada afirmación
+citada antes de escribirla (grep de conteos, relectura de archivos, mirada
+propia de capturas): dos afirmaciones se REBAJARON en la consolidación (el
+«en gris no queda jerarquía» del rojo se contradecía con la silueta medida
+del panel 2 — quedó como hallazgos puntuales RT-11/RT-12, no como P0; y
+«ningún guardián mide nada» se corrigió: el trinquete de diseño sí mide
+adherencia a tokens — lo que NO tiene guardián es la genericidad).
+
+### Lo que quedó escrito
+
+`docs/design/V15_ORIGINALITY_REDTEAM_VEREDICTO.md` — scores §29 por
+superficie con las dos opiniones y el desempate razonado, la columna de
+refutaciones (imitación NO, motion decorativo NO en lo principal, §14 PASS,
+diferenciación estructural PASS) y el registro RT-01…RT-22 con severidad,
+evidencia archivo:línea y pago exacto. Los tres hallazgos que más pesan:
+
+- **RT-08 (P1, seguridad)**: en `continuidad.ts`, durante
+  `await esperarCambioDeRuta()` (tope 1200ms) la pantalla pinta la
+  instantánea VIEJA y el clic aterriza en el DOM NUEVO → desde una worklist,
+  un clic a ciegas puede abrir el encuentro de OTRO paciente. Nadie lo
+  había mirado: el guardián de motion sólo verifica la regla CSS de los
+  pseudo-elementos.
+- **RT-01 (P0, método)**: los ceros del audit de estética genérica eran
+  artefactos (contaba `className` Tailwind en código inline); la
+  genericidad no tiene trinquete.
+- **RT-02 (P1)**: el primer viewport del expediente no contiene un solo
+  dato clínico (exportación + 3 KPI-cards, 2 vacías; la historia arranca
+  en el borde).
+
+### Primera tanda pagada (código, esta corrida)
+
+- **RT-03**: `.prox-hero` gana su `@media ≤560px` (wrap; CTA a renglón
+  completo) — la identidad del héroe recupera el ancho. Verificado en
+  navegador real a 390px con `capturar-heroe-movil-v15.mjs` (nuevo, mide
+  cajas renderizadas y FALLA si el héroe sigue partido):
+  `acta-heroe-movil.json` + `hoy-movil-heroe-despues.png`.
+- **RT-05 parcial (§25)**: «Nueva consulta con IA»→«Nueva consulta»
+  (expediente:272, con su guardián `expediente-cta-primero-movil.test.ts` y
+  el medidor de continuidad actualizados); «Razonar con IA (infectólogo —
+  Claude + GPT)»→«Interpretar el cultivo» (antibiograma:462 — la
+  atribución de modelo ya vive en el panel de resultados, donde debe);
+  «Claude estructurando…»→«Estructurando la nota…» (consulta ×2).
+- **RT-01 parcial**: el degradado morado literal de
+  `secciones-recetas.tsx:417` murió (violet 124,58,237 + teal-500 crudo →
+  `var(--nexus-soft)` + `color-mix` sobre `var(--nexus)`), y su radio 12
+  entra a escala (10) — un literal menos para RT-14 y RT-19 también.
+
+### Compuertas de esta corrida
+
+- `npx vitest run` (baseline pre-cambios): 9258 pasan, 1 falla —
+  `ops-timeout-y-punto-ciego.test.ts` «el error dice cuánto esperó»:
+  **artefacto del CONTENEDOR, no de la rama** — el proxy de agente de este
+  entorno contesta 403 en ~43ms al IP no ruteable 10.255.255.1 que el test
+  usa como agujero negro, así que la carrera de 30ms a veces la gana la
+  respuesta. Verificado con curl cronometrado. En CI (sin ese proxy) el
+  agujero negro cuelga y el test pasa. No se toca el test ni el helper.
+- Compuerta dirigida y suite completa tras los cambios: ver cifras del
+  reporte de la corrida.
+- `lint-trinquete` / `trinquete-de-diseno` / `build`: ver reporte.
+
+**Siguiente tarea exacta:** RT-08 — candado de la ventana de clic ciego
+(`inert` o `pointer-events:none` sobre `<main>` durante el callback de
+`startViewTransition`, tope de espera ~400ms, guardián probado al revés
+×2: sin candado FALLA, con tope viejo FALLA). Después RT-01: contadores de
+genericidad (gradientes / backdrop-filter / halos `rgba` de color / FABs)
+en `trinquete-de-diseno.mjs` con techo sellado sólo-baja, y corregir las
+cifras rotas del audit doc. El registro completo con severidades vive en
+el veredicto; RT-02 (expediente) es la rebanada estructural grande que
+sigue a esas dos.

@@ -43,7 +43,7 @@
 | `/reservar/[clinicId]` | paciente | ✅ | 371 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 103 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 97 | 0 | — | ✅ | — |
-| `/antibiograma` | medico | ✅ | 899 | 0 | — | ✅ | — |
+| `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 646 | 0 | — | ✅ | — |
 | `/calendario` | medico | ✅ | 436 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 356 | 0 | — | ✅ | — |
