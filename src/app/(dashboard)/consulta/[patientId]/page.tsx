@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type ComponentProps } from 'react'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
@@ -43,9 +43,6 @@ import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperator
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
 import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
-import { PreopAssessment } from '@/components/PreopAssessment'
-import ValoracionInmuno from '@/components/pacientes/ValoracionInmuno'
-import { RevisionPanel } from '@/components/RevisionPanel'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
@@ -131,7 +128,7 @@ function textoDeLaNota(
 function alergiasArray(p?: { alergias?: string; alergiasEstructuradas?: AlergiaEstructurada[] }): string[] {
   return alergiasDe(p ?? {}).map(a => a.alergeno)
 }
-import { NerPanel, type NegacionCorregida, type AvisoTemporal } from '@/components/NerPanel'
+import type { NegacionCorregida, AvisoTemporal } from '@/components/NerPanel'
 import { CambiosCifrasPanel } from '@/components/CambiosCifrasPanel'
 import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
@@ -151,7 +148,6 @@ import { cargarPreferencias, registrarAceptacion, type Preferencias } from '@/li
 import { Herramientas } from '@/components/Herramientas'
 import { QueNotaEs } from '@/components/QueNotaEs'
 import { MientrasHablas } from '@/components/MientrasHablas'
-import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
@@ -166,7 +162,6 @@ import { tiposVisibles } from '@/lib/expediente/tipos-visibles'
 import type { TipoNota, NotaMedica, NotaSeccion, Diagnostico, Medicamento, SignosVitales } from '@/types/expediente'
 import type { Patient } from '@/types'
 import { Cie10Autocomplete } from '@/components/Cie10Autocomplete'
-import { CobrarModal } from '@/components/CobrarModal'
 import { precioSugerido } from '@/lib/finanzas/precio-consulta'
 import { PanelRazonamiento } from '@/components/PanelRazonamiento'
 import { tareasDeNota, tareasDeReconciliacion } from '@/lib/tareas-clinicas/derivar'
@@ -233,6 +228,29 @@ const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').the
 const AntibiogramaTool = dynamic(() => import('@/app/(dashboard)/antibiograma/page').then(m => m.AntibiogramaTool), { ssr: false })
 const CalculadorasClinicas = dynamic(() => import('@/components/CalculadorasClinicas').then(m => m.CalculadorasClinicas), { ssr: false })
 const FotosClinicas = dynamic(() => import('@/components/FotosClinicas').then(m => m.FotosClinicas), { ssr: false })
+/**
+ * ── V15-PERF-001, 3ª rebanada: el resto de los paneles CONDICIONALES ─────────
+ *
+ * El baseline midió /consulta en 734 KB de JS transferido contra ~490 KB de sus
+ * hermanas de la cadena clínica, con las long tasks móviles más altas (591–766
+ * ms). La atribución en navegador (atribuir-js-consulta-v15.mjs — el bundle
+ * analyzer de webpack no corre bajo Turbopack) mostró que el excedente son los
+ * chunks exclusivos de la ruta: código compilado de paneles que en una consulta
+ * típica NUNCA se montan.
+ *
+ * Sólo se difieren los que tienen una condición real de montaje — un tipo de
+ * nota concreto, un modal abierto, una herramienta desplegada o un resultado de
+ * IA que aún no existe al cargar. Los paneles que se montan en toda consulta
+ * (Copiloto, AntesDeFirmar, HojaParaElPaciente, HistorialVersiones) se quedan
+ * estáticos a propósito: diferirlos no ahorra transferencia — la mueve unos
+ * milisegundos después y añade una petición en cascada.
+ */
+const PreopAssessment = dynamic(() => import('@/components/PreopAssessment').then(m => m.PreopAssessment), { ssr: false })
+const ValoracionInmuno = dynamic(() => import('@/components/pacientes/ValoracionInmuno'), { ssr: false })
+const CobrarModal = dynamic(() => import('@/components/CobrarModal').then(m => m.CobrarModal), { ssr: false })
+const PanelLaboratorios = dynamic(() => import('@/components/laboratorio/PanelLaboratorios').then(m => m.PanelLaboratorios), { ssr: false })
+const RevisionPanel = dynamic(() => import('@/components/RevisionPanel').then(m => m.RevisionPanel), { ssr: false })
+const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPanel), { ssr: false })
 
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
@@ -5192,8 +5210,8 @@ export default function ConsultaActivaPage() {
             {(extraction || safety) && !firmada && (
               <RevisionPanel
                 sinMarco
-                extraction={extraction as Parameters<typeof RevisionPanel>[0]['extraction']}
-                safety={safety as Parameters<typeof RevisionPanel>[0]['safety']}
+                extraction={extraction as ComponentProps<typeof RevisionPanel>['extraction']}
+                safety={safety as ComponentProps<typeof RevisionPanel>['safety']}
                 aprobados={aprobados}
                 onAprobar={id => setAprobados(prev => new Set(prev).add(id))}
                 /**

@@ -5906,3 +5906,97 @@ re-medir con `medir-perf-v15.mjs` y comparar contra el baseline vivo.
 Curiosidad anotada, no bloqueante: movil/pacientes reporta a veces el LCP
 con elemento null (entrada sin element — nodo removido). DEBT-008 sigue
 CONSULTADO al dueño (cierre de A11Y-001).
+
+## `V15-PERF-001` — 3ª rebanada: /consulta deja de pagar los paneles que no abre (13-ago-2026)
+
+La tarea exacta de la 2ª rebanada, pagada con una lección de método antes de
+empezar: **`ANALYZE=true npm run build` está muerto en este repositorio** —
+@next/bundle-analyzer es un plugin de webpack y Next 16 compila con
+Turbopack, que lo ignora EN SILENCIO (build verde, cero reporte, nada en
+.next/analyze). La atribución honesta se hizo donde importa: en el navegador,
+con `scripts/design/atribuir-js-consulta-v15.mjs` (nuevo) — se registran los
+chunks que cada ruta de verdad transfiere y el excedente ES el diff de
+/consulta contra /expediente.
+
+### Lo que acusó la atribución (ANTES, congelado en `atribucion-consulta-antes.json`)
+
+- 7 chunks exclusivos de /consulta, **746 KB de cuerpo** (734 KB de
+  transferSize del baseline; hermanas 484–527).
+- Dentro: código compilado de paneles con condición real de montaje que una
+  consulta típica NUNCA monta — la valoración inmuno con todo
+  `src/lib/inmuno` (~108 KB de fuente), las escalas preoperatorias, el modal
+  de cobro, el panel de laboratorios plegado, y revisión/NER que sólo existen
+  DESPUÉS de que la IA procesó un dictado. El archivo ya tenía el patrón
+  (PanelPediatria y 7 más van con dynamic() desde antes): seis se quedaron
+  fuera cuando se cablearon.
+
+### El arreglo — seis paneles condicionales a `dynamic()`, y CUÁLES NO
+
+`PreopAssessment` (sólo `esPreoperatoria`), `ValoracionInmuno` (sólo
+`esInmuno`), `CobrarModal` (sólo con el modal abierto), `PanelLaboratorios`
+(sólo con la herramienta desplegada — `Herramientas` monta `contenido` al
+abrir), `RevisionPanel` y `NerPanel` (sólo tras extracción/NER). Los dos
+casts `Parameters<typeof RevisionPanel>[0]` pasaron a
+`ComponentProps<typeof RevisionPanel>` (Parameters no acepta ComponentType).
+
+**La decisión escrita en el código**: los siempre-montados (Copiloto,
+AntesDeFirmar, HojaParaElPaciente, HistorialVersiones) se quedan ESTÁTICOS a
+propósito — diferirlos no ahorra transferencia, la mueve unos milisegundos
+después y añade una petición en cascada.
+
+### Guardián, probado al revés
+
+`v15-perf-consulta-no-paga-paneles-que-no-abre.test.ts` (4 casos): los seis
+con dynamic()+ssr:false, ningún import estático residual (de NerPanel sólo
+tipos), los siempre-montados estáticos CON la razón escrita, y el ANTES
+congelado e inmutable. **Contra el árbol previo fallan los casos 1–3**
+(verificado con git stash). Lección pagada en la corrida: el archivo vivo
+(`atribucion-consulta.json`) lo sobrescribe cada re-corrida — el ANTES vive
+en `-antes.json`, reconstruido de la consola de la primera corrida.
+
+### Verificado en navegador real (13-ago-2026)
+
+- `medir-perf-v15.mjs` (baseline vivo re-medido): /consulta **734 → 691 KB**
+  transferidos (−43 KB; el cuerpo del excedente exclusivo bajó 746 → 605 KB).
+  El LCP de la cadena clínica sigue siendo la IDENTIDAD del paciente
+  (escritorio 964 ms, móvil 2040 en esta muestra); Hoy conserva su tarjeta a
+  propósito.
+- `atribuir-js-consulta-v15.mjs` DESPUÉS: el chunk mayor bajó 324 → 219 KB.
+- `verificar-paneles-diferidos-v15.mjs` (nuevo, equivalencia funcional §42 —
+  «el dato tiene que LLEGAR» en versión UI): **PASA** — carga inicial con 0
+  errores de consola, y al abrir «Laboratorios» el panel LLEGA (expandido,
+  con contenido) con **+1 chunk pedido al abrir**, no al cargar.
+- Long tasks móviles: 940 ms en esta muestra (baseline 591–766) — la
+  varianza entre corridas es alta y UNA muestra no decide; queda anotado
+  para la 4ª rebanada.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9246/9248** — el fallo real es el PRE-EXISTENTE
+  ambiental (`ops-timeout-y-punto-ciego`, proxy del contenedor); el segundo
+  (`el-inventario-de-pantallas-no-miente`) fue una carrera con la
+  regeneración del inventario a mitad de suite y re-verificó **5/5 en
+  verde**. Guardián nuevo 4/4.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/consulta cambió de líneas).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores). Lección operativa REPETIDA y pagada: `pkill -f next-server`
+  desde la línea de comandos del propio arnés SE MATA A SÍ MISMO (el patrón
+  matchea la propia línea de comando; exit 144) — el patrón inmune es
+  `pkill -f 'next-serve[r]'`.
+
+**Siguiente tarea exacta:** `V15-PERF-001`, cuarta rebanada — **decidir el
+cierre de PERF-001 con números, no con una muestra**: (a) re-medir el
+baseline vivo 2 veces más para juzgar la varianza de las long tasks móviles
+de /consulta (591–940 ms entre muestras); (b) si sostienen >500 ms, el
+sospechoso es la hidratación del monolito (page.tsx de 6146 líneas — los
+~200 KB de excedente restante que ya no son paneles condicionales):
+candidatos con condición real, diferir la maquinaria de dictado hasta que
+se pulse `EmpezarAGrabar` o partir la vista de nota YA FIRMADA (sólo
+lectura); (c) si no sostienen, declarar PERF-001 CERRADA (opt-in fuera de
+la cadena + 6 paneles diferidos + arnés de atribución permanente) y seguir
+con `V15-ORIGINALITY-REDTEAM-001` (§43, orden 16). DEBT-008 sigue
+CONSULTADO al dueño (cierre de A11Y-001).

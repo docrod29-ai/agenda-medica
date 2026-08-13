@@ -1,0 +1,37 @@
+{
+  "fecha": "2026-08-13T07:34:59.063Z",
+  "expedienteKB": 1691,
+  "consultaKB": 2192,
+  "excedenteKB": 605,
+  "chunksSoloConsulta": [
+    {
+      "url": "39d83s3xs2v_n.js",
+      "kb": 219
+    },
+    {
+      "url": "0_ga5u0a3xgou.js",
+      "kb": 139
+    },
+    {
+      "url": "0eqenibwu282v.js",
+      "kb": 138
+    },
+    {
+      "url": "2_t1qwo6ei059.js",
+      "kb": 56
+    },
+    {
+      "url": "12coehgejfx7e.js",
+      "kb": 32
+    },
+    {
+      "url": "0biiyk0czbnrb.js",
+      "kb": 19
+    },
+    {
+      "url": "0vpvqtwji2jji.js",
+      "kb": 3
+    }
+  ],
+  "acusados": []
+}
