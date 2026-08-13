@@ -28,15 +28,15 @@
  * ── §8.1 también en móvil: la navegación se aquieta al grabar ────────────────
  *
  * Se suscribe al MISMO `EVENTO_GRABANDO` que ya escuchan `MarcoEscuchando`,
- * `InstrumentStrip` y `FlowRail` (el evento es la única fuente de verdad; cada
- * pieza del shell se suscribe por su cuenta, patrón ya fijado en FlowRail).
+ * `InstrumentStrip` y `FlowRail` — desde RTC-04 vía la compuerta compartida
+ * `@/hooks/useGrabando` (el evento es la única fuente de verdad; la copia
+ * privada del hook que vivía aquí murió con esa deuda).
  * Sólo se atenúan los ÍCONOS de los destinos no activos (WCAG 1.4.11,
  * contraste no-textual 3:1 — hay margen); las ETIQUETAS de texto no se tocan
  * (la lección de contraste de FlowRail: `--text3` sobre `--s1` no tiene margen
  * AA para atenuarse). La acción central tampoco se atenúa: es la entrada al
  * encuentro, la única acción que §8.6 quiere dominante.
  */
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -46,7 +46,7 @@ import {
 import { useMode } from '@/context/ModeContext'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
-import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
+import { useGrabando } from '@/hooks/useGrabando'
 
 type Item = {
   href: string; label: string; icon: typeof LayoutDashboard
@@ -92,20 +92,6 @@ export function accionContextual(pathname: string): { label: string; href: strin
  */
 export function iconoAtenuado(grabando: boolean, activo: boolean): boolean {
   return grabando && !activo
-}
-
-function useGrabando(): boolean {
-  const [grabando, setGrabando] = useState(false)
-  useEffect(() => {
-    const alSonar = (ev: Event) => {
-      const d = (ev as CustomEvent<DetalleDeEscucha>).detail
-      if (!d || typeof d.activo !== 'boolean') return
-      setGrabando(d.activo)
-    }
-    window.addEventListener(EVENTO_GRABANDO, alSonar)
-    return () => window.removeEventListener(EVENTO_GRABANDO, alSonar)
-  }, [])
-  return grabando
 }
 
 export function BottomNav({ navPrimaria = false }: { navPrimaria?: boolean }) {

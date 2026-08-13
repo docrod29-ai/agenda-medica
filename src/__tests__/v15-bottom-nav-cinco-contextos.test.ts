@@ -96,11 +96,11 @@ describe('V15-MOBILE-001 — la misma IA en el pulgar que en el escritorio', () 
 })
 
 describe('V15-MOBILE-001 — §8.1 también en móvil: se aquieta al grabar', () => {
-  it('se suscribe al MISMO EVENTO_GRABANDO, no a un string propio', () => {
-    expect(bottomNav).toMatch(
-      /import \{ EVENTO_GRABANDO, type DetalleDeEscucha \} from '@\/lib\/seguridad\/estoy-grabando'/,
-    )
-    expect(bottomNav).toMatch(/addEventListener\(EVENTO_GRABANDO/)
+  it('se suscribe vía la compuerta compartida (RTC-04), no con una copia propia', () => {
+    /* La mecánica del listener vive en @/hooks/useGrabando y la vigila
+       v15-avisos-se-aquietan-al-grabar.test.ts. */
+    expect(bottomNav).toMatch(/import \{ useGrabando \} from '@\/hooks\/useGrabando'/)
+    expect(bottomNav).not.toMatch(/function useGrabando/)
     // Si alguien lo cambiara por el literal, habría DOS fuentes del nombre.
     expect(bottomNav).not.toContain("'nx:grabando'")
   })

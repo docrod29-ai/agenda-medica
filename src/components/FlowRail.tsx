@@ -46,7 +46,6 @@
  * de hoy, con IA explícita en vez de una sola entrada ambigua llamada
  * «Consulta» que en realidad abría la lista de pacientes.
  */
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -56,7 +55,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 import { salirSeguro } from '@/lib/salir-seguro'
-import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
+import { useGrabando } from '@/hooks/useGrabando'
 
 /**
  * V15-ENCOUNTER-MODE-001, §8.1 «navigation visually quiets»: medido en la
@@ -99,21 +98,12 @@ import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-gr
  *     sería vulnerar exactamente lo que §24 del master loop llama defecto
  *     bloqueante en una acción clínica — no hay "modo distinto" que valga
  *     ese precio.
+ *
+ * La suscripción a `EVENTO_GRABANDO` vive desde RTC-04 en la compuerta
+ * compartida `@/hooks/useGrabando` — este archivo tenía una de las DOS copias
+ * privadas idénticas del hook (la otra en BottomNav) que dejaron a la pila de
+ * avisos del layout sin cubrir.
  */
-function useGrabando(): boolean {
-  const [grabando, setGrabando] = useState(false)
-  useEffect(() => {
-    const alSonar = (ev: Event) => {
-      const d = (ev as CustomEvent<DetalleDeEscucha>).detail
-      if (!d || typeof d.activo !== 'boolean') return
-      setGrabando(d.activo)
-    }
-    window.addEventListener(EVENTO_GRABANDO, alSonar)
-    return () => window.removeEventListener(EVENTO_GRABANDO, alSonar)
-  }, [])
-  return grabando
-}
-
 const ES_CONTEXTO_PACIENTE = (p: string) =>
   p.startsWith('/pacientes') || p.startsWith('/expedientes') || p.startsWith('/expediente/')
 

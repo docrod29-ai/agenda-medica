@@ -59,18 +59,35 @@ consolidó por merge, sin force-push):
   RT-05 parcial (4 etiquetas de IA-feature muertas, §25), el degradado
   morado literal y un radio 12.
 
-**Siguiente rebanada exacta:** pagar los P1 del registro canónico en su
-orden: (a) **RTC-04** (banner de cobro + pila de avisos del layout se
-aquietan al grabar — suscribirse a `EVENTO_GRABANDO` como FlowRail, §8.5);
-(b) **RTC-06** (Hoy con UNA acción primaria clínica; «Nueva cita»
-subordinada, saludo a kicker); (c) **RTC-07** (la acción del pulgar móvil
+- **RTC-04 (banner de cobro + pila de avisos ↔ EVENTO_GRABANDO): FIXED
+  13-ago (2ª corrida).** La suscripción vive ahora en la compuerta
+  COMPARTIDA `@/hooks/useGrabando` (las dos copias privadas idénticas de
+  FlowRail/BottomNav murieron — la familia `depende_de_recordar` era la
+  causa raíz de que la pila no se hubiera enterado nunca), y el layout
+  agrupa los 5 avisos administrativos (ModeBanner, correo, cobro, prueba,
+  push opt-in) en `PilaDeAvisosAdmin`, que devuelve null mientras se graba
+  y los devuelve al detener. `OfflineBanner` y `AvisoIncidenteIA` quedan
+  FUERA a propósito: degradación no es admin — grabando es cuando MÁS
+  importan. Guardián `v15-avisos-se-aquietan-al-grabar.test.ts` (9 casos,
+  probado al revés: 6 rojos sin el arreglo aplicado); navegador real
+  desktop+móvil sobre `/consulta/[id]` con offline simulado DURANTE la
+  grabación: el banner de prueba desaparece al grabar, el de offline SÍ
+  aparece grabando, todo vuelve al detener
+  (`docs/design/capturas/v15-avisos-quietos/acta-avisos-quietos.json`,
+  PASS; capturas antes/grabando/grabando-offline/al-detener ×2 viewports).
+
+**Siguiente rebanada exacta:** seguir pagando los P1 del registro canónico:
+(a) **RTC-06** (Hoy con UNA acción primaria clínica; «Nueva cita»
+subordinada, saludo a kicker); (b) **RTC-07** (la acción del pulgar móvil
 respeta el contexto clínico). Cada una con captura antes/después y su
-guardián. Después RTC-05 (FABs), RTC-08/RTC-09 (riel/Operaciones), y
+guardián. Después RTC-05 (FABs — la compuerta compartida que pedía YA
+existe: `@/hooks/useGrabando`), RTC-08/RTC-09 (riel/Operaciones), y
 RTC-10/RTC-11 que son rebanadas estructurales grandes. La rebanada de
 13-ago (unificación + RT-08 + RT-01) está al FINAL del archivo.
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
-(2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad.]
+(2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad; (4) RTC-04 →
+compuerta compartida + pila de avisos.]
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO

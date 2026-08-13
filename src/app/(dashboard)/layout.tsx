@@ -39,6 +39,7 @@ import { PLANES, precioTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { CORREO_SOPORTE } from '@/lib/contacto'
 import { MarcoEscuchando } from '@/components/MarcoEscuchando'
+import { useGrabando } from '@/hooks/useGrabando'
 
 function ModeBanner() {
   const { mode } = useMode()
@@ -198,6 +199,34 @@ function TrialBanner() {
       </Link>
     </div>
   )
+}
+
+/**
+ * PILA DE AVISOS ADMINISTRATIVOS — se aquieta mientras se graba (RTC-04, §8.5).
+ *
+ * El equipo rojo de §41 encontró el banner de la prueba a peso ÍNTEGRO dentro
+ * del modo encuentro, coronando la franja de alergia, mientras el FlowRail de
+ * al lado sí se aquietaba: ningún aviso del layout escuchaba
+ * `EVENTO_GRABANDO`. La decisión v972 pide que la prueba sea VISIBLE — no que
+ * tenga presencia permanente sobre la superficie clínica durante el dictado.
+ *
+ * Mientras el micrófono está abierto la pila entera desaparece (§8.5
+ * «nonessential admin disappears») y VUELVE al detenerse — nada se pierde,
+ * sólo espera. Quedan FUERA a propósito los avisos de degradación
+ * (`OfflineBanner`, `AvisoIncidenteIA`): sin conexión o con la IA caída es
+ * exactamente cuando quien está grabando necesita saberlo («lightweight
+ * safety state» de la capa 1, §5 — no admin).
+ */
+function PilaDeAvisosAdmin() {
+  const grabando = useGrabando()
+  if (grabando) return null
+  return (<>
+    <ModeBanner />
+    <AvisoCorreoSinVerificar />
+    <AvisoCobroPendiente />
+    <TrialBanner />
+    <NotificacionesPushOptIn />
+  </>)
 }
 
 /**
@@ -751,11 +780,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           plataforma y decírselo nada más le roba tiempo con un paciente enfrente.
         */}
         <AvisoIncidenteIA esDueno={esSuperadminCliente(user?.email)} />
-        <ModeBanner />
-        <AvisoCorreoSinVerificar />
-        <AvisoCobroPendiente />
-        <TrialBanner />
-        <NotificacionesPushOptIn />
+        <PilaDeAvisosAdmin />
         <FirmadorDisenos />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}

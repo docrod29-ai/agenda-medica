@@ -67,15 +67,13 @@ const FLOW_RAIL = leer('src/components/FlowRail.tsx')
 const GLOBALS_CSS = leer('src/app/globals.css')
 
 describe('V15 — FlowRail se suscribe a EVENTO_GRABANDO, no inventa una fuente nueva', () => {
-  it('importa EVENTO_GRABANDO del módulo único (@/lib/seguridad/estoy-grabando)', () => {
-    expect(FLOW_RAIL).toContain(
-      "import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'"
-    )
-  })
-
-  it('escucha y limpia el listener (addEventListener + removeEventListener del mismo evento)', () => {
-    expect(FLOW_RAIL).toMatch(/window\.addEventListener\(EVENTO_GRABANDO, alSonar\)/)
-    expect(FLOW_RAIL).toMatch(/window\.removeEventListener\(EVENTO_GRABANDO, alSonar\)/)
+  /* Desde RTC-04 la suscripción vive en la compuerta compartida
+     `@/hooks/useGrabando` (la copia privada de este archivo murió con esa
+     deuda); su mecánica —import del módulo sellado, add/remove del mismo
+     listener— la vigila `v15-avisos-se-aquietan-al-grabar.test.ts`. */
+  it('consume la compuerta compartida (@/hooks/useGrabando), no una copia privada', () => {
+    expect(FLOW_RAIL).toContain("import { useGrabando } from '@/hooks/useGrabando'")
+    expect(FLOW_RAIL).not.toMatch(/function useGrabando/)
   })
 
   it('no declara un segundo nombre de evento literal para "estoy grabando"', () => {

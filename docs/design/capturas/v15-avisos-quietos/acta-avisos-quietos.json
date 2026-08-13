@@ -1,0 +1,65 @@
+{
+  "desktop": {
+    "antesDeGrabar": {
+      "trialBanner": true,
+      "offlineBanner": false,
+      "avisosStatusVisibles": 4
+    },
+    "grabando": {
+      "trialBanner": false,
+      "offlineBanner": false,
+      "avisosStatusVisibles": 3
+    },
+    "grabandoYOffline": {
+      "trialBanner": false,
+      "offlineBanner": true,
+      "avisosStatusVisibles": 4
+    },
+    "alDetener": {
+      "trialBanner": true,
+      "offlineBanner": false,
+      "avisosStatusVisibles": 4
+    },
+    "erroresConsola": [
+      "[2026-08-13T13:40:57.703Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ]
+  },
+  "mobile": {
+    "antesDeGrabar": {
+      "trialBanner": true,
+      "offlineBanner": false,
+      "avisosStatusVisibles": 4
+    },
+    "grabando": {
+      "trialBanner": false,
+      "offlineBanner": false,
+      "avisosStatusVisibles": 3
+    },
+    "grabandoYOffline": {
+      "trialBanner": false,
+      "offlineBanner": true,
+      "avisosStatusVisibles": 4
+    },
+    "alDetener": {
+      "trialBanner": true,
+      "offlineBanner": false,
+      "avisosStatusVisibles": 4
+    },
+    "erroresConsola": [
+      "[2026-08-13T13:41:02.059Z]  @firebase/firestore: Firestore (12.13.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=unavailable]: The operation could not be completed\nThis typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ]
+  },
+  "veredicto": {
+    "PASS": true
+  }
+}
