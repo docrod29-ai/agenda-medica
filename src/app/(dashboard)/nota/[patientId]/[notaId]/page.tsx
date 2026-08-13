@@ -650,7 +650,7 @@ export default function NotaImprimiblePage() {
             {/* V15 §2: metadato en su rol, no en dialecto inline. */}
             <span className="nx-meta" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
               compara con la nota
-              <ChevronDown size={15} style={{ transform: verTranscripcion ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              <ChevronDown size={15} style={{ transform: verTranscripcion ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)' }} />
             </span>
           </button>
           {verTranscripcion && (

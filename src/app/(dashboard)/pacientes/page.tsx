@@ -429,7 +429,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
       style={{
         position: 'relative',
         display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-        borderBottom: '1px solid var(--border)', transition: 'background 0.1s',
+        borderBottom: '1px solid var(--border)', transition: 'background var(--mov-rapido) var(--mov-curva)',
       }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}

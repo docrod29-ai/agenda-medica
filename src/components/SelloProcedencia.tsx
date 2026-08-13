@@ -66,7 +66,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
         <Fingerprint size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 700 }}>Procedencia de la nota</span>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>{resumenProcedencia(resumen)}</span>
-        <ChevronDown size={15} style={{ marginLeft: 'auto', color: 'var(--text3)', transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+        <ChevronDown size={15} style={{ marginLeft: 'auto', color: 'var(--text3)', transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)' }} />
       </button>
 
       {abierto && (

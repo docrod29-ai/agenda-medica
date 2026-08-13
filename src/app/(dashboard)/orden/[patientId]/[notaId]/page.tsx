@@ -693,7 +693,7 @@ export default function GeneradorOrdenPage() {
                     style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
                     {cat}
-                    <ChevronDown size={14} style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .15s' }} />
+                    <ChevronDown size={14} style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform var(--mov-rapido) var(--mov-curva)' }} />
                   </button>
                   {abierta && (
                     <div style={{ padding: '0 14px 12px', display: 'grid', gap: 4 }}>

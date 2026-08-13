@@ -68,7 +68,7 @@ export function PanelRazonamiento({ entrada, embebido }: Props) {
                     conf. {CONF_LABEL[p.confianza]}
                   </span>
                 )}
-                {tieneDetalle && <ChevronDown size={13} style={{ color: 'var(--text3)', transform: exp ? 'rotate(180deg)' : 'none', transition: 'transform .15s', flexShrink: 0 }} />}
+                {tieneDetalle && <ChevronDown size={13} style={{ color: 'var(--text3)', transform: exp ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)', flexShrink: 0 }} />}
               </button>
               {exp && (
                 <div style={{ padding: '0 11px 11px 36px', fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>

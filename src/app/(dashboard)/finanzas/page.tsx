@@ -256,7 +256,7 @@ export default function FinanzasPage() {
                 border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
                 background: activo ? 'var(--nexus-soft)' : 'var(--s)',
                 color: activo ? 'var(--nexus)' : 'var(--text2)',
-                transition: 'all 120ms',
+                transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               {PERIODO_LABEL[p]}

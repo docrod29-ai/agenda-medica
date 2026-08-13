@@ -419,7 +419,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
                   <strong style={{ color: col }}>{usadas} / {cliente.limiteConsultas}</strong>
                 </div>
                 <div style={{ height: 6, background: 'var(--s3)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: col, transition: 'width .3s' }} />
+                  <div style={{ width: `${pct}%`, height: '100%', background: col, transition: 'width var(--mov-lento) var(--mov-curva)' }} />
                 </div>
               </div>
             )

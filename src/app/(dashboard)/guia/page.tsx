@@ -97,7 +97,7 @@ export default function GuiaPage() {
                   <span style={{ fontSize: 15, fontWeight: 700, display: 'block' }}>{s.titulo}</span>
                   <span style={{ fontSize: 12.5, color: 'var(--text3)' }}>{s.intro}</span>
                 </span>
-                <ChevronDown size={18} style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }} />
+                <ChevronDown size={18} style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform var(--mov-rapido) var(--mov-curva)', transform: open ? 'rotate(180deg)' : 'none' }} />
               </button>
               {open && (
                 <div style={{ padding: '0 16px 16px 46px' }}>

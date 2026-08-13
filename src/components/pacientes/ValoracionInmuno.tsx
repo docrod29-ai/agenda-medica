@@ -54,7 +54,7 @@ function Grupo({ titulo, count, accent = '#0d9488', defaultOpen, children }: { t
           {titulo}
           {count > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: accent + '26', color: accent }}>{count}</span>}
         </span>
-        <ChevronDown size={15} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s', color: 'var(--text3)' }} />
+        <ChevronDown size={15} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)', color: 'var(--text3)' }} />
       </button>
       {open && <div className="px-3 pb-3 pt-0.5">{children}</div>}
     </div>

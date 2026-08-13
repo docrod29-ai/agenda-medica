@@ -77,7 +77,7 @@ export function GuiaConfigurarReceta({ yaConfigurado }: GuiaConfigurarRecetaProp
         )}
         <ChevronDown
           size={18}
-          style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform .2s', transform: abierta ? 'rotate(180deg)' : 'none' }}
+          style={{ color: 'var(--text3)', flexShrink: 0, transition: 'transform var(--mov-rapido) var(--mov-curva)', transform: abierta ? 'rotate(180deg)' : 'none' }}
         />
       </button>
 

@@ -190,14 +190,14 @@ function NavItem({ it, active, quieto }: { it: Item; active: boolean; quieto: bo
         padding: '7px 4px 9px',
         color: active ? 'var(--teal)' : 'var(--text3)',
         textDecoration: 'none', gap: 3, minHeight: 52,
-        transition: 'color 0.15s',
+        transition: 'color var(--mov-rapido) var(--mov-curva)',
       }}
     >
       {/* Sólo el ícono se atenúa (no-textual, WCAG 1.4.11); la etiqueta nunca. */}
       <Icon
         size={20}
         strokeWidth={active ? 2.2 : 1.8}
-        style={{ opacity: iconoAtenuado(quieto, active) ? 0.4 : 1, transition: 'opacity 0.2s' }}
+        style={{ opacity: iconoAtenuado(quieto, active) ? 0.4 : 1, transition: 'opacity var(--mov-normal) var(--mov-curva)' }}
       />
       <span style={{ fontSize: 10.5, fontWeight: active ? 700 : 500, lineHeight: 1 }}>{it.label}</span>
     </Link>

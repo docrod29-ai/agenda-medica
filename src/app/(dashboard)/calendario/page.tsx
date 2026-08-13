@@ -117,7 +117,7 @@ export default function CalendarioPage() {
                 fontSize: 13, fontWeight: 500,
                 background: view === v ? 'var(--s3)' : 'transparent',
                 color: view === v ? 'var(--teal)' : 'var(--text3)',
-                textTransform: 'capitalize', transition: 'all 0.15s',
+                textTransform: 'capitalize', transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               {v === 'dia' ? 'Día' : v === 'semana' ? 'Semana' : 'Mes'}
@@ -394,7 +394,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 padding: '6px', cursor: 'pointer', minHeight: 80,
                 background: isToday ? 'rgba(61,90,254,0.05)' : 'transparent',
-                transition: 'background 0.1s',
+                transition: 'background var(--mov-rapido) var(--mov-curva)',
               }}
               onMouseEnter={e => !isToday && (e.currentTarget.style.background = 'var(--s2)')}
               onMouseLeave={e => !isToday && (e.currentTarget.style.background = 'transparent')}

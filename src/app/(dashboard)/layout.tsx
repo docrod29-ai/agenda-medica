@@ -672,7 +672,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           zIndex: 49, backdropFilter: 'blur(2px)',
           opacity: sidebarOpen ? 1 : 0,
           pointerEvents: sidebarOpen ? 'auto' : 'none',
-          transition: 'opacity 0.2s ease',
+          transition: 'opacity var(--mov-normal) var(--mov-curva)',
         }}
       />
       <div
@@ -685,7 +685,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           borderRight: '1px solid var(--border)',
           zIndex: 50,
           transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.25s ease',
+          transition: 'transform var(--mov-lento) var(--mov-curva)',
           overflowY: 'auto',
           boxShadow: sidebarOpen ? '4px 0 20px rgba(0,0,0,0.4)' : 'none',
           display: 'flex',

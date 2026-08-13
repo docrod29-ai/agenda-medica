@@ -251,7 +251,7 @@ export default function SetupPage() {
               color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
               cursor: canContinue && !saving ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              transition: 'all 0.2s', marginTop: 8,
+              transition: 'all var(--mov-rapido) var(--mov-curva)', marginTop: 8,
             }}
           >
             {saving

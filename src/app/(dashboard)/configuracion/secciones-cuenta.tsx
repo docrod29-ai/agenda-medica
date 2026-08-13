@@ -136,7 +136,7 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
               <span style={{ fontSize: 12.5, color: 'var(--text2)' }}><strong style={{ color }}>{c.usados}</strong> / {tope}{c.extra > 0 && <span style={{ color: 'var(--text3)' }}> (incl. {c.extra} recarga)</span>}</span>
             </div>
             <div style={{ height: 7, borderRadius: 'var(--r-pill)', background: 'var(--border)', overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s' }} />
+              <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width var(--mov-lento) var(--mov-curva)' }} />
             </div>
             {pct >= 100
               ? <div style={{ fontSize: 11.5, color: 'var(--red)', fontWeight: 700, marginTop: 6 }}>Créditos agotados — las acciones de IA se pausan. Recarga o pon tu propia llave abajo.</div>

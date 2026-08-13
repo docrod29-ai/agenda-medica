@@ -159,6 +159,10 @@ export function MientrasHablas(p: MientrasHablasProps) {
                 style={{
                   height: '100%', borderRadius: 'var(--r-pill)', background: 'var(--nexus)',
                   width: `${Math.round(Math.min(1, Math.max(0.02, p.nivelAudio)) * 100)}%`,
+                  // INSTRUMENTO, no interfaz (V15-MOTION-001): la barra sigue el
+                  // nivel del micrófono en vivo. `linear` a 90ms está afinado al
+                  // ritmo de la señal; una curva con easing o un token más lento
+                  // la haría MENTIR sobre lo que capta. No migrar a var(--mov-*).
                   transition: 'width 90ms linear',
                 }}
               />

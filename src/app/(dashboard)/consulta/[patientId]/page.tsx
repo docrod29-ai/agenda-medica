@@ -4579,6 +4579,11 @@ export default function ConsultaActivaPage() {
                         background: audio.nivelAudio < 0.05 ? '#9CA3AF'
                           : audio.nivelAudio < 0.4 ? '#22C55E'
                           : audio.nivelAudio < 0.75 ? '#EAB308' : '#EF4444',
+                        // INSTRUMENTO, no interfaz (V15-MOTION-001): el medidor
+                        // sigue el nivel del micrófono en vivo. `linear` a 60ms está
+                        // afinado al ritmo de la señal (y el color de banda a 200ms);
+                        // un easing o un token más lento lo haría MENTIR sobre lo que
+                        // capta. No migrar a var(--mov-*).
                         transition: 'width 60ms linear, background 200ms',
                       }} />
                     </div>

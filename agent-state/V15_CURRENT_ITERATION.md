@@ -5,17 +5,22 @@
 ## Iteración en curso
 
 `V15-MOTION-001` (§43 orden 14, §18 paso 8 / §20) — **EN CURSO** desde
-13-ago-2026, con la primera rebanada pagada: **las transiciones de
+13-ago-2026, con TRES rebanadas pagadas: (1ª) **las transiciones de
 globals.css hablan los tokens de movimiento** — la curva del token adopta la
 curva de facto del producto (39 usos medidos vs 0 del valor teórico), las 22
 transiciones de la hoja dejan sus 9 duraciones a mano por
 `var(--mov-rapido/normal/lento/presion)` (+`--mov-presion: 80ms` nuevo para
 estados :active), y las declaraciones MUERTAS duplicadas de
-`.card-hover`/`.kpi-card` se retiraron. Guardián barre la hoja entera;
-computado verificado en navegador real. Quedan: las ~30 transiciones INLINE
-de componentes TSX (inventario por grep anotado en la sección al FINAL) y la
-coreografía de continuidad de §20 (shared element entre Hoy→Paciente→
-Encuentro — el diferimiento grande de Fase 10). Ver sección al FINAL.
+`.card-hover`/`.kpi-card` se retiraron; (2ª) **una voz POR ELEMENTO** — el
+cross-fade de tema queda en las superficies y los controles recuperan su
+papel rapido (opacity de .btn, halo de .input, hover del toggle); (3ª)
+**las 28 transiciones INLINE de los TSX hablan los tokens** — 26 migradas
+por papel (rapido/normal/lento) y los DOS medidores de micrófono declarados
+INSTRUMENTO con su razón en el código (siguen la señal en vivo con `linear`;
+migrarlos los haría mentir), más la prueba en navegador de que el apagador
+!important de §24 le GANA al style inline. Queda: la coreografía de
+continuidad de §20 (shared element entre Hoy→Paciente→Encuentro — el
+diferimiento grande de Fase 10). Ver sección al FINAL.
 
 Iteración anterior:
 `V15-A11Y-001` (§43 orden 13, §24) — **CERRADA 13-ago-2026** tras SEIS
@@ -5452,3 +5457,102 @@ tiempo real — decidir si es instrumento (se queda) o interfaz (migra) ANTES
 de tocarla. Después queda (b): la coreografía de continuidad de §20 (shared
 element Hoy→Paciente→Encuentro), el diferimiento grande. DEBT-008 sigue
 CONSULTADO al dueño (cierre de A11Y-001).
+
+## `V15-MOTION-001` — tercera rebanada: las transiciones INLINE hablan los tokens, y los instrumentos quedan declarados (13-ago-2026)
+
+La tarea exacta que dejó la segunda rebanada: el inventario de ~28
+transiciones inline en TSX. El barrido del guardián nuevo encontró DOS más
+que el grep del inventario no vio (nota:653 y app/page:558 — sus líneas
+contienen `'none'` en el ternario del transform y el filtro del grep las
+excluía): 28 sitios reales, 26 migrados, 2 declarados instrumento.
+
+### El mapa de papeles, aplicado sitio por sitio
+
+- **rapido (feedback de control, 20 sitios)**: Sidebar ×2 y BottomNav
+  (color) — la navegación; los botones de estado de calendario ×2,
+  asistente ×5, finanzas, setup y las filas de /pacientes y celdas del mes;
+  la tarjeta de la landing (border-color); y los OCHO chevrones de
+  revelación (orden, nota, guia, GuiaConfigurarReceta, PanelRazonamiento,
+  SelloProcedencia, ValoracionInmuno, app/page). Los CTA de setup/asistente
+  que decían 0.2s adoptan rapido: son controles, y la voz de control del
+  sistema (.btn, 2ª rebanada) es rapido — un botón inline no habla más
+  lento que su hermano de clase.
+- **normal (fundido de estado, 3 sitios)**: el atenuado del ícono del
+  BottomNav (0.2s→200ms exacto), los puntos de progreso del OnboardingTour
+  (0.25s→200ms, precedente 240→200 de la 1ª rebanada) y el velo del cajón
+  móvil del layout.
+- **lento (movimiento espacial, 3 sitios)**: el DESLIZAMIENTO del cajón
+  móvil (transform 0.25s→320ms — el panel entero cruza la pantalla, el
+  papel es espacial aunque el valor viejo quedara más cerca de normal;
+  mismo criterio que 280→320 de la 1ª rebanada) y las dos barras de llenado
+  (almacenamiento de cuenta y superadmin, width .3s→320ms).
+- **INSTRUMENTOS, no migrados A PROPÓSITO (2 sitios)**: los medidores de
+  nivel de micrófono de `MientrasHablas` (`width 90ms linear`) y de
+  /consulta (`width 60ms linear, background 200ms`). Siguen la señal EN
+  VIVO: `linear` a ~90ms está afinado al ritmo del feed — una curva con
+  easing o un token más lento los haría MENTIR sobre lo que capta el
+  micrófono (regla 3 de seguridad clínica dicha en movimiento). La decisión
+  vive como comentario JUNTO al código, y el guardián exige el valor EXACTO:
+  si alguien los «normaliza» al token, falla.
+- El `transition: none` del papel imprimible de /nota queda como opt-out
+  legítimo (el documento no anima).
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-motion-inline-habla-tokens.test.ts` (9 casos): barrido
+línea a línea de TODO `.tsx` de src/ (toda `transition:` habla
+`var(--mov-*)` con `var(--mov-curva)`, o es `none`, o es instrumento de la
+lista EXACTA), prohibición de mezclar token y milisegundos a mano, los dos
+instrumentos con su valor y su razón escrita, la lista de instrumentos
+congelada en 2, y representantes de cada papel congelados (Sidebar/BottomNav
+rapido, velo normal, cajón/barras lento). **6 de 9 fallan contra el árbol
+previo** (verificado con `git stash`; los 3 que pasan son sanidad del
+barrido y freeze). El propio reverso pagó su lección: el barrido cazó los
+dos sitios que el grep del inventario había perdido.
+
+### Verificado en navegador real (13-ago-2026)
+
+Arnés nuevo: `scripts/design/medir-motion-inline-v15.mjs` (dentro de
+`arnes-breakpoints-v15.sh` + emuladores + siembra + build de producción).
+Resultado y capturas en `docs/design/capturas/v15-motion-inline/`:
+
+- **Los tokens LLEGAN al style inline**: en /pacientes 13/13 y en
+  /calendario 11/11 elementos con token inline computan EXACTAMENTE su
+  duración (0.12s/0.2s/0.32s) y la curva de facto — un `var()` roto habría
+  computado 0s y el guardián de texto jamás lo habría visto.
+- **Móvil 390**: los 4 enlaces del BottomNav computan 0.12s (color) y los
+  4 íconos 0.2s (atenuado), con la curva.
+- **La afirmación a11y-crítica de la rebanada, medida**: bajo
+  `reducedMotion: 'reduce'`, el elemento inline computa `1e-05s` — el
+  apagador `!important` de §24 le GANA al style inline. Sin esto, tokenizar
+  inline habría dejado media app fuera del apagador.
+- **Consola**: un único `ERR_TUNNEL_CONNECTION_FAILED` — el proxy de red
+  del contenedor bloqueando un recurso externo, ambiental (la rebanada no
+  toca red); cero errores de la app.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 9211 pasan (9 nuevos del guardián), 2 fallos: el
+  PRE-EXISTENTE ambiental de siempre (`ops-timeout-y-punto-ciego`, proxy del
+  contenedor) y `el-inventario-de-pantallas-no-miente` por CARRERA con la
+  regeneración del inventario en esta misma corrida — re-verificado 5/5 en
+  verde tras regenerar.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen — la rebanada unifica tiempos, no pinta).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/consulta cambió de
+  líneas por el comentario del instrumento).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores), mismo patrón documentado por las corridas previas.
+
+**Siguiente tarea exacta:** `V15-MOTION-001`, cuarta rebanada — **(b), el
+diferimiento grande: la coreografía de continuidad de §20** (Hoy→Paciente→
+Encuentro como el mismo objeto ganando detalle; Result queue→Patient
+result→Source preservando la relación espacial). Empezar releyendo §20
+COMPLETO y la tabla de diferimientos de la novena rebanada de Fase 10 antes
+de decidir el mecanismo (View Transitions API de Next 16 vs coreografía CSS
+propia) — es trabajo de DISEÑO de interacción, no mecánica: transiciones
+interrumpibles, sin animar por decorar, y el apagador de §24 las tiene que
+apagar TODAS. Si la decisión del dueño sobre DEBT-008 llega, pagarla antes
+(rebanada corta ya dimensionada en el cierre de A11Y-001).
