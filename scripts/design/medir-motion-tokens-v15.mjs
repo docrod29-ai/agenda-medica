@@ -10,14 +10,14 @@
  * properties:
  *
  *   1. En /dashboard (médico logueado), getComputedStyle de los
- *      representantes de cada papel — comparado contra la CASCADA REAL, no
- *      contra la regla base: el cross-fade de tema (regla agrupada posterior)
- *      reemplaza el shorthand de .btn/.nav-item/.tab con su papel normal ×3,
- *      y el fade del toggle sombrea su propio shorthand (las dos cosas son
- *      PREEXISTENTES — ya eran así con las duraciones a mano; anotadas para
- *      la siguiente rebanada). La duración computada tiene que ser
- *      EXACTAMENTE la del token que la cascada deja ganar — un 0s delataría
- *      un var() roto.
+ *      representantes de cada papel — comparado contra la CASCADA REAL. La
+ *      2ª rebanada de MOTION-001 pagó el hallazgo de la 1ª: la regla del
+ *      cross-fade de tema ya sólo cubre superficies, así que .btn/.nav-item/
+ *      .tab/.input computan su voz base (papel rapido, con opacity y
+ *      box-shadow recuperados) y .theme-toggle computa su shorthand completo
+ *      (4 propiedades, opacity incluida — la regla que lo sombreaba ahora es
+ *      sólo del FAB). La duración computada tiene que ser EXACTAMENTE la del
+ *      token que la cascada deja ganar — un 0s delataría un var() roto.
  *   2. La curva computada tiene que ser cubic-bezier(0.16, 1, 0.3, 1) —
  *      la curva de facto adoptada por el token — en todos los medidos.
  *   3. Bajo `reducedMotion: 'reduce'`, el apagador de §24 GANA: el mismo
@@ -75,7 +75,6 @@ function leerMediciones(page) {
       navItem: mide('.nav-item'),
       themeToggle: mide('.theme-toggle'),
       themeToggleSvg: mide('.theme-toggle svg'),
-      tab: mide('.tab'),
       citaFila: mide('.cita-fila'),
     }
   })
@@ -97,21 +96,23 @@ const mismaCurva = (v) => {
 // Separa listas por comas de PRIMER nivel (las de dentro de cubic-bezier no).
 const partes = (v) => v.split(/,(?![^(]*\))/).map((s) => s.trim())
 
-// Notas de cascada PREEXISTENTES (no de esta rebanada, verificadas contra el
-// árbol previo — la regla agrupada del cross-fade de tema `html, body, .card,
-// …, .btn, .nav-item, .tab, .input, …` viene DESPUÉS de las reglas base y las
-// reemplaza con sus 3 propiedades a 200ms; ya era así con las duraciones a
-// mano): .btn y .nav-item computan el papel normal ×3 por esa regla, y
-// .theme-toggle computa el fade rapido que sombrea su propio shorthand.
-// Hallazgo anotado en el estado para la siguiente rebanada de MOTION-001.
+// Cascada tras la 2ª rebanada de MOTION-001 (una voz por elemento): la regla
+// del cross-fade de tema sólo cubre superficies, así que cada control computa
+// su voz BASE completa. `duracionesMs` es la lista en el orden en que la voz
+// declara sus propiedades — .theme-toggle mezcla papeles a propósito
+// (feedback rapido, lift normal).
 const esperado = {
-  btn: { duracionMs: 200, n: 3, papel: 'normal ×3 (cross-fade de tema — cascada preexistente)' },
-  navItem: { duracionMs: 200, n: 3, papel: 'normal ×3 (cross-fade de tema — cascada preexistente)' },
-  themeToggle: { duracionMs: 120, n: 1, papel: 'rapido (fade que sombrea al shorthand — preexistente)' },
-  themeToggleSvg: { duracionMs: 320, n: 1, papel: 'lento' },
-  tab: { duracionMs: 200, n: 3, papel: 'normal ×3 (cross-fade de tema — cascada preexistente)' },
-  citaFila: { duracionMs: 120, n: 1, papel: 'rapido' },
+  btn: { duracionesMs: [120, 120, 120, 120], papel: 'rapido ×4 (fondo, color, borde, opacity — voz base recuperada)' },
+  navItem: { duracionesMs: [120, 120], papel: 'rapido ×2 (fondo, color — voz base recuperada)' },
+  themeToggle: { duracionesMs: [120, 120, 200, 120], papel: 'rapido/rapido/normal/rapido — shorthand completo, ya sin sombra' },
+  themeToggleSvg: { duracionesMs: [320], papel: 'lento' },
+  citaFila: { duracionesMs: [120], papel: 'rapido' },
 }
+// `.input` no vive en /dashboard: se mide en /login ANTES de entrar (abajo).
+// `.tab` no se mide en NINGUNA parte a propósito: `ui/Tabs.tsx` no lo importa
+// nadie hoy (primitivo dormido, verificado por grep) — su voz la vigila el
+// guardián de texto; si algún día se monta, añadirlo aquí.
+const esperadoInput = { duracionesMs: [120, 120, 120], papel: 'rapido ×3 (borde, box-shadow, fondo — halo de foco recuperado)' }
 
 fs.mkdirSync(DESTINO, { recursive: true })
 // Mismo patrón que capturar-acento-en-el-shell-v15: el contenedor trae el
@@ -126,6 +127,18 @@ const consola = []
 const contexto = await navegador.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: false })
 const page = await contexto.newPage()
 page.on('console', (m) => { if (m.type() === 'error') consola.push(m.text()) })
+
+// ── 0: .input, medido donde VIVE — /login, antes de entrar. El formulario
+// hidrata en cliente: sin esperar el selector, evaluate corre antes de que
+// React lo pinte y reporta AUSENTE en falso (le pasó a la primera corrida). ──
+await page.goto(`${BASE}/login`, { waitUntil: 'load' })
+await page.waitForSelector('.input', { timeout: 15000 }).catch(() => {})
+const inputEnLogin = await page.evaluate(() => {
+  const el = document.querySelector('.input')
+  if (!el) return null
+  const cs = getComputedStyle(el)
+  return { duracion: cs.transitionDuration, curva: cs.transitionTimingFunction }
+})
 
 await login(page)
 await page.waitForTimeout(1500)
@@ -148,11 +161,30 @@ for (const [nombre, exp] of Object.entries(esperado)) {
   if (!medido) { verificados[nombre] = 'AUSENTE en /dashboard (no concluyente aquí)'; continue }
   const duraciones = partes(medido.duracion).map(ms)
   const curvas = partes(medido.curva)
-  const okDur = duraciones.length === exp.n && duraciones.every((d) => d === exp.duracionMs)
+  const okDur =
+    duraciones.length === exp.duracionesMs.length &&
+    duraciones.every((d, i) => d === exp.duracionesMs[i])
   const okCurva = curvas.every(mismaCurva)
   verificados[nombre] = { ...medido, papel: exp.papel, okDur, okCurva }
-  if (!okDur) fallos.push(`${nombre}: esperado ${exp.duracionMs}ms ×${exp.n} (${exp.papel}), computa «${medido.duracion}»`)
+  if (!okDur) fallos.push(`${nombre}: esperado [${exp.duracionesMs}]ms (${exp.papel}), computa «${medido.duracion}»`)
   if (!okCurva) fallos.push(`${nombre}: curva esperada cubic-bezier(${CURVA_ESPERADA}), computa «${medido.curva}»`)
+}
+
+{
+  const exp = esperadoInput
+  if (!inputEnLogin) {
+    fallos.push('input: AUSENTE en /login — la pantalla de entrada perdió sus .input')
+    verificados.input = 'AUSENTE en /login'
+  } else {
+    const duraciones = partes(inputEnLogin.duracion).map(ms)
+    const okDur =
+      duraciones.length === exp.duracionesMs.length &&
+      duraciones.every((d, i) => d === exp.duracionesMs[i])
+    const okCurva = partes(inputEnLogin.curva).every(mismaCurva)
+    verificados.input = { ...inputEnLogin, medidoEn: '/login', papel: exp.papel, okDur, okCurva }
+    if (!okDur) fallos.push(`input: esperado [${exp.duracionesMs}]ms (${exp.papel}), computa «${inputEnLogin.duracion}»`)
+    if (!okCurva) fallos.push(`input: curva esperada cubic-bezier(${CURVA_ESPERADA}), computa «${inputEnLogin.curva}»`)
+  }
 }
 
 await page.screenshot({ path: path.join(DESTINO, 'dashboard-tokens-1440.png'), fullPage: false })

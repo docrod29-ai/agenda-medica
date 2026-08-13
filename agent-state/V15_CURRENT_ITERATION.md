@@ -5360,3 +5360,95 @@ Hoy→Paciente→Encuentro), el diferimiento grande. DEBT-008 sigue CONSULTADO
 al dueño (sección de cierre de A11Y-001) — si la decisión llega, pagarla es
 una rebanada corta: default nuevo + default de Word unificado + aviso no
 bloqueante en el picker.
+
+## `V15-MOTION-001` — segunda rebanada: una voz POR ELEMENTO — la cascada del cross-fade de tema deja de pisar a los controles (13-ago-2026)
+
+La candidata (1) que dejó anotada la primera rebanada, pagada entera. El
+hallazgo medido era éste: la regla agrupada del tema (`html, body, .card, …,
+.input, .btn, .nav-item, .tab`) venía DESPUÉS de las reglas base y — como
+`transition` es shorthand — las REEMPLAZABA enteras. El botón perdía su fade
+de opacity (disabled a golpe), el input perdía box-shadow (el halo de foco
+aparecía a golpe), los cuatro controles respondían al hover a 200ms en vez
+de su papel rapido, y el fade de los flotantes sombreaba el shorthand del
+toggle entero (su hover no transicionaba NADA).
+
+### La política, decidida y escrita en la hoja
+
+CSS no distingue POR QUÉ cambió una propiedad: un elemento sólo puede tener
+UNA velocidad por propiedad, gane el tema o gane el hover. Decisión:
+
+- **El cross-fade de tema lo cargan las SUPERFICIES**: la regla agrupada
+  queda en `html, body, .card, .modal, .topbar, .sidebar` (fondo/color/borde
+  a normal). Son ellas las que hacen la percepción del cambio de tema.
+- **Los CONTROLES conservan su voz base** (.btn ×4 con opacity, .input ×3
+  con box-shadow, .nav-item ×2, .tab ×2 — todos rapido): sus propiedades de
+  tema ya transicionan ahí, y un control de 36px fundiéndose a 120ms dentro
+  de un lienzo a 200ms es imperceptible. El feedback que el médico toca todo
+  el día gana la velocidad; el evento raro (cambiar tema) no la pierde —
+  sólo la funde un pelo más rápido en los controles.
+- **Una voz por clase con shorthand propio**: `.theme-toggle` absorbe su
+  opacity (la regla del fade queda sólo para `.boton-ayuda-fab`, que no
+  declara transición en ningún otro sitio — verificado por grep) con papeles
+  mezclados a propósito (color/fondo/opacity rapido, transform normal);
+  `.card-hover` y `.kpi-card` ganan `color` en su shorthand — su
+  micro-interacción reemplazaba a la regla del tema y perdían el fade de
+  color al cambiar tema.
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-motion-cascada-una-voz-por-elemento.test.ts` (9 casos):
+la regla del tema cubre EXACTAMENTE las superficies, ningún control vive en
+ella, la voz base de cada control cubre sus propiedades de tema con rapido,
+.theme-toggle tiene UNA voz con opacity dentro, el FAB conserva la suya,
+.card-hover/.kpi-card incluyen color, y el freeze (superficies a normal,
+apagador §24, opt-out de .cita-fila, :active con presion). **4 de 9 fallan
+contra el árbol previo** (verificado con `git stash`); los 5 que pasan son
+freeze. Lección de MÉTODO del propio reverso: la primera versión del caso de
+color pasaba en falso contra el árbol viejo porque `/color var/` matchea
+DENTRO de `border-color var` — el reverso lo cazó y el regex lleva
+`(?<![\w-])`. El guardián hermano de los flotantes
+(`nada-tapa-un-campo-que-se-llena`) siguió al mecanismo: ahora exige el fade
+del FAB en su regla y el del toggle dentro de su shorthand.
+
+### Verificado en navegador real (13-ago-2026)
+
+`scripts/design/medir-motion-tokens-v15.mjs` actualizado a la cascada nueva
+(before queda en `docs/design/capturas/v15-motion-tokens/resultado.json`;
+after en `docs/design/capturas/v15-motion-cascada/` con captura):
+
+- **.btn 0.12s ×4** (era 0.2s ×3 — opacity recuperada), **.nav-item 0.12s
+  ×2** (era 0.2s ×3), **.theme-toggle 0.12/0.12/0.2/0.12** (era opacity-only
+  0.12), .theme-toggle svg 0.32s, .cita-fila 0.12s, curva de facto en todos.
+- **.input medido donde VIVE**: /login antes de entrar — 0.12s ×3 con
+  box-shadow. Lección de método: el formulario hidrata en cliente y sin
+  `waitForSelector` el evaluate corre antes de que React pinte — la primera
+  corrida reportó AUSENTE en falso.
+- **.tab no se mide a propósito**: `ui/Tabs.tsx` no lo importa NADIE hoy
+  (primitivo dormido, verificado por grep) — anotado en el arnés; si algún
+  día se monta, se añade.
+- **Bajo reduce el apagador de §24 sigue ganando** (1e-05s) y **consola: 0
+  errores**.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9204/9205 en verde, CERO fallos** (ni el ambiental de
+  siempre — 636 archivos). Guardián nuevo 9/9.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio (162/162).
+- `docs/design/SCREEN_INVENTORY.md`: regenerado, sin cambios (la rebanada
+  vive en la hoja global y el arnés).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores), mismo patrón documentado por las corridas previas.
+
+**Siguiente tarea exacta:** `V15-MOTION-001`, tercera rebanada — las **28
+transiciones INLINE** del inventario de la primera rebanada (21 archivos:
+asistente ×5, Sidebar ×2, BottomNav ×2, app/page ×2, (dashboard)/layout ×2,
+calendario ×2, y ×1 en 15 más): migrarlas a `var(--mov-*)` — los style
+inline SÍ resuelven custom properties. OJO con `MientrasHablas` («width 90ms
+linear», medidor de nivel de micrófono): es INFORMACIÓN de seguridad en
+tiempo real — decidir si es instrumento (se queda) o interfaz (migra) ANTES
+de tocarla. Después queda (b): la coreografía de continuidad de §20 (shared
+element Hoy→Paciente→Encuentro), el diferimiento grande. DEBT-008 sigue
+CONSULTADO al dueño (cierre de A11Y-001).

@@ -1793,8 +1793,22 @@ main:has(.nx-lienzo-completo) > .page-transition {
 }
 
 /* ── Transición global suave al cambiar de tema ─────────────────── */
+/* UNA VOZ POR ELEMENTO (V15-MOTION-001, 2ª rebanada). CSS no distingue POR
+   QUÉ cambió una propiedad: un elemento sólo puede tener UNA velocidad por
+   propiedad, gane el tema o gane el hover. Esta regla agrupada venía DESPUÉS
+   de las reglas base y REEMPLAZABA entero el shorthand de .btn/.input/
+   .nav-item/.tab: el botón perdía su fade de opacity (disabled), el input
+   perdía box-shadow (el halo de foco aparecía a golpe) y los cuatro
+   respondían al hover a 200ms — lag en el feedback que el médico toca todo
+   el día. Política: el cross-fade de tema lo cargan las SUPERFICIES (esta
+   regla); los CONTROLES conservan su voz propia con papel rapido — sus
+   propiedades de tema (fondo/color/borde) ya transicionan ahí, y en un
+   cambio de tema un control de 36px fundiéndose a 120ms dentro de un lienzo
+   que se funde a 200ms es imperceptible. .kpi-card y .card-hover tampoco
+   viven aquí: su shorthand de micro-interacción (más abajo) es su única voz
+   y ahora incluye color para no perder el fade de tema. */
 html { color-scheme: dark light; }
-html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item, .tab {
+html, body, .card, .modal, .topbar, .sidebar {
   transition:
     background-color var(--mov-normal) var(--mov-curva),
     color var(--mov-normal) var(--mov-curva),
@@ -1830,11 +1844,13 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   transition-duration: var(--mov-presion);
 }
 
-/* Hover lift en cards interactivas */
+/* Hover lift en cards interactivas — color incluido: este shorthand es la
+   única voz de la clase y sin él la tarjeta perdía el cross-fade de tema. */
 .card-hover {
   transition:
     border-color var(--mov-normal) var(--mov-curva),
     background var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
     transform var(--mov-normal) var(--mov-curva),
     box-shadow var(--mov-normal) var(--mov-curva);
 }
@@ -1848,6 +1864,7 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   transition:
     border-color var(--mov-normal) var(--mov-curva),
     background var(--mov-normal) var(--mov-curva),
+    color var(--mov-normal) var(--mov-curva),
     transform var(--mov-normal) var(--mov-curva),
     box-shadow var(--mov-normal) var(--mov-curva);
 }
@@ -1921,10 +1938,16 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
   cursor: pointer;
   z-index: 199;
   box-shadow: var(--elev-2);
+  /* UNA voz (V15-MOTION-001, 2ª rebanada): el fade de opacity de los botones
+     flotantes vivía en otra regla posterior y SOMBREABA este shorthand entero
+     — el hover del toggle (color, scale) aparecía a golpe. Aquí viven las
+     cuatro propiedades con su papel: feedback de color/opacidad = rapido,
+     lift de transform = normal. */
   transition:
-    background var(--mov-normal) var(--mov-curva),
-    color var(--mov-normal) var(--mov-curva),
-    transform var(--mov-normal) var(--mov-curva);
+    background var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva),
+    transform var(--mov-normal) var(--mov-curva),
+    opacity var(--mov-rapido) var(--mov-curva);
 }
 .theme-toggle:hover {
   color: var(--text);
@@ -1956,7 +1979,9 @@ html, body, .card, .kpi-card, .modal, .topbar, .sidebar, .input, .btn, .nav-item
     pointer-events: none;
   }
 }
-.theme-toggle, .boton-ayuda-fab { transition: opacity var(--mov-rapido) var(--mov-curva); }
+/* El toggle de tema lleva su opacity en SU shorthand (una voz por elemento);
+   aquí sólo el FAB de ayuda, que no declara transición en ningún otro sitio. */
+.boton-ayuda-fab { transition: opacity var(--mov-rapido) var(--mov-curva); }
 .theme-toggle svg {
   width: 18px;
   height: 18px;

@@ -79,7 +79,12 @@ describe('los botones flotantes se apartan mientras se escribe', () => {
     // (140ms ease) y habla los tokens de movimiento. Lo que este caso protege
     // no es la cifra: es que el fade EXISTA — el guardián sigue al mecanismo,
     // como el del alto táctil de la franja y el del aviso push antes que él.
-    expect(css).toMatch(/\.theme-toggle, \.boton-ayuda-fab \{ transition: opacity var\(--mov-rapido\) var\(--mov-curva\); \}/)
+    // 2ª rebanada (una voz por elemento): el FAB conserva su regla propia y
+    // el toggle lleva opacity dentro de SU shorthand — antes esta regla
+    // compartida sombreaba el shorthand del toggle entero.
+    expect(css).toMatch(/\.boton-ayuda-fab \{ transition: opacity var\(--mov-rapido\) var\(--mov-curva\); \}/)
+    const shorthandToggle = /\.theme-toggle \{[^}]*transition:[^;}]*opacity var\(--mov-rapido\) var\(--mov-curva\)[^}]*\}/
+    expect(css).toMatch(shorthandToggle)
   })
 
   it('queda escrito POR QUÉ ningún barrido lo cazó', () => {
