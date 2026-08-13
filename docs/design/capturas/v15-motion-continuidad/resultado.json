@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-08-13T04:39:25.428Z",
+  "fecha": "2026-08-13T05:37:27.887Z",
   "casos": [
     {
       "nombre": "el navegador del arnés soporta startViewTransition",
@@ -45,6 +45,41 @@
       "detalle": "llamadas=1"
     },
     {
+      "nombre": "Result queue→Patient result invoca la view transition",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "…y el par SE FORMÓ (ready resolvió — la animación arrancó, no se saltó)",
+      "ok": true,
+      "detalle": "readyOk=true"
+    },
+    {
+      "nombre": "/pacientes→expediente invoca la view transition (la fila entrega su .nx-ident)",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "franja→expediente (sin ancla en pantalla) invoca la view transition",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "…con la franja VIVA de origen el par se formó igual (la limpieza del callback funciona)",
+      "ok": true,
+      "detalle": "readyOk=true"
+    },
+    {
+      "nombre": "…y la franja no se queda con el nombre puesto (cero nombres inline residuales)",
+      "ok": true,
+      "detalle": "residuales=0"
+    },
+    {
+      "nombre": "en el expediente del mismo paciente la franja navega a secas (0 coreografías)",
+      "ok": true,
+      "detalle": "llamadas=0"
+    },
+    {
       "nombre": "bajo reduced-motion el API NO se invoca (candado JS, §24)",
       "ok": true,
       "detalle": "llamadas=0"
@@ -55,6 +90,11 @@
     },
     {
       "nombre": "móvil 390: el salto desde Hoy también coreografía",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "móvil 390: Result queue→Patient result coreografía",
       "ok": true,
       "detalle": "llamadas=1"
     },

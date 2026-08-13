@@ -100,7 +100,11 @@ describe('la fila de /pacientes no anida controles (nested-interactive ×5 muere
 
 describe('freeze funcional — la rebanada es de estructura accesible, no de conducta', () => {
   it('abrir sigue siendo onAbrir y Editar sigue frenando la propagación', () => {
-    expect(FILA).toMatch(/className="nx-fila-abrir"\s+onClick=\{onAbrir\}/)
+    // Actualizado por V15-MOTION-001 (5ª rebanada): el botón sigue llamando a
+    // onAbrir — el gesto y la estructura accesible no cambian — pero ahora le
+    // ENTREGA el .nx-ident de la fila, el objeto compartido de la coreografía
+    // de continuidad de §20 (fila → <h1> del Patient Anchor).
+    expect(FILA).toMatch(/className="nx-fila-abrir"\s+onClick=\{e => onAbrir\(e\.currentTarget\.querySelector<HTMLElement>\('\.nx-ident'\)\)\}/)
     expect(FILA).toMatch(/onClick=\{e => \{ e\.stopPropagation\(\); onEditar\(\) \}\}/)
   })
 

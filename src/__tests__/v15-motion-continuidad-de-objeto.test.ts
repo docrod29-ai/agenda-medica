@@ -30,12 +30,23 @@
  * bandera cambia todo el runtime de React al canal experimental — un cambio
  * de motor de toda la app prohibido por el congelamiento funcional de §1.
  *
+ * QUINTA REBANADA (misma familia): la segunda cadena de §20 (Result queue →
+ * Patient result) y los saltos que la cuarta declaró fuera — /pacientes →
+ * expediente y el enlace de paciente de la franja. El objeto compartido de la
+ * cadena de resultados es la IDENTIDAD DEL PACIENTE, no el título del
+ * resultado (decisión con §9 y §21 leídos, escrita en continuidad.ts); el
+ * tramo «→ Source» es Source Reveal (§21), revelación sin ruta. Y el fallo
+ * nuevo que esta rebanada cazó ANTES de cablear la franja: un origen que
+ * SOBREVIVE a la navegación (la franja persiste entre rutas) dejaría dos
+ * elementos con el mismo view-transition-name en la captura nueva y el
+ * navegador saltaría la transición entera — por eso el callback limpia el
+ * nombre del origen tras el commit, antes de esa captura.
+ *
  * QUÉ NO CUBRE: el morph COMPUTADO en el navegador (lo mide el arnés
- * `scripts/design/medir-continuidad-v15.mjs` con el API real); la segunda
- * cadena de §20 (Result queue → Patient result → Source), declarada para la
- * rebanada siguiente; y los saltos hacia el expediente desde /pacientes o la
- * franja del shell — este guardián vigila la cadena Hoy→Paciente→Encuentro,
- * no exige que TODA navegación se coreografíe.
+ * `scripts/design/medir-continuidad-v15.mjs` con el API real); y no exige
+ * que TODA navegación se coreografíe — sólo los saltos de continuidad de
+ * paciente: sin objeto compartido que preservar, navegar a secas es lo
+ * correcto (§20: no animar por decorar).
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -51,6 +62,9 @@ const continuidadPanel = leer('src/components/ContinuidadPanel.tsx')
 const anchor = leer('src/components/expediente/PatientAnchor.tsx')
 const expediente = leer('src/app/(dashboard)/expediente/[patientId]/page.tsx')
 const consulta = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
+const pendientes = leer('src/app/(dashboard)/pendientes/page.tsx')
+const pacientes = leer('src/app/(dashboard)/pacientes/page.tsx')
+const franja = leer('src/components/InstrumentStrip.tsx')
 
 describe('el mecanismo decide ANTES de llamar al API (mejora progresiva)', () => {
   it('sin startViewTransition o bajo reduced-motion, navega a secas', () => {
@@ -157,5 +171,57 @@ describe('la cadena Hoy→Paciente→Encuentro está cableada', () => {
   it('Paciente→Encuentro: continuar, nueva consulta y abrir nota coreografían (el ancla es el origen automático)', () => {
     const saltos = expediente.match(/navegarConContinuidad/g) ?? []
     expect(saltos.length).toBeGreaterThanOrEqual(4)
+  })
+})
+
+describe('la segunda cadena (Result queue → Patient result) y los saltos declarados fuera — 5ª rebanada', () => {
+  it('un origen que SOBREVIVE a la navegación no duplica el nombre: el callback lo limpia tras el commit', () => {
+    // La franja persiste entre rutas. Sin esta limpieza DENTRO del callback
+    // (después del commit, ANTES de la captura del estado nuevo), la captura
+    // nueva tendría dos elementos llamados nx-paciente — franja y ancla — y
+    // el navegador saltaría la transición entera, en silencio.
+    expect(modulo).toMatch(
+      /startViewTransition\(async \(\) => \{\s*navegar\(\)\s*await esperarCambioDeRuta\(\)[\s\S]*?if \(origen && origen\.isConnected\) origen\.style\.viewTransitionName = ''\s*\}\)/,
+    )
+  })
+
+  it('la decisión del objeto compartido de resultados está escrita: identidad del paciente, no título del resultado', () => {
+    // §9 + §21 leídos: el QUIÉN cruza pantallas (§4), R3 ya lo hace dominante
+    // en la tarjeta, y el título del resultado no tiene caja estable en el
+    // destino — morfear hacia un elemento invisible es animar hacia la nada.
+    // [\s*]+ y no \s+: el salto de línea dentro del comentario lleva ` * `.
+    expect(modulo).toMatch(/IDENTIDAD DEL[\s*]+PACIENTE/)
+    expect(modulo).toMatch(/no el título del[\s*]+resultado/)
+  })
+
+  it('/pendientes: la tarjeta viva Y la cerrada coreografían con su .nx-ident como origen', () => {
+    // Ambas tarjetas son la MISMA entidad (TareaClinica) pintada distinto:
+    // el salto al expediente se coreografía igual en las dos.
+    const saltos = pendientes.match(/irAlExpediente\(e, t\.patientId!\)/g) ?? []
+    expect(saltos.length).toBe(2)
+    expect(pendientes).toMatch(/if \(!esClickDeNavegacionSimple\(e\)\) return/)
+    expect(pendientes).toMatch(/navegarConContinuidad\(\(\) => router\.push\(`\/expediente\/\$\{patientId\}`\), e\.currentTarget\)/)
+  })
+
+  it('/pacientes: la fila entrega su .nx-ident como origen, y sin origen se navega a secas', () => {
+    expect(pacientes).toMatch(/onAbrir\(e\.currentTarget\.querySelector<HTMLElement>\('\.nx-ident'\)\)/)
+    // Sin objeto compartido no hay coreografía (§20: no animar por decorar).
+    expect(pacientes).toMatch(/if \(origen\) navegarConContinuidad[\s\S]*?else router\.push/)
+  })
+
+  it('la franja: sus DOS variantes coreografían el salto al expediente', () => {
+    const cableados = franja.match(/onClick=\{irAlExpediente\}/g) ?? []
+    expect(cableados.length).toBe(2)
+  })
+
+  it('la franja cede el origen al ancla cuando el ancla está en pantalla (cero pares duplicados en la captura vieja)', () => {
+    expect(franja).toMatch(/const anclaVisible = document\.querySelector\('\.nx-vt-paciente'\)/)
+    expect(franja).toMatch(/anclaVisible \? null : e\.currentTarget/)
+  })
+
+  it('la franja no intercepta la navegación a la ruta donde ya está', () => {
+    // Misma URL → el template no se remonta → el commit nunca llega → la
+    // pantalla vieja quedaría congelada hasta el tope de espera.
+    expect(franja).toMatch(/if \(pathname\?\.startsWith\('\/expediente\/'\)\) return/)
   })
 })

@@ -108,7 +108,10 @@ describe('V15-A11Y-001 · 6ª rebanada — táctiles de enlace (a.nx-ident y .nx
 
   it('5a. freeze: la identidad de /pendientes sigue siendo un Link con .nx-ident al expediente', () => {
     // Tarjeta viva y TarjetaCerrada: dos apariciones del mismo patrón.
-    const enlaces = pendientes.match(/Link href=\{`\/expediente\/\$\{t\.patientId\}`\} className="nx-ident"/g) ?? []
+    // Actualizado por V15-MOTION-001 (5ª rebanada): el Link pasó a multilínea
+    // al ganar el onClick de la coreografía de §20 — el destino y la clase no
+    // cambian, sólo la forma del JSX.
+    const enlaces = pendientes.match(/Link\s+href=\{`\/expediente\/\$\{t\.patientId\}`\}\s+className="nx-ident"/g) ?? []
     expect(enlaces.length).toBe(2)
   })
 

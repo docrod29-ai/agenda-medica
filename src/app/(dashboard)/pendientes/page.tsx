@@ -18,6 +18,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { PageHeader, Button, EmptyState, Spinner, Modal, Textarea } from '@/components/ui'
 import { useToast } from '@/context/ToastContext'
 import { useClinic } from '@/context/ClinicContext'
@@ -27,6 +28,7 @@ import { ordenWorklist, debeEscalar, estaVencida, type TareaClinica, type Estado
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import { estadoDeAccion, ORDEN_ESTADO_DE_ACCION, ETIQUETA_ESTADO_DE_ACCION, type EstadoDeAccion } from '@/lib/tareas-clinicas/estado-de-accion'
 import { ProgresoResultado } from '@/components/tareas/ProgresoResultado'
+import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { AlertTriangle, CheckCircle2, Clock, User, X, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react'
 
 const ETIQUETA_TIPO: Record<string, string> = {
@@ -56,6 +58,7 @@ function fechaCorta(iso?: string): string {
 export default function PendientesPage() {
   const { toast } = useToast()
   const { clinicId } = useClinic()
+  const router = useRouter()
   const [tareas, setTareas] = useState<TareaClinica[]>([])
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
@@ -138,6 +141,22 @@ export default function PendientesPage() {
     setRecarga(n => n + 1)
   }, [clinicId, toast])
 
+  /**
+   * §20, segunda cadena: Result queue → Patient result. El objeto compartido
+   * es la IDENTIDAD DEL PACIENTE — el mismo .nx-ident que encabeza la tarjeta
+   * (R3) viaja hasta el <h1> del Patient Anchor. No es el título del
+   * resultado: ese no tiene caja estable en el expediente y morfear hacia un
+   * elemento invisible es animar hacia la nada (la decisión entera, con §9 y
+   * §21 leídos, vive en src/lib/ui/continuidad.ts). El tramo «→ Source» es
+   * Source Reveal (§21): revelación en el flujo, sin ruta que coreografiar.
+   * Sólo el click simple intercepta; Ctrl/Cmd/central conservan su pestaña.
+   */
+  const irAlExpediente = useCallback((e: React.MouseEvent<HTMLAnchorElement>, patientId: string) => {
+    if (!esClickDeNavegacionSimple(e)) return
+    e.preventDefault()
+    navegarConContinuidad(() => router.push(`/expediente/${patientId}`), e.currentTarget)
+  }, [router])
+
   const verCerradas = useCallback(async () => {
     if (cerradas !== null) { setCerradas(null); return } // ya visibles: colapsar
     if (!clinicId) return
@@ -185,7 +204,11 @@ export default function PendientesPage() {
         <div style={{ display: 'grid', gap: 2 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
             {t.patientNombre && t.patientId && (
-              <Link href={`/expediente/${t.patientId}`} className="nx-ident">
+              <Link
+                href={`/expediente/${t.patientId}`}
+                className="nx-ident"
+                onClick={e => irAlExpediente(e, t.patientId!)}
+              >
                 {t.patientNombre}
               </Link>
             )}
@@ -269,7 +292,11 @@ export default function PendientesPage() {
       <div style={{ display: 'grid', gap: 2 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
           {t.patientNombre && t.patientId && (
-            <Link href={`/expediente/${t.patientId}`} className="nx-ident">
+            <Link
+              href={`/expediente/${t.patientId}`}
+              className="nx-ident"
+              onClick={e => irAlExpediente(e, t.patientId!)}
+            >
               {t.patientNombre}
             </Link>
           )}

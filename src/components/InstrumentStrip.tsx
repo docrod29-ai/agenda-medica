@@ -32,13 +32,14 @@
  */
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Circle } from 'lucide-react'
 import { useConfig } from '@/hooks/useConfig'
 import { useClinic } from '@/context/ClinicContext'
 import { getPatient } from '@/lib/firestore'
 import { patientIdDeLaRuta } from '@/lib/nav/paciente-de-la-ruta'
 import { EVENTO_GRABANDO, type DetalleDeEscucha } from '@/lib/seguridad/estoy-grabando'
+import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 
 /**
  * Nombre del paciente cuya ruta se está viendo ahora mismo, o `null` si esta
@@ -115,6 +116,34 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
   const { config } = useConfig()
   const segundos = useSegundosGrabando()
   const paciente = usePacienteActual()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  /**
+   * §20: el enlace de paciente de la franja es un salto → Expediente de la
+   * cadena de continuidad (la 4ª rebanada lo dejó declarado fuera). Dos
+   * decisiones que no son estilo:
+   *
+   *  · Si la pantalla actual YA tiene el ancla (`.nx-vt-paciente`: expediente
+   *    o consulta), ELLA es el origen automático — nombrar también a la
+   *    franja pondría dos elementos con el mismo nombre en la captura vieja
+   *    y el navegador saltaría la transición entera. Sólo cuando no hay
+   *    ancla (receta/orden/nota/referencia) la franja es el origen: la
+   *    identidad periférica crece hasta el ancla del expediente.
+   *
+   *  · Ya EN el expediente de este paciente no se intercepta nada: la URL no
+   *    cambia, el template no se remonta, y coreografiar eso congelaría la
+   *    pantalla hasta el tope de espera. El Link hace su no-op de siempre.
+   */
+  const irAlExpediente = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!paciente) return
+    if (pathname?.startsWith('/expediente/')) return
+    if (!esClickDeNavegacionSimple(e)) return
+    e.preventDefault()
+    const anclaVisible = document.querySelector('.nx-vt-paciente')
+    const origen = anclaVisible ? null : e.currentTarget
+    navegarConContinuidad(() => router.push(`/expediente/${paciente.id}`), origen)
+  }
 
   if (enTopbar) {
     return (
@@ -139,6 +168,7 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
           <Link
             href={`/expediente/${paciente.id}`}
             className="nx-ident-franja"
+            onClick={irAlExpediente}
             style={{
               display: 'flex', alignItems: 'center', minHeight: 44,
               paddingRight: 8, minWidth: 0,
@@ -196,7 +226,7 @@ export function InstrumentStrip({ enTopbar }: { enTopbar?: boolean }) {
               --text2, indistinguible del nombre del consultorio de al lado.
               En escritorio hay sitio: envuelve libre (minHeight 30 crece),
               sin clamp. */}
-          <Link href={`/expediente/${paciente.id}`} className="nx-ident-franja">
+          <Link href={`/expediente/${paciente.id}`} className="nx-ident-franja" onClick={irAlExpediente}>
             {paciente.nombre}
           </Link>
         </>

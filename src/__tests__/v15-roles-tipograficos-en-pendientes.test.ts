@@ -83,8 +83,10 @@ describe('los roles de VISUAL_DNA §2 existen como clases en globals.css', () =>
 describe('/pendientes habla los roles', () => {
   it('la identidad del paciente encabeza la entrada como .nx-ident y SIGUE navegando al expediente', () => {
     // Falla contra el árbol previo: el paciente era un <Link> teal de 13px en
-    // la fila de metadatos.
-    expect(PAGINA).toMatch(/<Link href=\{`\/expediente\/\$\{t\.patientId\}`\} className="nx-ident">/)
+    // la fila de metadatos. Actualizado por V15-MOTION-001 (5ª rebanada): el
+    // Link pasó a multilínea al ganar el onClick de la coreografía de §20 —
+    // el rol (.nx-ident) y el destino (expediente) no cambian.
+    expect(PAGINA).toMatch(/<Link\s+href=\{`\/expediente\/\$\{t\.patientId\}`\}\s+className="nx-ident"/)
   })
 
   it('si la tarea trae nombre sin patientId, la identidad se pinta sin enlace roto', () => {

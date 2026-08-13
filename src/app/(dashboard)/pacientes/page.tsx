@@ -17,6 +17,7 @@ import { AvisoPrivacidadModal } from '@/components/AvisoPrivacidadModal'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
+import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 
 export default function PacientesPage() {
@@ -35,6 +36,19 @@ export default function PacientesPage() {
   const [editPatient, setEditPatient] = useState<Patient | null>(null)
   // Pacientes ACTUALMENTE internados → se marcan (viven en Hospitalización).
   const [internados, setInternados] = useState<Set<string>>(new Set())
+
+  /**
+   * §20: la fila de /pacientes es un salto Paciente-lista → Expediente de la
+   * cadena de continuidad — el .nx-ident de ESA fila viaja al <h1> del
+   * Patient Anchor (la 4ª rebanada lo dejó declarado fuera; ésta lo cablea).
+   * Sin origen no hay objeto compartido que preservar y se navega a secas
+   * (§20: no animar por decorar). En modo no-médico no hay navegación: abre
+   * el editor, como siempre.
+   */
+  const abrirExpediente = (p: Patient, origen?: HTMLElement | null) => {
+    if (origen) navegarConContinuidad(() => router.push(`/expediente/${p.id}`), origen)
+    else router.push(`/expediente/${p.id}`)
+  }
 
   const load = async () => {
     if (!clinicId) return
@@ -337,7 +351,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${resultadosBusqueda.length} resultado${resultadosBusqueda.length !== 1 ? 's' : ''}`} />
               {resultadosBusqueda.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -350,7 +364,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto="Vistos recientemente" />
               {recientes.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -363,7 +377,7 @@ export default function PacientesPage() {
             <>
               <ListaEncabezado texto={`${conAlerta.length} con inasistencias / cancelaciones`} />
               {conAlerta.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </>
           )
@@ -377,7 +391,7 @@ export default function PacientesPage() {
                 color: 'var(--text3)', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)',
               }}>{letra}</div>
               {lista.map(p => (
-                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={() => mode === 'medico' ? router.push(`/expediente/${p.id}`) : openEdit(p)} onEditar={() => openEdit(p)} />
+                <PacienteRow key={p.id} p={p} mode={mode} internado={internados.has(p.id)} onAbrir={origen => mode === 'medico' ? abrirExpediente(p, origen) : openEdit(p)} onEditar={() => openEdit(p)} />
               ))}
             </div>
           ))
@@ -421,7 +435,8 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
   p: Patient
   mode: string
   internado?: boolean
-  onAbrir: () => void
+  /** Recibe el .nx-ident de la fila: el objeto compartido de la coreografía (§20). */
+  onAbrir: (origen?: HTMLElement | null) => void
   onEditar: () => void
 }) {
   return (
@@ -454,7 +469,7 @@ function PacienteRow({ p, mode, internado, onAbrir, onEditar }: {
         <button
           type="button"
           className="nx-fila-abrir"
-          onClick={onAbrir}
+          onClick={e => onAbrir(e.currentTarget.querySelector<HTMLElement>('.nx-ident'))}
           aria-label={`Abrir el expediente de ${p.nombre}`}
         >
           <span className="nx-ident" style={{ display: 'block' }}>{p.nombre}</span>

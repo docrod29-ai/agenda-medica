@@ -5676,3 +5676,109 @@ primera cadena a los saltos que esta rebanada declaró fuera: las filas de
 Decidir ahí si el objeto compartido de resultados es el título del resultado
 o la identidad del paciente — leyendo §9 y §21 (Source Reveal) antes.
 DEBT-008 sigue CONSULTADO al dueño (cierre de A11Y-001).
+
+## `V15-MOTION-001` — quinta rebanada: la segunda cadena de §20 (Result queue → Patient result) y los saltos declarados fuera (13-ago-2026)
+
+La tarea exacta de la cuarta rebanada, pagada entera: la cadena de
+resultados coreografía, y los dos saltos que la cuarta declaró fuera
+(/pacientes → expediente y el enlace de paciente de la franja) entraron a la
+primera cadena.
+
+### La decisión pedida: el objeto compartido de resultados es la IDENTIDAD
+
+Leídos §9 y §21 antes de decidir, como pedía la nota. El objeto compartido
+de Result queue → Patient result es la **identidad del paciente**, no el
+título del resultado, por tres razones escritas en `continuidad.ts`: (1) el
+modelo de producto (§4) — el médico piensa «el resultado de ESTE paciente
+necesita mi decisión»; el QUIÉN es lo que cruza pantallas; (2) R3 ya hace de
+la identidad el elemento dominante de la tarjeta de /pendientes (.nx-ident
+encabeza la entrada): el objeto que viaja es el que el ojo ya tiene
+agarrado; (3) el título del resultado NO tiene caja estable en el destino —
+morfear hacia un elemento que puede no estar visible es animar hacia la
+nada (§20: no animar por decorar). El tramo «→ Source» es Source Reveal
+(§21): revelación EN el flujo, sin ruta que coreografiar.
+
+### El fallo que la franja habría causado, cazado ANTES de cablearla
+
+La franja (InstrumentStrip) **sobrevive a la navegación** — no se desmonta
+como las filas de Hoy. Con el mecanismo de la 4ª rebanada tal cual, su
+nombre inline seguiría puesto en la captura del estado NUEVO: dos elementos
+llamados `nx-paciente` (franja y ancla del destino) y el navegador SALTA la
+transición entera, en silencio. El arreglo vive en el callback de
+`navegarConContinuidad`: tras el commit de ruta y ANTES de la captura nueva,
+si el origen sigue conectado se le quita el nombre — la instantánea vieja ya
+lo capturó, y el destino queda como único dueño del nombre.
+
+Y la franja decide su origen con dos reglas escritas: si la pantalla actual
+ya tiene ancla (.nx-vt-paciente: expediente o consulta), ELLA es el origen
+automático — nombrar también la franja duplicaría el par en la captura
+VIEJA; y ya en el expediente del paciente no se intercepta nada (misma URL →
+el template no se remonta → el commit nunca llegaría y la pantalla vieja se
+congelaría hasta el tope).
+
+### La cadena cableada en esta rebanada
+
+- **/pendientes**: la tarjeta viva Y la cerrada — el Link .nx-ident del
+  paciente coreografía al expediente (click simple; Ctrl/Cmd/central
+  conservan su pestaña).
+- **/pacientes**: `PacienteRow` entrega el .nx-ident de la fila a `onAbrir`;
+  sin origen (modal de duplicados, sin objeto compartido visible) se navega
+  a secas.
+- **Franja**: sus DOS variantes (topbar móvil y escritorio) coreografían el
+  salto al expediente con las dos reglas de arriba.
+
+### Guardián, probado al revés
+
+`v15-motion-continuidad-de-objeto.test.ts` creció de 15 a 22 casos: la
+limpieza del origen dentro del callback, la decisión del objeto compartido
+escrita, /pendientes ×2, /pacientes (origen entregado + a-secas sin origen),
+franja ×2 cableadas, cesión del origen al ancla, y el no-intercepto en la
+misma ruta. **7 de 7 nuevos fallan contra el árbol previo** (verificado con
+`git stash`). Tres freezes hermanos se actualizaron con la razón escrita
+(el Link de /pendientes pasó a multilínea; `onAbrir` ahora recibe el
+origen): `v15-a11y-pacientes-sin-nested-interactive`,
+`v15-a11y-tactiles-de-enlace` y `v15-roles-tipograficos-en-pendientes` —
+rol, destino y estructura accesible no cambian.
+
+### Verificado en navegador real (13-ago-2026)
+
+`medir-continuidad-v15.mjs` creció de 14 a 22 casos y ahora instrumenta
+`ready`: un par duplicado NO truena — el navegador salta la transición en
+silencio (`ready` rechaza, `finished` resuelve igual), así que «la
+coreografía corre» y «se salta siempre» son indistinguibles sin medirlo.
+**22/22 en verde** (`docs/design/capturas/v15-motion-continuidad/`):
+
+- Result queue→Patient result invoca el API 1 vez y **el par SE FORMÓ**
+  (readyOk=true) — escritorio 1440 y móvil 390.
+- /pacientes→expediente: 1 llamada (la fila entrega su .nx-ident).
+- Franja desde /referencia (ruta SIN ancla): 1 llamada, **el par se formó
+  con la franja VIVA de origen** (la limpieza del callback funciona) y cero
+  nombres inline residuales después.
+- Ya en el expediente del paciente: 0 coreografías (el no-intercepto).
+- Bajo reduce: 0 llamadas y la navegación llega. Consola: 0 errores.
+- Lección de método de la primera corrida: `/receta/<pac>` a secas es 404 —
+  receta exige `[notaId]`; el arnés usa `/referencia/<pac>`, la ruta con
+  paciente y sin ancla que sí existe sola. El comentario quedó en el arnés.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: 9230 pasan; único fallo real el PRE-EXISTENTE ambiental
+  (`ops-timeout-y-punto-ciego`, proxy del contenedor). Guardián 22/22.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (/pendientes y /pacientes
+  cambiaron de líneas).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores), mismo patrón documentado.
+
+**Siguiente tarea exacta:** `V15-PERF-001` (§43, orden 15) — empezar por
+medir: presupuesto de percepción del shell (First Contentful Paint del
+lienzo, coste de hidratación de las pantallas grandes de la cadena
+/consulta y /expediente, peso del JS por ruta con `next build` ya lo
+imprime) ANTES de tocar nada, y decidir la primera rebanada con números.
+Antes de eso, si la decisión del dueño sobre DEBT-008 llegó, pagarla
+(rebanada corta dimensionada en el cierre de A11Y-001). MOTION-001 queda
+CERRADA: tokens en hoja e inline, cascada una-voz, apagador §24 con dos
+candados, y las DOS cadenas de §20 coreografiadas y medidas.

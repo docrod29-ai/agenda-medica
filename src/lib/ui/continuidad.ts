@@ -43,12 +43,26 @@
  * `.nx-vt-paciente`, así que es el ORIGEN automático sin pasar `origen` — el
  * mismo mecanismo cubre los dos saltos de la cadena.
  *
+ * ── LA SEGUNDA CADENA (§20): RESULT QUEUE → PATIENT RESULT → SOURCE ─────────
+ *
+ * El objeto compartido de la cadena de resultados es la IDENTIDAD DEL
+ * PACIENTE, no el título del resultado. Se decidió leyendo §9 y §21 y no por
+ * comodidad: (1) el modelo de producto (§4) dice que el médico no piensa
+ * «abro el módulo de labs», piensa «el resultado de ESTE paciente necesita mi
+ * decisión» — el QUIÉN es lo que cruza pantallas; (2) R3 de VISUAL_DNA ya
+ * hace de la identidad el elemento dominante de la tarjeta de /pendientes
+ * (.nx-ident encabeza la entrada), así que el objeto que viaja es el que el
+ * ojo ya tiene agarrado; y (3) el «título del resultado» NO tiene caja
+ * estable en el destino — el expediente no pinta un encabezado por resultado,
+ * y morfear hacia un elemento que puede no estar visible es animar hacia la
+ * nada (§20: no animar por decorar). El tramo «→ Source» dentro del destino
+ * es Source Reveal (§21): revelación EN el flujo, sin navegación — no hay
+ * ruta que coreografiar ahí.
+ *
  * ── LO QUE **NO** CUBRE ──────────────────────────────────────────────────────
  *
- * No coreografía la cadena de resultados (§20 segunda parte: Result queue →
- * Patient result → Source) — queda declarada para la siguiente rebanada. No
- * decide QUÉ navegación merece coreografía: sólo los saltos de continuidad de
- * paciente la piden; el resto conserva el crossfade. Y no anima nada por
+ * No decide QUÉ navegación merece coreografía: sólo los saltos de continuidad
+ * de paciente la piden; el resto conserva el crossfade. Y no anima nada por
  * decorar: si no hay objeto compartido que preservar, no se usa.
  */
 
@@ -135,6 +149,14 @@ export function navegarConContinuidad(navegar: () => void, origen?: HTMLElement 
   const transicion = document.startViewTransition(async () => {
     navegar()
     await esperarCambioDeRuta()
+    // ANTES de que el navegador capture el estado NUEVO: si el origen
+    // sobrevivió a la navegación (la franja del shell persiste entre rutas),
+    // su nombre inline y el del destino serían DOS elementos llamados igual
+    // en la misma captura — y el navegador salta la transición entera. El
+    // estado viejo ya se capturó al llamar al API; quitarle el nombre aquí
+    // no le quita nada a la instantánea de origen, sólo deja al destino
+    // como único dueño del nombre en la captura nueva.
+    if (origen && origen.isConnected) origen.style.viewTransitionName = ''
   })
   // `finished` rechaza si la transición se saltó (otra navegación encima, un
   // nombre duplicado…). Interrumpirse es comportamiento correcto (§20:

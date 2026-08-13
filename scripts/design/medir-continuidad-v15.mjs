@@ -59,18 +59,31 @@ async function login(page) {
   } catch { /* sin tour esta vez */ }
 }
 
-/** Contador de invocaciones + bitácora del atributo, instalado ANTES del click. */
+/**
+ * Contador de invocaciones + bitácora del atributo, instalado ANTES del click.
+ *
+ * 5ª rebanada: también vigila `ready`. Un par DUPLICADO de
+ * view-transition-name (el fallo que la franja persistente habría causado sin
+ * la limpieza dentro del callback) no truena nada: el navegador SALTA la
+ * transición en silencio — `ready` rechaza y `finished` resuelve igual. El
+ * único testigo de que el par se formó y la animación ARRANCÓ es que `ready`
+ * resolviera. Sin medirlo, «la coreografía corre» y «la coreografía se salta
+ * siempre» son indistinguibles desde fuera.
+ */
 function instrumentar(page) {
   return page.evaluate(() => {
     const w = window
-    w.__vt = { llamadas: 0, atributoDuranteTransicion: false }
+    w.__vt = { llamadas: 0, atributoDuranteTransicion: false, readyOk: null }
     if (typeof document.startViewTransition === 'function') {
       const original = document.startViewTransition.bind(document)
       document.startViewTransition = (cb) => {
         w.__vt.llamadas++
         w.__vt.atributoDuranteTransicion =
           document.documentElement.hasAttribute('data-vt-continuidad')
-        return original(cb)
+        const t = original(cb)
+        w.__vt.readyOk = null
+        t.ready.then(() => { w.__vt.readyOk = true }, () => { w.__vt.readyOk = false })
+        return t
       }
     }
     return typeof document.startViewTransition === 'function'
@@ -185,6 +198,68 @@ async function main() {
   vt = await leerVt(page)
   caso('Paciente→Encuentro invoca la view transition (el ancla es el origen)', vt.llamadas === 1, `llamadas=${vt.llamadas}`)
 
+  // ── 5ª rebanada: la SEGUNDA cadena de §20 — Result queue → Patient result ──
+  // El objeto compartido es la identidad del paciente (.nx-ident de la
+  // tarjeta), decidido en continuidad.ts con §9 y §21 leídos.
+  await page.goto(`${BASE}/pendientes`, { waitUntil: 'load' })
+  await page.waitForSelector('a.nx-ident', { timeout: 15000 })
+  await instrumentar(page)
+  await page.screenshot({ path: path.join(DESTINO, 'antes-pendientes-1440.png') })
+  await page.locator('a.nx-ident').first().click()
+  await page.waitForURL('**/expediente/**', { timeout: 15000 })
+  vt = await leerVt(page)
+  caso('Result queue→Patient result invoca la view transition', vt.llamadas === 1, `llamadas=${vt.llamadas}`)
+  await page.waitForFunction(() => window.__vt.readyOk !== null, null, { timeout: 5000 })
+  vt = await leerVt(page)
+  caso('…y el par SE FORMÓ (ready resolvió — la animación arrancó, no se saltó)', vt.readyOk === true, `readyOk=${vt.readyOk}`)
+  await page.screenshot({ path: path.join(DESTINO, 'despues-pendientes-1440.png') })
+
+  // ── 5ª rebanada: /pacientes → expediente (el salto que la 4ª declaró fuera) ─
+  await page.goto(`${BASE}/pacientes`, { waitUntil: 'load' })
+  await page.waitForSelector('.nx-fila-abrir', { timeout: 15000 })
+  await instrumentar(page)
+  await page.locator('.nx-fila-abrir').first().click()
+  await page.waitForURL('**/expediente/**', { timeout: 15000 })
+  vt = await leerVt(page)
+  caso('/pacientes→expediente invoca la view transition (la fila entrega su .nx-ident)', vt.llamadas === 1, `llamadas=${vt.llamadas}`)
+
+  // ── 5ª rebanada: la franja desde una ruta SIN ancla (referencia) ───────────
+  // El caso que motivó la limpieza dentro del callback: la franja SOBREVIVE a
+  // la navegación. Si su nombre inline siguiera puesto en la captura nueva,
+  // habría dos elementos llamados nx-paciente y el navegador saltaría la
+  // transición EN SILENCIO — por eso aquí `ready` es la medición que importa.
+  // /referencia/[patientId] y no /receta: receta exige [notaId] en la URL
+  // (la primera corrida del arnés lo cazó — /receta/<pac> a secas es 404).
+  await page.goto(`${BASE}/referencia/${PACIENTE_SEMBRADO}`, { waitUntil: 'load' })
+  await page.waitForSelector('.nx-instrument-strip a.nx-ident-franja', { timeout: 15000 })
+  await instrumentar(page)
+  await page.screenshot({ path: path.join(DESTINO, 'antes-referencia-franja-1440.png') })
+  await page.locator('.nx-instrument-strip a.nx-ident-franja').click()
+  await page.waitForURL('**/expediente/**', { timeout: 15000 })
+  vt = await leerVt(page)
+  caso('franja→expediente (sin ancla en pantalla) invoca la view transition', vt.llamadas === 1, `llamadas=${vt.llamadas}`)
+  await page.waitForFunction(() => window.__vt.readyOk !== null, null, { timeout: 5000 })
+  vt = await leerVt(page)
+  caso('…con la franja VIVA de origen el par se formó igual (la limpieza del callback funciona)', vt.readyOk === true, `readyOk=${vt.readyOk}`)
+  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-vt-continuidad'), null, { timeout: 5000 })
+  const nombreResidual = await page.evaluate(
+    () => document.querySelectorAll('[style*="view-transition-name"]').length,
+  )
+  caso('…y la franja no se queda con el nombre puesto (cero nombres inline residuales)', nombreResidual === 0, `residuales=${nombreResidual}`)
+  await page.screenshot({ path: path.join(DESTINO, 'despues-referencia-franja-1440.png') })
+
+  // ── 5ª rebanada: ya EN el expediente, la franja NO intercepta ──────────────
+  await instrumentar(page)
+  const franjaEnExpediente = page.locator('.nx-instrument-strip a.nx-ident-franja')
+  if (await franjaEnExpediente.count()) {
+    await franjaEnExpediente.click()
+    await page.waitForTimeout(400)
+    vt = await leerVt(page)
+    caso('en el expediente del mismo paciente la franja navega a secas (0 coreografías)', vt.llamadas === 0, `llamadas=${vt.llamadas}`)
+  } else {
+    caso('en el expediente del mismo paciente la franja navega a secas (0 coreografías)', false, 'no se encontró el enlace de la franja en el expediente')
+  }
+
   await ctx.close()
 
   // ── Reduced motion: el API NO se llama y la navegación funciona ───────────
@@ -211,6 +286,17 @@ async function main() {
   const vtM = await leerVt(pageM)
   caso('móvil 390: el salto desde Hoy también coreografía', vtM.llamadas === 1, `llamadas=${vtM.llamadas}`)
   await pageM.screenshot({ path: path.join(DESTINO, 'despues-salto-390.png') })
+
+  // 5ª rebanada: la segunda cadena también en móvil — el worklist es trabajo
+  // de teléfono (§22: «review result» es trabajo móvil primario).
+  await pageM.goto(`${BASE}/pendientes`, { waitUntil: 'load' })
+  await pageM.waitForSelector('a.nx-ident', { timeout: 15000 })
+  await instrumentar(pageM)
+  await pageM.locator('a.nx-ident').first().click()
+  await pageM.waitForURL('**/expediente/**', { timeout: 15000 })
+  const vtM2 = await leerVt(pageM)
+  caso('móvil 390: Result queue→Patient result coreografía', vtM2.llamadas === 1, `llamadas=${vtM2.llamadas}`)
+  await pageM.screenshot({ path: path.join(DESTINO, 'despues-pendientes-390.png') })
   await ctxM.close()
 
   await browser.close()
