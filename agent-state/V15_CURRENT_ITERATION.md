@@ -4,27 +4,37 @@
 
 ## Iteración en curso
 
-`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO, panel
-CERRADO 13-ago-2026**. El equipo rojo YA CORRIÓ: 4 revisores independientes
-(genérico-SaaS · jerarquía/silueta/logo-off · imitación/IA-first/motion ·
-móvil) sobre las 27 capturas reales + código, con cada afirmación verificada
-por el orquestador. Veredicto consolidado y registro de 22 defectos
-(RT-01…RT-22) en `docs/design/V15_ORIGINALITY_REDTEAM_VEREDICTO.md`.
-Resumen: imitación de competidor REFUTADA, motion decorativo REFUTADO en lo
-principal, prueba del menú §14 PASS, diferenciación entre superficies en
-gris PASS — pero **ningún score §29 cumple ≤1** (consolidados: hoy 5,
-pacientes 7, expediente 6, consulta 4, pendientes 3, operaciones 7) y la
-vara de medir estaba rota (RT-01: el audit doc contaba clases Tailwind en
-código 88.5% inline — sus ceros eran artefactos; re-medido: 14 gradientes,
-56 sombras, 15 backdrop-filter). Primera tanda PAGADA en esta corrida:
-RT-03 (héroe móvil de Hoy con breakpoint, verificado en navegador), RT-05
-parcial (4 etiquetas de IA-feature muertas: «Nueva consulta con IA»,
-«Razonar con IA (infectólogo — Claude + GPT)», «Claude estructurando…» ×2),
-el degradado morado literal de RT-01 y un radio 12 de RT-19.
-**Siguiente rebanada exacta:** RT-08 — la ventana de clic ciego de
-`continuidad.ts` (riesgo de PACIENTE EQUIVOCADO: prioridad de seguridad
-sobre el orden §43) — y después RT-01 (contadores de genericidad en el
-trinquete de diseño). Ver sección al FINAL.
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; DOS
+paneles independientes CERRADOS 13-ago-2026, registros POR UNIFICAR**.
+Dos corridas concurrentes del routine ejecutaron el equipo rojo el mismo
+día sobre las MISMAS 27 capturas (§39: quedó registrado; el estado se
+consolidó por merge, sin force-push):
+
+- **Panel A** (3 revisores): veredicto en
+  `docs/design/v15/ORIGINALITY-REDTEAM-001-veredicto.md`, registro
+  **ORT-01..21** (1 P0 — REPARADO como **REG-311**: el PatientAnchor traía
+  la SÉPTIMA copia de la negación de alergias, sin `\b`; las tres piezas
+  derivan ahora del módulo sellado y hay guardián contra la octava copia —
+  7 P1, 8 P2, 5 P3). Scores §29: Hoy 3.5/4.5 · Pacientes 6/7 ·
+  Expediente 4.5 · Consulta 3 · Pendientes 2 · Operaciones 7. Hueco
+  declarado: el encuentro GRABANDO no está fotografiado.
+- **Panel B** (4 revisores + verificación del orquestador): veredicto en
+  `docs/design/V15_ORIGINALITY_REDTEAM_VEREDICTO.md`, registro
+  **RT-01…RT-22**. Coincide en lo grueso (imitación REFUTADA, §14 PASS,
+  pacientes/operaciones ~7, pendientes 2-3) y aporta hallazgos que A no
+  tiene: **RT-08** (ventana de clic ciego en `continuidad.ts` — riesgo de
+  PACIENTE EQUIVOCADO), **RT-01** (la vara de genericidad contaba clases
+  Tailwind en código 88.5% inline; re-medido: 14 gradientes, 56 sombras,
+  15 backdrop-filter, y sin trinquete de genericidad). Pagos de B:
+  RT-03 (héroe móvil de Hoy con breakpoint, verificado en navegador),
+  RT-05 parcial (4 etiquetas de IA-feature muertas, §25), el degradado
+  morado literal y un radio 12.
+
+**Siguiente rebanada exacta:** (1) UNIFICAR los dos registros en uno
+canónico (mapear ORT↔RT, deduplicar, una sola numeración y severidad
+reconciliada — vive en el veredicto B o en un tercero, pero UNO); (2)
+**RT-08** (clic ciego → paciente equivocado: seguridad primero, §43); (3)
+RT-01/contadores de genericidad en el trinquete. Ver secciones al FINAL.
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO
@@ -6286,6 +6296,108 @@ GENERIC_AI_LOOK_SCORE por pantalla se documenta con razones ESTRUCTURALES
 agentes con roles de §26 + veredicto consolidado en
 `docs/design/` y defectos en el estado V15. DEBT-008 sigue CONSULTADO al
 dueño (cierre de A11Y-001).
+
+## `V15-ORIGINALITY-REDTEAM-001` — 1ª rebanada: la auditoría, el veredicto y la P0 pagada (13-ago-2026)
+
+### Método (§26/§41/§29, cumplido como manda §40)
+
+- **Evidencia primero**: arnés nuevo `scripts/design/capturar-redteam-v15.mjs`
+  (hermano de los capturadores existentes, mismo login sembrado) — 27 capturas
+  de las 6 superficies estructuradas (hoy, pacientes, expediente, consulta,
+  pendientes, operaciones) × escritorio 1440/móvil 390 × oscuro (+claro en la
+  cadena clínica de escritorio) + **variante GRIS por superficie**
+  (`filter: grayscale(1)` sobre la app corriendo): la prueba de §41
+  «diferenciación sólo-color» se juzga sobre la pantalla sin color, no sobre
+  una opinión. En `docs/design/capturas/v15-redteam/`.
+- **Panel independiente de 3 revisores** con roles de §26: equipo rojo §41
+  (10 categorías), Product Design Director (scores §29 + silueta §13 +
+  logo-off §28 + jerarquía §16) y Clinical Workflow Architect + Human
+  Factors + Content (§15/§20/§25). El orquestador NO auditó: verificó cada
+  afirmación load-bearing contra la fuente (regla de la casa: los agentes
+  auditan, el orquestador verifica y escribe).
+- **Veredicto consolidado**:
+  `docs/design/v15/ORIGINALITY-REDTEAM-001-veredicto.md` — scores por
+  superficie con razones estructurales, 21 defectos ORT-01..21 con evidencia
+  verificada, señales BUSCADAS Y NO ENCONTRADAS (morado 0, shadcn 0,
+  imitación de competidor refutada 3×), y el hueco de evidencia declarado
+  (el encuentro GRABANDO no está fotografiado — §40 obliga a decirlo, no a
+  fingir el score).
+
+### La P0 que el equipo rojo encontró — y esta corrida REPARÓ (REG-311)
+
+El hallazgo más valioso de la iteración no fue estético.
+`PatientAnchor.tsx:45` — componente que V15 ESCRIBIÓ en Fase 4 — traía la
+**séptima copia** de la regla de negación de alergias, PEOR que la que
+REG-279 condenó (perdió el `\b`): «Niega penicilina. Alérgico a sulfas» (la
+cadena motivadora de REG-279) salía «sin alergias» EN GRIS en el ancla
+siempre-visible del expediente; «Nolotil» empieza por «no» y también;
+alergia sólo-estructurada → «no registradas». Y `/consulta` tenía DOS
+criterios contradictorios en el mismo viewport (franja editable: rojo con
+cualquier texto, «Niega alergias» → ROJO; píldora del encabezado: prefijo,
+«Niega penicilina. Alérgico a sulfas» → NEUTRO).
+
+Reparación (dentro del carril de §1 — cromo que consume el motor sellado,
+cero cambio de lógica clínica):
+
+- `PatientAnchor.tsx`: `alergenosDe` + `negacionesEnTexto` (módulo sellado
+  por REG-279) deciden; TRES estados — ROJO con los ALÉRGENOS enseñados
+  (`nx-critico`), GRIS sólo con negación explícita y nada restante, y el
+  hueco «no registradas» en ÁMBAR (regla 4: ausencia de dato no es dato de
+  ausencia).
+- `/consulta`: la franja editable pinta rojo por `alergenosDe(...)length>0`
+  (no por texto truthy) y la píldora deriva del mismo criterio, enseñando
+  los alérgenos en rojo — no la frase cruda que los esconde. Una píldora
+  que callaba la alergia sólo-estructurada ahora la enseña.
+- **Guardián probado al revés ×1 con 3 rojos**:
+  `src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts` (9 casos):
+  la decisión del ancla con las cadenas de REG-279 + «Nolotil» +
+  sólo-estructuradas + «no sobreavisa» + hueco-ámbar; guardas de fuente de
+  las tres piezas; y el **BARRIDO de repositorio** (src/app +
+  src/components) que impide la octava copia de la familia de regex de
+  prefijo. Sin el arreglo fallan 3 (verificado con git stash).
+- **Ledger**: REG-311 (familia `copia_local_de_regla_sellada`); **sello**:
+  4560 → 4569 casos, gate de seguridad clínica en verde (54/54 con el
+  golden de REG-279).
+
+### Los defectos que quedan (la cola de reparación de la iteración)
+
+7 P1 abiertos — en orden de dolor clínico/estructural: ORT-06 (banner de
+cobro a peso íntegro DENTRO del encuentro; nada del layout se suscribe a
+EVENTO_GRABANDO), ORT-03 (destino «Encuentro» que no es un lugar), ORT-04
+(el pulgar móvil corona «Nueva cita»/admin), ORT-05 (dos CTA primarios
+co-iguales en Hoy — el comentario del código dice «la ÚNICA» y no lo es),
+ORT-02 (grupo «CLÍNICO» dentro de Operaciones; «Consultor IA»
+feature-first), ORT-07 (expediente sin Clinical Spine, 3 KPI vacías), ORT-08
+(identidad rota en pacientes-móvil). Después 8 P2 y 5 P3 — todos en el
+veredicto con evidencia y archivo:línea.
+
+### Compuertas de esta corrida
+
+- `npx vitest run` (dirigidas): REG-311 9/9, y 54/54 con
+  `clinical-safety-gate` + golden REG-279. Suite completa: ver cifra final
+  del reporte de la corrida.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva.
+- `npx tsc --noEmit`: limpio.
+- `npm run build`: compila limpio (corrida de captura previa al arreglo;
+  el build final de la corrida se relanza tras los cambios de src/).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (7 variables +
+  emuladores). Lección operativa NUEVA para el arnés: en este contenedor
+  Playwright no encuentra su browser descargado — el patrón de los hermanos
+  (`executablePath: '/opt/pw-browsers/chromium'` si
+  `PLAYWRIGHT_BROWSERS_PATH` existe) va incluido en el capturador nuevo
+  desde el inicio.
+
+**Siguiente tarea exacta:** 2ª rebanada de `V15-ORIGINALITY-REDTEAM-001` —
+pagar los P1 en su orden de dolor: (a) ORT-06, el banner de cobro y la pila
+de avisos del layout se aquietan al grabar (suscribirse a EVENTO_GRABANDO
+igual que FlowRail — §8.5; la decisión v972 pide prueba visible, no
+presencia permanente sobre la superficie clínica); (b) ORT-05, Hoy con UNA
+acción primaria (la clínica) y «Nueva cita» subordinada; (c) ORT-04, la
+acción del pulgar móvil respeta el contexto clínico. Cada una con su captura
+antes/después y su guardián. Después ORT-03/ORT-02 (IA del riel y de
+Operaciones), y ORT-07/ORT-08 que son rebanadas grandes propias. DEBT-008
+sigue CONSULTADO al dueño (cierre de A11Y-001).
 
 ## `V15-ORIGINALITY-REDTEAM-001` — el panel corrió, el veredicto existe, y la primera tanda está pagada (13-ago-2026)
 

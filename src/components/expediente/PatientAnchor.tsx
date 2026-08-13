@@ -5,6 +5,7 @@ import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { avatarColor } from '@/lib/avatar-color'
+import { alergenosDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
 
 /**
  * PATIENT ANCHOR — V15-PATIENT-WORKSPACE-001 (§7: identidad, edad/sexo,
@@ -41,8 +42,15 @@ export function PatientAnchor({
     }
   }, [notas])
 
-  const alergiaTexto = (patient?.alergias ?? '').trim()
-  const sinAlergias = !alergiaTexto || /^(ninguna|niega|no|sin|nkda|negad)/i.test(alergiaTexto)
+  /* La negación de alergias NO se decide aquí — REG-311. Una copia local de
+     esa regla («empieza por niega/no/sin…») fue REG-279, y esta ancla nació
+     con la séptima copia: «Niega penicilina. Alérgico a sulfas» salía como
+     «sin alergias» en gris. `alergenosDe` aplica la semántica sellada
+     (negadas exige negación explícita Y que no quede ningún alérgeno, leyendo
+     también `alergiasEstructuradas`), y «no registradas» queda en ámbar:
+     ausencia de dato no es dato de ausencia (regla 4). */
+  const alergenos = useMemo(() => alergenosDe(patient ?? {}), [patient])
+  const alergiasNegadas = alergenos.length === 0 && negacionesEnTexto(patient?.alergias).length > 0
   const colores = avatarColor(patient?.nombre ?? 'Paciente')
 
   return (
@@ -118,17 +126,24 @@ export function PatientAnchor({
       ) : (
         <div style={{
           ...alertaEstilo,
-          color: sinAlergias ? 'var(--text2)' : 'var(--red)',
-          background: sinAlergias ? 'var(--s2)' : 'color-mix(in srgb, var(--red) 12%, transparent)',
-          borderColor: sinAlergias ? 'var(--border)' : 'color-mix(in srgb, var(--red) 35%, transparent)',
+          color: alergenos.length ? 'var(--red)' : alergiasNegadas ? 'var(--text2)' : 'var(--amber)',
+          background: alergenos.length
+            ? 'color-mix(in srgb, var(--red) 12%, transparent)'
+            : alergiasNegadas ? 'var(--s2)' : 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          borderColor: alergenos.length
+            ? 'color-mix(in srgb, var(--red) 35%, transparent)'
+            : alergiasNegadas ? 'var(--border)' : 'color-mix(in srgb, var(--amber) 35%, transparent)',
         }}>
           <AlertTriangle size={14} style={{ flexShrink: 0 }} />
           {/* Una alergia REGISTRADA es valor crítico (§2: peso + icono, nunca
-              sólo color — el icono va al lado, en esta misma fila). «No
-              registradas» NO lo es: es un dato del registro, se queda en el
-              cuerpo neutro del aviso. */}
-          <span className={sinAlergias ? undefined : 'nx-critico'}>
-            <strong>Alergias:</strong> {alergiaTexto || 'no registradas'}
+              sólo color — el icono va al lado, en esta misma fila). «Negadas»
+              es un dato neutro del registro; «no registradas» es un hueco y
+              se dice en ámbar, no en gris. */}
+          <span className={alergenos.length ? 'nx-critico' : undefined}>
+            <strong>Alergias:</strong>{' '}
+            {alergenos.length
+              ? alergenos.join(' · ')
+              : alergiasNegadas ? 'negadas por el paciente' : 'no registradas'}
           </span>
           {ultimoCambio && (
             <span className="nx-meta" style={{ marginLeft: 'auto' }}>

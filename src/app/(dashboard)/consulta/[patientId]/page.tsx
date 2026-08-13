@@ -3980,11 +3980,16 @@ export default function ConsultaActivaPage() {
 
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
           ponerlas). Se guarda en el expediente del paciente y alimenta las alertas
-          de fármaco. Rojo cuando hay alergias; neutro cuando no. */}
+          de fármaco. Rojo cuando hay alergias; neutro cuando no.
+          El rojo lo decide `alergenosDe` (semántica sellada de REG-279), no la
+          mera presencia de texto: «Niega alergias» pintaba esta franja ROJA y
+          la píldora de más abajo NEUTRA — dos alarmas contradictorias para el
+          mismo dato en el mismo viewport (REG-311). */}
+      {(() => { const hayAlergias = alergenosDe(patient ?? {}).length > 0; return (
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
-        background: patient?.alergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
-        border: `1px solid ${patient?.alergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
+        background: hayAlergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
+        border: `1px solid ${hayAlergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
         borderRadius: 10, padding: '9px 13px',
       }}>
         {/*
@@ -3995,8 +4000,8 @@ export default function ConsultaActivaPage() {
           de resumen de 56 líneas más abajo, que usaba otro: mismo concepto
           clínico, misma pantalla, dos rojos que el médico no puede aprender.
         */}
-        <AlertTriangle size={16} color={patient?.alergias ? 'var(--red)' : 'var(--text3)'} style={{ flexShrink: 0 }} />
-        <strong style={{ flexShrink: 0, fontSize: 13, color: patient?.alergias ? 'var(--red)' : 'var(--text2)' }}>Alergias:</strong>
+        <AlertTriangle size={16} color={hayAlergias ? 'var(--red)' : 'var(--text3)'} style={{ flexShrink: 0 }} />
+        <strong style={{ flexShrink: 0, fontSize: 13, color: hayAlergias ? 'var(--red)' : 'var(--text2)' }}>Alergias:</strong>
         <input
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
@@ -4029,6 +4034,7 @@ export default function ConsultaActivaPage() {
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14 }}
         />
       </div>
+      ) })()}
 
       {/*
         LOS PROBLEMAS DEL PACIENTE Y CUÁNDO VINO LA ÚLTIMA VEZ.
@@ -4173,9 +4179,16 @@ export default function ConsultaActivaPage() {
             enfrente. Rojo si el paciente tiene alergias; discreto si no.
           */}
           {(() => {
+            /* El criterio NO vive aquí — REG-311: la copia local
+               («empieza por niega/no/sin…», sin leer las estructuradas)
+               pintaba NEUTRO «Niega penicilina. Alérgico a sulfas» y callaba
+               una alergia sólo-estructurada. `alergenosDe` es la semántica
+               sellada de REG-279; en rojo se enseñan los ALÉRGENOS, no la
+               frase cruda que los esconde. */
             const a = (patient?.alergias ?? '').trim()
-            const sin = /^(ninguna|niega|no|sin|nkda)\b/i.test(a)
-            if (!a) return null
+            const alergenos = alergenosDe(patient ?? {})
+            const sin = alergenos.length === 0
+            if (!a && sin) return null
             return (
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
@@ -4184,7 +4197,7 @@ export default function ConsultaActivaPage() {
                 borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 12.5,
                 color: sin ? 'var(--text2)' : 'var(--red)', fontWeight: 600,
               }}>
-                <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{a}</span>
+                <AlertTriangle size={13} /> Alergias: <span style={{ fontWeight: 700 }}>{sin ? a : alergenos.join(' · ')}</span>
               </div>
             )
           })()}

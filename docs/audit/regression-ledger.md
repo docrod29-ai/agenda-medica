@@ -7207,3 +7207,47 @@ dependencias de `firmar`: una lista a mano puede volver a desactualizarse por
 otro campo — el caso sólo vigila éste.
 
 **Familia.** `depende_de_recordar`.
+
+## REG-311 — El ancla del paciente volvió a decidir la negación de alergias por su cuenta
+
+**Encontrado por** el equipo rojo de originalidad de
+`V15-ORIGINALITY-REDTEAM-001` (13-ago-2026), contrastando las capturas del
+panel §26/§41 contra el golden de REG-279.
+
+**Qué pasaba.** `PatientAnchor` — el componente que V15 escribió para que
+identidad y seguridad estén SIEMPRE visibles en el expediente — nació con la
+SÉPTIMA copia local de la regla de negación:
+`/^(ninguna|niega|no|sin|nkda|negad)/i`, peor que la que REG-279 condenó
+(perdió el `\b`). «Niega penicilina. Alérgico a sulfas» —la cadena motivadora
+de REG-279— salía como «sin alergias» en gris; «Nolotil» empieza por «no» y
+también; una alergia sólo en `alergiasEstructuradas` salía como
+«no registradas». En `/consulta` convivían además DOS criterios en el mismo
+viewport: la franja editable pintaba rojo con CUALQUIER texto («Niega
+alergias» → ROJO) y la píldora del encabezado usaba el prefijo («Niega
+penicilina. Alérgico a sulfas» → NEUTRO): dos alarmas contradictorias para el
+mismo dato donde se prescribe.
+
+**Causa raíz.** El golden de REG-279 fija la semántica pero su guarda de
+fuente sólo mira `hospitalizacion/[internamientoId]/page.tsx`: nada impedía
+que un componente NUEVO trajera la octava copia. La regla existía; el barrido
+no.
+
+**Arreglo.** Las tres piezas (ancla + franja editable + píldora de consulta)
+derivan de `alergenosDe`/`negacionesEnTexto` (el módulo sellado): rojo con los
+ALÉRGENOS enseñados, gris sólo con negación explícita y nada restante, y el
+hueco en ámbar («no registradas» — regla 4). En rojo se pintan los alérgenos,
+no la frase cruda que los esconde.
+
+**Guardián.** `src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts`
+(9 casos): la decisión del ancla con las cadenas de REG-279 + «Nolotil» +
+sólo-estructuradas, las guardas de fuente de las tres piezas, y el BARRIDO de
+repositorio que impide la octava copia (la familia de regex de prefijo, en
+todo `src/app` + `src/components`). Probado al revés: contra el árbol sin el
+arreglo fallan 3.
+
+**Qué NO cubre.** El render real (colores/DOM — arnés de capturas); una
+reimplementación futura sin regex (`startsWith('niega')`); la franja de
+hospitalización (golden propio de REG-279).
+
+**Familia.** `copia_local_de_regla_sellada` (hermana de REG-279, REG-171,
+REG-201).
