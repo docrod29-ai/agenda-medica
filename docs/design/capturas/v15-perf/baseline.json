@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-08-13T06:30:48.160Z",
+  "fecha": "2026-08-13T06:34:10.405Z",
   "base": "http://localhost:3000",
   "corridas": [
     {
@@ -7,19 +7,25 @@
       "pantalla": "hoy",
       "ruta": "/dashboard",
       "ttfb": 5,
-      "fcp": 100,
-      "lcp": 3304,
+      "fcp": 60,
+      "lcp": 3272,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 52,
+        "shell": 231,
+        "spinnerFuera": 482,
+        "texto400": 501,
+        "texto1500": 501
+      },
       "firestore": {
-        "primeraMs": 186,
-        "ultimaMs": 491,
-        "n": 6
+        "primeraMs": 159,
+        "ultimaMs": 496,
+        "n": 5
       },
       "auth": {
-        "primeraMs": 177,
+        "primeraMs": 149,
         "n": 1
       },
       "longTasksMs": 0,
@@ -35,19 +41,24 @@
       "pantalla": "pacientes",
       "ruta": "/pacientes",
       "ttfb": 5,
-      "fcp": 64,
-      "lcp": 3228,
+      "fcp": 56,
+      "lcp": 3264,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 44,
+        "shell": 220,
+        "spinnerFuera": 293,
+        "texto400": 315
+      },
       "firestore": {
-        "primeraMs": 151,
-        "ultimaMs": 426,
-        "n": 7
+        "primeraMs": 157,
+        "ultimaMs": 349,
+        "n": 6
       },
       "auth": {
-        "primeraMs": 140,
+        "primeraMs": 147,
         "n": 1
       },
       "longTasksMs": 0,
@@ -62,24 +73,29 @@
       "corrida": "escritorio",
       "pantalla": "expediente",
       "ruta": "/expediente/pac-refugio-alcantara",
-      "ttfb": 143,
+      "ttfb": 154,
       "fcp": 200,
-      "lcp": 3400,
+      "lcp": 3512,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 187,
+        "shell": 439,
+        "texto400": 489,
+        "spinnerFuera": 622
+      },
       "firestore": {
-        "primeraMs": 315,
-        "ultimaMs": 601,
+        "primeraMs": 353,
+        "ultimaMs": 710,
         "n": 6
       },
       "auth": {
-        "primeraMs": 302,
+        "primeraMs": 341,
         "n": 1
       },
-      "longTasksMs": 0,
-      "longTasksN": 0,
+      "longTasksMs": 60,
+      "longTasksN": 1,
       "jsKB": 517,
       "jsPeticiones": 30,
       "cssKB": 16,
@@ -90,24 +106,30 @@
       "corrida": "escritorio",
       "pantalla": "consulta",
       "ruta": "/consulta/pac-refugio-alcantara",
-      "ttfb": 38,
-      "fcp": 92,
-      "lcp": 3408,
+      "ttfb": 37,
+      "fcp": 80,
+      "lcp": 3448,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 72,
+        "spinnerFuera": 378,
+        "shell": 378,
+        "texto400": 425,
+        "texto1500": 425
+      },
       "firestore": {
-        "primeraMs": 198,
-        "ultimaMs": 582,
-        "n": 6
+        "primeraMs": 207,
+        "ultimaMs": 695,
+        "n": 7
       },
       "auth": {
         "primeraMs": 187,
         "n": 1
       },
-      "longTasksMs": 169,
-      "longTasksN": 2,
+      "longTasksMs": 158,
+      "longTasksN": 1,
       "jsKB": 734,
       "jsPeticiones": 34,
       "cssKB": 16,
@@ -118,24 +140,30 @@
       "corrida": "escritorio",
       "pantalla": "pendientes",
       "ruta": "/pendientes",
-      "ttfb": 15,
-      "fcp": 244,
-      "lcp": 4868,
+      "ttfb": 7,
+      "fcp": 60,
+      "lcp": 3268,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 50,
+        "shell": 231,
+        "spinnerFuera": 399,
+        "texto400": 431,
+        "texto1500": 431
+      },
       "firestore": {
-        "primeraMs": 888,
-        "ultimaMs": 1860,
+        "primeraMs": 168,
+        "ultimaMs": 445,
         "n": 4
       },
       "auth": {
-        "primeraMs": 764,
+        "primeraMs": 157,
         "n": 1
       },
-      "longTasksMs": 1311,
-      "longTasksN": 8,
+      "longTasksMs": 0,
+      "longTasksN": 0,
       "jsKB": 484,
       "jsPeticiones": 27,
       "cssKB": 16,
@@ -146,24 +174,30 @@
       "corrida": "movil",
       "pantalla": "hoy",
       "ruta": "/dashboard",
-      "ttfb": 28,
-      "fcp": 240,
-      "lcp": 3964,
+      "ttfb": 6,
+      "fcp": 136,
+      "lcp": 3668,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 117,
+        "shell": 525,
+        "spinnerFuera": 845,
+        "texto400": 927,
+        "texto1500": 928
+      },
       "firestore": {
-        "primeraMs": 550,
-        "ultimaMs": 1085,
-        "n": 5
+        "primeraMs": 381,
+        "ultimaMs": 994,
+        "n": 6
       },
       "auth": {
-        "primeraMs": 501,
+        "primeraMs": 346,
         "n": 1
       },
-      "longTasksMs": 502,
-      "longTasksN": 5,
+      "longTasksMs": 328,
+      "longTasksN": 3,
       "jsKB": 527,
       "jsPeticiones": 30,
       "cssKB": 16,
@@ -174,24 +208,29 @@
       "corrida": "movil",
       "pantalla": "pacientes",
       "ruta": "/pacientes",
-      "ttfb": 7,
-      "fcp": 116,
-      "lcp": 3648,
+      "ttfb": 11,
+      "fcp": 128,
+      "lcp": 3572,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 106,
+        "shell": 427,
+        "spinnerFuera": 654,
+        "texto400": 687
+      },
       "firestore": {
-        "primeraMs": 324,
-        "ultimaMs": 993,
-        "n": 7
+        "primeraMs": 307,
+        "ultimaMs": 749,
+        "n": 6
       },
       "auth": {
-        "primeraMs": 295,
+        "primeraMs": 277,
         "n": 1
       },
-      "longTasksMs": 212,
-      "longTasksN": 3,
+      "longTasksMs": 118,
+      "longTasksN": 1,
       "jsKB": 492,
       "jsPeticiones": 28,
       "cssKB": 16,
@@ -202,24 +241,29 @@
       "corrida": "movil",
       "pantalla": "expediente",
       "ruta": "/expediente/pac-refugio-alcantara",
-      "ttfb": 14,
-      "fcp": 108,
-      "lcp": 3720,
+      "ttfb": 13,
+      "fcp": 128,
+      "lcp": 3668,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 102,
+        "shell": 472,
+        "texto400": 604,
+        "spinnerFuera": 807
+      },
       "firestore": {
-        "primeraMs": 316,
-        "ultimaMs": 1035,
+        "primeraMs": 359,
+        "ultimaMs": 877,
         "n": 6
       },
       "auth": {
-        "primeraMs": 297,
+        "primeraMs": 331,
         "n": 1
       },
-      "longTasksMs": 252,
-      "longTasksN": 2,
+      "longTasksMs": 181,
+      "longTasksN": 1,
       "jsKB": 517,
       "jsPeticiones": 30,
       "cssKB": 16,
@@ -230,24 +274,30 @@
       "corrida": "movil",
       "pantalla": "consulta",
       "ruta": "/consulta/pac-refugio-alcantara",
-      "ttfb": 13,
+      "ttfb": 12,
       "fcp": 164,
-      "lcp": 4196,
+      "lcp": 4096,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 132,
+        "spinnerFuera": 853,
+        "shell": 853,
+        "texto400": 1026,
+        "texto1500": 1027
+      },
       "firestore": {
-        "primeraMs": 386,
-        "ultimaMs": 1534,
+        "primeraMs": 347,
+        "ultimaMs": 1458,
         "n": 7
       },
       "auth": {
-        "primeraMs": 355,
+        "primeraMs": 322,
         "n": 1
       },
-      "longTasksMs": 742,
-      "longTasksN": 3,
+      "longTasksMs": 597,
+      "longTasksN": 1,
       "jsKB": 734,
       "jsPeticiones": 34,
       "cssKB": 16,
@@ -258,24 +308,30 @@
       "corrida": "movil",
       "pantalla": "pendientes",
       "ruta": "/pendientes",
-      "ttfb": 7,
+      "ttfb": 6,
       "fcp": 128,
-      "lcp": 3544,
+      "lcp": 3536,
       "hidratacionMs": null,
       "medidasNext": [],
-      "lcpElemento": "DIV",
-      "hitos": {},
+      "lcpElemento": "DIV padre:DIV «Activa notificaciones del navegador para»",
+      "hitos": {
+        "spinnerVisto": 99,
+        "shell": 427,
+        "spinnerFuera": 683,
+        "texto400": 766,
+        "texto1500": 766
+      },
       "firestore": {
-        "primeraMs": 305,
-        "ultimaMs": 631,
+        "primeraMs": 309,
+        "ultimaMs": 628,
         "n": 5
       },
       "auth": {
-        "primeraMs": 281,
+        "primeraMs": 282,
         "n": 1
       },
-      "longTasksMs": 204,
-      "longTasksN": 3,
+      "longTasksMs": 202,
+      "longTasksN": 2,
       "jsKB": 492,
       "jsPeticiones": 28,
       "cssKB": 16,
