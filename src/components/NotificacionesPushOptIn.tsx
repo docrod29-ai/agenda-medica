@@ -6,10 +6,22 @@
  *  - El navegador soporta Notifications API
  *  - El usuario aún no ha decidido (status: 'default')
  *  - El usuario no lo dimisó antes (flag en localStorage)
+ *  - La pantalla es HOY (/dashboard) — nunca sobre la cadena clínica.
  *
  * Una vez aceptado o denegado, no vuelve a aparecer.
+ *
+ * ── Por qué sólo en Hoy (V15-PERF-001, §8/§15) ──────────────────────────────
+ * El baseline de percepción midió que este aviso era el LCP de las DIEZ
+ * mediciones de la cadena clínica (docs/design/capturas/v15-perf/
+ * antes-del-optin.json): con el temporizador de 3s armado en el layout, la
+ * tarjeta asaltaba TODA pantalla de la primera sesión — incluida la consulta,
+ * donde §8 manda que lo administrativo no esencial desaparezca. Una capacidad
+ * se ofrece en su contexto (§15), no con cronómetro sobre cualquier pantalla.
+ * El temporizador se queda (no molestar al cargar); la tarjeta sólo se PINTA
+ * en Hoy.
  */
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { obtenerPermisoPush, solicitarPermisoPush } from '@/lib/push-notifications'
 import { Bell, X } from 'lucide-react'
 import { useNotificacionesCitas } from '@/hooks/useNotificacionesCitas'
@@ -32,6 +44,12 @@ export function NotificacionesPushOptIn() {
   const [visible, setVisible] = useState(false)
   const [solicitando, setSolicitando] = useState(false)
   const [concedido, setConcedido] = useState(false)
+  // Se evalúa al RENDER, no al armar el temporizador: el componente vive en
+  // el layout y sobrevive a la navegación — si la ruta se mirara sólo al
+  // armar, salir de Hoy con el temporizador pendiente pintaría la tarjeta
+  // encima de la pantalla siguiente.
+  const pathname = usePathname()
+  const enHoy = pathname === '/dashboard'
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -67,8 +85,8 @@ export function NotificacionesPushOptIn() {
   }
 
   // El programador se monta apenas hay permiso (aunque el banner no se muestre);
-  // el banner solo aparece cuando corresponde pedirlo.
-  if (!visible) return concedido ? <ProgramadorNotificaciones /> : null
+  // el banner solo aparece cuando corresponde pedirlo — y sólo en Hoy.
+  if (!visible || !enHoy) return concedido ? <ProgramadorNotificaciones /> : null
 
   // La posición vive en la HOJA (.nx-push-optin), no inline: en móvil el media
   // query lo ancla ENCIMA del BottomNav, y un `position/bottom` inline lo

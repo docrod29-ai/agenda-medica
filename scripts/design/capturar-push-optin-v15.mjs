@@ -15,6 +15,8 @@
  *   3. Activar / Después / X miden ≥44px táctiles (§24);
  *   4. el FAB de ayuda cede el paso mientras el aviso pregunta (opacity 0,
  *      pointer-events none) y VUELVE al descartar;
+ *   2b. (V15-PERF-001, §8/§15) FUERA de Hoy el aviso NO se pinta — la cadena
+ *      clínica no se asalta — y volver a Hoy lo trae de vuelta;
  *   5. tap en «Después» → el aviso se va y no vuelve (flag persistido);
  *   6. axe con el aviso abierto: sin violaciones nuevas;
  *   7. escritorio 1440: tarjeta abajo-derecha de siempre (máx 360px), y el
@@ -135,6 +137,10 @@ async function main() {
   resultado.avisoAbierto = await medir(page)
   await page.screenshot({ path: path.join(DESTINO, '01-aviso-encima-del-nav.png') })
 
+  // 3. Axe con el aviso abierto, EN HOY (V15-PERF-001: fuera de Hoy ya no
+  //    existe, así que el escaneo con el aviso presente se hace aquí).
+  resultado.axeMovil = await axeScan(page)
+
   // 2. CON el aviso abierto, la navegación del pulgar sigue viva: tap en
   //    «Seguimiento» → /pendientes. Antes este tap se lo comía el aviso.
   await page.locator('.bottom-nav a', { hasText: 'Seguimiento' }).tap()
@@ -142,8 +148,14 @@ async function main() {
   resultado.tapNavConAvisoAbierto = await medir(page)
   await page.screenshot({ path: path.join(DESTINO, '02-tap-nav-llego-a-pendientes.png') })
 
-  // 3. Axe con el aviso abierto (sigue abierto: no se ha decidido nada).
-  resultado.axeMovil = await axeScan(page)
+  // 2b. V15-PERF-001 (§8/§15): FUERA de Hoy el aviso NO se pinta — la cadena
+  //     clínica no se asalta. Volver a Hoy lo trae de vuelta (el estado del
+  //     layout sobrevive; sólo el render está condicionado a la ruta).
+  resultado.fueraDeHoy = { url: page.url(), avisoEnDOM: resultado.tapNavConAvisoAbierto.avisoEnDOM }
+  await page.locator('.bottom-nav a', { hasText: 'Hoy' }).tap()
+  await page.waitForURL('**/dashboard**', { timeout: 15000 })
+  await page.waitForSelector('.nx-push-optin', { timeout: 15000 })
+  resultado.deVueltaEnHoy = await medir(page)
 
   // 4. Tap en «Después» → el aviso se va, el FAB vuelve, y el flag persiste
   //    (recargar no lo trae de vuelta).
@@ -183,6 +195,8 @@ async function main() {
   console.log('botones ≥44px:', a.botones.map(b => `${b.texto}:${b.w}×${b.h}`).join(' · '))
   console.log('FAB cede:', a.fabOpacity, a.fabPointerEvents)
   console.log('tap nav con aviso abierto → URL:', resultado.tapNavConAvisoAbierto.url, '(esperado /pendientes)')
+  console.log('fuera de Hoy → aviso en DOM:', resultado.fueraDeHoy.avisoEnDOM, '(esperado false, V15-PERF-001)')
+  console.log('de vuelta en Hoy → aviso en DOM:', resultado.deVueltaEnHoy.avisoEnDOM, '(esperado true)')
   console.log('tras Después → aviso en DOM:', resultado.trasDescartar.avisoEnDOM, '· FAB vuelve:', resultado.trasDescartar.fabOpacity)
   console.log('tras recargar → aviso vuelve:', resultado.trasRecargar.avisoEnDOM, '(esperado false)')
   console.log('escritorio → rect:', resultado.escritorio.avisoRect, '· FAB cede:', resultado.escritorio.fabOpacity)
