@@ -94,12 +94,14 @@ describe('V15-VISUAL-SYSTEM-001 — metadatos del ancla en .nx-meta', () => {
 
 describe('V15-VISUAL-SYSTEM-001 — la alergia registrada es valor crítico', () => {
   it('el texto de alergias lleva .nx-critico SÓLO cuando hay alergia registrada', () => {
-    expect(ANCLA).toMatch(/className=\{sinAlergias \? undefined : 'nx-critico'\}/)
+    // Desde REG-311 el predicado es la lista sellada (`alergenos`), no un
+    // booleano local: crítico ⇔ queda al menos un alérgeno.
+    expect(ANCLA).toMatch(/className=\{alergenos\.length \? 'nx-critico' : undefined\}/)
   })
 
   it('el icono existe de verdad al lado del valor (nunca sólo color)', () => {
     // AlertTriangle en la misma fila del aviso, antes del span del valor.
-    expect(ANCLA).toMatch(/<AlertTriangle size=\{14\}[^/]*\/>\s*\{\/\*[\s\S]*?\*\/\}\s*<span className=\{sinAlergias/)
+    expect(ANCLA).toMatch(/<AlertTriangle size=\{14\}[^/]*\/>\s*\{\/\*[\s\S]*?\*\/\}\s*<span className=\{alergenos\.length/)
   })
 
   it('.nx-critico envuelve — un valor crítico largo nunca se trunca (§24)', () => {

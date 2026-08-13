@@ -21,17 +21,15 @@
   "trabajoLocalSinSubir": [
     "M agent-state/V15_CURRENT_ITERATION.md",
     " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
+    " M src/__tests__/v15-roles-tipograficos-en-patient-anchor.test.ts",
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/components/expediente/PatientAnchor.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/cierre-hechos.ts",
-    " M src/lib/expediente/que-falta-para-cerrar.ts",
-    "?? docs/design/capturas/v15-cierre-agenda-seguimiento/",
-    "?? scripts/design/capturar-cierre-agenda-seguimiento-v15.mjs",
-    "?? src/__tests__/v15-cierre-agenda-el-seguimiento.test.ts"
+    "?? docs/design/v15/ORIGINALITY-REDTEAM-001-veredicto.md",
+    "?? src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts"
   ],
-  "actualizado": "2026-08-11",
+  "actualizado": "2026-08-13",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -65,10 +63,10 @@
   ],
   "ramaActual": "v15/structural-uiux",
   "derivado": {
-    "regsEnElLedger": 158,
-    "ultimaREG": "REG-310",
-    "archivosDePrueba": 606,
-    "casosDePrueba": 7803,
+    "regsEnElLedger": 159,
+    "ultimaREG": "REG-311",
+    "archivosDePrueba": 643,
+    "casosDePrueba": 8218,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

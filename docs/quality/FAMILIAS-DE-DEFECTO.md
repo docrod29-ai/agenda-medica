@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 35 de 158, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 159, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -86,7 +86,12 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 28 de 156.**
+**«El sistema se contradice a sí mismo» — 29 de 159.**
+
+Sumó REG-311: la séptima copia local de la negación de alergias — el ancla
+nueva de V15 y la píldora de consulta afirmaban cosas incompatibles sobre el
+mismo campo, contra la regla sellada de REG-279. El fallo vivía en el HUECO
+entre la copia y el módulo que ya sabía la respuesta.
 
 Sumó REG-223: `--nexus` se aclaró para servir de TEXTO (5,96 sobre el lienzo) y
 se seguía usando de RELLENO bajo texto blanco, donde el requisito es el
