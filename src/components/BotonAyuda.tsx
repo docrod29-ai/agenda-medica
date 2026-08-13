@@ -1,16 +1,44 @@
 'use client'
 /**
- * Botón flotante de ayuda, presente en todas las pantallas del dashboard.
- * Abre un panel con el asistente (bot) sin salir de donde estás. Un enlace
- * lleva a la Guía completa. Se coloca abajo-derecha, libre del bottom-nav móvil.
+ * Ayuda del dashboard: el panel del asistente (bot) sin salir de donde estás.
+ *
+ * ── RTC-05 (registro canónico del equipo rojo) ──────────────────────────────
+ *
+ * El FAB de 52px vivía en la esquina del pulgar de TODAS las pantallas: en
+ * móvil ocluía trabajo clínico en 4 de 6 superficies (el médico mandó
+ * capturas con el botón encima de «Peso» y de «Exploración física») y no se
+ * enteraba de la grabación. Ahora:
+ *
+ *  - En MÓVIL el FAB no existe (CSS ≤768px): el trigger es un botón ESTÁTICO
+ *    de la topbar — cero oclusión, fuera del arco del pulgar — que despacha
+ *    `EVENTO_ABRIR_AYUDA`. El nombre se declara AQUÍ una vez y el layout lo
+ *    importa (la lección de `estoy-grabando`: una cadena repetida en dos
+ *    archivos es una compuerta que se abre sola).
+ *  - En ESCRITORIO sigue flotando abajo-derecha (ahí la esquina no ocluye la
+ *    columna clínica), con sombra del sistema — el halo teal murió (RTC-19).
+ *  - GRABANDO desaparece entero (FAB y panel) y vuelve al detener — §8.5 por
+ *    la compuerta compartida `@/hooks/useGrabando`, no una copia privada.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AsistenteChat } from '@/components/AsistenteChat'
+import { useGrabando } from '@/hooks/useGrabando'
 import { HelpCircle, X, BookOpen } from 'lucide-react'
+
+/** Lo despacha el trigger de la topbar móvil; lo escucha este componente. */
+export const EVENTO_ABRIR_AYUDA = 'nx:abrir-ayuda'
 
 export function BotonAyuda() {
   const [abierto, setAbierto] = useState(false)
+  const grabando = useGrabando()
+
+  useEffect(() => {
+    const abrir = () => setAbierto(v => !v)
+    window.addEventListener(EVENTO_ABRIR_AYUDA, abrir)
+    return () => window.removeEventListener(EVENTO_ABRIR_AYUDA, abrir)
+  }, [])
+
+  if (grabando) return null
 
   return (
     <>
@@ -22,7 +50,7 @@ export function BotonAyuda() {
           position: 'fixed', right: 20, zIndex: 60, width: 52, height: 52, borderRadius: '50%',
           border: 'none', cursor: 'pointer', background: 'var(--nexus-solido)', color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 6px 20px rgba(20,184,166,0.4)',
+          boxShadow: 'var(--elev-2)',
         }}
       >
         {abierto ? <X size={24} /> : <HelpCircle size={26} />}
@@ -57,12 +85,14 @@ export function BotonAyuda() {
         </div>
       )}
       <style>{`
-        /* Apilado ENCIMA del toggle de tema (que vive abajo-derecha) para no encimarse */
+        /* Escritorio: apilado ENCIMA del toggle de tema (abajo-derecha). */
         .boton-ayuda-fab { bottom: 64px; }
         .boton-ayuda-panel { bottom: 126px; }
+        /* Móvil (RTC-05): el FAB muere (regla en globals.css, junto a sus
+           hermanas de esquina) — el trigger vive en la topbar. El panel
+           cuelga bajo la topbar, no del borde del pulgar. */
         @media (max-width: 768px) {
-          .boton-ayuda-fab { bottom: 120px; }
-          .boton-ayuda-panel { bottom: 182px; }
+          .boton-ayuda-panel { top: calc(60px + env(safe-area-inset-top, 0px)); bottom: auto; right: 12px; }
         }
       `}</style>
     </>

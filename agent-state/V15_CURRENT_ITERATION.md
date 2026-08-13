@@ -98,18 +98,56 @@ llevan guardia de puerto + `pkill -f next-server` en el trap. Si una corrida
 futura ve «todo desnudo + Algo salió mal», revisar puerto 3000 ANTES de
 diagnosticar CSS.
 
+- **RTC-07 (la corona del pulgar es clínica): FIXED 13-ago (3ª corrida).**
+  La CORONA del BottomNav (círculo relleno elevado, §8.6) sólo se pinta
+  cuando la acción central ES clínica (`centralCoronada`); «Nueva cita»
+  (admin) conserva posición/href/táctil pero pesa como destino normal y se
+  aquieta al grabar (`iconoAtenuado(quieto, coronada)`); el CTA del header
+  de Hoy se suprime en móvil (`.hoy-accion` ≤768px — la acción ya vive en
+  el pulgar; escritorio la conserva). Alcance: shell V15 del médico — la
+  barra de Secretaria conserva su conducta completa («Nueva cita» ES su
+  trabajo primario, mismo alcance que `quieto`). Guardián
+  `v15-rtc07-accion-del-pulgar-clinica.test.ts` (5 casos, probado al revés:
+  4 rojos); navegador real (acta-pulgar-y-fabs.json PASS, ver RTC-05).
+
+- **RTC-05 (FABs quietos y fuera del arco del pulgar): FIXED 13-ago (3ª
+  corrida).** BotonAyuda y ThemeToggle consumen `@/hooks/useGrabando` y
+  devuelven null al grabar (vuelven al detener — medido ida y vuelta en
+  navegador). En MÓVIL ninguno flota: la ayuda es botón ESTÁTICO de la
+  topbar (44×44, cero oclusión) que abre el panel real por
+  `EVENTO_ABRIR_AYUDA` (declarado UNA vez en BotonAyuda, importado por el
+  layout — lección de `estoy-grabando`), y el tema es la fila «Apariencia»
+  de /operaciones (§11). El tema ganó UNA fuente de verdad
+  (`@/hooks/useTema`: llave, ciclo y pintado; el toggle flotante y la fila
+  son dos VISTAS sincronizadas por evento `nx:tema`; el guardián de marca
+  ahora vigila la llave en su casa nueva). El cristal del toggle murió
+  (fondo sólido — trinquete `cristal` 16→14) y el halo teal del FAB también
+  (`halosDeColor` 9→8, techos sellados a la baja). Murieron los parches de
+  convivencia por-pantalla (bottom 78 móvil, 136 del lienzo de chat; el
+  guardián de chat-contraste ahora exige la regla que hace imposible la
+  colisión: en el shell móvil el toggle NO existe). Nota de método: la
+  primera pasada del arnés falló con «el FAB sigue flotando» — el FAB
+  declara `display:flex` EN LÍNEA y la regla de hoja necesitó `!important`;
+  el arnés lo cazó porque mide lo PINTADO, no el fuente. Guardián
+  `v15-rtc05-fabs-quietos.test.ts` (6 casos, probado al revés: 6 rojos);
+  navegador real desktop+móvil despachando `nx:grabando`
+  (`docs/design/capturas/v15-pulgar-y-fabs/acta-pulgar-y-fabs.json`, PASS,
+  0 errores de consola, 8 capturas).
+
 **Siguiente rebanada exacta:** seguir pagando los P1 del registro canónico:
-(a) **RTC-07** (la acción del pulgar móvil respeta el contexto clínico; CTA
-del header suprimido en móvil); (b) **RTC-05** (FABs — la compuerta
-compartida que pedía YA existe: `@/hooks/useGrabando`). Cada una con captura
-antes/después y su guardián. Después RTC-08/RTC-09 (riel/Operaciones), y
-RTC-10/RTC-11 que son rebanadas estructurales grandes. La rebanada de
-13-ago (unificación + RT-08 + RT-01) está al FINAL del archivo.
+(a) **RTC-09** (Operaciones sin grupo «Clínico»: Consultor IA/Antibiograma
+como capacidad contextual, no página-módulo); (b) **RTC-11** (fila de
+/pacientes con variante móvil — identidad rota, defecto #13 de la DNA).
+RTC-08 (destino «Encuentro» con estado real) pertenece a Fase 5 /
+NOTE-PLAN-CONTINUITY y RTC-10 (primer viewport del expediente) es rebanada
+estructural grande — planearla entera antes de abrirla. La rebanada de esta
+corrida (RTC-07 + RTC-05) está al FINAL del archivo.
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
 (2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad; (4) RTC-04 →
 compuerta compartida + pila de avisos; (5) RTC-06 → una primaria clínica
-en Hoy.]
+en Hoy; (6) 3ª corrida: RTC-07 + RTC-05 → el pulgar es clínico y los FAB
+se aquietan.]
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO
@@ -6648,3 +6686,74 @@ relleno); (c) RTC-07 — la acción del pulgar móvil respeta el contexto
 clínico. Cada una con captura antes/después y su guardián. El hueco de
 evidencia (encuentro GRABANDO sin fotografiar) sigue declarado para el
 siguiente paquete de capturas.
+
+---
+
+## V15-ORIGINALITY-REDTEAM-001 — RTC-07 + RTC-05 (13-ago-2026, 3ª corrida)
+
+**Qué se pagó:** los dos P1 que la 2ª corrida dejó como siguiente rebanada.
+
+### RTC-07 — la corona del pulgar es clínica
+
+- `centralCoronada(kind)` en `BottomNav.tsx` (puro, exportado, testeado):
+  la CORONA (círculo relleno elevado, §8.6) sólo con `kind === 'consulta'`
+  — la consulta de ESE paciente. Sin corona, «Nueva cita» conserva
+  posición, href y táctil ≥44 (equivalencia funcional: `accionContextual`
+  intacta, byte a byte) pero pesa como destino normal y se aquieta al
+  grabar con la MISMA función que los destinos:
+  `iconoAtenuado(quieto, coronada)`.
+- Alcance: `const coronada = navPrimaria ? centralCoronada(...) : true` —
+  la barra heredada de Secretaria conserva su corona: para ella «Nueva
+  cita» ES el trabajo primario, no un intruso admin (mismo alcance que ya
+  tenía `quieto`).
+- `.hoy-accion` con `display:none` ≤768px: el header de Hoy ya no duplica
+  la acción del pulgar en el primer viewport móvil (era la mitad del
+  hallazgo ORT-04: énfasis máximo 2×).
+
+### RTC-05 — los FAB se aquietan y salen del arco del pulgar
+
+- `useGrabando` consumido por `BotonAyuda` Y `ThemeToggle` (`if (grabando)
+  return null`) — medido en navegador ida y vuelta: desaparecen al grabar,
+  VUELVEN al detener, en los dos viewports.
+- Móvil: FAB de ayuda muerto (`display:none !important` — el FAB declara
+  `display:flex` EN LÍNEA y la primera pasada del arnés lo cazó flotando:
+  una regla de hoja sin peso pierde contra un estilo en línea); el trigger
+  es un botón estático de la topbar (44×44) que despacha
+  `EVENTO_ABRIR_AYUDA` (exportado por BotonAyuda, importado por el layout;
+  gateado por `useGrabando` en `AyudaTopbarTrigger` para no pintar un botón
+  muerto). El panel cuelga bajo la topbar en móvil.
+- Tema: `@/hooks/useTema` es la única casa de la llave `nexusmed.theme`
+  (el guardián de marca `renombrar-la-marca-no-borra-el-audio` apunta a la
+  casa nueva), con sincronía entre vistas por `nx:tema`. El toggle flotante
+  queda sólo en escritorio (y fuera del shell en móvil — login/marketing lo
+  conservan: ahí no hay columna clínica); en el shell móvil el tema vive en
+  la fila «Apariencia» de /operaciones (`TemaSection`, 44px táctil).
+- Genericidad a la baja: cristal 16→14 (el toggle era el único
+  glassmorphism del cromo persistente), halosDeColor 9→8 (el halo teal del
+  FAB → `var(--elev-2)`); techos re-sellados con `--actualizar`.
+- Guardianes ajustados con intención (no callados): el caso 5 de
+  `v15-a11y-chat-contraste-y-widgets` exigía el parche móvil de 136px —
+  ahora exige la regla que hace IMPOSIBLE la colisión (el toggle no existe
+  en el shell móvil); el caso 3 acepta ≥1 hoja con tamaño (todas 44).
+
+### Compuertas de esta corrida
+
+- Guardianes nuevos: `v15-rtc07-accion-del-pulgar-clinica.test.ts` (5
+  casos, al revés: 4 rojos — el 5º es la equivalencia de accionContextual,
+  que DEBE pasar en los dos árboles) y `v15-rtc05-fabs-quietos.test.ts`
+  (6 casos, al revés: 6 rojos).
+- `npx vitest run` completa: 9297 pasan, 2 fallos triados — el inventario
+  de pantallas (regenerado: /operaciones creció 36 líneas; re-corrido en
+  verde) y `ops-timeout-y-punto-ciego` (artefacto CONOCIDO del proxy del
+  contenedor, confirmado pre-existente con `git stash`: falla igual en el
+  árbol limpio).
+- `node scripts/lint-trinquete.mjs`: 96 = techo. Trinquete de diseño:
+  verde con techos 16/14/8.
+- `npm run build`: compila (la 1ª pasada falló por el contenedor fresco sin
+  `.env.local` demo — recreado con la receta de 7+2 variables, gitignorado).
+- Navegador real (§40): `capturar-pulgar-y-fabs-v15.mjs` dentro de
+  `emulators:exec` + siembra + `next start` con guardia de puerto — 24
+  condiciones medidas con getComputedStyle y `nx:grabando` despachado de
+  verdad; acta y 8 capturas en `docs/design/capturas/v15-pulgar-y-fabs/`.
+  PASS con 0 errores de consola. El «antes» es el paquete del equipo rojo
+  (v15-redteam/hoy-movil*.png).

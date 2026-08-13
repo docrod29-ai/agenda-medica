@@ -34,8 +34,9 @@
  * Sólo se atenúan los ÍCONOS de los destinos no activos (WCAG 1.4.11,
  * contraste no-textual 3:1 — hay margen); las ETIQUETAS de texto no se tocan
  * (la lección de contraste de FlowRail: `--text3` sobre `--s1` no tiene margen
- * AA para atenuarse). La acción central tampoco se atenúa: es la entrada al
- * encuentro, la única acción que §8.6 quiere dominante.
+ * AA para atenuarse). La acción central CORONADA (la consulta de un paciente,
+ * §8.6) tampoco se atenúa: es la entrada al encuentro. Sin corona la acción
+ * central es admin («Nueva cita») y se aquieta como los demás (RTC-07).
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -86,6 +87,21 @@ export function accionContextual(pathname: string): { label: string; href: strin
 }
 
 /**
+ * ¿La acción central lleva la CORONA (círculo relleno elevado)? — RTC-07.
+ *
+ * La corona es el énfasis que §8.6 reserva para la entrada al encuentro. El
+ * equipo rojo (ORT-04) midió que en Hoy/Pendientes/Operaciones la llevaba
+ * «Nueva cita» — una acción ADMIN con la emisión máxima de la barra, 2× en el
+ * primer viewport de Hoy (FAB + CTA del header). La regla: la corona sólo se
+ * pinta cuando la acción central ES clínica (la consulta de un paciente
+ * concreto). Fuera de ese contexto, «Nueva cita» conserva posición, href y
+ * táctil — cambia el peso, no la conducta. Puro y testeable.
+ */
+export function centralCoronada(kind: 'consulta' | 'cita'): boolean {
+  return kind === 'consulta'
+}
+
+/**
  * ¿Este ícono se atenúa mientras se graba? Sólo los de destinos NO activos, y
  * sólo mientras la grabación está viva. Puro y testeable — el guardián lo
  * prueba al revés (grabando+activo, sin grabar, etc.).
@@ -111,6 +127,11 @@ export function BottomNav({ navPrimaria = false }: { navPrimaria?: boolean }) {
     : [...COMMON, lastItem].filter(it => rutaPermitida(clinic, it.href))
   const accion = accionContextual(pathname)
   const AccionIcon = accion.kind === 'consulta' ? Stethoscope : CalendarPlus
+  // RTC-07 aplica al shell V15 del MÉDICO: para él la corona codifica «entrada
+  // al encuentro» y una acción admin no la lleva. En la barra heredada de
+  // Secretaria «Nueva cita» ES su trabajo primario, no un intruso admin — su
+  // barra conserva la conducta anterior completa (mismo alcance que `quieto`).
+  const coronada = navPrimaria ? centralCoronada(accion.kind) : true
 
   // El aquietado sólo aplica a la navegación V15 del médico: la barra
   // heredada de Secretaria queda byte-idéntica a su conducta anterior.
@@ -136,28 +157,52 @@ export function BottomNav({ navPrimaria = false }: { navPrimaria?: boolean }) {
     >
       {izq.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} quieto={quieto} />)}
 
-      {/* Acción central contextual — elevada, en la zona del pulgar.
-          Nunca se atenúa: es la entrada al encuentro (§8.6). */}
-      <Link
-        href={accion.href}
-        aria-label={accion.label}
-        style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'flex-start', textDecoration: 'none', minHeight: 52, paddingTop: 4,
-        }}
-      >
-        <span style={{
-          width: 46, height: 46, borderRadius: '50%', marginTop: -18,
-          background: 'var(--nexus-solido)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(20,184,166,0.45)', border: '3px solid var(--s1)',
-        }}>
-          <AccionIcon size={22} strokeWidth={2.2} />
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', lineHeight: 1, marginTop: 3 }}>
-          {accion.label}
-        </span>
-      </Link>
+      {/* Acción central contextual, en la zona del pulgar. RTC-07: la CORONA
+          (círculo relleno elevado, §8.6) sólo cuando la acción es CLÍNICA —
+          la consulta de ESE paciente, que además nunca se atenúa al grabar.
+          Fuera de contexto clínico, «Nueva cita» (admin) conserva posición,
+          href y táctil, pero pesa como un destino normal y se aquieta al
+          grabar como los demás: el énfasis codifica el significado. */}
+      {coronada ? (
+        <Link
+          href={accion.href}
+          aria-label={accion.label}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'flex-start', textDecoration: 'none', minHeight: 52, paddingTop: 4,
+          }}
+        >
+          <span style={{
+            width: 46, height: 46, borderRadius: '50%', marginTop: -18,
+            background: 'var(--nexus-solido)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(20,184,166,0.45)', border: '3px solid var(--s1)',
+          }}>
+            <AccionIcon size={22} strokeWidth={2.2} />
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', lineHeight: 1, marginTop: 3 }}>
+            {accion.label}
+          </span>
+        </Link>
+      ) : (
+        <Link
+          href={accion.href}
+          aria-label={accion.label}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '7px 4px 9px', color: 'var(--text3)',
+            textDecoration: 'none', gap: 3, minHeight: 52,
+          }}
+        >
+          <AccionIcon
+            size={20}
+            strokeWidth={1.8}
+            style={{ opacity: iconoAtenuado(quieto, coronada) ? 0.4 : 1, transition: 'opacity var(--mov-normal) var(--mov-curva)' }}
+          />
+          <span style={{ fontSize: 10.5, fontWeight: 500, lineHeight: 1 }}>{accion.label}</span>
+        </Link>
+      )}
 
       {der.map(it => <NavItem key={it.href} it={it} active={it.active(pathname)} quieto={quieto} />)}
     </nav>

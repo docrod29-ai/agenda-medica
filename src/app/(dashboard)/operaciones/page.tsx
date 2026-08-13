@@ -17,12 +17,14 @@ import Link from 'next/link'
 import {
   CalendarPlus, CalendarDays, Calendar, Clock, BedDouble, Activity, FlaskConical, Bug,
   TrendingUp, Star, HeartHandshake, Pill, ShieldCheck, FileText, ArrowLeftRight,
-  MessageCircle, BookOpen, Settings, CreditCard, LogOut, type LucideIcon,
+  MessageCircle, BookOpen, Settings, CreditCard, LogOut, Moon, Sun, Monitor,
+  type LucideIcon,
 } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { salirSeguro } from '@/lib/salir-seguro'
+import { useTema } from '@/hooks/useTema'
 
 type Item = { href: string; label: string; icon: LucideIcon; modos: 'ambos' | 'medico' }
 type Grupo = { titulo: string; items: Item[] }
@@ -128,6 +130,12 @@ export default function OperacionesPage() {
           </section>
         ))}
 
+        {/* RTC-05 (§11): el tema es SISTEMA, no trabajo clínico. En móvil el
+            toggle flotante murió (ocluía contenido clínico); su casa es ésta.
+            En escritorio conviven: el flotante y esta fila son dos VISTAS del
+            mismo estado (`useTema`), sincronizadas por evento. */}
+        <TemaSection />
+
         {/* V15-MOBILE-001 (§22): en móvil de médico el cajón lateral se retiró
             (era el árbol de escritorio clonado) y con él su botón «Cerrar
             sesión». La salida vive aquí — Operaciones ES el área de sistema
@@ -152,5 +160,33 @@ export default function OperacionesPage() {
         </section>
       </div>
     </div>
+  )
+}
+
+function TemaSection() {
+  const { modo, ciclar, montado, titulo } = useTema()
+  if (!montado) return null
+  const Icono = modo === 'dark' ? Moon : modo === 'light' ? Sun : Monitor
+  const etiqueta = modo === 'dark' ? 'Tema: oscuro' : modo === 'light' ? 'Tema: claro' : 'Tema: automático'
+  return (
+    <section>
+      <h2 className="t-overline" style={{ margin: '0 0 10px' }}>
+        Apariencia
+      </h2>
+      <button
+        onClick={ciclar}
+        title={titulo}
+        aria-label={titulo}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 14px', borderRadius: 10, minHeight: 44, boxSizing: 'border-box', cursor: 'pointer',
+          background: 'var(--s1)', border: '1px solid var(--border)',
+          color: 'var(--text)', fontSize: 14, fontWeight: 500, fontFamily: 'inherit',
+        }}
+      >
+        <Icono size={17} style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
+        {etiqueta}
+      </button>
+    </section>
   )
 }

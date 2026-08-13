@@ -86,10 +86,13 @@ describe('V15-A11Y-001 · 4ª rebanada — contrastes de /chat y widgets flotant
     expect(chat).not.toMatch(/color: '#000'/)
   })
 
-  it('3. §24 — el toggle de tema mide 44×44 en las dos hojas (era 38, y 34 en móvil)', () => {
+  it('3. §24 — todo toggle de tema que declare tamaño mide 44×44 (era 38, y 34 en móvil)', () => {
+    // Desde RTC-05 el toggle NO flota en el shell móvil (vive en Operaciones),
+    // así que el bloque móvil con su 44 propio murió: queda al menos la hoja
+    // de escritorio, y NINGUNA hoja puede volver por debajo de 44.
     const reglas = css.match(/\.theme-toggle\s*\{[^}]*\}/g) ?? []
     const conTamano = reglas.filter(r => /width:\s*\d+px/.test(r))
-    expect(conTamano.length).toBeGreaterThanOrEqual(2)
+    expect(conTamano.length).toBeGreaterThanOrEqual(1)
     for (const regla of conTamano) {
       expect(regla).toMatch(/width:\s*44px/)
       expect(regla).toMatch(/height:\s*44px/)
@@ -102,11 +105,13 @@ describe('V15-A11Y-001 · 4ª rebanada — contrastes de /chat y widgets flotant
     )
   })
 
-  it('5. en pantallas-lienzo el toggle sube y libra el composer (Enviar interceptado, medido)', () => {
+  it('5. en pantallas-lienzo el toggle libra el composer: sube en escritorio, y en el shell móvil NO EXISTE', () => {
     expect(css).toMatch(/body:has\(\.nx-lienzo-completo\)\s+\.theme-toggle\s*\{\s*bottom:\s*92px;\s*\}/)
-    // …y dentro del media query móvil, por encima del BottomNav + composer
-    // (136 = 53 nav + ~70 composer + aire; 123 rozaba, medido):
-    expect(css).toMatch(/body:has\(\.nx-lienzo-completo\)\s+\.theme-toggle\s*\{[^}]*bottom:\s*136px;\s*\}/)
+    // La defensa móvil cambió de naturaleza con RTC-05: el parche de números
+    // mágicos (BottomNav + composer + aire, medido a mano y roto dos veces)
+    // murió porque el toggle ya no flota en el shell móvil — no hay esquina
+    // que negociar con el composer. La regla que lo garantiza:
+    expect(css).toMatch(/body:has\(\.bottom-nav-wrap\)\s+\.theme-toggle\s*\{\s*display:\s*none;\s*\}/)
   })
 
   it('6a. freeze funcional — enviarMensaje conserva su contrato exacto', () => {

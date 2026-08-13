@@ -1,0 +1,144 @@
+{
+  "desktop": {
+    "hoy": {
+      "hoyAccionVisible": true,
+      "ayudaFabVisible": true,
+      "toggleVisible": true,
+      "toggleCristal": "none",
+      "toggleBgAlfa": 1,
+      "triggerAyudaVisible": false,
+      "triggerAyudaTamano": null,
+      "panelAyudaAbierto": false,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 1
+    },
+    "hoyGrabando": {
+      "hoyAccionVisible": true,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": null,
+      "toggleBgAlfa": null,
+      "triggerAyudaVisible": false,
+      "triggerAyudaTamano": null,
+      "panelAyudaAbierto": false,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 0.4
+    },
+    "hoyAlDetener": {
+      "hoyAccionVisible": true,
+      "ayudaFabVisible": true,
+      "toggleVisible": true,
+      "toggleCristal": "none",
+      "toggleBgAlfa": 1,
+      "triggerAyudaVisible": false,
+      "triggerAyudaTamano": null,
+      "panelAyudaAbierto": false,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 1
+    },
+    "erroresConsola": []
+  },
+  "mobile": {
+    "hoy": {
+      "hoyAccionVisible": false,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": "none",
+      "toggleBgAlfa": 1,
+      "triggerAyudaVisible": true,
+      "triggerAyudaTamano": {
+        "w": 44,
+        "h": 44
+      },
+      "panelAyudaAbierto": false,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 1
+    },
+    "hoyGrabando": {
+      "hoyAccionVisible": false,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": null,
+      "toggleBgAlfa": null,
+      "triggerAyudaVisible": false,
+      "triggerAyudaTamano": null,
+      "panelAyudaAbierto": false,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 0.4
+    },
+    "hoyAlDetener": {
+      "hoyAccionVisible": false,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": "none",
+      "toggleBgAlfa": 1,
+      "triggerAyudaVisible": true,
+      "triggerAyudaTamano": {
+        "w": 44,
+        "h": 44
+      },
+      "panelAyudaAbierto": false,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 1
+    },
+    "trasAbrirAyuda": {
+      "hoyAccionVisible": false,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": "none",
+      "toggleBgAlfa": 1,
+      "triggerAyudaVisible": true,
+      "triggerAyudaTamano": {
+        "w": 44,
+        "h": 44
+      },
+      "panelAyudaAbierto": true,
+      "centralLabel": "Nueva cita",
+      "centralRelleno": false,
+      "centralIconOpacidad": 1
+    },
+    "expediente": {
+      "hoyAccionVisible": false,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": "none",
+      "toggleBgAlfa": 1,
+      "triggerAyudaVisible": true,
+      "triggerAyudaTamano": {
+        "w": 44,
+        "h": 44
+      },
+      "panelAyudaAbierto": false,
+      "centralLabel": "Consulta",
+      "centralRelleno": true,
+      "centralIconOpacidad": 1
+    },
+    "expedienteGrabando": {
+      "hoyAccionVisible": false,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
+      "toggleCristal": null,
+      "toggleBgAlfa": null,
+      "triggerAyudaVisible": false,
+      "triggerAyudaTamano": null,
+      "panelAyudaAbierto": false,
+      "centralLabel": "Consulta",
+      "centralRelleno": true,
+      "centralIconOpacidad": 1
+    },
+    "operacionesTema": {
+      "texto": "Tema: oscuro",
+      "alto": 47
+    },
+    "erroresConsola": []
+  },
+  "veredicto": {
+    "PASS": true
+  }
+}

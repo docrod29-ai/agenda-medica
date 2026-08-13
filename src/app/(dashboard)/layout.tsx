@@ -19,7 +19,7 @@ import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
 import { TareasProvider } from '@/context/TareasContext'
-import { Menu, Search, Loader2, AlertTriangle, Headset } from 'lucide-react'
+import { Menu, Search, Loader2, AlertTriangle, Headset, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { AvisoIncidenteIA } from '@/components/AvisoIncidenteIA'
@@ -28,7 +28,7 @@ import FirmadorDisenos from '@/components/FirmadorDisenos'
 import { useMode } from '@/context/ModeContext'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileBackButton } from '@/components/MobileBackButton'
-import { BotonAyuda } from '@/components/BotonAyuda'
+import { BotonAyuda, EVENTO_ABRIR_AYUDA } from '@/components/BotonAyuda'
 import { RastreoErrores } from '@/components/RastreoErrores'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { AutoLogout } from '@/components/AutoLogout'
@@ -227,6 +227,30 @@ function PilaDeAvisosAdmin() {
     <TrialBanner />
     <NotificacionesPushOptIn />
   </>)
+}
+
+/**
+ * AYUDA EN LA TOPBAR MÓVIL — RTC-05. En móvil el FAB de ayuda murió (ocluía
+ * trabajo clínico en 4 de 6 superficies): el trigger es este botón ESTÁTICO
+ * —cero oclusión, fuera del arco del pulgar— que abre el mismo panel de
+ * `BotonAyuda` por su evento (el nombre se declara allá, una vez). Mientras
+ * se graba, `BotonAyuda` entero devuelve null (§8.5): este trigger desaparece
+ * con él por la MISMA compuerta — un botón que no puede abrir nada no se
+ * pinta.
+ */
+function AyudaTopbarTrigger({ navPrimaria }: { navPrimaria: boolean }) {
+  const grabando = useGrabando()
+  if (grabando) return null
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new Event(EVENTO_ABRIR_AYUDA))}
+      className="mobile-topbar-btn"
+      aria-label="Abrir ayuda"
+      style={navPrimaria ? undefined : { marginLeft: 'auto' }}
+    >
+      <HelpCircle size={21} />
+    </button>
+  )
 }
 
 /**
@@ -764,6 +788,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               <Search size={22} />
             </button>
           )}
+          <AyudaTopbarTrigger navPrimaria={navPrimaria} />
         </div>
 
         {/* La franja de fila propia queda SÓLO en escritorio: en móvil su

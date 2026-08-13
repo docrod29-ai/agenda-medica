@@ -1995,9 +1995,9 @@ html, body, .card, .modal, .topbar, .sidebar {
   width: 44px;
   height: 44px;
   border-radius: var(--r-circulo);
-  background: color-mix(in srgb, var(--s1) 80%, transparent);
-  backdrop-filter: saturate(180%) blur(10px);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  /* RTC-05: fondo SÓLIDO del sistema — el cristal era la segunda señal de
+     genericidad del trinquete, y en un botón de sistema no compraba nada. */
+  background: var(--s1);
   border: 1px solid var(--border2);
   color: var(--text2);
   display: flex;
@@ -2057,15 +2057,20 @@ html, body, .card, .modal, .topbar, .sidebar {
 }
 .theme-toggle:hover svg { transform: rotate(20deg); }
 
-/* En móvil con bottom-nav, sube el toggle para no chocar.
-   §24: también aquí 44×44 — los 34px eran el táctil chico anotado. */
+/* ── RTC-05: en el shell móvil NINGÚN FAB flota sobre trabajo clínico ──────
+   El equipo rojo midió los dos botones de esquina ocluyendo contenido en 4 de
+   6 superficies móviles (defecto #7 de la DNA). En móvil, la ayuda vive en la
+   topbar (trigger estático) y el tema vive en Operaciones (§11: es sistema).
+   El alcance es el shell (body con BottomNav): fuera del dashboard —login,
+   marketing— el toggle flotante sigue, porque ahí no hay ni columna clínica
+   ni barra del pulgar con la que chocar. Con esto mueren los parches de
+   convivencia por-pantalla (bottom: 78/120/136px según superficie). */
 @media (max-width: 768px) {
-  .theme-toggle {
-    bottom: 78px;
-    right: 12px;
-    width: 44px;
-    height: 44px;
-  }
+  body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
+  /* !important: el FAB declara display:flex EN LÍNEA (posición y forma viven
+     en su style), y una regla de hoja sin peso pierde contra eso. */
+  .boton-ayuda-fab { display: none !important; }
+  .theme-toggle { right: 12px; }
   .theme-toggle svg { width: 16px; height: 16px; }
 }
 
@@ -2080,14 +2085,8 @@ html, body, .card, .modal, .topbar, .sidebar {
 body:has(.nx-lienzo-completo) .theme-toggle {
   bottom: 92px;
 }
-@media (max-width: 768px) {
-  body:has(.nx-lienzo-completo) .theme-toggle {
-    /* 53 del BottomNav + ~70 del composer (12+46+12 medidos) + aire. El
-       primer intento (123px) dejó el borde del toggle ROZANDO el composer
-       (tocaComposer:true por ~2px, medido en v15-chat-contraste). */
-    bottom: 136px;
-  }
-}
+/* El parche móvil hermano (BottomNav+composer+aire, medido a mano) murió con
+   RTC-05: en el shell móvil el toggle ya no flota — vive en Operaciones. */
 
 /* ── Tipografía premium para headers de página ──────────────────── */
 .nx-page-title {
@@ -2396,6 +2395,13 @@ body:has(.nx-lienzo-completo) .theme-toggle {
   font-weight: 500;
   line-height: 1.35;
   text-wrap: balance;
+}
+/* RTC-07: en móvil «Nueva cita» del header se SUPRIME — la misma acción ya
+   vive en la barra del pulgar (BottomNav, ≤768px), y el equipo rojo la midió
+   DOS veces en el primer viewport de Hoy con la emisión máxima. En escritorio
+   no hay BottomNav: el header la conserva. */
+@media (max-width: 768px) {
+  .hoy-accion { display: none; }
 }
 .hoy-accion { text-decoration: none; flex-shrink: 0; }
 

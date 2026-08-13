@@ -7,8 +7,8 @@
     "radiosFueraDeEscala": 627,
     "sombrasEnLinea": 22,
     "gradientes": 16,
-    "cristal": 16,
-    "halosDeColor": 9
+    "cristal": 14,
+    "halosDeColor": 8
   },
   "peores": [
     {
@@ -18,7 +18,10 @@
       "tam": 95,
       "rad": 41,
       "sombras": 2,
-      "total": 158
+      "gradientes": 1,
+      "cristal": 0,
+      "halos": 4,
+      "total": 163
     },
     {
       "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
@@ -27,6 +30,9 @@
       "tam": 89,
       "rad": 22,
       "sombras": 1,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 139
     },
     {
@@ -36,6 +42,9 @@
       "tam": 93,
       "rad": 30,
       "sombras": 0,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 131
     },
     {
@@ -45,6 +54,9 @@
       "tam": 86,
       "rad": 29,
       "sombras": 1,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 129
     },
     {
@@ -54,6 +66,9 @@
       "tam": 67,
       "rad": 15,
       "sombras": 0,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 99
     },
     {
@@ -63,6 +78,9 @@
       "tam": 53,
       "rad": 29,
       "sombras": 0,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 95
     },
     {
@@ -72,6 +90,9 @@
       "tam": 45,
       "rad": 8,
       "sombras": 0,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 67
     },
     {
@@ -81,6 +102,9 @@
       "tam": 36,
       "rad": 16,
       "sombras": 1,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 62
     },
     {
@@ -90,16 +114,22 @@
       "tam": 40,
       "rad": 7,
       "sombras": 0,
+      "gradientes": 0,
+      "cristal": 0,
+      "halos": 0,
       "total": 55
     },
     {
-      "archivo": "src/app/demo/page.tsx",
+      "archivo": "src/app/page.tsx",
       "respaldos": 0,
-      "hex": 11,
-      "tam": 26,
-      "rad": 15,
-      "sombras": 1,
-      "total": 53
+      "hex": 6,
+      "tam": 35,
+      "rad": 9,
+      "sombras": 0,
+      "gradientes": 3,
+      "cristal": 2,
+      "halos": 0,
+      "total": 55
     }
   ]
 }
