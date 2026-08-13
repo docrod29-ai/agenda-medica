@@ -54,7 +54,32 @@
     "fabPointerEvents": "none",
     "url": "/dashboard"
   },
+  "axeMovil": [],
   "tapNavConAvisoAbierto": {
+    "avisoEnDOM": false,
+    "avisoRect": null,
+    "navRect": {
+      "top": 791,
+      "bottom": 844,
+      "left": 0,
+      "right": 390,
+      "w": 390,
+      "h": 53
+    },
+    "navVisible": true,
+    "seIntersecan": false,
+    "zAviso": null,
+    "zNav": 45,
+    "botones": [],
+    "fabOpacity": "0",
+    "fabPointerEvents": "auto",
+    "url": "/pendientes"
+  },
+  "fueraDeHoy": {
+    "url": "http://localhost:3000/pendientes",
+    "avisoEnDOM": false
+  },
+  "deVueltaEnHoy": {
     "avisoEnDOM": true,
     "avisoRect": {
       "top": 623,
@@ -105,21 +130,10 @@
         "h": 44
       }
     ],
-    "fabOpacity": "0",
+    "fabOpacity": "1",
     "fabPointerEvents": "none",
-    "url": "/pendientes"
+    "url": "/dashboard"
   },
-  "axeMovil": [
-    {
-      "id": "region",
-      "impact": "moderate",
-      "nodes": 2,
-      "targets": [
-        ".nx-app-shell > div:nth-child(2) > div:nth-child(3) > span",
-        "a[href=\"/configuracion?tab=suscripcion\"]"
-      ]
-    }
-  ],
   "trasDescartar": {
     "avisoEnDOM": false,
     "avisoRect": null,
@@ -138,7 +152,7 @@
     "botones": [],
     "fabOpacity": "1",
     "fabPointerEvents": "auto",
-    "url": "/pendientes"
+    "url": "/dashboard"
   },
   "trasRecargar": {
     "avisoEnDOM": false,
@@ -158,7 +172,7 @@
     "botones": [],
     "fabOpacity": "1",
     "fabPointerEvents": "auto",
-    "url": "/pendientes"
+    "url": "/dashboard"
   },
   "escritorio": {
     "avisoEnDOM": true,
@@ -215,12 +229,5 @@
     "fabPointerEvents": "none",
     "url": "/dashboard"
   },
-  "erroresConsola": [
-    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
-    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401",
-    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-    "[auditoria] asiento RECHAZADO y descartado login_exitoso 401"
-  ]
+  "erroresConsola": []
 }

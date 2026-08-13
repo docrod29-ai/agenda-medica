@@ -4,23 +4,35 @@
 
 ## Iteración en curso
 
-`V15-MOTION-001` (§43 orden 14, §18 paso 8 / §20) — **EN CURSO** desde
-13-ago-2026, con TRES rebanadas pagadas: (1ª) **las transiciones de
-globals.css hablan los tokens de movimiento** — la curva del token adopta la
-curva de facto del producto (39 usos medidos vs 0 del valor teórico), las 22
-transiciones de la hoja dejan sus 9 duraciones a mano por
-`var(--mov-rapido/normal/lento/presion)` (+`--mov-presion: 80ms` nuevo para
-estados :active), y las declaraciones MUERTAS duplicadas de
-`.card-hover`/`.kpi-card` se retiraron; (2ª) **una voz POR ELEMENTO** — el
-cross-fade de tema queda en las superficies y los controles recuperan su
-papel rapido (opacity de .btn, halo de .input, hover del toggle); (3ª)
-**las 28 transiciones INLINE de los TSX hablan los tokens** — 26 migradas
-por papel (rapido/normal/lento) y los DOS medidores de micrófono declarados
-INSTRUMENTO con su razón en el código (siguen la señal en vivo con `linear`;
-migrarlos los haría mentir), más la prueba en navegador de que el apagador
-!important de §24 le GANA al style inline. Queda: la coreografía de
-continuidad de §20 (shared element entre Hoy→Paciente→Encuentro — el
-diferimiento grande de Fase 10). Ver sección al FINAL.
+`V15-PERF-001` (§43 orden 15, §30) — **EN CURSO** desde 13-ago-2026, con DOS
+rebanadas pagadas: (1ª) **el arnés del presupuesto de percepción EXISTE**
+(`scripts/design/medir-perf-v15.mjs`: TTFB/FCP/LCP con IDENTIDAD del
+elemento LCP, cascada de hitos por MutationObserver, tráfico
+Firestore/Auth por resource timing, peso REAL transferido sin service
+worker, long tasks y DOM — por las 5 rutas de la cadena clínica ×
+escritorio 1×/móvil CPU 4×, contra build de producción + emuladores +
+siembra sintética); (2ª) **el opt-in de push deja de asaltar la cadena
+clínica** — el baseline midió que la tarjeta de recordatorios era el LCP de
+las DIEZ mediciones (cronómetro fijo de 3 s armado en el layout, pintando
+sobre CUALQUIER pantalla de la primera sesión, consulta incluida — §8 manda
+que ahí lo administrativo desaparezca): ahora sólo se pinta en HOY
+(`usePathname` leído al RENDER, no al armar; el programador de avisos
+conserva su semántica exacta en toda ruta). Después del arreglo el LCP de la
+cadena ES el contenido clínico — el NOMBRE del paciente (.nx-ident /
+.nx-ancla-nombre / .nx-vt-paciente): escritorio 3264→300 ms (/pacientes),
+3512→548 (expediente), 3448→624 (consulta), 3268→272 (/pendientes). Queda:
+/consulta con +240 KB de JS sobre sus hermanas y las long tasks móviles más
+altas (591–766 ms). Ver sección al FINAL.
+
+Iteración anterior:
+`V15-MOTION-001` (§43 orden 14, §18 paso 8 / §20) — **CERRADA 13-ago-2026**
+tras CINCO rebanadas: tokens de movimiento en hoja e inline (28 transiciones
+TSX migradas, 2 medidores declarados INSTRUMENTO), cascada una-voz, apagador
+§24 con dos candados, y las DOS cadenas de §20 coreografiadas con
+`document.startViewTransition` NATIVO y medidas 22/22 en navegador real
+(Hoy→Paciente→Encuentro y Result queue→Patient result, con la franja
+persistente cediendo el nombre y /pacientes entrando a la cadena). Ver sus
+secciones al FINAL.
 
 Iteración anterior:
 `V15-A11Y-001` (§43 orden 13, §24) — **CERRADA 13-ago-2026** tras SEIS
@@ -5782,3 +5794,115 @@ Antes de eso, si la decisión del dueño sobre DEBT-008 llegó, pagarla
 (rebanada corta dimensionada en el cierre de A11Y-001). MOTION-001 queda
 CERRADA: tokens en hoja e inline, cascada una-voz, apagador §24 con dos
 candados, y las DOS cadenas de §20 coreografiadas y medidas.
+
+## `V15-PERF-001` — 1ª y 2ª rebanada: medir ANTES de tocar, y el primer hallazgo pagado — el opt-in de push era el LCP de toda la cadena (13-ago-2026)
+
+La tarea exacta de la 5ª rebanada de MOTION-001, ejecutada como pedía: MEDIR
+antes de tocar, y decidir la primera rebanada con números.
+
+### El arnés (1ª rebanada) — `scripts/design/medir-perf-v15.mjs`
+
+Por las 5 rutas de la cadena clínica (Hoy, /pacientes, expediente, consulta,
+/pendientes) × escritorio 1440 CPU 1× / móvil 390 CPU 4× (CDP), contra build
+de producción + emuladores + siembra sintética, caché apagada y SIN service
+worker (el SW de la PWA responde desde caché y todo transferSize da 0 — el
+frío honesto se mide con la red de verdad):
+
+- TTFB / FCP / **LCP con la IDENTIDAD del elemento** (tag + clase + padre +
+  arranque del texto — un «DIV» pelón no acusa a nadie);
+- cascada de hitos por MutationObserver (spinner de auth/clinic fuera,
+  shell presente, texto de datos presente);
+- tráfico a los emuladores por resource timing (primera petición, última);
+- long tasks (buffered), peso JS/CSS transferido, nodos DOM.
+
+Tres lecciones de método que el arnés ya carga escritas: `Next.js-hydration`
+NO existe en este build (se reporta null, no se inventa — §40); Next
+16/Turbopack ya no imprime peso por ruta ni escribe app-build-manifest
+(el peso se mide desde el navegador, que es donde importa); y un init
+script NO puede observar `document.documentElement` (aún no existe — se
+observa `document`; el throw silencioso se comió los hitos de la v3 del
+arnés y costó una corrida entera).
+
+### Lo que midió el baseline (2 muestras completas, congeladas en `antes-del-optin.json`)
+
+- El producto es RÁPIDO debajo: TTFB ~5 ms, FCP 48–244 ms, spinner de
+  auth/clinic fuera a los 283–850 ms, tráfico Firestore terminado a los
+  0.3–1.5 s. Cero long tasks de escritorio en 4 de 5 rutas.
+- **El LCP de las DIEZ mediciones era LA MISMA COSA**: la tarjeta de
+  recordatorios push («Activa notificaciones del navegador para…») —
+  `setTimeout(…, 3000)` armado en el layout, pintando sobre CUALQUIER
+  pantalla de la primera sesión. LCP plano de 3.2–4.2 s con el contenido ya
+  pintado desde ~0.5 s. En consulta viola §8 (lo administrativo no esencial
+  DESAPARECE durante el encuentro); y la primera sesión ES la prueba de 14
+  días que el dueño declaró prioridad comercial.
+- /consulta además carga +240 KB de JS sobre sus hermanas (734 vs ~490 KB) y
+  las long tasks móviles más altas de la cadena (591–766 ms) — reproducido
+  en las dos muestras. La anomalía de /pendientes de la primera pasada
+  (1311 ms de long tasks en ESCRITORIO) NO reprodujo: se anota como espuria.
+
+### El arreglo (2ª rebanada) — la tarjeta sólo se pinta en HOY
+
+`NotificacionesPushOptIn`: `usePathname()` leído **al render** (el
+componente vive en el layout y sobrevive a la navegación — mirar la ruta al
+armar el temporizador pintaría la tarjeta sobre la pantalla SIGUIENTE), gate
+`if (!visible || !enHoy)` que conserva EXACTA la semántica del programador
+de avisos (`ProgramadorNotificaciones` se monta con permiso en cualquier
+ruta — la restricción es de la TARJETA, no de los recordatorios; §42), y el
+cronómetro de cortesía de 3 s se queda (no molestar al cargar — ahora
+esperando en la única pantalla donde la pregunta es contextual, §15).
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-perf-el-optin-no-asalta-la-cadena.test.ts` (5 casos):
+ruta al render y NO en el efecto, gate de Hoy en el return temprano,
+semántica del programador congelada, cronómetro presente, y el ANTES
+congelado (10/10 mediciones con la tarjeta de LCP en
+`docs/design/capturas/v15-perf/antes-del-optin.json`, inmutable — el
+baseline vivo se re-mide y cambia). **Contra el árbol previo fallan los
+casos 1–3** (verificado con git stash).
+
+### Verificado en navegador real (13-ago-2026)
+
+- `medir-perf-v15.mjs` DESPUÉS del arreglo: el LCP de la cadena clínica ES
+  el contenido — el **nombre del paciente** (.nx-ident en /pacientes,
+  .nx-ancla-nombre en expediente, .nx-vt-paciente en consulta, .nx-meta en
+  /pendientes): escritorio 3264→**300** ms, 3512→**548**, 3448→**624**,
+  3268→**272**; móvil 3572→**772**, 3668→**888**, 4096→**1304**,
+  3536→**828**. Hoy conserva la tarjeta como LCP (3.3/3.6 s) **a
+  propósito**: es el único contexto de la pregunta. Que el objeto que pinta
+  al final sea la identidad del paciente es coherencia gratis con la
+  coreografía de §20 (el nombre ya es el objeto compartido de la cadena).
+- `capturar-push-optin-v15.mjs` (extendido con el caso 2b): la tarjeta
+  aparece en Hoy, **NO se pinta en /pendientes** (fuera de Hoy: false),
+  **vuelve al regresar a Hoy** (true), «Después» la despide y persiste tras
+  recarga, táctiles 64×44/66×44/44×44, geometría sobre el BottomNav sin
+  intersección, axe [], consola 0.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9243/9244** — único fallo el PRE-EXISTENTE ambiental
+  (`ops-timeout-y-punto-ciego`, proxy del contenedor). Guardián nuevo 5/5.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (80 pantallas, sin cambios).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores), mismo patrón documentado. Lección operativa nueva: detener
+  un `emulators:exec` a la mitad deja HUÉRFANOS al emulador Java (:8080) y a
+  next-server (:3000) — matarlos ANTES de relanzar, y un `pkill -f firebase`
+  se mata a sí mismo (el patrón matchea la línea de comando propia).
+
+**Siguiente tarea exacta:** `V15-PERF-001`, tercera rebanada — **/consulta:
+atribuir y cortar el excedente de +240 KB** (734 vs ~490 KB de sus hermanas)
+y sus long tasks móviles (591–766 ms, las más altas de la cadena). Empezar
+con `ANALYZE=true npm run build` (el bundle analyzer ya está cableado en
+next.config.ts) para atribuir el excedente ANTES de cortar; candidatos
+obvios: los paneles condicionales aún estáticos del page.tsx de 6129 líneas
+(RevisionPanel, AntesDeFirmar, HojaParaElPaciente, PanelRazonamiento,
+Copiloto, PanelLaboratorios, CobrarModal, HistorialVersiones ya tienen
+hermanos dynamic() en el mismo archivo — el patrón existe). Después
+re-medir con `medir-perf-v15.mjs` y comparar contra el baseline vivo.
+Curiosidad anotada, no bloqueante: movil/pacientes reporta a veces el LCP
+con elemento null (entrada sin element — nodo removido). DEBT-008 sigue
+CONSULTADO al dueño (cierre de A11Y-001).
