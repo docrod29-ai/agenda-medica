@@ -1,0 +1,286 @@
+{
+  "fecha": "2026-08-13T06:30:48.160Z",
+  "base": "http://localhost:3000",
+  "corridas": [
+    {
+      "corrida": "escritorio",
+      "pantalla": "hoy",
+      "ruta": "/dashboard",
+      "ttfb": 5,
+      "fcp": 100,
+      "lcp": 3304,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 186,
+        "ultimaMs": 491,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 177,
+        "n": 1
+      },
+      "longTasksMs": 0,
+      "longTasksN": 0,
+      "jsKB": 527,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 537
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "ttfb": 5,
+      "fcp": 64,
+      "lcp": 3228,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 151,
+        "ultimaMs": 426,
+        "n": 7
+      },
+      "auth": {
+        "primeraMs": 140,
+        "n": 1
+      },
+      "longTasksMs": 0,
+      "longTasksN": 0,
+      "jsKB": 492,
+      "jsPeticiones": 28,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 425
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "expediente",
+      "ruta": "/expediente/pac-refugio-alcantara",
+      "ttfb": 143,
+      "fcp": 200,
+      "lcp": 3400,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 315,
+        "ultimaMs": 601,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 302,
+        "n": 1
+      },
+      "longTasksMs": 0,
+      "longTasksN": 0,
+      "jsKB": 517,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 379
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "consulta",
+      "ruta": "/consulta/pac-refugio-alcantara",
+      "ttfb": 38,
+      "fcp": 92,
+      "lcp": 3408,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 198,
+        "ultimaMs": 582,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 187,
+        "n": 1
+      },
+      "longTasksMs": 169,
+      "longTasksN": 2,
+      "jsKB": 734,
+      "jsPeticiones": 34,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 539
+    },
+    {
+      "corrida": "escritorio",
+      "pantalla": "pendientes",
+      "ruta": "/pendientes",
+      "ttfb": 15,
+      "fcp": 244,
+      "lcp": 4868,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 888,
+        "ultimaMs": 1860,
+        "n": 4
+      },
+      "auth": {
+        "primeraMs": 764,
+        "n": 1
+      },
+      "longTasksMs": 1311,
+      "longTasksN": 8,
+      "jsKB": 484,
+      "jsPeticiones": 27,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 453
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "hoy",
+      "ruta": "/dashboard",
+      "ttfb": 28,
+      "fcp": 240,
+      "lcp": 3964,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 550,
+        "ultimaMs": 1085,
+        "n": 5
+      },
+      "auth": {
+        "primeraMs": 501,
+        "n": 1
+      },
+      "longTasksMs": 502,
+      "longTasksN": 5,
+      "jsKB": 527,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 537
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "pacientes",
+      "ruta": "/pacientes",
+      "ttfb": 7,
+      "fcp": 116,
+      "lcp": 3648,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 324,
+        "ultimaMs": 993,
+        "n": 7
+      },
+      "auth": {
+        "primeraMs": 295,
+        "n": 1
+      },
+      "longTasksMs": 212,
+      "longTasksN": 3,
+      "jsKB": 492,
+      "jsPeticiones": 28,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 425
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "expediente",
+      "ruta": "/expediente/pac-refugio-alcantara",
+      "ttfb": 14,
+      "fcp": 108,
+      "lcp": 3720,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 316,
+        "ultimaMs": 1035,
+        "n": 6
+      },
+      "auth": {
+        "primeraMs": 297,
+        "n": 1
+      },
+      "longTasksMs": 252,
+      "longTasksN": 2,
+      "jsKB": 517,
+      "jsPeticiones": 30,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 379
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "consulta",
+      "ruta": "/consulta/pac-refugio-alcantara",
+      "ttfb": 13,
+      "fcp": 164,
+      "lcp": 4196,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 386,
+        "ultimaMs": 1534,
+        "n": 7
+      },
+      "auth": {
+        "primeraMs": 355,
+        "n": 1
+      },
+      "longTasksMs": 742,
+      "longTasksN": 3,
+      "jsKB": 734,
+      "jsPeticiones": 34,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 539
+    },
+    {
+      "corrida": "movil",
+      "pantalla": "pendientes",
+      "ruta": "/pendientes",
+      "ttfb": 7,
+      "fcp": 128,
+      "lcp": 3544,
+      "hidratacionMs": null,
+      "medidasNext": [],
+      "lcpElemento": "DIV",
+      "hitos": {},
+      "firestore": {
+        "primeraMs": 305,
+        "ultimaMs": 631,
+        "n": 5
+      },
+      "auth": {
+        "primeraMs": 281,
+        "n": 1
+      },
+      "longTasksMs": 204,
+      "longTasksN": 3,
+      "jsKB": 492,
+      "jsPeticiones": 28,
+      "cssKB": 16,
+      "cssPeticiones": 1,
+      "nodosDOM": 454
+    }
+  ]
+}
