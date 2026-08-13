@@ -180,8 +180,11 @@ describe('la segunda cadena (Result queue → Patient result) y los saltos decla
     // (después del commit, ANTES de la captura del estado nuevo), la captura
     // nueva tendría dos elementos llamados nx-paciente — franja y ancla — y
     // el navegador saltaría la transición entera, en silencio.
+    // El callback lleva además el candado RT-08 (try/finally alrededor);
+    // lo que ESTA prueba fija es el ORDEN: navegar → commit → limpiar el
+    // nombre del origen, todo dentro del callback.
     expect(modulo).toMatch(
-      /startViewTransition\(async \(\) => \{\s*navegar\(\)\s*await esperarCambioDeRuta\(\)[\s\S]*?if \(origen && origen\.isConnected\) origen\.style\.viewTransitionName = ''\s*\}\)/,
+      /startViewTransition\(async \(\) => \{[\s\S]*?navegar\(\)\s*await esperarCambioDeRuta\(\)[\s\S]*?if \(origen && origen\.isConnected\) origen\.style\.viewTransitionName = ''/,
     )
   })
 

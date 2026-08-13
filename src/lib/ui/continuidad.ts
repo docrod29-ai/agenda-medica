@@ -73,11 +73,27 @@ export const NOMBRE_VT_PACIENTE = 'nx-paciente'
 export const ATRIBUTO_VT = 'data-vt-continuidad'
 
 /**
+ * Atributo de <html> que CONGELA el puntero mientras dura el callback de la
+ * transición (RT-08). Durante ese tramo el navegador pinta la instantánea
+ * VIEJA pero el DOM de debajo ya es el NUEVO: un clic ahí aterriza a ciegas
+ * — desde una worklist con un «Consulta» por renglón, en el encuentro de
+ * OTRO paciente. globals.css lo traduce a `pointer-events: none` sobre
+ * <body>; el candado vive sólo lo que vive el callback (≤ TOPE_ESPERA_MS),
+ * y la fase de animación no lo necesita: ahí el overlay ya pinta el estado
+ * nuevo y su hit-testing es el de siempre (§20: interrumpible).
+ */
+export const ATRIBUTO_VT_CONGELADA = 'data-vt-congelada'
+
+/**
  * Tope de espera del commit de ruta. Mientras el callback no resuelve, el
  * navegador muestra la pantalla VIEJA congelada: una ruta que tarda no puede
- * congelar la interfaz más que esto.
+ * congelar la interfaz más que esto. 400 y no 1200 (RT-08): la pantalla
+ * congelada es también la ventana del clic ciego — cuanto más corta, menos
+ * tiempo puede un dedo aterrizar sobre un DOM que no es el que se ve. Una
+ * ruta que tarde más pierde el morph (el crossfade de siempre la cubre);
+ * perder una coreografía es más barato que sostener la ventana.
  */
-const TOPE_ESPERA_MS = 1200
+const TOPE_ESPERA_MS = 400
 
 type Resolver = () => void
 let pendientes: Resolver[] = []
@@ -140,6 +156,9 @@ export function navegarConContinuidad(navegar: () => void, origen?: HTMLElement 
 
   const limpiar = () => {
     raiz.removeAttribute(ATRIBUTO_VT)
+    // Cinturón del candado RT-08: el finally del callback ya lo soltó; si
+    // una implementación saltara el callback, aquí no sobrevive.
+    raiz.removeAttribute(ATRIBUTO_VT_CONGELADA)
     // El origen normalmente ya se desmontó con la pantalla vieja; si sigue
     // vivo (navegación interrumpida), se le quita el nombre para que la
     // siguiente coreografía no encuentre dos elementos llamados igual.
@@ -147,16 +166,25 @@ export function navegarConContinuidad(navegar: () => void, origen?: HTMLElement 
   }
 
   const transicion = document.startViewTransition(async () => {
-    navegar()
-    await esperarCambioDeRuta()
-    // ANTES de que el navegador capture el estado NUEVO: si el origen
-    // sobrevivió a la navegación (la franja del shell persiste entre rutas),
-    // su nombre inline y el del destino serían DOS elementos llamados igual
-    // en la misma captura — y el navegador salta la transición entera. El
-    // estado viejo ya se capturó al llamar al API; quitarle el nombre aquí
-    // no le quita nada a la instantánea de origen, sólo deja al destino
-    // como único dueño del nombre en la captura nueva.
-    if (origen && origen.isConnected) origen.style.viewTransitionName = ''
+    // RT-08: desde aquí y hasta que este callback resuelva, lo que se VE es
+    // la instantánea vieja y lo que RECIBE el clic es el DOM nuevo. Se
+    // congela el puntero (globals.css) y el finally lo suelta pase lo que
+    // pase — commit, tope de espera o excepción de navegar().
+    raiz.setAttribute(ATRIBUTO_VT_CONGELADA, '')
+    try {
+      navegar()
+      await esperarCambioDeRuta()
+      // ANTES de que el navegador capture el estado NUEVO: si el origen
+      // sobrevivió a la navegación (la franja del shell persiste entre rutas),
+      // su nombre inline y el del destino serían DOS elementos llamados igual
+      // en la misma captura — y el navegador salta la transición entera. El
+      // estado viejo ya se capturó al llamar al API; quitarle el nombre aquí
+      // no le quita nada a la instantánea de origen, sólo deja al destino
+      // como único dueño del nombre en la captura nueva.
+      if (origen && origen.isConnected) origen.style.viewTransitionName = ''
+    } finally {
+      raiz.removeAttribute(ATRIBUTO_VT_CONGELADA)
+    }
   })
   // `finished` rechaza si la transición se saltó (otra navegación encima, un
   // nombre duplicado…). Interrumpirse es comportamiento correcto (§20:

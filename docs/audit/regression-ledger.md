@@ -7251,3 +7251,50 @@ hospitalización (golden propio de REG-279).
 
 **Familia.** `copia_local_de_regla_sellada` (hermana de REG-279, REG-171,
 REG-201).
+
+## REG-312 — La coreografía de continuidad abría una ventana de clic ciego: pantalla vieja pintada, DOM nuevo debajo
+
+**Encontrado por** el equipo rojo de originalidad de
+`V15-ORIGINALITY-REDTEAM-001` (panel B, hallazgo RT-08, 13-ago-2026), leyendo
+`continuidad.ts` en busca de motion decorativo. El único hallazgo del panel
+con riesgo clínico: **paciente equivocado**.
+
+**Qué pasaba.** Mientras corre el callback de `document.startViewTransition`,
+el navegador pinta la instantánea VIEJA congelada pero el hit-testing corre
+contra el DOM vivo — que ya es la ruta NUEVA (`navegar()` es lo primero que
+hace el callback). Con el tope de espera en 1200ms, un médico que venía de una
+worklist con un «Consulta» por renglón podía hacer clic sobre lo que VEÍA (la
+fila del paciente A) y aterrizar sobre lo que HABÍA debajo: el encuentro de
+OTRO paciente. El guardián de motion existente sólo cubría la fase de
+animación (`::view-transition { pointer-events: none }`, §20) — ese overlay ni
+existe durante el callback.
+
+**Causa raíz.** El API separa lo que se PINTA (instantánea vieja) de lo que
+RECIBE eventos (DOM nuevo) durante el callback, y el diseño original sólo
+pensó en el cuadro (tope para que la pantalla no se congele de más), no en el
+puntero (que durante ese tramo apunta a una pantalla que no se ve).
+
+**Arreglo.** (1) Candado: el callback pone `data-vt-congelada` en `<html>` y
+globals.css lo traduce a `pointer-events: none` sobre `<body>`; se suelta en
+un `finally` — commit, tope o excepción de `navegar()`. (2) La ventana se
+acorta: tope 1200 → 400ms. Una ruta más lenta pierde el morph (la cubre el
+crossfade de siempre), no la seguridad.
+
+**Guardián.** `src/__tests__/rt-08-ventana-de-clic-ciego.test.ts` (6 casos):
+candado puesto durante el callback y suelto al commit / al tope / ante
+excepción (DOM de mentira con el contrato exacto del API), la regla CSS, la
+igualdad del atributo y el tope declarado. **Probado al revés ×2**: sin el
+candado fallan 5; con el tope viejo (1200) fallan 2 — incluido el caso de
+temporizador, que no es lectura de fuente.
+
+**Qué NO cubre.** El hit-testing verdadero en navegador (lo mide
+`scripts/design/medir-continuidad-v15.mjs` con el API real); la fase de
+animación (contrato de §20 en `v15-motion-continuidad-de-objeto.test.ts`); y
+un teclado durante la ventana — `pointer-events` no bloquea Enter sobre un
+elemento ya enfocado; ventana ≤400ms y el foco no viaja solo al DOM nuevo,
+riesgo aceptado y anotado.
+
+**Familia.** `se_contradice` — lo que se PINTA (instantánea vieja) y lo que
+RECIBE el clic (DOM nuevo) afirman cosas incompatibles y ninguna está mal
+por su cuenta: el fallo vive en el hueco entre las dos. Hermana conceptual
+de «el dato tiene que llegar»: aquí el clic tiene que llegar A LO QUE SE VE.

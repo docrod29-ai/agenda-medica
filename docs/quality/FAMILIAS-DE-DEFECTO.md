@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 9-ago-2026.
-**Fuente**: los 129 REG de `docs/audit/regression-ledger.md`.
+**Abierto**: 6-ago-2026. **Actualizado**: 13-ago-2026.
+**Fuente**: los 160 REG de `docs/audit/regression-ledger.md`.
 
 ---
 
@@ -39,7 +39,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 35 de 159, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 35 de 160, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 La recuperó con dos casos del mismo día, y los dos son el patrón en estado puro.
@@ -86,7 +86,13 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 29 de 159.**
+**«El sistema se contradice a sí mismo» — 30 de 160.**
+
+Sumó REG-312: la ventana de clic ciego de la coreografía de continuidad —
+lo que se PINTA (instantánea vieja) y lo que RECIBE el clic (DOM nuevo)
+afirmaban cosas incompatibles durante el callback de la view transition, y
+ninguna pieza estaba mal por su cuenta. Riesgo de paciente equivocado desde
+una worklist; candado + tope 400ms + guardián probado al revés ×2.
 
 Sumó REG-311: la séptima copia local de la negación de alergias — el ancla
 nueva de V15 y la píldora de consulta afirmaban cosas incompatibles sobre el

@@ -15,7 +15,23 @@ redondeadas, exceso de píldoras, exceso de sombras, cristal por todas partes».
 
 Se buscó cada una de esas señales. **No están.**
 
-| Señal que la directiva teme | Cuántas hay |
+> **CORRECCIÓN (13-ago-2026, RT-01 del equipo rojo de V15).** La tabla de
+> abajo contaba **clases Tailwind** en un código que es 88,5 % estilo en
+> línea (§1 de este mismo documento): sus ceros eran **artefactos del
+> método**, no ausencia de la señal. Medido al nivel del **valor CSS** —
+> viva donde viva: TSX en línea o `globals.css` — la foto real del 13-ago
+> es: **16 `*-gradient(`**, **16 `backdrop-filter`**, **9 halos de color**
+> (sombras `rgba` con croma) y 22 `boxShadow` literales. La señal sigue
+> siendo BAJA para 200+ archivos (y ninguno de los degradados es el morado
+> de plantilla: el último literal violeta murió con RT-01), pero ya no se
+> mide con una vara que no puede ver. Desde hoy la mide el **trinquete**:
+> `node scripts/design/trinquete-de-diseno.mjs` (contadores `gradientes`,
+> `cristal`, `halosDeColor`, techo sellado sólo-baja en
+> `scripts/design/techos-de-diseno.json`, guardián en
+> `el-sistema-de-diseno-no-pierde-terreno.test.ts`). La tabla original se
+> conserva como acta del error de método:
+
+| Señal que la directiva teme | Cuántas hay *(clases Tailwind — MEDIDA ROTA, ver corrección)* |
 |---|---|
 | `bg-gradient-to-*` | **0** |
 | `from-purple` / `from-indigo` / `from-violet` (cualquier `from-/via-/to-` de color) | **0** |

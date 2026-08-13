@@ -80,7 +80,15 @@ function instrumentar(page) {
         w.__vt.llamadas++
         w.__vt.atributoDuranteTransicion =
           document.documentElement.hasAttribute('data-vt-continuidad')
-        const t = original(cb)
+        // RT-08: el callback pone el candado en su PRIMERA sentencia síncrona,
+        // así que envolverlo y mirar el atributo justo después de arrancarlo
+        // observa la ventana real — no una simulación.
+        const t = original(() => {
+          const p = cb()
+          w.__vt.congeladaDuranteCallback =
+            document.documentElement.hasAttribute('data-vt-congelada')
+          return p
+        })
         w.__vt.readyOk = null
         t.ready.then(() => { w.__vt.readyOk = true }, () => { w.__vt.readyOk = false })
         return t
@@ -115,7 +123,7 @@ async function saltoDesdeHoy(page) {
 /** ¿Las reglas nuevas sobrevivieron el parseo de la hoja? */
 function reglasParseadas(page) {
   return page.evaluate(() => {
-    const halladas = { overlay: false, gateDestino: false, grupoLento: false, reduceApaga: false }
+    const halladas = { overlay: false, gateDestino: false, grupoLento: false, reduceApaga: false, candadoRt08: false }
     const recorrer = (reglas) => {
       for (const r of reglas) {
         // OJO: con CSS nesting, TODA CSSStyleRule tiene `cssRules` (vacía) —
@@ -127,6 +135,7 @@ function reglasParseadas(page) {
         if (sel === '::view-transition' && /pointer-events:\s*none/.test(cuerpo)) halladas.overlay = true
         if (sel.includes('html[data-vt-continuidad] .nx-vt-paciente') && /view-transition-name/.test(cuerpo)) halladas.gateDestino = true
         if (sel.includes('::view-transition-group(nx-paciente)') && /--mov-lento/.test(cuerpo)) halladas.grupoLento = true
+        if (sel.includes('html[data-vt-congelada] body') && /pointer-events:\s*none/.test(cuerpo)) halladas.candadoRt08 = true
         if (r.cssRules && r.cssRules.length) recorrer(r.cssRules)
       }
     }
@@ -172,6 +181,7 @@ async function main() {
   caso('el gate del destino (html[data-vt-continuidad] .nx-vt-paciente) sobrevivió', reglas.gateDestino)
   caso('::view-transition-group(nx-paciente) con --mov-lento sobrevivió', reglas.grupoLento)
   caso('el apagador de §24 para view transitions sobrevivió', reglas.reduceApaga)
+  caso('el candado RT-08 (html[data-vt-congelada] body) SOBREVIVIÓ el parseo', reglas.candadoRt08)
 
   // Hoy → Paciente/Encuentro: el primer salto disponible de la cadena.
   await page.waitForSelector('.cita-fila', { timeout: 15000 })
@@ -182,8 +192,11 @@ async function main() {
   let vt = await leerVt(page)
   caso(`Hoy→${destinoHoy.includes('consulta') ? 'Encuentro' : 'Paciente'} invoca la view transition`, vt.llamadas === 1, `llamadas=${vt.llamadas}`)
   caso('el atributo data-vt-continuidad estaba puesto al capturar', vt.atributoDuranteTransicion)
+  caso('RT-08: el puntero estaba CONGELADO durante el callback (data-vt-congelada)', vt.congeladaDuranteCallback === true)
   await page.waitForFunction(() => !document.documentElement.hasAttribute('data-vt-continuidad'), null, { timeout: 5000 })
   caso('el atributo se LIMPIA al terminar la transición', true)
+  const congeladaResidual = await page.evaluate(() => document.documentElement.hasAttribute('data-vt-congelada'))
+  caso('RT-08: el candado NO sobrevive a la transición (se soltó)', !congeladaResidual)
   const h1Destino = await page.locator('h1.nx-vt-paciente, .nx-vt-paciente').count()
   caso('el destino lleva .nx-vt-paciente (el objeto ATERRIZA)', h1Destino === 1, `nodos=${h1Destino}`)
   await page.screenshot({ path: path.join(DESTINO, 'despues-salto-1440.png') })

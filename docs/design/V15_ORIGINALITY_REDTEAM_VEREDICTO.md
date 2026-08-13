@@ -1,5 +1,12 @@
 # V15-ORIGINALITY-REDTEAM-001 — veredicto consolidado
 
+> **ACTA HISTÓRICA (panel B).** La cola de reparación canónica —con los IDs
+> `RT` de este archivo mapeados, deduplicados contra el panel A y con
+> severidad reconciliada— vive en
+> `docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md` (IDs `RTC-xx`).
+> Este documento se conserva por sus scores, refutaciones y método; **no**
+> se usa como lista de trabajo.
+
 **Fecha:** 13-ago-2026 · **Evidencia:** 27 capturas reales
 (`docs/design/capturas/v15-redteam/`, app corriendo con siembra sintética,
 escritorio 1440 + móvil 390, tema oscuro/claro + variante GRIS por

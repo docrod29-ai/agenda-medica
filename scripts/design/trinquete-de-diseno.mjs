@@ -35,14 +35,41 @@
  *                      usos: casi cada sombra era única, que es exactamente lo
  *                      contrario de una jerarquía de elevación.
  *
+ * ── LOS CONTADORES DE GENERICIDAD (RT-01, V15 §29/§41) ──────────────────────
+ *
+ * El equipo rojo de V15 encontró que la vara anterior no podía medir lo que
+ * decía medir: `GENERIC_AI_AESTHETIC_AUDIT.md` contaba CLASES Tailwind
+ * (`bg-gradient-to-*`, `shadow-lg`) en un código 88,5 % estilo-en-línea — sus
+ * ceros eran artefactos de método. Éstos cuentan el VALOR CSS, viva donde viva
+ * (TSX en línea o `globals.css`, que aquí SÍ se mira: un degradado en la hoja
+ * pinta igual que uno en línea):
+ *
+ *   gradientes     `linear/radial/conic-gradient(`. La señal n.º 1 de plantilla
+ *                  de IA. Cuenta también los neutros (shimmer de esqueleto con
+ *                  tokens): el techo se sella donde está y sólo baja — que un
+ *                  degradado nuevo tenga que desplazar a uno viejo.
+ *
+ *   cristal        `backdrop-filter` (y su variante camelCase). El glassmorphism
+ *                  ubicuo es la segunda señal; los usos legítimos están acotados
+ *                  y documentados en `globals.css`.
+ *
+ *   halosDeColor   `rgba(r,g,b,…)` CON CROMA (r≠g o g≠b) dentro de una
+ *                  declaración de sombra: el resplandor de color alrededor de
+ *                  una caja es decoración de plantilla, no elevación. Las
+ *                  sombras neutras (negras/grises) las cuenta `sombrasEnLinea`.
+ *
  * ── QUÉ **NO** MIDE ─────────────────────────────────────────────────────────
  *
  * - **No mide si la pantalla se ve bien.** Mide adherencia al sistema. Una
  *   pantalla puede estar al 100 % de tokens y ser ilegible.
  * - **No cuenta `style={{}}` a secas.** Un estilo en línea que usa `var(--…)`
  *   es correcto: el problema nunca fue el atributo, fue el valor suelto.
- * - **No mira `src/app/globals.css`**, que es donde los literales DEBEN vivir.
+ * - **No mira `src/app/globals.css` para la deuda de tokens** (ahí es donde los
+ *   literales DEBEN vivir) — pero SÍ para la genericidad, que no depende de
+ *   dónde viva el valor sino de que se pinte.
  * - **No vigila accesibilidad ni contraste.** Eso es `A11Y-GATE-001`.
+ * - **No juzga la INTENCIÓN de un degradado**: cuenta todos. El techo sellado
+ *   es la opinión; la lista `porArchivo` dice dónde mirar.
  *
  * Uso:  node scripts/design/trinquete-de-diseno.mjs
  *       node scripts/design/trinquete-de-diseno.mjs --actualizar   (baja el techo)
@@ -69,8 +96,26 @@ function fuentes(dir, acc = []) {
   return acc
 }
 
+/** Genericidad en un fuente: degradados, cristal y halos de color (RT-01). */
+function genericidadEn(src) {
+  const gradientes = (src.match(/(?:linear|radial|conic)-gradient\(/g) ?? []).length
+  const cristal = (src.match(/backdrop-filter|backdropFilter/gi) ?? []).length
+  let halos = 0
+  // Sólo dentro de una declaración de sombra: un rgba de color en un borde o
+  // un fondo es deuda de `hexEnLinea`/tokens, no un halo.
+  for (const decl of src.matchAll(/(?:box-shadow|boxShadow)[^;\n]*/g)) {
+    for (const c of decl[0].matchAll(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/g)) {
+      if (c[1] !== c[2] || c[2] !== c[3]) halos++
+    }
+  }
+  return { gradientes, cristal, halos }
+}
+
 export function medir() {
-  const conteo = { respaldosDeToken: 0, hexEnLinea: 0, tamanosFueraDeEscala: 0, radiosFueraDeEscala: 0, sombrasEnLinea: 0 }
+  const conteo = {
+    respaldosDeToken: 0, hexEnLinea: 0, tamanosFueraDeEscala: 0, radiosFueraDeEscala: 0, sombrasEnLinea: 0,
+    gradientes: 0, cristal: 0, halosDeColor: 0,
+  }
   const porArchivo = {}
 
   for (const archivo of fuentes(join(RAIZ, 'src'))) {
@@ -91,14 +136,36 @@ export function medir() {
 
     const sombras = (src.match(/boxShadow:\s*['"`]/g) ?? []).length
 
-    const total = respaldos + hex + tam + rad + sombras
-    if (total) porArchivo[rel] = { respaldos, hex, tam, rad, sombras, total }
+    const { gradientes, cristal, halos } = genericidadEn(src)
+
+    const total = respaldos + hex + tam + rad + sombras + gradientes + cristal + halos
+    if (total) porArchivo[rel] = { respaldos, hex, tam, rad, sombras, gradientes, cristal, halos, total }
     conteo.respaldosDeToken += respaldos
     conteo.hexEnLinea += hex
     conteo.tamanosFueraDeEscala += tam
     conteo.radiosFueraDeEscala += rad
     conteo.sombrasEnLinea += sombras
+    conteo.gradientes += gradientes
+    conteo.cristal += cristal
+    conteo.halosDeColor += halos
   }
+
+  // La genericidad no depende de dónde viva el valor: globals.css también
+  // pinta. Sólo los tres contadores de RT-01 — la deuda de tokens NO se mide
+  // aquí, porque la hoja es justo donde los literales deben vivir.
+  const hoja = readFileSync(join(RAIZ, 'src', 'app', 'globals.css'), 'utf8')
+  const g = genericidadEn(hoja)
+  if (g.gradientes + g.cristal + g.halos) {
+    porArchivo['src/app/globals.css'] = {
+      respaldos: 0, hex: 0, tam: 0, rad: 0, sombras: 0,
+      gradientes: g.gradientes, cristal: g.cristal, halos: g.halos,
+      total: g.gradientes + g.cristal + g.halos,
+    }
+  }
+  conteo.gradientes += g.gradientes
+  conteo.cristal += g.cristal
+  conteo.halosDeColor += g.halos
+
   return { conteo, porArchivo }
 }
 

@@ -4,8 +4,37 @@
 
 ## Iteración en curso
 
-`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; DOS
-paneles independientes CERRADOS 13-ago-2026, registros POR UNIFICAR**.
+`V15-ORIGINALITY-REDTEAM-001` (§43 orden 16, §41) — **EN CURSO; registros
+UNIFICADOS 13-ago-2026 y los DOS pagos prioritarios CERRADOS**:
+
+- **Registro canónico**: `docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md`
+  (IDs `RTC-01..28`, mapeo ORT↔RT por CONTENIDO — los paréntesis RT/DS/CW
+  de los ORT eran informes internos del panel A, no los RT del panel B —
+  severidad reconciliada, estado por defecto). Los dos veredictos quedan
+  como ACTAS con nota de superseded; **la cola de reparación vive sólo en
+  el canónico**.
+- **RTC-03 / RT-08 (clic ciego → paciente equivocado): FIXED como REG-312.**
+  Candado `data-vt-congelada` → `pointer-events:none` sobre `<body>`
+  durante el callback de `startViewTransition` (con `finally`), tope
+  1200→400ms. Guardián `rt-08-ventana-de-clic-ciego.test.ts` (6 casos,
+  BEHAVIORAL con DOM de mentira + fake timers, probado al revés ×2: sin
+  candado fallan 5, con tope viejo fallan 2). Sello 4569→4575; familia
+  `se_contradice` (312 clasificado). Verificado en NAVEGADOR REAL:
+  `medir-continuidad-v15.mjs` extendido con 3 casos RT-08 (regla parseada,
+  congelado durante callback, suelto al terminar) — **25/25 en verde**, la
+  cadena §20 entera sigue funcionando con el tope nuevo (equivalencia
+  funcional medida, no supuesta).
+- **RTC-02 / RT-01 (vara de genericidad rota): FIXED.** El trinquete de
+  diseño gana TRES contadores de genericidad — `gradientes` (16), `cristal`
+  (16), `halosDeColor` (9: rgba con croma dentro de sombra) — medidos al
+  nivel del VALOR CSS, TSX + `globals.css` (la genericidad no depende de
+  dónde viva el valor), techos sellados sólo-baja y probados al revés (los
+  tres muerden). `GENERIC_AI_AESTHETIC_AUDIT.md` lleva la CORRECCIÓN
+  escrita: la tabla de clases Tailwind queda como acta del error de método.
+- Colaterales pagados: `FAMILIAS-DE-DEFECTO.md` (30 de 160, REG-312),
+  tablero (`actualizar.mjs`), sala de datos (`actualizar-cifras.mjs`).
+
+Historia de la unificación (dos corridas concurrentes el mismo día, §39):
 Dos corridas concurrentes del routine ejecutaron el equipo rojo el mismo
 día sobre las MISMAS 27 capturas (§39: quedó registrado; el estado se
 consolidó por merge, sin force-push):
@@ -30,11 +59,18 @@ consolidó por merge, sin force-push):
   RT-05 parcial (4 etiquetas de IA-feature muertas, §25), el degradado
   morado literal y un radio 12.
 
-**Siguiente rebanada exacta:** (1) UNIFICAR los dos registros en uno
-canónico (mapear ORT↔RT, deduplicar, una sola numeración y severidad
-reconciliada — vive en el veredicto B o en un tercero, pero UNO); (2)
-**RT-08** (clic ciego → paciente equivocado: seguridad primero, §43); (3)
-RT-01/contadores de genericidad en el trinquete. Ver secciones al FINAL.
+**Siguiente rebanada exacta:** pagar los P1 del registro canónico en su
+orden: (a) **RTC-04** (banner de cobro + pila de avisos del layout se
+aquietan al grabar — suscribirse a `EVENTO_GRABANDO` como FlowRail, §8.5);
+(b) **RTC-06** (Hoy con UNA acción primaria clínica; «Nueva cita»
+subordinada, saludo a kicker); (c) **RTC-07** (la acción del pulgar móvil
+respeta el contexto clínico). Cada una con captura antes/después y su
+guardián. Después RTC-05 (FABs), RTC-08/RTC-09 (riel/Operaciones), y
+RTC-10/RTC-11 que son rebanadas estructurales grandes. La rebanada de
+13-ago (unificación + RT-08 + RT-01) está al FINAL del archivo.
+
+[Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
+(2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad.]
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO
@@ -6480,3 +6516,96 @@ en `trinquete-de-diseno.mjs` con techo sellado sólo-baja, y corregir las
 cifras rotas del audit doc. El registro completo con severidades vive en
 el veredicto; RT-02 (expediente) es la rebanada estructural grande que
 sigue a esas dos.
+
+## `V15-ORIGINALITY-REDTEAM-001` — registros unificados, RT-08 pagado como REG-312, RT-01 pagado con trinquete (13-ago-2026)
+
+La tarea exacta que dejó la consolidación, ejecutada en su orden (con la
+seguridad primero, §43):
+
+### RT-08 → REG-312 (RTC-03): el candado de la ventana de clic ciego
+
+Durante el callback de `document.startViewTransition` el navegador pinta la
+instantánea VIEJA congelada pero el hit-testing corre contra el DOM NUEVO
+(`navegar()` es lo primero del callback). Con el tope en 1200ms, desde una
+worklist un clic sobre lo que se VE podía aterrizar en el encuentro de OTRO
+paciente. El arreglo, dentro del carril §1 (cero lógica clínica):
+
+- `continuidad.ts`: el callback pone `data-vt-congelada` en `<html>` como
+  primera sentencia y lo suelta en un `finally` (commit, tope o excepción);
+  `limpiar()` lleva el cinturón. `TOPE_ESPERA_MS` 1200→400: una ruta más
+  lenta pierde el morph (crossfade de siempre), no la seguridad.
+- `globals.css`: `html[data-vt-congelada] body { pointer-events: none; }` —
+  el candado dura lo que el callback; la fase de animación no lo lleva (ahí
+  el overlay ya enseña el estado nuevo y §20 exige interrumpible).
+- **Guardián** `rt-08-ventana-de-clic-ciego.test.ts` (6 casos): BEHAVIORAL
+  — DOM de mentira con el contrato exacto del API (el stub ejecuta el
+  callback como el navegador real), fake timers para el tope, y lectura de
+  hoja/módulo. **Probado al revés ×2** (git stash / sed del tope): sin el
+  candado fallan 5; con el tope viejo fallan 2 — incluido el caso de
+  temporizador, que no es lectura de fuente.
+- **Ledger REG-312** (familia `se_contradice` — lo que se pinta y lo que
+  recibe el clic afirman cosas incompatibles); **sello** 4569→4575.
+- **Navegador real** (§40): `medir-continuidad-v15.mjs` extendido — el
+  wrapper del arnés envuelve el callback y mira el atributo JUSTO al
+  arrancarlo (observa la ventana real, no una simulación) + regla parseada
+  + candado suelto al terminar. **25/25 en verde** contra build de
+  producción + emuladores + siembra: toda la cadena §20 (Hoy→Encuentro,
+  Paciente→Encuentro, Result queue→Patient result, /pacientes, franja,
+  reduced-motion, móvil 390) sigue coreografiando con el tope de 400ms —
+  equivalencia funcional MEDIDA. Acta:
+  `docs/design/capturas/v15-motion-continuidad/resultado.json`.
+
+### RT-01 → contadores de genericidad (RTC-02)
+
+La vara vieja contaba clases Tailwind en código 88,5 % inline: ceros de
+método. Ahora `trinquete-de-diseno.mjs` mide el VALOR CSS viva donde viva
+(TSX + `globals.css` — sólo para genericidad; la deuda de tokens sigue sin
+mirar la hoja, que es donde los literales deben vivir):
+
+- `gradientes` = 16 · `cristal` = 16 · `halosDeColor` = 9 (rgba con croma
+  DENTRO de una declaración de sombra; las neutras las cuenta
+  `sombrasEnLinea`). Techos sellados en `techos-de-diseno.json`, sólo-baja,
+  sin holgura (el guardián de exactitud lo exige).
+- **Probado al revés**: un TSX con degradado + halo violeta + backdrop pone
+  en rojo los tres contadores (y exit 1); restaurado, verde.
+- `GENERIC_AI_AESTHETIC_AUDIT.md`: corrección del 13-ago escrita encima de
+  la tabla rota — que queda como acta del error de método, con las cifras
+  honestas al lado.
+
+### Unificación de registros (la rebanada 1 de la consolidación)
+
+`docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md` — RTC-01..28. El mapeo
+fue por CONTENIDO: los paréntesis de los ORT (RT-xx/DS-xx/CW-xx) citaban los
+informes internos del panel A, NO los RT del panel B — la coincidencia de
+prefijo era una trampa. Fusiones principales: ORT-05+RT-11→RTC-06,
+ORT-04+RT-11móvil→RTC-07, ORT-03+RT-04→RTC-08, ORT-02+RT-09→RTC-09,
+ORT-07+RT-02→RTC-10, RT-10+ORT-11→RTC-14, ORT-13+RT-12→RTC-17. Severidad
+reconciliada con el dolor clínico primero (ORT-14+RT-06 suben a P1 juntas
+como RTC-05). Los dos veredictos quedan como actas con nota.
+
+### Compuertas de esta corrida
+
+- `npx vitest run` (suite completa): 9267 pasan; 7 fallos triados — 5 eran
+  colaterales de REG-312/sello y quedaron PAGADOS (familias, tablero, sala
+  de datos ×3, re-corridos en verde); `la-agenda-es-un-riel` fue timeout de
+  carga de la suite completa (12/12 en corrida dirigida); y
+  `ops-timeout-y-punto-ciego` es el artefacto CONOCIDO del proxy del
+  contenedor (documentado la corrida anterior; en CI pasa).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: verde con los TRES
+  contadores nuevos sellados (16/16/9).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila (162 páginas, con
+  `.env.local` demo de 7 variables recreado — receta de la quinta rebanada).
+- Contenedor fresco: `npm ci` recreado; Playwright vía
+  `/opt/pw-browsers/chromium` (patrón de los hermanos).
+
+**Siguiente tarea exacta:** pagar los P1 del registro canónico en su orden
+de dolor: (a) RTC-04 — el banner de cobro y la pila de avisos del layout se
+aquietan al grabar (suscripción a `EVENTO_GRABANDO` igual que FlowRail,
+§8.5; la decisión v972 pide prueba visible, no presencia permanente sobre
+la superficie clínica); (b) RTC-06 — Hoy con UNA acción primaria clínica
+(«Nueva cita» subordinada, saludo a kicker, sólo la cita inminente con
+relleno); (c) RTC-07 — la acción del pulgar móvil respeta el contexto
+clínico. Cada una con captura antes/después y su guardián. El hueco de
+evidencia (encuentro GRABANDO sin fotografiar) sigue declarado para el
+siguiente paquete de capturas.

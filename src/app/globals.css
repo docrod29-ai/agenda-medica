@@ -1367,6 +1367,15 @@ main:has(.nx-lienzo-completo) > .page-transition {
    viva debajo y un segundo click navega encima, saltando la transición. */
 ::view-transition { pointer-events: none; }
 
+/* RT-08 — el candado de la ventana de clic ciego. Mientras corre el CALLBACK
+   de la transición (continuidad.ts pone y quita el atributo), el navegador
+   pinta la instantánea VIEJA pero el DOM de debajo ya es el NUEVO: un clic
+   ahí aterriza a ciegas — desde una worklist, en el encuentro de OTRO
+   paciente. El candado dura lo que el callback (≤400ms por tope); la fase de
+   animación no lo lleva — ahí el overlay ya enseña el estado nuevo y la
+   regla de arriba la mantiene interrumpible. */
+html[data-vt-congelada] body { pointer-events: none; }
+
 /* El DESTINO del objeto compartido sólo tiene nombre DURANTE una navegación
    coreografiada (el atributo lo pone y lo quita continuidad.ts). Fuera de
    ella, cero view-transition-name en reposo: nada que capturar, ningún par

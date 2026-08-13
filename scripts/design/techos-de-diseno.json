@@ -5,7 +5,10 @@
     "hexEnLinea": 493,
     "tamanosFueraDeEscala": 1970,
     "radiosFueraDeEscala": 627,
-    "sombrasEnLinea": 22
+    "sombrasEnLinea": 22,
+    "gradientes": 16,
+    "cristal": 16,
+    "halosDeColor": 9
   },
   "peores": [
     {

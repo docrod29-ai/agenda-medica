@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-08-13T05:37:27.887Z",
+  "fecha": "2026-08-13T12:54:18.634Z",
   "casos": [
     {
       "nombre": "el navegador del arnés soporta startViewTransition",
@@ -22,7 +22,11 @@
       "ok": true
     },
     {
-      "nombre": "Hoy→Paciente invoca la view transition",
+      "nombre": "el candado RT-08 (html[data-vt-congelada] body) SOBREVIVIÓ el parseo",
+      "ok": true
+    },
+    {
+      "nombre": "Hoy→Encuentro invoca la view transition",
       "ok": true,
       "detalle": "llamadas=1"
     },
@@ -31,7 +35,15 @@
       "ok": true
     },
     {
+      "nombre": "RT-08: el puntero estaba CONGELADO durante el callback (data-vt-congelada)",
+      "ok": true
+    },
+    {
       "nombre": "el atributo se LIMPIA al terminar la transición",
+      "ok": true
+    },
+    {
+      "nombre": "RT-08: el candado NO sobrevive a la transición (se soltó)",
       "ok": true
     },
     {

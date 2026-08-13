@@ -19,15 +19,19 @@
   "ultimaVersionEnProduccion": "nexusmed-v1171",
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
-    "M agent-state/V15_CURRENT_ITERATION.md",
-    " M docs/audit/regression-ledger.md",
-    " M src/__tests__/v15-roles-tipograficos-en-patient-anchor.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/components/expediente/PatientAnchor.tsx",
+    "M docs/audit/regression-ledger.md",
+    " M docs/design/GENERIC_AI_AESTHETIC_AUDIT.md",
+    " M docs/design/V15_ORIGINALITY_REDTEAM_VEREDICTO.md",
+    " M docs/design/v15/ORIGINALITY-REDTEAM-001-veredicto.md",
+    " M scripts/design/techos-de-diseno.json",
+    " M scripts/design/trinquete-de-diseno.mjs",
+    " M src/__tests__/v15-motion-continuidad-de-objeto.test.ts",
+    " M src/app/globals.css",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? docs/design/v15/ORIGINALITY-REDTEAM-001-veredicto.md",
-    "?? src/__tests__/reg-311-el-ancla-no-decide-la-negacion.test.ts"
+    " M src/lib/ui/continuidad.ts",
+    "?? docs/design/v15/V15-REDTEAM-REGISTRO-CANONICO.md",
+    "?? src/__tests__/rt-08-ventana-de-clic-ciego.test.ts"
   ],
   "actualizado": "2026-08-13",
   "resumenDesdeElUltimoEstado": {
@@ -63,10 +67,10 @@
   ],
   "ramaActual": "v15/structural-uiux",
   "derivado": {
-    "regsEnElLedger": 159,
-    "ultimaREG": "REG-311",
-    "archivosDePrueba": 643,
-    "casosDePrueba": 8218,
+    "regsEnElLedger": 160,
+    "ultimaREG": "REG-312",
+    "archivosDePrueba": 644,
+    "casosDePrueba": 8224,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }
