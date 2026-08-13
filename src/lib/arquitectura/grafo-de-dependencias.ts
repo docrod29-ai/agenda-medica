@@ -66,10 +66,25 @@ const IMPORT_DE_TIPO = /^\s*(?:export|import)\s+type\s/
  * Lo que NO cuenta: `x as unknown as import('@/types').ClinicConfig`. Ahí
  * `import()` está en posición de TIPO y TypeScript lo borra. Por eso se exige
  * `await` o `=>` delante: los dos marcan una carga de verdad.
+ *
+ * ── LA QUINTA CEGUERA: `p ??= import('…')` ───────────────────────────────────
+ *
+ * El memoizado perezoso canónico —`pipelinePromise ??= import('@/lib/asr/pipeline')`—
+ * carga código de verdad, pero no lleva ni `await` ni `=>` pegados al `import`.
+ * Cuando el dictado se difirió así (V15-PERF, 4ª rebanada), el lector declaró
+ * fuera del camino al pipeline de voz ENTERO estando en el centro del paso 1.
+ * Misma familia que las cuatro anteriores: el lector veía texto donde tenía que
+ * ver código.
+ *
+ * Se admiten sólo las asignaciones LÓGICAS (`??=`, `||=`, `&&=`): ésas no
+ * existen en posición de tipo. El `=` a secas NO se admite — `type X =
+ * import('@/types').Y` es un alias de tipo y TypeScript lo borra; contarlo
+ * repetiría la ceguera inversa que infló la primera medición a 87.
  */
 const DINAMICO_REAL = [
   /await\s+import\s*\(\s*['"]((?:@\/|\.\.?\/)[^'"]+)['"]/g,
   /=>\s*import\s*\(\s*['"]((?:@\/|\.\.?\/)[^'"]+)['"]/g,
+  /(?:\?\?|\|\||&&)=\s*import\s*\(\s*['"]((?:@\/|\.\.?\/)[^'"]+)['"]/g,
 ]
 
 /**
