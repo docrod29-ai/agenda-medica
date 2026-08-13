@@ -76,18 +76,40 @@ consolidó por merge, sin force-push):
   (`docs/design/capturas/v15-avisos-quietos/acta-avisos-quietos.json`,
   PASS; capturas antes/grabando/grabando-offline/al-detener ×2 viewports).
 
+- **RTC-06 (Hoy: UNA primaria clínica): FIXED 13-ago (2ª corrida).** El
+  único relleno primario de /dashboard es el CTA del héroe NOW («Iniciar
+  consulta»); «Nueva cita» pasó a `variant="secondary"` y los seis
+  «Consulta» por fila a `btn-secondary` (la conducta —href, `puedeIniciar`,
+  coreografía §20— no cambió); el saludo bajó de 32px display a KICKER
+  (15px `--text2`, sigue siendo el `<h1>`), y el achique móvil global
+  `main h1 { 19px !important }` lo excluye (lo estaba AGRANDANDO). Guardián
+  `v15-hoy-una-primaria-clinica.test.ts` (6 casos, probado al revés: 5
+  rojos); navegador real con getComputedStyle desktop+móvil
+  (`docs/design/capturas/v15-hoy-una-primaria/acta-hoy-una-primaria.json`,
+  PASS, 0 errores de consola). Inventario de pantallas regenerado.
+
+**Nota operativa (13-ago, 2ª corrida):** una captura intermedia salió con la
+app SIN CSS y el dashboard en error boundary — no era defecto del producto:
+el `next start` del arnés anterior sobrevivía al `trap` (el kill mataba al
+wrapper de npx, no a next-server) y el arnés siguiente, al chocar con
+EADDRINUSE, medía contra el server VIEJO sirviendo un `.next` recién
+sobrescrito (hashes de chunk desajustados → CSS 404). Los arneses nuevos
+llevan guardia de puerto + `pkill -f next-server` en el trap. Si una corrida
+futura ve «todo desnudo + Algo salió mal», revisar puerto 3000 ANTES de
+diagnosticar CSS.
+
 **Siguiente rebanada exacta:** seguir pagando los P1 del registro canónico:
-(a) **RTC-06** (Hoy con UNA acción primaria clínica; «Nueva cita»
-subordinada, saludo a kicker); (b) **RTC-07** (la acción del pulgar móvil
-respeta el contexto clínico). Cada una con captura antes/después y su
-guardián. Después RTC-05 (FABs — la compuerta compartida que pedía YA
-existe: `@/hooks/useGrabando`), RTC-08/RTC-09 (riel/Operaciones), y
+(a) **RTC-07** (la acción del pulgar móvil respeta el contexto clínico; CTA
+del header suprimido en móvil); (b) **RTC-05** (FABs — la compuerta
+compartida que pedía YA existe: `@/hooks/useGrabando`). Cada una con captura
+antes/después y su guardián. Después RTC-08/RTC-09 (riel/Operaciones), y
 RTC-10/RTC-11 que son rebanadas estructurales grandes. La rebanada de
 13-ago (unificación + RT-08 + RT-01) está al FINAL del archivo.
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;
 (2) RT-08 → REG-312; (3) RT-01 → contadores de genericidad; (4) RTC-04 →
-compuerta compartida + pila de avisos.]
+compuerta compartida + pila de avisos; (5) RTC-06 → una primaria clínica
+en Hoy.]
 
 Iteración anterior:
 `V15-PERF-001` (§43 orden 15, §30) — **CERRADA 13-ago-2026** tras CINCO

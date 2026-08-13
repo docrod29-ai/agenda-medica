@@ -128,19 +128,24 @@ export default function DashboardPage() {
 
   return (
     <div className="hoy">
-      {/* Encabezado — fecha, saludo y la ÚNICA acción primaria de la pantalla.
-          El recuento de citas ya no vive aquí: vivía aquí y otra vez en la
-          primera tarjeta, y el mismo número dos veces no es jerarquía. */}
+      {/* Encabezado — fecha y saludo como KICKER, con «Nueva cita» disponible
+          pero SUBORDINADA (RTC-06). El equipo rojo midió esta cabecera al
+          revés: el saludo era el texto más grande de la pantalla y «Nueva
+          cita» (admin) llevaba el mismo relleno que «Iniciar consulta»
+          (clínica) — dos primarias co-iguales. La única acción primaria de
+          Hoy es la del héroe NOW: el paciente que sigue. El recuento de citas
+          tampoco vive aquí: vivía aquí y otra vez en la primera tarjeta, y el
+          mismo número dos veces no es jerarquía. */}
       <header className="hoy-head nx-reveal">
         <div>
           <p className="t-overline" style={{ color: 'var(--text3)', textTransform: 'uppercase' }}>{fechaLabel}</p>
-          <h1 className="nx-display hoy-saludo">
+          <h1 className="hoy-saludo">
             {greet()}
             {saludo && <>, <span style={{ fontStyle: 'italic' }}>{saludo}</span></>}
           </h1>
         </div>
         <Link href="/asistente" className="hoy-accion">
-          <Button icon={<Plus size={16} />}>Nueva cita</Button>
+          <Button variant="secondary" icon={<Plus size={16} />}>Nueva cita</Button>
         </Link>
       </header>
 
@@ -285,7 +290,11 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
               const origen = e.currentTarget.closest('.cita-fila')?.querySelector<HTMLElement>('.nx-ident') ?? null
               navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
             }}
-            className="btn btn-primary btn-sm"
+            /* RTC-06: secundario a propósito — la acción existe en CADA fila
+               (misma conducta), pero el único relleno primario de la pantalla
+               es el CTA del héroe: la cita INMINENTE. Siete rellenos idénticos
+               era la jerarquía diciendo que nada importa más que nada. */
+            className="btn btn-secondary btn-sm"
             style={{ flexShrink: 0, gap: 6 }}
           >
             <Mic size={14} /> Consulta

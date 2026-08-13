@@ -1624,8 +1624,9 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 @media (max-width: 768px) {
   /* Reducir padding de páginas que aún no usan .page-pad */
   main > div { padding-top: 16px; padding-bottom: 16px; }
-  /* Títulos h1 ligeramente menores */
-  main h1 { font-size: 19px !important; line-height: 1.25; }
+  /* Títulos h1 ligeramente menores. El saludo de Hoy queda fuera: es KICKER
+     (15px, RTC-06) y este achique-para-displays lo AGRANDABA en móvil. */
+  main h1:not(.hoy-saludo) { font-size: 19px !important; line-height: 1.25; }
   /* Tarjetas pegadas a los bordes para usar todo el ancho */
   main .card { padding: 14px !important; }
   /* Sidebar móvil: que ocupe mejor el ancho cuando se abre */
@@ -2383,12 +2384,17 @@ body:has(.nx-lienzo-completo) .theme-toggle {
   justify-content: space-between;
   gap: 16px;
 }
+/* KICKER, no display (RTC-06): el saludo acompaña a la fecha en la escala de
+   metadato. Era el texto más grande de la pantalla (32px display) y el equipo
+   rojo lo midió pesando más que el paciente que sigue — decoración ganándole
+   al trabajo. El elemento dominante de Hoy es el héroe NOW. Sigue siendo el
+   <h1> de la página: la jerarquía semántica no cambió, sólo el peso pintado. */
 .hoy-saludo {
-  font-size: 32px;
-  color: var(--text);
-  margin: 7px 0 0;
+  font-size: 15px;
+  color: var(--text2);
+  margin: 4px 0 0;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.35;
   text-wrap: balance;
 }
 .hoy-accion { text-decoration: none; flex-shrink: 0; }
@@ -2460,9 +2466,9 @@ body:has(.nx-lienzo-completo) .theme-toggle {
 
 @media (max-width: 640px) {
   .hoy { padding: 20px 16px; gap: 18px; }
-  /* El saludo y la acción dejan de pelearse por el mismo renglón. */
+  /* El saludo y la acción dejan de pelearse por el mismo renglón. El saludo
+     ya no crece en móvil: es kicker en todos los viewports (RTC-06). */
   .hoy-head { flex-direction: column; align-items: stretch; gap: 14px; }
-  .hoy-saludo { font-size: 26px; }
   .hoy-accion, .hoy-accion .btn { width: 100%; justify-content: center; }
   .hoy-bloque-head { padding: 14px 16px; }
   .cita-fila { padding: 12px 16px; }
