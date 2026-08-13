@@ -4140,7 +4140,11 @@ export default function ConsultaActivaPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
+          {/* `.nx-vt-paciente` (§20, continuidad.ts): en una navegación
+              coreografiada, el nombre del paciente que venía en la fila de Hoy
+              o en el ancla del expediente ATERRIZA aquí — el mismo objeto
+              ganando detalle, no una pantalla que reemplaza a otra. */}
+          <h1 className="nx-vt-paciente" style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
             {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
           </div>

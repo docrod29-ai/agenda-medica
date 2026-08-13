@@ -50,7 +50,10 @@ const CSS = leer('src/app/globals.css')
 
 describe('V15-VISUAL-SYSTEM-001 — la identidad del ancla es nivel display', () => {
   it('el <h1> habla nx-display + nx-ancla-nombre, no un tamaño a mano', () => {
-    expect(ANCLA).toMatch(/<h1 className="nx-display nx-ancla-nombre">/)
+    // `.nx-vt-paciente` (4ª rebanada de MOTION-001) es un GANCHO de la
+    // coreografía de §20, sin una sola declaración tipográfica: la voz del
+    // ancla sigue siendo nx-display + nx-ancla-nombre.
+    expect(ANCLA).toMatch(/<h1 className="nx-display nx-ancla-nombre nx-vt-paciente">/)
   })
 
   it('deriva vetada: el h1 no vuelve al fontSize 16/700 inline de fila', () => {

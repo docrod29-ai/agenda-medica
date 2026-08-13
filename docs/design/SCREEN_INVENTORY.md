@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 356 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1017 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2606 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 6126 | 7 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 6130 | 7 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 283 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 333 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 228 | 1 | — | ✅ | — |
@@ -57,8 +57,8 @@
 | `/cumplimiento/motores` | medico | ✅ | 188 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 177 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 291 | 1 | — | ✅ | — |
-| `/dashboard` | medico | ✅ | 325 | 6 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 702 | 13 | — | ✅ | — |
+| `/dashboard` | medico | ✅ | 345 | 7 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 706 | 13 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 683 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 675 | 0 | — | ✅ | — |

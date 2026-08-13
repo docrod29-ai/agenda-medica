@@ -66,8 +66,11 @@ export function PatientAnchor({
               encabezado de nivel 1 de todo el expediente (page-has-heading-one).
               Nivel DISPLAY, no .nx-ident de fila: VISUAL_DNA §1 R3 reserva la
               serif Fraunces para «el nombre del paciente en su espacio
-              clínico» — y este ancla es exactamente ese espacio. */}
-          <h1 className="nx-display nx-ancla-nombre">
+              clínico» — y este ancla es exactamente ese espacio.
+              `.nx-vt-paciente` (§20, continuidad.ts): en una navegación
+              coreografiada este <h1> es el DESTINO del nombre que viene de la
+              fila de Hoy — y el ORIGEN al continuar hacia la consulta. */}
+          <h1 className="nx-display nx-ancla-nombre nx-vt-paciente">
             {patient?.nombre ?? 'Paciente'}
           </h1>
           <div className="nx-meta" style={{ marginTop: 2 }}>

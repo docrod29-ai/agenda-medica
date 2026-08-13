@@ -23,9 +23,11 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
 import { ordenWorklist, debeEscalar, type TareaClinica } from '@/lib/tareas-clinicas/modelo'
+import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { ChevronRight, FileClock, AlertTriangle } from 'lucide-react'
 
 const ETIQUETA_TIPO: Record<string, string> = {
@@ -92,11 +94,23 @@ export function ContinuidadPanel() {
 
 function ContinuidadFila({ tarea, ahora, isLast }: { tarea: TareaClinica; ahora: number; isLast: boolean }) {
   const esc = debeEscalar(tarea, ahora)
+  const router = useRouter()
+  const destino = tarea.patientId ? `/expediente/${tarea.patientId}` : '/pendientes'
   return (
     <Link
-      href={tarea.patientId ? `/expediente/${tarea.patientId}` : '/pendientes'}
+      href={destino}
       className="cita-fila"
       style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)', textDecoration: 'none' }}
+      onClick={(e) => {
+        /* §20: la fila de continuidad ES el salto Hoy→Paciente de la cadena.
+           Sólo se coreografía cuando hay paciente (hay objeto compartido que
+           preservar: su nombre viaja al <h1> del Patient Anchor) y el click
+           es simple — Ctrl/Cmd/central conservan su pestaña nueva. */
+        if (!tarea.patientId || !esClickDeNavegacionSimple(e)) return
+        e.preventDefault()
+        const origen = e.currentTarget.querySelector<HTMLElement>('.nx-ident')
+        navegarConContinuidad(() => router.push(destino), origen)
+      }}
     >
       <div className="cita-principal">
         <div style={{ width: 44, textAlign: 'center', flexShrink: 0, color: esc.escalar ? 'var(--red)' : 'var(--text3)' }}>

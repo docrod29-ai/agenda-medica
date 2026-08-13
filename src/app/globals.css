@@ -1354,6 +1354,64 @@ main:has(.nx-lienzo-completo) > .page-transition {
 @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .page-transition { animation: pageFadeIn 200ms ease both; }
 @media (prefers-reduced-motion: reduce) { .page-transition { animation: none; } }
+
+/* ── §20 Coreografía de continuidad (V15-MOTION-001, 4ª rebanada) ───────────
+   «Hoy → Paciente → Encuentro debe sentirse como EL MISMO OBJETO ganando
+   detalle.» El mecanismo vive en src/lib/ui/continuidad.ts: view transition
+   NATIVA, mejora progresiva — sin el API, o bajo prefers-reduced-motion, la
+   navegación es la de siempre (JS lo decide ANTES de llamar al API; las
+   reglas de abajo son el cinturón por si algo la llama igual).
+
+   Interrumpible por diseño (§20 «transitions must be interruptible»): el
+   overlay ::view-transition NO captura el puntero — la pantalla nueva sigue
+   viva debajo y un segundo click navega encima, saltando la transición. */
+::view-transition { pointer-events: none; }
+
+/* El DESTINO del objeto compartido sólo tiene nombre DURANTE una navegación
+   coreografiada (el atributo lo pone y lo quita continuidad.ts). Fuera de
+   ella, cero view-transition-name en reposo: nada que capturar, ningún par
+   duplicado si dos pantallas con destino conviven en el DOM. */
+html[data-vt-continuidad] .nx-vt-paciente { view-transition-name: nx-paciente; }
+
+/* Una sola voz por navegación: durante la coreografía, el crossfade del
+   template se calla — el fundido de raíz ya lo pone la view transition, y
+   dos fundidos encimados parpadean. */
+html[data-vt-continuidad] .page-transition { animation: none; }
+
+/* Duraciones y curva: papeles del sistema, no números a mano. La raíz funde
+   a normal (es un fundido de estado); el objeto compartido VIAJA — papel
+   espacial, lento — con la curva de facto. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--mov-normal);
+  animation-timing-function: var(--mov-curva);
+}
+::view-transition-group(nx-paciente) {
+  animation-duration: var(--mov-lento);
+  animation-timing-function: var(--mov-curva);
+}
+/* height:100% en las instantáneas del par evita el estirón cuando la caja
+   de origen (fila) y la de destino (encabezado) no comparten proporción. */
+::view-transition-old(nx-paciente),
+::view-transition-new(nx-paciente) {
+  height: 100%;
+  animation-duration: var(--mov-lento);
+  animation-timing-function: var(--mov-curva);
+}
+
+/* §24: el apagador global de arriba usa `*`, que NO alcanza a los
+   pseudo-elementos de view transition — se apagan aparte, explícitos. El
+   primer candado es JS (puedeCoreografiar consulta matchMedia y ni llama al
+   API); éste es el segundo. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
 
 /* ── Teal glow effect ─────────────────────────────────────── */

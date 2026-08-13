@@ -5556,3 +5556,123 @@ propia) — es trabajo de DISEÑO de interacción, no mecánica: transiciones
 interrumpibles, sin animar por decorar, y el apagador de §24 las tiene que
 apagar TODAS. Si la decisión del dueño sobre DEBT-008 llega, pagarla antes
 (rebanada corta ya dimensionada en el cierre de A11Y-001).
+
+## `V15-MOTION-001` — cuarta rebanada: la coreografía de continuidad de §20 EXISTE — el nombre del paciente viaja de Hoy al expediente y a la consulta (13-ago-2026)
+
+El diferimiento grande de la novena rebanada de Fase 10, pagado: «Hoy →
+Paciente → Encuentro debe sentirse como EL MISMO OBJETO ganando detalle». El
+crossfade del template comunica cambio; ahora la cadena de continuidad de
+paciente tiene movimiento de OBJETO: el nombre del paciente (su identidad,
+R3 de VISUAL_DNA) morfea de la fila de Hoy al <h1> del Patient Anchor y de
+ahí al <h1> de la consulta.
+
+### La decisión de mecanismo, con su porqué escrito
+
+**`document.startViewTransition` NATIVO, no `experimental.viewTransition` de
+Next 16.** Se midió primero: la bandera de Next cambia TODO el runtime de
+React al canal experimental empaquetado (`next/dist/compiled/react-experimental`
+trae `unstable_ViewTransition`; el react estable NO) — un cambio de motor de
+toda la app para pagar una coreografía viola el congelamiento funcional de
+§1. El API nativo es mejora progresiva pura: sin API o bajo
+`prefers-reduced-motion`, la navegación es EXACTAMENTE la de siempre (el
+mismo `router.push`, el mismo crossfade del template como fallback).
+
+### Cómo funciona (src/lib/ui/continuidad.ts, nuevo)
+
+- `navegarConContinuidad(navegar, origen?)`: decide en JS ANTES de llamar al
+  API (misma política matchMedia que `comportamientoScroll()`); pone
+  `data-vt-continuidad` en <html> y `view-transition-name: nx-paciente`
+  inline en el origen; la promesa del callback espera el COMMIT de la ruta;
+  `finished` limpia SIEMPRE (gane, se interrumpa o falle).
+- La señal de commit es el REMONTAJE de `template.tsx` (eso es lo que un
+  template hace en cada navegación) → `rutaComprometida()`, con tope de
+  1200ms para que una ruta lenta no congele la pantalla vieja.
+- El DESTINO sólo tiene nombre DURANTE la coreografía:
+  `html[data-vt-continuidad] .nx-vt-paciente { view-transition-name }` — cero
+  view-transition-name en reposo (verificado por el guardián con la hoja
+  descomentada), cero pares duplicados.
+- Interrumpible por diseño (§20): `::view-transition { pointer-events: none }`
+  — la pantalla viva sigue debajo y un segundo click navega encima.
+- Papeles del sistema: raíz funde a `--mov-normal`; el objeto compartido
+  VIAJA a `--mov-lento` con `--mov-curva` (papel espacial, mismo criterio que
+  el cajón móvil de la 3ª rebanada).
+- Encadenado gratis: en Expediente→Consulta el <h1> del ancla ya lleva
+  `.nx-vt-paciente`, así que es el ORIGEN automático sin pasar `origen`.
+
+### La cadena cableada
+
+- **Hoy**: botón «Consulta» de la fila (origen = `.nx-ident` de ESA fila),
+  CTA del héroe (click simple intercepta; Ctrl/Cmd/central conservan su
+  pestaña — `esClickDeNavegacionSimple`), y la fila de continuidad («Sigue
+  abierto de antes») SÓLO cuando hay paciente — sin objeto compartido no se
+  coreografía (§20: no animar por decorar).
+- **Expediente**: «continuar consulta sin cerrar», «Nueva consulta con IA»,
+  «Crear primera nota» y abrir una nota — 4 saltos Paciente→Encuentro.
+- **Destinos**: <h1> del PatientAnchor y <h1> de /consulta con
+  `.nx-vt-paciente` (gancho sin una sola declaración tipográfica — los dos
+  freeze de roles tipográficos se actualizaron con la razón escrita).
+
+### §24, con dos candados
+
+El apagador global usa `*`, que NO alcanza los pseudo-elementos de view
+transition. Candado 1: JS (`puedeCoreografiar` consulta matchMedia y ni
+llama al API — medido: 0 llamadas bajo reduce). Candado 2: CSS explícito
+(`::view-transition-group(*)` etc. a 0.01ms bajo la preferencia).
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-motion-continuidad-de-objeto.test.ts` (15 casos): mejora
+progresiva (decide antes de llamar), el módulo NUNCA decide el destino (cero
+router/href en su código), tope de espera, limpieza en finished, respeto de
+modificadores, overlay sin puntero, gate del destino y cero nombres en
+reposo, una voz por navegación (crossfade callado durante coreografía),
+tokens en raíz/grupo, apagador §24 aparte, señal de commit en template, y la
+cadena cableada de punta a punta. **Contra el árbol previo la suite entera
+falla en colección** (continuidad.ts no existe — verificado con git stash).
+
+### Verificado en navegador real (13-ago-2026)
+
+Arnés nuevo: `scripts/design/medir-continuidad-v15.mjs` (emuladores +
+siembra + build de producción). **14/14 en verde** en
+`docs/design/capturas/v15-motion-continuidad/resultado.json` + capturas
+antes/durante/después (1440 y 390):
+
+- Las 4 reglas nuevas SOBREVIVEN el parseo (lección nx-stat-grid, barrido
+  CSSOM; la primera versión del barrido tenía el bug de la era del nesting —
+  toda CSSStyleRule tiene `cssRules`, un `if (r.cssRules) continue` se salta
+  TODAS las reglas de nivel superior: 3 falsos negativos que el propio arnés
+  cazó).
+- Hoy→Paciente invoca el API exactamente 1 vez, el atributo está puesto al
+  capturar y se LIMPIA al terminar; el objeto ATERRIZA (1 nodo
+  .nx-vt-paciente en destino). Paciente→Encuentro: 1 llamada con el ancla de
+  origen automático. Móvil 390: 1 llamada.
+- Bajo `reducedMotion: 'reduce'`: 0 llamadas y la navegación LLEGA igual.
+- Consola: 0 errores de la app.
+- Lección de método del arnés: el tour de bienvenida (por uid, y el uid
+  cambia con cada siembra) tapa TODA la pantalla — `login()` ahora lo
+  descarta; y a las 16:29 MX no hay botón «Consulta» (citas de la mañana
+  pasadas) — `saltoDesdeHoy()` cae a la fila de continuidad, que siempre
+  está.
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9229/9232** — el único fallo real es el PRE-EXISTENTE
+  ambiental (`ops-timeout-y-punto-ciego`, proxy del contenedor); los 2
+  freeze tipográficos que la rebanada movía de verdad se actualizaron con
+  razón escrita y re-verificaron en verde (39/39 los tres guardianes).
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio.
+- `docs/design/SCREEN_INVENTORY.md`: regenerado (conteos de línea).
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores), mismo patrón documentado.
+
+**Siguiente tarea exacta:** `V15-MOTION-001`, quinta rebanada — **la segunda
+cadena de §20: Result queue → Patient result → Source** («should preserve
+spatial/contextual relationship») con el mismo mecanismo, y extender la
+primera cadena a los saltos que esta rebanada declaró fuera: las filas de
+/pacientes → expediente y el enlace de paciente de la franja (InstrumentStrip).
+Decidir ahí si el objeto compartido de resultados es el título del resultado
+o la identidad del paciente — leyendo §9 y §21 (Source Reveal) antes.
+DEBT-008 sigue CONSULTADO al dueño (cierre de A11Y-001).

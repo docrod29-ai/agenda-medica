@@ -57,6 +57,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { resumenDelDia, type ConteoDelDia } from '@/lib/hoy/resumen-del-dia'
 import { nombreSaludo } from '@/lib/hoy/saludo'
+import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 
 function todayStr() {
   return hoyISO()  // zona MX, no UTC
@@ -277,7 +278,13 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
         {puedeIniciar && (
           <button
             title="Iniciar consulta con este paciente"
-            onClick={() => router.push(`/consulta/${appt.pacienteId}`)}
+            onClick={(e) => {
+              /* §20: el nombre del paciente de ESTA fila es el objeto que la
+                 view transition lleva hasta el encabezado de la consulta —
+                 el mismo objeto ganando detalle, no dos pantallas sueltas. */
+              const origen = e.currentTarget.closest('.cita-fila')?.querySelector<HTMLElement>('.nx-ident') ?? null
+              navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
+            }}
             className="btn btn-primary btn-sm"
             style={{ flexShrink: 0, gap: 6 }}
           >
@@ -290,6 +297,7 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
 }
 
 function ProxHero({ appt }: { appt: Appointment }) {
+  const router = useRouter()
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
   const [h, m] = hora.split(':').map(Number)
@@ -316,7 +324,19 @@ function ProxHero({ appt }: { appt: Appointment }) {
           {appt.lugar ? <span>· {appt.lugar}</span> : null}
         </div>
       </div>
-      <Link href={`/consulta/${appt.pacienteId}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+      <Link
+        href={`/consulta/${appt.pacienteId}`}
+        style={{ textDecoration: 'none', flexShrink: 0 }}
+        onClick={(e) => {
+          /* §20: sólo el click simple se coreografía; Ctrl/Cmd/central siguen
+             abriendo pestaña como cualquier enlace. El objeto compartido es el
+             nombre del héroe (.nx-ident), que viaja al <h1> de la consulta. */
+          if (!esClickDeNavegacionSimple(e)) return
+          e.preventDefault()
+          const origen = e.currentTarget.closest('.prox-hero')?.querySelector<HTMLElement>('.nx-ident') ?? null
+          navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
+        }}
+      >
         <button className="prox-hero-cta"><Mic size={16} /> Iniciar consulta</button>
       </Link>
     </div>

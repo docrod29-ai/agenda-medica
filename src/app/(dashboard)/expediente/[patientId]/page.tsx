@@ -26,6 +26,7 @@ import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
+import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { Herramientas } from '@/components/Herramientas'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
@@ -168,7 +169,10 @@ export default function ExpedientePage() {
         patient={patient}
         notas={notas}
         errorPaciente={errorPaciente}
-        onContinuarEncuentro={(notaId) => router.push(`/consulta/${patientId}?nota=${notaId}`)}
+        onContinuarEncuentro={(notaId) =>
+          /* §20 Paciente→Encuentro: el <h1> del ancla ya lleva .nx-vt-paciente,
+             así que es el ORIGEN automático — no hay que pasarlo. */
+          navegarConContinuidad(() => router.push(`/consulta/${patientId}?nota=${notaId}`))}
       />
 
       {/* CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — recorrido
@@ -264,7 +268,7 @@ export default function ExpedientePage() {
           }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Upload size={15} /> FHIR
           </button>
-          <button onClick={() => router.push(`/consulta/${patientId}`)} style={primaryBtn}>
+          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
             <Mic size={16} /> Nueva consulta con IA
           </button>
         </div>
@@ -443,7 +447,7 @@ export default function ExpedientePage() {
           illustration={<ExpedienteVacio />}
           title="Sin notas todavía"
           description="Inicia una consulta para crear la primera nota clínica de este paciente."
-          action={<Button icon={<Plus size={16} />} onClick={() => router.push(`/consulta/${patientId}`)}>Crear primera nota</Button>}
+          action={<Button icon={<Plus size={16} />} onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))}>Crear primera nota</Button>}
         />
         )
       ) : (
@@ -469,7 +473,7 @@ export default function ExpedientePage() {
               // Si TODO falla, navegamos solo con notaId y dejamos que la ruta de rescate lo resuelva.
               onEditar={() => {
                 const pid = n.pacienteId || patientId || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean)[1] : '')
-                if (pid && n.id) router.push(`/consulta/${pid}?nota=${n.id}`)
+                if (pid && n.id) navegarConContinuidad(() => router.push(`/consulta/${pid}?nota=${n.id}`))
                 else if (n.id) router.push(`/nota/${n.id}`)  // rescate buscará el paciente
                 else toast('No se pudo abrir la nota.', 'error')
               }}

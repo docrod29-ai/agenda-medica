@@ -94,7 +94,11 @@ describe('ContinuidadPanel habla los roles de VISUAL_DNA §2', () => {
 
 describe('freeze funcional — la rebanada es tipográfica, no de conducta', () => {
   it('la fila sigue navegando al expediente del paciente (o a /pendientes sin patientId)', () => {
-    expect(PANEL).toMatch(/href=\{tarea\.patientId \? `\/expediente\/\$\{tarea\.patientId\}` : '\/pendientes'\}/)
+    // Desde la 4ª rebanada de MOTION-001 el destino vive en una constante
+    // (la coreografía de §20 lo reutiliza en el onClick), pero la política
+    // es la misma: con paciente → su expediente; sin paciente → /pendientes.
+    expect(PANEL).toMatch(/const destino = tarea\.patientId \? `\/expediente\/\$\{tarea\.patientId\}` : '\/pendientes'/)
+    expect(PANEL).toMatch(/href=\{destino\}/)
   })
 
   it('sigue siendo vista previa de 5 con «Ver todo» hacia /pendientes', () => {

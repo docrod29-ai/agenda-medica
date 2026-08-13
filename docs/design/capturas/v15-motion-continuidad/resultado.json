@@ -1,0 +1,68 @@
+{
+  "fecha": "2026-08-13T04:39:25.428Z",
+  "casos": [
+    {
+      "nombre": "el navegador del arnés soporta startViewTransition",
+      "ok": true
+    },
+    {
+      "nombre": "la regla ::view-transition {pointer-events:none} SOBREVIVIÓ el parseo",
+      "ok": true
+    },
+    {
+      "nombre": "el gate del destino (html[data-vt-continuidad] .nx-vt-paciente) sobrevivió",
+      "ok": true
+    },
+    {
+      "nombre": "::view-transition-group(nx-paciente) con --mov-lento sobrevivió",
+      "ok": true
+    },
+    {
+      "nombre": "el apagador de §24 para view transitions sobrevivió",
+      "ok": true
+    },
+    {
+      "nombre": "Hoy→Paciente invoca la view transition",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "el atributo data-vt-continuidad estaba puesto al capturar",
+      "ok": true
+    },
+    {
+      "nombre": "el atributo se LIMPIA al terminar la transición",
+      "ok": true
+    },
+    {
+      "nombre": "el destino lleva .nx-vt-paciente (el objeto ATERRIZA)",
+      "ok": true,
+      "detalle": "nodos=1"
+    },
+    {
+      "nombre": "Paciente→Encuentro invoca la view transition (el ancla es el origen)",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "bajo reduced-motion el API NO se invoca (candado JS, §24)",
+      "ok": true,
+      "detalle": "llamadas=0"
+    },
+    {
+      "nombre": "bajo reduced-motion la navegación LLEGA igual",
+      "ok": true
+    },
+    {
+      "nombre": "móvil 390: el salto desde Hoy también coreografía",
+      "ok": true,
+      "detalle": "llamadas=1"
+    },
+    {
+      "nombre": "consola sin errores de la app",
+      "ok": true,
+      "detalle": ""
+    }
+  ],
+  "consola": []
+}
