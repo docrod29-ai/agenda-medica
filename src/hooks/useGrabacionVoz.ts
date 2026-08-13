@@ -1,6 +1,16 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { procesarTranscript } from '@/lib/asr/pipeline'
+/**
+ * El pipeline de corrección se carga al PULSAR grabar, no al abrir la pantalla
+ * (V15-PERF-001: /consulta pagaba léxico + normalización + guardián en el JS
+ * inicial sin haber dictado nada). `iniciar()` lo espera ANTES de arrancar el
+ * reconocedor, así que `onresult` — que es síncrono — siempre lo tiene en mano:
+ * ningún texto se acumula sin corregir. Si el módulo no llega (sin red), la
+ * grabación no arranca — el reconocedor de Chrome tampoco funciona sin red, y
+ * arrancar sin corrector escribiría texto que el pipeline nunca vigiló.
+ */
+let pipelinePromise: Promise<typeof import('@/lib/asr/pipeline')> | null = null
+const cargarPipeline = () => (pipelinePromise ??= import('@/lib/asr/pipeline'))
 
 /**
  * Grabación de voz con Web Speech API (sin costo, en el navegador).
@@ -63,9 +73,13 @@ export function useGrabacionVoz(): UseGrabacionVoz {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const deseaGrabar = useRef(false)
 
-  const iniciar = useCallback(() => {
+  const iniciar = useCallback(async () => {
     const SR = getSR()
     if (!SR) return
+
+    // El corrector llega antes que la primera palabra (ver nota del import).
+    let procesarTranscript: typeof import('@/lib/asr/pipeline').procesarTranscript
+    try { ({ procesarTranscript } = await cargarPipeline()) } catch { return }
 
     const rec = new SR()
     rec.lang = 'es-MX'

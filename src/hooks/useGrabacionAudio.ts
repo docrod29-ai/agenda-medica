@@ -21,8 +21,20 @@ import { cambiosVisibles, type CambioVisible } from '@/lib/asr/cambios-visibles'
  *
  * `procesarTranscript` LLAMA a `corregirVigilado` como su primera etapa, así que
  * esto no quita nada: añade.
+ *
+ * ── Y SE CARGA CUANDO SE DICTA, NO CUANDO SE ABRE LA PANTALLA ──────────────
+ *
+ * El pipeline arrastra el léxico, la normalización, el corrector y el guardián
+ * (V15-PERF-001 los midió dentro del excedente de JS que /consulta paga sobre
+ * sus hermanas). Ninguna de sus llamadas ocurre al montar: todas viven DESPUÉS
+ * de que una transcripción volvió de la red. Por eso el import es dinámico —
+ * `iniciar()` lo precalienta al empezar a grabar, así que para cuando llega el
+ * primer texto el módulo ya está en memoria y el médico no espera nada nuevo.
+ * Las nueve etapas corren IGUAL en cada texto: se difiere el CUÁNDO se carga,
+ * jamás el SI se corre (REG-170: escrito y sin conectar es el fallo caro).
  */
-import { procesarTranscript } from '@/lib/asr/pipeline'
+let pipelinePromise: Promise<typeof import('@/lib/asr/pipeline')> | null = null
+const cargarPipeline = () => (pipelinePromise ??= import('@/lib/asr/pipeline'))
 import { fetchAutenticado } from '@/lib/auth-client'
 import { auth, storage } from '@/lib/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
@@ -870,7 +882,8 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, co
  * ocurría justo en el camino que el médico considera el bueno. En el modo simple sí
  * se corregía.
  */
-function corregirUtterances(us: Utterance[]): Utterance[] {
+async function corregirUtterances(us: Utterance[]): Promise<Utterance[]> {
+  const { procesarTranscript } = await cargarPipeline()
   /**
    * `palabras` se conserva SIN corregir, a propósito.
    *
@@ -1299,6 +1312,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
          * fármaco, el modelo leería la misma indicación repetida por toda la
          * consulta. Sólo se recorta lo que de verdad coincide.
          */
+        const { procesarTranscript } = await cargarPipeline()
         const bruto = procesarTranscript(data.text).texto
         /**
          * DOS ECOS, EN ESTE ORDEN.
@@ -1385,6 +1399,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   const iniciar = useCallback(async (opts?: OpcionesGrabacion) => {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
+    // Precalienta el pipeline de nueve etapas: se difiere hasta el dictado para
+    // no pagarlo al abrir /consulta, y se pide AQUÍ para que al llegar el primer
+    // texto ya esté en memoria. Sin await: no retrasa el permiso de micrófono.
+    void cargarPipeline()
     streamingActivoRef.current = opts?.streaming !== false
     recoveryKeyRef.current = opts?.recoveryKey ?? ''
     modoDeHablaRef.current = opts?.modoDeHabla ?? 'conversacion'
@@ -1646,7 +1664,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     const mt = rec.mimeType || ''
     const ext = extDe(mt)
 
-    const aplicar = (texto: string) => {
+    const aplicar = async (texto: string) => {
+      const { procesarTranscript } = await cargarPipeline()
       const r = procesarTranscript(texto)
       setTranscripcion(r.texto)
       setCorrecciones(r.cambiosLexicos)
@@ -1689,7 +1708,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
         : await transcribirBlobSimple(blob, ext, { ...contextoRef.current, duracionSeg: duracionRef.current })
       if (texto.trim()) {
         setUtterances([]); utterancesRef.current = []
-        aplicar(texto)
+        await aplicar(texto)
         if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
         return
       }
@@ -1703,8 +1722,8 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       : await intentarDiarizar(blob, ext, duracionRef.current, contextoRef.current, recoveryKeyRef.current)
     if (diar.audioPath) setAudioPath(diar.audioPath)
     if (diar.ok && diar.text.trim()) {
-      { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
-      aplicar(diar.text)
+      { const us = await corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
+      await aplicar(diar.text)
       setSinDiarizacion(null)
       if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
       return
@@ -1752,7 +1771,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       .replace(/\[⚠[^\]]*\]/g, '').trim()
 
     if (texto.trim() && !todoFalló) {
-      aplicar(texto)
+      await aplicar(texto)
       // Solo se borra el audio si NO faltó ningún tramo. Si algo se perdió, el
       // audio es lo único que permite recuperarlo: se conserva.
       if (recoveryKeyRef.current && porPartes.lotesFallidos === 0) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
@@ -1762,7 +1781,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     // 3) Si la transcripción final no dio texto, usa lo que capturó el streaming
     //    en vivo. NO borramos el audio guardado: queda para reintentar (recovery).
     if (textosChunksRef.current.length > 0) {
-      aplicar(textosChunksRef.current.filter(Boolean).join(' '))
+      await aplicar(textosChunksRef.current.filter(Boolean).join(' '))
       return
     }
 
@@ -1839,7 +1858,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (diar?.audioPath) setAudioPath(diar.audioPath)
     let texto = ''
     if (diar && diar.text.trim()) {
-      { const us = corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
+      { const us = await corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
       texto = diar.text
     } else {
       // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.
@@ -1849,6 +1868,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     }
 
     if (texto.trim()) {
+      const { procesarTranscript } = await cargarPipeline()
       const r = procesarTranscript(texto)
       setTranscripcion(r.texto)
       setCorrecciones(r.cambiosLexicos)

@@ -4,8 +4,21 @@
 
 ## Iteración en curso
 
-`V15-PERF-001` (§43 orden 15, §30) — **EN CURSO** desde 13-ago-2026, con DOS
-rebanadas pagadas: (1ª) **el arnés del presupuesto de percepción EXISTE**
+`V15-PERF-001` (§43 orden 15, §30) — **EN CURSO** desde 13-ago-2026, con
+CUATRO rebanadas pagadas. La 4ª (13-ago-2026): el veredicto de varianza que
+pidió la 3ª — dos muestras más del baseline vivo (951 y 964 ms de long tasks
+móviles en /consulta; serie completa 591/766/940/964/951 — SOSTENIDAS sobre
+el umbral de 500) — y el corte pactado para ese caso: **la maquinaria de
+dictado carga cuando se dicta, no cuando se abre la pantalla**. El pipeline
+de voz (`@/lib/asr/pipeline`: léxico, normalización, corrector vigilado,
+guardián, siglas) salió del JS inicial de /consulta a import dinámico en los
+DOS hooks de grabación, con precalentado en `iniciar()` (audio) y espera
+antes de `rec.start()` (voz, cuyo onresult es síncrono). Verificado en
+navegador real con un MICRÓFONO SINTÉTICO de Web Audio (los flags de fake
+device de Chrome no materializan dispositivo alguno en este contenedor):
+la grabación ARRANCA, el chunk del pipeline llega AL PULSAR grabar, y el
+marcador del guardián no viaja en la carga inicial. Ver sección al FINAL.
+Las tres primeras rebanadas: (1ª) **el arnés del presupuesto de percepción EXISTE**
 (`scripts/design/medir-perf-v15.mjs`: TTFB/FCP/LCP con IDENTIDAD del
 elemento LCP, cascada de hitos por MutationObserver, tráfico
 Firestore/Auth por resource timing, peso REAL transferido sin service
@@ -5999,4 +6012,124 @@ se pulse `EmpezarAGrabar` o partir la vista de nota YA FIRMADA (sólo
 lectura); (c) si no sostienen, declarar PERF-001 CERRADA (opt-in fuera de
 la cadena + 6 paneles diferidos + arnés de atribución permanente) y seguir
 con `V15-ORIGINALITY-REDTEAM-001` (§43, orden 16). DEBT-008 sigue
+CONSULTADO al dueño (cierre de A11Y-001).
+
+## `V15-PERF-001` — 4ª rebanada: el veredicto de varianza, y el dictado que se carga al dictar (13-ago-2026)
+
+La tarea exacta de la 3ª rebanada, pagada en su orden: primero los números,
+después el corte.
+
+### (a) La varianza, medida — las long tasks SÍ sostienen
+
+Dos muestras más del baseline vivo (contenedor fresco, build de producción,
+emuladores + siembra): /consulta móvil marcó **964** y **951 ms** de long
+tasks. La serie completa queda 591 / 766 / 940 / 964 / 951 — sostenida MUY
+por encima del umbral de 500 que fijó la 3ª, y consistentemente ~2× sus
+hermanas (expediente 379–448 en las mismas corridas). El caso (b) del plan
+era el vigente: cortar la hidratación del monolito por su candidato con
+condición real.
+
+### (b) El corte — la maquinaria de dictado carga cuando se dicta
+
+La atribución señaló el chunk exclusivo de ~140 KB con `useGrabacionAudio` +
+todo `lib/asr`. El grep confirmó DOS imports estáticos de
+`@/lib/asr/pipeline` (léxico, normalización, corrector vigilado, guardián,
+siglas): `useGrabacionAudio` y `useGrabacionVoz`. Ninguna de sus llamadas
+ocurre al montar — todas viven después de que una transcripción volvió de la
+red (o de un final del reconocedor). El import pasó a dinámico CACHEADO a
+nivel de módulo en los dos hooks:
+
+- **useGrabacionAudio**: `iniciar()` PRECALIENTA (`void cargarPipeline()`,
+  sin retrasar el permiso de micrófono); `corregirUtterances` y `aplicar`
+  son async y esperan el módulo; los dos caminos (detener y recuperación)
+  y el parcial en vivo (flushChunks) esperan igual. Las cadenas exactas que
+  vigilan los guardianes hermanos —
+  `setCambiosCifras(cambiosVisibles(r.cambiosNormalizacion, r.cambiosSiglas))`
+  ×2 y `dudaEnZonaCritica(utterancesRef.current, UNIDADES_CANONICAS)` —
+  no se movieron un carácter.
+- **useGrabacionVoz**: su `onresult` es SÍNCRONO y no puede esperar a nadie,
+  así que `iniciar()` espera el módulo ANTES de `rec.start()`: ningún final
+  se acumula sin corrector. Si el módulo no llega (sin red), la grabación no
+  arranca — el reconocedor de Chrome tampoco vive sin red, y arrancar sin
+  corrector escribiría texto que el pipeline nunca vigiló.
+
+Se difiere el CUÁNDO se carga, jamás el SI se corre (REG-170).
+
+### Guardián, probado al revés
+
+`src/__tests__/v15-perf-el-dictado-no-carga-hasta-hablar.test.ts` (5 casos):
+sin import estático en ninguno de los dos hooks, carga dinámica cacheada en
+los dos, precalentado dentro de `iniciar()` (posición verificada), espera de
+voz ANTES de `new SR()` con su catch de no-arrancar, y la pareja de
+`corregirUtterances` + el corrector por final en vivo (el SI se corre).
+**Contra el árbol previo fallan los 5** (verificado con git stash).
+
+### Verificado en navegador real (13-ago-2026) — con micrófono sintético
+
+`scripts/design/verificar-dictado-diferido-v15.mjs` (nuevo, hermano de
+`verificar-paneles-diferidos`): en este contenedor
+`--use-fake-device-for-media-capture` NO materializa dispositivo alguno
+(`enumerateDevices()` VACÍO, NotFoundError; también con
+`--use-file-for-fake-audio-capture` y con el headless shell — medido antes
+de tocar nada). El arnés — sólo el arnés — sustituye `getUserMedia` por un
+stream REAL de Web Audio (oscilador → MediaStreamDestination): MediaRecorder
+graba de verdad y el medidor RMS analiza de verdad (tanto, que marca «El
+micrófono está saturando» con el tono a 12 000 de amplitud — la maquinaria
+entera corre). El veredicto (`dictado-diferido.json`): **PASA** —
+
+- carga inicial de /consulta: 74 .js y el marcador del guardián
+  («dicen cosas opuestas del paciente», literal de runtime que sólo vive en
+  `guardian-sustituciones`) **AUSENTE** de todos;
+- pulsar «Grabar la consulta» + consentimiento: la grabación **ARRANCA**
+  (Escuchando, 00:02, Pausar/Terminar visibles) y llega **+1 chunk CON el
+  marcador** — el precalentado pidió el pipeline en el momento pactado;
+- 0 errores de consola.
+
+Dos lecciones de método pagadas: el estado grabando no se anuncia con texto
+(MientrasHablas es un instrumento de aria-labels — la sonda mira
+Pausar/Terminar/Reanudar), y el diagnóstico de un arranque fallido se lee de
+la PANTALLA (el hook pinta su error: «No se detectó micrófono…» fue la pista
+que llevó al micrófono sintético).
+
+### Lo que movió, medido — y lo que NO
+
+- `atribuir-js-consulta-v15.mjs`: el chunk del dictado eager 140 → 103 KB
+  (el pipeline, ~35-40 KB minificados, viaja ahora en su propio chunk al
+  grabar); excedente exclusivo 605 → 590 KB de cuerpo.
+- `medir-perf-v15.mjs` (baseline vivo): /consulta 691 → 686 KB transferidos;
+  long tasks móviles **867 ms** en esta muestra — mejor que 951/964 pero
+  dentro del ruido de la serie. **El corte es correcto y el contrato quedó
+  sellado, pero NO resuelve el monolito**: los ~200 KB restantes del
+  excedente (chunk de página de 219 KB + 103 KB del resto de la maquinaria
+  de grabación eager + herramientas) son el sospechoso vigente.
+- El LCP de la cadena sigue siendo la IDENTIDAD del paciente en todas las
+  rutas (Hoy conserva su tarjeta a propósito).
+
+### Compuertas de esta corrida
+
+- `npx vitest run`: **9252/9253** — único fallo el PRE-EXISTENTE ambiental
+  (`ops-timeout-y-punto-ciego`, proxy del contenedor). Guardián nuevo 5/5;
+  hermanos del dictado 99/99 verificados aparte.
+- `node scripts/lint-trinquete.mjs`: 96 = techo, sin deuda nueva.
+- `node scripts/design/trinquete-de-diseno.mjs`: sin deuda nueva
+  (493/1970/628/22 se mantienen).
+- `npx tsc --noEmit`: limpio. `npm run build`: compila limpio.
+- Contenedor fresco: `npm ci` + `.env.local` demo recreados (8 variables +
+  emuladores). Lección operativa REPETIDA: el pkill inmune necesita el
+  corchete en TODOS los patrones (`firestore-emulato[r]` — un patrón sin
+  corchete en el MISMO comando se mata a sí mismo, exit 144).
+
+**Siguiente tarea exacta:** `V15-PERF-001`, quinta rebanada — el monolito
+mismo: (a) atribuir el chunk de página de 219 KB y el de 103 KB restante de
+la maquinaria eager (`atribuir-js-consulta-v15.mjs` ya los separa; falta
+nombrar qué módulos viven dentro — extender `acusarModulos` con marcadores
+de runtime, los de path no sobreviven a Turbopack); (b) decidir con esos
+nombres entre: extraer la maquinaria de grabación a un componente
+mount-on-demand (los 226 usos de `audio.*`/`voz.*` entre las líneas
+426–6130 hacen esto una rebanada GRANDE — dimensionarla antes), partir la
+vista de nota YA FIRMADA, o declarar el excedente restante estructural del
+monolito y cerrar PERF-001 con los números en la mano (opt-in + 6 paneles +
+pipeline de dictado diferidos; serie de long tasks 591→867 con el corte
+descrito y el resto anotado como deuda dimensionada de
+`V15-NOTE-PLAN-CONTINUITY`/refactor del monolito). DEBT-008 sigue
 CONSULTADO al dueño (cierre de A11Y-001).

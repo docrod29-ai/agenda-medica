@@ -1,20 +1,20 @@
 {
-  "fecha": "2026-08-13T07:34:59.063Z",
-  "expedienteKB": 1691,
-  "consultaKB": 2192,
-  "excedenteKB": 605,
+  "fecha": "2026-08-13T08:46:56.487Z",
+  "expedienteKB": 1690,
+  "consultaKB": 2176,
+  "excedenteKB": 590,
   "chunksSoloConsulta": [
     {
-      "url": "39d83s3xs2v_n.js",
+      "url": "3zf2k31t27zi9.js",
       "kb": 219
     },
     {
-      "url": "0_ga5u0a3xgou.js",
-      "kb": 139
+      "url": "163oa450q-1l5.js",
+      "kb": 140
     },
     {
-      "url": "0eqenibwu282v.js",
-      "kb": 138
+      "url": "1qh6r4ud5oa2d.js",
+      "kb": 103
     },
     {
       "url": "2_t1qwo6ei059.js",
@@ -26,6 +26,10 @@
     },
     {
       "url": "0biiyk0czbnrb.js",
+      "kb": 19
+    },
+    {
+      "url": "1c6xgy6tzry1x.js",
       "kb": 19
     },
     {
