@@ -1,0 +1,183 @@
+{
+  "base": "http://localhost:3000",
+  "entradaAnima": true,
+  "lineaBase": {
+    "n": 6,
+    "opacas": 6,
+    "minima": 1
+  },
+  "filtros": [
+    "6 citas",
+    "2 por confirmar",
+    "mañana: 1 cita"
+  ],
+  "series": {
+    "2 por confirmar": {
+      "serie": [
+        {
+          "t": 0,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 40,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 80,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 120,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 160,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 200,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 240,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 280,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 320,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 360,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 400,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 440,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        },
+        {
+          "t": 480,
+          "n": 2,
+          "opacas": 2,
+          "minima": 1
+        }
+      ],
+      "msInvisible": 0
+    },
+    "mañana: 1 cita": {
+      "serie": [
+        {
+          "t": 0,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 40,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 80,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 120,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 160,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 200,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 240,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 280,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 320,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 360,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 400,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 440,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        },
+        {
+          "t": 480,
+          "n": 1,
+          "opacas": 1,
+          "minima": 1
+        }
+      ],
+      "msInvisible": 0
+    }
+  },
+  "errores": []
+}

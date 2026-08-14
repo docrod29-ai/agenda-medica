@@ -217,6 +217,36 @@ export default function CitasPage() {
     }).sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
   }, [appointments, selectedDate, statusFilter, search, medicoFiltro])
 
+  /*
+    RTC-23 — LA CASCADA ES UNA ENTRADA, NO UNA RESPUESTA AL CLIC.
+
+    `.nx-reveal` retrasa cada fila `min(i,12) × 28ms` sobre una animación con
+    `fill: both`, así que **durante el retraso la fila existe y no se ve**.
+    Medido en navegador (`medir-rtc23-cascada-citas-v15.mjs`):
+
+      filtro de estado («2 por confirmar»)   0ms sin ver nada
+      cambio de día («mañana: 1 cita»)       ~320ms con una fila en opacidad 0
+
+    Los filtros de estado no re-animan porque las filas que sobreviven
+    conservan su nodo; cambiar de día trae citas distintas, se remontan, y la
+    cascada vuelve a correr. O sea: el médico pulsa, y espera un tercio de
+    segundo para leer el resultado de su propio clic.
+
+    Entrar a la pantalla SÍ merece la cascada —ordena la jerarquía de la lista,
+    igual que la de 2 elementos del dashboard que el equipo rojo declaró buena.
+    Volver a correrla al filtrar no ordena nada: sólo se anuncia.
+
+    Así que se marca la ENTRADA y se apaga después. `prefers-reduced-motion`
+    sigue mandando por encima de todo esto en la hoja.
+  */
+  const [yaEntro, setYaEntro] = useState(false)
+  useEffect(() => {
+    if (!yaEntro && filtered.length > 0) {
+      const t = setTimeout(() => setYaEntro(true), 700)   // 520ms de animación + margen
+      return () => clearTimeout(t)
+    }
+  }, [yaEntro, filtered.length])
+
   // Resumen del día (real) — ignora filtros de estado/búsqueda; respeta el de médico
   const daySummary = useMemo(() => {
     const day = appointments.filter(a => a.fechaHora.slice(0, 10) === selectedDate && (!medicoFiltro || a.medicoId === medicoFiltro))
@@ -572,7 +602,10 @@ export default function CitasPage() {
                     <span className="riel-ahora-linea" />
                   </div>
                 )}
-                <div className="nx-reveal" style={{ animationDelay: `${Math.min(i, 12) * 28}ms` }}>
+                {/* RTC-23: la cascada sólo en la ENTRADA (ver el porqué arriba).
+                    Después, filtrar o cambiar de día pinta las filas de
+                    inmediato — el resultado del clic no se hace esperar. */}
+                <div className={yaEntro ? undefined : 'nx-reveal'} style={yaEntro ? undefined : { animationDelay: `${Math.min(i, 12) * 28}ms` }}>
                 <RielEntrada
                   onConsulta={pid => router.push(`/consulta/${pid}`)}
                   appt={appt}
