@@ -81,6 +81,23 @@ describe('V15 — FlowRail no reconstruye el almacén de 20+ destinos', () => {
   })
 
   it('expone como máximo 5 RailLink/acciones primarias', () => {
+    /**
+     * ── RTC-20 (14-ago-2026): ESTE CASO NO MIDE LO QUE PARECE ─────────────
+     *
+     * Cuenta **etiquetas JSX**, no destinos. Medido: con seis destinos
+     * generados en bucle desde un solo `<RailLink`, este caso pasa **en
+     * verde**. Y junto a la reachability de abajo certifica una MUDANZA —5
+     * nodos arriba, 18 destinos en `/operaciones`— tan bien como una
+     * reducción.
+     *
+     * No se borra, y es deliberado: sigue protegiendo la forma del marcado
+     * (que nadie escriba veinte `<RailLink>` a mano) y su rojo es más fácil de
+     * leer que el del instrumento fino. La medición de verdad —destinos
+     * contados por `href`, cromo del pulgar incluido, y los administrativos
+     * obligados a quedarse fuera— vive en
+     * `v15-rtc20-el-riel-redujo-no-solo-mudo.test.ts`, que además sabe
+     * declararse inválido si los enlaces pasan a generarse en bucle.
+     */
     const railLinks = FLOW_RAIL.match(/<RailLink\b/g) ?? []
     // 4 rutas (Hoy, Paciente, Encuentro, Seguimiento) + Operaciones subordinada = 5 en el marcado,
     // más el botón de Buscar (acción, no <RailLink>) fuera de esa cuenta.

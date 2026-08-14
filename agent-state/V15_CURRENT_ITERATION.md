@@ -7522,3 +7522,45 @@ tres se corrigieron con su porqué escrito dentro, conservando la intención.
   techo · trinquete de diseño sin deuda nueva · `npm run build` compila.
 - Navegador real (§40), antes y después, escritorio + móvil, **0 errores de
   consola**.
+
+---
+
+## RTC-20 — la vara del riel medía mudanza (14-ago)
+
+**El producto no se tocó, y ése es el resultado.** El riel ya cumplía §14; lo
+que faltaba era poder demostrarlo. ORT-16 lo vio leyendo los guardianes en vez
+de la pantalla.
+
+**Medido, inyectando defectos a la vara vieja:**
+
+| defecto inyectado | vara vieja | vara nueva |
+|---|---|---|
+| `/farmacia` sube al riel (6 enlaces) | ROJA (cuenta 6) | ROJA (casos 1 y 3) |
+| 6 destinos en bucle, UN nodo JSX | **VERDE** | ROJA (caso 1) |
+
+La segunda fila es el hallazgo: **el caso de conteo pasaba con seis destinos en
+el riel**, porque contaba etiquetas. (La otra prueba se puso roja, pero por su
+caso de reachability y por otra queja — dejaba de *ver* rutas literales —, que
+se habría callado si esas rutas siguieran listadas en otro sitio.)
+
+**Lo que mide el guardián nuevo** (`v15-rtc20-el-riel-redujo-no-solo-mudo.test.ts`, 5 casos):
+
+- destinos por `href`, no por etiqueta;
+- el cromo del **pulgar** también: si el riel adelgaza y la barra engorda, no se
+  ha reducido nada, se ha movido el bulto de ancho;
+- **lo único que distingue reducción de mudanza**: los 18 destinos
+  administrativos tienen que quedarse FUERA del cromo persistente. Ése es el
+  trato —cuestan un gesto más— y si alguno reasoma, la reachability seguiría en
+  verde sin que nadie se entere.
+
+**Punto ciego del propio instrumento, visto y cerrado**: contar `href` también
+moriría ante un `.map(`. El caso 1 lleva **guarda de validez** y se declara
+inválido antes que dar un número. Un instrumento que no sabe cuándo dejó de
+medir es peor que ninguno — lección de RTC-02.
+
+La vara vieja **no se borra** (precedente de guardián obsoleto): se le escribe
+dentro qué no mide y adónde mudó la medición fina.
+
+**Compuertas**: tsc limpio · vitest 9425/9426 (el rojo es el artefacto conocido
+del proxy del contenedor) · lint 96 = techo · trinquete de diseño sin deuda
+nueva · build compila. Sin arnés de navegador: esta rebanada no cambia píxeles.
