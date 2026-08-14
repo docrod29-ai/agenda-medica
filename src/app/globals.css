@@ -1685,6 +1685,125 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   display: flex !important;
 }
 
+/* ── CAPA 4 DE §5 — LA LENTE CONTEXTUAL ─────────────────────────────────────
+   La cuarta capa del shell: fuente, procedencia, evidencia y detalle SIN salir
+   de donde se estaba (§21). El componente y las razones viven en
+   `src/components/LenteContextual.tsx`; aquí sólo la geometría, y aquí porque
+   un `maxWidth`/`position` en línea vencería a la hoja en silencio (lección
+   `nx-stat-grid`).
+
+   EL HUECO NO OCUPA NADA SI NO HAY LENTE. `Lente` cerrada no renderiza, así
+   que `:empty` lo apaga; sin esta línea, la columna del shell reservaría un
+   borde y un hueco flex vacíos en TODAS las pantallas. */
+.nx-lente-hueco:empty { display: none; }
+
+.nx-lente {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  /* HOJA INFERIOR (por debajo de 1200px): hermana de <main> DENTRO de la
+     columna del shell, en flujo. `main` es `flex: 1`, así que cede el alto y
+     el BottomNav se queda exactamente donde estaba — sin un `bottom` a mano,
+     que es el número mágico que este repositorio ya pagó cuatro veces. */
+  max-height: 62vh;
+  max-height: 62dvh;
+}
+.nx-lente-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nx-lente-rotulo { flex: 1; min-width: 0; }
+.nx-lente-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  /* Recibe el foco al abrir (tabIndex -1): sin contorno propio, un lector de
+     pantalla anuncia el panel y un teclado no ve nada. */
+  outline-offset: 3px;
+}
+.nx-lente-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text3);
+}
+.nx-lente-cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text3);
+  cursor: pointer;
+}
+.nx-lente-cerrar:hover { background: var(--s3); color: var(--text); }
+.nx-lente-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+}
+
+/* ESCRITORIO ANCHO — LA LENTE SE ACOPLA, NO SE SUPERPONE.
+
+   EL DISEÑO QUE LA ARITMÉTICA REFUTÓ. La primera versión de esta rebanada iba
+   a flotar el panel sobre «el canalón que el lienzo reserva a la derecha»
+   (RTC-12(a)), contando con no tapar nada. Con los números del propio shell
+   —riel 224, lienzo 1100 centrado, medida de lectura 820, panel 400— el borde
+   derecho del texto y el borde izquierdo del panel se cruzan en TODOS los
+   anchos reales:
+
+     1200 → el panel empieza en 800 y el texto acaba en 1068  (tapa 268px)
+     1440 → empieza en 1040 y el texto acaba en 1126          (tapa  86px)
+     1600 → empieza en 1200 y el texto acaba en 1206          (tapa   6px)
+     1920 → deja de tapar la medida de lectura, pero sigue tapando el
+            contenido de ancho completo hasta ~2560.
+
+   Una lente que tapa el hecho que explica no es una lente. Así que se ACOPLA:
+   `.nx-app-shell` cede a la derecha exactamente el ancho del panel y toda la
+   columna de trabajo —franja, lienzo, todo— se estrecha con ella. El texto se
+   re-fluye, que es un coste real y menor: nada queda escondido, y al cerrar
+   vuelve todo exactamente a donde estaba.
+
+   El acoplamiento va por `padding-right` sobre el shell + panel `fixed`, y no
+   por un tercer hermano flex, porque el hueco vive DENTRO de la columna (ahí
+   es donde en móvil tiene que ser hermano de <main> para no calcularle un
+   `bottom` al BottomNav). `:has` es el mismo mecanismo que ya usan
+   `main:has(.nx-lienzo-completo)` y `body:has(.bottom-nav-wrap)`.
+
+   Por debajo de 1200 no hay ancho que ceder: ahí manda la hoja inferior. */
+.nx-app-shell { --nx-lente-ancho: min(400px, 30vw); }
+@media (min-width: 1200px) {
+  .nx-app-shell:has(.nx-lente) { padding-right: var(--nx-lente-ancho); }
+  .nx-lente-hueco {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--nx-lente-ancho);
+    /* Debajo del BottomNav (45) y muy por debajo del modal (100): la lente es
+       contexto, no interrupción. */
+    z-index: 44;
+  }
+  .nx-lente {
+    height: 100%;
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+}
+
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */
 .bottom-nav-wrap { display: none; }
 @media (max-width: 768px) {

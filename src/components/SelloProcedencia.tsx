@@ -6,10 +6,23 @@
  * dictado (con cita textual), cuántos de inferencia de IA, cuántos capturados a
  * mano. Se puede desplegar para ver campo por campo, con la frase exacta del
  * dictado cuando existe. Es solo lectura: no cambia ningún valor clínico.
+ *
+ * ── DÓNDE SE ABRE (V15 §5 CAPA 4 / §21) ─────────────────────────────────────
+ *
+ * El detalle campo por campo se abre en la LENTE CONTEXTUAL, no en línea. La
+ * medición de la corrida del 15-ago: desplegarlo aquí hacía crecer la nota de
+ * 2141 a 2656px en escritorio y de 2666 a 3271px en el teléfono, y **Escape no
+ * lo cerraba**. La tira se queda donde estaba, con el mismo resumen de un
+ * vistazo; lo que se muda es el detalle.
+ *
+ * Y de paso una deuda que la medición encontró sin buscarla: este disparador
+ * NO declaraba `aria-expanded` (el acta «antes» lo leyó `null`), así que un
+ * lector de pantalla anunciaba un botón que no dice que abra nada.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Fingerprint, Mic, Sparkles, PenLine, ChevronDown, Quote, CheckCircle2, Calculator, Activity } from 'lucide-react'
 import { construirManifiesto, resumenProcedencia, etiquetaOrigen, type OrigenCampo } from '@/lib/expediente/procedencia'
+import { Lente } from '@/components/LenteContextual'
 
 interface FinalNota {
   diagnosticos?: { descripcion?: string }[]
@@ -47,6 +60,7 @@ const ESTILO: Record<OrigenCampo, { color: string; Icon: typeof Mic }> = {
 
 export function SelloProcedencia({ final, extraction, aprobados, transcripcion }: Props) {
   const [abierto, setAbierto] = useState(false)
+  const disparador = useRef<HTMLButtonElement | null>(null)
   const manifiesto = useMemo(
     // La transcripción permite verificar que la cita textual EXISTE. Si no se
     // pasa, el sello se comporta como antes en vez de degradar lo que quizá
@@ -60,7 +74,9 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1, rgba(127,127,127,0.04))', marginTop: 8 }}>
       <button
+        ref={disparador}
         onClick={() => setAbierto(a => !a)}
+        aria-expanded={abierto}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left' }}
       >
         <Fingerprint size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
@@ -69,8 +85,14 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
         <ChevronDown size={15} style={{ marginLeft: 'auto', color: 'var(--text3)', transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)' }} />
       </button>
 
-      {abierto && (
-        <div style={{ padding: '0 13px 13px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <Lente
+        abierta={abierto}
+        titulo="Procedencia de la nota"
+        subtitulo={resumenProcedencia(resumen)}
+        invocador={disparador}
+        alCerrar={() => setAbierto(false)}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 4 }}>
             Cada dato estructurado de la nota, con su origen. Lo <strong style={{ color: 'var(--teal)' }}>del dictado</strong> conserva la frase exacta; lo <strong style={{ color: 'var(--nexus)' }}>de IA</strong> es inferencia sin cita literal; lo <strong>a mano</strong> lo capturaste tú.
           </div>
@@ -119,7 +141,7 @@ export function SelloProcedencia({ final, extraction, aprobados, transcripcion }
             )
           })}
         </div>
-      )}
+      </Lente>
     </div>
   )
 }

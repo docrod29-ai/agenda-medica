@@ -38,9 +38,23 @@
  *
  * Y no puntúa la nota. No hay «94 % respaldada» — un porcentaje invita a firmar
  * por el número en vez de por las tres frases que están en rojo.
+ *
+ * ── DÓNDE SE ABRE (V15 §5 CAPA 4 / §21) ─────────────────────────────────────
+ *
+ * Hasta el 15-ago esto era un acordeón EN LÍNEA, y la medición de la corrida
+ * lo dejó en números: abrirlo hacía crecer la nota de 2141 a 3013px en
+ * escritorio y de 2666 a 3886px en el teléfono — entre 872 y 1220px de empujón
+ * a todo lo que había debajo—, y **Escape no lo cerraba**.
+ *
+ * El disparador se queda EXACTAMENTE donde estaba, con el mismo texto y el
+ * mismo resumen; lo que cambia es dónde aterriza lo que abre: la lente
+ * contextual. En escritorio ancho ocupa el canalón que el lienzo ya reservaba,
+ * así que la nota no se mueve ni un píxel mientras se compara con el dictado —
+ * que es justo el gesto para el que existe esta pantalla.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Quote } from 'lucide-react'
+import { Lente } from '@/components/LenteContextual'
 import type { Utterance } from '@/hooks/useGrabacionAudio'
 import { cuandoSeDijo } from '@/lib/expediente/cuando-se-dijo'
 import { EscucharElMomento } from '@/components/EscucharElMomento'
@@ -70,6 +84,7 @@ const COLOR: Record<Respaldo['estado'], { punto: string; rotulo: string }> = {
 
 export function DeDondeSalioEsto(p: DeDondeSalioEstoProps) {
   const [abierto, setAbierto] = useState(false)
+  const disparador = useRef<HTMLButtonElement | null>(null)
 
   const trazas = useMemo(
     () => (abierto ? rastrearNota(p.nota, p.dictado) : []),
@@ -91,6 +106,7 @@ export function DeDondeSalioEsto(p: DeDondeSalioEstoProps) {
       }}
     >
       <button
+        ref={disparador}
         onClick={() => setAbierto(v => !v)}
         aria-expanded={abierto}
         style={{
@@ -112,14 +128,26 @@ export function DeDondeSalioEsto(p: DeDondeSalioEstoProps) {
         </span>
       </button>
 
-      {abierto && (
-        <div style={{ borderTop: '1px solid var(--border)', padding: '4px 0' }}>
+      <Lente
+        abierta={abierto}
+        titulo="¿De dónde salió esto?"
+        subtitulo={
+          dudosas > 0
+            ? `${dudosas} ${dudosas === 1 ? 'frase' : 'frases'} de la nota sin apoyo claro en el dictado`
+            : 'Cada frase de la nota, junto a lo que usted dictó'
+        }
+        invocador={disparador}
+        alCerrar={() => setAbierto(false)}
+      >
+        <div>
           {trazas.map((t, i) => (
             <div
               key={i}
               style={{
                 display: 'grid', gridTemplateColumns: '10px 1fr', gap: 10,
-                padding: '10px 14px',
+                /* Sin recorte lateral propio: el cuerpo de la lente ya lo pone.
+                   Repetirlo daba 30px de sangría en una columna de 400. */
+                padding: '10px 0',
                 borderTop: i > 0 ? '1px solid var(--border)' : undefined,
               }}
             >
@@ -189,7 +217,7 @@ export function DeDondeSalioEsto(p: DeDondeSalioEstoProps) {
           ))}
 
           <p style={{
-            margin: 0, padding: '10px 14px', fontSize: 12,
+            margin: '4px 0 0', padding: '10px 0 0', fontSize: 12,
             color: 'var(--text3)', lineHeight: 1.5,
             borderTop: '1px solid var(--border)',
           }}>
@@ -200,7 +228,7 @@ export function DeDondeSalioEsto(p: DeDondeSalioEstoProps) {
             enseñarla.
           </p>
         </div>
-      )}
+      </Lente>
     </section>
   )
 }

@@ -8436,3 +8436,137 @@ protege una pregunta.
 
 **Compuertas**: tsc limpio · vitest 9486/9487 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete con un techo más bajo · build compila.
+
+---
+
+## LA CAPA 4 DE §5 EXISTE — la lente contextual (15-ago)
+
+**El hueco que RTC-12(a) dejó nombrado y con sitio físico reservado.** El shell
+tenía tres capas desde `V15-SHELL-GREYBOX-001` —franja de instrumentos · riel de
+flujo · lienzo clínico— y §5 pide cuatro. La cuarta se construyó aquí.
+
+### Se midió antes de construir, como el estado mandaba
+
+El estado no decía «constrúyela»: decía **medir primero** cómo revela hoy la
+procedencia el producto, y **declarar cumplido si el patrón actual ya cumplía**.
+`scripts/design/medir-lente-contextual-v15.mjs` traduce §21 a cuatro preguntas
+medibles (alcance · distancia · sitio · vuelta). Acta en
+`docs/design/capturas/v15-lente-contextual/`:
+
+|  | antes | después |
+|---|---|---|
+| superficies con la Capa 4 | **0 de 6** | **6 de 6** |
+| la nota al inspeccionar la procedencia (1440) | 2141 → **2656px** | 2141 → **2141px** |
+| … y «¿de dónde salió esto?» | 2141 → **3013px** | **+0px** |
+| en el teléfono (390) | 2666 → 3271 y **3886px** | **+0px** las dos |
+| Escape cierra | **NO**, en ninguna, en ningún ancho | sí |
+| el foco vuelve al disparador | (nunca salió) | sí, medido |
+| desplazamiento al cerrar | — | **exacto**: 628→824→**628** · 830→1037→**830** |
+| errores de consola | 0 | 0 |
+
+El veredicto de la medición: el patrón de hoy **cumple** «no navega fuera» y «el
+foco no se pierde», y **falla** «no pierdas el sitio» y «vuelve». Por eso no se
+declaró cumplido, que era la otra salida abierta.
+
+### El diseño que la aritmética refutó antes de escribirse
+
+El plan era flotar el panel sobre «el ancho que queda a la derecha» que RTC-12(a)
+declaró reservado, contando con no tapar nada. Con los números del propio shell
+—riel 224, lienzo 1100 centrado, medida de lectura 820, panel 400— el borde
+derecho del texto y el izquierdo del panel **se cruzan en todos los anchos
+reales**: a 1200 taparía 268px de texto, a 1440 unos 86, y hasta ~1920 no
+dejaría libre la columna de lectura. El canalón existe; no cabe una lente
+dentro.
+
+Así que **se acopla**: a partir de 1200px el shell cede ese ancho
+(`padding-right` sobre `.nx-app-shell:has(.nx-lente)`) y la columna de trabajo
+se estrecha. El texto se re-fluye —coste real y menor— y nada queda escondido
+detrás del panel. **Sexta vez en la iteración que medir cambia lo que se iba a
+escribir**, y la primera en que lo cambia una cuenta de servilleta y no un
+navegador.
+
+### Lo que la pieza es, y lo que se negó a ser
+
+- **Transitoria por construcción**: cerrada no renderiza nada. §5 prohíbe por su
+  nombre el copiloto permanentemente abierto; si el panel puede existir vacío,
+  alguien acabará dejándolo abierto «por si acaso».
+- **No es un modal**: sin `role="dialog"`, sin velo, sin trampa de foco y sin
+  bloquear el desplazamiento. Con la lente abierta se sigue leyendo la nota —
+  ésa es la diferencia entre una lente y una interrupción.
+- **Una a la vez**, con el nombre del evento declarado UNA vez dentro de la
+  pieza (la lección de `estoy-grabando`). Medido: `lentes abiertas: 1`.
+- **El contenido lo renderiza el consumidor** (`children` por portal), no se
+  guarda copia en el estado de la lente: una copia enseñaría la foto de un dato
+  clínico, no el dato.
+- **La geometría vive en la HOJA** (lección `nx-stat-grid`), y la hoja inferior
+  del teléfono va **en flujo**, hermana de `<main>`: nada de un `bottom` a mano
+  para esquivar el BottomNav — la familia de números mágicos que mató RTC-32.
+
+### El defecto que sólo apareció al medir el teléfono
+
+La primera versión pasaba en escritorio y **rompía en móvil**: la hoja inferior
+le quita alto a `<main>` y el control recién pulsado se quedaba por debajo del
+nuevo borde (`disparadorTapado: true` en los dos casos). Con el acordeón de
+antes eso no pasaba —el detalle crecía por DEBAJO del disparador—, así que
+dejarlo así habría sido cambiar un defecto por otro en la pantalla más pequeña.
+Ahora se desplaza lo mínimo y sólo si de verdad se salió, y **al cerrar se
+devuelve el desplazamiento exacto**.
+
+### La siembra, otra vez, era la que escondía la pantalla
+
+`DeDondeSalioEsto` devuelve `null` sin dictado, y **ninguna nota sembrada tenía
+`transcripcionCruda`**: la interacción que §21 llama la firma del producto no se
+había fotografiado nunca. Las tres notas firmadas llevan ya su dictado —escrito
+para sostener PARTE de la nota y no toda, que es el caso que hace útil el panel:
+el «Análisis» de Aurelio sale marcado sin respaldo—. El borrador se queda sin
+dictado a propósito. Es el cuarto hueco de la misma familia que el de las notas.
+
+### Compuertas
+
+`npx tsc --noEmit` limpio · `npx vitest run` **9497/9498** (el rojo conocido del
+proxy del contenedor, `ops-timeout-y-punto-ciego`) · lint **96 = techo** ·
+trinquete de diseño sin deuda nueva · `npm run build` compila · navegador real
+1440 + 390 en las DOS puntas, con el arnés corregido y reconstruyendo la rama
+sin cambios para volver a medir el «antes» — **0 errores de consola**, 16
+capturas (abierto y cerrado, por revelador, por ancho).
+
+Guardián `v15-lente-contextual-es-la-capa-4.test.ts` (11 casos). **Probado al
+revés**: contra el árbol previo fallan 8; y tres reversiones quirúrgicas sobre
+el árbol nuevo —quitar `:empty` de la hoja (rompe 4 y 10), devolver el detalle
+en línea al sello (rompe 7), quitar la vuelta del foco (rompe 3), quitar el
+acople de escritorio (rompe 11)— comprobadas en rojo una a una.
+
+Un defecto propio, del instrumento, y van once en la fase: las capturas se
+tomaban **después** de pulsar Escape, así que las seis salían del estado
+cerrado — habrían ilustrado §36 sin enseñar nada de lo medido.
+
+### Declarado y NO pagado
+
+1. **El alcance sigue en 1 de 6.** Esta rebanada construye la capa y muda a sus
+   dos consumidores; llevar la procedencia al expediente, a resultados y a la
+   cola de cierre es trabajo nombrado y sin hacer. **La capa ya está montada en
+   las seis** — lo que falta es quién la use.
+2. **`alergiasDe` parte dentro del paréntesis.** Se vio por primera vez porque
+   la lente enseña el manifiesto entero: `'Penicilina (rash generalizado, 2019)'`
+   → `['Penicilina (rash generalizado', '2019)']`, y la pantalla afirma una
+   alergia a «2019)». **No es una alerta perdida**: el motor de choque compara
+   con `includes`, así que «penicilina (rash generalizado» sigue disparando la
+   familia — comprobado. Es ruido en una superficie de seguridad, y **no se toca
+   aquí**: es `src/lib/seguridad/alergias.ts`, y §1 congela la lógica clínica.
+   Queda para una unidad propia, con su entrada de regresión y su sello.
+3. **La distancia hecho↔fuente no la arregla esta capa.** Medida: los dos
+   reveladores están a 623–990px del encabezado de «Diagnósticos», en la
+   dirección contraria a la supuesta (están ARRIBA, no abajo). Que la fuente se
+   inspeccione DESDE la frase —y no desde una tira a un viewport de distancia—
+   es §21 entero, y es trabajo del refactor de la nota.
+4. **`Section` de la consulta rotula con un `<span>`, no con un encabezado.**
+   Lo encontró la sonda al devolver `null` cuatro veces. Hallazgo de §24, fuera
+   de esta rebanada.
+
+**Siguiente tarea exacta**: sigue siendo la **lectura INDEPENDIENTE** de §26/§29
+—quien implementa no puede ser el juez—, ahora con una capa más que puntuar. Si
+esa lectura da PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`. Trabajo de
+producto declarado y con dueño: el punto 1 de arriba (llevar la fuente a las
+otras superficies), el punto 2 (el paréntesis de `alergiasDe`, unidad de
+seguridad clínica) y RTC-12(a) (lienzo multicolumna, con el refactor del
+monolito).

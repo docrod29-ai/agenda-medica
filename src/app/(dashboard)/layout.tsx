@@ -805,6 +805,20 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
+        {/*
+          CAPA 4 DE §5 — LA LENTE CONTEXTUAL. El shell tenía tres capas desde
+          V15-SHELL-GREYBOX-001 (franja · riel · lienzo) y ésta faltaba; RTC-12(a)
+          reservó su sitio físico al unificar el lienzo y lo dejó declarado
+          vacío. Aquí sólo vive el HUECO: quien enseña la fuente de un hecho
+          renderiza su `<Lente>` en su propio árbol y aterriza aquí por portal,
+          para que el contenido siga vivo (ver LenteContextual.tsx).
+
+          Va entre <main> y la barra del pulgar A PROPÓSITO: por debajo de
+          1200px la lente es una hoja inferior EN FLUJO, así que <main> le cede
+          el alto y el BottomNav no se mueve ni hace falta calcularle un
+          `bottom`. Vacío no ocupa nada (`.nx-lente-hueco:empty`).
+        */}
+        <div id="nx-lente-hueco" className="nx-lente-hueco" />
         {/* Barra inferior — solo móvil (gestionada por CSS). V15-MOBILE-001:
             recibe el MISMO criterio que elige FlowRail vs Sidebar, para que el
             médico tenga la misma IA en el pulgar que en el escritorio. */}

@@ -1,0 +1,227 @@
+{
+  "base": "http://localhost:3000",
+  "fase": "despues",
+  "viewports": {
+    "escritorio-1440": {
+      "alcance": {
+        "hoy": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1258
+        },
+        "pacientes": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 859
+        },
+        "expediente": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1536
+        },
+        "pendientes": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1841
+        },
+        "operaciones": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1744
+        },
+        "consulta": {
+          "reveladores": [
+            "Procedencia de la nota12 a mano",
+            "¿De dónde salió esto?cada frase, junto a"
+          ],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 2141
+        }
+      },
+      "antesDeAbrir": {
+        "altoDeLaPagina": 2141,
+        "viewport": 829,
+        "hecho": 1564,
+        "reveladores": [
+          {
+            "texto": "Procedencia de la nota12 a mano",
+            "y": 755
+          },
+          {
+            "texto": "¿De dónde salió esto?cada frase, junto a",
+            "y": 941
+          }
+        ]
+      },
+      "comportamiento": [
+        {
+          "texto": "Procedencia de la nota12 a mano",
+          "antes": {
+            "scrollTop": 360,
+            "alto": 2141,
+            "rect": 465.890625,
+            "hechoVisible": false
+          },
+          "despues": {
+            "scrollTop": 360,
+            "alto": 2141,
+            "rect": 465.890625,
+            "hechoVisible": false,
+            "disparadorTapado": false,
+            "foco": "H2.nx-lente-titulo",
+            "lentesAbiertas": 1
+          },
+          "trasEscape": {
+            "alto": 2141,
+            "scrollTop": 360,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "texto": "¿De dónde salió esto?cada frase, junto a",
+          "antes": {
+            "scrollTop": 549,
+            "alto": 2141,
+            "rect": 463.390625,
+            "hechoVisible": false
+          },
+          "despues": {
+            "scrollTop": 549,
+            "alto": 2141,
+            "rect": 463.390625,
+            "hechoVisible": false,
+            "disparadorTapado": false,
+            "foco": "H2.nx-lente-titulo",
+            "lentesAbiertas": 1
+          },
+          "trasEscape": {
+            "alto": 2141,
+            "scrollTop": 549,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        }
+      ]
+    },
+    "movil-390": {
+      "alcance": {
+        "hoy": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1949
+        },
+        "pacientes": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1156
+        },
+        "expediente": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 2042
+        },
+        "pendientes": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 2272
+        },
+        "operaciones": {
+          "reveladores": [],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 1935
+        },
+        "consulta": {
+          "reveladores": [
+            "Procedencia de la nota12 a mano",
+            "¿De dónde salió esto?cada frase, junto a"
+          ],
+          "lentesEnElShell": 0,
+          "huecoDeLente": true,
+          "altoDeLaPagina": 2666
+        }
+      },
+      "antesDeAbrir": {
+        "altoDeLaPagina": 2666,
+        "viewport": 698,
+        "hecho": 1945,
+        "reveladores": [
+          {
+            "texto": "Procedencia de la nota12 a mano",
+            "y": 955
+          },
+          {
+            "texto": "¿De dónde salió esto?cada frase, junto a",
+            "y": 1146
+          }
+        ]
+      },
+      "comportamiento": [
+        {
+          "texto": "Procedencia de la nota12 a mano",
+          "antes": {
+            "scrollTop": 628,
+            "alto": 2666,
+            "rect": 419.53125,
+            "hechoVisible": false
+          },
+          "despues": {
+            "scrollTop": 824,
+            "alto": 2666,
+            "rect": 223.53125,
+            "hechoVisible": false,
+            "disparadorTapado": false,
+            "foco": "H2.nx-lente-titulo",
+            "lentesAbiertas": 1
+          },
+          "trasEscape": {
+            "alto": 2666,
+            "scrollTop": 628,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        },
+        {
+          "texto": "¿De dónde salió esto?cada frase, junto a",
+          "antes": {
+            "scrollTop": 830,
+            "alto": 2666,
+            "rect": 408.53125,
+            "hechoVisible": false
+          },
+          "despues": {
+            "scrollTop": 1037,
+            "alto": 2666,
+            "rect": 201.53125,
+            "hechoVisible": false,
+            "disparadorTapado": false,
+            "foco": "H2.nx-lente-titulo",
+            "lentesAbiertas": 1
+          },
+          "trasEscape": {
+            "alto": 2666,
+            "scrollTop": 830,
+            "expandido": "false",
+            "lentesAbiertas": 0,
+            "focoEnElDisparador": true
+          }
+        }
+      ]
+    }
+  },
+  "errores": []
+}

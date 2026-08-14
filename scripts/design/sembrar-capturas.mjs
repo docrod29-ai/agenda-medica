@@ -471,6 +471,24 @@ async function main() {
    *     «Consulta sin cerrar — continuar», que es lo que no se podía medir.
    *   · Los demás se quedan SIN notas a propósito: el expediente vacío
    *     también hay que poder medirlo, y es el estado del paciente nuevo.
+   *
+   * ── EL CUARTO HUECO, DE LA MISMA FAMILIA: NINGUNA NOTA TENÍA DICTADO ──
+   *
+   * Las notas nacieron el 14-ago **sin `transcripcionCruda`**, y eso deja sin
+   * pintar las DOS piezas de procedencia de §21 — la firma de este producto:
+   *
+   *   · `DeDondeSalioEsto` devuelve `null` sin dictado, por construcción
+   *     («sin dictado no hay nada que contrastar»);
+   *   · `SelloProcedencia` se pinta, pero sin la `transcripcion` que permite
+   *     comprobar que las citas textuales EXISTEN, así que se comporta como
+   *     antes de REG-213 en vez de enseñar lo que hoy sabe.
+   *
+   * O sea: la interacción que §21 llama «signature interaction» del producto
+   * NUNCA se ha visto en una captura. Se siembra el dictado de las tres notas
+   * firmadas —redactado para que sostenga PARTE de lo escrito y no todo, que
+   * es el caso interesante: el panel existe para enseñar qué frase NO tiene
+   * respaldo—. El borrador se queda sin dictado a propósito: una consulta
+   * recién abierta tampoco lo tiene.
    */
   const seccion = (key, label, value) => ({ key, label, value })
   const metadatos = (id, tipo, pacienteId, estado, fecha) => ({
@@ -495,6 +513,18 @@ async function main() {
         seccion('plan', 'Plan', 'Refuerzo de apego, perfil lipídico y HbA1c de control, cita en cuatro semanas.'),
       ],
       signosVitales: { ta: '138/86', fc: '78', fr: '16', temperatura: '36.4', spo2: '96', peso: '84', talla: '1.72', imc: '28.4' },
+      /* El «Análisis» NO está dictado a propósito: es la frase que
+         `DeDondeSalioEsto` tiene que marcar como sin respaldo. Un dictado que
+         sostiene el 100 % de la nota no enseña para qué sirve el panel. */
+      transcripcionCruda:
+        'Viene a control. Refiere que ha tomado el tratamiento de manera irregular ' +
+        'en los últimos dos meses. Niega hipoglucemias, niega poliuria y niega ' +
+        'pérdida de peso. Tensión arterial ciento treinta y ocho sobre ochenta y ' +
+        'seis, frecuencia cardiaca setenta y ocho. A la exploración está consciente ' +
+        'y orientado, hidratado, sin datos de dificultad respiratoria; la ' +
+        'exploración cardiopulmonar sin agregados. Reforzamos el apego, pedimos ' +
+        'perfil de lípidos y hemoglobina glucosilada de control y lo cito en cuatro ' +
+        'semanas.',
       diagnosticos: [
         { descripcion: 'Diabetes mellitus tipo 2', tipo: 'definitivo', estado: 'cronico', fechaDiagnostico: diaISO(-2000) },
         { descripcion: 'Hipertensión arterial sistémica', tipo: 'definitivo', estado: 'cronico', fechaDiagnostico: diaISO(-1500) },
@@ -511,6 +541,12 @@ async function main() {
         seccion('plan', 'Plan', 'Reconciliar la lista de medicamentos con el paciente en la próxima visita.'),
       ],
       signosVitales: { ta: '132/84', fc: '74', fr: '16', temperatura: '36.5', spo2: '97', peso: '83', imc: '28.1' },
+      transcripcionCruda:
+        'Regresa a seguimiento. Dice que ha tomado mejor el tratamiento desde la ' +
+        'consulta previa. Menciona que suspendió uno de los medicamentos por cuenta ' +
+        'propia y no recuerda cuál. La exploración sin cambios relevantes. Hay que ' +
+        'reconciliar la lista de medicamentos con el paciente en la próxima visita ' +
+        'antes de renovar la receta.',
       diagnosticos: [
         { descripcion: 'Diabetes mellitus tipo 2', tipo: 'definitivo', estado: 'cronico' },
         { descripcion: 'Hipertensión arterial sistémica', tipo: 'definitivo', estado: 'cronico' },
@@ -527,6 +563,12 @@ async function main() {
         seccion('plan', 'Plan', 'Urocultivo con antibiograma y revisión del resultado antes de decidir tratamiento.'),
       ],
       signosVitales: { ta: '118/74', fc: '82', fr: '17', temperatura: '36.8', spo2: '98' },
+      transcripcionCruda:
+        'Acude por tercer episodio de disuria y urgencia en seis meses. Niega ' +
+        'fiebre y niega dolor lumbar. Temperatura treinta y seis punto ocho, ' +
+        'tensión ciento dieciocho sobre setenta y cuatro. Afebril, abdomen blando, ' +
+        'sin dolor a la puñopercusión. Pedimos urocultivo con antibiograma y ' +
+        'revisamos el resultado antes de decidir el tratamiento.',
       diagnosticos: [
         { descripcion: 'Infección de vías urinarias de repetición', tipo: 'definitivo', estado: 'activo', fechaDiagnostico: diaISO(-20) },
       ],
