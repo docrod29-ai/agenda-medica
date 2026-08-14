@@ -631,6 +631,30 @@ justo en el caso que no importa. El orden no se inventa —es el que el expedien
 ya había elegido en su ancla— y ahora el mismo paciente se ancla igual en las
 dos pantallas.
 
+### 4ª pasada de §29 (14-ago) — 2.0 → 1.5, y lo que queda son TRES cosas
+
+Primera pasada que puntúa la pantalla que el médico ve de verdad: las tres
+anteriores puntuaron expedientes sin una sola nota.
+
+| Pendientes | Hoy | Pacientes | Operaciones | **Expediente** | **Consulta** |
+|---|---|---|---|---|---|
+| 1.0 | 1.5 | 1.5 | 1.5 | **2.0 → 1.5** | **2.0 → 1.5** |
+
+**Peor superficie 1.5: sigue FAIL** contra ≤1.0. Pero lo que queda ya no es «el
+marco» —eso se pagó en seis rebanadas—: son tres residuos con nombre.
+
+1. **Las píldoras de filtro** (pacientes, expediente, historia). `/pendientes`
+   no las tiene: usa frases. Es lo más caro que queda y sigue sin decidirse.
+2. **La fila de tarjetas-estadística** del expediente: su contenido es clínico
+   y específico, su forma es la fila de KPIs de cualquier tablero.
+3. **Los dos FAB de escritorio** (6/6). RTC-05 se pagó con alcance declarado y
+   esa decisión sigue en pie — pero ahora que no quedan defectos mayores, son
+   lo que más se parece a otro producto.
+
+El control se sostiene: `/pendientes` no se ha tocado en ninguna rebanada y
+sigue en 1.0; Hoy, pacientes y operaciones no se tocaron desde la 3ª y no se
+movieron. Sólo se movió lo que se tocó.
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:

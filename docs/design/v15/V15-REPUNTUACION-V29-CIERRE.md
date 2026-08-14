@@ -159,3 +159,56 @@ contenido, el bloque de problemas, los pendientes del paciente con «1 vencido �
 pasadas son de la pantalla vacía. La cuarta pasada tendrá que puntuar la
 pantalla llena, que es la que el médico ve. No se corrigen aquí los números
 viejos: se declara de qué eran.
+
+
+---
+
+# Cuarta pasada — con historia sembrada, y con el marco en seis pantallas
+
+**Fecha:** 14-ago-2026 · **Capturas:** `docs/design/capturas/v15-repuntuacion-v29-4a/`
+(las seis superficies **con historia real**, más `/expediente` y `/consulta`
+también en su estado vacío, que es el del paciente nuevo). 0 errores de consola.
+
+Es la primera pasada que puntúa la pantalla que el médico ve de verdad: las tres
+anteriores puntuaron expedientes sin una sola nota.
+
+| Superficie | 1ª | 2ª | 3ª | **4ª** | Qué la movió |
+|---|---|---|---|---|---|
+| Pendientes | 1.0 | 1.0 | 1.0 | **1.0** | Nada: sigue siendo el patrón. |
+| Hoy | 2.0 | 2.0 | 1.5 | **1.5** | Nada desde la 3ª. |
+| Pacientes | 5.0 | 2.0 | 1.5 | **1.5** | Nada desde la 3ª. |
+| Operaciones | 4.0 | 2.0 | 1.5 | **1.5** | Nada desde la 3ª. |
+| **Expediente** | 2.5 | 2.5 | 2.0 | **1.5** | Con historia enseña lo que es: alergia con procedencia, riel con conteos que significan algo, bloque de problemas con su «de lo último que se dijo… en sus notas firmadas», pendientes del paciente con «1 vencido · 1 en plazo». |
+| **Consulta** | 2.0 | 2.0 | 2.0 | **1.5** | RTC-14 (una sola alergia, con «se lee:») y la identidad encabezando. |
+
+**GENERIC_AI_LOOK_SCORE = 1.5.** Objetivo ≤ 1.0 → **sigue FAIL**.
+
+## Lo que queda ya no es «el marco»: son tres cosas con nombre
+
+En la 2ª pasada lo que quedaba era el marco de página entero, repetido en cinco
+superficies. Pagado eso, la distancia entre el 1.5 general y el 1.0 de
+`/pendientes` se reduce a tres residuos concretos:
+
+1. **Las píldoras de filtro** — en `/pacientes`, `/expediente` y en la historia
+   clínica. `/pendientes` no las tiene: usa frases («Ver sólo los míos»). Sigue
+   sin decidirse, y ahora es lo más caro que queda.
+2. **La fila de tarjetas-estadística** del expediente (ÚLTIMOS SIGNOS ·
+   DIAGNÓSTICOS ACTIVOS · ACTIVIDAD). Su CONTENIDO es clínico y específico; su
+   FORMA es la fila de KPIs de cualquier tablero.
+3. **Los dos FAB de escritorio**, en 6 de 6. RTC-05 se pagó con alcance
+   declarado y esa decisión sigue en pie — pero ahora que no quedan defectos
+   mayores, son lo que más se parece a otro producto.
+
+## El control, otra vez
+
+`/pendientes` no se ha tocado en ninguna de las seis rebanadas y sigue en 1.0.
+`Hoy`, `/pacientes` y `/operaciones` no se tocaron desde la 3ª pasada y no se
+movieron. Sólo se movió lo que se tocó. Sigue sin ser una medición objetiva
+—la hace quien hizo el trabajo— pero es comprobable por otro, que es lo máximo
+que puede ofrecer un score documentado.
+
+## Honestidad sobre el número
+
+De **5.0 a 1.5** en una jornada, medido cuatro veces sobre capturas nuevas. Y
+sigue sin cumplir: **1.5 no es ≤1.0**, la compuerta §29/§34 continúa en FAIL y
+`V15-ORIGINALITY-REDTEAM-001` no se cierra.
