@@ -2,14 +2,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Patient, type ClinicConfig } from '@/types'
 import { getPatients, createPatient, updatePatient, getConfig } from '@/lib/firestore'
-import { fetchAutenticado } from '@/lib/auth-client'
 import { edadEnAnios } from '@/lib/expediente/pediatria'
 import { getCenso } from '@/lib/hospital/firestore'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { useMode } from '@/context/ModeContext'
-import { Plus, Search, X, Users, Phone, AlertCircle, Calendar, Pencil, Cake, Download, Loader2, BedDouble, ChevronRight, FileClock } from 'lucide-react'
+import { Plus, Search, X, Users, Phone, AlertCircle, Calendar, Pencil, Cake, BedDouble, ChevronRight, FileClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader, Button, EmptyState, Spinner, Modal } from '@/components/ui'
@@ -25,13 +24,12 @@ import { estadoClinicoDeFila, ultimaVezVisto, type LecturaDelWorklist, type Esta
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
-  const { clinicId, role } = useClinic()
+  const { clinicId } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
-  const [exportando, setExportando] = useState(false)
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'recientes' | 'todos' | 'alerta'>('recientes')
   const [modalOpen, setModalOpen] = useState(false)
@@ -98,47 +96,18 @@ export default function PacientesPage() {
   }, [clinicId])
 
   /**
-   * RESPALDO COMPLETO — del servidor, en streaming, y de verdad completo.
+   * RTC-15/RTC-29 — EL RESPALDO SE MUDÓ A `/operaciones`.
    *
-   * ── LO QUE HABÍA AQUÍ ──────────────────────────────────────────────────────
+   * Bajar un archivo del consultorio entero no es trabajo clínico: es una
+   * operación (§11), y estaba en la cabecera primaria de esta pantalla, junto
+   * a «Nuevo paciente». Parte de lo que hacía que `/pacientes` puntuara 5.0 en
+   * §29 era ese racimo de tres botones con anatomía de CRM.
    *
-   * Un `for` sobre los pacientes con `await getNotas(...)` DENTRO: una lectura
-   * por paciente, en serie, en el navegador, con el médico esperando y sin forma
-   * de reanudar. Y bajaba pacientes + notas, nada más — ni adendas, ni
-   * laboratorios, ni fotografía clínica, ni antecedentes, ni citas, ni cobros,
-   * ni la configuración (membrete, formato de receta, firma), ni los bloqueos de
-   * agenda, ni la farmacia, ni los internamientos, ni la bitácora.
-   *
-   * Un archivo llamado «respaldo» que no respalda es peor que no tenerlo: se
-   * guarda, se duerme tranquilo, y el día que hace falta no está lo que se creía.
+   * La conducta no se reescribió en el destino: se extrajo entera a
+   * `@/lib/clinica/descargar-respaldo` —misma ruta de servidor, mismo
+   * streaming, mismo aviso de que la última línea del archivo declara si quedó
+   * completo—. Mover no puede significar perder.
    */
-  const exportarTodo = async () => {
-    if (!clinicId || exportando) return
-    setExportando(true)
-    try {
-      // Se abre en el navegador y se descarga en streaming: el archivo empieza a
-      // escribirse mientras el servidor sigue leyendo, sin cargar el consultorio
-      // entero en memoria de nadie.
-      const res = await fetchAutenticado(`/api/clinic/exportar?clinicId=${encodeURIComponent(clinicId)}`)
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        toast(d.error || 'No se pudo generar el respaldo', 'error')
-        return
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `respaldo_ausculta_${new Date().toISOString().slice(0, 10)}.ndjson`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast('Respaldo descargado. La última línea del archivo dice si quedó completo y qué faltó.', 'success')
-    } catch {
-      toast('No se pudo generar el respaldo', 'error')
-    } finally {
-      setExportando(false)
-    }
-  }
 
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -255,17 +224,6 @@ export default function PacientesPage() {
         ) : (
           <>
             <Link href="/asistente"><Button variant="secondary" icon={<Calendar size={16} />}>Agendar</Button></Link>
-            {(role === 'medico' || role === 'admin') && patients.length > 0 && (
-              <Button
-                variant="secondary"
-                icon={exportando ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
-                onClick={exportarTodo}
-                disabled={exportando}
-                title="Descargar todo el expediente (todos los pacientes y sus notas) como respaldo"
-              >
-                {exportando ? 'Generando…' : 'Respaldo'}
-              </Button>
-            )}
             <Button icon={<Plus size={16} />} onClick={openNew}>Nuevo paciente</Button>
           </>
         )}

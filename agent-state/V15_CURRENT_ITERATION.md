@@ -342,12 +342,52 @@ Cada fila dice ahora su estado clínico, en prosa y ANTES del teléfono:
   `/operaciones`, que es justo la pantalla que RTC-29 va a rehacer; hacerlo dos
   veces sería trabajo tirado.
 
+### RTC-29 PAGADA (14-ago, 9ª corrida) — Operaciones deja de ser un lanzador
+
+**La causa raíz era de FORMA.** La rejilla de azulejos de 200px no dejaba sitio
+físico para explicar nada: en ese ancho sólo cabe la etiqueta. La forma imponía
+el contenido, y el contenido resultante era un menú de iconos.
+
+- Ahora es una **lista**: un borde por grupo (19 cajas eran 19 fronteras
+  compitiendo por atención), filas separadas por línea, y **todo destino con su
+  `para`** — «Reactivación — avisar a quien lleva meses sin volver». El patrón
+  no se inventa aquí: es el mismo `para` de `capacidades-del-paciente` (RTC-09)
+  que ya pintan las Herramientas clínicas de la consulta.
+- **La jerarquía es la cadencia** («Todos los días» · «Cada semana o cada mes» ·
+  «Se configura una vez»), que es lo único honesto que esta pantalla puede decir
+  sin inventarse datos. Un contador por área costaría una lectura por área en
+  una pantalla administrativa (§8.5) y **una cifra equivocada es peor que
+  ninguna**. Queda escrito como decisión, no como olvido.
+- **Se pagó el resto de RTC-15**: «Respaldo» dejó la cabecera primaria de
+  `/pacientes` y aterrizó aquí con su conducta ENTERA extraída a
+  `@/lib/clinica/descargar-respaldo` — misma ruta, mismo streaming, mismo aviso
+  de que la última línea del archivo declara si quedó completo. Mover no puede
+  significar perder.
+- Las tres anatomías que convivían en la pantalla —azulejo, botón de tema,
+  botón de salir— se unificaron en una pieza (`FILA_DE_GRUPO` + `CAJA_DE_GRUPO`
+  + `CabeceraDeGrupo`). Tres dialectos en una pantalla que es UNA lista.
+- Guardián `v15-rtc29-operaciones-no-es-un-lanzador.test.ts` (8 casos, probado
+  al revés ×5, incluido uno que caza el `para` que se explica repitiéndose).
+  Navegador real 1440+390: **19/19, 0 errores de consola**, con el respaldo
+  DESCARGANDO de verdad desde su casa nueva — mover una capacidad y no
+  comprobarla en el destino es exactamente «el dato tiene que LLEGAR».
+- **Lo encontró el arnés, no el guardián:** «Apariencia» y «Sesión» se quedaban
+  sin cadencia porque en el fuente ni siquiera pasan por el catálogo. En una
+  página cuya jerarquía ES la cadencia, un grupo que no la dice se lee como un
+  olvido. Se les dio la suya y la misma anatomía que a todo lo demás.
+- Dos guardianes ajustados con intención: el mínimo táctil (contaba apariciones
+  de `minHeight: 44` — cuanto mejor factorizado, más rojo daba; ahora exige la
+  pieza compartida y que ninguna fila se pinte fuera) y el del armado del
+  respaldo (sigue al módulo donde la conducta vive hoy).
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
-DIEZ P1 originales, la re-puntuación §29 y **RTC-15** hechos. **No se declara
-CERRADA**: falta **RTC-29** (`/operaciones` es un lanzador, 4.0) y después
-**volver a puntuar §29** sobre capturas nuevas — el score no se hereda, y eso
-vale también para el que acaba de mejorar. Siguiente rebanada: **RTC-29**.
-Sólo cuando la compuerta dé PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.
+DIEZ P1 originales, la re-puntuación §29 y los dos P1 que ésta abrió —**RTC-15**
+y **RTC-29**— hechos. **No se declara CERRADA todavía**, y lo que falta no es un
+defecto: es **volver a puntuar §29** sobre capturas nuevas de las seis
+superficies. El score no se hereda ni cuando mejora. Ésa es la siguiente
+rebanada; si da PASS (≤1.0 en todas), la iteración cierra y sigue §43 orden 17:
+`V15-WORKFLOW-BENCHMARK-001`. Si alguna sigue por encima, esa superficie es la
+rebanada de después.
 
 
 [Histórico — ejecutado 13-ago-2026: (1) unificación → registro canónico;

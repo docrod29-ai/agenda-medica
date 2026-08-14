@@ -199,9 +199,25 @@ describe('V15 /operaciones — roles §2 y freeze del índice administrativo', (
     expect(OPS).toMatch(/<p className="t-body"/)
   })
 
-  it('tiles y cerrar sesión declaran mínimo táctil de 44 (§24)', () => {
-    const conMinimo = sinComentarios(OPS).match(/minHeight:\s*44/g) ?? []
-    expect(conMinimo.length).toBeGreaterThanOrEqual(2)
+  it('toda fila de /operaciones declara mínimo táctil de 44 (§24)', () => {
+    /**
+     * La condición SIGUE al código. Contaba DOS apariciones de `minHeight: 44`
+     * porque había dos anatomías —los azulejos y el botón de cerrar sesión— y
+     * cada una repetía el número. RTC-29 las unificó en una sola pieza
+     * (`FILA_DE_GRUPO`), así que ahora el 44 se declara UNA vez y vale para
+     * todas: contar apariciones mediría lo contrario de lo que importa —
+     * cuanto mejor factorizado, más rojo daría.
+     *
+     * Lo que se comprueba es lo que la regla dice de verdad: que exista la
+     * pieza compartida con su mínimo, y que **ninguna fila se pinte por fuera
+     * de ella**.
+     */
+    const src = sinComentarios(OPS)
+    expect(src).toMatch(/const FILA_DE_GRUPO: React\.CSSProperties = \{[^}]*minHeight: 44/)
+    // Las tres filas de acción (destino, respaldo, tema, sesión) parten de la
+    // pieza: si alguien vuelve a escribir un estilo de fila a mano, aquí se ve.
+    const usos = src.match(/\.\.\.FILA_DE_GRUPO/g) ?? []
+    expect(usos.length, 'hay filas pintadas fuera de la pieza compartida').toBeGreaterThanOrEqual(4)
   })
 
   it('los iconos decorativos van aria-hidden', () => {
