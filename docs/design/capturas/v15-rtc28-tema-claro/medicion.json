@@ -1,0 +1,182 @@
+{
+  "base": "http://localhost:3000",
+  "medidas": {
+    "light/dashboard": {
+      "tema": "light",
+      "riel": {
+        "selector": "aside",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "topbar": {
+        "selector": "header",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "trabajo": {
+        "selector": "main",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "flotantes": [
+        {
+          "etiqueta": "Abrir ayuda",
+          "fondo": "rgb(18, 98, 110)",
+          "luminancia": 0.0999
+        },
+        {
+          "etiqueta": "Tema: oscuro (clic: claro)",
+          "fondo": "rgb(255, 255, 255)",
+          "luminancia": 1
+        }
+      ],
+      "masOscurosQueElTrabajo": [
+        "Abrir ayuda"
+      ]
+    },
+    "light/pacientes": {
+      "tema": "light",
+      "riel": {
+        "selector": "aside",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "topbar": null,
+      "trabajo": {
+        "selector": "main",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "flotantes": [
+        {
+          "etiqueta": "Abrir ayuda",
+          "fondo": "rgb(18, 98, 110)",
+          "luminancia": 0.0999
+        },
+        {
+          "etiqueta": "Tema: oscuro (clic: claro)",
+          "fondo": "rgb(255, 255, 255)",
+          "luminancia": 1
+        }
+      ],
+      "masOscurosQueElTrabajo": [
+        "Abrir ayuda"
+      ]
+    },
+    "light/pendientes": {
+      "tema": "light",
+      "riel": {
+        "selector": "aside",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "topbar": null,
+      "trabajo": {
+        "selector": "main",
+        "fondo": "rgb(250, 250, 247)",
+        "luminancia": 0.9541
+      },
+      "flotantes": [
+        {
+          "etiqueta": "Abrir ayuda",
+          "fondo": "rgb(18, 98, 110)",
+          "luminancia": 0.0999
+        },
+        {
+          "etiqueta": "Tema: oscuro (clic: claro)",
+          "fondo": "rgb(255, 255, 255)",
+          "luminancia": 1
+        }
+      ],
+      "masOscurosQueElTrabajo": [
+        "Abrir ayuda"
+      ]
+    },
+    "dark/dashboard": {
+      "tema": "dark",
+      "riel": {
+        "selector": "aside",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "topbar": {
+        "selector": "header",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "trabajo": {
+        "selector": "main",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "flotantes": [
+        {
+          "etiqueta": "Abrir ayuda",
+          "fondo": "rgb(23, 120, 134)",
+          "luminancia": 0.1534
+        },
+        {
+          "etiqueta": "Tema: oscuro (clic: claro)",
+          "fondo": "rgb(19, 21, 24)",
+          "luminancia": 0.0074
+        }
+      ],
+      "masOscurosQueElTrabajo": []
+    },
+    "dark/pacientes": {
+      "tema": "dark",
+      "riel": {
+        "selector": "aside",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "topbar": null,
+      "trabajo": {
+        "selector": "main",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "flotantes": [
+        {
+          "etiqueta": "Abrir ayuda",
+          "fondo": "rgb(23, 120, 134)",
+          "luminancia": 0.1534
+        },
+        {
+          "etiqueta": "Tema: oscuro (clic: claro)",
+          "fondo": "rgb(19, 21, 24)",
+          "luminancia": 0.0074
+        }
+      ],
+      "masOscurosQueElTrabajo": []
+    },
+    "dark/pendientes": {
+      "tema": "dark",
+      "riel": {
+        "selector": "aside",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "topbar": null,
+      "trabajo": {
+        "selector": "main",
+        "fondo": "rgb(11, 12, 14)",
+        "luminancia": 0.0037
+      },
+      "flotantes": [
+        {
+          "etiqueta": "Abrir ayuda",
+          "fondo": "rgb(23, 120, 134)",
+          "luminancia": 0.1534
+        },
+        {
+          "etiqueta": "Tema: oscuro (clic: claro)",
+          "fondo": "rgb(19, 21, 24)",
+          "luminancia": 0.0074
+        }
+      ],
+      "masOscurosQueElTrabajo": []
+    }
+  },
+  "errores": []
+}

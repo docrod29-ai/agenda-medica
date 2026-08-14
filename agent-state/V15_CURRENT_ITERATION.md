@@ -7650,3 +7650,43 @@ del cambio.
 **Quedan ~52 literales** en documentos de receta, superadmin, landing e
 ilustraciones. Cada familia necesita la misma pregunta: **¿resuelve el token
 donde ese color acaba?**
+
+---
+
+## RTC-28 — contestado midiendo, y refutado en su mayor parte (14-ago)
+
+RT-21 lo dejó como **pregunta**, no como veredicto: «riel/topbar/FABs
+permanecen oscuros — verificar si es decisión o resto». Un P3 así no se paga
+escribiendo código.
+
+**Luminancia relativa del fondo realmente pintado** (subiendo por los ancestros
+cuando el elemento es translúcido — leer `rgba(0,0,0,0)` habría dado un falso
+«negro»), tres rutas, los dos temas:
+
+|                | claro | oscuro |
+|---|---|---|
+| superficie     | 0.9541 | 0.0037 |
+| riel           | 0.9541 | 0.0037 |
+| topbar         | 0.9541 | 0.0037 |
+| botón de tema  | 1      | 0.0074 |
+| botón de ayuda | 0.0999 | 0.1534 |
+
+- **Riel y topbar siguen al tema, exactamente.** La observación no se reproduce
+  hoy: entre medias, RTC-05 sacó los FABs del arco del pulgar y unificó el tema
+  en `@/hooks/useTema`.
+- **Lo único más oscuro que la superficie en claro es el botón de ayuda, y es
+  decisión**: `var(--nexus-solido)` (#177886), el token de RELLENO del acento,
+  documentado con su 5,16 : 1 con blanco encima y compartido con la corona del
+  pulgar. Un botón de acción relleno **es** más oscuro que la página en tema
+  claro — eso es lo que lo hace legible. Llamarlo «resto del tema oscuro» sería
+  confundir un relleno de acento con un fondo sin migrar.
+
+Cerrado **REFUTADO (riel, topbar) + DECISIÓN (FAB)**, no «arreglado» — un
+registro que apunta un arreglo donde no hubo defecto envenena la siguiente
+lectura. Guardián `v15-rtc28-el-cromo-sigue-al-tema.test.ts` (4 casos, probado
+al revés ×2) para que nadie ancle el cromo a un color fijo, que es el defecto
+que el panel creyó ver y el único que puede aparecer de verdad.
+
+**Compuertas**: tsc limpio · vitest 9435/9436 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete sin deuda nueva · navegador real, 0 errores de
+página. Sin cambios de producto: esta rebanada es una medición y su guardián.
