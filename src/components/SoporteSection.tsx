@@ -47,7 +47,7 @@ export default function SoporteSection({ clinicId, nombre }: { clinicId?: string
       </div>
 
       {enviado ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--teal)', background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 10, padding: '12px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--teal)', background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 10, padding: '12px 14px' }}>
           <CheckCircle2 size={16} /> ¡Gracias! Recibimos tu mensaje. Te contactaremos si hace falta.
           <button onClick={() => setEnviado(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>Enviar otro</button>
         </div>
@@ -59,7 +59,7 @@ export default function SoporteSection({ clinicId, nombre }: { clinicId?: string
                 style={{
                   fontSize: 12.5, fontWeight: 600, padding: '6px 11px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
                   border: '1px solid ' + (tipo === t.v ? 'var(--teal)' : 'var(--border)'),
-                  background: tipo === t.v ? 'rgba(20,184,166,0.1)' : 'var(--s2)',
+                  background: tipo === t.v ? 'color-mix(in srgb, var(--nexus) 10%, transparent)' : 'var(--s2)',
                   color: tipo === t.v ? 'var(--teal)' : 'var(--text2)',
                 }}>
                 {t.emoji} {t.label}

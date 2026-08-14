@@ -8391,3 +8391,48 @@ su casa canónica.
 
 **Compuertas**: tsc limpio · vitest 9482/9483 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete con un techo más bajo · build compila.
+
+---
+
+## RTC-19 · 4ª tanda y CIERRE — de 83 literales quedan 15, y ninguno es deuda (14-ago)
+
+Barridos los últimos tintes de pantalla (soporte, guía, retención, precios,
+superadmin, Cie10, chat, push, expediente, y los estados seleccionados de
+`DoctorFilter`): **23 más**, `hexEnLinea` **489 → 487**.
+
+**Trampa cazada**: `stroke="#14b8a6"` en `/precios` era un **atributo de
+presentación SVG**, y ésos no aceptan `var()`. Tokenizarlo sin mirar habría
+dejado la palomita **sin trazo**, con el `git diff` impecable. Se movió a
+`style`, donde sí es CSS.
+
+### Los quince que quedan, cada uno con su razón
+
+| dónde | por qué se queda |
+|---|---|
+| `colorAccento` canónico + 2 campos que lo editan | DATO: Firestore, `<input type="color">`, impresión |
+| respaldo de `RecetaDocumento` | se lleva a papel |
+| 4 en los fragmentos para incrustar + previas | se pegan FUERA de la app |
+| cadena de `console.info` | la consola no resuelve variables del documento |
+| paleta categórica de `DoctorFilter` (×2) | 5 colores que van juntos o no van |
+| respaldos parciales de `/orden` y `/receta` | ver abajo |
+
+### Una pregunta abierta, con candado
+
+Los respaldos de `/orden` y `/receta` **ya divergen** del canónico:
+
+```
+canónico          mostrarAlergias: true
+/orden/…          mostrarAlergias: false
+/receta/…         mostrarAlergias: true
+```
+
+**No se unifica, y es deliberado**: cambiarlo altera lo que se **imprime en una
+orden clínica**. Puede ser criterio —una orden de laboratorio no es una
+receta— o deriva de haber copiado el bloque. Sólo el dueño puede decir cuál.
+
+El guardián **congela la divergencia**: si alguien la cambia sin decidirla, se
+pone rojo y obliga a mirar. Un guardián no siempre protege un arreglo; a veces
+protege una pregunta.
+
+**Compuertas**: tsc limpio · vitest 9486/9487 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete con un techo más bajo · build compila.

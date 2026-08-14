@@ -170,7 +170,7 @@ function FilaPaciente({ evaluacion, onAbrir }: { evaluacion: PacienteRetencion; 
 
 const tabStyle = (activo: boolean): React.CSSProperties => ({
   padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-  background: activo ? 'rgba(20,184,166,0.12)' : 'var(--s2)',
+  background: activo ? 'color-mix(in srgb, var(--nexus) 12%, transparent)' : 'var(--s2)',
   color: activo ? 'var(--teal)' : 'var(--text2)',
-  border: activo ? '1px solid rgba(20,184,166,0.3)' : '1px solid var(--border)',
+  border: activo ? '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)' : '1px solid var(--border)',
 })

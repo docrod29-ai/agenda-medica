@@ -100,7 +100,7 @@ export function NotificacionesPushOptIn() {
     <div className="nx-push-optin" role="region" aria-label="Aviso de recordatorios de citas">
       <div style={{
         width: 36, height: 36, borderRadius: '50%',
-        background: 'rgba(20,184,166,0.15)',
+        background: 'color-mix(in srgb, var(--nexus) 15%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>

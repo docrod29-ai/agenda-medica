@@ -100,7 +100,7 @@ export default function CspObservacion() {
           <div style={{
             display: 'flex', gap: 10, alignItems: 'flex-start', padding: '13px 15px', borderRadius: 10, marginBottom: 18,
             border: `1px solid ${d.veredicto.listo ? 'var(--teal)' : 'var(--border)'}`,
-            background: d.veredicto.listo ? 'rgba(20,184,166,0.08)' : 'var(--s1)',
+            background: d.veredicto.listo ? 'color-mix(in srgb, var(--nexus) 8%, transparent)' : 'var(--s1)',
           }}>
             {d.veredicto.listo
               ? <CheckCircle2 size={17} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />

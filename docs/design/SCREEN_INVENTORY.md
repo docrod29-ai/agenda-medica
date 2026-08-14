@@ -98,7 +98,7 @@
 | `/login` | publica | ✅ | 405 | 4 | — | ✅ | — |
 | `/operacion` | publica | — | 98 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 94 | 3 | — | ✅ | — |
-| `/precios` | publica | — | 182 | 1 | — | ✅ | — |
+| `/precios` | publica | — | 185 | 1 | — | ✅ | — |
 | `/privacidad` | publica | — | 135 | 0 | — | — | — |
 | `/registro` | publica | ✅ | 384 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 146 | 2 | — | ✅ | — |

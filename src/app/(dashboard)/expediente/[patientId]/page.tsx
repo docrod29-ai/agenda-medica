@@ -853,7 +853,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
               {/* Receta y Orden — solo cuando la nota está firmada (datos confiables) */}
               {firmada && (
                 <>
-                  <button onClick={onGenerarReceta} style={{ ...ghostBtn, color: 'var(--teal)', borderColor: 'rgba(20,184,166,0.4)', background: 'rgba(20,184,166,0.08)' }}>
+                  <button onClick={onGenerarReceta} style={{ ...ghostBtn, color: 'var(--teal)', borderColor: 'color-mix(in srgb, var(--nexus) 40%, transparent)', background: 'color-mix(in srgb, var(--nexus) 8%, transparent)' }}>
                     <Pill size={13} /> Generar receta
                   </button>
                   <button onClick={onGenerarOrden} style={{ ...ghostBtn, color: 'var(--purple)', borderColor: 'rgba(167,139,250,0.4)', background: 'rgba(167,139,250,0.08)' }}>

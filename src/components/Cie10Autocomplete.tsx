@@ -110,7 +110,7 @@ export function Cie10Autocomplete({ value, onChange, placeholder, style }: Cie10
             >
               <span style={{
                 fontFamily: 'monospace', fontWeight: 700, color: 'var(--teal)',
-                fontSize: 11.5, padding: '2px 6px', background: 'rgba(20,184,166,0.1)',
+                fontSize: 11.5, padding: '2px 6px', background: 'color-mix(in srgb, var(--nexus) 10%, transparent)',
                 borderRadius: 3, flexShrink: 0, marginTop: 1,
               }}>
                 {r.codigo}

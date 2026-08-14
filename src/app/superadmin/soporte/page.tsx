@@ -59,7 +59,7 @@ export default function SoporteInbox() {
           <button key={f} onClick={() => setFiltro(f)}
             style={{ fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
               border: '1px solid ' + (filtro === f ? 'var(--teal)' : 'var(--border)'),
-              background: filtro === f ? 'rgba(20,184,166,0.1)' : 'var(--s2)', color: filtro === f ? 'var(--teal)' : 'var(--text2)' }}>
+              background: filtro === f ? 'color-mix(in srgb, var(--nexus) 10%, transparent)' : 'var(--s2)', color: filtro === f ? 'var(--teal)' : 'var(--text2)' }}>
             {f === 'pendientes' ? 'Pendientes' : f === 'todos' ? 'Todos' : (META[f]?.emoji + ' ' + META[f]?.label)}
           </button>
         ))}
