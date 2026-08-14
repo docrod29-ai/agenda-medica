@@ -12,6 +12,7 @@ import { GuiaConfigurarReceta } from '@/components/GuiaConfigurarReceta'
 import { resizeImageFile, formatBytes, reducirDataUrlSiPesa } from '@/lib/image-utils'
 import { PAPER_SIZES, ESTILOS_RECETA, detectarPaperSize, NOTA_PAPER_SIZES, papelPersonalizado, PAPEL_MIN_MM, PAPEL_MAX_MM, type NotaPaperSize as NotaPaperSizeT } from '@/lib/receta-template'
 import type { RecetaConfig, PaperSize as PaperSizeT, EstiloReceta as EstiloT, Patient, Doctor as DoctorT, ClinicConfig } from '@/types'
+import { DEFAULT_CONFIG } from '@/types'
 import { getDoctors, saveConfig } from '@/lib/firestore'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -23,26 +24,23 @@ import { auth, storage } from '@/lib/firebase'
 import { cfgInput, cfgLabel } from './estilos'
 import { Upload, X as IconX, Pill, ClipboardList, Printer, FileText, Loader2, Ruler, Save, Sparkles, Star, UserRound, AlertTriangle, Check} from 'lucide-react'
 
-const RX_DEFAULTS: RecetaConfig = {
-  paperSize: 'media-carta',
-  estilo: 'minimalista',
-  /*
-    ESTE LITERAL SE QUEDA, Y NO ES DEUDA (RTC-19).
-    `colorAccento` no es cromo: es un DATO del consultorio. Se guarda en
-    Firestore, se ofrece en un `<input type="color">` —que sólo acepta un hex
-    de 7 caracteres— y acaba impreso en la receta, donde no hay hoja de
-    estilos que resuelva una variable. Un `var(--nexus)` aquí rompería el
-    selector de color y se guardaría como texto inservible.
-  */
-  colorAccento: '#14b8a6',
-  mostrarQR: true,
-  copiasEnHoja: 1,
-  vigenciaDias: 30,
-  mostrarAlergias: true,
-  mostrarDiagnostico: true,
-  mostrarSignosVitales: false,
-  avisoLegal: 'Esta receta es personal e intransferible. Conserve este documento como respaldo médico.',
-}
+/*
+  UNA SOLA FUENTE DE VERDAD PARA LOS VALORES POR DEFECTO DE LA RECETA.
+
+  Aquí vivía una segunda copia, campo por campo, de lo que `DEFAULT_CONFIG`
+  ya declara en `@/types`. Comparadas hoy coincidían **exactamente** — y ése
+  es justo el problema: coincidían por suerte, no por construcción. La
+  siguiente vez que alguien cambie el aviso legal, la vigencia o el tamaño de
+  papel en un sitio, el otro se queda atrás y la diferencia sale IMPRESA en
+  una receta, que es donde nadie la busca.
+
+  Lo que se guarda en Firestore y lo que se imprime tienen que salir del
+  mismo sitio. `colorAccento` sigue siendo un hex literal por la razón
+  escrita en `@/types` (un `<input type="color">` sólo acepta `#rrggbb` y la
+  receta se imprime sin hoja de estilos que resuelva una variable).
+*/
+const RX_DEFAULTS: RecetaConfig = DEFAULT_CONFIG.recetaConfig!
+
 
 export function RecetasTab({ clinicId }: { clinicId: string | null }) {
   const { config, loading: configLoading } = useConfig()

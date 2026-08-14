@@ -108,11 +108,20 @@ describe('RTC-19 · configuración — el cromo habla el token', () => {
   it('1 · el cromo de las dos secciones no pinta teal-500 crudo', () => {
     expect(CUENTA.match(TEAL_CRUDO) ?? []).toEqual([])
     /**
-     * En recetas quedan exactamente TRES, y los tres son el mismo dato:
-     * `colorAccento` (su valor por defecto y los dos campos que lo editan).
-     * Si aparece un cuarto, o es cromo sin pagar o alguien duplicó el dato.
+     * ── ACTUALIZADO EL MISMO DÍA: AHORA SON DOS, Y ESO ES UNA MEJORA ──────
+     *
+     * Eran TRES —el valor por defecto de `colorAccento` y los dos campos que
+     * lo editan—. Buscando los literales que quedaban se descubrió que ese
+     * valor por defecto era una **copia**: `DEFAULT_CONFIG` de `@/types` ya
+     * declaraba los trece campos de la receta, campo por campo, y los dos
+     * juegos coincidían por suerte, no por construcción
+     * (`v15-los-defaults-de-receta-son-uno-solo.test.ts`).
+     *
+     * `RX_DEFAULTS` pasa a derivar del canónico, así que el literal se fue
+     * con él a su sitio. Quedan los DOS de los campos que lo editan, que
+     * siguen teniendo que ser un hex de verdad.
      */
-    expect(RECETAS.match(TEAL_CRUDO) ?? []).toHaveLength(3)
+    expect(RECETAS.match(TEAL_CRUDO) ?? []).toHaveLength(2)
     expect([...RECETAS.matchAll(/colorAccento \?\? '#14b8a6'/g)]).toHaveLength(2)
   })
 
@@ -136,7 +145,10 @@ describe('RTC-19 · configuración — el cromo habla el token', () => {
      * selector, se guardaría en Firestore como texto inservible y saldría
      * impreso — o no saldría.
      */
-    expect(RECETAS).toContain("colorAccento: '#14b8a6'")
+    /* El valor por defecto ya no vive aquí: se derivó a `@/types` el mismo
+       día (ver el caso 1). Se comprueba donde AHORA está, y que los campos
+       que lo editan sigan ofreciendo un hex. */
+    expect(leer('src/types/index.ts')).toContain("colorAccento: '#14b8a6'")
     expect(RECETAS).toMatch(/type="color"[\s\S]{0,120}colorAccento \?\? '#14b8a6'/)
   })
 

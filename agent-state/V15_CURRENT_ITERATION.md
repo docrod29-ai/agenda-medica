@@ -8356,3 +8356,38 @@ resuelve donde ese color acaba—, así que ésos no se barren nunca.
 
 **Compuertas**: tsc limpio · vitest 9474/9475 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete sin deuda nueva · build compila.
+
+---
+
+## Un hallazgo que no era de color: dos juegos de valores por defecto para la receta (14-ago)
+
+Buscando los literales teal que quedaban apareció `colorAccento: '#14b8a6'`
+**dos veces**: en `DEFAULT_CONFIG` (`@/types`) y en un `RX_DEFAULTS` propio de
+la pantalla de configuración. Mirando el resto del bloque no era un campo
+duplicado: eran **los trece**, copiados uno a uno.
+
+Comparados campo por campo: **coincidían exactamente** — ninguno sobraba,
+ninguno faltaba, ninguno divergía. Y eso es el problema: **coincidían por
+suerte, no por construcción**.
+
+La siguiente vez que alguien cambie el aviso legal, la vigencia en días o el
+tamaño de papel en uno de los dos sitios, el otro se queda atrás — y la
+diferencia no sale en una pantalla: sale **impresa en una receta**, donde nadie
+la busca y donde lleva cédula profesional debajo. Es la regla cardinal del
+repositorio en su forma más silenciosa: dos copias que hoy dicen lo mismo no
+dan ningún síntoma.
+
+`RX_DEFAULTS` pasa a derivar de `DEFAULT_CONFIG.recetaConfig`. Guardián
+`v15-los-defaults-de-receta-son-uno-solo.test.ts` (3 casos, probado al revés),
+cuyo caso 2 comprueba que el canónico de verdad trae los campos — si no, el
+caso 1 pasaría con una pantalla sin defaults.
+
+De propina, `hexEnLinea` **489 → 488**: el literal se fue con el dato a su sitio.
+
+**Guardián ajustado con su porqué** (precedente): el caso 1 de
+`v15-rtc19-configuracion-habla-el-token` exigía TRES literales en la pantalla de
+recetas y ahora son DOS — no porque se relaje, sino porque el tercero se mudó a
+su casa canónica.
+
+**Compuertas**: tsc limpio · vitest 9482/9483 (el rojo conocido del proxy) ·
+lint 96 = techo · trinquete con un techo más bajo · build compila.
