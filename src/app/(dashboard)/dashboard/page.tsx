@@ -157,7 +157,7 @@ export default function DashboardPage() {
 
       {/* 3 · ¿QUÉ PASA HOY? — la agenda, a todo el ancho.
           Una sola columna: no hay nada que se pueda salir de la pantalla. */}
-      <section className="card" style={{ padding: 0 }}>
+      <section className="hoy-bloque">
         <div className="hoy-bloque-head">
           <div style={{ minWidth: 0 }}>
             <h2 className="hoy-bloque-titulo">Agenda de hoy</h2>
@@ -175,6 +175,10 @@ export default function DashboardPage() {
         ) : errorCitas ? (
           /* «Tu agenda de hoy está libre» con la red caída es la frase más
              peligrosa de esta pantalla: el médico la lee y se va. */
+          /* El error SÍ conserva su peso: «tu agenda está libre» con la red
+             caída es la frase más peligrosa de esta pantalla, y distinguir
+             «no hay» de «no se pudo leer» es la regla 4 de seguridad clínica.
+             Lo que se aligera es el vacío de verdad, no el fallo. */
           <EmptyState
             icon={<CalendarDays size={22} />}
             title="No se pudo cargar la agenda"
@@ -183,12 +187,10 @@ export default function DashboardPage() {
           />
         ) : todayAppts.length === 0 ? (
           <EmptyState
-            icon={<CalendarDays size={22} />}
-            title="Sin citas hoy"
-            description={stats.manana > 0
-              ? `Tu agenda de hoy está libre. Mañana tienes ${stats.manana}.`
-              : 'Tu agenda de hoy está libre.'}
-            action={<Link href="/asistente"><Button variant="secondary" size="sm" icon={<Plus size={14} />}>Agendar cita</Button></Link>}
+            variante="linea"
+            title="Hoy no hay citas."
+            description={stats.manana > 0 ? `Mañana tienes ${stats.manana}.` : 'La agenda está libre.'}
+            action={<Link href="/asistente"><Button variant="ghost" size="sm" icon={<Plus size={14} />}>Agendar cita</Button></Link>}
           />
         ) : (
           <div>

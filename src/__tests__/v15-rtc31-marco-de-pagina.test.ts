@@ -100,6 +100,8 @@ describe('RTC-31 — toda pantalla dice qué es', () => {
 
 describe('RTC-31 — una lista de trabajo no lleva tarjeta alrededor', () => {
   const PACIENTES = leer('src/app/(dashboard)/pacientes/page.tsx')
+  const HOY = leer('src/app/(dashboard)/dashboard/page.tsx')
+  const CONTINUIDAD = leer('src/components/ContinuidadPanel.tsx')
 
   it('4 · la lista de /pacientes ya no vive dentro de una `.card`', () => {
     expect(PACIENTES).not.toContain('<div className="card" style={{ padding: 0 }}>')
@@ -111,5 +113,15 @@ describe('RTC-31 — una lista de trabajo no lleva tarjeta alrededor', () => {
     expect(cuerpo).toContain('className="t-overline"')
     // Sin fondo propio: agrupa hablando, no dibujando.
     expect(cuerpo).not.toMatch(/background: 'var\(--s1\)'/)
+  })
+
+  it('6 · los dos bloques de Hoy tampoco: agrupa su encabezado, no la caja', () => {
+    // 2ª rebanada. «Agenda de hoy» y «Sigue abierto de antes» ya traían
+    // encabezado con línea inferior; lo que sobraba era la tarjeta alrededor.
+    expect(HOY).toContain('<section className="hoy-bloque">')
+    expect(HOY).not.toContain('<section className="card" style={{ padding: 0 }}>')
+    expect(CONTINUIDAD).toContain('<section className="hoy-bloque"')
+    expect(CONTINUIDAD).not.toContain('className="card"')
+    expect(leer('src/app/globals.css')).toContain('.hoy-bloque {')
   })
 })

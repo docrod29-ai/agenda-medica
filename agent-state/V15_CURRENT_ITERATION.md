@@ -442,9 +442,34 @@ con `--actualizar`.
 filtro y el estado vacío (RTC-30) siguen abiertos. Convertir cinco pantallas de
 golpe sin volver a puntuar sería repintar.
 
+### RTC-31, 2ª rebanada + RTC-30 (14-ago) — Hoy suelta la tarjeta, y el vacío se calla
+
+- Los dos bloques de Hoy («Agenda de hoy» y «Sigue abierto de antes») dejaron
+  de ser tarjetas: `.hoy-bloque` en vez de `.card`, con los laterales a 2px —
+  dentro de una caja, 20px de padding es margen interior; sin caja, es una
+  sangría que desalinea el bloque del resto de la página.
+- **Y otra vez: quitar un contenedor cambia el peso de todo lo que había
+  dentro.** Sin la caja que lo justificaba, «Sin citas hoy» se convirtió en
+  **250px de vacío ilustrado por encima de dos pendientes críticos y sin
+  dueño**, que quedaban fuera del primer viewport. Es la segunda vez en la
+  misma rebanada (la primera fueron las bandas de inicial de /pacientes).
+- Por eso **RTC-30 se pagó aquí**: `EmptyState` gana `variante="linea"` —el
+  mismo componente, no uno paralelo— para el vacío de UN BLOQUE dentro de una
+  pantalla que sigue teniendo trabajo debajo. «Hoy no hay citas. Mañana tienes
+  6.» en un renglón, con su acción al lado.
+- **El ERROR conserva su peso**: «No es que no tengas citas: no se pudieron
+  leer» sigue siendo hero. Aligerarlo haría que un fallo de red se leyera como
+  una agenda libre — regla 4, y la frase más peligrosa de esa pantalla.
+- Guardianes: `v15-rtc30-estado-vacio-de-bloque.test.ts` (4 casos, al revés ×2)
+  y un caso nuevo en el de RTC-31 (al revés). **El caso 4 de RTC-30 falló
+  primero por el instrumento**: miraba ±400 caracteres alrededor del título y
+  se llevaba por delante el `EmptyState` vecino; ahora acota el ELEMENTO.
+- Medido en navegador: 0 errores de consola, y el worklist entero cabe ahora en
+  el primer viewport de Hoy. Capturas en `docs/design/capturas/v15-rtc31-hoy/`.
+
 **Estado de la iteración:** `V15-ORIGINALITY-REDTEAM-001` tiene los DOS P0, los
-DIEZ P1 originales, **RTC-15**, **RTC-29**, las dos pasadas de §29 y la primera
-rebanada de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
+DIEZ P1 originales, **RTC-15**, **RTC-29**, **RTC-30**, las dos pasadas de §29 y
+dos rebanadas de **RTC-31**. **No se cierra**: la compuerta pide ≤1.0 y la última
 medición dio 2.5. Siguiente rebanada: seguir RTC-31 por las pantallas que faltan
 —empezando por `/dashboard`, que es la puerta de entrada— y volver a puntuar.
 Sólo con PASS, §43 orden 17: `V15-WORKFLOW-BENCHMARK-001`.

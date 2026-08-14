@@ -2289,8 +2289,46 @@ body:has(.nx-lienzo-completo) .theme-toggle {
   color: var(--text3);
   margin-bottom: 4px;
 }
+/* RTC-30 — la variante de LÍNEA: el vacío de un bloque, no el de una pantalla.
+   Sin centrado, sin icono y sin 48px de aire: a la izquierda, en el renglón,
+   con su acción al lado. Ver el porqué en EmptyState.tsx. */
+.empty-state--linea {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 10px;
+  padding: 14px 2px 18px;
+  flex-wrap: wrap;
+}
+.empty-state--linea .empty-state-desc { max-width: none; display: inline; }
+.empty-state--linea .empty-state-title { font-size: 14px; }
+
 .empty-state-title { font-size: 15px; font-weight: 600; color: var(--text2); }
 .empty-state-desc  { font-size: 13px; color: var(--text3); max-width: 360px; }
+
+/* RTC-31 — EL BLOQUE DE HOY DEJA DE SER UNA TARJETA.
+   La 2ª pasada de §29 midió que lo que queda de genérico en cinco superficies
+   es el marco, no el contenido: «contenedor de tarjeta con filas dentro» está
+   en la lista literal de lo que la regla de diseño prohíbe («tablero hecho
+   enteramente de tarjetas redondeadas»). La superficie que puntúa 1.0
+   —/pendientes— no envuelve nada: agrupa el ENCABEZADO, que además dice algo.
+   Aquí los encabezados ya existen («Agenda de hoy», «Sigue abierto de antes»)
+   y ya llevan su línea inferior; lo que sobraba era la caja.
+   Los laterales se van con ella: dentro de una tarjeta, 20px de padding es
+   margen interior; sin tarjeta, es una sangría que desalinea el bloque del
+   resto de la página. */
+.hoy-bloque {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.hoy-bloque > .hoy-bloque-head { padding-left: 2px; padding-right: 2px; }
+.hoy-bloque > .hoy-bloque-head + * .cita-fila,
+.hoy-bloque > .cita-fila,
+.hoy-bloque > div > .cita-fila { padding-left: 2px; padding-right: 2px; }
+.hoy-bloque .empty-state { padding-left: 2px; padding-right: 2px; }
 
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {

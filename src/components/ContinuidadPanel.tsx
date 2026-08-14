@@ -61,7 +61,7 @@ export function ContinuidadPanel() {
   const visibles = ordenadas.slice(0, TOPE_VISIBLE)
 
   return (
-    <section className="card" style={{ padding: 0 }} aria-label="Continuidad entre consultas">
+    <section className="hoy-bloque" aria-label="Continuidad entre consultas">
       <div className="hoy-bloque-head">
         <h2 className="hoy-bloque-titulo">Sigue abierto de antes</h2>
         <Link href="/pendientes" className="hoy-vertodas">
@@ -74,7 +74,7 @@ export function ContinuidadPanel() {
         ))}
       </div>
       {ordenadas.length > TOPE_VISIBLE && (
-        <div className="nx-meta" style={{ padding: '8px 20px 14px' }}>
+        <div className="nx-meta" style={{ padding: '8px 2px 14px' }}>
           +{ordenadas.length - TOPE_VISIBLE} más en el worklist
         </div>
       )}

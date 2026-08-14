@@ -69,7 +69,10 @@ sitio es `/operaciones` — así salió «Respaldo» de `/pacientes` en RTC-29.
   pero las de `/pacientes` llevan conteos reales y sirven. Cambiarlas sin medir
   sería repintar. Queda para la rebanada que las mida contra el patrón de
   `/pendientes` («Ver sólo los míos» es una frase, no una píldora).
-- **El estado vacío** — es RTC-30, con su propia entrada.
+- **El estado vacío** — es RTC-30. **Pagado en Hoy** el 14-ago, porque quitar
+  la tarjeta lo dejó insostenible (250px de vacío ilustrado por encima de dos
+  pendientes críticos); el resto de pantallas sigue con el hero y se mira caso
+  por caso — a veces el vacío ES la pantalla y el hero es correcto.
 - **Los dos FAB de escritorio** — RTC-05 se pagó con alcance declarado; se
   vuelven a mirar cuando el marco esté hecho, no antes.
 - **El ancho de la columna** — es RTC-12(a), deuda dimensionada del monolito.
@@ -85,6 +88,6 @@ que el sistema de diseño existe para evitar.
 | `/pendientes` | Es el patrón. No se toca. |
 | `/pacientes` | **Convertida** (14-ago): subtítulo + lista sin tarjeta + encabezados que hablan. |
 | `/operaciones` | Media hecha por RTC-29 (lista con propósito y cadencia); le falta la cabecera. |
-| `/dashboard` (Hoy) | Pendiente. |
+| `/dashboard` (Hoy) | **Convertida** (14-ago, 2ª rebanada): sus dos bloques dejaron la tarjeta, y su vacío pasó a línea (RTC-30). |
 | `/expediente` | Pendiente — su marco es distinto (ancla de paciente), hay que decidir qué le aplica. |
 | `/consulta` | Pendiente — íd. |
