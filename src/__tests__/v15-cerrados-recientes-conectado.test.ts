@@ -75,13 +75,21 @@ describe('/pendientes — closed recently conectado, no huérfano', () => {
   })
 
   it('las tareas cerradas se pintan con un componente de sólo lectura, no con Tarjeta', () => {
-    expect(PAGINA).toMatch(/const TarjetaCerrada = /)
-    expect(PAGINA).toMatch(/cerradas\.map\(t => <TarjetaCerrada key=\{t\.id\} t=\{t\} \/>\)/)
-    // TarjetaCerrada no debe llevar el botón "Ya no aplica" — sería una
-    // acción que cambiarEstado(cerrada -> cancelada) va a rechazar.
-    const inicio = PAGINA.indexOf('const TarjetaCerrada = ')
-    const fin = PAGINA.indexOf('\n  return (', inicio)
+    /**
+     * AJUSTADO A LA FORMA NUEVA, NO RELAJADO. `TarjetaCerrada` pasó de ser una
+     * arrow declarada DENTRO de `PendientesPage` a una función de módulo,
+     * porque la medición en navegador real demostró que declararla en el render
+     * remontaba la lista entera en cada `setState` — y con ella se perdían el
+     * `aria-expanded` y la vuelta del foco de §21. La vara sigue midiendo lo
+     * mismo (una cerrada NO se pinta con `Tarjeta`, y no ofrece acciones que
+     * `cambiarEstado` va a rechazar); lo que cambia es cómo se declara.
+     */
+    expect(PAGINA).toMatch(/^function TarjetaCerrada\(/m)
+    expect(PAGINA).toMatch(/cerradas\.map\(t => <TarjetaCerrada key=\{t\.id\}/)
+    const inicio = PAGINA.indexOf('function TarjetaCerrada(')
+    const fin = PAGINA.indexOf('export default function PendientesPage', inicio)
     const cuerpo = PAGINA.slice(inicio, fin)
+    expect(cuerpo.length).toBeGreaterThan(200)
     expect(cuerpo).not.toContain('Ya no aplica')
     expect(cuerpo).not.toContain('siguientePaso')
   })

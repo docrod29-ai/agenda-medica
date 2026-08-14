@@ -8570,3 +8570,143 @@ producto declarado y con dueño: el punto 1 de arriba (llevar la fuente a las
 otras superficies), el punto 2 (el paréntesis de `alergiasDe`, unidad de
 seguridad clínica) y RTC-12(a) (lienzo multicolumna, con el refactor del
 monolito).
+
+---
+
+## §10 CONTESTA LAS CUATRO — y la traza llevaba dos años guardándose sin que nadie la leyera (15-ago)
+
+**La rebanada que el estado dejó nombrada como punto 1**: el alcance de §21
+estaba en **1 de 6** superficies; la Capa 4 estaba montada en las seis y sólo
+`/consulta` la usaba. Esta corrida sube el alcance a **2 de 6** llevando la
+inspección de la fuente a `/pendientes`, la cola de cierre de Fase 7.
+
+### El hallazgo no era de interfaz
+
+§10 pide que cada entrada conteste cuatro preguntas. `/pendientes` contestaba
+dos —dueño y siguiente paso—. Buscando con qué contestar las otras dos apareció
+esto:
+
+```
+TareaClinica.notaId  →  «de qué consulta salió. Es la traza hacia atrás»
+  escrito por        →  derivar.ts:81, en cada tarea derivada de una nota
+  leído por          →  firestore.ts, para componer un id y no duplicar
+  leído por una pantalla → NADIE
+```
+
+El campo existe, se escribe, las pruebas de contrato pasan, y del otro lado no
+hay quien lo lea. Es **«el dato tiene que LLEGAR»** en su forma más silenciosa
+—REG-160/167/170 son la misma familia—, y esta vez el dato que no llegaba era
+justamente la respuesta a «¿por qué está aquí?».
+
+Y el hueco gemelo en el otro extremo: **ninguna tarea sembrada traía `notaId`**.
+Sin arreglarlo, la medición habría fotografiado «no consta de qué consulta
+salió» en las siete y lo habría dado por bueno. Quinto hueco de siembra de esta
+familia en la iteración.
+
+### Lo que se construyó
+
+`src/lib/tareas-clinicas/por-que-esta-aqui.ts` — módulo **puro** (§1 permite
+«view models, selectors, presentation-layer adapters»; no calcula nada clínico,
+no consulta, no tiene reloj propio). Traduce campos ya escritos a las cuatro
+respuestas, y `siguientePaso` **se muda aquí desde la pantalla**: al necesitarlo
+también «¿qué sigue?», la segunda copia habría sido dos definiciones del paso
+legal siguiente de una tarea clínica.
+
+Las tres decisiones que no son de estilo:
+
+1. **Ausencia de dato no es dato de ausencia.** Sin `completadaEn` no hay hito
+   «no se ha hecho»: hay ausencia del hito.
+2. **`origen` es cadena libre** en el modelo, no unión de tipos. Lo que no se
+   reconoce se declara sin explicar; no se reparte entre los tres documentados.
+3. **`cerradaPor` es un uid.** Se dice «tú» si coincide con quien mira; en
+   cualquier otro caso el hito conserva la fecha y **calla el autor**.
+
+### Lo que el navegador cambió, y no lo habría visto ninguna prueba de fuente
+
+**Defecto real, cazado por la medición** (`medir-por-que-esta-aqui-v15.mjs`):
+
+| | antes | después |
+|---|---|---|
+| `aria-expanded` al abrir | **false → false** | false → **true** |
+| el disparador «se movió» | **-357 / -455 / -420px** | **0px** (escritorio) |
+| disparador tapado por lo abierto | **sí** | no |
+| ESCAPE → foco vuelve al disparador | **NO** | **sí**, en los dos anchos |
+| alto de la cola al abrir | +0px | +0px |
+| las cuatro respuestas | — | **4/4**, ninguna vacía, `<h3>` |
+| la traza aterriza | — | **carga, 0 errores nuevos** |
+| errores de consola | 0 | 0 |
+
+Los cuatro primeros son **el mismo hecho**: `Tarjeta` y `TarjetaCerrada` se
+declaraban DENTRO de `PendientesPage`. React ve un componente declarado en el
+render como un tipo nuevo cada vez y remonta su subárbol, así que el botón que
+la sonda tenía en la mano ya estaba desconectado del documento. Sin estado
+dentro no se notaba nunca; con la lente sí — y el síntoma era **§21
+incumplido**, o sea, justo la interacción que la rebanada venía a entregar.
+
+Las dos tarjetas pasan a ser componentes de módulo con props explícitas.
+
+**Segunda corrección que vino de mirar el producto**: la frase de «por qué está
+aquí» incrustaba `ETIQUETA_TIPO` y salió impresa como «el plan dejó este
+**reconciliar** abierto». Las etiquetas de tipo no son sustantivos —«Reconciliar»
+es un verbo, «Pendiente» un adjetivo sustantivado—. El tipo sale de la frase; la
+tarjeta ya lo enseña en su distintivo una línea más arriba. Era redundancia con
+una trampa dentro.
+
+Séptima y octava vez en la iteración que medir cambia lo escrito.
+
+### Tres varas que se ajustaron con su porqué (nunca a la baja)
+
+- `v15-roles-tipograficos-en-pendientes` exigía los tres textos de
+  `siguientePaso` en la PANTALLA. Ahora los busca en su casa canónica **y**
+  exige que la pantalla los importe de ahí — sin esa segunda mitad, pasaría con
+  una pantalla que volviera a declarar su copia.
+- `v15-cerrados-recientes-conectado` y `v15-motion-continuidad-de-objeto`
+  medían la FORMA de declaración (`const X = `, `irAlExpediente(`). Miden la
+  forma nueva, y la segunda gana un caso: que las dos tarjetas reciban el salto
+  de la **misma** función, no de dos copias.
+
+La tipografía del panel vive en la HOJA (`.nx-porque*`): la primera versión la
+escribió en línea y **el trinquete de diseño la paró en seco** (1963 → 1969),
+además del guardián propio de la pantalla que tiene sellado que 11/13/15 no
+vuelven inline ahí. Dos varas distintas midiendo lo mismo, las dos con razón.
+
+### Compuertas
+
+`npx tsc --noEmit` limpio · `npx vitest run` **9513/9514** (el único rojo es
+`ops-timeout-y-punto-ciego`, el conocido del proxy del contenedor — verificado
+en rojo también contra HEAD limpio) · lint **96 = techo** · trinquete de diseño
+sin deuda nueva · `npm run build` compila · navegador real 1440 + 390 en las dos
+fases, 18 capturas, **0 errores de consola**.
+
+Guardián `v15-por-que-esta-aqui.test.ts` (16 casos). **Probado al revés**:
+contra el árbol previo el fichero no carga; devolviendo sólo el cableado fallan
+los casos 10-14; y cuatro reversiones quirúrgicas sobre el árbol nuevo —el
+`default` cayendo en 'nota' (rompe 3), el hito de completada emitido siempre
+(rompe 5), `sinRevisar` en false (rompe 6), el uid impreso crudo (rompe 8)—
+comprobadas en rojo una a una.
+
+Un defecto propio, del instrumento, y van doce en la fase: la sonda nombraba las
+entradas con `closest('div[style]')` y las tres salieron «(sin identidad)» en la
+fase «antes».
+
+### Declarado y NO pagado
+
+1. **El alcance sigue en 2 de 6.** Faltan `/expediente`, `/dashboard`,
+   `/pacientes` y `/operaciones`. La capa está montada en las seis desde la
+   corrida anterior; lo que falta es quién la use.
+2. **`alergiasDe` parte dentro del paréntesis** — sigue sin pagar, y sigue
+   siendo `src/lib/seguridad/alergias.ts`, que §1 congela. Unidad propia, con su
+   entrada de regresión y su sello.
+3. **La divergencia de `mostrarAlergias` entre `/orden` y `/receta`** sigue
+   congelada por su guardián, esperando decisión del dueño.
+4. **RTC-12(a)** (lienzo multicolumna) sigue nombrado, con el refactor del
+   monolito.
+5. **`/pendientes` conserva `Modal` para cancelar.** §19 pide evitar cadenas de
+   modales; cancelar exige motivo y es consecuente, así que el modal está
+   justificado — pero no se ha contrastado contra la lente, que es la pieza que
+   ahora existe para esto. Anotado, no decidido.
+
+**Siguiente tarea exacta**: sigue siendo la **lectura INDEPENDIENTE** de §26/§29
+—quien implementa no puede ser el juez—. Trabajo de producto con dueño: el punto
+1 (llevar la fuente a las cuatro superficies que faltan, empezando por
+`/expediente`, donde la Clinical Spine de §7 es el sitio natural) y el punto 2.

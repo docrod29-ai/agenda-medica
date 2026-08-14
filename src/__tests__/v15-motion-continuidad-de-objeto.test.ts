@@ -200,8 +200,15 @@ describe('la segunda cadena (Result queue → Patient result) y los saltos decla
   it('/pendientes: la tarjeta viva Y la cerrada coreografían con su .nx-ident como origen', () => {
     // Ambas tarjetas son la MISMA entidad (TareaClinica) pintada distinto:
     // el salto al expediente se coreografía igual en las dos.
-    const saltos = pendientes.match(/irAlExpediente\(e, t\.patientId!\)/g) ?? []
+    //
+    // La vara mide `onIrAlExpediente` y no `irAlExpediente` desde que las dos
+    // tarjetas son componentes de módulo: ya no ven el closure de la página y
+    // reciben el salto por prop. El invariante no cambia —se coreografía en
+    // las DOS—, y se le añade lo que la forma nueva permite comprobar: que las
+    // dos lo reciban de la MISMA función, no de dos copias.
+    const saltos = pendientes.match(/onIrAlExpediente\(e, t\.patientId!\)/g) ?? []
     expect(saltos.length).toBe(2)
+    expect((pendientes.match(/onIrAlExpediente=\{irAlExpediente\}/g) ?? []).length).toBe(3)
     expect(pendientes).toMatch(/if \(!esClickDeNavegacionSimple\(e\)\) return/)
     expect(pendientes).toMatch(/navegarConContinuidad\(\(\) => router\.push\(`\/expediente\/\$\{patientId\}`\), e\.currentTarget\)/)
   })

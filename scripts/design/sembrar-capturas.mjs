@@ -325,6 +325,23 @@ async function main() {
       estado: 'solicitada',
       creadaEn: diaISO(-1),
       origen: 'nota',
+      /**
+       * LA TRAZA HACIA ATRÁS, SEMBRADA — y sin esto la Capa 4 de /pendientes
+       * no tenía NADA que enseñar en «por qué está aquí».
+       *
+       * `TareaClinica.notaId` («de qué consulta salió») se escribe en cada
+       * tarea derivada de una nota desde que existe `derivar.ts`, pero NINGUNA
+       * tarea sembrada lo traía: el enlace a la consulta de origen habría
+       * salido ausente en las siete, y la medición habría fotografiado un
+       * hueco declarándolo «no consta». Es el quinto hueco de siembra de esta
+       * misma familia (las notas sin `transcripcionCruda` fueron el cuarto).
+       *
+       * Se siembra sólo donde existe una nota de VERDAD para ese paciente:
+       * Catalina no tiene ninguna, así que sus dos tareas se quedan sin traza
+       * — y eso es deliberado, porque la rama «no consta de qué consulta
+       * salió» también tiene que poder verse en el navegador.
+       */
+      notaId: 'nota-aurelio-2',
     },
     /**
      * V15-RESULTS-CLOSURE-001 — dos tareas de resultado MÁS, con dueño y
@@ -391,6 +408,7 @@ async function main() {
       creadaEn: diaISO(-1),
       venceEn: diaISO(4),
       origen: 'nota',
+      notaId: 'nota-luzmaria-1',
     },
     {
       id: 'tarea-otra-catalina',
@@ -431,6 +449,10 @@ async function main() {
       cerradaEn: diaISO(-2),
       cerradaPor: uid,
       origen: 'laboratorio',
+      // Cerrada por el propio médico de la siembra: es el único caso en que la
+      // línea de tiempo puede decir «lo revisaste y lo cerraste» sin resolver
+      // un uid contra otra colección.
+      notaId: 'nota-luzmaria-1',
     },
   ]
   for (const t of tareas) {

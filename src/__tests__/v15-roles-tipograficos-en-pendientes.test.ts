@@ -126,9 +126,32 @@ describe('/pendientes habla los roles', () => {
 
 describe('freeze funcional — la rebanada es tipográfica, no de conducta', () => {
   it('las cuatro acciones del worklist conservan su texto exacto', () => {
-    expect(PAGINA).toContain("texto: 'Tomarla'")
-    expect(PAGINA).toContain("texto: 'Ya se hizo'")
-    expect(PAGINA).toContain("texto: 'Lo revisé — cerrar'")
+    /**
+     * AJUSTADO CON SU PORQUÉ, NO RELAJADO (mismo precedente que el caso 1 de
+     * `v15-rtc19-configuracion-habla-el-token`): los tres primeros textos ya
+     * NO se leen en esta pantalla porque `siguientePaso` se mudó a su casa
+     * canónica —`@/lib/tareas-clinicas/por-que-esta-aqui`— al necesitarlo
+     * también la respuesta «¿qué sigue?» de §10. Dejar la copia aquí habría
+     * sido tener dos definiciones del paso legal siguiente de una tarea
+     * clínica, que es la regla cardinal de este repositorio rota en el sitio
+     * más caro: el día que una cambie, la otra ofrece un botón que
+     * `cambiarEstado` rechaza.
+     *
+     * La vara se mueve al fichero donde el dato vive AHORA, y se le añade lo
+     * que antes no hacía falta comprobar: que la pantalla lo importe de ahí.
+     * Sin esa segunda mitad, esto pasaría con una pantalla que declarase su
+     * propia copia otra vez.
+     */
+    const PASO = readFileSync(
+      join(process.cwd(), 'src/lib/tareas-clinicas/por-que-esta-aqui.ts'),
+      'utf8',
+    )
+    expect(PASO).toContain("texto: 'Tomarla'")
+    expect(PASO).toContain("texto: 'Ya se hizo'")
+    expect(PASO).toContain("texto: 'Lo revisé — cerrar'")
+    expect(PAGINA).toMatch(/import \{[^}]*siguientePaso[^}]*\} from '@\/lib\/tareas-clinicas\/por-que-esta-aqui'/)
+    expect(PAGINA, 'la pantalla volvió a declarar su propia copia')
+      .not.toMatch(/function siguientePaso/)
     expect(PAGINA).toContain('Ya no aplica')
   })
 
