@@ -105,8 +105,19 @@ describe('las clases con shorthand propio llevan TODAS sus propiedades en él', 
     expect(voz).toMatch(/opacity var\(--mov-rapido\)/)
   })
 
-  it('el FAB de ayuda conserva su fade de opacity en su propia regla', () => {
-    expect(css).toMatch(/\.boton-ayuda-fab \{ transition: opacity var\(--mov-rapido\) var\(--mov-curva\); \}/)
+  it('el FAB de ayuda ya no tiene voz porque ya no tiene cuerpo (RTC-32)', () => {
+    /**
+     * La 2ª rebanada de V15-MOTION-001 separó las voces: el FAB llevaba su
+     * fade en una regla propia y el toggle dentro de SU shorthand, porque la
+     * regla compartida que tenían antes sombreaba el shorthand entero.
+     *
+     * RTC-32 retiró el FAB del producto. El invariante «una voz por elemento»
+     * no se relaja: se comprueba que no quede la regla huérfana de un elemento
+     * que ya no existe, que es la otra forma de romperlo — una voz sin cuerpo
+     * es exactamente lo que hace que la siguiente lectura del archivo crea que
+     * el elemento sigue ahí.
+     */
+    expect(css).not.toContain('.boton-ayuda-fab')
   })
 
   it('.card-hover y .kpi-card incluyen color — no pierden el cross-fade de tema', () => {

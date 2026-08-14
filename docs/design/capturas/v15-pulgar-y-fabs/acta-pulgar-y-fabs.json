@@ -2,12 +2,15 @@
   "desktop": {
     "hoy": {
       "hoyAccionVisible": true,
-      "ayudaFabVisible": true,
-      "toggleVisible": true,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
       "toggleCristal": "none",
       "toggleBgAlfa": 1,
-      "triggerAyudaVisible": false,
-      "triggerAyudaTamano": null,
+      "triggerAyudaVisible": true,
+      "triggerAyudaTamano": {
+        "w": 207,
+        "h": 36
+      },
       "panelAyudaAbierto": false,
       "centralLabel": "Nueva cita",
       "centralRelleno": false,
@@ -28,12 +31,15 @@
     },
     "hoyAlDetener": {
       "hoyAccionVisible": true,
-      "ayudaFabVisible": true,
-      "toggleVisible": true,
+      "ayudaFabVisible": false,
+      "toggleVisible": false,
       "toggleCristal": "none",
       "toggleBgAlfa": 1,
-      "triggerAyudaVisible": false,
-      "triggerAyudaTamano": null,
+      "triggerAyudaVisible": true,
+      "triggerAyudaTamano": {
+        "w": 207,
+        "h": 36
+      },
       "panelAyudaAbierto": false,
       "centralLabel": "Nueva cita",
       "centralRelleno": false,
@@ -133,8 +139,8 @@
       "centralIconOpacidad": 1
     },
     "operacionesTema": {
-      "texto": "Tema: oscuro",
-      "alto": 47
+      "texto": "Tema: oscuroClaro, oscuro o el del sistema",
+      "alto": 60
     },
     "erroresConsola": []
   },

@@ -99,18 +99,37 @@ describe('V15-A11Y-001 · 4ª rebanada — contrastes de /chat y widgets flotant
     }
   })
 
-  it('4. el toggle cede el paso al aviso push, igual que el FAB', () => {
-    expect(css).toMatch(
-      /body:has\(\.nx-push-optin\)\s+\.boton-ayuda-fab,\s*\n\s*body:has\(\.nx-push-optin\)\s+\.theme-toggle\s*\{\s*opacity:\s*0;\s*pointer-events:\s*none;\s*\}/,
-    )
+  it('4. nada flotante pelea con el aviso push — RTC-32 quitó la causa, no el arbitraje', () => {
+    /**
+     * Este caso exigía la regla que apartaba FAB y toggle mientras el aviso de
+     * push preguntaba (el FAB tapaba su X; el toggle pintaba sobre el borde de
+     * la hoja a 390px). RTC-32 midió el cromo flotante y lo retiró del shell
+     * entero: `.nx-push-optin` sólo existe dentro del dashboard, y ahí ya no
+     * flota nada. El arbitraje se retiró con su causa — dejarlo habría sido
+     * una regla de adorno.
+     *
+     * Lo que este caso protege ahora es el mismo trato, dicho al derecho: en
+     * el shell no hay widget fijo que pueda tapar el aviso.
+     */
+    expect(css).not.toContain('boton-ayuda-fab')
+    expect(css).toMatch(/body:has\(\.bottom-nav-wrap\)\s+\.theme-toggle\s*\{\s*display:\s*none;\s*\}/)
   })
 
-  it('5. en pantallas-lienzo el toggle libra el composer: sube en escritorio, y en el shell móvil NO EXISTE', () => {
-    expect(css).toMatch(/body:has\(\.nx-lienzo-completo\)\s+\.theme-toggle\s*\{\s*bottom:\s*92px;\s*\}/)
-    // La defensa móvil cambió de naturaleza con RTC-05: el parche de números
-    // mágicos (BottomNav + composer + aire, medido a mano y roto dos veces)
-    // murió porque el toggle ya no flota en el shell móvil — no hay esquina
-    // que negociar con el composer. La regla que lo garantiza:
+  it('5. en pantallas-lienzo NADA se interpone entre el dedo y «Enviar»', () => {
+    /**
+     * El defecto original (4ª rebanada de V15-A11Y-001): en /chat el toggle
+     * caía sobre el botón «Enviar» y el arnés no podía pulsarlo ni en 1440 ni
+     * en 390 — «.theme-toggle subtree intercepts pointer events». Se sorteó
+     * subiéndolo a 92px, un número medido a mano.
+     *
+     * RTC-05 mató el parche móvil y RTC-32 el de escritorio, los dos por la
+     * misma vía: /chat es una pantalla del shell, y en el shell el toggle no
+     * se pinta. La colisión no se negocia mejor — deja de existir.
+     *
+     * Por eso el caso ya no exige el 92px (exigirlo sería exigir que vuelva el
+     * problema que lo justificaba) sino la condición que lo hace imposible.
+     */
+    expect(css).not.toContain('body:has(.nx-lienzo-completo) .theme-toggle')
     expect(css).toMatch(/body:has\(\.bottom-nav-wrap\)\s+\.theme-toggle\s*\{\s*display:\s*none;\s*\}/)
   })
 

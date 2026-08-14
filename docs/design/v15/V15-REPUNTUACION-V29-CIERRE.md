@@ -199,6 +199,18 @@ superficies. Pagado eso, la distancia entre el 1.5 general y el 1.0 de
    declarado y esa decisión sigue en pie — pero ahora que no quedan defectos
    mayores, son lo que más se parece a otro producto.
 
+   → **PAGADO 14-ago como RTC-32**, y la medición corrigió el diagnóstico de
+   este párrafo: el defecto no era la oclusión (que en escritorio no se
+   reproduce: el FAB cae sobre el envoltorio de la página, nunca sobre texto
+   clínico) sino el **peso**. El FAB se pintaba con `--nexus-solido`, el mismo
+   relleno que la acción primaria, así que en 6/6 superficies había DOS
+   rellenos de marca y en `/operaciones` la ayuda era el ÚNICO: lo más enfático
+   de la pantalla de administración era el botón de ayuda. Medido antes y
+   después en `docs/design/capturas/v15-cromo-flotante/`: cromo flotante
+   **6/6 → 0/6** en escritorio, y los rellenos de marca de escritorio pasan a
+   coincidir **exactamente** con los de móvil en las seis superficies, que era
+   el control. Los tres residuos quedan pagados.
+
 ## El control, otra vez
 
 `/pendientes` no se ha tocado en ninguna de las seis rebanadas y sigue en 1.0.
