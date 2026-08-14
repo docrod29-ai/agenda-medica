@@ -769,6 +769,29 @@ El cálculo de las etapas **no se tocó**: esto es cómo se dicen, no qué se di
 Y una tarea terminal no promete «lo que sigue» — prometerlo sería inventarlo,
 la misma regla que hace que tres de las ocho nunca se marquen como hechas.
 
+### RTC-13 PAGADA (14-ago) — la IA se experimenta, no se rotula
+
+Quedó PARCIAL en su día **y sin guardián**, y por eso volvió a crecer. Los que
+faltaban, todos en controles que ve el médico:
+
+    «Redactar con IA»          → «Redactar la valoración»
+    «Detectar campos con IA»   → «Detectar los campos»
+    «Nota con IA (dictado)»    → «Escribir la nota dictando»
+
+Y sus textos de ayuda y de error se renombraron CON ellos: una instrucción que
+nombra un botón que ya no se llama así manda al médico a buscar algo que no
+existe.
+
+**Lo que NO se toca, con su razón escrita: los créditos.** «Se acabaron tus
+créditos con IA del mes» no rotula una función — nombra un límite que el médico
+compró y que se le acabó. Quitarle el «IA» dejaría el aviso sin decir QUÉ se
+agotó. §25 prohíbe vender la IA como característica, no esconder de qué es la
+cuota, y esa distinción es lo que codifica el guardián (que por eso mira
+CONTROLES, no todo el árbol).
+
+**Declarado y no pagado**: el icono `Sparkles` sigue en los tres. §25 habla de
+texto, y decidir si el destello es «rotular» es un juicio que nadie ha medido.
+
 ### Lección de método: `npm run build` NO teclea las pruebas
 
 CI (`verificar`) cazó un `TS1501` en un guardián que yo había dado por bueno:

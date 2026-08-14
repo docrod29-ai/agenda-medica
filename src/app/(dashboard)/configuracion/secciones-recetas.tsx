@@ -1348,7 +1348,7 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
         toast(data.error ?? 'La IA no pudo detectar; colócalos a mano arrastrando', 'error')
       }
     } catch {
-      toast('No se pudo detectar con IA; colócalos a mano arrastrando', 'error')
+      toast('No se pudieron detectar los campos; colócalos a mano arrastrando', 'error')
     } finally {
       setDetectando(false)
     }
@@ -1383,12 +1383,15 @@ function CalibradorReceta({ disenoUrl, campos, onChange, onDetectado, paperHeigh
           background: 'var(--nexus-solido)', color: '#fff',
         }}
       >
+        {/* RTC-13 / §25: el botón dice lo que HACE, no con qué está hecho.
+            «Detectar campos con IA» vendía la tecnología; «Detectar los campos»
+            promete el resultado, que es lo que el médico quiere. */}
         {detectando
           ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Detectando campos…</>
-          : <><Sparkles size={14} /> Detectar campos con IA</>}
+          : <><Sparkles size={14} /> Detectar los campos</>}
       </button>
       <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
-        La IA lee tu formato y coloca Nombre/Edad/Fecha… solos. Luego los puedes arrastrar para ajustar.
+        Lee tu formato y coloca Nombre/Edad/Fecha… solos. Luego los puedes arrastrar para ajustar.
       </div>
       {sinColocar.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, alignItems: 'center' }}>

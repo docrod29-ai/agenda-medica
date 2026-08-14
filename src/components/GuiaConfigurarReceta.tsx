@@ -34,7 +34,7 @@ const PASOS: { t: string; d: string }[] = [
   },
   {
     t: '¿Tu papel ya trae las líneas de Nombre, Edad y Fecha?',
-    d: 'Activa “Mi diseño ya tiene campos del paciente impresos” para que la app no las dibuje encima. Luego arrastra cada etiqueta sobre su línea — o pulsa “Detectar campos con IA” y solo acomódalas.',
+    d: 'Activa “Mi diseño ya tiene campos del paciente impresos” para que la app no las dibuje encima. Luego arrastra cada etiqueta sobre su línea — o pulsa “Detectar los campos” y solo acomódalas.',
   },
   {
     t: 'Sube tu firma',

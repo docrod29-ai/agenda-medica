@@ -492,7 +492,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
                 </Button>
               )}
               <Button variant={onAplicarNota ? 'secondary' : 'primary'} size="sm" icon={<Download size={15} />} onClick={() => descargarWord()}>Word completo</Button>
-              <Button variant="secondary" size="sm" icon={<Sparkles size={15} />} loading={iaLoading} onClick={redactarIA}>Redactar con IA</Button>
+              <Button variant="secondary" size="sm" icon={<Sparkles size={15} />} loading={iaLoading} onClick={redactarIA}>Redactar la valoración</Button>
               <Button variant="secondary" size="sm" icon={<Save size={15} />} onClick={guardarHist}>Guardar al historial</Button>
             </div>
             {status && <div className="text-xs" style={{ color: 'var(--text3)' }}>{status}</div>}

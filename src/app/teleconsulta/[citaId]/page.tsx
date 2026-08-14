@@ -76,7 +76,7 @@ export default function TeleconsultaPage() {
               Documenta la consulta sin salir de la llamada. Se abre en otra pestaña.
             </p>
             <a href={`/consulta/${patientId}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ justifyContent: 'flex-start' }}>
-              <Stethoscope size={16} /> Nota con IA (dictado)
+              <Stethoscope size={16} /> Escribir la nota dictando
             </a>
             <a href={`/expediente/${patientId}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ justifyContent: 'flex-start' }}>
               <FileText size={16} /> Expediente
