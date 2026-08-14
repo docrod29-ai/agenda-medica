@@ -8175,3 +8175,53 @@ contradecía una captura de hacía media hora.
 
 **Compuertas**: tsc limpio · vitest 9463/9464 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete sin deuda nueva. Sin cambios de producto.
+
+---
+
+## RTC-26 — medido y refutado como métrica de defecto (14-ago)
+
+Recontado hoy sobre el árbol vivo:
+
+| | ORT-21 | hoy |
+|---|---|---|
+| `style={{` | 6065 → 6173 | **6205** (188 archivos) |
+| cociente inline/className | 7.43 → 5.99 | **5.83** |
+
+La tendencia que el panel describió sigue exactamente igual: **el absoluto sube
+y el cociente mejora**. El absoluto sube porque el producto crece — no
+distingue deuda de trabajo nuevo.
+
+Y lo de fondo: **medir el MECANISMO de estilado es el error que RTC-02 ya
+documentó**, cuando la vara de genericidad contaba clases Tailwind en un código
+88,5 % en línea. Un `style` que usa `var(--nexus)` no es deuda; un `className`
+que apunta a una clase con `#14b8a6` sí lo es. Lo que discrimina es el **valor**
+— y eso ya está contado y sellado: los ocho contadores del trinquete, con
+`el-sistema-de-diseno-no-pierde-terreno` exigiendo que el techo sea
+**exactamente** la medición, sin holgura escondida.
+
+**No se añade guardián, y es deliberado**: un guardián sobre una métrica
+refutada no protegería nada — sería ceremonia. El invariante que de verdad
+queda ya tiene el suyo.
+
+Si el dueño quisiera un trinquete de mecanismo, es decisión suya y son 6205
+sitios. Sin cambios de producto.
+
+---
+
+## Estado del bloque P3 al cierre de esta corrida
+
+| ID | Estado |
+|---|---|
+| RTC-22 | FIXED (dos fuentes, la peor no era la denunciada) |
+| RTC-23 | CERRADA entera (`/citas` + luna; la cascada de Hoy la declaró NO defecto el propio panel) |
+| RTC-24 | MEDIDO — no eran sinónimos; queda el SUSTANTIVO, decisión del dueño |
+| RTC-25 | MEDIDO — 1 de 5 se reproducía, pagada; «Urgente» declarado no medible |
+| RTC-26 | REFUTADO como métrica |
+| RTC-27 | FIXED (+ los 154 radios 12 declarados para el dueño del diseño) |
+| RTC-28 | REFUTADO (riel, topbar) + DECISIÓN (FAB) |
+
+**Queda abierto y declarado, no olvidado**: los ~52 literales teal fuera de
+`/configuracion` (cada familia con su pregunta: ¿resuelve el token donde ese
+color acaba?), el icono `Sparkles` de RTC-13, los 154 radios 12, el sustantivo
+del objeto central, y la compuerta §29 — que sigue en FAIL y cuyo cierre pide
+una lectura independiente del equipo rojo.
