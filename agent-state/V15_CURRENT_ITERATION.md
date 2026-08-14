@@ -7729,3 +7729,47 @@ importa, que nunca vuelva DENTRO del enlace.
 **Compuertas**: tsc limpio · vitest 9440/9441 (el rojo conocido del proxy) ·
 lint 96 = techo · trinquete sin deuda nueva · build compila · navegador real
 antes/después, escritorio y móvil, **0 errores de consola**.
+
+---
+
+## RTC-23 (mitad de `/citas`) — la cascada es una entrada, no una respuesta al clic (14-ago)
+
+**El hallazgo era cierto a medias**, y sólo midiendo se veía cuál mitad
+(`medir-rtc23-cascada-citas-v15.mjs`, muestreo de opacidad cada 40ms tras
+pulsar):
+
+|                                   | antes | después |
+|---|---|---|
+| filtro de estado («2 por confirmar») | 0ms | 0ms |
+| cambio de día («mañana: 1 cita»)     | ~320ms con una fila en opacidad 0 | 0ms |
+| cascada al ENTRAR                    | sí | sí |
+
+Los filtros de estado no re-animan —las filas que sobreviven conservan su
+nodo—; cambiar de día trae citas distintas, se remontan, y la cascada vuelve a
+correr con `fill: both`, que mantiene el estado inicial **durante** el retraso.
+El médico pulsaba y esperaba un tercio de segundo para leer el resultado de su
+propio clic.
+
+Arreglo: la cascada se marca como ENTRADA y se apaga a los 700ms. Entrar merece
+el escalonado (ordena la jerarquía de una lista que aparece de golpe, §20 — el
+propio panel declaró buena la del dashboard por eso); filtrar no ordena nada.
+
+**Comprobado explícitamente que la entrada sigue viva**: apagar de paso la
+animación buena habría sido un mal arreglo, y el acta lo mide.
+
+### El arnés se rompió con el arreglo, y eso se arregló primero
+
+La primera versión contaba elementos `.nx-reveal`. En cuanto el arreglo quitó
+esa clase, dejó de encontrar nada e informó **«0/0 filas · 0ms invisible»**: un
+aprobado vacío que parecía la prueba del éxito. Ahora cuenta `.riel-entrada`
+—la fila, exista o no la animación—. Mismo defecto que RTC-20 encontró en la
+vara del riel, cometido aquí sobre el propio arreglo, y cazado porque el número
+«0 de 0» no se parecía a un éxito.
+
+**Compuertas**: tsc limpio · vitest 9443/9445 → tras regenerar el inventario
+queda 1 rojo (el artefacto conocido del proxy) · lint 96 = techo · trinquete
+sin deuda nueva · build compila · navegador real antes/después, 0 errores de
+página.
+
+**Siguen abiertas** las otras dos mitades de RTC-23: la cascada 520+120ms de
+Hoy y la luna que rota al hover.
